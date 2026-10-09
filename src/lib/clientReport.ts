@@ -23,7 +23,7 @@
  * Pure: the screen gathers the records, this shapes them, the drawer draws. */
 import { isRunTest, productFigures, productName, readRuns, runsLine } from './run';
 import type { MediaPin, Project } from '../types';
-import { GATE_WORD, installGrid, jobJourney, lateOrProblemSays, machineAt, machinesWhere, journeyOf, usualStages, type GateTone, type JourneyGate, type StepView, lateByWords, heldUpBy } from './install';
+import { GATE_WORD, installGrid, jobJourney, lateOrProblemSays, handedOverWith, machineAt, machinesWhere, journeyOf, usualStages, type GateTone, type JourneyGate, type StepView, lateByWords, heldUpBy } from './install';
 import { stageGateOnTarget, type OnTarget } from './onTarget';
 import { standing, slipWords, type OutstandingRow, type PlanMark } from './standing';
 import { fixTone, type FixTone } from './fixTone';
@@ -165,7 +165,8 @@ export interface ClientReport {
    *  the report's screen. */
   onTarget: OnTarget;
   gates: { gate: JourneyGate; label: string; tone: GateTone; says: string }[];
-  machines: { name: string; at: string; gates: GateTone[] }[];
+  /** `with`: what a handed-over machine went with — "no test kept", "1 fix open". */
+  machines: { name: string; at: string; gates: GateTone[]; with?: string[] }[];
   sections: GateSection[];
   fixes: { open: FixRow[]; done: FixRow[] };
   /** CRITICAL ISSUES (lib/critical) — straight under "Are we on target?":
@@ -257,7 +258,9 @@ export function clientReport(x: ClientReportInput): ClientReport {
   const machines = assets.map(a => {
     const j = journeyOf(a, tests, items, today, programs);
     /* "Due on site" for a machine not here yet, never "Install" (machineAt). */
-    return { name: a.name, at: machineAt(a, j).short, gates: j.map(g => g.tone) };
+    /* What it was handed over with, beside "Handed over" (docs/HANDOVER.md). */
+    const open = handedOverWith(a, tests, items, today, programs);
+    return { name: a.name, at: machineAt(a, j).short, gates: j.map(g => g.tone), ...(open.length ? { with: open } : {}) };
   });
 
   /* ---- gate by gate ---- */

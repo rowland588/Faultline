@@ -90,8 +90,15 @@ export interface Standing {
   slipDays?: number;
   outstanding: number;
   late: number;
-  /** Every machine through all four gates and nothing owed — the method's done. */
+  /** Every machine handed over — its hand-over list done (lib/install
+   *  machineNow) — whatever is still open: the method's done, said with
+   *  what it went with. Rowland, 9 October: "nothing gets blocked but we
+   *  show the status." */
   handedOver?: boolean;
+  /** The day it was handed over — the last hand-over line's. */
+  handedOn?: string;
+  /** That day against the date agreed, in days: positive is late. */
+  handedVs?: number;
   rows: OutstandingRow[];
   plan: PlanMark[];
   /** WHAT IS LATE, BY NAME — the same things `late` counts, in the same
@@ -120,7 +127,7 @@ export function slipWords(slipDays?: number): string | undefined {
 }
 
 import { niceDay, todayISO } from './weeks';
-import { journeyOf, lateOrProblem } from './install';
+import { handedOverWith, journeyOf, lateOrProblem, machineAt } from './install';
 import { DAY_HOURS, hoursTally } from './hoursLost';
 export { todayISO };
 
@@ -400,18 +407,25 @@ export function standing(input: StandingInput): Standing {
      last hand-over step's; beside it, how that sits against the date agreed.
      Before this the finished job read "Nothing outstanding. 4 of 4 tests have
      run." — true, and not the sentence a client is waiting for. */
-  const handedOver = outstanding === 0 && assets.length > 0
-    && assets.every(a => journeyOf(a, input.tests, input.items, today, input.programs).every(g => g.tone === 'done'));
+  /* Every machine handed over — by the one reading every machine's place
+     uses (machineAt) — whatever is still open; what is open is said. A
+     machine not here yet is "due on site", never handed over. */
+  const handedOver = assets.length > 0
+    && assets.every(a => machineAt(a, journeyOf(a, input.tests, input.items, today, input.programs)).short === 'Handed over');
   const handedOn = handedOver
     ? tests.filter(t => isStep(t) && gateOf(t) === 'handover' && t.outcome === 'passed').map(t => t.ranTo ?? t.ranOn).filter((d): d is string => !!d).sort().pop()
     : undefined;
+  const handedVs = handedOn && input.plannedAt ? daysBetween(input.plannedAt, handedOn) : undefined;
+  /* Handed over with no test kept — said in the sentence, as on the machine. */
+  const untested = handedOver ? assets.filter(a => handedOverWith(a, input.tests, input.items, today, input.programs).includes('no test kept')).length : 0;
 
   return {
     /* "N of M tests have run" is about tests — an install step is not one. */
     sentence: handedOver
-      ? handedOverWords(handedOn, input.plannedAt, assets.length)
+      ? handedOverWords(handedOn, input.plannedAt, assets.length, { outstanding, late, untested, everyGate: assets.every(a => journeyOf(a, input.tests, input.items, today, input.programs).every(g => g.tone === 'done')) })
       : sentenceFor({ daysToGo, handover: input.expectedAt, slipDays, late, outstanding, rows, tests: latestAttempts(tests), unanswered: unanswered(tests), problems }),
-    daysToGo, slipDays, outstanding, late, rows, plan, handedOver: handedOver || undefined, lateThings,
+    daysToGo, slipDays, outstanding, late, rows, plan, lateThings,
+    ...(handedOver ? { handedOver: true, ...(handedOn ? { handedOn } : {}), ...(handedVs != null ? { handedVs } : {}) } : {}),
   };
 }
 
@@ -428,8 +442,13 @@ export function unanswered(all: Test[]): number {
   return tests.filter(t => t.outcome === 'failed' && !passedAfter(t) && !openAfter(t)).length;
 }
 
-/** The finished job, in one breath: when, and against what was agreed. */
-function handedOverWords(on: string | undefined, agreed: string | undefined, machines: number): string {
+/** The finished job, in one breath: when, against what was agreed, and what
+ *  it went with — "Handed over on Wed 7 Oct, 1 day before the date agreed —
+ *  all 4 machines, with 3 things still open (1 late) and 1 machine with no
+ *  test kept." Things do not go to plan and a handover is accepted anyway;
+ *  the sentence says how it really went. */
+function handedOverWords(on: string | undefined, agreed: string | undefined, machines: number,
+  went: { outstanding: number; late: number; untested: number; everyGate: boolean }): string {
   const when = on ? ` on ${niceDay(on, { weekday: 'short' })}` : '';
   const vs = on && agreed
     ? (() => {
@@ -437,7 +456,13 @@ function handedOverWords(on: string | undefined, agreed: string | undefined, mac
       return d === 0 ? ', the day agreed' : d > 0 ? `, ${plural(d, 'day')} after the date agreed` : `, ${plural(-d, 'day')} before the date agreed`;
     })()
     : '';
-  return `Handed over${when}${vs} — ${machines === 1 ? 'the machine' : `all ${machines} machines`} through all four gates, nothing outstanding.`;
+  const who = machines === 1 ? 'the machine' : `all ${machines} machines`;
+  const open = [
+    went.outstanding ? `${plural(went.outstanding, 'thing')} still open${went.late ? ` (${went.late} late)` : ''}` : '',
+    went.untested ? `${plural(went.untested, 'machine')} with no test kept` : '',
+  ].filter(Boolean);
+  if (open.length) return `Handed over${when}${vs} — ${who}, with ${open.join(' and ')}.`;
+  return `Handed over${when}${vs} — ${who} through ${went.everyGate ? 'all four gates' : 'their hand-over'}, nothing outstanding.`;
 }
 
 /** What somebody would say out loud if you asked where the job is.

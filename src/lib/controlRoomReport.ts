@@ -89,7 +89,9 @@ export function controlRoomReport(pf: Portfolio, today: string, limits: CrLimits
   const NAME = limits.name;
   const jobs: CrJob[] = pf.jobs.map(v => ({
     name: nameIn(v.name, 60), method: v.methodLabel,
-    at: v.method === 'commissioning' ? (v.at === 'Handed over' ? 'Handed over' : v.at ? `at ${v.at}` : undefined) : undefined,
+    /* A handed-over job's pill says so; "Handed over" beside the name too
+       would be the same word twice. */
+    at: v.method === 'commissioning' && !v.handedOver ? (v.at === 'Handed over' ? 'Handed over' : v.at ? `at ${v.at}` : undefined) : undefined,
     word: v.onTarget?.word ?? (v.late ? 'Behind' : 'Under way'),
     tone: v.onTarget?.tone ?? (v.late ? 'behind' : 'none'),
     /* A 6M or lever tree job is judged on its lines; what it owes that is

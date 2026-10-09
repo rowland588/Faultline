@@ -578,10 +578,15 @@ export function jobJourney(assets: Asset[], tests: Test[], items: TestItem[], to
  *  is worded — the front page's strip, the Gantt's machine header, the client
  *  report's machine list and its count line. */
 export function machineAt(a: Pick<Asset, 'state' | 'dueOn' | 'onSiteOn' | 'installedOn' | 'runningOn'>,
-  j: { label: string; tone: GateTone }[]): { says: string; short: string; due: boolean } {
+  j: { gate?: JourneyGate; label: string; tone: GateTone }[],
+  /** What it was handed over with (handedOverWith) — said beside "Handed
+   *  over", never instead of it. */
+  open: string[] = []): { says: string; short: string; due: boolean } {
   if (assetStateOf(a) === 'awaited') return { says: 'due on site', short: 'Due on site', due: true };
-  const now = journeyNow(j);
-  return now === 'Handed over' ? { says: 'Handed over', short: now, due: false } : { says: `at ${now}`, short: now, due: false };
+  const now = machineNow(j);
+  return now === 'Handed over'
+    ? { says: ['Handed over', ...open].join(' · '), short: now, due: false }
+    : { says: `at ${now}`, short: now, due: false };
 }
 
 /** How many machines stand where, in one line — "1 due on site · 2 at
@@ -606,4 +611,103 @@ export function journeyNow(j: { label: string; tone: GateTone }[]): string {
   const after = j.slice(lastDone + 1);
   const next = after.find(g => g.tone === 'ahead') ?? after.find(g => g.tone !== 'done');
   return next ? next.label : 'Handed over';
+}
+
+/** WHERE ONE MACHINE IS — journeyNow, except that a machine whose hand-over
+ *  list is done IS handed over, whatever is still open before it. Rowland, 9
+ *  October: "in reality things don't go to plan, and business will accept
+ *  handovers ... nothing gets blocked but we show the status." A wrapper
+ *  signed off with a fix still open read "at Commission" or "Handed over"
+ *  depending on what else was open; now it reads "Handed over", and what it
+ *  went with is said beside it (handedOverWith). A whole job's gates are not
+ *  a machine's: a job is handed over when every machine is (lib/standing). */
+export function machineNow(j: { gate?: JourneyGate; label: string; tone: GateTone }[]): string {
+  const last = j[j.length - 1];
+  if (last && (last.gate ? last.gate === 'handover' : last.label === 'Hand over') && last.tone === 'done') return 'Handed over';
+  return journeyNow(j);
+}
+
+const many = (n: number, one: string, more = `${one}s`) => `${n} ${n === 1 ? one : more}`;
+
+/** WHAT A MACHINE WAS HANDED OVER WITH — everything before its hand-over list
+ *  that was not done, in the gates' order, then its open fixes: "no test
+ *  kept", "1 test didn't pass", "2 tests not run", "1 install step not done",
+ *  "1 fix open". Empty for a machine not handed over (it is still at a gate,
+ *  and that gate says what is open) and for one handed over with nothing
+ *  left. The status, never a block (machineNow). */
+export function handedOverWith(asset: Asset, tests: Test[], items: TestItem[], today: string,
+  programs: readonly Program[] = []): string[] {
+  if (machineNow(journeyOf(asset, tests, items, today, programs)) !== 'Handed over') return [];
+  return stillOpenOn(asset, tests, items, today, programs).counts;
+}
+
+/** Everything still open on one machine, before its hand-over list and after
+ *  it — counted ("1 fix open") and by name ("Fix: Fit the upgraded jaw heater
+ *  · Ilapak UK · 19 Oct") — for the machine's place and for what a sign-off
+ *  accepted (signOffNote). */
+export function stillOpenOn(asset: Asset, tests: Test[], items: TestItem[], today: string,
+  programs: readonly Program[] = [], except?: string): { counts: string[]; names: string[] } {
+  const counts: string[] = [], names: string[] = [];
+  const when = (t: Test) => (t.plannedFor ? ` · ${isOverdue(t, today) ? 'was ' : ''}${niceDay(plannedEnd(t) ?? t.plannedFor)}` : '');
+  const who = (t: Test) => (t.withWhom?.trim() ? ` · ${t.withWhom.trim()}` : '');
+  for (const g of ['install', 'setup'] as const) {
+    const open = installOf(asset, tests, items, today, g).steps.filter(v => v.step.outcome !== 'passed' && v.step.id !== except);
+    if (open.length) counts.push(`${many(open.length, g === 'install' ? 'install step' : 'set-up step')} not done`);
+    for (const v of open) names.push(`${g === 'install' ? 'Install' : 'Set up'}: ${v.step.title}${who(v.step)}${when(v.step)}`);
+  }
+  const progs = programs.filter(p => !p.deletedAt && p.assetId === asset.id && stateOf(p) === 'needed');
+  if (progs.length) counts.push(`${many(progs.length, 'program')} not on the machine`);
+  for (const p of progs) names.push(`Program: ${p.what}${p.from?.trim() ? ` · ${p.from.trim()}` : ''}`);
+  const proofs = currentProofs(asset, tests);
+  if (!proofs.length) counts.push('no test kept');
+  const failed = proofs.filter(t => t.outcome === 'failed');
+  const unrun = proofs.filter(t => t.outcome !== 'passed' && t.outcome !== 'failed');
+  if (failed.length) counts.push(`${many(failed.length, 'test')} didn’t pass`);
+  if (unrun.length) counts.push(`${many(unrun.length, 'test')} not run`);
+  for (const t of failed) names.push(`Test, didn’t pass: ${t.title}${who(t)}`);
+  for (const t of unrun) names.push(`Test, not run: ${t.title}${who(t)}${when(t)}`);
+  const hand = installOf(asset, tests, items, today, 'handover').steps.filter(v => v.step.outcome !== 'passed' && v.step.id !== except);
+  if (hand.length) counts.push(`${many(hand.length, 'hand-over item')} not done`);
+  for (const v of hand) names.push(`Hand over: ${v.step.title}${who(v.step)}${when(v.step)}`);
+  const all = live(tests);
+  const fixes = all.filter(t => t.kind === 'fix' && !isSettled(t) && (t.assetId ?? testOfFix(t, all)?.assetId) === asset.id);
+  if (fixes.length) counts.push(`${many(fixes.length, 'fix', 'fixes')} open`);
+  for (const t of fixes) names.push(`Fix: ${t.title}${who(t)}${when(t)}`);
+  return { counts, names };
+}
+
+/** A HAND-OVER LINE THAT IS A SIGN-OFF — "Client signed off", "Safety
+ *  sign-off (PUWER)": its name says so. The usual list's two are; a line
+ *  renamed to anything with "sign" in it is too. */
+export const isSignOff = (t: Pick<Test, 'kind' | 'gate' | 'title'>): boolean =>
+  t.kind === 'install' && gateOf(t) === 'handover' && /\bsign/i.test(t.title);
+
+/** WHAT A SIGN-OFF ACCEPTED — written into the line's own account when it is
+ *  ticked (docs/HANDOVER.md): "Signed off with 2 open — Fix: Fit the upgraded
+ *  jaw heater · Ilapak UK · 19 Oct; Test, not run: Rate trial". A sign-off is
+ *  accepted as things are, and afterwards anyone can read what that was. */
+export function signOffNote(step: Test, tests: Test[], items: TestItem[], today: string,
+  assets: Asset[], programs: readonly Program[] = []): string | undefined {
+  if (!isSignOff(step)) return undefined;
+  const asset = live(assets).find(a => a.id === step.assetId);
+  if (!asset) return undefined;
+  const { names } = stillOpenOn(asset, tests, items, today, programs, step.id);
+  return names.length
+    ? `Signed off ${niceDay(today)} with ${names.length} still open — ${names.join('; ')}.`
+    : `Signed off ${niceDay(today)} with nothing still open.`;
+}
+
+/** DONE TODAY, ONE WRITE — the drawer's button, the grid's "Done today on
+ *  all left" and the gates' Needs you button all mark a stage done this way:
+ *  today's day unless one is on it, and on a sign-off what it accepted
+ *  (signOffNote) added to its account, with who signed when the line had no
+ *  name on it. */
+export function doneTodayPatch(step: Test, job: { tests: Test[]; items: TestItem[]; assets: Asset[]; programs?: readonly Program[] },
+  today: string, who?: string): (cur: Test) => Partial<Test> {
+  const note = signOffNote(step, job.tests, job.items, today, job.assets, job.programs ?? []);
+  return cur => ({
+    outcome: 'passed', ranOn: cur.ranOn ?? today,
+    ...(note ? { result: [cur.result?.trim(), note].filter(Boolean).join('\n\n') } : {}),
+    ...(who?.trim() ? { withWhom: who.trim() } : {}),
+  });
 }

@@ -292,3 +292,8 @@ The live state before these decisions is kept on the branch
    on a stage that hit a problem — are already the stage's own buttons in
    its panel. Putting them on the Needs you row would be a new control,
    so that is yours to decide.
+
+   **Decided and built, 9 October** (with the handover, docs/HANDOVER.md):
+   those two, the stage's own buttons, now sit on the Needs you row on
+   Install, Set up and Hand over, in Commission's place and look, for
+   owner and team. A part that failed still opens its stage.

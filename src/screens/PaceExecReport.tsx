@@ -31,7 +31,7 @@ import type { TreeNodeRow } from '../db';
 import { listPaceTodos, listPaceWins, getPaceWorkspaceId, snagsForWorkspace,
   listTests, listAssets, listTestItems, type PaceTodoRow, type PaceWinRow } from '../db';
 import { ASSET_STATE_WORD, assetStateOf, assetStateOn, hasRun, isOverdue, isSettled, plannedEnd, type Asset, type Test, type TestItem } from '../lib/testing';
-import { GATE_WORD, installOf, journeyNow, journeyOf } from '../lib/install';
+import { GATE_WORD, installOf, machineNow, journeyOf } from '../lib/install';
 import { orderStrands, strandsOf, strandWord, type Strand } from '../lib/strands';
 import { whoOwes, type Debt } from '../lib/owes';
 import { trialCard, headlineNext, verdictLine } from '../lib/trialCard';
@@ -1598,7 +1598,7 @@ function PaceExecReportA3() {
           late: v.late,
           ...(v.asset ? (() => {
             const j = journeyOf(v.asset, tests, testItems, today, progs.programs);
-            return { journey: j.map(g => ({ label: g.label, tone: g.tone })), at: journeyNow(j) };
+            return { journey: j.map(g => ({ label: g.label, tone: g.tone })), at: machineNow(j) };
           })() : {}),
         };
       }),

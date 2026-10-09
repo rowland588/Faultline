@@ -19,13 +19,17 @@
  *                CRITICAL problem is open (lib/critical) — never "on target"
  *                while one is, and its count is in the reason either way.
  *                On target (a quiet green) — otherwise.
+ *                Handed over — once every machine's hand-over list is done
+ *                (lib/standing), whatever is still open: its real day
+ *                against the agreed one, and what it went with. Red if late
+ *                or something open is late, amber while anything is open.
  *   6M · TREE    On target when every line judged is at its target; Behind
  *                target when any is short; Not measured yet with no readings
  *                against a target.
  *
  * Pure: the screen gathers the records, this answers. Nothing is stored. */
 import { assetStateOf, isOverdue, isSettled, live, plannedEnd, type Asset, type Test, type TestItem } from './testing';
-import { lateOrProblem } from './install';
+import { handedOverWith, lateOrProblem } from './install';
 import { couldWords, criticalProblems, riskProblems } from './critical';
 import { hoursWord } from './hoursLost';
 import { isHere, type Material } from './materials';
@@ -123,6 +127,24 @@ export function stageGateOnTarget(x: StageGateInput, st?: Standing): OnTarget {
 
   if (!tests.length && !assets.length && !materials.length && !programs.length) {
     return { tone: 'none', word: 'Nothing planned yet', reason: `${when} · no machines or steps on the job yet` };
+  }
+
+  /* HANDED OVER — the answer once every machine is (lib/standing), said with
+     its real day against the agreed one and what it went with. Things do not
+     go to plan and a handover is accepted anyway (Rowland, 9 October): red
+     if it went after the agreed day or something still open is late, amber
+     while anything is still open or a machine went with no test kept, a
+     quiet green when it went on time with nothing left. */
+  if (s.handedOver) {
+    const d = s.handedVs;
+    const on = s.handedOn ? day(s.handedOn) : '';
+    const vs = d == null || !plannedAt ? '' : d === 0 ? 'the day agreed' : `${days(Math.abs(d))} ${d > 0 ? 'after' : 'before'} the agreed ${day(plannedAt)}`;
+    const untested = assets.filter(a => handedOverWith(a, tests, items, today, programs).includes('no test kept')).length;
+    const open = s.outstanding ? `${s.outstanding} still open${s.late ? `, ${s.late} late` : ''}` : 'nothing still open';
+    const reason = [[on, vs].filter(Boolean).join(', ') || 'every machine handed over', open,
+      untested ? `${untested} machine${untested === 1 ? '' : 's'} with no test kept` : ''].filter(Boolean).join(' · ');
+    const tone: OnTargetTone = (d ?? 0) > 0 || s.late > 0 ? 'behind' : s.outstanding || untested ? 'risk' : 'on';
+    return { tone, word: 'Handed over', reason, brief: reason };
   }
 
   /* The stages, each by the one rule: late, or a problem — which. */

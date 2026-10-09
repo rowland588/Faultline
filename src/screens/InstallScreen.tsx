@@ -38,7 +38,8 @@ import { todayISO } from '../lib/weeks';
 import { partsOf, resultNow } from '../lib/noted';
 import { useProjects } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
-import { GATE_WORD, installGrid, installOf, usualStages } from '../lib/install';
+import { GATE_WORD, doneTodayPatch, installGrid, installOf, isSignOff, usualStages } from '../lib/install';
+import { changeTests } from '../ui/WhyMoved';
 import { gateOf, type StepGate, type Test, type TestItem } from '../lib/testing';
 import { usePrograms } from '../lib/usePrograms';
 import { programsReading } from '../lib/programsReport';
@@ -99,6 +100,9 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
   const face = FACE[gate];
   const filmed = useFilmed(projectId, tt.tests, tt.items);
   const can = useAccess(projectId);
+  /* The job's programs — what a sign-off says was still open on its machine
+     (lib/install doneTodayPatch). */
+  const progs = usePrograms(projectId);
 
   if (loading || tt.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   /* A link to a project that has gone is a dead end, not a crash — and it
@@ -136,7 +140,7 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
             {steps.length === 0
               ? <b>Nothing planned yet</b>
               : <>
-                <b>{done} of {steps.length} steps done</b>
+                <b>{done} of {steps.length} {gate === 'handover' ? 'items' : 'steps'} done</b>
                 {going > 0 && <span className="sub">{going} machine{going === 1 ? '' : 's'} {face.doing}</span>}
                 {late > 0 && <span className="sub in-late">{late} late</span>}
                 {/* A stage not on a machine's list — "not added yet", the one word the
@@ -144,6 +148,9 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
                 {unplanned > 0 && <span className="sub">{unplanned} not added yet</span>}
               </>}
             <button className="cw-link" onClick={() => nav(`/project/${projectId}/day`)}>Read the day</button>
+            {/* THE HANDOVER REPORT — the line as it was really handed over
+                (docs/HANDOVER.md), from the gate it is about. */}
+            {gate === 'handover' && <button className="cw-link" onClick={() => nav(`/project/${projectId}/report?doc=handover`)}>Handover report ›</button>}
           </p>
         </div>
       </header>
@@ -176,6 +183,24 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
                         <span className={'nd-tag is-' + (c.tone === 'problem' ? 'failed' : 'late')}>{stageWord(c)}</span>
                         <b>{machine} — {c.step.title}</b>
                       </button>
+                      {/* THE STAGE'S OWN BUTTON, ON ITS ROW (docs/HANDOVER.md;
+                          STAGEGATE.md flagged item 4) — Commission's place and
+                          look, the drawer's own write: a late stage is done
+                          today; one that hit a problem gets a fix planned. A
+                          sign-off with no name on it opens, to ask who signed. */}
+                      {can.edit && (c.tone === 'problem' ? (
+                        <span className="nd-acts">
+                          <button type="button" className="btn btn-sm" onClick={() => nav(`/project/${projectId}/fixes?for=${encodeURIComponent(c.step.id)}`)}>Plan a fix</button>
+                        </span>
+                      ) : c.step.outcome !== 'passed' && (
+                        <span className="nd-acts">
+                          <button type="button" className="btn btn-sm" onClick={() => {
+                            if (isSignOff(c.step) && !c.step.withWhom?.trim()) { openRecord(projectId, c.step.id); return; }
+                            void changeTests(tt, [c.step], doneTodayPatch(c.step, { tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs }, todayISO()),
+                              `${c.step.title} done — ${machine}`);
+                          }}>Done today</button>
+                        </span>
+                      ))}
                     </li>
                   ))}
                   {failed.map(({ c, p, note, machine }) => (
@@ -194,7 +219,7 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
       })()}
 
       {onGrid
-        ? <InstallGrid tt={tt} project={project} stages={stages} gate={gate} can={can}
+        ? <InstallGrid tt={tt} project={project} stages={stages} gate={gate} can={can} programs={progs.programs}
             otherName={projects.find(p => p.id === stages.otherId)?.name} />
         : (
           <p className="sub tw-note">

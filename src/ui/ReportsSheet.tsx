@@ -59,6 +59,9 @@ export function ReportsSheet({ project, onClose }: { project: Project; onClose: 
         {tree && <Door title="The lever tree" says="The tree on one page — print it from the tree itself." onClick={() => go(`/project/${project.id}/tree`)} />}
         {stageGate && <Door title="The day" says="For the team — the day's story: what got done, what was found, with the pictures. One page." onClick={() => go(`/project/${project.id}/day`)} />}
         {stageGate && <Door title="Programs" says="For the OEM and the team — every program, machine by machine: where each stands and what was seen." onClick={() => go(`/project/${project.id}/report?doc=programs`)} />}
+        {/* THE HANDOVER REPORT (docs/HANDOVER.md) — the record a team keeps
+            that the line was handed over, as it really went. */}
+        {stageGate && <Door title="Handover report" says="For the team and whoever takes the line over — every machine as it was really handed over: its tests, its hand-over list, what was still open, and lines to sign." onClick={() => go(`/project/${project.id}/report?doc=handover`)} />}
         {/* THE PLAN prints from its own page (ui/Gantt's PDF), and was the one
             stage-gate document this index did not list. */}
         {stageGate && <Door title="The plan" says="For the team and the client — every machine's stages against the days, on one landscape page. Print it from the plan." onClick={() => go(`/project/${project.id}/plan`)} />}

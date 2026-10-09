@@ -509,7 +509,7 @@ function todaysPlan(items: TestItem[], today: string): string {
 /* ("Meeting notes · 3", the header button, is the rail's Meeting notes line
    now, with the same count — ui/Frame useOpenNotes.) */
 
-function TestingOverview({ projectId, project, edit }: { projectId: string; project: Project; edit: boolean }) {
+function TestingOverview({ projectId, project, edit, remove = false }: { projectId: string; project: Project; edit: boolean; remove?: boolean }) {
   const tt = useTesting(projectId);
   /* THE WHOLE JOB, not just the testing. See lib/standing.ts — this page used
      to form its own opinion from the trials alone, which meant it could say
@@ -578,6 +578,11 @@ function TestingOverview({ projectId, project, edit }: { projectId: string; proj
             onTarget={stageGateOnTarget({ project, tests: tt.tests, items: tt.items, assets: tt.assets, materials: mats.materials, programs: progs.programs, today }, st)} />
           {/* What the notes asked to be reminded of, while it is due. */}
           <ProjectReminders projectId={projectId} />
+          {/* DONE, AND NOTHING LEFT — the job can leave the live list; the
+              archive loses nothing and is in Details (docs/HANDOVER.md). */}
+          {st.handedOver && st.outstanding === 0 && remove && (
+            <p className="fp-foot">Handed over, with nothing still open. <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/setup`)}>Archive it from Details ›</button></p>
+          )}
           <div className="fp-grid">
             <NeedsYouPanel items={owed} today={today} door={{ label: 'The plan', to: `/project/${projectId}/plan` }} />
             <div className="fp-col">
@@ -772,7 +777,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           None of it belongs to a handover, and every one of them was the first
           thing somebody saw on opening the project. */}
       {lens === 'overview' && model === 'commissioning' && (
-        <TestingOverview projectId={projectId} project={project} edit={can.edit} />
+        <TestingOverview projectId={projectId} project={project} edit={can.edit} remove={can.remove} />
       )}
 
       {/* THE SAME SHAPE AS A STAGE-GATE JOB'S FRONT PAGE, and one screen

@@ -641,9 +641,10 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
                 handed over — its date is the one it should be at target by. */}
             {v.daysToGo != null && (
               <span className={'jb-chip' + (v.daysToGo < 0 ? ' is-late' : '')}>
+                {(n => `${n} ${n === 1 ? 'day' : 'days'}`)(Math.abs(v.daysToGo))}{' '}
                 {v.method === 'commissioning'
-                  ? (v.daysToGo < 0 ? `${-v.daysToGo} days over handover` : `${v.daysToGo} days to handover`)
-                  : (v.daysToGo < 0 ? `${-v.daysToGo} days past its date` : `${v.daysToGo} days to its date`)}
+                  ? (v.daysToGo < 0 ? 'over handover' : 'to handover')
+                  : (v.daysToGo < 0 ? 'past its date' : 'to its date')}
               </span>
             )}
             {/* Where the job is, not how much is on its lists. A stage-gate job
@@ -651,7 +652,9 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
                 lines are doing against target. */}
             {v.method === 'commissioning'
               ? (v.at === 'Handed over'
-                ? <span className="jb-chip is-at is-done">Handed over</span>
+                /* The verdict says "Handed over" and when (lib/onTarget);
+                   a chip saying it again is the same word twice. */
+                ? (v.onTarget?.word === 'Handed over' ? null : <span className="jb-chip is-at is-done">Handed over</span>)
                 /* Nothing started at any gate is not "at Install": the gates say
                    "not started" in grey, and so does the row. */
                 : v.gates.length > 0 && v.gates.every(g => g.tone === 'none')

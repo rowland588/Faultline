@@ -60,6 +60,14 @@ export function TestsScreen({ projectId }: { projectId: string }) {
   if (!project) return <div className="wrap pace"><p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p></div>;
 
   const weeks = weeksTo(project.expectedAt);
+  /* Under two weeks it is said in days — "0 weeks to go" with three days
+     left read as if the day had come (docs/HANDOVER.md). */
+  const toGo = (iso: string, w: number): string => {
+    const d = Math.round((Date.parse(`${iso}T12:00:00`) - Date.parse(`${todayISO()}T12:00:00`)) / 86_400_000);
+    const n = (k: number, one: string) => `${k} ${one}${k === 1 ? '' : 's'}`;
+    if (Math.abs(d) < 14) return d >= 0 ? `${n(d, 'day')} to go` : `${n(-d, 'day')} ago`;
+    return w >= 0 ? `${n(w, 'week')} to go` : `${n(-w, 'week')} ago`;
+  };
   /* A test opens in the drawer, over this list (ui/RecordDrawer). */
   const open = (id: string) => openRecord(projectId, id);
 
@@ -100,7 +108,7 @@ export function TestsScreen({ projectId }: { projectId: string }) {
                 {notRun > 0 && <span className="sub in-late">{notRun} didn’t run</span>}
               </>}
             {project.expectedAt
-              ? <span className="sub">Handover {nice(project.expectedAt)}{weeks != null && ` · ${weeks >= 0 ? `${weeks} week${weeks === 1 ? '' : 's'} to go` : `${-weeks} week${weeks === -1 ? '' : 's'} ago`}`}</span>
+              ? <span className="sub">Handover {nice(project.expectedAt)}{weeks != null && ` · ${toGo(project.expectedAt, weeks)}`}</span>
               : <span className="sub">No handover date yet</span>}
             {can.agree && <button className="cw-link" onClick={() => setDates(d => !d)}>{dates ? 'Done' : 'Dates'}</button>}
           </p>

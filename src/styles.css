@@ -11251,3 +11251,10 @@ button.gt-lab small b { display: inline; font-size: inherit; font-weight: 800; }
 .jb-report { align-self: center; margin-left: auto; margin-top: 0; }
 .jb-printed { margin: 8px 0 0; font-size: var(--t-detail); color: var(--shell-dim, #c9d6ea); }
 @media (max-width: 720px) { .jb-report { margin-left: 0; width: 100%; } }
+
+/* HANDED OVER WITH (docs/HANDOVER.md) — what a machine went with, beside
+   "Handed over": open, so amber; said in words. */
+.jr-with { color: var(--st-a); font-weight: 600; }
+/* A sign-off with no name on it asks who signed, in the drawer's own row. */
+.rd-signer { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; flex: 1 1 100%; }
+.rd-signer .text-input { flex: 1 1 200px; margin-top: 0; min-width: 0; }

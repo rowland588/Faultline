@@ -16,7 +16,8 @@
  */
 import { Fragment, useEffect, useState } from 'react';
 import { deleteTest } from '../db';
-import { foldInto, installGrid, lateByWords, stepsNamed, untouched, type StepView, type usualStages } from '../lib/install';
+import type { Program } from '../lib/programs';
+import { doneTodayPatch, foldInto, installGrid, lateByWords, stepsNamed, untouched, type StepView, type usualStages } from '../lib/install';
 import { UsualStages } from './UsualStages';
 import { WhyMoved, changeTests, moveTestsWithWhy, type WhyAnswer } from './WhyMoved';
 import { movedLater } from '../lib/story';
@@ -93,7 +94,7 @@ function cellWord(s: StepView): string {
   }
 }
 
-export function InstallGrid({ tt, project, stages, otherName, gate = 'install', can = canOf('owner') }: {
+export function InstallGrid({ tt, project, stages, otherName, gate = 'install', can = canOf('owner'), programs = [] }: {
   tt: TT; project: Project;
   /** What this person may do here (lib/access): a client reads the grid and
    *  opens a step; the team does the work but removes nothing. */
@@ -103,6 +104,9 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
   otherName?: string;
   /** Which gate this grid is — Install, Set up or Hand over. */
   gate?: StepGate;
+  /** The job's programs — what a sign-off says was still open (lib/install
+   *  doneTodayPatch). */
+  programs?: readonly Program[];
 }) {
   const projectId = project.id;
   const usual = stages.stages;
@@ -289,7 +293,9 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
             {left.length > 0 && (
               <button className="btn ig-big" onClick={() => {
                 if (left.length > 1 && !confirm(`Mark “${col}” done today on ${left.length} machines?`)) return;
-                void change(left, cur => ({ outcome: 'passed', ranOn: cur.ranOn ?? today }), `${col} done on ${left.length} machine${left.length === 1 ? '' : 's'}`);
+                /* The one write (lib/install doneTodayPatch): a sign-off keeps
+                   what each machine still had open. */
+                void change(left, cur => doneTodayPatch(cur, { tests: tt.tests, items: tt.items, assets: tt.assets, programs }, today)(cur), `${col} done on ${left.length} machine${left.length === 1 ? '' : 's'}`);
                 setOpen(null);
               }}>Done today on {left.length === 1 ? 'the one left' : `all ${left.length} left`}</button>
             )}

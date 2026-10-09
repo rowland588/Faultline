@@ -29,7 +29,8 @@ import { nav, navReplace, withQuery, type Route, type RouteName } from '../state
 import { useTesting } from '../lib/useTesting';
 import { useAccess } from '../cloud/access';
 import { fixTone, type FixTone } from '../lib/fixTone';
-import { GATE_WORD, doneLateBy, heldUpBy, lateByWords, lateOrProblem, toneOf, usualStages, type StepTone } from '../lib/install';
+import { doneLateBy, doneTodayPatch, heldUpBy, isSignOff, lateByWords, lateOrProblem, toneOf, usualStages, type StepTone } from '../lib/install';
+import { usePrograms } from '../lib/usePrograms';
 import {
   isOverdue, itemsOf, live, needsVerdict, outcomeWord, plannedEnd, testOfFix, verdictQuestion, wordsOf,
   gateOf, type Outcome, type Test, type TestItem,
@@ -218,6 +219,9 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   /* The job, for how many hours make its working day (lib/hoursLost). */
   const jobs = useProjects();
   const job = jobs.projects.find(p => p.id === projectId);
+  /* What a sign-off says was still open includes the machine's programs
+     (lib/install doneTodayPatch). */
+  const progs = usePrograms(projectId);
   const today = todayISO();
   /* A problem being written, or an Edit, left unsaved (lib/kept) opens
      again with what was typed. */
@@ -231,6 +235,9 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   const [editing, setEditing] = useState(() => hasKept(`edit:${id}:`));
   /* "For the meeting", opened to write the first thing to raise. */
   const [meeting, setMeeting] = useState(false);
+  /* WHO SIGNED — asked when a sign-off with no name on it is ticked
+     (docs/HANDOVER.md); null while not asking. */
+  const [signer, setSigner] = useState<string | null>(null);
   /* Bumped when a link to a picture is made, so the list of them reads again. */
   const [shareRev, setShareRev] = useState(0);
   /* SENDING A PICTURE OUTSIDE is the owner's call (supabase/SHARE_LINKS.sql),
@@ -239,7 +246,7 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   /* A fresh record, fresh forms: the problem form of one step must not stay
      open over the parent it opened. */
-  useEffect(() => { setProblem(hasKept(`problem:${id}::`)); setProblemPart(null); setEditing(hasKept(`edit:${id}:`)); setMeeting(false); }, [id]);
+  useEffect(() => { setProblem(hasKept(`problem:${id}::`)); setProblemPart(null); setEditing(hasKept(`edit:${id}:`)); setMeeting(false); setSigner(null); }, [id]);
   /* Opened with a part named (openRecordAt): its problem form, open. */
   useEffect(() => {
     const want = split()[1].get(PROBLEM);
@@ -328,6 +335,10 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   const setOutcome = (o: Outcome, said: string) =>
     changeTests(tt, [t], cur => ({ outcome: o, ranOn: o === 'planned' ? (kind === 'install' ? undefined : cur.ranOn) : cur.ranOn ?? today }), said);
   const andClose = (p: Promise<void>) => { void p; onClose(); };
+  /* DONE TODAY — the one write (lib/install doneTodayPatch): a sign-off
+     keeps what was still open on its machine, and who signed it. */
+  const doneToday = (who?: string) => changeTests(tt, [t],
+    doneTodayPatch(t, { tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs }, today, who), `${t.title} done — ${machine}`);
 
   const dates = plannedEnd(t) ? spanShort(t.plannedFor, plannedEnd(t)) : undefined;
   /* HOW FAR IT HAS SLIPPED past the finish first planned — the line the plan's
@@ -337,7 +348,9 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   const moves = story.moves;
   const lastMove = moves[moves.length - 1];
   /* What it is: which kind, which gate, which machine — in words. */
-  const whatItIs = [kind === 'install' ? `${GATE_WORD[gateOf(t)]} stage` : kind === 'fix' ? 'Fix' : 'Test · Commission', machine].join(' · ');
+  /* Its name as Needs you and its card say it — "Hand-over item", "Set-up
+     step" — not a third word ("Hand over stage") for the same line. */
+  const whatItIs = [kind === 'install' ? wordsOf(t).one : kind === 'fix' ? 'Fix' : 'Test · Commission', machine].join(' · ');
   /* What really happened, against the plan beside it. */
   const actualWords = !t.ranOn ? 'not done yet'
     : `${t.outcome === 'passed' ? (kind === 'fix' ? 'fixed' : kind === 'install' ? 'done' : 'passed')
@@ -443,9 +456,20 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
       ) : kind === 'install' ? (
         <>
           <div className="rd-acts">
-            {t.outcome !== 'passed' && (
-              <button type="button" className="btn btn-primary" onClick={() => andClose(setOutcome('passed', `${t.title} done — ${machine}`))}>Done today</button>
-            )}
+            {t.outcome !== 'passed' && (signer == null ? (
+              <button type="button" className="btn btn-primary"
+                onClick={() => (isSignOff(t) && !t.withWhom?.trim() ? setSigner('') : andClose(doneToday()))}>Done today</button>
+            ) : (
+              /* A SIGN-OFF WITH NO NAME ON IT asks who signed, so the line
+                 says who accepted it as well as what. */
+              <span className="rd-signer">
+                <input className="text-input" autoFocus aria-label="Who signed it off?" placeholder="Who signed it off?"
+                  value={signer} onChange={e => setSigner(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && signer.trim()) andClose(doneToday(signer)); }} />
+                <button type="button" className="btn btn-primary" disabled={!signer.trim()} onClick={() => andClose(doneToday(signer))}>Signed off today</button>
+                <button type="button" className="btn btn-ghost" onClick={() => setSigner(null)}>Cancel</button>
+              </span>
+            ))}
             {/* A stage can hit more than one problem — the button stays. */}
             <button type="button" className="btn ig-bad" onClick={() => setProblem(true)}>
               {t.outcome === 'failed' ? 'Another problem' : 'Hit a problem'}

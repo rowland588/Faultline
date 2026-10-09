@@ -290,15 +290,22 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
           f.doc.text('AT', f.x + f.w - atW + 4, y + 7);
         },
       },
-      rows: r.machines.map(m => ({
-        h: f => Math.max(20, 8 + nameLines(f, m.name).length * 11),
-        draw: (f, y) => {
-          f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.5); f.doc.line(f.x, y, f.x + f.w, y);
-          font(f.doc, 9.5, 'bold'); f.doc.text(nameLines(f, m.name), f.x, y + 13);
-          m.gates.forEach((t, i) => pillPath(f.doc, f.x + nameW + i * (cellW(f) + 4), y + 4, cellW(f), 13, t, GATE_COLOUR[t].word));
-          font(f.doc, 9, 'bold', INK2); f.doc.text(wrap(f.doc, m.at, atW - 6, 9, 'bold'), f.x + f.w - atW + 4, y + 13);
-        },
-      })),
+      rows: r.machines.map(m => {
+        /* WHAT IT WAS HANDED OVER WITH, under its gates (docs/HANDOVER.md) —
+           the status, said: "with no test kept · 1 fix open". */
+        const withLines = (f: Frame) => (m.with?.length ? wrap(f.doc, `with ${m.with.join(' · ')}`, f.w - nameW - 4, 8) : []);
+        return {
+          h: (f: Frame) => Math.max(20 + withLines(f).length * 10, 8 + nameLines(f, m.name).length * 11),
+          draw: (f: Frame, y: number) => {
+            f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.5); f.doc.line(f.x, y, f.x + f.w, y);
+            font(f.doc, 9.5, 'bold'); f.doc.text(nameLines(f, m.name), f.x, y + 13);
+            m.gates.forEach((t, i) => pillPath(f.doc, f.x + nameW + i * (cellW(f) + 4), y + 4, cellW(f), 13, t, GATE_COLOUR[t].word));
+            font(f.doc, 9, 'bold', INK2); f.doc.text(wrap(f.doc, m.at, atW - 6, 9, 'bold'), f.x + f.w - atW + 4, y + 13);
+            const wl = withLines(f);
+            if (wl.length) { font(f.doc, 8, 'normal', AMBER); f.doc.text(wl, f.x + nameW, y + 27); }
+          },
+        };
+      }),
     }));
   }
 

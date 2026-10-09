@@ -19,7 +19,7 @@ import { HANDOVER_KEY, keyOfMark, overlapOf, storyOf } from './story';
 import { isOverdue, isSettled, latestAttempts, live, type Asset, type StepGate, type Test, type TestItem } from './testing';
 import { niceDay, todayISO as isoDay } from './weeks';
 import { isLate, walkWords, type WalkLane, type WalkSnag } from './walkSnags';
-import { appStages, installOf, recordHref, JOURNEY, journeyNow, lateOrProblem, machineAt, journeyOf, redReasons, stageKey, doneLateBy, heldUpBy, lateByWords } from './install';
+import { appStages, installOf, recordHref, JOURNEY, machineNow, handedOverWith, lateOrProblem, machineAt, journeyOf, redReasons, stageKey, doneLateBy, heldUpBy, lateByWords } from './install';
 import { partStatus, partsOf } from './noted';
 import { criticalCount, criticalOn, riskOn } from './critical';
 import { DAY_HOURS, hoursTally, hoursWord } from './hoursLost';
@@ -523,7 +523,7 @@ export function nextSteps(job: { assets: Asset[]; tests: Test[]; items: TestItem
   const out = new Set<string>();
   const proofs = latestAttempts(tests);
   for (const a of live(job.assets)) {
-    const at = JOURNEY.findIndex(x => x.label === journeyNow(journeyOf(a, tests, items, today, job.programs ?? [])));
+    const at = JOURNEY.findIndex(x => x.label === machineNow(journeyOf(a, tests, items, today, job.programs ?? [])));
     if (at < 0) continue;
     for (const gate of JOURNEY.slice(at)) {
       const id = gate.gate === 'commission'
@@ -646,7 +646,7 @@ export function withMachines(g: Gantt, job: {
 
     /* WHERE IT STANDS — the strip's own reading, not a second opinion. */
     const j = journeyOf(a, tests, items, today, programs);
-    const now = journeyNow(j);
+    const now = machineNow(j);
     const why = redReasons(a, tests, items, today);
     /* A late fix or program is drawn red in the band; folded, the header is
        all that shows, so it says so too. */
@@ -666,7 +666,7 @@ export function withMachines(g: Gantt, job: {
     /* Its open critical problems, counted off its stages — the header is all
        that shows of a folded band on paper. */
     const crit = rows.reduce((n, r) => n + (r.critical ?? 0), 0);
-    const says = [machineAt(a, j).says, crit ? criticalCount(crit) : '', red, rows.length ? '' : 'nothing dated yet'].filter(Boolean).join(' · ');
+    const says = [machineAt(a, j, handedOverWith(a, tests, items, today, programs)).says, crit ? criticalCount(crit) : '', red, rows.length ? '' : 'nothing dated yet'].filter(Boolean).join(' · ');
     const gate = JOURNEY.find(x => x.label === now) ?? JOURNEY[JOURNEY.length - 1];
     const bar = barOf(rows, g.dayList);
     const nx = rows.find(r => r.next);

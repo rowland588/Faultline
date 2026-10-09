@@ -213,7 +213,10 @@ export function WorkspaceHome() {
         <div className="pace-head-main">
           <h1 className="pace-title">Control room</h1>
           <p className="cw-handover">
-            <span className="sub">{jobs.length === 0 ? 'Nothing running yet' : `${jobs.length} job${jobs.length === 1 ? '' : 's'} running`}</span>
+            {/* How many jobs — the board under it says how many are running
+                and how many are handed over (docs/HANDOVER.md); "3 jobs
+                running" here said otherwise. */}
+            <span className="sub">{jobs.length === 0 ? 'Nothing running yet' : `${jobs.length} job${jobs.length === 1 ? '' : 's'}`}</span>
           </p>
         </div>
         {/* NEW PROJECT, where a page's main action sits — it was the

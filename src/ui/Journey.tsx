@@ -3,7 +3,7 @@
  * gates." Read off lib/install's journeyOf, the same reading the client
  * report prints beside each machine. Tap a gate to go to it. */
 import { nav } from '../state/useRoute';
-import { GATE_TONE_WORD, JOURNEY, isWrongGate, machineAt, journeyOf, reasonsOf } from '../lib/install';
+import { GATE_TONE_WORD, JOURNEY, handedOverWith, isWrongGate, machineAt, journeyOf, reasonsOf } from '../lib/install';
 import { live, type Asset, type Test, type TestItem } from '../lib/testing';
 import { todayISO } from '../lib/weeks';
 import { usePrograms } from '../lib/usePrograms';
@@ -35,9 +35,12 @@ export function Journey({ projectId, assets, tests, items, bare }: {
       )}
       {machines.map(a => {
         const j = journeyOf(a, tests, items, today, programs);
+        /* HANDED OVER WITH — what was still open when its list was done
+           (lib/install handedOverWith): the status, never a block. */
+        const open = handedOverWith(a, tests, items, today, programs);
         return (
           <div key={a.id} className="jr-row">
-            <span className="jr-m"><b>{a.name}</b><span className="sub">{machineAt(a, j).says}</span>
+            <span className="jr-m"><b>{a.name}</b><span className="sub">{machineAt(a, j).says}{open.length > 0 && <span className="jr-with"> · {open.join(' · ')}</span>}</span>
               {/* WHY IT IS RED OR AMBER, where the colour is — each reason in
                   its own: "Sensors checked — late, 2 h lost" red, "Dry run — a
                   problem, no time lost" amber. Tapping the tile goes to where

@@ -191,7 +191,7 @@ for (const size of SIZES) {
     const [tests, items, assets, materials, programs] = await Promise.all([db.listTests(pid), db.listTestItems(pid), db.listAssets(pid), listMaterials(pid), listPrograms(pid)]);
     const today = todayISO();
     const r = clientReport({ project, projects: [project], assets, tests, items, materials, programs, standards: [], walk: [], today });
-    const out = { client: [], card: [], fix: [], day: [], status: [], programs: [] };
+    const out = { client: [], card: [], fix: [], day: [], status: [], programs: [], handover: [] };
     const add = (k, ...xs) => { for (const x of xs) { const v = typeof x === 'number' ? String(x) : x; if (v && san(v)) out[k].push([v, san(v), from]); } };
     let from = '';
     /* ARE WE ON TARGET? leads the first page, the word and its reason
@@ -255,6 +255,25 @@ for (const size of SIZES) {
     from = 'status: commentary'; if (st.commentary) add('status', st.commentary.text);
     /* "and N more" only when even the longest lists cannot hold them all. */
     from = 'status: more'; if (statusReport(r).whyMore) add('status', 'more — in the full report');
+    /* THE HANDOVER REPORT (lib/handoverReport, docs/HANDOVER.md) — the line as
+       it was really handed over: the verdict and the sentence, every machine
+       with where it is and what it went with, every test against what it
+       had to show and what was seen, every hand-over line with its state and
+       its account (a sign-off's is what it accepted), and everything still
+       open, on a machine or on the line. */
+    const { handoverReport } = await import('/src/lib/handoverReport.ts');
+    const ho = handoverReport({ project, assets, tests, items, materials, programs, today });
+    /* The sentence under the verdict until it is handed over; then the
+       verdict's reason says it. */
+    from = 'handover: top'; add('handover', ho.name, ho.verdict.word, ho.verdict.reason, ho.handedOver ? '' : ho.sentence, ho.machinesSaid, ...ho.sign);
+    for (const m of ho.machines) {
+      from = 'handover: a machine'; add('handover', m.name, m.at, m.with.length ? `Handed over with ${m.with.join(' · ')}` : '');
+      from = 'handover: a test'; for (const t of m.tests) add('handover', t.title, t.word, t.when, t.passesIf ? `Had to show: ${t.passesIf}` : '', t.said ? `Seen: ${t.said}` : '');
+      from = 'handover: a test, its end'; for (const t of m.tests) if ((t.said ?? '').length > 120) add('handover', t.said.slice(-60));
+      from = 'handover: a hand-over line'; for (const i of m.items) add('handover', i.title, i.state, i.who, i.said);
+      from = 'handover: still open'; add('handover', ...m.open);
+    }
+    from = 'handover: open on the line'; add('handover', ...ho.line);
     const cardOf = (id, k) => {
       const t = tests.find(x => x.id === id); if (!t) return;
       const c = trialCard(t, tests, items, assets);
@@ -290,6 +309,8 @@ for (const size of SIZES) {
     ['client', `#/project/${job.projectId}/report`, [['Full report'], ['PDF']], must.client],
     /* The programs, a report of their own (8 October). */
     ['programs', `#/project/${job.projectId}/report`, [['Programs report'], ['PDF']], must.programs],
+    /* The handover, as it really went (9 October). */
+    ['handover', `#/project/${job.projectId}/report`, [['Handover report'], ['PDF']], must.handover],
     /* The card is the record's own page now (screens/TestScreen); its button
        says what it makes — "Test card — PDF", "Fix card — PDF", "Install step
        card — PDF" — so it is pressed by that name, whichever face it wears. */

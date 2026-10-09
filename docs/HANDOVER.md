@@ -214,3 +214,94 @@ exact markup and place (`nd-acts`, a small button at the row's right), for
 
 On paper nothing changes: Needs you is the screen's to-do list, and the
 reports already list what is late and what is open.
+
+## Decided — Rowland, 9 October
+
+> "The handover page needs to show the reality, and in reality things don't
+> go to plan, and business will accept handovers ... it's the way it works.
+> Nothing gets blocked, but we show the status."
+
+So the machine-with-no-test question is answered: **nothing is blocked**.
+The handover page is a yes, and it shows what actually happened, not what
+was planned. What is built, together with the gates' Needs you buttons:
+
+1. **A machine is handed over when its hand-over list is done**, whatever
+   is still open before it. What is open is said beside it, in the gates'
+   order: "Handed over · no test kept", "Handed over · 1 test didn't pass ·
+   1 fix open", "Handed over · 1 install step not done"
+   (`lib/install` `machineNow`, `handedOverWith`). It shows wherever the
+   machine's place is said: the front page's "Where each machine is", the
+   plan's machine header (screen and paper), the client report's machine
+   list, and the line page.
+2. **A job is handed over when every machine is.** It says so in one
+   sentence, with its real day against the agreed day and what is still
+   open (`lib/standing`). That sentence is the answer everywhere:
+   - **The verdict word is "Handed over"** (`lib/onTarget`). It is red if it
+     was handed over after the agreed day or something open is late, amber
+     if something is still open, and green otherwise. It shows on the front
+     page band, the day, the status and client reports, and the control
+     room's row and its report.
+   - **The front page tile** says "N days early", "N days late" or "0 days
+     late", never "days past handover".
+   - **The control room counts it apart** ("2 jobs running · 1 handed
+     over"), below the live jobs, and never says it is past its handover.
+   - **A handed-over job with nothing open** says on its front page that it
+     can be archived from Details.
+3. **A sign-off keeps what it accepted.** Ticking a hand-over line whose
+   name says it is a sign-off ("Client signed off", "Safety sign-off
+   (PUWER)") writes into its account what was still open on that machine at
+   that moment. If the line has no name on it, the drawer asks who signed.
+   The account is printed whole on every report already.
+4. **The handover report** — a new document, on the Reports screen and on
+   Hand over. It covers the job, then every machine as it really is:
+   - the job: handed over or not, the real day against the agreed one, and
+     what was still open;
+   - each machine: where it is and what it was handed over with; its tests
+     against what each had to show, including the ones that did not pass,
+     did not run or were never kept; its hand-over list with the day each
+     was planned and done, late ones said; the sign-offs with who, when and
+     what they accepted; and what is still open on it, with who and by
+     when;
+   - lines to sign: handed over by, taken over by, safety.
+
+   Laid out by the report engine and checked by `scripts/report-stress.mjs`
+   like every other report.
+5. **The words:** "1 day", not "1 days"; Commission's handover line in days
+   when it is under two weeks; the drawer calls a hand-over line a
+   "Hand-over item", as Needs you and its card do, and the Hand over screen
+   counts "items".
+6. **The gates' Needs you buttons**, as designed above: "Done today" on a
+   late stage, "Plan a fix" on a stage that hit a problem, for `can.edit`
+   only.
+
+## Built — 9 October, where it lives
+
+- **The reading:** `lib/install` has `machineNow` (a machine is handed over
+  when its list is done), `handedOverWith` and `stillOpenOn` (what it went
+  with, counted and by name), `isSignOff`, `signOffNote` and
+  `doneTodayPatch` (the one write behind every "Done today"). `lib/standing`
+  now has `handedOver`, `handedOn` and `handedVs`, and its sentence says
+  what the job went with. In `lib/onTarget` the verdict word is "Handed
+  over". Tests: `src/lib/__tests__/handover.test.ts`.
+- **On screen:**
+  - the front page: the verdict, the tile ("1 day early"), each machine's
+    "Handed over · …" in amber, and the archive line;
+  - the control room: counted apart, below the live jobs, with no duplicate
+    chip;
+  - the plan's machine header;
+  - Hand over: "items", the Handover report door, and the Needs you
+    buttons (Install and Set up have the buttons too);
+  - the drawer: "Hand-over item", and "Who signed it off?";
+  - the Reports screen and its sheet: "Handover report";
+  - Commission's header, in days under two weeks.
+- **On paper:**
+  - the handover report (`lib/handoverReport`, `lib/handoverPdf`);
+  - the client report's machine list ("with no test kept · 1 fix open");
+  - the verdict on the status, client and control room reports.
+- **Proved:**
+  - `scripts/report-stress.mjs` downloads the handover report at every size
+    and on every random job, and reconciles every fact the model holds;
+  - in Chromium as owner, team and client, on laptop and phone. The Needs
+    you button is offered to owner and team, not the client; a sign-off with
+    no name asks who signed and keeps what it accepted; the job reads
+    "Handed over" the moment its last machine's list is done.

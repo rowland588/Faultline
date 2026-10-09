@@ -11,6 +11,7 @@ import { usePrograms } from '../lib/usePrograms';
 import { useStandards } from '../ui/StandardsCard';
 import { statusReport } from '../lib/statusReport';
 import { clientReport, machinesSay, type ClientReport } from '../lib/clientReport';
+import { handoverReport, type HandoverReport } from '../lib/handoverReport';
 import { todayISO } from '../lib/weeks';
 import { pdfFileName } from '../lib/fileName';
 import type { Shot } from '../lib/testReport';
@@ -38,7 +39,9 @@ function Says({ says }: { says: string }) {
    missing from the reports — need its own report"): every program, machine
    by machine, its state and what was seen (lib/programsReport) — the rows the
    full report's Programs section prints. */
-type Which = 'status' | 'full' | 'programs';
+/* THE HANDOVER REPORT (lib/handoverReport, docs/HANDOVER.md) — the line as
+   it was really handed over, every machine, and the lines to sign. */
+type Which = 'status' | 'full' | 'programs' | 'handover';
 
 async function buildStatus(r: ClientReport): Promise<jsPDF> {
   const { loadPdfLib, titlePdf } = await import('../lib/savePdf');
@@ -59,6 +62,16 @@ async function buildPrograms(r: ClientReport): Promise<jsPDF> {
   const reading = r.sections.find(s => s.gate === 'setup')?.programs;
   await drawProgramsReport(doc, { name: r.name, ...(r.lead ? { lead: r.lead } : {}), printed: r.printed,
     reading: reading ?? { lines: [], machines: [], total: 0, done: 0, baseline: 0, failed: 0, late: 0, open: 0, doneAll: 0, says: 'No programs yet' } });
+  return doc;
+}
+
+async function buildHandover(r: HandoverReport): Promise<jsPDF> {
+  const { loadPdfLib, titlePdf } = await import('../lib/savePdf');
+  const { drawHandoverReport } = await import('../lib/handoverPdf');
+  const { jsPDF } = await loadPdfLib();
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+  titlePdf(doc, `${r.name} — handover report`);
+  await drawHandoverReport(doc, r);
   return doc;
 }
 
@@ -89,7 +102,7 @@ async function buildPdf(r: ClientReport, withStandards: boolean): Promise<jsPDF>
   return doc;
 }
 
-const fileName = (r: ClientReport, which: Which) => pdfFileName(r.name, which === 'status' ? 'status report' : which === 'programs' ? 'programs' : 'client report', todayISO());
+const fileName = (r: ClientReport, which: Which) => pdfFileName(r.name, which === 'status' ? 'status report' : which === 'programs' ? 'programs' : which === 'handover' ? 'handover report' : 'client report', todayISO());
 
 export function ClientReportScreen({ projectId }: { projectId: string }) {
   const { projects, loading, rename } = useProjects();
@@ -106,7 +119,8 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
   const walk = useWalkSnags(projectId);
   const [withStandards, setWithStandards] = useState(true);
   /* ?doc=programs — opened from the Reports sheet or the Programs page. */
-  const [which, setWhich] = useState<Which>(() => (/[?&]doc=programs\b/.test(window.location.hash) ? 'programs' : 'status'));
+  const [which, setWhich] = useState<Which>(() => (/[?&]doc=programs\b/.test(window.location.hash) ? 'programs'
+    : /[?&]doc=handover\b/.test(window.location.hash) ? 'handover' : 'status'));
   const [busy, setBusy] = useState(false);
   /* What happened to the last press, said beside the button the way the test
      card and the day say it — a download with no word back read as nothing
@@ -131,11 +145,16 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
     materials: mats.materials, programs: progs.programs, standards: standards ?? [], walk: walk ?? [], today: todayISO(),
   }) : null), [ready, project, projects, tt.assets, tt.tests, tt.items, mats.materials, progs.programs, standards, walk]);
 
+  const handover = useMemo(() => (ready && project ? handoverReport({
+    project, assets: tt.assets, tests: tt.tests, items: tt.items, materials: mats.materials, programs: progs.programs, today: todayISO(),
+  }) : null), [ready, project, tt.assets, tt.tests, tt.items, mats.materials, progs.programs]);
+
   /* The preview is the PDF itself, redrawn when what is on it changes — and
      only then (lib/usePdfPreview). */
-  const previewKey = useMemo(() => (report && wide ? `${which}|${withStandards}|${JSON.stringify(report)}` : null), [report, withStandards, wide, which]);
+  const previewKey = useMemo(() => (report && wide ? `${which}|${withStandards}|${JSON.stringify(which === 'handover' ? handover : report)}` : null), [report, handover, withStandards, wide, which]);
   const build = () => (which === 'status' ? buildStatus(report as ClientReport)
-    : which === 'programs' ? buildPrograms(report as ClientReport) : buildPdf(report as ClientReport, withStandards));
+    : which === 'programs' ? buildPrograms(report as ClientReport)
+      : which === 'handover' ? buildHandover(handover as HandoverReport) : buildPdf(report as ClientReport, withStandards));
   const preview = usePdfPreview(previewKey, build);
   const status = useMemo(() => (report ? statusReport(report) : null), [report]);
 
@@ -158,11 +177,13 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
     <div className="wrap pace cr">
       <header className="pace-head">
         <div className="pace-head-main">
-          <h1 className="pace-title">{which === 'programs' ? 'Programs report' : 'Client report'}</h1>
+          <h1 className="pace-title">{which === 'programs' ? 'Programs report' : which === 'handover' ? 'Handover report' : 'Client report'}</h1>
           <p className="pace-lede">{which === 'status'
             ? 'One page: where we are, why we are not where we should be, and what we are doing about it. The one to send.'
             : which === 'programs'
               ? 'Every program, machine by machine — where each stands, what was seen, and what was said before.'
+              : which === 'handover'
+                ? 'The line as it was really handed over — every machine, what it was proved against, what was still open, and who signed.'
               : 'The whole record, in the order the job is run — for whoever wants every detail.'}</p>
           {/* The answer the first page leads with (lib/onTarget). */}
           {/* On the status view, the verdict and the handover only — what
@@ -180,7 +201,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
       {/* THE COMMENTARY — the lead's own words on where the job is, printed
           under "where we are" on the status report and the full report
           (Project.reportNote). The owner writes it; everybody reads it. */}
-      {which !== 'programs' && (can.agree || project.reportNote) && (
+      {which !== 'programs' && which !== 'handover' && (can.agree || project.reportNote) && (
         <section className="cr-note">
           <span className="cr-note-h">Commentary <i className="cw-f-opt">on both reports, under where we are</i></span>
           {can.agree
@@ -197,7 +218,29 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
         <button type="button" className={'chip' + (which === 'status' ? ' on' : '')} aria-pressed={which === 'status'} onClick={() => setWhich('status')}>Status — 1 page</button>
         <button type="button" className={'chip' + (which === 'full' ? ' on' : '')} aria-pressed={which === 'full'} onClick={() => setWhich('full')}>Full report</button>
         <button type="button" className={'chip' + (which === 'programs' ? ' on' : '')} aria-pressed={which === 'programs'} onClick={() => setWhich('programs')}>Programs report</button>
+        <button type="button" className={'chip' + (which === 'handover' ? ' on' : '')} aria-pressed={which === 'handover'} onClick={() => setWhich('handover')}>Handover report</button>
       </span>
+
+      {which === 'handover' && handover && (
+        <div className={'cr-body' + (wide ? ' is-wide' : '')}>
+          <ol className="cr-toc">
+            <li><b>{handover.machinesSaid}</b><span>{handover.sentence}</span></li>
+            {handover.machines.map(m => (
+              <li key={m.name}><b>{m.name}</b>
+                <span>{m.at}{m.with.length > 0 && <span className="in-problem"> · with {m.with.join(' · ')}</span>}</span>
+                {m.open.length > 0 && <span className="sub">{m.open.length} still open</span>}
+              </li>
+            ))}
+            {handover.line.length > 0 && <li><b>Still open on the line</b>{handover.line.map((l, i) => <span key={i}>{l}</span>)}</li>}
+            <li><b>Signed</b><span>{handover.sign.join(' · ')} — lines to sign on the paper</span></li>
+          </ol>
+          {wide && (
+            <div className="cr-page">
+              {preview ? <iframe title="The handover report" src={preview} /> : <p className="sub">Drawing the report…</p>}
+            </div>
+          )}
+        </div>
+      )}
 
       {which === 'programs' && (() => {
         const pr = report.sections.find(s => s.gate === 'setup')?.programs;

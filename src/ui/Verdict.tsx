@@ -62,10 +62,20 @@ export function Verdict({ st, eyebrow = 'Where the job is', onTarget, brief, rep
       </div>}
 
       <div className="vd-tiles">
-        {st.daysToGo != null && (
+        {/* HANDED OVER — the day it went, against the day agreed: "1 day
+            early", "3 days late" in red, a grey "0 days late" on the day.
+            It said "1 days past handover" in red on a job handed over a day
+            early (docs/HANDOVER.md). */}
+        {st.handedOver ? (st.handedVs != null && (
+          <Tile
+            n={String(Math.abs(st.handedVs))}
+            label={`${Math.abs(st.handedVs) === 1 ? 'day' : 'days'} ${st.handedVs < 0 ? 'early' : 'late'}`}
+            tone={st.handedVs > 0 ? 'bad' : undefined}
+          />
+        )) : st.daysToGo != null && (
           <Tile
             n={String(Math.abs(st.daysToGo))}
-            label={late ? 'days past handover' : 'days to handover'}
+            label={`${Math.abs(st.daysToGo) === 1 ? 'day' : 'days'} ${late ? 'past handover' : 'to handover'}`}
             tone={late ? 'bad' : undefined}
           />
         )}

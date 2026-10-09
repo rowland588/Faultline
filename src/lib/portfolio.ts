@@ -168,6 +168,9 @@ export interface JobView {
   sentence: string;
   slip?: string;
   daysToGo?: number;
+  /** Every machine handed over (lib/standing) — counted apart from the jobs
+   *  running, below them, and never "past its handover". */
+  handedOver?: boolean;
   outstanding: number;
   late: number;
   /** Marks that have happened, of all the marks with a date. */
@@ -234,7 +237,8 @@ export interface Portfolio {
   critical: JobItem[];
   /** Suppliers typed more than one way — the records disagree with each other. */
   variants: Company[];
-  totals: { jobs: number; outstanding: number; late: number; week: number; critical: number };
+  /** `jobs` is the jobs running; `handedOver` the ones handed over, still on the board. */
+  totals: { jobs: number; handedOver: number; outstanding: number; late: number; week: number; critical: number };
   says: string;
 }
 
@@ -567,7 +571,10 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
     ...pacedIn.map((j): Entry => ({ project: j.project, plan: pacedPlan(j, today), items: pacedOwed(j, today), critical: [], paced: j })),
   ];
   const when = (e: Entry) => e.project.expectedAt ?? e.project.plannedAt ?? '\uffff';
-  entries.sort((a, b) => when(a).localeCompare(when(b)) || a.project.name.localeCompare(b.project.name));
+  /* A job handed over goes below the live ones — done, and still on the
+     board while anything it went with is open (docs/HANDOVER.md). */
+  const done = (e: Entry) => !!e.gate?.st.handedOver;
+  entries.sort((a, b) => Number(done(a)) - Number(done(b)) || when(a).localeCompare(when(b)) || a.project.name.localeCompare(b.project.name));
   const inputs = entries.flatMap(e => (e.gate ? [e.gate.j] : []));
 
   /* ONE CALENDAR. Every date on every job goes into every job's layout, so
@@ -640,9 +647,14 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
       ...base,
       // A handed-over job has nothing left to count down to.
       sentence: st.sentence, slip: slipWords(st.slipDays), daysToGo: st.handedOver ? undefined : st.daysToGo,
+      ...(st.handedOver ? { handedOver: true } : {}),
       outstanding: st.outstanding, late: st.late,
       done: st.plan.filter(m => m.tone === 'done').length, total: st.plan.length,
-      pillars: [], gates, at: journeyNow(gates),
+      /* Handed over when every machine is (lib/standing) — the gates put
+         together cannot say it: a machine with nothing kept at Hand over
+         does not count at that gate, and would let the job read "Handed
+         over" while it was still at it. */
+      pillars: [], gates, at: st.handedOver ? 'Handed over' : (now => (now === 'Handed over' ? 'Hand over' : now))(journeyNow(gates)),
       onTarget: stageGateOnTarget({ ...j, today }, st),
       problems: live(j.tests).filter(t => t.kind === 'install' && lateOrProblem(t, j.items, today) === 'problem').length,
     };
@@ -734,7 +746,7 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
     axis, span, jobs, week, owes, variants, items: all.flat().sort(byUrgency), reminders,
     critical: entries.flatMap(e => e.critical),
     undated: all.flat().filter(x => x.kind === 'fix' && !x.on).sort((a, b) => a.job.localeCompare(b.job) || a.what.localeCompare(b.what)),
-    totals: { jobs: jobs.length, outstanding, late, week: week.length, critical: entries.reduce((n, e) => n + e.critical.length, 0) },
+    totals: { jobs: jobs.filter(v => !v.handedOver).length, handedOver: jobs.filter(v => v.handedOver).length, outstanding, late, week: week.length, critical: entries.reduce((n, e) => n + e.critical.length, 0) },
     says: saysOf(jobs, owes, late),
   };
 }
@@ -746,7 +758,9 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
  *  two days past its own. */
 function saysOf(jobs: JobView[], owes: Owed[], late: number): string {
   if (jobs.length === 0) return 'No job running yet.';
-  const bits = [plural(jobs.length, 'job') + ' running'];
+  /* Handed over is counted apart, and is never past its handover. */
+  const done = jobs.filter(v => v.handedOver).length;
+  const bits = [jobs.length === done ? 'No job running' : plural(jobs.length - done, 'job') + ' running', ...(done ? [`${done} handed over`] : [])];
   /* "Hands over" is a stage-gate job's word. A running line is not handed
      over: its date is the day it should be at target. */
   const past = jobs.filter(v => v.daysToGo != null && v.daysToGo < 0).sort((a, b) => (a.daysToGo ?? 0) - (b.daysToGo ?? 0));
