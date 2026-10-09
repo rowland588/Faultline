@@ -288,7 +288,20 @@ export interface Project {
    *  the app's defaults (lib/gates). `commission` is the job's usual TESTS —
    *  what "Add the usual tests" plans on a machine (testing COMMISSION_TESTS);
    *  each is an ordinary test once it is on one. */
-  gateStages?: { setup?: string[]; handover?: string[]; commission?: string[] };
+  gateStages?: {
+    setup?: string[]; handover?: string[]; commission?: string[];
+    /** WHO A USUAL STAGE IS USUALLY WITH (docs/JOBSTART.md) — the machine's
+     *  supplier, or the site — keyed `gate:stage` (lib/install usualKey).
+     *  Absent means the app's default: the site's own work (air and power,
+     *  electrics, the sign-offs) with the site, the rest with the supplier.
+     *  Kept here, beside the lists, so it is agreed as they are (the owner's,
+     *  supabase/ACCESS_LEVELS.sql keeps gate_stages), and an older device that
+     *  does not know it reads past it. */
+    usualWith?: Record<string, 'supplier' | 'site'>;
+    /** WHAT A USUAL TEST MUST SHOW — written once, given to every machine's
+     *  test of that name (lib/install usualAgreed). Keyed `commission:test`. */
+    usualAgreed?: Record<string, { passesIf?: string; runAgreed?: { rate?: number; minutes?: number; rejectsMax?: number } }>;
+  };
 
   /** WHAT THIS BUSINESS MEASURES, and what it calls its periods.
    *

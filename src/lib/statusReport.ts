@@ -23,7 +23,7 @@
  * drawn. */
 import type { ClientReport, RunRow } from './clientReport';
 
-export type WhyKind = 'critical' | 'risk' | 'late' | 'failed' | 'problem';
+export type WhyKind = 'critical' | 'risk' | 'late' | 'failed' | 'problem' | 'unplanned';
 export interface StatusWhy {
   kind: WhyKind;
   /** The tag in words — "CRITICAL", "HIGH RISK", "LATE", "DIDN'T PASS", "PROBLEM". */
@@ -116,6 +116,9 @@ export function statusReport(r: ClientReport, L: StatusLimits = STATUS_LIMITS): 
       kind: 'risk', tag: 'HIGH RISK', what: c.what, id: c.id,
       detail: [c.could, c.impact].filter(Boolean).join(' — ') || undefined,
     })),
+    /* NOT PLANNED YET (docs/JOBSTART.md) — the one page said "Nothing —
+       everything is on plan" over a job with 136 lines with no date. */
+    ...(r.onTarget.gaps ? [{ kind: 'unplanned' as const, tag: 'NOT PLANNED', what: r.onTarget.gaps }] : []),
     ...r.sections.flatMap(s => s.late.map((l): StatusWhy => (s.gate === 'commission'
       ? { kind: 'failed', tag: 'DIDN’T PASS', what: l }
       : { kind: 'late', tag: 'LATE', what: l }))),

@@ -734,7 +734,8 @@ export async function drawStatusReport(doc: jsPDF, report: ClientReport): Promis
        its colour, what, and its cause or cost under it. */
     out.push(label('Why we are not where we should be', s.why.length ? DANGER : MUTED));
     if (!s.why.length) out.push(text({ text: 'Nothing — everything is on plan.', colour: INK2, after: gap(d, 'l') }));
-    const tagColour: Record<string, string> = { critical: DANGER, risk: AMBER, late: DANGER, failed: DANGER, problem: AMBER };
+    /* Not planned yet is grey — not started, not wrong (docs/JOBSTART.md). */
+    const tagColour: Record<string, string> = { critical: DANGER, risk: AMBER, late: DANGER, failed: DANGER, problem: AMBER, unplanned: MUTED };
     const tagW = 62;
     const whyParts = (f: Frame, w: (typeof s.why)[number]) => ({
       what: wrap(f.doc, w.what, f.w - tagW - 8, 9.5, 'bold'),

@@ -200,11 +200,15 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
 
       {/* THE COMMENTARY — the lead's own words on where the job is, printed
           under "where we are" on the status report and the full report
-          (Project.reportNote). The owner writes it; everybody reads it. */}
-      {which !== 'programs' && which !== 'handover' && (can.agree || project.reportNote) && (
+          (Project.reportNote). The owner and the team write it; everybody reads it. */}
+      {/* THE TEAM WRITES IT TOO (Rowland, 9 October: yes) — it is the work,
+          not what was agreed: the live database lets the team change the
+          project row and keeps only the agreed fields for the owner
+          (faultline_keep_agreement), and the commentary is not one of them. */}
+      {which !== 'programs' && which !== 'handover' && (can.edit || project.reportNote) && (
         <section className="cr-note">
           <span className="cr-note-h">Commentary <i className="cw-f-opt">on both reports, under where we are</i></span>
-          {can.agree
+          {can.edit
             ? <DraftArea className="text-area" rows={3} better="note" value={project.reportNote ?? ''} ariaLabel="Commentary"
                 placeholder="What the numbers mean this week — e.g. Install is two days behind on the Ishida, caught up by Friday; programs on track for the Tesco trial."
                 onSave={v => void rename(project, { reportNote: v.trim() || undefined, reportNoteAt: v.trim() ? Date.now() : undefined })} />
@@ -271,7 +275,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
             <li><b>Where we are</b><span>{report.gates.map(g => `${g.label}: ${g.says}`).join(' · ')}</span></li>
             <li><b>Why we are not where we should be</b>
               {status.why.length ? status.why.map((w, i) => {
-                const words = <><b className={w.kind === 'risk' || w.kind === 'problem' ? 'in-problem' : 'in-late'}>{w.tag}</b> {w.what}</>;
+                const words = <><b className={w.kind === 'risk' || w.kind === 'problem' ? 'in-problem' : w.kind === 'unplanned' ? undefined : 'in-late'}>{w.tag}</b> {w.what}</>;
                 return w.id ? <button key={i} type="button" className="cr-door" onClick={() => open(w.id)}>{words}</button> : <span key={i}>{words}</span>;
               }) : <span>Nothing — everything is on plan.</span>}
               {status.whyMore > 0 && <span className="sub">and {status.whyMore} more — in the full report</span>}</li>

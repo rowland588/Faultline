@@ -38,7 +38,7 @@ import { todayISO } from '../lib/weeks';
 import { partsOf, resultNow } from '../lib/noted';
 import { useProjects } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
-import { GATE_WORD, doneTodayPatch, installGrid, installOf, isSignOff, usualStages } from '../lib/install';
+import { GATE_WORD, doneTodayPatch, installGrid, installOf, isSignOff, usualHolder, usualStages } from '../lib/install';
 import { changeTests } from '../ui/WhyMoved';
 import { gateOf, type StepGate, type Test, type TestItem } from '../lib/testing';
 import { usePrograms } from '../lib/usePrograms';
@@ -56,15 +56,15 @@ import { AccessNote } from '../ui/AccessNote';
 const FACE: Record<StepGate, { peer: string; doing: string; empty: string }> = {
   install: {
     peer: 'install', doing: 'installing',
-    empty: 'Add the machines being installed. Each gets the job’s stages — positioned, air and power, electrics, sensors and controls, dry run — and you tick them off as they happen.',
+    empty: 'Add the machines being installed — or paste a list of them. Then one tap gives them all the job’s stages — positioned, air and power, electrics, sensors and controls, dry run — and you tick them off as they happen.',
   },
   setup: {
     peer: 'setup', doing: 'being set up',
-    empty: 'Add the machines first. Each gets the job’s set-up stages — programs loaded, recipes set, change parts, HMI, guards — and you tick them off as they happen.',
+    empty: 'Add the machines first. Then one tap gives them all the job’s set-up stages — programs loaded, recipes set, change parts, HMI, guards — and you tick them off as they happen.',
   },
   handover: {
     peer: 'handover', doing: 'handing over',
-    empty: 'Add the machines first. Each gets the job’s hand-over check sheet — manuals, training, spares, safety sign-off, client signed — every line of it yours to change.',
+    empty: 'Add the machines first. Then one tap gives them all the job’s hand-over check sheet — manuals, training, spares, safety sign-off, client signed — every line of it yours to change.',
   },
 };
 
@@ -119,12 +119,16 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
 
   const today = todayISO();
   const stages = usualStages(project, projects, gate);
+  /* The job whose list it is — who each stage is usually with comes with it. */
+  const holder = usualHolder(project, projects, gate);
   const steps = tt.tests.filter(t => t.kind === 'install' && gateOf(t) === gate && !t.deletedAt);
   const machines = tt.assets.filter(a => !a.deletedAt).map(a => installOf(a, tt.tests, tt.items, today, gate));
   const line = installOf(undefined, tt.tests, tt.items, today, gate);
   const done = steps.filter(t => t.outcome === 'passed').length;
   const late = [...machines, line].reduce((n, m) => n + m.late, 0);
-  const going = machines.filter(m => m.total > 0 && m.done < m.total).length;
+  /* Machines with something started and not finished — "8 machines
+     installing" was said with nothing done (docs/JOBSTART.md). */
+  const going = machines.filter(m => m.done > 0 && m.done < m.total).length;
   const grid = installGrid(tt.assets, tt.tests, tt.items, today, stages.stages, gate);
   const onGrid = grid.rows.length > 0;
   /* Stages a machine has on the grid with nothing planned in them. "1 of 2
@@ -219,7 +223,7 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
       })()}
 
       {onGrid
-        ? <InstallGrid tt={tt} project={project} stages={stages} gate={gate} can={can} programs={progs.programs}
+        ? <InstallGrid tt={tt} project={project} stages={stages} gate={gate} can={can} programs={progs.programs} holder={holder}
             otherName={projects.find(p => p.id === stages.otherId)?.name} />
         : (
           <p className="sub tw-note">

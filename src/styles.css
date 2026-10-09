@@ -11258,3 +11258,16 @@ button.gt-lab small b { display: inline; font-size: inherit; font-weight: 800; }
 /* A sign-off with no name on it asks who signed, in the drawer's own row. */
 .rd-signer { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; flex: 1 1 100%; }
 .rd-signer .text-input { flex: 1 1 200px; margin-top: 0; min-width: 0; }
+
+/* THE START OF A JOB (docs/JOBSTART.md). */
+.cw-addf-hint { flex: 1 1 100%; }
+/* "Same days" or "One after another", over the dates. */
+.ig-seq { margin: 4px 0 8px; display: inline-flex; }
+.ig-gap input { width: 6em; }
+/* Each usual stage's details, under its name: who it is with, what it must show. */
+.in-usual-det { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 2px 0 8px 28px; }
+.in-usual-det .chip { font-size: 12px; padding: 3px 10px; min-height: 0; line-height: 1.4; }
+.in-usual-pass { flex: 1 1 240px; min-width: 0; }
+.in-usual-run { display: flex; flex-wrap: wrap; gap: 8px; flex: 1 1 100%; }
+.in-usual-run input { width: 7em; }
+.in-usual-agreed { font-style: normal; }

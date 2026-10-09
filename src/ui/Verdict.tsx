@@ -52,7 +52,9 @@ export function Verdict({ st, eyebrow = 'Where the job is', onTarget, brief, rep
   return (
     <section className="vd">
       {/* ARE WE ON TARGET? — first, across the band (Rowland, 6 October). */}
-      {onTarget && <OnTargetLine v={brief ? { ...onTarget, reason: onTarget.reason.split(' · ')[0] } : onTarget} dark />}
+      {/* Brief: the handover line — and, while the plan is not whole, what is
+          missing from it (docs/JOBSTART.md). */}
+      {onTarget && <OnTargetLine v={brief ? { ...onTarget, reason: [onTarget.reason.split(' · ')[0], onTarget.gaps].filter(Boolean).join(' · ') } : onTarget} dark />}
       {!brief && <div className="vd-said">
         <span className="vd-eyebrow">{eyebrow}</span>
         <h2 className="vd-sentence">{st.sentence}</h2>

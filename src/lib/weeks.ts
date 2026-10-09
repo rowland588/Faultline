@@ -103,3 +103,11 @@ export function monthSpans(weeks: Week[]): { month: string; span: number }[] {
 /** Which week a date falls in, or -1. */
 export const weekIndexOf = (weeks: Week[], iso?: string): number =>
   iso ? weeks.findIndex(w => iso >= w.start && iso <= w.end) : -1;
+
+/** ONE AFTER ANOTHER (docs/JOBSTART.md) — the window for the `i`th machine
+ *  when a stage is planned on every machine in turn, each `every` days after
+ *  the one before: the first on `from`–`to`, the next moved on by `every`. */
+export function staggered(from: string, to: string | undefined, i: number, every: number): { from: string; to?: string } {
+  const by = Math.max(0, i) * Math.max(0, Math.round(every));
+  return { from: addDays(from, by), ...(to ? { to: addDays(to, by) } : {}) };
+}

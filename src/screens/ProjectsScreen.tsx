@@ -81,8 +81,8 @@ export function ProjectsScreen() {
           <h1 className="pace-title">Projects</h1>
           <p className="pace-lede">
             {mayStart
-              ? 'Every project is a change to a line. The live ones are on Home; this is where one starts, and where the archive is.'
-              : 'Every project is a change to a line. The ones you’ve been invited to are on Home; the archive is here.'}
+              ? 'Every project is a change to a line. The live ones are on the control room; this is where one starts, and where the archive is.'
+              : 'Every project is a change to a line. The ones you’ve been invited to are on the control room; the archive is here.'}
           </p>
         </div>
         <div className="pace-head-actions">
@@ -203,7 +203,7 @@ export function ProjectsScreen() {
       ) : !adding && (
         <p className="sub proj-live">
           {projects.length} project{projects.length === 1 ? '' : 's'} running —{' '}
-          <button type="button" className="cw-link" onClick={() => nav('/')}>on Home ›</button>
+          <button type="button" className="cw-link" onClick={() => nav('/')}>on the control room ›</button>
         </p>
       )}
 

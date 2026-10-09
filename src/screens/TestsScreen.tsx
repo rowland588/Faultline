@@ -11,7 +11,7 @@
  */
 import { DateWhy } from '../ui/DateWhy';
 import { HANDOVER_KEY, keyOf } from '../lib/story';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { openRecord } from '../ui/RecordDrawer';
 import { nav } from '../state/useRoute';
 import { niceDay, todayISO } from '../lib/weeks';
@@ -253,10 +253,26 @@ export function MachineCard({ a, ran, save, remove }: {
   );
 }
 
+/** A pasted list of machines — one a line, its supplier after a comma or a
+ *  tab ("Bag former, Ilapak UK"), as copied from a spreadsheet or an email. */
+export function machinesFrom(text: string): { name: string; oem?: string }[] {
+  return text.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
+    const [name, ...rest] = l.split(/\t|,/);
+    const oem = rest.join(',').trim();
+    return { name: name.trim(), ...(oem ? { oem } : {}) };
+  }).filter(m => m.name);
+}
+
+/* ADDING MACHINES — save, next, save (docs/JOBSTART.md; MANUFACTURING IS
+   MANY): the form stays open after Add with the supplier kept for the next
+   one, so eight machines are eight names, not eight trips back to the button;
+   and a pasted list adds them all. Done closes it. */
 export function AddAsset({ add }: { add: (name: string, oem?: string) => Promise<string> }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [oem, setOem] = useState('');
+  const [added, setAdded] = useState(0);
+  const nameBox = useRef<HTMLInputElement>(null);
   if (!open) {
     return (
       <button className="cw-add" onClick={() => setOpen(true)}>
@@ -264,17 +280,28 @@ export function AddAsset({ add }: { add: (name: string, oem?: string) => Promise
       </button>
     );
   }
+  const close = () => { setOpen(false); setName(''); setOem(''); setAdded(0); };
   return (
     <form className="cw-addf" onSubmit={e => {
       e.preventDefault();
       if (!name.trim()) return;
       void add(name, oem);
-      setName(''); setOem(''); setOpen(false);
+      setName(''); setAdded(n => n + 1);
+      nameBox.current?.focus();
     }}>
-      <input autoFocus placeholder="Machine" value={name} onChange={e => setName(e.target.value)} />
+      <input ref={nameBox} autoFocus placeholder="Machine" value={name} onChange={e => setName(e.target.value)}
+        aria-label="Machine — or paste a list, one a line, its supplier after a comma"
+        onPaste={e => {
+          const list = machinesFrom(e.clipboardData.getData('text'));
+          if (list.length < 2) return;
+          e.preventDefault();
+          void (async () => { for (const m of list) await add(m.name, m.oem ?? (oem.trim() || undefined)); })();
+          setAdded(n => n + list.length);
+        }} />
       <input placeholder="Who supplied it" value={oem} onChange={e => setOem(e.target.value)} />
       <button className="btn" type="submit" disabled={!name.trim()}>Add</button>
-      <button className="btn btn-ghost" type="button" onClick={() => setOpen(false)}>Cancel</button>
+      <button className="btn btn-ghost" type="button" onClick={close}>{added ? 'Done' : 'Cancel'}</button>
+      <span className="sub cw-addf-hint">{added ? `${added} added — the next one, or Done.` : 'Or paste a list — one machine a line, its supplier after a comma.'}</span>
     </form>
   );
 }

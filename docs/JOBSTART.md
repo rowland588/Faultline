@@ -44,9 +44,11 @@ scale?**
 - **Stages: one tap per gate for all eight** ("give them all the 6"), with
   Undo. **Tests: one tap** gives every machine the six usual tests, 48 in
   all. This part scales well.
-- **Arrival dates are one machine at a time.** Machines arrive "due on site"
-  with no date; each machine's is set in its own panel (Edit → Expected on
-  site).
+- **Arrival dates are one machine at a time.** A machine added on screen
+  starts as on site. One that is still on its way gets its date in its own
+  panel (Edit → Expected on site). (Corrected after the audit: the "8 due on
+  site" in the walk came from the test data, which started them as on their
+  way.)
 - **Every line starts as the machine's supplier's**, including work that is
   the site's own:
   - "Air and power connected" and "Electrically complete";
@@ -164,3 +166,70 @@ where it shows on screen and on paper.
   the cloud.
 - **The live database's rules.** The Supabase connector did not connect
   again this session.
+
+## Decided and built — 9 October
+
+Rowland: "reconnect supabase and do the plan". All seven, item 4 included.
+
+1. **Who each line starts with.**
+   - Each usual stage and test says "with the supplier" or "with the site",
+     in the list's own editor, for the owner only.
+   - The app's defaults put "Air and power connected", "Electrically
+     complete", "Safety sign-off (PUWER)" and "Client signed off" with the
+     site.
+   - Changing one moves the open lines that still carry the old default.
+   - Correcting a supplier's name on a machine moves its open lines to the
+     new name, with Undo (`lib/install` `usualWith`, `whoFor`;
+     `lib/useTesting` `saveAsset`).
+2. **What a usual test must show, written once.** "Passes if", and a run's
+   agreed packs a minute, minutes and rejects, are written on the usual
+   test. Every machine's test gets them, and tests already on machines with
+   nothing agreed take them (`usualAgreed`). It is stored beside the lists
+   in `gate_stages`, which the database already keeps for the owner. No
+   database change.
+3. **Commission's columns plan like Install's.** A test's heading opens the
+   same panel:
+   - what it must show;
+   - add it to the machines without it;
+   - plan it for every machine not run;
+   - who it is with.
+4. **One after another.** When a stage or test is planned for every machine,
+   the choice is "Same days" or "One after another". Each machine follows N
+   days after the one before, in the grid's order, the default gap being
+   the window's own length (`lib/weeks` `staggered`). A move later still
+   asks why.
+5. **Not fully planned.** Until every line has a day and every test
+   something agreed, the verdict is a grey "Not fully planned" with what is
+   missing (`lib/onTarget` `planGaps`). It shows on:
+   - the front page band;
+   - the control room row;
+   - the status report, on screen and paper: a "NOT PLANNED" line under
+     "why", never "everything is on plan";
+   - the plan page: "not on it yet: …".
+
+   Fixes are not counted; they are planned when needed. The gate headers
+   count only machines with something started.
+6. **Adding machines.** The form stays open after Add, keeping the supplier
+   for the next one, and takes a pasted list: one machine a line, its
+   supplier after a comma or a tab.
+7. **Words.**
+   - "the control room", not "Home";
+   - the Stage Gate card lists everything it prints;
+   - each gate's empty page says one tap gives every machine its stages.
+
+Proved in Chromium on a job built from nothing:
+- one machine typed, then seven pasted;
+- the site's own work with the site;
+- what a test must show written once onto eight tests;
+- a test and a stage planned one after another;
+- "Not fully planned" on the front page, plan, status report and its PDF;
+- the control room's "The site owes 40";
+- a supplier corrected, moving its 12 open lines.
+
+The team can plan from a column but not change the agreed list; a client
+can only read. Tests: `src/lib/__tests__/jobStart.test.ts`.
+
+**The live database, read back the same day** (connector back): the
+member-read and editor-write policies on projects, tests, test items,
+assets, materials and programs, and the `faultline_keep_agreement` trigger
+on every table. They match `supabase/ACCESS_LEVELS.sql`.

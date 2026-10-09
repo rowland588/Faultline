@@ -199,5 +199,15 @@ lives, and what it does on the screen and on paper together (house rule 2):
    ones, by `scripts/report-stress.mjs` from its real button, and by
    `src/lib/__tests__/controlRoomReport.test.ts`.
 
-Still open: item 7 (the three roles questions and the live database
-read-back).
+Item 7, settled 9 October:
+- **Clients keep seeing Notes, the day's plan and "Needs you"** (Rowland:
+  yes to all).
+- **The live database was read back** once the connector was back. The
+  policies on projects, tests, test items, assets, materials and programs
+  (member reads, editors only write) and the `faultline_keep_agreement`
+  trigger on every table match the repo and the screens.
+- **The team writes the report commentary too.** The live read-back
+  showed no database change was needed: the team may change the project
+  row, and `faultline_keep_agreement` keeps only the agreed fields for the
+  owner, which do not include the commentary. Only the screen held it to
+  the owner; now the team writes it and a client reads it.

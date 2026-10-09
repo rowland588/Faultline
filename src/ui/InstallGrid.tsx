@@ -17,7 +17,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import { deleteTest } from '../db';
 import type { Program } from '../lib/programs';
-import { doneTodayPatch, foldInto, installGrid, lateByWords, stepsNamed, untouched, type StepView, type usualStages } from '../lib/install';
+import { doneTodayPatch, foldInto, installGrid, whoFor, lateByWords, stepsNamed, untouched, type StepView, type usualStages } from '../lib/install';
 import { UsualStages } from './UsualStages';
 import { WhyMoved, changeTests, moveTestsWithWhy, type WhyAnswer } from './WhyMoved';
 import { movedLater } from '../lib/story';
@@ -25,7 +25,7 @@ import { MachineCard } from '../screens/TestsScreen';
 import { DrawerShell } from './DrawerShell';
 import type { Project } from '../types';
 import { ASSET_STATE_WORD, assetStateOf, assetStateOn, hasRun, isSettled, live, plannedEnd, type Asset, type StepGate, type Test } from '../lib/testing';
-import { niceDay, todayISO } from '../lib/weeks';
+import { daysBetween, niceDay, staggered, todayISO } from '../lib/weeks';
 import { partsOf, partsSaid } from '../lib/noted';
 import { PartsMark } from './StageParts';
 import { criticalCount, criticalOn, riskOn } from '../lib/critical';
@@ -94,7 +94,7 @@ function cellWord(s: StepView): string {
   }
 }
 
-export function InstallGrid({ tt, project, stages, otherName, gate = 'install', can = canOf('owner'), programs = [] }: {
+export function InstallGrid({ tt, project, stages, otherName, gate = 'install', can = canOf('owner'), programs = [], holder }: {
   tt: TT; project: Project;
   /** What this person may do here (lib/access): a client reads the grid and
    *  opens a step; the team does the work but removes nothing. */
@@ -107,6 +107,9 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
   /** The job's programs — what a sign-off says was still open (lib/install
    *  doneTodayPatch). */
   programs?: readonly Program[];
+  /** The job whose usual list this is (lib/install usualHolder) — who each
+   *  stage is usually with, the supplier or the site. */
+  holder?: Project;
 }) {
   const projectId = project.id;
   const usual = stages.stages;
@@ -148,14 +151,20 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
     const pushed = ts.filter(t => movedLater(plannedEnd(t), end));
     return { n: pushed.length, was: pushed.map(t => plannedEnd(t) as string).sort().pop() };
   };
-  const moveWithWhy = (ts: Test[], from: string, to: string | undefined, a: WhyAnswer, said: string) => moveTestsWithWhy(tt, ts, from, to, a, said);
+  const moveWithWhy = (ts: Test[], from: string, to: string | undefined, a: WhyAnswer, said: string, windowOf?: (t: Test) => { from: string; to?: string }) =>
+    moveTestsWithWhy(tt, ts, from, to, a, said, windowOf);
   const add = async (pairs: { title: string; assetId?: string }[], said: string) => {
     if (!pairs.length) return;
     const ids: string[] = [];
     /* Grouped per machine, so each machine's steps are numbered in order. */
     const byMachine = new Map<string | undefined, string[]>();
     for (const p of pairs) byMachine.set(p.assetId, [...(byMachine.get(p.assetId) ?? []), p.title]);
-    for (const [assetId, titles] of byMachine) ids.push(...await tt.planSteps(titles, assetId, gate));
+    /* Each starts with who its usual stage is usually with — the machine's
+       supplier, or the site for the site's own work (lib/install whoFor). */
+    for (const [assetId, titles] of byMachine) {
+      const oem = tt.assets.find(a => a.id === assetId)?.oem;
+      ids.push(...await tt.planSteps(titles, assetId, gate, title => whoFor(holder ?? project, gate, title, oem)));
+    }
     offerUndo(said, async () => { for (const id of ids) await deleteTest(id, projectId); });
   };
 
@@ -219,6 +228,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
       return (
         <Sheet title="The stages" sub="What each machine gets, in the order they happen" onClose={() => setOpen(null)}>
           <UsualStages project={project} usual={stages} otherName={otherName} tests={tt.tests} gate={gate} can={can}
+            holder={holder} assets={tt.assets} onLines={(list, said) => changeTests(tt, list.map(x => x.t), t => list.find(x => x.t.id === t.id)?.patch ?? {}, said)}
             editing onDone={() => setOpen(null)} extras={extras} onMove={moveColumn} onRemove={removeColumn} onDrop={dropColumns}
             isFresh={t => untouched(t, tt.tests, tt.items)}
             renameSteps={async (pairs) => {
@@ -302,10 +312,21 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
           </div>
           {left.length > 0 && (
             <>
-              <PlanWindow label="Plan it for every machine not done"
-                saveLabel="Save" onPlan={(from, to) => { void change(left, () => ({ plannedFor: from, plannedTo: to }), `${col} planned on ${left.length} machine${left.length === 1 ? '' : 's'}`); setOpen(null); }}
+              {/* EVERY MACHINE AT ONCE, or ONE AFTER ANOTHER in the order the
+                  grid lists them (docs/JOBSTART.md). */}
+              <PlanWindow label="Plan it for every machine not done" many={left.length}
+                saveLabel="Save" onPlan={(from, to, every) => {
+                  const at = new Map(left.map((t, i) => [t.id, i]));
+                  void change(left, t => (w => ({ plannedFor: w.from, plannedTo: w.to }))(every ? staggered(from, to, at.get(t.id) ?? 0, every) : { from, to }),
+                    `${col} planned on ${left.length} machine${left.length === 1 ? '' : 's'}${every ? `, ${every} day${every === 1 ? '' : 's'} apart` : ''}`);
+                  setOpen(null);
+                }}
                 pushes={end => pushesOf(left, end)}
-                onMove={(from, to, a) => { void moveWithWhy(left, from, to, a, `${col} moved — reason kept`); setOpen(null); }} />
+                onMove={(from, to, a, every) => {
+                  const at = new Map(left.map((t, i) => [t.id, i]));
+                  void moveWithWhy(left, from, to, a, `${col} moved — reason kept`, every ? t => staggered(from, to, at.get(t.id) ?? 0, every) : undefined);
+                  setOpen(null);
+                }} />
               <Who names={names} value="" label="Who is doing it, on every machine not done"
                 onSave={v => { if (!v) return; void change(left, () => ({ withWhom: v }), `${col} — ${v}, ${left.length} machine${left.length === 1 ? '' : 's'}`); setOpen(null); }} />
             </>
@@ -608,21 +629,34 @@ export function Sheet({ title, sub, onClose, children }: { title: string; sub?: 
 
 /** A START AND A FINISH for several steps at once, applied together with one
  *  tap so a half-chosen window is never written. Finish empty = one day. */
-function PlanWindow({ label, onPlan, saveLabel = 'Plan', pushes, onMove }: {
-  label: string; onPlan: (from: string, to: string | undefined) => void; saveLabel?: string;
-  /** Which of the steps this would push later, and the latest finish among them. */
+export function PlanWindow({ label, onPlan, saveLabel = 'Plan', pushes, onMove, many = 0 }: {
+  label: string;
+  /** `every`: one after another, each machine that many days after the one
+   *  before (lib/weeks staggered); absent, every machine on the same days. */
+  onPlan: (from: string, to: string | undefined, every?: number) => void; saveLabel?: string;
+  /** Which of the steps this would push later, and the latest finish among
+   *  them — given the last machine's finish. */
   pushes?: (end: string) => { n: number; was?: string };
-  onMove?: (from: string, to: string | undefined, a: WhyAnswer) => void;
+  onMove?: (from: string, to: string | undefined, a: WhyAnswer, every?: number) => void;
+  /** How many machines it plans: two or more offer "one after another"
+   *  (docs/JOBSTART.md) — a line is installed a machine at a time. */
+  many?: number;
 }) {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [asking, setAsking] = useState(false);
-  const end = from ? (to || from) : '';
+  const [seq, setSeq] = useState(false);
+  const [gapTyped, setGap] = useState('');
+  const span = from ? daysBetween(from, to || from) + 1 : 1;
+  const every = seq ? Math.max(1, Math.round(Number(gapTyped) || span)) : undefined;
+  const last = from && every ? staggered(from, to || undefined, many - 1, every) : undefined;
+  const end = from ? (last ? last.to ?? last.from : to || from) : '';
   const push = end && pushes ? pushes(end) : { n: 0 };
+  const clear = () => { setFrom(''); setTo(''); setGap(''); setSeq(false); };
   if (asking && push.was && end && onMove) {
     return <WhyMoved from={push.was} to={end} many={push.n} allowFix={false} onCancel={() => setAsking(false)}
-      onSkip={() => { onPlan(from, to || undefined); setFrom(''); setTo(''); setAsking(false); }}
-      onSave={a => { onMove(from, to || undefined, a); setFrom(''); setTo(''); setAsking(false); }} />;
+      onSkip={() => { onPlan(from, to || undefined, every); clear(); setAsking(false); }}
+      onSave={a => { onMove(from, to || undefined, a, every); clear(); setAsking(false); }} />;
   }
   /* A form, so Enter in a date box saves (as in a record's Edit). */
   return (
@@ -630,23 +664,36 @@ function PlanWindow({ label, onPlan, saveLabel = 'Plan', pushes, onMove }: {
       e.preventDefault();
       if (!from) return;
       if (push.n > 0 && onMove) { setAsking(true); return; }
-      onPlan(from, to || undefined); setFrom(''); setTo('');
+      onPlan(from, to || undefined, every); clear();
     }}>
       <span className="ig-plan-l">{label}</span>
+      {many > 1 && (
+        <span className="cw-seg ig-seq" role="group" aria-label="Every machine on">
+          <button type="button" className={'chip' + (!seq ? ' on' : '')} aria-pressed={!seq} onClick={() => setSeq(false)}>Same days</button>
+          <button type="button" className={'chip' + (seq ? ' on' : '')} aria-pressed={seq} onClick={() => setSeq(true)}>One after another</button>
+        </span>
+      )}
       <div className="ig-dates">
-        <label className="cw-f ig-f"><span>Starts</span>
+        <label className="cw-f ig-f"><span>{seq ? 'The first starts' : 'Starts'}</span>
           <input type="date" value={from} onChange={e => { setFrom(e.target.value); if (to && e.target.value > to) setTo(''); }} /></label>
-        <label className="cw-f ig-f"><span>Finishes</span>
+        <label className="cw-f ig-f"><span>{seq ? 'The first finishes' : 'Finishes'}</span>
           <input type="date" value={to} min={from || undefined} onChange={e => setTo(e.target.value)} /></label>
+        {seq && (
+          <label className="cw-f ig-f ig-gap"><span>Days apart</span>
+            <input type="number" min={1} inputMode="numeric" value={gapTyped} placeholder={String(span)} onChange={e => setGap(e.target.value)} /></label>
+        )}
         <button className="btn" type="submit" disabled={!from}>{saveLabel}</button>
       </div>
+      {seq && from && last && (
+        <p className="sub ig-why-note">{many} machines in turn, {every} day{every === 1 ? '' : 's'} apart, in the order listed — the last {niceDay(last.from)}{last.to && last.to !== last.from ? `–${niceDay(last.to)}` : ''}.</p>
+      )}
       {push.n > 0 && <p className="sub ig-why-note">That pushes {push.n === 1 ? 'one machine' : `${push.n} machines`} later than planned — Save will ask why.</p>}
     </form>
   );
 }
 
 /** Who is doing it — typed, or picked from everyone already named on the job. */
-function Who({ names, value, label = 'Who is doing it', onSave }: {
+export function Who({ names, value, label = 'Who is doing it', onSave }: {
   names: string[]; value: string; label?: string; onSave: (v: string) => void;
 }) {
   const [v, setV] = useState(value);

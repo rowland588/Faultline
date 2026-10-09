@@ -85,7 +85,8 @@ export const MODELS: Method[] = [
     organised: 'Machines through their install stages, tests with agreed pass marks, fixes, materials and programs',
     rhythm: 'Daily, at the line',
     done: 'Handed over',
-    document: 'Client report · test and fix cards' },
+    /* All it prints (docs/JOBSTART.md) — the card said two of seven. */
+    document: 'Status report · client report · the plan · programs report · handover report · test and fix cards' },
   { id: 'board', label: '6M',
     situation: 'Make a running line perform better',
     blurb: 'What is holding this line back, what is the root cause, and who is fixing it?',

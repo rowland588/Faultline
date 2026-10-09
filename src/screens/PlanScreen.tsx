@@ -22,6 +22,7 @@ import { useStanding } from '../lib/useStanding';
 import { usePrograms } from '../lib/usePrograms';
 import { useWalkSnags } from '../lib/useWalkSnags';
 import { useAccess } from '../cloud/access';
+import { planGaps } from '../lib/onTarget';
 import { planSays } from '../lib/plan';
 import { todayISO } from '../lib/standing';
 
@@ -62,7 +63,9 @@ export function PlanScreen({ projectId }: { projectId: string }) {
           <h1 className="pace-title">The plan</h1>
           {/* The same sentence the front page's line says of the plan — one
               reading (lib/plan planSays), two places. */}
-          <p className="cw-handover"><b>{planSays(st.plan, today)}</b></p>
+          {/* …and what is not on it yet (lib/onTarget planGaps,
+              docs/JOBSTART.md): the plan only drew what had a date. */}
+          <p className="cw-handover"><b>{planSays(st.plan, today)}</b>{(g => g && <span className="sub"> · not on it yet: {g}</span>)(planGaps(tt.tests, tt.assets))}</p>
         </div>
       </header>
       <AccessNote can={can} owner={project.lead} />

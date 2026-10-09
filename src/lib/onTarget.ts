@@ -19,6 +19,10 @@
  *                CRITICAL problem is open (lib/critical) — never "on target"
  *                while one is, and its count is in the reason either way.
  *                On target (a quiet green) — otherwise.
+ *                Not fully planned (grey) — nothing late or at risk, but
+ *                lines with no day, tests with nothing agreed to show, or
+ *                machines with no arrival date (planGaps): it never says
+ *                "On target" over a plan that is not there yet.
  *                Handed over — once every machine's hand-over list is done
  *                (lib/standing), whatever is still open: its real day
  *                against the agreed one, and what it went with. Red if late
@@ -29,7 +33,7 @@
  *
  * Pure: the screen gathers the records, this answers. Nothing is stored. */
 import { assetStateOf, isOverdue, isSettled, live, plannedEnd, type Asset, type Test, type TestItem } from './testing';
-import { handedOverWith, lateOrProblem } from './install';
+import { handedOverWith, hasAgreed, lateOrProblem } from './install';
 import { couldWords, criticalProblems, riskProblems } from './critical';
 import { hoursWord } from './hoursLost';
 import { isHere, type Material } from './materials';
@@ -51,6 +55,27 @@ export interface OnTarget {
    *  room's row, docs/CONTROLROOM.md): the names are on the row's "Critical"
    *  and "Next" lines, and the whole reason is one tap away. */
   brief?: string;
+  /** WHAT IS NOT PLANNED YET (docs/JOBSTART.md) — "136 with no date, 47
+   *  tests with nothing agreed to show, 8 machines with no arrival date" —
+   *  said on the front page band and as the status report's first "why". */
+  gaps?: string;
+}
+
+/** WHAT THE PLAN DOES NOT HAVE YET — a stage or test still to do with no day,
+ *  a test still to run with nothing agreed to show, a machine on its way with
+ *  no arrival date. A fix is not counted: it is planned when it is needed,
+ *  and the control room lists those with no date agreed. Empty when the plan
+ *  is whole. */
+export function planGaps(tests: Test[], assets: Asset[]): string {
+  const open = live(tests).filter(t => (t.kind === 'install' || (t.kind ?? 'test') === 'test') && !isSettled(t));
+  const undated = open.filter(t => !t.plannedFor).length;
+  const unagreed = open.filter(t => (t.kind ?? 'test') === 'test' && !hasAgreed(t)).length;
+  const unarrived = live(assets).filter(a => assetStateOf(a) === 'awaited' && !a.dueOn && !a.onSiteOn).length;
+  return [
+    undated ? `${undated} with no date` : '',
+    unagreed ? `${unagreed} test${unagreed === 1 ? '' : 's'} with nothing agreed to show` : '',
+    unarrived ? `${unarrived} machine${unarrived === 1 ? '' : 's'} with no arrival date` : '',
+  ].filter(Boolean).join(', ');
 }
 
 /** Something owed due within this many days puts a job at risk. */
@@ -197,6 +222,12 @@ export function stageGateOnTarget(x: StageGateInput, st?: Standing): OnTarget {
       brief,
     };
   }
+  /* NOT FULLY PLANNED (docs/JOBSTART.md) — nothing late, but lines with no
+     day, tests with nothing agreed to show, machines with no arrival date: a
+     job half planned read "On target" and its status report "everything is
+     on plan". Said plainly, in grey, until the plan is whole. */
+  const gaps = planGaps(tests, assets);
+  if (gaps) return { tone: 'none', word: 'Not fully planned', reason: `${when} · ${gaps}`, brief: `${when} · ${gaps}`, gaps };
   /* Nothing late and no date to be on target FOR — said, not guessed. */
   if (!expectedAt && !plannedAt) return { tone: 'none', word: 'No target date', reason: `${when} · nothing late`, brief };
   return { tone: 'on', word: 'On target', reason: `${when} · ${late}`, brief };

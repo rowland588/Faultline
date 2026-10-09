@@ -176,11 +176,15 @@ export async function changeTests(tt: TT, ts: Test[], patch: (t: Test) => Partia
 /** A PUSH LATER, KEPT WITH ITS REASON. The dates change, and the reason — its
  *  words, film and pictures, and a fix if one was booked — is kept on each
  *  record that moved (lib/story). One Undo takes back all of it. */
-export async function moveTestsWithWhy(tt: TT, ts: Test[], from: string, to: string | undefined, a: WhyAnswer, said: string): Promise<void> {
-  const end = to ?? from;
+export async function moveTestsWithWhy(tt: TT, ts: Test[], from: string, to: string | undefined, a: WhyAnswer, said: string,
+  /** Each one's own window — "one after another" (lib/weeks staggered);
+   *  absent, every one gets `from`–`to`. */
+  windowOf?: (t: Test) => { from: string; to?: string }): Promise<void> {
+  const win = windowOf ?? (() => ({ from, to }));
   const before = snapshot(ts);
-  const pushed = ts.filter(t => movedLater(plannedEnd(t), end)).map(t => ({ step: t, from: plannedEnd(t) as string, to: end }));
-  for (const t of ts) await tt.patchTest(t.id, { plannedFor: from, plannedTo: to });
+  const pushed = ts.map(t => ({ t, w: win(t) })).filter(({ t, w }) => movedLater(plannedEnd(t), w.to ?? w.from))
+    .map(({ t, w }) => ({ step: t, from: plannedEnd(t) as string, to: w.to ?? w.from }));
+  for (const t of ts) { const w = win(t); await tt.patchTest(t.id, { plannedFor: w.from, plannedTo: w.to }); }
   const back = await recordMove(tt, pushed, a);
   offerUndo(said, async () => { for (const b of before) await tt.patchTest(b.id, b); await back(); });
 }

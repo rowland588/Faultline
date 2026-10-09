@@ -19,16 +19,19 @@ import { uid } from '../lib/ids';
 import { useState } from 'react';
 import { deleteTest } from '../db';
 import { commissionGrid, commissionNeeds, programsWords, type CommissionRow, type TestCell } from '../lib/commission';
-import { stepsNamed, untouched, usualStages } from '../lib/install';
+import { stepsNamed, untouched, usualAgreed, usualHolder, usualStages, whoFor } from '../lib/install';
+import { changeTests, moveTestsWithWhy } from './WhyMoved';
+import { movedLater } from '../lib/story';
+import { staggered } from '../lib/weeks';
 import { provingTitle, type Program } from '../lib/programs';
-import { outcomeWord, type Asset, type Outcome, type Test } from '../lib/testing';
+import { isSettled, live, outcomeWord, plannedEnd, type Asset, type Outcome, type Test } from '../lib/testing';
 import type { useTesting } from '../lib/useTesting';
 import type { Can } from '../lib/access';
 import type { Project } from '../types';
 import { openRecord } from './RecordDrawer';
 import { UsualStages } from './UsualStages';
 import { DrawerShell } from './DrawerShell';
-import { usePhone } from './InstallGrid';
+import { PlanWindow, Sheet, Who, usePhone } from './InstallGrid';
 import { offerUndo } from './Undo';
 import { Icon } from './Icon';
 import { nav } from '../state/useRoute';
@@ -52,6 +55,8 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
   project: Project; projects: Project[]; tt: TT; programs: Program[]; can: Can;
 }) {
   const [editing, setEditing] = useState(false);
+  /* A test's column, opened to do it for every machine — as Install's are. */
+  const [colOpen, setColOpen] = useState<number | null>(null);
   /* Which phone card shows its not-yet-added usual tests, one at a time. */
   const [picking, setPicking] = useState<string | null>(null);
   const rowKey = (r: CommissionRow) => r.asset?.id ?? 'line';
@@ -66,9 +71,22 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
   const otherName = usual.otherId ? projects.find(p => p.id === usual.otherId)?.name : undefined;
   const rowName = (a?: Asset) => a?.name ?? 'The line itself';
 
-  /* Adding tests is one write and one undo, said as exactly what it did. */
+  /* The job whose usual list this is — who each test is usually with and
+     what it must show come with it (docs/JOBSTART.md). */
+  const holder = usualHolder(project, projects, 'commission');
+  /* Adding tests is one write and one undo, said as exactly what it did.
+     Each starts with who it is usually with and what its usual test says it
+     must show — written once, on the usual test, not 48 times. */
   const add = async (list: { title: string; assetId?: string }[], said: string) => {
-    const ids = await tt.planTests(list);
+    const ids = await tt.planTests(list.map(x => {
+      const agreed = usualAgreed(holder, x.title);
+      const oem = tt.assets.find(a => a.id === x.assetId)?.oem;
+      return { ...x, extra: {
+        withWhom: whoFor(holder, 'commission', x.title, oem),
+        ...(agreed?.passesIf?.trim() ? { passesIf: agreed.passesIf.trim() } : {}),
+        ...(agreed?.runAgreed ? { runAgreed: agreed.runAgreed } : {}),
+      } };
+    }));
     if (ids.length) offerUndo(said, async () => { for (const id of ids) await deleteTest(id, project.id); });
   };
   const missingOf = (r: CommissionRow) => usual.stages.filter((_, i) => !r.cells[i]).map(title => ({ title, assetId: r.asset?.id }));
@@ -86,6 +104,7 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
       <p className="sub ig-sheet-sub">What each machine is tested on, in the order they happen</p>
       <div className="ig-sheet-body">
         <UsualStages project={project} usual={usual} otherName={otherName} tests={tt.tests} gate="commission" can={can}
+            holder={holder} assets={tt.assets} onLines={(list, said) => changeTests(tt, list.map(x => x.t), t => list.find(x => x.t.id === t.id)?.patch ?? {}, said)}
           editing onDone={() => setEditing(false)}
           renameSteps={async pairs => {
             for (const { from, to } of pairs) for (const t of stepsNamed(tt.tests, from, 'commission')) await tt.patchTest(t.id, { title: to });
@@ -101,6 +120,53 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
       </div>
     </DrawerShell>
   ) : null;
+
+  /* Everyone named anywhere on the job, for the "who" box. */
+  const names = [...new Set([...live(tt.tests).map(t => t.withWhom?.trim()), ...live(tt.assets).map(a => a.oem?.trim())]
+    .filter((x): x is string => !!x))].sort();
+  const colSheet = colOpen != null && can.edit && columns[colOpen] ? (() => {
+    const col = columns[colOpen];
+    const cells = rows.map(r => r.cells[colOpen]);
+    const tests = cells.filter((c): c is TestCell => !!c).map(c => c.test);
+    const left = tests.filter(t => !isSettled(t));
+    const lacking = rows.filter((r, i) => !cells[i] && r.asset).map(r => ({ title: col, assetId: r.asset?.id }));
+    const agreed = usualAgreed(holder, col);
+    const at = new Map(left.map((t, i) => [t.id, i]));
+    const close = () => setColOpen(null);
+    return (
+      <Sheet title={col} sub={`${tests.length - left.length} of ${rows.length} machine${rows.length === 1 ? '' : 's'} run`} onClose={close}>
+        {/* What it must show — agreed once, on the usual test. */}
+        <p className="sub ig-sheet-sub">
+          {agreed?.passesIf?.trim() ? <>Passes if: {agreed.passesIf.trim()}</> : 'Nothing agreed yet for what it must show.'}{' '}
+          {can.agree && <button type="button" className="cw-link" onClick={() => { close(); setEditing(true); }}>Edit the usual tests</button>}
+        </p>
+        {lacking.length > 0 && (
+          <div className="ig-acts">
+            <button type="button" className="btn btn-primary ig-big" onClick={() => { void add(lacking, `Added “${col}” to ${lacking.length} machine${lacking.length === 1 ? '' : 's'}`); close(); }}>
+              Add to {lacking.length === rows.length ? 'every machine' : `the ${lacking.length} without it`}
+            </button>
+          </div>
+        )}
+        {left.length > 0 && (
+          <>
+            <PlanWindow label="Plan it for every machine not run" many={left.length} saveLabel="Save"
+              onPlan={(from, to, every) => {
+                void changeTests(tt, left, t => (w => ({ plannedFor: w.from, plannedTo: w.to }))(every ? staggered(from, to, at.get(t.id) ?? 0, every) : { from, to }),
+                  `${col} planned on ${left.length} machine${left.length === 1 ? '' : 's'}${every ? `, ${every} day${every === 1 ? '' : 's'} apart` : ''}`);
+                close();
+              }}
+              pushes={end => { const pushed = left.filter(t => movedLater(plannedEnd(t), end)); return { n: pushed.length, was: pushed.map(t => plannedEnd(t) as string).sort().pop() }; }}
+              onMove={(from, to, a, every) => {
+                void moveTestsWithWhy(tt, left, from, to, a, `${col} moved — reason kept`, every ? t => staggered(from, to, at.get(t.id) ?? 0, every) : undefined);
+                close();
+              }} />
+            <Who names={names} value="" label="Who it is with, on every machine not run"
+              onSave={v => { if (!v) return; void changeTests(tt, left, () => ({ withWhom: v }), `${col} — ${v}, ${left.length} machine${left.length === 1 ? '' : 's'}`); close(); }} />
+          </>
+        )}
+      </Sheet>
+    );
+  })() : null;
 
   if (!rows.length) {
     return (
@@ -120,6 +186,7 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
         <button className="cw-link" onClick={() => setEditing(true)}>{can.agree ? 'Edit the usual tests' : 'The usual tests'}</button>
       </div>
       {editor}
+      {colSheet}
       {can.edit && bare.length > 1 && (
         <p className="sub tw-note">
           {bare.length} machines have none of the usual tests yet — <button className="cw-link" onClick={() => void giveAll(bare)}>give them all the {usual.stages.length}</button>
@@ -180,7 +247,12 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
           <thead>
             <tr>
               <th scope="col" className="ig-corner">Machine</th>
-              {columns.map(s => <th key={s} scope="col"><span className="ig-colh" style={{ cursor: 'default' }} title={s}>{shortName(s)}</span></th>)}
+              {/* A TEST'S HEADING OPENS IT FOR EVERY MACHINE — add it, plan it
+                  (the same days, or one after another), say who it is with —
+                  as Install's stage headings do (docs/JOBSTART.md). */}
+              {columns.map((s, i) => <th key={s} scope="col">{can.edit
+                ? <button type="button" className="ig-colh" title={s} onClick={() => setColOpen(i)}>{shortName(s)}</button>
+                : <span className="ig-colh" style={{ cursor: 'default' }} title={s}>{shortName(s)}</span>}</th>)}
               {anyPrograms && <th scope="col"><span className="ig-colh cg-progh" style={{ cursor: 'default' }}>Programs</span></th>}
               {anyOthers && <th scope="col"><span className="ig-colh cg-extra" style={{ cursor: 'default' }} title="Tests on this machine that are not on the usual list">Its other tests</span></th>}
             </tr>

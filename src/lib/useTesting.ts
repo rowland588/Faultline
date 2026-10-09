@@ -13,7 +13,7 @@ import {
   onDataChange,
 } from '../db';
 import { uid, now } from './ids';
-import { WORDS, assetStateOf, nextFrom, standing } from './testing';
+import { WORDS, assetStateOf, isSettled, live, nextFrom, standing } from './testing';
 import type { Asset, AssetState, ItemKind, Standing, StepGate, Test, TestItem, TestKind } from './testing';
 import { offerUndo } from '../ui/Undo';
 import { heldReading } from './heldReading';
@@ -42,11 +42,11 @@ export interface TestingState {
   planTest: (title: string, assetIds?: (string | undefined)[], kind?: TestKind, fromTestId?: string) => Promise<string>;
   /** Several install steps on one machine at once, in the order given — the
    *  one-tap "the usual stages". Each is an ordinary step from then on. */
-  planSteps: (titles: readonly string[], assetId?: string, gate?: StepGate) => Promise<string[]>;
+  planSteps: (titles: readonly string[], assetId?: string, gate?: StepGate, who?: (title: string) => string | undefined) => Promise<string[]>;
   /** SEVERAL TESTS AT ONCE, in the order given — Commission's "Add the usual
    *  tests" on a machine, and a program's proving test (lib/commission). Each
    *  is an ordinary planned test from then on. The ids, for one undo. */
-  planTests: (list: { title: string; assetId?: string; extra?: Partial<Pick<Test, 'programId' | 'planned' | 'plannedFor' | 'withWhom'>> }[]) => Promise<string[]>;
+  planTests: (list: { title: string; assetId?: string; extra?: Partial<Pick<Test, 'programId' | 'planned' | 'plannedFor' | 'withWhom' | 'passesIf' | 'runAgreed'>> }[]) => Promise<string[]>;
   saveTest: (t: Test) => Promise<void>;
   /** Change some fields of the row AS IT IS NOW. Use this from a button, a
    *  picker or anything that fires after an await — never `saveTest({...test})`
@@ -164,7 +164,24 @@ export function useTesting(projectId: string): TestingState {
 
   /* The word follows the dates on every save — see assetStateOf. A screen sets
      a date; nothing sets the word directly any more. */
-  const saveAsset = useCallback(async (a: Asset) => { await putAsset({ ...a, state: assetStateOf(a), updatedAt: now() }); }, []);
+  const saveAsset = useCallback(async (a: Asset) => {
+    const was = assets.find(x => x.id === a.id);
+    await putAsset({ ...a, state: assetStateOf(a), updatedAt: now() });
+    /* A SUPPLIER'S NAME PUT RIGHT moves what it owes (docs/JOBSTART.md): each
+       line copied the name when it was made, so correcting "Ilapk UK" on the
+       machine left every open line owed by the misspelling. Lines done, and
+       lines somebody gave to someone else, keep theirs. */
+    const from = was?.oem?.trim(), to = a.oem?.trim();
+    if (from && to && from !== to) {
+      const moving = live(tests).filter(t => t.assetId === a.id && !isSettled(t) && t.withWhom?.trim() === from);
+      for (const t of moving) await patchTest(t.id, { withWhom: to });
+      if (moving.length) {
+        offerUndo(`${moving.length} open line${moving.length === 1 ? '' : 's'} moved to ${to}`, async () => {
+          for (const t of moving) await patchTest(t.id, { withWhom: from });
+        });
+      }
+    }
+  }, [assets, tests]);
   const removeAsset = useCallback(async (id: string) => {
     const name = assets.find(a => a.id === id)?.name ?? 'the machine';
     offerUndo(`Removed “${name}”`, await deleteAsset(id, projectId));
@@ -193,15 +210,19 @@ export function useTesting(projectId: string): TestingState {
     return made[0].id;
   }, [projectId, nextSort, assets]);
 
-  const planSteps = useCallback(async (titles: readonly string[], assetId?: string, gate: StepGate = 'install') => {
+  const planSteps = useCallback(async (titles: readonly string[], assetId?: string, gate: StepGate = 'install',
+    /** Who each starts with (lib/install whoFor) — the supplier unless its
+     *  usual stage is the site's. */
+    who?: (title: string) => string | undefined) => {
     const t = now();
     let sort = nextSort();
-    const withWhom = assets.find(a => a.id === assetId)?.oem || undefined;
+    const oem = assets.find(a => a.id === assetId)?.oem || undefined;
     const made: string[] = [];
     for (const title of titles) {
       const clean = title.trim();
       if (!clean) continue;
       const id = uid();
+      const withWhom = who ? who(clean) : oem;
       await putTest({
         id, projectId, kind: 'install', title: clean, assetId, withWhom,
         ...(gate !== 'install' ? { gate } : {}),

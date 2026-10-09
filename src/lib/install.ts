@@ -12,6 +12,7 @@
 import { owns } from './format';
 import { COMMISSION_TESTS, HANDOVER_STAGES, INSTALL_STAGES, SETUP_STAGES, assetStateOf, daysBetween, gateOf, isOverdue, isSettled, latestAttempts, live, needsVerdict, plannedEnd, testOfFix, type Asset, type StepGate, type Test, type TestItem } from './testing';
 import { niceDay } from './weeks';
+import type { Project } from '../types';
 import { stateOf, type Program } from './programs';
 import { DAY_HOURS, hoursTally, hoursWord } from './hoursLost';
 
@@ -273,7 +274,7 @@ function saysOf(steps: StepView[], done: number, fixesOpen: number, asset: Asset
  * job whose list was edited most recently — Line 2A is installed the way Line
  * 2B was, and making somebody type the same six names twice is the app not
  * doing its job. Only then the app's six. */
-type StageHolder = { id: string; installStages?: string[]; gateStages?: { setup?: string[]; handover?: string[]; commission?: string[] }; updatedAt: number; deletedAt?: number };
+type StageHolder = { id: string; installStages?: string[]; gateStages?: Project['gateStages']; updatedAt: number; deletedAt?: number };
 
 /** A gate with a usual list: the three of stages, and Commission, whose list
  *  is its usual TESTS (testing COMMISSION_TESTS) — kept, edited and handed on
@@ -313,6 +314,65 @@ export function usualStages<P extends StageHolder>(
   if (other && theirs) return { stages: theirs, from: 'other', otherId: other.id };
   return { stages: [...appStages(gate)], from: 'app' };
 }
+
+/* -------------------- WHO IT IS WITH, WHAT IT MUST SHOW --------------------
+ *
+ * docs/JOBSTART.md. Every line started as the machine's supplier's — the
+ * site's own air and power, its electrics, the safety sign-off and the
+ * client's own sign-off included — so on day one the control room said
+ * "Ilapak UK owes 92" and the site owed nothing. And a usual test was a name
+ * only: what it must show was written on each machine's test, 48 times. Both
+ * are now said once, beside the list, and given to every machine. */
+
+export type UsualWith = 'supplier' | 'site';
+/** Who a line with the site is with — the word the control room files the
+ *  site's own work under (lib/portfolio SITE). */
+export const SITE_NAME = 'The site';
+export const usualKey = (gate: ListGate, title: string): string => `${gate}:${stageKey(title)}`;
+/* The site's own work on the app's lists — built on first use, as the names
+   it is keyed by are read by stageKey, further down this file. */
+let siteWork: Set<string> | undefined;
+const SITE_WORK = (): Set<string> => (siteWork ??= new Set([
+  usualKey('install', 'Air and power connected'), usualKey('install', 'Electrically complete'),
+  usualKey('handover', 'Safety sign-off (PUWER)'), usualKey('handover', 'Client signed off'),
+]));
+
+/** The job whose usual list this job is using — its own, or the one it took
+ *  its list from (usualStages) — so what that list says about each line comes
+ *  with it. */
+export function usualHolder<P extends StageHolder>(project: P | undefined, all: readonly P[], gate: ListGate): P | undefined {
+  const u = usualStages(project, all, gate);
+  return u.from === 'other' ? all.find(p => p.id === u.otherId) ?? project : project;
+}
+
+/** Who a usual stage is usually with. */
+export function usualWith(holder: StageHolder | undefined, gate: ListGate, title: string): UsualWith {
+  return holder?.gateStages?.usualWith?.[usualKey(gate, title)] ?? (SITE_WORK().has(usualKey(gate, title)) ? 'site' : 'supplier');
+}
+
+/** Who a new line of this stage starts with on this machine. */
+export const whoFor = (holder: StageHolder | undefined, gate: ListGate, title: string, oem?: string): string | undefined =>
+  usualWith(holder, gate, title) === 'site' ? SITE_NAME : oem?.trim() || undefined;
+
+export interface UsualAgreed { passesIf?: string; runAgreed?: { rate?: number; minutes?: number; rejectsMax?: number } }
+
+/** What a usual test must show, when it has been written. */
+export function usualAgreed(holder: StageHolder | undefined, title: string): UsualAgreed | undefined {
+  const a = holder?.gateStages?.usualAgreed?.[usualKey('commission', title)];
+  return a && (a.passesIf?.trim() || Object.values(a.runAgreed ?? {}).some(v => typeof v === 'number')) ? a : undefined;
+}
+
+/** The patch that keeps who each usual stage is with, and what each usual
+ *  test must show, beside the lists. */
+export function keepUsualDetails<P extends StageHolder>(project: P, details: { usualWith?: Record<string, UsualWith>; usualAgreed?: Record<string, UsualAgreed> }): Partial<P> {
+  return { gateStages: { ...(project.gateStages ?? {}), ...details } } as Partial<P>;
+}
+
+/** Has this test something agreed to show — a "passes if", or a run's agreed
+ *  numbers? */
+export const hasAgreed = (t: Pick<Test, 'passesIf' | 'runAgreed' | 'runs'>): boolean =>
+  !!t.passesIf?.trim() || Object.values(t.runAgreed ?? {}).some(v => typeof v === 'number')
+  || !!t.runs?.some(r => Object.values(r.agreed ?? {}).some(v => typeof v === 'number'));
 
 /** The patch that keeps a gate's list on the project. */
 export function keepStages<P extends StageHolder>(project: P, gate: ListGate, list: string[] | undefined): Partial<P> {
