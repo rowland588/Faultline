@@ -139,6 +139,23 @@ describe('deleting for good takes the whole file with it', () => {
     expect(await db.projectContents(id)).toEqual([]);
   });
 
+  /* Rowland, 9 October: "give me the ability to delete projects fully." A 6M
+     job's problems live in a line's store but name the job — they are its. */
+  it('takes the job’s problems with it, and leaves a line’s own problems with the line', async () => {
+    const db = await freshDb();
+    const id = await projectWithEverything(db);
+    const t = 1;
+    const kase = (cid: string, projectId?: string) => ({ id: cid, workspaceId: 'ws1', ...(projectId ? { projectId } : {}),
+      title: 'Basketer minor stops', path: [], baselineMsWeek: 0, status: 'open' as const, openedAt: t, updatedAt: t });
+    await db.addCase(kase('its', id));
+    await db.addCase(kase('lines'));
+    expect(Object.fromEntries((await db.projectContents(id)).map(c => [c.store, c.count])).cases).toBe(1);
+    await db.purgeProject(id);
+    expect(await db.getCase('its')).toBeUndefined();
+    expect(await db.getCase('lines'), 'a problem with no job of its own is the line’s').toBeDefined();
+    expect((await db.listTombstones()).some(s => s.kind === 'cases' && s.id === 'its')).toBe(true);
+  });
+
   it('tombstones every id, so the delete travels to the other devices', async () => {
     const db = await freshDb();
     const id = await projectWithEverything(db);

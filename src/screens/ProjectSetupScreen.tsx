@@ -29,7 +29,7 @@ import type { Can } from '../lib/access';
 import { useAccess } from '../cloud/access';
 import { AccessNote } from '../ui/AccessNote';
 import { usePaceLines } from '../lib/usePaceLines';
-import { createWorkspace, getProject, type PaceLineRow } from '../db';
+import { STORE_WORDS, createWorkspace, getProject, type PaceLineRow } from '../db';
 import { useProjectMembers, type ProjectRole } from '../cloud/members';
 import { LineTidyPanel } from './LineTidyPanel';
 import { MeasuresSetup } from './MeasuresSetup';
@@ -351,7 +351,10 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
   const part = useRoute().query.get('part');
   if (part) openFold(part);
   const { loading, project } = useProject(projectId);
-  const { archive } = useProjects();
+  const { archive, purge, contents } = useProjects();
+  /* DELETE, asked on the job itself: what it would take, counted first. */
+  const [deleting, setDeleting] = useState<{ store: string; count: number }[] | null>(null);
+  const [gone, setGone] = useState(false);
   const lines = usePaceLines(projectId);
   /* The numbers on the peers row come from lib/standing.ts, the same call the
      dashboard and the client report make — a row that said something different
@@ -484,24 +487,47 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
           the fold read as part of the archive. */}
       {commissioning && linesSection}
 
-      {/* PUT IT AWAY. Rowland: "you removed the archive and delete system for
-          projects." It was only ever on the All projects page — nowhere on the
-          job itself or on Home, so from where he works it was not there. Archive
-          is here, on the job, and Home's cards carry it too. Deleting for ever
-          stays where it was: inside the archive, after it says what it takes. */}
-      {/* Archiving is the owner's (lib/access), so nobody else is offered it. */}
+      {/* PUT IT AWAY, OR DELETE IT. Rowland: "you removed the archive and
+          delete system for projects" — archive came here, on the job. And, 9
+          October: "I open it up and I can't delete it. It's just there. Give
+          me the ability to delete projects fully." Deleting was only inside the
+          archive on the All projects page, two doors from the job. It is here
+          now, beside Archive: one tap opens what it would take — counted, in
+          words — and what stays (the line's walks and snags); a second, red,
+          deletes it and everything it owns on every device (db purgeProject).
+          Archive stays the quiet first choice: nothing is lost. */}
+      {/* Both are the owner's (lib/access) — the database refuses anyone else. */}
       {can.remove && <section className="pace-sec">
         <div className="pace-sec-head">
-          <h2 className="pace-sec-title">Put this project away</h2>
-          <p className="pace-sec-sub">Archive takes it off Home and the project list · nothing is deleted · restore it whenever you like</p>
+          <h2 className="pace-sec-title">Archive or delete this project</h2>
+          <p className="pace-sec-sub">Archive takes it off Home and the list and loses nothing · Delete takes it and everything in it, for good</p>
         </div>
-        <div className="card" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          <button className="btn" onClick={() => {
-            if (!confirm(`Archive “${project.name}”?\n\nIt leaves Home and the list and loses nothing. You can restore it whenever you like.`)) return;
-            void archive(project.id).then(() => nav('/projects?view=archive'));
-          }}>Archive this project</button>
-          <button className="btn btn-ghost" onClick={() => nav('/projects?view=archive')}>Open the archive</button>
-          <span className="sub">Delete for ever is offered from the archive, after it says what it will take.</span>
+        <div className="card" style={{ display: 'grid', gap: 10 }}>
+          {!deleting ? (
+            <span style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              <button className="btn" onClick={() => {
+                if (!confirm(`Archive “${project.name}”?\n\nIt leaves Home and the list and loses nothing. You can restore it whenever you like.`)) return;
+                void archive(project.id).then(() => nav('/projects?view=archive'));
+              }}>Archive this project</button>
+              <button className="btn proj-del" onClick={() => void contents(project.id).then(setDeleting)}>Delete this project…</button>
+            </span>
+          ) : (
+            <div className="proj-del-ask" role="alertdialog" aria-label={`Delete ${project.name}`}>
+              <p><b>Delete “{project.name}” for ever?</b></p>
+              <p>{deleting.length
+                ? <>It goes with everything in it: {deleting.map(c => `${c.count} ${STORE_WORDS[c.store] ?? c.store}`).join(' · ')}.</>
+                : <>It is empty — only the project goes.</>}</p>
+              <p className="sub">The filmed walks, their videos and the snags stay with their lines. This cannot be undone, on any device.</p>
+              <span style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <button className="btn proj-del is-go" disabled={gone} onClick={() => void (async () => {
+                  setGone(true);
+                  await purge(project.id);
+                  nav('/');
+                })()}>{gone ? 'Deleting…' : 'Delete for ever'}</button>
+                <button className="btn btn-ghost" disabled={gone} onClick={() => setDeleting(null)}>Keep it</button>
+              </span>
+            </div>
+          )}
         </div>
       </section>}
     </div>

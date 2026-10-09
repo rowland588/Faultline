@@ -11129,3 +11129,13 @@ button.gt-fixlab small { font-size: 11.5px; }
    rule of its own between them (the page's foot had one). */
 .rd-more { display: grid; gap: 10px; }
 .rd-more .tc-send.is-foot { margin: 0; padding-top: 0; border-top: 0; }
+
+/* DELETE THIS PROJECT (screens/ProjectSetupScreen) — the archive's delete,
+   on the job: red words on the first tap, solid red on the one that deletes,
+   with what goes said between them. */
+.proj-del { color: var(--st-r); border-color: color-mix(in srgb, var(--st-r) 45%, var(--line)); }
+.proj-del:hover:not(:disabled) { background: color-mix(in srgb, var(--st-r) 8%, var(--surface)); }
+.proj-del.is-go { background: var(--st-r); border-color: var(--st-r); color: #fff; }
+.proj-del.is-go:hover:not(:disabled) { background: color-mix(in srgb, var(--st-r) 88%, #000); }
+.proj-del-ask { display: grid; gap: 6px; }
+.proj-del-ask p { margin: 0; }

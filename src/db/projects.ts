@@ -201,6 +201,14 @@ const PROJECT_OWNED = [
  *  them behind is how "delete for ever" quietly meant "most of it". */
 const PROJECT_OWNED_SCANNED = ['pace_ppm', 'pace_todos', 'pace_wins', 'pace_snapshots'] as const;
 
+/** A 6M job's PROBLEMS — the Cases opened on it, each with its fishbone. They
+ *  live in a line's store but name the job (projectId), and are the job's: a
+ *  job deleted "fully" left them behind, syncing, until 9 October. A Case
+ *  with no job of its own (from before problems were a job's) is the line's,
+ *  and stays with it, as the walk does. */
+const PROJECT_NAMED = ['cases'] as const;
+const namedBy = (id: ID) => (r: unknown) => (r as { projectId?: string }).projectId === id;
+
 /** Plain words for a store, for a person being asked to destroy it. */
 export const STORE_WORDS: Record<string, string> = {
   pace_ppm: 'lines',
@@ -218,6 +226,7 @@ export const STORE_WORDS: Record<string, string> = {
   project_actuals: 'weekly actuals',
   programs: 'programs',
   standards: 'line standard maps',
+  cases: 'problems, with their fishbones',
 };
 
 /** What a purge would take with it, counted before anybody is asked to confirm.
@@ -234,6 +243,10 @@ export async function projectContents(id: ID): Promise<{ store: string; count: n
   for (const store of PROJECT_OWNED_SCANNED) {
     const rows = (await db.getAll(store)).filter(inProject(id));
     const live = rows.filter(r => !(r as { deletedAt?: number }).deletedAt);
+    if (live.length) out.push({ store, count: live.length });
+  }
+  for (const store of PROJECT_NAMED) {
+    const live = (await db.getAll(store)).filter(namedBy(id)).filter(r => !(r as { deletedAt?: number }).deletedAt);
     if (live.length) out.push({ store, count: live.length });
   }
   return out;
@@ -257,7 +270,7 @@ export async function projectContents(id: ID): Promise<{ store: string; count: n
  *  reachable from the workspace list. */
 export async function purgeProject(id: ID): Promise<void> {
   const db = await getDB();
-  const bury = async (store: typeof PROJECT_OWNED[number] | typeof PROJECT_OWNED_SCANNED[number], ids: string[]) => {
+  const bury = async (store: typeof PROJECT_OWNED[number] | typeof PROJECT_OWNED_SCANNED[number] | typeof PROJECT_NAMED[number], ids: string[]) => {
     if (!ids.length) return;
     const tx = db.transaction(store, 'readwrite');
     for (const rowId of ids) await tx.store.delete(rowId);
@@ -271,6 +284,10 @@ export async function purgeProject(id: ID): Promise<void> {
   }
   for (const store of PROJECT_OWNED_SCANNED) {
     const rows = (await db.getAll(store)).filter(inProject(id));
+    await bury(store, rows.map(r => (r as { id: string }).id));
+  }
+  for (const store of PROJECT_NAMED) {
+    const rows = (await db.getAll(store)).filter(namedBy(id));
     await bury(store, rows.map(r => (r as { id: string }).id));
   }
   await db.delete('projects', id);
