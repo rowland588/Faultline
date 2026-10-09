@@ -82,8 +82,9 @@ export function useStanding(projectId: string): StandingState {
       install: { ...row('install', by('install')?.open ?? 0, by('install')?.late ?? 0), problem: problems('install') },
       materials: row('materials', by('materials')?.open ?? 0, by('materials')?.late ?? 0),
       /* THE PROGRAMS line — every program (lib/programsReport): open is what
-         has not passed, late what failed or is past its day. */
-      programs: (r => (r ? { n: r.open + r.late + r.failed, late: r.failed + r.late, done: r.done + r.baseline } : row('programs', by('programs')?.open ?? 0, by('programs')?.late ?? 0)))(
+         has not passed; late what is past its day, failed what failed — two
+         words, as the Programs page's tiles say them. */
+      programs: (r => (r ? { n: r.open + r.late + r.failed, late: r.late, failed: r.failed, done: r.done + r.baseline } : row('programs', by('programs')?.open ?? 0, by('programs')?.late ?? 0)))(
         loading ? undefined : programsReading({ tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs, today })),
       /* The gates after Install. */
       setup: { ...row('setup', by('setup')?.open ?? 0, by('setup')?.late ?? 0), problem: problems('setup') },

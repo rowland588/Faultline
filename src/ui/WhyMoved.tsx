@@ -9,6 +9,7 @@
  * whole move back: the dates, the reason and the fix.
  */
 import { useState } from 'react';
+import { forget, hasKept, useKept } from '../lib/kept';
 import type { MediaRef } from '../types';
 import { plannedEnd, type Asset, type Test } from '../lib/testing';
 import { VoiceNote } from './Voice';
@@ -252,8 +253,11 @@ export async function recordThingMove(projectId: string, key: string, from: stri
  * whether it pushes the finish — and to when — and a fix, are one answer. A
  * later finish is kept as a move with this problem as its reason, so the Gantt
  * shows the overrun and why. */
-export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], assets = [], initial, day = DAY_HOURS, onDay, on, item }: {
+export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], assets = [], initial, day = DAY_HOURS, onDay, on, item, keep }: {
   step: Test;
+  /** Where what is typed is kept until Save or Cancel (lib/kept) — the
+   *  form's own key, ending ':'. ×, back or another page leave it there. */
+  keep?: string;
   /** THE PROBLEM, OPENED TO CHANGE IT (docs/DOORS.md) — the same form that
    *  wrote it, filled. A finish it moved is the stage's (its dates), and a
    *  fix is booked from the problem's own record, so neither is asked here. */
@@ -276,14 +280,17 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], as
 }) {
   const end = plannedEnd(step);
   const editing = !!item;
-  const [why, setWhy] = useState(item?.what ?? initial?.why ?? '');
-  const [media, setMedia] = useState<MediaRef[]>(item?.media ?? []);
-  const [owner, setOwner] = useState(item?.owner ?? '');
-  const [to, setTo] = useState(initial?.to ?? '');
-  const [fix, setFix] = useState(!!initial?.fix);
-  const [fixOn, setFixOn] = useState(initial?.fixOn ?? '');
-  const [fixWhat, setFixWhat] = useState('');
-  const [said, setSaid] = useState<string | undefined>(initial?.said);
+  /* KEPT AS TYPED (lib/kept) — only Save and Cancel end it. */
+  const k = (box: string) => (keep ? keep + box : null);
+  const [restored] = useState(() => !!keep && hasKept(keep));
+  const [why, setWhy] = useKept(k('why'), item?.what ?? initial?.why ?? '');
+  const [media, setMedia] = useKept<MediaRef[]>(k('media'), item?.media ?? []);
+  const [owner, setOwner] = useKept(k('owner'), item?.owner ?? '');
+  const [to, setTo] = useKept(k('to'), initial?.to ?? '');
+  const [fix, setFix] = useKept(k('fix'), !!initial?.fix);
+  const [fixOn, setFixOn] = useKept(k('fixOn'), initial?.fixOn ?? '');
+  const [fixWhat, setFixWhat] = useKept(k('fixWhat'), '');
+  const [said, setSaid] = useKept<string | undefined>(k('said'), initial?.said);
   /* SPOKEN INTO THESE BOXES. Rowland, 4 October: "allow me to speak inside
      that sheet, in the correct boxes." A note fills what happened, the finish
      and the fix right here — the sheet is the review; nothing is kept until
@@ -297,7 +304,7 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], as
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   /* CRITICAL (lib/critical) — said when it is written, or later on the
      stage's story; the boxes open only when it is ticked. */
-  const [crit, setCrit] = useState(() => criticalDraftOf(item));
+  const [crit, setCrit] = useKept(k('crit'), () => criticalDraftOf(item));
   /* DAYS OR HOURS. Rowland, 6 October: "it only gives me ability to put days,
      but in some occasions I find out that actually it's hours." A problem
      that cost hours says so; the stage's hours add up (lib/hoursLost), and
@@ -307,8 +314,8 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], as
      or — for a high risk, which has not happened — what it COULD cost, an
      estimate never counted as lost. */
   const wasRisk = !!item?.risk && !item.critical;
-  const [cost, setCost] = useState<'none' | 'hours' | 'date'>(initial?.to ? 'date' : item?.hoursLost || (wasRisk && item?.couldLose) ? 'hours' : 'none');
-  const [hoursText, setHoursText] = useState(item?.hoursLost ? String(item.hoursLost) : wasRisk && item?.couldLose ? String(item.couldLose) : '');
+  const [cost, setCost] = useKept<'none' | 'hours' | 'date'>(k('cost'), initial?.to ? 'date' : item?.hoursLost || (wasRisk && item?.couldLose) ? 'hours' : 'none');
+  const [hoursText, setHoursText] = useKept(k('hours'), item?.hoursLost ? String(item.hoursLost) : wasRisk && item?.couldLose ? String(item.couldLose) : '');
   const isRisk = crit.risk && !crit.critical;
   /* A finish moved when it was written is the stage's to change (its dates). */
   const showCost = !item?.movedFrom || !!item.hoursLost;
@@ -316,7 +323,7 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], as
   const hours = Math.max(0, Number(hoursText.replace(',', '.')) || 0);
   const tally = hoursTally(step.id, items, day);
   const daysMade = !editing && !isRisk && cost === 'hours' && hours > 0 ? fullDays(tally.banked, hours, day) : 0;
-  const [pushPicked, setPush] = useState<boolean | null>(null);
+  const [pushPicked, setPush] = useKept<boolean | null>(k('push'), null);
   const push = daysMade > 0 && !!end && (pushPicked ?? true);
   const target = cost === 'date' ? to : push && end ? addDays(end, daysMade) : '';
   const later = movedLater(end, target || undefined);
@@ -325,10 +332,11 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], as
      same rule as WhyMoved. It started ticked whatever the date, and Save then
      ignored the tick unless the finish ran into the next step: the box said
      "move what follows too" and nothing moved. Now the tick is what happens. */
-  const [picked, setShift] = useState<boolean | null>(null);
+  const [picked, setShift] = useKept<boolean | null>(k('shift'), null);
   const shift = picked ?? !!following?.into.length;
   return (
     <div className="why">
+      {restored && <p className="kept-note" role="status">Not saved yet — what you typed is back. Save keeps it; Cancel throws it away.</p>}
       {on && <p className="why-on">On <b>{on}</b></p>}
       <span className="why-say">
         <p className="why-h">{on ? 'What’s the problem with it?' : 'What\'s the problem?'}</p>
@@ -398,6 +406,7 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], as
                could-cost on a critical problem written before stays as it was. */
             const counted = cost === 'hours' && hours > 0 ? hours : undefined;
             const flags = criticalPatch({ ...crit, could: isRisk ? (counted ? String(counted) : '') : crit.critical ? crit.could : '' });
+            if (keep) forget(keep);
             onSave({
               why: why.trim(), media, ...(!editing && target ? { to: target } : {}), ...(editing ? { owner: owner.trim() || undefined } : {}),
               ...(!isRisk && counted ? { hoursLost: counted } : {}),
@@ -405,7 +414,7 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], as
               ...(!editing && following?.n && shift ? { shiftFollowing: true } : {}), ...flags,
             });
           }}>{editing ? 'Save' : 'Save the problem'}</button>
-        <button type="button" className="btn btn-ghost" onClick={onCancel}>Cancel</button>
+        <button type="button" className="btn btn-ghost" onClick={() => { if (keep) forget(keep); onCancel(); }}>Cancel</button>
       </span>
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}
         onPins={pins => setMedia(m => withPins(m, viewing.id, pins))}

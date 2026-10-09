@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon, type IconName } from './Icon';
+import { useBackCloses } from './backCloses';
 
 /** A bottom sheet — the switcher, menus, quick edits. Tap the scrim to close.
  *  Rendered via a PORTAL to <body>: a sheet opened from inside the sticky top
@@ -34,6 +35,9 @@ export function Sheet({ open, onClose, title, children }: {
      opening are not taken as "close". */
   const openedAt = useRef(0);
   useEffect(() => { if (open) openedAt.current = Date.now(); }, [open]);
+  /* The back button closes the sheet and leaves the page where it was
+     (ui/backCloses) — as it closes a record's drawer. */
+  useBackCloses(open, onClose);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };

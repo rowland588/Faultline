@@ -24,8 +24,7 @@
  * lib/install and lib/fixTone and writes through the same calls the sheets
  * did (ui/WhyMoved changeTests · moveTestsWithWhy · recordProblem).
  */
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
+import { useEffect, useRef, useState } from 'react';
 import { nav, navReplace, withQuery, type Route, type RouteName } from '../state/useRoute';
 import { useTesting } from '../lib/useTesting';
 import { useAccess } from '../cloud/access';
@@ -38,7 +37,7 @@ import {
 import { daysBetween, niceDay, todayISO } from '../lib/weeks';
 import type { MediaRef } from '../types';
 import { Icon } from './Icon';
-import { useDismiss } from './Sheet';
+import { DrawerShell } from './DrawerShell';
 import { StageStory, storyLength } from './StageStory';
 import { PartsMark, StageParts } from './StageParts';
 import { ProgramLink } from './ProgramLink';
@@ -52,6 +51,7 @@ import { EvidenceThumb, EvidenceViewer, pinsOnJob } from './Evidence';
 import { spanShort } from './InstallGrid';
 import { ProblemForm, changeTests, recordMove, recordProblem, type ProblemFill } from './WhyMoved';
 import { RecordEdit } from './RecordEdit';
+import { hasKept } from '../lib/kept';
 import { CardPdf, RecordFiles, RecordItems, removeMedia } from './RecordMore';
 import { OnTheLine } from './OnTheLine';
 import { SharedLinks } from './ShareLink';
@@ -153,31 +153,7 @@ export function RecordDrawerHost({ route }: { route: Route }) {
 
 /* ------------------------------- the shell ------------------------------- */
 
-/** The frame every record wears: a panel from the right on a laptop, a sheet
- *  from the bottom on a phone (styles.css, "THE DRAWER"). Escape and × close
- *  it, and so does the dimmed page around it — not the tap that opened it. */
-export function DrawerShell({ label, onClose, children }: { label: string; onClose: () => void; children: ReactNode }) {
-  const dismiss = useDismiss(onClose);
-  const panel = useRef<HTMLElement>(null);
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    /* The keyboard follows the eye into the drawer, and goes back to what
-       opened it when it shuts. */
-    const opener = document.activeElement as HTMLElement | null;
-    panel.current?.focus({ preventScroll: true });
-    return () => { document.body.style.overflow = prev; opener?.focus?.({ preventScroll: true }); };
-  }, []);
-  return createPortal(
-    <div className="rd-scrim" {...dismiss}>
-      <aside ref={panel} tabIndex={-1} className="rd" role="dialog" aria-modal="true" aria-label={label}>
-        <button type="button" className="rd-x" onClick={onClose} aria-label="Close"><Icon name="close" size="1.1em" /></button>
-        {children}
-      </aside>
-    </div>,
-    document.body,
-  );
-}
+export { DrawerShell };
 
 /* ------------------------------- the record ------------------------------ */
 
@@ -243,14 +219,16 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   const jobs = useProjects();
   const job = jobs.projects.find(p => p.id === projectId);
   const today = todayISO();
-  const [problem, setProblem] = useState<boolean | ProblemFill>(false);
+  /* A problem being written, or an Edit, left unsaved (lib/kept) opens
+     again with what was typed. */
+  const [problem, setProblem] = useState<boolean | ProblemFill>(() => hasKept(`problem:${id}::`));
   /* The part of the plan — or the product on a performance run — a problem is
      being written on, when it is one. A product's problem does not fail the
      whole run: one product out of five is not the test. */
   const [problemPart, setProblemPart] = useState<{ id: string; what: string; product?: boolean } | null>(null);
   const top = useRef<HTMLDivElement>(null);
   /* EDIT — the one door to change it (ui/RecordEdit, docs/DOORS.md). */
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(() => hasKept(`edit:${id}:`));
   /* "For the meeting", opened to write the first thing to raise. */
   const [meeting, setMeeting] = useState(false);
   /* Bumped when a link to a picture is made, so the list of them reads again. */
@@ -261,7 +239,7 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   /* A fresh record, fresh forms: the problem form of one step must not stay
      open over the parent it opened. */
-  useEffect(() => { setProblem(false); setProblemPart(null); setEditing(false); setMeeting(false); }, [id]);
+  useEffect(() => { setProblem(hasKept(`problem:${id}::`)); setProblemPart(null); setEditing(hasKept(`edit:${id}:`)); setMeeting(false); }, [id]);
   /* Opened with a part named (openRecordAt): its problem form, open. */
   useEffect(() => {
     const want = split()[1].get(PROBLEM);
@@ -441,7 +419,8 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
       {can.edit && (problem ? (
         /* HIT A PROBLEM, answered here: what, the pictures, whether it pushes
            the finish and to when, a fix. The plan hears all of it. */
-        <ProblemForm step={t} tests={tt.tests} items={tt.items} assets={tt.assets} initial={typeof problem === 'object' ? problem : undefined}
+        <ProblemForm key={`problem:${t.id}:${problemPart?.id ?? ''}`} keep={`problem:${t.id}:${problemPart?.id ?? ''}:`}
+          step={t} tests={tt.tests} items={tt.items} assets={tt.assets} initial={typeof problem === 'object' ? problem : undefined}
           on={problemPart?.what} onCancel={() => { setProblem(false); setProblemPart(null); }}
           day={dayLength(job)} onDay={h => { if (job) void jobs.rename(job, { dayHours: h }); }}
           onSave={a => {

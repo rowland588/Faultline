@@ -24,7 +24,14 @@ import type { Project } from '../types';
 import { Icon } from './Icon';
 import { can as canOf, type Can } from '../lib/access';
 
-export function UsualStages({ project, usual, otherName, tests = [], renameSteps, extras = [], onMove, onRemove, onDrop, isFresh, gate = 'install', can = canOf('owner') }: {
+export function UsualStages({ project, usual, otherName, tests = [], renameSteps, extras = [], onMove, onRemove, onDrop, isFresh, gate = 'install', can = canOf('owner'), editing = false, onDone }: {
+  /** Saved, or cancelled, in a panel of its own: close it (ui/InstallGrid,
+   *  ui/CommissionGrid). Without it the list shows again in place. */
+  onDone?: () => void;
+  /** Open on the editor (docs/STAGEGATE.md): "Edit the stages" was two doors
+   *  — a list to read, then its own "Edit". Whoever may change the list now
+   *  lands on the boxes; Cancel shows the list as it is. */
+  editing?: boolean;
   /** What this person may do (lib/access). The list is what was AGREED, so
    *  only the owner edits it; the team may still move steps into a stage. */
   can?: Can;
@@ -47,7 +54,7 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
   /** Is this step untouched — safe to remove? */
   isFresh?: (t: Test) => boolean;
 }) {
-  const [draft, setDraft] = useState<string[] | null>(null);
+  const [draft, setDraft] = useState<string[] | null>(() => (editing && can.agree ? [...usual.stages] : null));
   const w = gate === 'commission'
     ? { one: 'test', many: 'tests', steps: 'tests', Steps: 'Tests' }
     : { one: 'stage', many: 'stages', steps: 'steps', Steps: 'Steps' };
@@ -88,6 +95,7 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
     const kept = dropped.filter(d => d.fresh < d.n);
     if (renamed.length && renameSteps) setAsking(renamed);
     else if (kept.length) setDropping(kept);
+    else onDone?.();
   };
 
   if (dropping) {
@@ -101,7 +109,7 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
           })}
         </ul>
         <div className="in-usual-go">
-          <button className="btn btn-primary" onClick={() => setDropping(null)}>OK</button>
+          <button className="btn btn-primary" onClick={() => { setDropping(null); onDone?.(); }}>OK</button>
         </div>
         <p className="sub tw-note">They stay as a column of their own on the grid. Open one to remove it step by step, or clear it from “also on the grid”.</p>
       </section>
@@ -115,8 +123,8 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
           {asking.map(r => <li key={r.from}>“{r.from}” → “{r.to}” · on {r.n} machine{r.n === 1 ? '' : 's'}</li>)}
         </ul>
         <div className="in-usual-go">
-          <button className="btn btn-primary" onClick={() => void (async () => { await renameSteps?.(asking); setAsking(null); })()}>Rename them too</button>
-          <button className="btn btn-ghost" onClick={() => setAsking(null)}>Keep their old names</button>
+          <button className="btn btn-primary" onClick={() => void (async () => { await renameSteps?.(asking); setAsking(null); onDone?.(); })()}>Rename them too</button>
+          <button className="btn btn-ghost" onClick={() => { setAsking(null); onDone?.(); }}>Keep their old names</button>
         </div>
         <p className="sub tw-note">Keeping them leaves the old name as a column of its own on the grid.</p>
       </section>
@@ -131,6 +139,36 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
     [n[i], n[j]] = [n[j], n[i]];
     return n;
   });
+
+  /* Columns not on the list, with the ways to clear them — shown under the
+     list and under the editor alike, so opening on the editor hides nothing. */
+  const extraBlock = (
+    <>
+      {extras.length > 0 && (
+        <div className="in-extra">
+          <b className="in-extra-h">Also on the grid — not one of these {w.many}</b>
+          <p className="sub tw-note">
+            {can.agree ? 'Steps given this name before the stages changed. Move them into a stage, remove the ones never started, or keep it as a stage of its own.'
+              : can.edit ? 'Steps given this name before the stages changed. Move them into a stage, or leave it for the owner to keep or remove.'
+                : 'Steps given this name before the stages changed.'}
+          </p>
+          {extras.map(x => (
+            <div key={x.col} className="in-extra-row">
+              <span className="in-extra-n"><b>{x.col}</b> <span className="sub">on {x.n} machine{x.n === 1 ? '' : 's'}</span></span>
+              {can.edit && <span className="in-extra-acts">
+                <select defaultValue="" aria-label={`Move “${x.col}” into`} onChange={e => { if (e.target.value) onMove?.(x.col, e.target.value); e.target.value = ''; }}>
+                  <option value="">Move into…</option>
+                  {usual.stages.map(u => <option key={u} value={u}>{u}</option>)}
+                </select>
+                {x.fresh > 0 && can.remove && <button className="btn btn-ghost in-extra-b is-bad" onClick={() => onRemove?.(x.col)}>Remove{x.fresh < x.n ? ` ${x.fresh} never started` : ''}</button>}
+                {can.agree && <button className="btn btn-ghost in-extra-b" onClick={() => void updateProject({ ...project, ...keepStages(project, gate, cleanStages([...usual.stages, x.col], gate)), updatedAt: Date.now() })}>Make it a stage</button>}
+              </span>}
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
 
   if (!draft) {
     return (
@@ -147,29 +185,7 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
         <ol className="in-usual-list">
           {usual.stages.map((s, i) => <li key={i}>{s}</li>)}
         </ol>
-        {extras.length > 0 && (
-          <div className="in-extra">
-            <b className="in-extra-h">Also on the grid — not one of these {w.many}</b>
-            <p className="sub tw-note">
-              {can.agree ? 'Steps given this name before the stages changed. Move them into a stage, remove the ones never started, or keep it as a stage of its own.'
-                : can.edit ? 'Steps given this name before the stages changed. Move them into a stage, or leave it for the owner to keep or remove.'
-                  : 'Steps given this name before the stages changed.'}
-            </p>
-            {extras.map(x => (
-              <div key={x.col} className="in-extra-row">
-                <span className="in-extra-n"><b>{x.col}</b> <span className="sub">on {x.n} machine{x.n === 1 ? '' : 's'}</span></span>
-                {can.edit && <span className="in-extra-acts">
-                  <select defaultValue="" aria-label={`Move “${x.col}” into`} onChange={e => { if (e.target.value) onMove?.(x.col, e.target.value); e.target.value = ''; }}>
-                    <option value="">Move into…</option>
-                    {usual.stages.map(u => <option key={u} value={u}>{u}</option>)}
-                  </select>
-                  {x.fresh > 0 && can.remove && <button className="btn btn-ghost in-extra-b is-bad" onClick={() => onRemove?.(x.col)}>Remove{x.fresh < x.n ? ` ${x.fresh} never started` : ''}</button>}
-                  {can.agree && <button className="btn btn-ghost in-extra-b" onClick={() => void updateProject({ ...project, ...keepStages(project, gate, cleanStages([...usual.stages, x.col], gate)), updatedAt: Date.now() })}>Make it a stage</button>}
-                </span>}
-              </div>
-            ))}
-          </div>
-        )}
+        {extraBlock}
       </section>
     );
   }
@@ -200,12 +216,13 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
         <button className="btn btn-primary" onClick={() => void save()} disabled={cleaned.length === 0}>
           Save {cleaned.length} {cleaned.length === 1 ? w.one : w.many}
         </button>
-        <button className="btn btn-ghost" onClick={() => setDraft(null)}>Cancel</button>
+        <button className="btn btn-ghost" onClick={() => { setDraft(null); onDone?.(); }}>Cancel</button>
         <button className="cw-link" onClick={() => setDraft([...appStages(gate)])}>Back to the app’s {appStages(gate).length}</button>
       </div>
       <p className="sub tw-note">
         This is what the next machine gets. {w.Steps} already on a machine keep their names — tap one to rename it.
       </p>
+      {extraBlock}
     </section>
   );
 }

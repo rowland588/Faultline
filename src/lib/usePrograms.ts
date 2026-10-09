@@ -41,12 +41,17 @@ export interface ProgramsState {
   putAllOn: (ids: string[], assetId: string) => Promise<void>;
 }
 
+/* The last reading of each job's programs (lib/useTesting lastRead). */
+const lastRead = new Map<string, Program[]>();
+
 export function usePrograms(projectId: string): ProgramsState {
-  const [rows, setRows] = useState<Program[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState<Program[]>(lastRead.get(projectId) ?? []);
+  const [loading, setLoading] = useState(!lastRead.has(projectId));
 
   const load = useCallback(async () => {
-    setRows(await listPrograms(projectId));
+    const got = await listPrograms(projectId);
+    lastRead.set(projectId, got);
+    setRows(got);
     setLoading(false);
   }, [projectId]);
 

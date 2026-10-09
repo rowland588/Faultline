@@ -3,6 +3,7 @@
  * survives a reload. No router library; just parse the hash. */
 import { useEffect, useMemo, useState } from 'react';
 import type { ID, Measure, DrillPath, DimensionKey, WorkstreamView } from '../types';
+import { afterPanelBack } from '../ui/backCloses';
 
 export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 'meeting' | 'log' | 'settings' | 'people'
   | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk' | 'line'
@@ -174,14 +175,18 @@ export const nav = (to: string | { page: string; [key: string]: any }): void => 
       hash = '#/' + page + (qs ? '?' + qs : '');
     }
   }
-  window.location.hash = hash;
+  /* After a closing panel has taken its own entry off (ui/backCloses), so
+     the new page is not stacked on an entry that is about to go. */
+  afterPanelBack(() => { window.location.hash = hash; });
 };
 
 /** Replace the current entry (no back-button trail) — used by redirects. */
 export const navReplace = (to: string): void => {
   const hash = to.startsWith('#') ? to : '#' + to;
-  history.replaceState(null, '', hash);
-  window.dispatchEvent(new HashChangeEvent('hashchange'));
+  afterPanelBack(() => {
+    history.replaceState(null, '', hash);
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+  });
 };
 
 /** Go back to wherever you came from, with a safe fallback if there's no history

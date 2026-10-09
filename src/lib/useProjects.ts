@@ -37,12 +37,18 @@ export interface ProjectsState {
  *  made in a row never look the same, and nobody has to pick a colour. */
 export const COLORS = ['#2b87d4', '#1f8a4c', '#b4632a', '#7a4fd0', '#0f766e', '#c0392b'];
 
+/* The last reading, so a screen opened next draws at once and reads again
+   underneath (lib/useTesting lastRead — docs/STAGEGATE.md, rule 7). */
+let lastRead: Project[] | null = null;
+
 export function useProjects(): ProjectsState {
-  const [all, setAll] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [all, setAll] = useState<Project[]>(lastRead ?? []);
+  const [loading, setLoading] = useState(!lastRead);
 
   const refresh = useCallback(async () => {
-    setAll(await ensureProjects());
+    const rows = await ensureProjects();
+    lastRead = rows;
+    setAll(rows);
     setLoading(false);
   }, []);
 

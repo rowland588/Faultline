@@ -27,6 +27,7 @@ import type { Can } from '../lib/access';
 import type { Project } from '../types';
 import { openRecord } from './RecordDrawer';
 import { UsualStages } from './UsualStages';
+import { DrawerShell } from './DrawerShell';
 import { usePhone } from './InstallGrid';
 import { offerUndo } from './Undo';
 import { Icon } from './Icon';
@@ -75,26 +76,17 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
     rs.length === 1 ? `Added ${missingOf(rs[0]).length} tests to ${rowName(rs[0].asset)}` : `Added the usual tests to ${rs.length} machines`);
   const bare = rows.filter(r => r.asset && r.missing === usual.stages.length);
 
-  if (!rows.length && !editing) {
-    return (
-      <section className="cmp-sec cg">
-        <div className="cw-sec-h"><h2 className="cmp-h">Machine by machine</h2>
-          <button className="cw-link" onClick={() => setEditing(true)}>{can.agree ? 'Edit the usual tests' : 'The usual tests'}</button></div>
-        <p className="sub tw-note">Each machine gets the usual {usual.stages.length} tests here once it is named on Install.</p>
-      </section>
-    );
-  }
-
-  return (
-    <section className="cmp-sec cg">
-      <div className="cw-sec-h">
-        <h2 className="cmp-h">Machine by machine</h2>
-        <button className="cw-link" onClick={() => setEditing(e => !e)}>
-          {editing ? 'Done' : can.agree ? 'Edit the usual tests' : 'The usual tests'}
-        </button>
-      </div>
-      {editing && (
+  /* THE USUAL TESTS, in the one panel (ui/DrawerShell) — as Install's
+     stages open, and straight onto the boxes for whoever may change them
+     (docs/STAGEGATE.md). It was a block that opened above the grid with a
+     second "Edit" inside it. Back, ×, Save and Cancel close it. */
+  const editor = editing ? (
+    <DrawerShell label="The usual tests" onClose={() => setEditing(false)} back>
+      <h2 className="rd-title">The usual tests</h2>
+      <p className="sub ig-sheet-sub">What each machine is tested on, in the order they happen</p>
+      <div className="ig-sheet-body">
         <UsualStages project={project} usual={usual} otherName={otherName} tests={tt.tests} gate="commission" can={can}
+          editing onDone={() => setEditing(false)}
           renameSteps={async pairs => {
             for (const { from, to } of pairs) for (const t of stepsNamed(tt.tests, from, 'commission')) await tt.patchTest(t.id, { title: to });
           }}
@@ -106,7 +98,28 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
             offerUndo(`Took ${cols.length === 1 ? `“${cols[0]}”` : `${cols.length} tests`} off the list and ${gone.length} machine${gone.length === 1 ? '' : 's'}`,
               async () => { await restoreList(); for (const b of back) await b(); });
           }} />
-      )}
+      </div>
+    </DrawerShell>
+  ) : null;
+
+  if (!rows.length) {
+    return (
+      <section className="cmp-sec cg">
+        <div className="cw-sec-h"><h2 className="cmp-h">Machine by machine</h2>
+          <button className="cw-link" onClick={() => setEditing(true)}>{can.agree ? 'Edit the usual tests' : 'The usual tests'}</button></div>
+        <p className="sub tw-note">Each machine gets the usual {usual.stages.length} tests here once it is named on Install.</p>
+        {editor}
+      </section>
+    );
+  }
+
+  return (
+    <section className="cmp-sec cg">
+      <div className="cw-sec-h">
+        <h2 className="cmp-h">Machine by machine</h2>
+        <button className="cw-link" onClick={() => setEditing(true)}>{can.agree ? 'Edit the usual tests' : 'The usual tests'}</button>
+      </div>
+      {editor}
       {can.edit && bare.length > 1 && (
         <p className="sub tw-note">
           {bare.length} machines have none of the usual tests yet — <button className="cw-link" onClick={() => void giveAll(bare)}>give them all the {usual.stages.length}</button>
@@ -119,7 +132,7 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
               <div className="igm-h"><b>{rowName(r.asset)}</b>
                 <span className="sub">{r.missing === 0 ? `all ${usualCount} usual tests` : `${usualCount - r.missing} of ${usualCount} usual tests`}</span></div>
               {can.edit && r.missing > 0 && (
-                <button className="ig-give" onClick={() => void giveAll([r])}><Icon name="plus" size="1.15em" /> Add {r.missing === usualCount ? `the ${r.missing}` : `the ${r.missing} missing`}</button>
+                <button className="ig-give" onClick={() => void giveAll([r])}><Icon name="plus" size="1.15em" /> Add {r.missing === usualCount ? `the ${r.missing} tests` : `the ${r.missing} missing tests`}</button>
               )}
               {/* The tests it has. The usual ones it has not got yet are one
                   line — "Add the 5 missing", or choose which — not five
@@ -182,7 +195,7 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
                   </span>
                   {can.edit && r.missing > 0 && (
                     <button className="ig-give" onClick={() => void giveAll([r])}>
-                      <Icon name="plus" size="1.15em" /> Add {r.missing === usual.stages.length ? `the ${r.missing}` : `the ${r.missing} missing`}
+                      <Icon name="plus" size="1.15em" /> Add {r.missing === usual.stages.length ? `the ${r.missing} tests` : `the ${r.missing} missing tests`}
                     </button>
                   )}
                 </th>
@@ -212,7 +225,7 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
                         <span>{r.programs.proved} of {r.programs.total} proved</span>
                         {r.programs.wrong > 0 && <b className="pt-late">{r.programs.wrong} gone wrong</b>}
                       </button>
-                    ) : <span className="ig-cell is-empty cg-none">none</span>}
+                    ) : <span className="ig-cell is-empty cg-none">no programs</span>}
                   </td>
                 )}
                 {/* THIS MACHINE'S OTHER TESTS — its own, in its own row: one

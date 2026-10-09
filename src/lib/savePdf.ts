@@ -110,11 +110,23 @@ export type Delivered = 'downloaded' | 'ready';
  *  bar (ui/PdfReady) offering Open and Send.
  *
  *  Returns how it went out, so the caller can say something true afterwards. */
+/** Name a PDF inside the file, once: the viewer's title bar and a saved
+ *  file's properties read it. */
+export function titlePdf(doc: jsPDF, title: string): void {
+  const d = doc as jsPDF & { __titled?: boolean };
+  if (d.__titled) return;
+  d.__titled = true;
+  doc.setProperties({ title, creator: 'Faultline' });
+}
+
 export async function deliverPdf(doc: jsPDF, filename: string, opts: { brand?: boolean } = {}): Promise<Delivered> {
   /* Every page leaves with the Faultline mark in its top margin — the one door
      all of them go out through, so no document can be missed. A sheet that is
      a picture edge to edge (the line standard) opts out. */
   if (opts.brand !== false) (await import('./reportKit')).stampBrand(doc);
+  /* ITS TITLE, said inside the file — a PDF viewer shows it where it showed
+     a raw ID (docs/STAGEGATE.md). Kept when the drawer set one already. */
+  titlePdf(doc, filename.replace(/\.pdf$/i, ''));
   return deliverBlob(doc.output('blob') as Blob, filename);
 }
 

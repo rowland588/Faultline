@@ -100,18 +100,21 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
   const gs = useMemo(() => (canBand && assets && tests ? byStage(gn, { assets, tests, programs, ...(stages ? { stages } : {}) }) : gn), [gn, canBand, assets, tests, programs, stages]);
   /* A reminder's words, opened out to the full sentence by a tap. */
   const [remFull, setRemFull] = useState<string | null>(null);
-  /* A band folded or open, remembered on this device; a machine never touched
-     is open on a desk and folded on a phone — its header still says where it
-     stands, so the folded list IS the glance. */
+  /* A band folded or open, remembered on this device. A machine never
+     touched is FOLDED, on a desk as on a phone (docs/STAGEGATE.md, rule 6):
+     its header says where it stands, what is wrong and what is next, so the
+     folded list IS the glance — unfolded on a desk it was 2.7 screens of
+     mostly done stages. One tap opens a machine; "Open every machine" opens
+     the lot. */
   const [bandOpen, setBandOpen] = useState<Record<string, boolean>>(() => {
     try { return JSON.parse(localStorage.getItem(BANDS_KEY) ?? '{}') as Record<string, boolean>; } catch { return {}; }
   });
-  const bandIsOpen = (k: string) => bandOpen[k] ?? !phone;
-  const toggleBand = (k: string) => setBandOpen(o => {
-    const next = { ...o, [k]: !(o[k] ?? !phone) };
+  const bandIsOpen = (k: string) => bandOpen[k] ?? false;
+  const keepBands = (next: Record<string, boolean>) => {
     try { localStorage.setItem(BANDS_KEY, JSON.stringify(next)); } catch { /* lasts the visit */ }
     return next;
-  });
+  };
+  const toggleBand = (k: string) => setBandOpen(o => keepBands({ ...o, [k]: !(o[k] ?? false) }));
   const ref = useRef<HTMLDivElement>(null);
   /* A day is never narrower than the scale wants, and the calendar always fills
      the card — a short job in weeks was a strip down the left with white beside it. */
@@ -278,6 +281,10 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
       ? `Reminder: ${r.label} · ${r.when} · ${noteSays}`
       : `${r.next ? 'Next: ' : ''}${named} · ${r.when} · ${r.says ?? TONE_WORD[r.tone]}${r.slip ? ` · +${r.slip.days} day${r.slip.days === 1 ? '' : 's'} on the plan` : ''}${r.partsSay ? ` · ${r.partsSay}` : ''}${r.critical ? ` · ${criticalCount(r.critical)}` : ''}${r.risk ? ` · ${r.risk} high risk` : ''}`;
     const afterBar = r.start * px + 2 + w + 6 + (r.slip ? 0 : 0);
+    /* A bar wholly before the window (days, weeks): its date was drawn past
+       its end, off the left edge, and showed as a clipped "ct". It is said
+       at the edge instead, pointing back (docs/STAGEGATE.md). */
+    const before = r.start * px + 2 + w <= 0;
     /* "Next" in words, before the name, so a long name never cuts it off. */
     const nextTag = r.next ? <em className="gt-next">Next</em> : null;
     const partsTag = r.partsSay ? <span className="gt-lab-parts">{r.partsSay}</span> : null;
@@ -312,7 +319,8 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
                 {r.slip.span * px >= 46 && <span>+{r.slip.days}d</span>}
               </button>
             )}
-            {!inside && <span className="gt-when" style={{ left: afterBar }}>{r.when}{r.slip && r.slip.span * px < 46 ? ` · +${r.slip.days}d` : ''}</span>}
+            {before ? <span className="gt-when is-before" style={{ left: 4 }}>‹ {r.when}</span>
+              : !inside && <span className="gt-when" style={{ left: afterBar }}>{r.when}{r.slip && r.slip.span * px < 46 ? ` · +${r.slip.days}d` : ''}</span>}
             {/* SOMETHING HAPPENED HERE — a move, a problem written up. */}
             {r.marks?.map(m => (
               <button key={m.iso} type="button" className="gt-mk" onClick={go} aria-label={`Something happened on ${m.iso} — tap for the story`}
@@ -361,7 +369,7 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
     const bs = b.bar?.start ?? 0;
     return (
       <div key={k} className={'gt-group gt-mband' + (isOpenB ? ' is-open' : ' is-shut')}>
-        <div className={'gt-row gt-mrow is-' + b.tone}>
+        <div className={'gt-row gt-mrow is-' + b.tone + (b.next ? ' has-next' : '')}>
           <div className="gt-lab gt-mlab">
             <button type="button" className="gt-mfold" onClick={() => toggleBand(k)} aria-expanded={isOpenB}
               aria-label={`${isOpenB ? 'Fold' : 'Open'} ${b.name}`} title={isOpenB ? 'Fold it' : 'Show its stages'}>
@@ -369,6 +377,7 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
             </button>
             <button type="button" className="gt-mgo" onClick={go} title={tip} aria-label={`${b.name}: ${b.says} (${BAND_TONE[b.tone]})`}>
               <b>{b.name}</b><small className={'is-' + b.tone}>{b.says}</small>
+              {b.next && <small className="gt-mnext">Next: {b.next}</small>}
             </button>
           </div>
           <button type="button" className="gt-track gt-mtrack" style={{ width: T }} onClick={go} tabIndex={-1} aria-hidden title={tip}>
@@ -420,6 +429,14 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
         <span className="gt-acts">
           {asOf && <span className={'gt-asof' + (asOf.stale ? ' is-stale' : '')} role="status">{asOf.words}</span>}
           {/* Not when fitted: today is already on the screen, and the button did nothing. */}
+          {bands && bands.length > 1 && (() => {
+            const allOpen = bands.every(bd => bandIsOpen(bd.id ?? 'job'));
+            return (
+              <button type="button" className="gt-today-b" onClick={() => setBandOpen(o => keepBands({ ...o, ...Object.fromEntries(bands.map(bd => [bd.id ?? 'job', !allOpen])) }))}>
+                {allOpen ? 'Fold every machine' : 'Open every machine'}
+              </button>
+            );
+          })()}
           {g.today != null && !fit && <button type="button" className="gt-today-b" onClick={toToday}>Go to today</button>}
           <button type="button" className="gt-today-b" onClick={() => void print()} disabled={busy}>{busy ? 'Making it…' : 'PDF'}</button>
         </span>

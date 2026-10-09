@@ -11154,3 +11154,60 @@ button.gt-fixlab small { font-size: 11.5px; }
 .cr-note-h { font-size: var(--t-label); font-weight: 700; color: var(--ink-2); text-transform: uppercase; letter-spacing: .04em; }
 .cr-note-h .cw-f-opt { text-transform: none; letter-spacing: 0; }
 .cr-note-t { margin: 0; white-space: pre-wrap; }
+
+/* =====================================================================
+   SLICE: STAGE GATE BACKBONE (docs/STAGEGATE.md).
+   One panel, one way back, nothing typed lost, one count and one word.
+   Appended whole; what it changes above is said where it is changed.
+   ===================================================================== */
+
+/* A machine, a stage across every machine and the stage list, in the one
+   panel (ui/DrawerShell) — the old centred box's spacing, inside it. */
+.ig-sheet-sub { margin: 2px 52px 0 0; }
+.ig-sheet-body { display: grid; gap: 12px; margin-top: 14px; }
+.ig-sheet-body .in-usual { margin: 0; border: 0; padding: 0; }
+/* The stages and usual tests, listed: each number sits with its own name.
+   As a wrapping row the number hung outside its item, against the name
+   before it — "1. Positioned and levelled2. Mechanically complete". */
+.in-usual-list { list-style-position: inside; padding-left: 0; gap: 6px 18px; }
+
+/* A material's Edit — every box Add asked for, on its row. */
+.mt-edit { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; align-items: end; }
+.mt-edit .cw-f { margin: 0; }
+.mt-edit-go { display: flex; gap: 8px; align-items: center; }
+
+/* "Not saved yet — what you typed is back" (lib/kept): said once, quietly,
+   at the top of a form that opened with a draft in it. */
+.kept-note { margin: 0 0 8px; padding: 6px 10px; border-radius: 8px; background: var(--surface-2); color: var(--ink-2); font-size: var(--t-detail); }
+/* In the panel, its title names the list: the editor's own heading would
+   say it a second time. */
+.ig-sheet-body .in-usual.is-editing > .in-usual-h { display: none; }
+
+/* Set up's programs: one row, the door to their page, clear of the board. */
+.pp-door { margin-top: 20px; }
+.pp-door-row {
+  all: unset; box-sizing: border-box; cursor: pointer; width: 100%;
+  display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.pp-door-row > span { flex: 1; }
+.pp-door-row:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+.pp-door-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* "no programs", "not added yet" on Commission's board: small words, as an
+   empty square's state — the empty square's big "+" size made "none" read
+   as content (the rule above lost to .ig-cell.is-empty). */
+.ig-cell.is-empty.cg-none { font-size: var(--t-label); font-weight: 500; color: var(--muted); }
+
+/* The plan's second line under a name: "done · 1 day late" stays one line.
+   The bold "1 day late" was caught by the rule for the name itself and
+   broke onto a line of its own, spilling out of the row. */
+button.gt-lab small b { display: inline; font-size: inherit; font-weight: 800; }
+/* A date said at the window's left edge for a bar before it. */
+.gt-when.is-before { color: var(--muted); }
+
+/* The plan's machine header, folded: where it is, what is wrong, and now
+   what is next — the third line gets its room. */
+.gt-mrow.has-next { height: 58px; }
+.gt-mgo small.gt-mnext { font-size: 10.5px; color: var(--ink-2); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; display: block; }
+.gt.is-stacked .gt-mgo small.gt-mnext { font-size: 11px; }

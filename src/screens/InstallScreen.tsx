@@ -32,6 +32,7 @@ import { framesForProject, getPaceWorkspaceId, onDataChange } from '../db';
 import { StandardsCard } from '../ui/StandardsCard';
 import { nav } from '../state/useRoute';
 import { InstallGrid, stageWord } from '../ui/InstallGrid';
+import { Icon } from '../ui/Icon';
 import { openRecord } from '../ui/RecordDrawer';
 import { todayISO } from '../lib/weeks';
 import { partsOf, resultNow } from '../lib/noted';
@@ -219,7 +220,10 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
           Below the grid, not above it: the grid is what this screen is for,
           and the film is what you reach for when the grid shows a problem. */}
       {gate === 'install' && (
-        <Fold id="filmed" title="The line, filmed" says={filmedSays(filmed, can.edit)}>
+        /* Folded until something is filmed (docs/STAGEGATE.md): open and
+           empty, it took half the page under the board to say "No walk
+           filmed yet". Its line says the same, and one tap opens it. */
+        <Fold id="filmed" title="The line, filmed" says={filmedSays(filmed, can.edit)} start={!!filmed && filmed.frames > 0}>
           <PaceSnags projectId={projectId} projectName={project.name} can={can} />
         </Fold>
       )}
@@ -244,12 +248,16 @@ function ProgramsLine({ projectId, tt }: { projectId: string; tt: ReturnType<typ
   if (progs.loading) return null;
   const r = programsReading({ tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs, today: todayISO() });
   return (
+    /* THE ROW IS THE DOOR (docs/DOORS.md rule 1): where the programs stand,
+       and a tap opens their page. It was a heading pressed against the
+       board's edge and a big blue "Open Programs" — the press colour on a
+       link (docs/STAGEGATE.md). */
     <section className="cmp-sec pp-door" aria-label="Programs">
-      <div className="cw-sec-h"><h2 className="cmp-h">Programs</h2></div>
-      <p>
-        <span>{r ? r.says : 'No programs yet — write each one the machines have to run.'}</span>{' '}
-        <button type="button" className="btn btn-sm btn-primary" onClick={() => nav(`/project/${projectId}/programs`)}>Open Programs</button>
-      </p>
+      <button type="button" className="pp-door-row" onClick={() => nav(`/project/${projectId}/programs`)}>
+        <b>Programs</b>
+        <span className="sub">{r ? r.says : 'No programs yet — write each one the machines have to run.'}</span>
+        <Icon name="chevron" size="1.1em" />
+      </button>
     </section>
   );
 }

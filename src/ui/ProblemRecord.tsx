@@ -20,6 +20,7 @@ import { hoursWord } from '../lib/hoursLost';
 import type { Can } from '../lib/access';
 import type { useTesting } from '../lib/useTesting';
 import { ProblemForm } from './WhyMoved';
+import { hasKept } from '../lib/kept';
 import type { WhyAnswer } from './WhyMoved';
 import { CriticalStory, CriticalTag } from './CriticalFields';
 import { EvidenceThumb, EvidenceViewer, pinsOnJob } from './Evidence';
@@ -81,7 +82,8 @@ export function ProblemRecord({ item, tt, can, day, onDay, onOpen }: {
   /** Open another record in this drawer — the stage, its fix. */
   onOpen: (id: string) => void;
 }) {
-  const [editing, setEditing] = useState(false);
+  /* An edit left unsaved (lib/kept) opens again with what was typed. */
+  const [editing, setEditing] = useState(() => hasKept(`problem:${item.id}:`));
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   const step = live(tt.tests).find(t => t.id === item.testId);
   const machine = step ? tt.assets.find(a => a.id === step.assetId)?.name : undefined;
@@ -112,7 +114,7 @@ export function ProblemRecord({ item, tt, can, day, onDay, onOpen }: {
 
   if (editing && step) {
     return (
-      <ProblemForm step={step} item={item} tests={tt.tests} items={tt.items} assets={tt.assets} on={on} day={day} onDay={onDay}
+      <ProblemForm keep={`problem:${item.id}:`} step={step} item={item} tests={tt.tests} items={tt.items} assets={tt.assets} on={on} day={day} onDay={onDay}
         onCancel={() => setEditing(false)}
         onSave={a => { saveProblemEdit(tt, item, a, can); setEditing(false); }} />
     );

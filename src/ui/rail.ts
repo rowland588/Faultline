@@ -30,6 +30,10 @@ import type { PlanModel } from '../lib/planModel';
 /** How many are open, how many of those are late, and how many are already
  *  done — the three numbers a rail line's square and count are drawn from. */
 export interface Count { n: number; late: number; done?: number;
+  /** Of `n`, the ones that failed — a program that failed is not late, and
+   *  the rail says "failed" in words as its page does (docs/STAGEGATE.md:
+   *  the rail said Programs "1 late" where the page said 0 late, 1 failed). */
+  failed?: number;
   /** Stages that hit a problem and lost no time (lib/install lateOrProblem) —
    *  amber, said apart from late. */
   problem?: number }
@@ -42,7 +46,7 @@ export type Counts = Record<string, Count | undefined>;
 export type SquareState = 'r' | 'a' | 'w' | 'g' | 'n';
 
 export const squareOf = (c?: Count): SquareState =>
-  !c ? 'n' : c.late > 0 ? 'r' : (c.problem ?? 0) > 0 ? 'a' : c.n > 0 ? 'w' : (c.done ?? 0) > 0 ? 'g' : 'n';
+  !c ? 'n' : c.late + (c.failed ?? 0) > 0 ? 'r' : (c.problem ?? 0) > 0 ? 'a' : c.n > 0 ? 'w' : (c.done ?? 0) > 0 ? 'g' : 'n';
 
 export interface RailLine {
   /** The key the route resolves to (`hereOf`), so the line knows it is on. */
@@ -56,6 +60,8 @@ export interface RailLine {
    *  red, and says "late" in words (Peers.Count's rule, kept). */
   n?: number;
   late?: number;
+  /** Of `n`, the ones that failed — red, said "failed". */
+  failed?: number;
   /** Of `n`, the stages that hit a problem and lost no time — amber, and
    *  said "a problem" in words (lib/install lateOrProblem). */
   problem?: number;
@@ -140,8 +146,8 @@ const sum = (counts: Counts, keys: string[], f: (c: Count) => number): number =>
 function counted(key: string, label: string, to: string, here: string, counts: Counts, keys: string[] = [key],
   icon?: RailLine['icon']): RailLine {
   const c: Count = { n: sum(counts, keys, x => x.n), late: sum(counts, keys, x => x.late), done: sum(counts, keys, x => x.done ?? 0),
-    problem: sum(counts, keys, x => x.problem ?? 0) };
-  return { key, label, to, on: here === key, state: squareOf(c), n: c.n || undefined, late: c.late || undefined, problem: c.problem || undefined, icon };
+    problem: sum(counts, keys, x => x.problem ?? 0), failed: sum(counts, keys, x => x.failed ?? 0) };
+  return { key, label, to, on: here === key, state: squareOf(c), n: c.n || undefined, late: c.late || undefined, failed: c.failed || undefined, problem: c.problem || undefined, icon };
 }
 
 const plain = (key: string, label: string, to: string, here: string, icon?: RailLine['icon']): RailLine =>

@@ -201,3 +201,54 @@ decision that is yours.
 
 Each slice says, for anything it moves, what it was for and where it now
 lives (CLAUDE.md: "Nothing is removed until we can say why it was there").
+
+## What moved, and where it lives now (9 October, all three slices)
+
+- **The machine panel and the stage list** were a box in the middle of the
+  page (`ui/InstallGrid` Sheet). They now open in the one panel
+  (`ui/DrawerShell`, moved out of `ui/RecordDrawer` so both can use it).
+  Back closes them.
+- **"Machine · edit stages"** in the board's corner (laptop) and **"Edit
+  the stages"** under the cards (phone) became one **"Edit the stages"**
+  beside the "Machine by machine" heading on Install, Set up and Hand over,
+  where Commission already had "Edit the usual tests". The stage list
+  opens on its editor. The columns not on the list ("Also on the grid")
+  show under the editor too, so nothing is hidden by opening on it.
+- **Commission's usual tests** opened as a block above the board, with a
+  second "Edit" inside it. They now open in the one panel, on the editor.
+- **The × beside a machine's name** (remove) became **"Remove this
+  machine"** at the panel's foot. Its question now says the stages and
+  tests stay, which is what removing does, and Undo still brings it back.
+- **"Give the N new machines the M stages"** says it the way Commission
+  does: "N machines have none of the stages yet — give them all the M".
+- **Set up's "Programs" heading and its big "Open Programs" button**
+  became one row, the door to the Programs page.
+- **A material's name** was the only box that could be edited after
+  adding, and it looked like plain text. One **Edit** on the row now opens
+  every box Add asked for. The day it is due keeps its own box, which asks
+  why when it moves later.
+- **The plan** opened every machine on a desk. It now opens folded
+  everywhere, each machine's header adding **"Next: …"**, with **"Open
+  every machine"** beside "Go to today". A machine opened by hand stays
+  open on that device, as before.
+- **The empty filmed walk** on Install is folded until something is
+  filmed. Its line says "nothing filmed yet".
+- **Kept as typed** (`lib/kept`): a record's Edit, the problem form
+  (writing and editing) and Plan a fix. Opening the record again opens the
+  form with a quiet "Not saved yet — what you typed is back".
+- **Back closes the top panel** (`ui/backCloses`): every bottom sheet, the
+  machine panel, the stage list and the usual tests. Navigation waits for
+  a closing panel's own back, so it never lands under it.
+- **Gates draw at once.** The job's tests, materials, programs and the
+  projects list keep their last reading (`useTesting`, `useMaterials`,
+  `usePrograms`, `useProjects`). The next screen draws from it and reads
+  again underneath, as before.
+- **Words.** The rail says "failed" for a failed program. The phone card
+  says "4 done · 2 of them late". Commission says "no programs" and "Add
+  the N missing tests". The day is "The day" wherever it is a door.
+- **Marks.** The stage list's numbers sit with their own names. The plan's
+  "done · 1 day late" stays on one line, and a bar before the window says
+  its date at the edge ("‹ 1 Oct"). The commentary box uses the app's
+  font. Every PDF carries its own title.
+- **The Reports index** says who each document is for, and lists the
+  plan's PDF.

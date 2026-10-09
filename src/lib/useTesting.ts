@@ -117,11 +117,20 @@ export function useAssets(projectId: string): {
   return { assets, loading, addAsset };
 }
 
+/* ONE FLOW BETWEEN GATES (docs/STAGEGATE.md, the backbone rule 7). Every
+   gate, the plan, the fixes and the drawer read the same job; each read it
+   from scratch when it opened, so moving from Install to Set up flashed
+   "Loading…" and drew the page twice. The last reading of each job is held
+   here: the next screen draws from it at once and reads again underneath,
+   exactly as it did — what is on the device is still the only source. */
+const lastRead = new Map<string, { assets: Asset[]; tests: Test[]; items: TestItem[] }>();
+
 export function useTesting(projectId: string): TestingState {
-  const [assets, setAssets] = useState<Asset[]>([]);
-  const [tests, setTests] = useState<Test[]>([]);
-  const [items, setItems] = useState<TestItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const held = lastRead.get(projectId);
+  const [assets, setAssets] = useState<Asset[]>(held?.assets ?? []);
+  const [tests, setTests] = useState<Test[]>(held?.tests ?? []);
+  const [items, setItems] = useState<TestItem[]>(held?.items ?? []);
+  const [loading, setLoading] = useState(!held);
 
   const load = useCallback(async () => {
     /* NOTHING IS CONVERTED BEHIND ANYBODY'S BACK ANY MORE. This used to turn
@@ -132,6 +141,7 @@ export function useTesting(projectId: string): TestingState {
        ones already converted stay; they are real records now and he can
        delete or re-point them from the Fixes screen. */
     const [a, t, i] = await Promise.all([listAssets(projectId), listTests(projectId), listTestItems(projectId)]);
+    lastRead.set(projectId, { assets: a, tests: t, items: i });
     setAssets(a); setTests(t); setItems(i);
     setLoading(false);
   }, [projectId]);

@@ -408,6 +408,10 @@ export interface GanttMachine {
    *  rows' days merged, each in that row's tone, so red sits only on the days
    *  of what is actually late. */
   bar?: { start: number; span: number; when: string; segs: { start: number; span: number; tone: GanttTone }[] };
+  /** Its next stage not yet done, in words — "Change parts fitted — late"
+   *  (docs/STAGEGATE.md: a folded band said where it is and what is wrong,
+   *  not what is next). On the screen's band header; paper is unchanged. */
+  next?: string;
   /** Its rows, gate by gate in the order the job runs; the label is the gate. */
   groups: GanttGroup[];
   /** The filmed walk's lane is drawn in this band. */
@@ -665,7 +669,9 @@ export function withMachines(g: Gantt, job: {
     const says = [machineAt(a, j).says, crit ? criticalCount(crit) : '', red, rows.length ? '' : 'nothing dated yet'].filter(Boolean).join(' · ');
     const gate = JOURNEY.find(x => x.label === now) ?? JOURNEY[JOURNEY.length - 1];
     const bar = barOf(rows, g.dayList);
-    return { id: a.id, name: a.name, says, tone, path: gate.path, groups, ...(bar ? { bar } : {}) };
+    const nx = rows.find(r => r.next);
+    const nextSays = nx ? `${nx.on && nx.label.startsWith(`${nx.on} — `) ? nx.label.slice(nx.on.length + 3) : nx.label}${nx.says ? ` — ${nx.says}` : nx.when ? ` — ${nx.when}` : ''}` : undefined;
+    return { id: a.id, name: a.name, says, tone, path: gate.path, groups, ...(nextSays ? { next: nextSays } : {}), ...(bar ? { bar } : {}) };
   });
 
   /* THE LINE AND THE WHOLE JOB — what is on no one machine, in the gates'

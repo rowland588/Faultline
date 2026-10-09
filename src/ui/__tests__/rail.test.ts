@@ -76,6 +76,15 @@ describe('the square beside a line says its state, and the count stays the work'
     expect(squareOf({ n: 3, late: 1, problem: 1 })).toBe('r');
   });
 
+  it('a program that failed is red and said "failed", not counted as late (docs/STAGEGATE.md)', () => {
+    expect(squareOf({ n: 3, late: 0, failed: 1 })).toBe('r');
+    const g = gatesGroup(P, '', { programs: { n: 3, late: 0, failed: 1, done: 2 } });
+    const programs = g.lines.find(l => l.key === 'programs');
+    expect(programs?.late).toBeUndefined();
+    expect(programs?.failed).toBe(1);
+    expect(programs?.state).toBe('r');
+  });
+
   it('a late job is red; otherwise the job is under way', () => {
     expect(jobLine(P, 'Line 2', 'job', 2).state).toBe('r');
     expect(jobLine(P, 'Line 2', 'job', 0).state).toBe('w');

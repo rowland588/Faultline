@@ -24,12 +24,17 @@ export interface MaterialsState {
   markOut: (id: string) => Promise<void>;
 }
 
+/* The last reading of each job's materials (lib/useTesting lastRead). */
+const lastRead = new Map<string, Material[]>();
+
 export function useMaterials(projectId: string): MaterialsState {
-  const [rows, setRows] = useState<Material[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState<Material[]>(lastRead.get(projectId) ?? []);
+  const [loading, setLoading] = useState(!lastRead.has(projectId));
 
   const load = useCallback(async () => {
-    setRows(await listMaterials(projectId));
+    const got = await listMaterials(projectId);
+    lastRead.set(projectId, got);
+    setRows(got);
     setLoading(false);
   }, [projectId]);
 

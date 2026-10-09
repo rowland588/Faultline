@@ -43,7 +43,9 @@ export function ReportsSheet({ project, onClose }: { project: Project; onClose: 
       <div className="meet-reports">
         {/* A lever tree job's report leads with the tree; the door said only
             what a 3P job's carries. */}
-        <Door title="Client report" says={stageGate ? 'The job in the order it is run — the gates, the plan, the fixes, who owes what.'
+        {/* WHO EACH IS FOR, said first (docs/STAGEGATE.md): the right paper
+            to the right reader — the client, the team, the OEM, the floor. */}
+        <Door title="Client report" says={stageGate ? 'For the client — the one-page status first, then the full report: the gates, the plan, the fixes, who owes what.'
           : tree ? 'The outcome and what has to be true for it, the numbers, the board, the walk.'
           /* A 6M job's report is the root cause story (lib/sixmReportPdf);
              the old 3P words were not what it prints. */
@@ -55,9 +57,12 @@ export function ReportsSheet({ project, onClose }: { project: Project; onClose: 
         {/* What the method prints (lib/planModel: "the tree on one page") was
             the one printable thing this index did not list. */}
         {tree && <Door title="The lever tree" says="The tree on one page — print it from the tree itself." onClick={() => go(`/project/${project.id}/tree`)} />}
-        {stageGate && <Door title="Today" says="The day's story — what got done, what was found, with the pictures — one page." onClick={() => go(`/project/${project.id}/day`)} />}
-        {stageGate && <Door title="Programs" says="Every program, machine by machine — where each stands and what was seen." onClick={() => go(`/project/${project.id}/report?doc=programs`)} />}
-        {stageGate && <Door title="Line standard" says="Who stands where and what they do, one page per product." onClick={() => go(`/project/${project.id}/standard`)} />}
+        {stageGate && <Door title="The day" says="For the team — the day's story: what got done, what was found, with the pictures. One page." onClick={() => go(`/project/${project.id}/day`)} />}
+        {stageGate && <Door title="Programs" says="For the OEM and the team — every program, machine by machine: where each stands and what was seen." onClick={() => go(`/project/${project.id}/report?doc=programs`)} />}
+        {/* THE PLAN prints from its own page (ui/Gantt's PDF), and was the one
+            stage-gate document this index did not list. */}
+        {stageGate && <Door title="The plan" says="For the team and the client — every machine's stages against the days, on one landscape page. Print it from the plan." onClick={() => go(`/project/${project.id}/plan`)} />}
+        {stageGate && <Door title="Line standard" says="For the floor — who stands where and what they do, one page per product." onClick={() => go(`/project/${project.id}/standard`)} />}
         {walk && <Door title="Evidence cards" says="One page per snag on the walk, with its picture." onClick={() => go(`/w/${walk}/snaglist`)} />}
         {withWalk.map(l => (
           <Door key={l.id} title={`Evidence cards — ${l.name}`} says="One page per snag on this line's walk, with its picture." onClick={() => go(`/w/${l.workspaceId}/snaglist`)} />

@@ -41,19 +41,21 @@ function Says({ says }: { says: string }) {
 type Which = 'status' | 'full' | 'programs';
 
 async function buildStatus(r: ClientReport): Promise<jsPDF> {
-  const { loadPdfLib } = await import('../lib/savePdf');
+  const { loadPdfLib, titlePdf } = await import('../lib/savePdf');
   const { drawStatusReport } = await import('../lib/clientReportPdf');
   const { jsPDF } = await loadPdfLib();
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+  titlePdf(doc, `${r.name} — status report`);
   await drawStatusReport(doc, r);
   return doc;
 }
 
 async function buildPrograms(r: ClientReport): Promise<jsPDF> {
-  const { loadPdfLib } = await import('../lib/savePdf');
+  const { loadPdfLib, titlePdf } = await import('../lib/savePdf');
   const { drawProgramsReport } = await import('../lib/programsReportPdf');
   const { jsPDF } = await loadPdfLib();
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+  titlePdf(doc, `${r.name} — programs report`);
   const reading = r.sections.find(s => s.gate === 'setup')?.programs;
   await drawProgramsReport(doc, { name: r.name, ...(r.lead ? { lead: r.lead } : {}), printed: r.printed,
     reading: reading ?? { lines: [], machines: [], total: 0, done: 0, baseline: 0, failed: 0, late: 0, open: 0, doneAll: 0, says: 'No programs yet' } });
@@ -61,11 +63,12 @@ async function buildPrograms(r: ClientReport): Promise<jsPDF> {
 }
 
 async function buildPdf(r: ClientReport, withStandards: boolean): Promise<jsPDF> {
-  const { loadPdfLib } = await import('../lib/savePdf');
+  const { loadPdfLib, titlePdf } = await import('../lib/savePdf');
   const { drawClientReport } = await import('../lib/clientReportPdf');
   const { pinShot, photoShot } = await import('../lib/testReport');
   const { jsPDF } = await loadPdfLib();
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+  titlePdf(doc, `${r.name} — client report`);
   /* One picture a fix: where it is on the line if it was pinned, otherwise its
      first photo, with what is marked on it. Fetched before drawing — the
      drawer never touches the store. */
@@ -181,7 +184,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
         <section className="cr-note">
           <span className="cr-note-h">Commentary <i className="cw-f-opt">on both reports, under where we are</i></span>
           {can.agree
-            ? <DraftArea rows={3} better="note" value={project.reportNote ?? ''} ariaLabel="Commentary"
+            ? <DraftArea className="text-area" rows={3} better="note" value={project.reportNote ?? ''} ariaLabel="Commentary"
                 placeholder="What the numbers mean this week — e.g. Install is two days behind on the Ishida, caught up by Friday; programs on track for the Tesco trial."
                 onSave={v => void rename(project, { reportNote: v.trim() || undefined, reportNoteAt: v.trim() ? Date.now() : undefined })} />
             : <p className="cr-note-t">{project.reportNote}</p>}

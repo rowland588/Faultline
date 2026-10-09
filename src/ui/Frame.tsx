@@ -284,8 +284,8 @@ function NavChrome({ groups, project, model, bar }: {
         {five.map(l => (
           <button key={l.key} type="button" className={'nv-bi' + (l.on ? ' is-on' : '')} onClick={() => go(l)}
             aria-current={l.on ? 'page' : undefined}
-            aria-label={l.late || l.problem ? [l.label, l.late ? `${l.late} late` : '', l.problem ? `${l.problem} a problem` : ''].filter(Boolean).join(', ') : undefined}>
-            <span className={'nv-bi-ic' + (l.late ? ' is-late' : l.problem ? ' is-problem' : '')}><Icon name={l.icon ?? 'board'} size={22} /></span>
+            aria-label={l.late || l.failed || l.problem ? [l.label, l.late ? `${l.late} late` : '', l.failed ? `${l.failed} failed` : '', l.problem ? `${l.problem} a problem` : ''].filter(Boolean).join(', ') : undefined}>
+            <span className={'nv-bi-ic' + (l.late || l.failed ? ' is-late' : l.problem ? ' is-problem' : '')}><Icon name={l.icon ?? 'board'} size={22} /></span>
             <span className="nv-bi-l">{l.label}</span>
           </button>
         ))}
@@ -310,12 +310,12 @@ function RailList({ groups, go }: { groups: RailGroup[]; go: (l: RailLine) => vo
         <div key={g.label ?? i} className={'nv-grp' + (g.foot ? ' is-foot' : '')}>
           {g.label && <p className="nv-grp-l">{g.label}</p>}
           {g.lines.map(l => (
-            <button key={l.key} type="button" className={'nv-ri' + (l.on ? ' is-on' : '') + (l.sub ? ' is-sub' : '') + (l.problem ? ' is-wrap' : '')}
+            <button key={l.key} type="button" className={'nv-ri' + (l.on ? ' is-on' : '') + (l.sub ? ' is-sub' : '') + (l.problem || (l.late && l.failed) ? ' is-wrap' : '')}
               onClick={() => go(l)} aria-current={l.on ? 'page' : undefined}>
               <span className={'nv-sq is-' + l.state + (l.bare ? ' is-bare' : '')} aria-hidden />
               <span className="nv-ri-l">{l.label}</span>
               {!!l.n && (
-                <span className="nv-n">{l.n}{!!l.late && <> · <i>{l.late} late</i></>}{!!l.problem && <> · <i className="is-a">{l.problem} a problem</i></>}</span>
+                <span className="nv-n">{l.n}{!!l.late && <> · <i>{l.late} late</i></>}{!!l.failed && <> · <i>{l.failed} failed</i></>}{!!l.problem && <> · <i className="is-a">{l.problem} a problem</i></>}</span>
               )}
             </button>
           ))}

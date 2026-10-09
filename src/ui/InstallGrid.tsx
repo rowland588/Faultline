@@ -14,13 +14,14 @@
  * Nothing new is stored: a cell is an install step (see lib/testing), read
  * through lib/install's installGrid.
  */
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { deleteTest } from '../db';
 import { foldInto, installGrid, lateByWords, stepsNamed, untouched, type StepView, type usualStages } from '../lib/install';
 import { UsualStages } from './UsualStages';
 import { WhyMoved, changeTests, moveTestsWithWhy, type WhyAnswer } from './WhyMoved';
 import { movedLater } from '../lib/story';
 import { MachineCard } from '../screens/TestsScreen';
+import { DrawerShell } from './DrawerShell';
 import type { Project } from '../types';
 import { ASSET_STATE_WORD, assetStateOf, assetStateOn, hasRun, isSettled, live, plannedEnd, type Asset, type StepGate, type Test } from '../lib/testing';
 import { niceDay, todayISO } from '../lib/weeks';
@@ -214,7 +215,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
       return (
         <Sheet title="The stages" sub="What each machine gets, in the order they happen" onClose={() => setOpen(null)}>
           <UsualStages project={project} usual={stages} otherName={otherName} tests={tt.tests} gate={gate} can={can}
-            extras={extras} onMove={moveColumn} onRemove={removeColumn} onDrop={dropColumns}
+            editing onDone={() => setOpen(null)} extras={extras} onMove={moveColumn} onRemove={removeColumn} onDrop={dropColumns}
             isFresh={t => untouched(t, tt.tests, tt.items)}
             renameSteps={async (pairs) => {
               const done: { id: string; title: string }[] = [];
@@ -337,7 +338,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
         {row.asset && (
           <MachineCard a={row.asset}
             ran={tt.tests.filter(t => t.assetId === row.asset?.id && (t.kind ?? 'test') === 'test' && hasRun(t)).length}
-            save={tt.saveAsset} remove={can.remove ? async id => { await tt.removeAsset(id); setOpen(null); } : undefined} />
+            save={tt.saveAsset} />
         )}
         {/* A stage of its own, for this machine only — the guard run, the
             conveyor tie-in. */}
@@ -362,6 +363,19 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
             <Who names={names} value="" label="Who is doing every step left on it"
               onSave={v => { if (!v) return; void change(left, () => ({ withWhom: v }), `${rowName(row.asset)}: ${v}`); setOpen(null); }} />
           </>
+        )}
+        {/* REMOVE, IN WORDS AT THE FOOT — where every record keeps its delete
+            (ui/RecordDrawer "Delete this stage"). It was a × beside the
+            machine's name, while the panel's own × closes it: two × with
+            opposite meanings, one of them destructive. Only the owner. */}
+        {row.asset && can.remove && (
+          <div className="rd-blk">
+            <button type="button" className="btn btn-ghost btn-sm cw-del rd-del" onClick={() => {
+              const a = row.asset;
+              if (!a || !confirm(`Remove “${a.name}”?\n\nIts stages and tests stay — they just stop naming a machine.`)) return;
+              void tt.removeAsset(a.id); setOpen(null);
+            }}>Remove this machine</button>
+          </div>
         )}
       </Sheet>
     );
@@ -395,7 +409,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
           ) : (
             <>
               {/* NORMAL RECEDES (docs/SIMPLE.md): the stages that are done fold
-                  into one line — "4 done · 2 late" — and the card shows what
+                  into one line — "4 done · 2 of them late" — and the card shows what
                   is still to do or wrong. One tap shows them. */}
               {(() => {
                 const doneHere = r.cells.filter(cs => cs?.tone === 'done');
@@ -405,7 +419,9 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
                   <button className="igm-done" aria-expanded={showDone.has(key)}
                     onClick={() => setShowDone(p => { const n = new Set(p); if (n.has(key)) n.delete(key); else n.add(key); return n; })}>
                     <span className="igm-sq" aria-hidden />
-                    <span>{doneHere.length} done{lateDone ? <> · <b className="ig-late-by">{lateDone} late</b></> : ''}</span>
+                    {/* "4 done · 2 late" read as two late still to do; it
+                        meant two of the four were done late (docs/STAGEGATE.md). */}
+                    <span>{doneHere.length} done{lateDone ? <> · <b className="ig-late-by">{lateDone === doneHere.length ? (lateDone === 2 ? 'both' : 'all') : lateDone} of them late</b></> : ''}</span>
                     <span className="cw-link">{showDone.has(key) ? 'hide' : 'show'}</span>
                   </button>
                 );
@@ -446,7 +462,6 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
       {/* Below the machines, not above them: what is done for every machine
           at once is the less common job, and the cards are what you came for. */}
       <div className="igm-all">
-        <button className="cw-link" onClick={() => setOpen({ t: 'stages' })}>{can.agree ? 'Edit the stages' : 'The stages'}</button>
         {/* One stage for every machine at once — the less common job, one tap
             away rather than the whole list printed again under the cards. */}
         {can.edit && grid.columns.length > 0 && (allOpen ? <>
@@ -459,6 +474,14 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
 
   return (
     <section className="ig">
+      {/* ONE SHAPE FOR A GATE (docs/STAGEGATE.md): "Machine by machine", with
+          its one way to change the list on the right — as Commission has it.
+          It was "Machine · edit stages" in the board's corner on a laptop and
+          a link under the cards on a phone. */}
+      <div className="cw-sec-h ig-head">
+        <h2 className="cmp-h">Machine by machine</h2>
+        <button className="cw-link" onClick={() => setOpen({ t: 'stages' })}>{can.agree ? 'Edit the stages' : 'The stages'}</button>
+      </div>
       {/* How the grid is worked is said while nothing on it is done yet; once
           a square is done the grid has been used and the line is in the way.
           The offer to give new machines their stages is an action, and stays. */}
@@ -469,7 +492,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
           : phone ? 'Tap a stage to read it, or a machine’s name to read where it has got to.'
             : 'Tap a square to read its step, or a machine to read where it has got to.')}
         {bare.length > 1 && can.edit && (
-          <> <button className="cw-link" onClick={() => void giveStages(bare)}>Give the {bare.length} new machines the {usual.length} stages</button></>
+          <>{nothingDone ? ' ' : ''}{bare.length} machines have none of the stages yet — <button className="cw-link" onClick={() => void giveStages(bare)}>give them all the {usual.length}</button></>
         )}
       </p>}
       {phone ? phoneCards() : (
@@ -478,8 +501,9 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
           <thead>
             <tr>
               <th scope="col" className="ig-corner">
-                {/* The stages themselves are edited here, where they are read. */}
-                <button className="ig-colh ig-edit" onClick={() => setOpen({ t: 'stages' })}>Machine · <u>{can.agree ? 'edit stages' : 'the stages'}</u></button>
+                {/* The stages are changed from "Edit the stages" above the
+                    board — one door, the same place on every gate. */}
+                <span className="ig-colh" style={{ cursor: 'default' }}>Machine</span>
               </th>
               {grid.columns.map((c, i) => (
                 <th key={c} scope="col">
@@ -560,25 +584,19 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
 }
 
 export function Sheet({ title, sub, onClose, children }: { title: string; sub?: string; onClose: () => void; children: React.ReactNode }) {
-  /* THE SAME CLOSE AS EVERY OTHER SHEET (ui/Sheet): Escape shuts it, and the
-     tap that opened it cannot also shut it — on a phone the click that
-     follows a touch lands where the finger was, which is now the scrim. */
-  const openedAt = useRef(Date.now());
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  /* THE ONE PANEL (ui/DrawerShell) — a machine, a stage across every
+     machine and the stage list open where a stage, a test or a fix opens:
+     from the right on a laptop, from the bottom on a phone. It was a box of
+     its own in the middle of the page — a third kind of overlay beside the
+     drawer and the bottom sheets, and the one the back button walked out of:
+     back with a machine open left Install. Now back closes it (`back`), as
+     ×, Escape and a tap on the page around it do. */
   return (
-    <div className="ig-scrim" onClick={() => { if (Date.now() - openedAt.current > 450) onClose(); }}>
-      <div className="ig-sheet" role="dialog" aria-label={title} onClick={e => e.stopPropagation()}>
-        <div className="ig-sheet-h">
-          <span><b>{title}</b>{sub && <span className="sub">{sub}</span>}</span>
-          <button className="ig-x" onClick={onClose} aria-label="Close"><Icon name="close" size="1.1em" /></button>
-        </div>
-        {children}
-      </div>
-    </div>
+    <DrawerShell label={title} onClose={onClose} back>
+      <h2 className="rd-title">{title}</h2>
+      {sub && <p className="sub ig-sheet-sub">{sub}</p>}
+      <div className="ig-sheet-body">{children}</div>
+    </DrawerShell>
   );
 }
 

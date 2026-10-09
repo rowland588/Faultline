@@ -35,6 +35,7 @@
  * every row says its state in words beside its colour.
  */
 import { useState } from 'react';
+import { forget, hasKept, useKept } from '../lib/kept';
 import { listTests } from '../db';
 import { uid } from '../lib/ids';
 import { useRoute } from '../state/useRoute';
@@ -66,13 +67,18 @@ export function FixesScreen({ projectId }: { projectId: string }) {
   /* Arriving from a test's "Add a fix for this test" opens the form with that
      test picked. */
   const forParam = useRoute().query.get('for') ?? '';
-  const [adding, setAdding] = useState(!!forParam);
-  const [title, setTitle] = useState('');
-  const [problem, setProblem] = useState('');
-  const [concern, setConcern] = useState('');
-  const [on, setOn] = useState<string[]>([]);
-  const [forId, setForId] = useState(forParam);
-  const [onTouched, setOnTouched] = useState(false);
+  /* A HALF-WRITTEN FIX IS KEPT (lib/kept): leave the page and it is open,
+     as typed, when you come back; Plan it and Cancel are its two ends.
+     Arriving from a test's button picks that test, whatever was kept. */
+  const K = `planfix:${projectId}:`;
+  const [restored] = useState(() => hasKept(K));
+  const [adding, setAdding] = useKept(K + 'open', !!forParam);
+  const [title, setTitle] = useKept(K + 'fix', '');
+  const [problem, setProblem] = useKept(K + 'problem', '');
+  const [concern, setConcern] = useKept(K + 'concern', '');
+  const [on, setOn] = useKept<string[]>(K + 'on', []);
+  const [forId, setForId] = useKept(forParam ? null : K + 'for', forParam);
+  const [onTouched, setOnTouched] = useKept(K + 'touched', false);
   const [heard, setHeard] = useState<VoiceResult | null>(null);
   /* A problem's picture, opened large with its marks (ui/Evidence). */
   const [viewing, setViewing] = useState<MediaRef | null>(null);
@@ -124,6 +130,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
       open(first);
     })();
     setTitle(''); setProblem(''); setConcern(''); setOn([]); setOnTouched(false); setForId(''); setAdding(false);
+    forget(K);
   };
 
   const machine = (t: Test) => tt.assets.find(a => a.id === t.assetId)?.name ?? 'The line';
@@ -184,6 +191,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
 
         {!can.edit ? null : adding ? (
           <form className="tw-plan" onSubmit={e => { e.preventDefault(); plan(); }}>
+            {restored && (title || problem || concern) && <p className="kept-note" role="status">Not planned yet — what you typed is back. Cancel throws it away.</p>}
             <label className="tw-plan-l" htmlFor="fix-problem">What’s the problem?</label>
             <textarea id="fix-problem" className="text-area" rows={2} autoFocus placeholder="Film creases as the web enters the former" value={problem} onChange={e => setProblem(e.target.value)} />
             <label className="tw-plan-l" htmlFor="fix-concern">Concerns and consequences to the business <i className="cw-f-opt">if any</i></label>
@@ -226,7 +234,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
               <button className="btn" type="submit" disabled={!title.trim() && !problem.trim()}>
                 {machines.length > 1 ? `Plan ${machines.length} fixes` : 'Plan it'}
               </button>
-              <button className="btn btn-ghost" type="button" onClick={() => { setAdding(false); setOn([]); setOnTouched(false); setForId(''); }}>Cancel</button>
+              <button className="btn btn-ghost" type="button" onClick={() => { setTitle(''); setProblem(''); setConcern(''); setAdding(false); setOn([]); setOnTouched(false); setForId(''); forget(K); }}>Cancel</button>
             </span>
           </form>
         ) : heard ? (

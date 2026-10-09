@@ -592,7 +592,7 @@ function TestingOverview({ projectId, project, edit }: { projectId: string; proj
                   on this page — today's huddle plan, and how many dates. */}
               <span className="fp-doors">
                 <button className="fp-door" onClick={() => nav(`/project/${projectId}/day`)}>
-                  <b>Today ›</b><span className="sub">{todaysPlan(tt.items, today)}</span>
+                  <b>The day ›</b><span className="sub">{todaysPlan(tt.items, today)}</span>
                 </button>
                 <button className="fp-door" onClick={() => nav(`/project/${projectId}/plan`)}>
                   <b>The plan ›</b><span className="sub">{planSays(st.plan, today)}</span>

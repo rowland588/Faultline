@@ -24,7 +24,6 @@ import { keyOf } from '../lib/story';
 import { useRef, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { ProgramsScreen } from './ProgramsScreen';
-import { DraftText } from '../ui/Draft';
 import { WeekHead, WeekStrip } from '../ui/Weeks';
 import { useProject } from '../lib/useProjects';
 import { usePaceLines } from '../lib/usePaceLines';
@@ -86,14 +85,21 @@ function Strip({ m, weeks, today }: { m: Material; weeks: Week[]; today: string 
 
 /* ================================== the list ================================ */
 
-function Row({ m, today, lineName, state, weeks, can }: {
+function Row({ m, today, lineName, state, weeks, can, lines }: {
   m: Material; today: string; lineName?: string; weeks: Week[];
+  /** The job's lines, for "For" in its Edit. */
+  lines: { id: string; name: string }[];
   state: ReturnType<typeof useMaterials>;
   /** A client reads the row; only the owner removes one (lib/access). */
   can: Can;
 }) {
   const [marking, setMarking] = useState(false);
   const [on, setOn] = useState(todayISO());
+  /* EDIT — every box Add asked for (docs/STAGEGATE.md). Once added, how
+     much, which line and who was bringing it could not be changed, and the
+     name could, but looked like plain text. The day it is due keeps its own
+     box beside it, which asks why when it moves later. */
+  const [editing, setEditing] = useState<{ what: string; howMuch: string; lineId: string; from: string } | null>(null);
   const where = stateOf(m, today);
 
   const facts = [m.howMuch, lineName, m.from && `from ${m.from}`].filter(Boolean).join(' · ');
@@ -101,11 +107,42 @@ function Row({ m, today, lineName, state, weeks, can }: {
   return (
     <div className={'mt-row is-' + where}>
       <div className="mt-row-main">
-        {can.edit
-          ? <DraftText className="mt-what" value={m.what} placeholder="What it is"
-              onSave={v => void state.save({ ...m, what: v || m.what })} />
-          : <div className="mt-what" style={{ borderColor: 'transparent' }}>{m.what}</div>}
-        {facts && <div className="mt-facts">{facts}</div>}
+        {editing ? (
+          <form className="mt-edit" onSubmit={e => {
+            e.preventDefault();
+            void state.save({ ...m, what: editing.what.trim() || m.what, howMuch: editing.howMuch.trim() || undefined,
+              lineId: editing.lineId || undefined, from: editing.from.trim() || undefined });
+            setEditing(null);
+          }}>
+            <label className="cw-f"><span>What it is</span>
+              <input value={editing.what} maxLength={160} autoFocus onChange={e => setEditing({ ...editing, what: e.target.value })} /></label>
+            <label className="cw-f"><span>How much</span>
+              <input value={editing.howMuch} maxLength={40} placeholder="10 reels" onChange={e => setEditing({ ...editing, howMuch: e.target.value })} /></label>
+            {lines.length > 0 && (
+              <label className="cw-f"><span>For</span>
+                <select value={editing.lineId} onChange={e => setEditing({ ...editing, lineId: e.target.value })}>
+                  <option value="">the whole project</option>
+                  {lines.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                </select></label>
+            )}
+            <label className="cw-f"><span>From</span>
+              <input value={editing.from} maxLength={80} placeholder="Who is bringing it" onChange={e => setEditing({ ...editing, from: e.target.value })} /></label>
+            <span className="mt-edit-go">
+              <button className="btn btn-primary btn-sm" type="submit" disabled={!editing.what.trim()}>Save</button>
+              <button className="btn btn-ghost btn-sm" type="button" onClick={() => setEditing(null)}>Cancel</button>
+            </span>
+          </form>
+        ) : (
+          <>
+            <div className="mt-what" style={{ borderColor: 'transparent' }}>{m.what}</div>
+            {(facts || can.edit) && (
+              <div className="mt-facts">
+                {facts}
+                {can.edit && <>{facts ? ' · ' : ''}<button type="button" className="cw-link" onClick={() => setEditing({ what: m.what, howMuch: m.howMuch ?? '', lineId: m.lineId ?? '', from: m.from ?? '' })}>Edit</button></>}
+              </div>
+            )}
+          </>
+        )}
         {m.note && <div className="mt-facts">{m.note}</div>}
       </div>
 
@@ -287,7 +324,7 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
             <div className="mt-list">
               <WeekHead weeks={state.weeks} months={monthSpans(state.weeks)} />
               {state.materials.map(m => (
-                <Row key={m.id} m={m} today={today} lineName={lineName(m.lineId)} state={state} weeks={state.weeks} can={can} />
+                <Row key={m.id} m={m} today={today} lineName={lineName(m.lineId)} state={state} weeks={state.weeks} can={can} lines={lines.lines} />
               ))}
             </div>
           </section>

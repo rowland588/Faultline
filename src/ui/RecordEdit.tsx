@@ -18,6 +18,7 @@
  * What it prints: nothing new — every box is a field the plan, the record's
  * card and the client report already read. */
 import { useState } from 'react';
+import { forget, hasKept, useKept } from '../lib/kept';
 import { mayWriteAgreement, type Can } from '../lib/access';
 import { fixFlag } from '../lib/critical';
 import { uid } from '../lib/ids';
@@ -78,25 +79,32 @@ export function RecordEdit({ t, tt, can, names, onProblem, onClose }: {
   /* WHAT HAS BEEN TYPED, over the record: a box nobody has touched reads the
      record as it is now, so a voice note — which writes the record itself
      (ui/RecordSay) — shows in the boxes the moment it lands. */
-  const [typed, setTyped] = useState<Partial<Boxes>>({});
+  /* KEPT AS TYPED (lib/kept): ×, Escape, back or another page leave what
+     was typed here, and Edit opens with it next time; Save and Cancel are
+     the only two ends of a change. */
+  const K = `edit:${t.id}:`;
+  const [restored] = useState(() => hasKept(K));
+  const [typed, setTyped] = useKept<Partial<Boxes>>(K + 'typed', {});
   const b: Boxes = { ...boxesOf(t), ...typed };
   const set = (k: keyof Boxes) => (v: string) => setTyped(cur => ({ ...cur, [k]: v }));
   const setMany = (p: Partial<Boxes>) => setTyped(cur => ({ ...cur, ...p }));
-  const [ok, setOk] = useState<boolean | undefined>(t.overlapOk);
+  const [ok, setOk] = useKept<boolean | undefined>(K + 'ok', t.overlapOk);
   const [asking, setAsking] = useState(false);
   const mayAgree = mayWriteAgreement(can, t.passesIf);
   /* A FIX'S FLAG — critical or high risk, kept on the problem it is for
      (lib/critical fixFlag): "for any fix have a critical or high risk". */
   const fixProblem = kind === 'fix' ? fixFlag(t.id, tt.items).problem : undefined;
-  const [crit, setCrit] = useState(() => criticalDraftOf(fixProblem));
+  const [crit, setCrit] = useKept(K + 'crit', () => criticalDraftOf(fixProblem));
   /* A FIX READS AS ITS STORY (Rowland, 9 October): what's the problem, the
      concerns and consequences to the business, then what's the fix — every
      part editable here. The problem and its concerns are the fix's problem
      record (made when the fix has none), its words mirrored as the fix's
      "The problem" where the owner may write it. */
   const probWas = (fixProblem?.what ?? t.passesIf ?? '').trim();
-  const [probText, setProbText] = useState(probWas);
-  const [concern, setConcern] = useState(fixProblem?.impact ?? '');
+  const [probText, setProbText] = useKept(K + 'prob', probWas);
+  const [concern, setConcern] = useKept(K + 'concern', fixProblem?.impact ?? '');
+  /* The two ends of a change: what was kept goes with them. */
+  const finish = () => { forget(K); onClose(); };
   const flagsNow = criticalPatch({ ...crit, impact: concern });
   const critChanged = kind === 'fix' && (JSON.stringify(flagsNow) !== JSON.stringify(criticalPatch(criticalDraftOf(fixProblem)))
     || probText.trim() !== probWas);
@@ -149,7 +157,7 @@ export function RecordEdit({ t, tt, can, names, onProblem, onClose }: {
       if (back) await back();
       if (flagBack) await flagBack();
     });
-    onClose();
+    finish();
   };
 
   if (asking && was && end) {
@@ -171,10 +179,11 @@ export function RecordEdit({ t, tt, can, names, onProblem, onClose }: {
       if (later) { setAsking(true); return; }
       void keep();
     }}>
+      {restored && <p className="kept-note re-wide" role="status">Not saved yet — what you typed is back. Save keeps it; Cancel throws it away.</p>}
       {/* SAY IT, in the form — what was said lands in these boxes. */}
       <div className="re-say">
         {kind === 'install'
-          ? <SayStep step={t} tt={tt} onDone={onClose} onProblem={onProblem} />
+          ? <SayStep step={t} tt={tt} onDone={finish} onProblem={onProblem} />
           : <SayIt test={t} tt={tt} can={can} onFilled={() => undefined} />}
       </div>
 
@@ -278,7 +287,7 @@ export function RecordEdit({ t, tt, can, names, onProblem, onClose }: {
 
       <span className="ig-plan-acts re-wide">
         <button className="btn btn-primary" type="submit" disabled={!changed}>Save</button>
-        <button className="btn btn-ghost" type="button" onClick={onClose}>Cancel</button>
+        <button className="btn btn-ghost" type="button" onClick={finish}>Cancel</button>
       </span>
     </form>
   );
