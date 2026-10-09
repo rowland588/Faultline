@@ -17,6 +17,10 @@ import type { Shot } from '../lib/testReport';
 import type { jsPDF } from 'jspdf';
 import { OnTargetLine } from '../ui/OnTarget';
 import { CriticalStory, CriticalTag } from '../ui/CriticalFields';
+import { DraftArea } from '../ui/Draft';
+import { useAccess } from '../cloud/access';
+import { openRecord } from '../ui/RecordDrawer';
+import { niceDay } from '../lib/weeks';
 
 /** A gate's counts with the abnormal ones in their colour — "2 late" red,
  *  "1 a problem" amber — the rest plain (the colour rules). */
@@ -85,8 +89,13 @@ async function buildPdf(r: ClientReport, withStandards: boolean): Promise<jsPDF>
 const fileName = (r: ClientReport, which: Which) => pdfFileName(r.name, which === 'status' ? 'status report' : which === 'programs' ? 'programs' : 'client report', todayISO());
 
 export function ClientReportScreen({ projectId }: { projectId: string }) {
-  const { projects, loading } = useProjects();
+  const { projects, loading, rename } = useProjects();
   const project = projects.find(p => p.id === projectId);
+  const can = useAccess(projectId);
+  /* A row on the report opens its record in the drawer — the problem, the
+     risk, the fix — to change it or take it off (docs/DOORS.md). Rowland, 9
+     October: "I cannot edit the problem or delete it." */
+  const open = (id?: string) => { if (id) openRecord(projectId, id); };
   const tt = useTesting(projectId);
   const mats = useMaterials(projectId);
   const progs = usePrograms(projectId);
@@ -165,6 +174,21 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
       {said && <p className="tc-ok" role="status">{said}</p>}
       {err && <p className="sub tw-err" role="alert">{err}</p>}
 
+      {/* THE COMMENTARY — the lead's own words on where the job is, printed
+          under "where we are" on the status report and the full report
+          (Project.reportNote). The owner writes it; everybody reads it. */}
+      {which !== 'programs' && (can.agree || project.reportNote) && (
+        <section className="cr-note">
+          <span className="cr-note-h">Commentary <i className="cw-f-opt">on both reports, under where we are</i></span>
+          {can.agree
+            ? <DraftArea rows={3} better="note" value={project.reportNote ?? ''} ariaLabel="Commentary"
+                placeholder="What the numbers mean this week — e.g. Install is two days behind on the Ishida, caught up by Friday; programs on track for the Tesco trial."
+                onSave={v => void rename(project, { reportNote: v.trim() || undefined, reportNoteAt: v.trim() ? Date.now() : undefined })} />
+            : <p className="cr-note-t">{project.reportNote}</p>}
+          {project.reportNoteAt && project.reportNote && <span className="sub">written {niceDay(todayISO(new Date(project.reportNoteAt)))}</span>}
+        </section>
+      )}
+
       {/* WHICH ONE — the short one first. */}
       <span className="cw-seg cr-which" role="group" aria-label="Which report">
         <button type="button" className={'chip' + (which === 'status' ? ' on' : '')} aria-pressed={which === 'status'} onClick={() => setWhich('status')}>Status — 1 page</button>
@@ -200,12 +224,17 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
           <ol className="cr-toc">
             <li><b>Where we are</b><span>{report.gates.map(g => `${g.label}: ${g.says}`).join(' · ')}</span></li>
             <li><b>Why we are not where we should be</b>
-              {status.why.length ? status.why.map((w, i) => <span key={i}><b className={w.kind === 'risk' || w.kind === 'problem' ? 'in-problem' : 'in-late'}>{w.tag}</b> {w.what}</span>) : <span>Nothing — everything is on plan.</span>}
+              {status.why.length ? status.why.map((w, i) => {
+                const words = <><b className={w.kind === 'risk' || w.kind === 'problem' ? 'in-problem' : 'in-late'}>{w.tag}</b> {w.what}</>;
+                return w.id ? <button key={i} type="button" className="cr-door" onClick={() => open(w.id)}>{words}</button> : <span key={i}>{words}</span>;
+              }) : <span>Nothing — everything is on plan.</span>}
               {status.whyMore > 0 && <span className="sub">and {status.whyMore} more — in the full report</span>}</li>
-            <li><b>What we are doing about it</b>
-              {status.next.length ? status.next.map((n, i) => <span key={i}>{n.what} — <span className={n.late ? 'in-late' : undefined}>{n.when}</span></span>) : <span>No fixes open.</span>}
+            <li><b>What we are doing about it — the fixes</b>
+              {status.next.length ? status.next.map((n, i) => <button key={i} type="button" className="cr-door" onClick={() => open(n.id)}>{n.what} — <span className={n.late ? 'in-late' : undefined}>{n.when}</span></button>) : <span>No fixes open.</span>}
               {status.nextMore > 0 && <span className="sub">and {status.nextMore} more open — in the full report</span>}</li>
-            {status.programs && <li><b>Programs</b><span>{status.programs}</span></li>}
+            {status.programs && <li><b>Programs</b><span>{status.programs}</span>
+              {status.programLines.map((p, i) => <span key={i}>{p.what} — <b className={'cr-prog is-' + p.tone}>{p.word}</b>{p.note ? `: ${p.note}` : ''}</span>)}
+              {status.programMore > 0 && <span className="sub">and {status.programMore} more — in the programs report</span>}</li>}
             {status.runs.length > 0 && <li><b>Performance runs</b>{status.runs.map((r, i) => <span key={i}>{r.title}{r.machine ? ` — ${r.machine}` : ''}: net {r.net} · {r.outcome}</span>)}</li>}
           </ol>
           {wide && (
@@ -238,7 +267,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
               <span>{set.open.length} open{set.sorted.length ? ` · ${set.sorted.length} sorted` : ''}</span>
               {set.open.map((c, i) => (
                 <div key={i} className={'crit-on-stage' + (risk ? ' is-risk' : '')}>
-                  <span><CriticalTag risk={risk} /> <b>{c.what}</b></span>
+                  <button type="button" className="cr-door" onClick={() => open(c.id)}><CriticalTag risk={risk} /> <b>{c.what}</b></button>
                   <span className="sub">{c.meta}</span>
                   <CriticalStory impact={c.impact} risk={risk} couldLose={c.couldLose}
                     ways={c.ways.map((w, k) => ({ id: String(k), what: w.what, agreed: w.agreed }))} />
@@ -272,9 +301,12 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
             </li>
           ))}
           {report.plan.length > 0 && <li><b>The plan</b><span>A Gantt chart, landscape — {report.plan.length} dated, on a calendar</span></li>}
-          <li><b>Fixes</b><span>{report.fixes.open.length} open · {report.fixes.done.length} done</span></li>
-          {(report.noted.open.length + report.noted.sorted.length) > 0 && <li><b>Problems with no fix</b><span>{report.noted.open.length} open{report.noted.sorted.length ? ` · ${report.noted.sorted.length} sorted` : ''}</span></li>}
-          {report.waiting.length > 0 && <li><b>What we’re waiting on</b><span>{report.waiting.map(w => `${w.what} ${w.open}`).join(' · ')}</span></li>}
+          <li><b>Fixes</b><span>{report.fixes.open.length} open · {report.fixes.done.length} done</span>
+            {report.fixes.open.map(f => <button key={f.id} type="button" className="cr-door" onClick={() => open(f.id)}>{f.title}{f.machine ? ` — ${f.machine}` : ''} · {f.when}</button>)}</li>
+          {report.notedRows.length > 0 && <li><b>Problems with no fix</b><span>{report.noted.open.length} open{report.noted.sorted.length ? ` · ${report.noted.sorted.length} sorted` : ''}</span>
+            {report.notedRows.map(n => <button key={n.id} type="button" className={'cr-door' + (n.sorted ? ' is-sorted' : '')} onClick={() => open(n.id)}>{n.text}{n.sorted ? ' · sorted' : ''}</button>)}</li>}
+          {report.waiting.length > 0 && <li><b>What we’re waiting on</b>
+            {report.waiting.filter(w => w.open > 0).map(w => <span key={w.key}><b>{w.what} {w.open}</b>{w.names?.length ? ` — ${w.names.slice(0, 8).join(' · ')}${w.names.length > 8 ? ` · and ${w.names.length - 8} more` : ''}` : ''}</span>)}</li>}
           {report.standards.length > 0 && withStandards && <li><b>Line standard</b><span>{report.standards.map(s => s.product).join(' · ')}</span></li>}
         </ol>
         {wide && (

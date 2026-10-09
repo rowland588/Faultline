@@ -119,7 +119,13 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
   const proj = await createProject(size === 'tiny' ? 'Line 9 new labeller' : 'Line 2 — complete rebuild: bagging, weighing, coding, inspection, case packing and palletising',
     '#1f63e0', 'Rowland', undefined, 'commissioning');
   await updateProject({ ...proj, plannedAt: iso(size === 'tiny' ? 40 : 20), expectedAt: iso(size === 'tiny' ? 40 : 34), updatedAt: t,
-    description: size === 'huge' ? 'Full line rebuild with eight suppliers on site at once' : undefined });
+    description: size === 'huge' ? 'Full line rebuild with eight suppliers on site at once' : undefined,
+    /* The lead's commentary (supabase/REPORT_COMMENTARY.sql): none on the
+       job just started, a sentence on the ordinary one, a long paragraph on
+       the huge one — so the one page is proved to hold it. */
+    ...(size === 'tiny' ? {} : { reportNoteAt: t, reportNote: size === 'huge'
+      ? 'Install is two days behind on the checkweigher and the case packer, both down to the regulator kit that arrived short; Ishida have a second kit on the van and expect to be caught up by Friday. Set up is on plan except the programs: three of the twelve still fail on the 2 kg film, and Ilapak are rewriting them on site this week rather than copying them over. Commission cannot start on the bagger until those three pass, so the handover date is at risk by about a week unless the rewrite lands by Wednesday. Everything else is on the dates agreed, and every fix below has a name and a day against it — the ones that matter most are the jaw heater and the regulator.'
+      : 'Two days behind on the checkweigher, caught up by Friday; programs on track for the Tesco trial.' }) });
 
   const machines = (size === 'tiny' ? MACHINES.slice(0, 1) : MACHINES).map(([name, oem], i): Asset => ({
     id: uid(), projectId: proj.id, name, oem, state: i < 8 ? 'running' : 'awaited',
@@ -332,7 +338,8 @@ export async function seedRandomJob(seed: number): Promise<ReportJob> {
   const say = () => { const x = rand(); return x < 0.12 ? pick(AWKWARD) : x < 0.2 ? '' : x < 0.35 ? words(40 + Math.floor(rand() * 60)) : words(3 + Math.floor(rand() * 12)); };
   const name = () => (rand() < 0.15 ? pick(AWKWARD) : pick(MACHINES)[0]);
   const proj = await createProject(rand() < 0.2 ? pick(AWKWARD) || 'Line X' : `Line ${seed} ${words(1 + Math.floor(rand() * 8))}`, '#1f63e0', rand() < 0.3 ? pick(AWKWARD) : 'Rowland', undefined, 'commissioning');
-  await updateProject({ ...proj, plannedAt: rand() < 0.8 ? iso(-20 + Math.floor(rand() * 80)) : undefined, expectedAt: rand() < 0.85 ? iso(-10 + Math.floor(rand() * 90)) : undefined, updatedAt: t });
+  await updateProject({ ...proj, plannedAt: rand() < 0.8 ? iso(-20 + Math.floor(rand() * 80)) : undefined, expectedAt: rand() < 0.85 ? iso(-10 + Math.floor(rand() * 90)) : undefined, updatedAt: t,
+    ...(rand() < 0.5 ? { reportNote: rand() < 0.3 ? pick(AWKWARD) || 'Commentary' : words(5 + Math.floor(rand() * 120)), reportNoteAt: t } : {}) });
 
   const machines: Asset[] = Array.from({ length: many(16) }, (_, i) => ({
     id: uid(), projectId: proj.id, name: name() || `Machine ${i + 1}`, oem: rand() < 0.2 ? pick(AWKWARD) : pick(WHO),

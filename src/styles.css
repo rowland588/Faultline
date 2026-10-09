@@ -11139,3 +11139,18 @@ button.gt-fixlab small { font-size: 11.5px; }
 .proj-del.is-go:hover:not(:disabled) { background: color-mix(in srgb, var(--st-r) 88%, #000); }
 .proj-del-ask { display: grid; gap: 6px; }
 .proj-del-ask p { margin: 0; }
+
+/* THE REPORTS SCREEN (screens/ClientReportScreen) — a row is the door to its
+   record (docs/DOORS.md): the problem, the risk, the fix, opened in the
+   drawer to change it or take it off. And the lead's commentary, written
+   here, printed on both reports. */
+.cr-toc .cr-door { all: unset; box-sizing: border-box; display: block; cursor: pointer; font-size: var(--t-detail); color: var(--ink-2); line-height: 1.4; padding: 3px 0; border-bottom: 1px dashed transparent; }
+.cr-toc .cr-door:hover { color: var(--ink); border-bottom-color: var(--line); }
+.cr-toc .cr-door:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cr-toc .cr-door.is-sorted { color: var(--muted, var(--ink-2)); }
+.cr-toc .cr-door b.in-late { color: var(--st-r); }
+.cr-toc .cr-door b.in-problem { color: var(--st-a); }
+.cr-note { display: grid; gap: 6px; margin: 4px 0 12px; padding: 12px 14px; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); }
+.cr-note-h { font-size: var(--t-label); font-weight: 700; color: var(--ink-2); text-transform: uppercase; letter-spacing: .04em; }
+.cr-note-h .cw-f-opt { text-transform: none; letter-spacing: 0; }
+.cr-note-t { margin: 0; white-space: pre-wrap; }

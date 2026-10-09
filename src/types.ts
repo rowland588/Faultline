@@ -305,6 +305,13 @@ export interface Project {
    *  projects on screen for years. Archiving is reversible and loses nothing;
    *  deleting from the archive is the separate, deliberate act. */
   archivedAt?: Millis;
+  /** THE LEAD'S COMMENTARY on the reports — a few sentences on what the
+   *  numbers mean now, printed on the status report and the client report
+   *  (supabase/REPORT_COMMENTARY.sql). Rowland, 9 October: "we have numbers
+   *  but not the story ... I need a way to add commentary." */
+  reportNote?: string;
+  /** When it was last written — printed beside it. */
+  reportNoteAt?: Millis;
 
   createdAt: Millis;
   updatedAt: Millis;

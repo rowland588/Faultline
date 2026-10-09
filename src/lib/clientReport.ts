@@ -32,7 +32,7 @@ import { programsReading, type ProgramsReading } from './programsReport';
 import { live, hasRun, latestAttempts, outcomeWord, type Asset, type StepGate, type Test, type TestItem } from './testing';
 import type { Material } from './materials';
 import type { Standard } from './standard';
-import { niceDay } from './weeks';
+import { niceDay, todayISO } from './weeks';
 import { dayLength, daysWord, hoursTally, hoursWord } from './hoursLost';
 import { notedProblems, partsOf, partWords, resultNow } from './noted';
 import { couldWords, criticalProblems, criticalState, riskProblems, type Critical } from './critical';
@@ -182,7 +182,14 @@ export interface ClientReport {
    *  the day, hours lost. Kept on paper so the journey is told whole. A
    *  critical one is told under Critical issues, not again here. */
   noted: { open: string[]; sorted: string[] };
+  /** The same problems as records — for the Reports screen, where each row
+   *  opens the problem in the drawer, to change it or take it off. */
+  notedRows: { id: string; text: string; sorted: boolean }[];
   waiting: OutstandingRow[];
+  /** THE LEAD'S COMMENTARY (Project.reportNote) — printed under "where we
+   *  are" on both reports. Rowland, 9 October: "we have numbers but not the
+   *  story ... I need a way to add commentary." */
+  commentary?: { text: string; on?: string; by?: string };
   standards: Standard[];
   /** The job's dated marks — the same ones the project page's Gantt draws —
    *  for "The plan" page, with the day it was printed and both handover dates. */
@@ -203,6 +210,8 @@ export interface ClientReport {
 }
 
 export interface CriticalRow {
+  /** The problem's id — the Reports screen opens it in the drawer. */
+  id: string;
   what: string;
   /** "Pick and place — Programs loaded · raised Mon 5 Oct · Ilapak UK · 6 h lost" */
   meta: string;
@@ -458,6 +467,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
         : f.plannedFor ? `booked ${niceDay(f.plannedFor)}` : 'no day yet'}${f.withWhom ? `, ${f.withWhom}` : ''}`;
       const told = (c: { open: Critical[]; sorted: Critical[] }) => ({
         open: c.open.map(r => ({
+          id: r.item.id,
           what: r.item.what,
           meta: [r.where, `raised ${niceDay(r.day)}`, r.item.owner, r.item.hoursLost ? `${hoursWord(r.item.hoursLost)} lost` : ''].filter(Boolean).join(' · '),
           ...(r.item.impact ? { impact: r.item.impact } : {}),
@@ -477,7 +487,19 @@ export function clientReport(x: ClientReportInput): ClientReport {
       const plain = (r: typeof n.open[number]) => !r.item.critical && !r.item.risk;
       return { open: n.open.filter(plain).map(line), sorted: n.sorted.filter(plain).map(line) };
     })(),
+    notedRows: (() => {
+      const n = notedProblems(tests, items, assets);
+      const line = (r: typeof n.open[number]) => `${r.item.what} — ${r.where}, ${niceDay(r.day)}${r.item.hoursLost ? ` · ${hoursWord(r.item.hoursLost)} lost` : ''}`;
+      const plain = (r: typeof n.open[number]) => !r.item.critical && !r.item.risk;
+      return [...n.open.filter(plain).map(r => ({ id: r.item.id, text: line(r), sorted: false })),
+        ...n.sorted.filter(plain).map(r => ({ id: r.item.id, text: line(r), sorted: true }))];
+    })(),
     waiting: st.rows,
+    ...(project.reportNote?.trim() ? { commentary: {
+      text: project.reportNote.trim(),
+      ...(project.reportNoteAt ? { on: niceDay(todayISO(new Date(project.reportNoteAt))) } : {}),
+      ...(project.lead?.trim() ? { by: project.lead.trim() } : {}),
+    } } : {}),
     standards: live(x.standards),
     /* Notes are never on the client's copy — they are private
        preparation — so a note's reminder stays off its plan page too. */

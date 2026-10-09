@@ -52,6 +52,10 @@ export interface OutstandingRow {
    *  "and they are all Ishida Europe's" — the late name is the one that
    *  matters, and it is not always the busiest. */
   lateWhose?: string;
+  /** WHICH ONES — the late first, said late — so "Tests still to run 10" is
+   *  never a number with no story. Rowland, 9 October: "it says tests to run
+   *  10 — why 10? I see no reason." */
+  names?: string[];
 }
 
 /** One thing on the plan. A machine has an `until` and is drawn as a bar,
@@ -164,8 +168,11 @@ export function standing(input: StandingInput): Standing {
   const today = input.today ?? todayISO();
   /* Every face of the one record — tests, fixes, install steps. */
   const tests = live(input.tests);
-  const materials = live(input.materials);
-  const programs = live(input.programs);
+  /* In the list's own order, whoever hands them over — the names under a
+     count read the same on every screen and on paper. */
+  const fixedOrder = <T extends { id: string; sort?: number }>(xs: T[]): T[] => [...xs].sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0) || a.id.localeCompare(b.id));
+  const materials = fixedOrder(live(input.materials));
+  const programs = fixedOrder(live(input.programs));
   const assets = live(input.assets);
 
   /* ---------------------------- the five lists ---------------------------- */
@@ -235,27 +242,35 @@ export function standing(input: StandingInput): Standing {
   const machOpen = assets.filter(a => assetStateOf(a) === 'awaited');
   const machLate = machOpen.filter(a => !!a.dueOn && a.dueOn < today && !a.onSiteOn);
 
+  /* The names, late first: "Ilapak flow wrapper — Seal integrity (late)". */
+  const nameOfMachine = (id?: string) => (id ? assets.find(a => a.id === id)?.name : undefined);
+  const onMachine = (t: Test) => (m => (m ? `${m} — ${t.title}` : t.title))(nameOfMachine(t.assetId));
+  /* Late first, then the rest — each group in name order, which also reads
+     machine by machine, and is the same whoever handed the records over. */
+  const byName = (a: string, b: string) => a.localeCompare(b);
+  const named = <T,>(open: T[], late: T[], say: (x: T) => string): string[] =>
+    [...late.map(say).sort(byName).map(n => `${n} (late)`), ...open.filter(x => !late.includes(x)).map(say).sort(byName)];
   const rows: OutstandingRow[] = ([
     /* First, because it is first in the job: a machine is installed before
        anything can be tested on it. */
-    { key: 'install', what: 'Install steps to do', open: stepsOpen.length, late: stepsLate.length,
+    { key: 'install', what: 'Install steps to do', open: stepsOpen.length, late: stepsLate.length, names: named(stepsOpen, stepsLate, onMachine),
       whose: mostlyWhose(stepsOpen.map(t => t.withWhom)), lateWhose: mostlyWhose(stepsLate.map(t => t.withWhom)) },
-    { key: 'setup', what: 'Set-up steps to do', open: setupOpen.length, late: setupLate.length,
+    { key: 'setup', what: 'Set-up steps to do', open: setupOpen.length, late: setupLate.length, names: named(setupOpen, setupLate, onMachine),
       whose: mostlyWhose(setupOpen.map(t => t.withWhom)), lateWhose: mostlyWhose(setupLate.map(t => t.withWhom)) },
     /* Under the steps they are parts of. */
-    { key: 'parts', what: 'Parts of the plan to do', open: partsOpen.length, late: partsLate.length,
+    { key: 'parts', what: 'Parts of the plan to do', open: partsOpen.length, late: partsLate.length, names: named(partsOpen, partsLate, x => x.part.what),
       whose: mostlyWhose(partsOpen.map(x => x.part.owner)), lateWhose: mostlyWhose(partsLate.map(x => x.part.owner)) },
-    { key: 'tests', what: 'Tests still to run', open: testsOpen.length, late: testsLate.length,
+    { key: 'tests', what: 'Commission tests still to run', open: testsOpen.length, late: testsLate.length, names: named(testsOpen, testsLate, onMachine),
       whose: mostlyWhose(testsOpen.map(t => t.withWhom)), lateWhose: mostlyWhose(testsLate.map(t => t.withWhom)) },
-    { key: 'fixes', what: 'Fixes still to do', open: fixesOpen.length, late: fixesLate.length,
+    { key: 'fixes', what: 'Fixes still to do', open: fixesOpen.length, late: fixesLate.length, names: named(fixesOpen, fixesLate, onMachine),
       whose: mostlyWhose(fixesOpen.map(t => t.withWhom)), lateWhose: mostlyWhose(fixesLate.map(t => t.withWhom)) },
-    { key: 'materials', what: 'Materials not here', open: matsOpen.length, late: matsLate.length,
+    { key: 'materials', what: 'Materials not here', open: matsOpen.length, late: matsLate.length, names: named(matsOpen, matsLate, m => m.what),
       whose: mostlyWhose(matsOpen.map(m => m.from)), lateWhose: mostlyWhose(matsLate.map(m => m.from)) },
-    { key: 'programs', what: 'Programs not proved', open: progsOpen.length, late: progsLate.length,
+    { key: 'programs', what: 'Programs not proved', open: progsOpen.length, late: progsLate.length, names: named(progsOpen, progsLate, p => p.what),
       whose: mostlyWhose(progsOpen.map(p => p.from)), lateWhose: mostlyWhose(progsLate.map(p => p.from)) },
-    { key: 'handover', what: 'Hand-over items to do', open: handOpen.length, late: handLate.length,
+    { key: 'handover', what: 'Hand-over items to do', open: handOpen.length, late: handLate.length, names: named(handOpen, handLate, onMachine),
       whose: mostlyWhose(handOpen.map(t => t.withWhom)), lateWhose: mostlyWhose(handLate.map(t => t.withWhom)) },
-    { key: 'machines', what: 'Machines not here yet', open: machOpen.length, late: machLate.length,
+    { key: 'machines', what: 'Machines not here yet', open: machOpen.length, late: machLate.length, names: named(machOpen, machLate, a => a.name),
       whose: mostlyWhose(machOpen.map(a => a.oem)), lateWhose: mostlyWhose(machLate.map(a => a.oem)) },
     /* NO OBSERVATIONS ROW. It counted observations nobody had decided on, and
        an observation is now a note: the decision that something needs doing

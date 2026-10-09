@@ -46,7 +46,38 @@ describe('the status report', () => {
   });
   it('steps its lists down, the rest counted', () => {
     const tight = statusReport(r, STATUS_STEPS[STATUS_STEPS.length - 1]);
-    expect(tight.next).toHaveLength(3);
-    expect(tight.nextMore).toBe(6);
+    /* The tightest step keeps two fixes (9 October: the runs and "waiting
+       on" give way first, the programs' story last). */
+    expect(tight.next).toHaveLength(2);
+    expect(tight.nextMore).toBe(7);
+  });
+});
+
+/* Rowland, 9 October: "we have numbers but not the story ... why 10? I see no
+   reason ... I need a way to add commentary." */
+describe('the story behind the numbers', () => {
+  it('names which tests are still to run, machine by machine, the late first', () => {
+    const t = r.waiting.find(w => w.key === 'tests');
+    expect(t?.what).toBe('Commission tests still to run');
+    expect(t?.names).toContain('De-staker — Rate trial');
+  });
+  it('names each fix still to do, late ones said late', () => {
+    const f = r.waiting.find(w => w.key === 'fixes');
+    expect(f?.names?.[0]).toBe('BU — Fix 0 (late)');
+    expect(f?.names).toHaveLength(9);
+  });
+  it('carries the lead’s commentary, whole on both — cut on the one page only when long, saying so', () => {
+    const said = clientReport({ project: { ...project, reportNote: '  Behind on the BU, caught up by Friday.  ', reportNoteAt: Date.parse('2026-10-01T10:00:00') },
+      projects: [project], assets, tests, items: [], materials: [], programs: [], standards: [], today: T });
+    expect(said.commentary).toMatchObject({ text: 'Behind on the BU, caught up by Friday.', by: 'Rowland' });
+    expect(statusReport(said).commentary?.text).toBe('Behind on the BU, caught up by Friday.');
+    const long = clientReport({ project: { ...project, reportNote: 'word '.repeat(200) }, projects: [project], assets, tests, items: [], materials: [], programs: [], standards: [], today: T });
+    expect(long.commentary?.text.length).toBeGreaterThan(900);
+    expect(statusReport(long).commentary?.text).toMatch(/… \(the rest in the full report\)$/);
+    expect(statusReport(long).commentary?.text.length).toBeLessThan(560);
+    expect(r.commentary).toBeUndefined();
+  });
+  it('gives every problem, risk and fix its id, so the Reports screen can open it', () => {
+    expect(statusReport(r).next.every(n => !!n.id)).toBe(true);
   });
 });

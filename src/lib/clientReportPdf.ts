@@ -155,6 +155,18 @@ function keyBlock(only: Set<CellTone>): Block {
   }, f => (items.length ? gap(f.density, 's') : 0));
 }
 
+/** THE LEAD'S COMMENTARY, under the answer on both reports — the one place
+ *  on either that is somebody's own words rather than the records' (Project
+ *  reportNote). Rowland, 9 October: "I need a way to add commentary." */
+function commentaryBlocks(c: ClientReport['commentary'], d: Density): Block[] {
+  if (!c) return [];
+  return [
+    { ...label('Commentary'), keepWithNext: true },
+    { ...text({ text: c.text, size: 10, colour: INK2, after: 3 }), keepWithNext: true },
+    text({ text: [c.by ? `— ${c.by}` : '', c.on ? `written ${c.on}` : ''].filter(Boolean).join(', '), size: 8.5, colour: MUTED, after: gap(d, 'l') }),
+  ];
+}
+
 function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPlan: (pages: number[]) => void): Block[] {
   const out: Block[] = [];
   const S = SIZE;
@@ -186,6 +198,7 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
     font(f.doc, 9.5, 'normal', INK2); f.doc.text(l.first, f.x + 14 + l.ww, y + 30);
     if (l.rest.length) f.doc.text(l.rest, f.x + 14, y + 42);
   }, f => gap(f.density, 'm')));
+  out.push(...commentaryBlocks(r.commentary, d));
 
   /* CRITICAL ISSUES — straight under the answer, before anything else
      (lib/critical). Rowland, 6 October: "say in a report — look at this, this
@@ -541,16 +554,31 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
           f.doc.text('OPEN', f.x + f.w - 190, y + 7, { align: 'right' }); f.doc.text('LATE', f.x + f.w - 150, y + 7, { align: 'right' }); f.doc.text('MOSTLY WHOSE', f.x + f.w - whoW, y + 7);
         },
       },
-      rows: r.waiting.map(w => ({
-        h: f => Math.max(18, 6 + Math.max(whoLines(f, w.whose ?? '—').length, whatLines(f, w.what).length) * 11),
-        draw: (f, y) => {
-          f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.5); f.doc.line(f.x, y, f.x + f.w, y);
-          font(f.doc, 9.5, 'bold'); f.doc.text(whatLines(f, w.what), f.x, y + 12);
-          font(f.doc, 10, 'bold'); f.doc.text(String(w.open), f.x + f.w - 190, y + 12, { align: 'right' });
-          font(f.doc, 10, 'bold', w.late ? DANGER : '#aab6c8'); f.doc.text(w.late ? String(w.late) : '—', f.x + f.w - 150, y + 12, { align: 'right' });
-          font(f.doc, 9, 'normal', INK2); f.doc.text(whoLines(f, w.whose ?? '—'), f.x + f.w - whoW, y + 12);
-        },
-      })),
+      rows: r.waiting.map(w => {
+        /* WHICH ONES, under the count, late first — "Tests still to run 10"
+           with no names was a number nobody could check (Rowland, 9 October:
+           "why 10? I see no reason"). Up to eight, then how many more. */
+        const NAMES = 8;
+        const said = (w.names ?? []).length
+          ? `${(w.names ?? []).slice(0, NAMES).join(' · ')}${(w.names ?? []).length > NAMES ? ` · and ${(w.names ?? []).length - NAMES} more` : ''}`
+          : '';
+        const nameLines = (f: Frame) => (said ? wrap(f.doc, said, f.w - whoW - 12, 8) : []);
+        return {
+          h: (f: Frame) => Math.max(18, 6 + Math.max(whoLines(f, w.whose ?? '—').length, whatLines(f, w.what).length) * 11) + nameLines(f).length * 10 + (said ? 3 : 0),
+          draw: (f: Frame, y: number) => {
+            f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.5); f.doc.line(f.x, y, f.x + f.w, y);
+            font(f.doc, 9.5, 'bold'); f.doc.text(whatLines(f, w.what), f.x, y + 12);
+            font(f.doc, 10, 'bold'); f.doc.text(String(w.open), f.x + f.w - 190, y + 12, { align: 'right' });
+            font(f.doc, 10, 'bold', w.late ? DANGER : '#aab6c8'); f.doc.text(w.late ? String(w.late) : '—', f.x + f.w - 150, y + 12, { align: 'right' });
+            font(f.doc, 9, 'normal', INK2); f.doc.text(whoLines(f, w.whose ?? '—'), f.x + f.w - whoW, y + 12);
+            const nl = nameLines(f);
+            if (nl.length) {
+              const top = y + 6 + Math.max(whoLines(f, w.whose ?? '—').length, whatLines(f, w.what).length) * 11 + 8;
+              font(f.doc, 8, 'normal', MUTED); f.doc.text(nl, f.x, top);
+            }
+          },
+        };
+      }),
     }));
   }
 
@@ -666,6 +694,7 @@ export async function drawStatusReport(doc: jsPDF, report: ClientReport): Promis
       font(f.doc, 12.5, 'bold', c.text); f.doc.text(ot.word, f.x + 14, y + 27);
       font(f.doc, 9.5, 'normal', INK2); f.doc.text(l, f.x + 14, y + 39);
     }, f => gap(f.density, 'm')));
+    out.push(...commentaryBlocks(s.commentary, d));
     const gw = (f: Frame) => (f.w - 3 * 8) / 4;
     const gateLines = (f: Frame) => s.gates.map(g => wrap(f.doc, g.says || GATE_COLOUR[g.tone].word, gw(f) - 14, 8));
     out.push(box(f => 24 + Math.max(...gateLines(f).map(l => l.length), 1) * 10 + gap(f.density, 'l'), (f, y) => {
@@ -684,7 +713,15 @@ export async function drawStatusReport(doc: jsPDF, report: ClientReport): Promis
     /* THE PROGRAMS, in one line under the gates (lib/programsReport) — a
        failed one is also a DIDN'T PASS line below; every one is in the full
        report and the programs report. */
-    if (s.programs) out.push(text({ text: `Programs: ${s.programs}`, size: 9.5, style: 'bold', colour: INK2, after: gap(d, 'l') }));
+    if (s.programs) out.push(text({ text: `Programs: ${s.programs}`, size: 9.5, style: 'bold', colour: INK2, after: s.programLines.length ? 4 : gap(d, 'l') }));
+    /* …and their story: the ones still to read, each with what was seen
+       (Rowland, 9 October: "we have numbers but not the story"). */
+    s.programLines.forEach((p, i, all) => {
+      const last = i === all.length - 1 && !s.programMore;
+      out.push({ ...text({ text: `${p.what} — ${p.word}`, size: 9, style: 'bold', colour: p.tone === 'r' ? DANGER : INK2, indent: 10, bullet: '•', after: p.note ? 1 : last ? gap(d, 'l') : 2 }), keepWithNext: !!p.note });
+      if (p.note) out.push(text({ text: p.note, size: 8.5, colour: MUTED, indent: 22, after: last ? gap(d, 'l') : 3 }));
+    });
+    if (s.programMore) out.push(text({ text: `and ${s.programMore} more — in the programs report.`, size: 8.5, colour: MUTED, indent: 10, after: gap(d, 'l') }));
 
     /* 2 · WHY WE ARE NOT WHERE WE SHOULD BE — only the abnormal, a tag in
        its colour, what, and its cause or cost under it. */
@@ -713,7 +750,7 @@ export async function drawStatusReport(doc: jsPDF, report: ClientReport): Promis
 
     /* 3 · WHAT WE ARE DOING ABOUT IT — the open fixes, late first, whose and
        by when; then what we wait on, from whom. */
-    out.push(label('What we are doing about it'));
+    out.push(label('What we are doing about it — the fixes'));
     if (!s.next.length) out.push(text({ text: 'No fixes open.', colour: INK2, after: gap(d, 's') }));
     const whenW = 120;
     const nextParts = (f: Frame, n: (typeof s.next)[number]) => ({

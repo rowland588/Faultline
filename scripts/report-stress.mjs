@@ -235,6 +235,11 @@ for (const size of SIZES) {
        picture printed — not pinned on a walk frame. */
     from = 'a fix photo\'s marks'; for (const fx of r.fixes.open) if (!fx.pin) add('client', ...(fx.photoPins ?? []).map(p => p.note));
     from = 'waiting'; for (const w of r.waiting) add('client', w.what, w.open, w.whose);
+    /* …and which ones, by name, under each count — the first eight. */
+    from = 'waiting: which'; for (const w of r.waiting) add('client', ...(w.names ?? []).slice(0, 8));
+    /* The lead's commentary, whole, on the full report; on the one page whole
+       too, or its first part and where the rest is. */
+    from = 'commentary'; if (r.commentary) add('client', r.commentary.text, r.commentary.by);
     /* THE STATUS REPORT (lib/statusReport) — every line its reading says the
        one page carries, and the "and N more" when there are more. */
     /* At the smallest lists the page steps down to on a very busy job, so
@@ -247,6 +252,7 @@ for (const size of SIZES) {
     from = 'status: waiting'; for (const w of st.waiting) add('status', w);
     from = 'status: runs'; for (const rr of st.runs) add('status', rr.product, rr.net, rr.outcome, rr.say);
     from = 'status: programs'; add('status', st.programs);
+    from = 'status: commentary'; if (st.commentary) add('status', st.commentary.text);
     /* "and N more" only when even the longest lists cannot hold them all. */
     from = 'status: more'; if (statusReport(r).whyMore) add('status', 'more — in the full report');
     const cardOf = (id, k) => {

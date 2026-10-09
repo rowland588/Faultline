@@ -33,8 +33,12 @@ export interface StatusWhy {
    *  estimate)", what it means for the business; and for a critical, what
    *  is being done about it. */
   detail?: string;
+  /** The problem it is, when it is one — the Reports screen opens it. */
+  id?: string;
 }
 export interface StatusNext {
+  /** The fix — the Reports screen opens it. */
+  id?: string;
   what: string;
   who?: string;
   /** "due Fri 9 Oct" · "was due Mon 5 Oct" — the fix's own words. */
@@ -61,6 +65,13 @@ export interface StatusReport {
    *  programs in one line, under where we are (lib/programsReport); a failed
    *  one is also a DIDN'T PASS line. */
   programs?: string;
+  /** THE PROGRAMS' STORY, not only their count. Rowland, 9 October: "we have
+   *  numbers but not the story." The ones that need reading — failed, late,
+   *  still to do, at baseline — each with its word and what was seen. */
+  programLines: { what: string; word: string; tone: string; note?: string }[];
+  programMore: number;
+  /** The lead's commentary, under where we are (Project.reportNote). */
+  commentary?: ClientReport['commentary'];
 }
 
 /** What one page holds — enough to be the answer, few enough to be read.
@@ -69,26 +80,40 @@ export interface StatusReport {
 export type StatusLimits = { why: number; next: number; runs: number; waiting: number;
   /** The programs' one line; dropped only on the last step, when nothing else
    *  is left to shorten — Set up's tile still says how many have passed. */
-  programs?: boolean };
+  programs?: boolean;
+  /** How many programs are told, under their one line. */
+  progLines?: number };
 /* The runs are a line per PRODUCT (a performance run is many products), so
    the page holds more of them than it held runs. */
-export const STATUS_LIMITS: StatusLimits = { why: 6, next: 6, runs: 6, waiting: 3 };
+export const STATUS_LIMITS: StatusLimits = { why: 6, next: 6, runs: 6, waiting: 3, progLines: 5 };
+/* THE ORDER THE PAGE GIVES WAY IN: the runs and "waiting on" shorten first
+   (the full report has every one), the programs' story last — Rowland, 9
+   October: "we have numbers but not the story." */
 export const STATUS_STEPS: StatusLimits[] = [
   STATUS_LIMITS,
-  { why: 5, next: 5, runs: 4, waiting: 2 },
-  { why: 4, next: 4, runs: 3, waiting: 1 },
-  { why: 3, next: 3, runs: 2, waiting: 1 },
-  { why: 3, next: 3, runs: 2, waiting: 1, programs: false },
+  { why: 5, next: 5, runs: 4, waiting: 2, progLines: 4 },
+  { why: 4, next: 4, runs: 3, waiting: 1, progLines: 4 },
+  { why: 4, next: 4, runs: 2, waiting: 1, progLines: 3 },
+  { why: 3, next: 3, runs: 1, waiting: 1, progLines: 3 },
+  { why: 3, next: 3, runs: 1, waiting: 0, progLines: 2 },
+  { why: 2, next: 3, runs: 1, waiting: 0, progLines: 2 },
+  { why: 2, next: 2, runs: 1, waiting: 0, progLines: 1 },
+  { why: 2, next: 2, runs: 0, waiting: 0, progLines: 1 },
+  { why: 2, next: 2, runs: 0, waiting: 0, progLines: 0 },
+  { why: 2, next: 2, runs: 0, waiting: 0, programs: false, progLines: 0 },
 ];
+
+/** How much of the lead's commentary the one page holds. */
+export const COMMENTARY_MAX = 520;
 
 export function statusReport(r: ClientReport, L: StatusLimits = STATUS_LIMITS): StatusReport {
   const why: StatusWhy[] = [
     ...r.critical.open.map((c): StatusWhy => ({
-      kind: 'critical', tag: 'CRITICAL', what: c.what,
+      kind: 'critical', tag: 'CRITICAL', what: c.what, id: c.id,
       detail: [c.impact, c.state.replace(/^open · /, 'Now: ')].filter(Boolean).join(' — '),
     })),
     ...r.risks.open.map((c): StatusWhy => ({
-      kind: 'risk', tag: 'HIGH RISK', what: c.what,
+      kind: 'risk', tag: 'HIGH RISK', what: c.what, id: c.id,
       detail: [c.could, c.impact].filter(Boolean).join(' — ') || undefined,
     })),
     ...r.sections.flatMap(s => s.late.map((l): StatusWhy => (s.gate === 'commission'
@@ -102,6 +127,7 @@ export function statusReport(r: ClientReport, L: StatusLimits = STATUS_LIMITS): 
   /* Late first, then soonest due — the order somebody acts in. */
   const fixes = [...r.fixes.open].sort((a, b) => Number(b.tone === 'late') - Number(a.tone === 'late'));
   const next: StatusNext[] = fixes.map(f => ({
+    id: f.id,
     what: [f.machine ? `${f.title} — ${f.machine}` : f.title, f.who].filter(Boolean).join(' · '),
     ...(f.who ? { who: f.who } : {}),
     when: f.when, late: f.tone === 'late',
@@ -124,5 +150,24 @@ export function statusReport(r: ClientReport, L: StatusLimits = STATUS_LIMITS): 
     waiting: waiting.slice(0, L.waiting),
     runs: runs.slice(0, L.runs), runsMore: Math.max(0, runs.length - L.runs),
     ...((p => (p && L.programs !== false ? { programs: p.says } : {}))(r.sections.find(s => s.gate === 'setup')?.programs)),
+    ...(() => {
+      /* The programs worth reading: late first, then to do, then at baseline
+         — each with what was seen. A failed one is already a DIDN'T PASS
+         line above, with its words; a passed one is in the count. */
+      const pr = r.sections.find(s => s.gate === 'setup')?.programs;
+      const rank: Record<string, number> = { late: 0, open: 1, baseline: 2 };
+      const told = (pr?.lines ?? []).filter(l => l.bucket in rank)
+        .map((l, i) => ({ l, i })).sort((a, b) => rank[a.l.bucket] - rank[b.l.bucket] || a.i - b.i).map(({ l }) => l);
+      const n = L.programs === false ? 0 : (L.progLines ?? 0);
+      return {
+        programLines: told.slice(0, n).map(l => ({ what: `${l.machine} — ${l.what}`, word: l.word, tone: l.tone, ...(l.note ? { note: l.note } : {}) })),
+        programMore: L.programs === false ? 0 : Math.max(0, told.length - n),
+      };
+    })(),
+    /* THE COMMENTARY, on the one page: whole up to a paragraph; a longer one
+       is cut at a word and says the rest is in the full report — the page
+       is never a cut-down that pretends to be whole. */
+    ...(r.commentary ? { commentary: { ...r.commentary, text: r.commentary.text.length <= COMMENTARY_MAX ? r.commentary.text
+      : `${r.commentary.text.slice(0, COMMENTARY_MAX).replace(/\s+\S*$/, '')}… (the rest in the full report)` } } : {}),
   };
 }
