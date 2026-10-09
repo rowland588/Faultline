@@ -334,7 +334,7 @@ describe('a part\'s status, with what was seen', () => {
     const { saidResult, partStatus } = await import('../noted');
     expect(partStatus(saidResult(P(), 'baseline', 'x', at), T)).toMatchObject({ word: 'baseline achieved — done 8 Oct', tone: 'g', bucket: 'baseline', done: true });
     expect(partStatus(saidResult(P(), 'passed', 'x', at), T)).toMatchObject({ word: 'passed — done 8 Oct', tone: 'g', bucket: 'done', done: true });
-    expect(partStatus(saidResult(P(), 'failed', 'x', at), T)).toMatchObject({ word: 'failed — done 8 Oct', tone: 'r', bucket: 'failed', done: true });
+    expect(partStatus(saidResult(P(), 'failed', 'x', at), T)).toMatchObject({ word: 'Failed · closed 8 Oct', tone: 'r', bucket: 'failed', done: true });
     /* No status: done by saying so, or late, due soon, booked, to do. */
     expect(partStatus(P({ doneAt: at }), T)).toMatchObject({ word: 'done 8 Oct', tone: 'g', done: true });
     expect(partStatus(P({ due: '2026-10-06' }), T)).toMatchObject({ word: 'late · was 6 Oct', tone: 'r', bucket: 'late' });
@@ -348,7 +348,7 @@ describe('a part\'s status, with what was seen', () => {
     const b = saidResult(P(), 'baseline', 'Running 32 ppm', at);
     expect(partWords(b, T)).toBe('PR-12 Express 1.25 kg — baseline achieved — done 8 Oct: Running 32 ppm');
     const f = saidResult(P({ id: 'b', owner: 'Ilapak UK' }), 'failed', 'Bag length short by 8 mm', at);
-    expect(partWords(f, T)).toBe('PR-12 Express 1.25 kg — Ilapak UK · failed — done 8 Oct: Bag length short by 8 mm');
+    expect(partWords(f, T)).toBe('PR-12 Express 1.25 kg — Ilapak UK · Failed · closed 8 Oct: Bag length short by 8 mm');
     const ok = saidResult(P({ id: 'c' }), 'passed', '', at);
     expect(partWords(ok, T)).toBe('PR-12 Express 1.25 kg — passed — done 8 Oct');
     expect(partsSaid([b, f, ok, P({ id: 'd' })], T)).toEqual({ text: '4 parts · 3 done · 1 failed', head: '4 parts · 3 done', late: 0, failed: 1 });
@@ -359,7 +359,7 @@ describe('a part\'s status, with what was seen', () => {
     const f = partOf(saidResult(P(), 'failed', 'x', at), T);
     const b = partOf(saidResult(P({ due: '2026-10-20' }), 'baseline', 'x', at), T);
     const ok = partOf(saidResult(P(), 'passed', 'x', at), T);
-    expect([f.state, f.says]).toEqual(['failed', 'failed — done 8 Oct']);
+    expect([f.state, f.says]).toEqual(['failed', 'Failed · closed 8 Oct']);
     expect([b.state, b.says]).toEqual(['done', 'baseline achieved — done 8 Oct']);
     expect([ok.state, ok.says]).toEqual(['done', 'passed — done 8 Oct']);
     expect(partsWords([f, b, ok])).toBe('3 parts · 2 done · 1 failed');

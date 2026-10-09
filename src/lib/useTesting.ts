@@ -16,6 +16,7 @@ import { uid, now } from './ids';
 import { WORDS, assetStateOf, nextFrom, standing } from './testing';
 import type { Asset, AssetState, ItemKind, Standing, StepGate, Test, TestItem, TestKind } from './testing';
 import { offerUndo } from '../ui/Undo';
+import { heldReading } from './heldReading';
 
 export interface TestingState {
   loading: boolean;
@@ -121,9 +122,10 @@ export function useAssets(projectId: string): {
    gate, the plan, the fixes and the drawer read the same job; each read it
    from scratch when it opened, so moving from Install to Set up flashed
    "Loading…" and drew the page twice. The last reading of each job is held
-   here: the next screen draws from it at once and reads again underneath,
-   exactly as it did — what is on the device is still the only source. */
-const lastRead = new Map<string, { assets: Asset[]; tests: Test[]; items: TestItem[] }>();
+   here (lib/heldReading): the next screen draws from it at once while
+   nothing has been written since, and reads again underneath — what is on
+   the device is still the only source. */
+const lastRead = heldReading<{ assets: Asset[]; tests: Test[]; items: TestItem[] }>();
 
 export function useTesting(projectId: string): TestingState {
   const held = lastRead.get(projectId);
@@ -140,8 +142,9 @@ export function useTesting(projectId: string): TestingState {
        screen, by a person, against the test it is for, and nowhere else. The
        ones already converted stay; they are real records now and he can
        delete or re-point them from the Fixes screen. */
+    const at = lastRead.started();
     const [a, t, i] = await Promise.all([listAssets(projectId), listTests(projectId), listTestItems(projectId)]);
-    lastRead.set(projectId, { assets: a, tests: t, items: i });
+    lastRead.keep(projectId, { assets: a, tests: t, items: i }, at);
     setAssets(a); setTests(t); setItems(i);
     setLoading(false);
   }, [projectId]);

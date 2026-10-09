@@ -242,7 +242,10 @@ lives (CLAUDE.md: "Nothing is removed until we can say why it was there").
 - **Gates draw at once.** The job's tests, materials, programs and the
   projects list keep their last reading (`useTesting`, `useMaterials`,
   `usePrograms`, `useProjects`). The next screen draws from it and reads
-  again underneath, as before.
+  again underneath, as before — but only while nothing has been written
+  since that reading (`lib/heldReading`, `db/core dataVersion`). Found the
+  same day: without that condition, a job made a moment before could read
+  as missing, and its Programs page sent you to Materials.
 - **Words.** The rail says "failed" for a failed program. The phone card
   says "4 done · 2 of them late". Commission says "no programs" and "Add
   the N missing tests". The day is "The day" wherever it is a door.
@@ -252,3 +255,40 @@ lives (CLAUDE.md: "Nothing is removed until we can say why it was there").
   font. Every PDF carries its own title.
 - **The Reports index** says who each document is for, and lists the
   plan's PDF.
+
+## Decisions on the flagged items (Rowland, 9 October)
+
+The live state before these decisions is kept on the branch
+`rollback/before-flagged-decisions` (8d80618).
+
+1. **Two lists of programs** — kept as they are. Not merged.
+2. **"failed — done 9 Oct"** now reads **"Failed · closed 9 Oct"**, on the
+   Programs page, the stage's parts, the plan and every report (one rule:
+   `lib/noted partStatus`). Wording only. A failure still counts as done
+   on its day, red, in the failed bucket — the 8 October rule is unchanged.
+3. **Duplicate links** — left in place for now.
+4. **Commission's Needs you button on Install, Set up and Hand over** —
+   checked row by row, and **not added**, because no Commission button
+   fits a stage's row without changing what it does:
+   - **A late stage.** Commission's own late rows ("was due 4 Oct") carry
+     no button, so Install, Set up and Hand over already match it.
+   - **A stage that hit a problem.** The nearest Commission button is
+     "Plan the re-test". It makes a second record named "… — re-test".
+     The board finds a stage by its name, so that record would land as a
+     stray column ("Also on the grid") beside every stage. A stage has no
+     re-test: it is finished on its own record ("Done today"), and a
+     problem on it gets a fix. Unsafe — not added.
+   - **A program that failed, on Set up.** "Plan the re-test" works on a
+     test, not on a part. A part is re-done by saying its next status on
+     the same line. "Plan its test" plans a proving test for a program
+     that has none — Commission already offers it for exactly those, and a
+     failed part may already have one. Different behaviour — not added.
+   - **A stage worked on but not marked done.** This matches Commission's
+     "ran — passed?" row, but that row's "Didn't pass" is not a state a
+     stage has, and these stages are not in a gate's Needs you today.
+     Not added.
+
+   The nearest safe actions — "Done today" on a late stage, "Plan a fix"
+   on a stage that hit a problem — are already the stage's own buttons in
+   its panel. Putting them on the Needs you row would be a new control,
+   so that is yours to decide.

@@ -51,7 +51,7 @@ describe('the programs, machine by machine', () => {
     const l = r?.lines ?? [];
     expect(l[0]).toMatchObject({ word: 'baseline achieved — done 8 Oct', tone: 'g', bucket: 'baseline', note: 'Running 32 ppm at baseline',
       runs: 'Tesco Express 1.25 kg', who: 'Ilapak UK', earlier: ['failed 7 Oct — Seal jaws cold'] });
-    expect(l[1]).toMatchObject({ word: 'failed — done 8 Oct', tone: 'r', bucket: 'failed', note: 'Bag 8 mm short' });
+    expect(l[1]).toMatchObject({ word: 'Failed · closed 8 Oct', tone: 'r', bucket: 'failed', note: 'Bag 8 mm short' });
     expect(l[2]).toMatchObject({ word: 'proved 6 Oct', tone: 'g', bucket: 'done' });
     expect(l[3]).toMatchObject({ word: 'passed — done 8 Oct', tone: 'g', bucket: 'done' });
     expect(l[4]).toMatchObject({ word: 'not written · no test yet', tone: 'n', bucket: 'open' });
@@ -79,7 +79,7 @@ describe('proved, and what the floor said since', () => {
       items: [part('a', 's1', 'PR-04 Finest Red 2 kg', { results: [{ is: 'failed', on: T, note: 'Bag 8 mm short', at }] })],
       programs: [prog('p04', 'PR-04 Finest Red 2 kg', { assetId: 'w', state: 'proved', provedOn: '2026-10-07' })], today: T,
     });
-    expect(r?.lines[0]).toMatchObject({ word: 'failed — done 8 Oct', bucket: 'failed', proving: 'proved 7 Oct in Commission' });
+    expect(r?.lines[0]).toMatchObject({ word: 'Failed · closed 8 Oct', bucket: 'failed', proving: 'proved 7 Oct in Commission' });
   });
   it('and with proved when Commission proved it after the floor last spoke', () => {
     const r = programsReading({

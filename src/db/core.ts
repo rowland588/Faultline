@@ -156,7 +156,15 @@ export function onDataChange(fn: () => void): () => void {
    and a half thousand for the page, on the main thread while somebody typed.
    The listeners run once, on the next macrotask, however many writes landed. */
 let dataPending = false;
+/* HOW MANY TIMES THE DATA HAS CHANGED on this device since the page opened —
+   counted the moment a write lands, before its listeners run. A screen that
+   draws from a reading held over from the last screen (lib/heldReading) uses
+   it only when nothing has changed since it was read: a job just made, a
+   record just planned, a row a sync brought down all mean a fresh read. */
+let version = 0;
+export const dataVersion = (): number => version;
 export function signalData(): void {
+  version++;
   if (dataPending) return;
   dataPending = true;
   setTimeout(() => {
@@ -170,6 +178,7 @@ export function signalData(): void {
  *  find the last one's job waiting, and a different account must not push the
  *  first one's rows under its own name. */
 export async function wipeLocalData(): Promise<void> {
+  version++;
   try { opened?.close(); } catch { /* already closed */ }
   opened = null; dbp = null;
   await deleteDB(DB_NAME);

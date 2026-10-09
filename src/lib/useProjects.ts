@@ -7,6 +7,7 @@
  * Like the lines, this re-reads on any data change, so a project created on the
  * laptop shows up on the phone without a reload. */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { heldReading } from './heldReading';
 import {
   ensureProjects, createProject, updateProject, deleteProject, onDataChange,
   archiveProject, restoreProject, purgeProject, projectContents,
@@ -37,17 +38,18 @@ export interface ProjectsState {
  *  made in a row never look the same, and nobody has to pick a colour. */
 export const COLORS = ['#2b87d4', '#1f8a4c', '#b4632a', '#7a4fd0', '#0f766e', '#c0392b'];
 
-/* The last reading, so a screen opened next draws at once and reads again
-   underneath (lib/useTesting lastRead — docs/STAGEGATE.md, rule 7). */
-let lastRead: Project[] | null = null;
+/* The last reading, so a screen opened next draws at once while nothing has
+   been written since, and reads again underneath (lib/heldReading). */
+const lastRead = heldReading<Project[]>();
 
 export function useProjects(): ProjectsState {
-  const [all, setAll] = useState<Project[]>(lastRead ?? []);
-  const [loading, setLoading] = useState(!lastRead);
+  const [all, setAll] = useState<Project[]>(() => lastRead.get('all') ?? []);
+  const [loading, setLoading] = useState(() => !lastRead.get('all'));
 
   const refresh = useCallback(async () => {
+    const at = lastRead.started();
     const rows = await ensureProjects();
-    lastRead = rows;
+    lastRead.keep('all', rows, at);
     setAll(rows);
     setLoading(false);
   }, []);

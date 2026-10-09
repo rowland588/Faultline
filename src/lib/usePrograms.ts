@@ -1,6 +1,7 @@
 /* What one project's machine can run, live. Small on purpose — see
  * lib/programs.ts: three states, and a date is what makes one of them true. */
 import { useCallback, useEffect, useState } from 'react';
+import { heldReading } from './heldReading';
 import { listPrograms, putProgram, putPrograms, deleteProgram, onDataChange } from '../db';
 import { uid, now } from './ids';
 import { offerUndo } from '../ui/Undo';
@@ -42,15 +43,16 @@ export interface ProgramsState {
 }
 
 /* The last reading of each job's programs (lib/useTesting lastRead). */
-const lastRead = new Map<string, Program[]>();
+const lastRead = heldReading<Program[]>();
 
 export function usePrograms(projectId: string): ProgramsState {
-  const [rows, setRows] = useState<Program[]>(lastRead.get(projectId) ?? []);
-  const [loading, setLoading] = useState(!lastRead.has(projectId));
+  const [rows, setRows] = useState<Program[]>(() => lastRead.get(projectId) ?? []);
+  const [loading, setLoading] = useState(() => !lastRead.get(projectId));
 
   const load = useCallback(async () => {
+    const at = lastRead.started();
     const got = await listPrograms(projectId);
-    lastRead.set(projectId, got);
+    lastRead.keep(projectId, got, at);
     setRows(got);
     setLoading(false);
   }, [projectId]);

@@ -5,6 +5,7 @@ import { listMaterials, putMaterial, deleteMaterial, onDataChange } from '../db'
 import { uid, now } from './ids';
 import { byUrgency, tally, todayISO, weeksFor, type Material, type Tally, type Week } from './materials';
 import { offerUndo } from '../ui/Undo';
+import { heldReading } from './heldReading';
 
 export interface MaterialsState {
   loading: boolean;
@@ -25,15 +26,16 @@ export interface MaterialsState {
 }
 
 /* The last reading of each job's materials (lib/useTesting lastRead). */
-const lastRead = new Map<string, Material[]>();
+const lastRead = heldReading<Material[]>();
 
 export function useMaterials(projectId: string): MaterialsState {
-  const [rows, setRows] = useState<Material[]>(lastRead.get(projectId) ?? []);
-  const [loading, setLoading] = useState(!lastRead.has(projectId));
+  const [rows, setRows] = useState<Material[]>(() => lastRead.get(projectId) ?? []);
+  const [loading, setLoading] = useState(() => !lastRead.get(projectId));
 
   const load = useCallback(async () => {
+    const at = lastRead.started();
     const got = await listMaterials(projectId);
-    lastRead.set(projectId, got);
+    lastRead.keep(projectId, got, at);
     setRows(got);
     setLoading(false);
   }, [projectId]);

@@ -113,14 +113,17 @@ export interface PartStatus { word: string; tone: PartTone; bucket: PartBucket; 
  *  (lib/gantt), the programs (lib/programsReport), the paper (partWords) and
  *  the counts (partsSaid), so none of them can say it differently.
  *    a status   "baseline achieved — done 8 Oct" green · "passed — done 8 Oct"
- *               green · "failed — done 8 Oct" red (a failure, though done)
+ *               green · "Failed · closed 8 Oct" red (a failure, though done)
  *    no status  a problem open (red) · "done 6 Oct" green · "late · was 5 Oct"
  *               red · "due soon" amber · "by 12 Oct" indigo · "to do" grey */
 export function partStatus(p: TestItem, today: string, openProblems = 0, soonDays = 3): PartStatus {
   const r = lastResult(p);
   const done = partDone(p);
   if (r) {
-    const word = `${RESULT_WORD[r.is]} — done ${niceDay(r.on)}`;
+    /* A failure is still done on its day (Rowland, 8 October — the rule is
+       unchanged); said "Failed · closed 9 Oct", because "failed — done" read
+       as a contradiction (Rowland, 9 October: wording only). */
+    const word = r.is === 'failed' ? `Failed · closed ${niceDay(r.on)}` : `${RESULT_WORD[r.is]} — done ${niceDay(r.on)}`;
     if (r.is === 'failed') return { word, tone: 'r', bucket: 'failed', done, said: r };
     return { word, tone: 'g', bucket: r.is === 'baseline' ? 'baseline' : 'done', done, said: r };
   }
