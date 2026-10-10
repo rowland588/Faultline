@@ -1025,14 +1025,56 @@ await run(9, 'a photo whose file lands well after its record', async () => {
   cloud.uploadDelayMs = 0; cloud.realtime = false;
 });
 
+/* ---- 10 --------------------------------------------------------------- */
+await run(10, 'two devices add readings to one study; one strikes a reading', async () => {
+  /* docs/BUILD.md, 2b: a capability study is a list of readings, and two
+     people take them at once — one at the checkweigher on the phone, one on
+     the laptop. A study's facts are one column; without the merge one level
+     down, the newer copy went up whole and the other's readings were gone. */
+  const p = phone.page, l = laptop.page;
+  const reading = (id, value) => ({ id, value, at: Date.now() });
+  const sid = await p.evaluate(async ([r1, r2]) => {
+    const db = await import('/src/db.ts');
+    const id = crypto.randomUUID(), t = Date.now();
+    await db.putStudy({ id, tool: 'capability', name: 'Weight accuracy 400 g',
+      agreed: { readings: { kind: 'limits', unit: 'g', nominal: 400, lower: 400, upper: 404, count: 30 } },
+      facts: { readings: [r1, r2] }, uses: [], startedAt: t, createdAt: t, updatedAt: t });
+    return id;
+  }, [reading('r1', 401.2), reading('r2', 400.9)]);
+  await settle(phone);
+  check(cloud.rows('studies').some(r => r.id === sid), 'the phone’s study is in the cloud');
+  const there = await waitFor(async () => (await idbGet(l, 'studies', sid))?.facts?.readings?.length === 2, 30_000, 250);
+  check(there, 'and on the laptop, with its two readings');
+
+  const add = (page, list, strike) => page.evaluate(async ([id, list, strike]) => {
+    const db = await import('/src/db.ts');
+    await db.patchStudy(id, cur => ({ facts: { ...cur.facts, readings: [
+      ...(cur.facts.readings ?? []).map(r => (r.id === strike ? { ...r, struck: true } : r)), ...list] } }));
+  }, [sid, list, strike]);
+  await laptop.ctx.setOffline(true);
+  await add(l, [reading('r3', 402.0), reading('r4', 401.5)]);
+  await add(p, [reading('r5', 399.9)], 'r1');
+  await settle(phone);
+  await waitFor(() => (cloud.rows('studies').find(r => r.id === sid)?.facts?.readings ?? []).some(r => r.id === 'r5'), 15_000);
+  await laptop.ctx.setOffline(false);
+  await settle(laptop);
+  await syncViaUI(phone);
+  const ids = x => (x?.facts?.readings ?? []).map(r => r.id).sort().join(',');
+  const struck = x => (x?.facts?.readings ?? []).find(r => r.id === 'r1')?.struck === true;
+  const c = cloud.rows('studies').find(r => r.id === sid), ps = await idbGet(p, 'studies', sid), ls = await idbGet(l, 'studies', sid);
+  check([c, ps, ls].every(x => ids(x) === 'r1,r2,r3,r4,r5'), 'readings added on both, while one was offline, are all kept, everywhere',
+    `cloud ${ids(c)} · phone ${ids(ps)} · laptop ${ids(ls)}`);
+  check([c, ps, ls].every(struck), 'the reading struck on the phone stays struck, everywhere', `cloud ${struck(c)} · phone ${struck(ps)} · laptop ${struck(ls)}`);
+});
+
 /* ======================================================================= */
 scn = 0;
 check(appErrors.length === 0, 'no error thrown by the app on either device', appErrors.slice(0, 5).join(' | '));
 
 const names = { 1: 'phone builds a job → laptop shows all', 2: 'laptop edits → phone', 3: 'offline phone, back online', 4: 'conflict while offline',
-  5: 'large film, uploads fail mid-way', 6: 'one refused row', 7: 'speed, untouched laptop', 8: 'file over 50 MB', 9: 'file lands after its record', 0: 'app health' };
+  5: 'large film, uploads fail mid-way', 6: 'one refused row', 7: 'speed, untouched laptop', 8: 'file over 50 MB', 9: 'file lands after its record', 10: 'two devices, one study', 0: 'app health' };
 console.log('\n================ SYNC — TWO DEVICES ================');
-for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]) {
+for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 0]) {
   const rs = results.filter(r => r.scn === n);
   if (!rs.length) continue;
   const bad = rs.filter(r => !r.ok);

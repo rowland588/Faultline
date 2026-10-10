@@ -251,6 +251,41 @@ describe('reading what went wrong', () => {
   });
 });
 
+describe('mergeRows — a study’s facts, one level down (docs/BUILD.md, 2b)', () => {
+  const r = (id: string, value: number, struck?: boolean) => ({ id, value, at: 1, ...(struck ? { struck } : {}) });
+  it('readings added on two phones at once are all kept, and a strike on one holds', async () => {
+    const { mergeRows } = await import('../sync');
+    const base = { id: 's', facts: { readings: [r('r1', 401.2), r('r2', 400.9)] } };
+    const mine = { id: 's', facts: { readings: [r('r1', 401.2), r('r2', 400.9), r('r3', 402.0), r('r4', 401.5)] } };
+    const theirs = { id: 's', facts: { readings: [r('r1', 401.2, true), r('r2', 400.9), r('r5', 399.9)] } };
+    for (const mineNewer of [true, false]) {
+      const out = mergeRows(base, mine, theirs, mineNewer, ['facts']);
+      const got = (out.row.facts as { readings: { id: string; struck?: boolean }[] }).readings;
+      expect(got.map(x => x.id)).toEqual(['r1', 'r2', 'r5', 'r3', 'r4']);
+      expect(got.find(x => x.id === 'r1')?.struck).toBe(true);
+      expect(out.ours).toBe(true);
+      expect(out.lost).toEqual([]);
+    }
+  });
+  it('a list one side started and the other never had is kept, beside the other’s', async () => {
+    const { mergeRows } = await import('../sync');
+    const out = mergeRows({ facts: {} }, { facts: { laps: [{ id: 'l1' }] } }, { facts: { readings: [{ id: 'r1' }] } }, false, ['facts']);
+    expect(out.row.facts).toEqual({ readings: [{ id: 'r1' }], laps: [{ id: 'l1' }] });
+  });
+  it('a plain value both changed inside it goes to the newer, and the loser is named', async () => {
+    const { mergeRows } = await import('../sync');
+    const out = mergeRows({ facts: { shift: 1 } }, { facts: { shift: 2 } }, { facts: { shift: 3 } }, false, ['facts']);
+    expect(out.row.facts).toEqual({ shift: 3 });
+    expect(out.lost).toEqual(['facts']);
+  });
+  it('a column not named nested still goes whole to the newer, as before', async () => {
+    const { mergeRows } = await import('../sync');
+    const out = mergeRows({ agreed: { a: 1, b: 1 } }, { agreed: { a: 2, b: 1 } }, { agreed: { a: 1, b: 2 } }, false, ['facts']);
+    expect(out.row.agreed).toEqual({ a: 1, b: 2 });
+    expect(out.lost).toEqual(['agreed']);
+  });
+});
+
 describe('mergeRows — what is not an edit', () => {
   it('leaves a column only the cloud has, and who pushed it, as theirs', async () => {
     const { mergeRows } = await import('../sync');

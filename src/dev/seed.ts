@@ -19,7 +19,7 @@ import {
   createWorkspace, addObservation, addSegment, addSnagAsset, addSnag, addCase,
   createProject, updateProject, addPaceLine, putPaceTodo,
   putPaceWin, putTreeNode, putAsset, putTest, putTestItem, putBlob,
-  putTarget, putReadings, putMaterials, putPrograms, putStandard,
+  putTarget, putReadings, putMaterials, putPrograms, putStandard, putStudy,
   listObservations, snagsForWorkspace, listTests, listAssets,
 } from '../db';
 import type { Observation, Case } from '../types';
@@ -85,6 +85,9 @@ export interface Seeded {
   /** A Case opened before 6M on Line 7 — old five whys, no causes. */
   oldCaseId: string;
   line7Id: string;
+  /** A capability study, a quick session: the worked example's thirty packs
+   *  (docs/LEAN40.md appendix) — passes, and is not capable. */
+  studyId: string;
 }
 
 export async function seedForSmokeTest(): Promise<Seeded> {
@@ -734,6 +737,16 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     marks: [{ id: uid(), kind: 'person', x: 30, y: 45, label: 'Op 1', task: 'Feed the bagger' }], capacity: lineBalance, sort: 2, createdAt: t, updatedAt: t });
   await putStandard({ id: lineOnJob, projectId: proj.id, workspaceId: ws.id, product: 'Tesco Express 1.25 kg', marks: [], sort: 3, createdAt: t, updatedAt: t });
 
+  /* A CAPABILITY STUDY, unfiled: the thirty packs of the worked example —
+     mean 401.2 g, all within 400–404, Cpk 0.67 (lib/ie/sample). */
+  const thirty = [400.1, 402.6, 401.6, 400.8, 401.5, 401.3, 400.2, 401.9, 400.6, 400.4, 400.6, 401.2, 401.9, 400.9, 401.8,
+    401.0, 401.9, 400.8, 401.9, 401.1, 401.2, 401.6, 401.3, 400.7, 401.3, 400.4, 401.1, 401.5, 401.9, 400.8];
+  const studyId = uid();
+  await putStudy({ id: studyId, tool: 'capability', name: 'Weight accuracy 400 g', machine: 'Ishida CCW-RV-214W multihead weigher',
+    agreed: { readings: { kind: 'limits', unit: 'g', nominal: 400, lower: 400, upper: 404, count: 30 } },
+    facts: { readings: thirty.map((value, i) => ({ id: uid(), value, at: t - (30 - i) * 60_000, who: 'K. Ahmed' })) },
+    uses: [], startedAt: t - 31 * 60_000, createdAt: t, updatedAt: t });
+
   return {
     wsId: ws.id, projectId: proj.id, standardId, lineStandardId: lineOnly, lineOnJobId: lineOnJob, lineId: line.id, caseId: kase.id,
     segmentId: seg.id, assetId: asset.id,
@@ -749,6 +762,6 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     pacedProjectId: paced.id, pacedLineId: pacedLine.id, treeProjectId: tree.id,
     measures: 2, readings: rows.length, materials: 7, programs: 7,
     problemId: misfeeds.id, closedProblemId: gap.id,
-    oldCaseId: oldCase.id, line7Id: otherLine.id,
+    oldCaseId: oldCase.id, line7Id: otherLine.id, studyId,
   };
 }

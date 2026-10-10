@@ -240,13 +240,23 @@ packers' rules agreed with "go, start release 2".
   live schema check needs `.env`), and 7 unit tests in `studies.test.ts`.
 - Nothing on screen.
 
-**2b. The list merge.**
-- The sync merges `facts` lists and `uses` item by item, by `id`.
-- Scenario 11: two phones add readings to one study and both are kept; one
-  strikes a reading, and the strike holds.
+**2b. The list merge.** Built 10 October.
+- `uses` was already merged entry by entry (a list of entries with ids).
+  `facts` is an object of lists, so it went whole to the newer copy. Now a
+  mapper names the object columns merged one level down (`nested`), each
+  key as a column is and each list entry by entry; a study's `facts` is the
+  only one. Every other object column is unchanged.
+- Sync scenario 10 (not 11: there were nine): the phone makes a study, the
+  laptop goes offline and adds two readings, the phone adds one and strikes
+  one; all five readings and the strike end on the cloud, the phone and the
+  laptop. Run with the merge switched off, the laptop's two readings were
+  lost, so the scenario tests the merge.
+- 4 unit tests in `sync-pass.test.ts`.
 - Nothing on screen.
 
-**2c. The arithmetic.**
+**2c. The arithmetic.** Built 10 October: `lib/ie/sample.ts`, 17 unit
+tests, the worked example's thirty packs reproduced to the decimal. A test
+found a 3 g pack given the 50–100 g row's error; fixed.
 - `lib/ie/sample.ts` and `compare`, tested with:
   - the thirty packs (mean 401.2, all within, Cpk 0.67, "about 2 in 100");
   - twelve readings (no Cpk);
@@ -256,10 +266,25 @@ packers' rules agreed with "go, start release 2".
   - a ticks test;
   - before → after on two studies.
 
-**2d. The capability study on its own.**
-- The tool's page on the rail, Not filed, the number pad, the dots, the
-  verdict, and closing as a receipt.
-- `smoke`, and the browser on a phone width.
+**2d. The capability study on its own.** Built 10 October.
+- **Where:** Tools on the rail → **Capability** (`/capability`): every
+  study, Not filed first. A new one asks only what it is of, and the
+  machine. One study at `/capability/:id`.
+- **The page, in the order of the three questions:** the strip (verdict,
+  count, mean, range, outside, Cpk from n); the two sentences; the dots
+  between the limits beside the number pad (the pad first on a phone); every
+  reading, struck ones kept; what was agreed; close as a receipt, reopen
+  with why, overrule with why.
+- **Agreed before measured:** until the limits and the count are agreed,
+  that form is the only thing on the page.
+- **Proved:** two smoke screens (the list, the seeded thirty packs), and
+  driven in Chromium at 1360 and 390: the seeded study's sentences equal the
+  module's; a new one start to finish on the pad (one outside → Didn't
+  pass, struck → back to "2 of 5 in", five in → Passed, closed, reopened);
+  a keyboard types into the pad; no sideways scroll.
+- **Found by driving it:** every reading went in twice. It was saved inside
+  a state updater, which React may run twice; fixed, and the comment says
+  why.
 
 **2e. Where it sits.**
 - Put on a line; attach to a job.

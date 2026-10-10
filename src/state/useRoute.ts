@@ -10,7 +10,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'trend' | 'history' | 'report' | 'case' | 'guide' | 'portfolio'
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
   | 'testing' | 'test' | 'trialCard' | 'fixes' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'standard' | 'notes' | 'clientReport'
-  | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools';
+  | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools' | 'studies' | 'study';
 
 export interface Route {
   name: RouteName;
@@ -72,6 +72,11 @@ export function parseRoute(hash: string): Route {
      balance, on every line and job (screens/LineToolsScreen). */
   if (segs[0] === 'standards') return { name: 'lineTools', view: 'map', query };
   if (segs[0] === 'balances') return { name: 'lineTools', view: 'balance', query };
+  /* THE TOOLS' STUDIES (docs/TOOLKIT.md, Part 0): /capability is every
+     capability study, unfiled first; /capability/:id is one of them. */
+  if (segs[0] === 'capability') {
+    return segs[1] ? { name: 'study', view: 'capability', id: decodeURIComponent(segs[1]), query } : { name: 'studies', view: 'capability', query };
+  }
   if (segs[0] === 'pace-report') return { name: 'paceReport', query }; // the client report
   if (segs[0] === 'project' && segs[1]) {
     // /project/:id            the project itself

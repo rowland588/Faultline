@@ -610,12 +610,16 @@ function mergeList(base: { id: string }[], mine: { id: string }[], theirs: { id:
   return out;
 }
 
+const isPlain = (v: unknown): v is CloudRow => !!v && typeof v === 'object' && !Array.isArray(v);
+
 /** Three-way merge of one row, column by column. `mine` carries this
  *  device's unsent edit, `theirs` the cloud's newer copy, `base` what both
  *  last agreed. Returns the merged row, whether anything of ours is in it
  *  that the cloud has not got, and the columns where both changed and our
- *  value lost. Exported for the tests; it is the whole decision. */
-export function mergeRows(base: CloudRow, mine: CloudRow, theirs: CloudRow, mineNewer: boolean):
+ *  value lost. `nested` names object columns merged one level down, key by
+ *  key, the same way (a study's facts: EntityMap.nested). Exported for the
+ *  tests; it is the whole decision. */
+export function mergeRows(base: CloudRow, mine: CloudRow, theirs: CloudRow, mineNewer: boolean, nested?: readonly string[]):
   { row: CloudRow; ours: boolean; lost: string[] } {
   const row: CloudRow = { ...theirs };
   const lost: string[] = [];
@@ -630,6 +634,14 @@ export function mergeRows(base: CloudRow, mine: CloudRow, theirs: CloudRow, mine
     if (isIdList(m) && isIdList(t)) {                                 // both moved a list: keep both sides' additions
       row[col] = mergeList(isIdList(b) ? b : [], m, t, mineNewer);
       ours = ours || !same(row[col], t);
+      continue;
+    }
+    if (nested?.includes(col) && isPlain(m) && isPlain(t)) {         // both moved an object of lists: one level down
+      const keys = [...new Set([...Object.keys(m), ...Object.keys(t)])];
+      const inner = mergeRows(isPlain(b) ? b : {}, Object.fromEntries(keys.map(k => [k, m[k]])), t, mineNewer);
+      row[col] = inner.row;
+      ours = ours || !same(inner.row, t);
+      if (inner.lost.length) lost.push(col);
       continue;
     }
     if (mineNewer) { row[col] = m; ours = true; } else lost.push(col);
@@ -847,7 +859,7 @@ export async function syncNow(): Promise<void> {
             await basePut(kind, id, r); return;
           }
           if (base) {
-            const { row, ours, lost } = mergeRows(base, map.toRow(localRow, uid), r, localClock > remoteClock);
+            const { row, ours, lost } = mergeRows(base, map.toRow(localRow, uid), r, localClock > remoteClock, map.nested);
             await basePut(kind, id, r);
             if (lost.length) overwritten.push({ kind, id, title: titleOf(localRow), at: Date.now() });
             if (ours) {

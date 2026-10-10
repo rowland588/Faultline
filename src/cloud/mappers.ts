@@ -29,6 +29,12 @@ export interface EntityMap {
   mediaKeys(local: unknown): MediaKey[];
   /** The LWW clock for this local record. */
   clock(local: unknown): number;
+  /** Object columns whose keys are merged one by one when two devices both
+   *  changed them — each key as a column is, and an id-keyed list inside
+   *  entry by entry. A study's facts: readings typed on two phones at once
+   *  both stay (docs/BUILD.md, 2b). Any other object column, both changed,
+   *  still goes whole to the newer. */
+  nested?: readonly string[];
 }
 
 const k = (key: string | undefined, mime?: string, owner?: string): MediaKey[] => (key ? [{ key, mime, owner }] : []);
@@ -662,6 +668,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
   studies: {
     clock: l => (l as ToolStudy).updatedAt,
     mediaKeys: () => [],
+    nested: ['facts'],
     toRow: (l, fallbackOwner) => {
       const s = l as ToolStudy;
       return {
