@@ -156,6 +156,11 @@ export interface Gantt {
   today?: number;
   expected?: { at: number; when: string };
   agreed?: { at: number; when: string };
+  /** THE PACE SAYS WHEN (lib/pace) — the day Hand over lands at the pace the
+   *  job has kept, drawn beside the expected and agreed days, dashed and in
+   *  words. Absent when there is no forecast, or it falls past the calendar
+   *  (the plan's header still says it in words). */
+  pace?: { at: number; when: string };
   /** The scale that reads best for this length of job. */
   scale: GanttScale;
   /** Each time the handover moved later, with why — from the records. */
@@ -198,13 +203,15 @@ export const WEEKS_AFTER = 120;
 const MIN_DAYS = 28;
 
 const STAGE_KINDS = new Set<PlanMark['kind']>(['install', 'setup', 'handover', 'test']);
+/** How far past everything else the pace's day may widen the calendar. */
+export const PACE_REACH = 28;
 /* A stage of a list — its parts are its own lines. A test's 'next' items are
    next steps out of what it found, not parts of a stage. */
 const LIST_STAGE = new Set<PlanMark['kind']>(['install', 'setup', 'handover']);
 
-export function gantt(marks: PlanMark[], opts: { today: string; expectedAt?: string; plannedAt?: string },
+export function gantt(marks: PlanMark[], opts: { today: string; expectedAt?: string; plannedAt?: string; paceAt?: string },
   records?: { tests: Test[]; items: TestItem[]; walk?: WalkSnag[] }): Gantt {
-  const { today, expectedAt, plannedAt } = opts;
+  const { today, expectedAt, plannedAt, paceAt } = opts;
   const endOf = (m: PlanMark) => (m.until && m.until > m.at ? m.until : m.at);
 
   /* WHAT HAPPENED TO EACH STAGE — its moves, what was found, its fixes. */
@@ -238,6 +245,11 @@ export function gantt(marks: PlanMark[], opts: { today: string; expectedAt?: str
   }
   const partDays = [...partsOn.values()].flat().map(i => i.due).filter((d): d is string => !!d);
   const ends = [today, ...marks.flatMap(m => [m.at, endOf(m)]), ...fixDays, ...walkDays, ...partDays, ...[expectedAt, plannedAt].filter((d): d is string => !!d)].sort();
+  /* The pace's day widens the calendar by at most PACE_REACH days past
+     everything else on it — a forecast far out is said in words, never left
+     to stretch the plan until its bars are slivers. */
+  const last = ends[ends.length - 1];
+  if (paceAt && paceAt > last && between(last, paceAt) <= PACE_REACH) ends.push(paceAt);
   let from = addDays(ends[0], -3);
   from = addDays(from, -dowOf(from));
   let to = addDays(ends[ends.length - 1], 4);
@@ -356,11 +368,13 @@ export function gantt(marks: PlanMark[], opts: { today: string; expectedAt?: str
   }
   const ex = inside(expectedAt);
   const ag = plannedAt && plannedAt !== expectedAt ? inside(plannedAt) : undefined;
+  const pc = inside(paceAt);
   return {
     from, to, days, dayList, months, weeks, groups,
     ...(t != null ? { today: t } : {}),
     ...(ex != null && expectedAt ? { expected: { at: ex, when: windowWords(expectedAt) } } : {}),
     ...(ag != null && plannedAt ? { agreed: { at: ag, when: windowWords(plannedAt) } } : {}),
+    ...(pc != null && paceAt ? { pace: { at: pc, when: windowWords(paceAt) } } : {}),
     scale: days > WEEKS_AFTER ? 'week' : 'day',
     ...(handoverMoves.length ? { handoverMoves } : {}),
     ...(walkLane ? { walk: walkLane } : {}),

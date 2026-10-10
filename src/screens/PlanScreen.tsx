@@ -24,6 +24,7 @@ import { useWalkSnags } from '../lib/useWalkSnags';
 import { useAccess } from '../cloud/access';
 import { planGaps } from '../lib/onTarget';
 import { planSays } from '../lib/plan';
+import { paceOf } from '../lib/pace';
 import { todayISO } from '../lib/standing';
 
 export function PlanScreen({ projectId }: { projectId: string }) {
@@ -80,6 +81,7 @@ export function PlanScreen({ projectId }: { projectId: string }) {
            are the columns and a bar sits on the days it means. Same marks —
            the control room's drawer and the client report draw the timeline. */
         <Gantt marks={st.plan} today={today} expectedAt={all.expectedAt} plannedAt={all.plannedAt} projectId={projectId}
+          paceAt={paceOf({ tests: tt.tests, assets: tt.assets, today, expectedAt: all.expectedAt, plannedAt: all.plannedAt })?.at}
           name={project.name} tests={tt.tests} items={tt.items} walk={walk ?? undefined} assets={tt.assets} programs={progs.programs}
           dayHours={project.dayHours} stages={stages} />
       )}

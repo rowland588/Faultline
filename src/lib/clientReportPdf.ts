@@ -4,6 +4,7 @@ import type { jsPDF } from 'jspdf';
 import type { ClientReport, CellTone, FixRow, StepAccount } from './clientReport';
 import { GATE_TONE_WORD, type GateTone } from './install';
 import type { OnTargetTone } from './onTarget';
+import { paceSays, type Pace } from './pace';
 import type { Shot } from './testReport';
 import { brandedAlready, san } from './reportKit';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
@@ -40,6 +41,18 @@ const ON_TARGET: Record<OnTargetTone, { fill: string; stroke: string; text: stri
   on: { fill: '#eef6f1', stroke: '#9cc4af', text: OK },
   none: { fill: '#f4f6fa', stroke: '#c6d2e3', text: MUTED },
 };
+/* THE PACE SAYS WHEN (lib/pace) — under the answer, in the answer's box: the
+   sentence and its working, wrapped to the box. Amber and bold only when it
+   lands after the date or nothing has been done lately; otherwise quiet. */
+const paceLines = (f: Frame, p?: Pace): string[] => (p ? wrap(f.doc, paceSays(p), f.w - 28, 8.5, p.tone === 'risk' ? 'bold' : 'normal') : []);
+const paceH = (l: string[]): number => (l.length ? 4 + l.length * 11 : 0);
+/** `last` is the baseline of the answer's last line; each line of the pace
+ *  sits 11 below the one before, the first 15 below the answer. */
+function drawPace(f: Frame, p: Pace | undefined, l: string[], last: number): void {
+  if (!p || !l.length) return;
+  font(f.doc, 8.5, p.tone === 'risk' ? 'bold' : 'normal', p.tone === 'risk' ? AMBER : MUTED);
+  l.forEach((line, i) => f.doc.text(line, f.x + 14, last + 15 + i * 11));
+}
 const CELL_COLOUR: Record<CellTone, { fill?: string; stroke: string }> = {
   done: { fill: DONE_WASH, stroke: OK },
   /* A problem that lost no time — amber, waiting on something, not late. */
@@ -188,7 +201,8 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
     const rest = reason.slice(first.length).trim();
     return { ww, first, rest: rest ? wrap(f.doc, rest, f.w - 28, 9.5) : [] };
   };
-  const otH = (f: Frame) => 34 + otLines(f).rest.length * 12 + 6;
+  const otPace = (f: Frame) => paceLines(f, ot.pace);
+  const otH = (f: Frame) => 34 + otLines(f).rest.length * 12 + paceH(otPace(f)) + 6;
   out.push(box(f => otH(f) + gap(f.density, 'm'), (f, y) => {
     const l = otLines(f), c = ON_TARGET[ot.tone], h = otH(f);
     f.doc.setFillColor(c.fill); f.doc.setDrawColor(c.stroke); f.doc.setLineWidth(ot.tone === 'behind' ? 1.6 : 0.8);
@@ -197,6 +211,7 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
     font(f.doc, 12.5, 'bold', c.text); f.doc.text(ot.word, f.x + 14, y + 30);
     font(f.doc, 9.5, 'normal', INK2); f.doc.text(l.first, f.x + 14 + l.ww, y + 30);
     if (l.rest.length) f.doc.text(l.rest, f.x + 14, y + 42);
+    drawPace(f, ot.pace, otPace(f), l.rest.length ? y + 42 + (l.rest.length - 1) * 12 : y + 30);
   }, f => gap(f.density, 'm')));
   out.push(...commentaryBlocks(r.commentary, d));
 
@@ -509,7 +524,7 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
   if (r.plan.length) {
     out.push(pagesOf(f => {
       f.doc.addPage('a4', 'landscape');
-      const g0 = gantt(r.plan, { today: r.today, expectedAt: r.expectedAt, plannedAt: r.plannedAt }, r.planRecords);
+      const g0 = gantt(r.plan, { today: r.today, expectedAt: r.expectedAt, plannedAt: r.plannedAt, paceAt: r.onTarget.pace?.at }, r.planRecords);
       /* By machine, as the screen draws it — unless the job has no machine
          to band by, or this device chose the gates. Each machine's next
          stage says "Next" in either (lib/gantt withNext). */
@@ -696,13 +711,15 @@ export async function drawStatusReport(doc: jsPDF, report: ClientReport): Promis
     /* 1 · WHERE WE ARE — the verdict, then a tile per gate. */
     const ot = s.verdict;
     const otLines = (f: Frame) => wrap(f.doc, ot.reason, f.w - 28, 9.5);
-    out.push(box(f => 36 + otLines(f).length * 12 + gap(f.density, 'm'), (f, y) => {
-      const c = ON_TARGET[ot.tone], l = otLines(f), h = 30 + l.length * 12;
+    const otPace = (f: Frame) => paceLines(f, ot.pace);
+    out.push(box(f => 36 + otLines(f).length * 12 + paceH(otPace(f)) + gap(f.density, 'm'), (f, y) => {
+      const c = ON_TARGET[ot.tone], l = otLines(f), h = 30 + l.length * 12 + paceH(otPace(f));
       f.doc.setFillColor(c.fill); f.doc.setDrawColor(c.stroke); f.doc.setLineWidth(ot.tone === 'behind' ? 1.6 : 0.8);
       f.doc.roundedRect(f.x, y, f.w, h, 6, 6, 'FD');
       font(f.doc, 7.5, 'bold', MUTED); f.doc.text('WHERE WE ARE', f.x + 14, y + 13);
       font(f.doc, 12.5, 'bold', c.text); f.doc.text(ot.word, f.x + 14, y + 27);
       font(f.doc, 9.5, 'normal', INK2); f.doc.text(l, f.x + 14, y + 39);
+      drawPace(f, ot.pace, otPace(f), y + 39 + (l.length - 1) * 12);
     }, f => gap(f.density, 'm')));
     out.push(...commentaryBlocks(s.commentary, d));
     const gw = (f: Frame) => (f.w - 3 * 8) / 4;

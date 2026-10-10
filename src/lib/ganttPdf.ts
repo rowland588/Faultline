@@ -645,9 +645,9 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
        Nov"). Under the frame nothing else is drawn; two that would touch are
        staggered. */
     const labels: { x: number; w: number; words: string; colour: string }[] = [];
-    const mark = (at: number, colour: string, words: string) => {
+    const mark = (at: number, colour: string, words: string, dash: number[] = [3, 2]) => {
       const x = X(at + 0.5);
-      doc.setDrawColor(colour); doc.setLineWidth(1); doc.setLineDashPattern([3, 2], 0);
+      doc.setDrawColor(colour); doc.setLineWidth(1); doc.setLineDashPattern(dash, 0);
       doc.line(x, bodyTop, x, bottom + 3); doc.setLineDashPattern([], 0);
       font(6.5, 'bold', colour);
       const w = doc.getTextWidth(words);
@@ -655,11 +655,18 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
     };
     if (g.agreed) mark(g.agreed.at, MUTED, `Agreed ${g.agreed.when}`);
     if (g.expected) mark(g.expected.at, OK, `Handover ${g.expected.when}`);
+    /* THE PACE SAYS WHEN (lib/pace) — dotted, in ink: a forecast, no state's colour. */
+    if (g.pace) mark(g.pace.at, INK2, `At this pace ${g.pace.when}`, [1, 2]);
     over.forEach(f => f());
+    /* Each label on the first row where it touches no label already there —
+       with three dates, a second row can be taken twice over. */
     let below = 0;
-    labels.forEach((lb, i) => {
-      const prev = labels[i - 1];
-      const row = prev && lb.x < prev.x + prev.w + 6 && lb.x + lb.w + 6 > prev.x ? 1 : 0;
+    const placed: { x: number; w: number; row: number }[] = [];
+    labels.forEach(lb => {
+      const hits = (r: number) => placed.some(p => p.row === r && lb.x < p.x + p.w + 6 && lb.x + lb.w + 6 > p.x);
+      let row = 0;
+      while (hits(row)) row++;
+      placed.push({ x: lb.x, w: lb.w, row });
       below = Math.max(below, row);
       font(6.5, 'bold', lb.colour); doc.text(lb.words, lb.x, bottom + 10 + row * 9);
     });
@@ -736,6 +743,12 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
     if (g.expected) {
       doc.setDrawColor(OK); doc.setLineDashPattern([3, 2], 0); doc.line(kx, ky - 6, kx, ky + 1); doc.setLineDashPattern([], 0);
       doc.text('handover', kx + 4, ky);
+      kx += 12 + doc.getTextWidth('handover');
+    }
+    if (g.pace) {
+      fit('at the pace so far', 14);
+      doc.setDrawColor(INK2); doc.setLineWidth(1); doc.setLineDashPattern([1, 2], 0); doc.line(kx, ky - 6, kx, ky + 1); doc.setLineDashPattern([], 0);
+      font(7, 'normal', INK2); doc.text('at the pace so far', kx + 4, ky);
     }
   });
 

@@ -26,7 +26,11 @@ describe('a stage-gate job — is the handover on target?', () => {
 
   it('on target: the handover as agreed and nothing late', () => {
     const v = job({ tests: [ahead], plannedAt: '2026-10-25', expectedAt: '2026-10-25' });
-    expect(v).toEqual({ tone: 'on', word: 'On target', reason: `handover ${D('2026-10-25')} as agreed · nothing late`,
+    /* The pace (lib/pace) is said beside the answer: the answer itself is
+       exactly as it was. */
+    const { pace, ...verdict } = v;
+    expect(pace?.kind).toBe('early');
+    expect(verdict).toEqual({ tone: 'on', word: 'On target', reason: `handover ${D('2026-10-25')} as agreed · nothing late`,
       brief: `handover ${D('2026-10-25')} as agreed · nothing late` });
   });
 
@@ -43,7 +47,9 @@ describe('a stage-gate job — is the handover on target?', () => {
     /* Rowland, 7 October: "it says 2 late, 100 hours lost ... this is really
        poor information" — each late thing is named now, with the hours its
        problems lost or the day it was due, so the line can be checked. */
-    expect(v).toEqual({ tone: 'behind', word: 'Behind target',
+    const { pace, ...verdict } = v;
+    expect(pace?.kind).toBe('early');
+    expect(verdict).toEqual({ tone: 'behind', word: 'Behind target',
       reason: `handover ${D('2026-10-25')} as agreed · 2 late: Ishida checkweigher — Sensors and controls checked (2 h lost); Ishida checkweigher — Air connected (was due ${D('2026-10-02')})`,
       /* The control room's one line: the date and the counts, no names
          (docs/CONTROLROOM.md) — the names are the reason's. */
@@ -54,8 +60,29 @@ describe('a stage-gate job — is the handover on target?', () => {
     const none = step({ title: 'Dry run', plannedFor: '2026-10-12', ranOn: '2026-10-06', outcome: 'failed' });
     const v = job({ tests: [none], items: [found(none.id)], plannedAt: '2026-10-25' });
     /* "1 a problem" read badly and named nothing; the problem is named. */
-    expect(v).toEqual({ tone: 'risk', word: 'At risk', reason: `handover ${D('2026-10-25')} as agreed · nothing late · 1 problem, no time lost: Ishida checkweigher — Dry run`,
+    const { pace, ...verdict } = v;
+    expect(pace?.kind).toBe('early');
+    expect(verdict).toEqual({ tone: 'risk', word: 'At risk', reason: `handover ${D('2026-10-25')} as agreed · nothing late · 1 problem, no time lost: Ishida checkweigher — Dry run`,
       brief: `handover ${D('2026-10-25')} as agreed · nothing late · 1 problem, no time lost` });
+  });
+
+  it('the pace is said beside the answer and never changes it — a slow job with nothing late is still on target', () => {
+    /* Five done in the last week, ten to go: at that pace Hand over lands
+       long after the 25th, but nothing is late, so the answer stays "On
+       target" and the pace says the risk in its own line, amber. */
+    const done = (d: string, i: number) => step({ title: `Done ${i}`, plannedFor: d, ranOn: d, outcome: 'passed' });
+    const first = step({ title: 'Positioned', plannedFor: '2026-09-22', ranOn: '2026-09-22', outcome: 'passed' });
+    const later = Array.from({ length: 10 }, (_, i) => step({ title: `Later ${i}`, plannedFor: '2026-10-20' }));
+    const v = job({ tests: [first, ...['2026-09-30', '2026-10-01', '2026-10-02', '2026-10-05'].map(done), ...later], plannedAt: '2026-10-25' });
+    expect(v.tone).toBe('on');
+    expect(v.word).toBe('On target');
+    expect(v.pace?.kind).toBe('forecast');
+    expect(v.pace?.tone).toBe('risk');
+    expect(v.pace?.text).toMatch(/^At the pace so far, Hand over lands about .+ — \d+ days after the date agreed \(Sun 25 Oct\)\.$/);
+  });
+
+  it('no pace once handed over, or with nothing planned', () => {
+    expect(job({}).pace).toBeUndefined();
   });
 
   it('one handover date is the handover — never "no date agreed yet" (Rowland, 7 October)', () => {

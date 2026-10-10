@@ -41,6 +41,7 @@ import { stateOf, type Program } from './programs';
 import { standing, type LateThing, type Standing } from './standing';
 import { say, type LineSeries } from './measures';
 import { addDays, daysBetween, niceDay } from './weeks';
+import { paceOf, type Pace } from './pace';
 
 /** behind · at risk · on target · not measured (or no date to judge against). */
 export type OnTargetTone = 'behind' | 'risk' | 'on' | 'none';
@@ -59,6 +60,12 @@ export interface OnTarget {
    *  tests with nothing agreed to show, 8 machines with no arrival date" —
    *  said on the front page band and as the status report's first "why". */
   gaps?: string;
+  /** THE PACE SAYS WHEN (lib/pace) — Hand over at the pace the job has
+   *  actually kept, said under the answer wherever the answer is said. It is
+   *  beside the verdict, never part of it: the tone and the word above are
+   *  worked out exactly as they were. Absent once handed over, on a job with
+   *  nothing planned, and when everything planned is done. */
+  pace?: Pace;
 }
 
 /** WHAT THE PLAN DOES NOT HAVE YET — a stage or test still to do with no day,
@@ -172,6 +179,10 @@ export function stageGateOnTarget(x: StageGateInput, st?: Standing): OnTarget {
     return { tone, word: 'Handed over', reason, brief: reason };
   }
 
+  /* At the pace the job has kept — said beside the answer, never in it. */
+  const p = paceOf({ tests, assets, today, expectedAt, plannedAt });
+  const pace = p ? { pace: p } : {};
+
   /* The stages, each by the one rule: late, or a problem — which. */
   const which = new Map(tests.filter(t => t.kind === 'install').map(t => [t.id, lateOrProblem(t, items, today)]));
   const problemSteps = tests.filter(t => which.get(t.id) === 'problem');
@@ -213,13 +224,13 @@ export function stageGateOnTarget(x: StageGateInput, st?: Standing): OnTarget {
   const brief = [when, s.late ? `${s.late} late` : 'nothing late', problems ? `${problems} problem${problems === 1 ? '' : 's'}, no time lost` : '',
     risk.length ? `${risk.length} high risk` : '', dueSoon && !s.late ? `${dueSoon} due within ${AT_RISK_DAYS} days` : ''].filter(Boolean).join(' · ');
   if (slipped || s.late > 0) {
-    return { tone: 'behind', word: 'Behind target', reason: [when, criticalWords, late, problemWords, riskWords].filter(Boolean).join(' · '), brief };
+    return { tone: 'behind', word: 'Behind target', reason: [when, criticalWords, late, problemWords, riskWords].filter(Boolean).join(' · '), brief, ...pace };
   }
   if (critical || risk.length || problems || dueSoon) {
     return {
       tone: 'risk', word: 'At risk',
       reason: [when, criticalWords, riskWords, late, problemWords, dueSoon ? `${dueSoon} due within ${AT_RISK_DAYS} days` : ''].filter(Boolean).join(' · '),
-      brief,
+      brief, ...pace,
     };
   }
   /* NOT FULLY PLANNED (docs/JOBSTART.md) — nothing late, but lines with no
@@ -227,10 +238,10 @@ export function stageGateOnTarget(x: StageGateInput, st?: Standing): OnTarget {
      job half planned read "On target" and its status report "everything is
      on plan". Said plainly, in grey, until the plan is whole. */
   const gaps = planGaps(tests, assets);
-  if (gaps) return { tone: 'none', word: 'Not fully planned', reason: `${when} · ${gaps}`, brief: `${when} · ${gaps}`, gaps };
+  if (gaps) return { tone: 'none', word: 'Not fully planned', reason: `${when} · ${gaps}`, brief: `${when} · ${gaps}`, gaps, ...pace };
   /* Nothing late and no date to be on target FOR — said, not guessed. */
-  if (!expectedAt && !plannedAt) return { tone: 'none', word: 'No target date', reason: `${when} · nothing late`, brief };
-  return { tone: 'on', word: 'On target', reason: `${when} · ${late}`, brief };
+  if (!expectedAt && !plannedAt) return { tone: 'none', word: 'No target date', reason: `${when} · nothing late`, brief, ...pace };
+  return { tone: 'on', word: 'On target', reason: `${when} · ${late}`, brief, ...pace };
 }
 
 /** A 6M or lever tree job: every line judged is at its target, or which are

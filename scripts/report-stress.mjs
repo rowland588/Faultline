@@ -198,6 +198,9 @@ for (const size of SIZES) {
        (lib/onTarget); it says the handover against the date agreed, which the
        slip line under the sentence used to say a second time. */
     from = 'top'; add('client', r.name, r.sentence, r.onTarget.word, r.onTarget.reason);
+    /* THE PACE SAYS WHEN (lib/pace) — under the answer, its sentence and its
+       working, wherever the answer is printed. */
+    from = 'top, the pace'; add('client', r.onTarget.pace?.text, r.onTarget.pace?.working);
     from = 'gates'; for (const g of r.gates) add('client', g.label, g.says);
     from = 'machines'; for (const mc of r.machines) add('client', mc.name, mc.at);
     for (const s2 of r.sections) {
@@ -249,6 +252,7 @@ for (const size of SIZES) {
     const { statusReport, STATUS_STEPS } = await import('/src/lib/statusReport.ts');
     const st = statusReport(r, STATUS_STEPS.at(-1));
     from = 'status: where we are'; add('status', st.name, st.verdict.word, st.verdict.reason); for (const g of st.gates) add('status', g.label, g.says);
+    from = 'status: the pace'; add('status', st.verdict.pace?.text, st.verdict.pace?.working);
     from = 'status: why'; for (const w of st.why) add('status', w.tag, w.what, w.detail);
     from = 'status: what next'; for (const n of st.next) add('status', n.what, n.who, n.when);
     from = 'status: waiting'; for (const w of st.waiting) add('status', w);
@@ -300,6 +304,7 @@ for (const size of SIZES) {
     const { stageGateOnTarget } = await import('/src/lib/onTarget.ts');
     const ot = stageGateOnTarget({ project, tests, items, assets, materials, programs, today });
     from = 'day, are we on target?'; add('day', ot.word, ot.reason);
+    from = 'day, the pace'; add('day', ot.pace?.text, ot.pace?.working);
     from = 'day'; add('day', d.headline);
     from = 'the day\'s first picture, its marks'; if (d.media[0]?.kind === 'photo') add('day', ...(d.media[0].pins ?? []).map(p => p.note));
     for (const sec of d.sections) for (const l of sec.lines) add('day', l.text, l.detail);

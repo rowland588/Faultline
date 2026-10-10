@@ -5961,6 +5961,17 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .ot.is-dark.is-on { border-color: color-mix(in srgb, var(--shell-ok) 55%, var(--shell-line)); }
 .ot.is-dark.is-on .ot-w { color: var(--shell-ok); }
 .ot.is-dark.is-none .ot-w { color: var(--shell-muted); }
+/* THE PACE SAYS WHEN (lib/pace) — a second, quieter line under the answer.
+   Neutral when it lands on or before the date; amber, in words, when after
+   or when nothing has been done lately; grey while too early to say. */
+.ot-pace { display: block; margin-top: 3px; font-size: var(--t-detail); line-height: 1.4; color: var(--ink-2); }
+.ot-pace .ot-pw { color: var(--muted); }
+.ot-pace.is-risk { color: var(--st-a); font-weight: 700; }
+.ot-pace.is-risk .ot-pw { font-weight: 500; }
+.ot-pace.is-none { color: var(--muted); }
+.ot.is-dark .ot-pace { color: var(--shell-dim); }
+.ot.is-dark .ot-pace .ot-pw { color: var(--shell-muted); }
+.ot.is-dark .ot-pace.is-risk { color: var(--shell-warn); }
 
 @media (max-width: 720px) {
   .vd { gap: 14px; padding: 17px 18px; border-radius: var(--radius); }
@@ -8108,6 +8119,9 @@ span.ls-role:hover { border-color: transparent; }
 .gt-hand.is-agreed { border-left-color: var(--muted); }
 .gt-hand.is-agreed b { color: var(--muted); bottom: 22px; box-shadow: 0 0 0 1px var(--line); }
 .gt-hand.is-left b { left: auto; right: 6px; }
+/* THE PACE SAYS WHEN (lib/pace) — dotted ink, its words above the others'. */
+.gt-hand.is-pace { border-left: 2px dotted var(--ink-2); }
+.gt-hand.is-pace b { color: var(--ink-2); bottom: 40px; box-shadow: 0 0 0 1px var(--line-2); }
 .gt-row { display: flex; height: 38px; border-bottom: 1px solid color-mix(in srgb, var(--line) 55%, transparent); }
 .gt-row:last-child { border-bottom: 0; }
 .gt-lab {
@@ -8151,6 +8165,7 @@ button.gt-lab small { font-size: 10.5px; color: var(--muted); }
 .gt-k.is-problem { background: color-mix(in srgb, var(--st-a) 12%, var(--surface)); border-color: var(--st-a); }
 .gt-k-line { display: inline-block; width: 2px; height: 12px; background: var(--brand); }
 .gt-k-line.is-hand { background: none; border-left: 2px dashed var(--st-g); }
+.gt-k-line.is-pace { background: none; border-left: 2px dotted var(--ink-2); }
 .gt-key-say { margin-left: auto; }
 .gt-today-b { appearance: none; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font: inherit; font-size: 13px; font-weight: 700; color: var(--brand); padding: 7px 14px; min-height: 36px; cursor: pointer; }
 .gt-today-b:hover { background: var(--surface-2); }

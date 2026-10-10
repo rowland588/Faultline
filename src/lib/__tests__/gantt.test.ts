@@ -62,3 +62,32 @@ describe('the Gantt calendar', () => {
     expect(ganttHref('p', { kind: 'test' })).toBeUndefined();
   });
 });
+
+/* THE PACE SAYS WHEN (lib/pace) — the plan draws the day Hand over lands at
+   the pace kept, beside the expected and agreed days. It may widen the
+   calendar by four weeks at most: further out, the plan stays as it was and
+   the day is said in words in the header. */
+describe('the pace on the plan', () => {
+  const plan = [m({ at: '2026-10-05', until: '2026-10-16' })];
+  it('drawn where it falls inside the calendar', () => {
+    const g = gantt(plan, { today: '2026-10-06', expectedAt: '2026-10-16', paceAt: '2026-10-14' });
+    expect(g.pace?.at).toBe(g.dayList.findIndex(d => d.iso === '2026-10-14'));
+    expect(g.pace?.when).toBeTruthy();
+  });
+  it('widens the calendar to reach it, up to four weeks past everything else', () => {
+    const without = gantt(plan, { today: '2026-10-06', expectedAt: '2026-10-16' });
+    const g = gantt(plan, { today: '2026-10-06', expectedAt: '2026-10-16', paceAt: '2026-11-10' });
+    expect(g.to > without.to).toBe(true);
+    expect(g.pace).toBeDefined();
+  });
+  it('further out, the plan is left as it was and no marker is drawn', () => {
+    const without = gantt(plan, { today: '2026-10-06', expectedAt: '2026-10-16' });
+    const g = gantt(plan, { today: '2026-10-06', expectedAt: '2026-10-16', paceAt: '2026-12-20' });
+    expect(g.to).toBe(without.to);
+    expect(g.days).toBe(without.days);
+    expect(g.pace).toBeUndefined();
+  });
+  it('no pace, no marker', () => {
+    expect(gantt(plan, { today: '2026-10-06', expectedAt: '2026-10-16' }).pace).toBeUndefined();
+  });
+});

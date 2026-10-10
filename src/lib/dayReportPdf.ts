@@ -14,6 +14,7 @@ import { DANGER, INK, INK2, LINE, MUTED, OK, WARN, BLUE, SHELL_MUTED, drawMark, 
 import type { Day, DayTone } from './day';
 import type { Shot } from './testReport';
 import type { OnTarget, OnTargetTone } from './onTarget';
+import { paceSays } from './pace';
 import { niceDay } from './weeks';
 
 const M = 36;
@@ -47,7 +48,7 @@ export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
   /* ARE WE ON TARGET? — the word in its colour, then the reason, wrapped to
      the band: the first line after the word, the rest the band's width. */
   const ot = meta.onTarget;
-  const otLines: { word?: string; text: string }[] = [];
+  const otLines: { word?: string; text: string; pace?: boolean }[] = [];
   if (ot) {
     setFont(d, 10.5, 'bold', INK);
     const ww = d.getTextWidth(`${san(ot.word)} `);
@@ -56,6 +57,12 @@ export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
     const first = (d.splitTextToSize(reason, CW - ww) as string[])[0] ?? '';
     const rest = reason.slice(first.length).trim();
     otLines.push({ word: san(ot.word), text: first }, ...(rest ? (d.splitTextToSize(rest, CW) as string[]).map(text => ({ text })) : []));
+    /* THE PACE SAYS WHEN (lib/pace) — under the answer, a line of its own:
+       amber when it lands after the date or nothing has been done lately. */
+    if (ot.pace) {
+      setFont(d, 8.5, ot.pace.tone === 'risk' ? 'bold' : 'normal', INK);
+      otLines.push(...(d.splitTextToSize(san(paceSays(ot.pace)), CW) as string[]).map(text => ({ text, pace: true })));
+    }
   }
   const otH = ot ? 12 + otLines.length * 12 + 6 : 0;
   const bandH = 74 + otH + headLines.length * 12 + 10;
@@ -94,7 +101,8 @@ export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
           d.text(l.word, M, ly);
           lx = M + d.getTextWidth(`${l.word} `);
         }
-        setFont(d, 9.5, 'normal', '#ffffff');
+        if (l.pace && ot.pace) setFont(d, 8.5, ot.pace.tone === 'risk' ? 'bold' : 'normal', ot.pace.tone === 'risk' ? ON_DARK.risk : SHELL_MUTED);
+        else setFont(d, 9.5, 'normal', '#ffffff');
         d.text(l.text, lx, ly);
       });
       hy = 67 + otH + 6;

@@ -41,8 +41,11 @@ const TONE_WORD: Record<GanttTone, string> = {
   booked: 'still ahead', late: 'late', problem: 'a problem — no time lost', none: 'no date agreed',
 };
 
-export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, tests, items, walk, assets, programs, dayHours, stages }: {
-  marks: PlanMark[]; today: string; expectedAt?: string; plannedAt?: string; projectId: string;
+export function Gantt({ marks, today, expectedAt, plannedAt, paceAt, projectId, name, tests, items, walk, assets, programs, dayHours, stages }: {
+  marks: PlanMark[]; today: string; expectedAt?: string; plannedAt?: string;
+  /** THE PACE SAYS WHEN (lib/pace) — the day Hand over lands at the pace kept. */
+  paceAt?: string;
+  projectId: string;
   /** The job's records — for what happened to each stage (lib/story). */
   tests?: Test[]; items?: TestItem[];
   /** Its machines and programs — for the plan drawn machine by machine. */
@@ -56,7 +59,7 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
   /** Each gate's list — by stage, the stages run in the Install grid's order. */
   stages?: Partial<Record<StepGate, readonly string[]>>;
 }) {
-  const g = useMemo(() => gantt(marks, { today, expectedAt, plannedAt }, tests && items ? { tests, items, ...(walk ? { walk } : {}) } : undefined), [marks, today, expectedAt, plannedAt, tests, items, walk]);
+  const g = useMemo(() => gantt(marks, { today, expectedAt, plannedAt, paceAt }, tests && items ? { tests, items, ...(walk ? { walk } : {}) } : undefined), [marks, today, expectedAt, plannedAt, paceAt, tests, items, walk]);
   /* The walk's panel: the snags behind one marker, or all of them. */
   const [walkOpen, setWalkOpen] = useState<{ title: string; ids: string[] } | null>(null);
   /* The panel a row opens when it is not a record: the story of one of the
@@ -179,7 +182,10 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
         moves: tests && items ? moveLines(g.groups.flatMap(x => x.rows), tests, items, dayHours && dayHours > 0 ? dayHours : undefined) : [],
         name, printed: niceDay(today, { year: true }),
         asOf: asOf?.words,
-        dates: when ? `Handover ${moved ? 'expected ' : ''}${niceDay(when, { year: true })}${moved ? ` · agreed ${niceDay(plannedAt, { year: true })}` : ''}` : undefined,
+        dates: when || paceAt ? [
+          when ? `Handover ${moved ? 'expected ' : ''}${niceDay(when, { year: true })}${moved ? ` · agreed ${niceDay(plannedAt, { year: true })}` : ''}` : '',
+          paceAt ? `at this pace about ${niceDay(paceAt, { year: true })}` : '',
+        ].filter(Boolean).join(' · ') : undefined,
       });
       await deliverPdf(doc, pdfFileName(name, 'plan', today));
     } catch (e) {
@@ -500,6 +506,9 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
                   card ("Handover 3…") and made the fitted chart scroll. */}
               {g.agreed && <span className={'gt-hand is-agreed' + (fit && g.agreed.at > g.days * 0.6 ? ' is-left' : '')} style={{ left: (g.agreed.at + 0.5) * px }}><b>Agreed {g.agreed.when}</b></span>}
               {g.expected && <span className={'gt-hand' + (fit && g.expected.at > g.days * 0.6 ? ' is-left' : '')} style={{ left: (g.expected.at + 0.5) * px }}><b>Handover {g.expected.when}</b></span>}
+              {/* THE PACE SAYS WHEN (lib/pace) — dotted, in ink, in words: a
+                  forecast, not a state, so it wears no state's colour. */}
+              {g.pace && <span className={'gt-hand is-pace' + (fit && g.pace.at > g.days * 0.6 ? ' is-left' : '')} style={{ left: (g.pace.at + 0.5) * px }}><b>At this pace {g.pace.when}</b></span>}
               {/* Today's whole column, shaded the full height, and its line. */}
               {g.today != null && <span className="gt-todaycol" style={{ left: g.today * px, width: Math.max(px, 3) }} />}
               {g.today != null && <span className="gt-today" style={{ left: (g.today + 0.5) * px }} />}
@@ -585,6 +594,7 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
         {walkLane && <span><i className="gt-k-walk">2</i>found on the walk — the number still open; solid, past due</span>}
         <span><i className="gt-k-line" />today</span>
         {g.expected && <span><i className="gt-k-line is-hand" />handover</span>}
+        {g.pace && <span><i className="gt-k-line is-pace" />at the pace so far</span>}
         <span className="gt-key-say">Tap a row to open it.</span>
       </p>
     </div>
