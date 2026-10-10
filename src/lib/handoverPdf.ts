@@ -107,15 +107,18 @@ function blocksOf(r: HandoverReport, d: Density): Block[] {
       out.push(line(t.title, [t.word, t.when].filter(Boolean).join(' · '), TONE[t.tone]));
       if (t.passesIf) out.push(text({ text: `Had to show: ${t.passesIf}`, size: 8.5, colour: INK2, indent: 10 }));
       if (t.said) out.push(text({ text: `Seen: ${t.said}`, size: 8.5, colour: MUTED, indent: 10 }));
+      if (t.files) out.push(text({ text: t.files, size: 8.5, colour: MUTED, indent: 10 }));
     }
     if (m.tests.length) out.push({ height: f => gap(f.density, 's'), draw: () => undefined });
 
     out.push(label('Hand over'));
     if (!m.items.length) out.push(text({ text: 'No hand-over list on this machine yet.', size: 9, colour: MUTED, after: gap(d, 'm') }));
     for (const it of m.items) {
-      out.push(line(it.title, it.state, TONE[it.tone], { ...(it.who ? { who: it.who } : {}) }));
+      out.push(line(it.title, it.state, TONE[it.tone], { ...(it.who ? { who: it.signOff && it.tone === 'done' ? `signed by ${it.who}` : it.who } : {}) }));
       /* A sign-off's account is what it accepted — said in full. */
       if (it.said) out.push(text({ text: it.said, size: 8.5, colour: it.signOff ? INK2 : MUTED, indent: 10, ...(it.signOff ? { style: 'bold' as const } : {}) }));
+      /* What was handed over, by name — the drawings, the signed sheet (docs/PANELS.md). */
+      if (it.files) out.push(text({ text: it.files, size: 8.5, colour: MUTED, indent: 10 }));
     }
     if (m.items.length) out.push({ height: f => gap(f.density, 's'), draw: () => undefined });
 

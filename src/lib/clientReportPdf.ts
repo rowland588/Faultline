@@ -395,9 +395,12 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
       s.accounts.forEach((a, i, all) => {
         out.push(accountHead(a));
         const last = i === all.length - 1 ? gap(d, 'm') : gap(d, 's') + 2;
-        if (a.said) out.push(text({ text: a.said, size: 9, colour: INK2, indent: 12, after: a.parts?.length ? 2 : last }));
+        const more = !!(a.parts?.length || a.files);
+        if (a.said) out.push(text({ text: a.said, size: 9, colour: INK2, indent: 12, after: more ? 2 : last }));
         /* Part of the plan (ui/StageParts): the stage's own lines, not problems. */
-        a.parts?.forEach((pw, k, ps) => out.push(text({ text: pw, size: 9, colour: INK2, indent: 22, bullet: '•', after: k === ps.length - 1 ? last : 1 })));
+        a.parts?.forEach((pw, k, ps) => out.push(text({ text: pw, size: 9, colour: INK2, indent: 22, bullet: '•', after: k === ps.length - 1 && !a.files ? last : 1 })));
+        /* Its files by name — "yes, here they are" (docs/PANELS.md). */
+        if (a.files) out.push(text({ text: a.files, size: 9, colour: MUTED, indent: 12, after: last }));
       });
     }
 

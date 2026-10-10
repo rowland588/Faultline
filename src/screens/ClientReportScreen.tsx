@@ -343,7 +343,9 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
                         <span className="cr-said-when">{a.when}</span>
                         <span className={`cr-said-st is-${a.tone}`}>{a.state}</span>
                       </p>
-                      <p className="cr-said-t">{a.said}</p>
+                      {a.said && <p className="cr-said-t">{a.said}</p>}
+                      {/* Its files by name, as the paper prints them (docs/PANELS.md). */}
+                      {a.files && <p className="cr-said-t sub">{a.files}</p>}
                     </li>
                   ))}
                 </ul>

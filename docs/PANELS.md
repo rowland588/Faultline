@@ -355,3 +355,63 @@ in the account, as now.
 - **The live database's rules for `gate_stages`.** They were read from
   `supabase/ACCESS_LEVELS.sql`, not from the database.
 - **iOS Safari's file picker.**
+
+## Decided and built — slice 1, 10 October
+
+Rowland: "do panel slice 1 next, after flow slice 2."
+
+1. **Not yet, on every stage.**
+   - It sits beside Done today, before Hit a problem. It asks what we are
+     waiting for (four quick answers: the supplier by name, the site,
+     parts, not started), whose (starting as who the stage is with), and
+     by when, if anyone knows.
+   - It is kept as one of the stage's parts, a line owed with a who and a
+     day, so it shows wherever parts already show: the square ("1 part")
+     and phone card, the plan, Needs you, who owes what, the client
+     report.
+   - The reason is kept on the day it was said, followed as that line
+     (`becameItemId`, the way a problem is followed as its fix).
+     - The stage's history labels it **Waiting**, in amber.
+     - The day says "Dry run — not yet: Waiting on the site (Ishida
+       Europe), by Fri, 23 Oct".
+     - Fixes no longer lists it as a problem with no fix.
+   - A day after the stage's finish offers to move the finish, ticked,
+     with this as the reason. The plan then shows the slip, and the stage
+     reads late by the rule of 7 October.
+   - **The stage is not marked failed.** Hit a problem stays for what went
+     wrong (`ui/NotYet`).
+2. **A sign-off asks who, every time.**
+   - Done today on "Safety sign-off (PUWER)" or "Client signed off" asks
+     "Who signed it off?". The box starts empty and offers the names on the
+     job.
+   - A sign-off's column asks once for every machine, and its button waits
+     for the name.
+   - Needs you opens a sign-off rather than ticking it.
+   - The drawer then says **Signed by K. Ahmed**, and so does the handover
+     report ("signed by K. Ahmed"). What it accepted is still written by
+     itself. This fixes the defect the walk found.
+3. **Files are part of the answer.** Once a stage has files:
+   - in the drawer they sit under its five facts, each one opening, not at
+     the foot;
+   - its square and phone card say "2 files" beside its parts;
+   - the day prints them by name under the line;
+   - the client report's account of the stage prints them on screen and
+     paper, and a done stage with files and no words now gets an account;
+   - the handover report prints them under each test and hand-over line.
+
+   Words: `lib/testing` `filesSaid`.
+
+Proved in Chromium, laptop and phone:
+- Not yet on a stage, moving its finish, and nowhere marked failed;
+- a sign-off's column waiting for a name;
+- the drawer asking with an empty box, and "Signed by K. Ahmed" on the
+  handover report;
+- a PDF attached, then on the square, the day and the handover report's
+  own PDF.
+
+`scripts/report-stress.mjs` reconciles every file name on the client and
+handover reports. The seeds now carry files: nine long names on one
+machine, and random ones on the fuzz jobs. Unit tests:
+`src/lib/__tests__/panels.test.ts`.
+
+Slice 2, the answer on the stage list, waits for your word.

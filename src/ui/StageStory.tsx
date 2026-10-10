@@ -165,7 +165,8 @@ export function StageStory({ stepId, tt, can, projectId, empty, onOpenFix, onOpe
     ) })),
     ...st.found.map(f => ({ on: f.on, key: f.id, at: itemOf(f.id)?.createdAt, node: (
       <>
-        <span className="sp-k is-found">Found</span>
+        {/* A "not yet" (ui/NotYet) is followed as a line owed — waiting on somebody, amber — not found as a problem. */}
+        {itemOf(f.id)?.becameItemId ? <span className="sp-k is-wait">Waiting</span> : <span className="sp-k is-found">Found</span>}
         <button type="button" className="sp-door" onClick={() => openProblem(f.id)}><span className="sp-why">{partOf(f.id) && <span className="sp-part">On {partOf(f.id)}: </span>}{f.what}{itemOf(f.id)?.hoursLost ? <span className="sp-lost"> · {hoursWord(itemOf(f.id)?.hoursLost ?? 0)} lost</span> : null}{stateOf(f.id)}</span></button>{critOf(f.id)}
         {pics(f.media)}
         {fixOf(f.fixId) && fixNode(fixOf(f.fixId) as Test, true)}

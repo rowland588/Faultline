@@ -31,8 +31,12 @@ const dayOfMs = (ms: number) => todayISO(new Date(ms));
 export function notedProblems(tests: Test[], items: TestItem[], assets: Asset[]): { open: Noted[]; sorted: Noted[] } {
   const ts = live(tests);
   const fixIds = new Set(ts.filter(t => t.kind === 'fix').map(t => t.id));
+  /* A reason followed as a line owed on its stage — "Not yet" that moved the
+     finish (ui/NotYet) — is chased as that line, as a problem with a fix is
+     chased as the fix. It is not a problem with no fix (docs/PANELS.md). */
+  const partIds = new Set(live(items).filter(i => i.kind === 'next').map(i => i.id));
   const rows: Noted[] = live(items)
-    .filter(i => i.kind === 'found' && !(i.becameTestId && fixIds.has(i.becameTestId)))
+    .filter(i => i.kind === 'found' && !(i.becameTestId && fixIds.has(i.becameTestId)) && !(i.becameItemId && partIds.has(i.becameItemId)))
     .map(i => {
       const on = ts.find(t => t.id === i.testId);
       const machine = on?.assetId ? assets.find(a => a.id === on.assetId && !a.deletedAt)?.name : undefined;

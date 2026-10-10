@@ -29,7 +29,7 @@ import { standing, slipWords, type OutstandingRow, type PlanMark } from './stand
 import { fixTone, type FixTone } from './fixTone';
 import { isProgramsStage, type Program } from './programs';
 import { programsReading, type ProgramsReading } from './programsReport';
-import { live, hasRun, latestAttempts, outcomeWord, type Asset, type StepGate, type Test, type TestItem } from './testing';
+import { filesSaid, live, hasRun, latestAttempts, outcomeWord, type Asset, type StepGate, type Test, type TestItem } from './testing';
 import type { Material } from './materials';
 import type { Standard } from './standard';
 import { niceDay, todayISO } from './weeks';
@@ -134,6 +134,8 @@ export interface StepAccount {
   state: string;
   /** The stage's parts of the plan (ui/StageParts), in words. */
   parts?: string[];
+  /** Its files by name — "2 files: GA drawings rev C.pdf, …" (docs/PANELS.md). */
+  files?: string;
   /** What the team said, whole. */
   said: string;
 }
@@ -296,7 +298,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
     const accounts: StepAccount[] = g.rows.flatMap(r => {
       const inGrid = r.cells.filter((c): c is StepView => !!c);
       const rest = r.view.steps.filter(s => !inGrid.includes(s));
-      return [...inGrid, ...rest].filter(s => s.step.result?.trim() || (!isProgramsStage(s.step) && partsOf(s.step.id, items).length)).map(s => {
+      return [...inGrid, ...rest].filter(s => s.step.result?.trim() || (s.step.docs ?? []).length || (!isProgramsStage(s.step) && partsOf(s.step.id, items).length)).map(s => {
         const tone = cellOf(s);
         /* A programs stage's parts are the programs — said once, under
            Programs, with their status and what was seen. */
@@ -309,6 +311,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
             /* Why, when it was the stage before (lib/install heldUpBy). */
             heldUpBy(s.step, tests, items, today, usual)?.words].filter(Boolean).join(' — '), said: (s.step.result ?? '').trim(),
           ...(parts.length ? { parts } : {}),
+          ...(filesSaid(s.step) ? { files: filesSaid(s.step) } : {}),
         };
       });
     });

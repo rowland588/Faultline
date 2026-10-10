@@ -17,7 +17,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import { deleteTest } from '../db';
 import type { Program } from '../lib/programs';
-import { doneTodayPatch, foldInto, installGrid, whoFor, lateByWords, stepsNamed, untouched, type StepView, type usualStages } from '../lib/install';
+import { doneTodayPatch, foldInto, installGrid, isSignOff, whoFor, lateByWords, stepsNamed, untouched, type StepView, type usualStages } from '../lib/install';
 import { UsualStages } from './UsualStages';
 import { WhyMoved, changeTests, moveTestsWithWhy, type WhyAnswer } from './WhyMoved';
 import { movedLater } from '../lib/story';
@@ -119,6 +119,9 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
   const [showDone, setShowDone] = useState<Set<string>>(new Set());
   const [allOpen, setAllOpen] = useState(false);
   const [stepName, setStepName] = useState('');
+  /* Who signed, asked once on a sign-off's column (docs/PANELS.md). */
+  const [signedBy, setSignedBy] = useState('');
+  useEffect(() => { setSignedBy(''); }, [open]);
   const phone = usePhone();
 
   if (grid.rows.length === 0) return null;
@@ -132,6 +135,9 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
   const rowName = (a?: Asset) => a?.name ?? 'The line itself';
   /* A step opens in the drawer, over the grid; an empty square opens the
      small sheet that adds the stage to that machine. */
+  /* ITS FILES, A BRANCH ON ITS SQUARE (docs/PANELS.md item 3) — "2 files",
+     beside its parts, so "yes, here they are" shows where the stage does. */
+  const filesAt = (s?: StepView): string => { const n = (s?.step.docs ?? []).length; return n ? `${n} file${n === 1 ? '' : 's'}` : ''; };
   const openCell = (s: StepView | undefined, row: number, col: number) => (s ? openRecord(projectId, s.step.id) : setOpen({ t: 'cell', row, col }));
   /* A stage's parts of the plan, in a few words — "2 parts · 1 done", and
      "· 1 late" in red when one is (lib/noted partsSaid). Rowland, 6 October:
@@ -259,6 +265,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
       const cells = grid.rows.map(r => r.cells[open.col]);
       const steps = cells.filter((c): c is StepView => !!c).map(c => c.step);
       const left = steps.filter(t => !isSettled(t));
+      const signing = left.length > 0 && left.every(isSignOff);
       const lacking = grid.rows.filter((_r, i) => !cells[i]).map(r => ({ title: col, assetId: r.asset?.id }));
       /* NOT ONE OF THE JOB'S STAGES — a name steps were given before the
          stages were edited. Say so, and offer the two ways to clear it: move
@@ -299,14 +306,21 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
                 Add to {lacking.length === grid.rows.length ? 'every machine' : `the ${lacking.length} without it`}
               </button>
             )}
+            {left.length > 0 && signing && (
+              /* A SIGN-OFF'S COLUMN ASKS WHO SIGNED, once for every machine
+                 (docs/PANELS.md item 2) — it signed them all with no name. */
+              <label className="cw-f ig-signer"><span>Who signed {left.length === 1 ? 'it' : 'them'} off?</span>
+                <input className="text-input" list="ig-signers" value={signedBy} placeholder="Who signed it off?" onChange={e => setSignedBy(e.target.value)} />
+                <datalist id="ig-signers">{names.map(n => <option key={n} value={n} />)}</datalist></label>
+            )}
             {left.length > 0 && (
-              <button className="btn ig-big" onClick={() => {
+              <button className="btn ig-big" disabled={signing && !signedBy.trim()} onClick={() => {
                 if (left.length > 1 && !confirm(`Mark “${col}” done today on ${left.length} machines?`)) return;
                 /* The one write (lib/install doneTodayPatch): a sign-off keeps
-                   what each machine still had open. */
-                void change(left, cur => doneTodayPatch(cur, { tests: tt.tests, items: tt.items, assets: tt.assets, programs }, today)(cur), `${col} done on ${left.length} machine${left.length === 1 ? '' : 's'}`);
-                setOpen(null);
-              }}>Done today on {left.length === 1 ? 'the one left' : `all ${left.length} left`}</button>
+                   what each machine still had open, and who signed. */
+                void change(left, cur => doneTodayPatch(cur, { tests: tt.tests, items: tt.items, assets: tt.assets, programs }, today, signing ? signedBy : undefined)(cur), `${col} done on ${left.length} machine${left.length === 1 ? '' : 's'}`);
+                setSignedBy(''); setOpen(null);
+              }}>{signing ? 'Signed off today on' : 'Done today on'} {left.length === 1 ? 'the one left' : `all ${left.length} left`}</button>
             )}
           </div>
           {left.length > 0 && (
@@ -455,11 +469,12 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
                       /* Named as the square is named on the laptop — machine,
                          stage and state — for a screen reader, and so the two
                          layouts are the same control by name. */
-                      aria-label={`${rowName(r.asset)} — ${grid.columns[ci]}: ${cs ? cellWord(cs) : 'not added yet'}${ps ? `, ${ps.text}` : ''}${crit ? `, ${criticalCount(crit)}` : ''}`}>
+                      aria-label={`${rowName(r.asset)} — ${grid.columns[ci]}: ${cs ? cellWord(cs) : 'not added yet'}${ps ? `, ${ps.text}` : ''}${filesAt(cs) ? `, ${filesAt(cs)}` : ''}${crit ? `, ${criticalCount(crit)}` : ''}`}>
                       <span className="igm-sq" aria-hidden />
                       <span className="igm-name">{grid.columns[ci]}{cs?.next && <span className="igm-next">Next</span>}
                         {crit ? critMark(crit) : riskMark(cs)}
-                        <PartsMark said={ps} className="igm-parts" /></span>
+                        <PartsMark said={ps} className="igm-parts" />
+                        {filesAt(cs) && <span className="pt-mark igm-parts ig-files">{filesAt(cs)}</span>}</span>
                       <span className="igm-word">{cs && cs.tone === 'done' && cs.lateBy ? <>{cs.step.ranOn ? `done ${short(cs.step.ranOn)}` : 'done'} · <b className="ig-late-by">{lateByWords(cs.lateBy)}</b></> : cs ? stageWord(cs) : can.edit ? '+ add' : 'not added yet'}</span>
                     </button>
                   );
@@ -564,11 +579,12 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
                         <button className={'ig-cell' + (s ? ` is-${s.tone}${s.next ? ' is-next' : ''}${s.tone === 'ahead' && s.step.plannedFor ? ' is-booked' : ''}` : ' is-empty')}
                           onClick={() => openCell(s, ri, ci)}
                           disabled={!s && !can.edit}
-                          aria-label={`${rowName(r.asset)} — ${grid.columns[ci]}: ${s ? cellWord(s) : 'not added yet'}${ps ? `, ${ps.text}` : ''}${crit ? `, ${criticalCount(crit)}` : ''}`}>
+                          aria-label={`${rowName(r.asset)} — ${grid.columns[ci]}: ${s ? cellWord(s) : 'not added yet'}${ps ? `, ${ps.text}` : ''}${filesAt(s) ? `, ${filesAt(s)}` : ''}${crit ? `, ${criticalCount(crit)}` : ''}`}>
                           {s ? <span>{s.tone === 'done' && s.lateBy ? <>{s.step.ranOn ? short(s.step.ranOn) : 'Done'} <b className="ig-late-by">{lateByWords(s.lateBy)}</b></> : cellWord(s)}</span> : can.edit ? '+' : ''}
                           {/* ITS PARTS, A BRANCH UNDER ITS DAY (ui/StageParts). */}
                           {crit ? critMark(crit) : riskMark(s)}
                           <PartsMark said={ps} />
+                          {filesAt(s) && <span className="pt-mark ig-files">{filesAt(s)}</span>}
                         </button>
                       </td>
                     );

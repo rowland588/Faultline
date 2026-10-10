@@ -18,7 +18,7 @@
  * Nothing new is read or worked out here. The verdict is lib/onTarget's, the
  * sentence lib/standing's, a machine's place and what it went with
  * lib/install's, so the page and the screens cannot disagree. Pure. */
-import { isOverdue, latestAttempts, live, outcomeWord, plannedEnd, testOfFix, type Asset, type Test, type TestItem } from './testing';
+import { filesSaid, isOverdue, latestAttempts, live, outcomeWord, plannedEnd, testOfFix, type Asset, type Test, type TestItem } from './testing';
 import { doneLateBy, handedOverWith, installOf, isSignOff, journeyOf, machineAt, stillOpenOn } from './install';
 import { standing } from './standing';
 import { stageGateOnTarget, type OnTarget } from './onTarget';
@@ -41,6 +41,8 @@ export interface HoTest {
   tone: HoTone;
   /** What was seen, as written. */
   said?: string;
+  /** Its files by name — a test report, a certificate (docs/PANELS.md). */
+  files?: string;
 }
 
 export interface HoItem {
@@ -52,6 +54,8 @@ export interface HoItem {
   tone: HoTone;
   /** Its account, as written — on a sign-off, what it accepted. */
   said?: string;
+  /** Its files by name — the drawings handed over, the signed sheet. */
+  files?: string;
   signOff: boolean;
 }
 
@@ -130,6 +134,7 @@ export function handoverReport(x: HandoverInput): HandoverReport {
           title: t.title, word: outcomeWord(t), tone, ...(when ? { when } : {}),
           ...(t.passesIf?.trim() ? { passesIf: t.passesIf.trim() } : {}),
           ...(t.result?.trim() ? { said: t.result.trim() } : {}),
+          ...(filesSaid(t) ? { files: filesSaid(t) } : {}),
         };
       }),
       noTest: proofs.length === 0,
@@ -145,6 +150,7 @@ export function handoverReport(x: HandoverInput): HandoverReport {
           title: t.title, state, tone, signOff: isSignOff(t),
           ...(t.withWhom?.trim() ? { who: t.withWhom.trim() } : {}),
           ...(t.result?.trim() ? { said: t.result.trim() } : {}),
+          ...(filesSaid(t) ? { files: filesSaid(t) } : {}),
         };
       }),
       open: stillOpenOn(a, tests, items, today, programs).names,

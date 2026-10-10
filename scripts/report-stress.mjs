@@ -225,6 +225,8 @@ for (const size of SIZES) {
       from = `section ${s2.gate} account, its end`; for (const a of s2.accounts ?? []) if (a.said.length > 120) add('client', a.said.slice(-60));
       /* Its parts — each to its last word, a status's commentary included. */
       from = `section ${s2.gate} account, a part`; for (const a of s2.accounts ?? []) add('client', ...(a.parts ?? []));
+      /* Its files, by name (docs/PANELS.md) — the whole list, to its last name. */
+      from = `section ${s2.gate} account, its files`; for (const a of s2.accounts ?? []) add('client', a.files);
       from = `section ${s2.gate} test`; for (const t of s2.tests ?? []) add('client', t.title, t.passesIf, t.result, t.outcome);
       /* The performance runs: every product, its figures and its verdict (lib/run). */
       from = `section ${s2.gate} performance run`; for (const rr of s2.runs ?? []) add('client', rr.product, rr.net, rr.rejects, rr.outcome, rr.say);
@@ -271,6 +273,8 @@ for (const size of SIZES) {
       from = 'handover: a test'; for (const t of m.tests) add('handover', t.title, t.word, t.when, t.passesIf ? `Had to show: ${t.passesIf}` : '', t.said ? `Seen: ${t.said}` : '');
       from = 'handover: a test, its end'; for (const t of m.tests) if ((t.said ?? '').length > 120) add('handover', t.said.slice(-60));
       from = 'handover: a hand-over line'; for (const i of m.items) add('handover', i.title, i.state, i.who, i.said);
+      /* What was handed over, by name — each test's and each line's files. */
+      from = 'handover: files'; for (const x of [...m.tests, ...m.items]) add('handover', x.files);
       from = 'handover: still open'; add('handover', ...m.open);
     }
     from = 'handover: open on the line'; add('handover', ...ho.line);

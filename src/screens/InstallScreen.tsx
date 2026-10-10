@@ -191,7 +191,7 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
                           STAGEGATE.md flagged item 4) — Commission's place and
                           look, the drawer's own write: a late stage is done
                           today; one that hit a problem gets a fix planned. A
-                          sign-off with no name on it opens, to ask who signed. */}
+                          sign-off opens, to ask who signed. */}
                       {can.edit && (c.tone === 'problem' ? (
                         <span className="nd-acts">
                           <button type="button" className="btn btn-sm" onClick={() => nav(`/project/${projectId}/fixes?for=${encodeURIComponent(c.step.id)}`)}>Plan a fix</button>
@@ -199,7 +199,8 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
                       ) : c.step.outcome !== 'passed' && (
                         <span className="nd-acts">
                           <button type="button" className="btn btn-sm" onClick={() => {
-                            if (isSignOff(c.step) && !c.step.withWhom?.trim()) { openRecord(projectId, c.step.id); return; }
+                            /* A sign-off opens, to ask who signed — every time (docs/PANELS.md). */
+                            if (isSignOff(c.step)) { openRecord(projectId, c.step.id); return; }
                             void changeTests(tt, [c.step], doneTodayPatch(c.step, { tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs }, todayISO()),
                               `${c.step.title} done — ${machine}`);
                           }}>Done today</button>

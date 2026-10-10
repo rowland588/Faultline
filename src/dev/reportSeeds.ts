@@ -24,11 +24,21 @@ import { quarters } from '../lib/measures';
 import type { Cause, CauseStatus, Grade, SixM, Why } from '../lib/sixm';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 
-import type { Asset, Test, TestItem } from '../lib/testing';
+import type { Asset, DocRef, Test, TestItem } from '../lib/testing';
 import type { Material } from '../lib/materials';
 import type { Program } from '../lib/programs';
 
 const uid = () => crypto.randomUUID();
+
+/* FILES ON A STAGE (docs/PANELS.md) — only their names reach paper, so a
+   reference is enough; no bytes are stored. */
+const docsNamed = (names: string[]): DocRef[] =>
+  names.map((name, i) => ({ id: uid(), name, blobKey: `doc-seed-${uid()}`, mime: 'application/pdf', bytes: 180_000 + i * 7_000, savedAt: Date.now() }));
+const DRAWINGS = [
+  'GA drawing rev C.pdf', 'Electrical schematics — panel 1 and 2, rev F (as built).pdf', 'Pneumatic circuit.pdf',
+  'Spares list with supplier part numbers and lead times, agreed at the FAT.pdf', 'Declaration of conformity.pdf',
+  'Operating manual, English, issue 3.pdf', 'Maintenance schedule.pdf', 'Risk assessment (PUWER) signed.pdf', 'Training register.pdf',
+];
 const DAY = 86_400_000;
 const iso = (days: number) => new Date(Date.now() + days * DAY).toISOString().slice(0, 10);
 
@@ -172,6 +182,9 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
         plannedFor: roll < 0.15 ? undefined : iso(day),
         ranOn: done ? iso(day) : undefined,
         outcome, result,
+        /* The first hand-over line, done, carries what was handed over —
+           every drawing on the first machine, two on the rest. */
+        ...(g === 'handover' && si === 0 && done ? { docs: docsNamed(mi === 0 ? DRAWINGS : DRAWINGS.slice(0, 2)) } : {}),
       });
     });
     gate(INSTALL, undefined, -45, progress * 1.4);
@@ -361,7 +374,9 @@ export async function seedRandomJob(seed: number): Promise<ReportJob> {
       const o = outcome();
       T({ kind: 'install', gate: g === 'install' ? undefined : g as Test['gate'], title, assetId: a.id, plannedFor: day(), outcome: o, ranOn: o === 'planned' ? undefined : day(),
         // How it went, as the team said it — sometimes nothing, sometimes awkward, sometimes very long.
-        result: rand() < 0.45 ? say() || undefined : undefined });
+        result: rand() < 0.45 ? say() || undefined : undefined,
+        // Files on it, now and then, named anything at all (docs/PANELS.md).
+        ...(rand() < 0.2 ? { docs: docsNamed(Array.from({ length: 1 + Math.floor(rand() * 4) }, (_, i) => `${say() || 'file'}${i}.pdf`)) } : {}) });
     }
   }
   let firstProof: Test | undefined;

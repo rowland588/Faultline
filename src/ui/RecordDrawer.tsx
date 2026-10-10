@@ -67,6 +67,7 @@ import { RunBlock } from './RunPanel';
 import { offerUndo } from './Undo';
 import { ProblemRecord, problemOf } from './ProblemRecord';
 import { MachinePanel } from './MachinePanel';
+import { NotYetForm, recordNotYet } from './NotYet';
 
 /* ---------------- opening and closing: the URL carries it ---------------- */
 
@@ -239,6 +240,8 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   /* WHO SIGNED — asked when a sign-off with no name on it is ticked
      (docs/HANDOVER.md); null while not asking. */
   const [signer, setSigner] = useState<string | null>(null);
+  /* NOT YET, being answered (ui/NotYet, docs/PANELS.md). */
+  const [notYet, setNotYet] = useState(false);
   /* Bumped when a link to a picture is made, so the list of them reads again. */
   const [shareRev, setShareRev] = useState(0);
   /* SENDING A PICTURE OUTSIDE is the owner's call (supabase/SHARE_LINKS.sql),
@@ -247,7 +250,7 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   const [viewing, setViewing] = useState<MediaRef | null>(null);
   /* A fresh record, fresh forms: the problem form of one step must not stay
      open over the parent it opened. */
-  useEffect(() => { setProblem(hasKept(`problem:${id}::`)); setProblemPart(null); setEditing(hasKept(`edit:${id}:`)); setMeeting(false); setSigner(null); }, [id]);
+  useEffect(() => { setProblem(hasKept(`problem:${id}::`)); setProblemPart(null); setEditing(hasKept(`edit:${id}:`)); setMeeting(false); setSigner(null); setNotYet(false); }, [id]);
   /* Opened with a part named (openRecordAt): its problem form, open. */
   useEffect(() => {
     const want = split()[1].get(PROBLEM);
@@ -432,7 +435,8 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
           <span className="rd-arrow"> → </span>
           <span className={t.ranOn ? '' : 'sub'}>{actualWords}</span>
         </dd></div>
-        <div><dt>Who</dt><dd>{t.withWhom || <i className="sub">nobody named</i>}</dd></div>
+        {/* A sign-off done says who signed it (docs/PANELS.md item 2). */}
+        <div><dt>{isSignOff(t) && t.outcome === 'passed' ? 'Signed by' : 'Who'}</dt><dd>{t.withWhom || <i className="sub">nobody named</i>}</dd></div>
         {/* WHAT WAS AGREED — what the result is measured against ("passes if",
             "done means"); a fix's is its problem, said under "The problem". */}
         {kind !== 'fix' && t.passesIf?.trim() && <div><dt>{kind === 'install' ? 'Done means' : 'Passes if'}</dt><dd className="rd-said">{t.passesIf}</dd></div>}
@@ -442,6 +446,16 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
         {/* What was done, in its own words — written in Edit or said. */}
         {t.result?.trim() && <div><dt>{wordsOf(t).happened}</dt><dd className="rd-said">{t.result}</dd></div>}
       </dl>
+      {/* ITS FILES, UNDER ITS FACTS (docs/PANELS.md item 3) — "yes, here
+          they are" is part of the answer: drawings, a signed sheet, a
+          certificate, each one opening. They sat at the foot, the 12th of 15
+          controls, and reached no report. */}
+      {docs.length > 0 && (
+        <div className="rd-blk rd-files">
+          <small>Files · {docs.length}</small>
+          <RecordFiles test={t} tt={tt} can={can} />
+        </div>
+      )}
       {/* THE RUN (ui/RunPanel) — a performance run's numbers, first: how fast
           it ran, what it netted, the rejects, against what was agreed. */}
       {kind === 'test' && isRunTest(t) && <RunBlock key={'run-' + t.id} t={t} can={can} patch={fn => void tt.patchTest(t.id, fn)}
@@ -477,23 +491,36 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
       ) : editing ? (
         <RecordEdit key={'edit-' + t.id} t={t} tt={tt} can={can} names={names} onClose={() => setEditing(false)}
           onProblem={f => { setEditing(false); setProblem(f); }} />
+      ) : kind === 'install' && notYet ? (
+        <NotYetForm key={'ny-' + t.id} step={t} names={names} onCancel={() => setNotYet(false)}
+          onSave={a => { setNotYet(false); andClose(recordNotYet(tt, t, a)); }} />
       ) : kind === 'install' ? (
         <>
           <div className="rd-acts">
             {t.outcome !== 'passed' && (signer == null ? (
               <button type="button" className="btn btn-primary"
-                onClick={() => (isSignOff(t) && !t.withWhom?.trim() ? setSigner('') : andClose(doneToday()))}>Done today</button>
+                onClick={() => (isSignOff(t) ? setSigner('') : andClose(doneToday()))}>Done today</button>
             ) : (
-              /* A SIGN-OFF WITH NO NAME ON IT asks who signed, so the line
-                 says who accepted it as well as what. */
+              /* A SIGN-OFF ASKS WHO SIGNED, EVERY TIME (docs/PANELS.md item
+                 2). It asked only when the line had no name, and since 9
+                 October every line starts with one — the supplier, or the
+                 site — so "Safety sign-off (PUWER)" was one tap and the
+                 handover report said "The site" signed it. The box starts
+                 empty and offers the names on the job. */
               <span className="rd-signer">
-                <input className="text-input" autoFocus aria-label="Who signed it off?" placeholder="Who signed it off?"
+                <input className="text-input" autoFocus aria-label="Who signed it off?" placeholder="Who signed it off?" list="rd-signers"
                   value={signer} onChange={e => setSigner(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter' && signer.trim()) andClose(doneToday(signer)); }} />
+                <datalist id="rd-signers">{names.map(n => <option key={n} value={n} />)}</datalist>
                 <button type="button" className="btn btn-primary" disabled={!signer.trim()} onClick={() => andClose(doneToday(signer))}>Signed off today</button>
                 <button type="button" className="btn btn-ghost" onClick={() => setSigner(null)}>Cancel</button>
               </span>
             ))}
+            {/* NOT YET — what we are waiting for, whose, by when: a line owed
+                on the stage, never a problem (ui/NotYet). */}
+            {t.outcome !== 'passed' && signer == null && (
+              <button type="button" className="btn" onClick={() => setNotYet(true)}>Not yet</button>
+            )}
             {/* A stage can hit more than one problem — the button stays. */}
             <button type="button" className="btn ig-bad" onClick={() => setProblem(true)}>
               {t.outcome === 'failed' ? 'Another problem' : 'Hit a problem'}
@@ -622,7 +649,6 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
           own page, one link away; the drawer is its one home (docs/DOORS.md).
           Each is a block once it holds something, a line to start it before. */}
       <div className="rd-blk rd-more">
-        {docs.length > 0 && <><small>Files</small><RecordFiles test={t} tt={tt} can={can} /></>}
         {(notes.length > 0 || meeting) && (
           <>
             <small>For the meeting</small>

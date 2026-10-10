@@ -19,6 +19,7 @@ import { daysOverdue, stateOf, type Program } from './programs';
 import { standing } from './standing';
 import {
   gateOf, isOverdue, isSettled, live, needsVerdict, outcomeWord, type Asset, type StepGate, type Test, type TestItem,
+  filesSaid,
 } from './testing';
 import type { MediaRef } from '../types';
 import { GATE_WORD, lateOrProblem, lateOrProblemSays, doneLateBy, heldUpBy, lateByWords } from './install';
@@ -186,7 +187,9 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
         const late = by ? lateByWords(by) : '';
         /* And why, when the stage before lost the time (lib/install heldUpBy). */
         const held = by ? heldUpBy(t, tests, items, today) : undefined;
-        done.push({ text: t.kind === 'test' || !t.kind ? `${named(t)} passed${who(t.withWhom)}.` : `${named(t)} — ${word.toLowerCase()}${late ? `, ${late}` : ''}${held ? ` — ${held.words}` : ''}${who(t.withWhom)}.`, detail, tone: 'done', id: t.id,
+        /* Its files by name — "yes, here they are" (docs/PANELS.md). */
+        const withFiles = [detail, filesSaid(t)].filter(Boolean).join(' · ') || undefined;
+        done.push({ text: t.kind === 'test' || !t.kind ? `${named(t)} passed${who(t.withWhom)}.` : `${named(t)} — ${word.toLowerCase()}${late ? `, ${late}` : ''}${held ? ` — ${held.words}` : ''}${who(t.withWhom)}.`, detail: withFiles, tone: 'done', id: t.id,
           ...(late ? { which: 'late' as const, mark: late } : {}) });
       } else if (t.outcome === 'failed') {
         /* A stage says which: "— late, 2 h lost" in red, "— a problem, no
@@ -317,6 +320,17 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
   for (const i of items) {
     if (i.kind !== 'found' || dayOfMs(i.createdAt) !== date) continue;
     const onRec = tests.find(t => t.id === i.testId);
+    /* NOT YET (ui/NotYet, docs/PANELS.md) — what the stage is waiting for,
+       whose and by when, said that day; amber, waiting on somebody, and
+       never "found" as a problem. */
+    const owed = i.becameItemId ? items.find(x => x.id === i.becameItemId && x.kind === 'next') : undefined;
+    if (owed && onRec) {
+      wrong.push({
+        text: `${named(onRec)} — not yet: ${i.what}${who(owed.owner)}${owed.due ? `, by ${short(owed.due)}` : ''}${i.movedTo ? ` — its finish moved to ${short(i.movedTo)}` : ''}.`,
+        tone: 'asking', id: onRec.id,
+      });
+      continue;
+    }
     /* A CRITICAL PROBLEM written that day did not go to plan, and says so —
        unless it is still open that evening, when the line leading the day
        already says it, with how it stands (one thing, one place). */

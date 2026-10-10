@@ -45,6 +45,14 @@ export interface DocRef {
   savedAt: number;
 }
 
+/** ITS FILES IN WORDS — "2 files: GA drawings rev C.pdf, Schematics.pdf" —
+ *  for the day, the client report and the handover report, so "yes, here
+ *  they are" reaches paper by name (docs/PANELS.md item 3). '' when none. */
+export const filesSaid = (t: { docs?: DocRef[] }): string => {
+  const d = t.docs ?? [];
+  return d.length ? `${d.length} file${d.length === 1 ? '' : 's'}: ${d.map(x => x.name).join(', ')}` : '';
+};
+
 /* ================================= MACHINES ================================ */
 
 export type AssetState = 'awaited' | 'onSite' | 'installed' | 'running';

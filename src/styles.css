@@ -8258,6 +8258,7 @@ button.gt-fixlab small { font-size: 10px; }
 .sp-k { font-size: var(--t-label); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 1px 7px; border-radius: 999px; }
 .sp-k.is-move { background: color-mix(in srgb, var(--st-r) 12%, var(--surface)); color: var(--st-r); }
 .sp-k.is-found { background: color-mix(in srgb, var(--st-a) 14%, var(--surface)); color: var(--st-a); }
+.sp-k.is-wait { background: color-mix(in srgb, var(--st-a) 10%, var(--surface)); color: var(--st-a); }
 .sp-k.is-fix { background: color-mix(in srgb, var(--st-w) 12%, var(--surface)); color: var(--st-w); }
 .sp-k.is-fix.is-done { background: color-mix(in srgb, var(--st-g) 14%, var(--surface)); color: var(--st-g); }
 .sp-k.is-fix.is-open { background: var(--surface-2); color: var(--muted); }
@@ -11359,3 +11360,16 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
 .dy-fold-l .crit-tag { margin-left: 4px; }
 .dy-story { display: grid; gap: 4px; }
 .dy-story > .dy-headline { margin: 4px 0 8px; }
+
+/* ---- A STAGE'S "NO", ITS SIGNER, ITS FILES (docs/PANELS.md slice 1) ---- */
+/* Not yet — amber, waiting on somebody; never the red of a problem. */
+.ny { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border: 1.5px solid var(--st-a); border-radius: var(--radius); background: color-mix(in srgb, var(--st-a) 5%, var(--surface)); }
+.ny-h { margin: 0; font-weight: 800; color: color-mix(in srgb, var(--st-a) 75%, var(--ink)); }
+.ny-quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.ny-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.ny-row > .cw-f { flex: 1 1 180px; }
+/* A sign-off's column asks who signed, once for every machine. */
+.ig-signer { margin: 0 0 8px; }
+/* "2 files" beside a square's parts. */
+.ig-files { color: var(--muted); }
+.rd-files { gap: 4px; }
