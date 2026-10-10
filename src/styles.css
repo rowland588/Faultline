@@ -11538,3 +11538,8 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
 .sl-ba { margin: 0; font-size: var(--t-detail); color: var(--ink-2); }
 .sl-ba.is-g b { color: var(--st-g); }
 .sl-ba.is-r b { color: var(--st-r); }
+/* The line standard's balance, as a branch off the map (StandardScreen): where the line is limited, and the door. */
+.ls-balance-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 14px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.ls-bl-h { font-size: var(--t-label); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.ls-bl-say { font-size: var(--t-detail); color: var(--ink-2); }
+.ls-bl-say.is-short { color: var(--st-r); font-weight: 700; }

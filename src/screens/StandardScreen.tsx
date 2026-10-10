@@ -12,7 +12,7 @@
 import { useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import type { Project } from '../types';
 import { deleteStandard, framesForProject, getProject, getWorkspace, listSnagAssets, putBlob, putStandard } from '../db';
-import { nav } from '../state/useRoute';
+import { nav, useRoute } from '../state/useRoute';
 import { uid, now } from '../lib/ids';
 import { pdfFileName } from '../lib/fileName';
 import { todayISO } from '../lib/weeks';
@@ -25,6 +25,7 @@ import { Sheet } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
 import { deleteMap } from '../ui/StandardsCard';
 import { CapacityPanel } from './CapacityPanel';
+import { balanceSays } from './LineToolsScreen';
 import { useProjects } from '../lib/useProjects';
 import type { SnagAsset } from '../snag/types';
 import { Icon } from '../ui/Icon';
@@ -328,13 +329,13 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
   const [icons, setIcons] = useState(false);
   const [picture, setPicture] = useState(false);
   const [copying, setCopying] = useState(false);
-  /* Opened from Line balance (screens/LineToolsScreen, ?at=balance): straight
-     to the balance under the map. */
-  useEffect(() => {
-    if (!/[?&]at=balance\b/.test(window.location.hash)) return;
-    const id = window.setTimeout(() => document.getElementById('ls-balance')?.scrollIntoView({ block: 'start' }), 120);
-    return () => window.clearTimeout(id);
-  }, [s.id]);
+  /* TWO TOOLS, ONE RECORD (Rowland, 10 October: "you open 1 of them and see
+     both of them"). A product on a line is one record holding its map and its
+     balance (LINE_TOOLS.sql); Line balance opens the balance alone
+     (?at=balance), Line standard the map alone, each one tap from the other.
+     It used to be one page, the balance scrolled to under the map. */
+  const atBalance = useRoute().query.get('at') === 'balance';
+  const here = window.location.hash.slice(1).split('?')[0] || home.base;
   const [printing, setPrinting] = useState(false);
   const [product, setProduct] = useState(s.product);
   const [size, setSize] = useState({ bw: 0, bh: 0 });
@@ -502,6 +503,29 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
       : 'Tap a shape to select it, drag to move, pull the corner to resize. Tap it again to name it.';
   const fontPx = Math.max(10, size.bw * 0.017);
 
+  /* THE LINE BALANCE — the balance alone: the stations in order, each at its
+     own speed, and the one that holds the line back (lib/capacity). */
+  if (atBalance) return (
+    <div className="wrap pace ls lb">
+      <header className="ls-head">
+        <div className="ls-head-main">
+          <p className="sub"><button type="button" className="cw-link" onClick={() => nav(home.base)}>{home.wsId && !home.project ? 'Line maps and balances' : 'Line standard'}</button> · Line balance</p>
+          <h1 className="ls-product is-read">{s.product}</h1>
+        </div>
+        <div className="ls-head-actions">
+          <button type="button" className="btn btn-ghost" onClick={() => nav(here)}>The map for this product ›</button>
+        </div>
+      </header>
+      <BelongsTo s={s} home={home} can={can} onJob={projectId => void save({ projectId })} />
+      <div id="ls-balance" className="ls-balance">
+        <CapacityPanel projectId={s.projectId} board={false} can={can}
+          line={{ id: s.id, name: s.product, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.capacity ? { capacity: s.capacity } : {}) }}
+          onSave={cap => save({ capacity: cap })} />
+      </div>
+    </div>
+  );
+  const balanceSaid = balanceSays(s);
+
   return (
     <div className="wrap pace ls">
       <header className="ls-head">
@@ -631,14 +655,13 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
           wanted. Changing the job is the owner's, as the map is. */}
       <BelongsTo s={s} home={home} can={can} onJob={projectId => void save({ projectId })} />
 
-      {/* THE LINE BALANCE for this product (lib/capacity) — the stations in
-          order, each at its own speed, and the one that holds the line back.
-          The same panel a 6M line uses, without its board: nothing here is
-          raised as an action unless it is on a job's board. */}
-      <div id="ls-balance" className="ls-balance">
-        <CapacityPanel projectId={s.projectId} board={false} can={can}
-          line={{ id: s.id, name: s.product, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.capacity ? { capacity: s.capacity } : {}) }}
-          onSave={cap => save({ capacity: cap })} />
+      {/* THE LINE BALANCE for this product — a branch off the map, one line:
+          where the line is limited, and the door to the balance itself
+          (?at=balance). The panel is on its own page. */}
+      <div className="ls-balance-line">
+        <span className="ls-bl-h">Line balance</span>
+        <span className={'ls-bl-say' + (balanceSaid.short ? ' is-short' : '')}>{balanceSaid.text}</span>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`${here}?at=balance`)}>Open the balance ›</button>
       </div>
 
       <Sheet open={!!editingMark && !ro} onClose={() => { if (editingMark) void putStandard({ ...s, marks }); setEditing(null); }}
