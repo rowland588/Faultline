@@ -9,6 +9,7 @@ import type { Reading, Target } from '../lib/measures';
 import type { Material } from '../lib/materials';
 import type { Program, ProgramState } from '../lib/programs';
 import type { Standard, StandardMark } from '../lib/standard';
+import { factsOf, listById, type StudyUse, type ToolStudy } from '../lib/study';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 
 type Row = Record<string, unknown>;
@@ -652,6 +653,44 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     } satisfies Standard),
   },
 
+  /* A STUDY — one use of a tool (lib/study.ts, supabase/STUDIES.sql). Its
+     maker is kept, as a line's rows keep theirs: "not filed" means its
+     maker's alone, so the push must not hand it to whoever saved it last.
+     The facts and the uses are id-keyed lists (an entry with no id is
+     dropped). A tool or a fact list this build does not know is kept as it
+     came, so an older phone saving the row back never rewrites a newer one's. */
+  studies: {
+    clock: l => (l as ToolStudy).updatedAt,
+    mediaKeys: () => [],
+    toRow: (l, fallbackOwner) => {
+      const s = l as ToolStudy;
+      return {
+        id: s.id, owner_id: s.ownerId ?? fallbackOwner, tool: s.tool, name: s.name ?? '',
+        workspace_id: s.workspaceId ?? null, project_id: s.projectId || null,
+        machine: s.machine ?? null, asset_id: s.assetId ?? null,
+        product: s.product ?? null, program_id: s.programId ?? null, standard_id: s.standardId ?? null,
+        agreed: s.agreed ?? null, facts: s.facts ?? {}, uses: s.uses ?? [],
+        started_at: s.startedAt, closed_at: s.closedAt ?? null,
+        receipt: s.receipt ?? null, overrule: s.overrule ?? null,
+        created_at: s.createdAt, updated_at: s.updatedAt, deleted_at: s.deletedAt ?? null,
+      };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, ownerId: (r.owner_id as string) ?? undefined,
+      tool: r.tool as ToolStudy['tool'], name: (r.name as string) ?? '',
+      workspaceId: (r.workspace_id as string) ?? undefined, projectId: (r.project_id as string) ?? undefined,
+      machine: (r.machine as string) ?? undefined, assetId: (r.asset_id as string) ?? undefined,
+      product: (r.product as string) ?? undefined, programId: (r.program_id as string) ?? undefined,
+      standardId: (r.standard_id as string) ?? undefined,
+      agreed: r.agreed && typeof r.agreed === 'object' ? r.agreed as ToolStudy['agreed'] : undefined,
+      facts: factsOf(r.facts), uses: listById<StudyUse>(r.uses),
+      startedAt: Number(r.started_at), closedAt: n(r.closed_at),
+      receipt: r.receipt && typeof r.receipt === 'object' ? r.receipt as ToolStudy['receipt'] : undefined,
+      overrule: r.overrule && typeof r.overrule === 'object' ? r.overrule as ToolStudy['overrule'] : undefined,
+      createdAt: Number(r.created_at), updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
+    } satisfies ToolStudy),
+  },
+
   materials: {
     clock: l => (l as Material).updatedAt,
     mediaKeys: () => [],
@@ -740,4 +779,7 @@ export const SYNC_KINDS: SyncKind[] = [
   'programs',
   // after the programs, because a map can name the one it is for
   'standards',
+  // last, because a study can name a machine, a program, a standard, a test,
+  // a problem or a fix — everything it is evidence for is already up
+  'studies',
 ];

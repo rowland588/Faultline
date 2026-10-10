@@ -213,11 +213,31 @@ test.
 Seven layers. Each is on `main` only when whole. The early layers change
 nothing on screen.
 
-**2a. The record.**
+**2a. The record.** Built 10 October. Decision 0, the Cpk lines and the
+packers' rules agreed with "go, start release 2".
 - `supabase/STUDIES.sql`: the table, its indexes and its policies (maker;
   line members; job members; the client's restrictive policy).
-- Applied, and `pg_policies` read back for `studies`.
-- The mapper, `sync-schema.test.ts`, and the live schema check.
+- Applied as `STUDIES` (the first attempt came back "cancelled" with nothing
+  landed; the file was made to drop nothing and applied again). Read back:
+  - 22 columns, the tool check, the five indexes;
+  - five policies: three permissive (the maker, the line's members, the
+    job's members) and two restrictive (on a job, writing needs the owner,
+    the administrator or the team, so a client reads only);
+  - the cursor trigger, the guard trigger and its function, realtime, row
+    level security on, and the entry in the migration history.
+- **The guard** (`faultline_keep_study_agreement`, its own function so the
+  shared one is never replaced from a file): on a job, anyone but the
+  owner keeps what was agreed once written, which job it is on, a closed
+  study's receipt, and `deleted_at`.
+- **The app:** `lib/study.ts` (the record), `db/studies.ts`, the device's
+  store (version 20), the mapper (the maker kept; a tool or a fact list
+  this build does not know kept as it came), and `studies` synced last.
+- **When a job is deleted for good:** a study only on the job goes with
+  it; one also on a line stays with the line, unlinked.
+- **Proved by:** `sync-schema.test.ts` and `sync-wiring.test.ts` (every
+  column the mapper sends exists in the migrations, and both directions
+  agree), the live table's columns read against the mapper by hand (the
+  live schema check needs `.env`), and 7 unit tests in `studies.test.ts`.
 - Nothing on screen.
 
 **2b. The list merge.**

@@ -22,7 +22,8 @@ catalogue; this says, for the whole toolkit and then tool by tool:
 - **what it looks like** — the one frame every tool shares, the sixteen
   parts they are drawn with, on a phone, a laptop and one page of paper.
 
-**Nothing here is built.** Every rule in `CLAUDE.md` holds: measured by
+**Built so far:** the record (`studies`, release 2a, 10 October;
+`docs/BUILD.md`). The rest is design. Every rule in `CLAUDE.md` holds: measured by
 people, additions connect, screen and paper together, one colour one
 meaning, simple with detail, manufacturing is many, and no new noun but
 the one Part 0 argues for.

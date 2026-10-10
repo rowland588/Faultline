@@ -209,6 +209,13 @@ const PROJECT_OWNED_SCANNED = ['pace_ppm', 'pace_todos', 'pace_wins', 'pace_snap
 const PROJECT_NAMED = ['cases'] as const;
 const namedBy = (id: ID) => (r: unknown) => (r as { projectId?: string }).projectId === id;
 
+/** A job's STUDIES (lib/study.ts) are evidence, not the job's work. One that is
+ *  only on the job goes with it. One that is also on a line stays with the
+ *  line, unlinked from the job — a year of measurements of a running machine
+ *  is not destroyed because the job that borrowed them was deleted, the same
+ *  rule the walk keeps. */
+const goesWithJob = (s: { workspaceId?: string; deletedAt?: number }) => !s.workspaceId;
+
 /** Plain words for a store, for a person being asked to destroy it. */
 export const STORE_WORDS: Record<string, string> = {
   pace_ppm: 'lines',
@@ -226,6 +233,7 @@ export const STORE_WORDS: Record<string, string> = {
   project_actuals: 'weekly actuals',
   programs: 'programs',
   standards: 'line standard maps',
+  studies: 'studies taken with the tools that are on no line',
   cases: 'problems, with their fishbones',
 };
 
@@ -249,6 +257,8 @@ export async function projectContents(id: ID): Promise<{ store: string; count: n
     const live = (await db.getAll(store)).filter(namedBy(id)).filter(r => !(r as { deletedAt?: number }).deletedAt);
     if (live.length) out.push({ store, count: live.length });
   }
+  const studies = (await db.getAllFromIndex('studies', 'by_project', id)).filter(s => !s.deletedAt && goesWithJob(s));
+  if (studies.length) out.push({ store: 'studies', count: studies.length });
   return out;
 }
 
@@ -267,10 +277,11 @@ export async function projectContents(id: ID): Promise<{ store: string; count: n
  *  That belongs to the machine rather than to whoever was looking at it this
  *  quarter, and deleting a finished handover must not destroy a year of evidence
  *  about a line that is still running. A workspace with no project is still
- *  reachable from the workspace list. */
+ *  reachable from the workspace list. So does a study that is on a line as
+ *  well as the job: it stays with the line, unlinked (goesWithJob, above). */
 export async function purgeProject(id: ID): Promise<void> {
   const db = await getDB();
-  const bury = async (store: typeof PROJECT_OWNED[number] | typeof PROJECT_OWNED_SCANNED[number] | typeof PROJECT_NAMED[number], ids: string[]) => {
+  const bury = async (store: typeof PROJECT_OWNED[number] | typeof PROJECT_OWNED_SCANNED[number] | typeof PROJECT_NAMED[number] | 'studies', ids: string[]) => {
     if (!ids.length) return;
     const tx = db.transaction(store, 'readwrite');
     for (const rowId of ids) await tx.store.delete(rowId);
@@ -289,6 +300,11 @@ export async function purgeProject(id: ID): Promise<void> {
   for (const store of PROJECT_NAMED) {
     const rows = (await db.getAll(store)).filter(namedBy(id));
     await bury(store, rows.map(r => (r as { id: string }).id));
+  }
+  const studies = await db.getAllFromIndex('studies', 'by_project', id);
+  await bury('studies', studies.filter(goesWithJob).map(s => s.id));
+  for (const s of studies.filter(x => !goesWithJob(x))) {
+    await db.put('studies', { ...s, projectId: undefined, uses: [], updatedAt: now() });
   }
   await db.delete('projects', id);
   await recordTombstones('projects', [id]);

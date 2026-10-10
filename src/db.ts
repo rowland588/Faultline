@@ -40,3 +40,4 @@ export * from './db/measures';
 export * from './db/materials';
 export * from './db/programs';
 export * from './db/standards';
+export * from './db/studies';
