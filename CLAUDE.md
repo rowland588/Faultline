@@ -65,7 +65,10 @@ its availability is a guess). The lean and industrial-engineering tools —
 time study, the value stream map, line balancing, capacity and constraints,
 losses — are built from manual inputs and calculated live. `docs/LEAN40.md`
 holds the eight principles the app follows (for Rowland to agree), the stage
-gate held to them, and the toolkit with its arithmetic.
+gate held to them, and the toolkit with its arithmetic; `docs/TOOLKIT.md` is
+the toolkit's design — the five layers every tool follows (facts → figures →
+reading → verdict → act), the honesty rules (enough? how known? what it does
+not claim), the records, the sixteen shared parts, and each tool in full.
 
 They are separate methods, not one loop pretending to be cohesive; each is
 defined once, the same way, in `src/lib/planModel.ts` (the question, when to

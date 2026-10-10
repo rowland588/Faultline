@@ -274,6 +274,14 @@ test packs through the metal detector, or five seal-strength pulls.
 
 ## The industrial-engineering toolkit — to agree
 
+**The full design is `docs/TOOLKIT.md`** (Rowland, later the same day:
+"more emphasis on the tools and the tool design, such as Cpk ... the whole
+intelligence model ... exactly how the tools will be used, how they're built,
+what they'll look like, full design system"): the five-layer model every
+tool follows, the records each fact lives on, the sixteen shared parts, and
+each tool's use, module, sentences, screen and paper. This section stays as
+the catalogue.
+
 Industrial engineering asks five questions of a line, and Lean 5.0 adds a
 sixth:
 1. How long should the work take?
