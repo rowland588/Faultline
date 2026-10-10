@@ -227,17 +227,33 @@ Nobody types the forecast."* **Built 10 October** (`lib/pace.ts`).
 
 **2. The climb to rate.** *To a client: "Every run is plotted the moment
 it's recorded, and the app says when the line will reach rate at this
-climb."*
-- **What it does.** A product run on a machine on successive days
-  (`ProductRun`, already kept) is drawn as dots climbing to the agreed-rate
-  line. From three runs it says where the climb meets the line.
+climb."* **Built 10 October** (`lib/rampUp.ts`, `ui/Climb.tsx`).
+- **What it does.** It reads every measured run of a product on a machine,
+  across every run test and re-run on the job (`ProductRun`, already kept).
+  It fits them as a learning curve: the time per pack falls by a steady
+  share each time the number of runs doubles. From that it says the run
+  where the climb meets the agreed rate, and a day at the runs' own cadence.
+- **The words, as built.** "Jacks Piper 1.25kg: 52 → 56 → 58.5 a minute over
+  3 runs — at this climb, the agreed 60 about Sun 11 Oct (run 4)."
 - **Screen.**
-  - The run's card and the machine's page: "Finest Red 2 kg: 96 → 108 →
-    114 a minute over 3 runs; at this climb, the agreed 120 about 22 Oct."
-  - Under three runs: "too early — 2 runs".
-- **Paper.** The run's card and the client report's account of the run.
+  - **The picture:** the runs as dots in ink, the agreed rate dashed, and the
+    fitted climb dotted on to where it meets the rate. No state's colour.
+  - **Where it shows:** under the products on the run's page and in its
+    drawer, and on the machine's page in its Commission.
+- **Paper.** The client report, under the Performance runs table, and the
+  run's card, under its run. `report-stress` demands both.
+- **What it refuses to guess:**
+  - one run is not a climb;
+  - two runs: "too early to say when";
+  - time per pack not falling: "not climbing", in amber, never a date;
+  - the latest run at the rate: "at the agreed";
+  - nothing agreed: nothing is drawn.
 - **Does not touch.** The run, its numbers or its verdict (`lib/run`,
   unchanged). It only reads the runs.
+- **Changed from the design, and why.** It does not compare itself with the
+  handover date. Not every place a run is shown knows the job's dates, so
+  the same run would read differently in different places. The handover is
+  the pace's to judge (piece 1).
 
 **3. Scan the machine.** *To a client: "Each machine carries a code. Scan
 it at the line, and you're on everything about that machine: record it

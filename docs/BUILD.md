@@ -117,15 +117,30 @@ Four pieces, built lowest risk first. No database change.
   with the verdict unchanged and no console errors. "Use this date" was not
   built, because step 1 writes nothing.
 
-**1b. The climb to rate.**
-- **Arithmetic:** `lib/rampUp.ts` (a log-log fit). Tested with:
-  - three or more runs climbing;
-  - under three ("too early");
-  - a flat or falling climb: "not climbing — at this rate it does not
-    reach 120";
-  - a run already at rate.
-- **Screens:** the run's card and the machine's page.
-- **Paper:** the client report's account of the run.
+**1b. The climb to rate.** Built 10 October.
+- **Arithmetic:** `lib/rampUp.ts`, a learning-curve fit (log of the time per
+  pack against log of the run). 12 unit tests:
+  - the worked example: 96, 108, 114 against 120 gives a 90% curve, run 5,
+    13 Oct;
+  - two runs, "too early";
+  - not climbing;
+  - at the rate already;
+  - the last five listed;
+  - never forecasting a run already done;
+  - across tests and re-runs, one product under two spellings, two
+    machines, the latest agreed rate;
+  - one run, or nothing agreed, gives no climb.
+- **Screens:** the run's page and its drawer (with the picture), and the
+  machine's page. `smoke` loads them on a seed that now holds a three-run
+  climb (an earlier attempt at the wrapper's run).
+- **Paper:** the client report under its runs and the run's card;
+  `report-stress` demands both.
+- **Browser:** driven at 1360 and 390, as owner and client:
+  - the same sentence on the page, the drawer and the machine;
+  - three dots, the fitted climb, and the run where it meets the rate;
+  - a fourth run at 60.3 turns it to "at the agreed 60";
+  - it is on the printed card;
+  - no console errors.
 
 **1c. Since you last looked.**
 - **Arithmetic:** `lib/since.ts`, pure: the records and the last visit in,
