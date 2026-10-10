@@ -257,21 +257,30 @@ climb."* **Built 10 October** (`lib/rampUp.ts`, `ui/Climb.tsx`).
 
 **3. Scan the machine.** *To a client: "Each machine carries a code. Scan
 it at the line, and you're on everything about that machine: record it
-there and then."*
-- **What it does.** Reports gains **Machine labels**: one PDF sheet, a label
-  per machine, each with the machine's name, the job and a QR code. Stuck on
-  the machine, the code opens that machine's page in the job with the
-  phone's camera. That page already exists (flow slice 2): its stages, its
-  tests, its problems and what it waits on, with Done today, Hit a problem
-  and photos one tap away.
-- **On paper as well.** The client report and the handover pack carry one
-  small code by their date: "This is the job as it stood at 16:40, 10 Oct.
-  Scan for it now." A paper that points to the live record is the bridge
-  from a report to the record.
-- **Does not touch.** Any route (the link is the one the drawer already
-  writes) or any record. One small QR library is added (no other
-  dependencies, a few KB); the labels go through the report engine and
-  `report-stress`.
+there and then."* **Built 10 October** (`lib/qr.ts`, `lib/machineLabels.ts`,
+`lib/report/codeHeader.ts`).
+- **The labels, as built.** One A4 sheet, two labels to a row, dashed cut
+  lines. Each label: the code; the machine's name; its supplier and the
+  job; "Scan with your phone's camera to open this machine in Faultline." A
+  long name wraps and the label grows; nothing is cut.
+- **Where they are printed:**
+  - **Reports → Machine labels:** every machine on the job.
+  - **A machine's own page:** "Print its label — PDF", for the one that
+    arrived late or lost its sticker.
+- **What a code opens.** The machine's page in the job (flow slice 2): its
+  stages, its tests, its problems and what it waits on, with Done today, Hit
+  a problem and photos one tap away.
+- **On paper as well.** The client report, the one-page status and the
+  handover pack carry a small code beside their title, with "Scan for it
+  now" under it and "as it stood at 16:40" on the printed line. It opens the
+  job as it is now. It sits beside the title, so the status stays one page.
+  A paper that points to the live record is the bridge from a report to the
+  record.
+- **Does not touch.** Any route (the link is the one the app already opens a
+  machine with) or any record. One small QR library is added,
+  `qrcode-generator` 2.0.4, pinned, with no dependencies of its own. The
+  code is drawn as squares in the PDF, not as a picture, so it stays sharp
+  at any size. The labels go through the report engine and `report-stress`.
 - **Honest limit.** On an iPhone a scanned link opens in Safari, not the
   installed app, so Safari needs signing in once. On Android it usually
   opens the app. A person without access to the job sees the sign-in, and

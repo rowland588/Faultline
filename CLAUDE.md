@@ -134,6 +134,7 @@ npx vite build
 node scripts/smoke.mjs                # needs a dev server on 5191, or SMOKE_BASE
 node scripts/report-stress.mjs        # every report at tiny, ordinary and huge — same server
 node scripts/report-stress.mjs /tmp/fuzz --fuzz 40   # forty random jobs, every fact reconciled
+node scripts/acceptance/stagegate-step1.mjs   # release 1's four stories, driven — same server
 node scripts/sync-two-devices.mjs     # a phone and a laptop against a fake cloud — video on one plays on the other
 node scripts/check-live-schema.mjs    # the LIVE database against the mapper — needs .env
 ```
@@ -150,6 +151,13 @@ The lint number is a **ceiling that only ever comes down**. The remaining
 warnings are a backlog (mostly non-null assertions), not a standard. If a change
 removes some, lower the number in `package.json` and `.github/workflows/checks.yml`
 in the same commit. Never raise it to get green.
+
+`scripts/acceptance/` holds one script per finished release
+(`docs/BUILD.md`). It drives the release's stories on the seeded job in a
+real browser and checks every sentence on the screen against the module that
+makes it, so what was proved when a release was built stays proved in every
+gate after. `stagegate-step1.mjs` is release 1: the pace says when, the climb
+to rate, since you last looked, scan the machine.
 
 `scripts/sync-two-devices.mjs` runs two real devices of the app (a phone and a
 laptop, separate storage) against `scripts/fake-cloud.mjs`, which keeps the

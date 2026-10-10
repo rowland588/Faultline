@@ -165,18 +165,48 @@ Four pieces, built lowest risk first. No database change.
   back, not two browsers. The two devices do not share a store without the
   sync running, and the last visit is per device by design.
 
-**1d. Scan the machine.**
-- **Library:** one small QR library, pinned to an exact version.
-- **Paper:** the labels PDF through the report engine; `report-stress`
-  checks every machine's name and code on a label, nothing off the page. The
-  code is also added to the client report and the handover pack.
-- **Browser:** a label's link opens the machine's page in the job; a person
-  without access sees the sign-in only.
+**1d. Scan the machine.** Built 10 October.
+- **Library:** `qrcode-generator` 2.0.4, pinned exactly, MIT, no
+  dependencies of its own.
+- **Paper:** the labels PDF through the report engine. `report-stress`
+  downloads it from the Reports door and demands every machine's name,
+  nothing off the page. The code is also on the client report, the one-page
+  status and the handover pack; `report-stress` demands "Scan for it now" on
+  each, and the status still one page.
+- **Arithmetic:** 7 unit tests: the code's shape and its three finder
+  squares; the same link gives the same code; a machine's link and a job's
+  link; one label per machine in the job's order, deleted ones left out; the
+  header with no address is exactly the three lines it was.
+- **Browser:** driven in Chromium, and the printed codes decoded back from
+  the rendered PDFs:
+  - the sheet's three codes each scan to their own machine;
+  - a machine's own label scans to it, and the link opens that machine's
+    page;
+  - a phone with no sign-in gets the sign-in, and nothing of the job;
+  - the status, the full client report and the handover pack each carry a
+    code that scans to the job.
+- **Changed from the plan:** the code is on the one-page status too, not
+  only the client report and the handover pack, because the status is the
+  paper most often left on a desk. The programs report has none: it is a
+  list for the OEM's engineer, not the job.
 - **Your five-minute check:** scan a printed label with an iPhone (opens in
   Safari, sign in once) and an Android phone.
 
 **Release 1's acceptance:** `scripts/acceptance/stagegate-step1.mjs` drives
-all four on the seeded job, and joins the gate from then on.
+all four on the seeded job, and joins the gate from then on. Built 10
+October and in the gate. Each sentence on the screen is checked against the
+module that makes it, run on the same records:
+- **the pace** on the seed (the coder with nothing on its list), then with
+  the coder given its list and a due day (forecast after it arrives), and
+  its day on the plan;
+- **the climb:** the run's sentence and the number of runs drawn;
+- **since you last looked:** three days away, then back at once;
+- **the labels:** one for every machine, and the status still one page with
+  its code.
+
+It reads the paper for its words. The codes were decoded back to their links
+when 1d was built; no QR reader is added to the app's dependencies for a
+test.
 
 ### Release 2 — the ecosystem, proven by the capability study
 

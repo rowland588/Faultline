@@ -767,6 +767,13 @@ await run(5, 'a 20-second film, with the first uploads dying mid-way', async () 
   const failedAt = Date.now();
   await waitFor(() => cloud.uploadsRefused.dropped >= 2, 30_000);
   check(cloud.uploadsRefused.dropped >= 2, 'the first uploads died mid-way', `dropped=${cloud.uploadsRefused.dropped}`);
+  /* The fake cloud counts a drop when the request ARRIVES; the phone's count
+     is set when its pass ends, after the upload's error has come back. Three
+     attempts in all (two drops, then the one that lands) means the two drops
+     can be ONE upload as the app saw it, the browser re-sending a request
+     whose connection was cut. Read at once, under load, it raced that pass
+     and read the count from before the film. So ask once no pass is running. */
+  await waitFor(async () => (await status(p)).state !== 'syncing', 15_000);
   const s1 = await status(p);
   check(s1.pendingUp > 0 || cloud.objects.has(`media/${clip.blobKey}`), 'the phone counts the file as still to go up', `pendingUp=${s1.pendingUp}`);
   const up = await waitFor(() => cloud.objects.has(`media/${clip.blobKey}`), 75_000, 500);
