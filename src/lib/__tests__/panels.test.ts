@@ -73,3 +73,51 @@ describe('files, by name, wherever the stage reaches', () => {
     expect(so?.who).toBe('K. Ahmed');
   });
 });
+
+/* SLICE 2 — A STAGE'S ANSWER (docs/PANELS.md items 4–5): one rule, in this
+   order — the owner's choice, what the record holds, whole words, Done. */
+import { answerByName, answerOf, chosenAnswer, isSignOff } from '../install';
+import { isProgramsStage } from '../programs';
+import { isRunTest } from '../run';
+
+describe('a stage’s answer', () => {
+  const st = (title: string, gate?: 'setup' | 'handover'): Test => ({ id: title, projectId: 'p', kind: 'install', ...(gate ? { gate } : {}), title, outcome: 'planned', sort: 1, createdAt: 1, updatedAt: 1 });
+  const test = (title: string, o: Partial<Test> = {}): Test => ({ id: title, projectId: 'p', title, outcome: 'planned', sort: 1, createdAt: 1, updatedAt: 1, ...o });
+
+  it('by its name, in whole words — no accidental matches', () => {
+    expect(answerByName(st('Client signed off', 'handover'))).toBe('signoff');
+    expect(answerByName(st('Documents signed off'))).toBe('signoff');
+    expect(answerByName(st('Production acceptance', 'handover'))).toBe('signoff');
+    expect(answerByName(st('Signal tower checked', 'handover'))).toBe('done');
+    expect(answerByName(st('Signage fitted', 'handover'))).toBe('done');
+    expect(answerByName(st('Drawings delivered'))).toBe('paperwork');
+    expect(answerByName(st('Manuals and drawings handed over', 'handover'))).toBe('paperwork');
+    expect(answerByName(st('Spares list agreed', 'handover'))).toBe('paperwork');
+    expect(answerByName(st('Programs loaded', 'setup'))).toBe('programs');
+    expect(answerByName(st('Training programme agreed', 'setup'))).toBe('done');
+    expect(answerByName(st('Programs loaded'))).toBe('done');          // programs only at Set up
+    expect(answerByName(st('Positioned and levelled'))).toBe('done');
+    expect(answerByName(test('Performance run at the agreed rate'))).toBe('run');
+    expect(answerByName(test('Weight accuracy — 400g'))).toBe('done');
+  });
+
+  it('the owner’s choice wins, kept by name at its gate', () => {
+    const job = { gateStages: { usualAnswer: { 'handover:handover meeting': 'signoff' as const, 'install:drawings delivered': 'done' as const, 'commission:output conveyor interlock proven': 'done' as const } } };
+    expect(chosenAnswer(job, st('Handover meeting', 'handover'))).toBe('signoff');
+    expect(isSignOff(st('Handover meeting', 'handover'), job)).toBe(true);
+    expect(isSignOff(st('Handover meeting', 'handover'))).toBe(false);
+    expect(answerOf(st('Drawings delivered'), job)).toBe('done');
+    expect(isRunTest(test('Output conveyor interlock proven'), answerOf(test('Output conveyor interlock proven'), job))).toBe(false);
+    expect(isRunTest(test('Output conveyor interlock proven'))).toBe(true);   // the name alone still reads a run
+  });
+
+  it('what the record holds keeps it — a rename never loses what is on it', () => {
+    const renamed = st('PLC software downloaded', 'setup');
+    const said: TestItem = { id: 'pp', projectId: 'p', testId: renamed.id, kind: 'next', what: 'Express 1.25 kg', results: [{ is: 'passed', on: TODAY, at: 1 }], sort: 1, createdAt: 1, updatedAt: 1 };
+    expect(answerOf(renamed, undefined, [said])).toBe('programs');
+    expect(isProgramsStage(renamed, answerOf(renamed, undefined, [said]))).toBe(true);
+    expect(isProgramsStage(renamed)).toBe(false);
+    const run = test('Line trial', { run: { minutes: 30, packs: 1800 } });
+    expect(answerOf(run, { gateStages: { usualAnswer: { 'commission:line trial': 'done' } } })).toBe('run');
+  });
+});

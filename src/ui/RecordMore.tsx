@@ -227,6 +227,21 @@ function ItemRow({ item, tt, can, onView }: { item: TestItem; tt: TT; can: Can; 
 /** Files somebody was sent — an OEM report, a spec. Saved in the app so they
  *  open on the floor with no signal, by the same route a generated report
  *  leaves by. */
+/** ATTACH FILES TO A RECORD — the bytes to the device's store (they ride the
+ *  same sync as a picture), the names on the record. One write for "Attach a
+ *  PDF" and for a paperwork stage's "Here they are" (docs/PANELS.md).
+ *  Returns how many were kept. */
+export async function attachFiles(tt: Pick<TT, 'patchTest'>, testId: string, files: FileList | File[]): Promise<number> {
+  const next: DocRef[] = [];
+  for (const f of Array.from(files)) {
+    const blobKey = `doc-${uid()}`;
+    await putBlob(blobKey, f);
+    next.push({ id: uid(), name: f.name, blobKey, mime: f.type || 'application/pdf', bytes: f.size, savedAt: Date.now() });
+  }
+  if (next.length) await tt.patchTest(testId, cur => ({ docs: [...(cur.docs ?? []), ...next] }));
+  return next.length;
+}
+
 export function RecordFiles({ test, tt, can }: { test: Test; tt: TT; can: Can }) {
   const pick = useRef<HTMLInputElement>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -236,13 +251,7 @@ export function RecordFiles({ test, tt, can }: { test: Test; tt: TT; can: Can })
     if (!files?.length) return;
     setErr(null);
     try {
-      const next: DocRef[] = [];
-      for (const f of Array.from(files)) {
-        const blobKey = `doc-${uid()}`;
-        await putBlob(blobKey, f);
-        next.push({ id: uid(), name: f.name, blobKey, mime: f.type || 'application/pdf', bytes: f.size, savedAt: Date.now() });
-      }
-      await tt.patchTest(test.id, cur => ({ docs: [...(cur.docs ?? []), ...next] }));
+      await attachFiles(tt, test.id, files);
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'That file could not be saved.');
     }

@@ -23,6 +23,7 @@ import { provingTestOf, testCell } from './commission';
 import { programRunSays, runsOfProgram } from './programRun';
 import { partStatus, partsOf, resultNow, resultWords } from './noted';
 import { niceDay, todayISO } from './weeks';
+import { answerOf, type AnswerHolder } from './install';
 
 /** The house colours: green done, red failed or late, indigo under way,
  *  amber waiting on a verdict, grey not started. */
@@ -92,7 +93,9 @@ function partWordsOf(i: TestItem, today: string): Pick<ProgramLine, 'word' | 'to
   return { word: st.word, tone: st.tone, bucket: st.bucket, ...(st.said?.note ? { note: st.said.note } : {}) };
 }
 
-export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: Asset[]; programs: Program[]; today?: string }): ProgramsReading | undefined {
+export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: Asset[]; programs: Program[]; today?: string;
+  /** The job, so a stage the owner made the programs stage is one (lib/install answerOf). */
+  holder?: AnswerHolder }): ProgramsReading | undefined {
   const today = x.today ?? todayISO();
   const tests = live(x.tests);
   const assets = live(x.assets);
@@ -100,7 +103,10 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
   const nameOf = (id?: string) => assets.find(a => a.id === id)?.name ?? 'The line';
   /* The machines in the job's order, the line itself last. */
   const order = [...assets.map(a => a.id), ''];
-  const stages = tests.filter(isProgramsStage);
+  /* The programs stages by their answer — the owner's choice, the programs
+     already said on one, then the name (docs/PANELS.md) — so "Programs
+     loaded" renamed "PLC software downloaded" keeps its programs. */
+  const stages = tests.filter(t => isProgramsStage(t, answerOf(t, x.holder, x.items)));
   const machines: { name: string; lines: ProgramLine[] }[] = [];
   for (const m of order) {
     const group: ProgramLine[] = [];

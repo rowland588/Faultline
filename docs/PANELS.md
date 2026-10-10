@@ -414,4 +414,66 @@ handover reports. The seeds now carry files: nine long names on one
 machine, and random ones on the fuzz jobs. Unit tests:
 `src/lib/__tests__/panels.test.ts`.
 
-Slice 2, the answer on the stage list, waits for your word.
+## Decided and built — slice 2, 10 October
+
+Rowland: "do panel slice 2 next."
+
+4. **Every stage has an answer.** It is one of Done, Paperwork, Sign-off,
+   Programs (Set up only) or, on a test, Run (`lib/install` `answerOf`).
+   One rule decides, in this order:
+   1. what the owner chose for that name at that gate on this job;
+   2. what the record already holds: numbers kept make a run, and
+      programs with a status said make the programs stage;
+   3. whole words of the name;
+   4. otherwise Done.
+   - **Where it is chosen.** On the stage list, beside "with the supplier /
+     with the site", one chip each. For a machine's own stage, the owner
+     chooses in its Edit. It is the owner's (`can.agree`); the team and a
+     client see the panel it gives, not the control.
+   - **How it is kept.** In `gate_stages` `usualAnswer`, keyed like
+     `usualWith`. Only a choice that differs from what the name gives is
+     kept. No database change.
+   - **The usual lists' starting answers.** The two sign-offs are
+     Sign-off; "Manuals and drawings handed over" and "Spares list agreed"
+     are Paperwork; "Programs loaded" is Programs; the runs are Run; the
+     rest are Done.
+   - **What the drawer opens to.**
+     - Paperwork: **Here they are** (pick the files, kept and done in one
+       go) or **Done, no file**.
+     - Sign-off: **Signed** (who signed, always asked).
+     - The rest: Done today.
+     - Not yet and Hit a problem stay on all of them.
+   - **What the square says.** A sign-off done says "signed" (and, on a
+     phone, by whom). A paperwork stage done with nothing attached says
+     "no file". The handover report prints "No file kept" under it.
+   - **Needs you opens a sign-off or a paperwork stage**, rather than
+     ticking it.
+5. **The three name rules ask the one rule.** `isSignOff`,
+   `isProgramsStage` and `isRunTest` take the job's answer wherever the job
+   is known: the drawer, the grids, Needs you, the Programs page, the
+   client report and the handover report. Elsewhere they read whole words,
+   so:
+   - "Signal tower checked" is no longer a sign-off, and "Training
+     programme agreed" is not the programs stage;
+   - "Documents signed off" at Install is a sign-off, since the words
+     decide at any gate, not only at Hand over;
+   - "Programs loaded" renamed "PLC software downloaded" keeps its
+     programs on the Programs page, because programs with a status said on
+     it hold it;
+   - numbers kept on a test always keep it a run.
+
+Proved in Chromium, laptop and phone:
+- the Hand over list's starting answers;
+- the owner making "Operators and engineers trained" a sign-off, with only
+  that choice kept, and its stage then opening to Signed;
+- a machine's own stage made Paperwork in its Edit, then "Here they are"
+  keeping the file and marking it done in one go;
+- "no file" on a paperwork square;
+- no answer control for the team.
+
+Unit tests: the answer rule in `src/lib/__tests__/panels.test.ts`. The one
+expectation that held the old rule (a sign-off only at Hand over) is
+updated in `handover.test.ts`.
+
+Slice 3, **Reading** (a number against an agreed limit), waits for your
+word.

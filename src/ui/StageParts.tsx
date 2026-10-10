@@ -41,6 +41,7 @@ import { offerUndo } from './Undo';
 import { deleteTestItem } from '../db';
 import type { useTesting } from '../lib/useTesting';
 import type { Can } from '../lib/access';
+import { answerOf, type AnswerHolder } from '../lib/install';
 
 type TT = ReturnType<typeof useTesting>;
 type Draft = { id: string; what: string; owner: string; due: string; is?: PartResultIs; note: string };
@@ -66,8 +67,10 @@ export function PartsMark({ said, className }: { said?: { head: string; late: nu
   );
 }
 
-export function StageParts({ step, tt, can, onProblem, only, onOpen, onRunProblem }: {
+export function StageParts({ step, tt, can, onProblem, only, onOpen, onRunProblem, holder }: {
   step: Test; tt: Pick<TT, 'items' | 'tests' | 'assets' | 'addItem' | 'saveItem' | 'planTests' | 'patchTest'>; can: Can;
+  /** The job, so the programs stage is the one its answer says (docs/PANELS.md). */
+  holder?: AnswerHolder;
   /** Open a record — a program's run in Commission. */
   onOpen?: (id: string) => void;
   /** Hit a problem on a program's run — the run's record, its write-up open
@@ -86,7 +89,7 @@ export function StageParts({ step, tt, can, onProblem, only, onOpen, onRunProble
   const parts = only ? all.filter(only) : all;
   /* On Set up's programs stage its parts ARE the programs — said so, here
      and on the Programs page that lists them (screens/ProgramsPage). */
-  const prog = isProgramsStage(step);
+  const prog = isProgramsStage(step, answerOf(step, holder, tt.items));
   /* The problems written on each part (kept on the problem as fromItemId). */
   const problemsOf = (p: TestItem) => live(tt.items).filter(i => i.kind === 'found' && i.testId === step.id && i.fromItemId === p.id)
     .sort((a, b) => a.createdAt - b.createdAt);

@@ -17,7 +17,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import { deleteTest } from '../db';
 import type { Program } from '../lib/programs';
-import { doneTodayPatch, foldInto, installGrid, isSignOff, whoFor, lateByWords, stepsNamed, untouched, type StepView, type usualStages } from '../lib/install';
+import { answerOf, doneTodayPatch, foldInto, installGrid, isSignOff, whoFor, lateByWords, stepsNamed, untouched, type StepView, type usualStages } from '../lib/install';
 import { UsualStages } from './UsualStages';
 import { WhyMoved, changeTests, moveTestsWithWhy, type WhyAnswer } from './WhyMoved';
 import { movedLater } from '../lib/story';
@@ -138,6 +138,13 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
   /* ITS FILES, A BRANCH ON ITS SQUARE (docs/PANELS.md item 3) — "2 files",
      beside its parts, so "yes, here they are" shows where the stage does. */
   const filesAt = (s?: StepView): string => { const n = (s?.step.docs ?? []).length; return n ? `${n} file${n === 1 ? '' : 's'}` : ''; };
+  /* ITS ANSWER, ONCE GIVEN (docs/PANELS.md) — a sign-off done says "signed",
+     a paperwork stage done with nothing attached says "no file". */
+  const answeredAt = (s?: StepView): string => {
+    if (!s || s.step.outcome !== 'passed') return '';
+    const a = answerOf(s.step, project, tt.items);
+    return a === 'signoff' ? 'signed' : a === 'paperwork' && !(s.step.docs ?? []).length ? 'no file' : '';
+  };
   const openCell = (s: StepView | undefined, row: number, col: number) => (s ? openRecord(projectId, s.step.id) : setOpen({ t: 'cell', row, col }));
   /* A stage's parts of the plan, in a few words — "2 parts · 1 done", and
      "· 1 late" in red when one is (lib/noted partsSaid). Rowland, 6 October:
@@ -265,7 +272,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
       const cells = grid.rows.map(r => r.cells[open.col]);
       const steps = cells.filter((c): c is StepView => !!c).map(c => c.step);
       const left = steps.filter(t => !isSettled(t));
-      const signing = left.length > 0 && left.every(isSignOff);
+      const signing = left.length > 0 && left.every(t => isSignOff(t, project));
       const lacking = grid.rows.filter((_r, i) => !cells[i]).map(r => ({ title: col, assetId: r.asset?.id }));
       /* NOT ONE OF THE JOB'S STAGES — a name steps were given before the
          stages were edited. Say so, and offer the two ways to clear it: move
@@ -474,7 +481,8 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
                       <span className="igm-name">{grid.columns[ci]}{cs?.next && <span className="igm-next">Next</span>}
                         {crit ? critMark(crit) : riskMark(cs)}
                         <PartsMark said={ps} className="igm-parts" />
-                        {filesAt(cs) && <span className="pt-mark igm-parts ig-files">{filesAt(cs)}</span>}</span>
+                        {filesAt(cs) && <span className="pt-mark igm-parts ig-files">{filesAt(cs)}</span>}
+                        {answeredAt(cs) && <span className="pt-mark igm-parts ig-files">{answeredAt(cs)}{answeredAt(cs) === 'signed' && cs?.step.withWhom ? ` · ${cs.step.withWhom}` : ''}</span>}</span>
                       <span className="igm-word">{cs && cs.tone === 'done' && cs.lateBy ? <>{cs.step.ranOn ? `done ${short(cs.step.ranOn)}` : 'done'} · <b className="ig-late-by">{lateByWords(cs.lateBy)}</b></> : cs ? stageWord(cs) : can.edit ? '+ add' : 'not added yet'}</span>
                     </button>
                   );
@@ -585,6 +593,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
                           {crit ? critMark(crit) : riskMark(s)}
                           <PartsMark said={ps} />
                           {filesAt(s) && <span className="pt-mark ig-files">{filesAt(s)}</span>}
+                          {answeredAt(s) && <span className="pt-mark ig-files">{answeredAt(s)}</span>}
                         </button>
                       </td>
                     );

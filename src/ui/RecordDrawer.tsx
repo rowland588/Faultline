@@ -29,7 +29,7 @@ import { nav, navReplace, withQuery, type Route, type RouteName } from '../state
 import { useTesting } from '../lib/useTesting';
 import { useAccess } from '../cloud/access';
 import { fixTone, type FixTone } from '../lib/fixTone';
-import { doneLateBy, doneTodayPatch, heldUpBy, isSignOff, lateByWords, lateOrProblem, toneOf, usualStages, type StepTone } from '../lib/install';
+import { ANSWER_WORD, answerByName, answerOf, answersAt, usualKey, doneLateBy, doneTodayPatch, heldUpBy, lateByWords, lateOrProblem, toneOf, usualStages, type StepTone } from '../lib/install';
 import { usePrograms } from '../lib/usePrograms';
 import {
   isOverdue, itemsOf, live, needsVerdict, outcomeWord, plannedEnd, testOfFix, verdictQuestion, wordsOf,
@@ -53,7 +53,7 @@ import { spanShort } from './InstallGrid';
 import { ProblemForm, changeTests, recordMove, recordProblem, type ProblemFill } from './WhyMoved';
 import { RecordEdit } from './RecordEdit';
 import { hasKept } from '../lib/kept';
-import { CardPdf, RecordFiles, RecordItems, removeMedia } from './RecordMore';
+import { CardPdf, RecordFiles, RecordItems, attachFiles, removeMedia } from './RecordMore';
 import { OnTheLine } from './OnTheLine';
 import { SharedLinks } from './ShareLink';
 import { supabase } from '../cloud/client';
@@ -242,6 +242,8 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   const [signer, setSigner] = useState<string | null>(null);
   /* NOT YET, being answered (ui/NotYet, docs/PANELS.md). */
   const [notYet, setNotYet] = useState(false);
+  /* A paperwork stage's "Here they are" — pick the files, and it is done. */
+  const paperPick = useRef<HTMLInputElement>(null);
   /* Bumped when a link to a picture is made, so the list of them reads again. */
   const [shareRev, setShareRev] = useState(0);
   /* SENDING A PICTURE OUTSIDE is the owner's call (supabase/SHARE_LINKS.sql),
@@ -359,7 +361,7 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   /* DONE TODAY — the one write (lib/install doneTodayPatch): a sign-off
      keeps what was still open on its machine, and who signed it. */
   const doneToday = (who?: string) => changeTests(tt, [t],
-    doneTodayPatch(t, { tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs }, today, who), `${t.title} done — ${machine}`);
+    doneTodayPatch(t, { tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs, holder: job }, today, who), `${t.title} done — ${machine}`);
 
   const dates = plannedEnd(t) ? spanShort(t.plannedFor, plannedEnd(t)) : undefined;
   /* HOW FAR IT HAS SLIPPED past the finish first planned — the line the plan's
@@ -372,6 +374,8 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   /* Its name as Needs you and its card say it — "Hand-over item", "Set-up
      step" — not a third word ("Hand over stage") for the same line. */
   const kindWord = kind === 'install' ? wordsOf(t).one : kind === 'fix' ? 'Fix' : 'Test · Commission';
+  /* HOW "YES" IS SAID ON IT (lib/install answerOf, docs/PANELS.md). */
+  const answer = answerOf(t, job, live(tt.items));
   const whatItIs = [kindWord, machine].join(' · ');
   const onAsset = live(tt.assets).find(a => a.id === t.assetId);
   /* What really happened, against the plan beside it. */
@@ -436,7 +440,7 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
           <span className={t.ranOn ? '' : 'sub'}>{actualWords}</span>
         </dd></div>
         {/* A sign-off done says who signed it (docs/PANELS.md item 2). */}
-        <div><dt>{isSignOff(t) && t.outcome === 'passed' ? 'Signed by' : 'Who'}</dt><dd>{t.withWhom || <i className="sub">nobody named</i>}</dd></div>
+        <div><dt>{answer === 'signoff' && t.outcome === 'passed' ? 'Signed by' : 'Who'}</dt><dd>{t.withWhom || <i className="sub">nobody named</i>}</dd></div>
         {/* WHAT WAS AGREED — what the result is measured against ("passes if",
             "done means"); a fix's is its problem, said under "The problem". */}
         {kind !== 'fix' && t.passesIf?.trim() && <div><dt>{kind === 'install' ? 'Done means' : 'Passes if'}</dt><dd className="rd-said">{t.passesIf}</dd></div>}
@@ -458,7 +462,7 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
       )}
       {/* THE RUN (ui/RunPanel) — a performance run's numbers, first: how fast
           it ran, what it netted, the rejects, against what was agreed. */}
-      {kind === 'test' && isRunTest(t) && <RunBlock key={'run-' + t.id} t={t} can={can} patch={fn => void tt.patchTest(t.id, fn)}
+      {kind === 'test' && isRunTest(t, answerOf(t, job)) && <RunBlock key={'run-' + t.id} t={t} can={can} patch={fn => void tt.patchTest(t.id, fn)}
         problemsOf={rid => problemsOnRun(tt.items, t.id, rid)} onOpenProblem={onOpen}
         onProblem={can.edit ? r => { setProblemPart({ id: r.id, what: productName(r), product: true }); setProblem(true); top.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } : undefined} />}
 
@@ -489,17 +493,49 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
             setProblem(false); setProblemPart(null);
           }} />
       ) : editing ? (
-        <RecordEdit key={'edit-' + t.id} t={t} tt={tt} can={can} names={names} onClose={() => setEditing(false)}
-          onProblem={f => { setEditing(false); setProblem(f); }} />
+        <>
+          {/* HOW IT IS ANSWERED — the owner's to change, for every stage of
+              this name at this gate on the job, as on the stage list
+              (docs/PANELS.md). Written at once; the buttons above follow. */}
+          {kind === 'install' && can.agree && job && (
+            <div className="rd-blk rd-answer">
+              <small>How “{t.title}” is answered — on every machine</small>
+              <span className="cw-seg" role="group" aria-label={`How ${t.title} is answered`}>
+                {answersAt(gateOf(t)).map(a => (
+                  <button key={a} type="button" className={'chip' + (answer === a ? ' on' : '')} aria-pressed={answer === a}
+                    onClick={() => {
+                      const key = usualKey(gateOf(t), t.title);
+                      const rest = Object.fromEntries(Object.entries(job.gateStages?.usualAnswer ?? {}).filter(([k]) => k !== key));
+                      const map = a === answerByName(t) ? rest : { ...rest, [key]: a };
+                      void jobs.rename(job, { gateStages: { ...(job.gateStages ?? {}), usualAnswer: map } });
+                    }}>{ANSWER_WORD[a]}</button>
+                ))}
+              </span>
+            </div>
+          )}
+          <RecordEdit key={'edit-' + t.id} t={t} tt={tt} can={can} names={names} onClose={() => setEditing(false)}
+            onProblem={f => { setEditing(false); setProblem(f); }} />
+        </>
       ) : kind === 'install' && notYet ? (
         <NotYetForm key={'ny-' + t.id} step={t} names={names} onCancel={() => setNotYet(false)}
           onSave={a => { setNotYet(false); andClose(recordNotYet(tt, t, a)); }} />
       ) : kind === 'install' ? (
         <>
           <div className="rd-acts">
-            {t.outcome !== 'passed' && (signer == null ? (
+            {/* THE ANSWER FIRST (docs/PANELS.md) — how "yes" is said on this
+                stage: "Here they are" with the files on paperwork, "Signed"
+                with who on a sign-off, Done today on the rest. */}
+            {t.outcome !== 'passed' && signer == null && answer === 'paperwork' && (
+              <>
+                <button type="button" className="btn btn-primary" onClick={() => paperPick.current?.click()}>Here they are</button>
+                <input ref={paperPick} type="file" accept="application/pdf,image/*" multiple hidden
+                  onChange={e => { const fs = e.target.files; if (fs?.length) andClose(attachFiles(tt, t.id, fs).then(() => doneToday())); e.target.value = ''; }} />
+                <button type="button" className="btn" onClick={() => andClose(doneToday())}>Done, no file</button>
+              </>
+            )}
+            {t.outcome !== 'passed' && answer !== 'paperwork' && (signer == null ? (
               <button type="button" className="btn btn-primary"
-                onClick={() => (isSignOff(t) ? setSigner('') : andClose(doneToday()))}>Done today</button>
+                onClick={() => (answer === 'signoff' ? setSigner('') : andClose(doneToday()))}>{answer === 'signoff' ? 'Signed' : 'Done today'}</button>
             ) : (
               /* A SIGN-OFF ASKS WHO SIGNED, EVERY TIME (docs/PANELS.md item
                  2). It asked only when the line had no name, and since 9
@@ -620,9 +656,9 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
           morning huddle agreed about it, ticked here as on The day; or one
           tap to put it on today's plan. */}
       <OnTodaysPlan t={t} title={kind === 'install' ? `${machine} — ${t.title}` : t.title} tt={tt} can={can} today={today} />
-      <ProgramLink projectId={projectId} t={t} tests={tt.tests} onOpen={onOpen} can={can}
+      <ProgramLink projectId={projectId} t={t} tests={tt.tests} onOpen={onOpen} can={can} holder={job} items={tt.items}
         onPatch={patch => void tt.patchTest(t.id, patch)} />
-      {kind !== 'fix' && <StageParts key={t.id} step={t} tt={tt} can={can} onOpen={onOpen}
+      {kind !== 'fix' && <StageParts key={t.id} step={t} tt={tt} can={can} holder={job} onOpen={onOpen}
         onRunProblem={can.edit ? (tid, rid) => openRecordAt(projectId, tid, rid) : undefined}
         onProblem={can.edit && kind === 'install' ? p => { setProblemPart(p); setProblem(true); top.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } : undefined} />}
 

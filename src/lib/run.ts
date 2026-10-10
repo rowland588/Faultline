@@ -93,8 +93,12 @@ export interface RunReading {
  *  agreed speed", "Performance run at the agreed rate") or because numbers
  *  have been kept on them. A whole word, so "accurate" is not a rate. */
 const RATE = /\b(speed|rate|performance|ppm|throughput|output)\b/i;
-export const isRunTest = (t: Pick<Test, 'kind' | 'title' | 'run' | 'runAgreed'> & Partial<Pick<Test, 'runs'>>): boolean =>
-  (t.kind ?? 'test') === 'test' && (!!t.runs?.length || hasNumbers(t.run) || hasNumbers(t.runAgreed) || RATE.test(t.title));
+export const isRunTest = (t: Pick<Test, 'kind' | 'title' | 'run' | 'runAgreed'> & Partial<Pick<Test, 'runs'>>,
+  /** What its answer is, when the caller knows the job (lib/install answerOf):
+   *  the owner's choice on the usual tests wins over the name — numbers kept
+   *  always make it a run, so nothing on it is lost. */
+  answer?: string): boolean =>
+  (t.kind ?? 'test') === 'test' && (!!t.runs?.length || hasNumbers(t.run) || hasNumbers(t.runAgreed) || (answer ? answer === 'run' : RATE.test(t.title)));
 
 const hasNumbers = (o?: object): boolean => !!o && Object.values(o).some(v => typeof v === 'number' && Number.isFinite(v));
 

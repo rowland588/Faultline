@@ -274,7 +274,7 @@ function saysOf(steps: StepView[], done: number, fixesOpen: number, asset: Asset
  * job whose list was edited most recently — Line 2A is installed the way Line
  * 2B was, and making somebody type the same six names twice is the app not
  * doing its job. Only then the app's six. */
-type StageHolder = { id: string; installStages?: string[]; gateStages?: Project['gateStages']; updatedAt: number; deletedAt?: number };
+export type StageHolder = { id: string; installStages?: string[]; gateStages?: Project['gateStages']; updatedAt: number; deletedAt?: number };
 
 /** A gate with a usual list: the three of stages, and Commission, whose list
  *  is its usual TESTS (testing COMMISSION_TESTS) — kept, edited and handed on
@@ -362,9 +362,89 @@ export function usualAgreed(holder: StageHolder | undefined, title: string): Usu
   return a && (a.passesIf?.trim() || Object.values(a.runAgreed ?? {}).some(v => typeof v === 'number')) ? a : undefined;
 }
 
-/** The patch that keeps who each usual stage is with, and what each usual
- *  test must show, beside the lists. */
-export function keepUsualDetails<P extends StageHolder>(project: P, details: { usualWith?: Record<string, UsualWith>; usualAgreed?: Record<string, UsualAgreed> }): Partial<P> {
+/* ------------------------------------------------------------------------- */
+/*  A STAGE'S ANSWER (docs/PANELS.md items 4–5)                               */
+/* ------------------------------------------------------------------------- */
+
+/** HOW "YES" IS SAID ON A STAGE — a small fixed set, not a panel per name.
+ *  Rowland, 10 October: "documents signed off and drawings delivered ... it
+ *  really should be just a yes or a no." The floor names its stages any way
+ *  it likes; what differs is what "yes" carries:
+ *   - done       Done today (the default);
+ *   - paperwork  "Here they are": the files, and done in the same go;
+ *   - signoff    "Signed": who signed, always asked, and what it accepted;
+ *   - programs   the machine's programs, each with its status (Set up);
+ *   - run        a test's numbers, judged against what was agreed.
+ *  A plain test is "done" here: its verdict is its own (Passed, Didn't pass). */
+export type StageAnswer = 'done' | 'paperwork' | 'signoff' | 'programs' | 'run';
+export const ANSWER_WORD: Record<StageAnswer, string> = {
+  done: 'Done', paperwork: 'Paperwork', signoff: 'Sign-off', programs: 'Programs', run: 'Run',
+};
+/** The answers a gate's stages can have — Programs only at Set up; a test is
+ *  a test or a run. */
+export const answersAt = (gate: ListGate): StageAnswer[] =>
+  gate === 'commission' ? ['done', 'run'] : gate === 'setup' ? ['done', 'paperwork', 'signoff', 'programs'] : ['done', 'paperwork', 'signoff'];
+
+/* THE WORD LIST — whole words, so "Signal tower checked" is not a sign-off
+   and "Training programme agreed" is not the programs stage (both matched the
+   old rules by accident). About twenty words in all. A Reading is never
+   guessed: it needs a limit agreed. */
+const SIGN_WORDS = /\b(sign|signs|signed|signing|sign-off|signoff|accept|accepted|acceptance|approval|approved)\b/i;
+const PAPER_WORDS = /\b(drawings?|manuals?|documents?|documentation|docs|certificates?|declarations?|datasheets?|schematics?|o&m|packs?|reports?)\b/i;
+const PROGRAM_WORDS = /\bprograms?\b/i;
+
+/* The app's usual lines whose answer the words would miss. */
+let appAnswers: Record<string, StageAnswer> | undefined;
+const APP_ANSWERS = (): Record<string, StageAnswer> => (appAnswers ??= {
+  [usualKey('handover', 'Spares list agreed')]: 'paperwork',
+});
+
+const listOf = (t: Pick<Test, 'kind' | 'gate'>): ListGate => ((t.kind ?? 'test') === 'test' ? 'commission' : gateOf(t));
+
+/** What the owner chose for this name at this gate on this job (kept in
+ *  gate_stages beside who it is usually with), or the app's own for its usual
+ *  lines. Undefined: nobody chose, and the name and the record decide. */
+export type AnswerHolder = { gateStages?: Project['gateStages'] };
+export function chosenAnswer(holder: AnswerHolder | undefined, t: Pick<Test, 'kind' | 'gate' | 'title'>): StageAnswer | undefined {
+  const k = usualKey(listOf(t), t.title);
+  return holder?.gateStages?.usualAnswer?.[k] ?? APP_ANSWERS()[k];
+}
+
+/** The answer a name alone gives — the word list, in this order. */
+export function answerByName(t: Pick<Test, 'kind' | 'gate' | 'title'>): StageAnswer {
+  if ((t.kind ?? 'test') === 'test') return RUN_WORDS.test(t.title) ? 'run' : 'done';
+  if (t.kind !== 'install') return 'done';
+  const app = APP_ANSWERS()[usualKey(gateOf(t), t.title)];
+  if (app) return app;
+  if (SIGN_WORDS.test(t.title)) return 'signoff';
+  if (gateOf(t) === 'setup' && PROGRAM_WORDS.test(t.title)) return 'programs';
+  if (PAPER_WORDS.test(t.title)) return 'paperwork';
+  return 'done';
+}
+
+/** A STAGE'S ANSWER — one rule, in this order:
+ *   1. what the owner chose for that name at that gate (chosenAnswer);
+ *   2. what the record already holds — numbers kept make a test a run;
+ *      programs with a status said make a Set up stage the programs stage —
+ *      so a rename on one machine never loses what is on it;
+ *   3. the word list (answerByName);
+ *   4. otherwise Done. */
+export function answerOf(t: Pick<Test, 'id' | 'kind' | 'gate' | 'title'> & Partial<Pick<Test, 'run' | 'runAgreed' | 'runs'>>, holder?: AnswerHolder, items: TestItem[] = []): StageAnswer {
+  const test = (t.kind ?? 'test') === 'test';
+  if (test && (t.runs?.length || hasNumbers(t.run) || hasNumbers(t.runAgreed))) return 'run';
+  const chosen = chosenAnswer(holder, t);
+  if (chosen && (test ? chosen === 'run' || chosen === 'done' : chosen !== 'run')) return chosen;
+  if (!test && t.kind === 'install' && gateOf(t) === 'setup'
+    && items.some(i => !i.deletedAt && i.testId === t.id && i.kind === 'next' && (i.results?.length ?? 0) > 0)) return 'programs';
+  return answerByName(t);
+}
+const hasNumbers = (o?: object): boolean => !!o && Object.values(o).some(v => typeof v === 'number' && Number.isFinite(v));
+/** The run words — the same whole words lib/run has always read a run's name by. */
+const RUN_WORDS = /\b(speed|rate|performance|ppm|throughput|output)\b/i;
+
+/** The patch that keeps who each usual stage is with, what each usual test
+ *  must show, and how each is answered, beside the lists. */
+export function keepUsualDetails<P extends StageHolder>(project: P, details: { usualWith?: Record<string, UsualWith>; usualAgreed?: Record<string, UsualAgreed>; usualAnswer?: Record<string, StageAnswer> }): Partial<P> {
   return { gateStages: { ...(project.gateStages ?? {}), ...details } } as Partial<P>;
 }
 
@@ -736,19 +816,21 @@ export function stillOpenOn(asset: Asset, tests: Test[], items: TestItem[], toda
   return { counts, names };
 }
 
-/** A HAND-OVER LINE THAT IS A SIGN-OFF — "Client signed off", "Safety
- *  sign-off (PUWER)": its name says so. The usual list's two are; a line
- *  renamed to anything with "sign" in it is too. */
-export const isSignOff = (t: Pick<Test, 'kind' | 'gate' | 'title'>): boolean =>
-  t.kind === 'install' && gateOf(t) === 'handover' && /\bsign/i.test(t.title);
+/** A LINE THAT IS A SIGN-OFF — its answer is Sign-off (answerOf): the owner
+ *  said so on the stage list, or its name has a sign-off's word in it, at any
+ *  gate. "Client signed off", "Safety sign-off (PUWER)", and "Documents
+ *  signed off" at Install are; "Signal tower checked" is not (docs/PANELS.md:
+ *  the old rule read any Hand over line with "sign" in it, and no other). */
+export const isSignOff = (t: Pick<Test, 'kind' | 'gate' | 'title'> & Partial<Pick<Test, 'id'>>, holder?: AnswerHolder): boolean =>
+  t.kind === 'install' && answerOf({ id: t.id ?? '', kind: t.kind, gate: t.gate, title: t.title }, holder) === 'signoff';
 
 /** WHAT A SIGN-OFF ACCEPTED — written into the line's own account when it is
  *  ticked (docs/HANDOVER.md): "Signed off with 2 open — Fix: Fit the upgraded
  *  jaw heater · Ilapak UK · 19 Oct; Test, not run: Rate trial". A sign-off is
  *  accepted as things are, and afterwards anyone can read what that was. */
 export function signOffNote(step: Test, tests: Test[], items: TestItem[], today: string,
-  assets: Asset[], programs: readonly Program[] = []): string | undefined {
-  if (!isSignOff(step)) return undefined;
+  assets: Asset[], programs: readonly Program[] = [], holder?: AnswerHolder): string | undefined {
+  if (!isSignOff(step, holder)) return undefined;
   const asset = live(assets).find(a => a.id === step.assetId);
   if (!asset) return undefined;
   const { names } = stillOpenOn(asset, tests, items, today, programs, step.id);
@@ -762,9 +844,9 @@ export function signOffNote(step: Test, tests: Test[], items: TestItem[], today:
  *  today's day unless one is on it, and on a sign-off what it accepted
  *  (signOffNote) added to its account, with who signed when the line had no
  *  name on it. */
-export function doneTodayPatch(step: Test, job: { tests: Test[]; items: TestItem[]; assets: Asset[]; programs?: readonly Program[] },
+export function doneTodayPatch(step: Test, job: { tests: Test[]; items: TestItem[]; assets: Asset[]; programs?: readonly Program[]; holder?: AnswerHolder },
   today: string, who?: string): (cur: Test) => Partial<Test> {
-  const note = signOffNote(step, job.tests, job.items, today, job.assets, job.programs ?? []);
+  const note = signOffNote(step, job.tests, job.items, today, job.assets, job.programs ?? [], job.holder);
   return cur => ({
     outcome: 'passed', ranOn: cur.ranOn ?? today,
     ...(note ? { result: [cur.result?.trim(), note].filter(Boolean).join('\n\n') } : {}),

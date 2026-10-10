@@ -107,8 +107,11 @@ export const isProved = (p: Program): boolean => stateOf(p) === 'proved';
 /** Set up's stage about programs — "Programs loaded", or any Set up stage
  *  that says "program". Its parts are the programs as the floor says them
  *  (lib/programsReport). */
-export const isProgramsStage = (t: Pick<Test, 'kind' | 'gate' | 'title'>): boolean =>
-  t.kind === 'install' && t.gate === 'setup' && /program/i.test(t.title);
+export const isProgramsStage = (t: Pick<Test, 'kind' | 'gate' | 'title'>,
+  /** What its answer is, when the caller knows the job (lib/install answerOf):
+   *  the owner's choice on the stage list wins over the name. */
+  answer?: string): boolean =>
+  t.kind === 'install' && t.gate === 'setup' && (answer ? answer === 'programs' : /\bprograms?\b/i.test(t.title));
 
 /* ============================== where it stands =============================
  *

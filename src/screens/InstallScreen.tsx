@@ -38,7 +38,7 @@ import { todayISO } from '../lib/weeks';
 import { partsOf, resultNow } from '../lib/noted';
 import { useProjects } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
-import { GATE_WORD, doneTodayPatch, installGrid, installOf, isSignOff, usualHolder, usualStages } from '../lib/install';
+import { GATE_WORD, answerOf, doneTodayPatch, installGrid, installOf, usualHolder, usualStages } from '../lib/install';
 import { changeTests } from '../ui/WhyMoved';
 import { gateOf, type StepGate, type Test, type TestItem } from '../lib/testing';
 import { usePrograms } from '../lib/usePrograms';
@@ -199,8 +199,10 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
                       ) : c.step.outcome !== 'passed' && (
                         <span className="nd-acts">
                           <button type="button" className="btn btn-sm" onClick={() => {
-                            /* A sign-off opens, to ask who signed — every time (docs/PANELS.md). */
-                            if (isSignOff(c.step)) { openRecord(projectId, c.step.id); return; }
+                            /* A sign-off opens, to ask who signed — every time; a paperwork
+                               stage opens for its files (docs/PANELS.md). */
+                            const ans = answerOf(c.step, project, tt.items);
+                            if (ans === 'signoff' || ans === 'paperwork') { openRecord(projectId, c.step.id); return; }
                             void changeTests(tt, [c.step], doneTodayPatch(c.step, { tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs }, todayISO()),
                               `${c.step.title} done — ${machine}`);
                           }}>Done today</button>

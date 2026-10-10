@@ -18,17 +18,19 @@
 import { useState } from 'react';
 import { updateProject } from '../db';
 import { offerUndo } from './Undo';
-import { SITE_NAME, appStages, cleanStages, keepStages, keepUsualDetails, stageRenames, stepsNamed, usualAgreed, usualKey, usualWith,
-  type ListGate, type UsualAgreed, type UsualWith, type usualStages } from '../lib/install';
+import { ANSWER_WORD, SITE_NAME, answerByName, answersAt, appStages, cleanStages, keepStages, keepUsualDetails, stageRenames, stepsNamed, usualAgreed, usualKey, usualWith,
+  type ListGate, type StageAnswer, type UsualAgreed, type UsualWith, type usualStages } from '../lib/install';
 import { isSettled, type Asset, type Test } from '../lib/testing';
-import { isRunTest } from '../lib/run';
 import type { Project } from '../types';
 import { Icon } from './Icon';
 import { can as canOf, type Can } from '../lib/access';
 
 /** One entry's details as typed — who it is with, and (a test) what it
  *  must show, the numbers as typed. */
-type Det = { with: UsualWith; passesIf: string; rate: string; minutes: string; rejectsMax: string };
+type Det = { with: UsualWith; passesIf: string; rate: string; minutes: string; rejectsMax: string;
+  /** How it is answered, when the owner chose (docs/PANELS.md); absent, its
+   *  name decides (lib/install answerByName) and follows it as it is typed. */
+  answer?: StageAnswer };
 
 export function UsualStages({ project, usual, otherName, tests = [], renameSteps, extras = [], onMove, onRemove, onDrop, isFresh, gate = 'install', can = canOf('owner'), editing = false, onDone, holder, assets = [], onLines }: {
   /** Saved, or cancelled, in a panel of its own: close it (ui/InstallGrid,
@@ -75,8 +77,13 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
   const detOf = (name: string): Det => {
     const a = usualAgreed(from, name);
     const n = (v?: number) => (typeof v === 'number' ? String(v) : '');
-    return { with: usualWith(from, gate, name), passesIf: a?.passesIf ?? '', rate: n(a?.runAgreed?.rate), minutes: n(a?.runAgreed?.minutes), rejectsMax: n(a?.runAgreed?.rejectsMax) };
+    const chosen = from?.gateStages?.usualAnswer?.[usualKey(gate, name)];
+    return { with: usualWith(from, gate, name), passesIf: a?.passesIf ?? '', rate: n(a?.runAgreed?.rate), minutes: n(a?.runAgreed?.minutes), rejectsMax: n(a?.runAgreed?.rejectsMax),
+      ...(chosen ? { answer: chosen } : {}) };
   };
+  /* HOW A LINE IS ANSWERED — the owner's choice, else what its name gives. */
+  const asLine = (name: string) => (gate === 'commission' ? { kind: 'test' as const, title: name } : { kind: 'install' as const, gate: gate === 'install' ? undefined : gate, title: name });
+  const answerFor = (name: string, d?: Det): StageAnswer => d?.answer ?? answerByName(asLine(name));
   const [det, setDet] = useState<Det[]>(() => usual.stages.map(detOf));
   const w = gate === 'commission'
     ? { one: 'test', many: 'tests', steps: 'tests', Steps: 'Tests' }
@@ -94,12 +101,16 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
     const mine = (k: string) => k.startsWith(`${gate}:`);
     const withMap: Record<string, UsualWith> = Object.fromEntries(Object.entries(project.gateStages?.usualWith ?? {}).filter(([k]) => !mine(k)));
     const agreedMap: Record<string, UsualAgreed> = Object.fromEntries(Object.entries(project.gateStages?.usualAgreed ?? {}).filter(([k]) => !mine(k)));
+    const answerMap: Record<string, StageAnswer> = Object.fromEntries(Object.entries(project.gateStages?.usualAnswer ?? {}).filter(([k]) => !mine(k)));
     const changed: { name: string; was: Det; now: Det }[] = [];
     draft.forEach((raw, i) => {
       const name = raw.trim();
       if (!name) return;
       const d = det[i] ?? detOf(name);
       withMap[usualKey(gate, name)] = d.with;
+      /* Kept only where the owner chose other than the name gives, so a
+         better word list still reaches every line nobody chose for. */
+      if (d.answer && d.answer !== answerByName(asLine(name))) answerMap[usualKey(gate, name)] = d.answer;
       if (gate === 'commission') {
         const num = (v: string) => { const x = Number(v); return v.trim() && Number.isFinite(x) ? x : undefined; };
         const run = { rate: num(d.rate), minutes: num(d.minutes), rejectsMax: num(d.rejectsMax) };
@@ -124,7 +135,7 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
       })
       .filter(d => d.n > 0);
     const listed = { ...project, ...keepStages(project, gate, cleanStages(draft, gate)) };
-    await updateProject({ ...listed, ...keepUsualDetails(listed, { usualWith: withMap, usualAgreed: agreedMap }), updatedAt: Date.now() });
+    await updateProject({ ...listed, ...keepUsualDetails(listed, { usualWith: withMap, usualAgreed: agreedMap, usualAnswer: answerMap }), updatedAt: Date.now() });
     setDraft(null);
     /* THE LINES ALREADY ON MACHINES follow what was just agreed, where they
        still carry what they were given: a line with the supplier moves to
@@ -261,6 +272,7 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
             return (
               <li key={i}>{s}
                 {d.with === 'site' && <span className="sub"> — with the site</span>}
+                {answerFor(s, d) !== 'done' && <span className="sub"> — {ANSWER_WORD[answerFor(s, d)].toLowerCase()}</span>}
                 {gate === 'commission' && d.passesIf.trim() && <span className="sub in-usual-agreed"> — passes if: {d.passesIf.trim()}</span>}
               </li>
             );
@@ -298,7 +310,14 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
                   <input className="in-usual-pass" value={d.passesIf} onChange={e => setD(i, { passesIf: e.target.value })}
                     aria-label={`${s || 'This test'} passes if`} placeholder="Passes if — e.g. every e-stop stops it inside 2 s" />
                 )}
-                {gate === 'commission' && isRunTest({ kind: 'test', title: s }) && (
+                {/* HOW "YES" IS SAID (docs/PANELS.md) — the panel each line opens to. */}
+                <span className="cw-seg in-usual-ans" role="group" aria-label={`${s || `This ${w.one}`} is answered by`}>
+                  {answersAt(gate).map(a => (
+                    <button key={a} type="button" className={'chip' + (answerFor(s, d) === a ? ' on' : '')} aria-pressed={answerFor(s, d) === a}
+                      onClick={() => setD(i, { answer: a })}>{gate === 'commission' ? (a === 'run' ? 'A run' : 'A test') : ANSWER_WORD[a]}</button>
+                  ))}
+                </span>
+                {gate === 'commission' && answerFor(s, d) === 'run' && (
                   <span className="in-usual-run">
                     <label className="cw-f"><span>Packs a minute</span><input type="number" inputMode="decimal" value={d.rate} onChange={e => setD(i, { rate: e.target.value })} /></label>
                     <label className="cw-f"><span>For minutes</span><input type="number" inputMode="numeric" value={d.minutes} onChange={e => setD(i, { minutes: e.target.value })} /></label>

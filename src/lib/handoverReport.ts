@@ -19,7 +19,7 @@
  * sentence lib/standing's, a machine's place and what it went with
  * lib/install's, so the page and the screens cannot disagree. Pure. */
 import { filesSaid, isOverdue, latestAttempts, live, outcomeWord, plannedEnd, testOfFix, type Asset, type Test, type TestItem } from './testing';
-import { doneLateBy, handedOverWith, installOf, isSignOff, journeyOf, machineAt, stillOpenOn } from './install';
+import { answerOf, doneLateBy, handedOverWith, installOf, isSignOff, journeyOf, machineAt, stillOpenOn } from './install';
 import { standing } from './standing';
 import { stageGateOnTarget, type OnTarget } from './onTarget';
 import { isHere, type Material } from './materials';
@@ -96,7 +96,7 @@ export interface HandoverReport {
 }
 
 export interface HandoverInput {
-  project: Pick<Project, 'name' | 'lead' | 'plannedAt' | 'expectedAt'>;
+  project: Pick<Project, 'name' | 'lead' | 'plannedAt' | 'expectedAt'> & Partial<Pick<Project, 'gateStages'>>;
   assets: Asset[]; tests: Test[]; items: TestItem[];
   materials: Material[]; programs: Program[];
   today: string;
@@ -147,10 +147,12 @@ export function handoverReport(x: HandoverInput): HandoverReport {
           : tone === 'late' ? `late — was ${day(plannedEnd(t) ?? t.plannedFor)}`
             : t.plannedFor ? `planned ${day(plannedEnd(t) ?? t.plannedFor)}` : 'no day set';
         return {
-          title: t.title, state, tone, signOff: isSignOff(t),
+          title: t.title, state, tone, signOff: isSignOff(t, x.project),
           ...(t.withWhom?.trim() ? { who: t.withWhom.trim() } : {}),
           ...(t.result?.trim() ? { said: t.result.trim() } : {}),
-          ...(filesSaid(t) ? { files: filesSaid(t) } : {}),
+          /* What was handed over, by name — and a paperwork line done with
+             nothing attached says so, in its place (docs/PANELS.md). */
+          ...(filesSaid(t) ? { files: filesSaid(t) } : done && answerOf(t, x.project, items) === 'paperwork' ? { files: 'No file kept' } : {}),
         };
       }),
       open: stillOpenOn(a, tests, items, today, programs).names,

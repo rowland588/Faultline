@@ -23,7 +23,7 @@
  * Pure: the screen gathers the records, this shapes them, the drawer draws. */
 import { isRunTest, productFigures, productName, readRuns, runsLine } from './run';
 import type { MediaPin, Project } from '../types';
-import { GATE_WORD, installGrid, jobJourney, lateOrProblemSays, handedOverWith, machineAt, machinesWhere, journeyOf, usualStages, type GateTone, type JourneyGate, type StepView, lateByWords, heldUpBy } from './install';
+import { answerOf, GATE_WORD, installGrid, jobJourney, lateOrProblemSays, handedOverWith, machineAt, machinesWhere, journeyOf, usualStages, type GateTone, type JourneyGate, type StepView, lateByWords, heldUpBy } from './install';
 import { stageGateOnTarget, type OnTarget } from './onTarget';
 import { standing, slipWords, type OutstandingRow, type PlanMark } from './standing';
 import { fixTone, type FixTone } from './fixTone';
@@ -298,11 +298,12 @@ export function clientReport(x: ClientReportInput): ClientReport {
     const accounts: StepAccount[] = g.rows.flatMap(r => {
       const inGrid = r.cells.filter((c): c is StepView => !!c);
       const rest = r.view.steps.filter(s => !inGrid.includes(s));
-      return [...inGrid, ...rest].filter(s => s.step.result?.trim() || (s.step.docs ?? []).length || (!isProgramsStage(s.step) && partsOf(s.step.id, items).length)).map(s => {
+      const progStage = (t: Test) => isProgramsStage(t, answerOf(t, project, items));
+      return [...inGrid, ...rest].filter(s => s.step.result?.trim() || (s.step.docs ?? []).length || (!progStage(s.step) && partsOf(s.step.id, items).length)).map(s => {
         const tone = cellOf(s);
         /* A programs stage's parts are the programs — said once, under
            Programs, with their status and what was seen. */
-        const parts = isProgramsStage(s.step) ? [] : partsOf(s.step.id, items).map(p => partWords(p, today));
+        const parts = progStage(s.step) ? [] : partsOf(s.step.id, items).map(p => partWords(p, today));
         return {
           machine: r.asset?.name ?? 'The line', stage: s.step.title,
           when: niceDay(s.step.ranOn ?? s.step.plannedFor) || 'no date',
@@ -375,7 +376,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
 
   const install = stepGate('install');
   const setup = stepGate('setup');
-  const progs = programsReading({ tests, items, assets, programs, today });
+  const progs = programsReading({ tests, items, assets, programs, today, holder: project });
   if (progs) {
     setup.programs = progs;
     setup.says = setup.says === 'Nothing kept at this gate yet'
@@ -409,14 +410,14 @@ export function clientReport(x: ClientReportInput): ClientReport {
       result: t.result, passesIf: t.passesIf,
       /* A run's numbers are in the Performance runs table above; an earlier
          attempt, not in that table, carries them on its own line. */
-      ...(runsLine(t) && !(isRunTest(t) && now.includes(t)) ? { run: runsLine(t) } : {}),
+      ...(runsLine(t) && !(isRunTest(t, answerOf(t, project)) && now.includes(t)) ? { run: runsLine(t) } : {}),
     })),
     ...(() => {
       /* A row per product planned or run — not every test with "rate" in its
          name as a row of dashes. Each product judged on its own numbers; a
          product still to run takes its test's day (booked, or late once the
          day has gone). */
-      const runs = now.filter(t => isRunTest(t)).flatMap(t => {
+      const runs = now.filter(t => isRunTest(t, answerOf(t, project))).flatMap(t => {
         const testTone: RunRow['tone'] = (endOf(t) ?? '\uffff') < today ? 'late' : t.plannedFor ? 'booked' : 'ahead';
         return readRuns(t).products.map((p): RunRow => {
           const f = productFigures(p);

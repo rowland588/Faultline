@@ -37,6 +37,7 @@ import { AccessNote } from '../ui/AccessNote';
 import { Fold } from '../ui/Fold';
 import { ProgramsScreen } from './ProgramsScreen';
 import { navReplace } from '../state/useRoute';
+import { answerOf } from '../lib/install';
 
 type Filter = 'all' | ProgBucket;
 const FILTERS: { key: Filter; word: string }[] = [
@@ -58,13 +59,13 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
   const today = todayISO();
 
   const reading = useMemo(() => (tt.loading || progs.loading ? undefined
-    : programsReading({ tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs, today })),
-  [tt.loading, progs.loading, tt.tests, tt.items, tt.assets, progs.programs, today]);
+    : programsReading({ tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs, today, holder: project })),
+  [tt.loading, progs.loading, tt.tests, tt.items, tt.assets, progs.programs, today, project]);
 
   if (tt.loading || progs.loading || !project) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
 
   const assets = live(tt.assets).sort((a, b) => a.sort - b.sort);
-  const stages = live(tt.tests).filter(isProgramsStage);
+  const stages = live(tt.tests).filter(t => isProgramsStage(t, answerOf(t, project, tt.items)));
   const lines = reading?.lines ?? [];
   const count = (b: Filter) => (b === 'all' ? lines.length : lines.filter(l => l.bucket === b).length);
   const keep = (l: ProgramLine) => filter === 'all' || l.bucket === filter;
@@ -144,7 +145,7 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
               <span className="sub">{n ? `${n} program${n === 1 ? '' : 's'} · ${done} done` : 'No programs yet'}{bad ? <> · <b className="in-late">{bad} failed or late</b></> : null}</span>
             </div>
             {stage
-              ? <StageParts step={stage} tt={tt} can={can} only={onlyKept} onOpen={id => openRecord(projectId, id)}
+              ? <StageParts step={stage} tt={tt} can={can} holder={project} only={onlyKept} onOpen={id => openRecord(projectId, id)}
                   onRunProblem={can.edit ? (tid, rid) => openRecordAt(projectId, tid, rid) : undefined}
                   onProblem={can.edit ? p => openRecordAt(projectId, stage.id, p.id) : undefined} />
               : can.edit && m.id

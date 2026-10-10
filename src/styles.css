@@ -11373,3 +11373,8 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
 /* "2 files" beside a square's parts. */
 .ig-files { color: var(--muted); }
 .rd-files { gap: 4px; }
+/* How a line is answered (docs/PANELS.md slice 2) — on the stage list beside
+   who it is with, and in a stage's Edit for the owner. */
+.in-usual-ans { flex-wrap: wrap; }
+.rd-answer { gap: 6px; }
+.rd-answer .cw-seg { flex-wrap: wrap; }

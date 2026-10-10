@@ -85,12 +85,12 @@ export function useStanding(projectId: string): StandingState {
          has not passed; late what is past its day, failed what failed — two
          words, as the Programs page's tiles say them. */
       programs: (r => (r ? { n: r.open + r.late + r.failed, late: r.late, failed: r.failed, done: r.done + r.baseline } : row('programs', by('programs')?.open ?? 0, by('programs')?.late ?? 0)))(
-        loading ? undefined : programsReading({ tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs, today })),
+        loading ? undefined : programsReading({ tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs, today, holder: project })),
       /* The gates after Install. */
       setup: { ...row('setup', by('setup')?.open ?? 0, by('setup')?.late ?? 0), problem: problems('setup') },
       handover: { ...row('handover', by('handover')?.open ?? 0, by('handover')?.late ?? 0), problem: problems('handover') },
     };
-  }, [answer.rows, loading, tt.tests, tt.items, tt.assets, mats.materials, progs.programs]);
+  }, [answer.rows, loading, tt.tests, tt.items, tt.assets, mats.materials, progs.programs, project]);
 
   return { loading, standing: answer, counts, expectedAt, plannedAt };
 }

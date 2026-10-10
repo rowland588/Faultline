@@ -14,7 +14,8 @@
 import { usePrograms } from '../lib/usePrograms';
 import { STATE_WORD, isProgramsStage, isProved, stateOf, type Program } from '../lib/programs';
 import { provingTestOf, testCell } from '../lib/commission';
-import type { Test } from '../lib/testing';
+import type { Test, TestItem } from '../lib/testing';
+import { answerOf, type AnswerHolder } from '../lib/install';
 import { niceDay, todayISO } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 import type { Can } from '../lib/access';
@@ -30,8 +31,11 @@ const progWords = (p: Program, tests: Test[], today: string): { word: string; to
    offered from here for the screens that read it from here. */
 export { isProgramsStage };
 
-export function ProgramLink({ projectId, t, tests, onPatch, can }: {
+export function ProgramLink({ projectId, t, tests, onPatch, can, holder, items }: {
   projectId: string; t: Test; tests: Test[];
+  /** The job and what is on its stages, so the programs stage is the one
+   *  its answer says (lib/install answerOf, docs/PANELS.md). */
+  holder?: AnswerHolder; items?: TestItem[];
   /** Kept for the callers; a program's run opens from its own line now. */
   onOpen?: (id: string) => void;
   onPatch: (patch: Partial<Test>) => void;
@@ -68,7 +72,7 @@ export function ProgramLink({ projectId, t, tests, onPatch, can }: {
     );
   }
 
-  if (!isProgramsStage(t)) return null;
+  if (!isProgramsStage(t, answerOf(t, holder, items))) return null;
   /* ONE DOOR. Rowland, 8 October: "what door do I use?" The programs stage on
      Set up is the quick look — its programs, above, the same list as the
      Programs page — and the Programs page is their home: every machine,

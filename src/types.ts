@@ -298,6 +298,10 @@ export interface Project {
      *  supabase/ACCESS_LEVELS.sql keeps gate_stages), and an older device that
      *  does not know it reads past it. */
     usualWith?: Record<string, 'supplier' | 'site'>;
+    /** HOW EACH IS ANSWERED (docs/PANELS.md) — Done, Paperwork, Sign-off,
+     *  Programs, Run — where the owner chose other than its name gives
+     *  (lib/install answerOf), keyed `gate:stage` like usualWith. */
+    usualAnswer?: Record<string, 'done' | 'paperwork' | 'signoff' | 'programs' | 'run'>;
     /** WHAT A USUAL TEST MUST SHOW — written once, given to every machine's
      *  test of that name (lib/install usualAgreed). Keyed `commission:test`. */
     usualAgreed?: Record<string, { passesIf?: string; runAgreed?: { rate?: number; minutes?: number; rejectsMax?: number } }>;

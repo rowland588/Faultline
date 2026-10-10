@@ -129,7 +129,10 @@ describe('a sign-off keeps what it accepted', () => {
     expect(isSignOff(signOff)).toBe(true);
     expect(isSignOff({ kind: 'install', gate: 'handover', title: 'Safety sign-off (PUWER)' })).toBe(true);
     expect(isSignOff({ kind: 'install', gate: 'handover', title: 'Spares list agreed' })).toBe(false);
-    expect(isSignOff({ kind: 'install', title: 'Client signed off' })).toBe(false);
+    /* The words decide at any gate now, not only at Hand over (docs/PANELS.md:
+       "Documents signed off" at Install never asked who). */
+    expect(isSignOff({ kind: 'install', title: 'Client signed off' })).toBe(true);
+    expect(isSignOff({ kind: 'install', gate: 'handover', title: 'Signal tower checked' })).toBe(false);
   });
 
   it('writes what was still open on the machine, by name', () => {
