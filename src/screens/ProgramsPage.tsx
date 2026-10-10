@@ -32,6 +32,7 @@ import { niceDay, todayISO } from '../lib/weeks';
 import { pdfFileName } from '../lib/fileName';
 import { StageParts } from '../ui/StageParts';
 import { openRecord, openRecordAt } from '../ui/RecordDrawer';
+import { MachineName } from '../ui/MachinePanel';
 import { AccessNote } from '../ui/AccessNote';
 import { Fold } from '../ui/Fold';
 import { ProgramsScreen } from './ProgramsScreen';
@@ -139,7 +140,7 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
           <section key={m.id || 'line'} className="pp-m" aria-label={m.name}>
             <div className="pp-mh">
               {/* The machine's name opens the machine (docs/FLOW.md item 2). */}
-              <h2>{m.id ? <button type="button" className="mp-name" onClick={() => openRecord(projectId, m.id)}>{m.name}</button> : m.name}</h2>
+              <h2>{m.id ? <MachineName name={m.name} onOpen={() => openRecord(projectId, m.id)} /> : m.name}</h2>
               <span className="sub">{n ? `${n} program${n === 1 ? '' : 's'} · ${done} done` : 'No programs yet'}{bad ? <> · <b className="in-late">{bad} failed or late</b></> : null}</span>
             </div>
             {stage

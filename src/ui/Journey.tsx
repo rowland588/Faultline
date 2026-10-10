@@ -4,6 +4,7 @@
  * report prints beside each machine. Tap a gate to go to it. */
 import { nav } from '../state/useRoute';
 import { openRecord } from './RecordDrawer';
+import { MachineName } from './MachinePanel';
 import { GATE_TONE_WORD, JOURNEY, handedOverWith, isWrongGate, machineAt, journeyOf, reasonsOf } from '../lib/install';
 import { live, type Asset, type Test, type TestItem } from '../lib/testing';
 import { todayISO } from '../lib/weeks';
@@ -42,7 +43,7 @@ export function Journey({ projectId, assets, tests, items, bare }: {
         return (
           <div key={a.id} className="jr-row">
             {/* The name opens the machine — everything on it (docs/FLOW.md item 2). */}
-            <span className="jr-m"><button type="button" className="mp-name" onClick={() => openRecord(projectId, a.id)}>{a.name}</button><span className="sub">{machineAt(a, j).says}{open.length > 0 && <span className="jr-with"> · {open.join(' · ')}</span>}</span>
+            <span className="jr-m"><MachineName name={a.name} onOpen={() => openRecord(projectId, a.id)} /><span className="sub">{machineAt(a, j).says}{open.length > 0 && <span className="jr-with"> · {open.join(' · ')}</span>}</span>
               {/* WHY IT IS RED OR AMBER, where the colour is — each reason in
                   its own: "Sensors checked — late, 2 h lost" red, "Dry run — a
                   problem, no time lost" amber. Tapping the tile goes to where

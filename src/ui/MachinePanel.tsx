@@ -20,6 +20,13 @@ import type { Can } from '../lib/access';
 
 type TT = ReturnType<typeof useTesting>;
 
+/** A MACHINE'S NAME AS A DOOR TO IT — drawn as the name, and heard as what
+ *  it does ("Case packer — everything on this machine"), so a screen reader
+ *  tells it from a chip that picks the machine (docs/FLOW.md item 2). */
+export function MachineName({ name, onOpen }: { name: string; onOpen: () => void }) {
+  return <button type="button" className="mp-name" aria-label={`${name} — everything on this machine`} onClick={onOpen}>{name}</button>;
+}
+
 /* The app's five colours, one meaning each (CLAUDE.md): red gone or failed,
    amber waiting, indigo ahead, green done, grey not started. */
 const SQ: Record<MachineTone, 'r' | 'a' | 'w' | 'g' | 'n'> = { done: 'g', failed: 'r', late: 'r', problem: 'a', asking: 'a', ahead: 'w', none: 'n' };

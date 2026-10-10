@@ -424,7 +424,7 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
         {/* The machine is a door to the machine — everything on it, one tap
             (docs/FLOW.md item 2). */}
         <div><dt>What</dt><dd>{onAsset
-          ? <>{kindWord} · <button type="button" className="rd-link-in" onClick={() => onOpen(onAsset.id)}>{onAsset.name}</button></>
+          ? <>{kindWord} · <button type="button" className="rd-link-in" aria-label={`${onAsset.name} — everything on this machine`} onClick={() => onOpen(onAsset.id)}>{onAsset.name}</button></>
           : whatItIs}</dd></div>
         <div><dt>{kind === 'fix' ? 'Agreed' : 'Planned'}</dt><dd>
           {dates ?? <i className="sub">{kind === 'fix' ? 'no date agreed yet' : 'no day yet'}</i>}
