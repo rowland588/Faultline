@@ -33,7 +33,8 @@ export interface StatusWhy {
    *  estimate)", what it means for the business; and for a critical, what
    *  is being done about it. */
   detail?: string;
-  /** The problem it is, when it is one — the Reports screen opens it. */
+  /** The record it is about — the problem, or the stage or test that is
+   *  late, didn't pass or hit a problem — so the Reports screen opens it. */
   id?: string;
 }
 export interface StatusNext {
@@ -106,6 +107,8 @@ export const STATUS_STEPS: StatusLimits[] = [
 /** How much of the lead's commentary the one page holds. */
 export const COMMENTARY_MAX = 520;
 
+const idOf = (ids: string[] | undefined, i: number): { id?: string } => (ids?.[i] ? { id: ids[i] } : {});
+
 export function statusReport(r: ClientReport, L: StatusLimits = STATUS_LIMITS): StatusReport {
   const why: StatusWhy[] = [
     ...r.critical.open.map((c): StatusWhy => ({
@@ -119,13 +122,15 @@ export function statusReport(r: ClientReport, L: StatusLimits = STATUS_LIMITS): 
     /* NOT PLANNED YET (docs/JOBSTART.md) — the one page said "Nothing —
        everything is on plan" over a job with 136 lines with no date. */
     ...(r.onTarget.gaps ? [{ kind: 'unplanned' as const, tag: 'NOT PLANNED', what: r.onTarget.gaps }] : []),
-    ...r.sections.flatMap(s => s.late.map((l): StatusWhy => (s.gate === 'commission'
-      ? { kind: 'failed', tag: 'DIDN’T PASS', what: l }
-      : { kind: 'late', tag: 'LATE', what: l }))),
+    /* Each carries the stage or test it is about, so the Reports screen
+       opens it (docs/FLOW.md item 1); the paper prints the words alone. */
+    ...r.sections.flatMap(s => s.late.map((l, i): StatusWhy => ({ ...(s.gate === 'commission'
+      ? { kind: 'failed' as const, tag: 'DIDN’T PASS', what: l }
+      : { kind: 'late' as const, tag: 'LATE', what: l }), ...idOf(s.lateIds, i) }))),
     /* A part said to have failed — a program that did not pass, and what
        was seen (lib/clientReport GateSection.failed). */
-    ...r.sections.flatMap(s => (s.failed ?? []).map((l): StatusWhy => ({ kind: 'failed', tag: 'DIDN’T PASS', what: l }))),
-    ...r.sections.flatMap(s => s.problems.map((l): StatusWhy => ({ kind: 'problem', tag: 'PROBLEM', what: l }))),
+    ...r.sections.flatMap(s => (s.failed ?? []).map((l, i): StatusWhy => ({ kind: 'failed', tag: 'DIDN’T PASS', what: l, ...idOf(s.failedIds, i) }))),
+    ...r.sections.flatMap(s => s.problems.map((l, i): StatusWhy => ({ kind: 'problem', tag: 'PROBLEM', what: l, ...idOf(s.problemIds, i) }))),
   ];
   /* Late first, then soonest due — the order somebody acts in. */
   const fixes = [...r.fixes.open].sort((a, b) => Number(b.tone === 'late') - Number(a.tone === 'late'));

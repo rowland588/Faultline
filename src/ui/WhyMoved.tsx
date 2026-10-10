@@ -28,6 +28,7 @@ import { hoursTally, fullDays, hoursWord, daysWord, DAY_HOURS } from '../lib/hou
 import type { TestItem, WayRound } from '../lib/testing';
 import { CriticalFields, criticalDraftOf, criticalPatch } from './CriticalFields';
 import { EvidenceViewer, withPins } from './Evidence';
+import { Icon } from './Icon';
 
 type TT = ReturnType<typeof useTesting>;
 
@@ -338,6 +339,33 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], as
      "move what follows too" and nothing moved. Now the tick is what happens. */
   const [picked, setShift] = useKept<boolean | null>(k('shift'), null);
   const shift = picked ?? !!following?.into.length;
+  /* THE REST, FOLDED (docs/FLOW.md item 6) — open when asked, and by itself
+     once any of it holds something: a picture, a flag, a cost, a fix, or a
+     reason picked from the list. */
+  const [more, setMore] = useState(false);
+  const filled = media.length > 0 || crit.critical || crit.risk || cost !== 'none' || fix || (editing && !!owner.trim()) || QUICK.includes(why);
+  const extras = more || filled;
+  /* Save and Cancel — after "What happened" while the rest is folded, at
+     the foot once it is open. */
+  const acts = (
+    <span className="why-acts">
+      <button type="button" className="btn btn-primary" disabled={!why.trim()}
+        onClick={() => {
+          /* The one hours box, said as what it is: lost, or could cost. A
+             could-cost on a critical problem written before stays as it was. */
+          const counted = cost === 'hours' && hours > 0 ? hours : undefined;
+          const flags = criticalPatch({ ...crit, could: isRisk ? (counted ? String(counted) : '') : crit.critical ? crit.could : '' });
+          if (keep) forget(keep);
+          onSave({
+            why: why.trim(), media, ...(!editing && target ? { to: target } : {}), ...(editing ? { owner: owner.trim() || undefined } : {}),
+            ...(!isRisk && counted ? { hoursLost: counted } : {}),
+            ...(!editing && fix ? { fix: bookedFix(fixOn, fixWhat) } : {}),
+            ...(!editing && following?.n && shift ? { shiftFollowing: true } : {}), ...flags,
+          });
+        }}>{editing ? 'Save' : 'Save the problem'}</button>
+      <button type="button" className="btn btn-ghost" onClick={() => { if (keep) forget(keep); onCancel(); }}>Cancel</button>
+    </span>
+  );
   return (
     <div className="why">
       {restored && <p className="kept-note" role="status">Not saved yet — what you typed is back. Save keeps it; Cancel throws it away.</p>}
@@ -349,13 +377,26 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], as
           onHeard={heard} />
       </span>
       {said && <p className="vo-said why-said"><span className="vo-said-l">You said</span> “{said}”</p>}
-      <span className="why-quick">
-        {QUICK.map(q => <button key={q} type="button" className={why === q ? 'on' : ''} onClick={() => setWhy(q)}>{q}</button>)}
-      </span>
       <label className="cw-f cw-f-wide"><span>What happened</span>
         <textarea className="text-area" rows={2} value={why} autoFocus placeholder="Guard brackets arrived the wrong size"
           onChange={e => setWhy(e.target.value)} /></label>
       <BetterWords text={why} field="problem" onUse={setWhy} names={[step.title, ...assets.map(a => a.name)]} />
+      {/* SAY IT, SAVE IT (docs/FLOW.md item 6). Only what happened is needed,
+          so it and Save come first; the rest folds under one line, open by
+          itself once anything in it is filled — a picture, a flag, a cost or
+          a fix, typed, spoken or already on the problem. Save always comes
+          after what is showing. */}
+      {!extras && acts}
+      {!filled && (
+        <button type="button" className="why-more" aria-expanded={extras} onClick={() => setMore(m => !m)}>
+          <span>{extras ? 'Less' : 'More — pick a reason, a picture, high risk or critical, what it cost, a fix'}</span>
+          <Icon name={extras ? 'chevronDown' : 'chevron'} size={14} />
+        </button>
+      )}
+      {extras && <>
+      <span className="why-quick">
+        {QUICK.map(q => <button key={q} type="button" className={why === q ? 'on' : ''} onClick={() => setWhy(q)}>{q}</button>)}
+      </span>
       <Evidence media={media} kind="found" onView={setViewing} onAdd={async refs => { setMedia(m => [...m, ...refs]); }} />
       {editing && (
         <label className="cw-f"><span>Whose it is</span>
@@ -403,23 +444,8 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], as
       {!editing && later && end && <p className="why-s">Finish {niceDay(end)} → <b>{niceDay(target)}</b> · <b>+{daysBetween(end, target)} day{daysBetween(end, target) === 1 ? '' : 's'}</b> — the plan will show it, with this as the reason.</p>}
       {!editing && following && end && <KnockOn following={following} days={daysBetween(end, target)} on={shift} set={setShift} />}
       {!editing && <BookFix fix={fix} setFix={setFix} on={fixOn} setOn={setFixOn} what={fixWhat} setWhat={setFixWhat} />}
-      <span className="why-acts">
-        <button type="button" className="btn btn-primary" disabled={!why.trim()}
-          onClick={() => {
-            /* The one hours box, said as what it is: lost, or could cost. A
-               could-cost on a critical problem written before stays as it was. */
-            const counted = cost === 'hours' && hours > 0 ? hours : undefined;
-            const flags = criticalPatch({ ...crit, could: isRisk ? (counted ? String(counted) : '') : crit.critical ? crit.could : '' });
-            if (keep) forget(keep);
-            onSave({
-              why: why.trim(), media, ...(!editing && target ? { to: target } : {}), ...(editing ? { owner: owner.trim() || undefined } : {}),
-              ...(!isRisk && counted ? { hoursLost: counted } : {}),
-              ...(!editing && fix ? { fix: bookedFix(fixOn, fixWhat) } : {}),
-              ...(!editing && following?.n && shift ? { shiftFollowing: true } : {}), ...flags,
-            });
-          }}>{editing ? 'Save' : 'Save the problem'}</button>
-        <button type="button" className="btn btn-ghost" onClick={() => { if (keep) forget(keep); onCancel(); }}>Cancel</button>
-      </span>
+      {acts}
+      </>}
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)}
         onPins={pins => setMedia(m => withPins(m, viewing.id, pins))}
         onRemove={() => { setMedia(m => m.filter(x => x.id !== viewing.id)); setViewing(null); }} />}

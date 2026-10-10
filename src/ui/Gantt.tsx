@@ -375,10 +375,16 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
               aria-label={`${isOpenB ? 'Fold' : 'Open'} ${b.name}`} title={isOpenB ? 'Fold it' : 'Show its stages'}>
               <Icon name={isOpenB ? 'chevronDown' : 'chevron'} size="1.2em" />
             </button>
-            <button type="button" className="gt-mgo" onClick={go} title={tip} aria-label={`${b.name}: ${b.says} (${BAND_TONE[b.tone]})`}>
-              <b>{b.name}</b><small className={'is-' + b.tone}>{b.says}</small>
-              {b.next && <small className="gt-mnext">Next: {b.next}</small>}
-            </button>
+            <span className="gt-mgo-w">
+              <button type="button" className="gt-mgo" onClick={go} title={tip} aria-label={`${b.name}: ${b.says} (${BAND_TONE[b.tone]})`}>
+                <b>{b.name}</b><small className={'is-' + b.tone}>{b.says}</small>
+              </button>
+              {/* Its next stage opens that stage, as it does everywhere else
+                  (docs/FLOW.md item 1) — not the header's gate. */}
+              {b.next && (b.nextId
+                ? <button type="button" className="gt-mnext" onClick={() => openRecord(projectId, b.nextId as string)} title={`Open ${b.next}`}>Next: {b.next}</button>
+                : <small className="gt-mnext">Next: {b.next}</small>)}
+            </span>
           </div>
           <button type="button" className="gt-track gt-mtrack" style={{ width: T }} onClick={go} tabIndex={-1} aria-hidden title={tip}>
             {/* The span is the machine's plan, first date to last, in no

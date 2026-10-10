@@ -6759,6 +6759,8 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
   transform: rotate(45deg); transition: transform 240ms cubic-bezier(.2, .8, .2, 1); margin-top: -4px;
 }
 .jb-row.is-open .jb-chev { transform: rotate(225deg); margin-top: 4px; }
+/* On a phone the row goes into the job: the chevron points on, not down. */
+.jb-chev-b.is-into .jb-chev { transform: rotate(-45deg); margin-top: 0; margin-left: -4px; }
 
 /* The drawer opens by animating its grid row from nothing to its content. */
 .jb-drawer { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 420ms cubic-bezier(.2, .8, .2, 1); }
@@ -8279,6 +8281,13 @@ button.gt-fixlab small { font-size: 10px; }
 .why-fix-on { flex: 0 1 200px; margin: 0; }
 .why-fix-what { flex: 1 1 240px; margin: 0; }
 .why-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+/* The rest of the problem form, folded under one line (WhyMoved
+   ProblemForm, docs/FLOW.md item 6) — a press, so brand blue. */
+.why-more {
+  appearance: none; align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 4px 0;
+  border: 0; background: none; font: inherit; font-size: var(--t-label); font-weight: 600; color: var(--brand); text-align: left; cursor: pointer;
+}
+.why-more:hover span { text-decoration: underline; }
 .why-need { margin: 0; }
 .ig-why-note { margin: 6px 0 0; color: var(--st-r); font-weight: 700; }
 .sp-acts { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -9861,7 +9870,7 @@ label.ax-done-on, .pc-closed-on { flex: 0 0 auto; max-width: 260px; }
 /* On a phone the machine's header reads over its track: give its words the
    row's own ground and lift them over the today line, so nothing is printed
    over anything (CLAUDE.md report rules hold on screen too). */
-.gt.is-stacked div.gt-lab.gt-mlab .gt-mgo {
+.gt.is-stacked div.gt-lab.gt-mlab .gt-mgo-w {
   position: relative; z-index: 4;
   background: color-mix(in srgb, var(--surface-2) 70%, var(--surface));
   border-radius: 6px; padding-right: 8px;
@@ -10248,7 +10257,7 @@ body:has(.rd-scrim) .toast { top: calc(12px + env(safe-area-inset-top)); bottom:
  * its own home — a spine with a back pill, a row of pill tabs per level and a
  * set of header buttons per screen. They are one frame now:
  *
- *   .nv-top    a slim bar: the mark, which job (a switcher), search, you;
+ *   .nv-top    a slim bar: the mark, which job (a switcher), a snag, you;
  *   .nv-rail   on a laptop (900px and up), the structure on the left —
  *              Control room · the job · its gates or method · work · lines
  *              (and a study's four screens under its line) · paper;
@@ -10288,13 +10297,9 @@ body:has(.rd-scrim) .toast { top: calc(12px + env(safe-area-inset-top)); bottom:
 .nv-job select { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; font-size: 16px; }
 .nv-job-l { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nv-job .icon { color: var(--muted); }
-.nv-search {
-  margin-left: auto; width: min(300px, 28vw); height: 36px; padding: 0 12px;
-  border: 0; border-radius: 10px; background: var(--surface-2);
-  font: inherit; font-size: 13.5px; color: var(--muted);
-}
-.nv-search::placeholder { color: var(--muted); }
-.nv-search:disabled { cursor: not-allowed; opacity: 1; }
+/* Keeps the snag button and you at the right (Frame: the search box that
+   held this place is gone until search exists). */
+.nv-gap { flex: 1; }
 .nv-top .acct-btn { width: 36px; height: 36px; }
 
 /* ---- the rail (and the phone's sheet: the same lines) ---- */
@@ -10402,7 +10407,7 @@ body:has(.rd-scrim) .toast { top: calc(12px + env(safe-area-inset-top)); bottom:
 /* ---- a phone: the bar at the foot, and what sits on it lifted clear ---- */
 @media (max-width: 899px) {
   .nv-top { gap: 6px; padding-left: 12px; padding-right: 12px; }
-  .nv-name, .nv-search { display: none; }
+  .nv-name, .nv-gap { display: none; }
   /* The page scrolls clear of the bar at the foot, home indicator and all. */
   .nv-main { padding-bottom: calc(var(--nv-bar) + env(safe-area-inset-bottom)); }
   .nv-job { flex: 1; font-size: 16px; padding: 6px 8px; }
@@ -11209,8 +11214,18 @@ button.gt-lab small b { display: inline; font-size: inherit; font-weight: 800; }
 /* The plan's machine header, folded: where it is, what is wrong, and now
    what is next — the third line gets its room. */
 .gt-mrow.has-next { height: 58px; }
-.gt-mgo small.gt-mnext { font-size: 10.5px; color: var(--ink-2); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; display: block; }
-.gt.is-stacked .gt-mgo small.gt-mnext { font-size: 11px; }
+/* The band's name and state, and under them its next stage — a door of its
+   own to that stage (docs/FLOW.md item 1). */
+.gt-mgo-w { flex: 1 1 auto; min-width: 0; align-self: stretch; display: flex; flex-direction: column; justify-content: center; }
+.gt-mgo-w .gt-mgo { flex: none; align-self: stretch; padding-top: 0; padding-bottom: 0; }
+.gt-mnext {
+  appearance: none; display: block; flex: none; max-width: 100%; margin: 1px 0 0; padding: 0 10px 0 0; border: 0; background: transparent;
+  font: inherit; font-size: 10.5px; line-height: 1.15; color: var(--ink-2); font-weight: 600; text-align: left;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+button.gt-mnext { cursor: pointer; }
+button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
+.gt.is-stacked .gt-mnext { font-size: 11px; }
 
 /* =====================================================================
    SLICE: THE CONTROL ROOM (docs/CONTROLROOM.md) — the week as a list, the

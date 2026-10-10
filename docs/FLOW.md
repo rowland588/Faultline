@@ -44,8 +44,16 @@ and the regulator fix:
 | Front page | opens it | opens it |
 | Install / Fixes | opens it | opens it |
 | **The plan** | **goes to the Install screen**; you find it again there | not shown |
-| **The day** | **listed 3 times, none opens it** | **listed 3 times, none opens it** |
+| The day | opens it (corrected below) | opens it (corrected below) |
 | **Status report screen** | **a late line under "why" does not open** | opens it |
+
+*Corrected 10 October, while building:*
+- **The day.** Its lines do open their records. The walk tapped the first
+  thing carrying the name, which was the "add to today's plan" chip, and
+  that chip adds the stage to the plan rather than opening it.
+- **The plan.** With a machine folded, the stage shows only as "Next: …"
+  inside the machine's header, and the header goes to Install. Unfolded,
+  its rows open their records.
 
 **2. There is no place for a machine.** On the floor the unit is the
 machine ("what is left on the weigher?"). Its life is spread over Install,
@@ -122,9 +130,10 @@ says so, and on a phone it reads as a form to fill in.
 
 Each item hangs off what is already there, and says where it shows.
 
-1. **One door, everywhere.** A stage or test on the plan, every line on the
-   day and every line under "why" on the status report screen opens its
-   record in the drawer, as everywhere else. Back returns to where you were.
+1. **One door, everywhere.** A stage or test on the plan and every line
+   under "why" on the status report screen opens its record in the drawer,
+   as everywhere else (the day already does). Back returns to where you
+   were.
 2. **A machine is a place.** Tapping a machine's name, anywhere it shows,
    opens one machine panel. It is the machine's own record (no new noun),
    in the same drawer:
@@ -160,3 +169,67 @@ Each item hangs off what is already there, and says where it shows.
    else is still a tap away.
 7. **Small things:** fix rows announced as buttons. The repeated routes
    stay, unless you say otherwise.
+
+## Decided — Rowland, 10 October: "Do all of them"
+
+All seven, built in two slices that each go live on their own:
+- **slice 1** — one door everywhere (1), the shorter way around (3), one
+  tap into a job on the phone (4), the problem form say-it-save-it (6),
+  and fix rows as buttons (7);
+- **slice 2** — a machine as a place (2), and the day in the order it is
+  used (5).
+
+## Built — slice 1, 10 October
+
+1. **One door.**
+   - Every line under "why" on the status report screen opens its record:
+     a late stage, a test that didn't pass, a failed part (its stage) and a
+     stage that hit a problem. `GateSection` carries the record behind
+     each line (`lateIds`, `problemIds`, `failedIds`), and the paper prints
+     the words alone, as before.
+   - On the plan, a folded machine's "Next: …" is its own button and opens
+     that stage. The machine's name still goes where it went; slice 2 makes
+     it the machine's panel.
+3. **The shorter way around.**
+   - **The rail leads with the job:** Control room, the job, its gates (or
+     its method), its work, then Reports · Notes · Details at the foot.
+     Under them, one "Tools" group holds Snags, Line standard and Line
+     balance, and on a Stage Gate job its lines.
+   - **On a 6M or lever tree job, the lines stay with the work.** There the
+     lines are what the job is about.
+   - **The control room's rail:** the jobs, then the tools at the foot.
+   - **The dead search box is gone.** The snag button and you stay at the
+     right.
+   - **The phone's bar carries the gate the job is at:** the first gate with
+     work still open, or Hand over once nothing is. On a gate, it carries
+     that gate. On the ordinary job that is Install, because the weigher
+     is still at Install.
+4. **One tap into a job on the phone.** On a phone, a job's row on the
+   control room goes into the job, every time; its chevron points on, not
+   down. The laptop keeps the in-place opening.
+6. **The problem form: say it, save it.** It opens with "What happened",
+   then Save and Cancel, then one line: "More — pick a reason, a picture,
+   high risk or critical, what it cost, a fix". Opened, the rest follows
+   and Save moves to the foot. It opens by itself once any of it holds
+   something (a picture, a flag, a cost, a fix, a reason picked), so
+   nothing filled in is ever hidden. Saving with what happened alone
+   works, as it always did.
+7. **Fix rows are buttons.** The rows on Fixes are announced as buttons
+   (they were buttons marked as list items). The repeated routes stay.
+
+Where it shows:
+- **On screen:** every job's rail and the phone's bar and More sheet; the
+  control room's rail and rows; the status report screen; the plan's
+  machine headers; the problem form wherever a problem is written (the
+  stage drawer, a test, a run, a part of the plan); Fixes.
+- **On paper:** nothing changes. The status report prints the same lines.
+
+Proved in Chromium, laptop and phone, on the ordinary job:
+- the rail on a Stage Gate, a 6M and a lever tree job;
+- a late line on the status report and the plan's "Next" each opening
+  their stage, and Back returning;
+- the phone row going into the job twice running, even when it had been
+  left open;
+- the problem form folded, opened and closed, and a problem saved with
+  "what happened" alone;
+- fix rows found as buttons.

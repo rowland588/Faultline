@@ -10,7 +10,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseRoute } from '../../state/useRoute';
 import {
-  controlRoom, footGroup, gatesGroup, hereOf, jobLine, linesGroup, methodGroup, phoneBar, squareOf, workGroup,
+  controlRoom, footGroup, gatesGroup, hereOf, jobLine, linesGroup, methodGroup, phoneBar, squareOf, toolsGroup, workGroup,
   type RailGroup,
 } from '../rail';
 
@@ -186,14 +186,26 @@ describe('the phone’s five', () => {
     { lines: [controlRoom(at), jobLine(P, 'Line 2 commissioning', at)] },
     gatesGroup(P, at, { install: { n: 2, late: 1, done: 0 } }),
     workGroup(P, 'commissioning', at, {}),
-    linesGroup(P, [{ id: 'L7', name: 'Line 7', workspaceId: 'ws' }], at, 'ws'),
     footGroup(P, at),
+    toolsGroup(at, linesGroup(P, [{ id: 'L7', name: 'Line 7', workspaceId: 'ws' }], at, 'ws').lines),
   ];
 
   it('Control room · This job · the gate you are in · Fixes · More', () => {
     expect(phoneBar(gateRail('setup'), 'commissioning').map(l => l.label)).toEqual(['Control room', 'This job', 'Set up', 'Fixes', 'More']);
     // On the job itself, the first gate holds the third place.
     expect(phoneBar(gateRail('job'), 'commissioning').map(l => l.label)).toEqual(['Control room', 'This job', 'Install', 'Fixes', 'More']);
+  });
+
+  it('off the gates, the gate the job is at — the first with work open, else the last', () => {
+    const at = (counts: Parameters<typeof gatesGroup>[2]): string | undefined => phoneBar([
+      { lines: [controlRoom('job'), jobLine(P, 'Line 2', 'job')] },
+      gatesGroup(P, 'job', counts),
+      workGroup(P, 'commissioning', 'job', {}),
+    ], 'commissioning')[2]?.label;
+    expect(at({ install: { n: 0, late: 0, done: 6 }, setup: { n: 0, late: 0, done: 3 }, testing: { n: 12, late: 0 }, handover: { n: 4, late: 0 } })).toBe('Commission');
+    expect(at({ install: { n: 0, late: 0, done: 6 }, handover: { n: 0, late: 0, done: 4 } })).toBe('Hand over');
+    // On a gate, that gate — wherever the job is.
+    expect(phoneBar(gateRail('handover'), 'commissioning')[2].label).toBe('Hand over');
   });
 
   it('carries the late count, so the bar can say it', () => {
@@ -228,5 +240,15 @@ describe('the tools beside the control room', () => {
     expect(hereOf(parseRoute('#/standards'))).toBe('linestandard');
     expect(hereOf(parseRoute('#/balances'))).toBe('linebalance');
     expect(toolPlaces('linebalance').filter(l => l.on).map(l => l.label)).toEqual(['Line balance']);
+  });
+});
+
+describe('the job first, the tools at the foot (docs/FLOW.md item 3)', () => {
+  it('Tools holds the snags, the line standard, the line balance and, on a stage-gate job, its lines', () => {
+    const g = toolsGroup('', linesGroup(P, [{ id: 'L7', name: 'Line 7' }, { id: 'L8', name: 'Line 8' }], '').lines);
+    expect(g.label).toBe('Tools');
+    expect(labels(g)).toEqual(['Snags', 'Line standard', 'Line balance', 'Line 7', 'Line 8']);
+    expect(labels(toolsGroup('quicksnags'))).toEqual(['Snags', 'Line standard', 'Line balance']);
+    expect(toolsGroup('quicksnags').lines.find(l => l.on)?.label).toBe('Snags');
   });
 });

@@ -15,8 +15,10 @@
  *             Tree · Board · Lines · …                      — a lever tree job
  *   Work      Fixes · Materials · The plan · The day
  *   Lines     each line; under it, inside its study: Capture · Analyse ·
- *             Evidence · Meeting
+ *             Evidence · Meeting                    — a 6M or lever tree job
  *             Reports · Notes · Details
+ *   Tools     Snags · Line standard · Line balance  (and, on a stage-gate
+ *             job, its lines)
  *
  * It is pure: a route and the counts in, groups of lines out. The counts come
  * from lib/useStanding and lib/useMethodCounts — the same numbers the client
@@ -162,16 +164,24 @@ export const controlRoom = (here: string): RailLine =>
 export const snagsPlace = (here: string): RailLine =>
   ({ key: 'quicksnags', label: 'Snags', to: '/snags', on: here === 'quicksnags', state: 'n', bare: true, icon: 'camera' });
 
-/** THE TOOLS, beside the control room on every rail — the snags, the line
- *  standard and the line balance. Rowland, 8 October: "we want line standard
- *  and line balancing as tools like snag ... same principle: use independent
- *  or connect to project." Each is used on a line with no job, and attached
- *  to one when it is wanted (LINE_TOOLS.sql, screens/LineToolsScreen). */
+/** THE TOOLS — the snags, the line standard and the line balance. Rowland,
+ *  8 October: "we want line standard and line balancing as tools like snag
+ *  ... same principle: use independent or connect to project." Each is used
+ *  on a line with no job, and attached to one when it is wanted (LINE_TOOLS.sql,
+ *  screens/LineToolsScreen). */
 export const toolPlaces = (here: string): RailLine[] => [
   snagsPlace(here),
   { key: 'linestandard', label: 'Line standard', to: '/standards', on: here === 'linestandard', state: 'n', bare: true, icon: 'people' },
   { key: 'linebalance', label: 'Line balance', to: '/balances', on: here === 'linebalance', state: 'n', bare: true, icon: 'chart' },
 ];
+
+/** THE TOOLS AS ONE GROUP, at the foot of every rail, under paper and
+ *  details. Rowland, 10 October, on the flow audit (docs/FLOW.md item 3):
+ *  the rail leads with the job — its front page, its gates, its work — and
+ *  the tools used inside it come after, where they no longer push the job
+ *  down. On a stage-gate job the lines it filmed are tools too (`extra`). */
+export const toolsGroup = (here: string, extra: RailLine[] = []): RailGroup =>
+  ({ label: 'Tools', lines: [...toolPlaces(here), ...extra] });
 
 /** The job itself — on its front page, where the method's answer is. */
 export const jobLine = (projectId: string, name: string, here: string, late = 0, problem = 0): RailLine =>
@@ -287,7 +297,8 @@ export function footGroup(projectId: string, here: string, openNotes = 0): RailG
 /* ------------------------------------------------------------------------- */
 
 /** The bar at the foot of a phone: Control room, this job, the gate or lens
- *  you are in (or the first one) — or, inside a line or its study, that line
+ *  you are in (or, off them, the gate the job is at; a method's first lens)
+ *  — or, inside a line or its study, that line
  *  or study screen — Fixes (the board on the other methods), and More — the
  *  whole rail as a sheet. "More" is on when the screen you are on lives only
  *  in the sheet. */
@@ -298,7 +309,12 @@ export function phoneBar(groups: RailGroup[], model: PlanModel): RailLine[] {
   const job = by('job');
   const main = groups.find(g => g.label === 'Gates' || g.label === 'Method')?.lines ?? [];
   const inLine = all.find(l => l.on && (l.sub || l.key.startsWith('line:')));
-  const current = main.find(l => l.on) ?? inLine ?? main[0];
+  /* Off the gates, a stage-gate job's bar carries the gate the job is at —
+     the first with work open — so the work is one tap (docs/FLOW.md item 3:
+     Commission sat under More wherever the job was). With nothing open, the
+     last gate. */
+  const at = model === 'commissioning' ? (main.find(l => (l.n ?? 0) > 0) ?? main[main.length - 1]) : main[0];
+  const current = main.find(l => l.on) ?? inLine ?? at;
   const fourth = model === 'commissioning' ? by('fixes') : (current?.key === 'board' ? by('materials') : by('board'));
   const five = [home, job, current, fourth].filter((l): l is RailLine => !!l);
   const onBar = five.some(l => l.on);

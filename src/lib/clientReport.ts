@@ -64,6 +64,13 @@ export interface GateSection {
    *  1.25 kg: seal temperature low". Red, its own list; never folded into
    *  late or a problem. Absent when none has. */
   failed?: string[];
+  /** THE RECORD BEHIND EACH LINE above, in the same order — the stage (or,
+   *  on Commission, the test) — so a line read on the Reports screen opens
+   *  it in the drawer as it does everywhere else (docs/FLOW.md item 1: a
+   *  late line under "why" was the one place a stage would not open). */
+  lateIds?: string[];
+  problemIds?: string[];
+  failedIds?: string[];
   /** Install, Set up, Hand over: how each stage went, in the team's own words
    *  (the step's "What was done" — typed or said into "Say how it went"), for
    *  every step that has one, in the grid's order: machine, then stage. A step
@@ -313,14 +320,16 @@ export function clientReport(x: ClientReportInput): ClientReport {
        counts, never "late or a problem". */
     const all = g.rows.flatMap(r => r.view.steps.map(s => ({ r, s, w: lateOrProblemSays(s.step, items, today) })));
     const named = (r: (typeof all)[number]['r'], s: StepView) => `${r.asset?.name ?? 'The line'} — ${s.step.title}`;
-    const lateSteps = all
-      .filter(({ s, w }) => w?.which === 'late' || (!w && cellOf(s) === 'late'))
+    const lateAll = all.filter(({ s, w }) => w?.which === 'late' || (!w && cellOf(s) === 'late'));
+    const lateSteps = lateAll
       .map(({ r, s, w }) => { const h = heldUpBy(s.step, tests, items, today, usual); return `${named(r, s)}${w?.lost ? ` — ${hoursWord(w.lost)} lost` : ''}${h ? ` — ${h.words}` : ''}`; });
-    const problemSteps = all.filter(({ w }) => w?.which === 'problem').map(({ r, s }) => named(r, s));
-    const failedParts = all.flatMap(({ r, s }) => partsOf(s.step.id, items).flatMap(p => {
+    const problemAll = all.filter(({ w }) => w?.which === 'problem');
+    const problemSteps = problemAll.map(({ r, s }) => named(r, s));
+    const failedAll = all.flatMap(({ r, s }) => partsOf(s.step.id, items).flatMap(p => {
       const said = resultNow(p);
-      return said?.is === 'failed' ? [`${named(r, s)} — ${p.what}${said.note ? `: ${said.note}` : ''}`] : [];
+      return said?.is === 'failed' ? [{ id: s.step.id, line: `${named(r, s)} — ${p.what}${said.note ? `: ${said.note}` : ''}` }] : [];
     }));
+    const failedParts = failedAll.map(x => x.line);
     /* Rowland, 6 October: "2 hours here, 1 hour there, 5 hours here ... that
        was one day fully missed, or half a day." */
     const day = dayLength(project);
@@ -353,9 +362,9 @@ export function clientReport(x: ClientReportInput): ClientReport {
       says: steps.length === 0 ? (tone === 'done' ? 'Done — no steps kept for it' : 'Nothing kept at this gate yet')
         : `${done} of ${steps.length} done${doneLateN ? ` (${doneLateN} done late)` : ''}${lateN ? ` · ${lateN} late` : ''}${problems ? ` · ${problems} a problem` : ''}${unplanned ? ` · ${unplanned} not added yet` : ''}`,
       grid: rows.length ? { columns: g.columns, rows } : undefined,
-      late: lateSteps,
-      problems: problemSteps,
-      ...(failedParts.length ? { failed: failedParts } : {}),
+      late: lateSteps, lateIds: lateAll.map(({ s }) => s.step.id),
+      problems: problemSteps, problemIds: problemAll.map(({ s }) => s.step.id),
+      ...(failedParts.length ? { failed: failedParts, failedIds: failedAll.map(x => x.id) } : {}),
       ...(hourLines.length ? { hours: { total: `${hoursWord(lostAll)} lost to problems — ${daysWord(lostAll, day)} at ${hoursWord(day)} a day`, lines: hourLines } } : {}),
       ...(accounts.length ? { accounts } : {}),
     };
@@ -386,6 +395,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
       // Every outcome said: "2 of 5 passed · 1 didn't pass" left a test that never ran unaccounted for.
       : `${passed} of ${now.length} passed${failed ? ` · ${failed} didn’t pass` : ''}${notRun ? ` · ${notRun} didn’t run` : ''}`,
     late: now.filter(t => t.outcome === 'failed' || t.outcome === 'notRun').map(t => `${t.title}${machine(t.assetId) ? ` — ${machine(t.assetId)}` : ''}`),
+    lateIds: now.filter(t => t.outcome === 'failed' || t.outcome === 'notRun').map(t => t.id),
     problems: [],
     tests: proofs.map(t => ({
       title: t.title, machine: machine(t.assetId),

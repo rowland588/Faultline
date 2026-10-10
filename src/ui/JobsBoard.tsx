@@ -57,6 +57,7 @@ import { Timeline } from './Timeline';
 import { GATE_TONE_WORD, recordHref } from '../lib/install';
 import { gateSpans, planHref } from '../lib/plan';
 import { Icon } from './Icon';
+import { usePhone } from './InstallGrid';
 import { publishJobStands } from './railJobs';
 import { supabase } from '../cloud/client';
 import { useSession } from '../cloud/session';
@@ -327,6 +328,11 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
   /* Which rows are open, remembered on this device — a convenience, never
      something that has to survive. */
   const [open, setOpen] = useState<Set<string>>(readOpen);
+  /* ON A PHONE A ROW IS A DOOR INTO THE JOB (docs/FLOW.md item 4): opening
+     it in place, then "Open the job", was two taps, and the row remembered
+     whether it was left open, so the same tap opened or closed it. The
+     in-place opening stays on a laptop, where there is room for it. */
+  const phone = usePhone();
   const [focus, setFocus] = useState<Focus | null>(null);
   /* The parties beyond the first five, opened on request. */
   const [allOwes, setAllOwes] = useState(false);
@@ -523,7 +529,7 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
             {axis.today != null && <span className="jb-today" style={{ left: PCT(axis.today) }} />}
           </div>
           {pf.jobs.map((v, i) => (
-            <JobRow key={v.id} v={v} i={i} open={open.has(v.id)} onToggle={() => toggle(v.id)} edit={accessOn(v.id).edit}
+            <JobRow key={v.id} v={v} i={i} open={!phone && open.has(v.id)} onToggle={phone ? () => nav(`/project/${v.id}`) : () => toggle(v.id)} into={phone} edit={accessOn(v.id).edit}
               span={pf.span} today={today} tip={tip} setTip={setTip} />
           ))}
         </div>
@@ -600,8 +606,10 @@ function SaidLine({ parts, className }: { parts: Said[]; className: string }) {
   );
 }
 
-function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
+function JobRow({ v, i, open, onToggle, into, span, today, tip, setTip, edit }: {
   v: JobView; i: number; open: boolean; onToggle: () => void; span: string[]; today: string;
+  /** The row goes into the job rather than opening in place — a phone. */
+  into?: boolean;
   tip: string | null; setTip: (k: string | null) => void;
   /** May add to this job — false for its client, who reads it. */
   edit: boolean;
@@ -622,7 +630,7 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
         {/* The name opens the row. Double-click used to go straight into the
             job; nobody finds a double-click, and "Open the job" in the drawer
             is the door that says so. */}
-        <button className="jb-lab" onClick={onToggle} aria-expanded={open}>
+        <button className="jb-lab" onClick={onToggle} aria-expanded={into ? undefined : open}>
           <span className="jb-name"><i className="jb-dot" aria-hidden />{v.name}</span>
           {/* ARE WE ON TARGET? — the job's answer in a word, the reason in
               words (lib/onTarget): the line its front page and its reports
@@ -796,7 +804,7 @@ function JobRow({ v, i, open, onToggle, span, today, tip, setTip, edit }: {
           )}
         </div>
 
-        <button className="jb-chev-b" onClick={onToggle} aria-label={open ? `Close ${v.name}` : `Open ${v.name} here`}>
+        <button className={'jb-chev-b' + (into ? ' is-into' : '')} onClick={onToggle} aria-label={into ? `Open ${v.name}` : open ? `Close ${v.name}` : `Open ${v.name} here`}>
           <span className="jb-chev" aria-hidden />
         </button>
       </div>

@@ -34,6 +34,12 @@ describe('the status report', () => {
     expect(s.why.map(w => w.kind)).toEqual(['late', 'failed']);
     expect(s.why[1].what).toContain('Seal integrity');
   });
+  it('every line under "why" carries the record it is about, so the screen opens it (docs/FLOW.md item 1)', () => {
+    expect(s.why.map(w => w.id)).toEqual(['s2', 't1']);
+    const install = r.sections.find(g => g.gate === 'install');
+    expect(install?.lateIds).toEqual(['s2']);
+    expect(install?.late).toHaveLength(1);
+  });
   it('the open fixes, late first, whose and by when — and says how many more', () => {
     expect(s.next).toHaveLength(6);
     expect(s.next[0].late && s.next[1].late).toBe(true);

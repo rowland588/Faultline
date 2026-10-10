@@ -274,7 +274,10 @@ export function FixesScreen({ projectId }: { projectId: string }) {
             same places: the state (its stripe and its date), the fix, the
             machine, what it is for, who. */}
         {st.upcoming.length > 0 && (
-          <div className="fxl" role="list">
+          /* A list of buttons, said as buttons: they were buttons marked as
+             list items, so a keyboard or a screen reader did not hear them
+             as something to press (docs/FLOW.md item 7). */
+          <div className="fxl">
             {toDo.map(t => <FixRow key={t.id} t={t} machine={machine(t)} from={cameFrom(t)} flag={flagOf(t)} onOpen={() => open(t.id)} />)}
           </div>
         )}
@@ -294,7 +297,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
             <h2 className="cmp-h">Done</h2>
             <span className="cmp-h-n">{st.done.length}</span>
           </div>
-          <div className="fxl" role="list">
+          <div className="fxl">
             {st.done.map(t => <FixRow key={t.id} t={t} machine={machine(t)} from={cameFrom(t)} flag={flagOf(t)} onOpen={() => open(t.id)} />)}
           </div>
         </section>
@@ -352,7 +355,7 @@ function FixRow({ t, machine, from, flag, onOpen }: {
      visual management); lib/fixTone's words already say "No date yet". */
   const face = tone === 'ahead' && !plannedEnd(t) ? 'none' : tone;
   return (
-    <button type="button" role="listitem" className={'fxl-row is-' + face} onClick={onOpen}>
+    <button type="button" className={'fxl-row is-' + face} onClick={onOpen}>
       <span className="fxl-bar" aria-hidden />
       <span className="fxl-m">
         <b>{flag && <CriticalTag sorted={t.outcome === 'passed'} risk={flag === 'risk'} />}{t.title}</b>

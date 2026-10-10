@@ -38,7 +38,7 @@ import { ReportsSheet } from './ReportsSheet';
 import { useJobStands } from './railJobs';
 import { QuickSnagButton, QuickSnagHost } from '../snag/QuickSnag';
 import {
-  controlRoom, toolPlaces, jobLine, gatesGroup, methodGroup, workGroup, linesGroup, footGroup, studyLines, phoneBar, hereOf,
+  controlRoom, toolsGroup, jobLine, gatesGroup, methodGroup, workGroup, linesGroup, footGroup, studyLines, phoneBar, hereOf,
   type RailGroup, type RailLine,
 } from './rail';
 
@@ -70,7 +70,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
         /* While the job is still being read, only the first line — never the
            control room's list of jobs for a moment, then the job's rail. */
         : projectId && (loading || (route.wsId && chain === null))
-          ? <NavChrome groups={[{ lines: [controlRoom(here), ...toolPlaces(here)] }]} bar={[controlRoom(here)]} />
+          ? <NavChrome groups={[{ lines: [controlRoom(here)] }, toolsGroup(here)]} bar={[controlRoom(here)]} />
           : <HomeNav projects={projects} here={here} wsId={route.wsId} loose={!!route.wsId && chain === null} />}
       <main className="nv-main">{children}</main>
       <QuickSnagHost wsId={route.wsId} projectId={projectId} />
@@ -130,11 +130,10 @@ function TopBar({ project, projects }: { project?: Project; projects: Project[] 
         <span className="nv-job-l" aria-hidden>{project?.name ?? 'Control room'}</span>
         <Icon name="chevronDown" size={14} />
       </label>
-      {/* SEARCH is a later slice. The box holds its place so the bar does not
-          change shape when it arrives, and says plainly that it does not
-          search yet — a box that looked live and did nothing would lie. */}
-      <input className="nv-search" type="search" disabled
-        placeholder="Search — comes in a later update" aria-label="Search, not built yet" />
+      {/* The search box that held search's place is gone until search exists
+          (docs/FLOW.md item 3): a control that does nothing is not true yet.
+          The gap keeps the snag button and you at the right. */}
+      <span className="nv-gap" aria-hidden />
       <QuickSnagButton />
       <AccountMenu />
     </header>
@@ -178,12 +177,14 @@ interface NavProps {
 function GateNav(p: NavProps) {
   const stand = useStanding(p.project.id);
   const groups: RailGroup[] = [
-    { lines: [controlRoom(p.here), ...toolPlaces(p.here), jobLine(p.project.id, p.project.name, p.here, stand.standing.late,
+    { lines: [controlRoom(p.here), jobLine(p.project.id, p.project.name, p.here, stand.standing.late,
       (['install', 'setup', 'handover'] as const).reduce((n, k) => n + (stand.counts[k]?.problem ?? 0), 0))] },
     gatesGroup(p.project.id, p.here, stand.counts),
     workGroup(p.project.id, p.model, p.here, stand.counts),
-    linesGroup(p.project.id, p.lines, p.here, p.wsId),
     footGroup(p.project.id, p.here, p.notes),
+    /* The lines a stage-gate job filmed are tools it used, not its work —
+       they go with the tools, under paper (docs/FLOW.md item 3). */
+    toolsGroup(p.here, linesGroup(p.project.id, p.lines, p.here, p.wsId).lines),
   ];
   return <NavChrome groups={withJobStudy(groups, p.wsId, p.lines, p.here)} project={p.project} model={p.model} />;
 }
@@ -193,12 +194,15 @@ function MethodNav(p: NavProps & { method: 'board' | 'tree' }) {
   const groups: RailGroup[] = [
     /* The job's square is red for anything late on it — its board's actions
        and what it waits on — the count its header and the control room say. */
-    { lines: [controlRoom(p.here), ...toolPlaces(p.here), jobLine(p.project.id, p.project.name, p.here, (counts.board?.late ?? 0) + (counts.materials?.late ?? 0))] },
+    { lines: [controlRoom(p.here), jobLine(p.project.id, p.project.name, p.here, (counts.board?.late ?? 0) + (counts.materials?.late ?? 0))] },
     methodGroup(p.project.id, p.method, p.here, counts,
       { pareto: !!p.project.pareto, tree: p.method !== 'tree' && !!p.project.leverTree }),
     workGroup(p.project.id, p.model, p.here, counts),
+    /* A running line's lines are what the job is about, so they stay with
+       the work; only the tools go to the foot. */
     linesGroup(p.project.id, p.lines, p.here, p.wsId),
     footGroup(p.project.id, p.here, p.notes),
+    toolsGroup(p.here),
   ];
   return <NavChrome groups={withJobStudy(groups, p.wsId, p.lines, p.here)} project={p.project} model={p.model} />;
 }
@@ -228,7 +232,7 @@ function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: s
     return () => { live = false; };
   }, [wsId]);
   const groups: RailGroup[] = [
-    { lines: [controlRoom(here), ...toolPlaces(here), ...(loose && wsId ? [
+    { lines: [controlRoom(here), ...(loose && wsId ? [
       { key: 'ws', label: wsName || 'Line study', to: `/w/${wsId}/capture`, on: false, state: 'n', bare: true } as RailLine,
       ...studyLines(wsId, here),
     ] : [])] },
@@ -245,12 +249,15 @@ function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: s
         } as RailLine;
       }),
     }] : []),
+    /* The tools, at the foot under the jobs — where every job's rail has
+       them. */
+    { ...toolsGroup(here), foot: true },
   ];
   const all = groups.flatMap(g => g.lines);
   const bar: RailLine[] = [
     ...all.filter(l => l.key === 'home'),
     ...all.filter(l => l.key.startsWith('job:')).slice(0, 3).map(l => ({ ...l, icon: 'route' as const })),
-    { key: 'more', label: 'More', on: here === 'quicksnags', state: 'n', icon: 'grip' },
+    { key: 'more', label: 'More', on: all.some(l => l.on && l.key !== 'home'), state: 'n', icon: 'grip' },
   ];
   return <NavChrome groups={groups} bar={bar} />;
 }

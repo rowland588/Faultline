@@ -412,6 +412,10 @@ export interface GanttMachine {
    *  (docs/STAGEGATE.md: a folded band said where it is and what is wrong,
    *  not what is next). On the screen's band header; paper is unchanged. */
   next?: string;
+  /** The record that next stage is, so the words open it (docs/FLOW.md
+   *  item 1: the stage was on the plan only inside a header that went to
+   *  Install). */
+  nextId?: string;
   /** Its rows, gate by gate in the order the job runs; the label is the gate. */
   groups: GanttGroup[];
   /** The filmed walk's lane is drawn in this band. */
@@ -671,7 +675,7 @@ export function withMachines(g: Gantt, job: {
     const bar = barOf(rows, g.dayList);
     const nx = rows.find(r => r.next);
     const nextSays = nx ? `${nx.on && nx.label.startsWith(`${nx.on} — `) ? nx.label.slice(nx.on.length + 3) : nx.label}${nx.says ? ` — ${nx.says}` : nx.when ? ` — ${nx.when}` : ''}` : undefined;
-    return { id: a.id, name: a.name, says, tone, path: gate.path, groups, ...(nextSays ? { next: nextSays } : {}), ...(bar ? { bar } : {}) };
+    return { id: a.id, name: a.name, says, tone, path: gate.path, groups, ...(nextSays ? { next: nextSays, ...(nx?.id ? { nextId: nx.id } : {}) } : {}), ...(bar ? { bar } : {}) };
   });
 
   /* THE LINE AND THE WHOLE JOB — what is on no one machine, in the gates'
