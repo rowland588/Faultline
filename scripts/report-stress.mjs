@@ -233,6 +233,8 @@ for (const size of SIZES) {
       from = `section ${s2.gate} test`; for (const t of s2.tests ?? []) add('client', t.title, t.passesIf, t.result, t.outcome);
       /* The performance runs: every product, its figures and its verdict (lib/run). */
       from = `section ${s2.gate} performance run`; for (const rr of s2.runs ?? []) add('client', rr.product, rr.net, rr.rejects, rr.outcome, rr.say);
+      /* The climb to rate (lib/rampUp): each product's runs on a machine, a line each. */
+      from = `section ${s2.gate} the climb to rate`; for (const cl of s2.climbs ?? []) add('client', cl.text);
     }
     from = 'fixes'; for (const fx of [...r.fixes.open, ...r.fixes.done]) add('client', fx.title, fx.when);
     for (const fx of r.fixes.open) add('client', fx.problem, fx.machine, fx.who);
@@ -288,6 +290,7 @@ for (const size of SIZES) {
       from = 'card'; add(k, c.title, c.passesIf, c.result, c.plannedProduct, c.product);
       /* A performance run's products, a row each — the whole name, its figures, its verdict. */
       from = 'card: the run'; add(k, c.run?.say); for (const p of c.run?.products ?? []) add(k, p.product, p.agreed, p.net, p.rejects, p.word, p.gap);
+      from = 'card: the climb to rate'; for (const cl of c.run?.climbs ?? []) add(k, cl.text);
       from = 'finding'; for (const fd of c.findings) add(k, fd.what, fd.owner, fd.action);
       from = 'next'; for (const n of c.next) add(k, n.what, n.owner);
       /* The first picture always prints: what is marked on it, by number. */

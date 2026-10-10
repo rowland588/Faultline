@@ -28,6 +28,8 @@
  * Colour follows the house rules: only a number that missed what was agreed
  * carries red; met is a quiet green; still to run is indigo; nothing agreed
  * is plain ink. */
+import type { Climb } from '../lib/rampUp';
+import { Climbs } from './Climb';
 import { useRef, useState } from 'react';
 import type { Test, TestItem } from '../lib/testing';
 import { OUTCOME_WORD } from '../lib/testing';
@@ -55,8 +57,11 @@ const DAY_BOXES: { k: keyof RunDay; label: string; unit?: string; hint: string; 
 
 /** THE RUN — the totals line, a row per product, and the form that adds the
  *  next. `compact` for the drawer: the same rows, narrower. */
-export function RunProducts({ t, can, patch, compact, onProblem, problemsOf, onOpenProblem }: {
+export function RunProducts({ t, can, patch, compact, onProblem, problemsOf, onOpenProblem, climbs }: {
   t: Test; can: Can; patch: Patch; compact?: boolean;
+  /** THE CLIMB TO RATE (lib/rampUp) — this run's products on its machine,
+   *  across every run of them on the job, drawn under the list. */
+  climbs?: Climb[];
   /** HIT A PROBLEM ON ONE PRODUCT — the record's own write-up, opened for
    *  that product's run (ui/RecordDrawer), as a program line hits one. */
   onProblem?: (run: ProductRun) => void;
@@ -124,6 +129,7 @@ export function RunProducts({ t, can, patch, compact, onProblem, problemsOf, onO
           ))}
         </ol>
       )}
+      {climbs && <Climbs cs={climbs} />}
       {can.edit && (adding
         ? <AddProduct before={productRuns(t)[productRuns(t).length - 1]} first={rr.products.length === 0}
             onSave={(product, agreed) => {
@@ -292,15 +298,16 @@ function AddProduct({ before, first, onSave, onDone }: {
 }
 
 /** THE RUN IN THE DRAWER — the same list, compact. */
-export function RunBlock({ t, can, patch, onProblem, problemsOf, onOpenProblem }: {
+export function RunBlock({ t, can, patch, onProblem, problemsOf, onOpenProblem, climbs }: {
   t: Test; can: Can; patch: Patch; onProblem?: (run: ProductRun) => void; problemsOf?: (runId: string) => TestItem[];
+  climbs?: Climb[];
   /** Open a problem written on a product, as itself (docs/DOORS.md). */
   onOpenProblem?: (id: string) => void;
 }) {
   return (
     <div className="rd-blk run-blk">
       <small>The run</small>
-      <RunProducts t={t} can={can} patch={patch} compact onProblem={onProblem} problemsOf={problemsOf} onOpenProblem={onOpenProblem} />
+      <RunProducts t={t} can={can} patch={patch} compact onProblem={onProblem} problemsOf={problemsOf} onOpenProblem={onOpenProblem} climbs={climbs} />
     </div>
   );
 }

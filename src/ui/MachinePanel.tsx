@@ -7,6 +7,8 @@
  * state, day and who, each opening its record; then what is open on it; then
  * the machine itself, to correct. Read off lib/machineRecord, which reads the
  * same rules the gates do. */
+import { climbsOf } from '../lib/rampUp';
+import { Climbs } from './Climb';
 import { machineRecord, type MachineLine, type MachineTone } from '../lib/machineRecord';
 import { GATE_PATH } from '../lib/install';
 import { hasRun, live, type Asset } from '../lib/testing';
@@ -54,6 +56,7 @@ export function MachinePanel({ asset, projectId, tt, programs, can, onOpen, onCl
   const m = machineRecord(asset, { tests: tt.tests, items: tt.items, programs, today });
   const go = (path: string) => { onClose(); nav(`/project/${projectId}/${path}`); };
   const ran = live(tt.tests).filter(t => t.assetId === asset.id && (t.kind ?? 'test') === 'test' && hasRun(t)).length;
+  const climbs = climbsOf({ tests: tt.tests, assets: [asset] }).filter(c => c.machineId === asset.id);
   return (
     <>
       <span className="rd-state-row">
@@ -81,6 +84,9 @@ export function MachinePanel({ asset, projectId, tt, programs, can, onOpen, onCl
           {g.gate === 'setup' && m.programs && (
             <button type="button" className="rd-link mp-progs" onClick={() => go('programs')}>{m.programs} — the Programs page ›</button>
           )}
+          {/* THE CLIMB TO RATE (lib/rampUp) — each product's runs on this
+              machine, a branch of its Commission. */}
+          {g.gate === 'commission' && <Climbs cs={climbs} />}
         </section>
       ))}
 

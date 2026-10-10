@@ -62,6 +62,7 @@ import { movedLater, storyOf } from '../lib/story';
 import { useProjects } from '../lib/useProjects';
 import { dayLength } from '../lib/hoursLost';
 import { isRunTest, productName, productRuns, runsUnderWay } from '../lib/run';
+import { climbsOf, climbsOn } from '../lib/rampUp';
 import { problemsOnRun } from '../lib/programRun';
 import { RunBlock } from './RunPanel';
 import { offerUndo } from './Undo';
@@ -464,6 +465,7 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
           it ran, what it netted, the rejects, against what was agreed. */}
       {kind === 'test' && isRunTest(t, answerOf(t, job)) && <RunBlock key={'run-' + t.id} t={t} can={can} patch={fn => void tt.patchTest(t.id, fn)}
         problemsOf={rid => problemsOnRun(tt.items, t.id, rid)} onOpenProblem={onOpen}
+        climbs={climbsOn(climbsOf({ tests: tt.tests, assets: tt.assets }), t)}
         onProblem={can.edit ? r => { setProblemPart({ id: r.id, what: productName(r), product: true }); setProblem(true); top.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } : undefined} />}
 
       <div ref={top} aria-hidden />

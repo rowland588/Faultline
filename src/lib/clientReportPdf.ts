@@ -480,6 +480,13 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
         ],
       }));
     }
+    /* THE CLIMB TO RATE (lib/rampUp) — under the runs, a line each: amber and
+       bold only when a product is not climbing. */
+    if (s.climbs && s.climbs.length) {
+      out.push(label('The climb to rate'));
+      for (const c of s.climbs) out.push(text({ text: c.text, size: 8.5, style: c.tone === 'risk' ? 'bold' : 'normal', colour: c.tone === 'risk' ? AMBER : c.tone === 'none' ? MUTED : INK2, after: 3 }));
+      out.push(space('s'));
+    }
 
     if (s.tests && s.tests.length) {
       const sideW = 150;

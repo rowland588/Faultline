@@ -18,6 +18,7 @@
  *
  * NOTHING IN HERE TOUCHES A DOCUMENT. It is the reading, not the drawing —
  * which is why it can be tested without a PDF. */
+import { climbsOf, climbsOn } from './rampUp';
 import { isRunTest, productFigures, productName, productRuns, readRuns, runsSay, type ProductFigures, type ProductState } from './run';
 import { actionOf, foundTally, isSettled, live, needsVerdict, outcomeWord, standingOfItem, testOfFix, type Asset, type Test, type TestItem, type TestKind } from './testing';
 
@@ -85,6 +86,9 @@ export interface TrialCard {
     ran: boolean;
     /** A product still to run. */
     open: boolean;
+    /** THE CLIMB TO RATE (lib/rampUp) — this run's products on its machine,
+     *  across every run of them on the job, a line each. */
+    climbs?: { text: string; tone: 'risk' | 'on' | 'none' }[];
   };
   /** The product runs as kept — so the card's "no verdict yet" is asked the
    *  same way as the test's (lib/testing needsVerdict). */
@@ -181,6 +185,7 @@ export function trialCard(test: Test, tests: Test[], items: TestItem[], assets: 
       agreed: products.length === 1 ? productFigures(products[0]).agreed : `each of the ${rr.total} products on its own agreed numbers`,
       ran: rr.ran > 0, open: rr.open,
       ...(rr.verdict !== 'planned' ? { meets: rr.verdict === 'passed' } : {}),
+      ...((cl => (cl.length ? { climbs: cl.map(c => ({ text: c.text, tone: c.tone })) } : {}))(climbsOn(climbsOf({ tests, assets }), test))),
     } } : {}),
     ...(test.runs ? { runs: test.runs } : {}),
 

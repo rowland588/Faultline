@@ -290,6 +290,22 @@ function runStrip(d: Doc, c: TrialCard, x: number, y: number, w: number, bottom:
     first = false; fresh = false;
     if (i < products.length) { y = newPage(); fresh = true; }
   }
+  /* THE CLIMB TO RATE (lib/rampUp) — under the run, a line each: amber and
+     bold only when a product is not climbing. */
+  const climbs = c.run.climbs ?? [];
+  if (climbs.length) {
+    const ls = climbs.map(cl => { setFont(d, 8, cl.tone === 'risk' ? 'bold' : 'normal', INK2); return d.splitTextToSize(san(cl.text), w - 24) as string[]; });
+    const need = 14 + ls.reduce((n, l) => n + l.length * 10 + 3, 0);
+    if (y + need > bottom) y = newPage();
+    setFont(d, 6.5, 'bold', ACCENT); d.text('THE CLIMB TO RATE', x + 12, y + 8);
+    let cy = y + 20;
+    climbs.forEach((cl, k) => {
+      setFont(d, 8, cl.tone === 'risk' ? 'bold' : 'normal', cl.tone === 'risk' ? WARN : cl.tone === 'none' ? MUTED : INK2);
+      d.text(ls[k], x + 12, cy, { lineHeightFactor: 10 / 8 });
+      cy += ls[k].length * 10 + 3;
+    });
+    y = cy + 6;
+  }
   return y;
 }
 

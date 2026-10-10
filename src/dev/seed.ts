@@ -234,9 +234,24 @@ export async function seedForSmokeTest(): Promise<Seeded> {
      run, three PRODUCTS planned ahead: one met every agreed number, one
      netted short, one still to run (Rowland, 7 October: "commissioning runs
      are multiple products"). And one kept the older single way, short. */
+  /* THE FIRST TRY — an earlier attempt at the same run, which Jacks Piper did
+     not pass twice (52, then 56 a minute against 60). With today's 58.5 it is
+     a climb of three runs (lib/rampUp): at this climb, 60 at the next run. */
+  const firstTry: Test = {
+    id: uid(), projectId: proj.id, title: 'Performance run at the agreed rate', assetId: wrapper.id,
+    plannedFor: iso(-5), ranOn: iso(-5), ranTo: iso(-3), withWhom: 'Ilapak UK',
+    runs: [
+      { id: uid(), product: 'Jacks Piper 1.25kg', agreed: { rate: 60, minutes: 60, rejectsMax: 1 },
+        day: { minutes: 60, packs: 3150, rejects: 30, speed: 58, stops: 9 }, ranOn: iso(-5) },
+      { id: uid(), product: 'Jacks Piper 1.25kg', agreed: { rate: 60, minutes: 60, rejectsMax: 1 },
+        day: { minutes: 60, packs: 3400, rejects: 40, speed: 60, stops: 7 }, ranOn: iso(-3) },
+    ],
+    result: 'Film tracking drifted at speed; the jaw temperature was raised after the first hour.', outcome: 'failed',
+    sort: 4, createdAt: t, updatedAt: t,
+  };
   const perf: Test = {
     id: uid(), projectId: proj.id, title: 'Performance run at the agreed rate', assetId: wrapper.id,
-    plannedFor: iso(-1), plannedTo: iso(1), ranOn: iso(-1), withWhom: 'Ilapak UK',
+    plannedFor: iso(-1), plannedTo: iso(1), ranOn: iso(-1), withWhom: 'Ilapak UK', fromTestId: firstTry.id,
     runs: [
       { id: uid(), product: 'Finest Red 2kg', agreed: { rate: 60, minutes: 60, rejectsMax: 1 },
         day: { minutes: 60, packs: 3720, rejects: 14, speed: 64, stops: 3 }, ranOn: iso(-1) },
@@ -272,7 +287,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     fromTestId: seal.id, outcome: 'planned',
     sort: 5, createdAt: t, updatedAt: t,
   };
-  for (const test of [estop, seal, weight, perf, speedRun, changeover, retest]) await putTest(test);
+  for (const test of [estop, seal, weight, firstTry, perf, speedRun, changeover, retest]) await putTest(test);
 
   const item = (testId: string, kind: TestItem['kind'], what: string, extra: Partial<TestItem> = {}): TestItem =>
     ({ id: uid(), projectId: proj.id, testId, kind, what, sort: 1, createdAt: t, updatedAt: t, ...extra });

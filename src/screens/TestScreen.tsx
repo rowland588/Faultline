@@ -64,6 +64,7 @@ import { useSession } from '../cloud/session';
 import { SharedLinks } from '../ui/ShareLink';
 import { mayWriteAgreement, type Can } from '../lib/access';
 import { isRunTest, productRuns } from '../lib/run';
+import { climbsOf, climbsOn } from '../lib/rampUp';
 import { RunProducts } from '../ui/RunPanel';
 import { CardPdf, RecordFiles, RecordItems as Items, removeMedia } from '../ui/RecordMore';
 
@@ -233,7 +234,8 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
             <button type="button" className="cw-link tc-edit" aria-expanded={editing === 'verdict'}
               onClick={() => setEditing(e => (e === 'verdict' ? null : 'verdict'))}>{editing === 'verdict' ? 'Done' : 'Change the verdict'}</button>
           )}>
-          <RunProducts key={test.id} t={test} can={can} patch={fn => void tt.patchTest(test.id, fn)} />
+          <RunProducts key={test.id} t={test} can={can} patch={fn => void tt.patchTest(test.id, fn)}
+            climbs={climbsOn(climbsOf({ tests: tt.tests, assets: tt.assets }), test)} />
           {can.edit && (needsVerdict(test) || editing === 'verdict') && <>
             {needsVerdict(test) && <span className="tw-ask">{verdictQuestion(kind)}</span>}
             <Verdict test={test} glow={hl('outcome')} onPick={setOutcome} />

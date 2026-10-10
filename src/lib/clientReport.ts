@@ -37,6 +37,7 @@ import { dayLength, daysWord, hoursTally, hoursWord } from './hoursLost';
 import { notedProblems, partsOf, partWords, resultNow } from './noted';
 import { couldWords, criticalProblems, criticalState, riskProblems, type Critical } from './critical';
 import type { WalkSnag } from './walkSnags';
+import { climbsOf } from './rampUp';
 
 /** One cell of a gate's checklist: how that stage stands on that machine. */
 /** `booked` is a step with a day, still ahead (indigo); `ahead` one with no
@@ -94,6 +95,9 @@ export interface GateSection {
    *  fast did we run, what did we net" — and "commissioning runs are
    *  multiple products." */
   runs?: RunRow[];
+  /** Commission only: THE CLIMB TO RATE (lib/rampUp) — each product's runs on
+   *  a machine read as the climb they are, said once each, under the runs. */
+  climbs?: { text: string; tone: 'risk' | 'on' | 'none' }[];
 }
 
 /** One product of a performance run, as the client reads it (lib/run). */
@@ -435,6 +439,12 @@ export function clientReport(x: ClientReportInput): ClientReport {
         });
       });
       return runs.length ? { runs } : {};
+    })(),
+    ...(() => {
+      /* Every run of a product on a machine, every attempt — the climb is
+         the attempts in order (lib/rampUp), so it reads all of them. */
+      const climbs = climbsOf({ tests, assets }).map(c => ({ text: c.machine ? `${c.machine} — ${c.text}` : c.text, tone: c.tone }));
+      return climbs.length ? { climbs } : {};
     })(),
   };
 
