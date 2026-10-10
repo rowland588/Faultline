@@ -57,6 +57,16 @@ and Shingo each say, the six-move loop they share (standard, gap, priority,
 cause, proof, hold), how each family is evidenced, and what is left out on
 purpose. Read it before changing that method.
 
+MEASURED BY PEOPLE, NOT BY SENSORS. Rowland, 10 October: "We will not have
+Internet of anything. This is about manual inputs. This is about industrial
+engineering." Every number is counted, timed, tapped, photographed or filmed
+by a person; nothing reads a machine, and there is no OEE (typed by hand,
+its availability is a guess). The lean and industrial-engineering tools —
+time study, the value stream map, line balancing, capacity and constraints,
+losses — are built from manual inputs and calculated live. `docs/LEAN40.md`
+holds the eight principles the app follows (for Rowland to agree), the stage
+gate held to them, and the toolkit with its arithmetic.
+
 They are separate methods, not one loop pretending to be cohesive; each is
 defined once, the same way, in `src/lib/planModel.ts` (the question, when to
 use it, how it is organised, rhythm, done, what it prints). A fourth method is

@@ -1,6 +1,6 @@
-# Lean 4.0 and 5.0 — lean tools rebuilt as live, visual, engaging technology
+# Lean 4.0 and 5.0 — the principles Faultline follows, the stage gate held to them, and the industrial-engineering toolkit
 
-Rowland, 10 October, three things in one afternoon:
+Rowland, 10 October, four things in one day:
 
 > "We have already started line balance and line standard, but now we need
 > to create Lean 4.0 tools, such as value stream mapping ... the tools will
@@ -21,10 +21,542 @@ Rowland, 10 October, three things in one afternoon:
 > time. You're able to colour code easily, value, non-value added, and it's
 > a very engaging process. That's my point with Lean 4.0 and 5.0."
 
-So this document is about **what lean tools become when they are built as
-modern technology**: live, visual, calculated, captured at the line,
-explained in plain words. The method behind them, the arithmetic and the
-literature, is the appendix. **Nothing here is built.**
+> "We need to look at then the stage gate ... making it as technologically
+> aligned with the principles of Lean 4.0 and 5.0. If I was to stand in a
+> client and say this is the principles that it follows, it should increase
+> everything that we've already been doing, which is streamlining, ensure
+> the simplicity, ensure it's very visual, very easy, and technologically
+> advanced ... We'll do the lever tree and we'll do the 6M at a later point,
+> but just mark that down as something that still needs doing ... We need
+> to agree on the lean tools that we want to build. So we don't want an
+> OEE, for example. OEE, we need Internet of Things connection. We will not
+> have Internet of anything. This is about manual inputs. This is about
+> industrial engineering. All the time in motion studies, the value stream
+> mapping, the line balancing, etc. Understanding capacity constraints,
+> optimisation, calculations of understanding losses. These sorts of things
+> are where this really becomes powerful ... broaden your scope, broaden
+> your knowledge."
+
+So this document is about **what lean and industrial engineering become
+when they are built as modern technology**: measured by people, live,
+visual, calculated, explained in plain words. It has four parts, each for
+agreement:
+- **the principles**: one page Rowland can put in front of a client;
+- **the stage gate held to them**: what already holds, where it falls
+  short, and what to build, in slices;
+- **the industrial-engineering toolkit**: every tool, its manual inputs,
+  its calculation and its picture, and the order to build them in;
+- **what is still to do whatever is built here**: the lever tree and the
+  6M.
+
+The method behind it all, the arithmetic and the literature, is the
+appendix. **Nothing here is built.**
+
+## Decided, 10 October: measured by people, no sensors, no OEE
+
+Rowland: "We will not have Internet of anything. This is about manual
+inputs. This is about industrial engineering."
+
+- **Every number in Faultline is put there by a person**: counted, timed on
+  the phone's stopwatch, tapped, photographed, filmed or typed. Nothing is
+  read from a machine, a PLC or a sensor.
+- **No OEE.** An honest OEE needs every stop and every slow minute from the
+  machine itself. Typed by hand, its availability is a guess dressed as a
+  measure. It is not built. (The arithmetic stays in the appendix, marked,
+  so the reason is kept.)
+- **The power is in the industrial engineering**: work measurement, method
+  study, line balancing, capacity and constraints, optimisation, and the
+  accounting of losses. The toolkit below is that discipline, made live.
+- **This is a strength to say to a client, not a limit.** It works on any
+  line, old or new, any make, from the first day, with nothing for IT to
+  connect.
+
+## The principles Faultline follows
+
+*One page, for the room. Each is a sentence to say to a client, then what it
+means on the floor.*
+
+1. **Measured by people, not by sensors.**
+   Everything the app knows was counted, timed, photographed or filmed by
+   someone at the line with a phone. It works on any line, old or new, any
+   make, from the first day.
+2. **Recorded once, where the work happens.**
+   A fact is entered at the machine — a tap, a spoken sentence, a photo, a
+   file — and never typed again. Every screen and every document reads that
+   one record.
+3. **Live, never compiled.**
+   Nobody assembles a status report. The plan, today's update, the client
+   report and the handover pack are the record as it stands this minute:
+   on the phone at the machine, on the screen in the meeting, and on one
+   page of paper for the file.
+4. **The picture draws itself.**
+   Put the facts in; the plan, the board, the counts and the verdict draw
+   themselves and recalculate as you type. Nobody draws a bar or adds up a
+   column. Table in, picture out.
+5. **The abnormal finds you.**
+   Normal recedes; what is late, failed or waiting stands out, in one colour
+   language with the state always in words. What needs you comes to you.
+   Three seconds from across the room.
+6. **Proved, not asserted.**
+   Every stage closes on its answer: a file, a signature, a measured run.
+   The numbers are worked out, not typed: the net rate, the rejects, the
+   verdict.
+7. **It explains itself; people decide.**
+   Every screen says in a sentence what it means for the project. When the
+   app calculates or suggests (a verdict, a forecast, the constraint) it
+   says so and shows its working, and a person has the last word.
+8. **Built for people and for the bad day.**
+   No signal, no loss. A slip is said as "not yet", with whose and by when,
+   not as blame. Who did what, when, and what was still open is always kept,
+   as one part of the factory hands to another.
+
+**How they map to the words a client may know:**
+- Principles 2 to 6 are **Lean 4.0**: data captured at the source, seen
+  live, made visual, acted on in a loop.
+- Principles 7 and 8 are **Lean 5.0** (Industry 5.0's human-centric and
+  resilient pillars): technology that helps people decide, and keeps
+  working when the day goes wrong.
+- Principle 1 is the decision above.
+- Industry 5.0's third pillar, **sustainable**, is not yet in the app; see
+  the stage gate audit.
+
+These eight are for the whole app, said once. The stage gate is held to
+them first, then the tools, then (later) the lever tree and the 6M.
+
+## The stage gate held to the principles
+
+Read against the code and the seeded job on 10 October, building on the
+audit of 9 October (`docs/STAGEGATE.md`), the flow audit (`docs/FLOW.md`)
+and the panels audit (`docs/PANELS.md`).
+
+| Principle | What already holds | Where it falls short |
+|---|---|---|
+| 1. Measured by people | Entirely. Nothing in the stage gate reads a machine. | The performance run, the test the line is accepted on, is typed at the end. That is what Rowland asked for on 7 October ("all I do is put in the numbers at the end"), but nothing helps on the day: no clock for the run, no tally for rejects, no stopwatch for the minutes stood. |
+| 2. Recorded once, where the work is | The drawer at the machine: voice, photos, files, "Not yet", "Done today". One card per machine on the phone. A stage's answer is chosen once on the stage list. | **A measured test keeps no measurements.** "Weight accuracy — 400 g" keeps its "passes if" in words and a pass or a fail. The thirty weights live on paper or a checkweigher printout, outside the record. **The filmed walk's frames don't know which machine they show**, so their snags keep a lane of their own and never reach the machine. |
+| 3. Live, never compiled | One `standing()` and one `onTarget()` feed the front page, the day, the client report and the control room. The reports are the record. | Holds. The one compiled thing left is the date "now expected", typed by a person (see 7). |
+| 4. The picture draws itself | The plan draws from the stages' days, the board from their states, the counts and the verdict from both. | **The picture cannot be worked on.** A stage's day is changed in its drawer, never by moving its bar on the plan. |
+| 5. The abnormal finds you | Needs you, the red/amber/indigo/green/grey language, critical problems first, the rail's counts. | **It finds you only when you open the app.** The one thing pushed to a phone is a note's reminder. A stage going late, a test failing or a problem raised on your machine is not. |
+| 6. Proved, not asserted | Every stage has an answer (panel slice 2). The run's verdict is worked out from its numbers, and the programs' results are kept. | Measured tests are judged by eye (see 2). The app cannot say "30 packs, mean 401.2 g, all within tolerance — passed", because it never holds the thirty. |
+| 7. It explains itself | The verdict in a sentence ("Behind target — …"), the day in the order it is used, "not yet" with whose and by when. | **The forecast is a typed date.** The app knows how many stages the plan said would be done by today and how many are, but never says what that pace implies for Hand over. A product's runs on successive days are never drawn as the climb to rate they are. |
+| 8. For people and the bad day | Offline sync, "Not yet", hours lost added into days, who signed, the owner/team/client levels. | Holds. One gap from the earlier audit: a person's load is seen per job (page 3 of the client report), never across the jobs they are on. |
+| (Sustainable) | — | Nothing counted. It could start as a typed meter reading on a performance run (energy, air or water per thousand packs). It is a question for later, not a proposal. |
+
+## The stage gate — what to build, in slices
+
+Six slices, each shippable alone, each connected where its parent already
+shows. Nothing is built. Recommended order: **1 and 2 first**. They change
+the two sentences a client cares most about: when will it be done, and
+how do we know it works.
+
+**Slice 1 — The pace says when (principle 7).**
+- **What it does.** It works out a forecast from the job's own record. The
+  forecast is shown beside the date people set, never written over it.
+- **The arithmetic (earned schedule).** For example:
+  - The job started on 1 September. By today the plan said 31 stages would
+    be done; 24 are.
+  - The plan had reached 24 on 29 September. So the job is 11 days behind
+    its own plan, moving at about 0.7 of the planned pace (28 days of plan
+    done in 39).
+  - The plan has 15 days of work left. At 0.7 that is 21, so Hand over
+    lands about 31 October.
+  - Counted in stages, weighted by their planned days where they have spans.
+  - Below a handful of finished stages it says "too early to tell".
+- **On screen.**
+  - The job's front page, under the verdict: "At the pace so far, Hand over
+    lands about 31 Oct — 9 days after the date now expected (22 Oct). [Use
+    31 Oct]".
+  - The plan: a third marker, dashed and in words ("at this pace"), beside
+    "expected" and "agreed".
+  - Today's update: the same line.
+  - The control room: the job's row says the gap when there is one.
+- **On paper.** The client report and the one-page status, under "Are we on
+  target?". Same sentence, same date.
+- **Who.** Everyone reads it. "Use this date" is the owner's (`can.agree`),
+  because the handover dates are what was agreed. The agreed date never
+  moves.
+
+**Slice 2 — Measured tests: readings in, verdict out (principles 2 and 6).**
+MANUFACTURING IS MANY. A commissioning test is often thirty weighings, ten
+test packs through the metal detector, or five seal-strength pulls.
+- **Agreed before the day (owner).** The target and its limits, and how many
+  readings. For example: 400 g, no lighter than 400 and no heavier than
+  404, thirty packs. Where packs are sold by weight, the limits can instead
+  be the packers' rules of the average-quantity system (the ℮ mark): the
+  average at or above the nominal, fewer than 1 pack in 40 short by more
+  than the tolerable negative error, and none short by more than twice it.
+- **On the day.** The readings go in one after another on a number pad that
+  stays open (401.2 ↵ 399.8 ↵ …), or by voice. A go/no-go test is a row of
+  ticks: Fe 2.0 mm rejected ✓ ✓ ✓.
+- **Worked out.**
+  - How many readings, the mean, the lightest and heaviest, the spread, and
+    how many are outside.
+  - From 25 readings, the capability (Cpk), said in words and always with
+    its count beside it, because a small sample flatters it.
+  - The verdict, as a run's is now. The person can overrule it, and should
+    never have to.
+- **The picture.** The readings as dots between two limit lines. One
+  outside is red, because it is a failure.
+- **Where it shows.**
+  - The drawer.
+  - The square on the Commission board: "30 · all in".
+  - Needs you, while fewer readings are in than were agreed.
+  - The day.
+  - The client report's account of the test, the handover pack and the test
+    report: "30 packs, mean 401.2 g, all within 400–404 g — passed".
+- **No new noun.** A test holds a list of readings, as a performance run
+  holds a list of products.
+
+**Slice 3 — The run on the day, and the climb to rate (principles 1 and
+7).**
+- **On the day (optional).** Typing the numbers at the end stays exactly as
+  it is. For a person who wants help on the day, the run can be kept as it
+  happens:
+  - Start and Stop, and a clock for how long it ran;
+  - the Capture screen's stopwatch for each stand, tapped "stood";
+  - a reject tally, one button;
+  - the pack count at the start and the end.
+  These fill the same boxes that are typed today.
+- **The climb to rate.** A product run on successive days is drawn as dots
+  climbing towards the agreed-rate line. From three runs, the trend says
+  where it meets the line: "at this climb, 120 a minute about 22 Oct".
+- **Where it shows.** That date feeds slice 1's forecast for Commission. On
+  paper: the run's card and the client report.
+
+**Slice 4 — Work on the picture (principle 4).**
+- **On a laptop.** Drag a stage's bar on the plan to move its day, or its
+  end to change its length. It is kept as any move is (`movedFrom` /
+  `movedTo`), and the same "why" is asked.
+  - The team can move planned days (`can.edit`).
+  - Agreed dates stay with the owner (`can.agree`).
+- **On a phone.** Unchanged. A drag fights the scroll, and the drawer
+  already does the job.
+
+**Slice 5 — What turned red reaches your phone (principle 5).**
+- **What it sends.** One note a morning per person, not one per event: "Line
+  9: 2 stages went late yesterday, 1 test failed, 1 problem raised on the
+  case packer". It goes only to devices that said yes.
+- **How.** Through the one server function the app already has (`remind`),
+  with a database change shipped the house way (`supabase/<NAME>.sql`,
+  applied, read back).
+
+**Slice 6 — The walk knows the machine (principle 2).**
+- **What it does.** On a frame of the filmed walk, one tap says which
+  machine it shows.
+- **Where its snags then appear.** On that machine's page, under its row on
+  the plan, and on its Install card, as well as in the walk's own lane.
+- **Why.** Something entered in one place and seen nowhere else is
+  unfinished.
+
+## The industrial-engineering toolkit — to agree
+
+Industrial engineering asks five questions of a line, and Lean 5.0 adds a
+sixth:
+1. How long should the work take?
+2. Is this the best way to do it?
+3. How many people, and where?
+4. How much can it make, and what limits it?
+5. Where do the time and the money go?
+6. Can people do it safely all shift?
+
+Every tool below answers one of them **from manual inputs only**: a phone
+stopwatch, a count, a tap, a photo or a film. Each turns those into the
+classic calculation and its picture, live (the principles above, and "What
+a tool is, as technology" below).
+
+### One table underneath — the design decision
+
+Six of these tools are the same table seen at different sizes:
+- **The table.** One row per piece of work, holding:
+  - what it is, in the floor's words;
+  - its **type**: operation · move · check · wait · store;
+  - its **value**: value-added · necessary · waste;
+  - its **time**: as observed, as rated, and as the standard;
+  - **who** does it: a person or a machine;
+  - **how far**, if it is walked.
+- **The same table, seen at different sizes:**
+  - **a plant, door to door**: the value stream map;
+  - **one product along one line**: the process chart;
+  - **one person's work, element by element**: the time study;
+  - **those elements stacked by person against takt**: the work balance
+    (Yamazumi);
+  - **one person and their machine against takt**: the operator's cycle;
+  - **a changeover**: SMED.
+
+Captured once, many pictures. This is what stops six tools becoming six
+apps, and it is the one-set-of-data principle a client would recognise.
+
+**Where it lives.** On a line, for a product: the same record as today's
+line standard and line balance (`lib/standard`, one per product per line),
+attachable to any job as those are. A changeover is between two products
+on a line.
+
+### The tools
+
+**How long should the work take — work measurement**
+
+1. **Time study.**
+   - **Answers:** how long should this take, done properly?
+   - **You put in:**
+     - each element timed over several cycles on the phone stopwatch, one
+       tap per element;
+     - a pace rating on the British Standard scale, where 100 is a
+       qualified worker's natural brisk pace;
+     - the allowances agreed: relaxation and contingency.
+   - **It works out:**
+     - basic time = observed × rating ÷ 100;
+     - standard time = basic × (1 + allowances);
+     - how many cycles ±5% at 95% needs, and whether you have them yet;
+     - any lap far from the rest, flagged for the person to keep or strike
+       (a dropped part).
+   - **The picture:** each element's laps as dots around their mean, and a
+     meter filling to "enough cycles".
+   - **Builds on:** the Capture stopwatch. A balance station's "timed by
+     somebody" becomes a real standard time.
+2. **Work sampling.**
+   - **Answers:** what share of the day goes on what? It is for long or
+     irregular work: a team leader, a forklift driver, maintenance, a
+     line's crew.
+   - **You put in:** at random moments across the shift (the phone prompts,
+     at times the person cannot predict), one tap for what they are doing:
+     working, walking, waiting, searching, away.
+   - **It works out:**
+     - the share of each, with its margin;
+     - how many more observations the accuracy you want needs.
+   - **The picture:** a bar per activity, its margin narrowing as the taps
+     come in. You watch the certainty grow.
+   - **Builds on:** the Capture screen's one-tap style.
+
+**Is this the best way — method study**
+
+3. **Value stream and process map** (designed below: steps on the left, the
+   full table on the right).
+   - **Answers:** where does the time go between the start and the
+     customer?
+   - **You put in:**
+     - the steps, walked ("Walk it"), typed or cut from the film;
+     - each one's type and value, one tap each.
+   - **It works out:** lead time, value-added time, process cycle
+     efficiency, waste time, takt, and the biggest wait.
+   - **The picture:** the table and the time value map beside it, current
+     and future side by side.
+   - **Builds on:** the filmed walk, voice, the plan's rows-and-bars layout.
+4. **The operator's cycle** (the standard work combination table and the
+   person–machine chart, as one view).
+   - **Answers:** within takt, what does the person do while the machine
+     runs, and how many machines can one person tend?
+   - **You put in:** per element, its manual, walk and machine time; and the
+     takt.
+   - **It works out:**
+     - the cycle against takt;
+     - idle on each side: the person waiting on the machine, or the machine
+       waiting on the person;
+     - machines per person, n′ = (l + m) ÷ (l + w), with the cost per pack
+       at the whole numbers either side.
+   - **The picture:** person and machine as two lanes against a takt line.
+     It is Toyota's paper form, drawn live.
+   - **Builds on:** time study, and the line standard (who stands where).
+5. **Changeover (SMED).**
+   - **Answers:** how short can the changeover be?
+   - **You put in:**
+     - the changeover filmed or timed, step by step;
+     - each step tagged internal (the line stopped) or external (it can be
+       done while the line runs).
+   - **It works out:**
+     - the minutes now;
+     - the minutes if the external steps are done outside;
+     - the capacity that buys back (tools 9 and 11).
+   - **The picture:** one bar split internal and external. Drag a step to
+     external and watch the bar shorten.
+   - **Builds on:** the filmed walk.
+6. **Layout and walking** (spaghetti, from–to).
+   - **Answers:** how far do people and materials travel?
+   - **You put in:**
+     - paths drawn on the line's photo;
+     - or a from–to table of trips per shift between areas.
+   - **It works out:**
+     - distance per cycle and per shift;
+     - trips × distance for every route;
+     - two layouts compared.
+   - **The picture:** the paths on the photo, their thickness the traffic.
+   - **Builds on:** the line standard's photo and icons.
+
+**How many people, and where — balancing and staffing**
+
+7. **Work balance (Yamazumi).**
+   - **Answers:** is the work shared evenly against takt?
+   - **You put in:**
+     - the elements, with their standard times (from 1);
+     - which must come before which;
+     - the people.
+   - **It works out:**
+     - takt;
+     - the fewest people the work needs;
+     - balance efficiency, balance delay and smoothness;
+     - the person who is the constraint;
+     - a suggested balance (ranked positional weight), offered and never
+       applied.
+   - **The picture:** stacked bars per person against the takt line. Drag
+     an element between people and both bars move.
+   - **Builds on:** it lives inside the existing balance's people stations:
+     tap a person station and see its elements.
+8. **Crewing and labour.**
+   - **Answers:** how many people does each product need, and how well did
+     the shift do?
+   - **You put in:**
+     - per product, the work content (from 7) and the rate;
+     - per shift, the packs made and the hours worked.
+   - **It works out:**
+     - headcount per product;
+     - earned hours = standard minutes × packs ÷ 60;
+     - labour efficiency = earned ÷ worked.
+   - **The picture:** each product's crew number against the people on its
+     map. They must agree, and it says so when they don't.
+   - **Builds on:** the line standard, whose headcount is counted off the
+     map.
+
+**How much can it make, and what limits it — capacity and constraints**
+
+9. **Capacity, with its three numbers.**
+   - **Exists today:** the balance, saying where the line is limited, with
+     its what-ifs (`lib/capacity`).
+   - **Added:**
+     - design capacity (the plate);
+     - effective capacity (after the planned losses: changeovers, cleans,
+       breaks);
+     - actual (what it made);
+     - utilisation = actual ÷ design, and efficiency = actual ÷ effective;
+     - loading against demand: "demand needs 92% of what the line can
+       really make".
+   - **The picture:** today's bars, each with three marks (design ·
+     effective · actual).
+10. **Product mix on the constraint** (Theory of Constraints, throughput
+    accounting).
+    - **Answers:** with the bottleneck full, which products earn the most?
+    - **You put in:** per product, price less materials, demand, and the
+      constraint's speed on it.
+    - **It works out:**
+      - throughput per constraint minute;
+      - the products ranked;
+      - the constraint's week filled in that order up to demand, and what
+        is left unmade.
+    - **The picture:** ranked bars, and the week filling like a tank.
+    - **Builds on:** 9, and the cost rates already kept (`lib/cost`).
+11. **Changeover interval (EPEI).**
+    - **Answers:** how often can each product run?
+    - **You put in:** the changeover minutes (from 5), each product's run
+      time per day, and the time available.
+    - **It works out:**
+      - the time free for changeovers;
+      - every product every how many days;
+      - how short each changeover must be for a daily interval.
+    - **The picture:** one cycle of every product on a timeline, with its
+      changeovers.
+12. **Ramp-up to rate** (the learning curve).
+    - **Answers:** when will the new line reach rate? (the stage gate's
+      Commission)
+    - **You put in:** nothing new: a product's runs on successive days.
+    - **It works out:** the trend, its learning rate, and the date it meets
+      the agreed rate. Under three runs it says "too early".
+    - **The picture:** dots climbing to the rate line.
+    - **Builds on:** the performance run. This is stage gate slice 3.
+
+**Where the time and the money go — losses**
+
+13. **A shift's losses, by hand.**
+    - **Answers:** of what the line should have made, where did the rest
+      go?
+    - **You put in:** two numbers at the end of the shift (the planned hours
+      and the packs made), plus the stops already logged in Capture.
+    - **It works out:**
+      - the packs the planned time should have made at rate;
+      - the gap, in packs and in minutes;
+      - how much of the gap the log explains: stops by cause, changeovers,
+        rejects, running slow;
+      - how much is **not yet explained**.
+    - **The picture:** a waterfall in minutes and pounds, from the planned
+      time down to good packs. The unexplained part is shown plainly. No
+      percentage score.
+    - **Builds on:** the stops log, the Pareto, `lib/cost`.
+14. **Cost deployment** (World Class Manufacturing, its lighter form).
+    - **Answers:** which losses cost most, and which are worth fixing?
+    - **You put in:** the rates already set (crew, wage, margin), and a
+      fix's cost and what it should save.
+    - **It works out:** each loss in pounds a year, ranked; and each fix's
+      saving and payback.
+    - **The picture:** a pounds Pareto, each loss pointed at its cause.
+    - **Builds on:** `lib/cost`, the Pareto, the 6M countermeasures.
+
+**Can people do it safely all shift — Lean 5.0**
+
+15. **Ergonomics.**
+    - **Answers:** is this task safe to do all shift?
+    - **You put in**, by the method that fits the task:
+      - lifting and carrying: the weight, where the hands are and how
+        often, by HSE's Manual Handling Assessment Charts (MAC), the UK's
+        own tool;
+      - repetitive arm and hand work (packing, sorting): HSE's ART;
+      - the whole body: REBA's positions, tapped on a photo.
+    - **It works out:** the score in the method's own bands, in words; and
+      for a lift, the NIOSH recommended weight limit and lifting index.
+    - **The picture:** a figure with the scored body parts marked. The
+      methods' own colour bands are said in words and marks, because the
+      app's five colours are kept for state.
+    - **Builds on:** the line standard's people (who stands where, so which
+      tasks), and the photo.
+16. **Skills (later).**
+    - **Answers:** who can stand where?
+    - **You put in:** each person's level on each position: learning, can do
+      it, can train it.
+    - **It works out:** cover per position, and the gaps by shift.
+    - **The picture:** a matrix.
+    - **Builds on:** the line standard's positions.
+
+### Recommended order
+
+1. **The step table, "Walk it", and the value stream and process map** (3).
+   It is the flagship, and every later tool reuses its table.
+2. **Time study** (1). Standard times on the steps: the measurement every
+   other number rests on.
+3. **Work balance and the operator's cycle** (7 and 4). Inside the existing
+   balance, on those standard times.
+4. **A shift's losses and cost deployment** (13 and 14), if Rowland agrees
+   it is inside "manual inputs" (decision 4).
+5. **Changeover and its interval** (5 and 11).
+
+Then, in an order to agree:
+- capacity's three numbers and the product mix (9, 10);
+- work sampling (2);
+- ergonomics (15);
+- layout (6);
+- crewing (8);
+- skills (16).
+
+Measured tests and the ramp-up are the stage gate's own, in its slices
+above.
+
+**Other lean tools, kept for later.** 5S (before-and-after photos and a
+score kept over time), the A3 (assembled from a 6M job, one page) and
+kanban sizing (a calculator showing the loop as demand and lead time
+change). They are kept from the earlier draft. They are not industrial
+engineering, so they wait.
+
+### Left out on purpose
+
+- **OEE.** Decided above.
+  - The closest honest thing is tool 13: the same gap, in minutes and
+    pounds, from two counts and the stops log, with no score.
+  - Whether even that is too near is decision 4.
+- **Predetermined motion times (MTM, MOST).** These are licensed systems
+  that need certified analysts. A standard time made with one can be typed
+  in with its source named ("MTM-UAS"), and is then used like a timed one.
+- **Simulation.** It needs distributions and an expert to set up. The
+  capacity screen's steady-state answer, which says "at most", is the
+  honest one for a screen.
+- **SPC on machine signals, energy metering.** Both need sensors. A typed
+  meter reading per run is possible later (see Sustainable, above).
+- **Automatic video timing.** Software that times a film by itself exists.
+  Here the person cuts the film and the app does the arithmetic: Lean 5.0,
+  the person decides.
 
 ## The shift: from drawing to data
 
@@ -50,10 +582,11 @@ literature, is the appendix. **Nothing here is built.**
 **No tool found is table-driven, live and simple**, which is exactly what
 Rowland describes. That is the gap, and the opportunity.
 
-## What a Lean 4.0 / 5.0 tool is, as technology
+## What a tool is, as technology
 
-Ten principles, drawn from the research and from what this app already
-does well. Each is something a person feels, not a feature list:
+The eight principles above, as they apply to a single tool: ten things a
+person feels using it, drawn from the research and from what this app
+already does well. They are not a feature list:
 
 1. **Table in, picture out.** You fill a table: typed, timed or filmed. The
    classic picture draws itself (the map, the ladder, the bars) and
@@ -203,22 +736,6 @@ everywhere.
 - It shows where its line and its job show, as a branch: "lead time 6.2 d →
   2.1 d target" on the job's front page, a page in the client report.
 
-## Every lean tool, re-seen this way
-
-The same principle (a table you capture, a picture that draws itself and
-explains itself) for the rest. One line each; none is designed yet.
-
-| Tool | The old way | Lean 4.0 / 5.0, as technology | Builds on |
-|---|---|---|---|
-| **Line balance (Yamazumi)** | Bars drawn in Excel | Stations as stacked bars against a live takt line; drag a task from one station to another and watch both bars move; the constraint named | The line balance on a line |
-| **Standard work combination table** | Hand-drawn Gantt on paper | Each element's manual, walk and machine time typed or timed; the chart draws itself against takt; over-takt shown | The line standard |
-| **SMED (changeover)** | A stopwatch and a flip chart | Film the changeover; tap through it tagging each step internal or external; the bar splits and shows the gain of moving external work outside | The filmed walk |
-| **OEE** | A spreadsheet number | A waterfall from planned time down to good output, each loss a bar (stops, speed, rejects), from what is already kept; tap a loss to see its stops | Runs, the Pareto |
-| **Spaghetti diagram** | Pencil on a printed plan | Draw the path on a photo of the floor; the distance is worked out; before and after side by side | The line map |
-| **5S** | A paper score sheet | Before and after photos with a slider, and a score kept over time | Snags, photos |
-| **A3** | A Word template | Assembled from the job itself: problem, cause, countermeasure, proof. Typed once, printed as one page | The 6M job |
-| **Kanban sizing** | A formula on a whiteboard | A calculator that shows the loop and its bins as you change demand and lead time | Materials |
-
 ## What the app already has to build on
 
 This is why it can be done here, and done well:
@@ -233,28 +750,67 @@ This is why it can be done here, and done well:
 - **Live sync, offline first**: two phones on one table, no signal no loss.
 - **The line balance and line standard**: the first two tools, on a line,
   attachable to a job.
+- **The capacity arithmetic** (`lib/capacity`): stations in one unit, three
+  speeds, rejects, waiting kept apart, people as stations, what-ifs that
+  raise an action. Tools 9 to 11 extend it rather than start again.
+- **The stops log and the cost rates** (`lib/cost`, the Pareto): the losses
+  and their pounds are already kept by hand. Tools 13 and 14 read them.
+- **The performance run** (`lib/run`): a list of products, agreed against
+  measured, the verdict worked out. Measured tests and the climb to rate
+  copy its shape.
 - **Present mode** for the meeting, and **the report engine** for one page
   of paper.
 - **The rules**: visual management, simple with detail, connect the dots.
   These are what stop a dynamic tool becoming a gimmick.
 
+## Still to do, whatever is built here
+
+Rowland, 10 October: "We'll do the lever tree and we'll do the 6M at a
+later point, but just mark that down as something that still needs doing."
+
+- **The lever tree, held to the eight principles.** Later. It gets the same
+  treatment the stage gate has had here: what holds, where it falls short,
+  and slices.
+- **The 6M, held to the eight principles.** Later. The toolkit is designed
+  to feed its bones, and the audit should start there:
+  - time study and work balance on **Method**;
+  - ergonomics and skills on **People**;
+  - changeover on **Machine** and **Method**;
+  - measured tests on **Measurement**;
+  - a shift's losses as **the gap** and the head of the fish;
+  - cost deployment as **which problem first**.
+
 ## Decisions for Rowland
 
-1. **The VSM's first shape.** The table-and-timeline above, steps on the
-   left, the table on the right: is that the picture in your head? A
-   clickable mock-up would let you try it before anything is built.
-2. **The colours.** Value, necessary and waste in their own marks (solid,
-   light, hatched), keeping red, amber and green for state. Or a different
-   choice?
-3. **How a map is first filled.** "Walk it" on the phone, typed in the
-   workshop, or from the film? All three in time; which first?
-4. **Its span.** One line, a plant door to door, or across sites; and
-   current state first, or current and future together.
-5. **Which tool after the VSM** from the table: the Yamazumi you can drag,
-   SMED on the film, or the OEE waterfall?
-6. **The whole app** (the earlier draft's question): shall every change from
-   here say how it makes the app more Lean 4.0 (captured once, live, the
-   loop) and Lean 5.0 (people first, resilient, sustainable)?
+1. **The eight principles.** Are they the words you would say to a client?
+   Change any of them. Once agreed, every change from here says which
+   principle it serves. (This replaces the earlier draft's question about
+   the whole app.)
+2. **The stage gate's six slices, and their order.** Recommended: slice 1
+   (the pace says when) and slice 2 (measured tests) first.
+3. **The toolkit.** The sixteen tools and the first five. Is there anything
+   to add or strike?
+4. **A shift's losses by hand (tool 13).** Is it inside "manual inputs", or
+   too near OEE? It uses two counts at the end of a shift and the stops
+   already logged, and shows minutes and pounds, never a percentage.
+5. **The name of today's "Line balance".**
+   - It answers where the line is limited: machines and people as a chain.
+     That is capacity.
+   - The Yamazumi balances the work between people.
+   - Recommended: one page, still called "Line balance", with two views.
+     **Capacity** is today's, unchanged. **Work** is the people's elements
+     against takt.
+   - Nothing is removed.
+6. **Carried from the earlier draft:**
+   - the value stream map's first shape, and whether to try a clickable
+     mock-up first;
+   - the marks for value, necessary and waste (solid, light, hatched
+     grey);
+   - how a map is first filled: walked, typed or from the film;
+   - its span: one line, or the plant door to door.
+
+   The earlier "which tool after the map" is answered by the recommended
+   order.
 
 ---
 
@@ -345,6 +901,8 @@ forms, and the ones Rowland's picture is closest to:
 - **OEE** = availability × performance × quality; Nakajima's six big losses:
   breakdowns, set-ups, minor stops, reduced speed, defects, start-up. Say
   whether planned changeovers count.
+  **Not built: decided 10 October.** It needs machine data to be honest;
+  see the decision at the top.
 - **SMED**: internal (machine stopped) against external work; move it
   outside; video is the baseline.
 - **Kanban**: cards = demand × replenishment lead time × (1 + safety) ÷
@@ -356,6 +914,171 @@ forms, and the ones Rowland's picture is closest to:
 - **Shop-floor management**: SQDCP boards, tiered meetings, leader standard
   work.
 - **5S, waste walk, spaghetti diagram**: counted and observed evidence.
+
+### The industrial-engineering arithmetic
+
+Each formula with numbers worked through, so a tool can be checked against
+it when it is built.
+
+**Time study** (BS 3138 rating, where 100 is standard performance).
+- Basic time = observed time × rating ÷ 100.
+- Standard time = basic time × (1 + relaxation + contingency).
+- *Worked:* observed 0.42 min at a rating of 110 gives 0.462 basic minutes.
+  With 12% relaxation and 2% contingency, the standard is 0.527 minutes.
+- Allowances vary by plant and by task. They are agreed, never assumed.
+
+**How many cycles to time.**
+- n = (t × s ÷ (0.05 × mean))² for ±5% at 95%, where s is the spread of the
+  laps and t is about 2.
+- *Worked:* mean 0.42 min, spread 0.04 gives (0.08 ÷ 0.021)² = 14.5, so 15
+  cycles.
+- The app starts from a few cycles and says how many more are needed.
+
+**Work sampling.**
+- N = Z² × p(1 − p) ÷ E², with Z = 1.96 at 95%, p the share expected, and E
+  the margin wanted.
+- *Worked:* a share near 30% to ±5 points needs 3.84 × 0.21 ÷ 0.0025 = 323
+  observations.
+- The moments must be random, and spread across people and shifts.
+
+**Work balance.**
+- Takt = available time ÷ demand.
+- The fewest people = work content ÷ takt, rounded up.
+- Balance efficiency = work content ÷ (people × the longest person's time).
+- Balance delay = 1 − efficiency.
+- Smoothness = √Σ(longest − each)².
+- *Worked:* 54 s of work at a 12 s takt needs at least 5 people. At 5, with
+  the longest at 12 s, efficiency is 54 ÷ 60 = 90% and the delay 10%.
+- **Ranked positional weight** (Helgeson and Birnie, 1961): an element's
+  weight is its own time plus every element that must follow it. Elements
+  are placed heaviest first, keeping their order and the takt. The largest
+  candidate rule is the simpler alternative.
+
+**Machines per person** (synchronous servicing).
+- n′ = (l + m) ÷ (l + w), where:
+  - l is loading and unloading, which takes the person and the machine
+    together;
+  - m is the machine running alone;
+  - w is the person's walking and other work per machine.
+- **The cycle:** at or below n′ it is l + m, and the person waits. Above n′
+  it is n(l + w), and the machines wait.
+- **Cost per piece** = (person's rate + n × machine's rate) × cycle ÷ n, at
+  the whole numbers either side.
+- *Worked:* l = 1, m = 4, w = 0.5 min gives n′ = 3.33. At £15 an hour for
+  the person and £30 for a machine:
+  - 3 machines cost £2.92 a piece;
+  - 4 machines cost £3.38 a piece;
+  - so 3, and the person has a little time to spare.
+
+**Capacity.**
+- Utilisation = actual ÷ design.
+- Efficiency = actual ÷ effective.
+- *Worked:* design 201,600, effective 175,000 and actual 148,000 give
+  73.4% and 84.6%.
+- The bottleneck caps the whole line. A minute lost there is lost to the
+  line; a minute saved elsewhere is not gained.
+
+**Product mix on the constraint** (throughput accounting).
+- Throughput per constraint minute = (price − materials) × the packs the
+  constraint makes in a minute.
+- *Worked:*
+  - A earns £0.40 a pack, at 80 a minute: £32 a constraint minute.
+  - B earns £0.60 a pack, but at 40 a minute: £24.
+  - So A goes first, though B earns more a pack.
+- Fill the constraint in that order, each product up to its demand.
+
+**Changeover interval (EPEI).**
+- Time free for changeovers = available time − run time.
+- The interval = changeover time for one cycle of every product ÷ the time
+  free each day.
+- *Worked:* 450 minutes available and 300 run leave 150 free a day. Five
+  products at 45 minutes a changeover need 225 minutes, so every product
+  runs every 1.5 days. A daily interval needs changeovers of 30 minutes or
+  less.
+
+**Ramp-up** (the learning curve).
+- Tₙ = T₁ × nᵇ, with b = log(rate) ÷ log 2. An 80% curve has b = −0.322:
+  each doubling of output takes 80% of the time.
+- Books differ on whether n is the n-th unit or the average of the first n.
+  For a ramp-up, the app uses each run's own net rate.
+- It says "too early" under three runs.
+
+**A shift's losses, by hand.**
+- Expected packs = planned minutes × rate.
+- Lost minutes = (expected − made) ÷ rate.
+- Explained = the logged stops + changeovers + rejects ÷ rate.
+- Not yet explained = lost − explained.
+- *Worked:*
+  - 450 planned minutes at 100 a minute should make 45,000.
+  - 36,500 were made: 8,500 short, or 85 minutes.
+  - The log explains 76: 52 of stops, 18 of changeover and 6 of rejects
+    (600 packs).
+  - That leaves **9 minutes not yet explained**.
+
+**Cost deployment** (World Class Manufacturing). The full method has seven
+steps:
+1. total the cost;
+2. find and measure the losses;
+3. separate the causing losses from the resulting ones;
+4. turn them into money;
+5. find the ways to recover them;
+6. estimate the saving and put them in order;
+7. follow up.
+
+The light form here is steps 2, 4 and 6, on the rates the app already
+keeps.
+
+**A measured test.**
+- Count, mean, lightest, heaviest, spread, and how many are outside.
+- Cpk = the smaller of (upper − mean) and (mean − lower), ÷ (3 × spread).
+  1.33 is the usual mark of capable. Small samples flatter it, so it is
+  shown from 25 readings, always with the count.
+- *Worked:* thirty packs, all between 400 and 404 g, mean 401.2, spread
+  0.6. The count says passed. But Cpk is 0.67, because the mean sits only 2
+  spreads above the lower limit: about 2 packs in 100 would be light over a
+  shift. **Both are said.** The person decides, perhaps to set it 1 g
+  higher.
+- **The packers' rules** (Weights and Measures (Packaged Goods)
+  Regulations 2006, the ℮ mark):
+  - the average is at least the nominal;
+  - fewer than 1 pack in 40 is short by more than the tolerable negative
+    error;
+  - none is short by more than twice it.
+  - For 300–500 g the tolerable negative error is 3%: 12 g on a 400 g pack.
+
+**Earned schedule** (Lipke, 2003), for the stage gate's forecast.
+- ES = the day by which the plan had as many stages done as are done
+  today.
+- Pace = ES ÷ the days actually elapsed.
+- Forecast = days elapsed + (planned length − ES) ÷ pace.
+- *Worked*, slice 1's numbers: elapsed 39 days, ES 28, planned length 43.
+  39 + 15 ÷ 0.72 = 60 days from 1 September: 31 October.
+
+**Ergonomics.**
+- **NIOSH recommended weight limit** = 23 kg × HM × VM × DM × AM × FM × CM,
+  in centimetres and degrees:
+  - HM = 25 ÷ H;
+  - VM = 1 − 0.003 × |V − 75|;
+  - DM = 0.82 + 4.5 ÷ D;
+  - AM = 1 − 0.0032 × A;
+  - FM and CM come from NIOSH's tables.
+- **Lifting index** = load ÷ that limit. Above 1 is an increased risk; above
+  3, most people are at substantial risk.
+- **REBA** bands: 1 negligible; 2–3 low; 4–7 medium; 8–10 high; 11 and over
+  very high.
+- **HSE's MAC and ART** score in green, amber, red and purple bands. In the
+  app those are said in words and marks, because the five state colours
+  are kept for state.
+- **These are screening tools.** HSE says the MAC alone may not be a
+  "suitable and sufficient" risk assessment, and both are for trained
+  assessors.
+
+**Layout** (Muther's Systematic Layout Planning).
+- The from–to chart counts the trips between each pair of areas.
+- The closeness chart rates each pair A, E, I, O, U or X: absolutely
+  necessary to undesirable.
+- A good layout puts the heaviest routes shortest, so the measure to
+  compare two layouts is Σ trips × distance.
 
 ### The earlier draft's audit of the whole app, kept short
 
@@ -371,7 +1094,7 @@ The gaps found:
 - the line's numbers typed by hand (and, Rowland, 1 October: "no Excel that
   needs to be uploaded");
 - no value stream view;
-- OEE not worked out;
+- OEE not worked out (no longer a gap: decided 10 October, no OEE);
 - the phone told only about reminders, not about what goes red;
 - no trend of control;
 - nothing sustainable counted;
@@ -411,6 +1134,34 @@ The gaps found:
 - [Standardized work — LEI lexicon](https://www.lean.org/lexicon-terms/standardized-work/)
 - [Lean and the Environment: value stream mapping (US EPA)](https://19january2021snapshot.epa.gov/sites/static/files/2015-02/documents/vsm.pdf)
 
+**Industrial engineering, added 10 October:**
+
+- [Work measurement — the BS 3138 rating scale, basic and standard time (Wikipedia)](https://en.wikipedia.org/wiki/Work_measurement)
+- [Work study and industrial engineering terms and definitions (Online Clothing Study)](https://www.onlineclothingstudy.com/2012/10/work-study-and-industrial-engineering.html)
+- [How many work cycles to time — Murphy (Scion Research)](https://www.scionresearch.com/__data/assets/pdf_file/0006/59118/04_Murphy.pdf)
+- [Work sampling (Wikipedia)](https://en.wikipedia.org/wiki/Work_sampling)
+- [Work sampling — lecture notes, Eastern Mediterranean University](https://staff.emu.edu.tr/orhankorhan/Documents/courses/ieng301-mane301/Lecture-Notes/spring2019-2020/CH30.pdf)
+- [Worker–machine charts and synchronous servicing (study guide)](https://open-exam-prep.com/study-guides/pe-industrial/methods-engineering-work-measurement/worker-machine-charts)
+- [Learning curves: unit and cumulative-average models (study guide)](https://open-exam-prep.com/study-guides/pe-industrial/methods-engineering-work-measurement/learning-curves)
+- Helgeson, W. B. and Birnie, D. P. (1961), "Assembly line balancing using the ranked positional weight technique", *Journal of Industrial Engineering* 12(6)
+- [Capacity: design, effective, utilisation and efficiency (Operations Management, eCampusOntario)](https://ecampusontario.pressbooks.pub/opsmgmt/?p=105)
+- [Throughput accounting and constraints (ACCA technical article)](https://www.accaglobal.com/uk/en/student/exam-support-resources/fundamentals-exams-study-resources/f5/technical-articles/throughput-constraints2.html)
+- [Available time for changeovers, the basis of EPEI (Quality Digest)](https://www.qualitydigest.com/inside/six-sigma-article/available-time-changeovers-040714.html)
+- [Cost deployment: 7 steps (IndustryWeek)](https://www.industryweek.com/operations/continuous-improvement/article/22008161/cost-deployment-7-steps-to-better-process-understanding-and-world-class-manufacturing)
+- Lipke, W. (2003), "Schedule is different", *The Measurable News* — earned schedule
+- [The Weights and Measures (Packaged Goods) Regulations 2006 (legislation.gov.uk)](https://www.legislation.gov.uk/uksi/2006/659/contents)
+- [Manual Handling Assessment Charts — the MAC tool (HSE)](https://www.hse.gov.uk/msd/mac/)
+- [Assessment of Repetitive Tasks — the ART tool (HSE)](https://www.hse.gov.uk/msd/uld/art/index.htm)
+- [RR707: development of the ART tool (HSE research report)](https://www.hse.gov.uk/Research/rrhtm/rr707.htm)
+- [NIOSH lifting equation — horizontal multiplier, with a worked example (CCOHS)](https://www.ccohs.gc.ca/oshanswers/ergonomics/niosh/horizontal.html)
+- [Revised NIOSH lifting equation (CDC Stacks)](https://stacks.cdc.gov/view/cdc/214262/cdc_214262_DS1.pdf)
+- [REBA — Rapid Entire Body Assessment (Cornell University Ergonomics)](https://ergo.human.cornell.edu/ahREBA.html)
+- [SLP: four ways to analyse the flow of materials (Richard Muther & Associates)](https://richardmuther.com/wp-content/uploads/2021/06/SLP-On-line-Training-8-Four-Ways-to-Analyze-Flow-of-Materials.pdf)
+- [Layout methodology (Georgia Tech)](https://www2.isye.gatech.edu/~mgoetsch/cali/Logistics%20Systems%20Design/Full%20Text%20PDF/Layout%20Methodology.pdf)
+
 Many practitioner sources are vendors; their figures are claims, not
 evidence. The method comes from Rother & Shook, the Lean Enterprise
-Institute, Nakajima's TPM and Shingo's SMED.
+Institute, Nakajima's TPM and Shingo's SMED; the industrial engineering
+from the standard texts (Niebel and Freivalds, Groover), the ILO's
+*Introduction to Work Study*, HSE and NIOSH. Study guides and lecture notes
+above are pointers to that arithmetic, not authorities on it.
