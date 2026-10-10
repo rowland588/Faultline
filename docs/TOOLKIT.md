@@ -10,17 +10,299 @@ Rowland, 10 October, after the catalogue in `docs/LEAN40.md`:
 
 So this is the design. `docs/LEAN40.md` keeps the principles and the
 catalogue; this says, for the whole toolkit and then tool by tool:
+- **how it lives** — the ecosystem (Part 0): a tool used on its own, then
+  put on a line, attached to a job, and used as evidence for a problem or
+  proof for a fix — one record, one way to attach, built first;
 - **how it thinks** — the intelligence model: what is a fact, what is worked
   out, what is said, what is judged, and what the app refuses to claim;
 - **how it is used** — who, where, the taps in order;
-- **how it is built** — the record each fact lives on (no fifth noun), the
-  module that works it out, the test that proves the module;
+- **how it is built** — the record each fact lives on (one new record, the
+  study, argued for in Part 0), the module that works it out, the test that
+  proves the module;
 - **what it looks like** — the one frame every tool shares, the sixteen
   parts they are drawn with, on a phone, a laptop and one page of paper.
 
 **Nothing here is built.** Every rule in `CLAUDE.md` holds: measured by
 people, additions connect, screen and paper together, one colour one
-meaning, simple with detail, manufacturing is many, no fifth noun.
+meaning, simple with detail, manufacturing is many, and no new noun but
+the one Part 0 argues for.
+
+---
+
+# Part 0 — The ecosystem: how a tool lives in the app
+
+Rowland, 10 October, reading the design below:
+
+> "What isn't clear is that we're about to build tools that do two things.
+> One, can work independently. Two, can be attached to a project — possibly
+> even to a problem. It needs to be a full ecosystem. Tools can be adjacent
+> to do-one sessions, just to allow quick use of the tool. But then sometimes
+> you need to integrate that tool into the project. So you use the tool,
+> connect it to a problem, connect it to a project, connect it to a fix ...
+> What you're tending to do right now is build things independently without
+> constructing it and integrating it into the app itself. You need to build
+> that first, don't you?"
+
+Yes. This part is that foundation, and it is built before any tool.
+
+## What was missing
+
+**The design below scattered the tools.** Part 2 first put each tool's facts
+on the nearest record:
+- steps on the line standard;
+- readings on a test;
+- sampling taps on the stops log;
+- shift counts on measures;
+- ergonomics on a person on the map.
+
+Five homes means five ways to attach, and no one way to say "this time
+study is how we know about that problem, and this second one proves the fix
+worked".
+
+**The app today already attaches tools four separate ways**, each made for
+one tool. Each works; none is shared:
+
+| Today | How it attaches | Where |
+|---|---|---|
+| A quick snag | names a job (`projectId`), and is **sent**: it moves to the job as a problem or an action, and closes with `sent` saying where it went | `snag/quick.ts` |
+| A line standard or balance | on a line (`workspaceId`), and a job picked from a list (`projectId`, `''` for none) | `StandardScreen` `BelongsTo` |
+| A 6M cause | points at the record it came from (`CauseSource`: pareto · snag · standard · capacity · material · program · reading · observation) | `lib/sixm`, `lib/fishbone` |
+| A countermeasure or a fix | names its problem (`caseId`, `causeRef`) or its observation (`fromItemId`) | `db/rows` `PaceTodoRow`, `lib/testing` |
+
+## The rule: work moves, evidence links
+
+- **A snag is work**, something to be done. When it goes to a job it moves
+  and becomes the job's problem or fix, so nothing is counted twice. That
+  stays exactly as it is.
+- **A tool's result is evidence**: how we know. It is never moved and never
+  copied. It stays one record and is linked to whatever it is evidence for.
+  One record seen in many places cannot disagree with itself.
+
+## One home for every tool's work
+
+Every use of a tool is one record. This is **the one new record** the
+toolkit needs. `CLAUDE.md` says a fifth noun is almost always wrong, so here
+is why none of the existing ones fits:
+
+| The existing record | Why it is not the home |
+|---|---|
+| **Test** | It lives only inside a job, and it is something agreed in advance to be proved. A time study taken on a running line on a Tuesday is neither. |
+| **Line standard** | It is the *agreed* way for a product: what a study is measured against, and what a study may set. A measurement of it is not it. |
+| **Stops log** (`Observation`) | It is one row for one event. A study is a session: what it is judged against, many facts, and a verdict. |
+| **Snag** | It is work, not evidence. |
+| **Measures and readings** | They hold one number per line per period. |
+
+**The names.**
+- **In code:** `ToolStudy`, table `studies`.
+- **On screen:** never called a "study" on its own, because "Line study"
+  already names a line. It always carries its tool's name:
+  - "Capability study — Weight accuracy 400 g";
+  - "Time study — Case packing";
+  - "Value stream — Express 1.25 kg";
+  - "Changeover — Finest to Express";
+  - "Loss count — Shift 1, 10 Oct";
+  - "Sampling — Op 2";
+  - "Lift check — palletising".
+
+```ts
+interface ToolStudy {
+  id: ID;
+  ownerId: string;                 // who started it — a quick session is theirs alone
+  tool: 'capability' | 'map' | 'time' | 'balance' | 'cycle' | 'changeover'
+      | 'losses' | 'sampling' | 'ergonomics' | 'layout';
+  name: string;                    // in the person's words
+  workspaceId?: ID;                // the line; absent = a quick session, not filed
+  projectId?: ID;                  // the job it is attached to; absent = none
+  machine?: string;                // the machine, in the line's words
+  assetId?: ID;                    // the job's machine, on a stage-gate job
+  product?: string; programId?: ID;
+  standardId?: ID;                 // the product's line standard it measures
+  agreed?: StudyAgreed;            // what it is judged against, agreed before (Part 2)
+  facts: StudyFacts;               // the tool's facts — steps, laps, readings, taps, counts (Part 2)
+  uses: StudyUse[];                // what it is evidence for, inside its job — merged by id
+  startedAt: number;
+  closedAt?: number;               // closed = a receipt: its figures are frozen
+  receipt?: StudyReceipt;          // the figures as they stood at close
+  createdAt: number; updatedAt: number; deletedAt?: number;
+}
+
+interface StudyUse {
+  id: ID;
+  kind: 'problem' | 'case' | 'cause' | 'fix' | 'action' | 'test';
+  ref: ID;                         // the TestItem, Case, "<caseId>:<causeId>", Test or PaceTodoRow
+  role: 'evidence' | 'proof';      // how we know · how we know it worked (or it passes)
+  at: number; by?: string;
+}
+```
+
+## Where a study sits — four places, and it can be in all of them
+
+**1. On its own: a quick session.**
+- Open the tool from Tools and use it. No line and no job are asked first.
+- It is yours, kept under "Not filed" on the tool's page: a calculator that
+  remembers.
+- The last line used is offered, to save a tap, but never required. Quick
+  snags already work this way.
+
+**2. On a line.**
+- One tap: which line.
+- The line's people see it, and it shows on the line under its tool.
+- The 6M fishbone can suggest causes from it.
+
+**3. On a job.**
+- One tap: which job, with the jobs on this line listed first.
+- The job's people see it: the team adds to it, the owner agrees its
+  limits, a client reads it.
+- One job at a time, the same rule as a line standard and a snag, so who
+  can see it is never a puzzle.
+
+**4. For something inside that job,** as many things as it serves:
+- **evidence for a problem**: a stage-gate problem, a 6M problem, or one of
+  its causes. *How we know.*
+- **proof for a fix**: a stage-gate fix or a 6M countermeasure. *How we know
+  it worked.*
+- **proof for a test**: a Commission test, say. *How we know it passes.*
+
+**And one act that is not a link: set as the standard.** It writes the
+study's figures onto the product's line standard (standard times, takt, the
+changeover sequence), each figure naming the study it came from.
+
+## The doors — both ends write the same link
+
+| From | Tap | It does |
+|---|---|---|
+| a study | **Put on a line** | sets `workspaceId` |
+| a study | **Attach to a job** | sets `projectId`, listing the jobs on its line first |
+| a study | **Use it for…** | lists the job's open problems, fixes and tests; picking one adds a `use` |
+| a study | **Make it better** | raises the job's problem (stage gate) or countermeasure (6M) with this study as its evidence. On a line with no job, it raises a snag. |
+| a study | **Set as the standard** | writes to the product's line standard (`can.agree`) |
+| a problem's drawer, a 6M problem or a cause | **How we know → add a study** | picks one already on this line, or starts one filled in with the machine and the product |
+| a fix's drawer or a countermeasure | **Prove it** | starts the same tool as the problem's evidence, filled in with the same scope (machine, product, limits or elements), so before and after measure the same thing the same way |
+| a test's drawer (Commission) | **Take the readings** | starts a capability study linked as the test's proof. Its verdict becomes the test's, and the person can overrule. |
+
+## Before and after, worked out
+
+This is the intelligence the links buy.
+
+**When it happens.** A fix has a proof study, and the problem it came from
+has an evidence study **of the same tool on the same scope**. The tool's
+module then compares them, `compare(before, after) → { text, tone }`:
+
+| Tool | Before → after |
+|---|---|
+| Capability | mean, how many outside, Cpk: "Cpk 0.67 → 1.45 — capable now" |
+| Time study | standard time, with the significance test from `lib/measureProof` on the laps: "0.53 → 0.41 min, a real change" |
+| Value stream | lead time and the share that adds value: "6.2 d → 2.1 d" |
+| Work balance | balance efficiency, and the constraint's time against takt |
+| Changeover | minutes: "42 → 27 min" |
+| Loss count | lost minutes a shift, and the part not yet explained |
+| Sampling | the share walking or waiting |
+| Ergonomics | the score's band: "high → low" |
+
+**The rules.**
+- Same tool and same scope (machine, product, element), using the latest
+  closed study on each side.
+- Enough on both sides, or it says "too early".
+- It says "the number moved", never "the fix did it" (`lib/impact`).
+
+**What the verdict can do.** It can close a 6M countermeasure's "Did it
+work?", or let a stage-gate fix be marked done with its proof. A person
+still presses the button.
+
+**A closed study is a receipt.** Closing freezes its figures, as a Case's
+proof already freezes (`CaseStudy.receipt`), so next month's edits cannot
+rewrite last month's claim. The owner can reopen it, and the reason is kept.
+
+## Who can do what
+
+**By where the study sits:**
+- **Not filed:** its maker only.
+- **On a line:** the line's members (`is_ws_member`, as line standards
+  today).
+- **On a job:** the job's people, by level:
+  - the team adds facts and links (`can.edit`);
+  - the owner agrees the limits, the takt and the count, sets the standard
+    and deletes (`can.agree`, `can.remove`);
+  - a client reads and prints.
+
+**Two rules for links:**
+- A link into a job needs `can.edit` on that job.
+- Everything a study links to must be inside its job.
+
+**The policies:**
+- `owner_id = auth.uid()`;
+- or the line's members when `workspace_id` is set;
+- or the job's members when `project_id` is set;
+- plus the restrictive client policy every job table carries.
+
+They are written in the house shape, applied, and `pg_policies` read back
+for the table. A select policy has no `with_check` (`CLAUDE.md`, "Things
+that will bite").
+
+## Where a study shows — connect the dots
+
+| Where | How it shows |
+|---|---|
+| **The study itself** | under its name, one line: "On Line 2 · Line 9 install · how we know: *Weigher gives light packs* · proves: *Raise the setpoint 1 g*". Each part is a door. |
+| **Tools**, on the rail | each tool's page lists its studies across every line and job, with "Not filed" first for the maker |
+| **A line's page** | its tools, each with a count: "Capability 3 · Time 2 · Value stream 1" |
+| **A job's Evidence** | the studies attached, as a count that is also its filter, beside the walk's frames and snags |
+| **A problem's drawer**, 6M problem page | **How we know**: each linked study in one line (tool, its sentence, how known, the day), tap to open |
+| **The fishbone** | a cause from a study wears its source (`CauseSource` gains the kind `study`) and its sentence; the fishbone suggests causes from studies on the problem's line |
+| **A fix's drawer**, countermeasure | **Proved by**: the before → after line, its tone; "Prove it" while there is none |
+| **A test's drawer**, the Commission square | the proof study's count and verdict ("12 of 30", "30 · all in") |
+| **Needs you** | a test or fix whose proof is short: "18 readings still owed on Weight accuracy — 400 g" |
+| **Today's update** | a study closed today on the job: "Capability study on the weigher: Passed, Cpk 1.45" |
+| **The client report** | each problem's, fix's and test's account carries its study's sentence; an **Evidence** appendix lists every study on the job with its reading and how it is known |
+| **The 6M report** | each cause's evidence, and each countermeasure's before → after |
+| **The plan** | nothing new: no row per piece of evidence (visual management rule 5). A stage's or fix's verdict already shows. |
+| **The control room** | nothing new, unless a study changes a verdict that already shows there |
+
+## What changes in what exists — nothing removed
+
+- **Quick snags:** unchanged. Work moves.
+- **Line standard and line balance:** unchanged. The line standard is what
+  "set as the standard" writes to. Its "On a job" line (`BelongsTo`) becomes
+  the shared "where it sits" line, one component used by studies and
+  standards alike.
+- **The fishbone:** one more `CauseSource` kind, `study`.
+- **The performance run:** unchanged. It is a run on a test, it works, and
+  there is no reason to move it now.
+- **Part 2 below is revised:** a session's facts live on the study, and the
+  line standard keeps only what is agreed for the product.
+- **Seen, and not touched now:** the balance has two homes today, a 6M job's
+  line (`PaceLineRow.capacity`) and a product on a line
+  (`Standard.capacity`). That is a decision for later.
+
+## Built first: slice 0 — the ecosystem, proven by one tool
+
+1. **The record.** The `studies` table in the house shape, with its
+   policies, applied and read back; the mapper; `sync-schema.test.ts`.
+2. **The merge.** The sync merges a list item by item (`facts` lists and
+   `uses`, by `id`), with a two-phone scenario in `sync-two-devices.mjs`.
+3. **The pages.** Each tool's page on the rail, listing its studies across
+   lines and jobs, with "Not filed".
+4. **The doors.** "Where it sits" and "Used for" on every study, and the
+   doors at both ends: How we know, Prove it, Take the readings, Make it
+   better.
+5. **The branches.** The problem, fix and test drawers, the fishbone cause,
+   Needs you, Today's update, the client report's lines and Evidence
+   appendix, each covered by `report-stress`.
+6. **The compare.** `compare(before, after)` wired to the fix.
+7. **The first tool: the capability study (slice A).** An ecosystem with no
+   tool in it cannot be driven in a browser. So slice 0 ships with one tool,
+   and is proved end to end in Chromium:
+   - a quick session;
+   - put on a line;
+   - attached to a job;
+   - evidence for a problem;
+   - a fix raised;
+   - "Prove it";
+   - before → after;
+   - the client report.
+
+Every later tool is then a new `tool` kind: its facts, its module and its
+picture. The ecosystem comes with it, free.
 
 ---
 
@@ -153,28 +435,40 @@ after, with a significance test and a receipt), `lib/stats`, `lib/weeks`,
 
 ---
 
-# Part 2 — How it is built: the records (no fifth noun)
+# Part 2 — How it is built: the records
 
-Every fact lives on a record the app already keeps. The table is the whole
-of the storage design; everything else is worked out.
+**Revised by Part 0.** The first draft spread each tool's facts over five
+records. Now a session's facts live on the study (`studies`), the one home,
+so every tool attaches the same way. The line standard keeps only what is
+**agreed** for a product, written there by "Set as the standard". The table
+is the whole of the storage design; everything else is worked out.
 
 | Facts | Live on | As | New columns |
 |---|---|---|---|
-| **The step table** (value stream, process chart, time study elements, the work balance, the operator's cycle) | the line standard, per product per line (`Standard`, `lib/standard`) — beside its map and its balance | `Standard.steps: Step[]` | `standards.steps jsonb` |
-| **A future state** | the same standard | `Standard.future: Step[]` (a copy, edited) | `standards.future jsonb` |
-| **Takt and allowances** (agreed) | the same standard | `Standard.takt: { demandPerShift, availableMin }`, `Standard.allowances: { relaxationPct, contingencyPct }` | `standards.takt jsonb`, `standards.allowances jsonb` |
-| **Changeovers** to this product | the same standard | `Standard.changeovers: Changeover[]`, each `{ fromProduct, steps: Step[] }` with a side per step | `standards.changeovers jsonb` |
-| **Price less materials, demand** (for the mix) | the same standard | `Standard.throughput: { perPack, demandPerWeek }` | `standards.throughput jsonb` |
-| **A measured test's limits** (agreed) | the test (`Test`, `lib/testing`), as `runs` already are | `Test.agreedReadings` | `tests.agreed_readings jsonb` |
-| **A measured test's readings** | the same test | `Test.readings: TestReading[]` | `tests.readings jsonb` |
-| **Work sampling taps** | the line's stops log (`Observation`) — a tap is a check-sheet row: `timing 'instant'`, `category` the activity, `asset` the person or role | nothing new on the row | — |
-| **A sampling study** (its target and prompts) | the line (`Workspace`) | `Workspace.sampling: { startedAt, targetN, categories, closedAt }` | `workspaces.sampling jsonb` |
-| **Packs made, hours worked, rejects, planned minutes** per shift | the line's measures and readings (`lib/measures` `Measure`, `Reading`) | readings on measures the line already names, one per shift | `readings.shift text` |
-| **Planned losses** (changeovers, cleans, breaks) for effective capacity | the balance (`Capacity`) | `Capacity.plannedLossMinPerShift` | inside `standards.capacity` |
-| **Ergonomic assessments** | a person on the line standard's map (`StandardMark` of kind `person`) | `StandardMark.ergo: { method, inputs, score, band, at, who }` | inside `standards.marks` |
-| **Walking paths** | the line standard's map | `StandardMark` of kind `path` with points and the map's scale | inside `standards.marks` |
-| **Ramp-up runs** | the performance run's products (`Test.runs`) | nothing new | — |
-| **The pace** | the stages' planned and actual days | nothing new | — |
+| **A session's facts**: the steps as walked, laps, readings, ticks, a changeover's steps, sampling taps, a shift's counts, an ergonomic sheet's answers, a path drawn | the study | `ToolStudy.facts: StudyFacts`, one list per kind, each merged by `id` | `studies.facts jsonb` |
+| **What the session is judged against**: limits and count, takt, allowances, the activities and the margin wanted | the study, agreed before (the owner on a job, `can.agree`) | `ToolStudy.agreed: StudyAgreed` | `studies.agreed jsonb` |
+| **What it is evidence for** | the study | `ToolStudy.uses: StudyUse[]` (Part 0) | `studies.uses jsonb` |
+| **The figures at close** | the study | `ToolStudy.receipt` | `studies.receipt jsonb` |
+| **The product's agreed way**: steps with their standard times, takt, allowances, the agreed changeover sequence, price less materials and demand | the line standard, per product per line (`Standard`) — beside its map and its balance | `Standard.steps`, `takt`, `allowances`, `changeovers`, `throughput`; each figure names the study it came from (`fromStudyId`) | `standards.steps`, `takt`, `allowances`, `changeovers`, `throughput` (jsonb) |
+| **A future state** | the value-stream study it was copied from | `facts.future: Step[]` | inside `studies.facts` |
+| **Planned losses** for effective capacity | the balance (`Capacity`) | `Capacity.plannedLossMinPerShift` | inside `standards.capacity` |
+| **The stops in a shift** (for a loss count) | the line's stops log (`Observation`), unchanged — the study reads them | nothing new | — |
+| **Ramp-up runs** | the performance run's products (`Test.runs`), unchanged | nothing new | — |
+| **The pace** | the stages' planned and actual days, unchanged | nothing new | — |
+
+**What `facts` holds, by tool:**
+
+| Tool | `facts` | `agreed` |
+|---|---|---|
+| capability | `readings: TestReading[]` | `AgreedReadings` (kind, unit, nominal, limits, count) |
+| map | `steps: Step[]`, `future?: Step[]` | `takt` |
+| time | `steps: Step[]` with `laps` and `rating` | `allowances` |
+| balance, cycle | `steps: Step[]` with `who`, `after`, the three times | `takt` |
+| changeover | `steps: Step[]` with `side`; `fromProduct` | — |
+| losses | `shift`, `plannedMin`, `made`, `rejects`, `rate` | — |
+| sampling | `taps: { id, at, who, activity }[]` | `activities`, `marginPts` |
+| ergonomics | `method`, `answers`, `who` (the person on the map) | — |
+| layout | `paths: { id, points, scaleM }[]`, `trips` | — |
 
 Each new column is a migration in the house shape (`supabase/<NAME>.sql`,
 applied, read back), a line in the mapper, and `sync-schema.test.ts` keeps
@@ -420,8 +714,12 @@ because Rowland named it.
   on the machine with the figures already in its words ("Weight accuracy —
   400 g: Cpk 0.67 from 30, would drift light. Raise the setpoint 1 g?").
 
-**Facts.** `Test.agreedReadings` and `Test.readings` (Part 2). Nothing
-else: the mean, the spread, the Cpk and the verdict are never stored.
+**Facts.** A capability study (Part 0): `agreed` holds the limits and the
+count, `facts.readings` the readings. On a stage-gate test it is linked as
+the test's proof, so the readings are taken from the test's drawer and the
+test reads its verdict from the study. Standalone, it is a quick session or
+sits on a line. Nothing else is stored: the mean, the spread, the Cpk and
+the verdict are worked out.
 
 **Figures** (`lib/ie/sample.ts`):
 - count, mean, spread (sample standard deviation, n − 1), lightest, heaviest;
@@ -517,7 +815,9 @@ customer, and how much of it is work?
 - *Copy to future*: the table is copied; strike, merge, shorten; every
   changed figure shows its arrow; the strip says the gain.
 
-**Facts.** `Standard.steps`, `Standard.future`, `Standard.takt`.
+**Facts.** A value-stream study: `facts.steps`, `facts.future`,
+`agreed.takt`. "Set as the standard" writes the agreed steps and takt onto
+the product's line standard.
 
 **Figures** (`lib/ie/steps.ts`): lead time = Σ cycle + Σ wait; adds-value
 time; needed time; waste time; process cycle efficiency = adds-value ÷ lead;
@@ -560,8 +860,9 @@ biggest wait, case pack over takt; the future copy's differences.
   (`standardSec`, `source: 'timed'`, who, when), and offers **Use as the
   station's pace** on the balance.
 
-**Facts.** `Step.laps`, `Step.rating`, `Step.standardSec`,
-`Standard.allowances`.
+**Facts.** A time study: `facts.steps` with `laps` and `rating`;
+`agreed.allowances`. "Set as the standard" writes each element's standard
+time onto the line standard's step, naming the study.
 
 **Figures** (`lib/ie/timeStudy.ts`): per element the observed mean of the
 kept laps, basic = observed × rating ÷ 100, standard = basic × (1 +
@@ -602,7 +903,8 @@ constraint?
   beside the real ones; **Use it** applies it.
 - *Make it better* on the constraint's stack raises a fix or countermeasure.
 
-**Facts.** `Step.who`, `Step.standardSec` (or `cycleSec` when no study yet,
+**Facts.** A balance study's `facts.steps` (`who`, `after`), reading each
+element's standard time from the line standard (or `cycleSec` when no study yet,
 marked), `Step.after`, `Standard.takt`.
 
 **Figures** (`lib/ie/balance.ts`): takt; the fewest people = work content ÷
@@ -634,7 +936,7 @@ or the three are typed. The two lanes draw themselves. **Machines per
 person** is a line under the picture, with the cost per pack at the whole
 numbers either side; the person decides.
 
-**Facts.** `Step.manualSec`, `walkSec`, `machineSec`, `machine`;
+**Facts.** A cycle study's `facts.steps`: `manualSec`, `walkSec`, `machineSec`, `machine`;
 `Standard.takt`; the cost rates the line already keeps.
 
 **Figures** (`lib/ie/cycle.ts`): the cycle against takt; idle on each side;
@@ -663,7 +965,8 @@ external, 11 min"). The interval line reads the products' run times on the
 line and says how often each can run, and what the changeover must be for a
 daily interval.
 
-**Facts.** `Standard.changeovers[].steps` with `side`; each product's
+**Facts.** A changeover study's `facts.steps` with `side`, and `fromProduct`;
+"Set as the standard" writes the agreed sequence; each product's
 `Standard.takt` (demand, available).
 
 **Figures** (`lib/ie/changeover.ts`): minutes now; minutes with external
@@ -696,7 +999,8 @@ explained** → made. The pounds come from `lib/cost`. **Make it better** on
 any bar raises the countermeasure with the figure in its words, as the
 Pareto does today (`lib/lossContext`).
 
-**Facts.** `Reading` rows on the line's measures with `shift`; the
+**Facts.** A loss-count study's `facts` (the shift, planned minutes, packs
+made, rejects, the rate); the
 `Observation` stops in the window; the product's standard rate.
 
 **Figures** (`lib/ie/losses.ts`): expected = planned × rate; lost minutes =
@@ -752,13 +1056,13 @@ update, the client report, the one-page status, the control room's row.
 
 ## 9. Work sampling
 
-**Used.** A study is started on the line (`Workspace.sampling`): the
+**Used.** A sampling study is started (quick, or on a line): the
 activities (working · walking · waiting · searching · away, editable), who
 is watched (people or roles), the margin wanted. The phone **prompts at
 random moments** across the shift — while the app is open, as reminders do
 today, since there is no push for it yet — and one tap records what each
-person was doing. Each tap is a stop-log row (`Observation`, instant), so
-the Pareto already draws the shares.
+person was doing. Each tap is a fact on the sampling study (`facts.taps`),
+and the shares are drawn with the Pareto's own ranked bars.
 
 **Figures** (`lib/ie/sampling.ts`): each share with its margin (p ± z√(p(1 −
 p) ÷ n)); taps needed for the margin wanted; the meter.
@@ -802,7 +1106,8 @@ the grip). The score is said in the method's own bands, in words and
 stepped marks. The assessment is kept on the person mark with who and when,
 and **Make it better** raises the countermeasure on **People**.
 
-**Facts.** `StandardMark.ergo`.
+**Facts.** An ergonomics study: `facts.method`, `answers`, and `who` — the
+person on the map it assesses, which then wears its band.
 
 **Figures** (`lib/ie/ergo.ts`): the NIOSH recommended weight limit and
 lifting index; the MAC, ART and REBA scores from their published sheets
@@ -849,29 +1154,37 @@ a list. Nothing is built until the decisions below are agreed.
 
 | Slice | Ships | Records | Modules | Parts | Paper |
 |---|---|---|---|---|---|
-| **A. The measured test** | agree the limits; the number pad and ticks; the dots; the verdict and the capability sentence; the packers' rules; the Commission square, Needs you, the day | `tests.agreed_readings`, `tests.readings`; sync by `id` | `sample` | 1 2 3 4 9 16 | the account, the handover pack, the test report |
-| **B. The step table and the map** | steps on the standard; Walk it; typed; from the film; the time bar; Show only the waste; Make it better; Copy to future | `standards.steps`, `future`, `takt`; steps merged by `id` | `steps` | 1 2 5 6 15 16 | the map's page |
-| **C. The time study** | Lap; rating; foreign; the laps picture; allowances; Set as the standard; Use as the station's pace | `allowances`; laps by `id` | `timeStudy` | 4 10 16 | the standard's page |
+| **0 + A. The ecosystem, proven by the capability study** | Part 0 whole — the study record, Not filed, on a line, on a job, Used for, How we know, Prove it, Take the readings, Make it better, before → after — with the capability study as its first tool: agree the limits; the number pad and ticks; the dots; the verdict and the capability sentence; the packers' rules; the Commission square, Needs you, the day | `studies` (new table, policies); sync merges lists by `id` | `sample`, `compare` | 1 2 3 4 9 15 16 | the account, the Evidence appendix, the handover pack, the test report |
+| **B. The step table and the map** | a value-stream study; Walk it; typed; from the film; the time bar; Show only the waste; Make it better; Copy to future; Set as the standard | `standards.steps`, `takt` | `steps` | 1 2 5 6 15 16 | the map's page |
+| **C. The time study** | Lap; rating; foreign; the laps picture; allowances; Set as the standard; Use as the station's pace | `standards.allowances` | `timeStudy` | 4 10 16 | the standard's page |
 | **D. The work balance and the cycle** | the Work view; stacks; drag; Suggest as a ghost; the two lanes; machines per person | — | `balance`, `cycle` | 7 8 | the balance's page |
-| **E. A shift's losses** | the two readings per shift; the waterfall; pounds; Make it better | `readings.shift` | `losses` | 11 | the pace report |
+| **E. A shift's losses** | a loss-count study per shift; the waterfall; pounds; Make it better | — | `losses` | 11 | the pace report |
 | **F. The changeover and the interval** | sides; the split bar; the interval line | `standards.changeovers` | `changeover` | 14 | a page |
 | **G. The stage gate's forecasts** | the pace; the climb | — | `pace`, `rampUp` | 12 | the client report, the status |
-| **H. The rest** | three numbers; the mix; sampling; ergonomics; layout; crewing | `throughput`, `plannedLossMinPerShift`, `workspaces.sampling`, `marks.ergo`, `marks` paths | `mix`, `sampling`, `ergo` | 13 | their pages |
+| **H. The rest** | three numbers; the mix; sampling; ergonomics; layout; crewing | `standards.throughput`, `plannedLossMinPerShift` | `mix`, `sampling`, `ergo` | 13 | their pages |
 
-**Recommended order: A, then B, then C, D, E, F, G, H.** A is the
-smallest, it is the one Rowland named, and it changes the stage gate's
-sentence "how do we know it works" at once. B is the flagship and every
-later tool reuses its table.
+**Recommended order: 0 + A, then B, then C, D, E, F, G, H.** The
+ecosystem comes first, because every tool lives in it (Rowland: "you need
+to build that first"). It ships with the capability study because an
+ecosystem with no tool in it cannot be driven in a browser, and because
+Rowland named Cpk and it changes the stage gate's "how do we know it works"
+at once. B is the flagship, and every later tool reuses its table.
 
-**Before A ships:** the sync merge of a list by `id` (Part 2) and its
-scenario in `sync-two-devices`; the `ie-` parts 1–4 and 16 as shared
-components, so every later tool starts with them; `lib/report` blocks for
-the strip, the says line and the dots.
+**Inside 0 + A, in order:** the record and its policies, read back; the
+sync merge of a list by `id` and its two-phone scenario; the `ie-` parts
+1–4, 15 and 16 as shared components; the doors and the branches; the
+capability study; `lib/report` blocks for the strip, the says line, the
+dots and the Evidence appendix.
 
 ---
 
 # Part 6 — Decisions for Rowland
 
+0. **The one new record** (Part 0): every use of a tool is one record — a
+   study — that can be on its own, on a line, on a job, and evidence or
+   proof for its problems, fixes and tests; work (a snag) still moves,
+   evidence links. It is the only new noun the toolkit asks for, and the
+   reason none of the five existing lists fits is in Part 0. Agreed?
 1. **The one frame and the sixteen parts** (Part 3). Is this the look? A
    clickable mock-up of the parts with real figures, in the app's tokens,
    can be made before any of it is built, so you can hold it.
@@ -884,12 +1197,12 @@ the strip, the says line and the dots.
    uses set sample sizes and a factor on the mean; the app would apply the
    three rules plainly to the readings and say so. Enough for the line, or
    the legal test exactly?
-5. **Where the step table lives**: on the line standard, per product per
-   line. A map door to door across lines would be a standard on a "plant"
-   line with the product family as its product. Or a table on the line
-   regardless of product?
+5. **A study's scope**: a line and, where it matters, a machine and a
+   product. A value stream door to door across lines would sit on a
+   "plant" line with the product family as its product. Enough?
 6. **Work sampling's prompts** come while the app is open (no push for it
    yet). Acceptable for the first cut?
-7. **The order**: A (the measured test) first, then B (the map)?
+7. **The order**: 0 + A (the ecosystem with the capability study) first,
+   then B (the map)?
 8. **The word "Line balance"** keeps the page, with two views, Capacity
    and Work (decision 5 of `docs/LEAN40.md`).
