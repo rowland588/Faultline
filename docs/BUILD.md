@@ -89,18 +89,33 @@ today can quietly break tomorrow. **Nothing in it is built yet.**
 
 Four pieces, built lowest risk first. No database change.
 
-**1a. The pace says when.**
-- **Arithmetic:** `lib/pace.ts` (earned schedule). Tested with:
-  - the worked example (started 1 Sep, 24 of 31 done, Hand over about
-    31 Oct);
-  - under five done ("too early");
-  - stages with no days;
-  - everything done;
-  - a plan with spans.
-- **Screens:** the front page line, the plan's marker, Today's update.
-- **Paper:** the client report and the one-page status, reconciled.
-- **Browser:** moving a stage's days moves the forecast; "Use this date"
-  is shown to the owner only; the agreed date never moves.
+**1a. The pace says when.** Built 10 October.
+- **Arithmetic:** `lib/pace.ts`, a burn-down of what was actually done
+  (earned schedule was dropped: the plan's days are rewritten when a stage
+  moves). 19 unit tests:
+  - the worked example: 7 done in the last 14 days, 7 to go, lands
+    Sat 24 Oct;
+  - rounding up; one date or two; no date;
+  - too early, and a job just started;
+  - a short window; nothing done in two weeks;
+  - fixes and deleted rows left out;
+  - a machine with nothing on its list;
+  - one with no arrival date;
+  - one still to arrive holding the forecast back;
+  - one past its day.
+- **The verdict:** two tests prove the answer's word and reason are
+  unchanged, and a slow job with nothing late is still on target.
+- **Screens:** the line under the answer on the front page, Today's update
+  and the client report; the plan's dotted marker and key, with four plan
+  tests.
+- **Paper:** `report-stress` demands the pace's sentence and working on the
+  client report, the one-page status and the day report. The plan's PDF
+  carries it in its header and as its marker.
+- **Browser:** driven at 1360 and 390, as owner and as client. On the
+  seeded job it names the coder that has nothing on its list. Given its
+  list, it forecasts after the coder arrives, the same on every surface,
+  with the verdict unchanged and no console errors. "Use this date" was not
+  built, because step 1 writes nothing.
 
 **1b. The climb to rate.**
 - **Arithmetic:** `lib/rampUp.ts` (a log-log fit). Tested with:

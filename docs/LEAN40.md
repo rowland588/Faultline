@@ -184,23 +184,46 @@ is there. Each was checked against the code on 10 October:
 ### Step 1 — Now: four additions that read what is already kept
 
 **1. The pace says when.** *To a client: "It forecasts from its own record.
-Nobody types the forecast."*
-- **What it does.** It counts, from the stages' own days, how far the job
-  has got against its plan, and what that pace means for Hand over (earned
-  schedule; the arithmetic is in the appendix).
+Nobody types the forecast."* **Built 10 October** (`lib/pace.ts`).
+- **What it does.** It counts the stages and tests actually done in the last
+  two weeks, and projects what is still to do at that rate: a burn-down.
+- **The words, as built:**
+  - "At the pace so far, Hand over lands about Mon 2 Nov, after the Domino
+    coder arrives (due Fri 30 Oct) — 4 days before the date now expected
+    (Fri 6 Nov)."
+  - Its working, under it: "13 stages and tests done in the last 10 days ·
+    10 to go".
 - **Screen.**
-  - The front page, under the verdict: "At the pace so far, Hand over lands
-    about 31 Oct — 9 days after the date now expected (22 Oct). [Use 31
-    Oct]".
-  - The plan: a third marker, dashed, in words: "at this pace".
-  - Today's update: the same line.
-  - Under five finished stages: "too early to tell".
-- **Paper.** The client report and the one-page status, under "Are we on
-  target?". The same sentence.
-- **Does not touch.** The agreed date (never moves), the date now expected
-  (people still set it; "Use 31 Oct" is the owner's, `can.agree`), and the
-  verdict's rules (`stageGateOnTarget`, unchanged). The forecast sits
-  beside them; it never quietly changes what "behind target" means.
+  - It sits under the answer to "Are we on target?" wherever that answer is
+    shown: the front page, Today's update and the client report.
+  - The plan: a third marker, dotted, in ink and in words ("At this pace 2
+    Nov"), with its key.
+- **Paper.** The client report, the one-page status, the day report, and the
+  plan's PDF (its header, and the marker) all carry it.
+- **What it refuses to guess.** In each of these cases it says so instead
+  of forecasting:
+  - fewer than five done, or less than a week since the job's first day
+    ("too early");
+  - nothing done in two weeks ("cannot say when");
+  - a machine with nothing on its list, or still to arrive with no date
+    ("can't say when yet", and it names the machine);
+  - a machine still to arrive with a date holds the forecast back: its
+    stages start when it is here.
+- **Does not touch:**
+  - the agreed date, which never moves;
+  - the date now expected, which people still set, where they always have;
+  - the verdict's rules: `stageGateOnTarget` works out its word exactly as
+    before, and a test proves it.
+- **Changed from the design, and why:**
+  - **Not earned schedule.** When a stage moves, the app rewrites its
+    planned days, and the stages after it shift with no record of their
+    first day. Measured against that plan, every slip would read as planned.
+    The days things were actually done are never rewritten, so the burn-down
+    counts those.
+  - **No "Use this date" button.** Step 1 only reads; it writes nothing.
+  - **The machine rules** were added after the browser walk: the seeded job
+    read "lands 16 Oct" with its coder not yet here and nothing on its
+    list.
 
 **2. The climb to rate.** *To a client: "Every run is plotted the moment
 it's recorded, and the app says when the line will reach rate at this
@@ -1211,7 +1234,10 @@ keeps.
   - none is short by more than twice it.
   - For 300–500 g the tolerable negative error is 3%: 12 g on a 400 g pack.
 
-**Earned schedule** (Lipke, 2003), for the stage gate's forecast.
+**Earned schedule** (Lipke, 2003), first chosen for the stage gate's
+forecast and **not used**: the app rewrites a stage's planned days when it
+moves, so the plan it would measure against follows the slips. Kept here as
+the method's arithmetic; what was built is the burn-down above.
 - ES = the day by which the plan had as many stages done as are done
   today.
 - Pace = ES ÷ the days actually elapsed.
