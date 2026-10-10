@@ -13,8 +13,8 @@ nothing is changed until he has seen them.
 
 Walked 10 October in Chromium, on a laptop (1360) and a phone (390), on the
 ordinary Stage Gate job (Line 2: a wrapper, a checkweigher and a coder). The
-code walked is `main` as it stands. Flow slice 1, which shortens the problem
-form, is on the working branch and not yet in `main`; where it changes a
+code walked was `main` that morning. Flow slice 1, which shortens the problem
+form, went live later the same day; where it changes a
 count, that is said. Each stage was opened and its real job done through the
 real controls, with every tap and every character counted. Then the record,
 the square, the day, the front page and the client and handover reports
