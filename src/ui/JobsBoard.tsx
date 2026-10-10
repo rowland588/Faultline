@@ -31,6 +31,8 @@
  * jobs already keep — standing() for each job, the same call its own screen
  * makes — so the board and the job cannot disagree.
  */
+import { sinceOf, type Since } from '../lib/since';
+import { SinceLine, readSeen } from './SinceLine';
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { Project } from '../types';
 import {
@@ -321,6 +323,10 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
   const editable = projects.filter(p => accessOn(p.id).edit).map(p => p.id);
   const today = todayISO();
   const pf = useMemo(() => (inputs ? portfolio(inputs.gate, today, inputs.paced) : null), [inputs, today]);
+  /* SINCE YOU LAST LOOKED (lib/since) — each stage-gate job against this
+     device's last visit to it; read here, never reset here. */
+  const sinces = useMemo(() => new Map((inputs?.gate ?? []).map(g =>
+    [g.project.id, sinceOf({ tests: g.tests, items: g.items, assets: g.assets, seenAt: readSeen(g.project.id) })])), [inputs]);
   const [still] = useState(seenThisSession);
   useEffect(() => { if (pf) markSeen(); }, [pf]);
   /* The rail's squares beside each job say what this board says (ui/railJobs). */
@@ -530,7 +536,7 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
           </div>
           {pf.jobs.map((v, i) => (
             <JobRow key={v.id} v={v} i={i} open={!phone && open.has(v.id)} onToggle={phone ? () => nav(`/project/${v.id}`) : () => toggle(v.id)} into={phone} edit={accessOn(v.id).edit}
-              span={pf.span} today={today} tip={tip} setTip={setTip} />
+              span={pf.span} today={today} tip={tip} setTip={setTip} since={sinces.get(v.id)} />
           ))}
         </div>
         <p className="jb-key sub">
@@ -606,8 +612,10 @@ function SaidLine({ parts, className }: { parts: Said[]; className: string }) {
   );
 }
 
-function JobRow({ v, i, open, onToggle, into, span, today, tip, setTip, edit }: {
+function JobRow({ v, i, open, onToggle, into, span, today, tip, setTip, edit, since }: {
   v: JobView; i: number; open: boolean; onToggle: () => void; span: string[]; today: string;
+  /** What changed on the job since this device last opened it (lib/since). */
+  since?: Since;
   /** The row goes into the job rather than opening in place — a phone. */
   into?: boolean;
   tip: string | null; setTip: (k: string | null) => void;
@@ -644,6 +652,7 @@ function JobRow({ v, i, open, onToggle, into, span, today, tip, setTip, edit }: 
               <span className="jb-ot-r" title={v.onTarget.reason}>{v.onTarget.brief ?? v.onTarget.reason}</span>
             </span>
           )}
+          {since && <SinceLine projectId={v.id} since={since} compact />}
           <span className="jb-chips">
             {/* "Handover" is a stage-gate job's day. A running line is not
                 handed over — its date is the one it should be at target by. */}

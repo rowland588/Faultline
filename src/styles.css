@@ -5990,6 +5990,19 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .cl.is-none .cl-say { color: var(--muted); }
 @media (max-width: 560px) { .cl { grid-template-columns: 1fr; } .cl-svg { max-width: 260px; } }
 
+/* SINCE YOU LAST LOOKED (ui/SinceLine, lib/since) — one line of what changed.
+   The abnormal in its state's words (late and failed red, a new problem
+   amber); done stays quiet — normal recedes. Each part opens what it names. */
+.sn { margin: 8px 0 0; font-size: var(--t-detail); line-height: 1.45; color: var(--ink-2); }
+.sn-from { font-weight: 700; color: var(--muted); }
+.sn-sep { color: var(--muted); }
+.sn-p { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; text-align: left; }
+button.sn-p:hover, button.sn-p:focus-visible { text-decoration: underline; }
+.sn-p.is-r { color: var(--st-r); font-weight: 700; }
+.sn-p.is-a { color: var(--st-a); font-weight: 700; }
+.sn-p.is-g { color: var(--ink-2); }
+.sn.is-compact { display: block; margin: 2px 0 0; font-size: var(--t-label); line-height: 1.35; font-weight: 500; }
+
 @media (max-width: 720px) {
   .vd { gap: 14px; padding: 17px 18px; border-radius: var(--radius); }
   .vd-tiles { width: 100%; }

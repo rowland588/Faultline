@@ -60,6 +60,8 @@ import { methodOf, planModel } from '../lib/planModel';
 import { useTesting } from '../lib/useTesting';
 import { useStanding } from '../lib/useStanding';
 import { Verdict } from '../ui/Verdict';
+import { SinceLine, useSeenAt } from '../ui/SinceLine';
+import { sinceOf } from '../lib/since';
 import { StandardsCard } from '../ui/StandardsCard';
 import { ProjectReminders } from '../ui/Reminders';
 import { todayISO, type Standing } from '../lib/standing';
@@ -521,6 +523,9 @@ function TestingOverview({ projectId, project, edit, remove = false }: { project
      whole job; they are handed these lists, and the page is drawn when all of
      it is in, so nothing arrives a second late and pushes the rest down. */
   const mats = useMaterials(projectId);
+  /* SINCE YOU LAST LOOKED (lib/since) — the visit this page counts from, kept
+     on this device; opening the page starts a new one. */
+  const seenAt = useSeenAt(projectId);
   if (tt.loading || all.loading || mats.loading || progs.loading) return <p className="sub">Loading…</p>;
 
   const today = todayISO();
@@ -576,6 +581,9 @@ function TestingOverview({ projectId, project, edit, remove = false }: { project
           {/* ARE WE ON TARGET? leads the band (lib/onTarget). */}
           <Verdict st={st} brief report={`/project/${projectId}/report`}
             onTarget={stageGateOnTarget({ project, tests: tt.tests, items: tt.items, assets: tt.assets, materials: mats.materials, programs: progs.programs, today }, st)} />
+          {/* WHAT CHANGED SINCE YOU LAST LOOKED — under the answer; nothing when
+              nothing did (lib/since). */}
+          <SinceLine projectId={projectId} since={sinceOf({ tests: tt.tests, items: tt.items, assets: tt.assets, seenAt })} />
           {/* What the notes asked to be reminded of, while it is due. */}
           <ProjectReminders projectId={projectId} />
           {/* DONE, AND NOTHING LEFT — the job can leave the live list; the
