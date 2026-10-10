@@ -160,7 +160,137 @@ and the arithmetic reworked (the checks are listed under "Checked").
 - CI on the commit: green. The full gate was not run for a change to
   documents only.
 
-## The stage gate — what to build, in slices
+## The stage gate's evolution — now, next, later
+
+Rowland, 10 October:
+
+> "What's not clear is how you're going to take the stage gate into the
+> further technological world for 4.0 lean, or even 5.0 ... Nothing that's
+> going to create disturbance and get it messy. What can be done right now
+> to give it the evolution that I could actually say this is Lean 4.0?"
+
+So the stage gate moves in three steps. The first is **now**: four
+additions that only read what the job already keeps. No new table, no new
+column, no new noun. No screen removed, no record moved, no rule changed
+under anyone's feet. Each one is a sentence, a marker or a sheet beside what
+is there. Each was checked against the code on 10 October:
+- the stages keep their planned and actual days (`plannedFor`, `plannedTo`,
+  `ranOn`, `ranTo`);
+- a run keeps its product and its day (`ProductRun.product`, `ranOn`);
+- a machine already has its own page, which a link opens (`recordHref`,
+  flow slice 2);
+- every record keeps when it last changed (`updatedAt`).
+
+### Step 1 — Now: four additions that read what is already kept
+
+**1. The pace says when.** *To a client: "It forecasts from its own record.
+Nobody types the forecast."*
+- **What it does.** It counts, from the stages' own days, how far the job
+  has got against its plan, and what that pace means for Hand over (earned
+  schedule; the arithmetic is in the appendix).
+- **Screen.**
+  - The front page, under the verdict: "At the pace so far, Hand over lands
+    about 31 Oct — 9 days after the date now expected (22 Oct). [Use 31
+    Oct]".
+  - The plan: a third marker, dashed, in words: "at this pace".
+  - Today's update: the same line.
+  - Under five finished stages: "too early to tell".
+- **Paper.** The client report and the one-page status, under "Are we on
+  target?". The same sentence.
+- **Does not touch.** The agreed date (never moves), the date now expected
+  (people still set it; "Use 31 Oct" is the owner's, `can.agree`), and the
+  verdict's rules (`stageGateOnTarget`, unchanged). The forecast sits
+  beside them; it never quietly changes what "behind target" means.
+
+**2. The climb to rate.** *To a client: "Every run is plotted the moment
+it's recorded, and the app says when the line will reach rate at this
+climb."*
+- **What it does.** A product run on a machine on successive days
+  (`ProductRun`, already kept) is drawn as dots climbing to the agreed-rate
+  line. From three runs it says where the climb meets the line.
+- **Screen.**
+  - The run's card and the machine's page: "Finest Red 2 kg: 96 → 108 →
+    114 a minute over 3 runs; at this climb, the agreed 120 about 22 Oct."
+  - Under three runs: "too early — 2 runs".
+- **Paper.** The run's card and the client report's account of the run.
+- **Does not touch.** The run, its numbers or its verdict (`lib/run`,
+  unchanged). It only reads the runs.
+
+**3. Scan the machine.** *To a client: "Each machine carries a code. Scan
+it at the line, and you're on everything about that machine: record it
+there and then."*
+- **What it does.** Reports gains **Machine labels**: one PDF sheet, a label
+  per machine, each with the machine's name, the job and a QR code. Stuck on
+  the machine, the code opens that machine's page in the job with the
+  phone's camera. That page already exists (flow slice 2): its stages, its
+  tests, its problems and what it waits on, with Done today, Hit a problem
+  and photos one tap away.
+- **On paper as well.** The client report and the handover pack carry one
+  small code by their date: "This is the job as it stood at 16:40, 10 Oct.
+  Scan for it now." A paper that points to the live record is the bridge
+  from a report to the record.
+- **Does not touch.** Any route (the link is the one the drawer already
+  writes) or any record. One small QR library is added (no other
+  dependencies, a few KB); the labels go through the report engine and
+  `report-stress`.
+- **Honest limit.** On an iPhone a scanned link opens in Safari, not the
+  installed app, so Safari needs signing in once. On Android it usually
+  opens the app. A person without access to the job sees the sign-in, and
+  nothing of the job.
+
+**4. Since you last looked.** *To a client: "It tells you what changed
+since you were last in. You don't go looking."*
+- **What it does.** One line at the top of the job's front page, and on Home
+  for each job: "Since Tue 16:40: 3 stages done · 1 went late (Air and
+  power, coder) · 1 problem raised on the case packer · 1 test failed". Each
+  part opens what it names.
+- **When it shows.** Nothing when nothing changed. It is gone once read.
+- **Where it comes from.** It is read from the records' states and days
+  against this device's last visit, which is kept on the device: a laptop
+  and a phone each have their own.
+- **Paper.** None. It is a screen's welcome back, not a fact of the job.
+- **Does not touch.** Any record. Nothing is written to the database.
+
+### What Rowland can say after step 1 — every principle, with its proof on the stage gate
+
+| Principle | On the stage gate |
+|---|---|
+| 1. Measured by people | Every number comes from the floor: stages, runs, problems, hours lost. No sensor anywhere. |
+| 2. Recorded once, where the work happens | Scan the machine; record against it there; voice, photos, files in the drawer. |
+| 3. Live, never compiled | The reports are the record, and the paper carries a code back to it. |
+| 4. The picture draws itself | The plan, the board, and now the climb to rate. |
+| 5. The abnormal finds you | Since you last looked; Needs you; red, amber and green, said in words. |
+| 6. Proved, not asserted | Every stage closes on its answer; the run's verdict is worked out. (Step 2 adds capability.) |
+| 7. It explains itself; people decide | The pace says when, with its working, beside the date people set. |
+| 8. Built for people and for the bad day | Offline, "Not yet", hours lost, who signed. |
+
+### Step 2 — Next: proof at the line, with the ecosystem
+
+**Measured tests.** A Commission test takes its readings on the phone. Each
+lands as a dot between the agreed limits, and the app works out the mean,
+how many are outside, and the capability: "30 packs, mean 401.2 g, all
+within — Passed. Cpk 1.45 from 30: capable."
+
+This is the biggest single Lean 4.0 claim the stage gate can make: proved
+by data captured at the line, with the statistics done by the app. It
+needs the one new record (the study, `docs/TOOLKIT.md` Part 0). It is
+slice 0 + A there, and waits on decision 0.
+
+### Step 3 — Later, each its own decision
+
+- **The run kept as it happens**: a clock, a reject tally, a stopwatch for
+  each stand, beside typing at the end.
+- **Drag a stage on the plan** (laptop).
+- **What turned red reaches your phone**: one morning note, which needs a
+  server change.
+- **The frame knows the machine**, so the walk's snags land on it.
+- **A meter reading per run**: energy, air or water per thousand packs,
+  for Lean 5.0's sustainable pillar.
+
+These are the earlier slices 3 to 6, kept, and moved behind the four that
+cost nothing to the job's stability.
+
+### The six slices as first written (folded into the three steps above)
 
 Six slices, each shippable alone, each connected where its parent already
 shows. Nothing is built. Recommended order: **1 and 2 first**. They change
@@ -819,8 +949,10 @@ later point, but just mark that down as something that still needs doing."
    Change any of them. Once agreed, every change from here says which
    principle it serves. (This replaces the earlier draft's question about
    the whole app.)
-2. **The stage gate's six slices, and their order.** Recommended: slice 1
-   (the pace says when) and slice 2 (measured tests) first.
+2. **The stage gate's evolution.** Step 1 now — the pace, the climb to
+   rate, scan the machine, since you last looked — four additions that read
+   only what is already kept; step 2 measured tests, with the ecosystem;
+   step 3 the rest, one decision each.
 3. **The toolkit.** The sixteen tools and the first five. Is there anything
    to add or strike?
 4. **A shift's losses by hand (tool 13).** Is it inside "manual inputs", or
