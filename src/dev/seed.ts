@@ -49,6 +49,9 @@ export interface Seeded {
   stepId: string;
   /** A fix FOR that step, for the drawer that opens one over the Fixes list. */
   fixId: string;
+  /** A machine on the commissioning job — the checkweigher — for the drawer
+   *  that opens a machine whole (ui/MachinePanel). */
+  machineId: string;
   /** A day in the past with a story on it — the air went on. */
   pastDay: string;
   assets: number;
@@ -726,6 +729,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     testId: seal.id,
     stepId: airDrop.id,
     fixId: regulator.id,
+    machineId: weigher.id,
     pastDay: iso(-7),
     pacedProjectId: paced.id, pacedLineId: pacedLine.id, treeProjectId: tree.id,
     measures: 2, readings: rows.length, materials: 7, programs: 7,

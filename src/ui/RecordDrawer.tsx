@@ -66,6 +66,7 @@ import { problemsOnRun } from '../lib/programRun';
 import { RunBlock } from './RunPanel';
 import { offerUndo } from './Undo';
 import { ProblemRecord, problemOf } from './ProblemRecord';
+import { MachinePanel } from './MachinePanel';
 
 /* ---------------- opening and closing: the URL carries it ---------------- */
 
@@ -263,7 +264,8 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   /* Back to the record this one was opened from — a stage, a test, a fix, or
      a problem (ui/ProblemRecord). */
   const fromId = trail.length ? trail[trail.length - 1] : undefined;
-  const from = fromId ? live(tt.tests).find(x => x.id === fromId) ?? (p => (p ? { title: p.what } : undefined))(problemOf(fromId, tt.items)) : undefined;
+  const from = fromId ? live(tt.tests).find(x => x.id === fromId) ?? (p => (p ? { title: p.what } : undefined))(problemOf(fromId, tt.items))
+    ?? (a => (a ? { title: a.name } : undefined))(live(tt.assets).find(a => a.id === fromId)) : undefined;
   const label = t?.title ?? 'The record';
 
   if (tt.loading) return <DrawerShell label={label} onClose={onClose}><p className="sub">Loading…</p></DrawerShell>;
@@ -280,6 +282,22 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
         )}
         <ProblemRecord item={asProblem} tt={tt} can={can} onOpen={onOpen}
           day={dayLength(job)} onDay={h => { if (job) void jobs.rename(job, { dayHours: h }); }} />
+      </DrawerShell>
+    );
+  }
+  /* A MACHINE, opened as itself (docs/FLOW.md item 2) — from its name
+     wherever it shows: its gates, every stage and test on it, what is open,
+     and the machine's own details (ui/MachinePanel). */
+  const asMachine = !t ? live(tt.assets).find(a => a.id === id) : undefined;
+  if (asMachine) {
+    return (
+      <DrawerShell label={asMachine.name} onClose={onClose}>
+        {from && (
+          <button type="button" className="rd-back" onClick={onBack}>
+            <Icon name="chevronLeft" size="1.1em" /> back to {from.title}
+          </button>
+        )}
+        <MachinePanel asset={asMachine} projectId={projectId} tt={tt} programs={progs.programs} can={can} onOpen={onOpen} onClose={onClose} />
       </DrawerShell>
     );
   }
@@ -350,7 +368,9 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   /* What it is: which kind, which gate, which machine — in words. */
   /* Its name as Needs you and its card say it — "Hand-over item", "Set-up
      step" — not a third word ("Hand over stage") for the same line. */
-  const whatItIs = [kind === 'install' ? wordsOf(t).one : kind === 'fix' ? 'Fix' : 'Test · Commission', machine].join(' · ');
+  const kindWord = kind === 'install' ? wordsOf(t).one : kind === 'fix' ? 'Fix' : 'Test · Commission';
+  const whatItIs = [kindWord, machine].join(' · ');
+  const onAsset = live(tt.assets).find(a => a.id === t.assetId);
   /* What really happened, against the plan beside it. */
   const actualWords = !t.ranOn ? 'not done yet'
     : `${t.outcome === 'passed' ? (kind === 'fix' ? 'fixed' : kind === 'install' ? 'done' : 'passed')
@@ -401,7 +421,11 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
           badge above, in words; these are the rest. Changing any of them is
           one Edit, under them with the floor's actions (ui/RecordEdit). */}
       <dl className="rd-facts">
-        <div><dt>What</dt><dd>{whatItIs}</dd></div>
+        {/* The machine is a door to the machine — everything on it, one tap
+            (docs/FLOW.md item 2). */}
+        <div><dt>What</dt><dd>{onAsset
+          ? <>{kindWord} · <button type="button" className="rd-link-in" onClick={() => onOpen(onAsset.id)}>{onAsset.name}</button></>
+          : whatItIs}</dd></div>
         <div><dt>{kind === 'fix' ? 'Agreed' : 'Planned'}</dt><dd>
           {dates ?? <i className="sub">{kind === 'fix' ? 'no date agreed yet' : 'no day yet'}</i>}
           {slip > 0 && <em className="rd-slip"> · first planned {short(first)}</em>}

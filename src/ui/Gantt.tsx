@@ -363,8 +363,11 @@ export function Gantt({ marks, today, expectedAt, plannedAt, projectId, name, te
   const bandOf = (b: GanttMachine) => {
     const k = b.id ?? 'job';
     const isOpenB = bandIsOpen(k);
-    const go = () => (b.path ? nav(`/project/${projectId}/${b.path}`) : toggleBand(k));
-    const tip = `${b.name} · ${b.says}${b.bar ? ` · ${b.bar.when}` : ''} — ${b.path ? 'tap to open it' : isOpenB ? 'tap to fold it' : 'tap to open it'}`;
+    /* A MACHINE'S HEADER OPENS THE MACHINE — its gates, every stage and
+       test, what is open (docs/FLOW.md item 2). It went to the gate's page,
+       where you had to find the machine again. The whole job's band folds. */
+    const go = () => (b.id ? openRecord(projectId, b.id) : b.path ? nav(`/project/${projectId}/${b.path}`) : toggleBand(k));
+    const tip = `${b.name} · ${b.says}${b.bar ? ` · ${b.bar.when}` : ''} — ${b.id || b.path ? 'tap to open it' : isOpenB ? 'tap to fold it' : 'tap to open it'}`;
     const bw = b.bar ? Math.max(b.bar.span * px - 4, 10) : 0;
     const bs = b.bar?.start ?? 0;
     return (

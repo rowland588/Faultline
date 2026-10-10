@@ -233,3 +233,58 @@ Proved in Chromium, laptop and phone, on the ordinary job:
 - the problem form folded, opened and closed, and a problem saved with
   "what happened" alone;
 - fix rows found as buttons.
+
+## Built — slice 2, 10 October
+
+2. **A machine is a place.** Tapping a machine's name opens the machine in
+   the drawer, the same drawer as every record. It is the machine's own
+   record (`lib/machineRecord`, `ui/MachinePanel`), with no new noun:
+   - where it stands ("at Install"), its supplier, when it came, and
+     everything still open on it, counted;
+   - its four gates in order, each with every stage or test on it (state
+     in words and colour, its day, who), and each line opening its record;
+     "back to" the machine returns;
+   - its programs in a line under Set up, its open fixes (late first) and
+     its problems with no fix;
+   - its name, supplier and four dates to correct, and Remove (owner), which
+     moved here from Install's machine sheet. That sheet keeps what is about
+     its gate and links to the machine.
+
+   **The name opens it** on the front page's "Where each machine is",
+   Commission's rows and phone cards, the Programs page, the plan's machine
+   headers (which went to the gate's page), Install's machine sheet, and the
+   "What" line of every stage, test and fix on it. Each gate's name in the
+   panel goes to that gate's page. **On paper** nothing changes: the
+   handover report already prints each machine's story.
+5. **The day, in the order it is used.**
+   - **The verdict is one line:** the date and the counts, as the control
+     room's row says it. The paragraph that said it again now opens the
+     story.
+   - **Today's plan comes first**, each row with one pencil that opens it
+     into its edit, with "Take it off the plan" inside. Before, Edit and
+     Delete sat on every row.
+   - **Then what is due today.**
+   - **Then the story, folded under one line:** "What happened today — 22
+     things", with the abnormal in its colour ("1 critical · 4 late"), so
+     the fold hides nothing that is wrong. Inside: the paragraph, the
+     gates' bars, the critical, the late, what got done, what was found,
+     what is next, and the pictures.
+   - **A day that has gone opens its story,** since that is what it is
+     read for.
+   - **The PDF is unchanged.**
+
+   On the ordinary job, today's page went from 805 words, 47 controls and
+   3.1 laptop screens to 225 words, 20 controls and 0.9 screens (phone: 4.6
+   screens to 1.5).
+
+Proved in Chromium, laptop and phone:
+- the checkweigher opening from the front page, Commission, Programs, the
+  plan and Install's sheet, Back returning each time;
+- a stage opened from the panel and "back to" the machine;
+- a stage's machine as a door;
+- the owner seeing the machine's card and Remove, a client neither;
+- today folded and a past day open;
+- a plan row's pencil.
+
+`scripts/smoke.mjs` opens a machine over the front page and the plan. Unit
+tests: `src/lib/__tests__/machineRecord.test.ts`.

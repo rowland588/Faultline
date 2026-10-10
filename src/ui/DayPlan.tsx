@@ -113,6 +113,7 @@ export function DayPlan({ projectId, today, tt, can, due }: {
                     <input className="text-input dp-who" list="dp-names" value={editing.owner} placeholder="Who" aria-label="Who" onChange={e => setEditing({ ...editing, owner: e.target.value })} />
                     <button type="submit" className="btn btn-sm btn-primary">Save</button>
                     <button type="button" className="btn btn-sm btn-ghost" onClick={() => setEditing(null)}>Cancel</button>
+                    {can.remove && <button type="button" className="cw-link sp-rm dp-del" onClick={() => { setEditing(null); void remove(i); }}>Take it off the plan</button>}
                   </form>
                 ) : (
                   <>
@@ -122,11 +123,15 @@ export function DayPlan({ projectId, today, tt, can, due }: {
                     </label>
                     <span className={'dp-state' + (i.doneAt != null ? ' is-g' : ' is-w')}>{i.doneAt != null ? 'done' : 'to do'}</span>
                     {on && <button className="cw-link dp-on" onClick={() => openRecord(projectId, on.id)}>{named(on) === i.what.trim() ? 'Open it' : named(on)} ›</button>}
+                    {/* THE TOOLS COME OUT ON THE ROW BEING WORKED (docs/FLOW.md
+                        item 5): one pencil, and the row opens into its edit,
+                        with taking it off inside — Edit and Delete sat on
+                        every row at once. */}
                     {can.edit && (
-                      <span className="sp-row-acts">
-                        <button className="cw-link" onClick={() => setEditing({ id: i.id, what: i.what, owner: i.owner ?? '' })}>Edit</button>
-                        {can.remove && <button className="cw-link sp-rm" onClick={() => void remove(i)}>Delete</button>}
-                      </span>
+                      <button type="button" className="dp-pen" aria-label={`Change “${i.what}”`} title="Change it"
+                        onClick={() => setEditing({ id: i.id, what: i.what, owner: i.owner ?? '' })}>
+                        <Icon name="pencil" size={15} />
+                      </button>
                     )}
                   </>
                 )}

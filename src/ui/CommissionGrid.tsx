@@ -196,7 +196,9 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
         <div className="igm">
           {rows.map(r => (
             <div key={r.asset?.id ?? 'line'} className="igm-card">
-              <div className="igm-h"><b>{rowName(r.asset)}</b>
+              <div className="igm-h">{r.asset
+                ? <button type="button" className="mp-name" onClick={() => openRecord(project.id, (r.asset as Asset).id)}>{rowName(r.asset)}</button>
+                : <b>{rowName(r.asset)}</b>}
                 <span className="sub">{r.missing === 0 ? `all ${usualCount} usual tests` : `${usualCount - r.missing} of ${usualCount} usual tests`}</span></div>
               {can.edit && r.missing > 0 && (
                 <button className="ig-give" onClick={() => void giveAll([r])}><Icon name="plus" size="1.15em" /> Add {r.missing === usualCount ? `the ${r.missing} tests` : `the ${r.missing} missing tests`}</button>
@@ -262,7 +264,10 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
               <tr key={r.asset?.id ?? 'line'}>
                 <th scope="row">
                   <span className="ig-rowh" style={{ cursor: 'default' }}>
-                    <b>{rowName(r.asset)}</b>
+                    {/* The machine's name opens the machine (docs/FLOW.md item 2). */}
+                    {r.asset
+                      ? <button type="button" className="mp-name" onClick={() => openRecord(project.id, (r.asset as Asset).id)}>{rowName(r.asset)}</button>
+                      : <b>{rowName(r.asset)}</b>}
                     <span>{r.missing === 0 ? `all ${usualCount} usual tests` : `${usualCount - r.missing} of ${usualCount} usual tests`}</span>
                   </span>
                   {can.edit && r.missing > 0 && (

@@ -30,6 +30,7 @@ import { OnTargetLine } from '../ui/OnTarget';
 import { stageGateOnTarget } from '../lib/onTarget';
 import { planModel } from '../lib/planModel';
 import { DayPlan } from '../ui/DayPlan';
+import { Icon } from '../ui/Icon';
 import { isSettled, live, plannedEnd } from '../lib/testing';
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -51,9 +52,12 @@ export function DayScreen({ projectId }: { projectId: string }) {
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  /* THE STORY, FOLDED today: the plan and what is due are what the day is
+     used for. A day that has gone is read for its story, so it opens. */
+  const [storyPicked, setStory] = useState<boolean | null>(null);
 
   useEffect(() => { void loadPdfLib().catch(() => { /* the button reports it */ }); }, []);
-  useEffect(() => { setSaid(null); setErr(null); }, [date]);
+  useEffect(() => { setSaid(null); setErr(null); setStory(null); }, [date]);
 
   if (loading || tt.loading || mats.loading || progs.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   /* A link to a project that has gone is a dead end, not a crash — and it
@@ -85,6 +89,44 @@ export function DayScreen({ projectId }: { projectId: string }) {
     else if (l.go) nav(`/project/${projectId}/${l.go}`);
   };
 
+  /* THE DAY IN THE ORDER IT IS USED (docs/FLOW.md item 5): the plan, then
+     what is due, then the story. Today the plan is worked in DayPlan above;
+     on a day that has gone, how its plan went leads. */
+  const huddle = date === today && planModel(project) === 'commissioning';
+  const firstKeys = huddle ? ['today'] : ['plan', 'today'];
+  const shown = day.sections.filter(s => !(s.key === 'plan' && huddle));
+  const first = shown.filter(s => firstKeys.includes(s.key));
+  const rest = shown.filter(s => !firstKeys.includes(s.key));
+  const count = (k: string) => rest.find(s => s.key === k)?.lines.length ?? 0;
+  const storyN = rest.reduce((n, s) => n + s.lines.length, 0) + day.media.length;
+  const story = storyPicked ?? date !== today;
+  /* The gates' bars live in the story too, so a day with only those still folds them. */
+  const hasStory = storyN > 0 || day.gates.length > 0;
+  const section = (s: (typeof shown)[number]) => (
+    <section key={s.key} className={'dy-sec is-' + s.key}>
+      <h2 className="cmp-h">{s.title}</h2>
+      <ul className="dy-lines">
+        {s.lines.map((l, i) => (
+          <li key={i}>
+            <button className={'dy-line is-' + l.tone} onClick={() => open(l)} disabled={!l.id && !l.go}>
+              <span className="dy-dot" aria-hidden />
+              <span className="dy-line-m">
+                {/* The words that say which — "late, 2 h lost" red, "a
+                    problem, no time lost" amber — in their colour. */}
+                <span>{(() => {
+                  const at = l.mark ? l.text.indexOf(l.mark) : -1;
+                  return at < 0 || !l.mark ? l.text
+                    : <>{l.text.slice(0, at)}<b className={'dy-which is-' + l.which}>{l.mark}</b>{l.text.slice(at + l.mark.length)}</>;
+                })()}</span>
+                {l.detail && <span className="sub">{l.detail}</span>}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+
   const send = async () => {
     if (busy) return;
     setBusy(true); setErr(null); setSaid(null);
@@ -110,8 +152,12 @@ export function DayScreen({ projectId }: { projectId: string }) {
       <header className="pace-head dy-head">
         <div className="pace-head-main">
           <h1 className="pace-title">{date === today ? 'Today' : niceDay(date, { weekday: 'short', year: date.slice(0, 4) !== today.slice(0, 4) })}{date === today && <span className="dy-date">{niceDay(date, { weekday: 'short' })}</span>}</h1>
-          {onTarget && <OnTargetLine v={onTarget} asOf={asOf} />}
-          <p className="dy-headline">{day.headline}</p>
+          {/* THE VERDICT AS ITS ONE LINE (docs/FLOW.md item 5) — the date and
+              the counts, as the control room's row says it; the names are in
+              the story below. The day's paragraph said it all again; it now
+              opens the folded story. With no verdict (a 6M job's day), the
+              paragraph stays here. */}
+          {onTarget ? <OnTargetLine v={{ ...onTarget, reason: onTarget.brief ?? onTarget.reason }} asOf={asOf} /> : <p className="dy-headline">{day.headline}</p>}
         </div>
         {/* FROM THE TOP. Rowland, 5 October: "I wanted to be able to very
             quickly see today and send out an up-to-date movement on today.
@@ -154,49 +200,58 @@ export function DayScreen({ projectId }: { projectId: string }) {
             .sort((a, b) => (plannedEnd(a) ?? '').localeCompare(plannedEnd(b) ?? '') || a.sort - b.sort)} />
       )}
 
-      {/* A bar per gate with steps — Install, Set up, Hand over. */}
-      {day.gates.map(g => (
-        <button key={g.gate} className="dy-install" onClick={() => nav(`/project/${projectId}/${GATE_PATH[g.gate]}`)}
-          aria-label={`${g.label}: ${g.done} of ${g.total} steps done${g.late ? `, ${g.late} late` : ''}${g.problem ? `, ${g.problem} a problem with no time lost` : ''}`}>
-          <span className="dy-install-h"><b>{g.label}</b><span className="sub">{g.done} of {g.total} steps done{date === today ? '' : ' by the end of the day'}</span>
-            {/* WHICH, by the one rule (lib/install lateOrProblem): late in
-                red — its day gone, or hours lost — and a problem that lost no
-                time in amber. Never "late or a problem". */}
-            {g.late > 0 && <span className="sub in-late">{g.late} late</span>}
-            {g.problem > 0 && <span className="sub in-problem">{g.problem} a problem</span>}</span>
-          {/* Done a quiet green, then late red, then a problem amber — the colour rules. */}
-          <span className="dy-bar">
-            <span className="is-done" style={{ width: `${(100 * g.done) / g.total}%` }} />
-            {g.late > 0 && <span className="is-late" style={{ width: `${(100 * g.late) / g.total}%` }} />}
-            {g.problem > 0 && <span className="is-problem" style={{ width: `${(100 * g.problem) / g.total}%` }} />}
-          </span>
-        </button>
-      ))}
+      {/* WHAT IS DUE — after the plan, before the story. */}
+      {first.map(section)}
 
-      {day.sections.filter(s => !(s.key === 'plan' && date === today && planModel(project) === 'commissioning')).map(s => (
-        <section key={s.key} className={'dy-sec is-' + s.key}>
-          <h2 className="cmp-h">{s.title}</h2>
-          <ul className="dy-lines">
-            {s.lines.map((l, i) => (
-              <li key={i}>
-                <button className={'dy-line is-' + l.tone} onClick={() => open(l)} disabled={!l.id && !l.go}>
-                  <span className="dy-dot" aria-hidden />
-                  <span className="dy-line-m">
-                    {/* The words that say which — "late, 2 h lost" red, "a
-                        problem, no time lost" amber — in their colour. */}
-                    <span>{(() => {
-                      const at = l.mark ? l.text.indexOf(l.mark) : -1;
-                      return at < 0 || !l.mark ? l.text
-                        : <>{l.text.slice(0, at)}<b className={'dy-which is-' + l.which}>{l.mark}</b>{l.text.slice(at + l.mark.length)}</>;
-                    })()}</span>
-                    {l.detail && <span className="sub">{l.detail}</span>}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
+      {/* THE STORY, FOLDED UNDER ONE LINE — what got done, what did not go
+          to plan, what was found, the critical and the late, the gates'
+          bars, the pictures. The line says how much is there and the
+          abnormal in its colour, so the fold hides nothing that is wrong.
+          The PDF prints all of it, as before. */}
+      {hasStory && (
+        <button type="button" className={'dy-fold' + (story ? ' is-open' : '')} aria-expanded={story} onClick={() => setStory(!story)}>
+          <span className="dy-fold-l">
+            <b>{date === today ? 'What happened today' : `What happened on ${niceDay(date, { weekday: 'short' })}`}</b>
+            {storyN > 0 && <span className="dy-fold-n"> — {storyN} thing{storyN === 1 ? '' : 's'}</span>}
+            {count('critical') > 0 && <span className="crit-tag">{count('critical')} critical</span>}
+            {count('late') > 0 && <span className="in-late"> · {count('late')} late</span>}
+            {count('problem') > 0 && <span className="in-problem"> · {count('problem')} a problem</span>}
+          </span>
+          <Icon name={story ? 'chevronDown' : 'chevron'} size={16} />
+        </button>
+      )}
+      {story && hasStory && (
+        <div className="dy-story">
+          {onTarget && <p className="dy-headline">{day.headline}</p>}
+          {/* A bar per gate with steps — Install, Set up, Hand over. */}
+          {day.gates.map(g => (
+            <button key={g.gate} className="dy-install" onClick={() => nav(`/project/${projectId}/${GATE_PATH[g.gate]}`)}
+              aria-label={`${g.label}: ${g.done} of ${g.total} steps done${g.late ? `, ${g.late} late` : ''}${g.problem ? `, ${g.problem} a problem with no time lost` : ''}`}>
+              <span className="dy-install-h"><b>{g.label}</b><span className="sub">{g.done} of {g.total} steps done{date === today ? '' : ' by the end of the day'}</span>
+                {/* WHICH, by the one rule (lib/install lateOrProblem): late in
+                    red — its day gone, or hours lost — and a problem that lost no
+                    time in amber. Never "late or a problem". */}
+                {g.late > 0 && <span className="sub in-late">{g.late} late</span>}
+                {g.problem > 0 && <span className="sub in-problem">{g.problem} a problem</span>}</span>
+              {/* Done a quiet green, then late red, then a problem amber — the colour rules. */}
+              <span className="dy-bar">
+                <span className="is-done" style={{ width: `${(100 * g.done) / g.total}%` }} />
+                {g.late > 0 && <span className="is-late" style={{ width: `${(100 * g.late) / g.total}%` }} />}
+                {g.problem > 0 && <span className="is-problem" style={{ width: `${(100 * g.problem) / g.total}%` }} />}
+              </span>
+            </button>
+          ))}
+          {rest.map(section)}
+          {day.media.length > 0 && (
+            <section className="dy-sec">
+              <h2 className="cmp-h">Pictures from the day <span className="cmp-h-n">{day.media.length}</span></h2>
+              <div className="dy-pics">
+                {day.media.map(m => <EvidenceThumb key={m.id} media={m} size={88} onClick={() => setViewing(m)} />)}
+              </div>
+            </section>
+          )}
+        </div>
+      )}
 
       {day.empty && (
         <p className="sub tw-note">
@@ -204,15 +259,6 @@ export function DayScreen({ projectId }: { projectId: string }) {
           a step done, a test run, something found, a machine or a delivery arriving.
           {prev && <> <button className="cw-link" onClick={() => go(prev)}>Go to {niceDay(prev, { weekday: 'short' })}</button></>}
         </p>
-      )}
-
-      {day.media.length > 0 && (
-        <section className="dy-sec">
-          <h2 className="cmp-h">Pictures from the day <span className="cmp-h-n">{day.media.length}</span></h2>
-          <div className="dy-pics">
-            {day.media.map(m => <EvidenceThumb key={m.id} media={m} size={88} onClick={() => setViewing(m)} />)}
-          </div>
-        </section>
       )}
 
       {/* Said once, on an empty day; a day with a story does not need its button explained. */}

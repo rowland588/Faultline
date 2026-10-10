@@ -21,10 +21,9 @@ import { doneTodayPatch, foldInto, installGrid, whoFor, lateByWords, stepsNamed,
 import { UsualStages } from './UsualStages';
 import { WhyMoved, changeTests, moveTestsWithWhy, type WhyAnswer } from './WhyMoved';
 import { movedLater } from '../lib/story';
-import { MachineCard } from '../screens/TestsScreen';
 import { DrawerShell } from './DrawerShell';
 import type { Project } from '../types';
-import { ASSET_STATE_WORD, assetStateOf, assetStateOn, hasRun, isSettled, live, plannedEnd, type Asset, type StepGate, type Test } from '../lib/testing';
+import { ASSET_STATE_WORD, assetStateOf, assetStateOn, isSettled, live, plannedEnd, type Asset, type StepGate, type Test } from '../lib/testing';
 import { daysBetween, niceDay, staggered, todayISO } from '../lib/weeks';
 import { partsOf, partsSaid } from '../lib/noted';
 import { PartsMark } from './StageParts';
@@ -344,11 +343,21 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
       return (
         <Sheet title={rowName(a)} sub={row.view.says} onClose={() => setOpen(null)}>
           {a && <p className="sub">{a.oem && <>{a.oem} · </>}{ASSET_STATE_WORD[assetStateOf(a)]}{on && (assetStateOf(a) === 'awaited' ? ` — due ${short(on)}` : ` since ${short(on)}`)}</p>}
+          {a && <button type="button" className="rd-link ig-machine" onClick={() => { setOpen(null); openRecord(projectId, a.id); }}>Everything on {a.name} — every gate, what is open ›</button>}
         </Sheet>
       );
     }
     return (
       <Sheet title={rowName(row.asset)} sub={row.view.says} onClose={() => setOpen(null)}>
+        {/* THE MACHINE ITSELF is its own record now (ui/MachinePanel): every
+            gate, what is open, and its name, supplier, dates and remove —
+            opened from its name wherever it shows. This sheet keeps what is
+            about this gate (docs/FLOW.md item 2). */}
+        {row.asset && (
+          <button type="button" className="rd-link ig-machine" onClick={() => { const a = row.asset as Asset; setOpen(null); openRecord(projectId, a.id); }}>
+            Everything on {row.asset.name} — every gate, its supplier and dates ›
+          </button>
+        )}
         <div className="ig-acts">
           {missing.length > 0 && (
             <button className="btn btn-primary ig-big" onClick={() => {
@@ -360,13 +369,6 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
             <button className="btn ig-big" onClick={() => { if (row.asset) void markInstalled(row.asset); setOpen(null); }}>Mark it installed today</button>
           )}
         </div>
-        {/* THE MACHINE ITSELF — name, supplier, its four dates, remove. It
-            lived on Testing too; Install is where machines live now. */}
-        {row.asset && (
-          <MachineCard a={row.asset}
-            ran={tt.tests.filter(t => t.assetId === row.asset?.id && (t.kind ?? 'test') === 'test' && hasRun(t)).length}
-            save={tt.saveAsset} />
-        )}
         {/* A stage of its own, for this machine only — the guard run, the
             conveyor tie-in. */}
         <form className="ig-who" onSubmit={e => {
@@ -390,19 +392,6 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
             <Who names={names} value="" label="Who is doing every step left on it"
               onSave={v => { if (!v) return; void change(left, () => ({ withWhom: v }), `${rowName(row.asset)}: ${v}`); setOpen(null); }} />
           </>
-        )}
-        {/* REMOVE, IN WORDS AT THE FOOT — where every record keeps its delete
-            (ui/RecordDrawer "Delete this stage"). It was a × beside the
-            machine's name, while the panel's own × closes it: two × with
-            opposite meanings, one of them destructive. Only the owner. */}
-        {row.asset && can.remove && (
-          <div className="rd-blk">
-            <button type="button" className="btn btn-ghost btn-sm cw-del rd-del" onClick={() => {
-              const a = row.asset;
-              if (!a || !confirm(`Remove “${a.name}”?\n\nIts stages and tests stay — they just stop naming a machine.`)) return;
-              void tt.removeAsset(a.id); setOpen(null);
-            }}>Remove this machine</button>
-          </div>
         )}
       </Sheet>
     );

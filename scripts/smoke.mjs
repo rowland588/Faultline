@@ -91,6 +91,10 @@ const ROUTES = [
   ['install — a step open', `#/project/${seeded.projectId}/install?open=${seeded.stepId}`],
   ['testing — a test open', `#/project/${seeded.projectId}/testing?open=${seeded.testId}`],
   ['home — a fix open', `#/?open=${seeded.fixId}&job=${seeded.projectId}`],
+  /* A machine opened whole (ui/MachinePanel, docs/FLOW.md item 2) — over
+     the front page and over the plan. */
+  ['a machine open', `#/project/${seeded.projectId}?open=${seeded.machineId}`],
+  ['plan — a machine open', `#/project/${seeded.projectId}/plan?open=${seeded.machineId}`],
   ['fixes — a record gone', `#/project/${seeded.projectId}/fixes?open=no-such-record`],
   /* The day, today and a day in the past that has a story on it. */
   ['the day', `#/project/${seeded.projectId}/day`],
