@@ -71,7 +71,11 @@ tool, on its own, on a line, on a job, evidence for a problem or proof for a
 fix; work moves, evidence links), the five layers every tool follows (facts →
 figures → reading → verdict → act), the honesty rules (enough? how known?
 what it does not claim), the records, the sixteen shared parts, and each tool
-in full.
+in full. `docs/BUILD.md` is how that next stage is built and proved: separated
+pieces (database before sync, sync before screens, arithmetic before
+pictures, a tool alone before its links, links before paper), the
+ten-point checklist every piece passes before it reaches `main`, and an
+acceptance script per finished story that every later gate runs.
 
 They are separate methods, not one loop pretending to be cohesive; each is
 defined once, the same way, in `src/lib/planModel.ts` (the question, when to
