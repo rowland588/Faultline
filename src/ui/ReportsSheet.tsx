@@ -37,6 +37,16 @@ export function ReportsSheet({ project, onClose }: { project: Project; onClose: 
     } catch (e) { setSaid(`The spreadsheet could not be built — ${e instanceof Error ? e.message : 'try again'}.`); }
     finally { setBusy(false); }
   };
+  /* MACHINE LABELS (lib/machineLabels) — a code per machine, for the floor. */
+  const labels = async () => {
+    setBusy(true); setSaid('');
+    try {
+      const { listAssets } = await import('../db/testing');
+      const { printLabels } = await import('./printLabels');
+      setSaid(await printLabels(project, await listAssets(project.id)));
+    } catch (e) { setSaid(`The labels could not be drawn — ${e instanceof Error ? e.message : 'try again'}.`); }
+    finally { setBusy(false); }
+  };
   const withWalk = lines.filter(l => l.workspaceId);
   return (
     <Sheet open onClose={onClose} title="On paper">
@@ -66,6 +76,7 @@ export function ReportsSheet({ project, onClose }: { project: Project; onClose: 
             stage-gate document this index did not list. */}
         {stageGate && <Door title="The plan" says="For the team and the client — every machine's stages against the days, on one landscape page. Print it from the plan." onClick={() => go(`/project/${project.id}/plan`)} />}
         {stageGate && <Door title="Line standard" says="For the floor — who stands where and what they do, one page per product." onClick={() => go(`/project/${project.id}/standard`)} />}
+        {stageGate && <Door title="Machine labels" says={busy ? 'Drawing…' : 'For the floor — a code per machine to stick on it: scanned with a phone’s camera, it opens that machine’s page.'} onClick={() => { if (!busy) void labels(); }} />}
         {walk && <Door title="Evidence cards" says="One page per snag on the walk, with its picture." onClick={() => go(`/w/${walk}/snaglist`)} />}
         {withWalk.map(l => (
           <Door key={l.id} title={`Evidence cards — ${l.name}`} says="One page per snag on this line's walk, with its picture." onClick={() => go(`/w/${l.workspaceId}/snaglist`)} />

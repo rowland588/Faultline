@@ -77,6 +77,9 @@ export interface HoMachine {
 
 export interface HandoverReport {
   name: string;
+  /** The job's address, set by the screen at print time — the code on the
+   *  first page (lib/report/codeHeader). */
+  link?: string;
   lead?: string;
   printed: string;
   verdict: OnTarget;

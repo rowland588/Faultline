@@ -9,6 +9,7 @@
  * what is open on no one machine; and the lines to sign. Long words, a long
  * account, many machines: it carries on over pages rather than cut anything,
  * and every account and sign-off note is printed whole. */
+import { codeHeader } from './report/codeHeader';
 import type { jsPDF } from 'jspdf';
 import type { OnTargetTone } from './onTarget';
 import type { HandoverReport, HoTone } from './handoverReport';
@@ -59,9 +60,8 @@ function line(left: string, right: string, colour: string, o: { bold?: boolean; 
 
 function blocksOf(r: HandoverReport, d: Density): Block[] {
   const out: Block[] = [];
-  out.push(text({ text: 'HANDOVER · STAGE GATE', size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
-  out.push(text({ text: r.name, size: SIZE.title, style: 'bold', after: 4 }));
-  out.push(text({ text: [r.lead ? `Led by ${r.lead}` : '', `Printed ${r.printed}`].filter(Boolean).join('   ·   '), colour: MUTED, after: gap(d, 'm') }));
+  out.push(...codeHeader({ eyebrow: 'HANDOVER · STAGE GATE', title: r.name, colour: BRAND, ...(r.link ? { link: r.link } : {}),
+    line: [r.lead ? `Led by ${r.lead}` : '', `Printed ${r.printed}`].filter(Boolean).join('   ·   ') }, d));
 
   /* IS IT HANDED OVER, AND HOW DID IT GO — the verdict and the sentence. */
   const v = r.verdict;

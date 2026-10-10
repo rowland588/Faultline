@@ -167,6 +167,10 @@ export interface FixRow {
 }
 
 export interface ClientReport {
+  /** THE JOB'S ADDRESS, set by the screen at print time (ui/ClientReportScreen)
+   *  — the code on the first page opens the job as it is now
+   *  (lib/report/codeHeader). Absent, the header is as it always was. */
+  link?: string;
   name: string;
   lead?: string;
   printed: string;

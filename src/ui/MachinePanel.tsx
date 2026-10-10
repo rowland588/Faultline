@@ -7,6 +7,9 @@
  * state, day and who, each opening its record; then what is open on it; then
  * the machine itself, to correct. Read off lib/machineRecord, which reads the
  * same rules the gates do. */
+import { useState } from 'react';
+import { useProject } from '../lib/useProjects';
+import { printLabels } from './printLabels';
 import { climbsOf } from '../lib/rampUp';
 import { Climbs } from './Climb';
 import { machineRecord, type MachineLine, type MachineTone } from '../lib/machineRecord';
@@ -110,6 +113,10 @@ export function MachinePanel({ asset, projectId, tt, programs, can, onOpen, onCl
         </section>
       )}
 
+      {/* ITS LABEL (lib/machineLabels) — the code to stick on it: scanned at the
+          line, it opens this page. Anyone may print it; it writes nothing. */}
+      <MachineLabelButton asset={asset} projectId={projectId} />
+
       {/* THE MACHINE ITSELF — its name, supplier and four dates, and remove.
           They lived in Install's machine sheet because Install was where
           machines lived; here they are wherever the machine is seen. */}
@@ -128,5 +135,25 @@ export function MachinePanel({ asset, projectId, tt, programs, can, onOpen, onCl
         </div>
       )}
     </>
+  );
+}
+
+function MachineLabelButton({ asset, projectId }: { asset: Asset; projectId: string }) {
+  const { project } = useProject(projectId);
+  const [said, setSaid] = useState('');
+  const [busy, setBusy] = useState(false);
+  if (!project) return null;
+  const print = async () => {
+    setBusy(true); setSaid('');
+    try { setSaid(await printLabels(project, [asset], asset.id)); }
+    catch (e) { setSaid(`The label could not be drawn — ${e instanceof Error ? e.message : 'try again'}.`); }
+    finally { setBusy(false); }
+  };
+  return (
+    <p className="mp-label">
+      <button type="button" className="btn btn-sm" disabled={busy} onClick={() => void print()}>{busy ? 'Drawing…' : 'Print its label — PDF'}</button>
+      <span className="sub"> A code for the machine: scanned with a phone’s camera, it opens this page.</span>
+      {said && <span className="sub" role="status"> {said}</span>}
+    </p>
   );
 }

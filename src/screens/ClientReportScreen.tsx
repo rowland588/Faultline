@@ -1,6 +1,7 @@
 /* THE CLIENT REPORT for a stage-gate job — the page you open before sending
  * it. What is shown IS the PDF (drawn once, previewed in place on a desk), so
  * the screen and the paper cannot disagree. See lib/clientReport.ts. */
+import { jobLink } from '../lib/machineLabels';
 import { useEffect, useMemo, useState } from 'react';
 import { usePdfPreview } from '../lib/usePdfPreview';
 import { useWalkSnags } from '../lib/useWalkSnags';
@@ -152,9 +153,11 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
   /* The preview is the PDF itself, redrawn when what is on it changes — and
      only then (lib/usePdfPreview). */
   const previewKey = useMemo(() => (report && wide ? `${which}|${withStandards}|${JSON.stringify(which === 'handover' ? handover : report)}` : null), [report, handover, withStandards, wide, which]);
-  const build = () => (which === 'status' ? buildStatus(report as ClientReport)
+  /* THE JOB'S ADDRESS, for the code on the first page (lib/report/codeHeader). */
+  const link = jobLink(`${location.origin}${location.pathname}`, projectId);
+  const build = () => (which === 'status' ? buildStatus({ ...(report as ClientReport), link })
     : which === 'programs' ? buildPrograms(report as ClientReport)
-      : which === 'handover' ? buildHandover(handover as HandoverReport) : buildPdf(report as ClientReport, withStandards));
+      : which === 'handover' ? buildHandover({ ...(handover as HandoverReport), link }) : buildPdf({ ...(report as ClientReport), link }, withStandards));
   const preview = usePdfPreview(previewKey, build);
   const status = useMemo(() => (report ? statusReport(report) : null), [report]);
 

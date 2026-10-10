@@ -191,7 +191,7 @@ for (const size of SIZES) {
     const [tests, items, assets, materials, programs] = await Promise.all([db.listTests(pid), db.listTestItems(pid), db.listAssets(pid), listMaterials(pid), listPrograms(pid)]);
     const today = todayISO();
     const r = clientReport({ project, projects: [project], assets, tests, items, materials, programs, standards: [], walk: [], today });
-    const out = { client: [], card: [], fix: [], day: [], status: [], programs: [], handover: [] };
+    const out = { client: [], card: [], fix: [], day: [], status: [], programs: [], handover: [], labels: [] };
     const add = (k, ...xs) => { for (const x of xs) { const v = typeof x === 'number' ? String(x) : x; if (v && san(v)) out[k].push([v, san(v), from]); } };
     let from = '';
     /* ARE WE ON TARGET? leads the first page, the word and its reason
@@ -201,6 +201,10 @@ for (const size of SIZES) {
     /* THE PACE SAYS WHEN (lib/pace) — under the answer, its sentence and its
        working, wherever the answer is printed. */
     from = 'top, the pace'; add('client', r.onTarget.pace?.text, r.onTarget.pace?.working);
+    /* The code back to the live job, under its words (lib/report/codeHeader). */
+    from = 'top, the code back to the job'; add('client', 'Scan for it now'); add('status', 'Scan for it now'); add('handover', 'Scan for it now');
+    /* THE MACHINE LABELS — every machine's name on its label, whole (lib/machineLabels). */
+    from = 'machine labels'; for (const a of assets.filter(x => !x.deletedAt)) add('labels', a.name.trim() || 'Machine not named');
     from = 'gates'; for (const g of r.gates) add('client', g.label, g.says);
     from = 'machines'; for (const mc of r.machines) add('client', mc.name, mc.at);
     for (const s2 of r.sections) {
@@ -323,6 +327,8 @@ for (const size of SIZES) {
     ['programs', `#/project/${job.projectId}/report`, [['Programs report'], ['PDF']], must.programs],
     /* The handover, as it really went (9 October). */
     ['handover', `#/project/${job.projectId}/report`, [['Handover report'], ['PDF']], must.handover],
+    /* The machine labels, from the Reports index's own door (ui/ReportsSheet). */
+    ...(must.labels.length ? [['machine labels', `#/project/${job.projectId}`, [['Reports'], [/^Machine labels/]], must.labels]] : []),
     /* The card is the record's own page now (screens/TestScreen); its button
        says what it makes — "Test card — PDF", "Fix card — PDF", "Install step
        card — PDF" — so it is pressed by that name, whichever face it wears. */

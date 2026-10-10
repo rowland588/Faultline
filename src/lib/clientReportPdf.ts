@@ -1,5 +1,6 @@
 /* THE CLIENT REPORT, ON PAPER — A4, portrait, in the order the job is run.
  * See lib/clientReport.ts for what is on it and why. This only draws. */
+import { codeHeader } from './report/codeHeader';
 import type { jsPDF } from 'jspdf';
 import type { ClientReport, CellTone, FixRow, StepAccount } from './clientReport';
 import { GATE_TONE_WORD, type GateTone } from './install';
@@ -185,9 +186,10 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
   const S = SIZE;
 
   /* ================================ 1 · WHERE THE JOB IS ================================ */
-  out.push(text({ text: 'CLIENT REPORT · STAGE GATE', size: S.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
-  out.push(text({ text: r.name, size: S.title, style: 'bold', after: 4 }));
-  out.push(text({ text: [r.lead ? `Led by ${r.lead}` : '', `Printed ${r.printed}`, r.dates ?? ''].filter(Boolean).join('   ·   '), colour: MUTED, after: gap(d, 'm') }));
+  /* The header — with the code back to the live job when the screen gave
+     its address (lib/report/codeHeader). */
+  out.push(...codeHeader({ eyebrow: 'CLIENT REPORT · STAGE GATE', title: r.name, colour: BRAND, ...(r.link ? { link: r.link } : {}),
+    line: [r.lead ? `Led by ${r.lead}` : '', `Printed ${r.printed}`, r.dates ?? ''].filter(Boolean).join('   ·   ') }, d));
 
   /* ARE WE ON TARGET? — the answer first, in a word in its colour, and why
      in words beside it (lib/onTarget): Rowland, 6 October, "the header must
@@ -710,10 +712,8 @@ export async function drawStatusReport(doc: jsPDF, report: ClientReport): Promis
   let s = sanAll(statusReport(report));
   const blocks = (d: Density): Block[] => {
     const out: Block[] = [];
-    const S = SIZE;
-    out.push(text({ text: 'STATUS REPORT · STAGE GATE', size: S.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
-    out.push(text({ text: s.name, size: S.title, style: 'bold', after: 4 }));
-    out.push(text({ text: [s.lead ? `Led by ${s.lead}` : '', `Printed ${s.printed}`, s.dates ?? ''].filter(Boolean).join('   ·   '), colour: MUTED, after: gap(d, 'm') }));
+    out.push(...codeHeader({ eyebrow: 'STATUS REPORT · STAGE GATE', title: s.name, colour: BRAND, ...(report.link ? { link: report.link } : {}),
+      line: [s.lead ? `Led by ${s.lead}` : '', `Printed ${s.printed}`, s.dates ?? ''].filter(Boolean).join('   ·   ') }, d));
 
     /* 1 · WHERE WE ARE — the verdict, then a tile per gate. */
     const ot = s.verdict;
