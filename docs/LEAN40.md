@@ -278,15 +278,30 @@ there and then."*
   nothing of the job.
 
 **4. Since you last looked.** *To a client: "It tells you what changed
-since you were last in. You don't go looking."*
-- **What it does.** One line at the top of the job's front page, and on Home
-  for each job: "Since Tue 16:40: 3 stages done · 1 went late (Air and
-  power, coder) · 1 problem raised on the case packer · 1 test failed". Each
-  part opens what it names.
-- **When it shows.** Nothing when nothing changed. It is gone once read.
-- **Where it comes from.** It is read from the records' states and days
-  against this device's last visit, which is kept on the device: a laptop
-  and a phone each have their own.
+since you were last in. You don't go looking."* **Built 10 October**
+(`lib/since.ts`, `ui/SinceLine.tsx`).
+- **The words, as built.** "Since Wed 15:36: 2 went late (Sensors and
+  controls checked (I/O); Change parts fitted) · 1 test didn't pass (Seal
+  integrity) · 1 problem raised on Ilapak flow wrapper · 2 stages, 1 test
+  done". The abnormal comes first; done stays quiet.
+- **Where it shows:**
+  - **The job's front page:** one line under the answer to "Are we on
+    target?". Each part opens what it names: one record in its drawer, or
+    its page.
+  - **The control room:** each stage-gate job's row, as words. Looking at
+    the control room does not count as opening the job.
+- **How each part is worked out:**
+  - **"Went late"** uses the job's own late rule, asked of the last visit's
+    day and of today, so it never depends on anyone editing anything.
+  - **"Done"** needs the record changed since the visit and the day it was
+    done not before the visit's day, so a note on an old stage is not news.
+  - **A "not yet" reason** is a part owed, not a problem raised.
+- **When it shows.** Nothing on a first visit, and nothing when nothing
+  changed. Opening the job's page starts a new visit, so it is gone once
+  read.
+- **Where it comes from.** The last visit is kept on the device: a laptop and
+  a phone each have their own. Every read and write is guarded, so refused
+  storage (a private window) means no line and no error.
 - **Paper.** None. It is a screen's welcome back, not a fact of the job.
 - **Does not touch.** Any record. Nothing is written to the database.
 

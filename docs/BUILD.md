@@ -142,17 +142,28 @@ Four pieces, built lowest risk first. No database change.
   - it is on the printed card;
   - no console errors.
 
-**1c. Since you last looked.**
-- **Arithmetic:** `lib/since.ts`, pure: the records and the last visit in,
-  the line out. Tested with:
-  - nothing changed (no line);
-  - each kind of change;
-  - a stage that went late while away, which is worked out from its day,
-    not from an edit.
-- **Device:** the last visit is kept on the device, wrapped against a
-  private window.
-- **Browser:** change something in a second browser, come back, see the
-  line, and tap each part.
+**1c. Since you last looked.** Built 10 October.
+- **Arithmetic:** `lib/since.ts`, pure. 8 unit tests:
+  - a first visit, and nothing changed;
+  - each kind of change, in the order said;
+  - a note on an old stage is not news;
+  - done on the visit's own day, before and after it;
+  - a "not yet" reason is not a problem;
+  - many changes name two and how many more;
+  - deleted rows are not news;
+  - the visit written in words.
+- **Device:** the last visit is kept on the device, every read and write
+  guarded.
+- **Browser:** driven at 1360 and 390:
+  - a first visit shows no line;
+  - three days away, exactly what the arithmetic says;
+  - back at once, the line is gone;
+  - a problem raised since shows on the control room's row and on the front
+    page, and tapping it opens the problem;
+  - with storage refused, the page draws with no line and no error.
+- **Changed from the plan:** the check used one browser with the visit set
+  back, not two browsers. The two devices do not share a store without the
+  sync running, and the last visit is per device by design.
 
 **1d. Scan the machine.**
 - **Library:** one small QR library, pinned to an exact version.
