@@ -26,6 +26,7 @@ import { nav } from '../state/useRoute';
 import { sample, sampleSays, tneFor, CPK_FROM, type SampleFigures, type SampleSays } from '../lib/ie/sample';
 import type { AgreedReadings, StudyReading, ToolStudy } from '../lib/study';
 import { TOOL_WORDS } from './StudiesScreen';
+import { WhereItSits, UsedFor } from '../ui/StudyPlace';
 
 const OWNER = canAt('owner');
 
@@ -73,8 +74,9 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
         <Name s={s} canEdit={can.edit && !closed} />
         <p className="sub ie-where">
           {s.machine ? <><b>{s.machine}</b> · </> : null}
-          {s.workspaceId || s.projectId ? 'On a line or a job' : 'Not filed — yours alone'} · started {niceDay(new Date(s.startedAt).toISOString().slice(0, 10))}
+          started {niceDay(new Date(s.startedAt).toISOString().slice(0, 10))}
         </p>
+        <WhereItSits s={s} can={can} />
       </header>
 
       {!a || agreeing ? (
@@ -92,6 +94,7 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
             Agreed: <b>{agreedWords(a)}</b>
             {can.agree && !closed && <button type="button" className="linkish" onClick={() => setAgreeing(true)}>Change what was agreed</button>}
           </p>
+          <UsedFor s={s} can={can} me={me} />
           <Act s={s} f={f} said={said} can={can} me={me} write={write} />
         </>
       )}

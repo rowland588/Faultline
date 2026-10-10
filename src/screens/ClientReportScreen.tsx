@@ -23,6 +23,8 @@ import { DraftArea } from '../ui/Draft';
 import { useAccess } from '../cloud/access';
 import { openRecord } from '../ui/RecordDrawer';
 import { niceDay } from '../lib/weeks';
+import { useJobStudies } from '../ui/StudyLinks';
+import { nav } from '../state/useRoute';
 
 /** A gate's counts with the abnormal ones in their colour — "2 late" red,
  *  "1 a problem" amber — the rest plain (the colour rules). */
@@ -114,6 +116,8 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
      October: "I cannot edit the problem or delete it." */
   const open = (id?: string) => { if (id) openRecord(projectId, id); };
   const tt = useTesting(projectId);
+  /* The job's studies — the Evidence appendix and each fix's line (lib/studyLinks). */
+  const studies = useJobStudies(projectId);
   const mats = useMaterials(projectId);
   const progs = usePrograms(projectId);
   const standards = useStandards(projectId);
@@ -143,8 +147,8 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
   const ready = !loading && !tt.loading && !mats.loading && !progs.loading && standards != null && walk != null && !!project;
   const report = useMemo(() => (ready && project ? clientReport({
     project, projects, assets: tt.assets, tests: tt.tests, items: tt.items,
-    materials: mats.materials, programs: progs.programs, standards: standards ?? [], walk: walk ?? [], today: todayISO(),
-  }) : null), [ready, project, projects, tt.assets, tt.tests, tt.items, mats.materials, progs.programs, standards, walk]);
+    materials: mats.materials, programs: progs.programs, standards: standards ?? [], walk: walk ?? [], studies, today: todayISO(),
+  }) : null), [ready, project, projects, tt.assets, tt.tests, tt.items, mats.materials, progs.programs, standards, walk, studies]);
 
   const handover = useMemo(() => (ready && project ? handoverReport({
     project, assets: tt.assets, tests: tt.tests, items: tt.items, materials: mats.materials, programs: progs.programs, today: todayISO(),
@@ -360,6 +364,9 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
             {report.fixes.open.map(f => <button key={f.id} type="button" className="cr-door" onClick={() => open(f.id)}>{f.title}{f.machine ? ` — ${f.machine}` : ''} · {f.when}</button>)}</li>
           {report.notedRows.length > 0 && <li><b>Problems with no fix</b><span>{report.noted.open.length} open{report.noted.sorted.length ? ` · ${report.noted.sorted.length} sorted` : ''}</span>
             {report.notedRows.map(n => <button key={n.id} type="button" className={'cr-door' + (n.sorted ? ' is-sorted' : '')} onClick={() => open(n.id)}>{n.text}{n.sorted ? ' · sorted' : ''}</button>)}</li>}
+          {/* EVIDENCE — every study on the job, as the paper's appendix prints it. */}
+          {report.evidence.length > 0 && <li><b>Evidence</b><span>{report.evidence.length} {report.evidence.length === 1 ? 'study' : 'studies'} · measured by people at the line</span>
+            {report.evidence.map(e => <button key={e.id} type="button" className="cr-door" onClick={() => nav(`/capability/${e.id}`)}>{e.title} — {e.line}</button>)}</li>}
           {report.waiting.length > 0 && <li><b>What we’re waiting on</b>
             {report.waiting.filter(w => w.open > 0).map(w => <span key={w.key}><b>{w.what} {w.open}</b>{w.names?.length ? ` — ${w.names.slice(0, 8).join(' · ')}${w.names.length > 8 ? ` · and ${w.names.length - 8} more` : ''}` : ''}</span>)}</li>}
           {report.standards.length > 0 && withStandards && <li><b>Line standard</b><span>{report.standards.map(s => s.product).join(' · ')}</span></li>}

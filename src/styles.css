@@ -11519,3 +11519,22 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
   .ie-strip { gap: 4px 12px; font-size: var(--t-detail); }
   .ie-key { min-height: 58px; }
 }
+/* Where a study sits, and what it is used for (ui/StudyPlace); its branch in a record's drawer (ui/StudyLinks). */
+.ie-place { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 6px; font-size: var(--t-detail); color: var(--ink-2); }
+.ie-place-acts { display: inline-flex; flex-wrap: wrap; gap: 2px; }
+.ie-pick { max-width: 320px; font-size: var(--t-detail); }
+.ie-used { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+.ie-h { font-size: var(--t-label); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.ie-used .sub { margin: 0; }
+.ie-uses { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; font-size: var(--t-detail); }
+.ie-uses .linkish { margin-left: 0; }
+.ie-uses .ie-unlink { margin-left: 8px; color: var(--muted); }
+.ie-used-acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.sl-row { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; text-align: left; background: none; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px 10px; cursor: pointer; font: inherit; color: var(--ink); }
+.sl-row b { font-size: var(--t-detail); }
+.sl-say { font-size: var(--t-detail); color: var(--ink-2); line-height: 1.4; }
+.sl-say.is-r { color: var(--st-r); font-weight: 700; }
+.sl-say.is-a { color: var(--st-a); }
+.sl-ba { margin: 0; font-size: var(--t-detail); color: var(--ink-2); }
+.sl-ba.is-g b { color: var(--st-g); }
+.sl-ba.is-r b { color: var(--st-r); }

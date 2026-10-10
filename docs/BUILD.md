@@ -286,24 +286,50 @@ found a 3 g pack given the 50–100 g row's error; fixed.
   a state updater, which React may run twice; fixed, and the comment says
   why.
 
-**2e. Where it sits.**
-- Put on a line; attach to a job.
-- Driven as owner, team and client.
+**2e. Where it sits.** Built 10 October (`ui/StudyPlace.tsx`).
+- One line under the study's name: "On Line 7 · attached to Line 2
+  commissioning", or "a quick session, yours alone". **Put on a line**,
+  **Attach to a job** (only jobs this person may change, the ones on its line
+  first), **Take it off the line**, and **Take it off the job** (the owner's;
+  the cloud keeps it for anyone else).
+- On a job, the job's rule: the team takes readings and links it; agreeing
+  the limits, overruling and taking it off the job are the owner's; a client
+  reads. Driven as owner (laptop), team (phone) and client.
 
-**2f. Used for.**
-- **The doors:** Use it for, How we know, Prove it, Take the readings, Make
-  it better.
-- **The branches:** the problem, fix and test drawers, the Commission
-  square, Needs you, Today's update.
-- **Before → after** on a fix.
+**2f. Used for.** Built 10 October (`lib/studyLinks.ts`, 8 tests;
+`ui/StudyLinks.tsx`).
+- **From the study:** **Use it for…** (a test it proves; a fix it shows is
+  needed, or proves), **Make it better** (raises a fix on the test it proves,
+  its words the study's figures, the study its evidence; offered when it
+  failed or would drift), and each link listed with **Unlink**.
+- **From a test's drawer:** **Proved by** (its study's sentences) and **Take
+  the readings** (a study named for the test, on its machine and job, proving
+  it). **Use its verdict** sets the test's outcome from the study's — a person
+  presses it.
+- **From a fix's drawer:** **How we know**, **Proved by**, **Prove it** (the
+  same study on the same scope, limits already agreed), and **Before →
+  after** ("Cpk 0.67 → 1.00 — just capable now. The number moved; what moved
+  it is the fix's to say").
+- **Not yet:** the problem's drawer ("How we know → add a study"), the 6M
+  countermeasure, the Commission square's count, Needs you ("18 readings
+  still owed") and Today's update. The test and fix branches carry the story
+  today; these follow with the next tool.
 
-**2g. The paper.**
-- The client report's account lines and its Evidence appendix, the handover
-  pack and the test report.
-- `report-stress` and the fuzz.
+**2g. The paper.** Built 10 October.
+- **The client report:** each open fix with a study prints its line on its
+  card — before → after when it has both, else how we know or what proved
+  it — and an **Evidence** appendix lists every study on the job: what it is
+  of, what it is used for, what it says, "measured by people at the line".
+  The report screen lists the same Evidence, each opening its study.
+- `report-stress`: the huge job carries three studies (a fix's evidence and
+  proof, a test's proof still short), and every line above is demanded on the
+  paper.
+- **Not yet:** the handover pack and the test report.
 
-**Release 2's acceptance:** `scripts/acceptance/ecosystem-capability.mjs`
-drives the whole story in Chromium:
+**Release 2's acceptance:** `scripts/acceptance/ecosystem-capability.mjs`,
+built 10 October and in the gate, drives the whole story in Chromium, each
+sentence checked against the module that makes it, and a client changing
+nothing:
 1. a quick session;
 2. put on a line;
 3. attached to a job;

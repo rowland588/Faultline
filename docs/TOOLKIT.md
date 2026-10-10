@@ -24,8 +24,10 @@ catalogue; this says, for the whole toolkit and then tool by tool:
 
 **Built so far** (`docs/BUILD.md`, release 2): the record (`studies`), the
 merge of two phones' readings, the measured test's arithmetic
-(`lib/ie/sample.ts`) and the capability study on its own, on the rail. The
-rest is design. Every rule in `CLAUDE.md` holds: measured by
+(`lib/ie/sample.ts`), the capability study on its own, on the rail, put on a
+line, attached to a job, used for a test or a fix (Take the readings, Make
+it better, Prove it, before → after), and on the client report. The rest is
+design. Every rule in `CLAUDE.md` holds: measured by
 people, additions connect, screen and paper together, one colour one
 meaning, simple with detail, manufacturing is many, and no new noun but
 the one Part 0 argues for.

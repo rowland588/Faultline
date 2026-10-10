@@ -15,7 +15,7 @@
 import {
   createProject, updateProject, putAsset, putTest, putTestItem, putMaterials, putPrograms,
   addCase, addObservation, addPaceLine, addSegment, addSnag, addSnagAsset, createWorkspace,
-  putPaceTodo, putReadings, putStandard, putTarget, putBlob,
+  putPaceTodo, putReadings, putStandard, putTarget, putBlob, putStudy,
 } from '../db';
 import type { Case, MediaRef, Observation } from '../types';
 import type { PaceTodoRow } from '../db';
@@ -122,6 +122,11 @@ async function markedPhoto(notes: string[]): Promise<MediaRef> {
 }
 
 export interface ReportJob { projectId: string; testId: string; fixId?: string }
+
+/** The worked example's thirty packs (docs/LEAN40.md appendix): mean 401.2 g,
+ *  all within 400–404, Cpk 0.67. */
+const THIRTY = [400.1, 402.6, 401.6, 400.8, 401.5, 401.3, 400.2, 401.9, 400.6, 400.4, 400.6, 401.2, 401.9, 400.9, 401.8,
+  401.0, 401.9, 400.8, 401.9, 401.1, 401.2, 401.6, 401.3, 400.7, 401.3, 400.4, 401.1, 401.5, 401.9, 400.8];
 
 export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
   r = 7;
@@ -255,7 +260,7 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
     await markedPhoto(['Seal jaw face scored across the middle', 'Heater lead chafed where it passes the guard']),
     await markedPhoto(['Belt worn through to the cords here', 'Tension arm bracket cracked', LONG[1]]),
   ];
-  let fixId: string | undefined;
+  let fixId: string | undefined, openFixId: string | undefined;
   for (let i = 0; i < 30; i++) {
     const a = machines[i % machines.length];
     const due = -8 + i;
@@ -266,8 +271,26 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
       ...(i === 0 ? { media: [marked[0]] } : i === 12 ? { media: [marked[1]] } : {}),
     });
     fixId ??= f.id;
+    if (i === 6) openFixId = f.id;
   }
   for (const x of tests) await putTest(x);
+
+  /* STUDIES (lib/study): the thirty packs as an open fix's evidence and the
+     same study after as its proof — before → after on the fix's card — and a
+     study still short proving the longest test. The Evidence appendix lists
+     all three. */
+  if (size === 'huge' && openFixId) {
+    const agreed = { readings: { kind: 'limits' as const, unit: 'g', nominal: 400, lower: 400, upper: 404, count: 30 } };
+    const at = (k: number) => t - k * 60_000;
+    const scope = { tool: 'capability' as const, name: 'Weight accuracy 400 g', projectId: proj.id, machine: machines[1].name, assetId: machines[1].id, agreed };
+    await putStudy({ id: uid(), ...scope, facts: { readings: THIRTY.map((value, k) => ({ id: uid(), value, at: at(90 - k), who: 'K. Ahmed' })) },
+      uses: [{ id: uid(), kind: 'fix', ref: openFixId, role: 'evidence', at: at(60) }], startedAt: at(120), createdAt: t, updatedAt: t });
+    await putStudy({ id: uid(), ...scope, facts: { readings: THIRTY.map((v, k) => ({ id: uid(), value: Math.round((v + 1) * 10) / 10, at: at(40 - k), who: 'Łukasz Wójcik' })) },
+      uses: [{ id: uid(), kind: 'fix', ref: openFixId, role: 'proof', at: at(40) }], startedAt: at(45), createdAt: t, updatedAt: t });
+    await putStudy({ id: uid(), tool: 'capability', name: longest.title, projectId: proj.id, machine: machines[0].name, assetId: machines[0].id, agreed,
+      facts: { readings: THIRTY.slice(0, 12).map((value, k) => ({ id: uid(), value, at: at(20 - k) })) },
+      uses: [{ id: uid(), kind: 'test', ref: longest.id, role: 'proof', at: at(20) }], startedAt: at(25), createdAt: t, updatedAt: t });
+  }
 
   /* What was found: sixty, on tests and steps, some long. */
   const items: TestItem[] = [];

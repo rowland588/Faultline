@@ -48,6 +48,7 @@ import { criticalCount, criticalOn, fixFlag, riskOn } from '../lib/critical';
 import { CriticalTag } from './CriticalFields';
 import { partsOf, partsSaid } from '../lib/noted';
 import { Evidence } from './EvidenceDoors';
+import { StudyLinks } from './StudyLinks';
 import { EvidenceThumb, EvidenceViewer, pinsOnJob } from './Evidence';
 import { spanShort } from './InstallGrid';
 import { ProblemForm, changeTests, recordMove, recordProblem, type ProblemFill } from './WhyMoved';
@@ -657,6 +658,12 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
       {/* ON TODAY'S PLAN (lib/huddle) — a branch off the record: the lines the
           morning huddle agreed about it, ticked here as on The day; or one
           tap to put it on today's plan. */}
+      {/* ITS STUDIES (ui/StudyLinks) — a test's proof, a fix's evidence and
+          proof, and before → after: a branch off the record. */}
+      {(kind === 'test' || kind === 'fix') && (
+        <StudyLinks t={t} machine={tt.assets.find(a => a.id === t.assetId)?.name} can={can}
+          onVerdict={o => void setOutcome(o, `${t.title} — ${outcomeWord({ kind, outcome: o })}, as its study says`)} />
+      )}
       <OnTodaysPlan t={t} title={kind === 'install' ? `${machine} — ${t.title}` : t.title} tt={tt} can={can} today={today} />
       <ProgramLink projectId={projectId} t={t} tests={tt.tests} onOpen={onOpen} can={can} holder={job} items={tt.items}
         onPatch={patch => void tt.patchTest(t.id, patch)} />

@@ -616,6 +616,18 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
     }));
   }
 
+  /* ================================ EVIDENCE ================================
+     Every study on the job (docs/TOOLKIT.md, Part 0): what it is of, what it is
+     used for, and what it says — measured by people at the line, said as such. */
+  if (r.evidence.length) {
+    out.push(heading('Evidence', `${r.evidence.length} ${r.evidence.length === 1 ? 'study' : 'studies'} · measured by people at the line`));
+    r.evidence.forEach((e, i, all) => {
+      out.push(text({ text: e.title, size: 9.5, style: 'bold', before: i ? 4 : 0, after: 1 }));
+      out.push(text({ text: `Used for: ${e.used}`, size: 8, colour: MUTED, after: 1 }));
+      out.push(text({ text: e.line, size: 9, colour: e.tone === 'r' ? DANGER : INK2, after: i === all.length - 1 ? gap(d, 's') : 2 }));
+    });
+  }
+
   /* ================================ 5 · LINE STANDARD ================================ */
   if (extras.standards && r.standards.length) {
     const draw = extras.standards;
@@ -667,17 +679,20 @@ function fixCard(fx: FixRow, shot: Shot | undefined): Block {
   const parts = (f: Frame) => ({
     title: wrap(f.doc, fx.title, textW(f), 10, 'bold'),
     prob: fx.problem ? wrap(f.doc, fx.problem, textW(f), 8.5) : [],
+    proved: fx.proved ? wrap(f.doc, fx.proved, textW(f), 8.5) : [],
     marks: (shot?.marks ?? []).map(m => wrap(f.doc, m, textW(f) - 14, 8)),
     meta: (() => { font(f.doc, 8, 'bold'); const ww = f.doc.getTextWidth(fx.when); return { ww, lines: wrap(f.doc, [fx.machine, fx.who].filter(Boolean).join(' · '), Math.max(40, textW(f) - ww - 20), 8) }; })(),
   });
   const marksH = (p: ReturnType<typeof parts>) => (p.marks.length ? 3 + p.marks.reduce((n, l) => n + l.length, 0) * 10 : 0);
-  const inner = (f: Frame) => { const p = parts(f); return Math.max(shot ? 76 : 0, 14 + p.title.length * 12 + p.prob.length * 10.5 + marksH(p) + Math.max(1, p.meta.lines.length) * 10 + 4); };
+  const inner = (f: Frame) => { const p = parts(f); return Math.max(shot ? 76 : 0, 14 + p.title.length * 12 + p.prob.length * 10.5 + (p.proved.length ? 2 + p.proved.length * 10.5 : 0) + marksH(p) + Math.max(1, p.meta.lines.length) * 10 + 4); };
   return box(f => inner(f) + 8, (f, y) => {
     const p = parts(f), h = inner(f), tone = FIX_COLOUR[fx.tone] ?? BRAND;
     f.doc.setFillColor(tone); f.doc.rect(f.x, y, 3, h, 'F');
     font(f.doc, 10, 'bold'); f.doc.text(p.title, f.x + 10, y + 13);
     let fy = y + 13 + p.title.length * 12;
     if (p.prob.length) { font(f.doc, 8.5, 'normal', INK2); f.doc.text(p.prob, f.x + 10, fy); fy += p.prob.length * 10.5; }
+    /* What its studies say (lib/studyLinks) — before → after when it has both. */
+    if (p.proved.length) { fy += 2; font(f.doc, 8.5, 'normal', SHELL); f.doc.text(p.proved, f.x + 10, fy); fy += p.proved.length * 10.5; }
     if (p.marks.length) {
       fy += 2;
       p.marks.forEach((lines, i) => {

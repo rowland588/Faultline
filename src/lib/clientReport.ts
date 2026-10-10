@@ -38,6 +38,8 @@ import { notedProblems, partsOf, partWords, resultNow } from './noted';
 import { couldWords, criticalProblems, criticalState, riskProblems, type Critical } from './critical';
 import type { WalkSnag } from './walkSnags';
 import { climbsOf } from './rampUp';
+import type { ToolStudy } from './study';
+import { beforeAfter, linkedTo, studyLine } from './studyLinks';
 
 /** One cell of a gate's checklist: how that stage stands on that machine. */
 /** `booked` is a step with a day, still ahead (indigo); `ahead` one with no
@@ -161,6 +163,9 @@ export interface FixRow {
   /** For the drawer to fetch a picture: pinned on a frame, or its first photo. */
   pin?: Test['pin'];
   photoKey?: string;
+  /** WHAT ITS STUDIES SAY (lib/studyLinks): before → after when it has both,
+   *  else how we know it was needed, or what proved it. */
+  proved?: string;
   /** What is marked on that photo (MediaRef.pins, ui/Evidence) — drawn on it
    *  and listed beside it by number when it is the picture printed. */
   photoPins?: MediaPin[];
@@ -209,6 +214,10 @@ export interface ClientReport {
    *  story ... I need a way to add commentary." */
   commentary?: { text: string; on?: string; by?: string };
   standards: Standard[];
+  /** EVIDENCE — every study on the job (docs/TOOLKIT.md, Part 0): what it is
+   *  of, what it is used for, and what it says, in its own words. Measured by
+   *  people at the line, so said as such. Printed as the appendix. */
+  evidence: { id: string; title: string; used: string; line: string; tone: string }[];
   /** The job's dated marks — the same ones the project page's Gantt draws —
    *  for "The plan" page, with the day it was printed and both handover dates. */
   plan: PlanMark[];
@@ -255,6 +264,8 @@ export interface ClientReportInput {
   standards: Standard[];
   /** What the filmed walk found — its lane on the plan page. */
   walk?: WalkSnag[];
+  /** The job's studies (lib/study) — the Evidence appendix and each fix's line. */
+  studies?: ToolStudy[];
   today: string;
 }
 
@@ -455,6 +466,16 @@ export function clientReport(x: ClientReportInput): ClientReport {
   const handover = stepGate('handover');
 
   /* ---- fixes ---- */
+  /* THE JOB'S STUDIES — evidence, never moved: each fix reads the one link. */
+  const studies = (x.studies ?? []).filter(s => !s.deletedAt && s.projectId === project.id);
+  const provedOf = (fixId: string): string | undefined => {
+    const ba = beforeAfter(studies, fixId);
+    if (ba) return `Before → after: ${ba.text}`;
+    const proof = linkedTo(studies, 'fix', fixId, 'proof')[0], ev = linkedTo(studies, 'fix', fixId, 'evidence')[0];
+    if (proof) return `Proved by: ${studyLine(proof).text}`;
+    if (ev) return `How we know: ${studyLine(ev).text}`;
+    return undefined;
+  };
   const fixRow = (t: Test): FixRow => {
     const ft = fixTone(t, today);
     /* The fix's own picture, else the one taken with the problem that booked
@@ -471,6 +492,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
       id: t.id, title: t.title, problem, machine: machine(t.assetId), who: t.withWhom,
       when: ft.when, tone: ft.tone, pin: t.pin, photoKey: photo,
       ...(pic?.pins?.length ? { photoPins: pic.pins } : {}),
+      ...(provedOf(t.id) ? { proved: provedOf(t.id) } : {}),
     };
   };
   const rank: Record<FixTone, number> = { late: 0, notRun: 1, soon: 2, ahead: 3, done: 4 };
@@ -532,6 +554,16 @@ export function clientReport(x: ClientReportInput): ClientReport {
       ...(project.lead?.trim() ? { by: project.lead.trim() } : {}),
     } } : {}),
     standards: live(x.standards),
+    evidence: studies.map(s => {
+      const used = s.uses.map(u => {
+        const r = tests.find(t => t.id === u.ref);
+        if (!r) return '';
+        return u.kind === 'test' ? `proves ${r.title}` : u.role === 'evidence' ? `how we know: ${r.title}` : `proves the fix: ${r.title}`;
+      }).filter(Boolean).join('; ');
+      const l = studyLine(s);
+      return { id: s.id, title: `Capability study — ${s.name}${s.machine ? ` · ${s.machine}` : ''}`,
+        used: used || 'not used for a record yet', line: l.text, tone: l.tone };
+    }),
     /* Notes are never on the client's copy — they are private
        preparation — so a note's reminder stays off its plan page too. */
     plan: st.plan.filter(m => m.kind !== 'note'),

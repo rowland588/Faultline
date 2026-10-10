@@ -190,7 +190,8 @@ for (const size of SIZES) {
     const project = await P.getProject(pid);
     const [tests, items, assets, materials, programs] = await Promise.all([db.listTests(pid), db.listTestItems(pid), db.listAssets(pid), listMaterials(pid), listPrograms(pid)]);
     const today = todayISO();
-    const r = clientReport({ project, projects: [project], assets, tests, items, materials, programs, standards: [], walk: [], today });
+    const studies = await (await import('/src/db/studies.ts')).listStudies(pid);
+    const r = clientReport({ project, projects: [project], assets, tests, items, materials, programs, standards: [], walk: [], studies, today });
     const out = { client: [], card: [], fix: [], day: [], status: [], programs: [], handover: [], labels: [] };
     const add = (k, ...xs) => { for (const x of xs) { const v = typeof x === 'number' ? String(x) : x; if (v && san(v)) out[k].push([v, san(v), from]); } };
     let from = '';
@@ -242,6 +243,10 @@ for (const size of SIZES) {
     }
     from = 'fixes'; for (const fx of [...r.fixes.open, ...r.fixes.done]) add('client', fx.title, fx.when);
     for (const fx of r.fixes.open) add('client', fx.problem, fx.machine, fx.who);
+    /* A fix's studies (lib/studyLinks): before → after, or how we know. */
+    from = 'a fix\'s studies'; for (const fx of r.fixes.open) add('client', fx.proved);
+    /* EVIDENCE — every study on the job, its title, what it is used for, and what it says. */
+    from = 'evidence'; if (r.evidence.length) add('client', 'Evidence'); for (const e of r.evidence) add('client', e.title, `Used for: ${e.used}`, e.line);
     /* What is marked on a fix's photo (ui/Evidence), when that photo is the
        picture printed — not pinned on a walk frame. */
     from = 'a fix photo\'s marks'; for (const fx of r.fixes.open) if (!fx.pin) add('client', ...(fx.photoPins ?? []).map(p => p.note));
