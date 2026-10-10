@@ -722,16 +722,27 @@ await run(4, 'both edit one test while the laptop is offline', async () => {
 
   /* The same field, and this time the OFFLINE side is the older edit: the
      cloud's newer copy wins, and the device whose edit lost says so by name. */
+  /* The order is made, not assumed: each edit written before the next is
+     typed, and the phone's in the cloud before the laptop is back. Under the
+     gate's load a write can outlast typeInto's pause, and then this was not
+     the scenario it names (the phone's edit not sent yet when the laptop
+     pulled, or the laptop's stamped after the phone's) — the later clock
+     won, as it should, and the check failed. */
+  const P75 = 'PHONE: 75 ppm, the later edit';
   await laptop.ctx.setOffline(true);
   await typeInto(l, 'What happened', 'LAPTOP offline, earlier');
+  const lw = await waitFor(async () => { const r = await testRow(l, tid); return r?.result === 'LAPTOP offline, earlier' && r; }, 10_000);
   await l.waitForTimeout(100);
-  await typeInto(p, 'What happened', 'PHONE: 75 ppm, the later edit');
+  await typeInto(p, 'What happened', P75);
+  const pw = await waitFor(async () => { const r = await testRow(p, tid); return r?.result === P75 && r; }, 10_000);
   await settle(phone);
+  await waitFor(() => cloud.rows('tests').find(r => r.id === tid)?.result === P75, 15_000);
   await laptop.ctx.setOffline(false);
   await settle(laptop);
   const c3 = cloud.rows('tests').find(r => r.id === tid);
   const ls3 = await status(l);
-  check(c3.result === 'PHONE: 75 ppm, the later edit' && (await testRow(l, tid)).result === c3.result, 'same field, offline edit older: the newer cloud copy wins on both', c3.result);
+  check(c3.result === P75 && (await testRow(l, tid)).result === c3.result, 'same field, offline edit older: the newer cloud copy wins on both',
+    `${c3.result} · laptop's edit at ${lw?.updatedAt}, phone's at ${pw?.updatedAt}`);
   check((ls3.overwritten ?? []).some(o => o.id === tid), 'and the laptop names the edit of its that was replaced', JSON.stringify(ls3.overwritten?.map(o => o.title)));
 
   /* The phone films a clip while the laptop, offline, adds a photo to the
