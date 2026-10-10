@@ -125,21 +125,40 @@ them first, then the tools, then (later) the lever tree and the 6M.
 
 ## The stage gate held to the principles
 
-Read against the code and the seeded job on 10 October, building on the
-audit of 9 October (`docs/STAGEGATE.md`), the flow audit (`docs/FLOW.md`)
-and the panels audit (`docs/PANELS.md`).
+Read against the code on 10 October (not driven in a browser this time),
+building on the browser audit of 9 October (`docs/STAGEGATE.md`), the flow
+audit (`docs/FLOW.md`) and the panels audit (`docs/PANELS.md`). Checked
+again on 10 October at Rowland's ask ("we need to be sure"): two findings
+were wrong and are corrected below; the rest were read back from the code
+and the arithmetic reworked (the checks are listed under "Checked").
 
 | Principle | What already holds | Where it falls short |
 |---|---|---|
 | 1. Measured by people | Entirely. Nothing in the stage gate reads a machine. | The performance run, the test the line is accepted on, is typed at the end. That is what Rowland asked for on 7 October ("all I do is put in the numbers at the end"), but nothing helps on the day: no clock for the run, no tally for rejects, no stopwatch for the minutes stood. |
-| 2. Recorded once, where the work is | The drawer at the machine: voice, photos, files, "Not yet", "Done today". One card per machine on the phone. A stage's answer is chosen once on the stage list. | **A measured test keeps no measurements.** "Weight accuracy — 400 g" keeps its "passes if" in words and a pass or a fail. The thirty weights live on paper or a checkweigher printout, outside the record. **The filmed walk's frames don't know which machine they show**, so their snags keep a lane of their own and never reach the machine. |
-| 3. Live, never compiled | One `standing()` and one `onTarget()` feed the front page, the day, the client report and the control room. The reports are the record. | Holds. The one compiled thing left is the date "now expected", typed by a person (see 7). |
+| 2. Recorded once, where the work is | The drawer at the machine: voice, photos, files, "Not yet", "Done today". One card per machine on the phone. A stage's answer is chosen once on the stage list. | **A measured test keeps no measurements.** "Weight accuracy — 400 g" keeps its "passes if" in words and a pass or a fail. The thirty weights live on paper or a checkweigher printout, outside the record. **A frame of the filmed walk does not carry its machine.** A snag names its machine in words, one snag at a time (`targetAsset`), and a snag moved to the job becomes a fix on that machine; but the frame itself knows nothing, so the walk's own lane on the plan cannot be drawn under the machine, and the name is typed again on every snag. |
+| 3. Live, never compiled | One `standing()` and one `stageGateOnTarget()` feed the front page, the day, the client report, the handover report and the control room. The reports are the record. | Holds. The one typed fact left in the verdict is the date "now expected" (see 7). The commentary is typed too, and rightly: it is a person's words, not a fact the app holds. |
 | 4. The picture draws itself | The plan draws from the stages' days, the board from their states, the counts and the verdict from both. | **The picture cannot be worked on.** A stage's day is changed in its drawer, never by moving its bar on the plan. |
 | 5. The abnormal finds you | Needs you, the red/amber/indigo/green/grey language, critical problems first, the rail's counts. | **It finds you only when you open the app.** The one thing pushed to a phone is a note's reminder. A stage going late, a test failing or a problem raised on your machine is not. |
 | 6. Proved, not asserted | Every stage has an answer (panel slice 2). The run's verdict is worked out from its numbers, and the programs' results are kept. | Measured tests are judged by eye (see 2). The app cannot say "30 packs, mean 401.2 g, all within tolerance — passed", because it never holds the thirty. |
 | 7. It explains itself | The verdict in a sentence ("Behind target — …"), the day in the order it is used, "not yet" with whose and by when. | **The forecast is a typed date.** The app knows how many stages the plan said would be done by today and how many are, but never says what that pace implies for Hand over. A product's runs on successive days are never drawn as the climb to rate they are. |
-| 8. For people and the bad day | Offline sync, "Not yet", hours lost added into days, who signed, the owner/team/client levels. | Holds. One gap from the earlier audit: a person's load is seen per job (page 3 of the client report), never across the jobs they are on. |
+| 8. For people and the bad day | Offline sync, "Not yet", hours lost added into days, who signed, the owner/team/client levels. Who owes what is seen per job (page 3 of the client report) and across the jobs (the control room: "Ilapak owes 4 on 2B and 2 on 2A"). | Holds. (The first draft said the cross-job view was missing. It is not: `lib/portfolio`.) |
 | (Sustainable) | — | Nothing counted. It could start as a typed meter reading on a performance run (energy, air or water per thousand packs). It is a question for later, not a proposal. |
+
+**Checked, 10 October**, each against the code:
+- the forecast is typed: `expectedAt` is written by hand (ProjectSetup,
+  Tests) and nothing works out a pace;
+- a test holds no readings: `Test` has `passesIf`, `result` and `runs`,
+  nothing numeric per reading;
+- the run on the day: `RunPanel` has no clock, tally or stopwatch;
+- the plan cannot be dragged: no pointer handlers in `Gantt` or
+  `Timeline`;
+- the only push is a note's reminder (`functions/remind`,
+  `lib/reminders`);
+- the balance measures capacity, per product on the line standard
+  (`Standard.capacity`, `lib/capacity`);
+- the arithmetic in the appendix reworked by hand, every worked example;
+- CI on the commit: green. The full gate was not run for a change to
+  documents only.
 
 ## The stage gate — what to build, in slices
 
@@ -239,13 +258,19 @@ test packs through the metal detector, or five seal-strength pulls.
   with a database change shipped the house way (`supabase/<NAME>.sql`,
   applied, read back).
 
-**Slice 6 — The walk knows the machine (principle 2).**
+**Slice 6 — The frame knows the machine (principle 2).**
+- **Today.** A snag can name its machine in words, and one moved to the job
+  becomes a fix on that machine (8 October). The frame it is pinned on does
+  not carry the machine, so the name is typed on every snag, and the walk's
+  lane on the plan stays a lane of its own.
 - **What it does.** On a frame of the filmed walk, one tap says which
-  machine it shows.
-- **Where its snags then appear.** On that machine's page, under its row on
-  the plan, and on its Install card, as well as in the walk's own lane.
-- **Why.** Something entered in one place and seen nowhere else is
-  unfinished.
+  machine it shows. Every snag pinned on it inherits the machine, and a
+  moved snag no longer asks.
+- **Where its snags then appear.** On that machine's page and under its row
+  on the plan, as a branch, as well as in the walk's own lane; and on its
+  Install card as a count.
+- **Why.** Recorded once: the machine is said once per frame, not once per
+  snag.
 
 ## The industrial-engineering toolkit — to agree
 
@@ -299,8 +324,8 @@ on a line.
    - **You put in:**
      - each element timed over several cycles on the phone stopwatch, one
        tap per element;
-     - a pace rating on the British Standard scale, where 100 is a
-       qualified worker's natural brisk pace;
+     - a pace rating on the British Standard scale, where 100 is the pace
+       a qualified, motivated worker keeps all shift without over-exertion;
      - the allowances agreed: relaxation and contingency.
    - **It works out:**
      - basic time = observed × rating ÷ 100;
