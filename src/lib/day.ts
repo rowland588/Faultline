@@ -22,6 +22,8 @@ import {
   filesSaid,
 } from './testing';
 import type { MediaRef } from '../types';
+import type { ToolStudy } from './study';
+import { measuredDays, measuredOn, studyHref } from './studyLinks';
 import { GATE_WORD, lateOrProblem, lateOrProblemSays, doneLateBy, heldUpBy, lateByWords } from './install';
 import { niceDay, todayISO } from './weeks';
 import { isRunTest, readRuns, runsOpen, runsSay } from './run';
@@ -34,6 +36,8 @@ export interface DayInput {
   assets: Asset[];
   materials: Material[];
   programs: Program[];
+  /** The job's studies (lib/study) — what was measured at the line that day. */
+  studies?: ToolStudy[];
 }
 
 /** done · it went wrong · the day came and it did not happen · waiting on a word
@@ -50,6 +54,8 @@ export interface DayLine {
   id?: string;
   /** Where it opens otherwise. */
   go?: 'materials' | 'programs' | 'install';
+  /** A study it opens (lib/studyLinks studyHref). */
+  href?: string;
   /** A stage, late or a problem — which (lib/install lateOrProblem) — and
    *  the words in `text` that say it, drawn in its colour: red for late,
    *  amber for a problem that lost no time. */
@@ -114,6 +120,8 @@ export function activeDays(input: DayInput): string[] {
   for (const a of live(input.assets)) { add(a.onSiteOn); add(a.installedOn); add(a.runningOn); }
   for (const m of live(input.materials)) add(m.inOn);
   for (const p of live(input.programs)) add(p.provedOn);
+  /* …and a day something was measured at the line (lib/study). */
+  for (const s of input.studies ?? []) if (!s.deletedAt) for (const d of measuredDays(s, dayOfMs)) add(d);
   return [...days].sort();
 }
 
@@ -348,6 +356,13 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
       detail: onRec ? `Found on ${named(onRec)}` : undefined,
       tone: 'found', id: i.id,
     });
+  }
+  /* WHAT WAS MEASURED that day — readings taken, laps timed — and what the
+     study says now: evidence found at the line, so it sits with what was found. */
+  for (const s of input.studies ?? []) {
+    if (s.deletedAt) continue;
+    const m = measuredOn(s, date, dayOfMs);
+    if (m) found.push({ text: m.text, tone: m.tone === 'r' ? 'bad' : 'found', href: studyHref(s) });
   }
   /* A fix planned that day is the decision about what was found. */
   for (const f of tests) {

@@ -314,7 +314,7 @@ for (const size of SIZES) {
     const runTest = tests.filter(t => !t.deletedAt && isRunTest(t)).sort((a, b) => productRuns(b).length - productRuns(a).length)[0];
     out.runCard = []; out.runTestId = runTest && productRuns(runTest).length ? runTest.id : undefined;
     if (out.runTestId) cardOf(out.runTestId, 'runCard');
-    const d = dayOf({ tests, items, assets, materials, programs }, today, today);
+    const d = dayOf({ tests, items, assets, materials, programs, studies }, today, today);
     const { stageGateOnTarget } = await import('/src/lib/onTarget.ts');
     const ot = stageGateOnTarget({ project, tests, items, assets, materials, programs, today });
     from = 'day, are we on target?'; add('day', ot.word, ot.reason);

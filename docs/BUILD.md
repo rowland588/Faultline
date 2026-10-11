@@ -310,9 +310,16 @@ found a 3 g pack given the 50–100 g row's error; fixed.
   same study on the same scope, limits already agreed), and **Before →
   after** ("Cpk 0.67 → 1.00 — just capable now. The number moved; what moved
   it is the fix's to say").
-- **Not yet:** the Commission square's count, Needs you ("18 readings still
-  owed") and Today's update. (The 6M side — a cause's evidence and the
-  board's countermeasure — is 2h, below.)
+- **Today's update (2j, 11 October):** a day readings were taken or laps
+  timed is a day with a story — under "What we found", one line per study:
+  "Capability study — Weight accuracy 400 g: 30 readings taken by K. Ahmed —
+  Passed. Not capable: Cpk 0.67 from 30 …", opening the study; on the screen
+  and the day's PDF alike (one reading, `lib/day`). A failing study's line is
+  red. `report-stress` demands every one on the paper.
+- **Not yet:** the Commission square's count and Needs you ("18 readings
+  still owed" — a study has no due day, so it is not yet "owed" by anyone).
+  (The 6M side — a cause's evidence and the board's countermeasure — is 2h,
+  below.)
 
 **2g. The paper.** Built 10 October.
 - **The client report:** each open fix with a study prints its line on its

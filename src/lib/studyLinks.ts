@@ -120,6 +120,27 @@ export function recordProvedLine(studies: ToolStudy[], t: { id: ID; kind?: strin
   return proof ? `Proved by: ${studyTitle(proof)} — ${studyLine(proof).text}` : undefined;
 }
 
+/** WHAT WAS MEASURED ON A DAY (lib/day): the readings or laps a study took
+ *  on that date, who took them, and what it says now — one line for Today's
+ *  update. Nothing when nothing was taken that day. */
+export function measuredOn(s: ToolStudy, date: string, dayOfMs: (ms: number) => string): { text: string; tone: Tone } | undefined {
+  const taken = s.tool === 'balance'
+    ? (s.facts.steps ?? []).flatMap(st => (st.laps ?? []).filter(l => !l.foreign && !l.struck))
+    : (s.facts.readings ?? []).filter(r => !r.struck);
+  const today = taken.filter(x => dayOfMs(x.at) === date);
+  if (!today.length) return undefined;
+  const who = [...new Set(today.map(x => x.who?.trim()).filter((w): w is string => !!w))];
+  const noun = s.tool === 'balance' ? (today.length === 1 ? 'lap timed' : 'laps timed') : (today.length === 1 ? 'reading taken' : 'readings taken');
+  const line = studyLine(s);
+  return { text: `${studyTitle(s)}: ${today.length} ${noun}${who.length ? ` by ${who.join(', ')}` : ''} — ${line.text}`, tone: line.tone };
+}
+
+/** The days a study measured on — Today's update steps to them. */
+export function measuredDays(s: ToolStudy, dayOfMs: (ms: number) => string): string[] {
+  const at = s.tool === 'balance' ? (s.facts.steps ?? []).flatMap(st => (st.laps ?? []).map(l => l.at)) : (s.facts.readings ?? []).map(r => r.at);
+  return [...new Set(at.filter(Number.isFinite).map(dayOfMs))];
+}
+
 /** Where a record a study is used for opens, in its job. */
 export function recordHref(projectId: ID, u: Pick<StudyUse, 'kind' | 'ref'>): string {
   const at = encodeURIComponent;

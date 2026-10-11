@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { linkedTo, beforeAfter, proveItFrom, readingsFor, owedOf, betterWords, worthBetter, studyLine, sameScope, studyHref, studyTitle, currentBalance, countermeasureFrom, recordHref, provedLine, recordProvedLine } from '../studyLinks';
+import { linkedTo, beforeAfter, proveItFrom, readingsFor, owedOf, betterWords, worthBetter, studyLine, sameScope, studyHref, studyTitle, currentBalance, countermeasureFrom, recordHref, provedLine, recordProvedLine, measuredOn, measuredDays } from '../studyLinks';
 import type { ToolStudy } from '../study';
 
 const THIRTY = [400.1, 402.6, 401.6, 400.8, 401.5, 401.3, 400.2, 401.9, 400.6, 400.4, 400.6, 401.2, 401.9, 400.9, 401.8,
@@ -142,5 +142,21 @@ describe('the paper carries what proved it (docs/BUILD.md, 2i)', () => {
     const ev = study({ id: 'e', uses: [{ id: 'u', kind: 'fix', ref: 'f1', role: 'evidence', at: 1 }] });
     expect(recordProvedLine([ev], { id: 'f1', kind: 'fix' })).toMatch(/^How we know: /);
     expect(recordProvedLine([ev], { id: 't9' })).toBeUndefined();
+  });
+});
+
+describe('what was measured on a day (docs/BUILD.md, 2j)', () => {
+  const day = (ms: number) => (ms < 100 ? '2026-10-10' : '2026-10-11');
+  it('the readings taken that day, by whom, and what the study says now', () => {
+    const s = study({ facts: { readings: THIRTY.map((value, i) => ({ id: `r${i}`, value, at: i < 10 ? 50 : 200, ...(i < 10 ? { who: 'K. Ahmed' } : {}) })) } });
+    expect(measuredOn(s, '2026-10-10', day)?.text).toBe(`Capability study — Weight accuracy 400 g: 10 readings taken by K. Ahmed — ${studyLine(s).text}`);
+    expect(measuredOn(s, '2026-10-11', day)?.text).toMatch(/: 20 readings taken — /);
+    expect(measuredOn(s, '2026-10-12', day)).toBeUndefined();
+    expect(measuredDays(s, day).sort()).toEqual(['2026-10-10', '2026-10-11']);
+  });
+  it('a work balance counts its laps, an interruption and a struck lap for nothing', () => {
+    const s = { ...study({}), tool: 'balance' as const, name: 'Maris Piper 2kg', agreed: { balance: { taktSec: 12 } },
+      facts: { steps: [{ id: 'a', order: 0, name: 'x', who: 'Op 1', laps: [{ id: 'l1', sec: 6, at: 50 }, { id: 'l2', sec: 9, at: 50, foreign: true }, { id: 'l3', sec: 1, at: 50, struck: true }] }] } };
+    expect(measuredOn(s, '2026-10-10', day)?.text).toMatch(/^Work balance — Maris Piper 2kg: 1 lap timed — /);
   });
 });

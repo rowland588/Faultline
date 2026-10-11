@@ -11,6 +11,7 @@
  */
 import { useEffect, useState } from 'react';
 import { openRecord } from '../ui/RecordDrawer';
+import { useJobStudies } from '../ui/StudyLinks';
 import { nav, useRoute } from '../state/useRoute';
 import { GATE_PATH } from '../lib/install';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
@@ -38,6 +39,8 @@ const ISO = /^\d{4}-\d{2}-\d{2}$/;
 export function DayScreen({ projectId }: { projectId: string }) {
   const { project, loading } = useProject(projectId);
   const tt = useTesting(projectId);
+  /* What was measured at the line (lib/study) — part of the day's story. */
+  const studies = useJobStudies(projectId);
   const mats = useMaterials(projectId);
   const progs = usePrograms(projectId);
   /* Nothing on the day is typed here, so a client reads all of it; the line
@@ -72,7 +75,7 @@ export function DayScreen({ projectId }: { projectId: string }) {
     );
   }
 
-  const input = { tests: tt.tests, items: tt.items, assets: tt.assets, materials: mats.materials, programs: progs.programs };
+  const input = { tests: tt.tests, items: tt.items, assets: tt.assets, materials: mats.materials, programs: progs.programs, studies };
   const day = dayOf(input, date, today);
   /* ARE WE ON TARGET? — today's answer (lib/onTarget), at the top of the
      update and of its page. On another day it is still today's, and says so. */
@@ -86,6 +89,7 @@ export function DayScreen({ projectId }: { projectId: string }) {
   /* A line about a record opens it in the drawer, over the day (ui/RecordDrawer). */
   const open = (l: DayLine) => {
     if (l.id) openRecord(projectId, l.id);
+    else if (l.href) nav(l.href);
     else if (l.go) nav(`/project/${projectId}/${l.go}`);
   };
 
@@ -108,7 +112,7 @@ export function DayScreen({ projectId }: { projectId: string }) {
       <ul className="dy-lines">
         {s.lines.map((l, i) => (
           <li key={i}>
-            <button className={'dy-line is-' + l.tone} onClick={() => open(l)} disabled={!l.id && !l.go}>
+            <button className={'dy-line is-' + l.tone} onClick={() => open(l)} disabled={!l.id && !l.go && !l.href}>
               <span className="dy-dot" aria-hidden />
               <span className="dy-line-m">
                 {/* The words that say which — "late, 2 h lost" red, "a
