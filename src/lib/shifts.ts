@@ -25,3 +25,17 @@ export function shiftAtTime(shifts: Shift[], at: number): string | null {
   }
   return null;
 }
+
+/** THE WINDOW A SHIFT OWNS ON A DAY (local clock), epoch ms — for a shift's
+ *  loss count (lib/ie/losses): `day` is YYYY-MM-DD, the day the shift
+ *  starts. Nights 22:00–06:00 runs into the next day. Undefined when the
+ *  shift has no times, or the same time twice. */
+export function shiftWindow(s: Pick<Shift, 'start' | 'end'>, day: string): { from: number; to: number } | undefined {
+  const a = mins(s.start), b = mins(s.end);
+  if (a == null || b == null || a === b) return undefined;
+  const [y, m, d] = day.split('-').map(Number);
+  if (!y || !m || !d) return undefined;
+  const from = new Date(y, m - 1, d, Math.floor(a / 60), a % 60).getTime();
+  const to = new Date(y, m - 1, d + (b > a ? 0 : 1), Math.floor(b / 60), b % 60).getTime();
+  return to > from ? { from, to } : undefined;
+}
