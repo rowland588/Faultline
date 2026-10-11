@@ -38,20 +38,23 @@ today can quietly break tomorrow. **Nothing in it is built yet.**
      `scripts/acceptance/` that drives the story in Chromium. Every later
      gate runs it.
 
-## Where we stand — the baseline, 10 October
+## Where we stand — the baseline, 11 October
 
-- **The code on `main` (`c3dfb1c`) is identical to `630d5b9`** (panel slice
-  2). Everything since is documents: `CLAUDE.md`, `docs/LEAN40.md`,
-  `docs/TOOLKIT.md`.
-- **That code passed the full local gate:**
+- **The code on `main` (`957b8d8`) carries releases 1, 2 and 3, tool B (the
+  value stream map) and the sync engine's conditional push** (a push never
+  lands over somebody else's write — the cloud's `rev`).
+- **That code passed the full local gate, in one run, in this order:**
   - type check;
   - lint within its ceiling of 66;
-  - 1,637 unit tests;
+  - 1,791 unit tests;
   - the build;
-  - all 106 screens clean in `smoke`;
-  - 28 reports at three sizes in `report-stress`;
-  - 348 fuzzed reports reconciled;
-  - `sync-two-devices` 10 of 10.
+  - all 114 screens clean in `smoke`;
+  - 31 reports at three sizes in `report-stress`;
+  - the five acceptance scripts (release 1, release 2, step 3, 2h, B);
+  - 380 fuzzed reports reconciled;
+  - `sync-two-devices` 11 of 11 — and 11 of 11 in five consecutive runs on
+    its own before that. The lost reading of scenario 10 was the push's
+    last-writer-wins upsert (the risk table's last row); it is gone.
 
   CI is green on `main`'s head.
 - **Not checked from here: the live database against the mapper.**
