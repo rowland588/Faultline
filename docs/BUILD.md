@@ -532,6 +532,22 @@ information" — with the colours his picture uses: VA green, NE amber, NV red
 - **Where it sits:** on its own, on a line, on a job (as any study); Used for
   on its job.
 
+**B1b. A line's map — what is done, and who does it.** Built 11 October.
+Rowland: "who does it" as departments is a cross-functional business map,
+"that won't work for a single mapping of a line — it's what is done and who
+does it, different people doing different activities on the same line". So
+a map is one of two kinds, chosen when it is started (`agreed.map.scope`):
+- **the business, door to door** — a lane per area the order passes through
+  (the office, planning, stores, a line, despatch); the lanes' heading is
+  **Area**;
+- **one line** — the map sits on the line (and its product's line standard,
+  when the product has one), a lane per person or role on it: the standard's
+  people (Op 1, Op 2 …) offered first, then the machine, the team leader,
+  the fitter, quality, stores; the steps are what is done; the heading is
+  **Who does it**.
+Seeded: Line 7's Maris Piper 2kg, film loaded to pallet away — Op 1, the
+machine, Op 2, Op 3, the team leader.
+
 **B2. Walk it.** Built 11 October. On the phone: say what the step is and
 who does it, **Start** as it begins, **Next step** as it ends — its time the
 time between taps — and the next one is already running; **Last step —

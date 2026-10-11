@@ -16,7 +16,8 @@
  * the future state, copied from today and changed, before → after said; and
  * what it is used for on its job. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getStudy, listWorkspaces, onDataChange, patchStudy } from '../db';
+import { getStandard, getStudy, getWorkspace, listWorkspaces, onDataChange, patchStudy } from '../db';
+import { peopleOf } from '../lib/standard';
 import { useAccess } from '../cloud/access';
 import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
@@ -75,13 +76,18 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
     write(cur => ({ facts: { ...cur.facts, [shown]: fn((shown === 'future' ? cur.facts.future : cur.facts.flow) ?? []) } }));
   const compare = useMemo(() => (shown === 'future' ? new Map((s.facts.flow ?? []).map(x => [x.id, x])) : undefined), [shown, s.facts.flow]);
   const lanesKnown = useLanes(s);
+  /* The business, door to door — or one line: what is done, and who does it. */
+  const onLine = a?.scope === 'line';
+  const [lineName, setLineName] = useState<string | undefined>(undefined);
+  useEffect(() => { if (s.workspaceId) void getWorkspace(s.workspaceId).then(w => setLineName(w?.name)); }, [s.workspaceId]);
+  const laneWord = onLine ? 'Who does it' : 'Area';
 
   return (
     <div className="wrap ie vs-page">
       <header className="ie-head">
         <small className="ie-eyebrow">Value stream map</small>
         <h1 className="ie-name">{s.name || 'Not named'}</h1>
-        <p className="sub ie-where">door to door · started {niceDay(new Date(s.startedAt).toISOString().slice(0, 10))}{s.product ? <> · <b>{s.product}</b></> : null}</p>
+        <p className="sub ie-where">{onLine ? <>one line{lineName ? <> — <b>{lineName}</b></> : null}: what is done, and who does it</> : 'the business, door to door'} · started {niceDay(new Date(s.startedAt).toISOString().slice(0, 10))}{s.product ? <> · <b>{s.product}</b></> : null}</p>
         <WhereItSits s={s} can={can} />
       </header>
 
@@ -130,15 +136,17 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
       )}
 
       {list.length > 0
-        ? <ValueStreamGrid flow={list} f={f} a={a} wasteOnly={wasteOnly} onOpen={(st, n, lead) => setViewing({ st, n, lead })} />
-        : <div className="qsl-empty"><p><b>No steps yet.</b> Start where the order starts — the phone call, the email, the purchase order — and add each step it goes through, in the lane of whoever does it, to the customer.</p></div>}
+        ? <ValueStreamGrid flow={list} f={f} a={a} wasteOnly={wasteOnly} laneWord={laneWord} onOpen={(st, n, lead) => setViewing({ st, n, lead })} />
+        : <div className="qsl-empty"><p><b>No steps yet.</b> {onLine
+          ? 'Start where the work starts on the line — the film loaded, the product arriving — and add each thing that is done, in the lane of the person or role who does it, to the pallet leaving.'
+          : 'Start where the order starts — the phone call, the email, the purchase order — and add each step it goes through, in the lane of the area that does it, to the customer.'}</p></div>}
 
 
       <UsedFor s={s} can={can} me={me} />
 
       {viewing && (
         <Sheet open onClose={() => setViewing(null)} title={`Step ${viewing.n}`}>
-          <StepFacts st={list.find(x => x.id === viewing.st.id) ?? viewing.st} n={viewing.n} leadSoFar={viewing.lead} a={a} was={compare?.get(viewing.st.id)} />
+          <StepFacts st={list.find(x => x.id === viewing.st.id) ?? viewing.st} n={viewing.n} leadSoFar={viewing.lead} a={a} was={compare?.get(viewing.st.id)} laneWord={laneWord} />
           <div className="vs-step-acts">
             {editable && <button type="button" className="btn btn-primary" onClick={() => { setEditing(list.find(x => x.id === viewing.st.id) ?? viewing.st); setViewing(null); }}>Change this step</button>}
             <button type="button" className="btn btn-ghost" onClick={() => setViewing(null)}>Close</button>
@@ -147,7 +155,7 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
       )}
 
       {editing && (
-        <StepSheet key={editing === 'new' ? 'new' : editing.id} step={editing === 'new' ? undefined : editing} list={list} lanes={lanesKnown}
+        <StepSheet key={editing === 'new' ? 'new' : editing.id} step={editing === 'new' ? undefined : editing} list={list} lanes={lanesKnown} onLine={onLine}
           canRemove={can.remove || !s.projectId}
           onClose={() => setEditing(null)}
           onSave={st => { setList(cur => (cur.some(x => x.id === st.id) ? cur.map(x => (x.id === st.id ? st : x)) : [...cur, st])); setEditing(null); }}
@@ -158,13 +166,22 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
   );
 }
 
-/** The lanes this map could use: its own, every line's name, and the usual
- *  ends of a business stream. */
+/** The lanes this map could use: its own first; then, on a line's map, the
+ *  people on its product's line standard (Op 1, Op 2 …) and the usual roles
+ *  on a line; on a business map, every line's name and the usual areas. */
 function useLanes(s: ToolStudy): string[] {
   const [lines, setLines] = useState<string[]>([]);
+  const [people, setPeople] = useState<string[]>([]);
+  const onLine = s.agreed?.map?.scope === 'line';
   useEffect(() => { void listWorkspaces().then(ws => setLines(ws.map(w => w.name))); }, []);
+  useEffect(() => {
+    if (!onLine || !s.standardId) { setPeople([]); return; }
+    void getStandard(s.standardId).then(st => setPeople(st ? peopleOf(st).map((p, i) => p.label?.trim() || `Op ${i + 1}`) : []));
+  }, [onLine, s.standardId]);
   const own = [...new Set([...(s.facts.flow ?? []), ...(s.facts.future ?? [])].map(x => x.lane?.trim()).filter((x): x is string => !!x))];
-  return [...new Set([...own, 'Customer', 'Order office', 'Planning', 'Stores', ...lines, 'Quality', 'Despatch', 'Supplier'])];
+  return onLine
+    ? [...new Set([...own, ...people, 'Machine', 'Team leader', 'Fitter', 'Quality', 'Stores', 'Forklift driver'])]
+    : [...new Set([...own, 'Customer', 'Order office', 'Planning', 'Stores', ...lines, 'Quality', 'Despatch', 'Supplier'])];
 }
 
 const cycleTotal = (list: FlowStep[]) => list.reduce((t, x) => t + (x.cycleSec ?? 0), 0);
@@ -179,8 +196,8 @@ function move(list: FlowStep[], id: string, by: -1 | 1): FlowStep[] {
 }
 
 /* ------------------------------------------------------------ one step */
-function StepSheet({ step, list, lanes, canRemove, onClose, onSave, onMove, onRemove }: {
-  step?: FlowStep; list: FlowStep[]; lanes: string[]; canRemove: boolean;
+function StepSheet({ step, list, lanes, onLine, canRemove, onClose, onSave, onMove, onRemove }: {
+  step?: FlowStep; list: FlowStep[]; lanes: string[]; onLine: boolean; canRemove: boolean;
   onClose: () => void; onSave: (st: FlowStep) => void; onMove: (id: string, by: -1 | 1) => void; onRemove: (id: string) => void;
 }) {
   const sorted = [...list].sort((x, y) => x.order - y.order);
@@ -220,10 +237,10 @@ function StepSheet({ step, list, lanes, canRemove, onClose, onSave, onMove, onRe
   return (
     <Sheet open onClose={onClose} title={step ? 'The step' : 'Add a step'}>
       <form className="vs-step" onSubmit={e => { e.preventDefault(); save(); }}>
-        <label className="field"><span className="field-label">What happens</span>
-          <input className="text-input" value={name} autoFocus={!step} maxLength={120} placeholder="e.g. Order typed into the system" onChange={e => setName(e.target.value)} /></label>
-        <label className="field"><span className="field-label">Who does it — its lane</span>
-          <input className="text-input" value={lane} list="vs-lanes" maxLength={60} placeholder="e.g. Order office" onChange={e => setLane(e.target.value)} />
+        <label className="field"><span className="field-label">{onLine ? 'What is done' : 'What happens'}</span>
+          <input className="text-input" value={name} autoFocus={!step} maxLength={120} placeholder={onLine ? 'e.g. Load the film and splice it' : 'e.g. Order typed into the system'} onChange={e => setName(e.target.value)} /></label>
+        <label className="field"><span className="field-label">{onLine ? 'Who does it — a person or role on the line' : 'Which area does it'}</span>
+          <input className="text-input" value={lane} list="vs-lanes" maxLength={60} placeholder={onLine ? 'e.g. Op 1, Machine, Team leader' : 'e.g. Order office'} onChange={e => setLane(e.target.value)} />
           <datalist id="vs-lanes">{lanes.map(l => <option key={l} value={l} />)}</datalist></label>
         <div className="field"><span className="field-label">What kind of step</span>
           <span className="chip-row" role="radiogroup" aria-label="What kind of step">
@@ -280,6 +297,7 @@ function Agree({ s, onDone }: { s: ToolStudy; onDone: () => void }) {
   const d = Number(demand), h = Number(hours);
   const save = () => {
     const next: AgreedMap = {
+      ...(a?.scope ? { scope: a.scope } : {}),
       ...(supplier.trim() ? { supplier: supplier.trim() } : {}), ...(customer.trim() ? { customer: customer.trim() } : {}),
       ...(demand.trim() && d > 0 ? { demandPerDay: d } : {}), ...(hours.trim() && h > 0 ? { availableSecPerDay: h * 3600 } : {}),
     };

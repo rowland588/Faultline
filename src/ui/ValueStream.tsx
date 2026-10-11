@@ -40,8 +40,10 @@ const COL_W = 34, TOTAL_W = 96;
 /** A time in a square: as short as it can be and still be read. */
 const tiny = (sec: number): string => (sec < 60 ? `${+sec.toFixed(1)}s` : sec < 3600 ? `${Math.round(sec / 60)}m` : sec < 86_400 ? `${+(sec / 3600).toFixed(1)}h` : `${+(sec / 86_400).toFixed(1)}d`);
 
-export function ValueStreamGrid({ flow, f, a, wasteOnly, onOpen }: {
+export function ValueStreamGrid({ flow, f, a, wasteOnly, laneWord = 'Who does it', onOpen }: {
   flow: FlowStep[]; f: FlowFigures; a?: AgreedMap; wasteOnly?: boolean;
+  /** The lanes' heading: "Area" on a business map, "Who does it" on a line's. */
+  laneWord?: string;
   /** A step's square tapped: everything about it opens. */
   onOpen: (st: FlowStep, n: number, leadSoFar: number) => void;
 }) {
@@ -103,7 +105,7 @@ export function ValueStreamGrid({ flow, f, a, wasteOnly, onOpen }: {
           {steps.map((st, i) => square(st, i, i + 1, 'vs-sq vs-seq'))}
           <div className="vs-tot vs-tot-h">Total</div>
 
-          <div className="vs-h vs-areas-h">Who does it</div>
+          <div className="vs-h vs-areas-h">{laneWord}</div>
           {steps.map(st => <div key={st.id} className="vs-gap" />)}
           <div />
           {lanes.map((lane, l) => (
@@ -141,11 +143,11 @@ export function ValueStreamGrid({ flow, f, a, wasteOnly, onOpen }: {
 /** EVERYTHING ABOUT ONE STEP — what opens when its colour is tapped: what
  *  happens, who does it, its value, what kind of step, its times, the lead
  *  time by here, the people, how its job arrives, and whether it must change. */
-export function StepFacts({ st, n, leadSoFar, a, was }: { st: FlowStep; n: number; leadSoFar: number; a?: AgreedMap; was?: FlowStep }) {
+export function StepFacts({ st, n, leadSoFar, a, was, laneWord = 'Who does it' }: { st: FlowStep; n: number; leadSoFar: number; a?: AgreedMap; was?: FlowStep; laneWord?: string }) {
   const v = valueOf(st);
   const w = waitOf(st, a);
   const rows: [string, string][] = [
-    ['Who does it', st.lane || 'Not said'],
+    [laneWord, st.lane || 'Not said'],
     ['What kind of step', KIND_WORD[st.kind]],
     ['The work', st.cycleSec ? `${dur(st.cycleSec)} each time${st.batch && st.batch > 1 ? ` — for ${st.batch} pieces, ${dur(st.cycleSec / st.batch)} a piece` : ''}` : 'no time yet'],
     ['Waits after', w.sec !== undefined ? `${dur(w.sec)}${w.from === 'queue' ? ` — ${st.queue} waiting, at ${a?.demandPerDay} a day` : ''}` : '—'],
@@ -198,7 +200,7 @@ export function WalkIt({ lanes, onStep, onDone }: {
       <label className="field"><span className="field-label">This step — what happens</span>
         <input className="text-input" value={name} placeholder={`Step ${n + 1} — e.g. Order keyed into the system`} onChange={e => setName(e.target.value)} /></label>
       <label className="field"><span className="field-label">Who does it</span>
-        <input className="text-input" value={lane} list="vs-walk-lanes" placeholder="e.g. Order office" onChange={e => setLane(e.target.value)} />
+        <input className="text-input" value={lane} list="vs-walk-lanes" placeholder="e.g. Op 1, the machine, the order office" onChange={e => setLane(e.target.value)} />
         <datalist id="vs-walk-lanes">{lanes.map(l => <option key={l} value={l} />)}</datalist></label>
       <span className="chip-row" role="radiogroup" aria-label="What kind of step">
         {(Object.keys(KIND_WORD) as FlowKind[]).filter(k => k !== 'wait' && k !== 'store').map(k => <button key={k} type="button" role="radio" aria-checked={kind === k} className={'chip' + (kind === k ? ' on' : '')} onClick={() => setKind(k)}>{KIND_WORD[k]}</button>)}

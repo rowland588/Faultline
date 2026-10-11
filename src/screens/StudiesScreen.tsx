@@ -12,7 +12,8 @@
  * One tool today, the capability study (docs/BUILD.md, 2d). Every later tool
  * is one more entry in TOOL_WORDS and one more `tool` on the record. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { listAllStudies, listWorkspaces, onDataChange, putStudy } from '../db';
+import { listAllStudies, listStandardsForLine, listWorkspaces, onDataChange, putStudy } from '../db';
+import type { Standard } from '../lib/standard';
 import { useProjects } from '../lib/useProjects';
 import { now, uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
@@ -140,14 +141,27 @@ function NewStudy({ open, tool, onClose }: { open: boolean; tool: StudyTool; onC
   const [name, setName] = useState('');
   const [machine, setMachine] = useState('');
   const [busy, setBusy] = useState(false);
-  const ready = !!name.trim() && !busy;
+  /* A VALUE STREAM is the business door to door, or one line — what is done
+     and who does it on it (Rowland, 11 October). */
+  const [scope, setScope] = useState<'business' | 'line'>('business');
+  const [lineId, setLineId] = useState('');
+  const [lines, setLines] = useState<Workspace[]>([]);
+  const [standards, setStandards] = useState<Standard[]>([]);
+  useEffect(() => { if (open && tool === 'map') void listWorkspaces().then(setLines); }, [open, tool]);
+  useEffect(() => { if (lineId) void listStandardsForLine(lineId).then(setStandards); else setStandards([]); }, [lineId]);
+  const isLine = tool === 'map' && scope === 'line';
+  const ready = !!name.trim() && !busy && (!isLine || !!lineId);
   const make = async () => {
     if (!ready) return;
     setBusy(true);
     try {
       const t = now();
       const second = machine.trim() ? (tool === 'map' ? { product: machine.trim() } : { machine: machine.trim() }) : {};
+      /* A line's map sits on the line, and on its product's line standard when
+         there is one — its people are the lanes. */
+      const std = isLine ? standards.find(x => !x.deletedAt && x.product.trim().toLowerCase() === machine.trim().toLowerCase()) : undefined;
       const s: ToolStudy = { id: uid(), tool, name: name.trim(), ...second,
+        ...(isLine ? { workspaceId: lineId, agreed: { map: { scope: 'line' as const } } } : {}), ...(std ? { standardId: std.id } : {}),
         facts: {}, uses: [], startedAt: t, createdAt: t, updatedAt: t };
       await putStudy(s);
       setName(''); setMachine(''); onClose();
@@ -157,11 +171,30 @@ function NewStudy({ open, tool, onClose }: { open: boolean; tool: StudyTool; onC
   return (
     <Sheet open={open} onClose={onClose} title={w.add}>
       <form className="lt-new" onSubmit={e => { e.preventDefault(); void make(); }}>
+        {tool === 'map' && (
+          <div className="field"><span className="field-label">What does it map?</span>
+            <span className="chip-row" role="radiogroup" aria-label="What does it map">
+              <button type="button" role="radio" aria-checked={scope === 'business'} className={'chip' + (scope === 'business' ? ' on' : '')} onClick={() => setScope('business')}>The business — door to door</button>
+              <button type="button" role="radio" aria-checked={scope === 'line'} className={'chip' + (scope === 'line' ? ' on' : '')} onClick={() => setScope('line')}>One line — what is done, who does it</button>
+            </span>
+            <span className="sub">{scope === 'line' ? 'A lane for each person or role on the line — Op 1, Op 2, the machine, the team leader.' : 'A lane for each area the order passes through — the office, planning, stores, a line, despatch.'}</span>
+          </div>
+        )}
+        {isLine && (
+          <label className="field"><span className="field-label">Which line?</span>
+            <select className="text-input" value={lineId} aria-label="Which line" onChange={e => setLineId(e.target.value)}>
+              <option value="">Pick the line…</option>
+              {lines.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </select>
+          </label>
+        )}
         <label className="field"><span className="field-label">What is it of?</span>
           <input className="text-input" value={name} maxLength={120} placeholder={w.placeholder} onChange={e => setName(e.target.value)} autoFocus />
         </label>
         <label className="field"><span className="field-label">{w.second.label} <i className="sub">optional</i></span>
-          <input className="text-input" value={machine} maxLength={80} placeholder={w.second.placeholder} onChange={e => setMachine(e.target.value)} />
+          <input className="text-input" value={machine} maxLength={80} placeholder={w.second.placeholder} list={isLine ? 'new-map-products' : undefined} onChange={e => setMachine(e.target.value)} />
+          {isLine && <datalist id="new-map-products">{standards.filter(x => !x.deletedAt).map(x => <option key={x.id} value={x.product} />)}</datalist>}
+          {isLine && standards.length > 0 && <span className="sub">A product with a line standard brings its people as the lanes.</span>}
         </label>
         <button type="submit" className="btn btn-primary" disabled={!ready}>Start it</button>
       </form>

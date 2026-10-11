@@ -105,8 +105,9 @@ export interface FlowStep {
   order: number;
   /** In the floor's (or the office's) own words. */
   name: string;
-  /** WHO does it — its swimlane: a department, a role or a team: "Order
-   *  office", "Planner", "Line 2", "Despatch", "Customer". */
+  /** WHO does it — its swimlane. On a business map an area or department
+   *  ("Order office", "Despatch"); on a line's map a person or role on the
+   *  line ("Op 1", "Machine", "Team leader"). */
   lane: string;
   kind: FlowKind;
   value?: FlowValue;
@@ -132,6 +133,13 @@ export interface FlowStep {
 /** What a value stream is held against: the customer's demand and the
  *  time available, so takt and days of inventory can be worked out. */
 export interface AgreedMap {
+  /** What it covers. Rowland, 11 October: "who does it" as departments is a
+   *  cross-functional business map; "that won't work for a single mapping of
+   *  a line — it's what is done and who does it, different people doing
+   *  different activities on the same line". So a map is the BUSINESS (door
+   *  to door, a lane per area) or ONE LINE (a lane per person or role on it —
+   *  Op 1, Op 2, the machine, the team leader). Absent: the business. */
+  scope?: 'business' | 'line';
   /** Pieces the customer takes a day. */
   demandPerDay?: number;
   /** Seconds a day the work is done in. */

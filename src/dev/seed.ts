@@ -90,6 +90,8 @@ export interface Seeded {
   studyId: string;
   /** The door-to-door value stream map (tool 2). */
   mapId: string;
+  /** One line's map: what is done on Line 7, and who does it. */
+  lineMapId: string;
 }
 
 export async function seedForSmokeTest(): Promise<Seeded> {
@@ -773,6 +775,28 @@ export async function seedForSmokeTest(): Promise<Seeded> {
       fs(11, 'Received at the depot', 'Customer', 'operation', { value: 'needed', cycleSec: 900, batch: 9600 }),
     ] }, uses: [], startedAt: t - 2 * 3_600_000, createdAt: t, updatedAt: t });
 
+  /* AND ONE LINE'S MAP — what is done on Line 7, and who does it: Op 1, Op 2,
+     Op 3 (the Maris Piper standard's people), the machine, the team leader
+     (Rowland, 11 October: "different people doing different activities on
+     the same line"). */
+  const lineMapId = uid();
+  await putStudy({ id: lineMapId, tool: 'map', name: 'Film loaded to pallet away — Maris Piper 2kg', product: 'Maris Piper 2kg',
+    workspaceId: ws.id, standardId: lineOnly,
+    agreed: { map: { scope: 'line', supplier: 'Film loaded', customer: 'Pallet to despatch', demandPerDay: 9600, availableSecPerDay: 16 * H } },
+    facts: { flow: [
+      fs(0, 'Load the film reel', 'Op 1', 'operation', { value: 'needed', cycleSec: 120, batch: 2000 }),
+      fs(1, 'Splice the film', 'Op 1', 'operation', { value: 'needed', cycleSec: 45, batch: 2000 }),
+      fs(2, 'Bag and seal', 'Machine', 'operation', { value: 'adds', cycleSec: 1.2 }),
+      fs(3, 'Check the weight', 'Machine', 'check', { value: 'needed', cycleSec: 0.5 }),
+      fs(4, 'Clear a jam', 'Op 1', 'operation', { value: 'waste', cycleSec: 90, batch: 500, burst: true }),
+      fs(5, 'Pack the bags into the case', 'Op 2', 'operation', { value: 'adds', cycleSec: 8, batch: 6 }),
+      fs(6, 'Tape the case', 'Op 2', 'operation', { value: 'needed', cycleSec: 4, batch: 6 }),
+      fs(7, 'Walk to fetch flat cases', 'Op 2', 'move', { value: 'waste', cycleSec: 60, batch: 120 }),
+      fs(8, 'Stack the case on the pallet', 'Op 3', 'operation', { value: 'needed', cycleSec: 5, batch: 6, waitSec: 25 * 60 }),
+      fs(9, 'Pallet waits for the forklift', 'Op 3', 'wait', { waitSec: 15 * 60 }),
+      fs(10, 'Sign off the pallet', 'Team leader', 'check', { value: 'needed', cycleSec: 60, batch: 720 }),
+    ] }, uses: [], startedAt: t - 3_600_000, createdAt: t, updatedAt: t });
+
   /* A CAPABILITY STUDY, unfiled: the thirty packs of the worked example —
      mean 401.2 g, all within 400–404, Cpk 0.67 (lib/ie/sample). */
   const thirty = [400.1, 402.6, 401.6, 400.8, 401.5, 401.3, 400.2, 401.9, 400.6, 400.4, 400.6, 401.2, 401.9, 400.9, 401.8,
@@ -798,6 +822,6 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     pacedProjectId: paced.id, pacedLineId: pacedLine.id, treeProjectId: tree.id,
     measures: 2, readings: rows.length, materials: 7, programs: 7,
     problemId: misfeeds.id, closedProblemId: gap.id,
-    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, studyId,
+    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, studyId,
   };
 }
