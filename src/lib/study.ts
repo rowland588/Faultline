@@ -89,11 +89,64 @@ export interface BalanceStep {
   typedSec?: number;
 }
 
+/** THE VALUE STREAM (docs/TOOLKIT.md, tool 2): one step, door to door —
+ *  Rowland, 11 October: "VSM is not just a line tool, it's a business tool",
+ *  so a step happens anywhere the order goes: the order office, planning,
+ *  stores, a line, QA, despatch, the supplier, the customer. And "see the
+ *  VSM like a grid — a swimlane grid. We can see a journey of what, who and
+ *  the value": each step sits in the lane of who does it, in the column of
+ *  its turn in the journey, filled by its value. */
+export type FlowKind = 'operation' | 'move' | 'check' | 'wait' | 'store';
+/** Adds value (only an operation can), needed (not value, but required —
+ *  compliance, safety), or waste. Shown by fill, never by a state colour. */
+export type FlowValue = 'adds' | 'needed' | 'waste';
+export interface FlowStep {
+  id: string;
+  order: number;
+  /** In the floor's (or the office's) own words. */
+  name: string;
+  /** WHO does it — its swimlane: a department, a role or a team: "Order
+   *  office", "Planner", "Line 2", "Despatch", "Customer". */
+  lane: string;
+  kind: FlowKind;
+  value?: FlowValue;
+  /** Seconds the work takes each time it is done. */
+  cycleSec?: number;
+  /** Pieces it covers each time — an order of 9,600, a week's plan, a
+   *  pallet. Absent: one. Takt is held against the time a piece. */
+  batch?: number;
+  /** Seconds it sits before the next step. */
+  waitSec?: number;
+  /** Units sitting before it — turned into days of demand when demand is agreed. */
+  queue?: number;
+  people?: number;
+  /** How its next job reaches it (VSM 4.0, kept light): "phone", "email",
+   *  "the ERP", "paper", "the board". */
+  info?: string;
+  /** A kaizen burst: something here must change. */
+  burst?: boolean;
+  /** How its time is known. */
+  source?: 'timed' | 'typed';
+}
+
+/** What a value stream is held against: the customer's demand and the
+ *  time available, so takt and days of inventory can be worked out. */
+export interface AgreedMap {
+  /** Pieces the customer takes a day. */
+  demandPerDay?: number;
+  /** Seconds a day the work is done in. */
+  availableSecPerDay?: number;
+  /** The customer and the supplier — the two ends of the stream. */
+  customer?: string;
+  supplier?: string;
+}
+
 /** What it is judged against, by tool — each tool its own key, so a new tool
  *  adds one and changes none. */
 export interface StudyAgreed {
   readings?: AgreedReadings;
   balance?: AgreedBalance;
+  map?: AgreedMap;
 }
 
 /** What people put in, by tool. Every list is keyed by `id`, so two phones
@@ -102,6 +155,11 @@ export interface StudyFacts {
   readings?: StudyReading[];
   /** A work balance's elements, each with its laps. */
   steps?: BalanceStep[];
+  /** A value stream's steps as it runs today, door to door. */
+  flow?: FlowStep[];
+  /** The same stream as it could run — copied from the flow, then struck,
+   *  merged and shortened. */
+  future?: FlowStep[];
 }
 
 /** What a study is evidence for, inside its job. Both ends write the same
@@ -183,5 +241,7 @@ export function listById<T extends { id: string }>(v: unknown): T[] {
 export function factsOf(v: unknown): StudyFacts {
   const o = v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : {};
   return { ...o, ...(o.readings !== undefined ? { readings: listById<StudyReading>(o.readings) } : {}),
-    ...(o.steps !== undefined ? { steps: listById<BalanceStep>(o.steps).map(st => ({ ...st, laps: listById<Lap>(st.laps) })) } : {}) };
+    ...(o.steps !== undefined ? { steps: listById<BalanceStep>(o.steps).map(st => ({ ...st, laps: listById<Lap>(st.laps) })) } : {}),
+    ...(o.flow !== undefined ? { flow: listById<FlowStep>(o.flow) } : {}),
+    ...(o.future !== undefined ? { future: listById<FlowStep>(o.future) } : {}) };
 }

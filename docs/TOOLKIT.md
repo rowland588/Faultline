@@ -30,7 +30,11 @@ it better, Prove it, before → after), and on the client report; and
 (release 3, step 3) the time study and the work balance as one study per
 product — elements timed on the phone, rated, stacked person by person
 against takt (`lib/ie/balance.ts`), on the line balance's People view, the
-map's work line and the line standard card. The rest is design. Every rule in `CLAUDE.md` holds: measured by
+map's work line and the line standard card; and (tool B, B1) the value
+stream map — door to door, a business tool, drawn as a swimlane grid of who,
+what and the value (`lib/ie/steps.ts`, `ui/ValueStream`). Rowland's answers
+for B, 11 October: value by fill; "VSM is not just a line tool, it's a
+business tool"; the swimlane grid. The rest is design. Every rule in `CLAUDE.md` holds: measured by
 people, additions connect, screen and paper together, one colour one
 meaning, simple with detail, manufacturing is many, and no new noun but
 the one Part 0 argues for.

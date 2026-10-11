@@ -74,6 +74,11 @@ export function parseRoute(hash: string): Route {
   if (segs[0] === 'balances') return { name: 'lineTools', view: 'balance', query };
   /* THE TOOLS' STUDIES (docs/TOOLKIT.md, Part 0): /capability is every
      capability study, unfiled first; /capability/:id is one of them. */
+  /* /value-stream is every value stream map; /value-stream/:id one of them
+     (docs/TOOLKIT.md, tool 2 — a business tool, door to door). */
+  if (segs[0] === 'value-stream') {
+    return segs[1] ? { name: 'study', view: 'map', id: decodeURIComponent(segs[1]), query } : { name: 'studies', view: 'map', query };
+  }
   if (segs[0] === 'capability') {
     return segs[1] ? { name: 'study', view: 'capability', id: decodeURIComponent(segs[1]), query } : { name: 'studies', view: 'capability', query };
   }

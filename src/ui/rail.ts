@@ -110,7 +110,7 @@ export function hereOf(route: Route): string {
     case 'home': return 'home';
     case 'quickSnags': return 'quicksnags';
     case 'lineTools': return route.view === 'balance' ? 'linebalance' : 'linestandard';
-    case 'studies': case 'study': return 'capability';
+    case 'studies': case 'study': return route.view === 'map' ? 'valuestream' : 'capability';
     case 'projectDashboard': {
       const v = route.query.get('view');
       /* `next` is the board as a list; `snags` on a stage-gate job is sent to
@@ -176,6 +176,8 @@ export const toolPlaces = (here: string): RailLine[] => [
   { key: 'linebalance', label: 'Line balance', to: '/balances', on: here === 'linebalance', state: 'n', bare: true, icon: 'chart' },
   /* The capability study — readings against agreed limits, Cpk out (docs/TOOLKIT.md, tool 1). */
   { key: 'capability', label: 'Capability', to: '/capability', on: here === 'capability', state: 'n', bare: true, icon: 'hash' },
+  /* The value stream map — door to door, a business tool, drawn as a swimlane grid (tool 2). */
+  { key: 'valuestream', label: 'Value stream', to: '/value-stream', on: here === 'valuestream', state: 'n', bare: true, icon: 'route' },
 ];
 
 /** THE TOOLS AS ONE GROUP, at the foot of every rail, under paper and

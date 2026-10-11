@@ -88,6 +88,8 @@ export interface Seeded {
   /** A capability study, a quick session: the worked example's thirty packs
    *  (docs/LEAN40.md appendix) — passes, and is not capable. */
   studyId: string;
+  /** The door-to-door value stream map (tool 2). */
+  mapId: string;
 }
 
 export async function seedForSmokeTest(): Promise<Seeded> {
@@ -749,6 +751,28 @@ export async function seedForSmokeTest(): Promise<Seeded> {
       { id: uid(), order: 3, name: 'Stack the pallet', who: 'Op 3', typedSec: 7 },
     ] }, uses: [], startedAt: t - 3_600_000, createdAt: t, updatedAt: t });
 
+  /* A VALUE STREAM MAP, door to door — a business tool (Rowland, 11 October):
+     the order from Tesco through the office, planning, stores, Line 7, QA and
+     despatch, drawn as the swimlane grid (ui/ValueStream). */
+  const mapId = uid(), H = 3600, DY = 86_400;
+  const fs = (order: number, name: string, lane: string, kind: 'operation' | 'move' | 'check' | 'wait' | 'store', o: Record<string, unknown> = {}) => ({ id: uid(), order, name, lane, kind, ...o });
+  await putStudy({ id: mapId, tool: 'map', name: 'Order to delivery — Maris Piper 2kg', product: 'Maris Piper 2kg',
+    agreed: { map: { supplier: 'the order', customer: 'Tesco', demandPerDay: 9600, availableSecPerDay: 16 * H } },
+    facts: { flow: [
+      fs(0, 'Order arrives by EDI', 'Order office', 'operation', { value: 'needed', cycleSec: 300, batch: 9600, waitSec: 4 * H, info: 'the system' }),
+      fs(1, 'Order checked and keyed', 'Order office', 'check', { value: 'needed', cycleSec: 600, batch: 9600, waitSec: 1 * DY, info: 'email' }),
+      fs(2, 'Run planned for the week', 'Planning', 'operation', { value: 'needed', cycleSec: 1800, batch: 48_000, waitSec: 1.5 * DY, info: 'paper', burst: true }),
+      fs(3, 'Film and boxes picked', 'Stores', 'move', { value: 'waste', cycleSec: 900, waitSec: 2 * H }),
+      fs(4, 'Bag and seal', 'Line 7', 'operation', { value: 'adds', cycleSec: 2, people: 1 }),
+      fs(5, 'Weigh and reject', 'Line 7', 'check', { value: 'needed', cycleSec: 1 }),
+      fs(6, 'Case and palletise', 'Line 7', 'operation', { value: 'adds', cycleSec: 6, people: 2 }),
+      fs(7, 'Pallet waits for QA release', 'Quality', 'wait', { waitSec: 6 * H }),
+      fs(8, 'Release checked', 'Quality', 'check', { value: 'needed', cycleSec: 600, batch: 9600 }),
+      fs(9, 'Pallet waits for the lorry', 'Despatch', 'store', { queue: 19_200 }),
+      fs(10, 'Loaded and sent', 'Despatch', 'move', { value: 'needed', cycleSec: 1200 }),
+      fs(11, 'Received at the depot', 'Customer', 'operation', { value: 'needed', cycleSec: 900, batch: 9600 }),
+    ] }, uses: [], startedAt: t - 2 * 3_600_000, createdAt: t, updatedAt: t });
+
   /* A CAPABILITY STUDY, unfiled: the thirty packs of the worked example —
      mean 401.2 g, all within 400–404, Cpk 0.67 (lib/ie/sample). */
   const thirty = [400.1, 402.6, 401.6, 400.8, 401.5, 401.3, 400.2, 401.9, 400.6, 400.4, 400.6, 401.2, 401.9, 400.9, 401.8,
@@ -774,6 +798,6 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     pacedProjectId: paced.id, pacedLineId: pacedLine.id, treeProjectId: tree.id,
     measures: 2, readings: rows.length, materials: 7, programs: 7,
     problemId: misfeeds.id, closedProblemId: gap.id,
-    oldCaseId: oldCase.id, line7Id: otherLine.id, studyId,
+    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, studyId,
   };
 }

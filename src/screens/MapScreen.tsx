@@ -1,0 +1,291 @@
+/* A VALUE STREAM MAP — one study of tool 'map' (docs/TOOLKIT.md, tool 2;
+ * docs/BUILD.md, B1).
+ *
+ * Rowland, 11 October: "VSM is not just a line tool, it's a business tool"
+ * and "see the VSM like a grid — a swimlane grid. We can see a journey of
+ * what, who and the value." So the map is door to door — from the supplier
+ * or the order to the customer — through every department it passes, and it
+ * is drawn as that grid (ui/ValueStream): who down the side, the journey
+ * across, each step filled by its value, the time ladder under it.
+ *
+ * The page, top to bottom: what it is and where it sits (on its own, on a
+ * line, on a job — ui/StudyPlace); what it is held against (the customer,
+ * the supplier, the demand and the time available: takt); the strip and the
+ * reading (lib/ie/steps); the grid; the steps, one tap to change; today or
+ * the future state, copied from today and changed, before → after said; and
+ * what it is used for on its job. */
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { getStudy, listWorkspaces, onDataChange, patchStudy } from '../db';
+import { useAccess } from '../cloud/access';
+import { useSession } from '../cloud/session';
+import { displayName } from '../cloud/team';
+import { can as canAt, type Can } from '../lib/access';
+import { uid } from '../lib/ids';
+import { niceDay } from '../lib/weeks';
+import { nav } from '../state/useRoute';
+import { compareFlows, dur, flowFigures, flowSays, parseDur, share, valueOf } from '../lib/ie/steps';
+import type { AgreedMap, FlowKind, FlowStep, FlowValue, ToolStudy } from '../lib/study';
+import { KIND, VALUE_WORD, ValueStreamGrid } from '../ui/ValueStream';
+import { UsedFor, WhereItSits } from '../ui/StudyPlace';
+import { Sheet } from '../ui/Sheet';
+
+const OWNER = canAt('owner');
+type Which = 'flow' | 'future';
+
+export function MapScreen({ id }: { id: string }) {
+  const [s, setS] = useState<ToolStudy | null | undefined>(undefined);
+  const load = useCallback(async () => setS((await getStudy(id)) ?? null), [id]);
+  useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
+  const jobCan = useAccess(s?.projectId ?? '');
+  /* On a job, the job's rule; on its own or on a line, its people may do all
+     of it, as on any study (TOOLKIT 3.6). */
+  const can = s?.projectId ? jobCan : OWNER;
+  const { session } = useSession();
+  const me = displayName(session?.user.email) || undefined;
+  if (s === undefined) return <div className="wrap ie vs-page"><p className="sub">Opening…</p></div>;
+  if (s === null) return (
+    <div className="wrap ie vs-page">
+      <h1>This map isn’t on this device</h1>
+      <p className="sub">It may have been deleted, or not synced here yet.</p>
+      <button type="button" className="btn" onClick={() => nav('/value-stream')}>Every value stream map</button>
+    </div>
+  );
+  return <ValueStreamMap s={s} can={can} me={me} />;
+}
+
+function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string }) {
+  const hasFuture = (s.facts.future ?? []).length > 0;
+  const [which, setWhich] = useState<Which>('flow');
+  const shown: Which = which === 'future' && hasFuture ? 'future' : 'flow';
+  const a = s.agreed?.map;
+  const list = useMemo(() => (shown === 'future' ? s.facts.future : s.facts.flow) ?? [], [shown, s.facts.future, s.facts.flow]);
+  const f = useMemo(() => flowFigures(list, a), [list, a]);
+  const today = useMemo(() => flowFigures(s.facts.flow, a), [s.facts.flow, a]);
+  const said = flowSays(f, a);
+  const [wasteOnly, setWasteOnly] = useState(false);
+  const [editing, setEditing] = useState<FlowStep | 'new' | null>(null);
+  const [agreeing, setAgreeing] = useState(false);
+  const editable = can.edit;
+  const write = (p: Parameters<typeof patchStudy>[1]) => void patchStudy(s.id, p);
+  const setList = (fn: (cur: FlowStep[]) => FlowStep[]) =>
+    write(cur => ({ facts: { ...cur.facts, [shown]: fn((shown === 'future' ? cur.facts.future : cur.facts.flow) ?? []) } }));
+  const compare = useMemo(() => (shown === 'future' ? new Map((s.facts.flow ?? []).map(x => [x.id, x])) : undefined), [shown, s.facts.flow]);
+  const lanesKnown = useLanes(s);
+
+  return (
+    <div className="wrap ie vs-page">
+      <header className="ie-head">
+        <small className="ie-eyebrow">Value stream map</small>
+        <h1 className="ie-name">{s.name || 'Not named'}</h1>
+        <p className="sub ie-where">door to door · started {niceDay(new Date(s.startedAt).toISOString().slice(0, 10))}{s.product ? <> · <b>{s.product}</b></> : null}</p>
+        <WhereItSits s={s} can={can} />
+      </header>
+
+      {agreeing ? <Agree s={s} onDone={() => setAgreeing(false)} />
+        : (
+          <p className="ie-agreed sub vs-agreed">
+            {a?.supplier || a?.customer ? <>From <b>{a?.supplier || 'the order'}</b> to <b>{a?.customer || 'the customer'}</b>. </> : 'The two ends are not named yet. '}
+            {a?.demandPerDay ? <>The customer takes <b>{a.demandPerDay} a day</b>{a.availableSecPerDay ? <>, worked in <b>{dur(a.availableSecPerDay)}</b> — takt <b>{f.taktSec ? dur(f.taktSec) : '—'}</b></> : ''}. </> : 'No demand agreed yet — takt and days of stock come from it. '}
+            {can.agree && <button type="button" className="linkish" onClick={() => setAgreeing(true)}>{a ? 'Change what it is held against' : 'Name the ends and the demand'}</button>}
+          </p>
+        )}
+
+      {/* THE TOTALS — the value three ways, the share that adds value, the
+          work and the whole lead time; value by its fill and letters. */}
+      <div className="vs-cards" role="group" aria-label="Where the stream stands">
+        <div className="vs-card2"><span><i className="vs-key-i is-adds">VA</i> Adds value</span><b>{dur(f.addsSec)}</b></div>
+        <div className="vs-card2"><span><i className="vs-key-i is-needed">NE</i> Necessary</span><b>{dur(f.neededSec)}</b></div>
+        <div className="vs-card2"><span><i className="vs-key-i is-waste">NV</i> Non-value adding</span><b>{dur(f.wasteSec)}</b></div>
+        <div className="vs-card2"><span>% value added</span><b>{share(f.pce ?? 0)}</b></div>
+        <div className="vs-card2"><span>Cycle time</span><b>{dur(cycleTotal(list))}</b></div>
+        <div className="vs-card2 is-lead"><span>Lead time</span><b>{f.untimed ? '≥ ' : ''}{dur(f.leadSec)}</b></div>
+        {f.taktSec ? <div className="vs-card2"><span>Takt</span><b>{dur(f.taktSec)}</b></div> : null}
+      </div>
+      <div className="ie-says">
+        <p className="ie-say">{said.text}</p>
+        {shown === 'future' && <p className="ie-say vs-compare"><b>Today → the future:</b> {compareFlows(today, f)}</p>}
+        {said.lines.map(l => <p key={l} className="ie-say ie-cap is-n">{l}</p>)}
+      </div>
+
+      <div className="vs-bar">
+        <span className="chip-row" role="tablist" aria-label="Which state">
+          <button type="button" role="tab" aria-selected={shown === 'flow'} className={'chip' + (shown === 'flow' ? ' on' : '')} onClick={() => setWhich('flow')}>Today</button>
+          {hasFuture && <button type="button" role="tab" aria-selected={shown === 'future'} className={'chip' + (shown === 'future' ? ' on' : '')} onClick={() => setWhich('future')}>The future</button>}
+        </span>
+        <button type="button" className="btn" aria-pressed={wasteOnly} onClick={() => setWasteOnly(w => !w)}>{wasteOnly ? 'Show every step' : 'Show only the waste'}</button>
+        {editable && !hasFuture && (s.facts.flow ?? []).length > 0 && (
+          <button type="button" className="btn" onClick={() => { write(cur => ({ facts: { ...cur.facts, future: (cur.facts.flow ?? []).map(x => ({ ...x })) } })); setWhich('future'); }}>Copy to the future</button>
+        )}
+        {editable && <button type="button" className="btn btn-primary" onClick={() => setEditing('new')}>+ Add a step</button>}
+      </div>
+
+      {list.length > 0
+        ? <ValueStreamGrid flow={list} f={f} a={a} wasteOnly={wasteOnly} onOpen={editable ? st => setEditing(st) : undefined} compare={compare} />
+        : <div className="qsl-empty"><p><b>No steps yet.</b> Start where the order starts — the phone call, the email, the purchase order — and add each step it goes through, in the lane of whoever does it, to the customer.</p></div>}
+
+
+      <UsedFor s={s} can={can} me={me} />
+
+      {editing && (
+        <StepSheet key={editing === 'new' ? 'new' : editing.id} step={editing === 'new' ? undefined : editing} list={list} lanes={lanesKnown}
+          canRemove={can.remove || !s.projectId}
+          onClose={() => setEditing(null)}
+          onSave={st => { setList(cur => (cur.some(x => x.id === st.id) ? cur.map(x => (x.id === st.id ? st : x)) : [...cur, st])); setEditing(null); }}
+          onMove={(id, by) => setList(cur => move(cur, id, by))}
+          onRemove={id => { setList(cur => cur.filter(x => x.id !== id)); setEditing(null); }} />
+      )}
+    </div>
+  );
+}
+
+/** The lanes this map could use: its own, every line's name, and the usual
+ *  ends of a business stream. */
+function useLanes(s: ToolStudy): string[] {
+  const [lines, setLines] = useState<string[]>([]);
+  useEffect(() => { void listWorkspaces().then(ws => setLines(ws.map(w => w.name))); }, []);
+  const own = [...new Set([...(s.facts.flow ?? []), ...(s.facts.future ?? [])].map(x => x.lane?.trim()).filter((x): x is string => !!x))];
+  return [...new Set([...own, 'Customer', 'Order office', 'Planning', 'Stores', ...lines, 'Quality', 'Despatch', 'Supplier'])];
+}
+
+const cycleTotal = (list: FlowStep[]) => list.reduce((t, x) => t + (x.cycleSec ?? 0), 0);
+
+/** Move a step one place earlier (−1) or later (+1) in the journey. */
+function move(list: FlowStep[], id: string, by: -1 | 1): FlowStep[] {
+  const sorted = [...list].sort((x, y) => x.order - y.order);
+  const i = sorted.findIndex(x => x.id === id), j = i + by;
+  if (i < 0 || j < 0 || j >= sorted.length) return list;
+  const a = sorted[i].order, b = sorted[j].order;
+  return list.map(x => (x.id === sorted[i].id ? { ...x, order: b } : x.id === sorted[j].id ? { ...x, order: a } : x));
+}
+
+/* ------------------------------------------------------------ one step */
+function StepSheet({ step, list, lanes, canRemove, onClose, onSave, onMove, onRemove }: {
+  step?: FlowStep; list: FlowStep[]; lanes: string[]; canRemove: boolean;
+  onClose: () => void; onSave: (st: FlowStep) => void; onMove: (id: string, by: -1 | 1) => void; onRemove: (id: string) => void;
+}) {
+  const sorted = [...list].sort((x, y) => x.order - y.order);
+  const last = sorted.length ? sorted[sorted.length - 1] : undefined;
+  const [name, setName] = useState(step?.name ?? '');
+  const [lane, setLane] = useState(step?.lane ?? last?.lane ?? '');
+  const [kind, setKind] = useState<FlowKind>(step?.kind ?? 'operation');
+  const [value, setValue] = useState<FlowValue | undefined>(step?.value);
+  const [cycle, setCycle] = useState(step?.cycleSec !== undefined ? dur(step.cycleSec) : '');
+  const [wait, setWait] = useState(step?.waitSec !== undefined ? dur(step.waitSec) : '');
+  const [queue, setQueue] = useState(step?.queue !== undefined ? String(step.queue) : '');
+  const [people, setPeople] = useState(step?.people !== undefined ? String(step.people) : '');
+  const [batch, setBatch] = useState(step?.batch !== undefined ? String(step.batch) : '');
+  const [info, setInfo] = useState(step?.info ?? '');
+  const [burst, setBurst] = useState(!!step?.burst);
+  const cycleSec = cycle.trim() ? parseDur(cycle, 's') : undefined;
+  const waitSec = wait.trim() ? parseDur(wait, 'min') : undefined;
+  const bad = (cycle.trim() && cycleSec === undefined) || (wait.trim() && waitSec === undefined);
+  const ready = !!name.trim() && !!lane.trim() && !bad;
+  /* Only an operation can add value; a wait or a store is waste. */
+  const values: FlowValue[] = kind === 'operation' ? ['adds', 'needed', 'waste'] : kind === 'wait' || kind === 'store' ? [] : ['needed', 'waste'];
+  const save = () => {
+    if (!ready) return;
+    const q = Number(queue), p = Number(people), b = Number(batch);
+    const v = values.includes(value as FlowValue) ? value : undefined;
+    onSave({
+      id: step?.id ?? uid(), order: step?.order ?? (last ? last.order + 1 : 0),
+      name: name.trim(), lane: lane.trim(), kind,
+      ...(v ? { value: v } : {}),
+      ...(cycleSec !== undefined ? { cycleSec } : {}), ...(waitSec !== undefined ? { waitSec } : {}),
+      ...(queue.trim() && q > 0 ? { queue: q } : {}), ...(people.trim() && p > 0 ? { people: p } : {}), ...(batch.trim() && b > 1 ? { batch: b } : {}),
+      ...(info.trim() ? { info: info.trim() } : {}), ...(burst ? { burst: true } : {}),
+      source: step?.source ?? 'typed',
+    });
+  };
+  const v = step ? valueOf(step) : undefined;
+  return (
+    <Sheet open onClose={onClose} title={step ? 'The step' : 'Add a step'}>
+      <form className="vs-step" onSubmit={e => { e.preventDefault(); save(); }}>
+        <label className="field"><span className="field-label">What happens</span>
+          <input className="text-input" value={name} autoFocus={!step} maxLength={120} placeholder="e.g. Order typed into the system" onChange={e => setName(e.target.value)} /></label>
+        <label className="field"><span className="field-label">Who does it — its lane</span>
+          <input className="text-input" value={lane} list="vs-lanes" maxLength={60} placeholder="e.g. Order office" onChange={e => setLane(e.target.value)} />
+          <datalist id="vs-lanes">{lanes.map(l => <option key={l} value={l} />)}</datalist></label>
+        <div className="field"><span className="field-label">What kind of step</span>
+          <span className="chip-row" role="radiogroup" aria-label="What kind of step">
+            {(Object.keys(KIND) as FlowKind[]).map(k => <button key={k} type="button" role="radio" aria-checked={kind === k} className={'chip' + (kind === k ? ' on' : '')} onClick={() => setKind(k)}>{KIND[k].mark} {KIND[k].word}</button>)}
+          </span></div>
+        <div className="field"><span className="field-label">Its value</span>
+          {values.length ? (
+            <span className="chip-row" role="radiogroup" aria-label="Its value">
+              {values.map(x => <button key={x} type="button" role="radio" aria-checked={value === x} className={'chip vs-v is-' + x + (value === x ? ' on' : '')} onClick={() => setValue(value === x ? undefined : x)}>{VALUE_WORD[x]}</button>)}
+            </span>
+          ) : <span className="sub">A {KIND[kind].word.toLowerCase()} is waste — the time is the order sitting still.</span>}
+          {kind !== 'operation' && kind !== 'wait' && kind !== 'store' && <span className="sub"> Only an operation adds value.</span>}
+        </div>
+        <div className="vs-step-times">
+          <label className="field"><span className="field-label">How long the work takes</span>
+            <input className="text-input" value={cycle} inputMode="text" placeholder="e.g. 6 s, 20 min" onChange={e => setCycle(e.target.value)} />
+            <span className={'sub' + (cycle.trim() && cycleSec === undefined ? ' vs-bad' : '')}>{cycle.trim() ? (cycleSec !== undefined ? `= ${dur(cycleSec)}` : 'Not a time — try "6 s" or "20 min"') : 'per piece, or per batch'}</span></label>
+          <label className="field"><span className="field-label">How long it waits after</span>
+            <input className="text-input" value={wait} placeholder="e.g. 40 min, 2 d" onChange={e => setWait(e.target.value)} />
+            <span className={'sub' + (wait.trim() && waitSec === undefined ? ' vs-bad' : '')}>{wait.trim() ? (waitSec !== undefined ? `= ${dur(waitSec)}` : 'Not a time — try "40 min" or "2 d"') : 'or the pieces waiting →'}</span></label>
+          <label className="field"><span className="field-label">Pieces waiting after it <i className="sub">optional</i></span>
+            <input className="text-input" value={queue} inputMode="numeric" placeholder="e.g. 600" onChange={e => setQueue(e.target.value)} /></label>
+          <label className="field"><span className="field-label">Pieces each time <i className="sub">optional</i></span>
+            <input className="text-input" value={batch} inputMode="numeric" placeholder="1 — or an order, a pallet" onChange={e => setBatch(e.target.value)} /></label>
+          <label className="field"><span className="field-label">People <i className="sub">optional</i></span>
+            <input className="text-input" value={people} inputMode="numeric" onChange={e => setPeople(e.target.value)} /></label>
+        </div>
+        <label className="field"><span className="field-label">How its next job reaches it <i className="sub">optional</i></span>
+          <input className="text-input" value={info} list="vs-info" maxLength={60} placeholder="e.g. email, paper, the system, the board" onChange={e => setInfo(e.target.value)} />
+          <datalist id="vs-info">{['paper', 'phone', 'email', 'the system', 'the board', 'word of mouth', 'kanban'].map(x => <option key={x} value={x} />)}</datalist></label>
+        <label className="vs-burst-f"><input type="checkbox" checked={burst} onChange={e => setBurst(e.target.checked)} /> Something here must change ✷</label>
+        {step && v && <p className="sub">Now: {KIND[step.kind].word.toLowerCase()} · {VALUE_WORD[v]}{step.cycleSec ? ` · ${dur(step.cycleSec)}` : ''}.</p>}
+        <div className="vs-step-acts">
+          <button type="submit" className="btn btn-primary" disabled={!ready}>{step ? 'Save' : 'Add it'}</button>
+          {step && <>
+            <button type="button" className="btn" onClick={() => onMove(step.id, -1)}>Earlier</button>
+            <button type="button" className="btn" onClick={() => onMove(step.id, 1)}>Later</button>
+            {canRemove && <button type="button" className="btn btn-ghost" onClick={() => onRemove(step.id)}>Take it off</button>}
+          </>}
+          <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        </div>
+      </form>
+    </Sheet>
+  );
+}
+
+/* ------------------------------------------------- what it is held against */
+function Agree({ s, onDone }: { s: ToolStudy; onDone: () => void }) {
+  const a = s.agreed?.map;
+  const [supplier, setSupplier] = useState(a?.supplier ?? '');
+  const [customer, setCustomer] = useState(a?.customer ?? '');
+  const [demand, setDemand] = useState(a?.demandPerDay ? String(a.demandPerDay) : '');
+  const [hours, setHours] = useState(a?.availableSecPerDay ? String(+(a.availableSecPerDay / 3600).toFixed(2)) : '');
+  const d = Number(demand), h = Number(hours);
+  const save = () => {
+    const next: AgreedMap = {
+      ...(supplier.trim() ? { supplier: supplier.trim() } : {}), ...(customer.trim() ? { customer: customer.trim() } : {}),
+      ...(demand.trim() && d > 0 ? { demandPerDay: d } : {}), ...(hours.trim() && h > 0 ? { availableSecPerDay: h * 3600 } : {}),
+    };
+    void patchStudy(s.id, cur => ({ agreed: { ...cur.agreed, map: next } }));
+    onDone();
+  };
+  return (
+    <form className="ie-agree vs-agree" onSubmit={e => { e.preventDefault(); save(); }}>
+      <h2>What it is held against</h2>
+      <p className="sub">The two ends of the stream, and the customer's demand — so takt and days of stock are worked out, not guessed.</p>
+      <div className="vs-step-times">
+        <label className="field"><span className="field-label">It starts at</span>
+          <input className="text-input" value={supplier} placeholder="e.g. the order, the supplier" onChange={e => setSupplier(e.target.value)} /></label>
+        <label className="field"><span className="field-label">It ends at</span>
+          <input className="text-input" value={customer} placeholder="e.g. Tesco" onChange={e => setCustomer(e.target.value)} /></label>
+        <label className="field"><span className="field-label">The customer takes, a day</span>
+          <input className="text-input" value={demand} inputMode="decimal" placeholder="e.g. 9600" onChange={e => setDemand(e.target.value)} /></label>
+        <label className="field"><span className="field-label">Hours worked, a day</span>
+          <input className="text-input" value={hours} inputMode="decimal" placeholder="e.g. 16" onChange={e => setHours(e.target.value)} /></label>
+      </div>
+      {d > 0 && h > 0 && <p className="sub">Takt: <b>{dur((h * 3600) / d)}</b> a piece.</p>}
+      <div className="vs-step-acts">
+        <button type="submit" className="btn btn-primary">Agree it</button>
+        <button type="button" className="btn btn-ghost" onClick={onDone}>Cancel</button>
+      </div>
+    </form>
+  );
+}
+

@@ -17,6 +17,7 @@ import type { PaceTodoRow } from '../db/rows';
 import type { SixM } from './sixm';
 import { sample, sampleSays, compareSamples, CPK_FROM, CPK_JUST, type SampleSays, type Tone } from './ie/sample';
 import { balance, balanceLine, compareBalances, secs as secsOf } from './ie/balance';
+import { dur as durOf, flowFigures, flowSays } from './ie/steps';
 
 const live = (ss: ToolStudy[]) => ss.filter(s => !s.deletedAt);
 
@@ -30,12 +31,16 @@ export function linkedTo(studies: ToolStudy[], kind: StudyUse['kind'], ref: ID, 
  *  against takt, a measured test by its readings. */
 export function studySays(s: ToolStudy): SampleSays {
   if (s.tool === 'balance') return balanceLine(balance(s.facts.steps, s.agreed?.balance));
+  if (s.tool === 'map') {
+    const f = flowFigures(s.facts.flow, s.agreed?.map);
+    return { text: flowSays(f, s.agreed?.map).text, tone: 'n', verdict: f.steps ? `Lead time ${f.untimed ? 'at least ' : ''}${durOf(f.leadSec)}` : 'No steps yet' };
+  }
   const a = s.agreed?.readings;
   return sampleSays(sample(a, s.facts.readings ?? []), a);
 }
 
 /** Each tool's name, as a study of it is called on screen and on paper. */
-export const TOOL_NAME: Partial<Record<ToolStudy['tool'], string>> = { capability: 'Capability study', balance: 'Work balance' };
+export const TOOL_NAME: Partial<Record<ToolStudy['tool'], string>> = { capability: 'Capability study', balance: 'Work balance', map: 'Value stream map' };
 
 /** "Capability study — Weight accuracy 400 g · Weigher 2". */
 export const studyTitle = (s: Pick<ToolStudy, 'tool' | 'name' | 'machine'>): string =>
@@ -50,6 +55,7 @@ export function studyHref(s: Pick<ToolStudy, 'id' | 'tool' | 'standardId' | 'pro
     if (s.projectId) return `/project/${s.projectId}/standard/${s.standardId}${at}`;
     if (s.workspaceId) return `/w/${s.workspaceId}/standards/${s.standardId}${at}`;
   }
+  if (s.tool === 'map') return `/value-stream/${s.id}`;
   return `/${s.tool}/${s.id}`;
 }
 

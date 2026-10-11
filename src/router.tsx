@@ -44,6 +44,7 @@ const QuickSnagsScreen = lazy(() => import('./snag/QuickSnagsScreen').then(m => 
 const LineToolsScreen = lazy(() => import('./screens/LineToolsScreen').then(m => ({ default: m.LineToolsScreen })));
 const StudiesScreen = lazy(() => import('./screens/StudiesScreen').then(m => ({ default: m.StudiesScreen })));
 const StudyScreen = lazy(() => import('./screens/StudyScreen').then(m => ({ default: m.StudyScreen })));
+const MapScreen = lazy(() => import('./screens/MapScreen').then(m => ({ default: m.MapScreen })));
 const ShareScreen = lazy(() => import('./screens/ShareScreen').then(m => ({ default: m.ShareScreen })));
 import { RequireModel } from './ui/RequireModel';
 import { RecordDrawerHost } from './ui/RecordDrawer';
@@ -125,8 +126,8 @@ function app(route: Route) {
   if (route.name === 'projects') return <ProjectsScreen />;
   if (route.name === 'quickSnags') return <QuickSnagsScreen />;
   if (route.name === 'lineTools') return <LineToolsScreen tool={route.view === 'balance' ? 'balance' : 'map'} />;
-  if (route.name === 'studies') return <StudiesScreen tool="capability" />;
-  if (route.name === 'study' && route.id) return <StudyScreen key={route.id} id={route.id} />;
+  if (route.name === 'studies') return <StudiesScreen key={route.view ?? 'capability'} tool={route.view === 'map' ? 'map' : 'capability'} />;
+  if (route.name === 'study' && route.id) return route.view === 'map' ? <MapScreen key={route.id} id={route.id} /> : <StudyScreen key={route.id} id={route.id} />;
   /* THE PACED SURFACES, each behind the model it belongs to. Binding the id
      once keeps the assertion count where it was — the ratchet only ever comes
      down; see CLAUDE.md. */

@@ -57,7 +57,7 @@ if (bootErrors.length) console.log('errors during boot/seed:', bootErrors);
 
 const ROUTES = [
   ['home', '#/'], ['guide', '#/guide'], ['portfolio', '#/portfolio'],
-  ['projects', '#/projects'], ['snags', '#/snags'], ['line standard tool', '#/standards'], ['line balance tool', '#/balances'], ['capability studies', '#/capability'], ['pace report', '#/pace-report'],
+  ['projects', '#/projects'], ['snags', '#/snags'], ['line standard tool', '#/standards'], ['line balance tool', '#/balances'], ['capability studies', '#/capability'], ['value stream maps', '#/value-stream'], ['pace report', '#/pace-report'],
   ['project dashboard', `#/project/${seeded.projectId}`],
   ['project setup', `#/project/${seeded.projectId}/setup`],
   ['lever tree', `#/project/${seeded.treeProjectId}/tree`],
@@ -82,6 +82,7 @@ const ROUTES = [
   /* A line's own map, on no job, opened from Line balance at its balance. */
   ['line standard on a line — at its balance', `#/w/${seeded.wsId}/standards/${seeded.lineStandardId}?at=balance`],
   ['a capability study — thirty packs, passed, not capable', `#/capability/${seeded.studyId}`],
+  ['a value stream map — order to delivery, door to door, as a swimlane grid', `#/value-stream/${seeded.mapId}`],
   ['the line balance — people, the work timed against takt', `#/w/${seeded.wsId}/standards/${seeded.lineStandardId}?at=balance&view=work`],
   ['line standard — none yet', `#/project/${seeded.pacedProjectId}/standard`],
   ['one install step', `#/project/${seeded.projectId}/testing/${seeded.stepId}`],

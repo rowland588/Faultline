@@ -483,7 +483,51 @@ standard attached to a job and the balance with it; Make it better; Prove
 it, timed again, the earlier opening as itself; before → after on the fix;
 the client report's PDF; and a client changing nothing.
 
-### Release 3 onwards — one tool at a time
+### Tool B — the value stream map, a business tool
+
+Rowland, 11 October, on the decisions for B: **go**; value shown **by fill**,
+never a state colour; and "VSM is not just a line tool, it's a business
+tool" — so a map runs door to door, from the order (or the supplier) to the
+customer, through every department it passes. Then: "see the VSM like a
+grid — a swimlane grid. We can see a journey of what, who and the value",
+with a picture of one (the steps in sequence across, the areas down the
+side, a square per step in its area's lane, VA · NE · NV, the cycle time,
+wait and lead time adding up underneath, played through).
+
+**B1. The map on its own.** Built 11 October.
+- **The record:** a study of tool `map` (no new record, no migration):
+  `facts.flow` — the steps today, each with what happens, **who does it**
+  (its lane), its kind (operation · move · check · wait · store), its value
+  (adds value — only an operation can · necessary · non-value adding — a wait
+  or a store always is), its time each time, the pieces it covers each time,
+  what it waits after (typed, or worked out from the pieces waiting and the
+  demand), people, how its next job reaches it, ✷ something must change;
+  `facts.future` — the same, copied and changed; `agreed.map` — the two ends,
+  the demand a day and the hours worked: takt. Two phones adding steps both
+  keep theirs (merged entry by entry, as every study's lists are).
+- **The arithmetic** (`lib/ie/steps.ts`, tested): lead time = every cycle +
+  every wait; adds value, necessary, non-value adding; % value added; takt;
+  the biggest wait; the longest time **a piece** against takt (a step done
+  once for an order or a week's plan is never "over takt" by its whole
+  time); today → the future, figure by figure; untimed and unmarked steps
+  said, the lead time "at least" until every step has a time.
+- **The page** (`/value-stream`, a line under Tools; `/value-stream/:id`):
+  the totals as cards (adds value, necessary, non-value adding, % value
+  added, cycle time, lead time, takt); the sentence; **the swimlane grid**
+  (`ui/ValueStream`) — classification VA · NE · NV, the sequence, the areas
+  in the order the journey reaches them, a square per step in its lane, and
+  under it the cycle time, the wait and the lead time so far with a total
+  column; **Play the journey** (pause, carry on, speed) lights the steps in
+  turn and adds up the lead time; **Show only the waste**; tap a square for
+  the step, **Change this step** for its sheet; **Copy to the future** and
+  Today / The future, before → after said. On a phone the grid scrolls in
+  its box, the areas pinned.
+- **Where it sits:** on its own, on a line, on a job (as any study); Used for
+  on its job.
+- **Not yet:** Walk it on the phone (B2); Make it better from a waste step
+  and Set as the standard (B3); its page on paper and in the client report,
+  and its acceptance script (B4).
+
 
 **The tools**, from `docs/TOOLKIT.md`, Part 5:
 - B, the map;
