@@ -371,6 +371,11 @@ states, and most "we need to store X" turns out to be "we have never drawn X".
 
 ## Visual management — the rules every screen and PDF follows
 
+**The name and the look are settled.** Reviewed against alternatives on 11
+October (five names; four looks on the same mock screens; a dark theme) and
+kept by Rowland: *Faultline*, the landing blue, the five state colours, the
+type. Do not reopen either without him asking.
+
 Rowland, 2 October: "follow the lean visual management principles throughout
 the app." The test is the one a board on the floor passes: from across the
 room, in three seconds, can you tell what is normal, what is not, and who owes
