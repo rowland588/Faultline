@@ -82,6 +82,11 @@ export function parseRoute(hash: string): Route {
   if (segs[0] === 'capability') {
     return segs[1] ? { name: 'study', view: 'capability', id: decodeURIComponent(segs[1]), query } : { name: 'studies', view: 'capability', query };
   }
+  /* /changeover is every changeover study; /changeover/:id one of them (tool
+     6 — the changeover and its interval, docs/TOOLKIT.md). */
+  if (segs[0] === 'changeover') {
+    return segs[1] ? { name: 'study', view: 'changeover', id: decodeURIComponent(segs[1]), query } : { name: 'studies', view: 'changeover', query };
+  }
   if (segs[0] === 'pace-report') return { name: 'paceReport', query }; // the client report
   if (segs[0] === 'project' && segs[1]) {
     // /project/:id            the project itself

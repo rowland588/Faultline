@@ -11713,3 +11713,66 @@ button.vs-sq:focus-visible { outline: 2.5px solid var(--brand); outline-offset: 
 .vs-by { display: flex; align-items: center; gap: 6px; margin: 2px 0 8px; }
 .vs-other { display: flex; gap: 6px; margin-top: 6px; }
 .vs-other .text-input { flex: 1; min-width: 0; }
+
+/* ============ THE CHANGEOVER — one bar, internal | external (screens/ChangeoverScreen, tool 6) ============
+   Value by fill, never a state colour (TOOLKIT 3.3): work the line stops for
+   is solid ink, work that could be done while it runs is hatched. The only
+   colour is the abnormal — external minutes still inside the stop are amber,
+   minutes over the agreed standard red — in the strip and the says line. */
+.co-products .linkish { margin-left: 8px; }
+.co-body { grid-template-columns: minmax(0, 1fr) 320px; }
+.co-pic { padding: 14px 12px; }
+.co-cap { display: flex; flex-direction: column; gap: 8px; }
+.co-cap .sub { margin: 0; }
+.co-bars { display: grid; gap: 14px; }
+.co-bar-row { display: grid; grid-template-columns: 110px minmax(0, 1fr) auto auto; align-items: center; gap: 10px; }
+.co-bar-l { font-size: var(--t-label); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+.co-bar { display: flex; height: 30px; border-radius: 6px; overflow: hidden; background: color-mix(in srgb, var(--line) 50%, transparent); min-width: 0; }
+.co-seg { display: block; height: 100%; min-width: 2px; box-shadow: inset -1px 0 0 var(--surface); }
+.co-seg.is-internal, .co-key-i.is-internal { background: var(--ink); }
+.co-seg.is-external, .co-key-i.is-external {
+  background: repeating-linear-gradient(135deg, var(--ink-2) 0 4px, var(--surface) 4px 8px);
+}
+.co-seg.is-carried { opacity: 0.45; }
+.co-bar-n { font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+.co-saved { font-size: var(--t-detail); font-weight: 700; white-space: nowrap; }
+.co-saved.is-a { color: var(--st-a); }
+.co-interval { max-width: 72ch; }
+.co-key { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 6px 0 0; }
+.co-key-i { display: inline-block; width: 18px; height: 12px; border-radius: 3px; }
+.co-steps { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.co-step { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 6px 12px 6px 8px; position: relative; }
+.co-step-b { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: var(--tap); padding: 4px; margin: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; border-radius: var(--radius-sm); }
+button.co-step-b { cursor: pointer; }
+button.co-step-b:hover { background: color-mix(in srgb, var(--brand) 5%, transparent); }
+.co-sheet-f { margin: 0 0 8px; }
+.co-better { margin-bottom: 12px; }
+.co-step.is-carried .co-step-n { color: var(--ink-2); }
+/* THE BRANCH OFF A STEP: a fix or a countermeasure was raised from it — a small ink ring, said in words beside it (no state colour). */
+.co-step.has-fix::before { content: ''; position: absolute; top: -4px; left: -4px; width: 9px; height: 9px; border-radius: 50%; background: var(--surface); border: 2px solid var(--ink); }
+.co-step-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.co-step-n { overflow-wrap: anywhere; }
+.co-step-f, .co-branch { font-size: var(--t-detail); }
+.co-branch .linkish { margin-left: 4px; }
+.co-side .chip { min-height: 36px; padding: 4px 10px; font-size: var(--t-detail); }
+.co-side .chip:disabled { cursor: default; opacity: 1; }
+/* The side chips: internal solid ink when on, external hatched — the same fill the bar uses. */
+.chip.co-chip.is-external.on { background: repeating-linear-gradient(135deg, var(--ink) 0 5px, var(--ink-2) 5px 10px); border-color: var(--ink); color: var(--on-brand); }
+.co-fold { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 10px; }
+.co-fold-h { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.co-fold-h .linkish { margin-left: 0; }
+.co-iv-facts { margin: 6px 0 0; max-width: 80ch; }
+.co-iv { gap: 12px; }
+.co-iv-row { border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 12px 10px; margin: 0; display: grid; gap: 6px; }
+.co-iv-p { display: flex; align-items: center; gap: 8px; padding: 0 4px; }
+.co-iv-p .text-input { font-weight: 700; max-width: 320px; }
+.co-lap .co-chip { min-height: var(--tap); }
+@media (max-width: 760px) {
+  .co-body { grid-template-columns: 1fr; }
+  /* ON THE FLOOR: the stopwatch where the thumb is — first, under the sentence. */
+  .co-cap { order: -1; }
+  .co-bar-row { grid-template-columns: 80px minmax(0, 1fr) auto auto; gap: 6px; }
+  .co-bar { height: 26px; }
+  .co-step { grid-template-columns: 1fr; }
+  .co-side { padding-left: 4px; }
+}

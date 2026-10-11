@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { linkedTo, beforeAfter, proveItFrom, readingsFor, owedOf, betterWords, worthBetter, studyLine, sameScope, studyHref, studyTitle, currentBalance, countermeasureFrom, recordHref, provedLine, recordProvedLine, measuredOn, measuredDays, squareWord, linkOf, currentMap, flowLine } from '../studyLinks';
+import { linkedTo, beforeAfter, proveItFrom, readingsFor, owedOf, betterWords, worthBetter, studyLine, sameScope, studyHref, studyTitle, currentBalance, countermeasureFrom, recordHref, provedLine, recordProvedLine, measuredOn, measuredDays, squareWord, linkOf, currentMap, flowLine, currentChangeover, changeoverLine, betterExpect, compareChangeoverStep } from '../studyLinks';
 import { carryFlow } from '../ie/steps';
 import type { ToolStudy } from '../study';
 
@@ -230,5 +230,77 @@ describe('the value stream map inside a change (docs/BUILD.md, B3)', () => {
   it('a step\'s link keeps which step it came from', () => {
     expect(linkOf('fix', 'fx', 'evidence', 1, 'R', 'u', 'q')).toEqual({ id: 'u', kind: 'fix', ref: 'fx', role: 'evidence', at: 1, by: 'R', step: 'q' });
     expect(linkOf('fix', 'fx', 'evidence', 1, undefined, 'u')).toEqual({ id: 'u', kind: 'fix', ref: 'fx', role: 'evidence', at: 1 });
+  });
+});
+
+describe('the changeover inside a change (docs/TOOLKIT.md, tool 6)', () => {
+  const M = 60;
+  const seq = () => [
+    { id: 'clr', order: 0, name: 'Stop and clear the former', sec: 4 * M, side: 'internal' as const, source: 'timed' as const, at: 50, who: 'K. Ahmed' },
+    { id: 'fet', order: 1, name: 'Fetch the next former from the store', sec: 5 * M, side: 'external' as const, source: 'timed' as const, at: 50, who: 'K. Ahmed' },
+    { id: 'tub', order: 2, name: 'Change the former tube', sec: 10 * M, side: 'internal' as const, source: 'timed' as const, at: 200 },
+    { id: 'pre', order: 3, name: 'Pre-stage the film reels', sec: 7 * M, side: 'external' as const, source: 'typed' as const },
+  ];
+  const co = (o: Partial<ToolStudy>): ToolStudy => ({ id: 'c', tool: 'changeover', name: 'Finest Red 2kg → Express 1.25 kg', product: 'Express 1.25 kg', workspaceId: 'ws', projectId: 'job', standardId: 'std',
+    facts: { fromProduct: 'Finest Red 2kg', toProduct: 'Express 1.25 kg', sequence: seq(), perWeek: 6,
+      products: [{ id: 'p1', product: 'Finest Red 2kg', demandPerDay: 7200, ratePerMin: 60 }, { id: 'p2', product: 'Express 1.25 kg', runMinPerDay: 60 }], availableMinPerDay: 300 },
+    uses: [], startedAt: 1, createdAt: 1, updatedAt: 1, ...o });
+
+  it('is called a changeover, opens as itself, and says its minutes then its interval', () => {
+    expect(studyTitle(co({}))).toBe('Changeover — Finest Red 2kg → Express 1.25 kg');
+    expect(studyHref(co({}))).toBe('/changeover/c');
+    expect(studyLine(co({})).text).toBe('26 min now. With the 12 min of external work done while the line runs: 14 min — 72 min a week back, 6 changeovers. Two products at 26 min run every 0.4 days; at 14 min, every 0.2 — daily.');
+    expect(studyLine(co({})).tone).toBe('a');
+    expect(studyLine(co({ facts: { sequence: [] } })).text).toMatch(/^Time the changeover step by step/);
+  });
+  it('Make it better comes from a step — its words the step\'s own figure; the whole changeover is never "made better" at once', () => {
+    expect(worthBetter(co({}))).toBe(false);
+    expect(betterWords(co({}), 'pre')).toBe('Pre-stage the film reels — external, 7 min');
+    expect(betterWords(co({}), 'tub')).toBe('Change the former tube — internal, 10 min');
+    expect(betterExpect(co({}), 'pre')).toBe('Pre-stage the film reels: done while the line runs — the changeover timed again without it inside');
+    expect(betterExpect(co({}), 'tub')).toBe('Change the former tube: internal, 10 min — shorter, or made external, the changeover timed again');
+  });
+  it('a countermeasure from a step: external work inside the stop is Method, an internal step is Machine', () => {
+    const ext = countermeasureFrom(co({}), { id: 'cm', at: 5, step: 'pre' });
+    expect([ext.what, ext.pillar, ext.why, ext.expect]).toEqual(['Pre-stage the film reels — external, 7 min', 'method', 'Changeover — Finest Red 2kg → Express 1.25 kg', betterExpect(co({}), 'pre')]);
+    expect(countermeasureFrom(co({}), { id: 'cm', at: 5, step: 'tub' }).pillar).toBe('machine');
+  });
+  it('Prove it times the same changeover again: the same steps, each carried; the products, the week and the day kept', () => {
+    const p = proveItFrom(co({}), 'fx', { at: 9, id: 'c2', useId: 'u2' });
+    expect([p.tool, p.name, p.workspaceId, p.standardId, p.product, p.uses[0].role]).toEqual(['changeover', 'Finest Red 2kg → Express 1.25 kg', 'ws', 'std', 'Express 1.25 kg', 'proof']);
+    expect((p.facts.sequence ?? []).map(x => [x.id, x.source, x.sec, x.at])).toEqual([['clr', 'carried', 4 * M, undefined], ['fet', 'carried', 5 * M, undefined], ['tub', 'carried', 10 * M, undefined], ['pre', 'carried', 7 * M, undefined]]);
+    expect([p.facts.perWeek, p.facts.availableMinPerDay, p.facts.products?.length, p.facts.fromProduct]).toEqual([6, 300, 2, 'Finest Red 2kg']);
+    expect(sameScope(co({}), p)).toBe(true);
+    expect(sameScope(co({}), { ...p, workspaceId: 'other' })).toBe(false);
+    expect(sameScope(co({}), { ...p, name: 'Express 1.25 kg → Finest Red 2kg' })).toBe(false);
+  });
+  it('before → after: the step the fix came from first, then the minutes; nothing claimed while it is carried', () => {
+    const ev = co({ uses: [{ id: 'u1', kind: 'fix', ref: 'fx', role: 'evidence', at: 1, step: 'pre' }] });
+    const carried = proveItFrom(ev, 'fx', { at: 9, id: 'c2', useId: 'u2' });
+    const early = beforeAfter([ev, carried], 'fx');
+    expect(early?.tone).toBe('n');
+    expect(early?.text).toBe('Pre-stage the film reels: not timed again yet. 26 min → 26 min so far — 4 of 4 steps carried from before, not timed again yet.');
+    /* timed again with the reels pre-staged outside: the step gone from the stop */
+    const timed = { ...carried, facts: { ...carried.facts, sequence: (carried.facts.sequence ?? []).filter(x => x.id !== 'pre').map(x => ({ ...x, source: 'timed' as const })) } };
+    const ba = beforeAfter([ev, timed], 'fx');
+    expect(ba?.tone).toBe('g');
+    expect(ba?.text).toBe('Pre-stage the film reels: taken out of the changeover. 26 min → 19 min (−7 min); 42 min a week back at 6 changeovers. The number moved; what moved it is the fix\'s to say. 5 min of external work is still done with the line stopped.');
+    expect(provedLine([ev, timed], 'fx')).toMatch(/^Before → after: Pre-stage the film reels: taken out/);
+    expect(compareChangeoverStep(seq()[3], { ...seq()[3], sec: 3 * M, source: 'timed' })).toBe('Pre-stage the film reels: 7 min → 3 min');
+    expect(compareChangeoverStep(seq()[3], { ...seq()[3], side: 'internal', source: 'timed' })).toBe('Pre-stage the film reels: internal now — the line stopped for it');
+    expect(compareChangeoverStep(seq()[0], { ...seq()[0], side: 'external', sec: 2 * M, source: 'timed' })).toBe('Stop and clear the former: external now — done while the line runs, 4 min → 2 min');
+  });
+  it('the line\'s and the standard\'s changeover: the newest; one line for the card', () => {
+    const later = co({ id: 'c2', startedAt: 5 });
+    expect(currentChangeover([co({}), later, co({ id: 'x', workspaceId: 'other', startedAt: 9 })], { workspaceId: 'ws' })?.id).toBe('c2');
+    expect(currentChangeover([co({}), co({ id: 'y', standardId: 'other', startedAt: 9 })], { standardId: 'std' })?.id).toBe('c');
+    expect(changeoverLine(co({}))).toEqual({ text: 'Finest Red 2kg → Express 1.25 kg: 26 min, 12 min external inside · every product every 0.4 days', tone: 'a' });
+    expect(changeoverLine(co({ facts: { sequence: [] } }))).toBeUndefined();
+  });
+  it('what was timed on a day: the steps timed, by whom', () => {
+    const day = (ms: number) => (ms < 100 ? '2026-10-10' : '2026-10-11');
+    expect(measuredOn(co({}), '2026-10-10', day)?.text).toMatch(/^Changeover — Finest Red 2kg → Express 1\.25 kg: 2 steps timed by K\. Ahmed — 26 min now/);
+    expect(measuredOn(co({}), '2026-10-11', day)?.text).toMatch(/: 1 step timed — /);
+    expect(measuredDays(co({}), day).sort()).toEqual(['2026-10-10', '2026-10-11']);
   });
 });

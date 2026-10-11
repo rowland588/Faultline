@@ -110,7 +110,7 @@ export function hereOf(route: Route): string {
     case 'home': return 'home';
     case 'quickSnags': return 'quicksnags';
     case 'lineTools': return route.view === 'balance' ? 'linebalance' : 'linestandard';
-    case 'studies': case 'study': return route.view === 'map' ? 'valuestream' : 'capability';
+    case 'studies': case 'study': return route.view === 'map' ? 'valuestream' : route.view === 'changeover' ? 'changeover' : 'capability';
     case 'projectDashboard': {
       const v = route.query.get('view');
       /* `next` is the board as a list; `snags` on a stage-gate job is sent to
@@ -178,6 +178,8 @@ export const toolPlaces = (here: string): RailLine[] => [
   { key: 'capability', label: 'Capability', to: '/capability', on: here === 'capability', state: 'n', bare: true, icon: 'hash' },
   /* The value stream map — always a line's, the departments that touch it included, as a swimlane grid (tool 2). */
   { key: 'valuestream', label: 'Value stream', to: '/value-stream', on: here === 'valuestream', state: 'n', bare: true, icon: 'route' },
+  /* The changeover and its interval — timed step by step, internal or external, and how often each product can run (tool 6). */
+  { key: 'changeover', label: 'Changeover', to: '/changeover', on: here === 'changeover', state: 'n', bare: true, icon: 'time' },
 ];
 
 /** THE TOOLS AS ONE GROUP, at the foot of every rail, under paper and
