@@ -30,10 +30,13 @@ it better, Prove it, before → after), and on the client report; and
 (release 3, step 3) the time study and the work balance as one study per
 product — elements timed on the phone, rated, stacked person by person
 against takt (`lib/ie/balance.ts`), on the line balance's People view, the
-map's work line and the line standard card; and (tool B, B1–B1c) the value
+map's work line and the line standard card; and (tool B, B1–B4) the value
 stream map — a line's, end to end, laid out as a swimlane grid of what, who
 (or where) and the value, nothing drawn (`lib/ie/steps.ts`,
-`ui/ValueStream`). Rowland's answers for B, 11 October: the picture's
+`ui/ValueStream`) — inside a change: Make it better from a waste step, Prove
+it by walking the line again, before → after on the fix, the map's wait and
+waste offered on the 6M fishbone, the flow on the line's card, and the stream
+as a table in each report's Evidence (`lib/report/streamTable`). Rowland's answers for B, 11 October: the picture's
 colours (VA green, NE amber, NV red); the swimlane grid; who does it on a
 line is people, not departments; multi-dimensional; and "remove
 business-wide mapping ... but keep the line large, different departments
