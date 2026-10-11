@@ -75,7 +75,9 @@ export function ValueStreamGrid({ flow, f, a, wasteOnly, by, branched, onOpen }:
   const acc = steps.map(st => (run += (st.cycleSec ?? 0) + (waitOf(st, a).sec ?? 0)));
   const waits = steps.reduce((t, st) => t + (waitOf(st, a).sec ?? 0), 0);
   const cycles = steps.reduce((t, st) => t + (st.cycleSec ?? 0), 0);
-  const cols: CSSProperties = { gridTemplateColumns: `var(--vs-area) repeat(${steps.length}, ${COL_W}px) ${TOTAL_W}px` };
+  /* the columns' widths are the stylesheet's (--vs-col, --vs-tot): wider on a
+     phone, so a square is big enough for a thumb on the floor */
+  const cols: CSSProperties = { gridTemplateColumns: `var(--vs-area) repeat(${steps.length}, var(--vs-col, ${COL_W}px)) var(--vs-tot, ${TOTAL_W}px)` };
 
   /** A step's square: its colour is its value; tapping it opens the step. */
   const square = (st: FlowStep, i: number, body: React.ReactNode, cls: string) => {
