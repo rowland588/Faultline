@@ -339,6 +339,50 @@ nothing:
 7. before → after;
 8. the client report's PDF, read back.
 
+### Release 3 — step 3, the work balance (tools C and D together)
+
+Rowland, 10 October, opening the line balance: "you open 1 of them and see
+both of them ... thought it would be more lean 4.0". Release 2 separated the
+line standard from the line balance; this step makes the balance the work as
+people do it, timed on the phone, instead of speeds typed in.
+
+**One study, `tool: 'balance'`, per product's line standard** (no new record
+and no migration — `studies.tool` already allows it): `agreed.balance` is the
+takt and the allowance, agreed by the owner before the timing; `facts.steps`
+are the elements — the floor's words, whose they are, the laps, the pace seen
+(75 · 90 · 100 · 110 · 125), or a typed time until it is timed. Two phones
+timing one study both keep their laps (merged by id, one level down, as the
+readings are).
+
+**3a. The arithmetic** (`lib/ie/balance.ts`, proved in `balance.test.ts` by
+the toolkit's worked examples): basic = observed × rating ÷ 100, standard =
+basic × (1 + allowance); cycles needed for ±5% at 95% (never under five); a
+far lap flagged, never struck; each person's stack, the fewest people
+⌈work ÷ takt⌉, balance %, the constraint, the crewing check against the map,
+and a suggested balance (the elements in order, filled to takt) that is a
+ghost until somebody presses **Use it**.
+
+**3b. On the screen.** Line balance → **People — the work, timed**, beside
+**Machines — capacity** (nothing in capacity changed). Start it from the
+map's people (their tasks become the first elements), agree the takt
+(seconds, or needed a shift over the minutes), then **Time Op N**: one big
+**Lap**, the element's name on it, **Foreign — leave this out** for an
+interruption. The stacks against the dashed takt line: over takt red,
+typed paler and said "typed", the constraint named. **Set as the standard**
+freezes a receipt; the owner can reopen it.
+
+**3c. Where it shows — off its parent, the line standard:**
+- the map's balance branch has a second line, **The work**, with its sentence
+  and **Time the work ›** / **Open the work ›**;
+- **Who does what** on the map shows each person's "x s of y s takt", red when
+  over;
+- the line standard **card on paper** (and its image) prints each person's
+  seconds of takt beside them, and a **Work:** line under LINE BALANCE;
+- the client report's standards pages print the same card.
+- **Not yet:** the 6M's People and Method bones, a job's front page line
+  ("where the line is limited"), **Make it better** on the constraint, drag
+  between stacks (today: pick whose it is), and its acceptance script.
+
 ### Release 3 onwards — one tool at a time
 
 **The tools**, from `docs/TOOLKIT.md`, Part 5:

@@ -3,14 +3,15 @@
  * screen previews, so what was looked at is exactly what prints. */
 import type { jsPDF } from 'jspdf';
 import type { Standard } from './standard';
-import { cardImage } from './standardCard';
+import { cardImage, type CardWork } from './standardCard';
 
 /** One page per product, in the order given; the first goes on the current
  *  page, which must already be A4 landscape. */
-export async function drawStandards(doc: jsPDF, standards: Standard[], projectName: string, printed: string): Promise<void> {
+export async function drawStandards(doc: jsPDF, standards: Standard[], projectName: string, printed: string,
+  works?: Record<string, CardWork | undefined>): Promise<void> {
   for (let i = 0; i < standards.length; i++) {
     if (i > 0) doc.addPage('a4', 'landscape');
-    const img = await cardImage(standards[i], projectName, printed);
+    const img = await cardImage(standards[i], projectName, printed, works?.[standards[i].id]);
     doc.addImage(img, 'JPEG', 0, 0, 842, 595);
   }
 }

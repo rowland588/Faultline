@@ -26,8 +26,11 @@ catalogue; this says, for the whole toolkit and then tool by tool:
 merge of two phones' readings, the measured test's arithmetic
 (`lib/ie/sample.ts`), the capability study on its own, on the rail, put on a
 line, attached to a job, used for a test or a fix (Take the readings, Make
-it better, Prove it, before → after), and on the client report. The rest is
-design. Every rule in `CLAUDE.md` holds: measured by
+it better, Prove it, before → after), and on the client report; and
+(release 3, step 3) the time study and the work balance as one study per
+product — elements timed on the phone, rated, stacked person by person
+against takt (`lib/ie/balance.ts`), on the line balance's People view, the
+map's work line and the line standard card. The rest is design. Every rule in `CLAUDE.md` holds: measured by
 people, additions connect, screen and paper together, one colour one
 meaning, simple with detail, manufacturing is many, and no new noun but
 the one Part 0 argues for.

@@ -11543,3 +11543,61 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
 .ls-bl-h { font-size: var(--t-label); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .ls-bl-say { font-size: var(--t-detail); color: var(--ink-2); }
 .ls-bl-say.is-short { color: var(--st-r); font-weight: 700; }
+
+/* ===================== THE WORK BALANCE (ui/WorkBalance; docs/TOOLKIT.md tools 3 and 4) =====================
+   The Yamazumi: each person a stack of their elements against the takt line; only the part over takt is red; a typed
+   (not timed) element is a lighter fill, said in words beside it; the suggestion is a dashed grey ghost. */
+.lb-views { margin: 10px 0 4px; }
+.wb-start { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 16px; display: flex; flex-direction: column; gap: 8px; max-width: 720px; }
+.wb-start p { margin: 0; }
+.wb { display: flex; flex-direction: column; gap: 10px; }
+.wb-svg { width: 100%; max-width: 760px; height: auto; display: block; overflow: visible; margin: 0 auto; }
+.wb .linkish, .wb-start .linkish { background: none; border: 0; padding: 0 2px; margin-left: 8px; color: var(--brand); font: inherit; font-size: var(--t-detail); font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; min-height: 32px; }
+.wb-takt { stroke: var(--ink); stroke-width: 2; stroke-dasharray: 8 5; }
+.wb-lw { font-size: 14px; font-weight: 700; fill: var(--ink-2); }
+.wb-seg { fill: var(--ink-2); stroke: var(--surface); stroke-width: 1.5; }
+.wb-seg.is-typed { fill: var(--line-2); }
+.wb-over { fill: var(--st-r); opacity: 0.92; }
+.wb-st { font-size: 11px; font-weight: 700; fill: #fff; text-anchor: middle; pointer-events: none; }
+.wb-st.is-typed { fill: var(--ink); }
+.wb-who { font-size: 13px; font-weight: 700; fill: var(--ink); text-anchor: middle; }
+.wb-w { font-size: 12px; fill: var(--ink-2); text-anchor: middle; }
+.wb-w.is-r { fill: var(--st-r); font-weight: 700; }
+.wb-ghost { fill: none; stroke: var(--st-n); stroke-width: 1.6; stroke-dasharray: 4 3; }
+.wb-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.wb-person { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 10px 12px; }
+.wb-ph { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.wb-ph h3 { margin: 0; font-size: 16px; }
+.wb-pw { font-size: var(--t-detail); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.wb-pw.is-r { color: var(--st-r); font-weight: 700; }
+.wb-time { margin-left: auto; }
+.wb-els { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.wb-el { border-top: 1px solid var(--line); padding-top: 6px; }
+.wb-el-h { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.wb-name { flex: 1 1 220px; font-weight: 600; }
+.wb-who-s { max-width: 150px; }
+.wb-said { margin: 2px 0; font-size: var(--t-detail); color: var(--ink-2); }
+.wb-said.is-a { color: var(--st-a); font-weight: 700; }
+.wb-said.is-n { color: var(--muted); }
+.wb-el-acts { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: var(--t-detail); }
+.wb-el-acts .chip { min-height: 32px; padding: 4px 10px; }
+.wb-typed .text-input { width: 72px; display: inline-block; }
+.wb-rm { color: var(--muted) !important; }
+.wb-laps { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: var(--t-detail); font-variant-numeric: tabular-nums; }
+.wb-laps .linkish { margin-left: 0; }
+.wb-laps .is-struck { text-decoration: line-through; color: var(--muted); }
+.wb-laps .is-foreign { color: var(--muted); }
+.wb-laps .is-far { color: var(--st-a); }
+.wb-add { display: flex; flex-wrap: wrap; gap: 6px; }
+.wb-add .text-input { flex: 1 1 240px; }
+.wb-add .wb-who-i { flex: 0 1 120px; }
+.wb-timer { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 14px; display: flex; flex-direction: column; gap: 10px; max-width: 520px; }
+.wb-t-h { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; justify-content: space-between; }
+.wb-split { display: block; font-size: 44px; font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; color: var(--ink); }
+.wb-split small { font-size: 18px; color: var(--muted); }
+.wb-lap { min-height: 96px; font-size: 20px; font-weight: 800; border: 0; border-radius: var(--radius); background: var(--brand); color: #fff; cursor: pointer; touch-action: manipulation; padding: 10px; }
+.wb-lap:active { background: var(--brand-2); }
+.wb-t-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.wb-t-acts .btn { flex: 1 1 140px; min-height: 48px; }
+.ls-work { font-size: var(--t-detail); color: var(--ink-2); font-variant-numeric: tabular-nums; margin-left: auto; }
+.ls-work.is-r { color: var(--st-r); font-weight: 700; }

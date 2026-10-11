@@ -58,16 +58,50 @@ export interface StudyReading {
   struck?: boolean;
 }
 
+/** A WORK BALANCE's agreement (docs/TOOLKIT.md, tools 3 and 4): the takt it
+ *  is balanced against, and the allowance added to the timed work — agreed
+ *  before the timing, by the owner on a job. */
+export interface AgreedBalance {
+  /** Seconds a piece: the pace the line must keep. */
+  taktSec: number;
+  /** Relaxation and contingency together, as a fraction: 0.14 is 14%. */
+  allowance?: number;
+}
+
+/** One lap of a stopwatch on one element: what it took, when, who timed it.
+ *  Foreign (an interruption) or struck (a mistake) are kept and count for
+ *  nothing. */
+export interface Lap { id: string; sec: number; at: number; who?: string; foreign?: boolean; struck?: boolean }
+
+/** ONE ELEMENT OF WORK — the floor's words, whose it is, and how long it
+ *  takes: timed (laps and the pace seen) or, until it is timed, typed. */
+export interface BalanceStep {
+  id: string;
+  order: number;
+  /** "Fold the case and tape it". */
+  name: string;
+  /** The person doing it — a person on the map ("Op 1"). */
+  who: string;
+  laps?: Lap[];
+  /** The pace seen, on the British Standard scale: 100 is standard. */
+  rating?: number;
+  /** A time typed in, used until the element is timed — said "typed". */
+  typedSec?: number;
+}
+
 /** What it is judged against, by tool — each tool its own key, so a new tool
  *  adds one and changes none. */
 export interface StudyAgreed {
   readings?: AgreedReadings;
+  balance?: AgreedBalance;
 }
 
 /** What people put in, by tool. Every list is keyed by `id`, so two phones
  *  adding to one study both keep what they added (docs/BUILD.md, 2b). */
 export interface StudyFacts {
   readings?: StudyReading[];
+  /** A work balance's elements, each with its laps. */
+  steps?: BalanceStep[];
 }
 
 /** What a study is evidence for, inside its job. Both ends write the same
@@ -148,5 +182,6 @@ export function listById<T extends { id: string }>(v: unknown): T[] {
  *  an older one, must not lose what the newer one put in. */
 export function factsOf(v: unknown): StudyFacts {
   const o = v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : {};
-  return { ...o, ...(o.readings !== undefined ? { readings: listById<StudyReading>(o.readings) } : {}) };
+  return { ...o, ...(o.readings !== undefined ? { readings: listById<StudyReading>(o.readings) } : {}),
+    ...(o.steps !== undefined ? { steps: listById<BalanceStep>(o.steps).map(st => ({ ...st, laps: listById<Lap>(st.laps) })) } : {}) };
 }

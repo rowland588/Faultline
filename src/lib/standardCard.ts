@@ -146,7 +146,11 @@ function drawShape(ctx: CanvasRenderingContext2D, m: StandardMark, ix: number, i
 }
 
 /** The whole card, as a canvas. */
-export async function renderCard(s: Standard, projectName: string, printed: string): Promise<HTMLCanvasElement> {
+/** THE WORK, TIMED (ui/WorkBalance workOf): each person's work against takt,
+ *  and its sentence — printed beside each person and in the footer. */
+export interface CardWork { taktSec: number; people: { who: string; work: number; over: boolean }[]; text: string; short?: string }
+
+export async function renderCard(s: Standard, projectName: string, printed: string, work?: CardWork): Promise<HTMLCanvasElement> {
   /* The photo first: nothing below waits on anything once drawing starts. A
      canvas draws in whatever face is loaded at that instant, so the app's own
      is asked for first — or the card came out in the system face. */
@@ -241,6 +245,12 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
     ctx.fillStyle = '#ffffff'; ctx.font = `800 22px ${FONT}`; ctx.textAlign = 'center'; ctx.fillText(String(i + 1), sx + 22, y + 30); ctx.textAlign = 'left';
     ctx.fillStyle = INK; ctx.font = `800 28px ${FONT}`;
     ctx.fillText(wrap(ctx, p.label || `Person ${i + 1}`, sideW - 64, 1)[0], sx + 60, y + 31);
+    /* Their work against takt, right-aligned on their row — red when over. */
+    const w = work?.people.find(x => x.who === (p.label ?? '').trim());
+    if (w && work) {
+      ctx.textAlign = 'right'; ctx.fillStyle = w.over ? '#9b3227' : INK2; ctx.font = `800 23px ${FONT}`;
+      ctx.fillText(`${w.work.toFixed(1)} s of ${work.taktSec.toFixed(1)} s`, sx + sideW, y + 31); ctx.textAlign = 'left';
+    }
     let ty = y + 31;
     if (p.task) {
       ctx.fillStyle = INK2; ctx.font = `500 23px ${FONT}`;
@@ -286,11 +296,13 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
   /* THE LINE BALANCE for this product (lib/capacity), when it has one: where
      the line is limited, in its own sentence — beside the sign-off, so the
      card at the line says who stands where AND what holds the line back. */
-  if (s.capacity?.stations.length) {
-    const said = analyse(s.capacity).sentence;
+  /* And the work, timed, when it has been: one line each, the two together. */
+  const said = [s.capacity?.stations.length ? analyse(s.capacity).sentence : '', work ? `Work: ${work.short ?? work.text}` : ''].filter(Boolean);
+  if (said.length) {
     ctx.fillStyle = BLUE; ctx.font = `800 17px ${FONT}`; ctx.fillText('L I N E   B A L A N C E', M + 880, fy + 30);
     ctx.fillStyle = INK; ctx.font = `600 20px ${FONT}`;
-    wrap(ctx, said, CARD_W - M - 170 - (M + 880), 2).forEach((l, i) => ctx.fillText(l, M + 880, fy + 56 + i * 24));
+    const lines = said.length === 1 ? wrap(ctx, said[0], CARD_W - M - 170 - (M + 880), 2) : said.map(t => wrap(ctx, t, CARD_W - M - 170 - (M + 880), 1)[0]);
+    lines.forEach((l, i) => ctx.fillText(l, M + 880, fy + 56 + i * 24));
   }
   ctx.textAlign = 'right'; ctx.fillStyle = INK2; ctx.font = `800 24px ${FONT}`;
   ctx.fillText('Faultline', CARD_W - M, fy + 54);
@@ -299,6 +311,6 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
 }
 
 /** The card as a JPEG, for the screen and the PDF alike. */
-export async function cardImage(s: Standard, projectName: string, printed: string): Promise<string> {
-  return (await renderCard(s, projectName, printed)).toDataURL('image/jpeg', 0.9);
+export async function cardImage(s: Standard, projectName: string, printed: string, work?: CardWork): Promise<string> {
+  return (await renderCard(s, projectName, printed, work)).toDataURL('image/jpeg', 0.9);
 }

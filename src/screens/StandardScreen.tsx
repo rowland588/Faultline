@@ -26,6 +26,7 @@ import { offerUndo } from '../ui/Undo';
 import { deleteMap } from '../ui/StandardsCard';
 import { CapacityPanel } from './CapacityPanel';
 import { balanceSays } from './LineToolsScreen';
+import { WorkView, useBalanceFor, workOf } from '../ui/WorkBalance';
 import { useProjects } from '../lib/useProjects';
 import type { SnagAsset } from '../snag/types';
 import { Icon } from '../ui/Icon';
@@ -43,7 +44,8 @@ async function standardsPdf(list: Standard[], name: string) {
   const { drawStandards } = await import('../lib/standardPdf');
   const { jsPDF } = await loadPdfLib();
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-  await drawStandards(doc, list, name, printedToday());
+  const { worksFor } = await import('../ui/WorkBalance');
+  await drawStandards(doc, list, name, printedToday(), await worksFor(list));
   return doc;
 }
 
@@ -64,8 +66,10 @@ function PrintSheet({ list, name, onClose }: { list: Standard[]; name: string; o
     void (async () => {
       try {
         const { cardImage } = await import('../lib/standardCard');
+        const { worksFor } = await import('../ui/WorkBalance');
+        const works = await worksFor(list);
         const out: string[] = [];
-        for (const st of list) out.push(await cardImage(st, name, printedToday()));
+        for (const st of list) out.push(await cardImage(st, name, printedToday(), works[st.id]));
         if (live) setCards(out);
       } catch (e) {
         console.error('line standard card failed', e);
@@ -334,7 +338,12 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
      balance (LINE_TOOLS.sql); Line balance opens the balance alone
      (?at=balance), Line standard the map alone, each one tap from the other.
      It used to be one page, the balance scrolled to under the map. */
-  const atBalance = useRoute().query.get('at') === 'balance';
+  const route = useRoute();
+  const atBalance = route.query.get('at') === 'balance';
+  /* Two views of the balance: the machines (lib/capacity — speeds, as before)
+     and the people (ui/WorkBalance — the work timed at the line, against takt). */
+  const atWork = route.query.get('view') === 'work';
+  const balanceStudy = useBalanceFor(s.id);
   const here = window.location.hash.slice(1).split('?')[0] || home.base;
   const [printing, setPrinting] = useState(false);
   const [product, setProduct] = useState(s.product);
@@ -517,14 +526,22 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
         </div>
       </header>
       <BelongsTo s={s} home={home} can={can} onJob={projectId => void save({ projectId })} />
+      <div className="chip-row lb-views" role="tablist" aria-label="Which balance">
+        <button type="button" role="tab" aria-selected={!atWork} className={'chip' + (!atWork ? ' on' : '')} onClick={() => nav(`${here}?at=balance`)}>Machines — capacity</button>
+        <button type="button" role="tab" aria-selected={atWork} className={'chip' + (atWork ? ' on' : '')} onClick={() => nav(`${here}?at=balance&view=work`)}>People — the work, timed</button>
+      </div>
       <div id="ls-balance" className="ls-balance">
-        <CapacityPanel projectId={s.projectId} board={false} can={can}
-          line={{ id: s.id, name: s.product, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.capacity ? { capacity: s.capacity } : {}) }}
-          onSave={cap => save({ capacity: cap })} />
+        {atWork ? <WorkView s={s} can={can} /> : (
+          <CapacityPanel projectId={s.projectId} board={false} can={can}
+            line={{ id: s.id, name: s.product, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.capacity ? { capacity: s.capacity } : {}) }}
+            onSave={cap => save({ capacity: cap })} />
+        )}
       </div>
     </div>
   );
   const balanceSaid = balanceSays(s);
+  const work = workOf(balanceStudy, people.length || undefined);
+  const workFor = (label?: string) => work?.people.find(w => w.who === (label ?? '').trim());
 
   return (
     <div className="wrap pace ls">
@@ -627,6 +644,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
             <div key={p.id} className="ls-person">
               <MarkIcon kind="person" size={22} />
               <span className="ls-role">{p.label || 'Unnamed'}</span>
+              {work && workFor(p.label) && <span className={'ls-work' + (workFor(p.label)?.over ? ' is-r' : '')}>{(workFor(p.label)?.work ?? 0).toFixed(1)} s of {work.taktSec.toFixed(1)} s</span>}
               {p.task && <p className="ls-task-r">{p.task}</p>}
             </div>
           ))}
@@ -637,6 +655,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
                 onFocus={() => { typing.current = true; }}
                 onChange={e => patchMark(p.id, { label: e.target.value })}
                 onBlur={() => { typing.current = false; void putStandard({ ...s, marks }); }} />
+              {work && workFor(p.label) && <span className={'ls-work' + (workFor(p.label)?.over ? ' is-r' : '')}>{(workFor(p.label)?.work ?? 0).toFixed(1)} s of {work.taktSec.toFixed(1)} s takt</span>}
               <textarea className="ls-task" rows={2} value={p.task ?? ''} aria-label="What they do" placeholder="What they do on this product"
                 onFocus={() => { typing.current = true; }}
                 onChange={e => patchMark(p.id, { task: e.target.value })}
@@ -662,6 +681,13 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
         <span className="ls-bl-h">Line balance</span>
         <span className={'ls-bl-say' + (balanceSaid.short ? ' is-short' : '')}>{balanceSaid.text}</span>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`${here}?at=balance`)}>Open the balance ›</button>
+      </div>
+      {/* THE WORK, TIMED (ui/WorkBalance) — a branch off the map too: what the
+          people's work comes to against takt, and the door to it. */}
+      <div className="ls-balance-line">
+        <span className="ls-bl-h">The work{work?.set ? ' · the standard' : ''}</span>
+        <span className={'ls-bl-say' + (work?.people.some(w => w.over) ? ' is-short' : '')}>{work ? work.text : 'Not timed yet — time each person’s work against takt.'}</span>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`${here}?at=balance&view=work`)}>{work ? 'Open the work ›' : 'Time the work ›'}</button>
       </div>
 
       <Sheet open={!!editingMark && !ro} onClose={() => { if (editingMark) void putStandard({ ...s, marks }); setEditing(null); }}

@@ -737,6 +737,18 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     marks: [{ id: uid(), kind: 'person', x: 30, y: 45, label: 'Op 1', task: 'Feed the bagger' }], capacity: lineBalance, sort: 2, createdAt: t, updatedAt: t });
   await putStandard({ id: lineOnJob, projectId: proj.id, workspaceId: ws.id, product: 'Tesco Express 1.25 kg', marks: [], sort: 3, createdAt: t, updatedAt: t });
 
+  /* A WORK BALANCE on the line's Maris Piper map (ui/WorkBalance): three
+     people at a 12 s takt — Op 1 timed and over takt, Op 2 timed, Op 3 typed. */
+  const lapsOf = (xs: number[]) => xs.map((sec, i) => ({ id: uid(), sec, at: t - (60 - i) * 15_000, who: 'K. Ahmed' }));
+  await putStudy({ id: uid(), tool: 'balance', name: 'Maris Piper 2kg', standardId: lineOnly, workspaceId: ws.id,
+    agreed: { balance: { taktSec: 12, allowance: 0.1 } },
+    facts: { steps: [
+      { id: uid(), order: 0, name: 'Feed the bagger', who: 'Op 1', rating: 100, laps: lapsOf([6.1, 5.9, 6.0, 6.2, 5.8, 6.0]) },
+      { id: uid(), order: 1, name: 'Clear the jams', who: 'Op 1', rating: 110, laps: lapsOf([5.2, 5.0, 5.4, 5.1, 5.3]) },
+      { id: uid(), order: 2, name: 'Fold and tape the case', who: 'Op 2', rating: 100, laps: lapsOf([8.0, 8.2, 7.9, 8.1, 8.0, 7.8]) },
+      { id: uid(), order: 3, name: 'Stack the pallet', who: 'Op 3', typedSec: 7 },
+    ] }, uses: [], startedAt: t - 3_600_000, createdAt: t, updatedAt: t });
+
   /* A CAPABILITY STUDY, unfiled: the thirty packs of the worked example —
      mean 401.2 g, all within 400–404, Cpk 0.67 (lib/ie/sample). */
   const thirty = [400.1, 402.6, 401.6, 400.8, 401.5, 401.3, 400.2, 401.9, 400.6, 400.4, 400.6, 401.2, 401.9, 400.9, 401.8,

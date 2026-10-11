@@ -82,6 +82,7 @@ const ROUTES = [
   /* A line's own map, on no job, opened from Line balance at its balance. */
   ['line standard on a line — at its balance', `#/w/${seeded.wsId}/standards/${seeded.lineStandardId}?at=balance`],
   ['a capability study — thirty packs, passed, not capable', `#/capability/${seeded.studyId}`],
+  ['the line balance — people, the work timed against takt', `#/w/${seeded.wsId}/standards/${seeded.lineStandardId}?at=balance&view=work`],
   ['line standard — none yet', `#/project/${seeded.pacedProjectId}/standard`],
   ['one install step', `#/project/${seeded.projectId}/testing/${seeded.stepId}`],
   /* The record's page is the card now; an old /card link must land on it. */

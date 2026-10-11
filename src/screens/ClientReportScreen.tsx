@@ -99,7 +99,7 @@ async function buildPdf(r: ClientReport, withStandards: boolean): Promise<jsPDF>
     /* The plan page grouped the way this device's plan is drawn. */
     planBy: ganttBy(),
     standards: withStandards && r.standards.length
-      ? async d => { const { drawStandards } = await import('../lib/standardPdf'); await drawStandards(d, r.standards, r.name, r.printed); }
+      ? async d => { const { drawStandards } = await import('../lib/standardPdf'); const { worksFor } = await import('../ui/WorkBalance'); await drawStandards(d, r.standards, r.name, r.printed, await worksFor(r.standards)); }
       : undefined,
   });
   return doc;
