@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { linkedTo, beforeAfter, proveItFrom, readingsFor, owedOf, betterWords, worthBetter, studyLine, sameScope } from '../studyLinks';
+import { linkedTo, beforeAfter, proveItFrom, readingsFor, owedOf, betterWords, worthBetter, studyLine, sameScope, studyHref, studyTitle, currentBalance } from '../studyLinks';
 import type { ToolStudy } from '../study';
 
 const THIRTY = [400.1, 402.6, 401.6, 400.8, 401.5, 401.3, 400.2, 401.9, 400.6, 400.4, 400.6, 401.2, 401.9, 400.9, 401.8,
@@ -61,5 +61,49 @@ describe('the other doors', () => {
   it('a study’s line carries both sentences, and an overrule beside them', () => {
     expect(studyLine(study({})).text).toBe('30 readings, mean 401.2 g, 400.1–402.6, all within 400.0–404.0 g — Passed. Not capable: Cpk 0.67 from 30 — about 2 in 100 would be light.');
     expect(studyLine(study({ overrule: { verdict: 'Didn’t pass', why: 'the tare was wrong', by: 'K. Ahmed', at: 1 } })).text).toMatch(/Overruled: Didn’t pass by K\. Ahmed — the tare was wrong\.$/);
+  });
+});
+
+describe('a work balance is evidence like any study (docs/BUILD.md, 3d)', () => {
+  const steps = (op1: number) => [
+    { id: 'a', order: 0, name: 'Feed the bagger', who: 'Op 1', typedSec: op1 },
+    { id: 'b', order: 1, name: 'Fold and tape the case', who: 'Op 2', laps: [8, 8.2, 7.9, 8.1, 8].map((sec, i) => ({ id: `l${i}`, sec, at: i })), rating: 110 },
+    { id: 'c', order: 2, name: 'Stack the pallet', who: 'Op 3', typedSec: 7 },
+  ];
+  const bal = (o: Partial<ToolStudy>): ToolStudy => ({ id: 'w', tool: 'balance', name: 'Maris Piper 2kg', standardId: 'std', workspaceId: 'ws',
+    agreed: { balance: { taktSec: 12 } }, facts: { steps: steps(12.9) }, uses: [], startedAt: 1, createdAt: 1, updatedAt: 1, ...o });
+  it('is called a work balance, said in its own words, the one over takt first', () => {
+    expect(studyTitle(bal({}))).toBe('Work balance — Maris Piper 2kg');
+    expect(studyLine(bal({})).text).toMatch(/^Op 1 carries 12\.9 s — over takt by 0\.9 s\. 28\.7 s of work at a 12\.0 s takt/);
+    expect(studyLine(bal({})).text).not.toMatch(/limits|readings/);
+  });
+  it('opens on its line standard — the job’s when attached, else the line’s — as itself', () => {
+    expect(studyHref(bal({}))).toBe('/w/ws/standards/std?at=balance&view=work&study=w');
+    expect(studyHref(bal({ projectId: 'p1' }))).toBe('/project/p1/standard/std?at=balance&view=work&study=w');
+    expect(studyHref(study({ id: 'cap' }))).toBe('/capability/cap');
+  });
+  it('the line standard reads the newest timing of it', () => {
+    expect(currentBalance([bal({ id: 'old', startedAt: 1 }), bal({ id: 'new', startedAt: 5 }), bal({ id: 'gone', startedAt: 9, deletedAt: 10 })], 'std')?.id).toBe('new');
+  });
+  it('Make it better names whoever is over takt and by how much; within takt, nothing to make better', () => {
+    expect(worthBetter(bal({}))).toBe(true);
+    expect(betterWords(bal({}))).toBe('Maris Piper 2kg: Op 1 carries 12.9 s against a 12.0 s takt — take 0.9 s of work off Op 1, or change how it is done.');
+    expect(worthBetter(bal({ facts: { steps: steps(10) } }))).toBe(false);
+  });
+  it('Prove it times the same elements again: no laps, no pace, typed only where never timed', () => {
+    const p = proveItFrom(bal({ projectId: 'p1' }), 'f1', { at: 9, id: 'pr', useId: 'u9' });
+    expect([p.tool, p.standardId, p.projectId]).toEqual(['balance', 'std', 'p1']);
+    expect(p.facts.steps?.map(s => [s.name, s.laps, s.rating, s.typedSec])).toEqual([
+      ['Feed the bagger', undefined, undefined, 12.9], ['Fold and tape the case', undefined, undefined, undefined], ['Stack the pallet', undefined, undefined, 7]]);
+    expect(sameScope(p, bal({}))).toBe(true);
+    expect(sameScope(p, bal({ standardId: 'other' }))).toBe(false);
+    expect(sameScope(p, bal({ agreed: { balance: { taktSec: 10 } } }))).toBe(false);
+  });
+  it('before → after on the fix, by the longest stack against takt', () => {
+    const ev = bal({ id: 'ev', uses: [{ id: 'u1', kind: 'fix', ref: 'f1', role: 'evidence', at: 1 }] });
+    const pr = bal({ id: 'pr', startedAt: 5, facts: { steps: steps(9.5) }, uses: [{ id: 'u2', kind: 'fix', ref: 'f1', role: 'proof', at: 5 }] });
+    const ba = beforeAfter([ev, pr], 'f1');
+    expect(ba?.text).toMatch(/^The longest stack 12\.9 s → 9\.5 s against a 12\.0 s takt · \d+% → \d+% balanced — within takt now\. The number moved/);
+    expect(ba?.tone).toBe('g');
   });
 });

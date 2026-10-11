@@ -1,6 +1,6 @@
 /* The work balance's arithmetic, proved by docs/TOOLKIT.md's worked examples. */
 import { describe, it, expect } from 'vitest';
-import { element, balance, balanceSays, suggest, cyclesNeeded, elementSays, keptLaps } from '../balance';
+import { element, balance, balanceSays, suggest, cyclesNeeded, elementSays, keptLaps, compareBalances, balanceLine } from '../balance';
 import type { BalanceStep } from '../../study';
 
 const laps = (xs: number[]) => xs.map((sec, i) => ({ id: `l${i}`, sec, at: i }));
@@ -57,6 +57,15 @@ describe('the Yamazumi (tool 4)', () => {
     const f = balance([{ id: 'a', order: 0, name: 'a', who: 'Op 1', laps: laps([5, 5, 5, 5, 5]) }, { id: 'b', order: 1, name: 'b', who: 'Op 1', typedSec: 3 }], { taktSec: 12 });
     expect(f.people[0].source).toBe('typed');
   });
+  it('an element with no time is not zero: no headcount, balance or constraint until every element has one', () => {
+    const f = balance([...steps.slice(0, 2), { id: 'u', order: 7, name: 'Untimed', who: 'Op 3' }, { id: 'v', order: 8, name: 'Also', who: 'Op 4' }], { taktSec: 12 });
+    expect([f.fewest, f.efficiency, f.constraint, f.untimed]).toEqual([undefined, undefined, undefined, 2]);
+    const s = balanceSays(f, 4);
+    expect(s.text).toBe('2 of 4 elements have a time — 23.0 s of work so far at a 12.0 s takt. Time the rest to read the balance.');
+    expect([s.tone, s.lines]).toEqual(['n', []]);
+    const over = balanceSays(balance([{ id: 'a', order: 0, name: 'a', who: 'Op 1', typedSec: 13 }, { id: 'b', order: 1, name: 'b', who: 'Op 2' }], { taktSec: 12 }));
+    expect([over.tone, over.lines[0].text]).toEqual(['r', 'Op 1 carries 13.0 s — over takt by 1.0 s.']);
+  });
   it('no takt, nothing to balance against; no elements, nothing to time', () => {
     expect(balanceSays(balance(steps, undefined)).text).toMatch(/^Agree the takt/);
     expect(balanceSays(balance([], { taktSec: 12 })).text).toMatch(/^List the work/);
@@ -67,5 +76,28 @@ describe('the Yamazumi (tool 4)', () => {
     const g = suggest(f);
     expect(g?.map(x => x.work)).toEqual([12, 8, 12]);
     expect(g?.map(x => x.who)).toEqual(['Op 1', 'Op 2', 'Op 3']);
+  });
+});
+
+describe('before → after on a balance', () => {
+  const at = (ts: number[]) => ts.map((t, i) => ({ id: `e${i}`, order: i, name: `E${i}`, who: `Op ${i + 1}`, typedSec: t }));
+  it('over takt before, within after: said with both numbers and who', () => {
+    const c = compareBalances(balance(at([12.9, 8, 6]), { taktSec: 12 }), balance(at([11.6, 9, 7]), { taktSec: 12 }));
+    expect(c.text).toBe("The longest stack 12.9 s → 11.6 s against a 12.0 s takt · 70% → 79% balanced — within takt now. The number moved; what moved it is the fix's to say.");
+    expect(c.tone).toBe('g');
+  });
+  it('the constraint moved to someone else: both named; still over is red', () => {
+    const c = compareBalances(balance(at([12.9, 8]), { taktSec: 12 }), balance(at([10, 12.4]), { taktSec: 12 }));
+    expect(c.text).toMatch(/^The longest stack 12\.9 s \(Op 1\) → 12\.4 s \(Op 2\) against a 12\.0 s takt .* — still over by 0\.4 s\./);
+    expect(c.tone).toBe('r');
+  });
+  it('an untimed element on either side: too early', () => {
+    const c = compareBalances(balance([...at([12.9]), { id: 'x', order: 5, name: 'x', who: 'Op 2' }], { taktSec: 12 }), balance(at([11]), { taktSec: 12 }));
+    expect(c.tone).toBe('n');
+  });
+  it('the line for paper leads with whoever is over', () => {
+    const l = balanceLine(balance(at([12.9, 8, 6]), { taktSec: 12 }));
+    expect(l.verdict).toBe('Over takt');
+    expect(l.text).toBe('Op 1 carries 12.9 s — over takt by 0.9 s. 26.9 s of work at a 12.0 s takt — 3 people needed, 3 working.');
   });
 });

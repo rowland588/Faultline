@@ -148,7 +148,7 @@ function drawShape(ctx: CanvasRenderingContext2D, m: StandardMark, ix: number, i
 /** The whole card, as a canvas. */
 /** THE WORK, TIMED (ui/WorkBalance workOf): each person's work against takt,
  *  and its sentence — printed beside each person and in the footer. */
-export interface CardWork { taktSec: number; people: { who: string; work: number; over: boolean }[]; text: string; short?: string }
+export interface CardWork { taktSec: number; people: { who: string; work: number; over: boolean; untimed?: boolean }[]; text: string; short?: string }
 
 export async function renderCard(s: Standard, projectName: string, printed: string, work?: CardWork): Promise<HTMLCanvasElement> {
   /* The photo first: nothing below waits on anything once drawing starts. A
@@ -249,7 +249,7 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
     const w = work?.people.find(x => x.who === (p.label ?? '').trim());
     if (w && work) {
       ctx.textAlign = 'right'; ctx.fillStyle = w.over ? '#9b3227' : INK2; ctx.font = `800 23px ${FONT}`;
-      ctx.fillText(`${w.work.toFixed(1)} s of ${work.taktSec.toFixed(1)} s`, sx + sideW, y + 31); ctx.textAlign = 'left';
+      ctx.fillText(w.untimed ? `${w.work.toFixed(1)} s so far` : `${w.work.toFixed(1)} s of ${work.taktSec.toFixed(1)} s`, sx + sideW, y + 31); ctx.textAlign = 'left';
     }
     let ty = y + 31;
     if (p.task) {

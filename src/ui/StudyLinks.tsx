@@ -19,12 +19,12 @@ import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
 import { now, uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
-import { linkedTo, studyLine, studySays, owedOf, beforeAfter, proveItFrom, readingsFor } from '../lib/studyLinks';
+import { linkedTo, studyLine, studySays, owedOf, beforeAfter, proveItFrom, readingsFor, studyHref, studyTitle } from '../lib/studyLinks';
 import type { Test } from '../lib/testing';
 import type { ToolStudy } from '../lib/study';
 import type { Can } from '../lib/access';
 
-const href = (s: ToolStudy) => `/${s.tool}/${s.id}`;
+const href = (s: ToolStudy) => studyHref(s);
 
 /** A job's studies, kept current. */
 export function useJobStudies(projectId: string): ToolStudy[] {
@@ -38,7 +38,7 @@ function StudyRow({ s }: { s: ToolStudy }) {
   const line = studyLine(s), owed = owedOf(s);
   return (
     <button type="button" className="sl-row" onClick={() => nav(href(s))}>
-      <b>Capability study — {s.name}</b>
+      <b>{studyTitle(s)}</b>
       <span className={'sl-say is-' + line.tone}>{owed && !(s.facts.readings ?? []).length ? `${owed} readings to take.` : line.text}</span>
     </button>
   );

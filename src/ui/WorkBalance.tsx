@@ -17,13 +17,22 @@
  *     and its card read it — each person's work against takt.
  *
  * One record: a study of tool 'balance' on this product's line standard
- * (standardId). Its laps merge entry by entry between two phones (2b). */
+ * (standardId). Its laps merge entry by entry between two phones (2b).
+ *
+ * ON A JOB it is evidence like any study (docs/BUILD.md, 3d): it goes onto
+ * the job with its standard, Make it better raises a fix on whoever is over
+ * takt, and the fix's Prove it times the same elements again — a second
+ * study on the same standard, the newest the one the map reads, the earlier
+ * one still opening as itself (?study=) so before → after can be checked. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { listAllStudies, onDataChange, patchStudy, putStudy } from '../db';
 import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
 import { now, uid } from '../lib/ids';
 import { niceDay } from '../lib/weeks';
+import { currentBalance } from '../lib/studyLinks';
+import { useRoute, nav } from '../state/useRoute';
+import { UsedFor } from './StudyPlace';
 import { peopleOf, type Standard } from '../lib/standard';
 import { balance, balanceSays, elementSays, secs, suggest, type BalanceFigures } from '../lib/ie/balance';
 import type { AgreedBalance, BalanceStep, ToolStudy } from '../lib/study';
@@ -31,44 +40,64 @@ import type { Can } from '../lib/access';
 
 const RATINGS = [75, 90, 100, 110, 125];
 
-/** The latest work balance on a line standard, kept current; null when none. */
-export function useBalanceFor(standardId: string): ToolStudy | null | undefined {
-  const [s, setS] = useState<ToolStudy | null | undefined>(undefined);
+/** The latest work balance on a line standard, kept current; null when none.
+ *  `which`: an earlier timing of it, opened by name. */
+export function useBalanceFor(standardId: string, which?: string | null): ToolStudy | null | undefined {
+  return useBalances(standardId, which).study;
+}
+
+function useBalances(standardId: string, which?: string | null): { study: ToolStudy | null | undefined; current?: ToolStudy } {
+  const [s, setS] = useState<{ study: ToolStudy | null | undefined; current?: ToolStudy }>({ study: undefined });
   const load = useCallback(async () => {
-    const all = (await listAllStudies()).filter(x => x.tool === 'balance' && x.standardId === standardId);
-    setS(all[0] ?? null);
-  }, [standardId]);
+    const all = await listAllStudies();
+    const current = currentBalance(all, standardId);
+    const named = which ? all.find(x => x.id === which && x.tool === 'balance' && x.standardId === standardId) : undefined;
+    setS({ study: named ?? current ?? null, ...(current ? { current } : {}) });
+  }, [standardId, which]);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
   return s;
 }
 
 /** The work as the map and the card read it: each person's work against takt. */
 export function workOf(study: ToolStudy | null | undefined, onMap?: number):
-  { taktSec: number; people: { who: string; work: number; over: boolean; source: string }[]; text: string; short: string; set?: number } | undefined {
+  { taktSec: number; people: { who: string; work: number; over: boolean; source: string; untimed?: boolean }[]; text: string; short: string; set?: number } | undefined {
   const a = study?.agreed?.balance;
   if (!study || !a) return undefined;
   const f = balance(study.facts.steps, a);
   if (!f.people.length) return undefined;
   /* The card's one line leads with what matters: the constraint and how far over. */
   const c = f.constraint;
-  const short = `${secs(f.total)} of work at a ${secs(a.taktSec)} takt${c ? `: ${c.who} the constraint at ${secs(c.work)}${c.overBy ? `, over by ${secs(c.overBy)}` : ''}` : ''}.`;
-  return { taktSec: a.taktSec, people: f.people.map(p => ({ who: p.who, work: p.work, over: p.overBy > 0, source: p.source })),
+  const short = f.untimed ? `${f.elements.length - f.untimed} of ${f.elements.length} elements timed so far, against a ${secs(a.taktSec)} takt.`
+    : `${secs(f.total)} of work at a ${secs(a.taktSec)} takt${c ? `: ${c.who} the constraint at ${secs(c.work)}${c.overBy ? `, over by ${secs(c.overBy)}` : ''}` : ''}.`;
+  return { taktSec: a.taktSec, people: f.people.map(p => ({ who: p.who, work: p.work, over: p.overBy > 0, source: p.source, ...(p.source === 'none' ? { untimed: true } : {}) })),
     text: balanceSays(f, onMap).text, short, ...(study.closedAt ? { set: study.closedAt } : {}) };
 }
 
 /** Each product's work, for the card on paper (lib/standardCard): the latest
  *  work balance on each line standard. */
 export async function worksFor(list: Standard[]): Promise<Record<string, ReturnType<typeof workOf>>> {
-  const all = (await listAllStudies()).filter(x => x.tool === 'balance');
-  return Object.fromEntries(list.map(st => [st.id, workOf(all.find(x => x.standardId === st.id), peopleOf(st).length || undefined)]));
+  const all = await listAllStudies();
+  return Object.fromEntries(list.map(st => [st.id, workOf(currentBalance(all, st.id), peopleOf(st).length || undefined)]));
 }
 
 export function WorkView({ s, can }: { s: Standard; can: Can }) {
-  const study = useBalanceFor(s.id);
+  const route = useRoute();
+  const { study, current } = useBalances(s.id, route.query.get('study'));
   const { session } = useSession();
   const me = displayName(session?.user.email) || undefined;
   if (study === undefined) return <p className="sub">Opening…</p>;
   if (study === null) return <Start s={s} can={can} />;
+  if (current && current.id !== study.id) {
+    /* An earlier timing, opened from a fix's "How we know": read as it stood. */
+    const back = () => { const q = new URLSearchParams(route.query); q.delete('study'); nav(`${window.location.hash.slice(1).split('?')[0]}?${q.toString()}`); };
+    return (
+      <>
+        <p className="wb-earlier sub">An earlier timing, started {niceDay(new Date(study.startedAt).toISOString().slice(0, 10))} — the line standard reads the newest.{' '}
+          <button type="button" className="linkish" onClick={back}>Open the current one ›</button></p>
+        <Work study={study} s={s} can={{ ...can, edit: false, agree: false, remove: false }} me={me} />
+      </>
+    );
+  }
   return <Work study={study} s={s} can={can} me={me} />;
 }
 
@@ -149,7 +178,9 @@ function Work({ study, s, can, me }: { study: ToolStudy; s: Standard; can: Can; 
         <section key={p.who} className="wb-person">
           <div className="wb-ph">
             <h3>{p.who}</h3>
-            <span className={'wb-pw' + (p.overBy ? ' is-r' : '')}>{secs(p.work)} of {secs(a.taktSec)}{p.overBy ? ` — over by ${secs(p.overBy)}` : p.spare ? ` — ${secs(p.spare)} to spare` : ''}{p.source !== 'timed' ? ` · ${p.source === 'typed' ? 'some typed' : 'some not timed'}` : ''}</span>
+            <span className={'wb-pw' + (p.overBy ? ' is-r' : '')}>{p.source === 'none'
+              ? `${secs(p.work)} so far — not all timed${p.overBy ? `, already over by ${secs(p.overBy)}` : ''}`
+              : `${secs(p.work)} of ${secs(a.taktSec)}${p.overBy ? ` — over by ${secs(p.overBy)}` : p.spare ? ` — ${secs(p.spare)} to spare` : ''}${p.source === 'typed' ? ' · some typed' : ''}`}</span>
             {editable && <button type="button" className="btn btn-primary wb-time" onClick={() => setTiming(p.who)}>Time {p.who}</button>}
           </div>
           <ul className="wb-els">
@@ -179,6 +210,7 @@ function Work({ study, s, can, me }: { study: ToolStudy; s: Standard; can: Can; 
           </button>
         )}
       </div>
+      <UsedFor s={study} can={can} me={me} />
     </div>
   );
 }

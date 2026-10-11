@@ -379,9 +379,46 @@ freezes a receipt; the owner can reopen it.
 - the line standard **card on paper** (and its image) prints each person's
   seconds of takt beside them, and a **Work:** line under LINE BALANCE;
 - the client report's standards pages print the same card.
+
+**3d. On a job — evidence like any study.** Built 11 October.
+- **It goes where its standard goes:** attaching the line standard to a job
+  (or taking it off) carries its work balance with it (`followStandard`), so
+  it is the job's evidence exactly while the standard is the job's.
+- **The words and the door know the tool** (`lib/studyLinks`): "Work balance
+  — Maris Piper 2kg" in the fix's drawer and the Evidence appendix, its line
+  led by whoever is over takt, and it opens on its line standard's People
+  view — never a capability page, never "agree the limits".
+- **Make it better** on the People view, when someone is over takt and the
+  standard is on a job: a fix "Op 1 carries 12.9 s against a 12.0 s takt —
+  take 0.9 s of work off Op 1, or change how it is done", the balance its
+  evidence. **Used for** lists what it is evidence for, as on any study.
+- **Prove it** from the fix: the same elements on the same standard, whose
+  they are as they stand, no laps and no pace yet — timed again. The map and
+  the card read the newest; the earlier opens as itself, read only ("An
+  earlier timing … Open the current one ›").
+- **Before → after** (`compareBalances`): "The longest stack 12.9 s → 9.5 s
+  (Op 2) against a 12.0 s takt · 70% → 79% balanced — within takt now. The
+  number moved; what moved it is the fix's to say." Fair only when every
+  element has a time on both sides; short of cycles is said. On the fix's
+  drawer, its card in the client report, and the Evidence appendix.
+- **An element with no time is not zero seconds.** Until every element has
+  one, the balance claims no headcount, no balance % and no constraint: "2 of
+  5 elements have a time — 7.0 s of work so far at a 12.0 s takt. Time the
+  rest to read the balance." A person whose work is not all timed shows "x s
+  so far — not all timed" on the map and "x s so far" on the card; who is
+  already over takt is still said, in red — that much is true.
+- `report-stress`: the huge job carries a line standard with a work balance
+  before and after a fix; every line is demanded on the paper.
 - **Not yet:** the 6M's People and Method bones, a job's front page line
-  ("where the line is limited"), **Make it better** on the constraint, drag
-  between stacks (today: pick whose it is), and its acceptance script.
+  ("where the line is limited"), and drag between stacks (today: pick whose
+  it is).
+
+**Step 3's acceptance:** `scripts/acceptance/work-balance.mjs`, in the gate:
+the People view as the module says; an element added and timed (Start, Lap,
+Lap, Foreign); rated; the map's work line and each person's seconds; the
+standard attached to a job and the balance with it; Make it better; Prove
+it, timed again, the earlier opening as itself; before → after on the fix;
+the client report's PDF; and a client changing nothing.
 
 ### Release 3 onwards — one tool at a time
 

@@ -111,11 +111,14 @@ export function balance(steps: BalanceStep[] | undefined, a: AgreedBalance | und
   });
   const total = people.reduce((t, p) => t + p.work, 0);
   const longest = people.reduce<PersonFigures | undefined>((m, p) => (!m || p.work > m.work ? p : m), undefined);
+  /* An element with no time is not zero seconds: until every element has a
+     time, nobody is "the constraint" and no headcount or balance is claimed. */
+  const untimed = els.filter(e => e.source === 'none').length;
   return {
     ...(takt ? { taktSec: takt } : {}), elements: els, people, total,
-    ...(takt && total > 0 ? { fewest: Math.ceil(total / takt - 1e-9) } : {}),
-    ...(longest && longest.work > 0 ? { efficiency: total / (people.length * longest.work), constraint: longest } : {}),
-    untimed: els.filter(e => e.source === 'none').length,
+    ...(takt && total > 0 && !untimed ? { fewest: Math.ceil(total / takt - 1e-9) } : {}),
+    ...(longest && longest.work > 0 && !untimed ? { efficiency: total / (people.length * longest.work), constraint: longest } : {}),
+    untimed,
     short: els.filter(e => e.source === 'timed' && !e.enough).length,
   };
 }
@@ -154,7 +157,14 @@ export function balanceSays(f: BalanceFigures, onMap?: number): BalanceSays {
   if (onMap !== undefined && f.fewest !== undefined && onMap !== f.fewest && f.total > 0) {
     lines.push({ text: `The map has ${onMap} ${onMap === 1 ? 'person' : 'people'}; the work needs ${f.fewest}.`, tone: 'a' });
   }
-  if (f.untimed) lines.push({ text: `${f.untimed} element${f.untimed === 1 ? '' : 's'} not timed yet.`, tone: 'n' });
+  if (f.untimed) {
+    /* Only what is true so far: who is already over (a floor, not a total),
+       how much has a time, and what is still to time. */
+    const timed = f.elements.length - f.untimed;
+    if (f.short) lines.push({ text: `${f.short} element${f.short === 1 ? ' is' : 's are'} short of the cycles for ±5% — time more.`, tone: 'a' });
+    return { text: `${timed} of ${f.elements.length} elements have a time — ${secs(f.total)} of work so far at a ${secs(f.taktSec)} takt. Time the rest to read the balance.`,
+      tone: over.length ? 'r' : 'n', lines };
+  }
   if (f.short) lines.push({ text: `${f.short} element${f.short === 1 ? ' is' : 's are'} short of the cycles for ±5% — time more.`, tone: 'a' });
   const eff = f.efficiency !== undefined ? `, ${Math.round(f.efficiency * 100)}% balanced` : '';
   const head = `${secs(f.total)} of work at a ${secs(f.taktSec)} takt — ${f.fewest ?? 0} ${f.fewest === 1 ? 'person' : 'people'} needed, ${f.people.length} working${eff}.`;
@@ -172,4 +182,34 @@ export function elementSays(e: ElementFigures, allowance = 0): { text: string; t
   const pct = allowance ? `, +${Math.round(allowance * 100)}%` : '';
   const enough = e.enough ? 'enough' : `${e.n} of ${e.needed} cycles`;
   return { text: `${secs(e.standard ?? 0)} standard (${secs(e.observed ?? 0)} observed at ${e.rating}${pct}) — from ${e.n} cycle${e.n === 1 ? '' : 's'}, ${enough}.`, tone: e.enough ? 'g' : 'a' };
+}
+
+/** BEFORE → AFTER on the same line standard, at the same takt: the longest
+ *  stack each side, against takt, and the balance. Fair only when nothing is
+ *  untimed on either side; short of cycles is said, not hidden. It says "the
+ *  number moved", never "the fix did it". */
+export function compareBalances(before: BalanceFigures, after: BalanceFigures): { text: string; tone: Tone } {
+  const takt = after.taktSec;
+  const b = before.constraint, a = after.constraint;
+  if (!takt || !b || !a || before.untimed || after.untimed) return { text: 'Too early to compare — every element needs a time on both sides.', tone: 'n' };
+  const who = (p: PersonFigures, other: PersonFigures) => (p.who === other.who ? '' : ` (${p.who})`);
+  const eff = before.efficiency !== undefined && after.efficiency !== undefined
+    ? ` · ${Math.round(before.efficiency * 100)}% → ${Math.round(after.efficiency * 100)}% balanced` : '';
+  const head = `The longest stack ${secs(b.work)}${who(b, a)} → ${secs(a.work)}${who(a, b)} against a ${secs(takt)} takt${eff}`;
+  const word = a.overBy > 0 ? `still over by ${secs(a.overBy)}` : b.overBy > 0 ? 'within takt now' : a.work < b.work ? 'more room under takt' : 'no better';
+  const short = before.short || after.short ? ' Some elements are short of their cycles — time more before leaning on it.' : '';
+  return { text: `${head} — ${word}. The number moved; what moved it is the fix's to say.${short}`,
+    tone: a.overBy > 0 ? 'r' : before.short || after.short ? 'a' : b.overBy > 0 || a.work < b.work ? 'g' : 'n' };
+}
+
+/** The study's one sentence for a record or for paper: the abnormal first. */
+export function balanceLine(f: BalanceFigures, onMap?: number): { text: string; tone: Tone; verdict: string } {
+  const s = balanceSays(f, onMap);
+  const over = s.lines.filter(l => l.tone === 'r').map(l => l.text);
+  const verdict = !f.elements.length || !f.taktSec ? 'Not agreed' : over.length ? 'Over takt' : f.untimed ? 'Not timed' : f.short ? 'Short of cycles' : 'Within takt';
+  /* Over takt: who and by how much, then the totals — the constraint is
+     already named, so it is not said twice. */
+  const rest = over.length && !f.untimed && f.taktSec
+    ? `${secs(f.total)} of work at a ${secs(f.taktSec)} takt — ${f.fewest ?? 0} ${f.fewest === 1 ? 'person' : 'people'} needed, ${f.people.length} working.` : s.text;
+  return { text: [...over, rest].join(' '), tone: s.tone, verdict };
 }

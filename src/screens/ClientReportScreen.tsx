@@ -366,7 +366,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
             {report.notedRows.map(n => <button key={n.id} type="button" className={'cr-door' + (n.sorted ? ' is-sorted' : '')} onClick={() => open(n.id)}>{n.text}{n.sorted ? ' · sorted' : ''}</button>)}</li>}
           {/* EVIDENCE — every study on the job, as the paper's appendix prints it. */}
           {report.evidence.length > 0 && <li><b>Evidence</b><span>{report.evidence.length} {report.evidence.length === 1 ? 'study' : 'studies'} · measured by people at the line</span>
-            {report.evidence.map(e => <button key={e.id} type="button" className="cr-door" onClick={() => nav(`/capability/${e.id}`)}>{e.title} — {e.line}</button>)}</li>}
+            {report.evidence.map(e => <button key={e.id} type="button" className="cr-door" onClick={() => nav(e.href)}>{e.title} — {e.line}</button>)}</li>}
           {report.waiting.length > 0 && <li><b>What we’re waiting on</b>
             {report.waiting.filter(w => w.open > 0).map(w => <span key={w.key}><b>{w.what} {w.open}</b>{w.names?.length ? ` — ${w.names.slice(0, 8).join(' · ')}${w.names.length > 8 ? ` · and ${w.names.length - 8} more` : ''}` : ''}</span>)}</li>}
           {report.standards.length > 0 && withStandards && <li><b>Line standard</b><span>{report.standards.map(s => s.product).join(' · ')}</span></li>}

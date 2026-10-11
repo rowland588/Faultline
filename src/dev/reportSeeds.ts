@@ -260,7 +260,7 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
     await markedPhoto(['Seal jaw face scored across the middle', 'Heater lead chafed where it passes the guard']),
     await markedPhoto(['Belt worn through to the cords here', 'Tension arm bracket cracked', LONG[1]]),
   ];
-  let fixId: string | undefined, openFixId: string | undefined;
+  let fixId: string | undefined, openFixId: string | undefined, balanceFixId: string | undefined;
   for (let i = 0; i < 30; i++) {
     const a = machines[i % machines.length];
     const due = -8 + i;
@@ -272,6 +272,7 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
     });
     fixId ??= f.id;
     if (i === 6) openFixId = f.id;
+    if (i === 9) balanceFixId = f.id;
   }
   for (const x of tests) await putTest(x);
 
@@ -290,6 +291,34 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
     await putStudy({ id: uid(), tool: 'capability', name: longest.title, projectId: proj.id, machine: machines[0].name, assetId: machines[0].id, agreed,
       facts: { readings: THIRTY.slice(0, 12).map((value, k) => ({ id: uid(), value, at: at(20 - k) })) },
       uses: [{ id: uid(), kind: 'test', ref: longest.id, role: 'proof', at: at(20) }], startedAt: at(25), createdAt: t, updatedAt: t });
+  }
+
+  /* A LINE STANDARD'S WORK BALANCE (lib/ie/balance), timed before and after a fix: Op 1
+     over takt as the fix's evidence, the same elements timed again as its
+     proof — before → after on the fix's card and in the Evidence appendix. */
+  if (size === 'huge' && balanceFixId) {
+    const standardId = uid();
+    await putStandard({
+      id: standardId, projectId: proj.id, product: 'Finest Red 2kg',
+      marks: [
+        { id: uid(), kind: 'person', x: 20, y: 40, label: 'Op 1', task: 'Load film, splice at the end of each reel' },
+        { id: uid(), kind: 'person', x: 50, y: 60, label: 'Op 2', task: 'Infeed — keep the weigher fed' },
+        { id: uid(), kind: 'person', x: 80, y: 50, label: 'Op 3', task: 'Basketer and carrying' },
+      ],
+      sort: 1, createdAt: t, updatedAt: t,
+    });
+    const at = (k: number) => t - k * 60_000;
+    const laps = (xs: number[], from: number) => xs.map((sec, k) => ({ id: uid(), sec, at: at(from - k), who: 'Zoë Brontë' }));
+    const els = (op1: number[]) => [
+      { id: uid(), order: 0, name: 'Load film, splice at the end of each reel', who: 'Op 1', laps: laps(op1, 300), rating: 110 },
+      { id: uid(), order: 1, name: 'Infeed — keep the weigher fed', who: 'Op 2', laps: laps([7.9, 8.1, 8.0, 8.2, 7.8], 280) },
+      { id: uid(), order: 2, name: 'Basketer and carrying', who: 'Op 3', typedSec: 7 },
+    ];
+    const scope = { tool: 'balance' as const, name: 'Finest Red 2kg', projectId: proj.id, standardId, agreed: { balance: { taktSec: 12, allowance: 0.1 } } };
+    await putStudy({ id: uid(), ...scope, facts: { steps: els([11.2, 11.0, 11.4, 11.1, 11.3]) },
+      uses: [{ id: uid(), kind: 'fix', ref: balanceFixId, role: 'evidence', at: at(200) }], startedAt: at(320), createdAt: t, updatedAt: t });
+    await putStudy({ id: uid(), ...scope, facts: { steps: els([9.4, 9.6, 9.5, 9.3, 9.7]) },
+      uses: [{ id: uid(), kind: 'fix', ref: balanceFixId, role: 'proof', at: at(100) }], startedAt: at(150), createdAt: t, updatedAt: t });
   }
 
   /* What was found: sixty, on tests and steps, some long. */

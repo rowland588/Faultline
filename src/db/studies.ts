@@ -58,3 +58,19 @@ export async function deleteStudy(id: ID): Promise<Restore> {
   signalWrite();
   return async () => { if (row) await restoreRows('studies', [row]); };
 }
+
+/** A line standard's studies go where it goes: attached to a job with it, or
+ *  taken off the job with it — so the work balance is the job's evidence
+ *  exactly while its standard is the job's. */
+export async function followStandard(standardId: ID, projectId: string): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction('studies', 'readwrite');
+  const mine = (await tx.store.getAll()).filter(s => s.standardId === standardId && (s.projectId ?? '') !== projectId);
+  for (const s of mine) {
+    const { projectId: _was, ...rest } = s;
+    void _was;
+    await tx.store.put({ ...rest, ...(projectId ? { projectId } : {}), updatedAt: now() });
+  }
+  await tx.done;
+  if (mine.length) signalWrite();
+}

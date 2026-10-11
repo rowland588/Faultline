@@ -18,6 +18,7 @@ import { now, uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import { Sheet } from '../ui/Sheet';
 import { sample, sampleSays } from '../lib/ie/sample';
+import { studyHref } from '../lib/studyLinks';
 import type { StudyTool, ToolStudy } from '../lib/study';
 import type { Workspace } from '../types';
 
@@ -31,7 +32,7 @@ const CAPABILITY: ToolWords = {
 };
 export const TOOL_WORDS: Partial<Record<StudyTool, ToolWords>> = { capability: CAPABILITY };
 
-export const studyHref = (s: Pick<ToolStudy, 'id' | 'tool'>) => `/${s.tool}/${s.id}`;
+export { studyHref } from '../lib/studyLinks';
 
 /** What a study says in a line on a list: the verdict, from the module. */
 export function studyLine(s: ToolStudy): { text: string; tone: string } {

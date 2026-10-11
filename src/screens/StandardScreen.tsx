@@ -11,7 +11,7 @@
  * roles, with the headcount counted off the people. */
 import { useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import type { Project } from '../types';
-import { deleteStandard, framesForProject, getProject, getWorkspace, listSnagAssets, putBlob, putStandard } from '../db';
+import { deleteStandard, framesForProject, getProject, getWorkspace, listSnagAssets, putBlob, putStandard, followStandard } from '../db';
 import { nav, useRoute } from '../state/useRoute';
 import { uid, now } from '../lib/ids';
 import { pdfFileName } from '../lib/fileName';
@@ -175,7 +175,8 @@ function Products({ home, list, gone, can }: { home: StdHome; list: Standard[]; 
 
   const detach = async (x: Standard) => {
     await putStandard({ ...x, projectId: '' });
-    offerUndo(`${x.product} taken off this job — still on its line`, () => putStandard(x));
+    await followStandard(x.id, '');
+    offerUndo(`${x.product} taken off this job — still on its line`, async () => { await putStandard(x); await followStandard(x.id, x.projectId); });
   };
   const create = async (product: string, programId?: string) => {
     const name = product.trim();
@@ -525,7 +526,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
           <button type="button" className="btn btn-ghost" onClick={() => nav(here)}>The map for this product ›</button>
         </div>
       </header>
-      <BelongsTo s={s} home={home} can={can} onJob={projectId => void save({ projectId })} />
+      <BelongsTo s={s} home={home} can={can} onJob={projectId => { void save({ projectId }); void followStandard(s.id, projectId); }} />
       <div className="chip-row lb-views" role="tablist" aria-label="Which balance">
         <button type="button" role="tab" aria-selected={!atWork} className={'chip' + (!atWork ? ' on' : '')} onClick={() => nav(`${here}?at=balance`)}>Machines — capacity</button>
         <button type="button" role="tab" aria-selected={atWork} className={'chip' + (atWork ? ' on' : '')} onClick={() => nav(`${here}?at=balance&view=work`)}>People — the work, timed</button>
@@ -644,7 +645,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
             <div key={p.id} className="ls-person">
               <MarkIcon kind="person" size={22} />
               <span className="ls-role">{p.label || 'Unnamed'}</span>
-              {work && workFor(p.label) && <span className={'ls-work' + (workFor(p.label)?.over ? ' is-r' : '')}>{(workFor(p.label)?.work ?? 0).toFixed(1)} s of {work.taktSec.toFixed(1)} s</span>}
+              {work && workFor(p.label) && <span className={'ls-work' + (workFor(p.label)?.over ? ' is-r' : '')}>{(workFor(p.label)?.work ?? 0).toFixed(1)} s {workFor(p.label)?.untimed ? 'so far — not all timed' : `of ${work.taktSec.toFixed(1)} s`}</span>}
               {p.task && <p className="ls-task-r">{p.task}</p>}
             </div>
           ))}
@@ -655,7 +656,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
                 onFocus={() => { typing.current = true; }}
                 onChange={e => patchMark(p.id, { label: e.target.value })}
                 onBlur={() => { typing.current = false; void putStandard({ ...s, marks }); }} />
-              {work && workFor(p.label) && <span className={'ls-work' + (workFor(p.label)?.over ? ' is-r' : '')}>{(workFor(p.label)?.work ?? 0).toFixed(1)} s of {work.taktSec.toFixed(1)} s takt</span>}
+              {work && workFor(p.label) && <span className={'ls-work' + (workFor(p.label)?.over ? ' is-r' : '')}>{(workFor(p.label)?.work ?? 0).toFixed(1)} s {workFor(p.label)?.untimed ? 'so far — not all timed' : `of ${work.taktSec.toFixed(1)} s takt`}</span>}
               <textarea className="ls-task" rows={2} value={p.task ?? ''} aria-label="What they do" placeholder="What they do on this product"
                 onFocus={() => { typing.current = true; }}
                 onChange={e => patchMark(p.id, { task: e.target.value })}
@@ -672,7 +673,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
       {/* WHERE IT BELONGS (LINE_TOOLS.sql) — its line, and the job it is
           attached to, if any: a tool on a line first, attached when it is
           wanted. Changing the job is the owner's, as the map is. */}
-      <BelongsTo s={s} home={home} can={can} onJob={projectId => void save({ projectId })} />
+      <BelongsTo s={s} home={home} can={can} onJob={projectId => { void save({ projectId }); void followStandard(s.id, projectId); }} />
 
       {/* THE LINE BALANCE for this product — a branch off the map, one line:
           where the line is limited, and the door to the balance itself

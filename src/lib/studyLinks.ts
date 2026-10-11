@@ -12,8 +12,9 @@
  * enough readings on both. It says "the number moved", never "the fix did
  * it" — that is the fix's to say, and a person presses the button. */
 import type { ID } from '../types';
-import type { StudyUse, ToolStudy } from './study';
+import type { BalanceStep, StudyUse, ToolStudy } from './study';
 import { sample, sampleSays, compareSamples, type SampleSays, type Tone } from './ie/sample';
+import { balance, balanceLine, compareBalances, secs as secsOf } from './ie/balance';
 
 const live = (ss: ToolStudy[]) => ss.filter(s => !s.deletedAt);
 
@@ -23,11 +24,36 @@ export function linkedTo(studies: ToolStudy[], kind: StudyUse['kind'], ref: ID, 
     .sort((a, b) => b.startedAt - a.startedAt);
 }
 
-/** What a study says, in the tool's words. */
+/** What a study says, in the tool's words: a work balance by its stacks
+ *  against takt, a measured test by its readings. */
 export function studySays(s: ToolStudy): SampleSays {
+  if (s.tool === 'balance') return balanceLine(balance(s.facts.steps, s.agreed?.balance));
   const a = s.agreed?.readings;
   return sampleSays(sample(a, s.facts.readings ?? []), a);
 }
+
+/** Each tool's name, as a study of it is called on screen and on paper. */
+export const TOOL_NAME: Partial<Record<ToolStudy['tool'], string>> = { capability: 'Capability study', balance: 'Work balance' };
+
+/** "Capability study — Weight accuracy 400 g · Weigher 2". */
+export const studyTitle = (s: Pick<ToolStudy, 'tool' | 'name' | 'machine'>): string =>
+  `${TOOL_NAME[s.tool] ?? 'Study'} — ${s.name}${s.machine ? ` · ${s.machine}` : ''}`;
+
+/** Where a study opens. A work balance lives on its product's line standard —
+ *  the job's when it is attached, else the line's — at the People view, and
+ *  names itself so an earlier timing opens as itself. */
+export function studyHref(s: Pick<ToolStudy, 'id' | 'tool' | 'standardId' | 'projectId' | 'workspaceId'>): string {
+  if (s.tool === 'balance' && s.standardId) {
+    const at = `?at=balance&view=work&study=${encodeURIComponent(s.id)}`;
+    if (s.projectId) return `/project/${s.projectId}/standard/${s.standardId}${at}`;
+    if (s.workspaceId) return `/w/${s.workspaceId}/standards/${s.standardId}${at}`;
+  }
+  return `/${s.tool}/${s.id}`;
+}
+
+/** The work balance a line standard reads: the newest timing of it. */
+export const currentBalance = (studies: ToolStudy[], standardId: ID): ToolStudy | undefined =>
+  live(studies).filter(s => s.tool === 'balance' && s.standardId === standardId).sort((a, b) => b.startedAt - a.startedAt)[0];
 
 /** The sentence a study adds to a record or to paper, with its verdict tone:
  *  its name, then what it says, with an overrule beside the app's verdict. */
@@ -44,16 +70,23 @@ export function owedOf(s: ToolStudy): number {
   return Math.max(0, count - n);
 }
 
-/** Same tool, same thing measured, judged against the same limits. */
+/** Same tool, same thing measured, judged against the same limits — for a
+ *  work balance, the same line standard at the same takt. */
 export const sameScope = (a: ToolStudy, b: ToolStudy): boolean =>
-  a.tool === b.tool && a.name.trim().toLowerCase() === b.name.trim().toLowerCase()
-  && JSON.stringify(a.agreed?.readings ?? null) === JSON.stringify(b.agreed?.readings ?? null);
+  a.tool === b.tool && (a.tool === 'balance'
+    ? !!a.standardId && a.standardId === b.standardId && a.agreed?.balance?.taktSec === b.agreed?.balance?.taktSec
+    : a.name.trim().toLowerCase() === b.name.trim().toLowerCase()
+      && JSON.stringify(a.agreed?.readings ?? null) === JSON.stringify(b.agreed?.readings ?? null));
 
 /** Before → after on a fix: its evidence study against its proof study. */
 export function beforeAfter(studies: ToolStudy[], fixId: ID): { text: string; tone: Tone; before: ToolStudy; after: ToolStudy } | undefined {
   const after = linkedTo(studies, 'fix', fixId, 'proof')[0];
   if (!after) return undefined;
   const before = linkedTo(studies, 'fix', fixId, 'evidence').find(b => sameScope(b, after));
+  if (before && after.tool === 'balance') {
+    const ab = after.agreed?.balance;
+    return ab ? { ...compareBalances(balance(before.facts.steps, before.agreed?.balance), balance(after.facts.steps, ab)), before, after } : undefined;
+  }
   const a = after.agreed?.readings;
   if (!before || !a) return undefined;
   const c = compareSamples(sample(a, before.facts.readings ?? []), sample(a, after.facts.readings ?? []), a);
@@ -75,11 +108,19 @@ export function proveItFrom(evidence: ToolStudy, fixId: ID, x: { at: number; by?
     ...(evidence.machine ? { machine: evidence.machine } : {}),
     ...(evidence.assetId ? { assetId: evidence.assetId } : {}),
     ...(evidence.product ? { product: evidence.product } : {}),
+    ...(evidence.standardId ? { standardId: evidence.standardId } : {}),
     ...(evidence.agreed ? { agreed: JSON.parse(JSON.stringify(evidence.agreed)) as ToolStudy['agreed'] } : {}),
-    facts: {}, uses: [linkOf('fix', fixId, 'proof', x.at, x.by, x.useId)],
+    facts: evidence.tool === 'balance' ? { steps: retime(evidence.facts.steps) } : {},
+    uses: [linkOf('fix', fixId, 'proof', x.at, x.by, x.useId)],
     startedAt: x.at, createdAt: x.at, updatedAt: x.at,
   };
 }
+
+/** A work balance timed again: the same elements, whose they are as they
+ *  stand, no laps and no pace yet — a typed time stays only where it was
+ *  never timed, so before and after are each as known as they say. */
+const retime = (steps: BalanceStep[] | undefined): BalanceStep[] =>
+  (steps ?? []).map(({ laps, rating: _r, typedSec, ...st }) => { void _r; return { ...st, ...(!(laps ?? []).length && typedSec ? { typedSec } : {}) }; });
 
 /** "Take the readings" on a test: a capability study named for the test, on
  *  its machine, attached to its job, proving it. */
@@ -98,6 +139,10 @@ export function readingsFor(test: { id: ID; projectId: ID; title: string; assetI
  *  would be light." */
 export function betterWords(s: ToolStudy): string {
   const said = studySays(s);
+  if (s.tool === 'balance') {
+    const f = balance(s.facts.steps, s.agreed?.balance), c = f.constraint;
+    if (c && c.overBy > 0) return `${s.name}: ${c.who} carries ${secsOf(c.work)} against a ${secsOf(f.taktSec ?? 0)} takt — take ${secsOf(c.overBy)} of work off ${c.who}, or change how it is done.`;
+  }
   const why = said.tone === 'r' ? said.text : said.capability?.text ?? said.text;
   return `${s.name}: ${why}`;
 }
@@ -105,5 +150,6 @@ export function betterWords(s: ToolStudy): string {
 /** Is it worth making better? It failed, or it passes and would drift. */
 export function worthBetter(s: ToolStudy): boolean {
   const said = studySays(s);
+  if (s.tool === 'balance') return said.verdict === 'Over takt';
   return said.tone === 'r' || said.capability?.tone === 'a';
 }
