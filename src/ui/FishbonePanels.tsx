@@ -24,7 +24,7 @@ import type { Can } from '../lib/access';
 import type { ProblemView } from '../lib/problems';
 import type { PaceAction } from '../lib/tracker';
 import type { Case } from '../types';
-import { sixmLabel, type Cause } from '../lib/sixm';
+import { sixmLabel, type Cause, type CauseSource } from '../lib/sixm';
 import type { VoiceContext } from '../../api/voice';
 import { ChainFix, ChainWhy, ProblemCard, type ProblemCardProps } from './ProblemCard';
 import { ParetoPane } from './ParetoPane';
@@ -88,6 +88,9 @@ export interface CausePanelProps {
   onSaveCause: (c: Cause) => Promise<void>;
   onAddFix: (c: Cause) => void;
   onOpenFix: (a: PaceAction) => void;
+  /** The record it came from — the work balance, the walk's snag, the line
+   *  standard — one tap, as from the cause sheet. */
+  onOpenSource?: (s: CauseSource) => void;
   onClose: () => void;
 }
 
@@ -106,7 +109,8 @@ export function CausePanel(p: CausePanelProps) {
   const from = [c.source?.label, c.by ? `put on by ${c.by}` : ''].filter(Boolean).join(' · ');
   return (
     <PanelFrame wide={wide} kicker={kicker} title={c.text.trim() || 'A cause with no words yet'} onClose={onClose}>
-      {from && <p className="frp-from">From {from}</p>}
+      {from && <p className="frp-from">From {from}
+        {c.source && c.source.kind !== 'observation' && p.onOpenSource && <> · <button type="button" className="cs-link" onClick={() => c.source && p.onOpenSource?.(c.source)}>Open it ›</button></>}</p>}
       {/* No state colour on the frame: a root found is not "done" — the
           fixes' own states say what is late. */}
       <div className="frp-parts">

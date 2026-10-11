@@ -11601,3 +11601,6 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
 .wb-t-acts .btn { flex: 1 1 140px; min-height: 48px; }
 .ls-work { font-size: var(--t-detail); color: var(--ink-2); font-variant-numeric: tabular-nums; margin-left: auto; }
 .ls-work.is-r { color: var(--st-r); font-weight: 700; }
+/* The line standard's work, timed — a branch under the line card's balance;
+   only the over-takt sentence carries colour. */
+.lc-work .lc-bal-t.is-r { color: var(--st-r); }

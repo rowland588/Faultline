@@ -409,9 +409,30 @@ freezes a receipt; the owner can reopen it.
   already over takt is still said, in red — that much is true.
 - `report-stress`: the huge job carries a line standard with a work balance
   before and after a fix; every line is demanded on the paper.
-- **Not yet:** the 6M's People and Method bones, a job's front page line
-  ("where the line is limited"), and drag between stacks (today: pick whose
-  it is).
+- **Not yet:** drag between stacks (today: pick whose it is).
+
+**3e. The 6M job reads it — the fishbone and the front page.** Built 11 October. The fishbone already
+filled itself from the line standard's crew and the 6M line's capacity; now
+also from the standard's work, timed (`lib/fishbone`, suggestion 4b):
+- **Method** — whoever carries more than takt: "Op 1 carries 12.9 s against a
+  12.0 s takt — over by 0.9 s", one suggestion per person;
+- **People** — when the work needs more people than the standard has: "The
+  work needs 3 people at a 12.0 s takt — the standard has 2";
+- **how known:** measured when every element under it was timed, reported
+  when any was typed; nothing at all while an element has no time;
+- the newest timing is the one read, so a fix proved by timing again stops
+  the suggestion on its own;
+- an accepted cause says where it came from ("The work balance: Finest Red
+  2kg") and opens it — from the cause sheet, and now from the cause's panel
+  too (**Open it ›** beside "From …", for every kind of source).
+- **The 6M front page:** each line's card carries **The work** under its
+  Line balance — "Finest Red 2kg: 28.7 s of work at a 12.0 s takt: Op 1 the
+  constraint at 12.9 s, over by 0.9 s." (red only when someone is over),
+  opening the balance. Only a standard that is the line's own (its
+  product's program on the line, or drawn on its workspace) — never the
+  job's first standard on every card. Absent until somebody has timed it.
+- `report-stress`: the huge 6M job's standard carries a timed balance and a
+  Method cause accepted from it.
 
 **Step 3's acceptance:** `scripts/acceptance/work-balance.mjs`, in the gate:
 the People view as the module says; an element added and timed (Start, Lap,

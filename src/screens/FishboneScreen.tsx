@@ -45,7 +45,8 @@ import { SIXM, type Cause, type CauseSource, type SixM } from '../lib/sixm';
 import type { Suggestion } from '../lib/problems';
 import type { Can } from '../lib/access';
 import type { Case } from '../types';
-import { removeCase, restoreCase, snagsForWorkspace, type PaceLineRow } from '../db';
+import { getStudy, removeCase, restoreCase, snagsForWorkspace, type PaceLineRow } from '../db';
+import { studyHref } from '../lib/studyLinks';
 import { offerUndo } from '../ui/Undo';
 import { drillOfRef, factsOf, lineOf, oldWhysOf, startingWhys } from '../lib/fishbone';
 import { closedProblemOn, putOldWhysOnBone } from '../lib/useProblems';
@@ -541,6 +542,7 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
       }
       case 'capacity': if (lid) nav(`/project/${projectId}/line/${lid}?view=capacity`); return;
       case 'standard': nav(`/project/${projectId}/standard${s.ref ? `/${encodeURIComponent(s.ref)}` : ''}`); return;
+      case 'study': { const st = s.ref ? await getStudy(s.ref.split('#')[0]) : undefined; if (st) nav(studyHref(st)); return; }
       case 'material': nav(`/project/${projectId}/materials`); return;
       case 'program': nav(`/project/${projectId}/programs`); return;
       case 'reading': if (lid) nav(`/project/${projectId}/line/${lid}?view=data`); return;
@@ -756,6 +758,7 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
       onSaveCause={async c => { if (can.edit) await api.saveCause(view.problem.id, c); }}
       onAddFix={c => void addCountermeasure(c, false)}
       onOpenFix={openFix}
+      onOpenSource={s => void openSource(s)}
       onClose={() => goPanel(null)} />
   ) : (
     <ProblemPanel wide={wide} {...cardProps(view)} onPanelClose={() => goPanel(null)} />

@@ -51,7 +51,7 @@ const STATUSES: { key: CauseStatus; label: string }[] = [
 
 const SOURCE_WORD: Record<CauseSource['kind'], string> = {
   pareto: 'The Pareto', snag: 'Found on the walk', standard: 'The line standard', capacity: 'The line balance',
-  material: 'A material', program: 'A program', reading: 'The readings', observation: 'Seen on the line',
+  material: 'A material', program: 'A program', reading: 'The readings', observation: 'Seen on the line', study: 'The work balance',
 };
 
 /** The board's words for where an action stands — the house colours by name. */

@@ -36,6 +36,12 @@ import { usePaceLines } from '../lib/usePaceLines';
 import { useMeasures } from '../lib/useMeasures';
 import { useMaterials } from '../lib/useMaterials';
 import { usePrograms } from '../lib/usePrograms';
+import { useStandards } from '../ui/StandardsCard';
+import { useJobStudies } from '../ui/StudyLinks';
+import { workOf } from '../ui/WorkBalance';
+import { lineStandardOf } from '../lib/fishbone';
+import { headcount } from '../lib/standard';
+import { currentBalance, studyHref } from '../lib/studyLinks';
 import { gapOf, lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import { ProjectNumbers } from './NumbersPanel';
 import { DUE_SOON_DAYS, useActions } from '../lib/actions';
@@ -425,10 +431,13 @@ function LinePeople({ line, projectId }: { line: PaceLineRow; projectId: string 
  * is sitting in its pack. The whole card is the way in — the owner's pack is
  * where the work actually happens, so getting there should not need aiming at
  * a small link. */
-function LineCard({ line, pack, projectId, series, balance }: {
+function LineCard({ line, pack, projectId, series, balance, work }: {
   line: PaceLineRow; pack: LinePack; projectId: string;
   /** What the line's balance says, once its stations are in; absent until then. */
   balance?: string;
+  /** The line standard's work, timed (ui/WorkBalance) — a branch under the
+   *  balance, only once somebody has timed it. */
+  work?: { text: string; over: boolean; href: string };
   /** Where this line stands on the measure the project leads on — the first one
    *  its own list names. Absent on a project that has not named one yet, and the
    *  card then simply carries no number rather than a dash meaning nothing. */
@@ -472,6 +481,13 @@ function LineCard({ line, pack, projectId, series, balance }: {
         <span className="lc-bal-t">{balance ?? 'Not counted yet — add the machines and people, each at its own speed'}</span>
         <span className="lc-bal-go" aria-hidden>›</span>
       </button>
+      {work && (
+        <button className="lc-bal is-set lc-work" onClick={() => nav(work.href)}>
+          <span className="lc-bal-k">The work</span>
+          <span className={'lc-bal-t' + (work.over ? ' is-r' : '')}>{work.text}</span>
+          <span className="lc-bal-go" aria-hidden>›</span>
+        </button>
+      )}
       <footer className="lc-foot">
         <span className="sub">{line.workspaceId ? 'Has its own workspace' : 'Workspace made on first walk'}</span>
         <button className="btn btn-ghost" onClick={() => nav(`/pace-report?project=${projectId}&line=${line.id}`)}>Client report</button>
@@ -651,6 +667,8 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   const ax = useActions(projectId);
   const { impacts } = useImpacts(projectId);
   const ppm = usePaceLines(projectId);
+  const standards = useStandards(projectId);
+  const studies = useJobStudies(projectId);
   const nums = useMeasures(projectId);
   const treeRows = useTreeNodes(projectId);
   const stand = useStanding(projectId);
@@ -678,6 +696,14 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   ]));
   const headline = nums.measures[0];
   const limited = ppm.lines.map(l => ({ line: l, says: l.capacity ? shortSays(analyse(l.capacity)) : undefined }));
+  /* Each line's standard's work, timed — only a standard that is this line's
+     own (its product's program on the line, or drawn on its workspace). */
+  const workOn = (l: PaceLineRow) => {
+    const std = lineStandardOf(l, standards ?? [], progs.programs, true);
+    const study = std ? currentBalance(studies, std.id) : undefined;
+    const w = std && study ? workOf(study, headcount(std) || undefined) : undefined;
+    return std && study && w ? { text: `${std.product}: ${w.short}`, over: w.people.some(p => p.over), href: studyHref(study) } : undefined;
+  };
   const atTarget = ppm.lines.filter(l => standing.get(l.id)?.meeting === true).length;
 
   /* WHERE A 3P JOB IS, in one sentence — the lines against their target and
@@ -850,7 +876,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
               <div className="lc-grid">
                 {ppm.lines.map(l => (
                   <LineCard key={l.id} line={l} pack={packs.get(l.id) ?? emptyPack} projectId={projectId}
-              series={standing.get(l.id)} balance={limited.find(x => x.line.id === l.id)?.says} />
+              series={standing.get(l.id)} balance={limited.find(x => x.line.id === l.id)?.says} work={workOn(l)} />
                 ))}
               </div>
               {can.edit && (

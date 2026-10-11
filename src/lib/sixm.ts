@@ -72,7 +72,8 @@ export type CauseStatus = 'suspected' | 'confirmed' | 'ruled_out';
 /** Where a cause came from — what the fishbone was filled from. `ref` points
  *  back at the record (an observation drill path, a snag id, a station…). */
 export interface CauseSource {
-  kind: 'pareto' | 'snag' | 'standard' | 'capacity' | 'material' | 'program' | 'reading' | 'observation';
+  /** 'study': a use of a tool on the job — the work balance (lib/study). */
+  kind: 'pareto' | 'snag' | 'standard' | 'capacity' | 'material' | 'program' | 'reading' | 'observation' | 'study';
   ref?: string;
   label?: string;
   /** For a time-based source, the loss it carries — minutes a week. */

@@ -39,6 +39,10 @@ The six bones (`src/lib/sixm.ts`), traditional Ishikawa in plain words:
      People);
    - walk snags on that machine → Machine;
    - the line standard's crew → People;
+   - the line standard's work, timed (the work balance, `lib/ie/balance`) →
+     Method for whoever carries more than takt, People when the work needs
+     more people than the standard has — measured when timed, reported when
+     typed, nothing while an element has no time;
    - the line balance's limiting station → Machine or People;
    - materials late / programs not proved → Material / Method;
    - gaps in the stop log or readings → Measurement ("4 days with nothing

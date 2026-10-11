@@ -627,9 +627,12 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
     }
   }
 
-  /* A LINE STANDARD — its crew is what the People bone is counted against. */
+  /* A LINE STANDARD — its crew is what the People bone is counted against —
+     and, on the huge job, its work timed (lib/ie/balance): Op 1 over takt,
+     a cause on the Method bone accepted from it. */
+  const sixStdId = uid(), sixBalId = uid();
   await putStandard({
-    id: uid(), projectId: proj.id, product: 'Finest Red 2kg',
+    id: sixStdId, projectId: proj.id, product: 'Finest Red 2kg', ...(huge && lineA.workspaceId ? { workspaceId: lineA.workspaceId } : {}),
     marks: [
       { id: uid(), kind: 'person', x: 20, y: 40, label: 'Op 1', task: 'Load film, splice at the end of each reel' },
       { id: uid(), kind: 'person', x: 50, y: 60, label: 'Op 2', task: 'Infeed — keep the weigher fed' },
@@ -637,6 +640,16 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
     ],
     sort: 1, createdAt: t, updatedAt: t,
   });
+  if (huge) {
+    const laps = (xs: number[]) => xs.map((sec, k) => ({ id: uid(), sec, at: t - (40 - k) * 60_000, who: 'Zoë Brontë' }));
+    await putStudy({ id: sixBalId, tool: 'balance', name: 'Finest Red 2kg', projectId: proj.id, standardId: sixStdId,
+      agreed: { balance: { taktSec: 12, allowance: 0.1 } }, uses: [], startedAt: t - 3_600_000, createdAt: t, updatedAt: t,
+      facts: { steps: [
+        { id: uid(), order: 0, name: 'Load film, splice at the end of each reel', who: 'Op 1', laps: laps([11.6, 11.8, 11.7, 11.9, 11.6]) },
+        { id: uid(), order: 1, name: 'Infeed — keep the weigher fed', who: 'Op 2', laps: laps([8.0, 8.1, 7.9, 8.2, 8.0]) },
+        { id: uid(), order: 2, name: 'Basketer and carrying', who: 'Op 3', typedSec: 7 },
+      ] } });
+  }
 
   /* ------------------------------ problems ------------------------------- */
   const why = (text: string, grade?: Grade): Why => ({ id: uid(), text, grade });
@@ -663,6 +676,7 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
       grade: 'counted', status: 'confirmed', root: true, source: { kind: 'standard', label: 'Line standard — 3 people, 2 on shift' },
       whys: [why('Agency cover not booked for the 22:00 start', 'counted'), why('Nobody owns the night rota since the reorganisation', 'reported')],
     }),
+    cause('method', 'Op 1 carries 12.9 s against a 12.0 s takt — over by 0.9 s', { grade: 'measured', status: 'confirmed', source: { kind: 'study', ref: `${sixBalId}#Op 1`, label: 'Finest Red 2kg' } }),
     cause('material', 'New film from the second supplier is 3 µm thinner', { grade: 'measured', status: 'suspected', source: { kind: 'material', label: 'Perforated film — 2kg' } }),
     cause('machine', 'Photo-eye bracket loose — vibrates', { grade: 'observed', status: 'confirmed', source: { kind: 'snag', label: 'Bagger former' } }),
     cause('method', 'No standard for the splice', { grade: 'observed', status: 'confirmed' }),

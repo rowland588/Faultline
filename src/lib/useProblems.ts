@@ -12,7 +12,7 @@ import type { Cause, SixM } from './sixm';
 import type { ProblemsApi, ProblemView } from './problems';
 import {
   loadPaceLines, putPaceLine, projectWorkspaceIds, getPaceWorkspaceId, setPaceWorkspaceId,
-  createWorkspace, getWorkspace, getProject, listObservations, listStandards, listMaterials,
+  createWorkspace, getWorkspace, getProject, listObservations, listStandards, listStudies, listMaterials,
   listPrograms, listTargets, listReadings, listPaceTodos, listProjectCases, addCase, patchCase,
   onDataChange, type PaceLineRow, type PaceTodoRow,
 } from '../db';
@@ -49,11 +49,12 @@ export async function loadProblems(projectId: string): Promise<LoadedProblems> {
   ]);
   const lineWs = lines.flatMap(l => (l.workspaceId ? [l.workspaceId] : []));
   const wsIds = [...new Set([...walkIds, ...lineWs])];
-  const [obs, workspaces, snags, standards, materials, programs, targets, readings, steps, cases] = await Promise.all([
+  const [obs, workspaces, snags, standards, studies, materials, programs, targets, readings, steps, cases] = await Promise.all([
     Promise.all(wsIds.map(id => listObservations(id))).then(x => x.flat() as Observation[]),
     Promise.all(lineWs.map(id => getWorkspace(id))).then(x => x.filter((w): w is Workspace => !!w)),
     loadWalkSnags(projectId).catch(() => []),
     listStandards(projectId),
+    listStudies(projectId),
     listMaterials(projectId),
     listPrograms(projectId),
     listTargets(projectId),
@@ -76,7 +77,7 @@ export async function loadProblems(projectId: string): Promise<LoadedProblems> {
   return {
     cases: cases.filter(c => belongsTo(c, projectId, lines)),
     data: fishboneData({
-      lines, observations: obs, workspaces, snags, standards, materials, programs,
+      lines, observations: obs, workspaces, snags, standards, studies, materials, programs,
       measures: project?.measures ?? [], periods: project?.periods ?? [], targets, readings,
       actions: steps.map(s => countermeasureOf(s, lines, today)),
       notes,

@@ -6,6 +6,7 @@ import type { Case, Observation, Workspace } from '../../types';
 import type { PaceLineRow } from '../../db/rows';
 import type { Cause } from '../sixm';
 import type { Standard } from '../standard';
+import type { ToolStudy } from '../study';
 import type { Material } from '../materials';
 import type { Program } from '../programs';
 import type { Measure, Period, Reading, Target } from '../measures';
@@ -13,7 +14,7 @@ import type { WalkSnag } from '../walkSnags';
 import { SIXM, blamesAPerson, boneOfStop } from '../sixm';
 import {
   acceptSuggestion, belongsTo, buildView, causeFromOldWhys, causeRefOf, oldWhysOf, countermeasuresOf, drillOfRef, fishboneData,
-  factsOf, fullWeeks, logGaps, measureOf, parseCauseRef, phaseOf, scopeOf, scopeMsWeek, startingWhys, suggestionsFor, therefore,
+  factsOf, fullWeeks, lineStandardOf, logGaps, measureOf, parseCauseRef, phaseOf, scopeOf, scopeMsWeek, startingWhys, suggestionsFor, therefore,
   type Countermeasure, type FishboneData,
 } from '../fishbone';
 
@@ -219,6 +220,38 @@ describe('suggestionsFor — the walk, the standard, the balance, materials, pro
     const short = suggestionsFor(problem(), data({ standards: [std(4)], workspaces: [ws(3)] }), TODAY).find(x => x.source.kind === 'standard');
     expect(short?.text).toBe('Crew below the standard — 3 on the line, the standard needs 4');
     expect(suggestionsFor(problem(), data({ standards: [std(4)], workspaces: [ws(4)] }), TODAY).some(x => x.source.kind === 'standard')).toBe(false);
+  });
+
+  it('the standard’s work balance → Method for whoever is over takt, People when the work needs more than the map', () => {
+    const laps = (s: number) => [s, s, s, s, s].map((sec, i) => ({ id: `l${i}`, sec, at: i }));
+    const bal = (o: Partial<ToolStudy> = {}): ToolStudy => ({ id: 'w1', tool: 'balance', name: 'Finest Red 2kg', projectId: 'P', standardId: 'std1',
+      agreed: { balance: { taktSec: 12 } }, uses: [], startedAt: 1, createdAt: 1, updatedAt: 1,
+      facts: { steps: [
+        { id: 'a', order: 0, name: 'Load film', who: 'Op 1', laps: laps(12.9) },
+        { id: 'b', order: 1, name: 'Infeed', who: 'Op 2', laps: laps(11) },
+        { id: 'c', order: 2, name: 'Basketer', who: 'Op 3', typedSec: 11.5 },
+      ] }, ...o });
+    const s = suggestionsFor(problem(), data({ standards: [std(2)], workspaces: [ws(2)], studies: [bal()] }), TODAY).filter(x => x.source.kind === 'study');
+    expect(s.map(x => [x.m, x.text, x.grade, x.source.ref])).toEqual([
+      ['method', 'Op 1 carries 12.9 s against a 12.0 s takt — over by 0.9 s', 'measured', 'w1#Op 1'],
+      ['people', 'The work needs 3 people at a 12.0 s takt — the standard has 2', 'reported', 'w1#crew'],
+    ]);
+    /* an element with no time: nothing claimed */
+    const untimed = bal({ facts: { steps: [...(bal().facts.steps ?? []), { id: 'd', order: 3, name: 'New', who: 'Op 3' }] } });
+    expect(suggestionsFor(problem(), data({ standards: [std(2)], studies: [untimed] }), TODAY).some(x => x.source.kind === 'study')).toBe(false);
+    /* the newest timing is the one read */
+    const after = bal({ id: 'w2', startedAt: 5, facts: { steps: [{ id: 'a', order: 0, name: 'Load film', who: 'Op 1', laps: laps(10) }] } });
+    expect(suggestionsFor(problem(), data({ standards: [std(2)], studies: [bal(), after] }), TODAY).some(x => x.source.kind === 'study')).toBe(false);
+  });
+
+  it('the standard a line is read against: its product\'s program, else its workspace, else (not strict) the first', () => {
+    const a = { ...std(1), id: 'a', sort: 1 }, b = { ...std(1), id: 'b', sort: 2, workspaceId: 'ws1' }, c = { ...std(1), id: 'c', sort: 3, programId: 'pg' };
+    const l = { id: 'L1', workspaceId: 'ws1' } as PaceLineRow;
+    const pg = [{ id: 'pg', lineId: 'L1' } as Program];
+    expect(lineStandardOf(l, [a, b, c], pg)?.id).toBe('c');
+    expect(lineStandardOf(l, [a, b], [])?.id).toBe('b');
+    expect(lineStandardOf({ id: 'L2' } as PaceLineRow, [a, b], [])?.id).toBe('a');
+    expect(lineStandardOf({ id: 'L2' } as PaceLineRow, [a, b], [], true)).toBeUndefined();
   });
 
   it('the limiting station → Machine, measured, when the head is about it', () => {

@@ -34,6 +34,9 @@ import { weekStart } from './stats';
 import { niceDay, todayISO, daysBetween } from './weeks';
 import { analyse, fmtN } from './capacity';
 import { headcount } from './standard';
+import type { ToolStudy } from './study';
+import { balance, secs } from './ie/balance';
+import { currentBalance } from './studyLinks';
 import { stateOf as materialState, daysLate } from './materials';
 import { standingOf, stateOf as programState, daysOverdue } from './programs';
 import { bySort, lineSeries, say, seriesFor } from './measures';
@@ -78,6 +81,8 @@ export interface FishboneData {
   /** The filmed walk's snags (lib/walkSnags). */
   snags: WalkSnag[];
   standards: Standard[];
+  /** The job's studies — the work balance on its line standard (lib/study). */
+  studies: ToolStudy[];
   materials: Material[];
   programs: Program[];
   /** The project's own measures and periods (Project.measures/periods). */
@@ -92,7 +97,7 @@ export interface FishboneData {
 
 /** An empty FishboneData with whatever is given laid over it. */
 export const fishboneData = (o: Partial<FishboneData> = {}): FishboneData => ({
-  lines: [], observations: [], workspaces: [], snags: [], standards: [], materials: [], programs: [],
+  lines: [], observations: [], workspaces: [], snags: [], standards: [], studies: [], materials: [], programs: [],
   measures: [], periods: [], targets: [], readings: [], actions: [], notes: [], ...o,
 });
 
@@ -375,6 +380,17 @@ function spreadOf(evidence: Observation[], scoped: Observation[], key: (o: Obser
 /** What the data says might belong on each bone of this problem, worked out
  *  from the records each one points at. Suggestions already accepted (a cause
  *  whose source has the same kind and ref) are left out. */
+/** The line standard a line is read against: the one for this line's
+ *  product (its program is on the line, or it was drawn on the line's own
+ *  workspace), else — unless `strict` — the project's first. */
+export function lineStandardOf(line: PaceLineRow | undefined, all: Standard[], programs: Program[], strict = false): Standard | undefined {
+  const linePrograms = new Set(programs.filter(p => !p.deletedAt && !!line && p.lineId === line.id).map(p => p.id));
+  const standards = all.filter(s => !s.deletedAt).sort((a, b) => a.sort - b.sort);
+  return standards.find(s => !!s.programId && linePrograms.has(s.programId))
+    ?? (line?.workspaceId ? standards.find(s => s.workspaceId === line.workspaceId) : undefined)
+    ?? (strict ? undefined : standards[0]);
+}
+
 export function suggestionsFor(problem: Case, data: FishboneData, today = Date.now()): Suggestion[] {
   const out: Suggestion[] = [];
   const line = lineOf(problem, data.lines);
@@ -434,9 +450,7 @@ export function suggestionsFor(problem: Case, data: FishboneData, today = Date.n
 
   /* 4. THE LINE STANDARD'S CREW. The standard for this line's product (one
      whose program is on this line), else the project's first. Counted. */
-  const linePrograms = new Set(data.programs.filter(p => !p.deletedAt && !!line && p.lineId === line.id).map(p => p.id));
-  const standards = data.standards.filter(s => !s.deletedAt).sort((a, b) => a.sort - b.sort);
-  const std = standards.find(s => !!s.programId && linePrograms.has(s.programId)) ?? standards[0];
+  const std = lineStandardOf(line, data.standards, data.programs);
   if (std) {
     const need = headcount(std);
     const crew = data.workspaces.find(w => w.id === lineWs)?.crew;
@@ -446,6 +460,27 @@ export function suggestionsFor(problem: Case, data: FishboneData, today = Date.n
           ? `The standard for ${std.product} needs ${plural(need, 'person', 'people')} — is that the crew on every shift?`
           : `Crew below the standard — ${crew} on the line, the standard needs ${need}`,
         'counted', { detail: `Line standard: ${std.product}, ${plural(need, 'person', 'people')}`, label: std.product }));
+    }
+    /* 4b. ITS WORK, TIMED (lib/ie/balance): whoever carries more than takt is
+       the Method bone — the work is not shared to the pace — and a crew the
+       work needs but the map does not have is People. Measured when every
+       element on it was timed; reported when any was typed. Only when every
+       element has a time: an untimed element is not zero seconds. The ref is
+       "<study id>#<who>" — one cause per person, each opening the study. */
+    const study = currentBalance(data.studies, std.id);
+    const f = study ? balance(study.facts.steps, study.agreed?.balance) : undefined;
+    if (study && f?.taktSec && !f.untimed) {
+      const graded = (src: string): Grade => (src === 'timed' ? 'measured' : 'reported');
+      const head = `Work balance: ${std.product}, ${secs(f.total)} of work at a ${secs(f.taktSec)} takt`;
+      for (const p of f.people.filter(x => x.overBy > 0).sort((a, b) => b.overBy - a.overBy).slice(0, MAX_PER_SOURCE)) {
+        out.push(mk('study', `${study.id}#${p.who}`, 'method', `${p.who} carries ${secs(p.work)} against a ${secs(f.taktSec)} takt — over by ${secs(p.overBy)}`,
+          graded(p.source), { detail: head, label: std.product }));
+      }
+      const onMap = headcount(std);
+      if (f.fewest !== undefined && onMap > 0 && f.fewest > onMap) {
+        out.push(mk('study', `${study.id}#crew`, 'people', `The work needs ${plural(f.fewest, 'person', 'people')} at a ${secs(f.taktSec)} takt — the standard has ${onMap}`,
+          f.people.some(p => p.source !== 'timed') ? 'reported' : 'measured', { detail: head, label: std.product }));
+      }
     }
   }
 
