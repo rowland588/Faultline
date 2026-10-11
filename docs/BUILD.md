@@ -492,7 +492,11 @@ customer, through every department it passes. Then: "see the VSM like a
 grid — a swimlane grid. We can see a journey of what, who and the value",
 with a picture of one (the steps in sequence across, the areas down the
 side, a square per step in its area's lane, VA · NE · NV, the cycle time,
-wait and lead time adding up underneath, played through).
+wait and lead time adding up underneath, played through). And: "there is
+no drawing ... not a Visio sort of diagram ... we can see the values just
+from the colours, and then I click the colour and it opens up all the
+information" — with the colours his picture uses: VA green, NE amber, NV red
+(the one exception to the state colours, recorded in CLAUDE.md).
 
 **B1. The map on its own.** Built 11 October.
 - **The record:** a study of tool `map` (no new record, no migration):
@@ -514,14 +518,17 @@ wait and lead time adding up underneath, played through).
 - **The page** (`/value-stream`, a line under Tools; `/value-stream/:id`):
   the totals as cards (adds value, necessary, non-value adding, % value
   added, cycle time, lead time, takt); the sentence; **the swimlane grid**
-  (`ui/ValueStream`) — classification VA · NE · NV, the sequence, the areas
-  in the order the journey reaches them, a square per step in its lane, and
-  under it the cycle time, the wait and the lead time so far with a total
-  column; **Play the journey** (pause, carry on, speed) lights the steps in
-  turn and adds up the lead time; **Show only the waste**; tap a square for
-  the step, **Change this step** for its sheet; **Copy to the future** and
-  Today / The future, before → after said. On a phone the grid scrolls in
-  its box, the areas pinned.
+  (`ui/ValueStream`), nothing drawn — classification VA · NE · NV, the
+  sequence, the areas in the order the journey reaches them, a square per
+  step in its lane coloured by its value, and under it the cycle time, the
+  wait and the lead time so far with a total column; **Play the journey**
+  (pause, carry on, restart, speed) lights the steps in turn and adds up the
+  lead time; **Show only the waste**; **tap any square of a step** and
+  everything about it opens (what happens, who, its value, its kind, the
+  work, the wait, the lead time by here, people, how its job arrives, how it
+  is known), with **Change this step** for its sheet; **Copy to the future**
+  and Today / The future, before → after said. On a phone the grid scrolls
+  in its box, the areas pinned.
 - **Where it sits:** on its own, on a line, on a job (as any study); Used for
   on its job.
 

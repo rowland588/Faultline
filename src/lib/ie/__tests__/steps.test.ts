@@ -71,7 +71,7 @@ describe('the value stream (tool 2)', () => {
     expect(flowFigures(stream(), agreed).lanes).toEqual(['Order office', 'Planning', 'Stores', 'Line 2', 'Despatch']);
   });
   it('durations as people say them', () => {
-    expect([dur(6), dur(240), dur(5400), dur(2 * D)]).toEqual(['6.0 s', '4 min', '1.5 h', '2.0 d']);
+    expect([dur(6), dur(240), dur(5400), dur(2 * D), dur(0.045)]).toEqual(['6.0 s', '4 min', '1.5 h', '2.0 d', '0.045 s']);
   });
   it('times typed the way people say them', () => {
     expect([parseDur('6 s'), parseDur('4 min'), parseDur('1.5h'), parseDur('about 2 days'), parseDur('1 week'), parseDur('2,5 d')]).toEqual([6, 240, 5400, 2 * D, 7 * D, 2.5 * D]);

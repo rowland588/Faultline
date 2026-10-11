@@ -5,8 +5,9 @@
  * and "see the VSM like a grid — a swimlane grid. We can see a journey of
  * what, who and the value." So the map is door to door — from the supplier
  * or the order to the customer — through every department it passes, and it
- * is drawn as that grid (ui/ValueStream): who down the side, the journey
- * across, each step filled by its value, the time ladder under it.
+ * is laid out as that grid (ui/ValueStream) — nothing drawn: who down the
+ * side, the journey across, each step coloured by its value, its times
+ * under it; a square tapped opens everything about that step.
  *
  * The page, top to bottom: what it is and where it sits (on its own, on a
  * line, on a job — ui/StudyPlace); what it is held against (the customer,
@@ -25,7 +26,7 @@ import { niceDay } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 import { compareFlows, dur, flowFigures, flowSays, parseDur, share, valueOf } from '../lib/ie/steps';
 import type { AgreedMap, FlowKind, FlowStep, FlowValue, ToolStudy } from '../lib/study';
-import { KIND, VALUE_WORD, ValueStreamGrid, WalkIt } from '../ui/ValueStream';
+import { KIND_WORD, StepFacts, VALUE_WORD, ValueStreamGrid, WalkIt } from '../ui/ValueStream';
 import { UsedFor, WhereItSits } from '../ui/StudyPlace';
 import { Sheet } from '../ui/Sheet';
 
@@ -64,6 +65,8 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
   const said = flowSays(f, a);
   const [wasteOnly, setWasteOnly] = useState(false);
   const [editing, setEditing] = useState<FlowStep | 'new' | null>(null);
+  /* A square tapped: everything about that step, one more tap to change it. */
+  const [viewing, setViewing] = useState<{ st: FlowStep; n: number; lead: number } | null>(null);
   const [agreeing, setAgreeing] = useState(false);
   const [walking, setWalking] = useState(false);
   const editable = can.edit;
@@ -94,9 +97,9 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
       {/* THE TOTALS — the value three ways, the share that adds value, the
           work and the whole lead time; value by its fill and letters. */}
       <div className="vs-cards" role="group" aria-label="Where the stream stands">
-        <div className="vs-card2"><span><i className="vs-key-i is-adds">VA</i> Adds value</span><b>{dur(f.addsSec)}</b></div>
-        <div className="vs-card2"><span><i className="vs-key-i is-needed">NE</i> Necessary</span><b>{dur(f.neededSec)}</b></div>
-        <div className="vs-card2"><span><i className="vs-key-i is-waste">NV</i> Non-value adding</span><b>{dur(f.wasteSec)}</b></div>
+        <div className="vs-card2 is-adds"><span>Adds value</span><b>{dur(f.addsSec)}</b></div>
+        <div className="vs-card2 is-needed"><span>Necessary</span><b>{dur(f.neededSec)}</b></div>
+        <div className="vs-card2 is-waste"><span>Non-value adding</span><b>{dur(f.wasteSec)}</b></div>
         <div className="vs-card2"><span>% value added</span><b>{share(f.pce ?? 0)}</b></div>
         <div className="vs-card2"><span>Cycle time</span><b>{dur(cycleTotal(list))}</b></div>
         <div className="vs-card2 is-lead"><span>Lead time</span><b>{f.untimed ? '≥ ' : ''}{dur(f.leadSec)}</b></div>
@@ -127,11 +130,21 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
       )}
 
       {list.length > 0
-        ? <ValueStreamGrid flow={list} f={f} a={a} wasteOnly={wasteOnly} onOpen={editable ? st => setEditing(st) : undefined} compare={compare} />
+        ? <ValueStreamGrid flow={list} f={f} a={a} wasteOnly={wasteOnly} onOpen={(st, n, lead) => setViewing({ st, n, lead })} />
         : <div className="qsl-empty"><p><b>No steps yet.</b> Start where the order starts — the phone call, the email, the purchase order — and add each step it goes through, in the lane of whoever does it, to the customer.</p></div>}
 
 
       <UsedFor s={s} can={can} me={me} />
+
+      {viewing && (
+        <Sheet open onClose={() => setViewing(null)} title={`Step ${viewing.n}`}>
+          <StepFacts st={list.find(x => x.id === viewing.st.id) ?? viewing.st} n={viewing.n} leadSoFar={viewing.lead} a={a} was={compare?.get(viewing.st.id)} />
+          <div className="vs-step-acts">
+            {editable && <button type="button" className="btn btn-primary" onClick={() => { setEditing(list.find(x => x.id === viewing.st.id) ?? viewing.st); setViewing(null); }}>Change this step</button>}
+            <button type="button" className="btn btn-ghost" onClick={() => setViewing(null)}>Close</button>
+          </div>
+        </Sheet>
+      )}
 
       {editing && (
         <StepSheet key={editing === 'new' ? 'new' : editing.id} step={editing === 'new' ? undefined : editing} list={list} lanes={lanesKnown}
@@ -214,14 +227,14 @@ function StepSheet({ step, list, lanes, canRemove, onClose, onSave, onMove, onRe
           <datalist id="vs-lanes">{lanes.map(l => <option key={l} value={l} />)}</datalist></label>
         <div className="field"><span className="field-label">What kind of step</span>
           <span className="chip-row" role="radiogroup" aria-label="What kind of step">
-            {(Object.keys(KIND) as FlowKind[]).map(k => <button key={k} type="button" role="radio" aria-checked={kind === k} className={'chip' + (kind === k ? ' on' : '')} onClick={() => setKind(k)}>{KIND[k].mark} {KIND[k].word}</button>)}
+            {(Object.keys(KIND_WORD) as FlowKind[]).map(k => <button key={k} type="button" role="radio" aria-checked={kind === k} className={'chip' + (kind === k ? ' on' : '')} onClick={() => setKind(k)}>{KIND_WORD[k]}</button>)}
           </span></div>
         <div className="field"><span className="field-label">Its value</span>
           {values.length ? (
             <span className="chip-row" role="radiogroup" aria-label="Its value">
               {values.map(x => <button key={x} type="button" role="radio" aria-checked={value === x} className={'chip vs-v is-' + x + (value === x ? ' on' : '')} onClick={() => setValue(value === x ? undefined : x)}>{VALUE_WORD[x]}</button>)}
             </span>
-          ) : <span className="sub">A {KIND[kind].word.toLowerCase()} is waste — the time is the order sitting still.</span>}
+          ) : <span className="sub">A {KIND_WORD[kind].toLowerCase()} is non-value adding — the time is the order sitting still.</span>}
           {kind !== 'operation' && kind !== 'wait' && kind !== 'store' && <span className="sub"> Only an operation adds value.</span>}
         </div>
         <div className="vs-step-times">
@@ -241,8 +254,8 @@ function StepSheet({ step, list, lanes, canRemove, onClose, onSave, onMove, onRe
         <label className="field"><span className="field-label">How its next job reaches it <i className="sub">optional</i></span>
           <input className="text-input" value={info} list="vs-info" maxLength={60} placeholder="e.g. email, paper, the system, the board" onChange={e => setInfo(e.target.value)} />
           <datalist id="vs-info">{['paper', 'phone', 'email', 'the system', 'the board', 'word of mouth', 'kanban'].map(x => <option key={x} value={x} />)}</datalist></label>
-        <label className="vs-burst-f"><input type="checkbox" checked={burst} onChange={e => setBurst(e.target.checked)} /> Something here must change ✷</label>
-        {step && v && <p className="sub">Now: {KIND[step.kind].word.toLowerCase()} · {VALUE_WORD[v]}{step.cycleSec ? ` · ${dur(step.cycleSec)}` : ''}.</p>}
+        <label className="vs-burst-f"><input type="checkbox" checked={burst} onChange={e => setBurst(e.target.checked)} /> Something here must change</label>
+        {step && v && <p className="sub">Now: {KIND_WORD[step.kind].toLowerCase()} · {VALUE_WORD[v]}{step.cycleSec ? ` · ${dur(step.cycleSec)}` : ''}.</p>}
         <div className="vs-step-acts">
           <button type="submit" className="btn btn-primary" disabled={!ready}>{step ? 'Save' : 'Add it'}</button>
           {step && <>

@@ -103,6 +103,7 @@ export function flowFigures(flow: FlowStep[] | undefined, a?: AgreedMap): FlowFi
 
 /** A duration as people say it: seconds, minutes, hours, days. */
 export function dur(sec: number): string {
+  if (sec > 0 && sec < 0.1) return `${Number(sec.toPrecision(2))} s`;
   if (sec < 60) return `${sec.toFixed(1)} s`;
   if (sec < 3600) return `${Math.round(sec / 60)} min`;
   if (sec < DAY) return `${(sec / 3600).toFixed(1)} h`;

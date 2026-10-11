@@ -1,57 +1,53 @@
 /* THE VALUE STREAM AS A SWIMLANE GRID (docs/TOOLKIT.md, tool 2).
  *
  * Rowland, 11 October: "see the VSM like a grid — a swimlane grid. We can see
- * a journey of what, who and the value", and a picture of one: the steps in
- * sequence across the top, the areas down the side, one square per step in
- * the lane of whoever does it, each step classified VA · NE · NV, and under
- * it the cycle time, the wait and the lead time adding up step by step, with
- * a total at the end — played through, step by step, so the journey is seen.
+ * a journey of what, who and the value", a picture of one, and then: "there
+ * is no drawing ... I do not want a Visio sort of diagram here ... You can see
+ * the sequence of events due to the way the format presents itself in a grid
+ * style format. And we can see the values just from the colours, and then I
+ * click the colour and it opens up all the information of what's actually
+ * happened in there."
  *
- *   CLASSIFICATION   VA adds value · NE necessary (not value, but needed) ·
- *                    NV non-value adding — waste; a wait is always NV
- *   SEQUENCE         1, 2, 3 … the journey's order
- *   AREAS            who does each step — the order office, planning, a line,
- *                    despatch, the customer — in the order the journey first
- *                    reaches them; the step's square in its lane
- *   CYCLE · WAIT ·   each step's work, what it waits after, and the lead time
- *   LEAD TIME        so far — the total at the end of each row
+ * So NOTHING IS DRAWN: no arrows, no process symbols, no icons. The grid is
+ * the picture —
+ *   CLASSIFICATION   VA · NE · NV, a coloured square per step with its letters
+ *   SEQUENCE         1, 2, 3 … — the columns ARE the journey's order
+ *   WHO DOES IT      a lane per department, role or team, in the order the
+ *                    journey reaches it; the step's square, coloured by its
+ *                    value, in its lane
+ *   CYCLE · WAIT ·   each step's work, what it waits after, the lead time so
+ *   LEAD TIME        far; the totals at the end
+ * Tap any square of a step — its value, its number, its lane — and everything
+ * about that step opens (StepFacts).
  *
- * VALUE BY FILL, NEVER A STATE COLOUR (Rowland's choice, 11 October): VA solid,
- * NE light, NV hatched grey, each with its letters — red, amber and green stay
- * late, waiting and done everywhere in the app, and a black-and-white print
- * still reads.
+ * THE COLOURS are the method's own, Rowland's choice (11 October): VA green,
+ * NE amber, NV red — the one place in the app those hues mean value, not
+ * state (CLAUDE.md, visual management), and always with the letters beside
+ * them, so a black-and-white print and colour-blind eyes still read them.
  *
- * Fixed-size squares, so the grid is its own arithmetic. On a phone it scrolls
- * sideways inside its box, the areas pinned; the page never does. */
+ * Fixed-size squares; on a phone the grid scrolls sideways inside its box,
+ * the lanes pinned; the page never does. */
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { dur, share, valueOf, waitOf, type FlowFigures } from '../lib/ie/steps';
 import type { AgreedMap, FlowKind, FlowStep, FlowValue } from '../lib/study';
 
-export const KIND: Record<FlowKind, { mark: string; word: string }> = {
-  operation: { mark: '●', word: 'Operation' },
-  move: { mark: '➝', word: 'Move' },
-  check: { mark: '◆', word: 'Check' },
-  wait: { mark: '◷', word: 'Wait' },
-  store: { mark: '▽', word: 'Store' },
-};
+export const KIND_WORD: Record<FlowKind, string> = { operation: 'Operation', move: 'Move', check: 'Check', wait: 'Wait', store: 'Store' };
 export const VALUE_WORD: Record<FlowValue, string> = { adds: 'adds value', needed: 'necessary', waste: 'non-value adding' };
 export const VALUE_CODE: Record<FlowValue, string> = { adds: 'VA', needed: 'NE', waste: 'NV' };
 
-const COL_W = 38, TOTAL_W = 96;
+const COL_W = 34, TOTAL_W = 96;
 
 /** A time in a square: as short as it can be and still be read. */
 const tiny = (sec: number): string => (sec < 60 ? `${+sec.toFixed(1)}s` : sec < 3600 ? `${Math.round(sec / 60)}m` : sec < 86_400 ? `${+(sec / 3600).toFixed(1)}h` : `${+(sec / 86_400).toFixed(1)}d`);
 
-export function ValueStreamGrid({ flow, f, a, wasteOnly, onOpen, compare }: {
+export function ValueStreamGrid({ flow, f, a, wasteOnly, onOpen }: {
   flow: FlowStep[]; f: FlowFigures; a?: AgreedMap; wasteOnly?: boolean;
-  onOpen?: (st: FlowStep) => void;
-  /** Today's step of the same id, when this is the future — so a changed time says what it was. */
-  compare?: Map<string, FlowStep>;
+  /** A step's square tapped: everything about it opens. */
+  onOpen: (st: FlowStep, n: number, leadSoFar: number) => void;
 }) {
   const steps = [...flow].sort((x, y) => x.order - y.order);
   const lanes = f.lanes;
   const laneOf = (st: FlowStep) => Math.max(0, lanes.indexOf(st.lane?.trim() || 'Not said'));
-  const [picked, setPicked] = useState<number | null>(null);
   /* PLAY THE JOURNEY — the order moving through, step by step. */
   const [at, setAt] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -71,44 +67,42 @@ export function ValueStreamGrid({ flow, f, a, wasteOnly, onOpen, compare }: {
   /* The running lead time, step by step: work plus what waits after. */
   let run = 0;
   const acc = steps.map(st => (run += (st.cycleSec ?? 0) + (waitOf(st, a).sec ?? 0)));
-  const shownLead = at === null ? f.leadSec : acc[at] ?? 0;
-  /* The areas' column is var(--vs-area): narrower on a phone (styles.css). */
+  const waits = steps.reduce((t, st) => t + (waitOf(st, a).sec ?? 0), 0);
+  const cycles = steps.reduce((t, st) => t + (st.cycleSec ?? 0), 0);
   const cols: CSSProperties = { gridTemplateColumns: `var(--vs-area) repeat(${steps.length}, ${COL_W}px) ${TOTAL_W}px` };
-  const sel = picked !== null ? steps[picked] : undefined;
 
-  const square = (st: FlowStep, i: number, body: React.ReactNode, cls: string, title: string) => (
-    <button key={st.id} type="button" className={cls + (lit(i) ? '' : ' is-dim') + (picked === i ? ' is-picked' : '')} title={title}
-      aria-label={title} aria-pressed={picked === i} onClick={() => setPicked(picked === i ? null : i)}>{body}</button>
-  );
+  /** A step's square: its colour is its value; tapping it opens the step. */
+  const square = (st: FlowStep, i: number, body: React.ReactNode, cls: string) => {
+    const v = valueOf(st);
+    return (
+      <button key={st.id} type="button" className={cls + ' is-' + (v ?? 'unmarked') + (lit(i) ? '' : ' is-dim')}
+        aria-label={`Step ${i + 1} — ${st.lane}: ${st.name || 'a step'} (${v ? VALUE_WORD[v] : 'not marked yet'})`} title={`${i + 1} · ${st.name || 'a step'}`}
+        onClick={() => onOpen(st, i + 1, acc[i] ?? 0)}>{body}</button>
+    );
+  };
 
   return (
     <div className={'vs' + (wasteOnly ? ' is-waste-only' : '')}>
-      <div className="vs-play">
-        {steps.length > 1 && <>
+      {steps.length > 1 && (
+        <div className="vs-play">
           <button type="button" className="btn" onClick={() => { if (!playing && (at === null || at >= steps.length - 1)) setAt(-1); setPlaying(p => !p); }}>
             {playing ? 'Pause' : at !== null && at < steps.length - 1 ? 'Carry on' : 'Play the journey'}
           </button>
-          {at !== null && <button type="button" className="btn" onClick={() => { setPlaying(false); setAt(null); }}>Show it all</button>}
+          {at !== null && <button type="button" className="btn" onClick={() => { setPlaying(false); setAt(null); }}>Restart</button>}
           <label className="vs-speed">Speed <input type="range" min={0.5} max={4} step={0.5} value={speed} onChange={e => setSpeed(Number(e.target.value))} aria-label="How fast it plays" /></label>
           {at !== null && at >= 0 && <span className="vs-at sub">Step {at + 1} of {steps.length} — lead time so far <b>{dur(acc[at] ?? 0)}</b></span>}
-        </>}
-      </div>
+        </div>
+      )}
       <div className="vs-scroll" role="region" aria-label="The value stream — the journey across, who does it down the side" tabIndex={0}>
         <div className="vs-grid" style={cols}>
-          {/* CLASSIFICATION */}
           <div className="vs-h">Classification</div>
-          {steps.map((st, i) => {
-            const v = valueOf(st);
-            return square(st, i, v ? VALUE_CODE[v] : '?', 'vs-sq vs-cls is-' + (v ?? 'unmarked'), `Step ${i + 1}: ${v ? VALUE_WORD[v] : 'not marked yet'}`);
-          })}
-          <div className="vs-tot"><b>{share(f.pce ?? 0)}</b> VA</div>
+          {steps.map((st, i) => { const v = valueOf(st); return square(st, i, v ? VALUE_CODE[v] : '?', 'vs-sq vs-cls'); })}
+          <div className="vs-tot"><b className="vs-pce">{share(f.pce ?? 0)} VA</b></div>
 
-          {/* SEQUENCE */}
           <div className="vs-h">Sequence</div>
-          {steps.map((st, i) => square(st, i, i + 1, 'vs-sq vs-seq', `Step ${i + 1}: ${st.name || 'a step'}`))}
+          {steps.map((st, i) => square(st, i, i + 1, 'vs-sq vs-seq'))}
           <div className="vs-tot vs-tot-h">Total</div>
 
-          {/* AREAS — who does each step */}
           <div className="vs-h vs-areas-h">Who does it</div>
           {steps.map(st => <div key={st.id} className="vs-gap" />)}
           <div />
@@ -116,47 +110,62 @@ export function ValueStreamGrid({ flow, f, a, wasteOnly, onOpen, compare }: {
             <div key={lane} style={{ display: 'contents' }}>
               <div className="vs-lane"><span>{lane}</span></div>
               {steps.map((st, i) => (laneOf(st) === l
-                ? square(st, i, <span aria-hidden>{KIND[st.kind].mark}</span>, 'vs-sq vs-step is-' + (valueOf(st) ?? 'unmarked') + (st.burst ? ' is-burst' : ''),
-                  `Step ${i + 1} — ${lane}: ${st.name || 'a step'} (${KIND[st.kind].word.toLowerCase()}, ${valueOf(st) ? VALUE_WORD[valueOf(st) as FlowValue] : 'not marked'})`)
+                ? square(st, i, null, 'vs-sq vs-step')
                 : <div key={st.id} className={'vs-sq vs-empty' + (lit(i) ? '' : ' is-dim')} aria-hidden />))}
               <div />
             </div>
           ))}
 
-          {/* THE TIMES — cycle, wait, lead time so far */}
           <div className="vs-h vs-times-h">Cycle time</div>
           {steps.map((st, i) => <div key={st.id} className={'vs-sq vs-t vs-c' + (lit(i) ? '' : ' is-dim')}>{st.cycleSec ? tiny(st.cycleSec) : ''}</div>)}
-          <div className="vs-tot"><b>{dur(f.leadSec - waitTotal(steps, a))}</b></div>
+          <div className="vs-tot"><b>{dur(cycles)}</b></div>
           <div className="vs-h">Wait</div>
           {steps.map((st, i) => { const w = waitOf(st, a).sec; return <div key={st.id} className={'vs-sq vs-t vs-w' + (w ? ' is-on' : '') + (lit(i) ? '' : ' is-dim')}>{w ? tiny(w) : ''}</div>; })}
-          <div className="vs-tot"><b>{dur(waitTotal(steps, a))}</b></div>
+          <div className="vs-tot"><b>{dur(waits)}</b></div>
           <div className="vs-h">Lead time so far</div>
           {steps.map((st, i) => <div key={st.id} className={'vs-sq vs-t vs-l' + (lit(i) ? '' : ' is-dim')}>{tiny(acc[i] ?? 0)}</div>)}
-          <div className="vs-tot vs-tot-lead"><b>{f.untimed && at === null ? '≥ ' : ''}{dur(shownLead)}</b></div>
+          <div className="vs-tot vs-tot-lead"><b>{f.untimed && at === null ? '≥ ' : ''}{dur(at === null ? f.leadSec : acc[at] ?? 0)}</b></div>
         </div>
       </div>
-      {/* THE STEP TAPPED — what, who, the value, its times; one tap to change it. */}
-      <div className="vs-picked" aria-live="polite">
-        {sel && picked !== null ? (
-          <>
-            <b>Step {picked + 1} · {sel.lane}</b> — {sel.name || 'a step'}: {KIND[sel.kind].word.toLowerCase()}, {valueOf(sel) ? VALUE_WORD[valueOf(sel) as FlowValue] : 'not marked yet'}
-            {sel.cycleSec ? ` · work ${dur(sel.cycleSec)}` : ''}{waitOf(sel, a).sec ? ` · waits ${dur(waitOf(sel, a).sec ?? 0)}${waitOf(sel, a).from === 'queue' ? ` (${sel.queue} waiting)` : ''}` : ''}
-            {sel.people ? ` · ${sel.people} ${sel.people === 1 ? 'person' : 'people'}` : ''}{sel.info ? ` · its job arrives by ${sel.info}` : ''}{sel.burst ? ' · ✷ something here must change' : ''}
-            {compare?.get(sel.id) && (compare.get(sel.id)?.cycleSec ?? 0) !== (sel.cycleSec ?? 0) ? ` · today ${dur(compare.get(sel.id)?.cycleSec ?? 0)}` : ''}
-            {onOpen && <> <button type="button" className="linkish" onClick={() => onOpen(sel)}>Change this step</button></>}
-          </>
-        ) : <span className="sub">Tap a square to see the step{onOpen ? ' and change it' : ''}.</span>}
-      </div>
       <p className="vs-key sub">
-        <span className="vs-key-i is-adds">VA</span> adds value <span className="vs-key-i is-needed">NE</span> necessary — not value, but needed <span className="vs-key-i is-waste">NV</span> non-value adding — waste
-        {' · '}{(Object.keys(KIND) as FlowKind[]).map(k => <span key={k} className="vs-key-k">{KIND[k].mark} {KIND[k].word.toLowerCase()}</span>)}
-        {' · '}lead time = work + what waits after each step
+        <span className="vs-key-i is-adds">VA</span> adds value
+        <span className="vs-key-i is-needed">NE</span> necessary — not value, but needed
+        <span className="vs-key-i is-waste">NV</span> non-value adding — waste
+        <span className="vs-key-i is-unmarked">?</span> not marked yet
+        <span>· Tap a square for everything about that step · lead time = work + what waits after each step</span>
       </p>
     </div>
   );
 }
 
-const waitTotal = (steps: FlowStep[], a?: AgreedMap) => steps.reduce((t, st) => t + (waitOf(st, a).sec ?? 0), 0);
+/** EVERYTHING ABOUT ONE STEP — what opens when its colour is tapped: what
+ *  happens, who does it, its value, what kind of step, its times, the lead
+ *  time by here, the people, how its job arrives, and whether it must change. */
+export function StepFacts({ st, n, leadSoFar, a, was }: { st: FlowStep; n: number; leadSoFar: number; a?: AgreedMap; was?: FlowStep }) {
+  const v = valueOf(st);
+  const w = waitOf(st, a);
+  const rows: [string, string][] = [
+    ['Who does it', st.lane || 'Not said'],
+    ['What kind of step', KIND_WORD[st.kind]],
+    ['The work', st.cycleSec ? `${dur(st.cycleSec)} each time${st.batch && st.batch > 1 ? ` — for ${st.batch} pieces, ${dur(st.cycleSec / st.batch)} a piece` : ''}` : 'no time yet'],
+    ['Waits after', w.sec !== undefined ? `${dur(w.sec)}${w.from === 'queue' ? ` — ${st.queue} waiting, at ${a?.demandPerDay} a day` : ''}` : '—'],
+    ['Lead time by here', dur(leadSoFar)],
+    ...(st.people ? [['People', String(st.people)] as [string, string]] : []),
+    ...(st.info ? [['Its job arrives by', st.info] as [string, string]] : []),
+    ['How it is known', st.source === 'timed' ? 'timed on the walk' : 'typed'],
+  ];
+  if (was && ((was.cycleSec ?? 0) !== (st.cycleSec ?? 0) || (waitOf(was, a).sec ?? 0) !== (w.sec ?? 0))) {
+    rows.push(['Today', `work ${was.cycleSec ? dur(was.cycleSec) : '—'} · waits ${waitOf(was, a).sec !== undefined ? dur(waitOf(was, a).sec ?? 0) : '—'}`]);
+  }
+  return (
+    <div className="vs-facts">
+      <p className="vs-facts-h" aria-label={`Step ${n}`}><span className={'vs-key-i is-' + (v ?? 'unmarked')}>{v ? VALUE_CODE[v] : '?'}</span> {v ? VALUE_WORD[v] : 'not marked yet'}</p>
+      <h3>{st.name || 'A step'}</h3>
+      <dl className="vs-facts-l">{rows.map(([k, x]) => <div key={k}><dt>{k}</dt><dd>{x}</dd></div>)}</dl>
+      {st.burst && <p className="vs-facts-must"><b>Something here must change.</b></p>}
+    </div>
+  );
+}
 
 /* WALK IT (docs/TOOLKIT.md, tool 2) — the journey walked with a phone in the
  * hand: Start as the first step begins; Next step as each one ends, its time
@@ -192,7 +201,7 @@ export function WalkIt({ lanes, onStep, onDone }: {
         <input className="text-input" value={lane} list="vs-walk-lanes" placeholder="e.g. Order office" onChange={e => setLane(e.target.value)} />
         <datalist id="vs-walk-lanes">{lanes.map(l => <option key={l} value={l} />)}</datalist></label>
       <span className="chip-row" role="radiogroup" aria-label="What kind of step">
-        {(Object.keys(KIND) as FlowKind[]).filter(k => k !== 'wait' && k !== 'store').map(k => <button key={k} type="button" role="radio" aria-checked={kind === k} className={'chip' + (kind === k ? ' on' : '')} onClick={() => setKind(k)}>{KIND[k].mark} {KIND[k].word}</button>)}
+        {(Object.keys(KIND_WORD) as FlowKind[]).filter(k => k !== 'wait' && k !== 'store').map(k => <button key={k} type="button" role="radio" aria-checked={kind === k} className={'chip' + (kind === k ? ' on' : '')} onClick={() => setKind(k)}>{KIND_WORD[k]}</button>)}
       </span>
       {!startedAt
         ? <button type="button" className="wb-lap" onClick={() => setStartedAt(Date.now())}>Start — as the first step begins</button>

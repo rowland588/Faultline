@@ -363,7 +363,11 @@ what by when?
    waiting on somebody, or due soon. Indigo (`--st-w`) is under way or still
    ahead. Green (`--st-g`) is done. Grey (`--st-n`) is not started. Brand blue
    is for what you press, never a state. Nothing else wears these hues: the six
-   bones of the fishbone are told apart by place and name, not colour. The PDFs use the same
+   bones of the fishbone are told apart by place and name, not colour. **The
+   one exception is Rowland's own (11 October): the value stream grid colours
+   value the way the method does — VA green, NE amber, NV red — always with
+   the letters VA · NE · NV beside the colour, and only on that grid and its
+   paper.** The PDFs use the same
    five values. Set 4 October: a step with a day booked is still ahead
    (indigo); a step with no day is not started (grey); a gate where nothing
    has started is grey and says "not started"; a stage not on a machine's
