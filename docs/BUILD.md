@@ -310,10 +310,9 @@ found a 3 g pack given the 50–100 g row's error; fixed.
   same study on the same scope, limits already agreed), and **Before →
   after** ("Cpk 0.67 → 1.00 — just capable now. The number moved; what moved
   it is the fix's to say").
-- **Not yet:** the problem's drawer ("How we know → add a study"), the 6M
-  countermeasure, the Commission square's count, Needs you ("18 readings
-  still owed") and Today's update. The test and fix branches carry the story
-  today; these follow with the next tool.
+- **Not yet:** the Commission square's count, Needs you ("18 readings still
+  owed") and Today's update. (The 6M side — a cause's evidence and the
+  board's countermeasure — is 2h, below.)
 
 **2g. The paper.** Built 10 October.
 - **The client report:** each open fix with a study prints its line on its
@@ -325,6 +324,31 @@ found a 3 g pack given the 50–100 g row's error; fixed.
   proof, a test's proof still short), and every line above is demanded on the
   paper.
 - **Not yet:** the handover pack and the test report.
+
+**2h. On a running line.** Built 11 October. On a 6M (or lever tree) job
+the records a study serves are a cause on the fishbone and a countermeasure
+on the board — not a test and a fix, which such a job has no page for.
+(Before this, Make it better on a 6M job raised a stage-gate fix nobody
+could see.)
+- **Use it for…** offers the job's causes ("How we know") and its
+  countermeasures ("How we know it was needed" while open, "Proves it
+  worked" any time), under two headings; a closed problem's cause or a
+  ruled-out one is no longer offered, but its link still shows.
+- **Make it better — a countermeasure** puts one on the board: the study's
+  figures its words, what it should change said ("Every reading within the
+  limits, Cpk 1.33 or more, on the same readings again"; "Op 1 within the
+  12.0 s takt, timed again"), on the cause the study is evidence for while
+  its problem is open (its bone, its line), and opens it.
+- **The countermeasure's sheet** carries How we know, Proved by, Before →
+  after and **Prove it**, as a fix's drawer does (`FixStudies`); **the
+  cause's panel** on the fishbone carries How we know (`CauseStudies`).
+- **The 6M report** prints each countermeasure's line under it — before →
+  after, what proved it, or how we know it was needed (`provedLine`, the
+  same line the client report gives a fix).
+- `report-stress`: the huge 6M job's calibration countermeasure has a
+  capability study before (also its cause's evidence) and after; every
+  countermeasure's line is demanded on the paper.
+- **Its acceptance:** `scripts/acceptance/sixm-evidence.mjs`, in the gate.
 
 **Release 2's acceptance:** `scripts/acceptance/ecosystem-capability.mjs`,
 built 10 October and in the gate, drives the whole story in Chromium, each

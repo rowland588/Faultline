@@ -25,6 +25,8 @@ import type { ProblemView } from '../lib/problems';
 import type { PaceAction } from '../lib/tracker';
 import type { Case } from '../types';
 import { sixmLabel, type Cause, type CauseSource } from '../lib/sixm';
+import { causeRefOf } from '../lib/fishbone';
+import { CauseStudies } from './StudyLinks';
 import type { VoiceContext } from '../../api/voice';
 import { ChainFix, ChainWhy, ProblemCard, type ProblemCardProps } from './ProblemCard';
 import { ParetoPane } from './ParetoPane';
@@ -111,6 +113,8 @@ export function CausePanel(p: CausePanelProps) {
     <PanelFrame wide={wide} kicker={kicker} title={c.text.trim() || 'A cause with no words yet'} onClose={onClose}>
       {from && <p className="frp-from">From {from}
         {c.source && c.source.kind !== 'observation' && p.onOpenSource && <> · <button type="button" className="cs-link" onClick={() => c.source && p.onOpenSource?.(c.source)}>Open it ›</button></>}</p>}
+      {/* HOW WE KNOW — a study used as this cause's evidence (lib/study). */}
+      {v.problem.projectId && <CauseStudies projectId={v.problem.projectId} causeRef={causeRefOf(v.problem.id, c.id)} />}
       {/* No state colour on the frame: a root found is not "done" — the
           fixes' own states say what is late. */}
       <div className="frp-parts">

@@ -137,6 +137,7 @@ node scripts/report-stress.mjs /tmp/fuzz --fuzz 40   # forty random jobs, every 
 node scripts/acceptance/stagegate-step1.mjs   # release 1's four stories, driven — same server
 node scripts/acceptance/ecosystem-capability.mjs  # release 2: a study, a line, a job, a fix, before → after, the report
 node scripts/acceptance/work-balance.mjs  # step 3: the work timed on the phone, stacked against takt, on a job, before → after
+node scripts/acceptance/sixm-evidence.mjs  # 2h: a study on a running line — a cause's evidence, a countermeasure, before → after, the 6M report
 node scripts/sync-two-devices.mjs     # a phone and a laptop against a fake cloud — video on one plays on the other
 node scripts/check-live-schema.mjs    # the LIVE database against the mapper — needs .env
 ```
@@ -163,7 +164,9 @@ to rate, since you last looked, scan the machine. `ecosystem-capability.mjs`
 is release 2: a capability study from a quick session to a fix's before →
 after and the client report. `work-balance.mjs` is step 3: the line
 balance's work timed on the phone, stacked against takt, made better on a
-job and proved by timing it again.
+job and proved by timing it again. `sixm-evidence.mjs` is 2h: a study on a
+running line — a cause's evidence, a countermeasure on the board, before →
+after on it and the 6M report.
 
 `scripts/sync-two-devices.mjs` runs two real devices of the app (a phone and a
 laptop, separate storage) against `scripts/fake-cloud.mjs`, which keeps the

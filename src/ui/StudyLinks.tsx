@@ -19,7 +19,7 @@ import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
 import { now, uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
-import { linkedTo, studyLine, studySays, owedOf, beforeAfter, proveItFrom, readingsFor, studyHref, studyTitle } from '../lib/studyLinks';
+import { linkedTo, studyLine, studySays, owedOf, beforeAfter, proveItFrom, readingsFor, studyHref, studyTitle, type FixKind } from '../lib/studyLinks';
 import type { Test } from '../lib/testing';
 import type { ToolStudy } from '../lib/study';
 import type { Can } from '../lib/access';
@@ -77,25 +77,46 @@ export function StudyLinks({ t, machine, can, onVerdict }: {
     );
   }
 
-  if (kind === 'fix') {
-    const evidence = linkedTo(studies, 'fix', t.id, 'evidence');
-    const proofs = linkedTo(studies, 'fix', t.id, 'proof');
-    if (!evidence.length && !proofs.length) return null;
-    const ba = beforeAfter(studies, t.id);
-    return (
-      <div className="rd-blk sl">
-        {evidence.length > 0 && <small>How we know</small>}
-        {evidence.map(s => <StudyRow key={s.id} s={s} />)}
-        {proofs.length > 0 && <small>Proved by</small>}
-        {proofs.map(s => <StudyRow key={s.id} s={s} />)}
-        {ba && <p className={'sl-ba is-' + ba.tone}><b>Before → after:</b> {ba.text}</p>}
-        {can.edit && evidence[0] && !proofs.length && (
-          <div className="rd-acts">
-            <button type="button" className="btn btn-primary" onClick={() => void start(proveItFrom(evidence[0], t.id, { at: now(), by: me, id: uid(), useId: uid() }))}>Prove it — the same study, after</button>
-          </div>
-        )}
-      </div>
-    );
-  }
+  if (kind === 'fix') return <FixStudies projectId={t.projectId} kind="fix" id={t.id} can={can} />;
   return null;
+}
+
+/** A FIX'S STUDIES — a stage-gate fix's, or a running line's countermeasure on
+ *  the board: how we know it was needed, what proved it, before → after, and
+ *  Prove it (the same study, after). Nothing when it has none. */
+export function FixStudies({ projectId, kind, id, can }: { projectId: string; kind: FixKind; id: string; can: Can }) {
+  const studies = useJobStudies(projectId);
+  const { session } = useSession();
+  const me = displayName(session?.user.email) || undefined;
+  const evidence = linkedTo(studies, kind, id, 'evidence');
+  const proofs = linkedTo(studies, kind, id, 'proof');
+  if (!evidence.length && !proofs.length) return null;
+  const ba = beforeAfter(studies, id, kind);
+  const start = async (s: ToolStudy) => { await putStudy(s); nav(href(s)); };
+  return (
+    <div className="rd-blk sl">
+      {evidence.length > 0 && <small>How we know</small>}
+      {evidence.map(s => <StudyRow key={s.id} s={s} />)}
+      {proofs.length > 0 && <small>Proved by</small>}
+      {proofs.map(s => <StudyRow key={s.id} s={s} />)}
+      {ba && <p className={'sl-ba is-' + ba.tone}><b>Before → after:</b> {ba.text}</p>}
+      {can.edit && evidence[0] && !proofs.length && (
+        <div className="rd-acts">
+          <button type="button" className="btn btn-primary" onClick={() => void start(proveItFrom(evidence[0], id, { at: now(), by: me, id: uid(), useId: uid() }, kind))}>Prove it — the same study, after</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** A CAUSE'S STUDIES on a running line's fishbone — how we know it. */
+export function CauseStudies({ projectId, causeRef }: { projectId: string; causeRef: string }) {
+  const studies = linkedTo(useJobStudies(projectId), 'cause', causeRef, 'evidence');
+  if (!studies.length) return null;
+  return (
+    <div className="sl sl-cause">
+      <small>How we know</small>
+      {studies.map(s => <StudyRow key={s.id} s={s} />)}
+    </div>
+  );
 }

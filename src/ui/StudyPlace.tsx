@@ -14,21 +14,23 @@
  * records point at it, and the drawer's branch (ui/StudyLinks) reads the same
  * link from the other end. */
 import { useEffect, useMemo, useState } from 'react';
-import { listWorkspaces, onDataChange, patchStudy, putTest } from '../db';
+import { listProjectCases, listWorkspaces, onDataChange, patchStudy, putPaceTodo, putTest } from '../db';
+import { useProject } from '../lib/useProjects';
+import { planModel } from '../lib/planModel';
+import { useActions } from '../lib/actions';
+import { causeRefOf } from '../lib/fishbone';
+import type { SixM } from '../lib/sixm';
 import { useProjects } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
 import { useAccessByJob } from './JobsBoard';
 import { now, uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import { live, nextFrom, type Test } from '../lib/testing';
-import { betterWords, worthBetter, linkOf } from '../lib/studyLinks';
+import { betterWords, worthBetter, linkOf, countermeasureFrom, recordHref, ROLE_WORD } from '../lib/studyLinks';
 import type { StudyUse, ToolStudy } from '../lib/study';
 import type { Can } from '../lib/access';
 import type { Workspace } from '../types';
 
-const recordHref = (projectId: string, u: Pick<StudyUse, 'kind' | 'ref'>) =>
-  `/project/${projectId}/${u.kind === 'fix' ? 'fixes' : 'testing'}?open=${encodeURIComponent(u.ref)}`;
-const ROLE_WORD: Record<string, string> = { 'test:proof': 'Proves', 'fix:evidence': 'How we know it was needed', 'fix:proof': 'Proves it worked' };
 
 export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
   const { projects } = useProjects();
@@ -84,35 +86,83 @@ export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
   );
 }
 
+/** The pick-list's headings, in the order the work runs. */
+const GROUPS: [StudyUse['kind'], string][] = [['cause', 'Causes on the fishbone'], ['action', 'Countermeasures on the board'], ['test', 'Tests'], ['fix', 'Fixes']];
+
+/** One record inside its job a study can be used for, and how. */
+interface Target { k: StudyUse['kind']; ref: string; title: string; roles: StudyUse['role'][]; bone?: SixM; lineId?: string;
+  /** Shown when linked, but not offered for a new link: a closed problem's cause, a ruled-out one. */
+  past?: boolean }
+
+/** A running line's causes on its fishbones, kept current: "<caseId>:<causeId>".
+ *  One on a closed problem, or ruled out, is past: its link still shows. */
+function useJobCauses(projectId: string, lineWs: string[]): Target[] {
+  const [list, setList] = useState<Target[]>([]);
+  const key = lineWs.join('|');
+  useEffect(() => {
+    if (!projectId) return;
+    const load = () => void listProjectCases(projectId, key ? key.split('|') : []).then(cases => setList(cases.flatMap(c =>
+      (c.causes ?? []).map(x => ({ k: 'cause' as const, ref: causeRefOf(c.id, x.id), title: `${x.text} — ${c.title}`, roles: ['evidence' as const], bone: x.m,
+        ...(c.lineId ? { lineId: c.lineId } : {}), ...(c.status !== 'open' || x.status === 'ruled_out' ? { past: true } : {}) })))));
+    load();
+    return onDataChange(load);
+  }, [projectId, key]);
+  return list;
+}
+
 export function UsedFor({ s, can, me }: { s: ToolStudy; can: Can; me?: string }) {
   const pid = s.projectId ?? '';
+  const { project } = useProject(pid);
+  /* A stage-gate job's evidence serves its tests and fixes; a running line's
+     (6M, lever tree) serves its causes and the countermeasures on its board. */
+  const board = !!project && planModel(project) !== 'commissioning';
   const tt = useTesting(pid);
+  const ax = useActions(pid);
+  const causes = useJobCauses(board ? pid : '', ax.lines.flatMap(l => (l.workspaceId ? [l.workspaceId] : [])));
   const [picking, setPicking] = useState(false);
   if (!s.projectId) return null;
   const projectId = s.projectId;
-  const byId = new Map(live(tt.tests).map(t => [t.id, t]));
-  const uses = s.uses.filter(u => byId.has(u.ref));
-  /* What it could be used for, inside its job: its tests (proof) and fixes
-     (evidence or proof) — not ones it is already linked to that way. */
-  const options = live(tt.tests).flatMap(t => {
-    const k = t.kind ?? 'test';
-    const roles: StudyUse['role'][] = k === 'test' ? ['proof'] : k === 'fix' ? ['evidence', 'proof'] : [];
-    return roles.filter(r => !s.uses.some(u => u.ref === t.id && u.role === r)).map(r => ({ t, k: k as StudyUse['kind'], r }));
-  });
+  const targets: Target[] = board
+    ? [...causes, ...ax.steps.map(a => ({ k: 'action' as const, ref: a.id, title: a.what.trim() || 'An action with no words yet',
+      /* how we know it was needed, while it is still to do; proof, any time */
+      roles: a.state === 'done' ? ['proof' as const] : ['evidence' as const, 'proof' as const] }))]
+    : live(tt.tests).flatMap(t => {
+      const k = t.kind ?? 'test';
+      const roles: StudyUse['role'][] = k === 'test' ? ['proof'] : k === 'fix' ? ['evidence', 'proof'] : [];
+      return roles.length ? [{ k: k as StudyUse['kind'], ref: t.id, title: t.title, roles }] : [];
+    });
+  const byRef = new Map(targets.map(x => [x.ref, x]));
+  const uses = s.uses.filter(u => byRef.has(u.ref));
+  /* What it could be used for — not what it is already linked to that way. */
+  const options = targets.filter(x => !x.past).flatMap(x => x.roles.filter(r => !s.uses.some(u => u.ref === x.ref && u.role === r)).map(r => ({ x, r })));
   const link = (v: string) => {
-    const o = options.find(x => `${x.t.id}|${x.r}` === v);
+    const o = options.find(y => `${y.x.ref}|${y.r}` === v);
     if (!o) return;
-    void patchStudy(s.id, cur => ({ uses: [...cur.uses, linkOf(o.k, o.t.id, o.r, now(), me, uid())] }));
+    void patchStudy(s.id, cur => ({ uses: [...cur.uses, linkOf(o.x.k, o.x.ref, o.r, now(), me, uid())] }));
     setPicking(false);
   };
   const unlink = (id: string) => void patchStudy(s.id, cur => ({ uses: cur.uses.filter(u => u.id !== id) }));
 
-  /* MAKE IT BETTER — a fix on the test it proves (or on its own), its words
-     the study's figures, this study its evidence; then the fix opens. */
+  /* MAKE IT BETTER — its words the study's figures, this study its evidence;
+     then it opens. On a stage-gate job a fix on the test it proves (or on its
+     own); on a running line a countermeasure on the board, on the cause the
+     study is evidence for when it is one. */
   const better = async () => {
     const words = betterWords(s), at = now();
-    const proved = s.uses.find(u => u.kind === 'test' && u.role === 'proof' && byId.has(u.ref));
-    const parent = proved ? byId.get(proved.ref) : undefined;
+    if (board) {
+      const onCause = s.uses.find(u => u.kind === 'cause' && u.role === 'evidence' && byRef.has(u.ref));
+      /* on that cause only while its problem is open — not a closed one's */
+      const c = onCause && !byRef.get(onCause.ref)?.past ? byRef.get(onCause.ref) : undefined;
+      const lineId = ax.lines.find(l => !!l.workspaceId && l.workspaceId === s.workspaceId)?.id ?? c?.lineId;
+      const row = countermeasureFrom(s, { id: uid(), at, ...(lineId ? { lineId } : {}), ...(c ? { causeRef: c.ref } : {}), ...(c?.bone ? { bone: c.bone } : {}) });
+      await putPaceTodo(row);
+      await patchStudy(s.id, cur => ({ uses: [...cur.uses, linkOf('action', row.id, 'evidence', at, me, uid())] }));
+      nav(recordHref(projectId, { kind: 'action', ref: row.id }));
+      return;
+    }
+    const tests = new Map(live(tt.tests).map(x => [x.id, x]));
+    const proved = s.uses.find(u => u.kind === 'test' && u.role === 'proof' && tests.has(u.ref));
+    const parent = proved ? tests.get(proved.ref) : undefined;
     const fix: Test = parent ? nextFrom(parent, uid, at, words, 'fix', words)
       : { id: uid(), projectId, kind: 'fix', title: words, passesIf: words, ...(s.assetId ? { assetId: s.assetId } : {}), outcome: 'planned', sort: at, createdAt: at, updatedAt: at };
     await putTest(fix);
@@ -123,12 +173,12 @@ export function UsedFor({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
   return (
     <div className="ie-used">
       <small className="ie-h">Used for</small>
-      {uses.length === 0 && <p className="sub">Nothing on the job yet — use it for a test it proves, or a fix.</p>}
+      {uses.length === 0 && <p className="sub">{board ? 'Nothing on the job yet — use it for a cause it shows, or a countermeasure on the board.' : 'Nothing on the job yet — use it for a test it proves, or a fix.'}</p>}
       <ul className="ie-uses">
         {uses.map(u => (
           <li key={u.id}>
             <span className="sub">{ROLE_WORD[`${u.kind}:${u.role}`] ?? u.role}:</span>{' '}
-            <button type="button" className="linkish" onClick={() => nav(recordHref(projectId, u))}>{byId.get(u.ref)?.title}</button>
+            <button type="button" className="linkish" onClick={() => nav(recordHref(projectId, u))}>{byRef.get(u.ref)?.title}</button>
             {can.edit && <button type="button" className="linkish ie-unlink" onClick={() => unlink(u.id)} aria-label="Unlink">Unlink</button>}
           </li>
         ))}
@@ -139,10 +189,17 @@ export function UsedFor({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
           {picking && (
             <select className="text-input ie-pick" autoFocus defaultValue="" aria-label="Use it for" onChange={e => link(e.target.value)} onBlur={() => setPicking(false)}>
               <option value="" disabled>Use it for…</option>
-              {options.map(o => <option key={`${o.t.id}|${o.r}`} value={`${o.t.id}|${o.r}`}>{ROLE_WORD[`${o.k}:${o.r}`]}: {o.t.title}</option>)}
+              {GROUPS.map(([k, label]) => {
+                const here = options.filter(o => o.x.k === k);
+                return here.length ? (
+                  <optgroup key={k} label={label}>
+                    {here.map(o => <option key={`${o.x.ref}|${o.r}`} value={`${o.x.ref}|${o.r}`}>{ROLE_WORD[`${o.x.k}:${o.r}`]}: {o.x.title}</option>)}
+                  </optgroup>
+                ) : null;
+              })}
             </select>
           )}
-          {worthBetter(s) && <button type="button" className="btn btn-primary" onClick={() => void better()}>Make it better — raise a fix</button>}
+          {worthBetter(s) && <button type="button" className="btn btn-primary" onClick={() => void better()}>{board ? 'Make it better — a countermeasure' : 'Make it better — raise a fix'}</button>}
         </div>
       )}
     </div>

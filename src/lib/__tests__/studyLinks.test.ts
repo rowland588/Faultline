@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { linkedTo, beforeAfter, proveItFrom, readingsFor, owedOf, betterWords, worthBetter, studyLine, sameScope, studyHref, studyTitle, currentBalance } from '../studyLinks';
+import { linkedTo, beforeAfter, proveItFrom, readingsFor, owedOf, betterWords, worthBetter, studyLine, sameScope, studyHref, studyTitle, currentBalance, countermeasureFrom, recordHref, provedLine } from '../studyLinks';
 import type { ToolStudy } from '../study';
 
 const THIRTY = [400.1, 402.6, 401.6, 400.8, 401.5, 401.3, 400.2, 401.9, 400.6, 400.4, 400.6, 401.2, 401.9, 400.9, 401.8,
@@ -105,5 +105,32 @@ describe('a work balance is evidence like any study (docs/BUILD.md, 3d)', () => 
     const ba = beforeAfter([ev, pr], 'f1');
     expect(ba?.text).toMatch(/^The longest stack 12\.9 s → 9\.5 s against a 12\.0 s takt · \d+% → \d+% balanced — within takt now\. The number moved/);
     expect(ba?.tone).toBe('g');
+  });
+});
+
+describe('on a running line (docs/BUILD.md, 2h): the board, not a stage-gate fix', () => {
+  it('Make it better is a countermeasure on the board — the study\'s figures its words, what it should change said, on the cause', () => {
+    const row = countermeasureFrom(study({ projectId: 'p1' }), { id: 'a1', at: 5, lineId: 'L1', causeRef: 'case:cause', bone: 'measurement' });
+    expect(row).toEqual({
+      id: 'a1', projectId: 'p1', lineId: 'L1', what: betterWords(study({})), where: '', why: 'Capability study — Weight accuracy 400 g', who: '', when: '', state: 'todo',
+      pillar: 'measurement', causeRef: 'case:cause', expect: 'Every reading within the limits, Cpk 1.33 or more, on the same readings again', createdAt: 5, updatedAt: 5,
+    });
+    const bal = { ...study({}), tool: 'balance' as const, name: 'Maris Piper 2kg', agreed: { balance: { taktSec: 12 } },
+      facts: { steps: [{ id: 'a', order: 0, name: 'x', who: 'Op 1', typedSec: 12.9 }] } };
+    expect([countermeasureFrom(bal, { id: 'a2', at: 1 }).pillar, countermeasureFrom(bal, { id: 'a2', at: 1 }).expect]).toEqual(['method', 'Op 1 within the 12.0 s takt, timed again']);
+  });
+  it('each link opens its record: a fix, a board action, a cause on its fishbone', () => {
+    expect(recordHref('p1', { kind: 'fix', ref: 'f1' })).toBe('/project/p1/fixes?open=f1');
+    expect(recordHref('p1', { kind: 'action', ref: 'a1' })).toBe('/project/p1/board?a=a1');
+    expect(recordHref('p1', { kind: 'cause', ref: 'case1:c1' })).toBe('/project/p1/fishbone?problem=case1&cause=c1');
+    expect(recordHref('p1', { kind: 'test', ref: 't1' })).toBe('/project/p1/testing?open=t1');
+  });
+  it('a board action carries the same line a fix does: before → after, else what proved it, else how we know', () => {
+    const ev = study({ id: 'ev', uses: [{ id: 'u1', kind: 'action', ref: 'a1', role: 'evidence', at: 1 }] });
+    expect(provedLine([ev], 'a1', 'action')).toMatch(/^How we know: 30 readings/);
+    expect(provedLine([ev], 'a1')).toBeUndefined();
+    const pr = study({ id: 'pr', startedAt: 5, facts: { readings: THIRTY.map((v, i) => ({ id: `r${i}`, value: Math.round((v + 1) * 10) / 10, at: i })) },
+      uses: [{ id: 'u2', kind: 'action', ref: 'a1', role: 'proof', at: 5 }] });
+    expect(provedLine([ev, pr], 'a1', 'action')).toMatch(/^Before → after: .*The number moved/);
   });
 });

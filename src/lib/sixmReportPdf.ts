@@ -42,6 +42,7 @@ import { PHASE_ORDER, bonesSaid, problemsSaid, saidText, type Said } from './por
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { SIZE, box, font, gap, heading, label, lead, rows, text, wrap, type Row } from './report/blocks';
 import { fixTag, fixesOf } from '../ui/fishbone/layout';
+import { provedLine } from './studyLinks';
 
 /* ================================== the model ================================== */
 
@@ -93,6 +94,9 @@ export interface CounterRep {
   happened?: string;
   /** The cause it is for, in words. */
   cause?: string;
+  /** What a study says of it (lib/studyLinks provedLine): before → after on
+   *  the same study, what proved it, or how we know it was needed. */
+  proved?: string;
 }
 
 /** One line of reasoning under Why: the answers in order (the cause as
@@ -378,6 +382,7 @@ export function sixmReport(o: SixMInput): SixMReport {
         ...(t?.expect?.trim() ? { expect: t.expect.trim() } : {}),
         ...(t?.state === 'done' ? { happened: t.outcome?.trim() || 'not written up yet' } : {}),
         ...(ref ? { cause: ref.text } : {}),
+        ...((() => { const pr = t ? provedLine(o.data.studies, t.id, 'action') : undefined; return pr ? { proved: pr } : {}; })()),
       };
     }).sort((a, b) => TONE_RANK[a.tone] - TONE_RANK[b.tone]);
     const open = counter.filter(c => c.tone !== 'done').length, late = counter.filter(c => c.tone === 'late').length;
@@ -1087,6 +1092,7 @@ function counterRows(list: CounterRep[]): Block {
       cause: c.cause ? wrap(f.doc, `For: ${c.cause}`, w, SIZE.small) : [],
       exp: c.expect && c.tone !== 'done' ? wrap(f.doc, `Should change: ${c.expect}`, w, SIZE.small) : [],
       words: c.words ? wrap(f.doc, `When: ${c.words}`, w, SIZE.small) : [],
+      proved: c.proved ? wrap(f.doc, c.proved, w, SIZE.small) : [],
       side: wrap(f.doc, [c.bone, c.owner || 'No owner'].join(' · '), sideW - 8, SIZE.small),
     };
   };
@@ -1094,7 +1100,7 @@ function counterRows(list: CounterRep[]): Block {
     rows: list.map(c => ({
       h: f => {
         const p = parts(f, c);
-        return 8 + Math.max(p.what.length * 11.5 + (p.cause.length + p.exp.length + p.words.length) * 10.5, p.side.length * 10.5, 14) + 5;
+        return 8 + Math.max(p.what.length * 11.5 + (p.cause.length + p.exp.length + p.words.length + p.proved.length) * 10.5, p.side.length * 10.5, 14) + 5;
       },
       draw: (f, y) => {
         const p = parts(f, c);
@@ -1104,7 +1110,8 @@ function counterRows(list: CounterRep[]): Block {
         font(f.doc, SIZE.body - 0.5, done ? 'normal' : 'bold', done ? MUTED : INK); f.doc.text(p.what, f.x, ty); ty += p.what.length * 11.5;
         if (p.cause.length) { font(f.doc, SIZE.small, 'normal', MUTED); f.doc.text(p.cause, f.x, ty - 1); ty += p.cause.length * 10.5; }
         if (p.exp.length) { font(f.doc, SIZE.small, 'normal', INK2); f.doc.text(p.exp, f.x, ty - 1); ty += p.exp.length * 10.5; }
-        if (p.words.length) { font(f.doc, SIZE.small, 'normal', MUTED); f.doc.text(p.words, f.x, ty - 1); }
+        if (p.words.length) { font(f.doc, SIZE.small, 'normal', MUTED); f.doc.text(p.words, f.x, ty - 1); ty += p.words.length * 10.5; }
+        if (p.proved.length) { font(f.doc, SIZE.small, 'bold', INK2); f.doc.text(p.proved, f.x, ty - 1); }
         font(f.doc, SIZE.small, 'normal', done ? MUTED : INK2); f.doc.text(p.side, f.x + f.w - sideW - stateW, y + 12);
         pill(f.doc, f.x + f.w - stateW, y + 4, stateW, c.tone, c.when);
       },

@@ -13,6 +13,8 @@
  * it" — that is the fix's to say, and a person presses the button. */
 import type { ID } from '../types';
 import type { BalanceStep, StudyUse, ToolStudy } from './study';
+import type { PaceTodoRow } from '../db/rows';
+import type { SixM } from './sixm';
 import { sample, sampleSays, compareSamples, type SampleSays, type Tone } from './ie/sample';
 import { balance, balanceLine, compareBalances, secs as secsOf } from './ie/balance';
 
@@ -78,11 +80,16 @@ export const sameScope = (a: ToolStudy, b: ToolStudy): boolean =>
     : a.name.trim().toLowerCase() === b.name.trim().toLowerCase()
       && JSON.stringify(a.agreed?.readings ?? null) === JSON.stringify(b.agreed?.readings ?? null));
 
-/** Before → after on a fix: its evidence study against its proof study. */
-export function beforeAfter(studies: ToolStudy[], fixId: ID): { text: string; tone: Tone; before: ToolStudy; after: ToolStudy } | undefined {
-  const after = linkedTo(studies, 'fix', fixId, 'proof')[0];
+/** What a study can be the evidence or proof of that something changed: a
+ *  stage-gate job's fix, or a running line's countermeasure on the board. */
+export type FixKind = 'fix' | 'action';
+
+/** Before → after on a fix (or a board action): its evidence study against
+ *  its proof study. */
+export function beforeAfter(studies: ToolStudy[], fixId: ID, kind: FixKind = 'fix'): { text: string; tone: Tone; before: ToolStudy; after: ToolStudy } | undefined {
+  const after = linkedTo(studies, kind, fixId, 'proof')[0];
   if (!after) return undefined;
-  const before = linkedTo(studies, 'fix', fixId, 'evidence').find(b => sameScope(b, after));
+  const before = linkedTo(studies, kind, fixId, 'evidence').find(b => sameScope(b, after));
   if (before && after.tool === 'balance') {
     const ab = after.agreed?.balance;
     return ab ? { ...compareBalances(balance(before.facts.steps, before.agreed?.balance), balance(after.facts.steps, ab)), before, after } : undefined;
@@ -93,6 +100,63 @@ export function beforeAfter(studies: ToolStudy[], fixId: ID): { text: string; to
   return { ...c, before, after };
 }
 
+/** The one line a fix (or a board action) carries on paper and in its
+ *  drawer: before → after when it has both, else what proved it, else how we
+ *  know it was needed. */
+export function provedLine(studies: ToolStudy[], fixId: ID, kind: FixKind = 'fix'): string | undefined {
+  const ba = beforeAfter(studies, fixId, kind);
+  if (ba) return `Before → after: ${ba.text}`;
+  const proof = linkedTo(studies, kind, fixId, 'proof')[0], ev = linkedTo(studies, kind, fixId, 'evidence')[0];
+  if (proof) return `Proved by: ${studyLine(proof).text}`;
+  if (ev) return `How we know: ${studyLine(ev).text}`;
+  return undefined;
+}
+
+/** Where a record a study is used for opens, in its job. */
+export function recordHref(projectId: ID, u: Pick<StudyUse, 'kind' | 'ref'>): string {
+  const at = encodeURIComponent;
+  switch (u.kind) {
+    case 'fix': return `/project/${projectId}/fixes?open=${at(u.ref)}`;
+    case 'action': return `/project/${projectId}/board?a=${at(u.ref)}`;
+    case 'cause': {
+      const [problem, cause] = u.ref.split(':');
+      return `/project/${projectId}/fishbone?problem=${at(problem)}${cause ? `&cause=${at(cause)}` : ''}`;
+    }
+    case 'case': case 'problem': return `/project/${projectId}/fishbone?problem=${at(u.ref)}`;
+    default: return `/project/${projectId}/testing?open=${at(u.ref)}`;
+  }
+}
+
+/** The words for a link, by what it is to the record. */
+export const ROLE_WORD: Record<string, string> = {
+  'test:proof': 'Proves', 'fix:evidence': 'How we know it was needed', 'fix:proof': 'Proves it worked',
+  'action:evidence': 'How we know it was needed', 'action:proof': 'Proves it worked', 'cause:evidence': 'How we know',
+};
+
+/** What a countermeasure raised from a study should change — said before it
+ *  is done, so "Did it work" has something to be held against. */
+export function betterExpect(s: ToolStudy): string | undefined {
+  if (s.tool === 'balance') {
+    const f = balance(s.facts.steps, s.agreed?.balance), c = f.constraint;
+    return c && f.taktSec ? `${c.who} within the ${secsOf(f.taktSec)} takt, timed again` : undefined;
+  }
+  return s.agreed?.readings && s.agreed.readings.kind !== 'ticks' ? 'Every reading within the limits, Cpk 1.33 or more, on the same readings again' : undefined;
+}
+
+/** MAKE IT BETTER ON A RUNNING LINE: a countermeasure on the board, its words
+ *  the study's figures, on the cause the study is evidence for when it is
+ *  one — never a stage-gate fix a 6M job has no page for. */
+export function countermeasureFrom(s: ToolStudy, x: { id: string; at: number; lineId?: string; causeRef?: string; bone?: SixM }): PaceTodoRow {
+  const expect = betterExpect(s);
+  return {
+    id: x.id, ...(s.projectId ? { projectId: s.projectId } : {}), ...(x.lineId ? { lineId: x.lineId } : {}),
+    what: betterWords(s), where: '', why: studyTitle(s), who: '', when: '', state: 'todo',
+    pillar: x.bone ?? (s.tool === 'balance' ? 'method' : 'machine'),
+    ...(x.causeRef ? { causeRef: x.causeRef } : {}), ...(expect ? { expect } : {}),
+    createdAt: x.at, updatedAt: x.at,
+  };
+}
+
 /** A new link from a study to a record. */
 export const linkOf = (kind: StudyUse['kind'], ref: ID, role: StudyUse['role'], at: number, by: string | undefined, id: string): StudyUse =>
   ({ id, kind, ref, role, at, ...(by ? { by } : {}) });
@@ -100,7 +164,7 @@ export const linkOf = (kind: StudyUse['kind'], ref: ID, role: StudyUse['role'], 
 /** "Prove it": the same tool on the same scope as the evidence — what it is
  *  of, the machine, the product, the limits and the count — so before and
  *  after measure the same thing the same way. Its readings start empty. */
-export function proveItFrom(evidence: ToolStudy, fixId: ID, x: { at: number; by?: string; id: string; useId: string }): ToolStudy {
+export function proveItFrom(evidence: ToolStudy, fixId: ID, x: { at: number; by?: string; id: string; useId: string }, kind: FixKind = 'fix'): ToolStudy {
   return {
     id: x.id, tool: evidence.tool, name: evidence.name,
     ...(evidence.workspaceId ? { workspaceId: evidence.workspaceId } : {}),
@@ -111,7 +175,7 @@ export function proveItFrom(evidence: ToolStudy, fixId: ID, x: { at: number; by?
     ...(evidence.standardId ? { standardId: evidence.standardId } : {}),
     ...(evidence.agreed ? { agreed: JSON.parse(JSON.stringify(evidence.agreed)) as ToolStudy['agreed'] } : {}),
     facts: evidence.tool === 'balance' ? { steps: retime(evidence.facts.steps) } : {},
-    uses: [linkOf('fix', fixId, 'proof', x.at, x.by, x.useId)],
+    uses: [linkOf(kind, fixId, 'proof', x.at, x.by, x.useId)],
     startedAt: x.at, createdAt: x.at, updatedAt: x.at,
   };
 }

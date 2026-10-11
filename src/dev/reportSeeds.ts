@@ -779,6 +779,21 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
   ];
   for (const a of counter) await putPaceTodo(a);
 
+  /* A CAPABILITY STUDY ON THE RUNNING LINE (lib/study): the checkweigher's
+     thirty packs as how we know the calibration cause and the countermeasure
+     was needed, and the same thirty after as its proof — before → after on
+     the board's action, the cause's panel and the report's countermeasure. */
+  const calib = counter.find(a => a.causeRef === ref(p3, c3[0]));
+  if (huge && calib) {
+    const agreed = { readings: { kind: 'limits' as const, unit: 'g', nominal: 400, lower: 400, upper: 404, count: 30 } };
+    const scope = { tool: 'capability' as const, name: 'Weight accuracy 400 g', projectId: proj.id, machine: 'Checkweigher', agreed };
+    await putStudy({ id: uid(), ...scope, facts: { readings: THIRTY.map((value, k) => ({ id: uid(), value, at: t - (90 - k) * 60_000, who: 'Agnieszka Szczęsna' })) },
+      uses: [{ id: uid(), kind: 'cause', ref: ref(p3, c3[0]), role: 'evidence', at: t - 60 * 60_000 }, { id: uid(), kind: 'action', ref: calib.id, role: 'evidence', at: t - 60 * 60_000 }],
+      startedAt: t - 120 * 60_000, createdAt: t, updatedAt: t });
+    await putStudy({ id: uid(), ...scope, facts: { readings: THIRTY.map((v, k) => ({ id: uid(), value: Math.round((v + 1) * 10) / 10, at: t - (40 - k) * 60_000, who: 'Zoë Brontë' })) },
+      uses: [{ id: uid(), kind: 'action', ref: calib.id, role: 'proof', at: t - 40 * 60_000 }], startedAt: t - 45 * 60_000, createdAt: t, updatedAt: t });
+  }
+
   /* ------------------------------ the board ------------------------------ */
   const PILLARS: (PaceTodoRow['pillar'] | undefined)[] = ['people', 'machine', 'method', 'material', 'measurement', 'environment', 'plant', 'process', undefined];
   const WHATS = ['Weekly 5S walk on the line', 'Replace the worn sealing jaw', 'Second operator on the infeed at start-up', 'Order the thicker film for trial', 'Fix the stop logging on the HMI',

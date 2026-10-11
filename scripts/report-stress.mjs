@@ -394,6 +394,7 @@ for (const size of SIXM_SIZES) {
       const { KNOWN_WORD } = await import('/src/lib/sixm.ts');
       const { PHASE_WORD } = await import('/src/lib/problems.ts');
       const { listPaceTodos } = await import('/src/db/pace.ts');
+      const SL = await import('/src/lib/studyLinks.ts');
       const { getProject } = await import('/src/db/projects.ts');
       const project = await getProject(pid);
       const loaded = await loadProblems(pid);
@@ -436,6 +437,10 @@ for (const size of SIXM_SIZES) {
         }
         from = `countermeasure`;
         for (const a of v.actions) { const t = todos.find(x => x.id === (a.uid ?? a.ref)); if (t) add(t.what, t.expect, t.state === 'done' ? t.outcome : undefined, words(t)); }
+        /* What a study says of it (lib/studyLinks provedLine) — before → after,
+           what proved it, or how we know it was needed. */
+        from = 'a countermeasure\'s study';
+        for (const a of v.actions) { const id = a.uid ?? a.ref; if (id) add(SL.provedLine(loaded.data.studies, id, 'action')); }
         from = 'hold'; if (v.problem.hold) add(v.problem.hold.what, v.problem.hold.who);
       }
       from = 'board'; for (const t of todos) add(t.what, t.who, t.why, words(t));

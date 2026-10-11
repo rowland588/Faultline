@@ -39,7 +39,7 @@ import { couldWords, criticalProblems, criticalState, riskProblems, type Critica
 import type { WalkSnag } from './walkSnags';
 import { climbsOf } from './rampUp';
 import type { ToolStudy } from './study';
-import { beforeAfter, linkedTo, studyHref, studyLine, studyTitle } from './studyLinks';
+import { provedLine, studyHref, studyLine, studyTitle } from './studyLinks';
 
 /** One cell of a gate's checklist: how that stage stands on that machine. */
 /** `booked` is a step with a day, still ahead (indigo); `ahead` one with no
@@ -468,14 +468,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
   /* ---- fixes ---- */
   /* THE JOB'S STUDIES — evidence, never moved: each fix reads the one link. */
   const studies = (x.studies ?? []).filter(s => !s.deletedAt && s.projectId === project.id);
-  const provedOf = (fixId: string): string | undefined => {
-    const ba = beforeAfter(studies, fixId);
-    if (ba) return `Before → after: ${ba.text}`;
-    const proof = linkedTo(studies, 'fix', fixId, 'proof')[0], ev = linkedTo(studies, 'fix', fixId, 'evidence')[0];
-    if (proof) return `Proved by: ${studyLine(proof).text}`;
-    if (ev) return `How we know: ${studyLine(ev).text}`;
-    return undefined;
-  };
+  const provedOf = (fixId: string): string | undefined => provedLine(studies, fixId);
   const fixRow = (t: Test): FixRow => {
     const ft = fixTone(t, today);
     /* The fix's own picture, else the one taken with the problem that booked

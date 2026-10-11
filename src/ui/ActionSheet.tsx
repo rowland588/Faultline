@@ -25,6 +25,7 @@ import { EvidenceThumb, EvidenceViewer } from './Evidence';
 import { niceDay, todayISO } from '../lib/weeks';
 import type { MediaRef } from '../types';
 import { Icon } from './Icon';
+import { FixStudies } from './StudyLinks';
 
 /** What the sheet edits — a step, or the start of a new one. */
 export type Editing = { step: PaceTodoRow; isNew: boolean };
@@ -218,6 +219,9 @@ export function ActionSheet({ editing, lines, impact, onClose }: {
             <span className="sub"> The line’s numbers either side of the day it closed — the evidence, not the cause.</span>
           </p>
         )}
+        {/* THE STUDIES BEHIND IT (lib/study): how we know it was needed, what
+            proved it, before → after on the same study, and Prove it. */}
+        {!editing.isNew && s.projectId && <FixStudies projectId={s.projectId} kind="action" id={s.id} can={can} />}
         <div className="ax-foot">
           {!editing.isNew && can.remove && <button className="btn btn-ghost cw-del" onClick={() => void remove()}>Delete</button>}
           <span style={{ flex: 1 }} />
