@@ -619,6 +619,22 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     baselineMsWeek: 0, status: 'open', openedAt: t - 70 * day, updatedAt: t,
   };
   await addCase(oldCase);
+  /* LINE 7'S VALUE STREAM on this job (B3b): its card says the flow, and the
+     old case's fishbone (the whole line) offers its biggest wait and its
+     waste as causes — the run waiting a day for planning to release it, on
+     Method; the jaw reset, on Machine. */
+  {
+    const H = 3600;
+    await putStudy({ id: uid(), tool: 'map', name: 'Run released to pallet away — Line 7', projectId: paced.id, workspaceId: line7Ws.id,
+      agreed: { map: { scope: 'line', supplier: 'Run released', customer: 'Pallet to despatch', demandPerDay: 9600, availableSecPerDay: 16 * H } },
+      facts: { flow: [
+        { id: uid(), order: 0, name: 'Release the run to the line', who: ['Planning'], where: 'Office', kind: 'operation', value: 'needed', cycleSec: 600, batch: 9600, waitSec: 20 * H, source: 'typed' },
+        { id: uid(), order: 1, name: 'Bag and seal', who: ['Machine'], where: 'Bagger', kind: 'operation', value: 'adds', cycleSec: 1.3, source: 'timed' },
+        { id: uid(), order: 2, name: 'Reset the sealing jaw', who: ['Maintenance', 'Op 1'], where: 'Bagger', kind: 'operation', value: 'waste', cycleSec: 600, batch: 4800, source: 'timed' },
+        { id: uid(), order: 3, name: 'Pallet waits for QA release', who: ['Quality'], where: 'Palletiser', kind: 'wait', waitSec: 6 * H, source: 'typed' },
+        { id: uid(), order: 4, name: 'Pallet to despatch', who: ['Forklift driver'], where: 'Despatch', kind: 'move', value: 'needed', cycleSec: 180, batch: 720, source: 'timed' },
+      ] }, uses: [], startedAt: t - 5 * 3_600_000, createdAt: t, updatedAt: t });
+  }
   for (const a of [
     act('Replace the basket guide rail', { lineId: pacedLine.id, pillar: 'machine', who: 'Engineering', due: iso(4), state: 'waiting',
       causeRef: `${misfeeds.id}:rail`, expect: 'Basketer minor stops 3.4 → 1.5 h a week' }),

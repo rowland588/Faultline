@@ -618,10 +618,23 @@ change is needed, and how we know it worked.
 - Seeded: Line 7's map on the Line 2 job, a fix from its QA wait, the line
   walked again; on the report jobs, a map-proved fix and a map-proved
   countermeasure, demanded on paper by the stress test.
-- **Next (B3b, B4):** the biggest wait offered as a cause on the fishbone;
-  "lead time · % adds value" under the line on its card and the job's front
-  page; the map's own page in the client and 6M reports; its acceptance
-  script.
+**B3b. The map on the fishbone and the line's card.** Built 11 October.
+- **The fishbone offers it.** On a 6M problem about the whole line, the
+  line's newest map on the job offers its biggest wait and its work that is
+  waste (three at most), each on the bone of whose work it is — "Release the
+  run to the line (Office) — 20.0 h wait" on Method, "Reset the sealing jaw
+  (Bagger) — 10 min of waste each time (for 4800)" on Machine; about one
+  machine, only that machine's steps. Measured when timed on the walk,
+  reported when typed; a step carried from before is not offered — it has
+  not been seen again. Accepted, the cause says **The value stream map:
+  <its name>** (`CauseSource.tool`) and **Open it ›** opens the map.
+- **The line's card** (the job's Lines) gains **The flow** under the work:
+  "Lead time 1.1 d · 0.001% adds value", what is still carried said, one tap
+  to the map. Neutral — a lead time is not judged here.
+- Seeded: Line 7's map on the Line 7 pace job; smoke opens its card and the
+  old case's fishbone.
+- **Next (B4):** the map's own page in the client and 6M reports; its
+  acceptance script.
 
 
 **The tools**, from `docs/TOOLKIT.md`, Part 5:

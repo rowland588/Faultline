@@ -36,7 +36,8 @@ import { analyse, fmtN } from './capacity';
 import { headcount } from './standard';
 import type { ToolStudy } from './study';
 import { balance, secs } from './ie/balance';
-import { currentBalance } from './studyLinks';
+import { boneOfStep, currentBalance } from './studyLinks';
+import { dur, flowFigures, stepAt, stepFigure, valueOf, waitOf, whereOf } from './ie/steps';
 import { stateOf as materialState, daysLate } from './materials';
 import { standingOf, stateOf as programState, daysOverdue } from './programs';
 import { bySort, lineSeries, say, seriesFor } from './measures';
@@ -321,11 +322,11 @@ export function causeFromOldWhys(whys: string[], m: SixM, o: { newId: () => stri
 
 /* =============================== suggestions =============================== */
 
-const mk = (kind: CauseSource['kind'], ref: string, m: SixM, text: string, grade: Grade, o: Partial<Suggestion> & { label?: string } = {}): Suggestion => {
-  const { label, ...rest } = o;
+const mk = (kind: CauseSource['kind'], ref: string, m: SixM, text: string, grade: Grade, o: Partial<Suggestion> & { label?: string; tool?: CauseSource['tool'] } = {}): Suggestion => {
+  const { label, tool, ...rest } = o;
   return {
     key: `${kind}:${ref}`, m, text, grade,
-    source: { kind, ref, ...(label ? { label } : {}), ...(rest.minutesWeek != null ? { minutesWeek: rest.minutesWeek } : {}) },
+    source: { kind, ref, ...(label ? { label } : {}), ...(tool ? { tool } : {}), ...(rest.minutesWeek != null ? { minutesWeek: rest.minutesWeek } : {}) },
     ...rest,
   };
 };
@@ -481,6 +482,29 @@ export function suggestionsFor(problem: Case, data: FishboneData, today = Date.n
         out.push(mk('study', `${study.id}#crew`, 'people', `The work needs ${plural(f.fewest, 'person', 'people')} at a ${secs(f.taktSec)} takt — the standard has ${onMap}`,
           f.people.some(p => p.source !== 'timed') ? 'reported' : 'measured', { detail: head, label: std.product }));
       }
+    }
+  }
+
+  /* 4c. THE LINE'S VALUE STREAM (lib/ie/steps): its newest map on this job,
+     on this line. Its biggest wait, and its work that is waste, each on the
+     bone of whose work it is (maintenance — Machine; stores — Material;
+     quality — Measurement; else Method). About one machine, only its steps.
+     Measured when the step was timed on the walk; reported when typed; a
+     step carried from before is not offered — it has not been seen again.
+     The ref is "<map id>#<step id>" — opening it opens the map. */
+  const map = lineWs ? data.studies.filter(x => !x.deletedAt && x.tool === 'map' && x.workspaceId === lineWs).sort((a, b) => b.startedAt - a.startedAt)[0] : undefined;
+  if (map && (scope.whole || scope.asset)) {
+    const a = map.agreed?.map;
+    const ff = flowFigures(map.facts.flow, a);
+    const head = `Value stream map: ${map.name}, lead time ${ff.untimed ? 'at least ' : ''}${dur(ff.leadSec)}`;
+    const seen = (map.facts.flow ?? []).filter(st => st.source !== 'carried' && (!scope.asset || sameThing(whereOf(st, a), scope.asset)));
+    const wait = scope.whole ? [...seen].filter(st => (waitOf(st, a).sec ?? 0) > 0).sort((x, y) => (waitOf(y, a).sec ?? 0) - (waitOf(x, a).sec ?? 0))[0] : undefined;
+    const waste = seen.filter(st => st.id !== wait?.id && st.kind !== 'wait' && st.kind !== 'store' && valueOf(st) === 'waste' && (st.cycleSec ?? 0) > 0)
+      .sort((x, y) => (y.cycleSec ?? 0) / (y.batch ?? 1) - (x.cycleSec ?? 0) / (x.batch ?? 1));
+    for (const st of [...(wait ? [wait] : []), ...waste].slice(0, 3)) {
+      const at = stepAt(st, a);
+      out.push(mk('study', `${map.id}#${st.id}`, boneOfStep(st, map), `${st.name.trim() || 'A step'}${at ? ` (${at})` : ''} — ${stepFigure(st, a)}`,
+        st.source === 'timed' ? 'measured' : 'reported', { detail: head, label: map.name, tool: 'map' }));
     }
   }
 

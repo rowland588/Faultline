@@ -41,7 +41,7 @@ import { useJobStudies } from '../ui/StudyLinks';
 import { workOf } from '../ui/WorkBalance';
 import { lineStandardOf } from '../lib/fishbone';
 import { headcount } from '../lib/standard';
-import { currentBalance, studyHref } from '../lib/studyLinks';
+import { currentBalance, currentMap, flowLine, studyHref } from '../lib/studyLinks';
 import { gapOf, lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import { ProjectNumbers } from './NumbersPanel';
 import { DUE_SOON_DAYS, useActions } from '../lib/actions';
@@ -431,13 +431,16 @@ function LinePeople({ line, projectId }: { line: PaceLineRow; projectId: string 
  * is sitting in its pack. The whole card is the way in — the owner's pack is
  * where the work actually happens, so getting there should not need aiming at
  * a small link. */
-function LineCard({ line, pack, projectId, series, balance, work }: {
+function LineCard({ line, pack, projectId, series, balance, work, flow }: {
   line: PaceLineRow; pack: LinePack; projectId: string;
   /** What the line's balance says, once its stations are in; absent until then. */
   balance?: string;
   /** The line standard's work, timed (ui/WorkBalance) — a branch under the
    *  balance, only once somebody has timed it. */
   work?: { text: string; over: boolean; href: string };
+  /** The line's value stream (lib/ie/steps) — its newest map on the job: the
+   *  lead time and the share that adds value, a branch under the work. */
+  flow?: { text: string; href: string };
   /** Where this line stands on the measure the project leads on — the first one
    *  its own list names. Absent on a project that has not named one yet, and the
    *  card then simply carries no number rather than a dash meaning nothing. */
@@ -485,6 +488,13 @@ function LineCard({ line, pack, projectId, series, balance, work }: {
         <button className="lc-bal is-set lc-work" onClick={() => nav(work.href)}>
           <span className="lc-bal-k">The work</span>
           <span className={'lc-bal-t' + (work.over ? ' is-r' : '')}>{work.text}</span>
+          <span className="lc-bal-go" aria-hidden>›</span>
+        </button>
+      )}
+      {flow && (
+        <button className="lc-bal is-set lc-work" onClick={() => nav(flow.href)}>
+          <span className="lc-bal-k">The flow</span>
+          <span className="lc-bal-t">{flow.text}</span>
           <span className="lc-bal-go" aria-hidden>›</span>
         </button>
       )}
@@ -704,6 +714,12 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
     const w = std && study ? workOf(study, headcount(std) || undefined) : undefined;
     return std && study && w ? { text: `${std.product}: ${w.short}`, over: w.people.some(p => p.over), href: studyHref(study) } : undefined;
   };
+  /* Each line's value stream: its newest map on this job. */
+  const flowOn = (l: PaceLineRow) => {
+    const m = l.workspaceId ? currentMap(studies, l.workspaceId) : undefined;
+    const text = m ? flowLine(m) : undefined;
+    return m && text ? { text: text.charAt(0).toUpperCase() + text.slice(1), href: studyHref(m) } : undefined;
+  };
   const atTarget = ppm.lines.filter(l => standing.get(l.id)?.meeting === true).length;
 
   /* WHERE A 3P JOB IS, in one sentence — the lines against their target and
@@ -876,7 +892,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
               <div className="lc-grid">
                 {ppm.lines.map(l => (
                   <LineCard key={l.id} line={l} pack={packs.get(l.id) ?? emptyPack} projectId={projectId}
-              series={standing.get(l.id)} balance={limited.find(x => x.line.id === l.id)?.says} work={workOn(l)} />
+              series={standing.get(l.id)} balance={limited.find(x => x.line.id === l.id)?.says} work={workOn(l)} flow={flowOn(l)} />
                 ))}
               </div>
               {can.edit && (

@@ -244,6 +244,35 @@ describe('suggestionsFor — the walk, the standard, the balance, materials, pro
     expect(suggestionsFor(problem(), data({ standards: [std(2)], studies: [bal(), after] }), TODAY).some(x => x.source.kind === 'study')).toBe(false);
   });
 
+  it('the line\'s value stream → its biggest wait and its waste, each on the bone of whose work it is (B3b)', () => {
+    const H = 3600;
+    const map = (o: Partial<ToolStudy> = {}): ToolStudy => ({ id: 'm1', tool: 'map', name: 'Run released to pallet away', projectId: 'P', workspaceId: 'ws1',
+      agreed: { map: { scope: 'line' } }, uses: [], startedAt: 1, createdAt: 1, updatedAt: 1,
+      facts: { flow: [
+        { id: 'rel', order: 0, name: 'Release the run', who: ['Planning'], where: 'Office', kind: 'operation', value: 'needed', cycleSec: 600, waitSec: 2 * H, source: 'typed' },
+        { id: 'jaw', order: 1, name: 'Reset the sealing jaw', who: ['Maintenance', 'Op 1'], where: 'Bagger', kind: 'operation', value: 'waste', cycleSec: 600, batch: 4800, source: 'timed' },
+        { id: 'fetch', order: 2, name: 'Walk to fetch flat cases', who: ['Op 2'], where: 'Stores', kind: 'move', value: 'waste', cycleSec: 60, batch: 120, source: 'timed' },
+        { id: 'qa', order: 3, name: 'Pallet waits for QA release', who: ['Quality'], where: 'Palletiser', kind: 'wait', waitSec: 6 * H },
+      ] }, ...o });
+    const whole = problem({ source: undefined });
+    const s = suggestionsFor(whole, data({ studies: [map()] }), TODAY).filter(x => x.source.kind === 'study');
+    expect(s.map(x => [x.m, x.text, x.grade, x.source.ref, x.source.tool])).toEqual([
+      ['measurement', 'Pallet waits for QA release (Palletiser) — 6.0 h wait', 'reported', 'm1#qa', 'map'],
+      ['method', 'Walk to fetch flat cases (Stores) — 1 min of waste each time (for 120)', 'measured', 'm1#fetch', 'map'],
+      ['machine', 'Reset the sealing jaw (Bagger) — 10 min of waste each time (for 4800)', 'measured', 'm1#jaw', 'map'],
+    ]);
+    expect(s[0].detail).toBe('Value stream map: Run released to pallet away, lead time 8.3 h');
+    /* about one machine: only its steps, and no wait */
+    const onBagger = suggestionsFor(problem({ source: { kind: 'pareto', category: 'Minor stop', asset: 'Bagger' } }), data({ studies: [map()] }), TODAY).filter(x => x.source.kind === 'study');
+    expect(onBagger.map(x => x.source.ref)).toEqual(['m1#jaw']);
+    /* a step carried from before has not been seen again: not offered */
+    const carried = map({ facts: { flow: (map().facts.flow ?? []).map(x => ({ ...x, source: 'carried' as const })) } });
+    expect(suggestionsFor(whole, data({ studies: [carried] }), TODAY).some(x => x.source.kind === 'study')).toBe(false);
+    /* another line's map says nothing about this one; nor does a machine not on the map */
+    expect(suggestionsFor(whole, data({ studies: [map({ workspaceId: 'ws2' })] }), TODAY).some(x => x.source.kind === 'study')).toBe(false);
+    expect(suggestionsFor(problem(), data({ studies: [map()] }), TODAY).some(x => x.source.kind === 'study')).toBe(false);
+  });
+
   it('the standard a line is read against: its product\'s program, else its workspace, else (not strict) the first', () => {
     const a = { ...std(1), id: 'a', sort: 1 }, b = { ...std(1), id: 'b', sort: 2, workspaceId: 'ws1' }, c = { ...std(1), id: 'c', sort: 3, programId: 'pg' };
     const l = { id: 'L1', workspaceId: 'ws1' } as PaceLineRow;

@@ -17,7 +17,7 @@ import type { PaceTodoRow } from '../db/rows';
 import type { SixM } from './sixm';
 import { sample, sampleSays, compareSamples, CPK_FROM, CPK_JUST, type SampleSays, type Tone } from './ie/sample';
 import { balance, balanceLine, compareBalances, secs as secsOf } from './ie/balance';
-import { carryFlow, compareFlows, compareStep, dur as durOf, flowFigures, flowSays, stepAt, stepFigure, whoOf } from './ie/steps';
+import { carryFlow, compareFlows, compareStep, dur as durOf, flowFigures, flowSays, share as shareOf, stepAt, stepFigure, whoOf } from './ie/steps';
 
 const live = (ss: ToolStudy[]) => ss.filter(s => !s.deletedAt);
 
@@ -57,6 +57,20 @@ export function studyHref(s: Pick<ToolStudy, 'id' | 'tool' | 'standardId' | 'pro
   }
   if (s.tool === 'map') return `/value-stream/${s.id}`;
   return `/${s.tool}/${s.id}`;
+}
+
+/** The value stream a line reads: the newest map on it (a walk again to
+ *  prove a fix is newer, and is how the line runs now). */
+export const currentMap = (studies: ToolStudy[], workspaceId: ID): ToolStudy | undefined =>
+  live(studies).filter(s => s.tool === 'map' && s.workspaceId === workspaceId).sort((a, b) => b.startedAt - a.startedAt)[0];
+
+/** A line's flow in one line, for its card: the lead time and the share that
+ *  adds value — what is still carried from before, said. Neutral: a lead time
+ *  is not judged against anything here. */
+export function flowLine(s: ToolStudy): string | undefined {
+  const f = flowFigures(s.facts.flow, s.agreed?.map);
+  if (!f.steps) return undefined;
+  return `lead time ${f.untimed ? 'at least ' : ''}${durOf(f.leadSec)} · ${shareOf(f.pce ?? 0)} adds value${f.carried ? ` · ${f.carried} of ${f.steps} steps not walked again yet` : ''}`;
 }
 
 /** The work balance a line standard reads: the newest timing of it. */

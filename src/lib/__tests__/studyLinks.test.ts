@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { linkedTo, beforeAfter, proveItFrom, readingsFor, owedOf, betterWords, worthBetter, studyLine, sameScope, studyHref, studyTitle, currentBalance, countermeasureFrom, recordHref, provedLine, recordProvedLine, measuredOn, measuredDays, squareWord, linkOf } from '../studyLinks';
+import { linkedTo, beforeAfter, proveItFrom, readingsFor, owedOf, betterWords, worthBetter, studyLine, sameScope, studyHref, studyTitle, currentBalance, countermeasureFrom, recordHref, provedLine, recordProvedLine, measuredOn, measuredDays, squareWord, linkOf, currentMap, flowLine } from '../studyLinks';
+import { carryFlow } from '../ie/steps';
 import type { ToolStudy } from '../study';
 
 const THIRTY = [400.1, 402.6, 401.6, 400.8, 401.5, 401.3, 400.2, 401.9, 400.6, 400.4, 400.6, 401.2, 401.9, 400.9, 401.8,
@@ -218,6 +219,13 @@ describe('the value stream map inside a change (docs/BUILD.md, B3)', () => {
     const gone = { ...carried, facts: { flow: (carried.facts.flow ?? []).filter(x => x.id !== 'q').map(x => ({ ...x, source: 'timed' as const })) } };
     expect(beforeAfter([ev, gone], 'fx')?.text).toBe('Pallet waits for QA release: taken out. Lead time 1.3 d → 1.0 d (−6.0 h) · 4 → 3 steps.');
     expect(provedLine([ev, walked], 'fx')).toMatch(/^Before → after: Pallet waits for QA release: wait 6\.0 h → 1\.0 h/);
+  });
+  it('the line\'s flow on its card: the newest map, lead time and share, what is carried said', () => {
+    const later = map({ id: 'm2', startedAt: 5, facts: { flow: carryFlow(flow(1 * H)) } });
+    expect(currentMap([map({}), later, map({ id: 'x', workspaceId: 'other', startedAt: 9 })], 'ws')?.id).toBe('m2');
+    expect(flowLine(map({}))).toBe('lead time 1.3 d · 0.001% adds value');
+    expect(flowLine(later)).toBe('lead time 1.0 d · 0.001% adds value · 4 of 4 steps not walked again yet');
+    expect(flowLine(map({ facts: {} }))).toBeUndefined();
   });
   it('a step\'s link keeps which step it came from', () => {
     expect(linkOf('fix', 'fx', 'evidence', 1, 'R', 'u', 'q')).toEqual({ id: 'u', kind: 'fix', ref: 'fx', role: 'evidence', at: 1, by: 'R', step: 'q' });
