@@ -10,6 +10,7 @@ import type { Shot } from './testReport';
 import { brandedAlready, san } from './reportKit';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { SIZE, box, font, gap, heading, label, pagesOf, rows, space, text, wrap } from './report/blocks';
+import { streamBlocks } from './report/streamTable';
 import { byStage, gantt, withMachines, withNext, type GanttBy } from './gantt';
 import { drawGantt } from './ganttPdf';
 import { programsBlocks } from './programsReportPdf';
@@ -616,18 +617,6 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
     }));
   }
 
-  /* ================================ EVIDENCE ================================
-     Every study on the job (docs/TOOLKIT.md, Part 0): what it is of, what it is
-     used for, and what it says — measured by people at the line, said as such. */
-  if (r.evidence.length) {
-    out.push(heading('Evidence', `${r.evidence.length} ${r.evidence.length === 1 ? 'study' : 'studies'} · measured by people at the line`));
-    r.evidence.forEach((e, i, all) => {
-      out.push(text({ text: e.title, size: 9.5, style: 'bold', before: i ? 4 : 0, after: 1 }));
-      out.push(text({ text: `Used for: ${e.used}`, size: 8, colour: MUTED, after: 1 }));
-      out.push(text({ text: e.line, size: 9, colour: e.tone === 'r' ? DANGER : INK2, after: i === all.length - 1 ? gap(d, 's') : 2 }));
-    });
-  }
-
   /* ================================ 5 · LINE STANDARD ================================ */
   if (extras.standards && r.standards.length) {
     const draw = extras.standards;
@@ -638,6 +627,23 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
       for (let i = first; i <= f.doc.getNumberOfPages(); i++) brandedAlready(f.doc, i);
     }));
   }
+  /* ================================ EVIDENCE ================================
+     Every study on the job (docs/TOOLKIT.md, Part 0): what it is of, what it is
+     used for, and what it says — measured by people at the line, said as such.
+     The appendix, so last: after the line standard's own pages, so a value
+     stream's table that runs over never strands its last rows on a page of
+     their own before them. */
+  if (r.evidence.length) {
+    out.push(heading('Evidence', `${r.evidence.length} ${r.evidence.length === 1 ? 'study' : 'studies'} · measured by people at the line`));
+    r.evidence.forEach((e, i, all) => {
+      out.push(text({ text: e.title, size: 9.5, style: 'bold', before: i ? 4 : 0, after: 1 }));
+      out.push(text({ text: `Used for: ${e.used}`, size: 8, colour: MUTED, after: 1 }));
+      out.push(text({ text: e.line, size: 9, colour: e.tone === 'r' ? DANGER : INK2, after: e.stream ? 4 : i === all.length - 1 ? gap(d, 's') : 2 }));
+      /* a value stream: the grid on paper, step by step */
+      if (e.stream) out.push(...streamBlocks(e.stream.rows, e.stream.total));
+    });
+  }
+
   return out;
 }
 

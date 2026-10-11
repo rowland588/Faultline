@@ -1,6 +1,6 @@
 /* The value stream's arithmetic — one line end to end, the departments that touch it included. */
 import { describe, it, expect } from 'vitest';
-import { flowFigures, flowSays, compareFlows, waitOf, valueOf, dur, parseDur, lanesOf, lanesOfStep, whoOf, whereOf, laneByDefault, stepWorth, stepFigure, compareStep, carryFlow } from '../steps';
+import { flowFigures, flowSays, compareFlows, waitOf, valueOf, dur, parseDur, lanesOf, lanesOfStep, whoOf, whereOf, laneByDefault, stepWorth, stepFigure, compareStep, carryFlow, streamRows } from '../steps';
 import type { FlowStep } from '../../study';
 
 const D = 86_400;
@@ -109,6 +109,22 @@ describe('the value stream (tool 2)', () => {
     expect(flowFigures(carryFlow([was])).carried).toBe(1);
     expect(flowSays(flowFigures(carryFlow([was]))).lines).toContain('1 step is carried from the map before — not walked or typed again yet.');
     expect(compareFlows(flowFigures([was]), flowFigures([was]))).toBe('Lead time 6.0 h, no change.');
+  });
+  it('the stream on paper: a row per step in order, every figure in words, the branch and what is carried said, the totals', () => {
+    const flow: FlowStep[] = [
+      { id: 'q', order: 2, name: 'Pallet waits', who: ['Quality'], where: 'Palletiser', kind: 'wait', waitSec: 6 * 3600 },
+      { id: 'b', order: 0, name: 'Bag and seal', who: ['Machine', 'Op 1'], where: 'Bagger', kind: 'operation', value: 'adds', cycleSec: 1.2 },
+      { id: 'f', order: 1, name: 'Fetch cases', who: ['Op 2'], kind: 'move', value: 'waste', cycleSec: 60, batch: 120, source: 'carried' },
+      { id: 'n', order: 3, name: '', kind: 'operation' },
+    ];
+    const t = streamRows(flow, { scope: 'line' }, new Map([['q', 'Shorten the QA hold']]));
+    expect(t.rows.map(r => [r.n, r.what, r.who, r.where, r.value, r.work, r.wait, r.lead, !!r.carried, r.branch])).toEqual([
+      [1, 'Bag and seal', 'Machine, Op 1', 'Bagger', 'adds', '1.2 s', '—', '1.2 s', false, undefined],
+      [2, 'Fetch cases', 'Op 2', '—', 'waste', '1 min for 120', '—', '1 min', true, undefined],
+      [3, 'Pallet waits', 'Quality', 'Palletiser', 'waste', '—', '6.0 h', '6.0 h', false, 'Shorten the QA hold'],
+      [4, 'A step', '—', '—', undefined, 'no time yet', '—', '6.0 h', false, undefined],
+    ]);
+    expect(t.total).toEqual({ work: '1 min', wait: '6.0 h', lead: '6.0 h' });
   });
   it('durations as people say them', () => {
     expect([dur(6), dur(240), dur(5400), dur(2 * D), dur(0.045)]).toEqual(['6.0 s', '4 min', '1.5 h', '2.0 d', '0.045 s']);

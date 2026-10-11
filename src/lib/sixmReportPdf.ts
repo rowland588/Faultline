@@ -42,7 +42,10 @@ import { PHASE_ORDER, bonesSaid, problemsSaid, saidText, type Said } from './por
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { SIZE, box, font, gap, heading, label, lead, rows, text, wrap, type Row } from './report/blocks';
 import { fixTag, fixesOf } from '../ui/fishbone/layout';
-import { provedLine } from './studyLinks';
+import { provedLine, ROLE_WORD, studyLine, studyTitle } from './studyLinks';
+import { streamRows } from './ie/steps';
+import { streamBlocks } from './report/streamTable';
+import type { StudyUse } from './study';
 
 /* ================================== the model ================================== */
 
@@ -208,6 +211,10 @@ export interface SixMReport {
   /** Bones with nothing on the board, in one line. */
   boardQuiet?: string;
   seen?: { says: string; rows: { what: string; where: string; owner: string; found: string; tone: Tone; state: string }[]; closed: string[] };
+  /** EVIDENCE — every study on the job (on the line, when the report is for
+   *  one): what it is of, what it is used for, what it says, and a value
+   *  stream's steps as a table — the same appendix the client report has. */
+  evidence: { title: string; used: string; line: string; tone: string; stream?: ReturnType<typeof streamRows> }[];
 }
 
 export interface SixMInput {
@@ -497,6 +504,20 @@ export function sixmReport(o: SixMInput): SixMReport {
     closed: closedSnags.map(s => s.what).filter(x => x.trim()),
   } : undefined;
 
+  /* ------------------------------ evidence ------------------------------ */
+  const todoOf = (id: string) => o.todos.find(t => t.id === id);
+  const recordTitle = (u: StudyUse) => (u.kind === 'cause' ? causeText.get(u.ref)?.text : u.kind === 'action' ? todoOf(u.ref)?.what : undefined);
+  const evidence: SixMReport['evidence'] = data.studies
+    .filter(s => !s.deletedAt && (!o.lineId || (!!s.workspaceId && ws.has(s.workspaceId))))
+    .sort((a, b) => a.startedAt - b.startedAt)
+    .map(s => {
+      const used = s.uses.flatMap(u => { const t = recordTitle(u)?.trim(); return t ? [`${(ROLE_WORD[`${u.kind}:${u.role}`] ?? u.role).toLowerCase()}: ${t}`] : []; }).join('; ');
+      const branches = new Map(s.uses.flatMap(u => { const t = u.step && u.role === 'evidence' ? recordTitle(u) : undefined; return t && u.step ? [[u.step, t] as [string, string]] : []; }));
+      const l = studyLine(s);
+      return { title: studyTitle(s), used: used || 'not used for a record yet', line: l.text, tone: l.tone,
+        ...(s.tool === 'map' && (s.facts.flow ?? []).length ? { stream: streamRows(s.facts.flow, s.agreed?.map, branches) } : {}) };
+    });
+
   /* ------------------------------ the band ------------------------------- */
   const measured = gaps.filter(g => g.series && g.says);
   const meeting = gaps.filter(g => g.series && !g.short && /on its|better than|under target/.test(g.says)).length;
@@ -520,6 +541,7 @@ export function sixmReport(o: SixMInput): SixMReport {
     boardSays: [`${allOpen} open`, allLate ? `${allLate} late` : '', `${todos.length - allOpen} done`].filter(Boolean).join(' · '),
     ...(todos.length && quietBones.length ? { boardQuiet: `Nothing on the board for ${listWords(quietBones)}.` } : {}),
     ...(seen ? { seen } : {}),
+    evidence,
   };
 }
 
@@ -662,6 +684,17 @@ function blocksOf(r: SixMReport, d: Density): Block[] {
     out.push(heading('What was seen on the line', `From the filmed walk — ${r.seen.says}`));
     if (r.seen.rows.length) out.push(seenBlock(r.seen.rows));
     if (r.seen.closed.length) out.push(text({ text: `Closed since: ${r.seen.closed.join('; ')}.`, size: S.small, colour: MUTED, after: gap(d, 'm') }));
+  }
+
+  /* ======================= 6 · evidence ======================= */
+  if (r.evidence.length) {
+    out.push(heading('Evidence', `${r.evidence.length} ${r.evidence.length === 1 ? 'study' : 'studies'} · measured by people at the line`));
+    r.evidence.forEach((e, i, all) => {
+      out.push(text({ text: e.title, size: S.body, style: 'bold', before: i ? 4 : 0, after: 1 }));
+      out.push(text({ text: `Used for: ${e.used}`, size: S.small, colour: MUTED, after: 1 }));
+      out.push(text({ text: e.line, size: S.small + 0.5, colour: e.tone === 'r' ? '#9b3227' : INK2, after: e.stream ? 4 : i === all.length - 1 ? gap(d, 's') : 2 }));
+      if (e.stream) out.push(...streamBlocks(e.stream.rows, e.stream.total));
+    });
   }
   return out;
 }

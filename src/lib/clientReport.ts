@@ -40,6 +40,7 @@ import type { WalkSnag } from './walkSnags';
 import { climbsOf } from './rampUp';
 import type { ToolStudy } from './study';
 import { provedLine, studyHref, studyLine, studyTitle } from './studyLinks';
+import { streamRows } from './ie/steps';
 
 /** One cell of a gate's checklist: how that stage stands on that machine. */
 /** `booked` is a step with a day, still ahead (indigo); `ahead` one with no
@@ -217,7 +218,10 @@ export interface ClientReport {
   /** EVIDENCE — every study on the job (docs/TOOLKIT.md, Part 0): what it is
    *  of, what it is used for, and what it says, in its own words. Measured by
    *  people at the line, so said as such. Printed as the appendix. */
-  evidence: { id: string; title: string; href: string; used: string; line: string; tone: string }[];
+  evidence: { id: string; title: string; href: string; used: string; line: string; tone: string;
+    /** A value stream map's steps as a table (lib/ie/steps streamRows) — the
+     *  grid on paper, the step a fix was raised from naming it. */
+    stream?: ReturnType<typeof streamRows> }[];
   /** The job's dated marks — the same ones the project page's Gantt draws —
    *  for "The plan" page, with the day it was printed and both handover dates. */
   plan: PlanMark[];
@@ -554,8 +558,10 @@ export function clientReport(x: ClientReportInput): ClientReport {
         return u.kind === 'test' ? `proves ${r.title}` : u.role === 'evidence' ? `how we know: ${r.title}` : `proves the fix: ${r.title}`;
       }).filter(Boolean).join('; ');
       const l = studyLine(s);
+      const branches = new Map(s.uses.flatMap(u => { const r = u.step && u.role === 'evidence' ? tests.find(t => t.id === u.ref) : undefined; return r && u.step ? [[u.step, r.title] as [string, string]] : []; }));
       return { id: s.id, title: studyTitle(s), href: studyHref(s),
-        used: used || 'not used for a record yet', line: l.text, tone: l.tone };
+        used: used || 'not used for a record yet', line: l.text, tone: l.tone,
+        ...(s.tool === 'map' && (s.facts.flow ?? []).length ? { stream: streamRows(s.facts.flow, s.agreed?.map, branches) } : {}) };
     }),
     /* Notes are never on the client's copy — they are private
        preparation — so a note's reminder stays off its plan page too. */

@@ -217,6 +217,42 @@ export function compareStep(before: FlowStep, after: FlowStep | undefined, a?: A
  *  typed again one by one, and until then said to be the old figure. */
 export const carryFlow = (flow: FlowStep[] | undefined): FlowStep[] => (flow ?? []).map(st => ({ ...st, source: 'carried' as const }));
 
+/* ------------------------------------------------------------ on paper */
+
+/** One step as the paper's table says it (lib/report/streamTable): every
+ *  figure already in words, so the PDF only draws. */
+export interface StreamRow {
+  n: number; what: string; who: string; where: string; value?: FlowStep['value'];
+  work: string; wait: string; lead: string;
+  /** Carried from the map before, not walked again yet. */
+  carried?: boolean;
+  /** The fix or countermeasure raised from it — the branch off the step. */
+  branch?: string;
+}
+
+/** THE STREAM AS A TABLE: a row per step in order — what, who, where, its
+ *  value, its work (a piece when it is done for a batch), the wait after it
+ *  and the lead time by the end of it — and the totals. `branches` names the
+ *  record raised from a step, by step id. */
+export function streamRows(flow: FlowStep[] | undefined, a?: AgreedMap, branches: Map<string, string> = new Map()): { rows: StreamRow[]; total: { work: string; wait: string; lead: string } } {
+  const list = [...(flow ?? [])].sort((x, y) => x.order - y.order);
+  let lead = 0, work = 0, waits = 0;
+  const rows = list.map((st, i) => {
+    const c = st.cycleSec && st.cycleSec > 0 ? st.cycleSec : 0;
+    const w = waitOf(st, a).sec;
+    lead += c + (w ?? 0); work += c; waits += w ?? 0;
+    const v = valueOf(st), b = branches.get(st.id);
+    return {
+      n: i + 1, what: st.name.trim() || 'A step', who: whoOf(st, a).join(', ') || '—', where: whereOf(st, a) ?? '—',
+      ...(v ? { value: v } : {}),
+      work: c ? `${dur(c)}${st.batch && st.batch > 1 ? ` for ${st.batch}` : ''}` : st.kind === 'wait' || st.kind === 'store' ? '—' : 'no time yet',
+      wait: w !== undefined && w > 0 ? dur(w) : '—', lead: dur(lead),
+      ...(st.source === 'carried' ? { carried: true } : {}), ...(b ? { branch: b } : {}),
+    };
+  });
+  return { rows, total: { work: dur(work), wait: dur(waits), lead: dur(lead) } };
+}
+
 /** A time as people type it — "6 s", "4 min", "1.5 h", "2 d", "about 2 days",
  *  "1 week" — into seconds. A bare number is in `bare` (seconds for a cycle,
  *  minutes for a wait). Nothing it can read: undefined, and the box says so. */

@@ -633,8 +633,27 @@ change is needed, and how we know it worked.
   to the map. Neutral — a lead time is not judged here.
 - Seeded: Line 7's map on the Line 7 pace job; smoke opens its card and the
   old case's fishbone.
-- **Next (B4):** the map's own page in the client and 6M reports; its
-  acceptance script.
+**B4. The map on paper.** Built 11 October. A map is in each report's
+**Evidence** appendix with its title, what it is used for and its sentence,
+and under them **the stream as a table**: a row per step in order — what is
+done, who, where, its value as the grid shows it (the VA green · NE amber ·
+NV red square, its letters on it), its work (a piece's batch said: "10 min
+for 9600"), the wait after it, the lead time by the end of it — and the
+totals. A step a fix or a countermeasure was raised from says **Being made
+better: <its title>** under its name; steps carried from the map before are
+said in one line over the table and their figures are grey (the old ones).
+The words are worked out once (`lib/ie/steps` streamRows) and drawn by one
+block (`lib/report/streamTable`) on both papers:
+- **the client report** — Evidence is now the last thing in it, after the
+  line standard's own pages: it is the appendix, and a table running over
+  must not strand its last rows on a page of their own before them;
+- **the 6M report** gains the same Evidence appendix — every study on the
+  job (on the line, for a line's deck), what it is evidence for (a cause,
+  an action) and what it says.
+The stress test demands every step, who and where, the branch, the total
+lead time, and each 6M study's title and sentence.
+- **Next:** the acceptance script for the map (a line's map walked, a step
+  made better, the line walked again, before → after, the report).
 
 
 **The tools**, from `docs/TOOLKIT.md`, Part 5:

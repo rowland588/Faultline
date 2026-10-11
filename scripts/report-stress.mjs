@@ -247,6 +247,10 @@ for (const size of SIZES) {
     from = 'a fix\'s studies'; for (const fx of r.fixes.open) add('client', fx.proved);
     /* EVIDENCE — every study on the job, its title, what it is used for, and what it says. */
     from = 'evidence'; if (r.evidence.length) add('client', 'Evidence'); for (const e of r.evidence) add('client', e.title, `Used for: ${e.used}`, e.line);
+    /* A value stream on paper (lib/report/streamTable): every step, who and
+       where, the record raised from a step, and the lead time at the foot. */
+    from = 'a value stream, step by step';
+    for (const e of r.evidence) if (e.stream) { for (const x of e.stream.rows) add('client', x.what, x.who, x.where, x.branch ? `Being made better: ${x.branch}` : undefined); add('client', e.stream.total.lead); }
     /* What is marked on a fix's photo (ui/Evidence), when that photo is the
        picture printed — not pinned on a walk frame. */
     from = 'a fix photo\'s marks'; for (const fx of r.fixes.open) if (!fx.pin) add('client', ...(fx.photoPins ?? []).map(p => p.note));
@@ -450,6 +454,14 @@ for (const size of SIXM_SIZES) {
          value stream step on no problem shows its before → after there */
       from = 'a board action\'s study'; for (const t of todos) add(SL.provedLine(loaded.data.studies, t.id, 'action'));
       from = 'walk'; for (const sn of loaded.data.snags) if (!lineId || ws.has(sn.wsId)) add(sn.what, sn.state !== 'closed' ? sn.owner : undefined);
+      /* Every study on the job (on the line, for a line's deck) — its title
+         and what it says — and a value stream's steps as a table. */
+      from = 'evidence';
+      const { streamRows } = await import('/src/lib/ie/steps.ts');
+      for (const st of loaded.data.studies.filter(x => !x.deletedAt && (!lineId || (x.workspaceId && ws.has(x.workspaceId))))) {
+        add(SL.studyTitle(st), SL.studyLine(st).text);
+        if (st.tool === 'map') { const t = streamRows(st.facts.flow, st.agreed?.map); for (const x of t.rows) add(x.what, x.who, x.where); add(t.total.lead); }
+      }
       return out;
     }, { pid: job.projectId, lineId });
     /* Each problem in its four parts, in order, before the next one starts. */
