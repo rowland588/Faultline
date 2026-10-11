@@ -652,8 +652,13 @@ block (`lib/report/streamTable`) on both papers:
   an action) and what it says.
 The stress test demands every step, who and where, the branch, the total
 lead time, and each 6M study's title and sentence.
-- **Next:** the acceptance script for the map (a line's map walked, a step
-  made better, the line walked again, before → after, the report).
+- **Its acceptance:** `scripts/acceptance/value-stream.mjs`, in the gate —
+  a new map picks its line; the line's map reads as the module says (the
+  sentence, lanes by who and by where, a shared step in two lanes); Walk it;
+  Make it better from a waste step; Prove it and Walk it again; before →
+  after on the fix; the client report's PDF read back (the before → after,
+  the stream as a table, the branch); the 6M fishbone offering the map's
+  wait and waste, accepted onto its bone; and a client changing nothing.
 
 
 **The tools**, from `docs/TOOLKIT.md`, Part 5:
