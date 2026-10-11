@@ -28,7 +28,7 @@ import { withUsableMime } from '../lib/mime';
 import { CLOUD_FILE_LIMIT } from '../lib/transcode';
 import type { SyncKind } from '../db';
 import {
-  rawAll, rawGet, rawPut, hasBlob, getBlob, putBlob, applyRemoteDelete,
+  rawAll, rawGet, rawPutIf, hasBlob, getBlob, putBlob, applyRemoteDelete,
   listTombstones, clearTombstones, getSyncCursor, setSyncCursor, getDB, onLocalWrite,
 } from '../db';
 
@@ -832,7 +832,7 @@ export async function syncNow(): Promise<void> {
       const local = new Map<string, Record<string, unknown>>();
       for (const row of await rawAll(kind)) local.set(row.id as string, row);
 
-      const applyRemote = async (r: Record<string, unknown>) => {
+      const applyRemote = async (r: Record<string, unknown>, tries = 0): Promise<void> => {
         const id = r.id as string;
         /* The row as it is NOW, not as it was when this kind's pull began — a
            keystroke written while page two was in flight is a real edit. */
@@ -844,6 +844,10 @@ export async function syncNow(): Promise<void> {
         const localClock = localRow ? map.clock(localRow) : -1;
         const remoteClock = Number(r.updated_at);
         const key = sentKey(kind, id);
+        /* Written only if nothing was saved here since the row was read; else
+           read it again and merge again (a few times — an edit a second). */
+        const still = (cur: Record<string, unknown> | undefined) => (cur ? map.clock(cur) : -1) === localClock || tries >= 3;
+        let lostHere = false;
 
         if (localRow) {
           /* BOTH CHANGED IT: merge column by column against the copy both
@@ -860,17 +864,20 @@ export async function syncNow(): Promise<void> {
           }
           if (base) {
             const { row, ours, lost } = mergeRows(base, map.toRow(localRow, uid), r, localClock > remoteClock, map.nested);
-            await basePut(kind, id, r);
-            if (lost.length) overwritten.push({ kind, id, title: titleOf(localRow), at: Date.now() });
             if (ours) {
               /* Something of ours is in it that the cloud has not got: stamp
-                 it newer than both, and leave it unsent so the push takes it. */
+                 it newer than both, and leave it unsent so the push takes it.
+                 The agreed copy moves to theirs only once the merge is written
+                 — a retry must merge against the copy this merge was made from. */
               row.updated_at = Math.max(Date.now(), localClock + 1, remoteClock + 1);
               const incoming = map.fromRow(row);
               const merged = kind === 'workspaces' ? { schemaVersion: 1, ...localRow, ...incoming } : incoming;
-              await rawPut(kind, merged as Record<string, unknown>);
+              if (!(await rawPutIf(kind, merged as Record<string, unknown>, still))) return applyRemote(r, tries + 1);
+              await basePut(kind, id, r);
+              if (lost.length) overwritten.push({ kind, id, title: titleOf(localRow), at: Date.now() });
               return;
             }
+            if (lost.length) lostHere = true;
             /* Nothing of ours survives that the cloud lacks: take theirs, below. */
           } else {
             /* Our own echo, or a row we hold the newer copy of: keep ours and
@@ -879,17 +886,16 @@ export async function syncNow(): Promise<void> {
             if (!remoteWins(localClock, remoteClock, sent[key] === localClock)) return;
             /* A newer copy is about to replace an edit this device never got
                to push. The loser is told, once, by name. */
-            if (needsPush(sent, kind, id, localClock)) {
-              overwritten.push({ kind, id, title: titleOf(localRow), at: Date.now() });
-            }
+            if (needsPush(sent, kind, id, localClock)) lostHere = true;
           }
         }
 
         const incoming = map.fromRow(r);
         // workspaces: preserve device-only fields (running timer, last route, version)
         const merged = kind === 'workspaces' ? { schemaVersion: 1, ...(localRow ?? {}), ...incoming } : incoming;
-        await rawPut(kind, merged as Record<string, unknown>);
+        if (!(await rawPutIf(kind, merged as Record<string, unknown>, still))) return applyRemote(r, tries + 1);
         await basePut(kind, id, r);
+        if (lostHere && localRow) overwritten.push({ kind, id, title: titleOf(localRow), at: Date.now() });
         /* What we now hold IS the cloud's copy: say so, or the push phase would
            send it straight back up as if it were ours, bumping rev and making
            every other device pull it again — an echo for each edit. */

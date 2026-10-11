@@ -92,6 +92,23 @@ export async function rawPut(store: SyncKind, value: Record<string, unknown>): P
   await (await getDB()).put(store as never, value as never);
   signalData();   // a row from another device — the open screen has to redraw
 }
+/** Write a row only if the one stored is still the one the caller read — its
+ *  clock unchanged — read and written in ONE transaction, so an edit saved on
+ *  this device in between is never written over. False: it changed; the
+ *  caller reads it again. (A pull read the row, merged, and wrote the merge
+ *  back; a reading added on the phone between that read and that write was
+ *  lost on every device, and the row then counted as sent — scenario 10 of
+ *  scripts/sync-two-devices.mjs, once, under the gate.) */
+export async function rawPutIf(store: SyncKind, value: Record<string, unknown>, still: (cur: Record<string, unknown> | undefined) => boolean): Promise<boolean> {
+  const db = await getDB();
+  const tx = db.transaction(store as never, 'readwrite');
+  const cur = (await tx.store.get(value.id as never)) as Record<string, unknown> | undefined;
+  if (!still(cur)) { await tx.done; return false; }
+  await tx.store.put(value as never);
+  await tx.done;
+  signalData();
+  return true;
+}
 export async function hasBlob(key: string): Promise<boolean> {
   return (await (await getDB()).getKey('media', key)) !== undefined;
 }
