@@ -25,7 +25,7 @@ import { niceDay } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 import { compareFlows, dur, flowFigures, flowSays, parseDur, share, valueOf } from '../lib/ie/steps';
 import type { AgreedMap, FlowKind, FlowStep, FlowValue, ToolStudy } from '../lib/study';
-import { KIND, VALUE_WORD, ValueStreamGrid } from '../ui/ValueStream';
+import { KIND, VALUE_WORD, ValueStreamGrid, WalkIt } from '../ui/ValueStream';
 import { UsedFor, WhereItSits } from '../ui/StudyPlace';
 import { Sheet } from '../ui/Sheet';
 
@@ -65,6 +65,7 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
   const [wasteOnly, setWasteOnly] = useState(false);
   const [editing, setEditing] = useState<FlowStep | 'new' | null>(null);
   const [agreeing, setAgreeing] = useState(false);
+  const [walking, setWalking] = useState(false);
   const editable = can.edit;
   const write = (p: Parameters<typeof patchStudy>[1]) => void patchStudy(s.id, p);
   const setList = (fn: (cur: FlowStep[]) => FlowStep[]) =>
@@ -117,7 +118,13 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
           <button type="button" className="btn" onClick={() => { write(cur => ({ facts: { ...cur.facts, future: (cur.facts.flow ?? []).map(x => ({ ...x })) } })); setWhich('future'); }}>Copy to the future</button>
         )}
         {editable && <button type="button" className="btn btn-primary" onClick={() => setEditing('new')}>+ Add a step</button>}
+        {editable && !walking && <button type="button" className="btn" onClick={() => setWalking(true)}>Walk it</button>}
       </div>
+
+      {walking && (
+        <WalkIt lanes={lanesKnown} onDone={() => setWalking(false)}
+          onStep={w => setList(cur => [...cur, { id: uid(), order: cur.reduce((m, x) => Math.max(m, x.order), -1) + 1, name: w.name, lane: w.lane, kind: w.kind, cycleSec: w.cycleSec, source: 'timed' }])} />
+      )}
 
       {list.length > 0
         ? <ValueStreamGrid flow={list} f={f} a={a} wasteOnly={wasteOnly} onOpen={editable ? st => setEditing(st) : undefined} compare={compare} />

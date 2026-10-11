@@ -157,3 +157,51 @@ export function ValueStreamGrid({ flow, f, a, wasteOnly, onOpen, compare }: {
 }
 
 const waitTotal = (steps: FlowStep[], a?: AgreedMap) => steps.reduce((t, st) => t + (waitOf(st, a).sec ?? 0), 0);
+
+/* WALK IT (docs/TOOLKIT.md, tool 2) — the journey walked with a phone in the
+ * hand: Start as the first step begins; Next step as each one ends, its time
+ * the timestamps between taps; name it and say who does it as you go (or
+ * after). The steps land in the grid as you walk, timed; a wait of days is
+ * typed when you are back at a desk. */
+export function WalkIt({ lanes, onStep, onDone }: {
+  lanes: string[];
+  /** A step ended: its words, its lane, and how long it took. */
+  onStep: (s: { name: string; lane: string; kind: FlowKind; cycleSec: number }) => void;
+  onDone: () => void;
+}) {
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [name, setName] = useState('');
+  const [lane, setLane] = useState(lanes[lanes.length - 1] ?? '');
+  const [kind, setKind] = useState<FlowKind>('operation');
+  const [n, setN] = useState(0);
+  const [, tick] = useState(0);
+  useEffect(() => { const t = window.setInterval(() => tick(x => x + 1), 200); return () => window.clearInterval(t); }, []);
+  const split = startedAt ? (Date.now() - startedAt) / 1000 : 0;
+  const close = () => {
+    if (!startedAt) return;
+    onStep({ name: name.trim() || `Step ${n + 1}`, lane: lane.trim() || 'Not said', kind, cycleSec: +((Date.now() - startedAt) / 1000).toFixed(1) });
+    setN(x => x + 1); setName(''); setKind('operation');
+  };
+  return (
+    <div className="wb-timer vs-walk" aria-label="Walking the journey">
+      <div className="wb-t-h"><b>Walk it</b><span className="sub">{n} step{n === 1 ? '' : 's'} walked</span></div>
+      <output className="wb-split" aria-live="off">{startedAt ? dur(split) : '0.0 s'}</output>
+      <label className="field"><span className="field-label">This step — what happens</span>
+        <input className="text-input" value={name} placeholder={`Step ${n + 1} — e.g. Order keyed into the system`} onChange={e => setName(e.target.value)} /></label>
+      <label className="field"><span className="field-label">Who does it</span>
+        <input className="text-input" value={lane} list="vs-walk-lanes" placeholder="e.g. Order office" onChange={e => setLane(e.target.value)} />
+        <datalist id="vs-walk-lanes">{lanes.map(l => <option key={l} value={l} />)}</datalist></label>
+      <span className="chip-row" role="radiogroup" aria-label="What kind of step">
+        {(Object.keys(KIND) as FlowKind[]).filter(k => k !== 'wait' && k !== 'store').map(k => <button key={k} type="button" role="radio" aria-checked={kind === k} className={'chip' + (kind === k ? ' on' : '')} onClick={() => setKind(k)}>{KIND[k].mark} {KIND[k].word}</button>)}
+      </span>
+      {!startedAt
+        ? <button type="button" className="wb-lap" onClick={() => setStartedAt(Date.now())}>Start — as the first step begins</button>
+        : <button type="button" className="wb-lap" onClick={() => { close(); setStartedAt(Date.now()); }}>Next step — this one is done</button>}
+      <div className="wb-t-acts">
+        {startedAt && <button type="button" className="btn" onClick={() => { close(); setStartedAt(null); onDone(); }}>Last step — finish</button>}
+        <button type="button" className="btn" onClick={onDone}>{startedAt ? 'Stop — keep what is walked' : 'Back'}</button>
+      </div>
+      <p className="sub">Each tap ends the step on the screen and starts the next; its time is the time between taps. Mark what adds value, and type the waits — an order sits for days — when you are back at a desk.</p>
+    </div>
+  );
+}

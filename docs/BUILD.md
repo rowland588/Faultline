@@ -524,9 +524,18 @@ wait and lead time adding up underneath, played through).
   its box, the areas pinned.
 - **Where it sits:** on its own, on a line, on a job (as any study); Used for
   on its job.
-- **Not yet:** Walk it on the phone (B2); Make it better from a waste step
-  and Set as the standard (B3); its page on paper and in the client report,
-  and its acceptance script (B4).
+
+**B2. Walk it.** Built 11 October. On the phone: say what the step is and
+who does it, **Start** as it begins, **Next step** as it ends — its time the
+time between taps — and the next one is already running; **Last step —
+finish** or **Stop — keep what is walked**. Each step lands in the grid as it
+is walked, timed (`source: 'timed'`); its value is marked and the waits (an
+order sits for days) are typed back at a desk, and the page says what is
+still unmarked.
+
+- **Not yet:** Make it better from a waste step and Set as the standard
+  (B3); its page on paper and in the client report, and its acceptance
+  script (B4).
 
 
 **The tools**, from `docs/TOOLKIT.md`, Part 5:
