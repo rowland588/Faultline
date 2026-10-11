@@ -769,6 +769,71 @@ product's standard's existing `capacity` jsonb.
 explained" and says so); whether a changeover is a stop category in Capture
 today or needs naming; the cost per hour the pounds should use.
 
+### Tools H1 and H2 — work sampling; capacity's three numbers and the mix
+
+Designed 11 October from `docs/TOOLKIT.md` Part 4 §9 and §10; the arithmetic
+built first, on its own, from the worked examples (`lib/ie/sampling.ts`,
+`lib/ie/mix.ts`, tested), the screens after E and F have landed so the shared
+files are touched once. No new table or column: a sampling study is a study;
+the three numbers' planned losses and the mix's margin and demand live inside
+the standard's existing `capacity` jsonb (`plannedLossMinPerShift`,
+`throughput`), never in a new column.
+
+**H1. Work sampling.**
+- **The question:** across a shift, what share of their time are people
+  working, walking, waiting, searching or away — and how sure are we?
+- **The record:** a study of tool `sampling`: `facts.activities` (the five,
+  editable), `facts.who` (people or roles from the line standard), the
+  margin wanted in points, the shift window, the prompt instants drawn once
+  at random inside it (so every device asks at the same moments), and
+  `facts.taps` — one fact per person per prompt (a list merged by id: two
+  phones watching one line both keep theirs).
+- **The arithmetic** (tested: p 0.30 within ±5 points → 323 taps; 61% from
+  190 taps → ±7): each share with its margin at 95%; taps needed for the
+  margin wanted; how many more; under 30 taps "too early", never a figure.
+- **The page:** the prompts come while the app is open, as reminders do (no
+  push for it yet — decision 6 of the TOOLKIT); one tap per person says what
+  they were doing; the shares as the Pareto's ranked bars with the margin on
+  the biggest; the reading sentence per person; the meter of taps against
+  taps needed; missed prompts said.
+- **The doors:** Make it better on a share (waiting, searching) raises the
+  fix or the countermeasure with the figure in its words; Prove it samples
+  the shift again after the change; before → after on the share.
+- **Where it shows:** the Pareto; the 6M's People and Method as suggested
+  causes; the line's tools; the pace report's page and the Evidence appendix.
+- **Accepted by** `scripts/acceptance/work-sampling.mjs` (when the screens
+  are built): a study started with two people, a prompt answered on the
+  phone, the shares and their margins, too early → enough, Make it better.
+
+**H2. Capacity's three numbers, and the product mix.**
+- **The question:** of what the line was built to make, what can it really
+  make, and what did it make — and when it cannot make everything asked,
+  which product first?
+- **The record:** nothing new of its own. Design is the plate rate × the
+  shift's planned minutes (the balance's station); effective takes out the
+  standard's planned losses a shift; actual is a shift's count — the losses
+  study's packs made (tool E), so the two tools read one number. The mix
+  reads each product's margin a pack and demand a week from its standard and
+  the constraint's speed on it from the balance.
+- **The arithmetic** (tested: 148,000 ÷ 201,600 = 73% utilisation, ÷ 175,000
+  = 85% efficiency, demand 161,000 → loading 92%; £0.40 × 80 = £32 a
+  constraint minute beats £0.60 × 40 = £24 — A first; the week filled in that
+  order, what is left said unmade by name).
+- **The page:** three marks on the balance's bars for the station (design,
+  effective, actual) and the sentence; the mix as ranked bars and the week
+  filling like a tank, the unmade in words. Only the abnormal carries colour:
+  loading over 100% and anything unmade.
+- **The doors:** Make it better on the gap between effective and actual
+  raises the fix with the figure; the mix's order is a decision, so it is
+  Set as the plan on the standard (the owner's), with who and when.
+- **Where it shows:** the balance (Capacity view); the product's standard;
+  the control room's line row (loading over 100% as the abnormal word); the
+  client report's capacity page.
+
+**For Rowland to decide, H1 and H2:** whether a prompt while the app is open
+is enough for the first cut of sampling (no push yet); the activities' names
+on his floor; whether the mix's margin a pack is a number he will type.
+
 ## What is needed from Rowland, release by release
 
 | Release | Before it starts | At the end |
