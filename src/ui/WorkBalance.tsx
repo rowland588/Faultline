@@ -39,6 +39,8 @@ import type { AgreedBalance, BalanceStep, ToolStudy } from '../lib/study';
 import type { Can } from '../lib/access';
 
 const RATINGS = [75, 90, 100, 110, 125];
+/** What an element carries when it is dragged to another person. */
+const DRAG = 'application/x-faultline-element';
 
 /** The latest work balance on a line standard, kept current; null when none.
  *  `which`: an earlier timing of it, opened by name. */
@@ -133,6 +135,7 @@ function Work({ study, s, can, me }: { study: ToolStudy; s: Standard; can: Can; 
   const [showGhost, setShowGhost] = useState(false);
   const [timing, setTiming] = useState<string | null>(null);
   const [agreeing, setAgreeing] = useState(false);
+  const [dropOn, setDropOn] = useState<string | null>(null);
   const closed = !!study.closedAt;
   const editable = can.edit && !closed;
   const write = (p: Parameters<typeof patchStudy>[1]) => void patchStudy(study.id, p);
@@ -175,7 +178,16 @@ function Work({ study, s, can, me }: { study: ToolStudy; s: Standard; can: Can; 
       </div>
 
       {f.people.map(p => (
-        <section key={p.who} className="wb-person">
+        <section key={p.who} className={'wb-person' + (dropOn === p.who ? ' is-drop' : '')}
+          /* DRAG AN ELEMENT TO ANOTHER PERSON (laptop) — "Whose it is" stays
+             the way on a phone and from the keyboard. */
+          onDragOver={editable ? e => { if (e.dataTransfer.types.includes(DRAG)) { e.preventDefault(); setDropOn(p.who); } } : undefined}
+          onDragLeave={editable ? e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropOn(null); } : undefined}
+          onDrop={editable ? e => {
+            e.preventDefault(); setDropOn(null);
+            const id = e.dataTransfer.getData(DRAG);
+            if (id) setSteps(cur => cur.map(x => (x.id === id && x.who !== p.who ? { ...x, who: p.who } : x)));
+          } : undefined}>
           <div className="wb-ph">
             <h3>{p.who}</h3>
             <span className={'wb-pw' + (p.overBy ? ' is-r' : '')}>{p.source === 'none'
@@ -320,6 +332,9 @@ function Element({ st, e, allowance, who, editable, canRemove, onChange, onRemov
   return (
     <li className="wb-el">
       <div className="wb-el-h">
+        {/* The grip drags it to another person; the name box stays a box. */}
+        {editable && <span className="wb-grip" draggable title="Drag to another person" aria-hidden
+          onDragStart={e => { e.dataTransfer.setData(DRAG, st.id); e.dataTransfer.effectAllowed = 'move'; }}>⠿</span>}
         {editable ? <input className="text-input wb-name" value={st.name} aria-label="The element" onChange={ev => onChange({ name: ev.target.value })} />
           : <b>{st.name}</b>}
         {editable && (

@@ -449,7 +449,9 @@ freezes a receipt; the owner can reopen it.
   already over takt is still said, in red — that much is true.
 - `report-stress`: the huge job carries a line standard with a work balance
   before and after a fix; every line is demanded on the paper.
-- **Not yet:** drag between stacks (today: pick whose it is).
+- **Drag between people (3f, 11 October):** on a laptop, an element's grip
+  (⠿) drags it onto another person's section and the stacks re-read at
+  once; "Whose it is" stays the way on a phone and from the keyboard.
 
 **3e. The 6M job reads it — the fishbone and the front page.** Built 11 October. The fishbone already
 filled itself from the line standard's crew and the 6M line's capacity; now

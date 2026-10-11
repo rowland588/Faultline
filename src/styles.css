@@ -11611,3 +11611,7 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
 /* On a solid square (a failure) the square already says it: the word takes
    the square's own ink, so amber is never drawn on red. */
 .ig-cell.is-problem .cg-study, .igm-st.is-problem .cg-study { color: inherit; }
+/* An element dragged over a person: their stack is where it will land. */
+.wb-grip { flex: none; align-self: center; padding: 0 4px; color: var(--muted); cursor: grab; user-select: none; font-size: 1.1em; }
+@media (hover: none) { .wb-grip { display: none; } }
+.wb-person.is-drop { outline: 2px dashed var(--brand); outline-offset: 2px; }
