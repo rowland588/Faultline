@@ -1,13 +1,16 @@
 /* A VALUE STREAM MAP — one study of tool 'map' (docs/TOOLKIT.md, tool 2;
  * docs/BUILD.md, B1).
  *
- * Rowland, 11 October: "VSM is not just a line tool, it's a business tool"
- * and "see the VSM like a grid — a swimlane grid. We can see a journey of
- * what, who and the value." So the map is door to door — from the supplier
- * or the order to the customer — through every department it passes, and it
- * is laid out as that grid (ui/ValueStream) — nothing drawn: who down the
- * side, the journey across, each step coloured by its value, its times
- * under it; a square tapped opens everything about that step.
+ * Rowland, 11 October: "see the VSM like a grid — a swimlane grid. We can
+ * see a journey of what, who and the value"; and, the same day, "remove
+ * business-wide mapping ... but keep the line large, different departments
+ * can affect the line". So a map is always a LINE's — end to end, from the
+ * material arriving to the pallet leaving — and its lanes are everyone whose
+ * work touches it: the operators, the machine, the team leader, and the
+ * departments (planning, stores, quality, maintenance). It is laid out as
+ * that grid (ui/ValueStream) — nothing drawn: who (or where) down the side,
+ * the journey across, each step coloured by its value, its times under it;
+ * a square tapped opens everything about that step.
  *
  * The page, top to bottom: what it is and where it sits (on its own, on a
  * line, on a job — ui/StudyPlace); what it is held against (the customer,
@@ -16,7 +19,7 @@
  * the future state, copied from today and changed, before → after said; and
  * what it is used for on its job. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getStandard, getStudy, getWorkspace, listWorkspaces, onDataChange, patchStudy } from '../db';
+import { getStandard, getStudy, getWorkspace, onDataChange, patchStudy } from '../db';
 import { peopleOf } from '../lib/standard';
 import { useAccess } from '../cloud/access';
 import { useSession } from '../cloud/session';
@@ -25,7 +28,7 @@ import { can as canAt, type Can } from '../lib/access';
 import { uid } from '../lib/ids';
 import { niceDay } from '../lib/weeks';
 import { nav } from '../state/useRoute';
-import { compareFlows, dur, flowFigures, flowSays, parseDur, share, valueOf } from '../lib/ie/steps';
+import { compareFlows, dur, flowFigures, flowSays, laneByDefault, parseDur, share, valueOf, whereOf, whoOf, type LaneBy } from '../lib/ie/steps';
 import type { AgreedMap, FlowKind, FlowStep, FlowValue, ToolStudy } from '../lib/study';
 import { KIND_WORD, StepFacts, VALUE_WORD, ValueStreamGrid, WalkIt } from '../ui/ValueStream';
 import { UsedFor, WhereItSits } from '../ui/StudyPlace';
@@ -76,18 +79,19 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
     write(cur => ({ facts: { ...cur.facts, [shown]: fn((shown === 'future' ? cur.facts.future : cur.facts.flow) ?? []) } }));
   const compare = useMemo(() => (shown === 'future' ? new Map((s.facts.flow ?? []).map(x => [x.id, x])) : undefined), [shown, s.facts.flow]);
   const lanesKnown = useLanes(s);
-  /* The business, door to door — or one line: what is done, and who does it. */
-  const onLine = a?.scope === 'line';
   const [lineName, setLineName] = useState<string | undefined>(undefined);
   useEffect(() => { if (s.workspaceId) void getWorkspace(s.workspaceId).then(w => setLineName(w?.name)); }, [s.workspaceId]);
-  const laneWord = onLine ? 'Who does it' : 'Area';
+  /* MULTI-DIMENSIONAL: the lanes are who does each step, or where it is done;
+     either, one tap. A map opens by who (one saved as door-to-door before it
+     was removed opens by where, the lanes it was made with). */
+  const [laneBy, setLaneBy] = useState<LaneBy>(laneByDefault(a));
 
   return (
     <div className="wrap ie vs-page">
       <header className="ie-head">
         <small className="ie-eyebrow">Value stream map</small>
         <h1 className="ie-name">{s.name || 'Not named'}</h1>
-        <p className="sub ie-where">{onLine ? <>one line{lineName ? <> — <b>{lineName}</b></> : null}: what is done, and who does it</> : 'the business, door to door'} · started {niceDay(new Date(s.startedAt).toISOString().slice(0, 10))}{s.product ? <> · <b>{s.product}</b></> : null}</p>
+        <p className="sub ie-where">{lineName ? <>on <b>{lineName}</b>: what is done, and who does it</> : 'not on a line yet — put it on its line below'} · started {niceDay(new Date(s.startedAt).toISOString().slice(0, 10))}{s.product ? <> · <b>{s.product}</b></> : null}</p>
         <WhereItSits s={s} can={can} />
       </header>
 
@@ -131,22 +135,29 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
       </div>
 
       {walking && (
-        <WalkIt lanes={lanesKnown} onDone={() => setWalking(false)}
-          onStep={w => setList(cur => [...cur, { id: uid(), order: cur.reduce((m, x) => Math.max(m, x.order), -1) + 1, name: w.name, lane: w.lane, kind: w.kind, cycleSec: w.cycleSec, source: 'timed' }])} />
+        <WalkIt people={lanesKnown.people} places={lanesKnown.places} onDone={() => setWalking(false)}
+          onStep={w => setList(cur => [...cur, { id: uid(), order: cur.reduce((m, x) => Math.max(m, x.order), -1) + 1, name: w.name,
+            ...(w.who ? { who: [w.who] } : {}), ...(w.where ? { where: w.where } : {}), lane: (laneByDefault(a) === 'who' ? w.who : w.where) || w.who || w.where || 'Not said',
+            kind: w.kind, cycleSec: w.cycleSec, source: 'timed' }])} />
       )}
 
       {list.length > 0
-        ? <ValueStreamGrid flow={list} f={f} a={a} wasteOnly={wasteOnly} laneWord={laneWord} onOpen={(st, n, lead) => setViewing({ st, n, lead })} />
-        : <div className="qsl-empty"><p><b>No steps yet.</b> {onLine
-          ? 'Start where the work starts on the line — the film loaded, the product arriving — and add each thing that is done, in the lane of the person or role who does it, to the pallet leaving.'
-          : 'Start where the order starts — the phone call, the email, the purchase order — and add each step it goes through, in the lane of the area that does it, to the customer.'}</p></div>}
+        ? <>
+          <span className="chip-row vs-by" role="tablist" aria-label="Lanes by">
+            <span className="sub">Lanes by</span>
+            <button type="button" role="tab" aria-selected={laneBy === 'who'} className={'chip' + (laneBy === 'who' ? ' on' : '')} onClick={() => setLaneBy('who')}>Who does it</button>
+            <button type="button" role="tab" aria-selected={laneBy === 'where'} className={'chip' + (laneBy === 'where' ? ' on' : '')} onClick={() => setLaneBy('where')}>Where</button>
+          </span>
+          <ValueStreamGrid flow={list} f={f} a={a} wasteOnly={wasteOnly} by={laneBy} onOpen={(st, n, lead) => setViewing({ st, n, lead })} />
+        </>
+        : <div className="qsl-empty"><p><b>No steps yet.</b> Start where the line's work starts — the order released, the film arriving from stores — and add each thing that is done, in the lane of whoever does it (an operator, the machine, planning, quality, maintenance), to the pallet leaving.</p></div>}
 
 
       <UsedFor s={s} can={can} me={me} />
 
       {viewing && (
         <Sheet open onClose={() => setViewing(null)} title={`Step ${viewing.n}`}>
-          <StepFacts st={list.find(x => x.id === viewing.st.id) ?? viewing.st} n={viewing.n} leadSoFar={viewing.lead} a={a} was={compare?.get(viewing.st.id)} laneWord={laneWord} />
+          <StepFacts st={list.find(x => x.id === viewing.st.id) ?? viewing.st} n={viewing.n} leadSoFar={viewing.lead} a={a} was={compare?.get(viewing.st.id)} />
           <div className="vs-step-acts">
             {editable && <button type="button" className="btn btn-primary" onClick={() => { setEditing(list.find(x => x.id === viewing.st.id) ?? viewing.st); setViewing(null); }}>Change this step</button>}
             <button type="button" className="btn btn-ghost" onClick={() => setViewing(null)}>Close</button>
@@ -155,7 +166,7 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
       )}
 
       {editing && (
-        <StepSheet key={editing === 'new' ? 'new' : editing.id} step={editing === 'new' ? undefined : editing} list={list} lanes={lanesKnown} onLine={onLine}
+        <StepSheet key={editing === 'new' ? 'new' : editing.id} step={editing === 'new' ? undefined : editing} list={list} people={lanesKnown.people} places={lanesKnown.places} a={a}
           canRemove={can.remove || !s.projectId}
           onClose={() => setEditing(null)}
           onSave={st => { setList(cur => (cur.some(x => x.id === st.id) ? cur.map(x => (x.id === st.id ? st : x)) : [...cur, st])); setEditing(null); }}
@@ -166,22 +177,25 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
   );
 }
 
-/** The lanes this map could use: its own first; then, on a line's map, the
- *  people on its product's line standard (Op 1, Op 2 …) and the usual roles
- *  on a line; on a business map, every line's name and the usual areas. */
-function useLanes(s: ToolStudy): string[] {
-  const [lines, setLines] = useState<string[]>([]);
-  const [people, setPeople] = useState<string[]>([]);
-  const onLine = s.agreed?.map?.scope === 'line';
-  useEffect(() => { void listWorkspaces().then(ws => setLines(ws.map(w => w.name))); }, []);
+/** What a map could put in its lanes, both dimensions: its own first; then
+ *  the people on its product's line standard (Op 1, Op 2 …), the usual roles
+ *  on a line and the departments that touch it; the line balance's stations
+ *  and the usual places as where. */
+function useLanes(s: ToolStudy): { people: string[]; places: string[] } {
+  const [std, setStd] = useState<{ people: string[]; stations: string[] }>({ people: [], stations: [] });
   useEffect(() => {
-    if (!onLine || !s.standardId) { setPeople([]); return; }
-    void getStandard(s.standardId).then(st => setPeople(st ? peopleOf(st).map((p, i) => p.label?.trim() || `Op ${i + 1}`) : []));
-  }, [onLine, s.standardId]);
-  const own = [...new Set([...(s.facts.flow ?? []), ...(s.facts.future ?? [])].map(x => x.lane?.trim()).filter((x): x is string => !!x))];
-  return onLine
-    ? [...new Set([...own, ...people, 'Machine', 'Team leader', 'Fitter', 'Quality', 'Stores', 'Forklift driver'])]
-    : [...new Set([...own, 'Customer', 'Order office', 'Planning', 'Stores', ...lines, 'Quality', 'Despatch', 'Supplier'])];
+    if (!s.standardId) { setStd({ people: [], stations: [] }); return; }
+    void getStandard(s.standardId).then(st => setStd(st
+      ? { people: peopleOf(st).map((p, i) => p.label?.trim() || `Op ${i + 1}`), stations: (st.capacity?.stations ?? []).map(x => x.name.trim()).filter(Boolean) }
+      : { people: [], stations: [] }));
+  }, [s.standardId]);
+  const all = [...(s.facts.flow ?? []), ...(s.facts.future ?? [])];
+  const ownWho = all.flatMap(x => whoOf(x, s.agreed?.map));
+  const ownWhere = all.map(x => whereOf(x, s.agreed?.map)).filter((x): x is string => !!x);
+  return {
+    people: [...new Set([...ownWho, ...std.people, 'Machine', 'Team leader', 'Planning', 'Stores', 'Quality', 'Maintenance', 'Hygiene', 'Forklift driver', 'Despatch'])],
+    places: [...new Set([...ownWhere, ...std.stations, 'Goods in', 'Stores', 'Infeed', 'Outfeed', 'Despatch', 'Office'])],
+  };
 }
 
 const cycleTotal = (list: FlowStep[]) => list.reduce((t, x) => t + (x.cycleSec ?? 0), 0);
@@ -196,39 +210,46 @@ function move(list: FlowStep[], id: string, by: -1 | 1): FlowStep[] {
 }
 
 /* ------------------------------------------------------------ one step */
-function StepSheet({ step, list, lanes, onLine, canRemove, onClose, onSave, onMove, onRemove }: {
-  step?: FlowStep; list: FlowStep[]; lanes: string[]; onLine: boolean; canRemove: boolean;
+function StepSheet({ step, list, people, places, a, canRemove, onClose, onSave, onMove, onRemove }: {
+  step?: FlowStep; list: FlowStep[]; people: string[]; places: string[]; a?: AgreedMap; canRemove: boolean;
   onClose: () => void; onSave: (st: FlowStep) => void; onMove: (id: string, by: -1 | 1) => void; onRemove: (id: string) => void;
 }) {
   const sorted = [...list].sort((x, y) => x.order - y.order);
   const last = sorted.length ? sorted[sorted.length - 1] : undefined;
   const [name, setName] = useState(step?.name ?? '');
-  const [lane, setLane] = useState(step?.lane ?? last?.lane ?? '');
+  const [who, setWho] = useState<string[]>(step ? whoOf(step, a) : last ? whoOf(last, a) : []);
+  const [where, setWhere] = useState(step ? whereOf(step, a) ?? '' : last ? whereOf(last, a) ?? '' : '');
+  const [other, setOther] = useState('');
+  const addOther = () => { const o = other.trim(); if (o) setWho(w => (w.includes(o) ? w : [...w, o])); setOther(''); };
   const [kind, setKind] = useState<FlowKind>(step?.kind ?? 'operation');
   const [value, setValue] = useState<FlowValue | undefined>(step?.value);
   const [cycle, setCycle] = useState(step?.cycleSec !== undefined ? dur(step.cycleSec) : '');
   const [wait, setWait] = useState(step?.waitSec !== undefined ? dur(step.waitSec) : '');
   const [queue, setQueue] = useState(step?.queue !== undefined ? String(step.queue) : '');
-  const [people, setPeople] = useState(step?.people !== undefined ? String(step.people) : '');
+  const [crew, setCrew] = useState(step?.people !== undefined ? String(step.people) : '');
   const [batch, setBatch] = useState(step?.batch !== undefined ? String(step.batch) : '');
   const [info, setInfo] = useState(step?.info ?? '');
   const [burst, setBurst] = useState(!!step?.burst);
   const cycleSec = cycle.trim() ? parseDur(cycle, 's') : undefined;
   const waitSec = wait.trim() ? parseDur(wait, 'min') : undefined;
   const bad = (cycle.trim() && cycleSec === undefined) || (wait.trim() && waitSec === undefined);
-  const ready = !!name.trim() && !!lane.trim() && !bad;
+  /* a name typed in "someone else" and not yet added still counts */
+  const everyone = other.trim() && !who.includes(other.trim()) ? [...who, other.trim()] : who;
+  const ready = !!name.trim() && (everyone.length > 0 || !!where.trim()) && !bad;
   /* Only an operation can add value; a wait or a store is waste. */
   const values: FlowValue[] = kind === 'operation' ? ['adds', 'needed', 'waste'] : kind === 'wait' || kind === 'store' ? [] : ['needed', 'waste'];
   const save = () => {
     if (!ready) return;
-    const q = Number(queue), p = Number(people), b = Number(batch);
+    const q = Number(queue), p = Number(crew), b = Number(batch);
     const v = values.includes(value as FlowValue) ? value : undefined;
     onSave({
       id: step?.id ?? uid(), order: step?.order ?? (last ? last.order + 1 : 0),
-      name: name.trim(), lane: lane.trim(), kind,
+      name: name.trim(), ...(everyone.length ? { who: everyone } : {}), ...(where.trim() ? { where: where.trim() } : {}),
+      /* the one lane an older build reads: the map's own dimension first */
+      lane: (laneByDefault(a) === 'who' ? everyone[0] : where.trim()) || everyone[0] || where.trim(), kind,
       ...(v ? { value: v } : {}),
       ...(cycleSec !== undefined ? { cycleSec } : {}), ...(waitSec !== undefined ? { waitSec } : {}),
-      ...(queue.trim() && q > 0 ? { queue: q } : {}), ...(people.trim() && p > 0 ? { people: p } : {}), ...(batch.trim() && b > 1 ? { batch: b } : {}),
+      ...(queue.trim() && q > 0 ? { queue: q } : {}), ...(crew.trim() && p > 0 ? { people: p } : {}), ...(batch.trim() && b > 1 ? { batch: b } : {}),
       ...(info.trim() ? { info: info.trim() } : {}), ...(burst ? { burst: true } : {}),
       source: step?.source ?? 'typed',
     });
@@ -237,11 +258,23 @@ function StepSheet({ step, list, lanes, onLine, canRemove, onClose, onSave, onMo
   return (
     <Sheet open onClose={onClose} title={step ? 'The step' : 'Add a step'}>
       <form className="vs-step" onSubmit={e => { e.preventDefault(); save(); }}>
-        <label className="field"><span className="field-label">{onLine ? 'What is done' : 'What happens'}</span>
-          <input className="text-input" value={name} autoFocus={!step} maxLength={120} placeholder={onLine ? 'e.g. Load the film and splice it' : 'e.g. Order typed into the system'} onChange={e => setName(e.target.value)} /></label>
-        <label className="field"><span className="field-label">{onLine ? 'Who does it — a person or role on the line' : 'Which area does it'}</span>
-          <input className="text-input" value={lane} list="vs-lanes" maxLength={60} placeholder={onLine ? 'e.g. Op 1, Machine, Team leader' : 'e.g. Order office'} onChange={e => setLane(e.target.value)} />
-          <datalist id="vs-lanes">{lanes.map(l => <option key={l} value={l} />)}</datalist></label>
+        <label className="field"><span className="field-label">What is done</span>
+          <input className="text-input" value={name} autoFocus={!step} maxLength={120} placeholder="e.g. Load the film and splice it" onChange={e => setName(e.target.value)} /></label>
+        <div className="field"><span className="field-label">Who does it — one or more</span>
+          <span className="chip-row" role="group" aria-label="Who does it">
+            {[...new Set([...who, ...people])].map(p => (
+              <button key={p} type="button" aria-pressed={who.includes(p)} className={'chip' + (who.includes(p) ? ' on' : '')}
+                onClick={() => setWho(w => (w.includes(p) ? w.filter(x => x !== p) : [...w, p]))}>{p}</button>
+            ))}
+          </span>
+          <span className="vs-other">
+            <input className="text-input" value={other} maxLength={60} aria-label="Someone else" placeholder="Someone else — e.g. Op 4, Engineering"
+              onChange={e => setOther(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addOther(); } }} />
+            <button type="button" className="btn" disabled={!other.trim()} onClick={addOther}>Add</button>
+          </span></div>
+        <label className="field"><span className="field-label">Where it is done</span>
+          <input className="text-input" value={where} list="vs-places" maxLength={60} placeholder="e.g. Bagger, Case packer, Stores" onChange={e => setWhere(e.target.value)} />
+          <datalist id="vs-places">{places.map(l => <option key={l} value={l} />)}</datalist></label>
         <div className="field"><span className="field-label">What kind of step</span>
           <span className="chip-row" role="radiogroup" aria-label="What kind of step">
             {(Object.keys(KIND_WORD) as FlowKind[]).map(k => <button key={k} type="button" role="radio" aria-checked={kind === k} className={'chip' + (kind === k ? ' on' : '')} onClick={() => setKind(k)}>{KIND_WORD[k]}</button>)}
@@ -266,7 +299,7 @@ function StepSheet({ step, list, lanes, onLine, canRemove, onClose, onSave, onMo
           <label className="field"><span className="field-label">Pieces each time <i className="sub">optional</i></span>
             <input className="text-input" value={batch} inputMode="numeric" placeholder="1 — or an order, a pallet" onChange={e => setBatch(e.target.value)} /></label>
           <label className="field"><span className="field-label">People <i className="sub">optional</i></span>
-            <input className="text-input" value={people} inputMode="numeric" onChange={e => setPeople(e.target.value)} /></label>
+            <input className="text-input" value={crew} inputMode="numeric" onChange={e => setCrew(e.target.value)} /></label>
         </div>
         <label className="field"><span className="field-label">How its next job reaches it <i className="sub">optional</i></span>
           <input className="text-input" value={info} list="vs-info" maxLength={60} placeholder="e.g. email, paper, the system, the board" onChange={e => setInfo(e.target.value)} />
@@ -310,9 +343,9 @@ function Agree({ s, onDone }: { s: ToolStudy; onDone: () => void }) {
       <p className="sub">The two ends of the stream, and the customer's demand — so takt and days of stock are worked out, not guessed.</p>
       <div className="vs-step-times">
         <label className="field"><span className="field-label">It starts at</span>
-          <input className="text-input" value={supplier} placeholder="e.g. the order, the supplier" onChange={e => setSupplier(e.target.value)} /></label>
+          <input className="text-input" value={supplier} placeholder="e.g. the order released, film from stores" onChange={e => setSupplier(e.target.value)} /></label>
         <label className="field"><span className="field-label">It ends at</span>
-          <input className="text-input" value={customer} placeholder="e.g. Tesco" onChange={e => setCustomer(e.target.value)} /></label>
+          <input className="text-input" value={customer} placeholder="e.g. pallet away, Tesco" onChange={e => setCustomer(e.target.value)} /></label>
         <label className="field"><span className="field-label">The customer takes, a day</span>
           <input className="text-input" value={demand} inputMode="decimal" placeholder="e.g. 9600" onChange={e => setDemand(e.target.value)} /></label>
         <label className="field"><span className="field-label">Hours worked, a day</span>

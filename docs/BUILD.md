@@ -548,6 +548,35 @@ a map is one of two kinds, chosen when it is started (`agreed.map.scope`):
 Seeded: Line 7's Maris Piper 2kg, film loaded to pallet away — Op 1, the
 machine, Op 2, Op 3, the team leader.
 
+**B1c. Multi-dimensional — who and where; always a line's.** Built 11
+October. Rowland: "we need it to be multi dimensional". Every step now
+carries what is done, **who** does it — one or more people or roles — and
+**where** — the area, station or machine. The grid's lanes are either, one
+tap: **Lanes by · Who does it · Where**; a step done by two people sits in
+both their lanes, in its column, so shared work shows. The step's sheet
+takes several people (the line standard's people, the usual roles and the
+departments as chips, "someone else" added) and a place (the line balance's
+stations offered); the facts show both; Walk it asks both.
+
+Then, the same day, after "are we drifting from Faultline if we go fully
+expansive of VSM?": **"remove business-wide mapping ... but keep the line
+large, different departments can affect the line."** So the door-to-door
+kind B1b offered is gone: a new map always picks its line (and its
+product's line standard when it has one), and its lanes are everyone whose
+work touches the line — Op 1, the machine, the team leader, and planning,
+stores, quality, maintenance, despatch. Why the business kind went: a map
+of the whole business is not a change to a line, and a tool that grows
+past the change it serves is how Faultline drifts into a mapping product
+(eVSM, iGrafx); the line map keeps what the business kind was for — the
+other departments' waits and work, where they land on the line. A map
+saved door to door before this still opens, its lanes by where (the one
+lane its steps had), and can be put on its line with Where it sits; every
+step still writes that one lane for an older build.
+
+**B1d — dropped**, 11 October: a business map with each line's own map
+linked under it (the master map and its sub-level maps every VSM product
+sells). It made the map a better map and no change any better.
+
 **B2. Walk it.** Built 11 October. On the phone: say what the step is and
 who does it, **Start** as it begins, **Next step** as it ends — its time the
 time between taps — and the next one is already running; **Last step —
@@ -556,9 +585,14 @@ is walked, timed (`source: 'timed'`); its value is marked and the waits (an
 order sits for days) are typed back at a desk, and the page says what is
 still unmarked.
 
-- **Not yet:** Make it better from a waste step and Set as the standard
-  (B3); its page on paper and in the client report, and its acceptance
-  script (B4).
+- **Next, and before any more of the map itself — the map inside a change**
+  (B3, B4), as the capability study and the work balance are: Make it
+  better from a red step raises a fix or a countermeasure carrying the
+  figure ("Pallet waits for QA release — 6 h"); walking it again on the
+  same map is that fix's before → after; the biggest wait offered as a
+  cause on the fishbone; "lead time · % adds value" under the line on its
+  card and the job's front page; its page in the client and 6M reports;
+  its acceptance script.
 
 
 **The tools**, from `docs/TOOLKIT.md`, Part 5:

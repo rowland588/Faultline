@@ -89,13 +89,13 @@ export interface BalanceStep {
   typedSec?: number;
 }
 
-/** THE VALUE STREAM (docs/TOOLKIT.md, tool 2): one step, door to door —
- *  Rowland, 11 October: "VSM is not just a line tool, it's a business tool",
- *  so a step happens anywhere the order goes: the order office, planning,
- *  stores, a line, QA, despatch, the supplier, the customer. And "see the
- *  VSM like a grid — a swimlane grid. We can see a journey of what, who and
- *  the value": each step sits in the lane of who does it, in the column of
- *  its turn in the journey, filled by its value. */
+/** THE VALUE STREAM (docs/TOOLKIT.md, tool 2): one step on a line's map —
+ *  Rowland, 11 October: "keep the line large, different departments can
+ *  affect the line", so a step is done by anyone whose work touches the
+ *  line: an operator, the machine, the team leader, planning, stores,
+ *  quality, maintenance. And "see the VSM like a grid — a swimlane grid. We
+ *  can see a journey of what, who and the value": each step sits in the lane
+ *  of who does it (or where), in the column of its turn, coloured by its value. */
 export type FlowKind = 'operation' | 'move' | 'check' | 'wait' | 'store';
 /** Adds value (only an operation can), needed (not value, but required —
  *  compliance, safety), or waste. Shown by fill, never by a state colour. */
@@ -105,10 +105,18 @@ export interface FlowStep {
   order: number;
   /** In the floor's (or the office's) own words. */
   name: string;
-  /** WHO does it — its swimlane. On a business map an area or department
-   *  ("Order office", "Despatch"); on a line's map a person or role on the
-   *  line ("Op 1", "Machine", "Team leader"). */
-  lane: string;
+  /** MULTI-DIMENSIONAL (Rowland, 11 October: "we need it to be multi
+   *  dimensional"): a step is what is done, WHO does it — one or more
+   *  people or roles ("Op 1", "Op 2", "the machine", "Planner") — and WHERE
+   *  — the area, station or machine ("Case packer", "Despatch", "the office").
+   *  The grid's lanes are either; a step done by two people sits in both of
+   *  their lanes, in the same column. */
+  who?: string[];
+  where?: string;
+  /** The one lane a step had before it had both (B1, B1b) — read through
+   *  whoOf / whereOf; still written, as the first who or the where, so an
+   *  older build shows the step in a lane. */
+  lane?: string;
   kind: FlowKind;
   value?: FlowValue;
   /** Seconds the work takes each time it is done. */
@@ -133,12 +141,14 @@ export interface FlowStep {
 /** What a value stream is held against: the customer's demand and the
  *  time available, so takt and days of inventory can be worked out. */
 export interface AgreedMap {
-  /** What it covers. Rowland, 11 October: "who does it" as departments is a
-   *  cross-functional business map; "that won't work for a single mapping of
-   *  a line — it's what is done and who does it, different people doing
-   *  different activities on the same line". So a map is the BUSINESS (door
-   *  to door, a lane per area) or ONE LINE (a lane per person or role on it —
-   *  Op 1, Op 2, the machine, the team leader). Absent: the business. */
+  /** What it covers — now always 'line'. Rowland, 11 October: "who does it"
+   *  as departments is a cross-functional business map; "that won't work for
+   *  a single mapping of a line"; then "remove business-wide mapping ... but
+   *  keep the line large, different departments can affect the line". So a
+   *  map is ONE LINE's, its lanes everyone whose work touches it (Op 1, the
+   *  machine, the team leader, planning, stores, quality, maintenance).
+   *  'business' or absent: a map saved door to door before that (B1) — still
+   *  read, its one lane per step taken as where. */
   scope?: 'business' | 'line';
   /** Pieces the customer takes a day. */
   demandPerDay?: number;
@@ -163,7 +173,7 @@ export interface StudyFacts {
   readings?: StudyReading[];
   /** A work balance's elements, each with its laps. */
   steps?: BalanceStep[];
-  /** A value stream's steps as it runs today, door to door. */
+  /** A value stream's steps as it runs today, end to end. */
   flow?: FlowStep[];
   /** The same stream as it could run — copied from the flow, then struck,
    *  merged and shortened. */

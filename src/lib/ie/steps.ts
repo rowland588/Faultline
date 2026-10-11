@@ -1,10 +1,12 @@
-/* THE VALUE STREAM — door to door, where the time goes between the order and
- * the customer, and how much of it is work (docs/TOOLKIT.md, tool 2; the map
- * as Rowland sees it in docs/LEAN40.md).
+/* THE VALUE STREAM — one line end to end: where the time goes between the
+ * work starting and the pallet leaving, and how much of it is work
+ * (docs/TOOLKIT.md, tool 2; the map as Rowland sees it in docs/LEAN40.md).
  *
- * Rowland, 11 October: "VSM is not just a line tool, it's a business tool."
- * So the stream runs wherever the order goes — the office, planning, stores,
- * the line, QA, despatch — and its lead time is the business's, not a line's.
+ * Rowland, 11 October: "remove business-wide mapping ... but keep the line
+ * large, different departments can affect the line." So the stream is a
+ * line's, and runs through everyone whose work touches it — the operators,
+ * the machine, planning, stores, quality, maintenance — and its lead time
+ * counts their waits as well as the line's.
  *
  * FACTS → FIGURES → READING. Pure. No verdict: a map is a reading, and the act
  * is the fix raised from it.
@@ -59,16 +61,41 @@ export interface FlowFigures {
   unmarked: number;
 }
 
-/** The swimlanes — who does the steps — in the order the journey first
- *  reaches each one, so the grid reads top to bottom as the order travels. */
-export function lanesOf(flow: FlowStep[]): string[] {
+/** The grid's two dimensions: who does each step, or where it is done. */
+export type LaneBy = 'who' | 'where';
+
+/** Who does a step — everyone on it. A step saved before it had both
+ *  dimensions kept one lane: on a line's map that was who. */
+export function whoOf(st: FlowStep, a?: AgreedMap): string[] {
+  const w = (Array.isArray(st.who) ? st.who : []).map(x => String(x).trim()).filter(Boolean);
+  if (w.length) return w;
+  return a?.scope === 'line' && st.lane?.trim() ? [st.lane.trim()] : [];
+}
+
+/** Where a step is done. Before it had both, a door-to-door map's one lane was where. */
+export function whereOf(st: FlowStep, a?: AgreedMap): string | undefined {
+  if (typeof st.where === 'string' && st.where.trim()) return st.where.trim();
+  return a?.scope !== 'line' && st.lane?.trim() ? st.lane.trim() : undefined;
+}
+
+/** The lanes a step sits in, by the dimension asked: every person on it, or
+ *  its one place. Nothing said: "Not said". */
+export function lanesOfStep(st: FlowStep, by: LaneBy, a?: AgreedMap): string[] {
+  const l = by === 'who' ? whoOf(st, a) : [whereOf(st, a)].filter((x): x is string => !!x);
+  return l.length ? l : ['Not said'];
+}
+
+/** The swimlanes in the order the journey first reaches each one, so the grid
+ *  reads top to bottom as the work travels. */
+export function lanesOf(flow: FlowStep[], by: LaneBy = 'who', a?: AgreedMap): string[] {
   const out: string[] = [];
-  for (const st of [...flow].sort((x, y) => x.order - y.order)) {
-    const l = st.lane?.trim() || 'Not said';
-    if (!out.includes(l)) out.push(l);
-  }
+  for (const st of [...flow].sort((x, y) => x.order - y.order)) for (const l of lanesOfStep(st, by, a)) if (!out.includes(l)) out.push(l);
   return out;
 }
+
+/** Which dimension a map opens on: by who — or, for a map saved door to door
+ *  before maps became only a line's, by where (the lanes it was made with). */
+export const laneByDefault = (a?: AgreedMap): LaneBy => (a?.scope === 'line' ? 'who' : 'where');
 
 export function flowFigures(flow: FlowStep[] | undefined, a?: AgreedMap): FlowFigures {
   const list = [...(flow ?? [])].sort((x, y) => x.order - y.order);
@@ -92,7 +119,7 @@ export function flowFigures(flow: FlowStep[] | undefined, a?: AgreedMap): FlowFi
     if (each > 0 && (st.kind === 'operation' || st.kind === 'check') && (!longestCycle || each > longestCycle.sec)) longestCycle = { step: st, sec: each, overTakt: !!takt && each > takt };
   }
   return {
-    lanes: lanesOf(list),
+    lanes: lanesOf(list, laneByDefault(a), a),
     steps: list.length, leadSec: lead, addsSec: adds, neededSec: needed, wasteSec: waste,
     ...(lead > 0 ? { pce: adds / lead } : {}), ...(takt ? { taktSec: takt } : {}),
     ...(biggestWait ? { biggestWait } : {}), ...(longestCycle ? { longestCycle } : {}), untimed, unmarked,
@@ -119,12 +146,15 @@ export interface FlowSays { text: string; lines: string[] }
 /** What the stream says: lead time, how much of it is work, the biggest
  *  wait, the longest cycle against takt; what is not known yet, said. */
 export function flowSays(f: FlowFigures, a?: AgreedMap): FlowSays {
-  if (!f.steps) return { text: 'List the steps door to door — from the order to the customer — and how long each takes and waits.', lines: [] };
+  if (!f.steps) return { text: 'List the steps on the line end to end — from the work starting to the pallet leaving, whoever does them — and how long each takes and waits.', lines: [] };
   const atLeast = f.untimed ? 'at least ' : '';
   const ends = a?.customer || a?.supplier ? ` from ${a?.supplier || 'the order'} to ${a?.customer || 'the customer'}` : '';
   const parts = [`Lead time ${atLeast}${dur(f.leadSec)}${ends}.`];
   if (f.leadSec > 0) parts.push(`${dur(f.addsSec)} of it adds value — ${share(f.pce ?? 0)}.`);
-  if (f.biggestWait) parts.push(`The biggest wait: ${f.biggestWait.step.name.trim() || 'a step'}${f.biggestWait.step.lane ? ` (${f.biggestWait.step.lane})` : ''}, ${dur(f.biggestWait.sec)}.`);
+  if (f.biggestWait) {
+    const at = whereOf(f.biggestWait.step, a) ?? whoOf(f.biggestWait.step, a)[0];
+    parts.push(`The biggest wait: ${f.biggestWait.step.name.trim() || 'a step'}${at ? ` (${at})` : ''}, ${dur(f.biggestWait.sec)}.`);
+  }
   if (f.longestCycle) {
     const c = f.longestCycle;
     const per = c.step.batch && c.step.batch > 1 ? ` a piece (${dur(c.step.cycleSec ?? 0)} for ${c.step.batch})` : '';

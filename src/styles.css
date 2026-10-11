@@ -11689,3 +11689,7 @@ button.vs-sq:focus-visible { outline: 2.5px solid var(--brand); outline-offset: 
   .vs-card2 b { font-size: 1.15rem; }
   .vs-facts-l div { grid-template-columns: 110px 1fr; }
 }
+/* The grid's two dimensions, and adding someone to a step. */
+.vs-by { display: flex; align-items: center; gap: 6px; margin: 2px 0 8px; }
+.vs-other { display: flex; gap: 6px; margin-top: 6px; }
+.vs-other .text-input { flex: 1; min-width: 0; }

@@ -82,8 +82,8 @@ const ROUTES = [
   /* A line's own map, on no job, opened from Line balance at its balance. */
   ['line standard on a line — at its balance', `#/w/${seeded.wsId}/standards/${seeded.lineStandardId}?at=balance`],
   ['a capability study — thirty packs, passed, not capable', `#/capability/${seeded.studyId}`],
-  ['a value stream map — order to delivery, door to door, as a swimlane grid', `#/value-stream/${seeded.mapId}`],
-  ['a line\'s value stream map — what is done and who does it on Line 7', `#/value-stream/${seeded.lineMapId}`],
+  ['a value stream map saved door to door before maps were only a line\'s — still opens', `#/value-stream/${seeded.mapId}`],
+  ['a line\'s value stream map — what is done on Line 7 and who does it, departments included', `#/value-stream/${seeded.lineMapId}`],
   ['the line balance — people, the work timed against takt', `#/w/${seeded.wsId}/standards/${seeded.lineStandardId}?at=balance&view=work`],
   ['line standard — none yet', `#/project/${seeded.pacedProjectId}/standard`],
   ['one install step', `#/project/${seeded.projectId}/testing/${seeded.stepId}`],

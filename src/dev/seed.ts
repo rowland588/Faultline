@@ -88,9 +88,11 @@ export interface Seeded {
   /** A capability study, a quick session: the worked example's thirty packs
    *  (docs/LEAN40.md appendix) — passes, and is not capable. */
   studyId: string;
-  /** The door-to-door value stream map (tool 2). */
+  /** A value stream map saved door to door before maps became only a
+   *  line's — one lane per step, no scope; must still open. */
   mapId: string;
-  /** One line's map: what is done on Line 7, and who does it. */
+  /** One line's map, kept large: what is done on Line 7 and who does it,
+   *  the departments that touch the line included. */
   lineMapId: string;
 }
 
@@ -753,48 +755,48 @@ export async function seedForSmokeTest(): Promise<Seeded> {
       { id: uid(), order: 3, name: 'Stack the pallet', who: 'Op 3', typedSec: 7 },
     ] }, uses: [], startedAt: t - 3_600_000, createdAt: t, updatedAt: t });
 
-  /* A VALUE STREAM MAP, door to door — a business tool (Rowland, 11 October):
-     the order from Tesco through the office, planning, stores, Line 7, QA and
-     despatch, drawn as the swimlane grid (ui/ValueStream). */
+  /* A VALUE STREAM MAP SAVED DOOR TO DOOR before maps became only a line's
+     (B1, 11 October): its steps carry one lane — an area — and no scope. It
+     must still open, its lanes by where (smoke). */
   const mapId = uid(), H = 3600, DY = 86_400;
   const fs = (order: number, name: string, lane: string, kind: 'operation' | 'move' | 'check' | 'wait' | 'store', o: Record<string, unknown> = {}) => ({ id: uid(), order, name, lane, kind, ...o });
   await putStudy({ id: mapId, tool: 'map', name: 'Order to delivery — Maris Piper 2kg', product: 'Maris Piper 2kg',
     agreed: { map: { supplier: 'the order', customer: 'Tesco', demandPerDay: 9600, availableSecPerDay: 16 * H } },
     facts: { flow: [
       fs(0, 'Order arrives by EDI', 'Order office', 'operation', { value: 'needed', cycleSec: 300, batch: 9600, waitSec: 4 * H, info: 'the system' }),
-      fs(1, 'Order checked and keyed', 'Order office', 'check', { value: 'needed', cycleSec: 600, batch: 9600, waitSec: 1 * DY, info: 'email' }),
-      fs(2, 'Run planned for the week', 'Planning', 'operation', { value: 'needed', cycleSec: 1800, batch: 48_000, waitSec: 1.5 * DY, info: 'paper', burst: true }),
-      fs(3, 'Film and boxes picked', 'Stores', 'move', { value: 'waste', cycleSec: 900, waitSec: 2 * H }),
-      fs(4, 'Bag and seal', 'Line 7', 'operation', { value: 'adds', cycleSec: 2, people: 1 }),
-      fs(5, 'Weigh and reject', 'Line 7', 'check', { value: 'needed', cycleSec: 1 }),
-      fs(6, 'Case and palletise', 'Line 7', 'operation', { value: 'adds', cycleSec: 6, people: 2 }),
-      fs(7, 'Pallet waits for QA release', 'Quality', 'wait', { waitSec: 6 * H }),
-      fs(8, 'Release checked', 'Quality', 'check', { value: 'needed', cycleSec: 600, batch: 9600 }),
-      fs(9, 'Pallet waits for the lorry', 'Despatch', 'store', { queue: 19_200 }),
-      fs(10, 'Loaded and sent', 'Despatch', 'move', { value: 'needed', cycleSec: 1200 }),
-      fs(11, 'Received at the depot', 'Customer', 'operation', { value: 'needed', cycleSec: 900, batch: 9600 }),
+      fs(1, 'Run planned for the week', 'Planning', 'operation', { value: 'needed', cycleSec: 1800, batch: 48_000, waitSec: 1.5 * DY, info: 'paper', burst: true }),
+      fs(2, 'Bag and seal', 'Line 7', 'operation', { value: 'adds', cycleSec: 2, people: 1 }),
+      fs(3, 'Pallet waits for the lorry', 'Despatch', 'store', { queue: 19_200 }),
+      fs(4, 'Loaded and sent', 'Despatch', 'move', { value: 'needed', cycleSec: 1200 }),
     ] }, uses: [], startedAt: t - 2 * 3_600_000, createdAt: t, updatedAt: t });
 
-  /* AND ONE LINE'S MAP — what is done on Line 7, and who does it: Op 1, Op 2,
-     Op 3 (the Maris Piper standard's people), the machine, the team leader
-     (Rowland, 11 October: "different people doing different activities on
-     the same line"). */
+  /* A LINE'S MAP, kept large — what is done on Line 7 and who does it: Op 1,
+     Op 2, Op 3 (the Maris Piper standard's people), the machine, the team
+     leader, and the departments whose work touches the line — planning,
+     stores, quality, maintenance (Rowland, 11 October: "different people
+     doing different activities on the same line"; "keep the line large,
+     different departments can affect the line"). */
   const lineMapId = uid();
-  await putStudy({ id: lineMapId, tool: 'map', name: 'Film loaded to pallet away — Maris Piper 2kg', product: 'Maris Piper 2kg',
+  await putStudy({ id: lineMapId, tool: 'map', name: 'Run released to pallet away — Maris Piper 2kg', product: 'Maris Piper 2kg',
     workspaceId: ws.id, standardId: lineOnly,
-    agreed: { map: { scope: 'line', supplier: 'Film loaded', customer: 'Pallet to despatch', demandPerDay: 9600, availableSecPerDay: 16 * H } },
+    agreed: { map: { scope: 'line', supplier: 'Run released', customer: 'Pallet to despatch', demandPerDay: 9600, availableSecPerDay: 16 * H } },
     facts: { flow: [
-      fs(0, 'Load the film reel', 'Op 1', 'operation', { value: 'needed', cycleSec: 120, batch: 2000 }),
-      fs(1, 'Splice the film', 'Op 1', 'operation', { value: 'needed', cycleSec: 45, batch: 2000 }),
-      fs(2, 'Bag and seal', 'Machine', 'operation', { value: 'adds', cycleSec: 1.2 }),
-      fs(3, 'Check the weight', 'Machine', 'check', { value: 'needed', cycleSec: 0.5 }),
-      fs(4, 'Clear a jam', 'Op 1', 'operation', { value: 'waste', cycleSec: 90, batch: 500, burst: true }),
-      fs(5, 'Pack the bags into the case', 'Op 2', 'operation', { value: 'adds', cycleSec: 8, batch: 6 }),
-      fs(6, 'Tape the case', 'Op 2', 'operation', { value: 'needed', cycleSec: 4, batch: 6 }),
-      fs(7, 'Walk to fetch flat cases', 'Op 2', 'move', { value: 'waste', cycleSec: 60, batch: 120 }),
-      fs(8, 'Stack the case on the pallet', 'Op 3', 'operation', { value: 'needed', cycleSec: 5, batch: 6, waitSec: 25 * 60 }),
-      fs(9, 'Pallet waits for the forklift', 'Op 3', 'wait', { waitSec: 15 * 60 }),
-      fs(10, 'Sign off the pallet', 'Team leader', 'check', { value: 'needed', cycleSec: 60, batch: 720 }),
+      fs(0, 'Release the run to the line', 'Planning', 'operation', { who: ['Planning'], where: 'Office', value: 'needed', cycleSec: 600, batch: 9600, waitSec: 1 * DY, info: 'paper' }),
+      fs(1, 'Issue the film and cases', 'Stores', 'move', { who: ['Stores', 'Forklift driver'], where: 'Stores', value: 'waste', cycleSec: 900, batch: 9600, waitSec: 4 * H }),
+      fs(2, 'Load the film reel', 'Op 1', 'operation', { who: ['Op 1'], where: 'Bagger', value: 'needed', cycleSec: 120, batch: 2000 }),
+      fs(3, 'Splice the film', 'Op 1', 'operation', { who: ['Op 1'], where: 'Bagger', value: 'needed', cycleSec: 45, batch: 2000 }),
+      fs(4, 'Bag and seal', 'Machine', 'operation', { who: ['Machine'], where: 'Bagger', value: 'adds', cycleSec: 1.2 }),
+      fs(5, 'First-off check', 'Quality', 'check', { who: ['Quality', 'Team leader'], where: 'Checkweigher', value: 'needed', cycleSec: 300, batch: 9600 }),
+      fs(6, 'Check the weight', 'Machine', 'check', { who: ['Machine'], where: 'Checkweigher', value: 'needed', cycleSec: 0.5 }),
+      fs(7, 'Clear a jam', 'Op 1', 'operation', { who: ['Op 1', 'Team leader'], where: 'Bagger', value: 'waste', cycleSec: 90, batch: 500, burst: true }),
+      fs(8, 'Reset the sealing jaw', 'Maintenance', 'operation', { who: ['Maintenance', 'Op 1'], where: 'Bagger', value: 'waste', cycleSec: 600, batch: 4800, burst: true }),
+      fs(9, 'Pack the bags into the case', 'Op 2', 'operation', { who: ['Op 2'], where: 'Case packer', value: 'adds', cycleSec: 8, batch: 6 }),
+      fs(10, 'Tape the case', 'Op 2', 'operation', { who: ['Op 2'], where: 'Case packer', value: 'needed', cycleSec: 4, batch: 6 }),
+      fs(11, 'Walk to fetch flat cases', 'Op 2', 'move', { who: ['Op 2'], where: 'Stores', value: 'waste', cycleSec: 60, batch: 120 }),
+      fs(12, 'Stack the case on the pallet', 'Op 3', 'operation', { who: ['Op 3'], where: 'Palletiser', value: 'needed', cycleSec: 5, batch: 6, waitSec: 25 * 60 }),
+      fs(13, 'Sign off the pallet', 'Team leader', 'check', { who: ['Team leader'], where: 'Palletiser', value: 'needed', cycleSec: 60, batch: 720 }),
+      fs(14, 'Pallet waits for QA release', 'Quality', 'wait', { who: ['Quality'], where: 'Palletiser', waitSec: 6 * H }),
+      fs(15, 'Pallet to despatch', 'Forklift driver', 'move', { who: ['Forklift driver'], where: 'Despatch', value: 'needed', cycleSec: 180, batch: 720 }),
     ] }, uses: [], startedAt: t - 3_600_000, createdAt: t, updatedAt: t });
 
   /* A CAPABILITY STUDY, unfiled: the thirty packs of the worked example —

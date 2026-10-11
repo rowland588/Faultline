@@ -30,11 +30,14 @@ it better, Prove it, before → after), and on the client report; and
 (release 3, step 3) the time study and the work balance as one study per
 product — elements timed on the phone, rated, stacked person by person
 against takt (`lib/ie/balance.ts`), on the line balance's People view, the
-map's work line and the line standard card; and (tool B, B1) the value
-stream map — door to door, a business tool, drawn as a swimlane grid of who,
-what and the value (`lib/ie/steps.ts`, `ui/ValueStream`). Rowland's answers
-for B, 11 October: value by fill; "VSM is not just a line tool, it's a
-business tool"; the swimlane grid. The rest is design. Every rule in `CLAUDE.md` holds: measured by
+map's work line and the line standard card; and (tool B, B1–B1c) the value
+stream map — a line's, end to end, laid out as a swimlane grid of what, who
+(or where) and the value, nothing drawn (`lib/ie/steps.ts`,
+`ui/ValueStream`). Rowland's answers for B, 11 October: the picture's
+colours (VA green, NE amber, NV red); the swimlane grid; who does it on a
+line is people, not departments; multi-dimensional; and "remove
+business-wide mapping ... but keep the line large, different departments
+can affect the line". The rest is design. Every rule in `CLAUDE.md` holds: measured by
 people, additions connect, screen and paper together, one colour one
 meaning, simple with detail, manufacturing is many, and no new noun but
 the one Part 0 argues for.
@@ -852,6 +855,39 @@ fish on a 6M job; a page in the client report; its own page.
 
 **Proved by.** The seven rows in `docs/LEAN40.md`: lead time, 0.2%, the
 biggest wait, case pack over takt; the future copy's differences.
+
+**How the trade does it** (read 11 October, for Rowland's "multi function
+cross department or single line — how they do it in our domain"):
+- *Three levels.* The process level is one line, a box per station
+  (Rother & Shook, *Learning to See*); the plant door to door, a box per
+  area the material passes; the extended map across plants, suppliers and
+  customers (Jones & Womack, *Seeing the Whole*). Practice keeps one door-
+  to-door map and opens a line's own map under the area it sits in
+  (lean.org; leandatapoint.com).
+- *Across departments* is a swimlane (Rummler-Brache) map: a lane per
+  function or person, the handoffs between them; made for office and
+  indirect work. Rule of thumb: swimlane for who owns a step, VSM for why
+  it takes so long, process map for how a task is done (6sigma.us;
+  allaboutlean.com; fabrico.io).
+- *One line, several people* is not a VSM in the Toyota tradition but the
+  standard work combination table — a row per operator, manual, machine and
+  walk against takt (lean.org lexicon; allaboutlean.com). That is the work
+  balance; a line's map laned by who is the bridge between the two.
+- *The apps* (eVSM, iGrafx, LTS Data Point, SimVSM, visTABLE, Minitab
+  Engage; Lucidchart, Miro, SmartDraw for drawing only): every one is a
+  drawing of boxes and arrows. The calculators work out lead time and the
+  share that adds value; LTS keeps a process → department → organisation
+  hierarchy fed from MES and sensors (ruled out here: measured by people);
+  SimVSM records on a tablet on site, as Walk it does.
+- *So the map here* (Rowland, after the above: "remove business-wide
+  mapping ... but keep the line large, different departments can affect
+  the line"): one kind, a line's, its lanes everyone whose work touches the
+  line — the operators and the machine as in the combination table, and
+  planning, stores, quality, maintenance as in a swimlane map; every step
+  carries what, who and where, the lanes either (B1c); a grid read by
+  colour and opened by a tap, never a drawing; no master map of the
+  business and no levels under it — that is the mapping products' ground,
+  not a change to a line.
 
 ## 3. The time study
 

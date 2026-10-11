@@ -1,6 +1,6 @@
-/* The value stream's arithmetic — a business stream, door to door. */
+/* The value stream's arithmetic — one line end to end, the departments that touch it included. */
 import { describe, it, expect } from 'vitest';
-import { flowFigures, flowSays, compareFlows, waitOf, valueOf, dur, parseDur } from '../steps';
+import { flowFigures, flowSays, compareFlows, waitOf, valueOf, dur, parseDur, lanesOf, lanesOfStep, whoOf, whereOf, laneByDefault } from '../steps';
 import type { FlowStep } from '../../study';
 
 const D = 86_400;
@@ -70,6 +70,28 @@ describe('the value stream (tool 2)', () => {
   it('the lanes, in the order the journey first reaches them', () => {
     expect(flowFigures(stream(), agreed).lanes).toEqual(['Order office', 'Planning', 'Stores', 'Line 2', 'Despatch']);
   });
+  it('multi-dimensional: lanes by who or by where; a step done by two people sits in both lanes', () => {
+    const flow: FlowStep[] = [
+      { id: 'a', order: 0, name: 'Load the reel', kind: 'operation', who: ['Op 1'], where: 'Bagger' },
+      { id: 'b', order: 1, name: 'Clear a jam', kind: 'operation', who: ['Op 1', 'Team leader'], where: 'Bagger' },
+      { id: 'c', order: 2, name: 'Pack the case', kind: 'operation', who: ['Op 2'], where: 'Case packer' },
+    ];
+    expect(lanesOf(flow, 'who')).toEqual(['Op 1', 'Team leader', 'Op 2']);
+    expect(lanesOf(flow, 'where')).toEqual(['Bagger', 'Case packer']);
+    expect(lanesOfStep(flow[1], 'who')).toEqual(['Op 1', 'Team leader']);
+    expect(lanesOfStep({ id: 'x', order: 0, name: 'x', kind: 'wait' }, 'who')).toEqual(['Not said']);
+  });
+  it('a step saved with one lane still reads: who on a line\'s map, where on the business', () => {
+    const old: FlowStep = { id: 'o', order: 0, name: 'x', kind: 'operation', lane: 'Op 1' };
+    expect([whoOf(old, { scope: 'line' }), whereOf(old, { scope: 'line' })]).toEqual([['Op 1'], undefined]);
+    expect([whoOf(old), whereOf(old)]).toEqual([[], 'Op 1']);
+    expect([laneByDefault({ scope: 'line' }), laneByDefault()]).toEqual(['who', 'where']);
+  });
+  it('a step whose who or where came back in the wrong shape reads as not said, never a crash', () => {
+    const odd = { id: 'z', order: 0, name: 'x', kind: 'operation', who: 'Op 1', where: 7 } as unknown as FlowStep;
+    expect([whoOf(odd, { scope: 'line' }), whereOf(odd, { scope: 'line' })]).toEqual([[], undefined]);
+    expect(lanesOfStep(odd, 'who', { scope: 'line' })).toEqual(['Not said']);
+  });
   it('durations as people say them', () => {
     expect([dur(6), dur(240), dur(5400), dur(2 * D), dur(0.045)]).toEqual(['6.0 s', '4 min', '1.5 h', '2.0 d', '0.045 s']);
   });
@@ -78,6 +100,6 @@ describe('the value stream (tool 2)', () => {
     expect([parseDur('40'), parseDur('40', 'min'), parseDur('soon'), parseDur('3 fortnights')]).toEqual([40, 2400, undefined, undefined]);
   });
   it('nothing listed: says how to start', () => {
-    expect(flowSays(flowFigures([], agreed)).text).toMatch(/^List the steps door to door/);
+    expect(flowSays(flowFigures([], agreed)).text).toMatch(/^List the steps on the line end to end/);
   });
 });

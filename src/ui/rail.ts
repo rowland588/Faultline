@@ -176,7 +176,7 @@ export const toolPlaces = (here: string): RailLine[] => [
   { key: 'linebalance', label: 'Line balance', to: '/balances', on: here === 'linebalance', state: 'n', bare: true, icon: 'chart' },
   /* The capability study — readings against agreed limits, Cpk out (docs/TOOLKIT.md, tool 1). */
   { key: 'capability', label: 'Capability', to: '/capability', on: here === 'capability', state: 'n', bare: true, icon: 'hash' },
-  /* The value stream map — door to door, a business tool, drawn as a swimlane grid (tool 2). */
+  /* The value stream map — always a line's, the departments that touch it included, as a swimlane grid (tool 2). */
   { key: 'valuestream', label: 'Value stream', to: '/value-stream', on: here === 'valuestream', state: 'n', bare: true, icon: 'route' },
 ];
 

@@ -34,15 +34,16 @@ const CAPABILITY: ToolWords = {
   none: 'No capability studies yet. Say what it is of, agree the limits and how many readings, then take them — on the phone at the machine.',
   second: { label: 'On which machine?', placeholder: 'e.g. Checkweigher' },
 };
-/* Rowland, 11 October: "VSM is not just a line tool, it's a business tool" —
-   door to door, through every department, drawn as a swimlane grid. */
+/* Rowland, 11 October: a swimlane grid of what, who and the value — and
+   always a line's: "remove business-wide mapping ... but keep the line
+   large, different departments can affect the line". */
 const MAP: ToolWords = {
   title: 'Value stream map',
   one: 'Value stream map',
-  lede: 'Door to door — from the order to the customer — every step in the lane of who does it, filled by its value, with how long it takes and how long it waits. Use one on its own, or attach it to a job.',
+  lede: 'One line, end to end — from the material arriving to the pallet leaving — every step in the lane of whoever does it, the departments that touch the line included, coloured by its value, with how long it takes and how long it waits. Use one on its own, or attach it to a job.',
   add: 'New value stream map',
-  placeholder: 'e.g. Order to delivery — Finest Red 2kg',
-  none: 'No value stream maps yet. Start where the order starts, and add each step it goes through, in the lane of whoever does it, to the customer.',
+  placeholder: 'e.g. Film in to pallet away — Maris Piper 2kg',
+  none: 'No value stream maps yet. Pick a line, start where its work starts, and add each thing done on it, in the lane of whoever does it, to the pallet leaving.',
   second: { label: 'Which product or family?', placeholder: 'e.g. Finest Red 2kg' },
 };
 export const TOOL_WORDS: Partial<Record<StudyTool, ToolWords>> = { capability: CAPABILITY, map: MAP };
@@ -141,15 +142,16 @@ function NewStudy({ open, tool, onClose }: { open: boolean; tool: StudyTool; onC
   const [name, setName] = useState('');
   const [machine, setMachine] = useState('');
   const [busy, setBusy] = useState(false);
-  /* A VALUE STREAM is the business door to door, or one line — what is done
-     and who does it on it (Rowland, 11 October). */
-  const [scope, setScope] = useState<'business' | 'line'>('business');
+  /* A VALUE STREAM is always a line's — what is done on it and who does it,
+     the departments that touch it included (Rowland, 11 October: "remove
+     business-wide mapping ... but keep the line large, different
+     departments can affect the line"). */
   const [lineId, setLineId] = useState('');
   const [lines, setLines] = useState<Workspace[]>([]);
   const [standards, setStandards] = useState<Standard[]>([]);
   useEffect(() => { if (open && tool === 'map') void listWorkspaces().then(setLines); }, [open, tool]);
   useEffect(() => { if (lineId) void listStandardsForLine(lineId).then(setStandards); else setStandards([]); }, [lineId]);
-  const isLine = tool === 'map' && scope === 'line';
+  const isLine = tool === 'map';
   const ready = !!name.trim() && !busy && (!isLine || !!lineId);
   const make = async () => {
     if (!ready) return;
@@ -171,21 +173,13 @@ function NewStudy({ open, tool, onClose }: { open: boolean; tool: StudyTool; onC
   return (
     <Sheet open={open} onClose={onClose} title={w.add}>
       <form className="lt-new" onSubmit={e => { e.preventDefault(); void make(); }}>
-        {tool === 'map' && (
-          <div className="field"><span className="field-label">What does it map?</span>
-            <span className="chip-row" role="radiogroup" aria-label="What does it map">
-              <button type="button" role="radio" aria-checked={scope === 'business'} className={'chip' + (scope === 'business' ? ' on' : '')} onClick={() => setScope('business')}>The business — door to door</button>
-              <button type="button" role="radio" aria-checked={scope === 'line'} className={'chip' + (scope === 'line' ? ' on' : '')} onClick={() => setScope('line')}>One line — what is done, who does it</button>
-            </span>
-            <span className="sub">{scope === 'line' ? 'A lane for each person or role on the line — Op 1, Op 2, the machine, the team leader.' : 'A lane for each area the order passes through — the office, planning, stores, a line, despatch.'}</span>
-          </div>
-        )}
         {isLine && (
           <label className="field"><span className="field-label">Which line?</span>
             <select className="text-input" value={lineId} aria-label="Which line" onChange={e => setLineId(e.target.value)}>
               <option value="">Pick the line…</option>
               {lines.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
             </select>
+            <span className="sub">A lane for each person or department whose work touches the line — Op 1, Op 2, the machine, the team leader, planning, stores, quality, maintenance.</span>
           </label>
         )}
         <label className="field"><span className="field-label">What is it of?</span>
