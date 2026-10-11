@@ -287,6 +287,19 @@ pushed (`src/cloud/sync.ts`), so a stray local write cannot stall a sync.
   pattern, read `pg_policies` back for every table it touched, and remember a
   select policy has no `with_check` and an insert policy no `qual`.
 
+- **A push that lands over somebody else's.** The cloud's upsert is
+  last-writer-wins. Two devices editing one row within the same moment both
+  pulled, both found nothing new, and both wrote: the second write replaced
+  the first whole, and the first device — its write accepted — took the
+  cloud's copy as newer on its next pull and never sent its edit again. A
+  reading added on the phone was gone from every device, silently
+  (`scripts/sync-two-devices.mjs`, scenario 10, twice under the gate, 11
+  October). So a row this device holds the cloud's copy of is written only
+  if the cloud still holds that copy, by its `rev` (`update … eq rev`), and
+  a row the cloud moved under us is pulled, merged and sent again in the
+  same pass (`src/cloud/sync.ts`, the push). Never go back to a plain upsert
+  for an edited row. The engine keeps a trace of every decision
+  (`syncTrace()`); the harness prints both devices' when a scenario fails.
 - **Schema drift is silent.** The app's mapper and the SQL migrations are two
   descriptions of the same columns. When they disagree the push is rejected, the
   cursor never advances, the row never leaves the device, and nothing on screen

@@ -25,8 +25,8 @@ function fakeCloud() {
     let order: string | null = null; let limit = Infinity;
     const run = async () => {
       await Promise.resolve();
-      if (op.kind === 'upsert') { for (const r of op.rows) c.put(table, { ...(tables.get(table)?.get(r.id as string) ?? {}), ...r }); return { data: null, error: null }; }
-      if (op.kind === 'update') { for (const r of c.rows(table).filter(r => filters.every(f => f(r)))) c.put(table, { ...r, ...op.patch }); return { data: null, error: null }; }
+      if (op.kind === 'upsert') { const stored = op.rows.map(r => { c.put(table, { ...(tables.get(table)?.get(r.id as string) ?? {}), ...r }); return tables.get(table)!.get(r.id as string)!; }); return { data: stored, error: null }; }
+      if (op.kind === 'update') { const hit = c.rows(table).filter(r => filters.every(f => f(r))); for (const r of hit) c.put(table, { ...r, ...op.patch }); return { data: hit.map(r => tables.get(table)!.get(r.id as string)!), error: null }; }
       let out = c.rows(table).filter(r => filters.every(f => f(r)));
       if (order) out = out.sort((a, b) => Number(a[order!]) - Number(b[order!]));
       return { data: out.slice(0, limit), error: null };

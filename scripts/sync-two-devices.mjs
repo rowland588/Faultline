@@ -241,8 +241,20 @@ async function waitFor(fn, timeout = 30_000, step = 200) {
     await new Promise(r => setTimeout(r, step));
   }
 }
+/* A sheet left open (Backup, after "Make them fit") sits over the next screen
+   and takes every tap meant for it: "Video" waited thirty seconds under it
+   (scenario 8, twice under the gate). Closed the way a person would, first. */
+async function closeSheets(page) {
+  for (let i = 0; i < 4 && (await page.locator('[role="dialog"]').count()); i++) {
+    await page.keyboard.press('Escape').catch(() => {});
+    await page.waitForTimeout(250);
+    if (await page.locator('[role="dialog"]').count()) await page.mouse.click(4, 300).catch(() => {});   // the dimmed backdrop, top-left
+    await page.waitForTimeout(250);
+  }
+}
 const go = async (page, hash) => {
   await flushShots();
+  await closeSheets(page);
   await page.goto(`${BASE}/#${hash}`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => (document.querySelector('h1')?.textContent ?? '').trim().length > 0, null, { timeout: 15_000 }).catch(() => {});
   await page.waitForTimeout(600);
@@ -413,8 +425,11 @@ async function pickFromPhone(page, name, mimeType, buffer) {
 }
 /** Film through the app's own recorder: Video → shutter → wait → stop → Done. */
 async function filmClip(page, seconds) {
+  await closeSheets(page);
   await openEvidence(page);
-  await page.getByRole('button', { name: 'Video', exact: true }).first().click();
+  const video = page.getByRole('button', { name: 'Video', exact: true }).first();
+  await video.waitFor({ state: 'visible', timeout: 15_000 });
+  await video.click();
   const live = await waitFor(() => page.evaluate(() => {
     const v = document.querySelector('video.rec-preview');
     return !!v && v.readyState >= 2 && v.videoWidth > 0;
@@ -475,7 +490,7 @@ const run = async (n, title, fn) => {
   scn = n;
   say(`==== ${n} · ${title}`);
   try { await fn(); } catch (e) {
-    check(false, `scenario ${n} ran to the end`, e.message.split('\n').slice(0, 3).join(' '));
+    check(false, `scenario ${n} ran to the end`, e.message.split('\n').slice(0, 14).join(' '));
     if (process.env.SYNC_SHOTS) for (const d of [phone, laptop]) await d.page.screenshot({ path: `${process.env.SYNC_SHOTS}/fail-${n}-${d.name}.png`, fullPage: true }).catch(() => {});
   }
 };
@@ -731,16 +746,24 @@ await run(4, 'both edit one test while the laptop is offline', async () => {
   const P75 = 'PHONE: 75 ppm, the later edit';
   await laptop.ctx.setOffline(true);
   await typeInto(l, 'What happened', 'LAPTOP offline, earlier');
-  const lw = await waitFor(async () => { const r = await testRow(l, tid); return r?.result === 'LAPTOP offline, earlier' && r; }, 10_000);
-  await l.waitForTimeout(100);
+  let lw = await waitFor(async () => { const r = await testRow(l, tid); return r?.result === 'LAPTOP offline, earlier' && r; }, 10_000);
+  /* the laptop's row at rest — no later write of its own still to land */
+  await waitFor(async () => { const a = (await testRow(l, tid))?.updatedAt; await l.waitForTimeout(900); return (await testRow(l, tid))?.updatedAt === a; }, 10_000);
+  lw = await testRow(l, tid);
   await typeInto(p, 'What happened', P75);
   const pw = await waitFor(async () => { const r = await testRow(p, tid); return r?.result === P75 && r; }, 10_000);
   await settle(phone);
-  await waitFor(() => cloud.rows('tests').find(r => r.id === tid)?.result === P75, 15_000);
+  const p75Up = await waitFor(() => cloud.rows('tests').find(r => r.id === tid)?.result === P75, 15_000);
+  const lw2 = await testRow(l, tid);
+  note(`before the laptop is back: laptop's edit at ${lw2?.updatedAt}, phone's at ${pw?.updatedAt}, the phone's in the cloud: ${!!p75Up}`);
   await laptop.ctx.setOffline(false);
   await settle(laptop);
   const c3 = cloud.rows('tests').find(r => r.id === tid);
   const ls3 = await status(l);
+  if (c3?.result !== P75) for (const d of [phone, laptop]) {
+    const lines = await d.page.evaluate(async id => (await import('/src/cloud/sync.ts')).syncTrace().filter(l => l.includes(id.slice(0, 8)) || /pass /.test(l)), tid).catch(() => []);
+    note(`${d.name}’s engine on this test: ${lines.slice(-40).join(' ⏎ ')}`);
+  }
   check(c3.result === P75 && (await testRow(l, tid)).result === c3.result, 'same field, offline edit older: the newer cloud copy wins on both',
     `${c3.result} · laptop's edit at ${lw?.updatedAt}, phone's at ${pw?.updatedAt}`);
   check((ls3.overwritten ?? []).some(o => o.id === tid), 'and the laptop names the edit of its that was replaced', JSON.stringify(ls3.overwritten?.map(o => o.title)));
@@ -1055,16 +1078,23 @@ await run(10, 'two devices add readings to one study; one strikes a reading', as
   await add(l, [reading('r3', 402.0), reading('r4', 401.5)]);
   await add(p, [reading('r5', 399.9)], 'r1');
   await settle(phone);
-  await waitFor(() => (cloud.rows('studies').find(r => r.id === sid)?.facts?.readings ?? []).some(r => r.id === 'r5'), 15_000);
+  const up = await waitFor(() => (cloud.rows('studies').find(r => r.id === sid)?.facts?.readings ?? []).some(r => r.id === 'r5'), 15_000);
+  check(up, 'the phone’s new reading is in the cloud before the laptop is back', up ? '' : `cloud holds ${(cloud.rows('studies').find(r => r.id === sid)?.facts?.readings ?? []).map(r => r.id).join(',')}`);
   await laptop.ctx.setOffline(false);
   await settle(laptop);
   await syncViaUI(phone);
   const ids = x => (x?.facts?.readings ?? []).map(r => r.id).sort().join(',');
   const struck = x => (x?.facts?.readings ?? []).find(r => r.id === 'r1')?.struck === true;
   const c = cloud.rows('studies').find(r => r.id === sid), ps = await idbGet(p, 'studies', sid), ls = await idbGet(l, 'studies', sid);
-  check([c, ps, ls].every(x => ids(x) === 'r1,r2,r3,r4,r5'), 'readings added on both, while one was offline, are all kept, everywhere',
+  const all = check([c, ps, ls].every(x => ids(x) === 'r1,r2,r3,r4,r5'), 'readings added on both, while one was offline, are all kept, everywhere',
     `cloud ${ids(c)} · phone ${ids(ps)} · laptop ${ids(ls)}`);
-  check([c, ps, ls].every(struck), 'the reading struck on the phone stays struck, everywhere', `cloud ${struck(c)} · phone ${struck(ps)} · laptop ${struck(ls)}`);
+  const held = check([c, ps, ls].every(struck), 'the reading struck on the phone stays struck, everywhere', `cloud ${struck(c)} · phone ${struck(ps)} · laptop ${struck(ls)}`);
+  /* When it goes wrong, each engine says what it did with this row, pass by
+     pass (cloud/sync syncTrace) — the end state alone never said. */
+  if (!all || !held) for (const d of [phone, laptop]) {
+    const lines = await d.page.evaluate(async id => (await import('/src/cloud/sync.ts')).syncTrace().filter(l => l.includes(id.slice(0, 8)) || /pass /.test(l)), sid).catch(() => []);
+    note(`${d.name}’s engine on this study: ${lines.slice(-40).join(' ⏎ ')}`);
+  }
 });
 
 /* ======================================================================= */

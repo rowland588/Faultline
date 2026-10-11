@@ -29,6 +29,7 @@ function fakeCloud() {
     tables, objects,
     offline: false,
     refuse: null as null | ((t: string, r: Row) => boolean),
+    afterPull: null as null | ((t: string) => void),
     limit: Infinity,
     upserts: [] as { table: string; ids: string[]; ok: boolean }[],
     uploads: [] as string[],
@@ -47,17 +48,22 @@ function fakeCloud() {
         const bad = c.refuse && op.rows.some(r => c.refuse!(table, r));
         c.upserts.push({ table, ids: op.rows.map(r => r.id as string), ok: !bad });
         if (bad) return { data: null, error: { code: '42501', message: `new row violates row-level security policy for table "${table}"`, details: null, hint: null } };
-        for (const r of op.rows) c.put(table, { ...(tables.get(table)?.get(r.id as string) ?? {}), ...r });
-        return { data: null, error: null };
+        /* As PostgREST answers a write asked for its rows: what was stored, rev and all. */
+        const stored = op.rows.map(r => { c.put(table, { ...(tables.get(table)?.get(r.id as string) ?? {}), ...r }); return tables.get(table)!.get(r.id as string)!; });
+        return { data: stored, error: null };
       }
       if (op.kind === 'update') {
-        for (const r of c.rows(table).filter(r => filters.every(f => f(r)))) c.put(table, { ...r, ...op.patch });
-        return { data: null, error: null };
+        const hit = c.rows(table).filter(r => filters.every(f => f(r)));
+        for (const r of hit) c.put(table, { ...r, ...op.patch });
+        return { data: hit.map(r => tables.get(table)!.get(r.id as string)!), error: null };
       }
       if (table === 'tests') c.pulls++;
       let out = c.rows(table).filter(r => filters.every(f => f(r)));
       if (order) out = out.sort((a, b) => Number(a[order!]) - Number(b[order!]));
-      return { data: out.slice(0, limit), error: null };
+      const page = out.slice(0, limit);
+      /* A write from the other device landing right after this pull, before the push. */
+      if (c.afterPull) c.afterPull(table);
+      return { data: page, error: null };
     };
     const b = {
       select: () => b,
@@ -291,5 +297,46 @@ describe('mergeRows — what is not an edit', () => {
     const { mergeRows } = await import('../sync');
     const r = mergeRows({ a: 1, legacy: 7, owner_id: 'them' }, { a: 1, owner_id: 'me' }, { a: 1, legacy: 7, owner_id: 'them' }, true);
     expect(r).toEqual({ row: { a: 1, legacy: 7, owner_id: 'them' }, ours: false, lost: [] });
+  });
+});
+
+describe('a push never lands over somebody else\'s write (the cloud\'s rev)', () => {
+  const r = (id: string, value: number, struck?: boolean) => ({ id, value, at: 1, ...(struck ? { struck } : {}) });
+  const ids = (x?: { id: string }[]) => (x ?? []).map(y => y.id).sort().join(',');
+  it('a row the cloud moved since we pulled is pulled again, merged with ours and sent again, in the one pass', async () => {
+    const { db, sync } = await boot();
+    const t = Date.now();
+    await db.putStudy({ id: 's', tool: 'capability', name: 'Weight 400 g', facts: { readings: [r('r1', 401.2), r('r2', 400.9)] }, uses: [], startedAt: t, createdAt: t, updatedAt: t });
+    await sync.syncNow();
+    const theirs = cloud.rows('studies')[0];
+    expect(theirs.rev).toBeGreaterThan(0);
+    /* ours: a reading and a strike, unsent */
+    await db.patchStudy('s', cur => ({ facts: { ...cur.facts, readings: [...(cur.facts.readings ?? []).map(x => (x.id === 'r1' ? { ...x, struck: true } : x)), r('r5', 399.9)] } }));
+    /* theirs: two readings, landing after our pull of the table and before our push */
+    cloud.afterPull = table => { if (table !== 'studies') return; cloud.afterPull = null; cloud.put('studies', { ...theirs, facts: { readings: [r('r1', 401.2), r('r2', 400.9), r('r3', 402.0), r('r4', 401.5)] }, updated_at: Number(theirs.updated_at) + 5 }); };
+    await sync.syncNow();
+    const cl = cloud.rows('studies')[0].facts as { readings: { id: string; struck?: boolean }[] };
+    const here = await db.getStudy('s');
+    expect(ids(cl.readings)).toBe('r1,r2,r3,r4,r5');
+    expect(ids(here?.facts.readings)).toBe('r1,r2,r3,r4,r5');
+    expect(cl.readings.find(x => x.id === 'r1')?.struck).toBe(true);
+    expect(sync.syncStatus().unsent).toBe(0);
+    expect(sync.syncStatus().overwritten ?? []).toEqual([]);
+    /* the trace says what happened, by name */
+    expect(sync.syncTrace().some(l => /push studies s moved under us/.test(l))).toBe(true);
+  });
+  it('the same column changed on both sides, ours older: theirs stands, ours is named, nothing goes up over it', async () => {
+    const { db, sync } = await boot();
+    await db.putTest(T('t1', { result: 'first' }));
+    await sync.syncNow();
+    const theirs = cloud.rows('tests')[0];
+    const mine = (await db.listTests('p1')).find(x => x.id === 't1')!;
+    await db.putTest({ ...mine, result: 'ours, older', updatedAt: Date.now() + 1 });
+    cloud.afterPull = table => { if (table !== 'tests') return; cloud.afterPull = null; cloud.put('tests', { ...theirs, result: 'theirs, newer', updated_at: Date.now() + 5000 }); };
+    await sync.syncNow();
+    expect(cloud.rows('tests')[0].result).toBe('theirs, newer');
+    expect((await db.listTests('p1')).find(x => x.id === 't1')?.result).toBe('theirs, newer');
+    expect(sync.syncStatus().overwritten?.map(o => o.id)).toEqual(['t1']);
+    expect(sync.syncStatus().unsent).toBe(0);
   });
 });

@@ -706,3 +706,4 @@ decision, in the same way.
 | A half-built piece reaching the app | Only whole pieces merge to `main`; anything else stays on the branch, and is said so |
 | A new piece breaking an old one | Every earlier acceptance script runs in every later gate |
 | Two phones overwriting each other's list | The list merge by `id`, proven in 2b before any screen uses it |
+| Two phones writing one row in the same moment — the second write replacing the first, the first device never sending again | The push is conditional on the cloud's `rev` (11 October): a row the cloud moved under a device is pulled, merged and sent again in the same pass; `sync-pass.test.ts` makes the race on purpose, and scenario 10 of the two-device harness runs it live |

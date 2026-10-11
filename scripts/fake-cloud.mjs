@@ -305,9 +305,12 @@ export function startFakeCloud({ port = 54392, user } = {}) {
             cloud.refusedWrites++;
             return send(res, 403, { code: '42501', details: null, hint: null, message: `new row violates row-level security policy for table "${t}"` });
           }
-          for (const r of hit) write(t, { ...r, ...patch }, true);
+          const written = hit.map(r => write(t, { ...r, ...patch }, true));
           entry.rows = hit.length;
-          return send(res, 204);
+          /* As PostgREST answers: the rows written, when asked for them —
+             none, as [], is how a device learns the cloud moved under it. */
+          const wantRep = /return=representation/.test(req.headers.prefer ?? '');
+          return wantRep ? send(res, 200, written) : send(res, 204);
         }
         if (req.method === 'DELETE') {
           const fs = filters(q);

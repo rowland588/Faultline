@@ -401,13 +401,20 @@ const FRESH_MS = 10 * 60_000;
 const absentSince = new Map<string, number>();
 let retryAt = 0, retryTimer: ReturnType<typeof setTimeout> | undefined, lastUid: string | undefined;
 const freshAbsent = () => [...absent].filter(k => Date.now() - (absentSince.get(k) ?? 0) < FRESH_MS);
+/** A file first found missing this recently is asked for every few seconds:
+ *  its record is here and its bytes are still leaving the phone that took it
+ *  (Rowland, 7 October: "as close to immediate as possible"). The back-off
+ *  is for the ones that have been missing a while. */
+const STEADY_MS = 2 * 60_000, STEADY_SECONDS = 3;
 function retryAbsentSoon(uid: string, gotAny: boolean) {
   if (retryTimer) clearTimeout(retryTimer);
   retryTimer = undefined;
   if (gotAny) retryAt = 0;
-  if (!freshAbsent().length || typeof window === 'undefined') { retryAt = 0; return; }
-  const wait = RETRY_SECONDS[Math.min(retryAt, RETRY_SECONDS.length - 1)];
-  retryAt++;
+  const fresh = freshAbsent();
+  if (!fresh.length || typeof window === 'undefined') { retryAt = 0; return; }
+  const youngest = Math.min(...fresh.map(k => Date.now() - (absentSince.get(k) ?? 0)));
+  const wait = youngest < STEADY_MS ? STEADY_SECONDS : RETRY_SECONDS[Math.min(retryAt, RETRY_SECONDS.length - 1)];
+  if (youngest >= STEADY_MS) retryAt++;
   retryTimer = setTimeout(() => { retryTimer = undefined; void retryFresh(uid); }, wait * 1000);
 }
 /** Ask again for only the files just found not there — never the whole queue. */
@@ -560,12 +567,15 @@ export function pruneSent(sent: Sent, alive: Set<string>): Sent {
 const BASE_PREFIX = 'base:';
 const baseKey = (kind: SyncKind, id: string) => `${BASE_PREFIX}${kind}:${id}`;
 type CloudRow = Record<string, unknown>;
-const stripRev = (r: CloudRow): CloudRow => { const { rev: _rev, ...rest } = r; return rest; };
+/* The base keeps the cloud's `rev` — the version of the copy both sides last
+   agreed. It used to be stripped as a transport column; the push is now
+   conditional on it (below), so it is the one column the base must carry.
+   Never an edit (NOT_AN_EDIT), so no merge reads it. */
 async function baseGet(kind: SyncKind, id: string): Promise<CloudRow | undefined> {
   return (await metaGet(baseKey(kind, id))) as CloudRow | undefined;
 }
 async function basePut(kind: SyncKind, id: string, row: CloudRow): Promise<void> {
-  await metaPut(baseKey(kind, id), stripRev(row));
+  await metaPut(baseKey(kind, id), row);
 }
 async function basePrune(alive: Set<string>): Promise<void> {
   const db = await getDB();
@@ -660,8 +670,11 @@ export function mergeRows(base: CloudRow, mine: CloudRow, theirs: CloudRow, mine
    re-baselines once, which is what finally lifts the rows the old filter had
    stranded — including projects that had never reached the cloud at all.
    v5: rows carry the copy both sides last agreed (see mergeRows) — one full
-   re-pull gives every row one, rows only, never the files. */
-const ENGINE_VERSION = 5;
+   re-pull gives every row one, rows only, never the files.
+   v6: that copy carries the cloud's rev, and the push is conditional on it
+   (never over somebody else's write) — one full re-pull gives every base its
+   rev, so no row goes up unguarded. */
+const ENGINE_VERSION = 6;
 let migrationDone: Promise<void> | null = null;
 function ensureMigrated(): Promise<void> {
   migrationDone ??= (async () => {
@@ -732,6 +745,15 @@ async function readTooBig(): Promise<Map<string, number>> {
 }
 
 /* ---------- the sync ---------- */
+/* A SHORT RECORD OF WHAT THE ENGINE DECIDED, this session: each pass, and
+   for each row it pulled or pushed, what it did and why (echo, merged, ours
+   kept, theirs taken, accepted, moved under us, refused). Read by the
+   two-device harness when a scenario fails, so a lost edit names the pass
+   that lost it, instead of being guessed at from the end state. */
+const trace: string[] = [];
+const tr = (s: string): void => { trace.push(`${new Date().toISOString().slice(11, 23)} ${s}`); if (trace.length > 600) trace.splice(0, trace.length - 600); };
+export const syncTrace = (): string[] => [...trace];
+const short = (id: unknown): string => String(id).slice(0, 8);
 let running = false;
 let runQueued = false;
 export async function syncNow(): Promise<void> {
@@ -754,6 +776,7 @@ export async function syncNow(): Promise<void> {
     if (!me) { set({ state: 'signedout' }); return; }
     const uid = me.id;
     set({ state: 'syncing', error: undefined });
+    tr('pass start');
     const cursor = await getSyncCursor();       // the LEGACY PULL cursor only — the push no longer reads it
     const sent = sentNow = await readSent();
     const overwritten = await readOverwritten();
@@ -827,81 +850,84 @@ export async function syncNow(): Promise<void> {
     //      (cursor = last rev of the page), so rows moving mid-pull can't cause
     //      offset skips, and the cursor is pure server truth. ----
     const revs = await revCursors();
-    for (const kind of SYNC_KINDS) {
+    /* ONE ROW FROM THE CLOUD, APPLIED HERE. The local copy is read live, never
+       from a list made when the pull began: a row written on this device
+       after that list was made is a real edit, and it was taken for "no local
+       row" and written over. Shared by the pull and by the push, for a row
+       the cloud moved under it (below). */
+    const applyRemote = async (kind: SyncKind, r: Record<string, unknown>, tries = 0): Promise<void> => {
       const map = MAPS[kind];
-      const local = new Map<string, Record<string, unknown>>();
-      for (const row of await rawAll(kind)) local.set(row.id as string, row);
+      const id = r.id as string;
+      const localRow = await rawGet(kind, id);
+      if (r.deleted_at != null) { if (localRow) { tr(`pull ${kind} ${short(id)} deleted there, gone here`); await applyRemoteDelete(kind, id); } return; }
+      // Deleted here this pass — never resurrect it, even if the tombstone
+      // push above failed (it stays queued and retries next run).
+      if (tombstoned.has(`${kind}:${id}`)) return;
+      const localClock = localRow ? map.clock(localRow) : -1;
+      const remoteClock = Number(r.updated_at);
+      const key = sentKey(kind, id);
+      /* Written only if nothing was saved here since the row was read; else
+         read it again and merge again (a few times — an edit a second). */
+      const still = (cur: Record<string, unknown> | undefined) => (cur ? map.clock(cur) : -1) === localClock || tries >= 3;
+      let lostHere = false;
 
-      const applyRemote = async (r: Record<string, unknown>, tries = 0): Promise<void> => {
-        const id = r.id as string;
-        /* The row as it is NOW, not as it was when this kind's pull began — a
-           keystroke written while page two was in flight is a real edit. */
-        const localRow = local.has(id) ? await rawGet(kind, id) : undefined;
-        if (r.deleted_at != null) { if (localRow) await applyRemoteDelete(kind, id); return; }
-        // Deleted here this pass — never resurrect it, even if the tombstone
-        // push above failed (it stays queued and retries next run).
-        if (tombstoned.has(`${kind}:${id}`)) return;
-        const localClock = localRow ? map.clock(localRow) : -1;
-        const remoteClock = Number(r.updated_at);
-        const key = sentKey(kind, id);
-        /* Written only if nothing was saved here since the row was read; else
-           read it again and merge again (a few times — an edit a second). */
-        const still = (cur: Record<string, unknown> | undefined) => (cur ? map.clock(cur) : -1) === localClock || tries >= 3;
-        let lostHere = false;
-
-        if (localRow) {
-          /* BOTH CHANGED IT: merge column by column against the copy both
-             last agreed (mergeRows, above). Without that copy, the old rule. */
-          const base = needsPush(sent, kind, id, localClock) ? await baseGet(kind, id) : undefined;
-          /* Our own echo: now agreed. The same clock with a different copy is
-             not an echo — another device's edit that happens to share this
-             one's millisecond, merged below (it used to be taken for an echo
-             and our whole copy pushed over theirs). A copy that matches ours
-             stays an echo and keeps its place in the push queue, which is what
-             Repair sync relies on to send everything again. */
-          if (remoteClock === localClock && (!base || sameEdits(map.toRow(localRow, uid), r))) {
-            await basePut(kind, id, r); return;
-          }
-          if (base) {
-            const { row, ours, lost } = mergeRows(base, map.toRow(localRow, uid), r, localClock > remoteClock, map.nested);
-            if (ours) {
-              /* Something of ours is in it that the cloud has not got: stamp
-                 it newer than both, and leave it unsent so the push takes it.
-                 The agreed copy moves to theirs only once the merge is written
-                 — a retry must merge against the copy this merge was made from. */
-              row.updated_at = Math.max(Date.now(), localClock + 1, remoteClock + 1);
-              const incoming = map.fromRow(row);
-              const merged = kind === 'workspaces' ? { schemaVersion: 1, ...localRow, ...incoming } : incoming;
-              if (!(await rawPutIf(kind, merged as Record<string, unknown>, still))) return applyRemote(r, tries + 1);
-              await basePut(kind, id, r);
-              if (lost.length) overwritten.push({ kind, id, title: titleOf(localRow), at: Date.now() });
-              return;
-            }
-            if (lost.length) lostHere = true;
-            /* Nothing of ours survives that the cloud lacks: take theirs, below. */
-          } else {
-            /* Our own echo, or a row we hold the newer copy of: keep ours and
-               fetch any blob it is missing. The rule is remoteWins(), above. */
-            /* Its files are the end-of-pass sweep's business, not this row's. */
-            if (!remoteWins(localClock, remoteClock, sent[key] === localClock)) return;
-            /* A newer copy is about to replace an edit this device never got
-               to push. The loser is told, once, by name. */
-            if (needsPush(sent, kind, id, localClock)) lostHere = true;
-          }
+      if (localRow) {
+        /* BOTH CHANGED IT: merge column by column against the copy both
+           last agreed (mergeRows, above). Without that copy, the old rule. */
+        const base = needsPush(sent, kind, id, localClock) ? await baseGet(kind, id) : undefined;
+        /* Our own echo: now agreed. The same clock with a different copy is
+           not an echo — another device's edit that happens to share this
+           one's millisecond, merged below (it used to be taken for an echo
+           and our whole copy pushed over theirs). A copy that matches ours
+           stays an echo and keeps its place in the push queue, which is what
+           Repair sync relies on to send everything again. */
+        if (remoteClock === localClock && (!base || sameEdits(map.toRow(localRow, uid), r))) {
+          tr(`pull ${kind} ${short(id)} our echo, rev ${r.rev}`);
+          await basePut(kind, id, r); return;
         }
+        if (base) {
+          const { row, ours, lost } = mergeRows(base, map.toRow(localRow, uid), r, localClock > remoteClock, map.nested);
+          if (ours) {
+            /* Something of ours is in it that the cloud has not got: stamp
+               it newer than both, and leave it unsent so the push takes it.
+               The agreed copy moves to theirs only once the merge is written
+               — a retry must merge against the copy this merge was made from. */
+            row.updated_at = Math.max(Date.now(), localClock + 1, remoteClock + 1);
+            const incoming = map.fromRow(row);
+            const merged = kind === 'workspaces' ? { schemaVersion: 1, ...localRow, ...incoming } : incoming;
+            if (!(await rawPutIf(kind, merged as Record<string, unknown>, still))) return applyRemote(kind, r, tries + 1);
+            await basePut(kind, id, r);
+            if (lost.length) overwritten.push({ kind, id, title: titleOf(localRow), at: Date.now() });
+            tr(`pull ${kind} ${short(id)} merged, ours kept${lost.length ? ` (lost ${lost.join(',')})` : ''}: local ${localClock} + cloud ${remoteClock} rev ${r.rev}`);
+            return;
+          }
+          if (lost.length) lostHere = true;
+          /* Nothing of ours survives that the cloud lacks: take theirs, below. */
+        } else {
+          /* Our own echo, or a row we hold the newer copy of: keep ours and
+             fetch any blob it is missing. The rule is remoteWins(), above.
+             Its files are the end-of-pass sweep's business, not this row's. */
+          if (!remoteWins(localClock, remoteClock, sent[key] === localClock)) { tr(`pull ${kind} ${short(id)} ours kept: local ${localClock} over cloud ${remoteClock}`); return; }
+          /* A newer copy is about to replace an edit this device never got
+             to push. The loser is told, once, by name. */
+          if (needsPush(sent, kind, id, localClock)) lostHere = true;
+        }
+      }
 
-        const incoming = map.fromRow(r);
-        // workspaces: preserve device-only fields (running timer, last route, version)
-        const merged = kind === 'workspaces' ? { schemaVersion: 1, ...(localRow ?? {}), ...incoming } : incoming;
-        if (!(await rawPutIf(kind, merged as Record<string, unknown>, still))) return applyRemote(r, tries + 1);
-        await basePut(kind, id, r);
-        if (lostHere && localRow) overwritten.push({ kind, id, title: titleOf(localRow), at: Date.now() });
-        /* What we now hold IS the cloud's copy: say so, or the push phase would
-           send it straight back up as if it were ours, bumping rev and making
-           every other device pull it again — an echo for each edit. */
-        Object.assign(sent, { [key]: map.clock(merged as Record<string, unknown>) });
-      };
+      const incoming = map.fromRow(r);
+      // workspaces: preserve device-only fields (running timer, last route, version)
+      const merged = kind === 'workspaces' ? { schemaVersion: 1, ...(localRow ?? {}), ...incoming } : incoming;
+      if (!(await rawPutIf(kind, merged as Record<string, unknown>, still))) return applyRemote(kind, r, tries + 1);
+      await basePut(kind, id, r);
+      if (lostHere && localRow) overwritten.push({ kind, id, title: titleOf(localRow), at: Date.now() });
+      tr(`pull ${kind} ${short(id)} ${localRow ? `theirs taken${lostHere ? ', ours lost and named' : ''}` : 'new here'}: cloud ${remoteClock} rev ${r.rev}`);
+      /* What we now hold IS the cloud's copy: say so, or the push phase would
+         send it straight back up as if it were ours, bumping rev and making
+         every other device pull it again — an echo for each edit. */
+      Object.assign(sent, { [key]: map.clock(merged as Record<string, unknown>) });
+    };
 
+    for (const kind of SYNC_KINDS) {
       // Missing table is decided here so the legacy pass below doesn't ask again
       // for a table that isn't there.
       let absent = false;
@@ -922,7 +948,7 @@ export async function syncNow(): Promise<void> {
             break;
           }
           const remotes = (data ?? []) as Record<string, unknown>[];
-          for (const r of remotes) await applyRemote(r);
+          for (const r of remotes) await applyRemote(kind, r);
           if (remotes.length) since = Number(remotes[remotes.length - 1].rev) || since;
           if (remotes.length < PAGE) break;
         }
@@ -945,7 +971,7 @@ export async function syncNow(): Promise<void> {
             break;
           }
           const remotes = (data ?? []) as Record<string, unknown>[];
-          for (const r of remotes) await applyRemote(r);
+          for (const r of remotes) await applyRemote(kind, r);
           if (remotes.length < PAGE) break;
         }
       }
@@ -963,6 +989,7 @@ export async function syncNow(): Promise<void> {
     const named = new Map<string, DownEntry>(); // …and who took it, for fetching it
     const refused: NonNullable<SyncStatus['refused']> = [];
     let unsent = 0;
+    let moved = 0;        // rows the cloud moved under us twice in one pass: sent on the next
     /* A CLIENT'S ROWS STAY HOME (lib/access, supabase/ACCESS_LEVELS.sql). A
        client may read a project and change nothing; the cloud refuses their
        writes, and one refused row holds back every row after it of that kind.
@@ -989,19 +1016,52 @@ export async function syncNow(): Promise<void> {
       }
       if (!batch.length) continue;
 
-      const accepted: typeof batch = [];
+      /* NEVER OVER SOMEBODY ELSE'S WRITE. The cloud's upsert is last-writer-
+         wins: two devices that edited one row within the same moment both
+         pulled, both found nothing new, and both wrote — the second write
+         replaced the first whole, and the first device, its write accepted,
+         took the cloud's copy as newer on its next pull and never sent its
+         edit again. A reading added on the phone was gone from every device,
+         silently (scripts/sync-two-devices.mjs, scenario 10, twice under the
+         gate). So a row this device holds the cloud's copy of goes up ONLY
+         IF the cloud still holds that copy — by its rev, server-assigned on
+         every write (supabase/SYNC_UPGRADE.sql) — and a row the cloud moved
+         under us is pulled, merged with ours (applyRemote) and sent again
+         against the copy we now hold. A row the cloud has never had goes as
+         before, in a batch. */
+      type Push = typeof batch[number];
+      const accepted: (Push & { rev?: number })[] = [];
+      const acceptedKeys = new Set<string>();
+      const took = (b: Push, rep?: Record<string, unknown>) => {
+        const rev = Number(rep?.rev);
+        accepted.push({ ...b, ...(Number.isFinite(rev) && rev > 0 ? { rev } : {}) });
+        acceptedKeys.add(b.key);
+        tr(`push ${kind} ${short(b.row.id)} accepted${Number.isFinite(rev) && rev > 0 ? ` rev ${rev}` : ''}`);
+      };
       let refusedRows = 0, refusedMessage = '';
-      for (let i = 0; i < batch.length; i += CHUNK) {
-        const slice = batch.slice(i, i + CHUNK);
-        const { error } = await supabase.from(kind).upsert(slice.map(b => b.row), { onConflict: 'id' });
-        if (!error) { accepted.push(...slice); continue; }
+      let settled = 0;      // rows the pull-and-merge below settled with nothing of ours left to send
+      const fresh: Push[] = [], edits: (Push & { baseRev: number })[] = [];
+      for (const b of batch) {
+        const rev = noRev.has(kind) ? NaN : Number((await baseGet(kind, b.row.id as string))?.rev);
+        if (Number.isFinite(rev) && rev > 0) edits.push({ ...b, baseRev: rev }); else fresh.push(b);
+      }
+      const want = noRev.has(kind) ? 'id' : 'id, rev';
+      let stop = false;           // this kind's SQL is missing in the cloud: nothing more of it goes this pass
+      for (let i = 0; i < fresh.length && !stop; i += CHUNK) {
+        const slice = fresh.slice(i, i + CHUNK);
+        const { data, error } = await supabase.from(kind).upsert(slice.map(b => b.row), { onConflict: 'id' }).select(want);
+        if (!error) {
+          const reps = new Map(((data as unknown as Record<string, unknown>[] | null) ?? []).map(x => [String(x.id), x]));
+          for (const b of slice) took(b, reps.get(b.row.id as string));
+          continue;
+        }
         if (isNoConnection(error)) throw new NoConnection(error.message);
         if (isMissingTable(error) || isMissingColumn(error)) {
           // rows for this kind wait for their SQL. Nothing is recorded as sent,
           // so they simply go again next pass — no cursor to hold back.
-          refused.push({ kind, rows: batch.length - i, message: error.message });
+          refused.push({ kind, rows: fresh.length - i + edits.length, message: error.message });
           set({ schemaOutdated: true });
-          break;
+          stop = true; break;
         }
         /* ONE BAD ROW IS ONE BAD ROW. An upsert is one statement: a single
            row a policy refuses fails the whole slice — up to two hundred of
@@ -1009,11 +1069,42 @@ export async function syncNow(): Promise<void> {
            fixed the one. Asked again one at a time, everything the cloud
            will take goes, and only what it will not stays, counted. */
         for (const b of slice) {
-          const one = await supabase.from(kind).upsert([b.row], { onConflict: 'id' });
-          if (!one.error) { accepted.push(b); continue; }
+          const one = await supabase.from(kind).upsert([b.row], { onConflict: 'id' }).select(want);
+          if (!one.error) { took(b, ((one.data as unknown as Record<string, unknown>[] | null) ?? [])[0]); continue; }
           if (isNoConnection(one.error)) throw new NoConnection(one.error.message);
           refusedRows++;
           refusedMessage ||= one.error.message;
+          tr(`push ${kind} ${short(b.row.id)} refused: ${one.error.message.slice(0, 80)}`);
+        }
+      }
+      /* The rows the cloud has a copy of: each on its own, against that copy. */
+      for (const b of edits) {
+        if (stop) break;
+        let cur: Push = b, onRev = b.baseRev;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          const { data, error } = await supabase.from(kind).update(cur.row).eq('id', cur.row.id as string).eq('rev', onRev).select(want);
+          if (error) {
+            if (isNoConnection(error)) throw new NoConnection(error.message);
+            if (isMissingTable(error) || isMissingColumn(error)) { refused.push({ kind, rows: 1, message: error.message }); set({ schemaOutdated: true }); stop = true; break; }
+            refusedRows++; refusedMessage ||= error.message;
+            tr(`push ${kind} ${short(cur.row.id)} refused: ${error.message.slice(0, 80)}`);
+            break;
+          }
+          const rows = (data as unknown as Record<string, unknown>[] | null) ?? [];
+          if (rows.length) { took(cur, rows[0]); break; }
+          /* MOVED UNDER US: somebody's write landed since we last agreed. */
+          tr(`push ${kind} ${short(cur.row.id)} moved under us (not at rev ${onRev}): pull it, merge, send again`);
+          const got = await supabase.from(kind).select('*').eq('id', cur.row.id as string).limit(1);
+          if (got.error) { if (isNoConnection(got.error)) throw new NoConnection(got.error.message); moved++; break; }
+          const theirs = ((got.data as Record<string, unknown>[] | null) ?? [])[0];
+          if (!theirs) { moved++; break; }                    // gone from the cloud: it goes fresh next pass
+          await applyRemote(kind, theirs);
+          const now = await rawGet(kind, cur.row.id as string);
+          const nowClock = now ? map.clock(now) : -1;
+          if (!now || !needsPush(sent, kind, cur.row.id as string, nowClock)) { settled++; break; }   // theirs taken whole, or the row went: nothing of ours left to send
+          cur = { key: cur.key, clock: nowClock, row: map.toRow(now, uid), local: now };
+          onRev = Number(theirs.rev);
+          if (attempt === 1) moved++;                        // twice in one pass: another pass follows
         }
       }
       if (refusedRows) {
@@ -1021,9 +1112,10 @@ export async function syncNow(): Promise<void> {
         firstError ??= `push ${kind}: ${refusedMessage}`;
       }
       // Recorded ONLY on an accepted write, and persisted per kind so a later
-      // kind failing cannot lose the work the earlier ones just did.
-      for (const b of accepted) { sent[b.key] = b.clock; await basePut(kind, b.row.id as string, b.row); }
-      unsent += batch.length - accepted.length;
+      // kind failing cannot lose the work the earlier ones just did. The base
+      // is what the cloud now holds: our row, at the rev it gave it.
+      for (const b of accepted) { sent[b.key] = b.clock; await basePut(kind, b.row.id as string, b.rev ? { ...b.row, rev: b.rev } : b.row); }
+      unsent += batch.length - accepted.length - settled;
       await metaPut(SENT_KEY, sent);
 
       /* The blobs this kind's rows point at, once the rows themselves are safe.
@@ -1034,11 +1126,12 @@ export async function syncNow(): Promise<void> {
          already retries on every sync until the file lands. Only the rows the
          cloud took: the bucket refuses a file no row names yet. */
       for (const b of accepted) await uploadMedia(uid, map.mediaKeys(b.local), uploaded, wanted, tooBig);
-      for (const b of batch) if (!accepted.includes(b)) for (const m of map.mediaKeys(b.local)) if (!uploaded.has(m.key) && !tooBig.has(m.key)) wanted.add(m.key);
+      for (const b of batch) if (!acceptedKeys.has(b.key)) for (const m of map.mediaKeys(b.local)) if (!uploaded.has(m.key) && !tooBig.has(m.key)) wanted.add(m.key);
     }
 
     await metaPut(SENT_KEY, pruneSent(sent, alive));
     await basePrune(alive);
+    if (moved) { runQueued = true; tr(`${moved} row(s) still to send after the cloud moved under them: another pass follows`); }
 
     // ---- and only now, what failed on earlier passes ----
     if (wantedUploads.size) await uploadMedia(uid, [...wantedUploads].map(key => ({ key })), uploaded, wanted, tooBig);
@@ -1075,10 +1168,12 @@ export async function syncNow(): Promise<void> {
     const over = overwritten.slice(-20);
     unsent += (await listTombstones()).length;
     const big = [...tooBig].map(([key, bytes]) => ({ key, bytes }));
+    tr(`pass done${firstError ? ` with "${firstError.slice(0, 60)}"` : ''}: ${unsent} unsent, ${stillUp.size} files waiting`);
     if (firstError) set({ state: 'error', error: firstError, lastSyncedAt: Date.now(), pendingUp: stillUp.size, refused, overwritten: over, unsent, tooBig: big });
     else set({ state: 'idle', lastSyncedAt: Date.now(), pendingUp: stillUp.size, refused, overwritten: over, unsent, tooBig: big });
     void drainDownloads(uid);
   } catch (e) {
+    tr(`pass stopped: ${e instanceof NoConnection ? 'no connection' : e instanceof Error ? e.message.slice(0, 80) : 'failed'}`);
     /* Say what is waiting, whatever stopped the pass. */
     let unsent: number | undefined;
     try { unsent = await countUnsent(sentNow ?? await readSent()); } catch { /* the count is a courtesy */ }
