@@ -539,3 +539,23 @@ describe('the control room says late once, the same way, and the most urgent job
     expect(portfolio([lone], TODAY).says).toMatch(/1 thing late — all of them with no one named\.$/);
   });
 });
+
+describe('a test proved by a study still short of its readings (Needs you)', () => {
+  const study = (n: number, o: Record<string, unknown> = {}) => ({
+    id: 's1', tool: 'capability' as const, name: 'Weight accuracy 400 g', projectId: 'p',
+    agreed: { readings: { kind: 'limits' as const, unit: 'g', nominal: 400, lower: 400, upper: 404, count: 30 } },
+    facts: { readings: Array.from({ length: n }, (_, i) => ({ id: `r${i}`, value: 401, at: i })) },
+    uses: [{ id: 'u', kind: 'test' as const, ref: 'tw', role: 'proof' as const, at: 1 }], startedAt: 1, createdAt: 1, updatedAt: 1, ...o,
+  });
+  const weigh = test({ id: 'tw', title: 'Weight accuracy', plannedFor: '2026-10-02', withWhom: 'Ishida' });
+  it('says what is still to take under the test\'s own row — its day and person are the test\'s', () => {
+    const [row] = jobItems(job(project({ id: 'w', name: 'Line 4' }), { tests: [weigh], studies: [study(12)] }), TODAY);
+    expect([row.what, row.who, row.on, row.branch]).toEqual(['Weight accuracy', 'Ishida', '2026-10-02', '18 of 30 readings still to take']);
+  });
+  it('says nothing once every reading is in, nor when no study proves it, nor for a struck reading counted', () => {
+    expect(jobItems(job(project({ id: 'w', name: 'Line 4' }), { tests: [weigh], studies: [study(30)] }), TODAY)[0].branch).toBeUndefined();
+    expect(jobItems(job(project({ id: 'w', name: 'Line 4' }), { tests: [weigh] }), TODAY)[0].branch).toBeUndefined();
+    const struck = study(30); struck.facts.readings[0] = { ...struck.facts.readings[0], struck: true } as never;
+    expect(jobItems(job(project({ id: 'w', name: 'Line 4' }), { tests: [weigh], studies: [struck] }), TODAY)[0].branch).toBe('1 of 30 readings still to take');
+  });
+});

@@ -36,7 +36,7 @@ import { SinceLine, readSeen } from './SinceLine';
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { Project } from '../types';
 import {
-  listAssets, listMaterials, listPrograms, listTestItems, listTests, listPaceTodos, listTargets, listReadings,
+  listAssets, listMaterials, listPrograms, listStudies, listTestItems, listTests, listPaceTodos, listTargets, listReadings,
   loadPaceLines, onDataChange, renameSupplier, listTreeNodes,
 } from '../db';
 import { bindSources, treeStanding, withTrackerRows } from '../lib/treeBind';
@@ -158,6 +158,8 @@ function useJobs(projects: Project[]): Jobs | null {
         assets: await listAssets(project.id),
         materials: await listMaterials(project.id),
         programs: await listPrograms(project.id),
+        /* a test proved by a study still short says so on its row */
+        studies: await listStudies(project.id),
       })));
       const paced = await Promise.all(pacedProjects.map(async (project): Promise<PacedInput> => {
         const [steps, lines, targets, readings, items, materials, programs] = await Promise.all([
@@ -236,7 +238,7 @@ function focusOf(pf: Portfolio, f: Focus): { title: string; items: JobItem[] } {
 
 /** The list as text, for pasting into an email or reading down the phone. */
 const asText = (title: string, items: JobItem[]): string =>
-  [title, '', ...items.map(x => `• ${x.job} — ${x.what} (${kindWord(x).toLowerCase()}${x.who ? `, ${x.who}` : ''}) — ${whenOf(x)}`)].join('\n');
+  [title, '', ...items.map(x => `• ${x.job} — ${x.what} (${kindWord(x).toLowerCase()}${x.who ? `, ${x.who}` : ''}) — ${whenOf(x)}${x.branch ? ` — ${x.branch}` : ''}`)].join('\n');
 
 function FocusList({ pf, f, onClose }: { pf: Portfolio; f: Focus; onClose: () => void }) {
   const { title, items } = focusOf(pf, f);
@@ -266,6 +268,7 @@ function FocusList({ pf, f, onClose }: { pf: Portfolio; f: Focus; onClose: () =>
                     x.partyKind === 'site' && x.who.trim() ? ` · ${x.who.trim()}`
                       : f.t !== 'who' ? ` · ${x.party ?? 'nobody yet'}` : ''}</span>
                   <span className="jb-fi-when">{whenOf(x)}</span>
+                  {x.branch && <span className="jb-fi-b">{x.branch}</span>}
                 </button>
               </li>
             ))}
@@ -585,6 +588,7 @@ function WeekList({ items }: { items: JobItem[] }) {
                   <span className="jb-wl-l">
                     <b className="jb-wl-what">{x.what}</b>
                     <span className="jb-wl-m">{x.kind === 'note' ? 'Reminder · from the notes' : `${kindWord(x)} · ${x.who || 'no one named'}`}</span>
+                    {x.branch && <span className="jb-wl-b">{x.branch}</span>}
                   </span>
                   <span className="jb-wl-when">{when(x)}</span>
                 </button>

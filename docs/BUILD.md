@@ -320,8 +320,13 @@ found a 3 g pack given the 50–100 g row's error; fixed.
   carries it on its square and its phone card, a branch in two or three
   words — "Cpk 1.00" once there are enough readings for it, else "12 of 30
   readings"; not capable is amber, a failure red, anything else neutral.
-- **Not yet:** Needs you ("18 readings still owed" — a study has no due day,
-  so it is not yet "owed" by anyone).
+- **Needs you (11 October):** a study has no day or person of its own, so
+  it is never a row of its own; the test it proves has both. A test proved
+  by a study still short of its readings says so under its own row — "12 of
+  20 readings still to take" — on the job's Needs you and the control room's
+  lists alike (`lib/portfolio` jobItems, `JobItem.branch`), and in the copied
+  list; struck readings do not count. Rowland chose this over a new tool:
+  "tighten what's built".
   (The 6M side — a cause's evidence and the board's countermeasure — is 2h,
   below.)
 
@@ -483,11 +488,14 @@ standard attached to a job and the balance with it; Make it better; Prove
 it, timed again, the earlier opening as itself; before → after on the fix;
 the client report's PDF; and a client changing nothing.
 
-### Tool B — the value stream map, a business tool
+### Tool B — the value stream map, a line's
+
+(Begun as a business tool, door to door; Rowland removed business-wide
+mapping the same day — B1c below. What follows is the history in order.)
 
 Rowland, 11 October, on the decisions for B: **go**; value shown **by fill**,
 never a state colour; and "VSM is not just a line tool, it's a business
-tool" — so a map runs door to door, from the order (or the supplier) to the
+tool" — so a map ran door to door, from the order (or the supplier) to the
 customer, through every department it passes. Then: "see the VSM like a
 grid — a swimlane grid. We can see a journey of what, who and the value",
 with a picture of one (the steps in sequence across, the areas down the

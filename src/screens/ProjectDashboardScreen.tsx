@@ -296,6 +296,8 @@ function NeedsYouPanel({ items, today, door, split, max }: {
                 <span className="fp-row-m">
                   <b>{item.what}</b>
                   <small>{kindWord(item)} · {item.who.trim() || 'nobody yet'}</small>
+                  {/* the branch: what the study proving it still needs */}
+                  {item.branch && <small className="fp-row-b">{item.branch}</small>}
                 </span>
                 <em className="fp-row-when">{whenSaid(item, urgency, today)}</em>
               </button>
@@ -539,6 +541,7 @@ function todaysPlan(items: TestItem[], today: string): string {
 
 function TestingOverview({ projectId, project, edit, remove = false }: { projectId: string; project: Project; edit: boolean; remove?: boolean }) {
   const tt = useTesting(projectId);
+  const studies = useJobStudies(projectId);
   /* THE WHOLE JOB, not just the testing. See lib/standing.ts — this page used
      to form its own opinion from the trials alone, which meant it could say
      "nothing outstanding" while four materials were late and two programs were
@@ -572,7 +575,7 @@ function TestingOverview({ projectId, project, edit, remove = false }: { project
     ...criticalItems({ project, tests: tt.tests, items: tt.items, assets: tt.assets }),
     /* Then each high risk, amber — not happened yet (lib/critical). */
     ...riskItems({ project, tests: tt.tests, items: tt.items, assets: tt.assets }),
-    ...jobItems({ project, tests: tt.tests, items: tt.items, materials: mats.materials, programs: progs.programs, assets: tt.assets }, today),
+    ...jobItems({ project, tests: tt.tests, items: tt.items, materials: mats.materials, programs: progs.programs, assets: tt.assets, studies }, today),
   ];
 
   return (

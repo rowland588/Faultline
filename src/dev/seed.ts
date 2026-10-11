@@ -843,6 +843,14 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     facts: { readings: thirty.map((value, i) => ({ id: uid(), value, at: t - (30 - i) * 60_000, who: 'K. Ahmed' })) },
     uses: [], startedAt: t - 31 * 60_000, createdAt: t, updatedAt: t });
 
+  /* THE RE-TEST'S PACKS, being checked: a row of ticks proving it, eight of
+     its twenty in — Needs you says "12 of 20 readings still to take" under
+     the re-test's own row, its day and Ilapak's name (lib/portfolio). */
+  await putStudy({ id: uid(), tool: 'capability', name: 'Seal integrity — Finest Red 2kg — re-test', projectId: proj.id, machine: 'Ilapak flow wrapper',
+    agreed: { readings: { kind: 'ticks', count: 20 } },
+    facts: { readings: Array.from({ length: 8 }, (_, i) => ({ id: uid(), ok: true, at: t - (20 - i) * 60_000, who: 'Dave' })) },
+    uses: [{ id: uid(), kind: 'test', ref: retest.id, role: 'proof', at: t - 1_200_000 }], startedAt: t - 1_300_000, createdAt: t, updatedAt: t });
+
   return {
     wsId: ws.id, projectId: proj.id, standardId, lineStandardId: lineOnly, lineOnJobId: lineOnJob, lineId: line.id, caseId: kase.id,
     segmentId: seg.id, assetId: asset.id,

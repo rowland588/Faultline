@@ -45,6 +45,8 @@ import { owedParts, partLate, partOnStage } from './noted';
 import type { TreeStanding } from './treeBind';
 import { PHASE_WORD, type Phase } from './problems';
 import { couldWords, criticalProblems, criticalState, riskProblems } from './critical';
+import type { ToolStudy } from './study';
+import { linkedTo, owedOf } from './studyLinks';
 
 export interface JobInput {
   project: Project;
@@ -53,6 +55,9 @@ export interface JobInput {
   materials: Material[];
   programs: Program[];
   assets: Asset[];
+  /** The job's studies (lib/study) — a test proved by one still short of its
+   *  readings says so on its row. */
+  studies?: ToolStudy[];
 }
 
 /** A 6M or lever tree job, as the control room reads it: the actions kept on
@@ -120,6 +125,10 @@ export interface JobItem {
   /** A stage's hours lost to its problems, when they made it late
    *  (lib/install lateOrProblem). */
   lost?: number;
+  /** What a study proving it still needs — "18 of 30 readings still to
+   *  take" — under the row, a branch of the test, never a row of its own: a
+   *  study has no day or person of its own; the test it proves has both. */
+  branch?: string;
   /** AN OPEN CRITICAL PROBLEM (lib/critical), not a thing owed: where it is,
    *  what it means for the business, and how it stands in words. Its row
    *  opens its stage (`id`) — the problem is a branch of it. Never in the
@@ -293,12 +302,16 @@ export function jobItems(j: JobInput, today: string): JobItem[] {
   for (const t of live(j.tests)) {
     const owed = !isSettled(t) || t.outcome === 'notRun';
     if (!owed) continue;
+    /* readings still owed by the study that proves it (lib/studyLinks owedOf) */
+    const proof = (t.kind ?? 'test') === 'test' && j.studies ? linkedTo(j.studies, 'test', t.id, 'proof')[0] : undefined;
+    const owedReadings = proof ? owedOf(proof) : 0;
     out.push({
       /* A step is filed under its GATE — Set up and Hand over have words of
          their own (KIND_WORD), and "Install step" over a hand-over item was
          wrong on the control room's week and the job's front page alike. */
       ...base, kind: t.kind === 'install' ? gateOf(t) : t.kind ?? 'test', id: t.id, what: titleOnMachine(t, j.tests, j.assets),
       who: t.withWhom ?? '', on: plannedEnd(t),
+      ...(proof && owedReadings > 0 ? { branch: `${owedReadings} of ${proof.agreed?.readings?.count ?? owedReadings} readings still to take` } : {}),
       /* A stage is late by the one rule — its day gone, or hours lost
          (lib/install lateOrProblem) — the late standing() counts. */
       ...(t.kind === 'install' ? stageLate(t, j.items, today) : { late: isOverdue(t, today) }),

@@ -6596,7 +6596,7 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
 .jb-x { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); font-size: var(--t-h); line-height: 1; cursor: pointer; color: var(--ink-2); }
 .jb-focus-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 0 18px; }
 .jb-fi {
-  width: 100%; display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "job what when" "job m when";
+  width: 100%; display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "job what when" "job m when" "job b when";
   gap: 1px 10px; align-items: center; padding: 9px 4px; text-align: left; font: inherit; color: var(--ink);
   background: none; border: 0; border-bottom: 1px solid var(--line); cursor: pointer; border-radius: var(--radius-sm);
 }
@@ -6609,6 +6609,11 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
 .jb-fi-m { grid-area: m; font-size: var(--t-label); color: var(--muted); }
 .jb-fi-when { grid-area: when; font-size: var(--t-label); font-weight: 700; color: var(--st-w); white-space: nowrap; }
 .jb-fi.is-late .jb-fi-when { color: var(--danger); }
+/* A BRANCH OF THE ROW — what a study proving it still needs ("18 of 30
+   readings still to take"). Neutral: owed, not late. */
+.jb-fi-b { grid-area: b; font-size: var(--t-label); color: var(--ink-2); }
+.jb-wl-b { display: block; font-size: var(--t-detail); color: var(--ink-2); }
+.fp-row-m small.fp-row-b { color: var(--ink-2); }
 
 /* ---- this week ---- */
 .jb-sec-h { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
@@ -8821,7 +8826,7 @@ button.gt-mtrack { appearance: none; display: block; align-self: stretch; height
    word wide, five lines to an item. The job goes on a line of its own over
    it, the date stays on the right. */
 @media (max-width: 719px) {
-  .jb-fi { grid-template-columns: 1fr auto; grid-template-areas: "job when" "what what" "m m"; padding-block: 10px; }
+  .jb-fi { grid-template-columns: 1fr auto; grid-template-areas: "job when" "what what" "m m" "b b"; padding-block: 10px; }
   .jb-fi-job { -webkit-line-clamp: 1; line-clamp: 1; padding: 0 0 0 8px; }
 }
 
