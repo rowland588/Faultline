@@ -37,6 +37,9 @@ import { offerUndo } from './Undo';
 import { Icon } from './Icon';
 import { nav } from '../state/useRoute';
 import { todayISO } from '../lib/weeks';
+import { squareWord } from '../lib/studyLinks';
+import { useJobStudies } from './StudyLinks';
+import type { ToolStudy } from '../lib/study';
 
 type TT = ReturnType<typeof useTesting>;
 
@@ -56,6 +59,7 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
   project: Project; projects: Project[]; tt: TT; programs: Program[]; can: Can;
 }) {
   const [editing, setEditing] = useState(false);
+  const studies = useJobStudies(project.id);
   /* A test's column, opened to do it for every machine — as Install's are. */
   const [colOpen, setColOpen] = useState<number | null>(null);
   /* Which phone card shows its not-yet-added usual tests, one at a time. */
@@ -220,7 +224,7 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
                       : void add([{ title: columns[i], assetId: r.asset?.id }], `Added “${columns[i]}” to ${rowName(r.asset)}`))}>
                     <span className="igm-sq" aria-hidden />
                     <span className="igm-name">{columns[i]}</span>
-                    <span className="igm-word">{c ? c.word : can.edit ? '+ add' : 'not added yet'}{c && <RunWords t={c.test} />}</span>
+                    <span className="igm-word">{c ? c.word : can.edit ? '+ add' : 'not added yet'}{c && <RunWords t={c.test} />}{c && <StudyWord studies={studies} id={c.test.id} dot />}</span>
                   </button>
                 ))}
                 {/* This machine's other tests — its own, in its own card. */}
@@ -229,7 +233,7 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
                     onClick={() => openRecord(project.id, o.test.id)}>
                     <span className="igm-sq" aria-hidden />
                     <span className="igm-name">{o.test.title}</span>
-                    <span className="igm-word">{o.word}<RunWords t={o.test} /></span>
+                    <span className="igm-word">{o.word}<RunWords t={o.test} /><StudyWord studies={studies} id={o.test.id} dot /></span>
                   </button>
                 ))}
                 {r.programs && (
@@ -287,6 +291,8 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
                             products passed · 1 short" — or, with one product,
                             what it netted against what was agreed (lib/run). */}
                         {runsBoard(c.test).said && <span className="cg-run"><RunWords t={c.test} bare /></span>}
+                        {/* THE STUDY PROVING IT (lib/study), as a branch on the square. */}
+                        <StudyWord studies={studies} id={c.test.id} />
                       </button>
                     ) : can.edit ? (
                       <button className="ig-cell is-empty" aria-label={`Add “${columns[i]}” to ${rowName(r.asset)}`}
@@ -314,7 +320,7 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
                       <button key={o.test.id} className={'ig-cell cg-other ' + cellClass(o)} title={`${o.test.title} — ${o.word}`}
                         onClick={() => openRecord(project.id, o.test.id)}>
                         <span className="cg-other-t">{o.test.title}</span>
-                        <span className="cg-run">{o.word}<RunWords t={o.test} /></span>
+                        <span className="cg-run">{o.word}<RunWords t={o.test} /><StudyWord studies={studies} id={o.test.id} dot /></span>
                       </button>
                     ))}
                   </td>
@@ -333,6 +339,14 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
 
 /** A RUN'S PRODUCTS ON ITS SQUARE — "2 of 3 products passed", and "1 short"
  *  apart, in red: only the abnormal number carries colour (CLAUDE.md). */
+/** A study proving the test, in a few words — "Cpk 1.00", "12 of 30
+ *  readings" — on its square and its phone card (lib/studyLinks squareWord). */
+function StudyWord({ studies, id, dot }: { studies: ToolStudy[]; id: string; dot?: boolean }) {
+  const w = squareWord(studies, id);
+  if (!w) return null;
+  return dot ? <> · <span className={'cg-study is-' + w.tone}>{w.text}</span></> : <span className={'cg-run cg-study is-' + w.tone}>{w.text}</span>;
+}
+
 function RunWords({ t, bare }: { t: Test; bare?: boolean }) {
   const b = runsBoard(t);
   if (!b.said) return null;

@@ -316,8 +316,12 @@ found a 3 g pack given the 50–100 g row's error; fixed.
   Passed. Not capable: Cpk 0.67 from 30 …", opening the study; on the screen
   and the day's PDF alike (one reading, `lib/day`). A failing study's line is
   red. `report-stress` demands every one on the paper.
-- **Not yet:** the Commission square's count and Needs you ("18 readings
-  still owed" — a study has no due day, so it is not yet "owed" by anyone).
+- **The Commission board (2k, 11 October):** a test proved by a study
+  carries it on its square and its phone card, a branch in two or three
+  words — "Cpk 1.00" once there are enough readings for it, else "12 of 30
+  readings"; not capable is amber, a failure red, anything else neutral.
+- **Not yet:** Needs you ("18 readings still owed" — a study has no due day,
+  so it is not yet "owed" by anyone).
   (The 6M side — a cause's evidence and the board's countermeasure — is 2h,
   below.)
 

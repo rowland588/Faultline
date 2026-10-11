@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { linkedTo, beforeAfter, proveItFrom, readingsFor, owedOf, betterWords, worthBetter, studyLine, sameScope, studyHref, studyTitle, currentBalance, countermeasureFrom, recordHref, provedLine, recordProvedLine, measuredOn, measuredDays } from '../studyLinks';
+import { linkedTo, beforeAfter, proveItFrom, readingsFor, owedOf, betterWords, worthBetter, studyLine, sameScope, studyHref, studyTitle, currentBalance, countermeasureFrom, recordHref, provedLine, recordProvedLine, measuredOn, measuredDays, squareWord } from '../studyLinks';
 import type { ToolStudy } from '../study';
 
 const THIRTY = [400.1, 402.6, 401.6, 400.8, 401.5, 401.3, 400.2, 401.9, 400.6, 400.4, 400.6, 401.2, 401.9, 400.9, 401.8,
@@ -158,5 +158,19 @@ describe('what was measured on a day (docs/BUILD.md, 2j)', () => {
     const s = { ...study({}), tool: 'balance' as const, name: 'Maris Piper 2kg', agreed: { balance: { taktSec: 12 } },
       facts: { steps: [{ id: 'a', order: 0, name: 'x', who: 'Op 1', laps: [{ id: 'l1', sec: 6, at: 50 }, { id: 'l2', sec: 9, at: 50, foreign: true }, { id: 'l3', sec: 1, at: 50, struck: true }] }] } };
     expect(measuredOn(s, '2026-10-10', day)?.text).toMatch(/^Work balance — Maris Piper 2kg: 1 lap timed — /);
+  });
+});
+
+describe('a test\'s square on the Commission board (docs/BUILD.md, 2k)', () => {
+  const proving = (o: Partial<ToolStudy>) => study({ uses: [{ id: 'u', kind: 'test', ref: 't1', role: 'proof', at: 1 }], ...o });
+  it('Cpk once there are enough readings — amber when not capable; else how many are in', () => {
+    expect(squareWord([proving({})], 't1')).toEqual({ text: 'Cpk 0.67', tone: 'a' });
+    expect(squareWord([proving({ facts: { readings: THIRTY.slice(0, 12).map((value, i) => ({ id: `r${i}`, value, at: i })) } })], 't1')).toEqual({ text: '12 of 30 readings', tone: 'n' });
+    expect(squareWord([proving({ facts: { readings: THIRTY.map((v, i) => ({ id: `r${i}`, value: Math.round((v + 1) * 10) / 10, at: i })) } })], 't1')).toEqual({ text: 'Cpk 1.00', tone: 'n' });
+    expect(squareWord([proving({})], 't2')).toBeUndefined();
+  });
+  it('a reading outside the limits is a failure, said in red', () => {
+    const w = squareWord([proving({ facts: { readings: [...THIRTY.slice(1), 399.2].map((value, i) => ({ id: `r${i}`, value, at: i })) } })], 't1');
+    expect(w?.tone).toBe('r');
   });
 });

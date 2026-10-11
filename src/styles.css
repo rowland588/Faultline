@@ -11604,3 +11604,10 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
 /* The line standard's work, timed — a branch under the line card's balance;
    only the over-takt sentence carries colour. */
 .lc-work .lc-bal-t.is-r { color: var(--st-r); }
+/* A study proving a test, on its Commission square (ui/CommissionGrid):
+   neutral unless abnormal — not capable amber, a failure red. */
+.cg-study.is-a { color: var(--st-a); font-weight: 700; }
+.cg-study.is-r { color: var(--st-r); font-weight: 700; }
+/* On a solid square (a failure) the square already says it: the word takes
+   the square's own ink, so amber is never drawn on red. */
+.ig-cell.is-problem .cg-study, .igm-st.is-problem .cg-study { color: inherit; }

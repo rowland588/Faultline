@@ -15,7 +15,7 @@ import type { ID } from '../types';
 import type { BalanceStep, StudyUse, ToolStudy } from './study';
 import type { PaceTodoRow } from '../db/rows';
 import type { SixM } from './sixm';
-import { sample, sampleSays, compareSamples, type SampleSays, type Tone } from './ie/sample';
+import { sample, sampleSays, compareSamples, CPK_FROM, CPK_JUST, type SampleSays, type Tone } from './ie/sample';
 import { balance, balanceLine, compareBalances, secs as secsOf } from './ie/balance';
 
 const live = (ss: ToolStudy[]) => ss.filter(s => !s.deletedAt);
@@ -139,6 +139,22 @@ export function measuredOn(s: ToolStudy, date: string, dayOfMs: (ms: number) => 
 export function measuredDays(s: ToolStudy, dayOfMs: (ms: number) => string): string[] {
   const at = s.tool === 'balance' ? (s.facts.steps ?? []).flatMap(st => (st.laps ?? []).map(l => l.at)) : (s.facts.readings ?? []).map(r => r.at);
   return [...new Set(at.filter(Number.isFinite).map(dayOfMs))];
+}
+
+/** A TEST'S SQUARE on the Commission board: the study proving it, in two
+ *  or three words — "Cpk 1.00" once there are enough readings for it, else
+ *  "12 of 30 readings". Only the abnormal carries colour: not capable is
+ *  amber (it may pass today and fail next week); a failure is red. */
+export function squareWord(studies: ToolStudy[], testId: ID): { text: string; tone: Tone } | undefined {
+  const s = linkedTo(studies, 'test', testId, 'proof')[0];
+  if (!s) return undefined;
+  const said = studySays(s);
+  const a = s.agreed?.readings;
+  if (!a || a.kind === 'ticks') return { text: said.verdict, tone: said.tone === 'r' ? 'r' : 'n' };
+  const f = sample(a, s.facts.readings ?? []);
+  if (said.tone === 'r') return { text: said.verdict, tone: 'r' };
+  if (f.cpk !== undefined && f.n >= CPK_FROM) return { text: `Cpk ${f.cpk.toFixed(2)}`, tone: f.cpk < CPK_JUST ? 'a' : 'n' };
+  return { text: `${f.n} of ${f.count} readings`, tone: 'n' };
 }
 
 /** Where a record a study is used for opens, in its job. */
