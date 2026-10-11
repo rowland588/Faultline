@@ -690,6 +690,85 @@ lead time, and each 6M study's title and sentence.
 **The stage gate's step 3** items come one at a time, each its own
 decision, in the same way.
 
+### Tools E and F — a shift's losses, and the changeover
+
+Designed 11 October from `docs/TOOLKIT.md` Part 4 §7 and §6, built in
+parallel by two helpers in their own worktrees and integrated through one
+gate; the shape below was written before either was built. Neither adds a
+table, a column or a noun: both are studies (`tool: 'losses'`,
+`tool: 'changeover'`), and the changeover's agreed sequence lives inside the
+product's standard's existing `capacity` jsonb.
+
+**E. A shift's losses, by hand — and what they cost.**
+- **The question:** of what the line should have made this shift, where did
+  the rest go — and how much do we not yet know?
+- **The record:** `facts` — the shift (from `lib/shifts`, or a typed window),
+  planned minutes, packs made, rejects, the rate per minute (the product's
+  standard when there is one, else typed — and which), the product. The stops
+  are not copied: they are the line's `Observation` records in the window,
+  read when the figures are made, as the Pareto reads them. Pounds from
+  `lib/cost`; no cost model, no pounds said.
+- **The arithmetic** (`lib/ie/losses.ts`, tested on the worked example:
+  450 × 100 = 45,000; made 36,500 → 85 min lost; 52 stops + 18 changeover +
+  6 rejects explained; 9 **not yet explained**): expected, lost minutes, the
+  minutes by cause, the changeovers as their own bar, the rejects in minutes,
+  the unexplained rest (never below zero — stops exceeding the loss are said,
+  not hidden), pounds per bar. No percentage score, no OEE.
+- **The page:** end of shift, two numbers and the rejects; the waterfall to
+  scale (planned → stops by cause → changeovers → rejects → not yet explained
+  → made), the causes as a table with their stop counts and pounds; the
+  reading sentence; "how known" on every number. Only the abnormal carries
+  colour: the unexplained part is amber over a tenth of the loss.
+- **The doors:** Make it better on any bar raises the fix or the countermeasure
+  with the figure in its words; Prove it counts the next shift as proof;
+  before → after is lost minutes and the unexplained part.
+- **Where it shows:** the line's board beside the Pareto (the latest shift in
+  one line); the fishbone's suggested causes from the biggest explained
+  causes, on the bone Capture's category maps to; the line's row in the
+  control room as a branch; the pace report's page and the 6M report's
+  Evidence appendix as a table; the fix's drawer.
+- **Accepted by** `scripts/acceptance/shift-losses.mjs`: a count on the
+  phone, the sentence, Make it better → the countermeasure with the figure,
+  Prove it → a second count, before → after, the table on paper.
+
+**F. The changeover and its interval.**
+- **The question:** how long does the changeover take, how much of it could
+  be done while the line still runs, and how often can each product run?
+- **The record:** `facts` — from and to product, the **steps** (a list: name,
+  seconds, side internal · external, how known timed · typed · carried), the
+  changeovers a week. **Set as the standard** writes the agreed sequence and
+  its minutes into the product's standard (`capacity.changeover`). The
+  interval reads each product's standard on the line.
+- **The arithmetic** (`lib/ie/changeover.ts`, tested on the worked example:
+  450 − 300 = 150 min free; 5 × 42 = 210 → every 1.4 days; 5 × 27 = 135 →
+  every 0.9 — daily; 15 × 6 = 90 min a week back): minutes now, minutes with
+  the external work outside, bought back a week, the free time for
+  changeovers, the interval, the changeover a daily interval needs. Enough:
+  the interval needs every product's standard, and says how many have one.
+- **The page:** Lap on the phone as the changeover happens, each step tapped
+  Internal or External, or typed; the split bar now (internal solid, external
+  light — fill, never a hue) and under it the bar with every external step
+  moved out, the minutes saved beside it; the interval line in words.
+- **The doors:** Make it better on an external step raises the fix with the
+  figure ("Pre-stage the film reels — external, 11 min"); Set as the
+  standard (the owner's); Prove it times it again, carried then timed;
+  before → after is the minutes and the week's minutes back.
+- **Where it shows:** under the product's standard, with a branch to the
+  study; the line's tools beside the balance and the map; the fishbone on
+  Machine and Method (the longest internal steps, the external work still
+  done with the line stopped); the card's studies branch; the client report
+  and the 6M report as a table (step · side · minutes · how known) with the
+  two bars in words and the interval line.
+- **Accepted by** `scripts/acceptance/changeover.mjs`: Lap two steps with
+  Internal/External, type the rest, the split bar's minutes, the interval
+  sentence, Make it better → the fix, Set as the standard → the standard
+  shows it, Prove it → carried then timed, before → after, the table on paper.
+
+**For Rowland to decide, E and F:** whether slow running is a bar of its own
+(it is not measured by hand, so the design leaves it inside "not yet
+explained" and says so); whether a changeover is a stop category in Capture
+today or needs naming; the cost per hour the pounds should use.
+
 ## What is needed from Rowland, release by release
 
 | Release | Before it starts | At the end |
