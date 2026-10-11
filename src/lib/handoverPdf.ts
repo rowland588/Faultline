@@ -107,6 +107,7 @@ function blocksOf(r: HandoverReport, d: Density): Block[] {
       out.push(line(t.title, [t.word, t.when].filter(Boolean).join(' · '), TONE[t.tone]));
       if (t.passesIf) out.push(text({ text: `Had to show: ${t.passesIf}`, size: 8.5, colour: INK2, indent: 10 }));
       if (t.said) out.push(text({ text: `Seen: ${t.said}`, size: 8.5, colour: MUTED, indent: 10 }));
+      if (t.proved) out.push(text({ text: t.proved, size: 8.5, style: 'bold', colour: INK2, indent: 10 }));
       if (t.files) out.push(text({ text: t.files, size: 8.5, colour: MUTED, indent: 10 }));
     }
     if (m.tests.length) out.push({ height: f => gap(f.density, 's'), draw: () => undefined });

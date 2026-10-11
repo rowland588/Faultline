@@ -18,6 +18,8 @@
  * Nothing new is read or worked out here. The verdict is lib/onTarget's, the
  * sentence lib/standing's, a machine's place and what it went with
  * lib/install's, so the page and the screens cannot disagree. Pure. */
+import { recordProvedLine } from './studyLinks';
+import type { ToolStudy } from './study';
 import { filesSaid, isOverdue, latestAttempts, live, outcomeWord, plannedEnd, testOfFix, type Asset, type Test, type TestItem } from './testing';
 import { answerOf, doneLateBy, handedOverWith, installOf, isSignOff, journeyOf, machineAt, stillOpenOn } from './install';
 import { standing } from './standing';
@@ -43,6 +45,8 @@ export interface HoTest {
   said?: string;
   /** Its files by name — a test report, a certificate (docs/PANELS.md). */
   files?: string;
+  /** What proved it — a study at the line (lib/studyLinks). */
+  proved?: string;
 }
 
 export interface HoItem {
@@ -102,6 +106,8 @@ export interface HandoverInput {
   project: Pick<Project, 'name' | 'lead' | 'plannedAt' | 'expectedAt'> & Partial<Pick<Project, 'gateStages'>>;
   assets: Asset[]; tests: Test[]; items: TestItem[];
   materials: Material[]; programs: Program[];
+  /** The job's studies — what proved each test (lib/study). */
+  studies?: ToolStudy[];
   today: string;
 }
 
@@ -138,6 +144,7 @@ export function handoverReport(x: HandoverInput): HandoverReport {
           ...(t.passesIf?.trim() ? { passesIf: t.passesIf.trim() } : {}),
           ...(t.result?.trim() ? { said: t.result.trim() } : {}),
           ...(filesSaid(t) ? { files: filesSaid(t) } : {}),
+          ...(() => { const pr = recordProvedLine(x.studies ?? [], t); return pr ? { proved: pr } : {}; })(),
         };
       }),
       noTest: proofs.length === 0,

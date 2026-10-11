@@ -279,13 +279,13 @@ for (const size of SIZES) {
        its account (a sign-off's is what it accepted), and everything still
        open, on a machine or on the line. */
     const { handoverReport } = await import('/src/lib/handoverReport.ts');
-    const ho = handoverReport({ project, assets, tests, items, materials, programs, today });
+    const ho = handoverReport({ project, assets, tests, items, materials, programs, studies, today });
     /* The sentence under the verdict until it is handed over; then the
        verdict's reason says it. */
     from = 'handover: top'; add('handover', ho.name, ho.verdict.word, ho.verdict.reason, ho.handedOver ? '' : ho.sentence, ho.machinesSaid, ...ho.sign);
     for (const m of ho.machines) {
       from = 'handover: a machine'; add('handover', m.name, m.at, m.with.length ? `Handed over with ${m.with.join(' · ')}` : '');
-      from = 'handover: a test'; for (const t of m.tests) add('handover', t.title, t.word, t.when, t.passesIf ? `Had to show: ${t.passesIf}` : '', t.said ? `Seen: ${t.said}` : '');
+      from = 'handover: a test'; for (const t of m.tests) add('handover', t.title, t.word, t.when, t.passesIf ? `Had to show: ${t.passesIf}` : '', t.said ? `Seen: ${t.said}` : '', t.proved);
       from = 'handover: a test, its end'; for (const t of m.tests) if ((t.said ?? '').length > 120) add('handover', t.said.slice(-60));
       from = 'handover: a hand-over line'; for (const i of m.items) add('handover', i.title, i.state, i.who, i.said);
       /* What was handed over, by name — each test's and each line's files. */
@@ -295,8 +295,10 @@ for (const size of SIZES) {
     from = 'handover: open on the line'; add('handover', ...ho.line);
     const cardOf = (id, k) => {
       const t = tests.find(x => x.id === id); if (!t) return;
-      const c = trialCard(t, tests, items, assets);
+      const c = trialCard(t, tests, items, assets, studies);
       from = 'card'; add(k, c.title, c.passesIf, c.result, c.plannedProduct, c.product);
+      /* What a study says of it (lib/studyLinks recordProvedLine). */
+      from = 'card: how we know'; add(k, c.proved);
       /* A performance run's products, a row each — the whole name, its figures, its verdict. */
       from = 'card: the run'; add(k, c.run?.say); for (const p of c.run?.products ?? []) add(k, p.product, p.agreed, p.net, p.rejects, p.word, p.gap);
       from = 'card: the climb to rate'; for (const cl of c.run?.climbs ?? []) add(k, cl.text);

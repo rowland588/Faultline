@@ -309,6 +309,24 @@ function runStrip(d: Doc, c: TrialCard, x: number, y: number, w: number, bottom:
   return y;
 }
 
+/** HOW WE KNOW (lib/study): what a study says of this test or fix — what
+ *  proved it, or before → after on the same study — one strip, measured, on a
+ *  page of its own only when it would not fit under the boxes. */
+function provedStrip(d: Doc, c: TrialCard, x: number, y: number, w: number, bottom: number, newPage: () => number): number {
+  if (!c.proved) return y;
+  setFont(d, 8.5, 'bold', INK2);
+  const lines = d.splitTextToSize(san(c.proved), w - 24) as string[];
+  const h = 16 + lines.length * 11;
+  if (y + h > bottom) y = newPage();
+  d.setFillColor(...wash(BRAND, 0.07));
+  d.roundedRect(x, y, w, h, 5, 5, 'F');
+  setFont(d, 6.5, 'bold', ACCENT);
+  d.text('HOW WE KNOW — A STUDY AT THE LINE', x + 12, y + 11);
+  setFont(d, 8.5, 'bold', INK2);
+  d.text(lines, x + 12, y + 21, { lineHeightFactor: 11 / 8.5 });
+  return y + h + 10;
+}
+
 function loopStrip(d: Doc, c: TrialCard, x: number, y: number, w: number): number {
   if (!c.follows && c.ledTo.length === 0) return y;
   const bits: string[] = [];
@@ -596,6 +614,7 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
   y = planTop + boxH + 12;
   }
   y = runStrip(d, c, M, y, CW, bottom, () => { d.addPage(); return head(d, c, meta, d.getNumberOfPages()) + 14; });
+  y = provedStrip(d, c, M, y, CW, bottom, () => { d.addPage(); return head(d, c, meta, d.getNumberOfPages()) + 14; });
   y = loopStrip(d, c, M, y, CW);
 
   /* ==================== WHAT WE FOUND, AND WHAT WE DO NEXT ==================

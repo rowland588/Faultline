@@ -20,6 +20,8 @@
  * which is why it can be tested without a PDF. */
 import { climbsOf, climbsOn } from './rampUp';
 import { isRunTest, productFigures, productName, productRuns, readRuns, runsSay, type ProductFigures, type ProductState } from './run';
+import { recordProvedLine } from './studyLinks';
+import type { ToolStudy } from './study';
 import { actionOf, foundTally, isSettled, live, needsVerdict, outcomeWord, standingOfItem, testOfFix, type Asset, type Test, type TestItem, type TestKind } from './testing';
 
 export interface CardFinding {
@@ -107,6 +109,9 @@ export interface TrialCard {
 
   photos: number;
   docs: number;
+  /** HOW WE KNOW (lib/studyLinks): a test's proof — "Proved by: …" — or a
+   *  fix's line: before → after, what proved it, how we know it was needed. */
+  proved?: string;
 }
 
 /** One product on the card, as every table prints it (lib/run productFigures). */
@@ -135,7 +140,7 @@ const DECISION: Record<string, string> = {
 /** One trial, read whole. `tests` and `items` are the project's, not the
  *  trial's: the loop and the links are only readable with the neighbours in
  *  hand. */
-export function trialCard(test: Test, tests: Test[], items: TestItem[], assets: Asset[]): TrialCard {
+export function trialCard(test: Test, tests: Test[], items: TestItem[], assets: Asset[], studies: ToolStudy[] = []): TrialCard {
   const mine = live(items).filter(i => i.testId === test.id);
   const findings = mine.filter(i => i.kind === 'found').sort((a, b) => a.sort - b.sort);
   /* WHAT COMES NEXT IS A LIST OF RECORDS, NOT A LIST OF LINES. An agreed next
@@ -225,6 +230,7 @@ export function trialCard(test: Test, tests: Test[], items: TestItem[], assets: 
        them together, and the count has to be the count it prints. */
     photos: (test.media ?? []).length + mine.reduce((n, i) => n + (i.media ?? []).length, 0),
     docs: (test.docs ?? []).length,
+    ...(() => { const pr = recordProvedLine(studies, test); return pr ? { proved: pr } : {}; })(),
   };
 }
 

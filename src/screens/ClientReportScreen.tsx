@@ -151,8 +151,8 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
   }) : null), [ready, project, projects, tt.assets, tt.tests, tt.items, mats.materials, progs.programs, standards, walk, studies]);
 
   const handover = useMemo(() => (ready && project ? handoverReport({
-    project, assets: tt.assets, tests: tt.tests, items: tt.items, materials: mats.materials, programs: progs.programs, today: todayISO(),
-  }) : null), [ready, project, tt.assets, tt.tests, tt.items, mats.materials, progs.programs]);
+    project, assets: tt.assets, tests: tt.tests, items: tt.items, materials: mats.materials, programs: progs.programs, studies, today: todayISO(),
+  }) : null), [ready, project, tt.assets, tt.tests, tt.items, mats.materials, progs.programs, studies]);
 
   /* The preview is the PDF itself, redrawn when what is on it changes — and
      only then (lib/usePdfPreview). */

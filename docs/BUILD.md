@@ -323,7 +323,12 @@ found a 3 g pack given the 50–100 g row's error; fixed.
 - `report-stress`: the huge job carries three studies (a fix's evidence and
   proof, a test's proof still short), and every line above is demanded on the
   paper.
-- **Not yet:** the handover pack and the test report.
+- **The test's own paper (2i, 11 October):** the test card (and fix card)
+  prints a strip "How we know — a study at the line" under the plan and the
+  day: a test's proof ("Proved by: Capability study — Weight accuracy 400 g ·
+  Checkweigher — …"), a fix's before → after; the test page shows the same
+  line as **How we know**. The handover pack prints it under each test,
+  after what was seen. `report-stress` demands it on both.
 
 **2h. On a running line.** Built 11 October. On a 6M (or lever tree) job
 the records a study serves are a cause on the fishbone and a countermeasure

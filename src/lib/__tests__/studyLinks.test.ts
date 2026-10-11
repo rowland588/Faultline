@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { linkedTo, beforeAfter, proveItFrom, readingsFor, owedOf, betterWords, worthBetter, studyLine, sameScope, studyHref, studyTitle, currentBalance, countermeasureFrom, recordHref, provedLine } from '../studyLinks';
+import { linkedTo, beforeAfter, proveItFrom, readingsFor, owedOf, betterWords, worthBetter, studyLine, sameScope, studyHref, studyTitle, currentBalance, countermeasureFrom, recordHref, provedLine, recordProvedLine } from '../studyLinks';
 import type { ToolStudy } from '../study';
 
 const THIRTY = [400.1, 402.6, 401.6, 400.8, 401.5, 401.3, 400.2, 401.9, 400.6, 400.4, 400.6, 401.2, 401.9, 400.9, 401.8,
@@ -132,5 +132,15 @@ describe('on a running line (docs/BUILD.md, 2h): the board, not a stage-gate fix
     const pr = study({ id: 'pr', startedAt: 5, facts: { readings: THIRTY.map((v, i) => ({ id: `r${i}`, value: Math.round((v + 1) * 10) / 10, at: i })) },
       uses: [{ id: 'u2', kind: 'action', ref: 'a1', role: 'proof', at: 5 }] });
     expect(provedLine([ev, pr], 'a1', 'action')).toMatch(/^Before → after: .*The number moved/);
+  });
+});
+
+describe('the paper carries what proved it (docs/BUILD.md, 2i)', () => {
+  it('a test: its proof, named; a fix: its line; nothing when no study is linked', () => {
+    const pr = study({ id: 'p', machine: 'Checkweigher', uses: [{ id: 'u', kind: 'test', ref: 't1', role: 'proof', at: 1 }] });
+    expect(recordProvedLine([pr], { id: 't1' })).toBe(`Proved by: Capability study — Weight accuracy 400 g · Checkweigher — ${studyLine(pr).text}`);
+    const ev = study({ id: 'e', uses: [{ id: 'u', kind: 'fix', ref: 'f1', role: 'evidence', at: 1 }] });
+    expect(recordProvedLine([ev], { id: 'f1', kind: 'fix' })).toMatch(/^How we know: /);
+    expect(recordProvedLine([ev], { id: 't9' })).toBeUndefined();
   });
 });

@@ -112,6 +112,14 @@ export function provedLine(studies: ToolStudy[], fixId: ID, kind: FixKind = 'fix
   return undefined;
 }
 
+/** A test's or a fix's line, by what it is: a fix's before → after (or what
+ *  proved it, or how we know it was needed); a test's proof. */
+export function recordProvedLine(studies: ToolStudy[], t: { id: ID; kind?: string }): string | undefined {
+  if ((t.kind ?? 'test') === 'fix') return provedLine(studies, t.id, 'fix');
+  const proof = linkedTo(studies, 'test', t.id, 'proof')[0];
+  return proof ? `Proved by: ${studyTitle(proof)} — ${studyLine(proof).text}` : undefined;
+}
+
 /** Where a record a study is used for opens, in its job. */
 export function recordHref(projectId: ID, u: Pick<StudyUse, 'kind' | 'ref'>): string {
   const at = encodeURIComponent;

@@ -33,6 +33,7 @@
  * story. One field quietly following the result around would always report that
  * everything went to plan.
  */
+import { useJobStudies } from '../ui/StudyLinks';
 import { OnTheLine } from '../ui/OnTheLine';
 import { Evidence } from '../ui/EvidenceDoors';
 import { WhyMoved, followingSummary, recordMove } from '../ui/WhyMoved';
@@ -81,6 +82,8 @@ const PLAN_KEYS = ['title', 'machine', 'problem', 'withWhom', 'plannedFor'];
 export function TestScreen({ projectId, testId }: { projectId: string; testId: string }) {
   const { project, loading } = useProject(projectId);
   const tt = useTesting(projectId);
+  /* What a study says of it (lib/study) — on the card and its PDF. */
+  const studies = useJobStudies(projectId);
   /* Programs, so a test or a fix can say which one it is about. Read here and
      passed down rather than fetched inside the block: one subscription, and
      the dropdown cannot be a beat behind the Programs screen. */
@@ -166,7 +169,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
     void tt.patchTest(test.id, cur => ({ outcome: o, ranOn: cur.ranOn ?? (o === 'planned' ? undefined : todayISO()) }));
 
   /* THE CARD'S READING — the same call the PDF draws from (lib/trialCard). */
-  const c: TrialCard = trialCard(test, tt.tests, tt.items, tt.assets);
+  const c: TrialCard = trialCard(test, tt.tests, tt.items, tt.assets, studies);
   const found = itemsOf(tt.items, test.id, 'found');
   const notes = itemsOf(tt.items, test.id, 'note');
   /* The pictures the card carries: the record's own, then what was found. The
@@ -347,6 +350,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
             <Field label={words.happened} text={verdictLine(c)} empty="Nothing written down yet" />
             {c.kind === 'test' && !isRun && <Field label="Product we ran" text={c.product} />}
             <Field label="Ran on" text={window_(c.ranOn, c.ranTo)} empty="Not run yet" />
+            {c.proved && <Field label="How we know" text={c.proved} />}
           </> : (
           <div className="tc-form">
             {kind === 'test' && !isRun && (

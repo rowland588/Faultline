@@ -6,6 +6,7 @@
  * link away from the drawer — the second home. They are the drawer's now
  * (ui/RecordDrawer), at its foot, where every list opens the record; the
  * record's page, kept for old links, reads the same pieces from here. */
+import { useJobStudies } from './StudyLinks';
 import { useEffect, useRef, useState } from 'react';
 import { deleteBlobs, getBlob, putBlob } from '../db';
 import type { Can } from '../lib/access';
@@ -38,6 +39,8 @@ export function CardPdf({ test, tt, project }: { test: Test; tt: TT; project: { 
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [said, setSaid] = useState<string | null>(null);
+  /* What a study says of it (lib/study) — printed on the card. */
+  const studies = useJobStudies(test.projectId);
   const words = wordsOf(test);
   /* The 350KB of jsPDF is fetched when the record OPENS, not when the button
      is pressed — the rule savePdf.ts sets out. */
@@ -49,7 +52,7 @@ export function CardPdf({ test, tt, project }: { test: Test; tt: TT; project: { 
       const { jsPDF } = await loadPdfLib();
       const { drawTrialCard } = await import('../lib/trialCardPdf');
       const { shotsOf } = await import('../lib/testReport');
-      const c = trialCard(test, tt.tests, tt.items, tt.assets);
+      const c = trialCard(test, tt.tests, tt.items, tt.assets, studies);
       const found = itemsOf(tt.items, test.id, 'found');
       const shots = await shotsOf([...(test.media ?? []), ...found.flatMap(i => i.media ?? [])]);
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
