@@ -446,6 +446,9 @@ for (const size of SIXM_SIZES) {
         from = 'hold'; if (v.problem.hold) add(v.problem.hold.what, v.problem.hold.who);
       }
       from = 'board'; for (const t of todos) add(t.what, t.who, t.why, words(t));
+      /* the board carries what proved each action too — one raised from a
+         value stream step on no problem shows its before → after there */
+      from = 'a board action\'s study'; for (const t of todos) add(SL.provedLine(loaded.data.studies, t.id, 'action'));
       from = 'walk'; for (const sn of loaded.data.snags) if (!lineId || ws.has(sn.wsId)) add(sn.what, sn.state !== 'closed' ? sn.owner : undefined);
       return out;
     }, { pid: job.projectId, lineId });

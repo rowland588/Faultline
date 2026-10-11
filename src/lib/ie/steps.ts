@@ -59,6 +59,9 @@ export interface FlowFigures {
   untimed: number;
   /** Steps with no value marked (operations, moves and checks). */
   unmarked: number;
+  /** Steps carried from the map before, not walked or typed again yet (a
+   *  fix being proved — Prove it). */
+  carried: number;
 }
 
 /** The grid's two dimensions: who does each step, or where it is done. */
@@ -100,13 +103,14 @@ export const laneByDefault = (a?: AgreedMap): LaneBy => (a?.scope === 'line' ? '
 export function flowFigures(flow: FlowStep[] | undefined, a?: AgreedMap): FlowFigures {
   const list = [...(flow ?? [])].sort((x, y) => x.order - y.order);
   const takt = a?.demandPerDay && a.demandPerDay > 0 && a.availableSecPerDay && a.availableSecPerDay > 0 ? a.availableSecPerDay / a.demandPerDay : undefined;
-  let lead = 0, adds = 0, needed = 0, waste = 0, untimed = 0, unmarked = 0;
+  let lead = 0, adds = 0, needed = 0, waste = 0, untimed = 0, unmarked = 0, carried = 0;
   let biggestWait: FlowFigures['biggestWait'], longestCycle: FlowFigures['longestCycle'];
   for (const st of list) {
     const c = st.cycleSec && st.cycleSec > 0 ? st.cycleSec : 0;
     const w = waitOf(st, a);
     const wSec = w.sec ?? 0;
     if (!c && w.sec === undefined) untimed++;
+    if (st.source === 'carried') carried++;
     lead += c + wSec;
     const v = valueOf(st);
     if (!v && st.kind !== 'wait' && st.kind !== 'store') unmarked++;
@@ -122,7 +126,7 @@ export function flowFigures(flow: FlowStep[] | undefined, a?: AgreedMap): FlowFi
     lanes: lanesOf(list, laneByDefault(a), a),
     steps: list.length, leadSec: lead, addsSec: adds, neededSec: needed, wasteSec: waste,
     ...(lead > 0 ? { pce: adds / lead } : {}), ...(takt ? { taktSec: takt } : {}),
-    ...(biggestWait ? { biggestWait } : {}), ...(longestCycle ? { longestCycle } : {}), untimed, unmarked,
+    ...(biggestWait ? { biggestWait } : {}), ...(longestCycle ? { longestCycle } : {}), untimed, unmarked, carried,
   };
 }
 
@@ -162,6 +166,7 @@ export function flowSays(f: FlowFigures, a?: AgreedMap): FlowSays {
   }
   const lines: string[] = [];
   if (f.untimed) lines.push(`${f.untimed} step${f.untimed === 1 ? ' has' : 's have'} no time yet — the lead time is at least this.`);
+  if (f.carried) lines.push(`${f.carried} step${f.carried === 1 ? ' is' : 's are'} carried from the map before — not walked or typed again yet.`);
   if (f.unmarked) lines.push(`${f.unmarked} step${f.unmarked === 1 ? '' : 's'} not marked adds value, needed or waste yet.`);
   if (f.biggestWait?.from === 'queue' && a?.demandPerDay) lines.push(`${f.biggestWait.step.name.trim()}: worked out from ${f.biggestWait.step.queue} waiting, at ${a.demandPerDay} a day.`);
   return { text: parts.join(' '), lines };
@@ -170,11 +175,47 @@ export function flowSays(f: FlowFigures, a?: AgreedMap): FlowSays {
 /** BEFORE → AFTER: today's stream against the future one, figure by figure. */
 export function compareFlows(now: FlowFigures, then: FlowFigures): string {
   const d = then.leadSec - now.leadSec;
-  const lead = `Lead time ${dur(now.leadSec)} → ${dur(then.leadSec)} (${d <= 0 ? '−' : '+'}${dur(Math.abs(d))})`;
-  const adds = now.pce !== undefined && then.pce !== undefined ? ` · adds value ${share(now.pce)} → ${share(then.pce)}` : '';
+  /* only what moved is said to have moved */
+  const lead = d === 0 ? `Lead time ${dur(now.leadSec)}, no change` : `Lead time ${dur(now.leadSec)} → ${dur(then.leadSec)} (${d < 0 ? '−' : '+'}${dur(Math.abs(d))})`;
+  const adds = now.pce !== undefined && then.pce !== undefined && share(now.pce) !== share(then.pce) ? ` · adds value ${share(now.pce)} → ${share(then.pce)}` : '';
   const steps = now.steps !== then.steps ? ` · ${now.steps} → ${then.steps} steps` : '';
   return `${lead}${adds}${steps}.`;
 }
+
+/* ---------------------------------------------------- one step, made better */
+
+/** Is a step worth a fix: work that is waste, or a wait after it. */
+export const stepWorth = (st: FlowStep, a?: AgreedMap): boolean => valueOf(st) === 'waste' || (waitOf(st, a).sec ?? 0) > 0;
+
+/** What is wrong with a step, in its own figures — "6.0 h wait", "1.0 min of
+ *  waste each time (for 120)", "5.0 s of waste each time, then a 25 min wait". */
+export function stepFigure(st: FlowStep, a?: AgreedMap): string {
+  const w = waitOf(st, a).sec;
+  const work = st.kind !== 'wait' && st.kind !== 'store' && valueOf(st) === 'waste'
+    ? (st.cycleSec ? `${dur(st.cycleSec)} of waste each time${st.batch && st.batch > 1 ? ` (for ${st.batch})` : ''}` : 'waste, no time yet') : '';
+  const wait = w !== undefined && w > 0 ? `${dur(w)} wait` : '';
+  return work && wait ? `${work}, then a ${wait}` : work || wait || 'no time yet';
+}
+
+/** Who or where a step is, for a line of words: its place, else its people. */
+export const stepAt = (st: FlowStep, a?: AgreedMap): string => whereOf(st, a) ?? whoOf(st, a).join(', ');
+
+/** ONE STEP BEFORE → AFTER, matched by id: its wait and its work, as walked
+ *  again; "not walked again yet" while it is carried; "taken out" when gone. */
+export function compareStep(before: FlowStep, after: FlowStep | undefined, a?: AgreedMap, aAfter: AgreedMap | undefined = a): string {
+  const name = before.name.trim() || 'The step';
+  if (!after) return `${name}: taken out`;
+  if (after.source === 'carried') return `${name}: not walked again yet`;
+  const parts: string[] = [];
+  const w0 = waitOf(before, a).sec ?? 0, w1 = waitOf(after, aAfter).sec ?? 0;
+  if (w0 > 0 || w1 > 0) parts.push(`wait ${dur(w0)} → ${dur(w1)}`);
+  if (before.cycleSec !== undefined && after.cycleSec !== undefined && before.cycleSec !== after.cycleSec) parts.push(`work ${dur(before.cycleSec)} → ${dur(after.cycleSec)}`);
+  return `${name}: ${parts.join(', ') || 'no change'}`;
+}
+
+/** Prove it on a map: the same steps as they stand, each CARRIED — walked or
+ *  typed again one by one, and until then said to be the old figure. */
+export const carryFlow = (flow: FlowStep[] | undefined): FlowStep[] => (flow ?? []).map(st => ({ ...st, source: 'carried' as const }));
 
 /** A time as people type it — "6 s", "4 min", "1.5 h", "2 d", "about 2 days",
  *  "1 week" — into seconds. A bare number is in `bare` (seconds for a cycle,

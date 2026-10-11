@@ -84,6 +84,8 @@ const ROUTES = [
   ['a capability study — thirty packs, passed, not capable', `#/capability/${seeded.studyId}`],
   ['a value stream map saved door to door before maps were only a line\'s — still opens', `#/value-stream/${seeded.mapId}`],
   ['a line\'s value stream map — what is done on Line 7 and who does it, departments included', `#/value-stream/${seeded.lineMapId}`],
+  ['the line walked again — a map proving a fix raised from one of its steps', `#/value-stream/${seeded.mapProofId}`],
+  ['fixes — a fix raised from a value stream step, before → after', `#/project/${seeded.projectId}/fixes?open=${seeded.mapFixId}`],
   ['the line balance — people, the work timed against takt', `#/w/${seeded.wsId}/standards/${seeded.lineStandardId}?at=balance&view=work`],
   ['line standard — none yet', `#/project/${seeded.pacedProjectId}/standard`],
   ['one install step', `#/project/${seeded.projectId}/testing/${seeded.stepId}`],

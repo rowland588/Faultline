@@ -11642,6 +11642,12 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
 button.vs-sq { cursor: pointer; }
 button.vs-sq:hover { transform: scale(1.12); }
 button.vs-sq:focus-visible { outline: 2.5px solid var(--brand); outline-offset: 1px; }
+/* THE BRANCH OFF A STEP: a fix or a countermeasure was raised from it — a
+   small ink ring in its corner (no state colour; said in words on tap). */
+.vs-sq.has-fix { position: relative; }
+.vs-sq.has-fix::after { content: ''; position: absolute; top: -3px; right: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--surface); border: 2px solid var(--ink); }
+.vs-branch { margin: 10px 0 0; }
+.vs-branch p { margin: 4px 0 0; }
 .vs-empty { background: color-mix(in srgb, var(--line) 50%, transparent); }
 .vs-seq.vs-sq { background: color-mix(in srgb, var(--ink) 10%, var(--surface)); color: var(--ink); }
 .vs-cls.is-adds, .vs-step.is-adds { background: var(--vs-va); color: #fff; }

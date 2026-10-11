@@ -9,7 +9,8 @@
  *   Attach to a job    the jobs on its line first; only jobs you may change
  *   Use it for…        a test it proves; a fix it shows is needed, or proves
  *   Make it better     raises a fix with this study as its evidence, the
- *                      figures already in its words
+ *                      figures already in its words — from a value stream,
+ *                      from one step (its wait or its waste)
  * Work moves, evidence links: the study never moves into the job — the job's
  * records point at it, and the drawer's branch (ui/StudyLinks) reads the same
  * link from the other end. */
@@ -110,7 +111,10 @@ function useJobCauses(projectId: string, lineWs: string[]): Target[] {
   return list;
 }
 
-export function UsedFor({ s, can, me }: { s: ToolStudy; can: Can; me?: string }) {
+/** MAKE IT BETTER, and what a study can be used for on its job — one place,
+ *  so the study's Used for and a value stream step's sheet raise the same
+ *  record the same way. */
+export function useBetter(s: ToolStudy, me?: string) {
   const pid = s.projectId ?? '';
   const { project } = useProject(pid);
   /* A stage-gate job's evidence serves its tests and fixes; a running line's
@@ -119,10 +123,7 @@ export function UsedFor({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
   const tt = useTesting(pid);
   const ax = useActions(pid);
   const causes = useJobCauses(board ? pid : '', ax.lines.flatMap(l => (l.workspaceId ? [l.workspaceId] : [])));
-  const [picking, setPicking] = useState(false);
-  if (!s.projectId) return null;
-  const projectId = s.projectId;
-  const targets: Target[] = board
+  const targets: Target[] = !s.projectId ? [] : board
     ? [...causes, ...ax.steps.map(a => ({ k: 'action' as const, ref: a.id, title: a.what.trim() || 'An action with no words yet',
       /* how we know it was needed, while it is still to do; proof, any time */
       roles: a.state === 'done' ? ['proof' as const] : ['evidence' as const, 'proof' as const] }))]
@@ -132,6 +133,44 @@ export function UsedFor({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
       return roles.length ? [{ k: k as StudyUse['kind'], ref: t.id, title: t.title, roles }] : [];
     });
   const byRef = new Map(targets.map(x => [x.ref, x]));
+
+  /* MAKE IT BETTER — its words the study's figures (or, from a value stream,
+     one step's), this study its evidence; then it opens. On a stage-gate job
+     a fix on the test it proves (or on its own); on a running line a
+     countermeasure on the board, on the cause the study is evidence for when
+     it is one. */
+  const better = async (step?: string) => {
+    if (!s.projectId) return;
+    const projectId = s.projectId;
+    const words = betterWords(s, step), at = now();
+    if (board) {
+      const onCause = s.uses.find(u => u.kind === 'cause' && u.role === 'evidence' && byRef.has(u.ref));
+      /* on that cause only while its problem is open — not a closed one's */
+      const c = onCause && !byRef.get(onCause.ref)?.past ? byRef.get(onCause.ref) : undefined;
+      const lineId = ax.lines.find(l => !!l.workspaceId && l.workspaceId === s.workspaceId)?.id ?? c?.lineId;
+      const row = countermeasureFrom(s, { id: uid(), at, ...(lineId ? { lineId } : {}), ...(c ? { causeRef: c.ref } : {}), ...(c?.bone && !step ? { bone: c.bone } : {}), ...(step ? { step } : {}) });
+      await putPaceTodo(row);
+      await patchStudy(s.id, cur => ({ uses: [...cur.uses, linkOf('action', row.id, 'evidence', at, me, uid(), step)] }));
+      nav(recordHref(projectId, { kind: 'action', ref: row.id }));
+      return;
+    }
+    const tests = new Map(live(tt.tests).map(x => [x.id, x]));
+    const proved = s.uses.find(u => u.kind === 'test' && u.role === 'proof' && tests.has(u.ref));
+    const parent = proved ? tests.get(proved.ref) : undefined;
+    const fix: Test = parent ? nextFrom(parent, uid, at, words, 'fix', words)
+      : { id: uid(), projectId, kind: 'fix', title: words, passesIf: words, ...(s.assetId ? { assetId: s.assetId } : {}), outcome: 'planned', sort: at, createdAt: at, updatedAt: at };
+    await putTest(fix);
+    await patchStudy(s.id, cur => ({ uses: [...cur.uses, linkOf('fix', fix.id, 'evidence', at, me, uid(), step)] }));
+    nav(recordHref(projectId, { kind: 'fix', ref: fix.id }));
+  };
+  return { board, targets, byRef, better };
+}
+
+export function UsedFor({ s, can, me }: { s: ToolStudy; can: Can; me?: string }) {
+  const { board, targets, byRef, better } = useBetter(s, me);
+  const [picking, setPicking] = useState(false);
+  if (!s.projectId) return null;
+  const projectId = s.projectId;
   const uses = s.uses.filter(u => byRef.has(u.ref));
   /* What it could be used for — not what it is already linked to that way. */
   const options = targets.filter(x => !x.past).flatMap(x => x.roles.filter(r => !s.uses.some(u => u.ref === x.ref && u.role === r)).map(r => ({ x, r })));
@@ -142,33 +181,6 @@ export function UsedFor({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
     setPicking(false);
   };
   const unlink = (id: string) => void patchStudy(s.id, cur => ({ uses: cur.uses.filter(u => u.id !== id) }));
-
-  /* MAKE IT BETTER — its words the study's figures, this study its evidence;
-     then it opens. On a stage-gate job a fix on the test it proves (or on its
-     own); on a running line a countermeasure on the board, on the cause the
-     study is evidence for when it is one. */
-  const better = async () => {
-    const words = betterWords(s), at = now();
-    if (board) {
-      const onCause = s.uses.find(u => u.kind === 'cause' && u.role === 'evidence' && byRef.has(u.ref));
-      /* on that cause only while its problem is open — not a closed one's */
-      const c = onCause && !byRef.get(onCause.ref)?.past ? byRef.get(onCause.ref) : undefined;
-      const lineId = ax.lines.find(l => !!l.workspaceId && l.workspaceId === s.workspaceId)?.id ?? c?.lineId;
-      const row = countermeasureFrom(s, { id: uid(), at, ...(lineId ? { lineId } : {}), ...(c ? { causeRef: c.ref } : {}), ...(c?.bone ? { bone: c.bone } : {}) });
-      await putPaceTodo(row);
-      await patchStudy(s.id, cur => ({ uses: [...cur.uses, linkOf('action', row.id, 'evidence', at, me, uid())] }));
-      nav(recordHref(projectId, { kind: 'action', ref: row.id }));
-      return;
-    }
-    const tests = new Map(live(tt.tests).map(x => [x.id, x]));
-    const proved = s.uses.find(u => u.kind === 'test' && u.role === 'proof' && tests.has(u.ref));
-    const parent = proved ? tests.get(proved.ref) : undefined;
-    const fix: Test = parent ? nextFrom(parent, uid, at, words, 'fix', words)
-      : { id: uid(), projectId, kind: 'fix', title: words, passesIf: words, ...(s.assetId ? { assetId: s.assetId } : {}), outcome: 'planned', sort: at, createdAt: at, updatedAt: at };
-    await putTest(fix);
-    await patchStudy(s.id, cur => ({ uses: [...cur.uses, linkOf('fix', fix.id, 'evidence', at, me, uid())] }));
-    nav(recordHref(projectId, { kind: 'fix', ref: fix.id }));
-  };
 
   return (
     <div className="ie-used">

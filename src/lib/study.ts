@@ -134,8 +134,10 @@ export interface FlowStep {
   info?: string;
   /** A kaizen burst: something here must change. */
   burst?: boolean;
-  /** How its time is known. */
-  source?: 'timed' | 'typed';
+  /** How its time is known — timed on the walk, typed, or CARRIED from the
+   *  map before when a fix is being proved (Prove it copies the steps as
+   *  they were; each is walked or typed again, and until then says so). */
+  source?: 'timed' | 'typed' | 'carried';
 }
 
 /** What a value stream is held against: the customer's demand and the
@@ -192,6 +194,10 @@ export interface StudyUse {
   role: 'evidence' | 'proof';
   at: number;
   by?: string;
+  /** On a value stream map: the step the record is about — the wait or the
+   *  waste a fix was raised from, so its before → after is that step's too,
+   *  and the step on the grid shows the branch. */
+  step?: string;
 }
 
 /** A person's word over the app's verdict, kept beside it. */

@@ -102,7 +102,7 @@ export function FixStudies({ projectId, kind, id, can }: { projectId: string; ki
       {ba && <p className={'sl-ba is-' + ba.tone}><b>Before → after:</b> {ba.text}</p>}
       {can.edit && evidence[0] && !proofs.length && (
         <div className="rd-acts">
-          <button type="button" className="btn btn-primary" onClick={() => void start(proveItFrom(evidence[0], id, { at: now(), by: me, id: uid(), useId: uid() }, kind))}>Prove it — the same study, after</button>
+          <button type="button" className="btn btn-primary" onClick={() => void start(proveItFrom(evidence[0], id, { at: now(), by: me, id: uid(), useId: uid() }, kind))}>{evidence[0].tool === 'map' ? 'Prove it — walk the line again' : 'Prove it — the same study, after'}</button>
         </div>
       )}
     </div>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { linkedTo, beforeAfter, proveItFrom, readingsFor, owedOf, betterWords, worthBetter, studyLine, sameScope, studyHref, studyTitle, currentBalance, countermeasureFrom, recordHref, provedLine, recordProvedLine, measuredOn, measuredDays, squareWord } from '../studyLinks';
+import { linkedTo, beforeAfter, proveItFrom, readingsFor, owedOf, betterWords, worthBetter, studyLine, sameScope, studyHref, studyTitle, currentBalance, countermeasureFrom, recordHref, provedLine, recordProvedLine, measuredOn, measuredDays, squareWord, linkOf } from '../studyLinks';
 import type { ToolStudy } from '../study';
 
 const THIRTY = [400.1, 402.6, 401.6, 400.8, 401.5, 401.3, 400.2, 401.9, 400.6, 400.4, 400.6, 401.2, 401.9, 400.9, 401.8,
@@ -172,5 +172,55 @@ describe('a test\'s square on the Commission board (docs/BUILD.md, 2k)', () => {
   it('a reading outside the limits is a failure, said in red', () => {
     const w = squareWord([proving({ facts: { readings: [...THIRTY.slice(1), 399.2].map((value, i) => ({ id: `r${i}`, value, at: i })) } })], 't1');
     expect(w?.tone).toBe('r');
+  });
+});
+
+describe('the value stream map inside a change (docs/BUILD.md, B3)', () => {
+  const H = 3600;
+  const flow = (qaWait: number) => [
+    { id: 'p', order: 0, name: 'Release the run to the line', who: ['Planning'], where: 'Office', kind: 'operation' as const, value: 'needed' as const, cycleSec: 600, batch: 9600, waitSec: 24 * H },
+    { id: 'b', order: 1, name: 'Bag and seal', who: ['Machine'], where: 'Bagger', kind: 'operation' as const, value: 'adds' as const, cycleSec: 1.2 },
+    { id: 'f', order: 2, name: 'Walk to fetch flat cases', who: ['Op 2'], where: 'Stores', kind: 'move' as const, value: 'waste' as const, cycleSec: 60, batch: 120 },
+    { id: 'q', order: 3, name: 'Pallet waits for QA release', who: ['Quality'], where: 'Palletiser', kind: 'wait' as const, waitSec: qaWait },
+  ];
+  const map = (o: Partial<ToolStudy>): ToolStudy => ({ id: 'm', tool: 'map', name: 'Run released to pallet away', workspaceId: 'ws', projectId: 'job',
+    agreed: { map: { scope: 'line' } }, facts: { flow: flow(6 * H) }, uses: [], startedAt: 1, createdAt: 1, updatedAt: 1, ...o });
+
+  it('Make it better comes from a step, never the whole map — its words the step\'s own figures', () => {
+    expect(worthBetter(map({}))).toBe(false);
+    expect(betterWords(map({}), 'q')).toBe('Pallet waits for QA release (Palletiser) — 6.0 h wait');
+    expect(betterWords(map({}), 'f')).toBe('Walk to fetch flat cases (Stores) — 1 min of waste each time (for 120)');
+  });
+  it('a countermeasure from a step: on the bone of whose work it is, where it is, what it should change', () => {
+    const row = countermeasureFrom(map({}), { id: 'cm', at: 5, step: 'q' });
+    expect([row.what, row.where, row.pillar]).toEqual(['Pallet waits for QA release (Palletiser) — 6.0 h wait', 'Palletiser', 'measurement']);
+    expect(row.expect).toBe('Pallet waits for QA release: 6.0 h wait — shorter or gone, walked again on the same map');
+    expect(countermeasureFrom(map({}), { id: 'cm', at: 5, step: 'p' }).pillar).toBe('method');
+    expect(countermeasureFrom(map({ facts: { flow: [{ ...flow(0)[2], who: ['Stores', 'Forklift driver'] }] } }), { id: 'cm', at: 5, step: 'f' }).pillar).toBe('material');
+  });
+  it('Prove it walks the same line again: the same steps, each carried until walked or typed again', () => {
+    const p = proveItFrom(map({}), 'fx', { at: 9, id: 'm2', useId: 'u2' });
+    expect([p.tool, p.name, p.workspaceId, p.uses[0].role]).toEqual(['map', 'Run released to pallet away', 'ws', 'proof']);
+    expect((p.facts.flow ?? []).map(x => [x.id, x.source, x.waitSec ?? x.cycleSec])).toEqual([['p', 'carried', 24 * H], ['b', 'carried', 1.2], ['f', 'carried', 60], ['q', 'carried', 6 * H]]);
+    expect(sameScope(map({}), p)).toBe(true);
+    expect(sameScope(map({}), { ...p, workspaceId: 'other' })).toBe(false);
+  });
+  it('before → after: the step the fix came from first, then the lead time; nothing claimed while it is carried', () => {
+    const ev = map({ uses: [{ id: 'u1', kind: 'fix', ref: 'fx', role: 'evidence', at: 1, step: 'q' }] });
+    const carried = proveItFrom(ev, 'fx', { at: 9, id: 'm2', useId: 'u2' });
+    const early = beforeAfter([ev, carried], 'fx');
+    expect(early?.tone).toBe('n');
+    expect(early?.text).toBe('Pallet waits for QA release: not walked again yet. Lead time 1.3 d, no change. 4 of 4 steps carried from before, not walked again yet.');
+    const walked = { ...carried, facts: { flow: (carried.facts.flow ?? []).map(x => (x.id === 'q' ? { ...x, waitSec: 1 * H, source: 'typed' as const } : x)) } };
+    const ba = beforeAfter([ev, walked], 'fx');
+    expect(ba?.tone).toBe('g');
+    expect(ba?.text).toBe('Pallet waits for QA release: wait 6.0 h → 1.0 h. Lead time 1.3 d → 1.0 d (−5.0 h). 3 of 4 steps carried from before, not walked again yet.');
+    const gone = { ...carried, facts: { flow: (carried.facts.flow ?? []).filter(x => x.id !== 'q').map(x => ({ ...x, source: 'timed' as const })) } };
+    expect(beforeAfter([ev, gone], 'fx')?.text).toBe('Pallet waits for QA release: taken out. Lead time 1.3 d → 1.0 d (−6.0 h) · 4 → 3 steps.');
+    expect(provedLine([ev, walked], 'fx')).toMatch(/^Before → after: Pallet waits for QA release: wait 6\.0 h → 1\.0 h/);
+  });
+  it('a step\'s link keeps which step it came from', () => {
+    expect(linkOf('fix', 'fx', 'evidence', 1, 'R', 'u', 'q')).toEqual({ id: 'u', kind: 'fix', ref: 'fx', role: 'evidence', at: 1, by: 'R', step: 'q' });
+    expect(linkOf('fix', 'fx', 'evidence', 1, undefined, 'u')).toEqual({ id: 'u', kind: 'fix', ref: 'fx', role: 'evidence', at: 1 });
   });
 });

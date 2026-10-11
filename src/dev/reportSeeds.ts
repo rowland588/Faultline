@@ -260,7 +260,7 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
     await markedPhoto(['Seal jaw face scored across the middle', 'Heater lead chafed where it passes the guard']),
     await markedPhoto(['Belt worn through to the cords here', 'Tension arm bracket cracked', LONG[1]]),
   ];
-  let fixId: string | undefined, openFixId: string | undefined, balanceFixId: string | undefined;
+  let fixId: string | undefined, openFixId: string | undefined, balanceFixId: string | undefined, mapFixId: string | undefined;
   for (let i = 0; i < 30; i++) {
     const a = machines[i % machines.length];
     const due = -8 + i;
@@ -273,6 +273,7 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
     fixId ??= f.id;
     if (i === 6) openFixId = f.id;
     if (i === 9) balanceFixId = f.id;
+    if (i === 11) mapFixId = f.id;
   }
   for (const x of tests) await putTest(x);
 
@@ -319,6 +320,34 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
       uses: [{ id: uid(), kind: 'fix', ref: balanceFixId, role: 'evidence', at: at(200) }], startedAt: at(320), createdAt: t, updatedAt: t });
     await putStudy({ id: uid(), ...scope, facts: { steps: els([9.4, 9.6, 9.5, 9.3, 9.7]) },
       uses: [{ id: uid(), kind: 'fix', ref: balanceFixId, role: 'proof', at: at(100) }], startedAt: at(150), createdAt: t, updatedAt: t });
+  }
+
+  /* A VALUE STREAM MAP (lib/ie/steps), and a fix raised from one of its
+     steps — the pallet waiting for QA release — walked again as its proof:
+     that step's wait before → after, then the lead time, and the steps still
+     carried from before said, on the fix's card, the client report and the
+     Evidence appendix. */
+  if (size === 'huge' && mapFixId) {
+    const at = (k: number) => t - k * 60_000, H = 3600;
+    const step = (id: string, order: number, name: string, who: string[], where: string, kind: 'operation' | 'move' | 'check' | 'wait', o: Record<string, unknown> = {}) =>
+      ({ id, order, name, who, where, lane: who[0], kind, ...o });
+    const flow = (qa: number) => [
+      step('rel', 0, 'Release the run to the line', ['Planning'], 'Office', 'operation', { value: 'needed', cycleSec: 600, batch: 9600, waitSec: 20 * H }),
+      step('iss', 1, 'Issue the film and the cases', ['Stores', 'Forklift driver'], 'Stores', 'move', { value: 'waste', cycleSec: 900, batch: 9600, waitSec: 3 * H }),
+      step('bag', 2, 'Bag and seal', ['Machine', 'Op 1'], 'Bagger', 'operation', { value: 'adds', cycleSec: 1.4 }),
+      step('fst', 3, 'First-off check', ['Quality', 'Team leader'], 'Checkweigher', 'check', { value: 'needed', cycleSec: 300, batch: 9600 }),
+      step('pak', 4, 'Pack the bags into the case', ['Op 2'], 'Case packer', 'operation', { value: 'adds', cycleSec: 8, batch: 6 }),
+      step('qa', 5, 'Pallet waits for QA release — the release sheet is walked to the lab and back by hand', ['Quality'], 'Palletiser', 'wait', { waitSec: qa }),
+      step('dsp', 6, 'Pallet to despatch', ['Forklift driver'], 'Despatch', 'move', { value: 'needed', cycleSec: 180, batch: 720 }),
+    ];
+    const scope = { tool: 'map' as const, name: 'Run released to pallet away — Finest Red 2kg', projectId: proj.id, product: 'Finest Red 2kg',
+      ...(proj.workspaceIds?.[0] ? { workspaceId: proj.workspaceIds[0] } : {}),
+      agreed: { map: { scope: 'line' as const, supplier: 'Run released', customer: 'Pallet to despatch', demandPerDay: 9600, availableSecPerDay: 16 * H } } };
+    await putStudy({ id: uid(), ...scope, facts: { flow: flow(7 * H) },
+      uses: [{ id: uid(), kind: 'fix', ref: mapFixId, role: 'evidence', at: at(400), step: 'qa' }], startedAt: at(480), createdAt: t, updatedAt: t });
+    await putStudy({ id: uid(), ...scope,
+      facts: { flow: flow(1.5 * H).map(x => ({ ...x, source: (x.id === 'qa' || x.id === 'bag' || x.id === 'pak' ? 'timed' : 'carried') as 'timed' | 'carried' })) },
+      uses: [{ id: uid(), kind: 'fix', ref: mapFixId, role: 'proof', at: at(60) }], startedAt: at(90), createdAt: t, updatedAt: t });
   }
 
   /* What was found: sixty, on tests and steps, some long. */
@@ -792,6 +821,30 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
       startedAt: t - 120 * 60_000, createdAt: t, updatedAt: t });
     await putStudy({ id: uid(), ...scope, facts: { readings: THIRTY.map((v, k) => ({ id: uid(), value: Math.round((v + 1) * 10) / 10, at: t - (40 - k) * 60_000, who: 'Zoë Brontë' })) },
       uses: [{ id: uid(), kind: 'action', ref: calib.id, role: 'proof', at: t - 40 * 60_000 }], startedAt: t - 45 * 60_000, createdAt: t, updatedAt: t });
+  }
+
+  /* A VALUE STREAM MAP ON THE RUNNING LINE, and a countermeasure raised from
+     its biggest wait — the pallet held for QA release — on the Measurement
+     bone (whose work it is), walked again as its proof: before → after on
+     the board's action and the report's countermeasure. */
+  if (huge) {
+    const H = 3600;
+    const flow = (qa: number) => [
+      { id: 'rel', order: 0, name: 'Release the run to the line', who: ['Planning'], where: 'Office', kind: 'operation' as const, value: 'needed' as const, cycleSec: 600, batch: 9600, waitSec: 20 * H },
+      { id: 'bag', order: 1, name: 'Bag and seal', who: ['Machine'], where: 'Bagger', kind: 'operation' as const, value: 'adds' as const, cycleSec: 1.3 },
+      { id: 'pak', order: 2, name: 'Pack the bags into the case', who: ['Op 2'], where: 'Case packer', kind: 'operation' as const, value: 'adds' as const, cycleSec: 8, batch: 6 },
+      { id: 'qa', order: 3, name: 'Pallet waits for QA release', who: ['Quality'], where: 'Palletiser', kind: 'wait' as const, waitSec: qa },
+      { id: 'dsp', order: 4, name: 'Pallet to despatch', who: ['Forklift driver'], where: 'Despatch', kind: 'move' as const, value: 'needed' as const, cycleSec: 180, batch: 720 },
+    ];
+    const qaAct = act('Pallet waits for QA release (Palletiser) — 6.0 h wait', { lineId: lineA.id, pillar: 'measurement', where: 'Palletiser', who: 'Agnieszka Szczęsna', due: iso(5),
+      why: 'Value stream map — Run released to pallet away', expect: 'Pallet waits for QA release: 6.0 h wait — shorter or gone, walked again on the same map' });
+    await putPaceTodo(qaAct);
+    const scope = { tool: 'map' as const, name: 'Run released to pallet away', projectId: proj.id, ...(lineA.workspaceId ? { workspaceId: lineA.workspaceId } : {}),
+      agreed: { map: { scope: 'line' as const, supplier: 'Run released', customer: 'Pallet to despatch', demandPerDay: 9600, availableSecPerDay: 16 * H } } };
+    await putStudy({ id: uid(), ...scope, facts: { flow: flow(6 * H) },
+      uses: [{ id: uid(), kind: 'action', ref: qaAct.id, role: 'evidence', at: t - 300 * 60_000, step: 'qa' }], startedAt: t - 360 * 60_000, createdAt: t, updatedAt: t });
+    await putStudy({ id: uid(), ...scope, facts: { flow: flow(2 * H).map(x => ({ ...x, source: (x.id === 'qa' ? 'typed' : 'carried') as 'typed' | 'carried' })) },
+      uses: [{ id: uid(), kind: 'action', ref: qaAct.id, role: 'proof', at: t - 30 * 60_000 }], startedAt: t - 40 * 60_000, createdAt: t, updatedAt: t });
   }
 
   /* ------------------------------ the board ------------------------------ */

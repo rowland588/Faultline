@@ -12,12 +12,12 @@
  * enough readings on both. It says "the number moved", never "the fix did
  * it" — that is the fix's to say, and a person presses the button. */
 import type { ID } from '../types';
-import type { BalanceStep, StudyUse, ToolStudy } from './study';
+import type { BalanceStep, FlowStep, StudyUse, ToolStudy } from './study';
 import type { PaceTodoRow } from '../db/rows';
 import type { SixM } from './sixm';
 import { sample, sampleSays, compareSamples, CPK_FROM, CPK_JUST, type SampleSays, type Tone } from './ie/sample';
 import { balance, balanceLine, compareBalances, secs as secsOf } from './ie/balance';
-import { dur as durOf, flowFigures, flowSays } from './ie/steps';
+import { carryFlow, compareFlows, compareStep, dur as durOf, flowFigures, flowSays, stepAt, stepFigure, whoOf } from './ie/steps';
 
 const live = (ss: ToolStudy[]) => ss.filter(s => !s.deletedAt);
 
@@ -83,8 +83,17 @@ export function owedOf(s: ToolStudy): number {
 export const sameScope = (a: ToolStudy, b: ToolStudy): boolean =>
   a.tool === b.tool && (a.tool === 'balance'
     ? !!a.standardId && a.standardId === b.standardId && a.agreed?.balance?.taktSec === b.agreed?.balance?.taktSec
-    : a.name.trim().toLowerCase() === b.name.trim().toLowerCase()
-      && JSON.stringify(a.agreed?.readings ?? null) === JSON.stringify(b.agreed?.readings ?? null));
+    : a.tool === 'map'
+      /* a value stream: the same line, the same stream */
+      ? (a.workspaceId ?? '') === (b.workspaceId ?? '') && a.name.trim().toLowerCase() === b.name.trim().toLowerCase()
+      : a.name.trim().toLowerCase() === b.name.trim().toLowerCase()
+        && JSON.stringify(a.agreed?.readings ?? null) === JSON.stringify(b.agreed?.readings ?? null));
+
+/** The step of a value stream map a record was raised from, when it was. */
+export function stepOf(s: ToolStudy, kind: StudyUse['kind'], ref: ID): FlowStep | undefined {
+  const id = s.uses.find(u => u.kind === kind && u.ref === ref && u.role === 'evidence' && u.step)?.step;
+  return id ? (s.facts.flow ?? []).find(x => x.id === id) : undefined;
+}
 
 /** What a study can be the evidence or proof of that something changed: a
  *  stage-gate job's fix, or a running line's countermeasure on the board. */
@@ -99,6 +108,18 @@ export function beforeAfter(studies: ToolStudy[], fixId: ID, kind: FixKind = 'fi
   if (before && after.tool === 'balance') {
     const ab = after.agreed?.balance;
     return ab ? { ...compareBalances(balance(before.facts.steps, before.agreed?.balance), balance(after.facts.steps, ab)), before, after } : undefined;
+  }
+  if (before && after.tool === 'map') {
+    /* the stream walked again: the step the fix was raised from first, then
+       the whole lead time; what is still carried from before, said */
+    const ma = before.agreed?.map, mb = after.agreed?.map;
+    const fb = flowFigures(before.facts.flow, ma), fa = flowFigures(after.facts.flow, mb);
+    const st = stepOf(before, kind, fixId);
+    const stA = st ? (after.facts.flow ?? []).find(x => x.id === st.id) : undefined;
+    const one = st ? `${compareStep(st, stA, ma, mb)}. ` : '';
+    const still = fa.carried ? ` ${fa.carried} of ${fa.steps} steps carried from before, not walked again yet.` : '';
+    const waiting = !!st && stA?.source === 'carried';
+    return { text: `${one}${compareFlows(fb, fa)}${still}`, tone: waiting ? 'n' : fa.leadSec < fb.leadSec ? 'g' : fa.leadSec > fb.leadSec ? 'r' : 'n', before, after };
   }
   const a = after.agreed?.readings;
   if (!before || !a) return undefined;
@@ -186,7 +207,11 @@ export const ROLE_WORD: Record<string, string> = {
 
 /** What a countermeasure raised from a study should change — said before it
  *  is done, so "Did it work" has something to be held against. */
-export function betterExpect(s: ToolStudy): string | undefined {
+export function betterExpect(s: ToolStudy, stepId?: string): string | undefined {
+  if (s.tool === 'map') {
+    const st = stepId ? (s.facts.flow ?? []).find(x => x.id === stepId) : undefined;
+    return st ? `${st.name.trim() || 'The step'}: ${stepFigure(st, s.agreed?.map)} — shorter or gone, walked again on the same map` : undefined;
+  }
   if (s.tool === 'balance') {
     const f = balance(s.facts.steps, s.agreed?.balance), c = f.constraint;
     return c && f.taktSec ? `${c.who} within the ${secsOf(f.taktSec)} takt, timed again` : undefined;
@@ -197,20 +222,33 @@ export function betterExpect(s: ToolStudy): string | undefined {
 /** MAKE IT BETTER ON A RUNNING LINE: a countermeasure on the board, its words
  *  the study's figures, on the cause the study is evidence for when it is
  *  one — never a stage-gate fix a 6M job has no page for. */
-export function countermeasureFrom(s: ToolStudy, x: { id: string; at: number; lineId?: string; causeRef?: string; bone?: SixM }): PaceTodoRow {
-  const expect = betterExpect(s);
+export function countermeasureFrom(s: ToolStudy, x: { id: string; at: number; lineId?: string; causeRef?: string; bone?: SixM; step?: string }): PaceTodoRow {
+  const expect = betterExpect(s, x.step);
+  const st = x.step ? (s.facts.flow ?? []).find(f => f.id === x.step) : undefined;
   return {
     id: x.id, ...(s.projectId ? { projectId: s.projectId } : {}), ...(x.lineId ? { lineId: x.lineId } : {}),
-    what: betterWords(s), where: '', why: studyTitle(s), who: '', when: '', state: 'todo',
-    pillar: x.bone ?? (s.tool === 'balance' ? 'method' : 'machine'),
+    what: betterWords(s, x.step), where: st ? stepAt(st, s.agreed?.map) : '', why: studyTitle(s), who: '', when: '', state: 'todo',
+    pillar: x.bone ?? (st ? boneOfStep(st, s) : s.tool === 'balance' || s.tool === 'map' ? 'method' : 'machine'),
     ...(x.causeRef ? { causeRef: x.causeRef } : {}), ...(expect ? { expect } : {}),
     createdAt: x.at, updatedAt: x.at,
   };
 }
 
 /** A new link from a study to a record. */
-export const linkOf = (kind: StudyUse['kind'], ref: ID, role: StudyUse['role'], at: number, by: string | undefined, id: string): StudyUse =>
-  ({ id, kind, ref, role, at, ...(by ? { by } : {}) });
+export const linkOf = (kind: StudyUse['kind'], ref: ID, role: StudyUse['role'], at: number, by: string | undefined, id: string, step?: string): StudyUse =>
+  ({ id, kind, ref, role, at, ...(by ? { by } : {}), ...(step ? { step } : {}) });
+
+/** Which of the six bones a step of the stream sits on, by whose work it is:
+ *  maintenance or the machine — Machine; stores or the forklift — Material;
+ *  quality — Measurement; anyone else — Method (how the work flows). A
+ *  person can move it. */
+export function boneOfStep(st: FlowStep, s: Pick<ToolStudy, 'agreed'>): SixM {
+  const who = whoOf(st, s.agreed?.map).join(' ').toLowerCase();
+  if (/maint|fitter|engineer|machine/.test(who)) return 'machine';
+  if (/stores|forklift|warehouse|picker/.test(who)) return 'material';
+  if (/quality|qa\b|lab/.test(who)) return 'measurement';
+  return 'method';
+}
 
 /** "Prove it": the same tool on the same scope as the evidence — what it is
  *  of, the machine, the product, the limits and the count — so before and
@@ -225,7 +263,7 @@ export function proveItFrom(evidence: ToolStudy, fixId: ID, x: { at: number; by?
     ...(evidence.product ? { product: evidence.product } : {}),
     ...(evidence.standardId ? { standardId: evidence.standardId } : {}),
     ...(evidence.agreed ? { agreed: JSON.parse(JSON.stringify(evidence.agreed)) as ToolStudy['agreed'] } : {}),
-    facts: evidence.tool === 'balance' ? { steps: retime(evidence.facts.steps) } : {},
+    facts: evidence.tool === 'balance' ? { steps: retime(evidence.facts.steps) } : evidence.tool === 'map' ? { flow: carryFlow(evidence.facts.flow) } : {},
     uses: [linkOf(kind, fixId, 'proof', x.at, x.by, x.useId)],
     startedAt: x.at, createdAt: x.at, updatedAt: x.at,
   };
@@ -252,7 +290,12 @@ export function readingsFor(test: { id: ID; projectId: ID; title: string; assetI
 /** "Make it better": the fix's words, with the figures already in them —
  *  "Weight accuracy 400 g: Not capable: Cpk 0.67 from 30 — about 2 in 100
  *  would be light." */
-export function betterWords(s: ToolStudy): string {
+export function betterWords(s: ToolStudy, stepId?: string): string {
+  const st = s.tool === 'map' && stepId ? (s.facts.flow ?? []).find(x => x.id === stepId) : undefined;
+  if (st) {
+    const at = stepAt(st, s.agreed?.map);
+    return `${st.name.trim() || 'A step'}${at ? ` (${at})` : ''} — ${stepFigure(st, s.agreed?.map)}`;
+  }
   const said = studySays(s);
   if (s.tool === 'balance') {
     const f = balance(s.facts.steps, s.agreed?.balance), c = f.constraint;
@@ -264,6 +307,8 @@ export function betterWords(s: ToolStudy): string {
 
 /** Is it worth making better? It failed, or it passes and would drift. */
 export function worthBetter(s: ToolStudy): boolean {
+  /* a value stream is made better a step at a time — from the step itself */
+  if (s.tool === 'map') return false;
   const said = studySays(s);
   if (s.tool === 'balance') return said.verdict === 'Over takt';
   return said.tone === 'r' || said.capability?.tone === 'a';

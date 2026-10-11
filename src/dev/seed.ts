@@ -19,7 +19,7 @@ import {
   createWorkspace, addObservation, addSegment, addSnagAsset, addSnag, addCase,
   createProject, updateProject, addPaceLine, putPaceTodo,
   putPaceWin, putTreeNode, putAsset, putTest, putTestItem, putBlob,
-  putTarget, putReadings, putMaterials, putPrograms, putStandard, putStudy,
+  putTarget, putReadings, putMaterials, putPrograms, putStandard, putStudy, getStudy,
   listObservations, snagsForWorkspace, listTests, listAssets,
 } from '../db';
 import type { Observation, Case } from '../types';
@@ -92,8 +92,12 @@ export interface Seeded {
    *  line's — one lane per step, no scope; must still open. */
   mapId: string;
   /** One line's map, kept large: what is done on Line 7 and who does it,
-   *  the departments that touch the line included. */
+   *  the departments that touch the line included — on the job, a fix raised
+   *  from its QA wait. */
   lineMapId: string;
+  /** That fix, and the line walked again as its proof (B3). */
+  mapFixId: string;
+  mapProofId: string;
 }
 
 export async function seedForSmokeTest(): Promise<Seeded> {
@@ -777,8 +781,9 @@ export async function seedForSmokeTest(): Promise<Seeded> {
      doing different activities on the same line"; "keep the line large,
      different departments can affect the line"). */
   const lineMapId = uid();
+  const qaStep = uid(), mapFixId = uid(), mapProofId = uid();
   await putStudy({ id: lineMapId, tool: 'map', name: 'Run released to pallet away — Maris Piper 2kg', product: 'Maris Piper 2kg',
-    workspaceId: ws.id, standardId: lineOnly,
+    workspaceId: ws.id, standardId: lineOnly, projectId: proj.id,
     agreed: { map: { scope: 'line', supplier: 'Run released', customer: 'Pallet to despatch', demandPerDay: 9600, availableSecPerDay: 16 * H } },
     facts: { flow: [
       fs(0, 'Release the run to the line', 'Planning', 'operation', { who: ['Planning'], where: 'Office', value: 'needed', cycleSec: 600, batch: 9600, waitSec: 1 * DY, info: 'paper' }),
@@ -795,9 +800,22 @@ export async function seedForSmokeTest(): Promise<Seeded> {
       fs(11, 'Walk to fetch flat cases', 'Op 2', 'move', { who: ['Op 2'], where: 'Stores', value: 'waste', cycleSec: 60, batch: 120 }),
       fs(12, 'Stack the case on the pallet', 'Op 3', 'operation', { who: ['Op 3'], where: 'Palletiser', value: 'needed', cycleSec: 5, batch: 6, waitSec: 25 * 60 }),
       fs(13, 'Sign off the pallet', 'Team leader', 'check', { who: ['Team leader'], where: 'Palletiser', value: 'needed', cycleSec: 60, batch: 720 }),
-      fs(14, 'Pallet waits for QA release', 'Quality', 'wait', { who: ['Quality'], where: 'Palletiser', waitSec: 6 * H }),
+      { ...fs(14, 'Pallet waits for QA release', 'Quality', 'wait', { who: ['Quality'], where: 'Palletiser', waitSec: 6 * H }), id: qaStep },
       fs(15, 'Pallet to despatch', 'Forklift driver', 'move', { who: ['Forklift driver'], where: 'Despatch', value: 'needed', cycleSec: 180, batch: 720 }),
-    ] }, uses: [], startedAt: t - 3_600_000, createdAt: t, updatedAt: t });
+    ] }, uses: [{ id: uid(), kind: 'fix', ref: mapFixId, role: 'evidence', at: t - 1_800_000, step: qaStep }], startedAt: t - 3_600_000, createdAt: t, updatedAt: t });
+
+  /* THE MAP INSIDE A CHANGE (B3): a fix raised from the QA wait on the line's
+     map — its words the step's figures — and the line walked again as its
+     proof, the wait typed shorter, the rest still carried from before. The
+     step on the grid wears the branch; the fix's drawer says before → after. */
+  await putTest({ id: mapFixId, projectId: proj.id, kind: 'fix', title: 'Pallet waits for QA release (Palletiser) — 6.0 h wait',
+    passesIf: 'Pallet waits for QA release (Palletiser) — 6.0 h wait', outcome: 'planned', sort: 25, createdAt: t, updatedAt: t });
+  const walkedAgain = (await getStudy(lineMapId))?.facts.flow ?? [];
+  await putStudy({ id: mapProofId, tool: 'map', name: 'Run released to pallet away — Maris Piper 2kg', product: 'Maris Piper 2kg',
+    workspaceId: ws.id, standardId: lineOnly, projectId: proj.id,
+    agreed: { map: { scope: 'line', supplier: 'Run released', customer: 'Pallet to despatch', demandPerDay: 9600, availableSecPerDay: 16 * H } },
+    facts: { flow: walkedAgain.map(x => (x.id === qaStep ? { ...x, waitSec: 1.5 * H, source: 'typed' as const } : { ...x, source: 'carried' as const })) },
+    uses: [{ id: uid(), kind: 'fix', ref: mapFixId, role: 'proof', at: t - 600_000 }], startedAt: t - 900_000, createdAt: t, updatedAt: t });
 
   /* A CAPABILITY STUDY, unfiled: the thirty packs of the worked example —
      mean 401.2 g, all within 400–404, Cpk 0.67 (lib/ie/sample). */
@@ -824,6 +842,6 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     pacedProjectId: paced.id, pacedLineId: pacedLine.id, treeProjectId: tree.id,
     measures: 2, readings: rows.length, materials: 7, programs: 7,
     problemId: misfeeds.id, closedProblemId: gap.id,
-    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, studyId,
+    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId,
   };
 }

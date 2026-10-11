@@ -1,6 +1,6 @@
 /* The value stream's arithmetic — one line end to end, the departments that touch it included. */
 import { describe, it, expect } from 'vitest';
-import { flowFigures, flowSays, compareFlows, waitOf, valueOf, dur, parseDur, lanesOf, lanesOfStep, whoOf, whereOf, laneByDefault } from '../steps';
+import { flowFigures, flowSays, compareFlows, waitOf, valueOf, dur, parseDur, lanesOf, lanesOfStep, whoOf, whereOf, laneByDefault, stepWorth, stepFigure, compareStep, carryFlow } from '../steps';
 import type { FlowStep } from '../../study';
 
 const D = 86_400;
@@ -91,6 +91,24 @@ describe('the value stream (tool 2)', () => {
     const odd = { id: 'z', order: 0, name: 'x', kind: 'operation', who: 'Op 1', where: 7 } as unknown as FlowStep;
     expect([whoOf(odd, { scope: 'line' }), whereOf(odd, { scope: 'line' })]).toEqual([[], undefined]);
     expect(lanesOfStep(odd, 'who', { scope: 'line' })).toEqual(['Not said']);
+  });
+  it('a step worth making better: waste work or a wait after it; its figure in its own words', () => {
+    const wait: FlowStep = { id: 'w', order: 0, name: 'Pallet waits', kind: 'wait', waitSec: 6 * 3600 };
+    const walk: FlowStep = { id: 'k', order: 1, name: 'Fetch cases', kind: 'move', value: 'waste', cycleSec: 60, batch: 120, waitSec: 25 * 60 };
+    const bag: FlowStep = { id: 'b', order: 2, name: 'Bag', kind: 'operation', value: 'adds', cycleSec: 1.2 };
+    expect([stepWorth(wait), stepWorth(walk), stepWorth(bag)]).toEqual([true, true, false]);
+    expect([stepFigure(wait), stepFigure(walk), stepFigure({ ...walk, cycleSec: undefined, waitSec: undefined })]).toEqual(['6.0 h wait', '1 min of waste each time (for 120), then a 25 min wait', 'waste, no time yet']);
+  });
+  it('one step before → after: its wait and work as walked again; carried, said; gone, taken out', () => {
+    const was: FlowStep = { id: 'w', order: 0, name: 'Pallet waits', kind: 'wait', waitSec: 6 * 3600 };
+    expect(compareStep(was, { ...was, waitSec: 3600, source: 'typed' })).toBe('Pallet waits: wait 6.0 h → 1.0 h');
+    expect(compareStep(was, { ...was, source: 'carried' })).toBe('Pallet waits: not walked again yet');
+    expect(compareStep(was, undefined)).toBe('Pallet waits: taken out');
+    expect(compareStep({ ...was, kind: 'move', cycleSec: 60, waitSec: undefined }, { ...was, kind: 'move', cycleSec: 20, waitSec: undefined, source: 'timed' })).toBe('Pallet waits: work 1 min → 20.0 s');
+    expect(carryFlow([was]).map(x => x.source)).toEqual(['carried']);
+    expect(flowFigures(carryFlow([was])).carried).toBe(1);
+    expect(flowSays(flowFigures(carryFlow([was]))).lines).toContain('1 step is carried from the map before — not walked or typed again yet.');
+    expect(compareFlows(flowFigures([was]), flowFigures([was]))).toBe('Lead time 6.0 h, no change.');
   });
   it('durations as people say them', () => {
     expect([dur(6), dur(240), dur(5400), dur(2 * D), dur(0.045)]).toEqual(['6.0 s', '4 min', '1.5 h', '2.0 d', '0.045 s']);

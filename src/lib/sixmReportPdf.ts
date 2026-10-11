@@ -174,7 +174,11 @@ export interface ProblemRep {
 
 export interface BoardRow { what: string; why?: string; owner: string; tone: Tone; when: string;
   /** The day in free words, when no date was given — "before the Christmas peak". */
-  words?: string; cause?: string; line?: string }
+  words?: string; cause?: string; line?: string;
+  /** What a study says of it (lib/studyLinks provedLine) — the same line it
+   *  carries under its problem, so an action raised from a map's step that is
+   *  on no problem still shows its before → after on the board. */
+  proved?: string }
 
 export interface SixMReport {
   name: string;
@@ -460,6 +464,7 @@ export function sixmReport(o: SixMInput): SixMReport {
   const rowOf = (t: PaceTodoRow): BoardRow & { due: string } => ({
     what: t.what, ...(t.why?.trim() ? { why: t.why.trim() } : {}), owner: t.who?.trim() ?? '', ...actionState(t, today),
     ...(forOf(t) ? { cause: forOf(t) } : {}), ...(!o.lineId && lines.length > 1 ? { line: lineName(t.lineId) ?? 'All lines' } : {}),
+    ...((() => { const pr = provedLine(o.data.studies, t.id, 'action'); return pr ? { proved: pr } : {}; })()),
     due: t.state === 'done' ? `~${t.doneOn ?? ''}` : t.due ?? '9999',
   });
   const groups: { m: SixM | null; label: string }[] = [...SIXM.map(b => ({ m: b.key as SixM | null, label: b.label })), { m: null, label: 'Not on a bone yet' }];
@@ -1165,13 +1170,14 @@ function boardBlock(b: SixMReport['board'][number]): Block {
       what: wrap(f.doc, r.what, w, SIZE.small + 0.5, r.tone === 'done' ? 'normal' : 'bold'),
       why: [...(r.why ? wrap(f.doc, `Why: ${r.why}`, w, SIZE.small) : []), ...(r.words ? wrap(f.doc, `When: ${r.words}`, w, SIZE.small) : [])],
       cause: r.cause ? wrap(f.doc, r.cause, w, SIZE.small) : [],
+      proved: r.proved ? wrap(f.doc, r.proved, w, SIZE.small) : [],
       owner: wrap(f.doc, [r.owner || 'No owner', r.line].filter(Boolean).join(' · '), ownerW - 8, SIZE.small),
     };
   };
   return rows({
     header: headerRow([['What, and why', 0], ['Who', CW - ownerW - stateW], ['State · day', CW - stateW]], `${b.label.toUpperCase()} — ${b.says}`),
     rows: b.rows.map(r => ({
-      h: f => { const p = parts(f, r); return 7 + Math.max(p.what.length * 11 + (p.why.length + p.cause.length) * 10, p.owner.length * 10, 13) + 4; },
+      h: f => { const p = parts(f, r); return 7 + Math.max(p.what.length * 11 + (p.why.length + p.cause.length + p.proved.length) * 10, p.owner.length * 10, 13) + 4; },
       draw: (f, y) => {
         const p = parts(f, r);
         rule(f, y);
@@ -1179,7 +1185,8 @@ function boardBlock(b: SixMReport['board'][number]): Block {
         let ty = y + 11;
         font(f.doc, SIZE.small + 0.5, done ? 'normal' : 'bold', done ? MUTED : INK); f.doc.text(p.what, f.x, ty); ty += p.what.length * 11;
         if (p.why.length) { font(f.doc, SIZE.small, 'normal', MUTED); f.doc.text(p.why, f.x, ty - 1); ty += p.why.length * 10; }
-        if (p.cause.length) { font(f.doc, SIZE.small, 'normal', INK2); f.doc.text(p.cause, f.x, ty - 1); }
+        if (p.cause.length) { font(f.doc, SIZE.small, 'normal', INK2); f.doc.text(p.cause, f.x, ty - 1); ty += p.cause.length * 10; }
+        if (p.proved.length) { font(f.doc, SIZE.small, 'bold', INK2); f.doc.text(p.proved, f.x, ty - 1); }
         font(f.doc, SIZE.small, 'normal', done ? MUTED : INK2); f.doc.text(p.owner, f.x + f.w - ownerW - stateW, y + 11);
         pill(f.doc, f.x + f.w - stateW, y + 3, stateW, r.tone, r.when);
       },

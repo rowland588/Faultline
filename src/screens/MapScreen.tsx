@@ -28,10 +28,11 @@ import { can as canAt, type Can } from '../lib/access';
 import { uid } from '../lib/ids';
 import { niceDay } from '../lib/weeks';
 import { nav } from '../state/useRoute';
-import { compareFlows, dur, flowFigures, flowSays, laneByDefault, parseDur, share, valueOf, whereOf, whoOf, type LaneBy } from '../lib/ie/steps';
-import type { AgreedMap, FlowKind, FlowStep, FlowValue, ToolStudy } from '../lib/study';
+import { compareFlows, dur, flowFigures, flowSays, laneByDefault, parseDur, share, stepWorth, valueOf, whereOf, whoOf, type LaneBy } from '../lib/ie/steps';
+import type { AgreedMap, FlowKind, FlowStep, FlowValue, StudyUse, ToolStudy } from '../lib/study';
 import { KIND_WORD, StepFacts, VALUE_WORD, ValueStreamGrid, WalkIt } from '../ui/ValueStream';
-import { UsedFor, WhereItSits } from '../ui/StudyPlace';
+import { UsedFor, useBetter, WhereItSits } from '../ui/StudyPlace';
+import { recordHref, ROLE_WORD } from '../lib/studyLinks';
 import { Sheet } from '../ui/Sheet';
 
 const OWNER = canAt('owner');
@@ -73,6 +74,18 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
   const [viewing, setViewing] = useState<{ st: FlowStep; n: number; lead: number } | null>(null);
   const [agreeing, setAgreeing] = useState(false);
   const [walking, setWalking] = useState(false);
+  /* THE MAP INSIDE A CHANGE: a step's wait or waste raises a fix (stage gate)
+     or a countermeasure (6M) — the same Make it better as Used for — and the
+     step then wears the branch: a mark on its square, the record in its facts. */
+  const { board, byRef, better } = useBetter(s, me);
+  const branches = useMemo(() => {
+    const m = new Map<string, StudyUse[]>();
+    for (const u of s.uses) if (u.step && u.role === 'evidence' && byRef.has(u.ref)) m.set(u.step, [...(m.get(u.step) ?? []), u]);
+    return m;
+  }, [s.uses, byRef]);
+  /* WALK IT AGAIN: on a map proving a fix, the steps carried from before are
+     walked in their order — each Next times the one up next. Waits are typed. */
+  const carried = useMemo(() => [...list].sort((x, y) => x.order - y.order).filter(x => x.source === 'carried' && x.kind !== 'wait' && x.kind !== 'store'), [list]);
   const editable = can.edit;
   const write = (p: Parameters<typeof patchStudy>[1]) => void patchStudy(s.id, p);
   const setList = (fn: (cur: FlowStep[]) => FlowStep[]) =>
@@ -131,14 +144,16 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
           <button type="button" className="btn" onClick={() => { write(cur => ({ facts: { ...cur.facts, future: (cur.facts.flow ?? []).map(x => ({ ...x })) } })); setWhich('future'); }}>Copy to the future</button>
         )}
         {editable && <button type="button" className="btn btn-primary" onClick={() => setEditing('new')}>+ Add a step</button>}
-        {editable && !walking && <button type="button" className="btn" onClick={() => setWalking(true)}>Walk it</button>}
+        {editable && !walking && <button type="button" className="btn" onClick={() => setWalking(true)}>{carried.length ? 'Walk it again' : 'Walk it'}</button>}
       </div>
 
       {walking && (
-        <WalkIt people={lanesKnown.people} places={lanesKnown.places} onDone={() => setWalking(false)}
-          onStep={w => setList(cur => [...cur, { id: uid(), order: cur.reduce((m, x) => Math.max(m, x.order), -1) + 1, name: w.name,
-            ...(w.who ? { who: [w.who] } : {}), ...(w.where ? { where: w.where } : {}), lane: (laneByDefault(a) === 'who' ? w.who : w.where) || w.who || w.where || 'Not said',
-            kind: w.kind, cycleSec: w.cycleSec, source: 'timed' }])} />
+        <WalkIt people={lanesKnown.people} places={lanesKnown.places} onDone={() => setWalking(false)} again={carried}
+          onStep={w => setList(cur => (w.again
+            ? cur.map(x => (x.id === w.again ? { ...x, name: w.name, ...(w.who && !whoOf(x, a).includes(w.who) ? { who: [w.who] } : {}), ...(w.where ? { where: w.where } : {}), cycleSec: w.cycleSec, source: 'timed' as const } : x))
+            : [...cur, { id: uid(), order: cur.reduce((m, x) => Math.max(m, x.order), -1) + 1, name: w.name,
+              ...(w.who ? { who: [w.who] } : {}), ...(w.where ? { where: w.where } : {}), lane: (laneByDefault(a) === 'who' ? w.who : w.where) || w.who || w.where || 'Not said',
+              kind: w.kind, cycleSec: w.cycleSec, source: 'timed' as const }]))} />
       )}
 
       {list.length > 0
@@ -148,7 +163,7 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
             <button type="button" role="tab" aria-selected={laneBy === 'who'} className={'chip' + (laneBy === 'who' ? ' on' : '')} onClick={() => setLaneBy('who')}>Who does it</button>
             <button type="button" role="tab" aria-selected={laneBy === 'where'} className={'chip' + (laneBy === 'where' ? ' on' : '')} onClick={() => setLaneBy('where')}>Where</button>
           </span>
-          <ValueStreamGrid flow={list} f={f} a={a} wasteOnly={wasteOnly} by={laneBy} onOpen={(st, n, lead) => setViewing({ st, n, lead })} />
+          <ValueStreamGrid flow={list} f={f} a={a} wasteOnly={wasteOnly} by={laneBy} branched={branches} onOpen={(st, n, lead) => setViewing({ st, n, lead })} />
         </>
         : <div className="qsl-empty"><p><b>No steps yet.</b> Start where the line's work starts — the order released, the film arriving from stores — and add each thing that is done, in the lane of whoever does it (an operator, the machine, planning, quality, maintenance), to the pallet leaving.</p></div>}
 
@@ -158,8 +173,23 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
       {viewing && (
         <Sheet open onClose={() => setViewing(null)} title={`Step ${viewing.n}`}>
           <StepFacts st={list.find(x => x.id === viewing.st.id) ?? viewing.st} n={viewing.n} leadSoFar={viewing.lead} a={a} was={compare?.get(viewing.st.id)} />
+          {(branches.get(viewing.st.id) ?? []).length > 0 && s.projectId && (
+            <div className="vs-branch">
+              <small className="ie-h">Being made better</small>
+              {(branches.get(viewing.st.id) ?? []).map(u => (
+                <p key={u.id}><span className="sub">{ROLE_WORD[`${u.kind}:${u.role}`] ?? u.role}:</span>{' '}
+                  <button type="button" className="linkish" onClick={() => nav(recordHref(s.projectId ?? '', u))}>{byRef.get(u.ref)?.title}</button></p>
+              ))}
+            </div>
+          )}
+          {editable && shown === 'flow' && !branches.has(viewing.st.id) && stepWorth(list.find(x => x.id === viewing.st.id) ?? viewing.st, a) && !s.projectId && (
+            <p className="sub vs-branch">Attach the map to a job to raise a fix from this step.</p>
+          )}
           <div className="vs-step-acts">
-            {editable && <button type="button" className="btn btn-primary" onClick={() => { setEditing(list.find(x => x.id === viewing.st.id) ?? viewing.st); setViewing(null); }}>Change this step</button>}
+            {editable && shown === 'flow' && !!s.projectId && !branches.has(viewing.st.id) && stepWorth(list.find(x => x.id === viewing.st.id) ?? viewing.st, a) && (
+              <button type="button" className="btn btn-primary" onClick={() => { const id = viewing.st.id; setViewing(null); void better(id); }}>{board ? 'Make it better — a countermeasure' : 'Make it better — raise a fix'}</button>
+            )}
+            {editable && <button type="button" className="btn" onClick={() => { setEditing(list.find(x => x.id === viewing.st.id) ?? viewing.st); setViewing(null); }}>Change this step</button>}
             <button type="button" className="btn btn-ghost" onClick={() => setViewing(null)}>Close</button>
           </div>
         </Sheet>
@@ -251,7 +281,8 @@ function StepSheet({ step, list, people, places, a, canRemove, onClose, onSave, 
       ...(cycleSec !== undefined ? { cycleSec } : {}), ...(waitSec !== undefined ? { waitSec } : {}),
       ...(queue.trim() && q > 0 ? { queue: q } : {}), ...(crew.trim() && p > 0 ? { people: p } : {}), ...(batch.trim() && b > 1 ? { batch: b } : {}),
       ...(info.trim() ? { info: info.trim() } : {}), ...(burst ? { burst: true } : {}),
-      source: step?.source ?? 'typed',
+      /* a step carried from before, opened and saved, is now as typed */
+      source: step?.source && step.source !== 'carried' ? step.source : 'typed',
     });
   };
   const v = step ? valueOf(step) : undefined;

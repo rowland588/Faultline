@@ -585,14 +585,43 @@ is walked, timed (`source: 'timed'`); its value is marked and the waits (an
 order sits for days) are typed back at a desk, and the page says what is
 still unmarked.
 
-- **Next, and before any more of the map itself — the map inside a change**
-  (B3, B4), as the capability study and the work balance are: Make it
-  better from a red step raises a fix or a countermeasure carrying the
-  figure ("Pallet waits for QA release — 6 h"); walking it again on the
-  same map is that fix's before → after; the biggest wait offered as a
-  cause on the fishbone; "lead time · % adds value" under the line on its
-  card and the job's front page; its page in the client and 6M reports;
-  its acceptance script.
+**B3. The map inside a change.** Built 11 October, after Rowland's "are we
+drifting from Faultline?" — the map stops growing as a map and becomes
+what the capability study and the work balance already are: how we know a
+change is needed, and how we know it worked.
+- **Make it better from a step.** Tap a step whose work is waste or that
+  has a wait after it, on a map attached to a job: **Make it better —
+  raise a fix** (stage gate) or **— a countermeasure** (6M). Its words are
+  the step's own figures — "Pallet waits for QA release (Palletiser) —
+  6.0 h wait", "Walk to fetch flat cases (Stores) — 1 min of waste each
+  time (for 120)"; a countermeasure sits on the bone of whose work it is
+  (maintenance or the machine: Machine; stores or the forklift: Material;
+  quality: Measurement; anyone else: Method), says where, and what it
+  should change ("shorter or gone, walked again on the same map"). The map
+  is its evidence, the link naming the step (`StudyUse.step`). The whole
+  map is never "made better" at once — a stream is changed a step at a time.
+- **The branch off the step.** The step's squares wear a small ink ring;
+  its facts say **Being made better** and open the record — no state colour.
+- **Prove it — walk the line again.** On the fix (or the action), Prove it
+  starts a second map on the same line with the same steps, each
+  **carried** from before (`source: 'carried'`) and said to be: "16 steps
+  are carried from the map before — not walked or typed again yet". **Walk
+  it again** times the carried steps in their order (each Next times the
+  one up next; nothing is appended); a step opened and saved is typed.
+- **Before → after**, worked out, on the fix's drawer, the action's sheet,
+  the client report, the fix card, the handover, the 6M report (under its
+  problem and on the board): the step first, then the stream — "Pallet
+  waits for QA release: wait 6.0 h → 1.5 h. Lead time 1.5 d → 1.3 d
+  (−4.5 h). 15 of 16 steps carried from before, not walked again yet." —
+  and nothing claimed while that step is still carried. Only what moved is
+  said to have moved ("Lead time 1.3 d, no change").
+- Seeded: Line 7's map on the Line 2 job, a fix from its QA wait, the line
+  walked again; on the report jobs, a map-proved fix and a map-proved
+  countermeasure, demanded on paper by the stress test.
+- **Next (B3b, B4):** the biggest wait offered as a cause on the fishbone;
+  "lead time · % adds value" under the line on its card and the job's front
+  page; the map's own page in the client and 6M reports; its acceptance
+  script.
 
 
 **The tools**, from `docs/TOOLKIT.md`, Part 5:

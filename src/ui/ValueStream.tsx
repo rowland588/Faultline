@@ -40,8 +40,11 @@ const COL_W = 34, TOTAL_W = 96;
 /** A time in a square: as short as it can be and still be read. */
 const tiny = (sec: number): string => (sec < 60 ? `${+sec.toFixed(1)}s` : sec < 3600 ? `${Math.round(sec / 60)}m` : sec < 86_400 ? `${+(sec / 3600).toFixed(1)}h` : `${+(sec / 86_400).toFixed(1)}d`);
 
-export function ValueStreamGrid({ flow, f, a, wasteOnly, by, onOpen }: {
+export function ValueStreamGrid({ flow, f, a, wasteOnly, by, branched, onOpen }: {
   flow: FlowStep[]; f: FlowFigures; a?: AgreedMap; wasteOnly?: boolean;
+  /** Steps a fix or a countermeasure was raised from — the branch off the
+   *  step: a mark on its squares, said in words for a screen reader. */
+  branched?: Map<string, unknown>;
   /** Which dimension the lanes are: who does each step, or where it is done.
    *  A step done by two people sits in both their lanes, in its column. */
   by: LaneBy;
@@ -78,8 +81,8 @@ export function ValueStreamGrid({ flow, f, a, wasteOnly, by, onOpen }: {
   const square = (st: FlowStep, i: number, body: React.ReactNode, cls: string) => {
     const v = valueOf(st);
     return (
-      <button key={st.id} type="button" className={cls + ' is-' + (v ?? 'unmarked') + (lit(i) ? '' : ' is-dim')}
-        aria-label={`Step ${i + 1} — ${lanesOfStep(st, by, a).join(', ')}: ${st.name || 'a step'} (${v ? VALUE_WORD[v] : 'not marked yet'})`} title={`${i + 1} · ${st.name || 'a step'}`}
+      <button key={st.id} type="button" className={cls + ' is-' + (v ?? 'unmarked') + (lit(i) ? '' : ' is-dim') + (branched?.has(st.id) ? ' has-fix' : '')}
+        aria-label={`Step ${i + 1} — ${lanesOfStep(st, by, a).join(', ')}: ${st.name || 'a step'} (${v ? VALUE_WORD[v] : 'not marked yet'})${branched?.has(st.id) ? ' — being made better' : ''}`} title={`${i + 1} · ${st.name || 'a step'}${branched?.has(st.id) ? ' — being made better' : ''}`}
         onClick={() => onOpen(st, i + 1, acc[i] ?? 0)}>{body}</button>
     );
   };
@@ -156,7 +159,7 @@ export function StepFacts({ st, n, leadSoFar, a, was }: { st: FlowStep; n: numbe
     ['Lead time by here', dur(leadSoFar)],
     ...(st.people ? [['People', String(st.people)] as [string, string]] : []),
     ...(st.info ? [['Its job arrives by', st.info] as [string, string]] : []),
-    ['How it is known', st.source === 'timed' ? 'timed on the walk' : 'typed'],
+    ['How it is known', st.source === 'timed' ? 'timed on the walk' : st.source === 'carried' ? 'carried from the map before — not walked again yet' : 'typed'],
   ];
   if (was && ((was.cycleSec ?? 0) !== (st.cycleSec ?? 0) || (waitOf(was, a).sec ?? 0) !== (w.sec ?? 0))) {
     rows.push(['Today', `work ${was.cycleSec ? dur(was.cycleSec) : '—'} · waits ${waitOf(was, a).sec !== undefined ? dur(waitOf(was, a).sec ?? 0) : '—'}`]);
@@ -176,10 +179,14 @@ export function StepFacts({ st, n, leadSoFar, a, was }: { st: FlowStep; n: numbe
  * the timestamps between taps; name it and say who does it as you go (or
  * after). The steps land in the grid as you walk, timed; a wait of days is
  * typed when you are back at a desk. */
-export function WalkIt({ people, places, onStep, onDone }: {
+export function WalkIt({ people, places, again, onStep, onDone }: {
   people: string[]; places: string[];
-  /** A step ended: what was done, who did it, where, and how long it took. */
-  onStep: (s: { name: string; who: string; where: string; kind: FlowKind; cycleSec: number }) => void;
+  /** Walking it again (a fix being proved): the steps carried from before,
+   *  in their order — each Next times the one up next, its words filled in. */
+  again?: FlowStep[];
+  /** A step ended: what was done, who did it, where, how long it took — and,
+   *  walking it again, which carried step it was. */
+  onStep: (s: { name: string; who: string; where: string; kind: FlowKind; cycleSec: number; again?: string }) => void;
   onDone: () => void;
 }) {
   const [startedAt, setStartedAt] = useState<number | null>(null);
@@ -188,17 +195,25 @@ export function WalkIt({ people, places, onStep, onDone }: {
   const [where, setWhere] = useState('');
   const [kind, setKind] = useState<FlowKind>('operation');
   const [n, setN] = useState(0);
+  /* the carried steps this walk has already timed — the next one is up */
+  const [walked, setWalked] = useState<string[]>([]);
+  const up = again?.find(x => !walked.includes(x.id));
+  useEffect(() => {
+    if (!up) return;
+    setName(up.name); setWho(up.who?.[0] ?? up.lane ?? ''); setWhere(up.where ?? ''); setKind(up.kind);
+  }, [up?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const [, tick] = useState(0);
   useEffect(() => { const t = window.setInterval(() => tick(x => x + 1), 200); return () => window.clearInterval(t); }, []);
   const split = startedAt ? (Date.now() - startedAt) / 1000 : 0;
   const close = () => {
     if (!startedAt) return;
-    onStep({ name: name.trim() || `Step ${n + 1}`, who: who.trim(), where: where.trim(), kind, cycleSec: +((Date.now() - startedAt) / 1000).toFixed(1) });
+    onStep({ name: name.trim() || `Step ${n + 1}`, who: who.trim(), where: where.trim(), kind, cycleSec: +((Date.now() - startedAt) / 1000).toFixed(1), ...(up ? { again: up.id } : {}) });
+    if (up) setWalked(w => [...w, up.id]);
     setN(x => x + 1); setName(''); setKind('operation');
   };
   return (
     <div className="wb-timer vs-walk" aria-label="Walking the journey">
-      <div className="wb-t-h"><b>Walk it</b><span className="sub">{n} step{n === 1 ? '' : 's'} walked</span></div>
+      <div className="wb-t-h"><b>{again?.length ? 'Walk it again' : 'Walk it'}</b><span className="sub">{n} step{n === 1 ? '' : 's'} walked{up ? ` · up next: ${up.name.trim() || 'a step'}` : again?.length ? ' · every carried step walked — any more are added' : ''}</span></div>
       <output className="wb-split" aria-live="off">{startedAt ? dur(split) : '0.0 s'}</output>
       <label className="field"><span className="field-label">This step — what happens</span>
         <input className="text-input" value={name} placeholder={`Step ${n + 1} — e.g. Order keyed into the system`} onChange={e => setName(e.target.value)} /></label>
