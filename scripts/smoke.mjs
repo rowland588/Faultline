@@ -57,7 +57,7 @@ if (bootErrors.length) console.log('errors during boot/seed:', bootErrors);
 
 const ROUTES = [
   ['home', '#/'], ['guide', '#/guide'], ['portfolio', '#/portfolio'],
-  ['projects', '#/projects'], ['snags', '#/snags'], ['line standard tool', '#/standards'], ['line balance tool', '#/balances'], ['capability studies', '#/capability'], ['value stream maps', '#/value-stream'], ['pace report', '#/pace-report'],
+  ['projects', '#/projects'], ['snags', '#/snags'], ['line standard tool', '#/standards'], ['line balance tool', '#/balances'], ['capability studies', '#/capability'], ['value stream maps', '#/value-stream'], ['work sampling', '#/sampling'], ['pace report', '#/pace-report'],
   ['project dashboard', `#/project/${seeded.projectId}`],
   ['project setup', `#/project/${seeded.projectId}/setup`],
   ['lever tree', `#/project/${seeded.treeProjectId}/tree`],
@@ -85,6 +85,7 @@ const ROUTES = [
   ['a value stream map saved door to door before maps were only a line\'s — still opens', `#/value-stream/${seeded.mapId}`],
   ['a line\'s value stream map — what is done on Line 7 and who does it, departments included', `#/value-stream/${seeded.lineMapId}`],
   ['the line walked again — a map proving a fix raised from one of its steps', `#/value-stream/${seeded.mapProofId}`],
+  ['work sampling — two people watched through the shift, a moment due now', `#/sampling/${seeded.samplingId}`],
   ['fixes — a fix raised from a value stream step, before → after', `#/project/${seeded.projectId}/fixes?open=${seeded.mapFixId}`],
   ['the line balance — people, the work timed against takt', `#/w/${seeded.wsId}/standards/${seeded.lineStandardId}?at=balance&view=work`],
   ['line standard — none yet', `#/project/${seeded.pacedProjectId}/standard`],

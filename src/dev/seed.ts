@@ -98,6 +98,9 @@ export interface Seeded {
   /** That fix, and the line walked again as its proof (B3). */
   mapFixId: string;
   mapProofId: string;
+  /** Work sampling on Line 7 (H1): Op 1 and Op 2 watched through the shift,
+   *  36 moments answered, one come a minute ago still to answer. */
+  samplingId: string;
 }
 
 export async function seedForSmokeTest(): Promise<Seeded> {
@@ -820,6 +823,28 @@ export async function seedForSmokeTest(): Promise<Seeded> {
       fs(15, 'Pallet to despatch', 'Forklift driver', 'move', { who: ['Forklift driver'], where: 'Despatch', value: 'needed', cycleSec: 180, batch: 720 }),
     ] }, uses: [{ id: uid(), kind: 'fix', ref: mapFixId, role: 'evidence', at: t - 1_800_000, step: qaStep }], startedAt: t - 3_600_000, createdAt: t, updatedAt: t });
 
+  /* WORK SAMPLING (H1): Op 1 and Op 2 on Line 7, a moment every ten minutes
+     through the morning, each answered — Op 2 waiting a fifth of the time —
+     and one moment come a minute ago, still to answer; three more ahead. */
+  const samplingId = uid();
+  {
+    const HR = 3_600_000;   // H above is the map's, in seconds; moments are instants
+    const past = Array.from({ length: 36 }, (_, i) => t - 6 * HR + i * 10 * 60_000);
+    const due = t - 60_000, ahead = [t + 15 * 60_000, t + 40 * 60_000, t + 70 * 60_000];
+    const deal = (counts: [string, number][]) => counts.flatMap(([a, k]) => Array<string>(k).fill(a));
+    const op1 = deal([['working', 28], ['walking', 3], ['waiting', 4], ['away', 1]]);
+    const op2 = deal([['working', 22], ['waiting', 7], ['walking', 4], ['searching', 3]]);
+    const taps = past.flatMap((at, i) => [
+      { id: uid(), at, who: 'Op 1', activity: op1[(i * 7) % 36] ?? 'working', by: 'Sam Patel' },
+      { id: uid(), at, who: 'Op 2', activity: op2[(i * 11) % 36] ?? 'working', by: 'Sam Patel' },
+    ]);
+    await putStudy({ id: samplingId, tool: 'sampling', name: 'Packing hall, day shift', product: 'Maris Piper 2kg',
+      workspaceId: ws.id, standardId: lineOnly, projectId: proj.id,
+      agreed: { sampling: { who: ['Op 1', 'Op 2'], activities: ['working', 'walking', 'waiting', 'searching', 'away'], marginPts: 5,
+        from: t - 6 * HR, to: t + 2 * HR, prompts: [...past, due, ...ahead] } },
+      facts: { taps }, uses: [], startedAt: t - 6 * HR, createdAt: t, updatedAt: t });
+  }
+
   /* THE MAP INSIDE A CHANGE (B3): a fix raised from the QA wait on the line's
      map — its words the step's figures — and the line walked again as its
      proof, the wait typed shorter, the rest still carried from before. The
@@ -866,6 +891,6 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     pacedProjectId: paced.id, pacedLineId: pacedLine.id, treeProjectId: tree.id,
     measures: 2, readings: rows.length, materials: 7, programs: 7,
     problemId: misfeeds.id, closedProblemId: gap.id,
-    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId,
+    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId, samplingId,
   };
 }

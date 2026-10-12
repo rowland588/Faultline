@@ -161,13 +161,36 @@ export interface AgreedMap {
   supplier?: string;
 }
 
+/** WORK SAMPLING (docs/TOOLKIT.md, tool 9): who is watched, the activities
+ *  a tap can be, the margin wanted, and the shift's random moments — drawn
+ *  once when it starts, so every phone asks at the same instants. Agreed
+ *  before the first tap, so a tap never moves what it is counted against. */
+export interface AgreedSampling {
+  /** The people or roles watched — "Op 1", "Op 2", the team leader. */
+  who: string[];
+  /** What a tap can say: working · walking · waiting · searching · away, in the floor's words. */
+  activities: string[];
+  /** The margin wanted on each share, in points: 5 is ±5. */
+  marginPts: number;
+  /** The shift watched. */
+  from: number;
+  to: number;
+  /** The instants the phone asks at, inside the shift. */
+  prompts: number[];
+}
+
 /** What it is judged against, by tool — each tool its own key, so a new tool
  *  adds one and changes none. */
 export interface StudyAgreed {
   readings?: AgreedReadings;
   balance?: AgreedBalance;
   map?: AgreedMap;
+  sampling?: AgreedSampling;
 }
+
+/** One tap of work sampling: what one person was doing at one moment. Struck,
+ *  never erased: a mistap keeps its place and counts for nothing. */
+export interface Tap { id: string; at: number; who: string; activity: string; by?: string; struck?: boolean }
 
 /** What people put in, by tool. Every list is keyed by `id`, so two phones
  *  adding to one study both keep what they added (docs/BUILD.md, 2b). */
@@ -180,6 +203,8 @@ export interface StudyFacts {
   /** The same stream as it could run — copied from the flow, then struck,
    *  merged and shortened. */
   future?: FlowStep[];
+  /** Work sampling's taps — one per person per moment. */
+  taps?: Tap[];
 }
 
 /** What a study is evidence for, inside its job. Both ends write the same
@@ -267,5 +292,6 @@ export function factsOf(v: unknown): StudyFacts {
   return { ...o, ...(o.readings !== undefined ? { readings: listById<StudyReading>(o.readings) } : {}),
     ...(o.steps !== undefined ? { steps: listById<BalanceStep>(o.steps).map(st => ({ ...st, laps: listById<Lap>(st.laps) })) } : {}),
     ...(o.flow !== undefined ? { flow: listById<FlowStep>(o.flow) } : {}),
-    ...(o.future !== undefined ? { future: listById<FlowStep>(o.future) } : {}) };
+    ...(o.future !== undefined ? { future: listById<FlowStep>(o.future) } : {}),
+    ...(o.taps !== undefined ? { taps: listById<Tap>(o.taps) } : {}) };
 }

@@ -18,6 +18,7 @@ import type { SixM } from './sixm';
 import { sample, sampleSays, compareSamples, CPK_FROM, CPK_JUST, type SampleSays, type Tone } from './ie/sample';
 import { balance, balanceLine, compareBalances, secs as secsOf } from './ie/balance';
 import { carryFlow, compareFlows, compareStep, dur as durOf, flowFigures, flowSays, share as shareOf, stepAt, stepFigure, whoOf } from './ie/steps';
+import { samplingSays, samplingWorst, worstWords } from './ie/sampling';
 
 const live = (ss: ToolStudy[]) => ss.filter(s => !s.deletedAt);
 
@@ -35,12 +36,13 @@ export function studySays(s: ToolStudy): SampleSays {
     const f = flowFigures(s.facts.flow, s.agreed?.map);
     return { text: flowSays(f, s.agreed?.map).text, tone: 'n', verdict: f.steps ? `Lead time ${f.untimed ? 'at least ' : ''}${durOf(f.leadSec)}` : 'No steps yet' };
   }
+  if (s.tool === 'sampling') return samplingSays(s.agreed?.sampling, s.facts.taps ?? []);
   const a = s.agreed?.readings;
   return sampleSays(sample(a, s.facts.readings ?? []), a);
 }
 
 /** Each tool's name, as a study of it is called on screen and on paper. */
-export const TOOL_NAME: Partial<Record<ToolStudy['tool'], string>> = { capability: 'Capability study', balance: 'Work balance', map: 'Value stream map' };
+export const TOOL_NAME: Partial<Record<ToolStudy['tool'], string>> = { capability: 'Capability study', balance: 'Work balance', map: 'Value stream map', sampling: 'Work sampling' };
 
 /** "Capability study — Weight accuracy 400 g · Weigher 2". */
 export const studyTitle = (s: Pick<ToolStudy, 'tool' | 'name' | 'machine'>): string =>
@@ -242,7 +244,7 @@ export function countermeasureFrom(s: ToolStudy, x: { id: string; at: number; li
   return {
     id: x.id, ...(s.projectId ? { projectId: s.projectId } : {}), ...(x.lineId ? { lineId: x.lineId } : {}),
     what: betterWords(s, x.step), where: st ? stepAt(st, s.agreed?.map) : '', why: studyTitle(s), who: '', when: '', state: 'todo',
-    pillar: x.bone ?? (st ? boneOfStep(st, s) : s.tool === 'balance' || s.tool === 'map' ? 'method' : 'machine'),
+    pillar: x.bone ?? (st ? boneOfStep(st, s) : s.tool === 'balance' || s.tool === 'map' || s.tool === 'sampling' ? 'method' : 'machine'),
     ...(x.causeRef ? { causeRef: x.causeRef } : {}), ...(expect ? { expect } : {}),
     createdAt: x.at, updatedAt: x.at,
   };
@@ -315,6 +317,10 @@ export function betterWords(s: ToolStudy, stepId?: string): string {
     const f = balance(s.facts.steps, s.agreed?.balance), c = f.constraint;
     if (c && c.overBy > 0) return `${s.name}: ${c.who} carries ${secsOf(c.work)} against a ${secsOf(f.taktSec ?? 0)} takt — take ${secsOf(c.overBy)} of work off ${c.who}, or change how it is done.`;
   }
+  if (s.tool === 'sampling') {
+    const w = samplingWorst(s.agreed?.sampling, s.facts.taps ?? []);
+    if (w) return `${s.name}: ${worstWords(w)}.`;
+  }
   const why = said.tone === 'r' ? said.text : said.capability?.text ?? said.text;
   return `${s.name}: ${why}`;
 }
@@ -325,5 +331,7 @@ export function worthBetter(s: ToolStudy): boolean {
   if (s.tool === 'map') return false;
   const said = studySays(s);
   if (s.tool === 'balance') return said.verdict === 'Over takt';
+  /* a tenth of the time or more not working, known from enough taps */
+  if (s.tool === 'sampling') return (samplingWorst(s.agreed?.sampling, s.facts.taps ?? [])?.share ?? 0) >= 0.1;
   return said.tone === 'r' || said.capability?.tone === 'a';
 }

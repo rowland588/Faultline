@@ -21,6 +21,7 @@ import { Sheet } from '../ui/Sheet';
 import { sample, sampleSays } from '../lib/ie/sample';
 import { studyHref } from '../lib/studyLinks';
 import { dur, flowFigures, share } from '../lib/ie/steps';
+import { samplingSays } from '../lib/ie/sampling';
 import type { StudyTool, ToolStudy } from '../lib/study';
 import type { Workspace } from '../types';
 
@@ -46,7 +47,19 @@ const MAP: ToolWords = {
   none: 'No value stream maps yet. Pick a line, start where its work starts, and add each thing done on it, in the lane of whoever does it, to the pallet leaving.',
   second: { label: 'Which product or family?', placeholder: 'e.g. Finest Red 2kg' },
 };
-export const TOOL_WORDS: Partial<Record<StudyTool, ToolWords>> = { capability: CAPABILITY, map: MAP };
+/* Work sampling (docs/TOOLKIT.md, tool 9): the shift's moments drawn at
+   random, one tap per person at each — the shares, each with its margin. A
+   line's people are the ones watched, its product's standard brings them. */
+const SAMPLING: ToolWords = {
+  title: 'Work sampling',
+  one: 'Work sampling',
+  lede: 'What people are doing across a shift — working, walking, waiting, searching, away — from one tap per person at random moments. Every share is said with the margin it carries; nobody follows anyone with a stopwatch.',
+  add: 'New work sampling',
+  placeholder: 'e.g. Packing hall, day shift',
+  none: 'No work sampling yet. Pick a line and who is watched; the phone asks at random moments of the shift, and one tap per person says what each was doing.',
+  second: { label: 'Which product?', placeholder: 'e.g. Maris Piper 2kg' },
+};
+export const TOOL_WORDS: Partial<Record<StudyTool, ToolWords>> = { capability: CAPABILITY, map: MAP, sampling: SAMPLING };
 
 export { studyHref } from '../lib/studyLinks';
 
@@ -56,6 +69,7 @@ export function studyLine(s: ToolStudy): { text: string; tone: string } {
     const f = flowFigures(s.facts.flow, s.agreed?.map);
     return { text: f.steps ? `lead time ${f.untimed ? 'at least ' : ''}${dur(f.leadSec)} · ${share(f.pce ?? 0)} adds value` : 'no steps yet', tone: 'n' };
   }
+  if (s.tool === 'sampling') return { text: samplingSays(s.agreed?.sampling, s.facts.taps ?? []).verdict, tone: 'n' };
   const a = s.agreed?.readings;
   const said = sampleSays(sample(a, s.facts.readings ?? []), a);
   if (s.overrule) return { text: `${s.overrule.verdict} · overruled`, tone: 'n' };
@@ -122,7 +136,7 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
                   <button type="button" className="lt-row" onClick={() => nav(studyHref(s))}>
                     <b className="lt-what">{s.name || 'Not named'}{s.machine || s.product ? <span className="ie-li-m"> · {s.machine ?? s.product}</span> : null}</b>
                     <span className={'lt-says ie-tone is-' + said.tone}>{said.text}</span>
-                    <span className="lt-where">{s.tool === 'map' ? `${steps} step${steps === 1 ? '' : 's'}${(s.facts.future ?? []).length ? ' · a future state' : ''}` : count ? `${n} of ${count}` : `${n} reading${n === 1 ? '' : 's'}`}{s.closedAt ? ' · closed' : ''}</span>
+                    <span className="lt-where">{s.tool === 'sampling' ? `${(s.agreed?.sampling?.who ?? []).length} watched · ${(s.facts.taps ?? []).filter(x => !x.struck).length} taps` : s.tool === 'map' ? `${steps} step${steps === 1 ? '' : 's'}${(s.facts.future ?? []).length ? ' · a future state' : ''}` : count ? `${n} of ${count}` : `${n} reading${n === 1 ? '' : 's'}`}{s.closedAt ? ' · closed' : ''}</span>
                   </button>
                 </li>
               );
@@ -149,21 +163,22 @@ function NewStudy({ open, tool, onClose }: { open: boolean; tool: StudyTool; onC
   const [lineId, setLineId] = useState('');
   const [lines, setLines] = useState<Workspace[]>([]);
   const [standards, setStandards] = useState<Standard[]>([]);
-  useEffect(() => { if (open && tool === 'map') void listWorkspaces().then(setLines); }, [open, tool]);
+  useEffect(() => { if (open && (tool === 'map' || tool === 'sampling')) void listWorkspaces().then(setLines); }, [open, tool]);
   useEffect(() => { if (lineId) void listStandardsForLine(lineId).then(setStandards); else setStandards([]); }, [lineId]);
-  const isLine = tool === 'map';
+  /* a map is always a line's; a sampling study watches a line's people */
+  const isLine = tool === 'map' || tool === 'sampling';
   const ready = !!name.trim() && !busy && (!isLine || !!lineId);
   const make = async () => {
     if (!ready) return;
     setBusy(true);
     try {
       const t = now();
-      const second = machine.trim() ? (tool === 'map' ? { product: machine.trim() } : { machine: machine.trim() }) : {};
+      const second = machine.trim() ? (isLine ? { product: machine.trim() } : { machine: machine.trim() }) : {};
       /* A line's map sits on the line, and on its product's line standard when
          there is one — its people are the lanes. */
       const std = isLine ? standards.find(x => !x.deletedAt && x.product.trim().toLowerCase() === machine.trim().toLowerCase()) : undefined;
       const s: ToolStudy = { id: uid(), tool, name: name.trim(), ...second,
-        ...(isLine ? { workspaceId: lineId, agreed: { map: { scope: 'line' as const } } } : {}), ...(std ? { standardId: std.id } : {}),
+        ...(isLine ? { workspaceId: lineId } : {}), ...(tool === 'map' ? { agreed: { map: { scope: 'line' as const } } } : {}), ...(std ? { standardId: std.id } : {}),
         facts: {}, uses: [], startedAt: t, createdAt: t, updatedAt: t };
       await putStudy(s);
       setName(''); setMachine(''); onClose();
@@ -179,7 +194,7 @@ function NewStudy({ open, tool, onClose }: { open: boolean; tool: StudyTool; onC
               <option value="">Pick the line…</option>
               {lines.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
             </select>
-            <span className="sub">A lane for each person or department whose work touches the line — Op 1, Op 2, the machine, the team leader, planning, stores, quality, maintenance.</span>
+            <span className="sub">{tool === 'map' ? 'A lane for each person or department whose work touches the line — Op 1, Op 2, the machine, the team leader, planning, stores, quality, maintenance.' : 'Its product’s line standard brings the people to watch; anyone else is added by name.'}</span>
           </label>
         )}
         <label className="field"><span className="field-label">What is it of?</span>
@@ -188,7 +203,7 @@ function NewStudy({ open, tool, onClose }: { open: boolean; tool: StudyTool; onC
         <label className="field"><span className="field-label">{w.second.label} <i className="sub">optional</i></span>
           <input className="text-input" value={machine} maxLength={80} placeholder={w.second.placeholder} list={isLine ? 'new-map-products' : undefined} onChange={e => setMachine(e.target.value)} />
           {isLine && <datalist id="new-map-products">{standards.filter(x => !x.deletedAt).map(x => <option key={x.id} value={x.product} />)}</datalist>}
-          {isLine && standards.length > 0 && <span className="sub">A product with a line standard brings its people as the lanes.</span>}
+          {isLine && standards.length > 0 && <span className="sub">{tool === 'map' ? 'A product with a line standard brings its people as the lanes.' : 'A product with a line standard brings its people to watch.'}</span>}
         </label>
         <button type="submit" className="btn btn-primary" disabled={!ready}>Start it</button>
       </form>
