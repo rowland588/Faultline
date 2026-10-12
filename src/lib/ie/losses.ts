@@ -57,7 +57,7 @@ import type { LossCount, RunTiming } from '../study';
 import type { SixM } from '../sixm';
 import { boneOfStop } from '../sixm';
 import { labourPerHour } from '../cost';
-import { analyse, type Capacity, type Station } from '../capacity';
+import { analyse, lineSpeed, type Capacity, type Station } from '../capacity';
 import { shiftWindow } from '../shifts';
 import { todayISO } from '../weeks';
 import type { Tone } from './sample';
@@ -111,14 +111,17 @@ export function idealOf(cap?: Pick<Capacity, 'stations'>): IdealPace {
   const lim = analyse({ stations }).limitAtRunning;
   if (!lim) return { why: anyIdeal ? 'the stations at their ideal speed cannot be counted on Line capacity yet' : 'no station on Line capacity has a speed yet', anyIdeal };
   const name = lim.station.name.trim() || `station ${lim.index + 1}`;
-  const rate = Math.round(lim.running * 100) / 100;
   const src = lim.station.source ?? 'estimate';
-  if (lim.station.kind === 'machine') {
-    return src === 'plate' ? { rate, station: name, how: 'plate', why: `plate speed of the ${name}`, anyIdeal }
-      : { why: `the ${name} sets the pace and its speed is ${MACHINE_NOT[src] ?? MACHINE_NOT.estimate}`, anyIdeal };
+  /* The figure is the line's speed (lib/capacity lineSpeed) — one function,
+     so SMED and the loss count never count a stop at two different speeds. */
+  const sp = lineSpeed({ stations } as Capacity);
+  if (sp) {
+    const rate = Math.round(sp.perMin * 100) / 100;
+    if (sp.from === 'plate') return { rate, station: name, how: 'plate', why: `plate speed of the ${name}`, anyIdeal };
+    return src === 'standard' ? { rate, station: name, how: 'standard', why: `standard time of ${name} (the time study)`, anyIdeal }
+      : { rate, station: name, how: 'timed', why: `${name}’s timed pace`, anyIdeal };
   }
-  if (src === 'standard') return { rate, station: name, how: 'standard', why: `standard time of ${name} (the time study)`, anyIdeal };
-  if (src === 'timed') return { rate, station: name, how: 'timed', why: `${name}’s timed pace`, anyIdeal };
+  if (lim.station.kind === 'machine') return { why: `the ${name} sets the pace and its speed is ${MACHINE_NOT[src] ?? MACHINE_NOT.estimate}`, anyIdeal };
   return { why: `${name} sets the pace and their speed is a guess — time them in the time study`, anyIdeal };
 }
 
