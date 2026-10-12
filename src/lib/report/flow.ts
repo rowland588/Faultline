@@ -91,6 +91,11 @@ export async function pour(f: Frame, blocks: Block[], newPage: () => void): Prom
   /** What is left of a block after a split carries its run heading on. */
   const carry = (rest: Block, from: Block): Block => (from.runHead && !rest.runHead ? { ...rest, runHead: from.runHead } : rest);
   const nextPage = () => { wanted = true; y = f.top; headOnly = true; if (waiting.length) due = true; };
+  /** The next thing with ink after block i is pages of their own that will not wait (not a float). */
+  const hardBreakAfter = (i: number): boolean => {
+    for (let j = i + 1; j < queue.length; j++) { const x = queue[j]; if (x.insert) { if (x.float) continue; return true; } if (x.height(f) > 0) return false; }
+    return false;
+  };
   const place = () => { if (wanted) { if (!f.dry) newPage(); pages++; wanted = false; } };
   /* Its own pages follow whatever page the flow is on; the flow resumes on a
      fresh one. The state is set before the await, never after it. */
@@ -158,7 +163,23 @@ export async function pour(f: Frame, blocks: Block[], newPage: () => void): Prom
     if (b.split && !b.keepWithNext) {
       /* Under headings, a table may start with a single row: a heading left
          alone at the foot is worse than a heading with one row under it. */
-      const parts = b.split(f, f.bottom - y, { allowOne: headOnly && y > f.top + 0.5 });
+      const opts = { allowOne: headOnly && y > f.top + 0.5 };
+      let parts = b.split(f, f.bottom - y, opts);
+      /* WHAT IS LEFT, BEFORE A PAGE OF ITS OWN. When what this split leaves
+         is the last thing before pages of their own (the line standard's
+         cards), it is all the next page will hold — and two rows of "What
+         we're waiting on" sat alone on a page before them (found by the
+         stress run on the huge client report). So carry enough over to fill
+         a quarter of that page, when this page keeps a quarter too. */
+      if (parts && hardBreakAfter(i)) {
+        const want = page * 0.25;
+        const rest = parts[1].height(f) - (parts[1].after?.(f) ?? 0);
+        if (rest < want) {
+          const room = f.bottom - y - (want - rest);
+          const fewer = room > 0 ? b.split(f, room, opts) : null;
+          if (fewer && y - f.top + fewer[0].height(f) - (fewer[0].after?.(f) ?? 0) >= want) parts = fewer;
+        }
+      }
       if (parts) {
         place();
         if (!f.dry) parts[0].draw(f, y);

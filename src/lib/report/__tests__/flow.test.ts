@@ -288,3 +288,19 @@ describe('the report engine, at its edges', () => {
     expect(stays.marks.find(m => m.id === 'H2')?.page).toBe(1);
   });
 });
+
+describe('what a split leaves before pages of their own', () => {
+  it('is never a sliver alone on a page: enough rows carry over to fill a quarter of it, the page before keeping a quarter', async () => {
+    const p = new Paper();
+    const f = { doc: p.doc, x: 0, w: 500, top: 0, bottom: 800, density: 'comfortable' as const, dry: false };
+    /* 700 of the page used; a table of 20 rows of 30 — 3 fit here, 17 left;
+       then a table that leaves 2 rows (60) before the insert. */
+    const mk = (k: string, n: number, h: number) => rows({ rows: Array.from({ length: n }, (_, i) => ({ h: () => h, draw: (_f: Frame, y: number) => { p.marks.push({ id: `${k}${i}`, page: p.page, top: y, bottom: y + h, kind: 'row' }); } })) });
+    const blocks: Block[] = [box(() => 640, () => undefined), mk('R', 25, 30), pagesOf(() => { p.page++; p.marks.push({ id: 'I', page: p.page, top: 0, bottom: 0, kind: 'insert' }); })];
+    await pour(f, blocks, () => { p.page++; });
+    const before = p.marks.filter(m => m.kind === 'row' && m.page === 2);
+    const used = before.length ? Math.max(...before.map(m => m.bottom)) : 0;
+    expect(used).toBeGreaterThanOrEqual(800 * 0.25);
+    expect(p.marks.filter(m => m.kind === 'row').length).toBe(25);
+  });
+});
