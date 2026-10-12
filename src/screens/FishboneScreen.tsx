@@ -192,7 +192,7 @@ function useDoors(projectId: string, line: PaceLineRow | undefined): Door[] {
         says: r?.sentence ?? `${station} is the slowest station`,
         source: { kind: 'constraint', station } });
     } else {
-      doors.push({ key: 'constraint', label: 'The constraint', says: 'The line balance is not counted yet', source: { kind: 'constraint' } });
+      doors.push({ key: 'constraint', label: 'The constraint', says: 'The line capacity is not counted yet', source: { kind: 'constraint' } });
     }
     doors.push({ key: 'observed', label: 'Something seen', says: 'A problem seen on the line, in your own words', source: { kind: 'observed' } });
     return doors;

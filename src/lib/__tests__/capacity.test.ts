@@ -456,7 +456,7 @@ describe('a what-if beside the line', () => {
     const a = makeItSoWords('Line 2A', w, ['Basketer: 5.5 → 9 baskets a minute'], 'With New basketer, the line would do 70 bags/min instead of 44 (+26).');
     expect(a.what).toBe('Make it so on Line 2A: New basketer');
     expect(a.where).toBe('Basketer: 5.5 → 9 baskets a minute');
-    expect(a.why).toMatch(/^Predicted on the line balance — With New basketer/);
+    expect(a.why).toMatch(/^Predicted on the line capacity — With New basketer/);
   });
 });
 

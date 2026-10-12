@@ -245,6 +245,7 @@ function CapacityPage({ report, sheet, title, scale, sheetH, n, of }: {
                 <div key={l.name} className="exec-cp">
                   <div className="exec-cp-h"><b>{l.name}</b>{l.owner && <span>owned by {l.owner}</span>}</div>
                   <p className="exec-cp-says">{l.sentence}</p>
+                  {l.vSays && <p className="exec-cp-says exec-cp-v">{l.vSays}</p>}
                   <ol className="exec-cp-rows">
                     {l.rows.map(r => (
                       <li key={r.name} className={'exec-cp-row' + (r.limit ? ' is-limit' : '')}>

@@ -96,8 +96,8 @@ const reds = async () => (await page.locator('.ie-says p.ie-say.is-r').allInnerT
   const wantRed = t.said.lines.filter(l => l.tone === 'r').map(l => l.text);
   ok(await main() === t.said.text && JSON.stringify(await reds()) === JSON.stringify(wantRed) && wantRed.length > 0,
     `1 the People view: "${(await reds()).join(' ')}" "${await main()}"`);
-  ok((await page.locator('.wb-svg').count()) === 1 && (await page.getByRole('tab', { name: 'People — the work, timed' }).getAttribute('aria-selected')) === 'true',
-    '1 the stacks against takt, under "People — the work, timed"');
+  ok((await page.locator('.wb-svg').count()) === 1 && (await page.getByRole('tab', { name: 'People — the work against takt' }).getAttribute('aria-selected')) === 'true',
+    '1 the stacks against takt, under "People — the work against takt"');
 }
 
 /* ---- 2 · an element added and timed with the stopwatch ---- */

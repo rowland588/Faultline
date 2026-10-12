@@ -37,65 +37,63 @@ import { BoneChips } from '../ui/ActionSheet';
 import { useAccess } from '../cloud/access';
 import type { Can } from '../lib/access';
 import {
-  EMPTY_CAPACITY, analyse, syncWhatIfs, withWhatIfStations, blankStation, changedByStation, changedWords, compareSays, crossCheck, fmtN, lineIfRaised, makeItSoWords,
-  stopStats, suggestRunning, whatIfCapacity,
+  EMPTY_CAPACITY, analyse, syncWhatIfs, withWhatIfStations, blankStation, changedWords, compareSays, crossCheck, fmtN, lineIfRaised, makeItSoWords,
+  stopStats, suggestRunning, vCurve, whatIfCapacity,
   type Capacity, type RatePer, type Station, type StationResult, type WhatIf,
 } from '../lib/capacity';
 import { useLineStops } from '../lib/useLineStops';
 import { Icon } from '../ui/Icon';
+import { VCurveView } from '../ui/VCurve';
 
 const PER_WORD: Record<RatePer, string> = { sec: 'a second', min: 'a minute', hour: 'an hour' };
 const SOURCES: { id: NonNullable<Station['source']>; label: string }[] = [
   { id: 'plate', label: 'On the plate' }, { id: 'timed', label: 'I timed it' }, { id: 'estimate', label: 'A guess' },
 ];
 
-/* ================================ the ladder ================================ */
-
-/* The ladder. `top` is the scale every view of this line shares — as run and
- * every what-if — so flipping tabs shows a bar GROW or SHRINK rather than the
- * whole ladder re-fitting itself and nothing seeming to move. `moved` is what
- * a what-if changed at each station, said under its bar ("5.5 baskets a minute
- * → 8 baskets a minute"), so the reason for the new shape is on the row. */
-function Ladder({ r, top: sharedTop, moved }: { r: ReturnType<typeof analyse>; top?: number; moved?: Map<string, string[]> }) {
-  const top = sharedTop ?? (Math.max(...r.ok.map(x => x.running), r.target ?? 0) * 1.06 || 1);
-  const at = (v: number) => `${Math.min(100, (v / top) * 100)}%`;
+/* ============================ the capacity sheet ============================
+ * docs/CAPACITY.md §2 — Toyota's production capacity sheet, for a packaging
+ * line: a row per station in flow order, its own unit and the conversion
+ * from the one before, its speed and how it is known (a machine on the plate;
+ * a person timed), its own stops and good share, what it does a minute and an
+ * hour in the line's unit once its stops count, its share of the bottleneck's
+ * and what the target needs of it — over 100% red: it cannot. Read here;
+ * changed on the station's card below. */
+const HOW: Record<NonNullable<Station['source']>, string> = { plate: 'on the plate', timed: 'timed', estimate: 'a guess' };
+function CapacitySheet({ r, v, target }: { r: ReturnType<typeof analyse>; v: ReturnType<typeof vCurve>; target?: number }) {
+  if (!r.ok.length) return null;
+  const pctOf = new Map(v.points.map(p => [p.index, p]));
   return (
-    <ol className="cap-ladder" aria-label={`Each station’s capacity in ${r.unit} a minute`}>
-      {r.ok.map(x => {
-        const isLimit = r.limit?.index === x.index;
-        const was = moved?.get(x.station.id);
-        return (
-          <li key={x.station.id} className={'cap-row' + (isLimit ? ' is-limit' : '') + (was ? ' is-changed' : '')}>
-            <span className="cap-who">
-              <span className="cap-ic" aria-hidden><Icon name={x.station.kind === 'people' ? 'person' : 'machine'} size={14} /></span>
-              <b>{x.station.name.trim() || `Station ${x.index + 1}`}</b>
-              {isLimit && <span className="cap-flag">{moved ? 'would limit the line' : 'limits the line'}</span>}
-              {was && <span className="cap-moved">changed</span>}
-              {x.chain && <span className="cap-chain">{x.chain}</span>}
-              {was && was.map(x => <span key={x} className="cap-was">{x}</span>)}
-            </span>
-            <span className="cap-track">
-              {/* what it does at running speed, behind what it does once its own
-                  stops are counted — the gap between them IS the stops */}
-              <span className="cap-bar is-run" style={{ width: at(x.running) }} />
-              <span className="cap-bar is-eff" style={{ width: at(x.effective) }} />
-              {r.target != null && <span className="cap-target" style={{ left: at(r.target) }} title={`Target ${fmtN(r.target)} ${r.unit}/min`} />}
-              {r.line != null && <span className="cap-pace" style={{ left: at(r.line) }} aria-hidden />}
-            </span>
-            <span className="cap-val">
-              {fmtN(x.effective)}
-              {x.effective < x.running - 1e-9 && <span className="cap-val-s">{fmtN(x.running)} running</span>}
-            </span>
-          </li>
-        );
-      })}
-      <li className="cap-key" aria-hidden>
-        <span><i className="cap-sw is-eff" /> with its stops</span>
-        <span><i className="cap-sw is-run" /> running speed</span>
-        {r.target != null && <span><i className="cap-sw is-target" /> target</span>}
-        <span className="cap-key-u">{r.unit} a minute</span>
-      </li>
-    </ol>
+    <div className="cap-sheet-box">
+      <table className="cap-sheet">
+        <thead><tr><th>#</th><th>Station</th><th>Its unit</th><th className="n">Speed</th><th className="n">Own stops</th><th className="n">Good</th>
+          <th className="n">{r.unit} a min</th><th className="n">{r.unit} an hour</th><th className="n">Of the bottleneck</th>{target != null && <th className="n">Target needs</th>}</tr></thead>
+        <tbody>
+          {r.ok.map(x => {
+            const s = x.station, p = pctOf.get(x.index), isLimit = r.limit?.index === x.index;
+            const need = target != null && x.effective > 0 ? (target / x.effective) * 100 : undefined;
+            const speed = s.rate != null ? `${fmtN(s.rate)} a ${s.ratePer === 'hour' ? 'hour' : s.ratePer === 'sec' ? 'second' : 'minute'}`
+              : s.cycleSec ? `${fmtN(s.perCycle ?? 1)} every ${fmtN(s.cycleSec)} s` : '—';
+            return (
+              <tr key={s.id} className={isLimit ? 'is-limit' : ''}>
+                <td>{x.index + 1}</td>
+                <td><span className="cap-ic" aria-hidden><Icon name={s.kind === 'people' ? 'person' : 'machine'} size={14} /></span> <b>{s.name.trim() || `Station ${x.index + 1}`}</b>
+                  {(s.crew ?? 1) > 1 && <span className="sub"> ×{s.crew}</span>}</td>
+                <td>{s.unit}{x.index > 0 && (s.contains ?? 1) !== 1 ? <span className="cap-sheet-k">1 = {fmtN(s.contains)} of the one before</span> : null}</td>
+                <td className="n cap-sheet-sp">{speed}<span className={'cap-sheet-k' + (s.kind === 'machine' && s.source !== 'plate' ? ' cap-sheet-a' : '')}>
+                  {/* a machine goes by its plate speed (docs/CAPACITY.md §1); running below it is a loss, not a lower plate */}
+                  {s.kind === 'machine' ? (s.source === 'plate' ? HOW.plate : `${s.source ? HOW[s.source] : 'typed'} — not its plate speed`) : s.source ? HOW[s.source] : 'not timed yet'}</span></td>
+                <td className="n">{s.runningPct != null && s.runningPct < 100 ? `${fmtN(100 - s.runningPct)}%` : '—'}</td>
+                <td className="n">{s.goodPct != null && s.goodPct < 100 ? `${fmtN(s.goodPct)}%` : '—'}</td>
+                <td className="n"><b>{fmtN(x.effective)}</b></td>
+                <td className="n">{fmtN(x.effective * 60)}</td>
+                <td className="n">{isLimit ? <b>the bottleneck</b> : p ? <span className={p.under ? 'cap-sheet-a' : ''}>{fmtN(Math.round(p.pct))}%{p.under ? ' · under the V' : ''}</span> : '—'}</td>
+                {target != null && <td className="n"><span className={need != null && need > 100 + 1e-9 ? 'cap-sheet-r' : ''}>{need != null ? `${fmtN(Math.round(need))}%` : '—'}</span></td>}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -326,13 +324,6 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
   const asRun = useMemo(() => analyse(cap), [cap]);
   const compare = w ? compareSays(asRun, r, w.name) : undefined;
   const changed = useMemo(() => (w ? changedWords(cap.stations, current.stations) : []), [cap.stations, w, current.stations]);
-  const moved = useMemo(() => (w ? changedByStation(cap.stations, current.stations) : undefined), [cap.stations, w, current.stations]);
-  /* One scale for every view of the line, so a what-if's bar is longer or
-     shorter ON SCREEN than the same station as run — not re-fitted to full width. */
-  const top = useMemo(() => {
-    const all = [asRun, ...(cap.whatIfs ?? []).map(x => analyse(whatIfCapacity(cap, x)))];
-    return Math.max(...all.flatMap(a => [...a.ok.map(x => x.running), a.target ?? 0])) * 1.06 || 1;
-  }, [cap, asRun]);
   const check = useMemo(() => crossCheck(r, stats), [r, stats]);
   const why = (id: string) => r.skipped.find(x => x.station.id === id)?.why;
   const result = (id: string) => r.ok.find(x => x.station.id === id);
@@ -475,7 +466,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
         <h2 className="pace-sec-title">Where {line.name} is limited</h2>
         <p className="pace-sec-sub">
           The stations in the order product goes through them, each at its own speed, put into one unit.
-          The shortest bar is what holds everything else back — a screen to show where to look, not a simulation.
+          The V below puts each one beside the bottleneck — the one that holds everything else back — a screen to show where to look, not a simulation.
         </p>
       </div>
 
@@ -523,7 +514,9 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
         )}
       </div>
 
-      {r.ok.length > 0 && <Ladder r={r} top={top} moved={moved} />}
+      {r.ok.length > 0 && <VCurveView r={r} v={vCurve(r, cap.vMarginPct)} target={current.targetPerMin} margin={cap.vMarginPct} canAgree={can.agree && !w}
+        onMargin={m => commit({ ...cap, vMarginPct: m })} />}
+      {r.ok.length > 0 && <CapacitySheet r={r} v={vCurve(r, cap.vMarginPct)} target={current.targetPerMin} />}
 
       {(check || r.notes.length > 0) && (
         <ul className="cap-notes" role="note">

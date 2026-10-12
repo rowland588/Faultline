@@ -486,7 +486,7 @@ function LineCard({ line, pack, projectId, series, balance, work, flow, change }
       {/* LINE BALANCE, on the card of the line it is about — where each machine
           and person runs at its own speed and the slowest is the limit. */}
       <button className={'lc-bal' + (balance ? ' is-set' : '')} onClick={() => nav(`/project/${projectId}/line/${line.id}?view=capacity`)}>
-        <span className="lc-bal-k">Line balance</span>
+        <span className="lc-bal-k">Line capacity</span>
         <span className="lc-bal-t">{balance ?? 'Not counted yet — add the machines and people, each at its own speed'}</span>
         <span className="lc-bal-go" aria-hidden>›</span>
       </button>

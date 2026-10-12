@@ -79,7 +79,7 @@ const ROUTES = [
   ['notes — 6M', `#/project/${seeded.pacedProjectId}/notes`],
   ['line standard', `#/project/${seeded.projectId}/standard`],
   ['line standard — a map', `#/project/${seeded.projectId}/standard/${seeded.standardId}`],
-  /* A line's own map, on no job, opened from Line balance at its balance. */
+  /* A line's own map, on no job, opened from Line capacity at its balance. */
   ['line standard on a line — at its balance', `#/w/${seeded.wsId}/standards/${seeded.lineStandardId}?at=balance`],
   ['a capability study — thirty packs, passed, not capable', `#/capability/${seeded.studyId}`],
   ['a value stream map saved door to door before maps were only a line\'s — still opens', `#/value-stream/${seeded.mapId}`],

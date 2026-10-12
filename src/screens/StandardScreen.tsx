@@ -524,7 +524,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
     <div className="wrap pace ls lb">
       <header className="ls-head">
         <div className="ls-head-main">
-          <p className="sub"><button type="button" className="cw-link" onClick={() => nav(home.base)}>{home.wsId && !home.project ? 'Line maps and balances' : 'Line standard'}</button> · Line balance</p>
+          <p className="sub"><button type="button" className="cw-link" onClick={() => nav(home.base)}>{home.wsId && !home.project ? 'Line maps and balances' : 'Line standard'}</button> · Line capacity</p>
           <h1 className="ls-product is-read">{s.product}</h1>
         </div>
         <div className="ls-head-actions">
@@ -533,8 +533,8 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
       </header>
       <BelongsTo s={s} home={home} can={can} onJob={projectId => { void save({ projectId }); void followStandard(s.id, projectId); }} />
       <div className="chip-row lb-views" role="tablist" aria-label="Which balance">
-        <button type="button" role="tab" aria-selected={!atWork} className={'chip' + (!atWork ? ' on' : '')} onClick={() => nav(`${here}?at=balance`)}>Machines — capacity</button>
-        <button type="button" role="tab" aria-selected={atWork} className={'chip' + (atWork ? ' on' : '')} onClick={() => nav(`${here}?at=balance&view=work`)}>People — the work, timed</button>
+        <button type="button" role="tab" aria-selected={!atWork} className={'chip' + (!atWork ? ' on' : '')} onClick={() => nav(`${here}?at=balance`)}>Capacity</button>
+        <button type="button" role="tab" aria-selected={atWork} className={'chip' + (atWork ? ' on' : '')} onClick={() => nav(`${here}?at=balance&view=work`)}>People — the work against takt</button>
       </div>
       <div id="ls-balance" className="ls-balance">
         {atWork ? <WorkView s={s} can={can} /> : (
@@ -684,7 +684,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
           where the line is limited, and the door to the balance itself
           (?at=balance). The panel is on its own page. */}
       <div className="ls-balance-line">
-        <span className="ls-bl-h">Line balance</span>
+        <span className="ls-bl-h">Line capacity</span>
         <span className={'ls-bl-say' + (balanceSaid.short ? ' is-short' : '')}>{balanceSaid.text}</span>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`${here}?at=balance`)}>Open the balance ›</button>
       </div>

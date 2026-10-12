@@ -77,6 +77,12 @@ export interface Capacity {
    *  against. Only used to SUGGEST a running percentage, never silently. */
   plannedHoursPerWeek?: number;
   stations: Station[];
+  /** THE V's MARGIN (docs/CAPACITY.md §4): how much faster, in percent, each
+   *  station a step away from the bottleneck is agreed to be — so a short stop
+   *  beside it never starves or blocks it. About 10% a step is the usual
+   *  starting point on an accumulation line (a convention, not a law), so it
+   *  is the owner's to set; until it is set, no guide is drawn. */
+  vMarginPct?: number;
   /** WHAT-IFS. Rowland: "I have a line, but I may take a machine out and put
    *  another machine in… swipe left, add a different machine name — oh look,
    *  it changes, that's a different bottleneck." A what-if is a copy of the
@@ -643,7 +649,7 @@ export function makeItSoWords(lineName: string, w: WhatIf, changed: string[], co
   return {
     what: `Make it so on ${lineName}: ${w.name}`,
     where: changed.length ? changed.join('; ') : lineName,
-    why: `Predicted on the line balance — ${compare}`,
+    why: `Predicted on the line capacity — ${compare}`,
   };
 }
 
@@ -657,6 +663,8 @@ export interface CapacityReportLine {
   unit: string;
   /** The same sentence the Capacity lens leads with. */
   sentence: string;
+  /** What the V-curve says, once the owner has agreed its margin (vCurve). */
+  vSays?: string;
   line: number;
   target?: number;
   /** The most any bar reaches — the scale both drawings share. */
@@ -704,8 +712,8 @@ export function stationDetail(s: Station): string {
  *  (three lines each, so more than a unit), and each what-if — its sentence,
  *  the changes it lists, and its own compact ladder (a short row a station,
  *  plus its key). Shared by the sheet plan and the PDF so they cannot disagree. */
-export function lineSheetUnits(l: Pick<CapacityReportLine, 'rows' | 'more' | 'whatIfs'>): number {
-  return 3 + l.rows.length * 1.6 + (l.more > 0 ? 1 : 0)
+export function lineSheetUnits(l: Pick<CapacityReportLine, 'rows' | 'more' | 'whatIfs' | 'vSays'>): number {
+  return 3 + (l.vSays ? 1 : 0) + l.rows.length * 1.6 + (l.more > 0 ? 1 : 0)
     + l.whatIfs.reduce((n, w) => n + 1 + Math.min(w.changed.length, 3) * 0.5 + w.rows.length * 0.8 + (w.rows.length ? 0.5 : 0), 0);
 }
 export interface CapacityReport { lines: CapacityReportLine[] }
@@ -745,6 +753,7 @@ export function capacityReport(lines: { name: string; owner?: string; capacity?:
     const top = Math.max(...shown.map(x => x.running), ...whatIfs.flatMap(w => w.rows.map(x => x.running)), r.target ?? 0, ...whatIfs.map(w => w.target ?? 0)) * 1.06 || 1;
     out.push({
       name: l.name, owner: l.owner, unit: r.unit, sentence: r.sentence, line: r.line, target: r.target,
+      ...(cap.vMarginPct ? { vSays: vCurve(r, cap.vMarginPct).sentence } : {}),
       top,
       rows: shown.map(x => ({
         name: x.station.name.trim() || `Station ${x.index + 1}`, kind: x.station.kind, chain: x.chain,
@@ -770,4 +779,56 @@ export function capacityPlan(report: CapacityReport): number[][] {
     used += w;
   });
   return sheets;
+}
+
+
+/* ================================ the V-curve ================================
+ * docs/CAPACITY.md §4. Every station's capacity once its own stops count, as
+ * a share of the bottleneck's, in the order the product flows: the
+ * bottleneck at the bottom, the stations either side rising away from it.
+ * With the owner's margin, the guide V says how fast each station a step
+ * away should be; a station under it is the one whose short stop will starve
+ * (upstream) or block (downstream) the bottleneck. Nothing is stored here
+ * but the margin; the points come from analyse() on every render. */
+export interface VPoint {
+  index: number;
+  name: string;
+  kind: StationKind;
+  /** Once its own stops count, as a percentage of the bottleneck's. */
+  pct: number;
+  /** While running, the same way. */
+  runningPct: number;
+  /** In the line's unit a minute, once its stops count. */
+  perMin: number;
+  /** The guide V's percentage at this station, when the margin is set. */
+  guide?: number;
+  /** Steps from the bottleneck: negative upstream, positive downstream. */
+  steps: number;
+  isLimit: boolean;
+  under: boolean;
+}
+export interface VCurve { points: VPoint[]; under: VPoint[]; limit?: VPoint; sentence: string }
+
+const nameOf = (x: StationResult): string => x.station.name.trim() || `Station ${x.index + 1}`;
+
+export function vCurve(r: CapacityResult, marginPct?: number): VCurve {
+  const lim = r.limit;
+  if (!lim || !r.ok.length) return { points: [], under: [], sentence: 'Put in the stations and their speeds; the V draws itself once the bottleneck is known.' };
+  const at = r.ok.indexOf(lim);
+  const m = marginPct != null && marginPct > 0 ? marginPct : undefined;
+  const points: VPoint[] = r.ok.map((x, i) => {
+    const steps = i - at;
+    const guide = m != null && steps !== 0 ? 100 + m * Math.abs(steps) : undefined;
+    const pct = (x.effective / lim.effective) * 100;
+    return { index: x.index, name: nameOf(x), kind: x.station.kind, pct, runningPct: (x.running / lim.effective) * 100, perMin: x.effective,
+      ...(guide != null ? { guide } : {}), steps, isLimit: i === at, under: guide != null && pct < guide - 1e-9 };
+  });
+  const limit = points[at];
+  const under = points.filter(p => p.under);
+  const ln = limit ? limit.name : '';
+  let sentence: string;
+  if (m == null) sentence = `${ln} is the bottleneck at ${fmtN(lim.effective)} ${r.unit} a minute. Set the V's margin to see whether the stations either side protect it — about 10% a step is the usual starting point.`;
+  else if (!under.length) sentence = `Every station clears the V: each step away from ${ln} is at least ${fmtN(m)}% faster, so a short stop beside it is absorbed.`;
+  else sentence = under.map((p, i) => `${i ? 'the' : 'The'} ${p.name.toLowerCase().startsWith('op ') ? p.name : p.name.charAt(0).toLowerCase() + p.name.slice(1)} is only ${fmtN(Math.max(0, Math.round(p.pct - 100)))}% faster than ${ln} (the V asks ${fmtN(Math.round((p.guide ?? 100) - 100))}%) — a short stop there ${p.steps > 0 ? 'blocks' : 'starves'} ${ln}`).join('; ') + '.';
+  return { points, under, ...(limit ? { limit } : {}), sentence };
 }
