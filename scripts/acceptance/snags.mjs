@@ -12,8 +12,9 @@
  *      (lib/snagsReport, the register); the demo line's never here
  *   2  a problem tapped opens as its own editor where it sits: its words
  *      changed, its priority, where it stands — each kept as it is left
- *   3  assigned, not moved: its line, its machine (the jobs' machines offered,
- *      another typed), its job — it stays here, and shows on the job too
+ *   3  assigned, not moved: its machine (the jobs' machines offered, another
+ *      typed), its project — it stays here, and shows on the job too; a new
+ *      line made from the problem, and the line renamed
  *   4  its journey: a step added (a day, what we did, what came of it),
  *      shown under it, changed, taken off
  *   5  a photo marked from the editor — the mark kept on the problem
@@ -142,9 +143,24 @@ await go('#/snags');
   await row(what).locator('.pe').getByLabel('Another machine').fill('Ribbon printer, outfeed'); await row(what).locator('.pe').getByLabel('Another machine').blur(); await page.waitForTimeout(700);
   s = await snag(what);
   ok(s?.targetAsset === 'Ribbon printer, outfeed', '3 or another machine typed');
-  await row(what).locator('.pe').getByLabel('Which job').selectOption({ label: sd.job }); await page.waitForTimeout(700);
+  await row(what).locator('.pe').getByLabel('Which project').selectOption({ label: sd.job }); await page.waitForTimeout(700);
   s = await snag(what);
   ok(s?.projectId === sd.projectId && !(s?.sent ?? []).length && (await row(what).count()) === 1 && (await words('.qsl-meta', row(what))).includes(`for ${sd.job}`), `3 assigned to ${sd.job}: it stays here, saying so — never moved away`);
+  /* A new line typed from the problem, then renamed when its name is wrong —
+     Rowland, 12 October: "I cannot pick line 2B ... I may make a mistake and
+     assign something to the wrong name". Then back on its line for the rest. */
+  const wasOn = s?.workspaceId;
+  const lineCalled = id => page.evaluate(async x => (await (await import('/src/db.ts')).listWorkspaces()).find(w => w.id === x)?.name, id);
+  page.once('dialog', d => void d.accept('Line 2B'));
+  await row(what).locator('.pe').getByLabel('Which line').selectOption({ label: 'A new line…' }); await page.waitForTimeout(1000);
+  s = await snag(what);
+  const made = s?.workspaceId !== wasOn ? await lineCalled(s?.workspaceId) : undefined;
+  ok(made === 'Line 2B', `3 a new line made from the problem, the problem on it: ${made}`);
+  page.once('dialog', d => void d.accept('Line 2B — packing'));
+  await row(what).locator('.pe').getByRole('button', { name: 'Rename this line' }).click(); await page.waitForTimeout(1000);
+  ok((await lineCalled(s?.workspaceId)) === 'Line 2B — packing' && (await page.locator('.qsl-g .qsl-gh h2', { hasText: 'Line 2B — packing' }).count()) === 1, '3 the line renamed from the problem — the new name on the page');
+  await row(what).locator('.pe').getByLabel('Which line').selectOption(wasOn); await page.waitForTimeout(800);
+  ok((await snag(what))?.workspaceId === wasOn, '3 and put back on its own line');
 }
 
 /* ---- 4 its journey ---- */

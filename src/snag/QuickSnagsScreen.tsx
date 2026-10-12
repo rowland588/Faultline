@@ -21,7 +21,7 @@
  * a word narrow it. The report prints what the page shows (lib/snagsReportPdf). */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { withoutDemo } from '../lib/demo';
-import { deleteSnag, listAllSnags, listWorkspaces, listAssets, listSnagAssets, onDataChange, updateSnag, setSnagsStatus } from '../db';
+import { createWorkspace, deleteSnag, listAllSnags, listWorkspaces, listAssets, listSnagAssets, onDataChange, updateSnag, updateWorkspace, setSnagsStatus } from '../db';
 import { useProjects } from '../lib/useProjects';
 import { planModel } from '../lib/planModel';
 import { uid } from '../lib/ids';
@@ -52,6 +52,7 @@ const PRIOS: Priority[] = ['critical', 'high', 'low'];
 const PrioTag = ({ p }: { p: Priority }) => <span className={'qsl-prio ' + PRIO_CLASS[p]}>{PRIORITY_WORD[p]}</span>;
 const photoRef = (key: string, s?: { media?: MediaRef[] }): MediaRef =>
   s?.media?.find(m => m.blobKey === key) ?? { id: key, kind: 'photo', blobKey: key, mime: 'image/jpeg', capturedAt: 0 };
+const NEW_LINE = '__new_line__';
 const todayInput = () => dueToInput(new Date().setHours(0, 0, 0, 0));
 const dedupe = (xs: string[]) => { const seen = new Set<string>(); return xs.filter(x => { const k = x.trim().toLowerCase(); if (!k || seen.has(k)) return false; seen.add(k); return true; }); };
 
@@ -341,9 +342,9 @@ export function QuickSnagsScreen() {
             const before = chosen.map(x => ({ ...x })), pid = v === '-' ? undefined : v;
             void (async () => { for (const x of chosen) await updateSnag({ ...x, projectId: pid }); offerUndo(`${before.length} ${pid ? `assigned to ${jobName(pid)}` : 'taken off their job'}`, async () => { for (const x of before) await updateSnag(x); }); })();
           }}>
-            <option value="">Assign to a job…</option>
+            <option value="">Assign to a project…</option>
             {liveJobs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            <option value="-">No job</option>
+            <option value="-">No project</option>
           </select>
           <button type="button" className="btn" onClick={() => setSetting(true)}>Whose · due</button>
           <button type="button" className="btn" onClick={() => {
@@ -389,15 +390,30 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
         </div></div>
 
       <div className="pe-row">
-        <label className="pe-f"><span className="pe-k">LINE</span>
-          <select className="text-input" value={s.workspaceId} aria-label="Which line" onChange={e => put({ workspaceId: e.target.value })}>
-            {lines.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-          </select></label>
-        <label className="pe-f"><span className="pe-k">JOB <i className="cw-f-opt">if it is for one</i></span>
-          <select className="text-input" value={s.projectId ?? ''} aria-label="Which job" onChange={e => put({ projectId: e.target.value || undefined })}>
-            <option value="">No job</option>
+        {/* PROJECT first — where it is going (Rowland, 12 October: "assign the
+            problems to where they're going to be"): every project open. */}
+        <label className="pe-f"><span className="pe-k">PROJECT <i className="cw-f-opt">if it is for one</i></span>
+          <select className="text-input" value={s.projectId ?? ''} aria-label="Which project" onChange={e => put({ projectId: e.target.value || undefined })}>
+            <option value="">No project</option>
             {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select></label>
+        {/* LINE — any line, a new one typed, and the line renamed when its
+            name is wrong (the old "2A", "2B" could not be changed here). */}
+        <div className="pe-f"><span className="pe-k">LINE</span>
+          <select className="text-input" value={s.workspaceId} aria-label="Which line" onChange={e => {
+            const v = e.target.value;
+            if (v !== NEW_LINE) { put({ workspaceId: v }); return; }
+            const name = window.prompt('The new line’s name')?.trim();
+            if (name) void createWorkspace(name).then(w => put({ workspaceId: w.id }));
+          }}>
+            {lines.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+            <option value={NEW_LINE}>A new line…</option>
+          </select>
+          <button type="button" className="btn btn-ghost btn-sm pe-rename" onClick={() => {
+            const w = lines.find(x => x.id === s.workspaceId);
+            const name = w ? window.prompt('Rename the line', w.name)?.trim() : undefined;
+            if (w && name && name !== w.name) void updateWorkspace({ ...w, name });
+          }}>Rename this line</button></div>
       </div>
       <div className="pe-f pe-wide"><span className="pe-k">MACHINE</span>
         {frame
