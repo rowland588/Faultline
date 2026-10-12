@@ -75,6 +75,7 @@ export function lossBlocks(t: { head: string; rows: LossRow[]; total: { minutes:
   };
   return [
     text({ text: t.head, size: SIZE.tiny + 1, colour: INK2, after: 3 }),
-    ...(t.rows.length ? [rows({ header, rows: [...body, foot], after: 's' })] : []),
+    /* the total lost always — "Lost 0 min" on a shift that made its rate is a fact too */
+    rows({ header, rows: [...body, foot], after: 's' }),
   ];
 }
