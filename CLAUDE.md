@@ -51,6 +51,17 @@ Running projects on a factory floor, three ways. Rowland, 30 September:
   now fully using the app." Stored as the `board` model; the problem is a `case`.
 - **Lever tree** — one outcome worked down to what has to be true for it.
 
+**SMED is a tool, not a method and not a Pareto.** Rowland, 12 October: "For
+changeovers, you should be making the lean tool SMED ... and doing everything
+along them principles. As for, don't assume 5 days, could be 7 days. And
+this is different than a Pareto ... SMED is to be a tool that again can be
+used individually or attached to projects, etc., like all the other tools."
+So the changeover tool is SMED on screen and paper (stored as `changeover`),
+worked through Shingo's stages — record (last good piece to first good piece,
+the run-up and the adjustments included), separate internal from external,
+convert internal to external, streamline what is left, standardise — against
+single-digit minutes. The days a line runs are asked, never assumed.
+
 `docs/OPEX.md` is the knowledge base behind the running-line method — what
 Lean/TPS, industrial engineering, Theory of Constraints, TPM, WCM, Six Sigma
 and Shingo each say, the six-move loop they share (standard, gap, priority,
