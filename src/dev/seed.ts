@@ -126,6 +126,21 @@ export interface Seeded {
   lossStageId: string;
 }
 
+/* A CHANGEOVER'S EIGHT ELEMENTS, as lapped on the phone (SMED, tool 6): who
+   did each and where, Shingo's function, internal or external. 42 min, three
+   external (15 min). */
+const smedElements = (at: number, timer: string): ChangeoverStep[] => ([
+  ['Stop and clear the former', 4, 'internal', ['Op 1'], 'Former', 'mount'],
+  ['Fetch the next former from the store', 5, 'external', ['Op 2'], 'Stores', 'prepare'],
+  ['Change the former tube', 10, 'internal', ['Op 1'], 'Former', 'mount'],
+  ['Pre-stage the film reels', 7, 'external', ['Op 2'], 'Film unit', 'prepare'],
+  ['Change the film reel', 6, 'internal', ['Op 1'], 'Film unit', 'mount'],
+  ['Set the jaw temperature', 3, 'internal', ['Op 1'], 'Jaws', 'adjust'],
+  ['Print the new labels', 3, 'external', ['Op 2'], 'Labeller', 'prepare'],
+  ['First bags and check the seal', 4, 'internal', ['Op 1', 'Team leader'], 'Jaws', 'trial'],
+] as const).map(([name, min, side, crew, where, fn], i) => ({ id: uid(), order: i, name, sec: min * 60, side: side as ChangeoverSide, source: 'timed' as const,
+  at: at + i * 5 * 60_000, who: timer, crew: [...crew], where, fn }));
+
 export async function seedForSmokeTest(): Promise<Seeded> {
   const t = Date.now();
   const ws = await createWorkspace('Line 7 — smoke test');
@@ -661,16 +676,18 @@ export async function seedForSmokeTest(): Promise<Seeded> {
         { id: uid(), order: 4, name: 'Pallet to despatch', who: ['Forklift driver'], where: 'Despatch', kind: 'move', value: 'needed', cycleSec: 180, batch: 720, source: 'timed' },
       ] }, uses: [], startedAt: t - 5 * 3_600_000, createdAt: t, updatedAt: t });
   }
-  /* LINE 7'S CHANGEOVER on this job (tool 6): the old case's fishbone offers
-     its longest internal step on Machine and the external work still done
-     with the line stopped on Method; the line's card says its minutes. */
+  /* LINE 7'S SMED on this job (tool 6): the old case's fishbone offers its
+     longest internal elements on Machine and the external work still done
+     with the line stopped on Method; the line's card says its minutes. How
+     the line runs is said — three shifts of 8 h less 30 min of breaks, five
+     days, 48 weeks, two changeovers a shift — and the speed is the line's
+     rated speed in its settings (not a plate speed: Line 7 has no line
+     balance for Express); with Line 7's cost settings the cost is said in
+     pounds, idle labour and contribution apart (docs/CAPACITY.md §6). */
   const pacedChangeoverId = uid();
   await putStudy({ id: pacedChangeoverId, tool: 'changeover', name: 'Finest Red 2kg → Express 1.25 kg', product: 'Express 1.25 kg', projectId: paced.id, workspaceId: line7Ws.id,
-    facts: { fromProduct: 'Finest Red 2kg', toProduct: 'Express 1.25 kg', perWeek: 6, sequence: [
-      ['Stop and clear the former', 4, 'internal'], ['Fetch the next former from the store', 5, 'external'], ['Change the former tube', 10, 'internal'],
-      ['Pre-stage the film reels', 7, 'external'], ['Change the film reel', 6, 'internal'], ['Set the jaw temperature', 3, 'internal'],
-      ['Print the new labels', 3, 'external'], ['First bags and check the seal', 4, 'internal'],
-    ].map(([name, min, side], i) => ({ id: uid(), order: i, name: name as string, sec: (min as number) * 60, side: side as ChangeoverSide, source: 'timed' as const, at: t - 4 * 3_600_000 + i * 300_000, who: 'Rob Scott' })) },
+    facts: { fromProduct: 'Finest Red 2kg', toProduct: 'Express 1.25 kg', sequence: smedElements(t - 4 * 3_600_000, 'Rob Scott'),
+      running: { shiftsPerDay: 3, hoursPerShift: 8, breakMin: 30, daysPerWeek: 5, weeksPerYear: 48 }, changeovers: { count: 2, per: 'shift' }, ratePerMin: 100, rateFrom: 'line' },
     uses: [], startedAt: t - 4 * 3_600_000, createdAt: t, updatedAt: t });
 
   /* A SHIFT'S LOSSES ON LINE 7 (tool 7). The line gets its three shifts and
@@ -857,18 +874,16 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   await putStandard({ id: lineOnJob, projectId: proj.id, workspaceId: ws.id, product: 'Tesco Express 1.25 kg', marks: [],
     capacity: { targetPerMin: 50, plannedHoursPerWeek: 37.5, stations: [] }, sort: 3, createdAt: t, updatedAt: t });
 
-  /* A CHANGEOVER (lib/ie/changeover, tool 6): Maris Piper 2kg to Tesco
-     Express 1.25 kg on Line 7, on the commissioning job — eight steps timed
-     on the phone, 42 min, three of them external (15 min); six changeovers a
-     week; the five products the line runs with their run times, 300 min of
-     a 450-minute day — the toolkit's worked example: every product every
-     1.4 days, 0.9 with the external work out. */
+  /* A SMED (lib/ie/changeover, tool 6): Maris Piper 2kg to Tesco Express
+     1.25 kg on Line 7, on the commissioning job — eight elements lapped on
+     the phone, who did each and where, 42 min, three external (15 min). How
+     the line runs: one shift of 8 h less 30 min of breaks — 450 min — five
+     days a week, six changeovers a week; the speed the Express standard's
+     target, 50 a minute, said as not a plate speed. The five products the
+     line runs with their run times, 300 min of the 450-minute day — the
+     toolkit's worked example: every product every 1.4 days, 0.9 with the
+     external work out. No plan yet — the acceptance script makes one. */
   const changeoverId = uid();
-  const coSteps = (at: number): ChangeoverStep[] => [
-    ['Stop and clear the former', 4, 'internal'], ['Fetch the next former from the store', 5, 'external'], ['Change the former tube', 10, 'internal'],
-    ['Pre-stage the film reels', 7, 'external'], ['Change the film reel', 6, 'internal'], ['Set the jaw temperature', 3, 'internal'],
-    ['Print the new labels', 3, 'external'], ['First bags and check the seal', 4, 'internal'],
-  ].map(([name, min, side], i) => ({ id: uid(), order: i, name: name as string, sec: (min as number) * 60, side: side as ChangeoverSide, source: 'timed' as const, at: at + i * 5 * 60_000, who: 'K. Ahmed' }));
   const coProducts = (): ChangeoverProduct[] => [
     { id: uid(), product: 'Maris Piper 2kg', standardId: lineOnly, demandPerDay: 7200, ratePerMin: 60 },
     { id: uid(), product: 'Tesco Express 1.25 kg', standardId: lineOnJob, demandPerDay: 3000, ratePerMin: 50 },
@@ -878,7 +893,8 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   ];
   await putStudy({ id: changeoverId, tool: 'changeover', name: 'Maris Piper 2kg → Tesco Express 1.25 kg', product: 'Tesco Express 1.25 kg',
     workspaceId: ws.id, standardId: lineOnJob, projectId: proj.id,
-    facts: { fromProduct: 'Maris Piper 2kg', toProduct: 'Tesco Express 1.25 kg', sequence: coSteps(t - 2 * 3_600_000), perWeek: 6, products: coProducts(), availableMinPerDay: 450 },
+    facts: { fromProduct: 'Maris Piper 2kg', toProduct: 'Tesco Express 1.25 kg', sequence: smedElements(t - 2 * 3_600_000, 'K. Ahmed'), products: coProducts(),
+      running: { shiftsPerDay: 1, hoursPerShift: 8, breakMin: 30, daysPerWeek: 5 }, changeovers: { count: 6, per: 'week' }, ratePerMin: 50, rateFrom: 'standard' },
     uses: [], startedAt: t - 2 * 3_600_000, createdAt: t, updatedAt: t });
 
   /* A WORK BALANCE on the line's Maris Piper map (ui/WorkBalance): three

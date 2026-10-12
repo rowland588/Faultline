@@ -30,10 +30,12 @@ import type { Material } from '../lib/materials';
 import type { Program } from '../lib/programs';
 import type { ChangeoverProduct, ChangeoverSide, ChangeoverStep } from '../lib/study';
 
-/* A CHANGEOVER's steps for the report jobs (lib/ie/changeover, tool 6): each
-   [what is done, minutes, side, how known], in order. */
-const coSeq = (rows: [string, number | undefined, ChangeoverSide, ChangeoverStep['source']][], at: number, who?: string): ChangeoverStep[] =>
-  rows.map(([name, min, side, source], i) => ({ id: `co${i}`, order: i, name, side, source,
+/* A SMED's elements for the report jobs (lib/ie/changeover, tool 6): each
+   [what is done, minutes, side, how known, and — optional — who, where,
+   Shingo's function and the plan], in order. */
+type CoRow = [string, number | undefined, ChangeoverSide, ChangeoverStep['source'], Partial<Pick<ChangeoverStep, 'crew' | 'where' | 'fn' | 'plan' | 'alongside'>>?];
+const coSeq = (rows: CoRow[], at: number, who?: string): ChangeoverStep[] =>
+  rows.map(([name, min, side, source, x], i) => ({ id: `co${i}`, order: i, name, side, source, ...(x ?? {}),
     ...(min !== undefined ? { sec: min * 60 } : {}), ...(source === 'timed' ? { at: at + i * 120_000, ...(who ? { who } : {}) } : {}) }));
 
 const uid = () => crypto.randomUUID();
@@ -379,24 +381,34 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
       uses: [{ id: uid(), kind: 'fix', ref: mapFixId, role: 'proof', at: at(60) }], startedAt: at(90), createdAt: t, updatedAt: t });
   }
 
-  /* A CHANGEOVER (lib/ie/changeover, tool 6), timed before and after a fix:
-     twenty steps, one with the longest name there is, the film reels
-     pre-staged inside the stop as the fix's evidence (the step it was raised
-     from), timed again as its proof with that step taken out and most of the
-     rest still carried — before → after on the fix's card, the steps as a
-     table in the Evidence appendix, the interval read from six products. */
+  /* A SMED (lib/ie/changeover, tool 6), timed before and after a fix:
+     twenty elements, one with the longest name there is, who did each (one
+     the longest name there is) and where, a plan on six of them — two
+     converted, three streamlined with targets (one in parallel by the
+     fitter), one eliminated — the film reels pre-staged inside the stop as
+     the fix's evidence (the element it was raised from), timed again as its
+     proof with that element taken out and most of the rest still carried —
+     before → after on the fix's card, the grid as a table in the Evidence
+     appendix with the ladder, what the changeovers cost on three different
+     shifts six days a week, and the interval read from six products. */
   if (size === 'huge' && coFixId) {
-    const ROWS: [string, number | undefined, ChangeoverSide, ChangeoverStep['source']][] = [
-      ['Run out the last bags of Finest Red', 3, 'internal', 'timed'], ['Stop the line and isolate the bagger', 1, 'internal', 'timed'],
-      ['Fetch the 1.25 kg former from the store', 6, 'external', 'timed'], ['Remove the 2 kg former tube', 7, 'internal', 'timed'],
-      ['Fit the 1.25 kg former tube and the collar', 9, 'internal', 'timed'], ['Pre-stage the film reels for Express — 2 reels, checked against the spec', 8, 'external', 'timed'],
-      ['Change the film reel and thread it', 6, 'internal', 'timed'], ['Splice the new film', 2, 'internal', 'timed'],
-      [LONG[0], 4, 'internal', 'typed'], ['Set the jaw temperature and the dwell', 3, 'internal', 'timed'],
-      ['Change the coder message for the Express date', 2, 'internal', 'timed'], ['Print the Express labels', 4, 'external', 'timed'],
-      ['Swap the case size on the case packer', 8, 'internal', 'timed'], ['Fetch the Express cases (Łukasz Wójcik, stores)', 5, 'external', 'timed'],
-      ['Change the checkweigher programme', 2, 'internal', 'timed'], ['Reset the metal detector for the new pack', 2, 'internal', 'timed'],
-      ['First bags off — check the seal and the weight', 5, 'internal', 'timed'], ['QA sign-off of the first pallet', 6, 'internal', 'typed'],
-      ['Clean down the old film off-cuts', 3, 'external', 'timed'], ['Restart and run up to rate', 4, 'internal', 'timed'],
+    const OP = { crew: ['Op 1'] }, OP2 = { crew: ['Op 2'] }, FIT = { crew: ['Fitter'] };
+    const ROWS: CoRow[] = [
+      ['Run out the last bags of Finest Red', 3, 'internal', 'timed', { ...OP, where: 'Bagger', fn: 'trial' }], ['Stop the line and isolate the bagger', 1, 'internal', 'timed', { ...OP, where: 'Bagger', fn: 'prepare' }],
+      ['Fetch the 1.25 kg former from the store', 6, 'external', 'timed', { ...OP2, where: 'Stores', fn: 'prepare' }],
+      ['Remove the 2 kg former tube', 7, 'internal', 'timed', { ...OP, where: 'Former', fn: 'mount', plan: { kind: 'streamline', how: 'clamps', targetSec: 3 * 60, note: 'quick-release collar' } }],
+      ['Fit the 1.25 kg former tube and the collar', 9, 'internal', 'timed', { ...OP, where: 'Former', fn: 'mount', plan: { kind: 'streamline', how: 'clamps', targetSec: 4 * 60 } }],
+      ['Pre-stage the film reels for Express — 2 reels, checked against the spec', 8, 'external', 'timed', { ...OP2, where: 'Film unit', fn: 'prepare' }],
+      ['Change the film reel and thread it', 6, 'internal', 'timed', { crew: ['Łukasz Wójcik-Brontë, shift engineer (agency, nights cover)'], where: 'Film unit', fn: 'mount', plan: { kind: 'streamline', how: 'parallel', alongside: 'co4', crew: ['Fitter'], targetSec: 5 * 60 } }],
+      ['Splice the new film', 2, 'internal', 'timed', { ...FIT, where: 'Film unit', fn: 'mount' }],
+      [LONG[0], 4, 'internal', 'typed', { ...OP, where: 'The sealing jaws and the long name of the part on the drawing', fn: 'adjust', plan: { kind: 'convert', how: 'prepare', note: 'pre-heat the spare jaws' } }],
+      ['Set the jaw temperature and the dwell', 3, 'internal', 'timed', { ...OP, where: 'Jaws', fn: 'adjust', plan: { kind: 'eliminate', how: 'no-adjust', note: 'settings recorded on the recipe' } }],
+      ['Change the coder message for the Express date', 2, 'internal', 'timed', { ...OP, where: 'Coder', fn: 'adjust', plan: { kind: 'convert', how: 'standardise' } }],
+      ['Print the Express labels', 4, 'external', 'timed', { ...OP2, where: 'Labeller', fn: 'prepare' }],
+      ['Swap the case size on the case packer', 8, 'internal', 'timed', { ...FIT, where: 'Case packer', fn: 'mount' }], ['Fetch the Express cases (Łukasz Wójcik, stores)', 5, 'external', 'timed', { ...OP2, where: 'Stores', fn: 'prepare' }],
+      ['Change the checkweigher programme', 2, 'internal', 'timed', { ...OP, where: 'Checkweigher', fn: 'adjust' }], ['Reset the metal detector for the new pack', 2, 'internal', 'timed', { ...OP, where: 'Metal detector', fn: 'adjust' }],
+      ['First bags off — check the seal and the weight', 5, 'internal', 'timed', { crew: ['Op 1', 'Team leader'], where: 'Bagger', fn: 'trial' }], ['QA sign-off of the first pallet', 6, 'internal', 'typed', { crew: ['Quality'], where: 'Palletiser', fn: 'trial' }],
+      ['Clean down the old film off-cuts', 3, 'external', 'timed', { ...OP2, where: 'Film unit', fn: 'prepare' }], ['Restart and run up to rate', 4, 'internal', 'timed', { ...OP, where: 'Bagger', fn: 'trial' }],
     ];
     const products: ChangeoverProduct[] = [
       { id: 'p1', product: 'Finest Red 2kg', demandPerDay: 9600, ratePerMin: 60 }, { id: 'p2', product: 'Tesco Express 1.25 kg', demandPerDay: 4500, ratePerMin: 50 },
@@ -406,13 +418,16 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
     const at = (k: number) => t - k * 60_000;
     const scope = { tool: 'changeover' as const, name: 'Finest Red 2kg → Tesco Express 1.25 kg', projectId: proj.id, product: 'Tesco Express 1.25 kg', machine: machines[0].name,
       ...(proj.workspaceIds?.[0] ? { workspaceId: proj.workspaceIds[0] } : {}) };
-    const facts = { fromProduct: 'Finest Red 2kg', toProduct: 'Tesco Express 1.25 kg', perWeek: 9, products, availableMinPerDay: 900 };
+    const facts = { fromProduct: 'Finest Red 2kg', toProduct: 'Tesco Express 1.25 kg', products,
+      running: { shiftsPerDay: 3, shiftHours: [8, 8, 6], shiftBreaks: [30, 30, 20], daysPerWeek: 6, weeksPerYear: 50 }, changeovers: { count: 3, per: 'day' as const },
+      ratePerMin: 50, rateFrom: 'plate' as const, rateStation: 'Bagger' };
     await putStudy({ id: uid(), ...scope, facts: { ...facts, sequence: coSeq(ROWS, at(600), 'Zoë Brontë') },
       uses: [{ id: uid(), kind: 'fix', ref: coFixId, role: 'evidence', at: at(500), step: 'co5' }], startedAt: at(620), createdAt: t, updatedAt: t });
     /* timed again: the reels pre-staged outside — gone from the stop; the first
        four steps timed again, the rest still carried from before */
     const again = coSeq(ROWS, at(100), 'Zoë Brontë').filter(x => x.id !== 'co5')
-      .map((x, i) => (i < 4 ? { ...x, source: 'timed' as const, ...(x.id === 'co4' ? { sec: 7 * 60 } : {}) } : (({ at: _a, who: _w, ...rest }) => { void _a; void _w; return { ...rest, source: 'carried' as const }; })(x)));
+      .map((x, i) => (i < 4 ? { ...x, source: 'timed' as const, ...(x.id === 'co4' ? { sec: 7 * 60 } : {}) } : (({ at: _a, who: _w, ...rest }) => { void _a; void _w; return { ...rest, source: 'carried' as const }; })(x)))
+      .map(({ plan: _p, ...x }) => { void _p; return x; });
     await putStudy({ id: uid(), ...scope, facts: { ...facts, sequence: again },
       uses: [{ id: uid(), kind: 'fix', ref: coFixId, role: 'proof', at: at(60) }], startedAt: at(120), createdAt: t, updatedAt: t });
   }
@@ -960,22 +975,29 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
       await putStudy({ id: uid(), ...coScope, facts: { fromProduct: '2 kg', toProduct: '1.25 kg', sequence: coSeq([['Change the former tube', 12, 'internal', 'typed']], t) },
         uses: [], startedAt: t - 900_000, createdAt: t, updatedAt: t });
     } else {
-      const ROWS: [string, number, ChangeoverSide, ChangeoverStep['source']][] = [
-        ['Stop and clear the former', 4, 'internal', 'timed'], ['Fetch the next former from the store', 5, 'external', 'timed'], ['Change the former tube', 10, 'internal', 'timed'],
-        ['Pre-stage the film reels', 7, 'external', 'timed'], ['Change the film reel', 6, 'internal', 'timed'], ['Set the jaw temperature', 3, 'internal', 'timed'],
-        ['Print the new labels', 3, 'external', 'timed'], ['First bags and check the seal', 4, 'internal', 'timed'],
+      const ROWS: CoRow[] = [
+        ['Stop and clear the former', 4, 'internal', 'timed', { crew: ['Op 1'], where: 'Former', fn: 'mount' }],
+        ['Fetch the next former from the store', 5, 'external', 'timed', { crew: ['Op 2'], where: 'Stores', fn: 'prepare' }],
+        ['Change the former tube', 10, 'internal', 'timed', { crew: ['Op 1'], where: 'Former', fn: 'mount', plan: { kind: 'streamline', how: 'clamps', targetSec: 4 * 60 } }],
+        ['Pre-stage the film reels', 7, 'external', 'timed', { crew: ['Op 2'], where: 'Film unit', fn: 'prepare' }],
+        ['Change the film reel', 6, 'internal', 'timed', { crew: ['Op 1'], where: 'Film unit', fn: 'mount', plan: { kind: 'streamline', how: 'parallel', alongside: 'co2', crew: ['Fitter'], targetSec: 5 * 60 } }],
+        ['Set the jaw temperature', 3, 'internal', 'timed', { crew: ['Op 1'], where: 'Jaws', fn: 'adjust', plan: { kind: 'convert', how: 'prepare', note: 'pre-heat the spare jaws' } }],
+        ['Print the new labels', 3, 'external', 'timed', { crew: ['Op 2'], where: 'Labeller', fn: 'prepare' }],
+        ['First bags and check the seal', 4, 'internal', 'timed', { crew: ['Op 1', 'Team leader'], where: 'Jaws', fn: 'trial' }],
       ];
       const products: ChangeoverProduct[] = [
         { id: 'p1', product: 'Finest Red 2kg', demandPerDay: 7200, ratePerMin: 60 }, { id: 'p2', product: 'Express 1.25 kg', demandPerDay: 3000, ratePerMin: 50 },
         { id: 'p3', product: 'Maris Piper 2kg', runMinPerDay: 50 }, { id: 'p4', product: 'King Edward 2.5kg', runMinPerDay: 40 }, { id: 'p5', product: 'Baby potatoes 1kg', runMinPerDay: 30 },
       ];
-      const facts = { fromProduct: 'Finest Red 2kg', toProduct: 'Express 1.25 kg', perWeek: 6, products, availableMinPerDay: 450 };
+      const facts = { fromProduct: 'Finest Red 2kg', toProduct: 'Express 1.25 kg', products,
+        running: { shiftsPerDay: 2, hoursPerShift: 8, breakMin: 30, daysPerWeek: 5, weeksPerYear: 48 }, changeovers: { count: 6, per: 'week' as const },
+        ratePerMin: 100, rateFrom: 'plate' as const, rateStation: 'Bagger' };
       const coAct = act('Pre-stage the film reels — external, 7 min', { lineId: lineA.id, pillar: 'method', who: 'Rob Scott', due: iso(6),
         why: 'Changeover — Finest Red 2kg → Express 1.25 kg', expect: 'Pre-stage the film reels: done while the line runs — the changeover timed again without it inside' });
       await putPaceTodo(coAct);
       await putStudy({ id: uid(), ...coScope, facts: { ...facts, sequence: coSeq(ROWS, t - 500 * 60_000, 'Rob Scott') },
         uses: [{ id: uid(), kind: 'action', ref: coAct.id, role: 'evidence', at: t - 400 * 60_000, step: 'co3' }], startedAt: t - 520 * 60_000, createdAt: t, updatedAt: t });
-      await putStudy({ id: uid(), ...coScope, facts: { ...facts, sequence: coSeq(ROWS, t - 50 * 60_000, 'Rob Scott').filter(x => x.id !== 'co3') },
+      await putStudy({ id: uid(), ...coScope, facts: { ...facts, sequence: coSeq(ROWS, t - 50 * 60_000, 'Rob Scott').filter(x => x.id !== 'co3').map(({ plan: _p, ...x }) => { void _p; return x; }) },
         uses: [{ id: uid(), kind: 'action', ref: coAct.id, role: 'proof', at: t - 20 * 60_000 }], startedAt: t - 60 * 60_000, createdAt: t, updatedAt: t });
     }
   }

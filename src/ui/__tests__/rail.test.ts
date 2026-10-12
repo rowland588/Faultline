@@ -236,18 +236,20 @@ describe('the tools beside the control room', () => {
   it('are the snags, the line standard and the line balance, each lit where it is', async () => {
     const { toolPlaces, hereOf } = await import('../rail');
     const { parseRoute } = await import('../../state/useRoute');
-    expect(toolPlaces('').map(l => [l.label, l.to])).toEqual([['Snags', '/snags'], ['Line standard', '/standards'], ['Line balance', '/balances'], ['Capability', '/capability'], ['Value stream', '/value-stream'], ['Changeover', '/changeover'], ['Work sampling', '/sampling'], ['Loss count', '/losses']]);
+    expect(toolPlaces('').map(l => [l.label, l.to])).toEqual([['Snags', '/snags'], ['Line standard', '/standards'], ['Line balance', '/balances'], ['Capability', '/capability'], ['Value stream', '/value-stream'], ['SMED', '/smed'], ['Work sampling', '/sampling'], ['Loss count', '/losses']]);
     expect(hereOf(parseRoute('#/standards'))).toBe('linestandard');
     expect(hereOf(parseRoute('#/balances'))).toBe('linebalance');
     expect(toolPlaces('linebalance').filter(l => l.on).map(l => l.label)).toEqual(['Line balance']);
     expect(hereOf(parseRoute('#/capability'))).toBe('capability');
     expect(hereOf(parseRoute('#/capability/s1'))).toBe('capability');
-    expect(hereOf(parseRoute('#/changeover'))).toBe('changeover');
-    expect(hereOf(parseRoute('#/changeover/c1'))).toBe('changeover');
+    expect(hereOf(parseRoute('#/smed'))).toBe('changeover');
+    expect(hereOf(parseRoute('#/smed/c1'))).toBe('changeover');
+    expect(parseRoute('#/smed/c1')).toMatchObject({ name: 'study', view: 'changeover', id: 'c1' });
+    /* a link made before it was named SMED still opens */
     expect(parseRoute('#/changeover/c1')).toMatchObject({ name: 'study', view: 'changeover', id: 'c1' });
     expect(toolPlaces('capability').filter(l => l.on).map(l => l.label)).toEqual(['Capability']);
     expect(toolPlaces('valuestream').filter(l => l.on).map(l => l.label)).toEqual(['Value stream']);
-    expect(toolPlaces('changeover').filter(l => l.on).map(l => l.label)).toEqual(['Changeover']);
+    expect(toolPlaces('changeover').filter(l => l.on).map(l => l.label)).toEqual(['SMED']);
     expect(toolPlaces('sampling').filter(l => l.on).map(l => l.label)).toEqual(['Work sampling']);
     /* a shift's losses by hand (tool 7): the page and one count light it */
     expect(hereOf(parseRoute('#/losses'))).toBe('losses');
@@ -260,8 +262,8 @@ describe('the job first, the tools at the foot (docs/FLOW.md item 3)', () => {
   it('Tools holds the snags, the line standard, the line balance and, on a stage-gate job, its lines', () => {
     const g = toolsGroup('', linesGroup(P, [{ id: 'L7', name: 'Line 7' }, { id: 'L8', name: 'Line 8' }], '').lines);
     expect(g.label).toBe('Tools');
-    expect(labels(g)).toEqual(['Snags', 'Line standard', 'Line balance', 'Capability', 'Value stream', 'Changeover', 'Work sampling', 'Loss count', 'Line 7', 'Line 8']);
-    expect(labels(toolsGroup('quicksnags'))).toEqual(['Snags', 'Line standard', 'Line balance', 'Capability', 'Value stream', 'Changeover', 'Work sampling', 'Loss count']);
+    expect(labels(g)).toEqual(['Snags', 'Line standard', 'Line balance', 'Capability', 'Value stream', 'SMED', 'Work sampling', 'Loss count', 'Line 7', 'Line 8']);
+    expect(labels(toolsGroup('quicksnags'))).toEqual(['Snags', 'Line standard', 'Line balance', 'Capability', 'Value stream', 'SMED', 'Work sampling', 'Loss count']);
     expect(toolsGroup('quicksnags').lines.find(l => l.on)?.label).toBe('Snags');
   });
 });

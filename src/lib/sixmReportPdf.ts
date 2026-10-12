@@ -46,7 +46,7 @@ import { lossFiguresOf, provedLine, ROLE_WORD, studyLine, studyTitle, type Study
 import { lossRows } from './ie/losses';
 import { lossBlocks } from './report/lossTable';
 import { streamRows } from './ie/steps';
-import { agreedFor, changeoverSheet } from './ie/changeover';
+import { agreedFor, changeoverSheet, moneyOf } from './ie/changeover';
 import { changeoverBlocks } from './report/changeoverTable';
 import { streamBlocks } from './report/streamTable';
 import type { StudyUse } from './study';
@@ -528,7 +528,8 @@ export function sixmReport(o: SixMInput): SixMReport {
       return { title: studyTitle(s), used: used || 'not used for a record yet', line: l.text, tone: l.tone,
         ...(s.tool === 'map' && (s.facts.flow ?? []).length ? { stream: streamRows(s.facts.flow, s.agreed?.map, branches) } : {}),
         ...(s.tool === 'changeover' && (s.facts.sequence ?? []).length
-          ? { changeover: changeoverSheet(s.facts, agreedFor(data.standards.find(st => !st.deletedAt && st.id === s.standardId)?.capacity?.changeovers, s.facts.fromProduct), branches) } : {}),
+          ? { changeover: changeoverSheet(s.facts, agreedFor(data.standards.find(st => !st.deletedAt && st.id === s.standardId)?.capacity?.changeovers, s.facts.fromProduct), branches,
+            moneyOf(data.workspaces.find(w => w.id === s.workspaceId))) } : {}),
         ...(losses ? { losses } : {}) };
     });
 

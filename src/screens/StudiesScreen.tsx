@@ -21,7 +21,7 @@ import { Sheet } from '../ui/Sheet';
 import { sample, sampleSays } from '../lib/ie/sample';
 import { studyHref, type StudyContext } from '../lib/studyLinks';
 import { dur, flowFigures, share } from '../lib/ie/steps';
-import { changeoverFigures, changeoverSays, mins } from '../lib/ie/changeover';
+import { changeoverFigures, changeoverSays, figuresOf, mins } from '../lib/ie/changeover';
 import { samplingSays } from '../lib/ie/sampling';
 import { firstCount, inWindow, lossFigures, lossLine, windowWords } from '../lib/ie/losses';
 import type { StudyTool, ToolStudy } from '../lib/study';
@@ -49,16 +49,17 @@ const MAP: ToolWords = {
   none: 'No value stream maps yet. Pick a line, start where its work starts, and add each thing done on it, in the lane of whoever does it, to the pallet leaving.',
   second: { label: 'Which product or family?', placeholder: 'e.g. Finest Red 2kg' },
 };
-/* The changeover and its interval (tool 6): how long the line stops between
-   two products, how much of it could be done while it runs, how often each
-   product can run. */
+/* SMED, quick changeover (tool 6): Shingo's stages — record, separate,
+   convert, streamline, standardise — on a grid of who does what; the ladder
+   to single-digit minutes; what the changeovers cost the line; how often
+   each product can run. Stored as tool `changeover`. */
 const CHANGEOVER: ToolWords = {
-  title: 'Changeover',
-  one: 'Changeover',
-  lede: 'From one product to the next, step by step — each timed on the phone as it happens and marked internal (the line stopped) or external (could be done while it runs): the minutes now, the minutes with the external work moved out, and how often each product can run. Use one on its own, or on a line and a job.',
-  add: 'New changeover',
+  title: 'SMED',
+  one: 'SMED — quick changeover',
+  lede: 'From the last good piece of one product to the first good piece of the next at full rate, element by element — lapped on the phone as it happens, with who does each. Then Shingo\'s stages: separate the internal (the line stopped) from the external, convert internal to external, streamline what is left — towards single-digit minutes — and what the changeovers cost a shift, a week, a year. Use one on its own, or on a line and a job.',
+  add: 'New SMED',
   placeholder: 'e.g. Finest Red 2kg',
-  none: 'No changeovers timed yet. Say which product the line runs and which it changes to, then Lap each step as it ends — on the phone at the line.',
+  none: 'No SMED yet. Say which product the line runs and which it changes to, then Lap each element as it ends — on the phone at the line.',
   second: { label: 'To which product?', placeholder: 'e.g. Express 1.25 kg' },
 };
 /* Work sampling (docs/TOOLKIT.md, tool 9): the shift's moments drawn at
@@ -94,7 +95,7 @@ export { studyHref } from '../lib/studyLinks';
  *  it says the loss and not where it went. */
 export function studyLine(s: ToolStudy, ctx?: StudyContext): { text: string; tone: string } {
   if (s.tool === 'changeover') {
-    const said = changeoverSays(changeoverFigures(s.facts.sequence, s.facts.perWeek));
+    const said = changeoverSays(figuresOf(s.facts));
     return { text: said.verdict, tone: said.tone };
   }
   if (s.tool === 'map') {
@@ -185,7 +186,7 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
                     <b className="lt-what">{s.name || 'Not named'}{(s.machine || s.product) && s.tool !== 'changeover' ? <span className="ie-li-m"> · {s.machine ?? s.product}</span> : null}</b>
                     <span className={'lt-says ie-tone is-' + said.tone}>{said.text}</span>
                     <span className="lt-where">{s.tool === 'sampling' ? `${(s.agreed?.sampling?.who ?? []).length} watched · ${(s.facts.taps ?? []).filter(x => !x.struck).length} taps` : s.tool === 'map' ? `${steps} step${steps === 1 ? '' : 's'}${(s.facts.future ?? []).length ? ' · a future state' : ''}`
-                      : s.tool === 'changeover' ? `${(s.facts.sequence ?? []).length} step${(s.facts.sequence ?? []).length === 1 ? '' : 's'}${changeoverFigures(s.facts.sequence).enough ? ` · ${mins(changeoverFigures(s.facts.sequence).nowSec)}` : ''}`
+                      : s.tool === 'changeover' ? `${(s.facts.sequence ?? []).length} element${(s.facts.sequence ?? []).length === 1 ? '' : 's'}${changeoverFigures(s.facts.sequence).enough ? ` · ${mins(changeoverFigures(s.facts.sequence).nowSec)}` : ''}`
                       : s.tool === 'losses' ? (lc ? `${windowWords(lc)} · ${new Date(lc.from).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}` : 'no shift picked yet')
                         : count ? `${n} of ${count}` : `${n} reading${n === 1 ? '' : 's'}`}{s.closedAt ? ' · closed' : ''}</span>
                   </button>
@@ -221,9 +222,10 @@ function NewStudy({ open, tool, onClose }: { open: boolean; tool: StudyTool; onC
      the line's (tool 7), and it is named for its shift and day once counted */
   const isLine = tool === 'map' || tool === 'sampling' || tool === 'losses';
   const named = tool !== 'losses';
-  /* A CHANGEOVER is from one product to the next: both are asked, the line
-     when it is known (its standards offer the products, and the interval
-     needs it — but a quick session on its own still times a changeover). */
+  /* A SMED is of a changeover from one product to the next: both are asked,
+     the line when it is known (its standards offer the products and the
+     plate speed, the interval needs it — but a quick session on its own
+     still times a changeover and works it through the stages). */
   const isChange = tool === 'changeover';
   const ready = (!named || !!name.trim()) && !busy && (!isLine || !!lineId) && (!isChange || !!machine.trim());
   const make = async () => {

@@ -134,7 +134,7 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
             const said = co ? changeoverLine(co) : undefined;
             return co ? (
               <button type="button" className="lt-co" onClick={() => nav(studyHref(co))}>
-                <span className="lt-co-k">Changeover</span>
+                <span className="lt-co-k">SMED</span>
                 <span className={'lt-co-t' + (said?.tone === 'a' ? ' is-a' : '')}>{said?.text ?? `${co.name}: not timed yet`}</span>
                 <span className="lt-co-go" aria-hidden>›</span>
               </button>

@@ -192,7 +192,7 @@ for (const size of SIZES) {
     const today = todayISO();
     const studies = await (await import('/src/db/studies.ts')).listStudies(pid);
     /* what a loss count reads beside its facts: its line's stops and cost model */
-    const lossWs = [...new Set(studies.filter(s => s.tool === 'losses' && s.workspaceId).map(s => s.workspaceId))];
+    const lossWs = [...new Set(studies.filter(s => (s.tool === 'losses' || s.tool === 'changeover') && s.workspaceId).map(s => s.workspaceId))];
     const { listObservations } = await import('/src/db/observations.ts');
     const { getWorkspace } = await import('/src/db/workspaces.ts');
     const studyContext = { observations: (await Promise.all(lossWs.map(id => listObservations(id)))).flat(), workspaces: (await Promise.all(lossWs.map(id => getWorkspace(id)))).filter(Boolean) };
@@ -256,13 +256,14 @@ for (const size of SIZES) {
        where, the record raised from a step, and the lead time at the foot. */
     from = 'a value stream, step by step';
     for (const e of r.evidence) if (e.stream) { for (const x of e.stream.rows) add('client', x.what, x.who, x.where, x.branch ? `Being made better: ${x.branch}` : undefined); add('client', e.stream.total.lead); }
-    /* A changeover on paper (lib/report/changeoverTable): every step, its side,
-       its minutes and how it is known, the record raised from a step, the
-       totals, and the two bars and the interval in words. */
-    from = 'a changeover, step by step';
+    /* SMED on paper (lib/report/changeoverTable): the grid as a table — every
+       element, who and where, I or E, its plan, its time, the elapsed, how it
+       is known, the record raised from an element — the totals, and the
+       ladder, what the changeovers cost and the interval in words. */
+    from = 'SMED, element by element';
     for (const e of r.evidence) if (e.changeover) {
-      for (const x of e.changeover.rows) add('client', x.name, x.side, x.minutes, x.how, x.branch ? `Being made better: ${x.branch}` : undefined);
-      add('client', e.changeover.total.minutes, ...e.changeover.lines);
+      for (const x of e.changeover.rows) add('client', x.name, x.who, x.where, x.side, x.plan, x.minutes, x.elapsed, x.how, x.branch ? `Being made better: ${x.branch}` : undefined);
+      add('client', e.changeover.total.minutes, e.changeover.total.labour, ...e.changeover.lines);
     }
     /* A shift's losses on paper (lib/report/lossTable): what was planned and
        made, every bar's cause and minutes, and the total lost. */
@@ -477,13 +478,18 @@ for (const size of SIXM_SIZES) {
          and what it says — and a value stream's steps as a table. */
       from = 'evidence';
       const { streamRows } = await import('/src/lib/ie/steps.ts');
-      const { changeoverSheet } = await import('/src/lib/ie/changeover.ts');
+      const { changeoverSheet, agreedFor, moneyOf } = await import('/src/lib/ie/changeover.ts');
       const { lossRows } = await import('/src/lib/ie/losses.ts');
       for (const st of loaded.data.studies.filter(x => !x.deletedAt && (!lineId || (x.workspaceId && ws.has(x.workspaceId))))) {
         add(SL.studyTitle(st), SL.studyLine(st, ctx).text);
         if (st.tool === 'map') { const t = streamRows(st.facts.flow, st.agreed?.map); for (const x of t.rows) add(x.what, x.who, x.where); add(t.total.lead); }
-        /* a changeover's steps as a table, and its bars and interval in words */
-        if (st.tool === 'changeover' && (st.facts.sequence ?? []).length) { const c = changeoverSheet(st.facts); for (const x of c.rows) add(x.name, x.side, x.minutes, x.how); add(c.total.minutes, ...c.lines); }
+        /* a SMED's grid as a table, and its ladder, cost and interval in words —
+           the pounds from the line's cost settings, as the report reads them */
+        if (st.tool === 'changeover' && (st.facts.sequence ?? []).length) {
+          const c = changeoverSheet(st.facts, agreedFor(loaded.data.standards.find(x => !x.deletedAt && x.id === st.standardId)?.capacity?.changeovers, st.facts.fromProduct), new Map(),
+            moneyOf(loaded.data.workspaces.find(w => w.id === st.workspaceId)));
+          for (const x of c.rows) add(x.name, x.who, x.where, x.side, x.plan, x.minutes, x.elapsed, x.how); add(c.total.minutes, c.total.labour, ...c.lines);
+        }
         /* a shift's losses: the table, cause by cause, and the total lost */
         if (st.tool === 'losses') { const t = lossRows(SL.lossFiguresOf(st, ctx)); if (t) { add(t.head); for (const x of t.rows) add(x.cause, x.minutes); add(t.total.minutes); } }
       }

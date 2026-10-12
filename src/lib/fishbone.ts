@@ -39,7 +39,7 @@ import { balance, secs } from './ie/balance';
 import { boneOfStep, currentBalance, currentLosses, lossFiguresOf } from './studyLinks';
 import { minWords, shiftWords } from './ie/losses';
 import { dur, flowFigures, stepAt, stepFigure, valueOf, waitOf, whereOf } from './ie/steps';
-import { changeoverFigures, mins, stepFigure as changeoverStepFigure } from './ie/changeover';
+import { figuresOf, mins, stepFigure as changeoverStepFigure } from './ie/changeover';
 import { stateOf as materialState, daysLate } from './materials';
 import { standingOf, stateOf as programState, daysOverdue } from './programs';
 import { bySort, lineSeries, say, seriesFor } from './measures';
@@ -510,34 +510,43 @@ export function suggestionsFor(problem: Case, data: FishboneData, today = Date.n
     }
   }
 
-  /* 4d. THE LINE'S CHANGEOVER (lib/ie/changeover): its newest on this job,
-     on this line — when the head is the whole line, a changeover loss, or
-     the machine it was timed on. The external work still done with the line
-     stopped is how the changeover is organised — Method, one cause naming
-     its steps; the longest internal steps (two at most) are the machine's own
-     set-up — Machine. Measured when timed, reported when typed; a step
-     carried from before is not offered — it has not been timed again. The
-     ref is "<study id>#external" or "<study id>#<step id>" — opening it
-     opens the changeover. */
+  /* 4d. THE LINE'S SMED (lib/ie/changeover): its newest changeover on this
+     job, on this line — when the head is the whole line, a changeover loss,
+     or the machine it was timed on. The external work still done with the
+     line stopped is how the changeover is organised — Method, one cause
+     naming its elements; the setting, adjusting and trial runs (Shingo's
+     third and fourth functions, the first to eliminate) — Machine; then the
+     longest internal elements — Machine; three at most. Measured when timed,
+     reported when typed; an element carried from before is not offered — it
+     has not been timed again. The ref is "<study id>#external",
+     "<study id>#adjust" or "<study id>#<element id>" — opening it opens SMED. */
   const co = lineWs ? data.studies.filter(x => !x.deletedAt && x.tool === 'changeover' && x.workspaceId === lineWs).sort((a, b) => b.startedAt - a.startedAt)[0] : undefined;
   const aboutChange = /changeover|set.?up|product change|size|format change|label.*change/i.test(`${problem.source?.category ?? ''} ${problem.source?.subcategory ?? ''} ${problem.title}`);
   if (co && (scope.whole || aboutChange || (!!scope.asset && sameThing(co.machine, scope.asset)))) {
     const seen = (co.facts.sequence ?? []).filter(st => st.source !== 'carried' && (st.sec ?? 0) > 0);
-    const f = changeoverFigures(co.facts.sequence, co.facts.perWeek);
+    const f = figuresOf(co.facts);
     const who = [co.facts.fromProduct, co.facts.toProduct ?? co.product].filter(Boolean).join(' → ');
-    const head = `Changeover: ${who || co.name}, ${f.untimed ? 'at least ' : ''}${mins(f.nowSec)} — ${mins(f.internalSec)} internal, ${mins(f.externalSec)} external`;
+    const head = `SMED: ${who || co.name}, ${f.untimed ? 'at least ' : ''}${mins(f.nowSec)} — ${mins(f.internalSec)} internal, ${mins(f.externalSec)} external`;
     const grade = (xs: typeof seen): Grade => (xs.some(x => x.source !== 'timed') ? 'reported' : 'measured');
+    const offers: Suggestion[] = [];
     const ext = seen.filter(st => st.side === 'external').sort((a, b) => (b.sec ?? 0) - (a.sec ?? 0));
     if (ext.length) {
       const sum = ext.reduce((t, st) => t + (st.sec ?? 0), 0);
-      const names = ext.slice(0, 3).map(st => st.name.trim() || 'a step').join(', ');
-      out.push(mk('study', `${co.id}#external`, 'method', `${mins(sum)} of external work done with the line stopped — ${names}${ext.length > 3 ? ` and ${ext.length - 3} more` : ''}`,
+      const names = ext.slice(0, 3).map(st => st.name.trim() || 'an element').join(', ');
+      offers.push(mk('study', `${co.id}#external`, 'method', `${mins(sum)} of external work done with the line stopped — ${names}${ext.length > 3 ? ` and ${ext.length - 3} more` : ''}`,
         grade(ext), { detail: head, label: co.name, tool: 'changeover' }));
     }
-    for (const st of seen.filter(x => x.side === 'internal').sort((a, b) => (b.sec ?? 0) - (a.sec ?? 0)).slice(0, 2)) {
-      out.push(mk('study', `${co.id}#${st.id}`, 'machine', `${st.name.trim() || 'A step'} — ${changeoverStepFigure(st)}, the line stopped`,
+    const adjust = seen.filter(st => st.fn === 'adjust' || st.fn === 'trial');
+    if (adjust.length) {
+      const sum = adjust.reduce((t, st) => t + (st.sec ?? 0), 0);
+      offers.push(mk('study', `${co.id}#adjust`, 'machine', `${mins(sum)} of setting, adjusting and trial runs in the changeover — ${adjust.slice(0, 3).map(st => st.name.trim() || 'an element').join(', ')}${adjust.length > 3 ? ` and ${adjust.length - 3} more` : ''}`,
+        grade(adjust), { detail: head, label: co.name, tool: 'changeover' }));
+    }
+    for (const st of seen.filter(x => x.side === 'internal' && !adjust.includes(x)).sort((a, b) => (b.sec ?? 0) - (a.sec ?? 0))) {
+      offers.push(mk('study', `${co.id}#${st.id}`, 'machine', `${st.name.trim() || 'An element'} — ${changeoverStepFigure(st)}, the line stopped`,
         grade([st]), { detail: head, label: co.name, tool: 'changeover' }));
     }
+    out.push(...offers.slice(0, 3));
   }
 
   /* 4d. A SHIFT'S LOSSES (lib/ie/losses): the line's latest shift counted on

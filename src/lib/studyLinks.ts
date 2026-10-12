@@ -18,7 +18,7 @@ import type { SixM } from './sixm';
 import { sample, sampleSays, compareSamples, CPK_FROM, CPK_JUST, type SampleSays, type Tone } from './ie/sample';
 import { balance, balanceLine, compareBalances, secs as secsOf } from './ie/balance';
 import { carryFlow, compareFlows, compareStep, dur as durOf, flowFigures, flowSays, share as shareOf, stepAt, stepFigure, whoOf } from './ie/steps';
-import { carrySequence, changeoverFigures, changeoverSays, compareChangeovers, intervalOf, intervalSays, mins, stepFigure as changeoverStepFigure } from './ie/changeover';
+import { actionWords, availableOf, carrySequence, changeoverSays, compareChangeovers, figuresOf, intervalOf, intervalSays, ladderOf, ladderSays, mins, stepFigure as changeoverStepFigure } from './ie/changeover';
 import { samplingSays, samplingWorst, worstWords } from './ie/sampling';
 import { barExpect, barWords, compareLosses, inWindow, lossFigures, lossLine, lossSays, nextShift, type CostModel, type LossFigures } from './ie/losses';
 
@@ -63,12 +63,14 @@ export function studySays(s: ToolStudy, ctx?: StudyContext): SampleSays {
     return { text: flowSays(f, s.agreed?.map).text, tone: 'n', verdict: f.steps ? `Lead time ${f.untimed ? 'at least ' : ''}${durOf(f.leadSec)}` : 'No steps yet' };
   }
   if (s.tool === 'changeover') {
-    /* the minutes, then the interval when it can be read — the standard it
-       stands against is the line standard's, read where that is to hand */
-    const f = changeoverFigures(s.facts.sequence, s.facts.perWeek);
+    /* SMED: the minutes and the separated stop; the ladder when a plan is on
+       it; the interval when it can be read. What the changeovers cost is said
+       where the line's own cost is to hand (the page, the paper's table). */
+    const f = figuresOf(s.facts);
     const said = changeoverSays(f);
-    const iv = intervalOf(f, s.facts.products, s.facts.availableMinPerDay);
-    return { text: iv.ready ? `${said.text} ${intervalSays(iv, f).text}` : said.text, tone: said.tone, verdict: said.verdict };
+    const l = ladderOf(s.facts.sequence);
+    const iv = intervalOf(f, s.facts.products, availableOf(s.facts)?.min);
+    return { text: [said.text, l.planned ? ladderSays(l).text : '', iv.ready ? intervalSays(iv, f).text : ''].filter(Boolean).join(' '), tone: said.tone, verdict: said.verdict };
   }
   if (s.tool === 'sampling') return samplingSays(s.agreed?.sampling, s.facts.taps ?? []);
   if (s.tool === 'losses') {
@@ -80,7 +82,7 @@ export function studySays(s: ToolStudy, ctx?: StudyContext): SampleSays {
 }
 
 /** Each tool's name, as a study of it is called on screen and on paper. */
-export const TOOL_NAME: Partial<Record<ToolStudy['tool'], string>> = { capability: 'Capability study', balance: 'Work balance', map: 'Value stream map', changeover: 'Changeover', sampling: 'Work sampling', losses: 'Loss count' };
+export const TOOL_NAME: Partial<Record<ToolStudy['tool'], string>> = { capability: 'Capability study', balance: 'Work balance', map: 'Value stream map', changeover: 'SMED', sampling: 'Work sampling', losses: 'Loss count' };
 
 /** "Capability study — Weight accuracy 400 g · Weigher 2". */
 export const studyTitle = (s: Pick<ToolStudy, 'tool' | 'name' | 'machine'>): string =>
@@ -96,6 +98,8 @@ export function studyHref(s: Pick<ToolStudy, 'id' | 'tool' | 'standardId' | 'pro
     if (s.workspaceId) return `/w/${s.workspaceId}/standards/${s.standardId}${at}`;
   }
   if (s.tool === 'map') return `/value-stream/${s.id}`;
+  /* SMED, stored as a changeover */
+  if (s.tool === 'changeover') return `/smed/${s.id}`;
   return `/${s.tool}/${s.id}`;
 }
 
@@ -124,11 +128,12 @@ export const currentChangeover = (studies: ToolStudy[], on: { workspaceId?: ID; 
  *  minutes now, the external work inside, the interval when it can be read.
  *  Only the external work carries colour — it is the abnormal. */
 export function changeoverLine(s: ToolStudy): { text: string; tone: Tone } | undefined {
-  const f = changeoverFigures(s.facts.sequence, s.facts.perWeek);
+  const f = figuresOf(s.facts);
   if (!f.enough) return undefined;
-  const iv = intervalOf(f, s.facts.products, s.facts.availableMinPerDay);
+  const iv = intervalOf(f, s.facts.products, availableOf(s.facts)?.min);
+  const l = ladderOf(s.facts.sequence);
   const who = [s.facts.fromProduct, s.facts.toProduct ?? s.product].filter(Boolean).join(' → ');
-  const now = `${f.untimed ? 'at least ' : ''}${mins(f.nowSec)}${f.externalSec > 0 ? `, ${mins(f.externalSec)} external inside` : ''}${f.carried ? ` · ${f.carried} of ${f.steps} steps not timed again yet` : ''}`;
+  const now = `${f.untimed ? 'at least ' : ''}${mins(f.nowSec)}${f.externalSec > 0 ? `, ${mins(f.externalSec)} external inside` : ''}${l.planned ? ` · plan ${mins(l[l.last].elapsedSec)}` : ''}${f.carried ? ` · ${f.carried} of ${f.steps} elements not timed again yet` : ''}`;
   const every = iv.ready && iv.daysNow !== undefined ? ` · every product every ${iv.daysNow.toFixed(1)} days` : '';
   return { text: `${who ? `${who}: ` : ''}${now}${every}`, tone: f.externalSec > 0 ? 'a' : 'n' };
 }
@@ -229,11 +234,12 @@ export function beforeAfter(studies: ToolStudy[], fixId: ID, kind: FixKind = 'fi
   if (before && after.tool === 'changeover') {
     /* the changeover timed again: the step the fix was raised from first,
        then the minutes; nothing claimed while a step is still carried */
-    const fb = changeoverFigures(before.facts.sequence, before.facts.perWeek), fa = changeoverFigures(after.facts.sequence, after.facts.perWeek ?? before.facts.perWeek);
+    const fb = figuresOf(before.facts), fa = figuresOf({ ...before.facts, ...after.facts, sequence: after.facts.sequence });
     const st = changeoverStepOf(before, kind, fixId);
     const stA = st ? (after.facts.sequence ?? []).find(x => x.id === st.id) : undefined;
     const one = st ? `${compareChangeoverStep(st, stA)}. ` : '';
-    const c = compareChangeovers(fb, fa);
+    /* before → after on the ladder: the changeover before carried the plan */
+    const c = compareChangeovers(fb, fa, ladderOf(before.facts.sequence));
     return { text: `${one}${c.text}`, tone: st && stA?.source === 'carried' ? 'n' : c.tone, before, after };
   }
   const a = after.agreed?.readings;
@@ -288,7 +294,7 @@ export function measuredOn(s: ToolStudy, date: string, dayOfMs: (ms: number) => 
   const today = taken.filter(x => dayOfMs(x.at) === date);
   if (!today.length) return undefined;
   const who = [...new Set(today.map(x => x.who?.trim()).filter((w): w is string => !!w))];
-  const noun = s.tool === 'balance' ? (today.length === 1 ? 'lap timed' : 'laps timed') : s.tool === 'changeover' ? (today.length === 1 ? 'step timed' : 'steps timed') : (today.length === 1 ? 'reading taken' : 'readings taken');
+  const noun = s.tool === 'balance' ? (today.length === 1 ? 'lap timed' : 'laps timed') : s.tool === 'changeover' ? (today.length === 1 ? 'element timed' : 'elements timed') : (today.length === 1 ? 'reading taken' : 'readings taken');
   const line = studyLine(s);
   return { text: `${studyTitle(s)}: ${today.length} ${noun}${who.length ? ` by ${who.join(', ')}` : ''} — ${line.text}`, tone: line.tone };
 }
@@ -346,9 +352,13 @@ export function betterExpect(s: ToolStudy, stepId?: string, ctx?: StudyContext):
     return b ? barExpect(b) : undefined;
   }
   if (s.tool === 'changeover') {
+    /* what the SMED action should change, held against the changeover timed again */
     const st = stepId ? (s.facts.sequence ?? []).find(x => x.id === stepId) : undefined;
     if (!st) return undefined;
-    const name = st.name.trim() || 'The step';
+    const name = st.name.trim() || 'The element', p = st.plan;
+    if (p?.kind === 'convert') return `${name}: prepared before the line stops${p.targetSec ? `, ${mins(p.targetSec)} left inside` : ''} — the changeover timed again without it inside`;
+    if (p?.kind === 'streamline' && p.targetSec !== undefined) return `${name}: ${mins(p.targetSec)} or less inside the stop — the changeover timed again`;
+    if (p?.kind === 'eliminate') return `${name}: gone from the changeover — the changeover timed again`;
     return st.side === 'external'
       ? `${name}: done while the line runs — the changeover timed again without it inside`
       : `${name}: ${changeoverStepFigure(st)} — shorter, or made external, the changeover timed again`;
@@ -375,7 +385,7 @@ export function countermeasureFrom(s: ToolStudy, x: { id: string; at: number; li
   const bar = x.step && s.tool === 'losses' ? lossFiguresOf(s, ctx).bars.find(b => b.key === x.step) : undefined;
   return {
     id: x.id, ...(s.projectId ? { projectId: s.projectId } : {}), ...(x.lineId ? { lineId: x.lineId } : {}),
-    what: betterWords(s, x.step, ctx), where: st ? stepAt(st, s.agreed?.map) : co ? (s.machine ?? '') : bar?.asset ?? '', why: studyTitle(s), who: '', when: '', state: 'todo',
+    what: betterWords(s, x.step, ctx), where: st ? stepAt(st, s.agreed?.map) : co ? (co.where?.trim() || s.machine || '') : bar?.asset ?? '', why: studyTitle(s), who: '', when: '', state: 'todo',
     pillar: x.bone ?? (st ? boneOfStep(st, s) : co ? boneOfChangeoverStep(co) : bar ? bar.bone : s.tool === 'balance' || s.tool === 'map' || s.tool === 'sampling' ? 'method' : 'machine'),
     ...(x.causeRef ? { causeRef: x.causeRef } : {}), ...(expect ? { expect } : {}),
     createdAt: x.at, updatedAt: x.at,
@@ -398,10 +408,15 @@ export function boneOfStep(st: FlowStep, s: Pick<ToolStudy, 'agreed'>): SixM {
   return 'method';
 }
 
-/** Which bone a changeover's step sits on: external work still done with the
- *  line stopped is the way the changeover is organised — Method; an internal
- *  step is the machine's own set-up — Machine. A person can move it. */
-export const boneOfChangeoverStep = (st: Pick<ChangeoverStep, 'side'>): SixM => (st.side === 'external' ? 'method' : 'machine');
+/** Which bone a SMED element sits on, by what is to be done with it: the way
+ *  the changeover is organised (external work, preparing in advance, work in
+ *  parallel, 5S) is Method; a change to the machine (standardising its
+ *  function, a jig, quick-release clamps, fixed stops instead of
+ *  adjustment) is Machine. With no plan: external work inside the stop is
+ *  Method, an internal element Machine. A person can move it. */
+const SMED_BONE: Record<string, SixM> = { prepare: 'method', parallel: 'method', organise: 'method', standardise: 'machine', jig: 'machine', clamps: 'machine', 'no-adjust': 'machine' };
+export const boneOfChangeoverStep = (st: Pick<ChangeoverStep, 'side' | 'plan'>): SixM =>
+  (st.plan?.how ? SMED_BONE[st.plan.how] : undefined) ?? (st.plan?.kind === 'convert' ? 'method' : st.side === 'external' ? 'method' : 'machine');
 
 /** "Prove it": the same tool on the same scope as the evidence — what it is
  *  of, the machine, the product, the limits and the count — so before and
@@ -431,6 +446,8 @@ export function proveItFrom(evidence: ToolStudy, fixId: ID, x: { at: number; by?
 const recarry = (f: ToolStudy['facts']): ToolStudy['facts'] => ({
   sequence: carrySequence(f.sequence),
   ...(f.fromProduct ? { fromProduct: f.fromProduct } : {}), ...(f.toProduct ? { toProduct: f.toProduct } : {}),
+  ...(f.running ? { running: JSON.parse(JSON.stringify(f.running)) as typeof f.running } : {}), ...(f.changeovers ? { changeovers: { ...f.changeovers } } : {}),
+  ...(f.ratePerMin ? { ratePerMin: f.ratePerMin } : {}), ...(f.rateFrom ? { rateFrom: f.rateFrom } : {}), ...(f.rateStation ? { rateStation: f.rateStation } : {}),
   ...(f.perWeek ? { perWeek: f.perWeek } : {}), ...(f.availableMinPerDay ? { availableMinPerDay: f.availableMinPerDay } : {}),
   ...(f.products?.length ? { products: f.products.map(p => ({ ...p })) } : {}),
 });
@@ -462,9 +479,10 @@ export function betterWords(s: ToolStudy, stepId?: string, ctx?: StudyContext): 
     const at = stepAt(st, s.agreed?.map);
     return `${st.name.trim() || 'A step'}${at ? ` (${at})` : ''} — ${stepFigure(st, s.agreed?.map)}`;
   }
-  /* a changeover's step: "Pre-stage the film reels — external, 11 min" */
+  /* a SMED element: its name, then the SMED action — "Pre-heat the sealing
+     jaws before the line stops — convert to external (prepare in advance), 6 min" */
   const co = s.tool === 'changeover' && stepId ? (s.facts.sequence ?? []).find(x => x.id === stepId) : undefined;
-  if (co) return `${co.name.trim() || 'A step'} — ${changeoverStepFigure(co)}`;
+  if (co) return `${co.name.trim() || 'An element'} — ${actionWords(co)}`;
   if (s.tool === 'losses') {
     /* a bar of the waterfall in its own figures — "Breakdown on the Bagger —
        32 min of stops (1 stop) on Shift 1, yesterday (£168)" */

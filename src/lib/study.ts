@@ -161,12 +161,40 @@ export interface AgreedMap {
   supplier?: string;
 }
 
-/** THE CHANGEOVER (docs/TOOLKIT.md, tool 6): one step of changing the line
- *  from one product to the next — timed on the phone as it happens (Lap),
- *  typed, or CARRIED from the changeover before when a fix is being proved.
- *  Each step is INTERNAL (done with the line stopped) or EXTERNAL (could be
- *  done while it still runs) — SMED's one distinction. */
+/** SMED (docs/TOOLKIT.md, tool 6 — stored as `changeover`): one ELEMENT of
+ *  changing the line from one product to the next, from the last good piece
+ *  of the old product to the first good piece of the new at full rate — the
+ *  run-up and the adjustments are elements too. Timed on the phone as it
+ *  happens (Lap), typed, or CARRIED from the changeover before when a fix is
+ *  being proved. Each is INTERNAL (done with the line stopped) or EXTERNAL
+ *  (could be done while it runs) — Shingo's first distinction. */
 export type ChangeoverSide = 'internal' | 'external';
+/** Shingo's four functions of a changeover: preparing and checking
+ *  materials and tools; removing and fitting; setting, measuring and
+ *  adjusting; trial runs and the run-up to rate (typically half of it). */
+export type SmedFunction = 'prepare' | 'mount' | 'adjust' | 'trial';
+/** What is planned for an element: CONVERT it to external (stage 2),
+ *  STREAMLINE it (stage 3), ELIMINATE it (an adjustment made unnecessary),
+ *  or KEEP it as it is. */
+export type SmedPlanKind = 'convert' | 'streamline' | 'eliminate' | 'keep';
+/** How: converting — prepare in advance (kits, pre-heat, pre-stage),
+ *  standardise the function (same heights, same fixings), an intermediate
+ *  jig; streamlining — in parallel (two people), quick-release clamps
+ *  instead of bolts, no adjustment (fixed stops, settings recorded,
+ *  go/no-go), organise the external work (5S, shadow boards, kits). */
+export type SmedHow = 'prepare' | 'standardise' | 'jig' | 'parallel' | 'clamps' | 'no-adjust' | 'organise';
+export interface SmedPlan {
+  kind: SmedPlanKind;
+  how?: SmedHow;
+  /** In the floor's words: "pre-heat the spare jaws in the oven". */
+  note?: string;
+  /** Seconds it is to take inside the stop after the plan — a streamlined
+   *  element's target; for a converted one, what is left inside (absent: none). */
+  targetSec?: number;
+  /** In parallel: the element it is to run alongside, and who is to do it. */
+  alongside?: string;
+  crew?: string[];
+}
 export interface ChangeoverStep {
   id: string;
   order: number;
@@ -176,9 +204,46 @@ export interface ChangeoverStep {
   sec?: number;
   side: ChangeoverSide;
   source: 'timed' | 'typed' | 'carried';
-  /** When it was timed or typed, and by whom. */
+  /** When it was timed or typed, and by whom (the person with the phone). */
   at?: number;
   who?: string;
+  /** WHO DOES IT — the grid's lanes (Op 1, the fitter, the team leader); two
+   *  people on one element sit in both lanes. */
+  crew?: string[];
+  /** WHERE — the part of the machine (the film unit, the jaws, the former). */
+  where?: string;
+  /** Done at the same time as another element (its id): the two share a
+   *  column of the grid, and the changeover takes the longer of them. */
+  alongside?: string;
+  fn?: SmedFunction;
+  plan?: SmedPlan;
+  /** An external element: done before the line stops, or after it runs again
+   *  (absent: worked out from where it falls in the sequence). */
+  when?: 'before' | 'after';
+}
+
+/** HOW THE LINE RUNS — asked, never assumed (Rowland, 12 October: "it could
+ *  be 7 days a week, but it could be the amount of hours as well of running
+ *  time, because we could have different shifts"). */
+/** Where a SMED study's line speed came from (StudyFacts.ratePerMin). */
+export type SmedRateFrom = 'plate' | 'person' | 'standard' | 'line' | 'typed';
+
+export interface RunningPattern {
+  shiftsPerDay?: number;
+  /** Hours a shift, when every shift is the same length … */
+  hoursPerShift?: number;
+  /** … or each shift's hours, when they differ (one per shift). */
+  shiftHours?: number[];
+  /** PLANNED BREAKS THE LINE STOPS FOR, minutes a shift — a shift's running
+   *  time is the shift less these (docs/CAPACITY.md §5: planned production
+   *  time). Breaks covered by relief, the line running on, are not counted:
+   *  0 is an answer. Asked, never assumed. */
+  breakMin?: number;
+  /** … or each shift's breaks, when the shifts are told apart (one per shift). */
+  shiftBreaks?: number[];
+  daysPerWeek?: number;
+  /** Weeks a year the line runs — for the year's figure; absent, no year is said. */
+  weeksPerYear?: number;
 }
 
 /** A product run on the line, for the changeover's interval (every product
@@ -205,9 +270,14 @@ export interface ChangeoverProduct {
 export interface StandardChangeover {
   id: string;
   from?: string;
-  steps: { name: string; side: ChangeoverSide; sec?: number }[];
-  /** The agreed minutes, the sequence's total. */
+  steps: { name: string; side: ChangeoverSide; sec?: number; fn?: SmedFunction; crew?: string[]; plan?: SmedPlan; when?: 'before' | 'after' }[];
+  /** The agreed minutes: the stop, with the external work done before and after. */
   minutes: number;
+  /** The plan's minutes — streamlined — when the elements carry a plan. */
+  targetMinutes?: number;
+  /** The checklist: what is prepared before the line stops, what is done
+   *  with it stopped, what after it runs again. */
+  checklist?: { before: string[]; stopped: string[]; after: string[] };
   agreedAt: number;
   by?: string;
   fromStudyId: string;
@@ -286,13 +356,25 @@ export interface StudyFacts {
   /** The two products: what the line ran, and what it changed to. */
   fromProduct?: string;
   toProduct?: string;
-  /** Changeovers a week, typed — what the external work buys back. */
-  perWeek?: number;
+  /** How the line runs: shifts, their hours, days a week, weeks a year. */
+  running?: RunningPattern;
+  /** How many changeovers, as the floor knows it — a shift, a day or a week. */
+  changeovers?: { count: number; per: 'shift' | 'day' | 'week' };
+  /** THE LINE'S SPEED, a minute in its own unit — for the packs a stop
+   *  costs. Rowland, 12 October: "we go by plate speed ... unless human"
+   *  (docs/CAPACITY.md §1). Offered from the product's line balance: the
+   *  critical machine's PLATE speed, or a person's timed pace where people
+   *  set it; else the standard's target or the line's rated speed, each said
+   *  as not a plate speed; else typed. Which is kept, and the station's name. */
+  ratePerMin?: number;
+  rateFrom?: SmedRateFrom;
+  rateStation?: string;
   /** The products run on the line, for the interval — each with its demand
    *  a day and the line's rate on it, or its run time a day typed. */
   products?: ChangeoverProduct[];
-  /** Minutes the line runs a day, typed — offered from the balance's
-   *  planned hours when a standard on the line holds them. */
+  /** Older records: changeovers a week, and minutes a day, typed before the
+   *  running pattern was asked — still read. */
+  perWeek?: number;
   availableMinPerDay?: number;
   /** Work sampling's taps — one per person per moment. */
   taps?: Tap[];
