@@ -333,10 +333,12 @@ export function compareLosses(before: LossFigures, after: LossFigures, bar?: str
 }
 
 /** PROVE IT: the next shift's count, the same shift pattern — the window
- *  moved on by whole days to the one `at` falls in (or the last one before
- *  it), the rate and the planned minutes carried, nothing counted yet. */
+ *  moved on by whole days to the latest one that has ended when it is pressed
+ *  (a quarter of an hour's grace), never the same shift twice, and the next
+ *  day's when none has ended yet; the rate and the planned minutes carried,
+ *  nothing counted yet. */
 export function nextShift(c: LossCount, at: number): LossCount {
-  const k = Math.max(1, Math.floor((at - c.from) / DAY));
+  const k = Math.max(1, Math.floor((at + 15 * 60_000 - c.to) / DAY));
   const { made: _m, rejects: _r, ...rest } = c;
   void _m; void _r;
   return { ...rest, from: c.from + k * DAY, to: c.to + k * DAY };

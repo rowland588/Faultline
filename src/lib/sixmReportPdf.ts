@@ -42,7 +42,9 @@ import { PHASE_ORDER, bonesSaid, problemsSaid, saidText, type Said } from './por
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { SIZE, box, font, gap, heading, label, lead, rows, text, wrap, type Row } from './report/blocks';
 import { fixTag, fixesOf } from '../ui/fishbone/layout';
-import { provedLine, ROLE_WORD, studyLine, studyTitle } from './studyLinks';
+import { lossFiguresOf, provedLine, ROLE_WORD, studyLine, studyTitle, type StudyContext } from './studyLinks';
+import { lossRows } from './ie/losses';
+import { lossBlocks } from './report/lossTable';
 import { streamRows } from './ie/steps';
 import { streamBlocks } from './report/streamTable';
 import type { StudyUse } from './study';
@@ -214,8 +216,14 @@ export interface SixMReport {
   /** EVIDENCE — every study on the job (on the line, when the report is for
    *  one): what it is of, what it is used for, what it says, and a value
    *  stream's steps as a table — the same appendix the client report has. */
-  evidence: { title: string; used: string; line: string; tone: string; stream?: ReturnType<typeof streamRows> }[];
+  evidence: { title: string; used: string; line: string; tone: string; stream?: ReturnType<typeof streamRows>;
+    /** A shift's loss count as a table (lib/ie/losses lossRows). */
+    losses?: NonNullable<ReturnType<typeof lossRows>> }[];
 }
+
+/** What a loss count reads beside its facts — the lines' stops and cost
+ *  models the fishbones already read (lib/studyLinks StudyContext). */
+export const studyCtx = (d: Pick<FishboneData, 'observations' | 'workspaces'>): StudyContext => ({ observations: d.observations, workspaces: d.workspaces });
 
 export interface SixMInput {
   project: { name: string; lead?: string };
@@ -393,7 +401,7 @@ export function sixmReport(o: SixMInput): SixMReport {
         ...(t?.expect?.trim() ? { expect: t.expect.trim() } : {}),
         ...(t?.state === 'done' ? { happened: t.outcome?.trim() || 'not written up yet' } : {}),
         ...(ref ? { cause: ref.text } : {}),
-        ...((() => { const pr = t ? provedLine(o.data.studies, t.id, 'action') : undefined; return pr ? { proved: pr } : {}; })()),
+        ...((() => { const pr = t ? provedLine(o.data.studies, t.id, 'action', studyCtx(o.data)) : undefined; return pr ? { proved: pr } : {}; })()),
       };
     }).sort((a, b) => TONE_RANK[a.tone] - TONE_RANK[b.tone]);
     const open = counter.filter(c => c.tone !== 'done').length, late = counter.filter(c => c.tone === 'late').length;
@@ -471,7 +479,7 @@ export function sixmReport(o: SixMInput): SixMReport {
   const rowOf = (t: PaceTodoRow): BoardRow & { due: string } => ({
     what: t.what, ...(t.why?.trim() ? { why: t.why.trim() } : {}), owner: t.who?.trim() ?? '', ...actionState(t, today),
     ...(forOf(t) ? { cause: forOf(t) } : {}), ...(!o.lineId && lines.length > 1 ? { line: lineName(t.lineId) ?? 'All lines' } : {}),
-    ...((() => { const pr = provedLine(o.data.studies, t.id, 'action'); return pr ? { proved: pr } : {}; })()),
+    ...((() => { const pr = provedLine(o.data.studies, t.id, 'action', studyCtx(o.data)); return pr ? { proved: pr } : {}; })()),
     due: t.state === 'done' ? `~${t.doneOn ?? ''}` : t.due ?? '9999',
   });
   const groups: { m: SixM | null; label: string }[] = [...SIXM.map(b => ({ m: b.key as SixM | null, label: b.label })), { m: null, label: 'Not on a bone yet' }];
@@ -513,9 +521,11 @@ export function sixmReport(o: SixMInput): SixMReport {
     .map(s => {
       const used = s.uses.flatMap(u => { const t = recordTitle(u)?.trim(); return t ? [`${(ROLE_WORD[`${u.kind}:${u.role}`] ?? u.role).toLowerCase()}: ${t}`] : []; }).join('; ');
       const branches = new Map(s.uses.flatMap(u => { const t = u.step && u.role === 'evidence' ? recordTitle(u) : undefined; return t && u.step ? [[u.step, t] as [string, string]] : []; }));
-      const l = studyLine(s);
+      const l = studyLine(s, studyCtx(data));
+      const losses = s.tool === 'losses' ? lossRows(lossFiguresOf(s, studyCtx(data))) : undefined;
       return { title: studyTitle(s), used: used || 'not used for a record yet', line: l.text, tone: l.tone,
-        ...(s.tool === 'map' && (s.facts.flow ?? []).length ? { stream: streamRows(s.facts.flow, s.agreed?.map, branches) } : {}) };
+        ...(s.tool === 'map' && (s.facts.flow ?? []).length ? { stream: streamRows(s.facts.flow, s.agreed?.map, branches) } : {}),
+        ...(losses ? { losses } : {}) };
     });
 
   /* ------------------------------ the band ------------------------------- */
@@ -692,8 +702,9 @@ function blocksOf(r: SixMReport, d: Density): Block[] {
     r.evidence.forEach((e, i, all) => {
       out.push(text({ text: e.title, size: S.body, style: 'bold', before: i ? 4 : 0, after: 1 }));
       out.push(text({ text: `Used for: ${e.used}`, size: S.small, colour: MUTED, after: 1 }));
-      out.push(text({ text: e.line, size: S.small + 0.5, colour: e.tone === 'r' ? '#9b3227' : INK2, after: e.stream ? 4 : i === all.length - 1 ? gap(d, 's') : 2 }));
+      out.push(text({ text: e.line, size: S.small + 0.5, colour: e.tone === 'r' ? '#9b3227' : INK2, after: e.stream || e.losses ? 4 : i === all.length - 1 ? gap(d, 's') : 2 }));
       if (e.stream) out.push(...streamBlocks(e.stream.rows, e.stream.total));
+      if (e.losses) out.push(...lossBlocks(e.losses));
     });
   }
   return out;

@@ -129,6 +129,7 @@ describe('a shift’s losses (tool 7)', () => {
     expect([nx.from, nx.to, nx.shift, nx.plannedMin, nx.ratePerMin, nx.rateFrom, nx.made, nx.rejects]).toEqual([FROM + 86_400_000, TO + 86_400_000, 'Shift 1', 450, 100, 'standard', undefined, undefined]);
     expect(nextShift(count, FROM + 10 * MIN).from).toBe(FROM + 86_400_000);   // never the same shift twice
     expect(nextShift(count, TO + 3 * 86_400_000).from).toBe(FROM + 3 * 86_400_000);
+    expect(nextShift(count, FROM + 2 * 86_400_000 + H).from).toBe(FROM + 86_400_000);   // two days on, the day's shift still running: yesterday's
   });
   it('one line for a card or a row', () => {
     const now = TO + 20 * H;

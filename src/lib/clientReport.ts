@@ -39,8 +39,9 @@ import { couldWords, criticalProblems, criticalState, riskProblems, type Critica
 import type { WalkSnag } from './walkSnags';
 import { climbsOf } from './rampUp';
 import type { ToolStudy } from './study';
-import { provedLine, studyHref, studyLine, studyTitle } from './studyLinks';
+import { lossFiguresOf, provedLine, studyHref, studyLine, studyTitle, type StudyContext } from './studyLinks';
 import { streamRows } from './ie/steps';
+import { lossRows } from './ie/losses';
 
 /** One cell of a gate's checklist: how that stage stands on that machine. */
 /** `booked` is a step with a day, still ahead (indigo); `ahead` one with no
@@ -221,7 +222,10 @@ export interface ClientReport {
   evidence: { id: string; title: string; href: string; used: string; line: string; tone: string;
     /** A value stream map's steps as a table (lib/ie/steps streamRows) — the
      *  grid on paper, the step a fix was raised from naming it. */
-    stream?: ReturnType<typeof streamRows> }[];
+    stream?: ReturnType<typeof streamRows>;
+    /** A shift's loss count as a table (lib/ie/losses lossRows) — the
+     *  waterfall on paper: cause · stops · minutes · £. */
+    losses?: NonNullable<ReturnType<typeof lossRows>> }[];
   /** The job's dated marks — the same ones the project page's Gantt draws —
    *  for "The plan" page, with the day it was printed and both handover dates. */
   plan: PlanMark[];
@@ -270,6 +274,10 @@ export interface ClientReportInput {
   walk?: WalkSnag[];
   /** The job's studies (lib/study) — the Evidence appendix and each fix's line. */
   studies?: ToolStudy[];
+  /** What a loss count reads beside its facts: its line's stops and cost
+   *  model (lib/studyLinks StudyContext). Absent: a count says its loss, and
+   *  not where it went. */
+  studyContext?: StudyContext;
   today: string;
 }
 
@@ -472,7 +480,8 @@ export function clientReport(x: ClientReportInput): ClientReport {
   /* ---- fixes ---- */
   /* THE JOB'S STUDIES — evidence, never moved: each fix reads the one link. */
   const studies = (x.studies ?? []).filter(s => !s.deletedAt && s.projectId === project.id);
-  const provedOf = (fixId: string): string | undefined => provedLine(studies, fixId);
+  const ctx = x.studyContext;
+  const provedOf = (fixId: string): string | undefined => provedLine(studies, fixId, 'fix', ctx);
   const fixRow = (t: Test): FixRow => {
     const ft = fixTone(t, today);
     /* The fix's own picture, else the one taken with the problem that booked
@@ -557,11 +566,13 @@ export function clientReport(x: ClientReportInput): ClientReport {
         if (!r) return '';
         return u.kind === 'test' ? `proves ${r.title}` : u.role === 'evidence' ? `how we know: ${r.title}` : `proves the fix: ${r.title}`;
       }).filter(Boolean).join('; ');
-      const l = studyLine(s);
+      const l = studyLine(s, ctx);
       const branches = new Map(s.uses.flatMap(u => { const r = u.step && u.role === 'evidence' ? tests.find(t => t.id === u.ref) : undefined; return r && u.step ? [[u.step, r.title] as [string, string]] : []; }));
+      const losses = s.tool === 'losses' ? lossRows(lossFiguresOf(s, ctx)) : undefined;
       return { id: s.id, title: studyTitle(s), href: studyHref(s),
         used: used || 'not used for a record yet', line: l.text, tone: l.tone,
-        ...(s.tool === 'map' && (s.facts.flow ?? []).length ? { stream: streamRows(s.facts.flow, s.agreed?.map, branches) } : {}) };
+        ...(s.tool === 'map' && (s.facts.flow ?? []).length ? { stream: streamRows(s.facts.flow, s.agreed?.map, branches) } : {}),
+        ...(losses ? { losses } : {}) };
     }),
     /* Notes are never on the client's copy — they are private
        preparation — so a note's reminder stays off its plan page too. */

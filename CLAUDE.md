@@ -139,6 +139,7 @@ node scripts/acceptance/ecosystem-capability.mjs  # release 2: a study, a line, 
 node scripts/acceptance/work-balance.mjs  # step 3: the work timed on the phone, stacked against takt, on a job, before → after
 node scripts/acceptance/sixm-evidence.mjs  # 2h: a study on a running line — a cause's evidence, a countermeasure, before → after, the 6M report
 node scripts/acceptance/value-stream.mjs  # B: a line's value stream — who and where, walked, a step made better, walked again, before → after, the paper, the fishbone
+node scripts/acceptance/shift-losses.mjs  # E: a shift's losses — counted on the phone, the waterfall, a bar made better, the next shift counted, before → after, the fishbone, both papers
 node scripts/sync-two-devices.mjs     # a phone and a laptop against a fake cloud — video on one plays on the other
 node scripts/check-live-schema.mjs    # the LIVE database against the mapper — needs .env
 ```
@@ -171,7 +172,13 @@ after on it and the 6M report. `value-stream.mjs` is
 B: a line's value stream map — lanes by who and by where, walked on the
 phone, a fix raised from a waste step, the line walked again, before → after
 on the fix, the stream as a table on the client report, and the fishbone
-offering the map's wait and waste.
+offering the map's wait and waste. `shift-losses.mjs` is E: a shift's losses
+by hand — a count made on the phone from the line's board beside the Pareto,
+the sentence and the waterfall as `lib/ie/losses` says them from the count
+and the stops in its window, a countermeasure raised from a bar in its own
+figures, the next shift counted as its proof, before → after on it, the
+line's card, the control room and the fishbone carrying the count, and the
+waterfall as a table on the 6M report and the stage-gate client report.
 
 `scripts/sync-two-devices.mjs` runs two real devices of the app (a phone and a
 laptop, separate storage) against `scripts/fake-cloud.mjs`, which keeps the

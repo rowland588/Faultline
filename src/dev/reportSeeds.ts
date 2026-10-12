@@ -14,9 +14,10 @@
  * Nothing in the app imports this, so it is not in the bundle. */
 import {
   createProject, updateProject, putAsset, putTest, putTestItem, putMaterials, putPrograms,
-  addCase, addObservation, addPaceLine, addSegment, addSnag, addSnagAsset, createWorkspace,
+  addCase, addObservation, addPaceLine, addSegment, addSnag, addSnagAsset, createWorkspace, updateWorkspace,
   putPaceTodo, putReadings, putStandard, putTarget, putBlob, putStudy,
 } from '../db';
+import type { LossCount } from '../lib/study';
 import type { Case, MediaRef, Observation } from '../types';
 import type { PaceTodoRow } from '../db';
 import type { Measure, Period, Reading, Target } from '../lib/measures';
@@ -128,6 +129,16 @@ export interface ReportJob { projectId: string; testId: string; fixId?: string }
 const THIRTY = [400.1, 402.6, 401.6, 400.8, 401.5, 401.3, 400.2, 401.9, 400.6, 400.4, 400.6, 401.2, 401.9, 400.9, 401.8,
   401.0, 401.9, 400.8, 401.9, 401.1, 401.2, 401.6, 401.3, 400.7, 401.3, 400.4, 401.1, 401.5, 401.9, 400.8];
 
+/* A SHIFT'S LOSSES (lib/ie/losses) — a line's shift, the stops timed in it
+   (Observation, on the line's workspace) and the count at its end. */
+const at6 = (daysAgo: number) => { const d = new Date(Date.now() - daysAgo * DAY); d.setHours(6, 0, 0, 0); return d.getTime(); };
+const shiftOf = (daysAgo: number, o: Partial<LossCount> = {}): LossCount =>
+  ({ shift: 'Shift 1', from: at6(daysAgo), to: at6(daysAgo) + 8 * 3_600_000, plannedMin: 450, ratePerMin: 100, rateFrom: 'standard', ...o });
+const lossStop = (wsId: string, from: number, hour: number, mins: number, category: string, subcategory: string, asset: string, note?: string): Observation => ({
+  id: uid(), workspaceId: wsId, category, subcategory, asset, shift: 'Shift 1', startedAt: from + hour * 3_600_000, endedAt: from + hour * 3_600_000 + mins * 60_000,
+  durationMs: Math.round(mins * 60_000), timing: 'stopwatch', count: 1, ...(note ? { note } : {}), media: [], createdAt: Date.now(), updatedAt: Date.now(),
+});
+
 export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
   r = 7;
   const t = Date.now();
@@ -162,6 +173,9 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
     /* A part of the plan on the stage, with a day — a branch under it on the plan. */
     await putTestItem({ id: uid(), projectId: proj.id, testId: only.id, kind: 'next', what: 'Mark out the guarding line with the safety officer',
       owner: 'Site electrician', due: iso(2), sort: 1, createdAt: t, updatedAt: t });
+    /* A loss count set up and not yet counted — the paper says what is still to put in. */
+    await putStudy({ id: uid(), tool: 'losses', name: 'Loss count', projectId: proj.id, facts: { losses: shiftOf(1, { rateFrom: undefined, ratePerMin: undefined }) },
+      uses: [], startedAt: t, createdAt: t, updatedAt: t });
     return { projectId: proj.id, testId: only.id };
   }
 
@@ -260,7 +274,7 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
     await markedPhoto(['Seal jaw face scored across the middle', 'Heater lead chafed where it passes the guard']),
     await markedPhoto(['Belt worn through to the cords here', 'Tension arm bracket cracked', LONG[1]]),
   ];
-  let fixId: string | undefined, openFixId: string | undefined, balanceFixId: string | undefined, mapFixId: string | undefined;
+  let fixId: string | undefined, openFixId: string | undefined, balanceFixId: string | undefined, mapFixId: string | undefined, lossFixId: string | undefined;
   for (let i = 0; i < 30; i++) {
     const a = machines[i % machines.length];
     const due = -8 + i;
@@ -274,6 +288,7 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
     if (i === 6) openFixId = f.id;
     if (i === 9) balanceFixId = f.id;
     if (i === 11) mapFixId = f.id;
+    if (i === 13) lossFixId = f.id;
   }
   for (const x of tests) await putTest(x);
 
@@ -348,6 +363,35 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
     await putStudy({ id: uid(), ...scope,
       facts: { flow: flow(1.5 * H).map(x => ({ ...x, source: (x.id === 'qa' || x.id === 'bag' || x.id === 'pak' ? 'timed' : 'carried') as 'timed' | 'carried' })) },
       uses: [{ id: uid(), kind: 'fix', ref: mapFixId, role: 'proof', at: at(60) }], startedAt: at(90), createdAt: t, updatedAt: t });
+  }
+
+  /* A SHIFT'S LOSSES on the rebuilt line (lib/ie/losses): a crowded shift —
+     ten causes, long and awkward names, a cost model — the evidence for a fix
+     raised from its biggest bar, and the next day's Shift 1 counted as its
+     proof: before → after on the fix's card and the waterfall as a table in
+     the Evidence appendix, twice. */
+  if (size === 'huge' && lossFixId) {
+    const ws = await createWorkspace('Line 2 — rebuild');
+    await updateWorkspace({ ...ws, shifts: [{ name: 'Shift 1', start: '06:00', end: '14:00' }], crew: 6, labourRatePerHour: 15.2, labourBurden: 1.32, packsPerMin: 100, marginPerPack: 0.05 });
+    const day = shiftOf(3), next = shiftOf(2);
+    const CAUSES: [string, string, string, number][] = [
+      ['Breakdown', 'Mechanical', 'Ilapak Vegatronic 6000 vertical form-fill-seal bagger', 26], ['Minor stop', 'Misfeed', 'Ishida CCW-RV-214W multihead weigher', 7],
+      ['Minor stop', 'Sensor trip', 'Ishida CCW-RV-214W multihead weigher', 5], ['Waiting', 'No packaging / consumables', 'Brillopak UniPAKer robotic case packer', 9],
+      ['Quality', 'Seal fault', 'Ilapak Vegatronic 6000 vertical form-fill-seal bagger', 4], ['Speed loss', 'Running below rated', 'Fanuc M-410 palletising robot', 6],
+      ['Hygiene & cleaning', 'Unscheduled clean', 'Loma IQ4 metal detector', 8], ['Seal "A" & seal "B" — both re-cut', 'Rework', 'Herma 500 top-and-bottom labeller', 3],
+      ['PN-4471-0098-2231-ABCD-EFGH-IJKL-MNOP-QRST-UVWX-REV-C-FINAL-FINAL2', 'Jam / blockage', 'Interroll infeed and accumulation conveyors', 2],
+      ['Changeover', 'Size / format change', 'Ilapak Vegatronic 6000 vertical form-fill-seal bagger', 22],
+    ];
+    for (const [k, [cat, sub, asset, mins]] of CAUSES.entries()) await addObservation(lossStop(ws.id, day.from, 0.5 + k * 0.7, mins, cat, sub, asset, k === 0 ? 'Jaw heater tripped twice — Łukasz reset it' : undefined));
+    for (const [k, [cat, sub, asset, mins]] of CAUSES.slice(1, 6).entries()) await addObservation(lossStop(ws.id, next.from, 1 + k, mins - 1, cat, sub, asset));
+    await addObservation(lossStop(ws.id, next.from, 6.5, 18, 'Changeover', 'Size / format change', CAUSES[0][2]));
+    const lossName = (c: LossCount) => `Shift 1, ${new Date(c.from).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+    await putStudy({ id: uid(), tool: 'losses', name: lossName(day), projectId: proj.id, workspaceId: ws.id, product: 'Finest Red 2kg — 60 micron perforated film',
+      facts: { losses: { ...day, made: 33_400, rejects: 820 } }, uses: [{ id: uid(), kind: 'fix', ref: lossFixId, role: 'evidence', at: day.to, step: 'cause:Breakdown' }],
+      startedAt: day.to, createdAt: t, updatedAt: t });
+    await putStudy({ id: uid(), tool: 'losses', name: lossName(next), projectId: proj.id, workspaceId: ws.id, product: 'Finest Red 2kg — 60 micron perforated film',
+      facts: { losses: { ...next, made: 38_900, rejects: 410 } }, uses: [{ id: uid(), kind: 'fix', ref: lossFixId, role: 'proof', at: next.to }],
+      startedAt: next.to, createdAt: t, updatedAt: t });
   }
 
   /* What was found: sixty, on tests and steps, some long. */
@@ -560,6 +604,12 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
       openedAt: t - DAY, updatedAt: t, projectId: proj.id, lineId: line.id, source: { kind: 'observed' },
       causes: [{ id: uid(), m: 'material', text: 'The night shift say the new film reels are wound loose', grade: 'reported', status: 'suspected', whys: [], at: t - DAY, by: 'Rob Scott' }],
     });
+    /* Yesterday's Shift 1 counted, two stops timed in it, no cost model on the
+       line — the paper's table with no £ column, and most of it not yet explained. */
+    const c = shiftOf(1, { ratePerMin: 60, plannedMin: 420, made: 23_100, rejects: 90, rateFrom: 'typed' });
+    await addObservation(lossStop(ws.id, c.from, 2, 14, 'Minor stop', 'Film / packaging snag', 'Bagger', 'film splice'));
+    await addObservation(lossStop(ws.id, c.from, 5, 6, 'Breakdown', 'Mechanical', 'Bagger'));
+    await putStudy({ id: uid(), tool: 'losses', name: 'Shift 1, yesterday', projectId: proj.id, workspaceId: ws.id, facts: { losses: c }, uses: [], startedAt: c.to, createdAt: t, updatedAt: t });
     return { projectId: proj.id, lineId: line.id };
   }
 
@@ -847,6 +897,29 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
       uses: [{ id: uid(), kind: 'action', ref: qaAct.id, role: 'proof', at: t - 30 * 60_000 }], startedAt: t - 40 * 60_000, createdAt: t, updatedAt: t });
   }
 
+  /* A SHIFT'S LOSSES ON LINE 2A (lib/ie/losses): a shift four days ago with
+     its own stops on top of whatever the random log put in its window, a cost
+     model on the line, a countermeasure raised from its changeovers and the
+     next day's count as its proof — before → after on the board and in the
+     report, the waterfall as a table in the Evidence appendix. */
+  if (huge) {
+    await updateWorkspace({ ...wsA, shifts: [{ name: 'Shift 1', start: '06:00', end: '14:00' }], crew: 5, labourRatePerHour: 14.8, labourBurden: 1.3, packsPerMin: 60, marginPerPack: 0.06 });
+    const day = shiftOf(4, { ratePerMin: 70 }), next = shiftOf(3, { ratePerMin: 70 });
+    for (const [h, mins, cat, sub, asset] of [[1, 34, 'Changeover', 'Size change 2kg to 1.25kg', 'Bagger'], [2.5, 12, 'Minor stop', 'Film tracking', 'Bagger'], [4, 21, 'Breakdown', 'Seal jaw heater', 'Bagger'],
+      [5.5, 6, 'Waiting', 'Starved upstream', 'Weigher']] as const) await addObservation(lossStop(wsA.id, day.from, h, mins, cat, sub, asset));
+    await addObservation(lossStop(wsA.id, next.from, 1, 19, 'Changeover', 'Size change 2kg to 1.25kg', 'Bagger'));
+    const coAct = act('Changeovers on the Bagger — one changeover standard, kit at the line', { lineId: lineA.id, pillar: 'method', where: 'Bagger', who: 'Rob Scott', due: iso(6),
+      why: 'Loss count — Shift 1', expect: 'Changeovers on the Bagger: 34 min a shift — fewer on the next shift counted' });
+    await putPaceTodo(coAct);
+    const name = (c: LossCount) => `Shift 1, ${new Date(c.from).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+    await putStudy({ id: uid(), tool: 'losses', name: name(day), projectId: proj.id, workspaceId: wsA.id, product: 'Finest Red 2kg',
+      facts: { losses: { ...day, made: 24_600, rejects: 350 } }, uses: [{ id: uid(), kind: 'action', ref: coAct.id, role: 'evidence', at: day.to, step: 'changeover' }],
+      startedAt: day.to, createdAt: t, updatedAt: t });
+    await putStudy({ id: uid(), tool: 'losses', name: name(next), projectId: proj.id, workspaceId: wsA.id, product: 'Finest Red 2kg',
+      facts: { losses: { ...next, made: 27_300, rejects: 280 } }, uses: [{ id: uid(), kind: 'action', ref: coAct.id, role: 'proof', at: next.to }],
+      startedAt: next.to, createdAt: t, updatedAt: t });
+  }
+
   /* ------------------------------ the board ------------------------------ */
   const PILLARS: (PaceTodoRow['pillar'] | undefined)[] = ['people', 'machine', 'method', 'material', 'measurement', 'environment', 'plant', 'process', undefined];
   const WHATS = ['Weekly 5S walk on the line', 'Replace the worn sealing jaw', 'Second operator on the infeed at start-up', 'Order the thicker film for trial', 'Fix the stop logging on the HMI',
@@ -969,6 +1042,17 @@ export async function seedRandomSixMJob(seed: number): Promise<SixMJob & { lineI
       caseId: c?.id, causeRef: c && cause ? `${c.id}:${cause.id}` : undefined, expect: rand() < 0.5 ? say() : undefined,
       createdAt: t, updatedAt: t,
     });
+  }
+  /* A shift's loss count, now and then (lib/ie/losses): any line, any day in
+     the log's four weeks, sometimes not yet counted, sometimes made more than
+     the rate allows, the stops in its window whatever the log holds — every
+     figure it puts on paper reconciled by the stress run. */
+  if (lines.length && rand() < 0.6) {
+    const l = pick(lines);
+    const c = shiftOf(Math.floor(rand() * 27), { ratePerMin: 40 + Math.floor(rand() * 60), plannedMin: 300 + Math.floor(rand() * 180), rateFrom: rand() < 0.5 ? 'standard' : 'typed',
+      ...(rand() < 0.15 ? {} : { made: Math.floor(rand() * 40_000) }), ...(rand() < 0.5 ? { rejects: Math.floor(rand() * 900) } : {}), ...(rand() < 0.3 ? { shift: pick(AWKWARD).trim() || undefined } : {}) });
+    await putStudy({ id: uid(), tool: 'losses', name: rand() < 0.2 ? pick(AWKWARD) || 'Loss count' : 'Loss count', projectId: proj.id, workspaceId: l.workspaceId as string,
+      facts: { losses: c }, uses: [], startedAt: c.to, createdAt: t, updatedAt: t });
   }
   return { projectId: proj.id, lineId: lines[0]?.id as string };
 }

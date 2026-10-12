@@ -24,6 +24,7 @@ import { useAccess } from '../cloud/access';
 import { openRecord } from '../ui/RecordDrawer';
 import { niceDay } from '../lib/weeks';
 import { useJobStudies } from '../ui/StudyLinks';
+import { useStudyContext } from '../ui/ShiftLosses';
 import { nav } from '../state/useRoute';
 
 /** A gate's counts with the abnormal ones in their colour — "2 late" red,
@@ -118,6 +119,8 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
   const tt = useTesting(projectId);
   /* The job's studies — the Evidence appendix and each fix's line (lib/studyLinks). */
   const studies = useJobStudies(projectId);
+  /* a loss count reads its line's stops and cost model (lib/studyLinks) */
+  const studyContext = useStudyContext(studies);
   const mats = useMaterials(projectId);
   const progs = usePrograms(projectId);
   const standards = useStandards(projectId);
@@ -147,8 +150,8 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
   const ready = !loading && !tt.loading && !mats.loading && !progs.loading && standards != null && walk != null && !!project;
   const report = useMemo(() => (ready && project ? clientReport({
     project, projects, assets: tt.assets, tests: tt.tests, items: tt.items,
-    materials: mats.materials, programs: progs.programs, standards: standards ?? [], walk: walk ?? [], studies, today: todayISO(),
-  }) : null), [ready, project, projects, tt.assets, tt.tests, tt.items, mats.materials, progs.programs, standards, walk, studies]);
+    materials: mats.materials, programs: progs.programs, standards: standards ?? [], walk: walk ?? [], studies, studyContext, today: todayISO(),
+  }) : null), [ready, project, projects, tt.assets, tt.tests, tt.items, mats.materials, progs.programs, standards, walk, studies, studyContext]);
 
   const handover = useMemo(() => (ready && project ? handoverReport({
     project, assets: tt.assets, tests: tt.tests, items: tt.items, materials: mats.materials, programs: progs.programs, studies, today: todayISO(),
