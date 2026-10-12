@@ -22,12 +22,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { withoutDemo } from '../lib/demo';
 import { asked } from '../lib/lines';
-import { createWorkspace, deleteSnag, listAllSnags, listWorkspaces, listAssets, listSnagAssets, onDataChange, updateSnag, updateWorkspace, setSnagsStatus } from '../db';
+import { createWorkspace, deleteSnag, listAllSnags, listWorkspaces, listAssets, listSnagAssets, listTests, listTestItems, listPaceTodos, onDataChange, updateSnag, updateWorkspace, setSnagsStatus, type PaceTodoRow } from '../db';
 import { useProjects } from '../lib/useProjects';
 import { planModel } from '../lib/planModel';
 import { uid } from '../lib/ids';
 import type { SnagCardRow } from '../lib/buildSnagCards';
-import { PRIORITY_RANK, PRIORITY_WORD, type Priority, type SnagRow, type SnagTone, snagsReading } from '../lib/snagsReport';
+import { jobGroup, PRIORITY_RANK, PRIORITY_WORD, type JobGroup, type JobRow, type Priority, type SnagRow, type SnagTone, snagsReading } from '../lib/snagsReport';
+import { openRecord } from '../ui/RecordDrawer';
 import { nav } from '../state/useRoute';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
 import { Evidence } from '../ui/EvidenceDoors';
@@ -37,6 +38,7 @@ import { Icon } from '../ui/Icon';
 import { DateInput } from '../ui/DateInput';
 import { DraftArea, DraftText } from '../ui/Draft';
 import type { MediaRef, Project, Workspace } from '../types';
+import type { Asset, Test, TestItem } from '../lib/testing';
 import { SNAG_STATUS_META, dueFromInput, dueToInput, type Snag, type SnagAsset, type SnagStatus } from './types';
 import { pinSnag } from './quick';
 import { openQuickSnag } from './QuickSnag';
@@ -54,6 +56,8 @@ const PrioTag = ({ p }: { p: Priority }) => <span className={'qsl-prio ' + PRIO_
 const photoRef = (key: string, s?: { media?: MediaRef[] }): MediaRef =>
   s?.media?.find(m => m.blobKey === key) ?? { id: key, kind: 'photo', blobKey: key, mime: 'image/jpeg', capturedAt: 0 };
 const NEW_LINE = '__new_line__';
+/** A job's records the page reads its problems and fixes from. */
+interface JobData { tests: Test[]; items: TestItem[]; assets: Asset[]; todos: PaceTodoRow[] }
 const todayInput = () => dueToInput(new Date().setHours(0, 0, 0, 0));
 const dedupe = (xs: string[]) => { const seen = new Set<string>(); return xs.filter(x => { const k = x.trim().toLowerCase(); if (!k || seen.has(k)) return false; seen.add(k); return true; }); };
 
@@ -63,6 +67,7 @@ export function QuickSnagsScreen() {
   const [lines, setLines] = useState<Workspace[]>([]);
   const [frames, setFrames] = useState<Map<string, SnagAsset>>(new Map());
   const [jobMachines, setJobMachines] = useState<string[]>([]);
+  const [jobData, setJobData] = useState<Map<string, JobData>>(new Map());
   const [filter, setFilter] = useState<Filter>('open');
   const [group, setGroup] = useState<Group>('line');
   /* opened from a line's own page: on that line, the problem tapped there open */
@@ -88,9 +93,19 @@ export function QuickSnagsScreen() {
     const fr = new Map<string, SnagAsset>();
     for (const a of (await Promise.all(wsIds.map(id => listSnagAssets(id)))).flat()) fr.set(a.id, a);
     setFrames(fr);
-    /* the machines on the jobs — offered when a problem is given its machine */
+    /* EVERY PROJECT'S PROBLEMS AND FIXES — this page holds everything
+       (Rowland, 12 October: "everything should still stay in the control
+       problem page, because that's the page that has everything. That's the
+       page I do the report on"); and the machines on the jobs, offered when
+       a problem is given its machine. */
     const ids = jobKey.split(',').filter(Boolean);
-    setJobMachines(dedupe((await Promise.all(ids.map(id => listAssets(id)))).flat().filter(a => !a.deletedAt).map(a => a.name.trim())));
+    const jd = new Map<string, JobData>();
+    await Promise.all(ids.map(async pid => {
+      const [tests, items, assets, todos] = await Promise.all([listTests(pid), listTestItems(pid), listAssets(pid), listPaceTodos(pid)]);
+      jd.set(pid, { tests, items, assets, todos });
+    }));
+    setJobData(jd);
+    setJobMachines(dedupe([...jd.values()].flatMap(d => d.assets).filter(a => !a.deletedAt).map(a => a.name.trim())));
   }, [jobKey]);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
 
@@ -107,11 +122,24 @@ export function QuickSnagsScreen() {
     (lineF === 'all' || s.workspaceId === lineF) && (jobF === 'all' || s.projectId === jobF)
     && (whoF === 'all' || (whoF === '' ? !s.owner?.trim() : s.owner?.trim() === whoF))
     && (!words || `${s.problem} ${s.latestUpdate ?? ''} ${s.targetAsset ?? ''} ${s.owner ?? ''} ${s.proposedSolution ?? ''} ${(s.journey ?? []).map(j => `${j.did} ${j.result ?? ''}`).join(' ')}`.toLowerCase().includes(words))), [here, lineF, jobF, whoF, words]);
+  /* Each project's own problems (with no fix yet) and its fixes — a
+     stage-gate job's — or a 6M job's actions that came from a problem
+     (lib/snagsReport jobGroup), narrowed as the problems are: a line chosen
+     shows that line's only. */
+  const jobGroups = useMemo(() => (lineF !== 'all' ? [] : [...jobData.entries()].flatMap(([pid, d]) => {
+    const p = liveJobs.find(x => x.id === pid);
+    if (!p || (jobF !== 'all' && jobF !== pid)) return [];
+    const gated = planModel(p) === 'commissioning';
+    const g = jobGroup({ projectId: pid, job: p.name, tests: gated ? d.tests : [], items: gated ? d.items : [], assets: d.assets, todos: gated ? [] : d.todos, snags: snags ?? [], lineName });
+    const rows = g.rows.filter(r => (whoF === 'all' || (whoF === '' ? !r.who : r.who === whoF))
+      && (!words || `${r.what} ${r.where} ${r.fixWhat ?? ''} ${r.who ?? ''}`.toLowerCase().includes(words)));
+    return rows.length ? [{ ...g, rows }] : [];
+  })), [jobData, liveJobs, lineF, jobF, whoF, words, snags, lineName]);
   const reading = useMemo(() => snagsReading({
-    snags: narrowed, lineName, jobName, became: new Map(), register: true,
+    snags: narrowed, lineName, jobName, became: new Map(), register: true, jobs: jobGroups,
     assetName: s => (s.assetId ? frames.get(s.assetId)?.name : undefined),
     stillOf: s => (s.assetId ? frames.get(s.assetId)?.stillKey : undefined),
-  }), [narrowed, lineName, jobName, frames]);
+  }), [narrowed, lineName, jobName, frames, jobGroups]);
   const c = reading.counts;
 
   /* What the chosen count shows. */
@@ -126,10 +154,15 @@ export function QuickSnagsScreen() {
     return [...by.entries()].map(([who, rows]) => ({ key: `who:${who}`, name: who || 'Nobody yet', rows: rows.sort((a, b) => PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] || Number(b.late) - Number(a.late) || b.raisedAt - a.raisedAt) }))
       .sort((a, b) => (a.name === 'Nobody yet' ? 1 : 0) - (b.name === 'Nobody yet' ? 1 : 0) || b.rows.filter(x => x.late).length - a.rows.filter(x => x.late).length || a.name.localeCompare(b.name));
   }, [group, shownLines]);
-  const shownCount = shownLines.reduce((n, g) => n + g.rows.length, 0);
+  const shownJobs = useMemo(() => {
+    const keep = (r: JobRow) => (filter === 'open' ? r.open : filter === 'late' ? r.late : filter === 'done' ? !r.open : r.open && r.priority === filter);
+    return reading.jobs.map(g => ({ ...g, rows: g.rows.filter(keep) })).filter(g => g.rows.length);
+  }, [filter, reading]);
+  const shownCount = shownLines.reduce((n, g) => n + g.rows.length, 0) + shownJobs.reduce((n, g) => n + g.rows.length, 0);
+  const anyJobRows = [...jobData.keys()].length > 0 && reading.jobs.length > 0;
 
   const onLines = [...new Set(here.map(s => s.workspaceId))];
-  const onJobs = liveJobs.filter(p => here.some(s => s.projectId === p.id));
+  const onJobs = liveJobs.filter(p => here.some(s => s.projectId === p.id) || reading.jobs.some(g => g.projectId === p.id));
   const owners = [...new Set(here.map(s => s.owner?.trim()).filter((o): o is string => !!o))].sort();
   const toggle = (ids: string[], on: boolean) => setPicked(p => { const n = new Set(p); for (const id of ids) { if (on) n.add(id); else n.delete(id); } return n; });
   const flip = (id: string) => setOpened(o => { const n = new Set(o); if (n.has(id)) n.delete(id); else n.add(id); return n; });
@@ -148,10 +181,21 @@ export function QuickSnagsScreen() {
     setBusy('report');
     try {
       const { saveSnagsReport } = await import('../lib/buildSnagsReport');
-      await saveSnagsReport({ ...reading, lines: shownLines, jobs: [], moved: [] }, title);
+      await saveSnagsReport({ ...reading, lines: shownLines, jobs: shownJobs, moved: [] }, title);
     } catch (e) {
       console.error('problems report failed', e);
       window.alert('Sorry — the report could not be made. Please try again.');
+    } finally { setBusy(''); }
+  };
+  const jobCard = async (row: JobRow, job: string) => {
+    if (busy) return;
+    setBusy('cards');
+    try {
+      const { saveProblemCards } = await import('../lib/buildSnagCards');
+      await saveProblemCards([{ job: { row, job } }], job);
+    } catch (e) {
+      console.error('problem card failed', e);
+      window.alert('Sorry — the report card could not be made. Please try again.');
     } finally { setBusy(''); }
   };
   const lineCard = (s: Snag): SnagCardRow => ({ snag: s, asset: s.assetId ? frames.get(s.assetId) : undefined, assetName: frameName(s) ?? s.targetAsset ?? 'No machine named' });
@@ -187,7 +231,6 @@ export function QuickSnagsScreen() {
       {word} · {n}
     </button>
   );
-  const gatedJobs = liveJobs.filter(p => planModel(p) === 'commissioning');
 
   return (
     <div className="wrap qsl">
@@ -205,14 +248,14 @@ export function QuickSnagsScreen() {
         </div>
       </header>
 
-      {here.length > 0 && <>
+      {(here.length > 0 || anyJobRows) && <>
         <div className="chip-row qsl-f" role="group" aria-label="Which">
           {chip('open', c.critical + c.high + c.low, 'Open')}
           {chip('critical', c.critical, 'Critical', 'r')}
           {chip('high', c.high, 'High', 'a')}
           {chip('low', c.low, 'Low', 'g')}
-          {chip('late', c.late, 'Late', 'r')}
-          {chip('done', c.closed, 'Done')}
+          {chip('late', c.late + c.jobLate, 'Late', 'r')}
+          {chip('done', c.closed + c.jobDone, 'Done')}
         </div>
         <div className="qsl-tools">
           {onLines.length > 1 && (
@@ -247,7 +290,7 @@ export function QuickSnagsScreen() {
           <button type="button" className="btn btn-primary" onClick={() => openQuickSnag()}><Icon name="camera" size="1.05em" />Problem</button>
         </div>
       )}
-      {snags && here.length > 0 && !groups.length && <p className="sub">None here — try Open, or every line and job.</p>}
+      {snags && (here.length > 0 || anyJobRows) && !groups.length && !shownJobs.length && <p className="sub">None here — try Open, or every line and job.</p>}
 
       {groups.map(g => {
         const all = g.rows.every(r => picked.has(r.id));
@@ -299,12 +342,15 @@ export function QuickSnagsScreen() {
         );
       })}
 
-      {/* Problems found on a stage-gate job's own stages stay on that job's page. */}
-      {gatedJobs.length > 0 && (
-        <p className="sub preg-jobs">Problems found on a job's own stages are on that job's Problems page: {gatedJobs.map((p, i) => (
-          <span key={p.id}>{i ? ' · ' : ''}<button type="button" className="linkish" onClick={() => nav(`/project/${p.id}/fixes`)}>{p.name}</button></span>
-        ))}</p>
-      )}
+      {/* ON THE PROJECTS — each project's own problems and fixes, here with
+          everything else and on the report (12 October); each opens out,
+          and is worked on its project. */}
+      {shownJobs.length > 0 && <h2 className="qsl-kind-h">On the projects <span className="sub">— raised on a project's own stages, with the fix that puts each right</span></h2>}
+      {shownJobs.map(g => <JobProblems key={`job:${g.projectId}`} g={g} all={reading.jobs.find(x => x.projectId === g.projectId) ?? g}
+        opened={opened} flip={flip} busy={!!busy} onView={m => setViewing({ media: m })}
+        onCard={r => void jobCard(r, g.job)}
+        onOpen={r => (r.kind === 'action' ? nav(`/project/${r.projectId}/board?a=${encodeURIComponent(r.id)}`) : openRecord(r.projectId, r.id))}
+        onList={() => { const p = liveJobs.find(x => x.id === g.projectId); nav(p && planModel(p) === 'commissioning' ? `/project/${g.projectId}/fixes` : `/project/${g.projectId}/board`); }} />)}
 
       {/* PUT AWAY BY A FRESH START — kept, never deleted, brought back with a tap. */}
       {away.length > 0 && (
@@ -370,6 +416,61 @@ export function QuickSnagsScreen() {
 }
 
 /** ONE PROBLEM, WORKED WHERE IT SITS — every box saves as it is left. */
+const KIND_ICON: Record<JobRow['kind'], 'warning' | 'check'> = { problem: 'warning', fix: 'check', action: 'check' };
+const dayOf = (at: number) => new Date(at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+/** A PROJECT'S OWN PROBLEMS AND FIXES on the Problems page — each opened out
+ *  where it sits, its report card, and worked on its project. */
+function JobProblems({ g, all, opened, flip, busy, onView, onCard, onOpen, onList }: {
+  g: JobGroup; all: JobGroup; opened: Set<string>; flip: (id: string) => void; busy: boolean;
+  onView: (m: MediaRef) => void; onCard: (r: JobRow) => void; onOpen: (r: JobRow) => void; onList: () => void;
+}) {
+  return (
+    <section className="qsl-g qsl-job">
+      <div className="qsl-gh">
+        <h2>{g.job}</h2>
+        <span className="sub">
+          {[all.problemsOpen ? `${all.problemsOpen} with no fix yet` : '', all.fixesToDo ? `${all.fixesToDo} being fixed` : '', all.done ? `${all.done} done` : ''].filter(Boolean).join(' · ') || 'nothing open'}
+          {all.late ? <> · <b className="qsl-late">{all.late} late</b></> : null}
+        </span>
+        <button type="button" className="linkish qsl-jobgo" onClick={onList}>Open {g.job}’s list ›</button>
+      </div>
+      <ul className="qsl-rows">
+        {g.rows.map(r => (
+          <li key={r.id} className={'qsl-row qsl-jrow' + (r.late ? ' is-late' : '')}>
+            {r.photo && <EvidenceThumb media={photoRef(r.photo)} size={52} onClick={() => onView(photoRef(r.photo as string))} />}
+            <button type="button" className="qsl-open" aria-expanded={opened.has(r.id)} onClick={() => flip(r.id)}>
+              {!r.photo && <span className="qsl-nopic" aria-hidden><Icon name={KIND_ICON[r.kind]} size={18} /></span>}
+              <span className="qsl-body">
+                <span className="qsl-what"><PrioTag p={r.priority} />{r.what}</span>
+                {r.fixWhat && <span className="qsl-meta qsl-fixline">Fix: {r.fixWhat}</span>}
+                <span className="qsl-meta">{r.where}{r.who ? ` · ${r.who}` : ' · nobody yet'}{r.fromSnag ? ` · seen first on ${r.fromSnag.replace(/^a snag on /, '')}` : ''}</span>
+              </span>
+              <span className="preg-right"><span className={'qsl-state ' + TONE_CLASS[r.tone]}>{r.word}</span></span>
+            </button>
+            {opened.has(r.id) && (
+              <div className="qsl-x" role="region" aria-label={`More about ${r.what}`}>
+                {r.photo && <div className="qsl-x-pics"><EvidenceThumb media={photoRef(r.photo)} size={96} onClick={() => onView(photoRef(r.photo as string))} /></div>}
+                <dl className="qsl-x-facts">
+                  <div><dt>Where</dt><dd>{r.where}</dd></div>
+                  <div><dt>Whose</dt><dd>{r.who ?? 'nobody yet'}</dd></div>
+                  <div><dt>Now</dt><dd>{r.word}</dd></div>
+                  {r.fixWhat && <div><dt>Fix</dt><dd>{r.fixWhat}</dd></div>}
+                  <div><dt>Raised</dt><dd>{dayOf(r.at)}</dd></div>
+                </dl>
+                <div className="qsl-x-acts">
+                  <button type="button" className="btn" disabled={busy} onClick={() => onCard(r)}><Icon name="document" size="1.05em" />Report card (PDF)</button>
+                  <button type="button" className="btn btn-ghost" onClick={() => onOpen(r)}>Work it on {g.job}</button>
+                </div>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCard, onWalk, onDelete, busy }: {
   s: Snag; lines: Workspace[]; projects: Project[]; machines: string[]; frame?: SnagAsset;
   put: (p: Partial<Snag>) => void; onView: (m: MediaRef) => void; onCard: () => void; onWalk: () => void; onDelete: () => void; busy: string;

@@ -95,9 +95,16 @@ const truth = () => page.evaluate(async () => {
   const snags = all.filter(s => !s.archivedAt);
   const frames = new Map((await Promise.all([...new Set(snags.filter(s => s.assetId).map(s => s.workspaceId))].map(id => db.listSnagAssets(id)))).flat().map(a => [a.id, a]));
   const lineName = id => ws.find(w => w.id === id)?.name ?? 'A line';
-  const r = R.snagsReading({ snags, lineName, jobName: id => projects.find(p => p.id === id)?.name, became: new Map(), register: true,
+  /* every live project's own problems and fixes — the page holds everything (12 October) */
+  const { planModel } = await import('/src/lib/planModel.ts');
+  const jobs = (await Promise.all(projects.filter(p => !p.archivedAt).map(async p => {
+    const [tests, items, assets, todos] = await Promise.all([db.listTests(p.id), db.listTestItems(p.id), db.listAssets(p.id), db.listPaceTodos(p.id)]);
+    const gated = planModel(p) === 'commissioning';
+    return R.jobGroup({ projectId: p.id, job: p.name, tests: gated ? tests : [], items: gated ? items : [], assets, todos: gated ? [] : todos, snags: all, lineName });
+  }))).filter(g => g.rows.length);
+  const r = R.snagsReading({ snags, lineName, jobName: id => projects.find(p => p.id === id)?.name, became: new Map(), register: true, jobs,
     assetName: s => (s.assetId ? frames.get(s.assetId)?.name : undefined), stillOf: s => (s.assetId ? frames.get(s.assetId)?.stillKey : undefined) });
-  return { says: r.says, counts: r.counts, rows: r.lines.flatMap(l => l.rows), snags, all };
+  return { says: r.says, counts: r.counts, rows: r.lines.flatMap(l => l.rows), jobRows: r.jobs.flatMap(g => g.rows.map(x => ({ ...x, job: g.job }))), snags, all };
 });
 const openUp = async what => { if ((await row(what).locator('.pe').count()) === 0) { await row(what).locator('.qsl-open').click(); await page.waitForTimeout(500); } return row(what).locator('.pe'); };
 const snag = async what => (await truth()).all.find(s => s.problem === what || s.id === sd.ids[what]);
@@ -110,10 +117,17 @@ await go('#/snags');
   ok((await words('h1')) === 'Problems' && /^Write any problem/.test(await words('.qsl-path')), '1 one page, Problems, said once');
   ok((await words('.qsl-says')) === t.says, `1 the sentence is the module's: ${t.says}`);
   const chips = (await page.locator('.qsl-f .chip').allInnerTexts()).map(x => x.replace(/\s+/g, ' ').trim());
-  ok(chips.join('|') === `Open · ${openCount(t.counts)}|Critical · ${t.counts.critical}|High · ${t.counts.high}|Low · ${t.counts.low}|Late · ${t.counts.late}|Done · ${t.counts.closed}`, `1 the counts: ${chips.join(' · ')}`);
+  ok(chips.join('|') === `Open · ${openCount(t.counts)}|Critical · ${t.counts.critical}|High · ${t.counts.high}|Low · ${t.counts.low}|Late · ${t.counts.late + t.counts.jobLate}|Done · ${t.counts.closed + t.counts.jobDone}`, `1 the counts — the projects' own problems among them: ${chips.join(' · ')}`);
+  /* EVERYTHING ON ONE PAGE (Rowland, 12 October: "everything should still stay in
+     the control problem page, because that's the page that has everything. That's
+     the page I do the report on"): a project's own problems and fixes are here too. */
+  const jOpen = t.jobRows.filter(r => r.open);
+  const jShown = await page.locator('.qsl-job .qsl-jrow').allInnerTexts();
+  ok(jOpen.length > 0 && jShown.length === jOpen.length && jOpen.every(r => jShown.some(x => x.includes(r.what))) && !(await page.locator('.preg-jobs').count()),
+    `1 a project's own problems and fixes here too, every open one: ${jOpen.length} on ${[...new Set(jOpen.map(r => r.job))].join(', ')}`);
   const open = t.rows.filter(r => r.status !== 'closed');
   ok((await page.locator('.qsl-work').count()) === open.length && open.length === 6, `1 every open problem on its line: ${open.length}`);
-  ok(/^low$/i.test(await words('.qsl-prio', row('seeded snag 0'))) && (await page.locator('.qsl-kind').count()) === 0 && (await page.locator('.qsl-job').count()) === 0, '1 each with its priority (Low until said); no snag or fix tag, nothing "moved"');
+  ok(/^low$/i.test(await words('.qsl-prio', row('seeded snag 0'))) && (await page.locator('.qsl-kind').count()) === 0 && (await page.locator('.qsl-moved').count()) === 0 && !/Moved to /.test(await page.locator('.qsl').innerText()), '1 each with its priority (Low until said); no snag or fix tag, nothing "moved"');
   ok((await page.locator('.qsl-row', { hasText: 'Demo fault' }).count()) === 0 && !/Demo/.test(await words('.qsl-says')), '1 the demo line\'s made-up problem is not here');
 }
 
@@ -230,12 +244,14 @@ await go('#/snags');
   ok((await crit.innerText()).trim() === `Critical · ${t.counts.critical}` && /qsl-chip-r/.test(await crit.getAttribute('class') ?? ''), `6 the chips count in their colours: Critical · ${t.counts.critical}`);
   await page.locator('.qsl-bar').getByRole('button', { name: 'Clear' }).click();
   await crit.click(); await page.waitForTimeout(400);
-  const shown = (await page.locator('.qsl-work .qsl-prio').allInnerTexts()).map(x => x.trim().toLowerCase());
+  const shown = (await page.locator('.qsl-work .qsl-prio, .qsl-jrow .qsl-prio').allInnerTexts()).map(x => x.trim().toLowerCase());
   ok(shown.length === t.counts.critical && shown.every(k => k === 'critical'), `6 Critical shows the critical only: ${shown.length}`);
   await page.locator('.qsl-f .chip', { hasText: 'Late' }).click(); await page.waitForTimeout(400);
-  ok((await page.locator('.qsl-work').count()) === t.rows.filter(r => r.late).length, `6 Late shows the late only: ${t.rows.filter(r => r.late).length}`);
+  const lateN = t.rows.filter(r => r.late).length + t.jobRows.filter(r => r.late).length;
+  ok((await page.locator('.qsl-work, .qsl-jrow').count()) === lateN, `6 Late shows the late only, the projects' among them: ${lateN}`);
   await page.locator('.qsl-f .chip', { hasText: /^Open/ }).click(); await page.getByRole('button', { name: 'By who' }).click(); await page.waitForTimeout(400);
-  const heads = await page.locator('.qsl-g .qsl-gh h2').allInnerTexts();
+  /* the people's groups — the projects' own problems follow under On the projects */
+  const heads = await page.locator('.qsl-g:not(.qsl-job) .qsl-gh h2').allInnerTexts();
   const owners = [...new Set(t.rows.filter(r => r.status !== 'closed').map(r => r.owner ?? 'Nobody yet'))];
   ok(heads.length === owners.length && owners.every(o => heads.includes(o)) && (!heads.includes('Nobody yet') || heads.at(-1) === 'Nobody yet'), `6 by who, nobody's last: ${heads.join(' · ')}`);
   await page.getByRole('button', { name: 'By line' }).click(); await page.waitForTimeout(300);
@@ -275,10 +291,10 @@ await go('#/snags');
   const [dl2] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), page.getByRole('button', { name: 'Problems report' }).click()]);
   const rep = join(dir, 'problems.pdf'); await dl2.saveAs(rep); if (process.env.KEEP_PDF) execFileSync('cp', [rep, process.env.KEEP_PDF]);
   const txt = execFileSync('pdftotext', ['-raw', rep, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
-  const all = await page.evaluate(async ws => { const { san } = await import('/src/lib/reportKit.ts'); await (await import('/src/lib/savePdf.ts')).loadPdfLib(); return ws.map(w => san(w)); }, t.rows.filter(r => r.status !== 'closed').map(r => r.what));
+  const all = await page.evaluate(async ws => { const { san } = await import('/src/lib/reportKit.ts'); await (await import('/src/lib/savePdf.ts')).loadPdfLib(); return ws.map(w => san(w)); }, [...t.rows.filter(r => r.status !== 'closed').map(r => r.what), ...t.jobRows.filter(r => r.open).map(r => r.what)]);
   const flatTxt = txt.replace(/\s+/g, '');
   const lost = all.filter(w => !flatTxt.includes(w.replace(/\s+/g, '')));
-  ok(/PROBLEMS/.test(txt) && !lost.length && /CRITICAL ·/.test(txt) && /Fitted the interlocked guard — No trips since/.test(txt) && /Plan: Fit an interlocked guard/.test(txt) && !/Demo fault/.test(txt), `8 the Problems report: every open problem (${all.length}), its plan and its journey${lost.length ? ` — lost: ${lost.slice(0, 4).join(', ')}` : ''}`);
+  ok(/PROBLEMS/.test(txt) && !lost.length && /CRITICAL ·/.test(txt) && /Fitted the interlocked guard — No trips since/.test(txt) && /Plan: Fit an interlocked guard/.test(txt) && !/Demo fault/.test(txt), `8 the Problems report: every open problem, the projects' own among them (${all.length}), its plan and its journey${lost.length ? ` — lost: ${lost.slice(0, 4).join(', ')}` : ''}`);
 }
 
 /* ---- 10 the job's own view (before the fresh start puts them away) ---- */

@@ -246,7 +246,11 @@ the line's card, the control room and the fishbone carrying the count, and
 the waterfall as a table on the 6M report and the stage-gate client report. `snags.mjs` is Problems, the register (Rowland, 12 October: "Every single
 problem allows me to put in what the problem is ... a journey of improvement
 ... assign the problems to where they're going to be. I want a fresh start.
-Don't erase anything."): every problem on its line in priority order, the
+Don't erase anything."; and "everything should still stay in the control
+problem page, because that's the page that has everything. That's the page
+I do the report on"): every problem on its line in priority order, and every
+project's own problems and fixes under On the projects, counted and on the
+report, the
 sentence and the counts as `lib/snagsReport` says them (the register); one
 opened as its own editor — its words, priority and where it stands each kept;
 its line, machine (the jobs' machines offered, another typed) and job set,

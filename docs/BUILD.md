@@ -1134,6 +1134,16 @@ a register (`src/snag/QuickSnagsScreen.tsx`):
   job's own view (its Problems link) lists it. Nothing on the page says
   "moved" any more; the old moved-away list is folded into the register
   (`snagsReading({ register: true })`).
+- **Everything on one page.** Rowland, the same night: "everything should
+  still stay in the control problem page, because that's the page that has
+  everything. That's the page I do the report on." Every live project's own
+  problems (raised on its stages, no fix yet) and fixes — a 6M job's actions
+  that came from a problem — are on the page under On the projects, in
+  priority order, counted in Open · Critical · High · Low · Late · Done and
+  the sentence, and on the Problems report; each opens out with its report
+  card and Work it on <project>. The note that sent them to the job's own
+  page is gone. A fresh start puts away the register's problems; a
+  project's stay while they are open on it.
 - **A fresh start, nothing erased.** Start fresh puts every problem away
   (`snags.archived_at`, a stamp, never a delete), with an undo; the page then
   says "A fresh start." and lists what was put away at its foot, each with

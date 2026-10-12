@@ -359,8 +359,9 @@ export function snagsReading(x: SnagsInput): SnagsReading {
   const parts: string[] = [];
   if (openN) {
     parts.push(`${plural(openN, 'problem')} open — ${counts.critical} critical, ${counts.high} high, ${counts.low} low${late ? `; ${late} late` : ''}`);
-    const where = [lineOpen ? `${lineOpen} on ${plural(new Set(here.filter(r => r.status !== 'closed').map(r => r.workspaceId)).size, 'line')}, not on a job yet` : '',
-      counts.problems + counts.fixes ? `${counts.problems + counts.fixes} on ${plural(counts.jobs, 'job')}${counts.fixes ? `, ${counts.fixes} being fixed` : ''}` : ''].filter(Boolean);
+    /* in the register a line's problem stays on its line, assigned to a project or not — never "not on a job yet" */
+    const where = [lineOpen ? `${lineOpen} on ${plural(new Set(here.filter(r => r.status !== 'closed').map(r => r.workspaceId)).size, 'line')}${x.register ? '' : ', not on a job yet'}` : '',
+      counts.problems + counts.fixes ? `${counts.problems + counts.fixes} on ${plural(counts.jobs, x.register ? 'project' : 'job')}${counts.fixes ? `, ${counts.fixes} being fixed` : ''}` : ''].filter(Boolean);
     if (where.length) parts.push(where.join('; '));
   } else if (counts.closed + counts.jobDone) parts.push(`no problem open — ${counts.closed + counts.jobDone} done`);
   if (moved.length) parts.push(`${plural(moved.length, 'problem')} moved to a job and no longer there`);
