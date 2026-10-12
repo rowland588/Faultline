@@ -87,9 +87,10 @@ export function parseRoute(hash: string): Route {
   if (segs[0] === 'capability') {
     return segs[1] ? { name: 'study', view: 'capability', id: decodeURIComponent(segs[1]), query } : { name: 'studies', view: 'capability', query };
   }
-  /* /changeover is every changeover study; /changeover/:id one of them (tool
-     6 — the changeover and its interval, docs/TOOLKIT.md). */
-  if (segs[0] === 'changeover') {
+  /* /smed is every SMED study; /smed/:id one of them (tool 6 — SMED, quick
+     changeover, docs/TOOLKIT.md). Stored as tool `changeover`; /changeover
+     is kept so a link made before it was named SMED still opens. */
+  if (segs[0] === 'smed' || segs[0] === 'changeover') {
     return segs[1] ? { name: 'study', view: 'changeover', id: decodeURIComponent(segs[1]), query } : { name: 'studies', view: 'changeover', query };
   }
   /* /losses is every shift's loss count; /losses/:id one of them (docs/TOOLKIT.md,

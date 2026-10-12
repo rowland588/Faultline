@@ -1,37 +1,45 @@
-/* ACCEPTANCE — F: THE CHANGEOVER AND ITS INTERVAL, INSIDE A CHANGE
+/* ACCEPTANCE — F: SMED, QUICK CHANGEOVER, ON ITS OWN AND INSIDE A CHANGE
  * (docs/TOOLKIT.md, tool 6; docs/BUILD.md, tool F).
  *
- * The ops lead's sentence, the one the tool exists to let them say: "42 min
- * now. With the 15 min of external work done while the line runs: 27 min —
- * 90 min a week back, 6 changeovers. Five products at 42 min run every 1.4
- * days; at 27 min, every 0.9 — daily." The story, driven in a real browser
- * on the seeded job (Line 2 commissioning; Line 7's Tesco Express 1.25 kg
- * standard on it) with the real controls, on a phone where the floor uses it:
+ * Rowland, 12 October: "you should be making the lean tool SMED ... and doing
+ * everything along them principles"; "SMED is to be a tool that again can be
+ * used individually or attached to projects"; "extrapolate it ... per shift
+ * ... the full quantity of what the changeovers are actually costing you";
+ * "we go by plate speed ... unless human".
  *
- *   1  a new changeover from the tool's page asks the two products (the line
- *      optional) — and one started from the product's standard lands on its
- *      line, its job and its standard
- *   2  Lap two steps on the phone, each tapped Internal or External — timed,
- *      the time between taps
- *   3  type the rest; the strip, the sentence and the split bar's minutes
- *      read as the module says
- *   4  the interval: the products offered from the line's standards with
- *      their rates, the day from the balance's planned hours — the interval
- *      sentence as the module says
- *   5  Make it better from an external step — a fix in the step's own figure,
- *      the changeover its evidence naming the step, the step wearing the branch
- *   6  Set as the standard — the agreed sequence on the product's standard,
- *      and the standard's page shows it
- *   7  Prove it — the same changeover timed again: the steps carried, Lap
- *      times the one up next; the pre-staged step taken out of the stop; the
- *      rest timed or typed again
- *   8  before → after on the fix — the step first, then the minutes and the
- *      week they buy back
- *   9  the client report's PDF, read back: the fix's before → after, and the
- *      Evidence appendix with the changeover as a table and its figures in words
- *  10  the line's card on the 6M job and its fishbone: the changeover offered
- *      on Method and Machine; accepted, the cause says where it came from
- *   and a client reads the changeover and changes nothing.
+ * The ops lead's sentences, the ones the tool exists to let them say: "42
+ * min now → 27 min separated → … converted → … streamlined"; "Now 42 min × …
+ * = … a week stopped — … packs at 60 a minute, the Bagger's plate speed".
+ * Driven in a real browser on a phone, with the real controls:
+ *
+ *   1  A QUICK SESSION, ON ITS OWN: a new SMED from the tool's page — the two
+ *      products, no line — Lap two elements with who does each, Internal and
+ *      External; type a third ("5" is five minutes); convert the internal
+ *      one, streamline the typed one with a target; the grid's lanes by who,
+ *      I solid and E hatched; the ladder as the module says; How the line
+ *      runs with the days a week typed as 7, the breaks and the speed typed
+ *      — the cost as the module says, no pounds (no line); the plan view and
+ *      Play; a square opens everything about its element; Set as the
+ *      standard says it needs a line
+ *   2  ON A LINE AND A JOB: Start a SMED from the product's standard lands on
+ *      its line, job and standard; the seeded SMED on it: the speed offered
+ *      is the Bagger's PLATE speed off the line balance — Use it, said so in
+ *      the cost; convert one internal element, streamline one with a target
+ *      and one in parallel by the fitter — the ladder's rungs as the module
+ *      says, and the plan's grid puts the two in one column
+ *   3  Make it better from the converted element — a fix in its SMED action's
+ *      words; the element wears the branch
+ *   4  Set as the standard — the agreed sequence with its target and its
+ *      checklist on the product's standard; the standard's page shows it
+ *   5  Prove it — the same elements carried; Lap times the one up next; the
+ *      converted element out of the stop; before → after on the fix, against
+ *      the plan
+ *   6  the client report's PDF, read back: the fix's before → after, and the
+ *      Evidence appendix with the grid as a table (who, where, I/E, the plan,
+ *      elapsed), the ladder and what the changeovers cost in words
+ *   7  the 6M job: the line's card says SMED; the fishbone offers it on
+ *      Method and Machine; accepted, the cause says SMED
+ *   and a client reads the SMED and changes nothing.
  *
  * Every sentence is checked against the module that makes it
  * (lib/ie/changeover, lib/studyLinks, lib/fishbone) on the same records.
@@ -70,177 +78,272 @@ const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}`); if (!c) fail
 const go = async h => { await page.goto(`${BASE}/${h}`); await page.waitForTimeout(2000); };
 const words = async (sel, root = page) => ((await root.locator(sel).count()) ? (await root.locator(sel).first().innerText()).replace(/\s+/g, ' ').trim() : null);
 const pdfText = f => execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
-const id = () => decodeURIComponent(new URL(page.url()).hash.split('changeover/')[1] ?? '').split(/[?&]/)[0];
+const id = () => decodeURIComponent(new URL(page.url()).hash.split('smed/')[1] ?? '').split(/[?&]/)[0];
 const card = name => page.locator('.co-step').filter({ has: page.locator('.co-step-n', { hasText: name }) });
+const stage = name => page.locator('.co-stages').getByRole('button', { name, exact: true }).click().then(() => page.waitForTimeout(300));
+const dialog = () => page.locator('[role="dialog"]').last();
 
-/* What the modules say of a changeover as it stands, against its standard. */
+/* What the modules say of a SMED as it stands — against its standard, with
+   its line's cost settings, as the page reads them. */
 const truth = sid => page.evaluate(async sid => {
-  const { getStudy, getStandard } = await import('/src/db.ts');
+  const { getStudy, getStandard, getWorkspace } = await import('/src/db.ts');
   const C = await import('/src/lib/ie/changeover.ts'); const L = await import('/src/lib/studyLinks.ts');
   const s = await getStudy(sid);
   if (!s) return null;
   const std = s.standardId ? await getStandard(s.standardId) : undefined;
   const agreed = C.agreedFor(std?.capacity?.changeovers, s.facts.fromProduct);
-  const f = C.changeoverFigures(s.facts.sequence, s.facts.perWeek);
-  const iv = C.intervalOf(f, s.facts.products, s.facts.availableMinPerDay);
+  const seq = [...(s.facts.sequence ?? [])].sort((a, b) => a.order - b.order);
+  const f = C.figuresOf(s.facts), l = C.ladderOf(seq);
+  const money = C.moneyOf(s.workspaceId ? await getWorkspace(s.workspaceId) : undefined);
+  const iv = C.intervalOf(f, s.facts.products, C.availableOf(s.facts)?.min);
+  const plan = C.arrange(seq, 'streamlined');
   return { id: s.id, name: s.name, uses: s.uses, ws: s.workspaceId, pid: s.projectId, std: s.standardId, closedAt: s.closedAt, facts: s.facts, title: L.studyTitle(s),
-    said: C.changeoverSays(f, agreed), iv: C.intervalSays(iv, f).text, now: C.mins(f.nowSec), after: C.mins(f.afterSec), ext: C.mins(f.externalSec), f };
+    said: C.changeoverSays(f, agreed), ladder: C.ladderSays(l).text, cost: C.extrapolationSays(l, s.facts, money).text, iv: C.intervalSays(iv, f).text,
+    rungs: { now: C.mins(l.now.elapsedSec), separated: C.mins(l.separated.elapsedSec), converted: C.mins(l.converted.elapsedSec), streamlined: C.mins(l.streamlined.elapsedSec) },
+    planCols: plan.cols.map(c => c.ids.length), planElapsed: C.mins(plan.elapsedSec), f };
 }, sid);
+const says = async () => (await page.locator('.ie-says p.ie-say').allTextContents()).map(x => x.replace(/\s+/g, ' ').trim());
 
 await page.goto(`${BASE}/#/`); await page.waitForTimeout(3000);
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
 const J = `#/project/${sd.projectId}`;
 
-/* ---- 1 · a new changeover asks the two products; from the standard, it lands on its line, job and standard ---- */
-await go('#/changeover');
-await page.getByRole('button', { name: 'New changeover' }).first().click(); await page.waitForTimeout(500);
+/* ==== 1 · A QUICK SESSION, ON ITS OWN ==== */
+await go('#/smed');
+ok(((await words('h1')) ?? '').includes('SMED'), `1 the tool's page is SMED: "${await words('h1')}"`);
+await page.getByRole('button', { name: 'New SMED' }).first().click(); await page.waitForTimeout(500);
 {
   const sheet = (await page.locator('.lt-new').textContent()) ?? '';
-  await page.getByLabel('From which product?').fill('Maris Piper 2kg');
+  await page.getByLabel('From which product?').fill('Finest Red 2kg');
   const waits = await page.getByRole('button', { name: 'Start it' }).isDisabled();
-  await page.getByLabel('To which product?').fill('Tesco Express 1.25 kg');
-  ok(/From which product\?/.test(sheet) && /To which product\?/.test(sheet) && /optional/.test(sheet) && waits && !(await page.getByRole('button', { name: 'Start it' }).isDisabled()),
-    '1 a new changeover: from which product, to which product — Start it waits for both; the line is optional');
-  await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+  await page.getByLabel('To which product?').fill('Express 1.25 kg');
+  ok(/optional/.test(sheet) && /No line yet — a quick session/.test(sheet) && waits, '1 a new SMED asks the two products; the line is optional — a quick session');
+  await page.getByRole('button', { name: 'Start it' }).click(); await page.waitForTimeout(1500);
 }
-await go(`#/w/${sd.wsId}/standards/${sd.lineOnJobId}`);
-await page.getByRole('button', { name: 'Time a changeover ›' }).click(); await page.waitForTimeout(1500);
-const CO = id();
-let t = await truth(CO);
-ok(!!CO && t.ws === sd.wsId && t.pid === sd.projectId && t.std === sd.lineOnJobId && t.facts.toProduct === 'Tesco Express 1.25 kg',
-  '1 Time a changeover from the Express standard: on Line 7, on the Line 2 job, into its standard');
-await page.getByRole('button', { name: 'Change the products' }).click(); await page.waitForTimeout(300);
-await page.getByLabel('From — what the line ran').fill('Maris Piper 2kg');
-await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(800);
-t = await truth(CO);
-ok(t.name === 'Maris Piper 2kg → Tesco Express 1.25 kg' && (await words('h1.ie-name'))?.startsWith(t.name), `1 the products named: "${t.name}"`);
+const Q = id();
+let t = await truth(Q);
+ok(!!Q && !t.ws && !t.pid && t.name === 'Finest Red 2kg → Express 1.25 kg' && (await page.locator('.ie-eyebrow').textContent())?.trim() === 'SMED — quick changeover',
+  `1 started on its own — no line, no job: "${t.name}", under "SMED — quick changeover"`);
 
-/* ---- 2 · Lap two steps on the phone, Internal and External ---- */
+/* Lap two elements, who does each, Internal and External */
 await page.getByRole('button', { name: /^Lap — time it/ }).click(); await page.waitForTimeout(300);
-const lap = page.locator('.co-lap');
-await lap.getByLabel('This step').fill('Stop and clear the former');
-await lap.getByRole('radio', { name: /^Internal/ }).click();
-await page.getByRole('button', { name: /^Start/ }).click(); await page.waitForTimeout(1300);
-await page.getByRole('button', { name: /^Next step/ }).click(); await page.waitForTimeout(400);
-await lap.getByLabel('This step').fill('Fetch the next former from the store');
-await lap.getByRole('radio', { name: /^External/ }).click(); await page.waitForTimeout(900);
-await page.getByRole('button', { name: /^Last step/ }).click(); await page.waitForTimeout(1000);
-t = await truth(CO);
+{
+  const lap = page.locator('.co-lap');
+  await lap.getByLabel('This element').fill('Heat the new sealing jaws');
+  await lap.getByLabel('Who does it').fill('Op 1');
+  await lap.getByRole('radio', { name: /^Internal/ }).click();
+  await page.getByRole('button', { name: /^Start — at the last good piece/ }).click(); await page.waitForTimeout(1300);
+  await page.getByRole('button', { name: /^Next — this one is done/ }).click(); await page.waitForTimeout(300);
+  await lap.getByLabel('This element').fill('Fetch the next former');
+  await lap.getByLabel('Who does it').fill('Op 2');
+  await lap.getByRole('radio', { name: /^External/ }).click(); await page.waitForTimeout(800);
+  await page.getByRole('button', { name: /^Last — first good piece at rate/ }).click(); await page.waitForTimeout(900);
+}
+t = await truth(Q);
 {
   const [a, b] = t.facts.sequence ?? [];
-  ok(t.facts.sequence.length === 2 && a.side === 'internal' && b.side === 'external' && a.source === 'timed' && b.source === 'timed' && a.sec >= 1 && a.sec < 4 && b.sec >= 0.8 && b.sec < 4 && !!a.at,
-    `2 lapped: ${a?.sec} s internal, ${b?.sec} s external — timed, the time between taps`);
+  ok(t.facts.sequence.length === 2 && a.side === 'internal' && b.side === 'external' && a.source === 'timed' && b.source === 'timed' && a.sec >= 1 && a.sec < 4 && b.sec >= 0.6 && b.sec < 4
+    && a.crew?.[0] === 'Op 1' && b.crew?.[0] === 'Op 2', `1 lapped: ${a?.sec} s internal by ${a?.crew}, ${b?.sec} s external by ${b?.crew} — the time between taps, who did each`);
 }
+/* a third, typed: "5" is five minutes */
+await stage('Record');
+await page.getByRole('button', { name: '+ Type an element' }).click(); await page.waitForTimeout(300);
+await page.getByLabel('What is done').fill('Adjust the jaw pressure');
+await dialog().getByRole('radio', { name: /^Internal/ }).click();
+await page.getByLabel('How long it takes').fill('5');
+await page.getByRole('button', { name: 'Add it' }).click(); await page.waitForTimeout(600);
+t = await truth(Q);
+ok(t.facts.sequence.length === 3 && t.facts.sequence[2].sec === 300 && t.facts.sequence[2].source === 'typed', '1 a third typed: "5" is five minutes, 300 s');
+/* the grid: lanes by who, I solid, E hatched */
+{
+  const lanes = (await page.locator('.co-grid .vs-lane').allInnerTexts()).map(x => x.trim());
+  const sq = await page.locator('.co-grid button.co-sq').evaluateAll(xs => xs.map(x => ({ c: x.className, t: x.textContent?.trim() })));
+  ok(lanes.includes('Op 1') && lanes.includes('Op 2') && sq.some(x => /is-i/.test(x.c) && x.t === 'I') && sq.some(x => /is-e/.test(x.c) && x.t === 'E'),
+    `1 the grid: lanes ${lanes.join(', ')}; internal solid "I", external hatched "E"`);
+}
+/* convert the lapped internal element; streamline the typed one with a target */
+await stage('Convert');
+await card('Heat the new sealing jaws').getByRole('button', { name: '→E Convert to external' }).click(); await page.waitForTimeout(500);
+await stage('Streamline');
+await card('Adjust the jaw pressure').getByRole('radio', { name: '↓ Streamline' }).click(); await page.waitForTimeout(500);
+await card('Adjust the jaw pressure').getByLabel('Target inside the stop').fill('2 min');
+await card('Adjust the jaw pressure').getByLabel('Target inside the stop').press('Tab'); await page.waitForTimeout(600);
+t = await truth(Q);
+{
+  const jaws = t.facts.sequence.find(x => x.name === 'Heat the new sealing jaws'), adj = t.facts.sequence.find(x => x.name === 'Adjust the jaw pressure');
+  ok(jaws?.plan?.kind === 'convert' && jaws.plan.how === 'prepare' && adj?.plan?.kind === 'streamline' && adj.plan.targetSec === 120,
+    '1 convert: the jaws to be heated before the line stops (prepare in advance); streamline: the pressure, target 2 min');
+  ok((await says()).includes(t.ladder) && /streamlined/.test(t.ladder), `1 the ladder as the module says: "${t.ladder}"`);
+  const bars = (await page.locator('.co-bar-n').allTextContents()).map(x => x.trim());
+  ok(bars.join('|') === [t.rungs.now, t.rungs.separated, t.rungs.converted, t.rungs.streamlined].join('|'), `1 the ladder drawn: ${bars.join(' → ')}`);
+}
+/* how the line runs: days a week typed as 7, the breaks, the speed typed */
+await page.getByRole('button', { name: 'Say how the line runs' }).click(); await page.waitForTimeout(400);
+{
+  const sheet = (await dialog().textContent()) ?? '';
+  await page.getByLabel('Shifts a day').fill('2');
+  await page.getByLabel('Hours a shift').fill('8');
+  await page.getByLabel('Breaks the line stops for, min a shift').fill('30');
+  await page.getByLabel('Days a week, typed').fill('7');
+  const seven = await dialog().getByRole('radio', { name: '7', exact: true }).getAttribute('aria-checked');
+  await page.getByLabel('How many changeovers').fill('3');
+  await dialog().getByRole('radio', { name: 'a shift' }).click();
+  await page.getByLabel("The line's speed, packs a minute").fill('100');
+  ok(/No plate speed on the product's line balance/.test(sheet) && /No cost set for this line/.test(sheet) && seven === 'true',
+    '1 how the line runs: nothing assumed — the days a week typed as 7 light the 7; no line balance, so the speed is typed; no line, no pounds');
+  await dialog().getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(800);
+}
+t = await truth(Q);
+ok(t.facts.running?.daysPerWeek === 7 && t.facts.running?.breakMin === 30 && t.facts.running?.shiftsPerDay === 2 && t.facts.changeovers?.count === 3 && t.facts.rateFrom === 'typed' && t.facts.ratePerMin === 100,
+  '1 saved once, on Save: 2 shifts of 8 h less 30 min, 7 days, 3 changeovers a shift, 100 a minute typed');
+ok((await says()).includes(t.cost) && /× 3 a shift × 2 shifts × 7 days = /.test(t.cost) && /at 100 a minute, typed/.test(t.cost) && !/£/.test(t.cost),
+  `1 what the changeovers cost, as the module says: "${t.cost}"`);
+/* the plan, and Play */
+await page.getByRole('tab', { name: 'The plan' }).click(); await page.waitForTimeout(400);
+{
+  const total = await words('.co-grid .vs-tot-lead');
+  const marks = await page.locator('.co-grid .co-mark').count();
+  ok(total === t.planElapsed && total === t.rungs.streamlined && marks === 0 && (await page.locator('.co-outside').innerText()).includes('Heat the new sealing jaws'),
+    `1 the plan's grid: ${total} elapsed — the converted element prepared before the line stops, said under it`);
+}
+await page.getByRole('tab', { name: 'As timed' }).click(); await page.waitForTimeout(300);
+await page.getByRole('button', { name: 'Play the changeover' }).click(); await page.waitForTimeout(1900);
+ok(/Column \d+ of \d+ — elapsed so far/.test((await words('.vs-at')) ?? ''), `1 Play the changeover: "${await words('.vs-at')}"`);
+await page.getByRole('button', { name: 'Restart' }).click().catch(() => {}); await page.waitForTimeout(300);
+await page.locator('.co-grid button.co-sq').first().click(); await page.waitForTimeout(400);
+{
+  const facts = (await dialog().innerText()).replace(/\s+/g, ' ');
+  ok(/Who does it Op 1/.test(facts) && /How it is known timed/.test(facts) && /The plan Convert to external — prepare in advance/.test(facts), '1 a square opens everything about its element: who, how known, the plan');
+  await dialog().getByRole('button', { name: 'Cancel' }).click(); await page.waitForTimeout(300);
+}
+await stage('Standardise');
+ok(((await words('.ie-agreed')) ?? '').includes('Put it on a line to set it as a product'), `1 on its own, Set as the standard says it needs a line: "${await words('.ie-agreed')}"`);
 
-/* ---- 3 · type the rest; the strip, the sentence and the split bar ---- */
-for (const [name, min, side] of [['Change the former tube', '10', 'Internal'], ['Pre-stage the film reels', '7', 'External'], ['Change the film reel', '6', 'Internal'],
-  ['Set the jaw temperature', '3', 'Internal'], ['Print the new labels', '3', 'External'], ['First bags and check the seal', '4', 'Internal']]) {
-  await page.getByRole('button', { name: '+ Type a step' }).click(); await page.waitForTimeout(300);
-  await page.getByLabel('What is done').fill(name);
-  await page.locator('[role="dialog"]').last().getByRole('radio', { name: new RegExp(`^${side}`) }).click();
-  await page.getByLabel('How long it takes').fill(min);
-  await page.getByRole('button', { name: 'Add it' }).click(); await page.waitForTimeout(500);
+/* ==== 2 · ON A LINE AND A JOB ==== */
+await go(`#/w/${sd.wsId}/standards/${sd.lineOnJobId}`);
+await page.getByRole('button', { name: 'Start a SMED ›' }).click(); await page.waitForTimeout(1500);
+{
+  const fresh = await truth(id());
+  ok(!!fresh && fresh.ws === sd.wsId && fresh.pid === sd.projectId && fresh.std === sd.lineOnJobId && fresh.facts.toProduct === 'Tesco Express 1.25 kg',
+    '2 Start a SMED from the Express standard: on its line, on the Line 2 job, into its standard');
+}
+const CO = sd.changeoverId;
+/* the line balance says the Bagger's plate speed: the slowest station, off its plate */
+await page.evaluate(async sid => {
+  const { getStandard, putStandard } = await import('/src/db.ts');
+  const std = await getStandard(sid);
+  await putStandard({ ...std, capacity: { ...(std.capacity ?? {}), stations: [
+    { id: 'w1', name: 'Weigher', kind: 'machine', unit: 'bags', contains: 1, rate: 80, ratePer: 'min', source: 'plate' },
+    { id: 'b1', name: 'Bagger', kind: 'machine', unit: 'bags', contains: 1, rate: 60, ratePer: 'min', source: 'plate' },
+    { id: 'p1', name: 'Packers', kind: 'people', unit: 'bags', contains: 1, rate: 75, ratePer: 'min', crew: 1, source: 'timed' },
+  ] } });
+}, sd.lineOnJobId);
+await go(`#/smed/${CO}`);
+await page.getByRole('button', { name: 'Change how the line runs' }).click(); await page.waitForTimeout(400);
+{
+  const note = await words('.co-rate-from', dialog());
+  ok(/^The Bagger's plate speed, off Tesco Express 1\.25 kg's line balance says 60 — 50 is said as the standard's target — not a plate speed\./.test(note ?? ''),
+    `2 the speed offered is the Bagger's plate speed: "${note}"`);
+  await dialog().getByRole('button', { name: 'Use 60' }).click(); await page.waitForTimeout(200);
+  ok(((await words('.co-rate-from', dialog())) ?? '').startsWith("From the Bagger's plate speed"), `2 used: "${await words('.co-rate-from', dialog())}"`);
+  await dialog().getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(800);
 }
 t = await truth(CO);
+ok(t.facts.ratePerMin === 60 && t.facts.rateFrom === 'plate' && t.facts.rateStation === 'Bagger' && (await says()).includes(t.cost) && /at 60 a minute, the Bagger's plate speed/.test(t.cost),
+  `2 the cost at the plate speed: "${t.cost}"`);
+/* convert one internal element; streamline one with a target, and one in parallel by the fitter */
+await stage('Convert');
+await card('Set the jaw temperature').getByRole('button', { name: '→E Convert to external' }).click(); await page.waitForTimeout(500);
+await stage('Streamline');
+await card('Change the former tube').getByRole('radio', { name: '↓ Streamline' }).click(); await page.waitForTimeout(400);
+await card('Change the former tube').getByLabel('Target inside the stop').fill('4 min');
+await card('Change the former tube').getByLabel('Target inside the stop').press('Tab'); await page.waitForTimeout(500);
+await card('Change the film reel').getByRole('radio', { name: '↓ Streamline' }).click(); await page.waitForTimeout(400);
+await card('Change the film reel').getByRole('radio', { name: 'in parallel' }).click(); await page.waitForTimeout(400);
+await card('Change the film reel').getByLabel(/alongside which element/).selectOption({ label: '3. Change the former tube' }); await page.waitForTimeout(400);
+await card('Change the film reel').getByLabel(/who does it in parallel/).fill('Fitter');
+await card('Change the film reel').getByLabel(/who does it in parallel/).press('Tab'); await page.waitForTimeout(400);
+await card('Change the film reel').getByLabel('Target inside the stop').fill('5');
+await card('Change the film reel').getByLabel('Target inside the stop').press('Tab'); await page.waitForTimeout(600);
+t = await truth(CO);
 {
-  const typed = t.facts.sequence.filter(x => x.source === 'typed');
-  ok(t.facts.sequence.length === 8 && typed.length === 6 && typed.every(x => x.sec === Number(x.sec)) && t.facts.sequence.find(x => x.name === 'Change the former tube')?.sec === 600,
-    '3 six more typed — "10" is ten minutes, 600 s; eight steps, three external');
-  const says = (await page.locator('.ie-says p.ie-say').allTextContents()).map(x => x.trim());
-  ok(says.includes(t.said.text) && (await words('.ie-verdict')) === t.said.verdict, `3 the sentence: "${t.said.text}"`);
-  const bars = (await page.locator('.co-bar-n').allTextContents()).map(x => x.trim());
-  ok(bars[0] === t.now && bars[1] === t.after && (await words('.co-saved')) === `−${t.ext}`, `3 the split bar: now ${bars[0]}, with the external work outside ${bars[1]}, ${await words('.co-saved')}`);
-  ok(await page.locator('.co-bar').first().locator('.co-seg.is-external').count() === 3 && await page.locator('.co-bar').nth(1).locator('.co-seg.is-external').count() === 0,
-    '3 the bar now carries the three external steps hatched; the bar under it has none');
+  const reel = t.facts.sequence.find(x => x.name === 'Change the film reel'), tube = t.facts.sequence.find(x => x.name === 'Change the former tube');
+  ok(reel?.plan?.how === 'parallel' && reel.plan.alongside === tube?.id && reel.plan.crew?.[0] === 'Fitter' && reel.plan.targetSec === 300 && tube?.plan?.targetSec === 240,
+    '2 streamline: the former tube to 4 min (quick-release clamps); the film reel to 5 min in parallel, alongside it, by the fitter');
+  const strip = (await page.locator('.ie-strip').innerText()).replace(/\s+/g, ' ');
+  ok((await says()).includes(t.ladder) && strip.includes(`${t.rungs.converted} converted`) && strip.includes(`${t.rungs.streamlined} streamlined`),
+    `2 the ladder as the module says: "${t.ladder}"`);
+  await page.getByRole('tab', { name: 'The plan' }).click(); await page.waitForTimeout(400);
+  const par = await page.locator('.co-grid .vs-seq.co-par').count();
+  ok(par === 1 && t.planCols.includes(2) && (await words('.co-grid .vs-tot-lead')) === t.rungs.streamlined, `2 the plan's grid: the two in one column (‖), ${t.rungs.streamlined} elapsed`);
+  await page.getByRole('tab', { name: 'As timed' }).click(); await page.waitForTimeout(300);
 }
 
-/* ---- 4 · the interval ---- */
-await page.getByRole('button', { name: /List the products and the day/ }).click(); await page.waitForTimeout(500);
-{
-  const offered = await page.locator('.co-iv-row legend input').evaluateAll(xs => xs.map(x => x.value));
-  const rates = await page.locator('.co-iv-row [aria-label$="rate a minute"]').evaluateAll(xs => xs.map(x => x.value));
-  const day = await page.getByLabel('The line runs, minutes a day').inputValue();
-  ok(offered.includes('Maris Piper 2kg') && offered.includes('Tesco Express 1.25 kg') && rates.includes('60') && rates.includes('50') && day === '450',
-    `4 offered from the line: ${offered.join(', ')} at ${rates.join(', ')} a minute; the day ${day} min from the balance's 37.5 h a week`);
-  await page.getByLabel('Maris Piper 2kg — demand a day').fill('7200');
-  await page.getByLabel('Tesco Express 1.25 kg — demand a day').fill('3000');
-  for (const [p, m] of [['Finest Red 2kg', '50'], ['King Edward 2.5kg', '40'], ['Baby potatoes 1kg', '30']]) {
-    await page.getByLabel('Another product').fill(p); await page.getByRole('button', { name: 'Add', exact: true }).click(); await page.waitForTimeout(150);
-    await page.getByLabel(`${p} — minutes a day`).fill(m);
-  }
-  await page.getByLabel('Changeovers a week').fill('6');
-  await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(900);
-  t = await truth(CO);
-  ok(t.facts.products.length === 5 && t.facts.availableMinPerDay === 450 && t.facts.perWeek === 6, '4 saved once, on Save: five products, 450 min a day, six changeovers a week');
-  ok((await words('.co-interval')) === t.iv && /^Five products at /.test(t.iv), `4 the interval: "${t.iv}"`);
-  ok((await page.locator('.ie-says p.ie-say').first().textContent())?.trim() === t.said.text && / a week back, 6 changeovers\./.test(t.said.text), '4 the week bought back is in the sentence now');
-}
-
-/* ---- 5 · Make it better from an external step ---- */
-const pre = t.facts.sequence.find(x => x.name === 'Pre-stage the film reels');
-await card('Pre-stage the film reels').locator('.co-step-b').click(); await page.waitForTimeout(400);
-await page.getByRole('button', { name: 'Make it better — raise a fix' }).click(); await page.waitForTimeout(1500);
+/* ==== 3 · Make it better from the converted element ==== */
+const jaws = t.facts.sequence.find(x => x.name === 'Set the jaw temperature');
+await page.locator('.co-grid button.co-sq', { has: page.locator('.co-mark', { hasText: '→E' }) }).first().click(); await page.waitForTimeout(400);
+await dialog().getByRole('button', { name: 'Make it better — raise a fix' }).click(); await page.waitForTimeout(1500);
 const fixId = decodeURIComponent(new URL(page.url()).hash.split('open=')[1] ?? '');
 {
-  const want = await page.evaluate(async ([sid, step]) => (await import('/src/lib/studyLinks.ts')).betterWords(await (await import('/src/db.ts')).getStudy(sid), step), [CO, pre.id]);
+  const want = await page.evaluate(async ([sid, step]) => (await import('/src/lib/studyLinks.ts')).betterWords(await (await import('/src/db.ts')).getStudy(sid), step), [CO, jaws.id]);
   const title = await page.evaluate(async ([pid, fid]) => (await (await import('/src/db.ts')).listTests(pid)).find(x => x.id === fid)?.title, [sd.projectId, fixId]);
   t = await truth(CO);
-  ok(!!fixId && title === want && want === 'Pre-stage the film reels — external, 7 min' && t.uses.some(u => u.kind === 'fix' && u.ref === fixId && u.role === 'evidence' && u.step === pre.id),
-    `5 a fix in the step's own figure: "${title}"`);
-  await go(`#/changeover/${CO}`);
-  ok(/has-fix/.test(await card('Pre-stage the film reels').getAttribute('class') ?? '') && /being made better/.test(await words('.co-step.has-fix .co-step-f') ?? ''), '5 the step wears the branch, said in words');
+  ok(!!fixId && title === want && want === 'Set the jaw temperature — convert to external (prepare in advance), 3 min' && t.uses.some(u => u.kind === 'fix' && u.ref === fixId && u.role === 'evidence' && u.step === jaws.id),
+    `3 a fix in its SMED action's words: "${title}"`);
+  await go(`#/smed/${CO}`);
+  await stage('Convert');
+  ok(/has-fix/.test(await card('Set the jaw temperature').getAttribute('class') ?? '') && (await page.locator('.co-grid button.co-sq.has-fix').count()) === 1, '3 the element wears the branch — on its row and its square');
 }
 
-/* ---- 6 · Set as the standard ---- */
+/* ==== 4 · Set as the standard ==== */
+await stage('Standardise');
+{
+  const check = ((await page.locator('.co-check').textContent()) ?? '').replace(/\s+/g, ' ');
+  ok(/Before the line stops.*Set the jaw temperature/.test(check) && /With the line stopped.*Change the former tube — 4 min/.test(check), `4 the checklist: the jaws before the line stops; the tube in the stop at its target — "${check.slice(0, 220)}"`);
+}
 await page.getByRole('button', { name: 'Set as the standard' }).click(); await page.waitForTimeout(1200);
 {
   const std = await page.evaluate(async sid => (await (await import('/src/db.ts')).getStandard(sid))?.capacity?.changeovers, sd.lineOnJobId);
   const a = (std ?? []).find(x => x.fromStudyId === CO);
   t = await truth(CO);
-  ok(!!a && a.from === 'Maris Piper 2kg' && a.steps.length === 8 && a.minutes === +(t.f.nowSec / 60).toFixed(1) && !!t.closedAt, `6 on the Express standard: ${a?.minutes} min, ${a?.steps.length} steps, from ${a?.from}; the study closed as a receipt`);
+  ok(!!a && a.from === 'Maris Piper 2kg' && a.steps.length === 8 && a.minutes === +(t.f.afterSec / 60).toFixed(1) && a.targetMinutes === Number(t.rungs.streamlined.replace(' min', '')) && a.checklist?.before.includes('Set the jaw temperature') && !!t.closedAt,
+    `4 on the Express standard: ${a?.minutes} min stopped, plan ${a?.targetMinutes} min, ${a?.steps.length} elements and the checklist; the SMED closed as a receipt`);
   await go(`#/w/${sd.wsId}/standards/${sd.lineOnJobId}`);
-  const line = await page.locator('.ls-co-agreed li').allInnerTexts();
-  ok(line.some(x => x.includes('Standard from Maris Piper 2kg:') && x.includes(`${t.now} · 8 steps, 3 external`)), `6 the standard shows it: "${line[0]?.replace(/\s+/g, ' ')}"`);
+  const line = (await page.locator('.ls-co-agreed li').allInnerTexts()).map(x => x.replace(/\s+/g, ' '));
+  ok(line.some(x => x.includes('Standard from Maris Piper 2kg:') && x.includes(`${t.rungs.separated} stopped · 8 elements, 3 external · plan ${t.rungs.streamlined}`)), `4 the standard shows it: "${line[0]}"`);
 }
 
-/* ---- 7 · Prove it — the same changeover timed again ---- */
+/* ==== 5 · Prove it — the same changeover timed again ==== */
 await go(`${J}/fixes?open=${encodeURIComponent(fixId)}`);
 await page.getByRole('button', { name: 'Prove it — time the changeover again' }).click(); await page.waitForTimeout(1800);
 const PR = id();
 let tp = await truth(PR);
-ok(!!PR && PR !== CO && tp.facts.sequence.length === 8 && tp.facts.sequence.every(x => x.source === 'carried') && tp.uses[0]?.role === 'proof' && tp.facts.products?.length === 5,
-  '7 a second changeover, the same eight steps each carried, the products and the week kept');
-ok((await words('.ie-says')).includes('8 steps are carried from the changeover before — not timed again yet.'), '7 the page says what is carried');
-{
-  await page.getByRole('button', { name: /^Lap — time it again/ }).click(); await page.waitForTimeout(300);
-  ok(((await words('.co-lap .wb-t-h')) ?? '').includes('up next: Stop and clear the former'), '7 Lap: up next "Stop and clear the former"');
-  await page.getByRole('button', { name: /^Start/ }).click(); await page.waitForTimeout(1100);
-  await page.getByRole('button', { name: /^Next step/ }).click(); await page.waitForTimeout(500);
-  await page.getByRole('button', { name: /^Stop/ }).click(); await page.waitForTimeout(600);
-  tp = await truth(PR);
-  const first = tp.facts.sequence.find(x => x.name === 'Stop and clear the former');
-  ok(first?.source === 'timed' && tp.facts.sequence.length === 8, `7 the step up next timed again (${first?.sec} s) — nothing added`);
-  /* the reels now pre-staged while the line runs: out of the stop */
-  await card('Pre-stage the film reels').locator('.co-step-b').click(); await page.waitForTimeout(300);
-  await page.getByRole('button', { name: 'Take it off', exact: true }).click(); await page.waitForTimeout(600);
-  /* the rest typed again as they stand */
-  for (const name of tp.facts.sequence.filter(x => x.source === 'carried' && x.name !== 'Pre-stage the film reels').map(x => x.name)) {
-    await card(name).locator('.co-step-b').click(); await page.waitForTimeout(250);
-    await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(350);
-  }
-  tp = await truth(PR);
-  ok(tp.facts.sequence.length === 7 && !tp.facts.sequence.some(x => x.source === 'carried') && !tp.facts.sequence.some(x => x.name === 'Pre-stage the film reels'),
-    '7 the pre-staged step taken out of the stop; the rest timed or typed again — none carried');
+ok(!!PR && PR !== CO && tp.facts.sequence.length === 8 && tp.facts.sequence.every(x => x.source === 'carried' && !x.plan) && tp.uses[0]?.role === 'proof' && tp.facts.running?.daysPerWeek === 5 && tp.facts.rateFrom === 'plate',
+  '5 a second SMED: the same eight elements, each carried, the plan left on the evidence; how the line runs and the plate speed kept');
+await stage('Record');
+await page.getByRole('button', { name: /^Lap — time it again/ }).click(); await page.waitForTimeout(300);
+ok(((await words('.co-lap .wb-t-h')) ?? '').includes('up next: Stop and clear the former'), '5 Lap: up next "Stop and clear the former"');
+await page.getByRole('button', { name: /^Start — at the last good piece/ }).click(); await page.waitForTimeout(1100);
+await page.getByRole('button', { name: /^Next — this one is done/ }).click(); await page.waitForTimeout(500);
+await page.getByRole('button', { name: /^Stop — keep what is timed/ }).click(); await page.waitForTimeout(600);
+tp = await truth(PR);
+ok(tp.facts.sequence.find(x => x.name === 'Stop and clear the former')?.source === 'timed' && tp.facts.sequence.length === 8, '5 the element up next timed again — nothing added');
+/* the jaws now heated before the line stops: out of the stop; the rest as they stand */
+await card('Set the jaw temperature').locator('.co-step-b').click(); await page.waitForTimeout(300);
+await dialog().getByRole('button', { name: 'Take it off', exact: true }).click(); await page.waitForTimeout(600);
+for (const name of tp.facts.sequence.filter(x => x.source === 'carried' && x.name !== 'Set the jaw temperature').map(x => x.name)) {
+  await card(name).locator('.co-step-b').click(); await page.waitForTimeout(250);
+  await dialog().getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(350);
 }
-
-/* ---- 8 · before → after on the fix ---- */
+tp = await truth(PR);
+ok(tp.facts.sequence.length === 7 && !tp.facts.sequence.some(x => x.source === 'carried'), '5 the jaws out of the stop; the rest timed or typed again — none carried');
 const ba = await page.evaluate(async ([pid, fid]) => (await import('/src/lib/studyLinks.ts')).beforeAfter(await (await import('/src/db.ts')).listStudies(pid), fid), [sd.projectId, fixId]);
 await go(`${J}/fixes?open=${encodeURIComponent(fixId)}`);
 await page.locator('.sl-ba').first().waitFor({ timeout: 10000 }).catch(() => {});
-ok(!!ba && /^Pre-stage the film reels: taken out of the changeover\. .* → .* \(−.*\); .* a week back at 6 changeovers\. The number moved/.test(ba.text) && ba.tone === 'g'
-  && (await words('.sl-ba')) === `Before → after: ${ba.text}`, `8 before → after: "${await words('.sl-ba')}"`);
+ok(!!ba && /^Set the jaw temperature: taken out of the changeover\. 42 min → \d+ min \(−\d+ min\); .* a week back at 6 changeovers\. .*The plan was \d+ min streamlined — .*\.$/.test(ba.text)
+  && (await words('.sl-ba')) === `Before → after: ${ba.text}`, `5 before → after, against the plan: "${await words('.sl-ba')}"`);
 
-/* ---- 9 · the client report's PDF ---- */
+/* ==== 6 · the client report's PDF ==== */
 await page.setViewportSize({ width: 1360, height: 900 });
 await go(`${J}/report`);
 await page.getByRole('button', { name: 'Full report', exact: true }).first().click(); await page.waitForTimeout(800);
@@ -251,22 +354,24 @@ await page.getByRole('button', { name: 'Close' }).last().click().catch(() => {})
   const txt = pdfText(pdf);
   const san = s => s.replace(/→/g, 'to').replace(/[–—−]/g, '-').replace(/\s+/g, ' ');
   const has = s => san(txt).includes(san(s).slice(0, 60));
-  const sheet = await page.evaluate(async ([sid, fid, pid]) => {
-    const { getStudy, listTests } = await import('/src/db.ts'); const C = await import('/src/lib/ie/changeover.ts');
-    const s = await getStudy(sid); const fx = (await listTests(pid)).find(x => x.id === fid);
-    return C.changeoverSheet(s.facts, undefined, new Map(s.uses.filter(u => u.step).map(u => [u.step, fx?.title ?? ''])));
-  }, [CO, fixId, sd.projectId]);
-  ok(has(`Before to after: ${ba.text}`), '9 the client report: the fix carries its before → after');
-  ok(has('Evidence') && has(t.title) && has('HOW KNOWN') && sheet.rows.every(r => has(r.name)) && has('Being made better: Pre-stage the film reels - external, 7 min') && sheet.lines.every(l => has(l)),
-    `9 the client report: "${t.title}" in Evidence — its ${sheet.rows.length} steps as a table, the branch off the step, the bars and the interval in words`);
+  const sheet = await page.evaluate(async ([sid, fid, pid, stdId]) => {
+    const { getStudy, listTests, getStandard, getWorkspace } = await import('/src/db.ts'); const C = await import('/src/lib/ie/changeover.ts');
+    const s = await getStudy(sid); const fx = (await listTests(pid)).find(x => x.id === fid); const std = await getStandard(stdId);
+    return C.changeoverSheet(s.facts, C.agreedFor(std?.capacity?.changeovers, s.facts.fromProduct), new Map(s.uses.filter(u => u.step).map(u => [u.step, fx?.title ?? ''])),
+      C.moneyOf(s.workspaceId ? await getWorkspace(s.workspaceId) : undefined));
+  }, [CO, fixId, sd.projectId, sd.lineOnJobId]);
+  ok(has(`Before to after: ${ba.text}`), '6 the client report: the fix carries its before → after');
+  ok(has('Evidence') && has(t.title) && has('WHAT IS DONE') && has('THE PLAN') && has('ELAPSED') && sheet.rows.every(r => has(r.name) && has(r.plan)) && has('Being made better: Set the jaw temperature')
+    && sheet.lines.every(l => has(l)) && sheet.lines.some(l => /plate speed/.test(l)),
+    `6 the client report: "${t.title}" in Evidence — ${sheet.rows.length} elements as a table with who, where, I/E, the plan and the elapsed; the ladder and the cost at the plate speed in words`);
 }
 await page.setViewportSize({ width: 390, height: 844 });
 
-/* ---- 10 · the 6M job: the line's card and the fishbone ---- */
+/* ==== 7 · the 6M job: the line's card and the fishbone ==== */
 {
   const line = await page.evaluate(async sid => (await import('/src/lib/studyLinks.ts')).changeoverLine(await (await import('/src/db.ts')).getStudy(sid))?.text, sd.pacedChangeoverId);
   await go(`#/project/${sd.pacedProjectId}?view=lines`);
-  ok((await words('.lc-co .lc-bal-t')) === line, `10 the line's card: The changeover — "${line}"`);
+  ok((await words('.lc-co .lc-bal-k')) === 'SMED' && (await words('.lc-co .lc-bal-t')) === line, `7 the line's card: SMED — "${line}"`);
   const want = await page.evaluate(async ([pid, cid]) => {
     const { loadProblems } = await import('/src/lib/useProblems.ts'); const F = await import('/src/lib/fishbone.ts');
     const loaded = await loadProblems(pid); const c = loaded.cases.find(x => x.id === cid);
@@ -275,29 +380,37 @@ await page.setViewportSize({ width: 390, height: 844 });
   await go(`#/project/${sd.pacedProjectId}/fishbone?problem=${sd.oldCaseId}`);
   const offered = Array.isArray(want) ? await Promise.all(want.map(async w => (await page.locator('button.is-sugg', { hasText: w.text }).count()) > 0)) : [];
   ok(Array.isArray(want) && want.some(w => w.m === 'method') && want.some(w => w.m === 'machine') && offered.every(Boolean),
-    `10 the fishbone offers the changeover: ${Array.isArray(want) ? want.map(w => `${w.text.slice(0, 48)}… (${w.m})`).join('; ') : want}`);
+    `7 the fishbone offers SMED: ${Array.isArray(want) ? want.map(w => `${w.text.slice(0, 48)}… (${w.m})`).join('; ') : want}`);
   const ext = Array.isArray(want) ? want.find(w => w.m === 'method') : undefined;
   if (ext) {
     await page.locator('button.is-sugg', { hasText: ext.text }).first().click(); await page.waitForTimeout(600);
-    const sheet = (await page.locator('[role="dialog"]').last().textContent()) ?? '';
+    const sheet = (await dialog().textContent()) ?? '';
     await page.getByRole('button', { name: 'Add to the fishbone' }).last().click(); await page.waitForTimeout(1000);
     const c = await page.evaluate(async ([cid, txt]) => ((await (await import('/src/db.ts')).getCase(cid))?.causes ?? []).find(x => x.text === txt), [sd.oldCaseId, ext.text]);
-    ok(/The changeover: /.test(sheet) && c?.source?.tool === 'changeover' && c.m === 'method', `10 accepted: on ${c?.m}, "The changeover" where it came from`);
+    ok(/SMED: /.test(sheet) && c?.source?.tool === 'changeover' && c.m === 'method', `7 accepted: on ${c?.m}, "SMED" where it came from`);
   }
 }
 
-/* ---- a client reads the changeover and changes nothing ---- */
+/* ==== a client reads the SMED and changes nothing ==== */
 await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client'));
-await go(`#/changeover/${PR}`);
+await go(`#/smed/${PR}`);
 await page.locator('.co-steps, .ie-strip').first().waitFor({ timeout: 10000 }).catch(() => {});
 {
-  const doors = await page.locator('.co').getByRole('button', { name: /^Lap|^\+ Type a step|^Set as the standard|Change the products|List the products|Change the products and the day|^Rename/ }).allInnerTexts();
-  const sides = await page.locator('.co-side .chip').evaluateAll(xs => xs.filter(x => !x.disabled).length);
-  ok((await page.locator('.co-step').count()) > 0 && doors.length === 0 && sides === 0, `a client reads the changeover and changes nothing${doors.length || sides ? ` — found: ${doors.join(', ')}, ${sides} side chips live` : ''}`);
+  const doors = await page.locator('.co').getByRole('button', { name: /^Lap|^\+ Type an element|^Set as the standard|Change the products|List the products|how the line runs|^Rename|^→E/ }).allInnerTexts();
+  let live = 0;
+  for (const st of ['Record', 'Separate', 'Convert', 'Streamline']) {
+    await stage(st);
+    live += await page.locator('.co-panel .chip, .co-panel input, .co-panel select').evaluateAll(xs => xs.filter(x => !x.disabled).length);
+  }
+  await page.locator('.co-grid button.co-sq').first().click(); await page.waitForTimeout(300);
+  const sheet = (await dialog().innerText()).replace(/\s+/g, ' ');
+  const writes = await dialog().getByRole('button', { name: /^Save|^Make it better|Take it off|^Earlier|^Later/ }).count();
+  ok((await page.locator('.co-step').count()) > 0 && doors.length === 0 && live === 0 && /Who does it/.test(sheet) && writes === 0,
+    `a client reads the SMED — its element sheet too — and changes nothing${doors.length || live || writes ? ` — found: ${doors.join(', ')}, ${live} chips live, ${writes} writes in the sheet` : ''}`);
 }
 await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
 
 ok(errors.length === 0, errors.length ? `no console errors — ${errors.join(' | ')}` : 'no console errors');
 await browser.close();
-console.log(failed ? `\n${failed} acceptance check(s) failed` : '\nF accepted: a changeover and its interval hold, inside a change');
+console.log(failed ? `\n${failed} acceptance check(s) failed` : '\nF accepted: SMED holds — on its own and inside a change');
 process.exit(failed ? 1 : 0);

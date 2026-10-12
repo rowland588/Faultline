@@ -268,7 +268,7 @@ function ProductCard({ s, onOpen }: { s: Standard; onOpen: () => void }) {
       <span className="ls-card-t">{s.product}</span>
       <span className="ls-card-s"><b>{plural(n, 'person', 'people')}</b>{thingsOf(s) ? ` · ${thingsOf(s)}` : ''}</span>
       {(s.capacity?.changeovers ?? []).length > 0 && (
-        <span className="ls-card-s ls-card-co">Changeover: {(s.capacity?.changeovers ?? []).map(a => `${mins(a.minutes * 60)}${a.from ? ` from ${a.from}` : ''}`).join(' · ')}</span>
+        <span className="ls-card-s ls-card-co">SMED: {(s.capacity?.changeovers ?? []).map(a => `${mins(a.minutes * 60)} stopped${a.from ? ` from ${a.from}` : ''}`).join(' · ')}</span>
       )}
     </button>
   );

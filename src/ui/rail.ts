@@ -178,8 +178,8 @@ export const toolPlaces = (here: string): RailLine[] => [
   { key: 'capability', label: 'Capability', to: '/capability', on: here === 'capability', state: 'n', bare: true, icon: 'hash' },
   /* The value stream map — always a line's, the departments that touch it included, as a swimlane grid (tool 2). */
   { key: 'valuestream', label: 'Value stream', to: '/value-stream', on: here === 'valuestream', state: 'n', bare: true, icon: 'route' },
-  /* The changeover and its interval — timed step by step, internal or external, and how often each product can run (tool 6). */
-  { key: 'changeover', label: 'Changeover', to: '/changeover', on: here === 'changeover', state: 'n', bare: true, icon: 'time' },
+  /* SMED, quick changeover — Shingo's stages on a grid of who does what, the ladder to single-digit minutes, what the changeovers cost (tool 6). */
+  { key: 'changeover', label: 'SMED', to: '/smed', on: here === 'changeover', state: 'n', bare: true, icon: 'time' },
   /* Work sampling — what people are doing at random moments of a shift, one tap per person, every share with its margin (tool 9). */
   { key: 'sampling', label: 'Work sampling', to: '/sampling', on: here === 'sampling', state: 'n', bare: true, icon: 'people' },
   /* A shift's losses by hand — two counts at the end of the shift and the stops already timed; the waterfall, in minutes and pounds (tool 7). */

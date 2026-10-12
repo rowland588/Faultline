@@ -511,7 +511,7 @@ function LineCard({ line, pack, projectId, series, balance, work, flow, change, 
       )}
       {change && (
         <button className="lc-bal is-set lc-work lc-co" onClick={() => nav(change.href)}>
-          <span className="lc-bal-k">The changeover</span>
+          <span className="lc-bal-k">SMED</span>
           <span className={'lc-bal-t' + (change.tone === 'a' ? ' is-a' : '')}>{change.text}</span>
           <span className="lc-bal-go" aria-hidden>›</span>
         </button>

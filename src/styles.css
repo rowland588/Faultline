@@ -11715,17 +11715,16 @@ button.vs-sq:focus-visible { outline: 2.5px solid var(--brand); outline-offset: 
 .vs-other { display: flex; gap: 6px; margin-top: 6px; }
 .vs-other .text-input { flex: 1; min-width: 0; }
 
-/* ============ THE CHANGEOVER — one bar, internal | external (screens/ChangeoverScreen, tool 6) ============
+/* ============ SMED — quick changeover (screens/ChangeoverScreen, ui/SmedGrid, tool 6) ============
    Value by fill, never a state colour (TOOLKIT 3.3): work the line stops for
-   is solid ink, work that could be done while it runs is hatched. The only
+   (internal) is solid ink, work that could be done while it runs (external)
+   is hatched — on the grid's squares, the ladder's bars and the side chips
+   alike. The value stream's VA/NE/NV hues are that grid's alone. The only
    colour is the abnormal — external minutes still inside the stop are amber,
-   minutes over the agreed standard red — in the strip and the says line. */
+   minutes over the agreed standard red — in the strip and the says lines. */
 .co-products .linkish { margin-left: 8px; }
-.co-body { grid-template-columns: minmax(0, 1fr) 320px; }
-.co-pic { padding: 14px 12px; }
 .co-cap { display: flex; flex-direction: column; gap: 8px; }
 .co-cap .sub { margin: 0; }
-.co-bars { display: grid; gap: 14px; }
 .co-bar-row { display: grid; grid-template-columns: 110px minmax(0, 1fr) auto auto; align-items: center; gap: 10px; }
 .co-bar-l { font-size: var(--t-label); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
 .co-bar { display: flex; height: 30px; border-radius: 6px; overflow: hidden; background: color-mix(in srgb, var(--line) 50%, transparent); min-width: 0; }
@@ -11736,25 +11735,20 @@ button.vs-sq:focus-visible { outline: 2.5px solid var(--brand); outline-offset: 
 }
 .co-seg.is-carried { opacity: 0.45; }
 .co-bar-n { font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
-.co-saved { font-size: var(--t-detail); font-weight: 700; white-space: nowrap; }
-.co-saved.is-a { color: var(--st-a); }
 .co-interval { max-width: 72ch; }
-.co-key { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 6px 0 0; }
 .co-key-i { display: inline-block; width: 18px; height: 12px; border-radius: 3px; }
 .co-steps { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .co-step { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 6px 12px 6px 8px; position: relative; }
 .co-step-b { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: var(--tap); padding: 4px; margin: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; border-radius: var(--radius-sm); }
 button.co-step-b { cursor: pointer; }
 button.co-step-b:hover { background: color-mix(in srgb, var(--brand) 5%, transparent); }
-.co-sheet-f { margin: 0 0 8px; }
 .co-better { margin-bottom: 12px; }
 .co-step.is-carried .co-step-n { color: var(--ink-2); }
 /* THE BRANCH OFF A STEP: a fix or a countermeasure was raised from it — a small ink ring, said in words beside it (no state colour). */
 .co-step.has-fix::before { content: ''; position: absolute; top: -4px; left: -4px; width: 9px; height: 9px; border-radius: 50%; background: var(--surface); border: 2px solid var(--ink); }
 .co-step-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .co-step-n { overflow-wrap: anywhere; }
-.co-step-f, .co-branch { font-size: var(--t-detail); }
-.co-branch .linkish { margin-left: 4px; }
+.co-step-f { font-size: var(--t-detail); }
 .co-side .chip { min-height: 36px; padding: 4px 10px; font-size: var(--t-detail); }
 .co-side .chip:disabled { cursor: default; opacity: 1; }
 /* The side chips: internal solid ink when on, external hatched — the same fill the bar uses. */
@@ -11769,13 +11763,80 @@ button.co-step-b:hover { background: color-mix(in srgb, var(--brand) 5%, transpa
 .co-iv-p .text-input { font-weight: 700; max-width: 320px; }
 .co-lap .co-chip { min-height: var(--tap); }
 @media (max-width: 760px) {
-  .co-body { grid-template-columns: 1fr; }
   /* ON THE FLOOR: the stopwatch where the thumb is — first, under the sentence. */
   .co-cap { order: -1; }
   .co-bar-row { grid-template-columns: 80px minmax(0, 1fr) auto auto; gap: 6px; }
   .co-bar { height: 26px; }
   .co-step { grid-template-columns: 1fr; }
   .co-side { padding-left: 4px; }
+}
+
+/* THE GRID (ui/SmedGrid) in the map's own parts (.vs-*): the square's fill
+   and letter say internal or external; the plan is a small mark in its
+   corner (→E ↓ ✕); columns with more than one element run at the same time. */
+.co-grid .vs-grid { --vs-area: 132px; --vs-tot: 124px; }
+.co-grid .vs-tot b { white-space: nowrap; }
+.co-sq { position: relative; }
+.co-sq.is-i, .co-key-sq.is-i { background: var(--ink); color: var(--surface); }
+.co-sq.is-e, .co-key-sq.is-e {
+  background: repeating-linear-gradient(135deg, var(--ink-2) 0 3px, var(--surface) 3px 6px);
+  color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink-2);
+}
+/* the letter on a hatched square sits on a plain patch, so it reads */
+.co-sq.is-e .co-l, .co-key-sq.is-e .co-l { background: var(--surface); padding: 1px 2px; border-radius: 2px; line-height: 1; }
+.co-sq.is-untimed { outline: 1.5px dashed var(--muted); outline-offset: 1px; opacity: .6; }
+.co-sq.is-carried { opacity: .55; }
+.co-mark { position: absolute; right: -7px; bottom: -6px; min-width: 14px; height: 13px; padding: 0 2px; border-radius: 6px; border: 1px solid var(--ink); background: var(--surface); color: var(--ink); font-size: 8.5px; font-weight: 800; line-height: 11px; text-align: center; text-shadow: none; pointer-events: none; }
+.vs-seq.co-par { box-shadow: inset 0 -2px 0 var(--ink); }
+.co-key-sq { min-width: 18px; }
+.co-views { justify-content: space-between; }
+.co-outside { margin: 6px 0 0; max-width: 80ch; }
+/* THE LADDER, drawn: a bar per rung on one scale, single-digit minutes marked. */
+.co-ladder-pic { display: grid; gap: 10px; margin-top: 12px; }
+.co-bar-track { position: relative; height: 30px; min-width: 0; border-radius: 6px; background: color-mix(in srgb, var(--line) 50%, transparent); }
+.co-bar-track .co-bar { height: 100%; background: transparent; }
+.co-target { position: absolute; top: -4px; bottom: -4px; width: 0; border-left: 2px dashed var(--ink); }
+.co-target-i { display: inline-block; width: 0; height: 12px; margin: 0 4px 0 2px; border-left: 2px dashed var(--ink); vertical-align: middle; }
+.co-target-key { margin: 2px 0 0; }
+.co-bar-w { font-size: var(--t-detail); min-width: 0; }
+.co-bar-l small { display: block; font-weight: 600; text-transform: none; letter-spacing: 0; }
+.co-ladder, .co-fns, .co-cost, .co-run-facts, .co-money, .co-rate-from { max-width: 80ch; }
+/* SHINGO'S STAGES — chips in order, one panel under them; on a phone the
+   chips swipe in one row so the panel stays near the top. */
+.co-stages { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 0; }
+.co-stage { min-height: var(--tap); }
+.co-stage-n { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; margin-right: 2px; border-radius: 50%; border: 1.5px solid currentColor; font-size: 11px; font-weight: 800; }
+.co-panel { margin-top: 8px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.co-panel-say { margin: 0 0 8px; max-width: 76ch; }
+.co-figure { margin: 4px 0 4px; }
+.co-figure b { font-variant-numeric: tabular-nums; }
+.co-step-ctl { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.co-fn .chip, .co-how .chip, .co-plan .chip, .co-when .chip { min-height: 36px; padding: 4px 10px; font-size: var(--t-detail); }
+.co-plan { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.co-how { margin-top: 2px; }
+.co-target-box { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-detail); }
+.co-target-box .text-input { width: 110px; }
+.co-par-f { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; font-size: var(--t-detail); }
+.co-par-f select.text-input { max-width: 240px; }
+.co-par-f input.text-input { width: 130px; }
+.co-check { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 10px; }
+.co-check ul { margin: 4px 0 0; padding-left: 18px; }
+.co-check li { margin: 2px 0; }
+.co-when { grid-column: 1 / -1; display: grid; gap: 2px; }
+.co-when-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 10px; padding: 4px 0; border-top: 1px solid var(--line); }
+/* HOW THE LINE RUNS — its sheet. */
+.co-run .co-days { width: 90px; }
+.co-count { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.co-count > .text-input { width: 90px; }
+.co-use-shifts { justify-self: start; }
+.co-rate-from { display: block; margin-top: 4px; }
+@media (max-width: 760px) {
+  .co-grid .vs-grid { --vs-area: 92px; }
+  .co-stages { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scroll-snap-type: x proximity; }
+  .co-stage { flex: none; scroll-snap-align: start; }
+  .co-panel { padding: 10px; }
+  .co-plan, .co-par-f, .co-step-ctl { align-items: flex-start; justify-content: flex-start; }
+  .co-bar-w { grid-column: 2 / -1; }
 }
 
 /* The changeover into a product, under its map (ui/ChangeoverLines): one line,

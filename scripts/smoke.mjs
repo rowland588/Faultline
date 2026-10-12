@@ -57,7 +57,7 @@ if (bootErrors.length) console.log('errors during boot/seed:', bootErrors);
 
 const ROUTES = [
   ['home', '#/'], ['guide', '#/guide'], ['portfolio', '#/portfolio'],
-  ['projects', '#/projects'], ['snags', '#/snags'], ['line standard tool', '#/standards'], ['line balance tool', '#/balances'], ['capability studies', '#/capability'], ['value stream maps', '#/value-stream'], ['changeovers', '#/changeover'], ['work sampling', '#/sampling'], ['pace report', '#/pace-report'],
+  ['projects', '#/projects'], ['snags', '#/snags'], ['line standard tool', '#/standards'], ['line balance tool', '#/balances'], ['capability studies', '#/capability'], ['value stream maps', '#/value-stream'], ['SMED', '#/smed'], ['SMED, an old link', '#/changeover'], ['work sampling', '#/sampling'], ['pace report', '#/pace-report'],
   ['project dashboard', `#/project/${seeded.projectId}`],
   ['project setup', `#/project/${seeded.projectId}/setup`],
   ['lever tree', `#/project/${seeded.treeProjectId}/tree`],
@@ -101,8 +101,8 @@ const ROUTES = [
   /* THE CHANGEOVER (tool 6): Maris Piper to Express on Line 7 — eight steps,
      three external, the interval — and the product's standard it is into,
      where the agreed changeover and the branch to the study show. */
-  ['a changeover — eight steps, three external, the interval', `#/changeover/${seeded.changeoverId}`],
-  ['the 6M job\'s changeover on Line 7', `#/changeover/${seeded.pacedChangeoverId}`],
+  ['a SMED — eight elements, who and where, three external, how the line runs, the interval', `#/smed/${seeded.changeoverId}`],
+  ['the 6M job\'s SMED on Line 7 — its cost in pounds, two parts', `#/smed/${seeded.pacedChangeoverId}`],
   ['line standard on a line — the product a changeover is into', `#/w/${seeded.wsId}/standards/${seeded.lineOnJobId}`],
   ['line standard — none yet', `#/project/${seeded.pacedProjectId}/standard`],
   ['one install step', `#/project/${seeded.projectId}/testing/${seeded.stepId}`],

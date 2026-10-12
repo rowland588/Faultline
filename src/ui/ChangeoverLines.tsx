@@ -1,4 +1,4 @@
-/* THE CHANGEOVER UNDER A PRODUCT'S STANDARD — a branch off the map, beside
+/* SMED UNDER A PRODUCT'S STANDARD — a branch off the map, beside
  * the balance's and the work's lines (screens/StandardScreen; docs/TOOLKIT.md
  * tool 6, "shows up: under the product's standard").
  *
@@ -6,7 +6,7 @@
  * (lib/studyLinks currentChangeover) with its sentence and the door to it;
  * and the agreed changeovers the standard holds (capacity.changeovers, one
  * per product it is changed from — Set as the standard wrote them), each
- * opening the study it came from. "Time a changeover" starts one on this
+ * opening the study it came from. "Start a SMED" starts one on this
  * product, on its line and its job, and opens it. Only the abnormal — external
  * work still done with the line stopped — carries colour. */
 import { useCallback, useEffect, useState } from 'react';
@@ -45,18 +45,18 @@ export function ChangeoverLines({ s, can }: { s: Standard; can: Can }) {
   const openAgreed = async (id: string) => { const st = await getStudy(id); if (st) nav(studyHref(st)); };
   return (
     <div className="ls-balance-line ls-co">
-      <span className="ls-bl-h">Changeover{agreed.length ? ' · the standard' : ''}</span>
+      <span className="ls-bl-h">SMED{agreed.length ? ' · the standard' : ''}</span>
       <span className={'ls-bl-say' + (line?.tone === 'a' ? ' is-a' : '')}>
-        {current === undefined ? 'Opening…' : line ? line.text : current ? `${current.name}: not timed yet` : 'Not timed yet — Lap the changeover into this product on the phone, step by step.'}
+        {current === undefined ? 'Opening…' : line ? line.text : current ? `${current.name}: not timed yet` : 'Not timed yet — Lap the changeover into this product on the phone, element by element, from the last good piece to the first good piece at full rate.'}
       </span>
-      {current && <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(studyHref(current))}>Open the changeover ›</button>}
-      {can.edit && <button type="button" className="btn btn-ghost btn-sm" onClick={() => void start()}>Time a changeover ›</button>}
+      {current && <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(studyHref(current))}>Open the SMED ›</button>}
+      {can.edit && <button type="button" className="btn btn-ghost btn-sm" onClick={() => void start()}>Start a SMED ›</button>}
       {agreed.length > 0 && (
         <ul className="ls-co-agreed">
           {agreed.map(a => (
             <li key={a.id} className="sub">
               <b>Standard{a.from ? ` from ${a.from}` : ''}:</b> {standardLine(a, day).replace(/ · from [^·]+/, '')}
-              <button type="button" className="linkish" onClick={() => void openAgreed(a.fromStudyId)}>The changeover it came from ›</button>
+              <button type="button" className="linkish" onClick={() => void openAgreed(a.fromStudyId)}>The SMED it came from ›</button>
             </li>
           ))}
         </ul>

@@ -447,7 +447,7 @@ const recarry = (f: ToolStudy['facts']): ToolStudy['facts'] => ({
   sequence: carrySequence(f.sequence),
   ...(f.fromProduct ? { fromProduct: f.fromProduct } : {}), ...(f.toProduct ? { toProduct: f.toProduct } : {}),
   ...(f.running ? { running: JSON.parse(JSON.stringify(f.running)) as typeof f.running } : {}), ...(f.changeovers ? { changeovers: { ...f.changeovers } } : {}),
-  ...(f.ratePerMin ? { ratePerMin: f.ratePerMin } : {}), ...(f.rateFrom ? { rateFrom: f.rateFrom } : {}),
+  ...(f.ratePerMin ? { ratePerMin: f.ratePerMin } : {}), ...(f.rateFrom ? { rateFrom: f.rateFrom } : {}), ...(f.rateStation ? { rateStation: f.rateStation } : {}),
   ...(f.perWeek ? { perWeek: f.perWeek } : {}), ...(f.availableMinPerDay ? { availableMinPerDay: f.availableMinPerDay } : {}),
   ...(f.products?.length ? { products: f.products.map(p => ({ ...p })) } : {}),
 });
