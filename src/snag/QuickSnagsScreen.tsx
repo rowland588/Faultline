@@ -39,7 +39,7 @@ import { useAccessByJob } from '../ui/JobsBoard';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
 import { Sheet } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
-import { Icon } from '../ui/Icon';
+import { Icon, type IconName } from '../ui/Icon';
 import { DateInput } from '../ui/DateInput';
 import { DraftText } from '../ui/Draft';
 import type { MediaRef, Project, Workspace } from '../types';
@@ -54,6 +54,7 @@ type JobData = { tests: Test[]; items: TestItem[]; assets: Asset[]; todos: PaceT
 
 const TONE_CLASS: Record<SnagTone, string> = { g: 'is-g', r: 'is-r', w: 'is-w', a: 'is-a', n: 'is-n' };
 const KIND_WORD: Record<JobRow['kind'], string> = { problem: 'Problem', fix: 'Fix', action: 'Action' };
+const KIND_ICON: Record<JobRow['kind'], IconName> = { problem: 'warning', fix: 'check', action: 'check' };
 
 /** "Machine — Stage", the words a stage-gate job's stage goes by. */
 const stageLabel = (t: Test, assets: Asset[]) => `${assets.find(a => a.id === t.assetId)?.name ?? 'The line'} — ${t.title}`;
@@ -348,7 +349,7 @@ export function QuickSnagsScreen() {
                 <li key={r.id} className={'qsl-row' + (r.late ? ' is-late' : '')}>
                   {r.photo && <EvidenceThumb media={photoRef(r.photo)} size={52} onClick={() => setViewing({ media: photoRef(r.photo as string) })} />}
                   <button type="button" className="qsl-open" onClick={() => openJobRow(r)}>
-                    {!r.photo && <span className="qsl-nopic" aria-hidden><Icon name={r.kind === 'problem' ? 'warning' : 'check'} size={18} /></span>}
+                    {!r.photo && <span className="qsl-nopic" aria-hidden><Icon name={KIND_ICON[r.kind]} size={18} /></span>}
                     <span className="qsl-body">
                       <span className="qsl-what"><span className="qsl-kind">{KIND_WORD[r.kind]}</span>{r.flag && <span className={'qsl-flag' + (r.flag === 'critical' ? ' is-r' : ' is-a')}>{r.flag === 'critical' ? 'Critical' : 'High risk'}</span>}{r.what}</span>
                       <span className="qsl-meta">{r.where}{r.who ? ` · ${r.who}` : ' · nobody yet'}{r.fromSnag ? ` · from ${r.fromSnag}` : ''}</span>
