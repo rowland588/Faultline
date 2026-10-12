@@ -273,7 +273,7 @@ describe('suggestionsFor — the walk, the standard, the balance, materials, pro
     expect(suggestionsFor(problem(), data({ studies: [map()] }), TODAY).some(x => x.source.kind === 'study')).toBe(false);
   });
 
-  it('the line\'s changeover → its external work inside the stop on Method, its longest internal steps on Machine (tool 6)', () => {
+  it('the line\'s SMED → its external work inside the stop on Method, its longest internal elements on Machine (tool 6)', () => {
     const M = 60;
     const co = (o: Partial<ToolStudy> = {}): ToolStudy => ({ id: 'c1', tool: 'changeover', name: 'Finest Red 2kg → Express 1.25 kg', projectId: 'P', workspaceId: 'ws1', machine: 'Bagger',
       uses: [], startedAt: 1, createdAt: 1, updatedAt: 1,
@@ -291,7 +291,14 @@ describe('suggestionsFor — the walk, the standard, the balance, materials, pro
       ['machine', 'Change the former tube — internal, 10 min, the line stopped', 'measured', 'c1#tub', 'changeover'],
       ['machine', 'Change the film reel — internal, 6 min, the line stopped', 'measured', 'c1#rel', 'changeover'],
     ]);
-    expect(s[0].detail).toBe('Changeover: Finest Red 2kg → Express 1.25 kg, 32 min — 20 min internal, 12 min external');
+    expect(s[0].detail).toBe('SMED: Finest Red 2kg → Express 1.25 kg, 32 min — 20 min internal, 12 min external');
+    /* setting, adjusting and trial runs — Shingo's first to eliminate — on Machine, before the longest internal */
+    const tagged = co({ facts: { ...co().facts, sequence: (co().facts.sequence ?? []).map(x => (x.id === 'rel' ? { ...x, fn: 'adjust' as const } : x)) } });
+    expect(suggestionsFor(whole, data({ studies: [tagged] }), TODAY).filter(x => x.source.tool === 'changeover').map(x => [x.m, x.text])).toEqual([
+      ['method', '12 min of external work done with the line stopped — Pre-stage the film reels, Fetch the next former from the store'],
+      ['machine', '6 min of setting, adjusting and trial runs in the changeover — Change the film reel'],
+      ['machine', 'Change the former tube — internal, 10 min, the line stopped'],
+    ]);
     /* a changeover loss on another machine still asks about the changeover; a minor stop on another machine does not */
     expect(suggestionsFor(problem({ source: { kind: 'pareto', category: 'Changeover', asset: 'Palletiser' } }), data({ studies: [co()] }), TODAY).some(x => x.source.tool === 'changeover')).toBe(true);
     expect(suggestionsFor(problem({ source: { kind: 'pareto', category: 'Minor stop', asset: 'Palletiser' } }), data({ studies: [co()] }), TODAY).some(x => x.source.tool === 'changeover')).toBe(false);

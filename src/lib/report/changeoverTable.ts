@@ -83,7 +83,7 @@ function table(sheet: ChangeoverSheet): Block {
       font(f.doc, T, 'bold', INK); f.doc.text(p.name, f.x + x.name, ty);
       if (p.branch.length) { font(f.doc, T - 0.5, 'normal', INK2); f.doc.text(p.branch, f.x + x.name, ty + p.name.length * LH); }
       /* a step carried from before: its figures in grey — the old ones */
-      font(f.doc, T, r.side === 'Internal' ? 'bold' : 'normal', r.carried ? MUTED : INK2); f.doc.text(r.side, f.x + x.side, ty);
+      font(f.doc, T, r.side === 'I' ? 'bold' : 'normal', r.carried ? MUTED : INK2); f.doc.text(r.side === 'I' ? 'Internal' : 'External', f.x + x.side, ty);
       font(f.doc, T, 'normal', r.carried ? MUTED : INK2); f.doc.text(r.minutes, f.x + x.minutes, ty);
       font(f.doc, T, 'normal', MUTED); f.doc.text(p.how, f.x + x.how, ty);
       const h = rowH(f, r);
