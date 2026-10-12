@@ -236,7 +236,7 @@ describe('the tools beside the control room', () => {
   it('are the snags, the line standard and the line balance, each lit where it is', async () => {
     const { toolPlaces, hereOf } = await import('../rail');
     const { parseRoute } = await import('../../state/useRoute');
-    expect(toolPlaces('').map(l => [l.label, l.to])).toEqual([['Snags', '/snags'], ['Line standard', '/standards'], ['Line balance', '/balances'], ['Capability', '/capability'], ['Value stream', '/value-stream'], ['Changeover', '/changeover']]);
+    expect(toolPlaces('').map(l => [l.label, l.to])).toEqual([['Snags', '/snags'], ['Line standard', '/standards'], ['Line balance', '/balances'], ['Capability', '/capability'], ['Value stream', '/value-stream'], ['Changeover', '/changeover'], ['Work sampling', '/sampling']]);
     expect(hereOf(parseRoute('#/standards'))).toBe('linestandard');
     expect(hereOf(parseRoute('#/balances'))).toBe('linebalance');
     expect(toolPlaces('linebalance').filter(l => l.on).map(l => l.label)).toEqual(['Line balance']);
@@ -248,6 +248,7 @@ describe('the tools beside the control room', () => {
     expect(toolPlaces('capability').filter(l => l.on).map(l => l.label)).toEqual(['Capability']);
     expect(toolPlaces('valuestream').filter(l => l.on).map(l => l.label)).toEqual(['Value stream']);
     expect(toolPlaces('changeover').filter(l => l.on).map(l => l.label)).toEqual(['Changeover']);
+    expect(toolPlaces('sampling').filter(l => l.on).map(l => l.label)).toEqual(['Work sampling']);
   });
 });
 
@@ -255,8 +256,8 @@ describe('the job first, the tools at the foot (docs/FLOW.md item 3)', () => {
   it('Tools holds the snags, the line standard, the line balance and, on a stage-gate job, its lines', () => {
     const g = toolsGroup('', linesGroup(P, [{ id: 'L7', name: 'Line 7' }, { id: 'L8', name: 'Line 8' }], '').lines);
     expect(g.label).toBe('Tools');
-    expect(labels(g)).toEqual(['Snags', 'Line standard', 'Line balance', 'Capability', 'Value stream', 'Changeover', 'Line 7', 'Line 8']);
-    expect(labels(toolsGroup('quicksnags'))).toEqual(['Snags', 'Line standard', 'Line balance', 'Capability', 'Value stream', 'Changeover']);
+    expect(labels(g)).toEqual(['Snags', 'Line standard', 'Line balance', 'Capability', 'Value stream', 'Changeover', 'Work sampling', 'Line 7', 'Line 8']);
+    expect(labels(toolsGroup('quicksnags'))).toEqual(['Snags', 'Line standard', 'Line balance', 'Capability', 'Value stream', 'Changeover', 'Work sampling']);
     expect(toolsGroup('quicksnags').lines.find(l => l.on)?.label).toBe('Snags');
   });
 });

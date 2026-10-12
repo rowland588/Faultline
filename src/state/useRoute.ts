@@ -79,6 +79,11 @@ export function parseRoute(hash: string): Route {
   if (segs[0] === 'value-stream') {
     return segs[1] ? { name: 'study', view: 'map', id: decodeURIComponent(segs[1]), query } : { name: 'studies', view: 'map', query };
   }
+  /* /sampling is every work sampling study; /sampling/:id one of them
+     (docs/TOOLKIT.md, tool 9 — what people are doing, at random moments). */
+  if (segs[0] === 'sampling') {
+    return segs[1] ? { name: 'study', view: 'sampling', id: decodeURIComponent(segs[1]), query } : { name: 'studies', view: 'sampling', query };
+  }
   if (segs[0] === 'capability') {
     return segs[1] ? { name: 'study', view: 'capability', id: decodeURIComponent(segs[1]), query } : { name: 'studies', view: 'capability', query };
   }

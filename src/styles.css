@@ -11792,3 +11792,32 @@ button.co-step-b:hover { background: color-mix(in srgb, var(--brand) 5%, transpa
 .lt-co-go { flex: none; color: var(--brand); font-weight: 700; }
 /* The line card's changeover — only the external minutes still inside the stop wear amber. */
 .lc-co .lc-bal-t.is-a { color: var(--st-a); }
+/* ---------------------------------------------------------------- WORK SAMPLING (docs/TOOLKIT.md, tool 9)
+   The moment: a row per person, the activities as big buttons (gloves on).
+   The shares: neutral bars with the margin as a band over each — nothing
+   coloured, because a share is a fact, not a state; what is too much
+   waiting is the team's to say on the fishbone. */
+.ws-add { display: flex; gap: 8px; margin-top: 8px; }
+.ws-add .text-input { flex: 1; min-width: 0; }
+.ws-round { border: 2px solid var(--brand); border-radius: var(--radius); background: var(--accent-soft); padding: 12px 14px; display: grid; gap: 10px; margin: 12px 0; }
+.ws-round-h { margin: 0; }
+.ws-person { display: grid; gap: 6px; padding: 8px 0; border-top: 1px solid var(--line); }
+.ws-person:first-of-type { border-top: 0; }
+.ws-who { font-family: var(--display); font-size: var(--t-body); }
+.ws-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.ws-act { min-height: var(--tap); min-width: 96px; font-weight: 600; }
+.ws-got { color: var(--ink-2); display: flex; gap: 10px; align-items: baseline; }
+.ws-person.is-done { opacity: .8; }
+.ws-wait { margin: 12px 0; display: grid; gap: 4px; }
+.ws-done { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; }
+.ws-done-i { color: var(--ink-2); }
+.ws-shares { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin: 10px 0 14px; }
+.ws-p { min-width: 0; }
+.ws-p-h { font-size: var(--t-body); margin: 0 0 6px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.ws-bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ws-bar { display: grid; grid-template-columns: 88px 1fr 76px; gap: 8px; align-items: center; font-size: var(--t-detail); }
+.ws-bar-w { color: var(--ink-2); overflow-wrap: anywhere; }
+.ws-bar-t { position: relative; height: 16px; background: var(--surface-2); border-radius: 4px; }
+.ws-bar-f { position: absolute; inset: 0 auto 0 0; background: var(--ink-2); border-radius: 4px; }
+.ws-bar-m { position: absolute; top: 5px; height: 6px; background: color-mix(in srgb, var(--surface) 70%, transparent); border: 1px solid var(--ink); border-radius: 3px; }
+.ws-bar-n { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-2); }

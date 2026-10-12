@@ -213,13 +213,36 @@ export interface StandardChangeover {
   fromStudyId: string;
 }
 
+/** WORK SAMPLING (docs/TOOLKIT.md, tool 9): who is watched, the activities
+ *  a tap can be, the margin wanted, and the shift's random moments — drawn
+ *  once when it starts, so every phone asks at the same instants. Agreed
+ *  before the first tap, so a tap never moves what it is counted against. */
+export interface AgreedSampling {
+  /** The people or roles watched — "Op 1", "Op 2", the team leader. */
+  who: string[];
+  /** What a tap can say: working · walking · waiting · searching · away, in the floor's words. */
+  activities: string[];
+  /** The margin wanted on each share, in points: 5 is ±5. */
+  marginPts: number;
+  /** The shift watched. */
+  from: number;
+  to: number;
+  /** The instants the phone asks at, inside the shift. */
+  prompts: number[];
+}
+
 /** What it is judged against, by tool — each tool its own key, so a new tool
  *  adds one and changes none. */
 export interface StudyAgreed {
   readings?: AgreedReadings;
   balance?: AgreedBalance;
   map?: AgreedMap;
+  sampling?: AgreedSampling;
 }
+
+/** One tap of work sampling: what one person was doing at one moment. Struck,
+ *  never erased: a mistap keeps its place and counts for nothing. */
+export interface Tap { id: string; at: number; who: string; activity: string; by?: string; struck?: boolean }
 
 /** What people put in, by tool. Every list is keyed by `id`, so two phones
  *  adding to one study both keep what they added (docs/BUILD.md, 2b). */
@@ -246,6 +269,8 @@ export interface StudyFacts {
   /** Minutes the line runs a day, typed — offered from the balance's
    *  planned hours when a standard on the line holds them. */
   availableMinPerDay?: number;
+  /** Work sampling's taps — one per person per moment. */
+  taps?: Tap[];
 }
 
 /** What a study is evidence for, inside its job. Both ends write the same
@@ -335,5 +360,6 @@ export function factsOf(v: unknown): StudyFacts {
     ...(o.flow !== undefined ? { flow: listById<FlowStep>(o.flow) } : {}),
     ...(o.future !== undefined ? { future: listById<FlowStep>(o.future) } : {}),
     ...(o.sequence !== undefined ? { sequence: listById<ChangeoverStep>(o.sequence) } : {}),
-    ...(o.products !== undefined ? { products: listById<ChangeoverProduct>(o.products) } : {}) };
+    ...(o.products !== undefined ? { products: listById<ChangeoverProduct>(o.products) } : {}),
+    ...(o.taps !== undefined ? { taps: listById<Tap>(o.taps) } : {}) };
 }

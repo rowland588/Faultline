@@ -1,6 +1,6 @@
 /* Work sampling's arithmetic, proved by docs/TOOLKIT.md §9's worked example. */
 import { describe, it, expect } from 'vitest';
-import { tapsNeeded, marginOf, shares, moreNeeded, schedulePrompts, nextPrompt, missedPrompts, samplingReading, samplingLine, samplingEnough, type Tap } from '../sampling';
+import { tapsNeeded, marginOf, shares, moreNeeded, schedulePrompts, nextPrompt, missedPrompts, dueRound, roundsDone, samplingReading, samplingLine, samplingEnough, type Tap } from '../sampling';
 
 const tap = (i: number, who: string, activity: string, at = i * 60_000): Tap => ({ id: `t${i}`, at, who, activity });
 /** 190 taps for Op 2: 116 working, 34 walking, 27 waiting, 13 searching. */
@@ -59,5 +59,29 @@ describe('work sampling (tool 9)', () => {
   it('the study\'s one line names the people, the taps and the worst margin', () => {
     expect(samplingLine({ taps: op2, who: ['Op 2'] })).toBe('1 person · 190 taps · the biggest share within ±7 points');
     expect(samplingLine({ who: ['Op 1', 'Op 2'] })).toBe('2 people watched · no taps yet');
+  });
+});
+
+describe('the rounds of work sampling', () => {
+  const prompts = [1_000_000, 2_000_000, 3_000_000];
+  it('the round to answer is the latest prompt come, within its grace, with somebody untapped', () => {
+    expect(dueRound(prompts, [], ['Op 1', 'Op 2'], 900_000)).toBeUndefined();
+    expect(dueRound(prompts, [], ['Op 1', 'Op 2'], 2_100_000)).toEqual({ at: 2_000_000, no: 2, left: ['Op 1', 'Op 2'] });
+    const one = [tap(1, 'Op 1', 'working', 2_000_000)];
+    expect(dueRound(prompts, one, ['Op 1', 'Op 2'], 2_100_000)).toEqual({ at: 2_000_000, no: 2, left: ['Op 2'] });
+    const both = [...one, tap(2, 'Op 2', 'waiting', 2_000_000)];
+    expect(dueRound(prompts, both, ['Op 1', 'Op 2'], 2_100_000)).toBeUndefined();
+    /* past its grace: no round is due until the next prompt comes */
+    expect(dueRound(prompts, [], ['Op 1'], 2_000_000 + 11 * 60_000)).toBeUndefined();
+  });
+  it('a struck tap does not answer a round, and counts for nothing', () => {
+    const struck = [{ ...tap(1, 'Op 1', 'working', 2_000_000), struck: true }];
+    expect(dueRound(prompts, struck, ['Op 1'], 2_100_000)?.left).toEqual(['Op 1']);
+    expect(shares(struck, ['working'], 'Op 1')[0]?.taps).toBe(0);
+  });
+  it('rounds done count the prompts every person was tapped at', () => {
+    const t = [tap(1, 'Op 1', 'working', 1_000_000), tap(2, 'Op 2', 'walking', 1_000_000), tap(3, 'Op 1', 'working', 2_000_000)];
+    expect(roundsDone(prompts, t, ['Op 1', 'Op 2'])).toBe(1);
+    expect(roundsDone(prompts, t, [])).toBe(0);
   });
 });

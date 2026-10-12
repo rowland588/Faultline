@@ -14,7 +14,8 @@
  * needed for a margin E at a share p = z² p(1 − p) ÷ E²; how many more.
  * Proved by: p 0.30, E 0.05 → 323 taps (the TOOLKIT's own example). */
 
-export interface Tap { id: string; at: number; who: string; activity: string }
+import type { AgreedSampling, Tap } from '../study';
+export type { Tap };
 
 export interface SamplingFacts {
   activities?: string[];
@@ -49,8 +50,9 @@ export const marginOf = (p: number, n: number, z = Z95): number => (n > 0 ? z * 
 /** Taps needed for a share near p to be known within ±E (fractions). */
 export const tapsNeeded = (p: number, marginFrac: number, z = Z95): number => Math.ceil((z * z * p * (1 - p)) / (marginFrac * marginFrac));
 
-/** The taps of one person (or of everybody, when `who` is not given). */
-export const tapsOf = (taps: Tap[], who?: string): Tap[] => (who ? taps.filter(t => t.who === who) : taps);
+/** The taps that count — of one person, or of everybody when `who` is not
+ *  given. A struck tap keeps its place on the list and counts for nothing. */
+export const tapsOf = (taps: Tap[], who?: string): Tap[] => taps.filter(t => !t.struck && (!who || t.who === who));
 
 /** Each activity's share of a person's taps, the listed activities first (in
  *  their order), then anything tapped that the list does not name. */
@@ -91,7 +93,26 @@ export const nextPrompt = (prompts: number[], now: number): number | undefined =
 
 /** Prompts that have passed and nobody answered for `who`. */
 export const missedPrompts = (prompts: number[], taps: Tap[], who: string, now: number, graceMs = 10 * 60_000): number[] =>
-  prompts.filter(p => p + graceMs < now && !taps.some(t => t.who === who && Math.abs(t.at - p) <= graceMs));
+  prompts.filter(p => p + graceMs < now && !tapsOf(taps, who).some(t => Math.abs(t.at - p) <= graceMs));
+
+/** THE ROUND TO ANSWER NOW: the latest prompt that has come, within its
+ *  grace, that somebody watched has no tap for yet — or none. A round is
+ *  answered by a tap per person, stamped with the prompt's own instant, so
+ *  the shares are of the random moments, not of when the phone was looked at. */
+export function dueRound(prompts: number[], taps: Tap[], who: string[], now: number, graceMs = 10 * 60_000): { at: number; no: number; left: string[] } | undefined {
+  for (let i = prompts.length - 1; i >= 0; i--) {
+    const p = prompts[i];
+    if (p === undefined || p > now) continue;
+    if (p + graceMs < now) return undefined;
+    const left = who.filter(w => !tapsOf(taps, w).some(t => t.at === p));
+    return left.length ? { at: p, no: i + 1, left } : undefined;
+  }
+  return undefined;
+}
+
+/** Rounds answered (every person tapped), of the prompts so far. */
+export const roundsDone = (prompts: number[], taps: Tap[], who: string[]): number =>
+  prompts.filter(p => who.length > 0 && who.every(w => tapsOf(taps, w).some(t => t.at === p))).length;
 
 export type SamplingEnough = 'none' | 'early' | 'enough';
 export const samplingEnough = (n: number): SamplingEnough => (n === 0 ? 'none' : n < TOO_FEW_TAPS ? 'early' : 'enough');
@@ -122,3 +143,41 @@ export function samplingLine(facts: SamplingFacts): string {
   const worst = Math.max(...who.map(w => { const l = shares(taps, facts.activities ?? DEFAULT_ACTIVITIES, w); const big = l.reduce((m, s) => (m.share >= s.share ? m : s)); return big.margin; }));
   return `${who.length} ${who.length === 1 ? 'person' : 'people'} · ${taps.length} taps · the biggest share within ${pts(worst)} points`;
 }
+
+/* ---------------------------------------------------------------- the study's words */
+
+export interface SamplingSays { text: string; tone: 'n'; verdict: string }
+
+/** What a sampling study says: each person's reading, and one word or two for
+ *  a list — never a score. Grey throughout: the shares are the facts, and
+ *  what is too much waiting is the team's to say on its fishbone. */
+export function samplingSays(a: AgreedSampling | undefined, taps: Tap[]): SamplingSays {
+  if (!a) return { text: 'Say who is watched and the shift, then answer each moment as it comes.', tone: 'n', verdict: 'Not set up' };
+  const n = tapsOf(taps).length;
+  if (!n) return { text: `${a.who.length} ${a.who.length === 1 ? 'person' : 'people'} watched, ${a.prompts.length} moments in the shift — no taps yet.`, tone: 'n', verdict: 'No taps yet' };
+  const facts = { activities: a.activities, marginPts: a.marginPts, taps };
+  const text = a.who.map(w => samplingReading(facts, w)).join('. ') + '.';
+  const early = a.who.some(w => samplingEnough(tapsOf(taps, w).length) !== 'enough');
+  return { text, tone: 'n', verdict: early ? `Too early — ${n} tap${n === 1 ? '' : 's'}` : `From ${n} taps` };
+}
+
+/** The biggest share that is not the work itself (the first activity — "working"),
+ *  of the people with enough taps: what Make it better is raised from. */
+export function samplingWorst(a: AgreedSampling | undefined, taps: Tap[]): { who: string; activity: string; share: number; margin: number; n: number } | undefined {
+  if (!a) return undefined;
+  const work = a.activities[0];
+  let worst: { who: string; activity: string; share: number; margin: number; n: number } | undefined;
+  for (const w of a.who) {
+    const n = tapsOf(taps, w).length;
+    if (samplingEnough(n) !== 'enough') continue;
+    for (const s of shares(taps, a.activities, w)) {
+      if (s.activity === work || !s.taps) continue;
+      if (!worst || s.share > worst.share) worst = { who: w, activity: s.activity, share: s.share, margin: s.margin, n };
+    }
+  }
+  return worst;
+}
+
+/** "Op 2 is waiting 14% of the time (±5 points, from 190 taps)". */
+export const worstWords = (x: { who: string; activity: string; share: number; margin: number; n: number }): string =>
+  `${x.who} is ${x.activity} ${pct(x.share)} of the time (${pts(x.margin)} points, from ${x.n} taps)`;
