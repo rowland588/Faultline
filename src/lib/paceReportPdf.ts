@@ -2080,7 +2080,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData, out?: { board?: Boar
     boardUnplaced: raw.boardUnplaced,
     capacity: raw.capacity && {
       lines: raw.capacity.lines.map(l => ({
-        ...l, name: san(l.name), owner: l.owner ? san(l.owner) : undefined, unit: san(l.unit), sentence: san(l.sentence),
+        ...l, name: san(l.name), owner: l.owner ? san(l.owner) : undefined, unit: san(l.unit), sentence: san(l.sentence), ...(l.vSays ? { vSays: san(l.vSays) } : {}),
         rows: l.rows.map(r => ({ ...r, name: san(r.name), chain: san(r.chain) })),
       })),
     },
@@ -2650,6 +2650,8 @@ export function drawPaceReport(d: Doc, raw: PaceReportData, out?: { board?: Boar
         setFont(d, 8.4 * f, 'normal', INK2);
         const said = (d.splitTextToSize(l.sentence, wAll * 0.92) as string[]).slice(0, 3);
         for (const ln of said) { d.text(ln, x0, y); y += 11 * f; }
+        /* the V-curve's sentence, once the owner has agreed its margin (docs/CAPACITY.md §4) */
+        if (l.vSays) { setFont(d, 7.8 * f, 'normal', INK2); for (const ln of (d.splitTextToSize(l.vSays, wAll * 0.92) as string[]).slice(0, 2)) { d.text(ln, x0, y); y += 10 * f; } }
         y += 8 * f + 4;
 
         const rowH = 35 * k;          // room under the name for the chain, what arrives, and the detail behind the bar
@@ -2658,19 +2660,20 @@ export function drawPaceReport(d: Doc, raw: PaceReportData, out?: { board?: Boar
         const at = (v: number) => barX + Math.min(1, v / l.top) * barW;
         l.rows.forEach((r, i) => {
           const ry = top + i * rowH;
-          setFont(d, 8 * f, 'bold', r.limit ? DANGER : INK);
+          setFont(d, 8 * f, 'bold', INK);
           d.text(fit(d, r.name, labelW - (r.limit ? 62 * f : 6)), x0, ry + bh * 0.8);
-          if (r.limit) { setFont(d, 6.2 * f, 'bold', DANGER); d.text('LIMITS THE LINE', x0 + labelW - 4, ry + bh * 0.8, { align: 'right' }); }
+          /* the bottleneck is said in words, in ink — every line has one; red is for a failure (CLAUDE.md, visual management) */
+          if (r.limit) { setFont(d, 6.2 * f, 'bold', INK); d.text('LIMITS THE LINE', x0 + labelW - 4, ry + bh * 0.8, { align: 'right' }); }
           if (r.chain) { setFont(d, 6.4 * f, 'normal', MUTED); d.text(fit(d, r.chain, labelW - 6), x0, ry + bh * 0.8 + 8.5 * f); }
           // what arrives against what it does, in its own unit — the number the station is read by
           if (/arrive/.test(r.feed)) { setFont(d, 6 * f, 'normal', r.feed.includes('holds the line back') ? DANGER : MUTED); d.text(fit(d, r.feed, labelW + barW * 0.5), x0, ry + bh * 0.8 + 15.5 * f); }
           // the detail behind the bar: the speed as typed, crew, running, good, and how it is known
           setFont(d, 5.8 * f, 'normal', MUTED); d.text(fit(d, r.detail, labelW + barW * 0.5), x0, ry + bh * 0.8 + 22 * f);
           d.setFillColor(SURF2); d.roundedRect(barX, ry + 1, barW, bh, 2, 2, 'F');
-          const [pr, pg, pb] = wash(r.limit ? DANGER : BRAND, 0.28);
+          const [pr, pg, pb] = wash(r.limit ? INK : BRAND, 0.28);
           d.setFillColor(pr, pg, pb);
           d.roundedRect(barX, ry + 1, Math.max(2, at(r.running) - barX), bh, 2, 2, 'F');
-          d.setFillColor(r.limit ? DANGER : BRAND);
+          d.setFillColor(r.limit ? INK : BRAND);
           d.roundedRect(barX, ry + 1, Math.max(2, at(r.effective) - barX), bh, 2, 2, 'F');
           setFont(d, 9 * f, 'bold', INK);
           d.text(fmtN(r.effective), valX, ry + bh * 0.85, { align: 'right' });
@@ -2707,17 +2710,17 @@ export function drawPaceReport(d: Doc, raw: PaceReportData, out?: { board?: Boar
           const wTop = y + 10 * f;
           x.rows.forEach((r, i) => {
             const ry = wTop + i * wRowH;
-            setFont(d, 6.8 * f, 'bold', r.limit ? DANGER : INK);
+            setFont(d, 6.8 * f, 'bold', r.limit ? INK : INK);
             const nameW = labelW - 10 - (r.limit ? 76 * f : r.changed ? 34 * f : 6);
             d.text(fit(d, r.name, nameW), x0 + 10, ry + wBh * 0.9);
             if (r.changed) { const tw = d.getTextWidth(fit(d, r.name, nameW)); d.setDrawColor(INK2); d.setLineWidth(0.5); d.line(x0 + 10, ry + wBh * 0.9 + 1.4, x0 + 10 + tw, ry + wBh * 0.9 + 1.4); }
             if (r.limit) { setFont(d, 5.6 * f, 'bold', DANGER); d.text('WOULD LIMIT THE LINE', x0 + labelW - 4, ry + wBh * 0.9, { align: 'right' }); }
             else if (r.changed) { setFont(d, 5.6 * f, 'bold', INK2); d.text('CHANGED', x0 + labelW - 4, ry + wBh * 0.9, { align: 'right' }); }
             d.setFillColor(SURF2); d.roundedRect(barX, ry + 1, barW, wBh, 1.5, 1.5, 'F');
-            const [pr, pg, pb] = wash(r.limit ? DANGER : BRAND, 0.28);
+            const [pr, pg, pb] = wash(r.limit ? INK : BRAND, 0.28);
             d.setFillColor(pr, pg, pb);
             d.roundedRect(barX, ry + 1, Math.max(2, at(r.running) - barX), wBh, 1.5, 1.5, 'F');
-            d.setFillColor(r.limit ? DANGER : BRAND);
+            d.setFillColor(r.limit ? INK : BRAND);
             d.roundedRect(barX, ry + 1, Math.max(2, at(r.effective) - barX), wBh, 1.5, 1.5, 'F');
             setFont(d, 7.6 * f, 'bold', INK);
             d.text(fmtN(r.effective), valX, ry + wBh * 0.95, { align: 'right' });

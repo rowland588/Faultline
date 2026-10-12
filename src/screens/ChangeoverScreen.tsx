@@ -859,7 +859,7 @@ function RunSheet({ s, std, line, money, onClose }: { s: ToolStudy; std?: Standa
     onClose();
   };
   const typedRate = numTyped(rate);
-  const offerWords = offered ? `${rateFromWords(offered.from, offered.station)}${offered.from === 'plate' || offered.from === 'person' ? `, off ${std?.product ?? 'the product'}'s line balance` : ''}` : '';
+  const offerWords = offered ? `${rateFromWords(offered.from, offered.station)}${offered.from === 'plate' || offered.from === 'person' ? `, off ${std?.product ?? 'the product'}'s line capacity` : ''}` : '';
   return (
     <Sheet open onClose={onClose} title="How the line runs">
       <form className="vs-step co-run" onSubmit={e => { e.preventDefault(); save(); }}>
@@ -901,7 +901,7 @@ function RunSheet({ s, std, line, money, onClose }: { s: ToolStudy; std?: Standa
           <span className="sub co-rate-from">{offered
             ? (typedRate !== undefined && Math.abs(typedRate - offered.ratePerMin) < 1e-9 ? `From ${offerWords}.`
               : <>{cap1(offerWords)} says {offered.ratePerMin}{typedRate !== undefined ? ` — ${typedRate} is said as ${typedRate === s.facts.ratePerMin ? rateFromWords(s.facts.rateFrom ?? 'typed', s.facts.rateStation) : 'typed'}` : ''}. <button type="button" className="linkish" onClick={() => setRate(String(offered.ratePerMin))}>Use {offered.ratePerMin}</button></>)
-            : 'No plate speed on the product\'s line balance, no target and no rated speed for the line — type it; it will be said as typed.'}</span></label>
+            : 'No plate speed on the product\'s line capacity, no target and no rated speed for the line — type it; it will be said as typed.'}</span></label>
         <p className="sub co-money">{money ? moneyWords(money, line) : 'No cost set for this line — pounds are not said. The line\'s settings hold its crew, wage and margin a pack.'}</p>
         <div className="vs-step-acts">
           <button type="submit" className="btn btn-primary">Save</button>
@@ -971,7 +971,7 @@ function IntervalSheet({ s, standards, onClose }: { s: ToolStudy; standards: Sta
                   <input className="text-input" inputMode="decimal" value={r.demand} placeholder="e.g. 7200" aria-label={`${r.product || 'Product'} — demand a day`} onChange={e => set(r.id, { demand: e.target.value })} /></label>
                 <label className="field"><span className="field-label">Rate, a minute</span>
                   <input className="text-input" inputMode="decimal" value={r.rate} placeholder="e.g. 60" aria-label={`${r.product || 'Product'} — rate a minute`} onChange={e => set(r.id, { rate: e.target.value })} />
-                  <span className="sub">{r.fromStandard && numTyped(r.rate) === r.fromStandard ? 'from its line balance' : r.fromStandard ? `its line balance says ${r.fromStandard}` : 'no line balance to read it from'}</span></label>
+                  <span className="sub">{r.fromStandard && numTyped(r.rate) === r.fromStandard ? 'from its line capacity' : r.fromStandard ? `its line capacity says ${r.fromStandard}` : 'no line capacity to read it from'}</span></label>
                 <label className="field"><span className="field-label">Or: minutes a day</span>
                   <input className="text-input" inputMode="decimal" value={r.run} placeholder="e.g. 50" aria-label={`${r.product || 'Product'} — minutes a day`} onChange={e => set(r.id, { run: e.target.value })} /></label>
               </div>

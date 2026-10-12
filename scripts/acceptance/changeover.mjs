@@ -189,8 +189,8 @@ await page.getByRole('button', { name: 'Say how the line runs' }).click(); await
   await page.getByLabel('How many changeovers').fill('3');
   await dialog().getByRole('radio', { name: 'a shift' }).click();
   await page.getByLabel("The line's speed, packs a minute").fill('100');
-  ok(/No plate speed on the product's line balance/.test(sheet) && /No cost set for this line/.test(sheet) && seven === 'true',
-    '1 how the line runs: nothing assumed — the days a week typed as 7 light the 7; no line balance, so the speed is typed; no line, no pounds');
+  ok(/No plate speed on the product's line capacity/.test(sheet) && /No cost set for this line/.test(sheet) && seven === 'true',
+    '1 how the line runs: nothing assumed — the days a week typed as 7 light the 7; no line capacity, so the speed is typed; no line, no pounds');
   await dialog().getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(800);
 }
 t = await truth(Q);
@@ -228,7 +228,7 @@ await page.getByRole('button', { name: 'Start a SMED ›' }).click(); await page
     '2 Start a SMED from the Express standard: on its line, on the Line 2 job, into its standard');
 }
 const CO = sd.changeoverId;
-/* the line balance says the Bagger's plate speed: the slowest station, off its plate */
+/* the line capacity says the Bagger's plate speed: the slowest station, off its plate */
 await page.evaluate(async sid => {
   const { getStandard, putStandard } = await import('/src/db.ts');
   const std = await getStandard(sid);
@@ -242,7 +242,7 @@ await go(`#/smed/${CO}`);
 await page.getByRole('button', { name: 'Change how the line runs' }).click(); await page.waitForTimeout(400);
 {
   const note = await words('.co-rate-from', dialog());
-  ok(/^The Bagger's plate speed, off Tesco Express 1\.25 kg's line balance says 60 — 50 is said as the standard's target — not a plate speed\./.test(note ?? ''),
+  ok(/^The Bagger's plate speed, off Tesco Express 1\.25 kg's line capacity says 60 — 50 is said as the standard's target — not a plate speed\./.test(note ?? ''),
     `2 the speed offered is the Bagger's plate speed: "${note}"`);
   await dialog().getByRole('button', { name: 'Use 60' }).click(); await page.waitForTimeout(200);
   ok(((await words('.co-rate-from', dialog())) ?? '').startsWith("From the Bagger's plate speed"), `2 used: "${await words('.co-rate-from', dialog())}"`);

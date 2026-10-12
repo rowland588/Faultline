@@ -173,7 +173,7 @@ export const snagsPlace = (here: string): RailLine =>
 export const toolPlaces = (here: string): RailLine[] => [
   snagsPlace(here),
   { key: 'linestandard', label: 'Line standard', to: '/standards', on: here === 'linestandard', state: 'n', bare: true, icon: 'people' },
-  { key: 'linebalance', label: 'Line balance', to: '/balances', on: here === 'linebalance', state: 'n', bare: true, icon: 'chart' },
+  { key: 'linebalance', label: 'Line capacity', to: '/balances', on: here === 'linebalance', state: 'n', bare: true, icon: 'chart' },
   /* The capability study — readings against agreed limits, Cpk out (docs/TOOLKIT.md, tool 1). */
   { key: 'capability', label: 'Capability', to: '/capability', on: here === 'capability', state: 'n', bare: true, icon: 'hash' },
   /* The value stream map — always a line's, the departments that touch it included, as a swimlane grid (tool 2). */

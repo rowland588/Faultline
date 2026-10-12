@@ -167,7 +167,7 @@ ok(typed12 === '12' && unsaved === undefined && t?.s.facts.losses?.made === 39_0
   await page.getByLabel('Packs counted').fill('100');
   await page.getByRole('button', { name: 'Add the timing' }).click(); await page.waitForTimeout(900);
   t = await truth(countId);
-  const runs = t.s.facts.running ?? [];
+  const runs = t.s.facts.timings ?? [];
   ok(runs.length === 2 && runs.every(r => r.by && r.at > 0 && r.sec === 60) && t.s.facts.losses?.made === 39_000 && Math.abs(t.f.running.perMin - 99) < 1e-9,
     `2b two timings kept as they were added, each with when and who (${runs.map(r => `${r.packs} in ${r.sec}s by ${r.by}`).join(', ')}) — 99 a minute`);
   /* 400 run × (100 − 99) ÷ 100 = 4 min of slow running; the short stops the rest, 3.5 */
@@ -180,7 +180,7 @@ ok(typed12 === '12' && unsaved === undefined && t?.s.facts.losses?.made === 39_0
     && (await page.locator('.lf-row.is-a').count()) === 0, '2b neither part over a tenth — the verdict neutral, two bars in the table where the rest was');
   await page.locator('.lf-runs li').filter({ hasText: '100' }).getByRole('button', { name: 'Strike' }).click(); await page.waitForTimeout(800);
   const struck = await truth(countId);
-  const strikeOk = (await page.locator('.lf-runs li.is-struck').count()) === 1 && Math.abs(struck.f.running.perMin - 98) < 1e-9 && (struck.s.facts.running ?? []).length === 2;
+  const strikeOk = (await page.locator('.lf-runs li.is-struck').count()) === 1 && Math.abs(struck.f.running.perMin - 98) < 1e-9 && (struck.s.facts.timings ?? []).length === 2;
   await page.locator('.lf-runs li').filter({ hasText: '100' }).getByRole('button', { name: 'Unstrike' }).click(); await page.waitForTimeout(800);
   t = await truth(countId);
   ok(strikeOk && Math.abs(t.f.running.perMin - 99) < 1e-9, '2b a timing struck counts for nothing and keeps its place; unstruck, it counts again');

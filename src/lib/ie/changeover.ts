@@ -373,7 +373,7 @@ export function availableOf(f: Pick<StudyFacts, 'running' | 'availableMinPerDay'
 /** THE LINE'S SPEED, offered — what a stop's packs are counted at
  *  (docs/CAPACITY.md §1, Rowland: "we go by plate speed ... unless human"):
  *  the critical station's plate speed off the product's line balance, or a
- *  timed person's where people set the pace (lib/capacity lineSpeed); else
+ *  person's, timed or by standard time, where people set the pace (lib/capacity lineSpeed); else
  *  the standard's target, or the line's rated speed in its settings — each
  *  said as not a plate speed. Nothing: it is typed. */
 export function lineRateOf(cap: Capacity | undefined, line?: { packsPerMin?: number }): { ratePerMin: number; from: Exclude<SmedRateFrom, 'typed'>; station?: string } | undefined {

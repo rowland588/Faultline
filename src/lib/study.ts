@@ -299,6 +299,10 @@ export interface AgreedSampling {
   to: number;
   /** The instants the phone asks at, inside the shift. */
   prompts: number[];
+  /** A BOTTLENECK WALK (docs/CAPACITY.md §3): the line's stations watched
+   *  instead of people, each tapped working · starved · blocked · down at
+   *  each moment — Roser's walk, repeated, on a product's line standard. */
+  walk?: boolean;
 }
 
 /** A SHIFT'S LOSSES, BY HAND (docs/TOOLKIT.md, tool 7; docs/BUILD.md, E):
@@ -409,7 +413,7 @@ export interface StudyFacts {
   losses?: LossCount;
   /** The running speed timed through that shift — its own list, so two
    *  phones timing at once both keep theirs. */
-  running?: RunTiming[];
+  timings?: RunTiming[];
 }
 
 /** What a study is evidence for, inside its job. Both ends write the same
@@ -504,5 +508,5 @@ export function factsOf(v: unknown): StudyFacts {
     ...(o.sequence !== undefined ? { sequence: listById<ChangeoverStep>(o.sequence) } : {}),
     ...(o.products !== undefined ? { products: listById<ChangeoverProduct>(o.products) } : {}),
     ...(o.taps !== undefined ? { taps: listById<Tap>(o.taps) } : {}),
-    ...(o.running !== undefined ? { running: listById<RunTiming>(o.running) } : {}) };
+    ...(o.timings !== undefined ? { timings: listById<RunTiming>(o.timings) } : {}) };
 }

@@ -35,9 +35,9 @@ const WORDS: Record<LineTool, { title: string; lede: string; add: string; none: 
     add: 'New line standard', none: 'No line standards yet.',
   },
   balance: {
-    title: 'Line balance',
-    lede: 'Where each line is limited, product by product — the stations in order, each at its own speed. On a line with no job, or attached to one.',
-    add: 'New line balance', none: 'No line balances yet.',
+    title: 'Line capacity',
+    lede: 'Where each line is limited, product by product — the stations in the order the product flows, machines at their plate speed and people at their standard time, put into one unit; the bottleneck and the V-curve either side of it. On a line with no job, or attached to one.',
+    add: 'New line capacity', none: 'No line capacity yet.',
   },
 };
 

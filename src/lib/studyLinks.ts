@@ -39,7 +39,7 @@ export interface StudyContext {
 export function lossFiguresOf(s: ToolStudy, ctx?: StudyContext): LossFigures {
   const c = s.facts.losses;
   const obs = ctx?.observations && c ? inWindow(ctx.observations, c.from, c.to, s.workspaceId) : undefined;
-  return lossFigures(c, obs, ctx?.workspaces?.find(w => w.id === s.workspaceId), s.facts.running);
+  return lossFigures(c, obs, ctx?.workspaces?.find(w => w.id === s.workspaceId), s.facts.timings);
 }
 
 /** The bar of a loss count a record was raised from (StudyUse.step), as it stands. */

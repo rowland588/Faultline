@@ -240,8 +240,8 @@ describe('stops, own and waiting kept apart', () => {
   const stats = stopStats(log, [a, b], 0, 28 * DAY);
 
   it('totals each station’s minutes by name, ignoring case, space and other machines', () => {
-    expect(stats[a.id]).toEqual({ ownMins: 30, waitMins: 40, events: 5 });
-    expect(stats[b.id]).toEqual({ ownMins: 5, waitMins: 0, events: 1 });
+    expect(stats[a.id]).toEqual({ ownMins: 30, waitMins: 40, events: 5, ownEvents: 4 });
+    expect(stats[b.id]).toEqual({ ownMins: 5, waitMins: 0, events: 1, ownEvents: 1 });
   });
   it('matches on the machine name the stops were logged under, when it is not the station’s name', () => {
     const c = basketer({ asset: 'Somewhere else' });
@@ -456,7 +456,7 @@ describe('a what-if beside the line', () => {
     const a = makeItSoWords('Line 2A', w, ['Basketer: 5.5 → 9 baskets a minute'], 'With New basketer, the line would do 70 bags/min instead of 44 (+26).');
     expect(a.what).toBe('Make it so on Line 2A: New basketer');
     expect(a.where).toBe('Basketer: 5.5 → 9 baskets a minute');
-    expect(a.why).toMatch(/^Predicted on the line balance — With New basketer/);
+    expect(a.why).toMatch(/^Predicted on the line capacity — With New basketer/);
   });
 });
 

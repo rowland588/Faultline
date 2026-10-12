@@ -460,7 +460,7 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
       facts: { losses: { ...day, made: 33_400, rejects: 820 } }, uses: [{ id: uid(), kind: 'fix', ref: lossFixId, role: 'evidence', at: day.to, step: 'cause:Breakdown' }],
       startedAt: day.to, createdAt: t, updatedAt: t });
     await putStudy({ id: uid(), tool: 'losses', name: lossName(next), projectId: proj.id, workspaceId: ws.id, product: 'Finest Red 2kg — 60 micron perforated film',
-      facts: { losses: { ...next, made: 38_900, rejects: 410 }, running: timings(next.from, [97, 96, 98], 'Łukasz Wiśniewski-Kowalczyk') }, uses: [{ id: uid(), kind: 'fix', ref: lossFixId, role: 'proof', at: next.to }],
+      facts: { losses: { ...next, made: 38_900, rejects: 410 }, timings: timings(next.from, [97, 96, 98], 'Łukasz Wiśniewski-Kowalczyk') }, uses: [{ id: uid(), kind: 'fix', ref: lossFixId, role: 'proof', at: next.to }],
       startedAt: next.to, createdAt: t, updatedAt: t });
   }
 
@@ -1025,7 +1025,7 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
       facts: { losses: { ...day, made: 24_600, rejects: 350 } }, uses: [{ id: uid(), kind: 'action', ref: coAct.id, role: 'evidence', at: day.to, step: 'changeover' }],
       startedAt: day.to, createdAt: t, updatedAt: t });
     await putStudy({ id: uid(), tool: 'losses', name: name(next), projectId: proj.id, workspaceId: wsA.id, product: 'Finest Red 2kg',
-      facts: { losses: { ...next, made: 27_300, rejects: 280 }, running: timings(next.from, [66, 68]) }, uses: [{ id: uid(), kind: 'action', ref: coAct.id, role: 'proof', at: next.to }],
+      facts: { losses: { ...next, made: 27_300, rejects: 280 }, timings: timings(next.from, [66, 68]) }, uses: [{ id: uid(), kind: 'action', ref: coAct.id, role: 'proof', at: next.to }],
       startedAt: next.to, createdAt: t, updatedAt: t });
   }
 
@@ -1166,7 +1166,7 @@ export async function seedRandomSixMJob(seed: number): Promise<SixMJob & { lineI
       ...(rand() < 0.15 ? {} : { made: Math.floor(rand() * 40_000) }), ...(rand() < 0.5 ? { rejects: Math.floor(rand() * 900) } : {}), ...(rand() < 0.3 ? { shift: pick(AWKWARD).trim() || undefined } : {}) });
     const run = rand() < 0.4 ? timings(c.from, Array.from({ length: 1 + Math.floor(rand() * 4) }, () => Math.max(1, (c.ratePerMin ?? 60) * (0.8 + rand() * 0.25))), pick(['Lee Carty', ...AWKWARD.filter(Boolean)])) : undefined;
     await putStudy({ id: uid(), tool: 'losses', name: rand() < 0.2 ? pick(AWKWARD) || 'Loss count' : 'Loss count', projectId: proj.id, workspaceId: l.workspaceId as string,
-      facts: { losses: c, ...(run ? { running: run } : {}) }, uses: [], startedAt: c.to, createdAt: t, updatedAt: t });
+      facts: { losses: c, ...(run ? { timings: run } : {}) }, uses: [], startedAt: c.to, createdAt: t, updatedAt: t });
   }
   return { projectId: proj.id, lineId: lines[0]?.id as string };
 }

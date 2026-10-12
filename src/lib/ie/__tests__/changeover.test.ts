@@ -181,12 +181,14 @@ describe('SMED — what the changeovers cost, extrapolated (worked example 2)', 
     expect(patternFromShifts([{ start: '', end: '' }])).toBeUndefined();
   });
   it('the speed is the critical machine\'s plate speed — unless people set the pace; else said as not a plate speed', () => {
-    const st = (id: string, name: string, kind: 'machine' | 'people', rate: number, source: 'plate' | 'timed' | 'estimate') => ({ id, name, kind, unit: 'bags', contains: 1, rate, ratePer: 'min' as const, source });
+    const st = (id: string, name: string, kind: 'machine' | 'people', rate: number, source: 'plate' | 'timed' | 'standard' | 'estimate') => ({ id, name, kind, unit: 'bags', contains: 1, rate, ratePer: 'min' as const, source });
     /* the Bagger is the slowest on running speed, off its plate */
     expect(lineRateOf({ stations: [st('w', 'Weigher', 'machine', 140, 'plate'), st('b', 'Bagger', 'machine', 100, 'plate'), st('p', 'Packers', 'people', 120, 'timed')] }))
       .toEqual({ ratePerMin: 100, from: 'plate', station: 'Bagger' });
     /* people are slowest and were timed: they set the pace */
     expect(lineRateOf({ stations: [st('b', 'Bagger', 'machine', 100, 'plate'), st('p', 'Packers', 'people', 80, 'timed')] })).toEqual({ ratePerMin: 80, from: 'person', station: 'Packers' });
+    /* or carry a standard time from the time study (Line capacity) — the same: people set the pace */
+    expect(lineRateOf({ stations: [st('b', 'Bagger', 'machine', 100, 'plate'), st('p', 'Packers', 'people', 75, 'standard')] })).toEqual({ ratePerMin: 75, from: 'person', station: 'Packers' });
     /* the slowest is a guess: not a plate speed — the standard's target, then the line's setting */
     expect(lineRateOf({ targetPerMin: 90, stations: [st('b', 'Bagger', 'machine', 70, 'estimate')] })).toEqual({ ratePerMin: 90, from: 'standard' });
     expect(lineRateOf(undefined, { packsPerMin: 85 })).toEqual({ ratePerMin: 85, from: 'line' });

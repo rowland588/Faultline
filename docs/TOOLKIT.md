@@ -1172,7 +1172,7 @@ words.
 **Facts.** A loss-count study's `facts.losses` (the shift, the window, its
 breaks and relief, the planned minutes and why when changed, packs made,
 rejects, the rate and where it is from — `rateFrom` plate · standard-time ·
-standard · typed, with `rateMachine` or `ratePerson`) and `facts.running` (the timings, id-keyed, struck
+standard · typed, with `rateMachine` or `ratePerson`) and `facts.timings` (the running speed timed, id-keyed, struck
 never erased); the `Observation` stops in the window; the line's cost
 model.
 

@@ -485,7 +485,7 @@ function CountForm({ s, line, rate: plate, editable }: { s: ToolStudy; line?: Wo
  *  kept the moment it is added (its own list, so two phones both keep
  *  theirs); a wrong one is struck, never erased. */
 function RunningSpeed({ s, f, editable, me }: { s: ToolStudy; f: LossFigures; editable: boolean; me?: string }) {
-  const list = (s.facts.running ?? []).slice().sort((a, b) => a.at - b.at);
+  const list = (s.facts.timings ?? []).slice().sort((a, b) => a.at - b.at);
   const r = runningOf(list);
   const [packsT, setPacks] = useState('');
   const [sec, setSec] = useState('60');
@@ -496,10 +496,10 @@ function RunningSpeed({ s, f, editable, me }: { s: ToolStudy; f: LossFigures; ed
   const add = () => {
     if (!ok) return;
     const t: RunTiming = { id: uid(), at: now(), ...(me ? { by: me } : {}), packs: p as number, sec: sc as number };
-    void patchStudy(s.id, cur => ({ facts: { ...cur.facts, running: [...(cur.facts.running ?? []), t] } }));
+    void patchStudy(s.id, cur => ({ facts: { ...cur.facts, timings: [...(cur.facts.timings ?? []), t] } }));
     setPacks('');
   };
-  const strike = (id: string, struck: boolean) => void patchStudy(s.id, cur => ({ facts: { ...cur.facts, running: (cur.facts.running ?? []).map(x => (x.id === id ? { ...x, struck } : x)) } }));
+  const strike = (id: string, struck: boolean) => void patchStudy(s.id, cur => ({ facts: { ...cur.facts, timings: (cur.facts.timings ?? []).map(x => (x.id === id ? { ...x, struck } : x)) } }));
   return (
     <section className="lf-run" aria-label="The running speed">
       <small className="ie-h">The running speed — timed while it runs</small>

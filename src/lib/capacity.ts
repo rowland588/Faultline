@@ -69,6 +69,10 @@ export interface Station {
   note?: string;
   /** The machine name its stops are logged under, when that is not its name. */
   asset?: string;
+  /** ACCUMULATION after it (docs/CAPACITY.md §4): how many of its own unit
+   *  can collect between it and the next station — a conveyor, a table — so
+   *  a short stop on one side need not stop the other. */
+  bufferAfter?: number;
 }
 
 export interface Capacity {
@@ -78,6 +82,12 @@ export interface Capacity {
    *  against. Only used to SUGGEST a running percentage, never silently. */
   plannedHoursPerWeek?: number;
   stations: Station[];
+  /** THE V's MARGIN (docs/CAPACITY.md §4): how much faster, in percent, each
+   *  station a step away from the bottleneck is agreed to be — so a short stop
+   *  beside it never starves or blocks it. About 10% a step is the usual
+   *  starting point on an accumulation line (a convention, not a law), so it
+   *  is the owner's to set; until it is set, no guide is drawn. */
+  vMarginPct?: number;
   /** WHAT-IFS. Rowland: "I have a line, but I may take a machine out and put
    *  another machine in… swipe left, add a different machine name — oh look,
    *  it changes, that's a different bottleneck." A what-if is a copy of the
@@ -313,7 +323,8 @@ export interface CapacityResult {
  *  Rowland, 12 October: "we go by plate speed ... of course, unless human"):
  *  the station slowest on running speed alone, in the line's unit a minute
  *  at the start of the line — a machine's when its speed is off its PLATE,
- *  a person's when people set the pace and were timed. Nothing when the
+ *  a person's when people set the pace and were timed, or carry a standard
+ *  time from the time study. Nothing when the
  *  slowest station's speed is a guess, or a machine's timed rather than
  *  read off its plate: running below the plate is a loss (slow running),
  *  never a lower plate. What a stop's packs are counted at (SMED, the loss
@@ -324,7 +335,7 @@ export function lineSpeed(cap: Capacity | undefined): { perMin: number; unit: st
   if (!x || !(x.running > 0)) return undefined;
   const st = x.station, name = st.name.trim() || `station ${x.index + 1}`;
   if (st.kind === 'machine' && st.source === 'plate') return { perMin: x.running, unit: r.unit, station: name, from: 'plate' };
-  if (st.kind === 'people' && st.source === 'timed') return { perMin: x.running, unit: r.unit, station: name, from: 'person' };
+  if (st.kind === 'people' && (st.source === 'timed' || st.source === 'standard')) return { perMin: x.running, unit: r.unit, station: name, from: 'person' };
   return undefined;
 }
 
@@ -493,7 +504,7 @@ export function lineIfRaised(r: CapacityResult, index: number, to: number): numb
 
 /* ======================= stops: from the timed log ======================== */
 
-export interface StopStats { ownMins: number; waitMins: number; events: number }
+export interface StopStats { ownMins: number; waitMins: number; events: number; /** Its own stops, counted — for the typical stop's length. */ ownEvents?: number }
 
 /** Starved or blocked by a neighbour — not the station's own fault. */
 export const isWaiting = (o: Pick<Observation, 'category' | 'subcategory'>): boolean =>
@@ -503,7 +514,7 @@ export const isWaiting = (o: Pick<Observation, 'category' | 'subcategory'>): boo
  *  Matched on the machine name the stop was logged against. */
 export function stopStats(obs: Observation[], stations: Station[], from: number, to: number): Record<string, StopStats> {
   const out: Record<string, StopStats> = {};
-  for (const s of stations) out[s.id] = { ownMins: 0, waitMins: 0, events: 0 };
+  for (const s of stations) out[s.id] = { ownMins: 0, waitMins: 0, events: 0, ownEvents: 0 };
   const key = (s: Station) => norm(s.asset?.trim() || s.name);
   for (const o of obs) {
     if (o.deletedAt || !(o.durationMs > 0) || o.startedAt < from || o.startedAt >= to) continue;
@@ -511,7 +522,7 @@ export function stopStats(obs: Observation[], stations: Station[], from: number,
     if (!st) continue;
     const m = o.durationMs / 60_000;
     const slot = out[st.id];
-    if (isWaiting(o)) slot.waitMins += m; else slot.ownMins += m;
+    if (isWaiting(o)) slot.waitMins += m; else { slot.ownMins += m; slot.ownEvents = (slot.ownEvents ?? 0) + Math.max(1, o.count || 1); }
     slot.events += Math.max(1, o.count || 1);
   }
   return out;
@@ -550,7 +561,8 @@ export function crossCheck(r: CapacityResult, stats: Record<string, StopStats>):
 /* ============================== a blank station ============================ */
 
 export function blankStation(id: string, kind: StationKind, first: boolean): Station {
-  return { id, name: '', kind, unit: first ? 'units' : '', contains: 1, ratePer: 'min', crew: 1, source: 'estimate' };
+  /* a machine goes by its plate speed (docs/CAPACITY.md §1); a person is timed */
+  return { id, name: '', kind, unit: first ? 'units' : '', contains: 1, ratePer: 'min', crew: 1, source: kind === 'machine' ? 'plate' : 'estimate' };
 }
 
 /* ================================ what-ifs ================================= */
@@ -663,7 +675,7 @@ export function makeItSoWords(lineName: string, w: WhatIf, changed: string[], co
   return {
     what: `Make it so on ${lineName}: ${w.name}`,
     where: changed.length ? changed.join('; ') : lineName,
-    why: `Predicted on the line balance — ${compare}`,
+    why: `Predicted on the line capacity — ${compare}`,
   };
 }
 
@@ -677,6 +689,8 @@ export interface CapacityReportLine {
   unit: string;
   /** The same sentence the Capacity lens leads with. */
   sentence: string;
+  /** What the V-curve says, once the owner has agreed its margin (vCurve). */
+  vSays?: string;
   line: number;
   target?: number;
   /** The most any bar reaches — the scale both drawings share. */
@@ -724,8 +738,8 @@ export function stationDetail(s: Station): string {
  *  (three lines each, so more than a unit), and each what-if — its sentence,
  *  the changes it lists, and its own compact ladder (a short row a station,
  *  plus its key). Shared by the sheet plan and the PDF so they cannot disagree. */
-export function lineSheetUnits(l: Pick<CapacityReportLine, 'rows' | 'more' | 'whatIfs'>): number {
-  return 3 + l.rows.length * 1.6 + (l.more > 0 ? 1 : 0)
+export function lineSheetUnits(l: Pick<CapacityReportLine, 'rows' | 'more' | 'whatIfs' | 'vSays'>): number {
+  return 3 + (l.vSays ? 1 : 0) + l.rows.length * 1.6 + (l.more > 0 ? 1 : 0)
     + l.whatIfs.reduce((n, w) => n + 1 + Math.min(w.changed.length, 3) * 0.5 + w.rows.length * 0.8 + (w.rows.length ? 0.5 : 0), 0);
 }
 export interface CapacityReport { lines: CapacityReportLine[] }
@@ -765,6 +779,7 @@ export function capacityReport(lines: { name: string; owner?: string; capacity?:
     const top = Math.max(...shown.map(x => x.running), ...whatIfs.flatMap(w => w.rows.map(x => x.running)), r.target ?? 0, ...whatIfs.map(w => w.target ?? 0)) * 1.06 || 1;
     out.push({
       name: l.name, owner: l.owner, unit: r.unit, sentence: r.sentence, line: r.line, target: r.target,
+      ...(cap.vMarginPct ? { vSays: vCurve(r, cap.vMarginPct).sentence } : {}),
       top,
       rows: shown.map(x => ({
         name: x.station.name.trim() || `Station ${x.index + 1}`, kind: x.station.kind, chain: x.chain,
@@ -790,4 +805,95 @@ export function capacityPlan(report: CapacityReport): number[][] {
     used += w;
   });
   return sheets;
+}
+
+
+/* ================================ the V-curve ================================
+ * docs/CAPACITY.md §4. Every station's capacity once its own stops count, as
+ * a share of the bottleneck's, in the order the product flows: the
+ * bottleneck at the bottom, the stations either side rising away from it.
+ * With the owner's margin, the guide V says how fast each station a step
+ * away should be; a station under it is the one whose short stop will starve
+ * (upstream) or block (downstream) the bottleneck. Nothing is stored here
+ * but the margin; the points come from analyse() on every render. */
+export interface VPoint {
+  index: number;
+  name: string;
+  kind: StationKind;
+  /** Once its own stops count, as a percentage of the bottleneck's. */
+  pct: number;
+  /** While running, the same way. */
+  runningPct: number;
+  /** In the line's unit a minute, once its stops count. */
+  perMin: number;
+  /** The guide V's percentage at this station, when the margin is set. */
+  guide?: number;
+  /** Steps from the bottleneck: negative upstream, positive downstream. */
+  steps: number;
+  isLimit: boolean;
+  under: boolean;
+}
+export interface VCurve { points: VPoint[]; under: VPoint[]; limit?: VPoint; sentence: string }
+
+const nameOf = (x: StationResult): string => x.station.name.trim() || `Station ${x.index + 1}`;
+
+export function vCurve(r: CapacityResult, marginPct?: number): VCurve {
+  const lim = r.limit;
+  if (!lim || !r.ok.length) return { points: [], under: [], sentence: 'Put in the stations and their speeds; the V draws itself once the bottleneck is known.' };
+  const at = r.ok.indexOf(lim);
+  const m = marginPct != null && marginPct > 0 ? marginPct : undefined;
+  const points: VPoint[] = r.ok.map((x, i) => {
+    const steps = i - at;
+    const guide = m != null && steps !== 0 ? 100 + m * Math.abs(steps) : undefined;
+    const pct = (x.effective / lim.effective) * 100;
+    return { index: x.index, name: nameOf(x), kind: x.station.kind, pct, runningPct: (x.running / lim.effective) * 100, perMin: x.effective,
+      ...(guide != null ? { guide } : {}), steps, isLimit: i === at, under: guide != null && pct < guide - 1e-9 };
+  });
+  const limit = points[at];
+  const under = points.filter(p => p.under);
+  const ln = limit ? limit.name : '';
+  let sentence: string;
+  if (m == null) sentence = `${ln} is the bottleneck at ${fmtN(lim.effective)} ${r.unit} a minute. Set the V's margin to see whether the stations either side protect it — about 10% a step is the usual starting point.`;
+  else if (!under.length) sentence = `Every station clears the V: each step away from ${ln} is at least ${fmtN(m)}% faster, so a short stop beside it is absorbed.`;
+  else sentence = under.map((p, i) => `${i ? 'the' : 'The'} ${p.name.toLowerCase().startsWith('op ') ? p.name : p.name.charAt(0).toLowerCase() + p.name.slice(1)} is only ${fmtN(Math.max(0, Math.round(p.pct - 100)))}% faster than ${ln} (the V asks ${fmtN(Math.round((p.guide ?? 100) - 100))}%) — a short stop there ${p.steps > 0 ? 'blocks' : 'starves'} ${ln}`).join('; ') + '.';
+  return { points, under, ...(limit ? { limit } : {}), sentence };
+}
+
+
+/* =============================== accumulation ===============================
+ * docs/CAPACITY.md §4. A buffer adds no speed; it lets a short stop beside
+ * the bottleneck pass without stopping it. For each station either side of
+ * the bottleneck whose own stops are logged, its typical stop (own minutes ÷
+ * own stops) against what can collect between it and the bottleneck, in
+ * minutes of the bottleneck's work: upstream, the buffers must hold enough
+ * to keep the bottleneck fed; downstream, enough room to keep it from being
+ * blocked. A rule of thumb is 2–5 minutes of production. */
+export interface Protection { index: number; name: string; side: 'before' | 'after'; typicalMin: number; coverMin: number; covered: boolean }
+export interface Accumulation { rows: Protection[]; written: boolean; sentence: string }
+
+export function accumulation(r: CapacityResult, stats: Record<string, StopStats>): Accumulation {
+  const lim = r.limit;
+  if (!lim || !r.ok.length) return { rows: [], written: false, sentence: '' };
+  const at = r.ok.indexOf(lim);
+  const written = r.ok.some(x => (x.station.bufferAfter ?? 0) > 0);
+  const between = (from: number, to: number) => r.ok.slice(from, to).reduce((u, x) => u + (x.station.bufferAfter ?? 0) * x.factor, 0);
+  const rows: Protection[] = [];
+  r.ok.forEach((x, i) => {
+    if (i === at) return;
+    const st = stats[x.station.id];
+    const n = st?.ownEvents ?? 0;
+    if (!st || !(n > 0) || !(st.ownMins > 0)) return;
+    const units = i < at ? between(i, at) : between(at, i);
+    const coverMin = lim.effective > 0 ? units / lim.effective : 0;
+    const typicalMin = st.ownMins / n;
+    rows.push({ index: x.index, name: nameOf(x), side: i < at ? 'before' : 'after', typicalMin, coverMin, covered: coverMin >= typicalMin - 1e-9 });
+  });
+  const ln = nameOf(lim);
+  const uncovered = rows.filter(p => !p.covered);
+  let sentence: string;
+  if (!rows.length) sentence = '';
+  else if (!written) sentence = `Nothing is written down as collecting between the stations — a stop next to ${ln} stops ${ln}. Write down what can collect after each (a conveyor, a table) to see which stops are absorbed.`;
+  else if (!uncovered.length) sentence = `Every logged stop beside ${ln} is absorbed: what can collect covers the typical stop of each.`;
+  else sentence = uncovered.map((p, i) => `${i ? 'the' : 'The'} ${p.name.charAt(0).toLowerCase() + p.name.slice(1)}'s own stops last ${fmtN(Math.round(p.typicalMin * 10) / 10)} min on average; what can collect between it and ${ln} holds ${fmtN(Math.round(p.coverMin * 10) / 10)} min of ${ln}'s work — a typical stop there ${p.side === 'before' ? 'starves' : 'blocks'} ${ln}`).join('; ') + '.';
+  return { rows, written, sentence };
 }

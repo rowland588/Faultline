@@ -910,6 +910,18 @@ the standard's existing `capacity` jsonb (`plannedLossMinPerShift`,
   the control room's line row (loading over 100% as the abnormal word); the
   client report's capacity page.
 
+**Line capacity, as built (12 October):** slice 1 — the rename on every
+screen and on paper, `lib/capacity` vCurve (7 tests from a worked example),
+the V-curve view in place of the ladder of bars (it shows the same
+bottleneck and whether its neighbours protect it), the capacity sheet under
+it, the owner's V margin, the client report printing the V's sentence and
+the bottleneck in ink; slice 2 — the bottleneck walk (`lib/ie/walk`, 5
+tests; a walk is a sampling study whose "people" are the stations); slice 3
+— a person at their standard time from the time study, a machine at its
+plate speed. Accepted by `scripts/acceptance/line-capacity.mjs`. Next: each
+buffer's accumulation against the minor stops at its neighbour (CAPACITY.md
+§4), and the changeovers a shift from SMED in the sheet.
+
 **For Rowland to decide, H1 and H2:** whether a prompt while the app is open
 is enough for the first cut of sampling (no push yet); the activities' names
 on his floor; whether the mix's margin a pack is a number he will type.

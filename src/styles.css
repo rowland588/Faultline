@@ -8043,7 +8043,7 @@ span.ls-role:hover { border-color: transparent; }
 .exec-cp-row { display: grid; grid-template-columns: 26% 1fr 70px; gap: 12px; align-items: center; padding: 4px 0; }
 .exec-cp-who { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; min-width: 0; }
 .exec-cp-who b { font-size: 12px; }
-.exec-cp-who em { font-style: normal; font-size: 8.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--danger); margin-left: auto; }
+.exec-cp-who em { font-style: normal; font-size: 8.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink); margin-left: auto; }
 .exec-cp-who small { flex-basis: 100%; font-size: 9.5px; color: var(--muted); }
 .exec-cp-who .exec-cp-feed { font-size: 9px; }
 .exec-cp-who .exec-cp-detail { font-size: 8.5px; color: var(--muted); }
@@ -8056,7 +8056,7 @@ span.ls-role:hover { border-color: transparent; }
 .exec-cp-rows.is-whatif { margin: 4px 0 6px; padding-left: 10px; }
 .exec-cp-rows.is-whatif .exec-cp-row { padding: 2px 0; }
 .exec-cp-rows.is-whatif .exec-cp-who b { font-size: 10.5px; }
-.exec-cp-rows.is-whatif .exec-cp-who em { color: var(--danger); }
+.exec-cp-rows.is-whatif .exec-cp-who em { color: var(--ink); }
 .exec-cp-rows.is-whatif .exec-cp-track { height: 9px; }
 .exec-cp-rows.is-whatif .exec-cp-val { font-size: 11px; }
 .exec-cp-rows.is-whatif .exec-cp-val small { font-size: 8px; }
@@ -8066,8 +8066,8 @@ span.ls-role:hover { border-color: transparent; }
 .exec-cp-bar { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; }
 .exec-cp-bar.is-run { background: color-mix(in srgb, var(--brand) 28%, var(--surface-2)); }
 .exec-cp-bar.is-eff { background: var(--brand); }
-.exec-cp-row.is-limit .exec-cp-bar.is-eff { background: var(--danger); }
-.exec-cp-row.is-limit .exec-cp-bar.is-run { background: color-mix(in srgb, var(--danger) 28%, var(--surface-2)); }
+.exec-cp-row.is-limit .exec-cp-bar.is-eff { background: var(--ink); }
+.exec-cp-row.is-limit .exec-cp-bar.is-run { background: color-mix(in srgb, var(--ink) 28%, var(--surface-2)); }
 .exec-cp-target { position: absolute; top: -3px; bottom: -3px; border-left: 2px dashed var(--ink); }
 .exec-cp-val { text-align: right; font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; display: flex; flex-direction: column; }
 .exec-cp-val small { font-size: 9px; font-weight: 600; color: var(--muted); }
@@ -11896,7 +11896,7 @@ button.co-step-b:hover { background: color-mix(in srgb, var(--brand) 5%, transpa
 .ws-bar-m { position: absolute; top: 5px; height: 6px; background: color-mix(in srgb, var(--surface) 70%, transparent); border: 1px solid var(--ink); border-radius: 3px; }
 .ws-bar-n { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-2); }
 
-/* ============ A SHIFT'S LOSSES — the loss count (screens/LossesScreen, tool 7) ============
+/* ============ A SHIFT'S LOSSES — the loss count (screens/LossesScreen, tool 7) =====
    The waterfall is drawn across, in the quiet ink: planned minutes down to
    the good packs made. Only the abnormal carries colour — the part not yet explained
    is hatched grey, and amber when it is more than a tenth of the loss.
@@ -12024,3 +12024,58 @@ button.co-step-b:hover { background: color-mix(in srgb, var(--brand) 5%, transpa
 .jb-loss-k { font-size: var(--t-label); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .jb-loss-t { flex: 1 1 200px; min-width: 0; }
 .jb-loss-c { color: var(--brand); font-weight: 700; }
+=======
+/* ---------------------------------------------------------------- LINE CAPACITY — the V-curve (ui/VCurve, docs/CAPACITY.md §4)
+   Ink for the curve once stops count, a light line while running; the guide V
+   dashed grey; amber only for a station under the guide (at risk), red only
+   for a target the bottleneck cannot meet. The bottleneck is a filled point
+   and the word, never a state colour. */
+.vc { display: grid; gap: 8px; margin: 10px 0 14px; }
+.vc-box { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.vc-svg { display: block; width: 100%; min-width: 560px; height: auto; }
+.vc-grid { stroke: var(--line); stroke-width: 1; }
+.vc-axis { fill: var(--muted); font-size: 12px; }
+.vc-axis.is-under { fill: var(--st-a); font-weight: 600; }
+.vc-axis.is-over { fill: var(--st-r); font-weight: 600; }
+.vc-lab { fill: var(--ink-2); font-size: 12.5px; font-weight: 600; }
+.vc-guide { stroke: var(--st-n); stroke-width: 1.5; stroke-dasharray: 5 4; fill: none; }
+.vc-target { stroke: var(--ink-2); stroke-width: 1.2; stroke-dasharray: 2 3; }
+.vc-target.is-over { stroke: var(--st-r); stroke-width: 1.6; }
+.vc-run { stroke: var(--line-2); stroke-width: 2; fill: none; }
+.vc-eff { stroke: var(--ink); stroke-width: 2.5; fill: none; }
+.vc-ptrun { fill: var(--line-2); }
+.vc-pt { fill: var(--surface); stroke: var(--ink); stroke-width: 2.5; }
+.vc-pt.is-limit { fill: var(--ink); }
+.vc-pt.is-under { stroke: var(--st-a); }
+.vc-val { fill: var(--ink); font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.vc-val.is-under { fill: var(--st-a); }
+.vc-neck { fill: var(--ink); font-size: 11.5px; font-weight: 700; letter-spacing: .04em; }
+.vc-key { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: var(--t-detail); color: var(--ink-2); margin: 0; }
+.vc-k { display: inline-block; width: 22px; vertical-align: middle; margin-right: 6px; border-top: 2.5px solid var(--ink); }
+.vc-k.is-run { border-top: 2px solid var(--line-2); }
+.vc-k.is-guide { border-top: 1.5px dashed var(--st-n); }
+.vc-says { margin: 0; }
+.vc-says.is-a { color: var(--st-a); font-weight: 600; }
+.vc-margin { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; }
+.vc-form { display: grid; gap: 8px; max-width: 520px; }
+.vc-form-act { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* the capacity sheet — Toyota's production capacity sheet, one row per station */
+.cap-sheet-box { overflow-x: auto; margin: 0 0 14px; }
+.cap-sheet { width: 100%; min-width: 760px; border-collapse: collapse; font-size: var(--t-detail); }
+.cap-sheet th { text-align: left; font-size: var(--t-label); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 6px 8px; border-bottom: 1.5px solid var(--line-2); }
+.cap-sheet td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; font-variant-numeric: tabular-nums; }
+.cap-sheet .n { text-align: right; }
+.cap-sheet tr.is-limit td { background: var(--surface-2); }
+.cap-sheet tr.is-limit td:first-child { box-shadow: inset 4px 0 0 var(--ink); }
+.cap-sheet-k { display: block; font-size: var(--t-label); color: var(--muted); }
+.cap-sheet-a { color: var(--st-a); font-weight: 600; }
+.cap-sheet-r { color: var(--st-r); font-weight: 700; }
+.cap-sheet-sp { white-space: nowrap; }
+
+/* the bottleneck, walked (ui/BottleneckWalk) — beside the sums on Line capacity */
+.bw { display: grid; gap: 6px; justify-items: start; margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.bw-says { margin: 0; }
+.bw-says.is-a { color: var(--st-a); font-weight: 600; }
+.cap-sheet-use { display: block; white-space: normal; text-align: right; font-size: var(--t-label); }
+.cap-acc { margin: -6px 0 14px; }

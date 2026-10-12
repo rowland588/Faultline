@@ -329,7 +329,7 @@ describe('a shift’s loss count inside a change (tool 7)', () => {
     expect(studyLine(ev, ctx).text).toMatch(/^Shift 1 should have made 45,000 at 100 a minute; made 36,500 — 85 min lost: 52 min of stops · 18 min of changeovers · 6 min of rejects \(600 packs\) · 9 min of slow running and short stops\. £107 idle labour · £340 lost contribution if it cannot be made up\.$/);
     expect(studyLine(ev, ctx).tone).toBe('a');
     /* the running speed timed on the study tells the rest apart, wherever the study is read */
-    const timed: ToolStudy = { ...ev, facts: { ...ev.facts, running: [{ id: 'r1', at: FROM + 2 * H, packs: 98, sec: 60 }] } };
+    const timed: ToolStudy = { ...ev, facts: { ...ev.facts, timings: [{ id: 'r1', at: FROM + 2 * H, packs: 98, sec: 60 }] } };
     expect(studyLine(timed, ctx).text).toMatch(/· 8 min of slow running · 1 min of short stops\. £107 idle labour/);
     expect(studyLine(ev).text).toMatch(/85 min lost\. Where it went is read from the line's stops in the window\.$/);
     expect(studyTitle(ev)).toBe('Loss count — Shift 1, 10 Oct');
@@ -345,7 +345,7 @@ describe('a shift’s loss count inside a change (tool 7)', () => {
   });
   it('Prove it counts the next shift; before → after is the bar, the lost minutes and the slow running and short stops', () => {
     const p = proveItFrom(ev, 'a1', { at: TO + 20 * H, id: 'lp', useId: 'u9' }, 'action');
-    expect([p.facts.losses?.from, p.facts.losses?.shift, p.facts.losses?.made, p.facts.losses?.rateFrom, p.facts.losses?.breakMin, p.facts.running, sameScope(p, ev)]).toEqual([FROM + DAY, 'Shift 1', undefined, 'plate', 30, undefined, true]);
+    expect([p.facts.losses?.from, p.facts.losses?.shift, p.facts.losses?.made, p.facts.losses?.rateFrom, p.facts.losses?.breakMin, p.facts.timings, sameScope(p, ev)]).toEqual([FROM + DAY, 'Shift 1', undefined, 'plate', 30, undefined, true]);
     expect(beforeAfter([ev, p], 'a1', 'action', ctx)?.text).toBe('Too early — the next shift is not counted yet.');
     const after = { ...p, facts: { losses: { ...p.facts.losses!, made: 40_900, rejects: 300 } } };
     const ba = beforeAfter([ev, after], 'a1', 'action', ctx);

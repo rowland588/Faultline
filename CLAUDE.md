@@ -177,6 +177,7 @@ node scripts/acceptance/value-stream.mjs  # B: a line's value stream — who and
 node scripts/acceptance/changeover.mjs  # F: SMED — a quick session on its own; Lap with who, Shingo's stages on the grid, the plate speed, what the changeovers cost, set as the standard, timed again, before → after, the paper, the fishbone
 node scripts/acceptance/work-sampling.mjs  # H1: what people are doing at random moments — the moment asks, one tap each, the shares with their margins, the fix
 node scripts/acceptance/shift-losses.mjs  # E: a shift's losses — counted on the phone at the bottleneck's ideal speed, the shift less its breaks, the waterfall, slow running told from short stops, the pounds in two parts, a bar made better, the next shift counted, before → after, the fishbone, both papers
+node scripts/acceptance/line-capacity.mjs  # Line capacity: the V-curve, the capacity sheet, the margin, a person's standard time, the bottleneck walked
 node scripts/sync-two-devices.mjs     # a phone and a laptop against a fake cloud — video on one plays on the other
 node scripts/check-live-schema.mjs    # the LIVE database against the mapper — needs .env
 ```
@@ -235,7 +236,11 @@ timed, the pounds in two parts (idle labour · lost contribution), the line's
 settings carrying each shift's breaks, a countermeasure raised from a bar in
 its own figures, the next shift counted as its proof, before → after on it,
 the line's card, the control room and the fishbone carrying the count, and
-the waterfall as a table on the 6M report and the stage-gate client report.
+the waterfall as a table on the 6M report and the stage-gate client report. `line-capacity.mjs` is Line capacity: the views named for what they
+are, the V-curve and the capacity sheet as `lib/capacity` says, a machine
+not on its plate speed said so, the owner's V margin and the guide, a
+person's standard time from the time study used with a tap, and the
+bottleneck walked against the sums.
 
 `scripts/sync-two-devices.mjs` runs two real devices of the app (a phone and a
 laptop, separate storage) against `scripts/fake-cloud.mjs`, which keeps the

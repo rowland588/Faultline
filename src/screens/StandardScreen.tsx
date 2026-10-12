@@ -198,10 +198,10 @@ function Products({ home, list, gone, can }: { home: StdHome; list: Standard[]; 
       {gone && <p className="ls-gone">That map isn’t here any more — it was deleted, or the link is to a map on another project. The maps that are here:</p>}
       <header className="pace-head">
         <div className="pace-head-main">
-          <h1 className="pace-title">{home.wsId && !home.project ? 'Line maps and balances' : 'Line standard'}</h1>
+          <h1 className="pace-title">{home.wsId && !home.project ? 'Line standards and capacity' : 'Line standard'}</h1>
           <p className="pace-lede">
             Who stands where, and what they do, on each product — and where the line is limited. A picture of the line
-            with the people and the kit placed on it, and the line balance under it — one per product.
+            with the people and the kit placed on it, and the line's capacity under it — one per product.
           </p>
         </div>
         <div className="pace-head-actions">
@@ -524,7 +524,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
     <div className="wrap pace ls lb">
       <header className="ls-head">
         <div className="ls-head-main">
-          <p className="sub"><button type="button" className="cw-link" onClick={() => nav(home.base)}>{home.wsId && !home.project ? 'Line maps and balances' : 'Line standard'}</button> · Line balance</p>
+          <p className="sub"><button type="button" className="cw-link" onClick={() => nav(home.base)}>{home.wsId && !home.project ? 'Line standards and capacity' : 'Line standard'}</button> · Line capacity</p>
           <h1 className="ls-product is-read">{s.product}</h1>
         </div>
         <div className="ls-head-actions">
@@ -533,14 +533,14 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
       </header>
       <BelongsTo s={s} home={home} can={can} onJob={projectId => { void save({ projectId }); void followStandard(s.id, projectId); }} />
       <div className="chip-row lb-views" role="tablist" aria-label="Which balance">
-        <button type="button" role="tab" aria-selected={!atWork} className={'chip' + (!atWork ? ' on' : '')} onClick={() => nav(`${here}?at=balance`)}>Machines — capacity</button>
-        <button type="button" role="tab" aria-selected={atWork} className={'chip' + (atWork ? ' on' : '')} onClick={() => nav(`${here}?at=balance&view=work`)}>People — the work, timed</button>
+        <button type="button" role="tab" aria-selected={!atWork} className={'chip' + (!atWork ? ' on' : '')} onClick={() => nav(`${here}?at=balance`)}>Capacity</button>
+        <button type="button" role="tab" aria-selected={atWork} className={'chip' + (atWork ? ' on' : '')} onClick={() => nav(`${here}?at=balance&view=work`)}>People — the work against takt</button>
       </div>
       <div id="ls-balance" className="ls-balance">
         {atWork ? <WorkView s={s} can={can} /> : (
           <CapacityPanel projectId={s.projectId} board={false} can={can}
             line={{ id: s.id, name: s.product, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.capacity ? { capacity: s.capacity } : {}) }}
-            onSave={cap => save({ capacity: cap })} />
+            onSave={cap => save({ capacity: cap })} walk={{ standardId: s.id, product: s.product }} />
         )}
       </div>
     </div>
@@ -555,7 +555,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
         <div className="ls-head-main">
           {/* The way back to the list of maps, now the spine is gone: the
               rail's Hand over (or Lines) is a level above this. */}
-          <p className="sub"><button type="button" className="cw-link" onClick={() => nav(home.base)}>{home.wsId && !home.project ? 'Line maps and balances' : 'Line standard'}</button> · {plural(people.length, 'person', 'people')}</p>
+          <p className="sub"><button type="button" className="cw-link" onClick={() => nav(home.base)}>{home.wsId && !home.project ? 'Line standards and capacity' : 'Line standard'}</button> · {plural(people.length, 'person', 'people')}</p>
           {ro ? <h1 className="ls-product is-read">{s.product}</h1> : <>
           <input className="ls-product" value={product} aria-label="Product" list="ls-products"
             onChange={e => setProduct(e.target.value)}
@@ -684,7 +684,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
           where the line is limited, and the door to the balance itself
           (?at=balance). The panel is on its own page. */}
       <div className="ls-balance-line">
-        <span className="ls-bl-h">Line balance</span>
+        <span className="ls-bl-h">Line capacity</span>
         <span className={'ls-bl-say' + (balanceSaid.short ? ' is-short' : '')}>{balanceSaid.text}</span>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`${here}?at=balance`)}>Open the balance ›</button>
       </div>

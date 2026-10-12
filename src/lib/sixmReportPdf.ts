@@ -551,7 +551,7 @@ export function sixmReport(o: SixMInput): SixMReport {
     gaps, ...(data.measures.length ? {} : { gapNone: `No measure is set on ${lines.length ? listWords(lines.map(l => l.name)) : 'this job'} yet — the gap is drawn once a line has a measure and a target.` }),
     manyLines: lines.length > 1,
     ...(pareto ? { pareto } : {}), constraints, problems,
-    ...(views.length ? {} : { noProblems: 'No problem has been opened yet. When the gap, the Pareto or the line balance names one, it goes at the head of a fishbone and its causes are found on the six bones.' }),
+    ...(views.length ? {} : { noProblems: 'No problem has been opened yet. When the gap, the Pareto or the line capacity names one, it goes at the head of a fishbone and its causes are found on the six bones.' }),
     board: board.filter(b => b.rows.length),
     boardSays: [`${allOpen} open`, allLate ? `${allLate} late` : '', `${todos.length - allOpen} done`].filter(Boolean).join(' · '),
     ...(todos.length && quietBones.length ? { boardQuiet: `Nothing on the board for ${listWords(quietBones)}.` } : {}),
@@ -674,7 +674,7 @@ function blocksOf(r: SixMReport, d: Density): Block[] {
 
   /* ======================== 2 · where the loss is ======================== */
   if (r.pareto || r.constraints.length) {
-    out.push(heading('Where the loss is', r.pareto ? `${r.pareto.period ? `${r.pareto.period} · ` : ''}${r.pareto.says}` : 'The line balance — what limits each line'));
+    out.push(heading('Where the loss is', r.pareto ? `${r.pareto.period ? `${r.pareto.period} · ` : ''}${r.pareto.says}` : 'Line capacity — what limits each line'));
     if (r.pareto) out.push(paretoBlock(r.pareto));
     for (const c of r.constraints) {
       out.push(label(`The constraint — ${c.line}`));

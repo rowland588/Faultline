@@ -753,7 +753,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     workspaceId: line7Ws.id, projectId: paced.id,
     facts: { losses: { shift: 'Shift 1', from: d1.from, to: d1.to, breakMin: 30, plannedMin: 450, made: 40_900, rejects: 300, ratePerMin: 100, rateFrom: 'plate', rateMachine: 'Bagger' },
       /* the running speed timed three times through the shift: 345 in 3.5 min = 98.6 a minute */
-      running: [
+      timings: [
         { id: uid(), at: d1.from + 2 * HR, by: 'Lee Carty', packs: 99, sec: 60 },
         { id: uid(), at: d1.from + 4 * HR, by: 'Lee Carty', packs: 98, sec: 60 },
         { id: uid(), at: d1.from + 6 * HR, by: 'Sam Okafor', packs: 148, sec: 90 },

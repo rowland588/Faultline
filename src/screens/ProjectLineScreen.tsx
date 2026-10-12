@@ -425,7 +425,7 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
           is the section's own line, so it reads shut as well as open. */}
       {has('capacity') && (
         <div id="line-capacity" className="ln-sec">
-          <Fold key={foldKey('capacity')} id="line.balance" title="Line balance" says={balanceSays}>
+          <Fold key={foldKey('capacity')} id="line.balance" title="Line capacity" says={balanceSays}>
             <CapacityPanel projectId={projectId} line={line} onSave={cap => ppm.editLine(lineId, { capacity: cap })} />
           </Fold>
         </div>

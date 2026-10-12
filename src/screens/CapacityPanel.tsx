@@ -28,7 +28,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { DraftNumber, DraftText } from '../ui/Draft';
 import { Fold } from '../ui/Fold';
 import { offerUndo } from '../ui/Undo';
-import { listPaceTodos, onDataChange, putPaceTodo, type PaceLineRow, type PaceTodoRow } from '../db';
+import { listAllStudies, listPaceTodos, onDataChange, putPaceTodo, type PaceLineRow, type PaceTodoRow } from '../db';
+import { currentBalance } from '../lib/studyLinks';
+import { balance as balanceOf } from '../lib/ie/balance';
 import { niceDay } from '../lib/weeks';
 import { uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
@@ -37,65 +39,72 @@ import { BoneChips } from '../ui/ActionSheet';
 import { useAccess } from '../cloud/access';
 import type { Can } from '../lib/access';
 import {
-  EMPTY_CAPACITY, analyse, syncWhatIfs, withWhatIfStations, blankStation, changedByStation, changedWords, compareSays, crossCheck, fmtN, lineIfRaised, makeItSoWords,
-  stopStats, suggestRunning, whatIfCapacity,
+  EMPTY_CAPACITY, analyse, syncWhatIfs, withWhatIfStations, blankStation, changedWords, compareSays, crossCheck, fmtN, lineIfRaised, makeItSoWords,
+  stopStats, suggestRunning, vCurve, accumulation, whatIfCapacity,
   type Capacity, type RatePer, type Station, type StationResult, type WhatIf,
 } from '../lib/capacity';
 import { useLineStops } from '../lib/useLineStops';
 import { Icon } from '../ui/Icon';
+import { VCurveView } from '../ui/VCurve';
+import { BottleneckWalk } from '../ui/BottleneckWalk';
 
 const PER_WORD: Record<RatePer, string> = { sec: 'a second', min: 'a minute', hour: 'an hour' };
 const SOURCES: { id: NonNullable<Station['source']>; label: string }[] = [
-  { id: 'plate', label: 'On the plate' }, { id: 'timed', label: 'I timed it' }, { id: 'estimate', label: 'A guess' },
+  { id: 'plate', label: 'On the plate' }, { id: 'timed', label: 'I timed it' }, { id: 'standard', label: 'The time study' }, { id: 'estimate', label: 'A guess' },
 ];
 
-/* ================================ the ladder ================================ */
-
-/* The ladder. `top` is the scale every view of this line shares — as run and
- * every what-if — so flipping tabs shows a bar GROW or SHRINK rather than the
- * whole ladder re-fitting itself and nothing seeming to move. `moved` is what
- * a what-if changed at each station, said under its bar ("5.5 baskets a minute
- * → 8 baskets a minute"), so the reason for the new shape is on the row. */
-function Ladder({ r, top: sharedTop, moved }: { r: ReturnType<typeof analyse>; top?: number; moved?: Map<string, string[]> }) {
-  const top = sharedTop ?? (Math.max(...r.ok.map(x => x.running), r.target ?? 0) * 1.06 || 1);
-  const at = (v: number) => `${Math.min(100, (v / top) * 100)}%`;
+/* ============================ the capacity sheet ============================
+ * docs/CAPACITY.md §2 — Toyota's production capacity sheet, for a packaging
+ * line: a row per station in flow order, its own unit and the conversion
+ * from the one before, its speed and how it is known (a machine on the plate;
+ * a person timed), its own stops and good share, what it does a minute and an
+ * hour in the line's unit once its stops count, its share of the bottleneck's
+ * and what the target needs of it — over 100% red: it cannot. Read here;
+ * changed on the station's card below. */
+const HOW: Record<NonNullable<Station['source']>, string> = { plate: 'on the plate', timed: 'timed', standard: 'standard time — the time study', estimate: 'a guess' };
+function CapacitySheet({ r, v, target, study, onUse }: { r: ReturnType<typeof analyse>; v: ReturnType<typeof vCurve>; target?: number;
+  /** A person's standard time from the time study on this standard — seconds a piece of the line's unit, by name. */
+  study?: Map<string, number>; onUse?: (stationId: string, cycleSec: number) => void }) {
+  if (!r.ok.length) return null;
+  const pctOf = new Map(v.points.map(p => [p.index, p]));
   return (
-    <ol className="cap-ladder" aria-label={`Each station’s capacity in ${r.unit} a minute`}>
-      {r.ok.map(x => {
-        const isLimit = r.limit?.index === x.index;
-        const was = moved?.get(x.station.id);
-        return (
-          <li key={x.station.id} className={'cap-row' + (isLimit ? ' is-limit' : '') + (was ? ' is-changed' : '')}>
-            <span className="cap-who">
-              <span className="cap-ic" aria-hidden><Icon name={x.station.kind === 'people' ? 'person' : 'machine'} size={14} /></span>
-              <b>{x.station.name.trim() || `Station ${x.index + 1}`}</b>
-              {isLimit && <span className="cap-flag">{moved ? 'would limit the line' : 'limits the line'}</span>}
-              {was && <span className="cap-moved">changed</span>}
-              {x.chain && <span className="cap-chain">{x.chain}</span>}
-              {was && was.map(x => <span key={x} className="cap-was">{x}</span>)}
-            </span>
-            <span className="cap-track">
-              {/* what it does at running speed, behind what it does once its own
-                  stops are counted — the gap between them IS the stops */}
-              <span className="cap-bar is-run" style={{ width: at(x.running) }} />
-              <span className="cap-bar is-eff" style={{ width: at(x.effective) }} />
-              {r.target != null && <span className="cap-target" style={{ left: at(r.target) }} title={`Target ${fmtN(r.target)} ${r.unit}/min`} />}
-              {r.line != null && <span className="cap-pace" style={{ left: at(r.line) }} aria-hidden />}
-            </span>
-            <span className="cap-val">
-              {fmtN(x.effective)}
-              {x.effective < x.running - 1e-9 && <span className="cap-val-s">{fmtN(x.running)} running</span>}
-            </span>
-          </li>
-        );
-      })}
-      <li className="cap-key" aria-hidden>
-        <span><i className="cap-sw is-eff" /> with its stops</span>
-        <span><i className="cap-sw is-run" /> running speed</span>
-        {r.target != null && <span><i className="cap-sw is-target" /> target</span>}
-        <span className="cap-key-u">{r.unit} a minute</span>
-      </li>
-    </ol>
+    <div className="cap-sheet-box">
+      <table className="cap-sheet">
+        <thead><tr><th>#</th><th>Station</th><th>Its unit</th><th className="n">Speed</th><th className="n">Own stops</th><th className="n">Good</th>
+          <th className="n">{r.unit} a min</th><th className="n">{r.unit} an hour</th><th className="n">Of the bottleneck</th>{target != null && <th className="n">Target needs</th>}<th className="n">Can collect after</th></tr></thead>
+        <tbody>
+          {r.ok.map(x => {
+            const s = x.station, p = pctOf.get(x.index), isLimit = r.limit?.index === x.index;
+            const need = target != null && x.effective > 0 ? (target / x.effective) * 100 : undefined;
+            const speed = s.rate != null ? `${fmtN(s.rate)} a ${s.ratePer === 'hour' ? 'hour' : s.ratePer === 'sec' ? 'second' : 'minute'}`
+              : s.cycleSec ? `${fmtN(s.perCycle ?? 1)} every ${fmtN(s.cycleSec)} s` : '—';
+            return (
+              <tr key={s.id} className={isLimit ? 'is-limit' : ''}>
+                <td>{x.index + 1}</td>
+                <td><span className="cap-ic" aria-hidden><Icon name={s.kind === 'people' ? 'person' : 'machine'} size={14} /></span> <b>{s.name.trim() || `Station ${x.index + 1}`}</b>
+                  {(s.crew ?? 1) > 1 && <span className="sub"> ×{s.crew}</span>}</td>
+                <td>{s.unit}{x.index > 0 && (s.contains ?? 1) !== 1 ? <span className="cap-sheet-k">1 = {fmtN(s.contains)} of the one before</span> : null}</td>
+                <td className="n cap-sheet-sp">{speed}<span className={'cap-sheet-k' + (s.kind === 'machine' && s.source !== 'plate' ? ' cap-sheet-a' : '')}>
+                  {/* a machine goes by its plate speed (docs/CAPACITY.md §1); running below it is a loss, not a lower plate */}
+                  {s.kind === 'machine' ? (s.source === 'plate' ? HOW.plate : `${s.source ? HOW[s.source] : 'typed'} — not its plate speed`) : s.source ? HOW[s.source] : 'not timed yet'}</span>
+                  {/* a person timed in the time study: their standard time, in this station's unit — one tap to use it (docs/CAPACITY.md §1) */}
+                  {s.kind === 'people' && s.source !== 'standard' && study?.get(s.name.trim().toLowerCase()) != null && onUse && (() => {
+                    const work = study.get(s.name.trim().toLowerCase()) ?? 0, cyc = Math.round(work * x.factor * 100) / 100;
+                    return <button type="button" className="linkish cap-sheet-use" onClick={() => onUse(s.id, cyc)}>The time study: {fmtN(cyc)} s a {s.unit.replace(/s$/, '')} — use it</button>;
+                  })()}</td>
+                <td className="n">{s.runningPct != null && s.runningPct < 100 ? `${fmtN(100 - s.runningPct)}%` : '—'}</td>
+                <td className="n">{s.goodPct != null && s.goodPct < 100 ? `${fmtN(s.goodPct)}%` : '—'}</td>
+                <td className="n"><b>{fmtN(x.effective)}</b></td>
+                <td className="n">{fmtN(x.effective * 60)}</td>
+                <td className="n">{isLimit ? <b>the bottleneck</b> : p ? <span className={p.under ? 'cap-sheet-a' : ''}>{fmtN(Math.round(p.pct))}%{p.under ? ' · under the V' : ''}</span> : '—'}</td>
+                {target != null && <td className="n"><span className={need != null && need > 100 + 1e-9 ? 'cap-sheet-r' : ''}>{need != null ? `${fmtN(Math.round(need))}%` : '—'}</span></td>}
+                <td className="n">{s.bufferAfter ? `${fmtN(s.bufferAfter)} ${s.unit}` : '—'}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -233,6 +242,15 @@ function StationCard({ s, i, last, prevUnit, prevName, planned, why, wait, own, 
           <span className="field-label">Good — % passed on</span>
           <DraftNumber className="text-input cap-num" value={s.goodPct} placeholder="100" label="Percent it passes on as good" onSave={v => patch({ goodPct: v })} />
         </label>
+
+        {/* ACCUMULATION after it (docs/CAPACITY.md §4): what can collect before
+            the next station — a conveyor, a table — in its own unit */}
+        {!last && (
+          <label className="proj-field">
+            <span className="field-label">Can collect after it — {s.unit || 'its unit'}</span>
+            <DraftNumber className="text-input cap-num" value={s.bufferAfter} placeholder="0" label="How many can collect between it and the next station" onSave={v => patch({ bufferAfter: v })} />
+          </label>
+        )}
       </div>
 
       <div className="cap-st-f">
@@ -272,7 +290,7 @@ function StationCard({ s, i, last, prevUnit, prevName, planned, why, wait, own, 
  *  its stops come from, its balance, and who drives it. */
 export type CapLine = Pick<PaceLineRow, 'id' | 'name' | 'capacity'> & { workspaceId?: string; owner?: string };
 
-export function CapacityPanel({ projectId, line, onSave, board = true, can: given }: {
+export function CapacityPanel({ projectId, line, onSave, board = true, can: given, walk }: {
   projectId: string;
   line: CapLine;
   onSave: (cap: Capacity) => Promise<void>;
@@ -283,8 +301,26 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
   /** Who may edit, when it is not a job's access that decides — a line's
    *  members edit its tools. */
   can?: Can;
+  /** On a product's line standard: the bottleneck walk beside the sums
+   *  (docs/CAPACITY.md §3) — a walk is a sampling study on the standard. */
+  walk?: { standardId: string; product: string };
 }) {
   const jobCan = useAccess(projectId);
+  /* THE TIME STUDY on this product's standard (the work balance): each
+     person's standard time a piece — what a people station's speed is when
+     it has been timed (docs/CAPACITY.md §1). */
+  const [study, setStudy] = useState<Map<string, number> | undefined>(undefined);
+  useEffect(() => {
+    const sid = walk?.standardId;
+    if (!sid) return;
+    const load = () => void listAllStudies().then(all => {
+      const b = currentBalance(all, sid);
+      const f = b ? balanceOf(b.facts.steps, b.agreed?.balance) : undefined;
+      setStudy(f && !f.untimed ? new Map(f.people.filter(p => p.work > 0).map(p => [p.who.trim().toLowerCase(), p.work])) : undefined);
+    });
+    load();
+    return onDataChange(load);
+  }, [walk?.standardId]);
   const can = given ?? jobCan;
   const stored = line.capacity ?? EMPTY_CAPACITY;
   const [cap, setCap] = useState<Capacity>(stored);
@@ -326,13 +362,6 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
   const asRun = useMemo(() => analyse(cap), [cap]);
   const compare = w ? compareSays(asRun, r, w.name) : undefined;
   const changed = useMemo(() => (w ? changedWords(cap.stations, current.stations) : []), [cap.stations, w, current.stations]);
-  const moved = useMemo(() => (w ? changedByStation(cap.stations, current.stations) : undefined), [cap.stations, w, current.stations]);
-  /* One scale for every view of the line, so a what-if's bar is longer or
-     shorter ON SCREEN than the same station as run — not re-fitted to full width. */
-  const top = useMemo(() => {
-    const all = [asRun, ...(cap.whatIfs ?? []).map(x => analyse(whatIfCapacity(cap, x)))];
-    return Math.max(...all.flatMap(a => [...a.ok.map(x => x.running), a.target ?? 0])) * 1.06 || 1;
-  }, [cap, asRun]);
   const check = useMemo(() => crossCheck(r, stats), [r, stats]);
   const why = (id: string) => r.skipped.find(x => x.station.id === id)?.why;
   const result = (id: string) => r.ok.find(x => x.station.id === id);
@@ -475,7 +504,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
         <h2 className="pace-sec-title">Where {line.name} is limited</h2>
         <p className="pace-sec-sub">
           The stations in the order product goes through them, each at its own speed, put into one unit.
-          The shortest bar is what holds everything else back — a screen to show where to look, not a simulation.
+          The V below puts each one beside the bottleneck — the one that holds everything else back — a screen to show where to look, not a simulation.
         </p>
       </div>
 
@@ -523,7 +552,13 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
         )}
       </div>
 
-      {r.ok.length > 0 && <Ladder r={r} top={top} moved={moved} />}
+      {r.ok.length > 0 && <VCurveView r={r} v={vCurve(r, cap.vMarginPct)} target={current.targetPerMin} margin={cap.vMarginPct} canAgree={can.agree && !w}
+        onMargin={m => commit({ ...cap, vMarginPct: m })} />}
+      {r.ok.length > 0 && <CapacitySheet r={r} v={vCurve(r, cap.vMarginPct)} target={current.targetPerMin} study={study}
+        {...(can.edit ? { onUse: (id: string, cycleSec: number) => patchStation(id, { cycleSec, perCycle: 1, rate: undefined, source: 'standard', note: 'standard time, from the time study' }) } : {})} />}
+      {r.ok.length > 0 && (() => { const acc = accumulation(r, stats); return acc.sentence ? <p className={'vc-says cap-acc' + (acc.rows.some(p => !p.covered) ? ' is-a' : '')}>{acc.sentence}</p> : null; })()}
+      {walk && !w && <BottleneckWalk standardId={walk.standardId} product={walk.product} {...(line.workspaceId ? { workspaceId: line.workspaceId } : {})} {...(projectId ? { projectId } : {})}
+        stations={r.ok.map(x => x.station.name.trim() || `Station ${x.index + 1}`)} {...(r.limit ? { calculated: r.limit.station.name.trim() || `Station ${r.limit.index + 1}` } : {})} canEdit={can.edit} />}
 
       {(check || r.notes.length > 0) && (
         <ul className="cap-notes" role="note">
