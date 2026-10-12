@@ -697,11 +697,12 @@ on a line.
       - the packs the planned time should have made at rate;
       - the gap, in packs and in minutes;
       - how much of the gap the log explains: stops by cause, changeovers,
-        rejects, running slow;
-      - how much is **not yet explained**.
+        rejects;
+      - the rest, **slow running and short stops** — told apart when the
+        running speed is timed (`docs/CAPACITY.md` §5).
     - **The picture:** a waterfall in minutes and pounds, from the planned
-      time down to good packs. The unexplained part is shown plainly. No
-      percentage score.
+      time down to good packs. The rest is shown plainly, named for what it
+      is. No percentage score.
     - **Builds on:** the stops log, the Pareto, `lib/cost`.
 14. **Cost deployment** (World Class Manufacturing, its lighter form).
     - **Answers:** which losses cost most, and which are worth fixing?
@@ -1231,17 +1232,20 @@ it when it is built.
   For a ramp-up, the app uses each run's own net rate.
 - It says "too early" under three runs.
 
-**A shift's losses, by hand.**
+**A shift's losses, by hand.** (The time model is `docs/CAPACITY.md` §5:
+the planned minutes are the shift less its planned breaks, the rate the
+critical machine's plate speed.)
 - Expected packs = planned minutes × rate.
 - Lost minutes = (expected − made) ÷ rate.
 - Explained = the logged stops + changeovers + rejects ÷ rate.
-- Not yet explained = lost − explained.
+- Slow running and short stops = lost − explained; slow running = run time
+  × (plate − running speed) ÷ plate once the running speed is timed.
 - *Worked:*
   - 450 planned minutes at 100 a minute should make 45,000.
   - 36,500 were made: 8,500 short, or 85 minutes.
   - The log explains 76: 52 of stops, 18 of changeover and 6 of rejects
     (600 packs).
-  - That leaves **9 minutes not yet explained**.
+  - That leaves **9 minutes of slow running and short stops**.
 
 **Cost deployment** (World Class Manufacturing). The full method has seven
 steps:

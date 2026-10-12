@@ -949,8 +949,8 @@ function JobRow({ v, i, open, onToggle, into, span, today, tip, setTip, edit, si
 }
 
 /** A line's latest shift counted, as a branch under its gap in the 6M
- *  drawer (tool 7): one tap opens the count; only the part not yet explained
- *  over a tenth of the loss wears amber. */
+ *  drawer (tool 7): one tap opens the count; only the slow running and
+ *  short stops over a tenth of the loss wear amber. */
 function LossBranch({ x, named }: { x: { line: string; text: string; abnormal: boolean; href: string }; named?: boolean }) {
   return (
     <button type="button" className="jb-loss" onClick={() => nav(x.href)}>

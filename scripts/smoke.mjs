@@ -88,7 +88,8 @@ const ROUTES = [
   ['work sampling — two people watched through the shift, a moment due now', `#/sampling/${seeded.samplingId}`],
   ['fixes — a fix raised from a value stream step, before → after', `#/project/${seeded.projectId}/fixes?open=${seeded.mapFixId}`],
   /* A SHIFT'S LOSSES (tool 7): every loss count; Shift 1 on Line 7 — the
-     worked example, 9 min not yet explained, the stops read from its window;
+     worked example, 9 min of slow running and short stops, the stops read
+     from its window;
      the next shift counted as a countermeasure's proof; the countermeasure
      on the board with before → after; and a count in a window typed by hand
      on the stage-gate job. */
