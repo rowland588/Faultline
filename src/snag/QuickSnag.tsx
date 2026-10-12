@@ -83,6 +83,8 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
   const [line, setLine] = useState(snag?.workspaceId ?? wsId ?? recall('line'));
   const [newLine, setNewLine] = useState('');
   const [machine, setMachine] = useState(snag?.targetAsset ?? '');
+  /* ITS PRIORITY — Critical · High · Low (lib/snagsReport); on a job it is the problem's flag there. */
+  const [priority, setPriority] = useState<'critical' | 'high' | 'low'>(snag?.priority ?? 'low');
   const [project, setProject] = useState(snag ? (snag.projectId ?? '') : (projectId ?? recall('project')));
   const [status, setStatus] = useState<SnagStatus>(snag?.status ?? 'open');
   const [owner, setOwner] = useState(snag?.owner ?? '');
@@ -98,7 +100,6 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
   const gated = !!toJob && planModel(toJob) === 'commissioning';
   const [stages, setStages] = useState<{ id: string; label: string; machine?: string }[] | null>(null);
   const [stage, setStage] = useState('');
-  const [flag, setFlag] = useState<'none' | 'risk' | 'critical'>('none');
   const [asFix, setAsFix] = useState(true);
   const toJobId = gated ? toJob?.id : undefined;
   useEffect(() => {
@@ -131,6 +132,19 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
     return () => { live = false; };
   }, []);
   useEffect(() => { if (project && projects.length && !projects.some(p => p.id === project)) setProject(''); }, [projects, project]);
+  /* THE MACHINES TO PICK FROM — the line's own, and the machines on the job it
+     is for (or on every live job when it is for none). Rowland, 12 October:
+     "it doesn't show our current machines to pick from — they should." */
+  const [jobMachines, setJobMachines] = useState<string[]>([]);
+  const jobKeys = (project ? [project] : projects.filter(p => !p.archivedAt).map(p => p.id)).join(',');
+  useEffect(() => {
+    let alive = true;
+    const ids = jobKeys.split(',').filter(Boolean);
+    void Promise.all(ids.map(id => listAssets(id))).then(all => {
+      if (alive) setJobMachines(all.flat().filter(a => !a.deletedAt).map(a => a.name.trim()).filter(Boolean));
+    });
+    return () => { alive = false; };
+  }, [jobKeys]);
 
   const ws = lines?.find(w => w.id === line);
   const ready = (words.trim() || media.length > 0) && (line !== NEW_LINE || newLine.trim()) && !busy;
@@ -147,7 +161,7 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
       }
       const t = Date.now();
       const fields = {
-        workspaceId, problem: words.trim(), media, targetAsset: machine || undefined, projectId: project || undefined,
+        workspaceId, problem: words.trim(), media, targetAsset: machine.trim() || undefined, projectId: project || undefined, priority,
       };
       let kept: Snag;
       if (snag) {
@@ -165,7 +179,7 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
       /* IT MOVES TO THE JOB — a fix (or a problem on its stage), or an action. */
       if (toJob && gated) {
         const fix = asFix || !stage;
-        const undo = await sendSnags([kept], toJob.id, stage || undefined, { ...(flag !== 'none' ? { flag } : {}), fix }, toJob.name);
+        const undo = await sendSnags([kept], toJob.id, stage || undefined, { ...(priority !== 'low' ? { flag: priority === 'critical' ? 'critical' as const : 'risk' as const } : {}), fix }, toJob.name);
         offerUndo(`Moved to ${toJob.name} — ${fix ? 'a fix on its Fixes page' : 'a problem on its stage'}`, undo);
       } else if (toJob) {
         const undo = await moveSnagsToActions([kept], toJob.id, toJob.name);
@@ -208,17 +222,35 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
           <label className="cw-f cw-f-wide"><span>NAME THE LINE</span>
             <input value={newLine} maxLength={80} placeholder="e.g. Line 4" onChange={e => setNewLine(e.target.value)} /></label>
         )}
-        {ws && ws.assets.length > 0 && (
-          <div className="qs-mach" role="group" aria-label="Which machine">
-            <span className="qs-l">MACHINE <i className="cw-f-opt">if it is one</i></span>
-            <div className="chip-row">
-              {ws.assets.map(a => (
-                <button key={a} type="button" className={'chip' + (machine === a ? ' on' : '')} aria-pressed={machine === a}
-                  onClick={() => setMachine(m => (m === a ? '' : a))}>{a}</button>
-              ))}
+        {(() => {
+          const seen = new Set<string>();
+          const choices = [...(ws?.assets ?? []), ...jobMachines].filter(a => { const k = a.trim().toLowerCase(); if (!k || seen.has(k)) return false; seen.add(k); return true; });
+          const typed = !!machine && !choices.some(a => a.toLowerCase() === machine.trim().toLowerCase());
+          return (
+            <div className="qs-mach" role="group" aria-label="Which machine">
+              <span className="qs-l">MACHINE <i className="cw-f-opt">if it is one</i></span>
+              {choices.length > 0 && (
+                <div className="chip-row">
+                  {choices.map(a => (
+                    <button key={a} type="button" className={'chip' + (machine.trim().toLowerCase() === a.toLowerCase() ? ' on' : '')} aria-pressed={machine.trim().toLowerCase() === a.toLowerCase()}
+                      onClick={() => setMachine(m => (m.trim().toLowerCase() === a.toLowerCase() ? '' : a))}>{a}</button>
+                  ))}
+                </div>
+              )}
+              <input className="text-input qs-mach-other" value={typed ? machine : ''} maxLength={80} placeholder={choices.length ? 'Another machine…' : 'Which machine? e.g. Bagger'}
+                aria-label="Another machine" onChange={e => setMachine(e.target.value)} />
             </div>
+          );
+        })()}
+        <div className="qs-mach" role="group" aria-label="Priority">
+          <span className="qs-l">PRIORITY</span>
+          <div className="chip-row">
+            {(['critical', 'high', 'low'] as const).map(k => (
+              <button key={k} type="button" className={'chip qs-prio is-' + k + (priority === k ? ' on' : '')} aria-pressed={priority === k} onClick={() => setPriority(k)}>
+                {k === 'critical' ? 'Critical' : k === 'high' ? 'High' : 'Low'}</button>
+            ))}
           </div>
-        )}
+        </div>
         {/* WHERE SAVE MOVES IT — said, and asked, once a job is named. */}
         {toJob && (
           <div className="qs-job" role="group" aria-label={`Moves to ${toJob.name}`}>
@@ -231,14 +263,6 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
                     {stages.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
                   </select></label>
               )}
-              <div className="qs-mach">
-                <span className="qs-l">FLAG IT</span>
-                <div className="chip-row" role="group" aria-label="How serious is it?">
-                  {([['none', 'Not flagged'], ['risk', 'High risk'], ['critical', 'Critical']] as const).map(([k, w]) => (
-                    <button key={k} type="button" className={'chip' + (flag === k ? ' on' : '')} aria-pressed={flag === k} onClick={() => setFlag(k)}>{w}</button>
-                  ))}
-                </div>
-              </div>
               {/* With no stage it can only be a fix; on a stage it can be left
                   as a problem there. */}
               <label className="why-check"><input type="checkbox" checked={asFix || !stage} disabled={!stage} onChange={e => setAsFix(e.target.checked)} />

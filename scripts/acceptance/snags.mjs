@@ -23,8 +23,10 @@
  *   4  the counts are the filters: Late, Problems; By who, nobody's last
  *   5  several at once: a name together, closed together, the undo offered
  *   6  the Snags & fixes report: every open snag, problem and fix on paper
- *   (1b a ticked snag deleted, asked once; and the demo line's made-up
- *      snags never on the page or the paper)
+ *   (1b a ticked snag deleted, asked once; 1d a problem opened out where it
+ *      sits, and its one-page report card — on a line and on a job; 1e the
+ *      problem sheet offering the jobs' machines and the priority; and the
+ *      demo line's made-up snags never on the page or the paper)
  *   7  the job's own view (its Fixes link): the same name and path, its
  *      snags not on it yet made a fix in one tap, "from a snag" on the fix,
  *      and the way back to every line and job
@@ -151,6 +153,44 @@ await go('#/snags');
   for (const w of ['Label printer ribbon low', 'Film wandering on the former']) await row(w).locator('.qsl-tick input').uncheck();
 }
 
+/* ---- 1d A PROBLEM OPENED OUT, AND ITS REPORT CARD ---- */
+{
+  const r = row('Guard on the infeed loose');
+  await r.locator('.qsl-open').click(); await page.waitForTimeout(500);
+  const x = r.locator('.qsl-x');
+  const facts = (await x.innerText()).replace(/\s+/g, ' ');
+  ok((await x.count()) === 1 && /machine bagger/i.test(facts) && /line line 7/i.test(facts) && /raised /i.test(facts), `1d tapped, it opens out where it sits: ${facts.slice(0, 90)}`);
+  const dir = mkdtempSync(join(tmpdir(), 'card-'));
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), x.getByRole('button', { name: 'Report card (PDF)' }).click()]);
+  const file = join(dir, 'card.pdf'); await dl.saveAs(file);
+  const txt = execFileSync('pdftotext', ['-raw', file, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
+  const pages = Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [file], { encoding: 'utf8' }))?.[1]);
+  ok(pages === 1 && /PROBLEM/.test(txt) && /Guard on the infeed loose/.test(txt) && /Critical/.test(txt) && /Bagger/.test(txt), `1d its report card: one page, its words, Critical, its machine (${pages} page)`);
+  await r.locator('.qsl-open').click(); await page.waitForTimeout(300);
+  ok((await r.locator('.qsl-x').count()) === 0, '1d tapped again, it closes');
+  /* a problem on a job opens out and has its card too */
+  const jr = page.locator('.qsl-job .qsl-row').first();
+  const what = (await jr.locator('.qsl-what').innerText()).replace(/^(Critical|High|Low)\s*/i, '').trim();
+  await jr.locator('.qsl-open').click(); await page.waitForTimeout(500);
+  const [dl2] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), jr.locator('.qsl-x').getByRole('button', { name: 'Report card (PDF)' }).click()]);
+  const file2 = join(dir, 'card2.pdf'); await dl2.saveAs(file2);
+  const txt2 = execFileSync('pdftotext', ['-raw', file2, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
+  ok(txt2.replace(/\s/g, '').includes(what.replace(/\s/g, '').slice(0, 40)) && /PROBLEM/.test(txt2) && /(Critical|High|Low)/.test(txt2), `1d a job's problem's card: "${what.slice(0, 50)}"`);
+  await jr.locator('.qsl-open').click(); await page.waitForTimeout(300);
+}
+
+/* ---- 1e the problem sheet offers the current machines, and the priority ---- */
+{
+  const machines = await page.evaluate(async pid => (await (await import('/src/db.ts')).listAssets(pid)).filter(a => !a.deletedAt).map(a => a.name.trim()), sd.projectId);
+  await page.locator('.qsl-top').getByRole('button', { name: 'Problem', exact: true }).click(); await page.waitForTimeout(1200);
+  const sheet = page.locator('[role="dialog"]').last();
+  const chips = (await sheet.locator('.qs-mach[aria-label="Which machine"] .chip').allInnerTexts()).map(x => x.trim());
+  const prio = (await sheet.locator('.qs-mach[aria-label="Priority"] .chip').allInnerTexts()).map(x => x.trim());
+  ok(machines.length > 0 && machines.every(m => chips.includes(m)) && (await sheet.locator('.qs-mach-other').count()) === 1, `1e the sheet offers the jobs' machines to pick (${machines.length}: ${machines.slice(0, 3).join(', ')}…), and another typed`);
+  ok(prio.join('|') === 'Critical|High|Low', `1e and its priority: ${prio.join(' · ')}`);
+  await page.keyboard.press('Escape'); await page.waitForTimeout(400);
+}
+
 /* ---- 1b a snag deleted: ticked, Delete, asked once, gone — here and from the store ---- */
 {
   page.once('dialog', d => void d.accept());
@@ -174,8 +214,9 @@ await go('#/snags');
   const said = await words('.qsl-meta', jr);
   const seen = `seen first on ${(f?.fromSnag ?? '').replace(/^a snag on /, '')}`;
   ok((await words('.qsl-prio', jr)).toLowerCase() === f?.priority && said.includes(seen) && (await words('.qsl-state', jr)) === f?.word, `2 under its job: ${f?.priority}, "${seen}", ${f?.word}`);
-  await jr.locator('.qsl-open').click(); await page.waitForTimeout(1500);
-  ok((await page.locator('.rd, .drawer, [role="dialog"]').count()) > 0 && /Seal jaw leaves marks/.test(await page.locator('body').innerText()), '2 its door opens it in the job');
+  await jr.locator('.qsl-open').click(); await page.waitForTimeout(500);
+  await jr.locator('.qsl-x').getByRole('button', { name: new RegExp(`^Open on `) }).click(); await page.waitForTimeout(1500);
+  ok((await page.locator('.rd, .drawer, [role="dialog"]').count()) > 0 && /Seal jaw leaves marks/.test(await page.locator('body').innerText()), '2 opened out, its door opens it in the job');
   await page.keyboard.press('Escape'); await page.waitForTimeout(400);
 }
 

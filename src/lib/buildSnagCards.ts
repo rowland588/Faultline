@@ -18,6 +18,7 @@ import type { Snag, SnagAsset } from '../snag/types';
 import { SNAG_STATUS_META } from '../snag/types';
 import type { SnagCardData, SnagCardPhoto, SnagCardSet } from './snagCardPdf';
 import type { MediaPin } from '../types';
+import type { JobRow } from './snagsReport';
 import { drawMarks } from './testReport';
 
 const DAY = 86_400_000;
@@ -106,11 +107,46 @@ export async function buildSnagCards(
       due: snag.dueAt ? dateNice(snag.dueAt) : undefined,
       dueInDays: dueInDays(snag.dueAt),
       latestUpdate: snag.latestUpdate || undefined,
+      priority: snag.priority ?? 'low',
       latestUpdateAt: snag.latestUpdateAt ? dateNice(snag.latestUpdateAt) : undefined,
       still, detail,
     });
   }
   return { workspace, filterNote, now: Date.now(), snags };
+}
+
+/** A PROBLEM ON A JOB, AS A CARD (Rowland, 12 October: "each can be a report
+ *  card PDF"): its words, its fix as what is proposed, its state in words,
+ *  whose it is, its machine and job, its priority and its first picture. */
+export interface JobCardRow { row: JobRow; job: string }
+async function jobCard({ row, job }: JobCardRow): Promise<SnagCardData> {
+  const detail = await photoFrom(row.photo);
+  const machine = row.where.split(/ · | — /)[0]?.trim() || 'The line';
+  return {
+    problem: row.what || 'A problem',
+    ...(row.fixWhat ? { proposedSolution: `Fix: ${row.fixWhat}` } : row.kind === 'fix' ? { proposedSolution: 'Being fixed — the fix is booked on the job.' } : {}),
+    status: !row.open ? 'closed' : row.kind === 'problem' ? 'open' : 'in_progress',
+    statusLabel: row.word, owner: row.who ?? '', assetName: machine, where: job,
+    raised: dateNice(row.at), ageDays: ageDays(row.at), priority: row.priority,
+    ...(row.fromSnag ? { latestUpdate: `Seen first on ${row.fromSnag.replace(/^a snag on /, '')}` } : {}),
+    ...(detail ? { detail } : {}),
+  };
+}
+
+/** Cards for any problems — on a line or on a job — one page each, in the
+ *  order given; the same file name as the line's cards. */
+export async function saveProblemCards(items: ({ line: SnagCardRow } | { job: JobCardRow })[], workspace: string, filterNote?: string): Promise<void> {
+  const { jsPDF } = await loadPdfLib();
+  const { drawSnagCards } = await import('./snagCardPdf');
+  const lineSet = await buildSnagCards(items.flatMap(x => ('line' in x ? [x.line] : [])), workspace, filterNote);
+  const cards: SnagCardData[] = [];
+  let k = 0;
+  for (const x of items) cards.push('line' in x ? lineSet.snags[k++] : await jobCard(x.job));
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+  drawSnagCards(doc, { workspace, ...(filterNote ? { filterNote } : {}), now: Date.now(), snags: cards });
+  const first = items[0];
+  const one = items.length === 1 && first ? ` ${(('line' in first ? first.line.snag.problem : first.job.row.what) || 'item').slice(0, 32)}` : '';
+  await deliverPdf(doc, pdfFileName(workspace, `problem${one}`, todayISO()));
 }
 
 /** Build the PDF and hand it to the browser to save. Kept here so every place

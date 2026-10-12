@@ -9954,6 +9954,10 @@ label.ax-done-on, .pc-closed-on { flex: 0 0 auto; max-width: 260px; }
 .pdfr-btn { min-height: 40px; padding: 0 14px; font-size: var(--t-detail); text-decoration: none; }
 .pdfr-x { background: none; border: 0; color: var(--muted); padding: 8px; cursor: pointer; display: inline-flex; }
 @media print { .pdfr { display: none !important; } }
+/* While a sheet is open it steps aside — it sat over the sheet's own buttons
+   ("Move 1" under "Open", found by the Problems acceptance) — and is back
+   the moment the sheet closes. */
+body:has(.sheet-scrim) .pdfr { display: none; }
 
 /* ===== THE LINE (redesign slice 5) ===== */
 /* A line is one page (screens/ProjectLineScreen): the problem leads a 6M
@@ -10695,6 +10699,21 @@ body:has(.toast) .qs-fab { bottom: calc(var(--nv-bar) + 130px + env(safe-area-in
 .qsl-prio.is-g { background: color-mix(in srgb, var(--st-g) 12%, #fff); color: var(--st-g); border-color: color-mix(in srgb, var(--st-g) 40%, #fff); }
 .qsl-prio-set.is-a { color: var(--st-a); }
 .qsl-fixline { color: var(--ink-2); }
+.qs-mach-other { margin-top: 6px; max-width: 320px; }
+.chip.qs-prio.is-critical.on { background: var(--st-r); border-color: var(--st-r); color: #fff; }
+.chip.qs-prio.is-high.on { background: color-mix(in srgb, var(--st-a) 18%, #fff); border-color: var(--st-a); color: var(--st-a); }
+.chip.qs-prio.is-low.on { background: color-mix(in srgb, var(--st-g) 12%, #fff); border-color: var(--st-g); color: var(--st-g); }
+/* A PROBLEM OPENED OUT — its pictures, its facts, its report card and edit */
+.qsl-jrow { flex-wrap: wrap; }
+.qsl-x { flex: 1 1 100%; display: grid; gap: 10px; padding: 4px 0 14px 46px; }
+.qsl-jrow .qsl-x { padding-left: 0; }
+.qsl-x-pics { display: flex; flex-wrap: wrap; gap: 8px; }
+.qsl-x-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px 16px; margin: 0; }
+.qsl-x-facts div { min-width: 0; }
+.qsl-x-facts dt { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.qsl-x-facts dd { margin: 1px 0 0; color: var(--ink); overflow-wrap: anywhere; }
+.qsl-x-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 899px) { .qsl-x { padding-left: 0; } }
 .qsl-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 6px; }
 .qsl-sel { width: auto; min-width: 0; max-width: 220px; min-height: 40px; margin: 0; }
 .qsl-search { flex: 1 1 180px; min-width: 0; max-width: 320px; min-height: 40px; margin: 0; }

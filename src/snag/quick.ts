@@ -88,7 +88,9 @@ export async function sendSnags(snags: Snag[], projectId: string, testId: string
       ...(s.media?.length ? { media: s.media } : {}),
       ...(s.owner ? { owner: s.owner } : {}),
       ...(was ? { doneAt: s.closedAt ?? at } : {}),
-      ...(how.flag === 'critical' ? { critical: true } : how.flag === 'risk' ? { risk: true } : {}),
+      /* its priority goes with it: Critical stays critical, High is high risk there */
+      ...((how.flag ?? (s.priority === 'critical' ? 'critical' : s.priority === 'high' ? 'risk' : undefined)) === 'critical' ? { critical: true }
+        : (how.flag ?? (s.priority === 'high' ? 'risk' : undefined)) === 'risk' ? { risk: true } : {}),
       ...(fix ? { becameTestId: fix.id } : {}),
       sort: at + k, createdAt: at + k, updatedAt: at + k,
     };

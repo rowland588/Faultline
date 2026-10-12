@@ -33,6 +33,7 @@ import { deleteSnag, listAllSnags, listWorkspaces, listTests, listTestItems, lis
 import { useProjects } from '../lib/useProjects';
 import { planModel } from '../lib/planModel';
 import { live, type Asset, type Test, type TestItem } from '../lib/testing';
+import type { JobCardRow, SnagCardRow } from '../lib/buildSnagCards';
 import { becameOn, jobGroup, PRIORITY_RANK, PRIORITY_WORD, type Became, type Priority, type JobGroup, type JobRow, type MovedRow, type SnagRow, type SnagTone, snagsReading } from '../lib/snagsReport';
 import { nav } from '../state/useRoute';
 import { openRecord } from '../ui/RecordDrawer';
@@ -85,6 +86,11 @@ export function QuickSnagsScreen() {
   const [setting, setSetting] = useState(false);
   const [busy, setBusy] = useState<'' | 'report' | 'cards'>('');
   const [viewing, setViewing] = useState<{ snagId?: string; media: MediaRef } | null>(null);
+  /* A PROBLEM OPENED OUT where it sits (Rowland, 12 October: "expand the
+     problems — each can be a report card PDF"): tap it, and its pictures,
+     its words and dates, its report card and the way to edit it are there. */
+  const [opened, setOpened] = useState<Set<string>>(new Set());
+  const flip = (id: string) => setOpened(o => { const n = new Set(o); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const liveJobs = useMemo(() => projects.filter(p => !p.archivedAt), [projects]);
   const jobKey = liveJobs.map(p => p.id).join(',');
 
@@ -211,6 +217,21 @@ export function QuickSnagsScreen() {
     } finally { setBusy(''); }
   };
 
+  /* ONE PROBLEM'S REPORT CARD — a page of its own to send (lib/snagCardPdf). */
+  const cardOne = async (x: { line: SnagCardRow } | { job: JobCardRow }) => {
+    if (busy) return;
+    setBusy('cards');
+    try {
+      const { saveProblemCards } = await import('../lib/buildSnagCards');
+      await saveProblemCards([x], 'line' in x ? lineName(x.line.snag.workspaceId) : x.job.job);
+    } catch (e) {
+      console.error('problem card failed', e);
+      window.alert('Sorry — the report card could not be made. Please try again.');
+    } finally { setBusy(''); }
+  };
+  const lineCard = (s: Snag): SnagCardRow => ({ snag: s, asset: s.assetId ? frames.get(s.assetId) : undefined, assetName: (s.assetId ? frames.get(s.assetId)?.name : undefined) ?? s.targetAsset ?? 'Taken on the move' });
+  const day = (ms: number) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
   /* a count wears its colour only when it is not zero (CLAUDE.md, visual management rule 3) */
   const chip = (f: Filter, n: number, word: string, tone?: 'r' | 'a' | 'g') => (
     <button key={f} type="button" className={'chip' + (filter === f ? ' on' : '') + (tone && n ? ` qsl-chip-${tone}` : '')} aria-pressed={filter === f} onClick={() => setFilter(f)}>
@@ -300,7 +321,7 @@ export function QuickSnagsScreen() {
                     </label>
                     {/* THE PICTURE OPENS LARGE, to be pointed at (ui/Evidence). */}
                     {r.photo && <EvidenceThumb media={photoRef(r.photo, s)} size={52} onClick={() => setViewing({ snagId: s.media?.some(m => m.blobKey === r.photo) ? s.id : undefined, media: photoRef(r.photo as string, s) })} />}
-                    <button type="button" className="qsl-open" onClick={() => open(s)}>
+                    <button type="button" className="qsl-open" aria-expanded={opened.has(r.id)} onClick={() => flip(r.id)}>
                       {!r.photo && <span className="qsl-nopic" aria-hidden><Icon name="camera" size={18} /></span>}
                       <span className="qsl-body">
                         <span className="qsl-what"><PrioTag p={r.priority} />{r.what}</span>
@@ -332,6 +353,26 @@ export function QuickSnagsScreen() {
                       {/* closed: the day it was — the select already says Closed */}
                       {r.status === 'closed' && s.closedAt != null && <span className="qsl-dueword">on {new Date(s.closedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>}
                     </div>
+                    {opened.has(r.id) && (() => {
+                      const pics = [...(s.detailPhotoKey ? [photoRef(s.detailPhotoKey, s)] : []), ...(s.media ?? []).filter(m => m.kind === 'photo'), ...(!s.media?.length && !s.detailPhotoKey && r.photo ? [photoRef(r.photo, s)] : [])];
+                      return (
+                        <div className="qsl-x" role="region" aria-label={`More about ${r.what}`}>
+                          {pics.length > 0 && <div className="qsl-x-pics">{pics.map(m => <EvidenceThumb key={m.id} media={m} size={96} onClick={() => setViewing({ snagId: s.media?.some(x => x.id === m.id) ? s.id : undefined, media: m })} />)}</div>}
+                          <dl className="qsl-x-facts">
+                            <div><dt>Machine</dt><dd>{(s.assetId ? frames.get(s.assetId)?.name : undefined) ?? s.targetAsset ?? 'Not said'}</dd></div>
+                            <div><dt>Line</dt><dd>{r.line}</dd></div>
+                            <div><dt>Raised</dt><dd>{day(s.raisedAt)} · {r.word}</dd></div>
+                            {s.proposedSolution?.trim() && <div><dt>Proposed</dt><dd>{s.proposedSolution.trim()}</dd></div>}
+                            {r.update && <div><dt>Latest</dt><dd>{r.update}{s.latestUpdateAt ? ` · ${day(s.latestUpdateAt)}` : ''}</dd></div>}
+                            {r.forJob && <div><dt>For</dt><dd>{r.forJob} — not moved yet</dd></div>}
+                          </dl>
+                          <div className="qsl-x-acts">
+                            <button type="button" className="btn" disabled={!!busy} onClick={() => void cardOne({ line: lineCard(s) })}><Icon name="document" size="1.05em" />{busy === 'cards' ? 'Making…' : 'Report card (PDF)'}</button>
+                            <button type="button" className="btn btn-ghost" onClick={() => open(s)}>Edit</button>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </li>
                 );
               })}
@@ -356,9 +397,9 @@ export function QuickSnagsScreen() {
             </div>
             <ul className="qsl-rows">
               {g.rows.map(r => (
-                <li key={r.id} className={'qsl-row' + (r.late ? ' is-late' : '')}>
+                <li key={r.id} className={'qsl-row qsl-jrow' + (r.late ? ' is-late' : '')}>
                   {r.photo && <EvidenceThumb media={photoRef(r.photo)} size={52} onClick={() => setViewing({ media: photoRef(r.photo as string) })} />}
-                  <button type="button" className="qsl-open" onClick={() => openJobRow(r)}>
+                  <button type="button" className="qsl-open" aria-expanded={opened.has(r.id)} onClick={() => flip(r.id)}>
                     {!r.photo && <span className="qsl-nopic" aria-hidden><Icon name={KIND_ICON[r.kind]} size={18} /></span>}
                     <span className="qsl-body">
                       <span className="qsl-what"><PrioTag p={r.priority} />{r.what}</span>
@@ -367,6 +408,22 @@ export function QuickSnagsScreen() {
                     </span>
                     <span className={'qsl-state ' + TONE_CLASS[r.tone]}>{r.word}</span>
                   </button>
+                  {opened.has(r.id) && (
+                    <div className="qsl-x" role="region" aria-label={`More about ${r.what}`}>
+                      {r.photo && <div className="qsl-x-pics"><EvidenceThumb media={photoRef(r.photo)} size={96} onClick={() => setViewing({ media: photoRef(r.photo as string) })} /></div>}
+                      <dl className="qsl-x-facts">
+                        <div><dt>Where</dt><dd>{r.where}</dd></div>
+                        <div><dt>Whose</dt><dd>{r.who ?? 'nobody yet'}</dd></div>
+                        <div><dt>Now</dt><dd>{r.word}</dd></div>
+                        {r.fixWhat && <div><dt>Fix</dt><dd>{r.fixWhat}</dd></div>}
+                        <div><dt>Raised</dt><dd>{day(r.at)}</dd></div>
+                      </dl>
+                      <div className="qsl-x-acts">
+                        <button type="button" className="btn" disabled={!!busy} onClick={() => void cardOne({ job: { row: r, job: g.job } })}><Icon name="document" size="1.05em" />{busy === 'cards' ? 'Making…' : 'Report card (PDF)'}</button>
+                        <button type="button" className="btn btn-ghost" onClick={() => openJobRow(r)}>Open on {g.job}</button>
+                      </div>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
@@ -412,7 +469,7 @@ export function QuickSnagsScreen() {
             void setSnagsStatus(chosen.map(s => s.id), 'closed').then(() => offerUndo(`${before.length} closed`, async () => { for (const s of before) await updateSnag(s); }));
           }}>Close</button>
           <button type="button" className="btn" onClick={() => setSetting(true)}>Whose · due</button>
-          <button type="button" className="btn" disabled={!!busy} onClick={() => void cards(chosen)}>{busy === 'cards' ? 'Making…' : 'Cards'}</button>
+          <button type="button" className="btn" disabled={!!busy} onClick={() => void cards(chosen)}>{busy === 'cards' ? 'Making…' : 'Report cards'}</button>
           <button type="button" className="btn btn-primary" onClick={() => setSending(true)}>Move to a job</button>
           {/* Delete — a snag taken by mistake, or one nobody needs: asked once,
               its photos and words go with it (Rowland, 12 October: "if I can't
