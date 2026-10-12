@@ -27,6 +27,15 @@ import { uid } from './ids';
 import { readVideoMeta } from '../snag/frame';
 
 export const DEMO_NAME = 'Demo — Packing Hall';
+
+/** The demo line is a showcase, not work. What gathers every line's snags —
+ *  Snags & fixes, its report, a job's view of them — leaves its snags out:
+ *  Rowland, 12 October: "Snag report has seeded data in app — remove it."
+ *  The demo line itself is untouched, and still opens from its own card. */
+export function withoutDemo<T extends { workspaceId: string }>(rows: T[], lines: readonly { id: string; name: string }[]): T[] {
+  const demo = new Set(lines.filter(w => w.name === DEMO_NAME).map(w => w.id));
+  return demo.size ? rows.filter(r => !demo.has(r.workspaceId)) : rows;
+}
 const DAY = 86_400_000;
 const MIN = 60_000;
 

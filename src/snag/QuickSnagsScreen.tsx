@@ -28,6 +28,7 @@
  * ITS OWN REPORT. The Snags & fixes report prints what the page is showing,
  * as it shows it (lib/snagsReportPdf), from the same reading. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { withoutDemo } from '../lib/demo';
 import { listAllSnags, listWorkspaces, listTests, listTestItems, listAssets, listSnagAssets, onDataChange, updateSnag, setSnagsStatus, listPaceTodos, type PaceTodoRow } from '../db';
 import { useProjects } from '../lib/useProjects';
 import { planModel } from '../lib/planModel';
@@ -84,7 +85,9 @@ export function QuickSnagsScreen() {
   const jobKey = liveJobs.map(p => p.id).join(',');
 
   const load = useCallback(async () => {
-    const [all, ws] = await Promise.all([listAllSnags(), listWorkspaces()]);
+    const [every, ws] = await Promise.all([listAllSnags(), listWorkspaces()]);
+    /* the demo line's made-up snags are never on this page or its report */
+    const all = withoutDemo(every, ws);
     setSnags(all.sort((a, b) => b.raisedAt - a.raisedAt)); setLines(ws);
     /* The frames the walk's snags are pinned on — their machine's name and picture. */
     const wsIds = [...new Set(all.filter(s => s.assetId).map(s => s.workspaceId))];

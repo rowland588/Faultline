@@ -67,6 +67,7 @@ import type { MediaRef } from '../types';
 import { CriticalTag } from '../ui/CriticalFields';
 import { fixFlag } from '../lib/critical';
 import { listAllSnags, listWorkspaces, onDataChange } from '../db';
+import { withoutDemo } from '../lib/demo';
 import { nav } from '../state/useRoute';
 import { sendSnags } from '../snag/quick';
 import { openQuickSnag } from '../snag/QuickSnag';
@@ -103,7 +104,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
   const [snags, setSnags] = useState<Snag[]>([]);
   const [lines, setLines] = useState<Workspace[]>([]);
   useEffect(() => {
-    const load = () => void Promise.all([listAllSnags(), listWorkspaces()]).then(([a, w]) => { setSnags(a); setLines(w); });
+    const load = () => void Promise.all([listAllSnags(), listWorkspaces()]).then(([a, w]) => { setSnags(withoutDemo(a, w)); setLines(w); });
     load();
     return onDataChange(load);
   }, []);

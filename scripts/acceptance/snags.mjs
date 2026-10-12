@@ -79,13 +79,17 @@ const sd = await page.evaluate(async () => {
     mk({ problem: 'Label printer ribbon low', projectId: seed.projectId }),
   ];
   for (const s of list) await db.addSnag(s);
+  /* the demo line, built from the account menu — its made-up snag is never here */
+  const demo = await db.createWorkspace('Demo — Packing Hall');
+  await db.addSnag(mk({ workspaceId: demo.id, problem: 'Demo fault — made up for the showcase', dueAt: day(-5) }));
   return { ...seed, ids: Object.fromEntries(list.map(s => [s.problem, s.id])), job: (await (await import('/src/db/projects.ts')).getProject(seed.projectId)).name };
 });
 /* What the module says, read as the page reads it — every snag, and every job's problems and fixes. */
 const truth = () => page.evaluate(async () => {
   const db = await import('/src/db.ts'); const R = await import('/src/lib/snagsReport.ts'); const P = await import('/src/db/projects.ts');
   const { planModel } = await import('/src/lib/planModel.ts');
-  const [snags, ws, projects] = await Promise.all([db.listAllSnags(), db.listWorkspaces(), P.allProjects()]);
+  const [every, ws, projects] = await Promise.all([db.listAllSnags(), db.listWorkspaces(), P.allProjects()]);
+  const snags = (await import('/src/lib/demo.ts')).withoutDemo(every, ws);
   const frames = new Map((await Promise.all([...new Set(snags.filter(s => s.assetId).map(s => s.workspaceId))].map(id => db.listSnagAssets(id)))).flat().map(a => [a.id, a]));
   const lineName = id => ws.find(w => w.id === id)?.name ?? 'A line';
   const became = new Map(), jobs = [];
@@ -118,6 +122,7 @@ await go('#/snags');
   ok(!!g && jobKinds.length === g.rows.filter(r => r.open).length && jobKinds.every(k => k === 'problem' || k === 'fix'), `1 the job's problems and fixes under it, each saying which: ${jobKinds.join(', ')}`);
   ok(/for Line 2 commissioning — not moved yet/.test(await words('.qsl-meta', row('Label printer ribbon low'))), '1 a snag named for the job and not moved yet — said so');
   ok((await row('Seal jaw leaves marks').locator('img').count()) > 0, '1 its picture on its row');
+  ok((await page.locator('.qsl-row', { hasText: 'Demo fault' }).count()) === 0 && !/Demo/.test(await words('.qsl-says')), '1 the demo line\'s made-up snag is not here');
 }
 
 /* ---- 2 moved to a job, and shown once — as what it became ---- */
@@ -199,6 +204,7 @@ await go('#/snags');
   const flatTxt = txt.replace(/\s+/g, '');
   const lost = all.filter(w => !flatTxt.includes(w.replace(/\s+/g, '')));
   ok(/SNAGS & FIXES/.test(txt) && /Everything open/.test(txt) && !lost.length && txt.includes(sd.job) && /SNAG ·/.test(txt) && /FIX ·/.test(txt), `6 the report: every open snag, problem and fix (${all.length}), each saying which${lost.length ? ` — lost: ${lost.slice(0, 4).join(', ')}` : ''}`);
+  ok(!/Demo fault|Packing Hall/.test(txt), '6 and nothing of the demo line on the paper');
 }
 
 /* ---- 7 the job's own view ---- */
