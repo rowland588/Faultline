@@ -672,54 +672,86 @@ lead time, and each 6M study's title and sentence.
   wait and waste, accepted onto its bone; and a client changing nothing.
 
 
-### Tool F — the changeover and its interval
+### Tool F — SMED, quick changeover (and the interval)
 
-Built 12 October, the five pieces in BUILD's order (arithmetic, the study
-alone, its links, its paper, its acceptance). No new table, no migration, no
-new noun: a study of tool `changeover` (already in `studies_tool_check`).
+Built 12 October as the changeover and its interval, the five pieces in
+BUILD's order; reshaped the same day into SMED after Rowland ("you should be
+making the lean tool SMED ... and doing everything along them principles";
+"extrapolate it"; "that sort of grid style"; "we go by plate speed ...
+unless human" — `docs/CAPACITY.md`). No new table, no migration, no new
+noun: a study of tool `changeover` (already in `studies_tool_check`); on
+screen and paper it is **SMED**, the rail says SMED, the route is `/smed`
+(`/changeover` still opens). `docs/TOOLKIT.md` §6 is the design.
 
-- **The record.** `facts.sequence` — the steps in order, each `internal`
-  (the line stopped) or `external` (could be done while it runs), its
-  seconds, `timed` · `typed` · `carried`; `fromProduct`, `toProduct`;
-  `perWeek`; the interval's inputs typed once — `products` (each with its
-  demand a day and the line's rate on it, or its minutes a day) and
-  `availableMinPerDay`. Both lists merge by id between two phones. The agreed
-  sequence lives on the to-product's line standard inside its existing
-  `capacity` jsonb: `capacity.changeovers[]`, one per product it is changed
-  from (the mapper passes `capacity` whole).
-- **The arithmetic** (`lib/ie/changeover.ts`, proved in `changeover.test.ts`
-  by the toolkit's numbers: 450 − 300 = 150 free; 5 × 42 = 210 → 1.4 days;
-  5 × 27 = 135 → 0.9 days; 15 × 6 = 90 min a week): the minutes now, internal,
-  external, with the external work out, the week bought back, the interval
-  and the changeover a daily interval needs; the verdict (over the agreed
-  standard red, external work inside the stop amber, within green); before →
-  after, nothing claimed while a step is carried.
-- **The study alone** (`/changeover`, `/changeover/:id`): Lap on the phone,
-  typed steps, the split bar (internal solid, external hatched; the bar with
-  the external work out under it), the interval sheet (the line's products
-  offered with the balance's rate, the day from its planned hours), Set as
-  the standard (`can.agree`) — a receipt, reopenable.
-- **Its links.** Make it better from a step (a fix, or a countermeasure on
-  Method for external work, Machine for an internal step), Prove it (the same
-  steps carried, Lap times the one up next), before → after on the fix and
-  the board. Shows under the product's standard (with its agreed sequences),
-  on the line tools page, on the 6M line's card, on the fishbone (Method and
-  Machine, `CauseSource.tool: 'changeover'`), in Today's update.
-- **Its paper** (`lib/report/changeoverTable`): the steps as a table in the
-  client report's and the 6M report's Evidence, seeded tiny, ordinary and
-  huge; `report-stress` demands every row and the figures in words.
-- **Its acceptance:** `scripts/acceptance/changeover.mjs`, in the gate.
+- **The record.** `facts.sequence` — the elements in order: internal or
+  external, seconds, `timed` · `typed` · `carried`, who does it (`crew`),
+  where, Shingo's function (`fn`), done alongside another (`alongside`), and
+  the plan (convert · streamline · eliminate · keep, how, a note, a target,
+  in parallel alongside an element by a named person); `fromProduct`,
+  `toProduct`; how the line runs (`running`: shifts, hours a shift or each
+  shift's, planned breaks the line stops for, days a week, weeks a year);
+  `changeovers` a shift, a day or a week; the speed (`ratePerMin`,
+  `rateFrom` plate · person · standard · line · typed, `rateStation`); the
+  interval's `products`. Lists merge by id between two phones. Older
+  records' `perWeek` and `availableMinPerDay` are still read. The agreed
+  sequence, its target and checklist live on the to-product's line standard
+  inside its `capacity` jsonb (`capacity.changeovers[]`, one per product it
+  is changed from).
+- **The arithmetic** (`lib/ie/changeover.ts`, pure, proved in
+  `changeover.test.ts` by two worked examples written by hand — the
+  toolkit's interval, and the ladder and the cost: 42 → 33 → 27 → 9 min, 17
+  min of work; 2 shifts × (8 h − 30 min) × 7 days, 3 a shift, the Bagger's
+  plate speed 100 a minute: 29.4 h a week, 28% of the running time, 176,400
+  packs, £5,880 of idle labour and £8,820 of contribution; 1,411.2 h a year):
+  the arrangement at each rung (columns, elapsed = Σ each column's longest,
+  labour = Σ every element by everyone), the ladder, the function shares, the
+  running pattern (a shift less its breaks), the cost per shift → day → week
+  → year in minutes, packs and the pounds in two parts, the interval, the
+  plan in words and the SMED action a fix carries, the standard and its
+  checklist, before → after against the plan. The plate speed is
+  `lib/capacity lineSpeed` (the station slowest on running speed, when it is
+  a machine on its plate or a timed person).
+- **The study alone** (`/smed`, `/smed/:id`): the strip; the sentences; the
+  grid in the value stream map's parts (lanes by who or where, internal solid
+  and external hatched with their letters, the plan's marks, time and
+  elapsed rows, the plan view, Play, a square opens the element's sheet);
+  the ladder drawn; Shingo's stages as chips with one panel each; How the
+  line runs (never assumed; the plate speed offered, Use it); Set as the
+  standard (`can.agree`) — a receipt, reopenable. A quick session needs no
+  line.
+- **Its links.** Make it better from an element in its SMED action's words
+  (a fix, or a countermeasure on Method or Machine by the plan's how), Prove
+  it (the elements carried, not the plan; Lap times the one up next),
+  before → after on the fix and the board against the plan. Shows under the
+  product's standard (its newest SMED, the agreed standard with its plan), on
+  the line tools page, on the job's line card ("SMED"), on the fishbone
+  (Method: the external work inside; Machine: setting and trial runs, the
+  longest internal elements; `CauseSource.tool: 'changeover'`, said "SMED").
+- **Its paper** (`lib/report/changeoverTable`): the grid as a table — #,
+  what, who, where, I/E, the plan, time, elapsed, how known; the totals with
+  the work by everyone — then the ladder, the cost in two parts and the
+  interval in words, in the client report's and the 6M report's Evidence
+  (the pounds from the line's cost settings, through the study context);
+  seeded tiny, ordinary and huge (plans, a parallel element, three different
+  shifts, the longest names); `report-stress` demands every column and line.
+- **Its acceptance:** `scripts/acceptance/changeover.mjs`, in the gate — a
+  quick session on its own end to end, then on a line and a job through to
+  the client report, the 6M card and fishbone, and a client who changes
+  nothing.
 
-Not built: a filmed changeover cut into steps (the walk's film is not yet a
-source for a study's steps); the interval's picture (one cycle of every
-product on a timeline — the sentence carries it for now).
+Not built: a filmed changeover cut into elements (the walk's film is not yet
+a source for a study's elements); the interval's picture (one cycle of every
+product on a timeline — the sentence carries it); dragging a square to
+another column (an element is put alongside another from its sheet or the
+Streamline panel); the shifts' planned breaks on the line's own shifts
+(`Shift` has no breaks yet — they are asked on the study).
 
 **The tools**, from `docs/TOOLKIT.md`, Part 5:
 - B, the map;
 - C, the time study;
 - D, the balance and the cycle;
 - E, a shift's losses;
-- F, the changeover;
+- F, SMED — quick changeover;
 - H, the rest.
 
 **Each tool goes in the same order:**

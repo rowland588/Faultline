@@ -174,7 +174,7 @@ node scripts/acceptance/ecosystem-capability.mjs  # release 2: a study, a line, 
 node scripts/acceptance/work-balance.mjs  # step 3: the work timed on the phone, stacked against takt, on a job, before → after
 node scripts/acceptance/sixm-evidence.mjs  # 2h: a study on a running line — a cause's evidence, a countermeasure, before → after, the 6M report
 node scripts/acceptance/value-stream.mjs  # B: a line's value stream — who and where, walked, a step made better, walked again, before → after, the paper, the fishbone
-node scripts/acceptance/changeover.mjs  # F: a changeover lapped on the phone, internal or external, the split bar, the interval, a step made better, set as the standard, timed again, before → after, the paper, the fishbone
+node scripts/acceptance/changeover.mjs  # F: SMED — a quick session on its own; Lap with who, Shingo's stages on the grid, the plate speed, what the changeovers cost, set as the standard, timed again, before → after, the paper, the fishbone
 node scripts/acceptance/work-sampling.mjs  # H1: what people are doing at random moments — the moment asks, one tap each, the shares with their margins, the fix
 node scripts/acceptance/shift-losses.mjs  # E: a shift's losses — counted on the phone, the waterfall, a bar made better, the next shift counted, before → after, the fishbone, both papers
 node scripts/sync-two-devices.mjs     # a phone and a laptop against a fake cloud — video on one plays on the other
@@ -209,13 +209,18 @@ after on it and the 6M report. `value-stream.mjs` is
 B: a line's value stream map — lanes by who and by where, walked on the
 phone, a fix raised from a waste step, the line walked again, before → after
 on the fix, the stream as a table on the client report, and the fishbone
-offering the map's wait and waste. `changeover.mjs` is F: a changeover
-started from the product's standard, lapped on the phone step by step (each
-internal or external), the rest typed, the split bar and the interval as
-the module says, a fix raised from an external step, set as the standard
-(the product's standard shows it), timed again to prove the fix, before →
-after on it, the steps as a table on the client report, and the 6M line's
-card and fishbone offering the changeover. `work-sampling.mjs` is H1: a study set
+offering the map's wait and waste. `changeover.mjs` is F: SMED — a quick
+session on its own end to end (two elements lapped with who does each, one
+typed, convert, streamline with a target, the grid's lanes and fills, the
+ladder, how the line runs with the days typed as 7 and the cost as the
+module says, the plan view, Play, an element's sheet); then on a line and a
+job: started from the product's standard, the plate speed offered off its
+line balance, an element converted, one streamlined and one in parallel by
+the fitter (the plan's grid in one column), a fix raised from the converted
+element in its SMED action's words, set as the standard with its target and
+checklist, timed again to prove it, before → after against the plan, the
+grid as a table on the client report, and the 6M line's card and fishbone
+saying SMED. `work-sampling.mjs` is H1: a study set
 up on its line with its standard's people, the moment due asking, one tap
 per person stamped with the moment's time, a mistap struck, the shares with
 their margins as the module says, and Make it better carrying the figure. `shift-losses.mjs` is E: a shift's losses

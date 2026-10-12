@@ -1012,43 +1012,134 @@ full width. Paper: the standard's page.
 
 **Proved by.** l 1, m 4, w 0.5 → 3.33; £2.92 and £3.38.
 
-## 6. The changeover and its interval
+## 6. SMED — quick changeover (and the interval)
 
-**Used.** Film the changeover or time it with **Lap**; each step tapped
-**Internal** (the line stopped) or **External** (can be done while it runs).
-The split bar shows now, and under it the bar if every external step is
-moved out; **Make it better** raises the fix ("Pre-stage the film reels —
-external, 11 min"). The interval line reads the products' run times on the
-line and says how often each can run, and what the changeover must be for a
-daily interval.
+Rowland, 12 October: "For changeovers, you should be making the lean tool
+SMED ... and doing everything along them principles. As for, don't assume
+5 days, could be 7 days. And this is different than a Pareto ... SMED is to
+be a tool that again can be used individually or attached to projects";
+"you want to be able to extrapolate it ... X many changeovers on one shift,
+then per shift ... the full quantity of what the changeovers are actually
+costing you"; "take inspiration from the value stream mapping ... that sort
+of grid style"; "we go by plate speed ... of course, unless human"
+(`docs/CAPACITY.md` §1, §5, §6). Stored as tool `changeover`; on screen and
+paper it is **SMED — quick changeover**, and the rail says **SMED**. A tool,
+not a method and not a Pareto: used on its own (a quick session, no line),
+on a line, on a job, as evidence for a cause or proof for a fix.
 
-**Facts.** A changeover study's `facts.steps` with `side`, and `fromProduct`;
-"Set as the standard" writes the agreed sequence; each product's
-`Standard.takt` (demand, available).
+**The question.** How long is the line stopped between two products — and,
+stage by stage, how close can it come to single-digit minutes, and what is
+it costing until then?
 
-**Figures** (`lib/ie/changeover.ts`): minutes now; minutes with external
-work outside; capacity bought back per week (× the changeovers a week); the
-free time for changeovers = available − run; the interval; the changeover a
+**Used — Shingo's stages, one after another** (the page's chips, one panel):
+
+- **0 Record.** Every element from the **last good piece** of the old
+  product to the **first good piece of the new at full rate** — the run-up
+  and the adjustments are elements too, and typically half of it. **Lap** on
+  the phone (the element, who does it, Internal or External; Start, Next,
+  Last), or type it ("5" is five minutes). Each element may say its
+  **function** — prepare and check · remove and fit · set and adjust · trial
+  run and run-up — and where on the machine.
+- **1 Separate.** Each element internal (the line stopped) or external
+  (could be done while it runs). The figure: the stop with the external work
+  outside.
+- **2 Convert.** Internal made external — **prepare in advance**,
+  **standardise the function**, **an intermediate jig**. The figure after
+  conversion.
+- **3 Streamline.** What is left inside: **in parallel** (alongside an
+  element, by a named person), **quick-release clamps**, **no adjustment**
+  (fixed stops, settings recorded) — each with its target; or **eliminate**.
+  External work streamlined too (5S, shadow boards, kits). The figure after
+  streamlining.
+- **Standardise.** **Set as the standard** writes the agreed sequence, its
+  target and its **checklist** — before the line stops · with it stopped ·
+  after it runs again — onto the product's line standard.
+
+**The ladder** — now → separated → converted → streamlined, against SMED's
+target, single digits — in words and drawn on one scale. Converted and
+streamlined are plans: proved only when the changeover is timed again.
+
+**The grid**, in the value stream map's own parts: the elements across in
+sequence, a lane per person (or, one tap, per part of the machine), a
+square per element — **internal solid ink, external hatched, its letter on
+it** (never a new hue; VA/NE/NV are the map's alone) — the plan's mark in
+its corner (→E convert, ↓ streamline, ✕ eliminate); a time row (each
+column's longest element) and a running elapsed row, with the total and the
+work beside it. Elements done at the same time share a column (‖): the
+**elapsed** is the sum of each column's longest, the **labour** the sum of
+every element by everyone on it. As timed, or **the plan** (targets used,
+converted and eliminated out, the parallel moves made). **Play the
+changeover**; tap a square and everything about the element opens (what,
+who, where, side, function, time, how known, alongside what, the plan,
+**Make it better**). On a phone the grid scrolls in its box with the lanes
+pinned.
+
+**How the line runs** — asked, never assumed: shifts a day; hours a shift
+and the **planned breaks the line stops for** (one for all, or each shift
+its own; 0 when relief covers them; the line's own shifts offered); days a
+week (5, 6, 7 or typed); weeks a year (for the year's figure); how many
+changeovers — a shift, a day or a week, each converted to the others. A
+shift **runs for its length less its breaks** (planned production time,
+`docs/CAPACITY.md` §5). **The speed** a stop's packs are counted at is the
+critical machine's **plate speed** off the product's line balance — or a
+timed person's, where people set the pace (`lib/capacity lineSpeed`) —
+else the standard's target or the line's rated speed, each said as **not a
+plate speed**, else typed and said so.
+
+**Make it better** raises the fix or countermeasure in the element's SMED
+action — *"Set the jaw temperature — convert to external (prepare in
+advance), 3 min"*; the element wears the branch on its row and its square.
+**Prove it** carries the elements (not the plan), timed or typed again one by
+one; before → after reads against the evidence's plan.
+
+**Facts.** A SMED study's `facts.sequence` (each element: `name`, `sec`,
+`side`, `source`, `crew`, `where`, `fn`, `alongside`, `plan` {kind, how,
+note, targetSec, alongside, crew}, `when`), `fromProduct`, `toProduct`,
+`running` {shiftsPerDay, hoursPerShift | shiftHours, breakMin |
+shiftBreaks, daysPerWeek, weeksPerYear}, `changeovers` {count, per},
+`ratePerMin` + `rateFrom` (plate · person · standard · line · typed) +
+`rateStation`, and the interval's `products`. Lists by id, merge-safe.
+Older records' `perWeek` and `availableMinPerDay` are still read.
+
+**Figures** (`lib/ie/changeover.ts`, pure): `arrange` (columns, elapsed,
+labour, at each rung); `ladderOf`; the function shares; per shift → day →
+week → year: minutes stopped, packs at the speed, and **the pounds in two
+parts** — idle labour (crew × wage × on-costs, `lib/cost`) and the
+contribution lost **if the packs cannot be made up** (packs × margin) —
+never one figure, none without the line's cost settings (§6 of
+CAPACITY.md); the share of the running time; the interval: free = running −
+Σ run, every product every n × changeover ÷ free days, and the changeover a
 daily interval needs.
 
-**Reading.** *"42 min now. With the 15 min of external work done while the
-line runs: 27 min — 90 min a week back, 6 changeovers. Five products at
-42 min run every 1.4 days; at 27 min, every 0.9 — daily."*
+**Reading.** *"42 min now → 33 min separated → 27 min converted → 9 min
+streamlined (17 min of work, some in parallel), planned — proved when it is
+timed again. Single-digit minutes — SMED's target."* *"Now 42 min × 3 a
+shift × 2 shifts × 7 days = 29.4 h a week stopped (28% of the running time)
+— 176,400 packs at 100 a minute, the Bagger's plate speed; £5,880 of idle
+labour, and £8,820 of contribution if the packs cannot be made up.
+Streamlined to 9 min: 6.3 h a week — 23.1 h back, if the plan holds."*
+*"Setting, adjusting and trial runs: 15 min of 42 min — 36%; they are
+typically half a changeover, and the first to eliminate."*
 
-**Shows up.** Under the product's standard; the 6M's **Machine** and
-**Method**; a page.
+**Shows up.** The tool's page (SMED); under the product's standard (the
+newest SMED, the agreed standard with its plan, "Start a SMED ›"); the line
+tools page; the job's line card ("SMED"); the 6M fishbone on **Method**
+(the external work still inside the stop) and **Machine** (setting and
+trial runs; the longest internal elements); both reports' Evidence — the
+grid as a table (#, what, who, where, I/E, the plan, time, elapsed, how
+known; the totals with the work by everyone on it), then the ladder, the
+cost in two parts and the interval in words.
 
-**Proved by.** 450 − 300 = 150 free; 5 × 42 = 210 → 1.4 days; 5 × 27 =
-135 → 0.9 days; 15 × 6 = 90 min a week.
+**Proved by.** The interval: 450 − 300 = 150 free; 5 × 42 = 210 → 1.4 days;
+5 × 27 = 135 → 0.9 days; 15 × 6 = 90 min a week. The ladder and the cost
+(the test's worked example 2): 42 → 33 → 27 → 9 min, 17 min of work; 2
+shifts × (8 h − 30 min) × 7 days = 105 h running; 42 a week × 42 min = 29.4 h
+(28%), 176,400 packs, £5,880 + £8,820; × 48 weeks = 1,411.2 h.
 
-**As built** (12 October, `docs/BUILD.md` tool F): the steps are
-`facts.sequence` (the balance keeps `facts.steps`), with `toProduct`,
-`perWeek`, and the interval's `products` and `availableMinPerDay` typed once
-on the study — a product's run time a day from its demand and the line's
-rate (the balance's target offered), or typed. The agreed sequence is
+**As built** (12 October, `docs/BUILD.md` tool F): no new table and no
+migration — the study's `facts`, and the agreed sequence as
 `capacity.changeovers[]` on the to-product's line standard, one per product
-it is changed from — inside the existing jsonb, so no `standards.changeovers`
-column was added.
+it is changed from, inside the existing jsonb.
 
 ## 7. A shift's losses, by hand — and what they cost
 
