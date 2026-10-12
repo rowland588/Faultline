@@ -24,11 +24,25 @@
  *       × 85 ÷ 60 = £106.82 → £107  (the Breakdown's 32 min: £40.21 → £40)
  *     lost contribution = 8,500 packs × £0.04 margin = £340
  *       (the Breakdown's 3,200 packs: £128); with price £0.42 less
- *       materials £0.34 = £0.08 a pack: 8,500 × £0.08 = £680. */
+ *       materials £0.34 = £0.08 a pack: 8,500 × £0.08 = £680.
+ *
+ *   AND WHEN A PERSON SETS THE PACE ("plate speed ... unless human"): the
+ *   same line with Op 3 packing cases of 10 at a standard time of 6.25 s a
+ *   case (the time study) — 60 ÷ 6.25 = 9.6 cases × 10 = 96 bags a minute,
+ *   slower than every machine (Bagger 100, Checkweigher 132). The rate is
+ *   "the standard time of Op 3 (the time study)", 96 a minute.
+ *     expected = 450 × 96 = 43,200.   Good packs 34,560; rejects 576.
+ *     lost = 8,640 ÷ 96 = 90 min.   rejects = 576 ÷ 96 = 6 min.
+ *     explained = 52 + 18 + 6 = 76;  the rest = 90 − 76 = 14 min (15.6%).
+ *     run time = 450 − 52 − 18 = 380 min.
+ *   Op 3 timed at 466 in 300 s = 93.2 a minute:
+ *     slow running = 380 × (96 − 93.2) ÷ 96 = 1,064 ÷ 96 = 11.08 min —
+ *       on People, the person who paces it; over a tenth (12.3%), amber;
+ *     short stops  = 14 − 11.08 = 2.92 min. */
 import { describe, it, expect } from 'vitest';
 import {
   lossFigures, lossSays, compareLosses, nextShift, lossLine, lossRows, barWords, barExpect, inWindow, isChangeover, dayWords, rateWords,
-  stopsOfBar, shiftWords, firstCount, plateOf, rateOf, plannedOf, runningOf, contributionOf, findBar, moneyWords,
+  stopsOfBar, shiftWords, firstCount, idealOf, rateOf, plannedOf, runningOf, contributionOf, findBar, moneyWords, paceWords,
 } from '../losses';
 import { shiftWindow } from '../../shifts';
 import type { Station } from '../../capacity';
@@ -69,20 +83,55 @@ const line7 = [
 ];
 
 describe('a shift’s losses (tool 7)', () => {
-  it('the rate is plate speed: the critical machine — the slowest machine at running speed — in the line’s unit', () => {
-    expect(plateOf({ stations: line7 })).toEqual({ rate: 100, machine: 'Bagger', why: 'plate speed of the Bagger', anyPlate: true });
+  it('the rate is the bottleneck’s ideal speed: the slowest station at running speed, in the line’s unit — here the Bagger’s plate', () => {
+    expect(idealOf({ stations: line7 })).toEqual({ rate: 100, station: 'Bagger', how: 'plate', why: 'plate speed of the Bagger', anyIdeal: true });
     /* downstream, in its own unit: 8 cases a minute of 12 bags = 96 bags a minute, the slowest */
     const cased = [st({ id: 'b', name: 'Bagger', rate: 130, source: 'plate' }), st({ id: 'k', name: 'Case packer', unit: 'cases', contains: 12, rate: 8, source: 'plate' })];
-    expect(plateOf({ stations: cased })).toMatchObject({ rate: 96, machine: 'Case packer' });
+    expect(idealOf({ stations: cased })).toMatchObject({ rate: 96, station: 'Case packer', how: 'plate' });
     expect(rateOf({ stations: line7 }, 90)).toEqual({ ratePerMin: 100, rateFrom: 'plate', rateMachine: 'Bagger', why: 'plate speed of the Bagger' });
   });
-  it('no plate on the critical machine: typed and said why — the standard’s target only when nothing on the line is on the plate', () => {
+  it('a person slower than every machine sets the pace at their standard time — the time study’s, or their pace as timed; a guess is typed, and why', () => {
+    const op3 = (source: Station['source']) => [...line7.slice(0, 2), st({ id: 'o3', name: 'Op 3', kind: 'people', unit: 'cases', contains: 10, cycleSec: 6.25, perCycle: 1, source })];
+    expect(idealOf({ stations: op3('standard') })).toEqual({ rate: 96, station: 'Op 3', how: 'standard', why: 'standard time of Op 3 (the time study)', anyIdeal: true });
+    expect(rateOf({ stations: op3('standard') }, 90)).toEqual({ ratePerMin: 96, rateFrom: 'standard-time', ratePerson: 'Op 3', why: 'standard time of Op 3 (the time study)' });
+    expect(rateOf({ stations: op3('timed') })).toEqual({ ratePerMin: 96, rateFrom: 'standard-time', ratePerson: 'Op 3', rateTimed: true, why: 'Op 3’s timed pace' });
+    expect(rateOf({ stations: op3('estimate') }, 90)).toEqual({ why: 'typed — Op 3 sets the pace and their speed is a guess — time them in the time study' });
+    expect([paceWords({ rateFrom: 'standard-time', ratePerson: 'Op 3' }), paceWords({ rateFrom: 'standard-time', ratePerson: 'Op 3', rateTimed: true })])
+      .toEqual(['standard time of Op 3 (the time study)', 'Op 3’s timed pace']);
+  });
+  it('no ideal speed on the pace-setter: typed and said why — the standard’s target only when no station on the line has one', () => {
     const guessed = line7.map(s => (s.id === 'b' ? { ...s, source: 'estimate' as const } : s));
     expect(rateOf({ stations: guessed }, 90)).toEqual({ why: 'typed — the Bagger sets the pace and its speed is a guess, not from its plate' });
-    const nonePlate = line7.map(s => ({ ...s, source: 'timed' as const }));
-    expect(rateOf({ stations: nonePlate }, 90)).toEqual({ ratePerMin: 90, rateFrom: 'standard', why: 'the line standard’s target — not a plate speed' });
+    expect(rateOf({ stations: line7.map(s => ({ ...s, source: 'timed' as const })) }, 90)).toEqual({ why: 'typed — the Bagger sets the pace and its speed is timed, not from its plate' });
+    const noIdeal = line7.map(s => ({ ...s, source: 'estimate' as const }));
+    expect(rateOf({ stations: noIdeal }, 90)).toEqual({ ratePerMin: 90, rateFrom: 'standard', why: 'the line standard’s target — not a plate speed' });
     expect(rateOf(undefined, 90)).toMatchObject({ ratePerMin: 90, rateFrom: 'standard' });
     expect(rateOf(undefined)).toEqual({ why: 'typed — the line has no capacity sheet yet' });
+  });
+  it('Op 3 paces it: 450 × 96 = 43,200; 90 lost; 14 the rest; 380 × (96 − 93.2) ÷ 96 = 11.08 slow running on People, 2.92 short stops', () => {
+    const c: LossCount = { ...count, made: 34_560, rejects: 576, ratePerMin: 96, rateFrom: 'standard-time', rateMachine: undefined, ratePerson: 'Op 3' };
+    const op3timed: RunTiming[] = [{ id: 'p1', at: FROM + 3 * H, by: 'Sam', packs: 466, sec: 300 }];
+    const un = lossFigures(c, log());
+    expect([un.expected, un.lostMin, un.rejectsMin, un.performanceMin, un.runMin]).toEqual([43_200, 90, 6, 14, 380]);
+    const s0 = lossSays(un, c);
+    expect([s0.verdict, s0.tone]).toEqual(['14 min slow running and short stops', 'a']);
+    expect(s0.lines[0].text).toBe('Slow running and short stops is the rest: running below the standard-time pace, and stops too short to log — not yet told apart. Time the running speed while it runs to split them.');
+    expect(s0.lines[1].text).toMatch(/· the rate is the standard time of Op 3 \(the time study\) · /);
+    const f = lossFigures(c, log(), undefined, op3timed);
+    expect(f.slowMin).toBeCloseTo(1064 / 96, 6);
+    expect(f.shortMin).toBeCloseTo(14 - 1064 / 96, 6);
+    expect(f.bars.slice(4).map(b => [b.key, b.bone, !!b.abnormal])).toEqual([['slow', 'people', true], ['short', 'machine', false]]);
+    const s = lossSays(f, c);
+    expect(s.verdict).toBe('11 min slow running');
+    expect(s.lines[0].text).toBe('Running speed timed at 93.2 a minute over 1 timing (5 min): slow running = 380 min run × (96 − 93.2) ÷ 96 = 11 min; short stops the rest, 3 min.');
+    expect(barWords(f.bars[4], c, TO + 20 * H)).toBe('Slow running — 11 min below the standard-time pace on Shift 1, yesterday');
+    expect(barExpect(f.bars[4], c)).toBe('Slow running: 11 min a shift — the running speed nearer the standard-time pace on the next shift counted');
+    const t = lossRows(f, c);
+    expect(t?.head).toBe('450 planned minutes (480 min shift − 30 min of breaks) at 96 a minute, the standard time of Op 3 (the time study) — 43,200 expected, 34,560 made');
+    expect(t?.rows[4].cause).toBe('Slow running — timed at 93.2 a minute against the standard-time pace of 96 a minute');
+    expect(lossRows(f, { ...c, rateTimed: true })?.head).toMatch(/at 96 a minute, Op 3’s timed pace — /);
+    expect(firstCount([{ name: 'Shift 1', start: '06:00', end: '14:00', breakMin: 30 }], rateOf({ stations: [...line7.slice(0, 2), st({ id: 'o3', name: 'Op 3', kind: 'people', unit: 'cases', contains: 10, cycleSec: 6.25, perCycle: 1, source: 'standard' })] }), FROM + 9 * H))
+      .toEqual({ shift: 'Shift 1', from: FROM, to: TO, plannedMin: 450, breakMin: 30, ratePerMin: 96, rateFrom: 'standard-time', ratePerson: 'Op 3' });
   });
   it('planned production time is the shift less its planned breaks, worked out — none off under relief; a day’s change keeps its reason', () => {
     expect(plannedOf(count)).toMatchObject({ windowMin: 480, breakMin: 30, workedOut: 450, changed: false, words: '480 min shift − 30 min of breaks = 450 planned' });
@@ -128,7 +177,7 @@ describe('a shift’s losses (tool 7)', () => {
     /* at or above the plate there is no slow running — and above it is said */
     const fast = lossFigures(count, log(), undefined, [{ id: 'y', at: FROM + H, packs: 104, sec: 60 }]);
     expect([fast.slowMin, fast.shortMin, fast.abovePlate]).toEqual([0, 9, true]);
-    expect(lossSays(fast, count).lines[0].text).toBe('Running speed timed at 104 a minute over 1 timing (1 min), above the plate’s 100 a minute — no slow running; check the plate speed or the timing.');
+    expect(lossSays(fast, count).lines[0].text).toBe('Running speed timed at 104 a minute over 1 timing (1 min), above the plate speed of 100 a minute — no slow running; check the plate speed or the timing.');
   });
   it('the pounds in two parts — idle labour and lost contribution if it cannot be made up; none without a cost', () => {
     const f = lossFigures(count, log(), cost);
@@ -206,7 +255,7 @@ describe('a shift’s losses (tool 7)', () => {
     const split = lossFigures(count, log(), undefined, timed);
     expect(barWords(split.bars[4], count, now)).toBe('Slow running — 8 min below the plate speed on Shift 1, yesterday');
     expect(barWords(split.bars[5], count, now)).toBe('Short stops — 1 min of stops too short to log on Shift 1, yesterday');
-    expect(barExpect(split.bars[4])).toBe('Slow running: 8 min a shift — the running speed nearer the plate on the next shift counted');
+    expect(barExpect(split.bars[4], count)).toBe('Slow running: 8 min a shift — the running speed nearer the plate speed on the next shift counted');
     /* a record raised from the part once called "not yet explained" names the rest */
     expect(findBar(f.bars, 'unexplained')?.key).toBe('performance');
   });
@@ -255,7 +304,7 @@ describe('a shift’s losses (tool 7)', () => {
     const split = lossRows(lossFigures(count, log(), undefined, timed), { ...count, rateFrom: 'standard', rateMachine: undefined });
     expect(split?.head).toBe('450 planned minutes (480 min shift − 30 min of breaks) at 100 a minute, the line standard’s target — not a plate speed — 45,000 expected, 36,500 made');
     expect(split?.rows.slice(4).map(r => [r.cause, r.minutes, r.labour])).toEqual([
-      ['Slow running — timed at 98 a minute against the plate’s 100 a minute', '8 min', ''], ['Short stops — the rest once the slow running is timed: stops too short to log', '1 min', ''],
+      ['Slow running — timed at 98 a minute against the plate speed of 100 a minute', '8 min', ''], ['Short stops — the rest once the slow running is timed: stops too short to log', '1 min', ''],
     ]);
     expect(lossRows(lossFigures(undefined))).toBeUndefined();
   });

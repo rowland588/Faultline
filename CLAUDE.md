@@ -176,7 +176,7 @@ node scripts/acceptance/sixm-evidence.mjs  # 2h: a study on a running line — a
 node scripts/acceptance/value-stream.mjs  # B: a line's value stream — who and where, walked, a step made better, walked again, before → after, the paper, the fishbone
 node scripts/acceptance/changeover.mjs  # F: a changeover lapped on the phone, internal or external, the split bar, the interval, a step made better, set as the standard, timed again, before → after, the paper, the fishbone
 node scripts/acceptance/work-sampling.mjs  # H1: what people are doing at random moments — the moment asks, one tap each, the shares with their margins, the fix
-node scripts/acceptance/shift-losses.mjs  # E: a shift's losses — counted on the phone at plate speed, the shift less its breaks, the waterfall, slow running told from short stops, the pounds in two parts, a bar made better, the next shift counted, before → after, the fishbone, both papers
+node scripts/acceptance/shift-losses.mjs  # E: a shift's losses — counted on the phone at the bottleneck's ideal speed, the shift less its breaks, the waterfall, slow running told from short stops, the pounds in two parts, a bar made better, the next shift counted, before → after, the fishbone, both papers
 node scripts/sync-two-devices.mjs     # a phone and a laptop against a fake cloud — video on one plays on the other
 node scripts/check-live-schema.mjs    # the LIVE database against the mapper — needs .env
 ```
@@ -220,8 +220,9 @@ up on its line with its standard's people, the moment due asking, one tap
 per person stamped with the moment's time, a mistap struck, the shares with
 their margins as the module says, and Make it better carrying the figure. `shift-losses.mjs` is E: a shift's losses
 by hand, on the time model of `docs/CAPACITY.md` §5–6 — a count made on the
-phone from the line's board beside the Pareto at the plate speed of the
-line's critical machine, its planned minutes the shift less its breaks
+phone from the line's board beside the Pareto at the bottleneck's ideal
+speed (a machine's plate speed; a person's standard time when a person is
+slowest), its planned minutes the shift less its breaks
 (changed for the day only with a reason), the sentence and the waterfall as
 `lib/ie/losses` says them from the count and the stops in its window, the
 rest named slow running and short stops and told apart by the running speed

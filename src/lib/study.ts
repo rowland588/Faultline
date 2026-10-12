@@ -260,15 +260,21 @@ export interface LossCount {
   /** Packs rejected — counted. */
   rejects?: number;
   /** The rate, packs a minute in the line's unit, that the shift is judged
-   *  against: the critical machine's plate speed (lib/ie/losses rateOf). */
+   *  against: the ideal speed of the line's slowest station — a machine's
+   *  plate speed, a person's standard time (lib/ie/losses rateOf). */
   ratePerMin?: number;
-  /** Where the rate is from: the plate speed of the critical machine on the
-   *  line's capacity; the line standard's target, only when nothing on the
-   *  line is on the plate; or typed. A count made before plate speed reads
-   *  'standard' as it always did. */
-  rateFrom?: 'plate' | 'standard' | 'typed';
+  /** Where the rate is from: the plate speed of the machine that sets the
+   *  pace; the standard time of the person who does ('standard-time'); the
+   *  line standard's target, only when no station on the line has an ideal
+   *  speed; or typed. A count made before plate speed reads 'standard' as
+   *  it always did. */
+  rateFrom?: 'plate' | 'standard-time' | 'standard' | 'typed';
   /** The machine whose plate speed the rate is. */
   rateMachine?: string;
+  /** The person (a people station) whose standard time the rate is — and
+   *  `rateTimed` when it is their pace as timed, not from the time study. */
+  ratePerson?: string;
+  rateTimed?: boolean;
 }
 
 /** A RUNNING SPEED TIMED on a loss count: the packs counted over a timed

@@ -7,9 +7,10 @@
  * min lost · 9 min slow running and short stops ›" — that rest the only
  * thing that may wear amber, and only over a tenth. One tap opens the count.
  * And the door to make one: "Count a shift" — the shift that has just run
- * on this line, less its breaks; the rate the plate speed of the line's
- * critical machine (its one product's line standard, else the job line's
- * capacity); on the line's job when it has one.
+ * on this line, less its breaks; the rate the ideal speed of the line's
+ * slowest station — a machine's plate speed, a person's standard time — on
+ * its one product's line standard, else the job line's capacity; on the
+ * line's job when it has one.
  *
  * Reads: the line's studies of tool 'losses', its stops and its cost model.
  * Writes: a new study, only on "Count a shift", only for someone who may. */
@@ -63,7 +64,7 @@ function useLineLosses(workspaceId?: string): { studies: ToolStudy[]; ctx: Study
 /** THE CAPACITY A COUNT'S RATE IS READ FROM (docs/CAPACITY.md §1): the
  *  product's line standard when it has stations, else the job line's
  *  capacity (the line balance on a 6M job's line) — and the standard's
- *  target, offered only when nothing on the line is on the plate. */
+ *  target, offered only when no station on the line has an ideal speed. */
 export async function capacityForCount(workspaceId?: string, std?: Pick<Standard, 'capacity'>): Promise<{ cap?: Capacity; target?: number }> {
   const own = std?.capacity;
   const line = own?.stations.length || !workspaceId ? undefined : (await allPaceLines()).find(l => l.workspaceId === workspaceId && !l.deletedAt)?.capacity;

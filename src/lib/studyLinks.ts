@@ -343,7 +343,7 @@ export const ROLE_WORD: Record<string, string> = {
 export function betterExpect(s: ToolStudy, stepId?: string, ctx?: StudyContext): string | undefined {
   if (s.tool === 'losses') {
     const b = stepId ? findBar(lossFiguresOf(s, ctx).bars, stepId) : undefined;
-    return b ? barExpect(b) : undefined;
+    return b ? barExpect(b, s.facts.losses) : undefined;
   }
   if (s.tool === 'changeover') {
     const st = stepId ? (s.facts.sequence ?? []).find(x => x.id === stepId) : undefined;

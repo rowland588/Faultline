@@ -10,8 +10,9 @@
  * At the end of the shift, on a phone: pick the shift (or type the window),
  * type the packs made and the rejects; the planned minutes are worked out —
  * the shift less its breaks (docs/CAPACITY.md §5), changed for the day only
- * with a reason; the rate is the plate speed of the line's critical machine,
- * said so, or said not to be. The stops were timed through the shift in
+ * with a reason; the rate is the ideal speed of the line's slowest station —
+ * a machine's plate speed, a person's standard time — said so, or said not
+ * to be. The stops were timed through the shift in
  * Capture — they are read here, never typed again. Saved once, on "Save the
  * count" — not on every keystroke. While it runs, the running speed is timed
  * (the packs in a timed minute): what tells slow running from short stops.
@@ -29,7 +30,7 @@ import { now, uid } from '../lib/ids';
 import { niceDay, todayISO } from '../lib/weeks';
 import { shiftWindow } from '../lib/shifts';
 import { nav } from '../state/useRoute';
-import { gbp, isRest, lossSays, rateOf, minWords, packs, plannedOf, rateKnown, rateWords, runningOf, splitWords, stopsOfBar, windowWords, type LossBar, type LossFigures, type LossSays, type RateOf } from '../lib/ie/losses';
+import { gbp, isRest, lossSays, paceWords, rateOf, minWords, packs, plannedOf, rateKnown, rateWords, runningOf, splitWords, stopsOfBar, windowWords, type LossBar, type LossFigures, type LossSays, type RateOf } from '../lib/ie/losses';
 import { sixmLabel } from '../lib/sixm';
 import { Sheet } from '../ui/Sheet';
 import { lossFiguresOf, recordHref, ROLE_WORD, type StudyContext } from '../lib/studyLinks';
@@ -302,11 +303,11 @@ function BarSheet({ bar, f, c, obs, workspaceId, board, raised, canBetter, onJob
         <dl className="lf-facts">
           {bar.asset && <div><dt>Where</dt><dd>{bar.asset}</dd></div>}
           <div><dt>How known</dt><dd>{bar.kind === 'rejects' ? `${packs(bar.packs ?? 0)} packs counted, at ${rateWords(f.rate ?? 0)}`
-            : bar.kind === 'performance' ? 'Not logged — what the count says was lost, less every stop timed, the changeovers and the rejects: running below the plate speed, and stops too short to log, not yet told apart. Time the running speed on the count to split them.'
-              : bar.kind === 'slow' ? (splitWords(f) ?? 'The running speed timed against the plate speed.')
+            : bar.kind === 'performance' ? `Not logged — what the count says was lost, less every stop timed, the changeovers and the rejects: running below the ${f.ideal}, and stops too short to log, not yet told apart. Time the running speed on the count to split them.`
+              : bar.kind === 'slow' ? (splitWords(f) ?? `The running speed timed against the ${f.ideal}.`)
                 : bar.kind === 'short' ? 'Worked out — the rest once the slow running is timed: stops too short to log one by one.'
                   : `${KNOWN[bar.grade]} in Capture`}</dd></div>
-          {bar.kind !== 'performance' && <div><dt>Its bone</dt><dd>{sixmLabel(bar.bone)} — {bar.kind === 'rejects' ? 'the usual bone for a reject' : bar.kind === 'slow' || bar.kind === 'short' ? `the machine that sets the pace${c.rateMachine ? `, the ${c.rateMachine}` : ''}` : 'as the floor tapped it, or the usual bone for the reason'}</dd></div>}
+          {bar.kind !== 'performance' && <div><dt>Its bone</dt><dd>{sixmLabel(bar.bone)} — {bar.kind === 'rejects' ? 'the usual bone for a reject' : bar.kind === 'slow' && c.rateFrom === 'standard-time' ? `the person who sets the pace${c.ratePerson ? `, ${c.ratePerson}` : ''}` : bar.kind === 'slow' || bar.kind === 'short' ? `the machine that sets the pace${c.rateMachine ? `, the ${c.rateMachine}` : ''}` : 'as the floor tapped it, or the usual bone for the reason'}</dd></div>}
         </dl>
         {stops.length > 0 && (
           <ol className="lf-stops" aria-label="The stops">
@@ -345,9 +346,10 @@ const same = (a?: number, b?: number) => a !== undefined && b !== undefined && M
 
 /** THE COUNT. The planned minutes are WORKED OUT — the shift less its
  *  breaks, from the line's settings (docs/CAPACITY.md §5) — and changed for
- *  the day only with a reason kept beside them. The rate is the plate speed
- *  of the critical machine on the line's capacity (lib/ie/losses rateOf),
- *  said so; a number typed over it is said to be typed. */
+ *  the day only with a reason kept beside them. The rate is the ideal speed
+ *  of the line's slowest station on its capacity — a machine's plate speed,
+ *  a person's standard time (lib/ie/losses rateOf) — said so; a number
+ *  typed over it is said to be typed. */
 function CountForm({ s, line, rate: plate, editable }: { s: ToolStudy; line?: Workspace; rate: RateOf; editable: boolean }) {
   const c = s.facts.losses;
   const shifts = line?.shifts ?? [];
@@ -376,11 +378,13 @@ function CountForm({ s, line, rate: plate, editable }: { s: ToolStudy; line?: Wo
   const bad = [n.planned, n.made, n.rejects, n.rate, n.breaks].some(v => v !== undefined && (!Number.isFinite(v) || v < 0));
   const problem = !window ? 'The window needs a start and an end.' : bad ? 'Numbers only, none below zero.'
     : changed && !why.trim() ? 'Say why the planned minutes are not the shift less its breaks — it is kept with the count.' : '';
-  /* where the rate is from: the plate speed when it is that number; else as
+  /* where the rate is from: the ideal speed when it is that number; else as
      the count had it when it is the count's own; else typed */
+  const whence = (x: Pick<LossCount, 'rateFrom' | 'rateMachine' | 'ratePerson' | 'rateTimed'>): Pick<LossCount, 'rateFrom' | 'rateMachine' | 'ratePerson' | 'rateTimed'> => ({
+    rateFrom: x.rateFrom ?? 'typed', ...(x.rateMachine ? { rateMachine: x.rateMachine } : {}), ...(x.ratePerson ? { ratePerson: x.ratePerson } : {}), ...(x.rateTimed ? { rateTimed: true } : {}) });
   const from_ = n.rate === undefined ? undefined
-    : same(n.rate, plate.ratePerMin) ? { rateFrom: plate.rateFrom ?? 'typed', ...(plate.rateMachine ? { rateMachine: plate.rateMachine } : {}) }
-      : same(n.rate, c?.ratePerMin) && c?.rateFrom ? { rateFrom: c.rateFrom, ...(c.rateMachine ? { rateMachine: c.rateMachine } : {}) }
+    : same(n.rate, plate.ratePerMin) ? whence(plate)
+      : same(n.rate, c?.ratePerMin) && c?.rateFrom ? whence(c)
         : { rateFrom: 'typed' as const };
 
   const save = () => {
@@ -459,11 +463,10 @@ function CountForm({ s, line, rate: plate, editable }: { s: ToolStudy; line?: Wo
         <label className="field lf-rate"><span className="field-label">Rate a minute</span>
           <input className="text-input" inputMode="decimal" value={rate} aria-label="Rate a minute" placeholder="e.g. 100" onChange={e => setRate(e.target.value)} />
           <span className="sub lf-rate-why">{n.rate === undefined ? plate.why
-            : from_?.rateFrom === 'plate' ? `plate speed of the ${from_.rateMachine ?? 'critical machine'}`
-              : from_?.rateFrom === 'standard' ? 'the line standard’s target — not a plate speed'
-                : plate.ratePerMin !== undefined
-                  ? <>typed · <button type="button" className="linkish" onClick={() => setRate(String(plate.ratePerMin))}>use the {plate.rateFrom === 'plate' ? `plate speed of the ${plate.rateMachine ?? 'critical machine'}` : 'line standard’s target'}, {plate.ratePerMin}</button></>
-                  : plate.why}</span></label>
+            : from_ && from_.rateFrom !== 'typed' ? paceWords(from_)
+              : plate.ratePerMin !== undefined
+                ? <>typed · <button type="button" className="linkish" onClick={() => setRate(String(plate.ratePerMin))}>use {plate.rateFrom === 'standard' ? 'the line standard’s target' : plate.rateFrom === 'standard-time' && plate.rateTimed ? paceWords(plate) : `the ${paceWords(plate)}`}, {plate.ratePerMin}</button></>
+                : plate.why}</span></label>
       </div>
       {problem && <p className="ie-problem">{problem}</p>}
       <div className="ie-agree-act">
@@ -478,7 +481,7 @@ function CountForm({ s, line, rate: plate, editable }: { s: ToolStudy; line?: Wo
 /** THE RUNNING SPEED, TIMED WHILE IT RUNS (docs/CAPACITY.md §5): the packs
  *  off the line in a timed spell — a list, each with when and who, pooled.
  *  It is what tells slow running from short stops: slow running = run time
- *  × (plate − running speed) ÷ plate; short stops the rest. Each timing is
+ *  × (ideal − running speed) ÷ ideal; short stops the rest. Each timing is
  *  kept the moment it is added (its own list, so two phones both keep
  *  theirs); a wrong one is struck, never erased. */
 function RunningSpeed({ s, f, editable, me }: { s: ToolStudy; f: LossFigures; editable: boolean; me?: string }) {
@@ -488,7 +491,7 @@ function RunningSpeed({ s, f, editable, me }: { s: ToolStudy; f: LossFigures; ed
   const [sec, setSec] = useState('60');
   const p = numOr(packsT), sc = numOr(sec);
   const ok = p !== undefined && Number.isFinite(p) && p >= 0 && sc !== undefined && Number.isFinite(sc) && sc > 0;
-  const machine = s.facts.losses?.rateMachine;
+  const machine = s.facts.losses?.rateMachine ?? s.facts.losses?.ratePerson;
   if (!editable && !list.length) return null;
   const add = () => {
     if (!ok) return;
@@ -501,7 +504,7 @@ function RunningSpeed({ s, f, editable, me }: { s: ToolStudy; f: LossFigures; ed
     <section className="lf-run" aria-label="The running speed">
       <small className="ie-h">The running speed — timed while it runs</small>
       <p className="sub lf-run-say">{r
-        ? <><b>{rateWords(r.perMin)}</b> over {r.n} timing{r.n === 1 ? '' : 's'} ({Number(r.min.toFixed(1))} min){f.rate !== undefined ? ` · the plate is ${rateWords(f.rate)}` : ''}{f.slowMin !== undefined ? ` — ${minWords(f.slowMin)} slow running, ${minWords(f.shortMin ?? 0)} short stops` : ''}</>
+        ? <><b>{rateWords(r.perMin)}</b> over {r.n} timing{r.n === 1 ? '' : 's'} ({Number(r.min.toFixed(1))} min){f.rate !== undefined ? ` · the ${f.ideal} is ${rateWords(f.rate)}` : ''}{f.slowMin !== undefined ? ` — ${minWords(f.slowMin)} slow running, ${minWords(f.shortMin ?? 0)} short stops` : ''}</>
         : `Count the packs off the ${machine ?? 'line'} for a timed minute while it runs — what tells slow running from short stops.`}</p>
       {list.length > 0 && (
         <ol className="lf-runs">

@@ -245,7 +245,8 @@ function NewStudy({ open, tool, onClose }: { open: boolean; tool: StudyTool; onC
       const second = machine.trim() ? (isLine ? { product: machine.trim() } : { machine: machine.trim() }) : {};
       /* A line's map sits on the line, and on its product's line standard when
          there is one — its people are the lanes; a loss count takes the
-         plate speed of the line's critical machine as its rate (the
+         ideal speed of the line's slowest station as its rate — a machine's
+         plate speed, a person's standard time (the
          standard's capacity, else the job line's), the shift less its breaks
          as its planned minutes. */
       const std = isLine ? standards.find(x => !x.deletedAt && x.product.trim().toLowerCase() === machine.trim().toLowerCase()) : undefined;
@@ -285,7 +286,7 @@ function NewStudy({ open, tool, onClose }: { open: boolean; tool: StudyTool; onC
         <label className="field"><span className="field-label">{w.second.label} {!isChange && <i className="sub">optional</i>}</span>
           <input className="text-input" value={machine} maxLength={80} placeholder={w.second.placeholder} list={isLine ? 'new-map-products' : isChange ? 'new-co-products' : undefined} onChange={e => setMachine(e.target.value)} />
           {(isLine || isChange) && <datalist id={isLine ? 'new-map-products' : 'new-co-products'}>{standards.filter(x => !x.deletedAt).map(x => <option key={x.id} value={x.product} />)}</datalist>}
-          {isLine && standards.length > 0 && <span className="sub">{tool === 'map' ? 'A product with a line standard brings its people as the lanes.' : tool === 'losses' ? 'A product with a line standard brings its agreed rate a minute.' : 'A product with a line standard brings its people to watch.'}</span>}
+          {isLine && standards.length > 0 && <span className="sub">{tool === 'map' ? 'A product with a line standard brings its people as the lanes.' : tool === 'losses' ? 'A product with a line standard brings its pace: the plate speed of its slowest machine, or a person’s standard time.' : 'A product with a line standard brings its people to watch.'}</span>}
           {isChange && standards.length > 0 && <span className="sub">A product with a line standard is where Set as the standard writes the agreed sequence.</span>}
         </label>
         <button type="submit" className="btn btn-primary" disabled={!ready}>Start it</button>

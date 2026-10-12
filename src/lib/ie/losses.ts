@@ -14,15 +14,17 @@
  *
  *   planned production time = the shift − its planned stops (the breaks
  *                             the line stops for; none under relief)
- *   expected      = planned minutes × the critical machine's plate speed
+ *   expected      = planned minutes × the bottleneck's ideal speed — the
+ *                   slowest station's: a machine's plate speed, a person's
+ *                   standard time
  *   lost minutes  = (expected − good packs) ÷ the rate
  *   availability  = the stops logged + the changeovers  → run time
  *   quality       = rejects ÷ the rate
  *   performance   = lost − stops − changeovers − rejects, never below zero:
- *                   SLOW RUNNING AND SHORT STOPS — running below the plate,
- *                   and stops too short to log. Told apart by timing the
- *                   running speed: slow running = run time × (plate −
- *                   running speed) ÷ plate; short stops the rest.
+ *                   SLOW RUNNING AND SHORT STOPS — running below the ideal
+ *                   speed, and stops too short to log. Told apart by timing
+ *                   the running speed: slow running = run time × (ideal −
+ *                   running speed) ÷ ideal; short stops the rest.
  *
  * WHAT IT COSTS, in two parts, never one blended figure (§6): the idle
  * labour of the crew paid to stand (crew × wage × on-costs × minutes), and
@@ -40,7 +42,8 @@
  *   how known      every number says how: the planned minutes worked out
  *                  from the shift and its breaks (and why, when changed for
  *                  the day), the packs counted, the rate the plate speed of
- *                  the named machine or said not to be, the stops timed in
+ *                  the named machine or the standard time of the named
+ *                  person, or said not to be, the stops timed in
  *                  Capture, the running speed timed — and the rest is named
  *                  for what it is, slow running and short stops
  *   what it does   the rest is not split until a running speed is timed —
@@ -54,7 +57,7 @@ import type { LossCount, RunTiming } from '../study';
 import type { SixM } from '../sixm';
 import { boneOfStop } from '../sixm';
 import { labourPerHour } from '../cost';
-import { analyse, type Capacity } from '../capacity';
+import { analyse, type Capacity, type Station } from '../capacity';
 import { shiftWindow } from '../shifts';
 import { todayISO } from '../weeks';
 import type { Tone } from './sample';
@@ -76,52 +79,88 @@ const whole = (n: number) => Math.round(n);
 
 /* ------------------------------------------------------------- the rate */
 
-/** THE RATE IS PLATE SPEED (docs/CAPACITY.md §1, §4): the critical machine —
- *  the slowest machine on the line's capacity at running speed — at the
- *  speed on its plate, in the line's unit at the start of the line
- *  (lib/capacity puts every station there). `why` says it in words: "plate
- *  speed of the Bagger", or why there is none yet. */
-export interface PlateSpeed {
+/** THE RATE IS THE BOTTLENECK'S IDEAL SPEED (docs/CAPACITY.md §1, §5) —
+ *  Rowland: "plate speed ... of course, unless human". The line's slowest
+ *  station at running speed on its capacity, in the line's unit at the start
+ *  of the line (lib/capacity's chain): a machine at the speed on its plate,
+ *  a person at their standard time (from the time study, or their pace as
+ *  timed). `why` says it in words — "plate speed of the Bagger", "standard
+ *  time of Op 3 (the time study)", "Op 3's timed pace" — or why there is no
+ *  ideal speed yet. */
+export interface IdealPace {
   rate?: number;
-  machine?: string;
+  /** The station that sets the pace, and how its speed is known. */
+  station?: string;
+  how?: 'plate' | 'standard' | 'timed';
   why: string;
-  /** Any machine on the line is marked on the plate — then the standard's
-   *  target is never offered in its place. */
-  anyPlate: boolean;
+  /** Any station on the line has an ideal speed (a machine on the plate, a
+   *  person's standard time) — then the standard's target is never offered
+   *  in its place. */
+  anyIdeal: boolean;
 }
 
-const SOURCE: Record<string, string> = { timed: 'timed, not from its plate', estimate: 'a guess, not from its plate' };
+/** A station's speed is ideal: a machine's from its plate, a person's their
+ *  standard time — from the time study, or timed. */
+const idealSpeed = (x: Pick<Station, 'kind' | 'source'>): boolean => (x.kind === 'machine' ? x.source === 'plate' : x.source === 'standard' || x.source === 'timed');
+const MACHINE_NOT: Record<string, string> = { timed: 'timed, not from its plate', standard: 'a standard time, not from its plate', estimate: 'a guess, not from its plate' };
 
-export function plateOf(cap?: Pick<Capacity, 'stations'>): PlateSpeed {
+export function idealOf(cap?: Pick<Capacity, 'stations'>): IdealPace {
   const stations = cap?.stations ?? [];
-  const anyPlate = stations.some(x => x.kind === 'machine' && x.source === 'plate');
-  if (!stations.length) return { why: 'the line has no capacity sheet yet', anyPlate };
-  const r = analyse({ stations });
-  const crit = r.ok.filter(x => x.station.kind === 'machine').sort((a, b) => a.running - b.running)[0];
-  if (!crit) return { why: anyPlate ? 'the machines on the plate cannot be counted on Line capacity yet' : 'no machine on Line capacity has a speed yet', anyPlate };
-  const name = crit.station.name.trim() || `station ${crit.index + 1}`;
-  if (crit.station.source === 'plate') return { rate: Math.round(crit.running * 100) / 100, machine: name, why: `plate speed of the ${name}`, anyPlate };
-  return { why: `the ${name} sets the pace and its speed is ${SOURCE[crit.station.source ?? 'estimate'] ?? SOURCE.estimate}`, anyPlate };
+  const anyIdeal = stations.some(idealSpeed);
+  if (!stations.length) return { why: 'the line has no capacity sheet yet', anyIdeal };
+  const lim = analyse({ stations }).limitAtRunning;
+  if (!lim) return { why: anyIdeal ? 'the stations at their ideal speed cannot be counted on Line capacity yet' : 'no station on Line capacity has a speed yet', anyIdeal };
+  const name = lim.station.name.trim() || `station ${lim.index + 1}`;
+  const rate = Math.round(lim.running * 100) / 100;
+  const src = lim.station.source ?? 'estimate';
+  if (lim.station.kind === 'machine') {
+    return src === 'plate' ? { rate, station: name, how: 'plate', why: `plate speed of the ${name}`, anyIdeal }
+      : { why: `the ${name} sets the pace and its speed is ${MACHINE_NOT[src] ?? MACHINE_NOT.estimate}`, anyIdeal };
+  }
+  if (src === 'standard') return { rate, station: name, how: 'standard', why: `standard time of ${name} (the time study)`, anyIdeal };
+  if (src === 'timed') return { rate, station: name, how: 'timed', why: `${name}’s timed pace`, anyIdeal };
+  return { why: `${name} sets the pace and their speed is a guess — time them in the time study`, anyIdeal };
 }
 
-/** What a count's rate starts from: the plate speed; else the line
- *  standard's target, only when nothing on the line is on the plate; else
- *  typed — and `why` says which, in the words the count shows under it. */
-export interface RateOf { ratePerMin?: number; rateFrom?: LossCount['rateFrom']; rateMachine?: string; why: string }
+/** What a count's rate starts from: the pace-setter's ideal speed; else the
+ *  line standard's target, only when no station on the line has an ideal
+ *  speed; else typed — and `why` says which, in the words the count shows
+ *  under it. */
+export interface RateOf {
+  ratePerMin?: number; rateFrom?: LossCount['rateFrom']; rateMachine?: string; ratePerson?: string; rateTimed?: boolean;
+  why: string;
+}
 
 export function rateOf(cap: Pick<Capacity, 'stations'> | undefined, standardTarget?: number): RateOf {
-  const p = plateOf(cap);
-  if (p.rate !== undefined && p.rate > 0) return { ratePerMin: p.rate, rateFrom: 'plate', ...(p.machine ? { rateMachine: p.machine } : {}), why: p.why };
-  if (!p.anyPlate && standardTarget !== undefined && standardTarget > 0) return { ratePerMin: standardTarget, rateFrom: 'standard', why: 'the line standard’s target — not a plate speed' };
+  const p = idealOf(cap);
+  if (p.rate !== undefined && p.rate > 0 && p.how && p.station) {
+    return p.how === 'plate' ? { ratePerMin: p.rate, rateFrom: 'plate', rateMachine: p.station, why: p.why }
+      : { ratePerMin: p.rate, rateFrom: 'standard-time', ratePerson: p.station, ...(p.how === 'timed' ? { rateTimed: true } : {}), why: p.why };
+  }
+  if (!p.anyIdeal && standardTarget !== undefined && standardTarget > 0) return { ratePerMin: standardTarget, rateFrom: 'standard', why: 'the line standard’s target — not a plate speed' };
   return { why: `typed — ${p.why}` };
 }
 
-/** How the count's rate is known, as the sentence says it. */
-export function rateKnown(c?: Pick<LossCount, 'rateFrom' | 'rateMachine'>, product?: string): string {
-  if (c?.rateFrom === 'plate') return `the rate is the plate speed of the ${c.rateMachine ?? 'critical machine'}`;
-  if (c?.rateFrom === 'standard') return `the rate is the line standard’s target${product ? ` for ${product}` : ''} — not a plate speed`;
-  return 'the rate is typed';
+/** Where the rate is from, in the count's words: "plate speed of the
+ *  Bagger", "standard time of Op 3 (the time study)", "Op 3's timed pace",
+ *  "the line standard's target — not a plate speed", "typed". */
+export function paceWords(c?: Pick<LossCount, 'rateFrom' | 'rateMachine' | 'ratePerson' | 'rateTimed'>, product?: string): string {
+  if (c?.rateFrom === 'plate') return `plate speed of the ${c.rateMachine ?? 'machine that sets the pace'}`;
+  if (c?.rateFrom === 'standard-time') return c.rateTimed ? `${c.ratePerson ?? 'the pace-setter'}’s timed pace` : `standard time of ${c.ratePerson ?? 'the pace-setter'} (the time study)`;
+  if (c?.rateFrom === 'standard') return `the line standard’s target${product ? ` for ${product}` : ''} — not a plate speed`;
+  return 'typed';
 }
+
+/** How the count's rate is known, as the sentence says it. */
+export function rateKnown(c?: Pick<LossCount, 'rateFrom' | 'rateMachine' | 'ratePerson' | 'rateTimed'>, product?: string): string {
+  const w = paceWords(c, product);
+  return c?.rateFrom === 'plate' || (c?.rateFrom === 'standard-time' && !c.rateTimed) ? `the rate is the ${w}` : `the rate is ${w}`;
+}
+
+/** What the rate is called where the rest is said — "running below the
+ *  plate speed": the plate speed, the standard-time pace, or the rate. */
+export const idealWord = (c?: Pick<LossCount, 'rateFrom'>): string =>
+  c?.rateFrom === 'plate' ? 'plate speed' : c?.rateFrom === 'standard-time' ? 'standard-time pace' : 'rate';
 
 /* ------------------------------------------------------- planned minutes */
 
@@ -244,6 +283,9 @@ export interface LossFigures {
   excessMin?: number;
   /** The running speed timed, when any is. */
   running?: Running;
+  /** What the rate is called where the rest is said: "plate speed",
+   *  "standard-time pace", "rate" (idealWord). */
+  ideal: string;
   /** Told apart, once a running speed is timed: run × (plate − running) ÷
    *  plate, capped at the rest; the short stops what is left. */
   slowMin?: number;
@@ -336,7 +378,7 @@ export function lossFigures(count: LossCount | undefined, obs?: Observation[], c
   const base: LossFigures = {
     enough: !missing.length, missing, ...(planned !== undefined ? { plannedMin: planned } : {}), ...(rate !== undefined ? { rate } : {}), ...(made !== undefined ? { made } : {}),
     rejects, split: !!obs, logged: rows.length, stopsN: sum(rows.filter(o => !isChangeover(o)), stopsOf), stopsMin, byCause, changeoverMin, changeoverN,
-    explainedMin: 0, ...(running ? { running } : {}),
+    explainedMin: 0, ...(running ? { running } : {}), ideal: idealWord(count),
     ...(perHour > 0 ? { labourPerHour: perHour } : {}), ...(contrib ? { contributionPerPack: contrib.perPack, contributionFrom: contrib.from } : {}), bars: [],
   };
   if (planned === undefined || rate === undefined || made === undefined) return base;
@@ -350,15 +392,17 @@ export function lossFigures(count: LossCount | undefined, obs?: Observation[], c
   const rest = Math.max(0, lostMin - explained);
   const excess = Math.max(0, explained - lostMin);
   const runMin = Math.max(0, planned - stopsMin - changeoverMin);
-  /* TOLD APART by the running speed: below the plate, the slow running is
-     the run time at the speed it lacked; never more than the rest */
+  /* TOLD APART by the running speed: below the ideal speed, the slow
+     running is the run time at the speed it lacked; never more than the
+     rest. On a line a person paces it sits on People, else on Machine. */
+  const slowBone: SixM = count?.rateFrom === 'standard-time' ? 'people' : 'machine';
   const slowRaw = running ? (running.perMin < rate ? (runMin * (rate - running.perMin)) / rate : 0) : undefined;
   const slow = obs && slowRaw !== undefined ? Math.min(slowRaw, rest) : undefined;
   const short = slow !== undefined ? rest - slow : undefined;
   const tenth = (min: number) => lostMin > 0 && min / lostMin > REST_TENTH && min > 0.5;
   const restBars: LossBar[] = !obs ? []
     : slow !== undefined && short !== undefined ? [
-      ...(slow > 0.5 ? [{ key: 'slow', kind: 'slow' as const, label: 'Slow running', min: slow, bone: 'machine' as const, grade: 'measured' as const, ...(tenth(slow) ? { abnormal: true } : {}), ...money(slow) }] : []),
+      ...(slow > 0.5 ? [{ key: 'slow', kind: 'slow' as const, label: 'Slow running', min: slow, bone: slowBone, grade: 'measured' as const, ...(tenth(slow) ? { abnormal: true } : {}), ...money(slow) }] : []),
       ...(short > 0.5 ? [{ key: 'short', kind: 'short' as const, label: 'Short stops', min: short, bone: 'machine' as const, grade: 'none' as const, ...(tenth(short) ? { abnormal: true } : {}), ...money(short) }] : []),
     ]
       : rest > 0.5 ? [{ key: 'performance', kind: 'performance' as const, label: 'Slow running and short stops', min: rest, bone: 'machine' as const, grade: 'none' as const, ...(tenth(rest) ? { abnormal: true } : {}), ...money(rest) }] : [];
@@ -432,7 +476,7 @@ export function splitWords(f: LossFigures): string | undefined {
   const r = f.running, rate = f.rate;
   if (!r || rate === undefined || f.slowMin === undefined || f.shortMin === undefined) return undefined;
   const timed = `Running speed timed at ${rateWords(r.perMin)} over ${r.n} timing${r.n === 1 ? '' : 's'} (${num(r.min)} min)`;
-  if (f.abovePlate) return `${timed}, above the plate’s ${rateWords(rate)} — no slow running; check the plate speed or the timing.`;
+  if (f.abovePlate) return `${timed}, above the ${f.ideal} of ${rateWords(rate)} — no slow running; check the ${f.ideal} or the timing.`;
   const raw = f.slowRawMin ?? 0;
   const sum = `slow running = ${minWords(f.runMin ?? 0)} run × (${num(rate)} − ${num(r.perMin)}) ÷ ${num(rate)} = ${minWords(raw)}`;
   if (raw > (f.performanceMin ?? 0) + 0.5) return `${timed}: ${sum} — more than the ${minWords(f.performanceMin ?? 0)} the count leaves; time it again, or check the counts.`;
@@ -489,7 +533,7 @@ export function lossSays(f: LossFigures, c?: LossCount, o: { product?: string } 
   if (lost > 0 && !f.logged) lines.push({ text: 'No stops logged in the window — the Pareto is empty for this shift.', tone: 'n' });
   const split = splitWords(f);
   if (split) lines.push({ text: split, tone: f.abovePlate || (f.slowRawMin ?? 0) > rest + 0.5 ? 'a' : 'n' });
-  else if (rest > 0.5) lines.push({ text: 'Slow running and short stops is the rest: running below the plate speed, and stops too short to log — not yet told apart. Time the running speed while it runs to split them.', tone: 'n' });
+  else if (rest > 0.5) lines.push({ text: `Slow running and short stops is the rest: running below the ${f.ideal}, and stops too short to log — not yet told apart. Time the running speed while it runs to split them.`, tone: 'n' });
   lines.push(howKnown);
   const flagged = f.bars.filter(b => b.abnormal).sort((a, b) => b.min - a.min)[0];
   const tone: Tone = flagged || (f.excessMin ?? 0) > 0.5 ? 'a' : 'n';
@@ -503,21 +547,22 @@ export function lossSays(f: LossFigures, c?: LossCount, o: { product?: string } 
 export function barWords(b: LossBar, c?: LossCount, now?: number): string {
   const when = c ? ` on ${shiftWords(c)}, ${dayWords(c.from, now)}` : ' this shift';
   const at = b.asset ? ` on the ${b.asset}` : '';
+  const ideal = idealWord(c);
   switch (b.kind) {
     case 'cause': return `${b.label}${at} — ${minWords(b.min)} of stops (${b.stops ?? 0} stop${b.stops === 1 ? '' : 's'})${when}${barMoney(b)}`;
     case 'changeover': return `Changeovers${at} — ${minWords(b.min)} (${b.stops ?? 0})${when}${barMoney(b)}`;
     case 'rejects': return `Rejects — ${packs(b.packs ?? 0)} packs, ${minWords(b.min)} at the rate${when}${barMoney(b)}`;
-    case 'slow': return `Slow running — ${minWords(b.min)} below the plate speed${when}${barMoney(b)}`;
+    case 'slow': return `Slow running — ${minWords(b.min)} below the ${ideal}${when}${barMoney(b)}`;
     case 'short': return `Short stops — ${minWords(b.min)} of stops too short to log${when}${barMoney(b)}`;
-    default: return `${minWords(b.min)} of slow running and short stops${when}${barMoney(b)} — running below the plate speed, and stops too short to log`;
+    default: return `${minWords(b.min)} of slow running and short stops${when}${barMoney(b)} — running below the ${ideal}, and stops too short to log`;
   }
 }
 
 /** What a countermeasure raised from a bar should change — said before it is
  *  done, held against the next shift's count. */
-export function barExpect(b: LossBar): string {
+export function barExpect(b: LossBar, c?: Pick<LossCount, 'rateFrom'>): string {
   if (b.kind === 'performance') return `Slow running and short stops: ${minWords(b.min)} a shift — fewer on the next shift counted, the running speed timed to tell them apart`;
-  if (b.kind === 'slow') return `Slow running: ${minWords(b.min)} a shift — the running speed nearer the plate on the next shift counted`;
+  if (b.kind === 'slow') return `Slow running: ${minWords(b.min)} a shift — the running speed nearer the ${idealWord(c)} on the next shift counted`;
   return `${b.label}${b.asset ? ` on the ${b.asset}` : ''}: ${minWords(b.min)} a shift — fewer on the next shift counted`;
 }
 
@@ -594,14 +639,14 @@ export function lossLine(f: LossFigures, c: LossCount, now = Date.now()): { text
 export interface LossRow { cause: string; stops: string; minutes: string; labour: string; contribution: string; kind: LossBar['kind']; abnormal?: boolean }
 
 const restCause = (b: LossBar, f: LossFigures): string => {
-  if (b.kind === 'slow') return `Slow running — timed at ${rateWords(f.running?.perMin ?? 0)} against the plate’s ${rateWords(f.rate ?? 0)}`;
+  if (b.kind === 'slow') return `Slow running — timed at ${rateWords(f.running?.perMin ?? 0)} against the ${f.ideal} of ${rateWords(f.rate ?? 0)}`;
   if (b.kind === 'short') return 'Short stops — the rest once the slow running is timed: stops too short to log';
-  return 'Slow running and short stops — the rest: below the plate speed, and stops too short to log; not yet told apart';
+  return `Slow running and short stops — the rest: below the ${f.ideal}, and stops too short to log; not yet told apart`;
 };
 
 /** How the rate is known, on paper: ", the plate speed of the Bagger". */
-const rateSource = (c?: Pick<LossCount, 'rateFrom' | 'rateMachine'>): string =>
-  c?.rateFrom === 'plate' ? `, the plate speed of the ${c.rateMachine ?? 'critical machine'}` : c?.rateFrom === 'standard' ? ', the line standard’s target — not a plate speed' : ', typed';
+const rateSource = (c?: Pick<LossCount, 'rateFrom' | 'rateMachine' | 'ratePerson' | 'rateTimed'>): string =>
+  c?.rateFrom === 'plate' || (c?.rateFrom === 'standard-time' && !c.rateTimed) ? `, the ${paceWords(c)}` : `, ${paceWords(c)}`;
 
 /** THE WATERFALL AS A TABLE: a row per bar — cause · stops · minutes · idle
  *  labour · lost contribution — and the total lost; the head says how the
@@ -626,9 +671,9 @@ export function lossRows(f: LossFigures, c?: LossCount): { head: string; rows: L
  *  (a quarter of an hour's grace, so the count can be made in the last
  *  minutes) — else 06:00–14:00 today, typed, when the line has no shifts; the
  *  planned minutes the shift less its breaks (none under relief); the rate
- *  the plate speed (rateOf). Every one is changed on the count itself — they
+ *  the bottleneck's ideal speed (rateOf). Every one is changed on the count itself — they
  *  save the taps. */
-export function firstCount(shifts: Shift[], rate: Pick<RateOf, 'ratePerMin' | 'rateFrom' | 'rateMachine'> | undefined, t: number): LossCount {
+export function firstCount(shifts: Shift[], rate: Omit<RateOf, 'why'> | undefined, t: number): LossCount {
   const days = [todayISO(new Date(t - DAY)), todayISO(new Date(t))];
   const ended = shifts.flatMap(x => days.flatMap(d => { const w = shiftWindow(x, d); return w && w.to <= t + 15 * 60_000 ? [{ shift: x, ...w }] : []; }))
     .sort((a, b) => b.to - a.to)[0];
@@ -636,5 +681,6 @@ export function firstCount(shifts: Shift[], rate: Pick<RateOf, 'ratePerMin' | 'r
   const sh = ended?.shift;
   const breaks = { ...(sh?.breakMin !== undefined && sh.breakMin >= 0 ? { breakMin: sh.breakMin } : {}), ...(sh?.relief ? { relief: true } : {}) };
   return { ...(sh ? { shift: sh.name } : {}), from: w.from, to: w.to, plannedMin: plannedOf({ from: w.from, to: w.to, ...breaks }).workedOut, ...breaks,
-    ...(rate?.ratePerMin !== undefined && rate.ratePerMin > 0 ? { ratePerMin: rate.ratePerMin, rateFrom: rate.rateFrom ?? 'typed', ...(rate.rateMachine ? { rateMachine: rate.rateMachine } : {}) } : {}) };
+    ...(rate?.ratePerMin !== undefined && rate.ratePerMin > 0 ? { ratePerMin: rate.ratePerMin, rateFrom: rate.rateFrom ?? 'typed', ...(rate.rateMachine ? { rateMachine: rate.rateMachine } : {}),
+      ...(rate.ratePerson ? { ratePerson: rate.ratePerson } : {}), ...(rate.rateTimed ? { rateTimed: true } : {}) } : {}) };
 }

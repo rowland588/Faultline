@@ -1136,9 +1136,10 @@ export async function seedRandomSixMJob(seed: number): Promise<SixMJob & { lineI
      figure it puts on paper reconciled by the stress run. */
   if (lines.length && rand() < 0.6) {
     const l = pick(lines);
-    const from = pick(['plate', 'standard', 'typed'] as const);
+    const from = pick(['plate', 'standard-time', 'standard', 'typed'] as const);
     const c = shiftOf(Math.floor(rand() * 27), { ratePerMin: 40 + Math.floor(rand() * 60), plannedMin: 300 + Math.floor(rand() * 180), rateFrom: from,
-      rateMachine: from === 'plate' ? pick(['Bagger', ...AWKWARD.filter(Boolean)]) : undefined, breakMin: pick([0, 20, 30, 45, 60]), ...(rand() < 0.2 ? { relief: true } : {}),
+      rateMachine: from === 'plate' ? pick(['Bagger', ...AWKWARD.filter(Boolean)]) : undefined,
+      ...(from === 'standard-time' ? { ratePerson: pick(['Op 3', ...AWKWARD.filter(Boolean)]), ...(rand() < 0.5 ? { rateTimed: true } : {}) } : {}), breakMin: pick([0, 20, 30, 45, 60]), ...(rand() < 0.2 ? { relief: true } : {}),
       ...(rand() < 0.5 ? { plannedWhy: pick(AWKWARD) || 'stood for orders' } : {}),
       ...(rand() < 0.15 ? {} : { made: Math.floor(rand() * 40_000) }), ...(rand() < 0.5 ? { rejects: Math.floor(rand() * 900) } : {}), ...(rand() < 0.3 ? { shift: pick(AWKWARD).trim() || undefined } : {}) });
     const run = rand() < 0.4 ? timings(c.from, Array.from({ length: 1 + Math.floor(rand() * 4) }, () => Math.max(1, (c.ratePerMin ?? 60) * (0.8 + rand() * 0.25))), pick(['Lee Carty', ...AWKWARD.filter(Boolean)])) : undefined;

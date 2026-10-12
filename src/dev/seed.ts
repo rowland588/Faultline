@@ -731,7 +731,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   const lf = lossFigures(lossCount, await listObservations(line7Ws.id), { crew: 4, labourRatePerHour: 14.5, labourBurden: 1.3, marginPerPack: 0.04 });
   const bigBar = lf.bars[0];
   await putPaceTodo(act(barWords(bigBar, lossCount), { id: lossActionId, lineId: otherLine.id, pillar: bigBar.bone, where: bigBar.asset ?? '', why: studyTitle(lossStudy),
-    who: 'Lee Carty', due: iso(3), expect: barExpect(bigBar) }));
+    who: 'Lee Carty', due: iso(3), expect: barExpect(bigBar, lossCount) }));
   await putStudy({ id: lossProofId, tool: 'losses', name: `Shift 1, ${dayOf(d1.from)}`, product: 'Maris Piper 2kg', standardId: line7Std,
     workspaceId: line7Ws.id, projectId: paced.id,
     facts: { losses: { shift: 'Shift 1', from: d1.from, to: d1.to, breakMin: 30, plannedMin: 450, made: 40_900, rejects: 300, ratePerMin: 100, rateFrom: 'plate', rateMachine: 'Bagger' },
@@ -1010,9 +1010,9 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   /* A LOSS COUNT ON THE STAGE-GATE JOB'S LINE 7 — the twelve stops timed in
      the last twelve hours, in a window typed by hand (the line has no
      shifts), less an hour of breaks typed with it: 660 planned. The rate is
-     typed at 60 a minute: the Basketer sets the pace and its speed is timed,
-     not from its plate. The client report's Evidence appendix carries the
-     waterfall as a table. */
+     typed at 60 a minute (a new count here would offer the Packer's timed
+     pace, 48 bags a minute — a person, slower than every machine). The
+     client report's Evidence appendix carries the waterfall as a table. */
   const lossStageId = uid();
   await putStudy({ id: lossStageId, tool: 'losses', name: `${new Date(t - 12 * 3_600_000).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}–${new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}, ${new Date(t - 12 * 3_600_000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`,
     product: 'Maris Piper 2kg', standardId: lineOnly, workspaceId: ws.id, projectId: proj.id,

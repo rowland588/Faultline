@@ -37,7 +37,7 @@ import { headcount } from './standard';
 import type { ToolStudy } from './study';
 import { balance, secs } from './ie/balance';
 import { boneOfStep, currentBalance, currentLosses, lossFiguresOf } from './studyLinks';
-import { minWords, shiftWords, type LossBar } from './ie/losses';
+import { idealWord, minWords, shiftWords, type LossBar } from './ie/losses';
 import { dur, flowFigures, stepAt, stepFigure, valueOf, waitOf, whereOf } from './ie/steps';
 import { changeoverFigures, mins, stepFigure as changeoverStepFigure } from './ie/changeover';
 import { stateOf as materialState, daysLate } from './materials';
@@ -545,8 +545,8 @@ export function suggestionsFor(problem: Case, data: FishboneData, today = Date.n
      changeovers, each on the bone its stops sit on (the floor's taps, else
      the reason's usual bone), and once a running speed is timed, the slow
      running and the short stops, on Machine. About one machine, only that
-     machine's bars (the slow running is the critical machine's, whose plate
-     the rate is). Measured when every stop under it was timed on the
+     machine's bars (the slow running is the pace-setter's, whose ideal
+     speed the rate is — on People when a person paces the line). Measured when every stop under it was timed on the
      stopwatch, or the running speed timed; reported when any was typed;
      the short stops counted — what the packs counted leave. The slow
      running and short stops not yet told apart are never offered: nobody
@@ -560,11 +560,12 @@ export function suggestionsFor(problem: Case, data: FishboneData, today = Date.n
       const when = `${shiftWords(c)}, ${niceDay(isoOf(c.from))}`;
       const rest = lf.performanceMin ?? 0;
       const head = `Loss count: ${when} — ${minWords(lf.lostMin ?? 0)} lost${rest > 0.5 ? `, ${minWords(rest)} of slow running and short stops${lf.slowMin === undefined ? ', not yet told apart' : ''}` : ''}`;
-      const about = (x: LossBar) => (x.kind === 'slow' ? c.rateMachine : x.asset);
+      const about = (x: LossBar) => (x.kind === 'slow' ? c.rateMachine ?? c.ratePerson : x.asset);
       const biggest = lf.bars.filter(x => (x.kind === 'cause' || x.kind === 'changeover' || x.kind === 'slow' || x.kind === 'short') && x.min > 0.5 && (!scope.asset || sameThing(about(x), scope.asset)))
         .sort((a, b) => b.min - a.min).slice(0, 3);
       for (const b of biggest) {
-        const what = b.kind === 'slow' ? `Slow running${c.rateMachine ? ` below the ${c.rateMachine}’s plate speed` : ' below the plate speed'}`
+        const what = b.kind === 'slow' ? (c.rateFrom === 'plate' && c.rateMachine ? `Slow running below the ${c.rateMachine}’s plate speed`
+          : c.rateFrom === 'standard-time' && c.ratePerson ? `Slow running below ${c.ratePerson}’s standard-time pace` : `Slow running below the ${idealWord(c)}`)
           : b.kind === 'short' ? 'Short stops, too short to log' : `${b.label}${b.asset ? ` on the ${b.asset}` : ''}`;
         out.push(mk('study', `${count.id}#${b.key}`, b.bone, `${what} — ${minWords(b.min)} of the ${minWords(lf.lostMin ?? 0)} lost on ${when}`,
           b.kind === 'short' ? 'counted' : b.grade === 'measured' ? 'measured' : 'reported', { detail: head, label: count.name, tool: 'losses' }));

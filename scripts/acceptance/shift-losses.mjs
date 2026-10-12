@@ -35,6 +35,9 @@
  *      minutes and the rate are known, idle labour and lost contribution in
  *      two columns) and the countermeasure's before → after; the stage-gate
  *      client report's Evidence — the seeded count's table
+ *   8  a line a person paces: a new count takes Op 3's standard time (the
+ *      time study) as its rate when Op 3 is slower than every machine; on a
+ *      guess, typed and said why
  *   and a client reads a count and changes nothing.
  *
  * Every sentence is checked against the module that makes it (lib/ie/losses,
@@ -320,6 +323,45 @@ await page.setViewportSize({ width: 1360, height: 900 });
   const has = s => txt.includes(san(s).slice(0, 60));
   ok(!!ts?.rows && has('Evidence') && has(`Loss count - ${ts.s.name}`) && has(ts.line.slice(0, 50)) && has(ts.rows.head) && ts.rows.rows.every(r => has(r.cause)) && has(ts.rows.total.minutes),
     `7 the stage-gate client report: the count's sentence and table — "${ts?.rows?.head}"`);
+}
+
+/* ---- 8 · a line a person paces — "plate speed ... unless human" ----
+   Line 9 hand-packs: the Bagger's plate says 100 bags a minute, Op 3 packs a
+   case of 10 every 6.25 s on the time study's standard time — 96 bags a
+   minute, slower than every machine. A new count from Tools takes Op 3's
+   standard time as its rate, and says so; on a guess it is typed, and why. */
+{
+  const hp = await page.evaluate(async () => {
+    const db = await import('/src/db.ts');
+    const ws = await db.createWorkspace('Line 9 — hand pack');
+    await db.updateWorkspace({ ...ws, shifts: [{ name: 'Days', start: '06:00', end: '14:00', breakMin: 30 }] });
+    const t = Date.now(), id = crypto.randomUUID();
+    const std = { id, projectId: '', workspaceId: ws.id, product: 'Hand-packed 5kg', marks: [], sort: 0, createdAt: t, updatedAt: t,
+      capacity: { stations: [
+        { id: 'b', name: 'Bagger', kind: 'machine', unit: 'bags', contains: 1, rate: 100, ratePer: 'min', source: 'plate' },
+        { id: 'o3', name: 'Op 3', kind: 'people', unit: 'cases', contains: 10, cycleSec: 6.25, perCycle: 1, source: 'standard' },
+      ] } };
+    await db.putStandard(std);
+    return { wsId: ws.id, std };
+  });
+  const start = async () => {
+    await go('#/losses');
+    await page.getByRole('button', { name: 'New loss count' }).first().click(); await page.waitForTimeout(500);
+    await page.getByLabel('Which line').selectOption(hp.wsId); await page.waitForTimeout(500);
+    await page.locator('.lt-new input.text-input').last().fill('Hand-packed 5kg');
+    await page.getByRole('button', { name: 'Start it' }).click(); await page.waitForTimeout(1800);
+    return decodeURIComponent(page.url().split('/losses/')[1] ?? '').split(/[?&]/)[0];
+  };
+  const id1 = await start();
+  const t1 = await truth(id1);
+  const c1 = t1?.s.facts.losses;
+  ok(c1?.ratePerMin === 96 && c1.rateFrom === 'standard-time' && c1.ratePerson === 'Op 3' && !c1.rateMachine && (await words('.lf-rate-why')) === 'standard time of Op 3 (the time study)',
+    `8 a person slower than every machine sets the pace: ${c1?.ratePerMin} a minute — "${await words('.lf-rate-why')}"`);
+  await page.evaluate(async std => (await import('/src/db.ts')).putStandard({ ...std, capacity: { stations: std.capacity.stations.map(x => (x.id === 'o3' ? { ...x, source: 'estimate' } : x)) }, updatedAt: Date.now() }), hp.std);
+  const id2 = await start();
+  const c2 = (await truth(id2))?.s.facts.losses;
+  ok(c2?.ratePerMin === undefined && (await words('.lf-rate-why')) === 'typed — Op 3 sets the pace and their speed is a guess — time them in the time study',
+    `8 Op 3 on a guess: no rate offered — "${await words('.lf-rate-why')}"`);
 }
 
 /* ---- a client reads a count and changes nothing ---- */

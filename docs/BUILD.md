@@ -753,7 +753,8 @@ product's standard's existing `capacity` jsonb.
 - **The arithmetic** (`lib/ie/losses.ts`, tested on the worked example:
   450 × 100 = 45,000; made 36,500 → 85 min lost; 52 stops + 18 changeover +
   6 rejects explained; 9 of **slow running and short stops**): expected at
-  the critical machine's plate speed, the planned minutes the shift less its
+  the bottleneck's ideal speed (a machine's plate speed, a person's standard
+  time), the planned minutes the shift less its
   breaks, lost minutes, the minutes by cause, the changeovers as their own
   bar, the rejects in minutes, the rest — slow running and short stops,
   split by the running speed timed (never below zero — stops exceeding the
