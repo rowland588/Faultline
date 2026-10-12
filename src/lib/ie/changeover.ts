@@ -326,19 +326,26 @@ export function runningWords(run: Running): string {
 }
 
 /** The line's own shifts as a running pattern (Workspace.shifts — the clock
- *  windows Capture stamps a stop with): how many, and each one's hours. The
- *  breaks are not on a shift, so they are still asked. Nothing when no shift
- *  has both its times. */
-export function patternFromShifts(shifts: readonly { start?: string; end?: string }[] | undefined): Pick<RunningPattern, 'shiftsPerDay' | 'shiftHours'> | undefined {
+ *  windows Capture stamps a stop with): how many, each one's hours, and each
+ *  one's breaks when the line's settings say them for every shift (relief
+ *  is 0 — the line runs on). A break not said is still asked. Nothing when
+ *  no shift has both its times. */
+export function patternFromShifts(shifts: readonly { start?: string; end?: string; breakMin?: number; relief?: boolean }[] | undefined): Pick<RunningPattern, 'shiftsPerDay' | 'shiftHours' | 'shiftBreaks'> | undefined {
   const at = (t?: string): number | undefined => {
     const m = /^(\d{1,2}):(\d{2})$/.exec((t ?? '').trim());
     return m && Number(m[1]) < 24 && Number(m[2]) < 60 ? Number(m[1]) * 60 + Number(m[2]) : undefined;
   };
-  const hours = (shifts ?? []).map(x => {
+  const kept = (shifts ?? []).map(x => {
     const a = at(x.start), b = at(x.end);
-    return a === undefined || b === undefined || a === b ? 0 : ((b - a + 1440) % 1440) / 60;
-  }).filter(h => h > 0);
-  return hours.length ? { shiftsPerDay: hours.length, shiftHours: hours } : undefined;
+    const h = a === undefined || b === undefined || a === b ? 0 : ((b - a + 1440) % 1440) / 60;
+    /* the breaks the line's settings carry (the loss count's): relief covers
+       them — the line runs on, nothing comes off; else the minutes typed */
+    const brk = x.relief ? 0 : x.breakMin !== undefined && x.breakMin >= 0 ? x.breakMin : undefined;
+    return { h, brk };
+  }).filter(x => x.h > 0);
+  if (!kept.length) return undefined;
+  const breaks = kept.map(x => x.brk);
+  return { shiftsPerDay: kept.length, shiftHours: kept.map(x => x.h), ...(breaks.every(b => b !== undefined) ? { shiftBreaks: breaks as number[] } : {}) };
 }
 
 /** The changeovers a shift, a day and a week, from whichever the floor knows. */

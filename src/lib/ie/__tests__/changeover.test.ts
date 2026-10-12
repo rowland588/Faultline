@@ -179,6 +179,11 @@ describe('SMED — what the changeovers cost, extrapolated (worked example 2)', 
     expect(patternFromShifts([{ start: '06:00', end: '14:00' }, { start: '14:00', end: '22:00' }, { start: '22:00', end: '06:00' }, { start: '', end: '' }]))
       .toEqual({ shiftsPerDay: 3, shiftHours: [8, 8, 8] });
     expect(patternFromShifts([{ start: '', end: '' }])).toBeUndefined();
+    /* the breaks the line's settings carry come too — relief is 0; one not said leaves them all asked */
+    expect(patternFromShifts([{ start: '06:00', end: '14:00', breakMin: 30 }, { start: '14:00', end: '22:00', breakMin: 30, relief: true }]))
+      .toEqual({ shiftsPerDay: 2, shiftHours: [8, 8], shiftBreaks: [30, 0] });
+    expect(patternFromShifts([{ start: '06:00', end: '14:00', breakMin: 30 }, { start: '14:00', end: '22:00' }]))
+      .toEqual({ shiftsPerDay: 2, shiftHours: [8, 8] });
   });
   it('the speed is the critical machine\'s plate speed — unless people set the pace; else said as not a plate speed', () => {
     const st = (id: string, name: string, kind: 'machine' | 'people', rate: number, source: 'plate' | 'timed' | 'standard' | 'estimate') => ({ id, name, kind, unit: 'bags', contains: 1, rate, ratePer: 'min' as const, source });

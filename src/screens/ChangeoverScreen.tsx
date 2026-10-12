@@ -829,10 +829,18 @@ function RunSheet({ s, std, line, money, onClose }: { s: ToolStudy; std?: Standa
   const zeroOk = (t: string): number | undefined => { const v = Number(t.replace(',', '.')); return t.trim() && Number.isFinite(v) && v >= 0 ? v : undefined; };
   const useShifts = () => {
     if (!fromShifts?.shiftHours) return;
-    const hs = fromShifts.shiftHours;
+    const hs = fromShifts.shiftHours, bs = fromShifts.shiftBreaks;
     setShifts(String(hs.length));
-    if (hs.every(h => h === hs[0])) { setDiffer(false); setHours(String(hs[0])); } else { setDiffer(true); setEach(hs.map(String)); }
+    if (hs.every(h => h === hs[0]) && (!bs || bs.every(b => b === bs[0]))) {
+      setDiffer(false); setHours(String(hs[0])); if (bs) setBreaks(String(bs[0]));
+    } else { setDiffer(true); setEach(hs.map(String)); if (bs) setEachBreak(bs.map(String)); }
   };
+  /* "8 h less 30 min", "8 h, relief covers its breaks", or just "8 h" when the
+     line's settings do not say its breaks */
+  const shiftWords = (fromShifts?.shiftHours ?? []).map((h, i) => {
+    const b = fromShifts?.shiftBreaks?.[i];
+    return `${+h.toFixed(2)} h${b === undefined ? '' : b === 0 ? ', relief covers its breaks' : ` less ${+b.toFixed(1)} min`}`;
+  }).join('; ');
   const save = () => {
     const sh = numTyped(shifts), h = numTyped(hours), b = zeroOk(breaks), d = numTyped(days), w = numTyped(weeks), co = numTyped(count), rt = numTyped(rate);
     const eachH = differ ? Array.from({ length: n }, (_, i) => numTyped(each[i] ?? '')) : [];
@@ -864,7 +872,7 @@ function RunSheet({ s, std, line, money, onClose }: { s: ToolStudy; std?: Standa
     <Sheet open onClose={onClose} title="How the line runs">
       <form className="vs-step co-run" onSubmit={e => { e.preventDefault(); save(); }}>
         <p className="sub">What the changeovers cost, and how often each product can run, are worked out from this — never assumed. A shift runs for its length less the planned breaks the line stops for.</p>
-        {fromShifts && <button type="button" className="btn co-use-shifts" onClick={useShifts}>Use {line?.name ? `${line.name}'s` : 'the line\'s'} shifts — {fromShifts.shiftHours?.length} shift{fromShifts.shiftHours?.length === 1 ? '' : 's'}: {fromShifts.shiftHours?.map(x => `${+x.toFixed(2)} h`).join(', ')}</button>}
+        {fromShifts && <button type="button" className="btn co-use-shifts" onClick={useShifts}>Use {line?.name ? `${line.name}'s` : 'the line\'s'} shifts — {fromShifts.shiftHours?.length} shift{fromShifts.shiftHours?.length === 1 ? '' : 's'}: {shiftWords}</button>}
         <div className="vs-step-times">
           <label className="field"><span className="field-label">Shifts a day</span>
             <input className="text-input" inputMode="numeric" value={shifts} placeholder="e.g. 2" onChange={e => setShifts(e.target.value)} /></label>
