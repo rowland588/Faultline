@@ -14,7 +14,7 @@
  * palletiser can give 2 more at the very most. */
 import { describe, it, expect } from 'vitest';
 import {
-  analyse, blankStation, shortSays, capacityPlan, capacityReport, CAP_REPORT_ROWS, crossCheck, fmtN, isWaiting, lineIfRaised, perMinute, stopStats, suggestRunning,
+  analyse, blankStation, shortSays, capacityPlan, capacityReport, CAP_REPORT_ROWS, crossCheck, fmtN, isChangeoverStop, isWaiting, lineIfRaised, perMinute, stopStats, suggestRunning,
   type Capacity, type Station,
 } from '../capacity';
 import type { Observation } from '../../types';
@@ -240,8 +240,13 @@ describe('stops, own and waiting kept apart', () => {
   const stats = stopStats(log, [a, b], 0, 28 * DAY);
 
   it('totals each station’s minutes by name, ignoring case, space and other machines', () => {
-    expect(stats[a.id]).toEqual({ ownMins: 30, waitMins: 40, events: 5, ownEvents: 4 });
-    expect(stats[b.id]).toEqual({ ownMins: 5, waitMins: 0, events: 1, ownEvents: 1 });
+    expect(stats[a.id]).toEqual({ ownMins: 30, waitMins: 40, events: 5, ownEvents: 4, changeoverMins: 0 });
+    expect(stats[b.id]).toEqual({ ownMins: 5, waitMins: 0, events: 1, ownEvents: 1, changeoverMins: 0 });
+  });
+  it('a stop logged as a changeover is its own, and kept apart too — the line’s planned stop', () => {
+    expect([isChangeoverStop({ category: 'Changeover' }), isChangeoverStop({ category: 'change-over' }), isChangeoverStop({ category: 'Breakdown', subcategory: 'Changeover parts' })]).toEqual([true, true, false]);
+    const st = stopStats([...log, obs({ asset: 'Basketer', durationMs: 42 * MIN, category: 'Changeover' })], [a], 0, 28 * DAY)[a.id];
+    expect([st.ownMins, st.changeoverMins, st.ownEvents]).toEqual([72, 42, 5]);
   });
   it('matches on the machine name the stops were logged under, when it is not the station’s name', () => {
     const c = basketer({ asset: 'Somewhere else' });

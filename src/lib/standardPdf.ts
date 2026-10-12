@@ -8,10 +8,10 @@ import { cardImage, type CardWork } from './standardCard';
 /** One page per product, in the order given; the first goes on the current
  *  page, which must already be A4 landscape. */
 export async function drawStandards(doc: jsPDF, standards: Standard[], projectName: string, printed: string,
-  works?: Record<string, CardWork | undefined>): Promise<void> {
+  works?: Record<string, CardWork | undefined>, shifts?: Record<string, string | undefined>): Promise<void> {
   for (let i = 0; i < standards.length; i++) {
     if (i > 0) doc.addPage('a4', 'landscape');
-    const img = await cardImage(standards[i], projectName, printed, works?.[standards[i].id]);
+    const img = await cardImage(standards[i], projectName, printed, works?.[standards[i].id], shifts?.[standards[i].id]);
     doc.addImage(img, 'JPEG', 0, 0, 842, 595);
   }
 }

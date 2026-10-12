@@ -47,7 +47,8 @@ async function standardsPdf(list: Standard[], name: string) {
   const { jsPDF } = await loadPdfLib();
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
   const { worksFor } = await import('../ui/WorkBalance');
-  await drawStandards(doc, list, name, printedToday(), await worksFor(list));
+  const { shiftShortsFor } = await import('../ui/ShiftCapacity');
+  await drawStandards(doc, list, name, printedToday(), await worksFor(list), await shiftShortsFor(list));
   return doc;
 }
 
@@ -69,9 +70,10 @@ function PrintSheet({ list, name, onClose }: { list: Standard[]; name: string; o
       try {
         const { cardImage } = await import('../lib/standardCard');
         const { worksFor } = await import('../ui/WorkBalance');
-        const works = await worksFor(list);
+        const { shiftShortsFor } = await import('../ui/ShiftCapacity');
+        const works = await worksFor(list), shifts = await shiftShortsFor(list);
         const out: string[] = [];
-        for (const st of list) out.push(await cardImage(st, name, printedToday(), works[st.id]));
+        for (const st of list) out.push(await cardImage(st, name, printedToday(), works[st.id], shifts[st.id]));
         if (live) setCards(out);
       } catch (e) {
         console.error('line standard card failed', e);

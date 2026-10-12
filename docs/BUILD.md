@@ -918,9 +918,24 @@ it, the owner's V margin, the client report printing the V's sentence and
 the bottleneck in ink; slice 2 — the bottleneck walk (`lib/ie/walk`, 5
 tests; a walk is a sampling study whose "people" are the stations); slice 3
 — a person at their standard time from the time study, a machine at its
-plate speed. Accepted by `scripts/acceptance/line-capacity.mjs`. Next: each
-buffer's accumulation against the minor stops at its neighbour (CAPACITY.md
-§4), and the changeovers a shift from SMED in the sheet.
+plate speed; slice 4 — each buffer's accumulation against the minor stops
+at its neighbour (CAPACITY.md §4); slice 5 — **capacity a shift**
+(`lib/capacity` shiftCapacity and shiftsIn, `lib/ie/changeover`
+changeoverIn, 6 tests worked by hand): under the sheet, on a product's
+standard, a row per shift of the line's own — its clock time, less the
+breaks the line stops for (the line's settings, relief 0, the loss count's
+own), less the changeovers SMED timed into this product (the standard's
+agreed minutes, else the SMED as timed — said which — × how many a shift
+the SMED says), at the bottleneck's speed; what it would make with none
+beside it, and the day summed. Nothing assumed: a shift with no breaks said
+is left out and named, a changeover not timed or not counted comes off
+nothing and is said so. A changeover stops the whole line, so it comes off
+the shift once, and a station's own stops logged as changeovers are left
+out of its running-share suggestion so they are never taken twice. On
+paper: the card at the line says it beside the limit ("Bagger limits at 100
+bags/min · 32,400 bags a shift — 126 of 450 min changing over"), its type brought
+down rather than cut. Accepted by `scripts/acceptance/line-capacity.mjs`,
+stories 1–7. Next: the mix's price and materials a pack.
 
 **For Rowland to decide, H1 and H2:** whether a prompt while the app is open
 is enough for the first cut of sampling (no push yet); the activities' names

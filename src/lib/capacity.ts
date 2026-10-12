@@ -504,7 +504,10 @@ export function lineIfRaised(r: CapacityResult, index: number, to: number): numb
 
 /* ======================= stops: from the timed log ======================== */
 
-export interface StopStats { ownMins: number; waitMins: number; events: number; /** Its own stops, counted — for the typical stop's length. */ ownEvents?: number }
+export interface StopStats { ownMins: number; waitMins: number; events: number; /** Its own stops, counted — for the typical stop's length. */ ownEvents?: number;
+  /** Of its own minutes, those logged as changeovers — the line's planned
+   *  stop, left out of its running share when SMED's come off the shift. */
+  changeoverMins?: number }
 
 /** Starved or blocked by a neighbour — not the station's own fault. */
 export const isWaiting = (o: Pick<Observation, 'category' | 'subcategory'>): boolean =>
@@ -514,7 +517,7 @@ export const isWaiting = (o: Pick<Observation, 'category' | 'subcategory'>): boo
  *  Matched on the machine name the stop was logged against. */
 export function stopStats(obs: Observation[], stations: Station[], from: number, to: number): Record<string, StopStats> {
   const out: Record<string, StopStats> = {};
-  for (const s of stations) out[s.id] = { ownMins: 0, waitMins: 0, events: 0, ownEvents: 0 };
+  for (const s of stations) out[s.id] = { ownMins: 0, waitMins: 0, events: 0, ownEvents: 0, changeoverMins: 0 };
   const key = (s: Station) => norm(s.asset?.trim() || s.name);
   for (const o of obs) {
     if (o.deletedAt || !(o.durationMs > 0) || o.startedAt < from || o.startedAt >= to) continue;
@@ -522,7 +525,8 @@ export function stopStats(obs: Observation[], stations: Station[], from: number,
     if (!st) continue;
     const m = o.durationMs / 60_000;
     const slot = out[st.id];
-    if (isWaiting(o)) slot.waitMins += m; else { slot.ownMins += m; slot.ownEvents = (slot.ownEvents ?? 0) + Math.max(1, o.count || 1); }
+    if (isWaiting(o)) slot.waitMins += m;
+    else { slot.ownMins += m; slot.ownEvents = (slot.ownEvents ?? 0) + Math.max(1, o.count || 1); if (isChangeoverStop(o)) slot.changeoverMins = (slot.changeoverMins ?? 0) + m; }
     slot.events += Math.max(1, o.count || 1);
   }
   return out;
@@ -897,3 +901,117 @@ export function accumulation(r: CapacityResult, stats: Record<string, StopStats>
   else sentence = uncovered.map((p, i) => `${i ? 'the' : 'The'} ${p.name.charAt(0).toLowerCase() + p.name.slice(1)}'s own stops last ${fmtN(Math.round(p.typicalMin * 10) / 10)} min on average; what can collect between it and ${ln} holds ${fmtN(Math.round(p.coverMin * 10) / 10)} min of ${ln}'s work — a typical stop there ${p.side === 'before' ? 'starves' : 'blocks'} ${ln}`).join('; ') + '.';
   return { rows, written, sentence };
 }
+
+/* ======================= capacity a shift (docs/CAPACITY.md §2) ======================
+ * Toyota's production capacity sheet works capacity A SHIFT: the time a shift
+ * less its planned stops, at the process's speed. On a packaging line the
+ * planned stops are the breaks the line stops for (the line's settings — the
+ * loss count's, relief 0) and the changeovers: SMED's minutes × how many a
+ * shift. A changeover stops the whole line, not one station, so it comes off
+ * the shift once; the bottleneck's speed, its own stops counted, does the
+ * rest. Nothing is assumed: a break not said, or a changeover not timed or
+ * not counted, is said so and left out of the sum. */
+export interface ShiftIn { name: string; min: number; /** Breaks the line stops for; 0 under relief; absent: not said. */ breakMin?: number }
+export interface ChangeoverIn {
+  /** One changeover, minutes — agreed on the standard, or as timed. */
+  min: number;
+  /** How many a shift; absent: not said. */
+  perShift?: number;
+  agreed: boolean;
+  /** The product it is changed from, when the standard's agreed one says. */
+  from?: string;
+}
+export interface ShiftRow { name: string; min: number; breakMin?: number; planned?: number; changeoverMin?: number; making?: number; made?: number; without?: number }
+export interface ShiftCapacity {
+  rows: ShiftRow[];
+  /** One line for the card at the line: "32,400 bags a shift — 126 of 450 min changing over". */
+  short?: string;
+  /** The day's sum, when every shift's breaks are said. */
+  day?: { made: number; without?: number; changeoverMin?: number };
+  sentence: string;
+}
+
+const big = (n: number): string => Math.round(n).toLocaleString('en-GB');
+const hoursWord = (m: number): string => `${fmtN(Math.round((m / 60) * 100) / 100)} h`;
+const minWord = (m: number): string => `${fmtN(Math.round(m * 10) / 10)} min`;
+
+export function shiftCapacity(r: CapacityResult, shifts: ShiftIn[], co?: ChangeoverIn): ShiftCapacity | undefined {
+  const lim = r.limit, rate = r.line;
+  if (!lim || rate == null || !(rate > 0)) return undefined;
+  if (!shifts.length) return { rows: [], sentence: 'The line’s shifts are not set — set them, with their breaks, in the line’s settings to see what it can make a shift.' };
+  const unit = r.unit, ln = nameOf(lim);
+  const coShift = co && co.min > 0 && co.perShift != null && co.perShift >= 0 ? co.min * co.perShift : undefined;
+  const rows: ShiftRow[] = shifts.map(s => {
+    const planned = s.breakMin != null && s.breakMin >= 0 ? Math.max(0, s.min - s.breakMin) : undefined;
+    const changeoverMin = planned != null && coShift != null ? Math.min(planned, coShift) : undefined;
+    const making = planned != null ? planned - (changeoverMin ?? 0) : undefined;
+    return {
+      name: s.name, min: s.min, ...(s.breakMin != null ? { breakMin: s.breakMin } : {}),
+      ...(planned != null ? { planned } : {}), ...(changeoverMin != null ? { changeoverMin } : {}),
+      ...(making != null ? { making, made: rate * making } : {}),
+      ...(planned != null && changeoverMin ? { without: rate * planned } : {}),
+    };
+  });
+  const said = rows.filter(x => x.planned != null);
+  const unsaid = rows.filter(x => x.planned == null).map(x => x.name);
+  const day = said.length === rows.length
+    ? { made: said.reduce((a, x) => a + (x.made ?? 0), 0),
+      ...(said.some(x => x.without != null) ? { without: said.reduce((a, x) => a + (x.without ?? x.made ?? 0), 0) } : {}),
+      ...(coShift != null ? { changeoverMin: said.reduce((a, x) => a + (x.changeoverMin ?? 0), 0) } : {}) }
+    : undefined;
+
+  /* how the changeovers were counted, in words */
+  const whose = co ? (co.agreed ? `the standard${co.from ? ` from ${co.from}` : ''}` : 'as timed on the SMED, not yet the standard') : '';
+  const coNot = !co ? 'no changeover is timed into this product yet — SMED times one; until then none comes off'
+    : co.perShift == null ? `a changeover is ${minWord(co.min)} (${whose}), but how many a shift is not said on the SMED — none comes off until it is`
+    : '';
+  const breaksNot = unsaid.length ? `${unsaid.join(', ')}: the breaks are not said on the line’s settings, so no capacity is worked out for ${unsaid.length === 1 ? 'it' : 'them'}` : '';
+  const at = `At ${ln}’s ${fmtN(rate)} ${unit} a minute`;
+  const one = rows.length === 1 || rows.every(x => x.min === rows[0].min && x.breakMin === rows[0].breakMin);
+  let head: string;
+  if (one && said.length) {
+    const x = said[0];
+    const shiftWords = `A shift of ${hoursWord(x.min)}${x.breakMin ? `, less ${minWord(x.breakMin)} of breaks the line stops for, is ${minWord(x.planned ?? 0)}` : x.breakMin === 0 ? ', the line running through its breaks, is ' + minWord(x.planned ?? 0) : ''}`;
+    const coWords = co && co.perShift != null && co.perShift > 0 && x.changeoverMin != null
+      ? `; ${fmtN(co.perShift)} changeover${co.perShift === 1 ? '' : 's'} of ${minWord(co.min)} (${whose}) take ${minWord(x.changeoverMin)} — ${minWord(x.making ?? 0)} making`
+      : co && co.perShift === 0 ? '; no changeovers a shift' : '';
+    head = `${shiftWords}${coWords}. ${at} that is ${big(x.made ?? 0)} ${unit} a shift${x.without != null ? ` — ${big(x.without)} if it never changed over` : ''}${rows.length > 1 ? `; ${rows.length} shifts a day, ${big(day?.made ?? 0)}` : ''}.`;
+  } else if (said.length) {
+    /* shifts that differ: each one's figure, the day summed — and the
+       changeovers said whole, how many, how long and how known, as for one */
+    const coWhat = co && co.perShift != null && co.perShift > 0 && coShift != null
+      ? `${fmtN(co.perShift)} changeover${co.perShift === 1 ? '' : 's'} a shift of ${minWord(co.min)} (${whose})` : '';
+    const takes = co?.perShift === 1 ? 'takes' : 'take';
+    const tail = day
+      ? ` — ${big(day.made)} ${unit} a day${coWhat && day.changeoverMin ? `; ${coWhat} ${takes} ${minWord(day.changeoverMin)} a day${day.without != null ? ` — ${big(day.without)} if it never changed over` : ''}` : co?.perShift === 0 ? '; no changeovers a shift' : ''}`
+      : ` ${unit}${coWhat ? `; ${coWhat} come${co?.perShift === 1 ? 's' : ''} off each` : ''}`;
+    head = `${at}: ${said.map(x => `${x.name} ${big(x.made ?? 0)}`).join(' · ')}${tail}.`;
+  } else head = '';
+  const notes = [coNot, breaksNot].filter(Boolean).map(t => t.charAt(0).toUpperCase() + t.slice(1) + '.');
+  const first = said[0];
+  const short = !first ? undefined : one
+    ? `${big(first.made ?? 0)} ${unit} a shift${first.changeoverMin ? ` — ${fmtN(Math.round(first.changeoverMin))} of ${fmtN(Math.round(first.planned ?? 0))} min changing over` : coShift == null ? ', changeovers not counted' : ''}`
+    : day ? `${big(day.made)} ${unit} a day${day.changeoverMin ? ` — ${fmtN(Math.round(day.changeoverMin))} min of it changing over` : coShift == null ? ', changeovers not counted' : ''}` : undefined;
+  return { rows, ...(short ? { short } : {}), ...(day ? { day } : {}), sentence: [head, ...notes].filter(Boolean).join(' ') };
+}
+
+/** The line's shifts as capacity a shift reads them (Workspace.shifts): each
+ *  one's minutes from its clock times, overnight included; its breaks — 0
+ *  under relief, else as set, else not said. A shift without both times is
+ *  left out. */
+export function shiftsIn(shifts: readonly { name?: string; start?: string; end?: string; breakMin?: number; relief?: boolean }[] | undefined): ShiftIn[] {
+  const at = (t?: string): number | undefined => {
+    const m = /^(\d{1,2}):(\d{2})$/.exec((t ?? '').trim());
+    return m && Number(m[1]) < 24 && Number(m[2]) < 60 ? Number(m[1]) * 60 + Number(m[2]) : undefined;
+  };
+  return (shifts ?? []).flatMap((x, i) => {
+    const a = at(x.start), b = at(x.end);
+    if (a === undefined || b === undefined || a === b) return [];
+    const brk = x.relief ? 0 : x.breakMin != null && x.breakMin >= 0 ? x.breakMin : undefined;
+    return [{ name: x.name?.trim() || `Shift ${i + 1}`, min: (b - a + 1440) % 1440, ...(brk != null ? { breakMin: brk } : {}) }];
+  });
+}
+
+/** A logged stop that is a changeover — the line's planned stop, not a
+ *  station's own (docs/CAPACITY.md §5). */
+export const isChangeoverStop = (o: Pick<Observation, 'category' | 'subcategory'>): boolean => /change\s?-?over/i.test(o.category || '');

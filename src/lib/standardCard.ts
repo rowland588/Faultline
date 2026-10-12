@@ -21,7 +21,7 @@
  *   │ Agreed by ____________  Date ______          Faultline  │
  *   └─────────────────────────────────────────────────────────┘ */
 import { getBlob } from '../db';
-import { analyse } from './capacity';
+import { analyse, shortSays } from './capacity';
 import { headcount, isShape, manyOf, markOf, MARKS, peopleOf, TONES, type Standard, type StandardMark } from './standard';
 
 /** A4 landscape at 150 dpi: sharp on paper, light enough for a phone. */
@@ -150,7 +150,8 @@ function drawShape(ctx: CanvasRenderingContext2D, m: StandardMark, ix: number, i
  *  and its sentence — printed beside each person and in the footer. */
 export interface CardWork { taktSec: number; people: { who: string; work: number; over: boolean; untimed?: boolean }[]; text: string; short?: string }
 
-export async function renderCard(s: Standard, projectName: string, printed: string, work?: CardWork): Promise<HTMLCanvasElement> {
+/** `shift`: capacity a shift, short (ui/ShiftCapacity shiftShortsFor) — "32,400 bags a shift — 126 of 450 min changing over". */
+export async function renderCard(s: Standard, projectName: string, printed: string, work?: CardWork, shift?: string): Promise<HTMLCanvasElement> {
   /* The photo first: nothing below waits on anything once drawing starts. A
      canvas draws in whatever face is loaded at that instant, so the app's own
      is asked for first — or the card came out in the system face. */
@@ -190,8 +191,21 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
   ctx.fillStyle = MUTED; ctx.font = `800 17px ${FONT}`; ctx.fillText(n === 1 ? 'PERSON' : 'PEOPLE', bx, by + 46);
   ctx.textAlign = 'left';
 
+  /* LINE CAPACITY for this product (lib/capacity), when it has one: where
+     the line is limited — beside the sign-off, so the card at the line says
+     who stands where AND what holds the line back; what it makes once its
+     breaks and changeovers come off (capacity a shift), on a line of its
+     own; and the work, timed, when it has been. Three facts take the foot a
+     line deeper — never one cut short at "…". */
+  const capR = s.capacity?.stations.length ? analyse(s.capacity) : undefined;
+  const said = [
+    !capR ? '' : shift ? shortSays(capR) ?? capR.sentence : capR.sentence,
+    capR && shift ? `Makes ${shift}` : '',
+    work ? `Work: ${work.short ?? work.text}` : '',
+  ].filter(Boolean);
+
   /* ---------------- the map ---------------- */
-  const top = bandH + 40, footH = 112;
+  const top = bandH + 40, footH = said.length > 2 ? 136 : 112;
   const sideW = 520, gap = 36;
   const mapX = M, mapW = CARD_W - 2 * M - sideW - gap, mapH = CARD_H - top - footH - 28;
   ctx.save();
@@ -293,16 +307,23 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
   ctx.beginPath(); ctx.moveTo(M + 132, fy + 56); ctx.lineTo(M + 520, fy + 56); ctx.stroke();
   ctx.fillText('Date', M + 560, fy + 54);
   ctx.beginPath(); ctx.moveTo(M + 630, fy + 56); ctx.lineTo(M + 830, fy + 56); ctx.stroke();
-  /* THE LINE BALANCE for this product (lib/capacity), when it has one: where
-     the line is limited, in its own sentence — beside the sign-off, so the
-     card at the line says who stands where AND what holds the line back. */
-  /* And the work, timed, when it has been: one line each, the two together. */
-  const said = [s.capacity?.stations.length ? analyse(s.capacity).sentence : '', work ? `Work: ${work.short ?? work.text}` : ''].filter(Boolean);
   if (said.length) {
-    ctx.fillStyle = BLUE; ctx.font = `800 17px ${FONT}`; ctx.fillText('L I N E   B A L A N C E', M + 880, fy + 30);
-    ctx.fillStyle = INK; ctx.font = `600 20px ${FONT}`;
-    const lines = said.length === 1 ? wrap(ctx, said[0], CARD_W - M - 170 - (M + 880), 2) : said.map(t => wrap(ctx, t, CARD_W - M - 170 - (M + 880), 1)[0]);
-    lines.forEach((l, i) => ctx.fillText(l, M + 880, fy + 56 + i * 24));
+    ctx.fillStyle = BLUE; ctx.font = `800 17px ${FONT}`; ctx.fillText('L I N E   C A P A C I T Y', M + 880, fy + 30);
+    ctx.fillStyle = INK;
+    const tw = CARD_W - M - 170 - (M + 880);
+    /* One fact wraps onto two lines; more take a line each, the type brought
+       down until each fits whole (to 14 px). */
+    if (said.length === 1) {
+      ctx.font = `600 20px ${FONT}`;
+      wrap(ctx, said[0], tw, 2).forEach((l, i) => ctx.fillText(l, M + 880, fy + 56 + i * 24));
+    } else {
+      said.forEach((t, i) => {
+        let px = 20;
+        ctx.font = `600 ${px}px ${FONT}`;
+        while (px > 14 && ctx.measureText(t).width > tw) { px -= 1; ctx.font = `600 ${px}px ${FONT}`; }
+        ctx.fillText(wrap(ctx, t, tw, 1)[0], M + 880, fy + 56 + i * 24);
+      });
+    }
   }
   ctx.textAlign = 'right'; ctx.fillStyle = INK2; ctx.font = `800 24px ${FONT}`;
   ctx.fillText('Faultline', CARD_W - M, fy + 54);
@@ -311,6 +332,6 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
 }
 
 /** The card as a JPEG, for the screen and the PDF alike. */
-export async function cardImage(s: Standard, projectName: string, printed: string, work?: CardWork): Promise<string> {
-  return (await renderCard(s, projectName, printed, work)).toDataURL('image/jpeg', 0.9);
+export async function cardImage(s: Standard, projectName: string, printed: string, work?: CardWork, shift?: string): Promise<string> {
+  return (await renderCard(s, projectName, printed, work, shift)).toDataURL('image/jpeg', 0.9);
 }

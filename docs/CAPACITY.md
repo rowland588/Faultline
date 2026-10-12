@@ -49,6 +49,18 @@ a row per station in flow order. The other two forms are already in the app:
 the **combination table** (the people's work against takt — the People view)
 and the **standardized work chart** (who stands where — the line standard).
 
+**Capacity a shift, in the app.** Under the sheet, on a product's standard:
+each of the line's shifts (its settings — the clock times and the breaks
+the line stops for, relief 0), less its changeovers into this product
+(SMED's minutes — the standard's agreed ones, else as timed, said which — ×
+how many a shift the SMED says), at the bottleneck's speed once its own
+stops count. Worked by hand: 8 h less 30 min of breaks is 450 min; 3
+changeovers of 42 min take 126; 324 min × 100 bags a minute = 32,400 bags a
+shift — 45,000 if it never changed over. A changeover stops the whole line,
+so it comes off the shift once, never also off a station's running share.
+A break not said, or a changeover not timed or not counted, is said so and
+left out of the sum — never assumed.
+
 ## 3. The bottleneck
 
 - **Worked out:** the station with the lowest effective capacity in the
@@ -159,7 +171,8 @@ already agreed before it is run; its words follow this time model (§5).
   the calculated bottleneck; each buffer's accumulation against the minor
   stops at its neighbour.
 - **SMED:** the changeover from the last good piece to the first good piece
-  at full rate; its minutes feed the capacity sheet's changeover column.
+  at full rate; its minutes × how many a shift come off each shift in Line
+  capacity's capacity a shift.
 - **The mix:** price and materials a pack, not a typed margin.
 
 ## Sources

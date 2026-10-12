@@ -12156,3 +12156,14 @@ button.co-step-b:hover { background: color-mix(in srgb, var(--brand) 5%, transpa
 .ptitle-edit:hover { color: var(--brand); }
 .ptitle-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .ptitle-input { flex: 1 1 280px; min-width: 0; max-width: 640px; font-size: 22px; font-weight: 700; margin: 0; }
+
+/* capacity a shift (ui/ShiftCapacity) — under the capacity sheet on a product's
+   standard: the line's shifts less their breaks and SMED's changeovers, at the
+   bottleneck. Neutral: a planned stop is not abnormal. */
+.shc { display: grid; gap: 6px; margin: 0 0 16px; }
+.shc-h { margin: 4px 0 0; font-size: var(--t-label); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.shc .cap-sheet-box { margin: 0; }
+.shc-t { min-width: 560px; }
+.shc-day td { border-top: 1.5px solid var(--line-2); }
+.shc-says { margin: 0; }
+.shc-go { justify-self: start; }

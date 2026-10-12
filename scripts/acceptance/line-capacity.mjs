@@ -18,10 +18,15 @@
  *   6  the bottleneck walked: Walk the line, each station tapped working ·
  *      starved · blocked · down, the verdict against the sums — on the walk
  *      and back on Line capacity
+ *   7  a shift: the line's own shifts less the breaks it stops for, less
+ *      the changeovers SMED timed into this product, at the bottleneck — a
+ *      shift with no breaks said left out, relief run through, the SMED as
+ *      timed and then as the standard, the day summed, on the card at the
+ *      line, and the way to the SMED
  *   and a client reads it and changes nothing.
  *
  * Every sentence is checked against the module that makes it (lib/capacity
- * analyse and vCurve, lib/ie/walk, lib/ie/balance). Fails on any console error.
+ * analyse, vCurve and shiftCapacity, lib/ie/walk, lib/ie/balance, lib/ie/changeover). Fails on any console error.
  *
  *   node scripts/acceptance/line-capacity.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
@@ -125,6 +130,74 @@ await page.locator('.vc-says').first().waitFor({ timeout: 10000 }).catch(() => {
   await go(CAP);
   ok((await words('.bw')).includes(want), '6 and Line capacity says it back, beside the sums');
 }
+/* ---- 7 a shift ---- capacity a shift (docs/CAPACITY.md §2): the line's
+   own shifts less the breaks it stops for, less the changeovers SMED timed
+   into this product, at the bottleneck — nothing assumed, each figure as
+   lib/capacity shiftCapacity says it, on the screen and on the card. */
+{
+  const shiftTruth = () => page.evaluate(async id => {
+    const db = await import('/src/db.ts'); const C = await import('/src/lib/capacity.ts'); const X = await import('/src/lib/ie/changeover.ts');
+    const st = await db.getStandard(id); const ws = await db.getWorkspace(st.workspaceId);
+    const c = C.shiftCapacity(C.analyse(st.capacity), C.shiftsIn(ws?.shifts), X.changeoverIn(st.capacity.changeovers, await db.listAllStudies(), id));
+    return c ? { sentence: c.sentence, short: c.short ?? null, rows: c.rows, day: c.day ?? null } : null;
+  }, SID);
+  const setShifts = shifts => page.evaluate(async ([wsId, shifts]) => { const db = await import('/src/db.ts'); const ws = await db.getWorkspace(wsId); await db.updateWorkspace({ ...ws, shifts }); }, [sd.wsId, shifts]);
+  const big = n => Math.round(n).toLocaleString('en-GB');
+  const seen = async () => (await page.locator('.shc-t tbody tr').allInnerTexts()).map(x => x.replace(/\s+/g, ' ').trim());
+
+  await setShifts([]); await go(CAP);
+  let t = await shiftTruth();
+  ok(!!t && (await words('.shc-says')) === t.sentence && /^The line’s shifts are not set/.test(t.sentence) && (await page.locator('.shc-t').count()) === 0, `7 no shifts on the line: said so, nothing worked out — ${t?.sentence}`);
+
+  await setShifts([{ name: 'Days', start: '06:00', end: '14:00', breakMin: 30 }, { name: 'Lates', start: '14:00', end: '22:00', breakMin: 30 }, { name: 'Nights', start: '22:00', end: '06:00' }]);
+  await go(CAP); t = await shiftTruth();
+  let rows = await seen();
+  ok(rows.length === 3 && t.rows[0].made != null && rows[0].includes(big(t.rows[0].made)) && /30 min/.test(rows[0]) && /none timed/.test(rows[0]) && /not set/.test(rows[2]) && t.rows[2].made == null
+    && (await words('.shc-says')) === t.sentence && /Nights: the breaks are not said/.test(t.sentence) && (await page.locator('.shc-day').count()) === 0,
+  `7 the line's shifts, each less its breaks at the bottleneck; Nights' breaks not said and left out — ${t.sentence}`);
+
+  await setShifts([{ name: 'Days', start: '06:00', end: '14:00', breakMin: 30 }, { name: 'Lates', start: '14:00', end: '22:00', breakMin: 30 }, { name: 'Nights', start: '22:00', end: '06:00', relief: true }]);
+  await go(CAP); t = await shiftTruth(); rows = await seen();
+  ok(/relief — 0/.test(rows[2]) && rows[2].includes(big(t.rows[2].made ?? -1)) && !!t.day && (await words('.shc-day')).includes(big(t.day.made)) && (await words('.shc-says')) === t.sentence && /No changeover is timed into this product yet/.test(t.sentence),
+  `7 Nights under relief runs through its breaks; the day summed, ${big(t.day?.made ?? 0)}; no changeover timed, none comes off`);
+
+  /* the SMED into this product, as timed — two a shift, how the line runs */
+  const smedId = await page.evaluate(async ([sid, wsId]) => { const db = await import('/src/db.ts'); const t = Date.now(); const id = crypto.randomUUID();
+    const el = (n, name, min, side, crew) => ({ id: crypto.randomUUID(), order: n, name, sec: min * 60, side, source: 'timed', at: t - (6 - n) * 300_000, who: 'K. Ahmed', crew, where: 'Bagger' });
+    await db.putStudy({ id, tool: 'changeover', name: 'Finest Red 2kg → Maris Piper 2kg', product: 'Maris Piper 2kg', standardId: sid, workspaceId: wsId,
+      facts: { fromProduct: 'Finest Red 2kg', toProduct: 'Maris Piper 2kg', sequence: [el(0, 'Stop and clear the former', 4, 'internal', ['Op 1']), el(1, 'Change the former tube', 10, 'internal', ['Op 1']), el(2, 'Change the film reel', 6, 'internal', ['Op 1']), el(3, 'First bags and check the seal', 4, 'internal', ['Op 1'])],
+        running: { shiftsPerDay: 3, hoursPerShift: 8, breakMin: 30, daysPerWeek: 5 }, changeovers: { count: 2, per: 'shift' } },
+      uses: [], startedAt: t - 1_800_000, createdAt: t, updatedAt: t });
+    return id; }, [SID, sd.wsId]);
+  await go(CAP); t = await shiftTruth(); rows = await seen();
+  const co = t.rows[0].changeoverMin;
+  ok(co > 0 && rows[0].includes(big(t.rows[0].made)) && rows[0].includes(`${big(t.rows[0].without)} with none`) && (await words('.shc-says')) === t.sentence
+    && /2 changeovers a shift of [\d.]+ min \(as timed on the SMED, not yet the standard\) take/.test(t.sentence),
+  `7 the SMED as timed: ${co} min of changeovers off each shift, what it makes with none beside it — ${t.sentence}`);
+
+  /* set as the standard: its agreed minutes, counted by the SMED it came from */
+  await page.evaluate(async ([sid, smedId]) => { const db = await import('/src/db.ts'); const st = await db.getStandard(sid);
+    await db.putStandard({ ...st, capacity: { ...st.capacity, changeovers: [{ id: crypto.randomUUID(), from: 'Finest Red 2kg', steps: [], minutes: 18, agreedAt: Date.now(), fromStudyId: smedId }] } }); }, [SID, smedId]);
+  await go(CAP); t = await shiftTruth(); rows = await seen();
+  ok(t.rows[0].changeoverMin === 36 && rows[0].includes('36 min') && (await words('.shc-says')) === t.sentence && /2 changeovers a shift of 18 min \(the standard from Finest Red 2kg\)/.test(t.sentence),
+  `7 set as the standard: 2 × 18 min off each shift — ${t.sentence}`);
+
+  /* the card at the line carries it — read off the card as it is drawn */
+  await go(`#/w/${sd.wsId}/standards/${SID}`);
+  await page.evaluate(() => { window.__drawn = []; const f = CanvasRenderingContext2D.prototype.fillText; CanvasRenderingContext2D.prototype.fillText = function (s, ...a) { window.__drawn.push(String(s)); return f.call(this, s, ...a); }; });
+  await page.getByRole('button', { name: 'PDF', exact: true }).first().click();
+  await page.locator('.ls-print-card').first().waitFor({ timeout: 15000 }).catch(() => {});
+  await page.waitForTimeout(800);
+  const drawn = (await page.evaluate(() => window.__drawn.join(' '))).replace(/\s+/g, ' ');
+  ok(!!t.short && drawn.includes('L I N E C A P A C I T Y') && drawn.includes(t.short), `7 the card at the line: "${t.short}"`);
+  await page.keyboard.press('Escape');
+
+  /* and The SMED into this product › opens it */
+  await go(CAP);
+  await page.locator('.shc-go').click(); await page.waitForTimeout(1500);
+  ok(page.url().includes(smedId), '7 The SMED into this product › opens the SMED');
+}
+
 /* ---- a client reads it and changes nothing ---- a line's own tool is its
    members' to change; on a job, a client of the job reads it. So the
    standard is put on the job first, as a person would attach it. */
@@ -140,5 +213,5 @@ await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
 
 ok(errors.length === 0, errors.length ? `no console errors — ${errors.join(' | ')}` : 'no console errors');
 await browser.close();
-console.log(failed ? `\n${failed} acceptance check(s) failed` : '\nLine capacity accepted: the V, the sheet, the margin, the standard time and the walk hold');
+console.log(failed ? `\n${failed} acceptance check(s) failed` : '\nLine capacity accepted: the V, the sheet, the margin, the standard time, the walk and a shift hold');
 process.exit(failed ? 1 : 0);

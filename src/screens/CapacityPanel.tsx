@@ -47,6 +47,7 @@ import { useLineStops } from '../lib/useLineStops';
 import { Icon } from '../ui/Icon';
 import { VCurveView } from '../ui/VCurve';
 import { BottleneckWalk } from '../ui/BottleneckWalk';
+import { ShiftCapacityView, useShiftInputs } from '../ui/ShiftCapacity';
 
 const PER_WORD: Record<RatePer, string> = { sec: 'a second', min: 'a minute', hour: 'an hour' };
 const SOURCES: { id: NonNullable<Station['source']>; label: string }[] = [
@@ -110,9 +111,12 @@ function CapacitySheet({ r, v, target, study, onUse }: { r: ReturnType<typeof an
 
 /* =============================== one station ================================ */
 
-function StationCard({ s, i, last, prevUnit, prevName, planned, why, wait, own, suggested, feed, arrives, patch, move, remove, assets, open: wantOpen, onToggle, ro }: {
+function StationCard({ s, i, last, prevUnit, prevName, planned, why, wait, own, coLeft = 0, suggested, feed, arrives, patch, move, remove, assets, open: wantOpen, onToggle, ro }: {
   s: Station; i: number; last: boolean; prevUnit?: string; prevName?: string; planned?: number;
   why?: string; wait: number; own: number; suggested?: number;
+  /** Of its own stops, the minutes logged as changeovers and left out of its
+   *  running share — they come off the shift on Line capacity's "A shift". */
+  coLeft?: number;
   /** What arrives against what it does, in its own unit — the station's own sentence. */
   feed?: string; arrives?: number;
   patch: (p: Partial<Station>) => void; move: (by: -1 | 1) => void; remove: () => void; assets: string[];
@@ -230,7 +234,7 @@ function StationCard({ s, i, last, prevUnit, prevName, planned, why, wait, own, 
           <DraftNumber className="text-input cap-num" value={s.runningPct} placeholder="100" label="Percent of the time it is running" onSave={v => patch({ runningPct: v })} />
           {suggested != null && suggested < 100 && suggested !== (s.runningPct ?? 100) && (
             <button className="cw-link cap-sug" onClick={() => patch({ runningPct: suggested })}>
-              Your last 4 weeks of stops say {suggested}% — use it
+              Your last 4 weeks of stops say {suggested}%{coLeft > 0 ? ` — ${Math.round(coLeft)} min of changeovers left out, they come off the shift` : ''} — use it
             </button>
           )}
           {suggested == null && own > 0 && !planned && (
@@ -275,7 +279,7 @@ function StationCard({ s, i, last, prevUnit, prevName, planned, why, wait, own, 
           )}
         </span>
         {(wait > 0 || own > 0) && (
-          <span className="cap-hint">Last 4 weeks: {Math.round(own)} min its own stops · {Math.round(wait)} min waiting on neighbours</span>
+          <span className="cap-hint">Last 4 weeks: {Math.round(own)} min its own stops{coLeft > 0 ? ` (${Math.round(coLeft)} of it changeovers)` : ''} · {Math.round(wait)} min waiting on neighbours</span>
         )}
       </div>
       </>}
@@ -356,6 +360,12 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
 
   const stops = useLineStops(line.workspaceId);
   const stats = useMemo(() => stopStats(stops.obs, current.stations, stops.from, stops.to), [stops.obs, stops.from, stops.to, current.stations]);
+  /* CAPACITY A SHIFT, on a product's standard (ui/ShiftCapacity): the line's
+     shifts and the changeover SMED timed into this product. When the
+     changeovers come off the shift, a station's own stops logged as
+     changeovers are left out of its running share — never taken twice. */
+  const shiftIn = useShiftInputs(line.workspaceId, walk?.standardId, cap.changeovers);
+  const coOff = !!(walk && shiftIn.co && shiftIn.co.perShift != null);
   const assets = useMemo(() => [...new Set(stops.obs.filter(o => !o.deletedAt && o.asset?.trim()).map(o => o.asset.trim()))].sort(), [stops.obs]);
 
   const r = useMemo(() => analyse(current), [current]);
@@ -557,6 +567,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
       {r.ok.length > 0 && <CapacitySheet r={r} v={vCurve(r, cap.vMarginPct)} target={current.targetPerMin} study={study}
         {...(can.edit ? { onUse: (id: string, cycleSec: number) => patchStation(id, { cycleSec, perCycle: 1, rate: undefined, source: 'standard', note: 'standard time, from the time study' }) } : {})} />}
       {r.ok.length > 0 && (() => { const acc = accumulation(r, stats); return acc.sentence ? <p className={'vc-says cap-acc' + (acc.rows.some(p => !p.covered) ? ' is-a' : '')}>{acc.sentence}</p> : null; })()}
+      {walk && r.ok.length > 0 && <ShiftCapacityView r={r} inputs={shiftIn} />}
       {walk && !w && <BottleneckWalk standardId={walk.standardId} product={walk.product} {...(line.workspaceId ? { workspaceId: line.workspaceId } : {})} {...(projectId ? { projectId } : {})}
         stations={r.ok.map(x => x.station.name.trim() || `Station ${x.index + 1}`)} {...(r.limit ? { calculated: r.limit.station.name.trim() || `Station ${r.limit.index + 1}` } : {})} canEdit={can.edit} />}
 
@@ -672,7 +683,8 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
           <StationCard key={s.id} s={s} i={i} last={i === current.stations.length - 1}
             prevUnit={current.stations[i - 1]?.unit} prevName={current.stations[i - 1]?.name} planned={cap.plannedHoursPerWeek} why={why(s.id)}
             wait={stats[s.id]?.waitMins ?? 0} own={stats[s.id]?.ownMins ?? 0}
-            suggested={suggestRunning(stats[s.id]?.ownMins ?? 0, cap.plannedHoursPerWeek, stops.weeks)}
+            coLeft={coOff ? stats[s.id]?.changeoverMins ?? 0 : 0}
+            suggested={suggestRunning((stats[s.id]?.ownMins ?? 0) - (coOff ? stats[s.id]?.changeoverMins ?? 0 : 0), cap.plannedHoursPerWeek, stops.weeks)}
             feed={result(s.id)?.feed} arrives={result(s.id)?.arrives}
             patch={p => patchStation(s.id, p)} move={by => move(i, by)} remove={() => remove(s)} assets={assets}
             open={editing === s.id || !s.name.trim()} onToggle={() => setEditing(editing === s.id ? null : s.id)} ro={!can.edit} />

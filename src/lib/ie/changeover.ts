@@ -46,8 +46,8 @@
  *   does not     changeover is timed again; the interval is "at most this
  *   claim        often": the free time has nothing else in it; the lost
  *                contribution is lost only if the packs cannot be made up */
-import type { ChangeoverProduct, ChangeoverStep, RunningPattern, SmedFunction, SmedHow, SmedRateFrom, StandardChangeover, StudyFacts } from '../study';
-import { lineSpeed, type Capacity } from '../capacity';
+import type { ChangeoverProduct, ChangeoverStep, RunningPattern, SmedFunction, SmedHow, SmedRateFrom, StandardChangeover, StudyFacts, ToolStudy } from '../study';
+import { lineSpeed, type Capacity, type ChangeoverIn } from '../capacity';
 import { labourPerHour } from '../cost';
 import type { Tone } from './sample';
 import { dur } from './steps';
@@ -780,4 +780,19 @@ export function changeoverSheet(facts: Pick<StudyFacts, 'sequence' | 'changeover
   const lines = f.enough ? [said.text, ...said.lines.filter(x => x.tone !== 'n').map(x => x.text), ladderSays(l).text, functionSays(list),
     cost.text, scaleSays(cost.scale), intervalSays(iv, f).text].filter(Boolean) : [];
   return { rows, total: { minutes: mins(f.nowSec), labour: mins(f.labourSec), internal: mins(f.internalSec), external: mins(f.externalSec) }, lines };
+}
+
+/** THE CHANGEOVER LINE CAPACITY TAKES OFF EACH SHIFT (docs/CAPACITY.md §2):
+ *  the standard's newest agreed minutes, else the newest SMED into the
+ *  product as timed; how many a shift from the SMED it came from — its count
+ *  and how the line runs. Nothing when no changeover is timed. */
+export function changeoverIn(agreed: StandardChangeover[] | undefined, studies: ToolStudy[], standardId: string): ChangeoverIn | undefined {
+  const a = [...(agreed ?? [])].sort((x, y) => y.agreedAt - x.agreedAt)[0];
+  const cur = studies.filter(s => !s.deletedAt && s.tool === 'changeover' && s.standardId === standardId).sort((x, y) => y.startedAt - x.startedAt)[0];
+  const src = (a && studies.find(s => s.id === a.fromStudyId && !s.deletedAt)) || cur;
+  const per = src ? changeoversOf(src.facts).shift : undefined;
+  const perShift = per != null && Number.isFinite(per) ? { perShift: Math.round(per * 100) / 100 } : {};
+  if (a && a.minutes > 0) return { min: a.minutes, ...perShift, agreed: true, ...(a.from ? { from: a.from } : {}) };
+  const nowMin = cur ? ladderOf(cur.facts.sequence).now.elapsedSec / 60 : 0;
+  return nowMin > 0 ? { min: Math.round(nowMin * 10) / 10, ...perShift, agreed: false } : undefined;
 }
