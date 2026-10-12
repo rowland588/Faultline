@@ -1069,6 +1069,39 @@ programs report and client report — the words, the commentary, the counts
 ("· 1 not tested, 1 with no program") and two tiles on the paper. Accepted
 by `scripts/acceptance/programs.mjs`.
 
+### Problems — one word, a RAG priority, a report card each (12 October)
+
+Rowland, the same afternoon: "We will change snags and fixes to the word
+problems ... we won't have snags and fixes, just problems ... also add a RAG
+status for the problems — critical red, high amber, low green — to show in
+order of priorities"; then "expand the problems — each can be a report card
+PDF ... the machine — it doesn't show our current machines to pick from".
+As built (live, 3ce3160):
+- **The word.** The page, its report, the rail, the jobs' and machines'
+  buttons, the job's own view and the capture button all say Problems. No
+  row says snag or fix: a problem on a line is a problem; on a job its fix
+  shows under it ("Fix: …"); one that started on a line says "seen first on"
+  it. The records are unchanged (Snag, TestItem, a fix Test) — only what is
+  said of them.
+- **The priority.** Critical · High · Low, in its colour with its word
+  (Rowland's own colour use, recorded in CLAUDE.md beside the value
+  stream's): a line's problem its own (`snags.priority`,
+  `supabase/PROBLEM_PRIORITY.sql`, applied and read back first), set on its
+  row or for several at once; a job's problem its Critical or High risk, a
+  fix its problem's, anything else Low. Every list in that order, the
+  counts Open · Critical · High · Low · Late · Done as the filters, the
+  sentence leading with them, the paper the same.
+- **Opened out, and its card.** Tap a problem and it opens where it sits —
+  its pictures, machine, line, dates, what was proposed, its latest word —
+  with Report card (PDF) (`lib/snagCardPdf`, PROBLEM, its priority first)
+  and Edit or Open on the job.
+- **The machine.** The problem sheet offers the line's machines and the
+  machines on the job it is for (every live job's when none), any other
+  typed; and asks its priority, which goes to a job as Critical or High
+  risk.
+- **Accepted by** `scripts/acceptance/snags.mjs` (1c priority, 1d opened out
+  and its card, 1e the machines).
+
 ### Snags & fixes — one place for every snag, problem and fix (12 October)
 
 Rowland, 12 October: "Ensure no confusion between snags, fixes, problems — I
