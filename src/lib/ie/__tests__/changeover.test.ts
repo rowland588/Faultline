@@ -119,7 +119,8 @@ describe('the changeover (tool 6)', () => {
   it('on paper: a row per step, the totals, and the figures in words', () => {
     const sheet = changeoverSheet({ sequence: carrySequence(seq()).map((x, i) => (i === 0 ? { ...x, source: 'timed' as const } : x)), perWeek: 6, products, availableMinPerDay: 450 });
     expect(sheet.rows[0]).toEqual({ n: 1, name: 'Stop and clear the former', side: 'Internal', minutes: '4 min', how: 'timed' });
-    expect(sheet.rows[1]).toEqual({ n: 2, name: 'Fetch the next former from the store', side: 'External', minutes: '5 min', how: 'carried from before' });
+    expect(sheet.rows[1]).toEqual({ n: 2, name: 'Fetch the next former from the store', side: 'External', minutes: '5 min', how: 'carried from before', carried: true });
+    expect(changeoverSheet({ sequence: seq() }, undefined, new Map([['c3', 'Pre-stage the film reels — external, 7 min']])).rows[3].branch).toBe('Pre-stage the film reels — external, 7 min');
     expect(sheet.total).toEqual({ minutes: '42 min', internal: '27 min', external: '15 min' });
     expect(sheet.lines).toEqual([
       '42 min now. With the 15 min of external work done while the line runs: 27 min — 90 min a week back, 6 changeovers.',

@@ -27,6 +27,13 @@ import type { Segment, SnagAsset, Snag } from '../snag/types';
 import type { Asset, DocRef, Test, TestItem } from '../lib/testing';
 import type { Material } from '../lib/materials';
 import type { Program } from '../lib/programs';
+import type { ChangeoverProduct, ChangeoverSide, ChangeoverStep } from '../lib/study';
+
+/* A CHANGEOVER's steps for the report jobs (lib/ie/changeover, tool 6): each
+   [what is done, minutes, side, how known], in order. */
+const coSeq = (rows: [string, number | undefined, ChangeoverSide, ChangeoverStep['source']][], at: number, who?: string): ChangeoverStep[] =>
+  rows.map(([name, min, side, source], i) => ({ id: `co${i}`, order: i, name, side, source,
+    ...(min !== undefined ? { sec: min * 60 } : {}), ...(source === 'timed' ? { at: at + i * 120_000, ...(who ? { who } : {}) } : {}) }));
 
 const uid = () => crypto.randomUUID();
 
@@ -162,6 +169,11 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
     /* A part of the plan on the stage, with a day — a branch under it on the plan. */
     await putTestItem({ id: uid(), projectId: proj.id, testId: only.id, kind: 'next', what: 'Mark out the guarding line with the safety officer',
       owner: 'Site electrician', due: iso(2), sort: 1, createdAt: t, updatedAt: t });
+    /* A CHANGEOVER JUST STARTED (tool 6): two steps typed, one with no time
+       yet, no products — the minutes "at least", the interval asking for them. */
+    await putStudy({ id: uid(), tool: 'changeover', name: 'Labels 4 × 6 → 6 × 8', projectId: proj.id,
+      facts: { fromProduct: 'Labels 4 × 6', toProduct: 'Labels 6 × 8', sequence: coSeq([['Swap the label reel', 6, 'internal', 'typed'], ['Load the new label template', undefined, 'external', 'typed']], t) },
+      uses: [], startedAt: t - 600_000, createdAt: t, updatedAt: t });
     return { projectId: proj.id, testId: only.id };
   }
 
@@ -260,7 +272,7 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
     await markedPhoto(['Seal jaw face scored across the middle', 'Heater lead chafed where it passes the guard']),
     await markedPhoto(['Belt worn through to the cords here', 'Tension arm bracket cracked', LONG[1]]),
   ];
-  let fixId: string | undefined, openFixId: string | undefined, balanceFixId: string | undefined, mapFixId: string | undefined;
+  let fixId: string | undefined, openFixId: string | undefined, balanceFixId: string | undefined, mapFixId: string | undefined, coFixId: string | undefined;
   for (let i = 0; i < 30; i++) {
     const a = machines[i % machines.length];
     const due = -8 + i;
@@ -274,6 +286,7 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
     if (i === 6) openFixId = f.id;
     if (i === 9) balanceFixId = f.id;
     if (i === 11) mapFixId = f.id;
+    if (i === 13) coFixId = f.id;
   }
   for (const x of tests) await putTest(x);
 
@@ -348,6 +361,44 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
     await putStudy({ id: uid(), ...scope,
       facts: { flow: flow(1.5 * H).map(x => ({ ...x, source: (x.id === 'qa' || x.id === 'bag' || x.id === 'pak' ? 'timed' : 'carried') as 'timed' | 'carried' })) },
       uses: [{ id: uid(), kind: 'fix', ref: mapFixId, role: 'proof', at: at(60) }], startedAt: at(90), createdAt: t, updatedAt: t });
+  }
+
+  /* A CHANGEOVER (lib/ie/changeover, tool 6), timed before and after a fix:
+     twenty steps, one with the longest name there is, the film reels
+     pre-staged inside the stop as the fix's evidence (the step it was raised
+     from), timed again as its proof with that step taken out and most of the
+     rest still carried — before → after on the fix's card, the steps as a
+     table in the Evidence appendix, the interval read from six products. */
+  if (size === 'huge' && coFixId) {
+    const ROWS: [string, number | undefined, ChangeoverSide, ChangeoverStep['source']][] = [
+      ['Run out the last bags of Finest Red', 3, 'internal', 'timed'], ['Stop the line and isolate the bagger', 1, 'internal', 'timed'],
+      ['Fetch the 1.25 kg former from the store', 6, 'external', 'timed'], ['Remove the 2 kg former tube', 7, 'internal', 'timed'],
+      ['Fit the 1.25 kg former tube and the collar', 9, 'internal', 'timed'], ['Pre-stage the film reels for Express — 2 reels, checked against the spec', 8, 'external', 'timed'],
+      ['Change the film reel and thread it', 6, 'internal', 'timed'], ['Splice the new film', 2, 'internal', 'timed'],
+      [LONG[0], 4, 'internal', 'typed'], ['Set the jaw temperature and the dwell', 3, 'internal', 'timed'],
+      ['Change the coder message for the Express date', 2, 'internal', 'timed'], ['Print the Express labels', 4, 'external', 'timed'],
+      ['Swap the case size on the case packer', 8, 'internal', 'timed'], ['Fetch the Express cases (Łukasz Wójcik, stores)', 5, 'external', 'timed'],
+      ['Change the checkweigher programme', 2, 'internal', 'timed'], ['Reset the metal detector for the new pack', 2, 'internal', 'timed'],
+      ['First bags off — check the seal and the weight', 5, 'internal', 'timed'], ['QA sign-off of the first pallet', 6, 'internal', 'typed'],
+      ['Clean down the old film off-cuts', 3, 'external', 'timed'], ['Restart and run up to rate', 4, 'internal', 'timed'],
+    ];
+    const products: ChangeoverProduct[] = [
+      { id: 'p1', product: 'Finest Red 2kg', demandPerDay: 9600, ratePerMin: 60 }, { id: 'p2', product: 'Tesco Express 1.25 kg', demandPerDay: 4500, ratePerMin: 50 },
+      { id: 'p3', product: 'Maris Piper 2kg', runMinPerDay: 70 }, { id: 'p4', product: 'King Edward 2.5kg', runMinPerDay: 40 },
+      { id: 'p5', product: 'Baby potatoes 1kg — "Jersey Royal" style, the long name on the spec', runMinPerDay: 25 }, { id: 'p6', product: 'Organic Rooster 2kg', runMinPerDay: 20 },
+    ];
+    const at = (k: number) => t - k * 60_000;
+    const scope = { tool: 'changeover' as const, name: 'Finest Red 2kg → Tesco Express 1.25 kg', projectId: proj.id, product: 'Tesco Express 1.25 kg', machine: machines[0].name,
+      ...(proj.workspaceIds?.[0] ? { workspaceId: proj.workspaceIds[0] } : {}) };
+    const facts = { fromProduct: 'Finest Red 2kg', toProduct: 'Tesco Express 1.25 kg', perWeek: 9, products, availableMinPerDay: 900 };
+    await putStudy({ id: uid(), ...scope, facts: { ...facts, sequence: coSeq(ROWS, at(600), 'Zoë Brontë') },
+      uses: [{ id: uid(), kind: 'fix', ref: coFixId, role: 'evidence', at: at(500), step: 'co5' }], startedAt: at(620), createdAt: t, updatedAt: t });
+    /* timed again: the reels pre-staged outside — gone from the stop; the first
+       four steps timed again, the rest still carried from before */
+    const again = coSeq(ROWS, at(100), 'Zoë Brontë').filter(x => x.id !== 'co5')
+      .map((x, i) => (i < 4 ? { ...x, source: 'timed' as const, ...(x.id === 'co4' ? { sec: 7 * 60 } : {}) } : (({ at: _a, who: _w, ...rest }) => { void _a; void _w; return { ...rest, source: 'carried' as const }; })(x)));
+    await putStudy({ id: uid(), ...scope, facts: { ...facts, sequence: again },
+      uses: [{ id: uid(), kind: 'fix', ref: coFixId, role: 'proof', at: at(60) }], startedAt: at(120), createdAt: t, updatedAt: t });
   }
 
   /* What was found: sixty, on tests and steps, some long. */
@@ -845,6 +896,38 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
       uses: [{ id: uid(), kind: 'action', ref: qaAct.id, role: 'evidence', at: t - 300 * 60_000, step: 'qa' }], startedAt: t - 360 * 60_000, createdAt: t, updatedAt: t });
     await putStudy({ id: uid(), ...scope, facts: { flow: flow(2 * H).map(x => ({ ...x, source: (x.id === 'qa' ? 'typed' : 'carried') as 'typed' | 'carried' })) },
       uses: [{ id: uid(), kind: 'action', ref: qaAct.id, role: 'proof', at: t - 30 * 60_000 }], startedAt: t - 40 * 60_000, createdAt: t, updatedAt: t });
+  }
+
+  /* A CHANGEOVER ON THE RUNNING LINE (tool 6): on the tiny job one step,
+     typed; on the huge job eight steps timed, a countermeasure raised from
+     the external work inside the stop (on Method), timed again as its proof
+     with that step outside — before → after on the board's action and the
+     report's countermeasure, the steps as a table in the Evidence appendix. */
+  {
+    const coScope = { tool: 'changeover' as const, name: huge ? 'Finest Red 2kg → Express 1.25 kg' : '2 kg → 1.25 kg', projectId: proj.id, product: 'Express 1.25 kg',
+      ...(lineA.workspaceId ? { workspaceId: lineA.workspaceId } : {}) };
+    if (!huge) {
+      await putStudy({ id: uid(), ...coScope, facts: { fromProduct: '2 kg', toProduct: '1.25 kg', sequence: coSeq([['Change the former tube', 12, 'internal', 'typed']], t) },
+        uses: [], startedAt: t - 900_000, createdAt: t, updatedAt: t });
+    } else {
+      const ROWS: [string, number, ChangeoverSide, ChangeoverStep['source']][] = [
+        ['Stop and clear the former', 4, 'internal', 'timed'], ['Fetch the next former from the store', 5, 'external', 'timed'], ['Change the former tube', 10, 'internal', 'timed'],
+        ['Pre-stage the film reels', 7, 'external', 'timed'], ['Change the film reel', 6, 'internal', 'timed'], ['Set the jaw temperature', 3, 'internal', 'timed'],
+        ['Print the new labels', 3, 'external', 'timed'], ['First bags and check the seal', 4, 'internal', 'timed'],
+      ];
+      const products: ChangeoverProduct[] = [
+        { id: 'p1', product: 'Finest Red 2kg', demandPerDay: 7200, ratePerMin: 60 }, { id: 'p2', product: 'Express 1.25 kg', demandPerDay: 3000, ratePerMin: 50 },
+        { id: 'p3', product: 'Maris Piper 2kg', runMinPerDay: 50 }, { id: 'p4', product: 'King Edward 2.5kg', runMinPerDay: 40 }, { id: 'p5', product: 'Baby potatoes 1kg', runMinPerDay: 30 },
+      ];
+      const facts = { fromProduct: 'Finest Red 2kg', toProduct: 'Express 1.25 kg', perWeek: 6, products, availableMinPerDay: 450 };
+      const coAct = act('Pre-stage the film reels — external, 7 min', { lineId: lineA.id, pillar: 'method', who: 'Rob Scott', due: iso(6),
+        why: 'Changeover — Finest Red 2kg → Express 1.25 kg', expect: 'Pre-stage the film reels: done while the line runs — the changeover timed again without it inside' });
+      await putPaceTodo(coAct);
+      await putStudy({ id: uid(), ...coScope, facts: { ...facts, sequence: coSeq(ROWS, t - 500 * 60_000, 'Rob Scott') },
+        uses: [{ id: uid(), kind: 'action', ref: coAct.id, role: 'evidence', at: t - 400 * 60_000, step: 'co3' }], startedAt: t - 520 * 60_000, createdAt: t, updatedAt: t });
+      await putStudy({ id: uid(), ...coScope, facts: { ...facts, sequence: coSeq(ROWS, t - 50 * 60_000, 'Rob Scott').filter(x => x.id !== 'co3') },
+        uses: [{ id: uid(), kind: 'action', ref: coAct.id, role: 'proof', at: t - 20 * 60_000 }], startedAt: t - 60 * 60_000, createdAt: t, updatedAt: t });
+    }
   }
 
   /* ------------------------------ the board ------------------------------ */

@@ -244,9 +244,24 @@ export function standardLine(a: StandardChangeover, day: (ms: number) => string)
   return `${mins(a.minutes * 60)} · ${a.steps.length} step${a.steps.length === 1 ? '' : 's'}${ext ? `, ${ext} external` : ''}${a.from ? ` · from ${a.from}` : ''} · agreed ${day(a.agreedAt)}`;
 }
 
+/** The agreed changeover a study stands against, from its product's line
+ *  standard: the one from the same product when the standard holds it, else
+ *  the standard's newest. */
+export function agreedFor(list: StandardChangeover[] | undefined, from?: string): StandardChangeover | undefined {
+  const all = list ?? [];
+  const f = (from ?? '').trim().toLowerCase();
+  return (f ? all.find(a => (a.from ?? '').trim().toLowerCase() === f) : undefined) ?? [...all].sort((a, b) => b.agreedAt - a.agreedAt)[0];
+}
+
 /* -------------------------------------------------------------- on paper */
 
-export interface ChangeoverRow { n: number; name: string; side: 'Internal' | 'External'; minutes: string; how: string }
+export interface ChangeoverRow {
+  n: number; name: string; side: 'Internal' | 'External'; minutes: string; how: string;
+  /** Carried from the changeover before, not timed again yet — its figure is the old one. */
+  carried?: boolean;
+  /** The fix or countermeasure raised from it — the branch off the step. */
+  branch?: string;
+}
 export interface ChangeoverSheet {
   rows: ChangeoverRow[];
   total: { minutes: string; internal: string; external: string };
@@ -258,14 +273,17 @@ const HOW: Record<ChangeoverStep['source'], string> = { timed: 'timed', typed: '
 
 /** THE CHANGEOVER AS A TABLE (lib/report/changeoverTable): a row per step in
  *  order — what is done, its side, its minutes, how it is known — the totals,
- *  and under them the figures the bars show, in words. */
-export function changeoverSheet(facts: { sequence?: ChangeoverStep[]; perWeek?: number; products?: ChangeoverProduct[]; availableMinPerDay?: number }, agreed?: Pick<StandardChangeover, 'minutes'>): ChangeoverSheet {
+ *  and under them the figures the bars show, in words. `branches` names the
+ *  record raised from a step, by step id. */
+export function changeoverSheet(facts: { sequence?: ChangeoverStep[]; perWeek?: number; products?: ChangeoverProduct[]; availableMinPerDay?: number }, agreed?: Pick<StandardChangeover, 'minutes'>,
+  branches: Map<string, string> = new Map()): ChangeoverSheet {
   const list = sorted(facts.sequence);
   const f = changeoverFigures(list, facts.perWeek);
   const iv = intervalOf(f, facts.products, facts.availableMinPerDay);
   const rows = list.map((st, i) => ({
     n: i + 1, name: st.name.trim() || 'A step', side: (st.side === 'external' ? 'External' : 'Internal') as ChangeoverRow['side'],
     minutes: hasTime(st) ? mins(secOf(st)) : 'no time yet', how: HOW[st.source] ?? 'typed',
+    ...(st.source === 'carried' ? { carried: true } : {}), ...(branches.get(st.id) ? { branch: branches.get(st.id) } : {}),
   }));
   const said = changeoverSays(f, agreed);
   const lines = f.enough ? [said.text, ...said.lines.filter(l => l.tone !== 'n').map(l => l.text), intervalSays(iv, f).text] : [];

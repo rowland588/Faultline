@@ -44,6 +44,8 @@ import { SIZE, box, font, gap, heading, label, lead, rows, text, wrap, type Row 
 import { fixTag, fixesOf } from '../ui/fishbone/layout';
 import { provedLine, ROLE_WORD, studyLine, studyTitle } from './studyLinks';
 import { streamRows } from './ie/steps';
+import { agreedFor, changeoverSheet } from './ie/changeover';
+import { changeoverBlocks } from './report/changeoverTable';
 import { streamBlocks } from './report/streamTable';
 import type { StudyUse } from './study';
 
@@ -214,7 +216,7 @@ export interface SixMReport {
   /** EVIDENCE — every study on the job (on the line, when the report is for
    *  one): what it is of, what it is used for, what it says, and a value
    *  stream's steps as a table — the same appendix the client report has. */
-  evidence: { title: string; used: string; line: string; tone: string; stream?: ReturnType<typeof streamRows> }[];
+  evidence: { title: string; used: string; line: string; tone: string; stream?: ReturnType<typeof streamRows>; changeover?: ReturnType<typeof changeoverSheet> }[];
 }
 
 export interface SixMInput {
@@ -515,7 +517,9 @@ export function sixmReport(o: SixMInput): SixMReport {
       const branches = new Map(s.uses.flatMap(u => { const t = u.step && u.role === 'evidence' ? recordTitle(u) : undefined; return t && u.step ? [[u.step, t] as [string, string]] : []; }));
       const l = studyLine(s);
       return { title: studyTitle(s), used: used || 'not used for a record yet', line: l.text, tone: l.tone,
-        ...(s.tool === 'map' && (s.facts.flow ?? []).length ? { stream: streamRows(s.facts.flow, s.agreed?.map, branches) } : {}) };
+        ...(s.tool === 'map' && (s.facts.flow ?? []).length ? { stream: streamRows(s.facts.flow, s.agreed?.map, branches) } : {}),
+        ...(s.tool === 'changeover' && (s.facts.sequence ?? []).length
+          ? { changeover: changeoverSheet(s.facts, agreedFor(data.standards.find(st => !st.deletedAt && st.id === s.standardId)?.capacity?.changeovers, s.facts.fromProduct), branches) } : {}) };
     });
 
   /* ------------------------------ the band ------------------------------- */
@@ -692,8 +696,9 @@ function blocksOf(r: SixMReport, d: Density): Block[] {
     r.evidence.forEach((e, i, all) => {
       out.push(text({ text: e.title, size: S.body, style: 'bold', before: i ? 4 : 0, after: 1 }));
       out.push(text({ text: `Used for: ${e.used}`, size: S.small, colour: MUTED, after: 1 }));
-      out.push(text({ text: e.line, size: S.small + 0.5, colour: e.tone === 'r' ? '#9b3227' : INK2, after: e.stream ? 4 : i === all.length - 1 ? gap(d, 's') : 2 }));
+      out.push(text({ text: e.line, size: S.small + 0.5, colour: e.tone === 'r' ? '#9b3227' : INK2, after: e.stream || e.changeover ? 4 : i === all.length - 1 ? gap(d, 's') : 2 }));
       if (e.stream) out.push(...streamBlocks(e.stream.rows, e.stream.total));
+      if (e.changeover) out.push(...changeoverBlocks(e.changeover, e.line));
     });
   }
   return out;

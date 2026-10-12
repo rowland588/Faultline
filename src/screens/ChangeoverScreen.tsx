@@ -29,9 +29,9 @@ import { now, uid } from '../lib/ids';
 import { niceDay } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 import type { Standard } from '../lib/standard';
-import { changeoverFigures, changeoverSays, intervalOf, intervalSays, mins, runMinOf, standardFrom, standardLine, stepFigure, type ChangeoverFigures, type IntervalFigures } from '../lib/ie/changeover';
+import { agreedFor, changeoverFigures, changeoverSays, intervalOf, intervalSays, mins, runMinOf, standardFrom, standardLine, stepFigure, type ChangeoverFigures, type IntervalFigures } from '../lib/ie/changeover';
 import { dur, parseDur } from '../lib/ie/steps';
-import type { ChangeoverProduct, ChangeoverSide, ChangeoverStep, StandardChangeover, StudyUse, ToolStudy } from '../lib/study';
+import type { ChangeoverProduct, ChangeoverSide, ChangeoverStep, StudyUse, ToolStudy } from '../lib/study';
 import { TOOL_WORDS } from './StudiesScreen';
 import { UsedFor, useBetter, WhereItSits } from '../ui/StudyPlace';
 import { recordHref } from '../lib/studyLinks';
@@ -73,19 +73,12 @@ function standardFor(s: ToolStudy, standards: Standard[]): Standard | undefined 
   return standards.find(x => x.id === s.standardId) ?? (to ? standards.find(x => x.product.trim().toLowerCase() === to) : undefined);
 }
 
-/** The agreed changeover this one stands against: the one from the same
- *  product when the standard holds it, else the standard's newest. */
-function agreedFor(std: Standard | undefined, from?: string): StandardChangeover | undefined {
-  const list = std?.capacity?.changeovers ?? [];
-  const f = (from ?? '').trim().toLowerCase();
-  return list.find(a => (a.from ?? '').trim().toLowerCase() === f && f) ?? [...list].sort((a, b) => b.agreedAt - a.agreedAt)[0];
-}
 
 function Changeover({ s, can, me, standards }: { s: ToolStudy; can: Can; me?: string; standards: Standard[] }) {
   const seq = useMemo(() => [...(s.facts.sequence ?? [])].sort((a, b) => a.order - b.order), [s.facts.sequence]);
   const f = useMemo(() => changeoverFigures(seq, s.facts.perWeek), [seq, s.facts.perWeek]);
   const std = standardFor(s, standards);
-  const agreed = agreedFor(std, s.facts.fromProduct);
+  const agreed = agreedFor(std?.capacity?.changeovers, s.facts.fromProduct);
   const said = useMemo(() => changeoverSays(f, agreed), [f, agreed]);
   const iv = useMemo(() => intervalOf(f, s.facts.products, s.facts.availableMinPerDay), [f, s.facts.products, s.facts.availableMinPerDay]);
   const ivSaid = intervalSays(iv, f);
@@ -443,7 +436,7 @@ function ProductsSheet({ s, standards, onClose }: { s: ToolStudy; standards: Sta
       facts: { ...cur.facts, ...(f ? { fromProduct: f } : {}), ...(t ? { toProduct: t } : {}) },
       ...(t ? { product: t } : {}), ...(std ? { standardId: std.id } : {}),
       /* the name follows the products while it was never written by hand */
-      ...(f && t && (!cur.name || /→/.test(cur.name)) ? { name: `${f} → ${t}` } : {}),
+      ...(f && t && (!cur.name || /→|^Into /.test(cur.name)) ? { name: `${f} → ${t}` } : {}),
     }));
     onClose();
   };
