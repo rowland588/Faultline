@@ -36,7 +36,8 @@ import { analyse, fmtN } from './capacity';
 import { headcount } from './standard';
 import type { ToolStudy } from './study';
 import { balance, secs } from './ie/balance';
-import { boneOfStep, currentBalance, currentLosses, lossFiguresOf } from './studyLinks';
+import { boneOfStep, currentBalance, currentLosses, currentSampling, lossFiguresOf } from './studyLinks';
+import { boneOfActivity, samplingLine, samplingOffers, worstWords } from './ie/sampling';
 import { idealWord, minWords, shiftWords, type LossBar } from './ie/losses';
 import { dur, flowFigures, stepAt, stepFigure, valueOf, waitOf, whereOf } from './ie/steps';
 import { figuresOf, mins, stepFigure as changeoverStepFigure } from './ie/changeover';
@@ -579,6 +580,24 @@ export function suggestionsFor(problem: Case, data: FishboneData, today = Date.n
         out.push(mk('study', `${count.id}#${b.key}`, b.bone, `${what} — ${minWords(b.min)} of the ${minWords(lf.lostMin ?? 0)} lost on ${when}`,
           b.kind === 'short' ? 'counted' : b.grade === 'measured' ? 'measured' : 'reported', { detail: head, label: count.name, tool: 'losses' }));
       }
+    }
+  }
+
+  /* 4e. THE LINE'S WORK SAMPLING (lib/ie/sampling): its newest on this job,
+     on this line — not a bottleneck walk. Each share that is not the work
+     and is a tenth of a person's time or more, from enough taps (three at
+     most, biggest first): away on People, walking, searching and waiting on
+     Method. Counted — taps at random moments — and each says its margin and
+     how many taps it stands on. When the head is the whole line or about
+     people, waiting or searching. The ref is "<study id>#<who>#<activity>" —
+     opening it opens the study. */
+  const sm = lineWs ? currentSampling(data.studies, lineWs) : undefined;
+  const aboutPeople = /people|operator|labour|crew|wait|search|walk|absent|away|staff/i.test(`${problem.source?.category ?? ''} ${problem.source?.subcategory ?? ''} ${problem.title}`);
+  if (sm && (scope.whole || aboutPeople)) {
+    const a = sm.agreed?.sampling;
+    const head = `Work sampling: ${sm.name} — ${samplingLine({ who: a?.who, taps: sm.facts.taps ?? [] })}`;
+    for (const x of samplingOffers(a, sm.facts.taps ?? []).slice(0, 3)) {
+      out.push(mk('study', `${sm.id}#${x.who}#${x.activity}`, boneOfActivity(x.activity), worstWords(x), 'counted', { detail: head, label: sm.name, tool: 'sampling' }));
     }
   }
 

@@ -175,7 +175,7 @@ node scripts/acceptance/work-balance.mjs  # step 3: the work timed on the phone,
 node scripts/acceptance/sixm-evidence.mjs  # 2h: a study on a running line — a cause's evidence, a countermeasure, before → after, the 6M report
 node scripts/acceptance/value-stream.mjs  # B: a line's value stream — who and where, walked, a step made better, walked again, before → after, the paper, the fishbone
 node scripts/acceptance/changeover.mjs  # F: SMED — a quick session on its own; Lap with who, Shingo's stages on the grid, the plate speed, what the changeovers cost, set as the standard, timed again, before → after, the paper, the fishbone
-node scripts/acceptance/work-sampling.mjs  # H1: what people are doing at random moments — the moment asks, one tap each, the shares with their margins, the fix
+node scripts/acceptance/work-sampling.mjs  # H1: what people are doing at random moments — the moment asks, one tap each, the shares with their margins, the fix, the 6M line's card, the fishbone, the 6M report
 node scripts/acceptance/shift-losses.mjs  # E: a shift's losses — counted on the phone at the bottleneck's ideal speed, the shift less its breaks, the waterfall, slow running told from short stops, the pounds in two parts, a bar made better, the next shift counted, before → after, the fishbone, both papers
 node scripts/acceptance/line-capacity.mjs  # Line capacity: the V-curve, the capacity sheet, the margin, a person's standard time, the bottleneck walked
 node scripts/acceptance/programs.mjs  # a program's status with commentary: the five statuses (not tested and no program among them), commentary on its own, Needs you, the paper
@@ -226,7 +226,11 @@ grid as a table on the client report, and the 6M line's card and fishbone
 saying SMED. `work-sampling.mjs` is H1: a study set
 up on its line with its standard's people, the moment due asking, one tap
 per person stamped with the moment's time, a mistap struck, the shares with
-their margins as the module says, and Make it better carrying the figure. `shift-losses.mjs` is E: a shift's losses
+their margins as the module says, Make it better carrying the figure; then
+on the 6M job's line, the line's card saying its biggest share not the work,
+the fishbone offering each share a tenth or more on its bone (counted), one
+accepted saying "Work sampling" where it came from, and the 6M report's
+Evidence printing each person's shares with their margins. `shift-losses.mjs` is E: a shift's losses
 by hand, on the time model of `docs/CAPACITY.md` §5–6 — a count made on the
 phone from the line's board beside the Pareto at the bottleneck's ideal
 speed (a machine's plate speed; a person's standard time when a person is

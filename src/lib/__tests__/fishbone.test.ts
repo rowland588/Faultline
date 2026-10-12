@@ -273,6 +273,29 @@ describe('suggestionsFor — the walk, the standard, the balance, materials, pro
     expect(suggestionsFor(problem(), data({ studies: [map()] }), TODAY).some(x => x.source.kind === 'study')).toBe(false);
   });
 
+  it('the line\'s work sampling → each share not the work, a tenth or more, on its bone, counted (H1)', () => {
+    const tp = (i: number, who: string, activity: string) => ({ id: `t${who}${i}`, at: i, who, activity });
+    const deal = (who: string, counts: [string, number][]) => counts.flatMap(([act, k]) => Array.from({ length: k }, () => act)).map((act, i) => tp(i, who, act));
+    const sm = (o: Partial<ToolStudy> = {}): ToolStudy => ({ id: 's1', tool: 'sampling', name: 'Packing hall, day shift', projectId: 'P', workspaceId: 'ws1', uses: [], startedAt: 1, createdAt: 1, updatedAt: 1,
+      agreed: { sampling: { who: ['Op 1', 'Op 2'], activities: ['working', 'walking', 'waiting', 'searching', 'away'], marginPts: 5, from: 0, to: 1, prompts: [0] } },
+      facts: { taps: [...deal('Op 1', [['working', 30], ['away', 8], ['walking', 2]]), ...deal('Op 2', [['working', 26], ['waiting', 10], ['searching', 4]])] }, ...o });
+    const whole = problem({ source: undefined });
+    const s = suggestionsFor(whole, data({ studies: [sm()] }), TODAY).filter(x => x.source.kind === 'study');
+    /* Op 2 waiting 10/40, Op 1 away 8/40; searching 4/40 is a tenth; walking 2/40 is not */
+    expect(s.map(x => [x.m, x.text, x.grade, x.source.ref, x.source.tool])).toEqual([
+      ['method', 'Op 2 is waiting 25% of the time (±13 points, from 40 taps)', 'counted', 's1#Op 2#waiting', 'sampling'],
+      ['people', 'Op 1 is away 20% of the time (±12 points, from 40 taps)', 'counted', 's1#Op 1#away', 'sampling'],
+      ['method', 'Op 2 is searching 10% of the time (±9 points, from 40 taps)', 'counted', 's1#Op 2#searching', 'sampling'],
+    ]);
+    expect(s[0].detail).toBe('Work sampling: Packing hall, day shift — 2 people · 80 taps · the biggest share within ±15 points');
+    /* a bottleneck walk is not a sampling of people; another line's says nothing here; a machine's stop is not about people */
+    expect(suggestionsFor(whole, data({ studies: [sm({ agreed: { sampling: { ...sm().agreed!.sampling!, walk: true } } })] }), TODAY).some(x => x.source.kind === 'study')).toBe(false);
+    expect(suggestionsFor(whole, data({ studies: [sm({ workspaceId: 'ws2' })] }), TODAY).some(x => x.source.kind === 'study')).toBe(false);
+    expect(suggestionsFor(problem(), data({ studies: [sm()] }), TODAY).some(x => x.source.kind === 'study')).toBe(false);
+    /* a head about waiting, on one machine, still reads its people */
+    expect(suggestionsFor(problem({ title: 'Operators waiting for cases' }), data({ studies: [sm()] }), TODAY).filter(x => x.source.kind === 'study').length).toBe(3);
+  });
+
   it('the line\'s SMED → its external work inside the stop on Method, its longest internal elements on Machine (tool 6)', () => {
     const M = 60;
     const co = (o: Partial<ToolStudy> = {}): ToolStudy => ({ id: 'c1', tool: 'changeover', name: 'Finest Red 2kg → Express 1.25 kg', projectId: 'P', workspaceId: 'ws1', machine: 'Bagger',

@@ -17,7 +17,7 @@ import {
   addCase, addObservation, addPaceLine, addSegment, addSnag, addSnagAsset, createWorkspace, updateWorkspace,
   putPaceTodo, putReadings, putStandard, putTarget, putBlob, putStudy,
 } from '../db';
-import type { LossCount } from '../lib/study';
+import type { LossCount, ToolStudy } from '../lib/study';
 import type { Case, MediaRef, Observation } from '../types';
 import type { PaceTodoRow } from '../db';
 import type { Measure, Period, Reading, Target } from '../lib/measures';
@@ -146,6 +146,17 @@ const shiftOf = (daysAgo: number, o: Partial<LossCount> = {}): LossCount =>
 /* the running speed timed through a shift: n timings of a minute or so, by hand */
 const timings = (from: number, perMin: number[], who = 'Lee Carty') =>
   perMin.map((p, i) => ({ id: uid(), at: from + (1.5 + i * 2) * 3_600_000, by: who, packs: Math.round(p * (i % 2 ? 1.5 : 1)), sec: i % 2 ? 90 : 60 }));
+/** A work sampling (lib/ie/sampling): each person's taps dealt from counts,
+ *  one a moment, across a morning — the shares and margins the paper prints. */
+const samplingOf = (o: { projectId: string; workspaceId?: string; name: string; at: number; activities?: string[]; people: [string, [string, number][]][] }): ToolStudy => {
+  const activities = o.activities ?? ['working', 'walking', 'waiting', 'searching', 'away'];
+  const most = Math.max(1, ...o.people.map(([, c]) => c.reduce((n, [, k]) => n + k, 0)));
+  const prompts = Array.from({ length: most }, (_, i) => o.at - (most - i) * 5 * 60_000);
+  const taps = o.people.flatMap(([who, counts]) => counts.flatMap(([a, k]) => Array<string>(k).fill(a)).map((activity, i) => ({ id: uid(), at: prompts[i], who, activity, by: 'Sam Patel' })));
+  return { id: uid(), tool: 'sampling', name: o.name, projectId: o.projectId, ...(o.workspaceId ? { workspaceId: o.workspaceId } : {}),
+    agreed: { sampling: { who: o.people.map(([w]) => w), activities, marginPts: 5, from: prompts[0], to: o.at, prompts } },
+    facts: { taps }, uses: [], startedAt: prompts[0], createdAt: o.at, updatedAt: o.at };
+};
 const lossStop = (wsId: string, from: number, hour: number, mins: number, category: string, subcategory: string, asset: string, note?: string): Observation => ({
   id: uid(), workspaceId: wsId, category, subcategory, asset, shift: 'Shift 1', startedAt: from + hour * 3_600_000, endedAt: from + hour * 3_600_000 + mins * 60_000,
   durationMs: Math.round(mins * 60_000), timing: 'stopwatch', count: 1, ...(note ? { note } : {}), media: [], createdAt: Date.now(), updatedAt: Date.now(),
@@ -462,6 +473,12 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
     await putStudy({ id: uid(), tool: 'losses', name: lossName(next), projectId: proj.id, workspaceId: ws.id, product: 'Finest Red 2kg — 60 micron perforated film',
       facts: { losses: { ...next, made: 38_900, rejects: 410 }, timings: timings(next.from, [97, 96, 98], 'Łukasz Wiśniewski-Kowalczyk') }, uses: [{ id: uid(), kind: 'fix', ref: lossFixId, role: 'proof', at: next.to }],
       startedAt: next.to, createdAt: t, updatedAt: t });
+    /* A work sampling of the packing hall: three people, one with a long name,
+       an activity the floor named itself, and one too early for a figure. */
+    await putStudy(samplingOf({ projectId: proj.id, workspaceId: ws.id, name: 'Packing hall, day shift — Ilapak and Fanuc cells', at: t - 3_600_000,
+      activities: ['working', 'walking', 'waiting', 'searching', 'fetching film from the mezzanine store', 'away'],
+      people: [['Łukasz Wiśniewski-Kowalczyk', [['working', 61], ['walking', 9], ['waiting', 14], ['searching', 6], ['fetching film from the mezzanine store', 8], ['away', 2]]],
+        ['Op 2', [['working', 72], ['waiting', 12], ['away', 6]]], ['Team leader (nights, covering)', [['working', 9], ['walking', 3]]]] }));
   }
 
   /* What was found: sixty, on tests and steps, some long. */
@@ -1035,6 +1052,11 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
     await putStudy({ id: uid(), tool: 'losses', name: name(next), projectId: proj.id, workspaceId: wsA.id, product: 'Finest Red 2kg',
       facts: { losses: { ...next, made: 27_300, rejects: 280 }, timings: timings(next.from, [66, 68]) }, uses: [{ id: uid(), kind: 'action', ref: coAct.id, role: 'proof', at: next.to }],
       startedAt: next.to, createdAt: t, updatedAt: t });
+    /* The line's people sampled through a morning — a share not the work on
+       each bone, and the table on the Evidence pages. */
+    await putStudy(samplingOf({ projectId: proj.id, workspaceId: wsA.id, name: 'Line A packers, mornings', at: t - 2 * 3_600_000,
+      people: [['Op 1', [['working', 44], ['walking', 6], ['waiting', 9], ['away', 1]]], ['Op 2', [['working', 38], ['waiting', 12], ['searching', 7], ['walking', 3]]],
+        ['Agnieszka Szczęsna', [['working', 50], ['walking', 4], ['searching', 2], ['away', 4]]]] }));
   }
 
   /* ------------------------------ the board ------------------------------ */
@@ -1175,6 +1197,18 @@ export async function seedRandomSixMJob(seed: number): Promise<SixMJob & { lineI
     const run = rand() < 0.4 ? timings(c.from, Array.from({ length: 1 + Math.floor(rand() * 4) }, () => Math.max(1, (c.ratePerMin ?? 60) * (0.8 + rand() * 0.25))), pick(['Lee Carty', ...AWKWARD.filter(Boolean)])) : undefined;
     await putStudy({ id: uid(), tool: 'losses', name: rand() < 0.2 ? pick(AWKWARD) || 'Loss count' : 'Loss count', projectId: proj.id, workspaceId: l.workspaceId as string,
       facts: { losses: c, ...(run ? { timings: run } : {}) }, uses: [], startedAt: c.to, createdAt: t, updatedAt: t });
+  }
+  /* SOMETIMES A WORK SAMPLING on a line: up to five people, any of them an
+     awkward name, any too early, an activity the floor named — every share
+     and margin it prints reconciled by the stress run. */
+  if (lines.length && rand() < 0.5) {
+    const l = pick(lines);
+    const acts = ['working', 'walking', 'waiting', 'searching', 'away', ...(rand() < 0.3 ? [pick(AWKWARD).trim() || 'fetching cases'] : [])];
+    const people = Array.from({ length: 1 + Math.floor(rand() * 5) }, (_, i): [string, [string, number][]] =>
+      [rand() < 0.3 ? pick(AWKWARD).trim() || `Op ${i + 1}` : `Op ${i + 1}`, acts.map((a, k) => [a, Math.floor(rand() * (k ? 12 : 60))] as [string, number])]);
+    const seen = new Set<string>();
+    await putStudy(samplingOf({ projectId: proj.id, workspaceId: l.workspaceId as string, name: rand() < 0.2 ? pick(AWKWARD) || 'Work sampling' : 'Work sampling', at: t - 3_600_000, activities: acts,
+      people: people.filter(([w]) => !seen.has(w) && !!seen.add(w)) }));
   }
   return { projectId: proj.id, lineId: lines[0]?.id as string };
 }

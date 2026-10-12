@@ -1,6 +1,6 @@
 /* Work sampling's arithmetic, proved by docs/TOOLKIT.md §9's worked example. */
 import { describe, it, expect } from 'vitest';
-import { tapsNeeded, marginOf, shares, moreNeeded, schedulePrompts, nextPrompt, missedPrompts, dueRound, roundsDone, samplingReading, samplingLine, samplingEnough, type Tap } from '../sampling';
+import { tapsNeeded, marginOf, shares, moreNeeded, schedulePrompts, nextPrompt, missedPrompts, dueRound, roundsDone, samplingReading, samplingLine, samplingEnough, samplingOffers, samplingRows, samplingCardLine, boneOfActivity, worstWords, type Tap } from '../sampling';
 
 const tap = (i: number, who: string, activity: string, at = i * 60_000): Tap => ({ id: `t${i}`, at, who, activity });
 /** 190 taps for Op 2: 116 working, 34 walking, 27 waiting, 13 searching. */
@@ -83,5 +83,33 @@ describe('the rounds of work sampling', () => {
     const t = [tap(1, 'Op 1', 'working', 1_000_000), tap(2, 'Op 2', 'walking', 1_000_000), tap(3, 'Op 1', 'working', 2_000_000)];
     expect(roundsDone(prompts, t, ['Op 1', 'Op 2'])).toBe(1);
     expect(roundsDone(prompts, t, [])).toBe(0);
+  });
+});
+
+describe('where a work sampling goes — the fishbone, the line\'s card, paper', () => {
+  const op1 = Array.from({ length: 20 }, (_, i) => tap(600 + i, 'Op 1', i % 4 ? 'working' : 'waiting'));
+  const a = { who: ['Op 1', 'Op 2'], activities: ['working', 'walking', 'waiting', 'searching', 'away'], marginPts: 5, from: 0, to: 1, prompts: Array.from({ length: 40 }, (_, i) => i) };
+  it('offers each share that is not the work, a tenth of the time or more, from enough taps — biggest first', () => {
+    const o = samplingOffers(a, [...op2, ...op1]);
+    /* Op 2: walking 34/190, waiting 27/190; searching 13/190 is under a tenth; Op 1 has 20 taps — too early */
+    expect(o.map(x => [x.who, x.activity, x.n])).toEqual([['Op 2', 'walking', 190], ['Op 2', 'waiting', 190]]);
+    expect(worstWords(o[0])).toBe('Op 2 is walking 18% of the time (±5 points, from 190 taps)');
+    expect(samplingOffers(undefined, op2)).toEqual([]);
+  });
+  it('away is People; walking, searching, waiting and the floor\'s own words are Method', () => {
+    expect(['away', 'Away — on break', 'waiting', 'searching', 'walking', 'fetching film'].map(boneOfActivity)).toEqual(['people', 'people', 'method', 'method', 'method', 'method']);
+  });
+  it('on paper: a row per person, each share with its margin; too few taps said, never a figure', () => {
+    const t = samplingRows(a, [...op2, ...op1])!;
+    expect(t.activities).toEqual(a.activities);
+    expect(t.rows[1].cells.map(c => `${c.share}${c.margin ? ` ${c.margin}` : ''}`)).toEqual(['61% ±7', '18% ±5', '14% ±5', '7% ±4', '—']);
+    expect([t.rows[0].enough, t.rows[0].early]).toEqual([false, 'too early — 20 taps, 30 needed']);
+    expect(t.head).toBe('2 people watched at 40 random moments — 210 taps; each share with its margin at 95%, in points');
+    expect(samplingRows(a, [])).toBeUndefined();
+  });
+  it('the line\'s card: the biggest share not the work, with its margin — or how far it has got', () => {
+    expect(samplingCardLine(a, [...op2, ...op1])).toBe('Op 2 is walking 18% of the time (±5 points, from 190 taps)');
+    expect(samplingCardLine(a, op1)).toBe('Too early — 20 taps of 2 people watched');
+    expect(samplingCardLine(a, [])).toBe('2 people watched — no taps yet');
   });
 });

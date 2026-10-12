@@ -884,6 +884,22 @@ the standard's existing `capacity` jsonb (`plannedLossMinPerShift`,
 - **Accepted by** `scripts/acceptance/work-sampling.mjs` (when the screens
   are built): a study started with two people, a prompt answered on the
   phone, the shares and their margins, too early → enough, Make it better.
+- **As built (12 October):** slice 1 — the study, the moment, one tap per
+  person, the shares with their margins, Make it better (live, de9c35a).
+  Slice 2 — where it shows: the fishbone offers each share that is not the
+  work and is a tenth of a person's time or more, from enough taps (three
+  at most, biggest first) — away on People; walking, searching and waiting
+  on Method — counted, each with its margin and its taps, opening the
+  study; a cause taken from it says "Work sampling" where it came from
+  (`lib/fishbone` 4e, `lib/ie/sampling` samplingOffers and boneOfActivity).
+  The 6M line's card says the line's newest sampling — the biggest share
+  not the work, with its margin, or how far it has got — neutral, a branch
+  under the shift. On paper, the 6M report's and the client report's
+  Evidence print each person's taps and every share with its margin as a
+  table (`lib/report/samplingTable`), too early said across the row, never
+  a figure; the report seeds carry samplings at every size and the stress
+  run reconciles every share and margin. A bottleneck walk is not a work
+  sampling and is offered nowhere of these. Accepted by story 6.
 
 **H2. Capacity's three numbers, and the product mix.**
 - **The question:** of what the line was built to make, what can it really

@@ -41,7 +41,8 @@ import { useJobStudies } from '../ui/StudyLinks';
 import { workOf } from '../ui/WorkBalance';
 import { lineStandardOf } from '../lib/fishbone';
 import { headcount } from '../lib/standard';
-import { changeoverLine, currentBalance, currentChangeover, currentLosses, currentMap, flowLine, lossCardLine, studyHref } from '../lib/studyLinks';
+import { samplingCardLine } from '../lib/ie/sampling';
+import { changeoverLine, currentBalance, currentChangeover, currentLosses, currentMap, currentSampling, flowLine, lossCardLine, studyHref } from '../lib/studyLinks';
 import { useStudyContext } from '../ui/ShiftLosses';
 import { gapOf, lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import { ProjectNumbers } from './NumbersPanel';
@@ -435,7 +436,7 @@ function LinePeople({ line, projectId }: { line: PaceLineRow; projectId: string 
  * is sitting in its pack. The whole card is the way in — the owner's pack is
  * where the work actually happens, so getting there should not need aiming at
  * a small link. */
-function LineCard({ line, pack, projectId, series, balance, work, flow, change, shift }: {
+function LineCard({ line, pack, projectId, series, balance, work, flow, change, shift, sample }: {
   line: PaceLineRow; pack: LinePack; projectId: string;
   /** What the line's balance says, once its stations are in; absent until then. */
   balance?: string;
@@ -453,6 +454,9 @@ function LineCard({ line, pack, projectId, series, balance, work, flow, change, 
    *  the stops explain, a branch under the flow. Amber only when the slow
    *  running and short stops are over a tenth of the loss. */
   shift?: { text: string; abnormal: boolean; href: string };
+  /** The line's newest work sampling (lib/ie/sampling) — the biggest share
+   *  that is not the work, with its margin; neutral, a branch under the shift. */
+  sample?: { text: string; href: string };
   /** Where this line stands on the measure the project leads on — the first one
    *  its own list names. Absent on a project that has not named one yet, and the
    *  card then simply carries no number rather than a dash meaning nothing. */
@@ -521,6 +525,13 @@ function LineCard({ line, pack, projectId, series, balance, work, flow, change, 
         <button className="lc-bal is-set lc-work lc-shift" onClick={() => nav(shift.href)}>
           <span className="lc-bal-k">The shift</span>
           <span className={'lc-bal-t' + (shift.abnormal ? ' is-a' : '')}>{shift.text}</span>
+          <span className="lc-bal-go" aria-hidden>›</span>
+        </button>
+      )}
+      {sample && (
+        <button className="lc-bal is-set lc-work lc-sample" onClick={() => nav(sample.href)}>
+          <span className="lc-bal-k">Work sampling</span>
+          <span className="lc-bal-t">{sample.text}</span>
           <span className="lc-bal-go" aria-hidden>›</span>
         </button>
       )}
@@ -761,6 +772,12 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
     const said = m ? lossCardLine(m, studyCtx) : undefined;
     return m && said ? { ...said, text: said.text.charAt(0).toUpperCase() + said.text.slice(1), href: studyHref(m) } : undefined;
   };
+  /* Each line's newest work sampling on this job (lib/ie/sampling). */
+  const sampleOn = (l: PaceLineRow) => {
+    const m = l.workspaceId ? currentSampling(studies, l.workspaceId) : undefined;
+    const text = m ? samplingCardLine(m.agreed?.sampling, m.facts.taps ?? []) : undefined;
+    return m && text ? { text, href: studyHref(m) } : undefined;
+  };
   const atTarget = ppm.lines.filter(l => standing.get(l.id)?.meeting === true).length;
 
   /* WHERE A 3P JOB IS, in one sentence — the lines against their target and
@@ -935,7 +952,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
               <div className="lc-grid">
                 {ppm.lines.map(l => (
                   <LineCard key={l.id} line={l} pack={packs.get(l.id) ?? emptyPack} projectId={projectId}
-              series={standing.get(l.id)} balance={limited.find(x => x.line.id === l.id)?.says} work={workOn(l)} flow={flowOn(l)} change={changeOn(l)} shift={shiftOn(l)} />
+              series={standing.get(l.id)} balance={limited.find(x => x.line.id === l.id)?.says} work={workOn(l)} flow={flowOn(l)} change={changeOn(l)} shift={shiftOn(l)} sample={sampleOn(l)} />
                 ))}
               </div>
               {can.edit && (

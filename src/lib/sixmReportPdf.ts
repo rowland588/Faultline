@@ -45,6 +45,8 @@ import { fixTag, fixesOf } from '../ui/fishbone/layout';
 import { lossFiguresOf, provedLine, ROLE_WORD, studyLine, studyTitle, type StudyContext } from './studyLinks';
 import { lossRows } from './ie/losses';
 import { lossBlocks } from './report/lossTable';
+import { samplingBlocks } from './report/samplingTable';
+import { samplingRows } from './ie/sampling';
 import { streamRows } from './ie/steps';
 import { agreedFor, changeoverSheet, moneyOf } from './ie/changeover';
 import { changeoverBlocks } from './report/changeoverTable';
@@ -220,7 +222,9 @@ export interface SixMReport {
    *  stream's steps as a table — the same appendix the client report has. */
   evidence: { title: string; used: string; line: string; tone: string; stream?: ReturnType<typeof streamRows>; changeover?: ReturnType<typeof changeoverSheet>;
     /** A shift's loss count as a table (lib/ie/losses lossRows). */
-    losses?: NonNullable<ReturnType<typeof lossRows>> }[];
+    losses?: NonNullable<ReturnType<typeof lossRows>>;
+    /** A work sampling as a table — each person's shares with their margins (lib/ie/sampling samplingRows). */
+    sampling?: NonNullable<ReturnType<typeof samplingRows>> }[];
 }
 
 /** What a loss count reads beside its facts — the lines' stops and cost
@@ -525,12 +529,13 @@ export function sixmReport(o: SixMInput): SixMReport {
       const branches = new Map(s.uses.flatMap(u => { const t = u.step && u.role === 'evidence' ? recordTitle(u) : undefined; return t && u.step ? [[u.step, t] as [string, string]] : []; }));
       const l = studyLine(s, studyCtx(data));
       const losses = s.tool === 'losses' ? lossRows(lossFiguresOf(s, studyCtx(data)), s.facts.losses) : undefined;
+      const sampling = s.tool === 'sampling' && !s.agreed?.sampling?.walk ? samplingRows(s.agreed?.sampling, s.facts.taps ?? []) : undefined;
       return { title: studyTitle(s), used: used || 'not used for a record yet', line: l.text, tone: l.tone,
         ...(s.tool === 'map' && (s.facts.flow ?? []).length ? { stream: streamRows(s.facts.flow, s.agreed?.map, branches) } : {}),
         ...(s.tool === 'changeover' && (s.facts.sequence ?? []).length
           ? { changeover: changeoverSheet(s.facts, agreedFor(data.standards.find(st => !st.deletedAt && st.id === s.standardId)?.capacity?.changeovers, s.facts.fromProduct), branches,
             moneyOf(data.workspaces.find(w => w.id === s.workspaceId))) } : {}),
-        ...(losses ? { losses } : {}) };
+        ...(losses ? { losses } : {}), ...(sampling ? { sampling } : {}) };
     });
 
   /* ------------------------------ the band ------------------------------- */
@@ -707,10 +712,11 @@ function blocksOf(r: SixMReport, d: Density): Block[] {
     r.evidence.forEach((e, i, all) => {
       out.push(text({ text: e.title, size: S.body, style: 'bold', before: i ? 4 : 0, after: 1 }));
       out.push(text({ text: `Used for: ${e.used}`, size: S.small, colour: MUTED, after: 1 }));
-      out.push(text({ text: e.line, size: S.small + 0.5, colour: e.tone === 'r' ? '#9b3227' : INK2, after: e.stream || e.changeover || e.losses ? 4 : i === all.length - 1 ? gap(d, 's') : 2 }));
+      out.push(text({ text: e.line, size: S.small + 0.5, colour: e.tone === 'r' ? '#9b3227' : INK2, after: e.stream || e.changeover || e.losses || e.sampling ? 4 : i === all.length - 1 ? gap(d, 's') : 2 }));
       if (e.stream) out.push(...streamBlocks(e.stream.rows, e.stream.total));
       if (e.changeover) out.push(...changeoverBlocks(e.changeover, e.line));
       if (e.losses) out.push(...lossBlocks(e.losses));
+      if (e.sampling) out.push(...samplingBlocks(e.sampling));
     });
   }
   return out;

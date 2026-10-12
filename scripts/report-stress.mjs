@@ -274,6 +274,14 @@ for (const size of SIZES) {
       for (const x of e.losses.rows) add('client', x.cause, x.minutes, x.labour || undefined, x.contribution || undefined);
       add('client', e.losses.total.minutes, e.losses.total.labour || undefined, e.losses.total.contribution || undefined);
     }
+    /* A work sampling on paper (lib/report/samplingTable): who was watched at
+       how many moments, every person's taps, each share and its margin — or
+       too early, said. */
+    from = 'a work sampling, person by person';
+    for (const e of r.evidence) if (e.sampling) {
+      add('client', e.sampling.head, ...e.sampling.activities);
+      for (const x of e.sampling.rows) add('client', x.who, String(x.n), x.early, ...x.cells.flatMap(c => (c.share === '—' ? [] : [c.share, c.margin])));
+    }
     /* What is marked on a fix's photo (ui/Evidence), when that photo is the
        picture printed — not pinned on a walk frame. */
     from = 'a fix photo\'s marks'; for (const fx of r.fixes.open) if (!fx.pin) add('client', ...(fx.photoPins ?? []).map(p => p.note));
@@ -526,6 +534,7 @@ for (const size of SIXM_SIZES) {
       const { streamRows } = await import('/src/lib/ie/steps.ts');
       const { changeoverSheet, agreedFor, moneyOf } = await import('/src/lib/ie/changeover.ts');
       const { lossRows } = await import('/src/lib/ie/losses.ts');
+      const { samplingRows } = await import('/src/lib/ie/sampling.ts');
       for (const st of loaded.data.studies.filter(x => !x.deletedAt && (!lineId || (x.workspaceId && ws.has(x.workspaceId))))) {
         add(SL.studyTitle(st), SL.studyLine(st, ctx).text);
         if (st.tool === 'map') { const t = streamRows(st.facts.flow, st.agreed?.map); for (const x of t.rows) add(x.what, x.who, x.where); add(t.total.lead); }
@@ -538,6 +547,8 @@ for (const size of SIXM_SIZES) {
         }
         /* a shift's losses: the table, cause by cause, and the total lost */
         if (st.tool === 'losses') { const t = lossRows(SL.lossFiguresOf(st, ctx), st.facts.losses); if (t) { add(t.head); for (const x of t.rows) add(x.cause, x.minutes, x.labour || undefined, x.contribution || undefined); add(t.total.minutes, t.total.labour || undefined, t.total.contribution || undefined); } }
+        /* a work sampling: each person's taps, shares and margins, or too early */
+        if (st.tool === 'sampling' && !st.agreed?.sampling?.walk) { const t = samplingRows(st.agreed?.sampling, st.facts.taps ?? []); if (t) { add(t.head, ...t.activities); for (const x of t.rows) add(x.who, String(x.n), x.early, ...x.cells.flatMap(c => (c.share === '—' ? [] : [c.share, c.margin]))); } }
       }
       return out;
     }, { pid: job.projectId, lineId });

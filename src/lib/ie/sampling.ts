@@ -181,3 +181,59 @@ export function samplingWorst(a: AgreedSampling | undefined, taps: Tap[]): { who
 /** "Op 2 is waiting 14% of the time (±5 points, from 190 taps)". */
 export const worstWords = (x: { who: string; activity: string; share: number; margin: number; n: number }): string =>
   `${x.who} is ${x.activity} ${pct(x.share)} of the time (${pts(x.margin)} points, from ${x.n} taps)`;
+
+/* ------------------------------------------- where it goes: the fishbone, the card, paper */
+
+export interface SamplingShare { who: string; activity: string; share: number; margin: number; n: number }
+
+/** Every share that is not the work itself (the first activity) and is a
+ *  tenth of the time or more, of the people with enough taps — biggest first.
+ *  What the fishbone offers: one cause a person and activity, each with the
+ *  figure and the margin it carries (worstWords). */
+export function samplingOffers(a: AgreedSampling | undefined, taps: Tap[], min = 0.1): SamplingShare[] {
+  if (!a) return [];
+  const work = a.activities[0];
+  return a.who.flatMap(w => {
+    const n = tapsOf(taps, w).length;
+    if (samplingEnough(n) !== 'enough') return [];
+    return shares(taps, a.activities, w).filter(s => s.activity !== work && s.taps > 0 && s.share >= min)
+      .map(s => ({ who: w, activity: s.activity, share: s.share, margin: s.margin, n }));
+  }).sort((x, y) => y.share - x.share);
+}
+
+/** Which of the six bones a share sits on: away from the line is People (who
+ *  is there to do it); walking, searching and waiting are how the work is
+ *  laid out and fed — Method; an activity the floor named itself, Method. */
+export const boneOfActivity = (activity: string): 'people' | 'method' => (/^away|absent|break/i.test(activity.trim()) ? 'people' : 'method');
+
+/** The study on paper, a row per person: their taps and each activity's share
+ *  with the margin it carries; under TOO_FEW_TAPS, too early — never a figure. */
+export interface SamplingRow { who: string; n: number; enough: boolean; cells: { activity: string; share: string; margin: string }[]; early?: string }
+export function samplingRows(a: AgreedSampling | undefined, taps: Tap[]): { activities: string[]; rows: SamplingRow[]; head: string } | undefined {
+  if (!a || !tapsOf(taps).length) return undefined;
+  const activities = [...a.activities];
+  for (const t of tapsOf(taps)) if (!activities.includes(t.activity)) activities.push(t.activity);
+  const rows = a.who.map(w => {
+    const n = tapsOf(taps, w).length;
+    const enough = samplingEnough(n) === 'enough';
+    const list = shares(taps, activities, w);
+    return {
+      who: w, n, enough,
+      cells: activities.map(act => { const s = list.find(x => x.activity === act); return s && s.taps > 0 && enough ? { activity: act, share: pct(s.share), margin: pts(s.margin) } : { activity: act, share: '—', margin: '' }; }),
+      ...(enough ? {} : { early: n ? `too early — ${n} tap${n === 1 ? '' : 's'}, ${TOO_FEW_TAPS} needed` : 'no taps yet' }),
+    };
+  });
+  const n = tapsOf(taps).length;
+  return { activities, rows, head: `${a.who.length} ${a.who.length === 1 ? 'person' : 'people'} watched at ${a.prompts.length} random moments — ${n} tap${n === 1 ? '' : 's'}; each share with its margin at 95%, in points` };
+}
+
+/** The line's card: the biggest share that is not the work, with its margin
+ *  — or how far the study has got. Neutral: what is too much is the team's
+ *  to say on its fishbone. */
+export function samplingCardLine(a: AgreedSampling | undefined, taps: Tap[]): string | undefined {
+  if (!a) return undefined;
+  const w = samplingWorst(a, taps);
+  if (w) return worstWords(w);
+  const n = tapsOf(taps).length;
+  return n ? `Too early — ${n} tap${n === 1 ? '' : 's'} of ${a.who.length} ${a.who.length === 1 ? 'person' : 'people'} watched` : `${a.who.length} ${a.who.length === 1 ? 'person' : 'people'} watched — no taps yet`;
+}

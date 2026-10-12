@@ -202,7 +202,7 @@ export function CauseSheet(p: CauseSheetProps) {
           <span className="cs-k">Where it came from</span>
           <p className="cs-src-t">
             {c.source
-              ? <>{c.source.kind === 'study' && c.source.tool === 'map' ? 'The value stream map' : c.source.kind === 'study' && c.source.tool === 'changeover' ? 'SMED' : c.source.kind === 'study' && c.source.tool === 'losses' ? 'The loss count' : SOURCE_WORD[c.source.kind]}{c.source.label ? `: ${c.source.label}` : ''}{lossWords(c.source.minutesWeek) ? ` · ${lossWords(c.source.minutesWeek)}` : ''}</>
+              ? <>{c.source.kind === 'study' && c.source.tool === 'map' ? 'The value stream map' : c.source.kind === 'study' && c.source.tool === 'changeover' ? 'SMED' : c.source.kind === 'study' && c.source.tool === 'losses' ? 'The loss count' : c.source.kind === 'study' && c.source.tool === 'sampling' ? 'Work sampling' : SOURCE_WORD[c.source.kind]}{c.source.label ? `: ${c.source.label}` : ''}{lossWords(c.source.minutesWeek) ? ` · ${lossWords(c.source.minutesWeek)}` : ''}</>
               : 'Put on the fishbone by hand'}
             {(c.by || (!draft && c.at)) && <span className="cs-by"> · added {[c.by ? `by ${c.by}` : '', !draft && c.at ? new Date(c.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''].filter(Boolean).join(', ')}</span>}
             {/* Only where there is somewhere to go: something seen on the line

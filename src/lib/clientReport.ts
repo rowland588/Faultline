@@ -43,6 +43,7 @@ import { lossFiguresOf, provedLine, studyHref, studyLine, studyTitle, type Study
 import { streamRows } from './ie/steps';
 import { agreedFor, changeoverSheet, moneyOf } from './ie/changeover';
 import { lossRows } from './ie/losses';
+import { samplingRows } from './ie/sampling';
 
 /** One cell of a gate's checklist: how that stage stands on that machine. */
 /** `booked` is a step with a day, still ahead (indigo); `ahead` one with no
@@ -229,7 +230,10 @@ export interface ClientReport {
     changeover?: ReturnType<typeof changeoverSheet>;
     /** A shift's loss count as a table (lib/ie/losses lossRows) — the
      *  waterfall on paper: cause · stops · minutes · £. */
-    losses?: NonNullable<ReturnType<typeof lossRows>> }[];
+    losses?: NonNullable<ReturnType<typeof lossRows>>;
+    /** A work sampling as a table (lib/ie/sampling samplingRows) — each
+     *  person's shares with their margins; too early said, never a figure. */
+    sampling?: NonNullable<ReturnType<typeof samplingRows>> }[];
   /** The job's dated marks — the same ones the project page's Gantt draws —
    *  for "The plan" page, with the day it was printed and both handover dates. */
   plan: PlanMark[];
@@ -573,13 +577,14 @@ export function clientReport(x: ClientReportInput): ClientReport {
       const l = studyLine(s, ctx);
       const branches = new Map(s.uses.flatMap(u => { const r = u.step && u.role === 'evidence' ? tests.find(t => t.id === u.ref) : undefined; return r && u.step ? [[u.step, r.title] as [string, string]] : []; }));
       const losses = s.tool === 'losses' ? lossRows(lossFiguresOf(s, ctx), s.facts.losses) : undefined;
+      const sampling = s.tool === 'sampling' && !s.agreed?.sampling?.walk ? samplingRows(s.agreed?.sampling, s.facts.taps ?? []) : undefined;
       return { id: s.id, title: studyTitle(s), href: studyHref(s),
         used: used || 'not used for a record yet', line: l.text, tone: l.tone,
         ...(s.tool === 'map' && (s.facts.flow ?? []).length ? { stream: streamRows(s.facts.flow, s.agreed?.map, branches) } : {}),
         ...(s.tool === 'changeover' && (s.facts.sequence ?? []).length
           ? { changeover: changeoverSheet(s.facts, agreedFor(live(x.standards).find(st => st.id === s.standardId)?.capacity?.changeovers, s.facts.fromProduct), branches,
               moneyOf(ctx?.workspaces?.find(w => w.id === s.workspaceId))) } : {}),
-        ...(losses ? { losses } : {}) };
+        ...(losses ? { losses } : {}), ...(sampling ? { sampling } : {}) };
     }),
     /* Notes are never on the client's copy — they are private
        preparation — so a note's reminder stays off its plan page too. */

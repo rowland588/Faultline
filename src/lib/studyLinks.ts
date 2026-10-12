@@ -108,6 +108,12 @@ export function studyHref(s: Pick<ToolStudy, 'id' | 'tool' | 'standardId' | 'pro
 export const currentMap = (studies: ToolStudy[], workspaceId: ID): ToolStudy | undefined =>
   live(studies).filter(s => s.tool === 'map' && s.workspaceId === workspaceId).sort((a, b) => b.startedAt - a.startedAt)[0];
 
+/** A line's newest work sampling of its people — a bottleneck walk (whose
+ *  "people" are the stations) is not one. */
+export const currentSampling = (studies: ToolStudy[], workspaceId: ID): ToolStudy | undefined =>
+  live(studies).filter(s => s.tool === 'sampling' && s.workspaceId === workspaceId && !!s.agreed?.sampling && !s.agreed.sampling.walk)
+    .sort((a, b) => b.startedAt - a.startedAt)[0];
+
 /** A line's flow in one line, for its card: the lead time and the share that
  *  adds value — what is still carried from before, said. Neutral: a lead time
  *  is not judged against anything here. */

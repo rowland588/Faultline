@@ -15,6 +15,10 @@
  *   4  a mistap struck counts for nothing, and the reading says so
  *   5  Make it better — a fix in the study's own figures, the study its
  *      evidence
+ *   6  on a running line (the 6M job's Line 7): the line's card says the
+ *      biggest share not the work; the fishbone offers each share a tenth or
+ *      more on its bone, counted, and one accepted says where it came from;
+ *      the 6M report's Evidence prints each person's shares with margins
  *   and a client reads it and changes nothing.
  *
  * Every sentence is checked against the module that makes it
@@ -23,6 +27,10 @@
  *
  *   node scripts/acceptance/work-sampling.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 const { chromium } = pkg;
 
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
@@ -46,6 +54,7 @@ page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) er
 let failed = 0;
 const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}`); if (!c) failed++; };
 const go = async h => { await page.goto(`${BASE}/${h}`); await page.waitForTimeout(2000); };
+const san = x => x.replace(/→/g, 'to').replace(/[–—]/g, '-').replace(/[‘’]/g, "'").replace(/£/g, '').replace(/\s+/g, ' ');
 const words = async sel => ((await page.locator(sel).count()) ? (await page.locator(sel).first().innerText()).replace(/\s+/g, ' ').trim() : '');
 
 /* What the modules say of a study as it stands. */
@@ -144,6 +153,50 @@ await go(STUDY);
   }
 }
 
+/* ---- 6 on a running line: the line's card, the fishbone, the 6M report ----
+   The same morning's taps, sampled on the 6M job's Line 7 as a person would
+   start it there: the card says its biggest share not the work; the
+   fishbone offers each share a tenth or more on its bone, counted; one
+   accepted says "Work sampling" where it came from; and the 6M report's
+   Evidence prints each person's shares with their margins. */
+{
+  const lineSid = await page.evaluate(async ([from, ws, pid]) => {
+    const db = await import('/src/db.ts'); const s = await db.getStudy(from); const id = crypto.randomUUID(); const t = Date.now();
+    await db.putStudy({ ...s, id, name: 'Line 7 packers, this morning', workspaceId: ws, projectId: pid, standardId: undefined, uses: [], createdAt: t, updatedAt: t });
+    return id;
+  }, [sd.samplingId, sd.line7WsId, sd.pacedProjectId]);
+  const want = await page.evaluate(async ([sid, pid, cid]) => {
+    const db = await import('/src/db.ts'); const W = await import('/src/lib/ie/sampling.ts');
+    const { loadProblems } = await import('/src/lib/useProblems.ts'); const F = await import('/src/lib/fishbone.ts');
+    const s = await db.getStudy(sid); const a = s.agreed.sampling, taps = s.facts.taps ?? [];
+    const loaded = await loadProblems(pid); const c = loaded.cases.find(x => x.id === cid);
+    return { card: W.samplingCardLine(a, taps), rows: W.samplingRows(a, taps),
+      offers: F.suggestionsFor(c, loaded.data, Date.now()).filter(x => x.source.kind === 'study' && x.source.tool === 'sampling').map(x => ({ text: x.text, m: x.m, grade: x.grade, ref: x.source.ref })) };
+  }, [lineSid, sd.pacedProjectId, sd.oldCaseId]);
+  await go(`#/project/${sd.pacedProjectId}?view=lines`);
+  ok((await words('.lc-sample .lc-bal-t')) === want.card, `6 the line's card: "${await words('.lc-sample .lc-bal-t')}"`);
+  await go(`#/project/${sd.pacedProjectId}/fishbone?problem=${sd.oldCaseId}`);
+  const offered = await Promise.all(want.offers.map(async w => (await page.locator('button.is-sugg', { hasText: w.text }).count()) > 0));
+  ok(want.offers.length >= 1 && want.offers.every(w => w.ref.startsWith(`${lineSid}#`) && w.grade === 'counted' && (w.m === 'method' || w.m === 'people')) && offered.every(Boolean),
+    `6 the fishbone offers each share a tenth or more, counted: ${want.offers.map(w => `${w.text} (${w.m})`).join('; ')}`);
+  if (want.offers[0]) {
+    await page.locator('button.is-sugg', { hasText: want.offers[0].text }).first().click(); await page.waitForTimeout(600);
+    const sheet = (await page.locator('[role="dialog"]').last().textContent()) ?? '';
+    await page.getByRole('button', { name: 'Add to the fishbone' }).last().click(); await page.waitForTimeout(1000);
+    const c = await page.evaluate(async ([cid, txt]) => ((await (await import('/src/db.ts')).getCase(cid))?.causes ?? []).find(x => x.text === txt), [sd.oldCaseId, want.offers[0].text]);
+    ok(/Work sampling: Line 7 packers, this morning/.test(sheet) && c?.source?.tool === 'sampling' && c.m === want.offers[0].m && c.grade === 'counted', `6 accepted: on ${c?.m}, counted, "Work sampling" where it came from`);
+  }
+  await go(`#/pace-report?project=${sd.pacedProjectId}`);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'PDF', exact: true }).first().click()]);
+  const pdf = join(mkdtempSync(join(tmpdir(), 'sampling-')), 'sixm.pdf'); await dl.saveAs(pdf);
+  const txt = san(execFileSync('pdftotext', ['-raw', pdf, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' '));
+  const flatTxt = txt.replace(/\s+/g, '');
+  const has = x => flatTxt.includes(san(x).replace(/\s+/g, '').slice(0, 60));
+  const r = want.rows;
+  const lost = [r.head, 'PERSON', 'TAPS', ...r.rows.flatMap(x => [x.who, ...(x.early ? [x.early] : x.cells.filter(c => c.share !== '—').map(c => `${c.share} ${c.margin}`))])].filter(x => !has(x));
+  ok(!lost.length, `6 the 6M report's Evidence: each person's shares with their margins — "${r.head}"${lost.length ? ` — lost: ${lost.join(' | ')}` : ''}`);
+}
+
 /* ---- a client reads it and changes nothing ---- */
 await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client'));
 await go(STUDY);
@@ -155,5 +208,5 @@ await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
 
 ok(errors.length === 0, errors.length ? `no console errors — ${errors.join(' | ')}` : 'no console errors');
 await browser.close();
-console.log(failed ? `\n${failed} acceptance check(s) failed` : '\nH1 accepted: work sampling holds, from the moment to the fix');
+console.log(failed ? `\n${failed} acceptance check(s) failed` : '\nH1 accepted: work sampling holds, from the moment to the fix, on the fishbone and on paper');
 process.exit(failed ? 1 : 0);
