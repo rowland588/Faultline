@@ -175,7 +175,11 @@ export async function pour(f: Frame, blocks: Block[], newPage: () => void): Prom
         const want = page * 0.25;
         const rest = parts[1].height(f) - (parts[1].after?.(f) ?? 0);
         if (rest < want) {
-          const room = f.bottom - y - (want - rest);
+          /* From where this split ends, not from the foot: a split that
+             already held a row back (none alone overleaf) asked again for
+             the foot less the shortfall gave the same rows back, and two
+             rows still sat alone before the cards (the stress run again). */
+          const room = parts[0].height(f) - (parts[0].after?.(f) ?? 0) - (want - rest);
           const fewer = room > 0 ? b.split(f, room, opts) : null;
           if (fewer && y - f.top + fewer[0].height(f) - (fewer[0].after?.(f) ?? 0) >= want) parts = fewer;
         }

@@ -303,4 +303,21 @@ describe('what a split leaves before pages of their own', () => {
     expect(used).toBeGreaterThanOrEqual(800 * 0.25);
     expect(p.marks.filter(m => m.kind === 'row').length).toBe(25);
   });
+  it('carries over from where the split ends, when the split already held a row back so none stands alone', async () => {
+    const p = new Paper();
+    const f = { doc: p.doc, x: 0, w: 500, top: 60, bottom: 790, density: 'comfortable' as const, dry: false };
+    /* "What we're waiting on" on the huge client report: the table opens
+       page 2 and runs over; its last row would have stood alone overleaf, so
+       the split held one back — and two rows (135 with the header, 18% of
+       the page) sat on page 3 before the line standard's cards. */
+    const hs = [101, 60, 101, 91, 81, 71, 51, 81, 41];
+    const table = rows({ header: { h: () => 13, draw: () => undefined }, rows: hs.map((h, i) => ({ h: () => h, draw: (_f: Frame, y: number) => { p.marks.push({ id: `W${i}`, page: p.page, top: y, bottom: y + h, kind: 'row' }); } })), after: 'm' });
+    const blocks: Block[] = [box(() => 640, () => undefined), box(() => 40, () => undefined), heading('What we are waiting on', 'and whose it is'), table, pagesOf(() => { p.page++; p.marks.push({ id: 'I', page: p.page, top: 0, bottom: 0, kind: 'insert' }); })];
+    await pour(f, blocks, () => { p.page++; });
+    const last = Math.max(...p.marks.filter(m => m.kind === 'row').map(m => m.page));
+    const tail = p.marks.filter(m => m.kind === 'row' && m.page === last);
+    expect(last).toBe(3);
+    expect(Math.max(...tail.map(m => m.bottom)) - f.top).toBeGreaterThanOrEqual((f.bottom - f.top) * 0.25);
+    expect(p.marks.filter(m => m.kind === 'row').map(m => m.id)).toEqual(hs.map((_, i) => `W${i}`));
+  });
 });
