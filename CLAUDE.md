@@ -176,6 +176,7 @@ node scripts/acceptance/sixm-evidence.mjs  # 2h: a study on a running line — a
 node scripts/acceptance/value-stream.mjs  # B: a line's value stream — who and where, walked, a step made better, walked again, before → after, the paper, the fishbone
 node scripts/acceptance/changeover.mjs  # F: a changeover lapped on the phone, internal or external, the split bar, the interval, a step made better, set as the standard, timed again, before → after, the paper, the fishbone
 node scripts/acceptance/work-sampling.mjs  # H1: what people are doing at random moments — the moment asks, one tap each, the shares with their margins, the fix
+node scripts/acceptance/line-capacity.mjs  # Line capacity: the V-curve, the capacity sheet, the margin, a person's standard time, the bottleneck walked
 node scripts/sync-two-devices.mjs     # a phone and a laptop against a fake cloud — video on one plays on the other
 node scripts/check-live-schema.mjs    # the LIVE database against the mapper — needs .env
 ```
@@ -217,7 +218,11 @@ after on it, the steps as a table on the client report, and the 6M line's
 card and fishbone offering the changeover. `work-sampling.mjs` is H1: a study set
 up on its line with its standard's people, the moment due asking, one tap
 per person stamped with the moment's time, a mistap struck, the shares with
-their margins as the module says, and Make it better carrying the figure.
+their margins as the module says, and Make it better carrying the figure. `line-capacity.mjs` is Line capacity: the views named for what they
+are, the V-curve and the capacity sheet as `lib/capacity` says, a machine
+not on its plate speed said so, the owner's V margin and the guide, a
+person's standard time from the time study used with a tap, and the
+bottleneck walked against the sums.
 
 `scripts/sync-two-devices.mjs` runs two real devices of the app (a phone and a
 laptop, separate storage) against `scripts/fake-cloud.mjs`, which keeps the
