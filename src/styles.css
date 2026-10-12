@@ -11716,25 +11716,23 @@ button.vs-sq:focus-visible { outline: 2.5px solid var(--brand); outline-offset: 
 .vs-other .text-input { flex: 1; min-width: 0; }
 
 /* ============ A SHIFT'S LOSSES — the loss count (screens/LossesScreen, tool 7) ============
-   The waterfall is drawn in the quiet ink: planned minutes down to the good
-   packs made. Only the abnormal carries colour — the part not yet explained
+   The waterfall is drawn across, in the quiet ink: planned minutes down to
+   the good packs made. Only the abnormal carries colour — the part not yet explained
    is hatched grey, and amber when it is more than a tenth of the loss.
    Nothing green: a shift's loss is not a pass (CLAUDE.md, visual management). */
-.lf-body { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; margin-top: 8px; }
-.lf-main { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.lf-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "pic count"; gap: 16px; align-items: start; margin-top: 8px; }
+.lf-body.has-table { grid-template-areas: "tab pic" "count count"; }
+.lf-tab { grid-area: tab; min-width: 0; }
+.lf-pic { grid-area: pic; min-width: 0; }
+.lf-body > .lf-count { grid-area: count; }
+.lf-body.has-table > .lf-count .lf-count-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 .lf-fall { width: 100%; max-width: 760px; height: auto; display: block; overflow: visible; margin: 0 auto; }
 .lf-bar { fill: var(--ink-2); }
 .lf-bar.is-frame { fill: var(--surface-2); stroke: var(--line-2); stroke-width: 1.2; }
 .lf-bar.is-unex { fill: url(#lf-hatch); color: var(--st-n); stroke: var(--st-n); stroke-width: 1.4; }
 .lf-bar.is-unex.is-a { color: var(--st-a); stroke: var(--st-a); }
 .lf-hatch { stroke: currentColor; stroke-width: 1.4; }
-.lf-base { stroke: var(--line-2); stroke-width: 1; }
-.lf-val { font-size: 12px; font-weight: 700; fill: var(--ink); text-anchor: middle; font-variant-numeric: tabular-nums; }
-.lf-val.is-a { fill: var(--st-a); }
-.lf-lbl { font-size: 11.5px; fill: var(--ink-2); text-anchor: middle; }
-.lf-lbl.is-sub { fill: var(--muted); font-size: 10.5px; }
-.lf-lbl.is-a { fill: var(--st-a); font-weight: 700; }
-.lf-fall.is-rows { max-width: 520px; }
+.lf-fall.is-rows { max-width: 460px; }
 .lf-rl { font-size: 13px; fill: var(--ink); }
 .lf-rl.is-a { fill: var(--st-a); font-weight: 700; }
 .lf-rv { font-size: 13px; font-weight: 700; fill: var(--ink); text-anchor: end; font-variant-numeric: tabular-nums; }
@@ -11775,6 +11773,7 @@ button.vs-sq:focus-visible { outline: 2.5px solid var(--brand); outline-offset: 
 .lf-count .chip { min-height: 40px; }
 .lf-count-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; align-items: start; }
 .lf-count-grid .lf-day { grid-column: 1 / -1; }
+.lf-body.has-table .lf-count-grid .lf-day { grid-column: auto; }
 .lf-facts { margin: 0; display: grid; gap: 4px; }
 .lf-facts div { display: grid; grid-template-columns: 80px 1fr; gap: 8px; padding: 5px 0; border-top: 1px solid var(--line); font-size: var(--t-detail); }
 .lf-facts dt { color: var(--muted); font-weight: 700; }
@@ -11783,9 +11782,14 @@ button.vs-sq:focus-visible { outline: 2.5px solid var(--brand); outline-offset: 
 @media (max-width: 760px) {
   /* ON THE FLOOR: the count first — the thumb types it — then the picture,
      the causes under it, every box a glove can hit. */
-  .lf-body { grid-template-columns: 1fr; }
-  .lf-body.is-counting .lf-count { order: -1; }
-  .lf-count-grid { grid-template-columns: 1fr 1fr; }
+  .lf-body, .lf-body.has-table { grid-template-columns: minmax(0, 1fr); grid-template-areas: none; }
+  .lf-tab, .lf-pic, .lf-body > .lf-count { grid-area: auto; }
+  .lf-pic { order: 1; }
+  .lf-tab { order: 2; }
+  .lf-body > .lf-count { order: 3; }
+  .lf-body.is-counting > .lf-count { order: 0; }
+  .lf-count-grid, .lf-body.has-table > .lf-count .lf-count-grid { grid-template-columns: 1fr 1fr; }
+  .lf-body.has-table .lf-count-grid .lf-day { grid-column: 1 / -1; }
   .lf-tr, .lf-row { grid-template-columns: minmax(0, 1fr) 40px 62px 54px 14px; gap: 0 6px; }
   .lf-tr.no-money, .lf-row.no-money { grid-template-columns: minmax(0, 1fr) 40px 62px 14px; }
 }

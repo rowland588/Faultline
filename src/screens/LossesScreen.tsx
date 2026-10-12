@@ -98,10 +98,6 @@ function Losses({ s, line, obs, std, can, me }: { s: ToolStudy; line?: Workspace
   /* A bar tapped — in the waterfall or the table: everything about it, and
      Make it better on it (tools come out where the work is). */
   const [viewing, setViewing] = useState<string | null>(null);
-  /* A laptop draws the waterfall down the page, a phone across it — the same
-     bars to the same scale, each label inside the frame at a size a person
-     on the floor can read. */
-  const wide = useWide();
   const bar = viewing ? f.bars.find(b => b.key === viewing) : undefined;
 
   return (
@@ -125,11 +121,13 @@ function Losses({ s, line, obs, std, can, me }: { s: ToolStudy; line?: Workspace
         {s.overrule && <p className="ie-say ie-over"><b>{s.overrule.verdict}</b> · overruled{s.overrule.by ? ` by ${s.overrule.by}` : ''} — {s.overrule.why}</p>}
       </div>
 
-      <div className={'lf-body' + (f.enough ? '' : ' is-counting')}>
-        <div className="lf-main">
-          <div className="ie-pic">{wide ? <Waterfall f={f} said={said} onOpen={setViewing} /> : <WaterfallRows f={f} said={said} onOpen={setViewing} />}</div>
-          {f.enough && f.bars.length > 0 && <CauseTable f={f} branches={branches} onOpen={setViewing} />}
-        </div>
+      {/* THE FRAME (docs/TOOLKIT.md 3.1): on a laptop the causes as a table on
+          the left, the waterfall on the right, the count under them; on a
+          phone full width — the count first until it is in, then the
+          picture, the table under it. */}
+      <div className={'lf-body' + (f.enough ? '' : ' is-counting') + (f.enough && f.bars.length > 0 ? ' has-table' : '')}>
+        {f.enough && f.bars.length > 0 && <div className="lf-tab"><CauseTable f={f} branches={branches} onOpen={setViewing} /></div>}
+        <div className="ie-pic lf-pic"><Waterfall f={f} said={said} onOpen={setViewing} /></div>
         <CountForm s={s} line={line} standardRate={standardRate} editable={editable} />
       </div>
 
@@ -183,103 +181,14 @@ function Strip({ f, said }: { f: LossFigures; said: LossSays }) {
 }
 
 /* ------------------------------------------------------------------ the waterfall */
-const FW = 640, FH = 280, FP = { l: 12, r: 12, t: 26, b: 58 };
-/** Causes drawn as bars of their own; the rest merged into one, said as such. */
-const MAX_CAUSES = 5;
-
-/** A label in at most two lines of about twelve letters — never cut short. */
-function twoLines(t: string): string[] {
-  if (t.length <= 12) return [t];
-  const words = t.split(/\s+/);
-  let a = '';
-  while (words.length && (a + ' ' + words[0]).trim().length <= Math.max(12, Math.ceil(t.length / 2))) a = (a + ' ' + words.shift()).trim();
-  if (!a) a = words.shift() ?? '';
-  return [a, words.join(' ')].filter(Boolean);
-}
-
-function Waterfall({ f, said, onOpen }: { f: LossFigures; said: LossSays; onOpen: (key: string) => void }) {
-  if (!f.enough) return <p className="sub ie-pic-empty">The waterfall draws itself here — planned minutes down to the good packs made — once the count is in.</p>;
-  const planned = f.plannedMin ?? 0, rate = f.rate ?? 1;
-  const causes = f.bars.filter(b => b.kind === 'cause');
-  const shown: LossBar[] = causes.length > MAX_CAUSES
-    ? [...causes.slice(0, MAX_CAUSES - 1), (() => { const rest = causes.slice(MAX_CAUSES - 1); return { key: 'cause:other', kind: 'cause' as const, label: `${rest.length} other causes`, min: rest.reduce((n, b) => n + b.min, 0), stops: rest.reduce((n, b) => n + (b.stops ?? 0), 0), bone: 'machine' as const, grade: 'measured' as const }; })()]
-    : causes;
-  const bars = [...shown, ...f.bars.filter(b => b.kind !== 'cause')];
-  const madeMin = Math.min(planned, (f.made ?? 0) / rate);
-  const cols = bars.length + 2;
-  const colW = (FW - FP.l - FP.r) / cols, bw = Math.min(70, colW * 0.72);
-  const x = (i: number) => FP.l + i * colW + (colW - bw) / 2;
-  const top = Math.max(planned, madeMin, 1);
-  const y = (v: number) => FP.t + (1 - v / top) * (FH - FP.t - FP.b);
-  const amber = (f.unexplainedShare ?? 0) > 0.1;
-  /* the stops logged exceed the loss: the bars run below what was made —
-     drawn as they are, and said in the sentence */
-  let level = planned;
-  const label = (i: number, lines: string[], sub: string | undefined, cls = '') => (
-    <>
-      {lines.map((l, k) => <text key={k} className={'lf-lbl' + cls} x={x(i) + bw / 2} y={FH - FP.b + 16 + k * 13}>{l}</text>)}
-      {sub && <text className="lf-lbl is-sub" x={x(i) + bw / 2} y={FH - FP.b + 16 + lines.length * 13}>{sub}</text>}
-    </>
-  );
-  return (
-    <svg className="lf-fall" viewBox={`0 0 ${FW} ${FH}`} role="img" aria-label={said.text}>
-      <defs>
-        <pattern id="lf-hatch" patternUnits="userSpaceOnUse" width="6" height="6"><path d="M0 6 L6 0" className="lf-hatch" /></pattern>
-      </defs>
-      <g>
-        <rect className="lf-bar is-frame" x={x(0)} y={y(planned)} width={bw} height={y(0) - y(planned)} />
-        <text className="lf-val" x={x(0) + bw / 2} y={y(planned) - 6}>{minWords(planned)}</text>
-        {label(0, ['Planned'], undefined)}
-      </g>
-      {bars.map((b, i) => {
-        const from = level, to = Math.max(0, level - b.min);
-        level = to;
-        const h = Math.max(0, y(to) - y(from));
-        const unex = b.kind === 'unexplained';
-        const cls = 'lf-bar' + (unex ? ' is-unex' + (amber ? ' is-a' : '') : '');
-        const real = f.bars.some(z => z.key === b.key);
-        return (
-          <g key={b.key} className={real ? 'lf-go' : undefined} onClick={real ? () => onOpen(b.key) : undefined}>
-            <title>{b.label}{b.asset ? ` on the ${b.asset}` : ''}: {minWords(b.min)}{b.stops !== undefined ? ` · ${b.stops} stop${b.stops === 1 ? '' : 's'}` : ''}{b.pounds !== undefined ? ` · ${gbp(b.pounds)}` : ''}</title>
-            {/* the step down from the bar before */}
-            <line className="lf-step" x1={x(i)} x2={x(i + 1)} y1={y(from)} y2={y(from)} />
-            <rect className={cls} x={x(i + 1)} y={y(from)} width={bw} height={Math.max(h, b.min > 0 ? 1.5 : 0)} />
-            <rect className="lf-hit" x={x(i + 1) - 4} y={FP.t} width={bw + 8} height={FH - FP.t} />
-            <text className={'lf-val' + (unex && amber ? ' is-a' : '')} x={x(i + 1) + bw / 2} y={y(from) - 6}>{minWords(b.min)}</text>
-            {label(i + 1, twoLines(b.label), b.pounds !== undefined ? gbp(b.pounds) : undefined, unex && amber ? ' is-a' : '')}
-          </g>
-        );
-      })}
-      <g>
-        <line className="lf-step" x1={x(cols - 2)} x2={x(cols - 1)} y1={y(level)} y2={y(level)} />
-        <rect className="lf-bar is-frame" x={x(cols - 1)} y={y(madeMin)} width={bw} height={y(0) - y(madeMin)} />
-        <text className="lf-val" x={x(cols - 1) + bw / 2} y={y(madeMin) - 6}>{minWords(madeMin)}</text>
-        {label(cols - 1, ['Made'], `${packs(f.made ?? 0)} packs`)}
-      </g>
-      <line className="lf-base" x1={FP.l} x2={FW - FP.r} y1={y(0)} y2={y(0)} />
-    </svg>
-  );
-}
-
-/** Wide enough to draw the waterfall down the page — followed, not read once. */
-function useWide(): boolean {
-  const q = '(min-width: 700px)';
-  const [wide, setWide] = useState(() => typeof window === 'undefined' || !window.matchMedia || window.matchMedia(q).matches);
-  useEffect(() => {
-    const mq = window.matchMedia?.(q);
-    if (!mq) return;
-    const on = () => setWide(mq.matches);
-    mq.addEventListener?.('change', on);
-    return () => mq.removeEventListener?.('change', on);
-  }, []);
-  return wide;
-}
-
-/** THE WATERFALL ACROSS A PHONE: a row per bar, top to bottom — planned, each
+/** THE WATERFALL, drawn across: a row per bar, top to bottom — planned, each
  *  loss stepping down from where the one before left off, made — to scale,
- *  the label and the minutes inside the frame. Tap a row to open it. */
+ *  the label and the minutes inside the frame at a size a person on the floor
+ *  can read, on a phone or beside the table on a laptop. The part not yet
+ *  explained hatched grey, amber only over a tenth of the loss; nothing green.
+ *  Tap a row to open it. */
 const RW = 360, RH = 34, RL = 112, RR = 64;
-function WaterfallRows({ f, said, onOpen }: { f: LossFigures; said: LossSays; onOpen: (key: string) => void }) {
+function Waterfall({ f, said, onOpen }: { f: LossFigures; said: LossSays; onOpen: (key: string) => void }) {
   if (!f.enough) return <p className="sub ie-pic-empty">The waterfall draws itself here — planned minutes down to the good packs made — once the count is in.</p>;
   const planned = f.plannedMin ?? 0, rate = f.rate ?? 1;
   const madeMin = Math.min(planned, (f.made ?? 0) / rate);
