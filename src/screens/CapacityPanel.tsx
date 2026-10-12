@@ -28,7 +28,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { DraftNumber, DraftText } from '../ui/Draft';
 import { Fold } from '../ui/Fold';
 import { offerUndo } from '../ui/Undo';
-import { listPaceTodos, onDataChange, putPaceTodo, type PaceLineRow, type PaceTodoRow } from '../db';
+import { listAllStudies, listPaceTodos, onDataChange, putPaceTodo, type PaceLineRow, type PaceTodoRow } from '../db';
+import { currentBalance } from '../lib/studyLinks';
+import { balance as balanceOf } from '../lib/ie/balance';
 import { niceDay } from '../lib/weeks';
 import { uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
@@ -48,7 +50,7 @@ import { BottleneckWalk } from '../ui/BottleneckWalk';
 
 const PER_WORD: Record<RatePer, string> = { sec: 'a second', min: 'a minute', hour: 'an hour' };
 const SOURCES: { id: NonNullable<Station['source']>; label: string }[] = [
-  { id: 'plate', label: 'On the plate' }, { id: 'timed', label: 'I timed it' }, { id: 'estimate', label: 'A guess' },
+  { id: 'plate', label: 'On the plate' }, { id: 'timed', label: 'I timed it' }, { id: 'standard', label: 'The time study' }, { id: 'estimate', label: 'A guess' },
 ];
 
 /* ============================ the capacity sheet ============================
@@ -59,8 +61,10 @@ const SOURCES: { id: NonNullable<Station['source']>; label: string }[] = [
  * hour in the line's unit once its stops count, its share of the bottleneck's
  * and what the target needs of it — over 100% red: it cannot. Read here;
  * changed on the station's card below. */
-const HOW: Record<NonNullable<Station['source']>, string> = { plate: 'on the plate', timed: 'timed', estimate: 'a guess' };
-function CapacitySheet({ r, v, target }: { r: ReturnType<typeof analyse>; v: ReturnType<typeof vCurve>; target?: number }) {
+const HOW: Record<NonNullable<Station['source']>, string> = { plate: 'on the plate', timed: 'timed', standard: 'standard time — the time study', estimate: 'a guess' };
+function CapacitySheet({ r, v, target, study, onUse }: { r: ReturnType<typeof analyse>; v: ReturnType<typeof vCurve>; target?: number;
+  /** A person's standard time from the time study on this standard — seconds a piece of the line's unit, by name. */
+  study?: Map<string, number>; onUse?: (stationId: string, cycleSec: number) => void }) {
   if (!r.ok.length) return null;
   const pctOf = new Map(v.points.map(p => [p.index, p]));
   return (
@@ -82,7 +86,12 @@ function CapacitySheet({ r, v, target }: { r: ReturnType<typeof analyse>; v: Ret
                 <td>{s.unit}{x.index > 0 && (s.contains ?? 1) !== 1 ? <span className="cap-sheet-k">1 = {fmtN(s.contains)} of the one before</span> : null}</td>
                 <td className="n cap-sheet-sp">{speed}<span className={'cap-sheet-k' + (s.kind === 'machine' && s.source !== 'plate' ? ' cap-sheet-a' : '')}>
                   {/* a machine goes by its plate speed (docs/CAPACITY.md §1); running below it is a loss, not a lower plate */}
-                  {s.kind === 'machine' ? (s.source === 'plate' ? HOW.plate : `${s.source ? HOW[s.source] : 'typed'} — not its plate speed`) : s.source ? HOW[s.source] : 'not timed yet'}</span></td>
+                  {s.kind === 'machine' ? (s.source === 'plate' ? HOW.plate : `${s.source ? HOW[s.source] : 'typed'} — not its plate speed`) : s.source ? HOW[s.source] : 'not timed yet'}</span>
+                  {/* a person timed in the time study: their standard time, in this station's unit — one tap to use it (docs/CAPACITY.md §1) */}
+                  {s.kind === 'people' && s.source !== 'standard' && study?.get(s.name.trim().toLowerCase()) != null && onUse && (() => {
+                    const work = study.get(s.name.trim().toLowerCase()) ?? 0, cyc = Math.round(work * x.factor * 100) / 100;
+                    return <button type="button" className="linkish cap-sheet-use" onClick={() => onUse(s.id, cyc)}>The time study: {fmtN(cyc)} s a {s.unit.replace(/s$/, '')} — use it</button>;
+                  })()}</td>
                 <td className="n">{s.runningPct != null && s.runningPct < 100 ? `${fmtN(100 - s.runningPct)}%` : '—'}</td>
                 <td className="n">{s.goodPct != null && s.goodPct < 100 ? `${fmtN(s.goodPct)}%` : '—'}</td>
                 <td className="n"><b>{fmtN(x.effective)}</b></td>
@@ -287,6 +296,21 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
   walk?: { standardId: string; product: string };
 }) {
   const jobCan = useAccess(projectId);
+  /* THE TIME STUDY on this product's standard (the work balance): each
+     person's standard time a piece — what a people station's speed is when
+     it has been timed (docs/CAPACITY.md §1). */
+  const [study, setStudy] = useState<Map<string, number> | undefined>(undefined);
+  useEffect(() => {
+    const sid = walk?.standardId;
+    if (!sid) return;
+    const load = () => void listAllStudies().then(all => {
+      const b = currentBalance(all, sid);
+      const f = b ? balanceOf(b.facts.steps, b.agreed?.balance) : undefined;
+      setStudy(f && !f.untimed ? new Map(f.people.filter(p => p.work > 0).map(p => [p.who.trim().toLowerCase(), p.work])) : undefined);
+    });
+    load();
+    return onDataChange(load);
+  }, [walk?.standardId]);
   const can = given ?? jobCan;
   const stored = line.capacity ?? EMPTY_CAPACITY;
   const [cap, setCap] = useState<Capacity>(stored);
@@ -520,7 +544,8 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
 
       {r.ok.length > 0 && <VCurveView r={r} v={vCurve(r, cap.vMarginPct)} target={current.targetPerMin} margin={cap.vMarginPct} canAgree={can.agree && !w}
         onMargin={m => commit({ ...cap, vMarginPct: m })} />}
-      {r.ok.length > 0 && <CapacitySheet r={r} v={vCurve(r, cap.vMarginPct)} target={current.targetPerMin} />}
+      {r.ok.length > 0 && <CapacitySheet r={r} v={vCurve(r, cap.vMarginPct)} target={current.targetPerMin} study={study}
+        {...(can.edit ? { onUse: (id: string, cycleSec: number) => patchStation(id, { cycleSec, perCycle: 1, rate: undefined, source: 'standard', note: 'standard time, from the time study' }) } : {})} />}
       {walk && !w && <BottleneckWalk standardId={walk.standardId} product={walk.product} {...(line.workspaceId ? { workspaceId: line.workspaceId } : {})} {...(projectId ? { projectId } : {})}
         stations={r.ok.map(x => x.station.name.trim() || `Station ${x.index + 1}`)} {...(r.limit ? { calculated: r.limit.station.name.trim() || `Station ${r.limit.index + 1}` } : {})} canEdit={can.edit} />}
 
