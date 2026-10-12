@@ -669,6 +669,48 @@ lead time, and each 6M study's title and sentence.
   wait and waste, accepted onto its bone; and a client changing nothing.
 
 
+### Tool F — the changeover and its interval
+
+Built 12 October, the five pieces in BUILD's order (arithmetic, the study
+alone, its links, its paper, its acceptance). No new table, no migration, no
+new noun: a study of tool `changeover` (already in `studies_tool_check`).
+
+- **The record.** `facts.sequence` — the steps in order, each `internal`
+  (the line stopped) or `external` (could be done while it runs), its
+  seconds, `timed` · `typed` · `carried`; `fromProduct`, `toProduct`;
+  `perWeek`; the interval's inputs typed once — `products` (each with its
+  demand a day and the line's rate on it, or its minutes a day) and
+  `availableMinPerDay`. Both lists merge by id between two phones. The agreed
+  sequence lives on the to-product's line standard inside its existing
+  `capacity` jsonb: `capacity.changeovers[]`, one per product it is changed
+  from (the mapper passes `capacity` whole).
+- **The arithmetic** (`lib/ie/changeover.ts`, proved in `changeover.test.ts`
+  by the toolkit's numbers: 450 − 300 = 150 free; 5 × 42 = 210 → 1.4 days;
+  5 × 27 = 135 → 0.9 days; 15 × 6 = 90 min a week): the minutes now, internal,
+  external, with the external work out, the week bought back, the interval
+  and the changeover a daily interval needs; the verdict (over the agreed
+  standard red, external work inside the stop amber, within green); before →
+  after, nothing claimed while a step is carried.
+- **The study alone** (`/changeover`, `/changeover/:id`): Lap on the phone,
+  typed steps, the split bar (internal solid, external hatched; the bar with
+  the external work out under it), the interval sheet (the line's products
+  offered with the balance's rate, the day from its planned hours), Set as
+  the standard (`can.agree`) — a receipt, reopenable.
+- **Its links.** Make it better from a step (a fix, or a countermeasure on
+  Method for external work, Machine for an internal step), Prove it (the same
+  steps carried, Lap times the one up next), before → after on the fix and
+  the board. Shows under the product's standard (with its agreed sequences),
+  on the line tools page, on the 6M line's card, on the fishbone (Method and
+  Machine, `CauseSource.tool: 'changeover'`), in Today's update.
+- **Its paper** (`lib/report/changeoverTable`): the steps as a table in the
+  client report's and the 6M report's Evidence, seeded tiny, ordinary and
+  huge; `report-stress` demands every row and the figures in words.
+- **Its acceptance:** `scripts/acceptance/changeover.mjs`, in the gate.
+
+Not built: a filmed changeover cut into steps (the walk's film is not yet a
+source for a study's steps); the interval's picture (one cycle of every
+product on a timeline — the sentence carries it for now).
+
 **The tools**, from `docs/TOOLKIT.md`, Part 5:
 - B, the map;
 - C, the time study;

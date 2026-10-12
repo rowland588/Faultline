@@ -139,6 +139,7 @@ node scripts/acceptance/ecosystem-capability.mjs  # release 2: a study, a line, 
 node scripts/acceptance/work-balance.mjs  # step 3: the work timed on the phone, stacked against takt, on a job, before → after
 node scripts/acceptance/sixm-evidence.mjs  # 2h: a study on a running line — a cause's evidence, a countermeasure, before → after, the 6M report
 node scripts/acceptance/value-stream.mjs  # B: a line's value stream — who and where, walked, a step made better, walked again, before → after, the paper, the fishbone
+node scripts/acceptance/changeover.mjs  # F: a changeover lapped on the phone, internal or external, the split bar, the interval, a step made better, set as the standard, timed again, before → after, the paper, the fishbone
 node scripts/sync-two-devices.mjs     # a phone and a laptop against a fake cloud — video on one plays on the other
 node scripts/check-live-schema.mjs    # the LIVE database against the mapper — needs .env
 ```
@@ -171,7 +172,13 @@ after on it and the 6M report. `value-stream.mjs` is
 B: a line's value stream map — lanes by who and by where, walked on the
 phone, a fix raised from a waste step, the line walked again, before → after
 on the fix, the stream as a table on the client report, and the fishbone
-offering the map's wait and waste.
+offering the map's wait and waste. `changeover.mjs` is F: a changeover
+started from the product's standard, lapped on the phone step by step (each
+internal or external), the rest typed, the split bar and the interval as
+the module says, a fix raised from an external step, set as the standard
+(the product's standard shows it), timed again to prove the fix, before →
+after on it, the steps as a table on the client report, and the 6M line's
+card and fishbone offering the changeover.
 
 `scripts/sync-two-devices.mjs` runs two real devices of the app (a phone and a
 laptop, separate storage) against `scripts/fake-cloud.mjs`, which keeps the
