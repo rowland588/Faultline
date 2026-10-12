@@ -29,17 +29,15 @@ import { now, uid } from '../lib/ids';
 import { niceDay, todayISO } from '../lib/weeks';
 import { shiftWindow } from '../lib/shifts';
 import { nav } from '../state/useRoute';
-import { gbp, isRest, lossSays, minWords, packs, plannedOf, rateKnown, rateWords, runningOf, splitWords, stopsOfBar, windowWords, type LossBar, type LossFigures, type LossSays, type RateOf } from '../lib/ie/losses';
+import { gbp, isRest, lossSays, rateOf, minWords, packs, plannedOf, rateKnown, rateWords, runningOf, splitWords, stopsOfBar, windowWords, type LossBar, type LossFigures, type LossSays, type RateOf } from '../lib/ie/losses';
 import { sixmLabel } from '../lib/sixm';
 import { Sheet } from '../ui/Sheet';
 import { lossFiguresOf, recordHref, ROLE_WORD, type StudyContext } from '../lib/studyLinks';
 import type { LossCount, RunTiming, ToolStudy } from '../lib/study';
-import type { Standard } from '../lib/standard';
 import type { Observation, Workspace } from '../types';
 import { TOOL_WORDS } from './StudiesScreen';
 import { UsedFor, WhereItSits, useBetter } from '../ui/StudyPlace';
 import { capacityForCount } from '../ui/ShiftLosses';
-import { rateOf } from '../lib/ie/losses';
 
 const OWNER = canAt('owner');
 
@@ -47,7 +45,6 @@ export function LossesScreen({ id }: { id: string }) {
   const [s, setS] = useState<ToolStudy | null | undefined>(undefined);
   const [line, setLine] = useState<Workspace | undefined>(undefined);
   const [obs, setObs] = useState<Observation[]>([]);
-  const [std, setStd] = useState<Standard | undefined>(undefined);
   const [rate, setRate] = useState<RateOf>({ why: 'typed' });
   const load = useCallback(async () => {
     const st = (await getStudy(id)) ?? null;
@@ -61,7 +58,7 @@ export function LossesScreen({ id }: { id: string }) {
       st.standardId ? getStandard(st.standardId) : Promise.resolve(undefined),
     ]);
     const { cap, target } = await capacityForCount(st.workspaceId, sd);
-    setLine(w); setObs(o); setStd(sd); setRate(rateOf(cap, target)); setS(st);
+    setLine(w); setObs(o); setRate(rateOf(cap, target)); setS(st);
   }, [id]);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
   const jobCan = useAccess(s?.projectId ?? '');
@@ -79,10 +76,10 @@ export function LossesScreen({ id }: { id: string }) {
       <button type="button" className="btn" onClick={() => nav('/losses')}>Every loss count</button>
     </div>
   );
-  return <Losses s={s} line={line} obs={obs} std={std} rate={rate} can={can} me={me} />;
+  return <Losses s={s} line={line} obs={obs} rate={rate} can={can} me={me} />;
 }
 
-function Losses({ s, line, obs, std, rate, can, me }: { s: ToolStudy; line?: Workspace; obs: Observation[]; std?: Standard; rate: RateOf; can: Can; me?: string }) {
+function Losses({ s, line, obs, rate, can, me }: { s: ToolStudy; line?: Workspace; obs: Observation[]; rate: RateOf; can: Can; me?: string }) {
   const c = s.facts.losses;
   const ctx = useMemo<StudyContext>(() => ({ observations: obs, workspaces: line ? [line] : [] }), [obs, line]);
   const f = useMemo(() => lossFiguresOf(s, ctx), [s, ctx]);
@@ -101,7 +98,6 @@ function Losses({ s, line, obs, std, rate, can, me }: { s: ToolStudy; line?: Wor
     for (const u of s.uses) if (u.step && u.role === 'evidence' && byRef.has(u.ref)) { const k = u.step === 'unexplained' ? 'performance' : u.step; m.set(k, [...(m.get(k) ?? []), u.ref]); }
     return m;
   }, [s.uses, byRef]);
-  void std;
   /* A bar tapped — in the waterfall or the table: everything about it, and
      Make it better on it (tools come out where the work is). */
   const [viewing, setViewing] = useState<string | null>(null);
