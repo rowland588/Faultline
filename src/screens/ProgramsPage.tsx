@@ -39,13 +39,18 @@ import { ProgramsScreen } from './ProgramsScreen';
 import { navReplace } from '../state/useRoute';
 import { answerOf } from '../lib/install';
 
-type Filter = 'all' | ProgBucket;
+/* The two said "why" of the ones to do (12 October): not tested, no program. */
+type Said = 'notTested' | 'noProgram';
+type Filter = 'all' | ProgBucket | Said;
 const FILTERS: { key: Filter; word: string }[] = [
   { key: 'all', word: 'All' }, { key: 'failed', word: 'Failed' }, { key: 'late', word: 'Late' },
+  { key: 'noProgram', word: 'No program' }, { key: 'notTested', word: 'Not tested' },
   { key: 'baseline', word: 'At baseline' }, { key: 'open', word: 'To do' }, { key: 'done', word: 'Passed or done' },
 ];
-/* Only the abnormal count wears colour; a zero is grey (CLAUDE.md). */
-const TILE_TONE: Record<ProgBucket, string> = { done: 'g', baseline: 'g', failed: 'r', late: 'r', open: 'n' };
+/* Only the abnormal count wears colour; a zero is grey (CLAUDE.md) — no
+   program waits on whoever writes it (amber); not tested is still to do. */
+const TILE_TONE: Record<Exclude<Filter, 'all'>, string> = { done: 'g', baseline: 'g', failed: 'r', late: 'r', open: 'n', noProgram: 'a', notTested: 'n' };
+const isSaid = (f: Filter): f is Said => f === 'notTested' || f === 'noProgram';
 
 export function ProgramsPage({ projectId }: { projectId: string }) {
   const tt = useTesting(projectId);
@@ -67,8 +72,8 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
   const assets = live(tt.assets).sort((a, b) => a.sort - b.sort);
   const stages = live(tt.tests).filter(t => isProgramsStage(t, answerOf(t, project, tt.items)));
   const lines = reading?.lines ?? [];
-  const count = (b: Filter) => (b === 'all' ? lines.length : lines.filter(l => l.bucket === b).length);
-  const keep = (l: ProgramLine) => filter === 'all' || l.bucket === filter;
+  const count = (b: Filter) => (b === 'all' ? lines.length : lines.filter(l => (isSaid(b) ? l.said === b : l.bucket === b)).length);
+  const keep = (l: ProgramLine) => filter === 'all' || (isSaid(filter) ? l.said === filter : l.bucket === filter);
   /* The parts the filter keeps, for the stage's own list. */
   const keptParts = new Set(lines.filter(keep).map(l => l.partId).filter((x): x is string => !!x));
   const onlyKept = filter === 'all' ? undefined : (p: TestItem) => keptParts.has(p.id);
@@ -113,7 +118,7 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
       <div className="pp-tiles" role="group" aria-label="Show">
         {FILTERS.map(f => {
           const n = count(f.key);
-          const tone = f.key === 'all' ? 'n' : n ? TILE_TONE[f.key] : 'z';
+          const tone = f.key === 'all' ? 'n' : n ? TILE_TONE[f.key as Exclude<Filter, 'all'>] : 'z';
           return (
             <button key={f.key} type="button" className={`pp-tile is-${tone}${filter === f.key ? ' on' : ''}`} aria-pressed={filter === f.key}
               onClick={() => setFilter(filter === f.key && f.key !== 'all' ? 'all' : f.key)}>

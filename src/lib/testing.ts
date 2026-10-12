@@ -456,7 +456,10 @@ export type ItemKind = 'found' | 'next' | 'note' | 'today';
 
 /** A part's status, said on a day with what was seen (TestItem.results).
  *  Baseline achieved is under way; passed is done; failed is a failure. */
-export type PartResultIs = 'baseline' | 'passed' | 'failed';
+/** How a program stands, as the floor says it. Rowland, 8 October: "pass,
+ *  fail, baseline achieved"; 12 October: "we need option not tested, and no
+ *  program" — said, with commentary, and neither is the program done. */
+export type PartResultIs = 'baseline' | 'passed' | 'failed' | 'notTested' | 'noProgram';
 export interface PartResult {
   is: PartResultIs;
   /** ISO day it was said. */

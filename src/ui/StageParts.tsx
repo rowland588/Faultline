@@ -51,9 +51,11 @@ type Draft = { id: string; what: string; owner: string; due: string; is?: PartRe
  *  "baseline achieved — done 8 Oct". */
 const stateOf = (p: TestItem, today: string, openProblems = 0) => partStatus(p, today, openProblems, DUE_SOON_DAYS);
 
-/** The three a part can be said to be — in the order work goes. */
-const RESULTS: PartResultIs[] = ['baseline', 'passed', 'failed'];
-const RESULT_TONE: Record<PartResultIs, 'w' | 'g' | 'r'> = { baseline: 'w', passed: 'g', failed: 'r' };
+/** What a part can be said to be — in the order work goes; then, 12
+ *  October, "not tested" and "no program": where it stands and why, still to
+ *  do (lib/noted isDoneResult). */
+const RESULTS: PartResultIs[] = ['baseline', 'passed', 'failed', 'notTested', 'noProgram'];
+const RESULT_TONE: Record<PartResultIs, 'w' | 'g' | 'r' | 'n' | 'a'> = { baseline: 'w', passed: 'g', failed: 'r', notTested: 'n', noProgram: 'a' };
 
 /** A STAGE'S PARTS AS A BRANCH OFF IT — on its square, its phone card row and
  *  beside its state in the drawer: "2 parts · 1 done", and "· 1 late" in red
@@ -135,7 +137,7 @@ export function StageParts({ step, tt, can, onProblem, only, onOpen, onRunProble
     if (open === p.id) { setOpen(null); setDraft(null); return; }
     const last = lastResult(p);
     setOpen(p.id);
-    setDraft({ id: p.id, what: p.what, owner: p.owner ?? '', due: p.due ?? '', ...(last ? { is: last.is } : {}), note: last?.note ?? '' });
+    setDraft({ id: p.id, what: p.what, owner: p.owner ?? '', due: p.due ?? '', ...(last ? { is: last.is } : {}), note: last ? last.note ?? '' : p.note ?? '' });
   };
   /* One Save for all of it (lib/noted editedResult decides what a status
      change keeps). */
@@ -146,6 +148,9 @@ export function StageParts({ step, tt, can, onProblem, only, onOpen, onRunProble
     const due = d.due ? day(d.due) ?? p.due : undefined;
     if (what !== p.what || owner !== p.owner || due !== p.due) next = { ...next, what, owner, due };
     if (d.is) next = editedResult(next, d.is, d.note);
+    /* COMMENTARY WITH NO STATUS PICKED (Rowland, 12 October: "allow
+       commentary") — kept on the part itself, never dropped. */
+    else if (d.note.trim() !== (p.note ?? '')) next = { ...next, note: d.note.trim() || undefined };
     if (next !== p) {
       void tt.saveItem(next);
       offerUndo(`“${what}” — saved`, () => tt.saveItem(p));
@@ -224,7 +229,7 @@ export function StageParts({ step, tt, can, onProblem, only, onOpen, onRunProble
                     {st.said && openProbs > 0 && <span className="spp-pill is-r">{openProbs === 1 ? 'a problem' : `${openProbs} problems`}</span>}
                   </span>
                   {meta && <span className="spp-meta">{meta}</span>}
-                  {said?.note && <span className="spp-said">{said.note}</span>}
+                  {(said ? said.note : p.note) && <span className="spp-said">{said ? said.note : p.note}</span>}
                 </button>
                 {/* EVERYTHING ABOUT IT, on the line being worked on. */}
                 {isOpen && draft && (
@@ -377,7 +382,7 @@ export function StageParts({ step, tt, can, onProblem, only, onOpen, onRunProble
       )}
       {can.edit && <datalist id="spp-names">{names.map(n => <option key={n} value={n} />)}</datalist>}
       {!all.length && can.edit && <p className="sub spp-why">{prog
-        ? 'Each program this machine has to run — then tap one to say how it stands: baseline achieved, passed or failed.'
+        ? 'Each program this machine has to run — then tap one to say how it stands — baseline achieved, passed, failed, not tested or no program — and what you saw.'
         : `Planned work inside this ${(step.kind ?? 'test') === 'install' ? 'stage' : 'test'}. Not a problem — a problem is for what went wrong.`}</p>}
     </div>
   );

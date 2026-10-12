@@ -72,7 +72,11 @@ export function partMoved(stepId: string, items: TestItem[], id: string, by: -1 
 /** DONE — ticked, or any status said on it (a status is the work done on its
  *  day, whatever came of it). A status said before this rule kept no doneAt;
  *  it is done all the same. */
-export const partDone = (i: TestItem): boolean => i.doneAt != null || !!i.results?.length;
+export const partDone = (i: TestItem): boolean => {
+  if (i.doneAt != null) return true;
+  const r = i.results?.length ? i.results[i.results.length - 1] : undefined;
+  return !!r && isDoneResult(r.is);
+};
 
 /** Past its day and not done — the one rule the drawer, the grid, the day,
  *  Needs you and the band all read. */
@@ -83,7 +87,13 @@ export const partLate = (i: TestItem, today: string): boolean => !partDone(i) &&
    baseline achieved ... I need status with commentary." A problem is what
    went wrong; a status is where the part has got to — both are kept. */
 
-export const RESULT_WORD: Record<PartResultIs, string> = { baseline: 'baseline achieved', passed: 'passed', failed: 'failed' };
+export const RESULT_WORD: Record<PartResultIs, string> = { baseline: 'baseline achieved', passed: 'passed', failed: 'failed', notTested: 'not tested', noProgram: 'no program' };
+
+/** WHICH STATUSES ARE THE WORK DONE. Baseline achieved, passed and failed are
+ *  the program done on its day, however it came out (Rowland, 8 October).
+ *  Not tested and no program (12 October) say where it stands and why, and
+ *  it is still to do — "no program" waits on whoever writes it. */
+export const isDoneResult = (is: PartResultIs): boolean => is === 'baseline' || is === 'passed' || is === 'failed';
 
 /** The status said last on a part, if any. */
 export const lastResult = (p: TestItem): PartResult | undefined => (p.results?.length ? p.results[p.results.length - 1] : undefined);
@@ -99,11 +109,12 @@ export const resultNow = (p: TestItem): PartResult | undefined => lastResult(p);
 export const resultWords = (r: PartResult): string => `${RESULT_WORD[r.is]} ${niceDay(r.on)}`;
 
 /** A status said on a part: its list grows by one, and the part is done on
- *  that day, whatever the outcome. */
+ *  that day, whatever the outcome — unless it says it is not tested or has no
+ *  program, when it is still to do. */
 export function saidResult(p: TestItem, is: PartResultIs, note: string, now = Date.now()): TestItem {
   const said = note.trim();
   const r: PartResult = { is, on: dayOfMs(now), ...(said ? { note: said } : {}), at: now };
-  return { ...p, results: [...(p.results ?? []), r], doneAt: now };
+  return { ...p, results: [...(p.results ?? []), r], doneAt: isDoneResult(is) ? now : undefined };
 }
 
 export type PartTone = 'g' | 'r' | 'w' | 'a' | 'n';
@@ -123,7 +134,18 @@ export interface PartStatus { word: string; tone: PartTone; bucket: PartBucket; 
 export function partStatus(p: TestItem, today: string, openProblems = 0, soonDays = 3): PartStatus {
   const r = lastResult(p);
   const done = partDone(p);
-  if (r) {
+  /* NOT TESTED, NO PROGRAM — said with what was seen, and still to do: grey
+     when it waits on nothing in particular, amber when there is no program
+     (it waits on whoever writes it), red once its day has gone. Ticked done
+     after it was said, it is done. */
+  if (r && !isDoneResult(r.is) && !(p.doneAt != null && p.doneAt >= r.at)) {
+    const w = RESULT_WORD[r.is];
+    /* a problem open on it is said beside it (ui/StageParts), as with any status */
+    if (openProblems > 0) return { word: `${w} · ${niceDay(r.on)}`, tone: 'r', bucket: 'late', done: false, said: r };
+    if (partLate(p, today)) return { word: `${w} — late · was ${niceDay(p.due)}`, tone: 'r', bucket: 'late', done: false, said: r };
+    return { word: `${w} · ${niceDay(r.on)}`, tone: r.is === 'noProgram' ? 'a' : 'n', bucket: 'open', done: false, said: r };
+  }
+  if (r && isDoneResult(r.is)) {
     /* A failure is still done on its day (Rowland, 8 October — the rule is
        unchanged); said "Failed · closed 9 Oct", because "failed — done" read
        as a contradiction (Rowland, 9 October: wording only). */
@@ -159,7 +181,7 @@ export function editedResult(p: TestItem, is: PartResultIs, note: string, now = 
     return { ...p, results: [...rest, { is: last.is, on: last.on, at: last.at, ...(said ? { note: said } : {}) }] };
   }
   if (last.on === dayOfMs(now)) {
-    return { ...p, results: [...rest, { is, on: last.on, at: now, ...(said ? { note: said } : {}) }], doneAt: p.doneAt ?? now };
+    return { ...p, results: [...rest, { is, on: last.on, at: now, ...(said ? { note: said } : {}) }], doneAt: isDoneResult(is) ? p.doneAt ?? now : undefined };
   }
   return saidResult(p, is, said, now);
 }
@@ -171,7 +193,7 @@ export function withoutResult(p: TestItem, at: number): TestItem {
   const results = (p.results ?? []).filter(r => r.at !== at);
   const before = lastResult(p), after = results[results.length - 1];
   if (before?.at !== at) return { ...p, results };
-  return { ...p, results, doneAt: after ? after.at : undefined };
+  return { ...p, results, doneAt: after && isDoneResult(after.is) ? after.at : undefined };
 }
 
 /** "Panels to run Express 1.25 kg — Ilapak UK · by 9 Oct" / "— done 6 Oct" /

@@ -27,7 +27,7 @@ import { measuredDays, measuredOn, studyHref } from './studyLinks';
 import { GATE_WORD, lateOrProblem, lateOrProblemSays, doneLateBy, heldUpBy, lateByWords } from './install';
 import { niceDay, todayISO } from './weeks';
 import { isRunTest, readRuns, runsOpen, runsSay } from './run';
-import { RESULT_WORD, partDone, partLate, partOnStage, partsOnStages } from './noted';
+import { RESULT_WORD, isDoneResult, partDone, partLate, partOnStage, partsOnStages } from './noted';
 import { couldWords, criticalProblems, criticalState, riskProblems, type Critical } from './critical';
 
 export interface DayInput {
@@ -273,6 +273,8 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
     /* A status is the work done that day — baseline achieved and passed are
        done; failed was done and went wrong. */
     if (said && saidText && said.is === 'failed') wrong.push({ text: saidText, detail, tone: 'slipped', id: stage.id });
+    /* not tested, no program — what was found about it that day, still to do */
+    else if (said && saidText && !isDoneResult(said.is)) found.push({ text: saidText, detail, tone: 'found', id: stage.id });
     else if (said && saidText) done.push({ text: saidText, detail, tone: 'done', id: stage.id });
     else if (doneOn === date) done.push({ text: `${text}.`, detail, tone: 'done', id: stage.id });
     else if (p.due === date && !(doneOn && doneOn < date)) {

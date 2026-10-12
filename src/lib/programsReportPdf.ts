@@ -89,9 +89,11 @@ export async function drawProgramsReport(doc: jsPDF, x: { name: string; lead?: s
     const tiles: { n: number; word: string; c: string }[] = [
       { n: r.done, word: 'passed or done', c: OK }, { n: r.baseline, word: 'at baseline', c: OK },
       { n: r.failed, word: 'failed', c: DANGER }, { n: r.late, word: 'late', c: DANGER }, { n: r.open, word: 'to do', c: INK2 },
+      /* why the ones not done are not done, when it was said (12 October) */
+      { n: r.noProgram ?? 0, word: 'no program', c: AMBER }, { n: r.notTested ?? 0, word: 'not tested', c: INK2 },
     ];
     out.push(box(() => 46 + gap(d, 'm'), (f, y) => {
-      const tw = (f.w - 4 * 8) / 5;
+      const tw = (f.w - (tiles.length - 1) * 8) / tiles.length;
       tiles.forEach((t, i) => {
         const tx = f.x + i * (tw + 8), c = t.n ? t.c : MUTED;
         f.doc.setDrawColor(t.n ? c : LINE); f.doc.setLineWidth(t.n && (t.c === DANGER) ? 1.4 : 0.8);

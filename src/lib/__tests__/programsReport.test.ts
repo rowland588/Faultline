@@ -90,3 +90,44 @@ describe('proved, and what the floor said since', () => {
     expect(r?.lines[0]).toMatchObject({ word: 'proved 7 Oct', bucket: 'done', note: '30 ppm', proving: 'on the floor: baseline achieved — done 6 Oct' });
   });
 });
+
+/* Rowland, 12 October: "In programs we need option not tested, and no
+ * program, and allow commentary." Said like the rest, with what was seen —
+ * and neither is the program done: not tested is still to do (grey), no
+ * program waits on whoever writes it (amber), and either goes red once its
+ * day has gone. Commentary with no status picked is kept on the part. */
+describe('not tested, no program — and commentary with no status', () => {
+  it('neither is done; each says why, in its colour; the counts say how many', async () => {
+    const { saidResult, partStatus, partDone } = await import('../noted');
+    const nt = saidResult(part('n', 's1', 'PR-20 Jacket 2.5 kg'), 'notTested', 'Film not on site yet', at);
+    const np = saidResult(part('m', 's2', 'Case recipe 4-up'), 'noProgram', 'Brillopak to write it', at);
+    expect([partDone(nt), nt.doneAt, partDone(np)]).toEqual([false, undefined, false]);
+    expect(partStatus(nt, T)).toMatchObject({ word: 'not tested · 8 Oct', tone: 'n', bucket: 'open', done: false });
+    expect(partStatus(np, T)).toMatchObject({ word: 'no program · 8 Oct', tone: 'a', bucket: 'open', done: false });
+    /* its day gone: red, still saying why */
+    expect(partStatus({ ...np, due: '2026-10-06' }, T)).toMatchObject({ word: 'no program — late · was 6 Oct', tone: 'r', bucket: 'late' });
+    /* passed after it: done on that day, the not tested kept in its story */
+    const later = saidResult(nt, 'passed', 'Ran 40 ppm', at + 86_400_000);
+    expect([partDone(later), partStatus(later, '2026-10-09').word, later.results?.length]).toEqual([true, 'passed — done 9 Oct', 2]);
+    const r = programsReading({ tests, items: [...items, nt, np], assets, programs, today: T });
+    expect(r?.lines.find(l => l.what === 'PR-20 Jacket 2.5 kg')).toMatchObject({ word: 'not tested · 8 Oct', note: 'Film not on site yet', said: 'notTested' });
+    expect([r?.notTested, r?.noProgram]).toEqual([1, 1]);
+    expect(r?.says).toBe('7 programs · 4 done — 2 passed, 1 at baseline, 1 failed · 3 to do · 1 not tested, 1 with no program');
+    /* late as well: still counted as no program, and said so */
+    const late = programsReading({ tests, items: [...items, nt, { ...np, due: '2026-10-06' }], assets, programs, today: T });
+    expect([late?.noProgram, late?.late, late?.says]).toEqual([1, 1, '7 programs · 4 done — 2 passed, 1 at baseline, 1 failed · 1 late · 2 to do · 1 not tested, 1 with no program']);
+  });
+  it('a done status after "passed" turns it back to to-do when it is said not tested; taking that off hands it back', async () => {
+    const { saidResult, editedResult, withoutResult, partDone } = await import('../noted');
+    const ok = saidResult(part('k', 's1', 'PR-30'), 'passed', '', at - 2 * 86_400_000);
+    const nt = editedResult(ok, 'notTested', 'New film, test again', at);
+    expect([partDone(nt), nt.results?.map(x => x.is)]).toEqual([false, ['passed', 'notTested']]);
+    const back = withoutResult(nt, at);
+    expect([partDone(back), back.doneAt]).toEqual([true, at - 2 * 86_400_000]);
+  });
+  it('commentary with no status is on the part, and on the paper', () => {
+    const c = part('q', 's2', 'Case recipe 8-up', { note: 'Waiting on the 8-up change parts' });
+    const r = programsReading({ tests, items: [...items, c], assets, programs, today: T });
+    expect(r?.lines.find(l => l.what === 'Case recipe 8-up')).toMatchObject({ word: 'to do', note: 'Waiting on the 8-up change parts' });
+  });
+});

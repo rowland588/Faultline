@@ -178,6 +178,7 @@ node scripts/acceptance/changeover.mjs  # F: SMED — a quick session on its own
 node scripts/acceptance/work-sampling.mjs  # H1: what people are doing at random moments — the moment asks, one tap each, the shares with their margins, the fix
 node scripts/acceptance/shift-losses.mjs  # E: a shift's losses — counted on the phone at the bottleneck's ideal speed, the shift less its breaks, the waterfall, slow running told from short stops, the pounds in two parts, a bar made better, the next shift counted, before → after, the fishbone, both papers
 node scripts/acceptance/line-capacity.mjs  # Line capacity: the V-curve, the capacity sheet, the margin, a person's standard time, the bottleneck walked
+node scripts/acceptance/programs.mjs  # a program's status with commentary: the five statuses (not tested and no program among them), commentary on its own, Needs you, the paper
 node scripts/acceptance/snags.mjs  # the Snags page: every snag in one place, worked where it sits, moved ones followed to their job, its own report
 node scripts/sync-two-devices.mjs     # a phone and a laptop against a fake cloud — video on one plays on the other
 node scripts/check-live-schema.mjs    # the LIVE database against the mapper — needs .env
@@ -245,7 +246,13 @@ was taken, each saying where it came from, the sentence and the counts as
 that job saying what it became and how it stands there, its door opening it
 in the job; a snag's state, whose and its day changed on its row; the counts
 as the filters and By who; several given a name and closed together with the
-undo; the Snags report carrying every snag's words; and the phone. `line-capacity.mjs` is Line capacity: the views named for what they
+undo; the Snags report carrying every snag's words; and the phone.
+`programs.mjs` is a program's status with commentary (Rowland, 12 October:
+"we need option not tested, and no program, and allow commentary"): the five
+statuses offered, not tested kept with what was seen and the program not
+done, no program amber on its line and tile and on the Set up screen's Needs
+you, commentary with no status kept on the program, and the programs report
+carrying the words, the commentary and the counts. `line-capacity.mjs` is Line capacity: the views named for what they
 are, the V-curve and the capacity sheet as `lib/capacity` says, a machine
 not on its plate speed said so, the owner's V margin and the guide, a
 person's standard time from the time study used with a tap, and the

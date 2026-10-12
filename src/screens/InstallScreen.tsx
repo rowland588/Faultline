@@ -173,7 +173,13 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
           const said = resultNow(p);
           return said?.is === 'failed' ? [{ c, p, note: said.note, machine: r.asset?.name ?? 'The line' }] : [];
         }))));
-        const n = needs.length + failed.length;
+        /* A PART SAID TO HAVE NO PROGRAM (12 October) — waiting on whoever
+           writes it: amber, a branch of its stage, opening it. */
+        const noProgram = grid.rows.flatMap(r => r.cells.flatMap(c => (!c ? [] : partsOf(c.step.id, tt.items).flatMap(p => {
+          const said = resultNow(p);
+          return said?.is === 'noProgram' && p.doneAt == null ? [{ c, p, note: said.note, machine: r.asset?.name ?? 'The line' }] : [];
+        }))));
+        const n = needs.length + failed.length + noProgram.length;
         return (
           <section className="cmp-sec cg-needs" aria-label="Needs you">
             <div className="cw-sec-h"><h2 className="cmp-h">Needs you</h2>{n > 0 && <span className="cmp-h-n">{n}</span>}</div>
@@ -214,6 +220,15 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
                     <li key={p.id} className="nd-row is-failed">
                       <button type="button" className="nd-main" onClick={() => openRecord(projectId, c.step.id)}>
                         <span className="nd-tag is-failed">Failed</span>
+                        <b>{machine} — {c.step.title} — {p.what}</b>
+                        {note && <span className="sub">{note}</span>}
+                      </button>
+                    </li>
+                  ))}
+                  {noProgram.map(({ c, p, note, machine }) => (
+                    <li key={p.id} className="nd-row is-verdict">
+                      <button type="button" className="nd-main" onClick={() => openRecord(projectId, c.step.id)}>
+                        <span className="nd-tag is-verdict">No program</span>
                         <b>{machine} — {c.step.title} — {p.what}</b>
                         {note && <span className="sub">{note}</span>}
                       </button>

@@ -48,6 +48,8 @@ export interface ProgramLine {
   bucket: ProgBucket;
   /** What was seen, with the status it stands on. */
   note?: string;
+  /** Not done, and said why: not tested, or no program (12 October) — late or not. */
+  said?: 'notTested' | 'noProgram';
   /** The statuses said before, newest first — "failed 7 Oct — seal temp low". */
   earlier: string[];
   /** Its proving in Commission, when the status above is the floor's and
@@ -64,6 +66,8 @@ export interface ProgramsReading {
   /** The machines in the job's order, each with its programs. */
   machines: { name: string; lines: ProgramLine[] }[];
   total: number; done: number; baseline: number; failed: number; late: number; open: number;
+  /** Of those not done, said not tested, or said to have no program. */
+  notTested: number; noProgram: number;
   /** Every program done — passed, at baseline or failed: each is the work
    *  done on its day; the status says how it came out. */
   doneAll: number;
@@ -88,9 +92,12 @@ function programWords(p: Program, tests: Test[], today: string): Pick<ProgramLin
 
 /** A part of a programs stage in words — the one rule (lib/noted
  *  partStatus): a status is the program done on its day. */
-function partWordsOf(i: TestItem, today: string): Pick<ProgramLine, 'word' | 'tone' | 'bucket' | 'note'> {
+function partWordsOf(i: TestItem, today: string): Pick<ProgramLine, 'word' | 'tone' | 'bucket' | 'note' | 'said'> {
   const st = partStatus(i, today, 0, 2);
-  return { word: st.word, tone: st.tone, bucket: st.bucket, ...(st.said?.note ? { note: st.said.note } : {}) };
+  /* what was seen: the status's words; with no status, the commentary on the part */
+  const note = st.said ? st.said.note : i.note?.trim();
+  return { word: st.word, tone: st.tone, bucket: st.bucket, ...(note ? { note } : {}),
+    ...(st.said && (st.said.is === 'notTested' || st.said.is === 'noProgram') && !st.done ? { said: st.said.is } : {}) };
 }
 
 export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: Asset[]; programs: Program[]; today?: string;
@@ -156,10 +163,13 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
   const total = lines.length, done = n('done'), baseline = n('baseline'), failed = n('failed'), late = n('late'), open = n('open');
   const doneAll = done + baseline + failed;
   const how = [`${done} passed`, baseline ? `${baseline} at baseline` : '', failed ? `${failed} failed` : ''].filter(Boolean).join(', ');
+  const notTested = lines.filter(l => l.said === 'notTested').length, noProgram = lines.filter(l => l.said === 'noProgram').length;
+  /* why the ones not done are not done, when it was said — late or not */
+  const why = [notTested ? `${notTested} not tested` : '', noProgram ? `${noProgram} with no program` : ''].filter(Boolean).join(', ');
   const says = [`${total} program${total === 1 ? '' : 's'}`, `${doneAll} done${doneAll ? ` — ${how}` : ''}`,
-    late ? `${late} late` : '', open ? `${open} to do` : ''].filter(Boolean).join(' · ');
+    late ? `${late} late` : '', open ? `${open} to do` : '', why].filter(Boolean).join(' · ');
   return {
     lines, machines,
-    total, done, baseline, failed, late, open, doneAll, says,
+    total, done, baseline, failed, late, open, notTested, noProgram, doneAll, says,
   };
 }

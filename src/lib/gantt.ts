@@ -117,7 +117,9 @@ export function partOf(i: TestItem, today: string): Omit<GanttPart, 'at'> {
      done indigo too, nothing grey. */
   const st = partStatus(i, today, 0, 2);
   const state: PartState = st.bucket === 'failed' ? 'failed' : st.done ? 'done' : st.bucket === 'late' ? 'late'
-    : st.said ? 'baseline' : st.tone === 'a' ? 'soon' : st.tone === 'w' ? 'booked' : 'todo';
+    /* not tested: still to do (grey); no program: waits on whoever writes it (amber) */
+    : st.said ? (st.said.is === 'noProgram' ? 'soon' : st.said.is === 'notTested' ? 'todo' : 'baseline')
+    : st.tone === 'a' ? 'soon' : st.tone === 'w' ? 'booked' : 'todo';
   /* A status in the one rule's words; a dated line in the calendar's own —
      "late — due 4 Oct", "due 8 Oct" — as the plan has always said them. */
   const says = st.said ? st.word : state === 'late' ? `late — due ${niceDay(i.due)}` : state === 'soon' || state === 'booked' ? `due ${niceDay(i.due)}` : st.word;

@@ -502,6 +502,14 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
       results: [{ is: 'failed', on: iso(0), note: LONG[1], at: t }] },
     { id: uid(), projectId: proj.id, testId: loaded.id, kind: 'next', what: 'PR-07 Baking Potatoes 2 kg', sort: 6, createdAt: t, updatedAt: t, doneAt: t,
       results: [{ is: 'passed', on: iso(0), note: 'Ran 45 ppm for the hour, no rejects', at: t }] },
+    /* Not tested, no program (12 October) — still to do, each saying why;
+       and commentary with no status said at all. */
+    { id: uid(), projectId: proj.id, testId: loaded.id, kind: 'next', what: 'PR-20 Jacket potatoes 2.5 kg', owner: 'Ilapak UK', due: iso(3), sort: 7, createdAt: t, updatedAt: t,
+      results: [{ is: 'notTested', on: iso(0), note: 'The 2.5 kg film is not on site until Thursday, so it cannot be run yet', at: t }] },
+    { id: uid(), projectId: proj.id, testId: loaded.id, kind: 'next', what: 'PR-31 Salad potatoes 750 g', sort: 8, createdAt: t, updatedAt: t,
+      results: [{ is: 'noProgram', on: iso(0), note: 'Ilapak have not written the 750 g yet; promised for the next site visit', at: t }] },
+    { id: uid(), projectId: proj.id, testId: loaded.id, kind: 'next', what: 'PR-40 Baby potatoes 1 kg', sort: 9, createdAt: t, updatedAt: t,
+      note: 'Planners still to confirm whether the 1 kg runs on this line at all' },
   );
   for (const i of items) await putTestItem(i);
 

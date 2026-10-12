@@ -1017,6 +1017,27 @@ the people's work against takt, only its second tab.
   what-if and the bottleneck moving, the V's guide margin set and a station
   under it said, the paper.
 
+### A program's status — not tested, no program, and commentary on its own (12 October)
+
+Rowland, 12 October: "In programs we need option not tested, and no program,
+and allow commentary." Beside baseline achieved, passed and failed
+(`lib/testing` PartResultIs, `results` on the part — no new column, the
+json array already takes any status): **not tested** and **no program**,
+each said with what was seen. Neither is the program done (`lib/noted`
+isDoneResult): not tested is still to do (grey), no program waits on
+whoever writes it (amber), and either goes red once its day has gone; a
+pass said after keeps them in its story. **Commentary with no status
+picked** is kept on the part (`note`) — before, the words were dropped
+unless a status was picked.
+
+Where it shows: the part's line and its five options (ui/StageParts), the
+Programs page's tiles (No program · Not tested, each a filter), the Set up
+screen's Needs you ("No program", amber, a branch of its stage), the plan
+(grey, or amber for no program), the day ("What we found"), and the
+programs report and client report — the words, the commentary, the counts
+("· 1 not tested, 1 with no program") and two tiles on the paper. Accepted
+by `scripts/acceptance/programs.mjs`.
+
 ### The Snags page — a working page, with its own report (12 October)
 
 Rowland, 12 October: "Snags need its own report on the snag page ... I have
