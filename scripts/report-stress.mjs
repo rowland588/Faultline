@@ -412,19 +412,34 @@ for (const size of SIZES) {
       const all = (await import('/src/lib/demo.ts')).withoutDemo(every, ws).filter(s => !s.deletedAt && !s.archivedAt);
       const lineName = id => ws.find(w => w.id === id)?.name ?? 'A line';
       const r = R.snagsReading({ snags: all, lineName, jobName: id => projects.find(p => p.id === id)?.name, became: new Map(), register: true });
-      const out = [];
-      const add = (from, v) => { if (v && san(v)) out.push([v, san(v), from]); };
-      for (const l of r.lines) for (const x of l.rows) if (x.status !== 'closed') {
-        add('problem', x.what); add('its plan', x.plan);
-        for (const j of x.journey) { add('a step of its journey', j.did); add('what came of it', j.result); }
-      }
-      return out;
+      /* the open ones; and the done ones, which the paper carries when nothing is open (the button prints what is shown) */
+      const said = done => {
+        const out = [];
+        const add = (from, v) => { if (v && san(v)) out.push([v, san(v), from]); };
+        for (const l of r.lines) for (const x of l.rows) if ((x.status === 'closed') === done) {
+          add('problem', x.what); add('its plan', x.plan);
+          for (const j of x.journey) { add('a step of its journey', j.did); add('what came of it', j.result); }
+        }
+        return out;
+      };
+      return { open: said(false), done: said(true) };
     }, { size, pid: job.projectId });
     const file = `${OUT}/${size}-snags.pdf`;
     try {
-      await download(page, '#/snags', file, [['Problems report']]);
-      const r = check(file, mustSnags);
-      rows.push({ size, report: 'problems', pages: r.pages, faults: r.faults, said: r.said });
+      /* Nothing open: the report prints the Done ones once Done is pressed —
+         and with no problem at all the button stays greyed, saying so. */
+      const doneOnly = !mustSnags.open.length;
+      await page.goto(`${BASE}/#/snags`); await page.waitForTimeout(3000);
+      const btn = page.getByRole('button', { name: 'Problems report', exact: true }).first();
+      if (doneOnly && mustSnags.done.length) { await page.locator('.qsl-f .chip', { hasText: /^Done/ }).click(); await page.waitForTimeout(800); }
+      if (doneOnly && !mustSnags.done.length) {
+        rows.push({ size, report: 'problems', pages: 0, faults: (await btn.isDisabled()) ? [] : ['no problem at all, yet the report button could be pressed'] });
+      } else {
+        const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), btn.click()]);
+        await dl.saveAs(file);
+        const r = check(file, doneOnly ? mustSnags.done : mustSnags.open);
+        rows.push({ size, report: doneOnly ? 'problems (done)' : 'problems', pages: r.pages, faults: r.faults, said: r.said });
+      }
     } catch (e) {
       rows.push({ size, report: 'problems', pages: 0, faults: [`could not make it: ${e.message.split('\n')[0]}`] });
     }
