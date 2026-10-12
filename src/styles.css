@@ -11774,6 +11774,7 @@ button.vs-sq:focus-visible { outline: 2.5px solid var(--brand); outline-offset: 
 .lf-count .text-input { min-height: var(--tap); font-size: 18px; font-variant-numeric: tabular-nums; width: 100%; min-width: 0; box-sizing: border-box; margin-top: 0; }
 .lf-count .chip { min-height: 40px; }
 .lf-count-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; align-items: start; }
+.lf-count-grid .lf-day { grid-column: 1 / -1; }
 .lf-facts { margin: 0; display: grid; gap: 4px; }
 .lf-facts div { display: grid; grid-template-columns: 80px 1fr; gap: 8px; padding: 5px 0; border-top: 1px solid var(--line); font-size: var(--t-detail); }
 .lf-facts dt { color: var(--muted); font-weight: 700; }
@@ -11785,7 +11786,6 @@ button.vs-sq:focus-visible { outline: 2.5px solid var(--brand); outline-offset: 
   .lf-body { grid-template-columns: 1fr; }
   .lf-body.is-counting .lf-count { order: -1; }
   .lf-count-grid { grid-template-columns: 1fr 1fr; }
-  .lf-count-grid .lf-day { grid-column: 1 / -1; }
   .lf-tr, .lf-row { grid-template-columns: minmax(0, 1fr) 40px 62px 54px 14px; gap: 0 6px; }
   .lf-tr.no-money, .lf-row.no-money { grid-template-columns: minmax(0, 1fr) 40px 62px 14px; }
 }
