@@ -41,7 +41,7 @@ import { climbsOf } from './rampUp';
 import type { ToolStudy } from './study';
 import { lossFiguresOf, provedLine, studyHref, studyLine, studyTitle, type StudyContext } from './studyLinks';
 import { streamRows } from './ie/steps';
-import { agreedFor, changeoverSheet } from './ie/changeover';
+import { agreedFor, changeoverSheet, moneyOf } from './ie/changeover';
 import { lossRows } from './ie/losses';
 
 /** One cell of a gate's checklist: how that stage stands on that machine. */
@@ -577,7 +577,8 @@ export function clientReport(x: ClientReportInput): ClientReport {
         used: used || 'not used for a record yet', line: l.text, tone: l.tone,
         ...(s.tool === 'map' && (s.facts.flow ?? []).length ? { stream: streamRows(s.facts.flow, s.agreed?.map, branches) } : {}),
         ...(s.tool === 'changeover' && (s.facts.sequence ?? []).length
-          ? { changeover: changeoverSheet(s.facts, agreedFor(live(x.standards).find(st => st.id === s.standardId)?.capacity?.changeovers, s.facts.fromProduct), branches) } : {}),
+          ? { changeover: changeoverSheet(s.facts, agreedFor(live(x.standards).find(st => st.id === s.standardId)?.capacity?.changeovers, s.facts.fromProduct), branches,
+              moneyOf(ctx?.workspaces?.find(w => w.id === s.workspaceId))) } : {}),
         ...(losses ? { losses } : {}) };
     }),
     /* Notes are never on the client's copy — they are private

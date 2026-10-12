@@ -17,19 +17,23 @@
  *   streamlined  = column(A 4 | C 5 alongside) = 5, D gone, F 4 → 5 + 4 = 9 min
  *                  (labour 4 + 5 + 4 × 2 = 17 min: two people at once, F by two)
  *   SMED's target, single-digit minutes: 9 min — met, if the plan holds.
- *   How the line runs: 2 shifts × 8 h, 7 days, 48 weeks; 3 changeovers a shift;
- *   rate 100 packs a minute; the line's cost £200 an hour.
+ *   How the line runs: 2 shifts × 8 h, each less 30 min of breaks the line
+ *   stops for (7.5 h running — docs/CAPACITY.md §5), 7 days, 48 weeks; 3
+ *   changeovers a shift; the Bagger's plate speed 100 packs a minute; idle
+ *   labour £200 an hour; contribution £0.05 a pack (§6: two parts, never one).
  *     per shift   3 × 42  =   126 min
  *     per day     6 × 42  =   252 min
- *     per week   42 × 42  = 1,764 min = 29.4 h  → 176,400 packs, £5,880
- *     running a week 2 × 8 × 7 = 112 h → 29.4 ÷ 112 = 26% of the running time
+ *     per week   42 × 42  = 1,764 min = 29.4 h  → 1,764 × 100 = 176,400 packs;
+ *                29.4 × £200 = £5,880 idle labour; 176,400 × £0.05 = £8,820 contribution
+ *     running a week 2 × 7.5 × 7 = 105 h → 29.4 ÷ 105 = 28% of the running time
  *     per year   × 48     = 84,672 min = 1,411.2 h → 8,467,200 packs, £282,240
+ *                idle labour, £423,360 contribution
  *   streamlined 9 min: 42 × 9 = 378 min = 6.3 h a week — 29.4 − 6.3 = 23.1 h back. */
 import { describe, it, expect } from 'vitest';
 import {
   arrange, availableOf, carrySequence, changeoverFigures, changeoverSays, changeoverSheet, changeoversOf, changeoversPer, checklistOf, coLanes, compareChangeovers,
   countWord, extrapolate, extrapolationSays, figuresOf, functionSays, functionShares, intervalOf, intervalSays, ladderOf, ladderSays, mins, planWords, actionWords,
-  runMinOf, runningOf, span, standardFrom, standardLine, stepFigure, SMED_TARGET_SEC,
+  runMinOf, runningOf, span, standardFrom, standardLine, stepFigure, SMED_TARGET_SEC, runningWords, patternFromShifts, lineRateOf, rateFromWords, moneyOf,
 } from '../changeover';
 import type { ChangeoverProduct, ChangeoverStep } from '../../study';
 
@@ -70,7 +74,9 @@ const planned = (): ChangeoverStep[] => [
     plan: { kind: 'eliminate', how: 'no-adjust', note: 'fixed stops' } },
   { id: 'F', order: 5, name: 'First bags and check the seal', sec: 4 * M, side: 'internal', source: 'timed', crew: ['Op 1', 'Team leader'], where: 'Jaws', fn: 'trial' },
 ];
-const running = { shiftsPerDay: 2, hoursPerShift: 8, daysPerWeek: 7, weeksPerYear: 48 };
+const running = { shiftsPerDay: 2, hoursPerShift: 8, breakMin: 30, daysPerWeek: 7, weeksPerYear: 48 };
+const money = { labourPerHour: 200, marginPerPack: 0.05 };
+const plate = { ratePerMin: 100, rateFrom: 'plate' as const, rateStation: 'Bagger' };
 
 describe('SMED — record and separate (tool 6)', () => {
   it('minutes now, internal and external, with the external work out, and what a week buys back', () => {
@@ -141,6 +147,7 @@ describe('SMED — convert, streamline, the ladder (worked example 2)', () => {
     const [A, E, B, C, D, F] = planned();
     const name = (id: string) => planned().find(x => x.id === id)?.name;
     expect(planWords(A)).toBe('Streamline — quick-release clamps: 10 min → 4 min');
+    expect(planWords({ ...A, plan: { kind: 'streamline', how: 'clamps', note: 'quick-release collar', targetSec: 4 * M } })).toBe('Streamline — quick-release clamps: quick-release collar; 10 min → 4 min');
     expect(planWords(C, name)).toBe('Streamline — in parallel, alongside Change the former tube (Fitter): 8 min → 5 min');
     expect(planWords(B)).toBe('Convert to external — prepare in advance: pre-heat the spare jaws');
     expect(planWords(D)).toBe('Eliminate — no adjustment: fixed stops');
@@ -156,9 +163,41 @@ describe('SMED — convert, streamline, the ladder (worked example 2)', () => {
 describe('SMED — what the changeovers cost, extrapolated (worked example 2)', () => {
   it('the running pattern is asked, never assumed; shifts may differ', () => {
     expect(runningOf({}).missing).toEqual(['the shifts a day', 'the hours a shift', 'the days a week']);
-    expect(runningOf({ shiftsPerDay: 2, hoursPerShift: 8 }).missing).toEqual(['the days a week']);
-    expect(runningOf(running).run).toEqual({ shifts: 2, minutesPerShift: [480, 480], minutesPerDay: 960, daysPerWeek: 7, minutesPerWeek: 6720, weeksPerYear: 48 });
-    expect(runningOf({ shiftHours: [8, 8, 6], daysPerWeek: 5 }).run?.minutesPerDay).toBe(22 * 60);
+    expect(runningOf({ shiftsPerDay: 2, hoursPerShift: 8 }).missing).toEqual(['the planned breaks a shift the line stops for', 'the days a week']);
+    /* a shift runs for its length less the breaks the line stops for */
+    expect(runningOf(running).run).toEqual({ shifts: 2, minutesPerShift: [450, 450], shiftMinutes: [480, 480], breakMinutes: [30, 30], minutesPerDay: 900, daysPerWeek: 7, minutesPerWeek: 6300, weeksPerYear: 48 });
+    /* relief covers the breaks: 0 is an answer, and the shift runs whole */
+    expect(runningOf({ shiftHours: [8, 8, 6], breakMin: 0, daysPerWeek: 5 }).run?.minutesPerDay).toBe(22 * 60);
+    expect(runningOf({ shiftHours: [8, 8, 6], shiftBreaks: [30, 30, 20], daysPerWeek: 6 }).run?.minutesPerShift).toEqual([450, 450, 340]);
+    expect(runningOf({ shiftsPerDay: 1, hoursPerShift: 1, breakMin: 60, daysPerWeek: 5 }).missing).toEqual(['breaks shorter than the shift']);
+    const r = runningOf(running).run;
+    if (!r) throw new Error('no run');
+    expect(runningWords(r)).toBe('2 shifts of 8 h, less 30 min of breaks the line stops for — 7.5 h running each; 7 days a week; 48 weeks a year');
+    expect(runningWords(runningOf({ shiftHours: [8, 6], breakMin: 0, daysPerWeek: 6 }).run as NonNullable<typeof r>)).toBe('2 shifts — 8 h, the line running through its breaks; 6 h, the line running through its breaks; 6 days a week');
+  });
+  it('the line\'s own shifts give the pattern\'s shifts and hours — the breaks are still asked', () => {
+    expect(patternFromShifts([{ start: '06:00', end: '14:00' }, { start: '14:00', end: '22:00' }, { start: '22:00', end: '06:00' }, { start: '', end: '' }]))
+      .toEqual({ shiftsPerDay: 3, shiftHours: [8, 8, 8] });
+    expect(patternFromShifts([{ start: '', end: '' }])).toBeUndefined();
+  });
+  it('the speed is the critical machine\'s plate speed — unless people set the pace; else said as not a plate speed', () => {
+    const st = (id: string, name: string, kind: 'machine' | 'people', rate: number, source: 'plate' | 'timed' | 'estimate') => ({ id, name, kind, unit: 'bags', contains: 1, rate, ratePer: 'min' as const, source });
+    /* the Bagger is the slowest on running speed, off its plate */
+    expect(lineRateOf({ stations: [st('w', 'Weigher', 'machine', 140, 'plate'), st('b', 'Bagger', 'machine', 100, 'plate'), st('p', 'Packers', 'people', 120, 'timed')] }))
+      .toEqual({ ratePerMin: 100, from: 'plate', station: 'Bagger' });
+    /* people are slowest and were timed: they set the pace */
+    expect(lineRateOf({ stations: [st('b', 'Bagger', 'machine', 100, 'plate'), st('p', 'Packers', 'people', 80, 'timed')] })).toEqual({ ratePerMin: 80, from: 'person', station: 'Packers' });
+    /* the slowest is a guess: not a plate speed — the standard's target, then the line's setting */
+    expect(lineRateOf({ targetPerMin: 90, stations: [st('b', 'Bagger', 'machine', 70, 'estimate')] })).toEqual({ ratePerMin: 90, from: 'standard' });
+    expect(lineRateOf(undefined, { packsPerMin: 85 })).toEqual({ ratePerMin: 85, from: 'line' });
+    expect(lineRateOf(undefined)).toBeUndefined();
+    expect([rateFromWords('plate', 'Bagger'), rateFromWords('person', 'Packers'), rateFromWords('standard'), rateFromWords('typed')])
+      .toEqual(['the Bagger\'s plate speed', 'Packers\'s timed pace — people set it', 'the standard\'s target — not a plate speed', 'typed']);
+  });
+  it('the pounds in two parts: idle labour, and contribution only where the line has a margin', () => {
+    expect(moneyOf({ crew: 4, labourRatePerHour: 12.5, labourBurden: 1.3, marginPerPack: 0.05 })).toEqual({ labourPerHour: 65, marginPerPack: 0.05 });
+    expect(moneyOf({ crew: 4, labourRatePerHour: 12.5 })).toEqual({ labourPerHour: 50 });
+    expect(moneyOf({})).toBeUndefined();
   });
   it('changeovers a shift, a day or a week — each worked out from whichever is known', () => {
     const run = runningOf(running).run;
@@ -171,19 +210,25 @@ describe('SMED — what the changeovers cost, extrapolated (worked example 2)', 
   it('per shift → day → week → year: minutes stopped, packs not made, pounds', () => {
     const run = runningOf(running).run;
     if (!run) throw new Error('no run');
-    const c = extrapolate(42 * M, { shift: 3, day: 6, week: 42 }, run, 100, 200);
+    const c = extrapolate(42 * M, { shift: 3, day: 6, week: 42 }, run, 100, money);
     expect([c.shift.sec / M, c.day.sec / M, c.week.sec / M]).toEqual([126, 252, 1764]);
-    expect([c.week.sec / 3600, c.week.packs, c.week.pounds]).toEqual([29.4, 176_400, 5_880]);
+    expect([c.week.sec / 3600, c.week.packs, c.week.labour]).toEqual([29.4, 176_400, 5_880]);
+    expect(c.week.contribution).toBeCloseTo(8_820, 6);
     expect(c.year?.sec).toBe(84_672 * M);
-    expect([c.year?.packs, c.year?.pounds]).toEqual([8_467_200, 282_240]);
-    expect(c.shareOfRunning).toBeCloseTo(0.2625, 6);
+    expect([c.year?.packs, c.year?.labour]).toEqual([8_467_200, 282_240]);
+    expect(c.year?.contribution).toBeCloseTo(423_360, 4);
+    expect(c.shareOfRunning).toBeCloseTo(0.28, 6);
+    /* no speed: no packs, so no contribution — the labour alone */
+    expect(extrapolate(42 * M, { shift: 3, day: 6, week: 42 }, run, undefined, money).week).toEqual({ sec: 1764 * M, labour: 5_880 });
   });
   it('says it on the same scale for the plan: 29.4 h a week stopped, 6.3 h streamlined — 23.1 h back', () => {
     const l = ladderOf(planned());
-    const f = { running, changeovers: { count: 3, per: 'shift' as const } };
-    expect(extrapolationSays(l, f, 100, 200).text).toBe('Now 42 min × 3 a shift × 2 shifts × 7 days = 29.4 h a week stopped (26% of the running time) — 176,400 packs, £5,880. Over 48 weeks a year: 1411.2 h — 8,467,200 packs, £282,240. Streamlined to 9 min: 6.3 h a week — 23.1 h back, if the plan holds.');
-    /* no rate and no cost: the time alone — pounds are simply not said */
-    expect(extrapolationSays(l, { running: { ...running, weeksPerYear: undefined }, changeovers: f.changeovers }).text).toBe('Now 42 min × 3 a shift × 2 shifts × 7 days = 29.4 h a week stopped (26% of the running time). Streamlined to 9 min: 6.3 h a week — 23.1 h back, if the plan holds.');
+    const f = { running, changeovers: { count: 3, per: 'shift' as const }, ...plate };
+    expect(extrapolationSays(l, f, money).text).toBe('Now 42 min × 3 a shift × 2 shifts × 7 days = 29.4 h a week stopped (28% of the running time) — 176,400 packs at 100 a minute, the Bagger\'s plate speed; £5,880 of idle labour, and £8,820 of contribution if the packs cannot be made up. Over 48 weeks a year: 1,411.2 h — 8,467,200 packs; £282,240 of idle labour, and £423,360 of contribution if the packs cannot be made up. Streamlined to 9 min: 6.3 h a week — 23.1 h back, if the plan holds.');
+    /* the standard's target: packs, said as not a plate speed; no cost settings, no pounds */
+    expect(extrapolationSays(l, { running: { ...running, weeksPerYear: undefined }, changeovers: f.changeovers, ratePerMin: 90, rateFrom: 'standard' }).text).toBe('Now 42 min × 3 a shift × 2 shifts × 7 days = 29.4 h a week stopped (28% of the running time) — 158,760 packs at 90 a minute, the standard\'s target — not a plate speed. Streamlined to 9 min: 6.3 h a week — 23.1 h back, if the plan holds.');
+    /* no speed and no cost: the time alone — packs and pounds are simply not said */
+    expect(extrapolationSays(l, { running: { ...running, weeksPerYear: undefined }, changeovers: f.changeovers }).text).toBe('Now 42 min × 3 a shift × 2 shifts × 7 days = 29.4 h a week stopped (28% of the running time). Streamlined to 9 min: 6.3 h a week — 23.1 h back, if the plan holds.');
     /* seven days a week, a day's count, no plan: separated is the second sentence */
     expect(extrapolationSays(ladderOf(seq()), { running, changeovers: { count: 6, per: 'day' } }).text).toMatch(/^Now 42 min × 6 a day × 7 days = 29\.4 h a week stopped .* Separated to 27 min: 18\.9 h a week — 10\.5 h back\.$/);
     expect(extrapolationSays(l, {}).text).toBe('What the changeovers cost needs how the line runs — the shifts a day, the hours a shift, the days a week, how many changeovers a shift, a day or a week.');
@@ -206,8 +251,9 @@ describe('SMED — the interval reads the running pattern', () => {
     const f45 = changeoverFigures([...seq().filter(x => x.side === 'internal'), st('Change the coder message', 18)]);
     expect(intervalOf(f45, products, 450).daysNow).toBeCloseTo(1.5, 6);
   });
-  it('the minutes a day come from the shifts — 7.5 h on one shift is 450 — or an older record\'s typed minutes', () => {
-    expect(availableOf({ running: { shiftsPerDay: 1, hoursPerShift: 7.5, daysPerWeek: 7 } })).toEqual({ min: 450, from: 'running' });
+  it('the minutes a day come from the shifts less their breaks — 8 h less 30 min on one shift is 450 — or an older record\'s typed minutes', () => {
+    expect(availableOf({ running: { shiftsPerDay: 1, hoursPerShift: 8, breakMin: 30, daysPerWeek: 7 } })).toEqual({ min: 450, from: 'running' });
+    expect(availableOf({ running: { shiftsPerDay: 1, hoursPerShift: 8, daysPerWeek: 7 } })).toBeUndefined();
     expect(availableOf({ availableMinPerDay: 450 })).toEqual({ min: 450, from: 'typed' });
     expect(availableOf({})).toBeUndefined();
   });
@@ -245,7 +291,7 @@ describe('SMED — prove it, standardise, paper', () => {
     expect(checklistOf([...seq(), st('Clean down the old film off-cuts', 3, 'external')]).after).toEqual(['Clean down the old film off-cuts']);
   });
   it('on paper: the grid as a table — who, where, I/E, the plan, the time, the elapsed — and the figures in words', () => {
-    const sheet = changeoverSheet({ sequence: planned(), running, changeovers: { count: 3, per: 'shift' }, ratePerMin: 100 }, undefined, new Map([['B', 'Heat the new sealing jaws — convert to external (prepare in advance), 6 min']]), 200);
+    const sheet = changeoverSheet({ sequence: planned(), running, changeovers: { count: 3, per: 'shift' }, ...plate }, undefined, new Map([['B', 'Heat the new sealing jaws — convert to external (prepare in advance), 6 min']]), money);
     expect(sheet.rows[0]).toEqual({ n: 1, name: 'Change the former tube', who: 'Op 1', where: 'Former', side: 'I', plan: 'Streamline — quick-release clamps: 10 min → 4 min', minutes: '10 min', elapsed: '10 min', how: 'timed' });
     expect(sheet.rows[2]).toMatchObject({ side: 'I', elapsed: '25 min', branch: 'Heat the new sealing jaws — convert to external (prepare in advance), 6 min' });
     expect(sheet.rows[5]).toMatchObject({ who: 'Op 1, Team leader', elapsed: '42 min' });
@@ -254,7 +300,7 @@ describe('SMED — prove it, standardise, paper', () => {
       '42 min now. With the 9 min of external work done while the line runs: 33 min — 6.3 h a week back, 42 changeovers.',
       '42 min now → 33 min separated → 27 min converted → 9 min streamlined (17 min of work, some in parallel), planned — proved when it is timed again. Single-digit minutes — SMED\'s target.',
       'Setting, adjusting and trial runs: 15 min of 42 min — 36%; they are typically half a changeover, and the first to eliminate.',
-      'Now 42 min × 3 a shift × 2 shifts × 7 days = 29.4 h a week stopped (26% of the running time) — 176,400 packs, £5,880. Over 48 weeks a year: 1411.2 h — 8,467,200 packs, £282,240. Streamlined to 9 min: 6.3 h a week — 23.1 h back, if the plan holds.',
+      'Now 42 min × 3 a shift × 2 shifts × 7 days = 29.4 h a week stopped (28% of the running time) — 176,400 packs at 100 a minute, the Bagger\'s plate speed; £5,880 of idle labour, and £8,820 of contribution if the packs cannot be made up. Over 48 weeks a year: 1,411.2 h — 8,467,200 packs; £282,240 of idle labour, and £423,360 of contribution if the packs cannot be made up. Streamlined to 9 min: 6.3 h a week — 23.1 h back, if the plan holds.',
       'List the products run on this line, each with what the customer takes a day, to read how often each can run.',
     ]);
     expect(changeoverSheet({ sequence: [] }).lines).toEqual([]);

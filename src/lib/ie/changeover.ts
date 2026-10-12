@@ -33,15 +33,22 @@
  * THE HONESTY RULES, as this tool keeps them:
  *   enough?      nothing said until an element has a time; an untimed one
  *                makes the minutes "at least"; the cost needs how the line
- *                runs and how many changeovers, the interval every product's
- *                run time — each missing piece named, in grey
- *   how known    an element is timed, typed or carried from before; the rate
- *                is from the line balance, the line's settings or typed; the
- *                pounds from the line's own cost settings, or not said
+ *                runs (its shifts, their breaks, its days) and how many
+ *                changeovers, the interval every product's run time — each
+ *                missing piece named, in grey
+ *   how known    an element is timed, typed or carried from before; the
+ *                speed is the critical machine's PLATE speed (or a timed
+ *                person's where people set the pace), else the standard's
+ *                target or the line's rated speed said as not a plate speed,
+ *                else typed (docs/CAPACITY.md §1); the pounds from the line's
+ *                own cost settings, in two parts, or not said (§6)
  *   what it      converted and streamlined are PLANS — proved only when the
  *   does not     changeover is timed again; the interval is "at most this
- *   claim        often": the free time has nothing else in it */
-import type { ChangeoverProduct, ChangeoverStep, RunningPattern, SmedFunction, SmedHow, StandardChangeover, StudyFacts } from '../study';
+ *   claim        often": the free time has nothing else in it; the lost
+ *                contribution is lost only if the packs cannot be made up */
+import type { ChangeoverProduct, ChangeoverStep, RunningPattern, SmedFunction, SmedHow, SmedRateFrom, StandardChangeover, StudyFacts } from '../study';
+import { lineSpeed, type Capacity } from '../capacity';
+import { labourPerHour } from '../cost';
 import type { Tone } from './sample';
 import { dur } from './steps';
 
@@ -65,7 +72,7 @@ export function mins(sec: number): string {
 
 /** A span of the line's time: minutes up to two hours ("90 min a week back",
  *  as the floor says it), else hours to one decimal ("29.4 h"). */
-export const span = (sec: number): string => (sec < 7200 ? mins(sec) : `${(sec / 3600).toFixed(1)} h`);
+export const span = (sec: number): string => (sec < 7200 ? mins(sec) : `${(sec / 3600).toLocaleString('en-GB', { maximumFractionDigits: 1 })} h`);
 
 const COUNT = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
 /** "Five products", "12 products". */
@@ -272,7 +279,12 @@ export function changeoverFigures(seq: ChangeoverStep[] | undefined, perWeek?: n
 
 export interface Running {
   shifts: number;
+  /** Each shift's RUNNING minutes: the shift less its planned breaks the
+   *  line stops for (docs/CAPACITY.md §5, planned production time). */
   minutesPerShift: number[];
+  /** Each shift's length, and its planned breaks — for saying how it was worked out. */
+  shiftMinutes: number[];
+  breakMinutes: number[];
   minutesPerDay: number;
   daysPerWeek: number;
   minutesPerWeek: number;
@@ -280,17 +292,53 @@ export interface Running {
 }
 
 /** How the line runs, worked out — or what is still to say about it. Nothing
- *  is assumed: no shifts, no hours, no days, no figure. */
+ *  is assumed: no shifts, no hours, no breaks, no days, no figure. A shift
+ *  runs for its length less the planned breaks the line stops for; breaks
+ *  covered by relief are 0, and 0 is an answer. */
 export function runningOf(r: RunningPattern | undefined): { run?: Running; missing: string[] } {
   const shifts = r?.shiftsPerDay && r.shiftsPerDay > 0 ? Math.round(r.shiftsPerDay) : 0;
   const each = Array.isArray(r?.shiftHours) && r.shiftHours.length && r.shiftHours.every(h => h > 0) ? r.shiftHours.map(h => h * 60)
     : r?.hoursPerShift && r.hoursPerShift > 0 && shifts ? Array.from({ length: shifts }, () => (r.hoursPerShift as number) * 60) : [];
+  const told = Array.isArray(r?.shiftBreaks) && r.shiftBreaks.length === each.length && r.shiftBreaks.every(b => b >= 0) ? r.shiftBreaks : undefined;
+  const breaks = told ?? (r?.breakMin !== undefined && r.breakMin >= 0 ? each.map(() => r.breakMin as number) : undefined);
   const days = r?.daysPerWeek && r.daysPerWeek > 0 && r.daysPerWeek <= 7 ? r.daysPerWeek : 0;
-  const missing = [...(!shifts && !each.length ? ['the shifts a day'] : []), ...(!each.length ? ['the hours a shift'] : []), ...(!days ? ['the days a week'] : [])];
-  if (missing.length) return { missing };
-  const perDay = each.reduce((t, x) => t + x, 0);
-  return { run: { shifts: each.length, minutesPerShift: each, minutesPerDay: perDay, daysPerWeek: days, minutesPerWeek: perDay * days,
+  const missing = [...(!shifts && !each.length ? ['the shifts a day'] : []), ...(!each.length ? ['the hours a shift'] : []),
+    ...(each.length && !breaks ? ['the planned breaks a shift the line stops for'] : []), ...(!days ? ['the days a week'] : [])];
+  if (missing.length || !breaks) return { missing };
+  if (each.some((m, i) => breaks[i] >= m)) return { missing: ['breaks shorter than the shift'] };
+  const net = each.map((m, i) => m - breaks[i]);
+  const perDay = net.reduce((t, x) => t + x, 0);
+  return { run: { shifts: each.length, minutesPerShift: net, shiftMinutes: each, breakMinutes: breaks, minutesPerDay: perDay, daysPerWeek: days, minutesPerWeek: perDay * days,
     ...(r?.weeksPerYear && r.weeksPerYear > 0 ? { weeksPerYear: r.weeksPerYear } : {}) }, missing: [] };
+}
+
+const hrs = (min: number): string => (min % 60 === 0 ? `${min / 60} h` : `${+(min / 60).toFixed(2)} h`);
+
+/** How the line runs, in words: "2 shifts of 8 h, less 30 min of breaks the
+ *  line stops for — 7.5 h running each; 7 days a week; 48 weeks a year". */
+export function runningWords(run: Running): string {
+  const same = run.shiftMinutes.every(m => m === run.shiftMinutes[0]) && run.breakMinutes.every(b => b === run.breakMinutes[0]);
+  const sh = (m: number, b: number) => (b > 0 ? `${hrs(m)}, less ${b} min of breaks the line stops for — ${hrs(m - b)} running` : `${hrs(m)}, the line running through its breaks`);
+  const shifts = same
+    ? `${run.shifts} shift${run.shifts === 1 ? '' : 's'} of ${sh(run.shiftMinutes[0], run.breakMinutes[0])}${run.shifts > 1 && run.breakMinutes[0] > 0 ? ' each' : ''}`
+    : `${run.shifts} shifts — ${run.shiftMinutes.map((m, i) => sh(m, run.breakMinutes[i])).join('; ')}`;
+  return `${shifts}; ${num(run.daysPerWeek)} day${run.daysPerWeek === 1 ? '' : 's'} a week${run.weeksPerYear ? `; ${num(run.weeksPerYear)} weeks a year` : ''}`;
+}
+
+/** The line's own shifts as a running pattern (Workspace.shifts — the clock
+ *  windows Capture stamps a stop with): how many, and each one's hours. The
+ *  breaks are not on a shift, so they are still asked. Nothing when no shift
+ *  has both its times. */
+export function patternFromShifts(shifts: readonly { start?: string; end?: string }[] | undefined): Pick<RunningPattern, 'shiftsPerDay' | 'shiftHours'> | undefined {
+  const at = (t?: string): number | undefined => {
+    const m = /^(\d{1,2}):(\d{2})$/.exec((t ?? '').trim());
+    return m && Number(m[1]) < 24 && Number(m[2]) < 60 ? Number(m[1]) * 60 + Number(m[2]) : undefined;
+  };
+  const hours = (shifts ?? []).map(x => {
+    const a = at(x.start), b = at(x.end);
+    return a === undefined || b === undefined || a === b ? 0 : ((b - a + 1440) % 1440) / 60;
+  }).filter(h => h > 0);
+  return hours.length ? { shiftsPerDay: hours.length, shiftHours: hours } : undefined;
 }
 
 /** The changeovers a shift, a day and a week, from whichever the floor knows. */
@@ -313,40 +361,92 @@ export function changeoversOf(f: Pick<StudyFacts, 'changeovers' | 'running' | 'p
 export const figuresOf = (f: Pick<StudyFacts, 'sequence' | 'changeovers' | 'running' | 'perWeek'>): ChangeoverFigures => changeoverFigures(f.sequence, changeoversOf(f).week);
 
 /** Minutes the line runs a day, and where that came from — the running
- *  pattern, or an older record's typed minutes. */
+ *  pattern (its shifts less their breaks), or an older record's typed minutes. */
 export function availableOf(f: Pick<StudyFacts, 'running' | 'availableMinPerDay'>): { min: number; from: 'running' | 'typed' } | undefined {
   const run = runningOf(f.running).run;
   if (run) return { min: run.minutesPerDay, from: 'running' };
   return f.availableMinPerDay && f.availableMinPerDay > 0 ? { min: f.availableMinPerDay, from: 'typed' } : undefined;
 }
 
-export interface Cost { sec: number; packs?: number; pounds?: number }
+/* --------------------------------------------- the line's speed, the pounds */
+
+/** THE LINE'S SPEED, offered — what a stop's packs are counted at
+ *  (docs/CAPACITY.md §1, Rowland: "we go by plate speed ... unless human"):
+ *  the critical station's plate speed off the product's line balance, or a
+ *  timed person's where people set the pace (lib/capacity lineSpeed); else
+ *  the standard's target, or the line's rated speed in its settings — each
+ *  said as not a plate speed. Nothing: it is typed. */
+export function lineRateOf(cap: Capacity | undefined, line?: { packsPerMin?: number }): { ratePerMin: number; from: Exclude<SmedRateFrom, 'typed'>; station?: string } | undefined {
+  const sp = lineSpeed(cap);
+  if (sp) return { ratePerMin: +sp.perMin.toFixed(2), from: sp.from, station: sp.station };
+  if (cap?.targetPerMin && cap.targetPerMin > 0) return { ratePerMin: cap.targetPerMin, from: 'standard' };
+  if (line?.packsPerMin && line.packsPerMin > 0) return { ratePerMin: line.packsPerMin, from: 'line' };
+  return undefined;
+}
+
+/** Where the speed came from, in words — "the Bagger's plate speed", "the
+ *  standard's target — not a plate speed", "typed". */
+export function rateFromWords(from: SmedRateFrom | undefined, station?: string): string {
+  const who = station?.trim();
+  switch (from) {
+    case 'plate': return who ? `the ${who}'s plate speed` : 'the plate speed';
+    case 'person': return who ? `${who}'s timed pace — people set it` : 'a timed pace — people set it';
+    case 'standard': return 'the standard\'s target — not a plate speed';
+    case 'line': return 'the line\'s rated speed in its settings — not a plate speed';
+    default: return 'typed';
+  }
+}
+
+/** THE POUNDS, IN TWO PARTS (docs/CAPACITY.md §6): the idle labour of the
+ *  crew paid while the line is stopped, and the contribution the packs not
+ *  made would have earned — a real loss only when the time cannot be made
+ *  up (a sold-out line, a fixed shift end), so always said that way and
+ *  never added into one figure. From the line's own cost settings (lib/cost);
+ *  without them, no pounds at all. */
+export interface SmedMoney { labourPerHour?: number; marginPerPack?: number }
+export function moneyOf(w: { crew?: number; labourRatePerHour?: number; labourBurden?: number; marginPerPack?: number } | undefined): SmedMoney | undefined {
+  if (!w) return undefined;
+  const lab = labourPerHour(w), margin = w.marginPerPack && w.marginPerPack > 0 ? w.marginPerPack : undefined;
+  return lab > 0 || margin ? { ...(lab > 0 ? { labourPerHour: lab } : {}), ...(margin ? { marginPerPack: margin } : {}) } : undefined;
+}
+
+export interface Cost { sec: number; packs?: number; labour?: number; contribution?: number }
 export interface CostScale { shift: Cost; day: Cost; week: Cost; year?: Cost; shareOfRunning: number }
 
 /** WHAT THE CHANGEOVERS COST, from one stop: per shift → per day → per week
  *  (→ per year when the weeks are said) — the time stopped, the packs not
- *  made at the line's rate, and pounds at the line's own cost an hour. */
-export function extrapolate(stopSec: number, per: { shift: number; day: number; week: number }, run: Running, ratePerMin?: number, poundsPerHour?: number): CostScale {
+ *  made at the line's speed, the idle labour, and the contribution lost if
+ *  the packs cannot be made up. The share is of the running time (the
+ *  shifts less their breaks). */
+export function extrapolate(stopSec: number, per: { shift: number; day: number; week: number }, run: Running, ratePerMin?: number, money?: SmedMoney): CostScale {
   const at = (n: number): Cost => {
     const sec = stopSec * n;
-    return { sec, ...(ratePerMin && ratePerMin > 0 ? { packs: (sec / 60) * ratePerMin } : {}), ...(poundsPerHour && poundsPerHour > 0 ? { pounds: (sec / 3600) * poundsPerHour } : {}) };
+    const packs = ratePerMin && ratePerMin > 0 ? (sec / 60) * ratePerMin : undefined;
+    return { sec, ...(packs !== undefined ? { packs } : {}),
+      ...(money?.labourPerHour && money.labourPerHour > 0 ? { labour: (sec / 3600) * money.labourPerHour } : {}),
+      ...(packs !== undefined && money?.marginPerPack && money.marginPerPack > 0 ? { contribution: packs * money.marginPerPack } : {}) };
   };
   return { shift: at(per.shift), day: at(per.day), week: at(per.week), ...(run.weeksPerYear ? { year: at(per.week * run.weeksPerYear) } : {}),
     shareOfRunning: run.minutesPerWeek > 0 ? (stopSec * per.week) / (run.minutesPerWeek * 60) : 0 };
 }
 
-/** What a cost buys, in words: "176,400 packs, £5,880" — nothing when neither is known. */
-export const costOf = (c: Cost): string => [c.packs !== undefined ? `${big(c.packs)} packs` : '', c.pounds !== undefined ? `£${big(c.pounds)}` : ''].filter(Boolean).join(', ');
+/** The pounds in words, two parts, never one figure: "£5,880 of idle labour,
+ *  and £8,820 of contribution if the packs cannot be made up". */
+export const poundsOf = (c: Cost): string => [c.labour !== undefined ? `£${big(c.labour)} of idle labour` : '',
+  c.contribution !== undefined ? `£${big(c.contribution)} of contribution if the packs cannot be made up` : ''].filter(Boolean).join(', and ');
 
-/** Where the rate came from, in words, for the page and paper. */
-export const RATE_FROM: Record<'standard' | 'line' | 'typed', string> = { standard: 'its line balance', line: 'the line\'s settings', typed: 'typed' };
+/** What a cost buys, short, for a bar: "176,400 packs · £5,880 labour · £8,820 contribution". */
+export const costOf = (c: Cost): string => [c.packs !== undefined ? `${big(c.packs)} packs` : '', c.labour !== undefined ? `£${big(c.labour)} labour` : '',
+  c.contribution !== undefined ? `£${big(c.contribution)} contribution` : ''].filter(Boolean).join(' · ');
 
 /** WHAT THEY COST, SAID: "Now 42 min × 3 a shift × 2 shifts × 7 days = 29.4 h
- *  a week stopped (26% of the running time) — 176,400 packs, £5,880.
- *  Streamlined to 9 min: 6.3 h a week — 23.1 h back, if the plan holds."
- *  The furthest rung there is a plan for is the second sentence; the year
- *  follows the week when its weeks are said. What is missing, said instead. */
-export function extrapolationSays(l: Ladder, f: Pick<StudyFacts, 'changeovers' | 'running' | 'perWeek'>, ratePerMin?: number, poundsPerHour?: number): { text: string; tone: Tone; scale?: CostScale } {
+ *  a week stopped (28% of the running time) — 176,400 packs at 100 a minute,
+ *  the Bagger's plate speed; £5,880 of idle labour, and £8,820 of
+ *  contribution if the packs cannot be made up. Streamlined to 9 min: 6.3 h a
+ *  week — 23.1 h back, if the plan holds." The furthest rung there is a plan
+ *  for is the second sentence; the year follows the week when its weeks are
+ *  said. What is missing, said instead. */
+export function extrapolationSays(l: Ladder, f: Pick<StudyFacts, 'changeovers' | 'running' | 'perWeek' | 'ratePerMin' | 'rateFrom' | 'rateStation'>, money?: SmedMoney): { text: string; tone: Tone; scale?: CostScale } {
   if (l.now.elapsedSec <= 0) return { text: '', tone: 'n' };
   const { run, missing } = runningOf(f.running);
   const per = changeoversPer(f.changeovers, run);
@@ -354,18 +454,20 @@ export function extrapolationSays(l: Ladder, f: Pick<StudyFacts, 'changeovers' |
     const need = [...missing, ...(!(f.changeovers?.count && f.changeovers.count > 0) ? ['how many changeovers a shift, a day or a week'] : [])];
     return { text: `What the changeovers cost needs how the line runs — ${need.join(', ')}.`, tone: 'n' };
   }
+  const rate = f.ratePerMin && f.ratePerMin > 0 ? f.ratePerMin : undefined;
   const c = f.changeovers as { count: number; per: 'shift' | 'day' | 'week' };
   const how = c.per === 'shift' ? `${num(c.count)} a shift × ${run.shifts} shift${run.shifts === 1 ? '' : 's'} × ${num(run.daysPerWeek)} days`
     : c.per === 'day' ? `${num(c.count)} a day × ${num(run.daysPerWeek)} days` : `${num(c.count)} a week`;
-  const now = extrapolate(l.now.elapsedSec, per, run, ratePerMin, poundsPerHour);
+  const now = extrapolate(l.now.elapsedSec, per, run, rate, money);
   const share = now.shareOfRunning > 0 ? ` (${Math.round(now.shareOfRunning * 100)}% of the running time)` : '';
-  const buys = costOf(now.week);
-  const year = now.year && run.weeksPerYear ? ` Over ${num(run.weeksPerYear)} weeks a year: ${span(now.year.sec)}${costOf(now.year) ? ` — ${costOf(now.year)}` : ''}.` : '';
-  const head = `Now ${mins(l.now.elapsedSec)} × ${how} = ${span(now.week.sec)} a week stopped${share}${buys ? ` — ${buys}` : ''}.${year}`;
+  const packsAt = (x: Cost, first: boolean) => (x.packs !== undefined ? `${big(x.packs)} packs${first && rate ? ` at ${num(rate)} a minute, ${rateFromWords(f.rateFrom, f.rateStation)}` : ''}` : '');
+  const buys = (x: Cost, first: boolean) => [packsAt(x, first), poundsOf(x)].filter(Boolean).join('; ');
+  const year = now.year && run.weeksPerYear ? ` Over ${num(run.weeksPerYear)} weeks a year: ${span(now.year.sec)}${buys(now.year, false) ? ` — ${buys(now.year, false)}` : ''}.` : '';
+  const head = `Now ${mins(l.now.elapsedSec)} × ${how} = ${span(now.week.sec)} a week stopped${share}${buys(now.week, true) ? ` — ${buys(now.week, true)}` : ''}.${year}`;
   const best: Rung = l.planned ? l.last : 'separated';
   const bestSec = l[best].elapsedSec;
   if (bestSec >= l.now.elapsedSec) return { text: head, tone: 'n', scale: now };
-  const then = extrapolate(bestSec, per, run, ratePerMin, poundsPerHour);
+  const then = extrapolate(bestSec, per, run, rate, money);
   const back = now.week.sec - then.week.sec;
   return { text: `${head} ${cap(RUNG_WORD[best])} to ${mins(bestSec)}: ${span(then.week.sec)} a week — ${span(back)} back${l.planned ? ', if the plan holds' : ''}.`, tone: 'n', scale: now };
 }
@@ -521,7 +623,7 @@ export function planWords(st: ChangeoverStep, nameOf?: (id: string) => string | 
   if (p.kind === 'convert') return `Convert to external${how}${note}${p.targetSec ? ` (${mins(p.targetSec)} left inside)` : ''}`;
   if (p.kind === 'eliminate') return `Eliminate${how}${note}`;
   const along = p.alongside ? `, alongside ${nameOf?.(p.alongside) ?? 'another element'}${crewOf(p.crew).length ? ` (${crewOf(p.crew).join(', ')})` : ''}` : '';
-  return `Streamline${how}${note}${along}${p.targetSec !== undefined ? `: ${mins(secOf(st))} → ${mins(p.targetSec)}` : ''}`;
+  return `Streamline${how}${note}${along}${p.targetSec !== undefined ? `${note ? '; ' : ': '}${mins(secOf(st))} → ${mins(p.targetSec)}` : ''}`;
 }
 
 /** THE CHECKLIST the standard keeps: what is prepared before the line stops
@@ -624,9 +726,9 @@ const HOW: Record<ChangeoverStep['source'], string> = { timed: 'timed', typed: '
  *  its time, the elapsed changeover by the end of its column, how known —
  *  the totals, and under them the ladder, the functions, what the
  *  changeovers cost and the interval, in words. `branches` names the record
- *  raised from an element, by its id; `poundsPerHour` the line's cost. */
-export function changeoverSheet(facts: Pick<StudyFacts, 'sequence' | 'changeovers' | 'running' | 'perWeek' | 'products' | 'availableMinPerDay' | 'ratePerMin'>,
-  agreed?: Pick<StandardChangeover, 'minutes'>, branches: Map<string, string> = new Map(), poundsPerHour?: number): ChangeoverSheet {
+ *  raised from an element, by its id; `money` the line's cost settings. */
+export function changeoverSheet(facts: Pick<StudyFacts, 'sequence' | 'changeovers' | 'running' | 'perWeek' | 'products' | 'availableMinPerDay' | 'ratePerMin' | 'rateFrom' | 'rateStation'>,
+  agreed?: Pick<StandardChangeover, 'minutes'>, branches: Map<string, string> = new Map(), money?: SmedMoney): ChangeoverSheet {
   const list = sorted(facts.sequence);
   const f = figuresOf(facts), l = ladderOf(list), when = whenIn(list);
   const now = arrange(list, 'now', { untimed: true });
@@ -644,6 +746,6 @@ export function changeoverSheet(facts: Pick<StudyFacts, 'sequence' | 'changeover
   const said = changeoverSays(f, agreed);
   const iv = intervalOf(f, facts.products, availableOf(facts)?.min);
   const lines = f.enough ? [said.text, ...said.lines.filter(x => x.tone !== 'n').map(x => x.text), ladderSays(l).text, functionSays(list),
-    extrapolationSays(l, facts, facts.ratePerMin, poundsPerHour).text, intervalSays(iv, f).text].filter(Boolean) : [];
+    extrapolationSays(l, facts, money).text, intervalSays(iv, f).text].filter(Boolean) : [];
   return { rows, total: { minutes: mins(f.nowSec), labour: mins(f.labourSec), internal: mins(f.internalSec), external: mins(f.externalSec) }, lines };
 }

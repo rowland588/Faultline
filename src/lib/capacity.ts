@@ -308,6 +308,25 @@ export interface CapacityResult {
   notes: string[];
 }
 
+/** THE LINE'S SPEED, as the practice takes it (docs/CAPACITY.md §1 —
+ *  Rowland, 12 October: "we go by plate speed ... of course, unless human"):
+ *  the station slowest on running speed alone, in the line's unit a minute
+ *  at the start of the line — a machine's when its speed is off its PLATE,
+ *  a person's when people set the pace and were timed. Nothing when the
+ *  slowest station's speed is a guess, or a machine's timed rather than
+ *  read off its plate: running below the plate is a loss (slow running),
+ *  never a lower plate. What a stop's packs are counted at (SMED, the loss
+ *  count). */
+export function lineSpeed(cap: Capacity | undefined): { perMin: number; unit: string; station: string; from: 'plate' | 'person' } | undefined {
+  if (!cap?.stations?.length) return undefined;
+  const r = analyse(cap), x = r.limitAtRunning;
+  if (!x || !(x.running > 0)) return undefined;
+  const st = x.station, name = st.name.trim() || `station ${x.index + 1}`;
+  if (st.kind === 'machine' && st.source === 'plate') return { perMin: x.running, unit: r.unit, station: name, from: 'plate' };
+  if (st.kind === 'people' && st.source === 'timed') return { perMin: x.running, unit: r.unit, station: name, from: 'person' };
+  return undefined;
+}
+
 /** Numbers as a person would say them: 62, 66.5, 0.13 — no trailing zeros. */
 export function fmtN(n: number): string {
   const a = Math.abs(n);

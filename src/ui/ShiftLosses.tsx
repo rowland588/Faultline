@@ -25,7 +25,8 @@ import type { Observation, Workspace } from '../types';
  *  StudyContext): for the loss counts among them, their lines' stops and
  *  cost models — loaded only when there is a loss count to read them for. */
 export function useStudyContext(studies: ToolStudy[]): StudyContext {
-  const key = [...new Set(studies.filter(s => s.tool === 'losses' && !s.deletedAt && s.workspaceId).map(s => s.workspaceId as string))].sort().join('|');
+  /* a SMED reads its line's cost settings too, for the pounds its changeovers cost */
+  const key = [...new Set(studies.filter(s => (s.tool === 'losses' || s.tool === 'changeover') && !s.deletedAt && s.workspaceId).map(s => s.workspaceId as string))].sort().join('|');
   const [ctx, setCtx] = useState<StudyContext>({});
   useEffect(() => {
     if (!key) { setCtx({}); return; }

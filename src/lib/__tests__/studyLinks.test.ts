@@ -245,7 +245,7 @@ describe('SMED inside a change (docs/TOOLKIT.md, tool 6 — stored as changeover
     { id: 'pre', order: 4, name: 'Pre-stage the film reels', sec: 7 * M, side: 'external' as const, source: 'typed' as const },
   ];
   const co = (o: Partial<ToolStudy>): ToolStudy => ({ id: 'c', tool: 'changeover', name: 'Finest Red 2kg → Express 1.25 kg', product: 'Express 1.25 kg', workspaceId: 'ws', projectId: 'job', standardId: 'std',
-    facts: { fromProduct: 'Finest Red 2kg', toProduct: 'Express 1.25 kg', sequence: seq(), running: { shiftsPerDay: 1, hoursPerShift: 5, daysPerWeek: 7 }, changeovers: { count: 1, per: 'shift' },
+    facts: { fromProduct: 'Finest Red 2kg', toProduct: 'Express 1.25 kg', sequence: seq(), running: { shiftsPerDay: 1, hoursPerShift: 5, breakMin: 0, daysPerWeek: 7 }, changeovers: { count: 1, per: 'shift' },
       products: [{ id: 'p1', product: 'Finest Red 2kg', demandPerDay: 7200, ratePerMin: 60 }, { id: 'p2', product: 'Express 1.25 kg', runMinPerDay: 60 }] },
     uses: [], startedAt: 1, createdAt: 1, updatedAt: 1, ...o });
 

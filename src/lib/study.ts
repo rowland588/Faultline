@@ -225,12 +225,22 @@ export interface ChangeoverStep {
 /** HOW THE LINE RUNS — asked, never assumed (Rowland, 12 October: "it could
  *  be 7 days a week, but it could be the amount of hours as well of running
  *  time, because we could have different shifts"). */
+/** Where a SMED study's line speed came from (StudyFacts.ratePerMin). */
+export type SmedRateFrom = 'plate' | 'person' | 'standard' | 'line' | 'typed';
+
 export interface RunningPattern {
   shiftsPerDay?: number;
   /** Hours a shift, when every shift is the same length … */
   hoursPerShift?: number;
   /** … or each shift's hours, when they differ (one per shift). */
   shiftHours?: number[];
+  /** PLANNED BREAKS THE LINE STOPS FOR, minutes a shift — a shift's running
+   *  time is the shift less these (docs/CAPACITY.md §5: planned production
+   *  time). Breaks covered by relief, the line running on, are not counted:
+   *  0 is an answer. Asked, never assumed. */
+  breakMin?: number;
+  /** … or each shift's breaks, when the shifts are told apart (one per shift). */
+  shiftBreaks?: number[];
   daysPerWeek?: number;
   /** Weeks a year the line runs — for the year's figure; absent, no year is said. */
   weeksPerYear?: number;
@@ -350,11 +360,15 @@ export interface StudyFacts {
   running?: RunningPattern;
   /** How many changeovers, as the floor knows it — a shift, a day or a week. */
   changeovers?: { count: number; per: 'shift' | 'day' | 'week' };
-  /** The line's rate on the product changed to, a minute — for the packs a
-   *  stop costs; offered from its line balance (or the line's settings), or
-   *  typed, and which is kept. */
+  /** THE LINE'S SPEED, a minute in its own unit — for the packs a stop
+   *  costs. Rowland, 12 October: "we go by plate speed ... unless human"
+   *  (docs/CAPACITY.md §1). Offered from the product's line balance: the
+   *  critical machine's PLATE speed, or a person's timed pace where people
+   *  set it; else the standard's target or the line's rated speed, each said
+   *  as not a plate speed; else typed. Which is kept, and the station's name. */
   ratePerMin?: number;
-  rateFrom?: 'standard' | 'line' | 'typed';
+  rateFrom?: SmedRateFrom;
+  rateStation?: string;
   /** The products run on the line, for the interval — each with its demand
    *  a day and the line's rate on it, or its run time a day typed. */
   products?: ChangeoverProduct[];
