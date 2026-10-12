@@ -100,7 +100,13 @@ tool, on its own, on a line, on a job, evidence for a problem or proof for a
 fix; work moves, evidence links), the five layers every tool follows (facts →
 figures → reading → verdict → act), the honesty rules (enough? how known?
 what it does not claim), the records, the sixteen shared parts, and each tool
-in full. `docs/BUILD.md` is how that next stage is built and proved: separated
+in full. `docs/CAPACITY.md` is the knowledge behind Line capacity, the loss
+count and SMED — plate speed ("we go by plate speed ... unless human"),
+capacity's three numbers, the bottleneck worked out and walked, the V-curve
+and accumulation, a shift's time model (planned production time, the six
+big losses, slow running and short stops as the rest), what a loss costs at
+and away from the bottleneck, the mix, and EN 415-11 — read it before
+changing any of them. `docs/BUILD.md` is how that next stage is built and proved: separated
 pieces (database before sync, sync before screens, arithmetic before
 pictures, a tool alone before its links, links before paper), the
 ten-point checklist every piece passes before it reaches `main`, and an
