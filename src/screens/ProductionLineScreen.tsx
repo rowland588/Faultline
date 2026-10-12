@@ -24,6 +24,9 @@ import type { Standard } from '../lib/standard';
 import type { ToolStudy, StudyTool } from '../lib/study';
 import type { Workspace } from '../types';
 import { Icon } from '../ui/Icon';
+import { useProjects } from '../lib/useProjects';
+import { saveProblemCardsFor, saveProblemsReportFor } from '../lib/problemsPdf';
+import type { Snag } from '../snag/types';
 
 const TONE_CLASS: Record<SnagTone, string> = { g: 'is-g', r: 'is-r', w: 'is-w', a: 'is-a', n: 'is-n' };
 /* PRIORITY, RAG (Rowland, 12 October) — always with its word. */
@@ -43,20 +46,24 @@ const TOOLS: { key: string; label: string; to: string; study?: StudyTool; standa
 
 export function ProductionLineScreen({ wsId }: { wsId: string }) {
   const [line, setLine] = useState<Workspace | null | undefined>(undefined);
-  const [rows, setRows] = useState<SnagRow[]>([]);
+  const [mine, setMine] = useState<Snag[]>([]);
+  const [busy, setBusy] = useState(false);
+  const { projects } = useProjects();
   const [standards, setStandards] = useState<Standard[]>([]);
   const [studies, setStudies] = useState<ToolStudy[]>([]);
 
   const load = useCallback(async () => {
     const [w, every, std, ss] = await Promise.all([getWorkspace(wsId), listAllSnags(), listStandardsForLine(wsId), listStudiesForLine(wsId)]);
     setLine(w ?? null);
-    const name = w?.name ?? 'This line';
     const mine = every.filter(s => s.workspaceId === wsId && !s.deletedAt && !s.archivedAt && s.status !== 'closed');
-    setRows(mine.map(s => snagRow(s, name)).sort((a, b) => RANK[a.priority] - RANK[b.priority] || Number(b.late) - Number(a.late) || b.raisedAt - a.raisedAt));
+    setMine(mine);
     setStandards(std); setStudies(ss.filter(s => !s.deletedAt));
   }, [wsId]);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
 
+  /* its problems as rows, in priority order — the project each is for named */
+  const rows: SnagRow[] = useMemo(() => mine.map(s => snagRow(s, line?.name ?? 'This line', undefined, projects.find(p => p.id === s.projectId)?.name))
+    .sort((a, b) => RANK[a.priority] - RANK[b.priority] || Number(b.late) - Number(a.late) || b.raisedAt - a.raisedAt), [mine, projects, line]);
   const late = rows.filter(r => r.late).length;
   const crit = rows.filter(r => r.priority === 'critical').length;
   const count = useMemo(() => (t: typeof TOOLS[number]) => (t.standard ? standards.length : studies.filter(s => s.tool === t.study).length), [standards, studies]);
@@ -72,6 +79,19 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
     );
   }
 
+  /* THE LINE ON PAPER (12 October: "if it's attached to a line, every group
+     I can send from that") — its report, or a card for each problem open. */
+  const pdf = async (kind: 'report' | 'cards') => {
+    if (busy || !mine.length) return;
+    setBusy(true);
+    try {
+      if (kind === 'report') await saveProblemsReportFor({ title: `${line.name} — problems`, snags: mine, jobs: [], lineName: () => line.name, jobName: id => projects.find(p => p.id === id)?.name });
+      else await saveProblemCardsFor({ name: line.name, lineRows: mine.map(snag => ({ snag, assetName: snag.targetAsset?.trim() || 'No machine named' })), jobRows: [] });
+    } catch (e) {
+      console.error('line pdf failed', e);
+      window.alert('Sorry — the PDF could not be made. Please try again.');
+    } finally { setBusy(false); }
+  };
   const rename = () => {
     const name = window.prompt('Rename the line', line.name)?.trim();
     if (name && name !== line.name) void updateWorkspace({ ...line, name });
@@ -94,6 +114,8 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
         </div>
         <div className="pace-head-actions">
           <button type="button" className="btn btn-primary" onClick={() => openQuickSnag()}><Icon name="camera" size="1.05em" />Problem</button>
+          <button type="button" className="btn" disabled={busy || !rows.length} onClick={() => void pdf('report')}><Icon name="document" size="1.05em" />Problems report</button>
+          <button type="button" className="btn" disabled={busy || !rows.length} onClick={() => void pdf('cards')}>Report cards</button>
           <button type="button" className="btn btn-ghost" onClick={rename}>Rename</button>
         </div>
       </header>

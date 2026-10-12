@@ -1144,6 +1144,16 @@ a register (`src/snag/QuickSnagsScreen.tsx`):
   card and Work it on <project>. The note that sent them to the job's own
   page is gone. A fresh start puts away the register's problems; a
   project's stay while they are open on it.
+- **On paper from every level** (Rowland, the same night: "every problem
+  can either have their own card, PDF card, or every group ... on that
+  project page itself, also I can have a project card. So I have multiple
+  ways and avenues to create PDFs and send them out"). One problem: its
+  report card. A group on the Problems page — a line's, a person's, a
+  project's — Report and Cards on its heading. A line's own page and a
+  project's own Problems page: Problems report and Report cards (a project's
+  own problems and fixes, and the line problems assigned to it). One maker
+  for each (`lib/problemsPdf`): the report read afresh for what is asked —
+  its sentence and tiles count that group — and one card a page.
 - **A fresh start, nothing erased.** Start fresh puts every problem away
   (`snags.archived_at`, a stamp, never a delete), with an undo; the page then
   says "A fresh start." and lists what was put away at its foot, each with

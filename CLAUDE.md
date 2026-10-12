@@ -258,7 +258,9 @@ staying on the page "for" the job and shown on the job's own view; its
 journey — steps added with a day, what we did and what came of it, shown on
 the row, changed and taken off; a photo marked from the editor; priority,
 whose, due, close and delete for several at once; its report card and the
-Problems report carrying its plan and journey; Start fresh putting every
+Problems report carrying its plan and journey; a line's group and a project's
+group on paper as a report and as a card each, and the project's own page's
+report and cards; Start fresh putting every
 problem away with none deleted, the page saying so, and one then all
 brought back; and the phone.
 `programs.mjs` is a program's status with commentary (Rowland, 12 October:

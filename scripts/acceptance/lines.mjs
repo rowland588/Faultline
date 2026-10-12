@@ -14,7 +14,8 @@
  *   3  the rail's Lines carrying it
  *   4  its page: no problems, its tools
  *   5  the Problem button on it: the line set, no project
- *   6  the problem on the line's page, open
+ *   6  the problem on the line's page, open; the line's Problems report and a
+ *      card for each problem, from its page
  *   7  tapped: the Problems page on that line, the problem open to work
  *   8-11 a tool opened on the line (Line capacity, SMED): none yet said so,
  *      and New starting on the line
@@ -24,6 +25,10 @@
  *
  *   node scripts/acceptance/lines.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 const { chromium } = pkg;
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
@@ -31,7 +36,7 @@ const OUT = process.env.SHOTS;
 const SESSION = { access_token: 'smoke', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 31536000, refresh_token: 'smoke',
   user: { id: '11111111-1111-1111-1111-111111111111', aud: 'authenticated', role: 'authenticated', email: 'acceptance@example.com', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() } };
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
-const ctx = await b.newContext({ serviceWorkers: 'block', viewport: { width: 1360, height: 900 }, locale: 'en-GB' });
+const ctx = await b.newContext({ serviceWorkers: 'block', viewport: { width: 1360, height: 900 }, locale: 'en-GB', acceptDownloads: true });
 await ctx.route('**://*.supabase.co/**', r => r.abort());
 await ctx.addInitScript(([k, s]) => { try { localStorage.setItem(k, JSON.stringify(s)); } catch { /* private mode */ } }, [`sb-${REF}-auth-token`, SESSION]);
 const page = await ctx.newPage();
@@ -49,7 +54,7 @@ const rail = (await page.locator('.nv').innerText()).replace(/\s+/g, ' ');
 ok(/LINES Line 2B/i.test(rail), '3 the rail has Lines › Line 2B');
 ok(/No problems open/.test(await txt()) && /Tools on this line/.test(await txt()), '4 the line page: no problems, its tools');
 // take a problem on it
-await page.locator('.pl .pace-head-actions').getByRole('button', { name: 'Problem' }).click(); await page.waitForTimeout(900);
+await page.locator('.pl .pace-head-actions').getByRole('button', { name: 'Problem', exact: true }).click(); await page.waitForTimeout(900);
 const sheet = page.locator('.sheet, [role="dialog"]').last();
 const lineSel = sheet.locator('label', { hasText: 'LINE' }).locator('select');
 const chosen = await lineSel.evaluate(el => el.options[el.selectedIndex]?.text);
@@ -59,6 +64,18 @@ await sheet.locator('textarea').first().fill('Infeed guard loose on the bagger')
 await sheet.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(1500);
 ok(/1 problem open/.test(await txt()) && /Infeed guard loose/.test(await txt()), '6 it is on the line page, open');
 if (OUT) await page.screenshot({ path: `${OUT}/l-2-line-problem.png` });
+// the line on paper — its report, and a card for each problem open
+const dir = mkdtempSync(join(tmpdir(), 'lines-'));
+const pdfOf = async (name, file) => {
+  const [d] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), page.locator('.pl .pace-head-actions').getByRole('button', { name, exact: true }).click()]);
+  const f = join(dir, file); await d.saveAs(f);
+  return { text: execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' '), pages: Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [f], { encoding: 'utf8' }))?.[1]) };
+};
+const rep = await pdfOf('Problems report', 'line.pdf');
+ok(/Line 2B — problems/.test(rep.text) && /Infeed guard loose on the bagger/.test(rep.text), '6b the line on paper: its Problems report, its problem on it');
+const cards = await pdfOf('Report cards', 'line-cards.pdf');
+ok(cards.pages === 1 && /Infeed guard loose/.test(cards.text), `6c and a card for each problem open (${cards.pages})`);
+
 // tap it → register filtered, editor open
 await page.locator('.pl-row', { hasText: 'Infeed guard loose' }).click(); await page.waitForTimeout(2000);
 ok(/#\/snags\?line=/.test(page.url()) && (await page.locator('.pe').count()) === 1 && (await page.locator('.qsl-g .qsl-gh h2').allInnerTexts()).join('|') === 'Line 2B', `7 tapped: the Problems page on Line 2B, the problem open to work`);

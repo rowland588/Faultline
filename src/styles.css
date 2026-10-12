@@ -10761,6 +10761,10 @@ body:has(.toast) .qs-fab { bottom: calc(var(--nv-bar) + 130px + env(safe-area-in
 .pl-tool .sub { grid-column: 1; font-size: var(--t-detail); }
 .pl-tool-go { grid-row: 1 / span 2; grid-column: 2; align-self: center; color: var(--muted); font-size: 20px; }
 .pl-new { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 10px; }
+/* a group on paper — its report or its cards, at the right of its heading (lib/problemsPdf) */
+.qsl-g .qsl-gh { flex-wrap: wrap; }
+.qsl-gh-pdf { display: inline-flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+.qsl-gh-pdf .btn { min-height: 32px; padding: 4px 10px; }
 .pl-new .text-input { flex: 1 1 200px; margin: 0; }
 @media (max-width: 560px) {
   .pl-row { flex-wrap: wrap; }

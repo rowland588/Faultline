@@ -295,6 +295,34 @@ await go('#/snags');
   const flatTxt = txt.replace(/\s+/g, '');
   const lost = all.filter(w => !flatTxt.includes(w.replace(/\s+/g, '')));
   ok(/PROBLEMS/.test(txt) && !lost.length && /CRITICAL ·/.test(txt) && /Fitted the interlocked guard — No trips since/.test(txt) && /Plan: Fit an interlocked guard/.test(txt) && !/Demo fault/.test(txt), `8 the Problems report: every open problem, the projects' own among them (${all.length}), its plan and its journey${lost.length ? ` — lost: ${lost.slice(0, 4).join(', ')}` : ''}`);
+  /* EVERY GROUP ON PAPER, AND THE PROJECT'S OWN PAGE (Rowland, 12 October:
+     "every problem can either have their own card ... or every group ... when
+     it's sent to a project, on that project page itself, also I can have a
+     project card"). */
+  const pdfText = async (click, name) => {
+    const [d] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), click()]);
+    const f = join(dir, name); await d.saveAs(f);
+    return { text: execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' '),
+      pages: Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [f], { encoding: 'utf8' }))?.[1]) };
+  };
+  const flat = x => x.replace(/\s+/g, '');
+  const gName = (await page.locator('.qsl-g:not(.qsl-job) .qsl-gh h2').first().innerText()).trim();
+  const gOpen = t.rows.filter(r => r.line === gName && r.status !== 'closed');
+  const gRep = await pdfText(() => page.getByRole('button', { name: `Report for ${gName} (PDF)` }).click(), 'group.pdf');
+  ok(new RegExp(`${gName} — problems`).test(gRep.text) && gOpen.every(r => flat(gRep.text).includes(flat(r.what.slice(0, 30)))), `8 a line's group on paper: ${gName} — its ${gOpen.length} open`);
+  const gCards = await pdfText(() => page.getByRole('button', { name: `Report cards for ${gName} (PDF)` }).click(), 'group-cards.pdf');
+  ok(gCards.pages === gOpen.length, `8 a line's group as cards: one page each (${gCards.pages} of ${gOpen.length})`);
+  const pOpen = t.jobRows.filter(r => r.open && r.job === sd.job);
+  const pAssigned = t.snags.filter(s => s.projectId === sd.projectId && s.status !== 'closed');
+  const pRep = await pdfText(() => page.getByRole('button', { name: `Report for ${sd.job} (PDF)` }).click(), 'project.pdf');
+  ok(new RegExp(`${sd.job} — problems`).test(pRep.text) && pOpen.every(r => flat(pRep.text).includes(flat(r.what.slice(0, 30)))) && pAssigned.every(s => flat(pRep.text).includes(flat(s.problem.slice(0, 30)))),
+    `8 a project's group on paper: ${sd.job} — its own ${pOpen.length} and the ${pAssigned.length} assigned to it`);
+  await go(`#/project/${sd.projectId}/fixes`);
+  const jRep = await pdfText(() => page.locator('.pace-head-actions').getByRole('button', { name: 'Problems report' }).click(), 'project-page.pdf');
+  ok(pOpen.every(r => flat(jRep.text).includes(flat(r.what.slice(0, 30)))) && pAssigned.every(s => flat(jRep.text).includes(flat(s.problem.slice(0, 30)))), `8 the project's own page: its Problems report — the same ${pOpen.length + pAssigned.length}`);
+  const jCards = await pdfText(() => page.locator('.pace-head-actions').getByRole('button', { name: 'Report cards' }).click(), 'project-cards.pdf');
+  ok(jCards.pages === pOpen.length + pAssigned.length, `8 the project's own page: a card each (${jCards.pages} of ${pOpen.length + pAssigned.length})`);
+  await go('#/snags');
 }
 
 /* ---- 10 the job's own view (before the fresh start puts them away) ---- */

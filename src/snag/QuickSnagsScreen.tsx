@@ -29,6 +29,7 @@ import { uid } from '../lib/ids';
 import type { SnagCardRow } from '../lib/buildSnagCards';
 import { jobGroup, PRIORITY_RANK, PRIORITY_WORD, type JobGroup, type JobRow, type Priority, type SnagRow, type SnagTone, snagsReading } from '../lib/snagsReport';
 import { openRecord } from '../ui/RecordDrawer';
+import { openIn, saveProblemCardsFor, saveProblemsReportFor } from '../lib/problemsPdf';
 import { nav } from '../state/useRoute';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
 import { Evidence } from '../ui/EvidenceDoors';
@@ -198,6 +199,23 @@ export function QuickSnagsScreen() {
       window.alert('Sorry — the report card could not be made. Please try again.');
     } finally { setBusy(''); }
   };
+  /* A GROUP ON PAPER — a line's, a person's or a project's: its report or
+     its cards, whatever is still open in it (lib/problemsPdf). */
+  const pdfGroup = async (kind: 'report' | 'cards', name: string, list: Snag[], jobs: JobGroup[]) => {
+    if (busy) return;
+    setBusy(kind === 'report' ? 'report' : 'cards');
+    try {
+      if (kind === 'report') {
+        await saveProblemsReportFor({ title: `${name} — problems`, snags: list, jobs, lineName, jobName,
+          assetName: s => frameName(s), stillOf: s => (s.assetId ? frames.get(s.assetId)?.stillKey : undefined) });
+      } else {
+        await saveProblemCardsFor({ name, lineRows: list.map(lineCard), jobRows: jobs.flatMap(g => g.rows.map(row => ({ row, job: g.job }))) });
+      }
+    } catch (e) {
+      console.error('problems pdf failed', e);
+      window.alert('Sorry — the PDF could not be made. Please try again.');
+    } finally { setBusy(''); }
+  };
   const lineCard = (s: Snag): SnagCardRow => ({ snag: s, asset: s.assetId ? frames.get(s.assetId) : undefined, assetName: frameName(s) ?? s.targetAsset ?? 'No machine named' });
   const cards = async (list: Snag[]) => {
     if (busy || !list.length) return;
@@ -303,6 +321,17 @@ export function QuickSnagsScreen() {
               </label>
               <h2>{g.name}</h2>
               <span className="sub">{g.rows.length} problem{g.rows.length === 1 ? '' : 's'}{late ? <> · <b className="qsl-late">{late} late</b></> : null}</span>
+              {/* the group on paper — its report, or a card each */}
+              {(() => {
+                const list = g.rows.map(r => byId.get(r.id)).filter((x): x is Snag => !!x);
+                const n = openIn(list, []);
+                return (
+                  <span className="qsl-gh-pdf">
+                    <button type="button" className="btn btn-ghost btn-sm" disabled={!!busy || !n} aria-label={`Report for ${g.name} (PDF)`} onClick={() => void pdfGroup('report', g.name, list, [])}><Icon name="document" size="1em" />Report</button>
+                    <button type="button" className="btn btn-ghost btn-sm" disabled={!!busy || !n} aria-label={`Report cards for ${g.name} (PDF)`} onClick={() => void pdfGroup('cards', g.name, list, [])}>Cards</button>
+                  </span>
+                );
+              })()}
             </div>
             <ul className="qsl-rows">
               {g.rows.map(r => {
@@ -349,6 +378,7 @@ export function QuickSnagsScreen() {
       {shownJobs.map(g => <JobProblems key={`job:${g.projectId}`} g={g} all={reading.jobs.find(x => x.projectId === g.projectId) ?? g}
         opened={opened} flip={flip} busy={!!busy} onView={m => setViewing({ media: m })}
         onCard={r => void jobCard(r, g.job)}
+        onPdf={kind => { const full = jobGroups.find(x => x.projectId === g.projectId) ?? g; void pdfGroup(kind, g.job, here.filter(s => s.projectId === g.projectId), [full]); }}
         onOpen={r => (r.kind === 'action' ? nav(`/project/${r.projectId}/board?a=${encodeURIComponent(r.id)}`) : openRecord(r.projectId, r.id))}
         onList={() => { const p = liveJobs.find(x => x.id === g.projectId); nav(p && planModel(p) === 'commissioning' ? `/project/${g.projectId}/fixes` : `/project/${g.projectId}/board`); }} />)}
 
@@ -421,9 +451,11 @@ const dayOf = (at: number) => new Date(at).toLocaleDateString('en-GB', { day: 'n
 
 /** A PROJECT'S OWN PROBLEMS AND FIXES on the Problems page — each opened out
  *  where it sits, its report card, and worked on its project. */
-function JobProblems({ g, all, opened, flip, busy, onView, onCard, onOpen, onList }: {
+function JobProblems({ g, all, opened, flip, busy, onView, onCard, onOpen, onList, onPdf }: {
   g: JobGroup; all: JobGroup; opened: Set<string>; flip: (id: string) => void; busy: boolean;
   onView: (m: MediaRef) => void; onCard: (r: JobRow) => void; onOpen: (r: JobRow) => void; onList: () => void;
+  /** The project on paper — its own problems and fixes, and the line problems assigned to it. */
+  onPdf: (kind: 'report' | 'cards') => void;
 }) {
   return (
     <section className="qsl-g qsl-job">
@@ -432,6 +464,10 @@ function JobProblems({ g, all, opened, flip, busy, onView, onCard, onOpen, onLis
         <span className="sub">
           {[all.problemsOpen ? `${all.problemsOpen} with no fix yet` : '', all.fixesToDo ? `${all.fixesToDo} being fixed` : '', all.done ? `${all.done} done` : ''].filter(Boolean).join(' · ') || 'nothing open'}
           {all.late ? <> · <b className="qsl-late">{all.late} late</b></> : null}
+        </span>
+        <span className="qsl-gh-pdf">
+          <button type="button" className="btn btn-ghost btn-sm" disabled={busy} aria-label={`Report for ${g.job} (PDF)`} onClick={() => onPdf('report')}><Icon name="document" size="1em" />Report</button>
+          <button type="button" className="btn btn-ghost btn-sm" disabled={busy} aria-label={`Report cards for ${g.job} (PDF)`} onClick={() => onPdf('cards')}>Cards</button>
         </span>
         <button type="button" className="linkish qsl-jobgo" onClick={onList}>Open {g.job}’s list ›</button>
       </div>

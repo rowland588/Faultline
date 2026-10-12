@@ -68,6 +68,8 @@ import { CriticalTag } from '../ui/CriticalFields';
 import { fixFlag } from '../lib/critical';
 import { listAllSnags, listWorkspaces, onDataChange } from '../db';
 import { withoutDemo } from '../lib/demo';
+import { jobGroup } from '../lib/snagsReport';
+import { openIn, saveProblemCardsFor, saveProblemsReportFor } from '../lib/problemsPdf';
 import { nav } from '../state/useRoute';
 import { sendSnags } from '../snag/quick';
 import { openQuickSnag } from '../snag/QuickSnag';
@@ -100,6 +102,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
   const [heard, setHeard] = useState<VoiceResult | null>(null);
   /* A problem's picture, opened large with its marks (ui/Evidence). */
   const [viewing, setViewing] = useState<MediaRef | null>(null);
+  const [pdfBusy, setPdfBusy] = useState(false);
   /* THE SNAGS — this job's not moved yet, and which records came from one. */
   const [snags, setSnags] = useState<Snag[]>([]);
   const [lines, setLines] = useState<Workspace[]>([]);
@@ -190,6 +193,25 @@ export function FixesScreen({ projectId }: { projectId: string }) {
   for (const i of tt.items) { const sn = snagOfItem.get(i.id); if (sn && i.becameTestId) snagOfFix.set(i.becameTestId, sn); }
   const fromSnag = (sn?: Snag) => (sn ? `seen first on ${lineName(sn.workspaceId)}` : undefined);
   const jobSnags = snags.filter(sn => sn.projectId === projectId && !(sn.sent ?? []).length && sn.status !== 'closed' && !sn.deletedAt);
+  /* THE PROJECT ON PAPER (Rowland, 12 October: "when it's sent to a project,
+     on that project page itself, also I can have a project card") — its own
+     problems and fixes, and the problems taken on a line for it: the
+     Problems report, or a card each (lib/problemsPdf). */
+  const projectGroup = jobGroup({ projectId, job: project.name, tests: tt.tests, items: tt.items, assets: tt.assets, snags, lineName: id => lines.find(w => w.id === id)?.name ?? 'a line' });
+  const forProject = jobSnags.filter(sn => !sn.archivedAt);
+  const onPaper = openIn(forProject, [projectGroup]);
+  const pdf = async (kind: 'report' | 'cards') => {
+    if (pdfBusy || !onPaper) return;
+    setPdfBusy(true);
+    try {
+      const lineOf = (id: string) => lines.find(w => w.id === id)?.name ?? 'a line';
+      if (kind === 'report') await saveProblemsReportFor({ title: `${project.name} — problems`, snags: forProject, jobs: [projectGroup], lineName: lineOf, jobName: () => project.name });
+      else await saveProblemCardsFor({ name: project.name, lineRows: forProject.map(snag => ({ snag, assetName: snag.targetAsset?.trim() || 'No machine named' })), jobRows: projectGroup.rows.map(row => ({ row, job: project.name })) });
+    } catch (e) {
+      console.error('project pdf failed', e);
+      window.alert('Sorry — the PDF could not be made. Please try again.');
+    } finally { setPdfBusy(false); }
+  };
   const makeFix = async (sn: Snag) => {
     const undo = await sendSnags([sn], projectId, undefined, { fix: true }, project.name);
     offerUndo(`“${sn.problem || 'The snag'}” is a fix here now`, undo);
@@ -213,6 +235,10 @@ export function FixesScreen({ projectId }: { projectId: string }) {
                 ? <b>Nothing outstanding — {st.done.length} done</b>
                 : <b>Nothing on the list yet</b>}
           </p>
+        </div>
+        <div className="pace-head-actions">
+          <button type="button" className="btn" disabled={pdfBusy || !onPaper} onClick={() => void pdf('report')}><Icon name="document" size="1.05em" />Problems report</button>
+          <button type="button" className="btn" disabled={pdfBusy || !onPaper} onClick={() => void pdf('cards')}>Report cards</button>
         </div>
       </header>
       <AccessNote can={can} owner={project.lead} />
