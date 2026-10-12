@@ -313,29 +313,34 @@ describe('a shift’s loss count inside a change (tool 7)', () => {
   const observations = [stop(FROM + H, 32), stop(FROM + 3 * H, 20, { category: 'Minor stop', asset: 'Checkweigher' }), stop(FROM + 6 * H, 18, { category: 'Changeover' }),
     stop(FROM + DAY + H, 10), stop(FROM + DAY + 2 * H, 18, { category: 'Changeover' })];
   const ctx = { observations, workspaces: [{ id: 'w7', crew: 4, labourRatePerHour: 14.5, labourBurden: 1.3, packsPerMin: 100, marginPerPack: 0.04 }] };
-  const count = { shift: 'Shift 1', from: FROM, to: TO, plannedMin: 450, made: 36_500, rejects: 600, ratePerMin: 100, rateFrom: 'standard' as const };
+  const count = { shift: 'Shift 1', from: FROM, to: TO, breakMin: 30, plannedMin: 450, made: 36_500, rejects: 600, ratePerMin: 100, rateFrom: 'plate' as const, rateMachine: 'Bagger' };
   const ev: ToolStudy = { id: 'lc', tool: 'losses', name: 'Shift 1, 10 Oct', workspaceId: 'w7', projectId: 'p6', facts: { losses: count },
     uses: [{ id: 'u1', kind: 'action', ref: 'a1', role: 'evidence', at: TO, step: 'cause:Breakdown' }], startedAt: TO, createdAt: TO, updatedAt: TO };
   it('says what the count says — with the line’s stops, where it went; without them, the loss alone', () => {
-    expect(studyLine(ev, ctx).text).toMatch(/^Shift 1 should have made 45,000 at 100 a minute; made 36,500 — 85 min lost \(£447\): 52 min of stops · 18 min of changeovers · 6 min of rejects \(600 packs\) · 9 min not yet explained \(£47\)\.$/);
+    expect(studyLine(ev, ctx).text).toMatch(/^Shift 1 should have made 45,000 at 100 a minute; made 36,500 — 85 min lost: 52 min of stops · 18 min of changeovers · 6 min of rejects \(600 packs\) · 9 min of slow running and short stops\. £107 idle labour · £340 lost contribution if it cannot be made up\.$/);
     expect(studyLine(ev, ctx).tone).toBe('a');
+    /* the running speed timed on the study tells the rest apart, wherever the study is read */
+    const timed: ToolStudy = { ...ev, facts: { ...ev.facts, running: [{ id: 'r1', at: FROM + 2 * H, packs: 98, sec: 60 }] } };
+    expect(studyLine(timed, ctx).text).toMatch(/· 8 min of slow running · 1 min of short stops\. £107 idle labour/);
     expect(studyLine(ev).text).toMatch(/85 min lost\. Where it went is read from the line's stops in the window\.$/);
     expect(studyTitle(ev)).toBe('Loss count — Shift 1, 10 Oct');
     expect(studyHref(ev)).toBe('/losses/lc');
   });
   it('Make it better from a bar: the bar’s own figures, its bone, what it should change', () => {
     expect(worthBetter(ev)).toBe(false);
-    expect(betterWords(ev, 'cause:Breakdown', ctx)).toMatch(/^Breakdown on the Bagger — 32 min of stops \(1 stop\) on Shift 1, .+ \(£168\)$/);
+    expect(betterWords(ev, 'cause:Breakdown', ctx)).toMatch(/^Breakdown on the Bagger — 32 min of stops \(1 stop\) on Shift 1, .+ \(£40 idle labour · £128 lost contribution\)$/);
+    /* a record raised from the part once called "not yet explained" reads the rest */
+    expect(betterExpect(ev, 'unexplained', ctx)).toBe('Slow running and short stops: 9 min a shift — fewer on the next shift counted, the running speed timed to tell them apart');
     const row = countermeasureFrom(ev, { id: 'a9', at: 1, step: 'cause:Minor stop' }, ctx);
     expect([row.pillar, row.where, row.why, row.expect]).toEqual(['machine', 'Checkweigher', 'Loss count — Shift 1, 10 Oct', 'Minor stop on the Checkweigher: 20 min a shift — fewer on the next shift counted']);
   });
-  it('Prove it counts the next shift; before → after is the bar, the lost minutes and the part not yet explained', () => {
+  it('Prove it counts the next shift; before → after is the bar, the lost minutes and the slow running and short stops', () => {
     const p = proveItFrom(ev, 'a1', { at: TO + 20 * H, id: 'lp', useId: 'u9' }, 'action');
-    expect([p.facts.losses?.from, p.facts.losses?.shift, p.facts.losses?.made, sameScope(p, ev)]).toEqual([FROM + DAY, 'Shift 1', undefined, true]);
+    expect([p.facts.losses?.from, p.facts.losses?.shift, p.facts.losses?.made, p.facts.losses?.rateFrom, p.facts.losses?.breakMin, p.facts.running, sameScope(p, ev)]).toEqual([FROM + DAY, 'Shift 1', undefined, 'plate', 30, undefined, true]);
     expect(beforeAfter([ev, p], 'a1', 'action', ctx)?.text).toBe('Too early — the next shift is not counted yet.');
     const after = { ...p, facts: { losses: { ...p.facts.losses!, made: 40_900, rejects: 300 } } };
     const ba = beforeAfter([ev, after], 'a1', 'action', ctx);
-    expect(ba?.text).toBe('Breakdown on the Bagger: 32 min → 10 min; Lost 85 min → 41 min a shift; not yet explained 9 min → 10 min. The number moved; what moved it is the fix\'s to say.');
+    expect(ba?.text).toBe('Breakdown on the Bagger: 32 min → 10 min; Lost 85 min → 41 min a shift; slow running and short stops 9 min → 10 min. The number moved; what moved it is the fix\'s to say.');
     expect(ba?.tone).toBe('g');
     /* without the line's stops nothing is claimed of the bar — only what the counts alone know */
     expect(provedLine([ev, after], 'a1', 'action')).toBe('Before → after: Lost 85 min → 41 min a shift. The number moved; what moved it is the fix\'s to say.');
@@ -345,6 +350,6 @@ describe('a shift’s loss count inside a change (tool 7)', () => {
     const blank: ToolStudy = { ...ev, id: 'b', facts: { losses: { ...count, from: FROM + 2 * DAY, to: TO + 2 * DAY, made: undefined } } };
     const later: ToolStudy = { ...ev, id: 'l2', facts: { losses: { ...count, from: FROM + DAY, to: TO + DAY } } };
     expect(currentLosses([ev, blank, later], 'w7')?.id).toBe('l2');
-    expect(lossCardLine(ev, ctx, TO + 20 * H)).toEqual({ text: 'Shift 1 yesterday: 85 min lost · 9 min not yet explained', abnormal: true });
+    expect(lossCardLine(ev, ctx, TO + 20 * H)).toEqual({ text: 'Shift 1 yesterday: 85 min lost · 9 min slow running and short stops', abnormal: true });
   });
 });

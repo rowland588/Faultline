@@ -572,7 +572,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
       }).filter(Boolean).join('; ');
       const l = studyLine(s, ctx);
       const branches = new Map(s.uses.flatMap(u => { const r = u.step && u.role === 'evidence' ? tests.find(t => t.id === u.ref) : undefined; return r && u.step ? [[u.step, r.title] as [string, string]] : []; }));
-      const losses = s.tool === 'losses' ? lossRows(lossFiguresOf(s, ctx)) : undefined;
+      const losses = s.tool === 'losses' ? lossRows(lossFiguresOf(s, ctx), s.facts.losses) : undefined;
       return { id: s.id, title: studyTitle(s), href: studyHref(s),
         used: used || 'not used for a record yet', line: l.text, tone: l.tone,
         ...(s.tool === 'map' && (s.facts.flow ?? []).length ? { stream: streamRows(s.facts.flow, s.agreed?.map, branches) } : {}),

@@ -37,7 +37,7 @@ import { headcount } from './standard';
 import type { ToolStudy } from './study';
 import { balance, secs } from './ie/balance';
 import { boneOfStep, currentBalance, currentLosses, lossFiguresOf } from './studyLinks';
-import { minWords, shiftWords } from './ie/losses';
+import { minWords, shiftWords, type LossBar } from './ie/losses';
 import { dur, flowFigures, stepAt, stepFigure, valueOf, waitOf, whereOf } from './ie/steps';
 import { changeoverFigures, mins, stepFigure as changeoverStepFigure } from './ie/changeover';
 import { stateOf as materialState, daysLate } from './materials';
@@ -541,12 +541,16 @@ export function suggestionsFor(problem: Case, data: FishboneData, today = Date.n
   }
 
   /* 4d. A SHIFT'S LOSSES (lib/ie/losses): the line's latest shift counted on
-     this job — its biggest explained bars (the stops by cause and the
-     changeovers, three at most), each on the bone its stops sit on (the
-     floor's taps, else the reason's usual bone). About one machine, only
-     that machine's bars. Measured when every stop under it was timed on the
-     stopwatch; reported when any was typed. The part not yet explained is
-     never offered as a cause: nobody knows what it is — it is in the detail.
+     this job — its biggest bars (three at most): the stops by cause and the
+     changeovers, each on the bone its stops sit on (the floor's taps, else
+     the reason's usual bone), and once a running speed is timed, the slow
+     running and the short stops, on Machine. About one machine, only that
+     machine's bars (the slow running is the critical machine's, whose plate
+     the rate is). Measured when every stop under it was timed on the
+     stopwatch, or the running speed timed; reported when any was typed;
+     the short stops counted — what the packs counted leave. The slow
+     running and short stops not yet told apart are never offered: nobody
+     can say which they are — they are in the detail.
      The ref is "<count id>#<bar key>" — opening it opens the count. */
   const count = lineWs ? currentLosses(data.studies, lineWs) : undefined;
   if (count?.facts.losses && (scope.whole || scope.asset)) {
@@ -554,13 +558,16 @@ export function suggestionsFor(problem: Case, data: FishboneData, today = Date.n
     const lf = lossFiguresOf(count, { observations: data.observations, workspaces: data.workspaces });
     if (lf.enough && lf.split && (lf.lostMin ?? 0) > 0) {
       const when = `${shiftWords(c)}, ${niceDay(isoOf(c.from))}`;
-      const unex = lf.unexplainedMin ?? 0;
-      const head = `Loss count: ${when} — ${minWords(lf.lostMin ?? 0)} lost${unex > 0.5 ? `, ${minWords(unex)} not yet explained` : ''}`;
-      const biggest = lf.bars.filter(x => (x.kind === 'cause' || x.kind === 'changeover') && x.min > 0 && (!scope.asset || sameThing(x.asset, scope.asset)))
+      const rest = lf.performanceMin ?? 0;
+      const head = `Loss count: ${when} — ${minWords(lf.lostMin ?? 0)} lost${rest > 0.5 ? `, ${minWords(rest)} of slow running and short stops${lf.slowMin === undefined ? ', not yet told apart' : ''}` : ''}`;
+      const about = (x: LossBar) => (x.kind === 'slow' ? c.rateMachine : x.asset);
+      const biggest = lf.bars.filter(x => (x.kind === 'cause' || x.kind === 'changeover' || x.kind === 'slow' || x.kind === 'short') && x.min > 0.5 && (!scope.asset || sameThing(about(x), scope.asset)))
         .sort((a, b) => b.min - a.min).slice(0, 3);
       for (const b of biggest) {
-        out.push(mk('study', `${count.id}#${b.key}`, b.bone, `${b.label}${b.asset ? ` on the ${b.asset}` : ''} — ${minWords(b.min)} of the ${minWords(lf.lostMin ?? 0)} lost on ${when}`,
-          b.grade === 'measured' ? 'measured' : 'reported', { detail: head, label: count.name, tool: 'losses' }));
+        const what = b.kind === 'slow' ? `Slow running${c.rateMachine ? ` below the ${c.rateMachine}’s plate speed` : ' below the plate speed'}`
+          : b.kind === 'short' ? 'Short stops, too short to log' : `${b.label}${b.asset ? ` on the ${b.asset}` : ''}`;
+        out.push(mk('study', `${count.id}#${b.key}`, b.bone, `${what} — ${minWords(b.min)} of the ${minWords(lf.lostMin ?? 0)} lost on ${when}`,
+          b.kind === 'short' ? 'counted' : b.grade === 'measured' ? 'measured' : 'reported', { detail: head, label: count.name, tool: 'losses' }));
       }
     }
   }

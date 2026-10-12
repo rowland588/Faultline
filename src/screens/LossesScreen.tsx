@@ -3,16 +3,18 @@
  *
  * The frame every tool shares (TOOLKIT 3.1), in the order of the three
  * questions: where are we (the strip), why are we not where we should be
- * (the sentence and the waterfall — the part not yet explained the only thing
- * that may carry colour), what are we doing about it (Make it better on a
+ * (the sentence and the waterfall — the rest, slow running and short stops,
+ * the only thing that may carry colour), what are we doing about it (Make it better on a
  * bar, the countermeasure or the fix it raised).
  *
  * At the end of the shift, on a phone: pick the shift (or type the window),
- * type the packs made and the rejects; the planned minutes are the window's
- * until brought down for the breaks, the rate the product's standard's when
- * it has one. The stops were timed through the shift in Capture — they are
- * read here, never typed again. Saved once, on "Save the count" — not on
- * every keystroke.
+ * type the packs made and the rejects; the planned minutes are worked out —
+ * the shift less its breaks (docs/CAPACITY.md §5), changed for the day only
+ * with a reason; the rate is the plate speed of the line's critical machine,
+ * said so, or said not to be. The stops were timed through the shift in
+ * Capture — they are read here, never typed again. Saved once, on "Save the
+ * count" — not on every keystroke. While it runs, the running speed is timed
+ * (the packs in a timed minute): what tells slow running from short stops.
  *
  * Nothing worked out is stored. The figures and the sentence come from
  * lib/ie/losses on every render, from the count and the line's stops in the
@@ -23,19 +25,21 @@ import { useAccess } from '../cloud/access';
 import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
 import { can as canAt, type Can } from '../lib/access';
-import { now } from '../lib/ids';
+import { now, uid } from '../lib/ids';
 import { niceDay, todayISO } from '../lib/weeks';
 import { shiftWindow } from '../lib/shifts';
 import { nav } from '../state/useRoute';
-import { lossSays, minWords, packs, rateWords, stopsOfBar, windowWords, gbp, type LossBar, type LossFigures, type LossSays } from '../lib/ie/losses';
+import { gbp, isRest, lossSays, minWords, packs, plannedOf, rateKnown, rateWords, runningOf, splitWords, stopsOfBar, windowWords, type LossBar, type LossFigures, type LossSays, type RateOf } from '../lib/ie/losses';
 import { sixmLabel } from '../lib/sixm';
 import { Sheet } from '../ui/Sheet';
 import { lossFiguresOf, recordHref, ROLE_WORD, type StudyContext } from '../lib/studyLinks';
-import type { LossCount, ToolStudy } from '../lib/study';
+import type { LossCount, RunTiming, ToolStudy } from '../lib/study';
 import type { Standard } from '../lib/standard';
 import type { Observation, Workspace } from '../types';
 import { TOOL_WORDS } from './StudiesScreen';
 import { UsedFor, WhereItSits, useBetter } from '../ui/StudyPlace';
+import { capacityForCount } from '../ui/ShiftLosses';
+import { rateOf } from '../lib/ie/losses';
 
 const OWNER = canAt('owner');
 
@@ -44,18 +48,20 @@ export function LossesScreen({ id }: { id: string }) {
   const [line, setLine] = useState<Workspace | undefined>(undefined);
   const [obs, setObs] = useState<Observation[]>([]);
   const [std, setStd] = useState<Standard | undefined>(undefined);
+  const [rate, setRate] = useState<RateOf>({ why: 'typed' });
   const load = useCallback(async () => {
     const st = (await getStudy(id)) ?? null;
-    setS(st);
-    if (!st) return;
-    /* The line: its shifts, its cost model and its stops — what the count is
-       read against. Nothing of it is copied onto the study. */
+    if (!st) { setS(null); return; }
+    /* The line: its shifts, its cost model, its stops and its capacity —
+       what the count is read against. Nothing of it is copied onto the
+       study but the rate the count was judged at. */
     const [w, o, sd] = await Promise.all([
       st.workspaceId ? getWorkspace(st.workspaceId) : Promise.resolve(undefined),
       st.workspaceId ? listObservations(st.workspaceId) : Promise.resolve([] as Observation[]),
       st.standardId ? getStandard(st.standardId) : Promise.resolve(undefined),
     ]);
-    setLine(w); setObs(o); setStd(sd);
+    const { cap, target } = await capacityForCount(st.workspaceId, sd);
+    setLine(w); setObs(o); setStd(sd); setRate(rateOf(cap, target)); setS(st);
   }, [id]);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
   const jobCan = useAccess(s?.projectId ?? '');
@@ -73,10 +79,10 @@ export function LossesScreen({ id }: { id: string }) {
       <button type="button" className="btn" onClick={() => nav('/losses')}>Every loss count</button>
     </div>
   );
-  return <Losses s={s} line={line} obs={obs} std={std} can={can} me={me} />;
+  return <Losses s={s} line={line} obs={obs} std={std} rate={rate} can={can} me={me} />;
 }
 
-function Losses({ s, line, obs, std, can, me }: { s: ToolStudy; line?: Workspace; obs: Observation[]; std?: Standard; can: Can; me?: string }) {
+function Losses({ s, line, obs, std, rate, can, me }: { s: ToolStudy; line?: Workspace; obs: Observation[]; std?: Standard; rate: RateOf; can: Can; me?: string }) {
   const c = s.facts.losses;
   const ctx = useMemo<StudyContext>(() => ({ observations: obs, workspaces: line ? [line] : [] }), [obs, line]);
   const f = useMemo(() => lossFiguresOf(s, ctx), [s, ctx]);
@@ -91,10 +97,11 @@ function Losses({ s, line, obs, std, can, me }: { s: ToolStudy; line?: Workspace
   const { board, byRef, better } = useBetter(s, me, ctx);
   const branches = useMemo(() => {
     const m = new Map<string, string[]>();
-    for (const u of s.uses) if (u.step && u.role === 'evidence' && byRef.has(u.ref)) m.set(u.step, [...(m.get(u.step) ?? []), u.ref]);
+    /* a record raised from the part once called "not yet explained" hangs off the rest */
+    for (const u of s.uses) if (u.step && u.role === 'evidence' && byRef.has(u.ref)) { const k = u.step === 'unexplained' ? 'performance' : u.step; m.set(k, [...(m.get(k) ?? []), u.ref]); }
     return m;
   }, [s.uses, byRef]);
-  const standardRate = std?.capacity?.targetPerMin && std.capacity.targetPerMin > 0 ? std.capacity.targetPerMin : undefined;
+  void std;
   /* A bar tapped — in the waterfall or the table: everything about it, and
      Make it better on it (tools come out where the work is). */
   const [viewing, setViewing] = useState<string | null>(null);
@@ -128,7 +135,8 @@ function Losses({ s, line, obs, std, can, me }: { s: ToolStudy; line?: Workspace
       <div className={'lf-body' + (f.enough ? '' : ' is-counting') + (f.enough && f.bars.length > 0 ? ' has-table' : '')}>
         {f.enough && f.bars.length > 0 && <div className="lf-tab"><CauseTable f={f} branches={branches} onOpen={setViewing} /></div>}
         <div className="ie-pic lf-pic"><Waterfall f={f} said={said} onOpen={setViewing} /></div>
-        <CountForm s={s} line={line} standardRate={standardRate} editable={editable} />
+        <CountForm s={s} line={line} rate={rate} editable={editable} />
+        <RunningSpeed s={s} f={f} editable={editable} me={me} />
       </div>
 
       <UsedFor s={s} can={can} me={me} />
@@ -164,8 +172,9 @@ function Name({ s, canEdit }: { s: ToolStudy; canEdit: boolean }) {
 
 /* ------------------------------------------------------------------ the strip */
 function Strip({ f, said }: { f: LossFigures; said: LossSays }) {
-  const unex = f.unexplainedMin ?? 0;
-  const amber = said.tone === 'a' && said.verdict.includes('not yet explained');
+  const rest = f.performanceMin ?? 0;
+  const amber = said.tone === 'a' && f.bars.some(b => b.abnormal);
+  const told = f.slowMin !== undefined && f.shortMin !== undefined;
   return (
     <div className="ie-strip" role="group" aria-label="Where it stands">
       <span className={'ie-fig ie-verdict is-' + said.tone}><b>{said.verdict}</b></span>
@@ -173,8 +182,12 @@ function Strip({ f, said }: { f: LossFigures; said: LossSays }) {
         <span className="ie-fig">made <b>{packs(f.made ?? 0)}</b> of {packs(f.expected ?? 0)}</span>
         {amber && <span className="ie-fig">lost <b>{minWords(f.lostMin ?? 0)}</b></span>}
         {f.split && <span className={'ie-fig' + (f.stopsN + f.changeoverN ? '' : ' is-zero')}><b>{f.stopsN + f.changeoverN}</b> stop{f.stopsN + f.changeoverN === 1 ? '' : 's'} timed</span>}
-        {f.split && !amber && <span className={'ie-fig' + (unex > 0.5 ? '' : ' is-zero')}><b>{minWords(unex)}</b> not yet explained</span>}
-        {f.costPerHour !== undefined && f.lostMin !== undefined && <span className="ie-fig"><b>{gbp((f.lostMin / 60) * f.costPerHour)}</b> lost</span>}
+        {f.split && !amber && (told
+          ? <><span className={'ie-fig' + ((f.slowMin ?? 0) > 0.5 ? '' : ' is-zero')}><b>{minWords(f.slowMin ?? 0)}</b> slow running</span>
+            <span className={'ie-fig' + ((f.shortMin ?? 0) > 0.5 ? '' : ' is-zero')}><b>{minWords(f.shortMin ?? 0)}</b> short stops</span></>
+          : <span className={'ie-fig' + (rest > 0.5 ? '' : ' is-zero')}><b>{minWords(rest)}</b> slow running and short stops</span>)}
+        {f.labour !== undefined && <span className="ie-fig"><b>{gbp(f.labour)}</b> idle labour</span>}
+        {f.contribution !== undefined && <span className="ie-fig"><b>{gbp(f.contribution)}</b> lost contribution</span>}
       </>}
     </div>
   );
@@ -184,9 +197,10 @@ function Strip({ f, said }: { f: LossFigures; said: LossSays }) {
 /** THE WATERFALL, drawn across: a row per bar, top to bottom — planned, each
  *  loss stepping down from where the one before left off, made — to scale,
  *  the label and the minutes inside the frame at a size a person on the floor
- *  can read, on a phone or beside the table on a laptop. The part not yet
- *  explained hatched grey, amber only over a tenth of the loss; nothing green.
- *  Tap a row to open it. */
+ *  can read, on a phone or beside the table on a laptop. What nobody logged —
+ *  the slow running and short stops, or the short stops once the running
+ *  speed is timed — hatched grey; the rest amber only over a tenth of the
+ *  loss; nothing green. Tap a row to open it. */
 const RW = 360, RH = 34, RL = 112, RR = 64;
 function Waterfall({ f, said, onOpen }: { f: LossFigures; said: LossSays; onOpen: (key: string) => void }) {
   if (!f.enough) return <p className="sub ie-pic-empty">The waterfall draws itself here — planned minutes down to the good packs made — once the count is in.</p>;
@@ -194,10 +208,9 @@ function Waterfall({ f, said, onOpen }: { f: LossFigures; said: LossSays; onOpen
   const madeMin = Math.min(planned, (f.made ?? 0) / rate);
   const top = Math.max(planned, 1);
   const x = (v: number) => RL + (Math.max(0, v) / top) * (RW - RL - RR);
-  const amber = (f.unexplainedShare ?? 0) > 0.1;
   const rows = f.bars.length + 2;
   let level = planned;
-  const lbl = (t: string) => (t.length > 17 ? `${t.slice(0, 16)}…` : t);
+  const lbl = (t: string) => (t === 'Slow running and short stops' ? 'Slow + short stops' : t.length > 17 ? `${t.slice(0, 16)}…` : t);
   return (
     <svg className="lf-fall is-rows" viewBox={`0 0 ${RW} ${rows * RH + 8}`} role="img" aria-label={said.text}>
       <defs>
@@ -212,16 +225,17 @@ function Waterfall({ f, said, onOpen }: { f: LossFigures; said: LossSays; onOpen
         const from = level, to = Math.max(0, level - b.min);
         level = to;
         const y0 = (i + 1) * RH;
-        const unex = b.kind === 'unexplained';
+        const hatch = b.kind === 'performance' || b.kind === 'short';
+        const amber = !!b.abnormal;
         return (
           <g key={b.key} className="lf-go" onClick={() => onOpen(b.key)}>
             <title>{b.label}: {minWords(b.min)}</title>
             <rect className="lf-hit" x={0} y={y0} width={RW} height={RH} />
-            <text className={'lf-rl' + (unex && amber ? ' is-a' : '')} x={0} y={y0 + RH / 2 + 5}>{lbl(b.label)}</text>
+            <text className={'lf-rl' + (amber ? ' is-a' : '')} x={0} y={y0 + RH / 2 + 5}>{lbl(b.label)}</text>
             <line className="lf-step" x1={x(from)} x2={x(from)} y1={y0 - RH + 6} y2={y0 + 6} />
-            <rect className={'lf-bar' + (unex ? ' is-unex' + (amber ? ' is-a' : '') : '')}
+            <rect className={'lf-bar' + (hatch ? ' is-unex' : '') + (isRest(b) && amber ? ' is-a' : '')}
               x={x(to)} y={y0 + 6} width={Math.max(1.5, x(from) - x(to))} height={RH - 12} />
-            <text className={'lf-rv' + (unex && amber ? ' is-a' : '')} x={RW} y={y0 + RH / 2 + 5}>{minWords(b.min)}</text>
+            <text className={'lf-rv' + (amber ? ' is-a' : '')} x={RW} y={y0 + RH / 2 + 5}>{minWords(b.min)}</text>
           </g>
         );
       })}
@@ -238,34 +252,39 @@ function Waterfall({ f, said, onOpen }: { f: LossFigures; said: LossSays; onOpen
 const KNOWN: Record<LossBar['grade'], string> = { measured: 'timed', typed: 'typed', counted: 'counted', none: 'not logged' };
 
 function CauseTable({ f, branches, onOpen }: { f: LossFigures; branches: Map<string, string[]>; onOpen: (key: string) => void }) {
-  const money = f.costPerHour !== undefined;
-  const amber = (f.unexplainedShare ?? 0) > 0.1;
+  /* the pounds in two parts, each a column only when the line has that cost */
+  const lab = f.labour !== undefined, con = f.contribution !== undefined;
+  const m = ' m' + ((lab ? 1 : 0) + (con ? 1 : 0));
   return (
     <div className="lf-table" role="table" aria-label="The losses by cause">
-      <div className={'lf-tr lf-th' + (money ? '' : ' no-money')} role="row">
-        <span role="columnheader">Cause</span><span role="columnheader" className="is-num">Stops</span><span role="columnheader" className="is-num">Minutes</span>{money && <span role="columnheader" className="is-num">£</span>}
+      <div className={'lf-tr lf-th' + m} role="row">
+        <span role="columnheader">Cause</span><span role="columnheader" className="is-num">Stops</span><span role="columnheader" className="is-num">Minutes</span>
+        {lab && <span role="columnheader" className="is-num">Idle labour</span>}{con && <span role="columnheader" className="is-num">Lost contri&shy;bution</span>}
       </div>
       {f.bars.map(b => {
         const raised = (branches.get(b.key) ?? []).length;
         return (
-          <button key={b.key} type="button" role="row" className={'lf-tr lf-row' + (b.kind === 'unexplained' && amber ? ' is-a' : '') + (money ? '' : ' no-money')}
+          <button key={b.key} type="button" role="row" className={'lf-tr lf-row' + (b.abnormal ? ' is-a' : '') + m}
             onClick={() => onOpen(b.key)} aria-label={`${b.label}: ${minWords(b.min)} — open it`}>
             <span role="cell" className="lf-cause">
               <b>{b.label}</b>{b.asset ? <span className="sub"> · {b.asset}</span> : null}{b.kind === 'rejects' ? <span className="sub"> · {packs(b.packs ?? 0)} packs</span> : null}
-              <span className="sub lf-known"> · {KNOWN[b.grade]}</span>
+              <span className="sub lf-known"> · {b.kind === 'performance' ? 'the rest, not yet told apart' : b.kind === 'short' ? 'the rest' : KNOWN[b.grade]}</span>
               {raised > 0 && <span className="lf-branch">Being made better{raised > 1 ? ` · ${raised}` : ''}</span>}
             </span>
             <span role="cell" className="is-num">{b.stops !== undefined ? b.stops : '—'}</span>
             <span role="cell" className="is-num">{minWords(b.min)}</span>
-            {money && <span role="cell" className="is-num">{b.pounds !== undefined ? gbp(b.pounds) : '—'}</span>}
+            {lab && <span role="cell" className="is-num">{b.labour !== undefined ? gbp(b.labour) : '—'}</span>}
+            {con && <span role="cell" className="is-num">{b.contribution !== undefined ? gbp(b.contribution) : '—'}</span>}
             <span className="lf-chev" aria-hidden>›</span>
           </button>
         );
       })}
-      <div className={'lf-tr lf-tf' + (money ? '' : ' no-money')} role="row">
+      <div className={'lf-tr lf-tf' + m} role="row">
         <span role="cell">Lost</span><span role="cell" className="is-num">{f.stopsN + f.changeoverN}</span><span role="cell" className="is-num">{minWords(f.lostMin ?? 0)}</span>
-        {money && <span role="cell" className="is-num">{gbp(((f.lostMin ?? 0) / 60) * (f.costPerHour ?? 0))}</span>}
+        {lab && <span role="cell" className="is-num">{gbp(f.labour ?? 0)}</span>}
+        {con && <span role="cell" className="is-num">{gbp(f.contribution ?? 0)}</span>}
       </div>
+      {con && <p className="sub lf-con">Lost contribution: the packs not made × {f.contributionFrom === 'price' ? 'price less materials' : 'the line’s margin'} a pack — lost only if it cannot be made up.</p>}
     </div>
   );
 }
@@ -283,13 +302,15 @@ function BarSheet({ bar, f, c, obs, workspaceId, board, raised, canBetter, onJob
   return (
     <Sheet open onClose={onClose} title={bar.label}>
       <div className="lf-sheet">
-        <p className="lf-sheet-h"><b>{minWords(bar.min)}</b>{share !== undefined ? ` · ${share}% of the ${minWords(f.lostMin ?? 0)} lost` : ''}{bar.stops !== undefined ? ` · ${bar.stops} stop${bar.stops === 1 ? '' : 's'}` : ''}{bar.pounds !== undefined ? ` · ${gbp(bar.pounds)}` : ''}</p>
+        <p className="lf-sheet-h"><b>{minWords(bar.min)}</b>{share !== undefined ? ` · ${share}% of the ${minWords(f.lostMin ?? 0)} lost` : ''}{bar.stops !== undefined ? ` · ${bar.stops} stop${bar.stops === 1 ? '' : 's'}` : ''}{bar.labour !== undefined ? ` · ${gbp(bar.labour)} idle labour` : ''}{bar.contribution !== undefined ? ` · ${gbp(bar.contribution)} lost contribution` : ''}</p>
         <dl className="lf-facts">
           {bar.asset && <div><dt>Where</dt><dd>{bar.asset}</dd></div>}
           <div><dt>How known</dt><dd>{bar.kind === 'rejects' ? `${packs(bar.packs ?? 0)} packs counted, at ${rateWords(f.rate ?? 0)}`
-            : bar.kind === 'unexplained' ? 'Not logged — what the count says was lost, less every stop timed and the rejects. Stops missed, and running slow, which is not measured by hand.'
-              : `${KNOWN[bar.grade]} in Capture`}</dd></div>
-          {bar.kind !== 'unexplained' && <div><dt>Its bone</dt><dd>{sixmLabel(bar.bone)} — {bar.kind === 'rejects' ? 'the usual bone for a reject' : 'as the floor tapped it, or the usual bone for the reason'}</dd></div>}
+            : bar.kind === 'performance' ? 'Not logged — what the count says was lost, less every stop timed, the changeovers and the rejects: running below the plate speed, and stops too short to log, not yet told apart. Time the running speed on the count to split them.'
+              : bar.kind === 'slow' ? (splitWords(f) ?? 'The running speed timed against the plate speed.')
+                : bar.kind === 'short' ? 'Worked out — the rest once the slow running is timed: stops too short to log one by one.'
+                  : `${KNOWN[bar.grade]} in Capture`}</dd></div>
+          {bar.kind !== 'performance' && <div><dt>Its bone</dt><dd>{sixmLabel(bar.bone)} — {bar.kind === 'rejects' ? 'the usual bone for a reject' : bar.kind === 'slow' || bar.kind === 'short' ? `the machine that sets the pace${c.rateMachine ? `, the ${c.rateMachine}` : ''}` : 'as the floor tapped it, or the usual bone for the reason'}</dd></div>}
         </dl>
         {stops.length > 0 && (
           <ol className="lf-stops" aria-label="The stops">
@@ -324,53 +345,63 @@ function BarSheet({ bar, f, c, obs, workspaceId, board, raised, canBetter, onJob
 /* ------------------------------------------------------------------ the count: the facts */
 const hm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 const numOr = (t: string) => (t.trim() === '' ? undefined : Number(t));
+const same = (a?: number, b?: number) => a !== undefined && b !== undefined && Math.abs(a - b) < 0.005;
 
-function CountForm({ s, line, standardRate, editable }: { s: ToolStudy; line?: Workspace; standardRate?: number; editable: boolean }) {
+/** THE COUNT. The planned minutes are WORKED OUT — the shift less its
+ *  breaks, from the line's settings (docs/CAPACITY.md §5) — and changed for
+ *  the day only with a reason kept beside them. The rate is the plate speed
+ *  of the critical machine on the line's capacity (lib/ie/losses rateOf),
+ *  said so; a number typed over it is said to be typed. */
+function CountForm({ s, line, rate: plate, editable }: { s: ToolStudy; line?: Workspace; rate: RateOf; editable: boolean }) {
   const c = s.facts.losses;
   const shifts = line?.shifts ?? [];
   const [shift, setShift] = useState<string>(c?.shift ?? '');
   const [day, setDay] = useState(todayISO(new Date(c?.from ?? now())));
   const [from, setFrom] = useState(c ? hm(c.from) : '06:00');
   const [to, setTo] = useState(c ? hm(c.to) : '14:00');
-  const [planned, setPlanned] = useState(c?.plannedMin !== undefined ? String(c.plannedMin) : '');
+  /* breaks typed with a window typed by hand; a shift's come from the line */
+  const [breaks, setBreaks] = useState(c && !c.shift && c.breakMin !== undefined ? String(c.breakMin) : '');
+  /* null: the planned minutes follow the shift less its breaks */
+  const [override, setOverride] = useState<string | null>(c && plannedOf(c).changed && c.plannedMin !== undefined ? String(c.plannedMin) : null);
+  const [why, setWhy] = useState(c?.plannedWhy ?? '');
   const [made, setMade] = useState(c?.made !== undefined ? String(c.made) : '');
   const [rejects, setRejects] = useState(c?.rejects !== undefined ? String(c.rejects) : '');
-  const [rate, setRate] = useState(c?.ratePerMin !== undefined ? String(c.ratePerMin) : standardRate !== undefined ? String(standardRate) : '');
+  const [rate, setRate] = useState(c?.ratePerMin !== undefined ? String(c.ratePerMin) : plate.ratePerMin !== undefined ? String(plate.ratePerMin) : '');
   const [saved, setSaved] = useState<string | null>(null);
 
   /* The window, from the shift's clock on the day — or typed. */
   const picked = shifts.find(x => x.name === shift);
-  const window = picked ? shiftWindow(picked, day) : (() => {
-    const w = shiftWindow({ start: from, end: to }, day);
-    return w;
-  })();
-  const windowMin = window ? Math.round((window.to - window.from) / 60_000) : undefined;
-  /* The planned minutes follow the window until somebody brings them down. */
-  const pick = (name: string) => {
-    const nx = shifts.find(x => x.name === name);
-    const w = nx ? shiftWindow(nx, day) : shiftWindow({ start: from, end: to }, day);
-    const wasWindow = planned.trim() === '' || (windowMin !== undefined && Number(planned) === windowMin);
-    setShift(name);
-    if (w && wasWindow) setPlanned(String(Math.round((w.to - w.from) / 60_000)));
-  };
-  const n = { planned: numOr(planned), made: numOr(made), rejects: numOr(rejects), rate: numOr(rate) };
-  const bad = [n.planned, n.made, n.rejects, n.rate].some(v => v !== undefined && (!Number.isFinite(v) || v < 0));
-  const problem = !window ? 'The window needs a start and an end.' : bad ? 'Numbers only, none below zero.' : '';
-  const rateFrom: LossCount['rateFrom'] | undefined = n.rate === undefined ? undefined : standardRate !== undefined && n.rate === standardRate ? 'standard' : 'typed';
+  const window = picked ? shiftWindow(picked, day) : shiftWindow({ start: from, end: to }, day);
+  const brk = picked ? { ...(picked.breakMin !== undefined ? { breakMin: picked.breakMin } : {}), ...(picked.relief ? { relief: true } : {}) }
+    : numOr(breaks) !== undefined && Number.isFinite(numOr(breaks)) ? { breakMin: numOr(breaks) as number } : {};
+  const worked = window ? plannedOf({ ...window, ...(picked ? { shift: picked.name } : {}), ...brk }) : undefined;
+  const n = { planned: override !== null ? numOr(override) : worked?.workedOut, made: numOr(made), rejects: numOr(rejects), rate: numOr(rate), breaks: numOr(breaks) };
+  const changed = override !== null && n.planned !== undefined && worked !== undefined && Math.round(n.planned) !== worked.workedOut;
+  const bad = [n.planned, n.made, n.rejects, n.rate, n.breaks].some(v => v !== undefined && (!Number.isFinite(v) || v < 0));
+  const problem = !window ? 'The window needs a start and an end.' : bad ? 'Numbers only, none below zero.'
+    : changed && !why.trim() ? 'Say why the planned minutes are not the shift less its breaks — it is kept with the count.' : '';
+  /* where the rate is from: the plate speed when it is that number; else as
+     the count had it when it is the count's own; else typed */
+  const from_ = n.rate === undefined ? undefined
+    : same(n.rate, plate.ratePerMin) ? { rateFrom: plate.rateFrom ?? 'typed', ...(plate.rateMachine ? { rateMachine: plate.rateMachine } : {}) }
+      : same(n.rate, c?.ratePerMin) && c?.rateFrom ? { rateFrom: c.rateFrom, ...(c.rateMachine ? { rateMachine: c.rateMachine } : {}) }
+        : { rateFrom: 'typed' as const };
 
   const save = () => {
     if (!window || problem) return;
     const count: LossCount = {
-      ...(picked ? { shift: picked.name } : {}), from: window.from, to: window.to,
+      ...(picked ? { shift: picked.name } : {}), from: window.from, to: window.to, ...brk,
       ...(n.planned !== undefined && n.planned > 0 ? { plannedMin: n.planned } : {}),
+      ...(changed ? { plannedWhy: why.trim() } : {}),
       ...(n.made !== undefined ? { made: n.made } : {}),
       ...(n.rejects !== undefined ? { rejects: n.rejects } : {}),
-      ...(n.rate !== undefined && n.rate > 0 ? { ratePerMin: n.rate, rateFrom: rateFrom ?? 'typed' } : {}),
+      ...(n.rate !== undefined && n.rate > 0 && from_ ? { ratePerMin: n.rate, ...from_ } : {}),
     };
     /* Named for its shift and day, unless somebody named it by hand. */
     const auto = !s.name.trim() || s.name === 'Loss count' || /^(.+), \d{1,2} \w{3}$/.test(s.name);
     const name = `${picked ? picked.name : `${from}–${to}`}, ${new Date(window.from).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
     void patchStudy(s.id, cur => ({ facts: { ...cur.facts, losses: count }, ...(auto ? { name } : {}) }));
+    if (!changed) setOverride(null);
     setSaved(`Saved ${hm(now())}`);
   };
 
@@ -381,10 +412,10 @@ function CountForm({ s, line, standardRate, editable }: { s: ToolStudy; line?: W
         {c ? (
           <dl className="lf-facts">
             <div><dt>Shift</dt><dd>{c.shift ?? 'A window typed by hand'} · {windowWords(c)} · {niceDay(todayISO(new Date(c.from)), { weekday: 'short' })}</dd></div>
-            <div><dt>Planned</dt><dd>{c.plannedMin !== undefined ? `${c.plannedMin} min` : 'not yet'}</dd></div>
+            <div><dt>Planned</dt><dd>{c.plannedMin !== undefined ? plannedOf(c).words : 'not yet'}</dd></div>
             <div><dt>Made</dt><dd>{c.made !== undefined ? `${packs(c.made)} packs` : 'not yet counted'}</dd></div>
             <div><dt>Rejects</dt><dd>{c.rejects !== undefined ? `${packs(c.rejects)} packs` : 'none counted'}</dd></div>
-            <div><dt>Rate</dt><dd>{c.ratePerMin !== undefined ? `${rateWords(c.ratePerMin)} · ${c.rateFrom === 'standard' ? 'the line standard' : 'typed'}` : 'not yet'}</dd></div>
+            <div><dt>Rate</dt><dd>{c.ratePerMin !== undefined ? `${rateWords(c.ratePerMin)} — ${rateKnown(c, s.product).replace(/^the rate is /, '')}` : 'not yet'}</dd></div>
           </dl>
         ) : <p className="sub">Not counted yet.</p>}
       </div>
@@ -396,11 +427,11 @@ function CountForm({ s, line, standardRate, editable }: { s: ToolStudy; line?: W
       {shifts.length > 0 ? (
         <div className="field"><span className="field-label">Which shift</span>
           <span className="chip-row" role="radiogroup" aria-label="Which shift">
-            {shifts.map(x => <button key={x.name} type="button" role="radio" aria-checked={shift === x.name} className={'chip' + (shift === x.name ? ' on' : '')} onClick={() => pick(x.name)}>{x.name}</button>)}
-            <button type="button" role="radio" aria-checked={shift === ''} className={'chip' + (shift === '' ? ' on' : '')} onClick={() => pick('')}>Type the window</button>
+            {shifts.map(x => <button key={x.name} type="button" role="radio" aria-checked={shift === x.name} className={'chip' + (shift === x.name ? ' on' : '')} onClick={() => setShift(x.name)}>{x.name}</button>)}
+            <button type="button" role="radio" aria-checked={shift === ''} className={'chip' + (shift === '' ? ' on' : '')} onClick={() => setShift('')}>Type the window</button>
           </span>
         </div>
-      ) : <p className="sub">{line ? `${line.name} has no shifts set — type the window.` : 'Put the count on a line to pick its shift; or type the window.'}</p>}
+      ) : <p className="sub">{line ? `${line.name} has no shifts set — type the window, or set its shifts and their breaks in the line’s settings.` : 'Put the count on a line to pick its shift; or type the window.'}</p>}
       <div className="lf-count-grid">
         <label className="field lf-day"><span className="field-label">The day</span>
           <input className="text-input" type="date" value={day} aria-label="The day" onChange={e => setDay(e.target.value)} /></label>
@@ -409,17 +440,34 @@ function CountForm({ s, line, standardRate, editable }: { s: ToolStudy; line?: W
             <input className="text-input" type="time" value={from} aria-label="From" onChange={e => setFrom(e.target.value)} /></label>
           <label className="field"><span className="field-label">To</span>
             <input className="text-input" type="time" value={to} aria-label="To" onChange={e => setTo(e.target.value)} /></label>
+          <label className="field"><span className="field-label">Breaks, min</span>
+            <input className="text-input" inputMode="numeric" value={breaks} aria-label="Breaks" placeholder="e.g. 30" onChange={e => setBreaks(e.target.value)} />
+            <span className="sub">the breaks the line stops for</span></label>
         </>}
-        <label className="field"><span className="field-label">Planned minutes</span>
-          <input className="text-input" inputMode="numeric" value={planned} aria-label="Planned minutes" placeholder={windowMin !== undefined ? String(windowMin) : '450'} onChange={e => setPlanned(e.target.value)} />
-          <span className="sub">{windowMin !== undefined ? `the window is ${windowMin} min — less the breaks` : 'the window less the breaks'}</span></label>
-        <label className="field"><span className="field-label">Packs made</span>
+        <div className="field lf-planned"><span className="field-label">Planned minutes</span>
+          {override === null ? (
+            <p className="lf-worked" aria-label="Planned minutes, worked out">
+              <b>{worked ? worked.workedOut : '—'}</b> planned <span className="sub">· {worked ? worked.words.replace(/ = \d+ planned$/, '') : 'the shift less its breaks'}{picked && picked.breakMin === undefined && !picked.relief ? ' — set the breaks in the line’s settings' : ''}</span>
+              {' '}<button type="button" className="linkish" onClick={() => setOverride(worked ? String(worked.workedOut) : '')}>Change for the day</button>
+            </p>
+          ) : <>
+            <input className="text-input" inputMode="numeric" value={override} aria-label="Planned minutes" onChange={e => setOverride(e.target.value)} />
+            <span className="sub">{worked ? worked.words.replace(/ planned$/, '') : ''} · <button type="button" className="linkish" onClick={() => { setOverride(null); setWhy(''); }}>Back to the shift less its breaks</button></span>
+            {changed && <input className="text-input lf-why" value={why} aria-label="Why the planned minutes differ" maxLength={160} placeholder="Why — e.g. stood an hour, no orders" onChange={e => setWhy(e.target.value)} />}
+          </>}
+        </div>
+        <label className="field"><span className="field-label">Good packs made</span>
           <input className="text-input" inputMode="numeric" value={made} aria-label="Packs made" placeholder="e.g. 36500" onChange={e => setMade(e.target.value)} /></label>
         <label className="field"><span className="field-label">Rejects</span>
           <input className="text-input" inputMode="numeric" value={rejects} aria-label="Rejects" placeholder="packs" onChange={e => setRejects(e.target.value)} /></label>
-        <label className="field"><span className="field-label">Rate a minute</span>
+        <label className="field lf-rate"><span className="field-label">Rate a minute</span>
           <input className="text-input" inputMode="decimal" value={rate} aria-label="Rate a minute" placeholder="e.g. 100" onChange={e => setRate(e.target.value)} />
-          <span className="sub">{rateFrom === 'standard' ? `the line standard${s.product ? ` for ${s.product}` : ''}` : standardRate !== undefined ? <>typed · <button type="button" className="linkish" onClick={() => setRate(String(standardRate))}>use the standard’s {standardRate}</button></> : n.rate !== undefined ? 'typed' : 'the product’s standard, or typed'}</span></label>
+          <span className="sub lf-rate-why">{n.rate === undefined ? plate.why
+            : from_?.rateFrom === 'plate' ? `plate speed of the ${from_.rateMachine ?? 'critical machine'}`
+              : from_?.rateFrom === 'standard' ? 'the line standard’s target — not a plate speed'
+                : plate.ratePerMin !== undefined
+                  ? <>typed · <button type="button" className="linkish" onClick={() => setRate(String(plate.ratePerMin))}>use the {plate.rateFrom === 'plate' ? `plate speed of the ${plate.rateMachine ?? 'critical machine'}` : 'line standard’s target'}, {plate.ratePerMin}</button></>
+                  : plate.why}</span></label>
       </div>
       {problem && <p className="ie-problem">{problem}</p>}
       <div className="ie-agree-act">
@@ -427,6 +475,59 @@ function CountForm({ s, line, standardRate, editable }: { s: ToolStudy; line?: W
         {saved && <span className="sub">{saved}</span>}
       </div>
     </form>
+  );
+}
+
+/* ------------------------------------------------------------------ the running speed */
+/** THE RUNNING SPEED, TIMED WHILE IT RUNS (docs/CAPACITY.md §5): the packs
+ *  off the line in a timed spell — a list, each with when and who, pooled.
+ *  It is what tells slow running from short stops: slow running = run time
+ *  × (plate − running speed) ÷ plate; short stops the rest. Each timing is
+ *  kept the moment it is added (its own list, so two phones both keep
+ *  theirs); a wrong one is struck, never erased. */
+function RunningSpeed({ s, f, editable, me }: { s: ToolStudy; f: LossFigures; editable: boolean; me?: string }) {
+  const list = (s.facts.running ?? []).slice().sort((a, b) => a.at - b.at);
+  const r = runningOf(list);
+  const [packsT, setPacks] = useState('');
+  const [sec, setSec] = useState('60');
+  const p = numOr(packsT), sc = numOr(sec);
+  const ok = p !== undefined && Number.isFinite(p) && p >= 0 && sc !== undefined && Number.isFinite(sc) && sc > 0;
+  const machine = s.facts.losses?.rateMachine;
+  if (!editable && !list.length) return null;
+  const add = () => {
+    if (!ok) return;
+    const t: RunTiming = { id: uid(), at: now(), ...(me ? { by: me } : {}), packs: p as number, sec: sc as number };
+    void patchStudy(s.id, cur => ({ facts: { ...cur.facts, running: [...(cur.facts.running ?? []), t] } }));
+    setPacks('');
+  };
+  const strike = (id: string, struck: boolean) => void patchStudy(s.id, cur => ({ facts: { ...cur.facts, running: (cur.facts.running ?? []).map(x => (x.id === id ? { ...x, struck } : x)) } }));
+  return (
+    <section className="lf-run" aria-label="The running speed">
+      <small className="ie-h">The running speed — timed while it runs</small>
+      <p className="sub lf-run-say">{r
+        ? <><b>{rateWords(r.perMin)}</b> over {r.n} timing{r.n === 1 ? '' : 's'} ({Number(r.min.toFixed(1))} min){f.rate !== undefined ? ` · the plate is ${rateWords(f.rate)}` : ''}{f.slowMin !== undefined ? ` — ${minWords(f.slowMin)} slow running, ${minWords(f.shortMin ?? 0)} short stops` : ''}</>
+        : `Count the packs off the ${machine ?? 'line'} for a timed minute while it runs — what tells slow running from short stops.`}</p>
+      {list.length > 0 && (
+        <ol className="lf-runs">
+          {list.map(x => (
+            <li key={x.id} className={x.struck ? 'is-struck' : ''}>
+              <span className="lf-stop-t">{clock(x.at)}</span>
+              <b>{packs(x.packs)}</b> in {x.sec} s <span className="sub">= {rateWords((x.packs * 60) / x.sec)}{x.by ? ` · ${x.by}` : ''}{x.struck ? ' · struck' : ''}</span>
+              {editable && <button type="button" className="linkish lf-strike" onClick={() => strike(x.id, !x.struck)}>{x.struck ? 'Unstrike' : 'Strike'}</button>}
+            </li>
+          ))}
+        </ol>
+      )}
+      {editable && (
+        <form className="lf-run-add" onSubmit={e => { e.preventDefault(); add(); }}>
+          <label className="field"><span className="field-label">Packs</span>
+            <input className="text-input" inputMode="numeric" value={packsT} aria-label="Packs counted" placeholder="e.g. 98" onChange={e => setPacks(e.target.value)} /></label>
+          <label className="field"><span className="field-label">In seconds</span>
+            <input className="text-input" inputMode="numeric" value={sec} aria-label="Seconds timed" onChange={e => setSec(e.target.value)} /></label>
+          <button type="submit" className="btn" disabled={!ok}>Add the timing</button>
+        </form>
+      )}
+    </section>
   );
 }
 
@@ -458,7 +559,9 @@ function Act({ s, f, said, can, me, write }: {
     closedAt: now(),
     receipt: { at: now(), ...by, text: said.text, tone: said.tone,
       figures: { plannedMin: f.plannedMin ?? null, rate: f.rate ?? null, made: f.made ?? null, rejects: f.rejects, lostMin: f.lostMin !== undefined ? Math.round(f.lostMin) : null,
-        explainedMin: Math.round(f.explainedMin), unexplainedMin: f.unexplainedMin !== undefined ? Math.round(f.unexplainedMin) : null },
+        explainedMin: Math.round(f.explainedMin), performanceMin: f.performanceMin !== undefined ? Math.round(f.performanceMin) : null,
+        slowMin: f.slowMin !== undefined ? Math.round(f.slowMin) : null, shortMin: f.shortMin !== undefined ? Math.round(f.shortMin) : null,
+        labour: f.labour !== undefined ? Math.round(f.labour) : null, contribution: f.contribution !== undefined ? Math.round(f.contribution) : null },
       ...(cur.receipt?.reopened ? { reopened: cur.receipt.reopened } : {}) },
   }));
   const reopened = s.receipt?.reopened ?? [];

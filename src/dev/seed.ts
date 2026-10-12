@@ -116,10 +116,11 @@ export interface Seeded {
    *  and stops timed through the last two days' shifts (tool 7). */
   line7WsId: string;
   /** A SHIFT'S LOSS COUNT on it (lib/ie/losses): Shift 1 two days ago — the
-   *  worked example's numbers, 9 minutes not yet explained — the evidence for
-   *  a countermeasure raised from its biggest bar; the next day's Shift 1
-   *  counted as that countermeasure's proof; and one on the stage-gate job's
-   *  Line 7, a window typed by hand, for the client report's Evidence appendix. */
+   *  worked example's numbers, 9 minutes of slow running and short stops not
+   *  yet told apart — the evidence for a countermeasure raised from its
+   *  biggest bar; the next day's Shift 1 counted, its running speed timed,
+   *  as that countermeasure's proof; and one on the stage-gate job's Line 7,
+   *  a window typed by hand, for the client report's Evidence appendix. */
   lossId: string;
   lossActionId: string;
   lossProofId: string;
@@ -673,21 +674,30 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     ].map(([name, min, side], i) => ({ id: uid(), order: i, name: name as string, sec: (min as number) * 60, side: side as ChangeoverSide, source: 'timed' as const, at: t - 4 * 3_600_000 + i * 300_000, who: 'Rob Scott' })) },
     uses: [], startedAt: t - 4 * 3_600_000, createdAt: t, updatedAt: t });
 
-  /* A SHIFT'S LOSSES ON LINE 7 (tool 7). The line gets its three shifts and
-     a cost model (crew 4 at £14.50 with on-costs ×1.3, 100 a minute at 4p a
-     pack: £315.40 an hour stopped), a line standard with the product's agreed
-     rate, and the stops the floor timed through yesterday's two shifts and
-     yesterday's. The count is the worked example: 450 planned minutes at
-     100 a minute, 36,500 made, 600 rejects — 85 min lost, 52 of stops, 18 of
-     changeover, 6 of rejects, 9 not yet explained (amber: over a tenth). Its
-     biggest bar raised a countermeasure on the board; yesterday's Shift 1 is
-     counted as its proof — before → after on the board, the fishbone, the
-     line's card, the control room and the 6M report's Evidence. */
-  const SHIFTS = [{ name: 'Shift 1', start: '06:00', end: '14:00' }, { name: 'Shift 2', start: '14:00', end: '22:00' }, { name: 'Nights', start: '22:00', end: '06:00' }];
+  /* A SHIFT'S LOSSES ON LINE 7 (tool 7). The line gets its three shifts —
+     30 minutes of breaks on each, the line stopping for them on the days,
+     relief covering them on nights — and a cost model (crew 4 at £14.50
+     with on-costs ×1.3: £75.40 an hour of idle labour; 4p a pack margin);
+     a line standard whose capacity has the Bagger at 100 a minute on its
+     plate, the critical machine; and the stops the floor timed through two
+     days ago's two shifts and yesterday's. The count is the worked example:
+     480 min shift − 30 of breaks = 450 planned at the Bagger's plate 100 a
+     minute, 36,500 made, 600 rejects — 85 min lost, 52 of stops, 18 of
+     changeover, 6 of rejects, 9 of slow running and short stops not yet told
+     apart (amber: over a tenth); £107 idle labour · £340 lost contribution.
+     Its biggest bar raised a countermeasure on the board; yesterday's Shift
+     1 is counted as its proof, with its running speed timed — the slow
+     running told from the short stops — before → after on the board, the
+     fishbone, the line's card, the control room and the 6M report's Evidence. */
+  const SHIFTS = [{ name: 'Shift 1', start: '06:00', end: '14:00', breakMin: 30 }, { name: 'Shift 2', start: '14:00', end: '22:00', breakMin: 30 }, { name: 'Nights', start: '22:00', end: '06:00', breakMin: 30, relief: true }];
   await updateWorkspace({ ...line7Ws, shifts: SHIFTS, crew: 4, labourRatePerHour: 14.5, labourBurden: 1.3, packsPerMin: 100, marginPerPack: 0.04 });
   const line7Std = uid();
   await putStandard({ id: line7Std, projectId: paced.id, workspaceId: line7Ws.id, product: 'Maris Piper 2kg', marks: [],
-    capacity: { targetPerMin: 100, stations: [] }, sort: 4, createdAt: t, updatedAt: t });
+    capacity: { targetPerMin: 100, stations: [
+      { id: 'l7-bagger', name: 'Bagger', kind: 'machine', unit: 'bags', contains: 1, rate: 100, ratePer: 'min', source: 'plate' },
+      { id: 'l7-check', name: 'Checkweigher', kind: 'machine', unit: 'bags', contains: 1, rate: 2.2, ratePer: 'sec', source: 'plate' },
+      { id: 'l7-packer', name: 'Packer', kind: 'people', unit: 'cases', contains: 10, cycleSec: 5, perCycle: 1, crew: 2, source: 'timed' },
+    ] }, sort: 4, createdAt: t, updatedAt: t });
   /* two days ago's Shift 1 and Shift 2, and yesterday's Shift 1 — every one
      of them over, whatever the hour the seed runs at */
   const y1 = shiftWindow(SHIFTS[0], iso(-2)) as { from: number; to: number };
@@ -710,7 +720,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     lstop(d1.from + 1 * HR, 10, { causeM: 'machine' }),
     lstop(d1.from + 2 * HR, 18, { category: 'Changeover', subcategory: 'Size / format change' }),
   ]) await addObservation(o);
-  const lossCount: LossCount = { shift: 'Shift 1', from: y1.from, to: y1.to, plannedMin: 450, made: 36_500, rejects: 600, ratePerMin: 100, rateFrom: 'standard' };
+  const lossCount: LossCount = { shift: 'Shift 1', from: y1.from, to: y1.to, breakMin: 30, plannedMin: 450, made: 36_500, rejects: 600, ratePerMin: 100, rateFrom: 'plate', rateMachine: 'Bagger' };
   const lossId = uid(), lossActionId = uid(), lossProofId = uid();
   const dayOf = (ms: number) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   const lossStudy: ToolStudy = { id: lossId, tool: 'losses', name: `Shift 1, ${dayOf(y1.from)}`, product: 'Maris Piper 2kg', standardId: line7Std,
@@ -718,13 +728,19 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     uses: [{ id: uid(), kind: 'action', ref: lossActionId, role: 'evidence', at: y1.to + 20 * 60_000, step: 'cause:Breakdown' }],
     startedAt: y1.to + 5 * 60_000, createdAt: t, updatedAt: t };
   await putStudy(lossStudy);
-  const lf = lossFigures(lossCount, await listObservations(line7Ws.id), { crew: 4, labourRatePerHour: 14.5, labourBurden: 1.3, packsPerMin: 100, marginPerPack: 0.04 });
+  const lf = lossFigures(lossCount, await listObservations(line7Ws.id), { crew: 4, labourRatePerHour: 14.5, labourBurden: 1.3, marginPerPack: 0.04 });
   const bigBar = lf.bars[0];
   await putPaceTodo(act(barWords(bigBar, lossCount), { id: lossActionId, lineId: otherLine.id, pillar: bigBar.bone, where: bigBar.asset ?? '', why: studyTitle(lossStudy),
     who: 'Lee Carty', due: iso(3), expect: barExpect(bigBar) }));
   await putStudy({ id: lossProofId, tool: 'losses', name: `Shift 1, ${dayOf(d1.from)}`, product: 'Maris Piper 2kg', standardId: line7Std,
     workspaceId: line7Ws.id, projectId: paced.id,
-    facts: { losses: { shift: 'Shift 1', from: d1.from, to: d1.to, plannedMin: 450, made: 40_900, rejects: 300, ratePerMin: 100, rateFrom: 'standard' } },
+    facts: { losses: { shift: 'Shift 1', from: d1.from, to: d1.to, breakMin: 30, plannedMin: 450, made: 40_900, rejects: 300, ratePerMin: 100, rateFrom: 'plate', rateMachine: 'Bagger' },
+      /* the running speed timed three times through the shift: 345 in 3.5 min = 98.6 a minute */
+      running: [
+        { id: uid(), at: d1.from + 2 * HR, by: 'Lee Carty', packs: 99, sec: 60 },
+        { id: uid(), at: d1.from + 4 * HR, by: 'Lee Carty', packs: 98, sec: 60 },
+        { id: uid(), at: d1.from + 6 * HR, by: 'Sam Okafor', packs: 148, sec: 90 },
+      ] },
     uses: [{ id: uid(), kind: 'action', ref: lossActionId, role: 'proof', at: d1.to + 5 * 60_000 }], startedAt: d1.to + 5 * 60_000, createdAt: t, updatedAt: t });
   for (const a of [
     act('Replace the basket guide rail', { lineId: pacedLine.id, pillar: 'machine', who: 'Engineering', due: iso(4), state: 'waiting',
@@ -992,13 +1008,15 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     uses: [{ id: uid(), kind: 'test', ref: retest.id, role: 'proof', at: t - 1_200_000 }], startedAt: t - 1_300_000, createdAt: t, updatedAt: t });
 
   /* A LOSS COUNT ON THE STAGE-GATE JOB'S LINE 7 — the twelve stops timed in
-     the last twelve hours, in a window typed by hand (the line has no shifts),
-     the rate the Maris Piper standard's 60 a minute: the client report's
-     Evidence appendix carries the waterfall as a table. */
+     the last twelve hours, in a window typed by hand (the line has no
+     shifts), less an hour of breaks typed with it: 660 planned. The rate is
+     typed at 60 a minute: the Basketer sets the pace and its speed is timed,
+     not from its plate. The client report's Evidence appendix carries the
+     waterfall as a table. */
   const lossStageId = uid();
   await putStudy({ id: lossStageId, tool: 'losses', name: `${new Date(t - 12 * 3_600_000).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}–${new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}, ${new Date(t - 12 * 3_600_000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`,
     product: 'Maris Piper 2kg', standardId: lineOnly, workspaceId: ws.id, projectId: proj.id,
-    facts: { losses: { from: t - 12 * 3_600_000, to: t, plannedMin: 660, made: 36_000, rejects: 120, ratePerMin: 60, rateFrom: 'standard' } },
+    facts: { losses: { from: t - 12 * 3_600_000, to: t, breakMin: 60, plannedMin: 660, made: 36_000, rejects: 120, ratePerMin: 60, rateFrom: 'typed' } },
     uses: [], startedAt: t - 60_000, createdAt: t, updatedAt: t });
 
   return {

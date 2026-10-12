@@ -1494,6 +1494,10 @@ body:has(.sheet-scrim, .ig-scrim) .toast { top: calc(12px + env(safe-area-inset-
 .shift-name { flex: 1; min-width: 110px; }
 .shift-time { width: 106px; flex: none; }
 .shift-use { font-size: var(--t-label); min-width: 0; }
+.shift-brk { flex-basis: 100%; display: flex; align-items: center; gap: 6px 14px; flex-wrap: wrap; font-size: var(--t-detail); color: var(--ink-2); }
+.shift-brk-l { display: inline-flex; align-items: center; gap: 6px; }
+.shift-min { width: 64px; flex: none; margin: 0; }
+.shift-plan { font-size: var(--t-label); }
 
 /* the prize line — the consultant's whiteboard arithmetic, live */
 .prize-line { display: flex; align-items: baseline; gap: 10px; background: color-mix(in srgb, var(--ok) 7%, var(--surface)); border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent); border-radius: var(--radius); padding: 11px 14px; margin-top: 12px; font-size: var(--t-detail); line-height: 1.45; }
@@ -11828,17 +11832,19 @@ button.co-step-b:hover { background: color-mix(in srgb, var(--brand) 5%, transpa
    the good packs made. Only the abnormal carries colour — the part not yet explained
    is hatched grey, and amber when it is more than a tenth of the loss.
    Nothing green: a shift's loss is not a pass (CLAUDE.md, visual management). */
-.lf-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "pic count"; gap: 16px; align-items: start; margin-top: 8px; }
-.lf-body.has-table { grid-template-areas: "tab pic" "count count"; }
+.lf-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "pic count" "pic run"; gap: 16px; align-items: start; margin-top: 8px; }
+.lf-body.has-table { grid-template-areas: "tab pic" "count count" "run run"; }
 .lf-tab { grid-area: tab; min-width: 0; }
 .lf-pic { grid-area: pic; min-width: 0; }
 .lf-body > .lf-count { grid-area: count; }
+.lf-body > .lf-run { grid-area: run; }
 .lf-body.has-table > .lf-count .lf-count-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 .lf-fall { width: 100%; max-width: 760px; height: auto; display: block; overflow: visible; margin: 0 auto; }
 .lf-bar { fill: var(--ink-2); }
 .lf-bar.is-frame { fill: var(--surface-2); stroke: var(--line-2); stroke-width: 1.2; }
 .lf-bar.is-unex { fill: url(#lf-hatch); color: var(--st-n); stroke: var(--st-n); stroke-width: 1.4; }
 .lf-bar.is-unex.is-a { color: var(--st-a); stroke: var(--st-a); }
+.lf-bar.is-a:not(.is-unex) { fill: var(--st-a); }
 .lf-hatch { stroke: currentColor; stroke-width: 1.4; }
 .lf-fall.is-rows { max-width: 460px; }
 .lf-rl { font-size: 13px; fill: var(--ink); }
@@ -11851,17 +11857,22 @@ button.co-step-b:hover { background: color-mix(in srgb, var(--brand) 5%, transpa
 .lf-hit { fill: transparent; }
 /* The causes as a table — each row a door to its bar (a phone row, a glove). */
 .lf-table { display: flex; flex-direction: column; font-size: var(--t-detail); font-variant-numeric: tabular-nums; }
-.lf-tr { display: grid; grid-template-columns: minmax(0, 1fr) 56px 76px 64px 18px; gap: 0 10px; align-items: baseline; padding: 9px 2px; border-bottom: 1px solid var(--line); }
-.lf-tr.no-money { grid-template-columns: minmax(0, 1fr) 56px 76px 18px; }
+.lf-tr { display: grid; grid-template-columns: minmax(0, 1fr) 52px 70px 18px; gap: 0 10px; align-items: baseline; padding: 9px 2px; border-bottom: 1px solid var(--line); }
+.lf-tr.m1 { grid-template-columns: minmax(0, 1fr) 52px 70px 72px 18px; }
+.lf-tr.m2 { grid-template-columns: minmax(0, 1fr) 52px 70px 72px 100px 18px; }
 .lf-th { font-size: var(--t-label); font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); padding: 6px 2px; }
-.lf-row { all: unset; box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1fr) 56px 76px 64px 18px; gap: 0 10px; align-items: baseline; padding: 10px 2px; min-height: var(--tap); border-bottom: 1px solid var(--line); cursor: pointer; color: var(--ink-2); }
-.lf-row.no-money { grid-template-columns: minmax(0, 1fr) 56px 76px 18px; }
+.lf-row { all: unset; box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1fr) 52px 70px 18px; gap: 0 10px; align-items: baseline; padding: 10px 2px; min-height: var(--tap); border-bottom: 1px solid var(--line); cursor: pointer; color: var(--ink-2); }
+.lf-row.m1 { grid-template-columns: minmax(0, 1fr) 52px 70px 72px 18px; }
+.lf-row.m2 { grid-template-columns: minmax(0, 1fr) 52px 70px 72px 100px 18px; }
 .lf-row:hover { background: color-mix(in srgb, var(--brand) 5%, transparent); }
 .lf-row:focus-visible { outline: 2.5px solid var(--brand); outline-offset: -2px; }
 .lf-row b { color: var(--ink); }
 .lf-row.is-a, .lf-row.is-a b { color: var(--st-a); font-weight: 700; }
 .lf-tf { font-weight: 700; color: var(--ink); border-bottom: 0; }
 .lf-table .is-num { text-align: right; white-space: nowrap; }
+/* the column heads wrap — "Idle labour", "Lost contribution" — never run into each other */
+.lf-th { align-items: end; }
+.lf-th .is-num { white-space: normal; line-height: 1.2; overflow-wrap: break-word; }
 .lf-chev { color: var(--brand); font-weight: 700; text-align: right; }
 .lf-cause { min-width: 0; overflow-wrap: anywhere; }
 .lf-known { white-space: nowrap; }
@@ -11883,6 +11894,23 @@ button.co-step-b:hover { background: color-mix(in srgb, var(--brand) 5%, transpa
 .lf-count-grid .lf-day { grid-column: 1 / -1; }
 .lf-body.has-table .lf-count-grid .lf-day { grid-column: auto; }
 .lf-facts { margin: 0; display: grid; gap: 4px; }
+.lf-planned { grid-column: 1 / -1; }
+.lf-worked { margin: 0; font-size: var(--t-detail); color: var(--ink-2); }
+.lf-worked b { font-size: 18px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.lf-why { margin-top: 4px; }
+.lf-rate { grid-column: span 2; }
+.lf-con { margin: 6px 2px 0; font-size: var(--t-label); }
+.lf-run { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.lf-run-say { margin: 0; }
+.lf-run-say b { color: var(--ink); }
+.lf-runs { list-style: none; margin: 0; padding: 0; font-size: var(--t-detail); }
+.lf-runs li { padding: 6px 0; border-top: 1px solid var(--line); display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.lf-runs li.is-struck b, .lf-runs li.is-struck .sub { text-decoration: line-through; color: var(--muted); }
+.lf-strike { margin-left: auto; }
+.lf-run-add { display: grid; grid-template-columns: minmax(0, 160px) minmax(0, 160px) auto; justify-content: start; gap: 10px; align-items: end; }
+.lf-run-add .field { display: grid; gap: 4px; }
+.lf-run-add .text-input { min-height: var(--tap); font-size: 18px; width: 100%; min-width: 0; box-sizing: border-box; margin-top: 0; }
+.lf-run-add .btn { min-height: var(--tap); }
 .lf-facts div { display: grid; grid-template-columns: 80px 1fr; gap: 8px; padding: 5px 0; border-top: 1px solid var(--line); font-size: var(--t-detail); }
 .lf-facts dt { color: var(--muted); font-weight: 700; }
 .lf-facts dd { margin: 0; color: var(--ink); }
@@ -11895,11 +11923,17 @@ button.co-step-b:hover { background: color-mix(in srgb, var(--brand) 5%, transpa
   .lf-pic { order: 1; }
   .lf-tab { order: 2; }
   .lf-body > .lf-count { order: 3; }
+  .lf-body > .lf-run { order: 4; grid-area: auto; }
   .lf-body.is-counting > .lf-count { order: 0; }
+  .lf-body.is-counting > .lf-run { order: 0; }
   .lf-count-grid, .lf-body.has-table > .lf-count .lf-count-grid { grid-template-columns: 1fr 1fr; }
   .lf-body.has-table .lf-count-grid .lf-day { grid-column: 1 / -1; }
-  .lf-tr, .lf-row { grid-template-columns: minmax(0, 1fr) 40px 62px 54px 14px; gap: 0 6px; }
-  .lf-tr.no-money, .lf-row.no-money { grid-template-columns: minmax(0, 1fr) 40px 62px 14px; }
+  .lf-tr, .lf-row { grid-template-columns: minmax(0, 1fr) 36px 52px 14px; gap: 0 6px; }
+  .lf-tr.m1, .lf-row.m1 { grid-template-columns: minmax(0, 1fr) 36px 52px 52px 14px; }
+  .lf-tr.m2, .lf-row.m2 { grid-template-columns: minmax(0, 1fr) 34px 50px 46px 58px 12px; gap: 0 5px; }
+  .lf-th { letter-spacing: 0; font-size: 10px; }
+  .lf-run-add { grid-template-columns: 1fr 1fr; }
+  .lf-run-add .btn { grid-column: 1 / -1; }
 }
 /* A line's latest shift counted, beside the Pareto (ui/ShiftLosses) — a
    branch under the board: neutral, the part not yet explained amber only

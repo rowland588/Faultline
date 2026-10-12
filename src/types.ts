@@ -58,6 +58,12 @@ export interface Shift {
   name: string;
   start: string; // "06:00"
   end: string; // "14:00"
+  /** Minutes of planned breaks in the shift — the line's planned stops, taken
+   *  off the shift for its planned production time (docs/CAPACITY.md §5). */
+  breakMin?: number;
+  /** Relief covers the breaks: the line keeps running through them, so they
+   *  are not planned stops and nothing comes off the shift. */
+  relief?: boolean;
 }
 
 export interface ActiveTimer {

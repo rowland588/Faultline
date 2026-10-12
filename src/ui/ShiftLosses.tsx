@@ -4,18 +4,21 @@
  *
  * The Pareto ranks the stops the floor timed; it cannot say how much of the
  * shift's loss they explain. One line under it does: "Shift 1 yesterday: 85
- * min lost · 9 min not yet explained ›" — the part not yet explained the only
+ * min lost · 9 min slow running and short stops ›" — that rest the only
  * thing that may wear amber, and only over a tenth. One tap opens the count.
  * And the door to make one: "Count a shift" — the shift that has just run
- * on this line, the standard's rate when the line has one product with an
- * agreed rate, on the line's job when it has one.
+ * on this line, less its breaks; the rate the plate speed of the line's
+ * critical machine (its one product's line standard, else the job line's
+ * capacity); on the line's job when it has one.
  *
  * Reads: the line's studies of tool 'losses', its stops and its cost model.
  * Writes: a new study, only on "Count a shift", only for someone who may. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { chainForWorkspace, getWorkspace, listObservations, listStandardsForLine, listStudiesForLine, onDataChange, putStudy } from '../db';
+import { allPaceLines, chainForWorkspace, getWorkspace, listObservations, listStandardsForLine, listStudiesForLine, onDataChange, putStudy } from '../db';
 import { currentLosses, lossCardLine, studyHref, type StudyContext } from '../lib/studyLinks';
-import { firstCount } from '../lib/ie/losses';
+import { firstCount, rateOf, type RateOf } from '../lib/ie/losses';
+import type { Capacity } from '../lib/capacity';
+import type { Standard } from '../lib/standard';
 import { now, uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import type { ToolStudy } from '../lib/study';
@@ -57,18 +60,36 @@ function useLineLosses(workspaceId?: string): { studies: ToolStudy[]; ctx: Study
   return st;
 }
 
+/** THE CAPACITY A COUNT'S RATE IS READ FROM (docs/CAPACITY.md §1): the
+ *  product's line standard when it has stations, else the job line's
+ *  capacity (the line balance on a 6M job's line) — and the standard's
+ *  target, offered only when nothing on the line is on the plate. */
+export async function capacityForCount(workspaceId?: string, std?: Pick<Standard, 'capacity'>): Promise<{ cap?: Capacity; target?: number }> {
+  const own = std?.capacity;
+  const line = own?.stations.length || !workspaceId ? undefined : (await allPaceLines()).find(l => l.workspaceId === workspaceId && !l.deletedAt)?.capacity;
+  const cap = own?.stations.length ? own : line ?? own;
+  const target = own?.targetPerMin ?? line?.targetPerMin;
+  return { ...(cap ? { cap } : {}), ...(target !== undefined ? { target } : {}) };
+}
+
+/** The rate a new count on this line starts from — rateOf on that capacity. */
+export async function rateForCount(workspaceId?: string, std?: Pick<Standard, 'capacity'>): Promise<RateOf> {
+  const { cap, target } = await capacityForCount(workspaceId, std);
+  return rateOf(cap, target);
+}
+
 /** Start a count of the shift that has just run on this line, and open it. */
 export async function countAShift(line: Workspace, projectId?: string): Promise<void> {
   const t = now();
-  /* one product with an agreed rate on the line: its rate, said as the standard's */
-  const rated = (await listStandardsForLine(line.id)).filter(s => !s.deletedAt && (s.capacity?.targetPerMin ?? 0) > 0);
+  /* one product with a capacity (or an agreed rate) on the line: its standard */
+  const rated = (await listStandardsForLine(line.id)).filter(s => !s.deletedAt && ((s.capacity?.stations.length ?? 0) > 0 || (s.capacity?.targetPerMin ?? 0) > 0));
   const std = rated.length === 1 ? rated[0] : undefined;
   /* on the line's job when the line is one job's — else a count on the line */
   const job = projectId ?? (await chainForWorkspace(line.id))?.projectId;
   const s: ToolStudy = {
     id: uid(), tool: 'losses', name: 'Loss count', workspaceId: line.id, ...(job ? { projectId: job } : {}),
     ...(std ? { standardId: std.id, product: std.product } : {}),
-    facts: { losses: firstCount(line.shifts ?? [], std?.capacity?.targetPerMin, t) }, uses: [], startedAt: t, createdAt: t, updatedAt: t,
+    facts: { losses: firstCount(line.shifts ?? [], await rateForCount(line.id, std), t) }, uses: [], startedAt: t, createdAt: t, updatedAt: t,
   };
   await putStudy(s);
   nav(studyHref(s));
