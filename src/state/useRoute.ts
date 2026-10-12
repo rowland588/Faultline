@@ -10,7 +10,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'trend' | 'history' | 'report' | 'case' | 'guide' | 'portfolio'
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
   | 'testing' | 'test' | 'trialCard' | 'fixes' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'standard' | 'notes' | 'clientReport'
-  | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools' | 'studies' | 'study';
+  | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools' | 'studies' | 'study' | 'lineHome';
 
 export interface Route {
   name: RouteName;
@@ -68,6 +68,11 @@ export function parseRoute(hash: string): Route {
   if (segs[0] === 'portfolio') return { name: 'portfolio', query }; // cross-workspace — the ledger
   if (segs[0] === 'projects') return { name: 'projects', query }; // projects listing
   if (segs[0] === 'snags') return { name: 'quickSnags', query }; // every quick snag, every line (snag/quick)
+  /* A PRODUCTION LINE, its own page — its problems and its tools, no project
+     needed (Rowland, 12 October: "I just want to be able to open a
+     production line and use these tools inside the production line"). The
+     line rides on the route, so the Problem button takes it as the line. */
+  if (segs[0] === 'lines' && segs[1]) return { name: 'lineHome', wsId: decodeURIComponent(segs[1]), query };
   /* THE LINE TOOLS, beside the snags: every line standard and every line
      balance, on every line and job (screens/LineToolsScreen). */
   if (segs[0] === 'standards') return { name: 'lineTools', view: 'map', query };

@@ -19,7 +19,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Workspace } from '../types';
 import {
   listWorkspaces, listObservations, listSegments, snagsForWorkspace, listCases, deleteWorkspace,
-  archiveWorkspace, restoreWorkspace, listArchivedWorkspaces, workspaceContents,
+  archiveWorkspace, restoreWorkspace, listArchivedWorkspaces, workspaceContents, createWorkspace,
 } from '../db';
 import { Toast } from '../ui/Toast';
 import { nav } from '../state/useRoute';
@@ -29,7 +29,8 @@ import { useSyncedAt } from '../cloud/session';
 import { InstallPanel } from '../ui/InstallPanel';
 import { useProjects } from '../lib/useProjects';
 import { chainForWorkspace, inArchivedProject, onDataChange } from '../db';
-import { DEMO_NAME } from '../lib/demo';
+import { DEMO_NAME } from '../lib/lines';
+import { productionLines } from '../lib/lines';
 import { JobsBoard } from '../ui/JobsBoard';
 import { useCanStartProjects } from '../cloud/access';
 
@@ -67,11 +68,12 @@ interface WsContents { obs: number; videos: number; openSnags: number; cases?: n
 function contentsLabel(c: WsContents | undefined): string {
   if (!c) return '…';
   const parts = [
+    /* its problems first — what a line is opened for (12 October) */
+    c.openSnags > 0 ? `${c.openSnags} problem${c.openSnags === 1 ? '' : 's'} open` : '',
     c.obs > 0 ? plural(c.obs, 'observation') : '',
     c.videos > 0 ? plural(c.videos, 'video') : '',
-    c.openSnags > 0 ? `${c.openSnags} open on the walk` : '',
   ].filter(Boolean);
-  return parts.length ? parts.join(' · ') : 'empty';
+  return parts.length ? parts.join(' · ') : 'Nothing on it yet';
 }
 
 export function WorkspaceHome() {
@@ -84,6 +86,8 @@ export function WorkspaceHome() {
   const [delTick, setDelTick] = useState(0);
   const [archived, setArchived] = useState<Awaited<ReturnType<typeof listArchivedWorkspaces>>>([]);
   const [showArchive, setShowArchive] = useState(false);
+  const [addingLine, setAddingLine] = useState(false);
+  const [lineName, setLineName] = useState('');
 
   /* RE-READ WHEN ANYTHING IS WRITTEN. This screen used to re-read only after a
      sync or a delete of its own, which was survivable while it was one list
@@ -160,7 +164,8 @@ export function WorkspaceHome() {
         return [w.id, {
           obs: obs.length,
           videos: segs.length,
-          openSnags: snags.filter(s => s.status !== 'closed').length,
+          /* open, and not put away by a fresh start or deleted (the Problems register) */
+          openSnags: snags.filter(s => s.status !== 'closed' && !s.archivedAt && !s.deletedAt).length,
           cases: away ? 0 : cases.length,
         }] as const;
       }));
@@ -201,7 +206,7 @@ export function WorkspaceHome() {
      from before there were projects, or a walk that never got a line. They hold
      film that exists nowhere else, so they are never hidden, only demoted.
      (`belongs === null` means not read yet — show none rather than all.) */
-  const loose = belongs === null ? [] : (list ?? []).filter(w => !belongs[w.id] && w.id !== pendingDel?.id);
+  const prodLines = productionLines((list ?? []).filter(w => w.id !== pendingDel?.id));
 
   return (
     <div className="wrap home">
@@ -272,54 +277,65 @@ export function WorkspaceHome() {
         </section>
       )}
 
-      {/* NOT A DOOR. There is no "＋ New workspace" here any more: a line makes
-          its own, and a second way to make one by hand is the thing he tripped
-          over. This is a shelf for what is attached to nothing, and it is not
-          on screen at all when there is nothing on it. */}
-      {(loose.length > 0 || archived.length > 0) && (
-        <section className="home-spaces">
-          <div className="home-sec-head">
-            <h2 className="home-sec-title">Not on a project</h2>
-          </div>
-          {loose.length === 0 ? (
-            <p className="sub home-sec-sub">
-              Everything is on a project. {archived.length === 1 ? 'One line is' : `All ${archived.length} lines are`} in
-              the archive below, with everything it holds — restore whichever you want back.
-            </p>
-          ) : (
-            <>
-              <p className="sub home-sec-sub">
-                These hold captures, film or evidence but hang off no line — from before there were
-                projects, or a walk that never got one. Open one to read it, or archive it. Anything
-                on a project opens from its line, one tap from its row in the control room above.
-              </p>
-              <div className="ws-list">
-                {/* A ROW, NOT A CARD-SHAPED BUTTON. Archiving needs its own
-                    control beside the open one, and a button inside a button is
-                    invalid HTML that browsers disagree about. */}
-                {loose.map(w => (
-                  <div key={w.id} className="ws-row">
-                    <button className="ws-card" onClick={() => nav(`/w/${w.id}`)}>
-                      <span className="ws-card-dot" style={{ background: w.color }} />
-                      <span className="ws-card-main">
-                        <span className="ws-card-name">{w.name}</span>
-                        <span className="ws-card-meta">
-                          {contentsLabel(counts[w.id])}
-                          {w.updatedAt ? ` · ${fmtRelative(w.updatedAt)}` : ''}
-                        </span>
+      {/* THE PRODUCTION LINES — each its own page: its problems and its tools,
+          no project needed. Rowland, 12 October: "I want to just be able to
+          open a production line and use these tools inside the production
+          line ... I need a record of production lines ... Control room, yes,
+          of course, make them from there." This takes the place of the "Not
+          on a project" shelf, which listed only the lines attached to nothing
+          (and once took away "＋ New workspace", the second way to make a
+          line he tripped over): now there is one list of lines, every line
+          in it, and one way to make one — a name — here, on the Problems
+          page or in the Problem button's sheet. A line attached to nothing
+          still keeps its Archive. */}
+      <section className="home-spaces pl-home" aria-label="Production lines">
+        <div className="home-sec-head">
+          <h2 className="home-sec-title">Production lines</h2>
+          {!addingLine && <button className="btn" onClick={() => setAddingLine(true)}>New line</button>}
+        </div>
+        {addingLine && (
+          <form className="pl-new" onSubmit={e => {
+            e.preventDefault();
+            const name = lineName.trim();
+            if (!name) return;
+            void createWorkspace(name).then(w => { setLineName(''); setAddingLine(false); nav(`/lines/${w.id}`); });
+          }}>
+            <input className="text-input" autoFocus value={lineName} maxLength={80} placeholder="e.g. Line 2B" aria-label="The new line's name" onChange={e => setLineName(e.target.value)} />
+            <button className="btn btn-primary" type="submit" disabled={!lineName.trim()}>Make the line</button>
+            <button className="btn btn-ghost" type="button" onClick={() => { setAddingLine(false); setLineName(''); }}>Cancel</button>
+          </form>
+        )}
+        {prodLines.length === 0 && !addingLine && (
+          <p className="sub home-sec-sub">No lines yet. Make one — a name is all it takes — and take problems on it, and use the tools on it, with no project.</p>
+        )}
+        {prodLines.length > 0 && (
+          <div className="ws-list">
+            {prodLines.map(w => {
+              const c = counts[w.id];
+              const on = belongs?.[w.id];
+              return (
+                <div key={w.id} className="ws-row">
+                  <button className="ws-card" onClick={() => nav(`/lines/${w.id}`)}>
+                    <span className="ws-card-main">
+                      <span className="ws-card-name">{w.name}</span>
+                      <span className="ws-card-meta">
+                        {contentsLabel(c)}{on ? ` · on ${on}` : ''}
                       </span>
-                      <span className="ws-card-go">{w.lastRoute ? 'Resume ›' : 'Open ›'}</span>
-                    </button>
+                    </span>
+                    <span className="ws-card-go">Open ›</span>
+                  </button>
+                  {belongs !== null && !on && (
                     <button className="btn btn-ghost ws-archive" title={`Archive ${w.name}`}
                       onClick={() => {
-                        if (!confirm(`Archive “${w.name}”?\n\nIt leaves this list and loses nothing — the captures, the walk and the evidence all stay. You can restore it whenever you like.`)) return;
+                        if (!confirm(`Archive “${w.name}”?\n\nIt leaves this list and loses nothing — its problems, captures, the walk and the evidence all stay. You can restore it whenever you like.`)) return;
                         void archiveWorkspace(w.id).then(() => setDelTick(t => t + 1));
                       }}>Archive</button>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
           {/* THE ARCHIVE. Behind one tap and closed by default — it is where
               things go to stop being looked at, so it must not take up room in
               the list it was meant to shorten. */}
@@ -367,8 +383,7 @@ export function WorkspaceHome() {
               )}
             </div>
           )}
-        </section>
-      )}
+      </section>
 
 
       {/* Signing in and installing are settings, not destinations. They used to

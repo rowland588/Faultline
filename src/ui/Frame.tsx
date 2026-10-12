@@ -21,14 +21,15 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { Route } from '../state/useRoute';
 import { nav, useHash } from '../state/useRoute';
-import type { Project } from '../types';
+import type { Project, Workspace } from '../types';
 import { useProjects } from '../lib/useProjects';
 import { usePaceLines } from '../lib/usePaceLines';
 import { useStanding } from '../lib/useStanding';
 import { useMethodCounts } from '../lib/useMethodCounts';
 import { useWsChain } from '../lib/useTrail';
 import { planModel, type PlanModel } from '../lib/planModel';
-import { getWorkspace, listTestItems, listTests, onDataChange } from '../db';
+import { getWorkspace, listTestItems, listTests, listWorkspaces, onDataChange } from '../db';
+import { productionLines } from '../lib/lines';
 import { gateOf } from '../lib/testing';
 import { LogoMark } from './Logo';
 import { Icon } from './Icon';
@@ -48,6 +49,8 @@ import {
  *  the route's shape rather than a list of names, so a screen added under
  *  /project/:id later sits in the frame without being registered here. */
 function projectOf(route: Route, chainProject?: string): string | undefined {
+  /* a production line's own page is the line's, never a job's — no project needed */
+  if (route.name === 'lineHome') return undefined;
   if (route.wsId) return chainProject;
   if (route.name === 'paceReport') return route.query.get('project') ?? undefined;
   if (route.name === 'home' || route.name === 'projects' || route.name === 'share' || route.name === 'quickSnags' || route.name === 'lineTools' || route.name === 'studies' || route.name === 'study') return undefined;
@@ -71,7 +74,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
            control room's list of jobs for a moment, then the job's rail. */
         : projectId && (loading || (route.wsId && chain === null))
           ? <NavChrome groups={[{ lines: [controlRoom(here)] }, toolsGroup(here)]} bar={[controlRoom(here)]} />
-          : <HomeNav projects={projects} here={here} wsId={route.wsId} loose={!!route.wsId && chain === null} />}
+          : <HomeNav projects={projects} here={here} wsId={route.wsId} loose={!!route.wsId && chain === null && route.name !== 'lineHome'} />}
       <main className="nv-main">{children}</main>
       <QuickSnagHost wsId={route.wsId} projectId={projectId} />
     </div>
@@ -219,6 +222,20 @@ function withJobStudy(groups: RailGroup[], wsId: string | undefined, lines: NavP
 /*  THE RAIL, THE CONTROL ROOM'S                                             */
 /* ------------------------------------------------------------------------- */
 
+/** Every production line — the lines on this device, the demo line aside —
+ *  for the control room's rail. Read again when anything is written. */
+function useProductionLines(): Workspace[] {
+  const [ws, setWs] = useState<Workspace[]>([]);
+  useEffect(() => {
+    let live = true;
+    const load = () => void listWorkspaces().then(all => { if (live) setWs(productionLines(all)); });
+    load();
+    const off = onDataChange(load);
+    return () => { live = false; off(); };
+  }, []);
+  return ws;
+}
+
 /** On the control room, the Projects page, or a study attached to no line:
  *  the control room, then every job. A loose study (no project owns it) shows
  *  its name and its four screens under the control room. */
@@ -231,6 +248,7 @@ function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: s
     void getWorkspace(wsId).then(w => { if (live) setWsName(w?.name ?? 'Line study'); });
     return () => { live = false; };
   }, [wsId]);
+  const prodLines = useProductionLines();
   const groups: RailGroup[] = [
     { lines: [controlRoom(here), ...(loose && wsId ? [
       { key: 'ws', label: wsName || 'Line study', to: `/w/${wsId}/capture`, on: false, state: 'n', bare: true } as RailLine,
@@ -248,6 +266,12 @@ function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: s
           state: s && s.late > 0 ? 'r' : s?.problem ? 'a' : 'w', n: s?.outstanding || undefined, late: s?.late || undefined, problem: s?.problem || undefined,
         } as RailLine;
       }),
+    }] : []),
+    /* THE PRODUCTION LINES — each its own page, its problems and its tools,
+       no project needed (Rowland, 12 October). */
+    ...(prodLines.length ? [{
+      label: 'Lines',
+      lines: prodLines.map(w => ({ key: `line:${w.id}`, label: w.name, to: `/lines/${w.id}`, on: here === `line:${w.id}`, state: 'n', bare: true, icon: 'chart' } as RailLine)),
     }] : []),
     /* The tools, at the foot under the jobs — where every job's rail has
        them. */

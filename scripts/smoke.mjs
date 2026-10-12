@@ -169,6 +169,11 @@ const ROUTES = [
   ['fishbone — a cause gone', `#/project/${seeded.pacedProjectId}/fishbone?problem=${seeded.problemId}&cause=nope`],
   ['fishbone — read it through', `#/project/${seeded.pacedProjectId}/fishbone?problem=${seeded.closedProblemId}&view=read`],
   ['fishbone — not this method', `#/project/${seeded.treeProjectId}/fishbone`],
+  /* a production line, its own page — its problems and its tools; and the lists opened on it */
+  ['a production line, its own page', `#/lines/${seeded.wsId}`],
+  ['the problems, on one line, one open', `#/snags?line=${seeded.wsId}`],
+  ['line capacity, on one line', `#/balances?line=${seeded.wsId}`],
+  ['SMED, on one line', `#/smed?line=${seeded.wsId}`],
   ['capture', `#/w/${seeded.wsId}/capture`],
   ['analyse', `#/w/${seeded.wsId}/analyse`],
   ['present', `#/w/${seeded.wsId}/present`],

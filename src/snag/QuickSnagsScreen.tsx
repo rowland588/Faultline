@@ -21,6 +21,7 @@
  * a word narrow it. The report prints what the page shows (lib/snagsReportPdf). */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { withoutDemo } from '../lib/demo';
+import { asked } from '../lib/lines';
 import { createWorkspace, deleteSnag, listAllSnags, listWorkspaces, listAssets, listSnagAssets, onDataChange, updateSnag, updateWorkspace, setSnagsStatus } from '../db';
 import { useProjects } from '../lib/useProjects';
 import { planModel } from '../lib/planModel';
@@ -64,12 +65,13 @@ export function QuickSnagsScreen() {
   const [jobMachines, setJobMachines] = useState<string[]>([]);
   const [filter, setFilter] = useState<Filter>('open');
   const [group, setGroup] = useState<Group>('line');
-  const [lineF, setLineF] = useState('all');
+  /* opened from a line's own page: on that line, the problem tapped there open */
+  const [lineF, setLineF] = useState(() => asked('line') ?? 'all');
   const [jobF, setJobF] = useState('all');
   const [whoF, setWhoF] = useState('all');
   const [search, setSearch] = useState('');
   const [picked, setPicked] = useState<Set<string>>(new Set());
-  const [opened, setOpened] = useState<Set<string>>(new Set());
+  const [opened, setOpened] = useState<Set<string>>(() => new Set(asked('open') ? [asked('open') as string] : []));
   const [setting, setSetting] = useState(false);
   const [showAway, setShowAway] = useState(false);
   const [busy, setBusy] = useState<'' | 'report' | 'cards'>('');

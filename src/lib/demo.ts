@@ -26,7 +26,8 @@ import {
 import { uid } from './ids';
 import { readVideoMeta } from '../snag/frame';
 
-export const DEMO_NAME = 'Demo — Packing Hall';
+import { DEMO_NAME } from './lines';
+export { DEMO_NAME };
 
 /** The demo line is a showcase, not work. What gathers every line's snags —
  *  Snags & fixes, its report, a job's view of them — leaves its snags out:

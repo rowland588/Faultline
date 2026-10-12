@@ -10745,6 +10745,27 @@ body:has(.toast) .qs-fab { bottom: calc(var(--nv-bar) + 130px + env(safe-area-in
 .preg-jobs { margin-top: 18px; }
 .preg-away { margin-top: 18px; }
 .preg-away-row { padding: 8px 0; }
+/* A PRODUCTION LINE, its own page (screens/ProductionLineScreen) — its problems, its tools. */
+.pl-eyebrow { margin: 0 0 2px; font-size: 11px; font-weight: 800; letter-spacing: .08em; color: var(--muted); }
+.pl-says { margin: 4px 0 0; color: var(--ink-2); }
+.pl-says .is-r { color: var(--st-r); }
+.pl-sec { margin-top: 22px; }
+.pl-sec-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.pl-sec-h h2 { margin: 0; font-size: var(--t-h3, 18px); }
+.pl-rows, .pl-tools { list-style: none; margin: 0; padding: 0; }
+.pl-row { width: 100%; display: flex; align-items: flex-start; gap: 12px; padding: 10px 6px; background: none; border: 0; border-bottom: 1px solid var(--line); text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+.pl-row.is-late { box-shadow: inset 3px 0 0 var(--st-r); }
+.pl-row-main { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.pl-tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
+.pl-tool { width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+.pl-tool .sub { grid-column: 1; font-size: var(--t-detail); }
+.pl-tool-go { grid-row: 1 / span 2; grid-column: 2; align-self: center; color: var(--muted); font-size: 20px; }
+.pl-new { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 10px; }
+.pl-new .text-input { flex: 1 1 200px; margin: 0; }
+@media (max-width: 560px) {
+  .pl-row { flex-wrap: wrap; }
+  .pl-row .preg-right { flex: 1 1 100%; display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 4px 10px; margin-left: 0; text-align: left; white-space: normal; }
+}
 @media (max-width: 700px) { .pj-step { grid-template-columns: 1fr auto; } .pj-step .pj-did, .pj-step .pj-res { grid-column: 1 / -1; } .pj-add .btn { grid-column: 1 / -1; } }
 .qsl-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 6px; }
 .qsl-sel { width: auto; min-width: 0; max-width: 220px; min-height: 40px; margin: 0; }

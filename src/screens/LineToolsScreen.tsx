@@ -14,6 +14,7 @@
  * a snag. Attaching it to a job later is on its own page (StandardScreen
  * BelongsTo), and an attached one shows in that job's line standard too. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { asked } from '../lib/lines';
 import { createWorkspace, listAllStandards, listAllStudies, listWorkspaces, onDataChange, putStandard } from '../db';
 import type { ToolStudy } from '../lib/study';
 import { changeoverLine, currentChangeover, studyHref } from '../lib/studyLinks';
@@ -70,7 +71,8 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
   const { projects } = useProjects();
   const [list, setList] = useState<Standard[] | null>(null);
   const [lines, setLines] = useState<Workspace[]>([]);
-  const [lineF, setLineF] = useState('all');
+  /* opened from a line's own page: on that line, and New starts there */
+  const [lineF, setLineF] = useState(() => (asked('line') ? `ws:${asked('line')}` : 'all'));
   const [adding, setAdding] = useState(false);
   /* The line's changeovers (tool 6): its newest is said under the line, beside its maps and balances. */
   const [studies, setStudies] = useState<ToolStudy[]>([]);
@@ -107,7 +109,17 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
           <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>{w.add}</button>
         </div>
       </header>
-      {groups.length > 1 && (
+      {/* on one line (from its own page): its name, and the way back to every line */}
+      {lineF !== 'all' && !groups.some(([k]) => k === lineF) && list && list.length > 0 && (
+        <div className="qsl-empty">
+          <p><b>None on {groupName(lineF)} yet.</b> Pick a product — one per product, on the line.</p>
+          <div className="chip-row">
+            <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>{w.add}</button>
+            <button type="button" className="btn btn-ghost" onClick={() => setLineF('all')}>Every line</button>
+          </div>
+        </div>
+      )}
+      {(groups.length > 1 || (lineF !== 'all' && groups.length > 0)) && (
         <div className="chip-row qsl-f" role="group" aria-label="Which line">
           <button type="button" className={'chip' + (lineF === 'all' ? ' on' : '')} aria-pressed={lineF === 'all'} onClick={() => setLineF('all')}>Every line</button>
           {groups.map(([k]) => (
@@ -158,21 +170,21 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
           </ul>
         </section>
       ))}
-      <NewOne open={adding} tool={tool} lines={lines} list={list ?? []} onClose={() => setAdding(false)} />
+      <NewOne open={adding} tool={tool} lines={lines} list={list ?? []} onClose={() => setAdding(false)} onLine={lineF.startsWith('ws:') ? lineF.slice(3) : undefined} />
     </div>
   );
 }
 
 /** A NEW ONE — which line (or a new line), which product, and the job it is
  *  for, if any. It opens at the tool it was made for. */
-function NewOne({ open, tool, lines, list, onClose }: { open: boolean; tool: LineTool; lines: Workspace[]; list: Standard[]; onClose: () => void }) {
+function NewOne({ open, tool, lines, list, onClose, onLine }: { open: boolean; tool: LineTool; lines: Workspace[]; list: Standard[]; onClose: () => void; onLine?: string }) {
   const { projects } = useProjects();
   const [line, setLine] = useState('');
   const [newLine, setNewLine] = useState('');
   const [product, setProduct] = useState('');
   const [job, setJob] = useState('');
   const [busy, setBusy] = useState(false);
-  useEffect(() => { if (open) setLine(l => (lines.some(x => x.id === l) ? l : lines[0]?.id ?? NEW_LINE)); }, [open, lines]);
+  useEffect(() => { if (open) setLine(l => (lines.some(x => x.id === l) ? l : onLine && lines.some(x => x.id === onLine) ? onLine : lines[0]?.id ?? NEW_LINE)); }, [open, lines, onLine]);
   const jobs = projects.filter(p => !p.deletedAt && !p.archivedAt);
   const ready = !!product.trim() && (line !== NEW_LINE || !!newLine.trim()) && !busy;
 

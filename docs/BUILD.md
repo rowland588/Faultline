@@ -1069,6 +1069,40 @@ programs report and client report — the words, the commentary, the counts
 ("· 1 not tested, 1 with no program") and two tiles on the paper. Accepted
 by `scripts/acceptance/programs.mjs`.
 
+### Production lines — a place of their own, no project needed (12 October)
+
+Rowland, that night: "I have to open one of the projects to get access to the
+tools ... I want to just be able to open a production line and use these
+tools inside the production line ... I need a record of production lines,
+yes, and I also should be able to make the production lines inside the
+problem sheet ... Control room, yes, of course, make them from there ...
+There's a production line, there's a problem, take the picture and move
+forward with it." Commissioning done, the line running, the problems still
+come — and no project to hang them on.
+- **The record.** A line is the Workspace every problem
+  (`snags.workspace_id`) and every tool (a standard's or a study's
+  `workspaceId`) already hangs off; nothing new is stored. `lib/lines`
+  names the list once (the demo and the archived aside), so the control
+  room, the rail and the line's page agree.
+- **Made in one way, from three places** — a name: the control room's New
+  line, "A new line…" on a problem (and Rename this line), and the Problem
+  button's sheet.
+- **The control room's Production lines** take the place of the "Not on a
+  project" shelf: every line, what is on it (its problems first), the
+  project it is on if any, Open ›; Archive kept for a line on no project,
+  the archive drawer kept.
+- **The rail's Lines** — each line one tap from the control room's rail
+  (More on a phone).
+- **A line's own page** (`#/lines/<id>`, `screens/ProductionLineScreen`):
+  its open problems in priority order, the late in red, each opening the
+  Problems page on that line with it open; the Problem button sets the line
+  (it rides on the route) and no project; Rename; and its tools — Line
+  standard, Line capacity, Capability, Value stream, SMED, Work sampling,
+  Loss count — each saying how many are on the line and opening its list
+  on the line (`?line=`), New starting there.
+- **Accepted by** `scripts/acceptance/lines.mjs`, from an empty device with
+  no project; smoke loads the line's page and the lists opened on it.
+
 ### Problems — the register: written, edited where it sits, a journey, a fresh start (12 October)
 
 Rowland, that evening, after the opened-out problem became read-only: "you've

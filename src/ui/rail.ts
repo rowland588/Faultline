@@ -109,6 +109,7 @@ export function hereOf(route: Route): string {
   switch (route.name) {
     case 'home': return 'home';
     case 'quickSnags': return 'quicksnags';
+    case 'lineHome': return `line:${route.wsId}`;
     case 'lineTools': return route.view === 'balance' ? 'linebalance' : 'linestandard';
     case 'studies': case 'study': return route.view === 'map' ? 'valuestream' : route.view === 'changeover' ? 'changeover' : route.view === 'sampling' ? 'sampling' : route.view === 'losses' ? 'losses' : 'capability';
     case 'projectDashboard': {
