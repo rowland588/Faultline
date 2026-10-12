@@ -1,41 +1,63 @@
 /* A SHIFT'S LOSSES, BY HAND — and what they cost (docs/TOOLKIT.md, Part 4,
- * tool 7; docs/BUILD.md, E; the worked example in docs/LEAN40.md's appendix).
+ * tool 7; docs/BUILD.md, E; the time model in docs/CAPACITY.md §5–6).
  *
  * The question: of what the line should have made this shift, where did the
- * rest go — and how much do we not yet know? Rowland, 10 October: "This is
- * about manual inputs. This is about industrial engineering." So the facts
- * are two counts at the end of the shift (packs made, rejects), the planned
- * minutes, the rate — and the stops the floor already timed in Capture
- * through the shift. Nothing reads a machine, and there is no OEE: minutes
- * and pounds, never a percentage score.
+ * rest go? Rowland, 10 October: "This is about manual inputs. This is about
+ * industrial engineering." So the facts are two counts at the end of the
+ * shift (good packs made, rejects), the planned minutes, the rate — and the
+ * stops the floor already timed in Capture through the shift. Nothing reads
+ * a machine, and there is no OEE: minutes and pounds, never a score.
+ *
+ * THE TIME MODEL (TPM's six big losses on ISO 22400-2's time model, counted
+ * by hand — docs/CAPACITY.md §5). Rowland, 12 October: "we go by plate
+ * speed ... of course, unless human."
+ *
+ *   planned production time = the shift − its planned stops (the breaks
+ *                             the line stops for; none under relief)
+ *   expected      = planned minutes × the bottleneck's ideal speed — the
+ *                   slowest station's: a machine's plate speed, a person's
+ *                   standard time
+ *   lost minutes  = (expected − good packs) ÷ the rate
+ *   availability  = the stops logged + the changeovers  → run time
+ *   quality       = rejects ÷ the rate
+ *   performance   = lost − stops − changeovers − rejects, never below zero:
+ *                   SLOW RUNNING AND SHORT STOPS — running below the ideal
+ *                   speed, and stops too short to log. Told apart by timing
+ *                   the running speed: slow running = run time × (ideal −
+ *                   running speed) ÷ ideal; short stops the rest.
+ *
+ * WHAT IT COSTS, in two parts, never one blended figure (§6): the idle
+ * labour of the crew paid to stand (crew × wage × on-costs × minutes), and
+ * the lost contribution (packs not made × price less materials a pack, or
+ * the line's margin a pack) — said "if it cannot be made up". No cost on
+ * the line, no pounds.
  *
  * FACTS → FIGURES → READING → VERDICT. Pure: the count, the stops in its
- * window and the line's cost model in; the figures and the sentence out.
- *
- *   expected      = planned minutes × rate
- *   lost minutes  = (expected − made) ÷ rate
- *   explained     = the stops by cause + the changeovers + rejects ÷ rate
- *   not yet explained = lost − explained, never below zero
+ * window, the running speed timed and the line's cost model in; the figures
+ * and the sentence out.
  *
  * THE HONESTY RULES, as this tool keeps them:
  *   enough?        the planned minutes, the packs made and a rate — until
  *                  all three are in it is "not yet counted", not a number
- *   how known      every number says how: the window from the shift, the
- *                  packs counted, the rate from the standard or typed, the
- *                  stops timed in Capture; the part not yet explained is
- *                  exactly that — what nobody has logged
- *   what it does   slow running is not a bar of its own: nobody measured it,
- *   not claim      so it sits inside "not yet explained" and the sentence
- *                  says so; stops that exceed the loss are said, not hidden
- *                  ("check the counts"); pounds only when the line has a
- *                  cost model, else simply not said
+ *   how known      every number says how: the planned minutes worked out
+ *                  from the shift and its breaks (and why, when changed for
+ *                  the day), the packs counted, the rate the plate speed of
+ *                  the named machine or the standard time of the named
+ *                  person, or said not to be, the stops timed in
+ *                  Capture, the running speed timed — and the rest is named
+ *                  for what it is, slow running and short stops
+ *   what it does   the rest is not split until a running speed is timed —
+ *   not claim      "not yet told apart", never a guess; stops that exceed
+ *                  the loss are said ("check the counts"); a running speed
+ *                  that explains more than the rest is said, not trusted
  *   people decide  the biggest bars are offered to the fishbone as
- *                  suggestions; a person puts them on a bone */
+ *                  suggestions; the rest only once it is told apart */
 import type { Observation, Shift, Workspace } from '../../types';
-import type { LossCount } from '../study';
+import type { LossCount, RunTiming } from '../study';
 import type { SixM } from '../sixm';
 import { boneOfStop } from '../sixm';
-import { costPerHour } from '../cost';
+import { labourPerHour } from '../cost';
+import { analyse, type Capacity, type Station } from '../capacity';
 import { shiftWindow } from '../shifts';
 import { todayISO } from '../weeks';
 import type { Tone } from './sample';
@@ -53,18 +75,155 @@ export function inWindow(obs: Observation[], from: number, to: number, workspace
 
 const stopsOf = (o: Observation) => Math.max(1, o.count || 1);
 const minsOf = (o: Observation) => (o.durationMs > 0 ? o.durationMs / 60_000 : 0);
+const whole = (n: number) => Math.round(n);
 
-/** What the line's cost model is read from — a workspace, or nothing. */
-export type CostModel = Pick<Workspace, 'crew' | 'labourRatePerHour' | 'labourBurden' | 'packsPerMin' | 'marginPerPack'>;
+/* ------------------------------------------------------------- the rate */
+
+/** THE RATE IS THE BOTTLENECK'S IDEAL SPEED (docs/CAPACITY.md §1, §5) —
+ *  Rowland: "plate speed ... of course, unless human". The line's slowest
+ *  station at running speed on its capacity, in the line's unit at the start
+ *  of the line (lib/capacity's chain): a machine at the speed on its plate,
+ *  a person at their standard time (from the time study, or their pace as
+ *  timed). `why` says it in words — "plate speed of the Bagger", "standard
+ *  time of Op 3 (the time study)", "Op 3's timed pace" — or why there is no
+ *  ideal speed yet. */
+export interface IdealPace {
+  rate?: number;
+  /** The station that sets the pace, and how its speed is known. */
+  station?: string;
+  how?: 'plate' | 'standard' | 'timed';
+  why: string;
+  /** Any station on the line has an ideal speed (a machine on the plate, a
+   *  person's standard time) — then the standard's target is never offered
+   *  in its place. */
+  anyIdeal: boolean;
+}
+
+/** A station's speed is ideal: a machine's from its plate, a person's their
+ *  standard time — from the time study, or timed. */
+const idealSpeed = (x: Pick<Station, 'kind' | 'source'>): boolean => (x.kind === 'machine' ? x.source === 'plate' : x.source === 'standard' || x.source === 'timed');
+const MACHINE_NOT: Record<string, string> = { timed: 'timed, not from its plate', standard: 'a standard time, not from its plate', estimate: 'a guess, not from its plate' };
+
+export function idealOf(cap?: Pick<Capacity, 'stations'>): IdealPace {
+  const stations = cap?.stations ?? [];
+  const anyIdeal = stations.some(idealSpeed);
+  if (!stations.length) return { why: 'the line has no capacity sheet yet', anyIdeal };
+  const lim = analyse({ stations }).limitAtRunning;
+  if (!lim) return { why: anyIdeal ? 'the stations at their ideal speed cannot be counted on Line capacity yet' : 'no station on Line capacity has a speed yet', anyIdeal };
+  const name = lim.station.name.trim() || `station ${lim.index + 1}`;
+  const rate = Math.round(lim.running * 100) / 100;
+  const src = lim.station.source ?? 'estimate';
+  if (lim.station.kind === 'machine') {
+    return src === 'plate' ? { rate, station: name, how: 'plate', why: `plate speed of the ${name}`, anyIdeal }
+      : { why: `the ${name} sets the pace and its speed is ${MACHINE_NOT[src] ?? MACHINE_NOT.estimate}`, anyIdeal };
+  }
+  if (src === 'standard') return { rate, station: name, how: 'standard', why: `standard time of ${name} (the time study)`, anyIdeal };
+  if (src === 'timed') return { rate, station: name, how: 'timed', why: `${name}’s timed pace`, anyIdeal };
+  return { why: `${name} sets the pace and their speed is a guess — time them in the time study`, anyIdeal };
+}
+
+/** What a count's rate starts from: the pace-setter's ideal speed; else the
+ *  line standard's target, only when no station on the line has an ideal
+ *  speed; else typed — and `why` says which, in the words the count shows
+ *  under it. */
+export interface RateOf {
+  ratePerMin?: number; rateFrom?: LossCount['rateFrom']; rateMachine?: string; ratePerson?: string; rateTimed?: boolean;
+  why: string;
+}
+
+export function rateOf(cap: Pick<Capacity, 'stations'> | undefined, standardTarget?: number): RateOf {
+  const p = idealOf(cap);
+  if (p.rate !== undefined && p.rate > 0 && p.how && p.station) {
+    return p.how === 'plate' ? { ratePerMin: p.rate, rateFrom: 'plate', rateMachine: p.station, why: p.why }
+      : { ratePerMin: p.rate, rateFrom: 'standard-time', ratePerson: p.station, ...(p.how === 'timed' ? { rateTimed: true } : {}), why: p.why };
+  }
+  if (!p.anyIdeal && standardTarget !== undefined && standardTarget > 0) return { ratePerMin: standardTarget, rateFrom: 'standard', why: 'the line standard’s target — not a plate speed' };
+  return { why: `typed — ${p.why}` };
+}
+
+/** Where the rate is from, in the count's words: "plate speed of the
+ *  Bagger", "standard time of Op 3 (the time study)", "Op 3's timed pace",
+ *  "the line standard's target — not a plate speed", "typed". */
+export function paceWords(c?: Pick<LossCount, 'rateFrom' | 'rateMachine' | 'ratePerson' | 'rateTimed'>, product?: string): string {
+  if (c?.rateFrom === 'plate') return `plate speed of the ${c.rateMachine ?? 'machine that sets the pace'}`;
+  if (c?.rateFrom === 'standard-time') return c.rateTimed ? `${c.ratePerson ?? 'the pace-setter'}’s timed pace` : `standard time of ${c.ratePerson ?? 'the pace-setter'} (the time study)`;
+  if (c?.rateFrom === 'standard') return `the line standard’s target${product ? ` for ${product}` : ''} — not a plate speed`;
+  return 'typed';
+}
+
+/** How the count's rate is known, as the sentence says it. */
+export function rateKnown(c?: Pick<LossCount, 'rateFrom' | 'rateMachine' | 'ratePerson' | 'rateTimed'>, product?: string): string {
+  const w = paceWords(c, product);
+  return c?.rateFrom === 'plate' || (c?.rateFrom === 'standard-time' && !c.rateTimed) ? `the rate is the ${w}` : `the rate is ${w}`;
+}
+
+/** What the rate is called where the rest is said — "running below the
+ *  plate speed": the plate speed, the standard-time pace, or the rate. */
+export const idealWord = (c?: Pick<LossCount, 'rateFrom'>): string =>
+  c?.rateFrom === 'plate' ? 'plate speed' : c?.rateFrom === 'standard-time' ? 'standard-time pace' : 'rate';
+
+/* ------------------------------------------------------- planned minutes */
+
+/** PLANNED PRODUCTION TIME IS THE SHIFT LESS ITS PLANNED STOPS (§5): the
+ *  window less the breaks the line stops for — none when relief keeps it
+ *  running. `changed` when a person set the day's minutes otherwise. */
+export interface Planned { windowMin: number; breakMin: number; workedOut: number; planned?: number; changed: boolean; words: string }
+
+export function plannedOf(c: Pick<LossCount, 'from' | 'to'> & Partial<Pick<LossCount, 'shift' | 'plannedMin' | 'breakMin' | 'relief' | 'plannedWhy'>>): Planned {
+  const windowMin = whole((c.to - c.from) / 60_000);
+  const breakMin = c.relief ? 0 : Math.max(0, c.breakMin ?? 0);
+  const workedOut = Math.max(0, windowMin - breakMin);
+  const planned = c.plannedMin !== undefined && c.plannedMin > 0 ? c.plannedMin : undefined;
+  const changed = planned !== undefined && whole(planned) !== workedOut;
+  const span = c.shift ? 'shift' : 'window';
+  const head = c.relief ? `${windowMin} min ${span}, relief covers the breaks`
+    : breakMin > 0 ? `${windowMin} min ${span} − ${breakMin} min of breaks`
+      : c.breakMin === 0 ? `${windowMin} min ${span}, no planned breaks` : `${windowMin} min ${span}, no breaks set`;
+  const words = changed ? `${head} = ${workedOut}; ${whole(planned as number)} planned for the day — ${c.plannedWhy?.trim() || 'no reason given'}` : `${head} = ${workedOut} planned`;
+  return { windowMin, breakMin, workedOut, ...(planned !== undefined ? { planned } : {}), changed, words };
+}
+
+/* ------------------------------------------------------- the running speed */
+
+/** The running speed timed: every live timing pooled — packs over minutes
+ *  timed — so a longer timing weighs more. Undefined when none is in. */
+export interface Running { perMin: number; n: number; min: number }
+
+export function runningOf(timings?: RunTiming[]): Running | undefined {
+  const live = (timings ?? []).filter(x => !x.struck && x.sec > 0 && x.packs >= 0);
+  if (!live.length) return undefined;
+  const min = live.reduce((n, x) => n + x.sec, 0) / 60;
+  const packsN = live.reduce((n, x) => n + x.packs, 0);
+  return { perMin: packsN / min, n: live.length, min };
+}
+
+/* ------------------------------------------------------------- the money */
+
+/** What the line's cost model is read from — a workspace, and the price and
+ *  materials a pack when they are known. */
+export type CostModel = Pick<Workspace, 'crew' | 'labourRatePerHour' | 'labourBurden' | 'marginPerPack'> & { pricePerPack?: number; materialsPerPack?: number };
+
+/** Contribution a pack: price less materials when the line has them, else
+ *  its margin a pack; none when it has neither. */
+export function contributionOf(c?: CostModel): { perPack: number; from: 'price' | 'margin' } | undefined {
+  if (!c) return undefined;
+  if (c.pricePerPack !== undefined && c.materialsPerPack !== undefined && c.pricePerPack > c.materialsPerPack && c.materialsPerPack >= 0) return { perPack: c.pricePerPack - c.materialsPerPack, from: 'price' };
+  if (c.marginPerPack !== undefined && c.marginPerPack > 0) return { perPack: c.marginPerPack, from: 'margin' };
+  return undefined;
+}
+
+/* ------------------------------------------------------------- the figures */
 
 /** One bar of the waterfall: a cause (stops under one category), the
- *  changeovers, the rejects, or the part not yet explained. */
+ *  changeovers, the rejects — and the rest: slow running and short stops,
+ *  or once a running speed is timed, each on its own. */
 export interface LossBar {
-  /** "cause:Breakdown" · "changeover" · "rejects" · "unexplained" — what a
-   *  record raised from the bar names (StudyUse.step). */
+  /** "cause:Breakdown" · "changeover" · "rejects" · "performance" · "slow" ·
+   *  "short" — what a record raised from the bar names (StudyUse.step). */
   key: string;
-  kind: 'cause' | 'changeover' | 'rejects' | 'unexplained';
-  /** The floor's words: the category, "Changeovers", "Rejects", "Not yet explained". */
+  kind: 'cause' | 'changeover' | 'rejects' | 'performance' | 'slow' | 'short';
+  /** The floor's words: the category, "Changeovers", "Rejects", "Slow
+   *  running and short stops", "Slow running", "Short stops". */
   label: string;
   min: number;
   /** Stops under it — a batch counts its count. */
@@ -74,10 +233,14 @@ export interface LossBar {
   /** The bone it most likely belongs on: the floor's own taps when it gave
    *  them (Observation.causeM), else the category's usual bone (lib/sixm). */
   bone: SixM;
-  /** How it is known: timed on the stopwatch, typed, counted (the rejects),
-   *  or not known at all (the part nobody logged). */
+  /** How it is known: timed on the stopwatch (or the running speed timed),
+   *  typed, counted (the rejects), or not logged (the rest). */
   grade: 'measured' | 'typed' | 'counted' | 'none';
-  pounds?: number;
+  /** The rest over a tenth of the loss — the one kind of bar that may wear amber. */
+  abnormal?: boolean;
+  /** £ of idle labour, and £ of lost contribution, when the line has the cost. */
+  labour?: number;
+  contribution?: number;
   /** Packs — the rejects. */
   packs?: number;
 }
@@ -108,24 +271,41 @@ export interface LossFigures {
   changeoverMin: number;
   changeoverN: number;
   rejectsMin?: number;
+  /** Stops + changeovers + rejects. */
   explainedMin: number;
-  /** lost − explained, never below zero. */
-  unexplainedMin?: number;
+  /** Planned less the stops and the changeovers — the time it ran. */
+  runMin?: number;
+  /** THE REST — slow running and short stops: lost − explained, never below zero. */
+  performanceMin?: number;
+  /** performance ÷ lost. */
+  performanceShare?: number;
   /** explained − lost, when the stops logged exceed the loss. */
   excessMin?: number;
-  /** unexplained ÷ lost. */
-  unexplainedShare?: number;
-  /** £ an hour the line loses stopped (lib/cost); absent when the line has no cost model. */
-  costPerHour?: number;
+  /** The running speed timed, when any is. */
+  running?: Running;
+  /** What the rate is called where the rest is said: "plate speed",
+   *  "standard-time pace", "rate" (idealWord). */
+  ideal: string;
+  /** Told apart, once a running speed is timed: run × (plate − running) ÷
+   *  plate, capped at the rest; the short stops what is left. */
+  slowMin?: number;
+  shortMin?: number;
+  /** The slow running the timing says before the cap — more than the rest
+   *  leaves is said, not trusted. */
+  slowRawMin?: number;
+  /** Timed above the plate speed — the plate or the timing wants checking. */
+  abovePlate?: boolean;
+  /** £ an hour of the crew standing, and £ a pack not made — when the line has them. */
+  labourPerHour?: number;
+  contributionPerPack?: number;
+  contributionFrom?: 'price' | 'margin';
+  /** The shift's lost minutes in pounds, the two parts. */
+  labour?: number;
+  contribution?: number;
   /** The waterfall, in order: the causes (biggest first), the changeovers,
-   *  the rejects, the part not yet explained. Only bars with something in them. */
+   *  the rejects, the rest. Only bars with something in them. */
   bars: LossBar[];
 }
-
-const whole = (n: number) => Math.round(n);
-
-/** £ for minutes lost, when the line has a cost model. */
-export const poundsOf = (min: number, perHour?: number): number | undefined => (perHour && perHour > 0 ? (min / 60) * perHour : undefined);
 
 /** The bone a group of stops most likely sits on: the floor's taps carry the
  *  minutes they were given; else the category's usual bone (lib/sixm
@@ -149,17 +329,33 @@ function assetOf(rows: Observation[]): string | undefined {
 
 const gradeOf = (rows: Observation[]): LossBar['grade'] => (rows.every(o => o.timing === 'stopwatch') ? 'measured' : 'typed');
 
-/** The figures, from the count, the stops in its window and the line's cost
- *  model. `obs` undefined: the stops were not given (a list, a card) — the
- *  loss is worked out, the split is not. */
-export function lossFigures(count: LossCount | undefined, obs?: Observation[], cost?: CostModel): LossFigures {
+/** The rest is abnormal over a tenth of the loss. */
+export const REST_TENTH = 0.1;
+
+/** The kinds of bar that make up the rest — the ones that may wear amber. */
+export const isRest = (b: Pick<LossBar, 'kind'>): boolean => b.kind === 'performance' || b.kind === 'slow' || b.kind === 'short';
+
+/** A bar by the key a record names — a record raised from the part once
+ *  called "not yet explained" names the rest. */
+export const findBar = (bars: LossBar[], key: string): LossBar | undefined => bars.find(b => b.key === (key === 'unexplained' ? 'performance' : key));
+
+/** The figures, from the count, the stops in its window, the line's cost
+ *  model and the running speed timed. `obs` undefined: the stops were not
+ *  given (a list, a card) — the loss is worked out, the split is not. */
+export function lossFigures(count: LossCount | undefined, obs?: Observation[], cost?: CostModel, timings?: RunTiming[]): LossFigures {
   const planned = count?.plannedMin !== undefined && count.plannedMin > 0 ? count.plannedMin : undefined;
   const rate = count?.ratePerMin !== undefined && count.ratePerMin > 0 ? count.ratePerMin : undefined;
   const made = count?.made !== undefined && count.made >= 0 ? count.made : undefined;
   const rejects = count?.rejects !== undefined && count.rejects > 0 ? count.rejects : 0;
   const missing = [...(planned === undefined ? ['the planned minutes'] : []), ...(made === undefined ? ['the packs made'] : []), ...(rate === undefined ? ['the rate a minute'] : [])];
-  const perHour = cost ? costPerHour(cost) : 0;
-  const money = (min: number) => poundsOf(min, perHour);
+  const perHour = cost ? labourPerHour(cost) : 0;
+  const contrib = contributionOf(cost);
+  /* each bar's pounds, the two parts: the crew standing for its minutes, and
+     the packs its minutes would have made at the rate */
+  const money = (min: number) => ({
+    ...(perHour > 0 ? { labour: (min / 60) * perHour } : {}),
+    ...(contrib && rate !== undefined ? { contribution: min * rate * contrib.perPack } : {}),
+  });
 
   /* the stops in the window, by cause — the changeovers their own bar */
   const rows = obs && count ? inWindow(obs, count.from, count.to) : [];
@@ -173,15 +369,17 @@ export function lossFigures(count: LossCount | undefined, obs?: Observation[], c
   const sum = (xs: Observation[], f: (o: Observation) => number) => xs.reduce((n, o) => n + f(o), 0);
   const byCause: LossBar[] = [...groups.entries()].map(([label, g]): LossBar => {
     const min = sum(g, minsOf), asset = assetOf(g);
-    return { key: `cause:${label}`, kind: 'cause', label, min, stops: sum(g, stopsOf), ...(asset ? { asset } : {}), bone: boneOf(g), grade: gradeOf(g), ...(money(min) !== undefined ? { pounds: money(min) } : {}) };
+    return { key: `cause:${label}`, kind: 'cause', label, min, stops: sum(g, stopsOf), ...(asset ? { asset } : {}), bone: boneOf(g), grade: gradeOf(g), ...money(min) };
   }).sort((a, b) => b.min - a.min || (b.stops ?? 0) - (a.stops ?? 0) || a.label.localeCompare(b.label));
   const stopsMin = byCause.reduce((n, b) => n + b.min, 0);
   const changeoverMin = sum(co, minsOf), changeoverN = sum(co, stopsOf);
+  const running = runningOf(timings);
 
   const base: LossFigures = {
     enough: !missing.length, missing, ...(planned !== undefined ? { plannedMin: planned } : {}), ...(rate !== undefined ? { rate } : {}), ...(made !== undefined ? { made } : {}),
     rejects, split: !!obs, logged: rows.length, stopsN: sum(rows.filter(o => !isChangeover(o)), stopsOf), stopsMin, byCause, changeoverMin, changeoverN,
-    explainedMin: 0, ...(perHour > 0 ? { costPerHour: perHour } : {}), bars: [],
+    explainedMin: 0, ...(running ? { running } : {}), ideal: idealWord(count),
+    ...(perHour > 0 ? { labourPerHour: perHour } : {}), ...(contrib ? { contributionPerPack: contrib.perPack, contributionFrom: contrib.from } : {}), bars: [],
   };
   if (planned === undefined || rate === undefined || made === undefined) return base;
 
@@ -191,17 +389,36 @@ export function lossFigures(count: LossCount | undefined, obs?: Observation[], c
   const lostMin = shortPacks / rate;
   const rejectsMin = rejects / rate;
   const explained = stopsMin + changeoverMin + rejectsMin;
-  const unexplained = Math.max(0, lostMin - explained);
+  const rest = Math.max(0, lostMin - explained);
   const excess = Math.max(0, explained - lostMin);
+  const runMin = Math.max(0, planned - stopsMin - changeoverMin);
+  /* TOLD APART by the running speed: below the ideal speed, the slow
+     running is the run time at the speed it lacked; never more than the
+     rest. On a line a person paces it sits on People, else on Machine. */
+  const slowBone: SixM = count?.rateFrom === 'standard-time' ? 'people' : 'machine';
+  const slowRaw = running ? (running.perMin < rate ? (runMin * (rate - running.perMin)) / rate : 0) : undefined;
+  const slow = obs && slowRaw !== undefined ? Math.min(slowRaw, rest) : undefined;
+  const short = slow !== undefined ? rest - slow : undefined;
+  const tenth = (min: number) => lostMin > 0 && min / lostMin > REST_TENTH && min > 0.5;
+  const restBars: LossBar[] = !obs ? []
+    : slow !== undefined && short !== undefined ? [
+      ...(slow > 0.5 ? [{ key: 'slow', kind: 'slow' as const, label: 'Slow running', min: slow, bone: slowBone, grade: 'measured' as const, ...(tenth(slow) ? { abnormal: true } : {}), ...money(slow) }] : []),
+      ...(short > 0.5 ? [{ key: 'short', kind: 'short' as const, label: 'Short stops', min: short, bone: 'machine' as const, grade: 'none' as const, ...(tenth(short) ? { abnormal: true } : {}), ...money(short) }] : []),
+    ]
+      : rest > 0.5 ? [{ key: 'performance', kind: 'performance' as const, label: 'Slow running and short stops', min: rest, bone: 'machine' as const, grade: 'none' as const, ...(tenth(rest) ? { abnormal: true } : {}), ...money(rest) }] : [];
   const bars: LossBar[] = [
     ...byCause.filter(b => b.min > 0 || (b.stops ?? 0) > 0),
-    ...(changeoverN > 0 ? [{ key: 'changeover', kind: 'changeover' as const, label: 'Changeovers', min: changeoverMin, stops: changeoverN, ...(assetOf(co) ? { asset: assetOf(co) } : {}), bone: boneOf(co), grade: gradeOf(co), ...(money(changeoverMin) !== undefined ? { pounds: money(changeoverMin) } : {}) }] : []),
-    ...(rejects > 0 ? [{ key: 'rejects', kind: 'rejects' as const, label: 'Rejects', min: rejectsMin, packs: rejects, bone: boneOfStop('Quality'), grade: 'counted' as const, ...(money(rejectsMin) !== undefined ? { pounds: money(rejectsMin) } : {}) }] : []),
-    ...(obs && unexplained > 0.5 ? [{ key: 'unexplained', kind: 'unexplained' as const, label: 'Not yet explained', min: unexplained, bone: 'measurement' as const, grade: 'none' as const, ...(money(unexplained) !== undefined ? { pounds: money(unexplained) } : {}) }] : []),
+    ...(changeoverN > 0 ? [{ key: 'changeover', kind: 'changeover' as const, label: 'Changeovers', min: changeoverMin, stops: changeoverN, ...(assetOf(co) ? { asset: assetOf(co) } : {}), bone: boneOf(co), grade: gradeOf(co), ...money(changeoverMin) }] : []),
+    ...(rejects > 0 ? [{ key: 'rejects', kind: 'rejects' as const, label: 'Rejects', min: rejectsMin, packs: rejects, bone: boneOfStop('Quality'), grade: 'counted' as const, ...money(rejectsMin) }] : []),
+    ...restBars,
   ];
+  const total = money(lostMin);
   return {
     ...base, expected, shortPacks, ...(overPacks > 0 ? { overPacks } : {}), lostMin, rejectsMin, explainedMin: explained,
-    ...(obs ? { unexplainedMin: unexplained, ...(excess > 0 ? { excessMin: excess } : {}), ...(lostMin > 0 ? { unexplainedShare: unexplained / lostMin } : {}) } : {}),
+    ...(obs ? { runMin, performanceMin: rest, ...(excess > 0 ? { excessMin: excess } : {}), ...(lostMin > 0 ? { performanceShare: rest / lostMin } : {}) } : {}),
+    ...(slow !== undefined && short !== undefined ? { slowMin: slow, shortMin: short, slowRawMin: slowRaw } : {}),
+    ...(running && running.perMin > rate ? { abovePlate: true } : {}),
+    ...(total.labour !== undefined ? { labour: total.labour } : {}), ...(total.contribution !== undefined ? { contribution: total.contribution } : {}),
     bars,
   };
 }
@@ -214,9 +431,21 @@ export const rateWords = (r: number): string => `${Number.isInteger(r) ? r : r.t
 export const packs = (n: number): string => whole(n).toLocaleString('en-GB');
 /** Whole pounds: "£3,600" (docs/TOOLKIT.md 3.4). */
 export const gbp = (n: number): string => `£${whole(n).toLocaleString('en-GB')}`;
-const inGbp = (n?: number) => (n !== undefined ? ` (${gbp(n)})` : '');
+/** Pounds and pence, for a rate: "£75.40", "£0.04". */
+export const gbp2 = (n: number): string => `£${n.toFixed(2)}`;
 /** Whole minutes: "85 min". */
 export const minWords = (m: number): string => `${whole(m)} min`;
+const num = (n: number) => String(Number(n.toFixed(1)));
+
+/** THE POUNDS IN TWO PARTS, as the sentence says them: "£107 idle labour ·
+ *  £340 lost contribution if it cannot be made up" — '' with no cost. */
+export function moneyWords(labour?: number, contribution?: number): string {
+  return [...(labour !== undefined ? [`${gbp(labour)} idle labour`] : []), ...(contribution !== undefined ? [`${gbp(contribution)} lost contribution if it cannot be made up`] : [])].join(' · ');
+}
+const barMoney = (b: Pick<LossBar, 'labour' | 'contribution'>) => {
+  const p = [...(b.labour !== undefined ? [`${gbp(b.labour)} idle labour`] : []), ...(b.contribution !== undefined ? [`${gbp(b.contribution)} lost contribution`] : [])];
+  return p.length ? ` (${p.join(' · ')})` : '';
+};
 
 /** The shift as the sentence names it: its name, else its window — "the
  *  16:00–04:00 shift" — so a count typed by hand still says which hours. */
@@ -240,8 +469,19 @@ export const windowWords = (c: Pick<LossCount, 'from' | 'to'>): string => {
   return `${hm(c.from)}–${hm(c.to)}`;
 };
 
-/** The unexplained part is abnormal when it is more than a tenth of the loss. */
-export const UNEXPLAINED_TENTH = 0.1;
+/** How the running speed was timed, and what it splits: "Running speed timed
+ *  at 98 a minute over 3 timings (3.5 min): slow running = 380 min run × (100
+ *  − 98) ÷ 100 = 8 min; short stops the rest, 1 min." */
+export function splitWords(f: LossFigures): string | undefined {
+  const r = f.running, rate = f.rate;
+  if (!r || rate === undefined || f.slowMin === undefined || f.shortMin === undefined) return undefined;
+  const timed = `Running speed timed at ${rateWords(r.perMin)} over ${r.n} timing${r.n === 1 ? '' : 's'} (${num(r.min)} min)`;
+  if (f.abovePlate) return `${timed}, above the ${f.ideal} of ${rateWords(rate)} — no slow running; check the ${f.ideal} or the timing.`;
+  const raw = f.slowRawMin ?? 0;
+  const sum = `slow running = ${minWords(f.runMin ?? 0)} run × (${num(rate)} − ${num(r.perMin)}) ÷ ${num(rate)} = ${minWords(raw)}`;
+  if (raw > (f.performanceMin ?? 0) + 0.5) return `${timed}: ${sum} — more than the ${minWords(f.performanceMin ?? 0)} the count leaves; time it again, or check the counts.`;
+  return `${timed}: ${sum}; short stops the rest, ${minWords(f.shortMin)}.`;
+}
 
 export interface LossSays { text: string; tone: Tone; verdict: string; lines: { text: string; tone: Tone }[] }
 
@@ -254,79 +494,101 @@ export function lossSays(f: LossFigures, c?: LossCount, o: { product?: string } 
   }
   const lost = f.lostMin ?? 0, rate = f.rate ?? 0;
   const head = `${who} should have made ${packs(f.expected ?? 0)} at ${rateWords(rate)}; made ${packs(f.made ?? 0)}`;
+  const pounds = moneyWords(f.labour, f.contribution);
   const lines: LossSays['lines'] = [];
   const known: string[] = [];
-  if (c) known.push(`${c.plannedMin !== undefined && c.plannedMin > 0 ? `${whole(c.plannedMin)} planned minutes` : 'the planned minutes'}${c.shift ? ` from ${c.shift}'s window (${windowWords(c)})` : ` in a window typed by hand (${windowWords(c)})`}`);
+  if (c) known.push(plannedOf(c).words);
   known.push('the packs made and the rejects counted');
-  if (c?.rateFrom === 'standard') known.push(`the rate from the line standard${o.product ? ` for ${o.product}` : ''}`);
-  else known.push('the rate typed');
+  known.push(rateKnown(c, o.product));
   if (f.split) known.push(f.logged ? `${f.logged} stop${f.logged === 1 ? '' : 's'} timed in Capture in the window` : 'no stops logged in the window');
+  if (f.labourPerHour !== undefined) known.push(`idle labour ${gbp2(f.labourPerHour)} an hour (crew × wage × on-costs)`);
+  if (f.contributionPerPack !== undefined) known.push(`contribution ${gbp2(f.contributionPerPack)} a pack (${f.contributionFrom === 'price' ? 'price less materials' : 'the line’s margin'})`);
+  const howKnown = { text: `How known: ${known.join(' · ')}.`, tone: 'n' as Tone };
 
   if (f.overPacks && f.overPacks > 0) {
     lines.push({ text: `Made ${packs(f.overPacks)} more than expected at ${rateWords(rate)} — check the rate or the count.`, tone: 'a' });
-    lines.push({ text: `How known: ${known.join(' · ')}.`, tone: 'n' });
+    lines.push(howKnown);
     return { text: `${head} — nothing lost against the rate.`, tone: 'a', verdict: 'Nothing lost', lines };
   }
   if (!f.split) {
-    lines.push({ text: `How known: ${known.join(' · ')}.`, tone: 'n' });
-    return { text: `${head} — ${minWords(lost)} lost${inGbp(poundsOf(lost, f.costPerHour))}. Where it went is read from the line's stops in the window.`, tone: 'n', verdict: `${minWords(lost)} lost`, lines };
+    lines.push(howKnown);
+    return { text: `${head} — ${minWords(lost)} lost.${pounds ? ` ${pounds}.` : ''} Where it went is read from the line's stops in the window.`, tone: 'n', verdict: `${minWords(lost)} lost`, lines };
   }
-  const unex = f.unexplainedMin ?? 0;
+  const rest = f.performanceMin ?? 0;
+  const none = 'no slow running or short stops left over';
+  const restParts = f.excessMin && f.excessMin > 0 ? []
+    : f.slowMin !== undefined && f.shortMin !== undefined
+      ? (f.slowMin > 0.5 || f.shortMin > 0.5
+        ? [...(f.slowMin > 0.5 ? [`${minWords(f.slowMin)} of slow running`] : []), ...(f.shortMin > 0.5 ? [`${minWords(f.shortMin)} of short stops`] : [])]
+        : [none])
+      : [rest > 0.5 ? `${minWords(rest)} of slow running and short stops` : none];
   const parts = [
     `${minWords(f.stopsMin)} of stops`,
     ...(f.changeoverN > 0 ? [`${minWords(f.changeoverMin)} of changeovers`] : []),
     f.rejects > 0 ? `${minWords(f.rejectsMin ?? 0)} of rejects (${packs(f.rejects)} packs)` : 'no rejects',
-    ...(f.excessMin && f.excessMin > 0 ? [] : [unex > 0.5 ? `${minWords(unex)} not yet explained${inGbp(poundsOf(unex, f.costPerHour))}` : 'all of it explained']),
+    ...restParts,
   ];
-  const text = `${head} — ${minWords(lost)} lost${inGbp(poundsOf(lost, f.costPerHour))}: ${parts.join(' · ')}.`;
+  const text = `${head} — ${minWords(lost)} lost: ${parts.join(' · ')}.${pounds ? ` ${pounds}.` : ''}`;
   if (f.excessMin && f.excessMin > 0.5) lines.push({ text: `Stops logged exceed the loss by ${minWords(f.excessMin)} — check the counts.`, tone: 'a' });
   if (lost > 0 && !f.logged) lines.push({ text: 'No stops logged in the window — the Pareto is empty for this shift.', tone: 'n' });
-  if (unex > 0.5) lines.push({ text: 'Not yet explained is what nobody logged — stops missed, and running slow, which is not measured by hand.', tone: 'n' });
-  lines.push({ text: `How known: ${known.join(' · ')}.`, tone: 'n' });
-  const amber = (f.unexplainedShare ?? 0) > UNEXPLAINED_TENTH && unex > 0.5;
-  const tone: Tone = amber || (f.excessMin ?? 0) > 0.5 ? 'a' : 'n';
-  const verdict = lost <= 0 ? 'Nothing lost' : amber ? `${minWords(unex)} not yet explained` : `${minWords(lost)} lost`;
+  const split = splitWords(f);
+  if (split) lines.push({ text: split, tone: f.abovePlate || (f.slowRawMin ?? 0) > rest + 0.5 ? 'a' : 'n' });
+  else if (rest > 0.5) lines.push({ text: `Slow running and short stops is the rest: running below the ${f.ideal}, and stops too short to log — not yet told apart. Time the running speed while it runs to split them.`, tone: 'n' });
+  lines.push(howKnown);
+  const flagged = f.bars.filter(b => b.abnormal).sort((a, b) => b.min - a.min)[0];
+  const tone: Tone = flagged || (f.excessMin ?? 0) > 0.5 ? 'a' : 'n';
+  const verdict = lost <= 0 ? 'Nothing lost' : flagged ? `${minWords(flagged.min)} ${flagged.label.toLowerCase()}` : `${minWords(lost)} lost`;
   return { text, tone, verdict, lines };
 }
 
 /** A bar in its own words — the figure a fix or a countermeasure is raised
- *  with: "Breakdown on the Bagger — 32 min of stops this shift (£168)". */
+ *  with: "Breakdown on the Bagger — 32 min of stops (1 stop) on Shift 1,
+ *  yesterday (£40 idle labour · £128 lost contribution)". */
 export function barWords(b: LossBar, c?: LossCount, now?: number): string {
   const when = c ? ` on ${shiftWords(c)}, ${dayWords(c.from, now)}` : ' this shift';
   const at = b.asset ? ` on the ${b.asset}` : '';
+  const ideal = idealWord(c);
   switch (b.kind) {
-    case 'cause': return `${b.label}${at} — ${minWords(b.min)} of stops (${b.stops ?? 0} stop${b.stops === 1 ? '' : 's'})${when}${inGbp(b.pounds)}`;
-    case 'changeover': return `Changeovers${at} — ${minWords(b.min)} (${b.stops ?? 0})${when}${inGbp(b.pounds)}`;
-    case 'rejects': return `Rejects — ${packs(b.packs ?? 0)} packs, ${minWords(b.min)} at the rate${when}${inGbp(b.pounds)}`;
-    default: return `${minWords(b.min)} not yet explained${when}${inGbp(b.pounds)} — stops not logged, or running slow`;
+    case 'cause': return `${b.label}${at} — ${minWords(b.min)} of stops (${b.stops ?? 0} stop${b.stops === 1 ? '' : 's'})${when}${barMoney(b)}`;
+    case 'changeover': return `Changeovers${at} — ${minWords(b.min)} (${b.stops ?? 0})${when}${barMoney(b)}`;
+    case 'rejects': return `Rejects — ${packs(b.packs ?? 0)} packs, ${minWords(b.min)} at the rate${when}${barMoney(b)}`;
+    case 'slow': return `Slow running — ${minWords(b.min)} below the ${ideal}${when}${barMoney(b)}`;
+    case 'short': return `Short stops — ${minWords(b.min)} of stops too short to log${when}${barMoney(b)}`;
+    default: return `${minWords(b.min)} of slow running and short stops${when}${barMoney(b)} — running below the ${ideal}, and stops too short to log`;
   }
 }
 
 /** What a countermeasure raised from a bar should change — said before it is
  *  done, held against the next shift's count. */
-export function barExpect(b: LossBar): string {
-  if (b.kind === 'unexplained') return 'Every stop logged on the next shift counted — the part not yet explained down';
+export function barExpect(b: LossBar, c?: Pick<LossCount, 'rateFrom'>): string {
+  if (b.kind === 'performance') return `Slow running and short stops: ${minWords(b.min)} a shift — fewer on the next shift counted, the running speed timed to tell them apart`;
+  if (b.kind === 'slow') return `Slow running: ${minWords(b.min)} a shift — the running speed nearer the ${idealWord(c)} on the next shift counted`;
   return `${b.label}${b.asset ? ` on the ${b.asset}` : ''}: ${minWords(b.min)} a shift — fewer on the next shift counted`;
 }
 
 /* ------------------------------------------------------------- before → after */
 
 /** BEFORE → AFTER on two counts of the same shift: lost minutes and the
- *  part not yet explained — and first, when the fix was raised from a bar,
- *  that bar. It says "the number moved", never "the fix did it". */
+ *  slow running and short stops — and first, when the fix was raised from a
+ *  bar, that bar. It says "the number moved", never "the fix did it". */
 export function compareLosses(before: LossFigures, after: LossFigures, bar?: string): { text: string; tone: Tone } {
   if (!before.enough || !after.enough) return { text: 'Too early — the next shift is not counted yet.', tone: 'n' };
   const b = before.lostMin ?? 0, a = after.lostMin ?? 0;
+  const both = before.split && after.split;
+  const key = bar === 'unexplained' ? 'performance' : bar;
   const parts: string[] = [];
-  if (bar) {
-    const x = before.bars.find(y => y.key === bar), y = after.bars.find(z => z.key === bar);
+  if (key === 'performance') {
+    if (both) parts.push(`Slow running and short stops: ${minWords(before.performanceMin ?? 0)} → ${minWords(after.performanceMin ?? 0)}`);
+  } else if (key) {
+    const x = findBar(before.bars, key), y = findBar(after.bars, key);
     const label = x?.label ?? y?.label;
-    if (label) parts.push(`${label}${x?.asset ? ` on the ${x.asset}` : ''}: ${minWords(x?.min ?? 0)} → ${minWords(y?.min ?? 0)}`);
+    const untimed = (key === 'slow' || key === 'short') && after.slowMin === undefined;
+    if (label) parts.push(`${label}${x?.asset ? ` on the ${x.asset}` : ''}: ${minWords(x?.min ?? 0)} → ${untimed ? 'not timed' : minWords(y?.min ?? 0)}`);
   }
   parts.push(whole(a) === whole(b) ? `Lost ${minWords(b)} a shift, no change` : `Lost ${minWords(b)} → ${minWords(a)} a shift`);
-  if (before.split && after.split) {
-    const ub = before.unexplainedMin ?? 0, ua = after.unexplainedMin ?? 0;
-    parts.push(whole(ub) === whole(ua) ? `not yet explained ${minWords(ub)}, no change` : `not yet explained ${minWords(ub)} → ${minWords(ua)}`);
+  if (both && key !== 'performance') {
+    const rb = before.performanceMin ?? 0, ra = after.performanceMin ?? 0;
+    parts.push(whole(rb) === whole(ra) ? `slow running and short stops ${minWords(rb)}, no change` : `slow running and short stops ${minWords(rb)} → ${minWords(ra)}`);
   }
   const tone: Tone = whole(a) < whole(b) ? 'g' : whole(a) > whole(b) ? 'r' : 'n';
   return { text: `${parts.join('; ')}. The number moved; what moved it is the fix's to say.`, tone };
@@ -335,18 +597,18 @@ export function compareLosses(before: LossFigures, after: LossFigures, bar?: str
 /** PROVE IT: the next shift's count, the same shift pattern — the window
  *  moved on by whole days to the latest one that has ended when it is pressed
  *  (a quarter of an hour's grace), never the same shift twice, and the next
- *  day's when none has ended yet; the rate and the planned minutes carried,
- *  nothing counted yet. */
+ *  day's when none has ended yet; the rate, the breaks and the planned
+ *  minutes carried (a day's own change to them not), nothing counted yet. */
 export function nextShift(c: LossCount, at: number): LossCount {
   const k = Math.max(1, Math.floor((at + 15 * 60_000 - c.to) / DAY));
-  const { made: _m, rejects: _r, ...rest } = c;
+  const { made: _m, rejects: _r, plannedWhy, ...rest } = c;
   void _m; void _r;
-  return { ...rest, from: c.from + k * DAY, to: c.to + k * DAY };
+  return { ...rest, ...(plannedWhy !== undefined ? { plannedMin: plannedOf(c).workedOut } : {}), from: c.from + k * DAY, to: c.to + k * DAY };
 }
 
 /** THE STOPS UNDER ONE BAR — what tapping it opens: the stops in the
  *  count's window of that cause (or the changeovers), in the order they
- *  happened. The rejects and the part not yet explained have none. */
+ *  happened. The rejects and the rest have none. */
 export function stopsOfBar(obs: Observation[], c: Pick<LossCount, 'from' | 'to'>, bar: Pick<LossBar, 'kind' | 'label'>, workspaceId?: string): Observation[] {
   const rows = inWindow(obs, c.from, c.to, workspaceId).sort((a, b) => a.startedAt - b.startedAt);
   if (bar.kind === 'changeover') return rows.filter(isChangeover);
@@ -357,35 +619,50 @@ export function stopsOfBar(obs: Observation[], c: Pick<LossCount, 'from' | 'to'>
 /* ---------------------------------------------------------- one line, paper */
 
 /** The count in one line for a card or a row: "Shift 1 yesterday: 85 min
- *  lost · 9 not yet explained". `abnormal` when the unexplained part is over
- *  a tenth, or the counts want checking — the one part that wears amber. */
+ *  lost · 9 min slow running and short stops". `abnormal` when the rest (or
+ *  either part of it) is over a tenth, or the counts want checking — the one
+ *  part that wears amber. */
 export function lossLine(f: LossFigures, c: LossCount, now = Date.now()): { text: string; abnormal: boolean } {
   const when = `${shiftWords(c)} ${dayWords(c.from, now)}`;
   if (!f.enough) return { text: `${when}: not yet counted`, abnormal: false };
   if (f.overPacks && f.overPacks > 0) return { text: `${when}: made ${packs(f.overPacks)} over the rate — check the count`, abnormal: true };
-  const unex = f.unexplainedMin ?? 0;
-  const tail = !f.split ? '' : f.excessMin && f.excessMin > 0.5 ? ` · stops exceed the loss by ${minWords(f.excessMin)}` : unex > 0.5 ? ` · ${minWords(unex)} not yet explained` : ' · all explained';
-  return { text: `${when}: ${minWords(f.lostMin ?? 0)} lost${tail}`, abnormal: ((f.unexplainedShare ?? 0) > UNEXPLAINED_TENTH && unex > 0.5) || (f.excessMin ?? 0) > 0.5 };
+  const rest = f.performanceMin ?? 0;
+  const told = f.slowMin !== undefined && f.shortMin !== undefined
+    ? [...(f.slowMin > 0.5 ? [`${minWords(f.slowMin)} slow running`] : []), ...(f.shortMin > 0.5 ? [`${minWords(f.shortMin)} short stops`] : [])]
+    : rest > 0.5 ? [`${minWords(rest)} slow running and short stops`] : [];
+  const tail = !f.split ? '' : f.excessMin && f.excessMin > 0.5 ? ` · stops exceed the loss by ${minWords(f.excessMin)}` : told.length ? ` · ${told.join(' · ')}` : ' · the stops explain it all';
+  return { text: `${when}: ${minWords(f.lostMin ?? 0)} lost${tail}`, abnormal: f.bars.some(b => b.abnormal) || (f.excessMin ?? 0) > 0.5 };
 }
 
 /** One row of the waterfall as paper says it (lib/report/lossTable): every
  *  figure already in words, so the PDF only draws. */
-export interface LossRow { cause: string; stops: string; minutes: string; pounds: string; kind: LossBar['kind']; abnormal?: boolean }
+export interface LossRow { cause: string; stops: string; minutes: string; labour: string; contribution: string; kind: LossBar['kind']; abnormal?: boolean }
 
-/** THE WATERFALL AS A TABLE: a row per bar — cause · stops · minutes · £ —
- *  and the total lost; the head says what was planned and made. */
-export function lossRows(f: LossFigures): { head: string; rows: LossRow[]; total: { minutes: string; pounds: string } } | undefined {
+const restCause = (b: LossBar, f: LossFigures): string => {
+  if (b.kind === 'slow') return `Slow running — timed at ${rateWords(f.running?.perMin ?? 0)} against the ${f.ideal} of ${rateWords(f.rate ?? 0)}`;
+  if (b.kind === 'short') return 'Short stops — the rest once the slow running is timed: stops too short to log';
+  return `Slow running and short stops — the rest: below the ${f.ideal}, and stops too short to log; not yet told apart`;
+};
+
+/** How the rate is known, on paper: ", the plate speed of the Bagger". */
+const rateSource = (c?: Pick<LossCount, 'rateFrom' | 'rateMachine' | 'ratePerson' | 'rateTimed'>): string =>
+  c?.rateFrom === 'plate' || (c?.rateFrom === 'standard-time' && !c.rateTimed) ? `, the ${paceWords(c)}` : `, ${paceWords(c)}`;
+
+/** THE WATERFALL AS A TABLE: a row per bar — cause · stops · minutes · idle
+ *  labour · lost contribution — and the total lost; the head says how the
+ *  planned minutes and the rate are known, and what was expected and made. */
+export function lossRows(f: LossFigures, c?: LossCount): { head: string; rows: LossRow[]; total: { minutes: string; labour: string; contribution: string } } | undefined {
   if (!f.enough) return undefined;
   const money = (n?: number) => (n !== undefined ? gbp(n) : '');
   const rows: LossRow[] = f.bars.map(b => ({
-    cause: b.kind === 'cause' && b.asset ? `${b.label} — ${b.asset}` : b.kind === 'rejects' ? `Rejects (${packs(b.packs ?? 0)} packs)` : b.label,
-    stops: b.stops !== undefined ? String(b.stops) : '—', minutes: minWords(b.min), pounds: money(b.pounds), kind: b.kind,
-    ...(b.kind === 'unexplained' && (f.unexplainedShare ?? 0) > UNEXPLAINED_TENTH ? { abnormal: true } : {}),
+    cause: b.kind === 'cause' && b.asset ? `${b.label} — ${b.asset}` : b.kind === 'rejects' ? `Rejects (${packs(b.packs ?? 0)} packs)` : isRest(b) ? restCause(b, f) : b.label,
+    stops: b.stops !== undefined ? String(b.stops) : '—', minutes: minWords(b.min), labour: money(b.labour), contribution: money(b.contribution), kind: b.kind,
+    ...(b.abnormal ? { abnormal: true } : {}),
   }));
-  const lost = f.lostMin ?? 0;
+  const planned = c ? `${whole(f.plannedMin ?? 0)} planned minutes (${plannedOf(c).words.replace(/ = \d+ planned$/, '')})` : `${whole(f.plannedMin ?? 0)} planned minutes`;
   return {
-    head: `${whole(f.plannedMin ?? 0)} planned minutes at ${rateWords(f.rate ?? 0)} — ${packs(f.expected ?? 0)} expected, ${packs(f.made ?? 0)} made`,
-    rows, total: { minutes: minWords(lost), pounds: money(poundsOf(lost, f.costPerHour)) },
+    head: `${planned} at ${rateWords(f.rate ?? 0)}${c ? rateSource(c) : ''} — ${packs(f.expected ?? 0)} expected, ${packs(f.made ?? 0)} made`,
+    rows, total: { minutes: minWords(f.lostMin ?? 0), labour: money(f.labour), contribution: money(f.contribution) },
   };
 }
 
@@ -393,13 +670,17 @@ export function lossRows(f: LossFigures): { head: string; rows: LossRow[]; total
  *  every shift's window today and yesterday, the latest one that has ended
  *  (a quarter of an hour's grace, so the count can be made in the last
  *  minutes) — else 06:00–14:00 today, typed, when the line has no shifts; the
- *  planned minutes the window's; the rate the product's standard's when it has
- *  one. Every one is changed on the count itself — they save the taps. */
-export function firstCount(shifts: Shift[], standardRate: number | undefined, t: number): LossCount {
+ *  planned minutes the shift less its breaks (none under relief); the rate
+ *  the bottleneck's ideal speed (rateOf). Every one is changed on the count itself — they
+ *  save the taps. */
+export function firstCount(shifts: Shift[], rate: Omit<RateOf, 'why'> | undefined, t: number): LossCount {
   const days = [todayISO(new Date(t - DAY)), todayISO(new Date(t))];
-  const ended = shifts.flatMap(x => days.flatMap(d => { const w = shiftWindow(x, d); return w && w.to <= t + 15 * 60_000 ? [{ name: x.name, ...w }] : []; }))
+  const ended = shifts.flatMap(x => days.flatMap(d => { const w = shiftWindow(x, d); return w && w.to <= t + 15 * 60_000 ? [{ shift: x, ...w }] : []; }))
     .sort((a, b) => b.to - a.to)[0];
   const w = ended ?? shiftWindow({ start: '06:00', end: '14:00' }, days[1]) ?? { from: t - 8 * 3_600_000, to: t };
-  return { ...(ended ? { shift: ended.name } : {}), from: w.from, to: w.to, plannedMin: Math.round((w.to - w.from) / 60_000),
-    ...(standardRate && standardRate > 0 ? { ratePerMin: standardRate, rateFrom: 'standard' as const } : {}) };
+  const sh = ended?.shift;
+  const breaks = { ...(sh?.breakMin !== undefined && sh.breakMin >= 0 ? { breakMin: sh.breakMin } : {}), ...(sh?.relief ? { relief: true } : {}) };
+  return { ...(sh ? { shift: sh.name } : {}), from: w.from, to: w.to, plannedMin: plannedOf({ from: w.from, to: w.to, ...breaks }).workedOut, ...breaks,
+    ...(rate?.ratePerMin !== undefined && rate.ratePerMin > 0 ? { ratePerMin: rate.ratePerMin, rateFrom: rate.rateFrom ?? 'typed', ...(rate.rateMachine ? { rateMachine: rate.rateMachine } : {}),
+      ...(rate.ratePerson ? { ratePerson: rate.ratePerson } : {}), ...(rate.rateTimed ? { rateTimed: true } : {}) } : {}) };
 }

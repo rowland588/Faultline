@@ -13,6 +13,9 @@ import { supabase } from '../cloud/client';
 import { PeoplePanel } from './PeopleScreen';
 import { TAXONOMIES, type LossTaxonomy } from '../lib/taxonomy';
 import type { Shift } from '../types';
+import { shiftWindow } from '../lib/shifts';
+import { todayISO } from '../lib/weeks';
+import { plannedOf } from '../lib/ie/losses';
 import { Icon } from '../ui/Icon';
 
 function ChipEditor({ title, items, addLabel, usageOf, onAdd, onRename, onDelete, onMove }: {
@@ -130,6 +133,11 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
     const used = usageShift(name);
     if (used > 0 && !window.confirm(`“${name}” is on ${plural(used, 'observation')} — they keep the label, it just leaves the picker. Remove?`)) return;
     void save({ shifts: shifts.filter(s => s.name !== name) });
+  };
+  /* "480 min − 30 min of breaks = 450 planned" — what a loss count starts from */
+  const shiftPlanned = (x: Shift): string => {
+    const w = shiftWindow(x, todayISO());
+    return w ? plannedOf({ ...w, shift: x.name, ...(x.breakMin !== undefined ? { breakMin: x.breakMin } : {}), ...(x.relief ? { relief: true } : {}) }).words : 'add its times to work out its planned minutes';
   };
   const [newShift, setNewShift] = useState('');
   const addShift = () => {
@@ -327,6 +335,8 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
           Name your shifts and every capture gets stamped with one — then Analyse can ask
           "is it the same on every shift?". Add times and the stamp is automatic from the clock
           (overnight windows like 22:00–06:00 are fine); without times the floor picks by tap.
+          Add the breaks the line stops for, and a loss count works out its planned minutes
+          from them — the shift less its breaks, none when relief keeps the line running.
         </p>
         {shifts.map(s => (
           <div key={s.name} className="shift-row">
@@ -339,6 +349,19 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
               onChange={e => patchShift(s.name, { end: e.target.value })} />
             <span className="sub shift-use">{usageShift(s.name) > 0 ? plural(usageShift(s.name), 'entry', 'entries') : ''}</span>
             <button className="chip-x" onClick={() => removeShift(s.name)} aria-label={`Remove ${s.name}`}><Icon name="close" size="0.85em" /></button>
+            {/* THE SHIFT'S PLANNED BREAKS (docs/CAPACITY.md §5): what a loss
+                count takes off the shift for its planned minutes — none when
+                relief keeps the line running. Saved when the box is left. */}
+            <span className="shift-brk">
+              <label className="shift-brk-l">Breaks
+                <input key={`${s.name}:${s.breakMin ?? ''}`} className="text-input shift-min" inputMode="numeric" defaultValue={s.breakMin ?? ''} placeholder="0" aria-label={`${s.name} breaks, minutes`}
+                  onBlur={e => { const v = e.target.value.trim(); const n = v === '' ? undefined : Number(v);
+                    if (n !== undefined && (!Number.isFinite(n) || n < 0)) return;
+                    if (n !== s.breakMin) patchShift(s.name, { breakMin: n }); }} /> min</label>
+              <label className="shift-brk-l"><input type="checkbox" checked={!!s.relief} aria-label={`${s.name}: relief covers the breaks`}
+                onChange={e => patchShift(s.name, { relief: e.target.checked || undefined })} /> relief keeps the line running</label>
+              <span className="sub shift-plan">{shiftPlanned(s)}</span>
+            </span>
           </div>
         ))}
         <div className="row-inline" style={{ marginTop: shifts.length ? 10 : 4 }}>

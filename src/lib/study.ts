@@ -313,18 +313,44 @@ export interface LossCount {
   /** The window, epoch ms — the shift's clock on the day, or typed. */
   from: number;
   to: number;
-  /** Minutes the line was planned to run: the window less planned breaks.
-   *  Pre-filled from the window; a person brings it down. */
+  /** PLANNED PRODUCTION TIME: the shift less its planned stops — the window
+   *  less the breaks the line stops for (docs/CAPACITY.md §5). Worked out
+   *  when the count starts; changed for the day only with `plannedWhy`. */
   plannedMin?: number;
+  /** The breaks the planned minutes were worked out with — the shift's
+   *  (Shift.breakMin), or typed with a window typed by hand. */
+  breakMin?: number;
+  /** Relief covered the breaks: the line ran through them, none came off. */
+  relief?: boolean;
+  /** Why the planned minutes are not the shift less its breaks on this day —
+   *  "stood an hour, no orders" — kept with the count. */
+  plannedWhy?: string;
   /** Good packs out — counted. */
   made?: number;
   /** Packs rejected — counted. */
   rejects?: number;
-  /** The standard rate, packs a minute — the product's agreed figure on its
-   *  line standard (capacity.targetPerMin), or typed; `rateFrom` says which. */
+  /** The rate, packs a minute in the line's unit, that the shift is judged
+   *  against: the ideal speed of the line's slowest station — a machine's
+   *  plate speed, a person's standard time (lib/ie/losses rateOf). */
   ratePerMin?: number;
-  rateFrom?: 'standard' | 'typed';
+  /** Where the rate is from: the plate speed of the machine that sets the
+   *  pace; the standard time of the person who does ('standard-time'); the
+   *  line standard's target, only when no station on the line has an ideal
+   *  speed; or typed. A count made before plate speed reads 'standard' as
+   *  it always did. */
+  rateFrom?: 'plate' | 'standard-time' | 'standard' | 'typed';
+  /** The machine whose plate speed the rate is. */
+  rateMachine?: string;
+  /** The person (a people station) whose standard time the rate is — and
+   *  `rateTimed` when it is their pace as timed, not from the time study. */
+  ratePerson?: string;
+  rateTimed?: boolean;
 }
+
+/** A RUNNING SPEED TIMED on a loss count: the packs counted over a timed
+ *  spell while the line runs (docs/CAPACITY.md §5) — what tells slow running
+ *  from short stops. Each with when and who; struck, never erased. */
+export interface RunTiming { id: string; at: number; by?: string; packs: number; sec: number; struck?: boolean }
 
 /** What it is judged against, by tool — each tool its own key, so a new tool
  *  adds one and changes none. */
@@ -381,6 +407,9 @@ export interface StudyFacts {
   /** A shift's losses: the end-of-shift count (tool 7). The stops are the
    *  line's log in its window, never copied in. */
   losses?: LossCount;
+  /** The running speed timed through that shift — its own list, so two
+   *  phones timing at once both keep theirs. */
+  running?: RunTiming[];
 }
 
 /** What a study is evidence for, inside its job. Both ends write the same
@@ -399,7 +428,8 @@ export interface StudyUse {
    *  waste a fix was raised from, so its before → after is that step's too,
    *  and the step on the grid shows the branch. On a loss count: the bar
    *  (lib/ie/losses LossBar.key — a cause, the changeovers, the rejects, the
-   *  part not yet explained) the record was raised from, the same way. */
+   *  slow running and short stops or either once told apart) the record was
+   *  raised from, the same way. */
   step?: string;
 }
 
@@ -473,5 +503,6 @@ export function factsOf(v: unknown): StudyFacts {
     ...(o.future !== undefined ? { future: listById<FlowStep>(o.future) } : {}),
     ...(o.sequence !== undefined ? { sequence: listById<ChangeoverStep>(o.sequence) } : {}),
     ...(o.products !== undefined ? { products: listById<ChangeoverProduct>(o.products) } : {}),
-    ...(o.taps !== undefined ? { taps: listById<Tap>(o.taps) } : {}) };
+    ...(o.taps !== undefined ? { taps: listById<Tap>(o.taps) } : {}),
+    ...(o.running !== undefined ? { running: listById<RunTiming>(o.running) } : {}) };
 }

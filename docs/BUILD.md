@@ -784,15 +784,21 @@ product's standard's existing `capacity` jsonb.
   `lib/cost`; no cost model, no pounds said.
 - **The arithmetic** (`lib/ie/losses.ts`, tested on the worked example:
   450 × 100 = 45,000; made 36,500 → 85 min lost; 52 stops + 18 changeover +
-  6 rejects explained; 9 **not yet explained**): expected, lost minutes, the
-  minutes by cause, the changeovers as their own bar, the rejects in minutes,
-  the unexplained rest (never below zero — stops exceeding the loss are said,
-  not hidden), pounds per bar. No percentage score, no OEE.
+  6 rejects explained; 9 of **slow running and short stops**): expected at
+  the bottleneck's ideal speed (a machine's plate speed, a person's standard
+  time), the planned minutes the shift less its
+  breaks, lost minutes, the minutes by cause, the changeovers as their own
+  bar, the rejects in minutes, the rest — slow running and short stops,
+  split by the running speed timed (never below zero — stops exceeding the
+  loss are said, not hidden), the pounds in two parts per bar: idle labour
+  and lost contribution (`docs/CAPACITY.md` §5–6). No percentage score, no
+  OEE.
 - **The page:** end of shift, two numbers and the rejects; the waterfall to
-  scale (planned → stops by cause → changeovers → rejects → not yet explained
-  → made), the causes as a table with their stop counts and pounds; the
-  reading sentence; "how known" on every number. Only the abnormal carries
-  colour: the unexplained part is amber over a tenth of the loss.
+  scale (planned → stops by cause → changeovers → rejects → slow running and
+  short stops → made), the causes as a table with their stop counts and the
+  two parts of their pounds; the reading sentence; "how known" on every
+  number. Only the abnormal carries colour: the slow running and short stops
+  amber over a tenth of the loss.
 - **The doors:** Make it better on any bar raises the fix or the countermeasure
   with the figure in its words; Prove it counts the next shift as proof;
   before → after is lost minutes and the unexplained part.

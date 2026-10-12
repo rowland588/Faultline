@@ -63,8 +63,9 @@ export interface Station {
   runningPct?: number;
   /** Percent of what it handles that goes on as good. Default 100. */
   goodPct?: number;
-  /** How the speed is known — the plate, timed by somebody, or a guess. */
-  source?: 'plate' | 'timed' | 'estimate';
+  /** How the speed is known — the plate, timed by somebody, a person's
+   *  standard time from the time study, or a guess. */
+  source?: 'plate' | 'timed' | 'standard' | 'estimate';
   note?: string;
   /** The machine name its stops are logged under, when that is not its name. */
   asset?: string;
@@ -702,7 +703,7 @@ export interface CapacityReportLine {
   }[];
 }
 
-const SOURCE_WORD: Record<NonNullable<Station['source']>, string> = { plate: 'on the plate', timed: 'timed', estimate: 'a guess' };
+const SOURCE_WORD: Record<NonNullable<Station['source']>, string> = { plate: 'on the plate', timed: 'timed', standard: 'standard time, from the time study', estimate: 'a guess' };
 const PER_WORDS: Record<RatePer, string> = { sec: 'a second', min: 'a minute', hour: 'an hour' };
 
 /** One station's detail line for the report — every figure that went into

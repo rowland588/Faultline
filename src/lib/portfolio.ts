@@ -84,7 +84,8 @@ export interface PacedInput {
   gaps?: { lineId: string; line: string; says: string; short?: string }[];
   /** A 6M job's lines' latest shift counted (lib/ie/losses, lib/studyLinks
    *  lossCardLine) — a branch under each line's gap in the control room's
-   *  drawer: "Shift 1 yesterday: 85 min lost · 9 min not yet explained". */
+   *  drawer: "Shift 1 yesterday: 85 min lost · 9 min slow running and short
+   *  stops". */
   losses?: LineLoss[];
   /** Are its lines on target? (lib/onTarget linesOnTarget) */
   onTarget?: OnTarget;
@@ -94,8 +95,8 @@ export interface PacedInput {
   programs?: Program[];
 }
 
-/** One line's latest shift counted, as the control room says it — the part
- *  not yet explained over a tenth of the loss the only abnormal part. */
+/** One line's latest shift counted, as the control room says it — the slow
+ *  running and short stops over a tenth of the loss the only abnormal part. */
 export interface LineLoss { lineId: string; line: string; text: string; abnormal: boolean; href: string }
 
 /** One 6M problem as the control room needs it: enough to say where it is and

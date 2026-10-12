@@ -2,31 +2,42 @@
  * (docs/BUILD.md, E; docs/TOOLKIT.md, Part 4 §7).
  *
  * The question: of what the line should have made this shift, where did the
- * rest go — and how much do we not yet know? The story, driven in a real
- * browser on the seeded jobs (Line 7 on the 6M job: shifts, a cost model, a
- * standard at 100 a minute, stops timed through the last two days) with the
- * real controls:
+ * rest go? The story, driven in a real browser on the seeded jobs (Line 7 on
+ * the 6M job: shifts with their breaks, a cost model, a line standard whose
+ * capacity has the Bagger at 100 a minute on its plate, stops timed through
+ * the last two days) with the real controls — the time model of
+ * docs/CAPACITY.md §5–6:
  *
  *   1  a new count: Tools → Loss count asks the line first; from the line's
- *      board beside the Pareto, "Count a shift" — on the phone — the shift
- *      picked, the window's day, packs made and rejects typed; nothing written
+ *      board beside the Pareto, "Count a shift" — on the phone — the rate the
+ *      plate speed of the Bagger; the shift picked, its planned minutes worked
+ *      out (the shift less its breaks, none off under relief), changed for the
+ *      day only with a reason; packs made and rejects typed; nothing written
  *      while typing; saved once
  *   2  the reading: the sentence, the strip and how each number is known, as
- *      lib/ie/losses says them from the count and the stops in its window;
- *      the waterfall and the causes a bar each
+ *      lib/ie/losses says them from the count and the stops in its window —
+ *      the rest named "slow running and short stops", amber over a tenth;
+ *      the pounds in two parts; the waterfall and the causes a bar each, two
+ *      columns of pounds; the running speed timed (each timing kept as it is
+ *      added, with who; one struck and back) tells the slow running from the
+ *      short stops; the line's settings carry each shift's breaks
  *   3  Make it better from a bar — a countermeasure on the board in the bar's
  *      own figures, on its bone, the count its evidence naming the bar; the
  *      bar says "Being made better"
  *   4  Prove it — the next shift's count, the same shift, linked as proof;
  *      counted (a stop timed in its window, as Capture would)
  *   5  before → after on the countermeasure — the bar, the lost minutes, the
- *      part not yet explained
+ *      slow running and short stops
  *   6  where it shows: the line's board beside the Pareto, the line's card,
  *      the control room's drawer, the fishbone's suggested causes (accepted,
  *      "The loss count" is where it came from)
- *   7  paper: the 6M report's Evidence — the count's table and the
- *      countermeasure's before → after; the stage-gate client report's
- *      Evidence — the seeded count's table
+ *   7  paper: the 6M report's Evidence — the count's table (how the planned
+ *      minutes and the rate are known, idle labour and lost contribution in
+ *      two columns) and the countermeasure's before → after; the stage-gate
+ *      client report's Evidence — the seeded count's table
+ *   8  a line a person paces: a new count takes Op 3's standard time (the
+ *      time study) as its rate when Op 3 is slower than every machine; on a
+ *      guess, typed and said why
  *   and a client reads a count and changes nothing.
  *
  * Every sentence is checked against the module that makes it (lib/ie/losses,
@@ -78,7 +89,7 @@ const truth = id => page.evaluate(async id => {
   const ctx = { observations: s.workspaceId ? await db.listObservations(s.workspaceId) : [], workspaces: s.workspaceId ? [await db.getWorkspace(s.workspaceId)].filter(Boolean) : [] };
   const f = L.lossFiguresOf(s, ctx);
   const said = X.lossSays(f, s.facts.losses, { ...(s.product ? { product: s.product } : {}) });
-  return { s, f, said, rows: X.lossRows(f), line: L.studyLine(s, ctx).text };
+  return { s, f, said, rows: X.lossRows(f, s.facts.losses), line: L.studyLine(s, ctx).text };
 }, id);
 
 await page.goto(`${BASE}/#/`); await page.waitForTimeout(3000);
@@ -99,14 +110,29 @@ const before0 = await page.evaluate(async ws => (await (await import('/src/db.ts
 await page.locator('.sll').getByRole('button', { name: 'Count a shift' }).click(); await page.waitForTimeout(1800);
 const countId = decodeURIComponent(page.url().split('/losses/')[1] ?? '').split(/[?&]/)[0];
 let t = await truth(countId);
-ok(!!countId && !before0.includes(countId) && t?.s.projectId === sd.pacedProjectId && t?.s.workspaceId === sd.line7WsId && t?.s.facts.losses?.ratePerMin === 100 && t?.s.facts.losses?.rateFrom === 'standard',
-  '1 "Count a shift" beside the Pareto: a count on Line 7, on its job, the standard\'s 100 a minute');
+ok(!!countId && !before0.includes(countId) && t?.s.projectId === sd.pacedProjectId && t?.s.workspaceId === sd.line7WsId && t?.s.facts.losses?.ratePerMin === 100 && t?.s.facts.losses?.rateFrom === 'plate' && t?.s.facts.losses?.rateMachine === 'Bagger'
+  && (await words('.lf-rate-why')) === 'plate speed of the Bagger',
+  `1 "Count a shift" beside the Pareto: a count on Line 7, on its job, at 100 a minute — "${await words('.lf-rate-why')}"`);
 ok((await words('.ie-verdict')) === 'Not yet counted' && (await page.locator('.lf-body.is-counting').count()) === 1, '1 not yet counted — on the phone the count comes first');
 /* Shift 2, two days ago: the seeded stops in it (20 min breakdown, 10 min misfeed, 5 min seal fault, 15 min changeover) */
 const twoDaysAgo = await page.evaluate(() => { const d = new Date(Date.now() - 2 * 86_400_000); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; });
+await page.getByRole('radio', { name: 'Nights' }).click(); await page.waitForTimeout(200);
+const nights = await words('.lf-worked');
 await page.getByRole('radio', { name: 'Shift 2' }).click(); await page.waitForTimeout(200);
 await page.getByLabel('The day').fill(twoDaysAgo);
-await page.getByLabel('Planned minutes').fill('450');
+const worked = await words('.lf-worked');
+ok(/^450 planned · 480 min shift − 30 min of breaks/.test(worked ?? '') && /^480 planned · 480 min shift, relief covers the breaks/.test(nights ?? '') && (await page.getByLabel('Planned minutes', { exact: true }).count()) === 0,
+  `1 the planned minutes worked out, not typed: Shift 2 "${worked}"; Nights "${nights}"`);
+/* changed for the day only with a reason — then back to the shift less its breaks */
+await page.getByRole('button', { name: 'Change for the day' }).click(); await page.waitForTimeout(200);
+await page.getByLabel('Planned minutes', { exact: true }).fill('420');
+const blocked = await page.getByRole('button', { name: 'Save the count' }).isDisabled();
+const askWhy = await words('.ie-problem');
+await page.getByLabel('Why the planned minutes differ').fill('stood 30 min — no film');
+const freed = !(await page.getByRole('button', { name: 'Save the count' }).isDisabled());
+await page.getByRole('button', { name: 'Back to the shift less its breaks' }).click(); await page.waitForTimeout(200);
+ok(blocked && /Say why the planned minutes/.test(askWhy ?? '') && freed && (await page.getByLabel('Planned minutes', { exact: true }).count()) === 0,
+  `1 changed for the day: Save waits for the reason — "${askWhy}" — and goes back to the worked-out 450`);
 await page.getByLabel('Packs made').fill('12');
 const typed12 = await page.getByLabel('Packs made').inputValue();
 await page.getByLabel('Packs made').fill('39000');
@@ -114,19 +140,60 @@ await page.getByLabel('Rejects').fill('250');
 const unsaved = (await truth(countId))?.s.facts.losses?.made;
 await page.getByRole('button', { name: 'Save the count' }).click(); await page.waitForTimeout(1200);
 t = await truth(countId);
-ok(typed12 === '12' && unsaved === undefined && t?.s.facts.losses?.made === 39_000 && t?.s.facts.losses?.rejects === 250 && t?.s.facts.losses?.shift === 'Shift 2' && t?.s.facts.losses?.plannedMin === 450,
+ok(typed12 === '12' && unsaved === undefined && t?.s.facts.losses?.made === 39_000 && t?.s.facts.losses?.rejects === 250 && t?.s.facts.losses?.shift === 'Shift 2' && t?.s.facts.losses?.plannedMin === 450
+  && t?.s.facts.losses?.breakMin === 30 && t?.s.facts.losses?.plannedWhy === undefined,
   `1 typed "12" stays 12, nothing written while typing, saved once: ${JSON.stringify({ shift: t?.s.facts.losses?.shift, made: t?.s.facts.losses?.made, rejects: t?.s.facts.losses?.rejects })} — named "${t?.s.name}"`);
 
 /* ---- 2 · the reading ---- */
 {
   const said = await words('.ie-says p.ie-say');
-  ok(said === t.said.text && t.f.lostMin === 60 && Math.round(t.f.unexplainedMin) === 8, `2 the sentence, as the module says: "${said}"`);
-  ok((await words('.ie-verdict')) === t.said.verdict && t.said.tone === 'a' && /is-a/.test(await page.locator('.ie-verdict').getAttribute('class') ?? ''), `2 the verdict — amber, over a tenth not yet explained: "${t.said.verdict}"`);
+  ok(said === t.said.text && t.f.lostMin === 60 && Math.round(t.f.performanceMin) === 8 && /· 8 min of slow running and short stops\. £75 idle labour · £240 lost contribution if it cannot be made up\.$/.test(said ?? ''),
+    `2 the sentence, as the module says — the rest named, the pounds in two parts: "${said}"`);
+  ok((await words('.ie-verdict')) === t.said.verdict && t.said.verdict === '8 min slow running and short stops' && t.said.tone === 'a' && /is-a/.test(await page.locator('.ie-verdict').getAttribute('class') ?? ''),
+    `2 the verdict — amber, the rest over a tenth: "${t.said.verdict}"`);
   const known = (await page.locator('.ie-says .ie-cap').allInnerTexts()).join(' ');
-  ok(t.said.lines.every(l => known.includes(l.text)) && /How known: .*counted .*the rate from the line standard/.test(known), '2 how each number is known — the window, counted, the standard\'s rate, the stops timed');
+  ok(t.said.lines.every(l => known.includes(l.text)) && /How known: 480 min shift − 30 min of breaks = 450 planned · .*counted · the rate is the plate speed of the Bagger · .*idle labour £75\.40 an hour .*contribution £0\.04 a pack \(the line’s margin\)/.test(known),
+    '2 how each number is known — the shift less its breaks, counted, the plate speed of the Bagger, the stops timed, the two costs');
   const rows = await page.locator('.lf-row').count(), bars = await page.locator('.lf-fall .lf-go').count();
-  ok(rows === t.f.bars.length && bars === t.f.bars.length && (await page.locator('.lf-fall.is-rows').count()) === 1, `2 the waterfall (across the phone) and the table: a bar each — ${t.f.bars.map(b => `${b.label} ${Math.round(b.min)}`).join(', ')}`);
+  const heads = (await page.locator('.lf-th').innerText()).replace(/\s+/g, ' ');
+  ok(rows === t.f.bars.length && bars === t.f.bars.length && (await page.locator('.lf-fall.is-rows').count()) === 1 && /Idle labour/i.test(heads) && /Lost contri\S*bution/i.test(heads.replace(/\u00AD/g, '')),
+    `2 the waterfall (across the phone) and the table: a bar each, two columns of pounds — ${t.f.bars.map(b => `${b.label} ${Math.round(b.min)}`).join(', ')}`);
 }
+
+/* ---- 2b · the running speed, timed while it runs ---- */
+{
+  await page.getByLabel('Packs counted').fill('98'); await page.getByLabel('Seconds timed').fill('60');
+  await page.getByRole('button', { name: 'Add the timing' }).click(); await page.waitForTimeout(700);
+  await page.getByLabel('Packs counted').fill('100');
+  await page.getByRole('button', { name: 'Add the timing' }).click(); await page.waitForTimeout(900);
+  t = await truth(countId);
+  const runs = t.s.facts.running ?? [];
+  ok(runs.length === 2 && runs.every(r => r.by && r.at > 0 && r.sec === 60) && t.s.facts.losses?.made === 39_000 && Math.abs(t.f.running.perMin - 99) < 1e-9,
+    `2b two timings kept as they were added, each with when and who (${runs.map(r => `${r.packs} in ${r.sec}s by ${r.by}`).join(', ')}) — 99 a minute`);
+  /* 400 run × (100 − 99) ÷ 100 = 4 min of slow running; the short stops the rest, 3.5 */
+  const said = await words('.ie-says p.ie-say');
+  const known = (await page.locator('.ie-says .ie-cap').allInnerTexts()).join(' ');
+  ok(Math.abs(t.f.slowMin - 4) < 1e-9 && Math.abs(t.f.shortMin - 3.5) < 1e-9 && said === t.said.text && /· 4 min of slow running · 4 min of short stops\./.test(said ?? '')
+    && known.includes('Running speed timed at 99 a minute over 2 timings (2 min): slow running = 400 min run × (100 − 99) ÷ 100 = 4 min; short stops the rest, 4 min.'),
+    `2b told apart: "${said}"`);
+  ok((await words('.ie-verdict')) === '60 min lost' && t.said.tone === 'n' && (await page.locator('.lf-row').filter({ hasText: 'Slow running' }).count()) === 1 && (await page.locator('.lf-row').filter({ hasText: 'Short stops' }).count()) === 1
+    && (await page.locator('.lf-row.is-a').count()) === 0, '2b neither part over a tenth — the verdict neutral, two bars in the table where the rest was');
+  await page.locator('.lf-runs li').filter({ hasText: '100' }).getByRole('button', { name: 'Strike' }).click(); await page.waitForTimeout(800);
+  const struck = await truth(countId);
+  const strikeOk = (await page.locator('.lf-runs li.is-struck').count()) === 1 && Math.abs(struck.f.running.perMin - 98) < 1e-9 && (struck.s.facts.running ?? []).length === 2;
+  await page.locator('.lf-runs li').filter({ hasText: '100' }).getByRole('button', { name: 'Unstrike' }).click(); await page.waitForTimeout(800);
+  t = await truth(countId);
+  ok(strikeOk && Math.abs(t.f.running.perMin - 99) < 1e-9, '2b a timing struck counts for nothing and keeps its place; unstruck, it counts again');
+}
+await go(`#/w/${sd.line7WsId}/settings`);
+{
+  const brk = await page.getByLabel('Shift 1 breaks, minutes').inputValue();
+  const relief = await page.getByLabel('Nights: relief covers the breaks').isChecked();
+  const plan = (await page.locator('.shift-plan').allInnerTexts()).join(' | ');
+  ok(brk === '30' && relief && /480 min shift − 30 min of breaks = 450 planned/.test(plan) && /480 min shift, relief covers the breaks = 480 planned/.test(plan),
+    `2c the line's settings: each shift's breaks and relief — "${plan}"`);
+}
+await go(`#/losses/${countId}`);
 
 /* ---- 3 · Make it better from a bar ---- */
 const actionsBefore = await page.evaluate(async pid => (await (await import('/src/db.ts')).listPaceTodos(pid)).map(x => x.id), sd.pacedProjectId);
@@ -191,7 +258,7 @@ const ba = await page.evaluate(async ([pid, aid]) => {
 }, [sd.pacedProjectId, actionId]);
 await go(`${P}/board?a=${encodeURIComponent(actionId)}`);
 await page.locator('.sl-ba').first().waitFor({ timeout: 10000 }).catch(() => {});
-ok(!!ba && /^Breakdown on the Bagger: 20 min → 6 min; Lost 60 min → 30 min a shift; not yet explained 8 min → 9 min\./.test(ba) && (await words('.sl-ba')) === `Before → after: ${ba}`,
+ok(!!ba && /^Breakdown on the Bagger: 20 min → 6 min; Lost 60 min → 30 min a shift; slow running and short stops 8 min → 9 min\./.test(ba) && (await words('.sl-ba')) === `Before → after: ${ba}`,
   `5 before → after: "${await words('.sl-ba')}"`);
 
 /* ---- 6 · where it shows ---- */
@@ -237,8 +304,10 @@ await page.setViewportSize({ width: 1360, height: 900 });
   const txt = san(pdfText(pdf));
   const has = s => txt.includes(san(s).slice(0, 60));
   t = await truth(countId);
-  ok(has('Evidence') && has(`Loss count - ${t.s.name}`) && has(t.rows.head) && t.rows.rows.every(r => has(r.cause)) && has('CAUSE') && has('MINUTES'),
-    `7 the 6M report: the count in Evidence, its table — "${t.rows.head}", ${t.rows.rows.map(r => r.cause).join(' · ')}`);
+  ok(has('Evidence') && has(`Loss count - ${t.s.name}`) && has(t.rows.head) && /480 min shift − 30 min of breaks\) at 100 a minute, the plate speed of the Bagger/.test(t.rows.head)
+    && t.rows.rows.every(r => has(r.cause)) && has('CAUSE') && has('MINUTES') && has('LABOUR') && has('CONTRIBUTION') && has(t.rows.total.labour) && has(t.rows.total.contribution)
+    && t.rows.rows.some(r => r.cause.startsWith('Slow running — timed at 99 a minute')),
+    `7 the 6M report: the count in Evidence, its table, two columns of pounds — "${t.rows.head}", ${t.rows.rows.map(r => `${r.cause.slice(0, 40)} ${r.labour}/${r.contribution}`).join(' · ')}`);
   ok(has(`Before to after: ${ba}`.slice(0, 60)), '7 the 6M report: the countermeasure\'s before → after');
   await page.getByRole('button', { name: 'Close' }).last().click().catch(() => {});
 }
@@ -254,6 +323,45 @@ await page.setViewportSize({ width: 1360, height: 900 });
   const has = s => txt.includes(san(s).slice(0, 60));
   ok(!!ts?.rows && has('Evidence') && has(`Loss count - ${ts.s.name}`) && has(ts.line.slice(0, 50)) && has(ts.rows.head) && ts.rows.rows.every(r => has(r.cause)) && has(ts.rows.total.minutes),
     `7 the stage-gate client report: the count's sentence and table — "${ts?.rows?.head}"`);
+}
+
+/* ---- 8 · a line a person paces — "plate speed ... unless human" ----
+   Line 9 hand-packs: the Bagger's plate says 100 bags a minute, Op 3 packs a
+   case of 10 every 6.25 s on the time study's standard time — 96 bags a
+   minute, slower than every machine. A new count from Tools takes Op 3's
+   standard time as its rate, and says so; on a guess it is typed, and why. */
+{
+  const hp = await page.evaluate(async () => {
+    const db = await import('/src/db.ts');
+    const ws = await db.createWorkspace('Line 9 — hand pack');
+    await db.updateWorkspace({ ...ws, shifts: [{ name: 'Days', start: '06:00', end: '14:00', breakMin: 30 }] });
+    const t = Date.now(), id = crypto.randomUUID();
+    const std = { id, projectId: '', workspaceId: ws.id, product: 'Hand-packed 5kg', marks: [], sort: 0, createdAt: t, updatedAt: t,
+      capacity: { stations: [
+        { id: 'b', name: 'Bagger', kind: 'machine', unit: 'bags', contains: 1, rate: 100, ratePer: 'min', source: 'plate' },
+        { id: 'o3', name: 'Op 3', kind: 'people', unit: 'cases', contains: 10, cycleSec: 6.25, perCycle: 1, source: 'standard' },
+      ] } };
+    await db.putStandard(std);
+    return { wsId: ws.id, std };
+  });
+  const start = async () => {
+    await go('#/losses');
+    await page.getByRole('button', { name: 'New loss count' }).first().click(); await page.waitForTimeout(500);
+    await page.getByLabel('Which line').selectOption(hp.wsId); await page.waitForTimeout(500);
+    await page.locator('.lt-new input.text-input').last().fill('Hand-packed 5kg');
+    await page.getByRole('button', { name: 'Start it' }).click(); await page.waitForTimeout(1800);
+    return decodeURIComponent(page.url().split('/losses/')[1] ?? '').split(/[?&]/)[0];
+  };
+  const id1 = await start();
+  const t1 = await truth(id1);
+  const c1 = t1?.s.facts.losses;
+  ok(c1?.ratePerMin === 96 && c1.rateFrom === 'standard-time' && c1.ratePerson === 'Op 3' && !c1.rateMachine && (await words('.lf-rate-why')) === 'standard time of Op 3 (the time study)',
+    `8 a person slower than every machine sets the pace: ${c1?.ratePerMin} a minute — "${await words('.lf-rate-why')}"`);
+  await page.evaluate(async std => (await import('/src/db.ts')).putStandard({ ...std, capacity: { stations: std.capacity.stations.map(x => (x.id === 'o3' ? { ...x, source: 'estimate' } : x)) }, updatedAt: Date.now() }), hp.std);
+  const id2 = await start();
+  const c2 = (await truth(id2))?.s.facts.losses;
+  ok(c2?.ratePerMin === undefined && (await words('.lf-rate-why')) === 'typed — Op 3 sets the pace and their speed is a guess — time them in the time study',
+    `8 Op 3 on a guess: no rate offered — "${await words('.lf-rate-why')}"`);
 }
 
 /* ---- a client reads a count and changes nothing ---- */

@@ -142,7 +142,10 @@ const THIRTY = [400.1, 402.6, 401.6, 400.8, 401.5, 401.3, 400.2, 401.9, 400.6, 4
    (Observation, on the line's workspace) and the count at its end. */
 const at6 = (daysAgo: number) => { const d = new Date(Date.now() - daysAgo * DAY); d.setHours(6, 0, 0, 0); return d.getTime(); };
 const shiftOf = (daysAgo: number, o: Partial<LossCount> = {}): LossCount =>
-  ({ shift: 'Shift 1', from: at6(daysAgo), to: at6(daysAgo) + 8 * 3_600_000, plannedMin: 450, ratePerMin: 100, rateFrom: 'standard', ...o });
+  ({ shift: 'Shift 1', from: at6(daysAgo), to: at6(daysAgo) + 8 * 3_600_000, breakMin: 30, plannedMin: 450, ratePerMin: 100, rateFrom: 'plate', rateMachine: 'Bagger', ...o });
+/* the running speed timed through a shift: n timings of a minute or so, by hand */
+const timings = (from: number, perMin: number[], who = 'Lee Carty') =>
+  perMin.map((p, i) => ({ id: uid(), at: from + (1.5 + i * 2) * 3_600_000, by: who, packs: Math.round(p * (i % 2 ? 1.5 : 1)), sec: i % 2 ? 90 : 60 }));
 const lossStop = (wsId: string, from: number, hour: number, mins: number, category: string, subcategory: string, asset: string, note?: string): Observation => ({
   id: uid(), workspaceId: wsId, category, subcategory, asset, shift: 'Shift 1', startedAt: from + hour * 3_600_000, endedAt: from + hour * 3_600_000 + mins * 60_000,
   durationMs: Math.round(mins * 60_000), timing: 'stopwatch', count: 1, ...(note ? { note } : {}), media: [], createdAt: Date.now(), updatedAt: Date.now(),
@@ -438,8 +441,9 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
      the Evidence appendix, twice. */
   if (size === 'huge' && lossFixId) {
     const ws = await createWorkspace('Line 2 — rebuild');
-    await updateWorkspace({ ...ws, shifts: [{ name: 'Shift 1', start: '06:00', end: '14:00' }], crew: 6, labourRatePerHour: 15.2, labourBurden: 1.32, packsPerMin: 100, marginPerPack: 0.05 });
-    const day = shiftOf(3), next = shiftOf(2);
+    await updateWorkspace({ ...ws, shifts: [{ name: 'Shift 1', start: '06:00', end: '14:00', breakMin: 30 }], crew: 6, labourRatePerHour: 15.2, labourBurden: 1.32, packsPerMin: 100, marginPerPack: 0.05 });
+    const bagger = 'Ilapak Vegatronic 6000 vertical form-fill-seal bagger';
+    const day = shiftOf(3, { rateMachine: bagger }), next = shiftOf(2, { rateMachine: bagger });
     const CAUSES: [string, string, string, number][] = [
       ['Breakdown', 'Mechanical', 'Ilapak Vegatronic 6000 vertical form-fill-seal bagger', 26], ['Minor stop', 'Misfeed', 'Ishida CCW-RV-214W multihead weigher', 7],
       ['Minor stop', 'Sensor trip', 'Ishida CCW-RV-214W multihead weigher', 5], ['Waiting', 'No packaging / consumables', 'Brillopak UniPAKer robotic case packer', 9],
@@ -456,7 +460,7 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
       facts: { losses: { ...day, made: 33_400, rejects: 820 } }, uses: [{ id: uid(), kind: 'fix', ref: lossFixId, role: 'evidence', at: day.to, step: 'cause:Breakdown' }],
       startedAt: day.to, createdAt: t, updatedAt: t });
     await putStudy({ id: uid(), tool: 'losses', name: lossName(next), projectId: proj.id, workspaceId: ws.id, product: 'Finest Red 2kg — 60 micron perforated film',
-      facts: { losses: { ...next, made: 38_900, rejects: 410 } }, uses: [{ id: uid(), kind: 'fix', ref: lossFixId, role: 'proof', at: next.to }],
+      facts: { losses: { ...next, made: 38_900, rejects: 410 }, running: timings(next.from, [97, 96, 98], 'Łukasz Wiśniewski-Kowalczyk') }, uses: [{ id: uid(), kind: 'fix', ref: lossFixId, role: 'proof', at: next.to }],
       startedAt: next.to, createdAt: t, updatedAt: t });
   }
 
@@ -671,8 +675,9 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
       causes: [{ id: uid(), m: 'material', text: 'The night shift say the new film reels are wound loose', grade: 'reported', status: 'suspected', whys: [], at: t - DAY, by: 'Rob Scott' }],
     });
     /* Yesterday's Shift 1 counted, two stops timed in it, no cost model on the
-       line — the paper's table with no £ column, and most of it not yet explained. */
-    const c = shiftOf(1, { ratePerMin: 60, plannedMin: 420, made: 23_100, rejects: 90, rateFrom: 'typed' });
+       line — the paper's table with no £ columns, the rate typed, and most of
+       it slow running and short stops not yet told apart. */
+    const c = shiftOf(1, { ratePerMin: 60, breakMin: 60, plannedMin: 420, made: 23_100, rejects: 90, rateFrom: 'typed', rateMachine: undefined });
     await addObservation(lossStop(ws.id, c.from, 2, 14, 'Minor stop', 'Film / packaging snag', 'Bagger', 'film splice'));
     await addObservation(lossStop(ws.id, c.from, 5, 6, 'Breakdown', 'Mechanical', 'Bagger'));
     await putStudy({ id: uid(), tool: 'losses', name: 'Shift 1, yesterday', projectId: proj.id, workspaceId: ws.id, facts: { losses: c }, uses: [], startedAt: c.to, createdAt: t, updatedAt: t });
@@ -1007,7 +1012,7 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
      next day's count as its proof — before → after on the board and in the
      report, the waterfall as a table in the Evidence appendix. */
   if (huge) {
-    await updateWorkspace({ ...wsA, shifts: [{ name: 'Shift 1', start: '06:00', end: '14:00' }], crew: 5, labourRatePerHour: 14.8, labourBurden: 1.3, packsPerMin: 60, marginPerPack: 0.06 });
+    await updateWorkspace({ ...wsA, shifts: [{ name: 'Shift 1', start: '06:00', end: '14:00', breakMin: 30 }], crew: 5, labourRatePerHour: 14.8, labourBurden: 1.3, packsPerMin: 60, marginPerPack: 0.06 });
     const day = shiftOf(4, { ratePerMin: 70 }), next = shiftOf(3, { ratePerMin: 70 });
     for (const [h, mins, cat, sub, asset] of [[1, 34, 'Changeover', 'Size change 2kg to 1.25kg', 'Bagger'], [2.5, 12, 'Minor stop', 'Film tracking', 'Bagger'], [4, 21, 'Breakdown', 'Seal jaw heater', 'Bagger'],
       [5.5, 6, 'Waiting', 'Starved upstream', 'Weigher']] as const) await addObservation(lossStop(wsA.id, day.from, h, mins, cat, sub, asset));
@@ -1020,7 +1025,7 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
       facts: { losses: { ...day, made: 24_600, rejects: 350 } }, uses: [{ id: uid(), kind: 'action', ref: coAct.id, role: 'evidence', at: day.to, step: 'changeover' }],
       startedAt: day.to, createdAt: t, updatedAt: t });
     await putStudy({ id: uid(), tool: 'losses', name: name(next), projectId: proj.id, workspaceId: wsA.id, product: 'Finest Red 2kg',
-      facts: { losses: { ...next, made: 27_300, rejects: 280 } }, uses: [{ id: uid(), kind: 'action', ref: coAct.id, role: 'proof', at: next.to }],
+      facts: { losses: { ...next, made: 27_300, rejects: 280 }, running: timings(next.from, [66, 68]) }, uses: [{ id: uid(), kind: 'action', ref: coAct.id, role: 'proof', at: next.to }],
       startedAt: next.to, createdAt: t, updatedAt: t });
   }
 
@@ -1153,10 +1158,15 @@ export async function seedRandomSixMJob(seed: number): Promise<SixMJob & { lineI
      figure it puts on paper reconciled by the stress run. */
   if (lines.length && rand() < 0.6) {
     const l = pick(lines);
-    const c = shiftOf(Math.floor(rand() * 27), { ratePerMin: 40 + Math.floor(rand() * 60), plannedMin: 300 + Math.floor(rand() * 180), rateFrom: rand() < 0.5 ? 'standard' : 'typed',
+    const from = pick(['plate', 'standard-time', 'standard', 'typed'] as const);
+    const c = shiftOf(Math.floor(rand() * 27), { ratePerMin: 40 + Math.floor(rand() * 60), plannedMin: 300 + Math.floor(rand() * 180), rateFrom: from,
+      rateMachine: from === 'plate' ? pick(['Bagger', ...AWKWARD.filter(Boolean)]) : undefined,
+      ...(from === 'standard-time' ? { ratePerson: pick(['Op 3', ...AWKWARD.filter(Boolean)]), ...(rand() < 0.5 ? { rateTimed: true } : {}) } : {}), breakMin: pick([0, 20, 30, 45, 60]), ...(rand() < 0.2 ? { relief: true } : {}),
+      ...(rand() < 0.5 ? { plannedWhy: pick(AWKWARD) || 'stood for orders' } : {}),
       ...(rand() < 0.15 ? {} : { made: Math.floor(rand() * 40_000) }), ...(rand() < 0.5 ? { rejects: Math.floor(rand() * 900) } : {}), ...(rand() < 0.3 ? { shift: pick(AWKWARD).trim() || undefined } : {}) });
+    const run = rand() < 0.4 ? timings(c.from, Array.from({ length: 1 + Math.floor(rand() * 4) }, () => Math.max(1, (c.ratePerMin ?? 60) * (0.8 + rand() * 0.25))), pick(['Lee Carty', ...AWKWARD.filter(Boolean)])) : undefined;
     await putStudy({ id: uid(), tool: 'losses', name: rand() < 0.2 ? pick(AWKWARD) || 'Loss count' : 'Loss count', projectId: proj.id, workspaceId: l.workspaceId as string,
-      facts: { losses: c }, uses: [], startedAt: c.to, createdAt: t, updatedAt: t });
+      facts: { losses: c, ...(run ? { running: run } : {}) }, uses: [], startedAt: c.to, createdAt: t, updatedAt: t });
   }
   return { projectId: proj.id, lineId: lines[0]?.id as string };
 }

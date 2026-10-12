@@ -449,8 +449,8 @@ function LineCard({ line, pack, projectId, series, balance, work, flow, change, 
    *  how often each product can run; a branch under the flow. */
   change?: { text: string; tone: string; href: string };
   /** The line's latest shift counted (lib/ie/losses) — how much of its loss
-   *  the stops explain, a branch under the flow. Amber only when the part
-   *  not yet explained is over a tenth of the loss. */
+   *  the stops explain, a branch under the flow. Amber only when the slow
+   *  running and short stops are over a tenth of the loss. */
   shift?: { text: string; abnormal: boolean; href: string };
   /** Where this line stands on the measure the project leads on — the first one
    *  its own list names. Absent on a project that has not named one yet, and the

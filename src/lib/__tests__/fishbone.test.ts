@@ -309,7 +309,7 @@ describe('suggestionsFor — the walk, the standard, the balance, materials, pro
     expect(suggestionsFor(whole, data({ studies: [co({ workspaceId: 'ws2' })] }), TODAY).some(x => x.source.tool === 'changeover')).toBe(false);
   });
 
-  it('the line\'s latest shift counted → its biggest explained bars, each on its bone; the part not yet explained never offered (tool 7)', () => {
+  it('the line\'s latest shift counted → its biggest bars, each on its bone; the slow running and short stops only once told apart (tool 7)', () => {
     const from = at(1, 6), to = from + 8 * 3_600_000;
     const stops = [
       ob({ daysAgo: 1, mins: 32, category: 'Breakdown', asset: 'Bagger', causeM: 'machine' }),
@@ -318,7 +318,7 @@ describe('suggestionsFor — the walk, the standard, the balance, materials, pro
       ob({ daysAgo: 1, mins: 3, category: 'Waiting', subcategory: 'No labour', asset: 'Whole line' }),
     ].map((o, i) => ({ ...o, startedAt: from + (i + 1) * 3_600_000 }));
     const count = (o: Partial<ToolStudy> = {}): ToolStudy => ({ id: 'lc', tool: 'losses', name: 'Shift 1', projectId: 'P', workspaceId: 'ws1', uses: [], startedAt: to, createdAt: 1, updatedAt: 1,
-      facts: { losses: { shift: 'Shift 1', from, to, plannedMin: 450, made: 36_500, rejects: 600, ratePerMin: 100 } }, ...o });
+      facts: { losses: { shift: 'Shift 1', from, to, breakMin: 30, plannedMin: 450, made: 36_500, rejects: 600, ratePerMin: 100, rateFrom: 'plate', rateMachine: 'Bagger' } }, ...o });
     const whole = problem({ source: undefined });
     const s = suggestionsFor(whole, data({ observations: stops, studies: [count()] }), TODAY).filter(x => x.source.kind === 'study');
     const day = new Date(from).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
@@ -327,7 +327,20 @@ describe('suggestionsFor — the walk, the standard, the balance, materials, pro
       ['machine', `Minor stop on the Checkweigher — 20 min of the 85 min lost on Shift 1, ${day}`, 'measured', 'lc#cause:Minor stop', 'losses'],
       ['method', `Changeovers on the Bagger — 18 min of the 85 min lost on Shift 1, ${day}`, 'reported', 'lc#changeover', 'losses'],
     ]);
-    expect(s[0].detail).toBe(`Loss count: Shift 1, ${day} — 85 min lost, 6 min not yet explained`);   // 85 − (55 of stops + 18 + 6)
+    expect(s[0].detail).toBe(`Loss count: Shift 1, ${day} — 85 min lost, 6 min of slow running and short stops, not yet told apart`);   // 85 − (55 of stops + 18 + 6)
+    /* told apart by the running speed timed — 110 min lost, 31 the rest, timed at 95 a minute: 377 run × 5 ÷ 100 = 18.85 slow
+       running, the biggest after the breakdown and the minor stops, on Machine; 12.15 short stops, not in the three */
+    const timedCount = (made: number, running?: { id: string; at: number; packs: number; sec: number }[]) => count({ facts: { losses: { ...count().facts.losses!, made }, ...(running ? { running } : {}) } });
+    const split = suggestionsFor(whole, data({ observations: stops, studies: [timedCount(34_000, [{ id: 'r', at: from + 3_600_000, packs: 95, sec: 60 }])] }), TODAY).filter(x => x.source.tool === 'losses');
+    expect(split.map(x => [x.m, x.source.ref, x.grade])).toEqual([['machine', 'lc#cause:Breakdown', 'measured'], ['machine', 'lc#cause:Minor stop', 'measured'], ['machine', 'lc#slow', 'measured']]);
+    expect(split[2].text).toBe(`Slow running below the Bagger’s plate speed — 19 min of the 110 min lost on Shift 1, ${day}`);
+    /* a person paces the line: the slow running is theirs, on People */
+    const byOp3 = count({ facts: { losses: { ...count().facts.losses!, made: 34_000, rateFrom: 'standard-time', rateMachine: undefined, ratePerson: 'Op 3' }, running: [{ id: 'r', at: from + 3_600_000, packs: 95, sec: 60 }] } });
+    const op3 = suggestionsFor(whole, data({ observations: stops, studies: [byOp3] }), TODAY).filter(x => x.source.ref === 'lc#slow');
+    expect(op3.map(x => [x.m, x.text])).toEqual([['people', `Slow running below Op 3’s standard-time pace — 19 min of the 110 min lost on Shift 1, ${day}`]]);
+    /* the same 31 not told apart: never offered */
+    expect(suggestionsFor(whole, data({ observations: stops, studies: [timedCount(34_000)] }), TODAY).filter(x => x.source.tool === 'losses').map(x => x.source.ref))
+      .toEqual(['lc#cause:Breakdown', 'lc#cause:Minor stop', 'lc#changeover']);
     /* about one machine: only its bars */
     const onBagger = suggestionsFor(problem({ source: { kind: 'pareto', category: 'Breakdown', asset: 'Bagger' } }), data({ observations: stops, studies: [count()] }), TODAY).filter(x => x.source.tool === 'losses');
     expect(onBagger.map(x => x.source.ref)).toEqual(['lc#cause:Breakdown', 'lc#changeover']);

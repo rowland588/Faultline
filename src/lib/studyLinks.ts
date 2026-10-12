@@ -20,7 +20,7 @@ import { balance, balanceLine, compareBalances, secs as secsOf } from './ie/bala
 import { carryFlow, compareFlows, compareStep, dur as durOf, flowFigures, flowSays, share as shareOf, stepAt, stepFigure, whoOf } from './ie/steps';
 import { actionWords, availableOf, carrySequence, changeoverSays, compareChangeovers, figuresOf, intervalOf, intervalSays, ladderOf, ladderSays, mins, stepFigure as changeoverStepFigure } from './ie/changeover';
 import { samplingSays, samplingWorst, worstWords } from './ie/sampling';
-import { barExpect, barWords, compareLosses, inWindow, lossFigures, lossLine, lossSays, nextShift, type CostModel, type LossFigures } from './ie/losses';
+import { barExpect, barWords, compareLosses, findBar, inWindow, lossFigures, lossLine, lossSays, nextShift, type CostModel, type LossFigures } from './ie/losses';
 
 const live = (ss: ToolStudy[]) => ss.filter(s => !s.deletedAt);
 
@@ -39,13 +39,13 @@ export interface StudyContext {
 export function lossFiguresOf(s: ToolStudy, ctx?: StudyContext): LossFigures {
   const c = s.facts.losses;
   const obs = ctx?.observations && c ? inWindow(ctx.observations, c.from, c.to, s.workspaceId) : undefined;
-  return lossFigures(c, obs, ctx?.workspaces?.find(w => w.id === s.workspaceId));
+  return lossFigures(c, obs, ctx?.workspaces?.find(w => w.id === s.workspaceId), s.facts.running);
 }
 
 /** The bar of a loss count a record was raised from (StudyUse.step), as it stands. */
 export function barOf(s: ToolStudy, kind: StudyUse['kind'], ref: ID, ctx?: StudyContext) {
   const key = s.uses.find(u => u.kind === kind && u.ref === ref && u.role === 'evidence' && u.step)?.step;
-  return key ? lossFiguresOf(s, ctx).bars.find(b => b.key === key) : undefined;
+  return key ? findBar(lossFiguresOf(s, ctx).bars, key) : undefined;
 }
 
 /** The studies linked to one record, newest first. */
@@ -150,9 +150,9 @@ export const currentLosses = (studies: ToolStudy[], workspaceId: ID): ToolStudy 
     .sort((a, b) => (b.facts.losses?.from ?? 0) - (a.facts.losses?.from ?? 0))[0];
 
 /** A line's latest shift in one line, for its card, the Pareto's pane and
- *  the control room: "Shift 1 yesterday: 85 min lost · 9 min not yet
- *  explained". Only the abnormal part (over a tenth not yet explained, or
- *  the counts wanting checking) wears amber. */
+ *  the control room: "Shift 1 yesterday: 85 min lost · 9 min slow running
+ *  and short stops". Only the abnormal part (the rest over a tenth of the
+ *  loss, or the counts wanting checking) wears amber. */
 export function lossCardLine(s: ToolStudy, ctx?: StudyContext, now = Date.now()): { text: string; abnormal: boolean } | undefined {
   const c = s.facts.losses;
   return c ? lossLine(lossFiguresOf(s, ctx), c, now) : undefined;
@@ -211,7 +211,7 @@ export function beforeAfter(studies: ToolStudy[], fixId: ID, kind: FixKind = 'fi
   const before = linkedTo(studies, kind, fixId, 'evidence').find(b => sameScope(b, after));
   if (before && after.tool === 'losses') {
     /* the next shift counted: the bar the fix was raised from first, then
-       the lost minutes and the part not yet explained */
+       the lost minutes and the slow running and short stops */
     const bar = before.uses.find(u => u.kind === kind && u.ref === fixId && u.role === 'evidence' && u.step)?.step;
     return { ...compareLosses(lossFiguresOf(before, ctx), lossFiguresOf(after, ctx), bar), before, after };
   }
@@ -348,8 +348,8 @@ export const ROLE_WORD: Record<string, string> = {
  *  is done, so "Did it work" has something to be held against. */
 export function betterExpect(s: ToolStudy, stepId?: string, ctx?: StudyContext): string | undefined {
   if (s.tool === 'losses') {
-    const b = stepId ? lossFiguresOf(s, ctx).bars.find(x => x.key === stepId) : undefined;
-    return b ? barExpect(b) : undefined;
+    const b = stepId ? findBar(lossFiguresOf(s, ctx).bars, stepId) : undefined;
+    return b ? barExpect(b, s.facts.losses) : undefined;
   }
   if (s.tool === 'changeover') {
     /* what the SMED action should change, held against the changeover timed again */
@@ -382,7 +382,7 @@ export function countermeasureFrom(s: ToolStudy, x: { id: string; at: number; li
   const st = x.step && s.tool === 'map' ? (s.facts.flow ?? []).find(f => f.id === x.step) : undefined;
   const co = s.tool === 'changeover' && x.step ? (s.facts.sequence ?? []).find(f => f.id === x.step) : undefined;
   /* a loss count's bar: on the bone its stops sit on, where its minutes are */
-  const bar = x.step && s.tool === 'losses' ? lossFiguresOf(s, ctx).bars.find(b => b.key === x.step) : undefined;
+  const bar = x.step && s.tool === 'losses' ? findBar(lossFiguresOf(s, ctx).bars, x.step) : undefined;
   return {
     id: x.id, ...(s.projectId ? { projectId: s.projectId } : {}), ...(x.lineId ? { lineId: x.lineId } : {}),
     what: betterWords(s, x.step, ctx), where: st ? stepAt(st, s.agreed?.map) : co ? (co.where?.trim() || s.machine || '') : bar?.asset ?? '', why: studyTitle(s), who: '', when: '', state: 'todo',
@@ -485,8 +485,9 @@ export function betterWords(s: ToolStudy, stepId?: string, ctx?: StudyContext): 
   if (co) return `${co.name.trim() || 'An element'} — ${actionWords(co)}`;
   if (s.tool === 'losses') {
     /* a bar of the waterfall in its own figures — "Breakdown on the Bagger —
-       32 min of stops (1 stop) on Shift 1, yesterday (£168)" */
-    const b = stepId ? lossFiguresOf(s, ctx).bars.find(x => x.key === stepId) : undefined;
+       32 min of stops (1 stop) on Shift 1, yesterday (£40 idle labour · £128
+       lost contribution)" */
+    const b = stepId ? findBar(lossFiguresOf(s, ctx).bars, stepId) : undefined;
     if (b) return barWords(b, s.facts.losses);
   }
   const said = studySays(s, ctx);

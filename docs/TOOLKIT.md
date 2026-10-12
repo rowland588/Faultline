@@ -219,7 +219,7 @@ module then compares them, `compare(before, after) → { text, tone }`:
 | Value stream | lead time and the share that adds value: "6.2 d → 2.1 d" |
 | Work balance | balance efficiency, and the constraint's time against takt |
 | Changeover | minutes: "42 → 27 min" |
-| Loss count | lost minutes a shift, and the part not yet explained |
+| Loss count | lost minutes a shift, and the slow running and short stops |
 | Sampling | the share walking or waiting |
 | Ergonomics | the score's band: "high → low" |
 
@@ -418,7 +418,7 @@ outside" is red; "Cpk 0.67" is amber with its word.
 | Work sampling | each share | N ≥ Z²p(1−p) ÷ E² for the margin wanted | "30% ±9 points from 100 taps — 223 more for ±5" |
 | Ramp-up | the date it meets rate | 3 runs or more | "too early — 2 runs" |
 | Pace | the forecast | 5 stages finished or more | "too early to tell" |
-| A shift's losses | the waterfall | every stop in the shift logged | "9 min not yet explained" |
+| A shift's losses | the waterfall | every stop in the shift logged; the running speed timed | "9 min of slow running and short stops" |
 | Proof after a change | did it work | `lib/proof` / `lib/measureProof` targetN | as today |
 
 ## How known — the marks
@@ -445,7 +445,7 @@ Each is tested by the worked example in the appendix of `docs/LEAN40.md`.
 | `balance.ts` | takt; fewest people; balance efficiency, delay, smoothness; the person who is the constraint; a ranked-positional-weight suggestion | `steps` |
 | `cycle.ts` | the person–machine cycle against takt; idle each side; machines per person; cost per piece either side | `cost` |
 | `changeover.ts` | minutes now; minutes if external work is moved out; capacity bought back; every-product-every interval | `steps` |
-| `losses.ts` | expected packs, lost minutes, explained by cause, not yet explained; pounds | `cost`, `capacity.stopStats` |
+| `losses.ts` | expected packs at plate speed, lost minutes, explained by cause, slow running and short stops; idle labour and lost contribution | `cost`, `capacity` |
 | `rampUp.ts` | the learning rate from runs; the date rate is met | `run` |
 | `pace.ts` | earned schedule for the stage gate: earned days, pace, forecast | `install`, `weeks` |
 | `mix.ts` | throughput per constraint minute; ranking; the constraint's week filled | `capacity`, `cost` |
@@ -604,7 +604,7 @@ marks. Class names are a proposal (`ie-…`).
 | 8 | **Two lanes** `ie-lanes` | person and machine as two lanes in sequence against takt; idle hatched | right | full width | under the strip | operator's cycle |
 | 9 | **Dots between limits** `ie-dots` | readings in order; two limit lines; the mean dashed; nominal; outside dots red; the packers' bands light | right | full width, grows as readings land | small block in the account | measured test |
 | 10 | **Laps** `ie-laps` | a row of dots per element around its mean tick; a far lap ringed; tap to keep or strike | right | one row per card | — (figures only) | time study |
-| 11 | **Waterfall** `ie-fall` | planned → each loss down → made; "not yet explained" hatched grey; £ under minutes | right | full width | under the strip | a shift's losses |
+| 11 | **Waterfall** `ie-fall` | planned → each loss down → made; what nobody logged (slow running and short stops) hatched grey | right | full width | under the strip | a shift's losses |
 | 12 | **Climb** `ie-climb` | runs as dots against days; the rate line; the fit dashed; the meet date labelled "at this climb" | right | full width | under the strip | ramp-up, pace |
 | 13 | **Ranked bars** | the existing Pareto | as today | as today | as today | mix, cost deployment, sampling shares |
 | 14 | **Split bar** `ie-split` | internal \| external; before over after | right | full width | under the strip | changeover |
@@ -1144,39 +1144,79 @@ it is changed from, inside the existing jsonb.
 ## 7. A shift's losses, by hand — and what they cost
 
 **The question.** Of what the line should have made, where did the rest
-go — and how much do we not yet know?
+go? The time model is the practice's (`docs/CAPACITY.md` §5–6), counted by
+hand; Rowland, 12 October: "we go by plate speed ... of course, unless
+human."
 
-**Used.** At the end of the shift, two numbers on the line's measures (the
-app already keeps measures and readings per line): **packs made** and
-**planned minutes** (or the shift's window less its planned breaks, from
-`lib/shifts`). The stops were logged in Capture through the shift; the
-rejects are a reading or a stop category. The waterfall draws itself:
-planned → stops by cause → changeovers → rejects → slow running → **not yet
-explained** → made. The pounds come from `lib/cost`. **Make it better** on
-any bar raises the countermeasure with the figure in its words, as the
-Pareto does today (`lib/lossContext`).
+**Used.** At the end of the shift, on the phone: the shift picked (or the
+window typed), **good packs made** and **rejects** typed. The **planned
+minutes** are worked out — the shift less its planned breaks, from the
+line's settings (each shift carries its breaks, and whether relief keeps
+the line running through them: then none come off) — and changed for the
+day only with a reason kept beside them. The **rate** is the
+bottleneck's **ideal speed** — the slowest station on the line's capacity
+at running speed, in the line's unit (the product's line standard, else
+the job line's balance): a machine at its **plate speed**, a person at
+their **standard time** (from the time study, or their pace as timed) —
+said "plate speed of the Bagger", "standard time of Op 3 (the time
+study)" or "Op 3's timed pace"; the standard's target only when no
+station on the line has an ideal speed, said "not a plate speed"; else
+typed, and why (a pace-setter on a guess). The stops were
+logged in Capture through the shift. While it runs, the **running speed**
+is timed — the packs off the line in a timed minute, a list, each with
+when and who. The waterfall draws itself: planned → stops by cause →
+changeovers → rejects → **slow running and short stops** → made. **Make
+it better** on any bar raises the countermeasure with the figure in its
+words.
 
-**Facts.** A loss-count study's `facts` (the shift, planned minutes, packs
-made, rejects, the rate); the
-`Observation` stops in the window; the product's standard rate.
+**Facts.** A loss-count study's `facts.losses` (the shift, the window, its
+breaks and relief, the planned minutes and why when changed, packs made,
+rejects, the rate and where it is from — `rateFrom` plate · standard-time ·
+standard · typed, with `rateMachine` or `ratePerson`) and `facts.running` (the timings, id-keyed, struck
+never erased); the `Observation` stops in the window; the line's cost
+model.
 
-**Figures** (`lib/ie/losses.ts`): expected = planned × rate; lost minutes =
-(expected − made) ÷ rate; explained by cause from the stops; rejects ÷
-rate; the rest **not yet explained**; pounds per bar.
+**Figures** (`lib/ie/losses.ts`): expected = planned × the ideal speed; lost
+minutes = (expected − good) ÷ rate; the stops by cause and the changeovers
+(availability) — planned less them is the **run time**; rejects ÷ rate
+(quality); the rest is the performance loss, **slow running and short
+stops** — running below the ideal speed and stops too short to log, not
+yet told apart. With the running speed timed: slow running = run time ×
+(ideal − running speed) ÷ ideal, never more than the rest — on People
+when a person paces the line; short stops what is left. The pounds in **two parts**, never one blended figure: idle
+labour (crew × wage × on-costs × minutes) and lost contribution (packs not
+made × price less materials a pack, or the line's margin a pack) — "if it
+cannot be made up". No cost on the line, no pounds.
 
 **Reading.** *"Shift 1 should have made 45,000 at 100 a minute; made
-36,500 — 85 minutes lost (£3,600): 52 stops · 18 changeover · 6 rejects ·
-**9 not yet explained** (£380)."* The unexplained part is amber when it is more than a
-tenth of the loss; it is never hidden and there is no percentage score.
+36,500 — 85 min lost: 52 min of stops · 18 min of changeovers · 6 min of
+rejects (600 packs) · 9 min of slow running and short stops. £107 idle
+labour · £340 lost contribution if it cannot be made up."* Under it, how
+every number is known: "480 min shift − 30 min of breaks = 450 planned ·
+the rate is the plate speed of the Bagger · …". The rest — or either part
+of it once timed — is amber when it is more than a tenth of the loss; it
+is never hidden and there is no percentage score.
 
 **Looks like.** The waterfall right; the causes as a table left, each with
-its stops count and its pounds. Phone: full width. Paper: the pace
-report's page.
+its stops, its minutes, its idle labour and its lost contribution; the
+count under them, the running speed beside it. Phone: full width, the
+count first until it is in. Paper: the table — the head says how the
+planned minutes and the rate are known; two columns of pounds.
 
-**Shows up.** The line's board beside the Pareto; the 6M's gap and bones;
-the line's row in the control room.
+**Shows up.** The line's board beside the Pareto; the line's card; the
+line's row in the control room; the fishbone's suggested causes (the
+biggest bars on their bones — slow running and short stops only once
+told apart, the slow running on Machine or, when a person paces the line,
+on People); the line's settings (each shift's breaks); the 6M
+and client reports' Evidence.
 
-**Proved by.** 450 × 100, 36,500, 85 min, 52 + 18 + 6, 9 unexplained.
+**Proved by.** 480 − 30 = 450; 450 × 100, 36,500, 85 min, 52 + 18 + 6,
+9 of slow running and short stops; 380 run × (100 − 98) ÷ 100 = 7.6 slow
+running, 1.4 short stops; 4 × £14.50 × 1.3 = £75.40 an hour × 85 ÷ 60 =
+£107 idle labour, 8,500 × £0.04 = £340 lost contribution; and with Op 3
+packing a case of 10 every 6.25 s, 96 a minute, slower than every machine:
+450 × 96, 90 lost, 14 the rest, 380 × (96 − 93.2) ÷ 96 = 11.08 slow
+running on People.
 
 **Cost deployment** is the same figures across weeks, in pounds, ranked:
 the existing Pareto in £, each loss pointed at its cause on the fish, and

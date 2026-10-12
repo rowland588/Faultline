@@ -19,11 +19,12 @@ import { now, uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import { Sheet } from '../ui/Sheet';
 import { sample, sampleSays } from '../lib/ie/sample';
-import { studyHref, type StudyContext } from '../lib/studyLinks';
+import { lossFiguresOf, studyHref, type StudyContext } from '../lib/studyLinks';
+import { rateForCount } from '../ui/ShiftLosses';
 import { dur, flowFigures, share } from '../lib/ie/steps';
 import { changeoverFigures, changeoverSays, figuresOf, mins } from '../lib/ie/changeover';
 import { samplingSays } from '../lib/ie/sampling';
-import { firstCount, inWindow, lossFigures, lossLine, windowWords } from '../lib/ie/losses';
+import { firstCount, lossLine, windowWords } from '../lib/ie/losses';
 import type { StudyTool, ToolStudy } from '../lib/study';
 import type { Observation, Workspace } from '../types';
 
@@ -106,8 +107,7 @@ export function studyLine(s: ToolStudy, ctx?: StudyContext): { text: string; ton
   if (s.tool === 'losses') {
     const c = s.facts.losses;
     if (!c) return { text: 'not yet counted', tone: 'n' };
-    const obs = ctx?.observations ? inWindow(ctx.observations, c.from, c.to, s.workspaceId) : undefined;
-    const l = lossLine(lossFigures(c, obs, ctx?.workspaces?.find(w => w.id === s.workspaceId)), c);
+    const l = lossLine(lossFiguresOf(s, ctx), c);
     return { text: l.text, tone: l.abnormal ? 'a' : 'n' };
   }
   const a = s.agreed?.readings;
@@ -247,11 +247,14 @@ function NewStudy({ open, tool, onClose }: { open: boolean; tool: StudyTool; onC
       const second = machine.trim() ? (isLine ? { product: machine.trim() } : { machine: machine.trim() }) : {};
       /* A line's map sits on the line, and on its product's line standard when
          there is one — its people are the lanes; a loss count takes the
-         standard's agreed rate (capacity.targetPerMin) as its rate. */
+         ideal speed of the line's slowest station as its rate — a machine's
+         plate speed, a person's standard time (the
+         standard's capacity, else the job line's), the shift less its breaks
+         as its planned minutes. */
       const std = isLine ? standards.find(x => !x.deletedAt && x.product.trim().toLowerCase() === machine.trim().toLowerCase()) : undefined;
       const s: ToolStudy = { id: uid(), tool, name: name.trim() || (tool === 'losses' ? 'Loss count' : ''), ...second,
         ...(isLine ? { workspaceId: lineId } : {}), ...(tool === 'map' ? { agreed: { map: { scope: 'line' as const } } } : {}), ...(std ? { standardId: std.id } : {}),
-        facts: tool === 'losses' ? { losses: firstCount(lines.find(l => l.id === lineId)?.shifts ?? [], std?.capacity?.targetPerMin, t) } : {}, uses: [], startedAt: t, createdAt: t, updatedAt: t };
+        facts: tool === 'losses' ? { losses: firstCount(lines.find(l => l.id === lineId)?.shifts ?? [], await rateForCount(lineId, std), t) } : {}, uses: [], startedAt: t, createdAt: t, updatedAt: t };
       await putStudy(s);
       setName(''); setMachine(''); onClose();
       nav(studyHref(s));
@@ -285,7 +288,7 @@ function NewStudy({ open, tool, onClose }: { open: boolean; tool: StudyTool; onC
         <label className="field"><span className="field-label">{w.second.label} {!isChange && <i className="sub">optional</i>}</span>
           <input className="text-input" value={machine} maxLength={80} placeholder={w.second.placeholder} list={isLine ? 'new-map-products' : isChange ? 'new-co-products' : undefined} onChange={e => setMachine(e.target.value)} />
           {(isLine || isChange) && <datalist id={isLine ? 'new-map-products' : 'new-co-products'}>{standards.filter(x => !x.deletedAt).map(x => <option key={x.id} value={x.product} />)}</datalist>}
-          {isLine && standards.length > 0 && <span className="sub">{tool === 'map' ? 'A product with a line standard brings its people as the lanes.' : tool === 'losses' ? 'A product with a line standard brings its agreed rate a minute.' : 'A product with a line standard brings its people to watch.'}</span>}
+          {isLine && standards.length > 0 && <span className="sub">{tool === 'map' ? 'A product with a line standard brings its people as the lanes.' : tool === 'losses' ? 'A product with a line standard brings its pace: the plate speed of its slowest machine, or a person’s standard time.' : 'A product with a line standard brings its people to watch.'}</span>}
           {isChange && standards.length > 0 && <span className="sub">A product with a line standard is where Set as the standard writes the agreed sequence.</span>}
         </label>
         <button type="submit" className="btn btn-primary" disabled={!ready}>Start it</button>

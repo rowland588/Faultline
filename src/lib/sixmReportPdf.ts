@@ -524,7 +524,7 @@ export function sixmReport(o: SixMInput): SixMReport {
       const used = s.uses.flatMap(u => { const t = recordTitle(u)?.trim(); return t ? [`${(ROLE_WORD[`${u.kind}:${u.role}`] ?? u.role).toLowerCase()}: ${t}`] : []; }).join('; ');
       const branches = new Map(s.uses.flatMap(u => { const t = u.step && u.role === 'evidence' ? recordTitle(u) : undefined; return t && u.step ? [[u.step, t] as [string, string]] : []; }));
       const l = studyLine(s, studyCtx(data));
-      const losses = s.tool === 'losses' ? lossRows(lossFiguresOf(s, studyCtx(data))) : undefined;
+      const losses = s.tool === 'losses' ? lossRows(lossFiguresOf(s, studyCtx(data)), s.facts.losses) : undefined;
       return { title: studyTitle(s), used: used || 'not used for a record yet', line: l.text, tone: l.tone,
         ...(s.tool === 'map' && (s.facts.flow ?? []).length ? { stream: streamRows(s.facts.flow, s.agreed?.map, branches) } : {}),
         ...(s.tool === 'changeover' && (s.facts.sequence ?? []).length

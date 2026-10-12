@@ -265,10 +265,15 @@ for (const size of SIZES) {
       for (const x of e.changeover.rows) add('client', x.name, x.who, x.where, x.side, x.plan, x.minutes, x.elapsed, x.how, x.branch ? `Being made better: ${x.branch}` : undefined);
       add('client', e.changeover.total.minutes, e.changeover.total.labour, ...e.changeover.lines);
     }
-    /* A shift's losses on paper (lib/report/lossTable): what was planned and
-       made, every bar's cause and minutes, and the total lost. */
+    /* A shift's losses on paper (lib/report/lossTable): how the planned
+       minutes and the rate are known and what was made, every bar's cause,
+       minutes and its pounds in two parts, and the total lost. */
     from = 'a shift\'s losses, cause by cause';
-    for (const e of r.evidence) if (e.losses) { add('client', e.losses.head); for (const x of e.losses.rows) add('client', x.cause, x.minutes); add('client', e.losses.total.minutes); }
+    for (const e of r.evidence) if (e.losses) {
+      add('client', e.losses.head);
+      for (const x of e.losses.rows) add('client', x.cause, x.minutes, x.labour || undefined, x.contribution || undefined);
+      add('client', e.losses.total.minutes, e.losses.total.labour || undefined, e.losses.total.contribution || undefined);
+    }
     /* What is marked on a fix's photo (ui/Evidence), when that photo is the
        picture printed — not pinned on a walk frame. */
     from = 'a fix photo\'s marks'; for (const fx of r.fixes.open) if (!fx.pin) add('client', ...(fx.photoPins ?? []).map(p => p.note));
@@ -491,7 +496,7 @@ for (const size of SIXM_SIZES) {
           for (const x of c.rows) add(x.name, x.who, x.where, x.side, x.plan, x.minutes, x.elapsed, x.how); add(c.total.minutes, c.total.labour, ...c.lines);
         }
         /* a shift's losses: the table, cause by cause, and the total lost */
-        if (st.tool === 'losses') { const t = lossRows(SL.lossFiguresOf(st, ctx)); if (t) { add(t.head); for (const x of t.rows) add(x.cause, x.minutes); add(t.total.minutes); } }
+        if (st.tool === 'losses') { const t = lossRows(SL.lossFiguresOf(st, ctx), st.facts.losses); if (t) { add(t.head); for (const x of t.rows) add(x.cause, x.minutes, x.labour || undefined, x.contribution || undefined); add(t.total.minutes, t.total.labour || undefined, t.total.contribution || undefined); } }
       }
       return out;
     }, { pid: job.projectId, lineId });
