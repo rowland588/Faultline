@@ -12130,3 +12130,11 @@ button.co-step-b:hover { background: color-mix(in srgb, var(--brand) 5%, transpa
 .bw-says.is-a { color: var(--st-a); font-weight: 600; }
 .cap-sheet-use { display: block; white-space: normal; text-align: right; font-size: var(--t-label); }
 .cap-acc { margin: -6px 0 14px; }
+
+/* THE JOB'S NAME WITH ITS RENAME (ui/ProjectTitle) — the button quiet beside
+   the name; the box and its two buttons in its place while renaming. */
+.ptitle { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.ptitle-edit { font-size: var(--t-detail); font-weight: 600; color: var(--muted); }
+.ptitle-edit:hover { color: var(--brand); }
+.ptitle-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ptitle-input { flex: 1 1 280px; min-width: 0; max-width: 640px; font-size: 22px; font-weight: 700; margin: 0; }

@@ -57,6 +57,7 @@ import { useImpacts } from '../lib/useImpacts';
 import { addDays, niceDay } from '../lib/weeks';
 import { IMPACT_WORD } from '../lib/impact';
 import { useProject } from '../lib/useProjects';
+import { ProjectTitle } from '../ui/ProjectTitle';
 import { useAllLinePacks, emptyPack, type LinePack } from '../lib/useLinePack';
 import { analyse, shortSays } from '../lib/capacity';
 import { statusOfAction, treeStanding, withTrackerRows, bindSources, type TreeStanding } from '../lib/treeBind';
@@ -844,7 +845,9 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           the job, as a gate is, and wears the same header. */}
       <header className="pace-head">
         <div className="pace-head-main">
-          <h1 className="pace-title">{lens === 'overview' ? project.name : LENSES.find(l => l.id === lens)?.label}</h1>
+          {/* the job's name renamed where it is read (ui/ProjectTitle) — the owner's, as on Details */}
+          {lens === 'overview' ? <ProjectTitle project={project} canRename={can.agree} />
+            : <h1 className="pace-title">{LENSES.find(l => l.id === lens)?.label}</h1>}
           {lens === 'overview' && (
             <p className="cw-handover">
               <span className="sub">
