@@ -33,7 +33,7 @@ import { describe, it, expect } from 'vitest';
 import {
   arrange, availableOf, carrySequence, changeoverFigures, changeoverSays, changeoverSheet, changeoversOf, changeoversPer, checklistOf, coLanes, compareChangeovers,
   countWord, extrapolate, extrapolationSays, figuresOf, functionSays, functionShares, intervalOf, intervalSays, ladderOf, ladderSays, mins, planWords, actionWords,
-  runMinOf, runningOf, span, standardFrom, standardLine, stepFigure, SMED_TARGET_SEC, runningWords, patternFromShifts, lineRateOf, rateFromWords, moneyOf,
+  runMinOf, runningOf, span, standardFrom, standardLine, stepFigure, SMED_TARGET_SEC, runningWords, patternFromShifts, lineRateOf, rateFromWords, moneyOf, scaleRows, scaleSays,
 } from '../changeover';
 import type { ChangeoverProduct, ChangeoverStep } from '../../study';
 
@@ -218,6 +218,14 @@ describe('SMED — what the changeovers cost, extrapolated (worked example 2)', 
     expect([c.year?.packs, c.year?.labour]).toEqual([8_467_200, 282_240]);
     expect(c.year?.contribution).toBeCloseTo(423_360, 4);
     expect(c.shareOfRunning).toBeCloseTo(0.28, 6);
+    /* row by row, as the page's table draws it */
+    expect(scaleRows(c)).toEqual([
+      { per: 'A shift', stopped: '2.1 h', packs: '12,600', labour: '£420', contribution: '£630' },
+      { per: 'A day', stopped: '4.2 h', packs: '25,200', labour: '£840', contribution: '£1,260' },
+      { per: 'A week', stopped: '29.4 h', packs: '176,400', labour: '£5,880', contribution: '£8,820' },
+      { per: 'A year', stopped: '1,411.2 h', packs: '8,467,200', labour: '£282,240', contribution: '£423,360' },
+    ]);
+    expect(scaleSays(extrapolate(42 * M, { shift: 3, day: 6, week: 42 }, run))).toBe('A shift: 2.1 h stopped; a day: 4.2 h.');
     /* no speed: no packs, so no contribution — the labour alone */
     expect(extrapolate(42 * M, { shift: 3, day: 6, week: 42 }, run, undefined, money).week).toEqual({ sec: 1764 * M, labour: 5_880 });
   });
@@ -301,6 +309,7 @@ describe('SMED — prove it, standardise, paper', () => {
       '42 min now → 33 min separated → 27 min converted → 9 min streamlined (17 min of work, some in parallel), planned — proved when it is timed again. Single-digit minutes — SMED\'s target.',
       'Setting, adjusting and trial runs: 15 min of 42 min — 36%; they are typically half a changeover, and the first to eliminate.',
       'Now 42 min × 3 a shift × 2 shifts × 7 days = 29.4 h a week stopped (28% of the running time) — 176,400 packs at 100 a minute, the Bagger\'s plate speed; £5,880 of idle labour, and £8,820 of contribution if the packs cannot be made up. Over 48 weeks a year: 1,411.2 h — 8,467,200 packs; £282,240 of idle labour, and £423,360 of contribution if the packs cannot be made up. Streamlined to 9 min: 6.3 h a week — 23.1 h back, if the plan holds.',
+      'A shift: 2.1 h stopped — 12,600 packs, £420 of idle labour, £630 of contribution; a day: 4.2 h — 25,200 packs, £840 of idle labour, £1,260 of contribution.',
       'List the products run on this line, each with what the customer takes a day, to read how often each can run.',
     ]);
     expect(changeoverSheet({ sequence: [] }).lines).toEqual([]);

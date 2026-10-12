@@ -11801,6 +11801,14 @@ button.co-step-b:hover { background: color-mix(in srgb, var(--brand) 5%, transpa
 .co-bar-w { font-size: var(--t-detail); min-width: 0; }
 .co-bar-l small { display: block; font-weight: 600; text-transform: none; letter-spacing: 0; }
 .co-ladder, .co-fns, .co-cost, .co-run-facts, .co-money, .co-rate-from { max-width: 80ch; }
+/* WHAT THE CHANGEOVERS COST, row by row — neutral figures, the work they are. */
+.co-scale-w { max-width: 100%; overflow-x: auto; }
+.co-scale { border-collapse: collapse; margin: 2px 0 8px; font-size: var(--t-detail); font-variant-numeric: tabular-nums; caption-side: bottom; }
+.co-scale th, .co-scale td { padding: 3px 12px 3px 0; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
+.co-scale th[scope="row"], .co-scale thead th:first-child { text-align: left; color: var(--muted); font-weight: 700; }
+.co-scale thead th { font-size: var(--t-label); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.co-scale caption { text-align: left; padding-top: 4px; }
+@media (max-width: 760px) { .co-scale { font-size: 12px; } .co-scale th, .co-scale td { padding-right: 6px; } .co-scale thead th { font-size: 10px; letter-spacing: .02em; } }
 /* SHINGO'S STAGES — chips in order, one panel under them; on a phone the
    chips swipe in one row so the panel stays near the top. */
 .co-stages { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 0; }

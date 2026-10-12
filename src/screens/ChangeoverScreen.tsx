@@ -39,7 +39,7 @@ import { peopleOf, type Standard } from '../lib/standard';
 import {
   actionWords, agreedFor, availableOf, changeoversPer, changeoverSays, checklistOf, CONVERT_HOW, extrapolate, extrapolationSays, figuresOf, FN_WORD, FNS, functionSays,
   HOW_WORD, intervalOf, intervalSays, ladderOf, ladderSays, lineRateOf, mins, moneyOf, patternFromShifts, planWords, rateFromWords, runMinOf, runningOf, runningWords, span,
-  SMED_TARGET_SEC, standardFrom, standardLine, STREAMLINE_HOW, whenIn, costOf, type Ladder, type CoLaneBy, type Rung, type SmedMoney,
+  SMED_TARGET_SEC, standardFrom, standardLine, STREAMLINE_HOW, whenIn, costOf, scaleRows, type CostScale, type Ladder, type CoLaneBy, type Rung, type SmedMoney,
 } from '../lib/ie/changeover';
 import { dur, parseDur } from '../lib/ie/steps';
 import type { ChangeoverProduct, ChangeoverSide, ChangeoverStep, SmedFunction, SmedHow, SmedPlan, SmedPlanKind, SmedRateFrom, StudyFacts, StudyUse, ToolStudy } from '../lib/study';
@@ -198,6 +198,7 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
         {f.enough && <p className={'ie-say ie-cap co-ladder is-' + ladderSays(l).tone}>{ladderSays(l).text}</p>}
         {f.enough && functionSays(seq) && <p className="ie-say ie-cap co-fns is-n">{functionSays(seq)}</p>}
         {cost.text && <p className="ie-say ie-cap co-cost is-n">{cost.text}</p>}
+        {cost.scale && <ScaleTable scale={cost.scale} />}
         <p className={'ie-say ie-cap co-interval is-' + ivSaid.tone}>{ivSaid.text}</p>
       </div>
 
@@ -354,6 +355,25 @@ function runWords(facts: StudyFacts, line: Workspace | undefined, money: SmedMon
   const rate = facts.ratePerMin ? ` · ${facts.ratePerMin} a minute, ${rateFromWords(facts.rateFrom ?? 'typed', facts.rateStation)}` : ' · no speed — packs are not said';
   const pounds = money ? ` · ${moneyWords(money, line)}` : ' · no cost set for the line — pounds are not said';
   return `${head}${cos}${rate}${pounds}`;
+}
+
+/** WHAT THE CHANGEOVERS COST, ROW BY ROW — a shift, a day, a week, a year:
+ *  the time stopped, the packs, the idle labour and the contribution if the
+ *  packs cannot be made up. A column only where there is a figure for it. */
+function ScaleTable({ scale }: { scale: CostScale }) {
+  const rows = scaleRows(scale);
+  const has = (k: 'packs' | 'labour' | 'contribution') => rows.some(r => r[k]);
+  return (
+    <div className="co-scale-w"><table className="co-scale" aria-label="What the changeovers cost, a shift, a day, a week and a year">
+      <thead><tr><th scope="col"><span className="sr-only">Over</span></th><th scope="col">Stopped</th>{has('packs') && <th scope="col">Packs</th>}{has('labour') && <th scope="col">Labour</th>}{has('contribution') && <th scope="col">Contribution*</th>}</tr></thead>
+      <tbody>
+        {rows.map(r => (
+          <tr key={r.per}><th scope="row">{r.per}</th><td>{r.stopped}</td>{has('packs') && <td>{r.packs}</td>}{has('labour') && <td>{r.labour}</td>}{has('contribution') && <td>{r.contribution}</td>}</tr>
+        ))}
+      </tbody>
+      {has('contribution') && <caption className="sub">Labour: the crew paid while the line is stopped. * Contribution: lost only if the packs cannot be made up.</caption>}
+    </table></div>
+  );
 }
 
 /* ------------------------------------------------------------------ name */
@@ -844,7 +864,7 @@ function RunSheet({ s, std, line, money, onClose }: { s: ToolStudy; std?: Standa
     <Sheet open onClose={onClose} title="How the line runs">
       <form className="vs-step co-run" onSubmit={e => { e.preventDefault(); save(); }}>
         <p className="sub">What the changeovers cost, and how often each product can run, are worked out from this — never assumed. A shift runs for its length less the planned breaks the line stops for.</p>
-        {fromShifts && <button type="button" className="btn co-use-shifts" onClick={useShifts}>Use {line?.name ? `${line.name}'s` : 'the line\'s'} shifts — {fromShifts.shiftHours?.length} of {fromShifts.shiftHours?.map(x => `${+x.toFixed(2)} h`).join(', ')}</button>}
+        {fromShifts && <button type="button" className="btn co-use-shifts" onClick={useShifts}>Use {line?.name ? `${line.name}'s` : 'the line\'s'} shifts — {fromShifts.shiftHours?.length} shift{fromShifts.shiftHours?.length === 1 ? '' : 's'}: {fromShifts.shiftHours?.map(x => `${+x.toFixed(2)} h`).join(', ')}</button>}
         <div className="vs-step-times">
           <label className="field"><span className="field-label">Shifts a day</span>
             <input className="text-input" inputMode="numeric" value={shifts} placeholder="e.g. 2" onChange={e => setShifts(e.target.value)} /></label>

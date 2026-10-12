@@ -472,6 +472,29 @@ export function extrapolationSays(l: Ladder, f: Pick<StudyFacts, 'changeovers' |
   return { text: `${head} ${cap(RUNG_WORD[best])} to ${mins(bestSec)}: ${span(then.week.sec)} a week — ${span(back)} back${l.planned ? ', if the plan holds' : ''}.`, tone: 'n', scale: now };
 }
 
+/** THE SCALE, ROW BY ROW — a shift, a day, a week (and a year when its weeks
+ *  are said): the time stopped, the packs, the idle labour and the
+ *  contribution if the packs cannot be made up, each as the floor says it.
+ *  The page draws it as a small table under the sentence; the paper says
+ *  the shift and the day in `scaleSays` (the week and the year are in the
+ *  sentence). */
+export interface ScaleRow { per: 'A shift' | 'A day' | 'A week' | 'A year'; stopped: string; packs?: string; labour?: string; contribution?: string }
+export function scaleRows(scale: CostScale): ScaleRow[] {
+  const row = (per: ScaleRow['per'], c: Cost): ScaleRow => ({ per, stopped: span(c.sec), ...(c.packs !== undefined ? { packs: big(c.packs) } : {}),
+    ...(c.labour !== undefined ? { labour: `£${big(c.labour)}` } : {}), ...(c.contribution !== undefined ? { contribution: `£${big(c.contribution)}` } : {}) });
+  return [row('A shift', scale.shift), row('A day', scale.day), row('A week', scale.week), ...(scale.year ? [row('A year', scale.year)] : [])];
+}
+
+/** The shift and the day, in words, for the paper: "A shift: 2.1 h stopped
+ *  — 12,600 packs, £420 of idle labour, £630 of contribution; a day: 4.2 h
+ *  — 25,200 packs, £840 of idle labour, £1,260 of contribution." */
+export function scaleSays(scale: CostScale | undefined): string {
+  if (!scale) return '';
+  const one = (r: ScaleRow, first: boolean) => `${first ? r.per : r.per.toLowerCase()}: ${r.stopped}${first ? ' stopped' : ''}${[r.packs ? `${r.packs} packs` : '', r.labour ? `${r.labour} of idle labour` : '', r.contribution ? `${r.contribution} of contribution` : ''].filter(Boolean).map((x, i) => (i ? `, ${x}` : ` — ${x}`)).join('')}`;
+  const [shift, day] = scaleRows(scale);
+  return `${one(shift, true)}; ${one(day, false)}.`;
+}
+
 /* ------------------------------------------------------------ the interval */
 
 /** A product's run time a day, minutes, and how it is known: from its demand
@@ -725,7 +748,8 @@ const HOW: Record<ChangeoverStep['source'], string> = { timed: 'timed', typed: '
  *  table is: a row per element in order — what, who, where, I/E, the plan,
  *  its time, the elapsed changeover by the end of its column, how known —
  *  the totals, and under them the ladder, the functions, what the
- *  changeovers cost and the interval, in words. `branches` names the record
+ *  changeovers cost (the week and year, then the shift and the day) and the
+ *  interval, in words. `branches` names the record
  *  raised from an element, by its id; `money` the line's cost settings. */
 export function changeoverSheet(facts: Pick<StudyFacts, 'sequence' | 'changeovers' | 'running' | 'perWeek' | 'products' | 'availableMinPerDay' | 'ratePerMin' | 'rateFrom' | 'rateStation'>,
   agreed?: Pick<StandardChangeover, 'minutes'>, branches: Map<string, string> = new Map(), money?: SmedMoney): ChangeoverSheet {
@@ -745,7 +769,8 @@ export function changeoverSheet(facts: Pick<StudyFacts, 'sequence' | 'changeover
   }));
   const said = changeoverSays(f, agreed);
   const iv = intervalOf(f, facts.products, availableOf(facts)?.min);
+  const cost = extrapolationSays(l, facts, money);
   const lines = f.enough ? [said.text, ...said.lines.filter(x => x.tone !== 'n').map(x => x.text), ladderSays(l).text, functionSays(list),
-    extrapolationSays(l, facts, money).text, intervalSays(iv, f).text].filter(Boolean) : [];
+    cost.text, scaleSays(cost.scale), intervalSays(iv, f).text].filter(Boolean) : [];
   return { rows, total: { minutes: mins(f.nowSec), labour: mins(f.labourSec), internal: mins(f.internalSec), external: mins(f.externalSec) }, lines };
 }
