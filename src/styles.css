@@ -10673,6 +10673,52 @@ body:has(.toast) .qs-fab { bottom: calc(var(--nv-bar) + 130px + env(safe-area-in
 }
 .qsl-bar > span { flex: 1; }
 @media (max-width: 899px) { .qsl-bar { bottom: calc(var(--nv-bar) + 10px + env(safe-area-inset-bottom)); } }
+/* THE SNAGS PAGE AS A WORKING PAGE (snag/QuickSnagsScreen, lib/snagsReport):
+   the sentence, the report; each row worked where it sits — its state, whose,
+   by when; moved ones followed to their job. Only the abnormal carries
+   colour: late red, due within the week amber; the state select wears the
+   snag's own colour (open red, in progress indigo, closed green). */
+.qsl-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px 16px; }
+.qsl-says { margin: 4px 0 0; color: var(--ink-2); max-width: 70ch; }
+.qsl-top { display: flex; flex-wrap: wrap; gap: 8px; }
+.qsl-chip-r { color: var(--st-r); border-color: color-mix(in srgb, var(--st-r) 45%, var(--line)); font-weight: 700; }
+.qsl-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 6px; }
+.qsl-sel { width: auto; min-width: 0; max-width: 220px; min-height: 40px; margin: 0; }
+.qsl-search { flex: 1 1 180px; min-width: 0; max-width: 320px; min-height: 40px; margin: 0; }
+.qsl-late { color: var(--st-r); }
+.qsl-work { flex-wrap: wrap; }
+.qsl-work.is-late { box-shadow: inset 3px 0 0 var(--st-r); }
+.qsl-upd { color: var(--ink-2); }
+.qsl-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 6px 0; flex: 0 1 auto; justify-content: flex-end; }
+.qsl-ctl .text-input { margin: 0; min-height: 40px; }
+.qsl-st { width: auto; font-weight: 700; }
+.qsl-st.is-r { color: var(--st-r); }
+.qsl-st.is-w { color: var(--st-w); }
+.qsl-st.is-g { color: var(--st-g); }
+.qsl-who { width: 130px; }
+.qsl-due { display: inline-flex; align-items: center; gap: 6px; }
+.qsl-date { width: 150px; }
+.qsl-dueword { font-size: var(--t-detail); font-weight: 600; white-space: nowrap; color: var(--ink-2); }
+.qsl-dueword.is-r { color: var(--st-r); font-weight: 700; }
+.qsl-dueword.is-a { color: var(--st-a); }
+.qsl-dueword.is-g { color: var(--st-g); font-weight: 600; }
+.qsl-became { color: var(--ink); font-weight: 600; }
+.qsl-became.is-r { color: var(--st-r); }
+.qsl-became.is-a { color: var(--st-a); }
+.qsl-became.is-w { color: var(--st-w); }
+.qsl-became.is-g { color: var(--st-g); }
+.qsl-jobgo { white-space: nowrap; }
+.qsl-who { min-width: 0; }
+@media (max-width: 760px) {
+  /* ON A PHONE: the snag first; under it its state and whose on one line,
+     its day and how it stands on the next — every box a thumb can hit. */
+  .qsl-ctl { flex: 1 1 100%; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 8px; padding: 0 0 10px 46px; }
+  .qsl-who { width: 100%; }
+  .qsl-due, .qsl-ctl > .qsl-dueword { grid-column: 1 / -1; }
+  .qsl-date { width: 160px; }
+  .qsl-moved .qsl-gh { flex-wrap: wrap; }
+  .qsl-moved .qsl-gh h2 { flex: 1 1 100%; }
+}
 
 /* PART OF THE PLAN (ui/StageParts) — a stage's own lines; on Set up's
    programs stage, the programs. AT REST a line is its name, who and by when,

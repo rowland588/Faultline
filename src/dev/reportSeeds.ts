@@ -1170,3 +1170,49 @@ export async function seedRandomSixMJob(seed: number): Promise<SixMJob & { lineI
   }
   return { projectId: proj.id, lineId: lines[0]?.id as string };
 }
+
+/* THE SNAGS PAGE'S OWN REPORT (lib/snagsReportPdf), at every size — snags on
+   two lines taken every way (on the move, pinned on the walk, raised from the
+   board), every state, late and due soon, some named for the job, some with a
+   real picture, some moved to the job as fixes and problems, one moved there
+   and its fix since deleted. A long snag proves its words wrap whole. */
+export async function seedSnagsFor(size: string, projectId: string): Promise<void> {
+  r = size === 'tiny' ? 3 : size === 'ordinary' ? 5 : 11 + Number(size.replace(/\D/g, '') || 0);
+  const n = size === 'tiny' ? 2 : size === 'ordinary' ? 9 : size === 'huge' ? 60 : 4 + Math.floor(rand() * 30);
+  const t = Date.now(), D = 86_400_000;
+  const a = await createWorkspace('Line 2 — snags walk'), b = await createWorkspace('Line 9 — packing hall');
+  const seg: Segment = { id: uid(), workspaceId: a.id, name: 'walk', durationS: 60, sequence: 1, videoKey: `seed-video-${uid()}`, createdAt: t, updatedAt: t };
+  await addSegment(seg);
+  const frame: SnagAsset = { id: uid(), workspaceId: a.id, segmentId: seg.id, name: 'Ishida CCW-RV-214W multihead weigher', timestampS: 8, stillKey: `seed-still-${uid()}`, createdAt: t, updatedAt: t };
+  await addSnagAsset(frame);
+  const WHAT = ['Guard on the infeed loose', 'Film wandering on the former', 'Seal jaw leaves marks on the 2 kg', 'Label printer ribbon low', 'Reject bin full before the end of the shift',
+    'Checkweigher drifts 3 g after a clean', 'Case erector glue gun strings', 'Oil weeping from the gearbox on the outfeed conveyor'];
+  const made: Snag[] = [];
+  for (let i = 0; i < n; i++) {
+    const how = i % 7 === 3 ? 'walk' : i % 11 === 5 ? 'board' : 'move';
+    const status = pick(['open', 'open', 'in_progress', 'closed'] as const);
+    const due = rand() < 0.6 ? new Date(t + Math.round((rand() * 14 - 6)) * D).setHours(0, 0, 0, 0) : undefined;
+    const long = i === 1 && size !== 'tiny';
+    const s: Snag = {
+      id: uid(), workspaceId: i % 3 === 2 ? b.id : a.id, status, raisedAt: t - Math.floor(rand() * 40) * D, updatedAt: t,
+      problem: long ? `${LONG_ACCOUNT.slice(0, 420)} End of snag: the drain cover.` : `${pick(WHAT)}${size === 'huge' || i > 7 ? ` (${i + 1})` : ''}`,
+      ...(rand() < 0.7 ? { owner: pick(WHO) } : {}), ...(due != null ? { dueAt: due } : {}),
+      ...(status === 'closed' ? { closedAt: t - Math.floor(rand() * 5) * D } : {}),
+      ...(rand() < 0.3 ? { latestUpdate: 'Parts ordered, fitter booked for Thursday nights' } : {}),
+      ...(how === 'walk' ? { workspaceId: a.id, assetId: frame.id, xPct: 40, yPct: 50 }
+        : how === 'board' ? { targetCategory: 'Changeover', targetSubcategory: 'Size change', targetAsset: 'Bagger' }
+        : { media: i % 4 === 0 ? [await markedPhoto(['Here'])] : [], ...(rand() < 0.4 ? { targetAsset: pick(['Bagger', 'Checkweigher', 'Case packer']) } : {}),
+          ...(i % 5 === 4 ? { projectId } : {}) }),
+    };
+    await addSnag(s);
+    made.push(s);
+  }
+  /* moved: a few quick ones to the job — as fixes, one as a problem on its first stage */
+  const { sendSnags } = await import('../snag/quick');
+  const { listTests } = await import('../db');
+  const quick = made.filter(s => Array.isArray(s.media));
+  const toMove = quick.slice(0, size === 'tiny' ? 1 : Math.max(2, Math.floor(quick.length / 4)));
+  if (toMove.length) await sendSnags(toMove.slice(0, Math.ceil(toMove.length / 2)), projectId, undefined, { fix: true }, 'the job');
+  const stage = (await listTests(projectId)).find(x => x.kind === 'install' && !x.deletedAt);
+  if (toMove.length > 1) await sendSnags(toMove.slice(Math.ceil(toMove.length / 2)), projectId, stage?.id, { fix: false, flag: 'risk' }, 'the job');
+}

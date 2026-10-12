@@ -86,6 +86,14 @@ export interface Snag {
   deletedAt?: Millis;        // soft delete (tombstone), mirrors Observation
 }
 
+/** A snag taken from the Snag button — not pinned on a frame of the walk, and
+ *  not an action raised from the Pareto board (those carry where the board
+ *  pointed). A quick snag always writes `media`, even empty, which is what
+ *  tells it apart from a board action that pointed at a machine only. */
+export const isQuickSnag = (s: Snag): boolean =>
+  !s.assetId && s.xPct == null
+  && (Array.isArray(s.media) || (!s.targetCategory && !s.targetSubcategory && !s.caseId));
+
 export const SNAG_STALE_DAYS = 30;
 
 /* One colour, one meaning (CLAUDE.md): an open snag is a problem — red; one

@@ -1,27 +1,36 @@
-/* THE SNAGS PAGE — every quick snag, on every line, in one place, beside the
- * control room in the rail. Rowland, 6 October: "transfer these multiple snags
- * over to a project, transfer them as problems, same sort of multi-status,
- * completely adaptable, editable."
+/* THE SNAGS PAGE — the place every snag is organised. Rowland, 12 October:
+ * "the Snags page needs to be a working page, not just a home for snags and
+ * transfers, as it may be the best place to organise all snags rather than
+ * have them spread all over." Before that, 6 October: "transfer these
+ * multiple snags over to a project, transfer them as problems, same sort of
+ * multi-status, completely adaptable, editable."
  *
- * MOVED, NOT COPIED. Rowland, 8 October: "does it move from a snag and go to
- * the fix page, to keep things clean and transitional?" A snag moved to a job
- * (snag/quick) leaves the line's list of snags here and sits under "Moved to
- * jobs", saying what it became — a fix, a problem on a stage, an action — and
- * opening it, in the job, in one tap.
+ * EVERY SNAG, ONE PLACE. Every line's snags, however they were taken — on the
+ * move (the Snag button), pinned on a frame of the line's walk, or raised from
+ * the Pareto board — each saying where it came from (lib/snagsReport). The
+ * line's own Evidence list keeps them too (snag/SnagListScreen): this is the
+ * same records across every line, not a copy.
  *
- * Grouped by line, newest first. Tap one to change anything about it (the
- * same sheet that took it). Tick several — or a whole line — and send them to
- * a stage-gate job as problems on the stage they were found on (snag/quick
- * sendSnags); each then says where it went. Nothing is locked once closed or
- * sent. The pinned snags of the walk and the board's actions stay on the
- * line's own Evidence list; this page is the quick ones (snag/quick). */
+ * WORKED WHERE THEY SIT. Each row's state, whose it is and the day it is due
+ * are changed on the row; tick several and change them together, move them to
+ * a job, or print their cards. The counts are the filters (one thing, one
+ * place); a line, a person, a word narrow it; grouped by line or by who.
+ *
+ * MOVED, AND FOLLOWED. Rowland, 12 October: "I have moved some snags, it
+ * says moved to jobs — those snags I don't know where they are." A snag moved
+ * to a job (snag/quick) leaves its line's list and is shown job by job,
+ * saying what it became there — a fix, a problem on a stage, an action — and
+ * how it stands NOW, read off the job, with the door to it.
+ *
+ * ITS OWN REPORT. "Snags need its own report on the snag page" — the
+ * Snags report prints what the page is showing, as it shows it
+ * (lib/snagsReportPdf), from the same reading. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { listAllSnags, listWorkspaces, listTests, listTestItems, listAssets, onDataChange } from '../db';
+import { listAllSnags, listWorkspaces, listTests, listTestItems, listAssets, listSnagAssets, onDataChange, updateSnag, setSnagsStatus, listPaceTodos } from '../db';
 import { useProjects } from '../lib/useProjects';
 import { planModel } from '../lib/planModel';
 import { live, type Asset, type Test } from '../lib/testing';
-import { fixTone } from '../lib/fixTone';
-import { listPaceTodos } from '../db';
+import { becameOn, isMoved, snagsReading, type Became, type MovedRow, type SnagRow, type SnagTone } from '../lib/snagsReport';
 import { nav } from '../state/useRoute';
 import { openRecord } from '../ui/RecordDrawer';
 import { useAccessByJob } from '../ui/JobsBoard';
@@ -29,150 +38,281 @@ import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
 import { Sheet } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
 import { Icon } from '../ui/Icon';
+import { DateInput } from '../ui/DateInput';
+import { DraftText } from '../ui/Draft';
 import type { MediaRef, Project, Workspace } from '../types';
-import { SNAG_STATUS_META, ageDays, type Snag, type SnagStatus } from './types';
-import { isQuickSnag, moveSnagsToActions, pinSnag, sendSnags } from './quick';
+import { SNAG_STATUS_META, dueFromInput, dueToInput, type Snag, type SnagAsset, type SnagStatus } from './types';
+import { moveSnagsToActions, pinSnag, sendSnags } from './quick';
 import { openQuickSnag } from './QuickSnag';
 
-type Filter = 'all' | SnagStatus;
+/** The counts are the filters. */
+type Filter = 'all' | 'open' | 'in_progress' | 'late' | 'closed' | 'moved';
+type Group = 'line' | 'who';
 
-const ago = (ms: number) => { const d = ageDays(ms); return d === 0 ? 'today' : d === 1 ? 'yesterday' : `${d} days ago`; };
+const TONE_CLASS: Record<SnagTone, string> = { g: 'is-g', r: 'is-r', w: 'is-w', a: 'is-a', n: 'is-n' };
 
 /** "Machine — Stage", the words a stage-gate job's stage goes by. */
 const stageLabel = (t: Test, assets: Asset[]) => `${assets.find(a => a.id === t.assetId)?.name ?? 'The line'} — ${t.title}`;
 
-/** Moved to a job: it has gone there, and that record is the live one. */
-const isMoved = (s: Snag) => (s.sent ?? []).length > 0;
-
-/** What a moved snag became, in words, and the door to it. */
-interface Became { says: string; go: () => void }
+const photoRef = (key: string, s?: Snag): MediaRef =>
+  s?.media?.find(m => m.blobKey === key) ?? { id: key, kind: 'photo', blobKey: key, mime: 'image/jpeg', capturedAt: 0 };
 
 export function QuickSnagsScreen() {
   const { projects } = useProjects();
   const [snags, setSnags] = useState<Snag[] | null>(null);
   const [lines, setLines] = useState<Workspace[]>([]);
+  const [frames, setFrames] = useState<Map<string, SnagAsset>>(new Map());
   const [became, setBecame] = useState<Map<string, Became>>(new Map());
   const [filter, setFilter] = useState<Filter>('all');
   const [lineF, setLineF] = useState('all');
+  const [whoF, setWhoF] = useState('all');
+  const [search, setSearch] = useState('');
+  const [group, setGroup] = useState<Group>('line');
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [sending, setSending] = useState(false);
-  const [viewing, setViewing] = useState<{ snagId: string; media: MediaRef } | null>(null);
+  const [setting, setSetting] = useState(false);
+  const [busy, setBusy] = useState<'' | 'report' | 'cards'>('');
+  const [viewing, setViewing] = useState<{ snagId?: string; media: MediaRef } | null>(null);
 
   const load = useCallback(async () => {
     const [all, ws] = await Promise.all([listAllSnags(), listWorkspaces()]);
-    const q = all.filter(isQuickSnag).sort((a, b) => b.raisedAt - a.raisedAt);
-    setSnags(q); setLines(ws);
-    /* What each moved one became, read off the job — a renamed fix or stage
-       reads right — and how it stands there now. */
-    const pids = [...new Set(q.flatMap(s => (s.sent ?? []).map(x => x.projectId)))];
+    setSnags(all.sort((a, b) => b.raisedAt - a.raisedAt)); setLines(ws);
+    /* The frames the walk's snags are pinned on — their machine's name and picture. */
+    const wsIds = [...new Set(all.filter(s => s.assetId).map(s => s.workspaceId))];
+    const fr = new Map<string, SnagAsset>();
+    for (const a of (await Promise.all(wsIds.map(id => listSnagAssets(id)))).flat()) fr.set(a.id, a);
+    setFrames(fr);
+    /* What each moved one became, read off its job, and how it stands there now. */
+    const pids = [...new Set(all.flatMap(s => (s.sent ?? []).map(x => x.projectId)))];
     const m = new Map<string, Became>();
     await Promise.all(pids.map(async pid => {
       const [tests, items, assets, todos] = await Promise.all([listTests(pid), listTestItems(pid), listAssets(pid), listPaceTodos(pid)]);
-      for (const i of live(items)) {
-        const t = tests.find(x => x.id === i.testId && x.kind !== 'fix');
-        const fix = i.becameTestId ? tests.find(x => x.id === i.becameTestId && !x.deletedAt) : undefined;
-        const flag = i.critical ? 'critical · ' : i.risk ? 'high risk · ' : '';
-        m.set(i.id, fix
-          ? { says: `a fix — ${flag}${(w => w.charAt(0).toLowerCase() + w.slice(1))(fixTone(fix).when)}`, go: () => openRecord(pid, fix.id) }
-          : { says: `a problem on ${t ? stageLabel(t, assets) : 'the job'} — ${flag}${i.doneAt != null ? 'sorted' : 'open'}`, go: () => openRecord(pid, i.id) });
-      }
-      for (const a of todos) {
-        m.set(a.id, { says: `an action on its board — ${a.state === 'done' ? 'done' : a.state === 'waiting' ? 'waiting' : 'to do'}`, go: () => nav(`/project/${pid}/board?a=${encodeURIComponent(a.id)}`) });
-      }
+      for (const [k, v] of becameOn(pid, tests, items, assets, todos)) m.set(k, v);
     }));
     setBecame(m);
   }, []);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
 
-  const lineName = (id: string) => lines.find(w => w.id === id)?.name ?? 'A line';
-  const projName = (id?: string) => (id ? projects.find(p => p.id === id)?.name : undefined);
+  const lineName = useCallback((id: string) => lines.find(w => w.id === id)?.name ?? 'A line', [lines]);
+  const jobName = useCallback((id?: string) => (id ? projects.find(p => p.id === id)?.name : undefined), [projects]);
+  const byId = useMemo(() => new Map((snags ?? []).map(s => [s.id, s])), [snags]);
 
-  /* Still snags, by line; and the ones moved to a job, on their own. */
-  const here = (snags ?? []).filter(s => !isMoved(s));
-  const gone = (snags ?? []).filter(isMoved);
-  const shown = here.filter(s => (filter === 'all' || s.status === filter) && (lineF === 'all' || s.workspaceId === lineF));
+  /* Narrowed by line, person and words first — the counts then count what is left. */
+  const narrowed = useMemo(() => (snags ?? []).filter(s =>
+    (lineF === 'all' || s.workspaceId === lineF)
+    && (whoF === 'all' || (whoF === '' ? !s.owner?.trim() : s.owner?.trim() === whoF))
+    && (!search.trim() || `${s.problem} ${s.latestUpdate ?? ''} ${s.targetAsset ?? ''} ${s.owner ?? ''}`.toLowerCase().includes(search.trim().toLowerCase()))), [snags, lineF, whoF, search]);
+  const reading = useMemo(() => snagsReading({
+    snags: narrowed, lineName, jobName, became,
+    assetName: s => (s.assetId ? frames.get(s.assetId)?.name : undefined),
+    stillOf: s => (s.assetId ? frames.get(s.assetId)?.stillKey : undefined),
+  }), [narrowed, lineName, jobName, became, frames]);
+  const c = reading.counts;
+
+  /* What the chosen count shows. */
+  const shownLines = useMemo(() => {
+    const keep = (r: SnagRow) => filter === 'all' || (filter === 'late' ? r.late : filter === r.status);
+    return filter === 'moved' ? [] : reading.lines.map(g => ({ ...g, rows: g.rows.filter(keep) })).filter(g => g.rows.length);
+  }, [filter, reading]);
+  const shownMoved = filter === 'all' || filter === 'moved' ? reading.moved : [];
   const groups = useMemo(() => {
-    const by = new Map<string, Snag[]>();
-    for (const s of shown) by.set(s.workspaceId, [...(by.get(s.workspaceId) ?? []), s]);
-    return [...by.entries()];
-  }, [shown]);
-  const count = (f: Filter) => here.filter(s => (f === 'all' || s.status === f) && (lineF === 'all' || s.workspaceId === lineF)).length;
-  const onLines = [...new Set(here.map(s => s.workspaceId))];
+    if (group === 'line') return shownLines.map(g => ({ key: g.id, name: g.name, rows: g.rows }));
+    const by = new Map<string, SnagRow[]>();
+    for (const r of shownLines.flatMap(g => g.rows)) by.set(r.owner ?? '', [...(by.get(r.owner ?? '') ?? []), r]);
+    return [...by.entries()].map(([who, rows]) => ({ key: `who:${who}`, name: who || 'Nobody yet', rows: rows.sort((a, b) => Number(b.late) - Number(a.late) || b.raisedAt - a.raisedAt) }))
+      .sort((a, b) => (a.name === 'Nobody yet' ? 1 : 0) - (b.name === 'Nobody yet' ? 1 : 0) || b.rows.filter(x => x.late).length - a.rows.filter(x => x.late).length || a.name.localeCompare(b.name));
+  }, [group, shownLines]);
 
+  const onLines = [...new Set((snags ?? []).map(s => s.workspaceId))];
+  const owners = [...new Set((snags ?? []).map(s => s.owner?.trim()).filter((o): o is string => !!o))].sort();
   const toggle = (ids: string[], on: boolean) => setPicked(p => {
     const n = new Set(p);
     for (const id of ids) { if (on) n.add(id); else n.delete(id); }
     return n;
   });
-  const chosen = (snags ?? []).filter(s => picked.has(s.id));
+  const chosen = (snags ?? []).filter(s => picked.has(s.id) && !isMoved(s));
+
+  /* WORKING A SNAG WHERE IT SITS — its state, whose it is, the day it is due. */
+  const put = async (id: string, p: Partial<Snag>) => { const s = byId.get(id); if (s) await updateSnag({ ...s, ...p }); };
+  const setStatus = (id: string, status: SnagStatus) => void put(id, { status, closedAt: status === 'closed' ? Date.now() : undefined });
+  const open = (s: Snag) => {
+    if (s.assetId && frames.get(s.assetId)) nav(`/w/${s.workspaceId}/asset/${s.assetId}`);
+    else if (s.assetId || s.targetCategory || s.caseId) nav(`/w/${s.workspaceId}/snaglist`);
+    else openQuickSnag(s);
+  };
+  const goBecame = (b?: Became) => {
+    if (!b) return;
+    if (b.open_.kind === 'record') openRecord(b.projectId, b.open_.id);
+    else nav(`/project/${b.projectId}/board?a=${encodeURIComponent(b.open_.id)}`);
+  };
+
+  /* WHAT IS SHOWN, IN WORDS — the report's title and the cards' note. */
+  const title = [
+    filter === 'all' ? 'Every snag' : filter === 'moved' ? 'Snags moved to jobs' : filter === 'late' ? 'Late snags' : `${SNAG_STATUS_META[filter].label} snags`,
+    lineF !== 'all' ? `on ${lineName(lineF)}` : '', whoF !== 'all' ? (whoF ? `— ${whoF}'s` : '— nobody’s yet') : '', search.trim() ? `— “${search.trim()}”` : '',
+  ].filter(Boolean).join(' ');
+  const report = async () => {
+    if (busy) return;
+    setBusy('report');
+    try {
+      const { saveSnagsReport } = await import('../lib/buildSnagsReport');
+      await saveSnagsReport({ ...reading, lines: shownLines, moved: shownMoved }, title);
+    } catch (e) {
+      console.error('snags report failed', e);
+      window.alert('Sorry — the snags report could not be made. Please try again.');
+    } finally { setBusy(''); }
+  };
+  const cards = async (list: Snag[]) => {
+    if (busy || !list.length) return;
+    setBusy('cards');
+    try {
+      const { saveSnagCards } = await import('../lib/buildSnagCards');
+      const one = new Set(list.map(s => s.workspaceId)).size === 1 ? lineName(list[0].workspaceId) : 'snags';
+      await saveSnagCards(list.map(s => ({ snag: s, asset: s.assetId ? frames.get(s.assetId) : undefined, assetName: (s.assetId ? frames.get(s.assetId)?.name : undefined) ?? s.targetAsset ?? 'Taken on the move' })), one, title);
+    } catch (e) {
+      console.error('snag cards failed', e);
+      window.alert('Sorry — the cards could not be made. Please try again.');
+    } finally { setBusy(''); }
+  };
+
+  const chip = (f: Filter, n: number, word: string, abnormal = false) => (
+    <button key={f} type="button" className={'chip' + (filter === f ? ' on' : '') + (abnormal && n ? ' qsl-chip-r' : '')} aria-pressed={filter === f} onClick={() => setFilter(f)}>
+      {word} · {n}
+    </button>
+  );
+  const shownCount = shownLines.reduce((n, g) => n + g.rows.length, 0);
 
   return (
     <div className="wrap qsl">
-      <header className="pace-head">
-        <h1>Snags</h1>
-        <p className="sub">Every snag taken on the move, by line. Name a job on one, or tick several and move them: they go to the job as fixes (or, on a 6M job, actions) and leave this list.</p>
-      </header>
-      <div className="chip-row qsl-f" role="group" aria-label="Which">
-        {(['all', 'open', 'in_progress', 'closed'] as Filter[]).map(f => (
-          <button key={f} type="button" className={'chip' + (filter === f ? ' on' : '')} aria-pressed={filter === f} onClick={() => setFilter(f)}>
-            {f === 'all' ? 'All' : SNAG_STATUS_META[f].label} · {count(f)}
-          </button>
-        ))}
-      </div>
-      {onLines.length > 1 && (
-        <div className="chip-row qsl-f" role="group" aria-label="Which line">
-          <button type="button" className={'chip' + (lineF === 'all' ? ' on' : '')} onClick={() => setLineF('all')}>Every line</button>
-          {onLines.map(id => (
-            <button key={id} type="button" className={'chip' + (lineF === id ? ' on' : '')} onClick={() => setLineF(id)}>{lineName(id)}</button>
-          ))}
+      <header className="pace-head qsl-head">
+        <div>
+          <h1>Snags</h1>
+          <p className="qsl-says">{snags ? reading.says : 'Opening…'}</p>
         </div>
-      )}
+        <div className="qsl-top">
+          <button type="button" className="btn btn-primary" onClick={() => openQuickSnag()}><Icon name="camera" size="1.05em" />Snag</button>
+          <button type="button" className="btn" disabled={!!busy || (!shownCount && !shownMoved.length)} onClick={() => void report()}>
+            <Icon name="document" size="1.05em" />{busy === 'report' ? 'Making…' : 'Snags report'}</button>
+        </div>
+      </header>
+
+      <div className="chip-row qsl-f" role="group" aria-label="Which">
+        {chip('all', c.open + c.in_progress + c.closed + c.moved, 'All')}
+        {chip('open', c.open, 'Open')}
+        {chip('in_progress', c.in_progress, 'In progress')}
+        {chip('late', c.late, 'Late', true)}
+        {chip('closed', c.closed, 'Closed')}
+        {chip('moved', c.moved, 'Moved to jobs')}
+      </div>
+      <div className="qsl-tools">
+        {onLines.length > 1 && (
+          <select className="text-input qsl-sel" value={lineF} onChange={e => setLineF(e.target.value)} aria-label="Which line">
+            <option value="all">Every line</option>
+            {onLines.map(id => <option key={id} value={id}>{lineName(id)}</option>)}
+          </select>
+        )}
+        <select className="text-input qsl-sel" value={whoF} onChange={e => setWhoF(e.target.value)} aria-label="Whose">
+          <option value="all">Everybody</option>
+          {owners.map(o => <option key={o} value={o}>{o}</option>)}
+          <option value="">Nobody yet</option>
+        </select>
+        <input className="text-input qsl-search" type="search" placeholder="Find a word" value={search} onChange={e => setSearch(e.target.value)} aria-label="Find a snag" />
+        <span className="cw-seg" role="group" aria-label="Group by">
+          {(['line', 'who'] as Group[]).map(g => (
+            <button key={g} type="button" className={'chip' + (group === g ? ' on' : '')} aria-pressed={group === g} onClick={() => setGroup(g)}>{g === 'line' ? 'By line' : 'By who'}</button>
+          ))}
+        </span>
+      </div>
+
       {snags && snags.length === 0 && (
         <div className="qsl-empty">
           <p><b>No snags yet.</b> Spot something on a line — press <b>Snag</b>, take a picture, say what is wrong.</p>
           <button type="button" className="btn btn-primary" onClick={() => openQuickSnag()}><Icon name="camera" size="1.05em" />Snag</button>
         </div>
       )}
-      {snags && snags.length > 0 && groups.length === 0 && <p className="sub">{here.length ? 'None here — try All.' : 'Every snag has moved to a job.'}</p>}
-      {groups.map(([wsId, rows]) => {
-        const all = rows.every(r => picked.has(r.id));
+      {snags && snags.length > 0 && !groups.length && !shownMoved.length && <p className="sub">None here — try All, or every line.</p>}
+
+      {groups.map(g => {
+        const all = g.rows.every(r => picked.has(r.id));
+        const late = g.rows.filter(r => r.late).length;
         return (
-          <section key={wsId} className="qsl-g">
+          <section key={g.key} className="qsl-g">
             <div className="qsl-gh">
               <label className="qsl-tick">
-                <input type="checkbox" checked={all} onChange={e => toggle(rows.map(r => r.id), e.target.checked)}
-                  aria-label={`Tick every snag on ${lineName(wsId)}`} />
+                <input type="checkbox" checked={all} onChange={e => toggle(g.rows.map(r => r.id), e.target.checked)} aria-label={`Tick every snag in ${g.name}`} />
               </label>
-              <h2>{lineName(wsId)}</h2>
-              <span className="sub">{rows.length} snag{rows.length === 1 ? '' : 's'}</span>
+              <h2>{g.name}</h2>
+              <span className="sub">{g.rows.length} snag{g.rows.length === 1 ? '' : 's'}{late ? <> · <b className="qsl-late">{late} late</b></> : null}</span>
             </div>
             <ul className="qsl-rows">
-              {rows.map(s => {
-                const thumb = s.media?.[0];
+              {g.rows.map(r => {
+                const s = byId.get(r.id);
+                if (!s) return null;
                 return (
-                  <li key={s.id} className={'qsl-row' + (picked.has(s.id) ? ' is-picked' : '')}>
+                  <li key={r.id} className={'qsl-row qsl-work' + (picked.has(r.id) ? ' is-picked' : '') + (r.late ? ' is-late' : '')}>
                     <label className="qsl-tick">
-                      <input type="checkbox" checked={picked.has(s.id)} onChange={e => toggle([s.id], e.target.checked)}
-                        aria-label={`Tick: ${s.problem || 'snag'}`} />
+                      <input type="checkbox" checked={picked.has(r.id)} onChange={e => toggle([r.id], e.target.checked)} aria-label={`Tick: ${r.what}`} />
                     </label>
-                    {/* THE PICTURE OPENS LARGE, to be pointed at (ui/Evidence):
-                        tap where it is wrong and say what — kept at once.
-                        The words beside it open the snag itself. */}
-                    {thumb && <EvidenceThumb media={thumb} size={52} onClick={() => setViewing({ snagId: s.id, media: thumb })} />}
-                    <button type="button" className="qsl-open" onClick={() => openQuickSnag(s)}>
-                      {!thumb && <span className="qsl-nopic" aria-hidden><Icon name="camera" size={18} /></span>}
+                    {/* THE PICTURE OPENS LARGE, to be pointed at (ui/Evidence). */}
+                    {r.photo && <EvidenceThumb media={photoRef(r.photo, s)} size={52} onClick={() => setViewing({ snagId: s.media?.some(m => m.blobKey === r.photo) ? s.id : undefined, media: photoRef(r.photo as string, s) })} />}
+                    <button type="button" className="qsl-open" onClick={() => open(s)}>
+                      {!r.photo && <span className="qsl-nopic" aria-hidden><Icon name="camera" size={18} /></span>}
                       <span className="qsl-body">
-                        <span className="qsl-what">{s.problem || <i className="sub">A picture, no words yet</i>}</span>
+                        <span className="qsl-what">{r.what}</span>
                         <span className="qsl-meta">
-                          <b style={{ color: SNAG_STATUS_META[s.status].color }}>{SNAG_STATUS_META[s.status].label}</b>
-                          {s.targetAsset && <> · {s.targetAsset}</>}
+                          {group === 'who' && <>{r.line} · </>}{r.from}
                           {/* Named for a job and not on it yet: said, so it is not
                               taken for being on the job's reports. */}
-                          {projName(s.projectId) && <> · for {projName(s.projectId)} — not moved yet</>}
-                          {s.owner && <> · {s.owner}</>}
-                          {' · '}{ago(s.raisedAt)}
-                          {(s.media?.length ?? 0) > 1 && <> · {s.media?.length} pictures</>}
+                          {r.forJob && <> · for {r.forJob} — not moved yet</>}
                         </span>
+                        {r.update && <span className="qsl-meta qsl-upd">Latest: {r.update}</span>}
+                      </span>
+                    </button>
+                    <div className="qsl-ctl">
+                      <select className={'text-input qsl-st ' + TONE_CLASS[r.tone]} value={r.status} onChange={e => setStatus(r.id, e.target.value as SnagStatus)} aria-label={`State of ${r.what}`}>
+                        {(['open', 'in_progress', 'closed'] as SnagStatus[]).map(k => <option key={k} value={k}>{SNAG_STATUS_META[k].label}</option>)}
+                      </select>
+                      <DraftText value={s.owner ?? ''} placeholder="Whose?" className="text-input qsl-who" max={60} ariaLabel={`Whose is ${r.what}`}
+                        onSave={v => void put(r.id, { owner: v.trim() || undefined })} />
+                      {r.status !== 'closed' && (
+                        <span className="qsl-due">
+                          <DateInput className="text-input qsl-date" value={dueToInput(s.dueAt)} aria-label={`Due date of ${r.what}`} onCommit={v => void put(r.id, { dueAt: dueFromInput(v) })} />
+                          {r.due && <span className={'qsl-dueword ' + TONE_CLASS[r.dueTone ?? 'n']}>{r.due}</span>}
+                        </span>
+                      )}
+                      {/* closed: the day it was — the select already says Closed */}
+                      {r.status === 'closed' && s.closedAt != null && <span className="qsl-dueword">on {new Date(s.closedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        );
+      })}
+
+      {/* MOVED TO JOBS — job by job, what each became there and how it stands now. */}
+      {shownMoved.map(g => {
+        const open = g.rows.filter(r => r.open).length;
+        return (
+          <section key={`job:${g.projectId ?? ''}`} className="qsl-g qsl-moved">
+            <div className="qsl-gh">
+              <h2>Moved to {g.job}</h2>
+              <span className="sub">{g.rows.length} moved · {open ? `${open} still open there` : 'none open there'}</span>
+              {g.projectId && jobName(g.projectId) && <button type="button" className="linkish qsl-jobgo" onClick={() => nav(`/project/${g.projectId}`)}>Open {g.job} ›</button>}
+            </div>
+            <ul className="qsl-rows">
+              {g.rows.map((r: MovedRow) => {
+                const s = byId.get(r.id);
+                return (
+                  <li key={r.id} className="qsl-row">
+                    {r.photo && <EvidenceThumb media={photoRef(r.photo, s)} size={52} onClick={() => setViewing({ media: photoRef(r.photo as string, s) })} />}
+                    <button type="button" className="qsl-open" disabled={!r.became} onClick={() => goBecame(r.became)}>
+                      {!r.photo && <span className="qsl-nopic" aria-hidden><Icon name="camera" size={18} /></span>}
+                      <span className="qsl-body">
+                        <span className="qsl-what">{r.what}</span>
+                        <span className="qsl-meta">{r.line} · {r.from}</span>
+                        <span className={'qsl-meta qsl-became ' + TONE_CLASS[r.tone]}>Now {r.says}{r.became ? ' — open it there ›' : ''}</span>
                       </span>
                     </button>
                   </li>
@@ -182,45 +322,55 @@ export function QuickSnagsScreen() {
           </section>
         );
       })}
-      {/* MOVED TO JOBS — what each became, opened where it now lives. */}
-      {gone.length > 0 && (
-        <section className="qsl-g qsl-moved">
-          <div className="qsl-gh"><h2>Moved to jobs</h2><span className="sub">{gone.length}</span></div>
-          <ul className="qsl-rows">
-            {gone.map(s => {
-              const thumb = s.media?.[0];
-              const to = (s.sent ?? []).map(x => ({ x, b: became.get(x.itemId) })).filter(r => r.b);
-              const first = to[0];
-              return (
-                <li key={s.id} className="qsl-row">
-                  {thumb && <EvidenceThumb media={thumb} size={52} onClick={() => setViewing({ snagId: s.id, media: thumb })} />}
-                  <button type="button" className="qsl-open" disabled={!first} onClick={() => first?.b?.go()}>
-                    {!thumb && <span className="qsl-nopic" aria-hidden><Icon name="camera" size={18} /></span>}
-                    <span className="qsl-body">
-                      <span className="qsl-what">{s.problem || <i className="sub">A picture, no words yet</i>}</span>
-                      {to.length
-                        ? to.map(({ x, b }) => <span key={x.itemId} className="qsl-meta">On <b>{projName(x.projectId) ?? 'a job'}</b> as {b?.says}</span>)
-                        : <span className="qsl-meta">Moved to {projName(s.sent?.[0]?.projectId) ?? 'a job'} — no longer there</span>}
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
+
       {chosen.length > 0 && (
         <div className="qsl-bar" role="region" aria-label="Ticked snags">
           <span><b>{chosen.length}</b> ticked</span>
-          <button type="button" className="btn" onClick={() => setPicked(new Set())}>Clear</button>
+          <button type="button" className="btn" onClick={() => void setSnagsStatus(chosen.map(s => s.id), 'in_progress')}>In progress</button>
+          <button type="button" className="btn" onClick={() => {
+            const before = chosen.map(s => ({ ...s }));
+            void setSnagsStatus(chosen.map(s => s.id), 'closed').then(() => offerUndo(`${before.length} closed`, async () => { for (const s of before) await updateSnag(s); }));
+          }}>Close</button>
+          <button type="button" className="btn" onClick={() => setSetting(true)}>Whose · due</button>
+          <button type="button" className="btn" disabled={!!busy} onClick={() => void cards(chosen)}>{busy === 'cards' ? 'Making…' : 'Cards'}</button>
           <button type="button" className="btn btn-primary" onClick={() => setSending(true)}>Move to a job</button>
+          <button type="button" className="btn btn-ghost" onClick={() => setPicked(new Set())}>Clear</button>
         </div>
       )}
       {viewing && <EvidenceViewer media={viewing.media} onClose={() => setViewing(null)}
-        onPins={pins => void pinSnag(viewing.snagId, viewing.media.id, pins)} />}
+        {...(viewing.snagId ? { onPins: (pins: NonNullable<MediaRef['pins']>) => void pinSnag(viewing.snagId as string, viewing.media.id, pins) } : {})} />}
       {sending && <SendSheet snags={chosen} projects={projects}
         onClose={() => setSending(false)} onSent={() => { setSending(false); setPicked(new Set()); }} />}
+      {setting && <SetSheet snags={chosen} onClose={() => setSetting(false)} onDone={() => { setSetting(false); setPicked(new Set()); }} />}
     </div>
+  );
+}
+
+/** WHOSE AND BY WHEN, FOR EVERY TICKED SNAG — a box left empty changes nothing. */
+function SetSheet({ snags, onClose, onDone }: { snags: Snag[]; onClose: () => void; onDone: () => void }) {
+  const [who, setWho] = useState('');
+  const [due, setDue] = useState('');
+  const n = snags.length;
+  const save = async () => {
+    const before = snags.map(s => ({ ...s }));
+    for (const s of snags) await updateSnag({ ...s, ...(who.trim() ? { owner: who.trim() } : {}), ...(due ? { dueAt: dueFromInput(due) } : {}) });
+    offerUndo(`${n} snag${n === 1 ? '' : 's'} changed`, async () => { for (const s of before) await updateSnag(s); });
+    onDone();
+  };
+  return (
+    <Sheet open onClose={onClose} title={`Whose and by when — ${n} snag${n === 1 ? '' : 's'}`}>
+      <div className="qs">
+        <label className="cw-f cw-f-wide"><span>WHOSE</span>
+          <input className="text-input" value={who} placeholder="Leave empty to keep each one's" onChange={e => setWho(e.target.value)} /></label>
+        <label className="cw-f cw-f-wide"><span>DUE</span>
+          <input className="text-input" type="date" value={due} onChange={e => setDue(e.target.value)} /></label>
+        <div className="ax-foot">
+          <span style={{ flex: 1 }} />
+          <button type="button" className="btn" onClick={onClose}>Cancel</button>
+          <button type="button" className="btn btn-primary" disabled={!who.trim() && !due} onClick={() => void save()}>Change {n}</button>
+        </div>
+      </div>
+    </Sheet>
   );
 }
 

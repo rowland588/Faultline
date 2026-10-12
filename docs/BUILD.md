@@ -1017,6 +1017,38 @@ the people's work against takt, only its second tab.
   what-if and the bottleneck moving, the V's guide margin set and a station
   under it said, the paper.
 
+### The Snags page — a working page, with its own report (12 October)
+
+Rowland, 12 October: "Snags need its own report on the snag page ... I have
+moved some snags, it says moved to jobs — those snags I don't know where they
+are ... the Snags page needs to be a working page, not just a home for snags
+and transfers, as it may be the best place to organise all snags rather than
+have them spread all over."
+
+- **The record:** none new. The snags are the line's `snags` rows, however
+  taken — on the move (`media`), pinned on the walk (`assetId`), raised from
+  the Pareto board (`targetCategory`). A moved snag keeps `sent`, and what it
+  became is read off the job (`lib/snagsReport` `becameOn`): the fix's tone,
+  the problem on its stage, the board action's state.
+- **The reading:** `lib/snagsReport` `snagsReading` — the counts, the
+  sentence, every snag line by line (late first) and the moved ones job by
+  job; the page and the paper both draw it (3 tests from a worked example).
+- **The page:** the sentence; the counts are the filters (All · Open · In
+  progress · Late · Closed · Moved to jobs); a line, a person, a word narrow
+  it; By line or By who. Each row says where it came from and is worked where
+  it sits — its state, whose, its day ("3 days late" red, due within the week
+  amber). Tick several: In progress, Close (with undo), Whose · due, Cards,
+  Move to a job. Moved ones are shown under their job, saying what each
+  became and how it stands now, with the door to it in the job. The line's
+  Evidence list stays as it was: the same records, line by line.
+- **The paper:** the Snags report (`lib/snagsReportPdf`, the report engine) —
+  what the page is showing, its title saying so: a tile per count, the
+  sentence, each snag with its picture, where it came from, its latest word,
+  its state, whose and its day; then the moved ones job by job. In the stress
+  run at three sizes (`seedSnagsFor`); the one-page card for Engineering stays
+  its own thing.
+- **Accepted by** `scripts/acceptance/snags.mjs`.
+
 ## What is needed from Rowland, release by release
 
 | Release | Before it starts | At the end |

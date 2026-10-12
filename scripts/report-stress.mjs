@@ -384,6 +384,34 @@ for (const size of SIZES) {
       rows.push({ size, report: name, pages: 0, faults: [`could not make it: ${e.message.split('\n')[0]}`] });
     }
   }
+  /* THE SNAGS REPORT (lib/snagsReportPdf, 12 October: "Snags need its own
+     report on the snag page") — seeded after the job's own reports, so the
+     snags moved to the job cannot change them (the status report is one
+     page): snags on two lines taken every way, every state, some with a
+     picture, some moved to the job (lib/dev seedSnagsFor). Every snag's
+     words must be on the paper, and the job each moved one went to. */
+  {
+    const mustSnags = await page.evaluate(async ({ size, pid }) => {
+      await (await import('/src/dev/reportSeeds.ts')).seedSnagsFor(size, pid);
+      const { san } = await import('/src/lib/reportKit.ts');
+      await (await import('/src/lib/savePdf.ts')).loadPdfLib();
+      const all = await (await import('/src/db.ts')).listAllSnags();
+      const project = await (await import('/src/db/projects.ts')).getProject(pid);
+      const out = [];
+      const add = (from, v) => { if (v && san(v)) out.push([v, san(v), from]); };
+      for (const s of all) add('snag', s.problem);
+      if (all.some(s => (s.sent ?? []).length)) add('moved to', project?.name);
+      return out;
+    }, { size, pid: job.projectId });
+    const file = `${OUT}/${size}-snags.pdf`;
+    try {
+      await download(page, '#/snags', file, [['Snags report']]);
+      const r = check(file, mustSnags);
+      rows.push({ size, report: 'snags', pages: r.pages, faults: r.faults, said: r.said });
+    } catch (e) {
+      rows.push({ size, report: 'snags', pages: 0, faults: [`could not make it: ${e.message.split('\n')[0]}`] });
+    }
+  }
   if (errors.length) rows.push({ size, report: '(console)', pages: 0, faults: errors });
   await ctx.close();
 }
