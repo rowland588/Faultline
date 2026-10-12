@@ -51,6 +51,14 @@ Running projects on a factory floor, three ways. Rowland, 30 September:
   now fully using the app." Stored as the `board` model; the problem is a `case`.
 - **Lever tree** — one outcome worked down to what has to be true for it.
 
+**The line balance is LINE CAPACITY.** Rowland, 12 October: "the line
+balancing is actually a capacity model ... I worded it as line balance";
+the name asked and chosen: *Line capacity* — stations in flow order,
+machines and people, each in its own unit converted down the line, the
+bottleneck once stops count, and the V-curve, laid out as a grid like the
+value stream map (`docs/BUILD.md`, Line capacity). The people's work against
+takt is its People view; the line standard is where people are put in places.
+
 **SMED is a tool, not a method and not a Pareto.** Rowland, 12 October: "For
 changeovers, you should be making the lean tool SMED ... and doing everything
 along them principles. As for, don't assume 5 days, could be 7 days. And
