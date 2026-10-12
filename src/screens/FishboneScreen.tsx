@@ -46,7 +46,8 @@ import type { Suggestion } from '../lib/problems';
 import type { Can } from '../lib/access';
 import type { Case } from '../types';
 import { getStudy, removeCase, restoreCase, snagsForWorkspace, type PaceLineRow } from '../db';
-import { studyHref } from '../lib/studyLinks';
+import { currentLosses, lossCardLine, studyHref } from '../lib/studyLinks';
+import { useJobStudies } from '../ui/StudyLinks';
 import { offerUndo } from '../ui/Undo';
 import { drillOfRef, factsOf, lineOf, oldWhysOf, startingWhys } from '../lib/fishbone';
 import { closedProblemOn, putOldWhysOnBone } from '../lib/useProblems';
@@ -145,20 +146,25 @@ interface Door {
 function useDoors(projectId: string, line: PaceLineRow | undefined): Door[] {
   const nums = useMeasures(projectId);
   const stops = useLineStops(line?.workspaceId);
+  const studies = useJobStudies(projectId);
   return useMemo(() => {
     if (!line) return [];
     const doors: Door[] = [];
-    /* THE GAP — the line's headline measure against its target. */
+    /* THE GAP — the line's headline measure against its target — and, when a
+       shift on it has been counted (lib/ie/losses), what the latest one lost. */
     const s = lineSeries(nums.measures, nums.periods, nums.targets, nums.readings, line.id);
+    const count = line.workspaceId ? currentLosses(studies, line.workspaceId) : undefined;
+    const shift = count ? lossCardLine(count, { observations: stops.obs }) : undefined;
+    const quote = shift ? ` · ${shift.text}` : '';
     if (s && s.margin != null && s.meeting === false) {
       const off = say(Math.abs(s.margin), s.measure.unit);
       doors.push({ key: 'gap', label: 'The line’s gap',
         title: `${line.name} ${off} off its ${s.measure.name.toLowerCase()} target`,
-        says: `${s.measure.name}: ${s.latest == null ? '—' : say(s.latest, s.measure.unit)} against ${s.target == null ? 'no target' : say(s.target, s.measure.unit)}`,
+        says: `${s.measure.name}: ${s.latest == null ? '—' : say(s.latest, s.measure.unit)} against ${s.target == null ? 'no target' : say(s.target, s.measure.unit)}${quote}`,
         source: { kind: 'gap', measureId: s.measure.id } });
     } else {
       doors.push({ key: 'gap', label: 'The line’s gap',
-        says: !s ? 'No measure or target set for this line yet' : s.meeting ? `${s.measure.name} is at target` : 'No reading against a target yet',
+        says: `${!s ? 'No measure or target set for this line yet' : s.meeting ? `${s.measure.name} is at target` : 'No reading against a target yet'}${quote}`,
         source: { kind: 'gap', measureId: s?.measure.id } });
     }
     /* THE TOP BAR OF THE PARETO — the category losing the most time on this
@@ -196,7 +202,7 @@ function useDoors(projectId: string, line: PaceLineRow | undefined): Door[] {
     }
     doors.push({ key: 'observed', label: 'Something seen', says: 'A problem seen on the line, in your own words', source: { kind: 'observed' } });
     return doors;
-  }, [line, nums.measures, nums.periods, nums.targets, nums.readings, stops.obs, stops.from, stops.to]);
+  }, [line, nums.measures, nums.periods, nums.targets, nums.readings, stops.obs, stops.from, stops.to, studies]);
 }
 
 /** "Bagger minor stops on Line 2" — a Pareto bar as the head of the fish. */

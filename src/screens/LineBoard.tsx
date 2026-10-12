@@ -13,6 +13,7 @@ import { fmtDuration, fmtDurationWords, plural } from '../lib/format';
 import { hasCost, costPerMs, fmtGBP } from '../lib/cost';
 import type { Observation, DimensionKey } from '../types';
 import { Icon } from '../ui/Icon';
+import { ShiftLossLine } from '../ui/ShiftLosses';
 
 // 'shift' rides at the end of every order: the drill only offers a cut when it
 // actually splits the rows, so workspaces without shift data never see it.
@@ -47,9 +48,12 @@ export function LineBoard({ since = 0, periodKey }: { since?: number; periodKey?
   const factor = costPerMs(workspace);
   const screen = 'analyse';
 
+  /* A SHIFT'S LOSSES, BESIDE THE PARETO (tool 7): how much of the latest
+     shift's loss these stops explain, and the door to count one. */
+  const shift = <ShiftLossLine workspaceId={workspace.id} canEdit />;
   if (live.length === 0) {
     const anyEver = observations.some(o => o.deletedAt == null);
-    return anyEver && since > 0 ? (
+    return <>{shift}{anyEver && since > 0 ? (
       <EmptyState title="A quiet window" icon={<Icon name="list" size="1em" />}>
         Nothing logged in this period. Widen the period above — or better, get to the line and log what you see.
       </EmptyState>
@@ -57,7 +61,7 @@ export function LineBoard({ since = 0, periodKey }: { since?: number; periodKey?
       <EmptyState title="Nothing logged yet" icon={<Icon name="list" size="1em" />}>
         Head to Capture and log what you see on the line — the board builds itself.
       </EmptyState>
-    );
+    )}</>;
   }
 
   const assetSlices = toSlices(live, 'asset', costable, factor);
@@ -93,6 +97,7 @@ export function LineBoard({ since = 0, periodKey }: { since?: number; periodKey?
           </div>
         </>
       )}
+      {shift}
       <div className="analyse-meta">
         {plural(live.length, 'observation')} · {fmtDurationWords(totalMs)}{costable ? ` · ${fmtGBP(totalMs * factor)}` : ''}
       </div>

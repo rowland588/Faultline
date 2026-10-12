@@ -82,6 +82,10 @@ export interface PacedInput {
   /** A 6M job's lines against their target, in the sentence the 6M client
    *  report leads with (lib/measures gapOf). */
   gaps?: { lineId: string; line: string; says: string; short?: string }[];
+  /** A 6M job's lines' latest shift counted (lib/ie/losses, lib/studyLinks
+   *  lossCardLine) — a branch under each line's gap in the control room's
+   *  drawer: "Shift 1 yesterday: 85 min lost · 9 min not yet explained". */
+  losses?: LineLoss[];
   /** Are its lines on target? (lib/onTarget linesOnTarget) */
   onTarget?: OnTarget;
   /** What the job waits on — its materials and programs. Late ones are late
@@ -89,6 +93,10 @@ export interface PacedInput {
   materials?: Material[];
   programs?: Program[];
 }
+
+/** One line's latest shift counted, as the control room says it — the part
+ *  not yet explained over a tenth of the loss the only abnormal part. */
+export interface LineLoss { lineId: string; line: string; text: string; abnormal: boolean; href: string }
 
 /** One 6M problem as the control room needs it: enough to say where it is and
  *  to open its fishbone. */
@@ -166,6 +174,8 @@ export interface JobView {
     phases: Said[];
     bones: Said[];
     gaps: { lineId: string; line: string; says: string; short?: string }[];
+    /** Each line's latest shift counted — a branch under its gap. */
+    losses: LineLoss[];
     problems: (SixMProblem & { word: string; slipped: boolean })[];
   };
   name: string;
@@ -646,6 +656,7 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
           phases: problemsSaid((j.problems ?? []).map(x => x.phase)),
           bones: bonesSaid(j.steps, today),
           gaps: j.gaps ?? [],
+          losses: j.losses ?? [],
           problems: (j.problems ?? [])
             .map(x => ({ ...x, word: PHASE_WORD[x.phase], slipped: x.phase === 'slipped' }))
             .sort((a, b) => PHASE_ORDER.indexOf(a.phase) - PHASE_ORDER.indexOf(b.phase)),

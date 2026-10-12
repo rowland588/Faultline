@@ -103,13 +103,13 @@ export interface Seeded {
   mapFixId: string;
   mapProofId: string;
   /** The paced job's Line 7 — its own workspace, with shifts, a cost model
-   *  and stops timed through yesterday's shifts (tool 7). */
+   *  and stops timed through the last two days' shifts (tool 7). */
   line7WsId: string;
-  /** A SHIFT'S LOSS COUNT on it (lib/ie/losses): Shift 1 yesterday — the
+  /** A SHIFT'S LOSS COUNT on it (lib/ie/losses): Shift 1 two days ago — the
    *  worked example's numbers, 9 minutes not yet explained — the evidence for
-   *  a countermeasure raised from its biggest bar; the next shift counted as
-   *  that countermeasure's proof; and one on the stage-gate job's Line 7, a
-   *  window typed by hand, for the client report's Evidence appendix. */
+   *  a countermeasure raised from its biggest bar; the next day's Shift 1
+   *  counted as that countermeasure's proof; and one on the stage-gate job's
+   *  Line 7, a window typed by hand, for the client report's Evidence appendix. */
   lossId: string;
   lossActionId: string;
   lossProofId: string;
@@ -655,10 +655,10 @@ export async function seedForSmokeTest(): Promise<Seeded> {
      a cost model (crew 4 at £14.50 with on-costs ×1.3, 100 a minute at 4p a
      pack: £315.40 an hour stopped), a line standard with the product's agreed
      rate, and the stops the floor timed through yesterday's two shifts and
-     this morning's. The count is the worked example: 450 planned minutes at
+     yesterday's. The count is the worked example: 450 planned minutes at
      100 a minute, 36,500 made, 600 rejects — 85 min lost, 52 of stops, 18 of
      changeover, 6 of rejects, 9 not yet explained (amber: over a tenth). Its
-     biggest bar raised a countermeasure on the board; Shift 1 today is
+     biggest bar raised a countermeasure on the board; yesterday's Shift 1 is
      counted as its proof — before → after on the board, the fishbone, the
      line's card, the control room and the 6M report's Evidence. */
   const SHIFTS = [{ name: 'Shift 1', start: '06:00', end: '14:00' }, { name: 'Shift 2', start: '14:00', end: '22:00' }, { name: 'Nights', start: '22:00', end: '06:00' }];
@@ -666,9 +666,11 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   const line7Std = uid();
   await putStandard({ id: line7Std, projectId: paced.id, workspaceId: line7Ws.id, product: 'Maris Piper 2kg', marks: [],
     capacity: { targetPerMin: 100, stations: [] }, sort: 4, createdAt: t, updatedAt: t });
-  const y1 = shiftWindow(SHIFTS[0], iso(-1)) as { from: number; to: number };
-  const y2 = shiftWindow(SHIFTS[1], iso(-1)) as { from: number; to: number };
-  const d1 = shiftWindow(SHIFTS[0], iso(0)) as { from: number; to: number };
+  /* two days ago's Shift 1 and Shift 2, and yesterday's Shift 1 — every one
+     of them over, whatever the hour the seed runs at */
+  const y1 = shiftWindow(SHIFTS[0], iso(-2)) as { from: number; to: number };
+  const y2 = shiftWindow(SHIFTS[1], iso(-2)) as { from: number; to: number };
+  const d1 = shiftWindow(SHIFTS[0], iso(-1)) as { from: number; to: number };
   const HR = 3_600_000;
   const lstop = (at: number, mins: number, o: Partial<Observation> = {}): Observation => ({
     id: uid(), workspaceId: line7Ws.id, category: 'Breakdown', subcategory: 'Mechanical', asset: 'Bagger', shift: 'Shift 1',
