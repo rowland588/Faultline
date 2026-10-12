@@ -27,7 +27,7 @@ import { useAccessByJob } from './JobsBoard';
 import { now, uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import { live, nextFrom, type Test } from '../lib/testing';
-import { betterWords, worthBetter, linkOf, countermeasureFrom, recordHref, ROLE_WORD } from '../lib/studyLinks';
+import { betterWords, worthBetter, linkOf, countermeasureFrom, recordHref, ROLE_WORD, type StudyContext } from '../lib/studyLinks';
 import type { StudyUse, ToolStudy } from '../lib/study';
 import type { Can } from '../lib/access';
 import type { Workspace } from '../types';
@@ -112,9 +112,10 @@ function useJobCauses(projectId: string, lineWs: string[]): Target[] {
 }
 
 /** MAKE IT BETTER, and what a study can be used for on its job — one place,
- *  so the study's Used for and a value stream step's sheet raise the same
- *  record the same way. */
-export function useBetter(s: ToolStudy, me?: string) {
+ *  so the study's Used for, a value stream step's sheet and a loss count's
+ *  bar raise the same record the same way. `ctx`: what a loss count reads
+ *  beside its facts — the line's stops and cost model (lib/studyLinks). */
+export function useBetter(s: ToolStudy, me?: string, ctx?: StudyContext) {
   const pid = s.projectId ?? '';
   const { project } = useProject(pid);
   /* A stage-gate job's evidence serves its tests and fixes; a running line's
@@ -142,13 +143,13 @@ export function useBetter(s: ToolStudy, me?: string) {
   const better = async (step?: string) => {
     if (!s.projectId) return;
     const projectId = s.projectId;
-    const words = betterWords(s, step), at = now();
+    const words = betterWords(s, step, ctx), at = now();
     if (board) {
       const onCause = s.uses.find(u => u.kind === 'cause' && u.role === 'evidence' && byRef.has(u.ref));
       /* on that cause only while its problem is open — not a closed one's */
       const c = onCause && !byRef.get(onCause.ref)?.past ? byRef.get(onCause.ref) : undefined;
       const lineId = ax.lines.find(l => !!l.workspaceId && l.workspaceId === s.workspaceId)?.id ?? c?.lineId;
-      const row = countermeasureFrom(s, { id: uid(), at, ...(lineId ? { lineId } : {}), ...(c ? { causeRef: c.ref } : {}), ...(c?.bone && !step ? { bone: c.bone } : {}), ...(step ? { step } : {}) });
+      const row = countermeasureFrom(s, { id: uid(), at, ...(lineId ? { lineId } : {}), ...(c ? { causeRef: c.ref } : {}), ...(c?.bone && !step ? { bone: c.bone } : {}), ...(step ? { step } : {}) }, ctx);
       await putPaceTodo(row);
       await patchStudy(s.id, cur => ({ uses: [...cur.uses, linkOf('action', row.id, 'evidence', at, me, uid(), step)] }));
       nav(recordHref(projectId, { kind: 'action', ref: row.id }));

@@ -191,7 +191,12 @@ for (const size of SIZES) {
     const [tests, items, assets, materials, programs] = await Promise.all([db.listTests(pid), db.listTestItems(pid), db.listAssets(pid), listMaterials(pid), listPrograms(pid)]);
     const today = todayISO();
     const studies = await (await import('/src/db/studies.ts')).listStudies(pid);
-    const r = clientReport({ project, projects: [project], assets, tests, items, materials, programs, standards: [], walk: [], studies, today });
+    /* what a loss count reads beside its facts: its line's stops and cost model */
+    const lossWs = [...new Set(studies.filter(s => s.tool === 'losses' && s.workspaceId).map(s => s.workspaceId))];
+    const { listObservations } = await import('/src/db/observations.ts');
+    const { getWorkspace } = await import('/src/db/workspaces.ts');
+    const studyContext = { observations: (await Promise.all(lossWs.map(id => listObservations(id)))).flat(), workspaces: (await Promise.all(lossWs.map(id => getWorkspace(id)))).filter(Boolean) };
+    const r = clientReport({ project, projects: [project], assets, tests, items, materials, programs, standards: [], walk: [], studies, studyContext, today });
     const out = { client: [], card: [], fix: [], day: [], status: [], programs: [], handover: [], labels: [] };
     const add = (k, ...xs) => { for (const x of xs) { const v = typeof x === 'number' ? String(x) : x; if (v && san(v)) out[k].push([v, san(v), from]); } };
     let from = '';
@@ -259,6 +264,10 @@ for (const size of SIZES) {
       for (const x of e.changeover.rows) add('client', x.name, x.side, x.minutes, x.how, x.branch ? `Being made better: ${x.branch}` : undefined);
       add('client', e.changeover.total.minutes, ...e.changeover.lines);
     }
+    /* A shift's losses on paper (lib/report/lossTable): what was planned and
+       made, every bar's cause and minutes, and the total lost. */
+    from = 'a shift\'s losses, cause by cause';
+    for (const e of r.evidence) if (e.losses) { add('client', e.losses.head); for (const x of e.losses.rows) add('client', x.cause, x.minutes); add('client', e.losses.total.minutes); }
     /* What is marked on a fix's photo (ui/Evidence), when that photo is the
        picture printed — not pinned on a walk frame. */
     from = 'a fix photo\'s marks'; for (const fx of r.fixes.open) if (!fx.pin) add('client', ...(fx.photoPins ?? []).map(p => p.note));
@@ -412,6 +421,8 @@ for (const size of SIXM_SIZES) {
       const { getProject } = await import('/src/db/projects.ts');
       const project = await getProject(pid);
       const loaded = await loadProblems(pid);
+      /* what a loss count reads: the lines' stops and cost models, as the report reads them */
+      const ctx = { observations: loaded.data.observations, workspaces: loaded.data.workspaces };
       const views = viewsOf(loaded, pid, lineId, Date.now());
       const todos = (await listPaceTodos(pid)).filter(t => !lineId || !t.lineId || t.lineId === lineId);
       const lines = loaded.data.lines.filter(l => !lineId || l.id === lineId);
@@ -454,24 +465,27 @@ for (const size of SIXM_SIZES) {
         /* What a study says of it (lib/studyLinks provedLine) — before → after,
            what proved it, or how we know it was needed. */
         from = 'a countermeasure\'s study';
-        for (const a of v.actions) { const id = a.uid ?? a.ref; if (id) add(SL.provedLine(loaded.data.studies, id, 'action')); }
+        for (const a of v.actions) { const id = a.uid ?? a.ref; if (id) add(SL.provedLine(loaded.data.studies, id, 'action', ctx)); }
         from = 'hold'; if (v.problem.hold) add(v.problem.hold.what, v.problem.hold.who);
       }
       from = 'board'; for (const t of todos) add(t.what, t.who, t.why, words(t));
       /* the board carries what proved each action too — one raised from a
          value stream step on no problem shows its before → after there */
-      from = 'a board action\'s study'; for (const t of todos) add(SL.provedLine(loaded.data.studies, t.id, 'action'));
+      from = 'a board action\'s study'; for (const t of todos) add(SL.provedLine(loaded.data.studies, t.id, 'action', ctx));
       from = 'walk'; for (const sn of loaded.data.snags) if (!lineId || ws.has(sn.wsId)) add(sn.what, sn.state !== 'closed' ? sn.owner : undefined);
       /* Every study on the job (on the line, for a line's deck) — its title
          and what it says — and a value stream's steps as a table. */
       from = 'evidence';
       const { streamRows } = await import('/src/lib/ie/steps.ts');
       const { changeoverSheet } = await import('/src/lib/ie/changeover.ts');
+      const { lossRows } = await import('/src/lib/ie/losses.ts');
       for (const st of loaded.data.studies.filter(x => !x.deletedAt && (!lineId || (x.workspaceId && ws.has(x.workspaceId))))) {
-        add(SL.studyTitle(st), SL.studyLine(st).text);
+        add(SL.studyTitle(st), SL.studyLine(st, ctx).text);
         if (st.tool === 'map') { const t = streamRows(st.facts.flow, st.agreed?.map); for (const x of t.rows) add(x.what, x.who, x.where); add(t.total.lead); }
         /* a changeover's steps as a table, and its bars and interval in words */
         if (st.tool === 'changeover' && (st.facts.sequence ?? []).length) { const c = changeoverSheet(st.facts); for (const x of c.rows) add(x.name, x.side, x.minutes, x.how); add(c.total.minutes, ...c.lines); }
+        /* a shift's losses: the table, cause by cause, and the total lost */
+        if (st.tool === 'losses') { const t = lossRows(SL.lossFiguresOf(st, ctx)); if (t) { add(t.head); for (const x of t.rows) add(x.cause, x.minutes); add(t.total.minutes); } }
       }
       return out;
     }, { pid: job.projectId, lineId });

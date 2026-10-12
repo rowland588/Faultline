@@ -26,6 +26,7 @@ import { phaseTone, problemTitleOfBar, sameSource } from '../screens/FishboneScr
 import { uid } from '../lib/ids';
 import { Sheet, SheetRow } from './Sheet';
 import { ActionSheet, type Editing } from './ActionSheet';
+import { ShiftLossLine } from './ShiftLosses';
 
 export interface ParetoPaneProps {
   projectId: string;
@@ -105,12 +106,20 @@ export function ParetoPane({ projectId, lineId, selected, onOpen }: ParetoPanePr
 
   if (pareto.loading) return <section className="prp" aria-label="Pareto"><p className="sub">Loading…</p></section>;
 
+  /* A SHIFT'S LOSSES, BESIDE THE PARETO (tool 7): the line's latest shift
+     counted — how much of its loss these stops explain — and the door to
+     count one, on this job. On the whole project, a line each. */
+  const shifts = fixedLine
+    ? <ShiftLossLine workspaceId={fixedLine.workspaceId} projectId={projectId} canEdit={can.edit} />
+    : lineId ? null : <>{lines.filter(l => l.workspaceId).map(l => <ShiftLossLine key={l.id} workspaceId={l.workspaceId} projectId={projectId} canEdit={false} name={l.name} quiet />)}</>;
+
   const where = fixedLine?.name ?? (lineId ? 'This line' : 'Every line');
   if (!view) {
     return (
       <section className="prp" aria-label="Pareto">
         <h2 className="prp-t">Where the time goes</h2>
         <p className="sub prp-empty">Nothing timed on {fixedLine?.name ?? 'the line'} in the last four weeks — the stops timed on the floor rank themselves here.</p>
+        {shifts}
       </section>
     );
   }
@@ -141,6 +150,7 @@ export function ParetoPane({ projectId, lineId, selected, onOpen }: ParetoPanePr
         <p className="prp-sub">{where} · last four weeks · {mins(view.totalMins)} min over {view.totalStops} stops</p>
       </header>
       <p className="prp-vital"><b>{w.count}</b>{w.of}<b>{w.share}</b>{w.tail}</p>
+      {shifts}
 
       <ol className="prp-bars">
         {vital.map(m => {

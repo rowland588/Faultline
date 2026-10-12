@@ -36,7 +36,8 @@ import { analyse, fmtN } from './capacity';
 import { headcount } from './standard';
 import type { ToolStudy } from './study';
 import { balance, secs } from './ie/balance';
-import { boneOfStep, currentBalance } from './studyLinks';
+import { boneOfStep, currentBalance, currentLosses, lossFiguresOf } from './studyLinks';
+import { minWords, shiftWords } from './ie/losses';
 import { dur, flowFigures, stepAt, stepFigure, valueOf, waitOf, whereOf } from './ie/steps';
 import { changeoverFigures, mins, stepFigure as changeoverStepFigure } from './ie/changeover';
 import { stateOf as materialState, daysLate } from './materials';
@@ -536,6 +537,31 @@ export function suggestionsFor(problem: Case, data: FishboneData, today = Date.n
     for (const st of seen.filter(x => x.side === 'internal').sort((a, b) => (b.sec ?? 0) - (a.sec ?? 0)).slice(0, 2)) {
       out.push(mk('study', `${co.id}#${st.id}`, 'machine', `${st.name.trim() || 'A step'} — ${changeoverStepFigure(st)}, the line stopped`,
         grade([st]), { detail: head, label: co.name, tool: 'changeover' }));
+    }
+  }
+
+  /* 4d. A SHIFT'S LOSSES (lib/ie/losses): the line's latest shift counted on
+     this job — its biggest explained bars (the stops by cause and the
+     changeovers, three at most), each on the bone its stops sit on (the
+     floor's taps, else the reason's usual bone). About one machine, only
+     that machine's bars. Measured when every stop under it was timed on the
+     stopwatch; reported when any was typed. The part not yet explained is
+     never offered as a cause: nobody knows what it is — it is in the detail.
+     The ref is "<count id>#<bar key>" — opening it opens the count. */
+  const count = lineWs ? currentLosses(data.studies, lineWs) : undefined;
+  if (count?.facts.losses && (scope.whole || scope.asset)) {
+    const c = count.facts.losses;
+    const lf = lossFiguresOf(count, { observations: data.observations, workspaces: data.workspaces });
+    if (lf.enough && lf.split && (lf.lostMin ?? 0) > 0) {
+      const when = `${shiftWords(c)}, ${niceDay(isoOf(c.from))}`;
+      const unex = lf.unexplainedMin ?? 0;
+      const head = `Loss count: ${when} — ${minWords(lf.lostMin ?? 0)} lost${unex > 0.5 ? `, ${minWords(unex)} not yet explained` : ''}`;
+      const biggest = lf.bars.filter(x => (x.kind === 'cause' || x.kind === 'changeover') && x.min > 0 && (!scope.asset || sameThing(x.asset, scope.asset)))
+        .sort((a, b) => b.min - a.min).slice(0, 3);
+      for (const b of biggest) {
+        out.push(mk('study', `${count.id}#${b.key}`, b.bone, `${b.label}${b.asset ? ` on the ${b.asset}` : ''} — ${minWords(b.min)} of the ${minWords(lf.lostMin ?? 0)} lost on ${when}`,
+          b.grade === 'measured' ? 'measured' : 'reported', { detail: head, label: count.name, tool: 'losses' }));
+      }
     }
   }
 

@@ -11609,6 +11609,7 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
 /* The line standard's work, timed — a branch under the line card's balance;
    only the over-takt sentence carries colour. */
 .lc-work .lc-bal-t.is-r { color: var(--st-r); }
+.lc-shift .lc-bal-t.is-a { color: var(--st-a); }
 /* A study proving a test, on its Commission square (ui/CommissionGrid):
    neutral unless abnormal — not capable amber, a failure red. */
 .cg-study.is-a { color: var(--st-a); font-weight: 700; }
@@ -11821,3 +11822,102 @@ button.co-step-b:hover { background: color-mix(in srgb, var(--brand) 5%, transpa
 .ws-bar-f { position: absolute; inset: 0 auto 0 0; background: var(--ink-2); border-radius: 4px; }
 .ws-bar-m { position: absolute; top: 5px; height: 6px; background: color-mix(in srgb, var(--surface) 70%, transparent); border: 1px solid var(--ink); border-radius: 3px; }
 .ws-bar-n { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+
+/* ============ A SHIFT'S LOSSES — the loss count (screens/LossesScreen, tool 7) ============
+   The waterfall is drawn across, in the quiet ink: planned minutes down to
+   the good packs made. Only the abnormal carries colour — the part not yet explained
+   is hatched grey, and amber when it is more than a tenth of the loss.
+   Nothing green: a shift's loss is not a pass (CLAUDE.md, visual management). */
+.lf-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "pic count"; gap: 16px; align-items: start; margin-top: 8px; }
+.lf-body.has-table { grid-template-areas: "tab pic" "count count"; }
+.lf-tab { grid-area: tab; min-width: 0; }
+.lf-pic { grid-area: pic; min-width: 0; }
+.lf-body > .lf-count { grid-area: count; }
+.lf-body.has-table > .lf-count .lf-count-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.lf-fall { width: 100%; max-width: 760px; height: auto; display: block; overflow: visible; margin: 0 auto; }
+.lf-bar { fill: var(--ink-2); }
+.lf-bar.is-frame { fill: var(--surface-2); stroke: var(--line-2); stroke-width: 1.2; }
+.lf-bar.is-unex { fill: url(#lf-hatch); color: var(--st-n); stroke: var(--st-n); stroke-width: 1.4; }
+.lf-bar.is-unex.is-a { color: var(--st-a); stroke: var(--st-a); }
+.lf-hatch { stroke: currentColor; stroke-width: 1.4; }
+.lf-fall.is-rows { max-width: 460px; }
+.lf-rl { font-size: 13px; fill: var(--ink); }
+.lf-rl.is-a { fill: var(--st-a); font-weight: 700; }
+.lf-rv { font-size: 13px; font-weight: 700; fill: var(--ink); text-anchor: end; font-variant-numeric: tabular-nums; }
+.lf-rv.is-a { fill: var(--st-a); }
+.lf-step { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.lf-go { cursor: pointer; }
+.lf-go:hover .lf-bar { opacity: .82; }
+.lf-hit { fill: transparent; }
+/* The causes as a table — each row a door to its bar (a phone row, a glove). */
+.lf-table { display: flex; flex-direction: column; font-size: var(--t-detail); font-variant-numeric: tabular-nums; }
+.lf-tr { display: grid; grid-template-columns: minmax(0, 1fr) 56px 76px 64px 18px; gap: 0 10px; align-items: baseline; padding: 9px 2px; border-bottom: 1px solid var(--line); }
+.lf-tr.no-money { grid-template-columns: minmax(0, 1fr) 56px 76px 18px; }
+.lf-th { font-size: var(--t-label); font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); padding: 6px 2px; }
+.lf-row { all: unset; box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1fr) 56px 76px 64px 18px; gap: 0 10px; align-items: baseline; padding: 10px 2px; min-height: var(--tap); border-bottom: 1px solid var(--line); cursor: pointer; color: var(--ink-2); }
+.lf-row.no-money { grid-template-columns: minmax(0, 1fr) 56px 76px 18px; }
+.lf-row:hover { background: color-mix(in srgb, var(--brand) 5%, transparent); }
+.lf-row:focus-visible { outline: 2.5px solid var(--brand); outline-offset: -2px; }
+.lf-row b { color: var(--ink); }
+.lf-row.is-a, .lf-row.is-a b { color: var(--st-a); font-weight: 700; }
+.lf-tf { font-weight: 700; color: var(--ink); border-bottom: 0; }
+.lf-table .is-num { text-align: right; white-space: nowrap; }
+.lf-chev { color: var(--brand); font-weight: 700; text-align: right; }
+.lf-cause { min-width: 0; overflow-wrap: anywhere; }
+.lf-known { white-space: nowrap; }
+/* THE BRANCH OFF A BAR: a countermeasure or a fix was raised from it — said in words, no state colour. */
+.lf-branch { display: block; margin-top: 2px; font-size: var(--t-label); font-weight: 700; color: var(--ink); }
+.lf-branch::before { content: ''; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; border: 2px solid var(--ink); vertical-align: 0; }
+.lf-sheet { display: flex; flex-direction: column; gap: 10px; }
+.lf-sheet-h { margin: 0; font-size: var(--t-body); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.lf-sheet-h b { font-size: 1.3rem; color: var(--ink); }
+.lf-stops { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; font-size: var(--t-detail); }
+.lf-stops li { padding: 6px 0; border-top: 1px solid var(--line); }
+.lf-stop-t { display: inline-block; min-width: 3.4em; color: var(--muted); font-variant-numeric: tabular-nums; }
+.lf-hint { margin: 0; }
+.lf-count { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.lf-count .field { display: grid; gap: 4px; }
+.lf-count .text-input { min-height: var(--tap); font-size: 18px; font-variant-numeric: tabular-nums; width: 100%; min-width: 0; box-sizing: border-box; margin-top: 0; }
+.lf-count .chip { min-height: 40px; }
+.lf-count-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; align-items: start; }
+.lf-count-grid .lf-day { grid-column: 1 / -1; }
+.lf-body.has-table .lf-count-grid .lf-day { grid-column: auto; }
+.lf-facts { margin: 0; display: grid; gap: 4px; }
+.lf-facts div { display: grid; grid-template-columns: 80px 1fr; gap: 8px; padding: 5px 0; border-top: 1px solid var(--line); font-size: var(--t-detail); }
+.lf-facts dt { color: var(--muted); font-weight: 700; }
+.lf-facts dd { margin: 0; color: var(--ink); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (max-width: 760px) {
+  /* ON THE FLOOR: the count first — the thumb types it — then the picture,
+     the causes under it, every box a glove can hit. */
+  .lf-body, .lf-body.has-table { grid-template-columns: minmax(0, 1fr); grid-template-areas: none; }
+  .lf-tab, .lf-pic, .lf-body > .lf-count { grid-area: auto; }
+  .lf-pic { order: 1; }
+  .lf-tab { order: 2; }
+  .lf-body > .lf-count { order: 3; }
+  .lf-body.is-counting > .lf-count { order: 0; }
+  .lf-count-grid, .lf-body.has-table > .lf-count .lf-count-grid { grid-template-columns: 1fr 1fr; }
+  .lf-body.has-table .lf-count-grid .lf-day { grid-column: 1 / -1; }
+  .lf-tr, .lf-row { grid-template-columns: minmax(0, 1fr) 40px 62px 54px 14px; gap: 0 6px; }
+  .lf-tr.no-money, .lf-row.no-money { grid-template-columns: minmax(0, 1fr) 40px 62px 14px; }
+}
+/* A line's latest shift counted, beside the Pareto (ui/ShiftLosses) — a
+   branch under the board: neutral, the part not yet explained amber only
+   over a tenth of the loss. */
+.sll { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 8px 0; }
+.sll-go { all: unset; box-sizing: border-box; cursor: pointer; flex: 1 1 260px; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; min-height: 44px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
+.sll-go:hover { background: color-mix(in srgb, var(--brand) 5%, var(--surface)); }
+.sll-go:focus-visible { outline: 2.5px solid var(--brand); outline-offset: 1px; }
+.sll-k { font-size: var(--t-label); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.sll-t { flex: 1 1 200px; min-width: 0; font-size: var(--t-detail); font-weight: 700; color: var(--ink); }
+.sll-t.is-a { color: var(--st-a); }
+.sll-c { color: var(--brand); font-weight: 700; }
+.sll-none { flex: 1 1 260px; font-size: var(--t-detail); }
+.sll-new { min-height: 44px; }
+/* The line's latest shift counted, under its gap in the control room (ui/JobsBoard LossBranch). */
+.jb-loss { all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; margin: 2px 0 0 12px; padding: 4px 8px; min-height: 36px; border-left: 2px solid var(--line-2); font-size: var(--t-detail); color: var(--ink-2); }
+.jb-loss:hover { background: color-mix(in srgb, var(--brand) 5%, transparent); }
+.jb-loss:focus-visible { outline: 2.5px solid var(--brand); outline-offset: 1px; }
+.jb-loss-k { font-size: var(--t-label); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.jb-loss-t { flex: 1 1 200px; min-width: 0; }
+.jb-loss-c { color: var(--brand); font-weight: 700; }

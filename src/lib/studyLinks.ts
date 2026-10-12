@@ -11,7 +11,7 @@
  * scope (what it is of, and the same limits), the latest on each side, and
  * enough readings on both. It says "the number moved", never "the fix did
  * it" — that is the fix's to say, and a person presses the button. */
-import type { ID } from '../types';
+import type { ID, Observation } from '../types';
 import type { BalanceStep, ChangeoverStep, FlowStep, StudyUse, ToolStudy } from './study';
 import type { PaceTodoRow } from '../db/rows';
 import type { SixM } from './sixm';
@@ -20,8 +20,33 @@ import { balance, balanceLine, compareBalances, secs as secsOf } from './ie/bala
 import { carryFlow, compareFlows, compareStep, dur as durOf, flowFigures, flowSays, share as shareOf, stepAt, stepFigure, whoOf } from './ie/steps';
 import { carrySequence, changeoverFigures, changeoverSays, compareChangeovers, intervalOf, intervalSays, mins, stepFigure as changeoverStepFigure } from './ie/changeover';
 import { samplingSays, samplingWorst, worstWords } from './ie/sampling';
+import { barExpect, barWords, compareLosses, inWindow, lossFigures, lossLine, lossSays, nextShift, type CostModel, type LossFigures } from './ie/losses';
 
 const live = (ss: ToolStudy[]) => ss.filter(s => !s.deletedAt);
+
+/** WHAT A STUDY READS BESIDE ITS OWN FACTS. A loss count's figures are the
+ *  line's stops in its window and the line's cost model (lib/ie/losses) —
+ *  never copied onto the study — so whoever has them hands them in here: the
+ *  fishbone's data, a report's, a screen's. Without them a loss count still
+ *  says what the count alone knows (the loss), and not where it went. */
+export interface StudyContext {
+  observations?: Observation[];
+  /** The lines — their cost model (lib/cost) is read for the pounds. */
+  workspaces?: ({ id: string } & CostModel)[];
+}
+
+/** A loss count's figures from its facts and what the context holds of its line. */
+export function lossFiguresOf(s: ToolStudy, ctx?: StudyContext): LossFigures {
+  const c = s.facts.losses;
+  const obs = ctx?.observations && c ? inWindow(ctx.observations, c.from, c.to, s.workspaceId) : undefined;
+  return lossFigures(c, obs, ctx?.workspaces?.find(w => w.id === s.workspaceId));
+}
+
+/** The bar of a loss count a record was raised from (StudyUse.step), as it stands. */
+export function barOf(s: ToolStudy, kind: StudyUse['kind'], ref: ID, ctx?: StudyContext) {
+  const key = s.uses.find(u => u.kind === kind && u.ref === ref && u.role === 'evidence' && u.step)?.step;
+  return key ? lossFiguresOf(s, ctx).bars.find(b => b.key === key) : undefined;
+}
 
 /** The studies linked to one record, newest first. */
 export function linkedTo(studies: ToolStudy[], kind: StudyUse['kind'], ref: ID, role?: StudyUse['role']): ToolStudy[] {
@@ -31,7 +56,7 @@ export function linkedTo(studies: ToolStudy[], kind: StudyUse['kind'], ref: ID, 
 
 /** What a study says, in the tool's words: a work balance by its stacks
  *  against takt, a measured test by its readings. */
-export function studySays(s: ToolStudy): SampleSays {
+export function studySays(s: ToolStudy, ctx?: StudyContext): SampleSays {
   if (s.tool === 'balance') return balanceLine(balance(s.facts.steps, s.agreed?.balance));
   if (s.tool === 'map') {
     const f = flowFigures(s.facts.flow, s.agreed?.map);
@@ -46,12 +71,16 @@ export function studySays(s: ToolStudy): SampleSays {
     return { text: iv.ready ? `${said.text} ${intervalSays(iv, f).text}` : said.text, tone: said.tone, verdict: said.verdict };
   }
   if (s.tool === 'sampling') return samplingSays(s.agreed?.sampling, s.facts.taps ?? []);
+  if (s.tool === 'losses') {
+    const said = lossSays(lossFiguresOf(s, ctx), s.facts.losses, { ...(s.product ? { product: s.product } : {}) });
+    return { text: said.text, tone: said.tone, verdict: said.verdict };
+  }
   const a = s.agreed?.readings;
   return sampleSays(sample(a, s.facts.readings ?? []), a);
 }
 
 /** Each tool's name, as a study of it is called on screen and on paper. */
-export const TOOL_NAME: Partial<Record<ToolStudy['tool'], string>> = { capability: 'Capability study', balance: 'Work balance', map: 'Value stream map', changeover: 'Changeover', sampling: 'Work sampling' };
+export const TOOL_NAME: Partial<Record<ToolStudy['tool'], string>> = { capability: 'Capability study', balance: 'Work balance', map: 'Value stream map', changeover: 'Changeover', sampling: 'Work sampling', losses: 'Loss count' };
 
 /** "Capability study — Weight accuracy 400 g · Weigher 2". */
 export const studyTitle = (s: Pick<ToolStudy, 'tool' | 'name' | 'machine'>): string =>
@@ -108,10 +137,26 @@ export function changeoverLine(s: ToolStudy): { text: string; tone: Tone } | und
 export const currentBalance = (studies: ToolStudy[], standardId: ID): ToolStudy | undefined =>
   live(studies).filter(s => s.tool === 'balance' && s.standardId === standardId).sort((a, b) => b.startedAt - a.startedAt)[0];
 
+/** The loss count a line's board reads: its latest shift counted — the
+ *  newest window with the packs made in it (a count set up and not yet
+ *  counted is not a shift's losses). */
+export const currentLosses = (studies: ToolStudy[], workspaceId: ID): ToolStudy | undefined =>
+  live(studies).filter(s => s.tool === 'losses' && s.workspaceId === workspaceId && s.facts.losses && s.facts.losses.made !== undefined)
+    .sort((a, b) => (b.facts.losses?.from ?? 0) - (a.facts.losses?.from ?? 0))[0];
+
+/** A line's latest shift in one line, for its card, the Pareto's pane and
+ *  the control room: "Shift 1 yesterday: 85 min lost · 9 min not yet
+ *  explained". Only the abnormal part (over a tenth not yet explained, or
+ *  the counts wanting checking) wears amber. */
+export function lossCardLine(s: ToolStudy, ctx?: StudyContext, now = Date.now()): { text: string; abnormal: boolean } | undefined {
+  const c = s.facts.losses;
+  return c ? lossLine(lossFiguresOf(s, ctx), c, now) : undefined;
+}
+
 /** The sentence a study adds to a record or to paper, with its verdict tone:
  *  its name, then what it says, with an overrule beside the app's verdict. */
-export function studyLine(s: ToolStudy): { text: string; tone: Tone } {
-  const said = studySays(s);
+export function studyLine(s: ToolStudy, ctx?: StudyContext): { text: string; tone: Tone } {
+  const said = studySays(s, ctx);
   const over = s.overrule ? ` Overruled: ${s.overrule.verdict}${s.overrule.by ? ` by ${s.overrule.by}` : ''} — ${s.overrule.why}.` : '';
   return { text: `${said.text}${said.capability ? ` ${said.capability.text}` : ''}${over}`, tone: s.overrule ? 'n' : said.tone };
 }
@@ -131,8 +176,11 @@ export const sameScope = (a: ToolStudy, b: ToolStudy): boolean =>
     : a.tool === 'map' || a.tool === 'changeover'
       /* a value stream, a changeover: the same line, the same stream or the same two products */
       ? (a.workspaceId ?? '') === (b.workspaceId ?? '') && a.name.trim().toLowerCase() === b.name.trim().toLowerCase()
-      : a.name.trim().toLowerCase() === b.name.trim().toLowerCase()
-        && JSON.stringify(a.agreed?.readings ?? null) === JSON.stringify(b.agreed?.readings ?? null));
+      : a.tool === 'losses'
+        /* a loss count: the same line, the same shift pattern */
+        ? (a.workspaceId ?? '') === (b.workspaceId ?? '') && (a.facts.losses?.shift ?? '').trim().toLowerCase() === (b.facts.losses?.shift ?? '').trim().toLowerCase()
+        : a.name.trim().toLowerCase() === b.name.trim().toLowerCase()
+          && JSON.stringify(a.agreed?.readings ?? null) === JSON.stringify(b.agreed?.readings ?? null));
 
 /** The step of a value stream map a record was raised from, when it was. */
 export function stepOf(s: ToolStudy, kind: StudyUse['kind'], ref: ID): FlowStep | undefined {
@@ -152,10 +200,16 @@ export type FixKind = 'fix' | 'action';
 
 /** Before → after on a fix (or a board action): its evidence study against
  *  its proof study. */
-export function beforeAfter(studies: ToolStudy[], fixId: ID, kind: FixKind = 'fix'): { text: string; tone: Tone; before: ToolStudy; after: ToolStudy } | undefined {
+export function beforeAfter(studies: ToolStudy[], fixId: ID, kind: FixKind = 'fix', ctx?: StudyContext): { text: string; tone: Tone; before: ToolStudy; after: ToolStudy } | undefined {
   const after = linkedTo(studies, kind, fixId, 'proof')[0];
   if (!after) return undefined;
   const before = linkedTo(studies, kind, fixId, 'evidence').find(b => sameScope(b, after));
+  if (before && after.tool === 'losses') {
+    /* the next shift counted: the bar the fix was raised from first, then
+       the lost minutes and the part not yet explained */
+    const bar = before.uses.find(u => u.kind === kind && u.ref === fixId && u.role === 'evidence' && u.step)?.step;
+    return { ...compareLosses(lossFiguresOf(before, ctx), lossFiguresOf(after, ctx), bar), before, after };
+  }
   if (before && after.tool === 'balance') {
     const ab = after.agreed?.balance;
     return ab ? { ...compareBalances(balance(before.facts.steps, before.agreed?.balance), balance(after.facts.steps, ab)), before, after } : undefined;
@@ -205,21 +259,21 @@ export function compareChangeoverStep(before: ChangeoverStep, after: ChangeoverS
 /** The one line a fix (or a board action) carries on paper and in its
  *  drawer: before → after when it has both, else what proved it, else how we
  *  know it was needed. */
-export function provedLine(studies: ToolStudy[], fixId: ID, kind: FixKind = 'fix'): string | undefined {
-  const ba = beforeAfter(studies, fixId, kind);
+export function provedLine(studies: ToolStudy[], fixId: ID, kind: FixKind = 'fix', ctx?: StudyContext): string | undefined {
+  const ba = beforeAfter(studies, fixId, kind, ctx);
   if (ba) return `Before → after: ${ba.text}`;
   const proof = linkedTo(studies, kind, fixId, 'proof')[0], ev = linkedTo(studies, kind, fixId, 'evidence')[0];
-  if (proof) return `Proved by: ${studyLine(proof).text}`;
-  if (ev) return `How we know: ${studyLine(ev).text}`;
+  if (proof) return `Proved by: ${studyLine(proof, ctx).text}`;
+  if (ev) return `How we know: ${studyLine(ev, ctx).text}`;
   return undefined;
 }
 
 /** A test's or a fix's line, by what it is: a fix's before → after (or what
  *  proved it, or how we know it was needed); a test's proof. */
-export function recordProvedLine(studies: ToolStudy[], t: { id: ID; kind?: string }): string | undefined {
-  if ((t.kind ?? 'test') === 'fix') return provedLine(studies, t.id, 'fix');
+export function recordProvedLine(studies: ToolStudy[], t: { id: ID; kind?: string }, ctx?: StudyContext): string | undefined {
+  if ((t.kind ?? 'test') === 'fix') return provedLine(studies, t.id, 'fix', ctx);
   const proof = linkedTo(studies, 'test', t.id, 'proof')[0];
-  return proof ? `Proved by: ${studyTitle(proof)} — ${studyLine(proof).text}` : undefined;
+  return proof ? `Proved by: ${studyTitle(proof)} — ${studyLine(proof, ctx).text}` : undefined;
 }
 
 /** WHAT WAS MEASURED ON A DAY (lib/day): the readings or laps a study took
@@ -286,7 +340,11 @@ export const ROLE_WORD: Record<string, string> = {
 
 /** What a countermeasure raised from a study should change — said before it
  *  is done, so "Did it work" has something to be held against. */
-export function betterExpect(s: ToolStudy, stepId?: string): string | undefined {
+export function betterExpect(s: ToolStudy, stepId?: string, ctx?: StudyContext): string | undefined {
+  if (s.tool === 'losses') {
+    const b = stepId ? lossFiguresOf(s, ctx).bars.find(x => x.key === stepId) : undefined;
+    return b ? barExpect(b) : undefined;
+  }
   if (s.tool === 'changeover') {
     const st = stepId ? (s.facts.sequence ?? []).find(x => x.id === stepId) : undefined;
     if (!st) return undefined;
@@ -309,14 +367,16 @@ export function betterExpect(s: ToolStudy, stepId?: string): string | undefined 
 /** MAKE IT BETTER ON A RUNNING LINE: a countermeasure on the board, its words
  *  the study's figures, on the cause the study is evidence for when it is
  *  one — never a stage-gate fix a 6M job has no page for. */
-export function countermeasureFrom(s: ToolStudy, x: { id: string; at: number; lineId?: string; causeRef?: string; bone?: SixM; step?: string }): PaceTodoRow {
-  const expect = betterExpect(s, x.step);
-  const st = x.step ? (s.facts.flow ?? []).find(f => f.id === x.step) : undefined;
+export function countermeasureFrom(s: ToolStudy, x: { id: string; at: number; lineId?: string; causeRef?: string; bone?: SixM; step?: string }, ctx?: StudyContext): PaceTodoRow {
+  const expect = betterExpect(s, x.step, ctx);
+  const st = x.step && s.tool === 'map' ? (s.facts.flow ?? []).find(f => f.id === x.step) : undefined;
   const co = s.tool === 'changeover' && x.step ? (s.facts.sequence ?? []).find(f => f.id === x.step) : undefined;
+  /* a loss count's bar: on the bone its stops sit on, where its minutes are */
+  const bar = x.step && s.tool === 'losses' ? lossFiguresOf(s, ctx).bars.find(b => b.key === x.step) : undefined;
   return {
     id: x.id, ...(s.projectId ? { projectId: s.projectId } : {}), ...(x.lineId ? { lineId: x.lineId } : {}),
-    what: betterWords(s, x.step), where: st ? stepAt(st, s.agreed?.map) : co ? (s.machine ?? '') : '', why: studyTitle(s), who: '', when: '', state: 'todo',
-    pillar: x.bone ?? (st ? boneOfStep(st, s) : co ? boneOfChangeoverStep(co) : s.tool === 'balance' || s.tool === 'map' || s.tool === 'sampling' ? 'method' : 'machine'),
+    what: betterWords(s, x.step, ctx), where: st ? stepAt(st, s.agreed?.map) : co ? (s.machine ?? '') : bar?.asset ?? '', why: studyTitle(s), who: '', when: '', state: 'todo',
+    pillar: x.bone ?? (st ? boneOfStep(st, s) : co ? boneOfChangeoverStep(co) : bar ? bar.bone : s.tool === 'balance' || s.tool === 'map' || s.tool === 'sampling' ? 'method' : 'machine'),
     ...(x.causeRef ? { causeRef: x.causeRef } : {}), ...(expect ? { expect } : {}),
     createdAt: x.at, updatedAt: x.at,
   };
@@ -357,7 +417,9 @@ export function proveItFrom(evidence: ToolStudy, fixId: ID, x: { at: number; by?
     ...(evidence.standardId ? { standardId: evidence.standardId } : {}),
     ...(evidence.agreed ? { agreed: JSON.parse(JSON.stringify(evidence.agreed)) as ToolStudy['agreed'] } : {}),
     facts: evidence.tool === 'balance' ? { steps: retime(evidence.facts.steps) } : evidence.tool === 'map' ? { flow: carryFlow(evidence.facts.flow) }
-      : evidence.tool === 'changeover' ? recarry(evidence.facts) : {},
+      : evidence.tool === 'changeover' ? recarry(evidence.facts)
+      /* the next shift's count: the same shift's window moved on, nothing counted yet */
+      : evidence.tool === 'losses' && evidence.facts.losses ? { losses: nextShift(evidence.facts.losses, x.at) } : {},
     uses: [linkOf(kind, fixId, 'proof', x.at, x.by, x.useId)],
     startedAt: x.at, createdAt: x.at, updatedAt: x.at,
   };
@@ -394,7 +456,7 @@ export function readingsFor(test: { id: ID; projectId: ID; title: string; assetI
 /** "Make it better": the fix's words, with the figures already in them —
  *  "Weight accuracy 400 g: Not capable: Cpk 0.67 from 30 — about 2 in 100
  *  would be light." */
-export function betterWords(s: ToolStudy, stepId?: string): string {
+export function betterWords(s: ToolStudy, stepId?: string, ctx?: StudyContext): string {
   const st = s.tool === 'map' && stepId ? (s.facts.flow ?? []).find(x => x.id === stepId) : undefined;
   if (st) {
     const at = stepAt(st, s.agreed?.map);
@@ -403,7 +465,13 @@ export function betterWords(s: ToolStudy, stepId?: string): string {
   /* a changeover's step: "Pre-stage the film reels — external, 11 min" */
   const co = s.tool === 'changeover' && stepId ? (s.facts.sequence ?? []).find(x => x.id === stepId) : undefined;
   if (co) return `${co.name.trim() || 'A step'} — ${changeoverStepFigure(co)}`;
-  const said = studySays(s);
+  if (s.tool === 'losses') {
+    /* a bar of the waterfall in its own figures — "Breakdown on the Bagger —
+       32 min of stops (1 stop) on Shift 1, yesterday (£168)" */
+    const b = stepId ? lossFiguresOf(s, ctx).bars.find(x => x.key === stepId) : undefined;
+    if (b) return barWords(b, s.facts.losses);
+  }
+  const said = studySays(s, ctx);
   if (s.tool === 'balance') {
     const f = balance(s.facts.steps, s.agreed?.balance), c = f.constraint;
     if (c && c.overBy > 0) return `${s.name}: ${c.who} carries ${secsOf(c.work)} against a ${secsOf(f.taktSec ?? 0)} takt — take ${secsOf(c.overBy)} of work off ${c.who}, or change how it is done.`;
@@ -418,8 +486,9 @@ export function betterWords(s: ToolStudy, stepId?: string): string {
 
 /** Is it worth making better? It failed, or it passes and would drift. */
 export function worthBetter(s: ToolStudy): boolean {
-  /* a value stream and a changeover are made better a step at a time — from the step itself */
-  if (s.tool === 'map' || s.tool === 'changeover') return false;
+  /* a value stream and a changeover are made better a step at a time — from
+     the step itself; a shift's losses a bar at a time — from the bar */
+  if (s.tool === 'map' || s.tool === 'changeover' || s.tool === 'losses') return false;
   const said = studySays(s);
   if (s.tool === 'balance') return said.verdict === 'Over takt';
   /* a tenth of the time or more not working, known from enough taps */

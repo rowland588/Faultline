@@ -170,6 +170,7 @@ node scripts/acceptance/sixm-evidence.mjs  # 2h: a study on a running line — a
 node scripts/acceptance/value-stream.mjs  # B: a line's value stream — who and where, walked, a step made better, walked again, before → after, the paper, the fishbone
 node scripts/acceptance/changeover.mjs  # F: a changeover lapped on the phone, internal or external, the split bar, the interval, a step made better, set as the standard, timed again, before → after, the paper, the fishbone
 node scripts/acceptance/work-sampling.mjs  # H1: what people are doing at random moments — the moment asks, one tap each, the shares with their margins, the fix
+node scripts/acceptance/shift-losses.mjs  # E: a shift's losses — counted on the phone, the waterfall, a bar made better, the next shift counted, before → after, the fishbone, both papers
 node scripts/sync-two-devices.mjs     # a phone and a laptop against a fake cloud — video on one plays on the other
 node scripts/check-live-schema.mjs    # the LIVE database against the mapper — needs .env
 ```
@@ -211,7 +212,13 @@ after on it, the steps as a table on the client report, and the 6M line's
 card and fishbone offering the changeover. `work-sampling.mjs` is H1: a study set
 up on its line with its standard's people, the moment due asking, one tap
 per person stamped with the moment's time, a mistap struck, the shares with
-their margins as the module says, and Make it better carrying the figure.
+their margins as the module says, and Make it better carrying the figure. `shift-losses.mjs` is E: a shift's losses
+by hand — a count made on the phone from the line's board beside the Pareto,
+the sentence and the waterfall as `lib/ie/losses` says them from the count
+and the stops in its window, a countermeasure raised from a bar in its own
+figures, the next shift counted as its proof, before → after on it, the
+line's card, the control room and the fishbone carrying the count, and the
+waterfall as a table on the 6M report and the stage-gate client report.
 
 `scripts/sync-two-devices.mjs` runs two real devices of the app (a phone and a
 laptop, separate storage) against `scripts/fake-cloud.mjs`, which keeps the

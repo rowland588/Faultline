@@ -41,7 +41,8 @@ import { useJobStudies } from '../ui/StudyLinks';
 import { workOf } from '../ui/WorkBalance';
 import { lineStandardOf } from '../lib/fishbone';
 import { headcount } from '../lib/standard';
-import { changeoverLine, currentBalance, currentChangeover, currentMap, flowLine, studyHref } from '../lib/studyLinks';
+import { changeoverLine, currentBalance, currentChangeover, currentLosses, currentMap, flowLine, lossCardLine, studyHref } from '../lib/studyLinks';
+import { useStudyContext } from '../ui/ShiftLosses';
 import { gapOf, lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import { ProjectNumbers } from './NumbersPanel';
 import { DUE_SOON_DAYS, useActions } from '../lib/actions';
@@ -433,7 +434,7 @@ function LinePeople({ line, projectId }: { line: PaceLineRow; projectId: string 
  * is sitting in its pack. The whole card is the way in — the owner's pack is
  * where the work actually happens, so getting there should not need aiming at
  * a small link. */
-function LineCard({ line, pack, projectId, series, balance, work, flow, change }: {
+function LineCard({ line, pack, projectId, series, balance, work, flow, change, shift }: {
   line: PaceLineRow; pack: LinePack; projectId: string;
   /** What the line's balance says, once its stations are in; absent until then. */
   balance?: string;
@@ -447,6 +448,10 @@ function LineCard({ line, pack, projectId, series, balance, work, flow, change }
    *  minutes, the external work still inside the stop (amber, the abnormal),
    *  how often each product can run; a branch under the flow. */
   change?: { text: string; tone: string; href: string };
+  /** The line's latest shift counted (lib/ie/losses) — how much of its loss
+   *  the stops explain, a branch under the flow. Amber only when the part
+   *  not yet explained is over a tenth of the loss. */
+  shift?: { text: string; abnormal: boolean; href: string };
   /** Where this line stands on the measure the project leads on — the first one
    *  its own list names. Absent on a project that has not named one yet, and the
    *  card then simply carries no number rather than a dash meaning nothing. */
@@ -508,6 +513,13 @@ function LineCard({ line, pack, projectId, series, balance, work, flow, change }
         <button className="lc-bal is-set lc-work lc-co" onClick={() => nav(change.href)}>
           <span className="lc-bal-k">The changeover</span>
           <span className={'lc-bal-t' + (change.tone === 'a' ? ' is-a' : '')}>{change.text}</span>
+          <span className="lc-bal-go" aria-hidden>›</span>
+        </button>
+      )}
+      {shift && (
+        <button className="lc-bal is-set lc-work lc-shift" onClick={() => nav(shift.href)}>
+          <span className="lc-bal-k">The shift</span>
+          <span className={'lc-bal-t' + (shift.abnormal ? ' is-a' : '')}>{shift.text}</span>
           <span className="lc-bal-go" aria-hidden>›</span>
         </button>
       )}
@@ -693,6 +705,8 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   const ppm = usePaceLines(projectId);
   const standards = useStandards(projectId);
   const studies = useJobStudies(projectId);
+  /* what a loss count reads beside its facts: its line's stops and cost model */
+  const studyCtx = useStudyContext(studies);
   const nums = useMeasures(projectId);
   const treeRows = useTreeNodes(projectId);
   const stand = useStanding(projectId);
@@ -739,6 +753,12 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
     const m = l.workspaceId ? currentMap(studies, l.workspaceId) : undefined;
     const text = m ? flowLine(m) : undefined;
     return m && text ? { text: text.charAt(0).toUpperCase() + text.slice(1), href: studyHref(m) } : undefined;
+  };
+  /* Each line's latest shift counted on this job (lib/ie/losses). */
+  const shiftOn = (l: PaceLineRow) => {
+    const m = l.workspaceId ? currentLosses(studies, l.workspaceId) : undefined;
+    const said = m ? lossCardLine(m, studyCtx) : undefined;
+    return m && said ? { ...said, text: said.text.charAt(0).toUpperCase() + said.text.slice(1), href: studyHref(m) } : undefined;
   };
   const atTarget = ppm.lines.filter(l => standing.get(l.id)?.meeting === true).length;
 
@@ -912,7 +932,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
               <div className="lc-grid">
                 {ppm.lines.map(l => (
                   <LineCard key={l.id} line={l} pack={packs.get(l.id) ?? emptyPack} projectId={projectId}
-              series={standing.get(l.id)} balance={limited.find(x => x.line.id === l.id)?.says} work={workOn(l)} flow={flowOn(l)} change={changeOn(l)} />
+              series={standing.get(l.id)} balance={limited.find(x => x.line.id === l.id)?.says} work={workOn(l)} flow={flowOn(l)} change={changeOn(l)} shift={shiftOn(l)} />
                 ))}
               </div>
               {can.edit && (

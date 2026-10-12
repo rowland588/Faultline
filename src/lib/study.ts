@@ -231,6 +231,31 @@ export interface AgreedSampling {
   prompts: number[];
 }
 
+/** A SHIFT'S LOSSES, BY HAND (docs/TOOLKIT.md, tool 7; docs/BUILD.md, E):
+ *  the few numbers a person counts at the end of a shift — never a sensor.
+ *  The stops are NOT here: they are the line's stops log (Observation) in
+ *  the window, read when the figures are worked out, as the Pareto reads
+ *  them. One object, one person's count; the window is the truth. */
+export interface LossCount {
+  /** The shift as the line names it ("Shift 1", "Days"), when one was picked;
+   *  absent for a window typed by hand. */
+  shift?: string;
+  /** The window, epoch ms — the shift's clock on the day, or typed. */
+  from: number;
+  to: number;
+  /** Minutes the line was planned to run: the window less planned breaks.
+   *  Pre-filled from the window; a person brings it down. */
+  plannedMin?: number;
+  /** Good packs out — counted. */
+  made?: number;
+  /** Packs rejected — counted. */
+  rejects?: number;
+  /** The standard rate, packs a minute — the product's agreed figure on its
+   *  line standard (capacity.targetPerMin), or typed; `rateFrom` says which. */
+  ratePerMin?: number;
+  rateFrom?: 'standard' | 'typed';
+}
+
 /** What it is judged against, by tool — each tool its own key, so a new tool
  *  adds one and changes none. */
 export interface StudyAgreed {
@@ -271,6 +296,9 @@ export interface StudyFacts {
   availableMinPerDay?: number;
   /** Work sampling's taps — one per person per moment. */
   taps?: Tap[];
+  /** A shift's losses: the end-of-shift count (tool 7). The stops are the
+   *  line's log in its window, never copied in. */
+  losses?: LossCount;
 }
 
 /** What a study is evidence for, inside its job. Both ends write the same
@@ -287,7 +315,9 @@ export interface StudyUse {
   by?: string;
   /** On a value stream map: the step the record is about — the wait or the
    *  waste a fix was raised from, so its before → after is that step's too,
-   *  and the step on the grid shows the branch. */
+   *  and the step on the grid shows the branch. On a loss count: the bar
+   *  (lib/ie/losses LossBar.key — a cause, the changeovers, the rejects, the
+   *  part not yet explained) the record was raised from, the same way. */
   step?: string;
 }
 

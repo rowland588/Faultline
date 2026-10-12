@@ -80,9 +80,9 @@ export interface CauseSource {
   /** For a time-based source, the loss it carries — minutes a week. */
   minutesWeek?: number;
   /** A 'study' source: which tool — the work balance (absent, as before),
-   *  the value stream map or the changeover, so the cause says which it came
-   *  from. */
-  tool?: 'balance' | 'map' | 'changeover';
+   *  the value stream map, the changeover, or a shift's loss count — so the
+   *  cause says which it came from. */
+  tool?: 'balance' | 'map' | 'changeover' | 'losses';
 }
 
 /** One "why" in the chain under a cause; the last one is the root. */
