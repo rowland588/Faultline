@@ -31,11 +31,13 @@
  *                  cost model, else simply not said
  *   people decide  the biggest bars are offered to the fishbone as
  *                  suggestions; a person puts them on a bone */
-import type { Observation, Workspace } from '../../types';
+import type { Observation, Shift, Workspace } from '../../types';
 import type { LossCount } from '../study';
 import type { SixM } from '../sixm';
 import { boneOfStop } from '../sixm';
 import { costPerHour } from '../cost';
+import { shiftWindow } from '../shifts';
+import { todayISO } from '../weeks';
 import type { Tone } from './sample';
 
 const DAY = 86_400_000;
@@ -160,7 +162,7 @@ export function lossFigures(count: LossCount | undefined, obs?: Observation[], c
   const money = (min: number) => poundsOf(min, perHour);
 
   /* the stops in the window, by cause — the changeovers their own bar */
-  const rows = obs ? inWindow(obs, count?.from ?? -Infinity, count?.to ?? Infinity) : [];
+  const rows = obs && count ? inWindow(obs, count.from, count.to) : [];
   const groups = new Map<string, Observation[]>();
   const co: Observation[] = [];
   for (const o of rows) {
@@ -216,8 +218,10 @@ const inGbp = (n?: number) => (n !== undefined ? ` (${gbp(n)})` : '');
 /** Whole minutes: "85 min". */
 export const minWords = (m: number): string => `${whole(m)} min`;
 
-/** The shift as the sentence names it. */
-export const shiftWords = (c?: Pick<LossCount, 'shift'>): string => c?.shift?.trim() || 'The shift';
+/** The shift as the sentence names it: its name, else its window — "the
+ *  16:00–04:00 shift" — so a count typed by hand still says which hours. */
+export const shiftWords = (c?: Pick<LossCount, 'shift'> & Partial<Pick<LossCount, 'from' | 'to'>>): string =>
+  c?.shift?.trim() || (c?.from !== undefined && c.to !== undefined ? `The ${windowWords({ from: c.from, to: c.to })} shift` : 'The shift');
 
 /** The day a count's shift started, relative to now — "today", "yesterday",
  *  else the day: "Fri 10 Oct". */
@@ -338,6 +342,16 @@ export function nextShift(c: LossCount, at: number): LossCount {
   return { ...rest, from: c.from + k * DAY, to: c.to + k * DAY };
 }
 
+/** THE STOPS UNDER ONE BAR — what tapping it opens: the stops in the
+ *  count's window of that cause (or the changeovers), in the order they
+ *  happened. The rejects and the part not yet explained have none. */
+export function stopsOfBar(obs: Observation[], c: Pick<LossCount, 'from' | 'to'>, bar: Pick<LossBar, 'kind' | 'label'>, workspaceId?: string): Observation[] {
+  const rows = inWindow(obs, c.from, c.to, workspaceId).sort((a, b) => a.startedAt - b.startedAt);
+  if (bar.kind === 'changeover') return rows.filter(isChangeover);
+  if (bar.kind === 'cause') return rows.filter(o => !isChangeover(o) && (o.category || 'Uncategorised').trim() === bar.label);
+  return [];
+}
+
 /* ---------------------------------------------------------- one line, paper */
 
 /** The count in one line for a card or a row: "Shift 1 yesterday: 85 min
@@ -371,4 +385,19 @@ export function lossRows(f: LossFigures): { head: string; rows: LossRow[]; total
     head: `${whole(f.plannedMin ?? 0)} planned minutes at ${rateWords(f.rate ?? 0)} — ${packs(f.expected ?? 0)} expected, ${packs(f.made ?? 0)} made`,
     rows, total: { minutes: minWords(lost), pounds: money(poundsOf(lost, f.costPerHour)) },
   };
+}
+
+/** A NEW COUNT'S FIRST FACTS: the shift that has just run on the line — of
+ *  every shift's window today and yesterday, the latest one that has ended
+ *  (a quarter of an hour's grace, so the count can be made in the last
+ *  minutes) — else 06:00–14:00 today, typed, when the line has no shifts; the
+ *  planned minutes the window's; the rate the product's standard's when it has
+ *  one. Every one is changed on the count itself — they save the taps. */
+export function firstCount(shifts: Shift[], standardRate: number | undefined, t: number): LossCount {
+  const days = [todayISO(new Date(t - DAY)), todayISO(new Date(t))];
+  const ended = shifts.flatMap(x => days.flatMap(d => { const w = shiftWindow(x, d); return w && w.to <= t + 15 * 60_000 ? [{ name: x.name, ...w }] : []; }))
+    .sort((a, b) => b.to - a.to)[0];
+  const w = ended ?? shiftWindow({ start: '06:00', end: '14:00' }, days[1]) ?? { from: t - 8 * 3_600_000, to: t };
+  return { ...(ended ? { shift: ended.name } : {}), from: w.from, to: w.to, plannedMin: Math.round((w.to - w.from) / 60_000),
+    ...(standardRate && standardRate > 0 ? { ratePerMin: standardRate, rateFrom: 'standard' as const } : {}) };
 }

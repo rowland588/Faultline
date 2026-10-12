@@ -16,12 +16,16 @@
  * Nothing imports this from the app, so it is tree-shaken out of the bundle.
  */
 import {
-  createWorkspace, addObservation, addSegment, addSnagAsset, addSnag, addCase,
+  createWorkspace, updateWorkspace, addObservation, addSegment, addSnagAsset, addSnag, addCase,
   createProject, updateProject, addPaceLine, putPaceTodo,
   putPaceWin, putTreeNode, putAsset, putTest, putTestItem, putBlob,
   putTarget, putReadings, putMaterials, putPrograms, putStandard, putStudy, getStudy,
   listObservations, snagsForWorkspace, listTests, listAssets,
 } from '../db';
+import { barExpect, barWords, lossFigures } from '../lib/ie/losses';
+import { shiftWindow } from '../lib/shifts';
+import { studyTitle } from '../lib/studyLinks';
+import type { LossCount, ToolStudy } from '../lib/study';
 import type { Observation, Case } from '../types';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 import type { PaceTodoRow, PaceWinRow, TreeNodeRow } from '../db';
@@ -98,6 +102,18 @@ export interface Seeded {
   /** That fix, and the line walked again as its proof (B3). */
   mapFixId: string;
   mapProofId: string;
+  /** The paced job's Line 7 — its own workspace, with shifts, a cost model
+   *  and stops timed through yesterday's shifts (tool 7). */
+  line7WsId: string;
+  /** A SHIFT'S LOSS COUNT on it (lib/ie/losses): Shift 1 yesterday — the
+   *  worked example's numbers, 9 minutes not yet explained — the evidence for
+   *  a countermeasure raised from its biggest bar; the next shift counted as
+   *  that countermeasure's proof; and one on the stage-gate job's Line 7, a
+   *  window typed by hand, for the client report's Evidence appendix. */
+  lossId: string;
+  lossActionId: string;
+  lossProofId: string;
+  lossStageId: string;
 }
 
 export async function seedForSmokeTest(): Promise<Seeded> {
@@ -635,6 +651,57 @@ export async function seedForSmokeTest(): Promise<Seeded> {
         { id: uid(), order: 4, name: 'Pallet to despatch', who: ['Forklift driver'], where: 'Despatch', kind: 'move', value: 'needed', cycleSec: 180, batch: 720, source: 'timed' },
       ] }, uses: [], startedAt: t - 5 * 3_600_000, createdAt: t, updatedAt: t });
   }
+  /* A SHIFT'S LOSSES ON LINE 7 (tool 7). The line gets its three shifts and
+     a cost model (crew 4 at £14.50 with on-costs ×1.3, 100 a minute at 4p a
+     pack: £315.40 an hour stopped), a line standard with the product's agreed
+     rate, and the stops the floor timed through yesterday's two shifts and
+     this morning's. The count is the worked example: 450 planned minutes at
+     100 a minute, 36,500 made, 600 rejects — 85 min lost, 52 of stops, 18 of
+     changeover, 6 of rejects, 9 not yet explained (amber: over a tenth). Its
+     biggest bar raised a countermeasure on the board; Shift 1 today is
+     counted as its proof — before → after on the board, the fishbone, the
+     line's card, the control room and the 6M report's Evidence. */
+  const SHIFTS = [{ name: 'Shift 1', start: '06:00', end: '14:00' }, { name: 'Shift 2', start: '14:00', end: '22:00' }, { name: 'Nights', start: '22:00', end: '06:00' }];
+  await updateWorkspace({ ...line7Ws, shifts: SHIFTS, crew: 4, labourRatePerHour: 14.5, labourBurden: 1.3, packsPerMin: 100, marginPerPack: 0.04 });
+  const line7Std = uid();
+  await putStandard({ id: line7Std, projectId: paced.id, workspaceId: line7Ws.id, product: 'Maris Piper 2kg', marks: [],
+    capacity: { targetPerMin: 100, stations: [] }, sort: 4, createdAt: t, updatedAt: t });
+  const y1 = shiftWindow(SHIFTS[0], iso(-1)) as { from: number; to: number };
+  const y2 = shiftWindow(SHIFTS[1], iso(-1)) as { from: number; to: number };
+  const d1 = shiftWindow(SHIFTS[0], iso(0)) as { from: number; to: number };
+  const HR = 3_600_000;
+  const lstop = (at: number, mins: number, o: Partial<Observation> = {}): Observation => ({
+    id: uid(), workspaceId: line7Ws.id, category: 'Breakdown', subcategory: 'Mechanical', asset: 'Bagger', shift: 'Shift 1',
+    startedAt: at, endedAt: at + mins * 60_000, durationMs: mins * 60_000, count: 1, timing: 'stopwatch', media: [], createdAt: t, updatedAt: t, ...o,
+  });
+  for (const o of [
+    lstop(y1.from + 1 * HR, 32, { causeM: 'machine', note: 'jaw heater tripped' }),
+    lstop(y1.from + 3 * HR, 12, { category: 'Minor stop', subcategory: 'Misfeed', asset: 'Checkweigher' }),
+    lstop(y1.from + 5 * HR, 8, { category: 'Minor stop', subcategory: 'Sensor trip', asset: 'Checkweigher' }),
+    lstop(y1.from + 6 * HR, 18, { category: 'Changeover', subcategory: 'Size / format change' }),
+    lstop(y2.from + 1 * HR, 20, { shift: 'Shift 2' }),
+    lstop(y2.from + 2.5 * HR, 10, { shift: 'Shift 2', category: 'Minor stop', subcategory: 'Misfeed', asset: 'Checkweigher' }),
+    lstop(y2.from + 4 * HR, 15, { shift: 'Shift 2', category: 'Changeover', subcategory: 'Product change' }),
+    lstop(y2.from + 6 * HR, 5, { shift: 'Shift 2', category: 'Quality', subcategory: 'Seal fault' }),
+    lstop(d1.from + 1 * HR, 10, { causeM: 'machine' }),
+    lstop(d1.from + 2 * HR, 18, { category: 'Changeover', subcategory: 'Size / format change' }),
+  ]) await addObservation(o);
+  const lossCount: LossCount = { shift: 'Shift 1', from: y1.from, to: y1.to, plannedMin: 450, made: 36_500, rejects: 600, ratePerMin: 100, rateFrom: 'standard' };
+  const lossId = uid(), lossActionId = uid(), lossProofId = uid();
+  const dayOf = (ms: number) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  const lossStudy: ToolStudy = { id: lossId, tool: 'losses', name: `Shift 1, ${dayOf(y1.from)}`, product: 'Maris Piper 2kg', standardId: line7Std,
+    workspaceId: line7Ws.id, projectId: paced.id, facts: { losses: lossCount },
+    uses: [{ id: uid(), kind: 'action', ref: lossActionId, role: 'evidence', at: y1.to + 20 * 60_000, step: 'cause:Breakdown' }],
+    startedAt: y1.to + 5 * 60_000, createdAt: t, updatedAt: t };
+  await putStudy(lossStudy);
+  const lf = lossFigures(lossCount, await listObservations(line7Ws.id), { crew: 4, labourRatePerHour: 14.5, labourBurden: 1.3, packsPerMin: 100, marginPerPack: 0.04 });
+  const bigBar = lf.bars[0];
+  await putPaceTodo(act(barWords(bigBar, lossCount), { id: lossActionId, lineId: otherLine.id, pillar: bigBar.bone, where: bigBar.asset ?? '', why: studyTitle(lossStudy),
+    who: 'Lee Carty', due: iso(3), expect: barExpect(bigBar) }));
+  await putStudy({ id: lossProofId, tool: 'losses', name: `Shift 1, ${dayOf(d1.from)}`, product: 'Maris Piper 2kg', standardId: line7Std,
+    workspaceId: line7Ws.id, projectId: paced.id,
+    facts: { losses: { shift: 'Shift 1', from: d1.from, to: d1.to, plannedMin: 450, made: 40_900, rejects: 300, ratePerMin: 100, rateFrom: 'standard' } },
+    uses: [{ id: uid(), kind: 'action', ref: lossActionId, role: 'proof', at: d1.to + 5 * 60_000 }], startedAt: d1.to + 5 * 60_000, createdAt: t, updatedAt: t });
   for (const a of [
     act('Replace the basket guide rail', { lineId: pacedLine.id, pillar: 'machine', who: 'Engineering', due: iso(4), state: 'waiting',
       causeRef: `${misfeeds.id}:rail`, expect: 'Basketer minor stops 3.4 → 1.5 h a week' }),
@@ -851,6 +918,16 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     facts: { readings: Array.from({ length: 8 }, (_, i) => ({ id: uid(), ok: true, at: t - (20 - i) * 60_000, who: 'Dave' })) },
     uses: [{ id: uid(), kind: 'test', ref: retest.id, role: 'proof', at: t - 1_200_000 }], startedAt: t - 1_300_000, createdAt: t, updatedAt: t });
 
+  /* A LOSS COUNT ON THE STAGE-GATE JOB'S LINE 7 — the twelve stops timed in
+     the last twelve hours, in a window typed by hand (the line has no shifts),
+     the rate the Maris Piper standard's 60 a minute: the client report's
+     Evidence appendix carries the waterfall as a table. */
+  const lossStageId = uid();
+  await putStudy({ id: lossStageId, tool: 'losses', name: `${new Date(t - 12 * 3_600_000).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}–${new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}, ${new Date(t - 12 * 3_600_000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`,
+    product: 'Maris Piper 2kg', standardId: lineOnly, workspaceId: ws.id, projectId: proj.id,
+    facts: { losses: { from: t - 12 * 3_600_000, to: t, plannedMin: 660, made: 36_000, rejects: 120, ratePerMin: 60, rateFrom: 'standard' } },
+    uses: [], startedAt: t - 60_000, createdAt: t, updatedAt: t });
+
   return {
     wsId: ws.id, projectId: proj.id, standardId, lineStandardId: lineOnly, lineOnJobId: lineOnJob, lineId: line.id, caseId: kase.id,
     segmentId: seg.id, assetId: asset.id,
@@ -867,5 +944,6 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     measures: 2, readings: rows.length, materials: 7, programs: 7,
     problemId: misfeeds.id, closedProblemId: gap.id,
     oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId,
+    line7WsId: line7Ws.id, lossId, lossActionId, lossProofId, lossStageId,
   };
 }

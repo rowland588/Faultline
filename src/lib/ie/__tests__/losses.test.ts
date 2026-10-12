@@ -2,7 +2,7 @@
  * 450 × 100 = 45,000; made 36,500 → 85 min lost; 52 of stops + 18 of
  * changeover + 6 of rejects explained; 9 not yet explained. */
 import { describe, it, expect } from 'vitest';
-import { lossFigures, lossSays, compareLosses, nextShift, lossLine, lossRows, barWords, barExpect, inWindow, isChangeover, dayWords, rateWords } from '../losses';
+import { lossFigures, lossSays, compareLosses, nextShift, lossLine, lossRows, barWords, barExpect, inWindow, isChangeover, dayWords, rateWords, stopsOfBar, shiftWords, firstCount } from '../losses';
 import { shiftWindow } from '../../shifts';
 import type { LossCount } from '../../study';
 import type { Observation } from '../../../types';
@@ -147,6 +147,22 @@ describe('a shift’s losses (tool 7)', () => {
     expect(t?.rows[4].abnormal).toBe(true);
     expect(t?.total).toEqual({ minutes: '85 min', pounds: '£447' });
     expect(lossRows(lossFigures(undefined))).toBeUndefined();
+  });
+  it('a bar opens its own stops, in the order they happened; a window typed by hand names its hours', () => {
+    const f = lossFigures(count, log());
+    expect(stopsOfBar(log(), count, f.bars[1]).map(o => o.subcategory)).toEqual(['Misfeed', 'Sensor trip']);
+    expect(stopsOfBar(log(), count, f.bars[2]).map(o => o.category)).toEqual(['Changeover']);
+    expect(stopsOfBar(log(), count, f.bars[3])).toEqual([]);
+    expect(shiftWords({ from: FROM, to: TO })).toBe('The 06:00–14:00 shift');
+    expect(lossLine(f, { ...count, shift: undefined }, TO + 20 * H).text).toBe('The 06:00–14:00 shift yesterday: 85 min lost · 9 min not yet explained');
+  });
+  it('a new count starts from the shift that has just run, its window and the standard’s rate', () => {
+    const shifts = [{ name: 'Shift 1', start: '06:00', end: '14:00' }, { name: 'Shift 2', start: '14:00', end: '22:00' }, { name: 'Nights', start: '22:00', end: '06:00' }];
+    expect(firstCount(shifts, 100, FROM + 9 * H)).toEqual({ shift: 'Shift 1', from: FROM, to: TO, plannedMin: 480, ratePerMin: 100, rateFrom: 'standard' });
+    expect(firstCount(shifts, 100, TO - 10 * 60_000).shift).toBe('Shift 1');   // counted in its last minutes
+    const nights = firstCount(shifts, undefined, new Date(2026, 9, 11, 6, 30).getTime());
+    expect([nights.shift, nights.from, nights.plannedMin, nights.ratePerMin]).toEqual(['Nights', new Date(2026, 9, 10, 22, 0).getTime(), 480, undefined]);
+    expect(firstCount([], undefined, FROM + 9 * H)).toEqual({ from: FROM, to: TO, plannedMin: 480 });
   });
   it('words: the day, the rate', () => {
     expect(dayWords(FROM, FROM + 3 * H)).toBe('today');

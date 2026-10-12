@@ -12,17 +12,18 @@
  * One tool today, the capability study (docs/BUILD.md, 2d). Every later tool
  * is one more entry in TOOL_WORDS and one more `tool` on the record. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { listAllStudies, listStandardsForLine, listWorkspaces, onDataChange, putStudy } from '../db';
+import { listAllStudies, listObservations, listStandardsForLine, listWorkspaces, onDataChange, putStudy } from '../db';
 import type { Standard } from '../lib/standard';
 import { useProjects } from '../lib/useProjects';
 import { now, uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import { Sheet } from '../ui/Sheet';
 import { sample, sampleSays } from '../lib/ie/sample';
-import { studyHref } from '../lib/studyLinks';
+import { studyHref, type StudyContext } from '../lib/studyLinks';
 import { dur, flowFigures, share } from '../lib/ie/steps';
+import { firstCount, inWindow, lossFigures, lossLine, windowWords } from '../lib/ie/losses';
 import type { StudyTool, ToolStudy } from '../lib/study';
-import type { Workspace } from '../types';
+import type { Observation, Workspace } from '../types';
 
 type ToolWords = { title: string; one: string; lede: string; add: string; placeholder: string; none: string; second: { label: string; placeholder: string } };
 const CAPABILITY: ToolWords = {
@@ -46,15 +47,36 @@ const MAP: ToolWords = {
   none: 'No value stream maps yet. Pick a line, start where its work starts, and add each thing done on it, in the lane of whoever does it, to the pallet leaving.',
   second: { label: 'Which product or family?', placeholder: 'e.g. Finest Red 2kg' },
 };
-export const TOOL_WORDS: Partial<Record<StudyTool, ToolWords>> = { capability: CAPABILITY, map: MAP };
+/* A shift's losses by hand (docs/TOOLKIT.md, tool 7): two counts at the end
+   of the shift, the stops already timed in Capture, the waterfall in minutes
+   and pounds — never a percentage, never a sensor. Always a line's. */
+const LOSSES: ToolWords = {
+  title: 'Loss count',
+  one: 'Loss count',
+  lede: 'A shift\u2019s losses, by hand: of what the line should have made, where did the rest go — and how much do we not yet know? Two counts at the end of the shift and the stops already timed; the waterfall draws itself, in minutes and pounds.',
+  add: 'New loss count',
+  placeholder: 'e.g. Shift 1, 10 Oct',
+  none: 'No loss counts yet. Pick a line; at the end of the shift, pick the shift and type the packs made and the rejects — the stops timed through the shift explain the rest.',
+  second: { label: 'Which product?', placeholder: 'e.g. Maris Piper 2kg' },
+};
+export const TOOL_WORDS: Partial<Record<StudyTool, ToolWords>> = { capability: CAPABILITY, map: MAP, losses: LOSSES };
 
 export { studyHref } from '../lib/studyLinks';
 
-/** What a study says in a line on a list: the verdict, from the module. */
-export function studyLine(s: ToolStudy): { text: string; tone: string } {
+/** What a study says in a line on a list: the verdict, from the module. A
+ *  loss count reads the line's stops in its window (`ctx`) — without them
+ *  it says the loss and not where it went. */
+export function studyLine(s: ToolStudy, ctx?: StudyContext): { text: string; tone: string } {
   if (s.tool === 'map') {
     const f = flowFigures(s.facts.flow, s.agreed?.map);
     return { text: f.steps ? `lead time ${f.untimed ? 'at least ' : ''}${dur(f.leadSec)} · ${share(f.pce ?? 0)} adds value` : 'no steps yet', tone: 'n' };
+  }
+  if (s.tool === 'losses') {
+    const c = s.facts.losses;
+    if (!c) return { text: 'not yet counted', tone: 'n' };
+    const obs = ctx?.observations ? inWindow(ctx.observations, c.from, c.to, s.workspaceId) : undefined;
+    const l = lossLine(lossFigures(c, obs, ctx?.workspaces?.find(w => w.id === s.workspaceId)), c);
+    return { text: l.text, tone: l.abnormal ? 'a' : 'n' };
   }
   const a = s.agreed?.readings;
   const said = sampleSays(sample(a, s.facts.readings ?? []), a);
@@ -67,11 +89,19 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
   const { projects } = useProjects();
   const [list, setList] = useState<ToolStudy[] | null>(null);
   const [lines, setLines] = useState<Workspace[]>([]);
+  /* A loss count's line reads its stops in the window: the lines' logs, for
+     the loss counts listed — nothing read for the other tools. */
+  const [obs, setObs] = useState<Observation[]>([]);
   const [adding, setAdding] = useState(false);
 
   const load = useCallback(async () => {
     const [all, ws] = await Promise.all([listAllStudies(), listWorkspaces()]);
-    setList(all.filter(s => s.tool === tool)); setLines(ws);
+    const mine = all.filter(s => s.tool === tool);
+    setList(mine); setLines(ws);
+    if (tool === 'losses') {
+      const ids = [...new Set(mine.flatMap(s => (s.workspaceId ? [s.workspaceId] : [])))];
+      setObs((await Promise.all(ids.map(id => listObservations(id)))).flat());
+    }
   }, [tool]);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
 
@@ -113,16 +143,19 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
           </div>
           <ul className="lt-rows">
             {rows.map(s => {
-              const said = studyLine(s);
+              const said = studyLine(s, tool === 'losses' ? { observations: obs, workspaces: lines } : undefined);
               const n = (s.facts.readings ?? []).filter(r => !r.struck).length;
               const count = s.agreed?.readings?.count;
               const steps = (s.facts.flow ?? []).length;
+              const lc = s.facts.losses;
               return (
                 <li key={s.id}>
                   <button type="button" className="lt-row" onClick={() => nav(studyHref(s))}>
                     <b className="lt-what">{s.name || 'Not named'}{s.machine || s.product ? <span className="ie-li-m"> · {s.machine ?? s.product}</span> : null}</b>
                     <span className={'lt-says ie-tone is-' + said.tone}>{said.text}</span>
-                    <span className="lt-where">{s.tool === 'map' ? `${steps} step${steps === 1 ? '' : 's'}${(s.facts.future ?? []).length ? ' · a future state' : ''}` : count ? `${n} of ${count}` : `${n} reading${n === 1 ? '' : 's'}`}{s.closedAt ? ' · closed' : ''}</span>
+                    <span className="lt-where">{s.tool === 'map' ? `${steps} step${steps === 1 ? '' : 's'}${(s.facts.future ?? []).length ? ' · a future state' : ''}`
+                      : s.tool === 'losses' ? (lc ? `${windowWords(lc)} · ${new Date(lc.from).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}` : 'no shift picked yet')
+                      : count ? `${n} of ${count}` : `${n} reading${n === 1 ? '' : 's'}`}{s.closedAt ? ' · closed' : ''}</span>
                   </button>
                 </li>
               );
@@ -149,22 +182,26 @@ function NewStudy({ open, tool, onClose }: { open: boolean; tool: StudyTool; onC
   const [lineId, setLineId] = useState('');
   const [lines, setLines] = useState<Workspace[]>([]);
   const [standards, setStandards] = useState<Standard[]>([]);
-  useEffect(() => { if (open && tool === 'map') void listWorkspaces().then(setLines); }, [open, tool]);
+  /* A LOSS COUNT is a line's too: its shifts, its stops and its cost model
+     are the line's (tool 7). It is named for its shift and day once counted. */
+  const isLine = tool === 'map' || tool === 'losses';
+  const named = tool !== 'losses';
+  useEffect(() => { if (open && isLine) void listWorkspaces().then(setLines); }, [open, isLine]);
   useEffect(() => { if (lineId) void listStandardsForLine(lineId).then(setStandards); else setStandards([]); }, [lineId]);
-  const isLine = tool === 'map';
-  const ready = !!name.trim() && !busy && (!isLine || !!lineId);
+  const ready = (!named || !!name.trim()) && !busy && (!isLine || !!lineId);
   const make = async () => {
     if (!ready) return;
     setBusy(true);
     try {
       const t = now();
-      const second = machine.trim() ? (tool === 'map' ? { product: machine.trim() } : { machine: machine.trim() }) : {};
+      const second = machine.trim() ? (isLine ? { product: machine.trim() } : { machine: machine.trim() }) : {};
       /* A line's map sits on the line, and on its product's line standard when
-         there is one — its people are the lanes. */
+         there is one — its people are the lanes; a loss count takes the
+         standard's agreed rate (capacity.targetPerMin) as its rate. */
       const std = isLine ? standards.find(x => !x.deletedAt && x.product.trim().toLowerCase() === machine.trim().toLowerCase()) : undefined;
-      const s: ToolStudy = { id: uid(), tool, name: name.trim(), ...second,
-        ...(isLine ? { workspaceId: lineId, agreed: { map: { scope: 'line' as const } } } : {}), ...(std ? { standardId: std.id } : {}),
-        facts: {}, uses: [], startedAt: t, createdAt: t, updatedAt: t };
+      const s: ToolStudy = { id: uid(), tool, name: name.trim() || (tool === 'losses' ? 'Loss count' : ''), ...second,
+        ...(tool === 'map' ? { workspaceId: lineId, agreed: { map: { scope: 'line' as const } } } : tool === 'losses' ? { workspaceId: lineId } : {}), ...(std ? { standardId: std.id } : {}),
+        facts: tool === 'losses' ? { losses: firstCount(lines.find(l => l.id === lineId)?.shifts ?? [], std?.capacity?.targetPerMin, t) } : {}, uses: [], startedAt: t, createdAt: t, updatedAt: t };
       await putStudy(s);
       setName(''); setMachine(''); onClose();
       nav(studyHref(s));
@@ -179,16 +216,20 @@ function NewStudy({ open, tool, onClose }: { open: boolean; tool: StudyTool; onC
               <option value="">Pick the line…</option>
               {lines.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
             </select>
-            <span className="sub">A lane for each person or department whose work touches the line — Op 1, Op 2, the machine, the team leader, planning, stores, quality, maintenance.</span>
+            <span className="sub">{tool === 'losses'
+              ? 'Its shifts, the stops timed on it and its cost model are what the count is read against.'
+              : 'A lane for each person or department whose work touches the line — Op 1, Op 2, the machine, the team leader, planning, stores, quality, maintenance.'}</span>
           </label>
         )}
-        <label className="field"><span className="field-label">What is it of?</span>
-          <input className="text-input" value={name} maxLength={120} placeholder={w.placeholder} onChange={e => setName(e.target.value)} autoFocus />
-        </label>
+        {named && (
+          <label className="field"><span className="field-label">What is it of?</span>
+            <input className="text-input" value={name} maxLength={120} placeholder={w.placeholder} onChange={e => setName(e.target.value)} autoFocus />
+          </label>
+        )}
         <label className="field"><span className="field-label">{w.second.label} <i className="sub">optional</i></span>
           <input className="text-input" value={machine} maxLength={80} placeholder={w.second.placeholder} list={isLine ? 'new-map-products' : undefined} onChange={e => setMachine(e.target.value)} />
           {isLine && <datalist id="new-map-products">{standards.filter(x => !x.deletedAt).map(x => <option key={x.id} value={x.product} />)}</datalist>}
-          {isLine && standards.length > 0 && <span className="sub">A product with a line standard brings its people as the lanes.</span>}
+          {isLine && standards.length > 0 && <span className="sub">{tool === 'losses' ? 'A product with a line standard brings its agreed rate a minute.' : 'A product with a line standard brings its people as the lanes.'}</span>}
         </label>
         <button type="submit" className="btn btn-primary" disabled={!ready}>Start it</button>
       </form>

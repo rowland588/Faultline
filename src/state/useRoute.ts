@@ -82,6 +82,11 @@ export function parseRoute(hash: string): Route {
   if (segs[0] === 'capability') {
     return segs[1] ? { name: 'study', view: 'capability', id: decodeURIComponent(segs[1]), query } : { name: 'studies', view: 'capability', query };
   }
+  /* /losses is every shift's loss count; /losses/:id one of them (docs/TOOLKIT.md,
+     tool 7 — a shift's losses by hand, and what they cost). */
+  if (segs[0] === 'losses') {
+    return segs[1] ? { name: 'study', view: 'losses', id: decodeURIComponent(segs[1]), query } : { name: 'studies', view: 'losses', query };
+  }
   if (segs[0] === 'pace-report') return { name: 'paceReport', query }; // the client report
   if (segs[0] === 'project' && segs[1]) {
     // /project/:id            the project itself
