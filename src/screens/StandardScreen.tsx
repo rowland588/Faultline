@@ -27,6 +27,8 @@ import { deleteMap } from '../ui/StandardsCard';
 import { CapacityPanel } from './CapacityPanel';
 import { balanceSays } from './LineToolsScreen';
 import { WorkView, useBalanceFor, workOf } from '../ui/WorkBalance';
+import { ChangeoverLines } from '../ui/ChangeoverLines';
+import { mins } from '../lib/ie/changeover';
 import { useProjects } from '../lib/useProjects';
 import type { SnagAsset } from '../snag/types';
 import { Icon } from '../ui/Icon';
@@ -265,6 +267,9 @@ function ProductCard({ s, onOpen }: { s: Standard; onOpen: () => void }) {
       </span>
       <span className="ls-card-t">{s.product}</span>
       <span className="ls-card-s"><b>{plural(n, 'person', 'people')}</b>{thingsOf(s) ? ` · ${thingsOf(s)}` : ''}</span>
+      {(s.capacity?.changeovers ?? []).length > 0 && (
+        <span className="ls-card-s ls-card-co">Changeover: {(s.capacity?.changeovers ?? []).map(a => `${mins(a.minutes * 60)}${a.from ? ` from ${a.from}` : ''}`).join(' · ')}</span>
+      )}
     </button>
   );
 }
@@ -690,6 +695,10 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
         <span className={'ls-bl-say' + (work?.people.some(w => w.over) ? ' is-short' : '')}>{work ? work.text : 'Not timed yet — time each person’s work against takt.'}</span>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`${here}?at=balance&view=work`)}>{work ? 'Open the work ›' : 'Time the work ›'}</button>
       </div>
+      {/* THE CHANGEOVER INTO THIS PRODUCT (ui/ChangeoverLines) — a branch off
+          the map too: the newest changeover timed into it, the agreed
+          sequence the standard holds, and the doors to both. */}
+      <ChangeoverLines s={s} can={can} />
 
       <Sheet open={!!editingMark && !ro} onClose={() => { if (editingMark) void putStandard({ ...s, marks }); setEditing(null); }}
         title={editingMark ? (isShape(editingMark) ? SHAPES.find(x => x.shape === editingMark.shape)?.word ?? 'Shape' : markOf(editingMark.kind).word) : ''}>

@@ -11776,3 +11776,19 @@ button.co-step-b:hover { background: color-mix(in srgb, var(--brand) 5%, transpa
   .co-step { grid-template-columns: 1fr; }
   .co-side { padding-left: 4px; }
 }
+
+/* The changeover into a product, under its map (ui/ChangeoverLines): one line,
+   its agreed sequences under it; external work inside the stop is amber. */
+.ls-bl-say.is-a { color: var(--st-a); font-weight: 700; }
+.ls-co-agreed { list-style: none; margin: 2px 0 0; padding: 0; flex-basis: 100%; display: flex; flex-direction: column; gap: 2px; }
+.ls-co-agreed .linkish { background: none; border: 0; padding: 0 2px; margin-left: 8px; color: var(--brand); font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline; }
+.ls-card-co { color: var(--ink-2); }
+/* A line's changeover on the line tools page — a branch under the line's name (screens/LineToolsScreen). */
+.lt-co { display: flex; align-items: center; gap: 10px; width: 100%; min-height: var(--tap); margin: 0 0 8px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.lt-co:hover { background: color-mix(in srgb, var(--brand) 5%, var(--surface)); }
+.lt-co-k { flex: none; font-size: var(--t-label); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.lt-co-t { flex: 1; min-width: 0; font-size: var(--t-detail); line-height: 1.4; }
+.lt-co-t.is-a { color: var(--st-a); font-weight: 700; }
+.lt-co-go { flex: none; color: var(--brand); font-weight: 700; }
+/* The line card's changeover — only the external minutes still inside the stop wear amber. */
+.lc-co .lc-bal-t.is-a { color: var(--st-a); }
