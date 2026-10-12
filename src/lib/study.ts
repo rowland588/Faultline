@@ -229,6 +229,10 @@ export interface AgreedSampling {
   to: number;
   /** The instants the phone asks at, inside the shift. */
   prompts: number[];
+  /** A BOTTLENECK WALK (docs/CAPACITY.md §3): the line's stations watched
+   *  instead of people, each tapped working · starved · blocked · down at
+   *  each moment — Roser's walk, repeated, on a product's line standard. */
+  walk?: boolean;
 }
 
 /** What it is judged against, by tool — each tool its own key, so a new tool

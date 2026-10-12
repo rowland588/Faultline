@@ -540,7 +540,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
         {atWork ? <WorkView s={s} can={can} /> : (
           <CapacityPanel projectId={s.projectId} board={false} can={can}
             line={{ id: s.id, name: s.product, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.capacity ? { capacity: s.capacity } : {}) }}
-            onSave={cap => save({ capacity: cap })} />
+            onSave={cap => save({ capacity: cap })} walk={{ standardId: s.id, product: s.product }} />
         )}
       </div>
     </div>

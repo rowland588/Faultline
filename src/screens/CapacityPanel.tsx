@@ -44,6 +44,7 @@ import {
 import { useLineStops } from '../lib/useLineStops';
 import { Icon } from '../ui/Icon';
 import { VCurveView } from '../ui/VCurve';
+import { BottleneckWalk } from '../ui/BottleneckWalk';
 
 const PER_WORD: Record<RatePer, string> = { sec: 'a second', min: 'a minute', hour: 'an hour' };
 const SOURCES: { id: NonNullable<Station['source']>; label: string }[] = [
@@ -270,7 +271,7 @@ function StationCard({ s, i, last, prevUnit, prevName, planned, why, wait, own, 
  *  its stops come from, its balance, and who drives it. */
 export type CapLine = Pick<PaceLineRow, 'id' | 'name' | 'capacity'> & { workspaceId?: string; owner?: string };
 
-export function CapacityPanel({ projectId, line, onSave, board = true, can: given }: {
+export function CapacityPanel({ projectId, line, onSave, board = true, can: given, walk }: {
   projectId: string;
   line: CapLine;
   onSave: (cap: Capacity) => Promise<void>;
@@ -281,6 +282,9 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
   /** Who may edit, when it is not a job's access that decides — a line's
    *  members edit its tools. */
   can?: Can;
+  /** On a product's line standard: the bottleneck walk beside the sums
+   *  (docs/CAPACITY.md §3) — a walk is a sampling study on the standard. */
+  walk?: { standardId: string; product: string };
 }) {
   const jobCan = useAccess(projectId);
   const can = given ?? jobCan;
@@ -517,6 +521,8 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
       {r.ok.length > 0 && <VCurveView r={r} v={vCurve(r, cap.vMarginPct)} target={current.targetPerMin} margin={cap.vMarginPct} canAgree={can.agree && !w}
         onMargin={m => commit({ ...cap, vMarginPct: m })} />}
       {r.ok.length > 0 && <CapacitySheet r={r} v={vCurve(r, cap.vMarginPct)} target={current.targetPerMin} />}
+      {walk && !w && <BottleneckWalk standardId={walk.standardId} product={walk.product} {...(line.workspaceId ? { workspaceId: line.workspaceId } : {})} {...(projectId ? { projectId } : {})}
+        stations={r.ok.map(x => x.station.name.trim() || `Station ${x.index + 1}`)} {...(r.limit ? { calculated: r.limit.station.name.trim() || `Station ${r.limit.index + 1}` } : {})} canEdit={can.edit} />}
 
       {(check || r.notes.length > 0) && (
         <ul className="cap-notes" role="note">

@@ -11869,3 +11869,8 @@ button.co-step-b:hover { background: color-mix(in srgb, var(--brand) 5%, transpa
 .cap-sheet-a { color: var(--st-a); font-weight: 600; }
 .cap-sheet-r { color: var(--st-r); font-weight: 700; }
 .cap-sheet-sp { white-space: nowrap; }
+
+/* the bottleneck, walked (ui/BottleneckWalk) — beside the sums on Line capacity */
+.bw { display: grid; gap: 6px; justify-items: start; margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.bw-says { margin: 0; }
+.bw-says.is-a { color: var(--st-a); font-weight: 600; }

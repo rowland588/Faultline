@@ -30,6 +30,8 @@ import {
 } from '../lib/ie/sampling';
 import type { AgreedSampling, Tap, ToolStudy } from '../lib/study';
 import { TOOL_WORDS } from './StudiesScreen';
+import { walkVerdict } from '../lib/ie/walk';
+import { analyse } from '../lib/capacity';
 import { WhereItSits, UsedFor } from '../ui/StudyPlace';
 
 const OWNER = canAt('owner');
@@ -78,7 +80,7 @@ function Sampling({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
   return (
     <div className="wrap ie ws">
       <header className="ie-head">
-        <small className="ie-eyebrow">{w?.one ?? 'Work sampling'}</small>
+        <small className="ie-eyebrow">{a?.walk ? 'Bottleneck walk' : w?.one ?? 'Work sampling'}</small>
         <h1 className="ie-name">{s.name || 'Not named'}</h1>
         <p className="sub ie-where">
           {s.product ? <><b>{s.product}</b> · </> : null}
@@ -94,6 +96,7 @@ function Sampling({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
           <Strip a={a} taps={taps} t={t} verdict={said.verdict} />
           {!closed && can.edit && <Round a={a} taps={taps} t={t} round={round} onTap={tap} onStrike={id => strike(id, true)} />}
           <div className="ie-says">
+            {a.walk && <WalkSays s={s} a={a} taps={taps} />}
             {a.who.map(p => <p key={p} className="ie-say is-n">{samplingReading({ activities: a.activities, marginPts: a.marginPts, taps }, p)}</p>)}
           </div>
           <Shares a={a} taps={taps} />
@@ -246,7 +249,7 @@ function Round({ a, taps, t, round, onTap, onStrike }: {
   }
   return (
     <div className="ws-round" role="group" aria-label={`Moment ${round.no}`} aria-live="assertive">
-      <p className="ws-round-h"><b>Moment {round.no} of {a.prompts.length} — {hhmm(round.at)}</b> · tap what each person is doing right now</p>
+      <p className="ws-round-h"><b>{a.walk ? 'Walk' : 'Moment'} {round.no} of {a.prompts.length} — {hhmm(round.at)}</b> · {a.walk ? 'walk the line and tap each station: working, starved (waiting for its input), blocked (cannot pass on) or down' : 'tap what each person is doing right now'}</p>
       {a.who.map(p => {
         const got = tapsOf(taps, p).find(x => x.at === round.at);
         return (
@@ -356,4 +359,16 @@ function Act({ s, a, taps, text, can, me }: { s: ToolStudy; a: AgreedSampling; t
       ...(cur.receipt?.reopened ? { reopened: cur.receipt.reopened } : {}) },
   }));
   return <div className="ie-act"><button type="button" className="btn btn-primary" onClick={close}>Close — keep these figures</button></div>;
+}
+
+/** A bottleneck walk's verdict, against the bottleneck the standard's sums
+ *  give (lib/ie/walk; docs/CAPACITY.md §3). */
+function WalkSays({ s, a, taps }: { s: ToolStudy; a: AgreedSampling; taps: Tap[] }) {
+  const [calc, setCalc] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    if (!s.standardId) return;
+    void getStandard(s.standardId).then(st => { const r = st?.capacity ? analyse(st.capacity) : undefined; setCalc(r?.limit ? (r.limit.station.name.trim() || `Station ${r.limit.index + 1}`) : undefined); });
+  }, [s.standardId]);
+  const v = walkVerdict(a.who, taps, calc);
+  return <p className={'ie-say' + (v.against === 'disagrees' ? ' is-a' : ' is-n')}><b>{v.sentence}</b></p>;
 }
