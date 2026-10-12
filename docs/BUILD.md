@@ -932,15 +932,22 @@ the people's work against takt, only its second tab.
   its People view — that is the line *balance*. The record is unchanged
   (`standards.capacity`, the stations, the what-ifs); the URL `/balances`
   keeps working. The line standard stays where people are put in places.
-- **The grid, as the map's.** The stations across in flow order; a lane for
-  machines and a lane for people; a square per station with its speed in its
-  own unit and its crew, the conversion between squares ("× 12 → baskets");
-  under the grid, row by row: the speed while running in the line's unit,
-  once its stops count, and its share of the bottleneck's — the total column
-  the line's rate. Tap a square and the station's sheet opens (what it is,
-  the speed and how it is known — the plate, timed, a guess — the crew,
-  running %, good %, the conversion, what arrives against what it does).
-- **The V-curve.** Every station's capacity in the line's unit, the
+- **Not the map's grid** (Rowland, the same day: "Scrap that, don't do that
+  ... do some research on the correct sort of user interface"). The research:
+  Toyota's standard work is three forms — the **production capacity sheet**
+  (each process's machine time, manual time and tool change → capacity a
+  shift: 27,600 s ÷ (24 s + 60 s every 300) ≈ 1,140 a shift), the
+  **combination table** (the People view) and the **standardized work chart**
+  (the line standard). Line capacity is the first form: a row per station in
+  flow order — its unit and conversion, its speed (a rate, or a person's
+  "one every so many seconds" × crew), its own stops, its changeovers a
+  shift (from SMED when one is timed), its capacity a shift in its own unit
+  and in the line's, its share of the bottleneck's, and what demand needs of
+  it (over 100% red). Tap a row for its sheet.
+- **The V-curve**, above the sheet (packaging-line practice: machines across
+  in flow order, speed as a share of the critical machine's, the critical
+  machine at the bottom; LineView's rule of thumb, +10% a machine away, is a
+  vendor's, not a standard — so the margin is the owner's). Every station's capacity in the line's unit, the
   bottleneck at the bottom, the stations upstream and downstream rising
   away from it: the line designed so the bottleneck is never starved or
   blocked. Drawn as two curves — while running, and once stops count — with
