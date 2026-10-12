@@ -1,5 +1,8 @@
-/* ACCEPTANCE — SNAGS & FIXES: ONE PLACE FOR EVERY SNAG, PROBLEM AND FIX
- * (docs/BUILD.md, Snags & fixes).
+/* ACCEPTANCE — PROBLEMS: ONE PLACE FOR EVERY PROBLEM, IN ORDER OF PRIORITY
+ * (docs/BUILD.md, Problems). Once "Snags & fixes" — Rowland, 12 October:
+ * "We will change snags and fixes to the word problems ... also add a RAG
+ * status for the problems — critical red, high amber, low green — to show in
+ * order of priorities." Story 1c is that.
  *
  * Rowland, 12 October: "the Snags page needs to be a working page ... the
  * best place to organise all snags"; "Snags need its own report"; "I have
@@ -106,26 +109,46 @@ const truth = () => page.evaluate(async () => {
     assetName: s => (s.assetId ? frames.get(s.assetId)?.name : undefined), stillOf: s => (s.assetId ? frames.get(s.assetId)?.stillKey : undefined) });
   return { says: r.says, counts: r.counts, rows: r.lines.flatMap(l => l.rows), jobs: r.jobs, moved: r.moved, snags };
 });
-const openCount = c => c.open + c.in_progress + c.problems + c.fixes;
+const openCount = c => c.critical + c.high + c.low;
 
 /* ---- 1 one page, the path once, every row saying what it is ---- */
 await go('#/snags');
 {
   const t = await truth();
-  ok((await words('h1')) === 'Snags & fixes' && /A snag is spotted on a line\. Once it is on a job it is a problem; a fix is what puts it right\./.test(await words('.qsl-path')), '1 one page, Snags & fixes, the path said once');
+  ok((await words('h1')) === 'Problems' && /^Every problem in one place, in order of priority/.test(await words('.qsl-path')), '1 one page, Problems, said once');
   ok((await words('.qsl-says')) === t.says, `1 the sentence is the module's: ${t.says}`);
   const chips = (await page.locator('.qsl-f .chip').allInnerTexts()).map(x => x.replace(/\s+/g, ' ').trim());
-  ok(chips.join('|') === `Everything open · ${openCount(t.counts)}|Snags · ${t.counts.open + t.counts.in_progress}|Problems · ${t.counts.problems}|Fixes · ${t.counts.fixes}|Late · ${t.counts.late + t.counts.jobLate}|Done · ${t.counts.closed + t.counts.jobDone}`, `1 the counts: ${chips.join(' · ')}`);
+  ok(chips.join('|') === `Open · ${openCount(t.counts)}|Critical · ${t.counts.critical}|High · ${t.counts.high}|Low · ${t.counts.low}|Late · ${t.counts.late + t.counts.jobLate}|Done · ${t.counts.closed + t.counts.jobDone}`, `1 the counts: ${chips.join(' · ')}`);
   const openSnags = t.rows.filter(r => r.status !== 'closed');
   ok((await page.locator('.qsl-work').count()) === openSnags.length && openSnags.length === 6, `1 every open snag on its line: ${openSnags.length}`);
-  ok(/^SNAG|^Snag/.test(await words('.qsl-kind', row('seeded snag 0'))) && /From the walk — on the Former roller/.test(await words('.qsl-meta', row('seeded snag 0'))) && /Taken on the move — Bagger/.test(await words('.qsl-meta', row('Guard on the infeed loose'))),
-    '1 a snag says it is a snag, and where it came from — on the walk, on the move');
+  ok(/^low$/i.test(await words('.qsl-prio', row('seeded snag 0'))) && /From the walk — on the Former roller/.test(await words('.qsl-meta', row('seeded snag 0'))) && /Taken on the move — Bagger/.test(await words('.qsl-meta', row('Guard on the infeed loose'))) && (await page.locator('.qsl-kind').count()) === 0,
+    '1 a problem on a line: its priority (Low until said), where it came from — on the walk, on the move — and no "snag" or "fix" tag');
   const g = t.jobs.find(x => x.job === sd.job);
-  const jobKinds = (await page.locator('.qsl-job', { hasText: sd.job }).first().locator('.qsl-kind').allInnerTexts()).map(x => x.trim().toLowerCase());
-  ok(!!g && jobKinds.length === g.rows.filter(r => r.open).length && jobKinds.every(k => k === 'problem' || k === 'fix'), `1 the job's problems and fixes under it, each saying which: ${jobKinds.join(', ')}`);
+  const jobPrio = (await page.locator('.qsl-job', { hasText: sd.job }).first().locator('.qsl-prio').allInnerTexts()).map(x => x.trim().toLowerCase());
+  ok(!!g && jobPrio.join(',') === g.rows.filter(r => r.open).map(r => r.priority).join(','), `1 the job's problems under it, each with its priority, in order: ${jobPrio.join(', ')}`);
   ok(/for Line 2 commissioning — not moved yet/.test(await words('.qsl-meta', row('Label printer ribbon low'))), '1 a snag named for the job and not moved yet — said so');
   ok((await row('Seal jaw leaves marks').locator('img').count()) > 0, '1 its picture on its row');
   ok((await page.locator('.qsl-row', { hasText: 'Demo fault' }).count()) === 0 && !/Demo/.test(await words('.qsl-says')), '1 the demo line\'s made-up snag is not here');
+}
+
+/* ---- 1c PRIORITY, RAG: set on the row and for several at once; Critical first, the chips counting ---- */
+{
+  await row('Guard on the infeed loose').locator('select.qsl-prio-set').selectOption('critical'); await page.waitForTimeout(900);
+  let t = await truth();
+  const first = await page.locator('.qsl-g:not(.qsl-job):not(.qsl-moved)').first().locator('.qsl-work .qsl-what').first().innerText();
+  const tag = row('Guard on the infeed loose').locator('.qsl-prio');
+  ok(t.snags.find(x => x.id === sd.ids['Guard on the infeed loose'])?.priority === 'critical' && /Guard on the infeed loose/.test(first)
+    && /critical/i.test(await tag.innerText()) && /is-r/.test(await tag.getAttribute('class') ?? ''), '1c made Critical on its row: kept, red with its word, first on its line');
+  await row('Label printer ribbon low').locator('.qsl-tick input').check(); await row('Film wandering on the former').locator('.qsl-tick input').check();
+  await page.locator('.qsl-bar-prio').selectOption('high'); await page.waitForTimeout(1200);
+  t = await truth();
+  const high = ['Label printer ribbon low', 'Film wandering on the former'].map(w => t.snags.find(x => x.id === sd.ids[w])?.priority);
+  const order = (await page.locator('.qsl-g:not(.qsl-job):not(.qsl-moved)').first().locator('.qsl-work .qsl-prio').allInnerTexts()).map(x => x.trim().toLowerCase());
+  const ranked = order.every((p, i) => i === 0 || ['critical', 'high', 'low'].indexOf(order[i - 1]) <= ['critical', 'high', 'low'].indexOf(p));
+  const chip = page.locator('.qsl-f .chip', { hasText: 'Critical' });
+  ok(high.every(p => p === 'high') && ranked && /2 made high/.test(await page.locator('body').innerText()), `1c two ticked made High together, the undo offered; the line in order: ${order.join(' · ')}`);
+  ok((await chip.innerText()).trim() === `Critical · ${t.counts.critical}` && /qsl-chip-r/.test(await chip.getAttribute('class') ?? '') && /qsl-chip-a/.test(await page.locator('.qsl-f .chip', { hasText: 'High' }).getAttribute('class') ?? ''), `1c the chips count them in their colours: Critical · ${t.counts.critical}, High · ${t.counts.high}`);
+  for (const w of ['Label printer ribbon low', 'Film wandering on the former']) await row(w).locator('.qsl-tick input').uncheck();
 }
 
 /* ---- 1b a snag deleted: ticked, Delete, asked once, gone — here and from the store ---- */
@@ -146,10 +169,11 @@ await go('#/snags');
   await sheet.getByRole('button', { name: /^Move 1$/ }).click(); await page.waitForTimeout(1500);
   const t = await truth();
   const f = t.jobs.find(g => g.job === sd.job)?.rows.find(r => r.what === 'Seal jaw leaves marks');
-  ok(!!f && f.kind === 'fix' && /^a snag on /.test(f.fromSnag ?? '') && (await page.locator('.qsl-work', { hasText: 'Seal jaw leaves marks' }).count()) === 0 && !t.moved.length, '2 moved: off the snags, shown once — as the fix it became');
+  ok(!!f && f.kind === 'fix' && /^a snag on /.test(f.fromSnag ?? '') && (await page.locator('.qsl-work', { hasText: 'Seal jaw leaves marks' }).count()) === 0 && !t.moved.length, '2 moved: off the line, shown once — under its job, being fixed');
   const jr = page.locator('.qsl-job', { hasText: sd.job }).first().locator('.qsl-row', { hasText: 'Seal jaw leaves marks' });
   const said = await words('.qsl-meta', jr);
-  ok(/^FIX|^Fix/.test(await words('.qsl-kind', jr)) && said.includes(`from ${f?.fromSnag}`) && (await words('.qsl-state', jr)) === f?.word, `2 under its job, a fix "from ${f?.fromSnag}", ${f?.word}`);
+  const seen = `seen first on ${(f?.fromSnag ?? '').replace(/^a snag on /, '')}`;
+  ok((await words('.qsl-prio', jr)).toLowerCase() === f?.priority && said.includes(seen) && (await words('.qsl-state', jr)) === f?.word, `2 under its job: ${f?.priority}, "${seen}", ${f?.word}`);
   await jr.locator('.qsl-open').click(); await page.waitForTimeout(1500);
   ok((await page.locator('.rd, .drawer, [role="dialog"]').count()) > 0 && /Seal jaw leaves marks/.test(await page.locator('body').innerText()), '2 its door opens it in the job');
   await page.keyboard.press('Escape'); await page.waitForTimeout(400);
@@ -158,7 +182,7 @@ await go('#/snags');
 /* ---- 3 worked where it sits ---- */
 await go('#/snags');
 {
-  await row('Film wandering on the former').locator('select.qsl-st').selectOption('closed'); await page.waitForTimeout(800);
+  await row('Film wandering on the former').locator('select.qsl-st:not(.qsl-prio-set)').selectOption('closed'); await page.waitForTimeout(800);
   let t = await truth();
   ok(t.snags.find(s => s.id === sd.ids['Film wandering on the former'])?.status === 'closed', '3 its state changed on the row, and kept');
   await row('Label printer ribbon low').locator('input.qsl-who').fill('Priya'); await row('Label printer ribbon low').locator('input.qsl-who').press('Enter'); await page.waitForTimeout(800);
@@ -176,10 +200,10 @@ await go('#/snags');
   const lateSnags = await page.locator('.qsl-work .qsl-what').allInnerTexts();
   const lateJob = await page.locator('.qsl-job .qsl-row').count();
   ok(lateSnags.length === t.rows.filter(r => r.late).length && lateJob === t.jobs.reduce((n, g) => n + g.rows.filter(r => r.late).length, 0), `4 Late shows the late only: ${lateSnags.length} snag(s), ${lateJob} on the jobs`);
-  await page.locator('.qsl-f .chip', { hasText: 'Problems' }).click(); await page.waitForTimeout(400);
-  const kinds = (await page.locator('.qsl-kind').allInnerTexts()).map(x => x.trim().toLowerCase());
-  ok(kinds.length === t.counts.problems && kinds.every(k => k === 'problem'), `4 Problems shows the problems only: ${kinds.length}`);
-  await page.locator('.qsl-f .chip', { hasText: 'Everything open' }).click(); await page.getByRole('button', { name: 'By who' }).click(); await page.waitForTimeout(400);
+  await page.locator('.qsl-f .chip', { hasText: 'Critical' }).click(); await page.waitForTimeout(400);
+  const crit = (await page.locator('.qsl-prio').allInnerTexts()).map(x => x.trim().toLowerCase());
+  ok(crit.length === t.counts.critical && crit.every(k => k === 'critical'), `4 Critical shows the critical only: ${crit.length}`);
+  await page.locator('.qsl-f .chip', { hasText: /^Open/ }).click(); await page.getByRole('button', { name: 'By who' }).click(); await page.waitForTimeout(400);
   const heads = await page.locator('.qsl-g:not(.qsl-job):not(.qsl-moved) .qsl-gh h2').allInnerTexts();
   const owners = [...new Set(t.rows.filter(r => r.status !== 'closed').map(r => r.owner ?? 'Nobody yet'))];
   ok(heads.length === owners.length && owners.every(o => heads.includes(o)) && (!heads.includes('Nobody yet') || heads.at(-1) === 'Nobody yet'), `4 snags by who, nobody's last: ${heads.join(' · ')}`);
@@ -203,11 +227,11 @@ await go('#/snags');
   ok(t.snags.filter(s => ['seeded snag 0', 'Label printer ribbon low'].includes(s.problem)).every(s => s.status === 'closed') && undo, '5 closed together, the undo offered');
 }
 
-/* ---- 6 the Snags & fixes report ---- */
+/* ---- 6 the Problems report ---- */
 {
   const t = await truth();
   const dir = mkdtempSync(join(tmpdir(), 'snags-'));
-  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), page.getByRole('button', { name: 'Snags & fixes report' }).click()]);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), page.getByRole('button', { name: 'Problems report' }).click()]);
   const file = join(dir, 'snags.pdf'); await dl.saveAs(file); if (process.env.KEEP_PDF) execFileSync('cp', [file, process.env.KEEP_PDF]);
   const txt = execFileSync('pdftotext', ['-raw', file, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
   /* as the paper prints them — lib/reportKit san() keeps what the PDF's fonts can draw */
@@ -215,7 +239,7 @@ await go('#/snags');
     [...t.rows.filter(r => r.status !== 'closed').map(r => r.what), ...t.jobs.flatMap(g => g.rows.filter(r => r.open).map(r => r.what))]);
   const flatTxt = txt.replace(/\s+/g, '');
   const lost = all.filter(w => !flatTxt.includes(w.replace(/\s+/g, '')));
-  ok(/SNAGS & FIXES/.test(txt) && /Everything open/.test(txt) && !lost.length && txt.includes(sd.job) && /SNAG ·/.test(txt) && /FIX ·/.test(txt), `6 the report: every open snag, problem and fix (${all.length}), each saying which${lost.length ? ` — lost: ${lost.slice(0, 4).join(', ')}` : ''}`);
+  ok(/PROBLEMS/.test(txt) && /Every problem open/.test(txt) && !lost.length && txt.includes(sd.job) && /CRITICAL ·/.test(txt) && /LOW ·/.test(txt) && !/SNAG ·|FIX ·/.test(txt), `6 the report: every open problem (${all.length}), each with its priority${lost.length ? ` — lost: ${lost.slice(0, 4).join(', ')}` : ''}`);
   ok(!/Demo fault|Packing Hall/.test(txt), '6 and nothing of the demo line on the paper');
 }
 
@@ -227,13 +251,13 @@ await go('#/snags');
     await db.addSnag({ id: crypto.randomUUID(), workspaceId: ws, status: 'open', raisedAt: Date.now(), updatedAt: Date.now(), media: [], problem: 'Coder misprints the date', projectId: pid });
   }, { ws: sd.wsId, pid: sd.projectId });
   await go(`#/project/${sd.projectId}/fixes`);
-  ok((await words('h1')) === 'Snags & fixes' && /A snag is spotted on a line/.test(await words('.qsl-path')), '7 the job\'s view: the same name and the path');
-  const sec = page.locator('.cmp-sec', { hasText: 'Snags for this job — not on it yet' });
+  ok((await words('h1')) === 'Problems' && /This job's problems/.test(await words('.qsl-path')), '7 the job\'s view: the same name');
+  const sec = page.locator('.cmp-sec', { hasText: 'Problems for this job — not on it yet' });
   ok((await sec.locator('.fxl-row', { hasText: 'Coder misprints the date' }).count()) === 1, '7 its snag not on it yet, listed');
   await sec.locator('.fxl-row', { hasText: 'Coder misprints the date' }).getByRole('button', { name: 'Make it a fix' }).click(); await page.waitForTimeout(1500);
   const fixRow = page.locator('.fxl-row', { hasText: 'Coder misprints the date' }).first();
   ok((await sec.count()) === 0 || (await sec.locator('.fxl-row', { hasText: 'Coder misprints the date' }).count()) === 0, '7 made a fix in one tap — off the snags');
-  ok(/from a snag on /.test(await fixRow.innerText()), `7 the fix says it came from a snag: "${(await fixRow.innerText()).replace(/\s+/g, ' ').slice(0, 120)}"`);
+  ok(/seen first on /.test(await fixRow.innerText()), `7 the fix says where it was seen first: "${(await fixRow.innerText()).replace(/\s+/g, ' ').slice(0, 120)}"`);
   await page.getByRole('button', { name: 'Every line and job ›' }).click(); await page.waitForTimeout(1500);
   ok(/#\/snags/.test(page.url()) && (await truth()).counts.fixes === before.counts.fixes + 1, '7 back to every line and job — the fix counted there too');
 }
@@ -246,7 +270,7 @@ await go('#/snags');
   await page.locator('.ptitle-form').getByRole('button', { name: 'Save' }).click(); await page.waitForTimeout(1000);
   const h = await words('h1');
   await go('#/snags');
-  ok(h.startsWith('Line 2 rebuild — wrapper and coder') && (await page.locator('.qsl-job h2', { hasText: 'Line 2 rebuild — wrapper and coder' }).count()) === 1, `8 renamed on its front page, and the new name on Snags & fixes`);
+  ok(h.startsWith('Line 2 rebuild — wrapper and coder') && (await page.locator('.qsl-job h2', { hasText: 'Line 2 rebuild — wrapper and coder' }).count()) === 1, `8 renamed on its front page, and the new name on Problems`);
 }
 
 /* ---- 9 on a phone ---- */
@@ -260,5 +284,5 @@ await go('#/snags');
 
 ok(errors.length === 0, `no console errors${errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''}`);
 await browser.close();
-console.log(failed ? `\nSnags & fixes NOT accepted: ${failed} failed` : '\nSnags & fixes accepted: one place for every snag, problem and fix — worked where it sits, each saying what it is, on paper');
+console.log(failed ? `\nProblems NOT accepted: ${failed} failed` : '\nProblems accepted: one place for every problem, in order of priority — Critical, High, Low — worked where it sits, on paper');
 process.exit(failed ? 1 : 0);

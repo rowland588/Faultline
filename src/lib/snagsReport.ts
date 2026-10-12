@@ -84,11 +84,25 @@ export function fromWords(s: Snag, assetName?: string): string {
 
 const nice = (ms: number) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
+/* ============================ PRIORITY — RAG ============================
+ * Rowland, 12 October: "add a RAG status for the problems — critical red,
+ * high amber, low green — to show in order of priorities." Every problem
+ * has one of three: on a line, its own (Snag.priority); on a job, its
+ * problem's Critical or High risk (lib/critical) — a fix takes its
+ * problem's; anything not set is Low. Said in words beside the colour,
+ * always, and every list is in this order. */
+export type Priority = 'critical' | 'high' | 'low';
+export const PRIORITY_WORD: Record<Priority, string> = { critical: 'Critical', high: 'High', low: 'Low' };
+export const PRIORITY_RANK: Record<Priority, number> = { critical: 0, high: 1, low: 2 };
+export const priorityOf = (x: { priority?: Priority } | { flag?: 'critical' | 'risk' }): Priority =>
+  'priority' in x && x.priority ? x.priority : 'flag' in x && x.flag ? (x.flag === 'critical' ? 'critical' : 'high') : 'low';
+
 /** One snag still on its line. */
 export interface SnagRow {
   id: string; workspaceId: string; line: string;
   what: string; from: string;
   status: SnagStatus;
+  priority: Priority;
   /** "Open · 12 days", "In progress", "Closed 9 Oct". */
   word: string; tone: SnagTone;
   owner?: string;
@@ -118,6 +132,7 @@ export interface SnagsReading {
     open: number; in_progress: number; closed: number; late: number; moved: number; movedOpen: number; lines: number;
     /** On the jobs: problems open (no fix yet), fixes to do, of them late, and done (fixed or sorted). */
     problems: number; fixes: number; jobLate: number; jobDone: number; jobs: number;
+    critical: number; high: number; low: number;
   };
   /** Where things stand, in one sentence. */
   says: string;
@@ -144,7 +159,7 @@ export function snagRow(s: Snag, line: string, assetName?: string, jobName?: str
   const photo = s.media?.find(m => m.kind === 'photo')?.blobKey ?? s.detailPhotoKey ?? still;
   return {
     id: s.id, workspaceId: s.workspaceId, line, what: s.problem?.trim() || 'A picture, no words yet', from: fromWords(s, assetName),
-    status: s.status, word, tone, late, raisedAt: s.raisedAt,
+    status: s.status, priority: s.priority ?? 'low', word, tone, late, raisedAt: s.raisedAt,
     ...(s.owner?.trim() ? { owner: s.owner.trim() } : {}),
     ...(due ? { due, ...(dueTone ? { dueTone } : {}) } : {}),
     ...(s.latestUpdate?.trim() ? { update: s.latestUpdate.trim() } : {}),
@@ -174,6 +189,9 @@ export interface JobRow {
   word: string; tone: SnagTone;
   open: boolean; late: boolean;
   flag?: 'critical' | 'risk';
+  priority: Priority;
+  /** A fix shown under the problem it puts right: the fix's own words. */
+  fixWhat?: string;
   /** It started as a snag: "a snag on Line 7". */
   fromSnag?: string;
   photo?: string;
@@ -208,6 +226,7 @@ export function jobGroup(x: { projectId: string; job: string; tests: Test[]; ite
       word: open ? (crit ? 'Open — critical' : 'Open') : `Sorted ${niceDay(new Date(n.item.doneAt as number).toISOString().slice(0, 10))}`,
       tone: open ? (crit ? 'r' : 'a') : 'g', open, late: false,
       ...(crit ? { flag: 'critical' as const } : n.item.risk ? { flag: 'risk' as const } : {}),
+      priority: crit ? 'critical' as const : n.item.risk ? 'high' as const : 'low' as const,
       ...(sn ? { fromSnag: snagWords(sn) } : {}), ...(photoOf(n.item.media) ? { photo: photoOf(n.item.media) } : {}),
       at: n.item.createdAt,
     };
@@ -218,7 +237,10 @@ export function jobGroup(x: { projectId: string; job: string; tests: Test[]; ite
     const sn = fromFix.get(t.id);
     const photo = photoOf(f.problem?.media);
     return {
-      kind: 'fix' as const, id: t.id, projectId: x.projectId, what: t.title.trim() || 'A fix', where: `${machine} · ${from ? `for ${from.title}` : 'not from a test'}`,
+      /* the problem first, the fix that puts it right under it — when there is one */
+      kind: 'fix' as const, id: t.id, projectId: x.projectId, what: f.problem?.what.trim() || t.title.trim() || 'A problem',
+      ...(f.problem?.what.trim() && t.title.trim() && t.title.trim() !== f.problem.what.trim() ? { fixWhat: t.title.trim() } : {}),
+      where: `${machine} · ${from ? `for ${from.title}` : 'not from a test'}`, priority: priorityOf(f),
       ...(t.withWhom?.trim() ? { who: t.withWhom.trim() } : {}),
       word: ft.when, tone: FIX_TONE_SNAG[ft.tone], open: !isSettled(t), late: !isSettled(t) && fixOverdue(t, x.today),
       ...(f.flag ? { flag: f.flag } : {}), ...(sn ? { fromSnag: snagWords(sn) } : {}), ...(photo ? { photo } : {}),
@@ -234,10 +256,12 @@ export function jobGroup(x: { projectId: string; job: string; tests: Test[]; ite
       ...(a.who?.trim() ? { who: a.who.trim() } : {}),
       word: done ? 'Done' : late ? `Late · was ${niceDay(a.due)}` : a.state === 'waiting' ? 'Waiting' : a.due ? `By ${niceDay(a.due)}` : 'To do',
       tone: done ? 'g' : late ? 'r' : a.state === 'waiting' ? 'a' : 'w', open: !done, late,
+      priority: sn.priority ?? 'low',
       fromSnag: snagWords(sn), ...(photoOf(a.media) ? { photo: photoOf(a.media) } : {}), at: a.createdAt,
     };
   });
-  const rank = (r: JobRow) => (!r.open ? 9 : r.late ? 0 : r.flag === 'critical' ? 1 : r.kind === 'problem' ? 2 : 3);
+  /* open first, in order of priority — late first within each — then done */
+  const rank = (r: JobRow) => (!r.open ? 9 : PRIORITY_RANK[r.priority] * 2 + (r.late ? 0 : 1));
   const rows = [...problems, ...fixes, ...actions].sort((a, b) => rank(a) - rank(b) || b.at - a.at);
   return {
     projectId: x.projectId, job: x.job, rows,
@@ -268,7 +292,9 @@ export function snagsReading(x: SnagsInput): SnagsReading {
   const here = all.filter(s => !isMoved(s)).map(s => snagRow(s, x.lineName(s.workspaceId), x.assetName?.(s), x.jobName(s.projectId), ref, x.stillOf?.(s)));
   const byLine = new Map<string, SnagRow[]>();
   for (const r of here) byLine.set(r.workspaceId, [...(byLine.get(r.workspaceId) ?? []), r]);
-  const order = (a: SnagRow, b: SnagRow) => Number(b.late) - Number(a.late) || RANK[a.status] - RANK[b.status] || b.raisedAt - a.raisedAt;
+  /* still open first, in order of priority — late first within each — then closed */
+  const order = (a: SnagRow, b: SnagRow) => Number(a.status === 'closed') - Number(b.status === 'closed') || PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority]
+    || Number(b.late) - Number(a.late) || RANK[a.status] - RANK[b.status] || b.raisedAt - a.raisedAt;
   const lines = [...byLine.entries()].map(([id, rows]) => ({ id, name: rows[0].line, rows: rows.sort(order) }))
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 
@@ -307,12 +333,22 @@ export function snagsReading(x: SnagsInput): SnagsReading {
     jobLate: jobs.reduce((n, g) => n + g.late, 0),
     jobDone: jobs.reduce((n, g) => n + g.done, 0),
     jobs: jobs.filter(g => g.problemsOpen + g.fixesToDo > 0).length,
+    /** Every open problem — on a line or on a job — by its priority. */
+    critical: 0, high: 0, low: 0,
   };
+  for (const p of [...here.filter(r => r.status !== 'closed').map(r => r.priority), ...jobs.flatMap(g => g.rows.filter(r => r.open).map(r => r.priority))]) counts[p]++;
+  /* ONE NOUN, PROBLEM (Rowland, 12 October: "we won't have snags and fixes,
+     just problems"): how many are open and how urgent, then where they are. */
+  const openN = counts.critical + counts.high + counts.low, late = counts.late + counts.jobLate;
+  const lineOpen = counts.open + counts.in_progress;
   const parts: string[] = [];
-  if (here.length) parts.push(`${plural(here.length, 'snag')} on ${plural(new Set(here.map(r => r.workspaceId)).size, 'line')} — ${counts.open} open, ${counts.in_progress} in progress, ${counts.closed} closed${counts.late ? `; ${counts.late} late` : ''}`);
-  if (counts.problems + counts.fixes) parts.push(`${plural(counts.problems, 'problem')} with no fix yet and ${plural(counts.fixes, 'fix', 'fixes')} to do on ${plural(counts.jobs, 'job')}${counts.jobLate ? `; ${counts.jobLate} late` : ''}`);
-  else if (counts.jobDone) parts.push(`every problem and fix on the jobs done (${counts.jobDone})`);
-  if (moved.length) parts.push(`${plural(moved.length, 'moved snag')} no longer on ${moved.length === 1 ? 'its job' : 'their jobs'}`);
-  const says = parts.length ? `${parts.map((p, i) => (i ? p : p.charAt(0).toUpperCase() + p.slice(1))).join('. ')}.` : 'No snags, problems or fixes.';
+  if (openN) {
+    parts.push(`${plural(openN, 'problem')} open — ${counts.critical} critical, ${counts.high} high, ${counts.low} low${late ? `; ${late} late` : ''}`);
+    const where = [lineOpen ? `${lineOpen} on ${plural(new Set(here.filter(r => r.status !== 'closed').map(r => r.workspaceId)).size, 'line')}, not on a job yet` : '',
+      counts.problems + counts.fixes ? `${counts.problems + counts.fixes} on ${plural(counts.jobs, 'job')}${counts.fixes ? `, ${counts.fixes} being fixed` : ''}` : ''].filter(Boolean);
+    if (where.length) parts.push(where.join('; '));
+  } else if (counts.closed + counts.jobDone) parts.push(`no problem open — ${counts.closed + counts.jobDone} done`);
+  if (moved.length) parts.push(`${plural(moved.length, 'problem')} moved to a job and no longer there`);
+  const says = parts.length ? `${parts.map((p, i) => (i ? p.charAt(0).toUpperCase() + p.slice(1) : p.charAt(0).toUpperCase() + p.slice(1))).join('. ')}.` : 'No problems.';
   return { counts, says, lines, jobs, moved: movedGroups };
 }

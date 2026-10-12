@@ -10685,6 +10685,16 @@ body:has(.toast) .qs-fab { bottom: calc(var(--nv-bar) + 130px + env(safe-area-in
 .qsl-says { margin: 4px 0 0; color: var(--ink-2); max-width: 70ch; }
 .qsl-top { display: flex; flex-wrap: wrap; gap: 8px; }
 .qsl-chip-r { color: var(--st-r); border-color: color-mix(in srgb, var(--st-r) 45%, var(--line)); font-weight: 700; }
+/* PRIORITY, RAG — Rowland's own (12 October): Critical red, High amber, Low
+   green, only on a problem's priority, always with its word. */
+.qsl-chip-a { color: var(--st-a); border-color: color-mix(in srgb, var(--st-a) 45%, var(--line)); font-weight: 700; }
+.qsl-chip-g { color: var(--st-g); border-color: color-mix(in srgb, var(--st-g) 45%, var(--line)); font-weight: 700; }
+.qsl-prio { display: inline-block; margin-right: 8px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; vertical-align: 1px; border: 1px solid transparent; }
+.qsl-prio.is-r { background: var(--st-r); color: #fff; }
+.qsl-prio.is-a { background: color-mix(in srgb, var(--st-a) 18%, #fff); color: var(--st-a); border-color: color-mix(in srgb, var(--st-a) 55%, #fff); }
+.qsl-prio.is-g { background: color-mix(in srgb, var(--st-g) 12%, #fff); color: var(--st-g); border-color: color-mix(in srgb, var(--st-g) 40%, #fff); }
+.qsl-prio-set.is-a { color: var(--st-a); }
+.qsl-fixline { color: var(--ink-2); }
 .qsl-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 6px; }
 .qsl-sel { width: auto; min-width: 0; max-width: 220px; min-height: 40px; margin: 0; }
 .qsl-search { flex: 1 1 180px; min-width: 0; max-width: 320px; min-height: 40px; margin: 0; }

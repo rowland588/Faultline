@@ -426,11 +426,11 @@ for (const size of SIZES) {
     }, { size, pid: job.projectId });
     const file = `${OUT}/${size}-snags.pdf`;
     try {
-      await download(page, '#/snags', file, [['Snags & fixes report']]);
+      await download(page, '#/snags', file, [['Problems report']]);
       const r = check(file, mustSnags);
-      rows.push({ size, report: 'snags & fixes', pages: r.pages, faults: r.faults, said: r.said });
+      rows.push({ size, report: 'problems', pages: r.pages, faults: r.faults, said: r.said });
     } catch (e) {
-      rows.push({ size, report: 'snags & fixes', pages: 0, faults: [`could not make it: ${e.message.split('\n')[0]}`] });
+      rows.push({ size, report: 'problems', pages: 0, faults: [`could not make it: ${e.message.split('\n')[0]}`] });
     }
   }
   if (errors.length) rows.push({ size, report: '(console)', pages: 0, faults: errors });

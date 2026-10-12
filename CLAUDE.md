@@ -482,7 +482,9 @@ what by when?
    one exception is Rowland's own (11 October): the value stream grid colours
    value the way the method does — VA green, NE amber, NV red — always with
    the letters VA · NE · NV beside the colour, and only on that grid and its
-   paper.** The PDFs use the same
+   paper. And his second (12 October): a problem's PRIORITY is RAG —
+   Critical red, High amber, Low green — always with its word, only on the
+   priority tag, its counts and its paper (Problems, `lib/snagsReport`).** The PDFs use the same
    five values. Set 4 October: a step with a day booked is still ahead
    (indigo); a step with no day is not started (grey); a gate where nothing
    has started is grey and says "not started"; a stage not on a machine's

@@ -924,7 +924,7 @@ function JobRow({ v, i, open, onToggle, into, span, today, tip, setTip, edit, si
                   {v.sixm && <button className="btn btn-ghost" onClick={() => nav(fishboneUrl(v.id))}>Fishbone</button>}
                   {v.method === 'commissioning' ? <>
                     <button className="btn btn-ghost" onClick={() => nav(`/project/${v.id}/testing`)}>Commission</button>
-                    <button className="btn btn-ghost" onClick={() => nav(`/project/${v.id}/fixes`)}>Snags &amp; fixes</button>
+                    <button className="btn btn-ghost" onClick={() => nav(`/project/${v.id}/fixes`)}>Problems</button>
                   </> : <>
                     <button className="btn btn-ghost" onClick={() => nav(`/project/${v.id}/board`)}>Board</button>
                     <button className="btn btn-ghost" onClick={() => nav(`/project/${v.id}?view=lines`)}>Lines</button>

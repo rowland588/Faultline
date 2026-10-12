@@ -1,4 +1,9 @@
-/* THE SNAGS & FIXES REPORT — the page on paper, of its own (lib/snagsReport).
+/* THE PROBLEMS REPORT — the page on paper, of its own (lib/snagsReport).
+ *
+ * Rowland, 12 October: "We will change snags and fixes to the word problems
+ * ... add a RAG status for the problems — critical red, high amber, low green
+ * — to show in order of priorities." Every row opens with its priority in
+ * its colour and in words, in that order; the tiles count them.
  *
  * Rowland, 12 October: "Snags need its own report on the snag page"; then
  * "ensure no confusion between snags, fixes, problems — one location for
@@ -15,7 +20,7 @@
  * never placed by hand. The one-page-a-snag card for Engineering stays its
  * own thing (lib/snagCardPdf). */
 import type { jsPDF } from 'jspdf';
-import type { JobRow, MovedRow, SnagRow, SnagsReading, SnagTone } from './snagsReport';
+import { PRIORITY_WORD, type JobRow, type MovedRow, type Priority, type SnagRow, type SnagsReading, type SnagTone } from './snagsReport';
 import { san, OK, DANGER, BLUE, WARN } from './reportKit';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { SIZE, box, font, gap, rows, text, wrap } from './report/blocks';
@@ -24,6 +29,8 @@ const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', BRAND = '#1f63e0';
 const TONE: Record<SnagTone, string> = { g: OK, r: DANGER, w: BLUE, a: WARN, n: MUTED };
 const THUMB = 42, RIGHT = 150;
+/* PRIORITY, RAG — Rowland's own: Critical red, High amber, Low green, the word always with it */
+const PRIO: Record<Priority, string> = { critical: DANGER, high: WARN, low: OK };
 
 /** A snag's first picture, made small for paper: a data URL and its size. */
 export interface SnagPhoto { dataUrl: string; w: number; h: number }
@@ -37,7 +44,7 @@ function thumb(doc: jsPDF, p: SnagPhoto | undefined, x: number, y: number): void
   doc.roundedRect(x, y, THUMB, THUMB, 3, 3, 'S');
 }
 
-interface Parts { what: string[]; from: string[]; note: string[]; right: { t: string; c: string; bold?: boolean }[] }
+interface Parts { prio?: Priority; what: string[]; from: string[]; note: string[]; right: { t: string; c: string; bold?: boolean }[] }
 
 function snagParts(f: Frame, r: SnagRow): Parts {
   const tw = f.w - THUMB - 10 - RIGHT - 10;
@@ -46,20 +53,20 @@ function snagParts(f: Frame, r: SnagRow): Parts {
   else if (r.status !== 'closed') right.push({ t: 'nobody yet', c: MUTED });
   if (r.due) right.push({ t: r.due, c: r.dueTone ? (r.dueTone === 'n' ? INK2 : TONE[r.dueTone]) : INK2, bold: r.late });
   return {
-    what: wrap(f.doc, san(`SNAG · ${r.what}`), tw, 9.5, 'bold'),
+    prio: r.priority,
+    what: wrap(f.doc, san(`${PRIORITY_WORD[r.priority].toUpperCase()} · ${r.what}`), tw, 9.5, 'bold'),
     from: wrap(f.doc, san(r.from + (r.forJob ? ` · for ${r.forJob} — not moved yet` : '')), tw, 8),
     note: r.update ? wrap(f.doc, san(`Latest: ${r.update}`), tw, 8.5) : [],
     right,
   };
 }
-const KIND: Record<JobRow['kind'], string> = { problem: 'PROBLEM', fix: 'FIX', action: 'ACTION' };
 function jobParts(f: Frame, r: JobRow): Parts {
   const tw = f.w - THUMB - 10 - RIGHT - 10;
-  const flag = r.flag === 'critical' ? 'CRITICAL · ' : r.flag === 'risk' ? 'HIGH RISK · ' : '';
   return {
-    what: wrap(f.doc, san(`${KIND[r.kind]} · ${flag}${r.what}`), tw, 9.5, 'bold'),
-    from: wrap(f.doc, san(`${r.where}${r.who ? ` · ${r.who}` : ' · nobody yet'}${r.fromSnag ? ` · from ${r.fromSnag}` : ''}`), tw, 8),
-    note: [],
+    prio: r.priority,
+    what: wrap(f.doc, san(`${PRIORITY_WORD[r.priority].toUpperCase()} · ${r.what}`), tw, 9.5, 'bold'),
+    from: wrap(f.doc, san(`${r.where}${r.who ? ` · ${r.who}` : ' · nobody yet'}${r.fromSnag ? ` · seen first on ${r.fromSnag.replace(/^a snag on /, '')}` : ''}`), tw, 8),
+    note: r.fixWhat ? wrap(f.doc, san(`Fix: ${r.fixWhat}`), tw, 8.5) : [],
     right: wrap(f.doc, san(r.word), RIGHT, 8.5, 'bold').map(t => ({ t, c: TONE[r.tone], bold: true })),
   };
 }
@@ -79,7 +86,15 @@ function drawRow(f: Frame, y: number, p: Parts, photo?: SnagPhoto): void {
   thumb(f.doc, photo, f.x, y + 8);
   const tx = f.x + THUMB + 10;
   let ty = y + 19;
-  font(f.doc, 9.5, 'bold', INK2); f.doc.text(p.what, tx, ty); ty += p.what.length * 12;
+  /* the priority word in its colour, the problem's words after it in ink */
+  if (p.prio && p.what.length) {
+    const word = `${PRIORITY_WORD[p.prio].toUpperCase()} ·`;
+    font(f.doc, 9.5, 'bold', PRIO[p.prio]); f.doc.text(word, tx, ty);
+    const ww = f.doc.getTextWidth(`${word} `);
+    font(f.doc, 9.5, 'bold', INK2); f.doc.text(p.what[0].slice(san(word).length).trimStart(), tx + ww, ty);
+    if (p.what.length > 1) f.doc.text(p.what.slice(1), tx, ty + 12);
+  } else { font(f.doc, 9.5, 'bold', INK2); f.doc.text(p.what, tx, ty); }
+  ty += p.what.length * 12;
   font(f.doc, 8, 'normal', MUTED); f.doc.text(p.from, tx, ty - 1); ty += p.from.length * 10;
   if (p.note.length) { font(f.doc, 8.5, 'normal', INK2); f.doc.text(p.note, tx, ty); }
   /* The state in words, in its colour — never the colour alone. */
@@ -90,13 +105,13 @@ export function snagsBlocks(r: SnagsReading, d: Density, photos: Map<string, Sna
   const out: Block[] = [];
   for (const g of r.lines) {
     const late = g.rows.filter(x => x.late).length, open = g.rows.filter(x => x.status !== 'closed').length;
-    out.push({ ...text({ text: san(`${g.name} · ${g.rows.length} snag${g.rows.length === 1 ? '' : 's'} — ${open} not closed${late ? `, ${late} late` : ''}`), size: SIZE.h2, style: 'bold', colour: INK2, before: 6, after: 4 }), keepWithNext: true });
+    out.push({ ...text({ text: san(`${g.name} · ${g.rows.length} problem${g.rows.length === 1 ? '' : 's'} — ${open} not closed${late ? `, ${late} late` : ''}`), size: SIZE.h2, style: 'bold', colour: INK2, before: 6, after: 4 }), keepWithNext: true });
     out.push(rows({ rows: g.rows.map(x => ({ h: (f: Frame) => height(snagParts(f, x)), draw: (f: Frame, y: number) => drawRow(f, y, snagParts(f, x), x.photo ? photos.get(x.photo) : undefined) })), after: 'm' }));
   }
   if (r.jobs.length) {
-    out.push({ ...text({ text: 'ON THE JOBS — PROBLEMS AND THEIR FIXES', size: SIZE.eyebrow, style: 'bold', colour: BRAND, before: 8, after: 4 }), keepWithNext: true });
+    out.push({ ...text({ text: 'ON THE JOBS — WITH THE FIX THAT PUTS EACH RIGHT', size: SIZE.eyebrow, style: 'bold', colour: BRAND, before: 8, after: 4 }), keepWithNext: true });
     for (const g of r.jobs) {
-      const said = [g.problemsOpen ? `${g.problemsOpen} problem${g.problemsOpen === 1 ? '' : 's'} with no fix` : '', g.fixesToDo ? `${g.fixesToDo} to do` : '', g.late ? `${g.late} late` : '', g.done ? `${g.done} done` : ''].filter(Boolean).join(', ');
+      const said = [g.problemsOpen ? `${g.problemsOpen} with no fix yet` : '', g.fixesToDo ? `${g.fixesToDo} being fixed` : '', g.late ? `${g.late} late` : '', g.done ? `${g.done} done` : ''].filter(Boolean).join(', ');
       out.push({ ...text({ text: san(`${g.job}${said ? ` · ${said}` : ''}`), size: SIZE.h2, style: 'bold', colour: INK2, before: 4, after: 4 }), keepWithNext: true });
       out.push(rows({ rows: g.rows.map(x => ({ h: (f: Frame) => height(jobParts(f, x)), draw: (f: Frame, y: number) => drawRow(f, y, jobParts(f, x), x.photo ? photos.get(x.photo) : undefined) })), after: 'm' }));
     }
@@ -108,11 +123,11 @@ export function snagsBlocks(r: SnagsReading, d: Density, photos: Map<string, Sna
       out.push(rows({ rows: g.rows.map(x => ({ h: (f: Frame) => height(movedParts(f, x)), draw: (f: Frame, y: number) => drawRow(f, y, movedParts(f, x), x.photo ? photos.get(x.photo) : undefined) })), after: 'm' }));
     }
   }
-  if (!out.length) out.push(text({ text: 'No snags, problems or fixes here.', colour: INK2, after: gap(d, 's') }));
+  if (!out.length) out.push(text({ text: 'No problems here.', colour: INK2, after: gap(d, 's') }));
   return out;
 }
 
-/** THE SNAGS & FIXES REPORT — its own document. `title` is what the page was
+/** THE PROBLEMS REPORT — its own document. `title` is what the page was
  *  showing: "Everything open", "Fixes to do for Line 2 commissioning". */
 export async function drawSnagsReport(doc: jsPDF, x: { title: string; printed: string; reading: SnagsReading; photos: Map<string, SnagPhoto> }): Promise<void> {
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
@@ -120,14 +135,14 @@ export async function drawSnagsReport(doc: jsPDF, x: { title: string; printed: s
   const title = san(x.title);
   const blocks = (d: Density): Block[] => {
     const out: Block[] = [];
-    out.push(text({ text: 'SNAGS & FIXES', size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
+    out.push(text({ text: 'PROBLEMS', size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
     out.push(text({ text: title, size: SIZE.title, style: 'bold', after: 4 }));
     out.push(text({ text: `Printed ${san(x.printed)}`, colour: MUTED, after: 4 }));
-    out.push(text({ text: 'A snag is spotted on a line. Once it is on a job it is a problem; a fix is what puts it right.', size: 8.5, colour: MUTED, after: gap(d, 'm') }));
+    out.push(text({ text: 'Every problem in order of priority — Critical, High, Low — on a line until it is put on a job, then on the job with the fix that puts it right.', size: 8.5, colour: MUTED, after: gap(d, 'm') }));
     /* WHERE THE SNAGS ARE — a tile per count; only the abnormal in its colour,
        a zero grey (CLAUDE.md, visual management rule 3). */
     const tiles: { n: number; word: string; c: string }[] = [
-      { n: c.open + c.in_progress, word: 'snags open', c: DANGER }, { n: c.problems, word: 'problems, no fix', c: WARN }, { n: c.fixes, word: 'fixes to do', c: BLUE },
+      { n: c.critical, word: 'critical', c: DANGER }, { n: c.high, word: 'high', c: WARN }, { n: c.low, word: 'low', c: OK },
       { n: c.late + c.jobLate, word: 'late', c: DANGER }, { n: c.closed + c.jobDone, word: 'done', c: OK },
     ];
     out.push(box(() => 46 + gap(d, 'm'), (f, y) => {
@@ -150,7 +165,7 @@ export async function drawSnagsReport(doc: jsPDF, x: { title: string; printed: s
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i);
     font(doc, 7.5, 'normal', MUTED);
-    doc.text(`Snags & fixes  ·  ${title}  ·  ${san(x.printed)}`, M, H - 18);
+    doc.text(`Problems  ·  ${title}  ·  ${san(x.printed)}`, M, H - 18);
     doc.text(`${i} of ${pages}`, W - M, H - 18, { align: 'right' });
   }
 }

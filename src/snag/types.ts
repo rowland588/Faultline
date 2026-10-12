@@ -62,6 +62,8 @@ export interface Snag {
   targetAsset?: string;      // operational asset NAME (observation vocabulary)
   caseId?: ID;               // the Case (A3) this action belongs to, if any
   problem: string;
+  /** Its priority — Critical · High · Low (lib/snagsReport, PROBLEM_PRIORITY.sql); absent reads as low. */
+  priority?: 'critical' | 'high' | 'low';
   proposedSolution?: string;
   status: SnagStatus;
   owner?: string;            // assignee name (free text)

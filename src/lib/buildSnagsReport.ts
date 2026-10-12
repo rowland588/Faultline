@@ -46,5 +46,5 @@ export async function saveSnagsReport(r: SnagsReading, title: string): Promise<v
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   const printed = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   await drawSnagsReport(doc, { title, printed, reading: r, photos: await snagPhotos(r) });
-  await deliverPdf(doc, pdfFileName('snags and fixes', title.toLowerCase() === 'everything open' ? 'report' : title, todayISO()));
+  await deliverPdf(doc, pdfFileName('problems', title.toLowerCase() === 'every problem open' ? 'report' : title, todayISO()));
 }

@@ -188,7 +188,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
   for (const sn of snags) for (const x of sn.sent ?? []) if (x.projectId === projectId) snagOfItem.set(x.itemId, sn);
   const snagOfFix = new Map<string, Snag>();
   for (const i of tt.items) { const sn = snagOfItem.get(i.id); if (sn && i.becameTestId) snagOfFix.set(i.becameTestId, sn); }
-  const fromSnag = (sn?: Snag) => (sn ? `from a snag on ${lineName(sn.workspaceId)}` : undefined);
+  const fromSnag = (sn?: Snag) => (sn ? `seen first on ${lineName(sn.workspaceId)}` : undefined);
   const jobSnags = snags.filter(sn => sn.projectId === projectId && !(sn.sent ?? []).length && sn.status !== 'closed' && !sn.deletedAt);
   const makeFix = async (sn: Snag) => {
     const undo = await sendSnags([sn], projectId, undefined, { fix: true }, project.name);
@@ -199,8 +199,8 @@ export function FixesScreen({ projectId }: { projectId: string }) {
     <div className="wrap pace cm-screen">
       <header className="pace-head">
         <div className="pace-head-main">
-          <h1 className="pace-title">Snags &amp; fixes</h1>
-          <p className="qsl-path">A <b>snag</b> is spotted on a line. Once it is on a job it is a <b>problem</b>; a <b>fix</b> is what puts it right.{' '}
+          <h1 className="pace-title">Problems</h1>
+          <p className="qsl-path">This job's problems, and the fix that puts each right.{' '}
             <button type="button" className="linkish" onClick={() => nav('/snags')}>Every line and job ›</button></p>
           <p className="cw-handover">
             {st.upcoming.length > 0
@@ -227,7 +227,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
       {jobSnags.length > 0 && (
         <section className="cmp-sec">
           <div className="cw-sec-h">
-            <h2 className="cmp-h">Snags for this job — not on it yet</h2>
+            <h2 className="cmp-h">Problems for this job — not on it yet</h2>
             <span className="cmp-h-n">{jobSnags.length}</span>
           </div>
           <div className="fxl" role="list">
@@ -236,7 +236,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
                 <span className="fxl-bar" aria-hidden />
                 <span className="fxl-mcol">
                   <button type="button" className="fxl-m fxl-open" onClick={() => openQuickSnag(sn)}>
-                    <b><span className="qsl-kind">Snag</span>{sn.problem || 'A picture, no words yet'}</b>
+                    <b><span className={'qsl-prio ' + ({ critical: 'is-r', high: 'is-a', low: 'is-g' } as const)[sn.priority ?? 'low']}>{({ critical: 'Critical', high: 'High', low: 'Low' } as const)[sn.priority ?? 'low']}</span>{sn.problem || 'A picture, no words yet'}</b>
                     <small>{lineName(sn.workspaceId)}{sn.targetAsset ? ` · ${sn.targetAsset}` : ''} · {sn.owner || 'nobody yet'}</small>
                   </button>
                 </span>
@@ -252,7 +252,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
       {/* STILL TO DO, soonest first — the list somebody works off. */}
       <section className="cmp-sec">
         <div className="cw-sec-h">
-          <h2 className="cmp-h">Fixes — still to do</h2>
+          <h2 className="cmp-h">Being fixed — still to do</h2>
           {st.upcoming.length > 0 && <span className="cmp-h-n">{st.upcoming.length}</span>}
         </div>
 
@@ -361,7 +361,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
       {st.done.length > 0 && (
         <section className="cmp-sec">
           <div className="cw-sec-h">
-            <h2 className="cmp-h">Fixes — done</h2>
+            <h2 className="cmp-h">Fixed</h2>
             <span className="cmp-h-n">{st.done.length}</span>
           </div>
           <div className="fxl">
@@ -414,7 +414,7 @@ import { Icon } from '../ui/Icon';
  *  and under it the machine, what it is for and who. */
 function FixRow({ t, machine, from, flag, snag, onOpen }: {
   t: Test; machine: string; from?: Test; onOpen: () => void;
-  /** It started as a snag: "from a snag on Line 7". */
+  /** It started on a line: "seen first on Line 7". */
   snag?: string;
   /** Flagged critical or high risk, on its problem (lib/critical fixFlag). */
   flag?: 'critical' | 'risk';
@@ -442,7 +442,7 @@ function FixRow({ t, machine, from, flag, snag, onOpen }: {
  *  hours it cost; and the two things to do with it. */
 function NotedRow({ n, snag, onOpen, onView }: {
   n: Noted; onOpen: () => void;
-  /** It started as a snag: "from a snag on Line 7". */
+  /** It started on a line: "seen first on Line 7". */
   snag?: string;
   /** A picture of it, opened large — with what is marked on it. */
   onView: (m: MediaRef) => void;

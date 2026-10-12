@@ -49,7 +49,7 @@ export const openQuickSnag: Opener = s => opener?.(s);
 export function QuickSnagButton() {
   return (
     <button type="button" className="btn btn-primary qs-top" onClick={() => openQuickSnag()}>
-      <Icon name="camera" size="1.05em" />Snag
+      <Icon name="camera" size="1.05em" />Problem
     </button>
   );
 }
@@ -64,7 +64,7 @@ export function QuickSnagHost({ wsId, projectId }: { wsId?: string; projectId?: 
   return (
     <>
       <button type="button" className="qs-fab" onClick={() => openQuickSnag()} aria-label="Snag — spot an issue">
-        <Icon name="camera" size={22} /><span>Snag</span>
+        <Icon name="camera" size={22} /><span>Problem</span>
       </button>
       {open && <QuickSnagSheet key={open.n} snag={open.snag} wsId={wsId} projectId={projectId} onClose={() => setOpen(null)} />}
     </>
@@ -184,7 +184,7 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
   };
 
   return (
-    <Sheet open onClose={onClose} title={snag ? 'The snag' : 'Snag — spot an issue'}>
+    <Sheet open onClose={onClose} title={snag ? 'The problem' : 'Problem — spot an issue'}>
       <div className="qs">
         <Evidence media={media} kind="found" onView={setViewing}
           onAdd={async refs => { setMedia(m => [...m, ...refs]); }} />

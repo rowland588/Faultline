@@ -33,7 +33,7 @@ import { deleteSnag, listAllSnags, listWorkspaces, listTests, listTestItems, lis
 import { useProjects } from '../lib/useProjects';
 import { planModel } from '../lib/planModel';
 import { live, type Asset, type Test, type TestItem } from '../lib/testing';
-import { becameOn, jobGroup, type Became, type JobGroup, type JobRow, type MovedRow, type SnagRow, type SnagTone, snagsReading } from '../lib/snagsReport';
+import { becameOn, jobGroup, PRIORITY_RANK, PRIORITY_WORD, type Became, type Priority, type JobGroup, type JobRow, type MovedRow, type SnagRow, type SnagTone, snagsReading } from '../lib/snagsReport';
 import { nav } from '../state/useRoute';
 import { openRecord } from '../ui/RecordDrawer';
 import { useAccessByJob } from '../ui/JobsBoard';
@@ -49,12 +49,16 @@ import { moveSnagsToActions, pinSnag, sendSnags } from './quick';
 import { openQuickSnag } from './QuickSnag';
 
 /** The counts are the filters: everything open, each kind open, the late, the done. */
-type Filter = 'open' | 'snags' | 'problems' | 'fixes' | 'late' | 'done';
+type Filter = 'open' | Priority | 'late' | 'done';
 type Group = 'line' | 'who';
 type JobData = { tests: Test[]; items: TestItem[]; assets: Asset[]; todos: PaceTodoRow[] };
 
 const TONE_CLASS: Record<SnagTone, string> = { g: 'is-g', r: 'is-r', w: 'is-w', a: 'is-a', n: 'is-n' };
-const KIND_WORD: Record<JobRow['kind'], string> = { problem: 'Problem', fix: 'Fix', action: 'Action' };
+/* PRIORITY, RAG (Rowland, 12 October): Critical red, High amber, Low green —
+   always with its word beside the colour, so it survives a black-and-white
+   print and colour-blind eyes. */
+const PRIO_CLASS: Record<Priority, string> = { critical: 'is-r', high: 'is-a', low: 'is-g' };
+const PrioTag = ({ p }: { p: Priority }) => <span className={'qsl-prio ' + PRIO_CLASS[p]}>{PRIORITY_WORD[p]}</span>;
 const KIND_ICON: Record<JobRow['kind'], IconName> = { problem: 'warning', fix: 'check', action: 'check' };
 
 /** "Machine — Stage", the words a stage-gate job's stage goes by. */
@@ -139,12 +143,11 @@ export function QuickSnagsScreen() {
 
   /* What the chosen count shows. */
   const shownLines = useMemo(() => {
-    const keep = (r: SnagRow) => (filter === 'open' || filter === 'snags' ? r.status !== 'closed' : filter === 'late' ? r.late : filter === 'done' ? r.status === 'closed' : false);
+    const keep = (r: SnagRow) => (filter === 'open' ? r.status !== 'closed' : filter === 'late' ? r.late : filter === 'done' ? r.status === 'closed' : r.status !== 'closed' && r.priority === filter);
     return reading.lines.map(g => ({ ...g, rows: g.rows.filter(keep) })).filter(g => g.rows.length);
   }, [filter, reading]);
   const shownJobs = useMemo(() => {
-    const keep = (r: JobRow) => (filter === 'open' ? r.open : filter === 'problems' ? r.kind === 'problem' && r.open : filter === 'fixes' ? r.kind !== 'problem' && r.open
-      : filter === 'late' ? r.late : filter === 'done' ? !r.open : false);
+    const keep = (r: JobRow) => (filter === 'open' ? r.open : filter === 'late' ? r.late : filter === 'done' ? !r.open : r.open && r.priority === filter);
     return reading.jobs.map(g => ({ ...g, rows: g.rows.filter(keep) })).filter(g => g.rows.length);
   }, [filter, reading]);
   const shownMoved = filter === 'open' || filter === 'done' ? reading.moved : [];
@@ -152,7 +155,7 @@ export function QuickSnagsScreen() {
     if (group === 'line') return shownLines.map(g => ({ key: g.id, name: g.name, rows: g.rows }));
     const by = new Map<string, SnagRow[]>();
     for (const r of shownLines.flatMap(g => g.rows)) by.set(r.owner ?? '', [...(by.get(r.owner ?? '') ?? []), r]);
-    return [...by.entries()].map(([who, rows]) => ({ key: `who:${who}`, name: who || 'Nobody yet', rows: rows.sort((a, b) => Number(b.late) - Number(a.late) || b.raisedAt - a.raisedAt) }))
+    return [...by.entries()].map(([who, rows]) => ({ key: `who:${who}`, name: who || 'Nobody yet', rows: rows.sort((a, b) => PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] || Number(b.late) - Number(a.late) || b.raisedAt - a.raisedAt) }))
       .sort((a, b) => (a.name === 'Nobody yet' ? 1 : 0) - (b.name === 'Nobody yet' ? 1 : 0) || b.rows.filter(x => x.late).length - a.rows.filter(x => x.late).length || a.name.localeCompare(b.name));
   }, [group, shownLines]);
 
@@ -181,7 +184,7 @@ export function QuickSnagsScreen() {
   };
 
   /* WHAT IS SHOWN, IN WORDS — the report's title and the cards' note. */
-  const FILTER_TITLE: Record<Filter, string> = { open: 'Everything open', snags: 'Snags open', problems: 'Problems with no fix', fixes: 'Fixes to do', late: 'Everything late', done: 'Done' };
+  const FILTER_TITLE: Record<Filter, string> = { open: 'Every problem open', critical: 'Critical problems', high: 'High-priority problems', low: 'Low-priority problems', late: 'Every problem late', done: 'Done' };
   const title = [FILTER_TITLE[filter], lineF !== 'all' ? `on ${lineName(lineF)}` : '', jobF !== 'all' ? `for ${jobName(jobF) ?? 'a job'}` : '',
     whoF !== 'all' ? (whoF ? `— ${whoF}'s` : '— nobody’s yet') : '', search.trim() ? `— “${search.trim()}”` : ''].filter(Boolean).join(' ');
   const report = async () => {
@@ -191,7 +194,7 @@ export function QuickSnagsScreen() {
       const { saveSnagsReport } = await import('../lib/buildSnagsReport');
       await saveSnagsReport({ ...reading, lines: shownLines, jobs: shownJobs, moved: shownMoved }, title);
     } catch (e) {
-      console.error('snags & fixes report failed', e);
+      console.error('problems report failed', e);
       window.alert('Sorry — the report could not be made. Please try again.');
     } finally { setBusy(''); }
   };
@@ -208,9 +211,9 @@ export function QuickSnagsScreen() {
     } finally { setBusy(''); }
   };
 
-  const openSnags = c.open + c.in_progress;
-  const chip = (f: Filter, n: number, word: string, abnormal = false) => (
-    <button key={f} type="button" className={'chip' + (filter === f ? ' on' : '') + (abnormal && n ? ' qsl-chip-r' : '')} aria-pressed={filter === f} onClick={() => setFilter(f)}>
+  /* a count wears its colour only when it is not zero (CLAUDE.md, visual management rule 3) */
+  const chip = (f: Filter, n: number, word: string, tone?: 'r' | 'a' | 'g') => (
+    <button key={f} type="button" className={'chip' + (filter === f ? ' on' : '') + (tone && n ? ` qsl-chip-${tone}` : '')} aria-pressed={filter === f} onClick={() => setFilter(f)}>
       {word} · {n}
     </button>
   );
@@ -220,23 +223,23 @@ export function QuickSnagsScreen() {
     <div className="wrap qsl">
       <header className="pace-head qsl-head">
         <div>
-          <h1>Snags &amp; fixes</h1>
-          <p className="qsl-path">A <b>snag</b> is spotted on a line. Once it is on a job it is a <b>problem</b>; a <b>fix</b> is what puts it right.</p>
+          <h1>Problems</h1>
+          <p className="qsl-path">Every problem in one place, in order of priority — on a line until it is put on a job, then on the job with the fix that puts it right.</p>
           <p className="qsl-says">{snags ? reading.says : 'Opening…'}</p>
         </div>
         <div className="qsl-top">
-          <button type="button" className="btn btn-primary" onClick={() => openQuickSnag()}><Icon name="camera" size="1.05em" />Snag</button>
+          <button type="button" className="btn btn-primary" onClick={() => openQuickSnag()}><Icon name="camera" size="1.05em" />Problem</button>
           <button type="button" className="btn" disabled={!!busy || (!shownCount && !shownMoved.length)} onClick={() => void report()}>
-            <Icon name="document" size="1.05em" />{busy === 'report' ? 'Making…' : 'Snags & fixes report'}</button>
+            <Icon name="document" size="1.05em" />{busy === 'report' ? 'Making…' : 'Problems report'}</button>
         </div>
       </header>
 
       <div className="chip-row qsl-f" role="group" aria-label="Which">
-        {chip('open', openSnags + c.problems + c.fixes, 'Everything open')}
-        {chip('snags', openSnags, 'Snags')}
-        {chip('problems', c.problems, 'Problems')}
-        {chip('fixes', c.fixes, 'Fixes')}
-        {chip('late', c.late + c.jobLate, 'Late', true)}
+        {chip('open', c.critical + c.high + c.low, 'Open')}
+        {chip('critical', c.critical, 'Critical', 'r')}
+        {chip('high', c.high, 'High', 'a')}
+        {chip('low', c.low, 'Low', 'g')}
+        {chip('late', c.late + c.jobLate, 'Late', 'r')}
         {chip('done', c.closed + c.jobDone, 'Done')}
       </div>
       <div className="qsl-tools">
@@ -257,8 +260,8 @@ export function QuickSnagsScreen() {
           {owners.map(o => <option key={o} value={o}>{o}</option>)}
           <option value="">Nobody yet</option>
         </select>
-        <input className="text-input qsl-search" type="search" placeholder="Find a word" value={search} onChange={e => setSearch(e.target.value)} aria-label="Find a snag, problem or fix" />
-        <span className="cw-seg" role="group" aria-label="Snags by">
+        <input className="text-input qsl-search" type="search" placeholder="Find a word" value={search} onChange={e => setSearch(e.target.value)} aria-label="Find a problem" />
+        <span className="cw-seg" role="group" aria-label="Problems by">
           {(['line', 'who'] as Group[]).map(g => (
             <button key={g} type="button" className={'chip' + (group === g ? ' on' : '')} aria-pressed={group === g} onClick={() => setGroup(g)}>{g === 'line' ? 'By line' : 'By who'}</button>
           ))}
@@ -267,13 +270,13 @@ export function QuickSnagsScreen() {
 
       {snags && snags.length === 0 && !groupsOfJobs.some(g => g.rows.length) && (
         <div className="qsl-empty">
-          <p><b>No snags, problems or fixes yet.</b> Spot something on a line — press <b>Snag</b>, take a picture, say what is wrong.</p>
-          <button type="button" className="btn btn-primary" onClick={() => openQuickSnag()}><Icon name="camera" size="1.05em" />Snag</button>
+          <p><b>No problems yet.</b> Spot something on a line — press <b>Problem</b>, take a picture, say what is wrong.</p>
+          <button type="button" className="btn btn-primary" onClick={() => openQuickSnag()}><Icon name="camera" size="1.05em" />Problem</button>
         </div>
       )}
-      {snags && (snags.length > 0 || groupsOfJobs.some(g => g.rows.length)) && !groups.length && !shownJobs.length && !shownMoved.length && <p className="sub">None here — try Everything open, or every line and job.</p>}
+      {snags && (snags.length > 0 || groupsOfJobs.some(g => g.rows.length)) && !groups.length && !shownJobs.length && !shownMoved.length && <p className="sub">None here — try Open, or every line and job.</p>}
 
-      {groups.length > 0 && <h2 className="qsl-kind-h">Snags <span className="sub">— spotted on a line, not on a job yet</span></h2>}
+      {groups.length > 0 && <h2 className="qsl-kind-h">On the lines <span className="sub">— not on a job yet</span></h2>}
       {groups.map(g => {
         const all = g.rows.every(r => picked.has(r.id));
         const late = g.rows.filter(r => r.late).length;
@@ -281,10 +284,10 @@ export function QuickSnagsScreen() {
           <section key={g.key} className="qsl-g">
             <div className="qsl-gh">
               <label className="qsl-tick">
-                <input type="checkbox" checked={all} onChange={e => toggle(g.rows.map(r => r.id), e.target.checked)} aria-label={`Tick every snag in ${g.name}`} />
+                <input type="checkbox" checked={all} onChange={e => toggle(g.rows.map(r => r.id), e.target.checked)} aria-label={`Tick every problem in ${g.name}`} />
               </label>
               <h2>{g.name}</h2>
-              <span className="sub">{g.rows.length} snag{g.rows.length === 1 ? '' : 's'}{late ? <> · <b className="qsl-late">{late} late</b></> : null}</span>
+              <span className="sub">{g.rows.length} problem{g.rows.length === 1 ? '' : 's'}{late ? <> · <b className="qsl-late">{late} late</b></> : null}</span>
             </div>
             <ul className="qsl-rows">
               {g.rows.map(r => {
@@ -300,7 +303,7 @@ export function QuickSnagsScreen() {
                     <button type="button" className="qsl-open" onClick={() => open(s)}>
                       {!r.photo && <span className="qsl-nopic" aria-hidden><Icon name="camera" size={18} /></span>}
                       <span className="qsl-body">
-                        <span className="qsl-what"><span className="qsl-kind">Snag</span>{r.what}</span>
+                        <span className="qsl-what"><PrioTag p={r.priority} />{r.what}</span>
                         <span className="qsl-meta">
                           {group === 'who' && <>{r.line} · </>}{r.from}
                           {/* Named for a job and not on it yet: said, so it is not
@@ -311,6 +314,10 @@ export function QuickSnagsScreen() {
                       </span>
                     </button>
                     <div className="qsl-ctl">
+                      {/* its priority, set where it sits */}
+                      <select className={'text-input qsl-st qsl-prio-set ' + PRIO_CLASS[r.priority]} value={r.priority} onChange={e => void put(r.id, { priority: e.target.value as Priority })} aria-label={`Priority of ${r.what}`}>
+                        {(['critical', 'high', 'low'] as Priority[]).map(k => <option key={k} value={k}>{PRIORITY_WORD[k]}</option>)}
+                      </select>
                       <select className={'text-input qsl-st ' + TONE_CLASS[r.tone]} value={r.status} onChange={e => setStatus(r.id, e.target.value as SnagStatus)} aria-label={`State of ${r.what}`}>
                         {(['open', 'in_progress', 'closed'] as SnagStatus[]).map(k => <option key={k} value={k}>{SNAG_STATUS_META[k].label}</option>)}
                       </select>
@@ -334,7 +341,7 @@ export function QuickSnagsScreen() {
       })}
 
       {/* ON THE JOBS — each job's problems and fixes, a moved snag among them as what it became. */}
-      {shownJobs.length > 0 && <h2 className="qsl-kind-h">On the jobs <span className="sub">— problems and their fixes</span></h2>}
+      {shownJobs.length > 0 && <h2 className="qsl-kind-h">On the jobs <span className="sub">— with the fix that puts each right</span></h2>}
       {shownJobs.map(g => {
         const all = reading.jobs.find(x => x.projectId === g.projectId) ?? g;
         return (
@@ -342,7 +349,7 @@ export function QuickSnagsScreen() {
             <div className="qsl-gh">
               <h2>{g.job}</h2>
               <span className="sub">
-                {[all.problemsOpen ? `${all.problemsOpen} problem${all.problemsOpen === 1 ? '' : 's'} with no fix` : '', all.fixesToDo ? `${all.fixesToDo} to do` : '', all.done ? `${all.done} done` : ''].filter(Boolean).join(' · ') || 'nothing open'}
+                {[all.problemsOpen ? `${all.problemsOpen} with no fix yet` : '', all.fixesToDo ? `${all.fixesToDo} being fixed` : '', all.done ? `${all.done} done` : ''].filter(Boolean).join(' · ') || 'nothing open'}
                 {all.late ? <> · <b className="qsl-late">{all.late} late</b></> : null}
               </span>
               <button type="button" className="linkish qsl-jobgo" onClick={() => jobList(g)}>Open {g.job}’s list ›</button>
@@ -354,8 +361,9 @@ export function QuickSnagsScreen() {
                   <button type="button" className="qsl-open" onClick={() => openJobRow(r)}>
                     {!r.photo && <span className="qsl-nopic" aria-hidden><Icon name={KIND_ICON[r.kind]} size={18} /></span>}
                     <span className="qsl-body">
-                      <span className="qsl-what"><span className="qsl-kind">{KIND_WORD[r.kind]}</span>{r.flag && <span className={'qsl-flag' + (r.flag === 'critical' ? ' is-r' : ' is-a')}>{r.flag === 'critical' ? 'Critical' : 'High risk'}</span>}{r.what}</span>
-                      <span className="qsl-meta">{r.where}{r.who ? ` · ${r.who}` : ' · nobody yet'}{r.fromSnag ? ` · from ${r.fromSnag}` : ''}</span>
+                      <span className="qsl-what"><PrioTag p={r.priority} />{r.what}</span>
+                      {r.fixWhat && <span className="qsl-meta qsl-fixline">Fix: {r.fixWhat}</span>}
+                      <span className="qsl-meta">{r.where}{r.who ? ` · ${r.who}` : ' · nobody yet'}{r.fromSnag ? ` · seen first on ${r.fromSnag.replace(/^a snag on /, '')}` : ''}</span>
                     </span>
                     <span className={'qsl-state ' + TONE_CLASS[r.tone]}>{r.word}</span>
                   </button>
@@ -376,7 +384,7 @@ export function QuickSnagsScreen() {
                 {r.photo && <EvidenceThumb media={photoRef(r.photo, byId.get(r.id))} size={52} onClick={() => setViewing({ media: photoRef(r.photo as string, byId.get(r.id)) })} />}
                 <span className="qsl-open">
                   <span className="qsl-body">
-                    <span className="qsl-what"><span className="qsl-kind">Snag</span>{r.what}</span>
+                    <span className="qsl-what">{r.what}</span>
                     <span className="qsl-meta">{r.line} · {r.from}</span>
                     <span className="qsl-meta qsl-became is-n">Moved — {r.says}</span>
                   </span>
@@ -388,8 +396,16 @@ export function QuickSnagsScreen() {
       ))}
 
       {chosen.length > 0 && (
-        <div className="qsl-bar" role="region" aria-label="Ticked snags">
+        <div className="qsl-bar" role="region" aria-label="Ticked problems">
           <span><b>{chosen.length}</b> ticked</span>
+          <select className="text-input qsl-sel qsl-bar-prio" value="" aria-label="Priority of every ticked problem" onChange={e => {
+            const v = e.target.value as Priority; if (!v) return;
+            const before = chosen.map(x => ({ ...x }));
+            void (async () => { for (const x of chosen) await updateSnag({ ...x, priority: v }); offerUndo(`${before.length} made ${PRIORITY_WORD[v].toLowerCase()}`, async () => { for (const x of before) await updateSnag(x); }); })();
+          }}>
+            <option value="">Priority…</option>
+            {(['critical', 'high', 'low'] as Priority[]).map(k => <option key={k} value={k}>{PRIORITY_WORD[k]}</option>)}
+          </select>
           <button type="button" className="btn" onClick={() => void setSnagsStatus(chosen.map(s => s.id), 'in_progress')}>In progress</button>
           <button type="button" className="btn" onClick={() => {
             const before = chosen.map(s => ({ ...s }));
@@ -403,7 +419,7 @@ export function QuickSnagsScreen() {
               actually just then delete them, it doesn't allow me"). */}
           <button type="button" className="btn qsl-del" onClick={() => {
             const n = chosen.length, them = n === 1 ? 'it' : 'them';
-            if (!window.confirm(`Delete ${n} snag${n === 1 ? '' : 's'}? The photos and everything written about ${them} go with ${them}.`)) return;
+            if (!window.confirm(`Delete ${n} problem${n === 1 ? '' : 's'}? The photos and everything written about ${them} go with ${them}.`)) return;
             void (async () => { for (const x of chosen) await deleteSnag(x.id); setPicked(new Set()); })();
           }}>Delete</button>
           <button type="button" className="btn btn-ghost" onClick={() => setPicked(new Set())}>Clear</button>
@@ -430,7 +446,7 @@ function SetSheet({ snags, onClose, onDone }: { snags: Snag[]; onClose: () => vo
     onDone();
   };
   return (
-    <Sheet open onClose={onClose} title={`Whose and by when — ${n} snag${n === 1 ? '' : 's'}`}>
+    <Sheet open onClose={onClose} title={`Whose and by when — ${n} problem${n === 1 ? '' : 's'}`}>
       <div className="qs">
         <label className="cw-f cw-f-wide"><span>WHOSE</span>
           <input className="text-input" value={who} placeholder="Leave empty to keep each one's" onChange={e => setWho(e.target.value)} /></label>
@@ -491,7 +507,7 @@ function SendSheet({ snags, projects, onClose, onSent }: {
       if (isGated) {
         const fix = asFix || !step;
         const undo = await sendSnags(snags, p.id, step || undefined, { ...(flag !== 'none' ? { flag } : {}), fix }, p.name);
-        offerUndo(`${n} moved to ${p.name} — ${fix ? `${n === 1 ? 'a fix' : 'fixes'} on its Snags & fixes` : `${n === 1 ? 'a problem' : 'problems'} on its stage`}`, undo);
+        offerUndo(`${n} moved to ${p.name} — ${fix ? `${n === 1 ? 'a fix' : 'fixes'} on its Problems` : `${n === 1 ? 'a problem' : 'problems'} on its stage`}`, undo);
       } else {
         const undo = await moveSnagsToActions(snags, p.id, p.name);
         offerUndo(`${n} moved to ${p.name} — ${n === 1 ? 'an action' : 'actions'} on its board`, undo);
@@ -501,7 +517,7 @@ function SendSheet({ snags, projects, onClose, onSent }: {
   };
 
   return (
-    <Sheet open onClose={onClose} title={`Move ${n} snag${n === 1 ? '' : 's'} to a job`}>
+    <Sheet open onClose={onClose} title={`Move ${n} problem${n === 1 ? '' : 's'} to a job`}>
       <div className="qs">
         <label className="cw-f cw-f-wide"><span>WHICH JOB</span>
           <select value={pid} onChange={e => setPid(e.target.value)}>
