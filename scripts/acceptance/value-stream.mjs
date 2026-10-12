@@ -91,6 +91,11 @@ await page.getByRole('button', { name: 'New value stream map' }).first().click()
   ok(!/What does it map/.test(sheet) && /Which line\?/.test(sheet) && await page.getByRole('button', { name: 'Start it' }).isDisabled(),
     '1 a new map: which line, never "what does it map" — Start it waits for the line');
   await page.keyboard.press('Escape');
+  /* A closed sheet takes its own history entry off a moment later (ui/backCloses);
+     the app's own links wait for it, a goto does not — under load the late
+     back() landed after the goto below and put the page back on the list. */
+  await page.waitForFunction(() => !(history.state && history.state.flPanel), null, { timeout: 10000 }).catch(() => {});
+  await page.waitForTimeout(300);
 }
 
 /* ---- 2 · the line's map reads as the module says ---- */
