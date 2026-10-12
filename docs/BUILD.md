@@ -834,6 +834,33 @@ the standard's existing `capacity` jsonb (`plannedLossMinPerShift`,
 is enough for the first cut of sampling (no push yet); the activities' names
 on his floor; whether the mix's margin a pack is a number he will type.
 
+### Tool H3 — ergonomics: can people do it all shift?
+
+Designed 11 October from `docs/TOOLKIT.md` Part 4 §11; the NIOSH lifting
+equation built first as arithmetic (`lib/ie/ergo.ts`, tested on the CCOHS
+example: 23 × 0.83 × 0.78 × 0.85 × 1 × 1 × 0.90 = 11.4 kg; 13 ÷ 11.4 = 1.14,
+increased risk), its screen with H1 and H2. The HSE sheets (MAC, ART, REBA)
+are **not** written from memory: each is transcribed from its published sheet
+with the source open and attributed (Crown copyright, Open Government
+Licence), as a slice of its own, and until then the app offers the one method
+it can prove.
+- **The record:** a study of tool `ergonomics`: `facts.method` (`niosh`
+  first), `facts.answers` (the measurements as the sheet asks them — the
+  hands' distance out and height, the travel, the twist, lifts a minute, how
+  long, the grip), `facts.who` — the person on the line standard's map it
+  assesses, who then wears its band.
+- **The page:** on the standard's map, tap a person: Assess; one box per
+  measurement with the sheet's own words and a picture of what is measured;
+  the limit and the index; the band in words, never only a colour; always
+  the caveat — a screening tool, for a trained assessor, not a full risk
+  assessment. A task the equation does not cover says so instead of a number.
+- **The doors:** Make it better raises the countermeasure on People with the
+  figure ("13 kg lifted from the floor against a limit of 11.4 — index 1.14");
+  Prove it assesses again after the change; before → after on the index.
+- **Where it shows:** the person on the standard's map (the band as a mark
+  with its words); Hand over's standard; the 6M's People; the standard's page
+  on paper (the measurements, the limit, the index, the caveat).
+
 ## What is needed from Rowland, release by release
 
 | Release | Before it starts | At the end |
