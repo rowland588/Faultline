@@ -163,6 +163,23 @@ await go('#/snags');
   ok((await snag(what))?.workspaceId === wasOn, '3 and put back on its own line');
 }
 
+/* ---- 3b taken with the Problem button for a stage-gate job: assigned, never
+   moved (Rowland, 12 October: "It said it's moved to line 2A ... No idea what
+   that is") — then taken off again, so the stories after count as before ---- */
+{
+  await page.getByRole('button', { name: 'Problem', exact: true }).click(); await page.waitForTimeout(800);
+  const sheet = page.locator('.sheet, [role="dialog"]').last();
+  await sheet.locator('textarea').first().fill('Infeed photo-eye dirty');
+  await sheet.locator('label', { hasText: 'PROJECT' }).locator('select').selectOption({ label: sd.job }); await page.waitForTimeout(500);
+  const movesSaid = await sheet.getByText(/moves to/i).count();
+  await sheet.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(1500);
+  const s = await snag('Infeed photo-eye dirty');
+  ok(movesSaid === 0 && s?.status === 'open' && s?.projectId === sd.projectId && !(s?.sent ?? []).length && (await row('Infeed photo-eye dirty').count()) === 1,
+    `3 taken with the Problem button for ${sd.job}: open here, for it — never moved, no "Moves to"`);
+  if (s) await page.evaluate(async id => { const db = await import('/src/db.ts'); const x = (await db.listAllSnags()).find(y => y.id === id); if (x) await db.updateSnag({ ...x, deletedAt: Date.now() }); }, s.id);
+  await page.waitForTimeout(800);
+}
+
 /* ---- 4 its journey ---- */
 {
   const what = 'Guard on the infeed loose';
