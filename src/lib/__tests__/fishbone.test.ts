@@ -273,6 +273,35 @@ describe('suggestionsFor — the walk, the standard, the balance, materials, pro
     expect(suggestionsFor(problem(), data({ studies: [map()] }), TODAY).some(x => x.source.kind === 'study')).toBe(false);
   });
 
+  it('the line\'s changeover → its external work inside the stop on Method, its longest internal steps on Machine (tool 6)', () => {
+    const M = 60;
+    const co = (o: Partial<ToolStudy> = {}): ToolStudy => ({ id: 'c1', tool: 'changeover', name: 'Finest Red 2kg → Express 1.25 kg', projectId: 'P', workspaceId: 'ws1', machine: 'Bagger',
+      uses: [], startedAt: 1, createdAt: 1, updatedAt: 1,
+      facts: { fromProduct: 'Finest Red 2kg', toProduct: 'Express 1.25 kg', sequence: [
+        { id: 'clr', order: 0, name: 'Stop and clear the former', sec: 4 * M, side: 'internal', source: 'timed' },
+        { id: 'fet', order: 1, name: 'Fetch the next former from the store', sec: 5 * M, side: 'external', source: 'timed' },
+        { id: 'tub', order: 2, name: 'Change the former tube', sec: 10 * M, side: 'internal', source: 'timed' },
+        { id: 'pre', order: 3, name: 'Pre-stage the film reels', sec: 7 * M, side: 'external', source: 'typed' },
+        { id: 'rel', order: 4, name: 'Change the film reel', sec: 6 * M, side: 'internal', source: 'timed' },
+      ] }, ...o });
+    const whole = problem({ source: undefined });
+    const s = suggestionsFor(whole, data({ studies: [co()] }), TODAY).filter(x => x.source.kind === 'study');
+    expect(s.map(x => [x.m, x.text, x.grade, x.source.ref, x.source.tool])).toEqual([
+      ['method', '12 min of external work done with the line stopped — Pre-stage the film reels, Fetch the next former from the store', 'reported', 'c1#external', 'changeover'],
+      ['machine', 'Change the former tube — internal, 10 min, the line stopped', 'measured', 'c1#tub', 'changeover'],
+      ['machine', 'Change the film reel — internal, 6 min, the line stopped', 'measured', 'c1#rel', 'changeover'],
+    ]);
+    expect(s[0].detail).toBe('Changeover: Finest Red 2kg → Express 1.25 kg, 32 min — 20 min internal, 12 min external');
+    /* a changeover loss on another machine still asks about the changeover; a minor stop on another machine does not */
+    expect(suggestionsFor(problem({ source: { kind: 'pareto', category: 'Changeover', asset: 'Palletiser' } }), data({ studies: [co()] }), TODAY).some(x => x.source.tool === 'changeover')).toBe(true);
+    expect(suggestionsFor(problem({ source: { kind: 'pareto', category: 'Minor stop', asset: 'Palletiser' } }), data({ studies: [co()] }), TODAY).some(x => x.source.tool === 'changeover')).toBe(false);
+    expect(suggestionsFor(problem({ source: { kind: 'pareto', category: 'Minor stop', asset: 'Bagger' } }), data({ studies: [co()] }), TODAY).some(x => x.source.tool === 'changeover')).toBe(true);
+    /* carried from before: not timed again, not offered; another line's: says nothing here */
+    const carried = co({ facts: { sequence: (co().facts.sequence ?? []).map(x => ({ ...x, source: 'carried' as const })) } });
+    expect(suggestionsFor(whole, data({ studies: [carried] }), TODAY).some(x => x.source.tool === 'changeover')).toBe(false);
+    expect(suggestionsFor(whole, data({ studies: [co({ workspaceId: 'ws2' })] }), TODAY).some(x => x.source.tool === 'changeover')).toBe(false);
+  });
+
   it('the standard a line is read against: its product\'s program, else its workspace, else (not strict) the first', () => {
     const a = { ...std(1), id: 'a', sort: 1 }, b = { ...std(1), id: 'b', sort: 2, workspaceId: 'ws1' }, c = { ...std(1), id: 'c', sort: 3, programId: 'pg' };
     const l = { id: 'L1', workspaceId: 'ws1' } as PaceLineRow;

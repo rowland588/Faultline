@@ -36,7 +36,13 @@ stream map — a line's, end to end, laid out as a swimlane grid of what, who
 `ui/ValueStream`) — inside a change: Make it better from a waste step, Prove
 it by walking the line again, before → after on the fix, the map's wait and
 waste offered on the 6M fishbone, the flow on the line's card, and the stream
-as a table in each report's Evidence (`lib/report/streamTable`). Rowland's answers for B, 11 October: the picture's
+as a table in each report's Evidence (`lib/report/streamTable`); and (tool
+F, 12 October) the changeover and its interval — steps lapped on the phone,
+each internal or external, the split bar, how often each product can run
+(`lib/ie/changeover`), the agreed sequence on the product's line standard
+(`capacity.changeovers`), Make it better from a step, Prove it, before →
+after, the fishbone's Method and Machine, and the steps as a table in each
+report's Evidence (`lib/report/changeoverTable`). Rowland's answers for B, 11 October: the picture's
 colours (VA green, NE amber, NV red); the swimlane grid; who does it on a
 line is people, not departments; multi-dimensional; and "remove
 business-wide mapping ... but keep the line large, different departments
@@ -1034,6 +1040,15 @@ line runs: 27 min — 90 min a week back, 6 changeovers. Five products at
 
 **Proved by.** 450 − 300 = 150 free; 5 × 42 = 210 → 1.4 days; 5 × 27 =
 135 → 0.9 days; 15 × 6 = 90 min a week.
+
+**As built** (12 October, `docs/BUILD.md` tool F): the steps are
+`facts.sequence` (the balance keeps `facts.steps`), with `toProduct`,
+`perWeek`, and the interval's `products` and `availableMinPerDay` typed once
+on the study — a product's run time a day from its demand and the line's
+rate (the balance's target offered), or typed. The agreed sequence is
+`capacity.changeovers[]` on the to-product's line standard, one per product
+it is changed from — inside the existing jsonb, so no `standards.changeovers`
+column was added.
 
 ## 7. A shift's losses, by hand — and what they cost
 

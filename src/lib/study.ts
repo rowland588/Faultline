@@ -161,6 +161,58 @@ export interface AgreedMap {
   supplier?: string;
 }
 
+/** THE CHANGEOVER (docs/TOOLKIT.md, tool 6): one step of changing the line
+ *  from one product to the next — timed on the phone as it happens (Lap),
+ *  typed, or CARRIED from the changeover before when a fix is being proved.
+ *  Each step is INTERNAL (done with the line stopped) or EXTERNAL (could be
+ *  done while it still runs) — SMED's one distinction. */
+export type ChangeoverSide = 'internal' | 'external';
+export interface ChangeoverStep {
+  id: string;
+  order: number;
+  /** The floor's words: "Change the former tube". */
+  name: string;
+  /** Seconds it took. Absent until it is timed or typed. */
+  sec?: number;
+  side: ChangeoverSide;
+  source: 'timed' | 'typed' | 'carried';
+  /** When it was timed or typed, and by whom. */
+  at?: number;
+  who?: string;
+}
+
+/** A product run on the line, for the changeover's interval (every product
+ *  every how many days): what the customer takes a day and the line's rate
+ *  on it — the line balance's target, offered, or typed — or its run time a
+ *  day typed outright where there is no rate. */
+export interface ChangeoverProduct {
+  id: string;
+  product: string;
+  /** Its line standard, when it has one on the line. */
+  standardId?: string;
+  /** Pieces a day. */
+  demandPerDay?: number;
+  /** The line's rate on it, a minute. */
+  ratePerMin?: number;
+  /** Minutes a day, typed where there is no rate to work it out from. */
+  runMinPerDay?: number;
+}
+
+/** THE AGREED CHANGEOVER into a product, kept on its line standard inside
+ *  the balance's `capacity` (Set as the standard — lib/ie/changeover): the
+ *  sequence as agreed, its minutes, when, by whom and from which study. One
+ *  per product it is changed FROM: a line changes to a product from many. */
+export interface StandardChangeover {
+  id: string;
+  from?: string;
+  steps: { name: string; side: ChangeoverSide; sec?: number }[];
+  /** The agreed minutes, the sequence's total. */
+  minutes: number;
+  agreedAt: number;
+  by?: string;
+  fromStudyId: string;
+}
+
 /** What it is judged against, by tool — each tool its own key, so a new tool
  *  adds one and changes none. */
 export interface StudyAgreed {
@@ -180,6 +232,20 @@ export interface StudyFacts {
   /** The same stream as it could run — copied from the flow, then struck,
    *  merged and shortened. */
   future?: FlowStep[];
+  /** A CHANGEOVER's steps, in order — its own key, as the map's `flow` is,
+   *  so the balance's `steps` stays what it is (lib/ie/changeover). */
+  sequence?: ChangeoverStep[];
+  /** The two products: what the line ran, and what it changed to. */
+  fromProduct?: string;
+  toProduct?: string;
+  /** Changeovers a week, typed — what the external work buys back. */
+  perWeek?: number;
+  /** The products run on the line, for the interval — each with its demand
+   *  a day and the line's rate on it, or its run time a day typed. */
+  products?: ChangeoverProduct[];
+  /** Minutes the line runs a day, typed — offered from the balance's
+   *  planned hours when a standard on the line holds them. */
+  availableMinPerDay?: number;
 }
 
 /** What a study is evidence for, inside its job. Both ends write the same
@@ -267,5 +333,7 @@ export function factsOf(v: unknown): StudyFacts {
   return { ...o, ...(o.readings !== undefined ? { readings: listById<StudyReading>(o.readings) } : {}),
     ...(o.steps !== undefined ? { steps: listById<BalanceStep>(o.steps).map(st => ({ ...st, laps: listById<Lap>(st.laps) })) } : {}),
     ...(o.flow !== undefined ? { flow: listById<FlowStep>(o.flow) } : {}),
-    ...(o.future !== undefined ? { future: listById<FlowStep>(o.future) } : {}) };
+    ...(o.future !== undefined ? { future: listById<FlowStep>(o.future) } : {}),
+    ...(o.sequence !== undefined ? { sequence: listById<ChangeoverStep>(o.sequence) } : {}),
+    ...(o.products !== undefined ? { products: listById<ChangeoverProduct>(o.products) } : {}) };
 }

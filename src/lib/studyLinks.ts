@@ -12,12 +12,13 @@
  * enough readings on both. It says "the number moved", never "the fix did
  * it" — that is the fix's to say, and a person presses the button. */
 import type { ID } from '../types';
-import type { BalanceStep, FlowStep, StudyUse, ToolStudy } from './study';
+import type { BalanceStep, ChangeoverStep, FlowStep, StudyUse, ToolStudy } from './study';
 import type { PaceTodoRow } from '../db/rows';
 import type { SixM } from './sixm';
 import { sample, sampleSays, compareSamples, CPK_FROM, CPK_JUST, type SampleSays, type Tone } from './ie/sample';
 import { balance, balanceLine, compareBalances, secs as secsOf } from './ie/balance';
 import { carryFlow, compareFlows, compareStep, dur as durOf, flowFigures, flowSays, share as shareOf, stepAt, stepFigure, whoOf } from './ie/steps';
+import { carrySequence, changeoverFigures, changeoverSays, compareChangeovers, intervalOf, intervalSays, mins, stepFigure as changeoverStepFigure } from './ie/changeover';
 
 const live = (ss: ToolStudy[]) => ss.filter(s => !s.deletedAt);
 
@@ -35,12 +36,20 @@ export function studySays(s: ToolStudy): SampleSays {
     const f = flowFigures(s.facts.flow, s.agreed?.map);
     return { text: flowSays(f, s.agreed?.map).text, tone: 'n', verdict: f.steps ? `Lead time ${f.untimed ? 'at least ' : ''}${durOf(f.leadSec)}` : 'No steps yet' };
   }
+  if (s.tool === 'changeover') {
+    /* the minutes, then the interval when it can be read — the standard it
+       stands against is the line standard's, read where that is to hand */
+    const f = changeoverFigures(s.facts.sequence, s.facts.perWeek);
+    const said = changeoverSays(f);
+    const iv = intervalOf(f, s.facts.products, s.facts.availableMinPerDay);
+    return { text: iv.ready ? `${said.text} ${intervalSays(iv, f).text}` : said.text, tone: said.tone, verdict: said.verdict };
+  }
   const a = s.agreed?.readings;
   return sampleSays(sample(a, s.facts.readings ?? []), a);
 }
 
 /** Each tool's name, as a study of it is called on screen and on paper. */
-export const TOOL_NAME: Partial<Record<ToolStudy['tool'], string>> = { capability: 'Capability study', balance: 'Work balance', map: 'Value stream map' };
+export const TOOL_NAME: Partial<Record<ToolStudy['tool'], string>> = { capability: 'Capability study', balance: 'Work balance', map: 'Value stream map', changeover: 'Changeover' };
 
 /** "Capability study — Weight accuracy 400 g · Weigher 2". */
 export const studyTitle = (s: Pick<ToolStudy, 'tool' | 'name' | 'machine'>): string =>
@@ -73,6 +82,26 @@ export function flowLine(s: ToolStudy): string | undefined {
   return `lead time ${f.untimed ? 'at least ' : ''}${durOf(f.leadSec)} · ${shareOf(f.pce ?? 0)} adds value${f.carried ? ` · ${f.carried} of ${f.steps} steps not walked again yet` : ''}`;
 }
 
+/** The changeover a line, or a product's line standard, reads: the newest
+ *  one on it (the changeover timed again to prove a fix is newer, and is how
+ *  the line changes over now). */
+export const currentChangeover = (studies: ToolStudy[], on: { workspaceId?: ID; standardId?: ID }): ToolStudy | undefined =>
+  live(studies).filter(s => s.tool === 'changeover' && (on.standardId ? s.standardId === on.standardId : !!on.workspaceId && s.workspaceId === on.workspaceId))
+    .sort((a, b) => b.startedAt - a.startedAt)[0];
+
+/** A line's changeover in one line, for its card and the standard: the
+ *  minutes now, the external work inside, the interval when it can be read.
+ *  Only the external work carries colour — it is the abnormal. */
+export function changeoverLine(s: ToolStudy): { text: string; tone: Tone } | undefined {
+  const f = changeoverFigures(s.facts.sequence, s.facts.perWeek);
+  if (!f.enough) return undefined;
+  const iv = intervalOf(f, s.facts.products, s.facts.availableMinPerDay);
+  const who = [s.facts.fromProduct, s.facts.toProduct ?? s.product].filter(Boolean).join(' → ');
+  const now = `${f.untimed ? 'at least ' : ''}${mins(f.nowSec)}${f.externalSec > 0 ? `, ${mins(f.externalSec)} external inside` : ''}${f.carried ? ` · ${f.carried} of ${f.steps} steps not timed again yet` : ''}`;
+  const every = iv.ready && iv.daysNow !== undefined ? ` · every product every ${iv.daysNow.toFixed(1)} days` : '';
+  return { text: `${who ? `${who}: ` : ''}${now}${every}`, tone: f.externalSec > 0 ? 'a' : 'n' };
+}
+
 /** The work balance a line standard reads: the newest timing of it. */
 export const currentBalance = (studies: ToolStudy[], standardId: ID): ToolStudy | undefined =>
   live(studies).filter(s => s.tool === 'balance' && s.standardId === standardId).sort((a, b) => b.startedAt - a.startedAt)[0];
@@ -97,8 +126,8 @@ export function owedOf(s: ToolStudy): number {
 export const sameScope = (a: ToolStudy, b: ToolStudy): boolean =>
   a.tool === b.tool && (a.tool === 'balance'
     ? !!a.standardId && a.standardId === b.standardId && a.agreed?.balance?.taktSec === b.agreed?.balance?.taktSec
-    : a.tool === 'map'
-      /* a value stream: the same line, the same stream */
+    : a.tool === 'map' || a.tool === 'changeover'
+      /* a value stream, a changeover: the same line, the same stream or the same two products */
       ? (a.workspaceId ?? '') === (b.workspaceId ?? '') && a.name.trim().toLowerCase() === b.name.trim().toLowerCase()
       : a.name.trim().toLowerCase() === b.name.trim().toLowerCase()
         && JSON.stringify(a.agreed?.readings ?? null) === JSON.stringify(b.agreed?.readings ?? null));
@@ -107,6 +136,12 @@ export const sameScope = (a: ToolStudy, b: ToolStudy): boolean =>
 export function stepOf(s: ToolStudy, kind: StudyUse['kind'], ref: ID): FlowStep | undefined {
   const id = s.uses.find(u => u.kind === kind && u.ref === ref && u.role === 'evidence' && u.step)?.step;
   return id ? (s.facts.flow ?? []).find(x => x.id === id) : undefined;
+}
+
+/** The step of a changeover a record was raised from, when it was. */
+export function changeoverStepOf(s: ToolStudy, kind: StudyUse['kind'], ref: ID): ChangeoverStep | undefined {
+  const id = s.uses.find(u => u.kind === kind && u.ref === ref && u.role === 'evidence' && u.step)?.step;
+  return id ? (s.facts.sequence ?? []).find(x => x.id === id) : undefined;
 }
 
 /** What a study can be the evidence or proof of that something changed: a
@@ -135,10 +170,34 @@ export function beforeAfter(studies: ToolStudy[], fixId: ID, kind: FixKind = 'fi
     const waiting = !!st && stA?.source === 'carried';
     return { text: `${one}${compareFlows(fb, fa)}${still}`, tone: waiting ? 'n' : fa.leadSec < fb.leadSec ? 'g' : fa.leadSec > fb.leadSec ? 'r' : 'n', before, after };
   }
+  if (before && after.tool === 'changeover') {
+    /* the changeover timed again: the step the fix was raised from first,
+       then the minutes; nothing claimed while a step is still carried */
+    const fb = changeoverFigures(before.facts.sequence, before.facts.perWeek), fa = changeoverFigures(after.facts.sequence, after.facts.perWeek ?? before.facts.perWeek);
+    const st = changeoverStepOf(before, kind, fixId);
+    const stA = st ? (after.facts.sequence ?? []).find(x => x.id === st.id) : undefined;
+    const one = st ? `${compareChangeoverStep(st, stA)}. ` : '';
+    const c = compareChangeovers(fb, fa);
+    return { text: `${one}${c.text}`, tone: st && stA?.source === 'carried' ? 'n' : c.tone, before, after };
+  }
   const a = after.agreed?.readings;
   if (!before || !a) return undefined;
   const c = compareSamples(sample(a, before.facts.readings ?? []), sample(a, after.facts.readings ?? []), a);
   return { ...c, before, after };
+}
+
+/** ONE STEP of a changeover before → after, matched by id: its side and its
+ *  minutes as timed again; "not timed again yet" while carried; "taken out"
+ *  when gone; "done while the line runs" when moved external. */
+export function compareChangeoverStep(before: ChangeoverStep, after: ChangeoverStep | undefined): string {
+  const name = before.name.trim() || 'The step';
+  if (!after) return `${name}: taken out of the changeover`;
+  if (after.source === 'carried') return `${name}: not timed again yet`;
+  const parts: string[] = [];
+  if (before.side !== after.side) parts.push(after.side === 'external' ? 'external now — done while the line runs' : 'internal now — the line stopped for it');
+  const b = before.sec ?? 0, a = after.sec ?? 0;
+  if (a !== b) parts.push(`${mins(b)} → ${mins(a)}`);
+  return `${name}: ${parts.join(', ') || 'no change'}`;
 }
 
 /** The one line a fix (or a board action) carries on paper and in its
@@ -165,20 +224,24 @@ export function recordProvedLine(studies: ToolStudy[], t: { id: ID; kind?: strin
  *  on that date, who took them, and what it says now — one line for Today's
  *  update. Nothing when nothing was taken that day. */
 export function measuredOn(s: ToolStudy, date: string, dayOfMs: (ms: number) => string): { text: string; tone: Tone } | undefined {
-  const taken = s.tool === 'balance'
+  const taken: { at: number; who?: string }[] = s.tool === 'balance'
     ? (s.facts.steps ?? []).flatMap(st => (st.laps ?? []).filter(l => !l.foreign && !l.struck))
-    : (s.facts.readings ?? []).filter(r => !r.struck);
+    : s.tool === 'changeover'
+      ? (s.facts.sequence ?? []).filter(st => st.source === 'timed' && st.at !== undefined).map(st => ({ at: st.at as number, ...(st.who ? { who: st.who } : {}) }))
+      : (s.facts.readings ?? []).filter(r => !r.struck);
   const today = taken.filter(x => dayOfMs(x.at) === date);
   if (!today.length) return undefined;
   const who = [...new Set(today.map(x => x.who?.trim()).filter((w): w is string => !!w))];
-  const noun = s.tool === 'balance' ? (today.length === 1 ? 'lap timed' : 'laps timed') : (today.length === 1 ? 'reading taken' : 'readings taken');
+  const noun = s.tool === 'balance' ? (today.length === 1 ? 'lap timed' : 'laps timed') : s.tool === 'changeover' ? (today.length === 1 ? 'step timed' : 'steps timed') : (today.length === 1 ? 'reading taken' : 'readings taken');
   const line = studyLine(s);
   return { text: `${studyTitle(s)}: ${today.length} ${noun}${who.length ? ` by ${who.join(', ')}` : ''} — ${line.text}`, tone: line.tone };
 }
 
 /** The days a study measured on — Today's update steps to them. */
 export function measuredDays(s: ToolStudy, dayOfMs: (ms: number) => string): string[] {
-  const at = s.tool === 'balance' ? (s.facts.steps ?? []).flatMap(st => (st.laps ?? []).map(l => l.at)) : (s.facts.readings ?? []).map(r => r.at);
+  const at = s.tool === 'balance' ? (s.facts.steps ?? []).flatMap(st => (st.laps ?? []).map(l => l.at))
+    : s.tool === 'changeover' ? (s.facts.sequence ?? []).flatMap(st => (st.source === 'timed' && st.at !== undefined ? [st.at] : []))
+      : (s.facts.readings ?? []).map(r => r.at);
   return [...new Set(at.filter(Number.isFinite).map(dayOfMs))];
 }
 
@@ -222,6 +285,14 @@ export const ROLE_WORD: Record<string, string> = {
 /** What a countermeasure raised from a study should change — said before it
  *  is done, so "Did it work" has something to be held against. */
 export function betterExpect(s: ToolStudy, stepId?: string): string | undefined {
+  if (s.tool === 'changeover') {
+    const st = stepId ? (s.facts.sequence ?? []).find(x => x.id === stepId) : undefined;
+    if (!st) return undefined;
+    const name = st.name.trim() || 'The step';
+    return st.side === 'external'
+      ? `${name}: done while the line runs — the changeover timed again without it inside`
+      : `${name}: ${changeoverStepFigure(st)} — shorter, or made external, the changeover timed again`;
+  }
   if (s.tool === 'map') {
     const st = stepId ? (s.facts.flow ?? []).find(x => x.id === stepId) : undefined;
     return st ? `${st.name.trim() || 'The step'}: ${stepFigure(st, s.agreed?.map)} — shorter or gone, walked again on the same map` : undefined;
@@ -239,10 +310,11 @@ export function betterExpect(s: ToolStudy, stepId?: string): string | undefined 
 export function countermeasureFrom(s: ToolStudy, x: { id: string; at: number; lineId?: string; causeRef?: string; bone?: SixM; step?: string }): PaceTodoRow {
   const expect = betterExpect(s, x.step);
   const st = x.step ? (s.facts.flow ?? []).find(f => f.id === x.step) : undefined;
+  const co = s.tool === 'changeover' && x.step ? (s.facts.sequence ?? []).find(f => f.id === x.step) : undefined;
   return {
     id: x.id, ...(s.projectId ? { projectId: s.projectId } : {}), ...(x.lineId ? { lineId: x.lineId } : {}),
-    what: betterWords(s, x.step), where: st ? stepAt(st, s.agreed?.map) : '', why: studyTitle(s), who: '', when: '', state: 'todo',
-    pillar: x.bone ?? (st ? boneOfStep(st, s) : s.tool === 'balance' || s.tool === 'map' ? 'method' : 'machine'),
+    what: betterWords(s, x.step), where: st ? stepAt(st, s.agreed?.map) : co ? (s.machine ?? '') : '', why: studyTitle(s), who: '', when: '', state: 'todo',
+    pillar: x.bone ?? (st ? boneOfStep(st, s) : co ? boneOfChangeoverStep(co) : s.tool === 'balance' || s.tool === 'map' ? 'method' : 'machine'),
     ...(x.causeRef ? { causeRef: x.causeRef } : {}), ...(expect ? { expect } : {}),
     createdAt: x.at, updatedAt: x.at,
   };
@@ -264,6 +336,11 @@ export function boneOfStep(st: FlowStep, s: Pick<ToolStudy, 'agreed'>): SixM {
   return 'method';
 }
 
+/** Which bone a changeover's step sits on: external work still done with the
+ *  line stopped is the way the changeover is organised — Method; an internal
+ *  step is the machine's own set-up — Machine. A person can move it. */
+export const boneOfChangeoverStep = (st: Pick<ChangeoverStep, 'side'>): SixM => (st.side === 'external' ? 'method' : 'machine');
+
 /** "Prove it": the same tool on the same scope as the evidence — what it is
  *  of, the machine, the product, the limits and the count — so before and
  *  after measure the same thing the same way. Its readings start empty. */
@@ -277,11 +354,22 @@ export function proveItFrom(evidence: ToolStudy, fixId: ID, x: { at: number; by?
     ...(evidence.product ? { product: evidence.product } : {}),
     ...(evidence.standardId ? { standardId: evidence.standardId } : {}),
     ...(evidence.agreed ? { agreed: JSON.parse(JSON.stringify(evidence.agreed)) as ToolStudy['agreed'] } : {}),
-    facts: evidence.tool === 'balance' ? { steps: retime(evidence.facts.steps) } : evidence.tool === 'map' ? { flow: carryFlow(evidence.facts.flow) } : {},
+    facts: evidence.tool === 'balance' ? { steps: retime(evidence.facts.steps) } : evidence.tool === 'map' ? { flow: carryFlow(evidence.facts.flow) }
+      : evidence.tool === 'changeover' ? recarry(evidence.facts) : {},
     uses: [linkOf(kind, fixId, 'proof', x.at, x.by, x.useId)],
     startedAt: x.at, createdAt: x.at, updatedAt: x.at,
   };
 }
+
+/** A changeover timed again: the same steps, each carried until timed or
+ *  typed again; the products, the week and the day's minutes as they stand,
+ *  so the interval reads the same way on both sides. */
+const recarry = (f: ToolStudy['facts']): ToolStudy['facts'] => ({
+  sequence: carrySequence(f.sequence),
+  ...(f.fromProduct ? { fromProduct: f.fromProduct } : {}), ...(f.toProduct ? { toProduct: f.toProduct } : {}),
+  ...(f.perWeek ? { perWeek: f.perWeek } : {}), ...(f.availableMinPerDay ? { availableMinPerDay: f.availableMinPerDay } : {}),
+  ...(f.products?.length ? { products: f.products.map(p => ({ ...p })) } : {}),
+});
 
 /** A work balance timed again: the same elements, whose they are as they
  *  stand, no laps and no pace yet — a typed time stays only where it was
@@ -310,6 +398,9 @@ export function betterWords(s: ToolStudy, stepId?: string): string {
     const at = stepAt(st, s.agreed?.map);
     return `${st.name.trim() || 'A step'}${at ? ` (${at})` : ''} — ${stepFigure(st, s.agreed?.map)}`;
   }
+  /* a changeover's step: "Pre-stage the film reels — external, 11 min" */
+  const co = s.tool === 'changeover' && stepId ? (s.facts.sequence ?? []).find(x => x.id === stepId) : undefined;
+  if (co) return `${co.name.trim() || 'A step'} — ${changeoverStepFigure(co)}`;
   const said = studySays(s);
   if (s.tool === 'balance') {
     const f = balance(s.facts.steps, s.agreed?.balance), c = f.constraint;
@@ -321,8 +412,8 @@ export function betterWords(s: ToolStudy, stepId?: string): string {
 
 /** Is it worth making better? It failed, or it passes and would drift. */
 export function worthBetter(s: ToolStudy): boolean {
-  /* a value stream is made better a step at a time — from the step itself */
-  if (s.tool === 'map') return false;
+  /* a value stream and a changeover are made better a step at a time — from the step itself */
+  if (s.tool === 'map' || s.tool === 'changeover') return false;
   const said = studySays(s);
   if (s.tool === 'balance') return said.verdict === 'Over takt';
   return said.tone === 'r' || said.capability?.tone === 'a';

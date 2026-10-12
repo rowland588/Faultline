@@ -21,6 +21,7 @@ import { Sheet } from '../ui/Sheet';
 import { sample, sampleSays } from '../lib/ie/sample';
 import { studyHref } from '../lib/studyLinks';
 import { dur, flowFigures, share } from '../lib/ie/steps';
+import { changeoverFigures, changeoverSays, mins } from '../lib/ie/changeover';
 import type { StudyTool, ToolStudy } from '../lib/study';
 import type { Workspace } from '../types';
 
@@ -46,12 +47,28 @@ const MAP: ToolWords = {
   none: 'No value stream maps yet. Pick a line, start where its work starts, and add each thing done on it, in the lane of whoever does it, to the pallet leaving.',
   second: { label: 'Which product or family?', placeholder: 'e.g. Finest Red 2kg' },
 };
-export const TOOL_WORDS: Partial<Record<StudyTool, ToolWords>> = { capability: CAPABILITY, map: MAP };
+/* The changeover and its interval (tool 6): how long the line stops between
+   two products, how much of it could be done while it runs, how often each
+   product can run. */
+const CHANGEOVER: ToolWords = {
+  title: 'Changeover',
+  one: 'Changeover',
+  lede: 'From one product to the next, step by step — each timed on the phone as it happens and marked internal (the line stopped) or external (could be done while it runs): the minutes now, the minutes with the external work moved out, and how often each product can run. Use one on its own, or on a line and a job.',
+  add: 'New changeover',
+  placeholder: 'e.g. Finest Red 2kg',
+  none: 'No changeovers timed yet. Say which product the line runs and which it changes to, then Lap each step as it ends — on the phone at the line.',
+  second: { label: 'To which product?', placeholder: 'e.g. Express 1.25 kg' },
+};
+export const TOOL_WORDS: Partial<Record<StudyTool, ToolWords>> = { capability: CAPABILITY, map: MAP, changeover: CHANGEOVER };
 
 export { studyHref } from '../lib/studyLinks';
 
 /** What a study says in a line on a list: the verdict, from the module. */
 export function studyLine(s: ToolStudy): { text: string; tone: string } {
+  if (s.tool === 'changeover') {
+    const said = changeoverSays(changeoverFigures(s.facts.sequence, s.facts.perWeek));
+    return { text: said.verdict, tone: said.tone };
+  }
   if (s.tool === 'map') {
     const f = flowFigures(s.facts.flow, s.agreed?.map);
     return { text: f.steps ? `lead time ${f.untimed ? 'at least ' : ''}${dur(f.leadSec)} · ${share(f.pce ?? 0)} adds value` : 'no steps yet', tone: 'n' };
@@ -120,9 +137,11 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
               return (
                 <li key={s.id}>
                   <button type="button" className="lt-row" onClick={() => nav(studyHref(s))}>
-                    <b className="lt-what">{s.name || 'Not named'}{s.machine || s.product ? <span className="ie-li-m"> · {s.machine ?? s.product}</span> : null}</b>
+                    <b className="lt-what">{s.name || 'Not named'}{(s.machine || s.product) && s.tool !== 'changeover' ? <span className="ie-li-m"> · {s.machine ?? s.product}</span> : null}</b>
                     <span className={'lt-says ie-tone is-' + said.tone}>{said.text}</span>
-                    <span className="lt-where">{s.tool === 'map' ? `${steps} step${steps === 1 ? '' : 's'}${(s.facts.future ?? []).length ? ' · a future state' : ''}` : count ? `${n} of ${count}` : `${n} reading${n === 1 ? '' : 's'}`}{s.closedAt ? ' · closed' : ''}</span>
+                    <span className="lt-where">{s.tool === 'map' ? `${steps} step${steps === 1 ? '' : 's'}${(s.facts.future ?? []).length ? ' · a future state' : ''}`
+                      : s.tool === 'changeover' ? `${(s.facts.sequence ?? []).length} step${(s.facts.sequence ?? []).length === 1 ? '' : 's'}${changeoverFigures(s.facts.sequence).enough ? ` · ${mins(changeoverFigures(s.facts.sequence).nowSec)}` : ''}`
+                        : count ? `${n} of ${count}` : `${n} reading${n === 1 ? '' : 's'}`}{s.closedAt ? ' · closed' : ''}</span>
                   </button>
                 </li>
               );
@@ -152,12 +171,28 @@ function NewStudy({ open, tool, onClose }: { open: boolean; tool: StudyTool; onC
   useEffect(() => { if (open && tool === 'map') void listWorkspaces().then(setLines); }, [open, tool]);
   useEffect(() => { if (lineId) void listStandardsForLine(lineId).then(setStandards); else setStandards([]); }, [lineId]);
   const isLine = tool === 'map';
-  const ready = !!name.trim() && !busy && (!isLine || !!lineId);
+  /* A CHANGEOVER is from one product to the next: both are asked, the line
+     when it is known (its standards offer the products, and the interval
+     needs it — but a quick session on its own still times a changeover). */
+  const isChange = tool === 'changeover';
+  useEffect(() => { if (open && isChange) void listWorkspaces().then(setLines); }, [open, isChange]);
+  const ready = !!name.trim() && !busy && (!isLine || !!lineId) && (!isChange || !!machine.trim());
   const make = async () => {
     if (!ready) return;
     setBusy(true);
     try {
       const t = now();
+      if (isChange) {
+        const from = name.trim(), to = machine.trim();
+        const std = standards.find(x => !x.deletedAt && x.product.trim().toLowerCase() === to.toLowerCase());
+        const s: ToolStudy = { id: uid(), tool, name: `${from} → ${to}`, product: to,
+          ...(lineId ? { workspaceId: lineId } : {}), ...(std ? { standardId: std.id } : {}),
+          facts: { fromProduct: from, toProduct: to, sequence: [] }, uses: [], startedAt: t, createdAt: t, updatedAt: t };
+        await putStudy(s);
+        setName(''); setMachine(''); onClose();
+        nav(studyHref(s));
+        return;
+      }
       const second = machine.trim() ? (tool === 'map' ? { product: machine.trim() } : { machine: machine.trim() }) : {};
       /* A line's map sits on the line, and on its product's line standard when
          there is one — its people are the lanes. */
@@ -173,6 +208,14 @@ function NewStudy({ open, tool, onClose }: { open: boolean; tool: StudyTool; onC
   return (
     <Sheet open={open} onClose={onClose} title={w.add}>
       <form className="lt-new" onSubmit={e => { e.preventDefault(); void make(); }}>
+        {isChange && (
+          <label className="field"><span className="field-label">Which line? <i className="sub">optional — its products are offered, and the interval needs it</i></span>
+            <select className="text-input" value={lineId} aria-label="Which line" onChange={e => setLineId(e.target.value)}>
+              <option value="">No line yet — a quick session</option>
+              {lines.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </select>
+          </label>
+        )}
         {isLine && (
           <label className="field"><span className="field-label">Which line?</span>
             <select className="text-input" value={lineId} aria-label="Which line" onChange={e => setLineId(e.target.value)}>
@@ -182,13 +225,14 @@ function NewStudy({ open, tool, onClose }: { open: boolean; tool: StudyTool; onC
             <span className="sub">A lane for each person or department whose work touches the line — Op 1, Op 2, the machine, the team leader, planning, stores, quality, maintenance.</span>
           </label>
         )}
-        <label className="field"><span className="field-label">What is it of?</span>
-          <input className="text-input" value={name} maxLength={120} placeholder={w.placeholder} onChange={e => setName(e.target.value)} autoFocus />
+        <label className="field"><span className="field-label">{isChange ? 'From which product?' : 'What is it of?'}</span>
+          <input className="text-input" value={name} maxLength={120} placeholder={w.placeholder} list={isChange ? 'new-co-products' : undefined} onChange={e => setName(e.target.value)} autoFocus />
         </label>
-        <label className="field"><span className="field-label">{w.second.label} <i className="sub">optional</i></span>
-          <input className="text-input" value={machine} maxLength={80} placeholder={w.second.placeholder} list={isLine ? 'new-map-products' : undefined} onChange={e => setMachine(e.target.value)} />
-          {isLine && <datalist id="new-map-products">{standards.filter(x => !x.deletedAt).map(x => <option key={x.id} value={x.product} />)}</datalist>}
+        <label className="field"><span className="field-label">{w.second.label} {!isChange && <i className="sub">optional</i>}</span>
+          <input className="text-input" value={machine} maxLength={80} placeholder={w.second.placeholder} list={isLine ? 'new-map-products' : isChange ? 'new-co-products' : undefined} onChange={e => setMachine(e.target.value)} />
+          {(isLine || isChange) && <datalist id={isLine ? 'new-map-products' : 'new-co-products'}>{standards.filter(x => !x.deletedAt).map(x => <option key={x.id} value={x.product} />)}</datalist>}
           {isLine && standards.length > 0 && <span className="sub">A product with a line standard brings its people as the lanes.</span>}
+          {isChange && standards.length > 0 && <span className="sub">A product with a line standard is where Set as the standard writes the agreed sequence.</span>}
         </label>
         <button type="submit" className="btn btn-primary" disabled={!ready}>Start it</button>
       </form>

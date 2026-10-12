@@ -251,6 +251,14 @@ for (const size of SIZES) {
        where, the record raised from a step, and the lead time at the foot. */
     from = 'a value stream, step by step';
     for (const e of r.evidence) if (e.stream) { for (const x of e.stream.rows) add('client', x.what, x.who, x.where, x.branch ? `Being made better: ${x.branch}` : undefined); add('client', e.stream.total.lead); }
+    /* A changeover on paper (lib/report/changeoverTable): every step, its side,
+       its minutes and how it is known, the record raised from a step, the
+       totals, and the two bars and the interval in words. */
+    from = 'a changeover, step by step';
+    for (const e of r.evidence) if (e.changeover) {
+      for (const x of e.changeover.rows) add('client', x.name, x.side, x.minutes, x.how, x.branch ? `Being made better: ${x.branch}` : undefined);
+      add('client', e.changeover.total.minutes, ...e.changeover.lines);
+    }
     /* What is marked on a fix's photo (ui/Evidence), when that photo is the
        picture printed — not pinned on a walk frame. */
     from = 'a fix photo\'s marks'; for (const fx of r.fixes.open) if (!fx.pin) add('client', ...(fx.photoPins ?? []).map(p => p.note));
@@ -458,9 +466,12 @@ for (const size of SIXM_SIZES) {
          and what it says — and a value stream's steps as a table. */
       from = 'evidence';
       const { streamRows } = await import('/src/lib/ie/steps.ts');
+      const { changeoverSheet } = await import('/src/lib/ie/changeover.ts');
       for (const st of loaded.data.studies.filter(x => !x.deletedAt && (!lineId || (x.workspaceId && ws.has(x.workspaceId))))) {
         add(SL.studyTitle(st), SL.studyLine(st).text);
         if (st.tool === 'map') { const t = streamRows(st.facts.flow, st.agreed?.map); for (const x of t.rows) add(x.what, x.who, x.where); add(t.total.lead); }
+        /* a changeover's steps as a table, and its bars and interval in words */
+        if (st.tool === 'changeover' && (st.facts.sequence ?? []).length) { const c = changeoverSheet(st.facts); for (const x of c.rows) add(x.name, x.side, x.minutes, x.how); add(c.total.minutes, ...c.lines); }
       }
       return out;
     }, { pid: job.projectId, lineId });

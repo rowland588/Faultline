@@ -41,7 +41,7 @@ import { useJobStudies } from '../ui/StudyLinks';
 import { workOf } from '../ui/WorkBalance';
 import { lineStandardOf } from '../lib/fishbone';
 import { headcount } from '../lib/standard';
-import { currentBalance, currentMap, flowLine, studyHref } from '../lib/studyLinks';
+import { changeoverLine, currentBalance, currentChangeover, currentMap, flowLine, studyHref } from '../lib/studyLinks';
 import { gapOf, lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import { ProjectNumbers } from './NumbersPanel';
 import { DUE_SOON_DAYS, useActions } from '../lib/actions';
@@ -433,7 +433,7 @@ function LinePeople({ line, projectId }: { line: PaceLineRow; projectId: string 
  * is sitting in its pack. The whole card is the way in — the owner's pack is
  * where the work actually happens, so getting there should not need aiming at
  * a small link. */
-function LineCard({ line, pack, projectId, series, balance, work, flow }: {
+function LineCard({ line, pack, projectId, series, balance, work, flow, change }: {
   line: PaceLineRow; pack: LinePack; projectId: string;
   /** What the line's balance says, once its stations are in; absent until then. */
   balance?: string;
@@ -443,6 +443,10 @@ function LineCard({ line, pack, projectId, series, balance, work, flow }: {
   /** The line's value stream (lib/ie/steps) — its newest map on the job: the
    *  lead time and the share that adds value, a branch under the work. */
   flow?: { text: string; href: string };
+  /** The line's changeover (lib/ie/changeover) — its newest on the job: the
+   *  minutes, the external work still inside the stop (amber, the abnormal),
+   *  how often each product can run; a branch under the flow. */
+  change?: { text: string; tone: string; href: string };
   /** Where this line stands on the measure the project leads on — the first one
    *  its own list names. Absent on a project that has not named one yet, and the
    *  card then simply carries no number rather than a dash meaning nothing. */
@@ -497,6 +501,13 @@ function LineCard({ line, pack, projectId, series, balance, work, flow }: {
         <button className="lc-bal is-set lc-work" onClick={() => nav(flow.href)}>
           <span className="lc-bal-k">The flow</span>
           <span className="lc-bal-t">{flow.text}</span>
+          <span className="lc-bal-go" aria-hidden>›</span>
+        </button>
+      )}
+      {change && (
+        <button className="lc-bal is-set lc-work lc-co" onClick={() => nav(change.href)}>
+          <span className="lc-bal-k">The changeover</span>
+          <span className={'lc-bal-t' + (change.tone === 'a' ? ' is-a' : '')}>{change.text}</span>
           <span className="lc-bal-go" aria-hidden>›</span>
         </button>
       )}
@@ -718,6 +729,12 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
     return std && study && w ? { text: `${std.product}: ${w.short}`, over: w.people.some(p => p.over), href: studyHref(study) } : undefined;
   };
   /* Each line's value stream: its newest map on this job. */
+  /* Each line's changeover: its newest on this job. */
+  const changeOn = (l: PaceLineRow) => {
+    const c = l.workspaceId ? currentChangeover(studies, { workspaceId: l.workspaceId }) : undefined;
+    const said = c ? changeoverLine(c) : undefined;
+    return c && said ? { text: said.text, tone: said.tone, href: studyHref(c) } : undefined;
+  };
   const flowOn = (l: PaceLineRow) => {
     const m = l.workspaceId ? currentMap(studies, l.workspaceId) : undefined;
     const text = m ? flowLine(m) : undefined;
@@ -895,7 +912,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
               <div className="lc-grid">
                 {ppm.lines.map(l => (
                   <LineCard key={l.id} line={l} pack={packs.get(l.id) ?? emptyPack} projectId={projectId}
-              series={standing.get(l.id)} balance={limited.find(x => x.line.id === l.id)?.says} work={workOn(l)} flow={flowOn(l)} />
+              series={standing.get(l.id)} balance={limited.find(x => x.line.id === l.id)?.says} work={workOn(l)} flow={flowOn(l)} change={changeOn(l)} />
                 ))}
               </div>
               {can.edit && (

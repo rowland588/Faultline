@@ -57,7 +57,7 @@ if (bootErrors.length) console.log('errors during boot/seed:', bootErrors);
 
 const ROUTES = [
   ['home', '#/'], ['guide', '#/guide'], ['portfolio', '#/portfolio'],
-  ['projects', '#/projects'], ['snags', '#/snags'], ['line standard tool', '#/standards'], ['line balance tool', '#/balances'], ['capability studies', '#/capability'], ['value stream maps', '#/value-stream'], ['pace report', '#/pace-report'],
+  ['projects', '#/projects'], ['snags', '#/snags'], ['line standard tool', '#/standards'], ['line balance tool', '#/balances'], ['capability studies', '#/capability'], ['value stream maps', '#/value-stream'], ['changeovers', '#/changeover'], ['pace report', '#/pace-report'],
   ['project dashboard', `#/project/${seeded.projectId}`],
   ['project setup', `#/project/${seeded.projectId}/setup`],
   ['lever tree', `#/project/${seeded.treeProjectId}/tree`],
@@ -87,6 +87,12 @@ const ROUTES = [
   ['the line walked again — a map proving a fix raised from one of its steps', `#/value-stream/${seeded.mapProofId}`],
   ['fixes — a fix raised from a value stream step, before → after', `#/project/${seeded.projectId}/fixes?open=${seeded.mapFixId}`],
   ['the line balance — people, the work timed against takt', `#/w/${seeded.wsId}/standards/${seeded.lineStandardId}?at=balance&view=work`],
+  /* THE CHANGEOVER (tool 6): Maris Piper to Express on Line 7 — eight steps,
+     three external, the interval — and the product's standard it is into,
+     where the agreed changeover and the branch to the study show. */
+  ['a changeover — eight steps, three external, the interval', `#/changeover/${seeded.changeoverId}`],
+  ['the 6M job\'s changeover on Line 7', `#/changeover/${seeded.pacedChangeoverId}`],
+  ['line standard on a line — the product a changeover is into', `#/w/${seeded.wsId}/standards/${seeded.lineOnJobId}`],
   ['line standard — none yet', `#/project/${seeded.pacedProjectId}/standard`],
   ['one install step', `#/project/${seeded.projectId}/testing/${seeded.stepId}`],
   /* The record's page is the card now; an old /card link must land on it. */

@@ -30,6 +30,7 @@ import type { Measure, Period, Reading, Target } from '../lib/measures';
 import { quarters } from '../lib/measures';
 import type { Material } from '../lib/materials';
 import type { Program } from '../lib/programs';
+import type { ChangeoverProduct, ChangeoverSide, ChangeoverStep } from '../lib/study';
 
 const uid = () => crypto.randomUUID();
 
@@ -98,6 +99,12 @@ export interface Seeded {
   /** That fix, and the line walked again as its proof (B3). */
   mapFixId: string;
   mapProofId: string;
+  /** A CHANGEOVER on Line 7 (tool 6): Maris Piper 2kg to Tesco Express
+   *  1.25 kg, eight steps timed, three of them external, on the job — and
+   *  the products the interval needs. */
+  changeoverId: string;
+  /** The same changeover on the 6M job's Line 7, for its fishbone to offer. */
+  pacedChangeoverId: string;
 }
 
 export async function seedForSmokeTest(): Promise<Seeded> {
@@ -635,6 +642,17 @@ export async function seedForSmokeTest(): Promise<Seeded> {
         { id: uid(), order: 4, name: 'Pallet to despatch', who: ['Forklift driver'], where: 'Despatch', kind: 'move', value: 'needed', cycleSec: 180, batch: 720, source: 'timed' },
       ] }, uses: [], startedAt: t - 5 * 3_600_000, createdAt: t, updatedAt: t });
   }
+  /* LINE 7'S CHANGEOVER on this job (tool 6): the old case's fishbone offers
+     its longest internal step on Machine and the external work still done
+     with the line stopped on Method; the line's card says its minutes. */
+  const pacedChangeoverId = uid();
+  await putStudy({ id: pacedChangeoverId, tool: 'changeover', name: 'Finest Red 2kg → Express 1.25 kg', product: 'Express 1.25 kg', projectId: paced.id, workspaceId: line7Ws.id,
+    facts: { fromProduct: 'Finest Red 2kg', toProduct: 'Express 1.25 kg', perWeek: 6, sequence: [
+      ['Stop and clear the former', 4, 'internal'], ['Fetch the next former from the store', 5, 'external'], ['Change the former tube', 10, 'internal'],
+      ['Pre-stage the film reels', 7, 'external'], ['Change the film reel', 6, 'internal'], ['Set the jaw temperature', 3, 'internal'],
+      ['Print the new labels', 3, 'external'], ['First bags and check the seal', 4, 'internal'],
+    ].map(([name, min, side], i) => ({ id: uid(), order: i, name: name as string, sec: (min as number) * 60, side: side as ChangeoverSide, source: 'timed' as const, at: t - 4 * 3_600_000 + i * 300_000, who: 'Rob Scott' })) },
+    uses: [], startedAt: t - 4 * 3_600_000, createdAt: t, updatedAt: t });
   for (const a of [
     act('Replace the basket guide rail', { lineId: pacedLine.id, pillar: 'machine', who: 'Engineering', due: iso(4), state: 'waiting',
       causeRef: `${misfeeds.id}:rail`, expect: 'Basketer minor stops 3.4 → 1.5 h a week' }),
@@ -761,7 +779,34 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   const lineOnly = uid(), lineOnJob = uid();
   await putStandard({ id: lineOnly, projectId: '', workspaceId: ws.id, product: 'Maris Piper 2kg', photoKey: asset.stillKey,
     marks: [{ id: uid(), kind: 'person', x: 30, y: 45, label: 'Op 1', task: 'Feed the bagger' }], capacity: lineBalance, sort: 2, createdAt: t, updatedAt: t });
-  await putStandard({ id: lineOnJob, projectId: proj.id, workspaceId: ws.id, product: 'Tesco Express 1.25 kg', marks: [], sort: 3, createdAt: t, updatedAt: t });
+  /* The Express standard carries a rate and the planned hours — what the
+     changeover's interval reads for its run time and the minutes a day. */
+  await putStandard({ id: lineOnJob, projectId: proj.id, workspaceId: ws.id, product: 'Tesco Express 1.25 kg', marks: [],
+    capacity: { targetPerMin: 50, plannedHoursPerWeek: 37.5, stations: [] }, sort: 3, createdAt: t, updatedAt: t });
+
+  /* A CHANGEOVER (lib/ie/changeover, tool 6): Maris Piper 2kg to Tesco
+     Express 1.25 kg on Line 7, on the commissioning job — eight steps timed
+     on the phone, 42 min, three of them external (15 min); six changeovers a
+     week; the five products the line runs with their run times, 300 min of
+     a 450-minute day — the toolkit's worked example: every product every
+     1.4 days, 0.9 with the external work out. */
+  const changeoverId = uid();
+  const coSteps = (at: number): ChangeoverStep[] => [
+    ['Stop and clear the former', 4, 'internal'], ['Fetch the next former from the store', 5, 'external'], ['Change the former tube', 10, 'internal'],
+    ['Pre-stage the film reels', 7, 'external'], ['Change the film reel', 6, 'internal'], ['Set the jaw temperature', 3, 'internal'],
+    ['Print the new labels', 3, 'external'], ['First bags and check the seal', 4, 'internal'],
+  ].map(([name, min, side], i) => ({ id: uid(), order: i, name: name as string, sec: (min as number) * 60, side: side as ChangeoverSide, source: 'timed' as const, at: at + i * 5 * 60_000, who: 'K. Ahmed' }));
+  const coProducts = (): ChangeoverProduct[] => [
+    { id: uid(), product: 'Maris Piper 2kg', standardId: lineOnly, demandPerDay: 7200, ratePerMin: 60 },
+    { id: uid(), product: 'Tesco Express 1.25 kg', standardId: lineOnJob, demandPerDay: 3000, ratePerMin: 50 },
+    { id: uid(), product: 'Finest Red 2kg', runMinPerDay: 50 },
+    { id: uid(), product: 'King Edward 2.5kg', runMinPerDay: 40 },
+    { id: uid(), product: 'Baby potatoes 1kg', runMinPerDay: 30 },
+  ];
+  await putStudy({ id: changeoverId, tool: 'changeover', name: 'Maris Piper 2kg → Tesco Express 1.25 kg', product: 'Tesco Express 1.25 kg',
+    workspaceId: ws.id, standardId: lineOnJob, projectId: proj.id,
+    facts: { fromProduct: 'Maris Piper 2kg', toProduct: 'Tesco Express 1.25 kg', sequence: coSteps(t - 2 * 3_600_000), perWeek: 6, products: coProducts(), availableMinPerDay: 450 },
+    uses: [], startedAt: t - 2 * 3_600_000, createdAt: t, updatedAt: t });
 
   /* A WORK BALANCE on the line's Maris Piper map (ui/WorkBalance): three
      people at a 12 s takt — Op 1 timed and over takt, Op 2 timed, Op 3 typed. */
@@ -866,6 +911,6 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     pacedProjectId: paced.id, pacedLineId: pacedLine.id, treeProjectId: tree.id,
     measures: 2, readings: rows.length, materials: 7, programs: 7,
     problemId: misfeeds.id, closedProblemId: gap.id,
-    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId,
+    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId, changeoverId, pacedChangeoverId,
   };
 }

@@ -35,6 +35,7 @@
  *     or as "this many every this many seconds" — and the pace to type is the
  *     one they can sustain, not their best lap. */
 import type { Observation } from '../types';
+import type { StandardChangeover } from './study';
 
 export type StationKind = 'machine' | 'people';
 export type RatePer = 'sec' | 'min' | 'hour';
@@ -83,6 +84,12 @@ export interface Capacity {
    *  compared with it in a sentence. It lives here on the line, with the
    *  stations it was copied from; nothing new is stored anywhere else. */
   whatIfs?: WhatIf[];
+  /** THE AGREED CHANGEOVERS into this product, one per product it is changed
+   *  from — written by a changeover study's Set as the standard (lib/ie/
+   *  changeover). Kept here, inside the standard's one jsonb, so no column is
+   *  added; the mapper passes `capacity` whole. Only a product's line standard
+   *  carries them — a 6M line's balance never does. */
+  changeovers?: StandardChangeover[];
 }
 
 export interface WhatIf {

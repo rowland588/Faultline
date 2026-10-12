@@ -14,7 +14,9 @@
  * a snag. Attaching it to a job later is on its own page (StandardScreen
  * BelongsTo), and an attached one shows in that job's line standard too. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { createWorkspace, listAllStandards, listWorkspaces, onDataChange, putStandard } from '../db';
+import { createWorkspace, listAllStandards, listAllStudies, listWorkspaces, onDataChange, putStandard } from '../db';
+import type { ToolStudy } from '../lib/study';
+import { changeoverLine, currentChangeover, studyHref } from '../lib/studyLinks';
 import { useProjects } from '../lib/useProjects';
 import { headcount, thingsOf, type Standard } from '../lib/standard';
 import { analyse, shortSays } from '../lib/capacity';
@@ -70,10 +72,12 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
   const [lines, setLines] = useState<Workspace[]>([]);
   const [lineF, setLineF] = useState('all');
   const [adding, setAdding] = useState(false);
+  /* The line's changeovers (tool 6): its newest is said under the line, beside its maps and balances. */
+  const [studies, setStudies] = useState<ToolStudy[]>([]);
 
   const load = useCallback(async () => {
-    const [all, ws] = await Promise.all([listAllStandards(), listWorkspaces()]);
-    setList(all); setLines(ws);
+    const [all, ws, ss] = await Promise.all([listAllStandards(), listWorkspaces(), listAllStudies()]);
+    setList(all); setLines(ws); setStudies(ss);
   }, []);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
 
@@ -123,6 +127,19 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
             <h2>{groupName(k)}</h2>
             <span className="sub">{rows.length} product{rows.length === 1 ? '' : 's'}</span>
           </div>
+          {(() => {
+            /* THE LINE'S CHANGEOVER — its newest, in one line, one tap to it:
+               the minutes, the external work inside, how often each product runs. */
+            const co = k.startsWith('ws:') ? currentChangeover(studies, { workspaceId: k.slice(3) }) : undefined;
+            const said = co ? changeoverLine(co) : undefined;
+            return co ? (
+              <button type="button" className="lt-co" onClick={() => nav(studyHref(co))}>
+                <span className="lt-co-k">Changeover</span>
+                <span className={'lt-co-t' + (said?.tone === 'a' ? ' is-a' : '')}>{said?.text ?? `${co.name}: not timed yet`}</span>
+                <span className="lt-co-go" aria-hidden>›</span>
+              </button>
+            ) : null;
+          })()}
           <ul className="lt-rows">
             {rows.map(s => {
               const said = tool === 'balance' ? balanceSays(s) : { text: mapSays(s), short: false };
