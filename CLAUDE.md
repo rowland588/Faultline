@@ -60,7 +60,17 @@ So the changeover tool is SMED on screen and paper (stored as `changeover`),
 worked through Shingo's stages — record (last good piece to first good piece,
 the run-up and the adjustments included), separate internal from external,
 convert internal to external, streamline what is left, standardise — against
-single-digit minutes. The days a line runs are asked, never assumed.
+single-digit minutes. The days a line runs are asked, never assumed. And,
+the same day: "you want to be able to extrapolate it ... the amount of hours
+as well of running time, because we could have different shifts ... X many
+changeovers on one shift, then per shift, and then you're able to
+extrapolate the full quantity of what the changeovers are actually costing
+you" — so the running pattern (shifts, hours, days) and the changeovers a
+shift are asked, and the cost is said per shift, day, week and year, in
+minutes, packs and pounds, with what each stage buys back. "Take
+inspiration from the value stream mapping ... that sort of grid style" —
+so SMED is a grid like the map's: elements across, a lane per person, I · E
+by fill and letter (never a new hue), parallel work in one column.
 
 `docs/OPEX.md` is the knowledge base behind the running-line method — what
 Lean/TPS, industrial engineering, Theory of Constraints, TPM, WCM, Six Sigma
