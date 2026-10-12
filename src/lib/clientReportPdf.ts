@@ -12,6 +12,7 @@ import { chooseDensity, pour, type Block, type Density, type Frame } from './rep
 import { SIZE, box, font, gap, heading, label, pagesOf, rows, space, text, wrap } from './report/blocks';
 import { streamBlocks } from './report/streamTable';
 import { changeoverBlocks } from './report/changeoverTable';
+import { lossBlocks } from './report/lossTable';
 import { byStage, gantt, withMachines, withNext, type GanttBy } from './gantt';
 import { drawGantt } from './ganttPdf';
 import { programsBlocks } from './programsReportPdf';
@@ -639,11 +640,13 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
     r.evidence.forEach((e, i, all) => {
       out.push(text({ text: e.title, size: 9.5, style: 'bold', before: i ? 4 : 0, after: 1 }));
       out.push(text({ text: `Used for: ${e.used}`, size: 8, colour: MUTED, after: 1 }));
-      out.push(text({ text: e.line, size: 9, colour: e.tone === 'r' ? DANGER : INK2, after: e.stream || e.changeover ? 4 : i === all.length - 1 ? gap(d, 's') : 2 }));
+      out.push(text({ text: e.line, size: 9, colour: e.tone === 'r' ? DANGER : INK2, after: e.stream || e.changeover || e.losses ? 4 : i === all.length - 1 ? gap(d, 's') : 2 }));
       /* a value stream: the grid on paper, step by step */
       if (e.stream) out.push(...streamBlocks(e.stream.rows, e.stream.total));
       /* a changeover: its steps, internal or external, and the two bars and the interval in words */
       if (e.changeover) out.push(...changeoverBlocks(e.changeover, e.line));
+      /* a shift's losses: the waterfall on paper, cause by cause */
+      if (e.losses) out.push(...lossBlocks(e.losses));
     });
   }
 

@@ -51,6 +51,14 @@ Running projects on a factory floor, three ways. Rowland, 30 September:
   now fully using the app." Stored as the `board` model; the problem is a `case`.
 - **Lever tree** — one outcome worked down to what has to be true for it.
 
+**The line balance is LINE CAPACITY.** Rowland, 12 October: "the line
+balancing is actually a capacity model ... I worded it as line balance";
+the name asked and chosen: *Line capacity* — stations in flow order,
+machines and people, each in its own unit converted down the line, the
+bottleneck once stops count, and the V-curve, laid out as a grid like the
+value stream map (`docs/BUILD.md`, Line capacity). The people's work against
+takt is its People view; the line standard is where people are put in places.
+
 **SMED is a tool, not a method and not a Pareto.** Rowland, 12 October: "For
 changeovers, you should be making the lean tool SMED ... and doing everything
 along them principles. As for, don't assume 5 days, could be 7 days. And
@@ -60,7 +68,17 @@ So the changeover tool is SMED on screen and paper (stored as `changeover`),
 worked through Shingo's stages — record (last good piece to first good piece,
 the run-up and the adjustments included), separate internal from external,
 convert internal to external, streamline what is left, standardise — against
-single-digit minutes. The days a line runs are asked, never assumed.
+single-digit minutes. The days a line runs are asked, never assumed. And,
+the same day: "you want to be able to extrapolate it ... the amount of hours
+as well of running time, because we could have different shifts ... X many
+changeovers on one shift, then per shift, and then you're able to
+extrapolate the full quantity of what the changeovers are actually costing
+you" — so the running pattern (shifts, hours, days) and the changeovers a
+shift are asked, and the cost is said per shift, day, week and year, in
+minutes, packs and pounds, with what each stage buys back. "Take
+inspiration from the value stream mapping ... that sort of grid style" —
+so SMED is a grid like the map's: elements across, a lane per person, I · E
+by fill and letter (never a new hue), parallel work in one column.
 
 `docs/OPEX.md` is the knowledge base behind the running-line method — what
 Lean/TPS, industrial engineering, Theory of Constraints, TPM, WCM, Six Sigma
@@ -82,7 +100,13 @@ tool, on its own, on a line, on a job, evidence for a problem or proof for a
 fix; work moves, evidence links), the five layers every tool follows (facts →
 figures → reading → verdict → act), the honesty rules (enough? how known?
 what it does not claim), the records, the sixteen shared parts, and each tool
-in full. `docs/BUILD.md` is how that next stage is built and proved: separated
+in full. `docs/CAPACITY.md` is the knowledge behind Line capacity, the loss
+count and SMED — plate speed ("we go by plate speed ... unless human"),
+capacity's three numbers, the bottleneck worked out and walked, the V-curve
+and accumulation, a shift's time model (planned production time, the six
+big losses, slow running and short stops as the rest), what a loss costs at
+and away from the bottleneck, the mix, and EN 415-11 — read it before
+changing any of them. `docs/BUILD.md` is how that next stage is built and proved: separated
 pieces (database before sync, sync before screens, arithmetic before
 pictures, a tool alone before its links, links before paper), the
 ten-point checklist every piece passes before it reaches `main`, and an
@@ -152,6 +176,7 @@ node scripts/acceptance/sixm-evidence.mjs  # 2h: a study on a running line — a
 node scripts/acceptance/value-stream.mjs  # B: a line's value stream — who and where, walked, a step made better, walked again, before → after, the paper, the fishbone
 node scripts/acceptance/changeover.mjs  # F: a changeover lapped on the phone, internal or external, the split bar, the interval, a step made better, set as the standard, timed again, before → after, the paper, the fishbone
 node scripts/acceptance/work-sampling.mjs  # H1: what people are doing at random moments — the moment asks, one tap each, the shares with their margins, the fix
+node scripts/acceptance/shift-losses.mjs  # E: a shift's losses — counted on the phone, the waterfall, a bar made better, the next shift counted, before → after, the fishbone, both papers
 node scripts/sync-two-devices.mjs     # a phone and a laptop against a fake cloud — video on one plays on the other
 node scripts/check-live-schema.mjs    # the LIVE database against the mapper — needs .env
 ```
@@ -193,7 +218,13 @@ after on it, the steps as a table on the client report, and the 6M line's
 card and fishbone offering the changeover. `work-sampling.mjs` is H1: a study set
 up on its line with its standard's people, the moment due asking, one tap
 per person stamped with the moment's time, a mistap struck, the shares with
-their margins as the module says, and Make it better carrying the figure.
+their margins as the module says, and Make it better carrying the figure. `shift-losses.mjs` is E: a shift's losses
+by hand — a count made on the phone from the line's board beside the Pareto,
+the sentence and the waterfall as `lib/ie/losses` says them from the count
+and the stops in its window, a countermeasure raised from a bar in its own
+figures, the next shift counted as its proof, before → after on it, the
+line's card, the control room and the fishbone carrying the count, and the
+waterfall as a table on the 6M report and the stage-gate client report.
 
 `scripts/sync-two-devices.mjs` runs two real devices of the app (a phone and a
 laptop, separate storage) against `scripts/fake-cloud.mjs`, which keeps the

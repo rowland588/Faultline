@@ -19,7 +19,8 @@ import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
 import { now, uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
-import { linkedTo, studyLine, studySays, owedOf, beforeAfter, proveItFrom, readingsFor, studyHref, studyTitle, type FixKind } from '../lib/studyLinks';
+import { linkedTo, studyLine, studySays, owedOf, beforeAfter, proveItFrom, readingsFor, studyHref, studyTitle, type FixKind, type StudyContext } from '../lib/studyLinks';
+import { useStudyContext } from './ShiftLosses';
 import type { Test } from '../lib/testing';
 import type { ToolStudy } from '../lib/study';
 import type { Can } from '../lib/access';
@@ -34,8 +35,8 @@ export function useJobStudies(projectId: string): ToolStudy[] {
   return list;
 }
 
-function StudyRow({ s }: { s: ToolStudy }) {
-  const line = studyLine(s), owed = owedOf(s);
+function StudyRow({ s, ctx }: { s: ToolStudy; ctx?: StudyContext }) {
+  const line = studyLine(s, ctx), owed = owedOf(s);
   return (
     <button type="button" className="sl-row" onClick={() => nav(href(s))}>
       <b>{studyTitle(s)}</b>
@@ -50,6 +51,7 @@ export function StudyLinks({ t, machine, can, onVerdict }: {
   onVerdict: (o: 'passed' | 'failed') => void;
 }) {
   const studies = useJobStudies(t.projectId);
+  const ctx = useStudyContext(studies);
   const { session } = useSession();
   const me = displayName(session?.user.email) || undefined;
   const kind = t.kind ?? 'test';
@@ -58,13 +60,13 @@ export function StudyLinks({ t, machine, can, onVerdict }: {
   if (kind === 'test') {
     const proofs = linkedTo(studies, 'test', t.id, 'proof');
     if (!proofs.length && !can.edit) return null;
-    const said = proofs[0] ? studySays(proofs[0]) : undefined;
+    const said = proofs[0] ? studySays(proofs[0], ctx) : undefined;
     const verdict = proofs[0]?.overrule?.verdict ?? said?.verdict;
     const as: 'passed' | 'failed' | undefined = verdict === 'Passed' ? 'passed' : verdict === 'Didn’t pass' ? 'failed' : undefined;
     return (
       <div className="rd-blk sl">
         <small>Proved by</small>
-        {proofs.map(s => <StudyRow key={s.id} s={s} />)}
+        {proofs.map(s => <StudyRow key={s.id} s={s} ctx={ctx} />)}
         <div className="rd-acts">
           {can.edit && !proofs.length && (
             <button type="button" className="btn" onClick={() => void start(readingsFor(t, machine, { at: now(), by: me, id: uid(), useId: uid() }))}>Take the readings</button>
@@ -86,23 +88,24 @@ export function StudyLinks({ t, machine, can, onVerdict }: {
  *  Prove it (the same study, after). Nothing when it has none. */
 export function FixStudies({ projectId, kind, id, can }: { projectId: string; kind: FixKind; id: string; can: Can }) {
   const studies = useJobStudies(projectId);
+  const ctx = useStudyContext(studies);
   const { session } = useSession();
   const me = displayName(session?.user.email) || undefined;
   const evidence = linkedTo(studies, kind, id, 'evidence');
   const proofs = linkedTo(studies, kind, id, 'proof');
   if (!evidence.length && !proofs.length) return null;
-  const ba = beforeAfter(studies, id, kind);
+  const ba = beforeAfter(studies, id, kind, ctx);
   const start = async (s: ToolStudy) => { await putStudy(s); nav(href(s)); };
   return (
     <div className="rd-blk sl">
       {evidence.length > 0 && <small>How we know</small>}
-      {evidence.map(s => <StudyRow key={s.id} s={s} />)}
+      {evidence.map(s => <StudyRow key={s.id} s={s} ctx={ctx} />)}
       {proofs.length > 0 && <small>Proved by</small>}
-      {proofs.map(s => <StudyRow key={s.id} s={s} />)}
+      {proofs.map(s => <StudyRow key={s.id} s={s} ctx={ctx} />)}
       {ba && <p className={'sl-ba is-' + ba.tone}><b>Before → after:</b> {ba.text}</p>}
       {can.edit && evidence[0] && !proofs.length && (
         <div className="rd-acts">
-          <button type="button" className="btn btn-primary" onClick={() => void start(proveItFrom(evidence[0], id, { at: now(), by: me, id: uid(), useId: uid() }, kind))}>{evidence[0].tool === 'map' ? 'Prove it — walk the line again' : evidence[0].tool === 'changeover' ? 'Prove it — time the changeover again' : 'Prove it — the same study, after'}</button>
+          <button type="button" className="btn btn-primary" onClick={() => void start(proveItFrom(evidence[0], id, { at: now(), by: me, id: uid(), useId: uid() }, kind))}>{evidence[0].tool === 'map' ? 'Prove it — walk the line again' : evidence[0].tool === 'changeover' ? 'Prove it — time the changeover again' : evidence[0].tool === 'losses' ? 'Prove it — count the next shift' : 'Prove it — the same study, after'}</button>
         </div>
       )}
     </div>
@@ -111,12 +114,14 @@ export function FixStudies({ projectId, kind, id, can }: { projectId: string; ki
 
 /** A CAUSE'S STUDIES on a running line's fishbone — how we know it. */
 export function CauseStudies({ projectId, causeRef }: { projectId: string; causeRef: string }) {
-  const studies = linkedTo(useJobStudies(projectId), 'cause', causeRef, 'evidence');
+  const all = useJobStudies(projectId);
+  const ctx = useStudyContext(all);
+  const studies = linkedTo(all, 'cause', causeRef, 'evidence');
   if (!studies.length) return null;
   return (
     <div className="sl sl-cause">
       <small>How we know</small>
-      {studies.map(s => <StudyRow key={s.id} s={s} />)}
+      {studies.map(s => <StudyRow key={s.id} s={s} ctx={ctx} />)}
     </div>
   );
 }

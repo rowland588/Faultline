@@ -87,6 +87,16 @@ const ROUTES = [
   ['the line walked again — a map proving a fix raised from one of its steps', `#/value-stream/${seeded.mapProofId}`],
   ['work sampling — two people watched through the shift, a moment due now', `#/sampling/${seeded.samplingId}`],
   ['fixes — a fix raised from a value stream step, before → after', `#/project/${seeded.projectId}/fixes?open=${seeded.mapFixId}`],
+  /* A SHIFT'S LOSSES (tool 7): every loss count; Shift 1 on Line 7 — the
+     worked example, 9 min not yet explained, the stops read from its window;
+     the next shift counted as a countermeasure's proof; the countermeasure
+     on the board with before → after; and a count in a window typed by hand
+     on the stage-gate job. */
+  ['loss counts', '#/losses'],
+  ['a loss count — Shift 1 on Line 7, the stops in its window', `#/losses/${seeded.lossId}`],
+  ['the next shift counted — proving a countermeasure', `#/losses/${seeded.lossProofId}`],
+  ['6M board — a countermeasure from a loss count, before → after', `#/project/${seeded.pacedProjectId}/board?a=${seeded.lossActionId}`],
+  ['a loss count in a typed window — on the stage-gate job', `#/losses/${seeded.lossStageId}`],
   ['the line balance — people, the work timed against takt', `#/w/${seeded.wsId}/standards/${seeded.lineStandardId}?at=balance&view=work`],
   /* THE CHANGEOVER (tool 6): Maris Piper to Express on Line 7 — eight steps,
      three external, the interval — and the product's standard it is into,

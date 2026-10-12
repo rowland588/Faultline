@@ -110,7 +110,7 @@ export function hereOf(route: Route): string {
     case 'home': return 'home';
     case 'quickSnags': return 'quicksnags';
     case 'lineTools': return route.view === 'balance' ? 'linebalance' : 'linestandard';
-    case 'studies': case 'study': return route.view === 'map' ? 'valuestream' : route.view === 'changeover' ? 'changeover' : route.view === 'sampling' ? 'sampling' : 'capability';
+    case 'studies': case 'study': return route.view === 'map' ? 'valuestream' : route.view === 'changeover' ? 'changeover' : route.view === 'sampling' ? 'sampling' : route.view === 'losses' ? 'losses' : 'capability';
     case 'projectDashboard': {
       const v = route.query.get('view');
       /* `next` is the board as a list; `snags` on a stage-gate job is sent to
@@ -182,6 +182,8 @@ export const toolPlaces = (here: string): RailLine[] => [
   { key: 'changeover', label: 'Changeover', to: '/changeover', on: here === 'changeover', state: 'n', bare: true, icon: 'time' },
   /* Work sampling — what people are doing at random moments of a shift, one tap per person, every share with its margin (tool 9). */
   { key: 'sampling', label: 'Work sampling', to: '/sampling', on: here === 'sampling', state: 'n', bare: true, icon: 'people' },
+  /* A shift's losses by hand — two counts at the end of the shift and the stops already timed; the waterfall, in minutes and pounds (tool 7). */
+  { key: 'losses', label: 'Loss count', to: '/losses', on: here === 'losses', state: 'n', bare: true, icon: 'time' },
 ];
 
 /** THE TOOLS AS ONE GROUP, at the foot of every rail, under paper and

@@ -45,6 +45,7 @@ import { planModel } from '../lib/planModel';
 import { gapOf, lineSeries } from '../lib/measures';
 import { loadProblems, viewsOf } from '../lib/useProblems';
 import { fishboneUrl } from '../screens/FishboneScreen';
+import { currentLosses, lossCardLine, studyHref } from '../lib/studyLinks';
 import { offerUndo } from './Undo';
 import {
   clusterMarks, kindWord, lateWhen, NOBODY, owedBy, portfolio, SITE, type JobInput, type JobItem, type JobView, type PacedInput, type Portfolio,
@@ -182,6 +183,7 @@ function useJobs(projects: Project[]): Jobs | null {
            and each line against its target in the report's own sentence. */
         let problems: SixMProblem[] | undefined;
         let gaps: PacedInput['gaps'];
+        let losses: PacedInput['losses'];
         if (planModel(project) === 'board') {
           const day = todayISO();
           const loaded = await loadProblems(project.id).catch(() => null);
@@ -194,9 +196,16 @@ function useJobs(projects: Project[]): Jobs | null {
           gaps = (project.measures ?? []).length
             ? lines.map((l, i) => ({ lineId: l.id, line: l.name, ...gapOf(l.name, series[i]) }))
             : [];
+          /* each line's latest shift counted (tool 7), read from the same
+             stops and cost model its fishbone reads */
+          losses = loaded ? lines.flatMap(l => {
+            const cur = l.workspaceId ? currentLosses(loaded.data.studies, l.workspaceId) : undefined;
+            const said = cur ? lossCardLine(cur, { observations: loaded.data.observations, workspaces: loaded.data.workspaces }) : undefined;
+            return cur && said ? [{ lineId: l.id, line: l.name, ...said, href: studyHref(cur) }] : [];
+          }) : [];
         }
         return {
-          project, steps, lines, notes: items.filter(i => i.kind === 'note'), tree, problems, gaps, materials, programs,
+          project, steps, lines, notes: items.filter(i => i.kind === 'note'), tree, problems, gaps, losses, materials, programs,
           atTarget: series.filter(x => x?.meeting === true).length,
           judged: series.filter(x => x?.meeting != null).length,
           /* Are its lines on target? — the answer its front page leads with. */
@@ -843,12 +852,19 @@ function JobRow({ v, i, open, onToggle, into, span, today, tip, setTip, edit, si
                         ? <p className="sub">No measure is set on this job yet, so there is no gap to show.</p>
                         : v.sixm.gaps.map(g => {
                           const k = g.short ? g.says.indexOf(g.short) : -1;
+                          const shift = v.sixm?.losses.find(x => x.lineId === g.lineId);
                           return (
-                            <p key={g.lineId} className="jb-gap-l">
-                              {k < 0 ? g.says : <>{g.says.slice(0, k)}<span className="jb-said is-late">{g.short}</span>{g.says.slice(k + (g.short ?? '').length)}</>}
-                            </p>
+                            <div key={g.lineId}>
+                              <p className="jb-gap-l">
+                                {k < 0 ? g.says : <>{g.says.slice(0, k)}<span className="jb-said is-late">{g.short}</span>{g.says.slice(k + (g.short ?? '').length)}</>}
+                              </p>
+                              {/* THE LINE'S LATEST SHIFT, COUNTED — a branch under its gap (tool 7) */}
+                              {shift && <LossBranch x={shift} />}
+                            </div>
                           );
                         })}
+                      {/* a line counted with no gap line of its own (no measure set) */}
+                      {v.sixm.losses.filter(x => !v.sixm?.gaps.some(g => g.lineId === x.lineId)).map(x => <LossBranch key={x.lineId} x={x} named />)}
                     </div>
                     {v.sixm.problems.length > 0 ? (
                       <ul className="jb-probs" aria-label="Problems">
@@ -929,5 +945,18 @@ function JobRow({ v, i, open, onToggle, into, span, today, tip, setTip, edit, si
         </div>
       </div>
     </div>
+  );
+}
+
+/** A line's latest shift counted, as a branch under its gap in the 6M
+ *  drawer (tool 7): one tap opens the count; only the part not yet explained
+ *  over a tenth of the loss wears amber. */
+function LossBranch({ x, named }: { x: { line: string; text: string; abnormal: boolean; href: string }; named?: boolean }) {
+  return (
+    <button type="button" className="jb-loss" onClick={() => nav(x.href)}>
+      <span className="jb-loss-k">{named ? `${x.line} · the shift` : 'The shift'}</span>
+      <span className={'jb-loss-t' + (x.abnormal ? ' jb-said is-waiting' : '')}>{x.text}</span>
+      <span className="jb-loss-c" aria-hidden>›</span>
+    </button>
   );
 }

@@ -47,6 +47,7 @@ const StudyScreen = lazy(() => import('./screens/StudyScreen').then(m => ({ defa
 const MapScreen = lazy(() => import('./screens/MapScreen').then(m => ({ default: m.MapScreen })));
 const ChangeoverScreen = lazy(() => import('./screens/ChangeoverScreen').then(m => ({ default: m.ChangeoverScreen })));
 const SamplingScreen = lazy(() => import('./screens/SamplingScreen').then(m => ({ default: m.SamplingScreen })));
+const LossesScreen = lazy(() => import('./screens/LossesScreen').then(m => ({ default: m.LossesScreen })));
 const ShareScreen = lazy(() => import('./screens/ShareScreen').then(m => ({ default: m.ShareScreen })));
 import { RequireModel } from './ui/RequireModel';
 import { RecordDrawerHost } from './ui/RecordDrawer';
@@ -128,11 +129,12 @@ function app(route: Route) {
   if (route.name === 'projects') return <ProjectsScreen />;
   if (route.name === 'quickSnags') return <QuickSnagsScreen />;
   if (route.name === 'lineTools') return <LineToolsScreen tool={route.view === 'balance' ? 'balance' : 'map'} />;
-  if (route.name === 'studies') return <StudiesScreen key={route.view ?? 'capability'} tool={route.view === 'map' ? 'map' : route.view === 'changeover' ? 'changeover' : route.view === 'sampling' ? 'sampling' : 'capability'} />;
+  if (route.name === 'studies') return <StudiesScreen key={route.view ?? 'capability'} tool={route.view === 'map' ? 'map' : route.view === 'changeover' ? 'changeover' : route.view === 'sampling' ? 'sampling' : route.view === 'losses' ? 'losses' : 'capability'} />;
   if (route.name === 'study' && route.id) {
     if (route.view === 'map') return <MapScreen key={route.id} id={route.id} />;
     if (route.view === 'changeover') return <ChangeoverScreen key={route.id} id={route.id} />;
     if (route.view === 'sampling') return <SamplingScreen key={route.id} id={route.id} />;
+    if (route.view === 'losses') return <LossesScreen key={route.id} id={route.id} />;
     return <StudyScreen key={route.id} id={route.id} />;
   }
   /* THE PACED SURFACES, each behind the model it belongs to. Binding the id

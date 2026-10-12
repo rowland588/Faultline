@@ -903,6 +903,70 @@ it can prove.
   with its words); Hand over's standard; the 6M's People; the standard's page
   on paper (the measurements, the limit, the index, the caveat).
 
+### Line capacity — the line balance seen for what it is
+
+Rowland, 12 October: "In principle, the line balancing is actually a
+capacity model ... following actually how the VSM map is designed ... this
+is about the capacity of the line ... understanding the V-curve ... my
+bottleneck could be people, it could be an asset ... I must be able to
+convert the next process to fully understand the actual bottleneck. And
+sometimes bottlenecks change depending on what a human puts in a basket."
+And on the name, asked: **Line capacity**.
+
+**The review (what was already there).** `lib/capacity.ts` is a capacity
+model: stations in flow order, machines and people alike (a person typed as
+"this many every this many seconds"); each in its own unit with the
+conversion from the one before ("1 basket = 12 bags"), the chain put into
+the line's unit at its start; speed while running and once its own stops
+count, rejects put back; the bottleneck on both, said when they differ;
+what arrives against what each does; what-ifs that move the bottleneck
+(10 in a basket instead of 12); Make it so; the cross-check against the
+logged stops (the true bottleneck is never starved or blocked). What was
+missing: the V-curve, a grid read at a glance, and a name that says it — on
+the product's line standard it was "Line balance", whose lean meaning is
+the people's work against takt, only its second tab.
+
+**The shape.**
+- **The name.** "Line capacity" on the rail, the page and the paper. The
+  people's work against takt (the Yamazumi, tools C and D) stays inside it as
+  its People view — that is the line *balance*. The record is unchanged
+  (`standards.capacity`, the stations, the what-ifs); the URL `/balances`
+  keeps working. The line standard stays where people are put in places.
+- **Not the map's grid** (Rowland, the same day: "Scrap that, don't do that
+  ... do some research on the correct sort of user interface"). The research:
+  Toyota's standard work is three forms — the **production capacity sheet**
+  (each process's machine time, manual time and tool change → capacity a
+  shift: 27,600 s ÷ (24 s + 60 s every 300) ≈ 1,140 a shift), the
+  **combination table** (the People view) and the **standardized work chart**
+  (the line standard). Line capacity is the first form: a row per station in
+  flow order — its unit and conversion, its speed (a rate, or a person's
+  "one every so many seconds" × crew), its own stops, its changeovers a
+  shift (from SMED when one is timed), its capacity a shift in its own unit
+  and in the line's, its share of the bottleneck's, and what demand needs of
+  it (over 100% red). Tap a row for its sheet.
+- **The V-curve**, above the sheet (packaging-line practice: machines across
+  in flow order, speed as a share of the critical machine's, the critical
+  machine at the bottom; LineView's rule of thumb, +10% a machine away, is a
+  vendor's, not a standard — so the margin is the owner's). Every station's capacity in the line's unit, the
+  bottleneck at the bottom, the stations upstream and downstream rising
+  away from it: the line designed so the bottleneck is never starved or
+  blocked. Drawn as two curves — while running, and once stops count — with
+  the bottleneck named in words (not a state colour) and the guide V: each
+  station away from the bottleneck agreed faster by a margin the owner sets
+  (offered, never assumed). A station under its guide is said in words —
+  "the case packer is only 4% faster than the bagger: a short stop there
+  starves the bagger".
+- **What-ifs** as now, each redrawing the grid and the V, the moved
+  bottleneck said in one sentence; Make it so raises the action.
+- **Where it shows** as now (the 6M line card and fishbone — a machine
+  bottleneck on Machine, a crew on People — the client report's capacity
+  page), with the V's sentence added; on paper the grid becomes the
+  stations table and the V-curve its figures in words.
+- **Accepted by** a script that drives: the grid's speeds and conversions as
+  the module says, the bottleneck named, a person's basket changed in a
+  what-if and the bottleneck moving, the V's guide margin set and a station
+  under it said, the paper.
+
 ## What is needed from Rowland, release by release
 
 | Release | Before it starts | At the end |
