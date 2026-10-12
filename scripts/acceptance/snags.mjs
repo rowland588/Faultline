@@ -20,6 +20,8 @@
  *   4  the counts are the filters: Late, Problems; By who, nobody's last
  *   5  several at once: a name together, closed together, the undo offered
  *   6  the Snags & fixes report: every open snag, problem and fix on paper
+ *   (1b a ticked snag deleted, asked once; and the demo line's made-up
+ *      snags never on the page or the paper)
  *   7  the job's own view (its Fixes link): the same name and path, its
  *      snags not on it yet made a fix in one tap, "from a snag" on the fix,
  *      and the way back to every line and job
@@ -77,6 +79,7 @@ const sd = await page.evaluate(async () => {
     mk({ problem: 'Film wandering on the former', status: 'in_progress', dueAt: day(2) }),
     mk({ problem: 'Seal jaw leaves marks', targetAsset: 'Bagger', media: [{ id: crypto.randomUUID(), kind: 'photo', blobKey: key, mime: 'image/jpeg', capturedAt: t }] }),
     mk({ problem: 'Label printer ribbon low', projectId: seed.projectId }),
+    mk({ problem: 'Taken by mistake — delete me' }),
   ];
   for (const s of list) await db.addSnag(s);
   /* the demo line, built from the account menu — its made-up snag is never here */
@@ -114,7 +117,7 @@ await go('#/snags');
   const chips = (await page.locator('.qsl-f .chip').allInnerTexts()).map(x => x.replace(/\s+/g, ' ').trim());
   ok(chips.join('|') === `Everything open · ${openCount(t.counts)}|Snags · ${t.counts.open + t.counts.in_progress}|Problems · ${t.counts.problems}|Fixes · ${t.counts.fixes}|Late · ${t.counts.late + t.counts.jobLate}|Done · ${t.counts.closed + t.counts.jobDone}`, `1 the counts: ${chips.join(' · ')}`);
   const openSnags = t.rows.filter(r => r.status !== 'closed');
-  ok((await page.locator('.qsl-work').count()) === openSnags.length && openSnags.length === 5, `1 every open snag on its line: ${openSnags.length}`);
+  ok((await page.locator('.qsl-work').count()) === openSnags.length && openSnags.length === 6, `1 every open snag on its line: ${openSnags.length}`);
   ok(/^SNAG|^Snag/.test(await words('.qsl-kind', row('seeded snag 0'))) && /From the walk — on the Former roller/.test(await words('.qsl-meta', row('seeded snag 0'))) && /Taken on the move — Bagger/.test(await words('.qsl-meta', row('Guard on the infeed loose'))),
     '1 a snag says it is a snag, and where it came from — on the walk, on the move');
   const g = t.jobs.find(x => x.job === sd.job);
@@ -123,6 +126,15 @@ await go('#/snags');
   ok(/for Line 2 commissioning — not moved yet/.test(await words('.qsl-meta', row('Label printer ribbon low'))), '1 a snag named for the job and not moved yet — said so');
   ok((await row('Seal jaw leaves marks').locator('img').count()) > 0, '1 its picture on its row');
   ok((await page.locator('.qsl-row', { hasText: 'Demo fault' }).count()) === 0 && !/Demo/.test(await words('.qsl-says')), '1 the demo line\'s made-up snag is not here');
+}
+
+/* ---- 1b a snag deleted: ticked, Delete, asked once, gone — here and from the store ---- */
+{
+  page.once('dialog', d => void d.accept());
+  await row('Taken by mistake — delete me').locator('.qsl-tick input').check();
+  await page.locator('.qsl-bar').getByRole('button', { name: 'Delete', exact: true }).click(); await page.waitForTimeout(1200);
+  const left = (await truth()).snags.some(x => x.id === sd.ids['Taken by mistake — delete me']);
+  ok(!left && (await page.locator('.qsl-row', { hasText: 'Taken by mistake' }).count()) === 0 && (await page.locator('.qsl-bar').count()) === 0, '1b a ticked snag deleted: asked once, gone from the page and the store');
 }
 
 /* ---- 2 moved to a job, and shown once — as what it became ---- */

@@ -29,7 +29,7 @@
  * as it shows it (lib/snagsReportPdf), from the same reading. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { withoutDemo } from '../lib/demo';
-import { listAllSnags, listWorkspaces, listTests, listTestItems, listAssets, listSnagAssets, onDataChange, updateSnag, setSnagsStatus, listPaceTodos, type PaceTodoRow } from '../db';
+import { deleteSnag, listAllSnags, listWorkspaces, listTests, listTestItems, listAssets, listSnagAssets, onDataChange, updateSnag, setSnagsStatus, listPaceTodos, type PaceTodoRow } from '../db';
 import { useProjects } from '../lib/useProjects';
 import { planModel } from '../lib/planModel';
 import { live, type Asset, type Test, type TestItem } from '../lib/testing';
@@ -398,6 +398,14 @@ export function QuickSnagsScreen() {
           <button type="button" className="btn" onClick={() => setSetting(true)}>Whose · due</button>
           <button type="button" className="btn" disabled={!!busy} onClick={() => void cards(chosen)}>{busy === 'cards' ? 'Making…' : 'Cards'}</button>
           <button type="button" className="btn btn-primary" onClick={() => setSending(true)}>Move to a job</button>
+          {/* Delete — a snag taken by mistake, or one nobody needs: asked once,
+              its photos and words go with it (Rowland, 12 October: "if I can't
+              actually just then delete them, it doesn't allow me"). */}
+          <button type="button" className="btn qsl-del" onClick={() => {
+            const n = chosen.length, them = n === 1 ? 'it' : 'them';
+            if (!window.confirm(`Delete ${n} snag${n === 1 ? '' : 's'}? The photos and everything written about ${them} go with ${them}.`)) return;
+            void (async () => { for (const x of chosen) await deleteSnag(x.id); setPicked(new Set()); })();
+          }}>Delete</button>
           <button type="button" className="btn btn-ghost" onClick={() => setPicked(new Set())}>Clear</button>
         </div>
       )}
