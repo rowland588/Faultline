@@ -392,36 +392,32 @@ for (const size of SIZES) {
       rows.push({ size, report: name, pages: 0, faults: [`could not make it: ${e.message.split('\n')[0]}`] });
     }
   }
-  /* THE SNAGS & FIXES REPORT (lib/snagsReportPdf; 12 October: "Snags need
-     its own report on the snag page", then "one location for all" snags,
-     problems and fixes) — seeded after the job's own reports, so the snags
-     moved to the job cannot change them (the status report is one page):
-     snags on two lines taken every way, every state, some with a picture,
-     some moved to the job (lib/dev seedSnagsFor). The page opens on
-     Everything open: every open snag's words, and every open problem and fix
-     on every job with the job's name, must be on the paper — read off the
-     records by the page's own module (lib/snagsReport). */
+  /* THE PROBLEMS REPORT (lib/snagsReportPdf; 12 October: "Snags need its
+     own report", then the register — "every single problem ... a journey of
+     improvement ... I want a fresh start") — seeded after the job's own
+     reports, so the problems assigned to the job cannot change them (the
+     status report is one page): problems on two lines taken every way, every
+     state, some with a picture, a plan and a journey, some assigned to the
+     job (lib/dev seedSnagsFor). The page opens on Open: every open problem's
+     words, what we will do and every step of its journey — on a day, what we
+     did and what came of it — must be on the paper, read off the records by
+     the page's own module (lib/snagsReport, the register). */
   {
     const mustSnags = await page.evaluate(async ({ size, pid }) => {
       await (await import('/src/dev/reportSeeds.ts')).seedSnagsFor(size, pid);
       const { san } = await import('/src/lib/reportKit.ts');
       await (await import('/src/lib/savePdf.ts')).loadPdfLib();
       const db = await import('/src/db.ts'); const R = await import('/src/lib/snagsReport.ts');
-      const { planModel } = await import('/src/lib/planModel.ts');
-      const [all, ws, projects] = await Promise.all([db.listAllSnags(), db.listWorkspaces(), (await import('/src/db/projects.ts')).allProjects()]);
+      const [every, ws, projects] = await Promise.all([db.listAllSnags(), db.listWorkspaces(), (await import('/src/db/projects.ts')).allProjects()]);
+      const all = (await import('/src/lib/demo.ts')).withoutDemo(every, ws).filter(s => !s.deletedAt && !s.archivedAt);
       const lineName = id => ws.find(w => w.id === id)?.name ?? 'A line';
-      const became = new Map(), jobs = [];
-      for (const p of projects.filter(x => !x.archivedAt)) {
-        const [tests, items, assets, todos] = await Promise.all([db.listTests(p.id), db.listTestItems(p.id), db.listAssets(p.id), db.listPaceTodos(p.id)]);
-        for (const [k, v] of R.becameOn(p.id, tests, items, assets, todos)) became.set(k, v);
-        const gated = planModel(p) === 'commissioning';
-        jobs.push(R.jobGroup({ projectId: p.id, job: p.name, tests: gated ? tests : [], items: gated ? items : [], assets, todos: gated ? [] : todos, snags: all, lineName }));
-      }
-      const r = R.snagsReading({ snags: all, lineName, jobName: id => projects.find(p => p.id === id)?.name, became, jobs });
+      const r = R.snagsReading({ snags: all, lineName, jobName: id => projects.find(p => p.id === id)?.name, became: new Map(), register: true });
       const out = [];
       const add = (from, v) => { if (v && san(v)) out.push([v, san(v), from]); };
-      for (const l of r.lines) for (const x of l.rows) if (x.status !== 'closed') add('snag', x.what);
-      for (const g of r.jobs) if (g.rows.some(x => x.open)) { add('job', g.job); for (const x of g.rows) if (x.open) add(`${x.kind} on ${g.job}`, x.what); }
+      for (const l of r.lines) for (const x of l.rows) if (x.status !== 'closed') {
+        add('problem', x.what); add('its plan', x.plan);
+        for (const j of x.journey) { add('a step of its journey', j.did); add('what came of it', j.result); }
+      }
       return out;
     }, { size, pid: job.projectId });
     const file = `${OUT}/${size}-snags.pdf`;

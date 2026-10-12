@@ -108,6 +108,7 @@ export async function buildSnagCards(
       dueInDays: dueInDays(snag.dueAt),
       latestUpdate: snag.latestUpdate || undefined,
       priority: snag.priority ?? 'low',
+      ...(snag.journey?.length ? { journey: [...snag.journey].filter(j => j.did?.trim()).sort((a, b) => a.at - b.at).map(j => ({ day: dateNice(j.at), did: j.did.trim(), ...(j.result?.trim() ? { result: j.result.trim() } : {}) })) } : {}),
       latestUpdateAt: snag.latestUpdateAt ? dateNice(snag.latestUpdateAt) : undefined,
       still, detail,
     });

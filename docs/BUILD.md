@@ -1069,6 +1069,52 @@ programs report and client report — the words, the commentary, the counts
 ("· 1 not tested, 1 with no program") and two tiles on the paper. Accepted
 by `scripts/acceptance/programs.mjs`.
 
+### Problems — the register: written, edited where it sits, a journey, a fresh start (12 October)
+
+Rowland, that evening, after the opened-out problem became read-only: "you've
+removed the ability to mark ... I can't edit anything. All I can do is
+create a report card ... Every single problem allows me to put in what the
+problem is. And we also want them to be able to track a journey of
+improvement ... it's low risk, this is what we're going to do, this is when
+we did it, this was what the result was ... not a complex user interface
+... I should be able to basically write any problem ... and then assign the
+problems to where they're going to be. I want a fresh start. Don't erase
+anything." And of "moved to Line 2A": "I don't understand." So the page is
+a register (`src/snag/QuickSnagsScreen.tsx`):
+- **Every problem edited where it sits.** Tap a row and it opens as its own
+  editor, every box kept as it is left: what the problem is, its priority,
+  where it stands (Open · In progress · Closed), its line, its job, its
+  machine (the line's and the jobs' machines offered, another typed), whose,
+  its due day, its photos (tap one to mark it — the marks and words kept on
+  the problem, as before the read-only card), and what we will do. Report
+  card (PDF) and Delete stay on it.
+- **Its journey.** A step is a day, what we did and what came of it
+  (`snags.journey`, a list kept by id so two devices' steps merge —
+  `supabase/PROBLEM_JOURNEY.sql`, applied and read back first). Added in one
+  line, each box editable, a step taken off with ×. The latest step shows on
+  the row ("2 steps — 12 Oct: Fitted the guard → No trips since"), and the
+  plan and every step print on the report card (THE JOURNEY) and the
+  Problems report under the problem.
+- **Assigned, never moved.** A problem's job is a box on it (and Assign for
+  several in the bar); it stays on the page saying "for" the job, and the
+  job's own view (its Problems link) lists it. Nothing on the page says
+  "moved" any more; the old moved-away list is folded into the register
+  (`snagsReading({ register: true })`).
+- **A fresh start, nothing erased.** Start fresh puts every problem away
+  (`snags.archived_at`, a stamp, never a delete), with an undo; the page then
+  says "A fresh start." and lists what was put away at its foot, each with
+  Bring back, and Bring them all back.
+- **Colour.** The priority carries how serious (Critical red, High amber,
+  Low green, with the word); the due carries late (red). Where it stands is
+  grey when open, indigo in progress, green closed — an open problem is no
+  longer red for being open.
+- **Accepted by** `scripts/acceptance/snags.mjs` (11 stories: the page; the
+  editor; assigned not moved; the journey; a photo marked; several at once,
+  the filters, by who; whose, due, closed, deleted; the card and the report
+  with plan and journey; a fresh start and bringing back; the job's own
+  view; the phone). `scripts/report-stress.mjs` reads every open problem's
+  words, plan and journey steps off the paper at tiny, ordinary and huge.
+
 ### Problems — one word, a RAG priority, a report card each (12 October)
 
 Rowland, the same afternoon: "We will change snags and fixes to the word

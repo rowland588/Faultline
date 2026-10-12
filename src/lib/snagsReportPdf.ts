@@ -55,8 +55,14 @@ function snagParts(f: Frame, r: SnagRow): Parts {
   return {
     prio: r.priority,
     what: wrap(f.doc, san(`${PRIORITY_WORD[r.priority].toUpperCase()} · ${r.what}`), tw, 9.5, 'bold'),
-    from: wrap(f.doc, san(r.from + (r.forJob ? ` · for ${r.forJob} — not moved yet` : '')), tw, 8),
-    note: r.update ? wrap(f.doc, san(`Latest: ${r.update}`), tw, 8.5) : [],
+    /* its machine and its job — never "taken on the move", which said how it was typed, not where it is (12 October) */
+    from: ((t: string) => (t ? wrap(f.doc, t, tw, 8) : []))(san([r.machine ?? (/^Taken on the move/.test(r.from) ? '' : r.from), r.forJob ? `for ${r.forJob}` : ''].filter(Boolean).join(' · '))),
+    /* what we will do, then the journey — on a day, what we did and what came of it */
+    note: [
+      ...(r.plan ? wrap(f.doc, san(`Plan: ${r.plan}`), tw, 8.5) : []),
+      ...r.journey.flatMap(j => wrap(f.doc, san(`${j.day} — ${j.did}${j.result ? ` — ${j.result}` : ''}`), tw, 8.5)),
+      ...(r.update ? wrap(f.doc, san(`Latest: ${r.update}`), tw, 8.5) : []),
+    ],
     right,
   };
 }
@@ -138,7 +144,7 @@ export async function drawSnagsReport(doc: jsPDF, x: { title: string; printed: s
     out.push(text({ text: 'PROBLEMS', size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
     out.push(text({ text: title, size: SIZE.title, style: 'bold', after: 4 }));
     out.push(text({ text: `Printed ${san(x.printed)}`, colour: MUTED, after: 4 }));
-    out.push(text({ text: 'Every problem in order of priority — Critical, High, Low — on a line until it is put on a job, then on the job with the fix that puts it right.', size: 8.5, colour: MUTED, after: gap(d, 'm') }));
+    out.push(text({ text: 'Every problem in order of priority — Critical, High, Low — with what we will do and its journey: on a day, what we did and what came of it.', size: 8.5, colour: MUTED, after: gap(d, 'm') }));
     /* WHERE THE SNAGS ARE — a tile per count; only the abnormal in its colour,
        a zero grey (CLAUDE.md, visual management rule 3). */
     const tiles: { n: number; word: string; c: string }[] = [

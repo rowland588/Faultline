@@ -50,6 +50,9 @@ export interface SnagAsset {
  *  those; instead it carries the drill target it came from (category / kind /
  *  operational asset name). Both share the same lifecycle, owners, snag list,
  *  report and trend flags — one action system, two ways in. */
+/** One step on a problem's journey: "12 Oct — fitted a new guard — no trips since". */
+export interface JourneyStep { id: string; at: number; did: string; result?: string }
+
 export interface Snag {
   id: ID;
   ownerId?: string; // who captured it (auth user id) — set by sync
@@ -64,6 +67,11 @@ export interface Snag {
   problem: string;
   /** Its priority — Critical · High · Low (lib/snagsReport, PROBLEM_PRIORITY.sql); absent reads as low. */
   priority?: 'critical' | 'high' | 'low';
+  /** Its journey of improvement — on a day, what was done and what came of it
+   *  (PROBLEM_JOURNEY.sql). A list merged by id across devices. */
+  journey?: JourneyStep[];
+  /** Put away by a fresh start — kept, never deleted, brought back with a tap. */
+  archivedAt?: number;
   proposedSolution?: string;
   status: SnagStatus;
   owner?: string;            // assignee name (free text)

@@ -112,6 +112,12 @@ export interface SnagRow {
   update?: string;
   /** Named for a job and not moved there yet. */
   forJob?: string;
+  /** What we are going to do (Snag.proposedSolution). */
+  plan?: string;
+  /** The machine it is on — the walk's frame, else the one named. */
+  machine?: string;
+  /** Its journey, oldest first: on a day, what was done and what came of it. */
+  journey: { id: string; day: string; did: string; result?: string }[];
   photo?: string;
   raisedAt: number;
 }
@@ -151,7 +157,8 @@ export function snagRow(s: Snag, line: string, assetName?: string, jobName?: str
   const age = ageDays(s.raisedAt, ref);
   const word = s.status === 'closed' ? `Closed${s.closedAt ? ` ${nice(s.closedAt)}` : ''}`
     : `${SNAG_STATUS_META[s.status].label} · ${age === 0 ? 'today' : age === 1 ? '1 day' : `${age} days`}`;
-  const tone: SnagTone = s.status === 'closed' ? 'g' : s.status === 'in_progress' ? 'w' : 'r';
+  /* where it stands, in its colour; how serious it is is the priority's, and late is the due's — an open one is not red for being open (12 October) */
+  const tone: SnagTone = s.status === 'closed' ? 'g' : s.status === 'in_progress' ? 'w' : 'n';
   const due = s.status === 'closed' || d == null || s.dueAt == null ? undefined
     : d < 0 ? `${-d} day${d === -1 ? '' : 's'} late` : d === 0 ? 'due today' : `due ${nice(s.dueAt)}`;
   const dueTone: SnagTone | undefined = due == null ? undefined : late ? 'r' : isDueSoon(s, ref) ? 'a' : 'n';
@@ -165,6 +172,10 @@ export function snagRow(s: Snag, line: string, assetName?: string, jobName?: str
     ...(s.latestUpdate?.trim() ? { update: s.latestUpdate.trim() } : {}),
     ...(s.projectId && jobName ? { forJob: jobName } : {}),
     ...(photo ? { photo } : {}),
+    ...(s.proposedSolution?.trim() ? { plan: s.proposedSolution.trim() } : {}),
+    ...((assetName ?? s.targetAsset)?.trim() ? { machine: (assetName ?? s.targetAsset ?? '').trim() } : {}),
+    journey: [...(s.journey ?? [])].filter(j => j.did?.trim()).sort((a, b) => a.at - b.at)
+      .map(j => ({ id: j.id, day: nice(j.at), did: j.did.trim(), ...(j.result?.trim() ? { result: j.result.trim() } : {}) })),
   };
 }
 
@@ -280,6 +291,10 @@ export interface SnagsInput {
   became: Map<string, Became>;
   /** Each job's problems and fixes (jobGroup), when the page reads the jobs too. */
   jobs?: JobGroup[];
+  /** The register (Rowland, 12 October: "write any problem ... and assign it
+   *  to where it's going"): every problem is a row, assigned or not — none is
+   *  "moved" away. */
+  register?: boolean;
   today?: number;
 }
 
@@ -289,7 +304,7 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 export function snagsReading(x: SnagsInput): SnagsReading {
   const ref = x.today ?? Date.now();
   const all = x.snags.filter(s => !s.deletedAt);
-  const here = all.filter(s => !isMoved(s)).map(s => snagRow(s, x.lineName(s.workspaceId), x.assetName?.(s), x.jobName(s.projectId), ref, x.stillOf?.(s)));
+  const here = all.filter(s => x.register || !isMoved(s)).map(s => snagRow(s, x.lineName(s.workspaceId), x.assetName?.(s), x.jobName(s.projectId), ref, x.stillOf?.(s)));
   const byLine = new Map<string, SnagRow[]>();
   for (const r of here) byLine.set(r.workspaceId, [...(byLine.get(r.workspaceId) ?? []), r]);
   /* still open first, in order of priority — late first within each — then closed */
@@ -301,7 +316,7 @@ export function snagsReading(x: SnagsInput): SnagsReading {
   /* A moved snag is shown once — as the problem or fix it became, under its
      job. Only one whose record is gone, or on a job this device cannot open,
      is listed on its own, saying so. */
-  const moved: MovedRow[] = all.filter(isMoved).filter(s => !(s.sent ?? []).some(t => x.became.has(t.itemId))).map(s => {
+  const moved: MovedRow[] = (x.register ? [] : all).filter(isMoved).filter(s => !(s.sent ?? []).some(t => x.became.has(t.itemId))).map(s => {
     const last = (s.sent ?? [])[(s.sent ?? []).length - 1];
     const job = x.jobName(last?.projectId) ?? 'a job';
     const photo = s.media?.find(m => m.kind === 'photo')?.blobKey ?? s.detailPhotoKey;

@@ -10714,6 +10714,38 @@ body:has(.toast) .qs-fab { bottom: calc(var(--nv-bar) + 130px + env(safe-area-in
 .qsl-x-facts dd { margin: 1px 0 0; color: var(--ink); overflow-wrap: anywhere; }
 .qsl-x-acts { display: flex; flex-wrap: wrap; gap: 8px; }
 @media (max-width: 899px) { .qsl-x { padding-left: 0; } }
+/* THE REGISTER — a problem's summary, and its editor where it sits */
+.preg-row { flex-wrap: wrap; }
+.preg-row .qsl-open { align-items: flex-start; flex: 1 1 0; min-width: 0; }
+.preg-right { display: grid; justify-items: end; gap: 2px; flex: none; margin-left: auto; text-align: right; white-space: nowrap; }
+.preg-right .qsl-state { max-width: none; }
+@media (max-width: 560px) {
+  .preg-row .qsl-open { flex-wrap: wrap; row-gap: 4px; }
+  .preg-right { flex: 1 1 100%; display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 4px 10px; margin-left: 0; text-align: left; white-space: normal; }
+  .preg-right .qsl-state { text-align: left; }
+}
+.pe textarea, .pe input { font-family: inherit; }
+.preg-last { color: var(--ink-2); }
+.preg-row.is-open { background: var(--surface-2); }
+.pe { gap: 12px; padding-top: 8px; }
+.pe-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 14px; }
+.pe-f { display: grid; gap: 4px; min-width: 0; }
+.pe-k { font-size: 11px; font-weight: 800; letter-spacing: .06em; color: var(--muted); }
+.pe-k i { font-weight: 500; letter-spacing: 0; text-transform: none; }
+.pe-f .text-input { margin: 0; }
+.pe-what { font-weight: 600; }
+.pe-mach { max-width: 320px; }
+.pe-said { margin: 0; }
+.pj-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.pj-step { display: grid; grid-template-columns: 150px minmax(0, 1.4fr) minmax(0, 1fr) auto; gap: 6px; align-items: center; }
+.pj-step .text-input { margin: 0; min-height: 40px; }
+.pj-x { background: none; border: 0; color: var(--muted); padding: 8px; cursor: pointer; display: inline-flex; }
+.pj-add { padding-top: 4px; border-top: 1px dashed var(--line); }
+.pj-none { margin: 0; }
+.preg-jobs { margin-top: 18px; }
+.preg-away { margin-top: 18px; }
+.preg-away-row { padding: 8px 0; }
+@media (max-width: 700px) { .pj-step { grid-template-columns: 1fr auto; } .pj-step .pj-did, .pj-step .pj-res { grid-column: 1 / -1; } .pj-add .btn { grid-column: 1 / -1; } }
 .qsl-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 6px; }
 .qsl-sel { width: auto; min-width: 0; max-width: 220px; min-height: 40px; margin: 0; }
 .qsl-search { flex: 1 1 180px; min-width: 0; max-width: 320px; min-height: 40px; margin: 0; }

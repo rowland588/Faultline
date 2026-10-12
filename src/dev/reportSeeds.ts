@@ -1241,6 +1241,13 @@ export async function seedSnagsFor(size: string, projectId: string): Promise<voi
       ...(rand() < 0.7 ? { owner: pick(WHO) } : {}), ...(due != null ? { dueAt: due } : {}),
       ...(status === 'closed' ? { closedAt: t - Math.floor(rand() * 5) * D } : {}),
       ...(rand() < 0.3 ? { latestUpdate: 'Parts ordered, fitter booked for Thursday nights' } : {}),
+      /* what we will do and its journey (12 October) — on i alone, so the random draws stay as they were */
+      ...(i % 3 === 0 ? { proposedSolution: long || (size === 'huge' && i % 9 === 0) ? `${LONG_ACCOUNT.slice(0, 300)} End of plan: a new seal.` : 'Fit an interlocked guard and check it weekly' } : {}),
+      ...(i % 3 === 0 && size !== 'tiny' ? { journey: Array.from({ length: size === 'huge' && i % 9 === 0 ? 9 : 2 }, (_, k) => ({
+        id: uid(), at: t - (12 - k) * D,
+        did: k === 1 && i % 6 === 0 ? `${LONG_ACCOUNT.slice(0, 220)} End of step ${i + 1}.` : `Step ${k + 1} on ${i + 1}: taped the guard as a stop-gap`,
+        ...(k % 2 === 0 ? { result: `Held for ${k + 2} shifts (${i + 1})` } : {}),
+      })) } : {}),
       ...(how === 'walk' ? { workspaceId: a.id, assetId: frame.id, xPct: 40, yPct: 50 }
         : how === 'board' ? { targetCategory: 'Changeover', targetSubcategory: 'Size change', targetAsset: 'Bagger' }
         : { media: i % 4 === 0 ? [await markedPhoto(['Here'])] : [], ...(rand() < 0.4 ? { targetAsset: pick(['Bagger', 'Checkweigher', 'Case packer']) } : {}),
