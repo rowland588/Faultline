@@ -40,7 +40,7 @@ import { useAccess } from '../cloud/access';
 import type { Can } from '../lib/access';
 import {
   EMPTY_CAPACITY, analyse, syncWhatIfs, withWhatIfStations, blankStation, changedWords, compareSays, crossCheck, fmtN, lineIfRaised, makeItSoWords,
-  stopStats, suggestRunning, vCurve, whatIfCapacity,
+  stopStats, suggestRunning, vCurve, accumulation, whatIfCapacity,
   type Capacity, type RatePer, type Station, type StationResult, type WhatIf,
 } from '../lib/capacity';
 import { useLineStops } from '../lib/useLineStops';
@@ -71,7 +71,7 @@ function CapacitySheet({ r, v, target, study, onUse }: { r: ReturnType<typeof an
     <div className="cap-sheet-box">
       <table className="cap-sheet">
         <thead><tr><th>#</th><th>Station</th><th>Its unit</th><th className="n">Speed</th><th className="n">Own stops</th><th className="n">Good</th>
-          <th className="n">{r.unit} a min</th><th className="n">{r.unit} an hour</th><th className="n">Of the bottleneck</th>{target != null && <th className="n">Target needs</th>}</tr></thead>
+          <th className="n">{r.unit} a min</th><th className="n">{r.unit} an hour</th><th className="n">Of the bottleneck</th>{target != null && <th className="n">Target needs</th>}<th className="n">Can collect after</th></tr></thead>
         <tbody>
           {r.ok.map(x => {
             const s = x.station, p = pctOf.get(x.index), isLimit = r.limit?.index === x.index;
@@ -98,6 +98,7 @@ function CapacitySheet({ r, v, target, study, onUse }: { r: ReturnType<typeof an
                 <td className="n">{fmtN(x.effective * 60)}</td>
                 <td className="n">{isLimit ? <b>the bottleneck</b> : p ? <span className={p.under ? 'cap-sheet-a' : ''}>{fmtN(Math.round(p.pct))}%{p.under ? ' · under the V' : ''}</span> : '—'}</td>
                 {target != null && <td className="n"><span className={need != null && need > 100 + 1e-9 ? 'cap-sheet-r' : ''}>{need != null ? `${fmtN(Math.round(need))}%` : '—'}</span></td>}
+                <td className="n">{s.bufferAfter ? `${fmtN(s.bufferAfter)} ${s.unit}` : '—'}</td>
               </tr>
             );
           })}
@@ -241,6 +242,15 @@ function StationCard({ s, i, last, prevUnit, prevName, planned, why, wait, own, 
           <span className="field-label">Good — % passed on</span>
           <DraftNumber className="text-input cap-num" value={s.goodPct} placeholder="100" label="Percent it passes on as good" onSave={v => patch({ goodPct: v })} />
         </label>
+
+        {/* ACCUMULATION after it (docs/CAPACITY.md §4): what can collect before
+            the next station — a conveyor, a table — in its own unit */}
+        {!last && (
+          <label className="proj-field">
+            <span className="field-label">Can collect after it — {s.unit || 'its unit'}</span>
+            <DraftNumber className="text-input cap-num" value={s.bufferAfter} placeholder="0" label="How many can collect between it and the next station" onSave={v => patch({ bufferAfter: v })} />
+          </label>
+        )}
       </div>
 
       <div className="cap-st-f">
@@ -546,6 +556,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
         onMargin={m => commit({ ...cap, vMarginPct: m })} />}
       {r.ok.length > 0 && <CapacitySheet r={r} v={vCurve(r, cap.vMarginPct)} target={current.targetPerMin} study={study}
         {...(can.edit ? { onUse: (id: string, cycleSec: number) => patchStation(id, { cycleSec, perCycle: 1, rate: undefined, source: 'standard', note: 'standard time, from the time study' }) } : {})} />}
+      {r.ok.length > 0 && (() => { const acc = accumulation(r, stats); return acc.sentence ? <p className={'vc-says cap-acc' + (acc.rows.some(p => !p.covered) ? ' is-a' : '')}>{acc.sentence}</p> : null; })()}
       {walk && !w && <BottleneckWalk standardId={walk.standardId} product={walk.product} {...(line.workspaceId ? { workspaceId: line.workspaceId } : {})} {...(projectId ? { projectId } : {})}
         stations={r.ok.map(x => x.station.name.trim() || `Station ${x.index + 1}`)} {...(r.limit ? { calculated: r.limit.station.name.trim() || `Station ${r.limit.index + 1}` } : {})} canEdit={can.edit} />}
 

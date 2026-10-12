@@ -68,6 +68,10 @@ export interface Station {
   note?: string;
   /** The machine name its stops are logged under, when that is not its name. */
   asset?: string;
+  /** ACCUMULATION after it (docs/CAPACITY.md §4): how many of its own unit
+   *  can collect between it and the next station — a conveyor, a table — so
+   *  a short stop on one side need not stop the other. */
+  bufferAfter?: number;
 }
 
 export interface Capacity {
@@ -479,7 +483,7 @@ export function lineIfRaised(r: CapacityResult, index: number, to: number): numb
 
 /* ======================= stops: from the timed log ======================== */
 
-export interface StopStats { ownMins: number; waitMins: number; events: number }
+export interface StopStats { ownMins: number; waitMins: number; events: number; /** Its own stops, counted — for the typical stop's length. */ ownEvents?: number }
 
 /** Starved or blocked by a neighbour — not the station's own fault. */
 export const isWaiting = (o: Pick<Observation, 'category' | 'subcategory'>): boolean =>
@@ -489,7 +493,7 @@ export const isWaiting = (o: Pick<Observation, 'category' | 'subcategory'>): boo
  *  Matched on the machine name the stop was logged against. */
 export function stopStats(obs: Observation[], stations: Station[], from: number, to: number): Record<string, StopStats> {
   const out: Record<string, StopStats> = {};
-  for (const s of stations) out[s.id] = { ownMins: 0, waitMins: 0, events: 0 };
+  for (const s of stations) out[s.id] = { ownMins: 0, waitMins: 0, events: 0, ownEvents: 0 };
   const key = (s: Station) => norm(s.asset?.trim() || s.name);
   for (const o of obs) {
     if (o.deletedAt || !(o.durationMs > 0) || o.startedAt < from || o.startedAt >= to) continue;
@@ -497,7 +501,7 @@ export function stopStats(obs: Observation[], stations: Station[], from: number,
     if (!st) continue;
     const m = o.durationMs / 60_000;
     const slot = out[st.id];
-    if (isWaiting(o)) slot.waitMins += m; else slot.ownMins += m;
+    if (isWaiting(o)) slot.waitMins += m; else { slot.ownMins += m; slot.ownEvents = (slot.ownEvents ?? 0) + Math.max(1, o.count || 1); }
     slot.events += Math.max(1, o.count || 1);
   }
   return out;
@@ -832,4 +836,43 @@ export function vCurve(r: CapacityResult, marginPct?: number): VCurve {
   else if (!under.length) sentence = `Every station clears the V: each step away from ${ln} is at least ${fmtN(m)}% faster, so a short stop beside it is absorbed.`;
   else sentence = under.map((p, i) => `${i ? 'the' : 'The'} ${p.name.toLowerCase().startsWith('op ') ? p.name : p.name.charAt(0).toLowerCase() + p.name.slice(1)} is only ${fmtN(Math.max(0, Math.round(p.pct - 100)))}% faster than ${ln} (the V asks ${fmtN(Math.round((p.guide ?? 100) - 100))}%) — a short stop there ${p.steps > 0 ? 'blocks' : 'starves'} ${ln}`).join('; ') + '.';
   return { points, under, ...(limit ? { limit } : {}), sentence };
+}
+
+
+/* =============================== accumulation ===============================
+ * docs/CAPACITY.md §4. A buffer adds no speed; it lets a short stop beside
+ * the bottleneck pass without stopping it. For each station either side of
+ * the bottleneck whose own stops are logged, its typical stop (own minutes ÷
+ * own stops) against what can collect between it and the bottleneck, in
+ * minutes of the bottleneck's work: upstream, the buffers must hold enough
+ * to keep the bottleneck fed; downstream, enough room to keep it from being
+ * blocked. A rule of thumb is 2–5 minutes of production. */
+export interface Protection { index: number; name: string; side: 'before' | 'after'; typicalMin: number; coverMin: number; covered: boolean }
+export interface Accumulation { rows: Protection[]; written: boolean; sentence: string }
+
+export function accumulation(r: CapacityResult, stats: Record<string, StopStats>): Accumulation {
+  const lim = r.limit;
+  if (!lim || !r.ok.length) return { rows: [], written: false, sentence: '' };
+  const at = r.ok.indexOf(lim);
+  const written = r.ok.some(x => (x.station.bufferAfter ?? 0) > 0);
+  const between = (from: number, to: number) => r.ok.slice(from, to).reduce((u, x) => u + (x.station.bufferAfter ?? 0) * x.factor, 0);
+  const rows: Protection[] = [];
+  r.ok.forEach((x, i) => {
+    if (i === at) return;
+    const st = stats[x.station.id];
+    const n = st?.ownEvents ?? 0;
+    if (!st || !(n > 0) || !(st.ownMins > 0)) return;
+    const units = i < at ? between(i, at) : between(at, i);
+    const coverMin = lim.effective > 0 ? units / lim.effective : 0;
+    const typicalMin = st.ownMins / n;
+    rows.push({ index: x.index, name: nameOf(x), side: i < at ? 'before' : 'after', typicalMin, coverMin, covered: coverMin >= typicalMin - 1e-9 });
+  });
+  const ln = nameOf(lim);
+  const uncovered = rows.filter(p => !p.covered);
+  let sentence: string;
+  if (!rows.length) sentence = '';
+  else if (!written) sentence = `Nothing is written down as collecting between the stations — a stop next to ${ln} stops ${ln}. Write down what can collect after each (a conveyor, a table) to see which stops are absorbed.`;
+  else if (!uncovered.length) sentence = `Every logged stop beside ${ln} is absorbed: what can collect covers the typical stop of each.`;
+  else sentence = uncovered.map((p, i) => `${i ? 'the' : 'The'} ${p.name.charAt(0).toLowerCase() + p.name.slice(1)}'s own stops last ${fmtN(Math.round(p.typicalMin * 10) / 10)} min on average; what can collect between it and ${ln} holds ${fmtN(Math.round(p.coverMin * 10) / 10)} min of ${ln}'s work — a typical stop there ${p.side === 'before' ? 'starves' : 'blocks'} ${ln}`).join('; ') + '.';
+  return { rows, written, sentence };
 }

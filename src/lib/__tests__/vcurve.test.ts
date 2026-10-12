@@ -59,3 +59,28 @@ describe('the V-curve', () => {
     expect(vCurve(analyse({ stations: [] }), 10).points).toEqual([]);
   });
 });
+
+/* ACCUMULATION on the same line (docs/CAPACITY.md §4), worked by hand:
+ * Op 3 is the bottleneck at 60 bags a minute. The bagger's own stops: 24 min
+ * in 8 stops → 3 min typical; 120 bags can collect after the bagger → 2 min
+ * of Op 3's work: not covered — a typical stop starves Op 3. The lidder's own
+ * stops: 10 min in 10 → 1 min typical; 15 baskets can collect after Op 3
+ * (180 bags) → 3 min: covered. */
+import { accumulation } from '../capacity';
+describe('accumulation beside the bottleneck', () => {
+  const withBuffers = LINE.map(x => (x.name === 'Bagger' ? { ...x, bufferAfter: 120 } : x.name === 'Op 3' ? { ...x, bufferAfter: 15 } : x));
+  const stats = { Bagger: { ownMins: 24, waitMins: 0, events: 8, ownEvents: 8 }, Lidder: { ownMins: 10, waitMins: 2, events: 12, ownEvents: 10 } };
+  it('a typical stop against what can collect between it and the bottleneck, in the bottleneck\'s minutes', () => {
+    const a = accumulation(analyse({ stations: withBuffers }), stats);
+    expect(a.rows.map(p => [p.name, p.side, p.typicalMin, Math.round(p.coverMin * 100) / 100, p.covered])).toEqual([['Bagger', 'before', 3, 2, false], ['Lidder', 'after', 1, 3, true]]);
+    expect(a.sentence).toBe("The bagger's own stops last 3 min on average; what can collect between it and Op 3 holds 2 min of Op 3's work — a typical stop there starves Op 3.");
+  });
+  it('nothing written down as collecting: said, and what to write', () => {
+    expect(accumulation(analyse({ stations: LINE }), stats).sentence).toMatch(/^Nothing is written down as collecting between the stations — a stop next to Op 3 stops Op 3\./);
+  });
+  it('everything covered says so; no logged stops says nothing', () => {
+    const big = withBuffers.map(x => (x.name === 'Bagger' ? { ...x, bufferAfter: 300 } : x));
+    expect(accumulation(analyse({ stations: big }), stats).sentence).toBe('Every logged stop beside Op 3 is absorbed: what can collect covers the typical stop of each.');
+    expect(accumulation(analyse({ stations: withBuffers }), {}).sentence).toBe('');
+  });
+});

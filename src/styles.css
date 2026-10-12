@@ -11875,3 +11875,4 @@ button.co-step-b:hover { background: color-mix(in srgb, var(--brand) 5%, transpa
 .bw-says { margin: 0; }
 .bw-says.is-a { color: var(--st-a); font-weight: 600; }
 .cap-sheet-use { display: block; white-space: normal; text-align: right; font-size: var(--t-label); }
+.cap-acc { margin: -6px 0 14px; }

@@ -240,8 +240,8 @@ describe('stops, own and waiting kept apart', () => {
   const stats = stopStats(log, [a, b], 0, 28 * DAY);
 
   it('totals each station’s minutes by name, ignoring case, space and other machines', () => {
-    expect(stats[a.id]).toEqual({ ownMins: 30, waitMins: 40, events: 5 });
-    expect(stats[b.id]).toEqual({ ownMins: 5, waitMins: 0, events: 1 });
+    expect(stats[a.id]).toEqual({ ownMins: 30, waitMins: 40, events: 5, ownEvents: 4 });
+    expect(stats[b.id]).toEqual({ ownMins: 5, waitMins: 0, events: 1, ownEvents: 1 });
   });
   it('matches on the machine name the stops were logged under, when it is not the station’s name', () => {
     const c = basketer({ asset: 'Somewhere else' });
