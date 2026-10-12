@@ -1,4 +1,14 @@
-/* FIXES — their own page, because they are their own work.
+/* SNAGS & FIXES, FOR ONE JOB — the one page (snag/QuickSnagsScreen), that
+ * job only. Rowland, 12 October: "Ensure no confusion between snags, fixes,
+ * problems — one location for all, and we manage it through its own page";
+ * asked, he chose "Snags & fixes", and a job's Fixes as the same page, that
+ * job only. So this is named so, says the path once (a snag is spotted on a
+ * line; on a job it is a problem; a fix puts it right), lists the job's snags
+ * not moved yet with the one tap that makes each a fix here, says "from a
+ * snag" on what came from one, and links to every line and job. Everything
+ * below was here before and is kept.
+ *
+ * FIXES — their own page, because they are their own work.
  *
  * Rowland: "the fix is in the testing page — don't want it there. It all falls
  * under the project, it needs its own tab."
@@ -34,7 +44,7 @@
  * the dates — and × brings you back here. The legend went with the boxes:
  * every row says its state in words beside its colour.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { forget, hasKept, useKept } from '../lib/kept';
 import { listTests } from '../db';
 import { uid } from '../lib/ids';
@@ -56,6 +66,13 @@ import { EvidenceThumb, EvidenceViewer, pinsOnJob } from '../ui/Evidence';
 import type { MediaRef } from '../types';
 import { CriticalTag } from '../ui/CriticalFields';
 import { fixFlag } from '../lib/critical';
+import { listAllSnags, listWorkspaces, onDataChange } from '../db';
+import { nav } from '../state/useRoute';
+import { sendSnags } from '../snag/quick';
+import { openQuickSnag } from '../snag/QuickSnag';
+import { offerUndo } from '../ui/Undo';
+import type { Snag } from '../snag/types';
+import type { Workspace } from '../types';
 
 const nice = (iso?: string): string => niceDay(iso) || '—';
 
@@ -82,6 +99,14 @@ export function FixesScreen({ projectId }: { projectId: string }) {
   const [heard, setHeard] = useState<VoiceResult | null>(null);
   /* A problem's picture, opened large with its marks (ui/Evidence). */
   const [viewing, setViewing] = useState<MediaRef | null>(null);
+  /* THE SNAGS — this job's not moved yet, and which records came from one. */
+  const [snags, setSnags] = useState<Snag[]>([]);
+  const [lines, setLines] = useState<Workspace[]>([]);
+  useEffect(() => {
+    const load = () => void Promise.all([listAllSnags(), listWorkspaces()]).then(([a, w]) => { setSnags(a); setLines(w); });
+    load();
+    return onDataChange(load);
+  }, []);
 
   if (loading || tt.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   if (!project) return <div className="wrap pace"><p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p></div>;
@@ -156,12 +181,26 @@ export function FixesScreen({ projectId }: { projectId: string }) {
   const openNoted = [...noted.open.filter(n => n.item.critical), ...noted.open.filter(n => !n.item.critical && n.item.risk), ...noted.open.filter(n => !n.item.critical && !n.item.risk)];
   /* A fix's flag — critical or high risk — is its problem's (lib/critical fixFlag). */
   const flagOf = (t: Test) => fixFlag(t.id, tt.items).flag;
+  /* WHAT STARTED AS A SNAG: the problem a snag became, and the fix booked from it. */
+  const lineName = (id: string) => lines.find(w => w.id === id)?.name ?? 'a line';
+  const snagOfItem = new Map<string, Snag>();
+  for (const sn of snags) for (const x of sn.sent ?? []) if (x.projectId === projectId) snagOfItem.set(x.itemId, sn);
+  const snagOfFix = new Map<string, Snag>();
+  for (const i of tt.items) { const sn = snagOfItem.get(i.id); if (sn && i.becameTestId) snagOfFix.set(i.becameTestId, sn); }
+  const fromSnag = (sn?: Snag) => (sn ? `from a snag on ${lineName(sn.workspaceId)}` : undefined);
+  const jobSnags = snags.filter(sn => sn.projectId === projectId && !(sn.sent ?? []).length && sn.status !== 'closed' && !sn.deletedAt);
+  const makeFix = async (sn: Snag) => {
+    const undo = await sendSnags([sn], projectId, undefined, { fix: true }, project.name);
+    offerUndo(`“${sn.problem || 'The snag'}” is a fix here now`, undo);
+  };
 
   return (
     <div className="wrap pace cm-screen">
       <header className="pace-head">
         <div className="pace-head-main">
-          <h1 className="pace-title">Fixes</h1>
+          <h1 className="pace-title">Snags &amp; fixes</h1>
+          <p className="qsl-path">A <b>snag</b> is spotted on a line. Once it is on a job it is a <b>problem</b>; a <b>fix</b> is what puts it right.{' '}
+            <button type="button" className="linkish" onClick={() => nav('/snags')}>Every line and job ›</button></p>
           <p className="cw-handover">
             {st.upcoming.length > 0
               ? <>
@@ -182,10 +221,37 @@ export function FixesScreen({ projectId }: { projectId: string }) {
         onAnswer={(t, outcome) => void tt.patchTest(t.id, cur => ({ outcome, ranOn: cur.ranOn ?? todayISO() }))}
         onUndo={before => void tt.patchTest(before.id, { outcome: 'planned', ranOn: before.ranOn })} />}
 
+      {/* SNAGS FOR THIS JOB, NOT MOVED YET — named for it when they were taken
+          (snag/QuickSnag); one tap makes each a fix here (snag/quick sendSnags). */}
+      {jobSnags.length > 0 && (
+        <section className="cmp-sec">
+          <div className="cw-sec-h">
+            <h2 className="cmp-h">Snags for this job — not on it yet</h2>
+            <span className="cmp-h-n">{jobSnags.length}</span>
+          </div>
+          <div className="fxl" role="list">
+            {jobSnags.map(sn => (
+              <div key={sn.id} role="listitem" className="fxl-row fxl-noted is-soon">
+                <span className="fxl-bar" aria-hidden />
+                <span className="fxl-mcol">
+                  <button type="button" className="fxl-m fxl-open" onClick={() => openQuickSnag(sn)}>
+                    <b><span className="qsl-kind">Snag</span>{sn.problem || 'A picture, no words yet'}</b>
+                    <small>{lineName(sn.workspaceId)}{sn.targetAsset ? ` · ${sn.targetAsset}` : ''} · {sn.owner || 'nobody yet'}</small>
+                  </button>
+                </span>
+                <span className="fxl-side">
+                  {can.edit ? <button type="button" className="btn btn-sm" onClick={() => void makeFix(sn)}>Make it a fix</button> : <em className="fxl-when">Not on the job yet</em>}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* STILL TO DO, soonest first — the list somebody works off. */}
       <section className="cmp-sec">
         <div className="cw-sec-h">
-          <h2 className="cmp-h">Still to do</h2>
+          <h2 className="cmp-h">Fixes — still to do</h2>
           {st.upcoming.length > 0 && <span className="cmp-h-n">{st.upcoming.length}</span>}
         </div>
 
@@ -278,7 +344,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
              list items, so a keyboard or a screen reader did not hear them
              as something to press (docs/FLOW.md item 7). */
           <div className="fxl">
-            {toDo.map(t => <FixRow key={t.id} t={t} machine={machine(t)} from={cameFrom(t)} flag={flagOf(t)} onOpen={() => open(t.id)} />)}
+            {toDo.map(t => <FixRow key={t.id} t={t} machine={machine(t)} from={cameFrom(t)} flag={flagOf(t)} snag={fromSnag(snagOfFix.get(t.id))} onOpen={() => open(t.id)} />)}
           </div>
         )}
 
@@ -294,11 +360,11 @@ export function FixesScreen({ projectId }: { projectId: string }) {
       {st.done.length > 0 && (
         <section className="cmp-sec">
           <div className="cw-sec-h">
-            <h2 className="cmp-h">Done</h2>
+            <h2 className="cmp-h">Fixes — done</h2>
             <span className="cmp-h-n">{st.done.length}</span>
           </div>
           <div className="fxl">
-            {st.done.map(t => <FixRow key={t.id} t={t} machine={machine(t)} from={cameFrom(t)} flag={flagOf(t)} onOpen={() => open(t.id)} />)}
+            {st.done.map(t => <FixRow key={t.id} t={t} machine={machine(t)} from={cameFrom(t)} flag={flagOf(t)} snag={fromSnag(snagOfFix.get(t.id))} onOpen={() => open(t.id)} />)}
           </div>
         </section>
       )}
@@ -317,7 +383,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
           </div>
           <div className="fxl" role="list">
             {[...openNoted, ...noted.sorted].map(n => (
-              <NotedRow key={n.item.id} n={n} onView={setViewing} onOpen={() => open(n.item.id)} />
+              <NotedRow key={n.item.id} n={n} snag={fromSnag(snagOfItem.get(n.item.id))} onView={setViewing} onOpen={() => open(n.item.id)} />
             ))}
           </div>
         </section>
@@ -345,8 +411,10 @@ import { Icon } from '../ui/Icon';
 /** One fix, as a row: a stripe and a date in the fix's colour (lib/fixTone —
  *  the same rule the drawer, the walk and the client report use), the fix,
  *  and under it the machine, what it is for and who. */
-function FixRow({ t, machine, from, flag, onOpen }: {
+function FixRow({ t, machine, from, flag, snag, onOpen }: {
   t: Test; machine: string; from?: Test; onOpen: () => void;
+  /** It started as a snag: "from a snag on Line 7". */
+  snag?: string;
   /** Flagged critical or high risk, on its problem (lib/critical fixFlag). */
   flag?: 'critical' | 'risk';
 }) {
@@ -360,7 +428,7 @@ function FixRow({ t, machine, from, flag, onOpen }: {
       <span className="fxl-m">
         <b>{flag && <CriticalTag sorted={t.outcome === 'passed'} risk={flag === 'risk'} />}{t.title}</b>
         <small>
-          {machine} · {from ? `for ${from.title}` : 'not from a test'} · <span className={t.withWhom ? '' : 'fxl-none'}>{t.withWhom || 'nobody yet'}</span>
+          {machine} · {from ? `for ${from.title}` : 'not from a test'} · <span className={t.withWhom ? '' : 'fxl-none'}>{t.withWhom || 'nobody yet'}</span>{snag ? ` · ${snag}` : ''}
         </small>
       </span>
       <em className="fxl-when">{when}</em>
@@ -371,8 +439,10 @@ function FixRow({ t, machine, from, flag, onOpen }: {
 /** A problem with no fix: amber while open (it is waiting on something — the
  *  colour rules), a quiet green once sorted; where it was found, the day, the
  *  hours it cost; and the two things to do with it. */
-function NotedRow({ n, onOpen, onView }: {
+function NotedRow({ n, snag, onOpen, onView }: {
   n: Noted; onOpen: () => void;
+  /** It started as a snag: "from a snag on Line 7". */
+  snag?: string;
   /** A picture of it, opened large — with what is marked on it. */
   onView: (m: MediaRef) => void;
 }) {
@@ -390,7 +460,7 @@ function NotedRow({ n, onOpen, onView }: {
         <button type="button" className="fxl-m fxl-open" onClick={onOpen}>
           <b>{crit && <CriticalTag sorted={sorted} />}{!crit && n.item.risk && <CriticalTag sorted={sorted} risk />}{n.item.what}</b>
           <small>
-            {n.where} · {niceDay(n.day)}{n.item.hoursLost ? ` · ${hoursWord(n.item.hoursLost)} lost` : ''}{moved ? ' · moved the finish' : ''}
+            {n.where} · {niceDay(n.day)}{n.item.hoursLost ? ` · ${hoursWord(n.item.hoursLost)} lost` : ''}{moved ? ' · moved the finish' : ''}{snag ? ` · ${snag}` : ''}
           </small>
         </button>
         {(n.item.media ?? []).length > 0 && (

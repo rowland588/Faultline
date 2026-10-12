@@ -384,32 +384,45 @@ for (const size of SIZES) {
       rows.push({ size, report: name, pages: 0, faults: [`could not make it: ${e.message.split('\n')[0]}`] });
     }
   }
-  /* THE SNAGS REPORT (lib/snagsReportPdf, 12 October: "Snags need its own
-     report on the snag page") — seeded after the job's own reports, so the
-     snags moved to the job cannot change them (the status report is one
-     page): snags on two lines taken every way, every state, some with a
-     picture, some moved to the job (lib/dev seedSnagsFor). Every snag's
-     words must be on the paper, and the job each moved one went to. */
+  /* THE SNAGS & FIXES REPORT (lib/snagsReportPdf; 12 October: "Snags need
+     its own report on the snag page", then "one location for all" snags,
+     problems and fixes) — seeded after the job's own reports, so the snags
+     moved to the job cannot change them (the status report is one page):
+     snags on two lines taken every way, every state, some with a picture,
+     some moved to the job (lib/dev seedSnagsFor). The page opens on
+     Everything open: every open snag's words, and every open problem and fix
+     on every job with the job's name, must be on the paper — read off the
+     records by the page's own module (lib/snagsReport). */
   {
     const mustSnags = await page.evaluate(async ({ size, pid }) => {
       await (await import('/src/dev/reportSeeds.ts')).seedSnagsFor(size, pid);
       const { san } = await import('/src/lib/reportKit.ts');
       await (await import('/src/lib/savePdf.ts')).loadPdfLib();
-      const all = await (await import('/src/db.ts')).listAllSnags();
-      const project = await (await import('/src/db/projects.ts')).getProject(pid);
+      const db = await import('/src/db.ts'); const R = await import('/src/lib/snagsReport.ts');
+      const { planModel } = await import('/src/lib/planModel.ts');
+      const [all, ws, projects] = await Promise.all([db.listAllSnags(), db.listWorkspaces(), (await import('/src/db/projects.ts')).allProjects()]);
+      const lineName = id => ws.find(w => w.id === id)?.name ?? 'A line';
+      const became = new Map(), jobs = [];
+      for (const p of projects.filter(x => !x.archivedAt)) {
+        const [tests, items, assets, todos] = await Promise.all([db.listTests(p.id), db.listTestItems(p.id), db.listAssets(p.id), db.listPaceTodos(p.id)]);
+        for (const [k, v] of R.becameOn(p.id, tests, items, assets, todos)) became.set(k, v);
+        const gated = planModel(p) === 'commissioning';
+        jobs.push(R.jobGroup({ projectId: p.id, job: p.name, tests: gated ? tests : [], items: gated ? items : [], assets, todos: gated ? [] : todos, snags: all, lineName }));
+      }
+      const r = R.snagsReading({ snags: all, lineName, jobName: id => projects.find(p => p.id === id)?.name, became, jobs });
       const out = [];
       const add = (from, v) => { if (v && san(v)) out.push([v, san(v), from]); };
-      for (const s of all) add('snag', s.problem);
-      if (all.some(s => (s.sent ?? []).length)) add('moved to', project?.name);
+      for (const l of r.lines) for (const x of l.rows) if (x.status !== 'closed') add('snag', x.what);
+      for (const g of r.jobs) if (g.rows.some(x => x.open)) { add('job', g.job); for (const x of g.rows) if (x.open) add(`${x.kind} on ${g.job}`, x.what); }
       return out;
     }, { size, pid: job.projectId });
     const file = `${OUT}/${size}-snags.pdf`;
     try {
-      await download(page, '#/snags', file, [['Snags report']]);
+      await download(page, '#/snags', file, [['Snags & fixes report']]);
       const r = check(file, mustSnags);
-      rows.push({ size, report: 'snags', pages: r.pages, faults: r.faults, said: r.said });
+      rows.push({ size, report: 'snags & fixes', pages: r.pages, faults: r.faults, said: r.said });
     } catch (e) {
-      rows.push({ size, report: 'snags', pages: 0, faults: [`could not make it: ${e.message.split('\n')[0]}`] });
+      rows.push({ size, report: 'snags & fixes', pages: 0, faults: [`could not make it: ${e.message.split('\n')[0]}`] });
     }
   }
   if (errors.length) rows.push({ size, report: '(console)', pages: 0, faults: errors });

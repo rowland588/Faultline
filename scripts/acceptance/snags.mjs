@@ -1,27 +1,30 @@
-/* ACCEPTANCE — THE SNAGS PAGE AS A WORKING PAGE (docs/BUILD.md, Snags).
+/* ACCEPTANCE — SNAGS & FIXES: ONE PLACE FOR EVERY SNAG, PROBLEM AND FIX
+ * (docs/BUILD.md, Snags & fixes).
  *
- * Rowland, 12 October: "Snags need its own report on the snag page ... I
- * have moved some snags, it says moved to jobs — those snags I don't know
- * where they are ... the Snags page needs to be a working page, not just a
- * home for snags and transfers, as it may be the best place to organise all
- * snags rather than have them spread all over." The story, driven in a real
- * browser on the seeded line and job with the real controls:
+ * Rowland, 12 October: "the Snags page needs to be a working page ... the
+ * best place to organise all snags"; "Snags need its own report"; "I have
+ * moved some snags ... I don't know where they are"; then "Ensure no
+ * confusion between snags, fixes, problems — one location for all, and we
+ * manage it through its own page" (asked: "Snags & fixes", and a job's Fixes
+ * as the same page, that job only); and "add edit project name". Driven in a
+ * real browser on the seeded lines and job with the real controls:
  *
- *   1  every snag on the page, however it was taken — on the move, pinned on
- *      the walk — each saying where it came from; the sentence and the counts
- *      the module's (lib/snagsReport)
- *   2  ticked and moved to a job: it leaves its line's list and is shown
- *      under the job, saying what it became there and how it stands — and
- *      the door opens it in the job
- *   3  worked where it sits: its state, whose it is and the day it is due
- *      changed on the row, kept, and said back ("3 days late" in red)
- *   4  the counts are the filters: Late shows the late ones only; By who
- *      groups them by whose they are, nobody's last
- *   5  several at once: tick two, give them a name and a day, close them —
- *      with the undo offered
- *   6  the Snags report: what the page shows, on paper — every snag's words,
- *      the job a moved one went to
- *   7  on a phone: nothing off the side, every row's controls under it
+ *   1  one page, the path said once, every row saying what it is: every
+ *      snag on its line (on the move, pinned on the walk), each job's problems
+ *      and fixes under it; the sentence and the counts the module's
+ *      (lib/snagsReport)
+ *   2  a snag ticked and moved to a job: shown once — as the fix it became,
+ *      under that job, "from a snag on" its line — and its door opens it
+ *   3  a snag worked where it sits: its state, whose and its day, kept and
+ *      said back ("3 days late" in red)
+ *   4  the counts are the filters: Late, Problems; By who, nobody's last
+ *   5  several at once: a name together, closed together, the undo offered
+ *   6  the Snags & fixes report: every open snag, problem and fix on paper
+ *   7  the job's own view (its Fixes link): the same name and path, its
+ *      snags not on it yet made a fix in one tap, "from a snag" on the fix,
+ *      and the way back to every line and job
+ *   8  the job renamed on its front page: the new name on Snags & fixes
+ *   9  on a phone: nothing off the side, the controls under the snag
  *   and no console error anywhere.
  *
  *   node scripts/acceptance/snags.mjs      (SMOKE_BASE, as smoke) */
@@ -78,36 +81,46 @@ const sd = await page.evaluate(async () => {
   for (const s of list) await db.addSnag(s);
   return { ...seed, ids: Object.fromEntries(list.map(s => [s.problem, s.id])), job: (await (await import('/src/db/projects.ts')).getProject(seed.projectId)).name };
 });
-/* What the module says of the snags as they stand — read as the page reads them. */
+/* What the module says, read as the page reads it — every snag, and every job's problems and fixes. */
 const truth = () => page.evaluate(async () => {
   const db = await import('/src/db.ts'); const R = await import('/src/lib/snagsReport.ts'); const P = await import('/src/db/projects.ts');
+  const { planModel } = await import('/src/lib/planModel.ts');
   const [snags, ws, projects] = await Promise.all([db.listAllSnags(), db.listWorkspaces(), P.allProjects()]);
   const frames = new Map((await Promise.all([...new Set(snags.filter(s => s.assetId).map(s => s.workspaceId))].map(id => db.listSnagAssets(id)))).flat().map(a => [a.id, a]));
-  const became = new Map();
-  for (const pid of new Set(snags.flatMap(s => (s.sent ?? []).map(x => x.projectId)))) {
-    const [tests, items, assets, todos] = await Promise.all([db.listTests(pid), db.listTestItems(pid), db.listAssets(pid), db.listPaceTodos(pid)]);
-    for (const [k, v] of R.becameOn(pid, tests, items, assets, todos)) became.set(k, v);
+  const lineName = id => ws.find(w => w.id === id)?.name ?? 'A line';
+  const became = new Map(), jobs = [];
+  for (const p of projects.filter(x => !x.archivedAt)) {
+    const [tests, items, assets, todos] = await Promise.all([db.listTests(p.id), db.listTestItems(p.id), db.listAssets(p.id), db.listPaceTodos(p.id)]);
+    for (const [k, v] of R.becameOn(p.id, tests, items, assets, todos)) became.set(k, v);
+    const gated = planModel(p) === 'commissioning';
+    jobs.push(R.jobGroup({ projectId: p.id, job: p.name, tests: gated ? tests : [], items: gated ? items : [], assets, todos: gated ? [] : todos, snags, lineName }));
   }
-  const r = R.snagsReading({ snags, lineName: id => ws.find(w => w.id === id)?.name ?? 'A line', jobName: id => projects.find(p => p.id === id)?.name, became,
+  const r = R.snagsReading({ snags, lineName, jobName: id => projects.find(p => p.id === id)?.name, became, jobs,
     assetName: s => (s.assetId ? frames.get(s.assetId)?.name : undefined), stillOf: s => (s.assetId ? frames.get(s.assetId)?.stillKey : undefined) });
-  return { says: r.says, counts: r.counts, rows: r.lines.flatMap(l => l.rows), moved: r.moved, snags };
+  return { says: r.says, counts: r.counts, rows: r.lines.flatMap(l => l.rows), jobs: r.jobs, moved: r.moved, snags };
 });
+const openCount = c => c.open + c.in_progress + c.problems + c.fixes;
 
-/* ---- 1 every snag, where it came from ---- */
+/* ---- 1 one page, the path once, every row saying what it is ---- */
 await go('#/snags');
 {
   const t = await truth();
+  ok((await words('h1')) === 'Snags & fixes' && /A snag is spotted on a line\. Once it is on a job it is a problem; a fix is what puts it right\./.test(await words('.qsl-path')), '1 one page, Snags & fixes, the path said once');
   ok((await words('.qsl-says')) === t.says, `1 the sentence is the module's: ${t.says}`);
   const chips = (await page.locator('.qsl-f .chip').allInnerTexts()).map(x => x.replace(/\s+/g, ' ').trim());
-  ok(chips.join('|') === `All · ${t.counts.open + t.counts.in_progress + t.counts.closed + t.counts.moved}|Open · ${t.counts.open}|In progress · ${t.counts.in_progress}|Late · ${t.counts.late}|Closed · ${t.counts.closed}|Moved to jobs · ${t.counts.moved}`, `1 the counts: ${chips.join(' · ')}`);
-  ok((await page.locator('.qsl-work').count()) === t.rows.length && t.rows.length === 7, `1 every snag on its line: ${t.rows.length} rows (4 on the move, 3 pinned on the walk)`);
-  ok(/From the walk — on the Former roller/.test(await words('.qsl-meta', row('seeded snag 0'))) && /Taken on the move — Bagger/.test(await words('.qsl-meta', row('Guard on the infeed loose'))),
-    '1 each says where it came from — on the walk, on the move');
-  ok(/for Line 2 commissioning — not moved yet/.test(await words('.qsl-meta', row('Label printer ribbon low'))), '1 named for the job and not moved yet — said so');
-  ok((await row('Seal jaw leaves marks').locator('.ev-thumb img, img').count()) > 0, '1 its picture on its row');
+  ok(chips.join('|') === `Everything open · ${openCount(t.counts)}|Snags · ${t.counts.open + t.counts.in_progress}|Problems · ${t.counts.problems}|Fixes · ${t.counts.fixes}|Late · ${t.counts.late + t.counts.jobLate}|Done · ${t.counts.closed + t.counts.jobDone}`, `1 the counts: ${chips.join(' · ')}`);
+  const openSnags = t.rows.filter(r => r.status !== 'closed');
+  ok((await page.locator('.qsl-work').count()) === openSnags.length && openSnags.length === 5, `1 every open snag on its line: ${openSnags.length}`);
+  ok(/^SNAG|^Snag/.test(await words('.qsl-kind', row('seeded snag 0'))) && /From the walk — on the Former roller/.test(await words('.qsl-meta', row('seeded snag 0'))) && /Taken on the move — Bagger/.test(await words('.qsl-meta', row('Guard on the infeed loose'))),
+    '1 a snag says it is a snag, and where it came from — on the walk, on the move');
+  const g = t.jobs.find(x => x.job === sd.job);
+  const jobKinds = (await page.locator('.qsl-job', { hasText: sd.job }).first().locator('.qsl-kind').allInnerTexts()).map(x => x.trim().toLowerCase());
+  ok(!!g && jobKinds.length === g.rows.filter(r => r.open).length && jobKinds.every(k => k === 'problem' || k === 'fix'), `1 the job's problems and fixes under it, each saying which: ${jobKinds.join(', ')}`);
+  ok(/for Line 2 commissioning — not moved yet/.test(await words('.qsl-meta', row('Label printer ribbon low'))), '1 a snag named for the job and not moved yet — said so');
+  ok((await row('Seal jaw leaves marks').locator('img').count()) > 0, '1 its picture on its row');
 }
 
-/* ---- 2 moved to a job, and followed there ---- */
+/* ---- 2 moved to a job, and shown once — as what it became ---- */
 {
   await row('Seal jaw leaves marks').locator('.qsl-tick input').check();
   await page.getByRole('button', { name: 'Move to a job' }).click(); await page.waitForTimeout(600);
@@ -115,21 +128,20 @@ await go('#/snags');
   await sheet.locator('select').first().selectOption({ label: sd.job }); await page.waitForTimeout(800);
   await sheet.getByRole('button', { name: /^Move 1$/ }).click(); await page.waitForTimeout(1500);
   const t = await truth();
-  const m = t.moved.find(g => g.job === sd.job)?.rows.find(r => r.what === 'Seal jaw leaves marks');
-  ok(!!m && (await page.locator('.qsl-work', { hasText: 'Seal jaw leaves marks' }).count()) === 0, '2 moved: it leaves its line\'s list');
-  const sec = page.locator('.qsl-moved', { hasText: `Moved to ${sd.job}` });
-  const said = await words('.qsl-became', sec.locator('.qsl-row', { hasText: 'Seal jaw leaves marks' }));
-  ok(!!m && said === `Now ${m.says} — open it there ›` && /^a fix — /.test(m.says), `2 under its job, what it became and how it stands: "${said}"`);
-  await sec.locator('.qsl-row', { hasText: 'Seal jaw leaves marks' }).locator('.qsl-open').click(); await page.waitForTimeout(1500);
-  ok(/Seal jaw leaves marks/.test(await page.locator('body').innerText()) && (await page.locator('.rd, .drawer, [role="dialog"]').count()) > 0, '2 the door opens it in the job');
+  const f = t.jobs.find(g => g.job === sd.job)?.rows.find(r => r.what === 'Seal jaw leaves marks');
+  ok(!!f && f.kind === 'fix' && /^a snag on /.test(f.fromSnag ?? '') && (await page.locator('.qsl-work', { hasText: 'Seal jaw leaves marks' }).count()) === 0 && !t.moved.length, '2 moved: off the snags, shown once — as the fix it became');
+  const jr = page.locator('.qsl-job', { hasText: sd.job }).first().locator('.qsl-row', { hasText: 'Seal jaw leaves marks' });
+  const said = await words('.qsl-meta', jr);
+  ok(/^FIX|^Fix/.test(await words('.qsl-kind', jr)) && said.includes(`from ${f?.fromSnag}`) && (await words('.qsl-state', jr)) === f?.word, `2 under its job, a fix "from ${f?.fromSnag}", ${f?.word}`);
+  await jr.locator('.qsl-open').click(); await page.waitForTimeout(1500);
+  ok((await page.locator('.rd, .drawer, [role="dialog"]').count()) > 0 && /Seal jaw leaves marks/.test(await page.locator('body').innerText()), '2 its door opens it in the job');
   await page.keyboard.press('Escape'); await page.waitForTimeout(400);
 }
 
 /* ---- 3 worked where it sits ---- */
 await go('#/snags');
 {
-  const r = row('Film wandering on the former');
-  await r.locator('select.qsl-st').selectOption('closed'); await page.waitForTimeout(800);
+  await row('Film wandering on the former').locator('select.qsl-st').selectOption('closed'); await page.waitForTimeout(800);
   let t = await truth();
   ok(t.snags.find(s => s.id === sd.ids['Film wandering on the former'])?.status === 'closed', '3 its state changed on the row, and kept');
   await row('Label printer ribbon low').locator('input.qsl-who').fill('Priya'); await row('Label printer ribbon low').locator('input.qsl-who').press('Enter'); await page.waitForTimeout(800);
@@ -142,14 +154,18 @@ await go('#/snags');
 
 /* ---- 4 the counts are the filters; by who ---- */
 {
-  await page.locator('.qsl-f .chip', { hasText: 'Late' }).click(); await page.waitForTimeout(400);
   const t = await truth();
-  const shown = await page.locator('.qsl-work .qsl-what').allInnerTexts();
-  ok(shown.length === t.rows.filter(r => r.late).length && shown.every(w => t.rows.find(r => r.what === w)?.late), `4 Late shows the late only: ${shown.join(', ')}`);
-  await page.locator('.qsl-f .chip', { hasText: 'All' }).click(); await page.getByRole('button', { name: 'By who' }).click(); await page.waitForTimeout(400);
-  const heads = (await page.locator('.qsl-gh h2').allInnerTexts()).filter(h => !/^Moved to/.test(h));
-  const owners = [...new Set(t.rows.map(r => r.owner).filter(Boolean))];
-  ok(heads.at(-1) === 'Nobody yet' && owners.every(o => heads.includes(o)), `4 by who, nobody's last: ${heads.join(' · ')}`);
+  await page.locator('.qsl-f .chip', { hasText: 'Late' }).click(); await page.waitForTimeout(400);
+  const lateSnags = await page.locator('.qsl-work .qsl-what').allInnerTexts();
+  const lateJob = await page.locator('.qsl-job .qsl-row').count();
+  ok(lateSnags.length === t.rows.filter(r => r.late).length && lateJob === t.jobs.reduce((n, g) => n + g.rows.filter(r => r.late).length, 0), `4 Late shows the late only: ${lateSnags.length} snag(s), ${lateJob} on the jobs`);
+  await page.locator('.qsl-f .chip', { hasText: 'Problems' }).click(); await page.waitForTimeout(400);
+  const kinds = (await page.locator('.qsl-kind').allInnerTexts()).map(x => x.trim().toLowerCase());
+  ok(kinds.length === t.counts.problems && kinds.every(k => k === 'problem'), `4 Problems shows the problems only: ${kinds.length}`);
+  await page.locator('.qsl-f .chip', { hasText: 'Everything open' }).click(); await page.getByRole('button', { name: 'By who' }).click(); await page.waitForTimeout(400);
+  const heads = await page.locator('.qsl-g:not(.qsl-job):not(.qsl-moved) .qsl-gh h2').allInnerTexts();
+  const owners = [...new Set(t.rows.filter(r => r.status !== 'closed').map(r => r.owner ?? 'Nobody yet'))];
+  ok(heads.length === owners.length && owners.every(o => heads.includes(o)) && (!heads.includes('Nobody yet') || heads.at(-1) === 'Nobody yet'), `4 snags by who, nobody's last: ${heads.join(' · ')}`);
   await page.getByRole('button', { name: 'By line' }).click(); await page.waitForTimeout(300);
 }
 
@@ -170,29 +186,61 @@ await go('#/snags');
   ok(t.snags.filter(s => ['seeded snag 0', 'Label printer ribbon low'].includes(s.problem)).every(s => s.status === 'closed') && undo, '5 closed together, the undo offered');
 }
 
-/* ---- 6 the Snags report ---- */
+/* ---- 6 the Snags & fixes report ---- */
 {
   const t = await truth();
   const dir = mkdtempSync(join(tmpdir(), 'snags-'));
-  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), page.getByRole('button', { name: 'Snags report' }).click()]);
-  const file = join(dir, 'snags.pdf'); await dl.saveAs(file);
-  const txt = execFileSync('pdftotext', ['-layout', file, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
-  const all = [...t.rows.map(r => r.what), ...t.moved.flatMap(g => g.rows.map(r => r.what))];
-  const lost = all.filter(w => !txt.includes(w));
-  ok(/SNAGS/.test(txt) && /Every snag/.test(txt) && !lost.length && txt.includes(sd.job), `6 the report: every snag's words (${all.length}) and the job a moved one went to${lost.length ? ` — lost: ${lost.join(', ')}` : ''}`);
-  ok(txt.includes(t.says.replace(/\s+/g, ' ').slice(0, 40)), '6 the report says what the page says');
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), page.getByRole('button', { name: 'Snags & fixes report' }).click()]);
+  const file = join(dir, 'snags.pdf'); await dl.saveAs(file); if (process.env.KEEP_PDF) execFileSync('cp', [file, process.env.KEEP_PDF]);
+  const txt = execFileSync('pdftotext', ['-raw', file, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
+  /* as the paper prints them — lib/reportKit san() keeps what the PDF's fonts can draw */
+  const all = await page.evaluate(async ws => { const { san } = await import('/src/lib/reportKit.ts'); await (await import('/src/lib/savePdf.ts')).loadPdfLib(); return ws.map(w => san(w)); },
+    [...t.rows.filter(r => r.status !== 'closed').map(r => r.what), ...t.jobs.flatMap(g => g.rows.filter(r => r.open).map(r => r.what))]);
+  const flatTxt = txt.replace(/\s+/g, '');
+  const lost = all.filter(w => !flatTxt.includes(w.replace(/\s+/g, '')));
+  ok(/SNAGS & FIXES/.test(txt) && /Everything open/.test(txt) && !lost.length && txt.includes(sd.job) && /SNAG ·/.test(txt) && /FIX ·/.test(txt), `6 the report: every open snag, problem and fix (${all.length}), each saying which${lost.length ? ` — lost: ${lost.slice(0, 4).join(', ')}` : ''}`);
 }
 
-/* ---- 7 on a phone ---- */
+/* ---- 7 the job's own view ---- */
+{
+  const before = await truth();
+  await page.evaluate(async ({ ws, pid }) => {
+    const db = await import('/src/db.ts');
+    await db.addSnag({ id: crypto.randomUUID(), workspaceId: ws, status: 'open', raisedAt: Date.now(), updatedAt: Date.now(), media: [], problem: 'Coder misprints the date', projectId: pid });
+  }, { ws: sd.wsId, pid: sd.projectId });
+  await go(`#/project/${sd.projectId}/fixes`);
+  ok((await words('h1')) === 'Snags & fixes' && /A snag is spotted on a line/.test(await words('.qsl-path')), '7 the job\'s view: the same name and the path');
+  const sec = page.locator('.cmp-sec', { hasText: 'Snags for this job — not on it yet' });
+  ok((await sec.locator('.fxl-row', { hasText: 'Coder misprints the date' }).count()) === 1, '7 its snag not on it yet, listed');
+  await sec.locator('.fxl-row', { hasText: 'Coder misprints the date' }).getByRole('button', { name: 'Make it a fix' }).click(); await page.waitForTimeout(1500);
+  const fixRow = page.locator('.fxl-row', { hasText: 'Coder misprints the date' }).first();
+  ok((await sec.count()) === 0 || (await sec.locator('.fxl-row', { hasText: 'Coder misprints the date' }).count()) === 0, '7 made a fix in one tap — off the snags');
+  ok(/from a snag on /.test(await fixRow.innerText()), `7 the fix says it came from a snag: "${(await fixRow.innerText()).replace(/\s+/g, ' ').slice(0, 120)}"`);
+  await page.getByRole('button', { name: 'Every line and job ›' }).click(); await page.waitForTimeout(1500);
+  ok(/#\/snags/.test(page.url()) && (await truth()).counts.fixes === before.counts.fixes + 1, '7 back to every line and job — the fix counted there too');
+}
+
+/* ---- 8 the job renamed on its front page ---- */
+{
+  await go(`#/project/${sd.projectId}`);
+  await page.getByRole('button', { name: new RegExp(`^Rename `) }).click(); await page.waitForTimeout(300);
+  await page.locator('.ptitle-input').fill('Line 2 rebuild — wrapper and coder');
+  await page.locator('.ptitle-form').getByRole('button', { name: 'Save' }).click(); await page.waitForTimeout(1000);
+  const h = await words('h1');
+  await go('#/snags');
+  ok(h.startsWith('Line 2 rebuild — wrapper and coder') && (await page.locator('.qsl-job h2', { hasText: 'Line 2 rebuild — wrapper and coder' }).count()) === 1, `8 renamed on its front page, and the new name on Snags & fixes`);
+}
+
+/* ---- 9 on a phone ---- */
 {
   await page.setViewportSize({ width: 390, height: 844 }); await go('#/snags');
   const wide = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   const r = row('Guard on the infeed loose');
   const [box, ctl] = [await r.locator('.qsl-open').boundingBox(), await r.locator('.qsl-ctl').boundingBox()];
-  ok(wide <= 1 && !!box && !!ctl && ctl.y >= box.y + box.height - 2, `7 on a phone: nothing off the side (${wide}px), the controls under the snag`);
+  ok(wide <= 1 && !!box && !!ctl && ctl.y >= box.y + box.height - 2, `9 on a phone: nothing off the side (${wide}px), the controls under the snag`);
 }
 
 ok(errors.length === 0, `no console errors${errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''}`);
 await browser.close();
-console.log(failed ? `\nSnags NOT accepted: ${failed} failed` : '\nSnags accepted: every snag in one place, worked where it sits, followed to its job, on paper');
+console.log(failed ? `\nSnags & fixes NOT accepted: ${failed} failed` : '\nSnags & fixes accepted: one place for every snag, problem and fix — worked where it sits, each saying what it is, on paper');
 process.exit(failed ? 1 : 0);

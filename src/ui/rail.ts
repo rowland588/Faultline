@@ -163,7 +163,7 @@ export const controlRoom = (here: string): RailLine =>
 /** EVERY SNAG, every line — beside the control room on every rail, because a
  *  snag is taken from anywhere (snag/QuickSnag) and sent on from there. */
 export const snagsPlace = (here: string): RailLine =>
-  ({ key: 'quicksnags', label: 'Snags', to: '/snags', on: here === 'quicksnags', state: 'n', bare: true, icon: 'camera' });
+  ({ key: 'quicksnags', label: 'Snags & fixes', to: '/snags', on: here === 'quicksnags', state: 'n', bare: true, icon: 'camera' });
 
 /** THE TOOLS — the snags, the line standard and the line balance. Rowland,
  *  8 October: "we want line standard and line balancing as tools like snag
@@ -250,7 +250,7 @@ export function workGroup(projectId: string, model: PlanModel, here: string, cou
     label: 'Work',
     lines: model === 'commissioning'
       ? [
-        counted('fixes', 'Fixes', `${p}/fixes`, here, counts, ['fixes'], 'flag'),
+        counted('fixes', 'Snags & fixes', `${p}/fixes`, here, counts, ['fixes'], 'flag'),
         counted('materials', 'Materials', `${p}/materials`, here, counts, ['materials'], 'list'),
         plain('plan', 'The plan', `${p}/plan`, here, 'chart'),
         plain('day', 'The day', `${p}/day`, here, 'time'),

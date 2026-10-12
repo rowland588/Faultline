@@ -7,7 +7,7 @@
  * Details keeps its box too: the same record, two ways to it. The new name is
  * the job's everywhere at once — the top bar, the rail, Home, every report
  * (lib/useProjects rename redraws the live list). */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useProjects } from '../lib/useProjects';
 import { Icon } from './Icon';
 import { offerUndo } from './Undo';
@@ -17,11 +17,16 @@ export function ProjectTitle({ project, canRename }: { project: Project; canRena
   const { rename } = useProjects();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(project.name);
+  /* The new name at once, while the job's live list catches up (a moment). */
+  const [pending, setPending] = useState<string | null>(null);
+  useEffect(() => { if (pending != null && project.name === pending) setPending(null); }, [project.name, pending]);
+  const shown = pending ?? project.name;
   const save = async () => {
     const name = draft.trim();
     setEditing(false);
     if (!name || name === project.name) return;
     const before = project.name;
+    setPending(name);
     await rename(project, { name, updatedAt: Date.now() });
     offerUndo(`Renamed to “${name}”`, async () => { await rename({ ...project, name }, { name: before, updatedAt: Date.now() }); });
   };
@@ -37,9 +42,9 @@ export function ProjectTitle({ project, canRename }: { project: Project; canRena
   }
   return (
     <h1 className="pace-title ptitle">
-      <span>{project.name}</span>
+      <span>{shown}</span>
       {canRename && (
-        <button type="button" className="btn btn-ghost btn-sm ptitle-edit" aria-label={`Rename ${project.name}`} onClick={() => { setDraft(project.name); setEditing(true); }}>
+        <button type="button" className="btn btn-ghost btn-sm ptitle-edit" aria-label={`Rename ${shown}`} onClick={() => { setDraft(shown); setEditing(true); }}>
           <Icon name="pencil" size="0.95em" />Rename
         </button>
       )}

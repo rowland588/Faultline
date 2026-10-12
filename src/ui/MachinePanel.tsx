@@ -96,7 +96,7 @@ export function MachinePanel({ asset, projectId, tt, programs, can, onOpen, onCl
       {(m.fixes.length > 0 || m.fixesDone > 0) && (
         <section className="rd-blk mp-gate">
           <h3 className="mp-gate-h">
-            <button type="button" className="mp-gate-go" onClick={() => go('fixes')}>Fixes ›</button>
+            <button type="button" className="mp-gate-go" onClick={() => go('fixes')}>Snags &amp; fixes ›</button>
             <span className="sub">{m.fixes.length} open{m.fixesDone ? ` · ${m.fixesDone} done` : ''}</span>
           </h3>
           {m.fixes.length > 0 && <ul className="mp-lines">{m.fixes.map(l => <Line key={l.id} l={l} onOpen={onOpen} />)}</ul>}

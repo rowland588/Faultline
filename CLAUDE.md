@@ -179,7 +179,7 @@ node scripts/acceptance/work-sampling.mjs  # H1: what people are doing at random
 node scripts/acceptance/shift-losses.mjs  # E: a shift's losses — counted on the phone at the bottleneck's ideal speed, the shift less its breaks, the waterfall, slow running told from short stops, the pounds in two parts, a bar made better, the next shift counted, before → after, the fishbone, both papers
 node scripts/acceptance/line-capacity.mjs  # Line capacity: the V-curve, the capacity sheet, the margin, a person's standard time, the bottleneck walked
 node scripts/acceptance/programs.mjs  # a program's status with commentary: the five statuses (not tested and no program among them), commentary on its own, Needs you, the paper
-node scripts/acceptance/snags.mjs  # the Snags page: every snag in one place, worked where it sits, moved ones followed to their job, its own report
+node scripts/acceptance/snags.mjs  # Snags & fixes: one place for every snag, problem and fix — each saying which, worked where it sits, a job's own view, the job renamed, its own report
 node scripts/sync-two-devices.mjs     # a phone and a laptop against a fake cloud — video on one plays on the other
 node scripts/check-live-schema.mjs    # the LIVE database against the mapper — needs .env
 ```
@@ -238,15 +238,18 @@ timed, the pounds in two parts (idle labour · lost contribution), the line's
 settings carrying each shift's breaks, a countermeasure raised from a bar in
 its own figures, the next shift counted as its proof, before → after on it,
 the line's card, the control room and the fishbone carrying the count, and
-the waterfall as a table on the 6M report and the stage-gate client report. `snags.mjs` is the Snags page as
-a working page (Rowland, 12 October: "the best place to organise all snags
-rather than have them spread all over"): every snag on every line however it
-was taken, each saying where it came from, the sentence and the counts as
-`lib/snagsReport` says them; one ticked and moved to a job, then shown under
-that job saying what it became and how it stands there, its door opening it
-in the job; a snag's state, whose and its day changed on its row; the counts
-as the filters and By who; several given a name and closed together with the
-undo; the Snags report carrying every snag's words; and the phone.
+the waterfall as a table on the 6M report and the stage-gate client report. `snags.mjs` is Snags & fixes,
+one place for every snag, problem and fix (Rowland, 12 October: "ensure no
+confusion between snags, fixes, problems — one location for all, and we
+manage it through its own page"): the path said once and every row saying
+what it is; every snag on every line and each job's problems and fixes, the
+sentence and the counts as `lib/snagsReport` says them; a snag moved to a job
+shown once, as the fix it became, "from a snag on" its line; a snag's state,
+whose and its day changed on its row; the counts as the filters; several
+changed together with the undo; the Snags & fixes report carrying every open
+snag, problem and fix; a job's own view (its Fixes link) with its snags not
+on it yet made a fix in one tap; the job renamed on its front page and the
+new name on the page; and the phone.
 `programs.mjs` is a program's status with commentary (Rowland, 12 October:
 "we need option not tested, and no program, and allow commentary"): the five
 statuses offered, not tested kept with what was seen and the program not

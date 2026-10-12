@@ -1038,6 +1038,37 @@ programs report and client report — the words, the commentary, the counts
 ("· 1 not tested, 1 with no program") and two tiles on the paper. Accepted
 by `scripts/acceptance/programs.mjs`.
 
+### Snags & fixes — one place for every snag, problem and fix (12 October)
+
+Rowland, 12 October: "Ensure no confusion between snags, fixes, problems — I
+think one location for all, and we manage it through its own page." Asked,
+he chose the name **Snags & fixes**, and a job's Fixes as **the same page,
+that job only**.
+
+- **One path, said once** on the page and the paper: a *snag* is spotted on
+  a line; once it is on a job it is a *problem*; a *fix* is what puts it
+  right (on a 6M job, an *action* on its board). Every row says which it is
+  in a quiet tag; its state in words in its colour.
+- **The page (`/snags`, the rail's Tools):** the snags line by line as
+  before, then **On the jobs** — each job's problems with no fix and its
+  fixes (`lib/snagsReport` jobGroup: lib/noted notedProblems, lib/fixTone),
+  late first, critical next; a 6M job's actions that came from snags. A
+  snag moved to a job is shown once, as what it became, "from a snag on"
+  its line; only one whose record is gone is listed on its own. The counts
+  are the filters: Everything open · Snags · Problems · Fixes · Late · Done;
+  a line, a job, a person, a word narrow it. A problem or fix opens in its
+  job's drawer; each job's group opens its own list.
+- **A job's own view (`/project/:id/fixes`, its rail's Snags & fixes):** the
+  same name and path, its snags named for it and not on it yet (Make it a
+  fix, one tap), then everything the Fixes page did — plan a fix, say one,
+  sign-offs, still to do, done, problems with no fix — each that came from a
+  snag saying so; and "Every line and job ›" back to the page.
+- **The paper:** the Snags & fixes report — what the page shows, the path
+  line, a tile per count, each row with its kind, its picture and its state.
+- **The job's name, renamed where it is read** — Rename beside it on the
+  job's front page (the owner's, as on Details), the new name at once.
+- **Accepted by** `scripts/acceptance/snags.mjs` (9 stories).
+
 ### The Snags page — a working page, with its own report (12 October)
 
 Rowland, 12 October: "Snags need its own report on the snag page ... I have

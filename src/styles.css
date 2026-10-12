@@ -10710,7 +10710,25 @@ body:has(.toast) .qs-fab { bottom: calc(var(--nv-bar) + 130px + env(safe-area-in
 .qsl-became.is-a { color: var(--st-a); }
 .qsl-became.is-w { color: var(--st-w); }
 .qsl-became.is-g { color: var(--st-g); }
-.qsl-jobgo { white-space: nowrap; }
+.qsl-jobgo { white-space: normal; text-align: left; }
+.qsl-job .qsl-gh { flex-wrap: wrap; }
+/* SNAGS & FIXES — one path said once; each row says what it is (Snag ·
+   Problem · Fix · Action) in a quiet tag, never a state colour; its state in
+   words beside it in its colour (snag/QuickSnagsScreen, screens/FixesScreen). */
+.qsl-path { margin: 2px 0 0; color: var(--muted); font-size: var(--t-detail); max-width: 72ch; }
+.qsl-path b { color: var(--ink-2); }
+.qsl-kind-h { margin: 22px 0 0; font-size: var(--t-label); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.qsl-kind-h .sub { text-transform: none; letter-spacing: 0; font-weight: 500; }
+.qsl-kind { display: inline-block; margin-right: 8px; padding: 1px 7px; border: 1px solid var(--line-2); border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2); vertical-align: 1px; }
+.qsl-flag { display: inline-block; margin-right: 8px; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #fff; vertical-align: 1px; }
+.qsl-flag.is-r { background: var(--st-r); }
+.qsl-flag.is-a { background: var(--st-a); }
+.qsl-state { flex: none; max-width: 40%; text-align: right; font-size: var(--t-detail); font-weight: 700; color: var(--ink-2); }
+.qsl-state.is-r { color: var(--st-r); }
+.qsl-state.is-a { color: var(--st-a); }
+.qsl-state.is-w { color: var(--st-w); }
+.qsl-state.is-g { color: var(--st-g); font-weight: 600; }
+.qsl-job .qsl-row.is-late { box-shadow: inset 3px 0 0 var(--st-r); }
 .qsl-who { min-width: 0; }
 @media (max-width: 760px) {
   /* ON A PHONE: the snag first; under it its state and whose on one line,

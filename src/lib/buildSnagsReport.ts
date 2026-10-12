@@ -1,4 +1,4 @@
-/* THE SNAGS REPORT, MADE — the pictures fetched and made small, the PDF
+/* THE SNAGS & FIXES REPORT, MADE — the pictures fetched and made small, the PDF
  * drawn (lib/snagsReportPdf) and handed over: the share sheet on a phone, a
  * download on a desktop (lib/savePdf). The drawer knows nothing of the
  * database; this is the part that goes and gets the pictures. */
@@ -34,7 +34,7 @@ async function small(key: string): Promise<SnagPhoto | undefined> {
  *  how a phone drops the lot. A picture not on this device prints as an empty
  *  square: the snag is still worth reading. */
 export async function snagPhotos(r: SnagsReading): Promise<Map<string, SnagPhoto>> {
-  const keys = [...new Set([...r.lines.flatMap(l => l.rows.map(x => x.photo)), ...r.moved.flatMap(g => g.rows.map(x => x.photo))].filter((k): k is string => !!k))];
+  const keys = [...new Set([...r.lines.flatMap(l => l.rows.map(x => x.photo)), ...r.jobs.flatMap(g => g.rows.map(x => x.photo)), ...r.moved.flatMap(g => g.rows.map(x => x.photo))].filter((k): k is string => !!k))];
   const out = new Map<string, SnagPhoto>();
   for (const k of keys) { const p = await small(k); if (p) out.set(k, p); }
   return out;
@@ -46,5 +46,5 @@ export async function saveSnagsReport(r: SnagsReading, title: string): Promise<v
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   const printed = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   await drawSnagsReport(doc, { title, printed, reading: r, photos: await snagPhotos(r) });
-  await deliverPdf(doc, pdfFileName('snags', title.toLowerCase() === 'every snag' ? 'report' : title, todayISO()));
+  await deliverPdf(doc, pdfFileName('snags and fixes', title.toLowerCase() === 'everything open' ? 'report' : title, todayISO()));
 }
