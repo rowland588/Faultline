@@ -167,7 +167,7 @@ await go('#/snags');
    moved (Rowland, 12 October: "It said it's moved to line 2A ... No idea what
    that is") — then taken off again, so the stories after count as before ---- */
 {
-  await page.getByRole('button', { name: 'Problem', exact: true }).click(); await page.waitForTimeout(800);
+  await page.locator('.qsl-top').getByRole('button', { name: 'Problem', exact: true }).click(); await page.waitForTimeout(800);
   const sheet = page.locator('.sheet, [role="dialog"]').last();
   await sheet.locator('textarea').first().fill('Infeed photo-eye dirty');
   await sheet.locator('label', { hasText: 'PROJECT' }).locator('select').selectOption({ label: sd.job }); await page.waitForTimeout(500);
