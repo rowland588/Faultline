@@ -9357,6 +9357,11 @@ button.prp-go:hover { background: color-mix(in srgb, var(--ink) 4%, transparent)
 .pc-state { margin-left: auto; font-size: var(--t-detail); color: var(--muted); }
 .pc-state b { color: var(--st-r); }
 .pc-title { margin: 0; font-size: var(--t-h); line-height: 1.25; font-weight: 700; color: var(--ink); overflow-wrap: anywhere; }
+/* the problem's words changed where they sit (the audit's bar 2) */
+.pc-retitle { font-size: var(--t-detail); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; min-height: 32px; }
+.pc-retitle-f { display: flex; flex-direction: column; gap: 6px; }
+.pc-retitle-f .text-area { width: 100%; font-size: var(--t-body); font-weight: 700; }
+.pc-retitle-acts { display: flex; gap: 8px; }
 .pc-num { margin: 0; font-size: var(--t-body); color: var(--ink-2); }
 .pc .fb-num-t { display: inline; margin-left: 8px; }
 .pc-says { margin: 0; font-size: var(--t-detail); line-height: 1.45; color: var(--ink-2); }

@@ -17,6 +17,11 @@
  *      4  every tool's own page: Rename and Delete beside its name — the
  *         map and work sampling renamed there
  *      5  deleted from its page: back on its tool's list on its line, Undo
+ *   B  PROBLEMS OF A RUNNING LINE
+ *      1  a 6M problem's words changed on its card, where it is opened —
+ *         its causes kept (they were fixed once it was opened)
+ *      2  the old A3 (a case on a line, no job): deleted with Undo, its ask
+ *         saying what stays — it was a hard delete with no way back
  *   and no console error anywhere.
  *
  *   node scripts/acceptance/edit-delete.mjs      (SMOKE_BASE, as smoke) */
@@ -124,6 +129,30 @@ for (const [id, to] of [[sd.lineMapId, 'Line 7, run released to pallet away'], [
   ok(!(await study(sd.samplingId)) && page.url().endsWith(`#/sampling?line=${s.workspaceId}`) && /Its \d+ taps go with it/.test(asked), `A5 deleted from its page: on ${page.url().split('#')[1]}, "${asked.split('\n')[2] ?? ''}"`);
   await undo();
   ok(!!(await study(sd.samplingId)) && /Packing hall, days/.test(await txt()), 'A5 Undo: back on its line\'s list');
+}
+
+/* ================= B · PROBLEMS OF A RUNNING LINE ================= */
+/* 1 · a 6M problem in better words, on its card, where it is opened */
+{
+  const before = await db((D, id) => D.getCase(id), sd.problemId);
+  await go(`#/project/${sd.pacedProjectId}/fishbone?problem=${sd.problemId}&panel=problem`);
+  await page.getByRole('button', { name: 'Change the words', exact: true }).first().click();
+  await page.getByLabel('The problem, in words').fill('Basketer misfeeds on the 2kg — bags miss the basket');
+  await page.getByRole('button', { name: 'Save', exact: true }).first().click(); await page.waitForTimeout(1200);
+  const after = await db((D, id) => D.getCase(id), sd.problemId);
+  ok(after.title === 'Basketer misfeeds on the 2kg — bags miss the basket' && (after.causes ?? []).length === (before.causes ?? []).length && after.status === before.status,
+    `B1 the 6M problem's words changed on its card, its causes kept: “${after.title}” (was “${before.title}”)`);
+  ok((await txt()).includes('Basketer misfeeds on the 2kg — bags miss the basket'), 'B1 the fishbone says the new words');
+}
+/* 2 · the old A3 (a case on a line, no job): deleted with Undo, saying what stays */
+{
+  await go(`#/w/${sd.wsId}/case/${sd.caseId}`);
+  answer = true;
+  await page.getByRole('button', { name: 'Delete this case', exact: true }).click(); await page.waitForTimeout(1200);
+  const gone = await db((D, id) => D.getCase(id), sd.caseId);
+  ok(!gone && /Delete the case “seeded case”\?/.test(asked) && /stay/.test(asked) && /Undo brings it back/.test(asked) && /\/analyse/.test(page.url()), `B2 the case deleted, its ask saying what stays: "${asked.replace(/\n+/g, ' / ')}"`);
+  await undo();
+  ok(!!(await db((D, id) => D.getCase(id), sd.caseId)), 'B2 Undo: the case is back');
 }
 
 ok(errors.length === 0, `no console errors${errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''}`);
