@@ -49,3 +49,26 @@ describe('a problem patched by its fields', () => {
     expect((await db.listAllSnags()).length).toBe(1);
   });
 });
+
+/* FLOW-AUDIT #13: "a problem seen on the floor cannot become the head of the fish" */
+describe('a problem in the register taken to its root cause', () => {
+  it('opens a 6M problem in its words on the job\'s line, the register problem taken there and said so; undone, both as they were', async () => {
+    const db = await fresh();
+    const { problemFromRegister, sixMProblemsOf } = await import('../lib/useProblems');
+    const proj = await db.createProject('Line 7 pace', '#000', 'Rowland', 'r@example.com', 'board');
+    const ws = await db.createWorkspace('Line 7');
+    const line = await db.addPaceLine({ projectId: proj.id, key: '7', name: 'Line 7', sort: 0, workspaceId: ws.id });
+    await db.addSnag({ ...problem, workspaceId: ws.id, journey: [{ id: 'j1', at: 5, did: 'New jaw springs', result: 'jammed again' }] });
+    const made = await problemFromRegister('p1', proj.id, line.id, proj.name);
+    if (!made) throw new Error('nothing was opened');
+    expect([made.problem.title, made.problem.lineId, made.problem.source]).toEqual(['Bagger jaw jams on 2kg film', line.id, { kind: 'observed', snag: 'p1' }]);
+    const s = (await db.listAllSnags()).find(x => x.id === 'p1');
+    expect([s?.status, s?.caseId, s?.projectId, s?.journey?.map(j => j.did)]).toEqual(['closed', made.problem.id, proj.id, ['New jaw springs', 'Taken to 6M on Line 7 pace — to find its root cause']]);
+    const rows = await sixMProblemsOf(proj.id);
+    expect(rows.map(r => [r.title, r.open, r.phase, r.workspaceId, r.jobLineId, r.fromSnagId])).toEqual([['Bagger jaw jams on 2kg film', true, 'finding', ws.id, line.id, 'p1']]);
+    await made.undo();
+    const back = (await db.listAllSnags()).find(x => x.id === 'p1');
+    expect([back?.status, back?.caseId, back?.projectId, back?.journey?.length]).toEqual(['open', undefined, undefined, 1]);
+    expect(await sixMProblemsOf(proj.id)).toEqual([]);
+  }, 30_000);
+});

@@ -2,7 +2,7 @@
  * on every line, however it was taken, says where it came from; a moved one is
  * followed to its job and says what it became and how it stands there. */
 import { describe, it, expect } from 'vitest';
-import { becameOn, fromWords, jobGroup, jobOnLine, snagsReading, type Became, type JobGroup } from '../snagsReport';
+import { becameOn, fromWords, jobGroup, jobOnLine, snagRow, snagsReading, type Became, type JobGroup } from '../snagsReport';
 import type { Snag } from '../../snag/types';
 import type { Asset, Test, TestItem } from '../testing';
 
@@ -93,7 +93,7 @@ describe('the snags reading', () => {
   });
 
   /* FLOW-AUDIT #2: "the 6M problems are on no line page and in no register"; and #13, one taken there from the register */
-  it('a 6M job\'s problems are rows, each where it is on its way; one taken from the register says where it was seen first', () => {
+  it('a 6M job\'s problems are rows, each where it is on its way; one taken from the register says where it was seen first, and the register problem says where it went', () => {
     const sn = snag({ id: 'q', problem: 'Checkweigher rejects good packs', status: 'closed', closedAt: NOW, caseId: 'c1', projectId: 'p6' });
     const g = jobGroup({ projectId: 'p6', job: 'Line 7 pace', tests: [], items: [], assets: [], snags: [sn], lineName: id => lines[id] ?? 'A line', today: '2026-10-12',
       cases: [
@@ -109,6 +109,8 @@ describe('the snags reading', () => {
     expect([g.problemsOpen, g.casesOpen, g.fixesToDo, g.done]).toEqual([0, 2, 0, 1]);
     const r = snagsReading({ snags: [], lineName: id => lines[id] ?? 'A line', jobName: () => undefined, became: new Map(), register: true, jobs: [g], today: NOW });
     expect([r.counts.problems, r.counts.jobs, r.counts.low]).toEqual([2, 1, 2]);
+    const row = snagRow(sn, 'Line 7', undefined, 'Line 7 pace', NOW);
+    expect([row.word, row.tone]).toEqual(['Taken to 6M on Line 7 pace', 'w']);
   });
 
   /* FLOW-AUDIT #2: "filtering the register by line drops every job problem" */

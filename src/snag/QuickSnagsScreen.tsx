@@ -68,6 +68,8 @@ const NEW_LINE = '__new_line__';
 const NO_LINE = '__no_line__';
 /** A job's records the page reads its problems and fixes from — a 6M job's problems among them (FLOW-AUDIT #2). */
 interface JobData { tests: Test[]; items: TestItem[]; assets: Asset[]; todos: PaceTodoRow[]; cases: SixMProblem[] }
+/** A 6M job on a problem's line — where its root cause is found (FLOW-AUDIT #13). */
+interface RootOn { id: string; name: string; lineId: string }
 const todayInput = () => dueToInput(new Date().setHours(0, 0, 0, 0));
 const dedupe = (xs: string[]) => { const seen = new Set<string>(); return xs.filter(x => { const k = x.trim().toLowerCase(); if (!k || seen.has(k)) return false; seen.add(k); return true; }); };
 
@@ -256,6 +258,27 @@ export function QuickSnagsScreen() {
   /* each box patches its own fields into the row as it is stored now — never the copy this page last drew (FLOW-AUDIT #4) */
   const put = async (id: string, p: SnagChange) => { if (await patchSnag(id, p)) setSavedOn({ id, at: Date.now() }); };
   const machinesFor = (lineId: string) => dedupe([...(lines.find(w => w.id === lineId)?.assets ?? []), ...jobMachines]);
+  /* THE 6M JOBS ON A LINE — where a problem seen on the floor becomes the head of a fish (FLOW-AUDIT #13) */
+  const sixmOn = (wsId: string): (RootOn & { canEdit: boolean })[] => liveJobs.filter(p => planModel(p) === 'board').flatMap(p => {
+    const l = jobLines.find(x => x.projectId === p.id && x.workspaceId === wsId && !x.deletedAt);
+    return l ? [{ id: p.id, name: p.name, lineId: l.id, canEdit: accessOn(p.id).edit }] : [];
+  });
+  /* FIND THE ROOT CAUSE ›: a 6M problem opened from this one, on that job's line — this one closed as taken there, with Undo — and its fishbone opened */
+  const toRootCause = async (s: Snag, j: RootOn) => {
+    const { problemFromRegister } = await import('../lib/useProblems');
+    const made = await problemFromRegister(s.id, j.id, j.lineId, j.name);
+    if (!made) return;
+    offerUndo(`Taken to 6M on ${j.name} — its fishbone is open`, made.undo);
+    nav(`/project/${j.id}/fishbone?line=${encodeURIComponent(j.lineId)}&problem=${encodeURIComponent(made.problem.id)}`);
+  };
+  /* where a problem taken to 6M went — its 6M problem, on its job's line */
+  const rootOf = (s: Snag): { jobId: string; line?: string; job: string } | undefined => {
+    if (!s.caseId || !s.projectId) return undefined;
+    const c = jobData.get(s.projectId)?.cases.find(x => x.id === s.caseId);
+    const job = liveJobName(s.projectId);
+    return c && job ? { jobId: s.projectId, job, ...(c.jobLineId ? { line: c.jobLineId } : {}) } : undefined;
+  };
+
   /* FROM A LINE'S PAGE, THE PROBLEM TAPPED THERE IN VIEW (FLOW-AUDIT #22: "it lands at the top ... the opened editor
      is two screens down, behind the Problem button") — scrolled to once it is drawn, its editor below it */
   useEffect(() => {
@@ -501,6 +524,8 @@ export function QuickSnagsScreen() {
                       saved={savedOn?.id === s.id && Date.now() - savedOn.at < 4000} lineName={lineName} jobName={jobName}
                       onSave={() => { flip(s.id); setSavedOn({ id: s.id, at: Date.now() }); }} machines={machinesFor(s.workspaceId)} frame={s.assetId ? frames.get(s.assetId) : undefined}
                       put={p => void put(s.id, p)} onView={m => setViewing({ snagId: s.id, media: m })} busy={busy}
+                      sixm={sixmOn(s.workspaceId)} onRoot={j => void toRootCause(s, j)} rootOf={rootOf(s)}
+                      onStart={() => nav(`/projects?new=1&line=${encodeURIComponent(s.workspaceId)}`)}
                       onCard={() => void cards([s])} onWalk={() => nav(`/w/${s.workspaceId}/asset/${s.assetId}`)}
                       onDelete={() => { if (window.confirm('Delete this problem? Its photos and everything written about it go with it.')) void deleteSnag(s.id); }} />}
                   </li>
@@ -738,8 +763,12 @@ function JobEditor({ r, data, job, lines, busy, onCard, onOpen, onToLine, onDone
   );
 }
 
-function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCard, onWalk, onDelete, busy, saved, onSave, lineName, jobName }: {
+function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCard, onWalk, onDelete, busy, saved, onSave, lineName, jobName, sixm, onRoot, rootOf, onStart }: {
   s: Snag; lines: Workspace[]; projects: Project[]; machines: string[]; frame?: SnagAsset;
+  /** The 6M jobs on its line, and whether this person may open a problem on each (lib/access). */
+  sixm: (RootOn & { canEdit: boolean })[]; onRoot: (j: RootOn) => void; onStart: () => void;
+  /** Where it went, when it was taken to 6M. */
+  rootOf?: { jobId: string; line?: string; job: string };
   put: (p: SnagChange) => void; onView: (m: MediaRef) => void; onCard: () => void; onWalk: () => void; onDelete: () => void; busy: string;
   /** "Saved" — said as each box is kept; Save keeps the box being typed in and closes it (12 October: "there's never any saves") */
   saved: boolean; onSave: () => void;
@@ -747,7 +776,25 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
 }) {
   const machine = frame?.name ?? s.targetAsset ?? '';
   const typed = !frame && !!s.targetAsset && !machines.some(m => m.toLowerCase() === s.targetAsset?.trim().toLowerCase());
-  const setStatus = (status: SnagStatus) => put(cur => ({ status, closedAt: status === 'closed' ? (cur.closedAt ?? Date.now()) : undefined }));
+  /* CLOSED ASKS WHAT SHOWS IT IS FIXED — one optional line, kept as the last step of its journey and so on its card
+     and the Problems report (FLOW-AUDIT #12: "one tap closes it ... its last step read 'Ran 2 h without a jam, then
+     jammed again', and it still closed with nothing asked"). Proof is OPEX's fifth move; the 6M asks "Did it work",
+     a job's fix its before → after — the register, where most floor problems live, asked nothing. */
+  const [closing, setClosing] = useState(false);
+  const [proof, setProof] = useState('');
+  const setStatus = (status: SnagStatus) => {
+    if (status === 'closed' && s.status !== 'closed') { setClosing(true); return; }
+    setClosing(false);
+    put(cur => ({ status, closedAt: status === 'closed' ? (cur.closedAt ?? Date.now()) : undefined }));
+  };
+  const close = () => {
+    const shown = proof.trim(), t = Date.now();
+    put(cur => ({ status: 'closed', closedAt: cur.closedAt ?? t,
+      ...(shown ? { closeNote: shown, journey: [...(cur.journey ?? []), { id: uid(), at: t, did: 'Closed', result: shown }] } : {}) }));
+    setClosing(false); setProof('');
+  };
+  const lastStep = [...(s.journey ?? [])].sort((a, b) => b.at - a.at)[0];
+  const roots = sixm.filter(j => j.canEdit);
   return (
     <div className="qsl-x pe" role="region" aria-label={`Work on: ${s.problem || 'this problem'}`}>
       <label className="pe-f pe-wide"><span className="pe-k">WHAT IS THE PROBLEM</span>
@@ -761,6 +808,17 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
         <div className="chip-row" role="group" aria-label="Where it stands">
           {(['open', 'in_progress', 'closed'] as SnagStatus[]).map(k => <button key={k} type="button" className={'chip' + (s.status === k ? ' on' : '')} aria-pressed={s.status === k} onClick={() => setStatus(k)}>{SNAG_STATUS_META[k].label}</button>)}
         </div></div>
+      {closing && (
+        <form className="pe-f pe-wide pe-close" role="group" aria-label="Close it" onSubmit={e => { e.preventDefault(); close(); }}>
+          <span className="pe-k">WHAT SHOWS IT IS FIXED? <i className="cw-f-opt">if something does — a day, a count, a photo</i></span>
+          {lastStep && <p className="sub pe-close-last">Its last step, {dayOf(lastStep.at)}: {lastStep.did}{lastStep.result ? ` → ${lastStep.result}` : ''}</p>}
+          <input className="text-input" value={proof} maxLength={240} autoFocus placeholder="e.g. A full shift on 2kg film with no jam" aria-label="What shows it is fixed" onChange={e => setProof(e.target.value)} />
+          <div className="qsl-x-acts">
+            <button type="submit" className="btn btn-primary">Close it</button>
+            <button type="button" className="btn btn-ghost" onClick={() => { setClosing(false); setProof(''); }}>Not yet</button>
+          </div>
+        </form>
+      )}
 
       <div className="pe-row">
         {/* PROJECT first — where it is going (Rowland, 12 October: "assign the
@@ -821,6 +879,19 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
         <DraftArea value={s.proposedSolution ?? ''} rows={2} placeholder="The plan — what will put it right" className="text-input" ariaLabel="What we will do" onSave={v => put({ proposedSolution: v || undefined })} /></label>
 
       <Journey s={s} put={put} />
+
+      {/* ITS ROOT CAUSE — a problem seen on the floor made the head of a fish on its line's 6M job (FLOW-AUDIT #13) */}
+      {rootOf
+        ? <p className="pe-said pe-root">Taken to 6M on {rootOf.job} — <button type="button" className="linkish" onClick={() => nav(`/project/${rootOf.jobId}/fishbone?${rootOf.line ? `line=${encodeURIComponent(rootOf.line)}&` : ''}problem=${encodeURIComponent(s.caseId ?? '')}`)}>its fishbone ›</button></p>
+        : s.status !== 'closed' && (
+          <div className="pe-f pe-wide pe-root"><span className="pe-k">ITS ROOT CAUSE <i className="cw-f-opt">when it keeps coming back</i></span>
+            {roots.length > 0
+              ? <div className="qsl-x-acts">{roots.map(j => <button key={j.id} type="button" className="btn" onClick={() => onRoot(j)}>Find the root cause{roots.length > 1 ? ` on ${j.name}` : ''} ›</button>)}</div>
+              : sixm.length > 0
+                ? <p className="sub pe-said">{sixm[0].name} finds root causes on {lineName(s.workspaceId)} — its team can take it there.</p>
+                : <p className="sub pe-said">No 6M project on {lineName(s.workspaceId)} yet. <button type="button" className="linkish" onClick={onStart}>Start one to find its root cause ›</button></p>}
+          </div>
+        )}
 
       <div className="qsl-x-acts">
         {/* SAVE — every box is kept as it is left; this keeps the one being typed in and closes the problem, saying so */}

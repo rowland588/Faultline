@@ -134,6 +134,10 @@ export async function snagsForWorkspace(workspaceId: ID): Promise<Snag[]> {
 export async function listAllSnags(): Promise<Snag[]> {
   return (await (await getDB()).getAll('snags')).filter(s => s.deletedAt == null);
 }
+/** One problem as it is stored now, deleted or not. */
+export async function getSnag(id: ID): Promise<Snag | undefined> {
+  return (await getDB()).get('snags', id);
+}
 export async function addSnag(s: Snag): Promise<void> {
   await (await getDB()).put('snags', s);
   signalWrite();

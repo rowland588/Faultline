@@ -50,7 +50,8 @@ import { currentLosses, lossCardLine, studyHref } from '../lib/studyLinks';
 import { useJobStudies } from '../ui/StudyLinks';
 import { offerUndo } from '../ui/Undo';
 import { drillOfRef, factsOf, lineOf, oldWhysOf, startingWhys } from '../lib/fishbone';
-import { closedProblemOn, putOldWhysOnBone } from '../lib/useProblems';
+import { closedProblemOn, problemFromRegister, putOldWhysOnBone } from '../lib/useProblems';
+import type { Snag } from '../snag/types';
 import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
 import { useActions } from '../lib/actions';
@@ -211,12 +212,37 @@ export function problemTitleOfBar(category: string, asset: string | undefined, l
   return lineName ? `${what} on ${lineName}` : what;
 }
 
-function OpenProblemSheet({ open, line, doors, problems, onOpen, onClose }: {
+/** A register problem's priority, in its word (lib/snagsReport PRIORITY_WORD, kept out of this page's imports). */
+const SEEN_PRIORITY = { critical: 'Critical', high: 'High', low: 'Low' } as const;
+
+function OpenProblemSheet({ open, line, doors, problems, onOpen, onTake, onClose }: {
   open: boolean; line?: PaceLineRow; doors: Door[]; problems: ProblemView[];
-  onOpen: (title: string, source: NonNullable<Case['source']>) => Promise<void>; onClose: () => void;
+  onOpen: (title: string, source: NonNullable<Case['source']>) => Promise<void>;
+  /** A problem already in the register, made the head of the fish (lib/useProblems problemFromRegister). */
+  onTake: (s: Snag) => Promise<void>;
+  onClose: () => void;
 }) {
   const [seen, setSeen] = useState('');
   const [busy, setBusy] = useState(false);
+  /* SOMETHING SEEN, ALREADY WRITTEN — the line's open problems in the register, each one tap from the head of
+     the fish (FLOW-AUDIT #13: "Open a problem ... does not offer the line's open register problems"; something
+     seen meant typing the problem again). Read when the sheet opens. */
+  const [floor, setFloor] = useState<Snag[]>([]);
+  useEffect(() => {
+    let live = true;
+    if (!open || !line?.workspaceId) { setFloor([]); return; }
+    void snagsForWorkspace(line.workspaceId).then(all => {
+      const rank = { critical: 0, high: 1, low: 2 } as const;
+      if (live) setFloor(all.filter(x => x.status !== 'closed' && !x.archivedAt && !x.caseId && x.problem?.trim())
+        .sort((a, b) => rank[a.priority ?? 'low'] - rank[b.priority ?? 'low'] || b.raisedAt - a.raisedAt));
+    });
+    return () => { live = false; };
+  }, [open, line?.workspaceId]);
+  const take = async (x: Snag) => {
+    if (busy) return;
+    setBusy(true);
+    try { await onTake(x); } finally { setBusy(false); }
+  };
   const go = async (title: string, source: NonNullable<Case['source']>) => {
     if (busy) return;
     setBusy(true);
@@ -242,6 +268,18 @@ function OpenProblemSheet({ open, line, doors, problems, onOpen, onClose }: {
         })}
         <div className="fj-door is-seen">
           <span className="fj-door-k">Something seen</span>
+          {floor.length > 0 && (
+            <ul className="fj-seen" aria-label="Problems seen on the line">
+              {floor.map(x => (
+                <li key={x.id}>
+                  <button type="button" className="fj-seen-p" disabled={busy} onClick={() => void take(x)}>
+                    <span className="fj-seen-t">{x.problem.trim()}</span>
+                    <span className="fj-seen-s">{SEEN_PRIORITY[x.priority ?? 'low']} · in Control room problems{x.owner?.trim() ? ` · ${x.owner.trim()}` : ''}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
           <input className="text-input" value={seen} maxLength={140}
             placeholder="e.g. Film wanders on the bagger after a reel change"
             onChange={e => setSeen(e.target.value)}
@@ -494,6 +532,17 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
     setQuery({ problem: c.id, line: fixedLine ? undefined : (c.lineId ?? line?.id), cause: undefined, panel: undefined });
   };
 
+  /* A problem in the register made the head of the fish: opened in its words, the register problem closed as
+     taken here (lib/useProblems problemFromRegister), with Undo. */
+  const takeSeen = async (x: Snag) => {
+    const made = await problemFromRegister(x.id, projectId, line?.id, project?.name ?? 'this project');
+    if (!made) return;
+    setOpening(false);
+    const t = made.problem.title;
+    offerUndo(`Opened “${t.length > 40 ? t.slice(0, 39) + '…' : t}” — taken from Control room problems`, made.undo);
+    setQuery({ problem: made.problem.id, line: fixedLine ? undefined : (made.problem.lineId ?? line?.id), cause: undefined, panel: undefined });
+  };
+
   const draftFrom = (m: SixM, s?: Suggestion): Cause => ({
     id: uid(), m, text: s?.text ?? '', grade: s?.grade ?? 'observed', status: 'suspected',
     source: s?.source, whys: [], at: Date.now(),
@@ -655,7 +704,7 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
   const sheets = (
     <>
       <OpenProblemSheet open={opening} line={line} doors={doors} problems={mine}
-        onOpen={openProblem} onClose={() => setOpening(false)} />
+        onOpen={openProblem} onTake={takeSeen} onClose={() => setOpening(false)} />
 
       {view && editing && (
         <CauseSheet open view={view} cause={editing.cause} draft={editing.draft} can={can}

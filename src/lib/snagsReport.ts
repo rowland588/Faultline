@@ -158,11 +158,14 @@ export function snagRow(s: Snag, line: string, assetName?: string, jobName?: str
   const late = isOverdue(s, ref), d = dueInDays(s, ref);
   const age = ageDays(s.raisedAt, ref);
   /* made a fix on its project: said so, never a bare "Closed" (13 October audit) — the fix itself is under its project */
+  /* taken to 6M to find its root cause (FLOW-AUDIT #13): its work goes on there, as a 6M problem — never a bare "Closed" */
+  const toSixM = s.status === 'closed' && !!s.caseId && isQuickSnag(s);
   const word = s.status === 'closed' && (s.sent ?? []).length ? `Made a fix on ${jobName ?? 'its project'}`
+    : toSixM ? `Taken to 6M on ${jobName ?? 'its project'}`
     : s.status === 'closed' ? `Closed${s.closedAt ? ` ${nice(s.closedAt)}` : ''}`
     : `${SNAG_STATUS_META[s.status].label} · ${age === 0 ? 'today' : age === 1 ? '1 day' : `${age} days`}`;
   /* where it stands, in its colour; how serious it is is the priority's, and late is the due's — an open one is not red for being open (12 October) */
-  const tone: SnagTone = s.status === 'closed' ? 'g' : s.status === 'in_progress' ? 'w' : 'n';
+  const tone: SnagTone = toSixM ? 'w' : s.status === 'closed' ? 'g' : s.status === 'in_progress' ? 'w' : 'n';
   const due = s.status === 'closed' || d == null || s.dueAt == null ? undefined
     : d < 0 ? `${-d} day${d === -1 ? '' : 's'} late` : d === 0 ? 'due today' : `due ${nice(s.dueAt)}`;
   const dueTone: SnagTone | undefined = due == null ? undefined : late ? 'r' : isDueSoon(s, ref) ? 'a' : 'n';

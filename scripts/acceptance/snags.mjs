@@ -40,6 +40,12 @@
  *      line and not on its other
  *  15  (FLOW-AUDIT #5) the Problem button inside a job: on the job's own line,
  *      never the last one used; a job on two lines asks which
+ *  16  (FLOW-AUDIT #12) Closed asks what shows it is fixed — its last step in
+ *      view; kept on its journey, on its card
+ *  17  (FLOW-AUDIT #13) Find the root cause ›: a 6M problem opened in its
+ *      words on its line's 6M job, the register problem taken there and said
+ *      so; on a line with no 6M job, Start one; the fishbone's Open a problem
+ *      lists the line's open problems under Something seen
  *  18  (FLOW-AUDIT #22) from a line's page on a phone: the problem tapped in
  *      view, its editor open, and ‹ the line, fingertip-sized, back to it
  *  12  an archived project's line said so; a ticked problem put on a new line
@@ -565,8 +571,10 @@ await go('#/snags');
     ok(!(await words('.qsl-meta', r)).includes(sd.job), `13 a problem for an archived project: its row never names the archived project`);
     await r.locator('.qsl-open').click(); await page.waitForTimeout(500);
     ok((await r.locator('.pe').getByLabel('Which project').evaluate(el => el.options[el.selectedIndex]?.text)) === `${sd.job} — archived project`, '13 and its project box names it — never "No project"');
-    /* closed from its own editor: it stays in view, saying so */
-    await r.locator('.pe').getByRole('group', { name: 'Where it stands' }).getByRole('button', { name: 'Closed' }).click(); await page.waitForTimeout(900);
+    /* closed from its own editor: it stays in view, saying so — Closed asks what shows it is fixed first, answered
+       with nothing (FLOW-AUDIT #12: one tap closed it, nothing asked) */
+    await r.locator('.pe').getByRole('group', { name: 'Where it stands' }).getByRole('button', { name: 'Closed' }).click(); await page.waitForTimeout(500);
+    await r.locator('.pe-close').getByRole('button', { name: 'Close it' }).click(); await page.waitForTimeout(900);
     ok((await row(forArch.problem).count()) === 1 && (await snag(forArch.problem))?.status === 'closed', '13 closed from its editor on Open: it stays in view until closed up');
     await row(forArch.problem).locator('.pe-save').click(); await page.waitForTimeout(800);
   } else ok(false, '13 no open problem for the archived project to look at');
@@ -640,6 +648,77 @@ const ids = await page.evaluate(async () => {
   const on7 = await snag('Reject chute blocks on 1.25 kg');
   ok(on7?.workspaceId === ids.l7 && on7?.projectId === ids.paced, '15 the line said: saved on Line 7, for the 6M job');
   await page.evaluate(async x => { const db = await import('/src/db.ts'); for (const id of x) await db.deleteSnag(id); }, [kept?.id, on7?.id].filter(Boolean));
+}
+
+/* ---- 16 closed asks what shows it is fixed (FLOW-AUDIT #12: "one tap closes it ... its last step read 'Ran 2 h
+   without a jam, then jammed again', and it still closed with nothing asked") ---- */
+{
+  const what = 'Bagger jaw jams on 2kg film — again';
+  await page.evaluate(async ws => {
+    const db = await import('/src/db.ts'); const t = Date.now();
+    await db.addSnag({ id: crypto.randomUUID(), workspaceId: ws, problem: 'Bagger jaw jams on 2kg film — again', status: 'open', raisedAt: t - 3 * 86_400_000, updatedAt: t, media: [], priority: 'high',
+      journey: [{ id: crypto.randomUUID(), at: t - 86_400_000, did: 'New jaw springs fitted', result: 'Ran 2 h without a jam, then jammed again' }] });
+  }, ids.l2c);
+  await go('#/snags');
+  const pe = await openUp(what);
+  await pe.getByRole('group', { name: 'Where it stands' }).getByRole('button', { name: 'Closed' }).click(); await page.waitForTimeout(600);
+  const ask = row(what).locator('.pe-close');
+  const asked = await ask.isVisible() && /WHAT SHOWS IT IS FIXED/.test(await ask.innerText()) && /jammed again/.test(await ask.innerText());
+  ok(asked && (await snag(what))?.status === 'open', '16 Closed asks what shows it is fixed, its last step ("then jammed again") in view — not closed yet');
+  await ask.getByLabel('What shows it is fixed').fill('A full shift on 2kg film with no jam');
+  await ask.getByRole('button', { name: 'Close it' }).click(); await page.waitForTimeout(900);
+  const s = await snag(what);
+  const last = (s?.journey ?? []).slice().sort((a, b) => a.at - b.at).at(-1);
+  ok(s?.status === 'closed' && last?.did === 'Closed' && last?.result === 'A full shift on 2kg film with no jam' && /Closed → A full shift/.test(await words('.preg-last', row(what))),
+    `16 closed, and what shows it is fixed kept as its journey's last step: ${last?.did} → ${last?.result}`);
+  const dir = mkdtempSync(join(tmpdir(), 'proof-'));
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), row(what).locator('.pe').getByRole('button', { name: 'Report card (PDF)' }).click()]);
+  const f = join(dir, 'card.pdf'); await dl.saveAs(f);
+  const ct = execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
+  ok(/A full shift on 2kg film with no jam/.test(ct) && /jammed again/.test(ct), '16 on its card: the step that failed and what shows it is fixed');
+  await row(what).locator('.pe-save').click(); await page.waitForTimeout(500);
+}
+
+/* ---- 17 a problem seen on the floor made the head of the fish (FLOW-AUDIT #13: "a problem seen on the floor cannot
+   become the head of the fish ... today it means typing the problem again") ---- */
+{
+  const what = 'Checkweigher rejects good packs after a film change';
+  await page.evaluate(async ({ l7, l2c }) => {
+    const db = await import('/src/db.ts'); const t = Date.now();
+    await db.addSnag({ id: crypto.randomUUID(), workspaceId: l7, problem: 'Checkweigher rejects good packs after a film change', status: 'open', raisedAt: t, updatedAt: t, media: [], priority: 'critical', owner: 'Lee Carty' });
+    await db.addSnag({ id: crypto.randomUUID(), workspaceId: l7, problem: 'Film splice tears at the former', status: 'open', raisedAt: t, updatedAt: t, media: [] });
+    await db.addSnag({ id: crypto.randomUUID(), workspaceId: l2c, problem: 'Pallet wrapper film breaks', status: 'open', raisedAt: t, updatedAt: t, media: [] });
+  }, ids);
+  await go('#/snags');
+  /* on a line with no 6M job: start one */
+  const none = await openUp('Pallet wrapper film breaks');
+  ok(/No 6M project on Line 2C yet/.test(await none.innerText()) && (await none.getByRole('button', { name: 'Start one to find its root cause ›' }).count()) === 1, '17 on a line with no 6M job: "Start one to find its root cause ›"');
+  await row('Pallet wrapper film breaks').locator('.pe-save').click(); await page.waitForTimeout(400);
+  /* on Line 7, whose 6M job finds root causes */
+  const pe = await openUp(what);
+  await pe.getByRole('button', { name: 'Find the root cause ›' }).click(); await page.waitForTimeout(3000);
+  const s = await snag(what);
+  const made = await page.evaluate(async id => (await import('/src/db.ts')).getCase(id), s?.caseId ?? '');
+  ok(new RegExp(`#/project/${ids.paced}/fishbone\\?.*problem=${s?.caseId}`).test(page.url()) && made?.title === what && made?.source?.kind === 'observed' && made?.source?.snag === s?.id && made?.lineId === ids.l7line,
+    `17 Find the root cause ›: a 6M problem in its words, on Line 7 pace's Line 7, its fishbone open (${made?.title})`);
+  ok((await page.locator('body').innerText()).includes(what), '17 the head of the fish says it');
+  ok(s?.status === 'closed' && s?.projectId === ids.paced && /Taken to 6M on Line 7 pace/.test((s?.journey ?? []).map(j => j.did).join(' ')), '17 the register problem taken there — closed for Line 7 pace, said on its journey');
+  await go('#/snags');
+  await page.locator('.qsl-f .chip', { hasText: /^Done/ }).click(); await page.waitForTimeout(400);
+  ok(/Taken to 6M on Line 7 pace/.test(await row(what).locator('.qsl-state').innerText().catch(() => '')), '17 under Done it says "Taken to 6M on Line 7 pace", never a bare Closed');
+  await page.locator('.qsl-f .chip', { hasText: /^Open/ }).click(); await page.waitForTimeout(400);
+  const asCase = page.locator('.qsl-jrow', { hasText: what }).first();
+  ok((await asCase.count()) === 1 && /Finding the cause/.test(await asCase.innerText()) && /seen first on Line 7/.test(await asCase.innerText()), '17 and listed once, open, as the 6M problem — Finding the cause, seen first on Line 7');
+  /* the fishbone's Open a problem lists the line's open problems under Something seen */
+  await go(`#/project/${ids.paced}/fishbone?line=${ids.l7line}`);
+  await page.getByRole('button', { name: /Open a problem/ }).first().click(); await page.waitForTimeout(900);
+  const seen = page.getByRole('list', { name: 'Problems seen on the line' });
+  const listed = (await seen.locator('.fj-seen-t').allInnerTexts()).map(x => x.trim());
+  ok(listed.includes('Film splice tears at the former') && !listed.includes(what) && !listed.includes('Pallet wrapper film breaks'), `17 Open a problem, Something seen: the line's open problems listed (${listed.join(', ')})`);
+  await seen.getByRole('button', { name: /Film splice tears at the former/ }).click(); await page.waitForTimeout(2500);
+  const sp = await snag('Film splice tears at the former');
+  ok(sp?.status === 'closed' && !!sp?.caseId && new RegExp(`problem=${sp?.caseId}`).test(page.url()) && (await page.locator('body').innerText()).includes('Film splice tears at the former'),
+    '17 one tapped: the head of the fish in its words, the register problem taken there');
 }
 
 /* ---- 18 from a line's page, on a phone: the problem tapped in view, and the way back (FLOW-AUDIT #22: "it lands at
