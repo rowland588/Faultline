@@ -11796,6 +11796,8 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
 /* Where a study sits, and what it is used for (ui/StudyPlace); its branch in a record's drawer (ui/StudyLinks). */
 .ie-place { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 6px; font-size: var(--t-detail); color: var(--ink-2); }
 .ie-place-acts { display: inline-flex; flex-wrap: wrap; gap: 2px; }
+/* the program a study shows proved, on a line of its own under where it sits (flow audit #21) */
+.ie-proves { flex: 1 1 100%; margin: 0; }
 .ie-pick { max-width: 320px; font-size: var(--t-detail); }
 .ie-used { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
 .ie-h { font-size: var(--t-label); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
@@ -12380,6 +12382,14 @@ button.co-step-b:hover { background: color-mix(in srgb, var(--brand) 5%, transpa
 .lp-m { margin: 10px 0 0; }
 .lp-mh { margin: 0 0 6px; font-size: var(--t-body); font-weight: 800; color: var(--ink-2); }
 .lp-note { font-weight: 400; font-size: var(--t-detail); color: var(--ink-2); }
+/* PROVED — the day and what showed it, asked on a line of its own (flow audit #21) */
+.pv-form { flex: 1 1 100%; flex-wrap: wrap; align-items: flex-start; padding-top: 8px; border-top: 1px solid var(--line); }
+.pv-how { flex: 1 1 280px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.pv-words { width: 100%; box-sizing: border-box; resize: vertical; font: inherit; font-size: var(--t-body); }
+/* how a proved one was proved, under its state — its colour only when abnormal */
+.lp-how { margin: 3px 0 0 4px; font-size: var(--t-label); color: var(--muted); }
+.lp-how.is-a { color: var(--st-a); font-weight: 700; } .lp-how.is-r { color: var(--st-r); font-weight: 700; }
+.lp-how .cw-link { font-size: inherit; }
 .lp-job { font-weight: 600; }
 /* what its job's floor said of a job's program, beside the record's state (flow audit #3) */
 .lp-floor b.is-g { color: var(--st-g); } .lp-floor b.is-r { color: var(--st-r); } .lp-floor b.is-w { color: var(--st-w); } .lp-floor b.is-a { color: var(--st-a); }

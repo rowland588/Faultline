@@ -19,10 +19,11 @@
  * are joined by name, so a list of names is never migrated into records, and a
  * record is made the first time more than the name is said. */
 import type { ID, Workspace } from '../types';
-import type { Asset } from './testing';
+import type { Asset, Test } from './testing';
 import type { Program } from './programs';
 import { inOrder, isProved, standingOf, todayISO } from './programs';
-import { programsReading, type ProgramLine, type ProgramsReading } from './programsReport';
+import { programsReading, proofOf, type ProgramLine, type ProgramsReading } from './programsReport';
+import type { ToolStudy } from './study';
 
 /** Just enough of a job's line (db PaceLineRow) to know its factory line. */
 export interface JobLine { id: string; projectId?: string; workspaceId?: string; deletedAt?: number }
@@ -132,7 +133,12 @@ export function lineProgramsReading(lines: readonly { name: string; id: string; 
   /** What each job's floor said of its programs (lib/useJobFloor), and the
    *  jobs' names: said under the program on paper, as on the screen (flow
    *  audit #3: one program, one answer). */
-  o: { floor?: ReadonlyMap<string, { word: string; note?: string }>; jobName?: ReadonlyMap<string, string> } = {}): ProgramsReading | undefined {
+  o: { floor?: ReadonlyMap<string, { word: string; note?: string }>; jobName?: ReadonlyMap<string, string>;
+    /** The tests that prove programs, on whichever job (Test.programId), and
+     *  the studies naming them: how each proved one was proved (flow audit
+     *  #21). Without the tests, a program naming one says "Proved by its
+     *  test in Commission". */
+    tests?: readonly Test[]; studies?: readonly ToolStudy[] } = {}): ProgramsReading | undefined {
   const many = lines.length > 1;
   const assets: Asset[] = [];
   const programs: Program[] = [];
@@ -148,12 +154,14 @@ export function lineProgramsReading(lines: readonly { name: string; id: string; 
     }
   }
   const r = programsReading({ tests: [], items: [], assets, programs, ...(today ? { today } : {}) });
-  if (!r || !o.floor?.size) return r;
+  if (!r) return r;
   const byId = new Map(programs.map(p => [p.id, p]));
   const withFloor = (l: ProgramLine): ProgramLine => {
+    const p = l.programId ? byId.get(l.programId) : undefined;
     const f = l.programId ? o.floor?.get(l.programId) : undefined;
-    const job = l.programId ? o.jobName?.get(byId.get(l.programId)?.projectId ?? '') : undefined;
-    return f ? { ...l, proving: `On ${job ?? 'its job'}'s Set up: ${f.word}${f.note ? ` — ${f.note}` : ''}` } : l;
+    const job = p ? o.jobName?.get(p.projectId) : undefined;
+    const proof = p ? proofOf(p, o.tests, o.studies) : undefined;
+    return { ...l, ...(f ? { proving: `On ${job ?? 'its job'}'s Set up: ${f.word}${f.note ? ` — ${f.note}` : ''}` } : {}), ...(proof ? { proof } : {}) };
   };
   const machines = r.machines.map(m => ({ ...m, lines: m.lines.map(withFloor) }));
   return { ...r, machines, lines: machines.flatMap(m => m.lines) };

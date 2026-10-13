@@ -33,6 +33,10 @@
  *      floor after its test passed is back on the machine, on the line and
  *      the job; each says the other record beside its own; a failed program
  *      is never counted done; the job's paper says the same
+ *   13 proved says what showed it (flow audit #21): its test, a study on
+ *      the line (the study's page says so), or the words of who signed it
+ *      off — amber when nothing; on the line's paper; the job's own
+ *      Programs list asks the same and offers its test
  *   and no console error.
  *
  *   node scripts/acceptance/machines-programs.mjs      (SMOKE_BASE, as smoke) */
@@ -147,10 +151,15 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   ok(p.state === 'onMachine' && p.note === 'On the HMI — not run yet' && p.testOn === iso(-3), '4 on the machine, its commentary and its test day, kept');
   ok(/is-pg-overdue/.test(await row().getAttribute('class')) && flat(await row().locator('.mt-when-n').innerText()) === 'test was 3 days ago', '4b a test day gone by: red, "test was 3 days ago"');
   await row().getByLabel('Where LB-2 Express labels has got to').selectOption('proved'); await page.waitForTimeout(300);
-  await row().locator('input[type=date]').last().fill(iso(-1));
+  await row().getByLabel('The day LB-2 Express labels was proved').fill(iso(-1));
+  /* flow audit #21: proved asks what showed it — nothing said, nothing proved */
+  const asked = await row().getByRole('button', { name: 'It’s proved' }).isDisabled();
+  await row().getByLabel('What showed LB-2 Express labels works').fill('200 Express labels run on the Herma, every one read by the scanner');
   await row().getByRole('button', { name: 'It’s proved' }).click(); await page.waitForTimeout(1000);
   p = (await truth()).programs.find(x => x.what === 'LB-2 Express labels');
-  ok(p.state === 'proved' && p.provedOn === iso(-1) && !p.testOn && /is-pg-proved/.test(await row().getAttribute('class')), '4c proved asks the day and keeps it — green');
+  ok(asked && p.state === 'proved' && p.provedOn === iso(-1) && !p.testOn && p.note === '200 Express labels run on the Herma, every one read by the scanner' && /is-pg-proved/.test(await row().getAttribute('class'))
+    && flat(await row().locator('.lp-how').innerText()) === 'Signed off by hand',
+    '4c proved asks the day and what showed it, keeps both — green, "Signed off by hand", what showed it its commentary');
 }
 
 /* ---- 5 the line's page ---- */
@@ -320,6 +329,75 @@ await page.setViewportSize({ width: 1360, height: 900 });
   const txt = flat(execFileSync('pdftotext', ['-layout', file, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
   const lost = [j.says, `On the line: ${j.lines.find(l => l.what === 'PR-12 Express 1.25 kg').record.word}`].filter(w => !txt.includes(w.replace(/\s+/g, '')));
   ok(!lost.length, `12h the job's programs report: its count and the line's record beside the floor's${lost.length ? ` — lost: ${lost.join(' | ')}` : ''}`);
+}
+
+/* ---- 13 proved says what showed it (flow audit #21) ---- */
+{
+  /* How each of the line's programs was proved, as the module says it. */
+  const proofs = () => page.evaluate(async ws => {
+    const db = await import('/src/db.ts');
+    const L = await import('/src/lib/lineRecords.ts');
+    const [all, assets, programs, jobLines, tests, studies] = await Promise.all([db.listWorkspaces(), db.listAllAssets(), db.listAllPrograms(), db.allPaceLines(), db.listProvingTests(), db.listAllStudies()]);
+    const w = all.find(x => x.id === ws);
+    const kit = L.lineKit(w, assets, programs, jobLines);
+    const r = L.lineProgramsReading([{ id: w.id, name: w.name, machines: kit.machines, programs: kit.programs }], undefined, { tests, studies });
+    return { lines: r.lines.map(l => ({ id: l.programId, what: l.what, proof: l.proof })), studies: studies.filter(s => s.workspaceId === ws).map(s => ({ id: s.id, name: s.name, tool: s.tool, programId: s.programId })) };
+  }, WS);
+  await go(`#/programs?line=${WS}`);
+  let pr = await proofs();
+  const how = async id => flat(await main.locator(`[data-program="${id}"] .lp-how`).innerText().catch(() => ''));
+  const cw3 = pr.lines.find(l => l.what === 'CW-3 Maris Piper 2kg'), cw1 = pr.lines.find(l => l.what === 'CW-1 Finest Red 2kg');
+  ok(/^Proved by its test — Prove program CW-3 Maris Piper 2kg, passed /.test(cw3.proof?.word ?? '') && await how(cw3.id) === cw3.proof.word,
+    `13 proved by its test in Commission, said under it: "${await how(cw3.id)}"`);
+  ok(cw1.proof?.tone === 'a' && await how(cw1.id) === 'Signed off by hand — nothing said shows it' && /is-a/.test(await main.locator(`[data-program="${cw1.id}"] .lp-how`).getAttribute('class')),
+    '13b signed off by hand with nothing said: proved, and said so in amber');
+  /* a new program on the line, proved by a study on the line */
+  await main.getByRole('button', { name: 'Plan a program on Line 7 — smoke test' }).click(); await page.waitForTimeout(300);
+  const form = main.locator('.mt-add-card');
+  await form.getByLabel("The program's name or number").fill('CW-7 Maris Piper 2.5kg');
+  await form.getByLabel('Which machine it is on').selectOption({ label: 'Checkweigher' });
+  await form.getByRole('button', { name: 'Plan it' }).click(); await page.waitForTimeout(1500);
+  pr = await proofs();
+  const cw7 = pr.lines.find(l => l.what === 'CW-7 Maris Piper 2.5kg');
+  const row = main.locator(`[data-program="${cw7.id}"]`);
+  await row.getByLabel('Where CW-7 Maris Piper 2.5kg has got to').selectOption('proved'); await page.waitForTimeout(300);
+  await row.getByRole('button', { name: 'A study on the line' }).click();
+  const choice = row.getByLabel('The study that showed CW-7 Maris Piper 2.5kg works');
+  const studyId = await choice.locator('option').nth(1).getAttribute('value');
+  await choice.selectOption(studyId);
+  await row.getByRole('button', { name: 'It’s proved' }).click(); await page.waitForTimeout(1500);
+  pr = await proofs();
+  const st = pr.studies.find(s => s.id === studyId);
+  const p7 = (await truth()).programs.find(p => p.id === cw7.id);
+  const said7 = pr.lines.find(l => l.id === cw7.id).proof;
+  ok(p7.state === 'proved' && !!p7.provedOn && st.programId === cw7.id && said7.studyId === studyId && await how(cw7.id) === `${said7.word} Open it ›`,
+    `13c proved by a study on the line — the study names it, and the row says so: "${said7.word.slice(0, 80)}…"`);
+  await row.locator('.lp-how').getByRole('button', { name: 'Open it ›' }).click(); await page.waitForTimeout(2200);
+  ok(flat(await main.locator('.ie-proves').innerText().catch(() => '')).startsWith('Shows program CW-7 Maris Piper 2.5kg proved'),
+    `13d the study's own page says the program it shows proved (${flat(await main.locator('.ie-proves').innerText().catch(() => '—'))})`);
+  /* on paper: the line's programs report says how each proved one was proved */
+  await go(`#/programs?line=${WS}`);
+  const dir = mkdtempSync(join(tmpdir(), 'lproof-'));
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), main.getByRole('button', { name: 'Programs report' }).click()]);
+  const file = join(dir, 'programs.pdf'); await dl.saveAs(file);
+  const txt = flat(execFileSync('pdftotext', ['-layout', file, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
+  const want = pr.lines.filter(l => l.proof).map(l => l.proof.word.slice(0, 60));
+  const lost = want.filter(w => !txt.includes(w.replace(/\s+/g, '')));
+  ok(want.length >= 4 && !lost.length, `13e the line's programs report says how each of ${want.length} was proved${lost.length ? ` — lost: ${lost.join(' | ')}` : ''}`);
+  /* the job's own Programs list asks the same, and offers its test */
+  await go(`#/project/${sd.projectId}/programs`);
+  await main.getByRole('button', { name: /Test days and proving in Commission/ }).click(); await page.waitForTimeout(600);
+  /* its name is a box to type in: the row is found by its own controls */
+  const r07 = main.locator('.mt-row', { has: page.getByLabel('Where PR-07 Baking Potatoes 2 kg has got to') }).first();
+  await r07.getByRole('button', { name: 'Mark it proved' }).click(); await page.waitForTimeout(300);
+  const offers = flat(await r07.locator('.pv-test').innerText().catch(() => ''));
+  const blank = await r07.getByRole('button', { name: 'It’s proved' }).isDisabled();
+  await r07.getByLabel('What showed PR-07 Baking Potatoes 2 kg works').fill('Ran 2 kg potatoes for an hour at 40 a minute, no rejects');
+  await r07.getByRole('button', { name: 'It’s proved' }).click(); await page.waitForTimeout(1200);
+  const j07 = await page.evaluate(async pid => (await (await import('/src/db.ts')).listPrograms(pid)).find(p => p.what === 'PR-07 Baking Potatoes 2 kg'), sd.projectId);
+  ok(blank && offers.includes('plan its test in Commission') && j07.state === 'proved' && j07.note === 'Ran 2 kg potatoes for an hour at 40 a minute, no rejects'
+    && flat(await r07.innerText()).includes('Signed off by hand — no test behind it'),
+    '13f the job\'s Programs list: proved asks what showed it, offers its test in Commission, and says how');
 }
 
 ok(errors.length === 0, `no console errors${errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''}`);

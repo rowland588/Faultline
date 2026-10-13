@@ -24,6 +24,8 @@ import { programRunSays, runsOfProgram } from './programRun';
 import { partStatus, partsOf, resultNow, resultWords } from './noted';
 import { niceDay, todayISO } from './weeks';
 import { answerOf, type AnswerHolder } from './install';
+import type { ToolStudy } from './study';
+import { TOOL_NAME, studyLine } from './studyLinks';
 
 /** The house colours: green done, red failed or late, indigo under way,
  *  amber waiting on a verdict, grey not started. */
@@ -62,6 +64,11 @@ export interface ProgramLine {
    *  #3: one program, two records, two answers). The screen shows it beside
    *  the row, in its colour. */
   record?: { word: string; tone: ProgTone };
+  /** HOW A PROVED ONE WAS PROVED (flow audit #21) — "Proved by its test —
+   *  Prove program PR-04, passed 12 Oct", "Proved by the capability study
+   *  “Weight 2 kg” — …", "Signed off by hand", or amber "Signed off by hand —
+   *  nothing said shows it". Under its state, on screen and paper. */
+  proof?: Proof;
   /** ITS RUN AT SPEED in Commission (lib/programRun) — "run passed 9 Oct —
    *  45 ppm net", "run short — net rate 1.5 ppm short", "run planned". */
   run?: string;
@@ -84,6 +91,55 @@ export interface ProgramsReading {
 }
 
 const key = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+
+/* ========================== HOW IT WAS PROVED =============================
+ *
+ * Flow audit #21 (13 October): a line's program was "Proved" by a dropdown —
+ * no test, no evidence, nobody named. LEAN40 principle 6 is "proved, not
+ * asserted". A program is proved by one of three things, and says which:
+ *
+ *   its test         a test in Commission that passed (Test.programId — the
+ *                    link lib/programs programAfterTest keeps)
+ *   a study          one use of a tool on its line that names it
+ *                    (ToolStudy.programId) — a capability study, a loss count
+ *   by hand          what showed it, in words: its commentary, asked for
+ *                    when it is signed off (ui/ProveProgram)
+ *
+ * One signed off by hand with nothing said is still proved — the date is the
+ * fact (lib/programs) — and says so, in amber: the abnormal, in words. */
+export interface Proof {
+  word: string;
+  tone: ProgTone;
+  testId?: string;
+  studyId?: string;
+}
+
+/** The study that shows a program was proved — the newest of those naming it. */
+export const studyProving = (p: Pick<Program, 'id'>, studies: readonly ToolStudy[]): ToolStudy | undefined =>
+  studies.filter(s => !s.deletedAt && s.programId === p.id).sort((a, b) => b.updatedAt - a.updatedAt)[0];
+
+/** "capability study “Weight 2 kg”" — what a study is, in a few words. */
+export const studyWords = (s: Pick<ToolStudy, 'tool' | 'name'>): string =>
+  `${(TOOL_NAME[s.tool] ?? 'Study').toLowerCase()} “${s.name || 'not named'}”`;
+
+/** How a proved program was proved, or undefined while it is not.
+ *  `tests` — the tests that could have proved it, when they are known; a
+ *  paper that cannot see them says "Proved by its test in Commission" when the
+ *  program names one. */
+export function proofOf(p: Program, tests: readonly Test[] | undefined, studies: readonly ToolStudy[] = []): Proof | undefined {
+  if (!isProved(p)) return undefined;
+  const t = tests ? provingTestOf(p, [...tests]) : undefined;
+  if (t && t.outcome === 'passed') return { word: `Proved by its test — ${t.title}, passed${t.ranOn ? ` ${niceDay(t.ranOn)}` : ''}`, tone: 'g', testId: t.id };
+  const s = studyProving(p, studies);
+  if (s) {
+    const said = studyLine(s);
+    return { word: `Proved by the ${studyWords(s)} — ${said.text}`, tone: said.tone, studyId: s.id };
+  }
+  if (!tests && p.testId) return { word: 'Proved by its test in Commission', tone: 'g', testId: p.testId };
+  return p.note?.trim()
+    ? { word: 'Signed off by hand', tone: 'n' }
+    : { word: 'Signed off by hand — nothing said shows it', tone: 'a' };
+}
 
 /** THE PARTS THAT ARE THIS PROGRAM ON THE FLOOR — the parts of the same name
  *  on its machine's programs stage: the join this reading makes, said once
@@ -148,7 +204,10 @@ function partWordsOf(i: TestItem, today: string): Pick<ProgramLine, 'word' | 'to
 
 export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: Asset[]; programs: Program[]; today?: string;
   /** The job, so a stage the owner made the programs stage is one (lib/install answerOf). */
-  holder?: AnswerHolder }): ProgramsReading | undefined {
+  holder?: AnswerHolder;
+  /** The studies that could show a program proved (ToolStudy.programId) — how
+   *  each proved one was proved (proofOf). */
+  studies?: readonly ToolStudy[] }): ProgramsReading | undefined {
   const today = x.today ?? todayISO();
   const tests = live(x.tests);
   const assets = live(x.assets);
@@ -187,6 +246,7 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
           /* Proved in Commission is the stronger word; the floor's status
              and what was seen stay beside it. */
           ...(proved ? { word: proved.word, tone: proved.tone, bucket: proved.bucket, ...(said.note ? { note: said.note } : {}) } : said),
+          ...(p && proved ? (pf => (pf ? { proof: pf } : {}))(proofOf(p, tests, x.studies)) : {}),
           earlier,
           ...(proved && now ? { proving: `on the floor: ${said.word}` } : {}),
           /* THE FLOOR'S STATUS LEADS: the program record's own state beside
@@ -201,6 +261,7 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
         ...(run ? { run: run.word, runTone: run.tone } : {}),
         machine, programId: p.id, ...(m ? { assetId: m } : {}), what: p.what.trim(), ...(p.runs ? { runs: p.runs } : {}), ...(p.from ? { who: p.from } : {}),
         ...programWords(p, tests, today), ...(p.note?.trim() ? { note: p.note.trim() } : {}), earlier: [],
+        ...(pf => (pf ? { proof: pf } : {}))(proofOf(p, tests, x.studies)),
       });
     }
     if (group.length) machines.push({ name: machine, lines: group });

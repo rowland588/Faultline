@@ -72,6 +72,13 @@ export async function listTests(projectId: string): Promise<Test[]> {
   return all.filter(t => !t.deletedAt);
 }
 
+/** Every test that proves a program, on whichever job (Test.programId) —
+ *  how a line's program was proved, read on its line (lib/programsReport
+ *  proofOf). */
+export async function listProvingTests(): Promise<Test[]> {
+  return (await (await getDB()).getAll('tests')).filter(t => !t.deletedAt && !!t.programId);
+}
+
 export async function putTest(t: Test): Promise<void> {
   const db = await getDB();
   /* As it was, when it proves a program — so an edit is told from a new pass. */

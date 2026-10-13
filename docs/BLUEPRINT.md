@@ -367,7 +367,21 @@ already follow):
   — to prove again"), the line's row what its job's floor said ("On its Set
   up: Failed · closed 13 Oct — …"), on the screen and on both papers. No new
   record.
-- *Accepted by* `scripts/acceptance/machines-programs.mjs` (stories 1–12).
+- **Proved says what showed it** (flow audit #21, 13 October: a line's
+  program was *Proved* by a dropdown — no test, no evidence; LEAN40
+  principle 6, proved not asserted). *Proved* asks the day and what showed
+  it: in words (they become its commentary), or a study on its line that
+  shows it (the study names the program — `ToolStudy.programId`, a column
+  it already had); a test in Commission proves one on its own, and the form
+  says where to plan it. Every proved program says how, under its state
+  (`lib/programsReport` `proofOf`): "Proved by its test — …, passed 12 Oct",
+  "Proved by the capability study “…” — …" (one tap to it), "Signed off by
+  hand", or in amber "Signed off by hand — nothing said shows it" — on the
+  line's Programs, the job's Programs list, a job's view of its line's
+  programs, the line's and the job's programs reports and the client
+  report. The study's own page says the program it shows proved. No new
+  record.
+- *Accepted by* `scripts/acceptance/machines-programs.mjs` (stories 1–13).
 - *Not in this stage:* plate speed per machine (it is per product — D3, Stage
   4); a job taking a line's machine onto its Install (Stage 4, "machines are
   picked from the line").

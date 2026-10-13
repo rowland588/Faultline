@@ -5,11 +5,12 @@
  * and a job all show the same records. */
 import { useEffect, useState } from 'react';
 import type { Project, Workspace } from '../types';
-import type { Asset } from './testing';
+import type { Asset, Test } from './testing';
 import type { Program } from './programs';
 import type { Standard } from './standard';
 import type { JobLine } from './lineRecords';
-import { allPaceLines, allProjects, listAllAssets, listAllPrograms, listAllStandards, listWorkspaces, onDataChange } from '../db';
+import type { ToolStudy } from './study';
+import { allPaceLines, allProjects, listAllAssets, listAllPrograms, listAllStandards, listAllStudies, listProvingTests, listWorkspaces, onDataChange } from '../db';
 import { liveProductionLines } from './lines';
 
 export interface LineRecords {
@@ -24,20 +25,25 @@ export interface LineRecords {
   standards: Standard[];
   jobLines: JobLine[];
   jobs: Project[];
+  /** What proves a program (flow audit #21): the tests that name one, on
+   *  whichever job, and every study — one naming a program shows it proved
+   *  (lib/programsReport proofOf). */
+  provingTests: Test[];
+  studies: ToolStudy[];
 }
 
-const EMPTY: LineRecords = { loading: true, lines: [], all: [], machines: [], programs: [], standards: [], jobLines: [], jobs: [] };
+const EMPTY: LineRecords = { loading: true, lines: [], all: [], machines: [], programs: [], standards: [], jobLines: [], jobs: [], provingTests: [], studies: [] };
 
 export function useLineRecords(): LineRecords {
   const [state, setState] = useState<LineRecords>(EMPTY);
   useEffect(() => {
     let live = true;
     const load = () => void (async () => {
-      const [all, machines, programs, standards, jobLines, jobs] = await Promise.all([
-        listWorkspaces(), listAllAssets(), listAllPrograms(), listAllStandards(), allPaceLines(), allProjects(),
+      const [all, machines, programs, standards, jobLines, jobs, provingTests, studies] = await Promise.all([
+        listWorkspaces(), listAllAssets(), listAllPrograms(), listAllStandards(), allPaceLines(), allProjects(), listProvingTests(), listAllStudies(),
       ]);
       const lines = await liveProductionLines(all);
-      if (live) setState({ loading: false, lines, all, machines, programs, standards: standards.filter(s => !s.deletedAt), jobLines, jobs: jobs.filter(j => !j.deletedAt) });
+      if (live) setState({ loading: false, lines, all, machines, programs, standards: standards.filter(s => !s.deletedAt), jobLines, jobs: jobs.filter(j => !j.deletedAt), provingTests, studies });
     })();
     load();
     const off = onDataChange(load);
