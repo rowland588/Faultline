@@ -17,15 +17,22 @@
  * red), and what to do next (take a problem; open a tool on this line). */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { nav } from '../state/useRoute';
-import { getWorkspace, listAllSnags, listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, projectsOnWorkspace, updateWorkspace } from '../db';
+import { getWorkspace, listAllSnags, listObservations, listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, projectsOnWorkspace, updateWorkspace } from '../db';
 import { methodOf } from '../lib/planModel';
 import { useCanStartProjects } from '../cloud/access';
 import { lineFacts, lineTypesOffered, productionLines } from '../lib/lines';
 import { WorkspaceProvider } from '../state/WorkspaceProvider';
 import { StudySetupSheet } from '../ui/StudySetupSheet';
 import { openQuickSnag } from '../snag/QuickSnag';
-import { PRIORITY_WORD, type Priority, type SnagRow, type SnagTone, snagRow } from '../lib/snagsReport';
-import { inCapacityTool, inMapTool, type Standard } from '../lib/standard';
+import { PRIORITY_WORD, type Priority, type SnagRow, type SnagTone } from '../lib/snagsReport';
+import { headcount, inCapacityTool, inMapTool, thingsOf, type Standard } from '../lib/standard';
+import { lineProblems, lineProblemsSaid } from '../lib/lineWork';
+import { balanceSays } from './LineToolsScreen';
+import { studyLine } from './StudiesScreen';
+import { currentLosses } from '../lib/studyLinks';
+import { useJobInputs } from '../lib/useJobInputs';
+import { portfolio, type JobView } from '../lib/portfolio';
+import type { Observation } from '../types';
 import type { ToolStudy, StudyTool } from '../lib/study';
 import type { Workspace } from '../types';
 import { Icon } from '../ui/Icon';
@@ -41,7 +48,6 @@ import type { Snag } from '../snag/types';
 const TONE_CLASS: Record<SnagTone, string> = { g: 'is-g', r: 'is-r', w: 'is-w', a: 'is-a', n: 'is-n' };
 /* PRIORITY, RAG (Rowland, 12 October) — always with its word. */
 const PRIO_CLASS: Record<Priority, string> = { critical: 'is-r', high: 'is-a', low: 'is-g' };
-const RANK: Record<Priority, number> = { critical: 0, high: 1, low: 2 };
 
 /** The tools, as the rail names them, each opened on this line. */
 const TOOLS: { key: string; label: string; to: string; study?: StudyTool; standard?: true; what: string }[] = [
@@ -61,6 +67,8 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
   const { projects } = useProjects();
   const [standards, setStandards] = useState<Standard[]>([]);
   const [studies, setStudies] = useState<ToolStudy[]>([]);
+  /* the line's stops — a loss count's sentence reads the ones in its window */
+  const [obs, setObs] = useState<Observation[]>([]);
   const [types, setTypes] = useState<string[]>([]);
   const [jobIds, setJobIds] = useState<string[]>([]);
   const [editing, setEditing] = useState(false);
@@ -70,25 +78,50 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
   const [settingUp, setSettingUp] = useState(false);
 
   const load = useCallback(async () => {
-    const [w, every, std, ss, ws, on] = await Promise.all([getWorkspace(wsId), listAllSnags(), listStandardsForLine(wsId), listStudiesForLine(wsId), listWorkspaces(), projectsOnWorkspace(wsId)]);
+    const [w, every, std, ss, ws, on, o] = await Promise.all([getWorkspace(wsId), listAllSnags(), listStandardsForLine(wsId), listStudiesForLine(wsId), listWorkspaces(), projectsOnWorkspace(wsId), listObservations(wsId)]);
     setLine(w ?? null);
     setJobIds(on);
     setTypes(lineTypesOffered(productionLines(ws)));
     const mine = every.filter(s => s.workspaceId === wsId && !s.deletedAt && !s.archivedAt && s.status !== 'closed');
     setMine(mine);
-    setStandards(std); setStudies(ss.filter(s => !s.deletedAt));
+    setStandards(std); setStudies(ss.filter(s => !s.deletedAt)); setObs(o);
   }, [wsId]);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
 
-  /* its problems as rows, in priority order — the project each is for named */
-  const rows: SnagRow[] = useMemo(() => mine.map(s => snagRow(s, line?.name ?? 'This line', undefined, projects.find(p => p.id === s.projectId)?.name))
-    .sort((a, b) => RANK[a.priority] - RANK[b.priority] || Number(b.late) - Number(a.late) || b.raisedAt - a.raisedAt), [mine, projects, line]);
+  /* its problems as rows, in priority order — the project each is for
+     named; read by the one rule the control room's card and its numbers
+     use (lib/lineWork lineProblems), so the three cannot disagree */
+  const probs = useMemo(() => lineProblems(mine, { id: wsId, name: line?.name ?? 'This line' }, { jobName: id => projects.find(p => p.id === id)?.name }), [mine, projects, line, wsId]);
+  const rows: SnagRow[] = probs.rows;
   const jobs = projects.filter(p => jobIds.includes(p.id));
   const facts = line ? lineFacts(line) : {};
-  const late = rows.filter(r => r.late).length;
-  const crit = rows.filter(r => r.priority === 'critical').length;
-  /* each tool counts its own products (lib/standard inCapacityTool) — a map is not a capacity */
-  const count = useMemo(() => (t: typeof TOOLS[number]) => (t.standard ? standards.filter(t.key === 'linebalance' ? inCapacityTool : inMapTool).length : studies.filter(s => s.tool === t.study).length), [standards, studies]);
+  /* THE JOBS ON THIS LINE, read as the control room reads them (lib/useJobInputs,
+     lib/portfolio) — each says its verdict and its late in the control
+     room's own words (FLOW-AUDIT.md, 10). */
+  const jobInputs = useJobInputs(jobs);
+  const jobViews = useMemo(() => (jobInputs ? new Map(portfolio(jobInputs.gate, todayISO(), jobInputs.paced).jobs.map(v => [v.id, v])) : null), [jobInputs]);
+  /* EACH TOOL SAYS WHAT ITS LATEST FOUND (FLOW-AUDIT.md, 10) — "Loss count ·
+     2 on this line" counted records; the tile carries the sentence the
+     tool's own list shows for its newest record on this line, then the
+     count. Each tool counts its own products (lib/standard inCapacityTool) —
+     a map is not a capacity. */
+  const toolSays = useMemo(() => (t: typeof TOOLS[number]): { n: number; says?: string; tone?: string } => {
+    if (t.standard) {
+      const own = standards.filter(t.key === 'linebalance' ? inCapacityTool : inMapTool).sort((a, b) => b.updatedAt - a.updatedAt);
+      const s = own[0];
+      if (!s) return { n: 0 };
+      if (t.key === 'linebalance') { const b = balanceSays(s); return { n: own.length, says: `${s.product}: ${b.text}`, tone: b.short ? 'r' : 'n' }; }
+      const people = headcount(s), things = thingsOf(s);
+      return { n: own.length, says: `${s.product}: ${people || things ? [`${people} ${people === 1 ? 'person' : 'people'}`, things].filter(Boolean).join(' · ') : 'nothing placed yet'}` };
+    }
+    const own = studies.filter(s => s.tool === t.study).sort((a, b) => b.startedAt - a.startedAt);
+    /* a loss count: the latest shift counted, as the line's card says it */
+    const s = (t.study === 'losses' ? currentLosses(own, wsId) : undefined) ?? own[0];
+    if (!s) return { n: 0 };
+    const said = studyLine(s, t.study === 'losses' && line ? { observations: obs, workspaces: [line] } : undefined);
+    /* a loss count's sentence names its shift itself */
+    return { n: own.length, says: t.study === 'losses' ? said.text : `${s.name}: ${said.text}`, tone: said.tone };
+  }, [standards, studies, obs, line, wsId]);
   /* ITS MACHINES AND PROGRAMS (docs/BLUEPRINT.md, Stage 2) — the line's own
      and those a job brought in, read as the control room's Programs reads them. */
   const rec = useLineRecords();
@@ -139,13 +172,10 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
         <div className="pace-head-main">
           <p className="pl-eyebrow">PRODUCTION LINE{line.lineType ? ` · ${line.lineType.toUpperCase()}` : ''} · <a href="#/factory" className="pl-fac">Your factory ›</a></p>
           <h1>{line.name}</h1>
-          {/* where the line is, in words — only the abnormal carries colour */}
+          {/* where the line is, in words — only the abnormal carries colour;
+              the words the control room's card for it says (lib/lineWork) */}
           <p className="pl-says">
-            {rows.length === 0 ? 'No problems open.' : <>
-              {rows.length} problem{rows.length === 1 ? '' : 's'} open
-              {crit > 0 && <> · <b className="is-r">{crit} critical</b></>}
-              {late > 0 && <> · <b className="is-r">{late} late</b></>}
-            </>}
+            {lineProblemsSaid(probs).map((x, i) => (x.red ? <b key={i} className="is-r">{x.text}</b> : x.text))}{rows.length === 0 ? '.' : ''}
           </p>
         </div>
         <div className="pace-head-actions">
@@ -302,11 +332,13 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
         <div className="pl-sec-h"><h2>Tools on this line</h2></div>
         <ul className="pl-tools">
           {TOOLS.map(t => {
-            const n = count(t);
+            const { n, says, tone } = toolSays(t);
             return (
               <li key={t.key}>
                 <button type="button" className="pl-tool" onClick={() => nav(`${t.to}?line=${encodeURIComponent(wsId)}`)}>
                   <b>{t.label}</b>
+                  {/* what its latest found — the abnormal part alone in its colour */}
+                  {says && <span className={'pl-tool-says ie-tone is-' + (tone ?? 'n')}>{says}</span>}
                   <span className="sub">{n ? `${n} on this line` : `None yet — ${t.what}`}</span>
                   <span className="pl-tool-go" aria-hidden>›</span>
                 </button>
@@ -333,6 +365,7 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
                 <li key={p.id}>
                   <button type="button" className="pl-job" onClick={() => nav(`/project/${p.id}`)}>
                     <b>{p.name}</b><span className="sub">{methodOf(p).label}</span><span className="pl-tool-go" aria-hidden>›</span>
+                    <JobVerdict v={jobViews?.get(p.id)} />
                   </button>
                 </li>
               ))}
@@ -341,5 +374,21 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
       </section>
       {settingUp && <WorkspaceProvider wsId={wsId}><StudySetupSheet onClose={() => setSettingUp(false)} /></WorkspaceProvider>}
     </div>
+  );
+}
+
+/** A JOB'S VERDICT ON ITS LINE'S PAGE — the control room's own answer for it
+ *  (lib/onTarget, through lib/portfolio): the word in its colour, why in one
+ *  line, and what is late and critical in red with their words. */
+function JobVerdict({ v }: { v?: JobView }) {
+  if (!v) return <span className="pl-job-ot sub">Reading…</span>;
+  return (
+    <span className="pl-job-ot">
+      {v.onTarget && <b className={'pl-ot is-' + v.onTarget.tone}>{v.onTarget.word}</b>}
+      {v.onTarget && <span className="sub"> {v.onTarget.brief ?? v.onTarget.reason}</span>}
+      {/* a stage-gate job's reason already counts its late; a 6M or tree job's is about its lines */}
+      {v.late > 0 && v.method !== 'commissioning' && <> · <b className="is-r">{v.late} late</b></>}
+      {v.critical.length > 0 && <> · <b className="is-r">{v.critical.length} critical</b></>}
+    </span>
   );
 }
