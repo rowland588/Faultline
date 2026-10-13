@@ -334,6 +334,49 @@ const mk = (kind: CauseSource['kind'], ref: string, m: SixM, text: string, grade
   };
 };
 
+/* WHAT A PROBLEM IS ABOUT, IN ITS OWN WORDS (flow audit #18). A late
+ * material or a program not proved was offered on every problem of the job —
+ * "P-150 perforation not proved" under Method and "Upgraded jaw heater is
+ * 1 day late" under Material on a problem about basket misfeeds. Breadth is
+ * the fishbone's job; noise is not. So a thing the job waits on is offered
+ * when it is on the problem's line, or — on no line — when it is on the
+ * machine the head is about or shares a word with the problem: its title,
+ * where it came from, its causes and their whys. */
+const NOT_A_WORD = new Set(('the and for with from that this not are was has have been its into onto over under off out '
+  + 'than then when after before every each all any our new old one two per too more less only still very '
+  + 'line lines day days week weeks hour hours min mins minute minutes time times late early '
+  + 'stop stops minor problem problems issue issues target rate ppm below above against good bad').split(' '));
+
+/** The words that say what a text is about: three letters or more, not the
+ *  glue of a sentence or the words every problem on a line shares. */
+export function aboutWords(...texts: (string | undefined)[]): Set<string> {
+  const out = new Set<string>();
+  for (const t of texts) for (const w of (t ?? '').toLowerCase().split(/[^a-z\u00c0-\u024f]+/)) {
+    if (w.length >= 3 && !NOT_A_WORD.has(w)) out.add(w);
+  }
+  return out;
+}
+
+/** Two words are one when they are the same, or one is the other with an
+ *  ending ("heat" · "heater", "splice" · "splices"), or they share their
+ *  first six letters ("perforated" · "perforation"). */
+const sameWord = (a: string, b: string): boolean =>
+  a === b || (a.length >= 4 && b.length >= 4 && (a.startsWith(b) || b.startsWith(a))) || (a.length >= 6 && b.length >= 6 && a.slice(0, 6) === b.slice(0, 6));
+
+/** Whether a text shares a word with what the problem is about. */
+export const sharesAWord = (problem: Set<string>, ...texts: (string | undefined)[]): boolean => {
+  const mine = [...aboutWords(...texts)];
+  return mine.some(w => [...problem].some(x => sameWord(w, x)));
+};
+
+/** Everything a problem says about itself: its title, the head it was taken
+ *  from, its causes and their whys, and the chain written before 6M. */
+export function problemWords(problem: Case): Set<string> {
+  const src = problem.source;
+  return aboutWords(problem.title, src?.category, src?.subcategory, src?.asset, src?.station,
+    ...(problem.causes ?? []).flatMap(c => [c.text, ...c.whys.map(w => w.text)]), ...(problem.whys ?? []));
+}
+
 /** At most this many stop groups on one fishbone — beyond it is the long tail,
  *  and the Pareto is where the tail lives. */
 const MAX_STOP_GROUPS = 8;
@@ -619,9 +662,17 @@ export function suggestionsFor(problem: Case, data: FishboneData, today = Date.n
     }
   }
 
-  /* 6. MATERIALS LATE for this line (or for the whole job). */
-  const forLine = (x: { lineId?: string }) => !x.lineId || (!!line && x.lineId === line.id);
-  const late = data.materials.filter(m => !m.deletedAt && forLine(m) && materialState(m, todayIso) === 'late')
+  /* 6. MATERIALS LATE — on this problem's line, or on no line and about
+     this problem: its machine, or a word it shares (problemWords). The job's
+     whole list on every problem was noise (flow audit #18). */
+  const words = problemWords(problem);
+  const aboutIt = (...texts: (string | undefined)[]) =>
+    sharesAWord(words, ...texts) || (!!scope.asset && texts.some(t => sameThing(t, scope.asset)));
+  const onLine = (x: { lineId?: string; workspaceId?: string }) =>
+    !!line && (x.lineId === line.id || (!x.lineId && !!x.workspaceId && x.workspaceId === line.workspaceId));
+  const forLine = (x: { lineId?: string; workspaceId?: string }, ...texts: (string | undefined)[]) =>
+    onLine(x) || (!x.lineId && !x.workspaceId && aboutIt(...texts));
+  const late = data.materials.filter(m => !m.deletedAt && forLine(m, m.what, m.note) && materialState(m, todayIso) === 'late')
     .sort((a, b) => (a.due ?? '').localeCompare(b.due ?? '')).slice(0, MAX_PER_SOURCE);
   for (const m of late) {
     const n = daysLate(m, todayIso) ?? 0;
@@ -632,8 +683,8 @@ export function suggestionsFor(problem: Case, data: FishboneData, today = Date.n
   }
 
   /* 7. PROGRAMS NOT PROVED: past their test day, or on the machine with no
-     day at all. */
-  const unproved = data.programs.filter(p => !p.deletedAt && forLine(p)).flatMap(p => {
+     day at all — on this problem's line, or about it (as 6). */
+  const unproved = data.programs.filter(p => !p.deletedAt && forLine(p, p.what, p.runs, p.note)).flatMap(p => {
     const standing = standingOf(p, todayIso);
     if (standing === 'overdue') {
       const n = daysOverdue(p, todayIso) ?? 0;

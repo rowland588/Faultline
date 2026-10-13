@@ -408,9 +408,10 @@ describe('suggestionsFor — the walk, the standard, the balance, materials, pro
   it('materials late → Material; programs not proved → Method', () => {
     const mat = (o: Partial<Material>): Material => ({ id: 'm1', projectId: 'P', what: 'Perforated film', sort: 1, createdAt: 1, updatedAt: 1, ...o });
     const prog = (o: Partial<Program>): Program => ({ id: 'p1', projectId: 'P', what: 'P-150', state: 'onMachine', sort: 1, createdAt: 1, updatedAt: 1, ...o });
+    /* on the problem's line: the job's line (lineId), or its factory line (workspaceId) */
     const s = suggestionsFor(problem(), data({
-      materials: [mat({ due: iso(3) }), mat({ id: 'm2', due: iso(-3) }), mat({ id: 'm3', due: iso(5), here: true }), mat({ id: 'm4', due: iso(5), lineId: 'L2' })],
-      programs: [prog({ testOn: iso(6) }), prog({ id: 'p2', testOn: iso(-4) }), prog({ id: 'p3' }), prog({ id: 'p4', provedOn: iso(2) }), prog({ id: 'p5', state: 'needed' })],
+      materials: [mat({ due: iso(3), lineId: 'L1' }), mat({ id: 'm2', due: iso(-3), lineId: 'L1' }), mat({ id: 'm3', due: iso(5), here: true, lineId: 'L1' }), mat({ id: 'm4', due: iso(5), lineId: 'L2' })],
+      programs: [prog({ testOn: iso(6), lineId: 'L1' }), prog({ id: 'p2', testOn: iso(-4), lineId: 'L1' }), prog({ id: 'p3', workspaceId: 'ws1' }), prog({ id: 'p4', provedOn: iso(2), lineId: 'L1' }), prog({ id: 'p5', state: 'needed', lineId: 'L1' })],
     }), TODAY);
     const m = s.filter(x => x.source.kind === 'material');
     expect(m.map(x => x.source.ref)).toEqual(['m1']);
@@ -421,6 +422,28 @@ describe('suggestionsFor — the walk, the standard, the balance, materials, pro
     expect(p.every(x => x.m === 'method')).toBe(true);
     expect(p[0].text).toMatch(/test day has passed/);
     expect(p[1].text).toMatch(/no test day/);
+  });
+
+  /* Flow audit #18: "Every problem is offered P-150 perforation not proved
+     under Method, and Upgraded jaw heater is 1 day late … whatever its head
+     says." What the job waits on on no line is offered only when it is about
+     the problem — its machine, or a word it shares. */
+  it('on no line, a material or a program is offered only when it is about the problem', () => {
+    const mat = (o: Partial<Material>): Material => ({ id: 'm1', projectId: 'P', what: 'Upgraded jaw heater', due: iso(3), sort: 1, createdAt: 1, updatedAt: 1, ...o });
+    const prog = (o: Partial<Program>): Program => ({ id: 'p1', projectId: 'P', what: 'P-150 perforation — 2kg', runs: 'Jacks Piper 2kg', state: 'onMachine', testOn: iso(6), sort: 1, createdAt: 1, updatedAt: 1, ...o });
+    const job = data({
+      materials: [mat({}), mat({ id: 'm2', what: 'Basketer guide rail — spare' }), mat({ id: 'm3', what: 'Perforated film', lineId: 'L2' })],
+      programs: [prog({}), prog({ id: 'p2', what: 'B-12 basket feed', runs: undefined }), prog({ id: 'p3', workspaceId: 'ws2' })],
+    });
+    const refs = (p: Case, kind: string) => suggestionsFor(p, job, TODAY).filter(x => x.source.kind === kind).map(x => x.source.ref);
+    // basket misfeeds: the Basketer's spare rail and the basket feed program — not the jaw heater, not P-150
+    expect(refs(problem(), 'material')).toEqual(['m2']);
+    expect(refs(problem(), 'program')).toEqual(['p2']);
+    // a problem whose cause names the jaw is offered the heater; one about the perforation, P-150 — never another line's
+    const jaw = problem({ id: 'C2', title: 'Seals open on the 2kg bag', source: { kind: 'observed' }, causes: [cause({ text: 'Sealing jaw slow to come up to heat' })] });
+    expect(refs(jaw, 'material')).toEqual(['m1']);
+    expect(refs(problem({ id: 'C3', title: 'Perforations missed on the bag', source: { kind: 'observed' } }), 'program')).toEqual(['p1']);
+    expect(refs(problem({ id: 'C3', title: 'Perforations missed on the bag', source: { kind: 'observed' } }), 'material')).toEqual([]);
   });
 });
 
