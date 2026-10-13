@@ -389,4 +389,19 @@ is still wired.
   back; `CLAUDE.md`, `MAP.md` and `PRODUCT.md` point here.
 - **Stage 1, built** (see §7): the line's facts on its page and in the factory,
   set up in the one editor; merge two lines.
+- **Line capacity reviewed** (Rowland, 13 October: "the capacity calculation
+  is wrong ... why do I still see line standard cards in there ... the
+  graphics don't work"). Placed (§8): *On the line*, the tool Line capacity;
+  record `standards.capacity`; shows on its own page, the line's page (its
+  count) and the paper as before. The sums were right; how a person station
+  asked for them was not — now asked as the floor says it, said back at once,
+  and what reaches every station worked out before it has a speed, with the
+  people needed (`docs/CAPACITY.md` §1). Each tool lists its own products
+  (`lib/standard` `inCapacityTool` / `inMapTool`): a product only mapped is
+  not in Line capacity, one only worked out for capacity not in Line
+  standard; New on a product already on the line opens that record. Line
+  capacity's page goes back to Line capacity, shows "Its line standard" only
+  when there is one, and on no job wears no job's rail. On a phone the V lies
+  on its side and the sheet is a card a station. Accepted by
+  `line-capacity.mjs` 8–11.
 - **Next:** Stage 2 — machines and programs on the line.

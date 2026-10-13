@@ -8016,6 +8016,11 @@ span.ls-role:hover { border-color: transparent; }
 .cap-feed { margin: 4px 0 0; font-size: var(--t-label); color: var(--muted); }
 .cap-feed.is-short { color: var(--st-r); font-weight: 700; }
 .cap-arrives { display: block; margin-top: 4px; }
+/* what reaches a station, and whether it keeps up — two lines, the verdict red only when short */
+.cap-feed .cap-st-in, .cap-feed .cap-st-says { display: block; }
+.cap-feed .cap-st-in { color: var(--ink-2); font-weight: 600; }
+.cap-crew { margin-top: 2px; font-weight: 700; }
+.cap-is { color: var(--ink-2); font-weight: 600; }
 .cap-why { margin: 6px 0 0; }
 .cap-sts { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 10px; }
 .cap-st { padding: 14px 16px; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); }
@@ -12348,3 +12353,40 @@ button.co-step-b:hover { background: color-mix(in srgb, var(--brand) 5%, transpa
 .shc-day td { border-top: 1.5px solid var(--line-2); }
 .shc-says { margin: 0; }
 .shc-go { justify-self: start; }
+
+/* ---- Line capacity on a phone (Rowland, 13 October: "the line capacity page
+   graphics don't work") — the V on its side, the sheet a card a station ---- */
+.vc-rows, .vc-rows-tgt { display: none; }
+.vc-rows { list-style: none; margin: 0 0 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.vc-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.vc-row:last-child { border-bottom: 0; }
+.vc-row-name { grid-column: 1 / -1; font-size: var(--t-detail); }
+.vc-row-track { position: relative; height: 14px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.vc-row-run { position: absolute; left: 0; top: 0; bottom: 0; background: var(--line-2); opacity: .55; }
+.vc-row-bar { position: absolute; left: 0; top: 3px; bottom: 3px; background: var(--ink-2); border-radius: 2px; }
+.vc-row.is-limit .vc-row-bar { background: var(--ink); }
+.vc-row.is-under .vc-row-bar { background: var(--st-a); }
+.vc-row-100 { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1.5px solid var(--ink); }
+.vc-row-guide { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1.5px dashed var(--st-n); }
+.vc-row-tgt { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px dotted var(--ink-2); }
+.vc-row-tgt.is-over { border-left-color: var(--st-r); }
+.vc-row-val { font-size: var(--t-detail); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; align-self: center; }
+.vc-row.is-limit .vc-row-val { text-transform: uppercase; letter-spacing: .04em; font-size: var(--t-label); }
+.vc-row.is-under .vc-row-val { color: var(--st-a); }
+@media (max-width: 640px) {
+  .vc-box { display: none; }
+  .vc-rows { display: block; }
+  .vc-rows-tgt { display: block; margin: 0 0 6px; }
+  .cap-sheet-cards { min-width: 0; }
+  .cap-sheet-cards thead { display: none; }
+  .cap-sheet-cards, .cap-sheet-cards tbody, .cap-sheet-cards tr { display: block; width: 100%; }
+  .cap-sheet-cards tr { padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  .cap-sheet-cards tr.is-limit { background: var(--surface-2); box-shadow: inset 4px 0 0 var(--ink); }
+  .cap-sheet-cards tr.is-limit td, .cap-sheet-cards tr.is-limit td:first-child { background: none; box-shadow: none; }
+  .cap-sheet-cards td { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; border: 0; text-align: right; }
+  .cap-sheet-cards td::before { content: attr(data-k); color: var(--muted); font-size: var(--t-label); text-transform: uppercase; letter-spacing: .05em; text-align: left; }
+  .cap-sheet-cards td[data-k="#"] { display: none; }
+  .cap-sheet-cards td[data-k="Station"] { display: block; text-align: left; font-size: var(--t-body); padding-bottom: 4px; }
+  .cap-sheet-cards td[data-k="Station"]::before { content: none; }
+  .cap-sheet-cards td .cap-sheet-k { display: block; }
+}

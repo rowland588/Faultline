@@ -268,3 +268,33 @@ export function copyFor(s: Standard, product: string, newId: () => ID, at: numbe
     marks: s.marks.map(m => ({ ...m, id: newId() })),
   };
 }
+
+/* ===================== WHICH TOOL A PRODUCT IS IN =========================
+ * One record per product on a line holds two tools: its map (who stands
+ * where — Line standard) and its capacity (where the line is limited — Line
+ * capacity). Rowland, 13 October: "in line capacity why do I still see line
+ * standard cards in there ... I have said it before". So each tool lists the
+ * products it has been used for, never the other's: a product mapped and
+ * never worked out for capacity is not in Line capacity, and the other way
+ * round. The changeovers SMED sets as a product's standard ride inside
+ * `capacity` but are not a capacity worked out. */
+
+/** It has a map: people or kit placed, a picture, or a board shape chosen. */
+export const hasMap = (s: Pick<Standard, 'marks' | 'photoKey' | 'board'>): boolean =>
+  (s.marks?.length ?? 0) > 0 || !!s.photoKey || !!s.board;
+
+/** Its capacity has been started: stations, what-ifs or a target — or it was
+ *  made in Line capacity (an empty capacity) — not only SMED's changeovers. */
+export const capacityStarted = (s: Pick<Standard, 'capacity'>): boolean => {
+  const c = s.capacity;
+  if (!c) return false;
+  return c.stations.length > 0 || !!c.whatIfs?.length || c.targetPerMin != null || !c.changeovers?.length;
+};
+
+/** In Line capacity's list: its capacity started. A product only named —
+ *  neither mapped nor started — is the line standard's, where it was named. */
+export const inCapacityTool = (s: Pick<Standard, 'capacity'>): boolean => capacityStarted(s);
+
+/** In Line standard's list. */
+export const inMapTool = (s: Pick<Standard, 'marks' | 'photoKey' | 'board' | 'capacity'>): boolean =>
+  hasMap(s) || !capacityStarted(s);

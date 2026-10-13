@@ -25,7 +25,7 @@ import { WorkspaceProvider } from '../state/WorkspaceProvider';
 import { StudySetupSheet } from '../ui/StudySetupSheet';
 import { openQuickSnag } from '../snag/QuickSnag';
 import { PRIORITY_WORD, type Priority, type SnagRow, type SnagTone, snagRow } from '../lib/snagsReport';
-import type { Standard } from '../lib/standard';
+import { inCapacityTool, inMapTool, type Standard } from '../lib/standard';
 import type { ToolStudy, StudyTool } from '../lib/study';
 import type { Workspace } from '../types';
 import { Icon } from '../ui/Icon';
@@ -82,7 +82,8 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
   const facts = line ? lineFacts(line) : {};
   const late = rows.filter(r => r.late).length;
   const crit = rows.filter(r => r.priority === 'critical').length;
-  const count = useMemo(() => (t: typeof TOOLS[number]) => (t.standard ? standards.length : studies.filter(s => s.tool === t.study).length), [standards, studies]);
+  /* each tool counts its own products (lib/standard inCapacityTool) — a map is not a capacity */
+  const count = useMemo(() => (t: typeof TOOLS[number]) => (t.standard ? standards.filter(t.key === 'linebalance' ? inCapacityTool : inMapTool).length : studies.filter(s => s.tool === t.study).length), [standards, studies]);
 
   if (line === undefined) return <div className="wrap pl"><p className="sub">Opening…</p></div>;
   if (line === null) {

@@ -21,7 +21,7 @@ import { useArchivedPlaces } from '../lib/useFactoryLines';
 import type { ToolStudy } from '../lib/study';
 import { changeoverLine, currentChangeover, studyHref } from '../lib/studyLinks';
 import { useProjects } from '../lib/useProjects';
-import { headcount, thingsOf, type Standard } from '../lib/standard';
+import { headcount, inCapacityTool, inMapTool, thingsOf, type Standard } from '../lib/standard';
 import { analyse, shortSays } from '../lib/capacity';
 import { now, uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
@@ -94,15 +94,20 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
   /* an archived job's own records — on no line, or on its own walk — go into the
      archive with it; a record on a line of the factory is the line's and stays */
   const put = useArchivedPlaces();
+  /* EACH TOOL LISTS ITS OWN (lib/standard inCapacityTool): a product mapped
+     and never worked out for capacity is not in Line capacity, and the other
+     way round (Rowland, 13 October: "in line capacity why do I still see line
+     standard cards in there"). */
+  const inTool = tool === 'balance' ? inCapacityTool : inMapTool;
   const groups = useMemo(() => {
     const by = new Map<string, Standard[]>();
-    for (const s of list ?? []) {
+    for (const s of (list ?? []).filter(inTool)) {
       const k = s.workspaceId ? `ws:${s.workspaceId}` : `job:${s.projectId}`;
       if (put.has(k)) continue;
       by.set(k, [...(by.get(k) ?? []), s]);
     }
     return [...by.entries()];
-  }, [list, put]);
+  }, [list, put, inTool]);
   const groupName = (k: string) => (k.startsWith('ws:') ? lineName(k.slice(3)) : `Job: ${jobName(k.slice(4)) ?? 'a job'}`);
   const shown = groups.filter(([k]) => lineF === 'all' || k === lineF);
 
@@ -193,6 +198,11 @@ function NewOne({ open, tool, lines, list, onClose, onLine }: { open: boolean; t
   const [job, setJob] = useState('');
   const [busy, setBusy] = useState(false);
   useEffect(() => { if (open) setLine(l => (lines.some(x => x.id === l) ? l : onLine && lines.some(x => x.id === onLine) ? onLine : lines[0]?.id ?? NEW_LINE)); }, [open, lines, onLine]);
+  /* THE LINE'S PRODUCTS — its other products, offered; one already on the
+     line is the same record, never a second */
+  const onIt = list.filter(x => x.workspaceId === line && !x.deletedAt);
+  const products = line === NEW_LINE ? [] : [...new Set(onIt.map(x => x.product.trim()).filter(Boolean))];
+  const already = onIt.find(x => x.product.trim().toLowerCase() === product.trim().toLowerCase());
   const jobs = projects.filter(p => !p.deletedAt && !p.archivedAt);
   const ready = !!product.trim() && (line !== NEW_LINE || !!newLine.trim()) && !busy;
 
@@ -203,11 +213,24 @@ function NewOne({ open, tool, lines, list, onClose, onLine }: { open: boolean; t
       /* a new line goes into Your factory, at the end of the floor (lib/lines) */
       const workspaceId = line === NEW_LINE ? (await addLineToFactory(newLine.trim())).id : line;
       const t = now();
+      /* A PRODUCT ALREADY ON THE LINE is that record — its map and its
+         capacity are one product's — opened at this tool, its capacity
+         started when that is the tool. */
+      const same = list.find(x => x.workspaceId === workspaceId && !x.deletedAt && x.product.trim().toLowerCase() === product.trim().toLowerCase());
+      if (same) {
+        if (tool === 'balance' && !same.capacity) await putStandard({ ...same, capacity: { stations: [] } });
+        setProduct(''); setNewLine(''); onClose();
+        nav(openOf(same, tool));
+        return;
+      }
       /* The line does not move between products, the people do: a new map
          starts from the line's last picture. */
       const last = list.filter(s => s.workspaceId === workspaceId).pop();
+      /* made in Line capacity, it starts with an empty capacity and no
+         picture — it is a capacity, not a map, until somebody maps it */
       const s: Standard = { id: uid(), projectId: job, workspaceId, product: product.trim(),
-        ...(last?.photoKey ? { photoKey: last.photoKey } : {}), marks: [], sort: t, createdAt: t, updatedAt: t };
+        ...(tool === 'map' && last?.photoKey ? { photoKey: last.photoKey } : {}),
+        ...(tool === 'balance' ? { capacity: { stations: [] } } : {}), marks: [], sort: t, createdAt: t, updatedAt: t };
       await putStandard(s);
       setProduct(''); setNewLine(''); onClose();
       nav(openOf(s, tool));
@@ -228,8 +251,10 @@ function NewOne({ open, tool, lines, list, onClose, onLine }: { open: boolean; t
             <input className="text-input" value={newLine} maxLength={80} placeholder="e.g. Line 4" onChange={e => setNewLine(e.target.value)} />
           </label>
         )}
-        <label className="field"><span className="field-label">Which product{tool === 'balance' && <i className="sub"> — a line’s capacity is per product (speeds differ by product); the record carries the product’s line standard too</i>}</span>
-          <input className="text-input" value={product} placeholder="e.g. Maris Piper 2kg — Tall" onChange={e => setProduct(e.target.value)} />
+        <label className="field"><span className="field-label">Which product{tool === 'balance' && <i className="sub"> — a line’s capacity is per product: the speeds differ by product</i>}</span>
+          <input className="text-input" value={product} list="lt-products" placeholder="e.g. Maris Piper 2kg — Tall" onChange={e => setProduct(e.target.value)} />
+          <datalist id="lt-products">{products.map(x => <option key={x} value={x} />)}</datalist>
+          {already && <span className="sub">{already.product} is already on this line — {tool === 'balance' ? (already.capacity ? 'its capacity opens' : 'its capacity starts on it') : 'its map opens'}.</span>}
         </label>
         <label className="field"><span className="field-label">For a job?</span>
           <select value={job} onChange={e => setJob(e.target.value)} aria-label="Attach to a job">

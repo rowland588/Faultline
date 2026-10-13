@@ -23,6 +23,20 @@
  *      shift with no breaks said left out, relief run through, the SMED as
  *      timed and then as the standard, the day summed, on the card at the
  *      line, and the way to the SMED
+ *   8  a person, as the floor says them (Rowland, 13 October: "8 units in a
+ *      tray ... a tray every 8 seconds ... very strange numbers"; "70 a
+ *      minute ... 10 to a basket ... one basket goes to a human every X"):
+ *      what reaches them worked out the moment they say 8 to a tray, before
+ *      they have a speed; "a tray every 8 seconds" said back as a minute and
+ *      in the line's unit; whether they keep up in seconds; Make it 2 people
+ *   9  each tool lists its own: a product only mapped is not in Line
+ *      capacity, a product only worked out for capacity is not in Line
+ *      standard; New on a product already on the line is that record; the
+ *      line's page counts each tool's own
+ *   10 Line capacity's own page: back to Line capacity, its line standard
+ *      only when it has one, and on no job the rail is no job's
+ *   11 on a phone: the V on its side, every station a bar, the bottleneck
+ *      named; the sheet a card a station; nothing off the side
  *   and a client reads it and changes nothing.
  *
  * Every sentence is checked against the module that makes it (lib/capacity
@@ -196,6 +210,91 @@ await page.locator('.vc-says').first().waitFor({ timeout: 10000 }).catch(() => {
   await go(CAP);
   await page.locator('.shc-go').click(); await page.waitForTimeout(1500);
   ok(page.url().includes(smedId), '7 The SMED into this product › opens the SMED');
+}
+
+/* ---- 8 a person, as the floor says them ---- */
+const flat = x => (x ?? '').replace(/\s+/g, ' ').trim();
+let TRAY;
+{
+  await go(`#/balances?line=${sd.wsId}`);
+  await page.getByRole('button', { name: 'New line capacity' }).first().click(); await page.waitForTimeout(500);
+  await page.locator('.lt-new input[list="lt-products"]').fill('Tray case');
+  await page.getByRole('button', { name: 'Make it and balance the line' }).click(); await page.waitForTimeout(2500);
+  TRAY = page.url().split('/standards/')[1]?.split('?')[0];
+  const main = page.locator('.nv-main');
+  await main.getByRole('button', { name: 'Add a machine' }).click(); await page.waitForTimeout(500);
+  let card = main.locator('.cap-st').nth(0);
+  await card.getByLabel('Station 1 name').fill('Bagger'); await card.getByLabel('Station 1 name').press('Enter');
+  await card.getByLabel('Speed', { exact: true }).fill('70'); await card.getByLabel('Speed', { exact: true }).press('Enter'); await page.waitForTimeout(500);
+  await card.getByRole('button', { name: 'Done' }).click(); await page.waitForTimeout(300);
+  await main.getByRole('button', { name: 'Add a person or crew' }).click(); await page.waitForTimeout(500);
+  card = main.locator('.cap-st').nth(1);
+  await card.getByLabel('Station 2 name').fill('Tray packer'); await card.getByLabel('Station 2 name').press('Enter');
+  await card.getByLabel('What it counts in', { exact: true }).fill('trays'); await card.getByLabel('What it counts in', { exact: true }).press('Enter'); await page.waitForTimeout(400);
+  ok(/how many units make one tray/.test(flat(await card.locator('.cap-why').innerText())), '8 a person after the bagger is asked how many units make one tray — never taken as one');
+  await card.getByLabel('How many of the one before make one of these').fill('8'); await card.getByLabel('How many of the one before make one of these').press('Enter'); await page.waitForTimeout(600);
+  const said = () => page.evaluate(async id => {
+    const db = await import('/src/db.ts'); const C = await import('/src/lib/capacity.ts');
+    const st = await db.getStandard(id); const r = C.analyse(st.capacity); const p = st.capacity.stations[1];
+    return { ...C.paceSays(r, p), line: r.line, crew: p.crew, perCycle: p.perCycle, cycleSec: p.cycleSec, contains: p.contains };
+  }, TRAY);
+  let t = await said();
+  ok(t.arrive === 'A tray reaches them every 6.9 s — 8.8 a minute: Bagger does 70 units a minute, 8 to a tray.' && flat(await card.locator('.cap-st-in').innerText()) === t.arrive,
+    `8b what reaches them, worked out before they have a speed: ${flat(await card.locator('.cap-st-in').innerText())}`);
+  await card.getByLabel('Seconds each time').fill('8'); await card.getByLabel('Seconds each time').press('Enter'); await page.waitForTimeout(800);
+  t = await said();
+  ok(t.perCycle === 1 && t.cycleSec === 8 && Math.abs(t.line - 60) < 1e-9, `8c "a tray every 8 seconds" is one tray every 8 s — 60 units a minute at the line (${t.line})`);
+  ok(flat(await card.locator('.cap-is').innerText()) === '= 7.5 trays a minute each · 60 units a minute', `8d said back at once: ${flat(await card.locator('.cap-is').innerText())}`);
+  ok(t.verdict === 'They take 8 s a tray — 1.1 s too slow: they hold the line back. It needs 2 people to keep up.' && flat(await card.locator('.cap-st-says').innerText()) === t.verdict && /is-short/.test(await card.locator('.cap-feed').getAttribute('class')),
+    '8e whether they keep up, in seconds a tray, red when short — and how many people would');
+  await card.getByRole('button', { name: 'Make it 2 people' }).click(); await page.waitForTimeout(800);
+  t = await said();
+  ok(t.crew === 2 && t.verdict === 'They take 8 s a tray each, 2 of them — they keep up, 2.9 s to spare a tray.' && flat(await card.locator('.cap-st-says').innerText()) === t.verdict, '8f Make it 2 people: two of them keep up, with the seconds to spare');
+}
+
+/* ---- 9 each tool lists its own ---- */
+{
+  const products = async tool => { await go(`#/${tool}?line=${sd.wsId}`); return page.locator('.lt-row .lt-what').allInnerTexts(); };
+  const stds = await page.evaluate(async ws => (await (await import('/src/db.ts')).listStandardsForLine(ws)).map(s => ({ p: s.product, map: (s.marks?.length ?? 0) > 0 || !!s.photoKey || !!s.board, cap: !!s.capacity })), sd.wsId);
+  const cap = await products('balances'), map = await products('standards');
+  ok(cap.includes('Tray case') && cap.includes('Maris Piper 2kg') && !map.includes('Tray case') && map.includes('Maris Piper 2kg'),
+    `9 Line capacity: ${cap.join(', ')} · Line standard: ${map.join(', ')} — each its own (${JSON.stringify(stds)})`);
+  await go(`#/standards?line=${sd.wsId}`);
+  await page.getByRole('button', { name: 'New line standard' }).first().click(); await page.waitForTimeout(400);
+  await page.locator('.lt-new input[list="lt-products"]').fill('tray case');
+  ok(/already on this line/.test(flat(await page.locator('.lt-new').innerText())), '9b New on a product already on the line says it is that record');
+  await page.getByRole('button', { name: 'Make it and draw the map' }).click(); await page.waitForTimeout(1800);
+  const n = await page.evaluate(async ws => (await (await import('/src/db.ts')).listStandardsForLine(ws)).filter(s => s.product.toLowerCase() === 'tray case').length, sd.wsId);
+  ok(n === 1 && page.url().includes(TRAY), `9c and opens it — never a second record of the product (${n})`);
+  await go(`#/lines/${sd.wsId}`);
+  const tools = await page.locator('.pl-tool').evaluateAll(els => Object.fromEntries(els.map(e => [e.querySelector('b')?.textContent, e.querySelector('.sub')?.textContent])));
+  ok(/^3 on this line/.test(tools['Line capacity'] ?? '') && /^1 on this line/.test(tools['Line standard'] ?? ''), `9d the line's page counts each tool's own: Line standard ${tools['Line standard']} · Line capacity ${tools['Line capacity']}`);
+}
+
+/* ---- 10 Line capacity's own page ---- */
+{
+  await go(`#/w/${sd.wsId}/standards/${TRAY}?at=balance`);
+  const crumb = flat(await page.locator('.ls-head .sub').first().innerText());
+  ok(crumb.startsWith('Line capacity') && await page.getByRole('button', { name: /Its line standard|The map for this product/ }).count() === 0, `10 back to Line capacity (${crumb}); no line standard when it has none`);
+  const lit = await page.locator('.nv-ri.is-on').allInnerTexts();
+  const gates = await page.locator('.nv').getByText('GATES', { exact: true }).count();
+  ok(lit.map(flat).join('|') === 'Line capacity' && gates === 0, `10b on no job: the rail lights Line capacity (${lit.map(flat).join('|')}) and wears no job's gates (${gates})`);
+  await go(CAP);
+  ok(await page.getByRole('button', { name: 'Its line standard ›' }).count() === 1, '10c a product mapped too: its line standard one tap away');
+}
+
+/* ---- 11 the phone ---- */
+{
+  await page.setViewportSize({ width: 390, height: 844 });
+  await go(CAP);
+  const t = await truth();
+  const rows = await page.locator('.vc-row').evaluateAll(els => els.map(e => e.querySelector('.vc-row-name b')?.textContent + '|' + e.querySelector('.vc-row-val')?.textContent));
+  const shown = await page.locator('.vc-rows').isVisible() && !(await page.locator('.vc-box').isVisible());
+  ok(shown && rows.length === t.n && rows.some(x => x === `${t.limit}|the bottleneck`), `11 the V on its side, a bar a station: ${rows.join(' · ')}`);
+  const sheet = await page.locator('.cap-sheet-cards thead').isVisible();
+  const wide = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  ok(!sheet && wide <= 1, `11b the sheet a card a station, nothing off the side (${wide}px)`);
+  await page.setViewportSize({ width: 1360, height: 900 });
 }
 
 /* ---- a client reads it and changes nothing ---- a line's own tool is its
