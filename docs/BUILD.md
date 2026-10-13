@@ -1103,6 +1103,54 @@ come — and no project to hang them on.
 - **Accepted by** `scripts/acceptance/lines.mjs`, from an empty device with
   no project; smoke loads the line's page and the lists opened on it.
 
+### Your factory — the backbone, set up first and always editable (13 October)
+
+Rowland, the next morning: "I think what we need to build is a stronger
+backbone ... a factory setup before the new projects ... your production
+lines. So then we were able to assign everything to a production line, do a
+production line singular, use the tools singular to the production line ...
+Next time I go on, I should be able to go and edit as well, of course, my
+factory. Build your factory, edit your factory, let me put more lines,
+change the types, the names of the lines. Again, always full edit control."
+Built in slices, each live on its own: (1) the factory and its editing —
+this; (2) projects take their lines from the factory, and a project shows
+the lines it is on; (3) a line's page shows the projects on it, and what
+exists today is aligned to it.
+- **The record.** Still the line (a Workspace) — two more things on it,
+  `line_type` (what kind of line, in the factory's own words) and
+  `floor_order` (where it stands) — `supabase/FACTORY.sql`, applied and read
+  back before the app sent either. `lib/lines` keeps the order (`byFloor`:
+  placed lines by place, the never-placed after by name), the types offered
+  (the factory's own first, then Packing · Processing · Filling ·
+  Palletising · Assembly), the factory in words ("4 lines · 3 Packing · 1
+  Palletising"), a move (every line numbered again, only the changed
+  written) and the next name guessed ("Line 2B" after "Line 2A").
+- **Your factory** (`#/factory`, `screens/FactoryScreen`): the lines in
+  floor order, each a name box and a type box saved on Enter or leaving the
+  box ("Saved — Line 2 is now Line 2A"), ▲ ▼ to move it, what is open on it
+  (late in red), the project it is on, Open ›, and Archive for a line on no
+  project; Add lines one after another — the box clears for the next, the
+  type stays — each placed at the end; the archive under it, Restore and
+  Delete for ever (its contents counted out loud first). Only someone
+  invited to the app changes it (`useCanStartProjects`); others read it.
+- **The control room's Your factory** comes first, above the jobs: the
+  factory in words, a card per line in floor order (name, type, what is on
+  it, the project it is on), Edit your factory; with no lines, "Set up your
+  factory first". It takes the place of the Production lines list under the
+  jobs — its New line and its archive are on Your factory now, beside the
+  type and the order, so a line is made and changed in one place.
+- **The rail's Your factory** — first after the control room: Your factory
+  (Set up your factory while there are none), then every line in floor
+  order (More on a phone).
+- **A line's own page** says its type under its name and links back to Your
+  factory; Edit the line changes its name and type there (it replaces the
+  Rename prompt, which asked only the name). **On paper** its Problems
+  report and its cards are named with its type — "Line 3B (Packing) —
+  problems".
+- **Accepted by** `scripts/acceptance/factory.mjs`, from an empty device;
+  `lines.mjs` now makes its line in Your factory; smoke loads Your factory
+  and its Add lines.
+
 ### Problems — the register: written, edited where it sits, a journey, a fresh start (12 October)
 
 Rowland, that evening, after the opened-out problem became read-only: "you've

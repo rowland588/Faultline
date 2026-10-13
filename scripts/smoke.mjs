@@ -171,6 +171,8 @@ const ROUTES = [
   ['fishbone — not this method', `#/project/${seeded.treeProjectId}/fishbone`],
   /* a production line, its own page — its problems and its tools; and the lists opened on it */
   ['a production line, its own page', `#/lines/${seeded.wsId}`],
+  ['your factory — the lines, edited', '#/factory'],
+  ['your factory — adding lines', '#/factory?add=1'],
   ['the problems, on one line, one open', `#/snags?line=${seeded.wsId}`],
   ['line capacity, on one line', `#/balances?line=${seeded.wsId}`],
   ['SMED, on one line', `#/smed?line=${seeded.wsId}`],

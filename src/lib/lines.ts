@@ -14,9 +14,73 @@ import { inArchivedProject } from '../db/pace';
 
 export const DEMO_NAME = 'Demo — Packing Hall';
 
-/** Every line worked on: the demo aside, the archived aside, by name. */
+/** FLOOR ORDER — where each line sits in the factory (Rowland, 13 October:
+ *  "build your factory, edit your factory"), the order lines are listed in
+ *  everywhere. A line never placed sorts after the placed ones, by name. */
+export function byFloor(a: Workspace, b: Workspace): number {
+  const fa = a.floorOrder ?? Number.MAX_SAFE_INTEGER, fb = b.floorOrder ?? Number.MAX_SAFE_INTEGER;
+  return fa - fb || a.name.localeCompare(b.name, undefined, { numeric: true });
+}
+
+/** Every line worked on: the demo aside, the archived aside, in floor order. */
 export function productionLines(ws: readonly Workspace[]): Workspace[] {
-  return ws.filter(w => w.name !== DEMO_NAME && !w.archived).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  return ws.filter(w => w.name !== DEMO_NAME && !w.archived).sort(byFloor);
+}
+
+/** THE TYPES OF LINE offered — the factory's own first, as it has named them,
+ *  then the usual ones it has not used. Free words: a type is what the
+ *  factory calls it, never a list it has to fit. */
+export const USUAL_LINE_TYPES = ['Packing', 'Processing', 'Filling', 'Palletising', 'Assembly'] as const;
+export function lineTypesOffered(lines: readonly Workspace[]): string[] {
+  const own = [...new Set(lines.map(w => w.lineType?.trim()).filter((t): t is string => !!t))].sort((a, b) => a.localeCompare(b));
+  const low = new Set(own.map(t => t.toLowerCase()));
+  return [...own, ...USUAL_LINE_TYPES.filter(t => !low.has(t.toLowerCase()))];
+}
+
+/** The factory in a few words — "6 lines · 3 Packing · 2 Processing · 1 not
+ *  typed yet". Counts are the work, so they stay neutral. */
+export function factorySays(lines: readonly Workspace[]): string {
+  if (!lines.length) return 'No lines yet';
+  const by = new Map<string, number>();
+  let untyped = 0;
+  for (const w of lines) {
+    const t = w.lineType?.trim();
+    if (t) by.set(t, (by.get(t) ?? 0) + 1); else untyped++;
+  }
+  const parts = [...by.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([t, n]) => `${n} ${t}`);
+  if (untyped && by.size) parts.push(`${untyped} not typed yet`);
+  return [`${lines.length} line${lines.length === 1 ? '' : 's'}`, ...parts].join(' · ');
+}
+
+/** A line moved to a new place on the floor: every line numbered again in the
+ *  order shown, so the order is the same on every device (each line carries
+ *  its own number, synced like any other field). Returns only the lines whose
+ *  number changed — the ones to write. */
+export function placeOnFloor(lines: readonly Workspace[], id: string, to: number): Workspace[] {
+  const order = [...lines].sort(byFloor);
+  const from = order.findIndex(w => w.id === id);
+  if (from < 0) return [];
+  const [moved] = order.splice(from, 1);
+  order.splice(Math.max(0, Math.min(order.length, to)), 0, moved);
+  return numbered(order);
+}
+
+/** Every line given its number in the order shown — the ones whose number
+ *  changed. Called before a line is added at the end, so lines never placed
+ *  (made before the factory) keep the place they were shown in. */
+export function numbered(order: readonly Workspace[]): Workspace[] {
+  return order.map((w, i) => ({ w, i })).filter(({ w, i }) => w.floorOrder !== i).map(({ w, i }) => ({ ...w, floorOrder: i }));
+}
+
+/** The next line's name, guessed from the last: "Line 7" after "Line 6".
+ *  Only a guess, shown in the box to be typed over. */
+export function nextLineName(lines: readonly Workspace[]): string {
+  const sorted = [...lines].sort(byFloor);
+  const last = sorted[sorted.length - 1]?.name ?? '';
+  const m = /^(.*?)(\d+)([A-Za-z]?)$/.exec(last.trim());
+  if (!m) return 'Line 1';
+  if (m[3] && !/[zZ]/.test(m[3])) return `${m[1]}${m[2]}${String.fromCharCode(m[3].charCodeAt(0) + 1)}`;
+  return `${m[1]}${Number(m[2]) + 1}`;
 }
 
 /** The lines worked on now: every line, less those that belong to an
@@ -30,8 +94,9 @@ export async function liveProductionLines(ws: readonly Workspace[]): Promise<Wor
 }
 
 /** What the address asks for — `?line=<id>` (a list opened from a line's own
- *  page, on that line) or `?open=<id>` (one record opened in it). Read once,
+ *  page, on that line), `?open=<id>` (one record opened in it) or `?add=1`
+ *  (Your factory opened on its Add lines). Read once,
  *  when the screen opens; the router keys the screen on the line. */
-export function asked(key: 'line' | 'open'): string | undefined {
+export function asked(key: 'line' | 'open' | 'add'): string | undefined {
   return new URLSearchParams(window.location.hash.split('?')[1] ?? '').get(key) ?? undefined;
 }

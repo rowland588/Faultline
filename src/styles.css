@@ -10776,6 +10776,49 @@ body:has(.qsl-bar) .qs-fab { display: none; }
 .qsl-gh-pdf { display: inline-flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
 .qsl-gh-pdf .btn { min-height: 32px; padding: 4px 10px; }
 .pl-new .text-input { flex: 1 1 200px; margin: 0; }
+/* YOUR FACTORY (screens/FactoryScreen, the control room's Your factory) — the lines in floor order, each
+   with its type; the control room's a grid of cards like a floor plan, the factory page a list edited in place */
+.fac-home { margin-bottom: 18px; }
+.pl-fac { color: var(--brand); font-weight: 700; letter-spacing: 0; text-decoration: none; }
+.pl-edit { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 12px; margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.pl-edit-f { flex: 1 1 200px; display: flex; flex-direction: column; gap: 2px; font-size: var(--t-detail); font-weight: 700; color: var(--ink-2); }
+.pl-edit-f .text-input { margin: 0; font-weight: 400; }
+.fac-says { margin-top: 0; }
+.fac-floor { list-style: none; margin: 6px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.fac-card { width: 100%; height: 100%; display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+.fac-card-name { font-size: 16px; }
+.fac-card-type, .fac-card-meta { font-size: var(--t-detail); color: var(--ink-2); }
+.fac-card-type { font-weight: 700; letter-spacing: .02em; }
+.fac-empty { padding: 12px 14px; border: 1px dashed var(--line); border-radius: 10px; }
+.fac-empty p { margin: 0 0 10px; }
+.fac-why { margin: 4px 0 10px; max-width: 70ch; }
+.fac-saved { margin: 0 0 8px; font-size: var(--t-detail); font-weight: 700; color: var(--st-g); }
+.fac-add { margin: 0 0 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.fac-add h2 { margin: 0 0 2px; font-size: var(--t-h3, 18px); }
+.fac-add .sub { margin: 0 0 8px; }
+.fac-add-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.fac-add-row .text-input { flex: 1 1 180px; margin: 0; }
+.fac-added { margin: 8px 0 0; font-weight: 600; }
+.fac-lines { list-style: none; margin: 0; padding: 0; }
+.fac-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 8px 2px; border-bottom: 1px solid var(--line); }
+.fac-move { display: inline-flex; flex-direction: column; gap: 2px; }
+.fac-mv { width: 30px; height: 22px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink-2); font-size: 10px; line-height: 1; cursor: pointer; }
+.fac-mv:disabled { opacity: .35; cursor: default; }
+.fac-n { min-width: 1.6em; font-weight: 800; color: var(--muted); text-align: right; }
+.fac-fields { flex: 1 1 320px; display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.fac-box { flex: 1 1 150px; min-width: 0; margin: 0; min-height: 40px; }
+.fac-on { flex: 0 1 220px; display: flex; flex-direction: column; font-size: var(--t-detail); color: var(--ink-2); }
+.fac-on .is-r { color: var(--st-r); }
+.fac-on .is-n { color: var(--muted); }
+.fac-acts { display: inline-flex; gap: 6px; margin-left: auto; }
+@media (max-width: 560px) {
+  .fac-fields { flex: 1 1 100%; order: 3; }
+  .fac-on { flex: 1 1 auto; order: 4; }
+  .fac-acts { order: 5; }
+  .fac-floor { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fac-move { flex-direction: row; gap: 6px; }
+  .fac-mv { width: 40px; height: 34px; font-size: 12px; }
+}
 @media (max-width: 560px) {
   .pl-row { flex-wrap: wrap; }
   .pl-row .preg-right { flex: 1 1 100%; display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 4px 10px; margin-left: 0; text-align: left; white-space: normal; }

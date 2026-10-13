@@ -9,9 +9,9 @@
  * there's a problem, take the picture and move forward with it." Driven in a
  * real browser from an empty device — no project at all:
  *
- *   1  the control room's Production lines, none yet, saying so
- *   2  New line: a name, and the line's own page
- *   3  the rail's Lines carrying it
+ *   1  the control room's Your factory, none yet, saying set it up first
+ *   2  a line added in Your factory by a name, and opened: its own page
+ *   3  the rail's Your factory carrying it
  *   4  its page: no problems, its tools
  *   5  the Problem button on it: the line set, no project
  *   6  the problem on the line's page, open; the line's Problems report and a
@@ -44,14 +44,17 @@ const errs = []; page.on('pageerror', e => errs.push(e.message)); page.on('conso
 let fail = 0; const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}`); if (!c) fail++; };
 const txt = async () => (await page.locator('.nv-main').innerText()).replace(/\s+/g, ' ');
 await page.goto(`${BASE}/#/`); await page.waitForTimeout(3500);
-ok(/Production lines/.test(await txt()) && /No lines yet/.test(await txt()), '1 control room: Production lines, none yet');
-await page.getByRole('button', { name: 'New line', exact: true }).click();
+ok(/Your factory/.test(await txt()) && /Set up your factory first/.test(await txt()), '1 control room: Your factory, none yet — set it up first');
+/* a line is made in Your factory (13 October), by a name — and opened from there */
+await page.locator('.nv-main').getByRole('button', { name: 'Set up your factory', exact: true }).click(); await page.waitForTimeout(1200);
 await page.getByLabel("The new line's name").fill('Line 2B');
-await page.getByRole('button', { name: 'Make the line' }).click(); await page.waitForTimeout(2000);
+await page.getByRole('button', { name: 'Add line', exact: true }).click(); await page.waitForTimeout(1200);
+await page.getByRole('button', { name: 'Done', exact: true }).click(); await page.waitForTimeout(500);
+await page.locator('.fac-line[data-line="Line 2B"]').getByRole('button', { name: 'Open ›' }).click(); await page.waitForTimeout(2000);
 ok(/#\/lines\//.test(page.url()) && (await page.locator('h1').innerText()) === 'Line 2B', `2 made, and on its own page: ${page.url().split('#')[1]}`);
 if (OUT) await page.screenshot({ path: `${OUT}/l-1-line.png` });
 const rail = (await page.locator('.nv').innerText()).replace(/\s+/g, ' ');
-ok(/LINES Line 2B/i.test(rail), '3 the rail has Lines › Line 2B');
+ok(/YOUR FACTORY Your factory Line 2B/i.test(rail), '3 the rail has Your factory › Line 2B');
 ok(/No problems open/.test(await txt()) && /Tools on this line/.test(await txt()), '4 the line page: no problems, its tools');
 // take a problem on it
 await page.locator('.pl .pace-head-actions').getByRole('button', { name: 'Problem', exact: true }).click(); await page.waitForTimeout(900);
@@ -95,7 +98,7 @@ const smedLine = await page.locator('.sheet, [role="dialog"]').last().getByLabel
 ok(smedLine === 'Line 2B', `11 New SMED starts on ${smedLine}`);
 await page.keyboard.press('Escape'); await page.waitForTimeout(500);
 await page.goto(`${BASE}/#/`); await page.waitForTimeout(2500);
-ok(/Line 2B 1 problem open/.test(await txt()), '12 the control room: Line 2B, 1 problem open');
+ok(/Line 2B No type yet 1 problem open/.test(await txt()), '12 the control room: Line 2B, 1 problem open');
 if (OUT) await page.screenshot({ path: `${OUT}/l-3-control.png` });
 // phone
 await page.setViewportSize({ width: 390, height: 844 });
@@ -108,5 +111,5 @@ ok(/Line 2B/.test(await page.locator('body').innerText()), '14 phone: More lists
 if (OUT) await page.screenshot({ path: `${OUT}/l-5-phone-more.png` });
 ok(errs.length === 0, `no console errors ${errs.slice(0, 3).join(' | ')}`);
 await b.close();
-console.log(fail ? `\nProduction lines NOT accepted: ${fail} failed` : '\nProduction lines accepted: made from the control room, opened on their own, a problem taken on one with no project, its tools opened on it, and the phone');
+console.log(fail ? `\nProduction lines NOT accepted: ${fail} failed` : '\nProduction lines accepted: made in Your factory, opened on their own, a problem taken on one with no project, its tools opened on it, and the phone');
 process.exit(fail ? 1 : 0);

@@ -53,6 +53,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         crew: w.crew ?? null, labour_rate_per_hour: w.labourRatePerHour ?? null, labour_burden: w.labourBurden ?? null,
         packs_per_min: w.packsPerMin ?? null, margin_per_pack: w.marginPerPack ?? null,
         last_category: w.lastCategory ?? null, last_asset: w.lastAsset ?? null,
+        line_type: w.lineType ?? null, floor_order: w.floorOrder ?? null,
         archived: !!w.archived, created_at: w.createdAt, updated_at: w.updatedAt ?? w.createdAt, deleted_at: null,
       };
     },
@@ -65,6 +66,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       crew: n(r.crew), labourRatePerHour: n(r.labour_rate_per_hour), labourBurden: n(r.labour_burden),
       packsPerMin: n(r.packs_per_min), marginPerPack: n(r.margin_per_pack),
       lastCategory: (r.last_category as string) ?? undefined, lastAsset: (r.last_asset as string) ?? undefined,
+      lineType: (r.line_type as string) ?? undefined, floorOrder: n(r.floor_order),
       archived: !!r.archived, createdAt: Number(r.created_at), updatedAt: Number(r.updated_at),
     }),
   },
