@@ -28,6 +28,9 @@
  *         say typed, its end moves with them (lib/stopEdit)
  *      3  Undo: as the stopwatch timed it
  *   D  A WIN AND A READING — each asked, then gone for good; now Undo
+ *   E  THE LINE'S OWN PAGE — its machines renamed and taken off where they
+ *      sit (only in Set up the line before), Undo putting one back where it
+ *      stood in the flow; the line archived from its own page, with Undo
  *   F  A PROBLEM IN THE REGISTER — asked, then gone for good (and the other
  *      devices not told until the next write); now Undo
  *   and no console error anywhere.
@@ -205,6 +208,37 @@ for (const [id, to] of [[sd.lineMapId, 'Line 7, run released to pallet away'], [
   ok((await reads()).length === n0 - 1 && /Deleted the reading of /.test(await page.locator('body').innerText()), `D2 a reading deleted (${label}): said, Undo offered`);
   await undo();
   ok((await reads()).length === n0, 'D2 Undo: the reading is back');
+}
+
+/* ================= E · THE LINE'S OWN PAGE ================= */
+{
+  const L = `#/lines/${sd.wsId}`;
+  const ws = () => db((D, id) => D.getWorkspace(id), sd.wsId);
+  await go(L);
+  const w0 = await ws();
+  const first = w0.assets.find(a => a !== 'Whole line') ?? w0.assets[0];
+  const row = main().locator(`.pl-machine[data-machine="${first}"]`);
+  ok(await row.getByRole('button', { name: `Rename ${first}`, exact: true }).count() === 1 && await row.getByRole('button', { name: `Take ${first} off the line`, exact: true }).count() === 1, `E1 a machine on the line's page: Rename and Remove where it sits (${first})`);
+  /* renamed: the list and its record follow */
+  await row.getByRole('button', { name: `Rename ${first}`, exact: true }).click();
+  await page.getByLabel(`The machine's name — ${first}`).fill(`${first} 2`);
+  await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(1000);
+  let w = await ws();
+  ok(w.assets.includes(`${first} 2`) && !w.assets.includes(first) && w.assets.indexOf(`${first} 2`) === w0.assets.indexOf(first), `E2 renamed in its place in the flow: ${w.assets.join(' → ')}`);
+  /* taken off: asked, said, Undo puts it back where it stood */
+  await main().locator(`.pl-machine[data-machine="${first} 2"]`).getByRole('button', { name: `Take ${first} 2 off the line`, exact: true }).click(); await page.waitForTimeout(900);
+  w = await ws();
+  ok(!w.assets.includes(`${first} 2`) && /Take “.+” off /.test(asked) && /Undo puts it back/.test(asked), `E3 taken off the line: "${asked.replace(/\n+/g, ' / ')}"`);
+  await undo();
+  w = await ws();
+  ok(w.assets.indexOf(`${first} 2`) === w0.assets.indexOf(first), 'E3 Undo: back where it stood in the flow');
+  /* archived from its own page, with Undo */
+  await go(L);
+  await main().getByRole('button', { name: 'Edit the line', exact: true }).click();
+  await main().getByRole('button', { name: 'Archive this line', exact: true }).click(); await page.waitForTimeout(1200);
+  ok((await ws()).archived === true && /#\/factory/.test(page.url()) && /loses nothing/.test(asked), 'E4 the line archived from its own page: on Your factory');
+  await undo();
+  ok((await ws()).archived === false, 'E4 Undo: the line is back on the floor');
 }
 
 /* ================= F · A PROBLEM IN THE REGISTER — Undo after the ask ================= */

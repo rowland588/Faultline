@@ -12383,6 +12383,10 @@ button.co-step-b:hover { background: color-mix(in srgb, var(--brand) 5%, transpa
 .pl-machine b { min-width: 9em; }
 .pl-machine .sub { font-size: var(--t-detail); }
 .pl-oem { flex: 0 1 200px; min-width: 0; margin: 0; min-height: 36px; }
+/* a machine renamed and taken off where it sits; the line archived from its page (the audit's bar 2) */
+.pl-machine-acts { margin-left: auto; }
+.pl-machine.is-naming::before { content: none; }
+.pl-archive { margin-left: auto; }
 .pl-sec-acts { display: inline-flex; flex-wrap: wrap; gap: 6px; }
 .lp-says { margin-top: 6px; }
 .lp-lines { margin: 4px 0 6px; }
