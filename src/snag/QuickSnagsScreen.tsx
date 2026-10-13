@@ -22,7 +22,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { withoutDemo } from '../lib/demo';
 import { addLineToFactory, asked, byFloor, liveProductionLines } from '../lib/lines';
-import { addSnag, deleteSnag, inArchivedProject, listAllSnags, projectWalkIds, listArchivedWorkspaces, listWorkspaces, putTest, putTestItem, listAssets, listSnagAssets, listTests, listTestItems, listPaceTodos, onDataChange, updateSnag, updateWorkspace, setSnagsStatus, type PaceTodoRow } from '../db';
+import { addSnag, deleteSnag, inArchivedProject, listAllSnags, projectWalkIds, listArchivedWorkspaces, listWorkspaces, putTest, putTestItem, listAssets, listSnagAssets, listTests, listTestItems, listPaceTodos, onDataChange, patchSnag, updateWorkspace, setSnagsStatus, type PaceTodoRow } from '../db';
 import { useProjects } from '../lib/useProjects';
 import { planModel } from '../lib/planModel';
 import { uid } from '../lib/ids';
@@ -48,6 +48,8 @@ import { SNAG_STATUS_META, dueFromInput, dueToInput, type Snag, type SnagAsset, 
 import { pinSnag } from './quick';
 import { openQuickSnag } from './QuickSnag';
 
+/** A change to one problem: its fields, or worked out from the row as it is stored (db patchSnag). */
+type SnagChange = Partial<Snag> | ((stored: Snag) => Partial<Snag>);
 /** The counts are the filters: everything open, each priority open, the late, the done. */
 type Filter = 'open' | Priority | 'late' | 'done';
 type Group = 'line' | 'who';
@@ -229,7 +231,8 @@ export function QuickSnagsScreen() {
 
   /* WORKING A PROBLEM WHERE IT SITS — every box saves as it is left. */
   useEffect(() => { if (!savedOn) return; const t = window.setTimeout(() => setSavedOn(null), 4000); return () => window.clearTimeout(t); }, [savedOn]);
-  const put = async (id: string, p: Partial<Snag>) => { const s = byId.get(id); if (!s) return; await updateSnag({ ...s, ...p }); setSavedOn({ id, at: Date.now() }); };
+  /* each box patches its own fields into the row as it is stored now — never the copy this page last drew (FLOW-AUDIT #4) */
+  const put = async (id: string, p: SnagChange) => { if (await patchSnag(id, p)) setSavedOn({ id, at: Date.now() }); };
   const machinesFor = (lineId: string) => dedupe([...(lines.find(w => w.id === lineId)?.assets ?? []), ...jobMachines]);
 
   /* WHAT IS SHOWN, IN WORDS — the report's title and the cards' note. */
@@ -331,12 +334,12 @@ export function QuickSnagsScreen() {
     if (!window.confirm(`Start fresh? All ${list.length} problem${list.length === 1 ? '' : 's'} on this page will be put away — nothing is deleted. They stay under "Put away" at the foot of the page, and any can be brought back.`)) return;
     const at = Date.now();
     void (async () => {
-      for (const s of list) await updateSnag({ ...s, archivedAt: at });
+      for (const s of list) await patchSnag(s.id, { archivedAt: at });
       setPicked(new Set()); setOpened(new Set());
-      offerUndo(`${list.length} put away — a fresh start`, async () => { for (const s of list) await updateSnag({ ...s, archivedAt: undefined }); });
+      offerUndo(`${list.length} put away — a fresh start`, async () => { for (const s of list) await patchSnag(s.id, { archivedAt: undefined }); });
     })();
   };
-  const bringBack = (list: Snag[]) => void (async () => { for (const s of list) await updateSnag({ ...s, archivedAt: undefined }); })();
+  const bringBack = (list: Snag[]) => void (async () => { for (const s of list) await patchSnag(s.id, { archivedAt: undefined }); })();
 
   const chip = (f: Filter, n: number, word: string, tone?: 'r' | 'a' | 'g') => (
     <button key={f} type="button" className={'chip' + (filter === f ? ' on' : '') + (tone && n ? ` qsl-chip-${tone}` : '')} aria-pressed={filter === f} onClick={() => view(f)}>
@@ -513,7 +516,7 @@ export function QuickSnagsScreen() {
           <select className="text-input qsl-sel qsl-bar-prio" value="" aria-label="Priority of every ticked problem" onChange={e => {
             const v = e.target.value as Priority; if (!v) return;
             const before = chosen.map(x => ({ ...x }));
-            void (async () => { for (const x of chosen) await updateSnag({ ...x, priority: v }); setPicked(new Set()); setOpened(new Set()); setFrozen(null); offerUndo(`Saved — ${before.length} made ${PRIORITY_WORD[v].toLowerCase()}`, async () => { for (const x of before) await updateSnag(x); }); })();
+            void (async () => { for (const x of chosen) await patchSnag(x.id, { priority: v }); setPicked(new Set()); setOpened(new Set()); setFrozen(null); offerUndo(`Saved — ${before.length} made ${PRIORITY_WORD[v].toLowerCase()}`, async () => { for (const x of before) await patchSnag(x.id, { priority: x.priority }); }); })();
           }}>
             <option value="">Priority…</option>
             {PRIOS.map(k => <option key={k} value={k}>{PRIORITY_WORD[k]}</option>)}
@@ -522,7 +525,7 @@ export function QuickSnagsScreen() {
           <select className="text-input qsl-sel qsl-bar-job" value="" aria-label="Assign every ticked problem to a job" onChange={e => {
             const v = e.target.value; if (!v) return;
             const before = chosen.map(x => ({ ...x })), pid = v === '-' ? undefined : v;
-            void (async () => { for (const x of chosen) await updateSnag({ ...x, projectId: pid }); setPicked(new Set()); setOpened(new Set()); setFrozen(null); offerUndo(`Saved — ${before.length} ${pid ? `assigned to ${jobName(pid)}` : 'on no project'}`, async () => { for (const x of before) await updateSnag(x); }); })();
+            void (async () => { for (const x of chosen) await patchSnag(x.id, { projectId: pid }); setPicked(new Set()); setOpened(new Set()); setFrozen(null); offerUndo(`Saved — ${before.length} ${pid ? `assigned to ${jobName(pid)}` : 'on no project'}`, async () => { for (const x of before) await patchSnag(x.id, { projectId: x.projectId }); }); })();
           }}>
             <option value="">Assign to a project…</option>
             {liveJobs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -542,9 +545,9 @@ export function QuickSnagsScreen() {
               }
               /* one pinned on a walk stays on its line — it is on that line's walk picture */
               const move = before.filter(x => !x.assetId), stay = before.length - move.length;
-              for (const x of move) await updateSnag({ ...x, workspaceId: to });
+              for (const x of move) await patchSnag(x.id, { workspaceId: to });
               setPicked(new Set()); setOpened(new Set()); setFrozen(null);
-              offerUndo(`Saved — ${move.length} now on ${name}${stay ? `; ${stay} pinned on a walk stay on their line` : ''}`, async () => { for (const x of move) await updateSnag(x); });
+              offerUndo(`Saved — ${move.length} now on ${name}${stay ? `; ${stay} pinned on a walk stay on their line` : ''}`, async () => { for (const x of move) await patchSnag(x.id, { workspaceId: x.workspaceId }); });
             })();
           }}>
             <option value="">Put on a line…</option>
@@ -554,7 +557,7 @@ export function QuickSnagsScreen() {
           <button type="button" className="btn" onClick={() => setSetting(true)}>Whose · due</button>
           <button type="button" className="btn" onClick={() => {
             const before = chosen.map(s => ({ ...s }));
-            void setSnagsStatus(chosen.map(s => s.id), 'closed').then(() => { setPicked(new Set()); setOpened(new Set()); setFrozen(null); offerUndo(`Saved — ${before.length} closed`, async () => { for (const s of before) await updateSnag(s); }); });
+            void setSnagsStatus(chosen.map(s => s.id), 'closed').then(() => { setPicked(new Set()); setOpened(new Set()); setFrozen(null); offerUndo(`Saved — ${before.length} closed`, async () => { for (const s of before) await patchSnag(s.id, { status: s.status, closedAt: s.closedAt }); }); });
           }}>Close</button>
           <button type="button" className="btn" disabled={!!busy} onClick={() => void cards(chosen)}>{busy === 'cards' ? 'Making…' : 'Report cards'}</button>
           <button type="button" className="btn qsl-del" onClick={() => {
@@ -699,14 +702,14 @@ function JobEditor({ r, data, job, lines, busy, onCard, onOpen, onToLine, onDone
 
 function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCard, onWalk, onDelete, busy, saved, onSave, lineName, jobName }: {
   s: Snag; lines: Workspace[]; projects: Project[]; machines: string[]; frame?: SnagAsset;
-  put: (p: Partial<Snag>) => void; onView: (m: MediaRef) => void; onCard: () => void; onWalk: () => void; onDelete: () => void; busy: string;
+  put: (p: SnagChange) => void; onView: (m: MediaRef) => void; onCard: () => void; onWalk: () => void; onDelete: () => void; busy: string;
   /** "Saved" — said as each box is kept; Save keeps the box being typed in and closes it (12 October: "there's never any saves") */
   saved: boolean; onSave: () => void;
   lineName: (id: string) => string; jobName: (id?: string) => string | undefined;
 }) {
   const machine = frame?.name ?? s.targetAsset ?? '';
   const typed = !frame && !!s.targetAsset && !machines.some(m => m.toLowerCase() === s.targetAsset?.trim().toLowerCase());
-  const setStatus = (status: SnagStatus) => put({ status, closedAt: status === 'closed' ? (s.closedAt ?? Date.now()) : undefined });
+  const setStatus = (status: SnagStatus) => put(cur => ({ status, closedAt: status === 'closed' ? (cur.closedAt ?? Date.now()) : undefined }));
   return (
     <div className="qsl-x pe" role="region" aria-label={`Work on: ${s.problem || 'this problem'}`}>
       <label className="pe-f pe-wide"><span className="pe-k">WHAT IS THE PROBLEM</span>
@@ -773,7 +776,7 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
       </div>
 
       <div className="pe-f pe-wide"><span className="pe-k">PHOTOS <i className="cw-f-opt">tap one to mark it</i></span>
-        <Evidence media={s.media ?? []} kind="found" onView={onView} onAdd={async refs => put({ media: [...(s.media ?? []), ...refs] })} />
+        <Evidence media={s.media ?? []} kind="found" onView={onView} onAdd={async refs => put(cur => ({ media: [...(cur.media ?? []), ...refs] }))} />
       </div>
 
       <label className="pe-f pe-wide"><span className="pe-k">WHAT WE WILL DO</span>
@@ -793,17 +796,18 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
 }
 
 /** ITS JOURNEY — on a day, what we did and what came of it; oldest first. */
-function Journey({ s, put }: { s: Snag; put: (p: Partial<Snag>) => void }) {
+function Journey({ s, put }: { s: Snag; put: (p: SnagChange) => void }) {
   const steps = [...(s.journey ?? [])].sort((a, b) => a.at - b.at);
   const [day, setDay] = useState(todayInput());
   const [did, setDid] = useState('');
   const [result, setResult] = useState('');
   const add = () => {
     if (!did.trim()) return;
-    put({ journey: [...(s.journey ?? []), { id: uid(), at: dueFromInput(day) ?? Date.now(), did: did.trim(), ...(result.trim() ? { result: result.trim() } : {}) }] });
+    const step = { id: uid(), at: dueFromInput(day) ?? Date.now(), did: did.trim(), ...(result.trim() ? { result: result.trim() } : {}) };
+    put(cur => ({ journey: [...(cur.journey ?? []), step] }));
     setDid(''); setResult(''); setDay(todayInput());
   };
-  const change = (id: string, p: Partial<NonNullable<Snag['journey']>[number]>) => put({ journey: (s.journey ?? []).map(j => (j.id === id ? { ...j, ...p } : j)) });
+  const change = (id: string, p: Partial<NonNullable<Snag['journey']>[number]>) => put(cur => ({ journey: (cur.journey ?? []).map(j => (j.id === id ? { ...j, ...p } : j)) }));
   return (
     <div className="pe-f pe-wide pj">
       <span className="pe-k">THE JOURNEY <i className="cw-f-opt">on a day, what we did and what came of it</i></span>
@@ -813,7 +817,7 @@ function Journey({ s, put }: { s: Snag; put: (p: Partial<Snag>) => void }) {
             <DateInput className="text-input pj-day" value={dueToInput(j.at)} aria-label="The day it was done" onCommit={v => change(j.id, { at: dueFromInput(v) ?? j.at })} />
             <DraftText value={j.did} className="text-input pj-did" max={240} ariaLabel="What we did" onSave={v => { if (v.trim()) change(j.id, { did: v.trim() }); }} />
             <DraftText value={j.result ?? ''} placeholder="What came of it" className="text-input pj-res" max={240} ariaLabel="What came of it" onSave={v => change(j.id, { result: v.trim() || undefined })} />
-            <button type="button" className="pj-x" aria-label={`Take off the step: ${j.did}`} onClick={() => put({ journey: (s.journey ?? []).filter(x => x.id !== j.id) })}><Icon name="close" size="1em" /></button>
+            <button type="button" className="pj-x" aria-label={`Take off the step: ${j.did}`} onClick={() => put(cur => ({ journey: (cur.journey ?? []).filter(x => x.id !== j.id) }))}><Icon name="close" size="1em" /></button>
           </li>
         ))}</ol>
         : <p className="sub pj-none">Nothing done yet — add the first step when something is done.</p>}
@@ -834,8 +838,8 @@ function SetSheet({ snags, onClose, onDone }: { snags: Snag[]; onClose: () => vo
   const n = snags.length;
   const save = async () => {
     const before = snags.map(s => ({ ...s }));
-    for (const s of snags) await updateSnag({ ...s, ...(who.trim() ? { owner: who.trim() } : {}), ...(due ? { dueAt: dueFromInput(due) } : {}) });
-    offerUndo(`${n} problem${n === 1 ? '' : 's'} changed`, async () => { for (const s of before) await updateSnag(s); });
+    for (const s of snags) await patchSnag(s.id, { ...(who.trim() ? { owner: who.trim() } : {}), ...(due ? { dueAt: dueFromInput(due) } : {}) });
+    offerUndo(`${n} problem${n === 1 ? '' : 's'} changed`, async () => { for (const s of before) await patchSnag(s.id, { owner: s.owner, dueAt: s.dueAt }); });
     onDone();
   };
   return (

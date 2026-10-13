@@ -28,7 +28,7 @@ import { BetterWords } from '../ui/BetterWords';
 import { EvidenceViewer, withPins } from '../ui/Evidence';
 import { Icon } from '../ui/Icon';
 import { offerUndo } from '../ui/Undo';
-import { addSnag, updateSnag, listWorkspaces, listAssets } from '../db';
+import { addSnag, patchSnag, listWorkspaces, listAssets } from '../db';
 import { useProjects } from '../lib/useProjects';
 import { uid } from '../lib/ids';
 import type { MediaRef, Workspace } from '../types';
@@ -137,13 +137,14 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
       };
       let kept: Snag;
       if (snag) {
-        kept = {
-          ...snag, ...fields, status, owner: owner.trim() || undefined, dueAt: dueFromInput(due),
+        /* what this sheet shows, patched into the row as it is stored now — a journey step or a mark
+           added elsewhere while it was open is kept (FLOW-AUDIT #4) */
+        kept = await patchSnag(snag.id, cur => ({
+          ...fields, status, owner: owner.trim() || undefined, dueAt: dueFromInput(due),
           latestUpdate: update.trim() || undefined,
-          latestUpdateAt: update.trim() !== (snag.latestUpdate ?? '') ? t : snag.latestUpdateAt,
-          closedAt: status === 'closed' ? (snag.closedAt ?? t) : undefined,
-        };
-        await updateSnag(kept);
+          latestUpdateAt: update.trim() !== (cur.latestUpdate ?? '') ? t : cur.latestUpdateAt,
+          closedAt: status === 'closed' ? (cur.closedAt ?? t) : undefined,
+        })) ?? { ...snag, ...fields };
       } else {
         kept = { id: uid(), ...fields, status: 'open', raisedAt: t, updatedAt: t };
         await addSnag(kept);
@@ -155,8 +156,8 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
 
   const remove = async () => {
     if (!snag) return;
-    await updateSnag({ ...snag, deletedAt: Date.now() });
-    offerUndo('Problem deleted', async () => { await updateSnag({ ...snag, deletedAt: undefined }); });
+    await patchSnag(snag.id, { deletedAt: Date.now() });
+    offerUndo('Problem deleted', async () => { await patchSnag(snag.id, { deletedAt: undefined }); });
     onClose();
   };
 

@@ -14,7 +14,7 @@
 import type { Snag } from './types';
 import type { MediaPin } from '../types';
 import { nextFrom, type Test, type TestItem } from '../lib/testing';
-import { deletePaceTodo, listAllSnags, listAssets, listTests, putPaceTodo, putTest, putTestItem, updateSnag, type PaceTodoRow, type Restore } from '../db';
+import { deletePaceTodo, listAssets, listTests, putPaceTodo, putTest, putTestItem, updateSnag, patchSnag, type PaceTodoRow, type Restore } from '../db';
 import { dueToInput } from './types';
 import { uid } from '../lib/ids';
 import { withPins } from '../ui/Evidence';
@@ -143,6 +143,5 @@ export async function moveSnagsToActions(snags: Snag[], projectId: string, jobNa
  *  picture not kept yet goes with the snag's Save, marks and all. Once sent,
  *  the problem holds its own copy of the picture's marks (sendSnags). */
 export async function pinSnag(snagId: string, mediaId: string, pins: MediaPin[]): Promise<void> {
-  const s = (await listAllSnags()).find(x => x.id === snagId);
-  if (s?.media?.some(m => m.id === mediaId)) await updateSnag({ ...s, media: withPins(s.media, mediaId, pins) });
+  await patchSnag(snagId, s => (s.media?.some(m => m.id === mediaId) ? { media: withPins(s.media, mediaId, pins) } : {}));
 }

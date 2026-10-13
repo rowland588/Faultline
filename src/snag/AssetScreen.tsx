@@ -6,7 +6,7 @@ import { nav } from '../state/useRoute';
 /* A fix pinned on this frame, or a thing found here, opens in the record's
    drawer over the frame (ui/RecordDrawer) — × comes back to the picture. */
 import { openRecord } from '../ui/RecordDrawer';
-import { getSnagAsset, getSegment, snagsForAsset, addSnag, updateSnag, updateSnagAsset, deleteSnag, putBlob, getBlob, chainForWorkspace, getProject, listTests, listTestItems, putTest } from '../db';
+import { getSnagAsset, getSegment, snagsForAsset, addSnag, patchSnag, updateSnagAsset, deleteSnag, putBlob, getBlob, chainForWorkspace, getProject, listTests, listTestItems, putTest } from '../db';
 import { planModel } from '../lib/planModel';
 import { live, type Test, type TestItem } from '../lib/testing';
 import { fixTone } from '../lib/fixTone';
@@ -279,7 +279,7 @@ function SnagEditor({ wsId, asset, draft, snag, observations, still, pinAt, onCl
     try {
       if (snag) {
         const u = update.trim();
-        await updateSnag({ ...snag, problem: problem.trim(), proposedSolution: solution.trim() || undefined, status, owner: owner.trim() || undefined,
+        await patchSnag(snag.id, { problem: problem.trim(), proposedSolution: solution.trim() || undefined, status, owner: owner.trim() || undefined,
           dueAt: dueFromInput(due), latestUpdate: u || undefined,
           latestUpdateAt: u ? (u === snag.latestUpdate ? snag.latestUpdateAt : now()) : undefined,
           closeNote: closeNote.trim() || undefined, detailPhotoKey: photoKey, fixedPhotoKey: fixedKey, linkedObsIds: links.length ? links : undefined, closedAt: status !== 'closed' ? undefined
@@ -316,7 +316,7 @@ function SnagEditor({ wsId, asset, draft, snag, observations, still, pinAt, onCl
         media: photoKey ? [{ id: uid(), kind: 'photo', blobKey: photoKey, mime: photo?.type || 'image/jpeg', capturedAt: snag.raisedAt }] : undefined,
         sort: t, createdAt: t, updatedAt: t,
       });
-      await updateSnag({ ...snag, status: 'closed', closedAt: t, closeNote: 'Now a fix — on the Fixes screen.' });
+      await patchSnag(snag.id, { status: 'closed', closedAt: t, closeNote: 'Now a fix — on the Fixes screen.' });
       nav(recordHref(jobId, id, 'fix'));
     } finally { setBusy(false); }
   };

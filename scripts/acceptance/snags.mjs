@@ -17,6 +17,8 @@
  *      line made from the problem, and the line renamed
  *   4  its journey: a step added (a day, what we did, what came of it),
  *      shown under it, changed, taken off
+ *  4b whose typed, then the due date at once: both kept after a reload
+ *      (FLOW-AUDIT #4)
  *   5  a photo marked from the editor — the mark kept on the problem
  *   6  priority for several at once, Critical first, the chips counting in
  *      their colours; Late and Critical as filters; by who
@@ -227,6 +229,42 @@ await go('#/snags');
   await row(what).locator('.pe').getByRole('button', { name: /^Take off the step: Taped/ }).click(); await page.waitForTimeout(700);
   s = await snag(what);
   ok((s?.journey ?? []).length === 1, '4 a step taken off');
+}
+
+/* ---- 4b who owes it, then by when — both kept (FLOW-AUDIT #4: "if you type who owes a problem and then its due
+   date, the name is lost" — the date was written from the copy the page drew before the name landed, putting the
+   old name back while the page said Saved) ---- */
+{
+  const what = 'Bagger jaw jams on 2kg film';
+  const id = await page.evaluate(async ws => {
+    const db = await import('/src/db.ts');
+    const s = { id: crypto.randomUUID(), workspaceId: ws, status: 'open', raisedAt: Date.now(), updatedAt: Date.now(), media: [], problem: 'Bagger jaw jams on 2kg film', owner: 'Priya Shah' };
+    await db.addSnag(s); return s.id;
+  }, sd.wsId);
+  await go('#/snags');
+  const pe = await openUp(what);
+  await pe.getByLabel('Whose is it').click();
+  const due = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10);
+  /* WHOSE typed, Tab, and the date straight after — quicker than the page reads its rows again, as on a busy phone */
+  await row(what).locator('.pe').evaluate(async (box, d) => {
+    const who = box.querySelector('input[aria-label="Whose is it"]'), day = box.querySelector('input[aria-label="Due date"]');
+    const set = (el, v) => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, v); el.dispatchEvent(new Event('input', { bubbles: true })); };
+    set(who, 'Sam Lee');
+    await new Promise(r => setTimeout(r, 0));
+    day.focus(); set(day, d);
+    await new Promise(r => setTimeout(r, 0));
+    day.blur();
+  }, due);
+  await page.waitForTimeout(1200);
+  const saidSaved = await row(what).locator('.pe-saved').isVisible().catch(() => false);
+  await page.reload(); await page.waitForTimeout(2200);
+  const s = await snag(what);
+  const pe2 = await openUp(what);
+  const shown = { who: await pe2.getByLabel('Whose is it').inputValue(), due: await pe2.getByLabel('Due date').inputValue() };
+  ok(saidSaved && s?.owner === 'Sam Lee' && shown.who === 'Sam Lee' && shown.due === due && /Sam Lee/.test(await words('.qsl-meta', row(what))),
+    `4b whose typed, Tab, the date at once, the page reloaded: both kept — ${s?.owner ?? 'no name'}, due ${shown.due || 'none'}`);
+  await page.evaluate(async x => { await (await import('/src/db.ts')).deleteSnag(x); }, id);
+  await go('#/snags');
 }
 
 /* ---- 5 a photo marked from the editor ---- */
@@ -463,7 +501,8 @@ await go('#/snags');
   ok(await row(what).locator('.pe-saved').isVisible(), '12 a box changed: "Saved" beside Save');
   await row(what).locator('.pe').getByLabel('What is the problem').fill(`${what} — saved with Save`);
   await row(what).locator('.pe-save').click(); await page.waitForTimeout(1200);
-  const kept = !!(await snag(`${what} — saved with Save`)), pe = await row(`${what} — saved with Save`).locator('.pe').count(), sv = await page.locator('.preg-saved').count();
+  /* the screen read first — "Saved" stays four seconds, and reading the store back can take longer on a busy machine */
+  const sv = await page.locator('.preg-saved').count(), pe = await row(`${what} — saved with Save`).locator('.pe').count(), kept = !!(await snag(`${what} — saved with Save`));
   ok(kept && pe === 0 && sv === 1, `12 Save keeps what was typed, closes it and says Saved on its row (kept ${kept}, editors open ${pe}, saved shown ${sv})`);
   await go('#/');
   const cr = (await page.locator('.fac-home').innerText()).replace(/\s+/g, ' ');
