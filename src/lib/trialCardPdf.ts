@@ -545,6 +545,10 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
   const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight();
   const CW = W - 2 * M;
   const bottom = H - 30;
+  /* THE CARD'S OWN FIRST PAGE — 1 for a card alone; further on when cards
+     for every test shown are drawn into one document (lib/testCards), so
+     each card numbers its own pages "1 of 2" and leaves the others' alone. */
+  const first = d.getCurrentPageInfo().pageNumber;
 
   /* ========================= PAGE 1 — THE DAY ========================= */
   let y = head(d, c, meta, 1) + 16;
@@ -751,8 +755,8 @@ export function drawTrialCard(d: Doc, c: TrialCard, meta: TrialCardMeta): void {
 
   /* Page numbers last: "1 of 3" cannot be written until the third page exists. */
   const total = d.getNumberOfPages();
-  for (let p = 1; p <= total; p++) {
+  for (let p = first; p <= total; p++) {
     d.setPage(p);
-    foot(d, p, total, meta);
+    foot(d, p - first + 1, total - first + 1, meta);
   }
 }

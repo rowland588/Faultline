@@ -116,6 +116,30 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
   const groupName = (k: string) => (k.startsWith('ws:') ? lineName(k.slice(3)) : `Job: ${jobName(k.slice(4)) ?? 'a job'}`);
   const shown = groups.filter(([k]) => lineF === 'all' || k === lineF);
 
+  /* PAPER FOR EVERYTHING SHOWN (docs/AUDIT.md, bar 3) — Line capacity's
+     report, a front and each product's own page (lib/capacityPaper); Line
+     standard's cards, a card each under its place's name (ui/ToolPapers). */
+  const [making, setMaking] = useState(false);
+  const shownCount = shown.reduce((n, [, rows]) => n + rows.length, 0);
+  const paper = async () => {
+    if (making || !shownCount) return;
+    setMaking(true);
+    try {
+      const name = lineF === 'all' ? w.title : groupName(lineF);
+      if (tool === 'balance') {
+        const { saveCapacityPdf } = await import('../lib/capacityPaperLoad');
+        await saveCapacityPdf(shown.flatMap(([, rows]) => rows), { scope: lineF === 'all' ? 'every product shown' : groupName(lineF), name });
+      } else {
+        const { saveStandardCards } = await import('../ui/ToolPapers');
+        /* each card under its place's name — the line's, or the job's, as on that job's own page */
+        await saveStandardCards(shown.map(([k, rows]) => ({ name: k.startsWith('job:') ? jobName(k.slice(4)) ?? 'A job' : groupName(k), list: rows })), name);
+      }
+    } catch (e) {
+      console.error('line tool paper failed', e);
+      window.alert('Sorry — the PDF could not be made. Please try again.');
+    } finally { setMaking(false); }
+  };
+
   return (
     <div className="wrap qsl lt">
       <header className="pace-head">
@@ -124,6 +148,9 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
           <p className="sub">{w.lede}</p>
         </div>
         <div className="pace-head-actions">
+          <button type="button" className="btn" disabled={making || !shownCount} onClick={() => void paper()}
+            aria-label={tool === 'balance' ? 'PDF (all shown) — Line capacity for every product shown' : 'PDF (all shown) — a line standard card for every product shown'}>
+            {making ? 'Making…' : 'PDF (all shown)'}</button>
           <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>{w.add}</button>
         </div>
       </header>
