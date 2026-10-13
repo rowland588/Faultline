@@ -376,7 +376,50 @@ already follow):
   …", red) instead of "no test yet" — what the Programs list always said.
 - **A job deleted for ever** leaves a machine, a program or a line standard
   that is on a line where it stands, on no job (`purgeProject`).
-- *Accepted by* `scripts/acceptance/machines-programs.mjs` (stories 1–11).
+- **One program, one answer** (flow audit #3, 13 October: PR-04 read
+  *Proved 12 Oct* on the line and *Failed · closed 13 Oct* on the job; a
+  failed program was counted done). A failure said on the floor — Set up's
+  programs stage — after a program was proved drops it back to on the
+  machine (`lib/programs` `programAfterFloor`, on every write of a part:
+  `db/programs` `followPart`); a pass older than the failure proves nothing,
+  and the failure taken off hands it back to its test. A failed program is
+  never counted done: the Programs gate, each machine on it, the programs
+  report, the client report and the status page say "3 done — 2 passed, 1
+  at baseline · 1 failed". Each side says the other record beside its own —
+  the job's row its line's state ("On Line 7: on the machine · failed 13 Oct
+  — to prove again"), the line's row what its job's floor said ("On its Set
+  up: Failed · closed 13 Oct — …"), on the screen and on both papers. No new
+  record.
+- **Proved says what showed it** (flow audit #21, 13 October: a line's
+  program was *Proved* by a dropdown — no test, no evidence; LEAN40
+  principle 6, proved not asserted). *Proved* asks the day and what showed
+  it: in words (they become its commentary), or a study on its line that
+  shows it (the study names the program — `ToolStudy.programId`, a column
+  it already had); a test in Commission proves one on its own, and the form
+  says where to plan it. Every proved program says how, under its state
+  (`lib/programsReport` `proofOf`): "Proved by its test — …, passed 12 Oct",
+  "Proved by the capability study “…” — …" (one tap to it), "Signed off by
+  hand", or in amber "Signed off by hand — nothing said shows it" — on the
+  line's Programs, the job's Programs list, a job's view of its line's
+  programs, the line's and the job's programs reports and the client
+  report. The study's own page says the program it shows proved. No new
+  record.
+- **One list of machines, every picker** (flow audit #14, 13 October: "One
+  line has three lists of machines. The problem sheet offers another line's
+  machines. The stopwatch offers 1 of 4. Capacity stations never reach the
+  line's list ... A study's machine is typed"). `lib/lineRecords`
+  `machinesOf(line, job?)`: the line's machines in flow order with the ones
+  its jobs brought onto it, and a job's own not yet placed on one line —
+  never another line's. Every picker reads it (`useMachinesOf`, or the line
+  records): the Problem sheet and the register's editor, the stopwatch
+  ("Whole line" first), the walk, Line capacity's station names, SMED's
+  "where", a capability study's machine (offered when it is started on a
+  line; picked on its page once it sits on one, a typed one said "not one of
+  the line's machines"). Line capacity says its machine stations the line
+  does not list and adds them with one tap — offered, never written behind
+  the person's back. *Not here:* Install's *Add a machine* picking from the
+  line (Stage 4); the value stream map's places.
+- *Accepted by* `scripts/acceptance/machines-programs.mjs` (stories 1–14).
 - *Not in this stage:* plate speed per machine (it is per product — D3, Stage
   4); a job taking a line's machine onto its Install (Stage 4, "machines are
   picked from the line").

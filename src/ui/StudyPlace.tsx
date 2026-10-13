@@ -33,6 +33,7 @@ import { niceDay } from '../lib/weeks';
 import { betterWords, worthBetter, linkOf, countermeasureFrom, recordHref, ROLE_WORD, studyMachineOf, usedForGroups, type StudyContext } from '../lib/studyLinks';
 import type { StudyUse, ToolStudy } from '../lib/study';
 import type { Can } from '../lib/access';
+import { StudyProves } from './ProveProgram';
 
 
 export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
@@ -107,6 +108,8 @@ export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
           {jobs.map(p => <option key={p.id} value={p.id}>{p.name}{s.workspaceId && p.workspaceIds.includes(s.workspaceId) ? ' — on this line' : ''}</option>)}
         </select>
       )}
+      {/* the program it shows proved (flow audit #21) — a branch off the study */}
+      <StudyProves s={s} />
     </div>
   );
 }

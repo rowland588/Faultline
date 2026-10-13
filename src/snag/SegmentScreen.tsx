@@ -13,11 +13,16 @@ import { VideoRecorder, videoCaptureSupported } from '../ui/VideoRecorder';
 import { useSyncedAt } from '../cloud/session';
 import type { Segment, SnagAsset } from './types';
 import { Icon } from '../ui/Icon';
+import { useMachinesOf } from '../lib/useLineRecords';
 
 export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: string }) {
   // the workspace's machine list is the LINE — marking picks from it, so the
   // footage's machines and the Pareto's machines are the same spine by construction
   const { workspace, patchWorkspace } = useWorkspace();
+  /* the line's machines in flow order, with the ones its jobs brought onto
+     it — the one list every "which machine" offers (lib/lineRecords
+     machinesOf; flow audit #14) */
+  const lineMachines = useMachinesOf(workspace.id);
   const [seg, setSeg] = useState<Segment | null>(null);
   const [segs, setSegs] = useState<Segment[]>([]);
   const [assets, setAssets] = useState<SnagAsset[]>([]);
@@ -280,14 +285,14 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
         {marking && <img className="mark-still" src={marking.still} alt="marked frame" />}
         {/* pick, don't type: the workspace's machines ARE the line — choosing a
             chip keeps footage and Pareto on the same names by construction */}
-        {workspace.assets.length > 0 && (
+        {lineMachines.length > 0 && (
           <div className="chip-row" style={{ marginTop: 10 }}>
-            {workspace.assets.map(a => (
+            {lineMachines.map(a => (
               <button key={a} className={'chip' + (name === a ? ' on' : '')} onClick={() => setName(a)}>{a}</button>
             ))}
           </div>
         )}
-        <div className="field-label" style={{ marginTop: 8 }}>{workspace.assets.length > 0 ? <>Or a new one <span className="opt">joins the line list too</span></> : 'Machine name'}</div>
+        <div className="field-label" style={{ marginTop: 8 }}>{lineMachines.length > 0 ? <>Or a new one <span className="opt">joins the line list too</span></> : 'Machine name'}</div>
         <input className="text-input" value={name} placeholder="e.g. Multihead Weigher" onChange={e => setName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void saveAndAnnotate(); }} />
         <div className="field-label" style={{ marginTop: 10 }}>Its code <span className="opt">optional</span></div>
         <input className="text-input" value={code} placeholder="e.g. MHW-04" onChange={e => setCode(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void saveAndAnnotate(); }} />

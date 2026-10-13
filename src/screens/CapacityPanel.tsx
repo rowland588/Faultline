@@ -28,7 +28,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { DraftNumber, DraftText } from '../ui/Draft';
 import { Fold } from '../ui/Fold';
 import { offerUndo } from '../ui/Undo';
-import { getWorkspace, listAllStudies, listPaceTodos, onDataChange, putPaceTodo, type PaceLineRow, type PaceTodoRow } from '../db';
+import { addMachineToLine, getWorkspace, listAllStudies, listPaceTodos, onDataChange, putPaceTodo, type PaceLineRow, type PaceTodoRow } from '../db';
 import type { Workspace } from '../types';
 import { currentBalance } from '../lib/studyLinks';
 import { balance as balanceOf } from '../lib/ie/balance';
@@ -51,7 +51,7 @@ import { VCurveView } from '../ui/VCurve';
 import { BottleneckWalk } from '../ui/BottleneckWalk';
 import { ShiftCapacityView, useShiftInputs } from '../ui/ShiftCapacity';
 import { useLineRecords } from '../lib/useLineRecords';
-import { machinesOnLine } from '../lib/lineRecords';
+import { machineKey, machinesOf } from '../lib/lineRecords';
 
 const PER_WORD: Record<RatePer, string> = { sec: 'a second', min: 'a minute', hour: 'an hour' };
 const SOURCES: { id: NonNullable<Station['source']>; label: string }[] = [
@@ -476,12 +476,20 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
   const coOff = !!(walk && shiftIn.co && shiftIn.co.perShift != null);
   const assets = useMemo(() => [...new Set(stops.obs.filter(o => !o.deletedAt && o.asset?.trim()).map(o => o.asset.trim()))].sort(), [stops.obs]);
   /* THE LINE'S MACHINES, in flow order (docs/BLUEPRINT.md, Stage 2) — every
-     station's name offers them, and an empty line starts from them. */
+     station's name offers them, and an empty line starts from them: the one
+     list every "which machine" reads, the job's own on it with them (lib/
+     lineRecords machinesOf; flow audit #14). */
   const rec = useLineRecords();
-  const machines = useMemo(() => {
-    const ws = line.workspaceId ? rec.all.find(w => w.id === line.workspaceId) : undefined;
-    return ws ? machinesOnLine(ws, rec.machines, rec.jobLines).map(m => m.name) : [];
-  }, [rec, line.workspaceId]);
+  const lineRec = line.workspaceId ? rec.all.find(x => x.id === line.workspaceId) : undefined;
+  const machines = useMemo(() => (lineRec ? machinesOf(lineRec, rec.machines, rec.jobLines, projectId || undefined) : []), [rec, lineRec, projectId]);
+  /* A MACHINE STATION THE LINE DOES NOT LIST — "Capacity stations never
+     reach the line's list" (flow audit #14). Offered, never written behind
+     the person's back: the line's list is what every picker reads. */
+  const unlisted = useMemo(() => {
+    if (!lineRec || rec.loading) return [];
+    const known = new Set(machines.map(machineKey));
+    return [...new Set(cap.stations.filter(x => x.kind === 'machine' && x.name.trim() && !known.has(machineKey(x.name))).map(x => x.name.trim()))];
+  }, [lineRec, rec.loading, machines, cap.stations]);
 
   const r = useMemo(() => analyse(current), [current]);
   const asRun = useMemo(() => analyse(cap), [cap]);
@@ -818,6 +826,14 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
             open={editing === s.id || !s.name.trim()} onToggle={() => setEditing(editing === s.id ? null : s.id)} ro={!can.edit} />
         ))}
       </ol>
+      {can.edit && !w && unlisted.length > 0 && lineRec && (
+        <p className="sub cap-unlisted">
+          {unlisted.join(', ')} {unlisted.length === 1 ? 'is' : 'are'} not on {lineRec.name}&rsquo;s machines yet, which the problem sheet, the stopwatch and every tool offer.{' '}
+          <button type="button" className="cw-link" onClick={() => void (async () => { for (const n of unlisted) await addMachineToLine(lineRec.id, n); })()}>
+            Add {unlisted.length === 1 ? 'it' : unlisted.length === 2 ? 'both' : `all ${unlisted.length}`} to the line ›
+          </button>
+        </p>
+      )}
       {can.edit && <div className="row-inline">
         <button className="cw-add" onClick={() => add('machine')}><span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a machine</button>
         <button className="cw-add" onClick={() => add('people')}><span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a person or crew</button>

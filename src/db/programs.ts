@@ -1,7 +1,9 @@
 /* What the machine can run. One store, keyed by project — see lib/programs.ts
  * for why a program is three states and a date rather than a status field. */
 import type { ID } from '../types';
-import { programAfterTest, type Program, type ProvingTest } from '../lib/programs';
+import type { Test, TestItem } from '../lib/testing';
+import { programAfterFloor, programAfterTest, type Program, type ProvingTest } from '../lib/programs';
+import { floorFailure, partsOfProgram } from '../lib/programsReport';
 import { now } from '../lib/ids';
 import { getDB, signalWrite } from './core';
 import { recordTombstones, restoreRows, type Restore } from './sync';
@@ -50,9 +52,68 @@ export async function deleteProgram(id: ID): Promise<Restore> {
  *  program's test date follows the test's. A test about no program costs one
  *  field read. (It replaces applyTestOutcome, which said the same and was
  *  never called: the link was drawn and not joined.) */
-export async function followTest(t: ProvingTest | undefined): Promise<void> {
+export async function followTest(t: ProvingTest | undefined, before?: Pick<ProvingTest, 'outcome' | 'ranOn'>): Promise<void> {
   if (!t?.programId) return;
   const p = await (await getDB()).get('programs', t.programId) as Program | undefined;
-  const next = p && programAfterTest(p, t);
+  if (!p) return;
+  /* A pass older than a failure said on the floor proves nothing (flow
+     audit #3): the floor's newest failure is read with the test — and a
+     test that said passed already, only written again, is no new proof. */
+  const failed = await failedOnFloor(p);
+  const fresh = !(before?.outcome === 'passed' && before.ranOn === t.ranOn);
+  const after = programAfterTest(p, t, undefined, failed?.on, fresh);
+  /* Proved by it now is the newer fact; else a failure newer than its
+     proof — a hand proof's too — still takes it back to on the machine. */
+  const next = after?.provedOn ? after : programAfterFloor(after ?? p, failed) ?? after;
   if (next) await putProgram(next);
+}
+
+/** The newest failure the floor said of a job's program — on the part of
+ *  its name on its machine's programs stage (lib/programsReport
+ *  floorFailure). A line's own program has no floor of its own. */
+async function failedOnFloor(p: Program): Promise<{ on: string; at: number } | undefined> {
+  if (!p.projectId) return undefined;
+  const db = await getDB();
+  const [tests, items, project] = await Promise.all([
+    db.getAllFromIndex('tests', 'by_project', p.projectId),
+    db.getAllFromIndex('test_items', 'by_project', p.projectId),
+    db.get('projects', p.projectId),
+  ]);
+  return floorFailure(p, tests, items, project ?? undefined);
+}
+
+/** THE PROGRAM A PART IS, brought into line with what the floor said of it
+ *  (lib/programs programAfterFloor). Called on every local write of a part:
+ *  a failure said after the day it was proved drops the program back to on
+ *  the machine, so the line's Programs, the control room and the job read
+ *  one answer (flow audit #3); that failure taken off again (`before` had
+ *  it, an undo say) hands it back to the test that proved it. A part with
+ *  no status said, before or now, costs nothing. */
+export async function followPart(i: TestItem | undefined, before?: TestItem): Promise<void> {
+  if (!i || i.kind !== 'next' || !i.projectId || !i.testId) return;
+  if (!(i.results?.length || before?.results?.length)) return;
+  const db = await getDB();
+  const stage = await db.get('tests', i.testId) as Test | undefined;
+  if (!stage || stage.deletedAt || stage.kind !== 'install' || (stage.gate ?? '') !== 'setup') return;
+  const [programs, tests, items, project] = await Promise.all([
+    db.getAllFromIndex('programs', 'by_project', i.projectId),
+    db.getAllFromIndex('tests', 'by_project', i.projectId),
+    db.getAllFromIndex('test_items', 'by_project', i.projectId),
+    db.get('projects', i.projectId),
+  ]);
+  const holder = project ?? undefined;
+  const was = before ? items.map(x => (x.id === before.id ? before : x)) : undefined;
+  for (const p of programs.filter(x => !x.deletedAt)) {
+    if (!partsOfProgram(p, tests, items, holder).some(x => x.id === i.id)) continue;
+    const failed = floorFailure(p, tests, items, holder);
+    let next = programAfterFloor(p, failed);
+    /* The failure that un-proved it taken off: the test that proved it, if
+       it still says passed, proves it again. */
+    const wasFailed = was ? floorFailure(p, tests, was, holder) : undefined;
+    if (!next && !p.provedOn && p.testId && wasFailed && wasFailed.at !== failed?.at) {
+      const t = tests.find(x => x.id === p.testId && !x.deletedAt);
+      if (t) next = programAfterTest(p, t, undefined, failed?.on);
+    }
+    if (next) await putProgram(next);
+  }
 }

@@ -14,6 +14,7 @@ import { machineKey, machineOfProgram, machinesOnLine, programsOnLine } from '..
 import { useLineRecords } from '../lib/useLineRecords';
 import type { useTesting } from '../lib/useTesting';
 import { provingTestOf, testCell } from '../lib/commission';
+import { proofOf } from '../lib/programsReport';
 import { niceDay } from '../lib/weeks';
 import type { Can } from '../lib/access';
 import { nav } from '../state/useRoute';
@@ -64,6 +65,8 @@ export function LineProgramsOnJob({ project, tt, can }: { project: Project; tt?:
                     </span>
                     <span className={'pg-state-sel is-pg-' + stateOf(p)}>{STATE_WORD[stateOf(p)]}</span>
                     <span className={late ? 'is-r' : 'sub'}>{isProved(p) ? `proved ${niceDay(p.provedOn)}` : p.testOn ? `${late ? 'test was ' : 'test '}${niceDay(p.testOn)}` : 'no test day'}</span>
+                    {/* how it was proved (flow audit #21) */}
+                    {(pf => pf && <span className={'lp-how is-' + pf.tone}>{pf.word}</span>)(proofOf(p, rec.provingTests, rec.studies))}
                     {project.commissioning && tt && (test
                       ? <span className="sub">Its test in Commission: <span className={'cg-pstate is-' + testCell(test, today).tone}>{testCell(test, today).word}</span>{' '}<button type="button" className="cw-link" onClick={() => openRecord(project.id, test.id)}>Open it</button></span>
                       : !isProved(p) && can.edit && <button type="button" className="cw-link" onClick={() => void planTest()}>Prove it in Commission</button>)}

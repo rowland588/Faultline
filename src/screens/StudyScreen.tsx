@@ -28,6 +28,8 @@ import type { AgreedReadings, StudyReading, ToolStudy } from '../lib/study';
 import { TOOL_WORDS } from './StudiesScreen';
 import { StudyName } from '../ui/StudyActs';
 import { WhereItSits, UsedFor } from '../ui/StudyPlace';
+import { DraftText } from '../ui/Draft';
+import { useMachinesOf } from '../lib/useLineRecords';
 
 const OWNER = canAt('owner');
 
@@ -74,7 +76,7 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
         <small className="ie-eyebrow">{w?.one ?? 'Study'}</small>
         <StudyName s={s} canEdit={can.edit && !closed} canRemove={can.remove} />
         <p className="sub ie-where">
-          {s.machine ? <><b>{s.machine}</b> · </> : null}
+          {s.workspaceId && can.edit && !closed ? <StudyMachine s={s} /> : s.machine ? <><b>{s.machine}</b> · </> : null}
           started {niceDay(new Date(s.startedAt).toISOString().slice(0, 10))}
         </p>
         <WhereItSits s={s} can={can} />
@@ -100,6 +102,26 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
         </>
       )}
     </div>
+  );
+}
+
+/* --------------------------------------------------------------- machine */
+/** WHICH MACHINE, ON ITS LINE — picked from the line's machines (lib/
+ *  lineRecords machinesOf), the job's own on it with them; typed, it is kept
+ *  as typed. Flow audit #14: "A study's machine is typed" — "Ishida
+ *  CCW-RV-214W multihead weigher", not the line's "Ishida checkweigher". */
+function StudyMachine({ s }: { s: ToolStudy }) {
+  const machines = useMachinesOf(s.workspaceId, s.projectId);
+  const id = `ie-machines-${s.id}`;
+  const known = !s.machine || machines.some(m => m.trim().toLowerCase() === s.machine?.trim().toLowerCase());
+  return (
+    <>
+      <DraftText className="text-input ie-machine" value={s.machine ?? ''} ariaLabel="Which machine it is of" placeholder="Which machine?" max={80} list={id}
+        onSave={v => void patchStudy(s.id, { machine: v.trim() || undefined })} />
+      <datalist id={id}>{machines.map(m => <option key={m} value={m} />)}</datalist>
+      {!known && machines.length > 0 && <span className="ie-machine-not"> — not one of the line&rsquo;s machines</span>}
+      {' · '}
+    </>
   );
 }
 

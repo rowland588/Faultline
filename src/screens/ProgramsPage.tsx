@@ -39,6 +39,8 @@ import { ProgramsScreen } from './ProgramsScreen';
 import { LineProgramsOnJob } from '../ui/LineProgramsOnJob';
 import { navReplace } from '../state/useRoute';
 import { answerOf } from '../lib/install';
+import { lineOfProgram } from '../lib/lineRecords';
+import { useLineRecords } from '../lib/useLineRecords';
 
 /* The two said "why" of the ones to do (12 October): not tested, no program. */
 type Said = 'notTested' | 'noProgram';
@@ -63,6 +65,7 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState<string | null>(null);
   const today = todayISO();
+  const rec = useLineRecords();
 
   const reading = useMemo(() => (tt.loading || progs.loading ? undefined
     : programsReading({ tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs, today, holder: project })),
@@ -73,6 +76,16 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
   const assets = live(tt.assets).sort((a, b) => a.sort - b.sort);
   const stages = live(tt.tests).filter(t => isProgramsStage(t, answerOf(t, project, tt.items)));
   const lines = reading?.lines ?? [];
+  /* ONE PROGRAM, ONE ANSWER (flow audit #3): where a part is a program on the
+     Programs list, the record's own state — what the line's Programs and the
+     control room say — beside the floor's, named with its line. */
+  const recordOf = new Map(lines.flatMap(l => {
+    if (rec.loading || !l.partId || !l.record || !l.programId) return [];
+    const p = progs.programs.find(x => x.id === l.programId);
+    const ws = p ? lineOfProgram(p, rec.jobLines) : undefined;
+    const name = ws ? rec.all.find(w => w.id === ws)?.name : undefined;
+    return [[l.partId, { word: `${name ? `On ${name}` : 'On the Programs list'}: ${l.record.word}`, tone: l.record.tone }] as const];
+  }));
   const count = (b: Filter) => (b === 'all' ? lines.length : lines.filter(l => (isSaid(b) ? l.said === b : l.bucket === b)).length);
   const keep = (l: ProgramLine) => filter === 'all' || (isSaid(filter) ? l.said === filter : l.bucket === filter);
   /* The parts the filter keeps, for the stage's own list. */
@@ -142,7 +155,8 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
         const mine = lines.filter(l => (l.assetId ?? '') === m.id);
         /* On the Programs list only — no line on the stage yet. */
         const listOnly = mine.filter(l => !l.partId && keep(l));
-        const n = mine.length, done = mine.filter(l => l.bucket === 'done' || l.bucket === 'baseline' || l.bucket === 'failed').length, bad = mine.filter(l => l.bucket === 'failed' || l.bucket === 'late').length;
+        /* a failed program is not done — it is the red count beside (flow audit #3) */
+        const n = mine.length, done = mine.filter(l => l.bucket === 'done' || l.bucket === 'baseline').length, bad = mine.filter(l => l.bucket === 'failed' || l.bucket === 'late').length;
         return (
           <section key={m.id || 'line'} className="pp-m" aria-label={m.name}>
             <div className="pp-mh">
@@ -151,7 +165,7 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
               <span className="sub">{n ? `${n} program${n === 1 ? '' : 's'} · ${done} done` : 'No programs yet'}{bad ? <> · <b className="in-late">{bad} failed or late</b></> : null}</span>
             </div>
             {stage
-              ? <StageParts step={stage} tt={tt} can={can} holder={project} only={onlyKept} onOpen={id => openRecord(projectId, id)}
+              ? <StageParts step={stage} tt={tt} can={can} holder={project} only={onlyKept} onOpen={id => openRecord(projectId, id)} aside={p => recordOf.get(p.id)}
                   onRunProblem={can.edit ? (tid, rid) => openRecordAt(projectId, tid, rid) : undefined}
                   onProblem={can.edit ? p => openRecordAt(projectId, stage.id, p.id) : undefined} />
               : can.edit && m.id

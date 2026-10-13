@@ -50,7 +50,7 @@ import { recordHref } from '../lib/studyLinks';
 import { Sheet } from '../ui/Sheet';
 import { SmedGrid } from '../ui/SmedGrid';
 import { useLineRecords } from '../lib/useLineRecords';
-import { machinesOnLine } from '../lib/lineRecords';
+import { machinesOf } from '../lib/lineRecords';
 
 const OWNER = canAt('owner');
 const day = (ms: number) => niceDay(new Date(ms).toISOString().slice(0, 10));
@@ -142,12 +142,14 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
   /* Who and where the floor would say: the product's standard's people, the
      usual roles, and everyone already named on this changeover. */
   const people = useMemo(() => [...new Set([...seq.flatMap(x => x.crew ?? []), ...(std ? peopleOf(std).map((p, i) => p.label?.trim() || `Op ${i + 1}`) : []), 'Op 1', 'Op 2', 'Fitter', 'Team leader', 'Engineer', 'Quality'])], [seq, std]);
-  /* where: the places already named, the line's machines in flow order
-     (docs/BLUEPRINT.md, Stage 2), then the product's capacity stations */
+  /* where: the places already named, the line's machines in flow order —
+     the one list every "which machine" reads, the job's own on it with them
+     (lib/lineRecords machinesOf; flow audit #14) — then the product's
+     capacity stations */
   const rec = useLineRecords();
   const places = useMemo(() => [...new Set([...seq.map(x => x.where?.trim()).filter((x): x is string => !!x),
-    ...(line ? machinesOnLine(line, rec.machines, rec.jobLines).map(m => m.name) : []),
-    ...(std?.capacity?.stations ?? []).map(x => x.name.trim()).filter(Boolean)])], [seq, std, line, rec]);
+    ...(line ? machinesOf(line, rec.machines, rec.jobLines, s.projectId) : []),
+    ...(std?.capacity?.stations ?? []).map(x => x.name.trim()).filter(Boolean)])], [seq, std, line, rec, s.projectId]);
 
   const onLap = (x: { name: string; side: ChangeoverSide; sec: number; crew: string[]; again?: string }) => setSeq(cur => (x.again
     ? cur.map(st => (st.id === x.again ? { ...st, name: x.name || st.name, side: x.side, sec: x.sec, source: 'timed' as const, at: now(), ...(me ? { who: me } : {}), ...(x.crew.length ? { crew: x.crew } : {}) } : st))

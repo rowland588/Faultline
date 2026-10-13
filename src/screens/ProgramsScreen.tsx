@@ -40,6 +40,8 @@ import { useAccess } from '../cloud/access';
 import { AccessNote } from '../ui/AccessNote';
 import type { Can } from '../lib/access';
 import { LineProgramsOnJob } from '../ui/LineProgramsOnJob';
+import { ProveProgram } from '../ui/ProveProgram';
+import { proofOf } from '../lib/programsReport';
 
 const nice = (iso?: string): string => {
   if (!iso) return '—';
@@ -177,7 +179,6 @@ function Row({ p, today, lineName, assets, state, weeks, can, tt, first, last }:
   can: Can;
 }) {
   const [proving, setProving] = useState(false);
-  const [on, setOn] = useState(todayISO());
   const where = standingOf(p, today);
   const got = stateOf(p);
 
@@ -193,7 +194,7 @@ function Row({ p, today, lineName, assets, state, weeks, can, tt, first, last }:
   /* The machine leads the facts line: with several machines each running
      several programs, WHICH ONE is the first thing that tells two rows of the
      same name apart. */
-  const facts = [machine, p.runs && `runs ${p.runs}`, lineName, p.from && `from ${p.from}`]
+  const facts = [machine, p.runs && `runs ${p.runs}`, lineName, p.from && `whose: ${p.from}`]
     .filter(Boolean).join(' · ');
 
   return (
@@ -227,9 +228,11 @@ function Row({ p, today, lineName, assets, state, weeks, can, tt, first, last }:
             </select>
           </label>
         )}
-        {isProved(p) && !test && (
-          <div className="mt-facts pg-byhand">signed off by hand — no test behind it</div>
-        )}
+        {/* HOW IT WAS PROVED (flow audit #21): by hand, the words that
+            showed it are its commentary above — amber when nothing does. */}
+        {isProved(p) && !(test && test.outcome === 'passed') && (pf => pf && (
+          <div className={'mt-facts pg-byhand lp-how is-' + pf.tone}>{pf.word}{pf.tone === 'n' ? ' — no test behind it' : ''}</div>
+        ))(proofOf(p, tt.tests))}
         {/* ITS TEST IN COMMISSION (Rowland, 6 October: "programs are directly
             linked to commissioning"). Passing it proves this program on the
             day it ran (lib/programs programAfterTest); a fail puts it back. */}
@@ -260,7 +263,7 @@ function Row({ p, today, lineName, assets, state, weeks, can, tt, first, last }:
           value={got} aria-label={`Where ${p.what} has got to`}
           onChange={e => {
             const next = e.target.value as typeof got;
-            if (next === 'proved') { setOn(todayISO()); setProving(true); return; }
+            if (next === 'proved') { setProving(true); return; }
             void state.save({ ...p, state: next, provedOn: undefined });
           }}>
           <option value="needed">Not written</option>
@@ -291,20 +294,17 @@ function Row({ p, today, lineName, assets, state, weeks, can, tt, first, last }:
         )}
       </div>
 
+      {/* PROVED ASKS THE DAY AND WHAT SHOWED IT (flow audit #21) — or its
+          test in Commission, which proves it on its own. */}
       {!can.edit ? null : proving ? (
-        <div className="mt-mark">
-          <label className="mt-mark-l" htmlFor={`pv-${p.id}`}>Proved on</label>
-          <input id={`pv-${p.id}`} className="mt-due" type="date" value={on} onChange={e => setOn(e.target.value)} />
-          <button className="btn btn-primary btn-sm"
-            onClick={() => { void state.markProved(p.id, on); setProving(false); }}>It&rsquo;s proved</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => setProving(false)}>Cancel</button>
-        </div>
+        <ProveProgram p={p} onClose={() => setProving(false)}
+          testDoor={test ? undefined : <>Or prove it by a test — <button type="button" className="cw-link" onClick={() => { setProving(false); void planTest(); }}>plan its test in Commission</button></>} />
       ) : isProved(p) ? (
         <button className="btn btn-ghost btn-sm mt-act" onClick={() => void state.markUnproved(p.id)}>
           Not proved after all
         </button>
       ) : (
-        <button className="btn btn-sm mt-act mt-in" onClick={() => { setOn(todayISO()); setProving(true); }}>
+        <button className="btn btn-sm mt-act mt-in" onClick={() => setProving(true)}>
           Mark it proved
         </button>
       )}
@@ -434,8 +434,8 @@ function AddProgram({ state, lines, assets }: {
           </label>
         )}
         <label className="proj-field">
-          <span className="field-label">From</span>
-          <input className="text-input" value={from} maxLength={80} placeholder="Who owes it"
+          <span className="field-label">Whose</span>
+          <input className="text-input" value={from} maxLength={80} placeholder="e.g. Ilapak UK"
             onChange={e => setFrom(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') add(); }} />
         </label>
         <button className="btn btn-primary mt-add-btn" disabled={!what.trim()} onClick={() => add()}>Add it</button>
