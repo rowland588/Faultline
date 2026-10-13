@@ -11,8 +11,12 @@ import { writeXlsx } from './xlsxWrite';
 import { deliverBlob, type Delivered } from './savePdf';
 import { todayISO } from './weeks';
 
-export async function exportEverything(): Promise<{ how: Delivered; name: string }> {
-  const projects = await ensureProjects();
+/** Everything on this device — or, given a job, that job alone (its walks
+ *  with it): the Reports sheet of a 6M or lever tree job exports the job it
+ *  is on (flow audit #17: "Spreadsheet is described as the start-up record
+ *  of every project"). */
+export async function exportEverything(onlyProjectId?: string): Promise<{ how: Delivered; name: string }> {
+  const projects = (await ensureProjects()).filter(p => !onlyProjectId || p.id === onlyProjectId);
   const data: ProjectData[] = [];
   const walks: WalkData[] = [];
   const claimed = new Set<string>();
@@ -29,8 +33,9 @@ export async function exportEverything(): Promise<{ how: Delivered; name: string
       walks.push({ projectName: project.name, snags: await snagsForWorkspace(ws), assets: await listSnagAssets(ws) });
     }
   }
-  /* A snag list that belongs to no project still comes out, under its own name. */
-  for (const ws of await listWorkspaces()) {
+  /* A snag list that belongs to no project still comes out, under its own name
+     — when everything is asked for, not one job. */
+  for (const ws of onlyProjectId ? [] : await listWorkspaces()) {
     if (claimed.has(ws.id)) continue;
     const snags = await snagsForWorkspace(ws.id);
     if (snags.length) walks.push({ projectName: ws.name, snags, assets: await listSnagAssets(ws.id) });
@@ -38,7 +43,8 @@ export async function exportEverything(): Promise<{ how: Delivered; name: string
 
   const today = todayISO();
   const bytes = writeXlsx(exportSheets(data, walks, today));
-  const name = `Faultline-export-${today}.xlsx`;
+  const one = onlyProjectId ? projects[0]?.name : undefined;
+  const name = one ? `Faultline-${one.replace(/[^\w-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 60)}-${today}.xlsx` : `Faultline-export-${today}.xlsx`;
   const blob = new Blob([bytes as Uint8Array<ArrayBuffer>], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   return { how: await deliverBlob(blob, name), name };
 }

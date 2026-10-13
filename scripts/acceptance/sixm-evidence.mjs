@@ -111,6 +111,8 @@ await page.locator('.ie-used').first().waitFor({ timeout: 10000 }).catch(() => {
 /* ---- 5 · the 6M report's PDF ---- */
 await go(`#/pace-report?project=${j.projectId}`);
 {
+  /* the full report — the status page is the one offered first (17 below) */
+  await page.getByRole('button', { name: 'Full report', exact: true }).click(); await page.waitForTimeout(400);
   const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'PDF', exact: true }).first().click()]);
   const pdf = join(OUT, 'sixm.pdf'); await dl.saveAs(pdf);
   const san = s => s.replace(/→/g, 'to').replace(/[–—]/g, '-').replace(/\s+/g, ' ');

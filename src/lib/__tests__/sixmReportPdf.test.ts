@@ -13,7 +13,8 @@ import type { PaceLineRow } from '../../db/rows';
 import type { Cause, SixM } from '../sixm';
 import { buildView, fishboneData, type FishboneData } from '../fishbone';
 import { stepAction } from '../actions';
-import { drawSixMReport, sixmReport, type SixMReport } from '../sixmReportPdf';
+import { drawSixMReport, drawSixMStatus, sixmReport, type SixMReport } from '../sixmReportPdf';
+import { sixmStatus } from '../sixmStatus';
 
 const NOW = Date.parse('2026-10-04T12:00:00');
 const DAY = 86_400_000;
@@ -39,7 +40,7 @@ function build(cases: Case[], todos: PaceTodoRow[]): SixMReport {
   return sixmReport({ project: { name: 'Line 2A to 60', lead: 'Rowland' }, data, problems: cases.map(c => buildView(c, data, NOW)), todos, now: NOW });
 }
 
-async function paper(r: SixMReport): Promise<{ doc: jsPDF; flat: string; said: string[] }> {
+async function paper(r: SixMReport, draw: (doc: jsPDF, r: SixMReport) => Promise<void> = drawSixMReport): Promise<{ doc: jsPDF; flat: string; said: string[] }> {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   const said: string[] = [];
   const orig = doc.text.bind(doc);
@@ -47,7 +48,7 @@ async function paper(r: SixMReport): Promise<{ doc: jsPDF; flat: string; said: s
     said.push(...(Array.isArray(t) ? t.map(String) : [String(t)]));
     return (orig as (...a: unknown[]) => jsPDF)(t, ...rest);
   };
-  await drawSixMReport(doc, r);
+  await draw(doc, r);
   return { doc, said, flat: said.join('').replace(/\s+/g, '') };
 }
 const has = (flat: string, s: string) => flat.includes(s.replace(/\s+/g, ''));
@@ -305,5 +306,44 @@ describe('the 6M client report', () => {
     expect(said.filter(x => x === 'Problem 1 — Weigher breakdowns (continued)').length).toBe(doc.getNumberOfPages() - 1);
     for (let k = 1; k <= 6; k++) expect(has(flat, `end${k} (seen)`)).toBe(true);
     expect(said.some(x => x.includes('…') && !x.includes('client report'))).toBe(false);
+  });
+});
+
+/* THE ONE PAGE (flow audit #17: "the status page and the full report first";
+ * docs/SIMPLE.md): where we are, why not — only the abnormal — and what is
+ * being done, read off the full report's model, on one page however busy. */
+describe('the 6M status — one page', () => {
+  it('says where the lines are, only the abnormal, and what is being done — whose and by when', async () => {
+    const late = todo('a', 'Make a splice jig', { pillar: 'machine', causeRef: 'p1:c1', due: '2026-10-01', who: 'Engineering' });
+    const soon = todo('b', 'Train nights on the splice', { pillar: 'people', due: '2026-10-09', who: 'Tanya' });
+    const missed = kase('p2', 'Changeover takes 48 minutes', [cause('c', 'method', 'Done three ways', { status: 'confirmed', root: true })], {
+      status: 'closed', closedAt: NOW - 30 * DAY, hold: { what: 'Time one changeover a week', who: 'Rob Scott', everyDays: 7, since: '2026-09-01', lastChecked: '2026-09-10' },
+    });
+    const r = build([kase('p1', 'Bagger minor stops', [cause('c1', 'machine', 'Film tracks off the former', { status: 'confirmed', root: true })]), missed], [late, soon]);
+    const s = sixmStatus(r);
+    expect(s.sentence).toBe(r.sentence);
+    expect(s.lines).toEqual([{ line: 'Line 2A', says: r.gaps[0].says, short: '8 ppm short of target' }]);
+    expect(s.why.map(w => [w.tag, w.what])).toEqual([
+      ['SHORT', 'Line 2A — 8 ppm short of target'],
+      ['CHECK MISSED', 'Time one changeover a week — keeps the gain on “Changeover takes 48 minutes”'],
+      ['LATE', '1 countermeasure past its day'],
+    ]);
+    expect(s.why[0].detail).toBe('Being worked: “Bagger minor stops” — acting on it');
+    expect(s.why[1].detail).toBe('Rob Scott · check missed — was due 17 Sept');
+    expect(s.problems.map(p => [p.title, p.phase])).toEqual([['Bagger minor stops', 'Acting on it']]);
+    expect(s.next.map(n => [n.what, n.who, n.late])).toEqual([['Make a splice jig', 'Engineering', true], ['Train nights on the splice', 'Tanya', false]]);
+    const { doc, flat, said } = await paper(r, drawSixMStatus);
+    expect(doc.getNumberOfPages()).toBe(1);
+    expect(said).toContain('WHY WE ARE NOT WHERE WE SHOULD BE');
+    for (const t of ['CHECK MISSED', 'Make a splice jig', 'Late · was due 1 Oct', 'Train nights on the splice', 'Bagger minor stops']) expect(has(flat, t)).toBe(true);
+  });
+
+  it('stays one page on a crowded job, and says how many more the full report has', async () => {
+    const todos = Array.from({ length: 60 }, (_, i) => todo(`t${i}`, `Countermeasure number ${i + 1}, written at some length so it wraps onto a second line on the page`, { pillar: 'machine', due: i % 2 ? '2026-09-20' : '2026-10-20', who: `Owner ${i % 7}` }));
+    const cases = Array.from({ length: 12 }, (_, i) => kase(`p${i}`, `Problem ${i + 1}, a long title that says what the loss is and where it is on the line`, [cause('c', 'machine', 'A cause')]));
+    const r = build(cases, todos);
+    const { doc, flat } = await paper(r, drawSixMStatus);
+    expect(doc.getNumberOfPages()).toBe(1);
+    expect(flat).toMatch(/more—inthefullreport|moreopen—inthefullreport/);
   });
 });

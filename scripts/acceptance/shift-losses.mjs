@@ -299,6 +299,8 @@ await page.setViewportSize({ width: 1360, height: 900 });
 {
   /* the 6M report — the count's table in Evidence, the countermeasure's before → after */
   await go(`#/pace-report?project=${sd.pacedProjectId}`);
+  /* the full report: the one-page status is the one offered first */
+  await page.getByRole('button', { name: 'Full report', exact: true }).click(); await page.waitForTimeout(400);
   const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'PDF', exact: true }).first().click()]);
   const pdf = join(OUT, 'sixm.pdf'); await dl.saveAs(pdf);
   const txt = san(pdfText(pdf));

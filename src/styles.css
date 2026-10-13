@@ -7842,6 +7842,8 @@ span.ls-role:hover { border-color: transparent; }
 .cr-said-st.is-asking { color: var(--st-a); }
 .cr-said-st.is-booked { color: var(--st-w); }
 .cr-said-st.is-ahead { color: var(--muted); font-weight: 500; }
+/* the 6M status in words: a line short of its target, a countermeasure past its day */
+.cr-toc .cr-short { color: var(--st-r); }
 .cr-said-t { margin: 0; font-size: var(--t-detail); color: var(--ink-2); line-height: 1.45; white-space: pre-line; overflow-wrap: anywhere; }
 /* The 6M client report's preview: each problem in its four parts, as the paper prints them. */
 .cr-toc .cr-prob { gap: 6px; }
@@ -8601,6 +8603,18 @@ button.gt-mtrack { appearance: none; display: block; align-self: stretch; height
 .meet-report:hover { box-shadow: var(--shadow-lift); }
 .meet-report b { font-size: var(--t-body); }
 .meet-report small { font-size: var(--t-label); color: var(--muted); line-height: 1.4; }
+/* A running line's per-line papers, folded under its report (flow audit #17). */
+.meet-lines { display: flex; flex-direction: column; gap: 8px; }
+.meet-lines-h {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; min-height: 44px;
+  padding: 10px 14px; font: inherit; text-align: left; color: var(--ink); cursor: pointer;
+  background: var(--surface); border: 1px dashed var(--line-2); border-radius: var(--radius-sm);
+}
+.meet-lines-h b { font-size: var(--t-body); }
+.meet-lines-h small { grid-column: 1; font-size: var(--t-label); color: var(--muted); line-height: 1.4; }
+.meet-lines-h span { grid-column: 2; grid-row: 1 / span 2; color: var(--accent); font-weight: 700; }
+.meet-line { display: flex; flex-direction: column; gap: 8px; padding-left: 12px; border-left: 2px solid var(--line); }
+.meet-line-n { margin: 4px 0 0; font-size: var(--t-label); font-weight: 700; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.04em; }
 .pace-sec-head:has(.pace-sec-seg) { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
 .pace-sec-head:has(.pace-sec-seg) .pace-sec-title { margin: 0; }
 .pace-sec-head:has(.pace-sec-seg) .pace-sec-sub { flex: 1 1 100%; order: 3; margin: 0; }

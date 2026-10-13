@@ -59,6 +59,7 @@ import { Icon } from '../ui/Icon';
 import { onDataChange } from '../db';
 import { loadProblems, viewsOf, type LoadedProblems } from '../lib/useProblems';
 import type { SixMReport } from '../lib/sixmReportPdf';
+import { sixmStatus } from '../lib/sixmStatus';
 import type { jsPDF } from 'jspdf';
 
 /* ---------- action status, computed once ---------- */
@@ -851,11 +852,11 @@ export function PaceExecReport() {
   return <PaceExecReportA3 />;
 }
 
-async function sixmPdf(r: SixMReport): Promise<jsPDF> {
+async function sixmPdf(r: SixMReport, which: 'status' | 'full' = 'full'): Promise<jsPDF> {
   const { jsPDF } = await loadPdfLib();
-  const { drawSixMReport } = await import('../lib/sixmReportPdf');
+  const { drawSixMReport, drawSixMStatus } = await import('../lib/sixmReportPdf');
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-  await drawSixMReport(doc, r);
+  if (which === 'status') await drawSixMStatus(doc, r); else await drawSixMReport(doc, r);
   return doc;
 }
 
@@ -868,6 +869,10 @@ function SixMReportScreen({ projectId, lineId, name, lead }: { projectId: string
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState<string | null>(null);
   const [err, setErr] = useState<{ stale: boolean; msg: string } | null>(null);
+  /* TWO, FROM ONE BUTTON, THE SHORT ONE FIRST (docs/SIMPLE.md; flow audit
+     #17): the one-page status — the one that gets sent — and the full root
+     cause story, both read off the same model (lib/sixmStatus). */
+  const [which, setWhich] = useState<'status' | 'full'>(() => (/[?&]doc=full\b/.test(window.location.hash) ? 'full' : 'status'));
   const [wide, setWide] = useState(() => typeof window !== 'undefined' && !!window.matchMedia?.('(min-width: 900px)').matches);
   useEffect(() => {
     const mq = window.matchMedia?.('(min-width: 900px)');
@@ -903,15 +908,16 @@ function SixMReportScreen({ projectId, lineId, name, lead }: { projectId: string
 
   /* The preview is the PDF itself, with the mark it leaves with — redrawn
      only when what is on it changes (lib/usePdfPreview). */
-  const previewKey = useMemo(() => (report && wide ? JSON.stringify(report) : null), [report, wide]);
-  const preview = usePdfPreview(previewKey, () => sixmPdf(report as NonNullable<typeof report>));
+  const previewKey = useMemo(() => (report && wide ? `${which}|${JSON.stringify(report)}` : null), [report, wide, which]);
+  const preview = usePdfPreview(previewKey, () => sixmPdf(report as NonNullable<typeof report>, which));
+  const status = useMemo(() => (report ? sixmStatus(report) : null), [report]);
 
   const line = lineId ? loaded?.data.lines.find(l => l.id === lineId) : undefined;
   const download = async () => {
     if (!report || busy) return;
     setBusy(true); setSaid(null); setErr(null);
     try {
-      const how = await deliverPdf(await sixmPdf(report), pdfFileName(line ? `${name} ${line.name}` : name, 'client report', todayISO()));
+      const how = await deliverPdf(await sixmPdf(report, which), pdfFileName(line ? `${name} ${line.name}` : name, which === 'status' ? 'status report' : 'client report', todayISO()));
       setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
     } catch (e) {
       console.error('6M client report failed', e);
@@ -936,12 +942,18 @@ function SixMReportScreen({ projectId, lineId, name, lead }: { projectId: string
       <header className="pace-head">
         <div className="pace-head-main">
           <h1 className="pace-title">Client report{line ? ` — ${line.name}` : ''}</h1>
-          <p className="pace-lede">The gap, where the loss is, and each problem beside its fishbone in four parts — Problem, Why, Fix, Did it work — drawn from what is kept here, nothing typed for it.</p>
+          <p className="pace-lede">{which === 'status'
+            ? 'One page, the one that gets sent: where the lines are, why they are not where they should be, and what is being done — who, by when. The full report has every detail.'
+            : 'The gap, where the loss is, and each problem beside its fishbone in four parts — Problem, Why, Fix, Did it work — drawn from what is kept here, nothing typed for it.'}</p>
         </div>
         <div className="pace-head-actions">
           <button className="btn btn-primary" onClick={() => void download()} disabled={busy}>{busy ? 'Making it…' : 'PDF'}</button>
         </div>
       </header>
+      <span className="cw-seg cr-which" role="group" aria-label="Which report">
+        <button type="button" className={'chip' + (which === 'status' ? ' on' : '')} aria-pressed={which === 'status'} onClick={() => setWhich('status')}>Status — 1 page</button>
+        <button type="button" className={'chip' + (which === 'full' ? ' on' : '')} aria-pressed={which === 'full'} onClick={() => setWhich('full')}>Full report</button>
+      </span>
       {said && <p className="tc-ok" role="status">{said}</p>}
       {err && (
         <p className="sub tw-err" role="alert">
@@ -951,6 +963,27 @@ function SixMReportScreen({ projectId, lineId, name, lead }: { projectId: string
       )}
 
       <div className={'cr-body' + (wide ? ' is-wide' : '')}>
+        {which === 'status' && status ? (
+        /* THE ONE PAGE IN WORDS — the same model the paper is drawn from. */
+        <ol className="cr-toc cr-status">
+          <li><b>{status.manyLines ? 'Where the lines are' : 'Where the line is'}</b><span>{status.sentence}</span>
+            <span className="sub">{status.slip}</span>
+            {status.lines.map(g => <span key={g.line} className={g.short ? 'cr-short' : undefined}>{g.says}</span>)}
+            {status.gapNone && <span className="sub">{status.gapNone}</span>}</li>
+          <li><b>Why we are not where we should be</b>
+            {status.why.length === 0 && <span>Nothing — every line measured is at its target, nothing has slipped back, no check is missed and no countermeasure is past its day.</span>}
+            {status.why.map((w, k) => (
+              <span key={k}><span className={'cr-said-st ' + (w.kind === 'due' ? 'is-asking' : 'is-late')}>{w.tag}</span> {w.what}{w.detail ? <span className="sub"> — {w.detail}</span> : null}</span>
+            ))}
+            {status.whyMore > 0 && <span className="sub">and {status.whyMore} more — in the full report</span>}</li>
+          <li><b>What we are doing about it</b>
+            {status.problems.map((x, k) => <span key={`p${k}`}>{x.title}{x.number ? ` — ${x.number}` : ''} · {x.phase}</span>)}
+            {status.problemsMore > 0 && <span className="sub">and {status.problemsMore} more open — in the full report</span>}
+            {status.next.map((n, k) => <span key={`n${k}`} className={n.late ? 'cr-short' : undefined}>{n.what} · {n.who} · {n.when}</span>)}
+            {status.next.length === 0 && <span className="sub">Nothing open on the board.</span>}
+            {status.nextMore > 0 && <span className="sub">and {status.nextMore} more open — in the full report</span>}</li>
+        </ol>
+        ) : (
         <ol className="cr-toc">
           <li><b>{report.manyLines ? 'Where the lines are' : 'Where the line is'}</b><span>{report.sentence}</span>
             {/* Home's 6M row's words, the late part red and the waiting part amber there and here. */}
@@ -971,6 +1004,7 @@ function SixMReportScreen({ projectId, lineId, name, lead }: { projectId: string
           )}
           {report.seen && <li><b>What was seen on the line</b><span>{report.seen.says}</span></li>}
         </ol>
+        )}
         {wide && (
           <div className="cr-page">
             {preview ? <iframe title="The client report" src={preview} /> : <p className="sub">Drawing the report…</p>}
