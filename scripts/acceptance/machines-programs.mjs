@@ -37,6 +37,11 @@
  *      the line (the study's page says so), or the words of who signed it
  *      off — amber when nothing; on the line's paper; the job's own
  *      Programs list asks the same and offers its test
+ *   14 one list of machines, every picker (flow audit #14): the Problem
+ *      sheet offers this line's and no other's; the stopwatch every one;
+ *      Line capacity offers its unlisted machine stations to the line, then
+ *      every station offers them; SMED's where; a study's machine picked
+ *      from its line; a new study on the line offers them
  *   and no console error.
  *
  *   node scripts/acceptance/machines-programs.mjs      (SMOKE_BASE, as smoke) */
@@ -402,6 +407,86 @@ await page.setViewportSize({ width: 1360, height: 900 });
   ok(blank && offers.includes('plan its test in Commission') && j07.state === 'proved' && j07.note === 'Ran 2 kg potatoes for an hour at 40 a minute, no rejects'
     && flat(await r07.innerText()).includes('Signed off by hand — no test behind it'),
     '13f the job\'s Programs list: proved asks what showed it, offers its test in Commission, and says how');
+}
+
+/* ---- 14 one list of machines, every picker (flow audit #14) ---- */
+{
+  /* another line with a machine of its own, and a job on it with one: neither may reach this line's pickers */
+  const other = await page.evaluate(async () => {
+    const db = await import('/src/db.ts');
+    const w = (await db.listWorkspaces()).find(x => x.name === 'Line 7');
+    await db.addMachineToLine(w.id, 'Line seven bagger', 'Ishida');
+    return w.id;
+  });
+  const of = (ws, job) => page.evaluate(async ([w, j]) => {
+    const db = await import('/src/db.ts');
+    const L = await import('/src/lib/lineRecords.ts');
+    const [all, assets, jobLines] = await Promise.all([db.listWorkspaces(), db.listAllAssets(), db.allPaceLines()]);
+    return L.machinesOf(all.find(x => x.id === w), assets, jobLines, j || undefined);
+  }, [ws, job]);
+  /* the Problem sheet, on the line */
+  await go(`#/lines/${WS}`);
+  await page.locator('.qs-top').first().click(); await page.waitForTimeout(800);
+  const sheet = page.locator('.qs');
+  await sheet.locator('label.cw-f', { has: page.locator('span', { hasText: /^LINE$/ }) }).locator('select').selectOption(WS); await page.waitForTimeout(600);
+  const project = await sheet.locator('label.cw-f', { has: page.locator('span', { hasText: /^PROJECT/ }) }).locator('select').inputValue();
+  let chips = (await sheet.locator('[aria-label="Which machine"] .chip').allInnerTexts()).map(flat);
+  let want = await of(WS, project);
+  ok(JSON.stringify(chips) === JSON.stringify(want) && !chips.includes('Line seven bagger'),
+    `14 the Problem sheet offers this line's machines, in flow order, and no other line's (${chips.join(', ')})`);
+  await sheet.locator('label.cw-f', { has: page.locator('span', { hasText: /^LINE$/ }) }).locator('select').selectOption(other); await page.waitForTimeout(600);
+  chips = (await sheet.locator('[aria-label="Which machine"] .chip').allInnerTexts()).map(flat);
+  ok(JSON.stringify(chips) === JSON.stringify(await of(other, await sheet.locator('label.cw-f', { has: page.locator('span', { hasText: /^PROJECT/ }) }).locator('select').inputValue())) && chips.includes('Line seven bagger') && !chips.includes('Ilapak flow wrapper'),
+    `14b on another line, that line's: ${chips.join(', ')}`);
+  await page.keyboard.press('Escape'); await page.waitForTimeout(400);
+  /* the stopwatch */
+  await go(`#/w/${WS}/capture`);
+  const sw = (await page.locator('.cap-block', { hasText: 'Which asset?' }).locator('.chip-row > button.chip:not(.chip-add)').allInnerTexts()).map(flat);
+  want = await of(WS);
+  ok(JSON.stringify(sw) === JSON.stringify(['Whole line', ...want]), `14c the stopwatch offers the whole line, then every machine on the line (${sw.length - 1} of ${want.length})`);
+  /* Line capacity: its machine stations the line does not list are offered to the line, then reach every picker */
+  const stdId = await page.evaluate(async ws => (await (await import('/src/db.ts')).listStandardsForLine(ws)).find(s => (s.capacity?.stations ?? []).length)?.id, WS);
+  await go(`#/w/${WS}/standards/${stdId}?at=balance`);
+  const offer = page.locator('.cap-unlisted');
+  const unlisted = await page.evaluate(async ([ws, sid]) => {
+    const db = await import('/src/db.ts'); const L = await import('/src/lib/lineRecords.ts');
+    const [all, assets, jobLines, std] = await Promise.all([db.listWorkspaces(), db.listAllAssets(), db.allPaceLines(), db.getStandard ? db.getStandard(sid) : (await db.listStandardsForLine(ws)).find(s => s.id === sid)]);
+    const known = new Set(L.machinesOf(all.find(x => x.id === ws), assets, jobLines).map(L.machineKey));
+    return [...new Set(std.capacity.stations.filter(s => s.kind === 'machine' && s.name.trim() && !known.has(L.machineKey(s.name))).map(s => s.name.trim()))];
+  }, [WS, stdId]);
+  ok(unlisted.length > 0 && flat(await offer.innerText()).startsWith(`${unlisted.join(', ')} ${unlisted.length === 1 ? 'is' : 'are'} not on Line 7 — smoke test’s machines yet`),
+    `14d Line capacity says its machine stations the line does not list (${unlisted.join(', ')})`);
+  await offer.getByRole('button', { name: /to the line ›$/ }).click(); await page.waitForTimeout(1500);
+  const after = await of(WS);
+  ok(unlisted.every(n => after.includes(n)) && await offer.count() === 0 && (await page.locator('datalist[id^="cap-machines-"]').first().locator('option').evaluateAll(els => els.map(e => e.getAttribute('value')))).length === after.length,
+    `14e added to the line with one tap — on its list, offered on every station (${after.length} machines)`);
+  /* SMED's where offers them too */
+  const smed = await page.evaluate(async ws => { const s = (await (await import('/src/db.ts')).listAllStudies()).find(x => x.tool === 'changeover' && x.workspaceId === ws && x.projectId); const L = await import('/src/lib/studyLinks.ts'); return s ? L.studyHref(s) : null; }, WS);
+  if (smed) {
+    await go(`#${smed}`);
+    await page.locator('.co-sq').first().click(); await page.waitForTimeout(500);
+    const places = await page.locator('#co-places option').evaluateAll(els => els.map(e => e.getAttribute('value')));
+    ok(after.every(n => places.includes(n)), `14f SMED's "where" offers every machine on the line (${after.length})`);
+    await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+  } else ok(true, '14f (no SMED seeded on the line)');
+  /* a capability study's machine, picked from its line once it sits on one */
+  const capId = await page.evaluate(async () => (await (await import('/src/db.ts')).listAllStudies()).find(s => s.tool === 'capability' && s.machine === 'Ishida CCW-RV-214W multihead weigher')?.id);
+  await go(`#/capability/${capId}`);
+  await main.getByRole('button', { name: 'Put on a line' }).click();
+  await main.getByLabel('Put it on which line').selectOption(WS); await page.waitForTimeout(1200);
+  const box = main.getByLabel('Which machine it is of');
+  const offered = await page.locator(`#ie-machines-${capId} option`).evaluateAll(els => els.map(e => e.getAttribute('value')));
+  const warned = flat(await main.locator('.ie-machine-not').innerText().catch(() => ''));
+  await box.fill('Ishida checkweigher'); await box.press('Enter'); await page.waitForTimeout(900);
+  const kept = await page.evaluate(async id => (await (await import('/src/db.ts')).getStudy(id))?.machine, capId);
+  ok(JSON.stringify(offered) === JSON.stringify(after) && warned.includes('not one of the line’s machines') && kept === 'Ishida checkweigher' && await main.locator('.ie-machine-not').count() === 0,
+    `14g a study put on the line: its typed machine said not one of the line's, the line's offered, one picked and kept (${kept})`);
+  /* a new study of a machine, started on the line, offers them */
+  await go(`#/capability?line=${WS}`);
+  await main.getByRole('button', { name: 'New capability study' }).first().click(); await page.waitForTimeout(600);
+  const fresh = await page.locator('#new-study-machines option').evaluateAll(els => els.map(e => e.getAttribute('value')));
+  ok(JSON.stringify(fresh) === JSON.stringify(after), `14h a new study started on the line offers its machines (${fresh.length})`);
+  await page.keyboard.press('Escape');
 }
 
 ok(errors.length === 0, `no console errors${errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''}`);

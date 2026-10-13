@@ -47,6 +47,8 @@ import type { Asset, Test, TestItem } from '../lib/testing';
 import { SNAG_STATUS_META, dueFromInput, dueToInput, type Snag, type SnagAsset, type SnagStatus } from './types';
 import { pinSnag } from './quick';
 import { openQuickSnag } from './QuickSnag';
+import { useLineRecords } from '../lib/useLineRecords';
+import { machinesOf } from '../lib/lineRecords';
 
 /** The counts are the filters: everything open, each priority open, the late, the done. */
 type Filter = 'open' | Priority | 'late' | 'done';
@@ -66,14 +68,14 @@ const NO_LINE = '__no_line__';
 /** A job's records the page reads its problems and fixes from. */
 interface JobData { tests: Test[]; items: TestItem[]; assets: Asset[]; todos: PaceTodoRow[] }
 const todayInput = () => dueToInput(new Date().setHours(0, 0, 0, 0));
-const dedupe = (xs: string[]) => { const seen = new Set<string>(); return xs.filter(x => { const k = x.trim().toLowerCase(); if (!k || seen.has(k)) return false; seen.add(k); return true; }); };
 
 export function QuickSnagsScreen() {
   const { projects, archived: archivedJobs } = useProjects();
   const [snags, setSnags] = useState<Snag[] | null>(null);
   const [lines, setLines] = useState<Workspace[]>([]);
   const [frames, setFrames] = useState<Map<string, SnagAsset>>(new Map());
-  const [jobMachines, setJobMachines] = useState<string[]>([]);
+  /* the machines each problem's picker offers — its line's, never another's (lib/lineRecords machinesOf; flow audit #14) */
+  const rec = useLineRecords();
   const [jobData, setJobData] = useState<Map<string, JobData>>(new Map());
   /* AN ARCHIVED JOB'S OWN WALK — its problems are "Not on a line", never under the
      archived name (Rowland, 12-13 October: "the bloody title 2A2B ... doesn't exist
@@ -127,8 +129,7 @@ export function QuickSnagsScreen() {
     /* EVERY PROJECT'S PROBLEMS AND FIXES — this page holds everything
        (Rowland, 12 October: "everything should still stay in the control
        problem page, because that's the page that has everything. That's the
-       page I do the report on"); and the machines on the jobs, offered when
-       a problem is given its machine. */
+       page I do the report on"). */
     const ids = jobKey.split(',').filter(Boolean);
     const jd = new Map<string, JobData>();
     await Promise.all(ids.map(async pid => {
@@ -136,7 +137,6 @@ export function QuickSnagsScreen() {
       jd.set(pid, { tests, items, assets, todos });
     }));
     setJobData(jd);
-    setJobMachines(dedupe([...jd.values()].flatMap(d => d.assets).filter(a => !a.deletedAt).map(a => a.name.trim())));
   }, [jobKey]);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
 
@@ -230,7 +230,7 @@ export function QuickSnagsScreen() {
   /* WORKING A PROBLEM WHERE IT SITS — every box saves as it is left. */
   useEffect(() => { if (!savedOn) return; const t = window.setTimeout(() => setSavedOn(null), 4000); return () => window.clearTimeout(t); }, [savedOn]);
   const put = async (id: string, p: Partial<Snag>) => { const s = byId.get(id); if (!s) return; await updateSnag({ ...s, ...p }); setSavedOn({ id, at: Date.now() }); };
-  const machinesFor = (lineId: string) => dedupe([...(lines.find(w => w.id === lineId)?.assets ?? []), ...jobMachines]);
+  const machinesFor = (lineId: string, jobId?: string) => { const w = rec.all.find(x => x.id === lineId); return w ? machinesOf(w, rec.machines, rec.jobLines, jobId) : []; };
 
   /* WHAT IS SHOWN, IN WORDS — the report's title and the cards' note. */
   const FILTER_TITLE: Record<Filter, string> = { open: 'Every problem open', critical: 'Critical problems', high: 'High-priority problems', low: 'Low-priority problems', late: 'Every problem late', done: 'Done' };
@@ -461,7 +461,7 @@ export function QuickSnagsScreen() {
                     </button>
                     {isOpen && <ProblemEditor s={s} lines={factory} projects={liveJobs}
                       saved={savedOn?.id === s.id && Date.now() - savedOn.at < 4000} lineName={lineName} jobName={jobName}
-                      onSave={() => { flip(s.id); setSavedOn({ id: s.id, at: Date.now() }); }} machines={machinesFor(s.workspaceId)} frame={s.assetId ? frames.get(s.assetId) : undefined}
+                      onSave={() => { flip(s.id); setSavedOn({ id: s.id, at: Date.now() }); }} machines={machinesFor(s.workspaceId, s.projectId)} frame={s.assetId ? frames.get(s.assetId) : undefined}
                       put={p => void put(s.id, p)} onView={m => setViewing({ snagId: s.id, media: m })} busy={busy}
                       onCard={() => void cards([s])} onWalk={() => nav(`/w/${s.workspaceId}/asset/${s.assetId}`)}
                       onDelete={() => { if (window.confirm('Delete this problem? Its photos and everything written about it go with it.')) void deleteSnag(s.id); }} />}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  lineMachineId, lineOfMachine, lineOfProgram, lineProgramsReading, machineKey, machinesOnLine, onlyLineOf, productsOnLine, programsOnLine,
+  isWholeLine, lineMachineId, lineOfMachine, lineOfProgram, lineProgramsReading, machineKey, machinesOf, machinesOnLine, onlyLineOf, productsOnLine, programsOnLine,
   type JobLine,
 } from '../lineRecords';
 import { proofOf } from '../programsReport';
@@ -65,6 +65,33 @@ describe('the line\'s machines in flow order', () => {
     const both = machinesOnLine({ id: 'ws-7', assets: ['Bagger'] }, [...assets, asset({ id: 'a7', name: 'BAGGER', workspaceId: 'ws-7' })], jobLines);
     expect(both[0].record?.id).toBe('a7');
     expect(both[0].jobId).toBeUndefined();
+  });
+});
+
+/* Flow audit #14, 13 October: "One line has three lists of machines. The
+ * problem sheet offers another line's machines. The stopwatch offers 1 of 4." */
+describe('every "which machine" on a line', () => {
+  const lines: JobLine[] = [
+    { id: 'jl-1', projectId: 'job-one', workspaceId: 'ws-7' },
+    { id: 'jl-2', projectId: 'job-many', workspaceId: 'ws-7' },
+    { id: 'jl-3', projectId: 'job-many', workspaceId: 'ws-8' },
+    { id: 'jl-4', projectId: 'job-other', workspaceId: 'ws-8' },
+  ];
+  const assets = [
+    asset({ id: 'w', name: 'Ilapak flow wrapper', projectId: 'job-one', sort: 10 }),
+    asset({ id: 'c', name: 'Checkweigher', workspaceId: 'ws-7', sort: 0 }),
+    asset({ id: 'x', name: 'Another line wrapper', projectId: 'job-other', sort: 10 }),
+    asset({ id: 'm', name: 'Robot', projectId: 'job-many', sort: 20 }),
+    asset({ id: 'n', name: 'Robot two', projectId: 'job-many', workspaceId: 'ws-8', sort: 30 }),
+  ];
+  const ws = { id: 'ws-7', assets: ['Whole line', 'Bagger', 'checkweigher'] };
+  it('the line\'s list in flow order, then what its jobs brought onto it — never another line\'s, never "Whole line"', () => {
+    expect(machinesOf(ws, assets, lines)).toEqual(['Bagger', 'checkweigher', 'Ilapak flow wrapper']);
+  });
+  it('a job on several lines adds its machines not yet on any one line — only on a line it is on', () => {
+    expect(machinesOf(ws, assets, lines, 'job-many')).toEqual(['Bagger', 'checkweigher', 'Ilapak flow wrapper', 'Robot']);
+    expect(machinesOf(ws, assets, lines, 'job-other')).toEqual(['Bagger', 'checkweigher', 'Ilapak flow wrapper']);
+    expect(isWholeLine(' whole  LINE ')).toBe(true);
   });
 });
 

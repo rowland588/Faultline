@@ -8001,6 +8001,8 @@ span.ls-role:hover { border-color: transparent; }
 
 .cap-settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 14px 0 6px; }
 .cap-h { margin: 18px 0 8px; font-size: var(--t-body); }
+/* a machine station the line does not list yet, offered to the line (flow audit #14) */
+.cap-unlisted { margin: 8px 0 4px; }
 /* as run, and every what-if beside it — one row of tabs; brand blue is what you press */
 .cap-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
 .cap-tab { appearance: none; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); font: inherit; font-size: var(--t-detail); font-weight: 700; color: var(--ink-2); padding: 6px 12px; cursor: pointer; }
@@ -11796,6 +11798,9 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
 /* Where a study sits, and what it is used for (ui/StudyPlace); its branch in a record's drawer (ui/StudyLinks). */
 .ie-place { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 6px; font-size: var(--t-detail); color: var(--ink-2); }
 .ie-place-acts { display: inline-flex; flex-wrap: wrap; gap: 2px; }
+/* a study's machine, picked from its line's (flow audit #14) */
+.ie-machine { display: inline-block; width: min(100%, 38ch); min-height: 0; padding: 4px 8px; font-size: inherit; font-weight: 700; vertical-align: middle; }
+.ie-machine-not { color: var(--st-a); font-weight: 700; }
 /* the program a study shows proved, on a line of its own under where it sits (flow audit #21) */
 .ie-proves { flex: 1 1 100%; margin: 0; }
 .ie-pick { max-width: 320px; font-size: var(--t-detail); }

@@ -10,7 +10,8 @@ import type { Program } from './programs';
 import type { Standard } from './standard';
 import type { JobLine } from './lineRecords';
 import type { ToolStudy } from './study';
-import { allPaceLines, allProjects, listAllAssets, listAllPrograms, listAllStandards, listAllStudies, listProvingTests, listWorkspaces, onDataChange } from '../db';
+import { allPaceLines, allProjects, getWorkspace, listAllAssets, listAllPrograms, listAllStandards, listAllStudies, listProvingTests, listWorkspaces, onDataChange } from '../db';
+import { machinesOf } from './lineRecords';
 import { liveProductionLines } from './lines';
 
 export interface LineRecords {
@@ -33,6 +34,25 @@ export interface LineRecords {
 }
 
 const EMPTY: LineRecords = { loading: true, lines: [], all: [], machines: [], programs: [], standards: [], jobLines: [], jobs: [], provingTests: [], studies: [] };
+
+/** A LINE'S MACHINES FOR A PICKER (lib/lineRecords machinesOf — flow audit
+ *  #14): the one list every "which machine" offers, kept current. `jobId`
+ *  adds that job's machines not yet placed on a line, when it is on this
+ *  one. Empty for no line. */
+export function useMachinesOf(wsId: string | undefined, jobId?: string): string[] {
+  const [names, setNames] = useState<string[]>([]);
+  useEffect(() => {
+    let live = true;
+    if (!wsId) { setNames([]); return; }
+    const load = () => void Promise.all([getWorkspace(wsId), listAllAssets(), allPaceLines()]).then(([ws, assets, jobLines]) => {
+      if (live) setNames(ws ? machinesOf(ws, assets, jobLines, jobId) : []);
+    });
+    load();
+    const off = onDataChange(load);
+    return () => { live = false; off(); };
+  }, [wsId, jobId]);
+  return names;
+}
 
 export function useLineRecords(): LineRecords {
   const [state, setState] = useState<LineRecords>(EMPTY);

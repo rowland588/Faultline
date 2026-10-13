@@ -28,7 +28,8 @@ import { BetterWords } from '../ui/BetterWords';
 import { EvidenceViewer, withPins } from '../ui/Evidence';
 import { Icon } from '../ui/Icon';
 import { offerUndo } from '../ui/Undo';
-import { addSnag, updateSnag, listWorkspaces, listAssets } from '../db';
+import { addSnag, updateSnag, listWorkspaces } from '../db';
+import { useMachinesOf } from '../lib/useLineRecords';
 import { useProjects } from '../lib/useProjects';
 import { uid } from '../lib/ids';
 import type { MediaRef, Workspace } from '../types';
@@ -104,19 +105,12 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
     return () => { live = false; };
   }, [ownLine]);
   useEffect(() => { if (project && projects.length && !projects.some(p => p.id === project)) setProject(''); }, [projects, project]);
-  /* THE MACHINES TO PICK FROM — the line's own, and the machines on the job it
-     is for (or on every live job when it is for none). Rowland, 12 October:
-     "it doesn't show our current machines to pick from — they should." */
-  const [jobMachines, setJobMachines] = useState<string[]>([]);
-  const jobKeys = (project ? [project] : projects.filter(p => !p.archivedAt).map(p => p.id)).join(',');
-  useEffect(() => {
-    let alive = true;
-    const ids = jobKeys.split(',').filter(Boolean);
-    void Promise.all(ids.map(id => listAssets(id))).then(all => {
-      if (alive) setJobMachines(all.flat().filter(a => !a.deletedAt).map(a => a.name.trim()).filter(Boolean));
-    });
-    return () => { alive = false; };
-  }, [jobKeys]);
+  /* THE MACHINES TO PICK FROM — the line's, in flow order, with the machines
+     its jobs brought onto it, and the job's own when it is for one (lib/
+     lineRecords machinesOf). Rowland, 12 October: "it doesn't show our
+     current machines to pick from — they should"; flow audit #14: never
+     another line's. */
+  const lineMachines = useMachinesOf(line === NEW_LINE ? undefined : line, project || undefined);
 
   const ws = lines?.find(w => w.id === line);
   const ready = (words.trim() || media.length > 0) && (line !== NEW_LINE || newLine.trim()) && !busy;
@@ -187,7 +181,7 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
         )}
         {(() => {
           const seen = new Set<string>();
-          const choices = [...(ws?.assets ?? []), ...jobMachines].filter(a => { const k = a.trim().toLowerCase(); if (!k || seen.has(k)) return false; seen.add(k); return true; });
+          const choices = lineMachines.filter(a => { const k = a.trim().toLowerCase(); if (!k || seen.has(k)) return false; seen.add(k); return true; });
           const typed = !!machine && !choices.some(a => a.toLowerCase() === machine.trim().toLowerCase());
           return (
             <div className="qs-mach" role="group" aria-label="Which machine">

@@ -381,7 +381,22 @@ already follow):
   programs, the line's and the job's programs reports and the client
   report. The study's own page says the program it shows proved. No new
   record.
-- *Accepted by* `scripts/acceptance/machines-programs.mjs` (stories 1–13).
+- **One list of machines, every picker** (flow audit #14, 13 October: "One
+  line has three lists of machines. The problem sheet offers another line's
+  machines. The stopwatch offers 1 of 4. Capacity stations never reach the
+  line's list ... A study's machine is typed"). `lib/lineRecords`
+  `machinesOf(line, job?)`: the line's machines in flow order with the ones
+  its jobs brought onto it, and a job's own not yet placed on one line —
+  never another line's. Every picker reads it (`useMachinesOf`, or the line
+  records): the Problem sheet and the register's editor, the stopwatch
+  ("Whole line" first), the walk, Line capacity's station names, SMED's
+  "where", a capability study's machine (offered when it is started on a
+  line; picked on its page once it sits on one, a typed one said "not one of
+  the line's machines"). Line capacity says its machine stations the line
+  does not list and adds them with one tap — offered, never written behind
+  the person's back. *Not here:* Install's *Add a machine* picking from the
+  line (Stage 4); the value stream map's places.
+- *Accepted by* `scripts/acceptance/machines-programs.mjs` (stories 1–14).
 - *Not in this stage:* plate speed per machine (it is per product — D3, Stage
   4); a job taking a line's machine onto its Install (Stage 4, "machines are
   picked from the line").

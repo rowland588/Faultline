@@ -95,6 +95,33 @@ export function machinesOnLine(ws: Pick<Workspace, 'id' | 'assets'>, assets: rea
   return out;
 }
 
+/** "Whole line" — the stopwatch's place for a loss on no one machine. A
+ *  picker that offers places keeps it first (ui: the stopwatch). */
+export const isWholeLine = (name: string): boolean => machineKey(name) === 'whole line';
+
+/** EVERY "WHICH MACHINE" ON A LINE — the one source every picker reads
+ *  (BLUEPRINT §6.2; flow audit #14, 13 October: "One line has three lists
+ *  of machines. The problem sheet offers another line's machines. The
+ *  stopwatch offers 1 of 4. Capacity stations never reach the line's list
+ *  ... A study's machine is typed."). The line's machines in flow order —
+ *  its list, then the machines its jobs brought onto it (machinesOnLine) —
+ *  and, for a job on this line, that job's own machines not yet placed on
+ *  any one line (a job on several lines). Never another line's. Names only:
+ *  a stop, a problem, a station and a study are kept against the name. */
+export function machinesOf(ws: Pick<Workspace, 'id' | 'assets'>, assets: readonly Asset[], jobLines: readonly JobLine[], jobId?: string): string[] {
+  const out = machinesOnLine(ws, assets, jobLines).map(m => m.name);
+  const onThisLine = !!jobId && jobLines.some(l => !l.deletedAt && l.projectId === jobId && l.workspaceId === ws.id);
+  if (!onThisLine) return out;
+  const seen = new Set(out.map(machineKey));
+  for (const a of assets.filter(x => !x.deletedAt && x.projectId === jobId && !lineOfMachine(x, jobLines)).slice().sort((x, y) => x.sort - y.sort)) {
+    const k = machineKey(a.name);
+    if (!k || seen.has(k)) continue;
+    seen.add(k);
+    out.push(a.name.trim());
+  }
+  return out;
+}
+
 /** Every program on the line, in the order the person set (lib/programs). */
 export function programsOnLine(wsId: string, programs: readonly Program[], jobLines: readonly JobLine[]): Program[] {
   return inOrder(programs.filter(p => lineOfProgram(p, jobLines) === wsId));

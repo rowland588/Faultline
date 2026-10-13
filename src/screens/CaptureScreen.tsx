@@ -23,6 +23,8 @@ import { Toast } from '../ui/Toast';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
 import { useTeam } from '../cloud/team';
 import { Icon } from '../ui/Icon';
+import { useMachinesOf } from '../lib/useLineRecords';
+import { isWholeLine } from '../lib/lineRecords';
 
 const blobKeysOf = (media: MediaRef[]): string[] =>
   media.flatMap(m => [m.blobKey, m.thumbKey].filter(Boolean) as string[]);
@@ -220,6 +222,12 @@ export function CaptureScreen() {
      the same rows; "See all" opens them here. */
   const [showAll, setShowAll] = useState(false);
   const recent = [...observations].sort((a, b) => b.createdAt - a.createdAt).slice(0, showAll ? undefined : 6);
+  /* WHERE ON THE LINE — "Whole line" first when the list has it, then the
+     line's machines in flow order with the ones its jobs brought onto it:
+     the one list every "which machine" offers (lib/lineRecords machinesOf;
+     flow audit #14 — the stopwatch offered 1 of the line's 4). */
+  const lineMachines = useMachinesOf(workspace.id);
+  const places = [...new Set([...workspace.assets.filter(isWholeLine), ...lineMachines])];
 
   return (
     <div className="cap">
@@ -230,12 +238,12 @@ export function CaptureScreen() {
       <div className="cap-block">
         <div className="field-label">Which asset?</div>
         <ChipPicker
-          options={workspace.assets}
+          options={places}
           value={asset}          onChange={setAsset}
           onAdd={a => void patchWorkspace({ assets: [...workspace.assets, a] })}
           addLabel="Add a machine or area…"
         />
-        {workspace.assets.length === 0 && <p className="sub" style={{ marginTop: 6 }}>Add the machines on this line. “Whole line” is for losses that aren't one machine.</p>}
+        {places.length === 0 && <p className="sub" style={{ marginTop: 6 }}>Add the machines on this line. “Whole line” is for losses that aren't one machine.</p>}
       </div>
 
       {/* WHAT — what did you see on it */}
