@@ -124,6 +124,53 @@ export const TONES: Record<ShapeTone, { fill: string; stroke: string; ink: strin
   red: { fill: '#fde6e3', stroke: '#c0392b', ink: '#8a2318', word: 'Hazard' },
 };
 
+/* A PERSON'S COLOUR — Rowland, 13 October: "I also can't change the colour
+   of the people. I want to be able to do that." Teams, crews or jobs told
+   apart at a glance (line lead, quality, the fitter). Never the state
+   colours' meaning: a person's role is always written beside them, on the
+   board and on the card, so the colour is never the only thing that says. */
+export type PersonColour = 'blue' | 'purple' | 'teal' | 'orange' | 'pink' | 'brown' | 'slate' | 'black';
+export const PERSON_COLOURS: Record<PersonColour, { hex: string; word: string }> = {
+  blue: { hex: '#1f63e0', word: 'Blue' },
+  purple: { hex: '#7c3aed', word: 'Purple' },
+  teal: { hex: '#0f766e', word: 'Teal' },
+  orange: { hex: '#c2410c', word: 'Orange' },
+  pink: { hex: '#be185d', word: 'Pink' },
+  brown: { hex: '#8b5a2b', word: 'Brown' },
+  slate: { hex: '#475569', word: 'Grey' },
+  black: { hex: '#111827', word: 'Black' },
+};
+
+/** The colour a mark is drawn in — a person's own when given one, else its kind's. */
+export const colourOf = (m: Pick<StandardMark, 'kind' | 'colour'>): string =>
+  (m.kind === 'person' && m.colour ? PERSON_COLOURS[m.colour]?.hex : undefined) ?? markOf(m.kind).colour;
+
+/* THE BOARD'S SHAPE — a board drawn with shapes (no photo) is wide, square or
+   tall (Rowland, 13 October: "I only have a small surface area to play
+   with"). A photo's board is the photo's shape. */
+export type BoardShape = 'wide' | 'square' | 'tall';
+export const BOARDS: Record<BoardShape, { w: number; h: number; word: string }> = {
+  wide: { w: 16, h: 9, word: 'Wide' },
+  square: { w: 1, h: 1, word: 'Square' },
+  tall: { w: 3, h: 4, word: 'Tall' },
+};
+export const boardOf = (s: Pick<Standard, 'board'>): BoardShape => s.board ?? 'wide';
+
+/** The marks on a board made another shape: everything stays where it stood —
+ *  the width is the same, so the room is added (or taken) below — and only
+ *  a mark that would fall off the foot is brought back onto it. */
+export function reshaped(marks: readonly StandardMark[], from: BoardShape, to: BoardShape): StandardMark[] {
+  const k = (BOARDS[from].h / BOARDS[from].w) / (BOARDS[to].h / BOARDS[to].w);
+  if (k === 1) return [...marks];
+  const r1 = (v: number) => Math.round(v * 10) / 10;
+  return marks.map(m => {
+    const h = m.h == null ? undefined : r1(m.h * k);
+    const half = isShape(m) && m.shape !== 'arrow' ? (h ?? 0) / 2 : 0;
+    const y = r1(Math.min(Math.max(m.y * k, half), 100 - half));
+    return { ...m, y, ...(h == null ? {} : { h }) };
+  });
+}
+
 /** One thing on the map. x and y are percentages of the picture, the same
  *  as a pin on the walk. A person carries a role ("Op 2") and what they do.
  *  A shape (kind 'shape') also carries its size and colour. */
@@ -138,6 +185,8 @@ export interface StandardMark {
   w?: number;
   h?: number;
   tone?: ShapeTone;
+  /** A person's colour (PERSON_COLOURS); blue when not given. */
+  colour?: PersonColour;
 }
 
 export const isShape = (m: Pick<StandardMark, 'kind'>): boolean => m.kind === 'shape';
@@ -162,6 +211,8 @@ export interface Standard {
   /** The picture of the line — a photo, or a frame off the filmed walk.
    *  Absent: a plain board, drawn on with shapes. */
   photoKey?: string;
+  /** The plain board's shape (STANDARD_BOARD.sql) — wide when not given. */
+  board?: BoardShape;
   marks: StandardMark[];
   note?: string;
   sort: number;

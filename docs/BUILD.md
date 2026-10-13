@@ -984,6 +984,36 @@ it can prove.
   with its words); Hand over's standard; the 6M's People; the standard's page
   on paper (the measurements, the limit, the index, the caveat).
 
+### Line standard — the board: room to work, and people's colours (13 October)
+
+Rowland: "At the moment I can't drag the interface down, so you tap the ball
+to move a person, drag to move, but I only have a small surface area to play
+with, so it's not like I can kind of like scroll the page up and down to fit
+large things on. I also can't change the colour of the people. I want to be
+able to do that." The board (`screens/StandardScreen`) held every touch on
+it (`touch-action: none`), so on a phone a finger on the board could never
+scroll the page; and every person was the people group's blue.
+- **The page scrolls off the board.** A finger on the empty board scrolls
+  and pinches (`touch-action: manipulation`); a person, a shape or a handle
+  under the finger is dragged (their own `touch-action: none`, and a
+  touchstart the board keeps for them); drawing a shape keeps the whole
+  board. A person is placed when the finger lifts where it went down, so a
+  scroll never drops one — said under the tools.
+- **More room.** Full screen: the tools and the board edge to edge, its bar
+  saying the product and its people, Done to go back. A plain board (no
+  photo) is Wide, Square or Tall (`standards.board`,
+  `supabase/STANDARD_BOARD.sql`, applied and read back first): the width
+  stays, the room is added below, everything stays where it stood
+  (`lib/standard reshaped`).
+- **A person's colour** — eight, by name (Blue, Purple, Teal, Orange, Pink,
+  Brown, Grey, Black; never a state colour's meaning), picked where a person
+  is named; kept on the mark (`marks` jsonb — no column). On the board, in
+  Who does what, on the product's thumbnail; **on paper** the card draws the
+  person and their number disc in their colour, and a tall board tall. The
+  role is always written beside the person, so the colour is never the only
+  thing that says.
+- **Accepted by** `scripts/acceptance/line-standard.mjs`.
+
 ### Line capacity — the line balance seen for what it is
 
 Rowland, 12 October: "In principle, the line balancing is actually a

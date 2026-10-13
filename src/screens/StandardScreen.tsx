@@ -19,7 +19,7 @@ import { todayISO } from '../lib/weeks';
 import { useBlobUrl } from '../lib/useBlobUrl';
 import { usePrograms } from '../lib/usePrograms';
 import { planModel } from '../lib/planModel';
-import { copyFor, headcount, ICON_GROUPS, isShape, MARKS, markOf, nextRole, peopleOf, SHAPES, thingsOf, TONES, type MarkKind, type ShapeKind, type ShapeTone, type Standard, type StandardMark } from '../lib/standard';
+import { BOARDS, boardOf, colourOf, copyFor, headcount, ICON_GROUPS, isShape, MARKS, markOf, nextRole, peopleOf, PERSON_COLOURS, reshaped, SHAPES, thingsOf, TONES, type BoardShape, type MarkKind, type PersonColour, type ShapeKind, type ShapeTone, type Standard, type StandardMark } from '../lib/standard';
 import { useStandards } from '../ui/StandardsCard';
 import { Sheet } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
@@ -118,12 +118,12 @@ function PrintSheet({ list, name, onClose }: { list: Standard[]; name: string; o
 }
 
 /** One icon, as the palette and the map both draw it. */
-export function MarkIcon({ kind, size = 30 }: { kind: MarkKind; size?: number }) {
+export function MarkIcon({ kind, size = 30, colour }: { kind: MarkKind; size?: number; colour?: string }) {
   const k = markOf(kind);
   return (
     <svg className="ls-ic" width={size} height={size} viewBox="-4 -4 32 32" aria-hidden>
       <circle cx="12" cy="12" r="15" fill="#fff" />
-      <circle cx="12" cy="12" r="13.5" fill={k.colour} />
+      <circle cx="12" cy="12" r="13.5" fill={colour ?? k.colour} />
       <path d={k.glyph} fill="#fff" fillRule={k.rule ?? 'evenodd'} transform="translate(2.4 2.4) scale(0.8)" />
     </svg>
   );
@@ -265,7 +265,7 @@ function ProductCard({ s, onOpen }: { s: Standard; onOpen: () => void }) {
             <span key={m.id} className={'ls-card-shape' + (m.shape === 'circle' ? ' is-round' : '')}
               style={{ left: `${m.x - (m.w ?? 0) / 2}%`, top: `${m.y - (m.h ?? 0) / 2}%`, width: `${m.w}%`, height: `${m.h}%`, borderColor: TONES[m.tone ?? 'blue'].stroke, background: TONES[m.tone ?? 'blue'].fill }} />
           )
-          : <span key={m.id} className="ls-card-dot" style={{ left: `${m.x}%`, top: `${m.y}%`, background: markOf(m.kind).colour }} />))}
+          : <span key={m.id} className="ls-card-dot" style={{ left: `${m.x}%`, top: `${m.y}%`, background: colourOf(m) }} />))}
       </span>
       <span className="ls-card-t">{s.product}</span>
       <span className="ls-card-s"><b>{plural(n, 'person', 'people')}</b>{thingsOf(s) ? ` · ${thingsOf(s)}` : ''}</span>
@@ -360,6 +360,29 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
   const boardRef = useRef<HTMLDivElement>(null);
   const drag = useRef<Drag | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  /* A TAP ON THE BOARD, not a touch (Rowland, 13 October: "I can't drag the
+     interface down ... I only have a small surface area to play with"). A
+     finger on the empty board scrolls the page and pinches to zoom; a person
+     or a shape under the finger is dragged. So a person is placed when the
+     finger lifts where it went down — a scroll never drops one. */
+  const tap = useRef<{ x: number; y: number } | null>(null);
+  const toolRef = useRef(tool);
+  toolRef.current = tool;
+  /* THE WHOLE SCREEN for the board — the toolbar and the board, nothing else. */
+  const [full, setFull] = useState(false);
+  useEffect(() => {
+    const el = boardRef.current;
+    if (!el) return;
+    /* A touch that starts on something to drag, or while a shape is being
+       drawn, is the board's — the page does not scroll under it. Every other
+       touch is the page's to scroll (the board's touch-action). */
+    const own = (e: TouchEvent) => {
+      const t = e.target as Element | null;
+      if (toolRef.current.t === 'shape' || t?.closest?.('.ls-mark, .ls-shape, .ls-handle')) e.preventDefault();
+    };
+    el.addEventListener('touchstart', own, { passive: false });
+    return () => el.removeEventListener('touchstart', own);
+  }, [url]);
 
   // Another device's edit, or an undo, arrives as a new record: take it,
   // unless something is being dragged right now — or TYPED. Leaving the role
@@ -405,7 +428,15 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
       setDraw({ shape: tool.shape, x0: at.x, y0: at.y, x1: at.x, y1: at.y });
       return;
     }
+    /* placing, or letting go of a selection, waits for the finger to lift */
+    tap.current = { x: e.clientX, y: e.clientY };
+  };
+  const tapped = (e: RPointerEvent) => {
+    const t = tap.current;
+    tap.current = null;
+    if (!t || Math.hypot(e.clientX - t.x, e.clientY - t.y) > 8) return;
     if (tool.t === 'select') { setSelected(null); return; }
+    if (tool.t !== 'icon') return;
     const at = pct(e);
     const m: StandardMark = { id: uid(), kind: tool.kind, x: clamp(at.x, 2, 98), y: clamp(at.y, 3, 97), label: tool.kind === 'person' ? nextRole({ marks }) : undefined };
     saveMarks([...marks, m]);
@@ -468,11 +499,11 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
       patchMark(d.id, { w: r1(w), h: r1(h), x: r1(left + w / 2), y: r1(top + h / 2) });
     }
   };
-  const up = () => {
+  const up = (e: RPointerEvent) => {
     if (draw) { finishDraw(); return; }
     const d = drag.current;
     drag.current = null;
-    if (!d) return;
+    if (!d) { tapped(e); return; }
     if (d.moved) { setMarks(ms => { void putStandard({ ...s, marks: ms }); return ms; }); return; }
     const m = marks.find(x => x.id === d.id);
     if (m && isShape(m)) {
@@ -516,8 +547,8 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
     .filter(p => !all.some(x => x.product.trim().toLowerCase() === p.what.trim().toLowerCase()));
   const shapes = marks.filter(isShape), icons_ = marks.filter(m => !isShape(m));
   const say = tool.t === 'shape' ? `Drag on the board to draw a ${SHAPES.find(x => x.shape === tool.shape)?.word.toLowerCase()} — or just tap for one.`
-    : tool.t === 'icon' ? `Tap the board to place ${tool.kind === 'person' ? 'a person' : `a ${markOf(tool.kind).word.toLowerCase()}`}. Drag to move.`
-      : 'Tap a shape to select it, drag to move, pull the corner to resize. Tap it again to name it.';
+    : tool.t === 'icon' ? `Tap the board to place ${tool.kind === 'person' ? 'a person' : `a ${markOf(tool.kind).word.toLowerCase()}`}. Drag one to move it; drag the empty board to scroll.`
+      : 'Tap a shape to select it, drag to move, pull the corner to resize. Tap it again to name it. Drag the empty board to scroll.';
   const fontPx = Math.max(10, size.bw * 0.017);
 
   /* THE LINE BALANCE — the balance alone: the stations in order, each at its
@@ -552,7 +583,13 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
   const workFor = (label?: string) => work?.people.find(w => w.who === (label ?? '').trim());
 
   return (
-    <div className="wrap pace ls">
+    <div className={'wrap pace ls' + (full ? ' is-full' : '')}>
+      {full && (
+        <div className="ls-full-bar">
+          <b>{s.product}</b><span className="sub">{plural(people.length, 'person', 'people')}</span>
+          <button type="button" className="btn btn-primary btn-sm" onClick={() => setFull(false)}>Done</button>
+        </div>
+      )}
       <header className="ls-head">
         <div className="ls-head-main">
           {/* The way back to the list of maps, now the spine is gone: the
@@ -595,14 +632,24 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
           </button>
         )}
         <button className="ls-tool" onClick={() => setIcons(true)}><span className="ls-ti" aria-hidden><Icon name="plus" size="1.15em" /></span><span>Icons</span></button>
+        {/* THE WHOLE SCREEN for the board (13 October: "a small surface area");
+            its bar's Done comes back */}
+        {!full && <>
+          <span className="ls-tool-sep" aria-hidden />
+          <button className="ls-tool" onClick={() => setFull(true)}>
+            <span className="ls-ti" aria-hidden><Icon name="eye" size="1.15em" /></span><span>Full screen</span>
+          </button>
+        </>}
       </div>
       <p className="sub ls-tools-say">{say}</p>
       </>}
 
       <div className="ls-body">
         <div className="ls-board-wrap">
-          <div ref={boardRef} className={'ls-board' + (url ? '' : ' is-blank') + (tool.t !== 'select' && !ro ? ' is-placing' : '') + (ro ? ' is-read' : '')}
-            onPointerDown={boardDown} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
+          <div ref={boardRef} className={'ls-board' + (url ? '' : ' is-blank') + (tool.t !== 'select' && !ro ? ' is-placing' : '') + (tool.t === 'shape' && !ro ? ' is-drawing' : '') + (ro ? ' is-read' : '')}
+            style={url ? undefined : { aspectRatio: `${BOARDS[boardOf(s)].w} / ${BOARDS[boardOf(s)].h}` }}
+            onPointerDown={boardDown} onPointerMove={move} onPointerUp={up}
+            onPointerCancel={() => { tap.current = null; if (draw) setDraw(null); const d = drag.current; drag.current = null; if (d?.moved) setMarks(ms => { void putStandard({ ...s, marks: ms }); return ms; }); }}>
             {url && <img className="ls-photo" src={url} alt="" draggable={false} onLoad={() => {
               const el = boardRef.current; if (el) setSize({ bw: el.clientWidth, bh: el.clientHeight });
             }} />}
@@ -633,14 +680,27 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
                 style={{ left: `${m.x}%`, top: `${m.y}%` }}
                 aria-label={`${markOf(m.kind).word}${m.label ? ` — ${m.label}` : ''}`}
                 onPointerDown={e => down(e, m.id)} onClick={e => e.stopPropagation()}>
-                <MarkIcon kind={m.kind} />
+                <MarkIcon kind={m.kind} colour={colourOf(m)} />
                 {m.label && <span className="ls-mark-l">{m.label}</span>}
               </button>
             ))}
           </div>
-          {!ro && <button className="btn btn-ghost btn-sm ls-pic-b" onClick={() => setPicture(true)}>
-            {url ? 'Change the picture' : 'Add a picture of the line — or draw it with shapes'}
-          </button>}
+          {!ro && <div className="ls-board-foot">
+            <button className="btn btn-ghost btn-sm ls-pic-b" onClick={() => setPicture(true)}>
+              {url ? 'Change the picture' : 'Add a picture of the line — or draw it with shapes'}
+            </button>
+            {/* THE BOARD'S SHAPE — more room below, everything kept where it stands (lib/standard reshaped) */}
+            {!url && (
+              <span className="chip-row ls-shape-pick" role="group" aria-label="The board's shape">
+                {(Object.keys(BOARDS) as BoardShape[]).map(b => (
+                  <button key={b} type="button" className={'chip' + (boardOf(s) === b ? ' on' : '')} aria-pressed={boardOf(s) === b}
+                    onClick={() => { if (b === boardOf(s)) return; const next = reshaped(marks, boardOf(s), b); setMarks(next); void putStandard({ ...s, marks: next, board: b }); }}>
+                    {BOARDS[b].word}
+                  </button>
+                ))}
+              </span>
+            )}
+          </div>}
         </div>
 
         <aside className="ls-side">
@@ -650,7 +710,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
           {people.length === 0 && <p className="sub">{ro ? 'Nobody placed on this product yet.' : 'Pick Person and tap the board where they stand — or select a shape and add an operator to it.'}</p>}
           {ro && people.map(p => (
             <div key={p.id} className="ls-person">
-              <MarkIcon kind="person" size={22} />
+              <MarkIcon kind="person" size={22} colour={colourOf(p)} />
               <span className="ls-role">{p.label || 'Unnamed'}</span>
               {work && workFor(p.label) && <span className={'ls-work' + (workFor(p.label)?.over ? ' is-r' : '')}>{(workFor(p.label)?.work ?? 0).toFixed(1)} s {workFor(p.label)?.untimed ? 'so far — not all timed' : `of ${work.taktSec.toFixed(1)} s`}</span>}
               {p.task && <p className="ls-task-r">{p.task}</p>}
@@ -658,7 +718,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
           ))}
           {!ro && people.map(p => (
             <div key={p.id} className="ls-person">
-              <MarkIcon kind="person" size={22} />
+              <MarkIcon kind="person" size={22} colour={colourOf(p)} />
               <input className="ls-role" value={p.label ?? ''} aria-label="Role" placeholder="Op 1"
                 onFocus={() => { typing.current = true; }}
                 onChange={e => patchMark(p.id, { label: e.target.value })}
@@ -741,6 +801,19 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
                 <div className="field-label" style={{ marginTop: 10 }}>What they do <span className="opt">on this product</span></div>
                 <textarea className="text-area" rows={3} value={editingMark.task ?? ''} placeholder="Load film, check the weigher every 30 minutes"
                   onChange={e => patchMark(editingMark.id, { task: e.target.value })} />
+                {/* THEIR COLOUR (13 October) — on the board, in Who does what and on the card */}
+                <div className="field-label" style={{ marginTop: 10 }}>Colour <span className="opt">on the board and the card</span></div>
+                <div className="ls-pcols" role="group" aria-label="Their colour">
+                  {(Object.keys(PERSON_COLOURS) as PersonColour[]).map(k => {
+                    const on = (editingMark.colour ?? 'blue') === k;
+                    return (
+                      <button key={k} type="button" className={'ls-pcol' + (on ? ' is-on' : '')} aria-pressed={on}
+                        onClick={() => patchMark(editingMark.id, { colour: k === 'blue' ? undefined : k })}>
+                        <span className="ls-pcol-dot" style={{ background: PERSON_COLOURS[k].hex }} aria-hidden />{PERSON_COLOURS[k].word}
+                      </button>
+                    );
+                  })}
+                </div>
               </>
             )}
             <div className="snag-editor-foot">
