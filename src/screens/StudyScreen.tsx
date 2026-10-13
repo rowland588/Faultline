@@ -26,6 +26,7 @@ import { nav } from '../state/useRoute';
 import { sample, sampleSays, tneFor, CPK_FROM, type SampleFigures, type SampleSays } from '../lib/ie/sample';
 import type { AgreedReadings, StudyReading, ToolStudy } from '../lib/study';
 import { TOOL_WORDS } from './StudiesScreen';
+import { StudyName } from '../ui/StudyActs';
 import { WhereItSits, UsedFor } from '../ui/StudyPlace';
 
 const OWNER = canAt('owner');
@@ -71,7 +72,7 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
     <div className="wrap ie">
       <header className="ie-head">
         <small className="ie-eyebrow">{w?.one ?? 'Study'}</small>
-        <Name s={s} canEdit={can.edit && !closed} />
+        <StudyName s={s} canEdit={can.edit && !closed} canRemove={can.remove} />
         <p className="sub ie-where">
           {s.machine ? <><b>{s.machine}</b> · </> : null}
           started {niceDay(new Date(s.startedAt).toISOString().slice(0, 10))}
@@ -102,21 +103,6 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
   );
 }
 
-/* ------------------------------------------------------------------ name */
-function Name({ s, canEdit }: { s: ToolStudy; canEdit: boolean }) {
-  const [v, setV] = useState<string | null>(null);
-  if (v === null) return (
-    <h1 className="ie-name">{s.name || 'Not named'}
-      {canEdit && <button type="button" className="linkish ie-rename" onClick={() => setV(s.name)}>Rename</button>}
-    </h1>
-  );
-  const save = () => { if (v.trim()) void patchStudy(s.id, { name: v.trim() }); setV(null); };
-  return (
-    <form className="ie-name-f" onSubmit={e => { e.preventDefault(); save(); }}>
-      <input className="text-input" value={v} maxLength={120} autoFocus onChange={e => setV(e.target.value)} onBlur={save} aria-label="What it is of" />
-    </form>
-  );
-}
 
 /* ------------------------------------------------------------------ agree */
 const KINDS: { k: AgreedReadings['kind']; word: string; hint: string }[] = [

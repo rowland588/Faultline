@@ -33,6 +33,7 @@ import { TOOL_WORDS } from './StudiesScreen';
 import { walkVerdict } from '../lib/ie/walk';
 import { analyse } from '../lib/capacity';
 import { WhereItSits, UsedFor } from '../ui/StudyPlace';
+import { StudyName } from '../ui/StudyActs';
 
 const OWNER = canAt('owner');
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -81,7 +82,7 @@ function Sampling({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
     <div className="wrap ie ws">
       <header className="ie-head">
         <small className="ie-eyebrow">{a?.walk ? 'Bottleneck walk' : w?.one ?? 'Work sampling'}</small>
-        <h1 className="ie-name">{s.name || 'Not named'}</h1>
+        <StudyName s={s} canEdit={can.edit && !s.closedAt} canRemove={can.remove} />
         <p className="sub ie-where">
           {s.product ? <><b>{s.product}</b> · </> : null}
           started {niceDay(new Date(s.startedAt).toISOString().slice(0, 10))}

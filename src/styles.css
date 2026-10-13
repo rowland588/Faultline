@@ -11703,6 +11703,8 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
 .ie-eyebrow { font-size: var(--t-label); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 .ie-name { margin: 2px 0 2px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; }
 .ie-rename { font-size: var(--t-detail); }
+/* a study deleted where it sits (ui/StudyActs) — the delete words, never a state */
+.ie-name .ie-del { color: var(--danger); margin-left: 8px; }
 .ie-name-f .text-input { font-size: 20px; font-weight: 700; max-width: 520px; }
 .ie-where { margin: 0; }
 .ie-agree { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 16px; display: flex; flex-direction: column; gap: 10px; max-width: 720px; }

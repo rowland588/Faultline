@@ -45,6 +45,7 @@ import { dur, parseDur } from '../lib/ie/steps';
 import type { ChangeoverProduct, ChangeoverSide, ChangeoverStep, SmedFunction, SmedHow, SmedPlan, SmedPlanKind, SmedRateFrom, StudyFacts, StudyUse, ToolStudy } from '../lib/study';
 import type { Workspace } from '../types';
 import { UsedFor, useBetter, WhereItSits } from '../ui/StudyPlace';
+import { StudyName } from '../ui/StudyActs';
 import { recordHref } from '../lib/studyLinks';
 import { Sheet } from '../ui/Sheet';
 import { SmedGrid } from '../ui/SmedGrid';
@@ -176,7 +177,7 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
     <div className="wrap ie co">
       <header className="ie-head">
         <small className="ie-eyebrow">SMED — quick changeover</small>
-        <Name s={s} canEdit={editable} />
+        <StudyName s={s} canEdit={editable} canRemove={can.remove} />
         <p className="sub ie-where co-products">
           {from || to ? <>From <b>{from || 'a product'}</b> to <b>{to || 'a product'}</b></> : 'Which two products?'}
           {s.machine ? <> · <b>{s.machine}</b></> : null}
@@ -383,21 +384,6 @@ function ScaleTable({ scale }: { scale: CostScale }) {
   );
 }
 
-/* ------------------------------------------------------------------ name */
-function Name({ s, canEdit }: { s: ToolStudy; canEdit: boolean }) {
-  const [v, setV] = useState<string | null>(null);
-  if (v === null) return (
-    <h1 className="ie-name">{s.name || 'Not named'}
-      {canEdit && <button type="button" className="linkish ie-rename" onClick={() => setV(s.name)}>Rename</button>}
-    </h1>
-  );
-  const save = () => { if (v.trim()) void patchStudy(s.id, { name: v.trim() }); setV(null); };
-  return (
-    <form className="ie-name-f" onSubmit={e => { e.preventDefault(); save(); }}>
-      <input className="text-input" value={v} maxLength={120} autoFocus onChange={e => setV(e.target.value)} onBlur={save} aria-label="What it is of" />
-    </form>
-  );
-}
 
 /* ------------------------------------------------------------- the ladder */
 /** THE LADDER, drawn: now → separated → converted → streamlined, each bar the

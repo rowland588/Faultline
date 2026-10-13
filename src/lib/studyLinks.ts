@@ -520,3 +520,63 @@ export function worthBetter(s: ToolStudy): boolean {
   if (s.tool === 'sampling') return (samplingWorst(s.agreed?.sampling, s.facts.taps ?? [])?.share ?? 0) >= 0.1;
   return said.tone === 'r' || said.capability?.tone === 'a';
 }
+
+/** A study's tool as said mid-sentence: "the capability study", "the SMED". */
+const TOOL_SAID: Partial<Record<ToolStudy['tool'], string>> = {
+  capability: 'capability study', balance: 'work balance', map: 'value stream map', changeover: 'SMED', sampling: 'work sampling study', losses: 'loss count',
+};
+
+/** Each tool's own page — the list of every study made with it — and, for a
+ *  study on a line, that list opened on its line. Where a study's page goes
+ *  once it is deleted. */
+const TOOL_PAGE: Partial<Record<ToolStudy['tool'], string>> = { capability: '/capability', map: '/value-stream', changeover: '/smed', sampling: '/sampling', losses: '/losses' };
+export function toolListHref(s: Pick<ToolStudy, 'tool' | 'workspaceId'>): string {
+  const page = TOOL_PAGE[s.tool] ?? '/capability';
+  return s.workspaceId ? `${page}?line=${encodeURIComponent(s.workspaceId)}` : page;
+}
+
+const n = (k: number, one: string, many = `${one}s`) => `${k} ${k === 1 ? one : many}`;
+const andList = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+const KIND_SAID: Record<StudyUse['kind'], [string, string]> = {
+  fix: ['fix', 'fixes'], action: ['countermeasure', 'countermeasures'], cause: ['cause', 'causes'], test: ['test', 'tests'], case: ['problem', 'problems'], problem: ['problem', 'problems'],
+};
+
+/** WHAT GOES WITH A STUDY, said before it is deleted and after (Rowland, 13
+ *  October: "always implement deletes and editing in everything"; the audit's
+ *  bar 2: "a delete says what goes with it"). What was put into it goes —
+ *  its readings, steps, elements, taps or count; what it is used for on its
+ *  job stays, and loses only this study's figures as its evidence or proof
+ *  (the link lives on the study, so nothing else is rewritten). Undo puts the
+ *  study back whole, the links with it. */
+export function studyRemovingSays(s: Pick<ToolStudy, 'tool' | 'name' | 'facts' | 'uses'>): { ask: string; done: string } {
+  const what = TOOL_SAID[s.tool] ?? 'study';
+  const name = s.name.trim() || 'Not named';
+  const f = s.facts;
+  const live = <T extends { struck?: boolean }>(xs?: T[]) => (xs ?? []).filter(x => !x.struck).length;
+  /* what was put into it, by tool — the one thing that goes with it */
+  const laps = (f.steps ?? []).reduce((a, st) => a + live(st.laps), 0);
+  const its = (k: number, one: string, more = '') => `Its ${n(k, one)}${more} ${k === 1 && !more ? 'goes' : 'go'}`;
+  const held = s.tool === 'capability' && live(f.readings) ? its(live(f.readings), 'reading')
+    : s.tool === 'balance' && (f.steps ?? []).length ? its((f.steps ?? []).length, 'element', laps ? ` and ${n(laps, 'lap')}` : '')
+    : s.tool === 'map' && (f.flow ?? []).length ? its((f.flow ?? []).length, 'step', (f.future ?? []).length ? ' and its future state' : '')
+    : s.tool === 'changeover' && (f.sequence ?? []).length ? its((f.sequence ?? []).length, 'element')
+    : s.tool === 'sampling' && live(f.taps) ? its(live(f.taps), 'tap')
+    : s.tool === 'losses' && (f.losses?.made !== undefined || f.losses?.rejects !== undefined) ? 'The count goes'
+    : '';
+  /* what it serves, by what it is to each — evidence, then proof */
+  const said = (role: StudyUse['role']) => {
+    const by = new Map<StudyUse['kind'], number>();
+    for (const u of s.uses ?? []) if (u.role === role) by.set(u.kind, (by.get(u.kind) ?? 0) + 1);
+    return [...by.entries()].map(([k, c]) => n(c, ...KIND_SAID[k]));
+  };
+  const ev = said('evidence'), pr = said('proof');
+  const uses = [ev.length ? `the evidence for ${andList(ev)}` : '', pr.length ? `the proof of ${andList(pr)}` : ''].filter(Boolean);
+  const count = (s.uses ?? []).length;
+  const ask = [
+    `Delete the ${what} “${name}”?`,
+    held ? `${held} with it.` : '',
+    uses.length ? `It is ${andList(uses)} on its job — ${count === 1 ? 'that stays' : 'they stay'}, without its figures.` : '',
+    'Undo brings it back for a few seconds.',
+  ].filter(Boolean).join('\n\n');
+  return { ask, done: `Deleted the ${what} “${name}”` };
+}
