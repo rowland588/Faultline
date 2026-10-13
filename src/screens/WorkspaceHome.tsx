@@ -30,7 +30,7 @@ import { InstallPanel } from '../ui/InstallPanel';
 import { useProjects } from '../lib/useProjects';
 import { chainForWorkspace, inArchivedProject, onDataChange } from '../db';
 import { DEMO_NAME } from '../lib/lines';
-import { productionLines } from '../lib/lines';
+import { liveProductionLines, productionLines } from '../lib/lines';
 import { JobsBoard } from '../ui/JobsBoard';
 import { useCanStartProjects } from '../cloud/access';
 
@@ -206,7 +206,10 @@ export function WorkspaceHome() {
      from before there were projects, or a walk that never got a line. They hold
      film that exists nowhere else, so they are never hidden, only demoted.
      (`belongs === null` means not read yet — show none rather than all.) */
-  const prodLines = productionLines((list ?? []).filter(w => w.id !== pendingDel?.id));
+  /* every line worked on now — a line of an archived project goes with it into the archive */
+  const [liveIds, setLiveIds] = useState<Set<string> | null>(null);
+  useEffect(() => { let on = true; void liveProductionLines(list ?? []).then(ls => { if (on) setLiveIds(new Set(ls.map(w => w.id))); }); return () => { on = false; }; }, [list]);
+  const prodLines = productionLines((list ?? []).filter(w => w.id !== pendingDel?.id && (liveIds === null || liveIds.has(w.id))));
 
   return (
     <div className="wrap home">

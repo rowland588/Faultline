@@ -10763,6 +10763,13 @@ body:has(.toast) .qs-fab { bottom: calc(var(--nv-bar) + 130px + env(safe-area-in
 .pl-new { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 10px; }
 /* a group on paper — its report or its cards, at the right of its heading (lib/problemsPdf) */
 .qsl-g .qsl-gh { flex-wrap: wrap; }
+/* SAVED, said (12 October: "there's never any saves") — on the problem's row and beside Save */
+.preg-saved, .pe-saved { font-size: var(--t-detail); font-weight: 700; color: var(--st-g); }
+.pe-saved { align-self: center; }
+/* while problems are ticked the bar is the work: the camera button steps aside, and the list leaves room above the bar */
+body:has(.qsl-bar) .qs-fab { display: none; }
+.qsl.has-bar { padding-bottom: 120px; }
+@media (max-width: 899px) { .qsl.has-bar { padding-bottom: 280px; } }
 .qsl-gh-pdf { display: inline-flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
 .qsl-gh-pdf .btn { min-height: 32px; padding: 4px 10px; }
 .pl-new .text-input { flex: 1 1 200px; margin: 0; }

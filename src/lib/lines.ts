@@ -10,12 +10,23 @@
  * so the control room, the rail and the line's page never disagree on it.
  * The demo line is a showcase, not a line anybody works on. */
 import type { Workspace } from '../types';
+import { inArchivedProject } from '../db/pace';
 
 export const DEMO_NAME = 'Demo — Packing Hall';
 
 /** Every line worked on: the demo aside, the archived aside, by name. */
 export function productionLines(ws: readonly Workspace[]): Workspace[] {
   return ws.filter(w => w.name !== DEMO_NAME && !w.archived).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+}
+
+/** The lines worked on now: every line, less those that belong to an
+ *  archived project (Rowland, 12 October: "2A and 2B is actually an archived
+ *  project") — they go with their project into the archive. Their problems
+ *  stay on the Problems page, the line said to be an archived project's. */
+export async function liveProductionLines(ws: readonly Workspace[]): Promise<Workspace[]> {
+  const lines = productionLines(ws);
+  const away = await Promise.all(lines.map(w => inArchivedProject(w.id)));
+  return lines.filter((_, i) => !away[i]);
 }
 
 /** What the address asks for — `?line=<id>` (a list opened from a line's own

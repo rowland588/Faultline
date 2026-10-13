@@ -27,6 +27,9 @@
  *      empty and saying so; one brought back, then all
  *  10  the job's own view: a problem assigned to it listed, made a fix
  *  11  on a phone: nothing off the side, the editor fits
+ *  12  an archived project's line said so; a ticked problem put on a new line
+ *      from the bar, saved and said so; a box changed says Saved; Save keeps
+ *      what was typed; the archived line gone from the control room
  *   and no console error anywhere.
  *
  *   node scripts/acceptance/snags.mjs      (SMOKE_BASE, as smoke) */
@@ -242,7 +245,8 @@ await go('#/snags');
   ok(['Label printer ribbon low', 'seeded snag 0'].every(w => t.snags.find(s => s.problem === w)?.priority === 'high') && ranked && /2 made high/.test(await page.locator('body').innerText()), `6 two made High together, the undo offered; in order: ${order.join(' · ')}`);
   const crit = page.locator('.qsl-f .chip', { hasText: 'Critical' });
   ok((await crit.innerText()).trim() === `Critical · ${t.counts.critical}` && /qsl-chip-r/.test(await crit.getAttribute('class') ?? ''), `6 the chips count in their colours: Critical · ${t.counts.critical}`);
-  await page.locator('.qsl-bar').getByRole('button', { name: 'Clear' }).click();
+  /* saved, the ticks clear themselves — the bar has gone */
+  ok((await page.locator('.qsl-bar').count()) === 0, '6 saved: the ticks cleared, the bar gone');
   await crit.click(); await page.waitForTimeout(400);
   const shown = (await page.locator('.qsl-work .qsl-prio, .qsl-jrow .qsl-prio').allInnerTexts()).map(x => x.trim().toLowerCase());
   ok(shown.length === t.counts.critical && shown.every(k => k === 'critical'), `6 Critical shows the critical only: ${shown.length}`);
@@ -361,6 +365,39 @@ await go('#/snags');
   await openUp('Guard on the infeed loose');
   const wide = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   ok(wide <= 1 && (await row('Guard on the infeed loose').locator('.pe').isVisible()), `11 on a phone: nothing off the side (${wide}px), the editor fits`);
+}
+
+/* ---- 12 an archived project's line, and the saves said (Rowland, 12 October:
+   "2A and 2B is actually an archived project ... as I try and click the square
+   box on a single problem, assign it to something else, even with the
+   priority, that section there doesn't work. There's no save") — on a phone ---- */
+{
+  const away = await page.evaluate(async ({ pid, ws }) => {
+    const db = await import('/src/db.ts'); const P = await import('/src/db/projects.ts');
+    const c = await db.chainForWorkspace(ws); await P.archiveProject(c?.projectId ?? pid);
+    return (await db.listWorkspaces()).find(w => w.id === ws)?.name;
+  }, { pid: sd.projectId, ws: sd.wsId });
+  await go('#/snags');
+  ok((await page.locator('.qsl-g:not(.qsl-job) .qsl-gh h2').allInnerTexts()).includes(`${away} — archived project`), `12 the archived project's line says so: ${away} — archived project`);
+  const onIt = page.locator('.qsl-g', { hasText: `${away} — archived project` }).locator('.qsl-work').first();
+  const what = (await onIt.locator('.qsl-what').innerText()).replace(/^(LOW|HIGH|CRITICAL)\s*/i, '').trim();
+  await onIt.locator('.qsl-tick input').check(); await page.waitForTimeout(300);
+  const opts = await page.locator('.qsl-bar-line option').allInnerTexts();
+  ok(!(await page.locator('.qs-fab').isVisible().catch(() => false)) && !opts.includes(away) && opts.includes('A new line…'), `12 ticked: the bar puts it on a line (not the archived one's), the camera button aside`);
+  page.once('dialog', d => void d.accept('Line 2C'));
+  await page.locator('.qsl-bar-line').selectOption({ label: 'A new line…' }); await page.waitForTimeout(1500);
+  const on2c = await page.evaluate(async () => { const db = await import('/src/db.ts'); const l = (await db.listWorkspaces()).find(x => x.name === 'Line 2C'); return (await db.listAllSnags()).filter(x => x.workspaceId === l?.id).map(x => x.problem); });
+  ok(on2c.length === 1 && on2c[0] === what && (await page.locator('.qsl-bar').count()) === 0 && /Saved — 1 now on Line 2C/.test(await page.locator('body').innerText()), `12 put on a new line, saved and said so, the ticks cleared: ${what}`);
+  await row(what).locator('.qsl-open').click(); await page.waitForTimeout(600);
+  await row(what).locator('.pe').getByRole('group', { name: 'Priority' }).getByRole('button', { name: 'High' }).click(); await page.waitForTimeout(800);
+  ok(await row(what).locator('.pe-saved').isVisible(), '12 a box changed: "Saved" beside Save');
+  await row(what).locator('.pe').getByLabel('What is the problem').fill(`${what} — saved with Save`);
+  await row(what).locator('.pe-save').click(); await page.waitForTimeout(1200);
+  const kept = !!(await snag(`${what} — saved with Save`)), pe = await row(`${what} — saved with Save`).locator('.pe').count(), sv = await page.locator('.preg-saved').count();
+  ok(kept && pe === 0 && sv === 1, `12 Save keeps what was typed, closes it and says Saved on its row (kept ${kept}, editors open ${pe}, saved shown ${sv})`);
+  await go('#/');
+  const cr = (await page.locator('.pl-home').innerText()).replace(/\s+/g, ' ');
+  ok(!cr.includes(away) && cr.includes('Line 2C'), `12 the control room's lines: the archived project's gone with it, Line 2C there`);
 }
 
 ok(errors.length === 0, `no console errors${errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''}`);

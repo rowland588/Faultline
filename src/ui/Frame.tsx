@@ -29,7 +29,7 @@ import { useMethodCounts } from '../lib/useMethodCounts';
 import { useWsChain } from '../lib/useTrail';
 import { planModel, type PlanModel } from '../lib/planModel';
 import { getWorkspace, listTestItems, listTests, listWorkspaces, onDataChange } from '../db';
-import { productionLines } from '../lib/lines';
+import { liveProductionLines } from '../lib/lines';
 import { gateOf } from '../lib/testing';
 import { LogoMark } from './Logo';
 import { Icon } from './Icon';
@@ -228,7 +228,7 @@ function useProductionLines(): Workspace[] {
   const [ws, setWs] = useState<Workspace[]>([]);
   useEffect(() => {
     let live = true;
-    const load = () => void listWorkspaces().then(all => { if (live) setWs(productionLines(all)); });
+    const load = () => void listWorkspaces().then(liveProductionLines).then(lines => { if (live) setWs(lines); });
     load();
     const off = onDataChange(load);
     return () => { live = false; off(); };

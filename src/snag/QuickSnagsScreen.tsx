@@ -22,7 +22,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { withoutDemo } from '../lib/demo';
 import { asked } from '../lib/lines';
-import { createWorkspace, deleteSnag, listAllSnags, listWorkspaces, listAssets, listSnagAssets, listTests, listTestItems, listPaceTodos, onDataChange, updateSnag, updateWorkspace, setSnagsStatus, type PaceTodoRow } from '../db';
+import { createWorkspace, deleteSnag, inArchivedProject, listAllSnags, listWorkspaces, listAssets, listSnagAssets, listTests, listTestItems, listPaceTodos, onDataChange, updateSnag, updateWorkspace, setSnagsStatus, type PaceTodoRow } from '../db';
 import { useProjects } from '../lib/useProjects';
 import { planModel } from '../lib/planModel';
 import { uid } from '../lib/ids';
@@ -69,6 +69,10 @@ export function QuickSnagsScreen() {
   const [frames, setFrames] = useState<Map<string, SnagAsset>>(new Map());
   const [jobMachines, setJobMachines] = useState<string[]>([]);
   const [jobData, setJobData] = useState<Map<string, JobData>>(new Map());
+  /* the lines that belong to an archived project — said so, and not offered to move problems onto */
+  const [awayLines, setAwayLines] = useState<Set<string>>(new Set());
+  /* the last problem saved, for the word "Saved" on it */
+  const [savedOn, setSavedOn] = useState<{ id: string; at: number } | null>(null);
   const [filter, setFilter] = useState<Filter>('open');
   const [group, setGroup] = useState<Group>('line');
   /* opened from a line's own page: on that line, the problem tapped there open */
@@ -90,6 +94,8 @@ export function QuickSnagsScreen() {
     /* the demo line's made-up problems are never here */
     const all = withoutDemo(every, ws).filter(s => !s.deletedAt);
     setSnags(all.sort((a, b) => b.raisedAt - a.raisedAt)); setLines(withoutDemo(ws.map(w => ({ ...w, workspaceId: w.id })), ws));
+    const away = await Promise.all(ws.map(async w => [w.id, await inArchivedProject(w.id)] as const));
+    setAwayLines(new Set(away.filter(([, a]) => a).map(([id]) => id)));
     const wsIds = [...new Set(all.filter(s => s.assetId).map(s => s.workspaceId))];
     const fr = new Map<string, SnagAsset>();
     for (const a of (await Promise.all(wsIds.map(id => listSnagAssets(id)))).flat()) fr.set(a.id, a);
@@ -110,7 +116,8 @@ export function QuickSnagsScreen() {
   }, [jobKey]);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
 
-  const lineName = useCallback((id: string) => lines.find(w => w.id === id)?.name ?? 'A line', [lines]);
+  /* a line on an archived project says so (Rowland, 12 October: "2A and 2B is actually an archived project") */
+  const lineName = useCallback((id: string) => `${lines.find(w => w.id === id)?.name ?? 'A line'}${awayLines.has(id) ? ' — archived project' : ''}`, [lines, awayLines]);
   const jobName = useCallback((id?: string) => (id ? projects.find(p => p.id === id)?.name : undefined), [projects]);
   const byId = useMemo(() => new Map((snags ?? []).map(s => [s.id, s])), [snags]);
   const here = useMemo(() => (snags ?? []).filter(s => !s.archivedAt), [snags]);
@@ -170,7 +177,8 @@ export function QuickSnagsScreen() {
   const chosen = here.filter(s => picked.has(s.id));
 
   /* WORKING A PROBLEM WHERE IT SITS — every box saves as it is left. */
-  const put = async (id: string, p: Partial<Snag>) => { const s = byId.get(id); if (s) await updateSnag({ ...s, ...p }); };
+  useEffect(() => { if (!savedOn) return; const t = window.setTimeout(() => setSavedOn(null), 4000); return () => window.clearTimeout(t); }, [savedOn]);
+  const put = async (id: string, p: Partial<Snag>) => { const s = byId.get(id); if (!s) return; await updateSnag({ ...s, ...p }); setSavedOn({ id, at: Date.now() }); };
   const machinesFor = (lineId: string) => dedupe([...(lines.find(w => w.id === lineId)?.assets ?? []), ...jobMachines]);
 
   /* WHAT IS SHOWN, IN WORDS — the report's title and the cards' note. */
@@ -251,7 +259,7 @@ export function QuickSnagsScreen() {
   );
 
   return (
-    <div className="wrap qsl">
+    <div className={'wrap qsl' + (chosen.length ? ' has-bar' : '')}>
       <header className="pace-head qsl-head">
         <div>
           <h1>Problems</h1>
@@ -355,11 +363,14 @@ export function QuickSnagsScreen() {
                           : r.plan ? <span className="qsl-meta preg-last">Plan: {r.plan}</span> : null}
                       </span>
                       <span className="preg-right">
+                        {savedOn?.id === r.id && <span className="preg-saved" role="status">Saved</span>}
                         <span className={'qsl-state ' + TONE_CLASS[r.tone]}>{r.word}</span>
                         {r.due && <span className={'qsl-dueword ' + TONE_CLASS[r.dueTone ?? 'n']}>{r.due}</span>}
                       </span>
                     </button>
-                    {isOpen && <ProblemEditor s={s} lines={lines} projects={liveJobs} machines={machinesFor(s.workspaceId)} frame={s.assetId ? frames.get(s.assetId) : undefined}
+                    {isOpen && <ProblemEditor s={s} lines={lines.map(w => (awayLines.has(w.id) ? { ...w, name: `${w.name} — archived project` } : w))} projects={liveJobs}
+                      saved={savedOn?.id === s.id && Date.now() - savedOn.at < 4000}
+                      onSave={() => { flip(s.id); setSavedOn({ id: s.id, at: Date.now() }); }} machines={machinesFor(s.workspaceId)} frame={s.assetId ? frames.get(s.assetId) : undefined}
                       put={p => void put(s.id, p)} onView={m => setViewing({ snagId: s.id, media: m })} busy={busy}
                       onCard={() => void cards([s])} onWalk={() => nav(`/w/${s.workspaceId}/asset/${s.assetId}`)}
                       onDelete={() => { if (window.confirm('Delete this problem? Its photos and everything written about it go with it.')) void deleteSnag(s.id); }} />}
@@ -409,7 +420,7 @@ export function QuickSnagsScreen() {
           <select className="text-input qsl-sel qsl-bar-prio" value="" aria-label="Priority of every ticked problem" onChange={e => {
             const v = e.target.value as Priority; if (!v) return;
             const before = chosen.map(x => ({ ...x }));
-            void (async () => { for (const x of chosen) await updateSnag({ ...x, priority: v }); offerUndo(`${before.length} made ${PRIORITY_WORD[v].toLowerCase()}`, async () => { for (const x of before) await updateSnag(x); }); })();
+            void (async () => { for (const x of chosen) await updateSnag({ ...x, priority: v }); setPicked(new Set()); offerUndo(`Saved — ${before.length} made ${PRIORITY_WORD[v].toLowerCase()}`, async () => { for (const x of before) await updateSnag(x); }); })();
           }}>
             <option value="">Priority…</option>
             {PRIOS.map(k => <option key={k} value={k}>{PRIORITY_WORD[k]}</option>)}
@@ -418,16 +429,37 @@ export function QuickSnagsScreen() {
           <select className="text-input qsl-sel qsl-bar-job" value="" aria-label="Assign every ticked problem to a job" onChange={e => {
             const v = e.target.value; if (!v) return;
             const before = chosen.map(x => ({ ...x })), pid = v === '-' ? undefined : v;
-            void (async () => { for (const x of chosen) await updateSnag({ ...x, projectId: pid }); offerUndo(`${before.length} ${pid ? `assigned to ${jobName(pid)}` : 'taken off their job'}`, async () => { for (const x of before) await updateSnag(x); }); })();
+            void (async () => { for (const x of chosen) await updateSnag({ ...x, projectId: pid }); setPicked(new Set()); offerUndo(`Saved — ${before.length} ${pid ? `assigned to ${jobName(pid)}` : 'on no project'}`, async () => { for (const x of before) await updateSnag(x); }); })();
           }}>
             <option value="">Assign to a project…</option>
             {liveJobs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             <option value="-">No project</option>
           </select>
+          {/* LINE — put the ticked on another line, or a new one (12 October: a
+              project archived, its problems still to be put somewhere) */}
+          <select className="text-input qsl-sel qsl-bar-line" value="" aria-label="Put every ticked problem on a line" onChange={e => {
+            const v = e.target.value; if (!v) return;
+            const before = chosen.map(x => ({ ...x }));
+            void (async () => {
+              let to = v, name = lines.find(w => w.id === v)?.name ?? 'the line';
+              if (v === NEW_LINE) {
+                const typed = window.prompt('The new line’s name')?.trim();
+                if (!typed) return;
+                to = (await createWorkspace(typed)).id; name = typed;
+              }
+              for (const x of before) await updateSnag({ ...x, workspaceId: to });
+              setPicked(new Set());
+              offerUndo(`Saved — ${before.length} now on ${name}`, async () => { for (const x of before) await updateSnag(x); });
+            })();
+          }}>
+            <option value="">Put on a line…</option>
+            {lines.filter(w => !awayLines.has(w.id)).map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+            <option value={NEW_LINE}>A new line…</option>
+          </select>
           <button type="button" className="btn" onClick={() => setSetting(true)}>Whose · due</button>
           <button type="button" className="btn" onClick={() => {
             const before = chosen.map(s => ({ ...s }));
-            void setSnagsStatus(chosen.map(s => s.id), 'closed').then(() => offerUndo(`${before.length} closed`, async () => { for (const s of before) await updateSnag(s); }));
+            void setSnagsStatus(chosen.map(s => s.id), 'closed').then(() => { setPicked(new Set()); offerUndo(`Saved — ${before.length} closed`, async () => { for (const s of before) await updateSnag(s); }); });
           }}>Close</button>
           <button type="button" className="btn" disabled={!!busy} onClick={() => void cards(chosen)}>{busy === 'cards' ? 'Making…' : 'Report cards'}</button>
           <button type="button" className="btn qsl-del" onClick={() => {
@@ -507,9 +539,11 @@ function JobProblems({ g, all, opened, flip, busy, onView, onCard, onOpen, onLis
   );
 }
 
-function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCard, onWalk, onDelete, busy }: {
+function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCard, onWalk, onDelete, busy, saved, onSave }: {
   s: Snag; lines: Workspace[]; projects: Project[]; machines: string[]; frame?: SnagAsset;
   put: (p: Partial<Snag>) => void; onView: (m: MediaRef) => void; onCard: () => void; onWalk: () => void; onDelete: () => void; busy: string;
+  /** "Saved" — said as each box is kept; Save keeps the box being typed in and closes it (12 October: "there's never any saves") */
+  saved: boolean; onSave: () => void;
 }) {
   const machine = frame?.name ?? s.targetAsset ?? '';
   const typed = !frame && !!s.targetAsset && !machines.some(m => m.toLowerCase() === s.targetAsset?.trim().toLowerCase());
@@ -583,6 +617,9 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
       <Journey s={s} put={put} />
 
       <div className="qsl-x-acts">
+        {/* SAVE — every box is kept as it is left; this keeps the one being typed in and closes the problem, saying so */}
+        <button type="button" className="btn btn-primary pe-save" onClick={() => { (document.activeElement as HTMLElement | null)?.blur(); window.setTimeout(onSave, 60); }}>Save</button>
+        {saved && <span className="pe-saved" role="status">Saved</span>}
         <button type="button" className="btn" disabled={!!busy} onClick={onCard}><Icon name="document" size="1.05em" />{busy === 'cards' ? 'Making…' : 'Report card (PDF)'}</button>
         <button type="button" className="btn btn-ghost qsl-del" onClick={onDelete}>Delete</button>
       </div>
