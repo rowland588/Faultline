@@ -10763,6 +10763,8 @@ body:has(.toast) .qs-fab { bottom: calc(var(--nv-bar) + 130px + env(safe-area-in
 .pl-new { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 10px; }
 /* a group on paper — its report or its cards, at the right of its heading (lib/problemsPdf) */
 .qsl-g .qsl-gh { flex-wrap: wrap; }
+/* a group's name keeps room to be read — its counts and buttons wrap under it, never squeeze it (13 October: "all of the writing was going down the page") */
+.qsl-g .qsl-gh h2 { flex: 1 1 180px; }
 /* SAVED, said (12 October: "there's never any saves") — on the problem's row and beside Save */
 .preg-saved, .pe-saved { font-size: var(--t-detail); font-weight: 700; color: var(--st-g); }
 .pe-saved { align-self: center; }

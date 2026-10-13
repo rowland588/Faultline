@@ -365,6 +365,9 @@ await go('#/snags');
   await openUp('Guard on the infeed loose');
   const wide = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   ok(wide <= 1 && (await row('Guard on the infeed loose').locator('.pe').isVisible()), `11 on a phone: nothing off the side (${wide}px), the editor fits`);
+  /* every problem readable — no words squeezed into a sliver running down the page (13 October: "all of the writing was going down the page, like a long line") */
+  const thin = await page.evaluate(() => [...document.querySelectorAll('.qsl .qsl-what, .qsl .qsl-meta, .qsl .qsl-gh h2')].filter(e => e.getBoundingClientRect().width < 120 && (e.textContent ?? '').length > 14).map(e => (e.textContent ?? '').slice(0, 30)));
+  ok(thin.length === 0 && (await page.locator('.qsl-jrow').count()) > 0, `11 on a phone: every problem readable, the projects' among them${thin.length ? ` — squeezed: ${thin.slice(0, 3).join(' | ')}` : ''}`);
 }
 
 /* ---- 12 an archived project's line, and the saves said (Rowland, 12 October:

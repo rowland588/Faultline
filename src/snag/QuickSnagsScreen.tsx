@@ -505,7 +505,7 @@ function JobProblems({ g, all, opened, flip, busy, onView, onCard, onOpen, onLis
       </div>
       <ul className="qsl-rows">
         {g.rows.map(r => (
-          <li key={r.id} className={'qsl-row qsl-jrow' + (r.late ? ' is-late' : '')}>
+          <li key={r.id} className={'qsl-row qsl-jrow preg-row' + (r.late ? ' is-late' : '')}>
             {r.photo && <EvidenceThumb media={photoRef(r.photo)} size={52} onClick={() => onView(photoRef(r.photo as string))} />}
             <button type="button" className="qsl-open" aria-expanded={opened.has(r.id)} onClick={() => flip(r.id)}>
               {!r.photo && <span className="qsl-nopic" aria-hidden><Icon name={KIND_ICON[r.kind]} size={18} /></span>}
