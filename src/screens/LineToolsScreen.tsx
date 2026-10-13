@@ -22,6 +22,8 @@ import type { ToolStudy } from '../lib/study';
 import { changeoverLine, currentChangeover, studyHref } from '../lib/studyLinks';
 import { useProjects } from '../lib/useProjects';
 import { headcount, inCapacityTool, inMapTool, thingsOf, type Standard } from '../lib/standard';
+import { productsOnLine, programsOnLine } from '../lib/lineRecords';
+import { useLineRecords } from '../lib/useLineRecords';
 import { analyse, shortSays } from '../lib/capacity';
 import { now, uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
@@ -198,10 +200,11 @@ function NewOne({ open, tool, lines, list, onClose, onLine }: { open: boolean; t
   const [job, setJob] = useState('');
   const [busy, setBusy] = useState(false);
   useEffect(() => { if (open) setLine(l => (lines.some(x => x.id === l) ? l : onLine && lines.some(x => x.id === onLine) ? onLine : lines[0]?.id ?? NEW_LINE)); }, [open, lines, onLine]);
-  /* THE LINE'S PRODUCTS — its other products, offered; one already on the
-     line is the same record, never a second */
+  /* THE LINE'S PRODUCTS (D2) — what its programs run and its other products,
+     offered; one already on the line is the same record, never a second */
+  const rec = useLineRecords();
   const onIt = list.filter(x => x.workspaceId === line && !x.deletedAt);
-  const products = line === NEW_LINE ? [] : [...new Set(onIt.map(x => x.product.trim()).filter(Boolean))];
+  const products = line === NEW_LINE ? [] : productsOnLine(programsOnLine(line, rec.programs, rec.jobLines), onIt);
   const already = onIt.find(x => x.product.trim().toLowerCase() === product.trim().toLowerCase());
   const jobs = projects.filter(p => !p.deletedAt && !p.archivedAt);
   const ready = !!product.trim() && (line !== NEW_LINE || !!newLine.trim()) && !busy;

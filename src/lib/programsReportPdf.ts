@@ -75,13 +75,16 @@ export function programsBlocks(reading: ProgramsReading, d: Density, o: { machin
 
 /** THE PROGRAMS REPORT — its own document: the job, the count in words and a
  *  tile per state, then every program machine by machine. */
-export async function drawProgramsReport(doc: jsPDF, x: { name: string; lead?: string; printed: string; reading: ProgramsReading }): Promise<void> {
+export async function drawProgramsReport(doc: jsPDF, x: { name: string; lead?: string; printed: string; reading: ProgramsReading;
+  /** What it is the programs of — a stage-gate job (the default), a
+   *  production line, or every line of the factory (docs/BLUEPRINT.md, Stage 2). */
+  eyebrow?: string }): Promise<void> {
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
   const r = x.reading;
   const name = san(x.name);
   const blocks = (d: Density): Block[] => {
     const out: Block[] = [];
-    out.push(text({ text: 'PROGRAMS · STAGE GATE', size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
+    out.push(text({ text: x.eyebrow ?? 'PROGRAMS · STAGE GATE', size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
     out.push(text({ text: name, size: SIZE.title, style: 'bold', after: 4 }));
     out.push(text({ text: [x.lead ? `Led by ${san(x.lead)}` : '', `Printed ${san(x.printed)}`].filter(Boolean).join('   ·   '), colour: MUTED, after: gap(d, 'm') }));
     /* WHERE THE PROGRAMS ARE — a tile per state, the abnormal in its colour;

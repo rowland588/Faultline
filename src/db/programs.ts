@@ -11,6 +11,12 @@ export async function listPrograms(projectId: string): Promise<Program[]> {
   return all.filter(p => !p.deletedAt);
 }
 
+/** Every program on the device, on every line and job — the control room's
+ *  Programs and a line's page read them (lib/lineRecords). */
+export async function listAllPrograms(): Promise<Program[]> {
+  return (await (await getDB()).getAll('programs')).filter(p => !p.deletedAt);
+}
+
 export async function putProgram(p: Program): Promise<void> {
   await (await getDB()).put('programs', { ...p, updatedAt: now() });
   signalWrite();

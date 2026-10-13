@@ -39,6 +39,7 @@ import { Icon } from '../ui/Icon';
 import { useAccess } from '../cloud/access';
 import { AccessNote } from '../ui/AccessNote';
 import type { Can } from '../lib/access';
+import { LineProgramsOnJob } from '../ui/LineProgramsOnJob';
 
 const nice = (iso?: string): string => {
   if (!iso) return '—';
@@ -557,6 +558,10 @@ export function ProgramsScreen({ projectId, embedded = false }: {
           gone by the time you typed the second program for it. Rendered once,
           in one position, it keeps its state across that change. */}
       {can.edit && <AddFold label="Add a program" start={t.total === 0}><AddProgram state={state} lines={lines.lines} assets={assets} /></AddFold>}
+
+      {/* The line's own programs, on a job that is not a stage gate (a stage
+          gate's Programs page shows them above its list). */}
+      {!project.commissioning && <LineProgramsOnJob project={project} tt={tt} can={can} />}
 
       {!embedded && (
         <footer className="pace-foot">

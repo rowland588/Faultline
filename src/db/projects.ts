@@ -166,6 +166,15 @@ const namedBy = (id: ID) => (r: unknown) => (r as { projectId?: string }).projec
  *  rule the walk keeps. */
 const goesWithJob = (s: { workspaceId?: string; deletedAt?: number }) => !s.workspaceId;
 
+/** THE SAME RULE FOR A MACHINE AND A PROGRAM (docs/BLUEPRINT.md, Stage 2): one
+ *  on a line of the factory is the line's — the machine still stands there and
+ *  still runs what was proved on it after the job that brought it in is gone —
+ *  so it stays, on no job. One on the job alone goes with it. A line standard
+ *  on a line stays too: it is the line's map of a product. */
+const LINE_KEPT = ['commission_assets', 'programs', 'standards'] as const;
+const keptOnLine = (store: string, r: unknown) =>
+  (LINE_KEPT as readonly string[]).includes(store) && !!(r as { workspaceId?: string }).workspaceId;
+
 /** Plain words for a store, for a person being asked to destroy it. */
 export const STORE_WORDS: Record<string, string> = {
   pace_ppm: 'lines',
@@ -192,7 +201,7 @@ export async function projectContents(id: ID): Promise<{ store: string; count: n
   const out: { store: string; count: number }[] = [];
   for (const store of PROJECT_OWNED) {
     const rows = await db.getAllFromIndex(store, 'by_project', id);
-    const live = rows.filter(r => !(r as { deletedAt?: number }).deletedAt);
+    const live = rows.filter(r => !(r as { deletedAt?: number }).deletedAt && !keptOnLine(store, r));
     if (live.length) out.push({ store, count: live.length });
   }
   for (const store of PROJECT_OWNED_SCANNED) {
@@ -238,7 +247,13 @@ export async function purgeProject(id: ID): Promise<void> {
 
   for (const store of PROJECT_OWNED) {
     const rows = await db.getAllFromIndex(store, 'by_project', id);
-    await bury(store, rows.map(r => (r as { id: string }).id));
+    await bury(store, rows.filter(r => !keptOnLine(store, r)).map(r => (r as { id: string }).id));
+    const kept = rows.filter(r => keptOnLine(store, r));
+    if (kept.length) {
+      const tx = db.transaction(store, 'readwrite');
+      for (const r of kept) await tx.store.put({ ...(r as object), projectId: '', updatedAt: now() } as never);
+      await tx.done;
+    }
   }
   for (const store of PROJECT_OWNED_SCANNED) {
     const rows = (await db.getAll(store)).filter(inProject(id));

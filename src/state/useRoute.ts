@@ -10,7 +10,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'trend' | 'history' | 'report' | 'case' | 'guide' | 'portfolio'
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
   | 'testing' | 'test' | 'trialCard' | 'fixes' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'standard' | 'notes' | 'clientReport'
-  | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools' | 'studies' | 'study' | 'lineHome' | 'factory';
+  | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools' | 'studies' | 'study' | 'lineHome' | 'factory' | 'linePrograms';
 
 export interface Route {
   name: RouteName;
@@ -76,6 +76,9 @@ export function parseRoute(hash: string): Route {
   /* YOUR FACTORY — the production lines set up and edited in one place
      (Rowland, 13 October: "build your factory, edit your factory"). */
   if (segs[0] === 'factory') return { name: 'factory', query };
+  /* PROGRAMS FROM THE CONTROL ROOM — every line's, planned and proved, no
+     job needed (docs/BLUEPRINT.md, Stage 2). ?line= opens it on one line. */
+  if (segs[0] === 'programs') return { name: 'linePrograms', query };
   /* THE LINE TOOLS, beside the snags: every line standard and every line
      balance, on every line and job (screens/LineToolsScreen). */
   if (segs[0] === 'standards') return { name: 'lineTools', view: 'map', query };

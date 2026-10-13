@@ -2,7 +2,7 @@
  * lib/programs.ts: three states, and a date is what makes one of them true. */
 import { useCallback, useEffect, useState } from 'react';
 import { heldReading } from './heldReading';
-import { listPrograms, putProgram, putPrograms, deleteProgram, onDataChange } from '../db';
+import { listPrograms, putProgram, putPrograms, deleteProgram, onDataChange, lineForJobRecord } from '../db';
 import { uid, now } from './ids';
 import { offerUndo } from '../ui/Undo';
 import {
@@ -68,8 +68,11 @@ export function usePrograms(projectId: string): ProgramsState {
     const what = p.what.trim();
     if (!what) return;
     const t = now();
+    /* On the job's line — the one its job line names, or the job's only
+       factory line — so the line's page and Programs see it (Stage 2). */
+    const workspaceId = await lineForJobRecord(projectId, p.lineId || undefined);
     await putProgram({
-      id: uid(), projectId, what,
+      id: uid(), projectId, ...(workspaceId ? { workspaceId } : {}), what,
       runs: p.runs?.trim() || undefined,
       lineId: p.lineId || undefined,
       assetId: p.assetId || undefined,

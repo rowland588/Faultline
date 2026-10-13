@@ -20,6 +20,7 @@ import {
   createProject, updateProject, addPaceLine, putPaceTodo,
   putPaceWin, putTreeNode, putAsset, putTest, putTestItem, putBlob,
   putTarget, putReadings, putMaterials, putPrograms, putStandard, putStudy, getStudy,
+  addMachineToLine, addLineProgram, putProgram,
   listObservations, snagsForWorkspace, listTests, listAssets,
 } from '../db';
 import { barExpect, barWords, lossFigures } from '../lib/ie/losses';
@@ -1034,6 +1035,15 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     product: 'Maris Piper 2kg', standardId: lineOnly, workspaceId: ws.id, projectId: proj.id,
     facts: { losses: { from: t - 12 * 3_600_000, to: t, breakMin: 60, plannedMin: 660, made: 36_000, rejects: 120, ratePerMin: 60, rateFrom: 'typed' } },
     uses: [], startedAt: t - 60_000, createdAt: t, updatedAt: t });
+
+  /* THE LINE'S OWN PROGRAMS (docs/BLUEPRINT.md, Stage 2) — planned on Line 7
+     with no job: a machine of the line's own with its maker, one program
+     whose test day has gone and one proved; beside them the stage-gate job's,
+     which is on this line. */
+  await addMachineToLine(ws.id, 'Checkweigher', 'Ishida');
+  await addLineProgram(ws.id, { what: 'CW-3 Maris Piper 2kg', machine: 'Checkweigher', runs: 'Maris Piper 2kg', testOn: iso(-2), from: 'Ishida', note: 'Ishida to send the weights table' });
+  const cw1 = await addLineProgram(ws.id, { what: 'CW-1 Finest Red 2kg', machine: 'Checkweigher', runs: 'Finest Red 2kg' });
+  if (cw1) await putProgram({ ...cw1, state: 'proved', provedOn: iso(-10) });
 
   return {
     wsId: ws.id, projectId: proj.id, standardId, lineStandardId: lineOnly, lineOnJobId: lineOnJob, lineId: line.id, caseId: kase.id,

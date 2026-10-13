@@ -30,6 +30,11 @@ export async function listAssets(projectId: string): Promise<Asset[]> {
   return all.filter(a => !a.deletedAt).sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name));
 }
 
+/** Every machine on the device, on every line and job (lib/lineRecords). */
+export async function listAllAssets(): Promise<Asset[]> {
+  return (await (await getDB()).getAll('commission_assets')).filter(a => !a.deletedAt);
+}
+
 export async function putAsset(a: Asset): Promise<void> {
   await (await getDB()).put('commission_assets', { ...a, updatedAt: now() });
   signalWrite();

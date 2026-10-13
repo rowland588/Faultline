@@ -118,7 +118,7 @@ ok(cards.join(' / ') === 'Line 1|Packing / Line 3|Filling / Line 2A|Packing', `6
 ok(/3 lines · 2 Packing · 1 Filling/.test(await txt()), '6b the control room says the factory');
 const firstSec = await page.locator('.nv-main section').first().getAttribute('aria-label');
 ok(firstSec === 'Your factory', `6c Your factory is the first thing on the control room (${firstSec})`);
-ok(/YOUR FACTORY Your factory Line 1 Line 3 Line 2A/i.test(await rail()), '6d the rail: Your factory, the lines in floor order');
+ok(/YOUR FACTORY Your factory Programs Line 1 Line 3 Line 2A/i.test(await rail()), '6d the rail: Your factory, its Programs, the lines in floor order');
 if (OUT) await page.screenshot({ path: `${OUT}/f-2-control.png` });
 
 /* 7 — a line's own page: its type; edited there */

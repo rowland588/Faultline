@@ -82,9 +82,9 @@ of a line, are no longer under projects.
 | Real thing | Its one home (target) | Where it is held today | What changes |
 |---|---|---|---|
 | **Line** | `workspaces` + type + floor order | `workspaces`; a job's line (`pace_ppm`) names one; a job's "line walk" is a workspace too | Done (factory slices 1–3, in the gate). `pace_ppm` means "this job is on this line", plus the job's owner and sponsor for it |
-| **Machine** | **One machine record on its line**: `commission_assets` gains `workspace_id`; `project_id` becomes "the job that brought it in", optional | `commission_assets` (a job's only); `workspace.assets` (names for the stopwatch); capacity stations (a name per product); a problem's machine (free text) | Stage 2 |
-| **Program** (what a machine runs, for a product) | `programs` on a line and machine: gains `workspace_id`; `project_id` optional | `programs`, which **requires a project** today | Stage 2 — your request |
-| **Product** | Not a new record (D2): a line's products are what its programs run, plus any typed on a standard | `programs.runs`, `standards.product`, a changeover's from/to, a loss count's product — all free text | Stage 2: one pick-list from the line |
+| **Machine** | **The line's list of names, in flow order** (`workspace.assets` — what every picker reads and every stop is kept against), each joined by name to **its record on the line** (`commission_assets` + `workspace_id`; `project_id` the job that brought it in, or none) carrying what more is known: who made it, its programs | `commission_assets` (a job's only); `workspace.assets` (names for the stopwatch); capacity stations (a name per product); a problem's machine (free text) | Built, Stage 2 (`lib/lineRecords`). Plate speed stays per product on the line's capacity (D3, Stage 4) |
+| **Program** (what a machine runs, for a product) | `programs` on a line and machine: `workspace_id`; `project_id` optional ('' on device) | `programs`, which required a project | Built, Stage 2 — your request |
+| **Product** | Not a new record (D2): a line's products are what its programs run, plus any typed on a standard | `programs.runs`, `standards.product`, a changeover's from/to, a loss count's product — all free text | Stage 2: one pick-list from the line (`productsOnLine`), offered when a program is planned; the other "which product" boxes in Stage 3 |
 | **Line standard + line capacity**, per product | `standards` (line × product) | `standards.capacity` **and** `pace_ppm.capacity` (a 6M job's own line balance) | Stage 4: one home; the job reads the line's (D3) |
 | **Shift pattern, crew, labour cost, margin** | The line | On the line already, but edited only in the old "line settings" screen (`/w/:ws/settings`) | Stage 1: in Your factory and on the line page |
 | **Person** (a name who owes things) | — | Free text in every "whose" box; project members for access only | D5 |
@@ -104,7 +104,7 @@ standard). Then the jobs board, then Needs you across every line and job.
 Reports: the control room report and the factory report.
 
 **Your factory** (`#/factory`). The lines: name, type, floor order (built). Each
-line's machines in flow order, with OEM and plate speed (Stage 2). Its shifts
+line's machines in flow order, each with who made it, and its programs in words (Stage 2, built). Its shifts
 and breaks, crew, labour cost and margin (Stage 1). Merge two lines (Stage 1).
 
 **A line** (`#/lines/:id`) — the hub for one line, answering in order:
@@ -147,7 +147,7 @@ the lines they are on.
 |---|---|---|---|---|
 | Problem | listed, late in red | counted on the line's card; the register | its Problems | card, line group, register, job reports |
 | Program | its programs; a product's row | programs due / not proved on the line's card; Programs | the stage-gate Programs gate | programs report (line, job) |
-| Machine | its machines | — | Install grid; every machine picker | line report; stage-gate reports |
+| Machine | its machines | — | Install grid; every machine picker | factory report (flow order, makers); line report; stage-gate reports |
 | Product (standard, capacity, changeover) | its products row | products with gaps, counted | 6M line capacity; the client report | line standard cards; line report |
 | Study | its tools | — | evidence and proof | study's own page; job reports |
 | Job | jobs on it | jobs board | — | control room report |
@@ -186,8 +186,11 @@ there and what replaces it.
    in meta): keep reading old data, stop writing new.
 6. **A job's hidden "line walk" workspace** becomes the job's evidence on its
    line (Stage 4). No more invisible workspaces named "<job> — line walk".
-7. **`workspace.assets`** as the stopwatch's machine list: read from the line's
-   machines instead (Stage 2).
+7. **`workspace.assets`** as the stopwatch's machine list: it *is* the line's
+   machines, in flow order — kept, not replaced (Stage 2, as built): names are
+   what every stop, problem and station is kept against, so the list stays the
+   spine and a machine's record is joined to its name. A rename in Set up the
+   line carries the stops and the record together (`renameLineMachine`).
 8. **`pace_ppm.capacity`**: moves into the line's per-product capacity (Stage 4).
 9. **Old words on screens**: "workspace" (about 7 places), "tracker" (2), "3P"
    (1), "snag" (about 54). One sweep in Stage 0, and a smoke check so they
@@ -310,6 +313,51 @@ already follow):
   `with_check`, each insert rule no `qual` — `SECURITY_RLS.sql`'s lesson),
   `information_schema.columns`, the constraint.
 
+*As built:*
+- **The record.** A program or a machine says its line (`workspaceId`) and,
+  when a job brought it in, its job (`projectId`; '' when none — the line
+  standards' pattern). `lib/lineRecords` is the one place that says which line
+  a record is on: its own, else the job line it names, else its job's only
+  factory line — so a job's program written before Stage 2 is found on its line
+  without being written again. A job's new machine or program is given its
+  job's line when the job has one (a job on several lines leaves it), and a new
+  machine's name joins that line's list.
+- **The line's machines** are its list of names in flow order, each joined by
+  name to its record; then any machine a job brought in that the list does not
+  name. A record is made the first time more than the name is said (who made
+  it, a program on it), with the same id on every device for the same name.
+- **Programs** (`#/programs`, the rail under Your factory and the control
+  room's Your factory): every line's programs, or one line's, machine by
+  machine — planned (name, machine — one not listed joins the list — what it
+  runs from the line's products, test day, who owes it, commentary), where each
+  has got to, its test day (gone by: red) and the day it was proved. A job's
+  program on the line shows with its job, one tap to it, and is changed there.
+- **The line's page**: *Machines* (flow order, who made each — typed in
+  place — its programs, the job that brought it in; a machine named with its
+  maker) and *Programs* (the count, the late in red, the ones still to prove,
+  late first). "The line" no longer lists the machines a second time.
+- **A job sees its lines' own programs** on its Programs page — the same
+  records; on a stage gate *Prove it in Commission* plans the proving test
+  (`Test.programId`), and the test passed proves the line's program.
+- **Your factory**: each row says the line's machines in flow order with
+  their makers, and "N machines · M programs, K proved" (late in red); the
+  factory report carries the same. **The control room's** line cards say the
+  programs still to prove, the late in red.
+- **Pickers**: the stopwatch, the walk and a problem already read the line's
+  list; Line capacity's station names offer the line's machines and an empty
+  capacity starts from them; SMED's "where" offers them.
+- **Paper**: the programs report of a line, or of every line
+  (`lineProgramsReading` → `drawProgramsReport`, "PROGRAMS · PRODUCTION LINE").
+  The stage-gate reports keep their content. A program with a test day and no
+  test now reads its test day on every report ("test 16 Oct" / "test was due
+  …", red) instead of "no test yet" — what the Programs list always said.
+- **A job deleted for ever** leaves a machine, a program or a line standard
+  that is on a line where it stands, on no job (`purgeProject`).
+- *Accepted by* `scripts/acceptance/machines-programs.mjs` (stories 1–11).
+- *Not in this stage:* plate speed per machine (it is per product — D3, Stage
+  4); a job taking a line's machine onto its Install (Stage 4, "machines are
+  picked from the line").
+
 ### Stage 3 — The line is the hub
 - The line page in the order of §3, with the products readiness grid.
 - The control room's factory cards carry each line's health; Needs you works
@@ -389,6 +437,16 @@ is still wired.
   back; `CLAUDE.md`, `MAP.md` and `PRODUCT.md` point here.
 - **Stage 1, built** (see §7): the line's facts on its page and in the factory,
   set up in the one editor; merge two lines.
+- **Stage 2, built** (see §7): programs planned on a line with no job, from
+  the control room and the line's page; the line's machines in flow order with
+  who made each; a job seeing and proving its lines' programs; Your factory,
+  the control room and the paper carrying them. Its database change is
+  `supabase/MACHINES_AND_PROGRAMS.sql` — pasted into the SQL editor by
+  Rowland on 13 October (the connector's writes came back "cancelled", so it
+  is not in the migration history) and read back: both columns, both
+  checks, both indexes, the line's two rules and the four editors' rules
+  with the line's clause; the backfill moved none (0 of 18 programs, 0 of
+  12 machines on a job with a factory line).
 - **Line capacity reviewed** (Rowland, 13 October: "the capacity calculation
   is wrong ... why do I still see line standard cards in there ... the
   graphics don't work"). Placed (§8): *On the line*, the tool Line capacity;
@@ -439,4 +497,4 @@ is still wired.
   the pounds an hour, and the cost a pack against today's: lower ("they
   pay for themselves") or higher — with Make it so. `docs/CAPACITY.md` §6.
   Accepted by `line-capacity.mjs` 12.
-- **Next:** Stage 2 — machines and programs on the line.
+- **Next:** Stage 3 — the line is the hub (its products, readiness, health).

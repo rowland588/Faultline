@@ -10,7 +10,7 @@ import {
   listAssets, putAsset, deleteAsset,
   listTests, putTest, patchTest, deleteTest, testContents,
   listTestItems, putTestItem, patchTestItem, deleteTestItem,
-  onDataChange,
+  onDataChange, lineForJobRecord, machineJoinsLine,
 } from '../db';
 import { uid, now } from './ids';
 import { WORDS, assetStateOf, isSettled, live, nextFrom, standing } from './testing';
@@ -111,7 +111,10 @@ export function useAssets(projectId: string): {
   const addAsset = useCallback(async (name: string) => {
     const id = uid();
     const sort = assets.reduce((n, a) => Math.max(n, a.sort), 0) + 1;
-    await putAsset({ id, projectId, name: name.trim(), state: 'onSite', sort, updatedAt: now() });
+    /* On the job's line when it has one (docs/BLUEPRINT.md, Stage 2). */
+    const workspaceId = await lineForJobRecord(projectId);
+    await putAsset({ id, projectId, ...(workspaceId ? { workspaceId } : {}), name: name.trim(), state: 'onSite', sort, updatedAt: now() });
+    await machineJoinsLine({ workspaceId, name });
     return id;
   }, [projectId, assets]);
 
@@ -158,7 +161,12 @@ export function useTesting(projectId: string): TestingState {
   const addAsset = useCallback(async (name: string, oem?: string, state: AssetState = 'onSite') => {
     const id = uid();
     const sort = assets.reduce((n, a) => Math.max(n, a.sort), 0) + 1;
-    await putAsset({ id, projectId, name: name.trim(), oem: oem?.trim() || undefined, state, sort, updatedAt: now() });
+    /* A machine a job brings in stands on the job's line (docs/BLUEPRINT.md,
+       Stage 2): its name joins the line's list, where the stopwatch, the walk
+       and a problem on the line find it. A job on several lines leaves it. */
+    const workspaceId = await lineForJobRecord(projectId);
+    await putAsset({ id, projectId, ...(workspaceId ? { workspaceId } : {}), name: name.trim(), oem: oem?.trim() || undefined, state, sort, updatedAt: now() });
+    await machineJoinsLine({ workspaceId, name });
     return id;
   }, [projectId, assets]);
 

@@ -374,7 +374,8 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     toRow: (l, fallbackOwner) => {
       const a = l as Asset;
       return {
-        id: a.id, owner_id: fallbackOwner, project_id: a.projectId,
+        id: a.id, owner_id: fallbackOwner, project_id: a.projectId || null,
+        workspace_id: a.workspaceId ?? null,
         name: a.name, oem: a.oem ?? null, state: a.state,
         due_on: a.dueOn ?? null, on_site_on: a.onSiteOn ?? null,
         installed_on: a.installedOn ?? null, running_on: a.runningOn ?? null,
@@ -383,7 +384,8 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       };
     },
     fromRow: (r) => ({
-      id: r.id as string, projectId: r.project_id as string,
+      id: r.id as string, projectId: (r.project_id as string) ?? '',
+      ...(r.workspace_id ? { workspaceId: r.workspace_id as string } : {}),
       name: (r.name as string) ?? '', oem: (r.oem as string) ?? undefined,
       state: ((r.state as Asset['state']) ?? 'onSite'),
       dueOn: (r.due_on as string) ?? undefined,
@@ -567,7 +569,8 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     toRow: (l, fallbackOwner) => {
       const p = l as Program;
       return {
-        id: p.id, owner_id: fallbackOwner, project_id: p.projectId,
+        id: p.id, owner_id: fallbackOwner, project_id: p.projectId || null,
+        workspace_id: p.workspaceId ?? null,
         what: p.what, runs: p.runs ?? null,
         asset_id: p.assetId ?? null, line_id: p.lineId ?? null,
         state: p.state,
@@ -578,7 +581,8 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       };
     },
     fromRow: (r) => ({
-      id: r.id as string, projectId: r.project_id as string,
+      id: r.id as string, projectId: (r.project_id as string) ?? '',
+      ...(r.workspace_id ? { workspaceId: r.workspace_id as string } : {}),
       what: (r.what as string) ?? '',
       runs: (r.runs as string) ?? undefined,
       assetId: (r.asset_id as string) ?? undefined,
