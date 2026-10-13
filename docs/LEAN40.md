@@ -1158,9 +1158,12 @@ it when it is built.
 
 **How many cycles to time.**
 - n = (t × s ÷ (0.05 × mean))² for ±5% at 95%, where s is the spread of the
-  laps and t is about 2.
+  laps and t is Student's t at n − 1 degrees of freedom of the laps timed
+  (Freivalds). The ILO's and Barnes's rule of thumb takes t as 2, which
+  holds for many laps; on five laps t is 2.78.
 - *Worked:* mean 0.42 min, spread 0.04 gives (0.08 ÷ 0.021)² = 14.5, so 15
-  cycles.
+  cycles on the rule of thumb; from 15 laps, t 2.145, (2.145 × 0.04 ÷
+  0.021)² = 16.7, so 17.
 - The app starts from a few cycles and says how many more are needed.
 
 **Work sampling.**

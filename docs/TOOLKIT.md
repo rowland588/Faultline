@@ -414,7 +414,7 @@ outside" is red; "Cpk 0.67" is amber with its word.
 |---|---|---|---|
 | Measured test | mean, spread, outside | the agreed count is in | "12 of 30 in" |
 | Measured test | Cpk | 25 readings or more | "from 12 — too few for capability" |
-| Time study | standard time | n ≥ (t·s ÷ 0.05·mean)², t ≈ 2 | "12 of 15 cycles" |
+| Time study | standard time | n ≥ (t·s ÷ 0.05·mean)², t Student's at n − 1 df, five at least | "12 of 15 cycles" |
 | Work sampling | each share | N ≥ Z²p(1−p) ÷ E² for the margin wanted | "30% ±9 points from 100 taps — 223 more for ±5" |
 | Ramp-up | the date it meets rate | 3 runs or more | "too early — 2 runs" |
 | Pace | the forecast | 5 stages finished or more | "too early to tell" |
@@ -921,15 +921,21 @@ cross department or single line — how they do it in our domain"):
 `agreed.allowances`. "Set as the standard" writes each element's standard
 time onto the line standard's step, naming the study.
 
-**Figures** (`lib/ie/timeStudy.ts`): per element the observed mean of the
-kept laps, basic = observed × rating ÷ 100, standard = basic × (1 +
+**Figures** (`lib/ie/balance.ts` `element`): per element the observed mean
+of the kept laps, basic = observed × rating ÷ 100, standard = basic × (1 +
 relaxation + contingency); the cycle's standard as the sum; cycles needed
-for ±5% at 95% from the spread; the far lap flagged.
+for ±5% at 95% from the spread — n = (t·s ÷ 0.05·x̄)², **t Student's at n − 1
+degrees of freedom of the laps timed** (Freivalds, *Niebel's Methods,
+Standards and Work Design*, ch. 9), never fewer than five; the far lap
+flagged. (The ILO's and Barnes's rule of thumb takes t as 2. On the five to
+fifteen laps a floor times, t is 2.1–2.8, and 2 claims ±5% at 95% from
+what is ±5% at under 90% — so it is the laps' own t. Audit, 13 October.)
 
 **Reading and verdict.** *"Wrap and seal: 0.53 min standard (0.42 observed
-at 110, +14%) — from 15 cycles, enough."* Short: *"12 of 15 cycles — 3
-more for ±5%."* (amber). A step whose time is typed says *"typed"*; one
-estimated says *"estimated"* on the step, on the balance and on paper.
+at 110, +14%) — from 17 cycles, enough."* Short: *"15 of 17 cycles"*
+(amber) — 15 laps with a spread of 0.04 min ask (2.145 × 0.04 ÷ 0.021)² =
+16.7, so 17. A step whose time is typed says *"typed"*; one estimated says
+*"estimated"* on the step, on the balance and on paper.
 
 **Looks like.** Table left: element · laps · observed · rating · basic ·
 allowance · standard · enough. Laps right: a row of dots per element around
@@ -941,7 +947,9 @@ map, the balance, the cycle, paper); the balance station's "timed by
 somebody" becomes this number.
 
 **Proved by.** 0.42 min at 110 with 14% → 0.527; mean 0.42, spread 0.04 →
-15 cycles.
+15 cycles on the rule of thumb, 17 from 15 laps (t 2.145), 16 from 30 (t
+2.045); laps of 10, 11, 9, 10, 10 s → 16 (t at 4 df 2.776), where t = 2
+said 8.
 
 ## 4. The work balance — the Yamazumi
 
@@ -957,7 +965,11 @@ constraint?
   on the phone, tap the element and pick the person.
 - *Suggest* draws a ghost set of stacks by ranked positional weight (using
   `Step.after` where given, the table's order where not) with its figures
-  beside the real ones; **Use it** applies it.
+  beside the real ones; **Use it** applies it. A person's stack is closed
+  before it passes takt and the next person opened — so when the elements in
+  their order will not fit ⌈work ÷ takt⌉ people, the suggestion has one more
+  (four 7 s elements at a 12 s takt: 7 · 7 · 7 · 7, never 7 · 7 · 14). Only
+  an element longer than takt on its own stands over it.
 - *Make it better* on the constraint's stack raises a fix or countermeasure.
 
 **Facts.** A balance study's `facts.steps` (`who`, `after`), reading each
