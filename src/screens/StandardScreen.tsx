@@ -19,7 +19,7 @@ import { todayISO } from '../lib/weeks';
 import { useBlobUrl } from '../lib/useBlobUrl';
 import { usePrograms } from '../lib/usePrograms';
 import { planModel } from '../lib/planModel';
-import { bottlenecksOf, dashOf, FADED_ALPHA, FILLS, LABEL_MODES, LINES, mapLabel, weightOf, type LabelMode, type ShapeFill, type ShapeLine,
+import { bottlenecksOf, dashOf, FADED_ALPHA, FILLS, LABEL_KEY, LABEL_MODES, labelModeHere, LINES, mapLabel, weightOf, type LabelMode, type ShapeFill, type ShapeLine,
   BOARDS, boardOf, colourOf, copyFor, hasMap, inMapTool, headcount, ICON_GROUPS, isShape, MARKS, markOf, nextRole, peopleOf, PERSON_COLOURS, reshaped, SHAPES, thingsOf, TONES, type BoardShape, type MarkKind, type PersonColour, type ShapeKind, type ShapeTone, type Standard, type StandardMark } from '../lib/standard';
 import { useStandards } from '../ui/StandardsCard';
 import { Sheet } from '../ui/Sheet';
@@ -348,10 +348,8 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
   const [marks, setMarks] = useState<StandardMark[]>(s.marks);
   /* NAMES ON THE MAP — short, full or numbers; how this device shows the map,
      not a fact about it, so it is kept here, never on the record */
-  const [labels, setLabelsState] = useState<LabelMode>(() => {
-    try { const v = localStorage.getItem('faultline.ls.labels'); return v === 'full' || v === 'number' ? v : 'short'; } catch { return 'short'; }
-  });
-  const setLabels = (m: LabelMode) => { setLabelsState(m); try { localStorage.setItem('faultline.ls.labels', m); } catch { /* private mode */ } };
+  const [labels, setLabelsState] = useState<LabelMode>(labelModeHere);
+  const setLabels = (m: LabelMode) => { setLabelsState(m); try { localStorage.setItem(LABEL_KEY, m); } catch { /* private mode */ } };
   const [selected, setSelected] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [icons, setIcons] = useState(false);

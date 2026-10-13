@@ -285,6 +285,12 @@ export type LabelMode = 'full' | 'short' | 'number';
 export const LABEL_MODES: { mode: LabelMode; word: string }[] = [
   { mode: 'short', word: 'Short' }, { mode: 'full', word: 'Full' }, { mode: 'number', word: 'Numbers' },
 ];
+/** How this device shows names on the map — the screen's chips set it, and
+ *  the card prints the same (a crowded board printed with numbers). */
+export const LABEL_KEY = 'faultline.ls.labels';
+export function labelModeHere(): LabelMode {
+  try { const v = localStorage.getItem(LABEL_KEY); return v === 'full' || v === 'number' ? v : 'short'; } catch { return 'short'; }
+}
 /** A name on the map, short: its first 14 letters, then an ellipsis. */
 export const shortLabel = (label: string, max = 14): string => {
   const t = label.trim();

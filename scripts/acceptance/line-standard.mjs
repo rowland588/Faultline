@@ -17,7 +17,8 @@
  *   5  a plain board made tall — the room added below, everything where it
  *      stood, kept on the record
  *   6  the card on paper draws the person in their colour, and the tall board
- *      tall
+ *      tall, filling a frame of its own shape (no bars beside it), Who does
+ *      what beside it
  *   7  full screen: the tools and the board, edge to edge; Done goes back
  *   8  on a phone: nothing off the side; full screen fills the width
  *   9  the bottleneck said on the map (Rowland, 13 October: "highlight a
@@ -115,18 +116,23 @@ if (OUT) await page.screenshot({ path: `${OUT}/ls-1-tall.png` });
 
 /* 6 — the card: the person in their colour, the board tall */
 const paper = await page.evaluate(async id => {
-  const fills = [], rects = [];
-  const P = CanvasRenderingContext2D.prototype, fill = P.fill, fillRect = P.fillRect;
+  const fills = [], rects = [], heads = [];
+  const P = CanvasRenderingContext2D.prototype, fill = P.fill, fillRect = P.fillRect, fillText = P.fillText;
   P.fill = function (...a) { fills.push(String(this.fillStyle)); return fill.apply(this, a); };
-  P.fillRect = function (x, y, w, h) { if (String(this.fillStyle) === '#f7f9fc') rects.push(h / w); return fillRect.call(this, x, y, w, h); };
+  P.fillRect = function (x, y, w, h) { if (String(this.fillStyle) === '#f7f9fc') rects.push({ x, w, h }); return fillRect.call(this, x, y, w, h); };
+  P.fillText = function (t, x, ...a) { if (String(t).startsWith('W H O')) heads.push(x); return fillText.call(this, t, x, ...a); };
   try {
     const s = (await (await import('/src/db.ts')).listAllStandards()).find(x => x.id === id);
     await (await import('/src/lib/standardCard.ts')).renderCard(s, 'Line 7', '13 Oct 2026');
-  } finally { P.fill = fill; P.fillRect = fillRect; }
-  return { purple: fills.includes('#7c3aed'), board: rects[0] };
+  } finally { P.fill = fill; P.fillRect = fillRect; P.fillText = fillText; }
+  return { purple: fills.includes('#7c3aed'), board: rects[0], side: heads[0] };
 }, blankId);
 ok(paper.purple, '6 the card draws the person in purple');
-ok(Math.abs((paper.board ?? 0) - 4 / 3) < 0.01, `6b and the board tall (${paper.board?.toFixed(2)})`);
+ok(Math.abs((paper.board.h / paper.board.w) - 4 / 3) < 0.01, `6b and the board tall (${(paper.board.h / paper.board.w).toFixed(2)})`);
+/* 6c — the frame is the board's own shape (Rowland, 13 October: "i pick square it then clusters everything up, or tall ... it's only set for wide"):
+   the board starts at the frame's edge, nothing grey beside it, and Who does what takes the room left */
+ok(Math.round(paper.board.x) === 64 && Math.round(paper.side) === Math.round(64 + paper.board.w + 36),
+  `6c a tall board fills its frame — no bars beside it; Who does what beside it (board ${Math.round(paper.board.w)} × ${Math.round(paper.board.h)} at ${Math.round(paper.board.x)}, Who does what at ${Math.round(paper.side)})`);
 
 /* 7 — full screen */
 await page.getByRole('button', { name: 'Full screen' }).click(); await page.waitForTimeout(600);
@@ -199,7 +205,7 @@ const card11 = await page.evaluate(async id => {
     await (await import('/src/lib/standardCard.ts')).renderCard(s, 'Line 7', '13 Oct 2026');
   } finally { P.fillText = ft; P.fill = fill; }
   const { shortLabel } = await import('/src/lib/standard.ts');
-  return { tags: texts.filter(t => t === 'BOTTLENECK').length, short: texts.includes(shortLabel('Line lead — runs the bagger and clears every jam', 16)), area: texts.some(t => t.includes('The Basket station')), faded: alphas.some(a => a > 0.2 && a < 0.5) };
+  return { tags: texts.filter(t => t === 'BOTTLENECK').length, short: texts.includes(shortLabel('Line lead — runs the bagger and clears every jam')), area: texts.some(t => t.includes('The Basket station')), faded: alphas.some(a => a > 0.2 && a < 0.5) };
 }, blankId);
 ok(card11.tags >= 3 && card11.short && card11.area && card11.faded, `11 the card: the bottleneck tagged on the map and summed up, the area faded, the name short (${JSON.stringify(card11)})`);
 

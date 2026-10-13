@@ -22,7 +22,7 @@
  *   └─────────────────────────────────────────────────────────┘ */
 import { getBlob } from '../db';
 import { analyse, shortSays } from './capacity';
-import { BOARDS, boardOf, bottlenecksOf, colourOf, dashOf, FADED_ALPHA, headcount, isShape, manyOf, markOf, MARKS, peopleOf, shortLabel, TONES, weightOf, type Standard, type StandardMark } from './standard';
+import { BOARDS, boardOf, bottlenecksOf, colourOf, dashOf, FADED_ALPHA, headcount, isShape, labelModeHere, manyOf, mapLabel, markOf, MARKS, peopleOf, TONES, weightOf, type Standard, type StandardMark } from './standard';
 
 /** A4 landscape at 150 dpi: sharp on paper, light enough for a phone. */
 export const CARD_W = 1754, CARD_H = 1240;
@@ -225,10 +225,18 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
     work ? `Work: ${work.short ?? work.text}` : '',
   ].filter(Boolean);
 
-  /* ---------------- the map ---------------- */
-  const top = bandH + 40, footH = said.length > 2 ? 136 : 112;
-  const sideW = 520, gap = 36;
-  const mapX = M, mapW = CARD_W - 2 * M - sideW - gap, mapH = CARD_H - top - footH - 28;
+  /* ---------------- the map ----------------
+     THE MAP IS ITS BOARD'S SHAPE (Rowland, 13 October: "i pick square it
+     then clusters everything up, or tall, it does the same, it's only set
+     for wide"). The frame is the board's own shape — wide, square, tall or
+     the photo's — as tall as the page allows; Who does what takes the room
+     left beside it (two columns of people beside a tall board), so nothing
+     is squeezed into the middle of a frame drawn for wide. */
+  const top = bandH + 40, footH = said.length > 2 ? 136 : 112, gap = 36;
+  const mapH = CARD_H - top - footH - 28;
+  const shape = img ? { w: img.width, h: img.height } : BOARDS[boardOf(s)];
+  const mapX = M, mapW = Math.min(CARD_W - 2 * M - 520 - gap, Math.round(mapH * shape.w / shape.h));
+  const sideW = CARD_W - 2 * M - mapW - gap;
   ctx.save();
   ctx.shadowColor = 'rgba(13,31,60,0.16)'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 8;
   round(ctx, mapX, top, mapW, mapH, 22); ctx.fillStyle = SOFT; ctx.fill();
@@ -253,15 +261,21 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
   }
   // shapes first — everything placed stands on them
   for (const m of s.marks) if (isShape(m)) drawShape(ctx, m, ix, iy, iw, ih);
-  const r = Math.max(20, Math.min(iw, ih) * 0.036);
+  /* A mark's size goes with the board's width, as on the screen — a square
+     or tall board's people are no bigger against it than a wide one's —
+     never below what reads on paper. */
+  const r = Math.max(16, iw * 0.0203);
+  const people = peopleOf(s), labels = labelModeHere();
   for (const m of s.marks) {
     if (isShape(m)) continue;
     const cx = ix + (m.x / 100) * iw, cy = iy + (m.y / 100) * ih;
     if (m.bottleneck) { ctx.beginPath(); ctx.arc(cx, cy, r + 9, 0, Math.PI * 2); ctx.strokeStyle = '#0f1a2e'; ctx.lineWidth = 5; ctx.stroke(); }
     drawIcon(ctx, m.kind, cx, cy, r, colourOf(m));
-    /* the name short on the map — the whole of it, and what they do, are beside it in Who does what */
-    if (m.label) pillLabel(ctx, shortLabel(m.label, 16), cx, cy + r + 8, Math.round(r * 0.72));
-    if (m.bottleneck) bnTag(ctx, cx, cy - r - 12 - Math.round(r * 0.6) * 1.55, Math.round(r * 0.6));
+    /* the name as the map shows it on this device — short, a number, or full
+       (lib/standard labelModeHere); the whole of it, and what they do, beside it in Who does what */
+    const l = mapLabel(m, labels, people);
+    if (l) pillLabel(ctx, l, cx, cy + r + 8, Math.max(13, Math.round(r * 0.72)));
+    if (m.bottleneck) { const ts = Math.max(11, Math.round(r * 0.6)); bnTag(ctx, cx, cy - r - 12 - ts * 1.55, ts); }
   }
   ctx.restore();
   ctx.strokeStyle = LINE; ctx.lineWidth = 2; round(ctx, mapX, top, mapW, mapH, 22); ctx.stroke();
@@ -271,7 +285,6 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
   let y = top + 8;
   ctx.fillStyle = BLUE; ctx.font = `800 21px ${FONT}`; ctx.fillText('W H O   D O E S   W H A T', sx, y + 16);
   y += 44;
-  const people = peopleOf(s);
   /* THE BOTTLENECK, first, in words */
   for (const b of bottlenecksOf(s).slice(0, 2)) {
     bnTag(ctx, sx, y, 18, true);
@@ -282,30 +295,42 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
   }
   if (people.length === 0) { ctx.fillStyle = MUTED; ctx.font = `500 26px ${FONT}`; ctx.fillText('Nobody placed yet.', sx, y + 24); y += 50; }
   const listBottom = top + mapH - 170;
-  people.forEach((p, i) => {
-    if (y > listBottom) return;
-    if (y + 40 > listBottom && i < people.length) {
-      ctx.fillStyle = MUTED; ctx.font = `600 22px ${FONT}`; ctx.fillText(`and ${people.length - i} more on the map`, sx, y + 24); y = listBottom + 1; return;
+  /* beside a tall board the column is wide: the people in two columns, so
+     more of them are named before "and N more" */
+  const cols = sideW >= 900 ? 2 : 1, colW = cols === 2 ? (sideW - 40) / 2 : sideW;
+  const listTop = y;
+  let col = 0;
+  for (let i = 0; i < people.length; i++) {
+    const p = people[i];
+    ctx.font = `500 23px ${FONT}`;
+    const task = p.task ? wrap(ctx, p.task, colW - 64, 3) : [];
+    const rowH = 31 + task.length * 31 + 26;
+    if (y + rowH > listBottom && col + 1 < cols) { col++; y = listTop; }
+    const px = sx + col * (colW + 40);
+    if (y + rowH > listBottom) {
+      ctx.fillStyle = MUTED; ctx.font = `600 22px ${FONT}`; ctx.fillText(`and ${people.length - i} more on the map`, px, y + 24); break;
     }
     // the number disc, in the person's colour — the same as on the map
-    ctx.beginPath(); ctx.arc(sx + 22, y + 22, 22, 0, Math.PI * 2); ctx.fillStyle = colourOf(p); ctx.fill();
-    ctx.fillStyle = '#ffffff'; ctx.font = `800 22px ${FONT}`; ctx.textAlign = 'center'; ctx.fillText(String(i + 1), sx + 22, y + 30); ctx.textAlign = 'left';
+    ctx.beginPath(); ctx.arc(px + 22, y + 22, 22, 0, Math.PI * 2); ctx.fillStyle = colourOf(p); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.font = `800 22px ${FONT}`; ctx.textAlign = 'center'; ctx.fillText(String(i + 1), px + 22, y + 30); ctx.textAlign = 'left';
     ctx.fillStyle = INK; ctx.font = `800 28px ${FONT}`;
-    ctx.fillText(wrap(ctx, p.label || `Person ${i + 1}`, sideW - 64, 1)[0], sx + 60, y + 31);
     /* Their work against takt, right-aligned on their row — red when over. */
     const w = work?.people.find(x => x.who === (p.label ?? '').trim());
-    if (w && work) {
+    const workText = w && work ? (w.untimed ? `${w.work.toFixed(1)} s so far` : `${w.work.toFixed(1)} s of ${work.taktSec.toFixed(1)} s`) : '';
+    ctx.font = `800 23px ${FONT}`;
+    const workW = workText ? ctx.measureText(workText).width + 16 : 0;
+    ctx.font = `800 28px ${FONT}`;
+    ctx.fillText(wrap(ctx, p.label || `Person ${i + 1}`, colW - 64 - workW, 1)[0], px + 60, y + 31);
+    if (w && workText) {
       ctx.textAlign = 'right'; ctx.fillStyle = w.over ? '#9b3227' : INK2; ctx.font = `800 23px ${FONT}`;
-      ctx.fillText(w.untimed ? `${w.work.toFixed(1)} s so far` : `${w.work.toFixed(1)} s of ${work.taktSec.toFixed(1)} s`, sx + sideW, y + 31); ctx.textAlign = 'left';
+      ctx.fillText(workText, px + colW, y + 31); ctx.textAlign = 'left';
     }
     let ty = y + 31;
-    if (p.task) {
-      ctx.fillStyle = INK2; ctx.font = `500 23px ${FONT}`;
-      for (const l of wrap(ctx, p.task, sideW - 64, 3)) { ty += 31; ctx.fillText(l, sx + 60, ty); }
-    }
+    ctx.fillStyle = INK2; ctx.font = `500 23px ${FONT}`;
+    for (const l of task) { ty += 31; ctx.fillText(l, px + 60, ty); }
     y = ty + 26;
-    ctx.strokeStyle = LINE; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(sx, y - 10); ctx.lineTo(sx + sideW, y - 10); ctx.stroke();
-  });
+    ctx.strokeStyle = LINE; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(px, y - 10); ctx.lineTo(px + colW, y - 10); ctx.stroke();
+  }
 
   // the kit at the line, with its icons
   const kit = MARKS.filter(k => k.kind !== 'person')
