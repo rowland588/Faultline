@@ -568,24 +568,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
       ...(project.lead?.trim() ? { by: project.lead.trim() } : {}),
     } } : {}),
     standards: live(x.standards),
-    evidence: studies.map(s => {
-      const used = s.uses.map(u => {
-        const r = tests.find(t => t.id === u.ref);
-        if (!r) return '';
-        return u.kind === 'test' ? `proves ${r.title}` : u.role === 'evidence' ? `how we know: ${r.title}` : `proves the fix: ${r.title}`;
-      }).filter(Boolean).join('; ');
-      const l = studyLine(s, ctx);
-      const branches = new Map(s.uses.flatMap(u => { const r = u.step && u.role === 'evidence' ? tests.find(t => t.id === u.ref) : undefined; return r && u.step ? [[u.step, r.title] as [string, string]] : []; }));
-      const losses = s.tool === 'losses' ? lossRows(lossFiguresOf(s, ctx), s.facts.losses) : undefined;
-      const sampling = s.tool === 'sampling' && !s.agreed?.sampling?.walk ? samplingRows(s.agreed?.sampling, s.facts.taps ?? []) : undefined;
-      return { id: s.id, title: studyTitle(s), href: studyHref(s),
-        used: used || 'not used for a record yet', line: l.text, tone: l.tone,
-        ...(s.tool === 'map' && (s.facts.flow ?? []).length ? { stream: streamRows(s.facts.flow, s.agreed?.map, branches) } : {}),
-        ...(s.tool === 'changeover' && (s.facts.sequence ?? []).length
-          ? { changeover: changeoverSheet(s.facts, agreedFor(live(x.standards).find(st => st.id === s.standardId)?.capacity?.changeovers, s.facts.fromProduct), branches,
-              moneyOf(ctx?.workspaces?.find(w => w.id === s.workspaceId))) } : {}),
-        ...(losses ? { losses } : {}), ...(sampling ? { sampling } : {}) };
-    }),
+    evidence: studies.map(s => studyEvidence(s, tests, live(x.standards), ctx)),
     /* Notes are never on the client's copy — they are private
        preparation — so a note's reminder stays off its plan page too. */
     plan: st.plan.filter(m => m.kind !== 'note'),
@@ -595,6 +578,29 @@ export function clientReport(x: ClientReportInput): ClientReport {
     ...(project.expectedAt ? { expectedAt: project.expectedAt } : {}),
     ...(project.plannedAt ? { plannedAt: project.plannedAt } : {}),
   };
+}
+
+/** ONE STUDY AS PAPER SAYS IT — what it is, what it is used for, its
+ *  sentence and its table (a value stream's grid, a changeover's steps, a
+ *  shift's losses, a sampling's shares). The client report's Evidence and a
+ *  study's own paper (lib/studiesPdf) both read it, so the two never part. */
+export function studyEvidence(s: ToolStudy, tests: Pick<Test, 'id' | 'title'>[], standards: Standard[], ctx?: StudyContext): ClientReport['evidence'][number] {
+  const used = s.uses.map(u => {
+    const r = tests.find(t => t.id === u.ref);
+    if (!r) return '';
+    return u.kind === 'test' ? `proves ${r.title}` : u.role === 'evidence' ? `how we know: ${r.title}` : `proves the fix: ${r.title}`;
+  }).filter(Boolean).join('; ');
+  const l = studyLine(s, ctx);
+  const branches = new Map(s.uses.flatMap(u => { const r = u.step && u.role === 'evidence' ? tests.find(t => t.id === u.ref) : undefined; return r && u.step ? [[u.step, r.title] as [string, string]] : []; }));
+  const losses = s.tool === 'losses' ? lossRows(lossFiguresOf(s, ctx), s.facts.losses) : undefined;
+  const sampling = s.tool === 'sampling' && !s.agreed?.sampling?.walk ? samplingRows(s.agreed?.sampling, s.facts.taps ?? []) : undefined;
+  return { id: s.id, title: studyTitle(s), href: studyHref(s),
+    used: used || 'not used for a record yet', line: l.text, tone: l.tone,
+    ...(s.tool === 'map' && (s.facts.flow ?? []).length ? { stream: streamRows(s.facts.flow, s.agreed?.map, branches) } : {}),
+    ...(s.tool === 'changeover' && (s.facts.sequence ?? []).length
+      ? { changeover: changeoverSheet(s.facts, agreedFor(standards.find(st => st.id === s.standardId)?.capacity?.changeovers, s.facts.fromProduct), branches,
+          moneyOf(ctx?.workspaces?.find(w => w.id === s.workspaceId))) } : {}),
+    ...(losses ? { losses } : {}), ...(sampling ? { sampling } : {}) };
 }
 
 /** "2 at Commission · 1 at Install" — the machines in one line. */

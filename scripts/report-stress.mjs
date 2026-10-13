@@ -392,6 +392,26 @@ for (const size of SIZES) {
       rows.push({ size, report: name, pages: 0, faults: [`could not make it: ${e.message.split('\n')[0]}`] });
     }
   }
+  /* EVERY STUDY LIST ON PAPER (lib/studiesPdf; 13 October audit, bar 3:
+     "I'm always asking for reports, or cards") — each tool's list, every
+     study shown, its title on the paper and nothing off the page. */
+  for (const [tool, hash] of [['capability', '#/capability'], ['map', '#/value-stream'], ['changeover', '#/smed'], ['losses', '#/losses'], ['sampling', '#/sampling']]) {
+    const mustStudies = await page.evaluate(async tool => {
+      const { san } = await import('/src/lib/reportKit.ts'); await (await import('/src/lib/savePdf.ts')).loadPdfLib();
+      const L = await import('/src/lib/studyLinks.ts');
+      const all = (await (await import('/src/db.ts')).listAllStudies()).filter(s => s.tool === tool && !s.deletedAt);
+      return all.map(s => [L.studyTitle(s), san(L.studyTitle(s)), 'a study shown']);
+    }, tool);
+    if (!mustStudies.length) continue;
+    const file = `${OUT}/${size}-studies-${tool}.pdf`;
+    try {
+      await download(page, hash, file, [[/every one shown \(PDF\)$/]]);
+      const r = check(file, mustStudies);
+      rows.push({ size, report: `studies: ${tool}`, pages: r.pages, faults: r.faults, said: r.said });
+    } catch (e) {
+      rows.push({ size, report: `studies: ${tool}`, pages: 0, faults: [`could not make it: ${e.message.split('\n')[0]}`] });
+    }
+  }
   /* THE PROBLEMS REPORT (lib/snagsReportPdf; 12 October: "Snags need its
      own report", then the register — "every single problem ... a journey of
      improvement ... I want a fresh start") — seeded after the job's own

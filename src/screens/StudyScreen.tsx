@@ -218,9 +218,11 @@ function Strip({ f, a, said }: { f: SampleFigures; a: AgreedReadings; said: Samp
         <span className="ie-fig">mean <b>{fx(f.mean)}{unit}</b></span>
         <span className="ie-fig">{fx(f.min)}–{fx(f.max)}</span>
         <span className={'ie-fig' + (f.outside.length ? ' is-r' : ' is-zero')}><b>{f.outside.length}</b> outside</span>
-        {f.cpk !== undefined && Number.isFinite(f.cpk) && (
-          <span className={'ie-fig is-' + (cap?.tone ?? 'n')}>
-            Cpk <b>{f.n >= CPK_FROM ? f.cpk.toFixed(2) : '—'}</b> · from {f.n}{f.n < CPK_FROM ? ' · too few' : ''}
+        {f.ppk !== undefined && Number.isFinite(f.ppk) && (
+          <span className={'ie-fig is-' + (cap?.tone ?? 'n')} title="Ppk: the readings as they came. Cpk: pack to pack, from each reading's difference from the one before.">
+            Ppk <b>{f.n >= CPK_FROM ? f.ppk.toFixed(2) : '—'}</b>
+            {f.cpk !== undefined && Number.isFinite(f.cpk) && <> · Cpk <b>{f.n >= CPK_FROM ? f.cpk.toFixed(2) : '—'}</b></>}
+            {' '}· from {f.n}{f.n < CPK_FROM ? ' · too few' : ''}
           </span>
         )}
       </>}
@@ -425,7 +427,9 @@ function Act({ s, f, said, can, me, write }: {
     closedAt: now(),
     receipt: { at: now(), ...by, text: [said.text, said.capability?.text].filter(Boolean).join(' '), tone: said.tone,
       figures: { n: f.n, count: f.count, mean: f.mean ?? null, sd: f.sd ?? null, min: f.min ?? null, max: f.max ?? null,
-        outside: f.outside.length, cpk: f.n >= CPK_FROM && f.cpk !== undefined && Number.isFinite(f.cpk) ? +f.cpk.toFixed(2) : null },
+        outside: f.outside.length,
+        ppk: f.n >= CPK_FROM && f.ppk !== undefined && Number.isFinite(f.ppk) ? +f.ppk.toFixed(2) : null,
+        cpk: f.n >= CPK_FROM && f.cpk !== undefined && Number.isFinite(f.cpk) ? +f.cpk.toFixed(2) : null },
       ...(cur.receipt?.reopened ? { reopened: cur.receipt.reopened } : {}) },
   }));
   const reopened = s.receipt?.reopened ?? [];

@@ -50,9 +50,19 @@ export function Sheet({ open, onClose, title, children }: {
   if (!open) return null;
   return createPortal(
     <div className="sheet-scrim" onClick={() => { if (Date.now() - openedAt.current > 450) onClose(); }}>
-      <div className="sheet" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
-        <div className="sheet-grip" />
-        {title && <div className="sheet-title">{title}</div>}
+      <div className="sheet" role="dialog" aria-modal="true" aria-label={title} onClick={e => e.stopPropagation()}>
+        {/* A WAY OUT OF EVERY SHEET (Rowland, 13 October: "when I click on the
+            PDF, I can't get out of it. There's no X mark"). A sheet with more in
+            it than the screen holds — a card preview, a long editor — grew to
+            the top, leaving no page around it to tap; its head stays put as it
+            scrolls, the × always there. */}
+        <div className="sheet-head">
+          <div className="sheet-grip" />
+          <div className="sheet-head-row">
+            {title ? <div className="sheet-title">{title}</div> : <span />}
+            <button type="button" className="sheet-x" onClick={onClose} aria-label="Close"><Icon name="close" size="1.1em" /></button>
+          </div>
+        </div>
         {children}
       </div>
     </div>,

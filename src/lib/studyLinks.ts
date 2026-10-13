@@ -314,7 +314,7 @@ export function measuredDays(s: ToolStudy, dayOfMs: (ms: number) => string): str
 }
 
 /** A TEST'S SQUARE on the Commission board: the study proving it, in two
- *  or three words — "Cpk 1.00" once there are enough readings for it, else
+ *  or three words — "Ppk 1.00" once there are enough readings for it, else
  *  "12 of 30 readings". Only the abnormal carries colour: not capable is
  *  amber (it may pass today and fail next week); a failure is red. */
 export function squareWord(studies: ToolStudy[], testId: ID): { text: string; tone: Tone } | undefined {
@@ -325,7 +325,7 @@ export function squareWord(studies: ToolStudy[], testId: ID): { text: string; to
   if (!a || a.kind === 'ticks') return { text: said.verdict, tone: said.tone === 'r' ? 'r' : 'n' };
   const f = sample(a, s.facts.readings ?? []);
   if (said.tone === 'r') return { text: said.verdict, tone: 'r' };
-  if (f.cpk !== undefined && f.n >= CPK_FROM) return { text: `Cpk ${f.cpk.toFixed(2)}`, tone: f.cpk < CPK_JUST ? 'a' : 'n' };
+  if (f.ppk !== undefined && f.n >= CPK_FROM) return { text: `Ppk ${f.ppk.toFixed(2)}`, tone: f.ppk < CPK_JUST ? 'a' : 'n' };
   return { text: `${f.n} of ${f.count} readings`, tone: 'n' };
 }
 
@@ -377,7 +377,7 @@ export function betterExpect(s: ToolStudy, stepId?: string, ctx?: StudyContext):
     const f = balance(s.facts.steps, s.agreed?.balance), c = f.constraint;
     return c && f.taktSec ? `${c.who} within the ${secsOf(f.taktSec)} takt, timed again` : undefined;
   }
-  return s.agreed?.readings && s.agreed.readings.kind !== 'ticks' ? 'Every reading within the limits, Cpk 1.33 or more, on the same readings again' : undefined;
+  return s.agreed?.readings && s.agreed.readings.kind !== 'ticks' ? 'Every reading within the limits, Ppk 1.33 or more, on the same readings again' : undefined;
 }
 
 /** MAKE IT BETTER ON A RUNNING LINE: a countermeasure on the board, its words

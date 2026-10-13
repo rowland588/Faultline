@@ -1,7 +1,7 @@
 /* The measured test's arithmetic, proved by the worked example in
  * docs/LEAN40.md's appendix and the cases docs/BUILD.md 2c names. */
 import { describe, it, expect } from 'vitest';
-import { sample, sampleSays, compareSamples, tneFor, inWords, upperTail } from '../sample';
+import { sample, sampleSays, compareSamples, tneFor, inWords, upperTail, capabilityWords, drifts } from '../sample';
 import type { AgreedReadings, StudyReading } from '../../study';
 
 const THIRTY = [400.1, 402.6, 401.6, 400.8, 401.5, 401.3, 400.2, 401.9, 400.6, 400.4, 400.6, 401.2, 401.9, 400.9, 401.8,
@@ -19,16 +19,16 @@ describe('the thirty packs (docs/LEAN40.md, appendix)', () => {
     expect(f.outside).toEqual([]);
     expect(f.enough).toBe(true);
   });
-  it('Cpk 0.67, nearest the lower limit, about 2 in 100 light', () => {
-    expect(f.cpk!.toFixed(2)).toBe('0.67');
-    expect(f.cpkSide).toBe('low');
+  it('Ppk 0.67 (the readings as they came), nearest the lower limit, about 2 in 100 light', () => {
+    expect(f.ppk!.toFixed(2)).toBe('0.67');
+    expect(f.ppkSide).toBe('low');
     expect(inWords(f.shareOut!)).toBe('about 2 in 100');
   });
   it('both are said: passed, and not capable', () => {
     const s = sampleSays(f, LIMITS);
     expect(s.text).toBe('30 readings, mean 401.2 g, 400.1–402.6, all within 400.0–404.0 g — Passed.');
     expect([s.tone, s.verdict]).toEqual(['g', 'Passed']);
-    expect(s.capability).toEqual({ text: 'Not capable: Cpk 0.67 from 30 — about 2 in 100 would be light.', tone: 'a' });
+    expect(s.capability).toEqual({ text: 'Not capable: Ppk 0.67 from 30 — about 2 in 100 would be light.', tone: 'a' });
   });
 });
 
@@ -94,11 +94,12 @@ describe('the packers’ rules, applied plainly', () => {
 });
 
 describe('one limit, and ticks', () => {
-  it('“at least 400 g”: the Cpk from the lower side alone, no Cp', () => {
+  it('“at least 400 g”: the Ppk from the lower side alone, no Pp', () => {
     const A: AgreedReadings = { kind: 'limits', unit: 'g', lower: 400, count: 30 };
     const f = sample(A, rs(THIRTY));
+    expect(f.pp).toBeUndefined();
     expect(f.cp).toBeUndefined();
-    expect(f.cpk!.toFixed(2)).toBe('0.67');
+    expect(f.ppk!.toFixed(2)).toBe('0.67');
     expect(sampleSays(f, A).text).toMatch(/all at least 400\.0 g — Passed\.$/);
   });
   it('a row of ticks: all ✓ passes; one ✗ fails and is named', () => {
@@ -122,7 +123,7 @@ describe('before → after', () => {
     const before = sample(LIMITS, rs(THIRTY));
     const after = sample(LIMITS, rs(THIRTY.map(v => Math.round((v + 1) * 10) / 10)));
     const c = compareSamples(before, after, LIMITS);
-    expect(c.text).toMatch(/^mean 401\.2 → 402\.2 g · Cpk 0\.67 → 1\.0\d — just capable now\. The number moved/);
+    expect(c.text).toMatch(/^mean 401\.2 → 402\.2 g · Ppk 0\.67 → 1\.0\d — just capable now\. The number moved/);
     expect(c.tone).toBe('a');
     expect(compareSamples(sample(LIMITS, rs(THIRTY.slice(0, 5))), after, LIMITS).text).toMatch(/^Too early/);
   });
@@ -130,5 +131,34 @@ describe('before → after', () => {
     expect(upperTail(2)).toBeCloseTo(0.02275, 4);
     expect(upperTail(0)).toBeCloseTo(0.5, 6);
     expect(upperTail(-1)).toBeCloseTo(0.84134, 4);
+  });
+});
+
+/* PPK AND CPK, AS THE PRACTICE NAMES THEM (13 October audit, docs/AUDIT.md 2).
+   Worked by hand. */
+describe('Ppk from the overall spread, Cpk from the moving range', () => {
+  const r = (vs: number[]) => vs.map((value, i) => ({ id: `r${i}`, value, at: i }));
+  it('10, 12, 11, 13, 12 against 8–16: s 1.140, moving range 1.5 ÷ 1.128 = 1.330; Ppk 1.05, Cpk 0.90', () => {
+    const f = sample({ kind: 'limits', lower: 8, upper: 16, count: 5 }, r([10, 12, 11, 13, 12]));
+    expect(f.sd!).toBeCloseTo(1.1402, 4);
+    expect(f.sdWithin!).toBeCloseTo(1.5 / 1.128, 9);
+    expect(f.ppk!).toBeCloseTo(3.6 / (3 * 1.1402), 3);
+    expect(f.cpk!).toBeCloseTo(3.6 / (3 * (1.5 / 1.128)), 9);
+    expect(f.pp!).toBeCloseTo(8 / (6 * 1.1402), 3);
+    expect(f.cp!).toBeCloseTo(8 / (6 * (1.5 / 1.128)), 9);
+  });
+  it('a run that creeps up 0.1 g a pack: steady pack to pack, not over the run — the drift said', () => {
+    const vs = Array.from({ length: 30 }, (_, i) => Math.round((400 + i * 0.1) * 10) / 10);
+    const a = { kind: 'limits' as const, lower: 400, upper: 404, count: 30, unit: 'g' };
+    const f = sample(a, r(vs));
+    expect(f.sdWithin!).toBeCloseTo(0.1 / 1.128, 6);
+    expect(f.ppk!).toBeLessThan(1);
+    expect(f.cpk!).toBeGreaterThan(5);
+    expect(drifts(f)).toBe(true);
+    expect(capabilityWords(f, a)?.text).toMatch(/^Not capable: Ppk 0\.55 from 30 — about \d+ in 100 would be light\. Pack to pack it is steadier — Cpk 5\.4\d: it drifts across the run\.$/);
+  });
+  it('the same readings shuffled into a steady run: no drift said', () => {
+    const f = sample({ kind: 'limits', lower: 8, upper: 16, count: 5 }, r([10, 12, 11, 13, 12]));
+    expect(drifts(f)).toBe(false);
   });
 });
