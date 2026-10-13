@@ -264,12 +264,11 @@ export interface Portfolio {
 
 const WEEK_DAYS = 7;
 
-/** "Line 2B commissioning" is "Line 2B" on a board where every row is a
- *  commissioning job — the word said nothing and pushed the rest off the row. */
-export function shortName(name: string): string {
-  const s = name.replace(/\s*\bcommissioning\b\s*/i, ' ').replace(/\s+/g, ' ').trim();
-  return s || name;
-}
+/* A JOB IS CALLED BY ITS NAME. "Line 2B commissioning" was "Line 2B" here,
+   when every row of the board was a commissioning job and the word said
+   nothing. Now the factory's real lines share the screen — Line 2 the line,
+   and Line 2 commissioning the job on it — so a job cut to "Line 2" reads as
+   a line (docs/FLOW-AUDIT.md #7, #20). The whole name, everywhere. */
 
 const addDays = (iso: string, n: number): string => {
   const d = new Date(iso + 'T12:00:00');
@@ -308,7 +307,7 @@ export function lateWhen(x: Pick<JobItem, 'on' | 'lost'>, today: string): string
  *  by, so the board and each job's own verdict cannot disagree. */
 export function jobItems(j: JobInput, today: string): JobItem[] {
   const p = j.project;
-  const base = { jobId: p.id, job: shortName(p.name), color: p.color };
+  const base = { jobId: p.id, job: p.name, color: p.color };
   const out: JobItem[] = [];
   for (const t of live(j.tests)) {
     const owed = !isSettled(t) || t.outcome === 'notRun';
@@ -368,7 +367,7 @@ export function criticalItems(j: Pick<JobInput, 'project' | 'tests' | 'items' | 
   return criticalProblems(j.tests, j.items, j.assets).open.map(c => {
     const impact = c.item.impact?.trim();
     return {
-      jobId: p.id, job: shortName(p.name), color: p.color,
+      jobId: p.id, job: p.name, color: p.color,
       kind: !c.on ? 'test' as const : c.on.kind === 'install' ? gateOf(c.on) : c.on.kind ?? 'test',
       /* The problem itself opens (docs/DOORS.md) — its stage is one tap from it. */
       id: c.item.id,
@@ -386,7 +385,7 @@ export function riskItems(j: Pick<JobInput, 'project' | 'tests' | 'items' | 'ass
     const impact = c.item.impact?.trim();
     const could = couldWords(c.item);
     return {
-      jobId: p.id, job: shortName(p.name), color: p.color,
+      jobId: p.id, job: p.name, color: p.color,
       kind: !c.on ? 'test' as const : c.on.kind === 'install' ? gateOf(c.on) : c.on.kind ?? 'test',
       id: c.item.id,
       what: c.item.what.trim() || 'A high risk', who: c.item.owner?.trim() ?? '', late: false,
@@ -398,7 +397,7 @@ export function riskItems(j: Pick<JobInput, 'project' | 'tests' | 'items' | 'ass
 /** What a 6M or lever tree job owes: every open action on its board. */
 export function pacedItems(j: PacedInput, today: string): JobItem[] {
   const p = j.project;
-  const base = { jobId: p.id, job: shortName(p.name), color: p.color };
+  const base = { jobId: p.id, job: p.name, color: p.color };
   return j.steps.filter(s => s.state !== 'done').map(s => ({
     ...base, kind: 'action' as const, id: s.id, what: (s.what || '').trim() || 'An action',
     who: s.who ?? '', on: s.due, late: stepIsLate(s, today),
@@ -623,7 +622,7 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
     const items = all[i];
     const base = {
       id: p.id, method: planModel(p), methodLabel: methodOf(p).label,
-      name: shortName(p.name), color: p.color, lead: p.lead,
+      name: p.name, color: p.color, lead: p.lead,
       from: ats.length ? Math.min(...ats) : undefined,
       to: ends.length ? Math.max(...ends) : undefined,
       marks, axis: plan.axis, plan: e.plan,
@@ -762,7 +761,7 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
   const reminders: JobItem[] = entries.flatMap(e => {
     const notes = e.gate ? e.gate.j.items : e.paced?.notes ?? [];
     return remindersOf(notes, today).map(r => ({
-      jobId: e.project.id, job: shortName(e.project.name), color: e.project.color,
+      jobId: e.project.id, job: e.project.name, color: e.project.color,
       kind: 'note' as const, id: r.id, what: r.what, who: '', on: r.due, late: r.days < 0,
     }));
   }).sort(byUrgency);
