@@ -36,7 +36,7 @@ export function WalkPanel({ title, snags, today, projectId, onClose }: {
                 </span>
                 <span className="wp-body">
                   <span className={'wp-state is-' + tone}>{late ? 'Past due' : STATE[s.state]}</span>
-                  <b className="wp-what">{s.what || 'A snag with no words yet'}</b>
+                  <b className="wp-what">{s.what || 'A problem with no words yet'}</b>
                   <small className="wp-meta">
                     {s.frameName ? `${s.frameName} · ` : ''}found {niceDay(s.found, { weekday: 'short' })}
                     {s.state !== 'closed' && (s.due ? ` · due ${niceDay(s.due, { weekday: 'short' })}` : ' · no date agreed')}

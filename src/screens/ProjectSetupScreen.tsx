@@ -562,7 +562,7 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
               <p>{deleting.length
                 ? <>It goes with everything in it: {deleting.map(c => `${c.count} ${STORE_WORDS[c.store] ?? c.store}`).join(' · ')}.</>
                 : <>It is empty — only the project goes.</>}</p>
-              <p className="sub">The filmed walks, their videos and the snags stay with their lines. This cannot be undone, on any device.</p>
+              <p className="sub">The filmed walks, their videos and the problems stay with their lines. This cannot be undone, on any device.</p>
               <span style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button className="btn proj-del is-go" disabled={gone} onClick={() => void (async () => {
                   setGone(true);

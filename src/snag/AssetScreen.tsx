@@ -397,7 +397,7 @@ function SnagEditor({ wsId, asset, draft, snag, observations, still, pinAt, onCl
           {links.map(id => { const o = obsById.get(id); return (
             <div key={id} className="loss-link"><span className="loss-link-label">{o ? obsLabel(o) : 'logged loss'}{o ? <span className="loss-link-ctx"> · {o.asset}</span> : ''}</span><button className="loss-link-x" onClick={() => setLinks(ls => ls.filter(x => x !== id))} aria-label="Unlink"><Icon name="close" size="0.85em" /></button></div>
           ); })}
-          <input className="text-input" value={q} placeholder="Search this workspace's logged losses…" onChange={e => setQ(e.target.value)} />
+          <input className="text-input" value={q} placeholder="Search this line's logged losses…" onChange={e => setQ(e.target.value)} />
           {candidates.length > 0 && (
             <div className="loss-cands">
               {candidates.map(o => (

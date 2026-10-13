@@ -16,8 +16,8 @@
  * the board (HUNT 14): the caller passes `onOpen` and holds the sheet, and a
  * client gets the sheet's read-only form, the same as on the board. */
 import { useEffect, useMemo, useState } from 'react';
-import type { PaceAction } from '../lib/tracker';
-import type { PaceRoster } from '../lib/tracker';
+import type { PaceAction } from '../lib/actionShapes';
+import type { PaceRoster } from '../lib/actionShapes';
 
 const isDone = (a: PaceAction) => /^done$/i.test(a.status.trim());
 const isOverdue = (a: PaceAction) => /overdue/i.test(a.flag ?? '') && !isDone(a);

@@ -225,7 +225,7 @@ export function exportSheets(projects: ProjectData[], walks: WalkData[], exporte
       ['Projects', `${n('Projects')}`],
       ['Machines', `${n('Machines')}`],
       ['Tests', `${n('Tests')} (re-tests name the original test in "Re-test of")`],
-      ['Issues', `${n('Issues')} — fixes and snags together; "Type" says which`],
+      ['Issues', `${n('Issues')} — fixes and problems together; "Type" says which`],
       ['Notes', `${n('Notes')} — what was seen during a test`],
       ['Materials', `${n('Materials')}`],
       ['Programs', `${n('Programs')}`],

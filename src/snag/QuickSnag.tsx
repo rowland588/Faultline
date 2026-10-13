@@ -58,7 +58,7 @@ export function QuickSnagHost({ wsId, projectId }: { wsId?: string; projectId?: 
   }, []);
   return (
     <>
-      <button type="button" className="qs-fab" onClick={() => openQuickSnag()} aria-label="Snag — spot an issue">
+      <button type="button" className="qs-fab" onClick={() => openQuickSnag()} aria-label="Problem — spot an issue">
         <Icon name="camera" size={22} /><span>Problem</span>
       </button>
       {open && <QuickSnagSheet key={open.n} snag={open.snag} wsId={wsId} projectId={projectId} onClose={() => setOpen(null)} />}
@@ -156,7 +156,7 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
   const remove = async () => {
     if (!snag) return;
     await updateSnag({ ...snag, deletedAt: Date.now() });
-    offerUndo('Snag deleted', async () => { await updateSnag({ ...snag, deletedAt: undefined }); });
+    offerUndo('Problem deleted', async () => { await updateSnag({ ...snag, deletedAt: undefined }); });
     onClose();
   };
 
@@ -240,7 +240,7 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
             ? <button type="button" className="btn qs-del" onClick={() => void remove()}>Delete</button>
             : <button type="button" className="btn" onClick={onClose}>{saved ? 'Done' : 'Cancel'}</button>}
           <span style={{ flex: 1 }} />
-          {!snag && <button type="button" className="btn" disabled={!ready} onClick={() => void save(true)}>Save and snag another</button>}
+          {!snag && <button type="button" className="btn" disabled={!ready} onClick={() => void save(true)}>Save and take another</button>}
           <button type="button" className="btn btn-primary" disabled={!ready} onClick={() => void save(false)}>Save</button>
         </div>
       </div>

@@ -39,7 +39,7 @@ export function remember(which: keyof typeof KEY, v: string): void {
 export interface SendHow { flag?: 'critical' | 'risk'; fix?: boolean }
 
 const wordsOf = (s: Snag): string =>
-  s.problem.trim() || (s.targetAsset ? `Snag on the ${s.targetAsset} — see the picture` : 'Snag — see the picture');
+  s.problem.trim() || (s.targetAsset ? `Problem on the ${s.targetAsset} — see the picture` : 'Snag — see the picture');
 
 /** IT HAS MOVED. Rowland, 8 October: "does it move from a snag and go to the
  *  fix page, to keep things clean and transitional?" Once on the job, the

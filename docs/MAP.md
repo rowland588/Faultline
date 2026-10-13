@@ -13,31 +13,12 @@ feature, not part of the control room (`CLAUDE.md`), and the map says so.
 
 ## The shape
 
-```
-Home — the control room                      #/            WorkspaceHome
- └─ a change to a line = a PROJECT, on one of three methods
-     ├─ Stage gate   (stored `commissioning`)  #/project/P   new equipment through its gates
-     ├─ 3P           (stored `board`)          #/project/P   a running line, week by week on the board
-     └─ Lever tree   (stored `tree`)           #/project/P   one outcome worked down to what must be true
-         └─ its lines                          #/project/P/line/L
-             └─ tools used inside the change    #/w/W/…       the filmed walk, the stopwatch, evidence, the case
-```
-
-- **The record is the project** (`src/db/projects.ts`, `src/types.ts`). Lines
-  hang off it (`src/db/pace.ts`), people off lines, actions off the project
-  with a line (`src/lib/actions.ts`), and every tool writes into a workspace
-  the line owns (`projects.walk_workspace_id`, `pace_lines.workspace_id`).
-- **The method is decided once** in `src/lib/planModel.ts` (`MODELS`): the
-  situation that starts it, the question it answers, how it is organised, its
-  rhythm, what done means, what it prints. A fourth method is one more entry.
-- **The reports** are the method's document, built from the same records the
-  screens read, never typed: stage gate → `src/lib/clientReportPdf.ts` (+ the
-  trial card, test and fix cards, the day report, the standard); 3P and lever
-  tree → `src/lib/paceReportPdf.ts` with its screen twin `PaceExecReport.tsx`
-  (the page and the file draw from one block each, so they cannot disagree).
-- **Data** lives on the device (IndexedDB, `src/db/*`) and syncs to Supabase
-  (`src/cloud/sync.ts`, `src/cloud/mappers.ts`); the three refresh rules and
-  the write path are in `docs/DATAFLOW.md`.
+**Superseded 13 October by `docs/BLUEPRINT.md` §1** — four layers: the control
+room, your factory (lines → machines → programs → standards), the work on a
+line (no job needed), and jobs that point at lines. The shape this section
+drew — project → its lines → tools — is how the app was built before lines
+became the factory; it is the entanglement the blueprint's stages undo. The
+route table below stays true and is kept.
 
 ## The three methods, as stored and as shown
 

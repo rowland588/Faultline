@@ -375,7 +375,7 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
           never renames or removes anything you already have */}
       <div className="card" style={{ marginTop: 12 }}>
         <div className="field-label">Add a starter vocabulary</div>
-        <p className="sub" style={{ margin: '4px 0 8px' }}>Merge a pre-built loss tree into this workspace. Only adds what's missing — your existing categories, kinds and assets are untouched.</p>
+        <p className="sub" style={{ margin: '4px 0 8px' }}>Merge a pre-built loss tree into this line. Only adds what's missing — your existing categories, kinds and assets are untouched.</p>
         {TAXONOMIES.filter(t => t.id !== 'lean').map(t => (
           <button key={t.id} className="tax-opt" style={{ width: '100%', marginBottom: 6 }} onClick={() => void mergeTaxonomy(t)}>
             <span className="tax-name"><Icon name="plus" size="1.15em" /> {t.name}</span>

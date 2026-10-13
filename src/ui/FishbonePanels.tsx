@@ -22,7 +22,7 @@
 import { useEffect, useId, type ReactNode } from 'react';
 import type { Can } from '../lib/access';
 import type { ProblemView } from '../lib/problems';
-import type { PaceAction } from '../lib/tracker';
+import type { PaceAction } from '../lib/actionShapes';
 import type { Case } from '../types';
 import { sixmLabel, type Cause, type CauseSource } from '../lib/sixm';
 import { causeRefOf } from '../lib/fishbone';

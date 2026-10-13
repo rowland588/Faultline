@@ -15,7 +15,7 @@
 import { useState } from 'react';
 import type { Can } from '../lib/access';
 import type { ProblemView } from '../lib/problems';
-import type { PaceAction } from '../lib/tracker';
+import type { PaceAction } from '../lib/actionShapes';
 import { blamesAPerson, GRADES, KNOWN_WORD, SIXM, sixmLabel, type Cause, type CauseSource, type CauseStatus, type Grade, type Why } from '../lib/sixm';
 import { statusOfAction } from '../lib/treeBind';
 import { uid } from '../lib/ids';

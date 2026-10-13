@@ -92,7 +92,7 @@ describe('everything in the app, as a workbook', () => {
     expect(col('Tests', 'Re-test of')[1]).toBe('Seal integrity');
   });
 
-  it('puts fixes and snags in one Issues list, each saying which it is and which test', () => {
+  it('puts fixes and problems in one Issues list, each saying which it is and which test', () => {
     const { col } = book();
     expect(col('Issues', 'Type')).toEqual(['Fix', 'Fix', 'Snag']);
     expect(col('Issues', 'For test').slice(0, 2)).toEqual(['Seal integrity', 'Not from a test']);

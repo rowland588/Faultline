@@ -18,7 +18,7 @@
  * the row to edit when a card is tapped. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getCaseEvenRemoved, listPaceTodos, loadPaceLines, onDataChange, type PaceLineRow, type PaceTodoRow } from '../db';
-import type { PaceAction } from './tracker';
+import type { PaceAction } from './actionShapes';
 import { sixmLabel, toSixM } from './sixm';
 import { addDays, todayISO } from './weeks';
 import { parseCauseRef as parseRef } from './fishbone';

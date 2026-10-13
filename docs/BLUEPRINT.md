@@ -33,9 +33,9 @@ places, older models are still wired in (the Excel tracker, Project Pace,
 | Code | 89,493 lines · 61 screens · 132 logic modules · 88 UI parts |
 | Records | 30 local stores, 21 synced to the cloud |
 | Design docs | 22 files, 8,144 lines — none of them the whole |
-| Imported by nothing | `lib/xlsxRead`, `lib/paceLineMatch`, `ui/Peers`, `lib/ie/mix`, `lib/ie/ergo` |
+| Imported by nothing | `lib/paceLineMatch`, `ui/Peers`, `lib/ie/mix`, `lib/ie/ergo` (`lib/xlsxRead` looked so, but the export test reads the exported workbook back with it — it stays) |
 | Synced, read by no screen | `project_targets`, `project_actuals` |
-| Excel tracker still wired | about 35 files — though ruled out on 1 October ("there will be no Excel that needs to be uploaded") |
+| Excel tracker still wired | about 35 files *named* it — though ruled out on 1 October ("there will be no Excel that needs to be uploaded"). On tracing (Stage 0): the upload itself was already gone; what was left was the board's shapes in a file called `tracker`, a store nothing wrote, and the old names |
 | "Pace" (Project Pace, the first single project) | 173 files |
 
 ---
@@ -162,16 +162,20 @@ A screen that shows a record outside this table must add a row here.
 Rule 1 of how a change is made: nothing goes until we can say why it was
 there and what replaces it.
 
-1. **The Excel tracker import** — `lib/tracker`, `TrackerPicker`, `pace_snapshots`
-   reads, and about 35 files around them. *Why it was there:* before the app
+1. **The Excel tracker import** — `lib/tracker`, `TrackerPicker`, `pace_snapshots`,
+   and the files that named them. *Done in Stage 0:* the shapes the board uses
+   moved to `lib/actionShapes`; `TrackerPicker` is `ActionPicker` (it picks the
+   board's actions for a lever-tree box); `pace_snapshots` is no longer synced
+   (0 rows in the cloud, ever). Kept, because it is stored data: the `tracker:`
+   prefix in a lever-tree box's saved text. *Why it was there:* before the app
    held the 3P work, the team's spreadsheet was uploaded. *Replaced by* the
    6M board, which holds the work, and Rowland on 1 October: "there will be no
    Excel that needs to be uploaded ... this is about now fully using the app."
    Removed once we know nothing live is still read only through it (D4).
 2. **`project_targets` and `project_actuals`** — synced, read by no screen.
    Replaced by `measures`, `targets` and `readings`.
-3. **Files nothing imports**: `lib/xlsxRead`, `lib/paceLineMatch`, `ui/Peers`
-   go. `lib/ie/mix` and `lib/ie/ergo` are arithmetic built ahead of use: mix
+3. **Files nothing imports**: `lib/paceLineMatch` and `ui/Peers` went in Stage 0.
+   `lib/xlsxRead` stays — the export test reads the workbook back with it. `lib/ie/mix` and `lib/ie/ergo` are arithmetic built ahead of use: mix
    is wired into capacity in Stage 4 (`CAPACITY.md`, the mix); ergo is a
    decision for later.
 4. **"Pace"** — Project Pace, the first single project, named in 173 files.
@@ -289,6 +293,9 @@ side by side. The order follows the dependencies.
   routes tidied; "snag" gone from the code's words as well as the screens.
 
 ### Stage 6 — Paper complete
+- Drop the retired cloud tables (`pace_snapshots`, `project_targets`,
+  `project_actuals`) and their empty local stores, once no device runs a build
+  older than Stage 0.
 - The factory, line, control room and job reports, consistent with
   `REPORTS.md`. `report-stress` covers the new ones.
 
@@ -324,13 +331,21 @@ is still wired.
   standard showing up in line capacity.
 - **D4 — Remove the Excel tracker and the two unused stores**, after I count,
   with your OK, whether the live database holds anything only they can read.
-- **D5 — A people list** (names picked, not typed) now, or later.
+- **D5 — A people list** (names picked, not typed) now, or later. *Agreed: yes —
+  built after Stage 4, when every "whose" box is on the factory's records.*
 
 ---
 
 ## 10. Where it stands, 13 October
 
-- **Live:** Control room problems (`055bb87`).
-- **In the gate now:** Your factory slices 1–3, the line standard board, the
-  archive rule. They ship when the gate is green (they are Stage 0).
-- **Nothing else is built** until this blueprint is agreed.
+- **Agreed** by Rowland, 13 October: "yes to all, start stage 0" (D1–D5 as
+  recommended; D5 — the people list — comes after Stage 4).
+- **Stage 0, built:** Your factory slices 1–3, the line standard board and the
+  archive rule; the three dead stores out of sync and the API (D4 counted:
+  `pace_snapshots`, `project_targets`, `project_actuals` — 0 rows each; their
+  empty cloud tables and local stores are dropped in Stage 6, once no device
+  runs an old build); `lib/paceLineMatch`, `ui/Peers` removed; the tracker's
+  names gone; the old words swept from every screen and a smoke check that
+  fails if "workspace", "tracker", "3P" or "snag" (the app's old noun) come
+  back; `CLAUDE.md`, `MAP.md` and `PRODUCT.md` point here.
+- **Next:** Stage 1.

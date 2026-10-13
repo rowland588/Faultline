@@ -6,7 +6,7 @@
  * ui/CauseSheet.tsx), the screens and the client report can be built side by
  * side and meet in the middle. Nothing here computes anything. */
 import type { Case } from '../types';
-import type { PaceAction } from './tracker';
+import type { PaceAction } from './actionShapes';
 import type { Cause, CauseSource, Grade, SixM } from './sixm';
 
 /** Where a problem is on its way — said in words on screen and paper, and

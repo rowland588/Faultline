@@ -25,7 +25,7 @@ import {
 } from '../treeBind';
 import type { Measure, Period, Reading, Target } from '../measures';
 import type { PaceLineRow, PaceTodoRow, TreeNodeRow } from '../../db';
-import type { PaceAction } from '../tracker';
+import type { PaceAction } from '../actionShapes';
 
 const ppm: Measure = { id: 'm-ppm', name: 'Packs per minute', unit: 'ppm', direction: 'up', sort: 10 };
 const waste: Measure = { id: 'm-waste', name: 'Waste', unit: '%', direction: 'down', sort: 20 };

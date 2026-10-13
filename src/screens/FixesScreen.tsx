@@ -214,7 +214,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
   };
   const makeFix = async (sn: Snag) => {
     const undo = await sendSnags([sn], projectId, undefined, { fix: true }, project.name);
-    offerUndo(`“${sn.problem || 'The snag'}” is a fix here now`, undo);
+    offerUndo(`“${sn.problem || 'The problem'}” is a fix here now`, undo);
   };
 
   return (

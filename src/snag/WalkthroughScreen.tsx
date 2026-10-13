@@ -99,7 +99,7 @@ function ReadOnlyStill({ asset, snags }: { asset: SnagAsset; snags: Snag[] }) {
     <>
       <PinImage src={url} pins={pins} readOnly alt={asset.name} />
       <ol className="walk-panel-snags">
-        {snags.length === 0 ? <p className="sub">No snags on this asset.</p>
+        {snags.length === 0 ? <p className="sub">No problems pinned on this frame.</p>
           : snags.map(s => <li key={s.id}><span className="wps-dot" style={{ background: SNAG_STATUS_META[s.status].color }} /><b>{s.problem}</b>{s.proposedSolution ? ` — ${s.proposedSolution}` : ''} <span className="wps-status">[{SNAG_STATUS_META[s.status].label}]</span></li>)}
       </ol>
     </>

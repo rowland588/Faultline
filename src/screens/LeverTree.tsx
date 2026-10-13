@@ -34,7 +34,7 @@ import { useProject } from '../lib/useProjects';
 import { useSyncedAt } from '../cloud/session';
 import { useSticky } from '../lib/useSticky';
 import { parsePastedRows } from '../lib/pastedRows';
-import { TrackerPicker, actionText } from './TrackerPicker';
+import { ActionPicker, actionText } from './ActionPicker';
 import { useActions } from '../lib/actions';
 import { usePaceLines } from '../lib/usePaceLines';
 import { useMeasures } from '../lib/useMeasures';
@@ -1147,7 +1147,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
       )}
 
       {pasteInto && addMode === 'pick' && (
-        <TrackerPicker
+        <ActionPicker
           title={pasteInto.text.trim() || 'this box'}
           actions={trackerActions}
           alreadyOn={alreadyOn}

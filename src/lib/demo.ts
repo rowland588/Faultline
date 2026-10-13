@@ -313,7 +313,7 @@ export async function seedDemoWorkspace(onProgress?: (note: string) => void): Pr
   const note = (s: string) => onProgress?.(s);
   const now = Date.now();
 
-  note('creating the workspace…');
+  note('creating the line…');
   const ws = await createWorkspace(DEMO_NAME, 'food-packing');
   await updateWorkspace({
     ...ws,
@@ -411,7 +411,7 @@ export async function seedDemoWorkspace(onProgress?: (note: string) => void): Pr
   const walkAt = now - 2 * DAY;
   await addSegment({ id: segId, workspaceId: ws.id, sequence: 0, name: 'Packing hall — line walk', videoKey, posterKey, durationS, createdAt: walkAt, updatedAt: walkAt });
 
-  note('pinning the snags…');
+  note('pinning the problems…');
   const assetIds = new Map<string, string>();
   for (const a of walkAssets) {
     const id = uid();
@@ -512,7 +512,7 @@ export async function seedDemoWorkspace(onProgress?: (note: string) => void): Pr
   ];
   for (const a of actions) await addSnag(a);
 
-  note('done — opening the workspace…');
+  note('done — opening the line…');
   return ws.id;
 }
 

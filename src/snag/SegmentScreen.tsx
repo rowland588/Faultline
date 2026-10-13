@@ -292,7 +292,7 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
         <div className="field-label" style={{ marginTop: 10 }}>Asset code <span className="opt">optional</span></div>
         <input className="text-input" value={code} placeholder="e.g. MHW-04" onChange={e => setCode(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void saveAndAnnotate(); }} />
         <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
-          <button className="btn btn-primary" onClick={saveAndAnnotate} disabled={busy || !name.trim()}>{busy ? 'Saving…' : 'Save & add snags →'}</button>
+          <button className="btn btn-primary" onClick={saveAndAnnotate} disabled={busy || !name.trim()}>{busy ? 'Saving…' : 'Save & add problems →'}</button>
           <button className="btn" onClick={saveAndMarkAnother} disabled={busy || !name.trim()}>Save &amp; mark another</button>
           <button className="btn btn-ghost" onClick={cancel}>Cancel</button>
         </div>

@@ -37,7 +37,7 @@ export async function createWorkspace(name: string, taxonomyId?: string): Promis
   const t = now();
   const ws: Workspace = {
     id: uid(),
-    name: name.trim() || 'Untitled workspace',
+    name: name.trim() || 'Untitled line',
     color: PALETTE[count % PALETTE.length],
     createdAt: t,
     updatedAt: t,

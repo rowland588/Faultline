@@ -4,11 +4,10 @@
  * PROJECT: a line can be renamed or removed and its targets still have to be
  * findable.
  */
-import type { ID, Millis, Project, ProjectLineTarget, ProjectLineActual } from '../types';
+import type { ID, Project } from '../types';
 import type { PlanModel } from '../lib/planModel';
 import { uid, now } from '../lib/ids';
 import { getDB, signalWrite } from './core';
-import type { PaceSnapshotRow } from './rows';
 import { recordTombstones } from './sync';
 
 export async function allProjects(): Promise<Project[]> {
@@ -86,48 +85,8 @@ export async function createProject(
   return p;
 }
 
-/* Project targets — quarterly PPM goals for each line */
-export async function getProjectTargets(projectId: ID): Promise<ProjectLineTarget[]> {
-  const db = await getDB();
-  const targets = await db.getAllFromIndex('project_targets', 'by_project', projectId);
-  return targets.filter(t => !t.deletedAt);
-}
-export async function addProjectTarget(t: ProjectLineTarget): Promise<void> {
-  await (await getDB()).put('project_targets', t);
-  signalWrite();
-}
-export async function updateProjectTarget(t: ProjectLineTarget): Promise<void> {
-  await (await getDB()).put('project_targets', { ...t, updatedAt: now() });
-  signalWrite();
-}
-
-/* Project actuals — daily/weekly PPM measurements */
-export async function getProjectActuals(projectId: ID, startDate?: Millis, endDate?: Millis): Promise<ProjectLineActual[]> {
-  const db = await getDB();
-  const actuals = await db.getAllFromIndex('project_actuals', 'by_project', projectId);
-  const filtered = actuals.filter(a => !a.deletedAt);
-  if (startDate || endDate) {
-    return filtered.filter(a => (!startDate || a.date >= startDate) && (!endDate || a.date <= endDate));
-  }
-  return filtered;
-}
-export async function addProjectActual(a: ProjectLineActual): Promise<void> {
-  await (await getDB()).put('project_actuals', a);
-  signalWrite();
-}
-export async function getProjectActualsByWorkspace(projectId: ID, workspaceId: ID): Promise<ProjectLineActual[]> {
-  const db = await getDB();
-  const actuals = await db.getAllFromIndex('project_actuals', 'by_workspace', workspaceId);
-  return actuals.filter(a => a.projectId === projectId && !a.deletedAt).sort((a, b) => a.date - b.date);
-}
-
-
-/* ============ PACE SNAPSHOTS — weekly uploads of the tracker workbook ============
- * Newest first. Local to this device by design (see the schema note above). */
-export async function listPaceSnapshots(projectId: string): Promise<PaceSnapshotRow[]> {
-  const all = await (await getDB()).getAll('pace_snapshots');
-  return all.filter(inProject(projectId)).sort((a, b) => b.takenAt - a.takenAt);
-}
+/* Project targets and actuals, and the uploaded tracker's snapshots: RETIRED 13 October
+   (docs/BLUEPRINT.md §5.1-5.2) — read by no screen, 0 rows in the cloud. */
 
 /** A row belongs to a project if it says so — and if it says nothing, it is the
  *  default project's. That is what carries every next step, win and upload the
@@ -140,15 +99,6 @@ export const inProject = (projectId: string) => (r: { projectId?: string }) =>
  *  everything, whether it names a line or not, because the project is the sum
  *  of its lines plus whatever spans them. */
 export const onLine = (lineId?: string) => (r: { lineId?: string }) => !lineId || r.lineId === lineId;
-export async function addPaceSnapshot(s: PaceSnapshotRow): Promise<void> {
-  await (await getDB()).put('pace_snapshots', s);
-  signalWrite();
-}
-export async function deletePaceSnapshot(id: ID): Promise<void> {
-  await (await getDB()).delete('pace_snapshots', id);
-  await recordTombstones('pace_snapshots', [id]);
-  signalWrite();
-}
 
 /* ---------- putting a project away, and taking it out for good ----------
  *
@@ -189,7 +139,7 @@ export async function restoreProject(id: ID): Promise<void> {
  *  a total belonging to a project that no longer exists. */
 const PROJECT_OWNED = [
   'commission_assets', 'tests', 'test_items', 'targets', 'readings', 'materials',
-  'tree_nodes', 'project_targets', 'project_actuals',
+  'tree_nodes',
   // the programs and the line standards are the project's too; leaving them
   // out of this list left both behind, syncing, after "delete for ever"
   'programs', 'standards',
@@ -199,7 +149,7 @@ const PROJECT_OWNED = [
  *  scanned instead. They are the project's too — its lines, the next steps and
  *  wins written against them, and the trackers uploaded to it — and leaving
  *  them behind is how "delete for ever" quietly meant "most of it". */
-const PROJECT_OWNED_SCANNED = ['pace_ppm', 'pace_todos', 'pace_wins', 'pace_snapshots'] as const;
+const PROJECT_OWNED_SCANNED = ['pace_ppm', 'pace_todos', 'pace_wins'] as const;
 
 /** A 6M job's PROBLEMS — the Cases opened on it, each with its fishbone. They
  *  live in a line's store but name the job (projectId), and are the job's: a
@@ -221,7 +171,6 @@ export const STORE_WORDS: Record<string, string> = {
   pace_ppm: 'lines',
   pace_todos: 'next steps',
   pace_wins: 'wins',
-  pace_snapshots: 'uploaded trackers',
   targets: 'targets',
   readings: 'readings',
   materials: 'things on order',
@@ -229,8 +178,6 @@ export const STORE_WORDS: Record<string, string> = {
   test_items: 'things found and next steps',
   commission_assets: 'machines',
   tree_nodes: 'lever-tree boxes',
-  project_targets: 'quarterly targets',
-  project_actuals: 'weekly actuals',
   programs: 'programs',
   standards: 'line standard maps',
   studies: 'studies taken with the tools that are on no line',

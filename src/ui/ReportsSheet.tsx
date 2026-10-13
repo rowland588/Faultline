@@ -77,12 +77,12 @@ export function ReportsSheet({ project, onClose }: { project: Project; onClose: 
         {stageGate && <Door title="The plan" says="For the team and the client — every machine's stages against the days, on one landscape page. Print it from the plan." onClick={() => go(`/project/${project.id}/plan`)} />}
         {stageGate && <Door title="Line standard" says="For the floor — who stands where and what they do, one page per product." onClick={() => go(`/project/${project.id}/standard`)} />}
         {stageGate && <Door title="Machine labels" says={busy ? 'Drawing…' : 'For the floor — a code per machine to stick on it: scanned with a phone’s camera, it opens that machine’s page.'} onClick={() => { if (!busy) void labels(); }} />}
-        {walk && <Door title="Evidence cards" says="One page per snag on the walk, with its picture." onClick={() => go(`/w/${walk}/snaglist`)} />}
+        {walk && <Door title="Evidence cards" says="One page per problem on the walk, with its picture." onClick={() => go(`/w/${walk}/snaglist`)} />}
         {withWalk.map(l => (
-          <Door key={l.id} title={`Evidence cards — ${l.name}`} says="One page per snag on this line's walk, with its picture." onClick={() => go(`/w/${l.workspaceId}/snaglist`)} />
+          <Door key={l.id} title={`Evidence cards — ${l.name}`} says="One page per problem on this line's walk, with its picture." onClick={() => go(`/w/${l.workspaceId}/snaglist`)} />
         ))}
         {withWalk.map(l => (
-          <Door key={`r${l.id}`} title={`One-page report — ${l.name}`} says="The week on this line in one page — lost time, where it went, the snags needing a push." onClick={() => go(`/w/${l.workspaceId}/report`)} />
+          <Door key={`r${l.id}`} title={`One-page report — ${l.name}`} says="The week on this line in one page — lost time, where it went, the problems needing a push." onClick={() => go(`/w/${l.workspaceId}/report`)} />
         ))}
         <Door title="Spreadsheet" says={busy ? 'Building…' : 'The start-up record of every project — machines, tests, fixes, materials, programs, line standard and walks — in one Excel file.'} onClick={() => { if (!busy) void spreadsheet(); }} />
         {said && <p className="sub" role="status">{said}</p>}

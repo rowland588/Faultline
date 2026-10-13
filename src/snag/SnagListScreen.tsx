@@ -279,7 +279,7 @@ export function SnagListScreen() {
         <button type="button" aria-pressed={ageF === 'overdue'} title="Open past their due date"
           className={'ss-pill' + (counts.overdue > 0 ? ' ss-over' : '') + (ageF === 'overdue' ? ' on' : '')}
           onClick={() => setAgeF(ageF === 'overdue' ? 'all' : 'overdue')}><b>{counts.overdue}</b> late</button>
-        <button type="button" aria-pressed={ageF === 'stale'} title={`Open snags older than ${SNAG_STALE_DAYS} days`}
+        <button type="button" aria-pressed={ageF === 'stale'} title={`Open problems older than ${SNAG_STALE_DAYS} days`}
           className={'ss-pill' + (counts.stale > 0 ? ' ss-stale' : '') + (ageF === 'stale' ? ' on' : '')}
           onClick={() => setAgeF(ageF === 'stale' ? 'all' : 'stale')}><b>{counts.stale}</b> open &gt; {SNAG_STALE_DAYS}d</button>
         {(statusF !== 'all' || ageF !== 'all') && (
@@ -408,7 +408,7 @@ function PrintView({ wsName, assets, rows, filterNote, onDone }: { wsName: strin
           </ol>
         </section>
       )}
-      {groups.length === 0 && actions.length === 0 ? <p className="sub" style={{ marginTop: 16 }}>No snags to report.</p>
+      {groups.length === 0 && actions.length === 0 ? <p className="sub" style={{ marginTop: 16 }}>No problems to report.</p>
         : groups.map(g => <PrintAsset key={g.asset.id} asset={g.asset} snags={g.snags} />)}
 
       <p className="report-foot">Faultline · snag report · {wsName}</p>

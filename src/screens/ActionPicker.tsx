@@ -1,27 +1,15 @@
 /* PICK THE WORK OFF THE BOARD AND HANG IT ON THE TREE.
  *
- * The list is the project's own actions, kept on its 6M board — there is no
- * workbook any more (Rowland: "switch to full app only"). What follows is why
- * picking beats copying, which still holds.
- *
- * Every earlier version of this had the user copying rows out of the
- * spreadsheet and pasting them in — which was solving the wrong problem.
- * The tracker is already IN the app: it is uploaded every week, parsed, and
- * sitting in pace_snapshots. Asking somebody to go back to Excel, find the
- * column, copy it and paste it into a box was asking them to fetch something
- * from the next room that was already on the table.
- *
- * So: tap a box, see this week's actions, tap the ones that belong under it.
- * No copying, no window-switching, no retyping — and identical on a phone and
- * a laptop, because tapping a row in a list is the one gesture that works
- * everywhere.
- *
- * Typing or pasting is still here, behind a link, for work that is real but
- * not in the tracker yet. It is the exception now rather than the route.
- */
+ * The list is the project's own actions, kept on its 6M board (Rowland:
+ * "switch to full app only"). Tap a box, see the actions, tap the ones that
+ * belong under it — no copying, no retyping, the same on a phone and a laptop,
+ * because tapping a row in a list is the one gesture that works everywhere.
+ * Typing is still here, behind a link, for work that is real but not on the
+ * board yet. (Named TrackerPicker until 13 October, when the uploaded tracker
+ * it once read was retired — docs/BLUEPRINT.md §5.1.) */
 import { useMemo, useState } from 'react';
 import { useDismiss } from '../ui/Sheet';
-import type { PaceAction } from '../lib/tracker';
+import type { PaceAction } from '../lib/actionShapes';
 import { Icon } from '../ui/Icon';
 
 const DONE = /^(done|complete|completed|closed)$/i;
@@ -36,7 +24,7 @@ export function actionText(a: PaceAction): string {
   return who ? `${what} · ${who}` : what;
 }
 
-export function TrackerPicker({
+export function ActionPicker({
   title, actions, alreadyOn, onAdd, onClose, onTypeInstead,
 }: {
   title: string;

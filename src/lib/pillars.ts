@@ -18,7 +18,7 @@
  * Nothing here is stored. Every block and every action on it is derived from
  * the project's actions (lib/actions) each time the board is drawn.
  */
-import type { PaceAction } from './tracker';
+import type { PaceAction } from './actionShapes';
 import { statusOfAction } from './treeBind';
 import { SIXM, toSixM, type SixM } from './sixm';
 

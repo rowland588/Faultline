@@ -390,6 +390,10 @@ scripts target them.
 
 ## The workspace is the place (owner decision, Aug 2026)
 
+**Superseded 13 October by `docs/BLUEPRINT.md`:** the place is the LINE, in your
+factory (`#/factory`, `#/lines/:id`); "workspace" is the store's name only, never a
+word on a screen (§5.9). Kept as history.
+
 A workspace is a PLACE — a line, an area — and the product renders it
 spatially wherever it can. Three rules:
 

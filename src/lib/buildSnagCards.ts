@@ -129,7 +129,7 @@ async function jobCard({ row, job }: JobCardRow): Promise<SnagCardData> {
     status: !row.open ? 'closed' : row.kind === 'problem' ? 'open' : 'in_progress',
     statusLabel: row.word, owner: row.who ?? '', assetName: machine, where: job,
     raised: dateNice(row.at), ageDays: ageDays(row.at), priority: row.priority,
-    ...(row.fromSnag ? { latestUpdate: `Seen first on ${row.fromSnag.replace(/^a snag on /, '')}` } : {}),
+    ...(row.fromSnag ? { latestUpdate: `Seen first on ${row.fromSnag.replace(/^a (?:snag|problem) on /, '')}` } : {}),
     ...(detail ? { detail } : {}),
   };
 }

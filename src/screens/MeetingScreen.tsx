@@ -251,10 +251,10 @@ export function MeetingScreen() {
           <Sheet open onClose={() => setReports(false)} title="On paper">
             <div className="meet-reports">
               <button type="button" className="meet-report" onClick={() => nav(`/w/${workspace.id}/report`)}>
-                <b>One-page report</b><small>The week on one page — lost time, where it went, the snags needing a push.</small>
+                <b>One-page report</b><small>The week on one page — lost time, where it went, the problems needing a push.</small>
               </button>
               <button type="button" className="meet-report" onClick={() => nav(`/w/${workspace.id}/snaglist`)}>
-                <b>Evidence cards</b><small>One page per snag, with its picture — the list, printed or sent as a PDF.</small>
+                <b>Evidence cards</b><small>One page per problem, with its picture — the list, printed or sent as a PDF.</small>
               </button>
             </div>
           </Sheet>
