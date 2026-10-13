@@ -452,8 +452,8 @@ await go('#/snags');
   const kept = !!(await snag(`${what} — saved with Save`)), pe = await row(`${what} — saved with Save`).locator('.pe').count(), sv = await page.locator('.preg-saved').count();
   ok(kept && pe === 0 && sv === 1, `12 Save keeps what was typed, closes it and says Saved on its row (kept ${kept}, editors open ${pe}, saved shown ${sv})`);
   await go('#/');
-  const cr = (await page.locator('.pl-home').innerText()).replace(/\s+/g, ' ');
-  ok(!cr.includes(away) && cr.includes('Line 2C'), `12 the control room's lines: the archived project's gone with it, Line 2C there`);
+  const cr = (await page.locator('.fac-home').innerText()).replace(/\s+/g, ' ');
+  ok(!cr.includes(away) && cr.includes('Line 2C'), `12 the control room's factory: the archived project's gone with it, Line 2C there`);
 }
 
 /* ---- 13 the audit of 13 October — every case that would have sent us back ---- */
