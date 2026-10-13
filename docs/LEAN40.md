@@ -1241,8 +1241,10 @@ critical machine's plate speed.)
 - Expected packs = planned minutes × rate.
 - Lost minutes = (expected − made) ÷ rate.
 - Explained = the logged stops + changeovers + rejects ÷ rate.
-- Slow running and short stops = lost − explained; slow running = run time
-  × (plate − running speed) ÷ plate once the running speed is timed.
+- Slow running and short stops = lost − explained. Once the running speed
+  is timed (Nakajima's net operating time): short stops = run time − packs
+  run ÷ running speed; slow running = packs run ÷ running speed − packs run
+  ÷ plate, packs run being the good and the rejected.
 - *Worked:*
   - 450 planned minutes at 100 a minute should make 45,000.
   - 36,500 were made: 8,500 short, or 85 minutes.

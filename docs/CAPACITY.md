@@ -135,8 +135,15 @@ and actual production time; the OEE loss tree), counted by hand:
   explain is **slow running and short stops** — running below plate speed,
   and stops too short to log. It is not "unknown": it is these two, not yet
   told apart. They are told apart by **timing the running speed** — count
-  the packs in a timed minute while it runs: slow running = run time ×
-  (plate − running speed) ÷ plate; what is left is short stops.
+  the packs in a timed minute while it runs. The packs run, good and
+  rejected, at that speed took the **net operating time** — packs ÷ running
+  speed (Nakajima, *Introduction to TPM*; JIPM's loss structure): **short
+  stops** are the run time less it, **slow running** it less the same packs
+  at the plate speed (packs ÷ plate). Worked: 37,100 packs at 98 a minute
+  took 378.6 of the 380 min run, and take 371 at 100 — 7.6 min of slow
+  running, 1.4 of short stops. (Run time × (plate − running) ÷ plate, the
+  first form here, runs the line at the timed speed through its short stops
+  too: at 80% of the plate it says 40 min of slow running where 37.5 is.)
 - **Changeovers** are their own loss (set-up and adjustment), measured from
   the last good piece to the first good piece at full rate — the run-up is
   part of it (SMED, `docs/TOOLKIT.md` §6). A stop logged as a changeover in
