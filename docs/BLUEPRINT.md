@@ -194,7 +194,9 @@ there and what replaces it.
 8. **`pace_ppm.capacity`**: moves into the line's per-product capacity (Stage 4).
 9. **Old words on screens**: "workspace" (about 7 places), "tracker" (2), "3P"
    (1), "snag" (about 54). One sweep in Stage 0, and a smoke check so they
-   never come back.
+   never come back. The flow audit (13 October, `FLOW-AUDIT.md` #20) added
+   three to the check: "asset" for a machine, and "line balance" and "Maps
+   and balance" for Line capacity.
 10. **22 design docs.** This blueprint is the index. Each doc stays as the deep
    design of its part, marked where it is superseded; `MAP.md`'s shape is
    replaced by §1.
@@ -223,6 +225,27 @@ there and what replaces it.
 9. **Needs you across lines**: programs due and problems late on lines with
    no job.
 10. **A people list** (D5).
+11. **A job's line is the factory's line — one page, one name** (flow audit
+    #7). The cheap part is built: the job's rail names each of its lines as
+    Your factory does and opens the line's own page (`#/lines/:ws`), two of
+    the job's lines on one factory line are one line; the job's footer, its
+    Lines cards and its line page say the factory's name, the line page
+    links to the line's page; and a job's line with no Line capacity of its
+    own shows the line's, linked, instead of an empty one. What is left needs
+    Stage 4, and is that stage's work:
+    - the job's line page (`#/project/:id/line/:lineId`) folded into the
+      line's page, the job's own parts (its numbers against target, the
+      board's actions on the line, its wins) a branch there under the job;
+    - `pace_ppm.name` and `key` retired for the factory's name — the 6M
+      report and the client report still print the job's names ("Line 8");
+    - the job's Line capacity (`pace_ppm.capacity`) moved into the line's,
+      so the fishbone's *the constraint* and the 6M report read the line's
+      (D3) — today they say "not counted yet" beside a line that has one;
+    - the stopwatch and the walk (Capture · Analyse · Evidence · Meeting)
+      opened from the line's page, so the job's line page is not their only
+      door, and those four named for what they are;
+    - a stage-gate job's line page loses the 6M sections it carries (Actions
+      by bone, Wins).
 
 ---
 

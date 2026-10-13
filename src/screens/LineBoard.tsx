@@ -90,7 +90,7 @@ export function LineBoard({ since = 0, periodKey }: { since?: number; periodKey?
       {multi && (
         <>
           <div className="chart-caption">
-            Loss by <b>asset</b> — worst first<span className="chart-hint"> · tap a bar to walk into it</span>
+            Loss by <b>machine</b> — worst first<span className="chart-hint"> · tap a bar to walk into it</span>
           </div>
           <div className="chart-card" data-tour="line-chart">
             <ParetoChart slices={assetSlices} color={LOSS} rankLabel="cumulative time" onDrill={goAsset} canDrill />
@@ -108,7 +108,7 @@ export function LineBoard({ since = 0, periodKey }: { since?: number; periodKey?
         </button>
       )}
 
-      <p className="eyebrow board-sec">{multi ? 'Each asset, up close' : 'This line, up close'}</p>
+      <p className="eyebrow board-sec">{multi ? 'Each machine, up close' : 'This line, up close'}</p>
       <div className="asset-grid">
         {assets.map(a => (
           <div className="asset-card" key={a.name}>

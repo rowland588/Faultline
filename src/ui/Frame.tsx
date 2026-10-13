@@ -38,9 +38,10 @@ import { Sheet } from './Sheet';
 import { ReportsSheet } from './ReportsSheet';
 import { useJobStands } from './railJobs';
 import { QuickSnagButton, QuickSnagHost } from '../snag/QuickSnag';
+import { useFactoryLines } from '../lib/useFactoryLines';
 import {
-  controlRoom, toolsGroup, jobLine, gatesGroup, methodGroup, workGroup, linesGroup, footGroup, studyLines, phoneBar, hereOf,
-  type RailGroup, type RailLine,
+  controlRoom, snagsPlace, toolsGroup, jobLine, gatesGroup, methodGroup, workGroup, linesGroup, footGroup, studyLines, phoneBar, hereOf,
+  type RailGroup, type RailLine, type RailLineOf,
 } from './rail';
 
 /** Which job a route is under. Every `/project/:id/…` route carries the job
@@ -90,13 +91,13 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
 
   return (
     <div className="nv">
-      <TopBar project={project} projects={projects} />
+      <TopBar project={project} projects={projects} place={placeOf(route)} />
       {project
         ? <ProjectNav key={project.id} project={project} here={here} wsId={route.wsId} />
         /* While the job is still being read, only the first line — never the
            control room's list of jobs for a moment, then the job's rail. */
         : projectId && (loading || (route.wsId && chain === null))
-          ? <NavChrome groups={[{ lines: [controlRoom(here)] }, toolsGroup(here)]} bar={[controlRoom(here)]} />
+          ? <NavChrome groups={[{ lines: [controlRoom(here), snagsPlace(here)] }, toolsGroup(here)]} bar={[controlRoom(here)]} />
           : <HomeNav projects={projects} here={here} wsId={route.wsId} loose={!!route.wsId && chain === null && route.name !== 'lineHome'} />}
       <main className="nv-main">{children}</main>
       <QuickSnagHost wsId={route.wsId} projectId={projectId} />
@@ -134,9 +135,26 @@ function useHere(route: Route, project?: Project): string {
 /*  THE TOP BAR — the mark, which job, search, you                           */
 /* ------------------------------------------------------------------------- */
 
-function TopBar({ project, projects }: { project?: Project; projects: Project[] }) {
+/** WHERE YOU ARE, off a job — the name the top bar says in the job's place.
+ *  It said "Control room" on Your factory, on a line and on every tool, which
+ *  was not where you were (docs/FLOW-AUDIT.md #20): now it names the layer, as
+ *  the rail's groups do — the control room (and its problems, its jobs), Your
+ *  factory (a line, its programs, its stopwatch and walk), or the tools. */
+function placeOf(route: Route): string {
+  switch (route.name) {
+    case 'factory': case 'lineHome': case 'linePrograms': return 'Your factory';
+    case 'lineTools': case 'studies': case 'study': case 'lineStandards': return 'Tools';
+    case 'home': case 'portfolio': case 'projects': case 'quickSnags': return 'Control room';
+    default: return route.wsId ? 'Your factory' : 'Control room';
+  }
+}
+
+function TopBar({ project, projects, place }: { project?: Project; projects: Project[]; place: string }) {
   /* An archived job is not in the live list, but it is the one you are in. */
   const options = project && !projects.some(p => p.id === project.id) ? [...projects, project] : projects;
+  /* off a job and off the control room, the select stands on where you are
+     (the place, not a choice) and the control room is still its way up */
+  const away = !project && place !== 'Control room';
   return (
     <header className="nv-top">
       <button type="button" className="nv-mark" onClick={() => nav('/')} aria-label="Faultline — the control room">
@@ -149,11 +167,12 @@ function TopBar({ project, projects }: { project?: Project; projects: Project[] 
           also the way up — "home is home". */}
       <label className="nv-job">
         <select value={project?.id ?? ''} aria-label="Which job"
-          onChange={e => nav(e.target.value ? `/project/${e.target.value}` : '/')}>
-          <option value="">Control room</option>
+          onChange={e => nav(e.target.value && e.target.value !== 'home' ? `/project/${e.target.value}` : '/')}>
+          {away && <option value="" disabled>{place}</option>}
+          <option value={away ? 'home' : ''}>Control room</option>
           {options.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
-        <span className="nv-job-l" aria-hidden>{project?.name ?? 'Control room'}</span>
+        <span className="nv-job-l" aria-hidden>{project?.name ?? place}</span>
         <Icon name="chevronDown" size={14} />
       </label>
       {/* The search box that held search's place is gone until search exists
@@ -189,7 +208,11 @@ function useOpenNotes(projectId: string): number {
 
 function ProjectNav({ project, here, wsId }: { project: Project; here: string; wsId?: string }) {
   const model = planModel(project);
-  const { lines } = usePaceLines(project.id);
+  const { lines: own } = usePaceLines(project.id);
+  /* each of the job's lines by the factory's name, opening the factory's
+     line (ui/rail linesGroup; docs/FLOW-AUDIT.md #7) */
+  const factory = useFactoryLines();
+  const lines = own.map(l => ({ ...l, factoryName: factory.find(w => w.id === l.workspaceId)?.name }));
   const notes = useOpenNotes(project.id);
   const shared = { project, here, wsId, lines, notes, model };
   return model === 'commissioning' ? <GateNav {...shared} /> : <MethodNav {...shared} method={model} />;
@@ -197,20 +220,24 @@ function ProjectNav({ project, here, wsId }: { project: Project; here: string; w
 
 interface NavProps {
   project: Project; here: string; wsId?: string; model: PlanModel; notes: number;
-  lines: { id: string; name: string; workspaceId?: string }[];
+  lines: RailLineOf[];
 }
 
 function GateNav(p: NavProps) {
   const stand = useStanding(p.project.id);
+  const lines = linesGroup(p.project.id, p.lines, p.here, p.wsId);
   const groups: RailGroup[] = [
-    { lines: [controlRoom(p.here), jobLine(p.project.id, p.project.name, p.here, stand.standing.late,
+    { lines: [controlRoom(p.here), snagsPlace(p.here), jobLine(p.project.id, p.project.name, p.here, stand.standing.late,
       (['install', 'setup', 'handover'] as const).reduce((n, k) => n + (stand.counts[k]?.problem ?? 0), 0))] },
     gatesGroup(p.project.id, p.here, stand.counts),
     workGroup(p.project.id, p.model, p.here, stand.counts),
     footGroup(p.project.id, p.here, p.notes),
-    /* The lines a stage-gate job filmed are tools it used, not its work —
-       they go with the tools, under paper (docs/FLOW.md item 3). */
-    toolsGroup(p.here, linesGroup(p.project.id, p.lines, p.here, p.wsId).lines),
+    /* The lines a stage-gate job is on go under paper, above the tools, so
+       they no longer push the job down (docs/FLOW.md item 3) — named Lines,
+       by the factory's names: they sat unlabelled among the tools, called
+       Line 7 and Line 8 for one line of the factory (docs/FLOW-AUDIT.md #7). */
+    ...(lines.lines.length ? [lines] : []),
+    toolsGroup(p.here),
   ];
   return <NavChrome groups={withJobStudy(groups, p.wsId, p.lines, p.here)} project={p.project} model={p.model} />;
 }
@@ -220,7 +247,7 @@ function MethodNav(p: NavProps & { method: 'board' | 'tree' }) {
   const groups: RailGroup[] = [
     /* The job's square is red for anything late on it — its board's actions
        and what it waits on — the count its header and the control room say. */
-    { lines: [controlRoom(p.here), jobLine(p.project.id, p.project.name, p.here, (counts.board?.late ?? 0) + (counts.materials?.late ?? 0))] },
+    { lines: [controlRoom(p.here), snagsPlace(p.here), jobLine(p.project.id, p.project.name, p.here, (counts.board?.late ?? 0) + (counts.materials?.late ?? 0))] },
     methodGroup(p.project.id, p.method, p.here, counts,
       { pareto: !!p.project.pareto, tree: p.method !== 'tree' && !!p.project.leverTree }),
     workGroup(p.project.id, p.model, p.here, counts),
@@ -273,7 +300,7 @@ function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: s
   }, [wsId]);
   const prodLines = useProductionLines();
   const groups: RailGroup[] = [
-    { lines: [controlRoom(here), ...(loose && wsId ? [
+    { lines: [controlRoom(here), snagsPlace(here), ...(loose && wsId ? [
       { key: 'ws', label: wsName || 'Line study', to: `/w/${wsId}/capture`, on: false, state: 'n', bare: true } as RailLine,
       ...studyLines(wsId, here),
     ] : [])] },

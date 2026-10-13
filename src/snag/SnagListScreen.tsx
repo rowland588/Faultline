@@ -36,7 +36,7 @@ const SORTS: Record<SortKey, { label: string; cmp: (x: Row, y: Row) => number }>
   due:     { label: 'Most late',      cmp: (x, y) => (x.snag.dueAt ?? Infinity) - (y.snag.dueAt ?? Infinity) || x.snag.raisedAt - y.snag.raisedAt },
   oldest:  { label: 'Oldest first',    cmp: (x, y) => x.snag.raisedAt - y.snag.raisedAt },
   newest:  { label: 'Newest first',    cmp: (x, y) => y.snag.raisedAt - x.snag.raisedAt },
-  asset:   { label: 'By asset',        cmp: (x, y) => byText(x.assetName, y.assetName) || x.snag.raisedAt - y.snag.raisedAt },
+  asset:   { label: 'By machine',      cmp: (x, y) => byText(x.assetName, y.assetName) || x.snag.raisedAt - y.snag.raisedAt },
   owner:   { label: 'By owner',        cmp: (x, y) => byText(x.snag.owner || 'zzz', y.snag.owner || 'zzz') || x.snag.raisedAt - y.snag.raisedAt },
   status:  { label: 'By status',       cmp: (x, y) => STATUS_ORDER[x.snag.status] - STATUS_ORDER[y.snag.status] || x.snag.raisedAt - y.snag.raisedAt },
 };
@@ -155,7 +155,7 @@ export function SnagListScreen() {
        text could run when the export is opened. A leading apostrophe makes it
        text, which is what it is. */
     const esc = (v: string) => { const s = v ?? ''; return `"${(/^[=+\-@]/.test(s) ? `'${s}` : s).replace(/"/g, '""')}"`; };
-    const lines = [['Asset', 'Problem', 'Proposed solution', 'Status', 'Owner', 'Raised', 'Age (days)', 'Due', 'Overdue (days)', 'Latest update', 'Updated'].join(',')];
+    const lines = [['Machine', 'Problem', 'Proposed solution', 'Status', 'Owner', 'Raised', 'Age (days)', 'Due', 'Overdue (days)', 'Latest update', 'Updated'].join(',')];
     for (const { snag, assetName } of ordered) {
       const d = dueInDays(snag);
       const late = closedDaysLate(snag);
@@ -203,7 +203,7 @@ export function SnagListScreen() {
     statusF !== 'all' ? SNAG_STATUS_META[statusF].label : null,
     ageF === 'stale' ? `stale (open > ${SNAG_STALE_DAYS}d)` : null,
     ageF === 'overdue' ? 'late' : null,
-    assetF !== 'all' ? (assets.find(a => a.id === assetF)?.name ?? 'one asset') : null,
+    assetF !== 'all' ? (assets.find(a => a.id === assetF)?.name ?? 'one machine') : null,
     ownerF !== 'all' ? ownerF : null,
     search.trim() ? `“${search.trim()}”` : null,
   ].filter(Boolean) as string[];
@@ -309,7 +309,7 @@ export function SnagListScreen() {
           )}
         </div>
         <div className="snag-filter-row">
-          <select className="mini-select" value={assetF} onChange={e => setAssetF(e.target.value)}><option value="all">All assets</option>{assets.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+          <select className="mini-select" value={assetF} onChange={e => setAssetF(e.target.value)}><option value="all">All machines</option>{assets.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
           {owners.length > 0 && <select className="mini-select" value={ownerF} onChange={e => setOwnerF(e.target.value)}><option value="all">All owners</option>{owners.map(o => <option key={o} value={o}>{o}</option>)}</select>}
           <input className="text-input" style={{ flex: 1, minWidth: 120 }} value={search} placeholder="Search…" onChange={e => setSearch(e.target.value)} />
         </div>
@@ -342,7 +342,7 @@ export function SnagListScreen() {
         )
           : (
             <table className="snag-table">
-              <thead><tr><th></th><th>Asset</th><th>Problem</th><th>Status</th><th>Owner</th><th>Due</th><th>Age</th></tr></thead>
+              <thead><tr><th></th><th>Machine</th><th>Problem</th><th>Status</th><th>Owner</th><th>Due</th><th>Age</th></tr></thead>
               <tbody>
                 {ownerGroups
                   ? ownerGroups.map(g => (

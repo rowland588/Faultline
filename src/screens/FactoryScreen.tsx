@@ -166,7 +166,10 @@ export function FactoryScreen() {
     <div className="wrap fac">
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pl-eyebrow">THE BACKBONE</p>
+          {/* what the page is, as a line's page says PRODUCTION LINE — and the
+              way up. It said THE BACKBONE, a word of the build's, not the
+              floor's (docs/FLOW-AUDIT.md #20). */}
+          <p className="pl-eyebrow">PRODUCTION LINES · <a href="#/" className="pl-fac">Control room ›</a></p>
           <h1>Your factory</h1>
           <p className="pl-says">{factorySays(lines)}</p>
         </div>
@@ -176,8 +179,8 @@ export function FactoryScreen() {
         </div>
       </header>
       <p className="sub fac-why">
-        Your production lines, in the order they stand on the floor. Every project, problem and tool hangs off one of them
-        — open a line to take a problem on it or use a tool on it, no project needed.
+        Your production lines, in the order they stand on the floor. Every job, problem and tool hangs off one of them
+        — open a line to take a problem on it or use a tool on it, no job needed.
         {may ? ' Type over a name or a type to change it; move a line up or down; add as many as you have.' : ' Only someone invited to the app changes the factory.'}
       </p>
       {saved && <p className="fac-saved" role="status">Saved — {saved}</p>}
@@ -202,7 +205,7 @@ export function FactoryScreen() {
 
       {lines.length === 0 && !adding && (
         <div className="fac-empty">
-          <p>No lines yet. Set up your factory first — add your production lines, each with its name and its type. Then every project, problem and tool hangs off one.</p>
+          <p>No lines yet. Set up your factory first — add your production lines, each with its name and its type. Then every job, problem and tool hangs off one.</p>
           {may && <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>Add lines</button>}
         </div>
       )}

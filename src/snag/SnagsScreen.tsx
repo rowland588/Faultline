@@ -35,7 +35,7 @@ function SegRow({ seg, assetNames, first, last, backed, onOpen, onUp, onDown, on
       <button className="seg-main" onClick={onOpen}>
         <span className="seg-name">{label}</span>
         <span className="seg-meta">
-          {fmtDur(seg.durationS)} · {plural(assetNames.length, 'asset')}
+          {fmtDur(seg.durationS)} · {plural(assetNames.length, 'marked frame')}
           {/* a fact from the sync engine, not a guess — silence would hide a
               walk quietly failing to reach the cloud for days */}
           {cloudConfigured && backed !== undefined && (
@@ -178,7 +178,7 @@ export function SnagsScreen() {
 
       <p className="eyebrow">{workspace.name}</p>
       <h1 className="h1">Walks</h1>
-      <p className="sub" style={{ marginTop: 4 }}>{workspace.name} · {plural(segs.length, 'segment')} · {plural(totalAssets, 'asset')} · {openSnags} open</p>
+      <p className="sub" style={{ marginTop: 4 }}>{workspace.name} · {plural(segs.length, 'clip')} · {plural(totalAssets, 'marked frame')} · {openSnags} open</p>
 
       {/* THE LINE — the place, machine by machine in floor order. This hub
           stays the filing cabinet; the Line is where you stand and look. */}
@@ -256,7 +256,7 @@ export function SnagsScreen() {
       )}
 
       {segs.length === 0 && !busy && (
-        <EmptyState icon={<Icon name="video" size="1em" />} title="No footage yet">Film the line infeed-to-outfeed — several clips for a long line — and add them in walk order. Then scrub each to mark its assets.</EmptyState>
+        <EmptyState icon={<Icon name="video" size="1em" />} title="No footage yet">Film the line infeed-to-outfeed — several clips for a long line — and add them in walk order. Then scrub each to mark its machines.</EmptyState>
       )}
 
       {filming && <VideoRecorder onCapture={b => void onRecorded(b)} onClose={() => setFilming(false)} />}

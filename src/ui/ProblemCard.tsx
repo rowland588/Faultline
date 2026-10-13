@@ -628,7 +628,9 @@ export function WorkedPart({ view: v, can, steps, onClose, onReopen, onClosedOn,
         <p className="fj-holdline">
           Kept by: <b>{hold.what}</b>{hold.who ? ` · ${hold.who}` : ''} · every {EVERY_WORD(hold.everyDays)}
           {' '}· {hold.standardUpdated ? 'standard updated' : 'standard not updated yet'}
-          {hold.lastChecked ? ` · last checked ${hold.lastChecked}` : ' · not checked yet'}
+          {/* the day as every other day on the screen says it — it showed
+              2026-10-12 (docs/FLOW-AUDIT.md #9, #20) */}
+          {hold.lastChecked ? ` · last checked ${niceDay(hold.lastChecked)}` : ' · not checked yet'}
         </p>
       )}
       {!open && !hold && <p className="pc-quiet">Closed with no check to keep it.</p>}

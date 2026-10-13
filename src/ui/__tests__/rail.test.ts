@@ -55,6 +55,11 @@ describe('which line is on, from the address alone', () => {
     for (const s of ['snaglist', 'snags', 'line', 'walk']) expect(here(`#/w/ws/${s}`)).toBe('snaglist');
     expect(here('#/w/ws/segment/s1')).toBe('snaglist');
     for (const s of ['meeting', 'present', 'report']) expect(here(`#/w/ws/${s}`)).toBe('meeting');
+    /* a line's own product lights the tool it is — its map Line standard, its
+       capacity Line capacity — not a "Maps and balance" line of the study */
+    expect(here('#/w/ws/standards')).toBe('linestandard');
+    expect(here('#/w/ws/standards/s1')).toBe('linestandard');
+    expect(here('#/w/ws/standards/s1?at=balance')).toBe('linebalance');
   });
 
   it('the control room is home', () => {
@@ -162,13 +167,29 @@ describe('work, lines and the foot', () => {
   it('every line of the job, and the study’s four screens under the line it belongs to — once', () => {
     const lines = [{ id: 'L7', name: 'Line 7', workspaceId: 'ws' }, { id: 'L8', name: 'Line 8', workspaceId: 'ws' }];
     const g = linesGroup(P, lines, 'capture', 'ws');
-    /* And the line's own tools — its maps and balances (LINE_TOOLS.sql,
-       Rowland 7 October: "a tool, but can be attached"). */
-    expect(labels(g)).toEqual(['Line 7', 'Capture', 'Analyse', 'Evidence', 'Meeting', 'Maps and balance', 'Line 8']);
-    expect(g.lines.filter(l => l.sub).map(l => l.to)).toEqual(['/w/ws/capture', '/w/ws/analyse', '/w/ws/snaglist', '/w/ws/meeting', '/w/ws/standards']);
+    /* The line's maps and capacities are its tools (Tools › Line standard,
+       Line capacity), not a fifth line here ("Maps and balance" went —
+       docs/FLOW-AUDIT.md #20). */
+    expect(labels(g)).toEqual(['Line 7', 'Capture', 'Analyse', 'Evidence', 'Meeting', 'Line 8']);
+    expect(g.lines.filter(l => l.sub).map(l => l.to)).toEqual(['/w/ws/capture', '/w/ws/analyse', '/w/ws/snaglist', '/w/ws/meeting']);
     expect(g.lines.find(l => l.on)?.label).toBe('Capture');
     // Outside the study, only the lines.
     expect(labels(linesGroup(P, lines, 'job'))).toEqual(['Line 7', 'Line 8']);
+  });
+
+  it('a line of Your factory: the factory’s name, its own page, once however many of the job’s lines name it', () => {
+    /* docs/FLOW-AUDIT.md #7: Line 2 commissioning's rail said Line 7 and
+       Line 8 for the factory's Line 7 — smoke test, each opening the job's
+       own copy of it. */
+    const lines = [
+      { id: 'L7', name: 'Line 7', workspaceId: 'ws', factoryName: 'Line 7 — smoke test' },
+      { id: 'L8', name: 'Line 8', workspaceId: 'ws', factoryName: 'Line 7 — smoke test' },
+      { id: 'L9', name: 'Line 9' },
+    ];
+    const g = linesGroup(P, lines, 'job');
+    expect(g.lines.map(l => [l.label, l.to])).toEqual([['Line 7 — smoke test', '/lines/ws'], ['Line 9', `/project/${P}/line/L9`]]);
+    // inside the line's study, its four screens under it, once
+    expect(labels(linesGroup(P, lines, 'capture', 'ws'))).toEqual(['Line 7 — smoke test', 'Capture', 'Analyse', 'Evidence', 'Meeting', 'Line 9']);
   });
 
   it('the three header doors are the foot: Reports · Notes (with its count) · Details', () => {
@@ -233,10 +254,10 @@ describe('the phone’s five', () => {
 });
 
 describe('the tools beside the control room', () => {
-  it('are the snags, the line standard and the line balance, each lit where it is', async () => {
+  it('are the line standard, Line capacity and the studies, each lit where it is', async () => {
     const { toolPlaces, hereOf } = await import('../rail');
     const { parseRoute } = await import('../../state/useRoute');
-    expect(toolPlaces('').map(l => [l.label, l.to])).toEqual([['Control room problems', '/snags'], ['Line standard', '/standards'], ['Line capacity', '/balances'], ['Capability', '/capability'], ['Value stream', '/value-stream'], ['SMED', '/smed'], ['Work sampling', '/sampling'], ['Loss count', '/losses']]);
+    expect(toolPlaces('').map(l => [l.label, l.to])).toEqual([['Line standard', '/standards'], ['Line capacity', '/balances'], ['Capability', '/capability'], ['Value stream', '/value-stream'], ['SMED', '/smed'], ['Work sampling', '/sampling'], ['Loss count', '/losses']]);
     expect(hereOf(parseRoute('#/standards'))).toBe('linestandard');
     expect(hereOf(parseRoute('#/balances'))).toBe('linebalance');
     expect(toolPlaces('linebalance').filter(l => l.on).map(l => l.label)).toEqual(['Line capacity']);
@@ -259,11 +280,16 @@ describe('the tools beside the control room', () => {
 });
 
 describe('the job first, the tools at the foot (docs/FLOW.md item 3)', () => {
-  it('Tools holds the snags, the line standard, the line balance and, on a stage-gate job, its lines', () => {
-    const g = toolsGroup('', linesGroup(P, [{ id: 'L7', name: 'Line 7' }, { id: 'L8', name: 'Line 8' }], '').lines);
+  it('Tools holds the line standard, Line capacity and the studies — never the problems', () => {
+    const g = toolsGroup('');
     expect(g.label).toBe('Tools');
-    expect(labels(g)).toEqual(['Control room problems', 'Line standard', 'Line capacity', 'Capability', 'Value stream', 'SMED', 'Work sampling', 'Loss count', 'Line 7', 'Line 8']);
-    expect(labels(toolsGroup('quicksnags'))).toEqual(['Control room problems', 'Line standard', 'Line capacity', 'Capability', 'Value stream', 'SMED', 'Work sampling', 'Loss count']);
-    expect(toolsGroup('quicksnags').lines.find(l => l.on)?.label).toBe('Control room problems');
+    expect(labels(g)).toEqual(['Line standard', 'Line capacity', 'Capability', 'Value stream', 'SMED', 'Work sampling', 'Loss count']);
+  });
+
+  it('Control room problems is the control room’s, lit on its page (docs/FLOW-AUDIT.md #20)', async () => {
+    const { snagsPlace } = await import('../rail');
+    expect(here('#/snags')).toBe('quicksnags');
+    expect(snagsPlace('quicksnags')).toMatchObject({ label: 'Control room problems', to: '/snags', on: true });
+    expect(labels(toolsGroup('quicksnags'))).not.toContain('Control room problems');
   });
 });

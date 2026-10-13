@@ -33,6 +33,7 @@ import { PaceNextSteps } from './PaceNextSteps';
 import { PaceSuccess } from './PaceSuccess';
 import { MeasureChart } from '../charts/MeasureChart';
 import { usePaceLines } from '../lib/usePaceLines';
+import { useLineRecords } from '../lib/useLineRecords';
 import { useMeasures } from '../lib/useMeasures';
 import { useMaterials } from '../lib/useMaterials';
 import { usePrograms } from '../lib/usePrograms';
@@ -40,7 +41,7 @@ import { useStandards } from '../ui/StandardsCard';
 import { useJobStudies } from '../ui/StudyLinks';
 import { workOf } from '../ui/WorkBalance';
 import { lineStandardOf } from '../lib/fishbone';
-import { headcount } from '../lib/standard';
+import { headcount, inCapacityTool } from '../lib/standard';
 import { samplingCardLine } from '../lib/ie/sampling';
 import { changeoverLine, currentBalance, currentChangeover, currentLosses, currentMap, currentSampling, flowLine, lossCardLine, studyHref } from '../lib/studyLinks';
 import { useStudyContext } from '../ui/ShiftLosses';
@@ -436,10 +437,15 @@ function LinePeople({ line, projectId }: { line: PaceLineRow; projectId: string 
  * is sitting in its pack. The whole card is the way in — the owner's pack is
  * where the work actually happens, so getting there should not need aiming at
  * a small link. */
-function LineCard({ line, pack, projectId, series, balance, work, flow, change, shift, sample }: {
+function LineCard({ line, pack, projectId, series, balance, onLine, named, work, flow, change, shift, sample }: {
   line: PaceLineRow; pack: LinePack; projectId: string;
   /** What the line's balance says, once its stations are in; absent until then. */
   balance?: string;
+  /** With none of the job's own, the Line capacity the factory's line already
+   *  has — what it says, and where it opens. */
+  onLine?: { text: string; href: string };
+  /** The factory's name for the line, when it is one of Your factory's. */
+  named?: string;
   /** The line standard's work, timed (ui/WorkBalance) — a branch under the
    *  balance, only once somebody has timed it. */
   work?: { text: string; over: boolean; href: string };
@@ -469,7 +475,7 @@ function LineCard({ line, pack, projectId, series, balance, work, flow, change, 
       <button className="lc-open" onClick={() => nav(`/project/${projectId}/line/${line.id}`)}>
         <header className="lc-head">
           <span className="lc-key">{line.key}</span>
-          <span className="lc-name">{line.name}</span>
+          <span className="lc-name">{named ?? line.name}</span>
           {series && (
             <span className={'lc-ppm' + (series.meeting == null ? '' : series.meeting ? ' is-good' : ' is-bad')}>
               {series.latest == null ? '—' : say(series.latest)}
@@ -495,9 +501,9 @@ function LineCard({ line, pack, projectId, series, balance, work, flow, change, 
       </button>
       {/* LINE BALANCE, on the card of the line it is about — where each machine
           and person runs at its own speed and the slowest is the limit. */}
-      <button className={'lc-bal' + (balance ? ' is-set' : '')} onClick={() => nav(`/project/${projectId}/line/${line.id}?view=capacity`)}>
+      <button className={'lc-bal' + (balance || onLine ? ' is-set' : '')} onClick={() => nav(!balance && onLine ? onLine.href : `/project/${projectId}/line/${line.id}?view=capacity`)}>
         <span className="lc-bal-k">Line capacity</span>
-        <span className="lc-bal-t">{balance ?? 'Not counted yet — add the machines and people, each at its own speed'}</span>
+        <span className="lc-bal-t">{balance ?? onLine?.text ?? 'Not counted yet — add the machines and people, each at its own speed'}</span>
         <span className="lc-bal-go" aria-hidden>›</span>
       </button>
       {work && (
@@ -715,6 +721,10 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   const ax = useActions(projectId);
   const { impacts } = useImpacts(projectId);
   const ppm = usePaceLines(projectId);
+  /* the factory's lines and their records — the names the job's lines go by,
+     and the Line capacity each line already has (docs/FLOW-AUDIT.md #7) */
+  const rec = useLineRecords();
+  const factoryName = (l: PaceLineRow) => rec.lines.find(w => w.id === l.workspaceId)?.name;
   const standards = useStandards(projectId);
   const studies = useJobStudies(projectId);
   /* what a loss count reads beside its facts: its line's stops and cost model */
@@ -746,6 +756,21 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   ]));
   const headline = nums.measures[0];
   const limited = ppm.lines.map(l => ({ line: l, says: l.capacity ? shortSays(analyse(l.capacity)) : undefined }));
+  /* A job's line with no Line capacity of its own says the line's — the
+     factory line's products counted in Line capacity — and opens it, rather
+     than "not counted yet" beside a line that has one (docs/FLOW-AUDIT.md #7;
+     the job reading the line's alone is Stage 4). */
+  const capacityOn = (l: PaceLineRow): { text: string; href: string } | undefined => {
+    const ws = factoryName(l) ? l.workspaceId : undefined;
+    const caps = ws ? rec.standards.filter(s => s.workspaceId === ws && inCapacityTool(s) && s.capacity) : [];
+    const first = caps[0];
+    if (!first?.capacity) return undefined;
+    const says = shortSays(analyse(first.capacity));
+    return {
+      text: `${first.product}${says ? `: ${says}` : ' — not counted yet'}${caps.length > 1 ? ` · ${caps.length - 1} more on the line` : ''}`,
+      href: caps.length > 1 ? `/balances?line=${encodeURIComponent(ws as string)}` : `/w/${ws}/standards/${first.id}?at=balance`,
+    };
+  };
   /* Each line's standard's work, timed — only a standard that is this line's
      own (its product's program on the line, or drawn on its workspace). */
   const workOn = (l: PaceLineRow) => {
@@ -819,9 +844,11 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
     );
   }
 
-  // "Line 2A · 2B · 7 · 10" — read off the project's own lines rather than
-  // written into the page, so adding a line changes what the page says it covers.
-  const lineList = ppm.lines.map(l => l.key).join(' · ');
+  // The lines the job is on — read off the project's own lines rather than
+  // written into the page, so adding a line changes what the page says it
+  // covers; each by the factory's name, once. It printed the job's own keys,
+  // "L7 · L8", for one line of the factory (docs/FLOW-AUDIT.md #7).
+  const lineList = [...new Set(ppm.lines.map(l => factoryName(l) ?? l.name))].join(' · ');
   const model = project ? planModel(project) : 'board';
   const shownLenses = model === 'commissioning'
     ? LENSES.filter(l => l.id === 'overview' || l.id === 'snags')
@@ -923,7 +950,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
                   not tell how the outcome stood without opening the tree. */}
               {model === 'tree' && treeRows && <TreeTopPanel projectId={projectId} tree={tree} />}
               <NeedsYouPanel items={owed} today={today} split max={5} door={{ label: 'The board', to: `/project/${projectId}/board` }} />
-              <LinesPanel projectId={projectId} lines={ppm.lines} standing={standing} can={can} project={project} />
+              <LinesPanel projectId={projectId} lines={ppm.lines.map(l => ({ ...l, name: factoryName(l) ?? l.name }))} standing={standing} can={can} project={project} />
             </div>
             )}
           </>
@@ -952,7 +979,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
               <div className="lc-grid">
                 {ppm.lines.map(l => (
                   <LineCard key={l.id} line={l} pack={packs.get(l.id) ?? emptyPack} projectId={projectId}
-              series={standing.get(l.id)} balance={limited.find(x => x.line.id === l.id)?.says} work={workOn(l)} flow={flowOn(l)} change={changeOn(l)} shift={shiftOn(l)} sample={sampleOn(l)} />
+              series={standing.get(l.id)} balance={limited.find(x => x.line.id === l.id)?.says} onLine={capacityOn(l)} named={factoryName(l)} work={workOn(l)} flow={flowOn(l)} change={changeOn(l)} shift={shiftOn(l)} sample={sampleOn(l)} />
                 ))}
               </div>
               {can.edit && (
@@ -1088,9 +1115,12 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           {project.name}
           {lineList && <> · {lineList}</>}
           {project.lead && <> · led by {project.lead}</>}
+          {/* "· the line walk filmed in the app" went: it said a walk was
+              filmed on jobs with none (docs/FLOW-AUDIT.md #20). The evidence
+              — a walk among it — is the job's Evidence. */}
           {model === 'commissioning'
             ? <> · what we planned, what happened, what we found, what we do next</>
-            : <> · actions kept on the board · the line walk filmed in the app</>}
+            : <> · actions kept on the board</>}
         </p>
       </footer>
     </div>

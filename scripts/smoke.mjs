@@ -239,9 +239,13 @@ for (const [name, hash] of ROUTES) {
     /* OLD WORDS NEVER COME BACK (docs/BLUEPRINT.md §5.9): the app's old names for a
        line ("workspace"), the uploaded workbook ("tracker"), the old method ("3P")
        and a problem ("snag"). Allowed: "snag" meaning film that catches — the
-       loss category "Film / packaging snag" — and the seed's own problem text. */
+       loss category "Film / packaging snag" — and the seed's own problem text.
+       And, from the flow audit (docs/FLOW-AUDIT.md #20): a machine called an
+       "asset", and Line capacity called a "line balance" or "Maps and balance"
+       (Rowland, 12 October: "the line balancing is actually a capacity model").
+       "Balance" alone stays — the people's work against takt is balanced. */
     const said = text.replace(/packaging snag|film snags?|seeded snag/gi, '');
-    const old = [...new Set((said.match(/\b(workspaces?|tracker|3P|snags?)\b/gi) ?? []).map(w => w.toLowerCase()))];
+    const old = [...new Set((said.match(/\b(workspaces?|tracker|3P|snags?|assets?|line balanc(?:e|es|ing)|maps and balances?)\b/gi) ?? []).map(w => w.toLowerCase()))];
     return { chars: text.length, crash: /something broke|something went wrong/i.test(text), head: text.split('\n')[0]?.slice(0, 40) ?? '', old };
   });
 
