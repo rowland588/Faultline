@@ -191,7 +191,7 @@ node scripts/acceptance/changeover.mjs  # F: SMED — a quick session on its own
 node scripts/acceptance/work-sampling.mjs  # H1: what people are doing at random moments — the moment asks, one tap each, the shares with their margins, the fix, the 6M line's card, the fishbone, the 6M report
 node scripts/acceptance/shift-losses.mjs  # E: a shift's losses — counted on the phone at the bottleneck's ideal speed, the shift less its breaks, the waterfall, slow running told from short stops, the pounds in two parts, a bar made better, the next shift counted, before → after, the fishbone, both papers
 node scripts/acceptance/line-capacity.mjs  # Line capacity: the V-curve, the capacity sheet, the margin, a person's standard time, the bottleneck walked; a person as the floor says them (what reaches them, keeping up, people needed); each tool its own products; the phone; what a pack costs in labour and one more person at the bottleneck; renamed and deleted where it sits, its map kept
-node scripts/acceptance/line-standard.mjs  # the line standard's board: the page scrolls off it, a tap places, a drag moves, people's colours, a tall board, full screen; the bottleneck said (a person, an area faded), names short with the words on the right — screen and card; a tall board's card a frame of its own shape
+node scripts/acceptance/line-standard.mjs  # the line standard's board: the page scrolls off it, a tap places, a drag moves, people's colours, a tall board, full screen; the bottleneck said (a person, an area faded), names short with the words on the right — screen and card; a tall board's card a frame of its own shape; a crowded line on paper, wide and tall — no name crossing another or covering a person, everyone named, the note and kit below them, an area's tag clear of its words
 node scripts/acceptance/programs.mjs  # a program's status with commentary: the five statuses (not tested and no program among them), commentary on its own, Needs you, the paper
 node scripts/acceptance/snags.mjs  # Problems: the register — every problem written and edited where it sits, assigned not moved, its journey, a photo marked, on paper (a card for every problem among it), a fresh start
 node scripts/acceptance/lines.mjs  # production lines: made in Your factory, opened on their own, a problem taken on one with no project, its tools opened on it, the phone
@@ -345,7 +345,13 @@ area faded in its colour with its line dashed and tagged; names short on
 the map with the whole name on the right ("it covers up too much of the
 map"), numbers matching the right and kept after a reload, and full; and
 the card drawing the tags, the faded area and the short name; and a
-machine on the map marked the bottleneck from its sheet.
+machine on the map marked the bottleneck from its sheet; then a crowded
+line on paper, on a wide and a tall board (13 October: "everything's still
+merged together and PDF details gone strange even in the side commentary
+or the bottleneck") — ten people close together with long names: no name
+on the map crossing another or covering a person, every person named in
+Who does what, the note and the kit below the people, an area's
+BOTTLENECK tag clear of its own words.
 `line-capacity.mjs` is Line capacity: the views named for what they
 are, the V-curve and the capacity sheet as `lib/capacity` says, a machine
 not on its plate speed said so, the owner's V margin and the guide, a

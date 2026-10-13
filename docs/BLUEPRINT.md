@@ -506,7 +506,15 @@ is still wired.
      card's map is a frame of its board's shape, Who does what in the room
      left (two columns beside a tall board), the marks sized to the board's
      width as on the screen, names printed as the map shows them on the
-     device. `line-standard.mjs` 6c.
+     device. Then, the same day (*"I can't see any change. Everything's
+     still merged together and PDF details gone strange even in the side
+     commentary or the bottleneck"*): the marks drawn the share of the board
+     the screen draws them (they were half as big again), each name placed
+     where it is clear — under its person, else over, else the person's
+     number as in Who does what; an area's tag on its edge, never on its
+     words; the side laid out from the foot up — kit, then the note, then
+     everyone in rows as roomy as the room allows. `line-standard.mjs` 6c,
+     13 (a crowded line, wide and tall).
   2. *"cant delete a line capacity anywhere ... always implement deletes and
      editing in everything"* — every row of Line capacity and Line standard
      renamed and deleted where it sits, with Undo; Line capacity's page
