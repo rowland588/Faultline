@@ -4,8 +4,9 @@
  * 450 min; 3 changeovers of 42 min take 126; 324 min making × 100 bags a
  * minute = 32,400 bags — 45,000 if it never changed over. */
 import { describe, it, expect } from 'vitest';
-import { analyse, shiftCapacity, shiftsIn, type Station } from '../capacity';
+import { analyse, labourCost, lineSpeed, shiftCapacity, shiftsIn, type Station } from '../capacity';
 import { changeoverIn } from '../ie/changeover';
+import { idealOf } from '../ie/losses';
 import type { ToolStudy } from '../study';
 
 const st = (p: Partial<Station>): Station => ({ id: 's', name: 'Bagger', kind: 'machine', unit: 'bags', contains: 1, rate: 100, ratePer: 'min', source: 'plate', ...p });
@@ -54,5 +55,48 @@ describe('capacity a shift', () => {
     expect(changeoverIn(undefined, [a, b], 'std')).toEqual({ min: 40, perShift: 1, agreed: false });
     expect(changeoverIn(undefined, [{ ...b, facts: { ...b.facts, changeovers: undefined } }], 'std')).toEqual({ min: 40, agreed: false });
     expect(changeoverIn(undefined, [a], 'other')).toBeUndefined();
+  });
+});
+
+/* REJECTS ON THE LINE — the audit of 13 October. Worked by hand:
+ *   the Weigher passes 98% on: the Bagger at 100 is 100 ÷ 0.98 = 102.04 at
+ *   the start of the line — right for finding the bottleneck like for like,
+ *   wrong as what it makes: it bags 100 a minute, never 102.
+ *   324 min making × 100 = 32,400 bags a shift, as with no rejects.
+ *   And the Packers keeping 95% on: 100 × 0.95 = 95 good off the end —
+ *   324 × 95 = 30,780 good a shift; 450 × 95 = 42,750 if it never changed over. */
+describe('capacity a shift, with rejects on the line', () => {
+  const co = { min: 42, perShift: 3, agreed: true, from: 'Finest Red 2kg' };
+  it('a station rejecting before the bottleneck adds nothing to what it makes', () => {
+    const rj = analyse({ stations: [st({ id: 'w', name: 'Weigher', rate: 140, goodPct: 98 }), st({ id: 'b' }), st({ id: 'p', name: 'Packers', kind: 'people', rate: 120, source: 'standard' })] });
+    expect(rj.line).toBeCloseTo(100 / 0.98, 9);               // the like-for-like figure the bottleneck is found on
+    const c = shiftCapacity(rj, [days], co)!;
+    expect(c.rows[0].made).toBeCloseTo(32_400, 6);
+    expect(c.rows[0].without).toBeCloseTo(45_000, 6);
+    expect(c.sentence).toMatch(/\. At Bagger’s 100 bags a minute that is 32,400 bags a shift — 45,000 if it never changed over\.$/);
+  });
+  it('rejects at or after the bottleneck: what it makes is the good off the end, said so', () => {
+    const rj = analyse({ stations: [st({ id: 'w', name: 'Weigher', rate: 140 }), st({ id: 'b' }), st({ id: 'p', name: 'Packers', kind: 'people', rate: 120, source: 'standard', goodPct: 95 })] });
+    const c = shiftCapacity(rj, [days], co)!;
+    expect([c.rows[0].made, c.rows[0].without].map(x => Math.round((x ?? 0) * 1e6) / 1e6)).toEqual([30_780, 42_750]);
+    expect(c.sentence).toMatch(/\. At Bagger’s 100 bags a minute \(95 good off the end of the line\) that is 30,780 bags a shift — 42,750 if it never changed over\.$/);
+    expect(c.short).toBe('30,780 bags a shift — 126 of 450 min changing over');
+  });
+  it('the line’s speed — what SMED and the loss count count a stop at — is the bottleneck’s own: 100, not 102', () => {
+    const cap = { stations: [st({ id: 'w', name: 'Weigher', rate: 140, goodPct: 98 }), st({ id: 'b' }), st({ id: 'p', name: 'Packers', kind: 'people', rate: 120, source: 'standard' })] };
+    expect(lineSpeed(cap)).toEqual({ perMin: 100, unit: 'bags', station: 'Bagger', from: 'plate' });
+    expect(idealOf(cap)).toMatchObject({ rate: 100, how: 'plate' });
+    /* in the line's unit at its place: 8 cases a minute of 12 bags, two case packers, is 192 bags — whatever is rejected before them */
+    const cased = { stations: [st({ id: 'b', rate: 250, goodPct: 96 }), st({ id: 'k', name: 'Case packer', unit: 'cases', contains: 12, rate: 8, crew: 2 })] };
+    expect(lineSpeed(cased)?.perMin).toBe(192);
+    /* what a pack costs in labour is over the good off the end: 6 people at £12 over 100 bags a minute is 1.2p */
+    expect(labourCost(analyse(cap), 6, 12)?.perPack).toBeCloseTo(72 / 6000, 12);
+  });
+  it('the bottleneck’s own stops count: 100 at 90% running is 90 a minute, 29,160 a shift', () => {
+    const rj = analyse({ stations: [st({ id: 'w', name: 'Weigher', rate: 140 }), st({ id: 'b', runningPct: 90 })] });
+    expect(shiftCapacity(rj, [days], co)!.rows[0].made).toBeCloseTo(324 * 90, 6);
+    /* a shift all breaks: nothing to make, and nothing below nought */
+    const all = shiftCapacity(rj, [{ name: 'Short', min: 30, breakMin: 45 }], co)!;
+    expect([all.rows[0].planned, all.rows[0].changeoverMin, all.rows[0].making, all.rows[0].made]).toEqual([0, 0, 0, 0]);
   });
 });

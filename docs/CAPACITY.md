@@ -25,7 +25,13 @@ machine, the app has a person count, time, tap or walk instead.
 - **Units.** Every station counts in its own unit (bags, baskets, cases,
   pallets) with the conversion from the one before ("1 basket = 12 bags");
   the chain puts every speed in the line's unit, at the start of the line,
-  rejects put back (`lib/capacity`, already).
+  rejects put back (`lib/capacity`, already) — the like-for-like figure the
+  bottleneck is found on. What a station *makes* is its own speed in the
+  line's unit, nothing put back: the Bagger at 100 bags 100 a minute, though
+  the weigher before it rejects 2% and its like-for-like figure is 102. So
+  the line's speed a stop's packs are counted at (SMED, the loss count) is
+  the bottleneck's own, and capacity a shift is the good off the end of the
+  line (audit, 13 October).
 
 **A person, as the floor says them** (Rowland, 13 October: "8 units in a
 tray ... a tray every 8 seconds ... very strange numbers"; "70 a minute ...
@@ -69,9 +75,12 @@ each of the line's shifts (its settings — the clock times and the breaks
 the line stops for, relief 0), less its changeovers into this product
 (SMED's minutes — the standard's agreed ones, else as timed, said which — ×
 how many a shift the SMED says), at the bottleneck's speed once its own
-stops count. Worked by hand: 8 h less 30 min of breaks is 450 min; 3
+stops count — in good packs off the end of the line, every station's
+rejects off. Worked by hand: 8 h less 30 min of breaks is 450 min; 3
 changeovers of 42 min take 126; 324 min × 100 bags a minute = 32,400 bags a
-shift — 45,000 if it never changed over. A changeover stops the whole line,
+shift — 45,000 if it never changed over. With the packers keeping 95% on,
+95 good a minute: 30,780 a shift, said "(95 good off the end of the line)";
+a weigher rejecting before the Bagger changes nothing it makes. A changeover stops the whole line,
 so it comes off the shift once, never also off a station's running share.
 A break not said, or a changeover not timed or not counted, is said so and
 left out of the sum — never assumed.

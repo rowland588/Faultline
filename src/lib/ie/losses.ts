@@ -85,8 +85,9 @@ const whole = (n: number) => Math.round(n);
 
 /** THE RATE IS THE BOTTLENECK'S IDEAL SPEED (docs/CAPACITY.md §1, §5) —
  *  Rowland: "plate speed ... of course, unless human". The line's slowest
- *  station at running speed on its capacity, in the line's unit at the start
- *  of the line (lib/capacity's chain): a machine at the speed on its plate,
+ *  station at running speed on its capacity (found like for like at the
+ *  start of the line, lib/capacity's chain), at its own speed in the line's
+ *  unit — no rejects before it put back: a machine at the speed on its plate,
  *  a person at their standard time (from the time study, or their pace as
  *  timed). `why` says it in words — "plate speed of the Bagger", "standard
  *  time of Op 3 (the time study)", "Op 3's timed pace" — or why there is no

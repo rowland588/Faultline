@@ -347,23 +347,36 @@ export interface CapacityResult {
 
 /** THE LINE'S SPEED, as the practice takes it (docs/CAPACITY.md §1 —
  *  Rowland, 12 October: "we go by plate speed ... of course, unless human"):
- *  the station slowest on running speed alone, in the line's unit a minute
- *  at the start of the line — a machine's when its speed is off its PLATE,
- *  a person's when people set the pace and were timed, or carry a standard
- *  time from the time study. Nothing when the
+ *  the station slowest on running speed alone (found like for like, every
+ *  speed put back to the start of the line) — a machine's when its speed is
+ *  off its PLATE, a person's when people set the pace and were timed, or
+ *  carry a standard time from the time study. Nothing when the
  *  slowest station's speed is a guess, or a machine's timed rather than
  *  read off its plate: running below the plate is a loss (slow running),
  *  never a lower plate. What a stop's packs are counted at (SMED, the loss
- *  count). */
+ *  count) — so it is that station's OWN speed in the line's unit, its plate
+ *  × its crew × the units in one of its own: 100 bags a minute is 100,
+ *  whatever the weigher before it rejects. (It was the speed put back to
+ *  the start of the line, a rejecting station before it adding packs the
+ *  bottleneck never made — 2% rejected upstream said the Bagger's 100 was
+ *  102, and every shift counted 9 min of slow running that was not there.
+ *  Audit, 13 October.) */
 export function lineSpeed(cap: Capacity | undefined): { perMin: number; unit: string; station: string; from: 'plate' | 'person' } | undefined {
   if (!cap?.stations?.length) return undefined;
   const r = analyse(cap), x = r.limitAtRunning;
   if (!x || !(x.running > 0)) return undefined;
   const st = x.station, name = st.name.trim() || `station ${x.index + 1}`;
-  if (st.kind === 'machine' && st.source === 'plate') return { perMin: x.running, unit: r.unit, station: name, from: 'plate' };
-  if (st.kind === 'people' && (st.source === 'timed' || st.source === 'standard')) return { perMin: x.running, unit: r.unit, station: name, from: 'person' };
+  const own = ownSpeed(x);
+  if (st.kind === 'machine' && st.source === 'plate') return { perMin: own, unit: r.unit, station: name, from: 'plate' };
+  if (st.kind === 'people' && (st.source === 'timed' || st.source === 'standard')) return { perMin: own, unit: r.unit, station: name, from: 'person' };
   return undefined;
 }
+
+/** A counted station's own speed while running, in the line's unit a
+ *  minute at its place in the line: its speed × its crew × the line's units
+ *  in one of its own — no rejects before it put back. */
+export const ownSpeed = (x: Pick<StationResult, 'station' | 'factor'>): number =>
+  (perMinute(x.station) ?? 0) * (x.station.crew != null && x.station.crew > 0 ? x.station.crew : 1) * x.factor;
 
 /** Numbers as a person would say them: 62, 66.5, 0.13 — no trailing zeros. */
 export function fmtN(n: number): string {
@@ -1104,7 +1117,14 @@ export function vCurve(r: CapacityResult, marginPct?: number): VCurve {
  * own stops) against what can collect between it and the bottleneck, in
  * minutes of the bottleneck's work: upstream, the buffers must hold enough
  * to keep the bottleneck fed; downstream, enough room to keep it from being
- * blocked. A rule of thumb is 2–5 minutes of production. */
+ * blocked. A rule of thumb is 2–5 minutes of production. A minute of the
+ * bottleneck's work is a minute of it RUNNING — while a neighbour is stopped
+ * it draws the buffer down at its running speed, not at its average with its
+ * own stops in it (CAPACITY §4: "the typical minor stop × the critical
+ * machine's rate is what the buffer must hold"); and in the items the buffer
+ * actually holds, nothing put back for rejects before it. (It was divided by
+ * the bottleneck's figure once its own stops count, which made a buffer look
+ * longer the more the bottleneck stopped. Audit, 13 October.) */
 export interface Protection { index: number; name: string; side: 'before' | 'after'; typicalMin: number; coverMin: number; covered: boolean }
 export interface Accumulation { rows: Protection[]; written: boolean; sentence: string }
 
@@ -1121,7 +1141,8 @@ export function accumulation(r: CapacityResult, stats: Record<string, StopStats>
     const n = st?.ownEvents ?? 0;
     if (!st || !(n > 0) || !(st.ownMins > 0)) return;
     const units = i < at ? between(i, at) : between(at, i);
-    const coverMin = lim.effective > 0 ? units / lim.effective : 0;
+    const pace = ownSpeed(lim);
+    const coverMin = pace > 0 ? units / pace : 0;
     const typicalMin = st.ownMins / n;
     rows.push({ index: x.index, name: nameOf(x), side: i < at ? 'before' : 'after', typicalMin, coverMin, covered: coverMin >= typicalMin - 1e-9 });
   });
@@ -1142,8 +1163,13 @@ export function accumulation(r: CapacityResult, stats: Record<string, StopStats>
  * loss count's, relief 0) and the changeovers: SMED's minutes × how many a
  * shift. A changeover stops the whole line, not one station, so it comes off
  * the shift once; the bottleneck's speed, its own stops counted, does the
- * rest. Nothing is assumed: a break not said, or a changeover not timed or
- * not counted, is said so and left out of the sum. */
+ * rest. What it makes is GOOD packs off the end of the line — the
+ * bottleneck's own pace less every station's rejects (r.goodOut); with no
+ * rejects typed, its pace. (It was the bottleneck's speed put back to the
+ * start of the line, counting packs rejected before it as made and packs
+ * rejected after it as good. Audit, 13 October.) Nothing is assumed: a break
+ * not said, or a changeover not timed or not counted, is said so and left
+ * out of the sum. */
 export interface ShiftIn { name: string; min: number; /** Breaks the line stops for; 0 under relief; absent: not said. */ breakMin?: number }
 export interface ChangeoverIn {
   /** One changeover, minutes — agreed on the standard, or as timed. */
@@ -1169,8 +1195,11 @@ const hoursWord = (m: number): string => `${fmtN(Math.round((m / 60) * 100) / 10
 const minWord = (m: number): string => `${fmtN(Math.round(m * 10) / 10)} min`;
 
 export function shiftCapacity(r: CapacityResult, shifts: ShiftIn[], co?: ChangeoverIn): ShiftCapacity | undefined {
-  const lim = r.limit, rate = r.line;
-  if (!lim || rate == null || !(rate > 0)) return undefined;
+  const lim = r.limit;
+  if (!lim || r.line == null || !(r.line > 0)) return undefined;
+  /* the bottleneck's own pace, its stops counted, in the line's unit; and
+     the good off the end of the line a minute — what a shift makes */
+  const pace = lim.does * lim.factor, rate = r.goodOut ?? r.line;
   if (!shifts.length) return { rows: [], sentence: 'The line’s shifts are not set — set them, with their breaks, in the line’s settings to see what it can make a shift.' };
   const unit = r.unit, ln = nameOf(lim);
   const coShift = co && co.min > 0 && co.perShift != null && co.perShift >= 0 ? co.min * co.perShift : undefined;
@@ -1199,7 +1228,7 @@ export function shiftCapacity(r: CapacityResult, shifts: ShiftIn[], co?: Changeo
     : co.perShift == null ? `a changeover is ${minWord(co.min)} (${whose}), but how many a shift is not said on the SMED — none comes off until it is`
     : '';
   const breaksNot = unsaid.length ? `${unsaid.join(', ')}: the breaks are not said on the line’s settings, so no capacity is worked out for ${unsaid.length === 1 ? 'it' : 'them'}` : '';
-  const at = `At ${ln}’s ${fmtN(rate)} ${unit} a minute`;
+  const at = `At ${ln}’s ${fmtN(pace)} ${unit} a minute${rate < pace - 1e-9 ? ` (${fmtN(rate)} good off the end of the line)` : ''}`;
   const one = rows.length === 1 || rows.every(x => x.min === rows[0].min && x.breakMin === rows[0].breakMin);
   let head: string;
   if (one && said.length) {
