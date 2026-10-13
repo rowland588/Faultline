@@ -170,11 +170,12 @@ ok(typed12 === '12' && unsaved === undefined && t?.s.facts.losses?.made === 39_0
   const runs = t.s.facts.timings ?? [];
   ok(runs.length === 2 && runs.every(r => r.by && r.at > 0 && r.sec === 60) && t.s.facts.losses?.made === 39_000 && Math.abs(t.f.running.perMin - 99) < 1e-9,
     `2b two timings kept as they were added, each with when and who (${runs.map(r => `${r.packs} in ${r.sec}s by ${r.by}`).join(', ')}) — 99 a minute`);
-  /* 400 run × (100 − 99) ÷ 100 = 4 min of slow running; the short stops the rest, 3.5 */
+  /* Nakajima's net operating time: the 39,000 + 250 = 39,250 packs run at 99 a minute took 396.46 min of the 400 run;
+     at the plate's 100 they take 392.5 — 3.96 min of slow running; the short stops 400 − 396.46 = 3.54 */
   const said = await words('.ie-says p.ie-say');
   const known = (await page.locator('.ie-says .ie-cap').allInnerTexts()).join(' ');
-  ok(Math.abs(t.f.slowMin - 4) < 1e-9 && Math.abs(t.f.shortMin - 3.5) < 1e-9 && said === t.said.text && /· 4 min of slow running · 4 min of short stops\./.test(said ?? '')
-    && known.includes('Running speed timed at 99 a minute over 2 timings (2 min): slow running = 400 min run × (100 − 99) ÷ 100 = 4 min; short stops the rest, 4 min.'),
+  ok(Math.abs(t.f.slowMin - (39_250 / 99 - 392.5)) < 1e-9 && Math.abs(t.f.shortMin - (400 - 39_250 / 99)) < 1e-9 && said === t.said.text && /· 4 min of slow running · 4 min of short stops\./.test(said ?? '')
+    && known.includes('Running speed timed at 99 a minute over 2 timings (2 min): slow running = 39,250 packs run ÷ 99 − 39,250 ÷ 100 = 4 min; short stops = 400 min run − 39,250 ÷ 99 = 4 min.'),
     `2b told apart: "${said}"`);
   ok((await words('.ie-verdict')) === '60 min lost' && t.said.tone === 'n' && (await page.locator('.lf-row').filter({ hasText: 'Slow running' }).count()) === 1 && (await page.locator('.lf-row').filter({ hasText: 'Short stops' }).count()) === 1
     && (await page.locator('.lf-row.is-a').count()) === 0, '2b neither part over a tenth — the verdict neutral, two bars in the table where the rest was');

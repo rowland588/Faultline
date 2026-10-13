@@ -132,10 +132,14 @@ export function flowFigures(flow: FlowStep[] | undefined, a?: AgreedMap): FlowFi
 
 /* ------------------------------------------------------------- the words */
 
-/** A duration as people say it: seconds, minutes, hours, days. */
+/** A duration as people say it: seconds, minutes, hours, days. Under ten
+ *  minutes to a tenth ("1.5 min", "4 min") — whole minutes there put a 60 s
+ *  cycle "1 min, within takt (1 min)" against a 69 s takt, and 90 s of lead
+ *  time at "2 min" (audit, 13 October); whole minutes from ten. */
 export function dur(sec: number): string {
   if (sec > 0 && sec < 0.1) return `${Number(sec.toPrecision(2))} s`;
   if (sec < 60) return `${sec.toFixed(1)} s`;
+  if (sec < 600) return `${Number((sec / 60).toFixed(1))} min`;
   if (sec < 3600) return `${Math.round(sec / 60)} min`;
   if (sec < DAY) return `${(sec / 3600).toFixed(1)} h`;
   return `${(sec / DAY).toFixed(1)} d`;

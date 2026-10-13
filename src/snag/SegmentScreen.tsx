@@ -256,7 +256,7 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
           <button className="btn" onClick={() => step(-1)}><Icon name="chevronLeft" /> 1s</button>
           <button className="btn" onClick={() => step(1)}>1s <Icon name="chevron" /></button>
           <span className="seg-time">{t.toFixed(1)}s{dur ? ` / ${dur.toFixed(0)}s` : ''}</span>
-          <button className="btn btn-primary" onClick={mark} disabled={busy || !videoUrl || !!noPicture}><Icon name="plus" /> Mark asset</button>
+          <button className="btn btn-primary" onClick={mark} disabled={busy || !videoUrl || !!noPicture}><Icon name="plus" /> Mark a machine</button>
         </div>
         {dur > 0 && (
           <div className="seg-timeline">
@@ -266,8 +266,8 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
       </div>
 
       <div className="card" data-tour="asset-lines">
-        <div className="field-label" style={{ marginBottom: 8 }}>Assets in this segment</div>
-        {assets.length === 0 ? <p className="sub">None yet — scrub to a machine, pause, tap “Mark asset”.</p>
+        <div className="field-label" style={{ marginBottom: 8 }}>Machines marked in this clip</div>
+        {assets.length === 0 ? <p className="sub">None yet — scrub to a machine, pause, tap “Mark a machine”.</p>
           : assets.map(a => (
             <button key={a.id} className="asset-line" onClick={() => nav(`/w/${wsId}/asset/${a.id}`)}>
               <span className="asset-line-name">{a.name}{a.code ? <span className="asset-code"> · {a.code}</span> : ''}</span>
@@ -289,7 +289,7 @@ export function SegmentScreen({ wsId, segmentId }: { wsId: string; segmentId: st
         )}
         <div className="field-label" style={{ marginTop: 8 }}>{workspace.assets.length > 0 ? <>Or a new one <span className="opt">joins the line list too</span></> : 'Machine name'}</div>
         <input className="text-input" value={name} placeholder="e.g. Multihead Weigher" onChange={e => setName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void saveAndAnnotate(); }} />
-        <div className="field-label" style={{ marginTop: 10 }}>Asset code <span className="opt">optional</span></div>
+        <div className="field-label" style={{ marginTop: 10 }}>Its code <span className="opt">optional</span></div>
         <input className="text-input" value={code} placeholder="e.g. MHW-04" onChange={e => setCode(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void saveAndAnnotate(); }} />
         <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
           <button className="btn btn-primary" onClick={saveAndAnnotate} disabled={busy || !name.trim()}>{busy ? 'Saving…' : 'Save & add problems →'}</button>

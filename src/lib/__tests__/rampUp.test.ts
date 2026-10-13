@@ -32,6 +32,16 @@ describe('the climb to rate', () => {
     expect(c.text).toBe(`Finest Red 2 kg: 96 → 108 → 114 a minute over 3 runs — at this climb, the agreed 120 about ${D('2026-10-13')} (run 5).`);
   });
 
+  it('an exact 80% curve reads back as 80%: 50, 62.5, 71.2, 78.1 a minute — 100 at run 9', () => {
+    /* unit form (Crawford): T(n) = T(1) × n^b, b = log2 0.8 = −0.3219. T(1) = 1/50; 1/62.5 = 0.8 × 1/50; run 4 0.64 × 1/50.
+       T = 1/100 at n* = 0.5^(1/b) = 2^3.106 = 8.61 → run 9; daily runs, 4 Oct + 5 = 9 Oct. */
+    const b = Math.log2(0.8), net = (n: number) => 50 / n ** b;
+    const c = climbOf(pts([['2026-10-01', net(1)], ['2026-10-02', net(2)], ['2026-10-03', net(3)], ['2026-10-04', net(4)]]), 100, { product: 'Tray' });
+    expect([net(2), net(4)].map(x => Math.round(x * 1000) / 1000)).toEqual([62.5, 78.125]);
+    expect(c.learning).toBeCloseTo(0.8, 9);
+    expect([c.kind, c.runNo, c.at]).toEqual(['climbing', 9, '2026-10-09']);
+  });
+
   it('two runs: too early to say when', () => {
     const c = climbOf(pts([['2026-10-05', 96], ['2026-10-07', 108]]), 120, { product: 'Finest Red 2 kg' });
     expect(c.kind).toBe('early');

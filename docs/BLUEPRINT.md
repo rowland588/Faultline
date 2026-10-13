@@ -194,7 +194,9 @@ there and what replaces it.
 8. **`pace_ppm.capacity`**: moves into the line's per-product capacity (Stage 4).
 9. **Old words on screens**: "workspace" (about 7 places), "tracker" (2), "3P"
    (1), "snag" (about 54). One sweep in Stage 0, and a smoke check so they
-   never come back.
+   never come back. The flow audit (13 October, `FLOW-AUDIT.md` #20) added
+   three to the check: "asset" for a machine, and "line balance" and "Maps
+   and balance" for Line capacity.
 10. **22 design docs.** This blueprint is the index. Each doc stays as the deep
    design of its part, marked where it is superseded; `MAP.md`'s shape is
    replaced by §1.
@@ -223,6 +225,27 @@ there and what replaces it.
 9. **Needs you across lines**: programs due and problems late on lines with
    no job.
 10. **A people list** (D5).
+11. **A job's line is the factory's line — one page, one name** (flow audit
+    #7). The cheap part is built: the job's rail names each of its lines as
+    Your factory does and opens the line's own page (`#/lines/:ws`), two of
+    the job's lines on one factory line are one line; the job's footer, its
+    Lines cards and its line page say the factory's name, the line page
+    links to the line's page; and a job's line with no Line capacity of its
+    own shows the line's, linked, instead of an empty one. What is left needs
+    Stage 4, and is that stage's work:
+    - the job's line page (`#/project/:id/line/:lineId`) folded into the
+      line's page, the job's own parts (its numbers against target, the
+      board's actions on the line, its wins) a branch there under the job;
+    - `pace_ppm.name` and `key` retired for the factory's name — the 6M
+      report and the client report still print the job's names ("Line 8");
+    - the job's Line capacity (`pace_ppm.capacity`) moved into the line's,
+      so the fishbone's *the constraint* and the 6M report read the line's
+      (D3) — today they say "not counted yet" beside a line that has one;
+    - the stopwatch and the walk (Capture · Analyse · Evidence · Meeting)
+      opened from the line's page, so the job's line page is not their only
+      door, and those four named for what they are;
+    - a stage-gate job's line page loses the 6M sections it carries (Actions
+      by bone, Wins).
 
 ---
 
@@ -525,4 +548,45 @@ is still wired.
      of the problems"* — Problems cards beside the Problems report: a card
      for every problem the page shows, the projects' own among them.
      `snags.mjs` 8.
+- **Paper wherever there is a list** (the audit's bar 3 — Rowland, 13
+  October: "I'm always asking for reports, or cards, to be able to present
+  things in a certain way that would seem to be obvious, but aren't, because
+  you're not building them"). Placed (§8): no new record. *On the line*,
+  Line capacity (`standards.capacity`) — a product's own page and every
+  product its list shows, told in the three questions (`lib/capacityPaper`);
+  Line standard (`standards`) — the card for every product its list shows.
+  *Jobs*, Materials (`materials`) — What we are waiting on as one page;
+  Commission, Install, Set up and Hand over (`tests`) — the card for every
+  record on the board. The screen gains a button where the list is; the
+  paper says what the screen says, from the same modules.
+  `docs/AUDIT.md` 3.1–3.10; `list-paper.mjs`; `report-stress` (Line capacity at
+  every size). Left, with reasons, in `docs/AUDIT.md` 3.5–3.9 — the line
+  report is §6.5's, with the line as the hub.
+- **The flow audit's findings on Control room problems** (`docs/FLOW-AUDIT.md`
+  #2, #4, #5, #12, #13, #22; Rowland, 13 October: "fix what the audit finds
+  and ship it"). Placed (§8): *Control room*, Problems; records `snags` and
+  `cases` (no new record: a 6M problem says the register problem it was
+  taken from in its `source.snag`, and the register problem says its case
+  in its `case_id` — both columns already synced).
+  1. *Who owes it, then by when* — every box patches its own fields into
+     the row as stored (`db/walk patchSnag`), never a copy the page drew.
+  2. *Inside a job, the Problem sheet starts on the job's own line*; a job
+     on several lines asks which (`lib/lineRecords factoryLinesOf`).
+  3. *A line chosen keeps the jobs on it*, narrowed to that line
+     (`lib/snagsReport jobOnLine`); *a 6M job's problems are rows*, each
+     with its phase, opening its fishbone (`lib/useProblems
+     sixMProblemsOf`) — on the screen, the report and the cards. The line
+     page reading the same rows is Stage 3's (§3, "where it is").
+  4. *Closed asks what shows it is fixed* — one optional line, its last
+     step in view; kept as the journey's last step, so on the card and the
+     report.
+  5. *Find the root cause ›* opens a 6M problem in its words on its line's
+     6M job (or says to start one); the register problem is closed as taken
+     to 6M, said on its row and journey, and listed once — as the 6M
+     problem, "seen first on" its line. The fishbone's *Open a problem*
+     lists the line's open register problems under *Something seen*
+     (`lib/useProblems problemFromRegister`).
+  6. *From a line's page*, the problem tapped is scrolled into view, its
+     editor open, with *‹ the line* back to it.
+  Accepted by `snags.mjs` 1b, 4b, 13, 15–18.
 - **Next:** Stage 3 — the line is the hub (its products, readiness, health).

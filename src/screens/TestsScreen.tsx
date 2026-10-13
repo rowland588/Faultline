@@ -55,6 +55,7 @@ export function TestsScreen({ projectId }: { projectId: string }) {
      several tests — the same stages, one per machine, which is how a line is
      actually worked through. */
   const [on, setOn] = useState<string[]>([]);
+  const [cardsBusy, setCardsBusy] = useState(false);
 
   if (loading || tt.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   if (!project) return <div className="wrap pace"><p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p></div>;
@@ -88,6 +89,18 @@ export function TestsScreen({ projectId }: { projectId: string }) {
 
   const toggle = (id: string) => setOn(p => (p.includes(id) ? p.filter(x => x !== id) : [...p, id]));
 
+  const allCards = async () => {
+    if (cardsBusy) return;
+    setCardsBusy(true);
+    try {
+      const { saveBoardCards } = await import('../lib/testCards');
+      await saveBoardCards(projectId, { name: project.name, ...(project.lead ? { lead: project.lead } : {}) }, 'tests', 'test cards');
+    } catch (e) {
+      console.error('test cards failed', e);
+      window.alert('Sorry — the cards could not be made. Please try again.');
+    } finally { setCardsBusy(false); }
+  };
+
   return (
     <div className="wrap pace cm-screen">
       <header className="pace-head">
@@ -112,6 +125,12 @@ export function TestsScreen({ projectId }: { projectId: string }) {
               : <span className="sub">No handover date yet</span>}
             {can.agree && <button className="cw-link" onClick={() => setDates(d => !d)}>{dates ? 'Done' : 'Dates'}</button>}
           </p>
+        </div>
+        {/* A CARD FOR EVERY TEST ON THE BOARD (docs/AUDIT.md, bar 3) — each
+            the card its record prints, one document (lib/testCards) */}
+        <div className="pace-head-actions">
+          <button type="button" className="btn" disabled={cardsBusy || proofs.length === 0} onClick={() => void allCards()}
+            aria-label="Test cards — a card for every test on the board (PDF)"><Icon name="document" size="1.05em" />{cardsBusy ? 'Making…' : 'Test cards'}</button>
         </div>
       </header>
       <AccessNote can={can} owner={project.lead} />

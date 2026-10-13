@@ -6,7 +6,8 @@ import { nav } from '../state/useRoute';
 /* A fix pinned on this frame, or a thing found here, opens in the record's
    drawer over the frame (ui/RecordDrawer) — × comes back to the picture. */
 import { openRecord } from '../ui/RecordDrawer';
-import { getSnagAsset, getSegment, snagsForAsset, addSnag, updateSnag, updateSnagAsset, deleteSnag, putBlob, getBlob, chainForWorkspace, getProject, listTests, listTestItems, putTest } from '../db';
+import { offerUndo } from '../ui/Undo';
+import { getSnagAsset, getSegment, snagsForAsset, addSnag, patchSnag, updateSnagAsset, deleteSnag, putBlob, getBlob, chainForWorkspace, getProject, listTests, listTestItems, putTest } from '../db';
 import { planModel } from '../lib/planModel';
 import { live, type Test, type TestItem } from '../lib/testing';
 import { fixTone } from '../lib/fixTone';
@@ -184,7 +185,7 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
       )}
 
       {(!job || visible.length > 0) && <div className="card" style={{ marginTop: 12 }}>
-        <div className="field-label" style={{ marginBottom: 8 }}>{job ? 'Evidence pinned here earlier' : 'On this asset'}</div>
+        <div className="field-label" style={{ marginBottom: 8 }}>{job ? 'Evidence pinned here earlier' : 'On this machine'}</div>
         {visible.length === 0 ? <p className="sub">Nothing on this frame yet — tap it where you see something.</p>
           : visible.map(s => (
             <button key={s.id} className="snag-line-row" onClick={() => { setDraft(null); setEditing(s); }}>
@@ -279,7 +280,7 @@ function SnagEditor({ wsId, asset, draft, snag, observations, still, pinAt, onCl
     try {
       if (snag) {
         const u = update.trim();
-        await updateSnag({ ...snag, problem: problem.trim(), proposedSolution: solution.trim() || undefined, status, owner: owner.trim() || undefined,
+        await patchSnag(snag.id, { problem: problem.trim(), proposedSolution: solution.trim() || undefined, status, owner: owner.trim() || undefined,
           dueAt: dueFromInput(due), latestUpdate: u || undefined,
           latestUpdateAt: u ? (u === snag.latestUpdate ? snag.latestUpdateAt : now()) : undefined,
           closeNote: closeNote.trim() || undefined, detailPhotoKey: photoKey, fixedPhotoKey: fixedKey, linkedObsIds: links.length ? links : undefined, closedAt: status !== 'closed' ? undefined
@@ -316,11 +317,15 @@ function SnagEditor({ wsId, asset, draft, snag, observations, still, pinAt, onCl
         media: photoKey ? [{ id: uid(), kind: 'photo', blobKey: photoKey, mime: photo?.type || 'image/jpeg', capturedAt: snag.raisedAt }] : undefined,
         sort: t, createdAt: t, updatedAt: t,
       });
-      await updateSnag({ ...snag, status: 'closed', closedAt: t, closeNote: 'Now a fix — on the Fixes screen.' });
+      await patchSnag(snag.id, { status: 'closed', closedAt: t, closeNote: 'Now a fix — on the Fixes screen.' });
       nav(recordHref(jobId, id, 'fix'));
     } finally { setBusy(false); }
   };
-  const remove = async () => { if (snag && window.confirm('Delete this? The photo and everything written about it go with it.')) { await deleteSnag(snag.id); onSaved(); } };
+  const remove = async () => {
+    if (!snag || !window.confirm('Delete this? The photo and everything written about it go with it.\n\nUndo brings it back for a few seconds.')) return;
+    offerUndo(`Deleted “${snag.problem.trim() || 'the problem'}”`, await deleteSnag(snag.id));
+    onSaved();
+  };
   const addPhoto = async (file: File) => { const key = `blob-${uid()}`; await putBlob(key, file); setPhotoKey(key); };
   const addFixed = async (file: File) => { const key = `blob-${uid()}`; await putBlob(key, file); setFixedKey(key); };
 
@@ -493,10 +498,10 @@ function RenameSheet({ asset, open, onClose, onSaved }: { asset: SnagAsset; open
   };
 
   return (
-    <Sheet open={open} onClose={onClose} title="Rename asset">
-      <div className="field-label">Asset name</div>
+    <Sheet open={open} onClose={onClose} title="Rename the machine">
+      <div className="field-label">The machine’s name</div>
       <input className="text-input" autoFocus value={name} onChange={e => setName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void save(); }} />
-      <div className="field-label" style={{ marginTop: 10 }}>Asset code <span className="opt">optional</span></div>
+      <div className="field-label" style={{ marginTop: 10 }}>Its code <span className="opt">optional</span></div>
       <input className="text-input" value={code} placeholder="e.g. MHW-04" onChange={e => setCode(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void save(); }} />
       <div className="row-end" style={{ marginTop: 14 }}>
         <button className="btn btn-ghost" onClick={onClose}>Cancel</button>

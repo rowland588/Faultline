@@ -29,10 +29,12 @@ import { useProject } from '../lib/useProjects';
 import { usePaceLines } from '../lib/usePaceLines';
 import { useMaterials } from '../lib/useMaterials';
 import {
-  coveredIn, daysLate, isHere, landsIn, stateOf, todayISO,
+  coveredIn, isHere, landsIn, stateOf, todayISO,
   type Material, type Week,
 } from '../lib/materials';
 import { Icon } from '../ui/Icon';
+/* "3 days late", "in 4 days" — the list's words, the same on its paper (lib/materialsReport) */
+import { whenSaid } from '../lib/materialsReport';
 import { useAccess } from '../cloud/access';
 import { AccessNote } from '../ui/AccessNote';
 import type { Can } from '../lib/access';
@@ -42,19 +44,6 @@ const nice = (iso?: string): string => {
   const t = Date.parse(iso + 'T12:00:00');
   return Number.isFinite(t) ? new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : iso;
 };
-
-/** How far off it is, in words, because "in 4 days" is read faster than a date
- *  and the date is right beside it anyway. */
-function when(m: Material, today: string): string {
-  if (isHere(m)) return m.inOn ? `in on ${nice(m.inOn)}` : 'in stock';
-  if (!m.due) return 'no date';
-  const late = daysLate(m, today);
-  if (late != null) return late === 1 ? '1 day late' : `${late} days late`;
-  const days = Math.round((Date.parse(m.due + 'T12:00:00') - Date.parse(today + 'T12:00:00')) / 86_400_000);
-  if (days === 0) return 'today';
-  if (days === 1) return 'tomorrow';
-  return `in ${days} days`;
-}
 
 /* ================================== the grid ================================ */
 
@@ -147,7 +136,7 @@ function Row({ m, today, lineName, state, weeks, can, lines }: {
       </div>
 
       <div className="mt-when">
-        <span className={'mt-when-n is-' + where}>{when(m, today)}</span>
+        <span className={'mt-when-n is-' + where}>{whenSaid(m, today)}</span>
         {!isHere(m) && !can.edit && m.due && <span className="mt-facts">{nice(m.due)}</span>}
         {!isHere(m) && can.edit && (
           <DateWhy className="mt-due" ariaLabel={`Date ${m.what} is due`} value={m.due}
@@ -278,6 +267,18 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
 
   const { tally: t } = state;
   const lineName = (id?: string) => lines.lines.find(l => l.id === id)?.name;
+  /* ITS PAPER (docs/AUDIT.md, bar 3) — what we are waiting on as one page:
+     how many are here, the late named with why their dates moved, what is
+     coming by the day, what has no date (lib/materialsReport, lib/materialsPdf) */
+  const paper = async () => {
+    try {
+      const { saveMaterialsReport } = await import('../lib/materialsPdf');
+      await saveMaterialsReport(projectId, project.name, lineName);
+    } catch (e) {
+      console.error('materials pdf failed', e);
+      window.alert('Sorry — the PDF could not be made. Please try again.');
+    }
+  };
 
   return (
     <div className="wrap pace">
@@ -298,6 +299,9 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
                 {t.undated > 0 && <span className="sub">{t.undated} with no date</span>}
               </>}
           </p>
+        </div>
+        <div className="pace-head-actions">
+          <button type="button" className="btn" disabled={t.total === 0} onClick={() => void paper()}><Icon name="document" size="1.05em" />Materials report</button>
         </div>
       </header>
       <AccessNote can={can} owner={project.lead} />

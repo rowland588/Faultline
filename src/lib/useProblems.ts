@@ -14,15 +14,16 @@ import {
   loadPaceLines, putPaceLine, projectWorkspaceIds, getPaceWorkspaceId, setPaceWorkspaceId,
   createWorkspace, getWorkspace, getProject, listObservations, listStandards, listStudies, listMaterials,
   listPrograms, listTargets, listReadings, listPaceTodos, listProjectCases, addCase, patchCase,
-  onDataChange, type PaceLineRow, type PaceTodoRow,
+  onDataChange, getSnag, patchSnag, removeCase, type PaceLineRow, type PaceTodoRow,
 } from '../db';
 import { factoryLineFor } from './lines';
 import { loadWalkSnags } from './useWalkSnags';
 import { stepAction } from './actions';
 import { uid, now } from './ids';
 import { todayISO } from './weeks';
+import type { SixMProblem } from './snagsReport';
 import {
-  belongsTo, buildView, causeFromOldWhys, fishboneData, scopeMsWeek,
+  belongsTo, buildView, causeFromOldWhys, fishboneData, lineOf, scopeMsWeek,
   type Countermeasure, type FishboneData, type FishNote,
 } from './fishbone';
 
@@ -148,6 +149,52 @@ export async function createProblem(projectId: string, o: { title: string; lineI
   return draft;
 }
 
+/** A PROBLEM SEEN ON THE FLOOR MADE THE HEAD OF A FISH (FLOW-AUDIT #13: "a
+ *  problem seen on the floor cannot become the head of the fish ... today it
+ *  means typing the problem again"). From the register's "Find the root
+ *  cause ›", or picked under Something seen on the fishbone's Open a problem:
+ *  a 6M problem opened on the job's line in the register problem's words, its
+ *  source what was seen and the problem it was. The register problem is
+ *  closed as taken to 6M — for that job, said on its journey — so it is
+ *  listed once, as the 6M problem with where it is on its way. Returns the
+ *  6M problem and the undo; nothing when the problem is not here. */
+export async function problemFromRegister(snagId: string, projectId: string, lineId: string | undefined, job: string): Promise<{ problem: Case; undo: () => Promise<void> } | undefined> {
+  const before = await getSnag(snagId);
+  if (!before || before.deletedAt) return undefined;
+  const problem = await createProblem(projectId, { title: before.problem?.trim() || 'Something seen', lineId, source: { kind: 'observed', snag: snagId } });
+  const t = now();
+  await patchSnag(snagId, s => ({
+    status: 'closed', closedAt: t, projectId, caseId: problem.id, media: s.media ?? [],
+    closeNote: `Taken to 6M on ${job}`,
+    journey: [...(s.journey ?? []), { id: uid(), at: t, did: `Taken to 6M on ${job} — to find its root cause` }],
+  }));
+  return {
+    problem,
+    undo: async () => {
+      await removeCase(problem.id);
+      await patchSnag(snagId, { status: before.status, closedAt: before.closedAt, projectId: before.projectId, caseId: before.caseId,
+        closeNote: before.closeNote, journey: before.journey, media: before.media });
+    },
+  };
+}
+
+/** A 6M JOB'S PROBLEMS AS THE REGISTER LISTS THEM (FLOW-AUDIT #2: "the 6M
+ *  problems are on no line page and in no register") — each with where it is
+ *  on its way, the factory line it is on and its job's line, and the register
+ *  problem it was taken from. The same views the fishbone draws. */
+export async function sixMProblemsOf(projectId: string, today = Date.now()): Promise<SixMProblem[]> {
+  const loaded = await loadProblems(projectId);
+  return viewsOf(loaded, projectId, undefined, today).map(v => {
+    const line = lineOf(v.problem, loaded.data.lines);
+    const ws = line?.workspaceId ?? v.problem.workspaceId;
+    return {
+      id: v.problem.id, title: v.problem.title, open: v.problem.status === 'open', phase: v.phase, openedAt: v.problem.openedAt,
+      ...(ws ? { workspaceId: ws } : {}), ...(line ? { jobLineId: line.id } : {}),
+      ...(v.problem.source?.snag ? { fromSnagId: v.problem.source.snag } : {}),
+    };
+  });
+}
+
 /** Add a cause, or change one — merged into the list by id. */
 export const saveCauseOn = (problemId: string, cause: Cause) => patchCase(problemId, c => {
   const list = c.causes ?? [];
@@ -176,6 +223,14 @@ export const closedProblemOn = (problemId: string, iso: string) => patchCase(pro
 });
 export const reopenProblem = (problemId: string) =>
   patchCase(problemId, c => ({ ...c, status: 'open', closedAt: undefined }));
+/** THE PROBLEM IN BETTER WORDS — the head of the fish, changed where it sits
+ *  (the audit's bar 2: every record's words changed where it is opened). Its
+ *  causes, countermeasures and where it was taken from stay as they are; an
+ *  empty title is never written. */
+export const retitleProblem = (problemId: string, title: string) => {
+  const t = title.trim();
+  return patchCase(problemId, c => (t && t !== c.title ? { ...c, title: t } : c));
+};
 /** The hold check was looked at today. */
 export const checkedProblem = (problemId: string) =>
   patchCase(problemId, c => (c.hold ? { ...c, hold: { ...c.hold, lastChecked: todayISO() } } : c));

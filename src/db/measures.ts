@@ -4,7 +4,7 @@ import type { ID } from '../types';
 import type { Reading, Target } from '../lib/measures';
 import { now } from '../lib/ids';
 import { getDB, signalWrite } from './core';
-import { recordTombstones } from './sync';
+import { recordTombstones, restoreRows, type Restore } from './sync';
 
 export async function listTargets(projectId: string): Promise<Target[]> {
   const all = await (await getDB()).getAllFromIndex('targets', 'by_project', projectId);
@@ -44,8 +44,13 @@ export async function putReadings(rows: Reading[]): Promise<void> {
   signalWrite();
 }
 
-export async function deleteReading(id: ID): Promise<void> {
-  await (await getDB()).delete('readings', id);
+/** Deleted with an undo (ui/Undo): the row as it was is handed back, and
+ *  restoreRows puts it back stamped, on every device. */
+export async function deleteReading(id: ID): Promise<Restore> {
+  const db = await getDB();
+  const row = await db.get('readings', id);
+  await db.delete('readings', id);
   await recordTombstones('readings', [id]);
   signalWrite();
+  return async () => { if (row) await restoreRows('readings', [row]); };
 }

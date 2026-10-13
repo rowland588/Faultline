@@ -62,6 +62,8 @@ import { usePrograms } from '../lib/usePrograms';
 import { journeyOf, machineAt, machinesWhere } from '../lib/install';
 import { live } from '../lib/testing';
 import { todayISO } from '../lib/weeks';
+import { useLineRecords } from '../lib/useLineRecords';
+import { inCapacityTool } from '../lib/standard';
 
 /* THE SECTIONS, by the name each had as a tab. 'overview' is the top of the
    page: an old ?view=overview link lands there. */
@@ -182,6 +184,17 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
   );
 
   const counts = useLinePackCounts(projectId, lineId, line?.workspaceId);
+  /* THE FACTORY'S LINE (docs/BLUEPRINT.md §1 rule 2: a job owns no line, it
+     points at one). The job's line is named as the factory names it — not
+     "Line 8" for Line 7 — smoke test — and the Line capacity the line already
+     has is linked to, not offered again empty (docs/FLOW-AUDIT.md #7). Moving
+     the job's own capacity into the line's is Stage 4. */
+  const rec = useLineRecords();
+  const onFactory = line?.workspaceId ? rec.lines.find(w => w.id === line.workspaceId) : undefined;
+  const lineCaps = useMemo(() => (onFactory
+    ? rec.standards.filter(s => s.workspaceId === onFactory.id && inCapacityTool(s) && s.capacity)
+      .map(s => ({ id: s.id, product: s.product, says: s.capacity ? shortSays(analyse(s.capacity)) : undefined }))
+    : []), [onFactory, rec.standards]);
 
   // The workspace is remembered ON the line, so attaching one is an edit to the
   // line row — which is also what makes it appear on the owner's other device.
@@ -242,6 +255,8 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
 
   const paced = planModel(project) !== 'commissioning';
   const sixM = planModel(project) === 'board';
+  /* the line as the factory names it (a line not yet in the factory keeps the job's name) */
+  const name = onFactory?.name ?? line.name;
   const sections: Lens[] = sixM ? ['fishbone', ...PACED] : paced ? PACED : STAGE_GATE;
   /* The section a link names, when this line has it; else the top of the
      page. Kept as `lens` for the header, which offers "I saw…" only where the
@@ -277,6 +292,12 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
   /* Where the line is limited, in the words that fit a row (lib/capacity
      shortSays) — the full sentence is the section's own verdict card. */
   const capLine = line.capacity && line.capacity.stations.length > 0 ? shortSays(analyse(line.capacity)) : undefined;
+  /* With none of its own, the job's line shows the line's Line capacity —
+     each product's, as the line's page counts them — and offers no second,
+     empty one beside it. With none on the line either, the panel stays: it
+     is where a 6M job counts its line until Stage 4 moves it to the line. */
+  const fromLine = !capLine && lineCaps.length > 0;
+  const capHref = (id: string) => `/w/${onFactory?.id ?? ''}/standards/${id}?at=balance`;
 
   /* WHAT EACH SECTION SAYS IN ITS OWN LINE — the counts the tabs and the
      overview's tiles carried, beside the thing they count. Only the abnormal
@@ -298,7 +319,8 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
     : (counts.openTodos + counts.waitingTodos + counts.doneTodos === 0 ? 'none yet'
       : <>{counts.openTodos} open{counts.waitingTodos > 0 && <> · <span className="ln-wait">{counts.waitingTodos} waiting</span></>} · {counts.doneTodos} done</>);
   const winsSays = counts.wins === 0 ? 'none yet' : `${counts.wins} logged`;
-  const balanceSays = capLine ?? 'not counted yet';
+  const balanceSays = capLine
+    ?? (fromLine ? `on the line — ${lineCaps[0].product}${lineCaps[0].says ? `: ${lineCaps[0].says}` : ''}${lineCaps.length > 1 ? ` · ${lineCaps.length - 1} more` : ''}` : 'not counted yet');
   const filmedSays: ReactNode = !line.workspaceId ? 'not filmed yet'
     : counts.openSnags > 0 ? <><span className="ln-wait">{counts.openSnags} open</span> on the walk</> : 'nothing pinned open';
 
@@ -306,7 +328,13 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
     <div className={'wrap pace is-' + lens}>
       <header className="pace-head">
         <div className="pace-head-main">
-          <h1 className="pace-title">{line.name}</h1>
+          {/* which line of the factory this is, one tap to its own page —
+              where its problems, programs and tools on it are, this job among
+              its jobs */}
+          {onFactory && (
+            <p className="pl-eyebrow">ON {project.name.toUpperCase()} · <a href={`#/lines/${onFactory.id}`} className="pl-fac">The line in Your factory ›</a></p>
+          )}
+          <h1 className="pace-title">{name}</h1>
           {/* Who is on it, as the one line under the name. (The lede that said
               what the page holds went: the lenses under it name those things,
               and the rail says which job the line is on.) */}
@@ -380,7 +408,7 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
                 onClick={() => void findOutWhy()}>
                 <span className="why-door-t">
                   {off
-                    ? `${line.name} is ${off} off its ${head.period?.name ?? ''} target — find out why`.replace('  ', ' ')
+                    ? `${name} is ${off} off its ${head.period?.name ?? ''} target — find out why`.replace('  ', ' ')
                     : 'Where is this line’s time going?'}
                 </span>
                 <span className="why-door-s">
@@ -426,7 +454,24 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
       {has('capacity') && (
         <div id="line-capacity" className="ln-sec">
           <Fold key={foldKey('capacity')} id="line.balance" title="Line capacity" says={balanceSays}>
-            <CapacityPanel projectId={projectId} line={line} onSave={cap => ppm.editLine(lineId, { capacity: cap })} />
+            {fromLine ? (
+              <>
+                <p className="sub ln-none">Kept on {name}, product by product — the same Line capacity its own page lists.</p>
+                <ul className="pl-rows">
+                  {lineCaps.map(c => (
+                    <li key={c.id}>
+                      <button type="button" className="pl-row" onClick={() => nav(capHref(c.id))}>
+                        <span className="pl-row-main">
+                          <span className="qsl-what">{c.product}</span>
+                          <span className="qsl-meta">{c.says ?? 'not counted yet'}</span>
+                        </span>
+                        <span className="pl-tool-go" aria-hidden>›</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : <CapacityPanel projectId={projectId} line={line} onSave={cap => ppm.editLine(lineId, { capacity: cap })} />}
           </Fold>
         </div>
       )}
@@ -437,7 +482,7 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
         <div id="line-snags" className="ln-sec">
           <Fold key={foldKey('snags')} id="line.filmed" title="The line, filmed" says={filmedSays}>
             <PaceSnags projectId={projectId} projectName={project.name} can={can}
-              line={{ workspaceId: line.workspaceId, name: line.name, attach }} />
+              line={{ workspaceId: line.workspaceId, name, attach }} />
           </Fold>
         </div>
       )}
@@ -447,8 +492,8 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
           the first time one is opened. A client with no study to read has no
           door, because the database would refuse the making of one. */}
       {(line.workspaceId || can.edit) && (
-        <nav className="ln-study" aria-label={`Time and film ${line.name}`}>
-          <span className="ln-study-t">Time and film {line.name}</span>
+        <nav className="ln-study" aria-label={`Time and film ${name}`}>
+          <span className="ln-study-t">Time and film {name}</span>
           <span className="ln-study-links">
             {STUDY.map((s, i) => (
               <span key={s.path}>{i > 0 && <span className="ln-study-dot" aria-hidden>·</span>}
@@ -461,7 +506,7 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
 
       <footer className="pace-foot">
         <p>
-          {line.name} · part of {project.name}
+          {name} · part of {project.name}
           {line.owner && <> · owned by {line.owner}</>}
           {line.sponsor && <> · sponsored by {line.sponsor}</>}
         </p>

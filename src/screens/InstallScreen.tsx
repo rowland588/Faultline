@@ -103,6 +103,7 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
   /* The job's programs — what a sign-off says was still open on its machine
      (lib/install doneTodayPatch). */
   const progs = usePrograms(projectId);
+  const [cardsBusy, setCardsBusy] = useState(false);
 
   if (loading || tt.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   /* A link to a project that has gone is a dead end, not a crash — and it
@@ -134,6 +135,20 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
   /* Stages a machine has on the grid with nothing planned in them. "1 of 2
      steps done" over five stages read as nearly half way; it is one of five. */
   const unplanned = grid.rows.filter(r => r.view.total > 0).reduce((n, r) => n + r.cells.filter(c => !c).length, 0);
+  /* A CARD FOR EVERY STEP ON THE GATE (docs/AUDIT.md, bar 3) — each the card
+     its record prints, machine by machine, one document (lib/testCards) */
+  const cardWord = gate === 'handover' ? 'Item' : 'Step';
+  const allCards = async () => {
+    if (cardsBusy) return;
+    setCardsBusy(true);
+    try {
+      const { saveBoardCards } = await import('../lib/testCards');
+      await saveBoardCards(projectId, { name: project.name, ...(project.lead ? { lead: project.lead } : {}) }, gate, `${GATE_WORD[gate]} ${cardWord.toLowerCase()} cards`);
+    } catch (e) {
+      console.error('step cards failed', e);
+      window.alert('Sorry — the cards could not be made. Please try again.');
+    } finally { setCardsBusy(false); }
+  };
 
   return (
     <div className="wrap pace cm-screen">
@@ -156,6 +171,10 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
                 (docs/HANDOVER.md), from the gate it is about. */}
             {gate === 'handover' && <button className="cw-link" onClick={() => nav(`/project/${projectId}/report?doc=handover`)}>Handover report ›</button>}
           </p>
+        </div>
+        <div className="pace-head-actions">
+          <button type="button" className="btn" disabled={cardsBusy || steps.length === 0} onClick={() => void allCards()}
+            aria-label={`${cardWord} cards — a card for every ${cardWord.toLowerCase()} on ${GATE_WORD[gate]} (PDF)`}><Icon name="document" size="1.05em" />{cardsBusy ? 'Making…' : `${cardWord} cards`}</button>
         </div>
       </header>
       <AccessNote can={can} owner={project.lead} />

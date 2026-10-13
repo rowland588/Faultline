@@ -22,12 +22,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { withoutDemo } from '../lib/demo';
 import { addLineToFactory, asked, byFloor, liveProductionLines } from '../lib/lines';
-import { addSnag, deleteSnag, inArchivedProject, listAllSnags, projectWalkIds, listArchivedWorkspaces, listWorkspaces, putTest, putTestItem, listAssets, listSnagAssets, listTests, listTestItems, listPaceTodos, onDataChange, updateSnag, updateWorkspace, setSnagsStatus, type PaceTodoRow } from '../db';
+import { addSnag, allPaceLines, deleteSnag, inArchivedProject, listAllSnags, projectWalkIds, listArchivedWorkspaces, listWorkspaces, putTest, putTestItem, listAssets, listSnagAssets, listTests, listTestItems, listPaceTodos, onDataChange, patchSnag, setSnagsStatus, type PaceLineRow, type PaceTodoRow } from '../db';
 import { useProjects } from '../lib/useProjects';
 import { planModel } from '../lib/planModel';
 import { uid } from '../lib/ids';
 import type { SnagCardRow } from '../lib/buildSnagCards';
-import { jobGroup, PRIORITY_RANK, PRIORITY_WORD, type JobGroup, type JobRow, type Priority, type SnagRow, type SnagTone, snagsReading } from '../lib/snagsReport';
+import { jobGroup, jobOnLine, PRIORITY_RANK, PRIORITY_WORD, type JobGroup, type JobRow, type Priority, type SixMProblem, type SnagRow, type SnagTone, snagsReading } from '../lib/snagsReport';
+import { factoryLinesOf } from '../lib/lineRecords';
 import { openRecord } from '../ui/RecordDrawer';
 import { useAccessByJob } from '../ui/JobsBoard';
 import { useSyncStatus } from '../cloud/session';
@@ -48,6 +49,8 @@ import { SNAG_STATUS_META, dueFromInput, dueToInput, type Snag, type SnagAsset, 
 import { pinSnag } from './quick';
 import { openQuickSnag } from './QuickSnag';
 
+/** A change to one problem: its fields, or worked out from the row as it is stored (db patchSnag). */
+type SnagChange = Partial<Snag> | ((stored: Snag) => Partial<Snag>);
 /** The counts are the filters: everything open, each priority open, the late, the done. */
 type Filter = 'open' | Priority | 'late' | 'done';
 type Group = 'line' | 'who';
@@ -63,8 +66,10 @@ const photoRef = (key: string, s?: { media?: MediaRef[] }): MediaRef =>
 const NEW_LINE = '__new_line__';
 /** The group of problems whose line is gone with an archived project, or archived itself. */
 const NO_LINE = '__no_line__';
-/** A job's records the page reads its problems and fixes from. */
-interface JobData { tests: Test[]; items: TestItem[]; assets: Asset[]; todos: PaceTodoRow[] }
+/** A job's records the page reads its problems and fixes from — a 6M job's problems among them (FLOW-AUDIT #2). */
+interface JobData { tests: Test[]; items: TestItem[]; assets: Asset[]; todos: PaceTodoRow[]; cases: SixMProblem[] }
+/** A 6M job on a problem's line — where its root cause is found (FLOW-AUDIT #13). */
+interface RootOn { id: string; name: string; lineId: string }
 const todayInput = () => dueToInput(new Date().setHours(0, 0, 0, 0));
 const dedupe = (xs: string[]) => { const seen = new Set<string>(); return xs.filter(x => { const k = x.trim().toLowerCase(); if (!k || seen.has(k)) return false; seen.add(k); return true; }); };
 
@@ -75,6 +80,8 @@ export function QuickSnagsScreen() {
   const [frames, setFrames] = useState<Map<string, SnagAsset>>(new Map());
   const [jobMachines, setJobMachines] = useState<string[]>([]);
   const [jobData, setJobData] = useState<Map<string, JobData>>(new Map());
+  /* the jobs' lines — which factory line each job is on (lib/lineRecords) */
+  const [jobLines, setJobLines] = useState<PaceLineRow[]>([]);
   /* AN ARCHIVED JOB'S OWN WALK — its problems are "Not on a line", never under the
      archived name (Rowland, 12-13 October: "the bloody title 2A2B ... doesn't exist
      because it's an archive project"). A LINE of the factory is never away: Line 2B
@@ -93,6 +100,10 @@ export function QuickSnagsScreen() {
   const [group, setGroup] = useState<Group>('line');
   /* opened from a line's own page: on that line, the problem tapped there open */
   const [lineF, setLineF] = useState(() => asked('line') ?? 'all');
+  /* the line this page was opened from — the way back to it (FLOW-AUDIT #22) */
+  const [fromLine] = useState(() => asked('line'));
+  /* the problem tapped on the line's page, brought into view once it is drawn (FLOW-AUDIT #22) */
+  const [toShow, setToShow] = useState(() => asked('open'));
   const [jobF, setJobF] = useState('all');
   const [whoF, setWhoF] = useState('all');
   const [search, setSearch] = useState('');
@@ -109,6 +120,8 @@ export function QuickSnagsScreen() {
   const sync = useSyncStatus();
   const refusedHere = (sync.refused ?? []).filter(r => r.kind === 'snags' || r.kind === 'test_items' || r.kind === 'tests');
   const jobKey = liveJobs.map(p => p.id).join(',');
+  /* the 6M jobs among them — their problems are read off their fishbones */
+  const sixmKey = liveJobs.filter(p => planModel(p) === 'board').map(p => p.id).join(',');
 
   const load = useCallback(async () => {
     const [every, ws] = await Promise.all([listAllSnags(), listWorkspaces()]);
@@ -130,14 +143,19 @@ export function QuickSnagsScreen() {
        page I do the report on"); and the machines on the jobs, offered when
        a problem is given its machine. */
     const ids = jobKey.split(',').filter(Boolean);
+    const sixm = new Set(sixmKey.split(',').filter(Boolean));
     const jd = new Map<string, JobData>();
+    /* a 6M job's problems, as its fishbone has them (lib/useProblems) — read only when there is a 6M job */
+    const fish = sixm.size ? await import('../lib/useProblems') : undefined;
     await Promise.all(ids.map(async pid => {
-      const [tests, items, assets, todos] = await Promise.all([listTests(pid), listTestItems(pid), listAssets(pid), listPaceTodos(pid)]);
-      jd.set(pid, { tests, items, assets, todos });
+      const [tests, items, assets, todos, cases] = await Promise.all([listTests(pid), listTestItems(pid), listAssets(pid), listPaceTodos(pid),
+        fish && sixm.has(pid) ? fish.sixMProblemsOf(pid) : Promise.resolve([] as SixMProblem[])]);
+      jd.set(pid, { tests, items, assets, todos, cases });
     }));
     setJobData(jd);
+    setJobLines(await allPaceLines());
     setJobMachines(dedupe([...jd.values()].flatMap(d => d.assets).filter(a => !a.deletedAt).map(a => a.name.trim())));
-  }, [jobKey]);
+  }, [jobKey, sixmKey]);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
 
   /* an archived job's walk, or a line archived itself: "Not on a line"; a line of the factory: its name */
@@ -171,18 +189,24 @@ export function QuickSnagsScreen() {
     && (whoF === 'all' || (whoF === '' ? !s.owner?.trim() : s.owner?.trim() === whoF))
     && (!words || `${s.problem} ${s.latestUpdate ?? ''} ${s.targetAsset ?? ''} ${s.owner ?? ''} ${s.proposedSolution ?? ''} ${(s.journey ?? []).map(j => `${j.did} ${j.result ?? ''}`).join(' ')}`.toLowerCase().includes(words))), [here, lineF, jobF, whoF, words, goneLines]);
   /* Each project's own problems (with no fix yet) and its fixes — a
-     stage-gate job's — or a 6M job's actions that came from a problem
-     (lib/snagsReport jobGroup), narrowed as the problems are: a line chosen
-     shows that line's only. */
-  const jobGroups = useMemo(() => (lineF !== 'all' ? [] : [...jobData.entries()].flatMap(([pid, d]) => {
+     stage-gate job's — or a 6M job's problems on their fishbones and its
+     actions that came from a problem (lib/snagsReport jobGroup), narrowed as
+     the problems are. A LINE CHOSEN KEEPS THE JOBS ON IT, narrowed to that
+     line (FLOW-AUDIT #2: "filtering the register by line drops every job
+     problem" — Line 7 showed one Low problem while the job on it held a
+     Critical); only "Not on a line" has no job's. */
+  const jobGroups = useMemo(() => (lineF === NO_LINE ? [] : [...jobData.entries()].flatMap(([pid, all]) => {
     const p = liveJobs.find(x => x.id === pid);
     if (!p || (jobF !== 'all' && jobF !== pid)) return [];
+    const d = lineF === 'all' ? all : jobOnLine(all, pid, lineF, jobLines);
+    if (!d) return [];
     const gated = planModel(p) === 'commissioning';
-    const g = jobGroup({ projectId: pid, job: p.name, tests: gated ? d.tests : [], items: gated ? d.items : [], assets: d.assets, todos: gated ? [] : d.todos, snags: snags ?? [], lineName });
+    const g = jobGroup({ projectId: pid, job: p.name, tests: gated ? d.tests : [], items: gated ? d.items : [], assets: d.assets, todos: gated ? [] : d.todos,
+      cases: planModel(p) === 'board' ? d.cases : [], snags: snags ?? [], lineName });
     const rows = g.rows.filter(r => (whoF === 'all' || (whoF === '' ? !r.who : r.who === whoF))
       && (!words || `${r.what} ${r.where} ${r.fixWhat ?? ''} ${r.who ?? ''}`.toLowerCase().includes(words)));
     return rows.length ? [{ ...g, rows }] : [];
-  })), [jobData, liveJobs, lineF, jobF, whoF, words, snags, lineName]);
+  })), [jobData, jobLines, liveJobs, lineF, jobF, whoF, words, snags, lineName]);
   const reading = useMemo(() => snagsReading({
     snags: narrowed.map(s => (goneLines.has(s.workspaceId) ? { ...s, workspaceId: NO_LINE } : s)), lineName, jobName: liveJobName, became: new Map(), register: true, jobs: jobGroups,
     assetName: s => (s.assetId ? frames.get(s.assetId)?.name : undefined),
@@ -213,7 +237,9 @@ export function QuickSnagsScreen() {
   const shownCount = shownLines.reduce((n, g) => n + g.rows.length, 0) + shownJobs.reduce((n, g) => n + g.rows.length, 0);
   const anyJobRows = [...jobData.keys()].length > 0 && reading.jobs.length > 0;
 
-  const onLines = [...new Set(here.map(s => (goneLines.has(s.workspaceId) ? NO_LINE : s.workspaceId)))];
+  /* the lines to narrow to — those with a problem, and those a job with something open is on; the line this page was opened on always */
+  const jobOn = [...jobData.keys()].filter(pid => liveJobs.some(p => p.id === pid)).flatMap(pid => factoryLinesOf(pid, jobLines)).filter(id => factory.some(w => w.id === id));
+  const onLines = [...new Set([...here.map(s => (goneLines.has(s.workspaceId) ? NO_LINE : s.workspaceId)), ...jobOn, ...(lineF !== 'all' ? [lineF] : [])])];
   const onJobs = liveJobs.filter(p => here.some(s => s.projectId === p.id) || reading.jobs.some(g => g.projectId === p.id));
   const owners = [...new Set(here.map(s => s.owner?.trim()).filter((o): o is string => !!o))].sort();
   const toggle = (ids: string[], on: boolean) => setPicked(p => { const n = new Set(p); for (const id of ids) { if (on) n.add(id); else n.delete(id); } return n; });
@@ -229,8 +255,39 @@ export function QuickSnagsScreen() {
 
   /* WORKING A PROBLEM WHERE IT SITS — every box saves as it is left. */
   useEffect(() => { if (!savedOn) return; const t = window.setTimeout(() => setSavedOn(null), 4000); return () => window.clearTimeout(t); }, [savedOn]);
-  const put = async (id: string, p: Partial<Snag>) => { const s = byId.get(id); if (!s) return; await updateSnag({ ...s, ...p }); setSavedOn({ id, at: Date.now() }); };
+  /* each box patches its own fields into the row as it is stored now — never the copy this page last drew (FLOW-AUDIT #4) */
+  const put = async (id: string, p: SnagChange) => { if (await patchSnag(id, p)) setSavedOn({ id, at: Date.now() }); };
   const machinesFor = (lineId: string) => dedupe([...(lines.find(w => w.id === lineId)?.assets ?? []), ...jobMachines]);
+  /* THE 6M JOBS ON A LINE — where a problem seen on the floor becomes the head of a fish (FLOW-AUDIT #13) */
+  const sixmOn = (wsId: string): (RootOn & { canEdit: boolean })[] => liveJobs.filter(p => planModel(p) === 'board').flatMap(p => {
+    const l = jobLines.find(x => x.projectId === p.id && x.workspaceId === wsId && !x.deletedAt);
+    return l ? [{ id: p.id, name: p.name, lineId: l.id, canEdit: accessOn(p.id).edit }] : [];
+  });
+  /* FIND THE ROOT CAUSE ›: a 6M problem opened from this one, on that job's line — this one closed as taken there, with Undo — and its fishbone opened */
+  const toRootCause = async (s: Snag, j: RootOn) => {
+    const { problemFromRegister } = await import('../lib/useProblems');
+    const made = await problemFromRegister(s.id, j.id, j.lineId, j.name);
+    if (!made) return;
+    offerUndo(`Taken to 6M on ${j.name} — its fishbone is open`, made.undo);
+    nav(`/project/${j.id}/fishbone?line=${encodeURIComponent(j.lineId)}&problem=${encodeURIComponent(made.problem.id)}`);
+  };
+  /* where a problem taken to 6M went — its 6M problem, on its job's line */
+  const rootOf = (s: Snag): { jobId: string; line?: string; job: string } | undefined => {
+    if (!s.caseId || !s.projectId) return undefined;
+    const c = jobData.get(s.projectId)?.cases.find(x => x.id === s.caseId);
+    const job = liveJobName(s.projectId);
+    return c && job ? { jobId: s.projectId, job, ...(c.jobLineId ? { line: c.jobLineId } : {}) } : undefined;
+  };
+
+  /* FROM A LINE'S PAGE, THE PROBLEM TAPPED THERE IN VIEW (FLOW-AUDIT #22: "it lands at the top ... the opened editor
+     is two screens down, behind the Problem button") — scrolled to once it is drawn, its editor below it */
+  useEffect(() => {
+    if (!toShow || !snags) return;
+    const el = document.getElementById(`problem-${toShow}`);
+    if (!el) return;
+    el.scrollIntoView({ block: 'start' });
+    setToShow(undefined);
+  }, [toShow, snags, groups]);
 
   /* WHAT IS SHOWN, IN WORDS — the report's title and the cards' note. */
   const FILTER_TITLE: Record<Filter, string> = { open: 'Every problem open', critical: 'Critical problems', high: 'High-priority problems', low: 'Low-priority problems', late: 'Every problem late', done: 'Done' };
@@ -331,12 +388,12 @@ export function QuickSnagsScreen() {
     if (!window.confirm(`Start fresh? All ${list.length} problem${list.length === 1 ? '' : 's'} on this page will be put away — nothing is deleted. They stay under "Put away" at the foot of the page, and any can be brought back.`)) return;
     const at = Date.now();
     void (async () => {
-      for (const s of list) await updateSnag({ ...s, archivedAt: at });
+      for (const s of list) await patchSnag(s.id, { archivedAt: at });
       setPicked(new Set()); setOpened(new Set());
-      offerUndo(`${list.length} put away — a fresh start`, async () => { for (const s of list) await updateSnag({ ...s, archivedAt: undefined }); });
+      offerUndo(`${list.length} put away — a fresh start`, async () => { for (const s of list) await patchSnag(s.id, { archivedAt: undefined }); });
     })();
   };
-  const bringBack = (list: Snag[]) => void (async () => { for (const s of list) await updateSnag({ ...s, archivedAt: undefined }); })();
+  const bringBack = (list: Snag[]) => void (async () => { for (const s of list) await patchSnag(s.id, { archivedAt: undefined }); })();
 
   const chip = (f: Filter, n: number, word: string, tone?: 'r' | 'a' | 'g') => (
     <button key={f} type="button" className={'chip' + (filter === f ? ' on' : '') + (tone && n ? ` qsl-chip-${tone}` : '')} aria-pressed={filter === f} onClick={() => view(f)}>
@@ -348,6 +405,10 @@ export function QuickSnagsScreen() {
     <div className={'wrap qsl' + (chosen.length ? ' has-bar' : '')}>
       <header className="pace-head qsl-head">
         <div>
+          {/* THE WAY BACK to the line this page was opened from (FLOW-AUDIT #22: "the register has no way back to the line") */}
+          {fromLine && factory.some(w => w.id === fromLine) && (
+            <button type="button" className="btn btn-ghost qsl-back" onClick={() => nav(`/lines/${encodeURIComponent(fromLine)}`)}>‹ {lineName(fromLine)}</button>
+          )}
           {/* WHERE YOU ARE, said (Rowland, 13 October: "sometimes I don't know when I'm in the control room problem and when I'm
               in the actual line problem ... change the name to control room problem, so when I look at the title, I know where I am") */}
           <h1>Control room problems</h1>
@@ -439,7 +500,7 @@ export function QuickSnagsScreen() {
                 const last = r.journey[r.journey.length - 1];
                 const isOpen = opened.has(r.id);
                 return (
-                  <li key={r.id} className={'qsl-row qsl-work preg-row' + (picked.has(r.id) ? ' is-picked' : '') + (r.late ? ' is-late' : '') + (isOpen ? ' is-open' : '')}>
+                  <li key={r.id} id={`problem-${r.id}`} className={'qsl-row qsl-work preg-row' + (picked.has(r.id) ? ' is-picked' : '') + (r.late ? ' is-late' : '') + (isOpen ? ' is-open' : '')}>
                     <label className="qsl-tick">
                       <input type="checkbox" checked={picked.has(r.id)} onChange={e => toggle([r.id], e.target.checked)} aria-label={`Tick: ${r.what}`} />
                     </label>
@@ -463,8 +524,10 @@ export function QuickSnagsScreen() {
                       saved={savedOn?.id === s.id && Date.now() - savedOn.at < 4000} lineName={lineName} jobName={jobName}
                       onSave={() => { flip(s.id); setSavedOn({ id: s.id, at: Date.now() }); }} machines={machinesFor(s.workspaceId)} frame={s.assetId ? frames.get(s.assetId) : undefined}
                       put={p => void put(s.id, p)} onView={m => setViewing({ snagId: s.id, media: m })} busy={busy}
+                      sixm={sixmOn(s.workspaceId)} onRoot={j => void toRootCause(s, j)} rootOf={rootOf(s)}
+                      onStart={() => nav(`/projects?new=1&line=${encodeURIComponent(s.workspaceId)}`)}
                       onCard={() => void cards([s])} onWalk={() => nav(`/w/${s.workspaceId}/asset/${s.assetId}`)}
-                      onDelete={() => { if (window.confirm('Delete this problem? Its photos and everything written about it go with it.')) void deleteSnag(s.id); }} />}
+                      onDelete={() => { if (window.confirm('Delete this problem? Its photos and everything written about it go with it.\n\nUndo brings it back for a few seconds.')) void deleteSnag(s.id).then(back => offerUndo(`Deleted “${s.problem.trim().length > 40 ? s.problem.trim().slice(0, 39) + '…' : s.problem.trim() || 'the problem'}”`, back)); }} />}
                   </li>
                 );
               })}
@@ -476,14 +539,17 @@ export function QuickSnagsScreen() {
       {/* ON THE PROJECTS — each project's own problems and fixes, here with
           everything else and on the report (12 October); each opens out,
           and is worked on its project. */}
-      {shownJobs.length > 0 && <h2 className="qsl-kind-h">On the projects <span className="sub">— raised on a project's own stages, with the fix that puts each right</span></h2>}
+      {shownJobs.length > 0 && <h2 className="qsl-kind-h">On the projects <span className="sub">— raised on a project's own stages or its fishbone, with what puts each right</span></h2>}
       {shownJobs.map(g => <JobProblems key={`job:${g.projectId}`} g={g} all={reading.jobs.find(x => x.projectId === g.projectId) ?? g}
         data={jobData.get(g.projectId)} canEdit={accessOn(g.projectId).edit} lines={factory}
         onToLine={(item, to) => void toLine(g.projectId, item, to)}
         opened={opened} flip={flip} busy={!!busy} onView={m => setViewing({ media: m })}
         onCard={r => void jobCard(r, g.job)}
         onPdf={kind => { const full = jobGroups.find(x => x.projectId === g.projectId) ?? g; void pdfGroup(kind, g.job, here.filter(s => s.projectId === g.projectId), [full]); }}
-        onOpen={r => (r.kind === 'action' ? nav(`/project/${r.projectId}/board?a=${encodeURIComponent(r.id)}`) : openRecord(r.projectId, r.id))}
+        onOpen={r => (r.kind === 'action' ? nav(`/project/${r.projectId}/board?a=${encodeURIComponent(r.id)}`)
+          /* a 6M problem: its fishbone, on its line */
+          : r.kind === 'case' ? nav(`/project/${r.projectId}/fishbone?${r.jobLineId ? `line=${encodeURIComponent(r.jobLineId)}&` : ''}problem=${encodeURIComponent(r.id)}`)
+          : openRecord(r.projectId, r.id))}
         onList={() => { const p = liveJobs.find(x => x.id === g.projectId); nav(p && planModel(p) === 'commissioning' ? `/project/${g.projectId}/fixes` : `/project/${g.projectId}/board`); }} />)}
 
       {/* PUT AWAY BY A FRESH START — kept, never deleted, brought back with a tap. */}
@@ -513,7 +579,7 @@ export function QuickSnagsScreen() {
           <select className="text-input qsl-sel qsl-bar-prio" value="" aria-label="Priority of every ticked problem" onChange={e => {
             const v = e.target.value as Priority; if (!v) return;
             const before = chosen.map(x => ({ ...x }));
-            void (async () => { for (const x of chosen) await updateSnag({ ...x, priority: v }); setPicked(new Set()); setOpened(new Set()); setFrozen(null); offerUndo(`Saved — ${before.length} made ${PRIORITY_WORD[v].toLowerCase()}`, async () => { for (const x of before) await updateSnag(x); }); })();
+            void (async () => { for (const x of chosen) await patchSnag(x.id, { priority: v }); setPicked(new Set()); setOpened(new Set()); setFrozen(null); offerUndo(`Saved — ${before.length} made ${PRIORITY_WORD[v].toLowerCase()}`, async () => { for (const x of before) await patchSnag(x.id, { priority: x.priority }); }); })();
           }}>
             <option value="">Priority…</option>
             {PRIOS.map(k => <option key={k} value={k}>{PRIORITY_WORD[k]}</option>)}
@@ -522,7 +588,7 @@ export function QuickSnagsScreen() {
           <select className="text-input qsl-sel qsl-bar-job" value="" aria-label="Assign every ticked problem to a job" onChange={e => {
             const v = e.target.value; if (!v) return;
             const before = chosen.map(x => ({ ...x })), pid = v === '-' ? undefined : v;
-            void (async () => { for (const x of chosen) await updateSnag({ ...x, projectId: pid }); setPicked(new Set()); setOpened(new Set()); setFrozen(null); offerUndo(`Saved — ${before.length} ${pid ? `assigned to ${jobName(pid)}` : 'on no project'}`, async () => { for (const x of before) await updateSnag(x); }); })();
+            void (async () => { for (const x of chosen) await patchSnag(x.id, { projectId: pid }); setPicked(new Set()); setOpened(new Set()); setFrozen(null); offerUndo(`Saved — ${before.length} ${pid ? `assigned to ${jobName(pid)}` : 'on no project'}`, async () => { for (const x of before) await patchSnag(x.id, { projectId: x.projectId }); }); })();
           }}>
             <option value="">Assign to a project…</option>
             {liveJobs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -542,9 +608,9 @@ export function QuickSnagsScreen() {
               }
               /* one pinned on a walk stays on its line — it is on that line's walk picture */
               const move = before.filter(x => !x.assetId), stay = before.length - move.length;
-              for (const x of move) await updateSnag({ ...x, workspaceId: to });
+              for (const x of move) await patchSnag(x.id, { workspaceId: to });
               setPicked(new Set()); setOpened(new Set()); setFrozen(null);
-              offerUndo(`Saved — ${move.length} now on ${name}${stay ? `; ${stay} pinned on a walk stay on their line` : ''}`, async () => { for (const x of move) await updateSnag(x); });
+              offerUndo(`Saved — ${move.length} now on ${name}${stay ? `; ${stay} pinned on a walk stay on their line` : ''}`, async () => { for (const x of move) await patchSnag(x.id, { workspaceId: x.workspaceId }); });
             })();
           }}>
             <option value="">Put on a line…</option>
@@ -554,13 +620,19 @@ export function QuickSnagsScreen() {
           <button type="button" className="btn" onClick={() => setSetting(true)}>Whose · due</button>
           <button type="button" className="btn" onClick={() => {
             const before = chosen.map(s => ({ ...s }));
-            void setSnagsStatus(chosen.map(s => s.id), 'closed').then(() => { setPicked(new Set()); setOpened(new Set()); setFrozen(null); offerUndo(`Saved — ${before.length} closed`, async () => { for (const s of before) await updateSnag(s); }); });
+            void setSnagsStatus(chosen.map(s => s.id), 'closed').then(() => { setPicked(new Set()); setOpened(new Set()); setFrozen(null); offerUndo(`Saved — ${before.length} closed`, async () => { for (const s of before) await patchSnag(s.id, { status: s.status, closedAt: s.closedAt }); }); });
           }}>Close</button>
           <button type="button" className="btn" disabled={!!busy} onClick={() => void cards(chosen)}>{busy === 'cards' ? 'Making…' : 'Report cards'}</button>
           <button type="button" className="btn qsl-del" onClick={() => {
             const n = chosen.length, them = n === 1 ? 'it' : 'them';
-            if (!window.confirm(`Delete ${n} problem${n === 1 ? '' : 's'}? The photos and everything written about ${them} go with ${them}.`)) return;
-            void (async () => { for (const x of chosen) await deleteSnag(x.id); setPicked(new Set()); })();
+            if (!window.confirm(`Delete ${n} problem${n === 1 ? '' : 's'}? The photos and everything written about ${them} go with ${them}.\n\nUndo brings ${them} back for a few seconds.`)) return;
+            /* with Undo, like every delete (ui/Undo) — asked, then gone for good before */
+            void (async () => {
+              const backs: (() => Promise<void>)[] = [];
+              for (const x of chosen) backs.push(await deleteSnag(x.id));
+              setPicked(new Set());
+              offerUndo(`Deleted ${n} problem${n === 1 ? '' : 's'}`, async () => { for (const b of backs) await b(); });
+            })();
           }}>Delete</button>
           <button type="button" className="btn btn-ghost" onClick={() => setPicked(new Set())}>Clear</button>
         </div>
@@ -573,7 +645,7 @@ export function QuickSnagsScreen() {
 }
 
 /** ONE PROBLEM, WORKED WHERE IT SITS — every box saves as it is left. */
-const KIND_ICON: Record<JobRow['kind'], 'warning' | 'check'> = { problem: 'warning', fix: 'check', action: 'check' };
+const KIND_ICON: Record<JobRow['kind'], 'warning' | 'check'> = { problem: 'warning', fix: 'check', action: 'check', case: 'warning' };
 const dayOf = (at: number) => new Date(at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
 /** A PROJECT'S OWN PROBLEMS AND FIXES on the Problems page — each opened out
@@ -590,7 +662,7 @@ function JobProblems({ g, all, opened, flip, busy, onView, onCard, onOpen, onLis
       <div className="qsl-gh">
         <h2>{g.job}</h2>
         <span className="sub">
-          {[all.problemsOpen ? `${all.problemsOpen} with no fix yet` : '', all.fixesToDo ? `${all.fixesToDo} being fixed` : '', all.done ? `${all.done} done` : ''].filter(Boolean).join(' · ') || 'nothing open'}
+          {[all.problemsOpen ? `${all.problemsOpen} with no fix yet` : '', all.casesOpen ? `${all.casesOpen} on the fishbone` : '', all.fixesToDo ? `${all.fixesToDo} being fixed` : '', all.done ? `${all.done} done` : ''].filter(Boolean).join(' · ') || 'nothing open'}
           {all.late ? <> · <b className="qsl-late">{all.late} late</b></> : null}
         </span>
         <span className="qsl-gh-pdf">
@@ -608,26 +680,26 @@ function JobProblems({ g, all, opened, flip, busy, onView, onCard, onOpen, onLis
               <span className="qsl-body">
                 <span className="qsl-what"><PrioTag p={r.priority} />{r.what}</span>
                 {r.fixWhat && <span className="qsl-meta qsl-fixline">Fix: {r.fixWhat}</span>}
-                <span className="qsl-meta">{r.where}{r.who ? ` · ${r.who}` : ' · nobody yet'}{r.fromSnag ? ` · seen first on ${r.fromSnag.replace(/^a (?:snag|problem) on /, '')}` : ''}</span>
+                <span className="qsl-meta">{r.where}{r.who ? ` · ${r.who}` : r.kind === 'case' ? '' : ' · nobody yet'}{r.fromSnag ? ` · seen first on ${r.fromSnag.replace(/^a (?:snag|problem) on /, '')}` : ''}</span>
               </span>
               <span className="preg-right"><span className={'qsl-state ' + TONE_CLASS[r.tone]}>{r.word}</span></span>
             </button>
-            {opened.has(r.id) && canEdit && data && r.kind !== 'action' && (
+            {opened.has(r.id) && canEdit && data && r.kind !== 'action' && r.kind !== 'case' && (
               <JobEditor r={r} data={data} job={g.job} lines={lines} busy={busy} onCard={() => onCard(r)} onOpen={() => onOpen(r)} onToLine={onToLine} onDone={() => flip(r.id)} />
             )}
-            {opened.has(r.id) && !(canEdit && data && r.kind !== 'action') && (
+            {opened.has(r.id) && !(canEdit && data && r.kind !== 'action' && r.kind !== 'case') && (
               <div className="qsl-x" role="region" aria-label={`More about ${r.what}`}>
                 {r.photo && <div className="qsl-x-pics"><EvidenceThumb media={photoRef(r.photo)} size={96} onClick={() => onView(photoRef(r.photo as string))} /></div>}
                 <dl className="qsl-x-facts">
                   <div><dt>Where</dt><dd>{r.where}</dd></div>
-                  <div><dt>Whose</dt><dd>{r.who ?? 'nobody yet'}</dd></div>
+                  {r.kind !== 'case' && <div><dt>Whose</dt><dd>{r.who ?? 'nobody yet'}</dd></div>}
                   <div><dt>Now</dt><dd>{r.word}</dd></div>
                   {r.fixWhat && <div><dt>Fix</dt><dd>{r.fixWhat}</dd></div>}
                   <div><dt>Raised</dt><dd>{dayOf(r.at)}</dd></div>
                 </dl>
                 <div className="qsl-x-acts">
                   <button type="button" className="btn" disabled={busy} onClick={() => onCard(r)}><Icon name="document" size="1.05em" />Report card (PDF)</button>
-                  <button type="button" className="btn btn-ghost" onClick={() => onOpen(r)}>Work it on {g.job}</button>
+                  <button type="button" className="btn btn-ghost" onClick={() => onOpen(r)}>{r.kind === 'case' ? 'Open its fishbone ›' : `Work it on ${g.job}`}</button>
                 </div>
               </div>
             )}
@@ -697,16 +769,38 @@ function JobEditor({ r, data, job, lines, busy, onCard, onOpen, onToLine, onDone
   );
 }
 
-function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCard, onWalk, onDelete, busy, saved, onSave, lineName, jobName }: {
+function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCard, onWalk, onDelete, busy, saved, onSave, lineName, jobName, sixm, onRoot, rootOf, onStart }: {
   s: Snag; lines: Workspace[]; projects: Project[]; machines: string[]; frame?: SnagAsset;
-  put: (p: Partial<Snag>) => void; onView: (m: MediaRef) => void; onCard: () => void; onWalk: () => void; onDelete: () => void; busy: string;
+  /** The 6M jobs on its line, and whether this person may open a problem on each (lib/access). */
+  sixm: (RootOn & { canEdit: boolean })[]; onRoot: (j: RootOn) => void; onStart: () => void;
+  /** Where it went, when it was taken to 6M. */
+  rootOf?: { jobId: string; line?: string; job: string };
+  put: (p: SnagChange) => void; onView: (m: MediaRef) => void; onCard: () => void; onWalk: () => void; onDelete: () => void; busy: string;
   /** "Saved" — said as each box is kept; Save keeps the box being typed in and closes it (12 October: "there's never any saves") */
   saved: boolean; onSave: () => void;
   lineName: (id: string) => string; jobName: (id?: string) => string | undefined;
 }) {
   const machine = frame?.name ?? s.targetAsset ?? '';
   const typed = !frame && !!s.targetAsset && !machines.some(m => m.toLowerCase() === s.targetAsset?.trim().toLowerCase());
-  const setStatus = (status: SnagStatus) => put({ status, closedAt: status === 'closed' ? (s.closedAt ?? Date.now()) : undefined });
+  /* CLOSED ASKS WHAT SHOWS IT IS FIXED — one optional line, kept as the last step of its journey and so on its card
+     and the Problems report (FLOW-AUDIT #12: "one tap closes it ... its last step read 'Ran 2 h without a jam, then
+     jammed again', and it still closed with nothing asked"). Proof is OPEX's fifth move; the 6M asks "Did it work",
+     a job's fix its before → after — the register, where most floor problems live, asked nothing. */
+  const [closing, setClosing] = useState(false);
+  const [proof, setProof] = useState('');
+  const setStatus = (status: SnagStatus) => {
+    if (status === 'closed' && s.status !== 'closed') { setClosing(true); return; }
+    setClosing(false);
+    put(cur => ({ status, closedAt: status === 'closed' ? (cur.closedAt ?? Date.now()) : undefined }));
+  };
+  const close = () => {
+    const shown = proof.trim(), t = Date.now();
+    put(cur => ({ status: 'closed', closedAt: cur.closedAt ?? t,
+      ...(shown ? { closeNote: shown, journey: [...(cur.journey ?? []), { id: uid(), at: t, did: 'Closed', result: shown }] } : {}) }));
+    setClosing(false); setProof('');
+  };
+  const lastStep = [...(s.journey ?? [])].sort((a, b) => b.at - a.at)[0];
+  const roots = sixm.filter(j => j.canEdit);
   return (
     <div className="qsl-x pe" role="region" aria-label={`Work on: ${s.problem || 'this problem'}`}>
       <label className="pe-f pe-wide"><span className="pe-k">WHAT IS THE PROBLEM</span>
@@ -720,6 +814,17 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
         <div className="chip-row" role="group" aria-label="Where it stands">
           {(['open', 'in_progress', 'closed'] as SnagStatus[]).map(k => <button key={k} type="button" className={'chip' + (s.status === k ? ' on' : '')} aria-pressed={s.status === k} onClick={() => setStatus(k)}>{SNAG_STATUS_META[k].label}</button>)}
         </div></div>
+      {closing && (
+        <form className="pe-f pe-wide pe-close" role="group" aria-label="Close it" onSubmit={e => { e.preventDefault(); close(); }}>
+          <span className="pe-k">WHAT SHOWS IT IS FIXED? <i className="cw-f-opt">if something does — a day, a count, a photo</i></span>
+          {lastStep && <p className="sub pe-close-last">Its last step, {dayOf(lastStep.at)}: {lastStep.did}{lastStep.result ? ` → ${lastStep.result}` : ''}</p>}
+          <input className="text-input" value={proof} maxLength={240} autoFocus placeholder="e.g. A full shift on 2kg film with no jam" aria-label="What shows it is fixed" onChange={e => setProof(e.target.value)} />
+          <div className="qsl-x-acts">
+            <button type="submit" className="btn btn-primary">Close it</button>
+            <button type="button" className="btn btn-ghost" onClick={() => { setClosing(false); setProof(''); }}>Not yet</button>
+          </div>
+        </form>
+      )}
 
       <div className="pe-row">
         {/* PROJECT first — where it is going (Rowland, 12 October: "assign the
@@ -731,8 +836,7 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
             {/* the project it is for, archived since — named, so the box never says No project when it is for one */}
             {s.projectId && !projects.some(p => p.id === s.projectId) && <option value={s.projectId}>{jobName(s.projectId) ?? 'A project no longer here'}</option>}
           </select></label>
-        {/* LINE — any line, a new one typed, and the line renamed when its
-            name is wrong (the old "2A", "2B" could not be changed here). */}
+        {/* LINE — any line, or a new one typed. Its NAME is the line's, put right on the line's own page (below). */}
         <div className="pe-f"><span className="pe-k">LINE</span>
           {/* PINNED ON A WALK, it is on that line's walk picture — it stays on its line (13 October audit: moved, it kept the old line's pin) */}
           {s.assetId ? <p className="pe-said">{lineName(s.workspaceId) === 'Not on a line' ? 'Pinned on the walk of a line no longer in use' : `${lineName(s.workspaceId)} — pinned on its walk`}</p> : <>
@@ -747,11 +851,13 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
             {!lines.some(w => w.id === s.workspaceId) && <option value={s.workspaceId}>{lineName(s.workspaceId)}</option>}
             <option value={NEW_LINE}>A new line…</option>
           </select>
-          <button type="button" className="btn btn-ghost btn-sm pe-rename" onClick={() => {
-            const w = lines.find(x => x.id === s.workspaceId);
-            const name = w ? window.prompt('Rename the line', w.name)?.trim() : undefined;
-            if (w && name && name !== w.name) void updateWorkspace({ ...w, name });
-          }}>Rename this line</button></>}</div>
+          {/* A LINE'S NAME IS PUT RIGHT ON ITS OWN PAGE (FLOW-AUDIT #20, journey (b): "Rename this line" here was a third
+              way to rename a line, after Your factory and Edit the line, and read as changing this problem's line). It was
+              here because a wrong name could be put right nowhere else (12 October: "I may make a mistake and assign
+              something to the wrong name"); the line's page does that now, Edit the line, for every problem and tool on it. */}
+          {lines.some(w => w.id === s.workspaceId) && (
+            <button type="button" className="linkish pe-rename" onClick={() => nav(`/lines/${encodeURIComponent(s.workspaceId)}`)}>Rename {lineName(s.workspaceId)} on its page ›</button>
+          )}</>}</div>
       </div>
       <div className="pe-f pe-wide"><span className="pe-k">MACHINE</span>
         {frame
@@ -773,13 +879,26 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
       </div>
 
       <div className="pe-f pe-wide"><span className="pe-k">PHOTOS <i className="cw-f-opt">tap one to mark it</i></span>
-        <Evidence media={s.media ?? []} kind="found" onView={onView} onAdd={async refs => put({ media: [...(s.media ?? []), ...refs] })} />
+        <Evidence media={s.media ?? []} kind="found" onView={onView} onAdd={async refs => put(cur => ({ media: [...(cur.media ?? []), ...refs] }))} />
       </div>
 
       <label className="pe-f pe-wide"><span className="pe-k">WHAT WE WILL DO</span>
         <DraftArea value={s.proposedSolution ?? ''} rows={2} placeholder="The plan — what will put it right" className="text-input" ariaLabel="What we will do" onSave={v => put({ proposedSolution: v || undefined })} /></label>
 
       <Journey s={s} put={put} />
+
+      {/* ITS ROOT CAUSE — a problem seen on the floor made the head of a fish on its line's 6M job (FLOW-AUDIT #13) */}
+      {rootOf
+        ? <p className="pe-said pe-root">Taken to 6M on {rootOf.job} — <button type="button" className="linkish" onClick={() => nav(`/project/${rootOf.jobId}/fishbone?${rootOf.line ? `line=${encodeURIComponent(rootOf.line)}&` : ''}problem=${encodeURIComponent(s.caseId ?? '')}`)}>its fishbone ›</button></p>
+        : s.status !== 'closed' && (
+          <div className="pe-f pe-wide pe-root"><span className="pe-k">ITS ROOT CAUSE <i className="cw-f-opt">when it keeps coming back</i></span>
+            {roots.length > 0
+              ? <div className="qsl-x-acts">{roots.map(j => <button key={j.id} type="button" className="btn" onClick={() => onRoot(j)}>Find the root cause{roots.length > 1 ? ` on ${j.name}` : ''} ›</button>)}</div>
+              : sixm.length > 0
+                ? <p className="sub pe-said">{sixm[0].name} finds root causes on {lineName(s.workspaceId)} — its team can take it there.</p>
+                : <p className="sub pe-said">No 6M project on {lineName(s.workspaceId)} yet. <button type="button" className="linkish" onClick={onStart}>Start one to find its root cause ›</button></p>}
+          </div>
+        )}
 
       <div className="qsl-x-acts">
         {/* SAVE — every box is kept as it is left; this keeps the one being typed in and closes the problem, saying so */}
@@ -793,17 +912,18 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
 }
 
 /** ITS JOURNEY — on a day, what we did and what came of it; oldest first. */
-function Journey({ s, put }: { s: Snag; put: (p: Partial<Snag>) => void }) {
+function Journey({ s, put }: { s: Snag; put: (p: SnagChange) => void }) {
   const steps = [...(s.journey ?? [])].sort((a, b) => a.at - b.at);
   const [day, setDay] = useState(todayInput());
   const [did, setDid] = useState('');
   const [result, setResult] = useState('');
   const add = () => {
     if (!did.trim()) return;
-    put({ journey: [...(s.journey ?? []), { id: uid(), at: dueFromInput(day) ?? Date.now(), did: did.trim(), ...(result.trim() ? { result: result.trim() } : {}) }] });
+    const step = { id: uid(), at: dueFromInput(day) ?? Date.now(), did: did.trim(), ...(result.trim() ? { result: result.trim() } : {}) };
+    put(cur => ({ journey: [...(cur.journey ?? []), step] }));
     setDid(''); setResult(''); setDay(todayInput());
   };
-  const change = (id: string, p: Partial<NonNullable<Snag['journey']>[number]>) => put({ journey: (s.journey ?? []).map(j => (j.id === id ? { ...j, ...p } : j)) });
+  const change = (id: string, p: Partial<NonNullable<Snag['journey']>[number]>) => put(cur => ({ journey: (cur.journey ?? []).map(j => (j.id === id ? { ...j, ...p } : j)) }));
   return (
     <div className="pe-f pe-wide pj">
       <span className="pe-k">THE JOURNEY <i className="cw-f-opt">on a day, what we did and what came of it</i></span>
@@ -813,7 +933,7 @@ function Journey({ s, put }: { s: Snag; put: (p: Partial<Snag>) => void }) {
             <DateInput className="text-input pj-day" value={dueToInput(j.at)} aria-label="The day it was done" onCommit={v => change(j.id, { at: dueFromInput(v) ?? j.at })} />
             <DraftText value={j.did} className="text-input pj-did" max={240} ariaLabel="What we did" onSave={v => { if (v.trim()) change(j.id, { did: v.trim() }); }} />
             <DraftText value={j.result ?? ''} placeholder="What came of it" className="text-input pj-res" max={240} ariaLabel="What came of it" onSave={v => change(j.id, { result: v.trim() || undefined })} />
-            <button type="button" className="pj-x" aria-label={`Take off the step: ${j.did}`} onClick={() => put({ journey: (s.journey ?? []).filter(x => x.id !== j.id) })}><Icon name="close" size="1em" /></button>
+            <button type="button" className="pj-x" aria-label={`Take off the step: ${j.did}`} onClick={() => put(cur => ({ journey: (cur.journey ?? []).filter(x => x.id !== j.id) }))}><Icon name="close" size="1em" /></button>
           </li>
         ))}</ol>
         : <p className="sub pj-none">Nothing done yet — add the first step when something is done.</p>}
@@ -834,8 +954,8 @@ function SetSheet({ snags, onClose, onDone }: { snags: Snag[]; onClose: () => vo
   const n = snags.length;
   const save = async () => {
     const before = snags.map(s => ({ ...s }));
-    for (const s of snags) await updateSnag({ ...s, ...(who.trim() ? { owner: who.trim() } : {}), ...(due ? { dueAt: dueFromInput(due) } : {}) });
-    offerUndo(`${n} problem${n === 1 ? '' : 's'} changed`, async () => { for (const s of before) await updateSnag(s); });
+    for (const s of snags) await patchSnag(s.id, { ...(who.trim() ? { owner: who.trim() } : {}), ...(due ? { dueAt: dueFromInput(due) } : {}) });
+    offerUndo(`${n} problem${n === 1 ? '' : 's'} changed`, async () => { for (const s of before) await patchSnag(s.id, { owner: s.owner, dueAt: s.dueAt }); });
     onDone();
   };
   return (

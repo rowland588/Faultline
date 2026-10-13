@@ -6,7 +6,7 @@
  * asserted here, because a board that disagrees with the job it opens is
  * worse than no board. */
 import { describe, it, expect } from 'vitest';
-import { bonesSaid, clusterMarks, jobItems, needsYou, owedBy, pacedSays, portfolio, problemsSaid, saidText, shortName, type JobInput, type PacedInput } from '../portfolio';
+import { bonesSaid, clusterMarks, jobItems, needsYou, owedBy, pacedSays, portfolio, problemsSaid, saidText, type JobInput, type PacedInput } from '../portfolio';
 import { gapOf, type LineSeries } from '../measures';
 import type { PlacedMark } from '../plan';
 import { standing } from '../standing';
@@ -138,11 +138,14 @@ describe('the edges', () => {
 });
 
 describe('what the review asked for', () => {
-  it('drops "commissioning" from a job’s name on the board, and keeps a name that is only that word', () => {
-    expect(shortName('Line 2B commissioning')).toBe('Line 2B');
-    expect(shortName('Commissioning — Line 7')).toBe('— Line 7');
-    expect(shortName('Commissioning')).toBe('Commissioning');
-    expect(shortName('Line 3')).toBe('Line 3');
+  it('calls a job by its whole name — never "Line 2B" beside the factory’s Line 2B (docs/FLOW-AUDIT.md #7)', () => {
+    const named = job(project({ id: 'n', name: 'Line 2B commissioning', expectedAt: '2026-10-26' }), {
+      tests: [test({ title: 'Seal', withWhom: 'Ilapak', plannedFor: '2026-09-28' })],
+    });
+    const pf = portfolio([named], TODAY);
+    expect(pf.jobs.map(j => j.name)).toEqual(['Line 2B commissioning']);
+    expect(pf.items.map(i => i.job)).toEqual(['Line 2B commissioning']);
+    expect(pf.says).toContain('Line 2B commissioning hands over');
   });
 
   it('lists everything owed, late first, so a number on the board opens what it counts', () => {

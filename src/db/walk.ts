@@ -8,8 +8,8 @@ import type { ID } from '../types';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 import { now } from '../lib/ids';
 import { getDB, signalWrite } from './core';
-import { recordTombstones } from './sync';
-import { deleteBlobs } from './blobs';
+import { recordTombstones, restoreRows, type Restore } from './sync';
+import { deleteBlobs, getBlob, putBlob } from './blobs';
 
 /* ---------- segments ---------- */
 export async function listSegments(workspaceId: ID): Promise<Segment[]> {
@@ -64,19 +64,25 @@ export async function deleteSegment(id: ID): Promise<void> {
   await recordTombstones('segments', [id]);
   signalWrite();
 }
-/** Delete a marked frame and the snags pinned on it, plus their blobs — the
+/** Delete a marked frame and the problems pinned on it, plus their blobs — the
  *  asset level was the one gap in the walk's delete chain, so a frame marked by
  *  mistake could only be removed by deleting the whole segment. Mirrors
- *  deleteSegment: one transaction, no orphaned blobs, tombstones so it syncs. */
-export async function deleteSnagAsset(id: ID): Promise<void> {
+ *  deleteSegment: one transaction, no orphaned blobs, tombstones so it syncs.
+ *  Hands back an undo that puts the frame, its problems and their pictures
+ *  back exactly (ui/Undo). */
+export async function deleteSnagAsset(id: ID): Promise<Restore> {
   const db = await getDB();
   const asset = await db.get('snag_assets', id);
-  if (!asset) return;
+  if (!asset) return async () => {};
   const snags = await db.getAllFromIndex('snags', 'by_asset', id);
   const blobKeys = [
     asset.stillKey,
     ...snags.flatMap(s => [s.detailPhotoKey, s.fixedPhotoKey]),
   ].filter(Boolean) as string[];
+  /* kept in hand for the seconds Undo is offered (ui/Undo): the still, the
+     photos, the frame and what was pinned on it — put back exactly */
+  const held = new Map<string, Blob>();
+  for (const k of blobKeys) { const b = await getBlob(k); if (b) held.set(k, b); }
   const tx = db.transaction(['snag_assets', 'snags', 'media'], 'readwrite');
   await tx.objectStore('snag_assets').delete(id);
   for (const s of snags) await tx.objectStore('snags').delete(s.id);
@@ -84,6 +90,12 @@ export async function deleteSnagAsset(id: ID): Promise<void> {
   await tx.done;
   await recordTombstones('snag_assets', [id]);
   await recordTombstones('snags', snags.map(s => s.id));
+  signalWrite();
+  return async () => {
+    for (const [k, b] of held) await putBlob(k, b);
+    await restoreRows('snag_assets', [asset]);
+    await restoreRows('snags', snags);
+  };
 }
 
 /** Rewrite the sequence column to a new walk order. */
@@ -134,6 +146,10 @@ export async function snagsForWorkspace(workspaceId: ID): Promise<Snag[]> {
 export async function listAllSnags(): Promise<Snag[]> {
   return (await (await getDB()).getAll('snags')).filter(s => s.deletedAt == null);
 }
+/** One problem as it is stored now, deleted or not. */
+export async function getSnag(id: ID): Promise<Snag | undefined> {
+  return (await getDB()).get('snags', id);
+}
 export async function addSnag(s: Snag): Promise<void> {
   await (await getDB()).put('snags', s);
   signalWrite();
@@ -142,13 +158,43 @@ export async function updateSnag(s: Snag): Promise<void> {
   await (await getDB()).put('snags', { ...s, updatedAt: now() });
   signalWrite();
 }
-export async function deleteSnag(id: ID): Promise<void> {
+/** A PROBLEM CHANGED FIELD BY FIELD — the change merged into the row as it is
+ *  stored NOW, read and written in one transaction (FLOW-AUDIT #4: "if you
+ *  type who owes a problem and then its due date, the name is lost"). An
+ *  editor that wrote `{ ...theCopyItDrew, ...change }` put back every other
+ *  field as it was when the screen last drew: the name written on leaving
+ *  WHOSE was undone a moment later by the date, written from a copy that
+ *  still had the old name, while the page said "Saved". The change may be
+ *  worked out from the stored row (a journey step added to the steps as they
+ *  are now, not as they were drawn). Returns the row as written. */
+export async function patchSnag(id: ID, change: Partial<Snag> | ((stored: Snag) => Partial<Snag>)): Promise<Snag | undefined> {
+  const db = await getDB();
+  const tx = db.transaction('snags', 'readwrite');
+  const cur = await tx.objectStore('snags').get(id);
+  if (!cur) { await tx.done; return undefined; }
+  const next: Snag = { ...cur, ...(typeof change === 'function' ? change(cur) : change), id: cur.id, updatedAt: now() };
+  await tx.objectStore('snags').put(next);
+  await tx.done;
+  signalWrite();
+  return next;
+}
+/** Deleted with an undo (ui/Undo): the problem and its close-up photo are
+ *  handed back, so Undo puts back exactly what went, on every device. It now
+ *  says so to the screens and the sync too (signalWrite) — it never did, so a
+ *  problem deleted waited for the next write to leave the other devices. */
+export async function deleteSnag(id: ID): Promise<Restore> {
   const db = await getDB();
   const s = await db.get('snags', id);
-  if (!s) return;
+  if (!s) return async () => {};
+  const photo = s.detailPhotoKey ? await getBlob(s.detailPhotoKey) : undefined;
   if (s.detailPhotoKey) await deleteBlobs([s.detailPhotoKey]);
   await db.delete('snags', id);
   await recordTombstones('snags', [id]);
+  signalWrite();
+  return async () => {
+    if (photo && s.detailPhotoKey) await putBlob(s.detailPhotoKey, photo);
+    await restoreRows('snags', [s]);
+  };
 }
 export async function setSnagsStatus(ids: ID[], status: Snag['status']): Promise<void> {
   const db = await getDB();

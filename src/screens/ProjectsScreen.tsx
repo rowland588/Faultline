@@ -92,17 +92,17 @@ export function ProjectsScreen() {
     nav(model === 'commissioning' ? `/project/${p.id}/install` : `/project/${p.id}`);
   };
 
-  if (loading) return <div className="wrap pace"><p className="sub">Loading projects…</p></div>;
+  if (loading) return <div className="wrap pace"><p className="sub">Loading jobs…</p></div>;
 
   return (
     <div className="wrap pace projects-screen">
       <header className="pace-head">
         <div className="pace-head-main">
-          <h1 className="pace-title">Projects</h1>
+          <h1 className="pace-title">Jobs</h1>
           <p className="pace-lede">
             {mayStart
-              ? 'Every project is a change to a line. The live ones are on the control room; this is where one starts, and where the archive is.'
-              : 'Every project is a change to a line. The ones you’ve been invited to are on the control room; the archive is here.'}
+              ? 'Every job is a change to a line. The live ones are on the control room; this is where one starts, and where the archive is.'
+              : 'Every job is a change to a line. The ones you’ve been invited to are on the control room; the archive is here.'}
           </p>
         </div>
         <div className="pace-head-actions">
@@ -110,7 +110,7 @@ export function ProjectsScreen() {
               Create — Cancel steps back to a quiet one. */}
           {mayStart && (
             <button className={'btn ' + (adding ? 'btn-ghost' : 'btn-primary')} onClick={() => setAdding(a => !a)}>
-              {adding ? 'Cancel' : 'New project'}
+              {adding ? 'Cancel' : 'New job'}
             </button>
           )}
           {/* The Excel export of everything used to be a button here; it is a
@@ -121,7 +121,7 @@ export function ProjectsScreen() {
 
       {adding && (
         <section className="card proj-new">
-          <div className="field-label">New project</div>
+          <div className="field-label">New job</div>
           {/* START FROM THE SITUATION, NOT THE METHOD. Nobody should have to
               know what a "lever tree" is to start the right kind of change:
               say what you are trying to do and the way it is run follows. The
@@ -213,34 +213,34 @@ export function ProjectsScreen() {
           <div className="card proj-empty">
             <h2 className="proj-empty-title">Everything is archived</h2>
             <p className="sub">
-              Nothing is lost — {archived.length === 1 ? 'one project is' : `all ${archived.length} projects are`} in the
+              Nothing is lost — {archived.length === 1 ? 'one job is' : `all ${archived.length} jobs are`} in the
               archive below, with everything they hold. {mayStart ? 'Restore whichever you want back, or start a new one.' : 'Its owner can bring it back.'}
             </p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 12, flexWrap: 'wrap' }}>
               <button className="btn btn-ghost" onClick={() => setShowArchive(true)}>Open the archive</button>
-              {mayStart && <button className="btn btn-primary" onClick={() => setAdding(true)}>Start a project</button>}
+              {mayStart && <button className="btn btn-primary" onClick={() => setAdding(true)}>Start a job</button>}
             </div>
           </div>
         ) : (
           <div className="card proj-empty">
-            <h2 className="proj-empty-title">No projects yet</h2>
+            <h2 className="proj-empty-title">No jobs yet</h2>
             {mayStart ? <>
               <p className="sub">
-                A project is an initiative with lines under it — each line with an owner, a sponsor and a
-                workspace of its own. Start one, or wait to be invited to somebody else’s: a project you are
+                A job is a change to one or more of your lines — new equipment, a line made to perform
+                better, a number hit by a date. Start one, or wait to be invited to somebody else’s: a job you are
                 invited to appears here the next time the app syncs.
               </p>
               <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => setAdding(true)}>
-                Start a project
+                Start a job
               </button>
             </> : (
-              <p className="sub">You’ll see the projects you’ve been invited to here, the next time the app syncs.</p>
+              <p className="sub">You’ll see the jobs you’ve been invited to here, the next time the app syncs.</p>
             )}
           </div>
         )
       ) : !adding && (
         <p className="sub proj-live">
-          {projects.length} project{projects.length === 1 ? '' : 's'} running —{' '}
+          {projects.length} job{projects.length === 1 ? '' : 's'} running —{' '}
           <button type="button" className="cw-link" onClick={() => nav('/')}>on the control room ›</button>
         </p>
       )}

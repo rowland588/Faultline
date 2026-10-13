@@ -32,6 +32,7 @@ import { compareFlows, dur, flowFigures, flowSays, laneByDefault, parseDur, shar
 import type { AgreedMap, FlowKind, FlowStep, FlowValue, StudyUse, ToolStudy } from '../lib/study';
 import { KIND_WORD, StepFacts, VALUE_WORD, ValueStreamGrid, WalkIt } from '../ui/ValueStream';
 import { UsedFor, useBetter, WhereItSits } from '../ui/StudyPlace';
+import { StudyName } from '../ui/StudyActs';
 import { recordHref, ROLE_WORD } from '../lib/studyLinks';
 import { Sheet } from '../ui/Sheet';
 
@@ -103,7 +104,7 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
     <div className="wrap ie vs-page">
       <header className="ie-head">
         <small className="ie-eyebrow">Value stream map</small>
-        <h1 className="ie-name">{s.name || 'Not named'}</h1>
+        <StudyName s={s} canEdit={can.edit && !s.closedAt} canRemove={can.remove} />
         <p className="sub ie-where">{/* the line is said once, just below, where it can be changed (ui/StudyPlace) */}
           {lineName ? 'what is done, and who does it' : 'not on a line yet — put it on its line below'} · started {niceDay(new Date(s.startedAt).toISOString().slice(0, 10))}{s.product ? <> · <b>{s.product}</b></> : null}</p>
         <WhereItSits s={s} can={can} />

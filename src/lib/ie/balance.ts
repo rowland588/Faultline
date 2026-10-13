@@ -11,9 +11,30 @@
  * FACTS → FIGURES → READING → VERDICT. Pure: the elements and what was agreed
  * in, the figures and the sentences out. Nothing worked out is stored.
  *
+ * THE PRACTICE (bar 4 of docs/AUDIT.md — each figure the practice's, worked
+ * by hand in the tests):
+ *   basic time      observed × rating ÷ 100, on the BS 3138 scale where 100
+ *                   is standard performance (ILO, Introduction to Work Study,
+ *                   4th ed., ch. 12–13; BS 3138:1992)
+ *   standard time   basic × (1 + the allowances agreed) — the allowances a
+ *                   share of basic time, as the ILO and BS 3138 add them
+ *   cycles needed   n = (t·s ÷ (k·x̄))², k = 0.05, t Student's at n − 1
+ *                   degrees of freedom, 95% two-sided (Freivalds, Niebel's
+ *                   Methods, Standards and Work Design, ch. 9). The ILO's
+ *                   and Barnes's rule of thumb takes t as 2; on the few laps
+ *                   a floor times (t at 4 df is 2.78) that claims ±5% at 95%
+ *                   from what is ±5% at under 90%, so t is the readings' own.
+ *   takt            available time ÷ demand; the fewest people ⌈work ÷ takt⌉
+ *   balance         work ÷ (people × the longest stack) — the line balance
+ *                   efficiency of the Yamazumi (Helgeson and Birnie, 1961)
+ *   the suggestion  the elements in order, a new person opened when the next
+ *                   would pass takt — ranked positional weight on a line whose
+ *                   elements follow one another; never a stack piled past
+ *                   takt to reach the theoretical fewest
+ *
  * THE HONESTY RULES, as this tool keeps them:
  *   enough?          each element's laps against the cycles needed for ±5%
- *                    at 95% (n ≥ (2s ÷ 0.05x̄)²), said "4 of 15 cycles"
+ *                    at 95% (n ≥ (t·s ÷ 0.05x̄)²), said "4 of 15 cycles"
  *   how known        an element is timed or typed; a person's stack is only
  *                    as known as the weakest element on it, and says so
  *   people decide    a far lap is flagged, never struck by the app; the
@@ -28,8 +49,28 @@ export const keptLaps = (laps: Lap[] | undefined): Lap[] => (laps ?? []).filter(
 const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
 const sd = (xs: number[], m = mean(xs)) => (xs.length < 2 ? 0 : Math.sqrt(xs.reduce((a, x) => a + (x - m) ** 2, 0) / (xs.length - 1)));
 
-/** Cycles needed for ±5% at 95%: (t·s ÷ 0.05·x̄)², t ≈ 2. */
-export const cyclesNeeded = (m: number, s: number): number => (m > 0 ? Math.ceil(((2 * s) / (0.05 * m)) ** 2) : 0);
+/** Student's t, 95% two-sided, by degrees of freedom (any table: Freivalds,
+ *  appendix; Montgomery). Between the rows the smaller df — the larger t,
+ *  the careful reading; past 120, the normal's 1.96. */
+const T95: [number, number][] = [[1, 12.706], [2, 4.303], [3, 3.182], [4, 2.776], [5, 2.571], [6, 2.447], [7, 2.365], [8, 2.306], [9, 2.262], [10, 2.228],
+  [11, 2.201], [12, 2.179], [13, 2.16], [14, 2.145], [15, 2.131], [16, 2.12], [17, 2.11], [18, 2.101], [19, 2.093], [20, 2.086],
+  [21, 2.08], [22, 2.074], [23, 2.069], [24, 2.064], [25, 2.06], [26, 2.056], [27, 2.052], [28, 2.048], [29, 2.045], [30, 2.042],
+  [40, 2.021], [60, 2.0], [120, 1.98]];
+export const t95 = (df: number): number => {
+  if (!(df >= 1)) return T95[0][1];
+  let t = 1.96;
+  for (const [d, v] of T95) { if (d <= df) t = v; else break; }
+  return df > 120 ? 1.96 : t;
+};
+
+/** Cycles needed for ±5% at 95%: (t·s ÷ 0.05·x̄)², t Student's at n − 1
+ *  degrees of freedom from the n laps timed (Freivalds). Without n, the
+ *  rule of thumb t = 2 (ILO; Barnes) — only for a figure worked without laps. */
+export const cyclesNeeded = (m: number, s: number, n?: number): number => {
+  if (!(m > 0)) return 0;
+  const t = n !== undefined && n >= 2 ? t95(n - 1) : 2;
+  return Math.ceil(((t * s) / (0.05 * m)) ** 2 - 1e-9);
+};
 /** Never fewer than this before an element is enough, however steady. */
 export const MIN_CYCLES = 5;
 
@@ -62,7 +103,7 @@ export function element(st: BalanceStep, allowance = 0): ElementFigures {
   }
   const m = mean(xs), s = sd(xs, m);
   const basic = (m * rating) / 100;
-  const needed = Math.max(MIN_CYCLES, cyclesNeeded(m, s));
+  const needed = Math.max(MIN_CYCLES, cyclesNeeded(m, s, xs.length));
   const far = xs.length >= 5 ? laps.filter((l, i) => {
     const others = xs.filter((_, j) => j !== i), om = mean(others), os = sd(others, om);
     return os > 0 && Math.abs(l.sec - om) > 3 * os;
@@ -125,15 +166,23 @@ export function balance(steps: BalanceStep[] | undefined, a: AgreedBalance | und
 
 /** A SUGGESTED BALANCE — the elements in their order (each must follow the
  *  one before), filled into the fewest people the takt allows, a person's
- *  stack closed before it passes takt. A ghost until someone says "use it". */
+ *  stack closed before it passes takt (ranked positional weight, Helgeson
+ *  and Birnie, on elements that follow one another). A ghost until someone
+ *  says "use it". */
 export function suggest(f: BalanceFigures): { who: string; ids: string[]; work: number }[] | undefined {
   if (!f.taktSec || !f.fewest || f.untimed) return undefined;
   const takt = f.taktSec;
   const out: { who: string; ids: string[]; work: number }[] = [];
+  /* The next element joins the person before only while their stack stays
+     within takt; else the next person starts. Kept in order, this needs the
+     fewest people the order allows — ⌈work ÷ takt⌉ when the elements fit,
+     one more when they do not — and never piles a stack past takt to reach
+     the theoretical fewest (it once did: four 7 s elements at a 12 s takt
+     gave 7 · 7 · 14). Only an element longer than takt on its own is over. */
   for (const e of f.elements) {
     const t = e.standard ?? 0;
     const cur = out[out.length - 1];
-    if (cur && (cur.work + t <= takt + 1e-9 || out.length >= f.fewest)) { cur.ids.push(e.id); cur.work += t; }
+    if (cur && cur.work + t <= takt + 1e-9) { cur.ids.push(e.id); cur.work += t; }
     else out.push({ who: `Op ${out.length + 1}`, ids: [e.id], work: t });
   }
   return out;

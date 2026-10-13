@@ -10,7 +10,7 @@ import { todayISO } from '../lib/weeks';
 import { getDB, signalWrite } from './core';
 import type { PaceTodoRow, PaceWinRow, PaceLineRow } from './rows';
 import type { SnagAsset } from '../snag/types';
-import { recordTombstones } from './sync';
+import { recordTombstones, restoreRows, type Restore } from './sync';
 import { getWorkspace } from './workspaces';
 import { DEFAULT_PROJECT_ID, inProject, onLine, updateProject } from './projects';
 
@@ -345,10 +345,14 @@ export async function putPaceWin(w: PaceWinRow): Promise<void> {
   await (await getDB()).put('pace_wins', { ...w, updatedAt: now() });
   signalWrite();
 }
-export async function deletePaceWin(id: ID): Promise<void> {
-  await (await getDB()).delete('pace_wins', id);
+/** Deleted with an undo (ui/Undo): the row as it was is handed back. */
+export async function deletePaceWin(id: ID): Promise<Restore> {
+  const db = await getDB();
+  const row = await db.get('pace_wins', id);
+  await db.delete('pace_wins', id);
   await recordTombstones('pace_wins', [id]);
   signalWrite();
+  return async () => { if (row) await restoreRows('pace_wins', [row]); };
 }
 
 /** Every frame frozen on any of a project's walks — its own and its lines' —

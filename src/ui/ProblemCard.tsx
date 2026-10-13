@@ -186,6 +186,9 @@ export interface ProblemCardProps {
   onClosedOn?: (iso: string) => void;
   onChecked: () => void;
   onRemove: () => void;
+  /** The problem in better words — the head of the fish changed where it sits
+   *  (lib/useProblems retitleProblem). Whoever does the work may (can.edit). */
+  onRetitle?: (title: string) => void;
   /** The chains are drawn on the fish beside this card (the fishbone page's
    *  problem panel): WHY says how many and offers a new one, rather than
    *  listing them a second time. */
@@ -225,13 +228,35 @@ function PartHead({ n, title, state, tone }: { n: number; title: string; state?:
 
 /* --------------------------------- problem --------------------------------- */
 
-export function ProblemPart({ view: v, facts }: ProblemCardProps) {
+export function ProblemPart({ view: v, facts, can, onRetitle }: ProblemCardProps) {
   const src = v.problem.source;
   const none = !facts.is.length && !facts.isNot.length;
+  /* ITS WORDS, CHANGED WHERE THEY ARE (the audit's bar 2) — a problem opened
+     in a hurry is put into better words without removing it and opening it
+     again: its causes and countermeasures stay with it. */
+  const [words, setWords] = useState<string | null>(null);
+  const save = () => { if (words !== null && words.trim()) onRetitle?.(words); setWords(null); };
   return (
     <section className="pc-part pc-problem">
       <PartHead n={1} title="Problem" state={<span className={'fj-phase is-' + phaseTone(v.phase)}>{PHASE_WORD[v.phase]}</span>} />
-      <h2 className="pc-title">{v.problem.title}</h2>
+      {words === null ? (
+        <>
+          <h2 className="pc-title">{v.problem.title}</h2>
+          {/* beside the title, not in it: the fishbone's panel names the
+              problem in its own header and hides the card's title */}
+          {can.edit && onRetitle && <button type="button" className="linkish pc-retitle" onClick={() => setWords(v.problem.title)}>Change the words</button>}
+        </>
+      ) : (
+        <form className="pc-retitle-f" onSubmit={e => { e.preventDefault(); save(); }}>
+          <textarea className="text-area" rows={2} autoFocus value={words} maxLength={200} aria-label="The problem, in words"
+            onChange={e => setWords(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); save(); } if (e.key === 'Escape') setWords(null); }} />
+          <span className="pc-retitle-acts">
+            <button type="submit" className="btn btn-primary btn-sm" disabled={!words.trim()}>Save</button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setWords(null)}>Cancel</button>
+          </span>
+        </form>
+      )}
       {v.measure && <p className="pc-num"><Measure m={v.measure} /></p>}
       {v.says && v.says !== v.problem.title && <p className="pc-says">{v.says}</p>}
       {src && (
@@ -603,7 +628,9 @@ export function WorkedPart({ view: v, can, steps, onClose, onReopen, onClosedOn,
         <p className="fj-holdline">
           Kept by: <b>{hold.what}</b>{hold.who ? ` · ${hold.who}` : ''} · every {EVERY_WORD(hold.everyDays)}
           {' '}· {hold.standardUpdated ? 'standard updated' : 'standard not updated yet'}
-          {hold.lastChecked ? ` · last checked ${hold.lastChecked}` : ' · not checked yet'}
+          {/* the day as every other day on the screen says it — it showed
+              2026-10-12 (docs/FLOW-AUDIT.md #9, #20) */}
+          {hold.lastChecked ? ` · last checked ${niceDay(hold.lastChecked)}` : ' · not checked yet'}
         </p>
       )}
       {!open && !hold && <p className="pc-quiet">Closed with no check to keep it.</p>}

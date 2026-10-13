@@ -351,16 +351,17 @@ describe('suggestionsFor — the walk, the standard, the balance, materials, pro
       ['method', `Changeovers on the Bagger — 18 min of the 85 min lost on Shift 1, ${day}`, 'reported', 'lc#changeover', 'losses'],
     ]);
     expect(s[0].detail).toBe(`Loss count: Shift 1, ${day} — 85 min lost, 6 min of slow running and short stops, not yet told apart`);   // 85 − (55 of stops + 18 + 6)
-    /* told apart by the running speed timed — 110 min lost, 31 the rest, timed at 95 a minute: 377 run × 5 ÷ 100 = 18.85 slow
-       running, the biggest after the breakdown and the minor stops, on Machine; 12.15 short stops, not in the three */
+    /* told apart by the running speed timed — 110 min lost, 31 the rest, timed at 95 a minute: the 34,600 packs run take
+       364.2 min at 95 and 346 at the plate's 100 — 18.2 slow running (Nakajima's net operating time), the biggest after
+       the breakdown and the minor stops, on Machine; 377 − 364.2 = 12.8 short stops, not in the three */
     const timedCount = (made: number, running?: { id: string; at: number; packs: number; sec: number }[]) => count({ facts: { losses: { ...count().facts.losses!, made }, ...(running ? { timings: running } : {}) } });
     const split = suggestionsFor(whole, data({ observations: stops, studies: [timedCount(34_000, [{ id: 'r', at: from + 3_600_000, packs: 95, sec: 60 }])] }), TODAY).filter(x => x.source.tool === 'losses');
     expect(split.map(x => [x.m, x.source.ref, x.grade])).toEqual([['machine', 'lc#cause:Breakdown', 'measured'], ['machine', 'lc#cause:Minor stop', 'measured'], ['machine', 'lc#slow', 'measured']]);
-    expect(split[2].text).toBe(`Slow running below the Bagger’s plate speed — 19 min of the 110 min lost on Shift 1, ${day}`);
+    expect(split[2].text).toBe(`Slow running below the Bagger’s plate speed — 18 min of the 110 min lost on Shift 1, ${day}`);
     /* a person paces the line: the slow running is theirs, on People */
     const byOp3 = count({ facts: { losses: { ...count().facts.losses!, made: 34_000, rateFrom: 'standard-time', rateMachine: undefined, ratePerson: 'Op 3' }, timings: [{ id: 'r', at: from + 3_600_000, packs: 95, sec: 60 }] } });
     const op3 = suggestionsFor(whole, data({ observations: stops, studies: [byOp3] }), TODAY).filter(x => x.source.ref === 'lc#slow');
-    expect(op3.map(x => [x.m, x.text])).toEqual([['people', `Slow running below Op 3’s standard-time pace — 19 min of the 110 min lost on Shift 1, ${day}`]]);
+    expect(op3.map(x => [x.m, x.text])).toEqual([['people', `Slow running below Op 3’s standard-time pace — 18 min of the 110 min lost on Shift 1, ${day}`]]);
     /* the same 31 not told apart: never offered */
     expect(suggestionsFor(whole, data({ observations: stops, studies: [timedCount(34_000)] }), TODAY).filter(x => x.source.tool === 'losses').map(x => x.source.ref))
       .toEqual(['lc#cause:Breakdown', 'lc#cause:Minor stop', 'lc#changeover']);
