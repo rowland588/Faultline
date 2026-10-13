@@ -682,6 +682,115 @@ for (const size of CR_SIZES) {
   if (errors.length) rows.push({ size: `cr-${size}`, report: '(console)', pages: 0, faults: errors });
   await ctx.close();
 }
+/* LINE CAPACITY ON PAPER (lib/capacityPaper, lib/capacityPaperPdf;
+   docs/AUDIT.md, bar 3) — a product's own page from the PDF on Line
+   capacity's page, and every product shown from the list's PDF (all shown),
+   at every size: TINY (a product with nothing written and one with a single
+   station — src/dev/capacitySeeds.ts), the ordinary seed's Line 7 products,
+   HUGE (three lines, seven products, one twenty stations long in four units
+   with four what-ifs, shifts that differ, the walk and the work timed); with
+   --fuzz or --seeds, random ones. What must reach the paper is read off the
+   records by lib/capacity itself, as the page says it — every product and
+   its finding, the module's sentence, the V's, every station counted, every
+   one not counted and why, every unit to check, a shift's sentence and every
+   shift, the cost a pack and one more person, every what-if's comparison,
+   its changes and its labour, the walk's verdict, the people's work. The
+   ordinary product's page is ONE page. And Line standard's PDF (all shown):
+   a card a page for every product the list shows. */
+for (const size of SIZES) {
+  const { ctx, page, errors } = await device();
+  const sd = await page.evaluate(async size => {
+    if (size === 'ordinary') { const s = await (await import('/src/dev/seed.ts')).seedForSmokeTest(); return { one: { wsId: s.wsId, id: s.lineStandardId } }; }
+    return (await import('/src/dev/capacitySeeds.ts')).seedCapacityFor(size);
+  }, size);
+  const capMust = ids => page.evaluate(async ids => {
+    const { san } = await import('/src/lib/reportKit.ts');
+    await (await import('/src/lib/savePdf.ts')).loadPdfLib();
+    const db = await import('/src/db.ts'); const C = await import('/src/lib/capacity.ts');
+    const { changeoverIn } = await import('/src/lib/ie/changeover.ts');
+    const { walkVerdict } = await import('/src/lib/ie/walk.ts');
+    const B = await import('/src/lib/ie/balance.ts');
+    const { currentBalance } = await import('/src/lib/studyLinks.ts');
+    const S = await import('/src/lib/standard.ts');
+    const [all, wss, studies] = await Promise.all([db.listAllStandards(), db.listWorkspaces(), db.listAllStudies()]);
+    const list = ids ?? all.filter(s => !s.deletedAt && S.inCapacityTool(s)).map(s => s.id);
+    const out = []; let from = '';
+    const add = (...xs) => { for (const x of xs) { const v = typeof x === 'number' ? String(x) : x; if (v && san(v)) out.push([v, san(v), from]); } };
+    const nm = x => x.station.name.trim() || `Station ${x.index + 1}`;
+    for (const id of list) {
+      const s = all.find(x => x.id === id); if (!s) continue;
+      const w = wss.find(x => x.id === s.workspaceId), cap = s.capacity ?? { stations: [] }, r = C.analyse(cap);
+      from = 'a product'; add(s.product, w?.name);
+      from = `${s.product.slice(0, 24)}: its finding`; add(C.shortSays(r), r.sentence);
+      from = `${s.product.slice(0, 24)}: a station`; for (const x of r.ok) add(nm(x));
+      from = `${s.product.slice(0, 24)}: to check`; for (const k of r.skipped) add(`${k.station.name.trim() || `Station ${k.index + 1}`} is not counted: ${k.why}.`); add(...r.notes);
+      if (r.ok.length >= 2) { from = `${s.product.slice(0, 24)}: the V`; add(C.vCurve(r, cap.vMarginPct).sentence); }
+      if (w && r.limit) {
+        from = `${s.product.slice(0, 24)}: a shift`;
+        const sc = C.shiftCapacity(r, C.shiftsIn(w.shifts), changeoverIn(cap.changeovers, studies, s.id));
+        if (sc) { add(sc.sentence); for (const x of sc.rows) add(x.name); }
+      }
+      const li = C.labourInputs(cap, S.headcount(s), w);
+      const cost = C.labourCost(r, li.people, li.rate);
+      from = `${s.product.slice(0, 24)}: labour`; if (cost) add(`${C.fmtMoney(cost.perPack)} a ${C.oneOf(r.unit)}`); add(C.oneMorePerson(cap, r, li.people, li.rate)?.sentence);
+      from = `${s.product.slice(0, 24)}: a what-if`;
+      for (const wi of cap.whatIfs ?? []) {
+        const wc = C.whatIfCapacity(cap, wi), wr = C.analyse(wc);
+        add(C.compareSays(r, wr, wi.name), ...C.changedWords(cap.stations, C.whatIfStations(cap.stations, wi)), C.whatIfLabour(cap, r, wc, wr, li.people, li.rate)?.sentence);
+      }
+      const walk = studies.filter(x => !x.deletedAt && x.tool === 'sampling' && x.agreed?.sampling?.walk && x.standardId === s.id).sort((a, b) => b.startedAt - a.startedAt)[0];
+      if (walk && r.ok.length >= 2) { from = `${s.product.slice(0, 24)}: the walk`; add(walkVerdict(walk.agreed.sampling.who, walk.facts.taps ?? [], r.limit ? nm(r.limit) : undefined).sentence); }
+      const b = currentBalance(studies, s.id), f = b?.agreed?.balance ? B.balance(b.facts.steps, b.agreed.balance) : undefined;
+      if (f && f.people.length) { from = `${s.product.slice(0, 24)}: the work`; const said = B.balanceSays(f, S.peopleOf(s).length || undefined); add(said.text, ...said.lines.map(l => l.text)); }
+    }
+    return out;
+  }, ids);
+  /* a product's own page */
+  {
+    const file = `${OUT}/capacity-${size}-one.pdf`;
+    try {
+      const must = await capMust([sd.one.id]);
+      await download(page, `#/w/${sd.one.wsId}/standards/${sd.one.id}?at=balance`, file, [['PDF']]);
+      const r = check(file, must);
+      if (size === 'ordinary' && r.pages > 1) r.faults.push(`${r.pages} pages — an ordinary product's capacity must be one`);
+      rows.push({ size: `cap-${size}`, report: 'line capacity', pages: r.pages, faults: r.faults, said: r.said });
+    } catch (e) {
+      rows.push({ size: `cap-${size}`, report: 'line capacity', pages: 0, faults: [`could not make it: ${e.message.split('\n')[0]}`] });
+    }
+  }
+  /* every product the list shows */
+  {
+    const file = `${OUT}/capacity-${size}-all.pdf`;
+    try {
+      const must = await capMust(null);
+      await download(page, '#/balances', file, [[/^PDF \(all shown\)/]]);
+      const r = check(file, must);
+      rows.push({ size: `cap-${size}`, report: 'capacity (all)', pages: r.pages, faults: r.faults, said: r.said });
+    } catch (e) {
+      rows.push({ size: `cap-${size}`, report: 'capacity (all)', pages: 0, faults: [`could not make it: ${e.message.split('\n')[0]}`] });
+    }
+  }
+  /* Line standard's cards, a page for every product the list shows — or, with none, the button greyed */
+  {
+    const file = `${OUT}/standards-${size}-cards.pdf`;
+    try {
+      await page.goto(`${BASE}/#/standards`); await page.waitForTimeout(2500);
+      const shown = await page.locator('.lt-rows .lt-li').count();
+      const btn = page.getByRole('button', { name: /^PDF \(all shown\)/ });
+      if (!shown) rows.push({ size: `cap-${size}`, report: 'standard cards', pages: 0, faults: (await btn.isDisabled()) ? [] : ['no product shown, yet the cards button could be pressed'] });
+      else {
+        const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), btn.click()]);
+        await dl.saveAs(file);
+        const pages = Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [file], { encoding: 'utf8' }))?.[1]);
+        rows.push({ size: `cap-${size}`, report: 'standard cards', pages, faults: pages === shown ? [] : [`${pages} cards for ${shown} products shown`], said: shown });
+      }
+    } catch (e) {
+      rows.push({ size: `cap-${size}`, report: 'standard cards', pages: 0, faults: [`could not make it: ${e.message.split('\n')[0]}`] });
+    }
+  }
+  if (errors.length) rows.push({ size: `cap-${size}`, report: '(console)', pages: 0, faults: errors });
+  await ctx.close();
+}
 await browser.close();
 
 let bad = 0;

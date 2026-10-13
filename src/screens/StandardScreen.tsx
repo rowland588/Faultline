@@ -368,6 +368,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
   const balanceStudy = useBalanceFor(s.id);
   const here = window.location.hash.slice(1).split('?')[0] || home.base;
   const [printing, setPrinting] = useState(false);
+  const [paperBusy, setPaperBusy] = useState(false);
   const [product, setProduct] = useState(s.product);
   const [size, setSize] = useState({ bw: 0, bh: 0 });
   const [draw, setDraw] = useState<Draw | null>(null);
@@ -586,6 +587,13 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
         <div className="ls-head-actions">
           {/* its line standard, one tap away — only when it has been mapped */}
           {hasMap(s) && <button type="button" className="btn btn-ghost" onClick={() => nav(here)}>Its line standard ›</button>}
+          {/* ITS PAPER — the product's capacity as its own page (lib/capacityPaper) */}
+          <button type="button" className="btn btn-ghost" disabled={paperBusy} onClick={() => {
+            setPaperBusy(true);
+            void import('../lib/capacityPaperLoad').then(m => m.saveCapacityPdf([s], { name: home.name }))
+              .catch(e => { console.error('line capacity PDF failed', e); window.alert('Sorry — the PDF could not be made. Please try again.'); })
+              .finally(() => setPaperBusy(false));
+          }}>{paperBusy ? 'Making…' : 'PDF'}</button>
           {/* deleting is the owner's (lib/access), as the map's is */}
           {can.remove && <button type="button" className="btn btn-ghost ls-del" onClick={() => void removeTool('balance')}>Delete this capacity</button>}
         </div>

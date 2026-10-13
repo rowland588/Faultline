@@ -548,4 +548,18 @@ is still wired.
      of the problems"* — Problems cards beside the Problems report: a card
      for every problem the page shows, the projects' own among them.
      `snags.mjs` 8.
+- **Paper wherever there is a list** (the audit's bar 3 — Rowland, 13
+  October: "I'm always asking for reports, or cards, to be able to present
+  things in a certain way that would seem to be obvious, but aren't, because
+  you're not building them"). Placed (§8): no new record. *On the line*,
+  Line capacity (`standards.capacity`) — a product's own page and every
+  product its list shows, told in the three questions (`lib/capacityPaper`);
+  Line standard (`standards`) — the card for every product its list shows.
+  *Jobs*, Materials (`materials`) — What we are waiting on as one page;
+  Commission, Install, Set up and Hand over (`tests`) — the card for every
+  record on the board. The screen gains a button where the list is; the
+  paper says what the screen says, from the same modules.
+  `docs/AUDIT.md` 6–14; `list-paper.mjs`; `report-stress` (Line capacity at
+  every size). Left, with reasons, in `docs/AUDIT.md` 10–14 — the line
+  report is §6.5's, with the line as the hub.
 - **Next:** Stage 3 — the line is the hub (its products, readiness, health).

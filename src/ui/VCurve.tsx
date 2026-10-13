@@ -27,7 +27,16 @@ export function VCurveView({ r, v, target, margin, canAgree, onMargin }: {
   const x = (i: number) => L + (i + 0.5) * ((W - L - R) / v.points.length);
   const y = (p: number) => T + (1 - (p - bottom) / (top - bottom)) * (H - T - B);
   const grid: number[] = [];
-  for (let p = bottom; p <= top; p += top - bottom > 120 ? 40 : 20) grid.push(p);
+  /* A station thousands of times faster than the bottleneck — a unit or a
+     rate typed wrong — made the steps of 40 run to millions of grid lines,
+     and the tab ran out of memory (found by the random capacity seeds,
+     src/dev/capacitySeeds.ts). Past 400% the step grows with the span, so
+     the grid stays a handful of lines. */
+  const span = top - bottom;
+  const step = span > 400 ? Math.pow(10, Math.ceil(Math.log10(span / 8))) : span > 120 ? 40 : 20;
+  /* and a share past what a number holds (a bottleneck at next to nothing)
+     draws no grid, rather than looping for ever */
+  if (Number.isFinite(span) && span > 0) for (let p = bottom; p <= top; p += step) grid.push(p);
   const short = (s: string) => (s.length > 16 ? `${s.slice(0, 15)}…` : s);
   const over = tgt != null && tgt > 100 + 1e-9;
   const save = () => { const m = Number(draft); onMargin(Number.isFinite(m) && m > 0 && m <= 100 ? m : undefined); setEditing(false); };
