@@ -17,7 +17,7 @@
  */
 import { useMemo, useState } from 'react';
 import { useDismiss } from '../ui/Sheet';
-import type { PaceAction } from '../lib/tracker';
+import type { PaceAction } from '../lib/actionShapes';
 import type { PaceLineRow } from '../db';
 import {
   actionsForBind, statusOfAction, bindActionText, trackerLines, allLinesCount, ALL_LINES,

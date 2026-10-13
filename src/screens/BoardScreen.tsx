@@ -35,7 +35,7 @@ import { useAccess } from '../cloud/access';
 import { putPaceTodo } from '../db';
 import { uid } from '../lib/ids';
 import { todayISO } from '../lib/weeks';
-import type { PaceAction } from '../lib/tracker';
+import type { PaceAction } from '../lib/actionShapes';
 import type { NodeStatus } from '../db';
 import { Icon } from '../ui/Icon';
 

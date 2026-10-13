@@ -119,7 +119,8 @@ export interface PaceLineRow {
   deletedAt?: number;
 }
 
-/** A parsed tracker upload, stored whole. */
+/** A parsed tracker upload, stored whole. RETIRED (BLUEPRINT §5.1): nothing is uploaded;
+ *  kept only as the shape of the empty local store until the cloud table is dropped. */
 export interface PaceSnapshotRow {
   id: string; takenAt: number; fileName: string;
   /** Which project this tracker was uploaded against — see PaceTodoRow. */
@@ -134,8 +135,11 @@ export interface PaceSnapshotRow {
 
 /** kind:id of a hard-deleted row, so a delete reaches the cloud on next sync. */
 export interface Tombstone { id: string; kind: SyncKind; deletedAt: number }
-export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets' | 'snags' | 'cases' | 'projects' | 'project_targets' | 'project_actuals'
-  | 'pace_ppm' | 'pace_todos' | 'pace_snapshots' | 'pace_wins' | 'tree_nodes'
+/* RETIRED 13 October (docs/BLUEPRINT.md §5.1-5.2): project_targets, project_actuals and
+   pace_snapshots — read by no screen, 0 rows in the cloud — are no longer synced. Their
+   local stores stay defined, empty, until the cloud tables are dropped. */
+export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets' | 'snags' | 'cases' | 'projects'
+  | 'pace_ppm' | 'pace_todos' | 'pace_wins' | 'tree_nodes'
   | 'commission_assets' | 'tests' | 'test_items' | 'targets' | 'readings' | 'materials' | 'programs' | 'standards' | 'studies';
 
 /* WHERE A BOX HAS GOT TO. Five states, not four colours.

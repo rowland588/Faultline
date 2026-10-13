@@ -26,7 +26,7 @@
  * every upload would mean merging two versions of the same action every week,
  * and would leave last week's deleted rows stranded on the tree forever.
  */
-import type { PaceAction } from './tracker';
+import type { PaceAction } from './actionShapes';
 import { todayISO } from './weeks';
 import { toSixM } from './sixm';
 import type { PaceLineRow, PaceTodoRow, TreeNodeRow, NodeStatus } from '../db';

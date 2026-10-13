@@ -232,7 +232,13 @@ for (const [name, hash] of ROUTES) {
 
   const st = await page.evaluate(() => {
     const text = (document.body.innerText || '').trim();
-    return { chars: text.length, crash: /something broke|something went wrong/i.test(text), head: text.split('\n')[0]?.slice(0, 40) ?? '' };
+    /* OLD WORDS NEVER COME BACK (docs/BLUEPRINT.md §5.9): the app's old names for a
+       line ("workspace"), the uploaded workbook ("tracker"), the old method ("3P")
+       and a problem ("snag"). Allowed: "snag" meaning film that catches — the
+       loss category "Film / packaging snag" — and the seed's own problem text. */
+    const said = text.replace(/packaging snag|film snags?|seeded snag/gi, '');
+    const old = [...new Set((said.match(/\b(workspaces?|tracker|3P|snags?)\b/gi) ?? []).map(w => w.toLowerCase()))];
+    return { chars: text.length, crash: /something broke|something went wrong/i.test(text), head: text.split('\n')[0]?.slice(0, 40) ?? '', old };
   });
 
   page.off('pageerror', onErr);
@@ -245,7 +251,7 @@ console.log('\n' + 'screen'.padEnd(19) + 'chars  state           first line');
 console.log('-'.repeat(86));
 const bad = [];
 for (const r of rows) {
-  const why = r.crash ? 'ERROR BOUNDARY' : r.errs.length ? `${r.errs.length} error(s)` : r.chars < 60 ? 'NEARLY BLANK' : 'ok';
+  const why = r.crash ? 'ERROR BOUNDARY' : r.errs.length ? `${r.errs.length} error(s)` : r.chars < 60 ? 'NEARLY BLANK' : r.old?.length ? `OLD WORDS: ${r.old.join(', ')}` : 'ok';
   if (why !== 'ok') bad.push(r);
   console.log(r.name.padEnd(19) + String(r.chars).padStart(5) + '  ' + why.padEnd(16) + r.head);
 }

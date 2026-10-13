@@ -15,8 +15,8 @@ import { Icon } from '../ui/Icon';
 /* The record kinds in the words the screens use. */
 const KIND_WORD: Record<string, string> = {
   workspaces: 'line studies', cases: 'cases', observations: 'timed stops', segments: 'walk clips',
-  snag_assets: 'frames', snags: 'snags', projects: 'projects', project_targets: 'targets', project_actuals: 'actuals',
-  pace_ppm: 'lines', pace_todos: 'actions', pace_snapshots: 'uploads', pace_wins: 'wins',
+  snag_assets: 'frames', snags: 'snags', projects: 'projects',
+  pace_ppm: 'lines', pace_todos: 'actions', pace_wins: 'wins',
   tree_nodes: 'tree boxes', commission_assets: 'machines', tests: 'tests and steps', test_items: 'findings and fixes',
   targets: 'targets', readings: 'readings', materials: 'materials', programs: 'programs', standards: 'line standards',
 };

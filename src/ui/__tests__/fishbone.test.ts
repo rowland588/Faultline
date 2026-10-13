@@ -12,7 +12,7 @@ import { boneWords, fixesOf, fixTag, layoutFish, lossWords, orderItems, overlaps
 import { tidyCause } from '../CauseSheet';
 import { SIXM, type Cause, type CauseStatus, type SixM } from '../../lib/sixm';
 import type { Bone, Suggestion } from '../../lib/problems';
-import type { PaceAction } from '../../lib/tracker';
+import type { PaceAction } from '../../lib/actionShapes';
 
 let n = 0;
 const cause = (m: SixM, status: CauseStatus = 'suspected', more: Partial<Cause> = {}): Cause =>

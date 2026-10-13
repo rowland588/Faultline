@@ -210,9 +210,7 @@ export async function applyRemoteDelete(kind: SyncKind, id: ID): Promise<void> {
     const row = await db.get(kind, id);
     for (const k of blobKeysOf(row)) await db.delete('media', k);
     await db.delete(kind, id);
-  } else if (kind === 'pace_snapshots'
-    || kind === 'pace_wins' || kind === 'tree_nodes'
-    || kind === 'projects' || kind === 'project_targets' || kind === 'project_actuals') {
+  } else if (kind === 'pace_wins' || kind === 'tree_nodes' || kind === 'projects') {
     // Flat rows with no children and no media. They need naming explicitly:
     // the fallthrough below assumes an observation, so a Next step deleted on
     // the laptop was never deleted on the phone — it just sat there.

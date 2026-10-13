@@ -54,7 +54,7 @@ import { closedProblemOn, putOldWhysOnBone } from '../lib/useProblems';
 import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
 import { useActions } from '../lib/actions';
-import type { PaceAction } from '../lib/tracker';
+import type { PaceAction } from '../lib/actionShapes';
 import { uid } from '../lib/ids';
 import { todayISO } from '../lib/weeks';
 import { drawerShows, panelOf, readingOf, readPinned, samePanel, withPanel, writePinned, type RoomPanel } from '../lib/fishboneRoom';

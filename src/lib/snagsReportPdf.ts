@@ -71,7 +71,7 @@ function jobParts(f: Frame, r: JobRow): Parts {
   return {
     prio: r.priority,
     what: wrap(f.doc, san(`${PRIORITY_WORD[r.priority].toUpperCase()} · ${r.what}`), tw, 9.5, 'bold'),
-    from: wrap(f.doc, san(`${r.where}${r.who ? ` · ${r.who}` : ' · nobody yet'}${r.fromSnag ? ` · seen first on ${r.fromSnag.replace(/^a snag on /, '')}` : ''}`), tw, 8),
+    from: wrap(f.doc, san(`${r.where}${r.who ? ` · ${r.who}` : ' · nobody yet'}${r.fromSnag ? ` · seen first on ${r.fromSnag.replace(/^a (?:snag|problem) on /, '')}` : ''}`), tw, 8),
     note: r.fixWhat ? wrap(f.doc, san(`Fix: ${r.fixWhat}`), tw, 8.5) : [],
     right: wrap(f.doc, san(r.word), RIGHT, 8.5, 'bold').map(t => ({ t, c: TONE[r.tone], bold: true })),
   };

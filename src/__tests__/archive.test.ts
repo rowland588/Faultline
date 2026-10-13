@@ -59,7 +59,6 @@ async function projectWithEverything(db: Awaited<ReturnType<typeof freshDb>>) {
     id: 'wn1', projectId: id, lineId: 'ppm-5', title: 'it got faster', story: '', impact: '',
     where: 'Line 5', who: 'Dave', createdAt: t, updatedAt: t,
   });
-  await db.addPaceSnapshot({ id: 'sn1', projectId: id, takenAt: t, fileName: 'tracker.xlsx', actions: [] });
   // the programs and the line standard — left behind by "delete for ever" until 4 October
   await db.putProgram({ id: 'pg1', projectId: id, what: 'Maris Piper 2kg', state: 'needed', sort: 1, createdAt: t, updatedAt: t });
   await db.putStandard({ id: 'st1', projectId: id, product: 'Maris Piper 2kg', marks: [], sort: 1, createdAt: t, updatedAt: t });
@@ -106,11 +105,10 @@ describe('deleting for good takes the whole file with it', () => {
     expect(by.test_items).toBe(1);
     expect(by.commission_assets).toBe(1);
     expect(by.tree_nodes).toBe(1);
-    // and the four that are scanned rather than indexed
+    // and the three that are scanned rather than indexed (the tracker's uploads retired — BLUEPRINT §5.1)
     expect(by.pace_ppm, 'its lines').toBe(1);
     expect(by.pace_todos, 'its next steps').toBe(1);
     expect(by.pace_wins, 'its wins').toBe(1);
-    expect(by.pace_snapshots, 'its uploads').toBe(1);
     expect(by.readings).toBe(1);
     expect(by.targets).toBe(1);
     expect(by.programs).toBe(1);
@@ -131,7 +129,6 @@ describe('deleting for good takes the whole file with it', () => {
     expect(await db.loadPaceLines(id), 'its lines go with it').toEqual([]);
     expect(await db.listPaceTodos(id)).toEqual([]);
     expect(await db.listPaceWins(id)).toEqual([]);
-    expect(await db.listPaceSnapshots(id)).toEqual([]);
     expect(await db.listReadings(id)).toEqual([]);
     expect(await db.listTargets(id)).toEqual([]);
     expect(await db.listPrograms(id)).toEqual([]);
@@ -260,7 +257,7 @@ describe('a line can be put away too, and its film is what makes deleting it dif
     // destroy a year of film reads as carelessness.
     expect(by['filmed walk']).toBe(1);
     expect(by['pinned machine']).toBe(1);
-    expect(by.snag).toBe(1);
+    expect(by.problem, "the line's problems, in the word a person reads").toBe(1);
     expect(owned.map(c => c.what)).not.toContain('filmed walks');
     // Nothing that is empty is listed — "0 cases (A3s)" is noise in a warning.
     expect(owned.every(c => c.count > 0)).toBe(true);

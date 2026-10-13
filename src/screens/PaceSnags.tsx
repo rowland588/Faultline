@@ -227,7 +227,7 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [], can = c
     if (!wsId) return;
     const pins = snags.filter(sn => sn.assetId === a.id).length;
     const msg = `Delete the marked frame "${a.name}"?`
-      + (pins ? `\n\nThis also deletes ${pins} snag${pins === 1 ? '' : 's'} pinned on it.` : '')
+      + (pins ? `\n\nThis also deletes ${pins} problem${pins === 1 ? '' : 's'} pinned on it.` : '')
       + '\n\nThis cannot be undone.';
     if (!window.confirm(msg)) return;
     await deleteSnagAsset(a.id);
@@ -240,7 +240,7 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [], can = c
     try { nav(`/w/${await ensure()}/snags`); } finally { setBusy(false); }
   };
 
-  if (loading) return <p className="sub">Loading the snag list…</p>;
+  if (loading) return <p className="sub">Loading the problems…</p>;
 
   // everything below reads the view WITHOUT the walk awaiting deletion, so the
   // counts always describe what is actually on screen. The MARKED FRAMES stay:
@@ -363,7 +363,7 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [], can = c
               <div key={a.id} className="ps-asset">
                 <span className="ps-asset-name">{a.name}</span>
                 <span className="ps-asset-meta">{(() => { const n = shownSnags.filter(sn => sn.assetId === a.id).length;
-                  return n === 0 ? 'no snags' : `${n} snag${n === 1 ? '' : 's'}`; })()}</span>
+                  return n === 0 ? 'no problems' : `${n} problem${n === 1 ? '' : 's'}`; })()}</span>
                 {can.remove && <button className="ps-del" onClick={() => void removeAsset(a)} aria-label={`Delete ${a.name}`}>Delete</button>}
               </div>
             ))}

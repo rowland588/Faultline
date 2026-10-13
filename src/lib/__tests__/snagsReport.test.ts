@@ -22,7 +22,7 @@ describe('the snags reading', () => {
   it('every snag on its line, late first; a moved one shown once, as what it became under its job; one whose record is gone said so', () => {
     const became = new Map<string, Became>([['i1', { projectId: 'j1', says: 'a fix — due tomorrow · 13 Oct', tone: 'a', open: true, open_: { kind: 'record', id: 'f1' } }]]);
     const job: JobGroup = { projectId: 'j1', job: 'Wrapper install', problemsOpen: 1, fixesToDo: 1, late: 0, done: 0, rows: [
-      { kind: 'fix', id: 'f1', projectId: 'j1', what: 'Infeed jam', where: 'The line · not from a test', word: 'Due tomorrow · 13 Oct', tone: 'a', open: true, late: false, fromSnag: 'a snag on Line 7', priority: 'low', at: 1 },
+      { kind: 'fix', id: 'f1', projectId: 'j1', what: 'Infeed jam', where: 'The line · not from a test', word: 'Due tomorrow · 13 Oct', tone: 'a', open: true, late: false, fromSnag: 'a problem on Line 7', priority: 'low', at: 1 },
       { kind: 'problem', id: 'p9', projectId: 'j1', what: 'Guard missing', where: 'Bagger — Install', word: 'Open', tone: 'a', open: true, late: false, priority: 'low', at: 2 },
     ] };
     const r = snagsReading({
@@ -42,7 +42,7 @@ describe('the snags reading', () => {
     expect([b.word, b.tone, b.due, b.dueTone, b.late, b.owner]).toEqual(['In progress · 2 days', 'w', '3 days late', 'r', true, 'Sam']);
     expect([r.lines[1].rows[0].word, r.lines[1].rows[0].tone]).toEqual(['Closed 10 Oct', 'g']);
     /* the moved one is the fix under its job; only the gone one is listed on its own */
-    expect(r.jobs.map(g => [g.job, g.rows.map(x => [x.kind, x.what, x.fromSnag ?? ''])])).toEqual([['Wrapper install', [['fix', 'Infeed jam', 'a snag on Line 7'], ['problem', 'Guard missing', '']]]]);
+    expect(r.jobs.map(g => [g.job, g.rows.map(x => [x.kind, x.what, x.fromSnag ?? ''])])).toEqual([['Wrapper install', [['fix', 'Infeed jam', 'a problem on Line 7'], ['problem', 'Guard missing', '']]]]);
     expect(r.moved.map(g => [g.job, g.rows.map(x => [x.id, x.says])])).toEqual([['Wrapper install', [['e', 'no longer on the job — deleted there']]]]);
     expect(r.counts).toEqual({ open: 1, in_progress: 1, closed: 1, late: 1, moved: 2, movedOpen: 1, lines: 2, problems: 1, fixes: 1, jobLate: 0, jobDone: 0, jobs: 1, critical: 0, high: 0, low: 4 });
     expect(r.says).toBe('4 problems open — 0 critical, 0 high, 4 low; 1 late. 2 on 1 line, not on a job yet; 2 on 1 job, 1 being fixed. 1 problem moved to a job and no longer there.');
@@ -84,7 +84,7 @@ describe('the snags reading', () => {
     const g = jobGroup({ projectId: 'j1', job: 'Wrapper install', tests, items, assets, snags: [sn], lineName: id => lines[id] ?? 'A line', today: '2026-10-12' });
     expect(g.rows.map(r => [r.kind, r.priority, r.what, r.fixWhat ?? '', r.word, r.tone, r.open, r.late, r.fromSnag ?? ''])).toEqual([
       ['problem', 'critical', 'Seal marks', '', 'Open — critical', 'r', true, false, ''],
-      ['fix', 'low', 'Guard loose', 'Fit new guard', 'Late · was 8 Oct', 'r', true, true, 'a snag on Line 7'],
+      ['fix', 'low', 'Guard loose', 'Fit new guard', 'Late · was 8 Oct', 'r', true, true, 'a problem on Line 7'],
       ['problem', 'low', 'Label skew', '', 'Open', 'a', true, false, ''],
       ['fix', 'low', 'Re-track the film', '', 'Fixed · 11 Oct', 'g', false, false, ''],
     ]);

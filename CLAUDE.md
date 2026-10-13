@@ -1,5 +1,18 @@
 # Faultline — how work gets delivered here
 
+## The blueprint comes first
+
+**`docs/BLUEPRINT.md` is the one map of the app** — agreed with Rowland, 13
+October ("yes to all, start stage 0"), after: "we are building the app bit by
+bit ... old system entangled with new models ... design the app, the parts we
+missed, and plan the full build." Four layers (control room · your factory ·
+on the line · jobs), one home per real thing (§2), what each place is for
+(§3), where each record shows (§4), what is old (§5), what was missed (§6),
+the build in stages (§7). Every request is placed on it before it is built
+(§8): which layer, which record, where it shows, what it replaces — and if it
+needs a record not in §2, the blueprint changes first, in the same commit.
+The obvious next piece is written into §6 without waiting to be asked.
+
 ## What this is
 
 **Faultline is a control room for change on production lines.** Decided with
@@ -182,7 +195,7 @@ node scripts/acceptance/line-standard.mjs  # the line standard's board: the page
 node scripts/acceptance/programs.mjs  # a program's status with commentary: the five statuses (not tested and no program among them), commentary on its own, Needs you, the paper
 node scripts/acceptance/snags.mjs  # Problems: the register — every problem written and edited where it sits, assigned not moved, its journey, a photo marked, on paper, a fresh start
 node scripts/acceptance/lines.mjs  # production lines: made in Your factory, opened on their own, a problem taken on one with no project, its tools opened on it, the phone
-node scripts/acceptance/factory.mjs  # Your factory: set up first, lines added one after another, named, typed, moved, archived and restored — the control room, the rail, the line's page and its paper, the phone; the jobs taking their lines from it, never a second line of a name; its paper; the tools picking from it
+node scripts/acceptance/factory.mjs  # Your factory: set up first, lines added one after another, named, typed, moved, archived and restored — the control room, the rail, the line's page and its paper, the phone; the jobs taking their lines from it, never a second line of a name; its paper; the tools picking from it; a line's facts set up from its page; two lines merged
 node scripts/sync-two-devices.mjs     # a phone and a laptop against a fake cloud — video on one plays on the other
 node scripts/check-live-schema.mjs    # the LIVE database against the mapper — needs .env
 ```
@@ -326,7 +339,8 @@ RLS, real signal or iOS Safari. Run it on its own, not beside the fuzz: its
 timing checks fail under that load.
 
 `scripts/smoke.mjs` loads every screen in the app with realistic seeded data and
-fails on any console error. It has caught crashes that no unit test would have.
+fails on any console error — and on an old word on the screen ("workspace",
+"tracker", "3P", or "snag" as the app's old noun for a problem; BLUEPRINT §5.9). It has caught crashes that no unit test would have.
 Its fixtures live in `src/dev/seed.ts` — **TypeScript on purpose**, because two
 earlier attempts wrote plain objects in the `.mjs` and both were the wrong shape,
 manufacturing two "bugs" in the app that were really bugs in the harness.
@@ -452,6 +466,8 @@ pushed (`src/cloud/sync.ts`), so a stray local write cannot stall a sync.
   a working-looking app with no sign-in.
 
 ## How a change gets made here
+
+(Before these rules: place the change on `docs/BLUEPRINT.md`, §8.)
 
 Rowland, after a run of work where each piece was good on its own and the app
 still read like a workbook:

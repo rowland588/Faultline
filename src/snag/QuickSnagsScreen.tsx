@@ -588,7 +588,7 @@ function JobProblems({ g, all, opened, flip, busy, onView, onCard, onOpen, onLis
               <span className="qsl-body">
                 <span className="qsl-what"><PrioTag p={r.priority} />{r.what}</span>
                 {r.fixWhat && <span className="qsl-meta qsl-fixline">Fix: {r.fixWhat}</span>}
-                <span className="qsl-meta">{r.where}{r.who ? ` · ${r.who}` : ' · nobody yet'}{r.fromSnag ? ` · seen first on ${r.fromSnag.replace(/^a snag on /, '')}` : ''}</span>
+                <span className="qsl-meta">{r.where}{r.who ? ` · ${r.who}` : ' · nobody yet'}{r.fromSnag ? ` · seen first on ${r.fromSnag.replace(/^a (?:snag|problem) on /, '')}` : ''}</span>
               </span>
               <span className="preg-right"><span className={'qsl-state ' + TONE_CLASS[r.tone]}>{r.word}</span></span>
             </button>
@@ -815,7 +815,7 @@ function SetSheet({ snags, onClose, onDone }: { snags: Snag[]; onClose: () => vo
   const save = async () => {
     const before = snags.map(s => ({ ...s }));
     for (const s of snags) await updateSnag({ ...s, ...(who.trim() ? { owner: who.trim() } : {}), ...(due ? { dueAt: dueFromInput(due) } : {}) });
-    offerUndo(`${n} snag${n === 1 ? '' : 's'} changed`, async () => { for (const s of before) await updateSnag(s); });
+    offerUndo(`${n} problem${n === 1 ? '' : 's'} changed`, async () => { for (const s of before) await updateSnag(s); });
     onDone();
   };
   return (

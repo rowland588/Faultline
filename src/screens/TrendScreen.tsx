@@ -67,11 +67,11 @@ export function TrendPanel() {
 
           <div className="card" style={{ marginTop: 12 }}>
             <div className="field-label">Lost hours by week</div>
-            <p className="sub" style={{ margin: '2px 0 6px' }}>Green flags mark the week a snag was closed.</p>
+            <p className="sub" style={{ margin: '2px 0 6px' }}>Green flags mark the week a problem was closed.</p>
             <TrendChart weeks={weeks} flags={flags} />
             <div className="trend-legend">
               <span><i style={{ background: 'var(--brand)' }} /> lost hours</span>
-              <span><i style={{ background: 'var(--ok)' }} /> snag closed</span>
+              <span><i style={{ background: 'var(--ok)' }} /> problem closed</span>
             </div>
           </div>
 

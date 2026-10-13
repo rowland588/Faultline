@@ -216,9 +216,10 @@ export interface PaceReportData {
       at?: string;
     }[];
   };
-  /** Does this project keep a weekly tracker at all? A commissioning job does
-   *  not, and printing it a ppm sheet, a board and an action list is three
-   *  pages of scaffolding in front of the two it does carry. */
+  /** Does this project keep an action board (6M, lever tree)? A stage-gate job
+   *  does not, and printing it a ppm sheet, a board and an action list is three
+   *  pages of scaffolding in front of the two it does carry. (The field keeps
+   *  its first name, from when the board was an uploaded weekly tracker.) */
   tracker: boolean;
   /** Whether the actions, attention & movement sheet has anything to say.
    *  With no actions, no wins and nothing open on the walk it was six empty
@@ -3023,7 +3024,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData, out?: { board?: Boar
      because the panel's height depends on whether this line is printed. */
   if (noLines.length > 0) {
     setFont(d, 6.4, 'normal', MUTED);
-    d.text(fit(d, `${noLines.join(' \u00b7 ')} ${noLines.length === 1 ? 'is an area' : 'are areas'} on the tracker with no line on the project \u2014 actions counted, the rest needs a line adding.`, barW),
+    d.text(fit(d, `${noLines.join(' \u00b7 ')} ${noLines.length === 1 ? 'is an area' : 'are areas'} on the board with no line on the project \u2014 actions counted, the rest needs a line adding.`, barW),
       barX, r1y + rowH1 - 2);
   }
 

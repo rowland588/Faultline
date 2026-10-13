@@ -21,7 +21,7 @@
  */
 import type { Case, DrillPath, Observation, Workspace } from '../types';
 import type { PaceLineRow } from '../db/rows';
-import type { PaceAction } from './tracker';
+import type { PaceAction } from './actionShapes';
 import type { Bone, Phase, ProblemMeasure, ProblemView, Suggestion } from './problems';
 import type { Cause, CauseSource, Grade, SixM } from './sixm';
 import type { WalkSnag } from './walkSnags';
@@ -53,7 +53,7 @@ export const FULL_WEEKS = 4;
 /* ================================ the inputs ================================ */
 
 /** An action on the board as the fishbone reads it — the board's own shape
- *  (lib/tracker PaceAction) plus the three fields a countermeasure needs:
+ *  (lib/actionShapes PaceAction) plus the three fields a countermeasure needs:
  *  which cause it is for, what it should change, and the day it was done. */
 export type Countermeasure = PaceAction & {
   /** "<caseId>:<causeId>" (PaceTodoRow.causeRef). */

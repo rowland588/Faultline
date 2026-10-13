@@ -227,7 +227,7 @@ export function jobGroup(x: { projectId: string; job: string; tests: Test[]; ite
   for (const s of x.snags) for (const t of s.sent ?? []) if (t.projectId === x.projectId) fromItem.set(t.itemId, s);
   const fromFix = new Map<string, Snag>();
   for (const i of items) { const sn = fromItem.get(i.id); if (sn && i.becameTestId) fromFix.set(i.becameTestId, sn); }
-  const snagWords = (sn?: Snag) => (sn ? `a snag on ${x.lineName(sn.workspaceId)}` : undefined);
+  const snagWords = (sn?: Snag) => (sn ? `a problem on ${x.lineName(sn.workspaceId)}` : undefined);
   const photoOf = (m?: { kind: string; blobKey: string }[]) => m?.find(v => v.kind === 'photo')?.blobKey;
   const noted = notedProblems(tests, items, assets);
   const problems: JobRow[] = [...noted.open, ...noted.sorted].map(n => {

@@ -31,7 +31,7 @@ import { useState, type ReactNode } from 'react';
 import type { Can } from '../lib/access';
 import type { ProblemView } from '../lib/problems';
 import { PHASE_WORD } from '../lib/problems';
-import type { PaceAction } from '../lib/tracker';
+import type { PaceAction } from '../lib/actionShapes';
 import type { PaceTodoRow } from '../db';
 import type { Case } from '../types';
 import type { ProblemFacts, StartingWhy } from '../lib/fishbone';

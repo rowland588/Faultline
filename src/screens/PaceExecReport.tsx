@@ -36,7 +36,7 @@ import { orderStrands, strandsOf, strandWord, type Strand } from '../lib/strands
 import { whoOwes, type Debt } from '../lib/owes';
 import { trialCard, headlineNext, verdictLine } from '../lib/trialCard';
 import type { Snag } from '../snag/types';
-import type { PaceAction } from '../lib/tracker';
+import type { PaceAction } from '../lib/actionShapes';
 import type { BoardSheetDrawn, FilePages, PaceReportData } from '../lib/paceReportPdf';
 import type { Shot } from '../lib/testReport';
 import { proofFromWin, proofSentence, verdictLabel } from '../lib/measureProof';

@@ -10,7 +10,7 @@ import {
 } from '../ProblemCard';
 import type { Cause } from '../../lib/sixm';
 import type { ProblemView } from '../../lib/problems';
-import type { PaceAction } from '../../lib/tracker';
+import type { PaceAction } from '../../lib/actionShapes';
 import type { Case } from '../../types';
 
 const cause = (more: Partial<Cause> = {}): Cause =>

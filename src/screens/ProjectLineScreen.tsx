@@ -34,7 +34,7 @@ import { Journey } from '../ui/Journey';
 import { PaceMeeting } from './PaceMeeting';
 import { ActionSheet, type Editing } from '../ui/ActionSheet';
 import { useImpacts } from '../lib/useImpacts';
-import type { PaceAction } from '../lib/tracker';
+import type { PaceAction } from '../lib/actionShapes';
 import type { PaceLineRow } from '../db';
 import { PaceNextSteps } from './PaceNextSteps';
 import { PaceSuccess } from './PaceSuccess';

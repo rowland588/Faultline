@@ -2,8 +2,8 @@
  * every synced entity, plus which media blob keys each one references. The sync
  * engine iterates MAPS; nothing here touches the network. */
 import type { SyncKind } from '../db';
-import type { Workspace, Observation, Case, Project, ProjectLineTarget, ProjectLineActual } from '../types';
-import type { PaceLineRow, PaceTodoRow, PaceSnapshotRow, PaceWinRow, TreeNodeRow } from '../db';
+import type { Workspace, Observation, Case, Project } from '../types';
+import type { PaceLineRow, PaceTodoRow, PaceWinRow, TreeNodeRow } from '../db';
 import type { Asset, Test, TestItem } from '../lib/testing';
 import type { Reading, Target } from '../lib/measures';
 import type { Material } from '../lib/materials';
@@ -243,42 +243,6 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       reportNote: (r.report_note as string) ?? undefined,
       reportNoteAt: n(r.report_note_at),
       createdAt: Number(r.created_at),
-      updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
-    }),
-  },
-  project_targets: {
-    clock: (l) => (l as ProjectLineTarget).updatedAt,
-    mediaKeys: () => [],
-    toRow: (l) => {
-      const t = l as ProjectLineTarget;
-      return {
-        id: t.id, project_id: t.projectId, workspace_id: t.workspaceId, line_variant: t.lineVariant ?? null,
-        q1_target: t.q1Target, q2_target: t.q2Target, q3_target: t.q3Target, q4_target: t.q4Target,
-        start_date: t.startDate, created_at: t.createdAt, updated_at: t.updatedAt, deleted_at: t.deletedAt ?? null,
-      };
-    },
-    fromRow: (r) => ({
-      id: r.id as string, projectId: r.project_id as string, workspaceId: r.workspace_id as string,
-      lineVariant: (r.line_variant as string) ?? undefined, q1Target: Number(r.q1_target),
-      q2Target: Number(r.q2_target), q3Target: Number(r.q3_target), q4Target: Number(r.q4_target),
-      startDate: Number(r.start_date), createdAt: Number(r.created_at),
-      updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
-    }),
-  },
-  project_actuals: {
-    clock: (l) => (l as ProjectLineActual).updatedAt,
-    mediaKeys: () => [],
-    toRow: (l) => {
-      const a = l as ProjectLineActual;
-      return {
-        id: a.id, project_id: a.projectId, workspace_id: a.workspaceId, line_variant: a.lineVariant ?? null,
-        date: a.date, actual_ppm: a.actualPpm, created_at: a.createdAt, updated_at: a.updatedAt, deleted_at: a.deletedAt ?? null,
-      };
-    },
-    fromRow: (r) => ({
-      id: r.id as string, projectId: r.project_id as string, workspaceId: r.workspace_id as string,
-      lineVariant: (r.line_variant as string) ?? undefined, date: Number(r.date),
-      actualPpm: Number(r.actual_ppm), createdAt: Number(r.created_at),
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     }),
   },
@@ -733,28 +697,6 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     } satisfies Material),
   },
 
-  pace_snapshots: {
-    // A snapshot is never edited, so its clock is simply when it was taken.
-    clock: l => (l as PaceSnapshotRow).takenAt,
-    mediaKeys: () => [],
-    toRow: (l, fallbackOwner) => {
-      const s = l as PaceSnapshotRow;
-      return {
-        id: s.id, owner_id: fallbackOwner, project_id: s.projectId ?? null,
-        taken_at: s.takenAt, file_name: s.fileName,
-        actions: s.actions, roster: s.roster ?? null, pareto: s.pareto ?? null,
-        // the engine's LWW reads updated_at for every kind; a snapshot is never
-        // edited, so it mirrors when it was taken
-        updated_at: s.takenAt, deleted_at: null,
-      };
-    },
-    fromRow: (r) => ({
-      id: r.id as string, projectId: (r.project_id as string) ?? undefined,
-      takenAt: Number(r.taken_at), fileName: (r.file_name as string) ?? 'upload',
-      actions: (r.actions as unknown[]) ?? [], roster: r.roster ?? undefined,
-      pareto: r.pareto ?? undefined,
-    }),
-  },
 };
 
 // cases push before snags so a snag's case_id never points at a case the cloud
@@ -778,8 +720,8 @@ function productRunsOf(v: unknown): Test['runs'] {
 
 export const SYNC_KINDS: SyncKind[] = [
   'workspaces', 'cases', 'observations', 'segments', 'snag_assets', 'snags',
-  'projects', 'project_targets', 'project_actuals',
-  'pace_ppm', 'pace_todos', 'pace_snapshots', 'pace_wins',
+  'projects',
+  'pace_ppm', 'pace_todos', 'pace_wins',
   // after projects, because every node and every item names one
   // machines, then the tests that name them, then what hangs off a test
   'tree_nodes', 'commission_assets', 'tests', 'test_items',

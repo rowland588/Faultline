@@ -13,7 +13,7 @@ import { CauseSheet } from '../ui/CauseSheet';
 import { can as canOf, type Access } from '../lib/access';
 import { SIXM, type Cause, type SixM, type Grade, type CauseStatus } from '../lib/sixm';
 import type { Bone, ProblemView, Suggestion } from '../lib/problems';
-import type { PaceAction } from '../lib/tracker';
+import type { PaceAction } from '../lib/actionShapes';
 import type { Case } from '../types';
 
 const AT = Date.parse('2026-10-02T09:00:00Z');

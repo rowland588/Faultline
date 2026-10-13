@@ -10,7 +10,7 @@
  * many there are — the fish grows taller instead of piling up. */
 import type { Bone, Suggestion } from '../../lib/problems';
 import type { Cause, CauseStatus, Grade } from '../../lib/sixm';
-import type { PaceAction } from '../../lib/tracker';
+import type { PaceAction } from '../../lib/actionShapes';
 import type { NodeStatus } from '../../db/rows';
 import { plural } from '../../lib/format';
 import { statusOfAction } from '../../lib/treeBind';

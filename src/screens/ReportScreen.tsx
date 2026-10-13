@@ -115,7 +115,7 @@ export function ReportScreen() {
           </div>
 
           <div>
-            <h2 className="report-h2">Snags needing a push</h2>
+            <h2 className="report-h2">Problems needing a push</h2>
             {open.length === 0 ? <p className="report-empty">None open.</p> : open.slice(0, 4).map(s => (
               <div className="rsnag" key={s.id}>
                 <span>{s.problem}</span>

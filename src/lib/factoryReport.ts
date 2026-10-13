@@ -8,7 +8,7 @@
  * only the late carry red, in words beside it. */
 import type { Workspace } from '../types';
 import type { Snag } from '../snag/types';
-import { factorySays } from './lines';
+import { factorySays, lineFacts } from './lines';
 import { snagRow } from './snagsReport';
 
 export interface FactoryRow {
@@ -21,6 +21,8 @@ export interface FactoryRow {
   critical: number;
   /** The live jobs it is on, by name. */
   jobs: string[];
+  /** Its shifts and crew, in a few words (lib/lines lineFacts) — absent when not said. */
+  facts?: string;
 }
 
 export interface FactoryReading {
@@ -43,6 +45,7 @@ export function factoryReading(lines: readonly Workspace[], snags: readonly Snag
       n: i + 1, name: w.name, type: w.lineType?.trim() || undefined,
       open: mine.length, late: mine.filter(r => r.late).length, critical: mine.filter(r => r.priority === 'critical').length,
       jobs: jobsOn.get(w.id) ?? [],
+      ...(lineFacts(w).short ? { facts: lineFacts(w).short } : {}),
     };
   });
   const open = rows.reduce((n, r) => n + r.open, 0), late = rows.reduce((n, r) => n + r.late, 0);
