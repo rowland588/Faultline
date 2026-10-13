@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { goBack, nav } from '../state/useRoute';
-import { renameInObservations } from '../db';
+import { renameInObservations, renameLineMachine } from '../db';
 import { Toast } from '../ui/Toast';
 import { hasCost, costPerHour, labourPerHour, outputPerHour, burdenOf, fmtGBP } from '../lib/cost';
 import { plural } from '../lib/format';
@@ -155,7 +155,14 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
   };
   const delCat = (v: string) => { const nextSubs = { ...subs }; delete nextSubs[v]; void save({ categories: workspace.categories.filter(c => c !== v), subcategories: nextSubs }); };
 
-  const renameAsset = (from: string, to: string) => void rename('asset', from, to, { assets: workspace.assets.map(a => (a === from ? to : a)) });
+  /* A machine renamed: its stops and its record on the line (who made it,
+     its programs) follow the name (db/lineRecords renameLineMachine). */
+  const renameAsset = async (from: string, to: string) => {
+    await patchWorkspace({ assets: workspace.assets.map(a => (a === from ? to : a)) });
+    const n = await renameLineMachine(workspace.id, from, to);
+    await reload();
+    setToast(n > 0 ? `Renamed · ${plural(n, 'entry', 'entries')} updated` : 'Renamed');
+  };
 
   /* Deleting a line's study is the most destructive tap in the app — it gets
      a confirm AND an undo window. Nothing is actually deleted here: Home holds

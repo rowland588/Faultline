@@ -12354,6 +12354,32 @@ button.co-step-b:hover { background: color-mix(in srgb, var(--brand) 5%, transpa
 .shc-says { margin: 0; }
 .shc-go { justify-self: start; }
 
+/* ---- a line's machines and programs (docs/BLUEPRINT.md, Stage 2) ---- */
+.pl-machines { list-style: none; margin: 0; padding: 0; counter-reset: plm; }
+.pl-machine { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 8px 2px; border-bottom: 1px solid var(--line); counter-increment: plm; }
+.pl-machine::before { content: counter(plm); min-width: 1.4em; font-weight: 800; color: var(--muted); text-align: right; }
+.pl-machine b { min-width: 9em; }
+.pl-machine .sub { font-size: var(--t-detail); }
+.pl-oem { flex: 0 1 200px; min-width: 0; margin: 0; min-height: 36px; }
+.pl-sec-acts { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.lp-says { margin-top: 6px; }
+.lp-lines { margin: 4px 0 6px; }
+.lp-n { color: var(--muted); font-weight: 700; }
+.lp-line-a { color: var(--ink); text-decoration: none; }
+.lp-line-a:hover { color: var(--brand); }
+.lp-m { margin: 10px 0 0; }
+.lp-mh { margin: 0 0 6px; font-size: var(--t-body); font-weight: 800; color: var(--ink-2); }
+.lp-note { font-weight: 400; font-size: var(--t-detail); color: var(--ink-2); }
+.lp-job { font-weight: 600; }
+.lpj { margin: 16px 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.lpj h2 { margin: 0 0 2px; font-size: var(--t-h3, 18px); }
+.lpj .sub { margin: 0 0 6px; }
+.lpj-rows { list-style: none; margin: 0; padding: 0; }
+.lpj-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.lpj-row-main { flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.lpj-row .is-r { color: var(--st-r); }
+.fac-flow { order: 10; flex: 1 1 100%; padding-left: calc(1.6em + 40px); font-size: var(--t-detail); color: var(--ink-2); }
+
 /* ---- Line capacity on a phone (Rowland, 13 October: "the line capacity page
    graphics don't work") — the V on its side, the sheet a card a station ---- */
 .vc-rows, .vc-rows-tgt { display: none; }

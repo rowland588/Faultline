@@ -38,14 +38,17 @@ export interface FactoryReading {
 
 /** The factory read for paper. `lines` in floor order (lib/lines);
  *  `jobsOn` each line's live jobs by name. */
-export function factoryReading(lines: readonly Workspace[], snags: readonly Snag[], jobsOn: ReadonlyMap<string, string[]>, printed: string, ref = Date.now()): FactoryReading {
+export function factoryReading(lines: readonly Workspace[], snags: readonly Snag[], jobsOn: ReadonlyMap<string, string[]>, printed: string, ref = Date.now(),
+  /** Each line's machines and programs in words (lib/lineRecords lineKit
+   *  `says`, with its late) — as Your factory's row says them. */
+  kit: ReadonlyMap<string, string> = new Map()): FactoryReading {
   const rows: FactoryRow[] = lines.map((w, i) => {
     const mine = snags.filter(s => s.workspaceId === w.id && !s.deletedAt && !s.archivedAt && s.status !== 'closed').map(s => snagRow(s, w.name, undefined, undefined, ref));
     return {
       n: i + 1, name: w.name, type: w.lineType?.trim() || undefined,
       open: mine.length, late: mine.filter(r => r.late).length, critical: mine.filter(r => r.priority === 'critical').length,
       jobs: jobsOn.get(w.id) ?? [],
-      ...(lineFacts(w).short ? { facts: lineFacts(w).short } : {}),
+      ...([lineFacts(w).short, kit.get(w.id)].filter(Boolean).length ? { facts: [lineFacts(w).short, kit.get(w.id)].filter(Boolean).join(' · ') } : {}),
     };
   });
   const open = rows.reduce((n, r) => n + r.open, 0), late = rows.reduce((n, r) => n + r.late, 0);

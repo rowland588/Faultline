@@ -95,7 +95,12 @@ export function assetStateOn(a: Pick<Asset, 'state' | 'dueOn' | 'onSiteOn' | 'in
  *  line without anybody being made to set them up twice. */
 export interface Asset {
   id: ID;
+  /** The job that brought it in — '' when it is on no job: a machine of the
+   *  line's own, named in Your factory or on the line's page. */
   projectId: ID;
+  /** THE LINE IT STANDS ON — a line of the factory (docs/BLUEPRINT.md,
+   *  Stage 2). Read through lib/lineRecords lineOfMachine. */
+  workspaceId?: ID;
   name: string;
   oem?: string;
   state: AssetState;

@@ -26,6 +26,8 @@ import {
   listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, restoreWorkspace, updateWorkspace, workspaceContents,
 } from '../db';
 import { addLineToFactory, factorySays, lineFacts, lineTypesOffered, liveProductionLines, nextLineName, placeOnFloor, asked } from '../lib/lines';
+import { useLineRecords } from '../lib/useLineRecords';
+import { lineKit } from '../lib/lineRecords';
 import { snagRow } from '../lib/snagsReport';
 import { Icon } from '../ui/Icon';
 import { useCanStartProjects } from '../cloud/access';
@@ -78,6 +80,9 @@ export function FactoryScreen() {
   const [showShelf, setShowShelf] = useState(false);
   const [printing, setPrinting] = useState(false);
   const [snags, setSnags] = useState<Snag[]>([]);
+  /* each line's machines and programs (docs/BLUEPRINT.md, Stage 2) */
+  const rec = useLineRecords();
+  const kitOf = (w: Workspace) => lineKit(w, rec.machines, rec.programs, rec.jobLines);
   const nameRef = useRef<HTMLInputElement>(null);
   const savedTimer = useRef<number | undefined>(undefined);
 
@@ -146,7 +151,8 @@ export function FactoryScreen() {
       const names = new Map(projects.map(p => [p.id, p.name]));
       const jobsOn = new Map([...on.entries()].map(([id, ids]) => [id, ids.map(x => names.get(x)).filter((n): n is string => !!n)]));
       const today = todayISO();
-      await drawFactoryReport(doc, factoryReading(lines, snags, jobsOn, new Date(`${today}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })));
+      const kit = new Map(lines.map(w => { const k = kitOf(w); return [w.id, [k.says, k.late ? `${k.late} program${k.late === 1 ? '' : 's'} late` : ''].filter(Boolean).join(' · ')]; }));
+      await drawFactoryReport(doc, factoryReading(lines, snags, jobsOn, new Date(`${today}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), Date.now(), kit));
       await deliverPdf(doc, pdfFileName('Your factory', 'report', today));
     } catch (e) {
       console.error('factory pdf failed', e);
@@ -222,10 +228,13 @@ export function FactoryScreen() {
                   <CommitBox value={w.lineType ?? ''} label={`${w.name}'s type`} list="fac-types" placeholder="Type — e.g. Packing" disabled={!may}
                     onCommit={v => void put(w, { lineType: v || undefined }, v ? `${w.name} is a ${v} line` : `${w.name} has no type`)} />
                 </span>
+                {/* its machines in flow order, each with who made it (Stage 2) */}
+                {kitOf(w).flow && <span className="fac-flow">{kitOf(w).flow}</span>}
                 <span className="fac-on">
                   {c?.open ? <>{c.open} problem{c.open === 1 ? '' : 's'} open{c.late ? <> · <b className="is-r">{c.late} late</b></> : null}</> : <span className="is-n">No problems open</span>}
                   {job && <span className="fac-job">on {job}</span>}
                   {lineFacts(w).short && <span className="fac-job">{lineFacts(w).short}</span>}
+                  {(() => { const k = kitOf(w); return k.says ? <span className="fac-job fac-kit">{k.says}{k.late ? <> · <b className="is-r">{k.late} program{k.late === 1 ? '' : 's'} late</b></> : null}</span> : null; })()}
                 </span>
                 <span className="fac-acts">
                   <button type="button" className="btn btn-sm" onClick={() => nav(`/lines/${w.id}`)}>Open ›</button>

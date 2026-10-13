@@ -173,6 +173,10 @@ const ROUTES = [
   ['a production line, its own page', `#/lines/${seeded.wsId}`],
   ['your factory — the lines, edited', '#/factory'],
   ['your factory — adding lines', '#/factory?add=1'],
+  /* programs from the control room — every line's, one line's, planning one (BLUEPRINT Stage 2) */
+  ['programs — every line', '#/programs'],
+  ['programs — on one line', `#/programs?line=${seeded.wsId}`],
+  ['programs — planning one on a line', `#/programs?line=${seeded.wsId}&add=1`],
   ['the problems, on one line, one open', `#/snags?line=${seeded.wsId}`],
   ['line capacity, on one line', `#/balances?line=${seeded.wsId}`],
   ['SMED, on one line', `#/smed?line=${seeded.wsId}`],

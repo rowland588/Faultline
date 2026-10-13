@@ -1,0 +1,120 @@
+/* WRITING A LINE'S MACHINES AND PROGRAMS (lib/lineRecords, docs/BLUEPRINT.md
+ * Stage 2). A machine's name is on the line's list (`workspace.assets`, the
+ * one every picker reads); its record carries what more is known. These keep
+ * the two together, so nothing else has to. */
+import type { ID, Workspace } from '../types';
+import type { Asset } from '../lib/testing';
+import type { Program, ProgramState } from '../lib/programs';
+import { lineMachineId, lineOfMachine, machineKey, onlyLineOf, type JobLine } from '../lib/lineRecords';
+import { now, uid } from '../lib/ids';
+import { getDB } from './core';
+import { putAsset, listAllAssets } from './testing';
+import { putProgram, listAllPrograms } from './programs';
+import { allPaceLines } from './pace';
+import { patchWorkspaceRecord } from './workspaces';
+import { renameInObservations } from './observations';
+
+/** A machine's name on the line's list, at the end, when it is not there. */
+async function onTheList(wsId: ID, name: string): Promise<void> {
+  const ws = await (await getDB()).get('workspaces', wsId) as Workspace | undefined;
+  if (!ws || (ws.assets ?? []).some(a => machineKey(a) === machineKey(name))) return;
+  await patchWorkspaceRecord(wsId, { assets: [...(ws.assets ?? []), name.trim()] });
+}
+
+/** A MACHINE ADDED TO THE LINE — its name on the list (where the stopwatch,
+ *  the walk and a problem find it); a record too when its maker is said. */
+export async function addMachineToLine(wsId: ID, name: string, oem?: string): Promise<void> {
+  const n = name.trim();
+  if (!n) return;
+  await onTheList(wsId, n);
+  if (oem?.trim()) await setMachineFacts(wsId, n, { oem: oem.trim() });
+}
+
+/** The record of a machine on the line, made the first time more than its
+ *  name is said: the line's own (on no job), with the same id on every device
+ *  for the same name. A job's record of that name is used when there is no
+ *  line's own. */
+export async function machineRecordFor(wsId: ID, name: string): Promise<Asset> {
+  const n = name.trim();
+  const [assets, jobLines] = await Promise.all([listAllAssets(), allPaceLines()]);
+  const onLine = assets.filter(a => lineOfMachine(a, jobLines) === wsId && machineKey(a.name) === machineKey(n));
+  const found = onLine.find(a => !a.projectId) ?? onLine[0];
+  if (found) return found;
+  const ws = await (await getDB()).get('workspaces', wsId) as Workspace | undefined;
+  const at = (ws?.assets ?? []).findIndex(a => machineKey(a) === machineKey(n));
+  const want = lineMachineId(wsId, n);
+  /* A record renamed away from this name keeps its id; a new one must not
+     land on top of it. */
+  const taken = await (await getDB()).get('commission_assets', want);
+  const a: Asset = {
+    id: taken ? uid() : want, projectId: '', workspaceId: wsId, name: n,
+    state: 'running', sort: (at < 0 ? (ws?.assets ?? []).length : at) * 10, updatedAt: now(),
+  };
+  await putAsset(a);
+  await onTheList(wsId, n);
+  return a;
+}
+
+/** What is known about a machine on the line — who made it, a note. */
+export async function setMachineFacts(wsId: ID, name: string, facts: Pick<Asset, 'oem' | 'note'>): Promise<void> {
+  const a = await machineRecordFor(wsId, name);
+  await putAsset({ ...a, ...facts, oem: facts.oem?.trim() || undefined });
+}
+
+/** A MACHINE RENAMED on the line's list: its stops (as Set up the line always
+ *  did) and its records on the line follow, so the name and what is known
+ *  about it never part. Returns the stops renamed. */
+export async function renameLineMachine(wsId: ID, from: string, to: string): Promise<number> {
+  const n = await renameInObservations(wsId, 'asset', from, to);
+  const [assets, jobLines] = await Promise.all([listAllAssets(), allPaceLines()]);
+  for (const a of assets.filter(x => lineOfMachine(x, jobLines) === wsId && machineKey(x.name) === machineKey(from))) {
+    await putAsset({ ...a, name: to.trim() });
+  }
+  return n;
+}
+
+/** A PROGRAM PLANNED ON A LINE, with no job. Its machine by name — the
+ *  machine's record is made if this is the first thing said about it. */
+export async function addLineProgram(wsId: ID, p: {
+  what: string; machine?: string; runs?: string; testOn?: string; from?: string; note?: string; state?: ProgramState;
+}): Promise<Program | undefined> {
+  const what = p.what.trim();
+  if (!what) return undefined;
+  const asset = p.machine?.trim() ? await machineRecordFor(wsId, p.machine) : undefined;
+  const all = await listAllPrograms();
+  const jobLines = await allPaceLines();
+  const sort = all.filter(x => (x.workspaceId ?? onlyLineOf(x.projectId, jobLines)) === wsId).reduce((m, x) => Math.max(m, x.sort), 0) + 10;
+  const t = now();
+  const row: Program = {
+    id: uid(), projectId: '', workspaceId: wsId, what,
+    ...(asset ? { assetId: asset.id } : {}),
+    ...(p.runs?.trim() ? { runs: p.runs.trim() } : {}),
+    ...(p.testOn ? { testOn: p.testOn } : {}),
+    ...(p.from?.trim() ? { from: p.from.trim() } : {}),
+    ...(p.note?.trim() ? { note: p.note.trim() } : {}),
+    state: p.state ?? 'needed', sort, createdAt: t, updatedAt: t,
+  };
+  await putProgram(row);
+  return row;
+}
+
+/** A program put on another of the line's machines, by name ('' — the line
+ *  itself). */
+export async function putProgramOnMachine(p: Program, wsId: ID, machine: string): Promise<void> {
+  const asset = machine.trim() ? await machineRecordFor(wsId, machine) : undefined;
+  await putProgram({ ...p, assetId: asset?.id });
+}
+
+/** THE LINE A JOB'S NEW MACHINE OR PROGRAM IS ON — the job's only factory
+ *  line (lib/lineRecords onlyLineOf), or the line its job line names. A job on
+ *  several lines leaves it to be said. The machine's name joins that line's
+ *  list, so the stopwatch and a problem on the line offer it too. */
+export async function lineForJobRecord(projectId: string, jobLineId?: string): Promise<string | undefined> {
+  const jobLines: JobLine[] = await allPaceLines();
+  const named = jobLineId ? jobLines.find(l => l.id === jobLineId)?.workspaceId : undefined;
+  return named ?? onlyLineOf(projectId, jobLines);
+}
+
+export async function machineJoinsLine(a: Pick<Asset, 'workspaceId' | 'name'>): Promise<void> {
+  if (a.workspaceId) await onTheList(a.workspaceId, a.name);
+}

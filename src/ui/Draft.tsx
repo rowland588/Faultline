@@ -94,7 +94,7 @@ function useFlush(commit: () => void) {
 }
 
 
-export function DraftText({ value, placeholder, onSave, className = 'pset-cell', max = 120, autoFocus, wide, ariaLabel }: {
+export function DraftText({ value, placeholder, onSave, className = 'pset-cell', max = 120, autoFocus, wide, ariaLabel, list }: {
   value: string;
   placeholder?: string;
   /** What a screen reader calls it. A placeholder vanishes the moment there is
@@ -107,6 +107,8 @@ export function DraftText({ value, placeholder, onSave, className = 'pset-cell',
   /** A field holding a name or a sentence rather than a code — wider, in the
    *  table it sits in. */
   wide?: boolean;
+  /** A datalist of names to offer — a line's machines, say. */
+  list?: string;
 }) {
   const { draft, setDraft, blur, abandon } = useDraft(value, onSave, v => v.trim());
   return (
@@ -117,6 +119,7 @@ export function DraftText({ value, placeholder, onSave, className = 'pset-cell',
       aria-label={ariaLabel ?? placeholder}
       maxLength={max}
       autoFocus={autoFocus}
+      list={list}
       onChange={e => setDraft(e.target.value)}
       onBlur={blur}
       onKeyDown={e => {

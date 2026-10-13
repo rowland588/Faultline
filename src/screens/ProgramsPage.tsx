@@ -36,6 +36,7 @@ import { MachineName } from '../ui/MachinePanel';
 import { AccessNote } from '../ui/AccessNote';
 import { Fold } from '../ui/Fold';
 import { ProgramsScreen } from './ProgramsScreen';
+import { LineProgramsOnJob } from '../ui/LineProgramsOnJob';
 import { navReplace } from '../state/useRoute';
 import { answerOf } from '../lib/install';
 
@@ -174,6 +175,11 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
           </section>
         );
       })}
+
+      {/* THE LINE'S OWN PROGRAMS — planned on the job's lines with no job, the
+          same records (docs/BLUEPRINT.md, Stage 2); one is proved here by a
+          test in Commission. */}
+      <LineProgramsOnJob project={project} tt={tt} can={can} />
 
       {/* THE PROGRAMS LIST — test days, and proving each one in Commission. It
           sat under Set up's grid; Programs is its home now. */}

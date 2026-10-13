@@ -32,6 +32,8 @@ import { inArchivedProject, onDataChange, projectsOnWorkspace } from '../db';
 import { DEMO_NAME } from '../lib/lines';
 import { factorySays, liveProductionLines, productionLines } from '../lib/lines';
 import { JobsBoard } from '../ui/JobsBoard';
+import { useLineRecords } from '../lib/useLineRecords';
+import { lineKit } from '../lib/lineRecords';
 import { useCanStartProjects } from '../cloud/access';
 
 /* An installed PWA keeps serving its cached shell until the service worker
@@ -208,6 +210,7 @@ export function WorkspaceHome() {
   /* every line worked on now — a line of an archived project goes with it into the archive */
   const [liveIds, setLiveIds] = useState<Set<string> | null>(null);
   useEffect(() => { let on = true; void liveProductionLines(list ?? []).then(ls => { if (on) setLiveIds(new Set(ls.map(w => w.id))); }); return () => { on = false; }; }, [list]);
+  const rec = useLineRecords();
   const prodLines = productionLines((list ?? []).filter(w => w.id !== pendingDel?.id && (liveIds === null || liveIds.has(w.id))));
 
   return (
@@ -258,7 +261,13 @@ export function WorkspaceHome() {
       <section className="home-spaces fac-home" aria-label="Your factory">
         <div className="home-sec-head">
           <h2 className="home-sec-title">Your factory</h2>
-          {prodLines.length > 0 && <button className="btn" onClick={() => nav('/factory')}>Edit your factory</button>}
+          {prodLines.length > 0 && (
+            <span className="pl-sec-acts">
+              {/* every line's programs, planned and proved, no job needed (Stage 2) */}
+              <button className="btn" onClick={() => nav('/programs')}>Programs</button>
+              <button className="btn" onClick={() => nav('/factory')}>Edit your factory</button>
+            </span>
+          )}
         </div>
         {prodLines.length === 0 ? (
           <div className="fac-empty">
@@ -278,6 +287,9 @@ export function WorkspaceHome() {
                       <b className="fac-card-name">{w.name}</b>
                       <span className="fac-card-type">{w.lineType || 'No type yet'}</span>
                       <span className="fac-card-meta">{contentsLabel(c)}{on ? ` · on ${on}` : ''}</span>
+                      {/* its programs not yet proved, the late in red (Stage 2) */}
+                      {(() => { const k = lineKit(w, rec.machines, rec.programs, rec.jobLines); const todo = k.programs.length - k.proved;
+                        return todo > 0 ? <span className="fac-card-meta">{todo} program{todo === 1 ? '' : 's'} to prove{k.late ? <> · <b className="is-r">{k.late} late</b></> : null}</span> : null; })()}
                     </button>
                   </li>
                 );

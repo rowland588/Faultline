@@ -50,7 +50,7 @@ import {
  *  /project/:id later sits in the frame without being registered here. */
 function projectOf(route: Route, chainProject?: string): string | undefined {
   /* a production line's own page is the line's, never a job's — no project needed */
-  if (route.name === 'lineHome' || route.name === 'factory') return undefined;
+  if (route.name === 'lineHome' || route.name === 'factory' || route.name === 'linePrograms') return undefined;
   if (route.wsId) return chainProject;
   if (route.name === 'paceReport') return route.query.get('project') ?? undefined;
   if (route.name === 'home' || route.name === 'projects' || route.name === 'share' || route.name === 'quickSnags' || route.name === 'lineTools' || route.name === 'studies' || route.name === 'study') return undefined;
@@ -285,6 +285,8 @@ function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: s
       label: 'Your factory',
       lines: [
         { key: 'factory', label: prodLines.length ? 'Your factory' : 'Set up your factory', to: '/factory', on: here === 'factory', state: 'n', bare: true, icon: 'machine' } as RailLine,
+        /* every line's programs, planned and proved, no job needed (Stage 2) */
+        ...(prodLines.length ? [{ key: 'lineprograms', label: 'Programs', to: '/programs', on: here === 'lineprograms', state: 'n', bare: true, icon: 'list' } as RailLine] : []),
         ...prodLines.map(w => ({ key: `line:${w.id}`, label: w.name, to: `/lines/${w.id}`, on: here === `line:${w.id}`, state: 'n', bare: true, icon: 'chart' } as RailLine)),
       ],
     },

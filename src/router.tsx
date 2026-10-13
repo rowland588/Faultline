@@ -43,6 +43,7 @@ const PaceExecReport = lazy(() => import('./screens/PaceExecReport').then(m => (
 const QuickSnagsScreen = lazy(() => import('./snag/QuickSnagsScreen').then(m => ({ default: m.QuickSnagsScreen })));
 const ProductionLineScreen = lazy(() => import('./screens/ProductionLineScreen').then(m => ({ default: m.ProductionLineScreen })));
 const FactoryScreen = lazy(() => import('./screens/FactoryScreen').then(m => ({ default: m.FactoryScreen })));
+const LineProgramsScreen = lazy(() => import('./screens/LineProgramsScreen').then(m => ({ default: m.LineProgramsScreen })));
 const LineToolsScreen = lazy(() => import('./screens/LineToolsScreen').then(m => ({ default: m.LineToolsScreen })));
 const StudiesScreen = lazy(() => import('./screens/StudiesScreen').then(m => ({ default: m.StudiesScreen })));
 const StudyScreen = lazy(() => import('./screens/StudyScreen').then(m => ({ default: m.StudyScreen })));
@@ -133,6 +134,8 @@ function app(route: Route) {
   if (route.name === 'quickSnags') return <QuickSnagsScreen key={route.query.get('line') ?? ''} />;
   if (route.name === 'lineHome' && route.wsId) return <ProductionLineScreen key={route.wsId} wsId={route.wsId} />;
   if (route.name === 'factory') return <FactoryScreen />;
+  /* ?line= opens it on one line — keyed on it, so a second line starts afresh */
+  if (route.name === 'linePrograms') return <LineProgramsScreen key={route.query.get('line') ?? ''} />;
   if (route.name === 'lineTools') return <LineToolsScreen key={route.query.get('line') ?? ''} tool={route.view === 'balance' ? 'balance' : 'map'} />;
   if (route.name === 'studies') return <StudiesScreen key={`${route.view ?? 'capability'}:${route.query.get('line') ?? ''}`} tool={route.view === 'map' ? 'map' : route.view === 'changeover' ? 'changeover' : route.view === 'sampling' ? 'sampling' : route.view === 'losses' ? 'losses' : 'capability'} />;
   if (route.name === 'study' && route.id) {

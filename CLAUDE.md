@@ -196,6 +196,7 @@ node scripts/acceptance/programs.mjs  # a program's status with commentary: the 
 node scripts/acceptance/snags.mjs  # Problems: the register — every problem written and edited where it sits, assigned not moved, its journey, a photo marked, on paper, a fresh start
 node scripts/acceptance/lines.mjs  # production lines: made in Your factory, opened on their own, a problem taken on one with no project, its tools opened on it, the phone
 node scripts/acceptance/factory.mjs  # Your factory: set up first, lines added one after another, named, typed, moved, archived and restored — the control room, the rail, the line's page and its paper, the phone; the jobs taking their lines from it, never a second line of a name; its paper; the tools picking from it; a line's facts set up from its page; two lines merged
+node scripts/acceptance/machines-programs.mjs  # Stage 2: a program planned on a line with no job, from the control room; the line's machines in flow order; a job seeing and proving them; the factory and the paper
 node scripts/sync-two-devices.mjs     # a phone and a laptop against a fake cloud — video on one plays on the other
 node scripts/check-live-schema.mjs    # the LIVE database against the mapper — needs .env
 ```
@@ -310,7 +311,20 @@ factory's line of its name and never a second, and the factory, the line's
 page and the control room saying the job; then its paper — one page, the
 factory in words, every line in floor order with its type, its jobs and
 what is open — and a tool's Which line offering the factory in floor order,
-a line made there put at the end of the factory. `line-standard.mjs` is the line standard's board (Rowland, 13 October: "I
+a line made there put at the end of the factory. `machines-programs.mjs` is
+Stage 2 of `docs/BLUEPRINT.md` (Rowland, 13 October: "plan a program for a
+line rather than open up a full project system"): the control room's Your
+factory opening Programs, each line's card saying its programs to prove; one
+line's programs machine by machine, the sentence as `lib/lineRecords` reads
+it, a job's program saying its job; a program planned on the line with no job
+on a machine not listed yet (the machine joining the line's list, its record
+made); where it has got to, its commentary, a test day gone by in red, proved
+with its day; the line's page — its machines in flow order with their makers
+and programs, one named there, "The line" no longer listing them twice; a
+machine renamed in Set up the line carrying its record; a job on the line
+seeing the line's own programs and proving one by a test in Commission; Your
+factory's row and its paper; the line's programs report; Line capacity
+offering the line's machines; and the phone. `line-standard.mjs` is the line standard's board (Rowland, 13 October: "I
 can't drag the interface down ... I only have a small surface area ... I
 also can't change the colour of the people"): the empty board the page's to
 scroll and pinch while a person and a shape are the board's to drag, a tap

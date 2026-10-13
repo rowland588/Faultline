@@ -54,7 +54,7 @@ await page.locator('.fac-line[data-line="Line 2B"]').getByRole('button', { name:
 ok(/#\/lines\//.test(page.url()) && (await page.locator('h1').innerText()) === 'Line 2B', `2 made, and on its own page: ${page.url().split('#')[1]}`);
 if (OUT) await page.screenshot({ path: `${OUT}/l-1-line.png` });
 const rail = (await page.locator('.nv').innerText()).replace(/\s+/g, ' ');
-ok(/YOUR FACTORY Your factory Line 2B/i.test(rail), '3 the rail has Your factory › Line 2B');
+ok(/YOUR FACTORY Your factory Programs Line 2B/i.test(rail), '3 the rail has Your factory, its Programs › Line 2B');
 ok(/No problems open/.test(await txt()) && /Tools on this line/.test(await txt()), '4 the line page: no problems, its tools');
 // take a problem on it
 await page.locator('.pl .pace-head-actions').getByRole('button', { name: 'Problem', exact: true }).click(); await page.waitForTimeout(900);

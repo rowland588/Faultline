@@ -50,6 +50,8 @@ import { Icon } from '../ui/Icon';
 import { VCurveView } from '../ui/VCurve';
 import { BottleneckWalk } from '../ui/BottleneckWalk';
 import { ShiftCapacityView, useShiftInputs } from '../ui/ShiftCapacity';
+import { useLineRecords } from '../lib/useLineRecords';
+import { machinesOnLine } from '../lib/lineRecords';
 
 const PER_WORD: Record<RatePer, string> = { sec: 'a second', min: 'a minute', hour: 'an hour' };
 const SOURCES: { id: NonNullable<Station['source']>; label: string }[] = [
@@ -113,7 +115,7 @@ function CapacitySheet({ r, v, target, study, onUse }: { r: ReturnType<typeof an
 
 /* =============================== one station ================================ */
 
-function StationCard({ s, i, last, prevUnit, planned, why, wait, own, coLeft = 0, suggested, say, factor, lineUnit, patch, move, remove, assets, open: wantOpen, onToggle, ro }: {
+function StationCard({ s, i, last, prevUnit, planned, why, wait, own, coLeft = 0, suggested, say, factor, lineUnit, patch, move, remove, assets, machines = [], open: wantOpen, onToggle, ro }: {
   s: Station; i: number; last: boolean; prevUnit?: string; planned?: number;
   why?: string; wait: number; own: number; suggested?: number;
   /** Of its own stops, the minutes logged as changeovers and left out of its
@@ -126,6 +128,8 @@ function StationCard({ s, i, last, prevUnit, planned, why, wait, own, coLeft = 0
   /** How many of the line's unit are in one of its own, when counted. */
   factor?: number; lineUnit: string;
   patch: (p: Partial<Station>) => void; move: (by: -1 | 1) => void; remove: () => void; assets: string[];
+  /** The line's machines in flow order (lib/lineRecords), offered as names. */
+  machines?: string[];
   /** ONE STATION OPEN AT A TIME. Every station's eight boxes were open at once
    *  — 57 buttons on the page — when the work is on one of them. Shut, a
    *  station is its name and one line of its numbers; tap Edit to open it. */
@@ -151,7 +155,8 @@ function StationCard({ s, i, last, prevUnit, planned, why, wait, own, coLeft = 0
           <span className="sub">{s.kind === 'people' ? 'People' : 'Machine'}</span>
         </> : <>
         <DraftText value={s.name} placeholder="Name it — Bagger, Basketer, Carrier…" className="text-input cap-name" max={60}
-          ariaLabel={`Station ${i + 1} name`} onSave={v => patch({ name: v })} />
+          ariaLabel={`Station ${i + 1} name`} onSave={v => patch({ name: v })} list={machines.length ? `cap-machines-${s.id}` : undefined} />
+        {machines.length > 0 && <datalist id={`cap-machines-${s.id}`}>{machines.map(m => <option key={m} value={m} />)}</datalist>}
         <span className="cw-seg" role="group" aria-label="Machine or people">
           {(['machine', 'people'] as const).map(k => (
             <button key={k} type="button" className={'chip' + (s.kind === k ? ' on' : '')} aria-pressed={s.kind === k}
@@ -470,6 +475,13 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
   }, [line.workspaceId]);
   const coOff = !!(walk && shiftIn.co && shiftIn.co.perShift != null);
   const assets = useMemo(() => [...new Set(stops.obs.filter(o => !o.deletedAt && o.asset?.trim()).map(o => o.asset.trim()))].sort(), [stops.obs]);
+  /* THE LINE'S MACHINES, in flow order (docs/BLUEPRINT.md, Stage 2) — every
+     station's name offers them, and an empty line starts from them. */
+  const rec = useLineRecords();
+  const machines = useMemo(() => {
+    const ws = line.workspaceId ? rec.all.find(w => w.id === line.workspaceId) : undefined;
+    return ws ? machinesOnLine(ws, rec.machines, rec.jobLines).map(m => m.name) : [];
+  }, [rec, line.workspaceId]);
 
   const r = useMemo(() => analyse(current), [current]);
   const asRun = useMemo(() => analyse(cap), [cap]);
@@ -782,7 +794,12 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
             then someone carrying them, then the palletiser. Each says what it counts in and how many of the one before make one of
             its own — and the app puts them all in the first one’s unit, and tells each station what arrives from the one before.
           </p>}
-          {assets.length > 0 && can.edit && (
+          {machines.length > 0 && can.edit && (
+            <button className="btn btn-ghost" onClick={() => setStations(machines.map((a, i) => ({ ...blankStation(uid(), 'machine', i === 0), name: a })))}>
+              Start from the line&rsquo;s machines, in flow order ({machines.length})
+            </button>
+          )}
+          {machines.length === 0 && assets.length > 0 && can.edit && (
             <button className="btn btn-ghost" onClick={() => setStations(assets.map((a, i) => ({ ...blankStation(uid(), 'machine', i === 0), name: a })))}>
               Start from the machines in your stops log ({assets.length})
             </button>
@@ -797,7 +814,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
             coLeft={coOff ? stats[s.id]?.changeoverMins ?? 0 : 0}
             suggested={suggestRunning((stats[s.id]?.ownMins ?? 0) - (coOff ? stats[s.id]?.changeoverMins ?? 0 : 0), cap.plannedHoursPerWeek, stops.weeks)}
             say={paceSays(r, s)} factor={result(s.id)?.factor} lineUnit={r.unit}
-            patch={p => patchStation(s.id, p)} move={by => move(i, by)} remove={() => remove(s)} assets={assets}
+            patch={p => patchStation(s.id, p)} move={by => move(i, by)} remove={() => remove(s)} assets={assets} machines={machines}
             open={editing === s.id || !s.name.trim()} onToggle={() => setEditing(editing === s.id ? null : s.id)} ro={!can.edit} />
         ))}
       </ol>

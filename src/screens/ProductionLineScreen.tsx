@@ -31,6 +31,11 @@ import type { Workspace } from '../types';
 import { Icon } from '../ui/Icon';
 import { useProjects } from '../lib/useProjects';
 import { saveProblemCardsFor, saveProblemsReportFor } from '../lib/problemsPdf';
+import { useLineRecords } from '../lib/useLineRecords';
+import { lineKit } from '../lib/lineRecords';
+import { STATE_WORD, isProved, standingOf, stateOf, todayISO } from '../lib/programs';
+import { niceDay } from '../lib/weeks';
+import { addMachineToLine, setMachineFacts } from '../db';
 import type { Snag } from '../snag/types';
 
 const TONE_CLASS: Record<SnagTone, string> = { g: 'is-g', r: 'is-r', w: 'is-w', a: 'is-a', n: 'is-n' };
@@ -84,6 +89,13 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
   const crit = rows.filter(r => r.priority === 'critical').length;
   /* each tool counts its own products (lib/standard inCapacityTool) — a map is not a capacity */
   const count = useMemo(() => (t: typeof TOOLS[number]) => (t.standard ? standards.filter(t.key === 'linebalance' ? inCapacityTool : inMapTool).length : studies.filter(s => s.tool === t.study).length), [standards, studies]);
+  /* ITS MACHINES AND PROGRAMS (docs/BLUEPRINT.md, Stage 2) — the line's own
+     and those a job brought in, read as the control room's Programs reads them. */
+  const rec = useLineRecords();
+  const today = todayISO();
+  const kit = useMemo(() => (line ? lineKit(line, rec.machines, rec.programs, rec.jobLines, today) : undefined), [line, rec, today]);
+  const [mName, setMName] = useState('');
+  const [mOem, setMOem] = useState('');
 
   if (line === undefined) return <div className="wrap pl"><p className="sub">Opening…</p></div>;
   if (line === null) {
@@ -190,7 +202,7 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
 
       {/* THE LINE — its facts, held by the factory (BLUEPRINT Stage 1: "the factory
           holds the line's facts"): its shifts and breaks, its crew and what it costs
-          while it is down, its machines in flow order. Set up the line opens the one
+          while it is down (its machines have a section of their own below). Set up the line opens the one
           editor for them (ui/StudySetupSheet) — the same the stopwatch's Set up opens,
           never a second copy. Read by the loss count (planned time, the £), capacity
           a shift and work sampling. */}
@@ -202,8 +214,88 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
         <dl className="pl-facts">
           <dt>Shifts</dt><dd className={facts.shifts ? '' : 'is-n'}>{facts.shifts ?? 'Not said yet — the loss count and capacity a shift need them'}</dd>
           <dt>Crew and cost</dt><dd className={facts.crew || facts.cost ? '' : 'is-n'}>{[facts.crew, facts.cost].filter(Boolean).join(' · ') || 'Not said yet — what a stop costs needs them'}</dd>
-          <dt>Machines</dt><dd className={facts.machines ? '' : 'is-n'}>{facts.machines ?? 'None listed yet'}</dd>
         </dl>
+      </section>
+
+      {/* ITS MACHINES, IN FLOW ORDER (Stage 2) — the line's list, the one every
+          picker reads (the stopwatch, the walk, a problem), each with who made it
+          and its programs; a machine a job brought in says which job. Named here
+          or in Set up the line, where the order and the names are changed. */}
+      <section className="pl-sec" aria-label="Machines on this line">
+        <div className="pl-sec-h">
+          <h2>Machines</h2>
+          {may && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSettingUp(true)}>Order and names ›</button>}
+        </div>
+        {!kit?.machines.length
+          ? <p className="sub">No machines listed yet{may ? ' — name them below, in flow order.' : '.'}</p>
+          : (
+            <ol className="pl-machines">
+              {kit.machines.map(m => {
+                const mine = kit.programs.filter(p => p.assetId && p.assetId === m.record?.id);
+                const job = m.jobId ? projects.find(p => p.id === m.jobId) : undefined;
+                return (
+                  <li key={m.name} className="pl-machine" data-machine={m.name}>
+                    <b>{m.name}</b>
+                    {may
+                      ? <input className="text-input pl-oem" defaultValue={m.record?.oem ?? ''} key={m.record?.oem ?? ''} maxLength={80} placeholder="Who made it" aria-label={`Who made the ${m.name}`}
+                          onBlur={e => { const v = e.target.value.trim(); if (v !== (m.record?.oem ?? '')) void setMachineFacts(line.id, m.name, { oem: v }); }}
+                          onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
+                      : m.record?.oem ? <span className="sub">{m.record.oem}</span> : null}
+                    <span className="sub">{[mine.length ? `${mine.length} program${mine.length === 1 ? '' : 's'}, ${mine.filter(isProved).length} proved` : 'no programs', job ? `brought in by ${job.name}` : ''].filter(Boolean).join(' · ')}</span>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        {may && (
+          <div className="pl-new" role="group" aria-label="Add a machine">
+            <input className="text-input" value={mName} maxLength={80} placeholder="A machine — e.g. Checkweigher" aria-label="The machine's name"
+              onChange={e => setMName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && mName.trim()) { void addMachineToLine(line.id, mName, mOem).then(() => { setMName(''); setMOem(''); }); } }} />
+            <input className="text-input" value={mOem} maxLength={80} placeholder="Who made it (optional)" aria-label="Who made the new machine" onChange={e => setMOem(e.target.value)} />
+            <button type="button" className="btn" disabled={!mName.trim()} onClick={() => void addMachineToLine(line.id, mName, mOem).then(() => { setMName(''); setMOem(''); })}>Add the machine</button>
+          </div>
+        )}
+      </section>
+
+      {/* ITS PROGRAMS (Stage 2) — planned and proved, the line's own and its
+          jobs', no job needed: the late first, then what is coming. Planned and
+          changed on Programs, which opens on this line. */}
+      <section className="pl-sec" aria-label="Programs on this line">
+        <div className="pl-sec-h">
+          <h2>Programs</h2>
+          <span className="pl-sec-acts">
+            {may && <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/programs?line=${encodeURIComponent(wsId)}&add=1`)}>Plan a program ›</button>}
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/programs?line=${encodeURIComponent(wsId)}`)}>Every program on this line ›</button>
+          </span>
+        </div>
+        {!kit?.programs.length
+          ? <p className="sub">No programs on this line yet. Plan one here — no project needed.</p>
+          : (
+            <>
+              <p className="pl-says">{kit.programs.length} program{kit.programs.length === 1 ? '' : 's'} · {kit.proved} proved{kit.late ? <> · <b className="is-r">{kit.late} late</b></> : null}</p>
+              <ul className="pl-rows">
+                {kit.programs.filter(p => !isProved(p)).sort((a, b) => Number(standingOf(b, today) === 'overdue') - Number(standingOf(a, today) === 'overdue') || (a.testOn ?? '9').localeCompare(b.testOn ?? '9')).slice(0, 6).map(p => {
+                  const late = standingOf(p, today) === 'overdue';
+                  const m = kit.machines.find(x => x.record?.id === p.assetId);
+                  const job = p.projectId ? projects.find(j => j.id === p.projectId) : undefined;
+                  return (
+                    <li key={p.id}>
+                      <button type="button" className={'pl-row' + (late ? ' is-late' : '')} onClick={() => nav(`/programs?line=${encodeURIComponent(wsId)}`)}>
+                        <span className="pl-row-main">
+                          <span className="qsl-what">{p.what}</span>
+                          <span className="qsl-meta">{[m?.name ?? 'the line itself', p.runs ? `runs ${p.runs}` : '', job ? `on ${job.name}` : ''].filter(Boolean).join(' · ')}</span>
+                        </span>
+                        <span className="preg-right">
+                          <span className={'qsl-state ' + (stateOf(p) === 'onMachine' ? 'is-a' : 'is-n')}>{STATE_WORD[stateOf(p)]}</span>
+                          <span className={'qsl-dueword ' + (late ? 'is-r' : p.testOn ? 'is-w' : 'is-n')}>{p.testOn ? `${late ? 'test was ' : 'test '}${niceDay(p.testOn)}` : 'no test day'}</span>
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
       </section>
 
       <section className="pl-sec" aria-label="Tools on this line">

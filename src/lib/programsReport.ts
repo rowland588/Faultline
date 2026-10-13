@@ -18,7 +18,7 @@
  * have the same name they are ONE program — its status from the part, and
  * "proved" from Commission when it has been. Nothing is stored here. */
 import { live, type Asset, type Test, type TestItem } from './testing';
-import { STATE_WORD, inOrder, isProved, isProgramsStage, stateOf, type Program } from './programs';
+import { STATE_WORD, inOrder, isProved, isProgramsStage, standingOf, stateOf, type Program } from './programs';
 import { provingTestOf, testCell } from './commission';
 import { programRunSays, runsOfProgram } from './programRun';
 import { partStatus, partsOf, resultNow, resultWords } from './noted';
@@ -86,6 +86,15 @@ function programWords(p: Program, tests: Test[], today: string): Pick<ProgramLin
   if (t) {
     const c = testCell(t, today);
     return { word: `${state} · test ${c.word}`, tone: c.tone as ProgTone, bucket: c.tone === 'r' ? 'late' : 'open' };
+  }
+  /* No test in Commission — a line's program, planned with no job, or a
+     job's not yet put to a test: its own test day says when, and a day gone
+     by is late, as the Programs list has always said it (lib/programs
+     standingOf). */
+  if (p.testOn) {
+    return standingOf(p, today) === 'overdue'
+      ? { word: `${state} · test was due ${niceDay(p.testOn)}`, tone: 'r', bucket: 'late' }
+      : { word: `${state} · test ${niceDay(p.testOn)}`, tone: 'w', bucket: 'open' };
   }
   return { word: `${state} · no test yet`, tone: 'n', bucket: 'open' };
 }

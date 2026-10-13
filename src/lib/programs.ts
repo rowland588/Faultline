@@ -58,7 +58,16 @@ export const STATE_SUB: Record<ProgramState, string> = {
 
 export interface Program {
   id: ID;
+  /** The job it is on — '' when it is on no job: a line's own program,
+   *  planned from the control room or the line's page (docs/BLUEPRINT.md,
+   *  Stage 2 — Rowland, 13 October: "plan a program for a line rather than
+   *  open up a full project system"). */
   projectId: ID;
+  /** THE LINE IT IS ON — a line of the factory (a workspace). Set on a
+   *  line's own program, and on a job's when the job knows its line; read
+   *  through lib/lineRecords lineOfProgram, which also finds the line of a
+   *  job's program written before programs had one. */
+  workspaceId?: ID;
   /** What it is — the name or number on the machine. The only field that must
    *  be filled in. */
   what: string;
