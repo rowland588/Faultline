@@ -87,7 +87,7 @@ const truth = () => page.evaluate(async ws => {
   return {
     name: w.name, list: w.assets, kit: { says: kit.says, flow: kit.flow, late: kit.late, proved: kit.proved, n: kit.programs.length },
     machines: kit.machines.map(m => ({ name: m.name, oem: m.record?.oem, id: m.record?.id, job: m.jobId })),
-    programs: kit.programs.map(p => ({ id: p.id, what: p.what, projectId: p.projectId, workspaceId: p.workspaceId, assetId: p.assetId, state: p.state, provedOn: p.provedOn, testOn: p.testOn, note: p.note, runs: p.runs })),
+    programs: kit.programs.map(p => ({ id: p.id, what: p.what, projectId: p.projectId, workspaceId: p.workspaceId, assetId: p.assetId, state: p.state, provedOn: p.provedOn, testOn: p.testOn, note: p.note, runs: p.runs, from: p.from })),
     reading: r ? { total: r.total, done: r.done, late: r.late, open: r.open, says: r.says } : null,
   };
 }, WS);
@@ -128,6 +128,7 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   await form.getByLabel("The machine's name").fill('Labeller');
   await form.getByLabel('What it runs').fill('Tesco Express 1.25 kg');
   await form.getByLabel('Commentary').fill('Herma to send the label file');
+  await form.getByLabel('Whose it is').fill('Herma');
   await form.getByRole('button', { name: 'Plan it' }).click(); await page.waitForTimeout(1500);
   const t = await truth();
   const p = t.programs.find(x => x.what === 'LB-2 Express labels');
@@ -135,6 +136,9 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   ok(!!p && p.projectId === '' && p.workspaceId === WS && p.state === 'needed' && p.note === 'Herma to send the label file' && p.runs === 'Tesco Express 1.25 kg', '3 planned on the line with no job, its commentary and what it runs kept');
   ok(!!m && m.id === p?.assetId && t.list.includes('Labeller'), "3b on a machine not listed yet: the machine joins the line's list, its record made");
   ok(await main.locator('.lp-m', { hasText: 'Labeller' }).locator(`[data-program="${p?.id}"]`).count() === 1 && flat(await main.locator('.fac-added').innerText()).includes('LB-2 Express labels is planned on Line 7 — smoke test, on the Labeller'), '3c on the page under its machine, and said so');
+  /* who owes it is "Whose", never "From" (flow audit #20) */
+  ok(p?.from === 'Herma' && flat(await main.locator(`[data-program="${p?.id}"] .mt-facts`).first().innerText()).includes('whose: Herma')
+    && await main.locator('.mt-add-card .field-label', { hasText: /^From$/ }).count() === 0, '3d whose it is: asked as "Whose", kept, and said "whose: Herma" on its row');
 }
 
 /* ---- 4 where it has got to, its commentary, its test day, proved ---- */

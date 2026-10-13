@@ -197,7 +197,7 @@ function ProgramRow({ p, line, machines, today, may, rec, floor, proof, move }: 
   /* A job's program is the job's to change, where it is set up and proved; a
      line's own is changed here. */
   const edit = may && !p.projectId;
-  const facts = [p.runs && `runs ${p.runs}`, p.from && `from ${p.from}`].filter(Boolean).join(' · ');
+  const facts = [p.runs && `runs ${p.runs}`, p.from && `whose: ${p.from}`].filter(Boolean).join(' · ');
   const save = (patch: Partial<Program>) => void putProgram({ ...p, ...patch });
 
   return (
@@ -353,8 +353,8 @@ function AddLineProgram({ line, machines, products }: { line: Workspace; machine
           <input className="text-input" type="date" value={testOn} aria-label="The day it is tested" onChange={e => setTestOn(e.target.value)} />
         </label>
         <label className="proj-field">
-          <span className="field-label">From</span>
-          <input className="text-input" value={from} maxLength={80} placeholder="Who owes it" aria-label="Who owes it" onChange={e => setFrom(e.target.value)} />
+          <span className="field-label">Whose</span>
+          <input className="text-input" value={from} maxLength={80} placeholder="e.g. Ilapak UK" aria-label="Whose it is" onChange={e => setFrom(e.target.value)} />
         </label>
         <label className="proj-field mt-add-what">
           <span className="field-label">Commentary</span>

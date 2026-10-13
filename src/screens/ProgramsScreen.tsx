@@ -194,7 +194,7 @@ function Row({ p, today, lineName, assets, state, weeks, can, tt, first, last }:
   /* The machine leads the facts line: with several machines each running
      several programs, WHICH ONE is the first thing that tells two rows of the
      same name apart. */
-  const facts = [machine, p.runs && `runs ${p.runs}`, lineName, p.from && `from ${p.from}`]
+  const facts = [machine, p.runs && `runs ${p.runs}`, lineName, p.from && `whose: ${p.from}`]
     .filter(Boolean).join(' · ');
 
   return (
@@ -434,8 +434,8 @@ function AddProgram({ state, lines, assets }: {
           </label>
         )}
         <label className="proj-field">
-          <span className="field-label">From</span>
-          <input className="text-input" value={from} maxLength={80} placeholder="Who owes it"
+          <span className="field-label">Whose</span>
+          <input className="text-input" value={from} maxLength={80} placeholder="e.g. Ilapak UK"
             onChange={e => setFrom(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') add(); }} />
         </label>
         <button className="btn btn-primary mt-add-btn" disabled={!what.trim()} onClick={() => add()}>Add it</button>

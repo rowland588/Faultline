@@ -61,7 +61,7 @@ export const HEADS = {
     'What was done', 'Latest update', 'Status', 'Photos'],
   Notes: ['Project', 'Test', 'What we saw', 'Whose', 'Photos'],
   Materials: ['Project', 'What', 'How much', 'From', 'Due', 'Arrived on', 'Here', 'Notes'],
-  Programs: ['Project', 'Program', 'Runs', 'Machine', 'Written?', 'Test on', 'Proved on', 'From', 'Test', 'Notes'],
+  Programs: ['Project', 'Program', 'Runs', 'Machine', 'Written?', 'Test on', 'Proved on', 'Whose', 'Test', 'Notes'],
   Training: ['Project', 'Who', 'Trained on', 'Trainer', 'Planned for', 'Done on', 'Signed off by', 'Notes'],
   /* The line standard — one row per person on each product's map. The map
      itself is a picture and stays in the app (and on its own PDF and the
