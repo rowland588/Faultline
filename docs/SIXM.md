@@ -232,3 +232,46 @@ Pareto pinned open on a laptop.
 - **Phone:** the fish first, as the six bones stacked (the drawn fish is too
   cramped at phone width), with the same tap-in sheets.
 - Records and the report do not change.
+
+## The loop's two ends, tied (flow audit, 13 October)
+
+`docs/FLOW-AUDIT.md` walked the method as Rowland would and found its two
+ends loose: the gap typed, not counted, and holding never chased. Placed
+(BLUEPRINT §8): *Jobs*, a 6M job; no new record — `cases.hold`, `readings`,
+`standards.capacity`, the loss counts (`studies`), `materials`, `programs`.
+
+- **The gap is counted (#8).** A job's line reads its capacity as the job
+  sees it — its own line balance, else the product's Line capacity on the
+  line (`lib/fishbone lineCapacityOf`; BLUEPRINT D3). The fishbone's *The
+  constraint*, its line-balance suggestion, the line cards and the 6M
+  report's *Where the loss is* read it. Each line's target on the front page
+  and on Numbers has *can make 100 bags a minute* beside it. Each shift
+  counted on the line (good packs ÷ planned minutes, `lib/ie/losses
+  countedRate`) is offered on Numbers as a reading in one tap, said as
+  counted. OEE is gone from the examples.
+- **Holding is chased (#9).** `lib/sixm holdDue` is the one rule: the next
+  check is due every N days after the last (or after the day it was set);
+  missed is red, coming due within three days amber. It shows on the
+  problem's *Kept by* (days as days), beside its phase on the fishbone's
+  strip and chips, as a row on the job's Needs you and the control room's
+  This week owed by the check's who (`lib/portfolio checksOwed`), and on
+  paper.
+- **Suggestions are about the problem (#18).** A late material or a program
+  not proved is offered on its own line, or on no line when it shares a
+  word with the problem or names its machine (`problemWords`).
+- **A study's Use it for (#15)** is grouped by machine, the study's first;
+  attached to a job on one line, a study takes that line.
+- **The paper (#17).** The client report offers the one-page status first
+  (`lib/sixmStatus`: where we are, why not — only the abnormal — and what is
+  being done, read off the full report's model), then the full report. The
+  Reports sheet leads with it; each line's three papers are folded under
+  *Line by line*; the spreadsheet is this job's.
+
+Accepted by `scripts/acceptance/sixm-evidence.mjs` 8, 9, 15, 17, 18; the
+status page is in `scripts/report-stress.mjs`.
+
+*Next, not built:* a hold names the standard it changed — *standard
+updated* a link to the line standard or SMED, not a tick (a field on
+`cases.hold`); the job's own line page (#7) reading the line's capacity as
+the rest of the job now does; the 6M status carrying what the job waits on
+(materials, programs late) once the full report does.
