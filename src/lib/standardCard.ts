@@ -22,7 +22,7 @@
  *   └─────────────────────────────────────────────────────────┘ */
 import { getBlob } from '../db';
 import { analyse, shortSays } from './capacity';
-import { BOARDS, boardOf, bottlenecksOf, colourOf, dashOf, FADED_ALPHA, headcount, isShape, manyOf, markOf, MARKS, peopleOf, shortLabel, TONES, weightOf, type Standard, type StandardMark } from './standard';
+import { BOARDS, boardOf, bottlenecksOf, colourOf, dashOf, FADED_ALPHA, headcount, isShape, labelModeHere, manyOf, mapLabel, markOf, MARKS, peopleOf, TONES, weightOf, type Standard, type StandardMark } from './standard';
 
 /** A4 landscape at 150 dpi: sharp on paper, light enough for a phone. */
 export const CARD_W = 1754, CARD_H = 1240;
@@ -98,6 +98,17 @@ export function drawIcon(ctx: CanvasRenderingContext2D, kind: StandardMark['kind
   ctx.restore();
 }
 
+/** Where a box sits on the card — for a label to keep clear of what is already drawn. */
+interface Box { x: number; y: number; w: number; h: number }
+const hits = (a: Box, b: Box): boolean => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+/** A pill's box, before it is drawn. */
+function pillBox(ctx: CanvasRenderingContext2D, text: string, cx: number, top: number, size: number): Box {
+  ctx.font = `700 ${size}px ${FONT}`;
+  const h = size * 1.5, w = ctx.measureText(text).width + size * 1.1;
+  return { x: cx - w / 2, y: top, w, h };
+}
+
 function pillLabel(ctx: CanvasRenderingContext2D, text: string, cx: number, top: number, size: number) {
   ctx.font = `700 ${size}px ${FONT}`;
   const tw = ctx.measureText(text).width, h = size * 1.5, w = tw + size * 1.1;
@@ -111,12 +122,18 @@ function pillLabel(ctx: CanvasRenderingContext2D, text: string, cx: number, top:
 /** THE BOTTLENECK, in words — an ink tag, never a state colour (the map
  *  says it as the screen does). `left` places it from its left edge; else it
  *  is centred on `cx`. */
-function bnTag(ctx: CanvasRenderingContext2D, cx: number, top: number, size: number, left?: boolean) {
+function bnTag(ctx: CanvasRenderingContext2D, cx: number, top: number, size: number, left?: boolean): Box {
   ctx.font = `800 ${size}px ${FONT}`;
   const text = 'BOTTLENECK', tw = ctx.measureText(text).width, h = size * 1.55, w = tw + size * 1.1;
   const x = left ? cx : cx - w / 2;
   ctx.fillStyle = '#0f1a2e'; round(ctx, x, top, w, h, 4); ctx.fill();
   ctx.fillStyle = '#ffffff'; ctx.textBaseline = 'middle'; ctx.fillText(text, x + size * 0.55, top + h / 2 + 1); ctx.textBaseline = 'alphabetic';
+  return { x, y: top, w, h };
+}
+/** The tag's size, before it is drawn. */
+function bnTagSize(ctx: CanvasRenderingContext2D, size: number): { w: number; h: number } {
+  ctx.font = `800 ${size}px ${FONT}`;
+  return { w: ctx.measureText('BOTTLENECK').width + size * 1.1, h: size * 1.55 };
 }
 
 /** A shape on the map: the same geometry the editor draws, its words in the middle. */
@@ -154,7 +171,7 @@ function drawShape(ctx: CanvasRenderingContext2D, m: StandardMark, ix: number, i
     ctx.strokeStyle = t.stroke; ctx.lineWidth = lwi; ctx.setLineDash(dashOf(m.line, lwi)); ctx.stroke(); ctx.setLineDash([]);
   }
   if (m.label?.trim()) {
-    const size = Math.max(16, Math.min(iw * 0.02, h * 0.34));
+    const size = Math.max(14, Math.min(iw * 0.017, h * 0.34));   /* the screen's: the board's width × 0.017 */
     ctx.font = `800 ${size}px ${FONT}`; ctx.fillStyle = t.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     const inner = m.shape === 'triangle' ? w * 0.55 : m.shape === 'circle' ? w * 0.72 : w - 12;
     const lines = m.label.split('\n').flatMap(part => wrap(ctx, part, Math.max(30, inner), 3)).slice(0, 4);
@@ -162,8 +179,22 @@ function drawShape(ctx: CanvasRenderingContext2D, m: StandardMark, ix: number, i
     lines.forEach((l, i) => ctx.fillText(l, cx, ty0 + i * lh));
   }
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-  if (m.bottleneck) bnTag(ctx, x + 6, y + 6, Math.max(13, iw * 0.012), true);
   ctx.restore();
+}
+
+/** Where a shape's words sit — for a person's name to keep clear of them
+ *  (never of the shape itself: people stand inside areas). */
+function shapeWordsBox(ctx: CanvasRenderingContext2D, m: StandardMark, ix: number, iy: number, iw: number, ih: number): Box | undefined {
+  if (!m.label?.trim() || m.shape === 'arrow') return undefined;
+  const cx = ix + (m.x / 100) * iw, cy = iy + (m.y / 100) * ih;
+  const w = ((m.w ?? 10) / 100) * iw, h = ((m.h ?? 10) / 100) * ih;
+  const size = Math.max(14, Math.min(iw * 0.017, h * 0.34));
+  ctx.font = `800 ${size}px ${FONT}`;
+  const inner = m.shape === 'triangle' ? w * 0.55 : m.shape === 'circle' ? w * 0.72 : w - 12;
+  const lines = m.label.split('\n').flatMap(part => wrap(ctx, part, Math.max(30, inner), 3)).slice(0, 4);
+  const tw = Math.max(...lines.map(l => ctx.measureText(l).width)), th = lines.length * size * 1.15;
+  const my = m.shape === 'triangle' ? cy + h * 0.18 : cy;
+  return { x: cx - tw / 2 - 4, y: my - th / 2 - 2, w: tw + 8, h: th + 4 };
 }
 
 /** The whole card, as a canvas. */
@@ -225,10 +256,18 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
     work ? `Work: ${work.short ?? work.text}` : '',
   ].filter(Boolean);
 
-  /* ---------------- the map ---------------- */
-  const top = bandH + 40, footH = said.length > 2 ? 136 : 112;
-  const sideW = 520, gap = 36;
-  const mapX = M, mapW = CARD_W - 2 * M - sideW - gap, mapH = CARD_H - top - footH - 28;
+  /* ---------------- the map ----------------
+     THE MAP IS ITS BOARD'S SHAPE (Rowland, 13 October: "i pick square it
+     then clusters everything up, or tall, it does the same, it's only set
+     for wide"). The frame is the board's own shape — wide, square, tall or
+     the photo's — as tall as the page allows; Who does what takes the room
+     left beside it (two columns of people beside a tall board), so nothing
+     is squeezed into the middle of a frame drawn for wide. */
+  const top = bandH + 40, footH = said.length > 2 ? 136 : 112, gap = 36;
+  const mapH = CARD_H - top - footH - 28;
+  const shape = img ? { w: img.width, h: img.height } : BOARDS[boardOf(s)];
+  const mapX = M, mapW = Math.min(CARD_W - 2 * M - 520 - gap, Math.round(mapH * shape.w / shape.h));
+  const sideW = CARD_W - 2 * M - mapW - gap;
   ctx.save();
   ctx.shadowColor = 'rgba(13,31,60,0.16)'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 8;
   round(ctx, mapX, top, mapW, mapH, 22); ctx.fillStyle = SOFT; ctx.fill();
@@ -253,82 +292,185 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
   }
   // shapes first — everything placed stands on them
   for (const m of s.marks) if (isShape(m)) drawShape(ctx, m, ix, iy, iw, ih);
-  const r = Math.max(20, Math.min(iw, ih) * 0.036);
-  for (const m of s.marks) {
-    if (isShape(m)) continue;
-    const cx = ix + (m.x / 100) * iw, cy = iy + (m.y / 100) * ih;
-    if (m.bottleneck) { ctx.beginPath(); ctx.arc(cx, cy, r + 9, 0, Math.PI * 2); ctx.strokeStyle = '#0f1a2e'; ctx.lineWidth = 5; ctx.stroke(); }
+  /* THE MARKS AS THE SCREEN DRAWS THEM (Rowland, 13 October: "everything's
+     still merged together"). The screen draws a person 14 px across the
+     middle and their name in 12 px type on a board about 1,000 px wide; the
+     card drew them half as big again against the same board, so neighbours
+     ran into each other on paper and not on the screen. Now the same share
+     of the board, never below what reads on paper. */
+  const r = Math.max(15, iw * 0.0155), pillPx = Math.max(13, Math.round(iw * 0.0125)), tagPx = Math.max(11, Math.round(iw * 0.0105));
+  const people = peopleOf(s), labels = labelModeHere();
+  const inBoard = (b: Box) => b.x >= ix + 2 && b.x + b.w <= ix + iw - 2 && b.y >= iy + 2 && b.y + b.h <= iy + ih - 2;
+  /* What is drawn already, for each name to keep clear of: every mark, and
+     every BOTTLENECK tag. An area's tag sits on its top edge, outside it —
+     never on top of the area's own name — or under it at the board's top. */
+  const taken: Box[] = [];
+  const icons = s.marks.filter(m => !isShape(m)).map(m => ({ m, cx: ix + (m.x / 100) * iw, cy: iy + (m.y / 100) * ih }));
+  for (const { cx, cy } of icons) taken.push({ x: cx - r - 4, y: cy - r - 4, w: 2 * r + 8, h: 2 * r + 8 });
+  for (const m of s.marks) { const b = isShape(m) ? shapeWordsBox(ctx, m, ix, iy, iw, ih) : undefined; if (b) taken.push(b); }
+  const tag = bnTagSize(ctx, tagPx);
+  const tags: { box: Box; draw: () => void }[] = [];
+  for (const m of s.marks.filter(x => isShape(x) && x.bottleneck && x.shape !== 'arrow')) {
+    const w = ((m.w ?? 10) / 100) * iw, h = ((m.h ?? 10) / 100) * ih;
+    const x0 = ix + (m.x / 100) * iw - w / 2, y0 = iy + (m.y / 100) * ih - h / 2;
+    const above = y0 - tag.h - 5 >= iy + 2;
+    const box = { x: x0, y: above ? y0 - tag.h - 5 : y0 + h + 5, w: tag.w, h: tag.h };
+    tags.push({ box, draw: () => { bnTag(ctx, box.x, box.y, tagPx, true); } });
+  }
+  for (const { cx, cy } of icons.filter(x => x.m.bottleneck)) {
+    const box = { x: cx - tag.w / 2, y: cy - r - 10 - tag.h, w: tag.w, h: tag.h };
+    tags.push({ box, draw: () => { bnTag(ctx, cx, box.y, tagPx); } });
+  }
+  for (const t of tags) taken.push(t.box);
+  /* the marks, then the tags */
+  for (const { m, cx, cy } of icons) {
+    if (m.bottleneck) { ctx.beginPath(); ctx.arc(cx, cy, r + 7, 0, Math.PI * 2); ctx.strokeStyle = '#0f1a2e'; ctx.lineWidth = 4; ctx.stroke(); }
     drawIcon(ctx, m.kind, cx, cy, r, colourOf(m));
-    /* the name short on the map — the whole of it, and what they do, are beside it in Who does what */
-    if (m.label) pillLabel(ctx, shortLabel(m.label, 16), cx, cy + r + 8, Math.round(r * 0.72));
-    if (m.bottleneck) bnTag(ctx, cx, cy - r - 12 - Math.round(r * 0.6) * 1.55, Math.round(r * 0.6));
+  }
+  for (const t of tags) t.draw();
+  /* EACH NAME WHERE IT IS CLEAR — under the mark as on the screen; above it
+     when that is taken; a person's number (the same as in Who does what)
+     when neither is clear; the whole of it, and what they do, beside the map. */
+  for (const { m, cx, cy } of icons) {
+    const name = mapLabel(m, labels, people);
+    const num = m.kind === 'person' ? mapLabel(m, 'number', people) : undefined;
+    const lift = m.bottleneck ? tag.h + 6 : 0;
+    const under = cy + r + 6, over = (h: number) => cy - r - 6 - lift - h;
+    const tries: { text: string; top: (h: number) => number }[] = [
+      ...(name ? [{ text: name, top: () => under }, { text: name, top: over }] : []),
+      ...(num && num !== name ? [{ text: num, top: () => under }, { text: num, top: over }] : []),
+    ];
+    let placed: { text: string; box: Box } | undefined;
+    for (const t of tries) {
+      const h = pillPx * 1.5, box = pillBox(ctx, t.text, cx, t.top(h), pillPx);
+      if (inBoard(box) && !taken.some(b => hits(b, box))) { placed = { text: t.text, box }; break; }
+    }
+    /* nowhere clear: a person still carries their number, under them */
+    if (!placed && num) placed = { text: num, box: pillBox(ctx, num, cx, under, pillPx) };
+    if (!placed) continue;
+    taken.push(placed.box);
+    pillLabel(ctx, placed.text, cx, placed.box.y, pillPx);
   }
   ctx.restore();
   ctx.strokeStyle = LINE; ctx.lineWidth = 2; round(ctx, mapX, top, mapW, mapH, 22); ctx.stroke();
 
-  /* ---------------- who does what ---------------- */
-  const sx = CARD_W - M - sideW;
-  let y = top + 8;
-  ctx.fillStyle = BLUE; ctx.font = `800 21px ${FONT}`; ctx.fillText('W H O   D O E S   W H A T', sx, y + 16);
-  y += 44;
-  const people = peopleOf(s);
-  /* THE BOTTLENECK, first, in words */
-  for (const b of bottlenecksOf(s).slice(0, 2)) {
-    bnTag(ctx, sx, y, 18, true);
-    ctx.fillStyle = INK; ctx.font = `700 24px ${FONT}`;
-    const ls = wrap(ctx, b.words, sideW - 150, 2);
-    ls.forEach((l, i) => ctx.fillText(l, sx + 148, y + 22 + i * 28));
-    y += Math.max(40, ls.length * 28 + 14);
-  }
-  if (people.length === 0) { ctx.fillStyle = MUTED; ctx.font = `500 26px ${FONT}`; ctx.fillText('Nobody placed yet.', sx, y + 24); y += 50; }
-  const listBottom = top + mapH - 170;
-  people.forEach((p, i) => {
-    if (y > listBottom) return;
-    if (y + 40 > listBottom && i < people.length) {
-      ctx.fillStyle = MUTED; ctx.font = `600 22px ${FONT}`; ctx.fillText(`and ${people.length - i} more on the map`, sx, y + 24); y = listBottom + 1; return;
-    }
-    // the number disc, in the person's colour — the same as on the map
-    ctx.beginPath(); ctx.arc(sx + 22, y + 22, 22, 0, Math.PI * 2); ctx.fillStyle = colourOf(p); ctx.fill();
-    ctx.fillStyle = '#ffffff'; ctx.font = `800 22px ${FONT}`; ctx.textAlign = 'center'; ctx.fillText(String(i + 1), sx + 22, y + 30); ctx.textAlign = 'left';
-    ctx.fillStyle = INK; ctx.font = `800 28px ${FONT}`;
-    ctx.fillText(wrap(ctx, p.label || `Person ${i + 1}`, sideW - 64, 1)[0], sx + 60, y + 31);
-    /* Their work against takt, right-aligned on their row — red when over. */
-    const w = work?.people.find(x => x.who === (p.label ?? '').trim());
-    if (w && work) {
-      ctx.textAlign = 'right'; ctx.fillStyle = w.over ? '#9b3227' : INK2; ctx.font = `800 23px ${FONT}`;
-      ctx.fillText(w.untimed ? `${w.work.toFixed(1)} s so far` : `${w.work.toFixed(1)} s of ${work.taktSec.toFixed(1)} s`, sx + sideW, y + 31); ctx.textAlign = 'left';
-    }
-    let ty = y + 31;
-    if (p.task) {
-      ctx.fillStyle = INK2; ctx.font = `500 23px ${FONT}`;
-      for (const l of wrap(ctx, p.task, sideW - 64, 3)) { ty += 31; ctx.fillText(l, sx + 60, ty); }
-    }
-    y = ty + 26;
-    ctx.strokeStyle = LINE; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(sx, y - 10); ctx.lineTo(sx + sideW, y - 10); ctx.stroke();
-  });
-
-  // the kit at the line, with its icons
+  /* ---------------- who does what ----------------
+     LAID OUT, NEVER PILED (Rowland, 13 October: "PDF details gone strange
+     even in the side commentary or the bottleneck"). The kit at the foot and
+     the note above it are measured first and given their room — the note was
+     printed at a fixed height, over the people. The bottleneck is said once,
+     under one tag. Then everybody, in rows as roomy as the room left allows:
+     a name and what they do in full; a line of each; one line a person; two
+     columns of those — and "and N more on the map" only when even that
+     cannot hold them all. */
+  const sx = CARD_W - M - sideW, sideBottom = top + mapH;
   const kit = MARKS.filter(k => k.kind !== 'person')
     .map(k => ({ k, n: s.marks.filter(m => m.kind === k.kind).length })).filter(x => x.n > 0)
     .slice(0, 6);   // the card has room for six kinds; the map shows the rest
+  ctx.font = `700 24px ${FONT}`;
+  const kitWord = (k: typeof MARKS[number], c: number) => `${c} ${c === 1 ? k.word.toLowerCase() : manyOf(k.word)}`;
+  let kitRows = 0;
+  { let kx = 0; for (const { k, n: c } of kit) { const w = 52 + ctx.measureText(kitWord(k, c)).width + 24; if (kx > 0 && kx + w > sideW) { kitRows++; kx = 0; } kx += w; } if (kit.length) kitRows++; }
+  const kitH = kit.length ? 30 + kitRows * 58 : 0, kitTop = sideBottom - kitH;
+  ctx.font = `italic 500 21px ${FONT}`;
+  const noteLines = s.note?.trim() ? wrap(ctx, s.note.trim(), sideW, 3) : [];
+  const noteH = noteLines.length ? noteLines.length * 28 + 6 : 0;
+  const noteTop = kitTop - (kit.length && noteH ? 22 : 0) - noteH;
+  const listBottom = (noteH ? noteTop : kit.length ? kitTop : sideBottom) - 18;
+
+  let y = top + 8;
+  ctx.fillStyle = BLUE; ctx.font = `800 21px ${FONT}`; ctx.fillText('W H O   D O E S   W H A T', sx, y + 16);
+  y += 44;
+  /* THE BOTTLENECK, first, in words — one tag, what it is beside it */
+  const bns = bottlenecksOf(s).slice(0, 3);
+  if (bns.length) {
+    const t = bnTag(ctx, sx, y, 18, true);
+    const tx = sx + t.w + 12, tw = sideW - t.w - 12;
+    ctx.fillStyle = INK; ctx.font = `700 23px ${FONT}`;
+    let by = y + 21;
+    for (const b of bns) { for (const l of wrap(ctx, b.words, tw, 2)) { ctx.fillText(l, tx, by); by += 28; } by += 4; }
+    y = Math.max(y + t.h, by - 28) + 22;
+  }
+  if (people.length === 0) { ctx.fillStyle = MUTED; ctx.font = `500 26px ${FONT}`; ctx.fillText('Nobody placed yet.', sx, y + 24); y += 50; }
+
+  /* Their work against takt, right-aligned on their row — red when over. */
+  const workOf = (p: StandardMark) => {
+    const w = work?.people.find(x => x.who === (p.label ?? '').trim());
+    return w && work ? { text: w.untimed ? `${w.work.toFixed(1)} s so far` : `${w.work.toFixed(1)} s of ${work.taktSec.toFixed(1)} s`, over: w.over } : undefined;
+  };
+  type Style = 'roomy' | 'snug' | 'line';
+  const STY: Record<Style, { disc: number; name: number; task: number }> = {
+    roomy: { disc: 22, name: 28, task: 23 }, snug: { disc: 19, name: 25, task: 21 }, line: { disc: 15, name: 22, task: 19 },
+  };
+  const avail = listBottom - y;
+  const twoCols = sideW >= 640, colW2 = (sideW - 32) / 2;
+  const taskLines = (p: StandardMark, w: number) => { ctx.font = `500 ${STY.roomy.task}px ${FONT}`; return p.task?.trim() ? wrap(ctx, p.task.trim(), w - 64, 3) : []; };
+  const roomyH = (p: StandardMark, w: number) => 31 + taskLines(p, w).length * 31 + 26;
+  const rowH = (st: Style, p: StandardMark, w: number) => (st === 'roomy' ? roomyH(p, w) : st === 'snug' ? (p.task?.trim() ? 72 : 46) : 42);
+  const total = (st: Style, w: number) => people.reduce((n, p) => n + rowH(st, p, w), 0);
+  const plan: { st: Style; cols: number } =
+    total('roomy', sideW) <= avail ? { st: 'roomy', cols: 1 }
+      : total('snug', sideW) <= avail ? { st: 'snug', cols: 1 }
+        : total('line', sideW) <= avail ? { st: 'line', cols: 1 }
+          : twoCols && total('snug', colW2) <= avail * 2 - 72 ? { st: 'snug', cols: 2 }
+            : { st: 'line', cols: twoCols ? 2 : 1 };
+  const colW = plan.cols === 2 ? colW2 : sideW;
+  const one = (text: string, w: number) => wrap(ctx, text, w, 1)[0] ?? '';
+  const listTop = y;
+  let col = 0;
+  for (let i = 0; i < people.length; i++) {
+    const p = people[i], st = STY[plan.st], h = rowH(plan.st, p, colW);
+    if (y + h > listBottom && col + 1 < plan.cols) { col++; y = listTop; }
+    const px = sx + col * (colW + 32);
+    if (y + h > listBottom) {
+      ctx.fillStyle = MUTED; ctx.font = `600 22px ${FONT}`; ctx.fillText(`and ${people.length - i} more on the map`, px, Math.min(y + 24, listBottom + 14)); break;
+    }
+    // the number disc, in the person's colour — the same as on the map
+    const d = st.disc, mid = y + d;
+    ctx.beginPath(); ctx.arc(px + d, mid, d, 0, Math.PI * 2); ctx.fillStyle = colourOf(p); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.font = `800 ${Math.round(d * 0.95)}px ${FONT}`; ctx.textAlign = 'center'; ctx.fillText(String(i + 1), px + d, mid + d * 0.34); ctx.textAlign = 'left';
+    const tx = px + d * 2 + 14, tw = colW - (d * 2 + 14);
+    const wk = workOf(p);
+    ctx.font = `800 ${Math.round(st.task)}px ${FONT}`;
+    const wkW = wk ? ctx.measureText(wk.text).width + 14 : 0;
+    if (wk) { ctx.textAlign = 'right'; ctx.fillStyle = wk.over ? '#9b3227' : INK2; ctx.fillText(wk.text, px + colW, mid + st.name * 0.36); ctx.textAlign = 'left'; }
+    ctx.fillStyle = INK; ctx.font = `800 ${st.name}px ${FONT}`;
+    const name = p.label?.trim() || `Person ${i + 1}`;
+    if (plan.st === 'line') {
+      /* one line: the name, then what they do, as far as it goes */
+      const nm = one(name, tw - wkW);
+      ctx.fillText(nm, tx, mid + st.name * 0.36);
+      const used = ctx.measureText(nm).width;
+      if (p.task?.trim() && used + 40 < tw - wkW) {
+        ctx.fillStyle = INK2; ctx.font = `500 ${st.task}px ${FONT}`;
+        ctx.fillText(one(`— ${p.task.trim()}`, tw - wkW - used - 10), tx + used + 10, mid + st.name * 0.36);
+      }
+    } else {
+      ctx.fillText(one(name, tw - wkW), tx, y + st.name + 2);
+      ctx.fillStyle = INK2; ctx.font = `500 ${st.task}px ${FONT}`;
+      const lines = plan.st === 'roomy' ? taskLines(p, colW) : p.task?.trim() ? [one(p.task.trim(), tw)] : [];
+      lines.forEach((l, k) => ctx.fillText(l, tx, y + st.name + 2 + (k + 1) * (st.task + 8)));
+    }
+    y += h;
+    ctx.strokeStyle = LINE; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(px, y - 9); ctx.lineTo(px + colW, y - 9); ctx.stroke();
+  }
+
+  if (noteLines.length) {
+    ctx.fillStyle = MUTED; ctx.font = `italic 500 21px ${FONT}`;
+    noteLines.forEach((l, i) => ctx.fillText(l, sx, noteTop + 21 + i * 28));
+  }
+  // the kit at the line, with its icons
   if (kit.length) {
-    let ky = top + mapH - 150;
-    ctx.fillStyle = BLUE; ctx.font = `800 21px ${FONT}`; ctx.fillText('A T   T H E   L I N E', sx, ky);
-    ky += 26;
-    let kx = sx;
+    ctx.fillStyle = BLUE; ctx.font = `800 21px ${FONT}`; ctx.fillText('A T   T H E   L I N E', sx, kitTop + 18);
+    let ky = kitTop + 30, kx = sx;
     for (const { k, n: c } of kit) {
       ctx.font = `700 24px ${FONT}`;
-      const word = `${c} ${c === 1 ? k.word.toLowerCase() : manyOf(k.word)}`;
-      const w = 52 + ctx.measureText(word).width + 24;
-      if (kx + w > sx + sideW) { kx = sx; ky += 58; }
+      const word = kitWord(k, c), w = 52 + ctx.measureText(word).width + 24;
+      if (kx > sx && kx + w > sx + sideW) { kx = sx; ky += 58; }
       drawIcon(ctx, k.kind, kx + 22, ky + 24, 20);
       ctx.fillStyle = INK; ctx.fillText(word, kx + 52, ky + 32);
       kx += w;
     }
-  }
-  if (s.note) {
-    ctx.fillStyle = MUTED; ctx.font = `italic 500 21px ${FONT}`;
-    wrap(ctx, s.note, sideW, 2).forEach((l, i) => ctx.fillText(l, sx, top + mapH - 186 - (1 - i) * 28));
   }
 
   /* ---------------- the foot: signed off at the line ---------------- */

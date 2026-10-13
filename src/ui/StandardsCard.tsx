@@ -1,17 +1,28 @@
 /* The line standard's maps, small — what Hand over shows. The screen itself
  * (screens/StandardScreen) loads on first use. */
 import { useCallback, useEffect, useState } from 'react';
-import { deleteStandard, listStandards, onDataChange } from '../db';
+import { deleteStandard, listStandards, onDataChange, putStandard } from '../db';
 import { offerUndo } from './Undo';
 import { nav } from '../state/useRoute';
-import { headcount, type Standard } from '../lib/standard';
+import { afterRemoving, headcount, removingSays, type ProductTool, type Standard } from '../lib/standard';
 import { can as canOf, type Can } from '../lib/access';
 
 /** DELETE A MAP — from wherever the maps are listed, with Undo. Rowland, 6
  *  October, in Hand over: "can't delete a line standard — not acceptable."
  *  The only delete was at the foot of a map's own page. */
 export async function deleteMap(s: Standard): Promise<void> {
-  offerUndo(`Map for ${s.product} deleted`, await deleteStandard(s.id));
+  await removeFromTool(s, 'map');
+}
+
+/** DELETE ONE TOOL OF A PRODUCT — its map or its Line capacity — keeping the
+ *  other (lib/standard afterRemoving), with Undo. The record goes only when
+ *  nothing is left on it. */
+export async function removeFromTool(s: Standard, tool: ProductTool): Promise<void> {
+  const next = afterRemoving(s, tool), says = removingSays(s, tool);
+  if (next) {
+    await putStandard(next);
+    offerUndo(says.done, async () => { await putStandard(s); });
+  } else offerUndo(says.done, await deleteStandard(s.id));
 }
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;

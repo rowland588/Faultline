@@ -17,7 +17,8 @@
  *   5  a plain board made tall — the room added below, everything where it
  *      stood, kept on the record
  *   6  the card on paper draws the person in their colour, and the tall board
- *      tall
+ *      tall, filling a frame of its own shape (no bars beside it), Who does
+ *      what beside it
  *   7  full screen: the tools and the board, edge to edge; Done goes back
  *   8  on a phone: nothing off the side; full screen fills the width
  *   9  the bottleneck said on the map (Rowland, 13 October: "highlight a
@@ -29,6 +30,10 @@
  *      and what they do on the right; full, or numbers; kept on the device
  *   11 the card says the same: the bottleneck tagged and summed up, the
  *      area faded, the names short
+ *   12 a machine on the map marked the bottleneck from its sheet
+ *   13 a crowded line on paper: no names crossing on the map, everyone named
+ *      beside it, the note and the kit below the people, an area's tag
+ *      clear of its words
  *   and no console error anywhere.
  *
  *   node scripts/acceptance/line-standard.mjs      (SMOKE_BASE, as smoke) */
@@ -115,18 +120,23 @@ if (OUT) await page.screenshot({ path: `${OUT}/ls-1-tall.png` });
 
 /* 6 — the card: the person in their colour, the board tall */
 const paper = await page.evaluate(async id => {
-  const fills = [], rects = [];
-  const P = CanvasRenderingContext2D.prototype, fill = P.fill, fillRect = P.fillRect;
+  const fills = [], rects = [], heads = [];
+  const P = CanvasRenderingContext2D.prototype, fill = P.fill, fillRect = P.fillRect, fillText = P.fillText;
   P.fill = function (...a) { fills.push(String(this.fillStyle)); return fill.apply(this, a); };
-  P.fillRect = function (x, y, w, h) { if (String(this.fillStyle) === '#f7f9fc') rects.push(h / w); return fillRect.call(this, x, y, w, h); };
+  P.fillRect = function (x, y, w, h) { if (String(this.fillStyle) === '#f7f9fc') rects.push({ x, w, h }); return fillRect.call(this, x, y, w, h); };
+  P.fillText = function (t, x, ...a) { if (String(t).startsWith('W H O')) heads.push(x); return fillText.call(this, t, x, ...a); };
   try {
     const s = (await (await import('/src/db.ts')).listAllStandards()).find(x => x.id === id);
     await (await import('/src/lib/standardCard.ts')).renderCard(s, 'Line 7', '13 Oct 2026');
-  } finally { P.fill = fill; P.fillRect = fillRect; }
-  return { purple: fills.includes('#7c3aed'), board: rects[0] };
+  } finally { P.fill = fill; P.fillRect = fillRect; P.fillText = fillText; }
+  return { purple: fills.includes('#7c3aed'), board: rects[0], side: heads[0] };
 }, blankId);
 ok(paper.purple, '6 the card draws the person in purple');
-ok(Math.abs((paper.board ?? 0) - 4 / 3) < 0.01, `6b and the board tall (${paper.board?.toFixed(2)})`);
+ok(Math.abs((paper.board.h / paper.board.w) - 4 / 3) < 0.01, `6b and the board tall (${(paper.board.h / paper.board.w).toFixed(2)})`);
+/* 6c — the frame is the board's own shape (Rowland, 13 October: "i pick square it then clusters everything up, or tall ... it's only set for wide"):
+   the board starts at the frame's edge, nothing grey beside it, and Who does what takes the room left */
+ok(Math.round(paper.board.x) === 64 && Math.round(paper.side) === Math.round(64 + paper.board.w + 36),
+  `6c a tall board fills its frame — no bars beside it; Who does what beside it (board ${Math.round(paper.board.w)} × ${Math.round(paper.board.h)} at ${Math.round(paper.board.x)}, Who does what at ${Math.round(paper.side)})`);
 
 /* 7 — full screen */
 await page.getByRole('button', { name: 'Full screen' }).click(); await page.waitForTimeout(600);
@@ -199,7 +209,7 @@ const card11 = await page.evaluate(async id => {
     await (await import('/src/lib/standardCard.ts')).renderCard(s, 'Line 7', '13 Oct 2026');
   } finally { P.fillText = ft; P.fill = fill; }
   const { shortLabel } = await import('/src/lib/standard.ts');
-  return { tags: texts.filter(t => t === 'BOTTLENECK').length, short: texts.includes(shortLabel('Line lead — runs the bagger and clears every jam', 16)), area: texts.some(t => t.includes('The Basket station')), faded: alphas.some(a => a > 0.2 && a < 0.5) };
+  return { tags: texts.filter(t => t === 'BOTTLENECK').length, short: texts.includes(shortLabel('Line lead — runs the bagger and clears every jam')), area: texts.some(t => t.includes('The Basket station')), faded: alphas.some(a => a > 0.2 && a < 0.5) };
 }, blankId);
 ok(card11.tags >= 3 && card11.short && card11.area && card11.faded, `11 the card: the bottleneck tagged on the map and summed up, the area faded, the name short (${JSON.stringify(card11)})`);
 
@@ -216,6 +226,62 @@ await sheet12.getByRole('button', { name: 'Done' }).click(); await page.waitForT
 const bag12 = (await rec()).marks.find(m => m.id === 'bag2');
 ok(bag12.bottleneck === true && (await page.locator('.ls-bn-words').allInnerTexts()).includes('The Bagger 2') && await page.locator('.ls-mark.is-bn[aria-label^="Bagger"] .ls-bn-tag').count() === 1,
   '12 a machine marked the bottleneck from its sheet — tagged on the map and named in the summary');
+
+/* 13 — a crowded line on paper (Rowland, 13 October: "everything's still
+   merged together and PDF details gone strange even in the side commentary
+   or the bottleneck"): ten people close together on a tall board, long
+   names, a person and an area the bottleneck, a note and kit. No two names
+   on the map cross; every person is named beside it; the note and the kit
+   sit below the people; an area's tag is outside it, not on its words. */
+for (const shape of ['wide', 'tall']) {
+const crowd = await page.evaluate(async ([ws, shape]) => {
+  const db = await import('/src/db.ts'); const L = await import('/src/lib/standard.ts');
+  const id = `std-crowd-${shape}-${Date.now()}`, t = Date.now();
+  const names = ['Line lead — runs the bagger', 'Op 2 film loader', 'Op 3 tray packer', 'Op 4 tray packer', 'QA — weights and seals', 'Op 6 case erector', 'Op 7 palletiser', 'Fitter', 'Op 9 relief', 'Team leader'];
+  const wide = [
+    { id: 'z1', kind: 'shape', shape: 'rect', x: 18, y: 28, w: 26, h: 22, tone: 'blue', label: 'Bagger' },
+    { id: 'z2', kind: 'shape', shape: 'rect', x: 52, y: 28, w: 30, h: 22, tone: 'green', label: 'Packing table and tray loading', fill: 'faded', bottleneck: true },
+    ...names.map((n, i) => ({ id: `p${i}`, kind: 'person', x: 8 + i * 9, y: 55 + (i % 2) * 6, label: n, task: `Task ${i + 1} on the line, said in full so that it runs on`, ...(i === 2 ? { bottleneck: true } : {}) })),
+    { id: 'k1', kind: 'pallet', x: 20, y: 82 }, { id: 'k2', kind: 'bin', x: 92, y: 10 },
+  ];
+  const marks = shape === 'wide' ? wide : L.reshaped(wide, 'wide', shape);
+  const s = { id, projectId: '', workspaceId: ws, product: `Crowded ${shape}`, ...(shape === 'wide' ? {} : { board: shape }), note: 'Two packers on the tray table at all times; relief covers breaks in turn.', marks, sort: t, createdAt: t, updatedAt: t };
+  await db.putStandard(s);
+  const texts = [], arcs = [];
+  const P = CanvasRenderingContext2D.prototype, ft = P.fillText, arc = P.arc;
+  P.fillText = function (txt, x, y, ...a) { texts.push({ t: String(txt), x, y, w: this.measureText(String(txt)).width, font: this.font, align: this.textAlign, base: this.textBaseline }); return ft.call(this, txt, x, y, ...a); };
+  P.arc = function (x, y, r, ...a) { arcs.push({ x, y, r }); return arc.call(this, x, y, r, ...a); };
+  try { await (await import('/src/lib/standardCard.ts')).renderCard(s, 'Line 7', '13 Oct 2026'); } finally { P.fillText = ft; P.arc = arc; }
+  return { texts, arcs, names };
+}, [sd.wsId, shape]);
+{
+  /* the map's names: centred pill text in bold, left of Who does what */
+  const side = crowd.texts.find(x => x.t.startsWith('W H O'))?.x ?? 9999;
+  const pills = crowd.texts.filter(x => x.align === 'center' && x.base === 'middle' && /^(700|bold) /.test(x.font) && x.x < side);
+  const px = parseFloat(/(?:700|bold) (\d+(?:\.\d+)?)px/.exec(pills[0]?.font ?? '700 13px')[1]);
+  const box = x => ({ l: x.x - x.w / 2 - px * 0.55, r: x.x + x.w / 2 + px * 0.55, t: x.y - px * 0.75, b: x.y + px * 0.75 });
+  const cross = (a, c) => a.l < c.r && c.l < a.r && a.t < c.b && c.t < a.b;
+  const crossed = [];
+  for (let i = 0; i < pills.length; i++) for (let j = i + 1; j < pills.length; j++) if (cross(box(pills[i]), box(pills[j]))) crossed.push(`${pills[i].t} × ${pills[j].t}`);
+  /* the people's discs on the map (not the rings, not the list's) — a name never covers one */
+  const discs = crowd.arcs.filter(a => a.x < side && a.r >= 8 && a.r <= 40);
+  const minR = Math.min(...discs.map(d => d.r));
+  const people = discs.filter(d => d.r === minR);
+  const covered = pills.filter(p => people.some(d => cross(box(p), { l: d.x - d.r * 0.8, r: d.x + d.r * 0.8, t: d.y - d.r * 0.8, b: d.y + d.r * 0.8 }))).map(p => p.t);
+  ok(pills.length === crowd.names.length && crossed.length === 0 && covered.length === 0,
+    `13 a crowded ${shape} board on paper: ${pills.length} names on the map, none crossing another or covering a person${crossed.length ? ` — crossed: ${crossed.slice(0, 3).join('; ')}` : ''}${covered.length ? ` — covering: ${covered.slice(0, 3).join(', ')}` : ''}`);
+  const named = crowd.names.filter(n => crowd.texts.some(x => x.x >= side && x.t.startsWith(n.slice(0, 10))));
+  const more = crowd.texts.some(x => /more on the map/.test(x.t));
+  ok(named.length === crowd.names.length && !more, `13b ${shape}: every person named in Who does what (${named.length} of ${crowd.names.length})`);
+  const lastPerson = Math.max(...crowd.texts.filter(x => x.x >= side && crowd.names.some(n => x.t.startsWith(n.slice(0, 10)))).map(x => x.y));
+  const note = crowd.texts.find(x => x.t.startsWith('Two packers'));
+  const kitHead = crowd.texts.find(x => x.t.startsWith('A T'));
+  ok(note && kitHead && note.y > lastPerson + 20 && kitHead.y > note.y, `13c ${shape}: the note below the people (${Math.round(note?.y)} > ${Math.round(lastPerson)}), the kit below the note`);
+  const areaWords = crowd.texts.find(x => x.t.startsWith('Packing table'));
+  const areaTag = crowd.texts.filter(x => x.t === 'BOTTLENECK' && x.x < side).sort((a, b) => Math.abs(a.y - areaWords.y) - Math.abs(b.y - areaWords.y))[0];
+  ok(areaWords && areaTag && Math.abs(areaTag.y - areaWords.y) > 20, `13d ${shape}: the area's BOTTLENECK tag clear of its words (${Math.round(Math.abs(areaTag?.y - areaWords?.y))} px apart)`);
+}
+}
 
 ok(errs.length === 0, `no console errors ${errs.slice(0, 3).join(' | ')}`);
 await b.close();

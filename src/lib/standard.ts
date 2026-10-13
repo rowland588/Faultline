@@ -285,6 +285,12 @@ export type LabelMode = 'full' | 'short' | 'number';
 export const LABEL_MODES: { mode: LabelMode; word: string }[] = [
   { mode: 'short', word: 'Short' }, { mode: 'full', word: 'Full' }, { mode: 'number', word: 'Numbers' },
 ];
+/** How this device shows names on the map — the screen's chips set it, and
+ *  the card prints the same (a crowded board printed with numbers). */
+export const LABEL_KEY = 'faultline.ls.labels';
+export function labelModeHere(): LabelMode {
+  try { const v = localStorage.getItem(LABEL_KEY); return v === 'full' || v === 'number' ? v : 'short'; } catch { return 'short'; }
+}
 /** A name on the map, short: its first 14 letters, then an ellipsis. */
 export const shortLabel = (label: string, max = 14): string => {
   const t = label.trim();
@@ -365,3 +371,37 @@ export const inCapacityTool = (s: Pick<Standard, 'capacity'>): boolean => capaci
 /** In Line standard's list. */
 export const inMapTool = (s: Pick<Standard, 'marks' | 'photoKey' | 'board' | 'capacity'>): boolean =>
   hasMap(s) || !capacityStarted(s);
+
+/* TAKING ONE TOOL OFF A PRODUCT (Rowland, 13 October: "cant delete a line
+   capacity anywhere ... always implement deletes and editing in everything").
+   A product's one record holds its map (Line standard) and its capacity (Line
+   capacity): deleting one keeps the other — a map deleted kept its capacity
+   nowhere before; it went with the record. SMED's agreed changeovers ride in
+   the capacity and stay with a product that is kept. Only when the other tool
+   has nothing on it does the record go. */
+export type ProductTool = 'map' | 'balance';
+
+/** The record after one tool is taken off it — or null: nothing is left, delete it. */
+export function afterRemoving(s: Standard, tool: ProductTool): Standard | null {
+  if (tool === 'balance') {
+    if (!hasMap(s)) return null;
+    const co = s.capacity?.changeovers;
+    return { ...s, capacity: co?.length ? { stations: [], changeovers: co } : undefined };
+  }
+  if (!capacityStarted(s)) return null;
+  return { ...s, marks: [], photoKey: undefined, board: undefined };
+}
+
+/** What a delete does, in words: the question before it, and the line after it. */
+export function removingSays(s: Standard, tool: ProductTool): { ask: string; done: string } {
+  const kept = afterRemoving(s, tool) != null;
+  const name = s.product.trim() || 'this product';
+  const what = tool === 'balance' ? 'Line capacity' : 'line standard map';
+  const other = tool === 'balance' ? 'line standard map' : 'Line capacity';
+  const co = (s.capacity?.changeovers?.length ?? 0) > 0;
+  return kept
+    ? { ask: `Delete the ${what} for “${name}”? Its ${other} stays${co ? ', and its agreed SMED changeovers' : ''}.`,
+        done: `${tool === 'balance' ? 'Line capacity' : 'Map'} for ${name} deleted — its ${other} kept` }
+    : { ask: `Delete the ${what} for “${name}”?${co ? ' Its agreed SMED changeovers go with it.' : ''}`,
+        done: `${tool === 'balance' ? 'Line capacity' : 'Map'} for ${name} deleted` };
+}
