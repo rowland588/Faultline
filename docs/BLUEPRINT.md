@@ -559,7 +559,34 @@ is still wired.
   Commission, Install, Set up and Hand over (`tests`) — the card for every
   record on the board. The screen gains a button where the list is; the
   paper says what the screen says, from the same modules.
-  `docs/AUDIT.md` 6–14; `list-paper.mjs`; `report-stress` (Line capacity at
-  every size). Left, with reasons, in `docs/AUDIT.md` 10–14 — the line
+  `docs/AUDIT.md` 3.1–3.10; `list-paper.mjs`; `report-stress` (Line capacity at
+  every size). Left, with reasons, in `docs/AUDIT.md` 3.5–3.9 — the line
   report is §6.5's, with the line as the hub.
+- **The flow audit's findings on Control room problems** (`docs/FLOW-AUDIT.md`
+  #2, #4, #5, #12, #13, #22; Rowland, 13 October: "fix what the audit finds
+  and ship it"). Placed (§8): *Control room*, Problems; records `snags` and
+  `cases` (no new record: a 6M problem says the register problem it was
+  taken from in its `source.snag`, and the register problem says its case
+  in its `case_id` — both columns already synced).
+  1. *Who owes it, then by when* — every box patches its own fields into
+     the row as stored (`db/walk patchSnag`), never a copy the page drew.
+  2. *Inside a job, the Problem sheet starts on the job's own line*; a job
+     on several lines asks which (`lib/lineRecords factoryLinesOf`).
+  3. *A line chosen keeps the jobs on it*, narrowed to that line
+     (`lib/snagsReport jobOnLine`); *a 6M job's problems are rows*, each
+     with its phase, opening its fishbone (`lib/useProblems
+     sixMProblemsOf`) — on the screen, the report and the cards. The line
+     page reading the same rows is Stage 3's (§3, "where it is").
+  4. *Closed asks what shows it is fixed* — one optional line, its last
+     step in view; kept as the journey's last step, so on the card and the
+     report.
+  5. *Find the root cause ›* opens a 6M problem in its words on its line's
+     6M job (or says to start one); the register problem is closed as taken
+     to 6M, said on its row and journey, and listed once — as the 6M
+     problem, "seen first on" its line. The fishbone's *Open a problem*
+     lists the line's open register problems under *Something seen*
+     (`lib/useProblems problemFromRegister`).
+  6. *From a line's page*, the problem tapped is scrolled into view, its
+     editor open, with *‹ the line* back to it.
+  Accepted by `snags.mjs` 1b, 4b, 13, 15–18.
 - **Next:** Stage 3 — the line is the hub (its products, readiness, health).

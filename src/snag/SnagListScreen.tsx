@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useSticky } from '../lib/useSticky';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav } from '../state/useRoute';
-import { listSegments, listSnagAssets, snagsForWorkspace, updateSnag, setSnagsStatus } from '../db';
+import { listSegments, listSnagAssets, snagsForWorkspace, patchSnag, setSnagsStatus } from '../db';
 import { useBlobUrl } from './useBlobUrl';
 import { useSyncedAt, useSession } from '../cloud/session';
 import {
@@ -134,18 +134,18 @@ export function SnagListScreen() {
 
   const changeStatus = async (r: Row, status: SnagStatus) => {
     setRows(rs => rs.map(x => x.snag.id === r.snag.id ? { ...x, snag: { ...x.snag, status } } : x));
-    await updateSnag({ ...r.snag, status, closedAt: status === 'closed' ? Date.now() : undefined });
+    await patchSnag(r.snag.id, { status, closedAt: status === 'closed' ? Date.now() : undefined });
   };
-  const changeOwner = async (r: Row, owner: string) => { if (owner === (r.snag.owner ?? '')) return; await updateSnag({ ...r.snag, owner: owner || undefined }); void load(); };
+  const changeOwner = async (r: Row, owner: string) => { if (owner === (r.snag.owner ?? '')) return; await patchSnag(r.snag.id, { owner: owner || undefined }); void load(); };
   const changeDue = async (r: Row, v: string) => {
     const dueAt = dueFromInput(v);
     if (dueAt === r.snag.dueAt) return;
-    await updateSnag({ ...r.snag, dueAt }); void load();
+    await patchSnag(r.snag.id, { dueAt }); void load();
   };
   const changeUpdate = async (r: Row, text: string) => {
     const t = text.trim();
     if (t === (r.snag.latestUpdate ?? '')) return;
-    await updateSnag({ ...r.snag, latestUpdate: t || undefined, latestUpdateAt: t ? Date.now() : undefined }); void load();
+    await patchSnag(r.snag.id, { latestUpdate: t || undefined, latestUpdateAt: t ? Date.now() : undefined }); void load();
   };
   const bulk = async (status: SnagStatus) => { if (!sel.size) return; await setSnagsStatus([...sel], status); setSel(new Set()); await load(); };
   const toggleSel = (id: string) => setSel(s => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });

@@ -34,11 +34,17 @@ export const machineKey = (name: string): string => name.trim().toLowerCase().re
  *  place on its list, never a machine. */
 const notAMachine = (name: string) => !name.trim() || machineKey(name) === 'whole line';
 
+/** The factory lines a job is on, each once, in the job's own order — two of
+ *  its lines kept on one line of the factory are that one line. */
+export function factoryLinesOf(projectId: string, jobLines: readonly JobLine[]): string[] {
+  if (!projectId) return [];
+  return [...new Set(jobLines.filter(l => !l.deletedAt && l.projectId === projectId && l.workspaceId).map(l => l.workspaceId as string))];
+}
+
 /** The factory line a job is on, when it is on exactly one. */
 export function onlyLineOf(projectId: string, jobLines: readonly JobLine[]): string | undefined {
-  if (!projectId) return undefined;
-  const ws = new Set(jobLines.filter(l => !l.deletedAt && l.projectId === projectId && l.workspaceId).map(l => l.workspaceId as string));
-  return ws.size === 1 ? [...ws][0] : undefined;
+  const ws = factoryLinesOf(projectId, jobLines);
+  return ws.length === 1 ? ws[0] : undefined;
 }
 
 /** THE LINE A PROGRAM IS ON — its own, else the job line it names, else its

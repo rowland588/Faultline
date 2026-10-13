@@ -14,9 +14,12 @@
  *      changed, its priority, where it stands — each kept as it is left
  *   3  assigned, not moved: its machine (the jobs' machines offered, another
  *      typed), its project — it stays here, and shows on the job too; a new
- *      line made from the problem, and the line renamed
+ *      line made from the problem, and the line renamed on its own page,
+ *      reached from the problem (FLOW-AUDIT #20)
  *   4  its journey: a step added (a day, what we did, what came of it),
  *      shown under it, changed, taken off
+ *  4b whose typed, then the due date at once: both kept after a reload
+ *      (FLOW-AUDIT #4)
  *   5  a photo marked from the editor — the mark kept on the problem
  *   6  priority for several at once, Critical first, the chips counting in
  *      their colours; Late and Critical as filters; by who
@@ -32,6 +35,20 @@
  *  13  the audit's cases: a problem for an archived project named; closed or
  *      re-prioritised while open, it stays put; pinned on a walk, its line
  *      kept; made a fix, said so under Done
+ *  1b  (FLOW-AUDIT #2) a 6M job's problems are rows, each where it is on its
+ *      way, opening its fishbone; a line chosen keeps the jobs on it — the
+ *      commissioning job's Critical on its line, a 6M job's problem on its own
+ *      line and not on its other
+ *  15  (FLOW-AUDIT #5) the Problem button inside a job: on the job's own line,
+ *      never the last one used; a job on two lines asks which
+ *  16  (FLOW-AUDIT #12) Closed asks what shows it is fixed — its last step in
+ *      view; kept on its journey, on its card
+ *  17  (FLOW-AUDIT #13) Find the root cause ›: a 6M problem opened in its
+ *      words on its line's 6M job, the register problem taken there and said
+ *      so; on a line with no 6M job, Start one; the fishbone's Open a problem
+ *      lists the line's open problems under Something seen
+ *  18  (FLOW-AUDIT #22) from a line's page on a phone: the problem tapped in
+ *      view, its editor open, and ‹ the line, fingertip-sized, back to it
  *  12  an archived project's line said so; a ticked problem put on a new line
  *      from the bar, saved and said so; a box changed says Saved; Save keeps
  *      what was typed; the archived line gone from the control room
@@ -109,10 +126,14 @@ const truth = () => page.evaluate(async () => {
   const lineName = id => ws.find(w => w.id === id)?.name ?? 'A line';
   /* every live project's own problems and fixes — the page holds everything (12 October) */
   const { planModel } = await import('/src/lib/planModel.ts');
+  const { sixMProblemsOf } = await import('/src/lib/useProblems.ts');
   const jobs = (await Promise.all(projects.filter(p => !p.archivedAt).map(async p => {
     const [tests, items, assets, todos] = await Promise.all([db.listTests(p.id), db.listTestItems(p.id), db.listAssets(p.id), db.listPaceTodos(p.id)]);
     const gated = planModel(p) === 'commissioning';
-    return R.jobGroup({ projectId: p.id, job: p.name, tests: gated ? tests : [], items: gated ? items : [], assets, todos: gated ? [] : todos, snags: all, lineName });
+    /* a 6M job's problems are rows too (FLOW-AUDIT #2: "the 6M problems are on no line page and in no register") —
+       read before as nothing, which is what the register showed */
+    const cases = planModel(p) === 'board' ? await sixMProblemsOf(p.id) : [];
+    return R.jobGroup({ projectId: p.id, job: p.name, tests: gated ? tests : [], items: gated ? items : [], assets, todos: gated ? [] : todos, cases, snags: all, lineName });
   }))).filter(g => g.rows.length);
   const r = R.snagsReading({ snags: snags.map(s => (gone.has(s.workspaceId) ? { ...s, workspaceId: '__no_line__' } : s)), lineName: id => (id === '__no_line__' ? 'Not on a line' : lineName(id)), jobName: id => projects.find(p => p.id === id && !p.archivedAt)?.name, became: new Map(), register: true, jobs,
     assetName: s => (s.assetId ? frames.get(s.assetId)?.name : undefined), stillOf: s => (s.assetId ? frames.get(s.assetId)?.stillKey : undefined) });
@@ -141,6 +162,35 @@ await go('#/snags');
   ok((await page.locator('.qsl-work').count()) === open.length && open.length === 6, `1 every open problem on its line: ${open.length}`);
   ok(/^low$/i.test(await words('.qsl-prio', row('seeded snag 0'))) && (await page.locator('.qsl-kind').count()) === 0 && (await page.locator('.qsl-moved').count()) === 0 && !/Moved to /.test(await page.locator('.qsl').innerText()), '1 each with its priority (Low until said); no snag or fix tag, nothing "moved"');
   ok((await page.locator('.qsl-row', { hasText: 'Demo fault' }).count()) === 0 && !/Demo/.test(await words('.qsl-says')), '1 the demo line\'s made-up problem is not here');
+}
+
+/* ---- 1b a 6M job's problems are rows; a line chosen keeps the jobs on it (FLOW-AUDIT #2: "Line 7 — smoke test says
+   1 problem open (Low) while the job on it holds a Critical ... the 6M problems show on no line page and in no register") ---- */
+{
+  const t = await truth();
+  const cases = t.jobRows.filter(r => r.kind === 'case');
+  const open6 = cases.filter(r => r.open);
+  const caseRows = await page.locator('.qsl-job .qsl-jrow').allInnerTexts();
+  ok(open6.length >= 2 && open6.every(r => caseRows.some(x => x.includes(r.what) && x.includes(r.word))),
+    `1b a 6M job's problems are rows, each where it is on its way: ${open6.map(r => `${r.what} — ${r.word}`).join(' · ')}`);
+  const c0 = open6.find(r => r.what === 'Reject bin full by 10am') ?? open6[0];
+  const cr = page.locator('.qsl-jrow', { hasText: c0.what }).first();
+  await cr.locator('.qsl-open').click(); await page.waitForTimeout(400);
+  await cr.getByRole('button', { name: 'Open its fishbone ›' }).click(); await page.waitForTimeout(2500);
+  ok(new RegExp(`#/project/${c0.projectId}/fishbone\\?.*problem=${c0.id}`).test(page.url()) && (await page.locator('body').innerText()).includes(c0.what), `1b one tapped: its fishbone, on it (${c0.what})`);
+  /* the register on the commissioning job's line: the job on it kept, its Critical among them */
+  await go(`#/snags?line=${sd.wsId}`);
+  const jobOpen = t.jobRows.filter(r => r.job === sd.job && r.open);
+  const jobShown = await page.locator('.qsl-job', { has: page.locator('h2', { hasText: sd.job }) }).locator('.qsl-jrow').allInnerTexts();
+  const lineNm = await page.evaluate(async ws => (await (await import('/src/db.ts')).listWorkspaces()).find(w => w.id === ws)?.name, sd.wsId);
+  ok(jobOpen.length > 0 && jobShown.length === jobOpen.length && jobOpen.some(r => r.priority === 'critical') && /CRITICAL/i.test(jobShown.join(' ')),
+    `1b the register on ${lineNm}: the job on it kept — its ${jobOpen.length} open, the Critical among them (was none)`);
+  /* a job on two lines narrowed to the one chosen: the 6M job's Line 7 problem there, its Line 2A one not */
+  const l7 = await page.evaluate(async () => (await (await import('/src/db.ts')).listWorkspaces()).find(w => w.name === 'Line 7')?.id);
+  await go(`#/snags?line=${l7}`);
+  const on7 = (await page.locator('.qsl-job .qsl-jrow').allInnerTexts()).join(' | ');
+  ok(on7.includes('Reject bin full by 10am') && !on7.includes('Basketer minor stops'), '1b on Line 7: the 6M job\'s problem on Line 7 is there, its Line 2A one is not');
+  await go('#/snags');
 }
 
 /* ---- 2 opened as its own editor; its words, priority and state kept ---- */
@@ -182,9 +232,15 @@ await go('#/snags');
   s = await snag(what);
   const made = s?.workspaceId !== wasOn ? await lineCalled(s?.workspaceId) : undefined;
   ok(made === 'Line 2B', `3 a new line made from the problem, the problem on it: ${made}`);
-  page.once('dialog', d => void d.accept('Line 2B — packing'));
-  await row(what).locator('.pe').getByRole('button', { name: 'Rename this line' }).click(); await page.waitForTimeout(1000);
-  ok((await lineCalled(s?.workspaceId)) === 'Line 2B — packing' && (await page.locator('.qsl-g .qsl-gh h2', { hasText: 'Line 2B — packing' }).count()) === 1, '3 the line renamed from the problem — the new name on the page');
+  /* its name is the line's, put right on the line's own page — reached from the problem (FLOW-AUDIT #20: "Rename this
+     line" in a problem was a third way to rename a line, read as changing the problem's line) */
+  await row(what).locator('.pe').getByRole('button', { name: 'Rename Line 2B on its page ›' }).click(); await page.waitForTimeout(2000);
+  const onItsPage = new RegExp(`#/lines/${s?.workspaceId}`).test(page.url()) && (await page.locator('h1').innerText()).trim() === 'Line 2B';
+  await page.getByRole('button', { name: 'Edit the line' }).click(); await page.waitForTimeout(400);
+  await page.getByLabel("The line's name").fill('Line 2B — packing'); await page.getByLabel("The line's name").press('Enter'); await page.waitForTimeout(900);
+  await go('#/snags');
+  ok(onItsPage && (await lineCalled(s?.workspaceId)) === 'Line 2B — packing' && (await page.locator('.qsl-g .qsl-gh h2', { hasText: 'Line 2B — packing' }).count()) === 1, '3 the line renamed on its own page, reached from the problem — the new name on the register');
+  await openUp(what);
   await row(what).locator('.pe').getByLabel('Which line').selectOption(wasOn); await page.waitForTimeout(800);
   ok((await snag(what))?.workspaceId === wasOn, '3 and put back on its own line');
 }
@@ -227,6 +283,42 @@ await go('#/snags');
   await row(what).locator('.pe').getByRole('button', { name: /^Take off the step: Taped/ }).click(); await page.waitForTimeout(700);
   s = await snag(what);
   ok((s?.journey ?? []).length === 1, '4 a step taken off');
+}
+
+/* ---- 4b who owes it, then by when — both kept (FLOW-AUDIT #4: "if you type who owes a problem and then its due
+   date, the name is lost" — the date was written from the copy the page drew before the name landed, putting the
+   old name back while the page said Saved) ---- */
+{
+  const what = 'Bagger jaw jams on 2kg film';
+  const id = await page.evaluate(async ws => {
+    const db = await import('/src/db.ts');
+    const s = { id: crypto.randomUUID(), workspaceId: ws, status: 'open', raisedAt: Date.now(), updatedAt: Date.now(), media: [], problem: 'Bagger jaw jams on 2kg film', owner: 'Priya Shah' };
+    await db.addSnag(s); return s.id;
+  }, sd.wsId);
+  await go('#/snags');
+  const pe = await openUp(what);
+  await pe.getByLabel('Whose is it').click();
+  const due = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10);
+  /* WHOSE typed, Tab, and the date straight after — quicker than the page reads its rows again, as on a busy phone */
+  await row(what).locator('.pe').evaluate(async (box, d) => {
+    const who = box.querySelector('input[aria-label="Whose is it"]'), day = box.querySelector('input[aria-label="Due date"]');
+    const set = (el, v) => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, v); el.dispatchEvent(new Event('input', { bubbles: true })); };
+    set(who, 'Sam Lee');
+    await new Promise(r => setTimeout(r, 0));
+    day.focus(); set(day, d);
+    await new Promise(r => setTimeout(r, 0));
+    day.blur();
+  }, due);
+  await page.waitForTimeout(1200);
+  const saidSaved = await row(what).locator('.pe-saved').isVisible().catch(() => false);
+  await page.reload(); await page.waitForTimeout(2200);
+  const s = await snag(what);
+  const pe2 = await openUp(what);
+  const shown = { who: await pe2.getByLabel('Whose is it').inputValue(), due: await pe2.getByLabel('Due date').inputValue() };
+  ok(saidSaved && s?.owner === 'Sam Lee' && shown.who === 'Sam Lee' && shown.due === due && /Sam Lee/.test(await words('.qsl-meta', row(what))),
+    `4b whose typed, Tab, the date at once, the page reloaded: both kept — ${s?.owner ?? 'no name'}, due ${shown.due || 'none'}`);
+  await page.evaluate(async x => { await (await import('/src/db.ts')).deleteSnag(x); }, id);
+  await go('#/snags');
 }
 
 /* ---- 5 a photo marked from the editor ---- */
@@ -463,7 +555,8 @@ await go('#/snags');
   ok(await row(what).locator('.pe-saved').isVisible(), '12 a box changed: "Saved" beside Save');
   await row(what).locator('.pe').getByLabel('What is the problem').fill(`${what} — saved with Save`);
   await row(what).locator('.pe-save').click(); await page.waitForTimeout(1200);
-  const kept = !!(await snag(`${what} — saved with Save`)), pe = await row(`${what} — saved with Save`).locator('.pe').count(), sv = await page.locator('.preg-saved').count();
+  /* the screen read first — "Saved" stays four seconds, and reading the store back can take longer on a busy machine */
+  const sv = await page.locator('.preg-saved').count(), pe = await row(`${what} — saved with Save`).locator('.pe').count(), kept = !!(await snag(`${what} — saved with Save`));
   ok(kept && pe === 0 && sv === 1, `12 Save keeps what was typed, closes it and says Saved on its row (kept ${kept}, editors open ${pe}, saved shown ${sv})`);
   await go('#/');
   const cr = (await page.locator('.fac-home').innerText()).replace(/\s+/g, ' ');
@@ -485,8 +578,10 @@ await go('#/snags');
     ok(!(await words('.qsl-meta', r)).includes(sd.job), `13 a problem for an archived project: its row never names the archived project`);
     await r.locator('.qsl-open').click(); await page.waitForTimeout(500);
     ok((await r.locator('.pe').getByLabel('Which project').evaluate(el => el.options[el.selectedIndex]?.text)) === `${sd.job} — archived project`, '13 and its project box names it — never "No project"');
-    /* closed from its own editor: it stays in view, saying so */
-    await r.locator('.pe').getByRole('group', { name: 'Where it stands' }).getByRole('button', { name: 'Closed' }).click(); await page.waitForTimeout(900);
+    /* closed from its own editor: it stays in view, saying so — Closed asks what shows it is fixed first, answered
+       with nothing (FLOW-AUDIT #12: one tap closed it, nothing asked) */
+    await r.locator('.pe').getByRole('group', { name: 'Where it stands' }).getByRole('button', { name: 'Closed' }).click(); await page.waitForTimeout(500);
+    await r.locator('.pe-close').getByRole('button', { name: 'Close it' }).click(); await page.waitForTimeout(900);
     ok((await row(forArch.problem).count()) === 1 && (await snag(forArch.problem))?.status === 'closed', '13 closed from its editor on Open: it stays in view until closed up');
     await row(forArch.problem).locator('.pe-save').click(); await page.waitForTimeout(800);
   } else ok(false, '13 no open problem for the archived project to look at');
@@ -519,6 +614,141 @@ await go('#/snags');
   await go('#/'); await go('#/snags');
   await page.locator('.qsl-f .chip', { hasText: /^Done/ }).click(); await page.waitForTimeout(400);
   ok(/Made a fix on /.test(await row('Coder misprints the date').locator('.qsl-state').innerText().catch(() => '')), '13 made a fix on its project: under Done it says "Made a fix on …", never a bare Closed');
+}
+
+/* ---- 15 the Problem button inside a job: on the job's own line (FLOW-AUDIT #5: "a problem taken inside Line 2
+   commissioning is filed on Line 7, which is the last line used, not the job's own line") ---- */
+const ids = await page.evaluate(async () => {
+  const db = await import('/src/db.ts'); const P = await import('/src/db/projects.ts');
+  const ws = await db.listWorkspaces();
+  const l2c = ws.find(w => w.name === 'Line 2C'), l7 = ws.find(w => w.name === 'Line 7');
+  const guard = await db.createProject('Line 2C guarding', '#2b87d4', 'Rowland', 'r@example.com', 'commissioning');
+  await db.addPaceLine({ projectId: guard.id, workspaceId: l2c.id, key: '2C', name: 'Line 2C', sort: 0 });
+  const paced = (await P.allProjects()).find(p => p.name === 'Line 7 pace');
+  const l7line = (await db.allPaceLines()).find(l => l.projectId === paced.id && l.workspaceId === l7.id);
+  return { l2c: l2c.id, l7: l7.id, guard: guard.id, paced: paced.id, l7line: l7line.id };
+});
+{
+  /* the last line used is another line */
+  await page.evaluate(async ws => (await import('/src/snag/quick.ts')).remember('line', ws), ids.l7);
+  await go(`#/project/${ids.guard}`);
+  await page.locator('.qs-top').first().click(); await page.waitForTimeout(900);
+  let sheet = page.locator('.sheet, [role="dialog"]').last();
+  const on = await sheet.getByLabel('Which line').evaluate(el => el.options[el.selectedIndex]?.text);
+  const pj = await sheet.getByLabel('Which project').evaluate(el => el.options[el.selectedIndex]?.text);
+  ok(on === 'Line 2C' && pj === 'Line 2C guarding', `15 inside a job on one line: the sheet starts on its line — ${on}, for ${pj} (the last line used was Line 7)`);
+  await sheet.locator('textarea').first().fill('Guard hinge cracked at the infeed');
+  await sheet.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(1200);
+  const kept = await snag('Guard hinge cracked at the infeed');
+  ok(kept?.workspaceId === ids.l2c && kept?.projectId === ids.guard, '15 saved on Line 2C, for the job');
+  /* a job on two lines asks which — as it asks for the machine */
+  await go(`#/project/${ids.paced}`);
+  await page.locator('.qs-top').first().click(); await page.waitForTimeout(900);
+  sheet = page.locator('.sheet, [role="dialog"]').last();
+  const ask = sheet.getByRole('group', { name: "Which of the job's lines" });
+  const offered = (await ask.locator('.chip').allInnerTexts()).map(x => x.trim());
+  await sheet.locator('textarea').first().fill('Reject chute blocks on 1.25 kg');
+  const held = await sheet.getByRole('button', { name: 'Save', exact: true }).isDisabled();
+  ok(offered.length === 2 && offered.includes('Line 7') && held && /is on 2 lines — which is it on\?/.test(await ask.innerText()), `15 inside a job on two lines: it asks which (${offered.join(', ')}), and waits`);
+  await ask.getByRole('button', { name: 'Line 7', exact: true }).click(); await page.waitForTimeout(300);
+  await sheet.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(1200);
+  const on7 = await snag('Reject chute blocks on 1.25 kg');
+  ok(on7?.workspaceId === ids.l7 && on7?.projectId === ids.paced, '15 the line said: saved on Line 7, for the 6M job');
+  await page.evaluate(async x => { const db = await import('/src/db.ts'); for (const id of x) await db.deleteSnag(id); }, [kept?.id, on7?.id].filter(Boolean));
+}
+
+/* ---- 16 closed asks what shows it is fixed (FLOW-AUDIT #12: "one tap closes it ... its last step read 'Ran 2 h
+   without a jam, then jammed again', and it still closed with nothing asked") ---- */
+{
+  const what = 'Bagger jaw jams on 2kg film — again';
+  await page.evaluate(async ws => {
+    const db = await import('/src/db.ts'); const t = Date.now();
+    await db.addSnag({ id: crypto.randomUUID(), workspaceId: ws, problem: 'Bagger jaw jams on 2kg film — again', status: 'open', raisedAt: t - 3 * 86_400_000, updatedAt: t, media: [], priority: 'high',
+      journey: [{ id: crypto.randomUUID(), at: t - 86_400_000, did: 'New jaw springs fitted', result: 'Ran 2 h without a jam, then jammed again' }] });
+  }, ids.l2c);
+  await go('#/snags');
+  const pe = await openUp(what);
+  await pe.getByRole('group', { name: 'Where it stands' }).getByRole('button', { name: 'Closed' }).click(); await page.waitForTimeout(600);
+  const ask = row(what).locator('.pe-close');
+  const asked = await ask.isVisible() && /WHAT SHOWS IT IS FIXED/.test(await ask.innerText()) && /jammed again/.test(await ask.innerText());
+  ok(asked && (await snag(what))?.status === 'open', '16 Closed asks what shows it is fixed, its last step ("then jammed again") in view — not closed yet');
+  await ask.getByLabel('What shows it is fixed').fill('A full shift on 2kg film with no jam');
+  await ask.getByRole('button', { name: 'Close it' }).click(); await page.waitForTimeout(900);
+  const s = await snag(what);
+  const last = (s?.journey ?? []).slice().sort((a, b) => a.at - b.at).at(-1);
+  ok(s?.status === 'closed' && last?.did === 'Closed' && last?.result === 'A full shift on 2kg film with no jam' && /Closed → A full shift/.test(await words('.preg-last', row(what))),
+    `16 closed, and what shows it is fixed kept as its journey's last step: ${last?.did} → ${last?.result}`);
+  const dir = mkdtempSync(join(tmpdir(), 'proof-'));
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), row(what).locator('.pe').getByRole('button', { name: 'Report card (PDF)' }).click()]);
+  const f = join(dir, 'card.pdf'); await dl.saveAs(f);
+  const ct = execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
+  ok(/A full shift on 2kg film with no jam/.test(ct) && /jammed again/.test(ct), '16 on its card: the step that failed and what shows it is fixed');
+  await row(what).locator('.pe-save').click(); await page.waitForTimeout(500);
+}
+
+/* ---- 17 a problem seen on the floor made the head of the fish (FLOW-AUDIT #13: "a problem seen on the floor cannot
+   become the head of the fish ... today it means typing the problem again") ---- */
+{
+  const what = 'Checkweigher rejects good packs after a film change';
+  await page.evaluate(async ({ l7, l2c }) => {
+    const db = await import('/src/db.ts'); const t = Date.now();
+    await db.addSnag({ id: crypto.randomUUID(), workspaceId: l7, problem: 'Checkweigher rejects good packs after a film change', status: 'open', raisedAt: t, updatedAt: t, media: [], priority: 'critical', owner: 'Lee Carty' });
+    await db.addSnag({ id: crypto.randomUUID(), workspaceId: l7, problem: 'Film splice tears at the former', status: 'open', raisedAt: t, updatedAt: t, media: [] });
+    await db.addSnag({ id: crypto.randomUUID(), workspaceId: l2c, problem: 'Pallet wrapper film breaks', status: 'open', raisedAt: t, updatedAt: t, media: [] });
+  }, ids);
+  await go('#/snags');
+  /* on a line with no 6M job: start one */
+  const none = await openUp('Pallet wrapper film breaks');
+  ok(/No 6M project on Line 2C yet/.test(await none.innerText()) && (await none.getByRole('button', { name: 'Start one to find its root cause ›' }).count()) === 1, '17 on a line with no 6M job: "Start one to find its root cause ›"');
+  await row('Pallet wrapper film breaks').locator('.pe-save').click(); await page.waitForTimeout(400);
+  /* on Line 7, whose 6M job finds root causes */
+  const pe = await openUp(what);
+  await pe.getByRole('button', { name: 'Find the root cause ›' }).click(); await page.waitForTimeout(3000);
+  const s = await snag(what);
+  const made = await page.evaluate(async id => (await import('/src/db.ts')).getCase(id), s?.caseId ?? '');
+  ok(new RegExp(`#/project/${ids.paced}/fishbone\\?.*problem=${s?.caseId}`).test(page.url()) && made?.title === what && made?.source?.kind === 'observed' && made?.source?.snag === s?.id && made?.lineId === ids.l7line,
+    `17 Find the root cause ›: a 6M problem in its words, on Line 7 pace's Line 7, its fishbone open (${made?.title})`);
+  ok((await page.locator('body').innerText()).includes(what), '17 the head of the fish says it');
+  ok(s?.status === 'closed' && s?.projectId === ids.paced && /Taken to 6M on Line 7 pace/.test((s?.journey ?? []).map(j => j.did).join(' ')), '17 the register problem taken there — closed for Line 7 pace, said on its journey');
+  await go('#/snags');
+  await page.locator('.qsl-f .chip', { hasText: /^Done/ }).click(); await page.waitForTimeout(400);
+  ok(/Taken to 6M on Line 7 pace/.test(await row(what).locator('.qsl-state').innerText().catch(() => '')), '17 under Done it says "Taken to 6M on Line 7 pace", never a bare Closed');
+  await page.locator('.qsl-f .chip', { hasText: /^Open/ }).click(); await page.waitForTimeout(400);
+  const asCase = page.locator('.qsl-jrow', { hasText: what }).first();
+  ok((await asCase.count()) === 1 && /Finding the cause/.test(await asCase.innerText()) && /seen first on Line 7/.test(await asCase.innerText()), '17 and listed once, open, as the 6M problem — Finding the cause, seen first on Line 7');
+  /* the fishbone's Open a problem lists the line's open problems under Something seen */
+  await go(`#/project/${ids.paced}/fishbone?line=${ids.l7line}`);
+  await page.getByRole('button', { name: /Open a problem/ }).first().click(); await page.waitForTimeout(900);
+  const seen = page.getByRole('list', { name: 'Problems seen on the line' });
+  const listed = (await seen.locator('.fj-seen-t').allInnerTexts()).map(x => x.trim());
+  ok(listed.includes('Film splice tears at the former') && !listed.includes(what) && !listed.includes('Pallet wrapper film breaks'), `17 Open a problem, Something seen: the line's open problems listed (${listed.join(', ')})`);
+  await seen.getByRole('button', { name: /Film splice tears at the former/ }).click(); await page.waitForTimeout(2500);
+  const sp = await snag('Film splice tears at the former');
+  ok(sp?.status === 'closed' && !!sp?.caseId && new RegExp(`problem=${sp?.caseId}`).test(page.url()) && (await page.locator('body').innerText()).includes('Film splice tears at the former'),
+    '17 one tapped: the head of the fish in its words, the register problem taken there');
+}
+
+/* ---- 18 from a line's page, on a phone: the problem tapped in view, and the way back (FLOW-AUDIT #22: "it lands at
+   the top ... the opened editor is two screens down, behind the Problem button ... no way back to the line") ---- */
+{
+  await page.evaluate(async ws => {
+    const db = await import('/src/db.ts'); const t = Date.now();
+    for (let i = 0; i < 10; i++) await db.addSnag({ id: crypto.randomUUID(), workspaceId: ws, problem: `Critical on the infeed ${i + 1}`, status: 'open', raisedAt: t - i * 1000, updatedAt: t, media: [], priority: 'critical' });
+    await db.addSnag({ id: crypto.randomUUID(), workspaceId: ws, problem: 'Low one at the end of the line', status: 'open', raisedAt: t - 9 * 86_400_000, updatedAt: t, media: [], priority: 'low' });
+  }, ids.l2c);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await go(`#/lines/${ids.l2c}`);
+  await page.locator('.pl-row', { hasText: 'Low one at the end of the line' }).first().click(); await page.waitForTimeout(2600);
+  const r = row('Low one at the end of the line');
+  const box = await r.evaluate(el => ({ top: el.getBoundingClientRect().top, onPage: el.getBoundingClientRect().top + window.scrollY, h: window.innerHeight }));
+  ok(/#\/snags\?line=/.test(page.url()) && (await r.locator('.pe').count()) === 1 && box.onPage > box.h && box.top >= 0 && box.top < box.h / 3,
+    `18 from the line: the problem tapped scrolled into view, its editor open (it sits ${Math.round(box.onPage)}px down the page; now ${Math.round(box.top)}px from the top)`);
+  const back = page.locator('.qsl-back');
+  const bb = await back.boundingBox();
+  ok((await back.innerText()).trim() === '‹ Line 2C' && (bb?.height ?? 0) >= 44, `18 the way back: "${(await back.innerText()).trim()}", ${Math.round(bb?.height ?? 0)}px tall`);
+  await page.evaluate(() => window.scrollTo(0, 0)); await back.click(); await page.waitForTimeout(1500);
+  ok(new RegExp(`#/lines/${ids.l2c}`).test(page.url()) && (await page.locator('h1').innerText()).trim() === 'Line 2C', '18 tapped: back on Line 2C');
+  await page.setViewportSize({ width: 1360, height: 900 });
 }
 
 ok(errors.length === 0, `no console errors${errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''}`);

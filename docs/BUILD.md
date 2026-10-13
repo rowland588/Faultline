@@ -1115,7 +1115,8 @@ come — and no project to hang them on.
   names the list once (the demo and the archived aside), so the control
   room, the rail and the line's page agree.
 - **Made in one way, from three places** — a name: the control room's New
-  line, "A new line…" on a problem (and Rename this line), and the Problem
+  line, "A new line…" on a problem (its name put right on the line's own
+  page — FLOW-AUDIT #20), and the Problem
   button's sheet.
 - **The control room's Production lines** take the place of the "Not on a
   project" shelf: every line, what is on it (its problems first), the

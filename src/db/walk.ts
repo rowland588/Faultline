@@ -146,6 +146,10 @@ export async function snagsForWorkspace(workspaceId: ID): Promise<Snag[]> {
 export async function listAllSnags(): Promise<Snag[]> {
   return (await (await getDB()).getAll('snags')).filter(s => s.deletedAt == null);
 }
+/** One problem as it is stored now, deleted or not. */
+export async function getSnag(id: ID): Promise<Snag | undefined> {
+  return (await getDB()).get('snags', id);
+}
 export async function addSnag(s: Snag): Promise<void> {
   await (await getDB()).put('snags', s);
   signalWrite();
@@ -153,6 +157,26 @@ export async function addSnag(s: Snag): Promise<void> {
 export async function updateSnag(s: Snag): Promise<void> {
   await (await getDB()).put('snags', { ...s, updatedAt: now() });
   signalWrite();
+}
+/** A PROBLEM CHANGED FIELD BY FIELD — the change merged into the row as it is
+ *  stored NOW, read and written in one transaction (FLOW-AUDIT #4: "if you
+ *  type who owes a problem and then its due date, the name is lost"). An
+ *  editor that wrote `{ ...theCopyItDrew, ...change }` put back every other
+ *  field as it was when the screen last drew: the name written on leaving
+ *  WHOSE was undone a moment later by the date, written from a copy that
+ *  still had the old name, while the page said "Saved". The change may be
+ *  worked out from the stored row (a journey step added to the steps as they
+ *  are now, not as they were drawn). Returns the row as written. */
+export async function patchSnag(id: ID, change: Partial<Snag> | ((stored: Snag) => Partial<Snag>)): Promise<Snag | undefined> {
+  const db = await getDB();
+  const tx = db.transaction('snags', 'readwrite');
+  const cur = await tx.objectStore('snags').get(id);
+  if (!cur) { await tx.done; return undefined; }
+  const next: Snag = { ...cur, ...(typeof change === 'function' ? change(cur) : change), id: cur.id, updatedAt: now() };
+  await tx.objectStore('snags').put(next);
+  await tx.done;
+  signalWrite();
+  return next;
 }
 /** Deleted with an undo (ui/Undo): the problem and its close-up photo are
  *  handed back, so Undo puts back exactly what went, on every device. It now

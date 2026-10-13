@@ -124,6 +124,10 @@ export interface ProblemSource {
    *  cause — safety, quality, the constraint (docs/SIXM.md, the working
    *  method). Absent for the vital few, which need no reason. */
   why?: string;
+  /** Something seen that was first a problem in the register — its id (a
+   *  Snag): "Find the root cause ›" on it, or picked under Something seen
+   *  (FLOW-AUDIT #13). The register problem says where it went. */
+  snag?: string;
 }
 
 /** Keeping the gain — the check that says the fix is still working. */
