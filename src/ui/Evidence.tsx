@@ -4,7 +4,7 @@ import { useBlobUrl, useBlobSource } from '../lib/useBlobUrl';
 import { uid } from '../lib/ids';
 import { VideoPlayer } from './VideoPlayer';
 import { Icon } from './Icon';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ShareSheet } from './ShareLink';
 import PinImage, { type Pin } from '../snag/PinImage';
 
@@ -83,6 +83,12 @@ export function EvidenceViewer({ media, onClose, onRemove, share, onPins }: {
      drawn from here, so a second mark never waits on the first one's write. */
   const [pins, setPins] = useState<MediaPin[]>(pinsOf(media));
   const marked = media.kind === 'photo' && (pins.length > 0 || !!onPins);
+  /* Escape closes it, as every sheet and drawer (docs/AUDIT.md, bar 1) — unless its share sheet is open over it */
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => { if (e.key === 'Escape' && !sharing) onClose(); };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, [onClose, sharing]);
   return (
     <div className="ev-viewer" onClick={onClose}>
       <button className="ev-close" onClick={onClose} aria-label="Close"><Icon name="close" size="1.1em" /></button>

@@ -164,6 +164,28 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
     : k.startsWith('ws:') ? (lines.find(l => l.id === k.slice(3))?.name ?? 'A line')
     : `Job: ${projects.find(p => p.id === k.slice(4))?.name ?? 'a job'}`);
 
+  /* EVERY ONE SHOWN, ON PAPER (lib/studiesPdf; docs/AUDIT.md, bar 3) — the
+     studies in the order the page shows them, each said where it sits */
+  const [printing, setPrinting] = useState(false);
+  const shownCount = shownGroups.reduce((n, [, rows]) => n + rows.length, 0);
+  const paper = async () => {
+    if (printing || !shownCount) return;
+    setPrinting(true);
+    try {
+      const [{ saveStudiesPdf }, { listAllStandards }] = await Promise.all([import('../lib/studiesPdf'), import('../db')]);
+      const items = shownGroups.flatMap(([, rows]) => rows.map(s => {
+        const line = lines.find(l => l.id === s.workspaceId), job = projects.find(p => p.id === s.projectId);
+        return { s, where: `${line ? `On ${line.name}` : 'On no line'} · ${job ? `attached to ${job.name}` : 'on no job'}` };
+      }));
+      const title = onLineName ? `${w.title} — ${onLineName}` : w.title;
+      await saveStudiesPdf({ title, printed: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
+        items, standards: await listAllStandards(), ctx: { observations: obs, workspaces: lines } }, title);
+    } catch (e) {
+      console.error('studies pdf failed', e);
+      window.alert('Sorry — the PDF could not be made. Please try again.');
+    } finally { setPrinting(false); }
+  };
+
   return (
     <div className="wrap qsl ie-list">
       <header className="pace-head">
@@ -172,6 +194,7 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
           <p className="sub">{w.lede}</p>
         </div>
         <div className="pace-head-actions">
+          {shownCount > 0 && <button type="button" className="btn btn-ghost" disabled={printing} onClick={() => void paper()} aria-label={`${w.title} on paper — every one shown (PDF)`}>{printing ? 'Making…' : 'PDF (all shown)'}</button>}
           <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>{w.add}</button>
         </div>
       </header>

@@ -1,0 +1,142 @@
+/* A STUDY ON PAPER — one study, or every one a list shows (docs/AUDIT.md,
+ * bar 3). Rowland, 13 October: "I find that I'm always asking for reports, or
+ * cards, to be able to present things in a certain way that would seem to be
+ * obvious, but aren't". A study reached paper only inside a job's client or
+ * 6M report; a study on a line, or a quick session, had none.
+ *
+ * Each study says what it is, where it sits, what it is used for and its
+ * sentence (lib/studyLinks studyLine), then its table — the same blocks the
+ * client report's Evidence draws (lib/clientReport studyEvidence), so the two
+ * never part: a value stream's grid, a changeover's steps, a shift's losses,
+ * a sampling's shares. A capability study adds its figures and its readings.
+ * Laid out by the report engine (src/lib/report/, docs/REPORTS.md). */
+import type { jsPDF } from 'jspdf';
+import type { ToolStudy } from './study';
+import type { Standard } from './standard';
+import type { StudyContext } from './studyLinks';
+import { studyEvidence } from './clientReport';
+import { sample, CPK_FROM } from './ie/sample';
+import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
+import { SIZE, font, gap, label, rows, text, wrap } from './report/blocks';
+import { streamBlocks } from './report/streamTable';
+import { changeoverBlocks } from './report/changeoverTable';
+import { lossBlocks } from './report/lossTable';
+import { samplingBlocks } from './report/samplingTable';
+
+const W = 595, H = 842, M = 36, CW = W - 2 * M;
+const INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', BRAND = '#1f63e0', DANGER = '#9b3227';
+
+export interface StudyPaperItem {
+  s: ToolStudy;
+  /** "On Line 7 · attached to Line 7 commissioning", said as the page says it. */
+  where: string;
+}
+
+export interface StudiesPaper {
+  /** "Capability study — Weight accuracy 400 g", or "Capability studies — Line 7". */
+  title: string;
+  printed: string;
+  items: StudyPaperItem[];
+  standards: Standard[];
+  ctx?: StudyContext;
+}
+
+/** A CAPABILITY STUDY'S FIGURES AND READINGS — the strip as a row, then
+ *  every reading in the order taken, ten to a row, struck ones said so. */
+function capabilityBlocks(s: ToolStudy): Block[] {
+  const a = s.agreed?.readings;
+  if (!a || a.kind === 'ticks') return [];
+  const f = sample(a, s.facts.readings ?? []);
+  if (!f.n) return [];
+  const unit = a.unit ? ` ${a.unit}` : '';
+  const fx = (v?: number) => (v === undefined ? '—' : v.toFixed(f.dp));
+  const enough = f.n >= CPK_FROM;
+  const cells: [string, string][] = [
+    ['Readings', `${f.n} of ${f.count}`], ['Mean', `${fx(f.mean)}${unit}`], ['Range', `${fx(f.min)}–${fx(f.max)}`],
+    ['Outside', String(f.outside.length)],
+    ['Ppk', enough && f.ppk !== undefined && Number.isFinite(f.ppk) ? f.ppk.toFixed(2) : 'too few'],
+    ['Cpk', enough && f.cpk !== undefined && Number.isFinite(f.cpk) ? f.cpk.toFixed(2) : 'too few'],
+  ];
+  const out: Block[] = [];
+  out.push(rows({ rows: [{
+    h: () => 30,
+    draw: (fr: Frame, y: number) => {
+      const cw = fr.w / cells.length;
+      fr.doc.setDrawColor(LINE); fr.doc.setLineWidth(0.5); fr.doc.line(fr.x, y, fr.x + fr.w, y); fr.doc.line(fr.x, y + 28, fr.x + fr.w, y + 28);
+      cells.forEach(([k, v], i) => {
+        font(fr.doc, 7, 'bold', MUTED); fr.doc.text(k.toUpperCase(), fr.x + i * cw, y + 10);
+        font(fr.doc, 10, 'bold', k === 'Outside' && f.outside.length ? DANGER : INK2); fr.doc.text(v, fr.x + i * cw, y + 23);
+      });
+    },
+  }], after: 's' }));
+  /* every reading, in the order taken — outside in red, struck said */
+  const all = (s.facts.readings ?? []).map((r, i) => ({ no: i + 1, r }));
+  const out10: typeof all[] = [];
+  for (let i = 0; i < all.length; i += 10) out10.push(all.slice(i, i + 10));
+  const outsideIds = new Set(f.outside.map(o => o.id));
+  out.push(label('The readings, in the order taken'));
+  out.push(rows({
+    rows: out10.map(row => ({
+      h: () => 15,
+      draw: (fr: Frame, y: number) => {
+        const cw = fr.w / 10;
+        row.forEach(({ no, r }, i) => {
+          const v = typeof r.value === 'number' ? r.value.toFixed(f.dp) : r.ok === true ? '✓' : r.ok === false ? '✗' : '—';
+          const struck = !!r.struck;
+          font(fr.doc, 6.5, 'normal', MUTED); fr.doc.text(String(no), fr.x + i * cw, y + 10);
+          font(fr.doc, 8.5, outsideIds.has(r.id) ? 'bold' : 'normal', struck ? MUTED : outsideIds.has(r.id) ? DANGER : INK2);
+          fr.doc.text(struck ? `${v} struck` : v, fr.x + i * cw + 12, y + 10);
+        });
+      },
+    })),
+    after: 'm',
+  }));
+  return out;
+}
+
+function blocksOf(p: StudiesPaper, d: Density): Block[] {
+  const out: Block[] = [];
+  out.push(text({ text: p.items.length === 1 ? 'A STUDY · MEASURED BY PEOPLE AT THE LINE' : `${p.items.length} STUDIES · MEASURED BY PEOPLE AT THE LINE`, size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
+  out.push(text({ text: p.title, size: SIZE.title, style: 'bold', after: 4 }));
+  out.push(text({ text: `Printed ${p.printed}`, colour: MUTED, after: gap(d, 'm') }));
+  if (!p.items.length) out.push(text({ text: 'No studies here yet.', colour: MUTED }));
+  p.items.forEach(({ s, where }, i) => {
+    const e = studyEvidence(s, [], p.standards, p.ctx);
+    out.push(text({ text: e.title, size: SIZE.h2, style: 'bold', before: i ? gap(d, 'l') : 0, after: 2 }));
+    out.push(text({ text: where, size: 8, colour: MUTED, after: 1 }));
+    if (s.uses.length) out.push(text({ text: `Used for: ${s.uses.length} record${s.uses.length === 1 ? '' : 's'} on its job`, size: 8, colour: MUTED, after: 1 }));
+    out.push(text({ text: e.line, size: 9.5, colour: e.tone === 'r' ? DANGER : INK2, after: 6 }));
+    if (s.tool === 'capability') out.push(...capabilityBlocks(s));
+    if (e.stream) out.push(...streamBlocks(e.stream.rows, e.stream.total));
+    if (e.changeover) out.push(...changeoverBlocks(e.changeover, e.line));
+    if (e.losses) out.push(...lossBlocks(e.losses));
+    if (e.sampling) out.push(...samplingBlocks(e.sampling));
+    if (s.receipt?.text && s.closedAt) out.push(text({ text: `Closed: ${s.receipt.text}`, size: 8, colour: MUTED, before: 2, after: 2 }));
+  });
+  return out;
+}
+
+/** Draw the studies into `doc` (A4 portrait), every page footed. */
+export async function drawStudies(doc: jsPDF, p: StudiesPaper): Promise<void> {
+  const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
+  const density = await chooseDensity(base, d => blocksOf(p, d));
+  await pour({ ...base, density, dry: false }, blocksOf(p, density), () => doc.addPage('a4', 'portrait'));
+  const pages = doc.getNumberOfPages();
+  for (let i = 1; i <= pages; i++) {
+    doc.setPage(i);
+    font(doc, 7.5, 'normal', MUTED);
+    const foot = wrap(doc, `${p.title}  ·  ${p.printed}`, CW - 60, 7.5)[0] ?? '';
+    doc.text(foot, M, H - 18);
+    doc.text(`${i} of ${pages}`, W - M, H - 18, { align: 'right' });
+  }
+}
+
+/** Make the PDF and hand it over — the study's page and a list's "PDF" both. */
+export async function saveStudiesPdf(p: StudiesPaper, fileWhat: string): Promise<void> {
+  const { loadPdfLib, deliverPdf } = await import('./savePdf');
+  const { pdfFileName } = await import('./fileName');
+  const { jsPDF } = await loadPdfLib();
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+  await drawStudies(doc, p);
+  await deliverPdf(doc, pdfFileName(fileWhat, 'report', new Date().toISOString().slice(0, 10)));
+}

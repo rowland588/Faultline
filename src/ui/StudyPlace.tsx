@@ -47,6 +47,24 @@ export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
     .sort((a, b) => Number(!!s.workspaceId && b.workspaceIds.includes(s.workspaceId)) - Number(!!s.workspaceId && a.workspaceIds.includes(s.workspaceId))),
   [projects, accessOn, s.workspaceId]);
   const set = (p: Partial<ToolStudy>) => { void patchStudy(s.id, p); setPicking(null); };
+  /* THE STUDY ON PAPER (lib/studiesPdf) — on its own, on a line or on a job:
+     what it is, where it sits, its sentence and its table (docs/AUDIT.md, bar 3) */
+  const [printing, setPrinting] = useState(false);
+  const where = `${line ? `On ${line.name}` : 'On no line'} · ${job ? `attached to ${job.name}` : 'on no job'}`;
+  const paper = async () => {
+    if (printing) return;
+    setPrinting(true);
+    try {
+      const [{ saveStudiesPdf }, { listAllStandards, listWorkspaces, listObservations }, { studyTitle }] = await Promise.all([
+        import('../lib/studiesPdf'), import('../db'), import('../lib/studyLinks')]);
+      const [standards, workspaces, observations] = await Promise.all([listAllStandards(), listWorkspaces(), s.workspaceId ? listObservations(s.workspaceId) : Promise.resolve([])]);
+      await saveStudiesPdf({ title: studyTitle(s), printed: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
+        items: [{ s, where }], standards, ctx: { observations, workspaces } }, studyTitle(s));
+    } catch (e) {
+      console.error('study pdf failed', e);
+      window.alert('Sorry — the PDF could not be made. Please try again.');
+    } finally { setPrinting(false); }
+  };
   /* Off a job is the owner's (the cloud keeps it for anyone else); a quick
      session or a line's, its people's. */
   const mayLeaveJob = can.remove;
@@ -59,6 +77,7 @@ export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
         {job ? <>attached to <b>{job.name}</b></> : 'on no job'}
         {!line && !job && <span className="sub"> — a quick session, yours alone</span>}
       </span>
+      <button type="button" className="btn btn-ghost btn-sm ie-place-pdf" disabled={printing} onClick={() => void paper()} aria-label="This study on paper (PDF)">{printing ? 'Making…' : 'PDF'}</button>
       {can.edit && picking === null && (
         <span className="ie-place-acts">
           <button type="button" className="linkish" onClick={() => setPicking('line')}>{line ? 'Move to another line' : 'Put on a line'}</button>
