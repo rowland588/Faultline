@@ -38,6 +38,7 @@ import type { LossCount, RunTiming, ToolStudy } from '../lib/study';
 import type { Observation, Workspace } from '../types';
 import { TOOL_WORDS } from './StudiesScreen';
 import { UsedFor, WhereItSits, useBetter } from '../ui/StudyPlace';
+import { StudyName } from '../ui/StudyActs';
 import { capacityForCount } from '../ui/ShiftLosses';
 
 const OWNER = canAt('owner');
@@ -108,7 +109,7 @@ function Losses({ s, line, obs, rate, can, me }: { s: ToolStudy; line?: Workspac
     <div className="wrap ie lf">
       <header className="ie-head">
         <small className="ie-eyebrow">{w?.one ?? 'Loss count'}</small>
-        <Name s={s} canEdit={editable} />
+        <StudyName s={s} canEdit={editable} canRemove={can.remove} />
         <p className="sub ie-where">
           {line ? <><b>{line.name}</b> · </> : null}
           {s.product ? <><b>{s.product}</b> · </> : null}
@@ -151,21 +152,6 @@ function Losses({ s, line, obs, rate, can, me }: { s: ToolStudy; line?: Workspac
   );
 }
 
-/* ------------------------------------------------------------------ name */
-function Name({ s, canEdit }: { s: ToolStudy; canEdit: boolean }) {
-  const [v, setV] = useState<string | null>(null);
-  if (v === null) return (
-    <h1 className="ie-name">{s.name || 'Not named'}
-      {canEdit && <button type="button" className="linkish ie-rename" onClick={() => setV(s.name)}>Rename</button>}
-    </h1>
-  );
-  const save = () => { if (v.trim()) void patchStudy(s.id, { name: v.trim() }); setV(null); };
-  return (
-    <form className="ie-name-f" onSubmit={e => { e.preventDefault(); save(); }}>
-      <input className="text-input" value={v} maxLength={120} autoFocus onChange={e => setV(e.target.value)} onBlur={save} aria-label="What it is of" />
-    </form>
-  );
-}
 
 /* ------------------------------------------------------------------ the strip */
 function Strip({ f, said }: { f: LossFigures; said: LossSays }) {

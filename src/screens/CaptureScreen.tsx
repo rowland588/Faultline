@@ -23,6 +23,7 @@ import { Toast } from '../ui/Toast';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
 import { useTeam } from '../cloud/team';
 import { Icon } from '../ui/Icon';
+import { StopSheet } from '../ui/StopSheet';
 
 const blobKeysOf = (media: MediaRef[]): string[] =>
   media.flatMap(m => [m.blobKey, m.thumbKey].filter(Boolean) as string[]);
@@ -210,6 +211,14 @@ export function CaptureScreen() {
       setToast({ msg: "Couldn't save that clip — device storage may be full." });
     }
   };
+  /* A STOP PUT RIGHT where it is listed (lib/stopEdit), with Undo. */
+  const [changing, setChanging] = useState<Observation | null>(null);
+  const saveChange = async (next: Observation, before: Observation) => {
+    setChanging(null);
+    await updateObservation(next);
+    await reload();
+    setToast({ msg: `Changed · ${next.asset} · ${next.category}${next.durationMs > 0 ? ' · ' + fmtDuration(next.durationMs) : ''}`, undo: () => void updateObservation(before).then(reload) });
+  };
   const delFeed = async (o: Observation) => {
     await removeObs(o.id);
     setToast({ msg: `Deleted · ${o.asset} · ${o.category}`, undo: () => void restoreObs(o.id) });
@@ -366,7 +375,9 @@ export function CaptureScreen() {
             {recent.map(o => (
               <div className="cap-feed-row" key={o.id}>
                 <span className="cap-feed-dot" style={{ background: workspace.color }} />
-                <div className="cap-feed-main">
+                {/* tapped, it is changed where it is (ui/StopSheet) — its machine,
+                    what it was, its minutes, its note */}
+                <button type="button" className="cap-feed-main cap-feed-open" onClick={() => setChanging(o)} aria-label={`Change ${o.category} on ${o.asset}`}>
                   <div className="cap-feed-what">{o.asset} · <b>{o.category}</b>{o.subcategory ? ` · ${o.subcategory}` : ''}</div>
                   <div className="cap-feed-meta">
                     {o.durationMs > 0 ? fmtDuration(o.durationMs) : 'noted'} · {fmtRelative(o.createdAt)}
@@ -374,8 +385,9 @@ export function CaptureScreen() {
                     {o.causeM && <> · {SIXM.find(b => b.key === o.causeM)?.label}</>}
                     {/* a teammate's entry says whose it is — shared workspace, no mystery rows */}
                     {o.ownerId && myId && o.ownerId !== myId && <> · <b>{whoIs(o.ownerId)?.name ?? 'teammate'}</b></>}
+                    {o.timing === 'typed' && o.durationMs > 0 && <> · typed</>}
                   </div>
-                </div>
+                </button>
                 <button className="cap-feed-del" onClick={() => void delFeed(o)} aria-label={`Delete ${o.category} on ${o.asset}`}><Icon name="close" size="0.85em" /></button>
               </div>
             ))}
@@ -388,6 +400,7 @@ export function CaptureScreen() {
         )}
       </div>
 
+      {changing && <StopSheet o={changing} ws={workspace} onClose={() => setChanging(null)} onSave={(n, b) => void saveChange(n, b)} />}
       {toast && <Toast message={toast.msg} onUndo={toast.undo ? () => { toast.undo!(); setToast(null); } : undefined} onDismiss={() => setToast(null)} />}
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)} />}
       {recording && <VideoRecorder onCapture={o => void onClip(o)} onClose={() => setRecording(false)} />}

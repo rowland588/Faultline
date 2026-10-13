@@ -8,7 +8,7 @@ import { LOSS } from '../charts/loss';
 import { useEffect, useMemo, useState } from 'react';
 import { useWorkspace } from '../state/WorkspaceProvider';
 import { nav, navReplace, goBack, buildAnalyseHash } from '../state/useRoute';
-import { getCase, updateCase, deleteCase, snagsForWorkspace, updateSnag, chainForWorkspace, listPaceTodos, loadPaceLines, type PaceLineRow, type PaceTodoRow } from '../db';
+import { getCase, updateCase, removeCase, restoreCase, snagsForWorkspace, updateSnag, chainForWorkspace, listPaceTodos, loadPaceLines, type PaceLineRow, type PaceTodoRow } from '../db';
 import { ActionSheet, type Editing } from '../ui/ActionSheet';
 import { isLate } from '../lib/actions';
 import { useSyncedAt } from '../cloud/session';
@@ -22,6 +22,7 @@ import { SNAG_STATUS_META, isOverdue, isDueSoon, compareReview, dueToInput, dueF
 import { studyResult, defaultTargetN, studyTarget, makeReceipt, provenWin, fmtSpan } from '../lib/proof';
 import type { Case, DimensionKey, WorkstreamView } from '../types';
 import { Icon } from '../ui/Icon';
+import { offerUndo } from '../ui/Undo';
 import { DateInput } from '../ui/DateInput';
 
 /** Mean-per-event, in words a room can read aloud. */
@@ -335,10 +336,16 @@ export function CaseScreen({ caseId }: { caseId: string }) {
   const maxWeekMs = Math.max(1, ...weeks.map(w => w.ms), kase.baselineMsWeek, kase.targetMsWeek ?? 0);
   const closedFlagWeeks = new Set(closedMine.map(s => weekStart(s.closedAt ?? s.raisedAt)));
 
+  /* DELETED WITH UNDO, like every delete (ui/Undo). It was a hard delete with
+     no way back, and it never told the other devices' screens; now it is the
+     same soft removal as a 6M problem (db/cases removeCase) — synced as
+     deleted_at, put back whole by Undo — and the ask says what stays. */
   const remove = async () => {
-    if (!window.confirm('Delete this case? Its actions keep living on the evidence list.')) return;
-    await deleteCase(kase.id);
+    const n = mine.length;
+    if (!window.confirm(`Delete the case “${kase.title.trim() || 'Untitled'}”?\n\n${n ? `Its ${plural(n, 'action')} stay${n === 1 ? 's' : ''} on the evidence list, and the` : 'The'} stops it read stay on the line.\n\nUndo brings it back for a few seconds.`)) return;
+    const before = await removeCase(kase.id);
     nav(`/w/${workspace.id}/analyse`);
+    if (before) offerUndo(`Deleted the case “${kase.title.trim() || 'Untitled'}”`, () => restoreCase(before));
   };
 
   return (

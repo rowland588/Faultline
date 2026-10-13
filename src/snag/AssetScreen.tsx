@@ -6,6 +6,7 @@ import { nav } from '../state/useRoute';
 /* A fix pinned on this frame, or a thing found here, opens in the record's
    drawer over the frame (ui/RecordDrawer) — × comes back to the picture. */
 import { openRecord } from '../ui/RecordDrawer';
+import { offerUndo } from '../ui/Undo';
 import { getSnagAsset, getSegment, snagsForAsset, addSnag, updateSnag, updateSnagAsset, deleteSnag, putBlob, getBlob, chainForWorkspace, getProject, listTests, listTestItems, putTest } from '../db';
 import { planModel } from '../lib/planModel';
 import { live, type Test, type TestItem } from '../lib/testing';
@@ -320,7 +321,11 @@ function SnagEditor({ wsId, asset, draft, snag, observations, still, pinAt, onCl
       nav(recordHref(jobId, id, 'fix'));
     } finally { setBusy(false); }
   };
-  const remove = async () => { if (snag && window.confirm('Delete this? The photo and everything written about it go with it.')) { await deleteSnag(snag.id); onSaved(); } };
+  const remove = async () => {
+    if (!snag || !window.confirm('Delete this? The photo and everything written about it go with it.\n\nUndo brings it back for a few seconds.')) return;
+    offerUndo(`Deleted “${snag.problem.trim() || 'the problem'}”`, await deleteSnag(snag.id));
+    onSaved();
+  };
   const addPhoto = async (file: File) => { const key = `blob-${uid()}`; await putBlob(key, file); setPhotoKey(key); };
   const addFixed = async (file: File) => { const key = `blob-${uid()}`; await putBlob(key, file); setFixedKey(key); };
 

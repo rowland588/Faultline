@@ -8,6 +8,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getProject, updateProject, listTargets, putTarget, deleteTarget, listReadings, putReading, putReadings, deleteReading, onDataChange } from '../db';
 import { uid, now } from './ids';
+import { niceDay } from './weeks';
+import { offerUndo } from '../ui/Undo';
 import { bySort, quarters, standingFor, targetsAcross } from './measures';
 import type { Direction, Measure, Period, Reading, Standing, Target } from './measures';
 import type { Project } from '../types';
@@ -139,7 +141,13 @@ export function useMeasures(projectId: string): MeasuresState {
   }, [projectId]);
 
   const saveReading = useCallback(async (r: Reading) => { await putReading({ ...r, updatedAt: now() }); }, []);
-  const removeReading = useCallback(async (id: string) => { await deleteReading(id); }, []);
+  /* Deleted with Undo, like every delete (ui/Undo) — it asked, and then it
+     was gone for good. */
+  const removeReading = useCallback(async (id: string) => {
+    const r = readings.find(x => x.id === id);
+    const unit = r ? measures.find(m => m.id === r.measureId)?.unit : undefined;
+    offerUndo(r ? `Deleted the reading of ${r.value}${unit ? ` ${unit}` : ''} on ${niceDay(r.at)}` : 'Reading deleted', await deleteReading(id));
+  }, [readings, measures]);
 
   const importReadings = useCallback(async (rows: { lineId: string; measureId: string; at: string; value: number }[]) => {
     const t = now();

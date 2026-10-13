@@ -26,6 +26,7 @@
  *
  * Access (lib/access): a client reads the wins; the team logs and proves
  * them; only the owner deletes one. */
+import { offerUndo } from '../ui/Undo';
 import { DraftArea, DraftField } from '../ui/Draft';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { listPaceWins, putPaceWin, deletePaceWin, onDataChange, type PaceWinRow } from '../db';
@@ -168,9 +169,11 @@ export function PaceSuccess({ projectId, lineId }: { projectId: string; lineId?:
   const remove = async (w: PaceWinRow) => {
     if (!can.remove) return;
     const filled = [w.title, w.story, w.where, w.who, w.impact].some(v => v.trim()) || !!w.proof;
-    if (filled && !window.confirm(`Delete this win?\n\n"${w.title || '(no title)'}"`)) return;
+    if (filled && !window.confirm(`Delete this win?\n\n"${w.title || '(no title)'}"${w.proof ? '\n\nIts proof goes with it.' : ''}\n\nUndo brings it back for a few seconds.`)) return;
     setWins(wins.filter(x => x.id !== w.id));
-    await deletePaceWin(w.id);
+    /* with Undo, like every delete (ui/Undo) — it asked, then it was gone */
+    const back = await deletePaceWin(w.id);
+    offerUndo(w.title.trim() ? `Deleted the win “${w.title.trim()}”` : 'Win deleted', async () => { await back(); setWins(cur => (cur.some(x => x.id === w.id) ? cur : [w, ...cur])); });
   };
 
   if (loading) return <p className="sub">Loading…</p>;

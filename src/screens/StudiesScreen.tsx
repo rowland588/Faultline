@@ -23,6 +23,9 @@ import { nav } from '../state/useRoute';
 import { Sheet } from '../ui/Sheet';
 import { sample, sampleSays } from '../lib/ie/sample';
 import { lossFiguresOf, studyHref, type StudyContext } from '../lib/studyLinks';
+import { removeStudy, StudyRowName } from '../ui/StudyActs';
+import { useAccess } from '../cloud/access';
+import { can as canOf } from '../lib/access';
 import { rateForCount } from '../ui/ShiftLosses';
 import { dur, flowFigures, share } from '../lib/ie/steps';
 import { changeoverFigures, changeoverSays, figuresOf, mins } from '../lib/ie/changeover';
@@ -90,6 +93,8 @@ const LOSSES: ToolWords = {
   none: 'No loss counts yet. Pick a line; at the end of the shift, pick the shift and type the packs made and the rejects — the stops timed through the shift explain the rest.',
   second: { label: 'Which product?', placeholder: 'e.g. Maris Piper 2kg' },
 };
+const OWNER = canOf('owner');
+
 export const TOOL_WORDS: Partial<Record<StudyTool, ToolWords>> = { capability: CAPABILITY, map: MAP, changeover: CHANGEOVER, sampling: SAMPLING, losses: LOSSES };
 
 export { studyHref } from '../lib/studyLinks';
@@ -217,30 +222,47 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
             <span className="sub">{rows.length} {rows.length === 1 ? 'study' : 'studies'}{k === 'none' ? ' — yours alone until you put one on a line' : ''}</span>
           </div>
           <ul className="lt-rows">
-            {rows.map(s => {
-              const said = studyLine(s, tool === 'losses' ? { observations: obs, workspaces: lines } : undefined);
-              const n = (s.facts.readings ?? []).filter(r => !r.struck).length;
-              const count = s.agreed?.readings?.count;
-              const steps = (s.facts.flow ?? []).length;
-              const lc = s.facts.losses;
-              return (
-                <li key={s.id}>
-                  <button type="button" className="lt-row" onClick={() => nav(studyHref(s))}>
-                    <b className="lt-what">{s.name || 'Not named'}{(s.machine || s.product) && s.tool !== 'changeover' ? <span className="ie-li-m"> · {s.machine ?? s.product}</span> : null}</b>
-                    <span className={'lt-says ie-tone is-' + said.tone}>{said.text}</span>
-                    <span className="lt-where">{s.tool === 'sampling' ? `${(s.agreed?.sampling?.who ?? []).length} watched · ${(s.facts.taps ?? []).filter(x => !x.struck).length} taps` : s.tool === 'map' ? `${steps} step${steps === 1 ? '' : 's'}${(s.facts.future ?? []).length ? ' · a future state' : ''}`
-                      : s.tool === 'changeover' ? `${(s.facts.sequence ?? []).length} element${(s.facts.sequence ?? []).length === 1 ? '' : 's'}${changeoverFigures(s.facts.sequence).enough ? ` · ${mins(changeoverFigures(s.facts.sequence).nowSec)}` : ''}`
-                      : s.tool === 'losses' ? (lc ? `${windowWords(lc)} · ${new Date(lc.from).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}` : 'no shift picked yet')
-                        : count ? `${n} of ${count}` : `${n} reading${n === 1 ? '' : 's'}`}{s.closedAt ? ' · closed' : ''}</span>
-                  </button>
-                </li>
-              );
-            })}
+            {rows.map(s => <StudyRow key={s.id} s={s} ctx={tool === 'losses' ? { observations: obs, workspaces: lines } : undefined} />)}
           </ul>
         </section>
       ))}
       <NewStudy open={adding} tool={tool} onClose={() => setAdding(false)} onLine={onLine} />
     </div>
+  );
+}
+
+/** ONE STUDY ON ITS TOOL'S LIST — opened with a tap; renamed and deleted where
+ *  it sits (Rowland, 13 October: "always implement deletes and editing in
+ *  everything"), the same two its own page has (ui/StudyActs). On a job the
+ *  job's access says who may (the team renames, the owner deletes); a quick
+ *  session or a line's, its people. */
+function StudyRow({ s, ctx }: { s: ToolStudy; ctx?: StudyContext }) {
+  const jobCan = useAccess(s.projectId ?? '');
+  const may = s.projectId ? jobCan : OWNER;
+  const [naming, setNaming] = useState(false);
+  const said = studyLine(s, ctx);
+  const n = (s.facts.readings ?? []).filter(r => !r.struck).length;
+  const count = s.agreed?.readings?.count;
+  const steps = (s.facts.flow ?? []).length;
+  const lc = s.facts.losses;
+  if (naming) return <li className="lt-li is-naming" data-study={s.id}><StudyRowName s={s} onDone={() => setNaming(false)} /></li>;
+  return (
+    <li className="lt-li" data-study={s.id}>
+      <button type="button" className="lt-row" onClick={() => nav(studyHref(s))}>
+        <b className="lt-what">{s.name || 'Not named'}{(s.machine || s.product) && s.tool !== 'changeover' ? <span className="ie-li-m"> · {s.machine ?? s.product}</span> : null}</b>
+        <span className={'lt-says ie-tone is-' + said.tone}>{said.text}</span>
+        <span className="lt-where">{s.tool === 'sampling' ? `${(s.agreed?.sampling?.who ?? []).length} watched · ${(s.facts.taps ?? []).filter(x => !x.struck).length} taps` : s.tool === 'map' ? `${steps} step${steps === 1 ? '' : 's'}${(s.facts.future ?? []).length ? ' · a future state' : ''}`
+          : s.tool === 'changeover' ? `${(s.facts.sequence ?? []).length} element${(s.facts.sequence ?? []).length === 1 ? '' : 's'}${changeoverFigures(s.facts.sequence).enough ? ` · ${mins(changeoverFigures(s.facts.sequence).nowSec)}` : ''}`
+          : s.tool === 'losses' ? (lc ? `${windowWords(lc)} · ${new Date(lc.from).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}` : 'no shift picked yet')
+            : count ? `${n} of ${count}` : `${n} reading${n === 1 ? '' : 's'}`}{s.closedAt ? ' · closed' : ''}</span>
+      </button>
+      {((may.edit && !s.closedAt) || may.remove) && (
+        <span className="lt-acts">
+          {may.edit && !s.closedAt && <button type="button" className="cw-link" onClick={() => setNaming(true)} aria-label={`Rename ${s.name || 'this study'}`}>Rename</button>}
+          {may.remove && <button type="button" className="cw-link sp-rm" onClick={() => void removeStudy(s)} aria-label={`Delete ${s.name || 'this study'}`}>Delete</button>}
+        </span>
+      )}
+    </li>
   );
 }
 

@@ -50,7 +50,7 @@ import { currentLosses, lossCardLine, studyHref } from '../lib/studyLinks';
 import { useJobStudies } from '../ui/StudyLinks';
 import { offerUndo } from '../ui/Undo';
 import { drillOfRef, factsOf, lineOf, oldWhysOf, startingWhys } from '../lib/fishbone';
-import { closedProblemOn, putOldWhysOnBone } from '../lib/useProblems';
+import { closedProblemOn, putOldWhysOnBone, retitleProblem } from '../lib/useProblems';
 import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
 import { useActions } from '../lib/actions';
@@ -649,6 +649,7 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
     onClosedOn: iso => { if (can.agree) void closedProblemOn(v.problem.id, iso); },
     onChecked: () => void api.checked(v.problem.id),
     onRemove: () => void removeProblem(v),
+    onRetitle: t => { if (can.edit) void retitleProblem(v.problem.id, t); },
   });
 
   /* The sheets — the same in the room and the lens. */

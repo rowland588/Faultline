@@ -176,6 +176,14 @@ export const closedProblemOn = (problemId: string, iso: string) => patchCase(pro
 });
 export const reopenProblem = (problemId: string) =>
   patchCase(problemId, c => ({ ...c, status: 'open', closedAt: undefined }));
+/** THE PROBLEM IN BETTER WORDS — the head of the fish, changed where it sits
+ *  (the audit's bar 2: every record's words changed where it is opened). Its
+ *  causes, countermeasures and where it was taken from stay as they are; an
+ *  empty title is never written. */
+export const retitleProblem = (problemId: string, title: string) => {
+  const t = title.trim();
+  return patchCase(problemId, c => (t && t !== c.title ? { ...c, title: t } : c));
+};
 /** The hold check was looked at today. */
 export const checkedProblem = (problemId: string) =>
   patchCase(problemId, c => (c.hold ? { ...c, hold: { ...c.hold, lastChecked: todayISO() } } : c));
