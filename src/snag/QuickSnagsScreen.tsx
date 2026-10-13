@@ -57,6 +57,8 @@ const PrioTag = ({ p }: { p: Priority }) => <span className={'qsl-prio ' + PRIO_
 const photoRef = (key: string, s?: { media?: MediaRef[] }): MediaRef =>
   s?.media?.find(m => m.blobKey === key) ?? { id: key, kind: 'photo', blobKey: key, mime: 'image/jpeg', capturedAt: 0 };
 const NEW_LINE = '__new_line__';
+/** The group of problems whose line is gone with an archived project, or archived itself. */
+const NO_LINE = '__no_line__';
 /** A job's records the page reads its problems and fixes from. */
 interface JobData { tests: Test[]; items: TestItem[]; assets: Asset[]; todos: PaceTodoRow[] }
 const todayInput = () => dueToInput(new Date().setHours(0, 0, 0, 0));
@@ -122,13 +124,11 @@ export function QuickSnagsScreen() {
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
 
   /* a line on an archived project says so (Rowland, 12 October: "2A and 2B is actually an archived project") */
-  const lineName = useCallback((id: string) => {
-    const live = lines.find(w => w.id === id);
-    if (live) return `${live.name}${awayLines.has(id) ? ' — archived project' : ''}`;
-    const gone = shelved.find(w => w.id === id);
-    return gone ? `${gone.name} — archived line` : 'A line';
-  }, [lines, awayLines, shelved]);
-  /* a problem for an archived project still says what it is for (13 October audit) */
+  const lineName = useCallback((id: string) => (id === NO_LINE || awayLines.has(id) || shelved.some(w => w.id === id)
+    ? 'Not on a line' : lines.find(w => w.id === id)?.name ?? 'Not on a line'), [lines, awayLines, shelved]);
+  /* the rows name a project in use only — an archived project's name never heads or tags a row (13 October) */
+  const liveJobName = useCallback((id?: string) => (id ? projects.find(p => p.id === id)?.name : undefined), [projects]);
+  /* the problem's own project box names it, archived or not, so it can be seen and changed (13 October audit) */
   const jobName = useCallback((id?: string) => {
     if (!id) return undefined;
     const live = projects.find(p => p.id === id);
@@ -137,23 +137,22 @@ export function QuickSnagsScreen() {
     return gone ? `${gone.name} — archived project` : undefined;
   }, [projects, archivedJobs]);
   const byId = useMemo(() => new Map((snags ?? []).map(s => [s.id, s])), [snags]);
-  /* WITH AN ARCHIVED PROJECT (Rowland, 13 October: "2A 2B — this is the archived name, okay, this is the issue"):
-     a problem on a line of an archived project, or on a line archived itself, goes with it — off the page,
-     its counts and its report — and is listed at the foot, kept, to be put on a line in use. Restore the
-     project and it is back by itself: nothing about the problem is changed. */
+  /* NOT ON A LINE (Rowland, 13 October: "the problems that are under it right now are needed. Don't
+     delete them. I've used them. The thing that needs removing is just the bloody title 2A2B. That
+     doesn't exist because it's an archive project"): a problem on a line of an archived project, or on a
+     line archived itself, stays on the page — worked, counted, on the report — under "Not on a line",
+     never under the archived name; each put on a line in use when wanted. */
   const goneLines = useMemo(() => new Set([...awayLines, ...shelved.map(w => w.id)]), [awayLines, shelved]);
-  const here = useMemo(() => (snags ?? []).filter(s => !s.archivedAt && !goneLines.has(s.workspaceId)), [snags, goneLines]);
-  const withGone = useMemo(() => (snags ?? []).filter(s => !s.archivedAt && goneLines.has(s.workspaceId)), [snags, goneLines]);
-  const [showGone, setShowGone] = useState(false);
+  const here = useMemo(() => (snags ?? []).filter(s => !s.archivedAt), [snags]);
   const away = useMemo(() => (snags ?? []).filter(s => !!s.archivedAt).sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0)), [snags]);
   const frameName = (s: Snag) => (s.assetId ? frames.get(s.assetId)?.name : undefined);
 
   /* Narrowed by line, job, person and words first — the counts then count what is left. */
   const words = search.trim().toLowerCase();
   const narrowed = useMemo(() => here.filter(s =>
-    (lineF === 'all' || s.workspaceId === lineF) && (jobF === 'all' || s.projectId === jobF)
+    (lineF === 'all' || (lineF === NO_LINE ? goneLines.has(s.workspaceId) : s.workspaceId === lineF)) && (jobF === 'all' || s.projectId === jobF)
     && (whoF === 'all' || (whoF === '' ? !s.owner?.trim() : s.owner?.trim() === whoF))
-    && (!words || `${s.problem} ${s.latestUpdate ?? ''} ${s.targetAsset ?? ''} ${s.owner ?? ''} ${s.proposedSolution ?? ''} ${(s.journey ?? []).map(j => `${j.did} ${j.result ?? ''}`).join(' ')}`.toLowerCase().includes(words))), [here, lineF, jobF, whoF, words]);
+    && (!words || `${s.problem} ${s.latestUpdate ?? ''} ${s.targetAsset ?? ''} ${s.owner ?? ''} ${s.proposedSolution ?? ''} ${(s.journey ?? []).map(j => `${j.did} ${j.result ?? ''}`).join(' ')}`.toLowerCase().includes(words))), [here, lineF, jobF, whoF, words, goneLines]);
   /* Each project's own problems (with no fix yet) and its fixes — a
      stage-gate job's — or a 6M job's actions that came from a problem
      (lib/snagsReport jobGroup), narrowed as the problems are: a line chosen
@@ -168,10 +167,10 @@ export function QuickSnagsScreen() {
     return rows.length ? [{ ...g, rows }] : [];
   })), [jobData, liveJobs, lineF, jobF, whoF, words, snags, lineName]);
   const reading = useMemo(() => snagsReading({
-    snags: narrowed, lineName, jobName, became: new Map(), register: true, jobs: jobGroups,
+    snags: narrowed.map(s => (goneLines.has(s.workspaceId) ? { ...s, workspaceId: NO_LINE } : s)), lineName, jobName: liveJobName, became: new Map(), register: true, jobs: jobGroups,
     assetName: s => (s.assetId ? frames.get(s.assetId)?.name : undefined),
     stillOf: s => (s.assetId ? frames.get(s.assetId)?.stillKey : undefined),
-  }), [narrowed, lineName, jobName, frames, jobGroups]);
+  }), [narrowed, lineName, liveJobName, frames, jobGroups, goneLines]);
   const c = reading.counts;
 
   /* What the chosen count shows. */
@@ -197,7 +196,7 @@ export function QuickSnagsScreen() {
   const shownCount = shownLines.reduce((n, g) => n + g.rows.length, 0) + shownJobs.reduce((n, g) => n + g.rows.length, 0);
   const anyJobRows = [...jobData.keys()].length > 0 && reading.jobs.length > 0;
 
-  const onLines = [...new Set(here.map(s => s.workspaceId))];
+  const onLines = [...new Set(here.map(s => (goneLines.has(s.workspaceId) ? NO_LINE : s.workspaceId)))];
   const onJobs = liveJobs.filter(p => here.some(s => s.projectId === p.id) || reading.jobs.some(g => g.projectId === p.id));
   const owners = [...new Set(here.map(s => s.owner?.trim()).filter((o): o is string => !!o))].sort();
   const toggle = (ids: string[], on: boolean) => setPicked(p => { const n = new Set(p); for (const id of ids) { if (on) n.add(id); else n.delete(id); } return n; });
@@ -347,7 +346,7 @@ export function QuickSnagsScreen() {
 
       {snags && here.length === 0 && (
         <div className="qsl-empty">
-          <p><b>{away.length ? 'A fresh start.' : withGone.length ? 'Nothing on a line in use.' : 'No problems yet.'}</b> Write the first — press <b>Problem</b>, say what is wrong, take a picture if it helps.</p>
+          <p><b>{away.length ? 'A fresh start.' : 'No problems yet.'}</b> Write the first — press <b>Problem</b>, say what is wrong, take a picture if it helps.</p>
           <button type="button" className="btn btn-primary" onClick={() => openQuickSnag()}><Icon name="camera" size="1.05em" />Problem</button>
         </div>
       )}
@@ -403,7 +402,7 @@ export function QuickSnagsScreen() {
                         {r.due && <span className={'qsl-dueword ' + TONE_CLASS[r.dueTone ?? 'n']}>{r.due}</span>}
                       </span>
                     </button>
-                    {isOpen && <ProblemEditor s={s} lines={lines.map(w => (awayLines.has(w.id) ? { ...w, name: `${w.name} — archived project` } : w))} projects={liveJobs}
+                    {isOpen && <ProblemEditor s={s} lines={lines.filter(w => !goneLines.has(w.id))} projects={liveJobs}
                       saved={savedOn?.id === s.id && Date.now() - savedOn.at < 4000} lineName={lineName} jobName={jobName}
                       onSave={() => { flip(s.id); setSavedOn({ id: s.id, at: Date.now() }); }} machines={machinesFor(s.workspaceId)} frame={s.assetId ? frames.get(s.assetId) : undefined}
                       put={p => void put(s.id, p)} onView={m => setViewing({ snagId: s.id, media: m })} busy={busy}
@@ -427,41 +426,6 @@ export function QuickSnagsScreen() {
         onPdf={kind => { const full = jobGroups.find(x => x.projectId === g.projectId) ?? g; void pdfGroup(kind, g.job, here.filter(s => s.projectId === g.projectId), [full]); }}
         onOpen={r => (r.kind === 'action' ? nav(`/project/${r.projectId}/board?a=${encodeURIComponent(r.id)}`) : openRecord(r.projectId, r.id))}
         onList={() => { const p = liveJobs.find(x => x.id === g.projectId); nav(p && planModel(p) === 'commissioning' ? `/project/${g.projectId}/fixes` : `/project/${g.projectId}/board`); }} />)}
-
-      {/* WITH AN ARCHIVED PROJECT — kept, each put on a line in use to work it again. */}
-      {withGone.length > 0 && (
-        <section className="qsl-g preg-away preg-gone">
-          <button type="button" className="linkish" aria-expanded={showGone} onClick={() => setShowGone(v => !v)}>{showGone ? '▾' : '▸'} With archived projects — {withGone.length}</button>
-          {showGone && <>
-            <p className="sub">Their project or line is archived, so they went with it. Put one on a line in use to work it again; restore the project and they are all back.</p>
-            <ul className="qsl-rows">
-              {withGone.map(s => (
-                <li key={s.id} className="qsl-row preg-away-row">
-                  <span className="qsl-body">
-                    <span className="qsl-what"><PrioTag p={s.priority ?? 'low'} />{s.problem?.trim() || 'A picture, no words yet'}</span>
-                    <span className="qsl-meta">{lineName(s.workspaceId)}{s.status === 'closed' ? ' · closed' : ''}</span>
-                  </span>
-                  {s.assetId
-                    ? <span className="sub">pinned on its walk</span>
-                    : <select className="text-input qsl-sel" value="" aria-label={`Put on a line: ${s.problem ?? ''}`} onChange={e => {
-                      const v = e.target.value; if (!v) return;
-                      void (async () => {
-                        let to = v, name = lines.find(w => w.id === v)?.name ?? 'the line';
-                        if (v === NEW_LINE) { const typed = window.prompt('The new line’s name')?.trim(); if (!typed) return; to = (await createWorkspace(typed)).id; name = typed; }
-                        await updateSnag({ ...s, workspaceId: to });
-                        offerUndo(`Saved — now on ${name}`, async () => { await updateSnag(s); });
-                      })();
-                    }}>
-                      <option value="">Put on a line…</option>
-                      {lines.filter(w => !goneLines.has(w.id)).map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                      <option value={NEW_LINE}>A new line…</option>
-                    </select>}
-                </li>
-              ))}
-            </ul>
-          </>}
-        </section>
-      )}
 
       {/* PUT AWAY BY A FRESH START — kept, never deleted, brought back with a tap. */}
       {away.length > 0 && (
@@ -649,7 +613,7 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
             name is wrong (the old "2A", "2B" could not be changed here). */}
         <div className="pe-f"><span className="pe-k">LINE</span>
           {/* PINNED ON A WALK, it is on that line's walk picture — it stays on its line (13 October audit: moved, it kept the old line's pin) */}
-          {s.assetId ? <p className="pe-said">{lineName(s.workspaceId)} — pinned on its walk</p> : <>
+          {s.assetId ? <p className="pe-said">{lineName(s.workspaceId) === 'Not on a line' ? 'Pinned on the walk of a line no longer in use' : `${lineName(s.workspaceId)} — pinned on its walk`}</p> : <>
           <select className="text-input" value={s.workspaceId} aria-label="Which line" onChange={e => {
             const v = e.target.value;
             if (v !== NEW_LINE) { put({ workspaceId: v }); return; }
