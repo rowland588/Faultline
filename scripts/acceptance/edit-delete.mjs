@@ -22,6 +22,11 @@
  *         its causes kept (they were fixed once it was opened)
  *      2  the old A3 (a case on a line, no job): deleted with Undo, its ask
  *         saying what stays — it was a hard delete with no way back
+ *   C  A STOP TIMED ON THE LINE — could be deleted, never changed
+ *      1  tapped in the log, it opens to be changed where it is listed
+ *      2  what it was, its minutes, its note changed — minutes typed over
+ *         say typed, its end moves with them (lib/stopEdit)
+ *      3  Undo: as the stopwatch timed it
  *   and no console error anywhere.
  *
  *   node scripts/acceptance/edit-delete.mjs      (SMOKE_BASE, as smoke) */
@@ -153,6 +158,28 @@ for (const [id, to] of [[sd.lineMapId, 'Line 7, run released to pallet away'], [
   ok(!gone && /Delete the case “seeded case”\?/.test(asked) && /stay/.test(asked) && /Undo brings it back/.test(asked) && /\/analyse/.test(page.url()), `B2 the case deleted, its ask saying what stays: "${asked.replace(/\n+/g, ' / ')}"`);
   await undo();
   ok(!!(await db((D, id) => D.getCase(id), sd.caseId)), 'B2 Undo: the case is back');
+}
+
+/* ================= C · A STOP TIMED ON THE LINE ================= */
+{
+  const list = await db((D, ws) => D.listObservations(ws), sd.wsId);
+  const o = list[0];
+  await go(`#/w/${sd.wsId}/capture`);
+  await main().getByRole('button', { name: `Change ${o.category} on ${o.asset}`, exact: true }).first().click(); await page.waitForTimeout(500);
+  const sheet = page.locator('.sheet, [role="dialog"]').last();
+  ok(await sheet.getByLabel('Which machine').inputValue() === o.asset && await sheet.getByLabel('What it was').inputValue() === o.category, `C1 a stop opens to be changed where it is listed: ${o.asset} · ${o.category}`);
+  const to = (await sheet.getByLabel('What it was').locator('option').allInnerTexts()).find(x => x !== o.category);
+  await sheet.getByLabel('What it was').selectOption(to);
+  await sheet.getByLabel('How long, in minutes').fill('12');
+  await sheet.getByLabel('Note').fill('the stopwatch was left running');
+  await sheet.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(1000);
+  const now = (await db((D, ws) => D.listObservations(ws), sd.wsId)).find(x => x.id === o.id);
+  ok(now.category === to && now.durationMs === 720_000 && now.timing === 'typed' && now.endedAt === now.startedAt + 720_000 && now.note === 'the stopwatch was left running',
+    `C2 changed: ${now.category}, ${now.durationMs / 60000} min, said typed (${now.timing}), its end moved`);
+  ok(/Changed · /.test(await page.locator('body').innerText()) && /typed/.test(await txt()), 'C2 said, and the log says it was typed');
+  await undo();
+  const back = (await db((D, ws) => D.listObservations(ws), sd.wsId)).find(x => x.id === o.id);
+  ok(back.category === o.category && back.durationMs === o.durationMs && back.timing === 'stopwatch', 'C3 Undo: the stop as the stopwatch timed it');
 }
 
 ok(errors.length === 0, `no console errors${errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''}`);
