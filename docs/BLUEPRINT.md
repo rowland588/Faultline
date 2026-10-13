@@ -497,4 +497,24 @@ is still wired.
   the pounds an hour, and the cost a pack against today's: lower ("they
   pay for themselves") or higher — with Make it so. `docs/CAPACITY.md` §6.
   Accepted by `line-capacity.mjs` 12.
+- **Three fixes, the same day** (Rowland, 13 October). Placed (§8): *On the
+  line*, the tools Line standard and Line capacity, record `standards` (no
+  new record); and *Control room*, Problems, record `snags` and the jobs'
+  problems (no new record).
+  1. *"line standard pdf, it doesn't scale correctly ... i pick square it
+     then clusters everything up, or tall ... it's only set for wide"* — the
+     card's map is a frame of its board's shape, Who does what in the room
+     left (two columns beside a tall board), the marks sized to the board's
+     width as on the screen, names printed as the map shows them on the
+     device. `line-standard.mjs` 6c.
+  2. *"cant delete a line capacity anywhere ... always implement deletes and
+     editing in everything"* — every row of Line capacity and Line standard
+     renamed and deleted where it sits, with Undo; Line capacity's page
+     renames and deletes; one record holds a product's map and capacity, so
+     deleting one keeps the other (`lib/standard` `afterRemoving`) — a map's
+     delete took its capacity with it before. `line-capacity.mjs` 13.
+  3. *"the cards are great but i dont have ability to make a card for all
+     of the problems"* — Problems cards beside the Problems report: a card
+     for every problem the page shows, the projects' own among them.
+     `snags.mjs` 8.
 - **Next:** Stage 3 — the line is the hub (its products, readiness, health).

@@ -306,6 +306,24 @@ export function QuickSnagsScreen() {
     } finally { setBusy(''); }
   };
 
+  /* EVERY PROBLEM AS A CARD (Rowland, 13 October: "the cards are great but i
+     dont have ability to make a card for all of the problems") — a card each
+     for every problem the page shows, the lines' and the projects' own, in
+     the order shown; what is shown said on them, as the report says it. */
+  const allCards = async () => {
+    if (busy || !shownCount) return;
+    setBusy('cards');
+    try {
+      const { saveProblemCards } = await import('../lib/buildSnagCards');
+      const lineItems = shownLines.flatMap(g => g.rows).map(r => byId.get(r.id)).filter((x): x is Snag => !!x).map(x => ({ line: lineCard(x) }));
+      const jobItems = shownJobs.flatMap(g => g.rows.map(row => ({ job: { row, job: g.job } })));
+      await saveProblemCards([...lineItems, ...jobItems], lineF !== 'all' ? lineName(lineF) : 'problems', title);
+    } catch (e) {
+      console.error('problem cards failed', e);
+      window.alert('Sorry — the cards could not be made. Please try again.');
+    } finally { setBusy(''); }
+  };
+
   /* A FRESH START — every problem on the page put away, kept, never deleted. */
   const freshStart = () => {
     const list = here;
@@ -341,6 +359,8 @@ export function QuickSnagsScreen() {
           <button type="button" className="btn btn-primary" onClick={() => openQuickSnag()}><Icon name="camera" size="1.05em" />Problem</button>
           <button type="button" className="btn" disabled={!!busy || !shownCount} onClick={() => void report()}>
             <Icon name="document" size="1.05em" />{busy === 'report' ? 'Making…' : 'Problems report'}</button>
+          <button type="button" className="btn" disabled={!!busy || !shownCount} onClick={() => void allCards()} aria-label="Problems cards — a card for every problem shown (PDF)">
+            <Icon name="document" size="1.05em" />{busy === 'cards' ? 'Making…' : 'Problems cards'}</button>
           {here.length > 0 && <button type="button" className="btn btn-ghost preg-fresh" onClick={freshStart}>Start fresh</button>}
         </div>
       </header>

@@ -190,10 +190,10 @@ node scripts/acceptance/value-stream.mjs  # B: a line's value stream — who and
 node scripts/acceptance/changeover.mjs  # F: SMED — a quick session on its own; Lap with who, Shingo's stages on the grid, the plate speed, what the changeovers cost, set as the standard, timed again, before → after, the paper, the fishbone
 node scripts/acceptance/work-sampling.mjs  # H1: what people are doing at random moments — the moment asks, one tap each, the shares with their margins, the fix, the 6M line's card, the fishbone, the 6M report
 node scripts/acceptance/shift-losses.mjs  # E: a shift's losses — counted on the phone at the bottleneck's ideal speed, the shift less its breaks, the waterfall, slow running told from short stops, the pounds in two parts, a bar made better, the next shift counted, before → after, the fishbone, both papers
-node scripts/acceptance/line-capacity.mjs  # Line capacity: the V-curve, the capacity sheet, the margin, a person's standard time, the bottleneck walked; a person as the floor says them (what reaches them, keeping up, people needed); each tool its own products; the phone; what a pack costs in labour and one more person at the bottleneck
-node scripts/acceptance/line-standard.mjs  # the line standard's board: the page scrolls off it, a tap places, a drag moves, people's colours, a tall board, full screen; the bottleneck said (a person, an area faded), names short with the words on the right — screen and card
+node scripts/acceptance/line-capacity.mjs  # Line capacity: the V-curve, the capacity sheet, the margin, a person's standard time, the bottleneck walked; a person as the floor says them (what reaches them, keeping up, people needed); each tool its own products; the phone; what a pack costs in labour and one more person at the bottleneck; renamed and deleted where it sits, its map kept
+node scripts/acceptance/line-standard.mjs  # the line standard's board: the page scrolls off it, a tap places, a drag moves, people's colours, a tall board, full screen; the bottleneck said (a person, an area faded), names short with the words on the right — screen and card; a tall board's card a frame of its own shape
 node scripts/acceptance/programs.mjs  # a program's status with commentary: the five statuses (not tested and no program among them), commentary on its own, Needs you, the paper
-node scripts/acceptance/snags.mjs  # Problems: the register — every problem written and edited where it sits, assigned not moved, its journey, a photo marked, on paper, a fresh start
+node scripts/acceptance/snags.mjs  # Problems: the register — every problem written and edited where it sits, assigned not moved, its journey, a photo marked, on paper (a card for every problem among it), a fresh start
 node scripts/acceptance/lines.mjs  # production lines: made in Your factory, opened on their own, a problem taken on one with no project, its tools opened on it, the phone
 node scripts/acceptance/factory.mjs  # Your factory: set up first, lines added one after another, named, typed, moved, archived and restored — the control room, the rail, the line's page and its paper, the phone; the jobs taking their lines from it, never a second line of a name; its paper; the tools picking from it; a line's facts set up from its page; two lines merged
 node scripts/acceptance/machines-programs.mjs  # Stage 2: a program planned on a line with no job, from the control room; the line's machines in flow order; a job seeing and proving them; the factory and the paper
@@ -274,8 +274,11 @@ staying on the page "for" the job and shown on the job's own view; its
 journey — steps added with a day, what we did and what came of it, shown on
 the row, changed and taken off; a photo marked from the editor; priority,
 whose, due, close and delete for several at once; its report card and the
-Problems report carrying its plan and journey; a line's group and a project's
-group on paper as a report and as a card each, and the project's own page's
+Problems report carrying its plan and journey; Problems cards beside it, a
+card for every problem the report lists (13 October: "the cards are great
+but i dont have ability to make a card for all of the problems"); a line's
+group and a project's group on paper as a report and as a card each, and
+the project's own page's
 report and cards; Start fresh putting every
 problem away with none deleted, the page saying so, and one then all
 brought back; and the phone.
@@ -331,8 +334,10 @@ scroll and pinch while a person and a shape are the board's to drag, a tap
 placing a person and a drag placing nothing, a person dragged and kept, a
 person's colour on the board, in Who does what and on the record, a plain
 board made tall with everything where it stood, the card drawing the person
-in their colour and the board tall, full screen edge to edge and back, and
-the phone; then the bottleneck said on the map (Rowland, 13 October:
+in their colour and the board tall — in a frame of its own shape, nothing
+beside it, Who does what in the room left (13 October: "i pick square it
+then clusters everything up, or tall ... it's only set for wide") — full
+screen edge to edge and back, and the phone; then the bottleneck said on the map (Rowland, 13 October:
 "highlight ... bottleneck areas ... fading out a certain area of a color
 ... a little summary ... this person's the bottleneck") — a person marked
 from Who does what, tagged on the map and summed up first on the right, an
@@ -359,7 +364,13 @@ October: "provide an hourly rate ... If I put two people there ... is my
 cost per pack higher or lower?") — the people standing in from the line
 standard, the rate typed and kept, the cost a pack as `lib/capacity` says,
 one more person at the bottleneck lower or higher as the module says, Make
-it so, a what-if's labour, and the card's line carrying the cost a pack.
+it so, a what-if's labour, and the card's line carrying the cost a pack;
+then renamed and deleted where it sits (13 October: "cant delete a line
+capacity anywhere ... always implement deletes and editing in
+everything") — renamed in its row with a name already on the line
+refused, its Line capacity deleted from its row with its map kept, said
+and undone, never gone from Line standard, renamed on its own page, and
+deleted there with no map on it — the record gone.
 
 `scripts/sync-two-devices.mjs` runs two real devices of the app (a phone and a
 laptop, separate storage) against `scripts/fake-cloud.mjs`, which keeps the

@@ -308,6 +308,17 @@ await go('#/snags');
   const flatTxt = txt.replace(/\s+/g, '');
   const lost = all.filter(w => !flatTxt.includes(w.replace(/\s+/g, '')));
   ok(/PROBLEMS/.test(txt) && !lost.length && /CRITICAL ·/.test(txt) && /Fitted the interlocked guard — No trips since/.test(txt) && /Plan: Fit an interlocked guard/.test(txt) && !/Demo fault/.test(txt), `8 the Problems report: every open problem, the projects' own among them (${all.length}), its plan and its journey${lost.length ? ` — lost: ${lost.slice(0, 4).join(', ')}` : ''}`);
+  /* EVERY PROBLEM AS A CARD (Rowland, 13 October: "the cards are great but i
+     dont have ability to make a card for all of the problems") — beside the
+     report, a card for every problem it lists. */
+  {
+    const [dlc] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: /^Problems cards/ }).click()]);
+    const cf = join(dir, 'problems-cards.pdf'); await dlc.saveAs(cf);
+    const ctext = execFileSync('pdftotext', ['-raw', cf, '-'], { encoding: 'utf8' }).replace(/\s+/g, '');
+    const cpages = Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [cf], { encoding: 'utf8' }))?.[1]);
+    const missing = all.filter(w => !ctext.includes(w.replace(/\s+/g, '').slice(0, 24)));
+    ok(cpages === all.length && !missing.length, `8 Problems cards: a card for every problem the report lists, the projects' own among them (${cpages} of ${all.length})${missing.length ? ` — missing: ${missing.slice(0, 3).join(', ')}` : ''}`);
+  }
   /* EVERY GROUP ON PAPER, AND THE PROJECT'S OWN PAGE (Rowland, 12 October:
      "every problem can either have their own card ... or every group ... when
      it's sent to a project, on that project page itself, also I can have a
