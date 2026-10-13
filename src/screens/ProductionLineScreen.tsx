@@ -20,7 +20,9 @@ import { nav } from '../state/useRoute';
 import { getWorkspace, listAllSnags, listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, projectsOnWorkspace, updateWorkspace } from '../db';
 import { methodOf } from '../lib/planModel';
 import { useCanStartProjects } from '../cloud/access';
-import { lineTypesOffered, productionLines } from '../lib/lines';
+import { lineFacts, lineTypesOffered, productionLines } from '../lib/lines';
+import { WorkspaceProvider } from '../state/WorkspaceProvider';
+import { StudySetupSheet } from '../ui/StudySetupSheet';
 import { openQuickSnag } from '../snag/QuickSnag';
 import { PRIORITY_WORD, type Priority, type SnagRow, type SnagTone, snagRow } from '../lib/snagsReport';
 import type { Standard } from '../lib/standard';
@@ -60,6 +62,7 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
   const [saved, setSaved] = useState<string | null>(null);
   /* the factory is changed by someone invited to the app, as on Your factory */
   const may = useCanStartProjects();
+  const [settingUp, setSettingUp] = useState(false);
 
   const load = useCallback(async () => {
     const [w, every, std, ss, ws, on] = await Promise.all([getWorkspace(wsId), listAllSnags(), listStandardsForLine(wsId), listStudiesForLine(wsId), listWorkspaces(), projectsOnWorkspace(wsId)]);
@@ -76,6 +79,7 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
   const rows: SnagRow[] = useMemo(() => mine.map(s => snagRow(s, line?.name ?? 'This line', undefined, projects.find(p => p.id === s.projectId)?.name))
     .sort((a, b) => RANK[a.priority] - RANK[b.priority] || Number(b.late) - Number(a.late) || b.raisedAt - a.raisedAt), [mine, projects, line]);
   const jobs = projects.filter(p => jobIds.includes(p.id));
+  const facts = line ? lineFacts(line) : {};
   const late = rows.filter(r => r.late).length;
   const crit = rows.filter(r => r.priority === 'critical').length;
   const count = useMemo(() => (t: typeof TOOLS[number]) => (t.standard ? standards.length : studies.filter(s => s.tool === t.study).length), [standards, studies]);
@@ -155,28 +159,6 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
         </div>
       )}
 
-      {/* THE JOBS ON THIS LINE (13 October: "assign everything to a
-          production line") — every live project whose lines name it, each
-          one tap to its own page; a job is started on this line from here. */}
-      <section className="pl-sec" aria-label="Jobs on this line">
-        <div className="pl-sec-h">
-          <h2>Jobs on this line</h2>
-          {may && <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/projects?new=1&line=${encodeURIComponent(wsId)}`)}>Start a project on this line ›</button>}
-        </div>
-        {jobs.length === 0
-          ? <p className="sub">No job on this line now. Its problems and its tools need none.</p>
-          : (
-            <ul className="pl-jobs">
-              {jobs.map(p => (
-                <li key={p.id}>
-                  <button type="button" className="pl-job" onClick={() => nav(`/project/${p.id}`)}>
-                    <b>{p.name}</b><span className="sub">{methodOf(p).label}</span><span className="pl-tool-go" aria-hidden>›</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-      </section>
 
       <section className="pl-sec" aria-label="Problems on this line">
         <div className="pl-sec-h">
@@ -205,6 +187,24 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
           )}
       </section>
 
+      {/* THE LINE — its facts, held by the factory (BLUEPRINT Stage 1: "the factory
+          holds the line's facts"): its shifts and breaks, its crew and what it costs
+          while it is down, its machines in flow order. Set up the line opens the one
+          editor for them (ui/StudySetupSheet) — the same the stopwatch's Set up opens,
+          never a second copy. Read by the loss count (planned time, the £), capacity
+          a shift and work sampling. */}
+      <section className="pl-sec" aria-label="The line">
+        <div className="pl-sec-h">
+          <h2>The line</h2>
+          {may && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSettingUp(true)}>Set up the line ›</button>}
+        </div>
+        <dl className="pl-facts">
+          <dt>Shifts</dt><dd className={facts.shifts ? '' : 'is-n'}>{facts.shifts ?? 'Not said yet — the loss count and capacity a shift need them'}</dd>
+          <dt>Crew and cost</dt><dd className={facts.crew || facts.cost ? '' : 'is-n'}>{[facts.crew, facts.cost].filter(Boolean).join(' · ') || 'Not said yet — what a stop costs needs them'}</dd>
+          <dt>Machines</dt><dd className={facts.machines ? '' : 'is-n'}>{facts.machines ?? 'None listed yet'}</dd>
+        </dl>
+      </section>
+
       <section className="pl-sec" aria-label="Tools on this line">
         <div className="pl-sec-h"><h2>Tools on this line</h2></div>
         <ul className="pl-tools">
@@ -222,6 +222,31 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
           })}
         </ul>
       </section>
+
+
+      {/* THE JOBS ON THIS LINE (13 October: "assign everything to a
+          production line") — every live project whose lines name it, each
+          one tap to its own page; a job is started on this line from here. */}
+      <section className="pl-sec" aria-label="Jobs on this line">
+        <div className="pl-sec-h">
+          <h2>Jobs on this line</h2>
+          {may && <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/projects?new=1&line=${encodeURIComponent(wsId)}`)}>Start a project on this line ›</button>}
+        </div>
+        {jobs.length === 0
+          ? <p className="sub">No job on this line now. Its problems and its tools need none.</p>
+          : (
+            <ul className="pl-jobs">
+              {jobs.map(p => (
+                <li key={p.id}>
+                  <button type="button" className="pl-job" onClick={() => nav(`/project/${p.id}`)}>
+                    <b>{p.name}</b><span className="sub">{methodOf(p).label}</span><span className="pl-tool-go" aria-hidden>›</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+      </section>
+      {settingUp && <WorkspaceProvider wsId={wsId}><StudySetupSheet onClose={() => setSettingUp(false)} /></WorkspaceProvider>}
     </div>
   );
 }

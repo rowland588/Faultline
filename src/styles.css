@@ -10802,6 +10802,16 @@ body:has(.qsl-bar) .qs-fab { display: none; }
 /* YOUR FACTORY (screens/FactoryScreen, the control room's Your factory) — the lines in floor order, each
    with its type; the control room's a grid of cards like a floor plan, the factory page a list edited in place */
 .fac-home { margin-bottom: 18px; }
+/* a line's facts on its page (BLUEPRINT Stage 1) — a term and its words, the unsaid in grey */
+.pl-facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.pl-facts dt { font-size: var(--t-detail); font-weight: 700; color: var(--ink-2); }
+.pl-facts dd { margin: 0; }
+.pl-facts dd.is-n { color: var(--muted); }
+@media (max-width: 560px) { .pl-facts { grid-template-columns: 1fr; } .pl-facts dd { margin-bottom: 6px; } }
+/* merge two lines (BLUEPRINT §6.7) */
+.fac-merge { margin: 12px 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.fac-merge h2 { margin: 0 0 2px; font-size: var(--t-h3, 18px); }
+.fac-merge .sub { margin: 0 0 8px; }
 /* a new project's lines, picked from the factory (screens/ProjectsScreen) */
 .proj-lines { grid-column: 1 / -1; }
 .proj-lines-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }

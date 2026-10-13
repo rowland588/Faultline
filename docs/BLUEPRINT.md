@@ -256,6 +256,19 @@ side by side. The order follows the dependencies.
 - Merge two lines.
 - Paper: the factory report carries shifts and crew.
 
+*As built:* the line page's **The line** says its shifts (with breaks or
+relief), crew and what it costs while down, and its machines in flow order —
+each "Not said yet" when nobody has said it (`lib/lines lineFacts`). **Set up
+the line ›** opens the one editor for them, the same sheet the stopwatch's Set
+up opens (`ui/StudySetupSheet`) — not a second copy, so the settings screen
+stays whole and gains a second door rather than losing its fields. Your
+factory's rows and the factory report say each line's shifts and crew.
+**Merge…** on a line in Your factory moves everything on it to another line —
+problems, frames, film, timed stops, cases, studies, line standards, the jobs'
+lines and walks that name it — stamped to sync, counted out loud first; the
+two vocabularies join; the emptied line is archived (`db/workspaces
+mergeLines`). Accepted by `factory.mjs` 27-30.
+
 ### Stage 2 — Machines and programs on the line (your request)
 - DB: `commission_assets` + `workspace_id`, with `project_id` optional; `programs`
   + `workspace_id`, with `project_id` optional. Backfill: a job on one line
@@ -289,6 +302,9 @@ side by side. The order follows the dependencies.
 - The product mix (`lib/ie/mix`) wired into capacity.
 
 ### Stage 5 — One language for problems and actions
+- Found in Stage 1: deleting a line for ever leaves its line standards and
+  studies behind, orphaned (`deleteWorkspace` removes only the walk, frames,
+  problems, stops and cases). Delete takes them too, counted out loud first.
 - The four problem records open in one place, whichever record holds them;
   routes tidied; "snag" gone from the code's words as well as the screens.
 
@@ -348,4 +364,6 @@ is still wired.
   names gone; the old words swept from every screen and a smoke check that
   fails if "workspace", "tracker", "3P" or "snag" (the app's old noun) come
   back; `CLAUDE.md`, `MAP.md` and `PRODUCT.md` point here.
-- **Next:** Stage 1.
+- **Stage 1, built** (see §7): the line's facts on its page and in the factory,
+  set up in the one editor; merge two lines.
+- **Next:** Stage 2 — machines and programs on the line.

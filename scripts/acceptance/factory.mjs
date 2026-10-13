@@ -33,6 +33,10 @@
  *  24-26 a job archived: its line still in the factory and on every Which
  *      line, no job on its page, and a tool on it wearing the control
  *      room's rail, never the archived job's
+ *  27-30 Stage 1: a line's facts on its page (unsaid said so), set up in the
+ *      one editor from there, its crew on Your factory and on paper; a line
+ *      made twice merged — what moves counted, its problem on the other line,
+ *      the emptied one archived
  *  21-23 the factory on paper — one page, the factory in words, every line in
  *      floor order with its type, its jobs and what is open; a tool's Which
  *      line offering the factory in floor order, and a line made there put at
@@ -252,6 +256,36 @@ await page.goto(`${BASE}/#/balances`); await page.waitForTimeout(2000);
 await page.getByRole('button', { name: 'New line capacity' }).first().click(); await page.waitForTimeout(800);
 const opts2 = await page.locator('.sheet, [role="dialog"]').last().locator('select').first().evaluate(el => [...el.options].map(o => o.text));
 ok(opts2.includes('Line 1') && !opts2.some(o => /performance/.test(o)), `26b a tool's Which line still offers Line 1 (${opts2.length} lines)`);
+
+/* 27-30 — Stage 1: the factory holds the line's facts; two lines merged (BLUEPRINT §7) */
+await page.goto(`${BASE}/#/lines/${line1}`); await page.waitForTimeout(2000);
+const facts = async () => (await page.getByRole('region', { name: 'The line' }).innerText()).replace(/\s+/g, ' ');
+ok(/Shifts Not said yet/.test(await facts()) && /Crew and cost Not said yet/.test(await facts()), `27 the line's facts, unsaid, said so: ${(await facts()).slice(0, 90)}`);
+await page.getByRole('button', { name: 'Set up the line ›' }).click(); await page.waitForTimeout(900);
+const setup = page.locator('.sheet').last();
+await setup.locator('input[placeholder="e.g. 6"]').fill('6'); await setup.locator('input[placeholder="e.g. 6"]').press('Tab'); await page.waitForTimeout(500);
+await setup.locator('input[placeholder="e.g. 18.50"]').fill('18.5'); await setup.locator('input[placeholder="e.g. 18.50"]').press('Tab'); await page.waitForTimeout(800);
+await page.keyboard.press('Escape'); await page.waitForTimeout(800);
+ok(/Crew and cost 6 people · £111/.test(await facts()), `27b set up from the line's page, in the one editor: ${(await facts()).match(/Crew and cost [^M]*/)?.[0]}`);
+await page.goto(`${BASE}/#/factory`); await page.waitForTimeout(2000);
+ok(/6 people/.test(await page.locator('.fac-line[data-line="Line 1"]').innerText()), '28 Your factory says Line 1 has 6 people');
+/* a line made twice, merged */
+const l9 = await idOf('Line 9'), l10 = await idOf('Line 10');
+await page.evaluate(async ws => { const db = await import('/src/db.ts'); const t = Date.now(); await db.addSnag({ id: `sn-dup-${t}`, workspaceId: ws, problem: 'Duplicate line problem — the label printer smudges', status: 'open', raisedAt: t, updatedAt: t, media: [] }); }, l10);
+await page.reload(); await page.waitForTimeout(2000);
+await page.locator('.fac-line[data-line="Line 10"]').getByRole('button', { name: 'Merge…' }).click(); await page.waitForTimeout(600);
+ok(/1 problem/.test(await page.locator('.fac-merge').innerText()) && !/snag/i.test(await page.locator('.fac-merge').innerText()), `29 merging Line 10 counts what moves: ${(await page.locator('.fac-merge .sub').innerText()).slice(0, 110)}`);
+await page.getByLabel('The line it goes into').selectOption({ label: 'Line 9' });
+await page.locator('.fac-merge').getByRole('button', { name: 'Merge', exact: true }).click(); await page.waitForTimeout(1500);
+const after = await page.evaluate(async ({ a, b }) => { const db = await import('/src/db.ts'); const s = (await db.listAllSnags()).find(x => x.problem.startsWith('Duplicate line problem')); const w = (await db.listWorkspaces()).find(x => x.id === b); const arch = (await db.listArchivedWorkspaces()).some(x => x.id === b); return { on: s?.workspaceId === a, arch, gone: !w || w.archived }; }, { a: l9, b: l10 });
+ok(after.on && after.arch && !(await order()).some(x => x.startsWith('Line 10|')) && /Line 10 merged into Line 9/.test(await saidSaved()), `29b merged: its problem on Line 9, Line 10 archived and out of the factory — ${await saidSaved()}`);
+await page.goto(`${BASE}/#/lines/${l9}`); await page.waitForTimeout(2000);
+ok(/Duplicate line problem/.test(await txt()), '29c Line 9\'s page has the problem that was on Line 10');
+await page.goto(`${BASE}/#/factory`); await page.waitForTimeout(2000);
+const [fd2] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), page.getByRole('button', { name: 'Factory report' }).click()]);
+const ff2 = join(dir, 'factory2.pdf'); await fd2.saveAs(ff2);
+const fpaper2 = execFileSync('pdftotext', ['-raw', ff2, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
+ok(/6 people/.test(fpaper2) && !/Line 10/.test(fpaper2), '30 the factory on paper: Line 1\'s crew, Line 10 merged away');
 
 ok(errs.length === 0, `no console errors ${errs.slice(0, 3).join(' | ')}`);
 await b.close();

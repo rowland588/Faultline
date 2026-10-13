@@ -71,3 +71,37 @@ describe('a project’s line and the factory', () => {
     expect(lines.lineKey('Line')).toBe('Line');
   });
 });
+
+describe('merge two lines (BLUEPRINT §6.7, Stage 1)', () => {
+  it('moves everything on one line to the other, joins their words, and archives the empty one', async () => {
+    const { db, lines } = await fresh();
+    const keep = await lines.addLineToFactory('Line 2B', 'Packing');
+    const dup = await lines.addLineToFactory('Line 2B (2)');
+    await db.updateWorkspace({ ...dup, assets: ['Bagger', 'Whole line'], crew: 6 });
+    await db.addSnag({ id: 'sn-dup', workspaceId: dup.id, problem: 'Film tracks off the former', status: 'open', raisedAt: 2, updatedAt: 2, media: [] });
+    await db.addProject(job('six-m'));
+    await db.putPaceLine({ id: 'l1', projectId: 'six-m', key: '2B', name: 'Line 2B', workspaceId: dup.id, updatedAt: 1 });
+    const n = await db.mergeLines(dup.id, keep.id);
+    expect(n).toBe(2);
+    expect((await db.listAllSnags()).find(s => s.problem.startsWith('Film tracks'))?.workspaceId).toBe(keep.id);
+    expect((await db.allPaceLines()).find(l => l.id === 'l1')?.workspaceId).toBe(keep.id);
+    const after = (await db.listWorkspaces()).find(w => w.id === keep.id);
+    expect(after?.assets).toContain('Bagger');
+    expect(after?.crew).toBe(6);
+    expect(after?.lineType).toBe('Packing');
+    expect((await lines.liveProductionLines(await db.listWorkspaces())).map(w => w.name)).toEqual(['Line 2B']);
+    expect((await db.listArchivedWorkspaces()).map(w => w.id)).toContain(dup.id);
+  });
+  it('says a line\'s facts, and nothing it has not been told', async () => {
+    const { lines } = await fresh();
+    const w = { id: 'w', name: 'Line 1', color: '#000', createdAt: 1, updatedAt: 1, categories: [], subcategories: {}, assets: ['Whole line', 'Bagger', 'Checkweigher'], schemaVersion: 1,
+      shifts: [{ name: 'Early', start: '06:00', end: '14:00', breakMin: 30 }, { name: 'Late', start: '14:00', end: '22:00', relief: true }], crew: 6, labourRatePerHour: 18.5 };
+    const f = lines.lineFacts(w);
+    expect(f.shifts).toBe('Early 06:00–14:00 (30 min breaks) · Late 14:00–22:00 (relief covers the breaks)');
+    expect(f.crew).toBe('6 people');
+    expect(f.cost).toBe('£111/hr while it is down');
+    expect(f.machines).toBe('Bagger → Checkweigher');
+    expect(f.short).toBe('2 shifts · 6 people');
+    expect(lines.lineFacts({ ...w, shifts: [], crew: undefined, labourRatePerHour: undefined, assets: [] })).toEqual({});
+  });
+});

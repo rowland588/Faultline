@@ -22,10 +22,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Workspace } from '../types';
 import { nav } from '../state/useRoute';
 import {
-  archiveWorkspace, deleteWorkspace, projectsOnWorkspace, listAllSnags, listArchivedWorkspaces,
-  listWorkspaces, onDataChange, restoreWorkspace, updateWorkspace, workspaceContents,
+  archiveWorkspace, deleteWorkspace, mergeLines, projectsOnWorkspace, listAllSnags, listArchivedWorkspaces,
+  listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, restoreWorkspace, updateWorkspace, workspaceContents,
 } from '../db';
-import { addLineToFactory, factorySays, lineTypesOffered, liveProductionLines, nextLineName, placeOnFloor, asked } from '../lib/lines';
+import { addLineToFactory, factorySays, lineFacts, lineTypesOffered, liveProductionLines, nextLineName, placeOnFloor, asked } from '../lib/lines';
 import { snagRow } from '../lib/snagsReport';
 import { Icon } from '../ui/Icon';
 import { useCanStartProjects } from '../cloud/access';
@@ -65,6 +65,16 @@ export function FactoryScreen() {
   const [type, setType] = useState('');
   const [added, setAdded] = useState<string[]>([]);
   const [saved, setSaved] = useState<string | null>(null);
+  /* MERGE TWO LINES (BLUEPRINT §6.7): the line being merged, the line it goes into, and what moves, counted out loud */
+  const [merging, setMerging] = useState<{ from: Workspace; to: string; what: string } | null>(null);
+  /* what a merge moves, counted out loud — the line's own records and its standards and studies too */
+  const mergeWhat = async (id: string) => {
+    const [own, std, st] = await Promise.all([workspaceContents(id), listStandardsForLine(id), listStudiesForLine(id)]);
+    const parts = [...own.map(x => `${x.count} ${x.what}`),
+      ...(std.length ? [`${std.length} line standard${std.length === 1 ? '' : 's'}`] : []),
+      ...(st.filter(x => !x.deletedAt).length ? [`${st.filter(x => !x.deletedAt).length} stud${st.filter(x => !x.deletedAt).length === 1 ? 'y' : 'ies'}`] : [])];
+    return parts.length ? parts.join(', ') : 'nothing — it is empty';
+  };
   const [showShelf, setShowShelf] = useState(false);
   const [printing, setPrinting] = useState(false);
   const [snags, setSnags] = useState<Snag[]>([]);
@@ -215,9 +225,14 @@ export function FactoryScreen() {
                 <span className="fac-on">
                   {c?.open ? <>{c.open} problem{c.open === 1 ? '' : 's'} open{c.late ? <> · <b className="is-r">{c.late} late</b></> : null}</> : <span className="is-n">No problems open</span>}
                   {job && <span className="fac-job">on {job}</span>}
+                  {lineFacts(w).short && <span className="fac-job">{lineFacts(w).short}</span>}
                 </span>
                 <span className="fac-acts">
                   <button type="button" className="btn btn-sm" onClick={() => nav(`/lines/${w.id}`)}>Open ›</button>
+                  {may && lines.length > 1 && (
+                    <button type="button" className="btn btn-ghost btn-sm" title={`Merge ${w.name} into another line`}
+                      onClick={() => void mergeWhat(w.id).then(what => setMerging({ from: w, to: '', what }))}>Merge…</button>
+                  )}
                   {may && !job && (
                     <button type="button" className="btn btn-ghost btn-sm" title={`Archive ${w.name}`}
                       onClick={() => {
@@ -230,6 +245,25 @@ export function FactoryScreen() {
             );
           })}
         </ol>
+      )}
+
+      {merging && (
+        <div className="fac-merge" role="group" aria-label="Merge a line">
+          <h2>Merge {merging.from.name} into another line</h2>
+          <p className="sub">Everything on {merging.from.name} moves to the line you pick — {merging.what} — and {merging.from.name} is archived, empty, so it can be brought back. For a line made twice.</p>
+          <div className="fac-add-row">
+            <select className="text-input" value={merging.to} aria-label="The line it goes into" onChange={e => setMerging({ ...merging, to: e.target.value })}>
+              <option value="">Into which line…</option>
+              {(lines ?? []).filter(x => x.id !== merging.from.id).map(x => <option key={x.id} value={x.id}>{x.name}{x.lineType ? ` · ${x.lineType}` : ''}</option>)}
+            </select>
+            <button type="button" className="btn btn-primary" disabled={!merging.to} onClick={() => {
+              const into = (lines ?? []).find(x => x.id === merging.to);
+              if (!into) return;
+              void mergeLines(merging.from.id, into.id).then(n => { setMerging(null); said(`${merging.from.name} merged into ${into.name} — ${n} record${n === 1 ? '' : 's'} moved; ${merging.from.name} archived, empty`); });
+            }}>Merge</button>
+            <button type="button" className="btn btn-ghost" onClick={() => setMerging(null)}>Cancel</button>
+          </div>
+        </div>
       )}
 
       {/* THE ARCHIVE — lines put away, behind one tap, each brought back with one. */}

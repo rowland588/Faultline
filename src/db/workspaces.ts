@@ -176,7 +176,54 @@ export async function workspaceContents(id: ID): Promise<{ what: string; count: 
     say(obs.length, 'captured loss', 'captured losses'),
     say(segs.length, 'filmed walk', 'filmed walks'),
     say(assets.length, 'pinned machine', 'pinned machines'),
-    say(snags.length, 'snag', 'snags'),
+    say(snags.length, 'problem', 'problems'),
     say(cases.length, 'case (A3)', 'cases (A3s)'),
   ].filter(r => r.count > 0);
+}
+
+/** MERGE TWO LINES (BLUEPRINT §6.7, Stage 1) — a duplicate "Line 2B": everything
+ *  on `fromId` moves to `toId` — its problems, frames, film, timed stops,
+ *  cases, studies, line standards, the jobs that name it and the walks of the
+ *  jobs that kept one on it — each stamped so the move reaches every device;
+ *  its vocabulary joins the other's (the other's settings win where both have
+ *  one); and the emptied line is archived, never deleted, so it can be
+ *  brought back. Returns how many records moved. */
+export async function mergeLines(fromId: ID, toId: ID): Promise<number> {
+  const db = await getDB();
+  const from = await db.get('workspaces', fromId), to = await db.get('workspaces', toId);
+  if (!from || !to || fromId === toId) return 0;
+  const t = now();
+  let moved = 0;
+  for (const store of ['observations', 'segments', 'snag_assets', 'snags', 'cases', 'studies'] as const) {
+    for (const r of await db.getAllFromIndex(store, 'by_workspace', fromId)) {
+      await db.put(store, { ...r, workspaceId: toId, updatedAt: t } as never);
+      moved++;
+    }
+  }
+  for (const s of (await db.getAll('standards')).filter(x => x.workspaceId === fromId)) { await db.put('standards', { ...s, workspaceId: toId, updatedAt: t }); moved++; }
+  for (const l of (await db.getAll('pace_ppm')).filter(x => x.workspaceId === fromId && !x.deletedAt)) { await db.put('pace_ppm', { ...l, workspaceId: toId, updatedAt: t }); moved++; }
+  for (const p of (await db.getAll('projects')).filter(x => x.walkWorkspaceId === fromId)) await db.put('projects', { ...p, walkWorkspaceId: toId, updatedAt: t });
+  for (const key of await db.getAllKeys('meta')) {
+    const k = String(key);
+    if (k !== 'paceWorkspace' && !k.startsWith('paceWorkspace:')) continue;
+    const m = (await db.get('meta', key)) as { id?: ID } | undefined;
+    if (m?.id === fromId) await db.put('meta', { ...m, id: toId }, key);
+  }
+  const uniq = (xs: readonly string[]) => [...new Map(xs.filter(x => x.trim()).map(x => [x.trim().toLowerCase(), x])).values()];
+  const subs: Record<string, string[]> = { ...from.subcategories };
+  for (const [k, v] of Object.entries(to.subcategories ?? {})) subs[k] = uniq([...(subs[k] ?? []), ...v]);
+  await db.put('workspaces', {
+    ...to,
+    categories: uniq([...(to.categories ?? []), ...(from.categories ?? [])]),
+    subcategories: subs,
+    assets: uniq([...(to.assets ?? []), ...(from.assets ?? [])]),
+    shifts: to.shifts?.length ? to.shifts : from.shifts ?? [],
+    crew: to.crew ?? from.crew, labourRatePerHour: to.labourRatePerHour ?? from.labourRatePerHour, labourBurden: to.labourBurden ?? from.labourBurden,
+    packsPerMin: to.packsPerMin ?? from.packsPerMin, marginPerPack: to.marginPerPack ?? from.marginPerPack,
+    lineType: to.lineType ?? from.lineType,
+    updatedAt: t,
+  });
+  await db.put('workspaces', { ...from, archived: true, updatedAt: t });
+  signalWrite();
+  return moved;
 }
