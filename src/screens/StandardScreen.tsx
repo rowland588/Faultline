@@ -801,7 +801,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
       <div className="ls-balance-line">
         <span className="ls-bl-h">Line capacity</span>
         <span className={'ls-bl-say' + (balanceSaid.short ? ' is-short' : '')}>{balanceSaid.text}</span>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`${here}?at=balance`)}>Open the balance ›</button>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`${here}?at=balance`)}>Open its Line capacity ›</button>
       </div>
       {/* THE WORK, TIMED (ui/WorkBalance) — a branch off the map too: what the
           people's work comes to against takt, and the door to it. */}
