@@ -77,6 +77,12 @@ describe('Line capacity on paper (lib/capacityPaper)', () => {
   it('every product shown, in a sentence', () => {
     expect(capacityPapersSay([paper(LINE), paper({ stations: [] })])).toBe('2 products on 1 line — 1 short of its target, 1 with no stations yet.');
   });
+  it('stations written down and none counted: their speeds still to fill in, each said and why', () => {
+    const none = paper({ stations: [st({ id: 'a', name: 'Bagger', unit: 'bags' }), st({ id: 'b', name: 'Boxer', unit: 'cases' })] });
+    expect(none.rows).toEqual([]);
+    expect(none.check.filter(c => /^(Bagger|Boxer) is not counted: /.test(c))).toHaveLength(2);
+    expect(capacityPapersSay([paper(LINE), none, paper({ stations: [] })])).toBe('3 products on 1 line — 1 short of its target, 1 with no stations yet, 1 with its speeds still to fill in.');
+  });
   it('a speed and how it is known, as the sheet says them', () => {
     expect(speedWords(st({ id: 'x', name: 'Op', unit: 'trays', cycleSec: 8, perCycle: 1 }))).toBe('a tray every 8 s');
     expect(howWords(st({ id: 'x', name: 'Coder', unit: 'bags', rate: 1, source: 'estimate' }))).toEqual({ text: 'a guess — not its plate speed', notPlate: true });

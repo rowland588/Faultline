@@ -105,8 +105,20 @@ function sheet(p: CapacityPaper): Block {
     font(f.doc, T, 'bold');
     const need = (k: string) => Math.max(0, ...p.rows.map(r => f.doc.getTextWidth(san(VALUE[k]?.(r) ?? '')) + 8));
     const base = sheetCols(f.w, p.unit, target).map(c => (VALUE[c.key] ? { ...c, w: Math.max(c.w, need(c.key)) } : c));
+    /* ...AND THE SHEET IS NEVER WIDER THAN THE PAGE: what a wide figure takes
+       comes out of the columns that wrap — how it is known, then the share of
+       the bottleneck, then the station's name — each down to a floor (found
+       by the random capacity seeds: a ten-digit hour pushed the last column
+       off the page) */
+    let over = base.reduce((n, c) => n + (c.key === 'name' ? 80 : c.w), 0) - f.w;
+    for (const [k, floor] of [['speed', 64], ['neck', 44]] as const) {
+      const c = base.find(x => x.key === k);
+      const take = c ? Math.min(Math.max(0, over), c.w - floor) : 0;
+      if (c && take > 0) { c.w -= take; over -= take; }
+    }
+    const nameMin = Math.max(56, 80 - Math.max(0, over));
     const used = base.filter(c => c.key !== 'name').reduce((n, c) => n + c.w, 0);
-    const cols = base.map(c => (c.key === 'name' ? { ...c, w: Math.max(80, f.w - used) } : c));
+    const cols = base.map(c => (c.key === 'name' ? { ...c, w: Math.max(nameMin, f.w - used) } : c));
     let x = f.x;
     return cols.map(c => { const at = { ...c, x }; x += c.w; return at; });
   };
@@ -221,6 +233,12 @@ export function productBlocks(p: CapacityPaper, d: Density, own: boolean, keep =
   out.push(band(p.headline, p.rows.length ? p.sentence : '', p.short));
   if (!p.rows.length) {
     out.push(text({ text: p.sentence, colour: INK2, after: gap(d, 'm') }));
+    /* stations written down and none counted: each said, and why — it was
+       left off the paper when nothing could be counted (the random seeds) */
+    if (p.check.length) {
+      out.push(label('To check before the sums are trusted', AMBER));
+      for (const c of p.check) out.push(text({ text: c, size: T, colour: AMBER, indent: 10, bullet: '·', after: 3 }));
+    }
     return own ? out : withHead(p, where, out, keep);
   }
 
