@@ -137,3 +137,36 @@ describe('the value stream (tool 2)', () => {
     expect(flowSays(flowFigures([], agreed)).text).toMatch(/^List the steps on the line end to end/);
   });
 });
+
+/* The audit of 13 October, worked by hand (Rother & Shook, Learning to See:
+ * inventory ÷ daily demand = days of it; lead time the waits and the
+ * processing; the value-added ratio — process cycle efficiency, George — adds
+ * value ÷ lead time). Three steps: a 60 s operation that adds value, a
+ * 30 s check, 1,200 cases waiting at 400 a day = 3 days. Lead 3 d + 90 s;
+ * 60 ÷ 259,290 = 0.023%. Takt 28,800 s ÷ 400 = 72 s: the 60 s cycle within. */
+describe('the stream, worked by hand', () => {
+  const a = { demandPerDay: 400, availableSecPerDay: 28_800 };
+  const three = (): FlowStep[] => { n = 0; return [
+    st({ name: 'Pack', lane: 'Line', kind: 'operation', value: 'adds', cycleSec: 60 }),
+    st({ name: 'Check', lane: 'Line', kind: 'check', value: 'needed', cycleSec: 30 }),
+    st({ name: 'Cases wait', lane: 'Despatch', kind: 'store', queue: 1200 }),
+  ]; };
+  it('days of demand, lead time, the value-added ratio, takt', () => {
+    const f = flowFigures(three(), a);
+    expect(waitOf(three()[2], a)).toEqual({ sec: 3 * D, from: 'queue' });
+    expect([f.leadSec, f.addsSec, f.neededSec, f.wasteSec, f.taktSec]).toEqual([3 * D + 90, 60, 30, 3 * D, 72]);
+    expect(f.pce).toBeCloseTo(60 / (3 * D + 90), 12);
+    expect(f.longestCycle).toMatchObject({ sec: 60, overTakt: false });
+    expect(flowSays(f, a).text).toBe('Lead time 3.0 d. 1 min of it adds value — 0.02%. The biggest wait: Cases wait (Despatch), 3.0 d. The longest cycle: Pack, 1 min, within takt (1.2 min).');
+  });
+  it('no demand, no takt and no queue days — the store is untimed, never zero days', () => {
+    const f = flowFigures(three(), {});
+    expect([f.taktSec, f.untimed, f.leadSec]).toEqual([undefined, 1, 90]);
+    expect(flowSays(f).text).toBe('Lead time at least 1.5 min. 1 min of it adds value — 67%. The longest cycle: Pack, 1 min.');
+    expect([dur(90), dur(72), dur(240), dur(599), dur(600), dur(630)]).toEqual(['1.5 min', '1.2 min', '4 min', '10 min', '10 min', '11 min']);
+  });
+  it('nothing timed at all: no value-added ratio is claimed', () => {
+    const f = flowFigures([{ id: 'x', order: 0, name: 'x', lane: 'x', kind: 'operation', value: 'adds' }], a);
+    expect([f.leadSec, f.pce, f.untimed]).toEqual([0, undefined, 1]);
+  });
+});

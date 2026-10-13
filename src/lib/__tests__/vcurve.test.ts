@@ -83,4 +83,13 @@ describe('accumulation beside the bottleneck', () => {
     expect(accumulation(analyse({ stations: big }), stats).sentence).toBe('Every logged stop beside Op 3 is absorbed: what can collect covers the typical stop of each.');
     expect(accumulation(analyse({ stations: withBuffers }), {}).sentence).toBe('');
   });
+  it('the cover is in minutes of the bottleneck RUNNING: Op 3 at 90% still draws 60 bags a minute while the bagger is stopped', () => {
+    /* 130 bags after the bagger ÷ Op 3's 60 a minute running = 2.17 min, against the bagger's typical 23 ÷ 10 = 2.3 min
+       stop: not covered. Divided by Op 3's 54 once its own stops count it read 2.41 — covered, which it is not. */
+    const op3stops = withBuffers.map(x => (x.name === 'Bagger' ? { ...x, bufferAfter: 130 } : x.name === 'Op 3' ? { ...x, runningPct: 90 } : x));
+    const r = analyse({ stations: op3stops });
+    expect([r.limit?.station.name, r.line]).toEqual(['Op 3', 54]);
+    const a = accumulation(r, { Bagger: { ownMins: 23, waitMins: 0, events: 10, ownEvents: 10 } });
+    expect(a.rows.map(p => [p.name, Math.round(p.coverMin * 1000) / 1000, Math.round(p.typicalMin * 10) / 10, p.covered])).toEqual([['Bagger', 2.167, 2.3, false]]);
+  });
 });

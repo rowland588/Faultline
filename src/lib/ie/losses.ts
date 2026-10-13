@@ -23,8 +23,12 @@
  *   performance   = lost − stops − changeovers − rejects, never below zero:
  *                   SLOW RUNNING AND SHORT STOPS — running below the ideal
  *                   speed, and stops too short to log. Told apart by timing
- *                   the running speed: slow running = run time × (ideal −
- *                   running speed) ÷ ideal; short stops the rest.
+ *                   the running speed, as Nakajima's loss structure does
+ *                   (Introduction to TPM, 1988; JIPM): the packs run, good
+ *                   and rejected, at the running speed took the NET
+ *                   OPERATING TIME, packs ÷ running speed — short stops are
+ *                   the run time less it, slow running it less the same
+ *                   packs at the ideal speed (packs ÷ ideal).
  *
  * WHAT IT COSTS, in two parts, never one blended figure (§6): the idle
  * labour of the crew paid to stand (crew × wage × on-costs × minutes), and
@@ -81,8 +85,9 @@ const whole = (n: number) => Math.round(n);
 
 /** THE RATE IS THE BOTTLENECK'S IDEAL SPEED (docs/CAPACITY.md §1, §5) —
  *  Rowland: "plate speed ... of course, unless human". The line's slowest
- *  station at running speed on its capacity, in the line's unit at the start
- *  of the line (lib/capacity's chain): a machine at the speed on its plate,
+ *  station at running speed on its capacity (found like for like at the
+ *  start of the line, lib/capacity's chain), at its own speed in the line's
+ *  unit — no rejects before it put back: a machine at the speed on its plate,
  *  a person at their standard time (from the time study, or their pace as
  *  timed). `why` says it in words — "plate speed of the Bagger", "standard
  *  time of Op 3 (the time study)", "Op 3's timed pace" — or why there is no
@@ -278,6 +283,10 @@ export interface LossFigures {
   explainedMin: number;
   /** Planned less the stops and the changeovers — the time it ran. */
   runMin?: number;
+  /** The packs run, good and rejected, at the running speed timed: the net
+   *  operating time (Nakajima) — what the run time holds once the short
+   *  stops are out of it. */
+  netMin?: number;
   /** THE REST — slow running and short stops: lost − explained, never below zero. */
   performanceMin?: number;
   /** performance ÷ lost. */
@@ -289,8 +298,9 @@ export interface LossFigures {
   /** What the rate is called where the rest is said: "plate speed",
    *  "standard-time pace", "rate" (idealWord). */
   ideal: string;
-  /** Told apart, once a running speed is timed: run × (plate − running) ÷
-   *  plate, capped at the rest; the short stops what is left. */
+  /** Told apart, once a running speed is timed: the net operating time less
+   *  the packs at the ideal speed, capped at the rest; the short stops what
+   *  is left — the run time less the net operating time. */
   slowMin?: number;
   shortMin?: number;
   /** The slow running the timing says before the cap — more than the rest
@@ -395,11 +405,21 @@ export function lossFigures(count: LossCount | undefined, obs?: Observation[], c
   const rest = Math.max(0, lostMin - explained);
   const excess = Math.max(0, explained - lostMin);
   const runMin = Math.max(0, planned - stopsMin - changeoverMin);
-  /* TOLD APART by the running speed: below the ideal speed, the slow
-     running is the run time at the speed it lacked; never more than the
-     rest. On a line a person paces it sits on People, else on Machine. */
+  /* TOLD APART by the running speed (Nakajima's net operating time): every
+     pack run, good and rejected, at the speed timed took packs ÷ running
+     speed of the run time — the rest of it the line stood in stops too short
+     to log; and the same packs at the ideal speed take packs ÷ ideal, the
+     difference the slow running. It was the run time × (ideal − running) ÷
+     ideal, which runs the line at the timed speed through its short stops
+     too — slow running over-, short stops under-counted by the short stops ×
+     the speed it lacked. Never more than the rest. A timing with no packs
+     in it is not a running speed. On a line a person paces it sits on
+     People, else on Machine. */
   const slowBone: SixM = count?.rateFrom === 'standard-time' ? 'people' : 'machine';
-  const slowRaw = running ? (running.perMin < rate ? (runMin * (rate - running.perMin)) / rate : 0) : undefined;
+  const through = made + rejects;
+  const timedRun = running && running.perMin > 0 ? running : undefined;
+  const netMin = timedRun ? through / timedRun.perMin : undefined;
+  const slowRaw = timedRun && netMin !== undefined ? (timedRun.perMin < rate ? netMin - through / rate : 0) : undefined;
   const slow = obs && slowRaw !== undefined ? Math.min(slowRaw, rest) : undefined;
   const short = slow !== undefined ? rest - slow : undefined;
   const tenth = (min: number) => lostMin > 0 && min / lostMin > REST_TENTH && min > 0.5;
@@ -419,8 +439,9 @@ export function lossFigures(count: LossCount | undefined, obs?: Observation[], c
   return {
     ...base, expected, shortPacks, ...(overPacks > 0 ? { overPacks } : {}), lostMin, rejectsMin, explainedMin: explained,
     ...(obs ? { runMin, performanceMin: rest, ...(excess > 0 ? { excessMin: excess } : {}), ...(lostMin > 0 ? { performanceShare: rest / lostMin } : {}) } : {}),
+    ...(obs && netMin !== undefined ? { netMin } : {}),
     ...(slow !== undefined && short !== undefined ? { slowMin: slow, shortMin: short, slowRawMin: slowRaw } : {}),
-    ...(running && running.perMin > rate ? { abovePlate: true } : {}),
+    ...(timedRun && timedRun.perMin > rate ? { abovePlate: true } : {}),
     ...(total.labour !== undefined ? { labour: total.labour } : {}), ...(total.contribution !== undefined ? { contribution: total.contribution } : {}),
     bars,
   };
@@ -472,18 +493,21 @@ export const windowWords = (c: Pick<LossCount, 'from' | 'to'>): string => {
   return `${hm(c.from)}–${hm(c.to)}`;
 };
 
-/** How the running speed was timed, and what it splits: "Running speed timed
- *  at 98 a minute over 3 timings (3.5 min): slow running = 380 min run × (100
- *  − 98) ÷ 100 = 8 min; short stops the rest, 1 min." */
+/** How the running speed was timed, and what it splits — the packs run
+ *  (good and rejected) at the running speed and at the ideal speed: "Running
+ *  speed timed at 98 a minute over 3 timings (3.5 min): slow running =
+ *  37,100 packs run ÷ 98 − 37,100 ÷ 100 = 8 min; short stops = 380 min run −
+ *  37,100 ÷ 98 = 1 min." */
 export function splitWords(f: LossFigures): string | undefined {
   const r = f.running, rate = f.rate;
   if (!r || rate === undefined || f.slowMin === undefined || f.shortMin === undefined) return undefined;
   const timed = `Running speed timed at ${rateWords(r.perMin)} over ${r.n} timing${r.n === 1 ? '' : 's'} (${num(r.min)} min)`;
   if (f.abovePlate) return `${timed}, above the ${f.ideal} of ${rateWords(rate)} — no slow running; check the ${f.ideal} or the timing.`;
   const raw = f.slowRawMin ?? 0;
-  const sum = `slow running = ${minWords(f.runMin ?? 0)} run × (${num(rate)} − ${num(r.perMin)}) ÷ ${num(rate)} = ${minWords(raw)}`;
+  const through = packs((f.made ?? 0) + f.rejects);
+  const sum = `slow running = ${through} packs run ÷ ${num(r.perMin)} − ${through} ÷ ${num(rate)} = ${minWords(raw)}`;
   if (raw > (f.performanceMin ?? 0) + 0.5) return `${timed}: ${sum} — more than the ${minWords(f.performanceMin ?? 0)} the count leaves; time it again, or check the counts.`;
-  return `${timed}: ${sum}; short stops the rest, ${minWords(f.shortMin)}.`;
+  return `${timed}: ${sum}; short stops = ${minWords(f.runMin ?? 0)} run − ${through} ÷ ${num(r.perMin)} = ${minWords(f.shortMin)}.`;
 }
 
 export interface LossSays { text: string; tone: Tone; verdict: string; lines: { text: string; tone: Tone }[] }

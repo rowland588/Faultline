@@ -50,4 +50,26 @@ describe('the product mix (tool 10)', () => {
     expect(m.skipped.map(s => `${s.product.name}: ${s.why}`)).toEqual(['C: no margin a pack yet', 'D: no speed on the constraint yet']);
     expect(mix([], 2400).sentence).toBe('No products yet.');
   });
+  it('a week with no minutes on the constraint makes nothing, and says so — never "everything is made"', () => {
+    const m = mix([A, B], 0);
+    expect(m.rows.map(r => [r.product.name, r.made, r.unmade])).toEqual([['A', 0, 96_000], ['B', 0, 60_000]]);
+    expect(m.sentence).toBe('The constraint has no minutes in the week yet — say how long it runs to fill it; A would go first.');
+  });
+  it('a product exactly filling the week: 1,200 minutes of A in a 1,200-minute week, 100%, all made', () => {
+    const m = mix([A], 1200);
+    expect([m.fill, m.rows[0]?.made, m.rows[0]?.unmade]).toEqual([1, 96_000, 0]);
+    expect(m.sentence).toBe('A earns £32 a constraint minute — A first. The week fills at 100%; everything is made.');
+  });
+});
+
+describe('the three numbers at their edges', () => {
+  it('planned losses longer than the shift leave nothing effective: no efficiency or loading claimed', () => {
+    const t = threeNumbers({ ratePerMin: 100, plannedMin: 450, plannedLossMin: 500, actualPacks: 1000, demandPacks: 2000 });
+    expect([t.design, t.effective, t.utilisation, t.efficiency, t.loading]).toEqual([45_000, 0, 1000 / 45_000, undefined, undefined]);
+  });
+  it('nothing made is 0% of design, said — not left out', () => {
+    const t = threeNumbers({ ratePerMin: 100, plannedMin: 450, actualPacks: 0 });
+    expect([t.utilisation, t.efficiency]).toEqual([0, 0]);
+    expect(t.sentence).toBe('Built to make 45,000 a shift; really 45,000 after 0 planned minutes out; made 0 — 0% of design, 0% of what it can really make.');
+  });
 });

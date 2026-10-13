@@ -414,7 +414,7 @@ outside" is red; "Cpk 0.67" is amber with its word.
 |---|---|---|---|
 | Measured test | mean, spread, outside | the agreed count is in | "12 of 30 in" |
 | Measured test | Cpk | 25 readings or more | "from 12 — too few for capability" |
-| Time study | standard time | n ≥ (t·s ÷ 0.05·mean)², t ≈ 2 | "12 of 15 cycles" |
+| Time study | standard time | n ≥ (t·s ÷ 0.05·mean)², t Student's at n − 1 df, five at least | "12 of 15 cycles" |
 | Work sampling | each share | N ≥ Z²p(1−p) ÷ E² for the margin wanted | "30% ±9 points from 100 taps — 223 more for ±5" |
 | Ramp-up | the date it meets rate | 3 runs or more | "too early — 2 runs" |
 | Pace | the forecast | 5 stages finished or more | "too early to tell" |
@@ -928,15 +928,21 @@ cross department or single line — how they do it in our domain"):
 `agreed.allowances`. "Set as the standard" writes each element's standard
 time onto the line standard's step, naming the study.
 
-**Figures** (`lib/ie/timeStudy.ts`): per element the observed mean of the
-kept laps, basic = observed × rating ÷ 100, standard = basic × (1 +
+**Figures** (`lib/ie/balance.ts` `element`): per element the observed mean
+of the kept laps, basic = observed × rating ÷ 100, standard = basic × (1 +
 relaxation + contingency); the cycle's standard as the sum; cycles needed
-for ±5% at 95% from the spread; the far lap flagged.
+for ±5% at 95% from the spread — n = (t·s ÷ 0.05·x̄)², **t Student's at n − 1
+degrees of freedom of the laps timed** (Freivalds, *Niebel's Methods,
+Standards and Work Design*, ch. 9), never fewer than five; the far lap
+flagged. (The ILO's and Barnes's rule of thumb takes t as 2. On the five to
+fifteen laps a floor times, t is 2.1–2.8, and 2 claims ±5% at 95% from
+what is ±5% at under 90% — so it is the laps' own t. Audit, 13 October.)
 
 **Reading and verdict.** *"Wrap and seal: 0.53 min standard (0.42 observed
-at 110, +14%) — from 15 cycles, enough."* Short: *"12 of 15 cycles — 3
-more for ±5%."* (amber). A step whose time is typed says *"typed"*; one
-estimated says *"estimated"* on the step, on the balance and on paper.
+at 110, +14%) — from 17 cycles, enough."* Short: *"15 of 17 cycles"*
+(amber) — 15 laps with a spread of 0.04 min ask (2.145 × 0.04 ÷ 0.021)² =
+16.7, so 17. A step whose time is typed says *"typed"*; one estimated says
+*"estimated"* on the step, on the balance and on paper.
 
 **Looks like.** Table left: element · laps · observed · rating · basic ·
 allowance · standard · enough. Laps right: a row of dots per element around
@@ -948,7 +954,9 @@ map, the balance, the cycle, paper); the balance station's "timed by
 somebody" becomes this number.
 
 **Proved by.** 0.42 min at 110 with 14% → 0.527; mean 0.42, spread 0.04 →
-15 cycles.
+15 cycles on the rule of thumb, 17 from 15 laps (t 2.145), 16 from 30 (t
+2.045); laps of 10, 11, 9, 10, 10 s → 16 (t at 4 df 2.776), where t = 2
+said 8.
 
 ## 4. The work balance — the Yamazumi
 
@@ -964,7 +972,11 @@ constraint?
   on the phone, tap the element and pick the person.
 - *Suggest* draws a ghost set of stacks by ranked positional weight (using
   `Step.after` where given, the table's order where not) with its figures
-  beside the real ones; **Use it** applies it.
+  beside the real ones; **Use it** applies it. A person's stack is closed
+  before it passes takt and the next person opened — so when the elements in
+  their order will not fit ⌈work ÷ takt⌉ people, the suggestion has one more
+  (four 7 s elements at a 12 s takt: 7 · 7 · 7 · 7, never 7 · 7 · 14). Only
+  an element longer than takt on its own stands over it.
 - *Make it better* on the constraint's stack raises a fix or countermeasure.
 
 **Facts.** A balance study's `facts.steps` (`who`, `after`), reading each
@@ -1063,7 +1075,9 @@ it costing until then?
   after it runs again — onto the product's line standard.
 
 **The ladder** — now → separated → converted → streamlined, against SMED's
-target, single digits — in words and drawn on one scale. Converted and
+target, single digits — **under ten minutes**, Shingo's "fewer than ten" (9
+min 30 s is on it; it was 9 min or less until the audit of 13 October) — in
+words and drawn on one scale. Converted and
 streamlined are plans: proved only when the changeover is timed again.
 
 **The grid**, in the value stream map's own parts: the elements across in
@@ -1188,9 +1202,11 @@ minutes = (expected − good) ÷ rate; the stops by cause and the changeovers
 (availability) — planned less them is the **run time**; rejects ÷ rate
 (quality); the rest is the performance loss, **slow running and short
 stops** — running below the ideal speed and stops too short to log, not
-yet told apart. With the running speed timed: slow running = run time ×
-(ideal − running speed) ÷ ideal, never more than the rest — on People
-when a person paces the line; short stops what is left. The pounds in **two parts**, never one blended figure: idle
+yet told apart. With the running speed timed, as Nakajima's loss structure
+tells them apart: the packs run (good and rejected) ÷ the running speed is
+the **net operating time**; slow running = it − the packs ÷ the ideal speed,
+never more than the rest — on People when a person paces the line; short
+stops = the run time − it, what is left. The pounds in **two parts**, never one blended figure: idle
 labour (crew × wage × on-costs × minutes) and lost contribution (packs not
 made × price less materials a pack, or the line's margin a pack) — "if it
 cannot be made up". No cost on the line, no pounds.
@@ -1218,12 +1234,15 @@ on People); the line's settings (each shift's breaks); the 6M
 and client reports' Evidence.
 
 **Proved by.** 480 − 30 = 450; 450 × 100, 36,500, 85 min, 52 + 18 + 6,
-9 of slow running and short stops; 380 run × (100 − 98) ÷ 100 = 7.6 slow
-running, 1.4 short stops; 4 × £14.50 × 1.3 = £75.40 an hour × 85 ÷ 60 =
-£107 idle labour, 8,500 × £0.04 = £340 lost contribution; and with Op 3
-packing a case of 10 every 6.25 s, 96 a minute, slower than every machine:
-450 × 96, 90 lost, 14 the rest, 380 × (96 − 93.2) ÷ 96 = 11.08 slow
-running on People.
+9 of slow running and short stops; 37,100 packs run ÷ 98 = 378.57 min
+net, − 371 at the plate = 7.57 slow running, 380 − 378.57 = 1.43 short
+stops; 4 × £14.50 × 1.3 = £75.40 an hour × 85 ÷ 60 = £107 idle labour,
+8,500 × £0.04 = £340 lost contribution; and with Op 3 packing a case of 10
+every 6.25 s, 96 a minute, slower than every machine: 450 × 96, 90 lost, 14
+the rest, 35,136 ÷ 93.2 − 35,136 ÷ 96 = 377.0 − 366 = 11.0 slow running on
+People, 3.0 short stops. (The split was run × (ideal − running) ÷ ideal
+until the audit of 13 October: it ran the line at the timed speed through
+its short stops too.)
 
 **Cost deployment** is the same figures across weeks, in pounds, ranked:
 the existing Pareto in £, each loss pointed at its cause on the fish, and
@@ -1241,12 +1260,18 @@ climb, 120 a minute about 22 Oct (85% curve, 4 runs)."* Under three: *"Too
 early — 2 runs."* (grey). A climb is drawn, not promised: the sentence
 always says "at this climb".
 
-**Pace.** Earned schedule on the stages (`lib/ie/pace.ts`): the day the
-plan had as many stages done as are done today; the pace; the forecast for
-Hand over. *"At the pace so far, Hand over lands about 31 Oct — 9 days after
-the date now expected (22 Oct)."* Shown beside the date people set, never
-over it; **Use this date** is the owner's. Under five finished stages:
-*"Too early to tell."*
+**Pace.** As built (`lib/pace.ts`) it is a **burn-down**, not earned
+schedule: the stages and tests done in the last two weeks ÷ the days
+counted is the rate; the ones still to do ÷ that rate, from today, is when
+Hand over lands — counted from the days things were actually done, because
+the plan's own days are rewritten when a stage moves and earned schedule
+would measure against a plan that follows the slips (`docs/LEAN40.md`
+keeps earned schedule's arithmetic, not used). *"At the pace so far, Hand
+over lands about 31 Oct — 9 days after the date now expected (22 Oct)."*
+Shown beside the date people set, never over it; **Use this date** is the
+owner's. Under five done, or under a week since the job's first day: *"Too
+early to say when."* (Named so in the audit of 13 October; this paragraph
+called it earned schedule.)
 
 **Looks like.** The climb: dots, the rate line, the fit dashed, the date
 labelled. The pace: a third marker on the plan, dashed, in words.
@@ -1255,8 +1280,11 @@ labelled. The pace: a third marker on the plan, dashed, in words.
 client report. Pace: the front page under the verdict, the plan, Today's
 update, the client report, the one-page status, the control room's row.
 
-**Proved by.** Elapsed 39, earned 28, planned 43 → 31 Oct; an 80% curve, b
-= −0.322.
+**Proved by.** The pace: 7 done in the last 14 days, 7 to go → 7 ÷ (7 ÷
+14) = 14 days on, 24 Oct; 8 done, 7 to go → 12.25, rounded up to 13
+(`lib/__tests__/pace.test.ts`); the climb: an 80% curve, b =
+−0.322, in Crawford's unit form (each run's own time per pack, not the
+cumulative average of Wright's 1936 paper).
 
 ## 9. Work sampling
 

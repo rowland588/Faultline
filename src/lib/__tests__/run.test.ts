@@ -43,6 +43,17 @@ describe('the reading of one product', () => {
     expect(r.meets).toBe(true);
   });
 
+  it('at the edges, worked by hand: on the agreed numbers exactly is met; no minutes, no net; more rejects than packs is no good packs, never fewer than none', () => {
+    /* 3,636 made, 36 rejected over 60 min: 3,600 good ÷ 60 = 60 ppm net — the agreed 60; 36 ÷ 3,636 = 0.99% under the 1% */
+    const edge = readRun(T({ runAgreed: AGREED, run: { minutes: 60, packs: 3636, rejects: 36 } }));
+    expect([edge.good, edge.net, edge.meets]).toEqual([3600, 60, true]);
+    expect(edge.rejectPct).toBeCloseTo(0.990, 3);
+    /* 1% exactly: 40 of 4,000 — at most 1% is met */
+    expect(readRun(T({ runAgreed: AGREED, run: { minutes: 60, packs: 4000, rejects: 40 } })).checks.find(c => c.what === 'rejects')?.ok).toBe(true);
+    const none = readRun(T({ runAgreed: AGREED, run: { minutes: 0, packs: 100, rejects: 120 } }));
+    expect([none.good, none.net, none.meets]).toEqual([0, undefined, undefined]);
+  });
+
   it('says what fell short, and by how much', () => {
     const p = readRuns(short).products[0];
     expect(p.state).toBe('short');

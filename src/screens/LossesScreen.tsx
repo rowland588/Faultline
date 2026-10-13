@@ -466,8 +466,10 @@ function CountForm({ s, line, rate: plate, editable }: { s: ToolStudy; line?: Wo
 /* ------------------------------------------------------------------ the running speed */
 /** THE RUNNING SPEED, TIMED WHILE IT RUNS (docs/CAPACITY.md §5): the packs
  *  off the line in a timed spell — a list, each with when and who, pooled.
- *  It is what tells slow running from short stops: slow running = run time
- *  × (ideal − running speed) ÷ ideal; short stops the rest. Each timing is
+ *  It is what tells slow running from short stops (Nakajima's net operating
+ *  time, lib/ie/losses): the packs run at it take packs ÷ running speed —
+ *  the run time less that is short stops, that less packs ÷ ideal is slow
+ *  running. Each timing is
  *  kept the moment it is added (its own list, so two phones both keep
  *  theirs); a wrong one is struck, never erased. */
 function RunningSpeed({ s, f, editable, me }: { s: ToolStudy; f: LossFigures; editable: boolean; me?: string }) {

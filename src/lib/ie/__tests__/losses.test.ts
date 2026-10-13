@@ -16,9 +16,13 @@
  *     9 ÷ 85 = 10.6%: over a tenth, amber.
  *     run time = 450 − 52 − 18 = 380 min.
  *   The running speed timed while it ran: 99 in 60 s, 97 in 60 s, 147 in
- *   90 s → 343 in 3.5 min = 98 a minute.
- *     slow running = 380 × (100 − 98) ÷ 100 = 7.6 min;
- *     short stops  = 9 − 7.6 = 1.4 min. Neither over a tenth (8.9%, 1.6%).
+ *   90 s → 343 in 3.5 min = 98 a minute. Told apart as Nakajima does: the
+ *   36,500 + 600 = 37,100 packs run took 37,100 ÷ 98 = 378.57 min at that
+ *   speed — the net operating time — and take 371 at the plate's 100:
+ *     slow running = 378.57 − 371 = 7.57 min;
+ *     short stops  = 380 − 378.57 = 1.43 min (7.57 + 1.43 = the 9).
+ *     Neither over a tenth (8.9%, 1.7%). The split before this, 380 ×
+ *     (100 − 98) ÷ 100 = 7.6, ran the line at 98 through its short stops.
  *   The pounds, in two parts:
  *     idle labour = 4 crew × £14.50 × 1.3 on-costs = £75.40 an hour;
  *       × 85 ÷ 60 = £106.82 → £107  (the Breakdown's 32 min: £40.21 → £40)
@@ -35,10 +39,11 @@
  *     lost = 8,640 ÷ 96 = 90 min.   rejects = 576 ÷ 96 = 6 min.
  *     explained = 52 + 18 + 6 = 76;  the rest = 90 − 76 = 14 min (15.6%).
  *     run time = 450 − 52 − 18 = 380 min.
- *   Op 3 timed at 466 in 300 s = 93.2 a minute:
- *     slow running = 380 × (96 − 93.2) ÷ 96 = 1,064 ÷ 96 = 11.08 min —
- *       on People, the person who paces it; over a tenth (12.3%), amber;
- *     short stops  = 14 − 11.08 = 2.92 min. */
+ *   Op 3 timed at 466 in 300 s = 93.2 a minute; 34,560 + 576 = 35,136
+ *   packs run, 35,136 ÷ 93.2 = 377.0 min at that speed, 35,136 ÷ 96 = 366:
+ *     slow running = 377.0 − 366 = 11.0 min —
+ *       on People, the person who paces it; over a tenth (12.2%), amber;
+ *     short stops  = 380 − 377.0 = 3.0 min. */
 import { describe, it, expect } from 'vitest';
 import {
   lossFigures, lossSays, compareLosses, nextShift, lossLine, lossRows, barWords, barExpect, inWindow, isChangeover, dayWords, rateWords,
@@ -108,7 +113,7 @@ describe('a shift’s losses (tool 7)', () => {
     expect(rateOf(undefined, 90)).toMatchObject({ ratePerMin: 90, rateFrom: 'standard' });
     expect(rateOf(undefined)).toEqual({ why: 'typed — the line has no capacity sheet yet' });
   });
-  it('Op 3 paces it: 450 × 96 = 43,200; 90 lost; 14 the rest; 380 × (96 − 93.2) ÷ 96 = 11.08 slow running on People, 2.92 short stops', () => {
+  it('Op 3 paces it: 450 × 96 = 43,200; 90 lost; 14 the rest; 35,136 ÷ 93.2 − 35,136 ÷ 96 = 11.0 slow running on People, 380 − 377.0 = 3.0 short stops', () => {
     const c: LossCount = { ...count, made: 34_560, rejects: 576, ratePerMin: 96, rateFrom: 'standard-time', rateMachine: undefined, ratePerson: 'Op 3' };
     const op3timed: RunTiming[] = [{ id: 'p1', at: FROM + 3 * H, by: 'Sam', packs: 466, sec: 300 }];
     const un = lossFigures(c, log());
@@ -118,12 +123,13 @@ describe('a shift’s losses (tool 7)', () => {
     expect(s0.lines[0].text).toBe('Slow running and short stops is the rest: running below the standard-time pace, and stops too short to log — not yet told apart. Time the running speed while it runs to split them.');
     expect(s0.lines[1].text).toMatch(/· the rate is the standard time of Op 3 \(the time study\) · /);
     const f = lossFigures(c, log(), undefined, op3timed);
-    expect(f.slowMin).toBeCloseTo(1064 / 96, 6);
-    expect(f.shortMin).toBeCloseTo(14 - 1064 / 96, 6);
+    expect(f.netMin).toBeCloseTo(35_136 / 93.2, 6);            // 376.99
+    expect(f.slowMin).toBeCloseTo(35_136 / 93.2 - 366, 6);     // 10.99
+    expect(f.shortMin).toBeCloseTo(380 - 35_136 / 93.2, 6);    // 3.01
     expect(f.bars.slice(4).map(b => [b.key, b.bone, !!b.abnormal])).toEqual([['slow', 'people', true], ['short', 'machine', false]]);
     const s = lossSays(f, c);
     expect(s.verdict).toBe('11 min slow running');
-    expect(s.lines[0].text).toBe('Running speed timed at 93.2 a minute over 1 timing (5 min): slow running = 380 min run × (96 − 93.2) ÷ 96 = 11 min; short stops the rest, 3 min.');
+    expect(s.lines[0].text).toBe('Running speed timed at 93.2 a minute over 1 timing (5 min): slow running = 35,136 packs run ÷ 93.2 − 35,136 ÷ 96 = 11 min; short stops = 380 min run − 35,136 ÷ 93.2 = 3 min.');
     expect(barWords(f.bars[4], c, TO + 20 * H)).toBe('Slow running — 11 min below the standard-time pace on Shift 1, yesterday');
     expect(barExpect(f.bars[4], c)).toBe('Slow running: 11 min a shift — the running speed nearer the standard-time pace on the next shift counted');
     const t = lossRows(f, c);
@@ -158,21 +164,33 @@ describe('a shift’s losses (tool 7)', () => {
       'How known: 480 min shift − 30 min of breaks = 450 planned · the packs made and the rejects counted · the rate is the plate speed of the Bagger · 4 stops timed in Capture in the window.',
     ]);
   });
-  it('the running speed timed tells them apart: 380 × (100 − 98) ÷ 100 = 7.6 slow running, 1.4 short stops', () => {
+  it('the running speed timed tells them apart, as Nakajima does: 37,100 ÷ 98 − 371 = 7.57 slow running, 380 − 378.57 = 1.43 short stops', () => {
     expect(runningOf(timed)).toEqual({ perMin: 98, n: 3, min: 3.5 });   // the struck one counts for nothing
     const f = lossFigures(count, log(), undefined, timed);
-    expect(f.slowMin).toBeCloseTo(7.6, 6);
-    expect(f.shortMin).toBeCloseTo(1.4, 6);
+    expect(f.netMin).toBeCloseTo(37_100 / 98, 6);              // 378.57 — the net operating time
+    expect(f.slowMin).toBeCloseTo(37_100 / 98 - 371, 6);       // 7.57
+    expect(f.shortMin).toBeCloseTo(380 - 37_100 / 98, 6);      // 1.43
+    expect((f.slowMin ?? 0) + (f.shortMin ?? 0)).toBeCloseTo(9, 9);
     expect(f.bars.slice(4).map(b => [b.key, b.label, b.bone, b.grade, !!b.abnormal])).toEqual([['slow', 'Slow running', 'machine', 'measured', false], ['short', 'Short stops', 'machine', 'none', false]]);
     const s = lossSays(f, count);
     expect(s.text).toBe('Shift 1 should have made 45,000 at 100 a minute; made 36,500 — 85 min lost: 52 min of stops · 18 min of changeovers · 6 min of rejects (600 packs) · 8 min of slow running · 1 min of short stops.');
     expect([s.tone, s.verdict]).toEqual(['n', '85 min lost']);
-    expect(s.lines[0]).toEqual({ text: 'Running speed timed at 98 a minute over 3 timings (3.5 min): slow running = 380 min run × (100 − 98) ÷ 100 = 8 min; short stops the rest, 1 min.', tone: 'n' });
-    /* timed at 97, the slow running says 11.4 of the 9 left — capped, and said */
+    expect(s.lines[0]).toEqual({ text: 'Running speed timed at 98 a minute over 3 timings (3.5 min): slow running = 37,100 packs run ÷ 98 − 37,100 ÷ 100 = 8 min; short stops = 380 min run − 37,100 ÷ 98 = 1 min.', tone: 'n' });
+    /* timed at 97 the 37,100 packs would have taken 382.5 min — more than the 380 it ran: the slow running says 11.5 of the 9 left — capped, and said */
     const slower = lossFigures(count, log(), undefined, [{ id: 'x', at: FROM + H, packs: 97, sec: 60 }]);
     expect([slower.slowMin, slower.shortMin]).toEqual([9, 0]);
-    expect(slower.slowRawMin).toBeCloseTo(11.4, 6);
-    expect(lossSays(slower, count).lines[0]).toEqual({ text: 'Running speed timed at 97 a minute over 1 timing (1 min): slow running = 380 min run × (100 − 97) ÷ 100 = 11 min — more than the 9 min the count leaves; time it again, or check the counts.', tone: 'a' });
+    expect(slower.slowRawMin).toBeCloseTo(37_100 / 97 - 371, 6);   // 11.47
+    expect(lossSays(slower, count).lines[0]).toEqual({ text: 'Running speed timed at 97 a minute over 1 timing (1 min): slow running = 37,100 packs run ÷ 97 − 37,100 ÷ 100 = 11 min — more than the 9 min the count leaves; time it again, or check the counts.', tone: 'a' });
+    /* a far slower running speed shows the old split's error plainly: 200 min run, 100 a minute plate, 15,000 packs
+       run at 80 a minute timed — the net operating time 187.5 min: 12.5 min of short stops, 37.5 of slow running;
+       200 × (100 − 80) ÷ 100 would have said 40 and 10 */
+    const wide = lossFigures({ ...count, plannedMin: 200, made: 15_000, rejects: 0 }, [], undefined, [{ id: 'w', at: FROM + H, packs: 80, sec: 60 }]);
+    expect([wide.runMin, wide.performanceMin, wide.netMin]).toEqual([200, 50, 187.5]);
+    expect([wide.slowMin, wide.shortMin]).toEqual([37.5, 12.5]);
+    /* a timing with no packs in it is not a running speed: not told apart */
+    const none = lossFigures(count, log(), undefined, [{ id: 'z', at: FROM + H, packs: 0, sec: 60 }]);
+    expect([none.slowMin, none.shortMin, none.netMin]).toEqual([undefined, undefined, undefined]);
+    expect(lossSays(none, count).lines[0].text).toMatch(/^Slow running and short stops is the rest: .* not yet told apart\./);
     expect(slower.bars.find(b => b.key === 'slow')?.abnormal).toBe(true);
     /* at or above the plate there is no slow running — and above it is said */
     const fast = lossFigures(count, log(), undefined, [{ id: 'y', at: FROM + H, packs: 104, sec: 60 }]);
