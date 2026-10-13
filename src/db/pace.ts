@@ -204,18 +204,26 @@ export async function chainForWorkspace(wsId: ID): Promise<{
   stageGate?: boolean;
 } | null> {
   const db = await getDB();
-  const line = (await db.getAll('pace_ppm')).find(l => l.workspaceId === wsId && !l.deletedAt);
-  const projectId = line ? (line.projectId ?? DEFAULT_PROJECT_ID) : await projectForWorkspace(wsId);
-  if (!projectId) return null;
-  const p = await db.get('projects', projectId);
-  if (p?.deletedAt) return null;
-  return {
-    projectId,
-    projectName: p?.name ?? 'the project',
-    lineId: line?.id,
-    lineName: line?.name,
-    stageGate: !!p?.commissioning,
-  };
+  /* AN ARCHIVED JOB IS NOBODY'S CONTEXT (Rowland, 13 October: "somehow it
+     was aligned to an old project ... an old archived project ... archive is
+     causing issues"). A line of the factory can be on several jobs; the
+     chain is the first job still live on it — never one archived or
+     deleted, whose rail, name and lists must not wrap the line's tools. */
+  const lines = (await db.getAll('pace_ppm')).filter(l => l.workspaceId === wsId && !l.deletedAt).sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
+  const walkOf = lines.length ? null : await projectForWorkspace(wsId);
+  const candidates = lines.length ? lines.map(l => ({ line: l as typeof l | undefined, projectId: l.projectId ?? DEFAULT_PROJECT_ID })) : walkOf ? [{ line: undefined, projectId: walkOf }] : [];
+  for (const c of candidates) {
+    const p = await db.get('projects', c.projectId);
+    if (p?.deletedAt || p?.archivedAt) continue;
+    return {
+      projectId: c.projectId,
+      projectName: p?.name ?? 'the project',
+      lineId: c.line?.id,
+      lineName: c.line?.name,
+      stageGate: !!p?.commissioning,
+    };
+  }
+  return null;
 }
 
 /** Is this workspace part of a project that has been archived? Archiving a job

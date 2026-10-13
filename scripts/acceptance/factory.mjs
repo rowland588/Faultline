@@ -30,6 +30,9 @@
  *      not in it yet (added to the factory); a project's line made before the
  *      factory finding the factory's line of its name, never a second; the
  *      factory row, the line's page and the control room saying the job
+ *  24-26 a job archived: its line still in the factory and on every Which
+ *      line, no job on its page, and a tool on it wearing the control
+ *      room's rail, never the archived job's
  *  21-23 the factory on paper — one page, the factory in words, every line in
  *      floor order with its type, its jobs and what is open; a tool's Which
  *      line offering the factory in floor order, and a line made there put at
@@ -235,6 +238,20 @@ await page.locator('.sheet, [role="dialog"]').last().getByPlaceholder(/Maris Pip
 await page.locator('.sheet, [role="dialog"]').last().locator('button[type="submit"]').click(); await page.waitForTimeout(2000);
 await page.goto(`${BASE}/#/factory`); await page.waitForTimeout(2000);
 ok((await order()).at(-1) === 'Line 10|' && (await order()).length === 6, `23 a new line made in a tool is in the factory, at the end: ${(await order()).join(' / ')}`);
+
+/* 24-26 — a job archived: its line stays in the factory; the archived job is nobody's context (13 October:
+   "somehow it was aligned to an old project ... archive is causing issues ... once and for all") */
+await page.evaluate(async p => { const P = await import('/src/db/projects.ts'); await P.archiveProject(p); }, pid);
+await page.goto(`${BASE}/#/factory`); await page.waitForTimeout(2000);
+ok((await order()).some(x => x.startsWith('Line 1|')) && !/Line 1 performance/.test(await txt()), `24 Line 1 performance archived: Line 1 still in the factory, the job's name gone from it (${(await order()).length} lines)`);
+await page.goto(`${BASE}/#/lines/${line1}`); await page.waitForTimeout(2000);
+ok(/No job on this line now/.test(await txt()) && !/Line 1 performance/.test(await rail()), '25 the line\'s page: no job on it now, none on the rail');
+await page.goto(`${BASE}/#/w/${line1}/capture`); await page.waitForTimeout(2500);
+ok(!/Line 1 performance/.test(await rail()) && /YOUR FACTORY/i.test(await rail()), `26 a tool on the line wears the control room's rail, never the archived job's`);
+await page.goto(`${BASE}/#/balances`); await page.waitForTimeout(2000);
+await page.getByRole('button', { name: 'New line capacity' }).first().click(); await page.waitForTimeout(800);
+const opts2 = await page.locator('.sheet, [role="dialog"]').last().locator('select').first().evaluate(el => [...el.options].map(o => o.text));
+ok(opts2.includes('Line 1') && !opts2.some(o => /performance/.test(o)), `26b a tool's Which line still offers Line 1 (${opts2.length} lines)`);
 
 ok(errs.length === 0, `no console errors ${errs.slice(0, 3).join(' | ')}`);
 await b.close();

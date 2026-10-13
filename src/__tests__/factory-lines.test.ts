@@ -20,7 +20,7 @@ const fresh = async () => ({ db: await import('../db'), lines: await import('../
 const job = (id: string, o: Record<string, unknown> = {}) => ({ id, name: id, color: '#000', workspaceIds: [], createdAt: 1, updatedAt: 1, ...o });
 
 describe('a line shared by the jobs on it', () => {
-  it('stays in the factory while any job on it is live, and goes when every one is archived', async () => {
+  it('stays in the factory whatever becomes of the jobs on it; the chain names a live job, never an archived one', async () => {
     const { db, lines } = await fresh();
     const w = await lines.addLineToFactory('Line 2A', 'Packing');
     await db.addProject(job('stage-gate', { archivedAt: 5 }));
@@ -29,11 +29,15 @@ describe('a line shared by the jobs on it', () => {
     await db.putPaceLine({ id: 'l2', projectId: 'six-m', key: '2A', name: 'Line 2A', workspaceId: w.id, updatedAt: 1 });
     expect((await db.projectsOnWorkspace(w.id)).sort()).toEqual(['six-m', 'stage-gate']);
     expect(await db.inArchivedProject(w.id)).toBe(false);
+    expect((await db.chainForWorkspace(w.id))?.projectId).toBe('six-m');
     expect((await lines.liveProductionLines(await db.listWorkspaces())).map(x => x.name)).toEqual(['Line 2A']);
     const six = await db.getProject('six-m');
     if (!six) throw new Error('the 6M job was not kept');
     await db.updateProject({ ...six, archivedAt: 9 });
     expect(await db.inArchivedProject(w.id)).toBe(true);
+    /* every job on it archived: the line is still a line of the factory, and no job is its context */
+    expect(await db.chainForWorkspace(w.id)).toBeNull();
+    expect((await lines.liveProductionLines(await db.listWorkspaces())).map(x => x.name)).toEqual(['Line 2A']);
   });
 });
 

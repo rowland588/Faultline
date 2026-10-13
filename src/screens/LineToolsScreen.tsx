@@ -17,6 +17,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { addLineToFactory, asked } from '../lib/lines';
 import { listAllStandards, listAllStudies, listWorkspaces, onDataChange, putStandard } from '../db';
 import { useFactoryLines } from '../lib/useFactoryLines';
+import { useArchivedPlaces } from '../lib/useFactoryLines';
 import type { ToolStudy } from '../lib/study';
 import { changeoverLine, currentChangeover, studyHref } from '../lib/studyLinks';
 import { useProjects } from '../lib/useProjects';
@@ -56,7 +57,7 @@ export const openOf = (s: Pick<Standard, 'id' | 'projectId' | 'workspaceId'>, to
 export function balanceSays(s: Pick<Standard, 'capacity'>): { text: string; short: boolean } {
   const cap = s.capacity;
   const n = cap?.stations.length ?? 0;
-  if (!cap || n === 0) return { text: 'No stations yet', short: false };
+  if (!cap || n === 0) return { text: 'No stations yet — open it and write the line’s stations for this product', short: false };
   const r = analyse(cap);
   return { text: shortSays(r) ?? `${n} station${n === 1 ? '' : 's'} — speeds still to fill in`, short: (r.gap ?? 0) > 0 };
 }
@@ -90,14 +91,18 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
   const jobName = (id?: string) => (id ? projects.find(p => p.id === id)?.name : undefined);
   /* By line; a map made inside a job with no line of its own sits under
      "Job: <its name>", never dressed as a line. */
+  /* an archived job's own records — on no line, or on its own walk — go into the
+     archive with it; a record on a line of the factory is the line's and stays */
+  const put = useArchivedPlaces();
   const groups = useMemo(() => {
     const by = new Map<string, Standard[]>();
     for (const s of list ?? []) {
       const k = s.workspaceId ? `ws:${s.workspaceId}` : `job:${s.projectId}`;
+      if (put.has(k)) continue;
       by.set(k, [...(by.get(k) ?? []), s]);
     }
     return [...by.entries()];
-  }, [list]);
+  }, [list, put]);
   const groupName = (k: string) => (k.startsWith('ws:') ? lineName(k.slice(3)) : `Job: ${jobName(k.slice(4)) ?? 'a job'}`);
   const shown = groups.filter(([k]) => lineF === 'all' || k === lineF);
 
@@ -223,7 +228,7 @@ function NewOne({ open, tool, lines, list, onClose, onLine }: { open: boolean; t
             <input className="text-input" value={newLine} maxLength={80} placeholder="e.g. Line 4" onChange={e => setNewLine(e.target.value)} />
           </label>
         )}
-        <label className="field"><span className="field-label">Which product</span>
+        <label className="field"><span className="field-label">Which product{tool === 'balance' && <i className="sub"> — a line’s capacity is per product (speeds differ by product); the record carries the product’s line standard too</i>}</span>
           <input className="text-input" value={product} placeholder="e.g. Maris Piper 2kg — Tall" onChange={e => setProduct(e.target.value)} />
         </label>
         <label className="field"><span className="field-label">For a job?</span>

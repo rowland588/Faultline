@@ -10,7 +10,7 @@
  * so the control room, the rail and the line's page never disagree on it.
  * The demo line is a showcase, not a line anybody works on. */
 import type { Workspace } from '../types';
-import { inArchivedProject, projectWalkIds } from '../db/pace';
+import { projectWalkIds } from '../db/pace';
 import { createWorkspace, listWorkspaces, updateWorkspace } from '../db/workspaces';
 
 export const DEMO_NAME = 'Demo — Packing Hall';
@@ -84,16 +84,16 @@ export function nextLineName(lines: readonly Workspace[]): string {
   return `${m[1]}${Number(m[2]) + 1}`;
 }
 
-/** The lines worked on now: every line, less those that belong to an
- *  archived project (Rowland, 12 October: "2A and 2B is actually an archived
- *  project") — they go with their project into the archive. Their problems
- *  stay on the Problems page, the line said to be an archived project's. */
+/** The lines of the factory: every line, less a project's own walk (the
+ *  project's, never a line — db/pace projectWalkIds). A LINE NEVER LEAVES THE
+ *  FACTORY BECAUSE A PROJECT DID (Rowland, 13 October: "archive is causing
+ *  issues ... this all needs sorting once and for all"): Line 2B is a line
+ *  of the factory whether the job that first named it is live, archived or
+ *  gone — only the line's own Archive takes it off the floor. The job, once
+ *  archived, is simply nobody's context (db/pace chainForWorkspace). */
 export async function liveProductionLines(ws: readonly Workspace[]): Promise<Workspace[]> {
-  /* a project's own walk is the project's, never a line (db/pace projectWalkIds) */
   const walks = await projectWalkIds();
-  const lines = productionLines(ws).filter(w => !walks.has(w.id));
-  const away = await Promise.all(lines.map(w => inArchivedProject(w.id)));
-  return lines.filter((_, i) => !away[i]);
+  return productionLines(ws).filter(w => !walks.has(w.id));
 }
 
 /** A LINE ADDED TO THE FACTORY — at the end of the floor, with its type; the

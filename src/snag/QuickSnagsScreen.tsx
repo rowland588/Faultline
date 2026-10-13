@@ -21,8 +21,8 @@
  * a word narrow it. The report prints what the page shows (lib/snagsReportPdf). */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { withoutDemo } from '../lib/demo';
-import { addLineToFactory, asked, byFloor } from '../lib/lines';
-import { addSnag, deleteSnag, inArchivedProject, listAllSnags, listArchivedWorkspaces, listWorkspaces, putTest, putTestItem, listAssets, listSnagAssets, listTests, listTestItems, listPaceTodos, onDataChange, updateSnag, updateWorkspace, setSnagsStatus, type PaceTodoRow } from '../db';
+import { addLineToFactory, asked, byFloor, liveProductionLines } from '../lib/lines';
+import { addSnag, deleteSnag, inArchivedProject, listAllSnags, projectWalkIds, listArchivedWorkspaces, listWorkspaces, putTest, putTestItem, listAssets, listSnagAssets, listTests, listTestItems, listPaceTodos, onDataChange, updateSnag, updateWorkspace, setSnagsStatus, type PaceTodoRow } from '../db';
 import { useProjects } from '../lib/useProjects';
 import { planModel } from '../lib/planModel';
 import { uid } from '../lib/ids';
@@ -75,8 +75,14 @@ export function QuickSnagsScreen() {
   const [frames, setFrames] = useState<Map<string, SnagAsset>>(new Map());
   const [jobMachines, setJobMachines] = useState<string[]>([]);
   const [jobData, setJobData] = useState<Map<string, JobData>>(new Map());
-  /* the lines that belong to an archived project — said so, and not offered to move problems onto */
+  /* AN ARCHIVED JOB'S OWN WALK — its problems are "Not on a line", never under the
+     archived name (Rowland, 12-13 October: "the bloody title 2A2B ... doesn't exist
+     because it's an archive project"). A LINE of the factory is never away: Line 2B
+     stays Line 2B, its problems on it, whatever became of the job that first named
+     it (13 October: "archive is causing issues ... once and for all"). */
   const [awayLines, setAwayLines] = useState<Set<string>>(new Set());
+  /* the lines of Your factory, in floor order — what every line box offers */
+  const [factory, setFactory] = useState<Workspace[]>([]);
   /* lines archived themselves — their names kept, so a problem left on one says where it is */
   const [shelved, setShelved] = useState<Workspace[]>([]);
   /* the order the rows stood in when a problem was opened — kept while any is open, so a changed priority never moves the row from under the finger */
@@ -110,7 +116,9 @@ export function QuickSnagsScreen() {
     const all = withoutDemo(every, ws).filter(s => !s.deletedAt);
     setSnags(all.sort((a, b) => b.raisedAt - a.raisedAt)); setLines(withoutDemo(ws.map(w => ({ ...w, workspaceId: w.id })), ws).sort(byFloor));   /* offered in floor order (Your factory) */
     setShelved(await listArchivedWorkspaces());
-    const away = await Promise.all(ws.map(async w => [w.id, await inArchivedProject(w.id)] as const));
+    const [walks, floor] = await Promise.all([projectWalkIds(), liveProductionLines(ws)]);
+    setFactory(floor);
+    const away = await Promise.all(ws.filter(w => walks.has(w.id)).map(async w => [w.id, await inArchivedProject(w.id)] as const));
     setAwayLines(new Set(away.filter(([, a]) => a).map(([id]) => id)));
     const wsIds = [...new Set(all.filter(s => s.assetId).map(s => s.workspaceId))];
     const fr = new Map<string, SnagAsset>();
@@ -132,7 +140,7 @@ export function QuickSnagsScreen() {
   }, [jobKey]);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
 
-  /* a line on an archived project says so (Rowland, 12 October: "2A and 2B is actually an archived project") */
+  /* an archived job's walk, or a line archived itself: "Not on a line"; a line of the factory: its name */
   const lineName = useCallback((id: string) => (id === NO_LINE || awayLines.has(id) || shelved.some(w => w.id === id)
     ? 'Not on a line' : lines.find(w => w.id === id)?.name ?? 'Not on a line'), [lines, awayLines, shelved]);
   /* the rows name a project in use only — an archived project's name never heads or tags a row (13 October) */
@@ -431,7 +439,7 @@ export function QuickSnagsScreen() {
                         {r.due && <span className={'qsl-dueword ' + TONE_CLASS[r.dueTone ?? 'n']}>{r.due}</span>}
                       </span>
                     </button>
-                    {isOpen && <ProblemEditor s={s} lines={lines.filter(w => !goneLines.has(w.id))} projects={liveJobs}
+                    {isOpen && <ProblemEditor s={s} lines={factory} projects={liveJobs}
                       saved={savedOn?.id === s.id && Date.now() - savedOn.at < 4000} lineName={lineName} jobName={jobName}
                       onSave={() => { flip(s.id); setSavedOn({ id: s.id, at: Date.now() }); }} machines={machinesFor(s.workspaceId)} frame={s.assetId ? frames.get(s.assetId) : undefined}
                       put={p => void put(s.id, p)} onView={m => setViewing({ snagId: s.id, media: m })} busy={busy}
@@ -450,7 +458,7 @@ export function QuickSnagsScreen() {
           and is worked on its project. */}
       {shownJobs.length > 0 && <h2 className="qsl-kind-h">On the projects <span className="sub">— raised on a project's own stages, with the fix that puts each right</span></h2>}
       {shownJobs.map(g => <JobProblems key={`job:${g.projectId}`} g={g} all={reading.jobs.find(x => x.projectId === g.projectId) ?? g}
-        data={jobData.get(g.projectId)} canEdit={accessOn(g.projectId).edit} lines={lines.filter(w => !goneLines.has(w.id))}
+        data={jobData.get(g.projectId)} canEdit={accessOn(g.projectId).edit} lines={factory}
         onToLine={(item, to) => void toLine(g.projectId, item, to)}
         opened={opened} flip={flip} busy={!!busy} onView={m => setViewing({ media: m })}
         onCard={r => void jobCard(r, g.job)}
@@ -520,7 +528,7 @@ export function QuickSnagsScreen() {
             })();
           }}>
             <option value="">Put on a line…</option>
-            {lines.filter(w => !awayLines.has(w.id)).map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+            {factory.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
             <option value={NEW_LINE}>A new line…</option>
           </select>
           <button type="button" className="btn" onClick={() => setSetting(true)}>Whose · due</button>

@@ -15,6 +15,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { asked } from '../lib/lines';
 import { listAllStudies, listObservations, listStandardsForLine, listWorkspaces, onDataChange, putStudy } from '../db';
 import { useFactoryLines } from '../lib/useFactoryLines';
+import { useArchivedPlaces } from '../lib/useFactoryLines';
 import type { Standard } from '../lib/standard';
 import { useProjects } from '../lib/useProjects';
 import { now, uid } from '../lib/ids';
@@ -145,14 +146,18 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
 
   /* Not filed first, then each line, then a job with no line of its own. */
+  /* an archived job's own records — on no line, or on its own walk — go into the
+     archive with it; a record on a line of the factory is the line's and stays */
+  const put = useArchivedPlaces();
   const groups = useMemo(() => {
     const by = new Map<string, ToolStudy[]>();
     for (const s of list ?? []) {
       const k = s.workspaceId ? `ws:${s.workspaceId}` : s.projectId ? `job:${s.projectId}` : 'none';
+      if (put.has(k)) continue;
       by.set(k, [...(by.get(k) ?? []), s]);
     }
     return [...by.entries()].sort(([a], [b]) => (a === 'none' ? -1 : b === 'none' ? 1 : a.localeCompare(b)));
-  }, [list]);
+  }, [list, put]);
   const shownGroups = onLine ? groups.filter(([k]) => k === `ws:${onLine}`) : groups;
   const onLineName = onLine ? (lines.find(l => l.id === onLine)?.name ?? 'this line') : undefined;
   const groupName = (k: string) => (k === 'none' ? 'Not filed'

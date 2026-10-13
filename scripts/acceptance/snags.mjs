@@ -101,7 +101,9 @@ const truth = () => page.evaluate(async () => {
   const [every, ws, projects] = await Promise.all([db.listAllSnags(), db.listWorkspaces(), P.allProjects()]);
   const all = (await import('/src/lib/demo.ts')).withoutDemo(every, ws).filter(s => !s.deletedAt);
   /* a problem on a line of an archived project, or a line archived itself, stays — under "Not on a line" (13 October) */
-  const gone = new Set([...(await db.listArchivedWorkspaces()).map(w => w.id), ...(await Promise.all(ws.map(async w => (await db.inArchivedProject(w.id)) ? w.id : ''))).filter(Boolean)]);
+  /* (13 October) only a line archived itself, or an archived job's own walk — a LINE of an archived job is still a line */
+  const walks = await db.projectWalkIds();
+  const gone = new Set([...(await db.listArchivedWorkspaces()).map(w => w.id), ...(await Promise.all(ws.map(async w => (walks.has(w.id) && await db.inArchivedProject(w.id)) ? w.id : ''))).filter(Boolean)]);
   const snags = all.filter(s => !s.archivedAt);
   const frames = new Map((await Promise.all([...new Set(snags.filter(s => s.assetId).map(s => s.workspaceId))].map(id => db.listSnagAssets(id)))).flat().map(a => [a.id, a]));
   const lineName = id => ws.find(w => w.id === id)?.name ?? 'A line';
@@ -413,26 +415,27 @@ await go('#/snags');
    box on a single problem, assign it to something else, even with the
    priority, that section there doesn't work. There's no save") — on a phone ---- */
 {
-  const away = await page.evaluate(async ({ pid, ws }) => {
+  const { away, lineNm } = await page.evaluate(async ({ pid, ws }) => {
     const db = await import('/src/db.ts'); const P = await import('/src/db/projects.ts');
-    const c = await db.chainForWorkspace(ws); await P.archiveProject(c?.projectId ?? pid);
-    return (await db.listWorkspaces()).find(w => w.id === ws)?.name;
+    const c = await db.chainForWorkspace(ws); const id = c?.projectId ?? pid; await P.archiveProject(id);
+    return { away: (await P.allProjects()).find(p => p.id === id)?.name, lineNm: (await db.listWorkspaces()).find(w => w.id === ws)?.name };
   }, { pid: sd.projectId, ws: sd.wsId });
   await go('#/'); await go('#/snags');
-  /* its problems stay — they are used — under "Not on a line", never under the archived name (13 October: "the problems
-     that are under it right now are needed. Don't delete them ... The thing that needs removing is just the bloody title 2A2B") */
+  /* the archived JOB's name is nowhere on the page (12 October: "the bloody title 2A2B ... doesn't exist because it's an
+     archive project"); its LINE is still a line of the factory and its problems stay on it, worked (13 October: "archive
+     is causing issues ... once and for all") */
   const heads = await page.locator('.qsl-g:not(.qsl-job) .qsl-gh h2').allInnerTexts();
-  ok(!(await page.locator('.qsl').innerText()).includes(away) && heads.includes('Not on a line'), `12 the archived project's line name is nowhere on the page; its problems under "Not on a line"`);
-  const noLine = page.locator('.qsl-g', { has: page.locator('.qsl-gh h2', { hasText: /^Not on a line$/ }) });
+  ok(!(await page.locator('.qsl').innerText()).includes(away) && heads.includes(lineNm), `12 the archived job's name (${away}) is nowhere on the page; its line ${lineNm} still heads its problems`);
+  const onLine = page.locator('.qsl-g', { has: page.locator('.qsl-gh h2', { hasText: lineNm }) });
   const tt = await truth();
-  const stayed = tt.rows.filter(r => r.workspaceId === '__no_line__' && r.status !== 'closed');
-  ok(stayed.length > 0 && (await noLine.locator('.qsl-work').count()) === stayed.length, `12 every one of them still here, open and worked: ${stayed.length}`);
-  const freeRow = noLine.locator('.qsl-work').filter({ hasNotText: 'seeded snag' }).first();
+  const stayed = tt.rows.filter(r => r.workspaceId === sd.wsId && r.status !== 'closed');
+  ok(stayed.length > 0 && (await onLine.locator('.qsl-work').count()) === stayed.length, `12 every one of them still here, open and worked: ${stayed.length}`);
+  const freeRow = onLine.locator('.qsl-work').filter({ hasNotText: 'seeded snag' }).first();
   const what = (await freeRow.locator('.qsl-what').innerText()).replace(/^(LOW|HIGH|CRITICAL)\s*/i, '').trim();
   await row(what).locator('.qsl-open').click(); await page.waitForTimeout(500);
   const lb = row(what).locator('.pe').getByLabel('Which line');
   const lbOpts = await lb.locator('option').allInnerTexts();
-  ok((await lb.evaluate(el => el.options[el.selectedIndex]?.text)) === 'Not on a line' && !lbOpts.some(o => o.includes(away)), '12 its line box says "Not on a line" and offers the lines in use');
+  ok((await lb.evaluate(el => el.options[el.selectedIndex]?.text)) === lineNm && !lbOpts.some(o => o.includes(away)), `12 its line box says ${lineNm} and offers the factory's lines, no archived job among them`);
   page.once('dialog', d => void d.accept('Line 2C'));
   await lb.selectOption({ label: 'A new line…' }); await page.waitForTimeout(1500);
   const on2c = await page.evaluate(async () => { const db = await import('/src/db.ts'); const l = (await db.listWorkspaces()).find(x => x.name === 'Line 2C'); return (await db.listAllSnags()).filter(x => x.workspaceId === l?.id).map(x => x.problem); });
@@ -453,7 +456,7 @@ await go('#/snags');
   ok(kept && pe === 0 && sv === 1, `12 Save keeps what was typed, closes it and says Saved on its row (kept ${kept}, editors open ${pe}, saved shown ${sv})`);
   await go('#/');
   const cr = (await page.locator('.fac-home').innerText()).replace(/\s+/g, ' ');
-  ok(!cr.includes(away) && cr.includes('Line 2C'), `12 the control room's factory: the archived project's gone with it, Line 2C there`);
+  ok(!cr.includes(away) && cr.includes(lineNm) && cr.includes('Line 2C'), `12 the control room's factory: ${lineNm} still there, Line 2C beside it, the archived job's name nowhere`);
 }
 
 /* ---- 13 the audit of 13 October — every case that would have sent us back ---- */

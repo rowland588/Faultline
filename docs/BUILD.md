@@ -1195,11 +1195,20 @@ exists today is aligned to it.
   Pareto's stopwatch), takes the factory's line of its name
   (`factoryLineFor`) — a second "Line 2A" is never made; one not in the
   factory is added at the end of the floor.
-- **A line is shared by the jobs on it.** Line 2A can be a stage-gate job's
-  line and a 6M job's at once (`db/pace projectsOnWorkspace`): it leaves
-  the factory only when every job on it is archived, never because one is.
-  A project's own walk ("<project> — line walk") is the project's, never a
-  line of the factory (`projectWalkIds`).
+- **A line is shared by the jobs on it, and outlives them.** Line 2A can be
+  a stage-gate job's line and a 6M job's at once (`db/pace
+  projectsOnWorkspace`). **A line never leaves the factory because a
+  project did** (Rowland, 13 October: "somehow it was aligned to an old
+  project ... an old archived project ... archive is causing issues ...
+  once and for all"): only the line's own Archive takes it off the floor.
+  An archived job is nobody's context — `chainForWorkspace` names the
+  first job still live on a line, or none: the line's tools then wear the
+  control room's rail, not the archived job's; the Problems page keeps the
+  line's problems under the line's name (only an archived job's own walk is
+  "Not on a line"); a tool's list puts an archived job's own records (on no
+  line, or on its walk) away with it and keeps a line's. A project's own
+  walk ("<project> — line walk") is the project's, never a line of the
+  factory (`projectWalkIds`).
 - **Where it shows.** A line's own page lists Jobs on this line, each one tap
   to its job, with Start a project on this line (that line picked); Your
   factory's rows and the control room's cards say every live job a line is
