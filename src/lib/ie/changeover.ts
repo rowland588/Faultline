@@ -59,8 +59,14 @@ const secOf = (st: ChangeoverStep): number => (st.sec !== undefined && Number.is
 const hasTime = (st: ChangeoverStep): boolean => secOf(st) > 0;
 const crewOf = (xs: string[] | undefined): string[] => (Array.isArray(xs) ? xs : []).map(x => String(x).trim()).filter(Boolean);
 
-/** SMED's own target: single-digit minutes — 9 min or less. */
-export const SMED_TARGET_SEC = 9 * 60;
+/** SMED's own target: single-digit minutes — UNDER TEN (Shingo, A
+ *  Revolution in Manufacturing: the SMED System, 1985: "setups that take
+ *  fewer than ten minutes"). A changeover is on it while it is below this.
+ *  (It was 9 min or less: 9 min 30 s, single-digit minutes, read "30 s still
+ *  to find". Audit, 13 October.) */
+export const SMED_TARGET_SEC = 10 * 60;
+/** On SMED's target: below ten minutes. */
+export const onTarget = (sec: number): boolean => sec < SMED_TARGET_SEC;
 
 /** Minutes as the floor says them: whole from ten up, one decimal under it
  *  ("4.5 min"), seconds under a minute ("30.0 s"). */
@@ -193,8 +199,8 @@ export function ladderSays(l: Ladder): { text: string; tone: Tone } {
   const steps = rungs.map(x => `${mins(l[x].elapsedSec)} ${RUNG_WORD[x]}${x === 'streamlined' ? parallel : ''}`).join(' → ');
   const end = l[l.last].elapsedSec;
   const planned = l.planned ? ', planned — proved when it is timed again' : '';
-  const target = end <= SMED_TARGET_SEC ? ' Single-digit minutes — SMED\'s target.' : ` SMED's target is single-digit minutes: ${mins(end - SMED_TARGET_SEC)} still to find.`;
-  return { text: `${steps}${planned}.${target}`, tone: end <= SMED_TARGET_SEC && l.planned ? 'g' : 'n' };
+  const target = onTarget(end) ? ' Single-digit minutes — SMED\'s target.' : ` SMED's target is single-digit minutes: ${mins(Math.max(1, end - SMED_TARGET_SEC))} still to find.`;
+  return { text: `${steps}${planned}.${target}`, tone: onTarget(end) && l.planned ? 'g' : 'n' };
 }
 
 /* ------------------------------------------- Shingo's four functions */

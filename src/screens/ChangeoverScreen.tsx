@@ -193,7 +193,7 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
         {f.enough && <span className="ie-fig"><b>{mins(l.separated.elapsedSec)}</b> separated</span>}
         {f.enough && l.converts > 0 && <span className="ie-fig"><b>{mins(l.converted.elapsedSec)}</b> converted</span>}
         {f.enough && l.streamlines > 0 && <span className="ie-fig"><b>{mins(l.streamlined.elapsedSec)}</b> streamlined</span>}
-        {f.enough && <span className="ie-fig is-n">target <b>{mins(SMED_TARGET_SEC)}</b> — single digits</span>}
+        {f.enough && <span className="ie-fig is-n">target <b>under {mins(SMED_TARGET_SEC)}</b> — single digits</span>}
         {f.enough && f.externalSec > 0 && !/external/.test(said.verdict) && <span className="ie-fig is-a"><b>{mins(f.externalSec)}</b> external inside</span>}
         {cost.scale && <span className="ie-fig"><b>{span(cost.scale.week.sec)}</b> a week stopped</span>}
         <span className="ie-fig is-n"><b>{f.steps}</b> element{f.steps === 1 ? '' : 's'} · {f.source === 'none' ? 'not timed' : f.source === 'carried' ? 'some carried from before' : f.source}</span>
@@ -431,7 +431,7 @@ function LadderBars({ l, f, money }: { l: Ladder; f: StudyFacts; money?: SmedMon
           </div>
         );
       })}
-      <p className="sub co-target-key"><span className="co-target-i" aria-hidden /> 9 min — single-digit minutes, SMED's target · <span className="co-key-i is-external" aria-hidden /> what leaves the stop when the external work is done outside</p>
+      <p className="sub co-target-key"><span className="co-target-i" aria-hidden /> under {mins(SMED_TARGET_SEC)} — single-digit minutes, SMED's target ·<span className="co-key-i is-external" aria-hidden /> what leaves the stop when the external work is done outside</p>
     </div>
   );
 }

@@ -11,7 +11,9 @@
  * is worked out there (readRun). This reads every measured run of one product
  * on one machine, across every run test on the job, in the order they ran.
  *
- * THE ARITHMETIC — the learning curve (Wright, 1936), unit form: each run's
+ * THE ARITHMETIC — the learning curve in its UNIT form (Crawford, 1944 —
+ * Wright's 1936 curve is of the cumulative average; LEAN40 says which), on
+ * each run's own net rate: each run's
  * time per pack, T = 1 ÷ net, falls by a steady share every time the number
  * of runs doubles: T(n) = T(1) × n^b, b < 0. Fitted by least squares on
  * log T against log n; the run at which T reaches 1 ÷ the agreed rate is

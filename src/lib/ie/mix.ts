@@ -14,6 +14,11 @@
  * each demand; what is left is said as unmade, by name. Proved by:
  * £0.40 × 80 = £32 a minute, £0.60 × 40 = £24 — A first.
  *
+ * The practice: design, effective and actual capacity, utilisation and
+ * efficiency as Stevenson's Operations Management defines them; throughput
+ * (price less truly variable cost) per constraint minute as Goldratt's
+ * throughput accounting ranks products (ACCA's worked problems).
+ *
  * Nothing here reads a sensor. The rate is the plate or a timed speed, the
  * planned losses are typed once on the standard, the count is a person's. */
 import { fmtGBP } from '../cost';
@@ -120,6 +125,9 @@ export function mix(products: MixProduct[], weekMinutes: number): Mix {
   const unmade = rows.filter(r => r.unmade > 0);
   let sentence: string;
   if (!rows.length) sentence = skipped.length ? `No product has its margin, speed and demand yet (${skipped.length} to fill in).` : 'No products yet.';
+  /* No minutes on the constraint: nothing is made — it said "fills at 0%;
+     everything is made" (audit, 13 October). */
+  else if (!(weekMinutes > 0)) sentence = `The constraint has no minutes in the week yet — say how long it runs to fill it; ${rows[0].product.name} would go first.`;
   else {
     const rank = rows.map((r, i) => `${r.product.name} ${i === 0 ? 'earns ' : ''}${fmtGBP(r.perMin)}${i === 0 ? ' a constraint minute' : ''}`).join(', ');
     const first = rows[0];

@@ -77,10 +77,17 @@ export function walkVerdict(stations: string[], taps: Tap[], calculated?: string
   let sentence: string;
   if (b) {
     const before = rows.slice(0, rows.indexOf(b)), after = rows.slice(rows.indexOf(b) + 1);
+    /* Only what the taps say: every station before it pointing after it, or
+       how many of them do (it said "mostly blocked" of them all, whichever
+       way each pointed). */
+    const told = (xs: WalkStation[], way: WalkStation['points'], all: string, some: (k: number, n: number) => string) => {
+      const k = xs.filter(x => x.points === way).length;
+      return !xs.length || !k ? '' : k === xs.length ? all : some(k, xs.length);
+    };
     const why = [
       b.starved + b.blocked === 0 ? `${b.name} was never starved or blocked` : `${b.name} was starved or blocked ${share(b.starved + b.blocked, b.walks)}% of the time`,
-      before.length ? `the stations before it were mostly blocked` : '',
-      after.length ? `the stations after it mostly starved` : '',
+      told(before, 'after', 'the stations before it were mostly blocked', (k, n) => `${k} of the ${n} stations before it ${k === 1 ? 'was' : 'were'} mostly blocked`),
+      told(after, 'before', 'the stations after it mostly starved', (k, n) => `${k} of the ${n} after it mostly starved`),
     ].filter(Boolean).join(', ');
     sentence = `Walked ${walks} times: ${why} — the bottleneck is ${b.name}`;
   } else if (between) sentence = `Walked ${walks} times: the bottleneck is between ${between[0]} and ${between[1]} — walk again to see which`;

@@ -16,7 +16,8 @@
  *   converted    = 33 − 6 (B prepared before the stop)     = 27 min
  *   streamlined  = column(A 4 | C 5 alongside) = 5, D gone, F 4 → 5 + 4 = 9 min
  *                  (labour 4 + 5 + 4 × 2 = 17 min: two people at once, F by two)
- *   SMED's target, single-digit minutes: 9 min — met, if the plan holds.
+ *   SMED's target, single-digit minutes — under ten (Shingo): 9 min — met,
+ *   if the plan holds.
  *   How the line runs: 2 shifts × 8 h, each less 30 min of breaks the line
  *   stops for (7.5 h running — docs/CAPACITY.md §5), 7 days, 48 weeks; 3
  *   changeovers a shift; the Bagger's plate speed 100 packs a minute; idle
@@ -33,7 +34,7 @@ import { describe, it, expect } from 'vitest';
 import {
   arrange, availableOf, carrySequence, changeoverFigures, changeoverSays, changeoverSheet, changeoversOf, changeoversPer, checklistOf, coLanes, compareChangeovers,
   countWord, extrapolate, extrapolationSays, figuresOf, functionSays, functionShares, intervalOf, intervalSays, ladderOf, ladderSays, mins, planWords, actionWords,
-  runMinOf, runningOf, span, standardFrom, standardLine, stepFigure, SMED_TARGET_SEC, runningWords, patternFromShifts, lineRateOf, rateFromWords, moneyOf, scaleRows, scaleSays,
+  runMinOf, runningOf, span, standardFrom, standardLine, stepFigure, SMED_TARGET_SEC, onTarget, runningWords, patternFromShifts, lineRateOf, rateFromWords, moneyOf, scaleRows, scaleSays,
 } from '../changeover';
 import type { ChangeoverProduct, ChangeoverStep } from '../../study';
 
@@ -117,12 +118,18 @@ describe('SMED — convert, streamline, the ladder (worked example 2)', () => {
     expect([l.now.elapsedSec, l.separated.elapsedSec, l.converted.elapsedSec, l.streamlined.elapsedSec].map(x => x / M)).toEqual([42, 33, 27, 9]);
     expect([l.streamlined.labourSec / M, l.converts, l.streamlines, l.planned, l.last]).toEqual([17, 1, 3, true, 'streamlined']);
     expect(ladderSays(l)).toEqual({ text: '42 min now → 33 min separated → 27 min converted → 9 min streamlined (17 min of work, some in parallel), planned — proved when it is timed again. Single-digit minutes — SMED\'s target.', tone: 'g' });
-    expect(SMED_TARGET_SEC).toBe(540);
+    expect(SMED_TARGET_SEC).toBe(600);
   });
-  it('without the plan: the ladder stops at separated and says what is still to find', () => {
+  it('without the plan: the ladder stops at separated and says what is still to find — to under ten minutes, 33 − 10 = 23', () => {
     const l = ladderOf(planned().map(({ plan: _p, ...x }) => { void _p; return x; }));
     expect([l.planned, l.last, l.separated.elapsedSec / M]).toEqual([false, 'separated', 33]);
-    expect(ladderSays(l).text).toBe('42 min now → 33 min separated. SMED\'s target is single-digit minutes: 24 min still to find.');
+    expect(ladderSays(l).text).toBe('42 min now → 33 min separated. SMED\'s target is single-digit minutes: 23 min still to find.');
+  });
+  it('single-digit minutes is under ten: 9 min 30 s is on it; 10 min is not, by a second', () => {
+    const one = (sec: number) => ladderOf([{ id: 'a', name: 'Change the formers', order: 0, side: 'internal', sec, source: 'timed', plan: { kind: 'streamline', how: 'clamps', targetSec: sec - 60 } }]);
+    expect(ladderSays(one(10.5 * M))).toEqual({ text: '11 min now → 11 min separated → 9.5 min streamlined, planned — proved when it is timed again. Single-digit minutes — SMED\'s target.', tone: 'g' });
+    expect(ladderSays(one(11 * M)).text).toMatch(/→ 10 min streamlined, planned — proved when it is timed again\. SMED's target is single-digit minutes: 1\.0 s still to find\.$/);
+    expect([onTarget(599), onTarget(600)]).toEqual([true, false]);
   });
   it('the grid: elements alongside share a column — elapsed is the longest in each, the labour all of them', () => {
     const now = arrange(planned(), 'now');

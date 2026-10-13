@@ -1068,7 +1068,9 @@ it costing until then?
   after it runs again — onto the product's line standard.
 
 **The ladder** — now → separated → converted → streamlined, against SMED's
-target, single digits — in words and drawn on one scale. Converted and
+target, single digits — **under ten minutes**, Shingo's "fewer than ten" (9
+min 30 s is on it; it was 9 min or less until the audit of 13 October) — in
+words and drawn on one scale. Converted and
 streamlined are plans: proved only when the changeover is timed again.
 
 **The grid**, in the value stream map's own parts: the elements across in
@@ -1251,12 +1253,18 @@ climb, 120 a minute about 22 Oct (85% curve, 4 runs)."* Under three: *"Too
 early — 2 runs."* (grey). A climb is drawn, not promised: the sentence
 always says "at this climb".
 
-**Pace.** Earned schedule on the stages (`lib/ie/pace.ts`): the day the
-plan had as many stages done as are done today; the pace; the forecast for
-Hand over. *"At the pace so far, Hand over lands about 31 Oct — 9 days after
-the date now expected (22 Oct)."* Shown beside the date people set, never
-over it; **Use this date** is the owner's. Under five finished stages:
-*"Too early to tell."*
+**Pace.** As built (`lib/pace.ts`) it is a **burn-down**, not earned
+schedule: the stages and tests done in the last two weeks ÷ the days
+counted is the rate; the ones still to do ÷ that rate, from today, is when
+Hand over lands — counted from the days things were actually done, because
+the plan's own days are rewritten when a stage moves and earned schedule
+would measure against a plan that follows the slips (`docs/LEAN40.md`
+keeps earned schedule's arithmetic, not used). *"At the pace so far, Hand
+over lands about 31 Oct — 9 days after the date now expected (22 Oct)."*
+Shown beside the date people set, never over it; **Use this date** is the
+owner's. Under five done, or under a week since the job's first day: *"Too
+early to say when."* (Named so in the audit of 13 October; this paragraph
+called it earned schedule.)
 
 **Looks like.** The climb: dots, the rate line, the fit dashed, the date
 labelled. The pace: a third marker on the plan, dashed, in words.
@@ -1265,8 +1273,11 @@ labelled. The pace: a third marker on the plan, dashed, in words.
 client report. Pace: the front page under the verdict, the plan, Today's
 update, the client report, the one-page status, the control room's row.
 
-**Proved by.** Elapsed 39, earned 28, planned 43 → 31 Oct; an 80% curve, b
-= −0.322.
+**Proved by.** The pace: 7 done in the last 14 days, 7 to go → 7 ÷ (7 ÷
+14) = 14 days on, 24 Oct; 8 done, 7 to go → 12.25, rounded up to 13
+(`lib/__tests__/pace.test.ts`); the climb: an 80% curve, b =
+−0.322, in Crawford's unit form (each run's own time per pack, not the
+cumulative average of Wright's 1936 paper).
 
 ## 9. Work sampling
 
