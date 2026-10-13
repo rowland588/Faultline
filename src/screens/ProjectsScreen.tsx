@@ -13,11 +13,87 @@ import { useEffect, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { useProjects } from '../lib/useProjects';
 import { MODELS, type PlanModel } from '../lib/planModel';
-import { STORE_WORDS, addPaceLine, listWorkspaces, onDataChange, updateProject } from '../db';
+import { STORE_WORDS, addPaceLine, listAllPrograms, listAllSnags, listObservations, listStudiesForLine, listWorkspaces, onDataChange, updateProject } from '../db';
 import { lineKey, liveProductionLines } from '../lib/lines';
 import type { Workspace } from '../types';
 import { useCanStartProjects } from '../cloud/access';
 import { useAccessByJob } from '../ui/JobsBoard';
+import { lineProblems, lineProblemsSaid, ownProgramsOf, type LineProblems } from '../lib/lineWork';
+import { PRIORITY_WORD } from '../lib/snagsReport';
+import { currentLosses, lossCardLine } from '../lib/studyLinks';
+import { daysOverdue, stateOf } from '../lib/programs';
+import { niceDay, todayISO } from '../lib/weeks';
+
+/* WHERE THE LINE IS, ABOVE THE CHOICE OF METHOD (FLOW-AUDIT.md, 19). "Start
+ * a project on this line" opened three method cards that did not say the line,
+ * and the new job started from nothing — CLAUDE.md: "start a change from the
+ * situation (not from a method picker)". So a project started from a line's
+ * page is "A change on Line 7", and over the three ways it is run sits what
+ * the line already says: its problems open (worst first, the critical and the
+ * late in red with their words — lib/lineWork, as its page and the control
+ * room say them), its latest shift counted (the loss count's own sentence)
+ * and its own programs past their test day. Nothing new is stored. */
+interface Situation { problems: LineProblems; loss?: { text: string; abnormal: boolean }; programs: { what: string; was: string }[] }
+
+function useLineSituation(ws?: Workspace): Situation | null {
+  const [sit, setSit] = useState<Situation | null>(null);
+  useEffect(() => {
+    let live = true;
+    if (!ws) { setSit(null); return; }
+    const load = () => void Promise.all([listAllSnags(), listStudiesForLine(ws.id), listObservations(ws.id), listAllPrograms()]).then(([snags, studies, obs, programs]) => {
+      if (!live) return;
+      const cur = currentLosses(studies.filter(x => !x.deletedAt), ws.id);
+      const loss = cur ? lossCardLine(cur, { observations: obs, workspaces: [ws] }) : undefined;
+      const today = todayISO();
+      setSit({
+        problems: lineProblems(snags, ws),
+        ...(loss ? { loss } : {}),
+        programs: ownProgramsOf(programs, ws.id).filter(p => stateOf(p) !== 'proved' && daysOverdue(p, today) != null)
+          .map(p => ({ what: p.what, was: niceDay(p.testOn ?? today) })),
+      });
+    });
+    load();
+    const off = onDataChange(load);
+    return () => { live = false; off(); };
+  }, [ws]);
+  return sit;
+}
+
+function LineSituation({ ws, sit }: { ws: Workspace; sit: Situation | null }) {
+  const first = sit?.problems.rows.slice(0, 3) ?? [];
+  const more = (sit?.problems.open ?? 0) - first.length;
+  return (
+    <div className="proj-sit" role="group" aria-label={`Where ${ws.name} is`}>
+      <h2 className="proj-sit-h">A change on {ws.name}</h2>
+      {!sit ? <p className="sub">Reading the line…</p> : <>
+        <p className="proj-sit-says">
+          {lineProblemsSaid(sit.problems).map((x, i) => (x.red ? <b key={i} className="is-r">{x.text}</b> : x.text))}
+          {sit.problems.open ? '' : ' on it.'}
+        </p>
+        {first.length > 0 && (
+          <ul className="proj-sit-list">
+            {first.map(r => (
+              <li key={r.id}>
+                <span className={'qsl-prio ' + (r.priority === 'critical' ? 'is-r' : r.priority === 'high' ? 'is-a' : 'is-g')}>{PRIORITY_WORD[r.priority]}</span>
+                <b>{r.what}</b>
+                {r.due && <span className={r.late ? 'is-r' : 'sub'}> · {r.due}</span>}
+              </li>
+            ))}
+            {more > 0 && <li className="sub"><a href={`#/snags?line=${encodeURIComponent(ws.id)}`}>and {more} more on its register ›</a></li>}
+          </ul>
+        )}
+        <p className="proj-sit-l"><span className="sub">The latest shift counted: </span>
+          {sit.loss ? <span className={sit.loss.abnormal ? 'is-a' : ''}>{sit.loss.text}</span> : <span className="sub">none counted yet — a loss count on this line says where the time goes</span>}
+        </p>
+        {sit.programs.length > 0 && (
+          <p className="proj-sit-l"><span className="sub">Its programs: </span>
+            {sit.programs.map((p, i) => <span key={i}>{i ? ' · ' : ''}{p.what} — <b className="is-r">test was {p.was}</b></span>)}
+          </p>
+        )}
+      </>}
+    </div>
+  );
+}
 
 export function ProjectsScreen() {
   const { loading, projects, archived, create, restore, purge, contents } = useProjects();
@@ -43,7 +119,8 @@ export function ProjectsScreen() {
      added later in Lines & people. */
   const [factory, setFactory] = useState<Workspace[]>([]);
   /* opened from a line's own page (Start a project on this line), that line is picked */
-  const [onLines, setOnLines] = useState<string[]>(() => (q.get('line') ? [q.get('line') as string] : []));
+  const fromLine = q.get('line') ?? '';
+  const [onLines, setOnLines] = useState<string[]>(() => (fromLine ? [fromLine] : []));
   useEffect(() => {
     let live = true;
     const load = () => void listWorkspaces().then(liveProductionLines).then(ls => { if (live) setFactory(ls); });
@@ -64,6 +141,9 @@ export function ProjectsScreen() {
    * NOTHING IS PICKED FOR YOU. Three methods, each for a different kind of
    * job — a default is a choice made without anybody noticing there was one. */
   const [model, setModel] = useState<PlanModel | null>(null);
+  /* the line it was started from, and where that line is */
+  const startLine = factory.find(w => w.id === fromLine);
+  const sit = useLineSituation(startLine);
 
   const doCreate = async () => {
     if (!name.trim() || !model) return;
@@ -122,12 +202,13 @@ export function ProjectsScreen() {
       {adding && (
         <section className="card proj-new">
           <div className="field-label">New project</div>
+          {startLine && <LineSituation ws={startLine} sit={sit} />}
           {/* START FROM THE SITUATION, NOT THE METHOD. Nobody should have to
               know what a "lever tree" is to start the right kind of change:
               say what you are trying to do and the way it is run follows. The
               name and the lead come once that is said. */}
           <div className="proj-model">
-            <span className="field-label">What are you trying to do?</span>
+            <span className="field-label">{startLine ? `What are you trying to do on ${startLine.name}?` : 'What are you trying to do?'}</span>
             <div className="proj-model-grid">
               {MODELS.map(m => (
                 <button key={m.id} type="button" aria-pressed={model === m.id}
@@ -153,7 +234,7 @@ export function ProjectsScreen() {
               <label className="proj-field">
                 <span className="field-label">Name</span>
                 <input className="text-input" autoFocus value={name} maxLength={80}
-                  placeholder={model === 'board' ? 'e.g. Line 7 performance' : model === 'tree' ? 'e.g. Line 7 to 60 ppm by March' : 'e.g. Line 7 new wrapper'} onChange={e => setName(e.target.value)}
+                  placeholder={(n => (model === 'board' ? `e.g. ${n} performance` : model === 'tree' ? `e.g. ${n} to 60 ppm by March` : `e.g. ${n} new wrapper`))(startLine?.name ?? 'Line 7')} onChange={e => setName(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') void doCreate(); }} />
               </label>
               <label className="proj-field">

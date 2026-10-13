@@ -59,3 +59,13 @@ export const readyToRun = (steps: StartStep[]): boolean => steps.every(s => s.do
 
 /** The first step not done — the one the list says to do next. */
 export const nextStep = (steps: StartStep[]): StartStep | undefined => steps.find(s => !s.done);
+
+/** THE JOB'S OWN PROBLEMS — what "Open the first problem" counts. The
+ *  fishbone also shows a problem opened on the job's line before there was a
+ *  job (a Case with no project, from the line's older screens), so a new 6M
+ *  job on Line 7 said "Open the first problem: Done" over another job's case
+ *  (FLOW-AUDIT.md, 19). Its own: named for it, or — with no job named —
+ *  opened on its line since it started. */
+export function ownProblems(problems: readonly { projectId?: string; openedAt: number }[], projectId: string, startedAt: number): number {
+  return problems.filter(c => (c.projectId ? c.projectId === projectId : c.openedAt >= startedAt)).length;
+}
