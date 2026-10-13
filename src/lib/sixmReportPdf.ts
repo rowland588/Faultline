@@ -29,9 +29,9 @@ import type { Case } from '../types';
 import type { PaceTodoRow } from '../db/rows';
 import type { Phase, ProblemView } from './problems';
 import { PHASE_WORD } from './problems';
-import { KNOWN_WORD, SIXM, sixmLabel, toSixM, type Cause, type CauseStatus, type Grade, type SixM } from './sixm';
+import { KNOWN_WORD, SIXM, everyWords, holdDue, sixmLabel, toSixM, type Cause, type CauseStatus, type Grade, type SixM } from './sixm';
 import type { FishboneData } from './fishbone';
-import { factsOf, therefore } from './fishbone';
+import { factsOf, lineCapacityOf, therefore } from './fishbone';
 import { gapOf, lineSeries, say } from './measures';
 import { paretoFromLog } from './paretoFromLog';
 import { paretoView } from './paretoView';
@@ -132,6 +132,9 @@ export interface ProblemRep {
   tone: Tone;
   /** Line · opened · closed — beside the phase, under the title. */
   meta: string;
+  /** Closed — a closed problem still checking it worked is not being worked
+   *  (lib/sixmStatus lists the open ones). */
+  closed?: boolean;
   /** The head's number — "3 h a week" — on the drawn fish. */
   number?: string;
   bones: { m: SixM; label: string; causes: CauseRep[] }[];
@@ -176,7 +179,9 @@ export interface ProblemRep {
     /** Each fix done: what it was expected to do beside what happened. */
     fixes: { what: string; expect?: string; happened: string }[];
   };
-  hold?: { what: string; who?: string; every: string; since: string; last?: string; word: string; tone: Tone };
+  /** The check that keeps the gain: `due` is lib/sixm holdDue's words —
+   *  "next check 19 Oct", "check due 15 Oct", "check missed — was due 12 Oct". */
+  hold?: { what: string; who?: string; every: string; since: string; last?: string; due: string; word: string; tone: Tone };
   /** A closed problem with no check set — said, not hidden. */
   holdless?: string;
 }
@@ -331,12 +336,16 @@ export function sixmReport(o: SixMInput): SixMReport {
   } : undefined;
 
   /* ---------------------------- the constraint --------------------------- */
+  /* Each line's capacity as the job reads it — its own line balance, else
+     the product's Line capacity on the line (lib/fishbone lineCapacityOf),
+     the product named: the same the fishbone's "The constraint" reads. */
   const constraints: SixMReport['constraints'] = lines.flatMap(l => {
-    if (!l.capacity || l.capacity.stations.length < 2) return [];
-    const r = analyse(l.capacity);
+    const lc = lineCapacityOf(l, data.standards, data.programs);
+    if (!lc || lc.cap.stations.length < 2) return [];
+    const r = analyse(lc.cap);
     if (!r.limit || r.line == null) return [];
     return [{
-      line: l.name, unit: r.unit, says: r.sentence,
+      line: lc.product ? `${l.name} · ${lc.product}` : l.name, unit: r.unit, says: r.sentence,
       stations: r.ok.map(x => ({ name: x.station.name.trim() || `Station ${x.index + 1}`, running: x.running, effective: x.effective, limit: x.index === r.limit?.index })),
     }];
   });
@@ -413,15 +422,22 @@ export function sixmReport(o: SixMInput): SixMReport {
     const open = counter.filter(c => c.tone !== 'done').length, late = counter.filter(c => c.tone === 'late').length;
 
     /* ----------------------------- Did it work ----------------------------- */
+    /* WHETHER THE CHECK IS OWED is lib/sixm holdDue's — the same rule the
+       problem's card, the fishbone's strip, Needs you and the control room's
+       week read, so the paper and the screen cannot disagree. A missed check
+       is red (its day has gone), one coming due amber. */
     const hold = p.hold ? (() => {
       const h = p.hold;
-      const due = h.lastChecked ? new Date(Date.parse(`${h.lastChecked}T12:00:00`) + h.everyDays * DAY) : undefined;
-      const overdue = !h.lastChecked || (due ? todayISO(due) < today : false);
-      const word = v.phase === 'slipped' ? 'Slipped back' : v.phase === 'holding' ? (overdue ? 'Holding · check is late' : 'Holding') : 'Check set';
-      const tone: Tone = v.phase === 'slipped' ? 'failed' : overdue ? 'waiting' : v.phase === 'holding' ? 'done' : 'going';
+      const due = holdDue(h, today);
+      const word = v.phase === 'slipped' ? 'Slipped back'
+        : due.state === 'missed' ? (v.phase === 'holding' ? 'Holding · check missed' : 'Check missed')
+        : due.state === 'due' ? (v.phase === 'holding' ? 'Holding · check due' : 'Check due')
+        : v.phase === 'holding' ? 'Holding' : 'Check set';
+      const tone: Tone = v.phase === 'slipped' ? 'failed' : due.state === 'missed' ? 'late'
+        : due.state === 'due' ? 'waiting' : v.phase === 'holding' ? 'done' : 'going';
       return {
-        what: h.what, who: h.who?.trim() || undefined, every: h.everyDays === 1 ? 'every day' : h.everyDays === 7 ? 'every week' : `every ${h.everyDays} days`,
-        since: day(h.since), last: h.lastChecked ? day(h.lastChecked) : undefined, word, tone,
+        what: h.what, who: h.who?.trim() || undefined, every: everyWords(h.everyDays),
+        since: day(h.since), last: h.lastChecked ? day(h.lastChecked) : undefined, due: due.words, word, tone,
       };
     })() : undefined;
     const holdless = !hold && p.status === 'closed' ? 'Closed with no check set to keep the gain.' : undefined;
@@ -447,7 +463,7 @@ export function sixmReport(o: SixMInput): SixMReport {
       ? `${ms.label}: ${say(ms.before, unit)} → ${say(ms.now, unit)}${saidMoved ? '' : ` — ${movedWord}`}.` : undefined;
 
     return {
-      id: p.id, n: i + 1, title: p.title, phase: v.phase, phaseWord: PHASE_WORD[v.phase], tone: PHASE_TONE[v.phase],
+      id: p.id, n: i + 1, title: p.title, phase: v.phase, phaseWord: PHASE_WORD[v.phase], tone: PHASE_TONE[v.phase], ...(p.status === 'closed' ? { closed: true } : {}),
       meta: [lineName(p.lineId), `opened ${day(todayISO(new Date(p.openedAt)))}`, p.status === 'closed' && p.closedAt ? `closed ${day(todayISO(new Date(p.closedAt)))}` : ''].filter(Boolean).join(' · '),
       ...(ms?.now != null ? { number: say(ms.now, unit) } : ms?.before != null ? { number: say(ms.before, unit) } : {}),
       bones: SIXM.map(b => ({ m: b.key, label: b.label, causes: causes.filter(c => c.m === b.key).map(c => repOf(c, v)) })),
@@ -617,6 +633,122 @@ export async function drawSixMReport(doc: jsPDF, report: SixMReport): Promise<vo
     const num = `${i} of ${pages}`;
     const room = pw - 2 * M - doc.getTextWidth(num) - 16;
     doc.text(fitLine(doc, r.name, `${r.scope ? ` — ${r.scope}` : ''}  ·  client report  ·  ${r.printed}`, room), M, ph - 18);
+    doc.text(num, pw - M, ph - 18, { align: 'right' });
+  }
+}
+
+/* ================================ the one page ================================ */
+
+/** THE 6M STATUS, ON ONE PAGE (lib/sixmStatus; docs/SIMPLE.md; flow audit
+ *  #17) — where we are, why we are not where we should be, what we are
+ *  doing about it. Its lists step down a row at a time until it is one
+ *  page, each saying how many more the full report has — never a second
+ *  page. The band is the full report's own; so are the words. */
+export async function drawSixMStatus(doc: jsPDF, report: SixMReport): Promise<void> {
+  const { sixmStatus, SIXM_STATUS_STEPS } = await import('./sixmStatus');
+  const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
+  let s = sanAll(sixmStatus(report));
+  const blocks = (d: Density): Block[] => {
+    const out: Block[] = [];
+    out.push(text({ text: 'STATUS REPORT · 6M — WHERE WE ARE, WHY, AND WHAT IS BEING DONE', size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
+    out.push(text({ text: s.scope ? `${s.name} — ${s.scope}` : s.name, size: SIZE.title, style: 'bold', after: 4 }));
+    out.push(text({ text: [s.lead ? `Led by ${s.lead}` : '', `Printed ${s.printed}`].filter(Boolean).join('   ·   '), colour: MUTED, after: gap(d, 'm') }));
+
+    /* 1 · WHERE WE ARE — the band, then each line against its target. */
+    const said = (f: Frame) => wrap(f.doc, s.sentence, f.w - 32, 14, 'bold');
+    const slip = (f: Frame) => wrap(f.doc, s.slip, f.w - 32, 9.5);
+    out.push(box(f => 30 + said(f).length * 17 + slip(f).length * 12.5 + 8 + gap(f.density, 'm'), (f, y) => {
+      const l = said(f), sl = slip(f);
+      f.doc.setFillColor(SHELL); f.doc.roundedRect(f.x, y, f.w, 30 + l.length * 17 + sl.length * 12.5 + 8, 8, 8, 'F');
+      font(f.doc, 7.5, 'bold', '#8fa3c4'); f.doc.text(s.manyLines ? 'WHERE THE LINES ARE' : 'WHERE THE LINE IS', f.x + 16, y + 16);
+      font(f.doc, 14, 'bold', '#ffffff'); f.doc.text(l, f.x + 16, y + 34);
+      font(f.doc, 9.5, 'normal', '#c9d4e6'); f.doc.text(sl, f.x + 16, y + 36 + l.length * 17);
+    }, f => gap(f.density, 'm')));
+    for (const g of s.lines) out.push(gapBlock({ line: g.line, says: g.says, ...(g.short ? { short: g.short } : {}) }));
+    if (s.gapNone) out.push(text({ text: s.gapNone, colour: MUTED, after: gap(d, 's') }));
+    out.push({ height: f => gap(f.density, 's'), draw: () => undefined });
+
+    /* 2 · WHY WE ARE NOT WHERE WE SHOULD BE — only the abnormal, a tag in its
+       colour (red the day gone or slipped, amber a check coming due), what,
+       and its cause, who or when under it. */
+    out.push(label('Why we are not where we should be', s.why.length ? DANGER : MUTED));
+    if (!s.why.length) out.push(text({ text: 'Nothing — every line measured is at its target, nothing has slipped back, no check is missed and no countermeasure is past its day.', colour: INK2, after: gap(d, 'l') }));
+    const tagW = 78;
+    const whyParts = (f: Frame, w: (typeof s.why)[number]) => ({
+      what: wrap(f.doc, w.what, f.w - tagW - 8, SIZE.body, 'bold'),
+      detail: w.detail ? wrap(f.doc, w.detail, f.w - tagW - 8, SIZE.small) : [],
+    });
+    out.push(rows({
+      rows: s.why.map(w => ({
+        h: (f: Frame) => { const p = whyParts(f, w); return 6 + p.what.length * 12 + p.detail.length * 10.5 + 6; },
+        draw: (f: Frame, y: number) => {
+          const p = whyParts(f, w);
+          pill(f.doc, f.x, y + 4, tagW - 8, w.kind === 'due' ? 'waiting' : w.kind === 'slipped' ? 'failed' : 'late', w.tag);
+          font(f.doc, SIZE.body, 'bold', INK2); f.doc.text(p.what, f.x + tagW, y + 13);
+          if (p.detail.length) { font(f.doc, SIZE.small, 'normal', MUTED); f.doc.text(p.detail, f.x + tagW, y + 13 + p.what.length * 12); }
+        },
+      })),
+      after: s.whyMore ? 's' : 'l',
+    }));
+    if (s.whyMore) out.push(text({ text: `and ${s.whyMore} more — in the full report.`, size: SIZE.small, colour: MUTED, after: gap(d, 'l') }));
+
+    /* 3 · WHAT WE ARE DOING ABOUT IT — each open problem and where it is,
+       then the countermeasures open, late first, whose and by when. */
+    out.push(label('What we are doing about it — the problems being worked'));
+    if (!s.problems.length) out.push(text({ text: 'No problem open.', colour: INK2, after: gap(d, 's') }));
+    const stateW = 110;
+    const probParts = (f: Frame, p: (typeof s.problems)[number]) => wrap(f.doc, `${p.title}${p.number ? ` — ${p.number}` : ''}`, f.w - stateW - 10, SIZE.body, 'bold');
+    out.push(rows({
+      rows: s.problems.map(p => ({
+        h: (f: Frame) => 6 + probParts(f, p).length * 12 + 4,
+        draw: (f: Frame, y: number) => {
+          rule(f, y);
+          font(f.doc, SIZE.body, 'bold', INK2); f.doc.text(probParts(f, p), f.x, y + 13);
+          pill(f.doc, f.x + f.w - stateW, y + 4, stateW, p.tone, p.phase);
+        },
+      })),
+      after: 's',
+    }));
+    if (s.problemsMore) out.push(text({ text: `and ${s.problemsMore} more open — in the full report.`, size: SIZE.small, colour: MUTED, after: gap(d, 's') }));
+    out.push(label('…and the countermeasures, late first'));
+    if (!s.next.length) out.push(text({ text: 'Nothing open on the board.', colour: INK2, after: gap(d, 's') }));
+    const whenW = 130;
+    const nextParts = (f: Frame, n: (typeof s.next)[number]) => ({
+      what: wrap(f.doc, n.what, f.w - whenW - 10, SIZE.body, 'bold'),
+      who: wrap(f.doc, n.who, f.w - whenW - 10, SIZE.small),
+      when: wrap(f.doc, n.when, whenW, SIZE.small, n.late ? 'bold' : 'normal'),
+    });
+    out.push(rows({
+      rows: s.next.map(n => ({
+        h: (f: Frame) => { const p = nextParts(f, n); return 6 + Math.max(p.what.length * 12 + p.who.length * 10.5, p.when.length * 10.5) + 5; },
+        draw: (f: Frame, y: number) => {
+          const p = nextParts(f, n);
+          rule(f, y);
+          font(f.doc, SIZE.body, 'bold', INK2); f.doc.text(p.what, f.x, y + 13);
+          font(f.doc, SIZE.small, 'normal', MUTED); f.doc.text(p.who, f.x, y + 13 + p.what.length * 12);
+          font(f.doc, SIZE.small, n.late ? 'bold' : 'normal', n.late ? DANGER : INK2); f.doc.text(p.when, f.x + f.w - whenW, y + 13);
+        },
+      })),
+      after: 's',
+    }));
+    if (s.nextMore) out.push(text({ text: `and ${s.nextMore} more open — in the full report.`, size: SIZE.small, colour: MUTED, after: gap(d, 's') }));
+    return out;
+  };
+  /* ONE PAGE, ALWAYS. */
+  let density: Density = 'comfortable';
+  for (const limits of SIXM_STATUS_STEPS) {
+    s = sanAll(sixmStatus(report, limits));
+    density = await chooseDensity(base, d => blocks(d));
+    if ((await pour({ ...base, density, dry: true }, blocks(density), () => undefined)).pages === 1) break;
+  }
+  await pour({ ...base, density, dry: false }, blocks(density), () => doc.addPage('a4', 'portrait'));
+  const pages = doc.getNumberOfPages();
+  for (let i = 1; i <= pages; i++) {
+    doc.setPage(i);
+    const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
+    font(doc, 7.5, 'normal', MUTED);
+    const num = `${i} of ${pages}`;
+    doc.text(fitLine(doc, s.name, `${s.scope ? ` — ${s.scope}` : ''}  ·  status report  ·  ${s.printed}  ·  every detail is in the full report`, pw - 2 * M - doc.getTextWidth(num) - 16), M, ph - 18);
     doc.text(num, pw - M, ph - 18, { align: 'right' });
   }
 }
@@ -1206,7 +1338,7 @@ function workedRows(list: ProblemRep['worked']['fixes']): Block {
 function holdBlock(h: NonNullable<ProblemRep['hold']>): Block {
   const stateW = 120;
   const words = (f: Frame) => wrap(f.doc, `The check: ${h.what}`, f.w - stateW - 10, SIZE.body - 0.5, 'bold');
-  const meta = (f: Frame) => wrap(f.doc, [h.who, h.every, `since ${h.since}`, h.last ? `last checked ${h.last}` : 'not checked yet'].filter(Boolean).join(' · '), f.w - stateW - 10, SIZE.small);
+  const meta = (f: Frame) => wrap(f.doc, [h.who, h.every, `since ${h.since}`, h.last ? `last checked ${h.last}` : 'not checked yet', h.due].filter(Boolean).join(' · '), f.w - stateW - 10, SIZE.small);
   return box(f => 8 + words(f).length * 11.5 + meta(f).length * 10.5 + 6 + gap(f.density, 'm'), (f, y) => {
     rule(f, y);
     const wl = words(f);

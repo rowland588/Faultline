@@ -2139,6 +2139,10 @@ button.st-pill { cursor: pointer; }
 .nm-row input.nm-when { flex: 0 0 150px; width: 150px; min-width: 0; color: var(--ink-2); }
 .nm-row input.nm-val { flex: 0 0 76px; width: 76px; text-align: left; }
 @media (max-width: 560px) { .nm-row { flex-wrap: wrap; row-gap: 4px; } }
+/* A shift counted on the line, offered as a reading in one tap (flow audit #8). */
+.nm-offer-t { flex: 1 1 260px; min-width: 0; color: var(--ink-2); overflow-wrap: anywhere; }
+.nm-offer-go { flex: 0 0 auto; margin-left: auto; }
+.nm-offer-s { margin: 0; font-size: var(--t-label); }
 
 .chip-note.is-good { color: var(--ok); }
 
@@ -3056,6 +3060,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   margin-top: -6px; padding: 8px 16px 10px;
   background: var(--surface); box-shadow: var(--shadow); border-radius: 0 0 var(--radius) var(--radius);
 }
+.pace-line-cap { flex: 1 0 100%; margin: 0; font-size: var(--t-label); color: var(--ink-2); overflow-wrap: anywhere; }
 .pace-who { font-size: var(--t-label); color: var(--ink); }
 .pace-who-role {
   font-size: var(--t-label); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
@@ -7869,6 +7874,8 @@ span.ls-role:hover { border-color: transparent; }
 .cr-said-st.is-asking { color: var(--st-a); }
 .cr-said-st.is-booked { color: var(--st-w); }
 .cr-said-st.is-ahead { color: var(--muted); font-weight: 500; }
+/* the 6M status in words: a line short of its target, a countermeasure past its day */
+.cr-toc .cr-short { color: var(--st-r); }
 .cr-said-t { margin: 0; font-size: var(--t-detail); color: var(--ink-2); line-height: 1.45; white-space: pre-line; overflow-wrap: anywhere; }
 /* The 6M client report's preview: each problem in its four parts, as the paper prints them. */
 .cr-toc .cr-prob { gap: 6px; }
@@ -8628,6 +8635,18 @@ button.gt-mtrack { appearance: none; display: block; align-self: stretch; height
 .meet-report:hover { box-shadow: var(--shadow-lift); }
 .meet-report b { font-size: var(--t-body); }
 .meet-report small { font-size: var(--t-label); color: var(--muted); line-height: 1.4; }
+/* A running line's per-line papers, folded under its report (flow audit #17). */
+.meet-lines { display: flex; flex-direction: column; gap: 8px; }
+.meet-lines-h {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; min-height: 44px;
+  padding: 10px 14px; font: inherit; text-align: left; color: var(--ink); cursor: pointer;
+  background: var(--surface); border: 1px dashed var(--line-2); border-radius: var(--radius-sm);
+}
+.meet-lines-h b { font-size: var(--t-body); }
+.meet-lines-h small { grid-column: 1; font-size: var(--t-label); color: var(--muted); line-height: 1.4; }
+.meet-lines-h span { grid-column: 2; grid-row: 1 / span 2; color: var(--accent); font-weight: 700; }
+.meet-line { display: flex; flex-direction: column; gap: 8px; padding-left: 12px; border-left: 2px solid var(--line); }
+.meet-line-n { margin: 4px 0 0; font-size: var(--t-label); font-weight: 700; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.04em; }
 .pace-sec-head:has(.pace-sec-seg) { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
 .pace-sec-head:has(.pace-sec-seg) .pace-sec-title { margin: 0; }
 .pace-sec-head:has(.pace-sec-seg) .pace-sec-sub { flex: 1 1 100%; order: 3; margin: 0; }
@@ -9063,6 +9082,15 @@ button.gt-mtrack { appearance: none; display: block; align-self: stretch; height
 }
 .fj-phase.is-g { color: var(--st-g); background: color-mix(in srgb, var(--st-g) 8%, var(--surface)); border-color: color-mix(in srgb, var(--st-g) 25%, var(--surface)); }
 .fj-phase.is-r { color: #fff; background: var(--st-r); border-color: var(--st-r); }
+/* WHETHER THE CHECK THAT KEEPS THE GAIN IS OWED (lib/sixm holdDue) — only
+   when it is: amber coming due, solid red missed, its words always beside. */
+.pc-hold {
+  display: inline-block; padding: 1px 8px; font-size: var(--t-label); font-weight: 700; line-height: 1.6;
+  border-radius: 999px; white-space: nowrap;
+}
+.pc-hold.is-a { color: var(--st-a); background: color-mix(in srgb, var(--st-a) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--st-a) 40%, var(--surface)); }
+.pc-hold.is-r { color: #fff; background: var(--st-r); border: 1px solid var(--st-r); }
+.fr-strip .pc-hold { align-self: center; }
 
 .fj-head {
   display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px 20px; padding: 14px 16px;

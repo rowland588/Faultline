@@ -26,13 +26,16 @@ export function ReportsSheet({ project, onClose }: { project: Project; onClose: 
   const [walk, setWalk] = useState<string | null>(null);
   const [said, setSaid] = useState('');
   const [busy, setBusy] = useState(false);
+  const [byLine, setByLine] = useState(false);
   useEffect(() => { void getPaceWorkspaceId(project.id).then(setWalk); }, [project.id]);
   const go = (to: string) => { onClose(); nav(to); };
   const spreadsheet = async () => {
     setBusy(true); setSaid('');
     try {
       const { exportEverything } = await import('../lib/exportAll');
-      const r = await exportEverything();
+      /* a running line's job exports itself; a stage-gate job's spreadsheet
+         is the start-up record of every project, as it always was */
+      const r = await exportEverything(stageGate ? undefined : project.id);
       setSaid(r.how === 'downloaded' ? `Saved ${r.name}.` : `${r.name} is ready — send it from the bar below.`);
     } catch (e) { setSaid(`The spreadsheet could not be built — ${e instanceof Error ? e.message : 'try again'}.`); }
     finally { setBusy(false); }
@@ -48,6 +51,20 @@ export function ReportsSheet({ project, onClose }: { project: Project; onClose: 
     finally { setBusy(false); }
   };
   const withWalk = lines.filter(l => l.workspaceId);
+  /* A RUNNING LINE'S JOB, ITS PAPER IN ORDER (flow audit #17: "Eight papers
+     on one sheet … the client report three times, evidence cards twice, the
+     one-page report twice"; docs/SIMPLE.md: the report first, the detail
+     one tap away). The job's own client report leads; each line's three
+     papers — its client report, its week on one page, its evidence cards —
+     are folded under it, a line at a time. Nothing is taken away. */
+  const perLine = !stageGate ? lines.map(l => ({ l, papers: [
+    { key: 'r', title: 'Client report', says: 'The same report, for this line alone.', to: `/pace-report?project=${project.id}&line=${l.id}` },
+    ...(l.workspaceId ? [
+      { key: 'w', title: 'One-page report', says: 'The week on this line in one page — lost time, where it went, the problems needing a push.', to: `/w/${l.workspaceId}/report` },
+      { key: 'e', title: 'Evidence cards', says: 'One page per problem on this line’s walk, with its picture.', to: `/w/${l.workspaceId}/snaglist` },
+    ] : []),
+  ] })) : [];
+  const nPapers = perLine.reduce((n, x) => n + x.papers.length, 0);
   return (
     <Sheet open onClose={onClose} title="On paper">
       <div className="meet-reports">
@@ -59,11 +76,23 @@ export function ReportsSheet({ project, onClose }: { project: Project; onClose: 
           : tree ? 'The outcome and what has to be true for it, the numbers, the board, the walk.'
           /* A 6M job's report is the root cause story (lib/sixmReportPdf);
              the old 3P words were not what it prints. */
-          : 'The gap, where the loss is, each problem’s fishbone and what is being done about it, the board by bone, the walk.'}
+          : 'For the client — the one-page status first (where the lines are, why, what is being done), then the full report: the gap, where the loss is, each problem’s fishbone in four parts, the board by bone, the walk.'}
           onClick={() => go(stageGate ? `/project/${project.id}/report` : `/pace-report?project=${project.id}`)} />
-        {!stageGate && lines.map(l => (
-          <Door key={l.id} title={`Client report — ${l.name}`} says="The same report, for one line." onClick={() => go(`/pace-report?project=${project.id}&line=${l.id}`)} />
-        ))}
+        {perLine.length > 0 && (
+          <div className={'meet-lines' + (byLine ? ' is-open' : '')}>
+            <button type="button" className="meet-lines-h" aria-expanded={byLine} onClick={() => setByLine(o => !o)}>
+              <b>Line by line</b>
+              <small>{perLine.length === 1 ? perLine[0].l.name : `${perLine.length} lines`} · {nPapers} papers — each line’s report, its week on one page and its evidence cards</small>
+              <span aria-hidden>{byLine ? '▾' : '›'}</span>
+            </button>
+            {byLine && perLine.map(({ l, papers }) => (
+              <section key={l.id} className="meet-line" aria-label={l.name}>
+                <p className="meet-line-n">{l.name}</p>
+                {papers.map(x => <Door key={x.key} title={`${x.title} — ${l.name}`} says={x.says} onClick={() => go(x.to)} />)}
+              </section>
+            ))}
+          </div>
+        )}
         {/* What the method prints (lib/planModel: "the tree on one page") was
             the one printable thing this index did not list. */}
         {tree && <Door title="The lever tree" says="The tree on one page — print it from the tree itself." onClick={() => go(`/project/${project.id}/tree`)} />}
@@ -78,13 +107,18 @@ export function ReportsSheet({ project, onClose }: { project: Project; onClose: 
         {stageGate && <Door title="Line standard" says="For the floor — who stands where and what they do, one page per product." onClick={() => go(`/project/${project.id}/standard`)} />}
         {stageGate && <Door title="Machine labels" says={busy ? 'Drawing…' : 'For the floor — a code per machine to stick on it: scanned with a phone’s camera, it opens that machine’s page.'} onClick={() => { if (!busy) void labels(); }} />}
         {walk && <Door title="Evidence cards" says="One page per problem on the walk, with its picture." onClick={() => go(`/w/${walk}/snaglist`)} />}
-        {withWalk.map(l => (
+        {/* a stage-gate job's lines' papers, as they were; a running line's
+            are folded under its report, line by line, above */}
+        {stageGate && withWalk.map(l => (
           <Door key={l.id} title={`Evidence cards — ${l.name}`} says="One page per problem on this line's walk, with its picture." onClick={() => go(`/w/${l.workspaceId}/snaglist`)} />
         ))}
-        {withWalk.map(l => (
+        {stageGate && withWalk.map(l => (
           <Door key={`r${l.id}`} title={`One-page report — ${l.name}`} says="The week on this line in one page — lost time, where it went, the problems needing a push." onClick={() => go(`/w/${l.workspaceId}/report`)} />
         ))}
-        <Door title="Spreadsheet" says={busy ? 'Building…' : 'The start-up record of every project — machines, tests, fixes, materials, programs, line standard and walks — in one Excel file.'} onClick={() => { if (!busy) void spreadsheet(); }} />
+        <Door title="Spreadsheet" says={busy ? 'Building…' : stageGate
+          ? 'The start-up record of every project — machines, tests, fixes, materials, programs, line standard and walks — in one Excel file.'
+          : 'This job in one Excel file — what it waits on (materials and programs), its line standards and the problems on its walks. Its numbers, problems and board are on the client report.'}
+          onClick={() => { if (!busy) void spreadsheet(); }} />
         {said && <p className="sub" role="status">{said}</p>}
       </div>
     </Sheet>

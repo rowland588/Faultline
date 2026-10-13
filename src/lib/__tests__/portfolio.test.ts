@@ -6,7 +6,7 @@
  * asserted here, because a board that disagrees with the job it opens is
  * worse than no board. */
 import { describe, it, expect } from 'vitest';
-import { bonesSaid, clusterMarks, jobItems, needsYou, owedBy, pacedSays, portfolio, problemsSaid, saidText, type JobInput, type PacedInput } from '../portfolio';
+import { bonesSaid, checksOwed, clusterMarks, jobItems, needsYou, owedBy, pacedOwed, pacedSays, portfolio, problemsSaid, saidText, sixmProblemOf, type JobInput, type PacedInput } from '../portfolio';
 import { gapOf, type LineSeries } from '../measures';
 import type { PlacedMark } from '../plan';
 import { standing } from '../standing';
@@ -353,6 +353,36 @@ describe('a 6M job in the control room', () => {
     expect(pf.jobs.find(j => j.id === 't')!.sixm).toBeUndefined();
     expect(v.reachShort).toBe(false);
     expect(portfolio([], TODAY, [{ ...sixm, atTarget: 2, judged: 2 }]).jobs[0]).toMatchObject({ reach: '2 of 2 at target', reachShort: false });
+  });
+
+  /* HOLDING IS CHASED (flow audit #9): a closed problem's check, once owed,
+     is a row like anything else owed — on the job's Needs you and the
+     control room's week, late when its day has gone, owed by its who. */
+  it('owes a check that keeps the gain once it comes due, late once missed — and not before', () => {
+    const hold = (lastChecked: string) => ({ what: 'One changeover timed each week', who: 'Rob Scott', everyDays: 7, since: '2026-09-01', lastChecked });
+    const sixm: PacedInput = {
+      project: project({ id: 's6', name: 'Line 7 pace', commissioning: undefined }), steps: [], lines: [], atTarget: 0, judged: 0,
+      problems: [
+        { id: 'missed', title: 'Changeovers 48 min', phase: 'holding', says: '', hold: hold('2026-09-15') },
+        { id: 'soon', title: 'Checkweigher rejects', phase: 'holding', says: '', hold: hold('2026-09-24') },
+        { id: 'later', title: 'Labels peel', phase: 'holding', says: '', hold: hold('2026-09-28') },
+        { id: 'open', title: 'Basketer stops', phase: 'acting', says: '' },
+      ],
+    };
+    const owed = checksOwed(sixm, TODAY);
+    expect(owed.map(x => [x.id, x.kind, x.on, x.late, x.who])).toEqual([['missed', 'check', '2026-09-22', true, 'Rob Scott'], ['soon', 'check', '2026-10-01', false, 'Rob Scott']]);
+    expect(owed[0]).toMatchObject({ what: 'One changeover timed each week', branch: 'Keeps the gain on “Changeovers 48 min”' });
+    expect(pacedOwed(sixm, TODAY).filter(x => x.kind === 'check').length).toBe(2);
+    const pf = portfolio([], TODAY, [sixm]);
+    expect(pf.week.map(x => x.id)).toEqual(['missed', 'soon']);
+    expect(pf.jobs[0].late).toBe(1);
+    expect(needsYou(pacedOwed(sixm, TODAY), TODAY).rows.map(r => [r.item.id, r.urgency])).toEqual([['missed', 'late'], ['soon', 'soon']]);
+  });
+  it('carries the check on a closed problem only — a reopened one is worked, not held', () => {
+    const v = (status: 'open' | 'closed') => ({ phase: 'holding' as const, says: '', problem: { id: 'c', title: 'T', status, path: [], workspaceId: 'w', baselineMsWeek: 0, openedAt: 1, updatedAt: 1,
+      hold: { what: 'Weekly check', everyDays: 7, since: '2026-09-01', standardUpdated: true } } });
+    expect(sixmProblemOf(v('closed')).hold).toEqual({ what: 'Weekly check', everyDays: 7, since: '2026-09-01' });
+    expect(sixmProblemOf(v('open')).hold).toBeUndefined();
   });
 
   it('says the gap in the one sentence the client report uses', () => {

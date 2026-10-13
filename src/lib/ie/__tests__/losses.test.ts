@@ -47,7 +47,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   lossFigures, lossSays, compareLosses, nextShift, lossLine, lossRows, barWords, barExpect, inWindow, isChangeover, dayWords, rateWords,
-  stopsOfBar, shiftWords, firstCount, idealOf, rateOf, plannedOf, runningOf, contributionOf, findBar, moneyWords, paceWords,
+  stopsOfBar, shiftWords, firstCount, idealOf, rateOf, plannedOf, runningOf, contributionOf, findBar, moneyWords, paceWords, countedRate,
 } from '../losses';
 import { shiftWindow } from '../../shifts';
 import type { Station } from '../../capacity';
@@ -358,5 +358,20 @@ describe('a shift’s losses (tool 7)', () => {
     expect(nights?.from).toBe(new Date(2026, 9, 10, 22, 0).getTime());
     expect(shiftWindow({ start: '', end: '' }, '2026-10-10')).toBeUndefined();
     expect(shiftWindow({ start: '06:00', end: '14:00' }, 'nonsense')).toBeUndefined();
+  });
+});
+
+/* THE GAP COUNTED (flow audit #8): a shift's count is what the line made a
+ * minute — good packs ÷ planned minutes — offered as a reading, said as
+ * counted. 36,500 in 450 is 81.1 a minute; nothing until both are in. */
+describe('countedRate — what the line made a minute, counted', () => {
+  it('is the good packs over the planned minutes, on the shift’s day', () => {
+    expect(countedRate(count)).toEqual({ perMin: 81.1, made: 36_500, plannedMin: 450, day: '2026-10-10',
+      words: 'Shift 1, 10 Oct: 36,500 good packs in 450 planned min — 81.1 a minute' });
+  });
+  it('is nothing until the packs and the planned minutes are in', () => {
+    expect(countedRate({ ...count, made: undefined })).toBeUndefined();
+    expect(countedRate({ ...count, plannedMin: undefined })).toBeUndefined();
+    expect(countedRate(undefined)).toBeUndefined();
   });
 });

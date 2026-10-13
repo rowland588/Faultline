@@ -29,7 +29,8 @@ export type Direction = 'up' | 'down';
 
 export interface Measure {
   id: ID;
-  /** "Packs per minute", "OEE", "Waste", "First-pass yield". */
+  /** "Packs per minute", "Waste", "First-pass yield" — counted by people
+   *  (CLAUDE.md: no OEE, its availability typed by hand is a guess). */
   name: string;
   /** "ppm", "%", "cases/hr". Free text: it is a label, not a calculation. */
   unit?: string;
@@ -37,6 +38,19 @@ export interface Measure {
   direction: Direction;
   sort: number;
 }
+
+/** A RATE A MINUTE, more being better — packs per minute, "ppm", "bags/min":
+ *  the measure a shift counted by hand (lib/ie/losses countedRate) is a
+ *  reading of. The unit is free text, so it is read for what it says. */
+export function isPerMinute(m: Pick<Measure, 'name' | 'unit' | 'direction'>): boolean {
+  if (m.direction !== 'up') return false;
+  const u = (m.unit ?? '').trim().toLowerCase(), n = m.name.trim().toLowerCase();
+  return /^(ppm|bpm|upm|cpm)$/.test(u) || /(\/|per |a )\s*min(ute)?s?\b/.test(u) || /\b(per|a) minute\b/.test(n);
+}
+
+/** The measure a shift's count is a reading of: the first rate a minute. */
+export const perMinuteMeasure = <M extends Pick<Measure, 'name' | 'unit' | 'direction' | 'sort'>>(ms: readonly M[]): M | undefined =>
+  [...ms].sort((a, b) => a.sort - b.sort).find(isPerMinute);
 
 export interface Period {
   id: ID;

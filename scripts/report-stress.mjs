@@ -5,7 +5,7 @@
  * into it". This makes that a test rather than a hope. It builds the two jobs
  * in src/dev/reportSeeds.ts — TINY (just started) and HUGE (a long way in) —
  * plus the ordinary seed, downloads every stage-gate PDF from its real button
- * (and the 6M client report from a 6M job at both edges, seedSixMJob),
+ * (and the 6M client report and its one-page status from a 6M job at both edges, seedSixMJob),
  * and reads every page back with pdftotext's word boxes:
  *
  *   off the page   a word outside the page's safe margin
@@ -595,7 +595,8 @@ for (const size of SIXM_SIZES) {
     const label = lineId ? '6M line' : '6M client';
     const file = `${OUT}/6m-${size}-${lineId ? 'line' : 'client'}.pdf`;
     try {
-      await download(page, `#/pace-report?project=${job.projectId}${lineId ? `&line=${lineId}` : ''}`, file, [['PDF']]);
+      /* the full report — the one-page status is offered first (below) */
+      await download(page, `#/pace-report?project=${job.projectId}${lineId ? `&line=${lineId}` : ''}`, file, [['Full report'], ['PDF']]);
       const r = check(file, must);
       const flat = textOf(file).replace(/\s+/g, '');
       const at = heads.map(h => flat.indexOf(h.replace(/\s+/g, '')));
@@ -616,6 +617,32 @@ for (const size of SIXM_SIZES) {
       rows.push({ size: `6m-${size}`, report: label, pages: r.pages, faults: r.faults, said: r.said });
     } catch (e) {
       rows.push({ size: `6m-${size}`, report: label, pages: 0, faults: [`could not make it: ${e.message.split('\n')[0]}`] });
+    }
+    /* THE ONE PAGE beside it (flow audit #17; docs/SIMPLE.md): the 6M status
+       — one page whatever the job holds, its band's sentence and every
+       abnormal thing it names on the paper (lib/sixmStatus). */
+    const sLabel = lineId ? '6M line status' : '6M status';
+    const sMust = await page.evaluate(async ({ pid, lineId }) => {
+      const { san } = await import('/src/lib/reportKit.ts');
+      const { loadProblems, viewsOf } = await import('/src/lib/useProblems.ts');
+      const { sixmReport } = await import('/src/lib/sixmReportPdf.ts');
+      const { sixmStatus, SIXM_STATUS_STEPS } = await import('/src/lib/sixmStatus.ts');
+      const { listPaceTodos } = await import('/src/db/pace.ts');
+      const { getProject } = await import('/src/db/projects.ts');
+      const project = await getProject(pid); const loaded = await loadProblems(pid); const now = Date.now();
+      const r = sixmReport({ project: { name: project.name, lead: project.lead }, data: loaded.data, problems: viewsOf(loaded, pid, lineId, now), todos: await listPaceTodos(pid), lineId, now });
+      /* what the tightest step still carries — the page may step its lists down to fit */
+      const st = sixmStatus(r, SIXM_STATUS_STEPS[SIXM_STATUS_STEPS.length - 1]);
+      return [st.sentence, ...st.why.map(w => w.what)].map(v => [v, san(v), 'the status']);
+    }, { pid: job.projectId, lineId });
+    const sFile = `${OUT}/6m-${size}-${lineId ? 'line' : 'client'}-status.pdf`;
+    try {
+      await download(page, `#/pace-report?project=${job.projectId}${lineId ? `&line=${lineId}` : ''}`, sFile, [['Status — 1 page'], ['PDF']]);
+      const rs = check(sFile, sMust);
+      if (rs.pages !== 1) rs.faults.push(`the status is ${rs.pages} pages — it is one page, always`);
+      rows.push({ size: `6m-${size}`, report: sLabel, pages: rs.pages, faults: rs.faults, said: rs.said });
+    } catch (e) {
+      rows.push({ size: `6m-${size}`, report: sLabel, pages: 0, faults: [`could not make it: ${e.message.split('\n')[0]}`] });
     }
   }
   if (errors.length) rows.push({ size: `6m-${size}`, report: '(console)', pages: 0, faults: errors });

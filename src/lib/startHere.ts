@@ -44,9 +44,9 @@ export function startSteps(x: StartInput): StartStep[] {
   if (x.model === 'commissioning') return [];
   const steps: StartStep[] = [
     { key: 'line', title: 'Add the line', says: 'Its name, and who owns it.', done: x.lines > 0 },
-    { key: 'measure', title: 'Say what it is judged on', says: 'The number — packs per minute, waste, OEE — and which way is good.', done: x.measures > 0 },
+    { key: 'measure', title: 'Say what it is judged on', says: 'The number the line is counted on — packs per minute, waste — and which way is good.', done: x.measures > 0 },
     { key: 'target', title: 'Set the target', says: 'A stretch of time (Q1, say) and the number each line has to hit in it.', done: x.targets > 0 },
-    { key: 'now', title: 'Write down where it is now', says: 'The first reading — the before every change is measured against.', done: x.readings > 0 },
+    { key: 'now', title: 'Write down where it is now', says: 'The first reading — a shift counted on the line, or a number typed: the before every change is measured against.', done: x.readings > 0 },
   ];
   steps.push(x.model === 'tree'
     ? { key: 'outcome', title: 'Write the outcome on the tree', says: 'The one result at the top; what has to be true for it goes under it.', done: x.treeNodes > 0 }

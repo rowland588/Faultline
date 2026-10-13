@@ -21,7 +21,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
-  asISODate, bySort, guessMap, headline, lineSeries, matchLine, meets, parsePaste,
+  asISODate, bySort, guessMap, headline, isPerMinute, lineSeries, matchLine, meets, parsePaste, perMinuteMeasure,
   periodOf, quarters, readPaste, say, seriesFor, standingFor, targetsAcross, todayISO, vsTarget,
   type Measure, type Period, type Reading, type Target,
 } from '../measures';
@@ -326,5 +326,19 @@ describe('proving a win from the readings', () => {
     expect(verdictLabel('proven')).toBe('Proven');
     expect(verdictLabel('better')).toBe('Not yet proven');
     expect(verdictLabel('worse')).toBe('Worse');
+  });
+});
+
+/* The measure a shift's count is a reading of (flow audit #8): a rate a
+ * minute, more being better — read from its free-text unit and name. */
+describe('isPerMinute', () => {
+  const m = (name: string, unit: string, direction: 'up' | 'down' = 'up', sort = 0) => ({ id: name, name, unit, direction, sort });
+  it('knows a rate a minute when it sees one', () => {
+    for (const x of [m('Packs per minute', 'ppm'), m('Rate', 'bags/min'), m('Speed', 'per minute'), m('Bags a minute', '')]) expect(isPerMinute(x)).toBe(true);
+    for (const x of [m('Waste', '%', 'down'), m('Cases an hour', 'cases/hr'), m('Packs per minute', 'ppm', 'down'), m('First-pass yield', '%')]) expect(isPerMinute(x)).toBe(false);
+  });
+  it('picks the first, in the order the job keeps them', () => {
+    expect(perMinuteMeasure([m('Waste', '%', 'down', 0), m('Rate', 'ppm', 'up', 2), m('Speed', 'bags/min', 'up', 1)])?.name).toBe('Speed');
+    expect(perMinuteMeasure([m('Waste', '%', 'down')])).toBeUndefined();
   });
 });
