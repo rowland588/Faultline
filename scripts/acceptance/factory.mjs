@@ -24,6 +24,12 @@
  *      restored
  *  10  more lines on a factory with lines in it: placed at the end
  *  11-12 on a phone: nothing off the side, on Your factory and the control room
+ *  13-20 the jobs take their lines from the factory: a project started from
+ *      a line's page with that line picked and another; its lines the
+ *      factory's, each In your factory; a line added from the factory and one
+ *      not in it yet (added to the factory); a project's line made before the
+ *      factory finding the factory's line of its name, never a second; the
+ *      factory row, the line's page and the control room saying the job
  *   and no console error anywhere.
  *
  *   node scripts/acceptance/factory.mjs      (SMOKE_BASE, as smoke) */
@@ -152,7 +158,58 @@ const wide2 = await page.evaluate(() => document.documentElement.scrollWidth - w
 ok(wide2 <= 1, `12 phone, the control room: nothing off the side (${wide2}px)`);
 if (OUT) await page.screenshot({ path: `${OUT}/f-4-phone-control.png` });
 
+/* 13-20 — the jobs take their lines from the factory (slice 2) */
+await page.setViewportSize({ width: 1360, height: 900 });
+const idOf = async name => page.evaluate(async n => (await (await import('/src/db.ts')).listWorkspaces()).find(w => w.name === n && !w.archived)?.id, name);
+const line1 = await idOf('Line 1');
+await page.goto(`${BASE}/#/lines/${line1}`); await page.waitForTimeout(2000);
+ok(/Jobs on this line/.test(await txt()) && /No job on this line now/.test(await txt()), '13 a line\'s page: Jobs on this line — none yet, said so');
+await page.getByRole('button', { name: 'Start a project on this line ›' }).click(); await page.waitForTimeout(1500);
+ok(/#\/projects\?new=1&line=/.test(page.url()), `13b Start a project on this line: ${page.url().split('#')[1].slice(0, 30)}…`);
+await page.getByRole('button', { name: /Make a running line perform better/ }).click(); await page.waitForTimeout(400);
+const chip = name => page.getByRole('group', { name: 'Which lines it is on' }).getByRole('button', { name: new RegExp(`^${name}\\b`) });
+ok((await chip('Line 1').getAttribute('aria-pressed')) === 'true', '14 the new project: Line 1 already picked, from the factory');
+await chip('Line 4').click();
+if (OUT) await page.screenshot({ path: `${OUT}/f-6-new-project.png` });
+await page.locator('.proj-new').getByLabel('Name').fill('Line 1 performance');
+await page.getByRole('button', { name: 'Create and add lines' }).click(); await page.waitForTimeout(2500);
+const pid = /#\/project\/([^/?]+)/.exec(page.url())?.[1];
+await page.goto(`${BASE}/#/project/${pid}/setup`); await page.waitForTimeout(2500);
+const keys = await page.locator('.pset-row .pset-key').allInnerTexts();
+ok(keys.join(',') === '1,4', `15 the project's lines are the factory's picked: ${keys.join(',')}`);
+ok((await page.locator('.pset-row', { hasText: 'Open pack' }).first().getByRole('button', { name: 'In your factory ›' }).count()) === 1, '15b each says In your factory ›');
+/* a line from the factory, and one not in it yet */
+await page.getByLabel('Which line of your factory').selectOption({ label: 'Line 3B · Packing' }); await page.waitForTimeout(300);
+const filled = [await page.locator('.pset-add').getByPlaceholder('2A', { exact: true }).inputValue(), await page.locator('.pset-add').getByPlaceholder('Line 2A', { exact: true }).inputValue()];
+if (OUT) await page.screenshot({ path: `${OUT}/f-7-add-line.png`, fullPage: true });
+ok(filled.join('|') === '3B|Line 3B', `16 picked from the factory, its key and name filled: ${filled.join('|')}`);
+await page.locator('.pset-add').getByRole('button', { name: 'Add line' }).click(); await page.waitForTimeout(1500);
+await page.getByLabel('Which line of your factory').selectOption({ label: 'A line not in the factory yet…' });
+await page.locator('.pset-add').getByPlaceholder('2A', { exact: true }).fill('9');
+await page.locator('.pset-add').getByPlaceholder('Line 2A', { exact: true }).fill('Line 9');
+ok(/added to the factory as it is added here/.test(await page.locator('.pset-add').innerText()), '16b a line not in the factory: said it goes into the factory');
+await page.locator('.pset-add').getByRole('button', { name: 'Add line' }).click(); await page.waitForTimeout(1500);
+ok((await page.locator('.pset-row .pset-key').allInnerTexts()).join(',') === '1,4,3B,9', `16c the project's lines: ${(await page.locator('.pset-row .pset-key').allInnerTexts()).join(',')}`);
+/* a project's line made before the factory finds the factory's line of its name */
+await page.evaluate(async p => { const db = await import('/src/db.ts'); await db.addPaceLine({ projectId: p, key: '2A', name: 'Line 2A', sort: 9 }); }, pid);
+await page.reload(); await page.waitForTimeout(2500);
+await page.locator('.pset-row', { hasText: '2A' }).getByRole('button', { name: 'Time & film' }).click(); await page.waitForTimeout(2000);
+const twoA = await page.evaluate(async () => (await (await import('/src/db.ts')).listWorkspaces()).filter(w => w.name === 'Line 2A').length);
+ok(twoA === 1, `17 a project's line made before the factory uses the factory's Line 2A — ${twoA} of that name`);
+/* the factory, the line's page and the control room say the job */
+await page.goto(`${BASE}/#/factory`); await page.waitForTimeout(2000);
+ok((await order()).at(-1) === 'Line 9|' && (await order()).length === 5, `18 Line 9 is in the factory, at the end: ${(await order()).join(' / ')}`);
+const row1 = page.locator('.fac-line[data-line="Line 1"]');
+ok(/on Line 1 performance/.test(await row1.innerText()) && (await row1.getByRole('button', { name: 'Archive' }).count()) === 0, '18b Line 1 says its job, and is not archived from under it');
+await page.goto(`${BASE}/#/lines/${line1}`); await page.waitForTimeout(2000);
+if (OUT) await page.screenshot({ path: `${OUT}/f-8-line-jobs.png` });
+const jobsSec = (await page.getByRole('region', { name: 'Jobs on this line' }).innerText()).replace(/\s+/g, ' ');
+ok(/Line 1 performance 6M/.test(jobsSec), `19 Line 1's page: its job — ${jobsSec}`);
+await page.goto(`${BASE}/#/`); await page.waitForTimeout(2500);
+ok(/on Line 1 performance/.test(await page.locator('.fac-card', { hasText: 'Line 1' }).first().innerText()), '20 the control room\'s card: on Line 1 performance');
+if (OUT) await page.screenshot({ path: `${OUT}/f-5-control-jobs.png` });
+
 ok(errs.length === 0, `no console errors ${errs.slice(0, 3).join(' | ')}`);
 await b.close();
-console.log(fail ? `\nYour factory NOT accepted: ${fail} failed` : '\nYour factory accepted: set up first, lines added one after another, named, typed, moved, archived and restored — in floor order on the control room, the rail, the line\'s page and its paper — and the phone');
+console.log(fail ? `\nYour factory NOT accepted: ${fail} failed` : '\nYour factory accepted: set up first, lines added one after another, named, typed, moved, archived and restored — in floor order on the control room, the rail, the line\'s page and its paper — the phone, and the jobs taking their lines from it');
 process.exit(fail ? 1 : 0);

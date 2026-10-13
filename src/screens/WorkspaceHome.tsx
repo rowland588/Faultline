@@ -28,7 +28,7 @@ import { CloudPanel } from '../cloud/CloudPanel';
 import { useSyncedAt } from '../cloud/session';
 import { InstallPanel } from '../ui/InstallPanel';
 import { useProjects } from '../lib/useProjects';
-import { chainForWorkspace, inArchivedProject, onDataChange } from '../db';
+import { inArchivedProject, onDataChange, projectsOnWorkspace } from '../db';
 import { DEMO_NAME } from '../lib/lines';
 import { factorySays, liveProductionLines, productionLines } from '../lib/lines';
 import { JobsBoard } from '../ui/JobsBoard';
@@ -144,6 +144,7 @@ export function WorkspaceHome() {
      line, and an empty map says every one of them is loose — so an empty map
      used as "not read yet" would flash the whole list on every load. */
   const [belongs, setBelongs] = useState<Record<string, string> | null>(null);
+  const jobsKey = projects.map(p => `${p.id}:${p.name}`).join('|');
 
   // Re-reads whenever a sync finishes, so data pulled in the background (e.g.
   // straight after signing in on a new device) appears without a manual refresh.
@@ -189,14 +190,14 @@ export function WorkspaceHome() {
     let alive = true;
     void (async () => {
       const ws = list ?? [];
-      const pairs = await Promise.all(ws.map(async w => {
-        const c = await chainForWorkspace(w.id);
-        return [w.id, c ? (c.lineName ? `${c.lineName} · ${c.projectName}` : c.projectName) : ''] as const;
-      }));
+      /* every live job each line is on — a line of the factory can be on several (13 October) */
+      const names = new Map(projects.map(p => [p.id, p.name]));
+      const pairs = await Promise.all(ws.map(async w => [w.id, (await projectsOnWorkspace(w.id)).map(id => names.get(id)).filter(Boolean).join(', ')] as const));
       if (alive) setBelongs(Object.fromEntries(pairs.filter(([, v]) => v)));
     })();
     return () => { alive = false; };
-  }, [list]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the jobs' names, by key: the list is a new array every render
+  }, [list, jobsKey]);
 
   /* WHAT IS LEFT OVER. A workspace that hangs off a line is one tap away on its
      project card, so listing it again here is the second door in list form —

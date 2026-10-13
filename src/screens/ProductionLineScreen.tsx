@@ -17,7 +17,8 @@
  * red), and what to do next (take a problem; open a tool on this line). */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { nav } from '../state/useRoute';
-import { getWorkspace, listAllSnags, listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, updateWorkspace } from '../db';
+import { getWorkspace, listAllSnags, listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, projectsOnWorkspace, updateWorkspace } from '../db';
+import { methodOf } from '../lib/planModel';
 import { useCanStartProjects } from '../cloud/access';
 import { lineTypesOffered, productionLines } from '../lib/lines';
 import { openQuickSnag } from '../snag/QuickSnag';
@@ -54,14 +55,16 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
   const [standards, setStandards] = useState<Standard[]>([]);
   const [studies, setStudies] = useState<ToolStudy[]>([]);
   const [types, setTypes] = useState<string[]>([]);
+  const [jobIds, setJobIds] = useState<string[]>([]);
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState<string | null>(null);
   /* the factory is changed by someone invited to the app, as on Your factory */
   const may = useCanStartProjects();
 
   const load = useCallback(async () => {
-    const [w, every, std, ss, ws] = await Promise.all([getWorkspace(wsId), listAllSnags(), listStandardsForLine(wsId), listStudiesForLine(wsId), listWorkspaces()]);
+    const [w, every, std, ss, ws, on] = await Promise.all([getWorkspace(wsId), listAllSnags(), listStandardsForLine(wsId), listStudiesForLine(wsId), listWorkspaces(), projectsOnWorkspace(wsId)]);
     setLine(w ?? null);
+    setJobIds(on);
     setTypes(lineTypesOffered(productionLines(ws)));
     const mine = every.filter(s => s.workspaceId === wsId && !s.deletedAt && !s.archivedAt && s.status !== 'closed');
     setMine(mine);
@@ -72,6 +75,7 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
   /* its problems as rows, in priority order — the project each is for named */
   const rows: SnagRow[] = useMemo(() => mine.map(s => snagRow(s, line?.name ?? 'This line', undefined, projects.find(p => p.id === s.projectId)?.name))
     .sort((a, b) => RANK[a.priority] - RANK[b.priority] || Number(b.late) - Number(a.late) || b.raisedAt - a.raisedAt), [mine, projects, line]);
+  const jobs = projects.filter(p => jobIds.includes(p.id));
   const late = rows.filter(r => r.late).length;
   const crit = rows.filter(r => r.priority === 'critical').length;
   const count = useMemo(() => (t: typeof TOOLS[number]) => (t.standard ? standards.length : studies.filter(s => s.tool === t.study).length), [standards, studies]);
@@ -150,6 +154,29 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
           {saved && <span className="pe-saved" role="status">Saved — {saved}</span>}
         </div>
       )}
+
+      {/* THE JOBS ON THIS LINE (13 October: "assign everything to a
+          production line") — every live project whose lines name it, each
+          one tap to its own page; a job is started on this line from here. */}
+      <section className="pl-sec" aria-label="Jobs on this line">
+        <div className="pl-sec-h">
+          <h2>Jobs on this line</h2>
+          {may && <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/projects?new=1&line=${encodeURIComponent(wsId)}`)}>Start a project on this line ›</button>}
+        </div>
+        {jobs.length === 0
+          ? <p className="sub">No job on this line now. Its problems and its tools need none.</p>
+          : (
+            <ul className="pl-jobs">
+              {jobs.map(p => (
+                <li key={p.id}>
+                  <button type="button" className="pl-job" onClick={() => nav(`/project/${p.id}`)}>
+                    <b>{p.name}</b><span className="sub">{methodOf(p).label}</span><span className="pl-tool-go" aria-hidden>›</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+      </section>
 
       <section className="pl-sec" aria-label="Problems on this line">
         <div className="pl-sec-h">

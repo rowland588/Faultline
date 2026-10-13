@@ -10,7 +10,8 @@
  * so the control room, the rail and the line's page never disagree on it.
  * The demo line is a showcase, not a line anybody works on. */
 import type { Workspace } from '../types';
-import { inArchivedProject } from '../db/pace';
+import { inArchivedProject, projectWalkIds } from '../db/pace';
+import { createWorkspace, listWorkspaces, updateWorkspace } from '../db/workspaces';
 
 export const DEMO_NAME = 'Demo — Packing Hall';
 
@@ -88,9 +89,42 @@ export function nextLineName(lines: readonly Workspace[]): string {
  *  project") — they go with their project into the archive. Their problems
  *  stay on the Problems page, the line said to be an archived project's. */
 export async function liveProductionLines(ws: readonly Workspace[]): Promise<Workspace[]> {
-  const lines = productionLines(ws);
+  /* a project's own walk is the project's, never a line (db/pace projectWalkIds) */
+  const walks = await projectWalkIds();
+  const lines = productionLines(ws).filter(w => !walks.has(w.id));
   const away = await Promise.all(lines.map(w => inArchivedProject(w.id)));
   return lines.filter((_, i) => !away[i]);
+}
+
+/** A LINE ADDED TO THE FACTORY — at the end of the floor, with its type; the
+ *  lines before it numbered first, so one made before the factory keeps the
+ *  place it was shown in. The one way a line is put on the floor: Your
+ *  factory's Add lines, a project's new line, a project's line first used. */
+export async function addLineToFactory(name: string, lineType?: string, taxonomyId?: string): Promise<Workspace> {
+  const order = await liveProductionLines(await listWorkspaces());
+  for (const x of numbered(order)) await updateWorkspace(x);
+  const w = await createWorkspace(name, taxonomyId);
+  const placed = { ...w, lineType: lineType?.trim() || undefined, floorOrder: order.length };
+  await updateWorkspace(placed);
+  return placed;
+}
+
+/** A project's short name for a factory line — "2A" for "Line 2A" — the key
+ *  its numbers are kept under; typed over in Lines & people when wanted. */
+export function lineKey(name: string): string {
+  const k = name.trim().replace(/^line\s+/i, '').trim();
+  return (k || name.trim()).slice(0, 12);
+}
+
+/** THE FACTORY'S LINE FOR A PROJECT'S LINE (13 October: "assign everything
+ *  to a production line") — the line of that name already in the factory,
+ *  never a second of the same name; added to the factory when it is not
+ *  there yet. A project's line made before the factory finds its line this
+ *  way the first time it is used. */
+export async function factoryLineFor(name: string, taxonomyId?: string): Promise<Workspace> {
+  const want = name.trim().toLowerCase();
+  const found = (await liveProductionLines(await listWorkspaces())).find(w => w.name.trim().toLowerCase() === want);
+  return found ?? addLineToFactory(name, undefined, taxonomyId);
 }
 
 /** What the address asks for — `?line=<id>` (a list opened from a line's own

@@ -22,13 +22,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Workspace } from '../types';
 import { nav } from '../state/useRoute';
 import {
-  archiveWorkspace, chainForWorkspace, createWorkspace, deleteWorkspace, listAllSnags, listArchivedWorkspaces,
+  archiveWorkspace, deleteWorkspace, projectsOnWorkspace, listAllSnags, listArchivedWorkspaces,
   listWorkspaces, onDataChange, restoreWorkspace, updateWorkspace, workspaceContents,
 } from '../db';
-import { factorySays, lineTypesOffered, liveProductionLines, nextLineName, numbered, placeOnFloor, asked } from '../lib/lines';
+import { addLineToFactory, factorySays, lineTypesOffered, liveProductionLines, nextLineName, placeOnFloor, asked } from '../lib/lines';
 import { snagRow } from '../lib/snagsReport';
 import { useCanStartProjects } from '../cloud/access';
 import { fmtRelative } from '../lib/format';
+import { useProjects } from '../lib/useProjects';
 
 /** A box that keeps what is typed and saves it when the person is done —
  *  Enter or leaving the box; Escape puts the last saved words back. Never a
@@ -54,7 +55,8 @@ export function FactoryScreen() {
   const [lines, setLines] = useState<Workspace[] | null>(null);
   const [shelved, setShelved] = useState<Workspace[]>([]);
   const [open, setOpen] = useState<Map<string, { open: number; late: number }>>(new Map());
-  const [on, setOn] = useState<Map<string, string>>(new Map());
+  const [on, setOn] = useState<Map<string, string[]>>(new Map());
+  const { projects } = useProjects();
   const [adding, setAdding] = useState(() => asked('add') === '1');
   const [name, setName] = useState('');
   const [type, setType] = useState('');
@@ -76,8 +78,9 @@ export function FactoryScreen() {
       if (snagRow(s, '').late) c.late++;
       counts.set(s.workspaceId, c);
     }
-    const chains = await Promise.all(live.map(async w => [w.id, await chainForWorkspace(w.id)] as const));
-    setOn(new Map(chains.flatMap(([id, c]) => (c ? [[id, c.projectName] as const] : []))));
+    /* every job each line is on — a line of the factory can be on several */
+    const on = await Promise.all(live.map(async w => [w.id, await projectsOnWorkspace(w.id)] as const));
+    setOn(new Map(on.filter(([, ids]) => ids.length).map(([id, ids]) => [id, ids])));
     setOpen(counts);
     setShelved([...arch].sort((a, b) => b.updatedAt - a.updatedAt));
     setLines(live);
@@ -104,13 +107,8 @@ export function FactoryScreen() {
   const add = async () => {
     const n = name.trim();
     if (!n) return;
-    /* the new line goes at the end of the floor, with the type typed — the
-       lines before it numbered first, so one made before the factory keeps
-       the place it was shown in */
-    const order = lines ?? [];
-    for (const x of numbered(order)) await updateWorkspace(x);
-    const w = await createWorkspace(n);
-    await updateWorkspace({ ...w, lineType: type.trim() || undefined, floorOrder: order.length });
+    /* the new line goes at the end of the floor, with the type typed (lib/lines) */
+    await addLineToFactory(n, type);
     setAdded(a => [...a, n]);
     setName('');
     nameRef.current?.focus();
@@ -168,7 +166,8 @@ export function FactoryScreen() {
         <ol className="fac-lines" aria-label="The lines, in floor order">
           {lines.map((w, i) => {
             const c = open.get(w.id);
-            const job = on.get(w.id);
+            /* the live jobs it is on, by name; one archived job never holds a line */
+            const job = (on.get(w.id) ?? []).map(id => projects.find(p => p.id === id)?.name).filter(Boolean).join(', ');
             return (
               <li key={w.id} className="fac-line" data-line={w.name}>
                 {may && (

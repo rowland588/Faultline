@@ -1151,6 +1151,31 @@ exists today is aligned to it.
   `lines.mjs` now makes its line in Your factory; smoke loads Your factory
   and its Add lines.
 
+**Slice 2 — the jobs take their lines from the factory.**
+- **A project's line is one of the factory's.** Its row (`pace_ppm`) names
+  the factory's line (`workspaceId`) from the start: a new project asks
+  "Which lines is it on?" with the factory's lines as chips (several, as
+  manufacturing is; none is allowed); Lines & people's Add a line offers
+  the factory's lines first — picking one fills its name and its short key
+  ("2A" for "Line 2A", `lib/lines lineKey`) — and "A line not in the
+  factory yet" adds it to the factory as it is added to the job. Each line
+  row has In your factory › to the line's own page.
+- **What exists is aligned, never doubled.** A project's line made before
+  the factory, the first time it is used (Time & film, a problem on it, the
+  Pareto's stopwatch), takes the factory's line of its name
+  (`factoryLineFor`) — a second "Line 2A" is never made; one not in the
+  factory is added at the end of the floor.
+- **A line is shared by the jobs on it.** Line 2A can be a stage-gate job's
+  line and a 6M job's at once (`db/pace projectsOnWorkspace`): it leaves
+  the factory only when every job on it is archived, never because one is.
+  A project's own walk ("<project> — line walk") is the project's, never a
+  line of the factory (`projectWalkIds`).
+- **Where it shows.** A line's own page lists Jobs on this line, each one tap
+  to its job, with Start a project on this line (that line picked); Your
+  factory's rows and the control room's cards say every live job a line is
+  on. On paper nothing new yet: a job's line prints under the name it has.
+- **Accepted by** `factory.mjs` stories 13-20.
+
 ### Problems — the register: written, edited where it sits, a journey, a fresh start (12 October)
 
 Rowland, that evening, after the opened-out problem became read-only: "you've
