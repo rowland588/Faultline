@@ -98,7 +98,9 @@ const truth = () => page.evaluate(async () => {
   const db = await import('/src/db.ts'); const R = await import('/src/lib/snagsReport.ts'); const P = await import('/src/db/projects.ts');
   const [every, ws, projects] = await Promise.all([db.listAllSnags(), db.listWorkspaces(), P.allProjects()]);
   const all = (await import('/src/lib/demo.ts')).withoutDemo(every, ws).filter(s => !s.deletedAt);
-  const snags = all.filter(s => !s.archivedAt);
+  /* a problem on a line of an archived project, or a line archived itself, goes with it (13 October) */
+  const gone = new Set([...(await db.listArchivedWorkspaces()).map(w => w.id), ...(await Promise.all(ws.map(async w => (await db.inArchivedProject(w.id)) ? w.id : ''))).filter(Boolean)]);
+  const snags = all.filter(s => !s.archivedAt && !gone.has(s.workspaceId));
   const frames = new Map((await Promise.all([...new Set(snags.filter(s => s.assetId).map(s => s.workspaceId))].map(id => db.listSnagAssets(id)))).flat().map(a => [a.id, a]));
   const lineName = id => ws.find(w => w.id === id)?.name ?? 'A line';
   /* every live project's own problems and fixes — the page holds everything (12 October) */
@@ -383,17 +385,26 @@ await go('#/snags');
     const c = await db.chainForWorkspace(ws); await P.archiveProject(c?.projectId ?? pid);
     return (await db.listWorkspaces()).find(w => w.id === ws)?.name;
   }, { pid: sd.projectId, ws: sd.wsId });
-  await go('#/snags');
-  ok((await page.locator('.qsl-g:not(.qsl-job) .qsl-gh h2').allInnerTexts()).includes(`${away} — archived project`), `12 the archived project's line says so: ${away} — archived project`);
-  const onIt = page.locator('.qsl-g', { hasText: `${away} — archived project` }).locator('.qsl-work').first();
-  const what = (await onIt.locator('.qsl-what').innerText()).replace(/^(LOW|HIGH|CRITICAL)\s*/i, '').trim();
-  await onIt.locator('.qsl-tick input').check(); await page.waitForTimeout(300);
-  const opts = await page.locator('.qsl-bar-line option').allInnerTexts();
-  ok(!(await page.locator('.qs-fab').isVisible().catch(() => false)) && !opts.includes(away) && opts.includes('A new line…'), `12 ticked: the bar puts it on a line (not the archived one's), the camera button aside`);
+  await go('#/'); await go('#/snags');
+  /* its problems went with it (13 October: "2A 2B — this is the archived name, okay, this is the issue") — off the page, listed at its foot */
+  ok(!(await page.locator('.qsl-g:not(.qsl-job) .qsl-gh h2').allInnerTexts()).some(h => h.startsWith(away)), `12 the archived project's line is not on the page: ${away}`);
+  await page.locator('.preg-gone > button').click(); await page.waitForTimeout(400);
+  const goneRows = page.locator('.preg-gone .preg-away-row');
+  const free = goneRows.filter({ has: page.locator('select') }).filter({ hasNotText: '· closed' }).first();
+  const what = (await free.locator('.qsl-what').innerText()).replace(/^(LOW|HIGH|CRITICAL)\s*/i, '').trim();
+  ok((await goneRows.count()) > 0 && new RegExp(`${away} — archived project`).test(await free.innerText()), `12 its problems listed at the foot, With archived projects — ${await goneRows.count()}, saying where`);
+  const opts = await free.locator('select option').allInnerTexts();
+  ok(!opts.includes(away) && opts.includes('A new line…'), '12 each put on a line in use, or a new one');
   page.once('dialog', d => void d.accept('Line 2C'));
-  await page.locator('.qsl-bar-line').selectOption({ label: 'A new line…' }); await page.waitForTimeout(1500);
+  await free.locator('select').selectOption({ label: 'A new line…' }); await page.waitForTimeout(1500);
   const on2c = await page.evaluate(async () => { const db = await import('/src/db.ts'); const l = (await db.listWorkspaces()).find(x => x.name === 'Line 2C'); return (await db.listAllSnags()).filter(x => x.workspaceId === l?.id).map(x => x.problem); });
-  ok(on2c.length === 1 && on2c[0] === what && (await page.locator('.qsl-bar').count()) === 0 && /Saved — 1 now on Line 2C/.test(await page.locator('body').innerText()), `12 put on a new line, saved and said so, the ticks cleared: ${what}`);
+  ok(on2c.length === 1 && on2c[0] === what && (await row(what).count()) >= 1 && /Saved — now on Line 2C/.test(await page.locator('body').innerText()), `12 put on a new line from the foot: back on the page, saved and said so: ${what}`);
+  /* the bar, too: a ticked problem put on a line, and the ticks cleared */
+  await row(what).locator('.qsl-tick input').check(); await page.waitForTimeout(300);
+  const barOpts = await page.locator('.qsl-bar-line option').allInnerTexts();
+  ok(!(await page.locator('.qs-fab').isVisible().catch(() => false)) && !barOpts.includes(away) && barOpts.includes('Line 2C'), '12 ticked: the bar puts it on a line in use, the camera button aside');
+  await page.locator('.qsl-bar-line').selectOption({ label: 'Line 2C' }); await page.waitForTimeout(1200);
+  ok((await page.locator('.qsl-bar').count()) === 0 && /Saved — 1 now on Line 2C/.test(await page.locator('body').innerText()), '12 put on a line from the bar: saved, said so, the ticks cleared');
   await row(what).locator('.qsl-open').click(); await page.waitForTimeout(600);
   await row(what).locator('.pe').getByRole('group', { name: 'Priority' }).getByRole('button', { name: 'High' }).click(); await page.waitForTimeout(800);
   ok(await row(what).locator('.pe-saved').isVisible(), '12 a box changed: "Saved" beside Save');
@@ -426,7 +437,12 @@ await go('#/snags');
     ok((await row(forArch.problem).count()) === 1 && (await snag(forArch.problem))?.status === 'closed', '13 closed from its editor on Open: it stays in view until closed up');
     await row(forArch.problem).locator('.pe-save').click(); await page.waitForTimeout(800);
   } else ok(false, '13 no open problem for the archived project to look at');
-  /* a changed priority never moves the row being worked */
+  /* a changed priority never moves the row being worked — two open problems on a line in use, the lower one worked */
+  await page.evaluate(async () => {
+    const db = await import('/src/db.ts'); const l = (await db.listWorkspaces()).find(x => x.name === 'Line 2C'); const t = Date.now();
+    for (const [i, w] of ['Sorted first, low', 'Sorted second, low'].entries()) await db.addSnag({ id: crypto.randomUUID(), workspaceId: l.id, problem: w, status: 'open', raisedAt: t - i * 1000, updatedAt: t, media: [] });
+  });
+  await go('#/'); await go('#/snags');
   const any = page.locator('.qsl-work').last();
   const what2 = (await any.locator('.qsl-what').innerText()).replace(/^(LOW|HIGH|CRITICAL)\s*/i, '').trim();
   await row(what2).locator('.qsl-open').click(); await page.waitForTimeout(500);
@@ -435,16 +451,13 @@ await go('#/snags');
   const y1 = (await row(what2).boundingBox())?.y ?? 0;
   ok(Math.abs(y1 - y0) < 40 && (await snag(what2))?.priority === 'critical', `13 made Critical while open: saved, and the row stays where it is (${Math.round(y1 - y0)}px)`);
   await row(what2).locator('.pe-save').click(); await page.waitForTimeout(800);
-  /* one pinned on a walk keeps its line, said so */
-  const pin = (await truth()).all.find(x => x.assetId && !x.archivedAt);
-  if (pin) {
-    if (pin.status === 'closed') { await page.locator('.qsl-f .chip', { hasText: /^Done/ }).click(); await page.waitForTimeout(400); }
-    await row(pin.problem).locator('.qsl-open').click(); await page.waitForTimeout(500);
-    const pe = row(pin.problem).locator('.pe');
-    ok((await pe.getByLabel('Which line').count()) === 0 && /pinned on its walk/.test(await pe.innerText()), '13 a problem pinned on a walk keeps its line, said so');
-    await go('#/snags');
-  }
-  /* one made a fix on its project says so under Done */
+  /* one pinned on a walk keeps its line, said so — here, with its archived project's line, it offers no move */
+  await page.locator('.preg-gone > button').click(); await page.waitForTimeout(400);
+  const pinRow = page.locator('.preg-gone .preg-away-row', { hasText: 'pinned on its walk' }).first();
+  ok((await pinRow.count()) === 1 && (await pinRow.locator('select').count()) === 0, '13 a problem pinned on a walk keeps its line, said so — no move offered');
+  /* one made a fix on its project says so under Done — put back on a line in use first, its own line having gone with its project */
+  await page.evaluate(async () => { const db = await import('/src/db.ts'); const l = (await db.listWorkspaces()).find(x => x.name === 'Line 2C'); const x = (await db.listAllSnags()).find(y => y.problem === 'Coder misprints the date' && !y.deletedAt); if (x && l) await db.updateSnag({ ...x, workspaceId: l.id }); });
+  await go('#/'); await go('#/snags');
   await page.locator('.qsl-f .chip', { hasText: /^Done/ }).click(); await page.waitForTimeout(400);
   ok(/Made a fix on /.test(await row('Coder misprints the date').locator('.qsl-state').innerText().catch(() => '')), '13 made a fix on its project: under Done it says "Made a fix on …", never a bare Closed');
 }

@@ -137,7 +137,14 @@ export function QuickSnagsScreen() {
     return gone ? `${gone.name} — archived project` : undefined;
   }, [projects, archivedJobs]);
   const byId = useMemo(() => new Map((snags ?? []).map(s => [s.id, s])), [snags]);
-  const here = useMemo(() => (snags ?? []).filter(s => !s.archivedAt), [snags]);
+  /* WITH AN ARCHIVED PROJECT (Rowland, 13 October: "2A 2B — this is the archived name, okay, this is the issue"):
+     a problem on a line of an archived project, or on a line archived itself, goes with it — off the page,
+     its counts and its report — and is listed at the foot, kept, to be put on a line in use. Restore the
+     project and it is back by itself: nothing about the problem is changed. */
+  const goneLines = useMemo(() => new Set([...awayLines, ...shelved.map(w => w.id)]), [awayLines, shelved]);
+  const here = useMemo(() => (snags ?? []).filter(s => !s.archivedAt && !goneLines.has(s.workspaceId)), [snags, goneLines]);
+  const withGone = useMemo(() => (snags ?? []).filter(s => !s.archivedAt && goneLines.has(s.workspaceId)), [snags, goneLines]);
+  const [showGone, setShowGone] = useState(false);
   const away = useMemo(() => (snags ?? []).filter(s => !!s.archivedAt).sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0)), [snags]);
   const frameName = (s: Snag) => (s.assetId ? frames.get(s.assetId)?.name : undefined);
 
@@ -340,7 +347,7 @@ export function QuickSnagsScreen() {
 
       {snags && here.length === 0 && (
         <div className="qsl-empty">
-          <p><b>{away.length ? 'A fresh start.' : 'No problems yet.'}</b> Write the first — press <b>Problem</b>, say what is wrong, take a picture if it helps.</p>
+          <p><b>{away.length ? 'A fresh start.' : withGone.length ? 'Nothing on a line in use.' : 'No problems yet.'}</b> Write the first — press <b>Problem</b>, say what is wrong, take a picture if it helps.</p>
           <button type="button" className="btn btn-primary" onClick={() => openQuickSnag()}><Icon name="camera" size="1.05em" />Problem</button>
         </div>
       )}
@@ -420,6 +427,41 @@ export function QuickSnagsScreen() {
         onPdf={kind => { const full = jobGroups.find(x => x.projectId === g.projectId) ?? g; void pdfGroup(kind, g.job, here.filter(s => s.projectId === g.projectId), [full]); }}
         onOpen={r => (r.kind === 'action' ? nav(`/project/${r.projectId}/board?a=${encodeURIComponent(r.id)}`) : openRecord(r.projectId, r.id))}
         onList={() => { const p = liveJobs.find(x => x.id === g.projectId); nav(p && planModel(p) === 'commissioning' ? `/project/${g.projectId}/fixes` : `/project/${g.projectId}/board`); }} />)}
+
+      {/* WITH AN ARCHIVED PROJECT — kept, each put on a line in use to work it again. */}
+      {withGone.length > 0 && (
+        <section className="qsl-g preg-away preg-gone">
+          <button type="button" className="linkish" aria-expanded={showGone} onClick={() => setShowGone(v => !v)}>{showGone ? '▾' : '▸'} With archived projects — {withGone.length}</button>
+          {showGone && <>
+            <p className="sub">Their project or line is archived, so they went with it. Put one on a line in use to work it again; restore the project and they are all back.</p>
+            <ul className="qsl-rows">
+              {withGone.map(s => (
+                <li key={s.id} className="qsl-row preg-away-row">
+                  <span className="qsl-body">
+                    <span className="qsl-what"><PrioTag p={s.priority ?? 'low'} />{s.problem?.trim() || 'A picture, no words yet'}</span>
+                    <span className="qsl-meta">{lineName(s.workspaceId)}{s.status === 'closed' ? ' · closed' : ''}</span>
+                  </span>
+                  {s.assetId
+                    ? <span className="sub">pinned on its walk</span>
+                    : <select className="text-input qsl-sel" value="" aria-label={`Put on a line: ${s.problem ?? ''}`} onChange={e => {
+                      const v = e.target.value; if (!v) return;
+                      void (async () => {
+                        let to = v, name = lines.find(w => w.id === v)?.name ?? 'the line';
+                        if (v === NEW_LINE) { const typed = window.prompt('The new line’s name')?.trim(); if (!typed) return; to = (await createWorkspace(typed)).id; name = typed; }
+                        await updateSnag({ ...s, workspaceId: to });
+                        offerUndo(`Saved — now on ${name}`, async () => { await updateSnag(s); });
+                      })();
+                    }}>
+                      <option value="">Put on a line…</option>
+                      {lines.filter(w => !goneLines.has(w.id)).map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                      <option value={NEW_LINE}>A new line…</option>
+                    </select>}
+                </li>
+              ))}
+            </ul>
+          </>}
+        </section>
+      )}
 
       {/* PUT AWAY BY A FRESH START — kept, never deleted, brought back with a tap. */}
       {away.length > 0 && (
