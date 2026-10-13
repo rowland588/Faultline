@@ -252,11 +252,15 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
 }
 
 /** Every product shown, in a sentence for the front of the paper:
- *  "5 products on 2 lines — 2 short of their target, 1 with no stations yet." */
-export function capacityPapersSay(papers: Pick<CapacityPaper, 'line' | 'short' | 'rows'>[]): string {
+ *  "5 products on 2 lines — 2 short of their target, 1 with no stations yet."
+ *  A product whose stations are written down but none counted yet (no
+ *  speed) has its stations: it is said as speeds still to fill in. */
+export function capacityPapersSay(papers: (Pick<CapacityPaper, 'line' | 'short' | 'rows'> & { check?: string[] })[]): string {
   const lines = new Set(papers.map(p => p.line)).size;
   const short = papers.filter(p => p.short).length;
-  const none = papers.filter(p => !p.rows.length).length;
-  const tail = [short ? `${short} short of ${short === 1 ? 'its' : 'their'} target` : '', none ? `${none} with no stations yet` : ''].filter(Boolean).join(', ');
+  const none = papers.filter(p => !p.rows.length && !p.check?.length).length;
+  const unfilled = papers.filter(p => !p.rows.length && !!p.check?.length).length;
+  const tail = [short ? `${short} short of ${short === 1 ? 'its' : 'their'} target` : '', none ? `${none} with no stations yet` : '',
+    unfilled ? `${unfilled} with ${unfilled === 1 ? 'its' : 'their'} speeds still to fill in` : ''].filter(Boolean).join(', ');
   return `${papers.length} product${papers.length === 1 ? '' : 's'} on ${lines} line${lines === 1 ? '' : 's'}${tail ? ` — ${tail}` : ''}.`;
 }
