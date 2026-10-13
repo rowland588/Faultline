@@ -40,8 +40,8 @@ import { useAccess } from '../cloud/access';
 import type { Can } from '../lib/access';
 import {
   EMPTY_CAPACITY, analyse, syncWhatIfs, withWhatIfStations, blankStation, changedWords, compareSays, crossCheck, fmtN, lineIfRaised, makeItSoWords,
-  stopStats, suggestRunning, vCurve, accumulation, whatIfCapacity,
-  type Capacity, type RatePer, type Station, type StationResult, type WhatIf,
+  stopStats, suggestRunning, vCurve, accumulation, whatIfCapacity, paceSays, perMinute, oneOf, fmtSec,
+  type Capacity, type PaceSays, type RatePer, type Station, type StationResult, type WhatIf,
 } from '../lib/capacity';
 import { useLineStops } from '../lib/useLineStops';
 import { Icon } from '../ui/Icon';
@@ -70,7 +70,7 @@ function CapacitySheet({ r, v, target, study, onUse }: { r: ReturnType<typeof an
   const pctOf = new Map(v.points.map(p => [p.index, p]));
   return (
     <div className="cap-sheet-box">
-      <table className="cap-sheet">
+      <table className="cap-sheet cap-sheet-cards">
         <thead><tr><th>#</th><th>Station</th><th>Its unit</th><th className="n">Speed</th><th className="n">Own stops</th><th className="n">Good</th>
           <th className="n">{r.unit} a min</th><th className="n">{r.unit} an hour</th><th className="n">Of the bottleneck</th>{target != null && <th className="n">Target needs</th>}<th className="n">Can collect after</th></tr></thead>
         <tbody>
@@ -78,14 +78,14 @@ function CapacitySheet({ r, v, target, study, onUse }: { r: ReturnType<typeof an
             const s = x.station, p = pctOf.get(x.index), isLimit = r.limit?.index === x.index;
             const need = target != null && x.effective > 0 ? (target / x.effective) * 100 : undefined;
             const speed = s.rate != null ? `${fmtN(s.rate)} a ${s.ratePer === 'hour' ? 'hour' : s.ratePer === 'sec' ? 'second' : 'minute'}`
-              : s.cycleSec ? `${fmtN(s.perCycle ?? 1)} every ${fmtN(s.cycleSec)} s` : '—';
+              : s.cycleSec ? ((s.perCycle ?? 1) === 1 ? `a ${oneOf(s.unit)} every ${fmtN(s.cycleSec)} s` : `${fmtN(s.perCycle ?? 1)} every ${fmtN(s.cycleSec)} s`) : '—';
             return (
               <tr key={s.id} className={isLimit ? 'is-limit' : ''}>
-                <td>{x.index + 1}</td>
-                <td><span className="cap-ic" aria-hidden><Icon name={s.kind === 'people' ? 'person' : 'machine'} size={14} /></span> <b>{s.name.trim() || `Station ${x.index + 1}`}</b>
+                <td data-k="#">{x.index + 1}</td>
+                <td data-k="Station"><span className="cap-ic" aria-hidden><Icon name={s.kind === 'people' ? 'person' : 'machine'} size={14} /></span> <b>{s.name.trim() || `Station ${x.index + 1}`}</b>
                   {(s.crew ?? 1) > 1 && <span className="sub"> ×{s.crew}</span>}</td>
-                <td>{s.unit}{x.index > 0 && (s.contains ?? 1) !== 1 ? <span className="cap-sheet-k">1 = {fmtN(s.contains)} of the one before</span> : null}</td>
-                <td className="n cap-sheet-sp">{speed}<span className={'cap-sheet-k' + (s.kind === 'machine' && s.source !== 'plate' ? ' cap-sheet-a' : '')}>
+                <td data-k="Its unit">{s.unit}{x.index > 0 && (s.contains ?? 1) !== 1 ? <span className="cap-sheet-k">1 = {fmtN(s.contains)} of the one before</span> : null}</td>
+                <td data-k="Speed" className="n cap-sheet-sp">{speed}<span className={'cap-sheet-k' + (s.kind === 'machine' && s.source !== 'plate' ? ' cap-sheet-a' : '')}>
                   {/* a machine goes by its plate speed (docs/CAPACITY.md §1); running below it is a loss, not a lower plate */}
                   {s.kind === 'machine' ? (s.source === 'plate' ? HOW.plate : `${s.source ? HOW[s.source] : 'typed'} — not its plate speed`) : s.source ? HOW[s.source] : 'not timed yet'}</span>
                   {/* a person timed in the time study: their standard time, in this station's unit — one tap to use it (docs/CAPACITY.md §1) */}
@@ -93,13 +93,13 @@ function CapacitySheet({ r, v, target, study, onUse }: { r: ReturnType<typeof an
                     const work = study.get(s.name.trim().toLowerCase()) ?? 0, cyc = Math.round(work * x.factor * 100) / 100;
                     return <button type="button" className="linkish cap-sheet-use" onClick={() => onUse(s.id, cyc)}>The time study: {fmtN(cyc)} s a {s.unit.replace(/s$/, '')} — use it</button>;
                   })()}</td>
-                <td className="n">{s.runningPct != null && s.runningPct < 100 ? `${fmtN(100 - s.runningPct)}%` : '—'}</td>
-                <td className="n">{s.goodPct != null && s.goodPct < 100 ? `${fmtN(s.goodPct)}%` : '—'}</td>
-                <td className="n"><b>{fmtN(x.effective)}</b></td>
-                <td className="n">{fmtN(x.effective * 60)}</td>
-                <td className="n">{isLimit ? <b>the bottleneck</b> : p ? <span className={p.under ? 'cap-sheet-a' : ''}>{fmtN(Math.round(p.pct))}%{p.under ? ' · under the V' : ''}</span> : '—'}</td>
-                {target != null && <td className="n"><span className={need != null && need > 100 + 1e-9 ? 'cap-sheet-r' : ''}>{need != null ? `${fmtN(Math.round(need))}%` : '—'}</span></td>}
-                <td className="n">{s.bufferAfter ? `${fmtN(s.bufferAfter)} ${s.unit}` : '—'}</td>
+                <td data-k="Own stops" className="n">{s.runningPct != null && s.runningPct < 100 ? `${fmtN(100 - s.runningPct)}%` : '—'}</td>
+                <td data-k="Good" className="n">{s.goodPct != null && s.goodPct < 100 ? `${fmtN(s.goodPct)}%` : '—'}</td>
+                <td data-k={`${r.unit} a min`} className="n"><b>{fmtN(x.effective)}</b></td>
+                <td data-k={`${r.unit} an hour`} className="n">{fmtN(x.effective * 60)}</td>
+                <td data-k="Of the bottleneck" className="n">{isLimit ? <b>the bottleneck</b> : p ? <span className={p.under ? 'cap-sheet-a' : ''}>{fmtN(Math.round(p.pct))}%{p.under ? ' · under the V' : ''}</span> : '—'}</td>
+                {target != null && <td data-k="Target needs" className="n"><span className={need != null && need > 100 + 1e-9 ? 'cap-sheet-r' : ''}>{need != null ? `${fmtN(Math.round(need))}%` : '—'}</span></td>}
+                <td data-k="Can collect after" className="n">{s.bufferAfter ? `${fmtN(s.bufferAfter)} ${s.unit}` : '—'}</td>
               </tr>
             );
           })}
@@ -111,14 +111,18 @@ function CapacitySheet({ r, v, target, study, onUse }: { r: ReturnType<typeof an
 
 /* =============================== one station ================================ */
 
-function StationCard({ s, i, last, prevUnit, prevName, planned, why, wait, own, coLeft = 0, suggested, feed, arrives, patch, move, remove, assets, open: wantOpen, onToggle, ro }: {
-  s: Station; i: number; last: boolean; prevUnit?: string; prevName?: string; planned?: number;
+function StationCard({ s, i, last, prevUnit, planned, why, wait, own, coLeft = 0, suggested, say, factor, lineUnit, patch, move, remove, assets, open: wantOpen, onToggle, ro }: {
+  s: Station; i: number; last: boolean; prevUnit?: string; planned?: number;
   why?: string; wait: number; own: number; suggested?: number;
   /** Of its own stops, the minutes logged as changeovers and left out of its
    *  running share — they come off the shift on Line capacity's "A shift". */
   coLeft?: number;
-  /** What arrives against what it does, in its own unit — the station's own sentence. */
-  feed?: string; arrives?: number;
+  /** WHAT REACHES IT AND WHETHER IT KEEPS UP (lib/capacity paceSays) — worked
+   *  out from the line before it as soon as it says what it counts in and how
+   *  many of the one before make one; a person in seconds a piece. */
+  say: PaceSays;
+  /** How many of the line's unit are in one of its own, when counted. */
+  factor?: number; lineUnit: string;
   patch: (p: Partial<Station>) => void; move: (by: -1 | 1) => void; remove: () => void; assets: string[];
   /** ONE STATION OPEN AT A TIME. Every station's eight boxes were open at once
    *  — 57 buttons on the page — when the work is on one of them. Shut, a
@@ -129,7 +133,10 @@ function StationCard({ s, i, last, prevUnit, prevName, planned, why, wait, own, 
 }) {
   const open = wantOpen && !ro;
   const cyc = s.rate == null && (s.cycleSec != null || s.perCycle != null);
-  const [mode, setMode] = useState<'rate' | 'cycle'>(cyc ? 'cycle' : 'rate');
+  /* a person is timed — "one tray every 8 seconds" — so their speed is asked that way first */
+  const [mode, setMode] = useState<'rate' | 'cycle'>(cyc || (s.kind === 'people' && s.rate == null) ? 'cycle' : 'rate');
+  const one = oneOf(s.unit);
+  const speed = perMinute(s);
   const key = (x: string) => x.trim().toLowerCase();
   const logged = key(s.asset?.trim() || s.name);
   const matched = !!logged && assets.some(a => key(a) === logged);
@@ -163,23 +170,36 @@ function StationCard({ s, i, last, prevUnit, prevName, planned, why, wait, own, 
       {!open && (
         <p className="cap-sum">
           {s.rate != null ? `${fmtN(s.rate)} ${s.unit.trim() || 'units'} ${PER_WORD[s.ratePer ?? 'min']}`
-            : s.perCycle != null || s.cycleSec != null ? `${fmtN(s.perCycle ?? 0)} ${s.unit.trim() || 'units'} every ${fmtN(s.cycleSec ?? 0)} s`
+            : s.perCycle != null || s.cycleSec != null ? (s.perCycle === 1 ? `a ${one} every ${fmtN(s.cycleSec ?? 0)} s` : `${fmtN(s.perCycle ?? 0)} ${s.unit.trim() || 'units'} every ${fmtN(s.cycleSec ?? 0)} s`)
               : 'no speed yet'}
           {' · '}{s.crew ?? 1} {s.kind === 'people' ? (s.crew === 1 ? 'person' : 'people') : 'of it'}
           {' · '}{s.runningPct ?? 100}% running · {s.goodPct ?? 100}% good
         </p>
       )}
-      {/* THE STEP BEFORE, SAID HERE. 70 bags a minute and 8 to a basket is 8.8
-          baskets a minute arriving — the number this station has to beat, and
-          whether it does. Shut or open, it is the line this card is read by. */}
-      {feed && <p className={'cap-feed' + (/holds the line back/.test(feed) ? ' is-short' : '')}>{feed}</p>}
+      {/* THE STEP BEFORE, SAID HERE (Rowland, 13 October: "70 a minute. How
+          many go into a basket? 10. So one basket goes to a human every X").
+          Worked out the moment it says what it counts in and how many make
+          one — a person needs no speed for it — then whether it keeps up, in
+          seconds a piece for a person, and how many people would. Shut or
+          open, it is the line this card is read by. */}
+      {(say.arrive || say.verdict) && (
+        <p className={'cap-feed' + (say.short ? ' is-short' : '')}>
+          {say.arrive && <span className="cap-st-in">{say.arrive}</span>}
+          {say.verdict && <span className="cap-st-says">{say.verdict}</span>}
+          {say.needed != null && !ro && (
+            <button type="button" className="cw-link cap-crew" onClick={() => patch({ crew: say.needed })}>Make it {say.needed} people</button>
+          )}
+        </p>
+      )}
 
       {open && <>
       <div className="cap-grid">
         <label className="proj-field">
           <span className="field-label">It counts in</span>
           <DraftText value={s.unit} placeholder="bags, baskets, pallets…" className="text-input" max={30}
-            ariaLabel="What it counts in" onSave={v => patch({ unit: v })} />
+            ariaLabel="What it counts in" onSave={v => patch({ unit: v,
+              /* the same unit as the one before is one for one — said for them */
+              ...(i > 0 && !(s.contains > 0) && prevUnit?.trim() && v.trim().toLowerCase() === prevUnit.trim().toLowerCase() ? { contains: 1 } : {}) })} />
         </label>
 
         {i > 0 && (
@@ -205,23 +225,29 @@ function StationCard({ s, i, last, prevUnit, prevName, planned, why, wait, own, 
               <span className="cap-unit">{s.unit.trim() || 'units'}</span>
               <select className="text-input cap-sel" value={s.ratePer ?? 'min'} aria-label="Per second, minute or hour"
                 onChange={e => patch({ ratePer: e.target.value as RatePer })}>
-                {(Object.keys(PER_WORD) as RatePer[]).map(k => <option key={k} value={k}>{PER_WORD[k]}</option>)}
+                {/* a person is never so many a second — that box turned "a tray every 8 s" into 480 a minute */}
+                {(Object.keys(PER_WORD) as RatePer[]).filter(k => k !== 'sec' || s.kind !== 'people' || s.ratePer === 'sec').map(k => <option key={k} value={k}>{PER_WORD[k]}</option>)}
               </select>
             </span>
           ) : (
             <span className="cap-inline">
-              <DraftNumber className="text-input cap-num" value={s.perCycle} placeholder="2" label="How many each cycle" onSave={v => patch({ perCycle: v, rate: undefined })} />
-              <span className="cap-unit">{s.unit.trim() || 'units'} every</span>
-              <DraftNumber className="text-input cap-num" value={s.cycleSec} placeholder="20" label="Seconds a cycle" onSave={v => patch({ cycleSec: v, rate: undefined })} />
+              {/* one at a time unless said otherwise: "a tray every 8 seconds" */}
+              <DraftNumber className="text-input cap-num" value={s.perCycle ?? 1} placeholder="1" label={`How many ${s.unit.trim() || 'units'} at a time`} onSave={v => patch({ perCycle: v ?? 1, rate: undefined })} />
+              <span className="cap-unit">{(s.perCycle ?? 1) === 1 ? one : s.unit.trim() || 'units'} every</span>
+              <DraftNumber className="text-input cap-num" value={s.cycleSec} placeholder="8" label="Seconds each time" onSave={v => patch({ cycleSec: v, perCycle: s.perCycle ?? 1, rate: undefined })} />
               <span className="cap-unit">seconds</span>
             </span>
           )}
-          {s.kind === 'people' && <span className="cap-hint">Use the pace they can keep up all shift — not their best lap.</span>}
-          {arrives != null && (
-            <span className="cap-hint cap-arrives">
-              Arriving from {prevName || 'the station before'}: <b>{fmtN(arrives)} {s.unit.trim() || 'units'} a minute</b> — the speed to beat.
+          {/* WHAT THAT COMES TO, said back at once — a slip ("8 trays" for "8
+              bags a tray") shows here, not three tables later */}
+          {speed != null && (
+            <span className="cap-hint cap-is">
+              = {fmtN(speed)} {s.unit.trim() || 'units'} a minute{s.kind === 'people' ? ' each' : ''}
+              {factor != null && Math.abs(factor - 1) > 1e-9 ? ` · ${fmtN(speed * factor)} ${lineUnit} a minute` : ''}
+              {s.kind === 'people' && s.rate != null ? ` · a ${one} every ${fmtSec(60 / speed)}` : ''}
             </span>
           )}
+          {s.kind === 'people' && <span className="cap-hint">Use the pace they can keep up all shift — not their best lap.</span>}
         </div>
 
         <label className="proj-field">
@@ -379,6 +405,8 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
   const add = (kind: Station['kind'], name = '') => {
     const s = { ...blankStation(uid(), kind, current.stations.length === 0), name };
     setStations([...current.stations, s]);
+    /* a new station stays open until Done — naming it used to shut it before its speed was asked */
+    setEditing(s.id);
   };
   const move = (i: number, by: -1 | 1) => {
     const j = i + by;
@@ -681,11 +709,11 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
       <ol className="cap-sts">
         {current.stations.map((s, i) => (
           <StationCard key={s.id} s={s} i={i} last={i === current.stations.length - 1}
-            prevUnit={current.stations[i - 1]?.unit} prevName={current.stations[i - 1]?.name} planned={cap.plannedHoursPerWeek} why={why(s.id)}
+            prevUnit={current.stations[i - 1]?.unit} planned={cap.plannedHoursPerWeek} why={why(s.id)}
             wait={stats[s.id]?.waitMins ?? 0} own={stats[s.id]?.ownMins ?? 0}
             coLeft={coOff ? stats[s.id]?.changeoverMins ?? 0 : 0}
             suggested={suggestRunning((stats[s.id]?.ownMins ?? 0) - (coOff ? stats[s.id]?.changeoverMins ?? 0 : 0), cap.plannedHoursPerWeek, stops.weeks)}
-            feed={result(s.id)?.feed} arrives={result(s.id)?.arrives}
+            say={paceSays(r, s)} factor={result(s.id)?.factor} lineUnit={r.unit}
             patch={p => patchStation(s.id, p)} move={by => move(i, by)} remove={() => remove(s)} assets={assets}
             open={editing === s.id || !s.name.trim()} onToggle={() => setEditing(editing === s.id ? null : s.id)} ro={!can.edit} />
         ))}

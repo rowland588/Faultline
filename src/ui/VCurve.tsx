@@ -58,6 +58,31 @@ export function VCurveView({ r, v, target, margin, canAgree, onMargin }: {
           ))}
         </svg>
       </div>
+      {/* ON A PHONE THE V LIES ON ITS SIDE (Rowland, 13 October: "the line
+          capacity page graphics don't work") — the 900-wide chart was clipped
+          at the screen's edge, the bottleneck off it. A bar a station, in flow
+          order, as long as its share of the bottleneck: the shortest is the
+          bottleneck; the line at 100% is the bottleneck's own. Same numbers,
+          same colours, same words. */}
+      <ol className="vc-rows" aria-label={v.sentence}>
+        {v.points.map(p => {
+          const w = (n: number) => `${Math.max(0, Math.min(100, (n / top) * 100))}%`;
+          return (
+            <li key={p.index} className={'vc-row' + (p.isLimit ? ' is-limit' : '') + (p.under ? ' is-under' : '')}>
+              <span className="vc-row-name"><b>{p.name}</b> <span className="sub">{fmtN(p.perMin)} {r.unit}/min</span></span>
+              <span className="vc-row-track" aria-hidden>
+                <span className="vc-row-run" style={{ width: w(p.runningPct) }} />
+                <span className="vc-row-bar" style={{ width: w(p.pct) }} />
+                <span className="vc-row-100" style={{ left: w(100) }} />
+                {p.guide != null && <span className="vc-row-guide" style={{ left: w(p.guide) }} />}
+                {tgt != null && <span className={'vc-row-tgt' + (over ? ' is-over' : '')} style={{ left: w(tgt) }} />}
+              </span>
+              <span className="vc-row-val">{p.isLimit ? 'the bottleneck' : `${fmtN(Math.round(p.pct))}%${p.under ? ' · under the V' : ''}`}</span>
+            </li>
+          );
+        })}
+      </ol>
+      {tgt != null && <p className="vc-rows-tgt sub">The dotted mark is the target, {fmtN(target ?? 0)} a minute{over ? ' — above the bottleneck' : ''}.</p>}
       <p className="vc-key">
         <span><i className="vc-k is-eff" /> once its own stops count</span>
         <span><i className="vc-k is-run" /> while running</span>

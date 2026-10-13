@@ -19,7 +19,7 @@ import { todayISO } from '../lib/weeks';
 import { useBlobUrl } from '../lib/useBlobUrl';
 import { usePrograms } from '../lib/usePrograms';
 import { planModel } from '../lib/planModel';
-import { BOARDS, boardOf, colourOf, copyFor, headcount, ICON_GROUPS, isShape, MARKS, markOf, nextRole, peopleOf, PERSON_COLOURS, reshaped, SHAPES, thingsOf, TONES, type BoardShape, type MarkKind, type PersonColour, type ShapeKind, type ShapeTone, type Standard, type StandardMark } from '../lib/standard';
+import { BOARDS, boardOf, colourOf, copyFor, hasMap, inMapTool, headcount, ICON_GROUPS, isShape, MARKS, markOf, nextRole, peopleOf, PERSON_COLOURS, reshaped, SHAPES, thingsOf, TONES, type BoardShape, type MarkKind, type PersonColour, type ShapeKind, type ShapeTone, type Standard, type StandardMark } from '../lib/standard';
 import { useStandards } from '../ui/StandardsCard';
 import { Sheet } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
@@ -167,7 +167,10 @@ export function StandardsAt({ home, list, standardId, can }: { home: StdHome; li
 
 /* ------------------------------ the products ----------------------------- */
 
-function Products({ home, list, gone, can }: { home: StdHome; list: Standard[]; gone?: boolean; can: Can }) {
+function Products({ home, list: every, gone, can }: { home: StdHome; list: Standard[]; gone?: boolean; can: Can }) {
+  /* the products mapped — a product worked out only for capacity is Line
+     capacity's, not a map here (lib/standard inMapTool) */
+  const list = every.filter(inMapTool);
   const progs = usePrograms(home.project?.id ?? '');
   const [adding, setAdding] = useState(false);
   const [printing, setPrinting] = useState(false);
@@ -185,6 +188,9 @@ function Products({ home, list, gone, can }: { home: StdHome; list: Standard[]; 
   const create = async (product: string, programId?: string) => {
     const name = product.trim();
     if (!name) return;
+    /* a product already here (its capacity worked out) is the same record — its map opens */
+    const same = every.find(x => !x.deletedAt && x.product.trim().toLowerCase() === name.toLowerCase());
+    if (same) { setAdding(false); nav(`${home.base}/${same.id}`); return; }
     const t = now();
     /* A new map starts from the last one's picture: the line does not move
        between products, the people do. */
@@ -200,10 +206,10 @@ function Products({ home, list, gone, can }: { home: StdHome; list: Standard[]; 
       {gone && <p className="ls-gone">That map isn’t here any more — it was deleted, or the link is to a map on another project. The maps that are here:</p>}
       <header className="pace-head">
         <div className="pace-head-main">
-          <h1 className="pace-title">{home.wsId && !home.project ? 'Line standards and capacity' : 'Line standard'}</h1>
+          <h1 className="pace-title">Line standard</h1>
           <p className="pace-lede">
-            Who stands where, and what they do, on each product — and where the line is limited. A picture of the line
-            with the people and the kit placed on it, and the line's capacity under it — one per product.
+            Who stands where, and what they do, on each product — a picture of the line with the people and the kit
+            placed on it, one per product. Where the line is limited is Line capacity.
           </p>
         </div>
         <div className="pace-head-actions">
@@ -557,12 +563,17 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
     <div className="wrap pace ls lb">
       <header className="ls-head">
         <div className="ls-head-main">
-          <p className="sub"><button type="button" className="cw-link" onClick={() => nav(home.base)}>{home.wsId && !home.project ? 'Line standards and capacity' : 'Line standard'}</button> · Line capacity</p>
+          {/* LINE CAPACITY'S OWN PAGE — back to Line capacity on this line, never
+              to the line standard's list (Rowland, 13 October) */}
+          <p className="sub"><button type="button" className="cw-link" onClick={() => nav(s.workspaceId ? `/balances?line=${encodeURIComponent(s.workspaceId)}` : home.base)}>Line capacity</button>{home.name ? ` · ${home.name}` : ''}</p>
           <h1 className="ls-product is-read">{s.product}</h1>
         </div>
-        <div className="ls-head-actions">
-          <button type="button" className="btn btn-ghost" onClick={() => nav(here)}>The map for this product ›</button>
-        </div>
+        {/* its line standard, one tap away — only when it has been mapped */}
+        {hasMap(s) && (
+          <div className="ls-head-actions">
+            <button type="button" className="btn btn-ghost" onClick={() => nav(here)}>Its line standard ›</button>
+          </div>
+        )}
       </header>
       <BelongsTo s={s} home={home} can={can} onJob={projectId => { void save({ projectId }); void followStandard(s.id, projectId); }} />
       <div className="chip-row lb-views" role="tablist" aria-label="Which balance">
@@ -594,7 +605,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
         <div className="ls-head-main">
           {/* The way back to the list of maps, now the spine is gone: the
               rail's Hand over (or Lines) is a level above this. */}
-          <p className="sub"><button type="button" className="cw-link" onClick={() => nav(home.base)}>{home.wsId && !home.project ? 'Line standards and capacity' : 'Line standard'}</button> · {plural(people.length, 'person', 'people')}</p>
+          <p className="sub"><button type="button" className="cw-link" onClick={() => nav(home.base)}>Line standard</button> · {plural(people.length, 'person', 'people')}</p>
           {ro ? <h1 className="ls-product is-read">{s.product}</h1> : <>
           <input className="ls-product" value={product} aria-label="Product" list="ls-products"
             onChange={e => setProduct(e.target.value)}

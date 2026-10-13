@@ -28,7 +28,7 @@ import { useStanding } from '../lib/useStanding';
 import { useMethodCounts } from '../lib/useMethodCounts';
 import { useWsChain } from '../lib/useTrail';
 import { planModel, type PlanModel } from '../lib/planModel';
-import { getWorkspace, listTestItems, listTests, listWorkspaces, onDataChange } from '../db';
+import { getStandard, getWorkspace, listTestItems, listTests, listWorkspaces, onDataChange } from '../db';
 import { liveProductionLines } from '../lib/lines';
 import { gateOf } from '../lib/testing';
 import { LogoMark } from './Logo';
@@ -57,13 +57,36 @@ function projectOf(route: Route, chainProject?: string): string | undefined {
   return route.id;
 }
 
+/** A LINE'S PRODUCT WEARS ITS OWN JOB, OR NONE. A line standard or a line
+ *  capacity on a line is the job's only when it is attached to one: a
+ *  product on no job opened on a line that a job also uses wore that job's
+ *  rail, and read as the job's (Rowland, 13 October). `undefined` while it
+ *  is read; '' when it is on no job. */
+function useProductJob(standardId?: string): string | undefined {
+  const [job, setJob] = useState<{ id: string; job: string } | null>(null);
+  useEffect(() => {
+    let live = true;
+    if (!standardId) return;
+    const load = () => void getStandard(standardId).then(s => { if (live) setJob({ id: standardId, job: s?.projectId ?? '' }); });
+    load();
+    const off = onDataChange(load);
+    return () => { live = false; off(); };
+  }, [standardId]);
+  return standardId && job?.id === standardId ? job.job : undefined;
+}
+
 export function Frame({ route, children }: { route: Route; children: ReactNode }) {
   const { projects, archived, loading } = useProjects();
   const chain = useWsChain(route.wsId);
-  const projectId = projectOf(route, chain?.projectId);
+  const product = route.name === 'lineStandards' ? route.id : undefined;
+  const productJob = useProductJob(product);
+  /* a line's product: its own job or none; the line's list of them: none */
+  const projectId = route.name === 'lineStandards' ? (product ? productJob || undefined : undefined) : projectOf(route, chain?.projectId);
   /* An archived job still opens (from the archive), and still wears its rail. */
   const project = projectId ? (projects.find(p => p.id === projectId) ?? archived.find(p => p.id === projectId)) : undefined;
-  const here = useHere(route, project);
+  const jobHere = useHere(route, project);
+  /* on no job, the tool it is: Line capacity or Line standard in the Tools */
+  const here = route.name === 'lineStandards' && !project ? (route.query.get('at') === 'balance' ? 'linebalance' : 'linestandard') : jobHere;
 
   return (
     <div className="nv">

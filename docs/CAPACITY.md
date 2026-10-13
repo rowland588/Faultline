@@ -27,6 +27,21 @@ machine, the app has a person count, time, tap or walk instead.
   the chain puts every speed in the line's unit, at the start of the line,
   rejects put back (`lib/capacity`, already).
 
+**A person, as the floor says them** (Rowland, 13 October: "8 units in a
+tray ... a tray every 8 seconds ... very strange numbers"; "70 a minute ...
+how many go into a basket? 10 ... so one basket goes to a human every X").
+A person's station asks its speed the way a person is timed — *one tray every
+8 seconds* — and says it back at once ("= 7.5 trays a minute each · 60 bags a
+minute"), so a slip shows where it is typed. Never "so many a second". After
+the first station, how many of the one before make one is asked, never taken
+as one. **What reaches a station** is worked out the moment it says its unit
+and that number — before it has a speed: the slowest station before it, put
+into its unit ("a tray reaches them every 6.9 s — 8.75 a minute: the bagger
+does 70 bags a minute, 8 to a tray"). With a speed, whether it keeps up — for
+a person in seconds a piece ("they take 8 s a tray — 1.1 s too slow") — and,
+when short, how many people would (⌈what arrives ÷ one person's pace⌉), one
+tap to make it so (`lib/capacity` `arrivals`, `paceSays`).
+
 Sources: nameplate vs real capacity (Fabrico); ISO 22400-2 "planned run
 time per item" as the design speed; Toyota standard work, part 1 (All About
 Lean).

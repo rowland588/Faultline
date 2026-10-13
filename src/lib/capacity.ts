@@ -249,9 +249,9 @@ const pct = (v: number | undefined, dflt: number): number => {
 };
 
 /** Why this station cannot be counted yet, in words somebody can act on. */
-export function stationProblem(s: Station, i: number): string | undefined {
+export function stationProblem(s: Station, i: number, prevUnit?: string): string | undefined {
   if (!s.unit.trim()) return 'it does not say what it counts in';
-  if (i > 0 && !(s.contains > 0)) return `it does not say how many of the one before make one ${s.unit.trim()}`;
+  if (i > 0 && !(s.contains > 0)) return `it does not say how many ${prevUnit?.trim() || 'of the one before'} make one ${oneOf(s.unit)}`;
   if (perMinute(s) == null) return 'it has no speed yet';
   if (s.crew != null && !(s.crew > 0)) return 'its crew has to be more than none';
   if (pct(s.runningPct, 1) === 0) return 'it is never running — check the running percentage';
@@ -293,6 +293,21 @@ export interface StationResult {
 
 export interface Skipped { station: Station; index: number; why: string }
 
+/** WHAT REACHES A STATION, worked out from the line before it — for every
+ *  station whose chain of units is whole, whether or not it has a speed yet
+ *  (Rowland, 13 October: "70 a minute ... how many go into a basket? 10 ...
+ *  so one basket goes to a human every X"). */
+export interface Arrival {
+  /** In the station's own unit a minute. */
+  perMin: number;
+  /** One of its own unit every this many seconds. */
+  everySec: number;
+  /** The station before it that sets that pace — the slowest so far. */
+  from: { name: string; unit: string; perMin: number };
+  /** How many of `from`'s unit make one of this station's — 8 bags a tray. */
+  ratio: number;
+}
+
 export interface CapacityResult {
   unit: string;
   ok: StationResult[];
@@ -317,6 +332,9 @@ export interface CapacityResult {
   liftNoStops?: number;
   sentence: string;
   notes: string[];
+  /** What reaches each station after the first, by station id — every
+   *  station whose chain of units is whole, counted or not yet. */
+  arrivals: Record<string, Arrival>;
 }
 
 /** THE LINE'S SPEED, as the practice takes it (docs/CAPACITY.md §1 —
@@ -362,13 +380,16 @@ export function analyse(cap: Capacity): CapacityResult {
   let chainBroken: string | undefined;
   let goodSoFar = 1;                      // product of upstream good fractions
   const upGood = new Map<string, number>(); // each counted station's upstream good fraction
+  /* every station whose chain is whole, counted or not: its factor and the good fraction reaching it */
+  const whole = new Map<string, { factor: number; up: number }>();
   stations.forEach((s, i) => {
     if (i > 0) {
       if (chainBroken) { skipped.push({ station: s, index: i, why: `the chain of units breaks at ${chainBroken}` }); return; }
       if (s.contains > 0) factor *= s.contains;
       else { chainBroken = s.name || `station ${i + 1}`; }
     }
-    const problem = stationProblem(s, i);
+    if (!chainBroken) whole.set(s.id, { factor, up: goodSoFar });
+    const problem = stationProblem(s, i, stations[i - 1]?.unit);
     const upstream = goodSoFar;
     goodSoFar *= pct(s.goodPct, 1) || 1;
     if (problem || chainBroken) {
@@ -406,6 +427,27 @@ export function analyse(cap: Capacity): CapacityResult {
     slowestBefore = Math.min(slowestBefore, x.effective);
   }
 
+  /* WHAT REACHES EVERY STATION — the same sum, for a station with no speed
+     yet too: picking People and saying 8 to a tray is enough to say a tray
+     reaches them every 6.9 s. */
+  const arrivals: Record<string, Arrival> = {};
+  let pace: StationResult | undefined;
+  stations.forEach((s, i) => {
+    const w = whole.get(s.id);
+    if (i > 0 && w && pace) {
+      const pf = pace.factor, pu = upGood.get(pace.station.id) ?? 1;
+      const perMin = (pace.effective * w.up) / w.factor;
+      if (perMin > 0) {
+        arrivals[s.id] = {
+          perMin, everySec: 60 / perMin, ratio: w.factor / pf,
+          from: { name: pace.station.name.trim() || `Station ${pace.index + 1}`, unit: pace.station.unit.trim() || unit, perMin: (pace.effective * pu) / pf },
+        };
+      }
+    }
+    const x = ok.find(o => o.station.id === s.id);
+    if (x && (!pace || x.effective < pace.effective)) pace = x;
+  });
+
   /* Soft hints on the conversions — a one-to-one between two different words
      is usually a missing number, and the chain is silently multiplied by 1. */
   stations.forEach((s, i) => {
@@ -420,7 +462,7 @@ export function analyse(cap: Capacity): CapacityResult {
   });
 
   const target = cap.targetPerMin != null && cap.targetPerMin > 0 ? cap.targetPerMin : undefined;
-  const out: CapacityResult = { unit, ok, skipped, target, sentence: '', notes };
+  const out: CapacityResult = { unit, ok, skipped, target, sentence: '', notes, arrivals };
 
   if (ok.length === 0) {
     out.sentence = stations.length === 0
@@ -481,6 +523,69 @@ function sentenceOf(r: CapacityResult, cap: Capacity): string {
   if (r.skipped.length) parts.push(`${r.skipped.length} station${r.skipped.length === 1 ? '' : 's'} not counted yet.`);
   void cap;
   return parts.join(' ');
+}
+
+/** A unit said once — "baskets" → "basket", "boxes" → "box". Typed units
+ *  are usually plural; one of them reads in the singular. */
+export const oneOf = (unit: string): string => {
+  const u = unit.trim();
+  if (!u) return 'one';
+  if (/ies$/i.test(u)) return u.replace(/ies$/i, 'y');
+  if (/(ss|sh|ch|x)es$/i.test(u)) return u.replace(/es$/i, '');
+  return u.replace(/s$/i, '');
+};
+
+/** Seconds as a person reads a stopwatch: 6.9 s, 12 s. */
+export const fmtSec = (sec: number): string => `${String(Number(sec.toFixed(sec < 10 ? 1 : 0)))} s`;
+
+export interface PaceSays {
+  /** "A tray reaches them every 6.9 s — 8.75 a minute: Bagger does 70 bags a
+   *  minute, 8 to a tray." Absent at the front of the line. */
+  arrive?: string;
+  /** Whether it keeps up, in seconds for a person: "They take 8 s a tray —
+   *  1.1 s too slow: they hold the line back. It needs 2 people to keep up." */
+  verdict?: string;
+  /** Short of what reaches it. */
+  short: boolean;
+  /** People needed to keep up with what reaches them, when that is more than
+   *  are there. */
+  needed?: number;
+}
+
+/** WHAT A STATION IS ASKED TO DO, AND WHETHER IT DOES IT — worked out from the
+ *  line before it (Rowland, 13 October: "70 a minute. How many go into a
+ *  basket? 10. So one basket goes to a human every X"). A person is said in
+ *  seconds a piece, the way they are timed; a machine in its rate. */
+export function paceSays(r: CapacityResult, s: Station): PaceSays {
+  const a = r.arrivals[s.id];
+  const one = oneOf(s.unit);
+  const people = s.kind === 'people';
+  const who = people ? 'them' : 'it';
+  const arrive = a
+    ? `A ${one} reaches ${who} every ${fmtSec(a.everySec)} — ${fmtN(a.perMin)} a minute: ${a.from.name} does ${fmtN(a.from.perMin)} ${a.from.unit} a minute${Math.abs(a.ratio - 1) > 1e-9 ? `, ${fmtN(a.ratio)} to a ${one}` : ''}.`
+    : undefined;
+  const speed = perMinute(s);
+  if (speed == null) {
+    return { ...(arrive ? { arrive } : {}), verdict: people ? `Time how long one ${one} takes them.` : `Give it its speed to see whether it keeps up.`, short: false };
+  }
+  const crew = s.crew != null && s.crew > 0 ? s.crew : 1;
+  const running = pct(s.runningPct, 1) || 1;
+  const does = speed * crew * running;             // its own unit a minute
+  const each = 60 / speed;                         // one of it, one of them
+  if (!a) {
+    return { verdict: people ? `They take ${fmtSec(each)} a ${one}${crew > 1 ? ` each, ${crew} of them` : ''} — ${fmtN(does)} a minute.` : `It does ${fmtN(does)} ${s.unit.trim() || 'units'} a minute.`, short: false };
+  }
+  const short = does < a.perMin - 1e-9;
+  const needed = Math.ceil(a.perMin / (speed * running) - 1e-9);
+  if (!people) {
+    return { ...(arrive ? { arrive } : {}), verdict: short ? `It does ${fmtN(does)} a minute — holds the line back.` : `It does ${fmtN(does)} a minute — keeps up${does - a.perMin > 1e-9 ? `, ${fmtN(does - a.perMin)} to spare` : ''}.`, short };
+  }
+  const gapSec = Math.abs(60 / does - a.everySec);
+  const takes = `They take ${fmtSec(each)} a ${one}${crew > 1 ? ` each, ${crew} of them` : ''}`;
+  const verdict = short
+    ? `${takes} — ${fmtSec(gapSec)} too slow: they hold the line back. It needs ${needed} ${needed === 1 ? 'person' : 'people'} to keep up.`
+    : `${takes} — they keep up${gapSec > 0.05 ? `, ${fmtSec(gapSec)} to spare a ${one}` : ''}.`;
+  return { ...(arrive ? { arrive } : {}), verdict, short, ...(short && needed > crew ? { needed } : {}) };
 }
 
 /** The finding in a few words, for a list of lines or a page header: "Basketer
@@ -566,7 +671,11 @@ export function crossCheck(r: CapacityResult, stats: Record<string, StopStats>):
 
 export function blankStation(id: string, kind: StationKind, first: boolean): Station {
   /* a machine goes by its plate speed (docs/CAPACITY.md §1); a person is timed */
-  return { id, name: '', kind, unit: first ? 'units' : '', contains: 1, ratePer: 'min', crew: 1, source: kind === 'machine' ? 'plate' : 'estimate' };
+  /* After the first, how many of the one before make one is ASKED, never
+     taken as one: a tray of 8 left at 1 gave a person eight times their
+     speed, silently (Rowland, 13 October: "very strange numbers"). The same
+     unit as the one before is one for one, said when the unit is typed. */
+  return { id, name: '', kind, unit: first ? 'units' : '', contains: first ? 1 : 0, ratePer: 'min', crew: 1, source: kind === 'machine' ? 'plate' : 'estimate' };
 }
 
 /* ================================ what-ifs ================================= */
