@@ -155,7 +155,9 @@ const RANK: Record<SnagStatus, number> = { open: 0, in_progress: 1, closed: 2 };
 export function snagRow(s: Snag, line: string, assetName?: string, jobName?: string, ref = Date.now(), still?: string): SnagRow {
   const late = isOverdue(s, ref), d = dueInDays(s, ref);
   const age = ageDays(s.raisedAt, ref);
-  const word = s.status === 'closed' ? `Closed${s.closedAt ? ` ${nice(s.closedAt)}` : ''}`
+  /* made a fix on its project: said so, never a bare "Closed" (13 October audit) — the fix itself is under its project */
+  const word = s.status === 'closed' && (s.sent ?? []).length ? `Made a fix on ${jobName ?? 'its project'}`
+    : s.status === 'closed' ? `Closed${s.closedAt ? ` ${nice(s.closedAt)}` : ''}`
     : `${SNAG_STATUS_META[s.status].label} · ${age === 0 ? 'today' : age === 1 ? '1 day' : `${age} days`}`;
   /* where it stands, in its colour; how serious it is is the priority's, and late is the due's — an open one is not red for being open (12 October) */
   const tone: SnagTone = s.status === 'closed' ? 'g' : s.status === 'in_progress' ? 'w' : 'n';

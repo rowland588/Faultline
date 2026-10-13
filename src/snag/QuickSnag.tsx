@@ -34,6 +34,7 @@ import { uid } from '../lib/ids';
 import type { MediaRef, Workspace } from '../types';
 import { SNAG_STATUS_META, dueFromInput, dueToInput, type Snag, type SnagStatus } from './types';
 import { pinSnag, recall, remember } from './quick';
+import { liveProductionLines } from '../lib/lines';
 
 /* ---- one way in, from anywhere: the button, the FAB, a row on the page ---- */
 type Opener = (s?: Snag) => void;
@@ -88,16 +89,20 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(0);
 
+  const ownLine = snag?.workspaceId;
   useEffect(() => {
     let live = true;
-    void listWorkspaces().then(ws => {
+    void listWorkspaces().then(async all => {
+      /* the lines worked on now — an archived project's go with it (13 October audit); the problem's own line always kept */
+      const keep = new Set((await liveProductionLines(all)).map(w => w.id));
+      const ws = all.filter(w => keep.has(w.id) || w.id === ownLine);
       if (!live) return;
       setLines(ws);
       /* A remembered line that has gone is no line: the first one, or a new one. */
       setLine(l => (ws.some(w => w.id === l) ? l : ws[0]?.id ?? NEW_LINE));
     });
     return () => { live = false; };
-  }, []);
+  }, [ownLine]);
   useEffect(() => { if (project && projects.length && !projects.some(p => p.id === project)) setProject(''); }, [projects, project]);
   /* THE MACHINES TO PICK FROM — the line's own, and the machines on the job it
      is for (or on every live job when it is for none). Rowland, 12 October:
