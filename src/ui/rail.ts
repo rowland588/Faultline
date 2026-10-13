@@ -14,11 +14,15 @@
  *   Method    Fishbone · Board · Lines · Numbers · Wins · Evidence — a 6M job
  *             Tree · Board · Lines · …                      — a lever tree job
  *   Work      Fixes · Materials · The plan · The day
- *   Lines     each line; under it, inside its study: Capture · Analyse ·
+ *   Lines     each line, by the factory's name, opening the factory's line
+ *             (#/lines/:ws); under it, inside its study: Capture · Analyse ·
  *             Evidence · Meeting                    — a 6M or lever tree job
  *             Reports · Notes · Details
- *   Tools     Snags · Line standard · Line balance  (and, on a stage-gate
+ *   Tools     Line standard · Line capacity · …     (and, on a stage-gate
  *             job, its lines)
+ *
+ * Control room problems sits under the Control room on every rail: the
+ * register is the control room's page, never a tool (docs/FLOW-AUDIT.md #20).
  *
  * It is pure: a route and the counts in, groups of lines out. The counts come
  * from lib/useStanding and lib/useMethodCounts — the same numbers the client
@@ -97,7 +101,6 @@ const KEY_OF: Record<string, string> = {
   analyse: 'analyse', trend: 'analyse', case: 'analyse',
   snags: 'snaglist', snaglist: 'snaglist', line: 'snaglist', segment: 'snaglist', asset: 'snaglist', history: 'snaglist', walk: 'snaglist',
   meeting: 'meeting', report: 'meeting', present: 'meeting',
-  lineStandards: 'standards',
 };
 
 /** Which rail line a route stands on. A project's front page is the job
@@ -113,6 +116,9 @@ export function hereOf(route: Route): string {
     case 'factory': return 'factory';
     case 'linePrograms': return 'lineprograms';
     case 'lineTools': return route.view === 'balance' ? 'linebalance' : 'linestandard';
+    /* a line's own product — its map, or its Line capacity (?at=balance) —
+       lights the tool it is, as the list of them does */
+    case 'lineStandards': return route.query.get('at') === 'balance' ? 'linebalance' : 'linestandard';
     case 'studies': case 'study': return route.view === 'map' ? 'valuestream' : route.view === 'changeover' ? 'changeover' : route.view === 'sampling' ? 'sampling' : route.view === 'losses' ? 'losses' : 'capability';
     case 'projectDashboard': {
       const v = route.query.get('view');
@@ -163,18 +169,20 @@ const plain = (key: string, label: string, to: string, here: string, icon?: Rail
 export const controlRoom = (here: string): RailLine =>
   ({ key: 'home', label: 'Control room', to: '/', on: here === 'home', state: 'n', bare: true, icon: 'home' });
 
-/** EVERY SNAG, every line — beside the control room on every rail, because a
- *  snag is taken from anywhere (snag/QuickSnag) and sent on from there. */
+/** EVERY PROBLEM, every line — under the control room on every rail, because
+ *  a problem is taken from anywhere (snag/QuickSnag) and sent on from there.
+ *  The register is the control room's own page, not a tool, so it never sits
+ *  in Tools (docs/FLOW-AUDIT.md #20). */
 export const snagsPlace = (here: string): RailLine =>
   ({ key: 'quicksnags', label: 'Control room problems', to: '/snags', on: here === 'quicksnags', state: 'n', bare: true, icon: 'camera' });
 
-/** THE TOOLS — the snags, the line standard and the line balance. Rowland,
+/** THE TOOLS — the line standard, Line capacity and the studies. Rowland,
  *  8 October: "we want line standard and line balancing as tools like snag
  *  ... same principle: use independent or connect to project." Each is used
  *  on a line with no job, and attached to one when it is wanted (LINE_TOOLS.sql,
- *  screens/LineToolsScreen). */
+ *  screens/LineToolsScreen). The problems register sat first here; it went up
+ *  under the control room (snagsPlace) — a problem is a record, not a tool. */
 export const toolPlaces = (here: string): RailLine[] => [
-  snagsPlace(here),
   { key: 'linestandard', label: 'Line standard', to: '/standards', on: here === 'linestandard', state: 'n', bare: true, icon: 'people' },
   { key: 'linebalance', label: 'Line capacity', to: '/balances', on: here === 'linebalance', state: 'n', bare: true, icon: 'chart' },
   /* The capability study — readings against agreed limits, Cpk out (docs/TOOLKIT.md, tool 1). */
@@ -262,30 +270,48 @@ export function workGroup(projectId: string, model: PlanModel, here: string, cou
   };
 }
 
-export interface RailLineOf { id: string; name: string; workspaceId?: string }
+export interface RailLineOf { id: string; name: string; workspaceId?: string;
+  /** The factory's name for the line, when the job's line is one of Your
+   *  factory's. The rail then says that name and opens the line's own page
+   *  (#/lines/:ws) — never the job's copy of it under a name of its own
+   *  ("Line 8" for Line 7 — smoke test; docs/FLOW-AUDIT.md #7). */
+  factoryName?: string }
 
 /** The screens of a line study, drawn under the line they belong to (or
- *  under the job, when the job's own line was filmed) — and the line's own
- *  tools: its maps and balances, one per product (LINE_TOOLS.sql), a tool on
- *  the line whether or not a job is attached. */
+ *  under the job, when the job's own line was filmed). The line's maps and
+ *  capacities were a fifth line here, "Maps and balance": a second door to
+ *  what Tools › Line standard and Line capacity open, and what the line's own
+ *  page lists as its tools — it went (docs/FLOW-AUDIT.md #7, #20), and a
+ *  product of the line lights its tool instead (hereOf, lineStandards). */
 export function studyLines(wsId: string, here: string): RailLine[] {
   const s = (key: string, label: string, to: string, icon: RailLine['icon']): RailLine =>
     ({ key, label, to: `/w/${wsId}/${to}`, on: here === key, state: 'n', sub: true, bare: true, icon });
   return [
     s('capture', 'Capture', 'capture', 'time'), s('analyse', 'Analyse', 'analyse', 'chart'),
     s('snaglist', 'Evidence', 'snaglist', 'camera'), s('meeting', 'Meeting', 'meeting', 'people'),
-    s('standards', 'Maps and balance', 'standards', 'grip'),
   ];
 }
 
 /** LINES — each line of the project, and under the one whose study you are
  *  inside, that study's four screens. Two lines can share one study (it was
- *  filmed across both); its screens are drawn once, under the first. */
+ *  filmed across both); its screens are drawn once, under the first.
+ *
+ *  A JOB POINTS AT THE FACTORY'S LINE (docs/BLUEPRINT.md §1 rule 2). A line
+ *  of Your factory is said by the factory's name and opens the line's own
+ *  page, where the job is listed; two of the job's lines on one factory line
+ *  are that one line, once. A job's line not yet in the factory keeps the
+ *  job's page for it. */
 export function linesGroup(projectId: string, lines: RailLineOf[], here: string, wsId?: string): RailGroup {
   const out: RailLine[] = [];
+  const seen = new Set<string>();
   let drawn = false;
   for (const l of lines) {
-    out.push(plain(`line:${l.id}`, l.name, `/project/${projectId}/line/${l.id}`, here, 'hash'));
+    const fac = l.factoryName && l.workspaceId ? l.workspaceId : undefined;
+    if (fac && seen.has(fac)) continue;
+    if (fac) seen.add(fac);
+    out.push(fac
+      ? plain(`line:${l.id}`, l.factoryName as string, `/lines/${fac}`, here, 'hash')
+      : plain(`line:${l.id}`, l.name, `/project/${projectId}/line/${l.id}`, here, 'hash'));
     if (wsId && !drawn && l.workspaceId === wsId) { out.push(...studyLines(wsId, here)); drawn = true; }
   }
   return { label: 'Lines', lines: out };
