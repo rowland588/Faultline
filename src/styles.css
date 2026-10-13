@@ -10669,6 +10669,13 @@ body:has(.toast) .qs-fab { bottom: calc(var(--nv-bar) + 130px + env(safe-area-in
 .cr-prog.is-a { color: var(--st-a); }
 .cr-prog.is-n { color: var(--muted); }
 .lt-rows { list-style: none; margin: 0; padding: 0; }
+/* a row: the product (tap to open), and Rename · Delete where it sits */
+.lt-li { display: flex; align-items: center; gap: 4px 14px; border-bottom: 1px solid var(--line); }
+.lt-li > .lt-row { flex: 1; min-width: 0; border-bottom: 0; }
+.lt-acts { display: flex; gap: 14px; flex: none; font-size: var(--t-detail); }
+.lt-name { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; padding: 8px 2px; }
+.lt-name .text-input { flex: 1 1 220px; }
+.lt-clash { flex-basis: 100%; color: var(--st-a); }
 .lt-row { all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; width: 100%; padding: 10px 2px; border-bottom: 1px solid var(--line); }
 .lt-row:hover .lt-what, .lt-row:focus-visible .lt-what { color: var(--brand); }
 .lt-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }

@@ -338,6 +338,45 @@ let TRAY;
   ok(new RegExp(` a bag in labour — ${m.more ? 9 : 8} people at £12\\.50 an hour$`).test(card ?? ''), `12f the card's line carries it: ${card}`);
 }
 
+/* ---- 13 renamed and deleted where it sits ---- Rowland, 13 October: "cant
+   delete a line capacity anywhere ... always implement deletes and editing in
+   everything". Deleting a product's Line capacity keeps its map, and the other
+   way round; the record goes only when nothing is left; Undo brings it back. */
+{
+  const rec = id => page.evaluate(async id => { const s = await (await import('/src/db.ts')).getStandard(id); return s ? { product: s.product, marks: s.marks?.length ?? 0, cap: !!s.capacity, stations: s.capacity?.stations.length ?? 0 } : null; }, id);
+  const LIST = `#/balances?line=${sd.wsId}`;
+  await go(LIST);
+  const trayName = (await rec(TRAY)).product;
+  await page.getByRole('button', { name: `Rename ${trayName}` }).click(); await page.waitForTimeout(300);
+  const box = page.getByLabel(`The product's name — ${trayName}`);
+  await box.fill('maris piper 2kg'); await page.waitForTimeout(200);
+  const clash = flat(await page.locator('.lt-li.is-naming').innerText());
+  ok(/already on this line/.test(clash) && await page.locator('.lt-li.is-naming').getByRole('button', { name: 'Save' }).isDisabled(), `13 renamed in its row — a name already on the line refused: ${clash}`);
+  await box.fill('Tray case 6'); await box.press('Enter'); await page.waitForTimeout(900);
+  ok((await rec(TRAY)).product === 'Tray case 6' && (await page.locator('.lt-row .lt-what').allInnerTexts()).includes('Tray case 6'), '13b kept, and the row says the new name');
+
+  const before = await rec(SID);
+  page.once('dialog', d => void d.accept());
+  await page.getByRole('button', { name: `Delete the Line capacity for ${before.product}` }).click(); await page.waitForTimeout(900);
+  const after = await rec(SID);
+  const capRows = await page.locator('.lt-row .lt-what').allInnerTexts();
+  ok(after && after.stations === 0 && after.marks === before.marks && !capRows.includes(before.product), `13c ${before.product}'s Line capacity deleted from its row — its map kept (${after?.marks} marks), gone from Line capacity (${capRows.join(', ')})`);
+  const toast = flat(await page.locator('.toast').innerText().catch(() => ''));
+  await page.locator('.toast-undo').click(); await page.waitForTimeout(900);
+  const back = await rec(SID);
+  ok(/its line standard map kept/.test(toast) && back.cap && back.stations === before.stations, `13d said and undone: "${toast.replace(/ ?Undo$/, '')}" — its ${back.stations} stations back`);
+  await go(`#/standards?line=${sd.wsId}`);
+  ok((await page.locator('.lt-row .lt-what').allInnerTexts()).includes(before.product), '13e and its line standard never left Line standard');
+
+  await go(`#/w/${sd.wsId}/standards/${TRAY}?at=balance`);
+  const nameBox = page.locator('.ls-head input[aria-label="Product"]');
+  await nameBox.fill('Tray case 12'); await nameBox.blur(); await page.waitForTimeout(800);
+  ok((await rec(TRAY)).product === 'Tray case 12', '13f its name changed on its own page');
+  page.once('dialog', d => void d.accept());
+  await page.getByRole('button', { name: 'Delete this capacity' }).click(); await page.waitForTimeout(1200);
+  ok((await rec(TRAY)) === null && page.url().includes('/balances?line='), '13g deleted from its own page — with no map on it, the record goes; back to Line capacity on its line');
+}
+
 /* ---- a client reads it and changes nothing ---- a line's own tool is its
    members' to change; on a job, a client of the job reads it. So the
    standard is put on the job first, as a person would attach it. */
@@ -353,5 +392,5 @@ await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
 
 ok(errors.length === 0, errors.length ? `no console errors — ${errors.join(' | ')}` : 'no console errors');
 await browser.close();
-console.log(failed ? `\n${failed} acceptance check(s) failed` : '\nLine capacity accepted: the V, the sheet, the margin, the standard time, the walk, a shift and what a pack costs hold');
+console.log(failed ? `\n${failed} acceptance check(s) failed` : '\nLine capacity accepted: the V, the sheet, the margin, the standard time, the walk, a shift and what a pack costs hold; renamed and deleted where it sits');
 process.exit(failed ? 1 : 0);

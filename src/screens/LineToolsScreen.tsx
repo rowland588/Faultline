@@ -21,7 +21,10 @@ import { useArchivedPlaces } from '../lib/useFactoryLines';
 import type { ToolStudy } from '../lib/study';
 import { changeoverLine, currentChangeover, studyHref } from '../lib/studyLinks';
 import { useProjects } from '../lib/useProjects';
-import { headcount, inCapacityTool, inMapTool, thingsOf, type Standard } from '../lib/standard';
+import { headcount, inCapacityTool, inMapTool, removingSays, thingsOf, type Standard } from '../lib/standard';
+import { removeFromTool } from '../ui/StandardsCard';
+import { useAccess } from '../cloud/access';
+import { can as canOf } from '../lib/access';
 import { productsOnLine, programsOnLine } from '../lib/lineRecords';
 import { useLineRecords } from '../lib/useLineRecords';
 import { analyse, shortSays } from '../lib/capacity';
@@ -168,25 +171,65 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
             ) : null;
           })()}
           <ul className="lt-rows">
-            {rows.map(s => {
-              const said = tool === 'balance' ? balanceSays(s) : { text: mapSays(s), short: false };
-              const job = jobName(s.projectId);
-              return (
-                <li key={s.id}>
-                  <button type="button" className="lt-row" onClick={() => nav(openOf(s, tool))}>
-                    <b className="lt-what">{s.product}</b>
-                    <span className={'lt-says' + (said.short ? ' is-short' : '')}>{said.text}</span>
-                    {/* WHERE IT BELONGS — on a job, or a tool on the line alone. */}
-                    <span className="lt-where">{job ? <>On <b>{job}</b></> : s.workspaceId ? 'On no job' : ''}</span>
-                  </button>
-                </li>
-              );
-            })}
+            {rows.map(s => <ToolRow key={s.id} s={s} tool={tool} job={jobName(s.projectId)} all={list ?? []} />)}
           </ul>
         </section>
       ))}
       <NewOne open={adding} tool={tool} lines={factory} list={list ?? []} onClose={() => setAdding(false)} onLine={lineF.startsWith('ws:') ? lineF.slice(3) : undefined} />
     </div>
+  );
+}
+
+/** ONE PRODUCT ON THE LIST — opened with a tap; its name changed and the tool
+ *  deleted where it sits (Rowland, 13 October: "cant delete a line capacity
+ *  anywhere ... always implement deletes and editing in everything"). Deleting
+ *  takes this tool off the product and keeps the other (lib/standard
+ *  afterRemoving), with Undo. On a job the job's access says who may (the
+ *  owner deletes, the team renames); on a line with no job, the line's people. */
+function ToolRow({ s, tool, job, all }: { s: Standard; tool: LineTool; job?: string; all: Standard[] }) {
+  const jobCan = useAccess(s.projectId ?? '');
+  const may = s.projectId ? jobCan : canOf('owner');
+  const [naming, setNaming] = useState(false);
+  const [name, setName] = useState(s.product);
+  const said = tool === 'balance' ? balanceSays(s) : { text: mapSays(s), short: false };
+  const clash = all.find(x => x.id !== s.id && !x.deletedAt && x.workspaceId === s.workspaceId && (x.projectId ?? '') === (s.projectId ?? '')
+    && x.product.trim().toLowerCase() === name.trim().toLowerCase());
+  const rename = async () => {
+    const v = name.trim();
+    if (!v || clash) return;
+    if (v !== s.product) await putStandard({ ...s, product: v });
+    setNaming(false);
+  };
+  const remove = async () => {
+    if (!window.confirm(removingSays(s, tool).ask)) return;
+    await removeFromTool(s, tool);
+  };
+  if (naming) return (
+    <li className="lt-li is-naming">
+      <form className="lt-name" onSubmit={e => { e.preventDefault(); void rename(); }}>
+        <input className="text-input" autoFocus value={name} aria-label={`The product's name — ${s.product}`} onChange={e => setName(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Escape') { setName(s.product); setNaming(false); } }} />
+        <button type="submit" className="btn btn-primary btn-sm" disabled={!name.trim() || !!clash}>Save</button>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setName(s.product); setNaming(false); }}>Cancel</button>
+        {clash && <span className="sub lt-clash">{clash.product} is already on this line — pick another name, or open that one.</span>}
+      </form>
+    </li>
+  );
+  return (
+    <li className="lt-li">
+      <button type="button" className="lt-row" onClick={() => nav(openOf(s, tool))}>
+        <b className="lt-what">{s.product}</b>
+        <span className={'lt-says' + (said.short ? ' is-short' : '')}>{said.text}</span>
+        {/* WHERE IT BELONGS — on a job, or a tool on the line alone. */}
+        <span className="lt-where">{job ? <>On <b>{job}</b></> : s.workspaceId ? 'On no job' : ''}</span>
+      </button>
+      {(may.edit || may.remove) && (
+        <span className="lt-acts">
+          {may.edit && <button type="button" className="cw-link" onClick={() => setNaming(true)} aria-label={`Rename ${s.product}`}>Rename</button>}
+          {may.remove && <button type="button" className="cw-link sp-rm" onClick={() => void remove()} aria-label={`Delete ${tool === 'balance' ? 'the Line capacity' : 'the line standard'} for ${s.product}`}>Delete</button>}
+        </span>
+      )}
+    </li>
   );
 }
 

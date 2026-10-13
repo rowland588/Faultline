@@ -11,7 +11,7 @@
  * roles, with the headcount counted off the people. */
 import { useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import type { Project } from '../types';
-import { deleteStandard, framesForProject, getProject, getWorkspace, listSnagAssets, putBlob, putStandard, followStandard } from '../db';
+import { framesForProject, getProject, getWorkspace, listSnagAssets, putBlob, putStandard, followStandard } from '../db';
 import { nav, useRoute } from '../state/useRoute';
 import { uid, now } from '../lib/ids';
 import { pdfFileName } from '../lib/fileName';
@@ -20,11 +20,11 @@ import { useBlobUrl } from '../lib/useBlobUrl';
 import { usePrograms } from '../lib/usePrograms';
 import { planModel } from '../lib/planModel';
 import { bottlenecksOf, dashOf, FADED_ALPHA, FILLS, LABEL_KEY, LABEL_MODES, labelModeHere, LINES, mapLabel, weightOf, type LabelMode, type ShapeFill, type ShapeLine,
-  BOARDS, boardOf, colourOf, copyFor, hasMap, inMapTool, headcount, ICON_GROUPS, isShape, MARKS, markOf, nextRole, peopleOf, PERSON_COLOURS, reshaped, SHAPES, thingsOf, TONES, type BoardShape, type MarkKind, type PersonColour, type ShapeKind, type ShapeTone, type Standard, type StandardMark } from '../lib/standard';
+  BOARDS, boardOf, colourOf, copyFor, hasMap, removingSays, type ProductTool, inMapTool, headcount, ICON_GROUPS, isShape, MARKS, markOf, nextRole, peopleOf, PERSON_COLOURS, reshaped, SHAPES, thingsOf, TONES, type BoardShape, type MarkKind, type PersonColour, type ShapeKind, type ShapeTone, type Standard, type StandardMark } from '../lib/standard';
 import { useStandards } from '../ui/StandardsCard';
 import { Sheet } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
-import { deleteMap } from '../ui/StandardsCard';
+import { deleteMap, removeFromTool } from '../ui/StandardsCard';
 import { CapacityPanel } from './CapacityPanel';
 import { balanceSays } from './LineToolsScreen';
 import { WorkView, useBalanceFor, workOf } from '../ui/WorkBalance';
@@ -542,12 +542,14 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
     await save({ photoKey: key });
     setPicture(false);
   };
-  const remove = async () => {
-    if (!window.confirm(`Delete the map for “${s.product}”?`)) return;
-    const undo = await deleteStandard(s.id);
-    offerUndo(`Map for ${s.product} deleted`, undo);
-    nav(home.base);
+  /* ONE TOOL OFF THE PRODUCT (lib/standard afterRemoving): the map, or its
+     Line capacity — the other kept; the record goes only when nothing is left */
+  const removeTool = async (tool: ProductTool) => {
+    if (!window.confirm(removingSays(s, tool).ask)) return;
+    await removeFromTool(s, tool);
+    nav(tool === 'balance' && s.workspaceId ? `/balances?line=${encodeURIComponent(s.workspaceId)}` : home.base);
   };
+  const remove = () => removeTool('map');
   const copyTo = async (name: string, programId?: string) => {
     const c = copyFor({ ...s, marks }, name.trim(), uid, now(), programId);
     await putStandard(c);
@@ -574,14 +576,19 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
           {/* LINE CAPACITY'S OWN PAGE — back to Line capacity on this line, never
               to the line standard's list (Rowland, 13 October) */}
           <p className="sub"><button type="button" className="cw-link" onClick={() => nav(s.workspaceId ? `/balances?line=${encodeURIComponent(s.workspaceId)}` : home.base)}>Line capacity</button>{home.name ? ` · ${home.name}` : ''}</p>
-          <h1 className="ls-product is-read">{s.product}</h1>
+          {/* THE PRODUCT'S NAME, changed here as on its map — one record, one name */}
+          {ro ? <h1 className="ls-product is-read">{s.product}</h1> : (
+            <input className="ls-product" value={product} aria-label="Product"
+              onChange={e => setProduct(e.target.value)}
+              onBlur={() => { const v = product.trim(); if (v && v !== s.product) void save({ product: v }); else setProduct(s.product); }} />
+          )}
         </div>
-        {/* its line standard, one tap away — only when it has been mapped */}
-        {hasMap(s) && (
-          <div className="ls-head-actions">
-            <button type="button" className="btn btn-ghost" onClick={() => nav(here)}>Its line standard ›</button>
-          </div>
-        )}
+        <div className="ls-head-actions">
+          {/* its line standard, one tap away — only when it has been mapped */}
+          {hasMap(s) && <button type="button" className="btn btn-ghost" onClick={() => nav(here)}>Its line standard ›</button>}
+          {/* deleting is the owner's (lib/access), as the map's is */}
+          {can.remove && <button type="button" className="btn btn-ghost ls-del" onClick={() => void removeTool('balance')}>Delete this capacity</button>}
+        </div>
       </header>
       <BelongsTo s={s} home={home} can={can} onJob={projectId => { void save({ projectId }); void followStandard(s.id, projectId); }} />
       <div className="chip-row lb-views" role="tablist" aria-label="Which balance">
