@@ -28,13 +28,14 @@ import { BetterWords } from '../ui/BetterWords';
 import { EvidenceViewer, withPins } from '../ui/Evidence';
 import { Icon } from '../ui/Icon';
 import { offerUndo } from '../ui/Undo';
-import { addSnag, patchSnag, listWorkspaces, listAssets } from '../db';
+import { addSnag, patchSnag, listWorkspaces, listAssets, allPaceLines } from '../db';
 import { useProjects } from '../lib/useProjects';
 import { uid } from '../lib/ids';
 import type { MediaRef, Workspace } from '../types';
 import { SNAG_STATUS_META, dueFromInput, dueToInput, type Snag, type SnagStatus } from './types';
 import { pinSnag, recall, remember } from './quick';
 import { addLineToFactory, liveProductionLines } from '../lib/lines';
+import { factoryLinesOf, type JobLine } from '../lib/lineRecords';
 
 /* ---- one way in, from anywhere: the button, the FAB, a row on the page ---- */
 type Opener = (s?: Snag) => void;
@@ -67,6 +68,8 @@ export function QuickSnagHost({ wsId, projectId }: { wsId?: string; projectId?: 
 }
 
 const NEW_LINE = '__new__';
+/** The line not said yet — a job on several lines asks which (FLOW-AUDIT #5). */
+const ASK = '';
 
 function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
   snag?: Snag; wsId?: string; projectId?: string; onClose: () => void;
@@ -75,7 +78,12 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
   const [lines, setLines] = useState<Workspace[] | null>(null);
   const [media, setMedia] = useState<MediaRef[]>(snag?.media ?? []);
   const [words, setWords] = useState(snag?.problem ?? '');
-  const [line, setLine] = useState(snag?.workspaceId ?? wsId ?? recall('line'));
+  /* WHICH LINE — decided once the lines are read: its own; the line this page is on; THE JOB'S OWN LINE when a
+     job is open, never the last line used (FLOW-AUDIT #5: "a problem taken inside Line 2 commissioning is filed on
+     Line 7 ... the last line used, not the job's own line"), and asked when the job is on several; else the last used. */
+  const [line, setLine] = useState<string>(snag?.workspaceId ?? ASK);
+  const [linePicked, setLinePicked] = useState(!!snag);
+  const [jobLines, setJobLines] = useState<JobLine[]>([]);
   const [newLine, setNewLine] = useState('');
   const [machine, setMachine] = useState(snag?.targetAsset ?? '');
   /* ITS PRIORITY — Critical · High · Low (lib/snagsReport); on a job it is the problem's flag there. */
@@ -92,17 +100,35 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
   const ownLine = snag?.workspaceId;
   useEffect(() => {
     let live = true;
-    void listWorkspaces().then(async all => {
+    void Promise.all([listWorkspaces(), allPaceLines()]).then(async ([all, pl]) => {
       /* the lines worked on now — an archived project's go with it (13 October audit); the problem's own line always kept */
       const keep = new Set((await liveProductionLines(all)).map(w => w.id));
       const ws = all.filter(w => keep.has(w.id) || w.id === ownLine);
       if (!live) return;
-      setLines(ws);
+      setLines(ws); setJobLines(pl);
+      const onFloor = (id?: string) => (id && ws.some(w => w.id === id) ? id : undefined);
       /* A remembered line that has gone is no line: the first one, or a new one. */
-      setLine(l => (ws.some(w => w.id === l) ? l : ws[0]?.id ?? NEW_LINE));
+      const fallback = onFloor(recall('line')) ?? ws[0]?.id ?? NEW_LINE;
+      if (ownLine) { setLine(l => onFloor(l) ?? fallback); return; }
+      const theirs = factoryLinesOf(projectId ?? '', pl).filter(id => onFloor(id));
+      setLine(onFloor(wsId) ?? (theirs.length === 1 ? theirs[0] : theirs.length > 1 ? ASK : undefined) ?? fallback);
     });
     return () => { live = false; };
-  }, [ownLine]);
+  }, [ownLine, wsId, projectId]);
+  /* the lines of the job it is for, on the floor — offered first, and asked for when there are several */
+  const linesOfJob = (pid: string) => factoryLinesOf(pid, jobLines).filter(id => lines?.some(w => w.id === id));
+  const theirs = project ? linesOfJob(project) : [];
+  /* another job picked, the line not picked yet: that job's line, or asked */
+  const pickProject = (pid: string) => {
+    setProject(pid);
+    if (snag || linePicked) return;
+    const t = pid ? linesOfJob(pid) : [];
+    const last = recall('line');
+    if (t.length === 1) setLine(t[0]);
+    else if (t.length > 1) setLine(ASK);
+    else if (line === ASK) setLine(last && lines?.some(w => w.id === last) ? last : lines?.[0]?.id ?? NEW_LINE);
+  };
+  const pickLine = (id: string) => { setLine(id); setLinePicked(true); setMachine(''); };
   useEffect(() => { if (project && projects.length && !projects.some(p => p.id === project)) setProject(''); }, [projects, project]);
   /* THE MACHINES TO PICK FROM — the line's own, and the machines on the job it
      is for (or on every live job when it is for none). Rowland, 12 October:
@@ -119,7 +145,7 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
   }, [jobKeys]);
 
   const ws = lines?.find(w => w.id === line);
-  const ready = (words.trim() || media.length > 0) && (line !== NEW_LINE || newLine.trim()) && !busy;
+  const ready = (words.trim() || media.length > 0) && line !== ASK && (line !== NEW_LINE || newLine.trim()) && !busy;
 
   const save = async (another: boolean) => {
     if (!ready) return;
@@ -172,16 +198,26 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
           <BetterWords text={words} field="snag" onUse={setWords} />
         <div className="qs-row">
           <label className="cw-f"><span>LINE</span>
-            <select value={line} onChange={e => { setLine(e.target.value); setMachine(''); }}>
+            <select value={line} onChange={e => pickLine(e.target.value)} aria-label="Which line">
+              {line === ASK && <option value={ASK} disabled>Which line?</option>}
               {(lines ?? []).map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
               <option value={NEW_LINE}>A new line…</option>
             </select></label>
           <label className="cw-f"><span>PROJECT <i className="cw-f-opt">if it is for one</i></span>
-            <select value={project} onChange={e => setProject(e.target.value)}>
+            <select value={project} onChange={e => pickProject(e.target.value)} aria-label="Which project">
               <option value="">No project</option>
               {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select></label>
         </div>
+        {/* A JOB ON SEVERAL LINES ASKS WHICH — as it asks for the machine — its lines first */}
+        {line === ASK && theirs.length > 1 && (
+          <div className="qs-mach qs-ask" role="group" aria-label="Which of the job's lines">
+            <span className="qs-l">{projects.find(p => p.id === project)?.name ?? 'The project'} is on {theirs.length} lines — which is it on?</span>
+            <div className="chip-row">
+              {theirs.map(id => <button key={id} type="button" className="chip" onClick={() => pickLine(id)}>{lines?.find(w => w.id === id)?.name}</button>)}
+            </div>
+          </div>
+        )}
         {line === NEW_LINE && (
           <label className="cw-f cw-f-wide"><span>NAME THE LINE</span>
             <input value={newLine} maxLength={80} placeholder="e.g. Line 4" onChange={e => setNewLine(e.target.value)} /></label>
@@ -235,7 +271,7 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
           <label className="cw-f cw-f-wide"><span>LATEST</span>
             <input value={update} maxLength={200} placeholder="What is happening with it" onChange={e => setUpdate(e.target.value)} /></label>
         </>}
-        {saved > 0 && <p className="sub" role="status">Saved {saved} on {ws?.name ?? 'this line'} — snag the next.</p>}
+        {saved > 0 && <p className="sub" role="status">Saved {saved} on {ws?.name ?? 'this line'} — take the next.</p>}
         <div className="ax-foot qs-foot">
           {snag
             ? <button type="button" className="btn qs-del" onClick={() => void remove()}>Delete</button>

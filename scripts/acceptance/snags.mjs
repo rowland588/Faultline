@@ -34,6 +34,8 @@
  *  13  the audit's cases: a problem for an archived project named; closed or
  *      re-prioritised while open, it stays put; pinned on a walk, its line
  *      kept; made a fix, said so under Done
+ *  15  (FLOW-AUDIT #5) the Problem button inside a job: on the job's own line,
+ *      never the last one used; a job on two lines asks which
  *  12  an archived project's line said so; a ticked problem put on a new line
  *      from the bar, saved and said so; a box changed says Saved; Save keeps
  *      what was typed; the archived line gone from the control room
@@ -558,6 +560,47 @@ await go('#/snags');
   await go('#/'); await go('#/snags');
   await page.locator('.qsl-f .chip', { hasText: /^Done/ }).click(); await page.waitForTimeout(400);
   ok(/Made a fix on /.test(await row('Coder misprints the date').locator('.qsl-state').innerText().catch(() => '')), '13 made a fix on its project: under Done it says "Made a fix on …", never a bare Closed');
+}
+
+/* ---- 15 the Problem button inside a job: on the job's own line (FLOW-AUDIT #5: "a problem taken inside Line 2
+   commissioning is filed on Line 7, which is the last line used, not the job's own line") ---- */
+const ids = await page.evaluate(async () => {
+  const db = await import('/src/db.ts'); const P = await import('/src/db/projects.ts');
+  const ws = await db.listWorkspaces();
+  const l2c = ws.find(w => w.name === 'Line 2C'), l7 = ws.find(w => w.name === 'Line 7');
+  const guard = await db.createProject('Line 2C guarding', '#2b87d4', 'Rowland', 'r@example.com', 'commissioning');
+  await db.addPaceLine({ projectId: guard.id, workspaceId: l2c.id, key: '2C', name: 'Line 2C', sort: 0 });
+  const paced = (await P.allProjects()).find(p => p.name === 'Line 7 pace');
+  const l7line = (await db.allPaceLines()).find(l => l.projectId === paced.id && l.workspaceId === l7.id);
+  return { l2c: l2c.id, l7: l7.id, guard: guard.id, paced: paced.id, l7line: l7line.id };
+});
+{
+  /* the last line used is another line */
+  await page.evaluate(async ws => (await import('/src/snag/quick.ts')).remember('line', ws), ids.l7);
+  await go(`#/project/${ids.guard}`);
+  await page.locator('.qs-top').first().click(); await page.waitForTimeout(900);
+  let sheet = page.locator('.sheet, [role="dialog"]').last();
+  const on = await sheet.getByLabel('Which line').evaluate(el => el.options[el.selectedIndex]?.text);
+  const pj = await sheet.getByLabel('Which project').evaluate(el => el.options[el.selectedIndex]?.text);
+  ok(on === 'Line 2C' && pj === 'Line 2C guarding', `15 inside a job on one line: the sheet starts on its line — ${on}, for ${pj} (the last line used was Line 7)`);
+  await sheet.locator('textarea').first().fill('Guard hinge cracked at the infeed');
+  await sheet.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(1200);
+  const kept = await snag('Guard hinge cracked at the infeed');
+  ok(kept?.workspaceId === ids.l2c && kept?.projectId === ids.guard, '15 saved on Line 2C, for the job');
+  /* a job on two lines asks which — as it asks for the machine */
+  await go(`#/project/${ids.paced}`);
+  await page.locator('.qs-top').first().click(); await page.waitForTimeout(900);
+  sheet = page.locator('.sheet, [role="dialog"]').last();
+  const ask = sheet.getByRole('group', { name: "Which of the job's lines" });
+  const offered = (await ask.locator('.chip').allInnerTexts()).map(x => x.trim());
+  await sheet.locator('textarea').first().fill('Reject chute blocks on 1.25 kg');
+  const held = await sheet.getByRole('button', { name: 'Save', exact: true }).isDisabled();
+  ok(offered.length === 2 && offered.includes('Line 7') && held && /is on 2 lines — which is it on\?/.test(await ask.innerText()), `15 inside a job on two lines: it asks which (${offered.join(', ')}), and waits`);
+  await ask.getByRole('button', { name: 'Line 7', exact: true }).click(); await page.waitForTimeout(300);
+  await sheet.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(1200);
+  const on7 = await snag('Reject chute blocks on 1.25 kg');
+  ok(on7?.workspaceId === ids.l7 && on7?.projectId === ids.paced, '15 the line said: saved on Line 7, for the 6M job');
+  await page.evaluate(async x => { const db = await import('/src/db.ts'); for (const id of x) await db.deleteSnag(id); }, [kept?.id, on7?.id].filter(Boolean));
 }
 
 ok(errors.length === 0, `no console errors${errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''}`);
