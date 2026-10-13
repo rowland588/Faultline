@@ -9031,6 +9031,15 @@ button.gt-mtrack { appearance: none; display: block; align-self: stretch; height
 }
 .fj-phase.is-g { color: var(--st-g); background: color-mix(in srgb, var(--st-g) 8%, var(--surface)); border-color: color-mix(in srgb, var(--st-g) 25%, var(--surface)); }
 .fj-phase.is-r { color: #fff; background: var(--st-r); border-color: var(--st-r); }
+/* WHETHER THE CHECK THAT KEEPS THE GAIN IS OWED (lib/sixm holdDue) — only
+   when it is: amber coming due, solid red missed, its words always beside. */
+.pc-hold {
+  display: inline-block; padding: 1px 8px; font-size: var(--t-label); font-weight: 700; line-height: 1.6;
+  border-radius: 999px; white-space: nowrap;
+}
+.pc-hold.is-a { color: var(--st-a); background: color-mix(in srgb, var(--st-a) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--st-a) 40%, var(--surface)); }
+.pc-hold.is-r { color: #fff; background: var(--st-r); border: 1px solid var(--st-r); }
+.fr-strip .pc-hold { align-self: center; }
 
 .fj-head {
   display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px 20px; padding: 14px 16px;

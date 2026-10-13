@@ -111,10 +111,23 @@ describe('the 6M client report', () => {
     const bare = kase('p2', 'Labels peel', [], { status: 'closed', closedAt: NOW - DAY });
     const r = build([held, bare], []);
     const h = r.problems.find(p => p.id === 'p1');
-    expect(h?.hold).toMatchObject({ what: 'Time one changeover a week', every: 'every week', last: '2 Oct' });
+    expect(h?.hold).toMatchObject({ what: 'Time one changeover a week', every: 'every week', last: '2 Oct', due: 'next check 9 Oct' });
     expect(r.problems.find(p => p.id === 'p2')?.holdless).toBe('Closed with no check set to keep the gain.');
     const { flat } = await paper(r);
     expect(has(flat, 'The check: Time one changeover a week')).toBe(true);
+    expect(has(flat, 'next check 9 Oct')).toBe(true);
+  });
+
+  /* lib/sixm holdDue — the rule the screen reads too (flow audit #9). */
+  it('says a missed check in red, and the day it was due', async () => {
+    const missed = kase('p1', 'Changeover takes 48 minutes', [cause('c', 'method', 'Done three ways', { status: 'confirmed', root: true })], {
+      status: 'closed', closedAt: NOW - 30 * DAY, hold: { what: 'Time one changeover a week', everyDays: 7, since: '2026-09-01', lastChecked: '2026-09-10' },
+    });
+    const r = build([missed], []);
+    expect(r.problems[0].hold).toMatchObject({ due: 'check missed — was due 17 Sept', tone: 'late' });
+    expect(r.problems[0].hold?.word).toMatch(/check missed|Check missed|Slipped back/);
+    const { flat } = await paper(r);
+    expect(has(flat, 'check missed — was due 17 Sept')).toBe(true);
   });
 
   it('puts every action on the board by bone, late first, done last and quiet', async () => {

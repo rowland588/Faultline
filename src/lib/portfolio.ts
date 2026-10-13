@@ -43,7 +43,8 @@ import { openByBone } from './pillars';
 import { remindersOf } from './reminders';
 import { owedParts, partLate, partOnStage } from './noted';
 import type { TreeStanding } from './treeBind';
-import { PHASE_WORD, type Phase } from './problems';
+import { PHASE_WORD, type Phase, type ProblemView } from './problems';
+import { holdDue, type HoldCheck } from './sixm';
 import { couldWords, criticalProblems, criticalState, riskProblems } from './critical';
 import type { ToolStudy } from './study';
 import { linkedTo, owedOf } from './studyLinks';
@@ -100,8 +101,23 @@ export interface PacedInput {
 export interface LineLoss { lineId: string; line: string; text: string; abnormal: boolean; href: string }
 
 /** One 6M problem as the control room needs it: enough to say where it is and
- *  to open its fishbone. */
-export interface SixMProblem { id: string; title: string; lineId?: string; phase: Phase; says: string }
+ *  to open its fishbone — and, once closed, the check that keeps its gain,
+ *  so a check coming due or missed is owed like anything else (checksOwed). */
+export interface SixMProblem { id: string; title: string; lineId?: string; phase: Phase; says: string;
+  hold?: Pick<HoldCheck, 'what' | 'who' | 'everyDays' | 'since' | 'lastChecked'> }
+
+/** A problem as the engine reads it (lib/useProblems viewsOf), in the shape
+ *  the control room and the job's front page both take — one place, so the
+ *  two cannot read a problem two ways. The check rides only on a closed one:
+ *  a reopened problem is being worked again, not held. */
+export function sixmProblemOf(v: Pick<ProblemView, 'problem' | 'phase' | 'says'>): SixMProblem {
+  const h = v.problem.status === 'closed' ? v.problem.hold : undefined;
+  return {
+    id: v.problem.id, title: v.problem.title, phase: v.phase, says: v.says,
+    ...(v.problem.lineId ? { lineId: v.problem.lineId } : {}),
+    ...(h ? { hold: { what: h.what, ...(h.who ? { who: h.who } : {}), everyDays: h.everyDays, since: h.since, ...(h.lastChecked ? { lastChecked: h.lastChecked } : {}) } } : {}),
+  };
+}
 
 /** A piece of a sentence, and whether it is the abnormal part that carries a
  *  colour: `late` red (past its day, or slipped back), `waiting` amber, `none`
@@ -405,15 +421,38 @@ export function pacedItems(j: PacedInput, today: string): JobItem[] {
   }));
 }
 
-/** EVERYTHING A 6M OR LEVER TREE JOB OWES — its board's open actions and the
- *  materials and programs not in yet: the list its own front page's Needs you
- *  shows, so "late" counts the same things on the control room, the rail, the
- *  job's header and its report (docs/CONTROLROOM.md, one count for late). A
- *  6M job's late used to be its board's actions only. */
+/** THE CHECKS THAT KEEP THE GAIN, when one is owed (lib/sixm holdDue;
+ *  docs/OPEX.md move 6, "one check that it stays"): a closed problem's check
+ *  coming due within a few days, or missed — a row owed by the check's who,
+ *  on the job's Needs you and the control room's week, late once its day has
+ *  gone, opening the problem on its fishbone (lib/plan planHref). A check
+ *  further off is not owed yet; its day is said on the problem's card.
+ *  Holding was a tick nobody was ever chased for (flow audit #9). */
+export function checksOwed(j: Pick<PacedInput, 'project' | 'problems'>, today: string): JobItem[] {
+  const p = j.project;
+  return (j.problems ?? []).flatMap((x): JobItem[] => {
+    if (!x.hold) return [];
+    const d = holdDue(x.hold, today);
+    if (d.state === 'ok') return [];
+    return [{
+      jobId: p.id, job: shortName(p.name), color: p.color, kind: 'check', id: x.id,
+      what: x.hold.what.trim() || 'The check that keeps the gain', who: (x.hold.who ?? '').trim(),
+      on: d.next, late: d.state === 'missed', branch: `Keeps the gain on “${x.title}”`,
+    }];
+  });
+}
+
+/** EVERYTHING A 6M OR LEVER TREE JOB OWES — its board's open actions, the
+ *  materials and programs not in yet, and a 6M job's checks that keep the
+ *  gain when one is owed: the list its own front page's Needs you shows, so
+ *  "late" counts the same things on the control room, the rail, the job's
+ *  header and its report (docs/CONTROLROOM.md, one count for late). A 6M
+ *  job's late used to be its board's actions only. */
 export function pacedOwed(j: PacedInput, today: string): JobItem[] {
   return [
     ...pacedItems(j, today),
     ...jobItems({ project: j.project, tests: [], items: [], materials: j.materials ?? [], programs: j.programs ?? [], assets: [] }, today),
+    ...checksOwed(j, today),
   ];
 }
 
@@ -514,7 +553,7 @@ export const byUrgency = (a: JobItem, b: JobItem) =>
  *  week and on the job's front page. */
 export const KIND_WORD: Record<JobItem['kind'], string> = {
   install: 'Install step', setup: 'Set-up step', handover: 'Hand-over item', test: 'Test', fix: 'Fix',
-  material: 'Material', program: 'Program', machine: 'Machine', action: 'Action', note: 'Reminder',
+  material: 'Material', program: 'Program', machine: 'Machine', action: 'Action', note: 'Reminder', check: 'Check',
 };
 
 /** The word a row is filed under — a part of a stage says so, in the name

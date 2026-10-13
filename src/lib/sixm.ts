@@ -18,6 +18,7 @@
  * checkweigher rejecting good packs, or stops that were never logged, is
  * Measurement. */
 import type { MediaRef } from '../types';
+import { addDays, daysBetween, niceDay } from './weeks';
 
 export type SixM = 'people' | 'machine' | 'method' | 'material' | 'measurement' | 'environment';
 
@@ -136,6 +137,52 @@ export interface HoldCheck {
   lastChecked?: string;   // YYYY-MM-DD
   /** Whether the standard was updated with the new way of working. */
   standardUpdated?: boolean;
+}
+
+/* ------------------------- holding: is the check owed? ------------------------- */
+
+/** How many days ahead a check counts as coming due — the same few days the
+ *  board's actions are "due soon" by (lib/actions DUE_SOON_DAYS). */
+export const HOLD_SOON_DAYS = 3;
+
+/** WHETHER THE CHECK THAT KEEPS THE GAIN IS OWED (docs/OPEX.md, move 6:
+ *  "the new way written into the standard, and one check that it stays").
+ *  Worked out here, once, for the problem's card, the fishbone's strip, the
+ *  job's Needs you, the control room's week and the 6M report — it lived in
+ *  the report alone, so the one place a missed check showed was on paper
+ *  (flow audit #9).
+ *
+ *  The next check is due `everyDays` after the last one — after the day the
+ *  check was set when it has never been made: a check set today is not late.
+ *    missed  its day has gone (red, the day that has gone)
+ *    due     today, or within HOLD_SOON_DAYS (amber, due soon)
+ *    ok      further off — normal, said in plain ink */
+export interface HoldDue {
+  /** ISO day the next check is due. */
+  next: string;
+  /** Days until it: 0 today, negative once missed. */
+  days: number;
+  state: 'ok' | 'due' | 'missed';
+  /** "check missed — was due 12 Oct" · "check due today" · "check due 15 Oct"
+   *  · "next check 19 Oct" — in the app's way of saying a day (lib/weeks). */
+  words: string;
+}
+
+export function holdDue(h: Pick<HoldCheck, 'everyDays' | 'since' | 'lastChecked'>, today: string): HoldDue {
+  const every = Math.max(1, Math.round(h.everyDays || 0));
+  const next = addDays(h.lastChecked || h.since || today, every);
+  const days = daysBetween(today, next);
+  const state: HoldDue['state'] = days < 0 ? 'missed' : days <= HOLD_SOON_DAYS ? 'due' : 'ok';
+  const words = state === 'missed' ? `check missed — was due ${niceDay(next)}`
+    : state === 'due' ? (days === 0 ? 'check due today' : days === 1 ? 'check due tomorrow' : `check due ${niceDay(next)}`)
+    : `next check ${niceDay(next)}`;
+  return { next, days, state, words };
+}
+
+/** "every week" · "every fortnight" · "every 10 days" — how often it is looked at. */
+export function everyWords(everyDays: number): string {
+  const d = Math.max(1, Math.round(everyDays || 0));
+  return d === 1 ? 'every day' : d === 7 ? 'every week' : d === 14 ? 'every fortnight' : d === 30 ? 'every month' : `every ${d} days`;
 }
 
 /* --------------------- where a timed stop's bone comes from --------------------- */

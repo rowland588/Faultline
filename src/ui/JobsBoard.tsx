@@ -48,7 +48,7 @@ import { fishboneUrl } from '../screens/FishboneScreen';
 import { currentLosses, lossCardLine, studyHref } from '../lib/studyLinks';
 import { offerUndo } from './Undo';
 import {
-  clusterMarks, kindWord, lateWhen, NOBODY, owedBy, portfolio, SITE, type JobInput, type JobItem, type JobView, type PacedInput, type Portfolio,
+  clusterMarks, kindWord, lateWhen, NOBODY, owedBy, portfolio, SITE, sixmProblemOf, type JobInput, type JobItem, type JobView, type PacedInput, type Portfolio,
   type Said, type SixMProblem,
 } from '../lib/portfolio';
 import { linesOnTarget } from '../lib/onTarget';
@@ -88,6 +88,7 @@ function whereTo(x: JobItem): string {
      board with the one you tapped somewhere in it. */
   if (x.kind === 'action') return `/project/${x.jobId}/board${x.id ? `?a=${encodeURIComponent(x.id)}` : ''}`;
   if (x.kind === 'note') return `/project/${x.jobId}/notes`;
+  if (x.kind === 'check') return planHref(x.jobId, x);
   if (x.id) return recordHref(x.jobId, x.id, x.kind);
   if (x.kind === 'material') return `/project/${x.jobId}/materials`;
   if (x.kind === 'program') return `/project/${x.jobId}/programs`;
@@ -98,7 +99,7 @@ function whereTo(x: JobItem): string {
  *  room (ui/RecordDrawer) — × comes back here; anything else goes where it
  *  is kept. */
 function openItem(x: JobItem): void {
-  if (x.id && x.kind !== 'action' && x.kind !== 'note') openRecord(x.jobId, x.id);
+  if (x.id && x.kind !== 'action' && x.kind !== 'note' && x.kind !== 'check') openRecord(x.jobId, x.id);
   else nav(whereTo(x));
 }
 const RECORD_MARK = new Set(['test', 'fix', 'install', 'setup', 'handover']);
@@ -188,10 +189,7 @@ function useJobs(projects: Project[]): Jobs | null {
           const day = todayISO();
           const loaded = await loadProblems(project.id).catch(() => null);
           problems = loaded
-            ? viewsOf(loaded, project.id, undefined, Date.parse(`${day}T23:59:59`)).map(v => ({
-              id: v.problem.id, title: v.problem.title, phase: v.phase, says: v.says,
-              ...(v.problem.lineId ? { lineId: v.problem.lineId } : {}),
-            }))
+            ? viewsOf(loaded, project.id, undefined, Date.parse(`${day}T23:59:59`)).map(sixmProblemOf)
             : undefined;
           gaps = (project.measures ?? []).length
             ? lines.map((l, i) => ({ lineId: l.id, line: l.name, ...gapOf(l.name, series[i]) }))

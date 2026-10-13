@@ -1038,7 +1038,7 @@ function ProblemParts({ p }: { p: SixMReport['problems'][number] }) {
           <span key={i} className="cr-cm">{x.what} — Expected: {x.expect ?? 'nothing written'} · <b>What happened: {x.happened}</b></span>
         ))}
         {p.hold && (
-          <span className="cr-cm">Keeping the gain — The check: {p.hold.what} · {[p.hold.who, p.hold.every, `since ${p.hold.since}`, p.hold.last ? `last checked ${p.hold.last}` : 'not checked yet'].filter(Boolean).join(' · ')} · <span className={'cr-said-st ' + stateClass(p.hold.tone)}>{p.hold.word}</span></span>
+          <span className="cr-cm">Keeping the gain — The check: {p.hold.what} · {[p.hold.who, p.hold.every, `since ${p.hold.since}`, p.hold.last ? `last checked ${p.hold.last}` : 'not checked yet', p.hold.due].filter(Boolean).join(' · ')} · <span className={'cr-said-st ' + stateClass(p.hold.tone)}>{p.hold.word}</span></span>
         )}
       </div>
     </li>

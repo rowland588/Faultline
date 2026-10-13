@@ -37,7 +37,7 @@ import type { Case } from '../types';
 import type { ProblemFacts, StartingWhy } from '../lib/fishbone';
 import { therefore } from '../lib/fishbone';
 import {
-  blamesAPerson, boneOfStop, boneOfSub, KNOWN_WORD, SIXM, sixmLabel,
+  blamesAPerson, boneOfStop, boneOfSub, everyWords, holdDue, KNOWN_WORD, SIXM, sixmLabel,
   type Cause, type Grade, type SixM,
 } from '../lib/sixm';
 import { whysFill, type VoiceResult } from '../lib/voice';
@@ -58,6 +58,18 @@ import { niceDay, todayISO } from '../lib/weeks';
  *  green, slipped back red (CLAUDE.md, visual management). */
 export const phaseTone = (p: ProblemView['phase']): 'w' | 'g' | 'r' =>
   p === 'slipped' ? 'r' : p === 'holding' || p === 'closed' ? 'g' : 'w';
+
+/** WHETHER THE CHECK THAT KEEPS THE GAIN IS OWED (lib/sixm holdDue), beside
+ *  a closed problem's phase wherever the problem is named — the fishbone's
+ *  strip and its chips. Said only when it is abnormal: amber coming due, red
+ *  missed (the day has gone); a check further off is normal, and its day is
+ *  said on the card's "Kept by" line. */
+export function HoldTag({ problem, today = todayISO() }: { problem: Case; today?: string }) {
+  if (problem.status !== 'closed' || !problem.hold) return null;
+  const d = holdDue(problem.hold, today);
+  if (d.state === 'ok') return null;
+  return <span className={'pc-hold is-' + (d.state === 'missed' ? 'r' : 'a')}>{d.words}</span>;
+}
 
 /** Where the head of the fish came from, in words. */
 export function sourceWords(s: NonNullable<Case['source']>): string {
@@ -570,8 +582,6 @@ const short = (s: string, n = 40) => (s.length > n ? `${s.slice(0, n - 1).trimEn
 
 /* ------------------------------- did it work ------------------------------- */
 
-const EVERY_WORD = (d: number) => (d === 1 ? 'day' : d === 7 ? 'week' : d === 14 ? 'fortnight' : d === 30 ? 'month' : `${d} days`);
-
 export function WorkedPart({ view: v, can, steps, onClose, onReopen, onClosedOn, onChecked }: ProblemCardProps) {
   const m = v.measure;
   const w = workedWords(v);
@@ -599,13 +609,20 @@ export function WorkedPart({ view: v, can, steps, onClose, onReopen, onClosedOn,
           })}
         </ul>
       )}
-      {!open && hold && (
-        <p className="fj-holdline">
-          Kept by: <b>{hold.what}</b>{hold.who ? ` · ${hold.who}` : ''} · every {EVERY_WORD(hold.everyDays)}
-          {' '}· {hold.standardUpdated ? 'standard updated' : 'standard not updated yet'}
-          {hold.lastChecked ? ` · last checked ${hold.lastChecked}` : ' · not checked yet'}
-        </p>
-      )}
+      {/* KEPT BY — the check, whose, how often, and when it is next owed
+          (lib/sixm holdDue): the day in the app's words, and the one part
+          that is abnormal — coming due amber, missed red — in its colour. */}
+      {!open && hold && (() => {
+        const due = holdDue(hold, todayISO());
+        return (
+          <p className="fj-holdline">
+            Kept by: <b>{hold.what}</b>{hold.who ? ` · ${hold.who}` : ''} · {everyWords(hold.everyDays)}
+            {' '}· {hold.standardUpdated ? 'standard updated' : 'standard not updated yet'}
+            {hold.lastChecked ? ` · last checked ${niceDay(hold.lastChecked)}` : ' · not checked yet'}
+            {' · '}{due.state === 'ok' ? due.words : <span className={'pc-hold is-' + (due.state === 'missed' ? 'r' : 'a')}>{due.words}</span>}
+          </p>
+        );
+      })()}
       {!open && !hold && <p className="pc-quiet">Closed with no check to keep it.</p>}
       {/* THE DAY IT CLOSED — printed on the 6M report, so it is shown, and
           not locked (Rowland, 6 October: "I make mistakes"). */}

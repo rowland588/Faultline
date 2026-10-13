@@ -27,7 +27,7 @@ import { AccessNote } from '../ui/AccessNote';
 import { ActionSheet, type Editing } from '../ui/ActionSheet';
 import { Fishbone, Measure } from '../ui/Fishbone';
 import { CauseSheet } from '../ui/CauseSheet';
-import { ProblemCard, phaseTone, sourceWords, type ProblemCardProps } from '../ui/ProblemCard';
+import { HoldTag, ProblemCard, phaseTone, sourceWords, type ProblemCardProps } from '../ui/ProblemCard';
 import { CausePanel, ParetoDrawer, ProblemPanel } from '../ui/FishbonePanels';
 import { ParetoPane } from '../ui/ParetoPane';
 import { SawSheet } from '../ui/SawSheet';
@@ -596,6 +596,7 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
           aria-pressed={p.problem.id === view?.problem.id} onClick={() => pick(p.problem.id)}>
           <span className="fj-prob-t">{p.problem.title}</span>
           <span className={'fj-phase is-' + phaseTone(p.phase)}>{PHASE_WORD[p.phase]}</span>
+          <HoldTag problem={p.problem} />
         </button>
       ))}
       {can.edit && (
@@ -804,6 +805,7 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
             aria-expanded={panel?.kind === 'problem'} onClick={() => goPanel(panel?.kind === 'problem' ? null : { kind: 'problem' })}
             aria-label={`The problem: ${view.problem.title} — ${PHASE_WORD[view.phase]}. Open it: Is and Is not, did it work, close it.`}>
             <span className={'fj-phase is-' + phaseTone(view.phase)}>{PHASE_WORD[view.phase]}</span>
+            <HoldTag problem={view.problem} />
             <b className="fr-strip-t">{view.problem.title}</b>
             {view.measure && <span className="fr-strip-n"><Measure m={view.measure} /></span>}
             {factLine && <span className="fr-strip-f">{factLine}</span>}

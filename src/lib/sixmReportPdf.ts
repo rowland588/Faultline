@@ -29,7 +29,7 @@ import type { Case } from '../types';
 import type { PaceTodoRow } from '../db/rows';
 import type { Phase, ProblemView } from './problems';
 import { PHASE_WORD } from './problems';
-import { KNOWN_WORD, SIXM, sixmLabel, toSixM, type Cause, type CauseStatus, type Grade, type SixM } from './sixm';
+import { KNOWN_WORD, SIXM, everyWords, holdDue, sixmLabel, toSixM, type Cause, type CauseStatus, type Grade, type SixM } from './sixm';
 import type { FishboneData } from './fishbone';
 import { factsOf, therefore } from './fishbone';
 import { gapOf, lineSeries, say } from './measures';
@@ -176,7 +176,9 @@ export interface ProblemRep {
     /** Each fix done: what it was expected to do beside what happened. */
     fixes: { what: string; expect?: string; happened: string }[];
   };
-  hold?: { what: string; who?: string; every: string; since: string; last?: string; word: string; tone: Tone };
+  /** The check that keeps the gain: `due` is lib/sixm holdDue's words —
+   *  "next check 19 Oct", "check due 15 Oct", "check missed — was due 12 Oct". */
+  hold?: { what: string; who?: string; every: string; since: string; last?: string; due: string; word: string; tone: Tone };
   /** A closed problem with no check set — said, not hidden. */
   holdless?: string;
 }
@@ -413,15 +415,22 @@ export function sixmReport(o: SixMInput): SixMReport {
     const open = counter.filter(c => c.tone !== 'done').length, late = counter.filter(c => c.tone === 'late').length;
 
     /* ----------------------------- Did it work ----------------------------- */
+    /* WHETHER THE CHECK IS OWED is lib/sixm holdDue's — the same rule the
+       problem's card, the fishbone's strip, Needs you and the control room's
+       week read, so the paper and the screen cannot disagree. A missed check
+       is red (its day has gone), one coming due amber. */
     const hold = p.hold ? (() => {
       const h = p.hold;
-      const due = h.lastChecked ? new Date(Date.parse(`${h.lastChecked}T12:00:00`) + h.everyDays * DAY) : undefined;
-      const overdue = !h.lastChecked || (due ? todayISO(due) < today : false);
-      const word = v.phase === 'slipped' ? 'Slipped back' : v.phase === 'holding' ? (overdue ? 'Holding · check is late' : 'Holding') : 'Check set';
-      const tone: Tone = v.phase === 'slipped' ? 'failed' : overdue ? 'waiting' : v.phase === 'holding' ? 'done' : 'going';
+      const due = holdDue(h, today);
+      const word = v.phase === 'slipped' ? 'Slipped back'
+        : due.state === 'missed' ? (v.phase === 'holding' ? 'Holding · check missed' : 'Check missed')
+        : due.state === 'due' ? (v.phase === 'holding' ? 'Holding · check due' : 'Check due')
+        : v.phase === 'holding' ? 'Holding' : 'Check set';
+      const tone: Tone = v.phase === 'slipped' ? 'failed' : due.state === 'missed' ? 'late'
+        : due.state === 'due' ? 'waiting' : v.phase === 'holding' ? 'done' : 'going';
       return {
-        what: h.what, who: h.who?.trim() || undefined, every: h.everyDays === 1 ? 'every day' : h.everyDays === 7 ? 'every week' : `every ${h.everyDays} days`,
-        since: day(h.since), last: h.lastChecked ? day(h.lastChecked) : undefined, word, tone,
+        what: h.what, who: h.who?.trim() || undefined, every: everyWords(h.everyDays),
+        since: day(h.since), last: h.lastChecked ? day(h.lastChecked) : undefined, due: due.words, word, tone,
       };
     })() : undefined;
     const holdless = !hold && p.status === 'closed' ? 'Closed with no check set to keep the gain.' : undefined;
@@ -1206,7 +1215,7 @@ function workedRows(list: ProblemRep['worked']['fixes']): Block {
 function holdBlock(h: NonNullable<ProblemRep['hold']>): Block {
   const stateW = 120;
   const words = (f: Frame) => wrap(f.doc, `The check: ${h.what}`, f.w - stateW - 10, SIZE.body - 0.5, 'bold');
-  const meta = (f: Frame) => wrap(f.doc, [h.who, h.every, `since ${h.since}`, h.last ? `last checked ${h.last}` : 'not checked yet'].filter(Boolean).join(' · '), f.w - stateW - 10, SIZE.small);
+  const meta = (f: Frame) => wrap(f.doc, [h.who, h.every, `since ${h.since}`, h.last ? `last checked ${h.last}` : 'not checked yet', h.due].filter(Boolean).join(' · '), f.w - stateW - 10, SIZE.small);
   return box(f => 8 + words(f).length * 11.5 + meta(f).length * 10.5 + 6 + gap(f.density, 'm'), (f, y) => {
     rule(f, y);
     const wl = words(f);

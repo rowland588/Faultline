@@ -47,7 +47,7 @@ import { useStudyContext } from '../ui/ShiftLosses';
 import { gapOf, lineSeries, say, vsTarget, type LineSeries } from '../lib/measures';
 import { ProjectNumbers } from './NumbersPanel';
 import { DUE_SOON_DAYS, useActions } from '../lib/actions';
-import { KIND_WORD, criticalItems, riskItems, jobItems, kindWord, lateWhen, needsYou, pacedOwed, pacedSays, type JobItem, type Urgency } from '../lib/portfolio';
+import { KIND_WORD, criticalItems, riskItems, jobItems, kindWord, lateWhen, needsYou, pacedOwed, pacedSays, sixmProblemOf, type JobItem, type Urgency } from '../lib/portfolio';
 import { openRecord } from '../ui/RecordDrawer';
 import { CriticalTag } from '../ui/CriticalFields';
 import { criticalCount } from '../lib/critical';
@@ -789,7 +789,9 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
      and the materials and programs not in yet. Its counts are the job's:
      "late" here, on its header, on the control room and in the rail is the
      same number, and is what its Needs you lists (docs/CONTROLROOM.md). */
-  const owedNow = project ? pacedOwed({ project, steps: ax.steps, lines: ppm.lines, atTarget, judged, materials: mats.materials, programs: progs.programs }, todayISO()) : [];
+  /* …and a 6M job's checks that keep the gain, once one is owed (lib/sixm holdDue). */
+  const sixmProblems = probs.problems.map(sixmProblemOf);
+  const owedNow = project ? pacedOwed({ project, steps: ax.steps, lines: ppm.lines, atTarget, judged, materials: mats.materials, programs: progs.programs, problems: sixmProblems }, todayISO()) : [];
   const owedLate = owedNow.filter(x => x.late).length;
   const verdict: Standing = {
     // The same sentence the Home control room says of this job — about its board.
@@ -906,7 +908,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
         /* Everything owed on the job, one row each: the board's open actions
            (the control room reads the same, lib/portfolio pacedItems), and
            the materials and programs not in yet (jobItems). */
-        const owed = pacedOwed({ project, steps: ax.steps, lines: ppm.lines, atTarget, judged, materials: mats.materials, programs: progs.programs }, today);
+        const owed = pacedOwed({ project, steps: ax.steps, lines: ppm.lines, atTarget, judged, materials: mats.materials, programs: progs.programs, problems: sixmProblems }, today);
         return (
           <>
             <Verdict st={verdict} eyebrow={ppm.lines.length === 1 ? 'Where the line is' : 'Where the lines are'}
