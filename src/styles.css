@@ -309,6 +309,13 @@ button { font-family: inherit; }
 }
 .sheet-grip { width: 40px; height: 4px; border-radius: var(--radius-sm); background: var(--line); margin: 6px auto 10px; }
 .sheet-title { font-weight: 700; font-size: var(--t-body); padding: 4px 4px 8px; }
+/* the sheet's head — grip, title and × — stays at the top as the sheet scrolls */
+.sheet-head { position: sticky; top: -8px; z-index: 3; margin: -8px -14px 0; padding: 8px 14px 0; background: var(--surface); }
+.sheet-head-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.sheet-head-row .sheet-title { flex: 1; min-width: 0; }
+.sheet-x { flex: none; display: grid; place-items: center; width: 40px; height: 40px; margin: -6px -6px 0 0; border: 0; border-radius: 50%; background: transparent; color: var(--muted); cursor: pointer; }
+.sheet-x:hover { background: var(--surface-2); color: var(--ink); }
+.sheet-x:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .sheet-row {
   display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%;
   min-height: 52px; padding: 0 6px; background: transparent; border: none; border-top: 1px solid var(--line);
