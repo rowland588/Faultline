@@ -22,7 +22,7 @@ import type { ID, Workspace } from '../types';
 import type { Asset } from './testing';
 import type { Program } from './programs';
 import { inOrder, isProved, standingOf, todayISO } from './programs';
-import { programsReading, type ProgramsReading } from './programsReport';
+import { programsReading, type ProgramLine, type ProgramsReading } from './programsReport';
 
 /** Just enough of a job's line (db PaceLineRow) to know its factory line. */
 export interface JobLine { id: string; projectId?: string; workspaceId?: string; deletedAt?: number }
@@ -128,7 +128,11 @@ export function productsOnLine(programs: readonly Pick<Program, 'runs'>[], stand
  *  line of its own): machine by machine in flow order, the line itself last.
  *  Every line at once names each machine with its line ("Line 7 · Bagger").
  *  A program on a machine that has left the line's list reads as the line's. */
-export function lineProgramsReading(lines: readonly { name: string; id: string; machines: readonly LineMachine[]; programs: readonly Program[] }[], today?: string): ProgramsReading | undefined {
+export function lineProgramsReading(lines: readonly { name: string; id: string; machines: readonly LineMachine[]; programs: readonly Program[] }[], today?: string,
+  /** What each job's floor said of its programs (lib/useJobFloor), and the
+   *  jobs' names: said under the program on paper, as on the screen (flow
+   *  audit #3: one program, one answer). */
+  o: { floor?: ReadonlyMap<string, { word: string; note?: string }>; jobName?: ReadonlyMap<string, string> } = {}): ProgramsReading | undefined {
   const many = lines.length > 1;
   const assets: Asset[] = [];
   const programs: Program[] = [];
@@ -143,7 +147,16 @@ export function lineProgramsReading(lines: readonly { name: string; id: string; 
       programs.push({ ...p, ...(on ? { assetId: on } : { assetId: undefined }) });
     }
   }
-  return programsReading({ tests: [], items: [], assets, programs, ...(today ? { today } : {}) });
+  const r = programsReading({ tests: [], items: [], assets, programs, ...(today ? { today } : {}) });
+  if (!r || !o.floor?.size) return r;
+  const byId = new Map(programs.map(p => [p.id, p]));
+  const withFloor = (l: ProgramLine): ProgramLine => {
+    const f = l.programId ? o.floor?.get(l.programId) : undefined;
+    const job = l.programId ? o.jobName?.get(byId.get(l.programId)?.projectId ?? '') : undefined;
+    return f ? { ...l, proving: `On ${job ?? 'its job'}'s Set up: ${f.word}${f.note ? ` — ${f.note}` : ''}` } : l;
+  };
+  const machines = r.machines.map(m => ({ ...m, lines: m.lines.map(withFloor) }));
+  return { ...r, machines, lines: machines.flatMap(m => m.lines) };
 }
 
 export interface LineKit {

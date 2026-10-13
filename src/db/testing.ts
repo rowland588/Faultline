@@ -5,7 +5,7 @@ import { now } from '../lib/ids';
 import { getDB, signalWrite } from './core';
 import { recordTombstones, restoreRows, type Restore } from './sync';
 import { getBlob, putBlob } from './blobs';
-import { followTest } from './programs';
+import { followPart, followTest } from './programs';
 
 /* ---------- UNDO ----------
  * Every delete below hands back how to take it back: the rows as they were
@@ -73,9 +73,12 @@ export async function listTests(projectId: string): Promise<Test[]> {
 }
 
 export async function putTest(t: Test): Promise<void> {
-  await (await getDB()).put('tests', { ...t, updatedAt: now() });
+  const db = await getDB();
+  /* As it was, when it proves a program — so an edit is told from a new pass. */
+  const before = t.programId ? await db.get('tests', t.id) : undefined;
+  await db.put('tests', { ...t, updatedAt: now() });
   signalWrite();
-  await followTest(t);
+  await followTest(t, before);
 }
 
 /* A PATCH READS THE ROW IT CHANGES. Every write on the test screen used to be
@@ -102,7 +105,7 @@ export async function patchTest(id: ID, patch: Partial<Test> | ((cur: Test) => P
   await tx.store.put({ ...cur, ...p, updatedAt: now() });
   await tx.done;
   signalWrite();
-  await followTest({ ...cur, ...p });
+  await followTest({ ...cur, ...p }, cur);
 }
 
 /** A test and everything under it. Both tombstoned, or the delete never leaves
@@ -226,8 +229,13 @@ export async function listTestItems(projectId: string): Promise<TestItem[]> {
 }
 
 export async function putTestItem(i: TestItem): Promise<void> {
-  await (await getDB()).put('test_items', { ...i, updatedAt: now() });
+  const db = await getDB();
+  /* A part of a stage, as it was — so the program it is follows what the
+     floor said of it (db/programs followPart, flow audit #3). */
+  const before = i.kind === 'next' ? await db.get('test_items', i.id) : undefined;
+  await db.put('test_items', { ...i, updatedAt: now() });
   signalWrite();
+  await followPart(i, before);
 }
 
 export async function patchTestItem(id: ID, patch: Partial<TestItem> | ((cur: TestItem) => Partial<TestItem>)): Promise<void> {
@@ -237,6 +245,7 @@ export async function patchTestItem(id: ID, patch: Partial<TestItem> | ((cur: Te
   const p = typeof patch === 'function' ? patch(cur) : patch;
   await db.put('test_items', { ...cur, ...p, updatedAt: now() });
   signalWrite();
+  await followPart({ ...cur, ...p }, cur);
 }
 
 export async function deleteTestItem(id: ID): Promise<Restore> {

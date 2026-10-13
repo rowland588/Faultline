@@ -29,6 +29,10 @@
  *   9  the programs report of the line: its sentence and every program
  *   10 Line capacity on the line offers its machines
  *   11 on a phone: nothing off the side
+ *   12 one program, one answer (flow audit #3): a program failed on the
+ *      floor after its test passed is back on the machine, on the line and
+ *      the job; each says the other record beside its own; a failed program
+ *      is never counted done; the job's paper says the same
  *   and no console error.
  *
  *   node scripts/acceptance/machines-programs.mjs      (SMOKE_BASE, as smoke) */
@@ -256,6 +260,66 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   await go(`#/lines/${WS}`);
   const wide2 = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   ok(wide <= 1 && wide2 <= 1, `11 phone: nothing off the side (${wide}px, ${wide2}px)`);
+}
+
+/* ---- 12 one program, one answer (flow audit #3) ---- */
+await page.setViewportSize({ width: 1360, height: 900 });
+{
+  /* What the job's own reading says of its programs (lib/programsReport). */
+  const job = () => page.evaluate(async pid => {
+    const db = await import('/src/db.ts');
+    const { programsReading } = await import('/src/lib/programsReport.ts');
+    const [tests, items, assets, programs, project] = await Promise.all([db.listTests(pid), db.listTestItems(pid), db.listAssets(pid), db.listPrograms(pid), db.getProject(pid)]);
+    const r = programsReading({ tests, items, assets, programs, holder: project });
+    return { says: r.says, doneAll: r.doneAll, failed: r.failed, lines: r.lines.map(l => ({ what: l.what, word: l.word, bucket: l.bucket, record: l.record, assetId: l.assetId ?? '' })),
+      programs: programs.map(p => ({ id: p.id, what: p.what, state: p.state, provedOn: p.provedOn, testId: p.testId })) };
+  }, sd.projectId);
+  let j = await job();
+  const p04 = j.programs.find(p => p.what === 'PR-04 Finest Red 2 kg');
+  const l04 = j.lines.find(l => l.what === 'PR-04 Finest Red 2 kg');
+  ok(!p04.provedOn && p04.state === 'onMachine' && /^Failed/.test(l04.word),
+    `12 PR-04, failed on the floor the day after its test passed, is back on the machine — not "Proved" (${l04.word})`);
+  await go(`#/programs?line=${WS}`);
+  let row = main.locator(`[data-program="${p04.id}"]`);
+  ok(flat(await row.locator('.pg-state-sel').innerText()) === 'On the machine' && flat(await row.locator('.lp-floor').innerText()).includes(`On its Set up: ${l04.word}`),
+    `12b the line's Programs says the record's state and, beside it, what the job's floor said (${flat(await row.locator('.lp-floor').innerText()).slice(0, 60)})`);
+  await go(`#/project/${sd.projectId}/programs`);
+  const pill = async what => flat(await main.locator('.spp-row', { hasText: what }).first().locator('.spp-rec').innerText().catch(() => ''));
+  const rec04 = j.lines.find(l => l.what === 'PR-04 Finest Red 2 kg').record, rec12 = j.lines.find(l => l.what === 'PR-12 Express 1.25 kg').record;
+  ok(await pill('PR-04 Finest Red 2 kg') === `On Line 7 — smoke test: ${rec04.word}` && await pill('PR-12 Express 1.25 kg') === `On Line 7 — smoke test: ${rec12.word}`,
+    `12c the job's row says the line's record beside the floor's ("${await pill('PR-12 Express 1.25 kg')}")`);
+  const wrap = j.lines.filter(l => l.assetId === j.lines.find(x => x.what === 'PR-04 Finest Red 2 kg').assetId);
+  const doneHere = wrap.filter(l => l.bucket === 'done' || l.bucket === 'baseline').length;
+  const head = flat(await main.locator('.pp-mh', { hasText: 'Ilapak flow wrapper' }).innerText());
+  ok(j.doneAll === j.lines.filter(l => l.bucket === 'done' || l.bucket === 'baseline').length && j.says.includes(`${j.failed} failed`) && !new RegExp(`${j.doneAll + j.failed} done`).test(j.says)
+    && head.includes(`${wrap.length} programs · ${doneHere} done`), `12d a failed program is never counted done — "${j.says}"; the machine "${head}"`);
+  /* PR-12 proved in Commission yesterday (its test's own screen writes the same), then failed on the floor here, with the real controls */
+  const p12 = j.programs.find(p => p.what === 'PR-12 Express 1.25 kg');
+  await page.evaluate(async ([tid, day]) => { const db = await import('/src/db.ts'); const t = await (await db.getDB()).get('tests', tid); await db.putTest({ ...t, outcome: 'passed', ranOn: day }); }, [p12.testId, iso(-1)]);
+  await page.waitForTimeout(800);
+  j = await job();
+  ok(j.programs.find(p => p.id === p12.id).provedOn === iso(-1), '12e PR-12 proved by its test in Commission');
+  const r12 = main.locator('.spp-row', { hasText: 'PR-12 Express 1.25 kg' }).first();
+  await r12.locator('.spp-main').click(); await page.waitForTimeout(400);
+  await main.getByRole('button', { name: 'Failed', exact: true }).click();
+  await main.locator('.spp-note').fill('Film creasing again on the 1.25 kg — seal jaws cold');
+  await main.locator('.spp-form button[type=submit]').click(); await page.waitForTimeout(1500);
+  j = await job();
+  const after12 = j.programs.find(p => p.id === p12.id);
+  ok(!after12.provedOn && after12.state === 'onMachine' && /^on the machine · failed .* to prove again$/.test(j.lines.find(l => l.what === 'PR-12 Express 1.25 kg').record?.word ?? ''),
+    `12f said Failed on the floor: the program drops back to on the machine (${j.lines.find(l => l.what === 'PR-12 Express 1.25 kg').record?.word})`);
+  await go(`#/programs?line=${WS}`);
+  row = main.locator(`[data-program="${p12.id}"]`);
+  ok(!/is-pg-proved/.test(await row.getAttribute('class')) && flat(await row.locator('.pg-state-sel').innerText()) === 'On the machine' && flat(await row.locator('.lp-floor').innerText()).includes('Failed'),
+    '12g and the line\'s Programs says the same — on the machine, its floor\'s failure beside it');
+  /* on paper: the job's programs report says the record beside the floor's, and counts no failure as done */
+  await go(`#/project/${sd.projectId}/programs`);
+  const dir = mkdtempSync(join(tmpdir(), 'jprogs-'));
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), main.getByRole('button', { name: 'Programs report — PDF' }).click()]);
+  const file = join(dir, 'programs.pdf'); await dl.saveAs(file);
+  const txt = flat(execFileSync('pdftotext', ['-layout', file, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
+  const lost = [j.says, `On the line: ${j.lines.find(l => l.what === 'PR-12 Express 1.25 kg').record.word}`].filter(w => !txt.includes(w.replace(/\s+/g, '')));
+  ok(!lost.length, `12h the job's programs report: its count and the line's record beside the floor's${lost.length ? ` — lost: ${lost.join(' | ')}` : ''}`);
 }
 
 ok(errors.length === 0, `no console errors${errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''}`);

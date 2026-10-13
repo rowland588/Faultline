@@ -24,6 +24,7 @@ import type { Program, ProgramState } from '../lib/programs';
 import { STATE_WORD, daysOverdue, isProved, movedOne, standingOf, stateOf } from '../lib/programs';
 import { lineProgramsReading, machineOfProgram, machinesOnLine, productsOnLine, programsOnLine, type LineMachine } from '../lib/lineRecords';
 import { useLineRecords, type LineRecords } from '../lib/useLineRecords';
+import { useJobFloor, type FloorWord } from '../lib/useJobFloor';
 import { asked } from '../lib/lines';
 import { niceDay, todayISO } from '../lib/weeks';
 import { pdfFileName } from '../lib/fileName';
@@ -66,7 +67,12 @@ export function LineProgramsScreen() {
   const today = todayISO();
 
   const shown = useMemo(() => readLines(rec, lineF === 'all' ? undefined : lineF), [rec, lineF]);
-  const reading = useMemo(() => lineProgramsReading(shown.map(s => ({ id: s.line.id, name: s.line.name, machines: s.machines, programs: s.programs })), today), [shown, today]);
+  /* WHAT EACH JOB'S FLOOR SAID of its programs on these lines — beside the
+     record's own state, on screen and paper (flow audit #3). */
+  const floor = useJobFloor(useMemo(() => shown.flatMap(s => s.programs.map(p => p.projectId)), [shown]));
+  const jobName = useMemo(() => new Map(rec.jobs.map(j => [j.id, j.name])), [rec.jobs]);
+  const reading = useMemo(() => lineProgramsReading(shown.map(s => ({ id: s.line.id, name: s.line.name, machines: s.machines, programs: s.programs })), today,
+    { floor, jobName }), [shown, today, floor, jobName]);
   const counts = useMemo(() => new Map(readLines(rec).map(s => [s.line.id, s.programs.length])), [rec]);
 
   if (rec.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
@@ -127,7 +133,7 @@ export function LineProgramsScreen() {
               ))}
             </div>
           )}
-          {shown.map(s => <LineBlock key={s.line.id} s={s} rec={rec} may={may} today={today} startAdding={(adding || !s.programs.length) && lineF === s.line.id} />)}
+          {shown.map(s => <LineBlock key={s.line.id} s={s} rec={rec} may={may} today={today} floor={floor} startAdding={(adding || !s.programs.length) && lineF === s.line.id} />)}
         </>
       )}
     </div>
@@ -136,7 +142,7 @@ export function LineProgramsScreen() {
 
 /** One line: its machines in flow order, each with its programs, the line
  *  itself last; then Plan a program on it. */
-function LineBlock({ s, rec, may, today, startAdding }: { s: LineRead; rec: LineRecords; may: boolean; today: string; startAdding: boolean }) {
+function LineBlock({ s, rec, may, today, floor, startAdding }: { s: LineRead; rec: LineRecords; may: boolean; today: string; floor: Map<string, FloorWord>; startAdding: boolean }) {
   const { line, machines, programs } = s;
   const groups = [
     ...machines.map(m => ({ key: m.record?.id ?? m.name, m, rows: programs.filter(p => machineOfProgram(p, machines) === m) })),
@@ -156,7 +162,7 @@ function LineBlock({ s, rec, may, today, startAdding }: { s: LineRead; rec: Line
           <h3 className="lp-mh">{g.m ? g.m.name : 'The line itself'}{g.m?.record?.oem ? <span className="sub"> · {g.m.record.oem}</span> : null}</h3>
           <div className="mt-list">
             {g.rows.map(p => (
-              <ProgramRow key={p.id} p={p} line={line} machines={machines} today={today} may={may} rec={rec}
+              <ProgramRow key={p.id} p={p} line={line} machines={machines} today={today} may={may} rec={rec} floor={floor.get(p.id)}
                 move={!p.projectId && may ? async by => { const changed = movedOne(own, p.id, by, q => machineOfProgram(q, machines) === g.m); if (changed.length) await putPrograms(changed); } : undefined} />
             ))}
           </div>
@@ -171,8 +177,10 @@ function LineBlock({ s, rec, may, today, startAdding }: { s: LineRead; rec: Line
   );
 }
 
-function ProgramRow({ p, line, machines, today, may, rec, move }: {
+function ProgramRow({ p, line, machines, today, may, rec, floor, move }: {
   p: Program; line: Workspace; machines: LineMachine[]; today: string; may: boolean; rec: LineRecords;
+  /** What its job's Set up said of it, when it is a job's (lib/useJobFloor). */
+  floor?: FloorWord;
   move?: (by: -1 | 1) => Promise<void>;
 }) {
   const [proving, setProving] = useState(false);
@@ -201,6 +209,12 @@ function ProgramRow({ p, line, machines, today, may, rec, move }: {
         {facts && <div className="mt-facts">{facts}</div>}
         {job && (
           <div className="mt-facts lp-job">on <button type="button" className="cw-link" onClick={() => nav(`/project/${job.id}/programs`)}>{job.name} ›</button>{job.archivedAt ? ' (archived)' : ''}</div>
+        )}
+        {/* ONE PROGRAM, ONE ANSWER (flow audit #3): what its job's floor said
+            of it, beside the record's own state — a failure there has
+            already put it back on the machine here (lib/programs). */}
+        {job && floor && (
+          <div className="mt-facts lp-floor">On its Set up: <b className={'is-' + floor.tone}>{floor.word}</b>{floor.note ? ` — ${floor.note}` : ''}</div>
         )}
         {/* COMMENTARY — what was seen, what is next (12 October: "allow
             commentary"), with or without a change of state. */}

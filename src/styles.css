@@ -10958,6 +10958,9 @@ body:has(.qsl-bar) .qs-fab { display: none; }
 .spp-pill.is-w { color: var(--st-w); border-color: color-mix(in srgb, var(--st-w) 45%, transparent); }
 .spp-pill.is-a { color: var(--st-a); border-color: var(--st-a); }
 .spp-pill.is-r { color: #fff; border-color: var(--st-r); background: var(--st-r); }
+/* the program record's own state beside the floor's (flow audit #3) — it wraps, never off the side */
+.spp-pill.spp-rec { flex: 0 1 auto; min-width: 0; white-space: normal; overflow-wrap: anywhere; font-weight: 600; text-align: left; }
+.spp-pill.spp-rec.is-r { color: var(--st-r); background: color-mix(in srgb, var(--st-r) 8%, var(--surface)); }
 .spp-panel { flex-basis: 100%; display: grid; gap: 12px; margin: 2px 0 4px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2, var(--surface)); }
 .spp-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
 .spp-form > .spp-f-h, .spp-form > .spp-pick, .spp-form > .spp-note, .spp-form > small, .spp-form > .spp-f-wide, .spp-form > .spp-acts { grid-column: 1 / -1; }
@@ -12378,6 +12381,8 @@ button.co-step-b:hover { background: color-mix(in srgb, var(--brand) 5%, transpa
 .lp-mh { margin: 0 0 6px; font-size: var(--t-body); font-weight: 800; color: var(--ink-2); }
 .lp-note { font-weight: 400; font-size: var(--t-detail); color: var(--ink-2); }
 .lp-job { font-weight: 600; }
+/* what its job's floor said of a job's program, beside the record's state (flow audit #3) */
+.lp-floor b.is-g { color: var(--st-g); } .lp-floor b.is-r { color: var(--st-r); } .lp-floor b.is-w { color: var(--st-w); } .lp-floor b.is-a { color: var(--st-a); }
 .lpj { margin: 16px 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 .lpj h2 { margin: 0 0 2px; font-size: var(--t-h3, 18px); }
 .lpj .sub { margin: 0 0 6px; }
