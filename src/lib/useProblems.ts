@@ -21,8 +21,9 @@ import { loadWalkSnags } from './useWalkSnags';
 import { stepAction } from './actions';
 import { uid, now } from './ids';
 import { todayISO } from './weeks';
+import type { SixMProblem } from './snagsReport';
 import {
-  belongsTo, buildView, causeFromOldWhys, fishboneData, scopeMsWeek,
+  belongsTo, buildView, causeFromOldWhys, fishboneData, lineOf, scopeMsWeek,
   type Countermeasure, type FishboneData, type FishNote,
 } from './fishbone';
 
@@ -146,6 +147,23 @@ export async function createProblem(projectId: string, o: { title: string; lineI
   }
   await addCase(draft);
   return draft;
+}
+
+/** A 6M JOB'S PROBLEMS AS THE REGISTER LISTS THEM (FLOW-AUDIT #2: "the 6M
+ *  problems are on no line page and in no register") — each with where it is
+ *  on its way, the factory line it is on and its job's line, and the register
+ *  problem it was taken from. The same views the fishbone draws. */
+export async function sixMProblemsOf(projectId: string, today = Date.now()): Promise<SixMProblem[]> {
+  const loaded = await loadProblems(projectId);
+  return viewsOf(loaded, projectId, undefined, today).map(v => {
+    const line = lineOf(v.problem, loaded.data.lines);
+    const ws = line?.workspaceId ?? v.problem.workspaceId;
+    return {
+      id: v.problem.id, title: v.problem.title, open: v.problem.status === 'open', phase: v.phase, openedAt: v.problem.openedAt,
+      ...(ws ? { workspaceId: ws } : {}), ...(line ? { jobLineId: line.id } : {}),
+      ...(v.problem.source?.snag ? { fromSnagId: v.problem.source.snag } : {}),
+    };
+  });
 }
 
 /** Add a cause, or change one — merged into the list by id. */

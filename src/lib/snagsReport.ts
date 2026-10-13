@@ -26,6 +26,8 @@ import { isOverdue as fixOverdue, isSettled, live, testOfFix, type Asset, type T
 import { notedProblems } from './noted';
 import { fixFlag } from './critical';
 import { niceDay } from './weeks';
+import { factoryLinesOf, lineOfMachine, type JobLine } from './lineRecords';
+import { PHASE_WORD, type Phase } from './problems';
 import type { PaceTodoRow } from '../db/rows';
 
 /** The house colours: green done, red late or a problem, indigo under way,
@@ -191,7 +193,7 @@ export function snagRow(s: Snag, line: string, assetName?: string, jobName?: str
  * from lib/fixTone) — each row saying which it is, and, when it started as a
  * snag, which one. A moved snag is shown once: as the problem or fix it
  * became. */
-export type JobRowKind = 'problem' | 'fix' | 'action';
+export type JobRowKind = 'problem' | 'fix' | 'action' | 'case';
 export interface JobRow {
   kind: JobRowKind; id: string; projectId: string;
   what: string;
@@ -209,10 +211,27 @@ export interface JobRow {
   fromSnag?: string;
   photo?: string;
   at: number;
+  /** A 6M problem: the job's line it is on, its fishbone opened there. */
+  jobLineId?: string;
 }
+
+/** A 6M PROBLEM — the head of a fishbone (a Case) — as the register lists it
+ *  (FLOW-AUDIT #2: "the 6M problems are on no line page and in no register").
+ *  Read off the job (lib/useProblems sixMProblemsOf); nothing stored here. */
+export interface SixMProblem {
+  id: string; title: string; open: boolean; phase: Phase; openedAt: number;
+  /** The factory line it is on, and the job's line its fishbone is drawn on. */
+  workspaceId?: string; jobLineId?: string;
+  /** Taken from a problem in the register (lib/useProblems problemFromRegister). */
+  fromSnagId?: string;
+}
+/* where a 6M problem is on its way, in the house colours: under way indigo, holding or closed the quiet green, slipped back red */
+const PHASE_TONE: Record<Phase, SnagTone> = { finding: 'w', acting: 'w', proving: 'w', holding: 'g', closed: 'g', slipped: 'r' };
 export interface JobGroup {
   projectId: string; job: string; rows: JobRow[];
   problemsOpen: number; fixesToDo: number; late: number; done: number;
+  /** A 6M job's problems still on their fishbone. */
+  casesOpen?: number;
 }
 const FIX_TONE_SNAG: Record<ReturnType<typeof fixTone>['tone'], SnagTone> = { done: 'g', late: 'r', soon: 'a', ahead: 'w', notRun: 'n' };
 
@@ -220,7 +239,9 @@ const FIX_TONE_SNAG: Record<ReturnType<typeof fixTone>['tone'], SnagTone> = { do
  *  the rest — then what is done; each saying whether it came from a snag. */
 export function jobGroup(x: { projectId: string; job: string; tests: Test[]; items: TestItem[]; assets: Asset[]; snags: Snag[]; lineName: (wsId: string) => string; today?: string;
   /** A 6M or lever-tree job's board actions — those that came from snags are its rows (it has no fixes). */
-  todos?: PaceTodoRow[] }): JobGroup {
+  todos?: PaceTodoRow[];
+  /** A 6M job's problems, each the head of a fishbone. */
+  cases?: SixMProblem[] }): JobGroup {
   const tests = live(x.tests), items = live(x.items), assets = live(x.assets);
   /* which records started as snags: the problem a snag became, and the fix booked from it */
   const fromItem = new Map<string, Snag>();
@@ -273,13 +294,50 @@ export function jobGroup(x: { projectId: string; job: string; tests: Test[]; ite
       fromSnag: snagWords(sn), ...(photoOf(a.media) ? { photo: photoOf(a.media) } : {}), at: a.createdAt,
     };
   });
+  /* A 6M JOB'S PROBLEMS — each the head of a fishbone, where it is on its way in words, worked on the fishbone.
+     No priority is asked of one: it reads Low, as anything not set does. No date: never late. */
+  const cases: JobRow[] = (x.cases ?? []).map(c => {
+    const sn = c.fromSnagId ? x.snags.find(s => s.id === c.fromSnagId) : undefined;
+    return {
+      kind: 'case' as const, id: c.id, projectId: x.projectId, what: c.title.trim() || 'A problem',
+      where: `${c.workspaceId ? x.lineName(c.workspaceId) : 'Its line'} · on its fishbone`,
+      word: PHASE_WORD[c.phase], tone: PHASE_TONE[c.phase], open: c.open, late: false, priority: 'low' as const,
+      ...(sn ? { fromSnag: snagWords(sn) } : {}), ...(c.jobLineId ? { jobLineId: c.jobLineId } : {}), at: c.openedAt,
+    };
+  });
   /* open first, in order of priority — late first within each — then done */
   const rank = (r: JobRow) => (!r.open ? 9 : PRIORITY_RANK[r.priority] * 2 + (r.late ? 0 : 1));
-  const rows = [...problems, ...fixes, ...actions].sort((a, b) => rank(a) - rank(b) || b.at - a.at);
+  const rows = [...problems, ...cases, ...fixes, ...actions].sort((a, b) => rank(a) - rank(b) || b.at - a.at);
   return {
     projectId: x.projectId, job: x.job, rows,
     problemsOpen: problems.filter(r => r.open).length, fixesToDo: fixes.filter(r => r.open).length + actions.filter(r => r.open).length,
     late: rows.filter(r => r.late).length, done: rows.filter(r => !r.open).length,
+    ...(cases.length ? { casesOpen: cases.filter(r => r.open).length } : {}),
+  };
+}
+
+/** A JOB'S RECORDS ON ONE LINE OF THE FACTORY — the register narrowed to a
+ *  line keeps the jobs on it (FLOW-AUDIT #2: "filtering the register by line
+ *  drops every job problem"; Line 7's one Low problem shown while the job on
+ *  it held a Critical). A job not on the line has nothing there. A job on that
+ *  line only keeps everything; a job on several keeps what is on this one — a
+ *  machine on another of its lines, a board action or a 6M problem on another
+ *  line, goes — and what says no line at all, so nothing is hidden. */
+export function jobOnLine<T extends { tests: Test[]; items: TestItem[]; assets: Asset[]; todos: PaceTodoRow[]; cases?: SixMProblem[] }>(
+  d: T, projectId: string, wsId: string, jobLines: readonly JobLine[],
+): T | undefined {
+  const on = factoryLinesOf(projectId, jobLines);
+  if (!on.includes(wsId)) return undefined;
+  if (on.length === 1) return d;
+  const elsewhere = new Set(d.assets.filter(a => { const w = lineOfMachine(a, jobLines); return !!w && w !== wsId; }).map(a => a.id));
+  const tests = d.tests.filter(t => !t.assetId || !elsewhere.has(t.assetId));
+  const kept = new Set(tests.map(t => t.id));
+  const lineWs = (id?: string) => (id ? jobLines.find(l => l.id === id)?.workspaceId : undefined);
+  return {
+    ...d, tests, assets: d.assets.filter(a => !elsewhere.has(a.id)),
+    items: d.items.filter(i => !i.testId || kept.has(i.testId)),
+    todos: d.todos.filter(a => { const w = lineWs(a.lineId); return !w || w === wsId; }),
+    ...(d.cases ? { cases: d.cases.filter(c => !c.workspaceId || c.workspaceId === wsId) } : {}),
   };
 }
 
@@ -345,11 +403,11 @@ export function snagsReading(x: SnagsInput): SnagsReading {
     moved: all.filter(isMoved).length,
     movedOpen: jobs.reduce((n, g) => n + g.rows.filter(r => r.fromSnag && r.open).length, 0),
     lines: new Set(all.map(s => s.workspaceId)).size,
-    problems: jobs.reduce((n, g) => n + g.problemsOpen, 0),
+    problems: jobs.reduce((n, g) => n + g.problemsOpen + (g.casesOpen ?? 0), 0),
     fixes: jobs.reduce((n, g) => n + g.fixesToDo, 0),
     jobLate: jobs.reduce((n, g) => n + g.late, 0),
     jobDone: jobs.reduce((n, g) => n + g.done, 0),
-    jobs: jobs.filter(g => g.problemsOpen + g.fixesToDo > 0).length,
+    jobs: jobs.filter(g => g.problemsOpen + (g.casesOpen ?? 0) + g.fixesToDo > 0).length,
     /** Every open problem — on a line or on a job — by its priority. */
     critical: 0, high: 0, low: 0,
   };

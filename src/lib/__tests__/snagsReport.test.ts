@@ -2,7 +2,7 @@
  * on every line, however it was taken, says where it came from; a moved one is
  * followed to its job and says what it became and how it stands there. */
 import { describe, it, expect } from 'vitest';
-import { becameOn, fromWords, jobGroup, snagsReading, type Became, type JobGroup } from '../snagsReport';
+import { becameOn, fromWords, jobGroup, jobOnLine, snagsReading, type Became, type JobGroup } from '../snagsReport';
 import type { Snag } from '../../snag/types';
 import type { Asset, Test, TestItem } from '../testing';
 
@@ -90,5 +90,43 @@ describe('the snags reading', () => {
     ]);
     expect([g.problemsOpen, g.fixesToDo, g.late, g.done]).toEqual([2, 1, 1, 1]);
     expect(g.rows[1].where).toBe('Bagger · not from a test');
+  });
+
+  /* FLOW-AUDIT #2: "the 6M problems are on no line page and in no register"; and #13, one taken there from the register */
+  it('a 6M job\'s problems are rows, each where it is on its way; one taken from the register says where it was seen first', () => {
+    const sn = snag({ id: 'q', problem: 'Checkweigher rejects good packs', status: 'closed', closedAt: NOW, caseId: 'c1', projectId: 'p6' });
+    const g = jobGroup({ projectId: 'p6', job: 'Line 7 pace', tests: [], items: [], assets: [], snags: [sn], lineName: id => lines[id] ?? 'A line', today: '2026-10-12',
+      cases: [
+        { id: 'c1', title: 'Checkweigher rejects good packs', open: true, phase: 'finding', openedAt: 3, workspaceId: 'l7', jobLineId: 'pl7', fromSnagId: 'q' },
+        { id: 'c2', title: 'Basketer minor stops', open: true, phase: 'acting', openedAt: 2, workspaceId: 'l8' },
+        { id: 'c3', title: 'Below its rate target', open: false, phase: 'holding', openedAt: 1, workspaceId: 'l8' },
+      ] });
+    expect(g.rows.map(r => [r.kind, r.what, r.where, r.word, r.tone, r.open, r.late, r.fromSnag ?? '', r.jobLineId ?? ''])).toEqual([
+      ['case', 'Checkweigher rejects good packs', 'Line 7 · on its fishbone', 'Finding the cause', 'w', true, false, 'a problem on Line 7', 'pl7'],
+      ['case', 'Basketer minor stops', 'Line 8 · on its fishbone', 'Acting on it', 'w', true, false, '', ''],
+      ['case', 'Below its rate target', 'Line 8 · on its fishbone', 'Holding', 'g', false, false, '', ''],
+    ]);
+    expect([g.problemsOpen, g.casesOpen, g.fixesToDo, g.done]).toEqual([0, 2, 0, 1]);
+    const r = snagsReading({ snags: [], lineName: id => lines[id] ?? 'A line', jobName: () => undefined, became: new Map(), register: true, jobs: [g], today: NOW });
+    expect([r.counts.problems, r.counts.jobs, r.counts.low]).toEqual([2, 1, 2]);
+  });
+
+  /* FLOW-AUDIT #2: "filtering the register by line drops every job problem" */
+  it('a job\'s records on one line: a job on that line only keeps everything; a job on two keeps what is on this one and what says no line', () => {
+    const jobLines = [
+      { id: 'a', projectId: 'one', workspaceId: 'l7' }, { id: 'b', projectId: 'one', workspaceId: 'l7' },
+      { id: 'c', projectId: 'two', workspaceId: 'l7' }, { id: 'd', projectId: 'two', workspaceId: 'l8' },
+    ];
+    const assets = [{ id: 'm7', projectId: 'two', name: 'Bagger', workspaceId: 'l7' }, { id: 'm8', projectId: 'two', name: 'Basketer', workspaceId: 'l8' }] as unknown as Asset[];
+    const tests = [{ id: 't7', assetId: 'm7' }, { id: 't8', assetId: 'm8' }, { id: 'tx' }] as unknown as Test[];
+    const items = [{ id: 'i7', testId: 't7' }, { id: 'i8', testId: 't8' }, { id: 'ij', testId: '' }] as unknown as TestItem[];
+    const todos = [{ id: 'a7', lineId: 'c' }, { id: 'a8', lineId: 'd' }, { id: 'ax' }] as never[];
+    const cases = [{ id: 'c7', title: '', open: true, phase: 'finding' as const, openedAt: 1, workspaceId: 'l7' }, { id: 'c8', title: '', open: true, phase: 'finding' as const, openedAt: 1, workspaceId: 'l8' }];
+    const d = { tests, items, assets, todos, cases };
+    expect(jobOnLine(d, 'one', 'l7', jobLines)).toBe(d);
+    expect(jobOnLine(d, 'one', 'l8', jobLines)).toBeUndefined();
+    const on7 = jobOnLine(d, 'two', 'l7', jobLines);
+    expect([on7?.assets.map(x => x.id), on7?.tests.map(x => x.id), on7?.items.map(x => x.id), on7?.todos.map((x: { id: string }) => x.id), on7?.cases.map(x => x.id)])
+      .toEqual([['m7'], ['t7', 'tx'], ['i7', 'ij'], ['a7', 'ax'], ['c7']]);
   });
 });

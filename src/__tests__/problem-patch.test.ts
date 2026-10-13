@@ -29,7 +29,7 @@ describe('a problem patched by its fields', () => {
     expect(s?.dueAt).toBe(1_760_050_800_000);
     expect(s?.problem).toBe('Bagger jaw jams on 2kg film');
     expect(s?.updatedAt).toBeGreaterThan(1);
-  });
+  }, 30_000);   /* the first to open the store in a fresh module graph */
 
   it('a change worked out from the stored row: journey steps added from two places both kept', async () => {
     const db = await fresh();

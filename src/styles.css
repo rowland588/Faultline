@@ -10780,6 +10780,9 @@ body:has(.toast) .qs-fab { bottom: calc(var(--nv-bar) + 130px + env(safe-area-in
 .preg-jobs { margin-top: 18px; }
 .preg-away { margin-top: 18px; }
 .preg-away-row { padding: 8px 0; }
+/* opened from a line: the problem tapped there scrolled clear of the top bar, and the way back to the line, fingertip-sized (FLOW-AUDIT #22) */
+.qsl .preg-row { scroll-margin-top: calc(var(--nv-top) + 12px); }
+.qsl-back { min-height: 44px; margin: 0 0 6px -10px; padding: 8px 10px; font-weight: 700; color: var(--brand); }
 /* A PRODUCTION LINE, its own page (screens/ProductionLineScreen) — its problems, its tools. */
 .pl-eyebrow { margin: 0 0 2px; font-size: 11px; font-weight: 800; letter-spacing: .08em; color: var(--muted); }
 .pl-says { margin: 4px 0 0; color: var(--ink-2); }

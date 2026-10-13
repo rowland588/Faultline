@@ -34,8 +34,14 @@
  *  13  the audit's cases: a problem for an archived project named; closed or
  *      re-prioritised while open, it stays put; pinned on a walk, its line
  *      kept; made a fix, said so under Done
+ *  1b  (FLOW-AUDIT #2) a 6M job's problems are rows, each where it is on its
+ *      way, opening its fishbone; a line chosen keeps the jobs on it — the
+ *      commissioning job's Critical on its line, a 6M job's problem on its own
+ *      line and not on its other
  *  15  (FLOW-AUDIT #5) the Problem button inside a job: on the job's own line,
  *      never the last one used; a job on two lines asks which
+ *  18  (FLOW-AUDIT #22) from a line's page on a phone: the problem tapped in
+ *      view, its editor open, and ‹ the line, fingertip-sized, back to it
  *  12  an archived project's line said so; a ticked problem put on a new line
  *      from the bar, saved and said so; a box changed says Saved; Save keeps
  *      what was typed; the archived line gone from the control room
@@ -113,10 +119,14 @@ const truth = () => page.evaluate(async () => {
   const lineName = id => ws.find(w => w.id === id)?.name ?? 'A line';
   /* every live project's own problems and fixes — the page holds everything (12 October) */
   const { planModel } = await import('/src/lib/planModel.ts');
+  const { sixMProblemsOf } = await import('/src/lib/useProblems.ts');
   const jobs = (await Promise.all(projects.filter(p => !p.archivedAt).map(async p => {
     const [tests, items, assets, todos] = await Promise.all([db.listTests(p.id), db.listTestItems(p.id), db.listAssets(p.id), db.listPaceTodos(p.id)]);
     const gated = planModel(p) === 'commissioning';
-    return R.jobGroup({ projectId: p.id, job: p.name, tests: gated ? tests : [], items: gated ? items : [], assets, todos: gated ? [] : todos, snags: all, lineName });
+    /* a 6M job's problems are rows too (FLOW-AUDIT #2: "the 6M problems are on no line page and in no register") —
+       read before as nothing, which is what the register showed */
+    const cases = planModel(p) === 'board' ? await sixMProblemsOf(p.id) : [];
+    return R.jobGroup({ projectId: p.id, job: p.name, tests: gated ? tests : [], items: gated ? items : [], assets, todos: gated ? [] : todos, cases, snags: all, lineName });
   }))).filter(g => g.rows.length);
   const r = R.snagsReading({ snags: snags.map(s => (gone.has(s.workspaceId) ? { ...s, workspaceId: '__no_line__' } : s)), lineName: id => (id === '__no_line__' ? 'Not on a line' : lineName(id)), jobName: id => projects.find(p => p.id === id && !p.archivedAt)?.name, became: new Map(), register: true, jobs,
     assetName: s => (s.assetId ? frames.get(s.assetId)?.name : undefined), stillOf: s => (s.assetId ? frames.get(s.assetId)?.stillKey : undefined) });
@@ -145,6 +155,35 @@ await go('#/snags');
   ok((await page.locator('.qsl-work').count()) === open.length && open.length === 6, `1 every open problem on its line: ${open.length}`);
   ok(/^low$/i.test(await words('.qsl-prio', row('seeded snag 0'))) && (await page.locator('.qsl-kind').count()) === 0 && (await page.locator('.qsl-moved').count()) === 0 && !/Moved to /.test(await page.locator('.qsl').innerText()), '1 each with its priority (Low until said); no snag or fix tag, nothing "moved"');
   ok((await page.locator('.qsl-row', { hasText: 'Demo fault' }).count()) === 0 && !/Demo/.test(await words('.qsl-says')), '1 the demo line\'s made-up problem is not here');
+}
+
+/* ---- 1b a 6M job's problems are rows; a line chosen keeps the jobs on it (FLOW-AUDIT #2: "Line 7 — smoke test says
+   1 problem open (Low) while the job on it holds a Critical ... the 6M problems show on no line page and in no register") ---- */
+{
+  const t = await truth();
+  const cases = t.jobRows.filter(r => r.kind === 'case');
+  const open6 = cases.filter(r => r.open);
+  const caseRows = await page.locator('.qsl-job .qsl-jrow').allInnerTexts();
+  ok(open6.length >= 2 && open6.every(r => caseRows.some(x => x.includes(r.what) && x.includes(r.word))),
+    `1b a 6M job's problems are rows, each where it is on its way: ${open6.map(r => `${r.what} — ${r.word}`).join(' · ')}`);
+  const c0 = open6.find(r => r.what === 'Reject bin full by 10am') ?? open6[0];
+  const cr = page.locator('.qsl-jrow', { hasText: c0.what }).first();
+  await cr.locator('.qsl-open').click(); await page.waitForTimeout(400);
+  await cr.getByRole('button', { name: 'Open its fishbone ›' }).click(); await page.waitForTimeout(2500);
+  ok(new RegExp(`#/project/${c0.projectId}/fishbone\\?.*problem=${c0.id}`).test(page.url()) && (await page.locator('body').innerText()).includes(c0.what), `1b one tapped: its fishbone, on it (${c0.what})`);
+  /* the register on the commissioning job's line: the job on it kept, its Critical among them */
+  await go(`#/snags?line=${sd.wsId}`);
+  const jobOpen = t.jobRows.filter(r => r.job === sd.job && r.open);
+  const jobShown = await page.locator('.qsl-job', { has: page.locator('h2', { hasText: sd.job }) }).locator('.qsl-jrow').allInnerTexts();
+  const lineNm = await page.evaluate(async ws => (await (await import('/src/db.ts')).listWorkspaces()).find(w => w.id === ws)?.name, sd.wsId);
+  ok(jobOpen.length > 0 && jobShown.length === jobOpen.length && jobOpen.some(r => r.priority === 'critical') && /CRITICAL/i.test(jobShown.join(' ')),
+    `1b the register on ${lineNm}: the job on it kept — its ${jobOpen.length} open, the Critical among them (was none)`);
+  /* a job on two lines narrowed to the one chosen: the 6M job's Line 7 problem there, its Line 2A one not */
+  const l7 = await page.evaluate(async () => (await (await import('/src/db.ts')).listWorkspaces()).find(w => w.name === 'Line 7')?.id);
+  await go(`#/snags?line=${l7}`);
+  const on7 = (await page.locator('.qsl-job .qsl-jrow').allInnerTexts()).join(' | ');
+  ok(on7.includes('Reject bin full by 10am') && !on7.includes('Basketer minor stops'), '1b on Line 7: the 6M job\'s problem on Line 7 is there, its Line 2A one is not');
+  await go('#/snags');
 }
 
 /* ---- 2 opened as its own editor; its words, priority and state kept ---- */
@@ -601,6 +640,29 @@ const ids = await page.evaluate(async () => {
   const on7 = await snag('Reject chute blocks on 1.25 kg');
   ok(on7?.workspaceId === ids.l7 && on7?.projectId === ids.paced, '15 the line said: saved on Line 7, for the 6M job');
   await page.evaluate(async x => { const db = await import('/src/db.ts'); for (const id of x) await db.deleteSnag(id); }, [kept?.id, on7?.id].filter(Boolean));
+}
+
+/* ---- 18 from a line's page, on a phone: the problem tapped in view, and the way back (FLOW-AUDIT #22: "it lands at
+   the top ... the opened editor is two screens down, behind the Problem button ... no way back to the line") ---- */
+{
+  await page.evaluate(async ws => {
+    const db = await import('/src/db.ts'); const t = Date.now();
+    for (let i = 0; i < 10; i++) await db.addSnag({ id: crypto.randomUUID(), workspaceId: ws, problem: `Critical on the infeed ${i + 1}`, status: 'open', raisedAt: t - i * 1000, updatedAt: t, media: [], priority: 'critical' });
+    await db.addSnag({ id: crypto.randomUUID(), workspaceId: ws, problem: 'Low one at the end of the line', status: 'open', raisedAt: t - 9 * 86_400_000, updatedAt: t, media: [], priority: 'low' });
+  }, ids.l2c);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await go(`#/lines/${ids.l2c}`);
+  await page.locator('.pl-row', { hasText: 'Low one at the end of the line' }).first().click(); await page.waitForTimeout(2600);
+  const r = row('Low one at the end of the line');
+  const box = await r.evaluate(el => ({ top: el.getBoundingClientRect().top, onPage: el.getBoundingClientRect().top + window.scrollY, h: window.innerHeight }));
+  ok(/#\/snags\?line=/.test(page.url()) && (await r.locator('.pe').count()) === 1 && box.onPage > box.h && box.top >= 0 && box.top < box.h / 3,
+    `18 from the line: the problem tapped scrolled into view, its editor open (it sits ${Math.round(box.onPage)}px down the page; now ${Math.round(box.top)}px from the top)`);
+  const back = page.locator('.qsl-back');
+  const bb = await back.boundingBox();
+  ok((await back.innerText()).trim() === '‹ Line 2C' && (bb?.height ?? 0) >= 44, `18 the way back: "${(await back.innerText()).trim()}", ${Math.round(bb?.height ?? 0)}px tall`);
+  await page.evaluate(() => window.scrollTo(0, 0)); await back.click(); await page.waitForTimeout(1500);
+  ok(new RegExp(`#/lines/${ids.l2c}`).test(page.url()) && (await page.locator('h1').innerText()).trim() === 'Line 2C', '18 tapped: back on Line 2C');
+  await page.setViewportSize({ width: 1360, height: 900 });
 }
 
 ok(errors.length === 0, `no console errors${errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''}`);
