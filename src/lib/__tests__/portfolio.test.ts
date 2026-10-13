@@ -87,9 +87,12 @@ describe('this week, across every job', () => {
     expect(pf.week.some(x => x.what === 'Lidding film' || x.what === 'Seal — tray')).toBe(false);
   });
 
-  it('names the record a test or fix opens, and none for a list row', () => {
+  it('names the record a test, a fix or a machine opens, and none for a list row', () => {
     expect(pf.week.find(x => x.what === 'Changeover')?.id).toBeDefined();
-    expect(pf.week.find(x => x.what === 'Case erector')?.id).toBeUndefined();
+    /* a machine late on site opens the machine itself (ui/MachinePanel) — on
+       the control room and on Install's Needs you alike (FLOW-AUDIT.md, 16) */
+    expect(pf.week.find(x => x.what === 'Case erector')?.id).toBe(twoA.assets[0].id);
+    expect(pf.items.find(x => x.what === 'Lidding film')?.id).toBeUndefined();
   });
 });
 

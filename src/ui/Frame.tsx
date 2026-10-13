@@ -9,8 +9,8 @@
  * buttons every screen carried (Notes, Reports, Pareto, the gear).
  * You always see where you are and everything one step either side; "back"
  * is a glance left. On a phone the rail folds into a bar at the foot — Control
- * room, this job, the gate you are in, Fixes, More — and More opens the whole
- * rail as a sheet.
+ * room, this job, the gate you are in, Fixes, More; off a job, Control room,
+ * Problems, Lines, More — and More opens the whole rail as a sheet.
  *
  * What the rail holds, and which line is on, is worked out in ui/rail.ts
  * (pure, tested). The counts on its lines are lib/useStanding's and
@@ -335,10 +335,18 @@ function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: s
     { ...toolsGroup(here), foot: true },
   ];
   const all = groups.flatMap(g => g.lines);
+  /* THE PHONE'S BAR, OFF A JOB: Control room · Problems · Lines · More
+     (FLOW-AUDIT.md, 11). It was the control room, the first three jobs and
+     More, so the lines — the backbone now — and the problems taken on them
+     were behind More. The jobs are one tap away still: in More (the whole
+     rail, Jobs among it), in the top bar's job picker, and on the control
+     room's own rows. */
+  const onLines = here === 'factory' || here === 'lineprograms' || here.startsWith('line:');
   const bar: RailLine[] = [
     ...all.filter(l => l.key === 'home'),
-    ...all.filter(l => l.key.startsWith('job:')).slice(0, 3).map(l => ({ ...l, icon: 'route' as const })),
-    { key: 'more', label: 'More', on: all.some(l => l.on && l.key !== 'home'), state: 'n', icon: 'grip' },
+    { ...snagsPlace(here), label: 'Problems', icon: 'flag' },
+    { key: 'lines', label: 'Lines', to: '/factory', on: onLines, state: 'n', bare: true, icon: 'machine' },
+    { key: 'more', label: 'More', on: !onLines && all.some(l => l.on && l.key !== 'home' && l.key !== 'quicksnags'), state: 'n', icon: 'grip' },
   ];
   return <NavChrome groups={groups} bar={bar} />;
 }

@@ -81,7 +81,7 @@ import { useAccess } from '../cloud/access';
 import { AccessNote } from '../ui/AccessNote';
 import { Fishbone } from '../ui/Fishbone';
 import { useProblems } from '../lib/useProblems';
-import { nextStep, readyToRun, startSteps, type StartStep, type StepKey } from '../lib/startHere';
+import { nextStep, ownProblems, readyToRun, startSteps, type StartStep, type StepKey } from '../lib/startHere';
 import { Icon } from '../ui/Icon';
 import { PHASE_WORD, type Phase } from '../lib/problems';
 import type { Can } from '../lib/access';
@@ -877,7 +877,8 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   const pastDay = model === 'commissioning' ? stand.standing.late : owedLate;
   const start = model === 'board' || model === 'tree'
     ? startSteps({ model, lines: ppm.lines.length, measures: nums.measures.length, targets: nums.targets.length,
-      readings: nums.readings.length, problems: probs.problems.length, treeNodes: (treeRows ?? []).length })
+      /* only the job's own problems — never another job's case on its line (FLOW-AUDIT.md, 19) */
+      readings: nums.readings.length, problems: ownProblems(probs.problems.map(v => v.problem), projectId, project?.createdAt ?? 0), treeNodes: (treeRows ?? []).length })
     : [];
   /* A client reads the job as it stands; the list is for whoever sets it up. */
   const starting = can.edit && !probs.loading && !nums.loading && !ppm.loading && !readyToRun(start);

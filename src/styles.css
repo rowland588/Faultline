@@ -2957,6 +2957,16 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .proj-foot-actions { display: flex; gap: 8px; }
 
 .proj-new { margin-bottom: 18px; }
+/* A CHANGE ON A LINE — where the line is, over the three ways a change is
+   run (FLOW-AUDIT.md, 19); only the abnormal in colour, with its word. */
+.proj-sit { margin: 6px 0 4px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
+.proj-sit-h { margin: 0 0 4px; font-size: var(--t-h3, 18px); }
+.proj-sit-says { margin: 0 0 6px; }
+.proj-sit .is-r { color: var(--st-r); font-weight: 700; }
+.proj-sit .is-a { color: var(--st-a); font-weight: 700; }
+.proj-sit-list { list-style: none; margin: 0 0 6px; padding: 0; display: grid; gap: 4px; }
+.proj-sit-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-size: var(--t-detail); }
+.proj-sit-l { margin: 2px 0 0; font-size: var(--t-detail); }
 .proj-new-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 8px; }
 .proj-field { display: block; min-width: 0; }
 .proj-field .text-input { width: 100%; }
@@ -8914,6 +8924,22 @@ button.gt-mtrack { appearance: none; display: block; align-self: stretch; height
   .jb-fi { grid-template-columns: 1fr auto; grid-template-areas: "job when" "what what" "m m" "b b"; padding-block: 10px; }
   .jb-fi-job { -webkit-line-clamp: 1; line-clamp: 1; padding: 0 0 0 8px; }
 }
+/* THE CRITICAL LIST, READABLE (FLOW-AUDIT.md, 6). Its "when" held the whole
+   "open · going with: Put a production belt in …" with nowrap, so it took the
+   row: the problem wrapped a word to a line in a column 63 px wide at a desk
+   and the row ran off a phone. The when is a word now ("open", "3 days
+   late") and may wrap; "going with …" is the row's branch line under it. */
+.jb-fi-when { white-space: normal; max-width: 11em; text-align: right; overflow-wrap: anywhere; }
+.jb-fi-what, .jb-fi-m, .jb-fi-b { min-width: 0; overflow-wrap: anywhere; }
+.jb-fi.is-late .jb-fi-b { color: var(--ink-2); }
+/* the few things that could stop us, a row each across the width — each
+   carries its branch, so three to a row left the problem 150 px */
+.jb-focus.is-crit .jb-focus-list { grid-template-columns: 1fr; }
+/* A LINE'S OWN WORK beside the jobs' (lib/lineWork): its name where a job's
+   goes, a square where a job has its round colour, and "on the line" said. */
+.jb-wl-on { font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--muted); }
+.jb-wl-g.is-line .jb-wl-job i { border-radius: 2px; }
+.jb-owe-job.is-line i { border-radius: 1px; background: transparent !important; box-shadow: inset 0 0 0 1.5px var(--shell-muted); }
 
 /* THE STAGE EDITOR'S NAME BOXES wore the browser's own square black border —
    the one set of fields in the app that did — beside the rounded, quiet
@@ -10879,6 +10905,19 @@ body:has(.toast) .qs-fab { bottom: calc(var(--nv-bar) + 130px + env(safe-area-in
 .pl-tool { width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
 .pl-tool .sub { grid-column: 1; font-size: var(--t-detail); }
 .pl-tool-go { grid-row: 1 / span 2; grid-column: 2; align-self: center; color: var(--muted); font-size: 20px; }
+/* WHAT EACH TOOL FOUND, on its tile (FLOW-AUDIT.md, 10): its latest record's
+   sentence in ink, only the abnormal part in its colour; the count under it. */
+.pl-tool-says { grid-column: 1; font-size: var(--t-detail); line-height: 1.35; min-width: 0; overflow-wrap: anywhere; }
+.pl-tool .pl-tool-says { font-weight: 400; }
+.pl-tool .pl-tool-says.is-n, .pl-tool .pl-tool-says.is-w, .pl-tool .pl-tool-says.is-g { color: var(--ink); }
+.pl-tool:has(.pl-tool-says) .pl-tool-go { grid-row: 1 / span 3; }
+/* a job's verdict on its line's page — the control room's word in its colour */
+.pl-job-ot { grid-column: 1 / -1; font-size: var(--t-detail); line-height: 1.4; }
+.pl-job-ot .is-r { color: var(--st-r); }
+.pl-ot { padding: 1px 7px; border-radius: 999px; font-weight: 700; background: var(--surface-2); color: var(--ink-2); }
+.pl-ot.is-behind { background: color-mix(in srgb, var(--st-r) 12%, var(--surface)); color: var(--st-r); box-shadow: inset 0 0 0 1.5px var(--st-r); }
+.pl-ot.is-risk { background: color-mix(in srgb, var(--st-a) 12%, var(--surface)); color: var(--st-a); }
+.pl-ot.is-on { background: color-mix(in srgb, var(--st-g) 11%, var(--surface)); color: var(--st-g); }
 .pl-new { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 10px; }
 /* a group on paper — its report or its cards, at the right of its heading (lib/problemsPdf) */
 .qsl-g .qsl-gh { flex-wrap: wrap; }
@@ -10898,6 +10937,16 @@ body:has(.qsl-bar) .qs-fab { display: none; }
 /* YOUR FACTORY (screens/FactoryScreen, the control room's Your factory) — the lines in floor order, each
    with its type; the control room's a grid of cards like a floor plan, the factory page a list edited in place */
 .fac-home { margin-bottom: 18px; }
+/* On a phone the factory's head was "Your factory" on two lines beside two
+   stacked buttons (FLOW-AUDIT.md, 11): the name, then its two doors in a
+   row under it. And under the band it follows, the head sits closer. */
+@media (max-width: 719px) {
+  .fac-home .home-sec-head { flex-wrap: wrap; gap: 6px 12px; }
+  .fac-home .pl-sec-acts { flex-wrap: nowrap; }
+  .fac-home .pl-sec-acts .btn { min-height: 40px; padding: 6px 12px; }
+  .jb + .fac-home, .jb .fac-home { margin-top: 4px; }
+  .home .pace-head { gap: 8px; }
+}
 /* a line's facts on its page (BLUEPRINT Stage 1) — a term and its words, the unsaid in grey */
 .pl-facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 .pl-facts dt { font-size: var(--t-detail); font-weight: 700; color: var(--ink-2); }
@@ -10927,6 +10976,9 @@ body:has(.qsl-bar) .qs-fab { display: none; }
 .fac-card-name { font-size: 16px; }
 .fac-card-type, .fac-card-meta { font-size: var(--t-detail); color: var(--ink-2); }
 .fac-card-type { font-weight: 700; letter-spacing: .02em; }
+/* only the abnormal number carries colour, with its word (FLOW-AUDIT.md, 1:
+   the card's "1 late" was bold grey) */
+.fac-card .is-r { color: var(--st-r); font-weight: 700; }
 .fac-empty { padding: 12px 14px; border: 1px dashed var(--line); border-radius: 10px; }
 .fac-empty p { margin: 0 0 10px; }
 .fac-why { margin: 4px 0 10px; max-width: 70ch; }

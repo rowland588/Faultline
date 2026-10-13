@@ -397,8 +397,10 @@ const LIST_OF: Record<PlanMark['kind'], string> = {
  *  drawer over its list (lib/install recordHref), and the lists kept whole on one screen (materials, programs, notes,
  *  machines on Install) on that screen. A bunch stands for several, so it
  *  opens its lane's list rather than picking one of them. */
-export function planHref(projectId: string, m: { kind: PlanMark['kind']; id?: string; count?: number }): string {
+export function planHref(projectId: string, m: { kind: PlanMark['kind'] | 'problem'; id?: string; count?: number }): string {
   const base = `/project/${projectId}`;
+  /* a problem (lib/portfolio JobItem — a line's own, never a job's mark) opens the job's Problems */
+  if (m.kind === 'problem') return `${base}/fixes`;
   const one = m.id && !m.count ? m.id : undefined;
   if (one && m.kind === 'action') return `${base}/board?a=${encodeURIComponent(one)}`;
   /* a check that keeps the gain opens its problem on the fishbone */

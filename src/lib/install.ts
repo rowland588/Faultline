@@ -537,6 +537,23 @@ export function installGrid(assets: Asset[], tests: Test[], items: TestItem[], t
   return { columns, rows };
 }
 
+/** WHAT A GATE IS MISSING — one reading for the gate's head ("3 not added
+ *  yet"), its Needs you and its grid's offer ("2 machines have none of the
+ *  stages yet — give them all"). The flow audit (13 October, 16): Hand over's
+ *  Needs you said "Nothing" while two of its three machines had no hand-over
+ *  items at all, and the head counted only the stages missing on the one
+ *  machine that had some.
+ *   - `bare`: machines with none of the gate's stages — at Install, not one
+ *     already in and running before anybody kept steps (it says so instead,
+ *     and is never given stages in bulk);
+ *   - `unplanned`: the squares still empty on machines that have some. */
+export function gateGaps(grid: InstallGrid, gate: StepGate): { bare: Asset[]; unplanned: number; byMachine: { asset?: Asset; n: number }[] } {
+  const isIn = (a?: Asset) => gate === 'install' && !!a && ['installed', 'running'].includes(assetStateOf(a));
+  const bare = grid.rows.filter(r => r.asset && r.view.total === 0 && !isIn(r.asset)).map(r => r.asset as Asset);
+  const byMachine = grid.rows.filter(r => r.view.total > 0).map(r => ({ asset: r.asset, n: r.cells.filter(c => !c).length })).filter(x => x.n > 0);
+  return { bare, unplanned: byMachine.reduce((n, x) => n + x.n, 0), byMachine };
+}
+
 /* ------------------------- A STAGE THAT WAS CHANGED -------------------------
  *
  * Rowland: "I/O checked is in the six standard, making it seven, but I can't

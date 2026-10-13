@@ -33,25 +33,17 @@
  */
 import { sinceOf, type Since } from '../lib/since';
 import { SinceLine, readSeen } from './SinceLine';
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { Project } from '../types';
-import {
-  listAssets, listMaterials, listPrograms, listStudies, listTestItems, listTests, listPaceTodos, listTargets, listReadings,
-  loadPaceLines, onDataChange, renameSupplier, listTreeNodes,
-} from '../db';
-import { bindSources, treeStanding, withTrackerRows } from '../lib/treeBind';
-import { stepAction } from '../lib/actions';
-import { planModel } from '../lib/planModel';
-import { gapOf, lineSeries } from '../lib/measures';
-import { loadProblems, viewsOf } from '../lib/useProblems';
+import { renameSupplier } from '../db';
 import { fishboneUrl } from '../screens/FishboneScreen';
-import { currentLosses, lossCardLine, studyHref } from '../lib/studyLinks';
 import { offerUndo } from './Undo';
 import {
-  clusterMarks, kindWord, lateWhen, NOBODY, owedBy, portfolio, SITE, sixmProblemOf, type JobInput, type JobItem, type JobView, type PacedInput, type Portfolio,
-  type Said, type SixMProblem,
+  clusterMarks, kindWord, lateWhen, NOBODY, owedBy, portfolio, SITE, type JobItem, type JobView, type Portfolio,
+  type Said,
 } from '../lib/portfolio';
-import { linesOnTarget } from '../lib/onTarget';
+import { useJobInputs } from '../lib/useJobInputs';
+import { useLineWork } from '../lib/useLineWork';
 import { criticalCount } from '../lib/critical';
 import { niceDay, todayISO } from '../lib/weeks';
 import { nav } from '../state/useRoute';
@@ -84,6 +76,12 @@ const TONE_WORD: Record<string, string> = {
 
 /** Where a thing on the board opens. */
 function whereTo(x: JobItem): string {
+  /* A LINE'S OWN WORK (lib/lineWork) opens where the line keeps it: a
+     problem in the register on its line, opened; a program on the line's
+     Programs. */
+  if (x.line) return x.kind === 'problem'
+    ? `/snags?line=${encodeURIComponent(x.line)}${x.id ? `&open=${encodeURIComponent(x.id)}` : ''}`
+    : `/programs?line=${encodeURIComponent(x.line)}`;
   /* An action opens on its own sheet (the board reads ?a=), not on the whole
      board with the one you tapped somewhere in it. */
   if (x.kind === 'action') return `/project/${x.jobId}/board${x.id ? `?a=${encodeURIComponent(x.id)}` : ''}`;
@@ -99,12 +97,19 @@ function whereTo(x: JobItem): string {
  *  room (ui/RecordDrawer) — × comes back here; anything else goes where it
  *  is kept. */
 function openItem(x: JobItem): void {
-  if (x.id && x.kind !== 'action' && x.kind !== 'note' && x.kind !== 'check') openRecord(x.jobId, x.id);
+  if (x.id && !x.line && x.kind !== 'action' && x.kind !== 'note' && x.kind !== 'check') openRecord(x.jobId, x.id);
   else nav(whereTo(x));
 }
 const RECORD_MARK = new Set(['test', 'fix', 'install', 'setup', 'handover']);
 
-const whenOf = (x: JobItem) => (x.critical ? x.critical.state : x.late ? lateWhen(x, todayISO()) : x.on ? niceDay(x.on) : 'no date');
+/* A critical row's when is its word ("open", "3 days late"); the rest of
+   how it stands is the row's branch (FLOW-AUDIT.md, 6 — the whole sentence
+   in this column squeezed the problem to 63 px). */
+const whenOf = (x: JobItem) => (x.critical ? (x.critical.word ?? x.critical.state) : x.late ? lateWhen(x, todayISO()) : x.on ? niceDay(x.on) : 'no date');
+const branchOf = (x: JobItem) => (x.critical ? (x.critical.word ? x.critical.more : undefined) : x.branch);
+/** "across every job", or "across every line and job" when a line's own
+ *  work is among them. */
+const across = (items: JobItem[]) => (items.some(x => x.line) ? 'across every line and job' : 'across every job');
 
 const reduced = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -137,90 +142,9 @@ function Count({ n, still }: { n: number; still: boolean }) {
   return <>{v}</>;
 }
 
-interface Jobs { gate: JobInput[]; paced: PacedInput[] }
-
 /** A tree box's state as one of the row's tiles: red overdue, amber at risk,
  *  indigo under way, green done, grey not started — the house colours. */
 const TREE_TONE: Record<string, string> = { r: 'late', a: 'risk', w: 'going', g: 'done', n: 'none' };
-
-/** Every project, read the way its own method reads it. */
-function useJobs(projects: Project[]): Jobs | null {
-  const [inputs, setInputs] = useState<Jobs | null>(null);
-  const ids = projects.map(p => `${p.id}:${p.updatedAt}`).join('|');
-  useEffect(() => {
-    let live = true;
-    let timer: number | undefined;
-    const load = async () => {
-      const gateProjects = projects.filter(p => planModel(p) === 'commissioning');
-      const pacedProjects = projects.filter(p => planModel(p) !== 'commissioning');
-      const gate = await Promise.all(gateProjects.map(async project => ({
-        project,
-        tests: await listTests(project.id),
-        items: await listTestItems(project.id),
-        assets: await listAssets(project.id),
-        materials: await listMaterials(project.id),
-        programs: await listPrograms(project.id),
-        /* a test proved by a study still short says so on its row */
-        studies: await listStudies(project.id),
-      })));
-      const paced = await Promise.all(pacedProjects.map(async (project): Promise<PacedInput> => {
-        const [steps, lines, targets, readings, items, materials, programs] = await Promise.all([
-          listPaceTodos(project.id), loadPaceLines(project.id), listTargets(project.id), listReadings(project.id), listTestItems(project.id),
-          /* What it waits on — late here is late on the job (lib/portfolio pacedOwed). */
-          listMaterials(project.id), listPrograms(project.id),
-        ]);
-        // The same call the project's own page makes, so the row and the page agree.
-        const series = lines.map(l => lineSeries(project.measures ?? [], project.periods ?? [], targets, readings, l.id));
-        /* A lever tree job's tree, drawn the way the tree and the report draw
-           it — board rows hung in, and a box bound to a number in that
-           number's colour — so the row cannot say something the tree does not. */
-        const tree = planModel(project) === 'tree'
-          ? treeStanding(withTrackerRows(await listTreeNodes(project.id), bindSources(
-            steps.map(s => stepAction(s, lines)), steps, lines,
-            { measures: project.measures ?? [], periods: project.periods ?? [], targets, readings })))
-          : undefined;
-        /* A 6M job's problems, read by the engine its fishbone and its client
-           report read them with — the phase is phaseOf's, not worked out here —
-           and each line against its target in the report's own sentence. */
-        let problems: SixMProblem[] | undefined;
-        let gaps: PacedInput['gaps'];
-        let losses: PacedInput['losses'];
-        if (planModel(project) === 'board') {
-          const day = todayISO();
-          const loaded = await loadProblems(project.id).catch(() => null);
-          problems = loaded
-            ? viewsOf(loaded, project.id, undefined, Date.parse(`${day}T23:59:59`)).map(sixmProblemOf)
-            : undefined;
-          gaps = (project.measures ?? []).length
-            ? lines.map((l, i) => ({ lineId: l.id, line: l.name, ...gapOf(l.name, series[i]) }))
-            : [];
-          /* each line's latest shift counted (tool 7), read from the same
-             stops and cost model its fishbone reads */
-          losses = loaded ? lines.flatMap(l => {
-            const cur = l.workspaceId ? currentLosses(loaded.data.studies, l.workspaceId) : undefined;
-            const said = cur ? lossCardLine(cur, { observations: loaded.data.observations, workspaces: loaded.data.workspaces }) : undefined;
-            return cur && said ? [{ lineId: l.id, line: l.name, ...said, href: studyHref(cur) }] : [];
-          }) : [];
-        }
-        return {
-          project, steps, lines, notes: items.filter(i => i.kind === 'note'), tree, problems, gaps, losses, materials, programs,
-          atTarget: series.filter(x => x?.meeting === true).length,
-          judged: series.filter(x => x?.meeting != null).length,
-          /* Are its lines on target? — the answer its front page leads with. */
-          onTarget: linesOnTarget(lines.map((l, i) => ({ name: l.name, series: series[i] }))),
-        };
-      }));
-      if (live) setInputs({ gate, paced });
-    };
-    void load();
-    /* Anything written anywhere — here, or synced from the phone — redraws
-       the board a moment later. Bursts collapse into one load. */
-    const off = onDataChange(() => { window.clearTimeout(timer); timer = window.setTimeout(() => void load(), 250); });
-    return () => { live = false; window.clearTimeout(timer); off(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `ids` is the projects, keyed by what can change
-  }, [ids]);
-  return inputs;
-}
 
 function readOpen(): Set<string> {
   try { return new Set(JSON.parse(localStorage.getItem(OPEN_KEY) ?? '[]') as string[]); } catch { return new Set(); }
@@ -232,20 +156,22 @@ type Focus = { t: 'who'; who: string } | { t: 'late' } | { t: 'critical' };
 
 function focusOf(pf: Portfolio, f: Focus): { title: string; items: JobItem[] } {
   /* Every open critical problem, every job (lib/portfolio criticalItems). */
-  if (f.t === 'critical') return { title: `${criticalCount(pf.critical.length)}, across every job`, items: pf.critical };
+  if (f.t === 'critical') return { title: `${criticalCount(pf.critical.length)}, ${across(pf.critical)}`, items: pf.critical };
   if (f.t === 'late') {
     const items = pf.items.filter(x => x.late);
-    return { title: `${items.length} late, across every job`, items };
+    return { title: `${items.length} late, ${across(items)}`, items };
   }
   const items = pf.items.filter(x => owedBy(x, f.who));
-  const jobs = new Set(items.map(x => x.jobId)).size;
-  const across = jobs > 1 ? ` across ${jobs} jobs` : '';
-  return { title: f.who === SITE ? `What the site owes — ${items.length}${across}` : f.who === NOBODY ? `${items.length} with no one named${across}` : `What ${f.who} owes — ${items.length}${across}`, items };
+  const jobs = new Set(items.filter(x => !x.line).map(x => x.jobId)).size;
+  const lines = new Set(items.filter(x => x.line).map(x => x.jobId)).size;
+  const on = [jobs ? `${jobs} job${jobs === 1 ? '' : 's'}` : '', lines ? `${lines} line${lines === 1 ? '' : 's'}` : ''].filter(Boolean).join(' and ');
+  const acrossN = jobs + lines > 1 ? ` across ${on}` : '';
+  return { title: f.who === SITE ? `What the site owes — ${items.length}${acrossN}` : f.who === NOBODY ? `${items.length} with no one named${acrossN}` : `What ${f.who} owes — ${items.length}${acrossN}`, items };
 }
 
 /** The list as text, for pasting into an email or reading down the phone. */
 const asText = (title: string, items: JobItem[]): string =>
-  [title, '', ...items.map(x => `• ${x.job} — ${x.what} (${kindWord(x).toLowerCase()}${x.who ? `, ${x.who}` : ''}) — ${whenOf(x)}${x.branch ? ` — ${x.branch}` : ''}`)].join('\n');
+  [title, '', ...items.map(x => `• ${x.job} — ${x.what} (${kindWord(x).toLowerCase()}${x.who ? `, ${x.who}` : ''}) — ${whenOf(x)}${branchOf(x) ? ` — ${branchOf(x)}` : ''}`)].join('\n');
 
 function FocusList({ pf, f, onClose }: { pf: Portfolio; f: Focus; onClose: () => void }) {
   const { title, items } = focusOf(pf, f);
@@ -254,7 +180,7 @@ function FocusList({ pf, f, onClose }: { pf: Portfolio; f: Focus; onClose: () =>
     void navigator.clipboard?.writeText(asText(title, items)).then(() => setCopied(true), () => setCopied(false));
   };
   return (
-    <div className="jb-focus" role="region" aria-label={title}>
+    <div className={'jb-focus' + (f.t === 'critical' ? ' is-crit' : '')} role="region" aria-label={title}>
       <div className="jb-focus-h">
         <h3>{title}</h3>
         <span className="jb-focus-acts">
@@ -268,14 +194,15 @@ function FocusList({ pf, f, onClose }: { pf: Portfolio; f: Focus; onClose: () =>
           <ol className="jb-focus-list">
             {items.map((x, i) => (
               <li key={`${x.jobId}-${x.kind}-${x.id ?? x.what}-${i}`} style={{ '--job': x.color } as CSSProperties}>
-                <button className={'jb-fi' + (x.late || x.critical ? ' is-late' : '')} onClick={() => openItem(x)}>
+                <button className={'jb-fi' + (x.late || x.critical ? ' is-late' : '') + (x.line ? ' is-line' : '')} onClick={() => openItem(x)}>
                   <span className="jb-fi-job">{x.job}</span>
                   <b className="jb-fi-what">{x.what}</b>
                   <span className="jb-fi-m">{x.critical ? x.critical.where : kindWord(x)}{
-                    x.partyKind === 'site' && x.who.trim() ? ` · ${x.who.trim()}`
+                    x.critical ? (x.who.trim() ? ` · ${x.who.trim()}` : '')
+                      : x.partyKind === 'site' && x.who.trim() ? ` · ${x.who.trim()}`
                       : f.t !== 'who' ? ` · ${x.party ?? 'nobody yet'}` : ''}</span>
                   <span className="jb-fi-when">{whenOf(x)}</span>
-                  {x.branch && <span className="jb-fi-b">{x.branch}</span>}
+                  {branchOf(x) && <span className="jb-fi-b">{branchOf(x)}</span>}
                 </button>
               </li>
             ))}
@@ -325,14 +252,23 @@ export function useAccessByJob(projects: Project[]): (id: string) => Can {
 
 /* ------------------------------- the board ------------------------------ */
 
-export function JobsBoard({ projects }: { projects: Project[] }) {
-  const inputs = useJobs(projects);
+export function JobsBoard({ projects, after }: {
+  projects: Project[];
+  /** Drawn right under the band — on a phone, the factory's line cards go
+   *  here, so the answer is the first screen (FLOW-AUDIT.md, 11). Drawn on
+   *  its own when there is nothing to chase. */
+  after?: ReactNode;
+}) {
+  const inputs = useJobInputs(projects);
+  /* THE LINES' OWN WORK — problems and programs on a line with no job
+     (lib/lineWork), counted beside the jobs' (FLOW-AUDIT.md, 1). */
+  const lineWork = useLineWork();
   const accessOn = useAccessByJob(projects);
   /* The supplier tidy rewrites records, so only on the jobs this person may
      change — a client's are read, never written. */
   const editable = projects.filter(p => accessOn(p.id).edit).map(p => p.id);
   const today = todayISO();
-  const pf = useMemo(() => (inputs ? portfolio(inputs.gate, today, inputs.paced) : null), [inputs, today]);
+  const pf = useMemo(() => (inputs && lineWork ? portfolio(inputs.gate, today, inputs.paced, lineWork) : null), [inputs, lineWork, today]);
   /* SINCE YOU LAST LOOKED (lib/since) — each stage-gate job against this
      device's last visit to it; read here, never reset here. */
   const sinces = useMemo(() => new Map((inputs?.gate ?? []).map(g =>
@@ -396,8 +332,9 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
   };
   const pick = (f: Focus) => setFocus(cur => (cur && JSON.stringify(cur) === JSON.stringify(f) ? null : f));
 
-  if (!pf) return <section className="jb is-loading" aria-busy="true"><div className="jb-hero"><p className="jb-eyebrow">Every job</p><h1 className="jb-says">Reading every job…</h1></div></section>;
-  if (pf.jobs.length === 0) return null;
+  if (!pf) return <><section className="jb is-loading" aria-busy="true"><div className="jb-hero"><p className="jb-eyebrow">Every line and job</p><h1 className="jb-says">Reading every job…</h1></div></section>{after}</>;
+  /* No job, and no line with anything to chase: the factory is the page. */
+  if (pf.jobs.length === 0 && pf.lines.length === 0) return <>{after}</>;
 
   const glow = { '--g1': pf.jobs[0]?.color, '--g2': pf.jobs[1]?.color ?? pf.jobs[0]?.color } as CSSProperties;
   const { axis } = pf;
@@ -408,7 +345,9 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
       {/* ------------------------------ the band ------------------------------ */}
       <header className="jb-hero" style={glow}>
         <span className="jb-glow" aria-hidden />
-        <p className="jb-eyebrow">Control room · every job · {niceDay(today, { weekday: 'short' })}</p>
+        {/* Every line and every job: a line's own problems and programs are
+            counted here beside the jobs' (lib/lineWork). */}
+        <p className="jb-eyebrow">Control room · {pf.lines.length ? 'every line and job' : 'every job'} · {niceDay(today, { weekday: 'short' })}</p>
         {/* The page's one heading: Home had none, so a screen reader landed on
             the logo and "Who owes what" with no name for the page itself. */}
         <h1 className="jb-says">{pf.says}</h1>
@@ -451,7 +390,7 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
                 ten jobs the parties ran over seven rows of the band. */}
             {(allOwes ? pf.owes : pf.owes.slice(0, OWES_FIRST)).map(o => {
               const label = o.kind === 'site' ? 'The site' : o.kind === 'nobody' ? 'No one named' : o.who;
-              const split = pf.jobs.length > 1 && o.byJob.length > 0;
+              const split = pf.jobs.length + pf.lines.length > 1 && o.byJob.length > 0;
               return (
                 <button key={o.who} className={'jb-owe is-' + o.kind + (o.late ? ' is-late' : '') + (on({ t: 'who', who: o.who }) ? ' is-on' : '')}
                   onClick={() => pick({ t: 'who', who: o.who })} aria-pressed={on({ t: 'who', who: o.who })}>
@@ -460,7 +399,8 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
                   {o.late > 0 && <span className="jb-owe-l">{o.late} late</span>}
                   {split && (
                     <span className="jb-owe-jobs">
-                      {o.byJob.map(b => <span key={b.jobId} className="jb-owe-job"><i style={{ background: b.color }} aria-hidden />{b.job} {b.open}</span>)}
+                      {/* a line's own share wears a square, a job's its round colour */}
+                      {o.byJob.map(b => <span key={b.jobId} className={'jb-owe-job' + (b.jobId.startsWith('line:') ? ' is-line' : '')}><i style={{ background: b.color }} aria-hidden />{b.job} {b.open}</span>)}
                     </span>
                   )}
                 </button>
@@ -491,6 +431,8 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
       </header>
 
       {focus && <FocusList pf={pf} f={focus} onClose={() => setFocus(null)} />}
+
+      {after}
 
       {/* --------------------------- reminders --------------------------- */}
       {/* Dates set on notes, every job — Rowland: "the app will remind
@@ -524,14 +466,14 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
       {/* ---------------------------- this week ---------------------------- */}
       <div className="jb-week" ref={weekRef}>
         <div className="jb-sec-h">
-          <h3>This week, across every job</h3>
+          <h3>This week, {pf.lines.length ? 'across every line and job' : 'across every job'}</h3>
           <span className="sub">{pf.week.length ? `${pf.week.length} to chase — late first` : 'nothing due, nothing late'}</span>
         </div>
         {pf.week.length > 0 && <WeekList items={pf.week} />}
       </div>
 
       {/* ----------------------------- the Gantt ----------------------------- */}
-      <div className="jb-gantt" ref={ganttRef}>
+      {pf.jobs.length > 0 && <div className="jb-gantt" ref={ganttRef}>
         <div className="jb-g-head">
           <span className="jb-g-lab">{pf.jobs.length === 1 ? 'The job' : `${pf.jobs.length} jobs`}<span className="sub"> · tap one to open it here</span></span>
           <div className="jb-g-track">
@@ -558,7 +500,7 @@ export function JobsBoard({ projects }: { projects: Project[] }) {
           <span><i className="jb-kf" />handover</span>
           <span className="jb-key-say">Tap a dot to see what it is.</span>
         </p>
-      </div>
+      </div>}
     </section>
   );
 }
@@ -574,10 +516,10 @@ function WeekList({ items }: { items: JobItem[] }) {
   const [all, setAll] = useState(false);
   const today = todayISO();
   const shown = all ? items : items.slice(0, WEEK_FIRST);
-  const groups: { jobId: string; job: string; color: string; rows: JobItem[] }[] = [];
+  const groups: { jobId: string; job: string; color: string; line: boolean; rows: JobItem[] }[] = [];
   for (const x of shown) {
     let g = groups.find(y => y.jobId === x.jobId);
-    if (!g) { g = { jobId: x.jobId, job: x.job, color: x.color, rows: [] }; groups.push(g); }
+    if (!g) { g = { jobId: x.jobId, job: x.job, color: x.color, line: !!x.line, rows: [] }; groups.push(g); }
     g.rows.push(x);
   }
   const when = (x: JobItem) => (x.on
@@ -586,8 +528,11 @@ function WeekList({ items }: { items: JobItem[] }) {
   return (
     <div className="jb-wl">
       {groups.map(g => (
-        <section key={g.jobId} className="jb-wl-g" style={{ '--job': g.color } as CSSProperties}>
-          <h4 className="jb-wl-job"><i aria-hidden />{g.job}</h4>
+        <section key={g.jobId} className={'jb-wl-g' + (g.line ? ' is-line' : '')} style={{ '--job': g.color } as CSSProperties}>
+          {/* A LINE'S OWN WORK is said so — its name where a job's goes, and
+              "on the line" beside it, so Line 7 the line is never read as a
+              job called Line 7. */}
+          <h4 className="jb-wl-job"><i aria-hidden />{g.job}{g.line && <span className="jb-wl-on"> · on the line, no job</span>}</h4>
           <ul>
             {g.rows.map((x, i) => (
               <li key={`${x.kind}-${x.id ?? x.what}-${i}`}>

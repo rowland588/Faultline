@@ -115,6 +115,16 @@ export function criticalState(c: Critical): string {
   return 'open · no way round it yet';
 }
 
+/** HOW IT STANDS, IN TWO PIECES — the word ("open", "sorted 9 Oct") for a
+ *  narrow column, and the rest ("going with: Put a production belt in …")
+ *  for the row's branch line under it. The control room's critical list put
+ *  the whole sentence in its date column, which squeezed the problem into a
+ *  column 63 px wide at a desk and ran off a phone (FLOW-AUDIT.md, 6). */
+export function criticalParts(c: Critical): { word: string; more?: string } {
+  const [word, ...rest] = criticalState(c).split(' · ');
+  return rest.length ? { word, more: rest.join(' · ') } : { word };
+}
+
 /** "1 critical" / "2 critical" — the count beside a job or a stage. */
 export const criticalCount = (n: number): string => `${n} critical`;
 
