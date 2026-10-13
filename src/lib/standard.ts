@@ -115,14 +115,40 @@ export const SHAPES: { shape: ShapeKind; word: string }[] = [
   { shape: 'text', word: 'Text' },
 ];
 
-export type ShapeTone = 'blue' | 'grey' | 'amber' | 'green' | 'red';
+export type ShapeTone = 'blue' | 'grey' | 'amber' | 'green' | 'red' | 'purple' | 'teal';
 export const TONES: Record<ShapeTone, { fill: string; stroke: string; ink: string; word: string }> = {
   blue: { fill: '#e3edfd', stroke: '#1f63e0', ink: '#123c8c', word: 'Machine' },
   grey: { fill: '#eceff4', stroke: '#55657a', ink: '#2b3546', word: 'Structure' },
   amber: { fill: '#fdf1dc', stroke: '#b7791f', ink: '#6e4a0f', word: 'Materials' },
   green: { fill: '#e2f4ea', stroke: '#1e8a4c', ink: '#145c34', word: 'Zone' },
   red: { fill: '#fde6e3', stroke: '#c0392b', ink: '#8a2318', word: 'Hazard' },
+  /* two more (Rowland, 13 October: "a few more options with lines and colours") —
+     an area of work and the flow of product, never a state's meaning */
+  purple: { fill: '#efe7fd', stroke: '#7c3aed', ink: '#4c1d95', word: 'Area' },
+  teal: { fill: '#dcf3f0', stroke: '#0f766e', ink: '#134e4a', word: 'Flow' },
 };
+
+/* A SHAPE'S FILL AND LINE (Rowland, 13 October: "a few more options with
+   lines and colours ... almost fading out a certain area of a colour"). The
+   fill: none (an outline), light (the colour's own wash — as before) or
+   faded (the colour itself, seen through — an area that stands out while
+   the picture still shows under it). The line: solid, dashed, dotted or
+   thick. */
+export type ShapeFill = 'none' | 'light' | 'faded';
+export const FILLS: { fill: ShapeFill; word: string }[] = [
+  { fill: 'none', word: 'None' }, { fill: 'light', word: 'Light' }, { fill: 'faded', word: 'Faded' },
+];
+export type ShapeLine = 'solid' | 'dashed' | 'dotted' | 'thick';
+export const LINES: { line: ShapeLine; word: string }[] = [
+  { line: 'solid', word: 'Solid' }, { line: 'dashed', word: 'Dashed' }, { line: 'dotted', word: 'Dotted' }, { line: 'thick', word: 'Thick' },
+];
+/** How opaque a faded area is drawn — the picture still seen under it. */
+export const FADED_ALPHA = 0.32;
+/** A stroke pattern for a line, in multiples of the line's width. */
+export const dashOf = (line: ShapeLine | undefined, width: number): number[] =>
+  line === 'dashed' ? [width * 4, width * 3] : line === 'dotted' ? [width * 0.1, width * 2.2] : [];
+/** The line's width against the usual. */
+export const weightOf = (line: ShapeLine | undefined): number => (line === 'thick' ? 2.2 : 1);
 
 /* A PERSON'S COLOUR — Rowland, 13 October: "I also can't change the colour
    of the people. I want to be able to do that." Teams, crews or jobs told
@@ -185,8 +211,16 @@ export interface StandardMark {
   w?: number;
   h?: number;
   tone?: ShapeTone;
+  /** A shape's fill and line (FILLS, LINES) — light and solid when not given. */
+  fill?: ShapeFill;
+  line?: ShapeLine;
   /** A person's colour (PERSON_COLOURS); blue when not given. */
   colour?: PersonColour;
+  /** THE BOTTLENECK, said on the map (Rowland, 13 October: "highlight a
+   *  bottleneck ... this area is this person's — the bottleneck"): a person or
+   *  an area named the one that holds the line. Said in words on the map and
+   *  in Who does what, never by a state colour. */
+  bottleneck?: boolean;
 }
 
 export const isShape = (m: Pick<StandardMark, 'kind'>): boolean => m.kind === 'shape';
@@ -229,6 +263,39 @@ export { live as liveStandards };
 /** The people on a map, in the order they were numbered. */
 export function peopleOf(s: Pick<Standard, 'marks'>): StandardMark[] {
   return s.marks.filter(m => m.kind === 'person');
+}
+
+/** The bottlenecks said on the map, in words: "Op 2 — packs the trays", "the
+ *  Basket station". The first is the summary at the head of Who does what. */
+export function bottlenecksOf(s: Pick<Standard, 'marks'>): { id: ID; words: string; person: boolean }[] {
+  return s.marks.filter(m => m.bottleneck).map(m => {
+    const person = m.kind === 'person';
+    const label = (m.label ?? '').trim();
+    const words = person ? `${label || 'A person'}${m.task?.trim() ? ` — ${m.task.trim()}` : ''}`
+      : label ? `The ${label}` : isShape(m) ? 'An area' : `The ${markOf(m.kind).word.toLowerCase()}`;
+    return { id: m.id, person, words };
+  });
+}
+
+/* NAMES ON THE MAP (Rowland, 13 October: "when I'm putting in a name, it's too
+   long, it covers up too much of the map ... the commentary just on the
+   right-hand side"). The map carries a person's name short, or their number,
+   or nothing; the whole of it and what they do are in Who does what. */
+export type LabelMode = 'full' | 'short' | 'number';
+export const LABEL_MODES: { mode: LabelMode; word: string }[] = [
+  { mode: 'short', word: 'Short' }, { mode: 'full', word: 'Full' }, { mode: 'number', word: 'Numbers' },
+];
+/** A name on the map, short: its first 14 letters, then an ellipsis. */
+export const shortLabel = (label: string, max = 14): string => {
+  const t = label.trim();
+  return t.length > max ? `${t.slice(0, max - 1).trimEnd()}…` : t;
+};
+/** What a mark says on the map, in a mode — a person's number counts them in the order they were numbered. */
+export function mapLabel(m: Pick<StandardMark, 'kind' | 'label' | 'id'>, mode: LabelMode, people: readonly Pick<StandardMark, 'id'>[]): string | undefined {
+  if (m.kind === 'person' && mode === 'number') { const i = people.findIndex(p => p.id === m.id); return i >= 0 ? String(i + 1) : undefined; }
+  const l = m.label?.trim();
+  if (!l) return undefined;
+  return mode === 'full' ? l : shortLabel(l);
 }
 
 /** "6 people" — counted, never typed. */

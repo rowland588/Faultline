@@ -154,6 +154,24 @@ and actual production time; the OEE loss tree), counted by hand:
   and with no cost on the line, no pounds at all. Cost deployment (WCM) is
   the same pounds over weeks, ranked, each pointed at its cause.
 
+**What a pack costs in labour** (Rowland, 13 October: "provide an hourly
+rate ... how much we run in a minute equals how much we run in an hour. If I
+put two people there ... is my cost per pack higher or lower?"). The direct
+labour cost of a unit is the crew's cost an hour over the units the line
+makes an hour: *people × pounds an hour ÷ (good output a minute × 60)* — the
+standard costing practice (labour cost per unit = rate × hours ÷ units).
+Eight people at £12.50 is £100 an hour; a line making 409 bags an hour costs
+24.4p a bag in labour. The people are those on the line standard's map until
+typed; the rate the line's, with its on-cost, until typed — each said where
+it came from. **One more person at a people bottleneck** is the question the
+floor asks: it raises the line to what the next-slowest station allows
+(never past it), adds one rate an hour, and the answer is the cost a pack
+against today's — lower when the packs it adds outweigh what it costs. Only
+at the bottleneck: a person added anywhere else adds cost and no packs, so
+it is never offered there. It is labour only — materials, overhead and
+contribution stay in the loss count's pounds above, and the app never adds
+the two into one figure.
+
 ## 7. The product mix
 
 When the bottleneck cannot make everything asked, make first what earns the

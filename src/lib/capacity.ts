@@ -101,6 +101,14 @@ export interface Capacity {
    *  added; the mapper passes `capacity` whole. Only a product's line standard
    *  carries them — a 6M line's balance never does. */
   changeovers?: StandardChangeover[];
+  /** WHAT THE LINE'S LABOUR COSTS A PACK (Rowland, 13 October: "if I put two
+   *  people there ... is my cost per pack higher or lower? That ultimately
+   *  decides whether or not they will pursue putting an extra person on the
+   *  line"). The people on the line for this product — all of them, not only
+   *  the stations that are people — and what one costs an hour. Each absent
+   *  when not typed: the line's own (its crew and rate, Stage 1) or the
+   *  line standard's head count stand in, said which. */
+  labour?: { people?: number; ratePerHour?: number };
 }
 
 export interface WhatIf {
@@ -596,6 +604,122 @@ export function shortSays(r: CapacityResult): string | undefined {
   const nm = r.limit.station.name.trim() || `Station ${r.limit.index + 1}`;
   const tgt = r.target == null ? '' : (r.gap as number) > 0 ? ` · ${fmtN(r.gap as number)} short of ${fmtN(r.target)}` : ` · target ${fmtN(r.target)} met`;
   return r.next ? `${nm} limits at ${fmtN(r.line)} ${r.unit}/min${tgt}` : `${nm} runs ${fmtN(r.line)} ${r.unit}/min — add the rest of the line`;
+}
+
+/* =========================== what a pack costs ============================
+ * Labour's cost per pack: the people on the line × what one costs an hour,
+ * over the good packs the line makes an hour (its bottleneck, its rejects
+ * taken off). The practice's "labour cost per unit" — the number that says
+ * whether one more person pays for themselves: they cost an hour's rate, and
+ * they lift the line only as far as the next station lets it. */
+
+export interface LabourCost {
+  people: number;
+  ratePerHour: number;
+  /** £ an hour, all of them. */
+  perHour: number;
+  /** Good packs an hour, in the line's unit. */
+  packsPerHour: number;
+  /** £ a pack. */
+  perPack: number;
+}
+
+/** What the line's labour costs a pack, or nothing until the line makes
+ *  something and the people and their rate are known. */
+export function labourCost(r: CapacityResult, people: number | undefined, ratePerHour: number | undefined): LabourCost | undefined {
+  const out = r.goodOut ?? r.line;
+  if (!(out != null && out > 0) || !(people != null && people > 0) || !(ratePerHour != null && ratePerHour > 0)) return undefined;
+  const perHour = people * ratePerHour, packsPerHour = out * 60;
+  return { people, ratePerHour, perHour, packsPerHour, perPack: perHour / packsPerHour };
+}
+
+/** WHO AND WHAT, FOR THE COST — typed on this capacity, else the people
+ *  placed on the product's line standard, else the line's crew; the rate
+ *  typed, else the line's own (its wage × its on-costs, Stage 1). Said where
+ *  each came from, so a stand-in is never mistaken for a decision. */
+export interface LabourInputs {
+  people?: number; peopleFrom?: 'typed' | 'map' | 'line';
+  rate?: number; rateFrom?: 'typed' | 'line';
+}
+export function labourInputs(cap: Pick<Capacity, 'labour'> | undefined, mapPeople: number | undefined,
+  line?: { crew?: number; labourRatePerHour?: number; labourBurden?: number }): LabourInputs {
+  const tp = cap?.labour?.people, tr = cap?.labour?.ratePerHour;
+  const out: LabourInputs = {};
+  if (tp != null && tp > 0) { out.people = tp; out.peopleFrom = 'typed'; }
+  else if (mapPeople != null && mapPeople > 0) { out.people = mapPeople; out.peopleFrom = 'map'; }
+  else if (line?.crew != null && line.crew > 0) { out.people = line.crew; out.peopleFrom = 'line'; }
+  if (tr != null && tr > 0) { out.rate = tr; out.rateFrom = 'typed'; }
+  else if (line?.labourRatePerHour != null && line.labourRatePerHour > 0) {
+    out.rate = line.labourRatePerHour * (line.labourBurden != null && line.labourBurden > 0 ? line.labourBurden : 1);
+    out.rateFrom = 'line';
+  }
+  return out;
+}
+
+/** A count as it is read off a board: 3,600. */
+export const fmtBig = (n: number): string => Math.round(n).toLocaleString('en-GB');
+
+/** Money as a person says it: under a pound in pence (2.8p), else pounds. */
+export const fmtMoney = (gbp: number): string =>
+  Math.abs(gbp) < 1 ? `${String(Number((gbp * 100).toFixed(gbp * 100 < 10 ? 2 : 1)))}p` : `£${gbp.toFixed(2)}`;
+
+/** The people working in the stations that are people — what a what-if or
+ *  "one more person" adds to, or takes from, the line's people. */
+export const peopleInStations = (stations: readonly Station[]): number =>
+  stations.filter(s => s.kind === 'people').reduce((n, s) => n + (s.crew != null && s.crew > 0 ? s.crew : 1), 0);
+
+export interface MorePeople {
+  /** The station one more person goes to — the bottleneck, when it is people. */
+  station: Station;
+  /** The line as it would run. */
+  r: CapacityResult;
+  now: LabourCost;
+  then: LabourCost;
+  /** "One more person at Tray packer: …" */
+  sentence: string;
+  /** Lower cost a pack — they pay for themselves. */
+  cheaper: boolean;
+}
+
+/** ONE MORE PERSON AT THE BOTTLENECK — when people set the pace: what the
+ *  line would make, what it would cost, and whether a pack costs more or
+ *  less. Nothing when the bottleneck is a machine (a person there adds cost
+ *  and no packs) or the cost is not known. */
+export function oneMorePerson(cap: Capacity, r: CapacityResult, people: number | undefined, ratePerHour: number | undefined): MorePeople | undefined {
+  const lim = r.limit;
+  const now = labourCost(r, people, ratePerHour);
+  if (!lim || lim.station.kind !== 'people' || !now) return undefined;
+  const station = lim.station;
+  const crew = station.crew != null && station.crew > 0 ? station.crew : 1;
+  const stations = cap.stations.map(s => (s.id === station.id ? { ...s, crew: crew + 1 } : s));
+  const r2 = analyse({ ...cap, stations });
+  const then = labourCost(r2, now.people + 1, now.ratePerHour);
+  if (!then) return undefined;
+  const nm = station.name.trim() || `Station ${lim.index + 1}`;
+  const one = oneOf(r.unit);
+  const nextName = r2.limit && r2.limit.station.id !== station.id ? ` (${r2.limit.station.name.trim() || `Station ${r2.limit.index + 1}`} then limits)` : '';
+  const diff = then.perPack - now.perPack;
+  const cheaper = diff < -1e-12;
+  const sentence = `One more person at ${nm}: the line makes ${fmtBig(then.packsPerHour)} ${r.unit} an hour instead of ${fmtBig(now.packsPerHour)}${nextName} — ${fmtMoney(then.perHour)} an hour, ${fmtMoney(then.perPack)} a ${one} instead of ${fmtMoney(now.perPack)}: `
+    + (cheaper ? `${fmtMoney(-diff)} a ${one} lower — they pay for themselves.`
+      : Math.abs(diff) <= 1e-12 ? 'the same a ' + one + '.'
+        : `${fmtMoney(diff)} a ${one} higher — the packs they add do not pay for them.`);
+  return { station, r: r2, now, then, sentence, cheaper };
+}
+
+/** A what-if's labour against the line as run: its people are the line's,
+ *  changed by what its stations of people change. */
+export function whatIfLabour(asRun: Capacity, rAsRun: CapacityResult, w: Capacity, rW: CapacityResult, people: number | undefined, ratePerHour: number | undefined): { now: LabourCost; then: LabourCost; sentence: string } | undefined {
+  const now = labourCost(rAsRun, people, ratePerHour);
+  if (!now) return undefined;
+  const delta = peopleInStations(w.stations) - peopleInStations(asRun.stations);
+  const then = labourCost(rW, now.people + delta, now.ratePerHour);
+  if (!then) return undefined;
+  const one = oneOf(rAsRun.unit);
+  const diff = then.perPack - now.perPack;
+  const ppl = delta === 0 ? 'the same people' : `${delta > 0 ? delta : -delta} ${Math.abs(delta) === 1 ? 'person' : 'people'} ${delta > 0 ? 'more' : 'fewer'}`;
+  const sentence = `Labour: ${ppl}, ${fmtMoney(then.perPack)} a ${one} against ${fmtMoney(now.perPack)} as run — ${Math.abs(diff) <= 1e-12 ? 'the same' : `${fmtMoney(Math.abs(diff))} ${diff < 0 ? 'lower' : 'higher'}`}.`;
+  return { now, then, sentence };
 }
 
 /** What would the line do if this station were brought up to `to` (in the

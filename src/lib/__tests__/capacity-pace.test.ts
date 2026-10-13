@@ -75,3 +75,47 @@ describe('the words', () => {
     expect(blankStation('y', 'machine', true).contains).toBe(1);
   });
 });
+
+describe('what a pack costs in labour (Rowland, 13 October: "if I put two people there ... is my cost per pack higher or lower?")', () => {
+  const tray = person({ cycleSec: 8, perCycle: 1, source: 'timed' });
+  const cap = { stations: [bagger, tray] };
+  const r = analyse(cap);
+  it('8 people at £12.50 an hour, the line making 60 bags a minute: £100 an hour, 3,600 bags, 2.78p a bag', async () => {
+    const { labourCost, fmtMoney } = await import('../capacity');
+    const c = labourCost(r, 8, 12.5);
+    expect(c?.perHour).toBe(100);
+    expect(c?.packsPerHour).toBeCloseTo(3600, 9);
+    expect(fmtMoney(c?.perPack ?? 0)).toBe('2.78p');
+    expect(labourCost(r, undefined, 12.5)).toBeUndefined();
+  });
+  it('one more person at the tray packer: the bagger then limits at 4,200 an hour, 2.68p a bag — lower, they pay for themselves', async () => {
+    const { oneMorePerson } = await import('../capacity');
+    const m = oneMorePerson(cap, r, 8, 12.5);
+    expect(m?.cheaper).toBe(true);
+    expect(m?.then.packsPerHour).toBeCloseTo(4200, 9);
+    expect(m?.sentence).toBe('One more person at Tray packer: the line makes 4,200 bags an hour instead of 3,600 (Bagger then limits) — £112.50 an hour, 2.68p a bag instead of 2.78p: 0.1p a bag lower — they pay for themselves.');
+  });
+  it('a person who adds no packs costs more a pack, and is said so', async () => {
+    const { oneMorePerson } = await import('../capacity');
+    /* the tray packer already keeps up: the bagger limits, a person there adds nothing */
+    const two = { ...tray, crew: 2 };
+    const r2 = analyse({ stations: [bagger, two] });
+    expect(oneMorePerson({ stations: [bagger, two] }, r2, 8, 12.5)).toBeUndefined();   // the bottleneck is a machine
+    const slow = { ...tray, cycleSec: 30 };
+    const many = { ...slow, crew: 1 };
+    const r3 = analyse({ stations: [bagger, many] });
+    const m = oneMorePerson({ stations: [bagger, many] }, r3, 8, 12.5);
+    expect(m?.cheaper).toBe(true);          // one person at 30 s is far short; a second doubles the line
+    const fast = { ...tray, cycleSec: 6.9 };
+    const r4 = analyse({ stations: [bagger, fast] });
+    const m4 = oneMorePerson({ stations: [bagger, fast] }, r4, 8, 12.5);
+    expect(m4?.cheaper).toBe(false);        // 6.9 s is nearly keeping up: a second person adds a few packs and a full wage
+    expect(m4?.sentence).toMatch(/higher — the packs they add do not pay for them\.$/);
+  });
+  it('a what-if says its labour against the line as run', async () => {
+    const { whatIfLabour } = await import('../capacity');
+    const w = { stations: [bagger, { ...tray, crew: 2 }] };
+    const x = whatIfLabour(cap, r, w, analyse(w), 8, 12.5);
+    expect(x?.sentence).toBe('Labour: 1 person more, 2.68p a bag against 2.78p as run — 0.1p lower.');
+  });
+});

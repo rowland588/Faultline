@@ -18,11 +18,11 @@
 import { useEffect, useState } from 'react';
 import { getWorkspace, listAllStudies, onDataChange } from '../db';
 import { nav } from '../state/useRoute';
-import { analyse, fmtN, shiftCapacity, shiftsIn, type CapacityResult, type ChangeoverIn, type ShiftIn } from '../lib/capacity';
+import { analyse, fmtMoney, fmtN, labourCost, labourInputs, oneOf, shiftCapacity, shiftsIn, type CapacityResult, type ChangeoverIn, type ShiftIn } from '../lib/capacity';
 import { changeoverIn } from '../lib/ie/changeover';
 import { studyHref } from '../lib/studyLinks';
 import type { StandardChangeover, ToolStudy } from '../lib/study';
-import type { Standard } from '../lib/standard';
+import { headcount, type Standard } from '../lib/standard';
 
 export interface ShiftInputs { shifts?: ShiftIn[]; co?: ChangeoverIn; smed?: ToolStudy }
 
@@ -94,7 +94,7 @@ export function ShiftCapacityView({ r, inputs }: { r: CapacityResult; inputs: Sh
 
 /** The card at the line's one line for each standard (lib/standardCard) —
  *  capacity a shift, short — read once for the paper, beside worksFor. */
-export async function shiftShortsFor(list: Pick<Standard, 'id' | 'workspaceId' | 'capacity'>[]): Promise<Record<string, string | undefined>> {
+export async function shiftShortsFor(list: Pick<Standard, 'id' | 'workspaceId' | 'capacity' | 'marks'>[]): Promise<Record<string, string | undefined>> {
   const all = await listAllStudies();
   const out: Record<string, string | undefined> = {};
   for (const s of list) {
@@ -102,7 +102,12 @@ export async function shiftShortsFor(list: Pick<Standard, 'id' | 'workspaceId' |
     const r = analyse(s.capacity);
     if (!r.limit) continue;
     const ws = s.workspaceId ? await getWorkspace(s.workspaceId) : undefined;
-    out[s.id] = shiftCapacity(r, shiftsIn(ws?.shifts), changeoverIn(s.capacity.changeovers, all, s.id))?.short;
+    const shift = shiftCapacity(r, shiftsIn(ws?.shifts), changeoverIn(s.capacity.changeovers, all, s.id))?.short;
+    /* WHAT A PACK COSTS IN LABOUR, on the same line of the card (lib/capacity labourCost) */
+    const li = labourInputs(s.capacity, headcount(s), ws);
+    const lc = labourCost(r, li.people, li.rate);
+    const cost = lc ? `${fmtMoney(lc.perPack)} a ${oneOf(r.unit)} in labour — ${lc.people} ${lc.people === 1 ? 'person' : 'people'} at ${fmtMoney(li.rate ?? 0)} an hour` : undefined;
+    out[s.id] = [shift, cost].filter(Boolean).join(' · ') || undefined;
   }
   return out;
 }

@@ -37,6 +37,12 @@
  *      only when it has one, and on no job the rail is no job's
  *   11 on a phone: the V on its side, every station a bar, the bottleneck
  *      named; the sheet a card a station; nothing off the side
+ *   12 what a pack costs in labour (Rowland, 13 October: "if I put two people
+ *      there ... is my cost per pack higher or lower?"): the people on the
+ *      line stand in from the line standard until typed; the rate typed; the
+ *      cost a pack as lib/capacity says it; one more person at the bottleneck,
+ *      higher or lower, and made so; a what-if says its labour; the card's
+ *      line carries the cost
  *   and a client reads it and changes nothing.
  *
  * Every sentence is checked against the module that makes it (lib/capacity
@@ -297,6 +303,41 @@ let TRAY;
   await page.setViewportSize({ width: 1360, height: 900 });
 }
 
+/* ---- 12 what a pack costs in labour ---- */
+{
+  await go(CAP);
+  const box = page.locator('.cap-cost');
+  ok(/placed on the line standard/.test(await box.innerText()) && /not said yet/.test(await box.innerText()), '12 the people stand in from the line standard; the rate not said yet');
+  await box.getByLabel('People on the line').fill('8'); await box.getByLabel('People on the line').press('Enter');
+  await box.getByLabel('Pounds an hour each').fill('12.50'); await box.getByLabel('Pounds an hour each').press('Enter'); await page.waitForTimeout(900);
+  const m = await page.evaluate(async id => {
+    const db = await import('/src/db.ts'); const C = await import('/src/lib/capacity.ts');
+    const st = await db.getStandard(id); const r = C.analyse(st.capacity);
+    const c = C.labourCost(r, st.capacity.labour?.people, st.capacity.labour?.ratePerHour);
+    const more = C.oneMorePerson(st.capacity, r, st.capacity.labour?.people, st.capacity.labour?.ratePerHour);
+    return { labour: st.capacity.labour, perPack: c ? C.fmtMoney(c.perPack) : null, more: more?.sentence ?? null, station: more?.station.name, crew: more?.station.crew ?? 1, unit: C.oneOf(r.unit) };
+  }, SID);
+  const said = (await box.locator('.cap-cost-says').innerText()).replace(/\s+/g, ' ');
+  ok(m.labour?.people === 8 && m.labour?.ratePerHour === 12.5 && said.startsWith(`${m.perPack} a ${m.unit}`), `12b typed and kept: ${said}`);
+  if (m.more) {
+    ok((await box.locator('.cap-cost-more').first().innerText()).replace(/\s+/g, ' ').startsWith(m.more), `12c one more person at the bottleneck, as the module says: ${m.more}`);
+    await box.getByRole('button', { name: new RegExp(`^Make it ${m.crew + 1} at`) }).click(); await page.waitForTimeout(900);
+    const after = await page.evaluate(async ([id, nm]) => {
+      const C = await import('/src/lib/capacity.ts');
+      const st = await (await import('/src/db.ts')).getStandard(id); const r = C.analyse(st.capacity);
+      const c = C.labourCost(r, st.capacity.labour?.people, st.capacity.labour?.ratePerHour);
+      return { crew: st.capacity.stations.find(x => x.name === nm)?.crew, people: st.capacity.labour?.people, perPack: c ? C.fmtMoney(c.perPack) : null };
+    }, [SID, m.station]);
+    const said2 = (await box.locator('.cap-cost-says').innerText()).replace(/\s+/g, ' ');
+    ok(after.crew === m.crew + 1 && after.people === 9 && m.more.includes(`${after.perPack} a ${m.unit} instead of`) && said2.startsWith(`${after.perPack} a ${m.unit} — 9 people`),
+      `12d made so: ${m.station} now ${after.crew} people, the line 9 — ${said2}`);
+  } else ok(true, '12c (the bottleneck is a machine: one more person is said to add cost and no packs)');
+  await page.getByRole('button', { name: /What if/ }).first().click(); await page.waitForTimeout(1200);
+  ok(/^Labour: the same people, /.test((await page.locator('.cap-cost-more').last().innerText()).trim()), `12e a what-if says its labour: ${(await page.locator('.cap-cost-more').last().innerText()).trim()}`);
+  const card = await page.evaluate(async id => (await (await import('/src/ui/ShiftCapacity.tsx')).shiftShortsFor([await (await import('/src/db.ts')).getStandard(id)]))[id], SID);
+  ok(new RegExp(` a bag in labour — ${m.more ? 9 : 8} people at £12\\.50 an hour$`).test(card ?? ''), `12f the card's line carries it: ${card}`);
+}
+
 /* ---- a client reads it and changes nothing ---- a line's own tool is its
    members' to change; on a job, a client of the job reads it. So the
    standard is put on the job first, as a person would attach it. */
@@ -312,5 +353,5 @@ await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
 
 ok(errors.length === 0, errors.length ? `no console errors — ${errors.join(' | ')}` : 'no console errors');
 await browser.close();
-console.log(failed ? `\n${failed} acceptance check(s) failed` : '\nLine capacity accepted: the V, the sheet, the margin, the standard time, the walk and a shift hold');
+console.log(failed ? `\n${failed} acceptance check(s) failed` : '\nLine capacity accepted: the V, the sheet, the margin, the standard time, the walk, a shift and what a pack costs hold');
 process.exit(failed ? 1 : 0);

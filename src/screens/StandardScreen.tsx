@@ -19,7 +19,8 @@ import { todayISO } from '../lib/weeks';
 import { useBlobUrl } from '../lib/useBlobUrl';
 import { usePrograms } from '../lib/usePrograms';
 import { planModel } from '../lib/planModel';
-import { BOARDS, boardOf, colourOf, copyFor, hasMap, inMapTool, headcount, ICON_GROUPS, isShape, MARKS, markOf, nextRole, peopleOf, PERSON_COLOURS, reshaped, SHAPES, thingsOf, TONES, type BoardShape, type MarkKind, type PersonColour, type ShapeKind, type ShapeTone, type Standard, type StandardMark } from '../lib/standard';
+import { bottlenecksOf, dashOf, FADED_ALPHA, FILLS, LABEL_MODES, LINES, mapLabel, weightOf, type LabelMode, type ShapeFill, type ShapeLine,
+  BOARDS, boardOf, colourOf, copyFor, hasMap, inMapTool, headcount, ICON_GROUPS, isShape, MARKS, markOf, nextRole, peopleOf, PERSON_COLOURS, reshaped, SHAPES, thingsOf, TONES, type BoardShape, type MarkKind, type PersonColour, type ShapeKind, type ShapeTone, type Standard, type StandardMark } from '../lib/standard';
 import { useStandards } from '../ui/StandardsCard';
 import { Sheet } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
@@ -307,7 +308,7 @@ function ShapeSvg({ m, bw, bh, selected, onDown }: {
     return (
       <g className={'ls-shape' + (selected ? ' is-on' : '')}>
         <line x1={cx} y1={cy} x2={x2} y2={y2} stroke="transparent" strokeWidth={Math.max(18, sw * 8)} onPointerDown={e => onDown(e, 'move')} />
-        <line x1={cx} y1={cy} x2={x2} y2={y2} stroke={t.stroke} strokeWidth={sw * 1.6} strokeLinecap="round" pointerEvents="none" />
+        <line x1={cx} y1={cy} x2={x2} y2={y2} stroke={t.stroke} strokeWidth={sw * 1.6 * weightOf(m.line)} strokeLinecap="round" strokeDasharray={dashOf(m.line, sw * 1.6 * weightOf(m.line)).join(' ') || undefined} pointerEvents="none" />
         <polygon points={`${x2},${y2} ${p1} ${p2}`} fill={t.stroke} pointerEvents="none" />
         {selected && <>
           <circle className="ls-handle" cx={cx} cy={cy} r={8} onPointerDown={e => onDown(e, 'start')} />
@@ -323,9 +324,12 @@ function ShapeSvg({ m, bw, bh, selected, onDown }: {
       ? <polygon points={`${cx},${y} ${x + w},${y + h} ${x},${y + h}`} />
       : <rect x={x} y={y} width={w} height={h} rx={m.shape === 'text' ? 4 : Math.min(8, w * 0.06)} />;
   return (
-    <g className={'ls-shape' + (selected ? ' is-on' : '') + (m.shape === 'text' ? ' is-text' : '')}
-      fill={m.shape === 'text' ? 'transparent' : t.fill} stroke={m.shape === 'text' ? (selected ? t.stroke : 'transparent') : t.stroke}
-      strokeWidth={sw} strokeDasharray={m.shape === 'text' ? '4 3' : undefined}
+    <g className={'ls-shape' + (selected ? ' is-on' : '') + (m.shape === 'text' ? ' is-text' : '') + (m.bottleneck ? ' is-bn' : '')}
+      fill={m.shape === 'text' || m.fill === 'none' ? 'transparent' : m.fill === 'faded' ? t.stroke : t.fill}
+      fillOpacity={m.shape !== 'text' && m.fill === 'faded' ? FADED_ALPHA : undefined}
+      stroke={m.shape === 'text' ? (selected ? t.stroke : 'transparent') : t.stroke}
+      strokeWidth={sw * weightOf(m.line) * (m.bottleneck ? 1.6 : 1)}
+      strokeDasharray={m.shape === 'text' ? '4 3' : dashOf(m.line, sw * weightOf(m.line)).join(' ') || undefined}
       onPointerDown={e => onDown(e, 'move')}>
       {body}
       {selected && <rect className="ls-handle" x={x + w - 8} y={y + h - 8} width={16} height={16} rx={3}
@@ -342,6 +346,12 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
   const url = useBlobUrl(s.photoKey);
   const [tool, setTool] = useState<Tool>({ t: 'icon', kind: 'person' });
   const [marks, setMarks] = useState<StandardMark[]>(s.marks);
+  /* NAMES ON THE MAP — short, full or numbers; how this device shows the map,
+     not a fact about it, so it is kept here, never on the record */
+  const [labels, setLabelsState] = useState<LabelMode>(() => {
+    try { const v = localStorage.getItem('faultline.ls.labels'); return v === 'full' || v === 'number' ? v : 'short'; } catch { return 'short'; }
+  });
+  const setLabels = (m: LabelMode) => { setLabelsState(m); try { localStorage.setItem('faultline.ls.labels', m); } catch { /* private mode */ } };
   const [selected, setSelected] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [icons, setIcons] = useState(false);
@@ -584,7 +594,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
         {atWork ? <WorkView s={s} can={can} /> : (
           <CapacityPanel projectId={s.projectId} board={false} can={can}
             line={{ id: s.id, name: s.product, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.capacity ? { capacity: s.capacity } : {}) }}
-            onSave={cap => save({ capacity: cap })} walk={{ standardId: s.id, product: s.product }} />
+            onSave={cap => save({ capacity: cap })} walk={{ standardId: s.id, product: s.product }} mapPeople={headcount(s)} />
         )}
       </div>
     </div>
@@ -678,6 +688,10 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
                 })()}
               </svg>
             )}
+            {/* THE BOTTLENECK, said on the area — in words, at its top */}
+            {shapes.filter(m => m.bottleneck && m.shape !== 'arrow').map(m => (
+              <span key={`bn-${m.id}`} className="ls-bn-tag is-area" style={{ left: `${m.x - (m.w ?? 0) / 2}%`, top: `${m.y - (m.h ?? 0) / 2}%` }}>Bottleneck</span>
+            ))}
             {/* the words in the middle of each shape */}
             {shapes.filter(m => m.shape !== 'arrow' && m.label).map(m => (
               <span key={`t-${m.id}`} className={'ls-shape-t' + (m.shape === 'triangle' ? ' is-tri' : '')}
@@ -687,13 +701,23 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
                 }}>{m.label}</span>
             ))}
             {icons_.map(m => (
-              <button key={m.id} type="button" className={'ls-mark' + (editing === m.id ? ' is-on' : '')} disabled={ro}
+              <button key={m.id} type="button" className={'ls-mark' + (editing === m.id ? ' is-on' : '') + (m.bottleneck ? ' is-bn' : '')} disabled={ro}
                 style={{ left: `${m.x}%`, top: `${m.y}%` }}
-                aria-label={`${markOf(m.kind).word}${m.label ? ` — ${m.label}` : ''}`}
+                aria-label={`${markOf(m.kind).word}${m.label ? ` — ${m.label}` : ''}${m.bottleneck ? ' — the bottleneck' : ''}`}
+                title={m.label ? `${m.label}${m.task ? ` — ${m.task}` : ''}` : undefined}
                 onPointerDown={e => down(e, m.id)} onClick={e => e.stopPropagation()}>
+                {m.bottleneck && <span className="ls-bn-tag">Bottleneck</span>}
                 <MarkIcon kind={m.kind} colour={colourOf(m)} />
-                {m.label && <span className="ls-mark-l">{m.label}</span>}
+                {(() => { const l = mapLabel(m, labels, people); return l ? <span className={'ls-mark-l' + (labels === 'number' && m.kind === 'person' ? ' is-n' : '')}>{l}</span> : null; })()}
               </button>
+            ))}
+          </div>
+          {/* NAMES ON THE MAP — short, full or numbers; the whole of each, and
+              what they do, are in Who does what */}
+          <div className="chip-row ls-names" role="group" aria-label="Names on the map">
+            <span className="sub">Names on the map:</span>
+            {LABEL_MODES.map(x => (
+              <button key={x.mode} type="button" className={'chip' + (labels === x.mode ? ' on' : '')} aria-pressed={labels === x.mode} onClick={() => setLabels(x.mode)}>{x.word}</button>
             ))}
           </div>
           {!ro && <div className="ls-board-foot">
@@ -716,20 +740,28 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
 
         <aside className="ls-side">
           <div className="ls-count"><b>{people.length}</b><span>{people.length === 1 ? 'person on this product' : 'people on this product'}</span></div>
+          {/* THE BOTTLENECK, in words, first (13 October: "a little summary
+              there saying ... bottleneck ... this area is this person's") */}
+          {bottlenecksOf({ marks }).length > 0 && (
+            <div className="ls-bn-sum" role="note">
+              <span className="ls-bn-tag">Bottleneck</span>
+              {bottlenecksOf({ marks }).map(b => <p key={b.id} className="ls-bn-words">{b.words}</p>)}
+            </div>
+          )}
           {thingsOf({ marks }) && <p className="sub ls-things">{thingsOf({ marks })}</p>}
           <h3 className="ls-side-h">Who does what</h3>
           {people.length === 0 && <p className="sub">{ro ? 'Nobody placed on this product yet.' : 'Pick Person and tap the board where they stand — or select a shape and add an operator to it.'}</p>}
-          {ro && people.map(p => (
-            <div key={p.id} className="ls-person">
-              <MarkIcon kind="person" size={22} colour={colourOf(p)} />
-              <span className="ls-role">{p.label || 'Unnamed'}</span>
+          {ro && people.map((p, i) => (
+            <div key={p.id} className={'ls-person' + (p.bottleneck ? ' is-bn' : '')}>
+              <span className="ls-pn" style={{ background: colourOf(p) }} aria-hidden>{i + 1}</span>
+              <span className="ls-role">{p.label || 'Unnamed'}{p.bottleneck && <span className="ls-bn-tag is-inline">Bottleneck</span>}</span>
               {work && workFor(p.label) && <span className={'ls-work' + (workFor(p.label)?.over ? ' is-r' : '')}>{(workFor(p.label)?.work ?? 0).toFixed(1)} s {workFor(p.label)?.untimed ? 'so far — not all timed' : `of ${work.taktSec.toFixed(1)} s`}</span>}
               {p.task && <p className="ls-task-r">{p.task}</p>}
             </div>
           ))}
-          {!ro && people.map(p => (
-            <div key={p.id} className="ls-person">
-              <MarkIcon kind="person" size={22} colour={colourOf(p)} />
+          {!ro && people.map((p, i) => (
+            <div key={p.id} className={'ls-person' + (p.bottleneck ? ' is-bn' : '')}>
+              <span className="ls-pn" style={{ background: colourOf(p) }} aria-hidden>{i + 1}</span>
               <input className="ls-role" value={p.label ?? ''} aria-label="Role" placeholder="Op 1"
                 onFocus={() => { typing.current = true; }}
                 onChange={e => patchMark(p.id, { label: e.target.value })}
@@ -739,6 +771,11 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
                 onFocus={() => { typing.current = true; }}
                 onChange={e => patchMark(p.id, { task: e.target.value })}
                 onBlur={() => { typing.current = false; void putStandard({ ...s, marks }); }} />
+              <button type="button" className={'chip ls-bn-b' + (p.bottleneck ? ' on' : '')} aria-pressed={!!p.bottleneck}
+                aria-label={`${p.label || 'This person'} is the bottleneck`}
+                onClick={() => saveMarks(marks.map(m => (m.id === p.id ? { ...m, bottleneck: !m.bottleneck || undefined } : m)))}>
+                {p.bottleneck ? 'The bottleneck ✓' : 'The bottleneck?'}
+              </button>
             </div>
           ))}
           {/* Deleting is the owner's (lib/access) — the database keeps the
@@ -792,6 +829,30 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
                   onClick={() => patchMark(editingMark.id, { tone: k })}>{TONES[k].word}</button>
               ))}
             </div>
+            {editingMark.shape !== 'text' && editingMark.shape !== 'arrow' && <>
+              <div className="field-label" style={{ marginTop: 10 }}>Fill <span className="opt">faded: the colour itself, the picture still seen under it</span></div>
+              <div className="chip-row" role="group" aria-label="Fill">
+                {FILLS.map(f => (
+                  <button key={f.fill} type="button" className={'chip' + ((editingMark.fill ?? 'light') === f.fill ? ' on' : '')} aria-pressed={(editingMark.fill ?? 'light') === f.fill}
+                    onClick={() => patchMark(editingMark.id, { fill: f.fill === 'light' ? undefined : f.fill as ShapeFill })}>{f.word}</button>
+                ))}
+              </div>
+            </>}
+            {editingMark.shape !== 'text' && <>
+              <div className="field-label" style={{ marginTop: 10 }}>Line</div>
+              <div className="chip-row" role="group" aria-label="Line">
+                {LINES.map(l => (
+                  <button key={l.line} type="button" className={'chip' + ((editingMark.line ?? 'solid') === l.line ? ' on' : '')} aria-pressed={(editingMark.line ?? 'solid') === l.line}
+                    onClick={() => patchMark(editingMark.id, { line: l.line === 'solid' ? undefined : l.line as ShapeLine })}>{l.word}</button>
+                ))}
+              </div>
+            </>}
+            {editingMark.shape !== 'arrow' && (
+              <label className="ls-bn-check">
+                <input type="checkbox" checked={!!editingMark.bottleneck} onChange={e => patchMark(editingMark.id, { bottleneck: e.target.checked || undefined })} />
+                <span>This area is the bottleneck <span className="opt">said on the map and in Who does what</span></span>
+              </label>
+            )}
             <div className="snag-editor-foot">
               <button className="btn btn-primary" onClick={() => { void putStandard({ ...s, marks }); setEditing(null); }}>Done</button>
               {editingMark.shape !== 'text' && (
@@ -827,6 +888,11 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
                 </div>
               </>
             )}
+            {/* a person, or the machine itself, holding the line */}
+            <label className="ls-bn-check">
+              <input type="checkbox" checked={!!editingMark.bottleneck} onChange={e => patchMark(editingMark.id, { bottleneck: e.target.checked || undefined })} />
+              <span>{editingMark.kind === 'person' ? 'This person is the bottleneck' : `This ${markOf(editingMark.kind).word.toLowerCase()} is the bottleneck`} <span className="opt">said on the map and in Who does what</span></span>
+            </label>
             <div className="snag-editor-foot">
               <button className="btn btn-primary" onClick={() => { void putStandard({ ...s, marks }); setEditing(null); }}>Done</button>
               <button className="btn btn-ghost" style={{ color: 'var(--danger)' }}

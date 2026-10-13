@@ -28,7 +28,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { DraftNumber, DraftText } from '../ui/Draft';
 import { Fold } from '../ui/Fold';
 import { offerUndo } from '../ui/Undo';
-import { listAllStudies, listPaceTodos, onDataChange, putPaceTodo, type PaceLineRow, type PaceTodoRow } from '../db';
+import { getWorkspace, listAllStudies, listPaceTodos, onDataChange, putPaceTodo, type PaceLineRow, type PaceTodoRow } from '../db';
+import type { Workspace } from '../types';
 import { currentBalance } from '../lib/studyLinks';
 import { balance as balanceOf } from '../lib/ie/balance';
 import { niceDay } from '../lib/weeks';
@@ -41,7 +42,8 @@ import type { Can } from '../lib/access';
 import {
   EMPTY_CAPACITY, analyse, syncWhatIfs, withWhatIfStations, blankStation, changedWords, compareSays, crossCheck, fmtN, lineIfRaised, makeItSoWords,
   stopStats, suggestRunning, vCurve, accumulation, whatIfCapacity, paceSays, perMinute, oneOf, fmtSec,
-  type Capacity, type PaceSays, type RatePer, type Station, type StationResult, type WhatIf,
+  labourCost, labourInputs, oneMorePerson, whatIfLabour, fmtMoney, fmtBig,
+  type Capacity, type CapacityResult, type LabourInputs, type PaceSays, type RatePer, type Station, type StationResult, type WhatIf,
 } from '../lib/capacity';
 import { useLineStops } from '../lib/useLineStops';
 import { Icon } from '../ui/Icon';
@@ -313,6 +315,68 @@ function StationCard({ s, i, last, prevUnit, planned, why, wait, own, coLeft = 0
   );
 }
 
+/* ============================ what a pack costs =============================
+ * Rowland, 13 October: "if I put two people there ... is my cost per pack
+ * higher or lower? That ultimately decides whether or not they will pursue
+ * putting an extra person on the line." The people on the line — every one,
+ * not only the stations that are people — and what one costs an hour, over
+ * the good packs the line makes an hour (lib/capacity labourCost). When
+ * people set the pace, one more of them at the bottleneck, worked out: what
+ * the line then makes, what it then costs a pack, higher or lower. A what-if
+ * says its own. The people and the rate are typed here, or stand in from the
+ * line standard's head count and the line's own crew and rate, said which. */
+function LabourBox({ r, cap, current, w, rAsRun, li, onSave, onMore, canEdit }: {
+  r: CapacityResult; cap: Capacity; current: Capacity; w?: WhatIf; rAsRun: CapacityResult;
+  li: LabourInputs; onSave: (labour: Capacity['labour']) => void; onMore?: (stationId: string, crew: number) => void; canEdit: boolean;
+}) {
+  const one = oneOf(r.unit);
+  const cost = labourCost(r, li.people, li.rate);
+  const more = !w ? oneMorePerson(current, r, li.people, li.rate) : undefined;
+  const wl = w ? whatIfLabour(cap, rAsRun, current, r, li.people, li.rate) : undefined;
+  const fromP = li.peopleFrom === 'map' ? 'placed on the line standard' : li.peopleFrom === 'line' ? 'the line’s crew' : li.peopleFrom === 'typed' ? 'typed here' : 'not said yet';
+  const fromR = li.rateFrom === 'line' ? 'the line’s rate, with its on-costs' : li.rateFrom === 'typed' ? 'typed here' : 'not said yet';
+  return (
+    <section className="cap-cost" aria-label={`What a ${one} costs in labour`}>
+      <h3 className="cap-h">What a {one} costs in labour</h3>
+      <div className="cap-cost-in">
+        <label className="proj-field">
+          <span className="field-label">People on the line — all of them</span>
+          {canEdit
+            ? <DraftNumber className="text-input cap-num" value={cap.labour?.people ?? li.people} placeholder="e.g. 8" label="People on the line"
+                onSave={v => onSave({ ...cap.labour, people: v })} />
+            : <b className="cap-ro-v">{li.people ?? 'not said'}</b>}
+          <span className="cap-hint">{fromP}</span>
+        </label>
+        <label className="proj-field">
+          <span className="field-label">£ an hour, each</span>
+          {canEdit
+            ? <DraftNumber className="text-input cap-num" value={cap.labour?.ratePerHour ?? (li.rate != null ? Math.round(li.rate * 100) / 100 : undefined)} placeholder="e.g. 12.50" label="Pounds an hour each"
+                onSave={v => onSave({ ...cap.labour, ratePerHour: v })} />
+            : <b className="cap-ro-v">{li.rate != null ? fmtMoney(li.rate) : 'not said'}</b>}
+          <span className="cap-hint">{fromR}</span>
+        </label>
+      </div>
+      {cost ? (
+        <p className="cap-cost-says">
+          <b>{fmtMoney(cost.perPack)} a {one}</b> — {cost.people} {cost.people === 1 ? 'person' : 'people'} × {fmtMoney(cost.ratePerHour)} = {fmtMoney(cost.perHour)} an hour; the line makes {fmtBig(cost.packsPerHour)} {r.unit} an hour ({fmtN(cost.packsPerHour / 60)} a minute{r.goodOut != null && r.line != null && r.goodOut < r.line - 1e-9 ? ', good ones' : ''}).
+        </p>
+      ) : (
+        <p className="sub">{r.line == null ? 'Once the stations can be counted, ' : ''}Say how many people are on the line and what one costs an hour, and this says what a {one} costs in labour — and whether one more person pays for themselves.</p>
+      )}
+      {more && (
+        <p className="cap-cost-more">
+          {more.sentence}
+          {canEdit && onMore && <> <button type="button" className="cw-link" onClick={() => onMore(more.station.id, (more.station.crew ?? 1) + 1)}>Make it {(more.station.crew ?? 1) + 1} at {more.station.name.trim() || 'it'}</button></>}
+        </p>
+      )}
+      {cost && !more && !w && r.limit && r.limit.station.kind === 'machine' && (
+        <p className="sub">The bottleneck is a machine — {r.limit.station.name.trim() || 'it'}: another person there adds an hour’s cost and no {r.unit}.</p>
+      )}
+      {wl && <p className="cap-cost-more">{wl.sentence}</p>}
+    </section>
+  );
+}
+
 /* ================================ the panel ================================= */
 
 /** What the panel reads of the line it balances: a 6M job's line, or a line
@@ -320,9 +384,12 @@ function StationCard({ s, i, last, prevUnit, planned, why, wait, own, coLeft = 0
  *  its stops come from, its balance, and who drives it. */
 export type CapLine = Pick<PaceLineRow, 'id' | 'name' | 'capacity'> & { workspaceId?: string; owner?: string };
 
-export function CapacityPanel({ projectId, line, onSave, board = true, can: given, walk }: {
+export function CapacityPanel({ projectId, line, onSave, board = true, can: given, walk, mapPeople }: {
   projectId: string;
   line: CapLine;
+  /** The people placed on the product's line standard — what the cost of a
+   *  pack stands in with when the people on the line are not typed. */
+  mapPeople?: number;
   onSave: (cap: Capacity) => Promise<void>;
   /** A 6M line raises its actions on the job's board. A line standard's
    *  balance is a tool on a line, often on no job (LINE_TOOLS.sql): it draws
@@ -391,6 +458,16 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
      changeovers come off the shift, a station's own stops logged as
      changeovers are left out of its running share — never taken twice. */
   const shiftIn = useShiftInputs(line.workspaceId, walk?.standardId, cap.changeovers);
+  /* the line itself — its crew and its rate stand in for the cost of a pack */
+  const [lineWs, setLineWs] = useState<Workspace | undefined>(undefined);
+  useEffect(() => {
+    let live = true;
+    if (!line.workspaceId) { setLineWs(undefined); return; }
+    const load = () => void getWorkspace(line.workspaceId as string).then(x => { if (live) setLineWs(x ?? undefined); });
+    load();
+    const off = onDataChange(load);
+    return () => { live = false; off(); };
+  }, [line.workspaceId]);
   const coOff = !!(walk && shiftIn.co && shiftIn.co.perShift != null);
   const assets = useMemo(() => [...new Set(stops.obs.filter(o => !o.deletedAt && o.asset?.trim()).map(o => o.asset.trim()))].sort(), [stops.obs]);
 
@@ -594,6 +671,12 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
         onMargin={m => commit({ ...cap, vMarginPct: m })} />}
       {r.ok.length > 0 && <CapacitySheet r={r} v={vCurve(r, cap.vMarginPct)} target={current.targetPerMin} study={study}
         {...(can.edit ? { onUse: (id: string, cycleSec: number) => patchStation(id, { cycleSec, perCycle: 1, rate: undefined, source: 'standard', note: 'standard time, from the time study' }) } : {})} />}
+      {r.ok.length > 0 && <LabourBox r={r} cap={cap} current={current} {...(w ? { w } : {})} rAsRun={asRun} li={labourInputs(cap, mapPeople, lineWs)} canEdit={can.edit && !w}
+        onSave={labour => commit({ ...cap, labour })} onMore={(id, crew) => {
+          /* The person added is one more on the line too, so the cost a pack after it counts them. */
+          const li = labourInputs(cap, mapPeople, lineWs);
+          commit({ ...cap, stations: cap.stations.map(s => (s.id === id ? { ...s, crew } : s)), labour: { ...cap.labour, ...(li.people ? { people: li.people + 1 } : {}) } });
+        }} />}
       {r.ok.length > 0 && (() => { const acc = accumulation(r, stats); return acc.sentence ? <p className={'vc-says cap-acc' + (acc.rows.some(p => !p.covered) ? ' is-a' : '')}>{acc.sentence}</p> : null; })()}
       {walk && r.ok.length > 0 && <ShiftCapacityView r={r} inputs={shiftIn} />}
       {walk && !w && <BottleneckWalk standardId={walk.standardId} product={walk.product} {...(line.workspaceId ? { workspaceId: line.workspaceId } : {})} {...(projectId ? { projectId } : {})}
