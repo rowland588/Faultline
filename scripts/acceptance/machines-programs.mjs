@@ -441,7 +441,7 @@ await page.setViewportSize({ width: 1360, height: 900 });
   await page.keyboard.press('Escape'); await page.waitForTimeout(400);
   /* the stopwatch */
   await go(`#/w/${WS}/capture`);
-  const sw = (await page.locator('.cap-block', { hasText: 'Which asset?' }).locator('.chip-row > button.chip:not(.chip-add)').allInnerTexts()).map(flat);
+  const sw = (await page.locator('.cap-block', { hasText: 'Which machine?' }).locator('.chip-row > button.chip:not(.chip-add)').allInnerTexts()).map(flat);
   want = await of(WS);
   ok(JSON.stringify(sw) === JSON.stringify(['Whole line', ...want]), `14c the stopwatch offers the whole line, then every machine on the line (${sw.length - 1} of ${want.length})`);
   /* Line capacity: its machine stations the line does not list are offered to the line, then reach every picker */
