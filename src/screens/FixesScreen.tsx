@@ -221,9 +221,10 @@ export function FixesScreen({ projectId }: { projectId: string }) {
     <div className="wrap pace cm-screen">
       <header className="pace-head">
         <div className="pace-head-main">
-          <h1 className="pace-title">Problems</h1>
-          <p className="qsl-path">This job's problems, and the fix that puts each right.{' '}
-            <button type="button" className="linkish" onClick={() => nav('/snags')}>Every line and job ›</button></p>
+          {/* this project's own problems — named for it, so it is never mistaken for Control room problems (13 October) */}
+          <h1 className="pace-title">{project.name} — problems</h1>
+          <p className="qsl-path">This project's problems, and the fix that puts each right.{' '}
+            <button type="button" className="linkish" onClick={() => nav('/snags')}>Every problem, every line and project: Control room problems ›</button></p>
           <p className="cw-handover">
             {st.upcoming.length > 0
               ? <>

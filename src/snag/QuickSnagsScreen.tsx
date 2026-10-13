@@ -22,13 +22,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { withoutDemo } from '../lib/demo';
 import { asked } from '../lib/lines';
-import { createWorkspace, deleteSnag, inArchivedProject, listAllSnags, listArchivedWorkspaces, listWorkspaces, listAssets, listSnagAssets, listTests, listTestItems, listPaceTodos, onDataChange, updateSnag, updateWorkspace, setSnagsStatus, type PaceTodoRow } from '../db';
+import { addSnag, createWorkspace, deleteSnag, inArchivedProject, listAllSnags, listArchivedWorkspaces, listWorkspaces, putTest, putTestItem, listAssets, listSnagAssets, listTests, listTestItems, listPaceTodos, onDataChange, updateSnag, updateWorkspace, setSnagsStatus, type PaceTodoRow } from '../db';
 import { useProjects } from '../lib/useProjects';
 import { planModel } from '../lib/planModel';
 import { uid } from '../lib/ids';
 import type { SnagCardRow } from '../lib/buildSnagCards';
 import { jobGroup, PRIORITY_RANK, PRIORITY_WORD, type JobGroup, type JobRow, type Priority, type SnagRow, type SnagTone, snagsReading } from '../lib/snagsReport';
 import { openRecord } from '../ui/RecordDrawer';
+import { useAccessByJob } from '../ui/JobsBoard';
+import { useSyncStatus } from '../cloud/session';
+import { fixFlag } from '../lib/critical';
+import { todayISO } from '../lib/weeks';
 import { openIn, saveProblemCardsFor, saveProblemsReportFor } from '../lib/problemsPdf';
 import { nav } from '../state/useRoute';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
@@ -93,6 +97,11 @@ export function QuickSnagsScreen() {
   const [busy, setBusy] = useState<'' | 'report' | 'cards'>('');
   const [viewing, setViewing] = useState<{ snagId?: string; media: MediaRef } | null>(null);
   const liveJobs = useMemo(() => projects.filter(p => !p.archivedAt), [projects]);
+  /* who may change a project's own problems — a client of it reads them (lib/access) */
+  const accessOn = useAccessByJob(projects);
+  /* a change the cloud refused is said here, never left to look saved (13 October) */
+  const sync = useSyncStatus();
+  const refusedHere = (sync.refused ?? []).filter(r => r.kind === 'snags' || r.kind === 'test_items' || r.kind === 'tests');
   const jobKey = liveJobs.map(p => p.id).join(',');
 
   const load = useCallback(async () => {
@@ -230,6 +239,23 @@ export function QuickSnagsScreen() {
       window.alert('Sorry — the report could not be made. Please try again.');
     } finally { setBusy(''); }
   };
+  /* PUT ON A LINE — a project's own problem taken into the room as a problem on a line (any line, a new one), its words,
+     pictures, priority, whose and day carried; it stays for its project until another is chosen; the project's record is
+     marked sorted, saying where it went (13 October: "put the stuff on 2A and assign it to 2B") */
+  const toLine = async (pid: string, item: TestItem, to: string) => {
+    let wsId = to, name = lines.find(w => w.id === to)?.name ?? 'the line';
+    if (to === NEW_LINE) { const typed = window.prompt('The new line’s name')?.trim(); if (!typed) return; wsId = (await createWorkspace(typed)).id; name = typed; }
+    const t = Date.now();
+    const made: Snag = {
+      id: uid(), workspaceId: wsId, problem: item.what, status: 'open', raisedAt: item.createdAt ?? t, updatedAt: t, projectId: pid,
+      media: item.media ?? [], priority: item.critical ? 'critical' : item.risk ? 'high' : 'low',
+      ...(item.owner?.trim() ? { owner: item.owner.trim() } : {}), ...(item.due ? { dueAt: dueFromInput(item.due) } : {}),
+    };
+    await addSnag(made);
+    await putTestItem({ ...item, doneAt: t, note: `${item.note ? `${item.note}\n` : ''}Taken to Control room problems — on ${name}`, updatedAt: t });
+    setOpened(new Set([made.id])); setFrozen(null);
+    offerUndo(`Saved — now a problem on ${name}`, async () => { await deleteSnag(made.id); await putTestItem({ ...item, updatedAt: Date.now() }); });
+  };
   const jobCard = async (row: JobRow, job: string) => {
     if (busy) return;
     setBusy('cards');
@@ -296,9 +322,12 @@ export function QuickSnagsScreen() {
     <div className={'wrap qsl' + (chosen.length ? ' has-bar' : '')}>
       <header className="pace-head qsl-head">
         <div>
-          <h1>Problems</h1>
+          {/* WHERE YOU ARE, said (Rowland, 13 October: "sometimes I don't know when I'm in the control room problem and when I'm
+              in the actual line problem ... change the name to control room problem, so when I look at the title, I know where I am") */}
+          <h1>Control room problems</h1>
           <p className="qsl-path">Write any problem, give it a priority and say where it belongs. Tap one to work it: what we will do, and its journey — on a day, what we did and what came of it.</p>
           <p className="qsl-says">{snags ? reading.says : 'Opening…'}</p>
+          {refusedHere.length > 0 && <p className="qsl-refused" role="alert">The cloud did not accept {refusedHere.reduce((n, r) => n + r.rows, 0)} change{refusedHere.reduce((n, r) => n + r.rows, 0) === 1 ? '' : 's'} to problems — kept on this device, not on your others: {refusedHere[0].message}</p>}
         </div>
         <div className="qsl-top">
           <button type="button" className="btn btn-primary" onClick={() => openQuickSnag()}><Icon name="camera" size="1.05em" />Problem</button>
@@ -421,6 +450,8 @@ export function QuickSnagsScreen() {
           and is worked on its project. */}
       {shownJobs.length > 0 && <h2 className="qsl-kind-h">On the projects <span className="sub">— raised on a project's own stages, with the fix that puts each right</span></h2>}
       {shownJobs.map(g => <JobProblems key={`job:${g.projectId}`} g={g} all={reading.jobs.find(x => x.projectId === g.projectId) ?? g}
+        data={jobData.get(g.projectId)} canEdit={accessOn(g.projectId).edit} lines={lines.filter(w => !goneLines.has(w.id))}
+        onToLine={(item, to) => void toLine(g.projectId, item, to)}
         opened={opened} flip={flip} busy={!!busy} onView={m => setViewing({ media: m })}
         onCard={r => void jobCard(r, g.job)}
         onPdf={kind => { const full = jobGroups.find(x => x.projectId === g.projectId) ?? g; void pdfGroup(kind, g.job, here.filter(s => s.projectId === g.projectId), [full]); }}
@@ -519,8 +550,9 @@ const dayOf = (at: number) => new Date(at).toLocaleDateString('en-GB', { day: 'n
 
 /** A PROJECT'S OWN PROBLEMS AND FIXES on the Problems page — each opened out
  *  where it sits, its report card, and worked on its project. */
-function JobProblems({ g, all, opened, flip, busy, onView, onCard, onOpen, onList, onPdf }: {
+function JobProblems({ g, all, opened, flip, busy, onView, onCard, onOpen, onList, onPdf, data, canEdit, lines, onToLine }: {
   g: JobGroup; all: JobGroup; opened: Set<string>; flip: (id: string) => void; busy: boolean;
+  data?: JobData; canEdit: boolean; lines: Workspace[]; onToLine: (item: TestItem, to: string) => void;
   onView: (m: MediaRef) => void; onCard: (r: JobRow) => void; onOpen: (r: JobRow) => void; onList: () => void;
   /** The project on paper — its own problems and fixes, and the line problems assigned to it. */
   onPdf: (kind: 'report' | 'cards') => void;
@@ -552,7 +584,10 @@ function JobProblems({ g, all, opened, flip, busy, onView, onCard, onOpen, onLis
               </span>
               <span className="preg-right"><span className={'qsl-state ' + TONE_CLASS[r.tone]}>{r.word}</span></span>
             </button>
-            {opened.has(r.id) && (
+            {opened.has(r.id) && canEdit && data && r.kind !== 'action' && (
+              <JobEditor r={r} data={data} job={g.job} lines={lines} busy={busy} onCard={() => onCard(r)} onOpen={() => onOpen(r)} onToLine={onToLine} onDone={() => flip(r.id)} />
+            )}
+            {opened.has(r.id) && !(canEdit && data && r.kind !== 'action') && (
               <div className="qsl-x" role="region" aria-label={`More about ${r.what}`}>
                 {r.photo && <div className="qsl-x-pics"><EvidenceThumb media={photoRef(r.photo)} size={96} onClick={() => onView(photoRef(r.photo as string))} /></div>}
                 <dl className="qsl-x-facts">
@@ -572,6 +607,65 @@ function JobProblems({ g, all, opened, flip, busy, onView, onCard, onOpen, onLis
         ))}
       </ul>
     </section>
+  );
+}
+
+/** A PROJECT'S OWN PROBLEM OR FIX, WORKED IN THE ROOM (13 October: "full edit, full changes, it doesn't matter what it
+ *  is, this is the power room") — its words, priority, whose, day and where it stands, each kept as it is left; a problem
+ *  put on a line becomes one of the room's own. The record is still its project's: what is changed here is changed there. */
+function JobEditor({ r, data, job, lines, busy, onCard, onOpen, onToLine, onDone }: {
+  r: JobRow; data: JobData; job: string; lines: Workspace[]; busy: boolean;
+  onCard: () => void; onOpen: () => void; onToLine: (item: TestItem, to: string) => void; onDone: () => void;
+}) {
+  const [saved, setSaved] = useState(false);
+  const fix = r.kind === 'fix' ? data.tests.find(t => t.id === r.id) : undefined;
+  const item = r.kind === 'problem' ? data.items.find(i => i.id === r.id) : fix ? fixFlag(fix.id, data.items).problem : undefined;
+  const said = () => { setSaved(true); window.setTimeout(() => setSaved(false), 3000); };
+  const putItem = (p: Partial<TestItem>) => { if (item) void putTestItem({ ...item, ...p, updatedAt: Date.now() }).then(said); };
+  const putFix = (p: Partial<Test>) => { if (fix) void putTest({ ...fix, ...p, updatedAt: Date.now() }).then(said); };
+  const prio: Priority = item?.critical ? 'critical' : item?.risk ? 'high' : 'low';
+  const done = fix ? fix.outcome === 'passed' : item?.doneAt != null;
+  if (!fix && !item) return null;
+  return (
+    <div className="pe" role="region" aria-label={`Work ${r.what}`}>
+      <label className="pe-f"><span className="pe-k">{fix ? 'THE FIX' : 'WHAT IS THE PROBLEM'}</span>
+        <DraftArea value={fix ? fix.title : item?.what ?? ''} rows={2} className="text-input pe-what" ariaLabel={fix ? 'The fix' : 'What is the problem'}
+          onSave={v => (fix ? putFix({ title: v.trim() || fix.title }) : putItem({ what: v.trim() || item?.what }))} /></label>
+      {item && <div className="pe-f"><span className="pe-k">PRIORITY</span>
+        <div className="chip-row" role="group" aria-label="Priority">
+          {PRIOS.map(k => <button key={k} type="button" className={'chip qs-prio is-' + k + (prio === k ? ' on' : '')} aria-pressed={prio === k}
+            onClick={() => putItem({ critical: k === 'critical', risk: k === 'high' })}>{PRIORITY_WORD[k]}</button>)}
+        </div></div>}
+      <div className="pe-f"><span className="pe-k">WHERE IT STANDS</span>
+        <div className="chip-row" role="group" aria-label="Where it stands">
+          <button type="button" className={'chip' + (!done ? ' on' : '')} aria-pressed={!done}
+            onClick={() => (fix ? putFix({ outcome: 'planned' }) : putItem({ doneAt: undefined }))}>{fix ? 'To do' : 'Open'}</button>
+          <button type="button" className={'chip' + (done ? ' on' : '')} aria-pressed={done}
+            onClick={() => (fix ? putFix({ outcome: 'passed', ranOn: fix.ranOn ?? todayISO() }) : putItem({ doneAt: Date.now() }))}>{fix ? 'Done' : 'Sorted'}</button>
+        </div></div>
+      <div className="pe-row">
+        <label className="pe-f"><span className="pe-k">WHOSE</span>
+          <DraftText value={(fix ? fix.withWhom : item?.owner) ?? ''} placeholder="Who has it" className="text-input" max={60} ariaLabel="Whose is it"
+            onSave={v => (fix ? putFix({ withWhom: v.trim() || undefined }) : putItem({ owner: v.trim() || undefined }))} /></label>
+        <label className="pe-f"><span className="pe-k">DUE</span>
+          <DateInput className="text-input" value={(fix ? fix.plannedFor : item?.due) ?? ''} aria-label="Due date"
+            onCommit={v => (fix ? putFix({ plannedFor: v || undefined }) : putItem({ due: v || undefined }))} /></label>
+      </div>
+      {r.kind === 'problem' && item && (
+        <label className="pe-f"><span className="pe-k">PUT ON A LINE <i className="cw-f-opt">it becomes one of the room's own, for any project</i></span>
+          <select className="text-input" value="" aria-label="Put this problem on a line" onChange={e => { if (e.target.value) onToLine(item, e.target.value); }}>
+            <option value="">Put on a line…</option>
+            {lines.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+            <option value={NEW_LINE}>A new line…</option>
+          </select></label>
+      )}
+      <div className="qsl-x-acts">
+        <button type="button" className="btn btn-primary pe-save" onClick={() => { (document.activeElement as HTMLElement | null)?.blur(); window.setTimeout(onDone, 60); }}>Save</button>
+        {saved && <span className="pe-saved" role="status">Saved</span>}
+        <button type="button" className="btn" disabled={busy} onClick={onCard}><Icon name="document" size="1.05em" />Report card (PDF)</button>
+        <button type="button" className="btn btn-ghost" onClick={onOpen}>Open on {job}</button>
+      </div>
+    </div>
   );
 }
 

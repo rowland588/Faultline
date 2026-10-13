@@ -27,6 +27,8 @@
  *      empty and saying so; one brought back, then all
  *  10  the job's own view: a problem assigned to it listed, made a fix
  *  11  on a phone: nothing off the side, the editor fits
+ *  14  a project's own problem worked in the room: priority, whose, put on a line;
+ *      a fix marked done
  *  13  the audit's cases: a problem for an archived project named; closed or
  *      re-prioritised while open, it stays put; pinned on a walk, its line
  *      kept; made a fix, said so under Done
@@ -122,7 +124,7 @@ const openCount = c => c.critical + c.high + c.low;
 await go('#/snags');
 {
   const t = await truth();
-  ok((await words('h1')) === 'Problems' && /^Write any problem/.test(await words('.qsl-path')), '1 one page, Problems, said once');
+  ok((await words('h1')) === 'Control room problems' && /^Write any problem/.test(await words('.qsl-path')) && /Control room problems/.test(await page.locator('.nv').innerText()), '1 one page, Control room problems — named so on the page and the rail, so it is never mistaken for a line\'s or a project\'s');
   ok((await words('.qsl-says')) === t.says, `1 the sentence is the module's: ${t.says}`);
   const chips = (await page.locator('.qsl-f .chip').allInnerTexts()).map(x => x.replace(/\s+/g, ' ').trim());
   ok(chips.join('|') === `Open · ${openCount(t.counts)}|Critical · ${t.counts.critical}|High · ${t.counts.high}|Low · ${t.counts.low}|Late · ${t.counts.late + t.counts.jobLate}|Done · ${t.counts.closed + t.counts.jobDone}`, `1 the counts — the projects' own problems among them: ${chips.join(' · ')}`);
@@ -342,7 +344,7 @@ await go('#/snags');
   }, { ws: sd.wsId, pid: sd.projectId });
   await go(`#/project/${sd.projectId}/fixes`);
   const sec = page.locator('.cmp-sec', { hasText: 'Problems for this job — not on it yet' });
-  ok((await words('h1')) === 'Problems' && (await sec.locator('.fxl-row', { hasText: 'Coder misprints the date' }).count()) === 1, '10 the job\'s own view lists a problem assigned to it');
+  ok((await words('h1')) === `${sd.job} — problems` && (await sec.locator('.fxl-row', { hasText: 'Coder misprints the date' }).count()) === 1, '10 the project\'s own page — named for it — lists a problem assigned to it');
   await sec.locator('.fxl-row', { hasText: 'Coder misprints the date' }).getByRole('button', { name: 'Make it a fix' }).click(); await page.waitForTimeout(1500);
   ok(/seen first on /.test(await page.locator('.fxl-row', { hasText: 'Coder misprints the date' }).first().innerText()), '10 made a fix there, saying where it was seen first');
 }
@@ -373,6 +375,37 @@ await go('#/snags');
   /* every problem readable — no words squeezed into a sliver running down the page (13 October: "all of the writing was going down the page, like a long line") */
   const thin = await page.evaluate(() => [...document.querySelectorAll('.qsl .qsl-what, .qsl .qsl-meta, .qsl .qsl-gh h2')].filter(e => e.getBoundingClientRect().width < 120 && (e.textContent ?? '').length > 14).map(e => (e.textContent ?? '').slice(0, 30)));
   ok(thin.length === 0 && (await page.locator('.qsl-jrow').count()) > 0, `11 on a phone: every problem readable, the projects' among them${thin.length ? ` — squeezed: ${thin.slice(0, 3).join(' | ')}` : ''}`);
+}
+
+/* ---- 14 a project's own problem and fix, worked in Control room problems (Rowland, 13 October: "full edit, full
+   changes, it doesn't matter what it is, this is the power room") — before its project is archived in 12 ---- */
+{
+  await page.setViewportSize({ width: 1360, height: 900 }); await go('#/'); await go('#/snags');
+  const t = await truth();
+  const prob = t.jobRows.find(r => r.kind === 'problem' && r.open && !r.photo);
+  const jr = page.locator('.qsl-jrow', { hasText: prob.what }).first();
+  await jr.locator('.qsl-open').click(); await page.waitForTimeout(500);
+  const ed = jr.locator('.pe');
+  ok(await ed.isVisible(), `14 a project's own problem opens as its own editor: ${prob.what.slice(0, 40)}`);
+  await ed.getByRole('group', { name: 'Priority' }).getByRole('button', { name: 'High' }).click(); await page.waitForTimeout(700);
+  await ed.getByLabel('Whose is it').fill('Priya'); await ed.getByLabel('Whose is it').blur(); await page.waitForTimeout(700);
+  const item = await page.evaluate(async ({ pid, id }) => (await (await import('/src/db.ts')).listTestItems(pid)).find(i => i.id === id), { pid: prob.projectId, id: prob.id });
+  ok(!!item?.risk && !item?.critical && item?.owner === 'Priya' && (await ed.locator('.pe-saved').isVisible()), '14 its priority and whose changed there, kept on its project, "Saved" said');
+  const lineOpt = (await ed.getByLabel('Put this problem on a line').locator('option').allInnerTexts())[1];
+  await ed.getByLabel('Put this problem on a line').selectOption({ label: lineOpt }); await page.waitForTimeout(1500);
+  const made = (await truth()).snags.find(x => x.problem === prob.what);
+  const after = await page.evaluate(async ({ pid, id }) => (await (await import('/src/db.ts')).listTestItems(pid)).find(i => i.id === id), { pid: prob.projectId, id: prob.id });
+  ok(!!made && made.projectId === prob.projectId && made.priority === 'high' && made.owner === 'Priya' && after?.doneAt != null && (await row(prob.what).locator('.pe').count()) === 1,
+    `14 put on a line (${lineOpt}): one of the room's own, for its project, its priority and whose carried, open to work; its project's record sorted`);
+  await row(prob.what).locator('.pe-save').click(); await page.waitForTimeout(600);
+  const fx = t.jobRows.find(r => r.kind === 'fix' && r.open);
+  if (fx) {
+    const fr = page.locator('.qsl-jrow', { hasText: fx.what }).first();
+    await fr.locator('.qsl-open').click(); await page.waitForTimeout(500);
+    await fr.locator('.pe').getByRole('group', { name: 'Where it stands' }).getByRole('button', { name: 'Done' }).click(); await page.waitForTimeout(800);
+    const tt = await page.evaluate(async ({ pid, id }) => (await (await import('/src/db.ts')).listTests(pid)).find(x => x.id === id), { pid: fx.projectId, id: fx.id });
+    ok(tt?.outcome === 'passed', `14 a fix marked done there, kept on its project: ${fx.what.slice(0, 40)}`);
+  }
 }
 
 /* ---- 12 an archived project's line, and the saves said (Rowland, 12 October:

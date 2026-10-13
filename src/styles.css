@@ -10768,6 +10768,7 @@ body:has(.toast) .qs-fab { bottom: calc(var(--nv-bar) + 130px + env(safe-area-in
 /* SAVED, said (12 October: "there's never any saves") — on the problem's row and beside Save */
 .preg-saved, .pe-saved { font-size: var(--t-detail); font-weight: 700; color: var(--st-g); }
 .pe-saved { align-self: center; }
+.qsl-refused { margin: 6px 0 0; padding: 8px 10px; border: 1.5px solid var(--st-r); border-radius: 8px; color: var(--st-r); font-weight: 600; }
 /* while problems are ticked the bar is the work: the camera button steps aside, and the list leaves room above the bar */
 body:has(.qsl-bar) .qs-fab { display: none; }
 .qsl.has-bar { padding-bottom: 120px; }

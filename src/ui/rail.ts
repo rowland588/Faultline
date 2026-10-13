@@ -164,7 +164,7 @@ export const controlRoom = (here: string): RailLine =>
 /** EVERY SNAG, every line — beside the control room on every rail, because a
  *  snag is taken from anywhere (snag/QuickSnag) and sent on from there. */
 export const snagsPlace = (here: string): RailLine =>
-  ({ key: 'quicksnags', label: 'Problems', to: '/snags', on: here === 'quicksnags', state: 'n', bare: true, icon: 'camera' });
+  ({ key: 'quicksnags', label: 'Control room problems', to: '/snags', on: here === 'quicksnags', state: 'n', bare: true, icon: 'camera' });
 
 /** THE TOOLS — the snags, the line standard and the line balance. Rowland,
  *  8 October: "we want line standard and line balancing as tools like snag
