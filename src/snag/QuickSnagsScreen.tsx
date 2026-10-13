@@ -22,7 +22,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { withoutDemo } from '../lib/demo';
 import { addLineToFactory, asked, byFloor, liveProductionLines } from '../lib/lines';
-import { addSnag, allPaceLines, deleteSnag, inArchivedProject, listAllSnags, projectWalkIds, listArchivedWorkspaces, listWorkspaces, putTest, putTestItem, listAssets, listSnagAssets, listTests, listTestItems, listPaceTodos, onDataChange, patchSnag, updateWorkspace, setSnagsStatus, type PaceLineRow, type PaceTodoRow } from '../db';
+import { addSnag, allPaceLines, deleteSnag, inArchivedProject, listAllSnags, projectWalkIds, listArchivedWorkspaces, listWorkspaces, putTest, putTestItem, listAssets, listSnagAssets, listTests, listTestItems, listPaceTodos, onDataChange, patchSnag, setSnagsStatus, type PaceLineRow, type PaceTodoRow } from '../db';
 import { useProjects } from '../lib/useProjects';
 import { planModel } from '../lib/planModel';
 import { uid } from '../lib/ids';
@@ -830,8 +830,7 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
             {/* the project it is for, archived since — named, so the box never says No project when it is for one */}
             {s.projectId && !projects.some(p => p.id === s.projectId) && <option value={s.projectId}>{jobName(s.projectId) ?? 'A project no longer here'}</option>}
           </select></label>
-        {/* LINE — any line, a new one typed, and the line renamed when its
-            name is wrong (the old "2A", "2B" could not be changed here). */}
+        {/* LINE — any line, or a new one typed. Its NAME is the line's, put right on the line's own page (below). */}
         <div className="pe-f"><span className="pe-k">LINE</span>
           {/* PINNED ON A WALK, it is on that line's walk picture — it stays on its line (13 October audit: moved, it kept the old line's pin) */}
           {s.assetId ? <p className="pe-said">{lineName(s.workspaceId) === 'Not on a line' ? 'Pinned on the walk of a line no longer in use' : `${lineName(s.workspaceId)} — pinned on its walk`}</p> : <>
@@ -846,11 +845,13 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
             {!lines.some(w => w.id === s.workspaceId) && <option value={s.workspaceId}>{lineName(s.workspaceId)}</option>}
             <option value={NEW_LINE}>A new line…</option>
           </select>
-          <button type="button" className="btn btn-ghost btn-sm pe-rename" onClick={() => {
-            const w = lines.find(x => x.id === s.workspaceId);
-            const name = w ? window.prompt('Rename the line', w.name)?.trim() : undefined;
-            if (w && name && name !== w.name) void updateWorkspace({ ...w, name });
-          }}>Rename this line</button></>}</div>
+          {/* A LINE'S NAME IS PUT RIGHT ON ITS OWN PAGE (FLOW-AUDIT #20, journey (b): "Rename this line" here was a third
+              way to rename a line, after Your factory and Edit the line, and read as changing this problem's line). It was
+              here because a wrong name could be put right nowhere else (12 October: "I may make a mistake and assign
+              something to the wrong name"); the line's page does that now, Edit the line, for every problem and tool on it. */}
+          {lines.some(w => w.id === s.workspaceId) && (
+            <button type="button" className="linkish pe-rename" onClick={() => nav(`/lines/${encodeURIComponent(s.workspaceId)}`)}>Rename {lineName(s.workspaceId)} on its page ›</button>
+          )}</>}</div>
       </div>
       <div className="pe-f pe-wide"><span className="pe-k">MACHINE</span>
         {frame

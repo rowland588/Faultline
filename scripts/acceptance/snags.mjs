@@ -14,7 +14,8 @@
  *      changed, its priority, where it stands — each kept as it is left
  *   3  assigned, not moved: its machine (the jobs' machines offered, another
  *      typed), its project — it stays here, and shows on the job too; a new
- *      line made from the problem, and the line renamed
+ *      line made from the problem, and the line renamed on its own page,
+ *      reached from the problem (FLOW-AUDIT #20)
  *   4  its journey: a step added (a day, what we did, what came of it),
  *      shown under it, changed, taken off
  *  4b whose typed, then the due date at once: both kept after a reload
@@ -231,9 +232,15 @@ await go('#/snags');
   s = await snag(what);
   const made = s?.workspaceId !== wasOn ? await lineCalled(s?.workspaceId) : undefined;
   ok(made === 'Line 2B', `3 a new line made from the problem, the problem on it: ${made}`);
-  page.once('dialog', d => void d.accept('Line 2B — packing'));
-  await row(what).locator('.pe').getByRole('button', { name: 'Rename this line' }).click(); await page.waitForTimeout(1000);
-  ok((await lineCalled(s?.workspaceId)) === 'Line 2B — packing' && (await page.locator('.qsl-g .qsl-gh h2', { hasText: 'Line 2B — packing' }).count()) === 1, '3 the line renamed from the problem — the new name on the page');
+  /* its name is the line's, put right on the line's own page — reached from the problem (FLOW-AUDIT #20: "Rename this
+     line" in a problem was a third way to rename a line, read as changing the problem's line) */
+  await row(what).locator('.pe').getByRole('button', { name: 'Rename Line 2B on its page ›' }).click(); await page.waitForTimeout(2000);
+  const onItsPage = new RegExp(`#/lines/${s?.workspaceId}`).test(page.url()) && (await page.locator('h1').innerText()).trim() === 'Line 2B';
+  await page.getByRole('button', { name: 'Edit the line' }).click(); await page.waitForTimeout(400);
+  await page.getByLabel("The line's name").fill('Line 2B — packing'); await page.getByLabel("The line's name").press('Enter'); await page.waitForTimeout(900);
+  await go('#/snags');
+  ok(onItsPage && (await lineCalled(s?.workspaceId)) === 'Line 2B — packing' && (await page.locator('.qsl-g .qsl-gh h2', { hasText: 'Line 2B — packing' }).count()) === 1, '3 the line renamed on its own page, reached from the problem — the new name on the register');
+  await openUp(what);
   await row(what).locator('.pe').getByLabel('Which line').selectOption(wasOn); await page.waitForTimeout(800);
   ok((await snag(what))?.workspaceId === wasOn, '3 and put back on its own line');
 }
