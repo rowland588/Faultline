@@ -1,4 +1,4 @@
-/* A MEASURED TEST — readings in, Cpk out (docs/TOOLKIT.md, Part 4, tool 1;
+/* A MEASURED TEST — readings in, Ppk and Cpk out (docs/TOOLKIT.md, Part 4, tool 1;
  * the worked example in docs/LEAN40.md's appendix).
  *
  * Rowland, 10 October: "More emphasis on the tools and the tool design, such
@@ -26,6 +26,21 @@
 import type { AgreedReadings, StudyReading } from '../study';
 
 export type Tone = 'r' | 'a' | 'w' | 'g' | 'n';
+
+/* PPK AND CPK, AS THE PRACTICE NAMES THEM (AIAG SPC; ISO 22514). Rowland, 13
+   October: "it's likely there are still quantification issues ... the
+   capability page". The figure this tool called Cpk was worked from the
+   overall spread of the readings — the practice calls that Ppk (Cmk for a
+   machine's run): the readings as they came. Cpk is worked from the spread
+   within — pack to pack, the average moving range ÷ 1.128 for single
+   readings taken in order. On a steady run the two agree; on a run that
+   drifts they part, and the drift is what a test must see. The verdict
+   stands on Ppk — what was seen; Cpk is said beside it, and the drift in
+   words when they part. */
+/** d2 for a moving range of two readings — the practice's constant. */
+export const D2 = 1.128;
+/** They part when the run-to-run figure is this much above the readings' own. */
+export const DRIFT_GAP = 0.2;
 
 export const CPK_CAPABLE = 1.33;
 export const CPK_JUST = 1.0;
@@ -57,11 +72,18 @@ export interface SampleFigures {
   min?: number;
   max?: number;
   outside: Outside[];
+  /** The spread within — pack to pack: the average moving range ÷ 1.128. */
+  sdWithin?: number;
+  /** Ppk, Pp: from the overall spread — the readings as they came. The verdict stands on Ppk. */
+  pp?: number;
+  ppk?: number;
+  /** Which limit the readings are nearest. */
+  ppkSide?: 'low' | 'high';
+  /** Cpk, Cp: from the spread within — what the machine does pack to pack. */
   cp?: number;
   cpk?: number;
-  /** Which limit the capability is nearest. */
   cpkSide?: 'low' | 'high';
-  /** The share that would fall outside at this mean and spread. */
+  /** The share that would fall outside at this mean and overall spread. */
   shareOut?: number;
   /** Readings more than 3 spreads from the mean of the others — flagged, not struck. */
   flagged: string[];
@@ -77,6 +99,20 @@ const counted = (rs: StudyReading[]) => rs.map((r, i) => ({ ...r, no: i + 1 })).
 const dpOf = (v: number) => { const s = String(v); const i = s.indexOf('.'); return i < 0 ? 0 : Math.min(3, s.length - i - 1); };
 const meanOf = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
 const sdOf = (xs: number[], m = meanOf(xs)) => (xs.length < 2 ? 0 : Math.sqrt(xs.reduce((a, x) => a + (x - m) ** 2, 0) / (xs.length - 1)));
+/** The spread within, from the readings in the order taken: the average of
+ *  each reading's difference from the one before, ÷ d2. */
+export const sdWithinOf = (xs: number[]): number => {
+  if (xs.length < 2) return 0;
+  let t = 0;
+  for (let i = 1; i < xs.length; i++) t += Math.abs(xs[i] - xs[i - 1]);
+  return t / (xs.length - 1) / D2;
+};
+/** A capability index and its nearer side, from a mean and a spread. */
+const indexOf = (m: number, s: number, lower?: number, upper?: number): { k: number; side: 'low' | 'high'; c?: number } => {
+  const lo = lower !== undefined ? (m - lower) / (3 * s) : Infinity;
+  const hi = upper !== undefined ? (upper - m) / (3 * s) : Infinity;
+  return { k: Math.min(lo, hi), side: lo <= hi ? 'low' : 'high', ...(lower !== undefined && upper !== undefined ? { c: (upper - lower) / (6 * s) } : {}) };
+};
 
 /** P(Z > z) for a standard normal — Numerical Recipes' erfc, good to 1e-7. */
 export function upperTail(z: number): number {
@@ -119,8 +155,8 @@ export function sample(agreed: AgreedReadings | undefined, readings: StudyReadin
   const dp = xs.reduce((d, x) => Math.max(d, dpOf(x)), 0);
   const f: SampleFigures = { n: xs.length, count, enough: count > 0 && xs.length >= count, outside: [], flagged: [], dp };
   if (!xs.length) return f;
-  const m = meanOf(xs), s = sdOf(xs, m);
-  Object.assign(f, { mean: m, sd: s, min: Math.min(...xs), max: Math.max(...xs) });
+  const m = meanOf(xs), s = sdOf(xs, m), sw = sdWithinOf(xs);
+  Object.assign(f, { mean: m, sd: s, min: Math.min(...xs), max: Math.max(...xs), ...(xs.length >= 2 ? { sdWithin: sw } : {}) });
 
   /* Packers: the limit is the nominal less the TNE, said by the three rules. */
   let lower = agreed?.lower, upper = agreed?.upper;
@@ -138,12 +174,15 @@ export function sample(agreed: AgreedReadings | undefined, readings: StudyReadin
   if (agreed?.kind === 'packers') f.outside = f.outside.filter(o => f.packers && o.value < f.packers.nominal - f.packers.tne);
 
   if (s > 0 && (lower !== undefined || upper !== undefined)) {
-    const lo = lower !== undefined ? (m - lower) / (3 * s) : Infinity;
-    const hi = upper !== undefined ? (upper - m) / (3 * s) : Infinity;
-    f.cpk = Math.min(lo, hi);
-    f.cpkSide = lo <= hi ? 'low' : 'high';
-    if (lower !== undefined && upper !== undefined) f.cp = (upper - lower) / (6 * s);
+    const p = indexOf(m, s, lower, upper);
+    f.ppk = p.k; f.ppkSide = p.side;
+    if (p.c !== undefined) f.pp = p.c;
     f.shareOut = (lower !== undefined ? upperTail((m - lower) / s) : 0) + (upper !== undefined ? upperTail((upper - m) / s) : 0);
+  }
+  if (sw > 0 && (lower !== undefined || upper !== undefined)) {
+    const c = indexOf(m, sw, lower, upper);
+    f.cpk = c.k; f.cpkSide = c.side;
+    if (c.c !== undefined) f.cp = c.c;
   }
   if (xs.length >= 5) {
     f.flagged = vs.filter((r, i) => {
@@ -238,16 +277,24 @@ export function sampleSays(f: SampleFigures, a: AgreedReadings | undefined): Sam
   return { ...main, capability: capabilityWords(f, a) };
 }
 
-/** Would it keep passing all shift — the Cpk sentence, from 25 readings. */
+/** Did the run drift — the readings' own spread well wider than pack to pack? */
+export const drifts = (f: SampleFigures): boolean =>
+  f.ppk !== undefined && f.cpk !== undefined && Number.isFinite(f.ppk) && Number.isFinite(f.cpk) && f.cpk - f.ppk >= DRIFT_GAP;
+
+/** Would it keep passing all shift — the capability sentence, from 25
+ *  readings: the verdict on Ppk, what was seen; Cpk beside it, pack to pack;
+ *  and, when the two part, the run drifting said in words. */
 export function capabilityWords(f: SampleFigures, a: AgreedReadings): { text: string; tone: Tone } | undefined {
-  if (a.kind === 'ticks' || f.cpk === undefined || !Number.isFinite(f.cpk)) return undefined;
+  if (a.kind === 'ticks' || f.ppk === undefined || !Number.isFinite(f.ppk)) return undefined;
   if (f.n < CPK_FROM) return { text: `Too few for capability — from ${f.n}.`, tone: 'n' };
-  const c = f.cpk.toFixed(2), from = `from ${f.n}`;
-  if (f.cpk >= CPK_CAPABLE) return { text: `Capable: Cpk ${c} ${from}.`, tone: 'g' };
-  if (f.cpk >= CPK_JUST) return { text: `Just capable: Cpk ${c} ${from} — watch it.`, tone: 'a' };
-  const side = f.cpkSide ? sideWord(f.cpkSide, a.unit) : 'outside';
+  const c = f.ppk.toFixed(2), from = `from ${f.n}`;
+  /* Cpk in the words only when it says something Ppk does not: the run drifting */
+  const within = drifts(f) && f.cpk !== undefined ? ` Pack to pack it is steadier — Cpk ${f.cpk.toFixed(2)}: it drifts across the run.` : '';
+  if (f.ppk >= CPK_CAPABLE) return { text: `Capable: Ppk ${c} ${from}.${within}`, tone: 'g' };
+  if (f.ppk >= CPK_JUST) return { text: `Just capable: Ppk ${c} ${from} — watch it.${within}`, tone: 'a' };
+  const side = f.ppkSide ? sideWord(f.ppkSide, a.unit) : 'outside';
   const share = f.shareOut !== undefined ? ` — ${inWords(f.shareOut)} would be ${side}` : ` — would drift ${side}`;
-  return { text: `Not capable: Cpk ${c} ${from}${share}.`, tone: 'a' };
+  return { text: `Not capable: Ppk ${c} ${from}${share}.${within}`, tone: 'a' };
 }
 
 /** Before → after on two studies of the same test: "the number moved", never
@@ -258,8 +305,8 @@ export function compareSamples(before: SampleFigures, after: SampleFigures, a: A
   const parts: string[] = [];
   if (before.mean !== undefined && after.mean !== undefined) parts.push(`mean ${fix(before.mean, dp)} → ${fix(after.mean, dp)}${unit}`);
   if (before.outside.length !== after.outside.length) parts.push(`outside ${before.outside.length} → ${after.outside.length}`);
-  const cb = before.n >= CPK_FROM ? before.cpk : undefined, ca = after.n >= CPK_FROM ? after.cpk : undefined;
-  if (cb !== undefined && ca !== undefined) parts.push(`Cpk ${cb.toFixed(2)} → ${ca.toFixed(2)}`);
+  const cb = before.n >= CPK_FROM ? before.ppk : undefined, ca = after.n >= CPK_FROM ? after.ppk : undefined;
+  if (cb !== undefined && ca !== undefined) parts.push(`Ppk ${cb.toFixed(2)} → ${ca.toFixed(2)}`);
   const both = cb !== undefined && ca !== undefined;
   const now = !after.outside.length && (ca === undefined || !both || ca >= CPK_CAPABLE);
   const word = both && ca !== undefined ? (ca >= CPK_CAPABLE ? 'capable now' : ca >= CPK_JUST ? 'just capable now' : 'still not capable') : (after.outside.length ? 'still outside' : 'all within now');

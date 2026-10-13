@@ -35,7 +35,7 @@ describe('Prove it, and before → after', () => {
     const after = study({ id: 'pr', startedAt: 5, facts: { readings: THIRTY.map((v, i) => ({ id: `q${i}`, value: Math.round((v + 1) * 10) / 10, at: i })) },
       uses: [{ id: 'u2', kind: 'fix', ref: 'f1', role: 'proof', at: 5 }] });
     const c = beforeAfter([before, after], 'f1');
-    expect(c?.text).toMatch(/^mean 401\.2 → 402\.2 g · Cpk 0\.67 → 1\.0\d — just capable now\. The number moved/);
+    expect(c?.text).toMatch(/^mean 401\.2 → 402\.2 g · Ppk 0\.67 → 1\.0\d — just capable now\. The number moved/);
     expect(beforeAfter([before], 'f1')).toBeUndefined();
     expect(beforeAfter([before, { ...after, name: 'Something else' }], 'f1')).toBeUndefined();
   });
@@ -56,11 +56,11 @@ describe('the other doors', () => {
   });
   it('Make it better: worth it when it fails or would drift, with the figures in the words', () => {
     expect(worthBetter(study({}))).toBe(true);
-    expect(betterWords(study({}))).toBe('Weight accuracy 400 g: Not capable: Cpk 0.67 from 30 — about 2 in 100 would be light.');
+    expect(betterWords(study({}))).toBe('Weight accuracy 400 g: Not capable: Ppk 0.67 from 30 — about 2 in 100 would be light.');
     expect(worthBetter(study({ agreed: { readings: { ...agreed.readings, lower: 395, upper: 408 } } }))).toBe(false);
   });
   it('a study’s line carries both sentences, and an overrule beside them', () => {
-    expect(studyLine(study({})).text).toBe('30 readings, mean 401.2 g, 400.1–402.6, all within 400.0–404.0 g — Passed. Not capable: Cpk 0.67 from 30 — about 2 in 100 would be light.');
+    expect(studyLine(study({})).text).toBe('30 readings, mean 401.2 g, 400.1–402.6, all within 400.0–404.0 g — Passed. Not capable: Ppk 0.67 from 30 — about 2 in 100 would be light.');
     expect(studyLine(study({ overrule: { verdict: 'Didn’t pass', why: 'the tare was wrong', by: 'K. Ahmed', at: 1 } })).text).toMatch(/Overruled: Didn’t pass by K\. Ahmed — the tare was wrong\.$/);
   });
 });
@@ -114,7 +114,7 @@ describe('on a running line (docs/BUILD.md, 2h): the board, not a stage-gate fix
     const row = countermeasureFrom(study({ projectId: 'p1' }), { id: 'a1', at: 5, lineId: 'L1', causeRef: 'case:cause', bone: 'measurement' });
     expect(row).toEqual({
       id: 'a1', projectId: 'p1', lineId: 'L1', what: betterWords(study({})), where: '', why: 'Capability study — Weight accuracy 400 g', who: '', when: '', state: 'todo',
-      pillar: 'measurement', causeRef: 'case:cause', expect: 'Every reading within the limits, Cpk 1.33 or more, on the same readings again', createdAt: 5, updatedAt: 5,
+      pillar: 'measurement', causeRef: 'case:cause', expect: 'Every reading within the limits, Ppk 1.33 or more, on the same readings again', createdAt: 5, updatedAt: 5,
     });
     const bal = { ...study({}), tool: 'balance' as const, name: 'Maris Piper 2kg', agreed: { balance: { taktSec: 12 } },
       facts: { steps: [{ id: 'a', order: 0, name: 'x', who: 'Op 1', typedSec: 12.9 }] } };
@@ -164,10 +164,10 @@ describe('what was measured on a day (docs/BUILD.md, 2j)', () => {
 
 describe('a test\'s square on the Commission board (docs/BUILD.md, 2k)', () => {
   const proving = (o: Partial<ToolStudy>) => study({ uses: [{ id: 'u', kind: 'test', ref: 't1', role: 'proof', at: 1 }], ...o });
-  it('Cpk once there are enough readings — amber when not capable; else how many are in', () => {
-    expect(squareWord([proving({})], 't1')).toEqual({ text: 'Cpk 0.67', tone: 'a' });
+  it('Ppk once there are enough readings — amber when not capable; else how many are in', () => {
+    expect(squareWord([proving({})], 't1')).toEqual({ text: 'Ppk 0.67', tone: 'a' });
     expect(squareWord([proving({ facts: { readings: THIRTY.slice(0, 12).map((value, i) => ({ id: `r${i}`, value, at: i })) } })], 't1')).toEqual({ text: '12 of 30 readings', tone: 'n' });
-    expect(squareWord([proving({ facts: { readings: THIRTY.map((v, i) => ({ id: `r${i}`, value: Math.round((v + 1) * 10) / 10, at: i })) } })], 't1')).toEqual({ text: 'Cpk 1.00', tone: 'n' });
+    expect(squareWord([proving({ facts: { readings: THIRTY.map((v, i) => ({ id: `r${i}`, value: Math.round((v + 1) * 10) / 10, at: i })) } })], 't1')).toEqual({ text: 'Ppk 1.00', tone: 'n' });
     expect(squareWord([proving({})], 't2')).toBeUndefined();
   });
   it('a reading outside the limits is a failure, said in red', () => {

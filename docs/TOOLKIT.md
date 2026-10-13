@@ -748,12 +748,19 @@ the verdict are worked out.
 **Figures** (`lib/ie/sample.ts`):
 - count, mean, spread (sample standard deviation, n − 1), lightest, heaviest;
 - **outside**: how many below the lower or above the upper limit;
-- **Cp** = (upper − lower) ÷ 6σ, only with both limits;
-- **Cpk** = the smaller of (upper − mean) and (mean − lower), ÷ 3σ; with one
-  limit, that side alone;
+- **Ppk** = the smaller of (upper − mean) and (mean − lower), ÷ 3s, with s
+  the overall spread of the readings (n − 1) — the readings as they came;
+  with one limit, that side alone; **Pp** = (upper − lower) ÷ 6s, only with
+  both limits. The verdict stands on Ppk;
+- **Cpk** and **Cp** the same with σ the spread *within* — the average moving
+  range of the readings in the order taken ÷ 1.128 — what the machine does
+  pack to pack (AIAG SPC; ISO 22514). Shown beside Ppk; said in words only
+  when the two part (Cpk at least 0.2 above Ppk): *"Pack to pack it is
+  steadier — Cpk 1.62: it drifts across the run."* (13 October audit: this
+  was called Cpk while worked from the overall spread — docs/AUDIT.md 2);
 - **the share that would fall outside** at this mean and spread, from the
   normal tails — said as "about 2 in 100";
-- **capability words**: Cpk ≥ 1.33 **capable**; 1.00 to 1.33 **just
+- **capability words**: Ppk ≥ 1.33 **capable**; 1.00 to 1.33 **just
   capable**; under 1.00 **not capable — would drift** (light / heavy / low /
   high, by which limit is near);
 - **the packers' three rules** for `kind: 'packers'`: the mean at or above
