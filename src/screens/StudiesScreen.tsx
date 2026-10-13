@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { asked } from '../lib/lines';
 import { listAllStudies, listObservations, listStandardsForLine, listWorkspaces, onDataChange, putStudy } from '../db';
+import { useFactoryLines } from '../lib/useFactoryLines';
 import type { Standard } from '../lib/standard';
 import { useProjects } from '../lib/useProjects';
 import { now, uid } from '../lib/ids';
@@ -227,9 +228,9 @@ function NewStudy({ open, tool, onClose, onLine }: { open: boolean; tool: StudyT
      business-wide mapping ... but keep the line large, different
      departments can affect the line"). */
   const [lineId, setLineId] = useState(onLine ?? '');
-  const [lines, setLines] = useState<Workspace[]>([]);
+  /* the lines of Your factory, in floor order (lib/useFactoryLines) */
+  const lines = useFactoryLines(onLine);
   const [standards, setStandards] = useState<Standard[]>([]);
-  useEffect(() => { if (open && (tool === 'map' || tool === 'sampling' || tool === 'changeover' || tool === 'losses')) void listWorkspaces().then(setLines); }, [open, tool]);
   useEffect(() => { if (lineId) void listStandardsForLine(lineId).then(setStandards); else setStandards([]); }, [lineId]);
   /* a map is always a line's; a sampling study watches a line's people; a
      LOSS COUNT is a line's too — its shifts, its stops and its cost model are

@@ -27,9 +27,12 @@ import {
 } from '../db';
 import { addLineToFactory, factorySays, lineTypesOffered, liveProductionLines, nextLineName, placeOnFloor, asked } from '../lib/lines';
 import { snagRow } from '../lib/snagsReport';
+import { Icon } from '../ui/Icon';
 import { useCanStartProjects } from '../cloud/access';
 import { fmtRelative } from '../lib/format';
 import { useProjects } from '../lib/useProjects';
+import type { Snag } from '../snag/types';
+import { todayISO } from '../lib/weeks';
 
 /** A box that keeps what is typed and saves it when the person is done —
  *  Enter or leaving the box; Escape puts the last saved words back. Never a
@@ -63,11 +66,14 @@ export function FactoryScreen() {
   const [added, setAdded] = useState<string[]>([]);
   const [saved, setSaved] = useState<string | null>(null);
   const [showShelf, setShowShelf] = useState(false);
+  const [printing, setPrinting] = useState(false);
+  const [snags, setSnags] = useState<Snag[]>([]);
   const nameRef = useRef<HTMLInputElement>(null);
   const savedTimer = useRef<number | undefined>(undefined);
 
   const load = useCallback(async () => {
     const [ws, arch, snags] = await Promise.all([listWorkspaces(), listArchivedWorkspaces(), listAllSnags()]);
+    setSnags(snags);
     const live = await liveProductionLines(ws);
     /* what is open on each line, counted as its own page counts it */
     const counts = new Map<string, { open: number; late: number }>();
@@ -114,6 +120,30 @@ export function FactoryScreen() {
     nameRef.current?.focus();
   };
 
+  /* THE FACTORY ON PAPER — every line in floor order, its type, the jobs on
+     it and what is open on it (lib/factoryReport, lib/factoryPdf). */
+  const printFactory = async () => {
+    if (!lines?.length || printing) return;
+    setPrinting(true);
+    try {
+      const { loadPdfLib, deliverPdf, titlePdf } = await import('../lib/savePdf');
+      const { factoryReading } = await import('../lib/factoryReport');
+      const { drawFactoryReport } = await import('../lib/factoryPdf');
+      const { pdfFileName } = await import('../lib/fileName');
+      const { jsPDF } = await loadPdfLib();
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+      titlePdf(doc, 'Your factory');
+      const names = new Map(projects.map(p => [p.id, p.name]));
+      const jobsOn = new Map([...on.entries()].map(([id, ids]) => [id, ids.map(x => names.get(x)).filter((n): n is string => !!n)]));
+      const today = todayISO();
+      await drawFactoryReport(doc, factoryReading(lines, snags, jobsOn, new Date(`${today}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })));
+      await deliverPdf(doc, pdfFileName('Your factory', 'report', today));
+    } catch (e) {
+      console.error('factory pdf failed', e);
+      window.alert('Sorry — the PDF could not be made. Please try again.');
+    } finally { setPrinting(false); }
+  };
+
   if (lines === null) return <div className="wrap fac"><p className="sub">Opening…</p></div>;
 
   return (
@@ -124,11 +154,10 @@ export function FactoryScreen() {
           <h1>Your factory</h1>
           <p className="pl-says">{factorySays(lines)}</p>
         </div>
-        {may && !adding && (
-          <div className="pace-head-actions">
-            <button type="button" className="btn btn-primary" onClick={() => { setAdding(true); setAdded([]); }}>Add lines</button>
-          </div>
-        )}
+        <div className="pace-head-actions">
+          {may && !adding && <button type="button" className="btn btn-primary" onClick={() => { setAdding(true); setAdded([]); }}>Add lines</button>}
+          <button type="button" className="btn" disabled={!lines.length || printing} onClick={() => void printFactory()}><Icon name="document" size="1.05em" />Factory report</button>
+        </div>
       </header>
       <p className="sub fac-why">
         Your production lines, in the order they stand on the floor. Every project, problem and tool hangs off one of them

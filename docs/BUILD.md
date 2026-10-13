@@ -1176,6 +1176,24 @@ exists today is aligned to it.
   on. On paper nothing new yet: a job's line prints under the name it has.
 - **Accepted by** `factory.mjs` stories 13-20.
 
+**Slice 3 — the factory on paper; the tools pick from it.**
+- **Your factory on paper** (`lib/factoryReport`, `lib/factoryPdf`, the
+  Factory report button on Your factory): one A4 page — the factory in a
+  sentence and what is open across it, then a row a line in floor order
+  with its place, name and type, the jobs on it ("On: Line 1 performance")
+  and what is open on it, the late and the critical in red with their
+  words. A factory too big for a page carries on; no line is left out.
+- **Every "Which line" offers the factory** (`lib/useFactoryLines`): a line
+  standard's or a line capacity's New, a study's New (value stream, SMED,
+  work sampling, loss count) and a study's Where it sits list the
+  factory's lines in floor order — never a project's own walk, an archived
+  line or the demo — with the line a record is on already always offered.
+  The Problems page offers its lines in floor order.
+- **A new line made anywhere goes into the factory** at the end of the floor
+  (`addLineToFactory`): a tool's "A new line…", the Problem button's sheet
+  and the Problems page's "A new line…".
+- **Accepted by** `factory.mjs` stories 21-23.
+
 ### Problems — the register: written, edited where it sits, a journey, a fresh start (12 October)
 
 Rowland, that evening, after the opened-out problem became read-only: "you've

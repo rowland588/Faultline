@@ -181,7 +181,7 @@ node scripts/acceptance/line-capacity.mjs  # Line capacity: the V-curve, the cap
 node scripts/acceptance/programs.mjs  # a program's status with commentary: the five statuses (not tested and no program among them), commentary on its own, Needs you, the paper
 node scripts/acceptance/snags.mjs  # Problems: the register — every problem written and edited where it sits, assigned not moved, its journey, a photo marked, on paper, a fresh start
 node scripts/acceptance/lines.mjs  # production lines: made in Your factory, opened on their own, a problem taken on one with no project, its tools opened on it, the phone
-node scripts/acceptance/factory.mjs  # Your factory: set up first, lines added one after another, named, typed, moved, archived and restored — the control room, the rail, the line's page and its paper, the phone; the jobs taking their lines from it, never a second line of a name
+node scripts/acceptance/factory.mjs  # Your factory: set up first, lines added one after another, named, typed, moved, archived and restored — the control room, the rail, the line's page and its paper, the phone; the jobs taking their lines from it, never a second line of a name; its paper; the tools picking from it
 node scripts/sync-two-devices.mjs     # a phone and a laptop against a fake cloud — video on one plays on the other
 node scripts/check-live-schema.mjs    # the LIVE database against the mapper — needs .env
 ```
@@ -293,7 +293,10 @@ project started from a line's page with that line picked, its lines the
 factory's, a line added from the factory and one not in it yet (added to
 the factory), a project's line made before the factory finding the
 factory's line of its name and never a second, and the factory, the line's
-page and the control room saying the job. `line-capacity.mjs` is Line capacity: the views named for what they
+page and the control room saying the job; then its paper — one page, the
+factory in words, every line in floor order with its type, its jobs and
+what is open — and a tool's Which line offering the factory in floor order,
+a line made there put at the end of the factory. `line-capacity.mjs` is Line capacity: the views named for what they
 are, the V-curve and the capacity sheet as `lib/capacity` says, a machine
 not on its plate speed said so, the owner's V margin and the guide, a
 person's standard time from the time study used with a tap, and the

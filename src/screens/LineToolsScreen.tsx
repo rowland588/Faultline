@@ -14,8 +14,9 @@
  * a snag. Attaching it to a job later is on its own page (StandardScreen
  * BelongsTo), and an attached one shows in that job's line standard too. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { asked } from '../lib/lines';
-import { createWorkspace, listAllStandards, listAllStudies, listWorkspaces, onDataChange, putStandard } from '../db';
+import { addLineToFactory, asked } from '../lib/lines';
+import { listAllStandards, listAllStudies, listWorkspaces, onDataChange, putStandard } from '../db';
+import { useFactoryLines } from '../lib/useFactoryLines';
 import type { ToolStudy } from '../lib/study';
 import { changeoverLine, currentChangeover, studyHref } from '../lib/studyLinks';
 import { useProjects } from '../lib/useProjects';
@@ -83,6 +84,8 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
   }, []);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
 
+  /* a new map or balance is put on a line of Your factory, in floor order (lib/useFactoryLines) */
+  const factory = useFactoryLines(asked('line'));
   const lineName = (id: string) => lines.find(x => x.id === id)?.name ?? 'A line';
   const jobName = (id?: string) => (id ? projects.find(p => p.id === id)?.name : undefined);
   /* By line; a map made inside a job with no line of its own sits under
@@ -170,7 +173,7 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
           </ul>
         </section>
       ))}
-      <NewOne open={adding} tool={tool} lines={lines} list={list ?? []} onClose={() => setAdding(false)} onLine={lineF.startsWith('ws:') ? lineF.slice(3) : undefined} />
+      <NewOne open={adding} tool={tool} lines={factory} list={list ?? []} onClose={() => setAdding(false)} onLine={lineF.startsWith('ws:') ? lineF.slice(3) : undefined} />
     </div>
   );
 }
@@ -192,7 +195,8 @@ function NewOne({ open, tool, lines, list, onClose, onLine }: { open: boolean; t
     if (!ready) return;
     setBusy(true);
     try {
-      const workspaceId = line === NEW_LINE ? (await createWorkspace(newLine.trim())).id : line;
+      /* a new line goes into Your factory, at the end of the floor (lib/lines) */
+      const workspaceId = line === NEW_LINE ? (await addLineToFactory(newLine.trim())).id : line;
       const t = now();
       /* The line does not move between products, the people do: a new map
          starts from the line's last picture. */

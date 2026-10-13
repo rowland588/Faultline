@@ -30,6 +30,10 @@
  *      not in it yet (added to the factory); a project's line made before the
  *      factory finding the factory's line of its name, never a second; the
  *      factory row, the line's page and the control room saying the job
+ *  21-23 the factory on paper — one page, the factory in words, every line in
+ *      floor order with its type, its jobs and what is open; a tool's Which
+ *      line offering the factory in floor order, and a line made there put at
+ *      the end of the factory
  *   and no console error anywhere.
  *
  *   node scripts/acceptance/factory.mjs      (SMOKE_BASE, as smoke) */
@@ -209,7 +213,30 @@ await page.goto(`${BASE}/#/`); await page.waitForTimeout(2500);
 ok(/on Line 1 performance/.test(await page.locator('.fac-card', { hasText: 'Line 1' }).first().innerText()), '20 the control room\'s card: on Line 1 performance');
 if (OUT) await page.screenshot({ path: `${OUT}/f-5-control-jobs.png` });
 
+/* 21-23 — the factory on paper; the tools pick from it (slice 3) */
+await page.goto(`${BASE}/#/factory`); await page.waitForTimeout(2000);
+const [fd] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), page.getByRole('button', { name: 'Factory report' }).click()]);
+const ff = join(dir, 'factory.pdf'); await fd.saveAs(ff);
+const fpaper = execFileSync('pdftotext', ['-raw', ff, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
+const fpages = Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [ff], { encoding: 'utf8' }))?.[1]);
+ok(fpages === 1 && /Your factory/.test(fpaper) && /5 lines · 3 Packing · 1 Palletising · 1 not typed yet/.test(fpaper), `21 Your factory on paper, one page, the factory in words (${fpages} page)`);
+const at = n => fpaper.indexOf(n);
+ok(at('Line 1 — Packing') >= 0 && at('Line 1 — Packing') < at('Line 3B — Packing') && at('Line 3B — Packing') < at('Line 2A — Packing') && at('Line 4 — Palletising') < at('Line 9'), '21b every line in floor order, with its type');
+ok(/On: Line 1 performance/.test(fpaper) && /1 open/.test(fpaper), '21c the jobs on each line, and what is open on it');
+/* a tool's New offers the factory, in floor order; a new line goes into it */
+await page.goto(`${BASE}/#/balances`); await page.waitForTimeout(2000);
+await page.getByRole('button', { name: 'New line capacity' }).first().click(); await page.waitForTimeout(800);
+const sheetSel = page.locator('.sheet, [role="dialog"]').last().locator('select').first();
+const opts = await sheetSel.evaluate(el => [...el.options].map(o => o.text));
+ok(opts.join(' / ') === 'Line 1 / Line 3B / Line 2A / Line 4 / Line 9 / A new line…', `22 a tool's Which line: the factory, in floor order — ${opts.join(' / ')}`);
+await sheetSel.selectOption({ label: 'A new line…' });
+await page.locator('.sheet, [role="dialog"]').last().getByPlaceholder('e.g. Line 4').fill('Line 10');
+await page.locator('.sheet, [role="dialog"]').last().getByPlaceholder(/Maris Piper/).fill('Rooster 1kg');
+await page.locator('.sheet, [role="dialog"]').last().locator('button[type="submit"]').click(); await page.waitForTimeout(2000);
+await page.goto(`${BASE}/#/factory`); await page.waitForTimeout(2000);
+ok((await order()).at(-1) === 'Line 10|' && (await order()).length === 6, `23 a new line made in a tool is in the factory, at the end: ${(await order()).join(' / ')}`);
+
 ok(errs.length === 0, `no console errors ${errs.slice(0, 3).join(' | ')}`);
 await b.close();
-console.log(fail ? `\nYour factory NOT accepted: ${fail} failed` : '\nYour factory accepted: set up first, lines added one after another, named, typed, moved, archived and restored — in floor order on the control room, the rail, the line\'s page and its paper — the phone, and the jobs taking their lines from it');
+console.log(fail ? `\nYour factory NOT accepted: ${fail} failed` : '\nYour factory accepted: set up first, lines added one after another, named, typed, moved, archived and restored — in floor order on the control room, the rail, the line\'s page and its paper — the phone, the jobs taking their lines from it, its paper, and the tools picking from it');
 process.exit(fail ? 1 : 0);

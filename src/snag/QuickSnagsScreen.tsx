@@ -21,8 +21,8 @@
  * a word narrow it. The report prints what the page shows (lib/snagsReportPdf). */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { withoutDemo } from '../lib/demo';
-import { asked } from '../lib/lines';
-import { addSnag, createWorkspace, deleteSnag, inArchivedProject, listAllSnags, listArchivedWorkspaces, listWorkspaces, putTest, putTestItem, listAssets, listSnagAssets, listTests, listTestItems, listPaceTodos, onDataChange, updateSnag, updateWorkspace, setSnagsStatus, type PaceTodoRow } from '../db';
+import { addLineToFactory, asked, byFloor } from '../lib/lines';
+import { addSnag, deleteSnag, inArchivedProject, listAllSnags, listArchivedWorkspaces, listWorkspaces, putTest, putTestItem, listAssets, listSnagAssets, listTests, listTestItems, listPaceTodos, onDataChange, updateSnag, updateWorkspace, setSnagsStatus, type PaceTodoRow } from '../db';
 import { useProjects } from '../lib/useProjects';
 import { planModel } from '../lib/planModel';
 import { uid } from '../lib/ids';
@@ -108,7 +108,7 @@ export function QuickSnagsScreen() {
     const [every, ws] = await Promise.all([listAllSnags(), listWorkspaces()]);
     /* the demo line's made-up problems are never here */
     const all = withoutDemo(every, ws).filter(s => !s.deletedAt);
-    setSnags(all.sort((a, b) => b.raisedAt - a.raisedAt)); setLines(withoutDemo(ws.map(w => ({ ...w, workspaceId: w.id })), ws));
+    setSnags(all.sort((a, b) => b.raisedAt - a.raisedAt)); setLines(withoutDemo(ws.map(w => ({ ...w, workspaceId: w.id })), ws).sort(byFloor));   /* offered in floor order (Your factory) */
     setShelved(await listArchivedWorkspaces());
     const away = await Promise.all(ws.map(async w => [w.id, await inArchivedProject(w.id)] as const));
     setAwayLines(new Set(away.filter(([, a]) => a).map(([id]) => id)));
@@ -244,7 +244,7 @@ export function QuickSnagsScreen() {
      marked sorted, saying where it went (13 October: "put the stuff on 2A and assign it to 2B") */
   const toLine = async (pid: string, item: TestItem, to: string) => {
     let wsId = to, name = lines.find(w => w.id === to)?.name ?? 'the line';
-    if (to === NEW_LINE) { const typed = window.prompt('The new line’s name')?.trim(); if (!typed) return; wsId = (await createWorkspace(typed)).id; name = typed; }
+    if (to === NEW_LINE) { const typed = window.prompt('The new line’s name')?.trim(); if (!typed) return; wsId = (await addLineToFactory(typed)).id; name = typed; }
     const t = Date.now();
     const made: Snag = {
       id: uid(), workspaceId: wsId, problem: item.what, status: 'open', raisedAt: item.createdAt ?? t, updatedAt: t, projectId: pid,
@@ -510,7 +510,7 @@ export function QuickSnagsScreen() {
               if (v === NEW_LINE) {
                 const typed = window.prompt('The new line’s name')?.trim();
                 if (!typed) return;
-                to = (await createWorkspace(typed)).id; name = typed;
+                to = (await addLineToFactory(typed)).id; name = typed;
               }
               /* one pinned on a walk stays on its line — it is on that line's walk picture */
               const move = before.filter(x => !x.assetId), stay = before.length - move.length;
@@ -712,7 +712,7 @@ function ProblemEditor({ s, lines, projects, machines, frame, put, onView, onCar
             const v = e.target.value;
             if (v !== NEW_LINE) { put({ workspaceId: v }); return; }
             const name = window.prompt('The new line’s name')?.trim();
-            if (name) void createWorkspace(name).then(w => put({ workspaceId: w.id }));
+            if (name) void addLineToFactory(name).then(w => put({ workspaceId: w.id }));   /* a new line goes into Your factory */
           }}>
             {lines.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
             {/* the line it is on, archived since — named, never shown as another line */}
