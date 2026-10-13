@@ -33,6 +33,8 @@
  *      stood in the flow; the line archived from its own page, with Undo
  *   F  A PROBLEM IN THE REGISTER — asked, then gone for good (and the other
  *      devices not told until the next write); now Undo
+ *   G  A MARKED FRAME ON THE WALK — "This cannot be undone"; now Undo puts
+ *      the frame and the problems pinned on it back
  *   and no console error anywhere.
  *
  *   node scripts/acceptance/edit-delete.mjs      (SMOKE_BASE, as smoke) */
@@ -254,6 +256,18 @@ for (const [id, to] of [[sd.lineMapId, 'Line 7, run released to pallet away'], [
   await undo();
   const back = (await all()).find(x => x.id === s0.id);
   ok(!!back && back.problem === 'seeded snag 0' && back.status === s0.status && await page.locator('.qsl-row', { hasText: 'seeded snag 0' }).count() === 1, 'F1 Undo: the problem is back on the register');
+}
+
+/* ================= G · A MARKED FRAME ON THE WALK — Undo after the ask ================= */
+{
+  const frame = () => db((D, id) => D.getSnagAsset(id), sd.assetId);
+  const pinned = () => db((D, id) => D.snagsForAsset(id), sd.assetId);
+  const n0 = (await pinned()).length;
+  await go(`#/project/${sd.projectId}/line/${sd.lineId}?view=snags`);
+  await main().getByRole('button', { name: 'Delete Former roller', exact: true }).click(); await page.waitForTimeout(1200);
+  ok(!(await frame()) && (await pinned()).length === 0 && /pinned on it/.test(asked) && /Undo brings it back/.test(asked), `G1 a marked frame deleted, its ${n0} problems with it: "${asked.replace(/\n+/g, ' / ')}"`);
+  await undo();
+  ok((await frame())?.name === 'Former roller' && (await pinned()).length === n0, 'G1 Undo: the frame and every problem pinned on it are back');
 }
 
 ok(errors.length === 0, `no console errors${errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''}`);

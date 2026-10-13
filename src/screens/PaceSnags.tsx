@@ -230,10 +230,11 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [], can = c
     const pins = snags.filter(sn => sn.assetId === a.id).length;
     const msg = `Delete the marked frame "${a.name}"?`
       + (pins ? `\n\nThis also deletes ${pins} problem${pins === 1 ? '' : 's'} pinned on it.` : '')
-      + '\n\nThis cannot be undone.';
+      + '\n\nUndo brings it back for a few seconds.';
     if (!window.confirm(msg)) return;
-    await deleteSnagAsset(a.id);
+    const back = await deleteSnagAsset(a.id);
     await load(wsId);
+    offerUndo(`Deleted the marked frame “${a.name}”`, async () => { await back(); await load(wsId); });
   };
 
   // The workspace is only created when a walk is actually started.
