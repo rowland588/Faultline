@@ -17,7 +17,10 @@
  * red), and what to do next (take a problem; open a tool on this line). */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { nav } from '../state/useRoute';
-import { getWorkspace, listAllSnags, listStandardsForLine, listStudiesForLine, onDataChange, updateWorkspace } from '../db';
+import { getWorkspace, listAllSnags, listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, projectsOnWorkspace, updateWorkspace } from '../db';
+import { methodOf } from '../lib/planModel';
+import { useCanStartProjects } from '../cloud/access';
+import { lineTypesOffered, productionLines } from '../lib/lines';
 import { openQuickSnag } from '../snag/QuickSnag';
 import { PRIORITY_WORD, type Priority, type SnagRow, type SnagTone, snagRow } from '../lib/snagsReport';
 import type { Standard } from '../lib/standard';
@@ -51,10 +54,18 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
   const { projects } = useProjects();
   const [standards, setStandards] = useState<Standard[]>([]);
   const [studies, setStudies] = useState<ToolStudy[]>([]);
+  const [types, setTypes] = useState<string[]>([]);
+  const [jobIds, setJobIds] = useState<string[]>([]);
+  const [editing, setEditing] = useState(false);
+  const [saved, setSaved] = useState<string | null>(null);
+  /* the factory is changed by someone invited to the app, as on Your factory */
+  const may = useCanStartProjects();
 
   const load = useCallback(async () => {
-    const [w, every, std, ss] = await Promise.all([getWorkspace(wsId), listAllSnags(), listStandardsForLine(wsId), listStudiesForLine(wsId)]);
+    const [w, every, std, ss, ws, on] = await Promise.all([getWorkspace(wsId), listAllSnags(), listStandardsForLine(wsId), listStudiesForLine(wsId), listWorkspaces(), projectsOnWorkspace(wsId)]);
     setLine(w ?? null);
+    setJobIds(on);
+    setTypes(lineTypesOffered(productionLines(ws)));
     const mine = every.filter(s => s.workspaceId === wsId && !s.deletedAt && !s.archivedAt && s.status !== 'closed');
     setMine(mine);
     setStandards(std); setStudies(ss.filter(s => !s.deletedAt));
@@ -64,6 +75,7 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
   /* its problems as rows, in priority order — the project each is for named */
   const rows: SnagRow[] = useMemo(() => mine.map(s => snagRow(s, line?.name ?? 'This line', undefined, projects.find(p => p.id === s.projectId)?.name))
     .sort((a, b) => RANK[a.priority] - RANK[b.priority] || Number(b.late) - Number(a.late) || b.raisedAt - a.raisedAt), [mine, projects, line]);
+  const jobs = projects.filter(p => jobIds.includes(p.id));
   const late = rows.filter(r => r.late).length;
   const crit = rows.filter(r => r.priority === 'critical').length;
   const count = useMemo(() => (t: typeof TOOLS[number]) => (t.standard ? standards.length : studies.filter(s => s.tool === t.study).length), [standards, studies]);
@@ -79,29 +91,36 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
     );
   }
 
+  /* the line as its paper names it — with its type, as the page does */
+  const named = line.lineType ? `${line.name} (${line.lineType})` : line.name;
   /* THE LINE ON PAPER (12 October: "if it's attached to a line, every group
      I can send from that") — its report, or a card for each problem open. */
   const pdf = async (kind: 'report' | 'cards') => {
     if (busy || !mine.length) return;
     setBusy(true);
     try {
-      if (kind === 'report') await saveProblemsReportFor({ title: `${line.name} — problems`, snags: mine, jobs: [], lineName: () => line.name, jobName: id => projects.find(p => p.id === id)?.name });
-      else await saveProblemCardsFor({ name: line.name, lineRows: mine.map(snag => ({ snag, assetName: snag.targetAsset?.trim() || 'No machine named' })), jobRows: [] });
+      if (kind === 'report') await saveProblemsReportFor({ title: `${named} — problems`, snags: mine, jobs: [], lineName: () => line.name, jobName: id => projects.find(p => p.id === id)?.name });
+      else await saveProblemCardsFor({ name: named, lineRows: mine.map(snag => ({ snag, assetName: snag.targetAsset?.trim() || 'No machine named' })), jobRows: [] });
     } catch (e) {
       console.error('line pdf failed', e);
       window.alert('Sorry — the PDF could not be made. Please try again.');
     } finally { setBusy(false); }
   };
-  const rename = () => {
-    const name = window.prompt('Rename the line', line.name)?.trim();
-    if (name && name !== line.name) void updateWorkspace({ ...line, name });
+  /* THE LINE, EDITED WHERE IT IS — its name and its type (Rowland, 13
+     October: "change the types, the names of the lines. Again, always full
+     edit control"), the same two boxes as Your factory; the Rename prompt it
+     replaces asked only the name, in a box over the page. */
+  const save = async (patch: Partial<Workspace>, what: string) => {
+    await updateWorkspace({ ...line, ...patch });
+    setSaved(what);
+    window.setTimeout(() => setSaved(null), 2600);
   };
 
   return (
     <div className="wrap pl">
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pl-eyebrow">PRODUCTION LINE</p>
+          <p className="pl-eyebrow">PRODUCTION LINE{line.lineType ? ` · ${line.lineType.toUpperCase()}` : ''} · <a href="#/factory" className="pl-fac">Your factory ›</a></p>
           <h1>{line.name}</h1>
           {/* where the line is, in words — only the abnormal carries colour */}
           <p className="pl-says">
@@ -116,9 +135,48 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
           <button type="button" className="btn btn-primary" onClick={() => openQuickSnag()}><Icon name="camera" size="1.05em" />Problem</button>
           <button type="button" className="btn" disabled={busy || !rows.length} onClick={() => void pdf('report')}><Icon name="document" size="1.05em" />Problems report</button>
           <button type="button" className="btn" disabled={busy || !rows.length} onClick={() => void pdf('cards')}>Report cards</button>
-          <button type="button" className="btn btn-ghost" onClick={rename}>Rename</button>
+          {may && <button type="button" className="btn btn-ghost" aria-expanded={editing} onClick={() => setEditing(v => !v)}>{editing ? 'Done' : 'Edit the line'}</button>}
         </div>
       </header>
+      {editing && may && (
+        <div className="pl-edit" role="group" aria-label="Edit the line">
+          <label className="pl-edit-f"><span>Name</span>
+            <input className="text-input" defaultValue={line.name} maxLength={80} aria-label="The line's name"
+              onBlur={e => { const v = e.target.value.trim(); if (v && v !== line.name) void save({ name: v }, `the line is now ${v}`); }}
+              onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
+          </label>
+          <label className="pl-edit-f"><span>Type</span>
+            <input className="text-input" defaultValue={line.lineType ?? ''} maxLength={80} list="pl-types" placeholder="e.g. Packing" aria-label="The line's type"
+              onBlur={e => { const v = e.target.value.trim(); if (v !== (line.lineType ?? '')) void save({ lineType: v || undefined }, v ? `a ${v} line` : 'no type'); }}
+              onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
+          </label>
+          <datalist id="pl-types">{types.map(t => <option key={t} value={t} />)}</datalist>
+          {saved && <span className="pe-saved" role="status">Saved — {saved}</span>}
+        </div>
+      )}
+
+      {/* THE JOBS ON THIS LINE (13 October: "assign everything to a
+          production line") — every live project whose lines name it, each
+          one tap to its own page; a job is started on this line from here. */}
+      <section className="pl-sec" aria-label="Jobs on this line">
+        <div className="pl-sec-h">
+          <h2>Jobs on this line</h2>
+          {may && <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/projects?new=1&line=${encodeURIComponent(wsId)}`)}>Start a project on this line ›</button>}
+        </div>
+        {jobs.length === 0
+          ? <p className="sub">No job on this line now. Its problems and its tools need none.</p>
+          : (
+            <ul className="pl-jobs">
+              {jobs.map(p => (
+                <li key={p.id}>
+                  <button type="button" className="pl-job" onClick={() => nav(`/project/${p.id}`)}>
+                    <b>{p.name}</b><span className="sub">{methodOf(p).label}</span><span className="pl-tool-go" aria-hidden>›</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+      </section>
 
       <section className="pl-sec" aria-label="Problems on this line">
         <div className="pl-sec-h">

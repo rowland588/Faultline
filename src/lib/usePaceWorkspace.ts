@@ -10,6 +10,7 @@
  * workspace list for someone who never records a walk. */
 import { useCallback, useEffect, useState } from 'react';
 import { getPaceWorkspaceId, setPaceWorkspaceId, createWorkspace, projectForWorkspace, getProject } from '../db';
+import { factoryLineFor } from './lines';
 
 export const PACE_WS_NAME = 'Project Pace — line walk';
 
@@ -61,7 +62,8 @@ export function useLineWorkspace(
 
   const ensure = useCallback(async (): Promise<string> => {
     if (wsId) return wsId;
-    const ws = await createWorkspace(lineName, 'food-packing');
+    /* the factory's line of that name, never a second one (lib/lines) */
+    const ws = await factoryLineFor(lineName, 'food-packing');
     await attach(ws.id);
     setWsId(ws.id);
     return ws.id;

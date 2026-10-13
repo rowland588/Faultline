@@ -984,6 +984,36 @@ it can prove.
   with its words); Hand over's standard; the 6M's People; the standard's page
   on paper (the measurements, the limit, the index, the caveat).
 
+### Line standard — the board: room to work, and people's colours (13 October)
+
+Rowland: "At the moment I can't drag the interface down, so you tap the ball
+to move a person, drag to move, but I only have a small surface area to play
+with, so it's not like I can kind of like scroll the page up and down to fit
+large things on. I also can't change the colour of the people. I want to be
+able to do that." The board (`screens/StandardScreen`) held every touch on
+it (`touch-action: none`), so on a phone a finger on the board could never
+scroll the page; and every person was the people group's blue.
+- **The page scrolls off the board.** A finger on the empty board scrolls
+  and pinches (`touch-action: manipulation`); a person, a shape or a handle
+  under the finger is dragged (their own `touch-action: none`, and a
+  touchstart the board keeps for them); drawing a shape keeps the whole
+  board. A person is placed when the finger lifts where it went down, so a
+  scroll never drops one — said under the tools.
+- **More room.** Full screen: the tools and the board edge to edge, its bar
+  saying the product and its people, Done to go back. A plain board (no
+  photo) is Wide, Square or Tall (`standards.board`,
+  `supabase/STANDARD_BOARD.sql`, applied and read back first): the width
+  stays, the room is added below, everything stays where it stood
+  (`lib/standard reshaped`).
+- **A person's colour** — eight, by name (Blue, Purple, Teal, Orange, Pink,
+  Brown, Grey, Black; never a state colour's meaning), picked where a person
+  is named; kept on the mark (`marks` jsonb — no column). On the board, in
+  Who does what, on the product's thumbnail; **on paper** the card draws the
+  person and their number disc in their colour, and a tall board tall. The
+  role is always written beside the person, so the colour is never the only
+  thing that says.
+- **Accepted by** `scripts/acceptance/line-standard.mjs`.
+
 ### Line capacity — the line balance seen for what it is
 
 Rowland, 12 October: "In principle, the line balancing is actually a
@@ -1102,6 +1132,106 @@ come — and no project to hang them on.
   on the line (`?line=`), New starting there.
 - **Accepted by** `scripts/acceptance/lines.mjs`, from an empty device with
   no project; smoke loads the line's page and the lists opened on it.
+
+### Your factory — the backbone, set up first and always editable (13 October)
+
+Rowland, the next morning: "I think what we need to build is a stronger
+backbone ... a factory setup before the new projects ... your production
+lines. So then we were able to assign everything to a production line, do a
+production line singular, use the tools singular to the production line ...
+Next time I go on, I should be able to go and edit as well, of course, my
+factory. Build your factory, edit your factory, let me put more lines,
+change the types, the names of the lines. Again, always full edit control."
+Built in slices, each live on its own: (1) the factory and its editing —
+this; (2) projects take their lines from the factory, and a project shows
+the lines it is on; (3) a line's page shows the projects on it, and what
+exists today is aligned to it.
+- **The record.** Still the line (a Workspace) — two more things on it,
+  `line_type` (what kind of line, in the factory's own words) and
+  `floor_order` (where it stands) — `supabase/FACTORY.sql`, applied and read
+  back before the app sent either. `lib/lines` keeps the order (`byFloor`:
+  placed lines by place, the never-placed after by name), the types offered
+  (the factory's own first, then Packing · Processing · Filling ·
+  Palletising · Assembly), the factory in words ("4 lines · 3 Packing · 1
+  Palletising"), a move (every line numbered again, only the changed
+  written) and the next name guessed ("Line 2B" after "Line 2A").
+- **Your factory** (`#/factory`, `screens/FactoryScreen`): the lines in
+  floor order, each a name box and a type box saved on Enter or leaving the
+  box ("Saved — Line 2 is now Line 2A"), ▲ ▼ to move it, what is open on it
+  (late in red), the project it is on, Open ›, and Archive for a line on no
+  project; Add lines one after another — the box clears for the next, the
+  type stays — each placed at the end; the archive under it, Restore and
+  Delete for ever (its contents counted out loud first). Only someone
+  invited to the app changes it (`useCanStartProjects`); others read it.
+- **The control room's Your factory** comes first, above the jobs: the
+  factory in words, a card per line in floor order (name, type, what is on
+  it, the project it is on), Edit your factory; with no lines, "Set up your
+  factory first". It takes the place of the Production lines list under the
+  jobs — its New line and its archive are on Your factory now, beside the
+  type and the order, so a line is made and changed in one place.
+- **The rail's Your factory** — first after the control room: Your factory
+  (Set up your factory while there are none), then every line in floor
+  order (More on a phone).
+- **A line's own page** says its type under its name and links back to Your
+  factory; Edit the line changes its name and type there (it replaces the
+  Rename prompt, which asked only the name). **On paper** its Problems
+  report and its cards are named with its type — "Line 3B (Packing) —
+  problems".
+- **Accepted by** `scripts/acceptance/factory.mjs`, from an empty device;
+  `lines.mjs` now makes its line in Your factory; smoke loads Your factory
+  and its Add lines.
+
+**Slice 2 — the jobs take their lines from the factory.**
+- **A project's line is one of the factory's.** Its row (`pace_ppm`) names
+  the factory's line (`workspaceId`) from the start: a new project asks
+  "Which lines is it on?" with the factory's lines as chips (several, as
+  manufacturing is; none is allowed); Lines & people's Add a line offers
+  the factory's lines first — picking one fills its name and its short key
+  ("2A" for "Line 2A", `lib/lines lineKey`) — and "A line not in the
+  factory yet" adds it to the factory as it is added to the job. Each line
+  row has In your factory › to the line's own page.
+- **What exists is aligned, never doubled.** A project's line made before
+  the factory, the first time it is used (Time & film, a problem on it, the
+  Pareto's stopwatch), takes the factory's line of its name
+  (`factoryLineFor`) — a second "Line 2A" is never made; one not in the
+  factory is added at the end of the floor.
+- **A line is shared by the jobs on it, and outlives them.** Line 2A can be
+  a stage-gate job's line and a 6M job's at once (`db/pace
+  projectsOnWorkspace`). **A line never leaves the factory because a
+  project did** (Rowland, 13 October: "somehow it was aligned to an old
+  project ... an old archived project ... archive is causing issues ...
+  once and for all"): only the line's own Archive takes it off the floor.
+  An archived job is nobody's context — `chainForWorkspace` names the
+  first job still live on a line, or none: the line's tools then wear the
+  control room's rail, not the archived job's; the Problems page keeps the
+  line's problems under the line's name (only an archived job's own walk is
+  "Not on a line"); a tool's list puts an archived job's own records (on no
+  line, or on its walk) away with it and keeps a line's. A project's own
+  walk ("<project> — line walk") is the project's, never a line of the
+  factory (`projectWalkIds`).
+- **Where it shows.** A line's own page lists Jobs on this line, each one tap
+  to its job, with Start a project on this line (that line picked); Your
+  factory's rows and the control room's cards say every live job a line is
+  on. On paper nothing new yet: a job's line prints under the name it has.
+- **Accepted by** `factory.mjs` stories 13-20.
+
+**Slice 3 — the factory on paper; the tools pick from it.**
+- **Your factory on paper** (`lib/factoryReport`, `lib/factoryPdf`, the
+  Factory report button on Your factory): one A4 page — the factory in a
+  sentence and what is open across it, then a row a line in floor order
+  with its place, name and type, the jobs on it ("On: Line 1 performance")
+  and what is open on it, the late and the critical in red with their
+  words. A factory too big for a page carries on; no line is left out.
+- **Every "Which line" offers the factory** (`lib/useFactoryLines`): a line
+  standard's or a line capacity's New, a study's New (value stream, SMED,
+  work sampling, loss count) and a study's Where it sits list the
+  factory's lines in floor order — never a project's own walk, an archived
+  line or the demo — with the line a record is on already always offered.
+  The Problems page offers its lines in floor order.
+- **A new line made anywhere goes into the factory** at the end of the floor
+  (`addLineToFactory`): a tool's "A new line…", the Problem button's sheet
+  and the Problems page's "A new line…".
+- **Accepted by** `factory.mjs` stories 21-23.
 
 ### Problems — the register: written, edited where it sits, a journey, a fresh start (12 October)
 

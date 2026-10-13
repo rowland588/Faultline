@@ -22,7 +22,7 @@
  *   └─────────────────────────────────────────────────────────┘ */
 import { getBlob } from '../db';
 import { analyse, shortSays } from './capacity';
-import { headcount, isShape, manyOf, markOf, MARKS, peopleOf, TONES, type Standard, type StandardMark } from './standard';
+import { BOARDS, boardOf, colourOf, headcount, isShape, manyOf, markOf, MARKS, peopleOf, TONES, type Standard, type StandardMark } from './standard';
 
 /** A4 landscape at 150 dpi: sharp on paper, light enough for a phone. */
 export const CARD_W = 1754, CARD_H = 1240;
@@ -82,14 +82,15 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, width: number, max: n
   return out;
 }
 
-/** One icon: a white-ringed disc in the kind's colour, its glyph in white. */
-export function drawIcon(ctx: CanvasRenderingContext2D, kind: StandardMark['kind'], cx: number, cy: number, r: number) {
+/** One icon: a white-ringed disc in the kind's colour — or the person's own
+ *  (lib/standard colourOf), the same as on the board — its glyph in white. */
+export function drawIcon(ctx: CanvasRenderingContext2D, kind: StandardMark['kind'], cx: number, cy: number, r: number, colour?: string) {
   const k = markOf(kind);
   ctx.save();
   ctx.shadowColor = 'rgba(13,31,60,0.28)'; ctx.shadowBlur = r * 0.5; ctx.shadowOffsetY = r * 0.12;
   ctx.beginPath(); ctx.arc(cx, cy, r + Math.max(2, r * 0.12), 0, Math.PI * 2); ctx.fillStyle = '#ffffff'; ctx.fill();
   ctx.restore();
-  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = k.colour; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = colour ?? k.colour; ctx.fill();
   ctx.save();
   const g = r * 1.3;
   ctx.translate(cx - g / 2, cy - g / 2); ctx.scale(g / 24, g / 24);
@@ -220,10 +221,11 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
     iw = img.width * k; ih = img.height * k; ix = mapX + (mapW - iw) / 2; iy = top + (mapH - ih) / 2;
     ctx.drawImage(img, ix, iy, iw, ih);
   } else {
-    /* The plain board is 16:9 on the screen, so it is 16:9 here too — a
-       square drawn there is a square on the card. */
-    const k = Math.min(mapW / 16, mapH / 9);
-    iw = 16 * k; ih = 9 * k; ix = mapX + (mapW - iw) / 2; iy = top + (mapH - ih) / 2;
+    /* The plain board is the shape it is on the screen — wide, square or
+       tall (lib/standard BOARDS) — so a square drawn there is a square here. */
+    const b = BOARDS[boardOf(s)];
+    const k = Math.min(mapW / b.w, mapH / b.h);
+    iw = b.w * k; ih = b.h * k; ix = mapX + (mapW - iw) / 2; iy = top + (mapH - ih) / 2;
     ctx.fillStyle = '#f7f9fc'; ctx.fillRect(ix, iy, iw, ih);
     ctx.strokeStyle = '#e1e8f2'; ctx.lineWidth = 1;
     for (let x = ix; x < ix + iw; x += 40) { ctx.beginPath(); ctx.moveTo(x, iy); ctx.lineTo(x, iy + ih); ctx.stroke(); }
@@ -235,7 +237,7 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
   for (const m of s.marks) {
     if (isShape(m)) continue;
     const cx = ix + (m.x / 100) * iw, cy = iy + (m.y / 100) * ih;
-    drawIcon(ctx, m.kind, cx, cy, r);
+    drawIcon(ctx, m.kind, cx, cy, r, colourOf(m));
     if (m.label) pillLabel(ctx, m.label, cx, cy + r + 8, Math.round(r * 0.72));
   }
   ctx.restore();
@@ -254,8 +256,8 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
     if (y + 40 > listBottom && i < people.length) {
       ctx.fillStyle = MUTED; ctx.font = `600 22px ${FONT}`; ctx.fillText(`and ${people.length - i} more on the map`, sx, y + 24); y = listBottom + 1; return;
     }
-    // the number disc
-    ctx.beginPath(); ctx.arc(sx + 22, y + 22, 22, 0, Math.PI * 2); ctx.fillStyle = BLUE; ctx.fill();
+    // the number disc, in the person's colour — the same as on the map
+    ctx.beginPath(); ctx.arc(sx + 22, y + 22, 22, 0, Math.PI * 2); ctx.fillStyle = colourOf(p); ctx.fill();
     ctx.fillStyle = '#ffffff'; ctx.font = `800 22px ${FONT}`; ctx.textAlign = 'center'; ctx.fillText(String(i + 1), sx + 22, y + 30); ctx.textAlign = 'left';
     ctx.fillStyle = INK; ctx.font = `800 28px ${FONT}`;
     ctx.fillText(wrap(ctx, p.label || `Person ${i + 1}`, sideW - 64, 1)[0], sx + 60, y + 31);

@@ -33,7 +33,7 @@ import type { DimensionKey } from '../types';
  *  machine, the sub-category and the shift — the board's order after it. */
 const DRILL_ORDER: DimensionKey[] = ['category', 'asset', 'subcategory', 'shift'];
 import { usePaceLines } from '../lib/usePaceLines';
-import { createWorkspace } from '../db';
+import { factoryLineFor } from '../lib/lines';
 import { paretoView, moveSentence, type ParetoMove } from '../lib/paretoView';
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
@@ -112,7 +112,7 @@ export function ParetoScreen({ projectId }: { projectId: string }) {
   const timeOn = async (l: { id: string; name: string; workspaceId?: string }) => {
     let ws = l.workspaceId;
     if (!ws) {
-      ws = (await createWorkspace(l.name, 'food-packing')).id;
+      ws = (await factoryLineFor(l.name, 'food-packing')).id;   /* the factory's line of that name (lib/lines) */
       await lines.editLine(l.id, { workspaceId: ws });
     }
     nav(`/w/${ws}/capture`);

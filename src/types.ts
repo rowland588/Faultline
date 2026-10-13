@@ -51,6 +51,11 @@ export interface Workspace {
   activeTimer?: ActiveTimer;
 
   archived?: boolean;
+  /** YOUR FACTORY (supabase/FACTORY.sql) — what kind of line it is, in the
+   *  factory's own words ("Packing", "Processing"), and where it sits on the
+   *  floor: the order lines are listed in everywhere (lib/lines). */
+  lineType?: string;
+  floorOrder?: number;
   schemaVersion: number; // starts at 1 (migration guard)
 }
 

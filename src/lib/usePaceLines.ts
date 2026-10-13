@@ -25,6 +25,8 @@ export interface NewLine {
   key: string; name?: string; variant?: string;
   owner?: string; ownerEmail?: string;
   sponsor?: string; sponsorEmail?: string;
+  /** The factory's line it is (Your factory) — a project's line names one. */
+  workspaceId?: string;
 }
 
 export interface PaceLinesState {
@@ -92,6 +94,7 @@ export function usePaceLines(projectId: string): PaceLinesState {
       variant: l.variant?.trim() || undefined,
       owner: l.owner?.trim() || undefined, ownerEmail: l.ownerEmail?.trim().toLowerCase() || undefined,
       sponsor: l.sponsor?.trim() || undefined, sponsorEmail: l.sponsorEmail?.trim().toLowerCase() || undefined,
+      workspaceId: l.workspaceId,
       sort: lines.reduce((m, r) => Math.max(m, r.sort ?? 0), 0) + 1,
     });
     await refresh();

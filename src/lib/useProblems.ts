@@ -16,6 +16,7 @@ import {
   listPrograms, listTargets, listReadings, listPaceTodos, listProjectCases, addCase, patchCase,
   onDataChange, type PaceLineRow, type PaceTodoRow,
 } from '../db';
+import { factoryLineFor } from './lines';
 import { loadWalkSnags } from './useWalkSnags';
 import { stepAction } from './actions';
 import { uid, now } from './ids';
@@ -114,7 +115,8 @@ function pathOf(source: Case['source'], lines: PaceLineRow[], lineId?: string): 
 async function workspaceFor(projectId: string, line?: PaceLineRow): Promise<string> {
   if (line) {
     if (line.workspaceId) return line.workspaceId;
-    const ws = await createWorkspace(line.name, 'food-packing');
+    /* the factory's line of that name, never a second one (lib/lines) */
+    const ws = await factoryLineFor(line.name, 'food-packing');
     await putPaceLine({ ...line, workspaceId: ws.id });
     return ws.id;
   }

@@ -178,9 +178,11 @@ node scripts/acceptance/changeover.mjs  # F: SMED — a quick session on its own
 node scripts/acceptance/work-sampling.mjs  # H1: what people are doing at random moments — the moment asks, one tap each, the shares with their margins, the fix, the 6M line's card, the fishbone, the 6M report
 node scripts/acceptance/shift-losses.mjs  # E: a shift's losses — counted on the phone at the bottleneck's ideal speed, the shift less its breaks, the waterfall, slow running told from short stops, the pounds in two parts, a bar made better, the next shift counted, before → after, the fishbone, both papers
 node scripts/acceptance/line-capacity.mjs  # Line capacity: the V-curve, the capacity sheet, the margin, a person's standard time, the bottleneck walked
+node scripts/acceptance/line-standard.mjs  # the line standard's board: the page scrolls off it, a tap places, a drag moves, people's colours, a tall board, full screen — screen and card
 node scripts/acceptance/programs.mjs  # a program's status with commentary: the five statuses (not tested and no program among them), commentary on its own, Needs you, the paper
 node scripts/acceptance/snags.mjs  # Problems: the register — every problem written and edited where it sits, assigned not moved, its journey, a photo marked, on paper, a fresh start
-node scripts/acceptance/lines.mjs  # production lines: made from the control room, opened on their own, a problem taken on one with no project, its tools opened on it, the phone
+node scripts/acceptance/lines.mjs  # production lines: made in Your factory, opened on their own, a problem taken on one with no project, its tools opened on it, the phone
+node scripts/acceptance/factory.mjs  # Your factory: set up first, lines added one after another, named, typed, moved, archived and restored — the control room, the rail, the line's page and its paper, the phone; the jobs taking their lines from it, never a second line of a name; its paper; the tools picking from it
 node scripts/sync-two-devices.mjs     # a phone and a laptop against a fake cloud — video on one plays on the other
 node scripts/check-live-schema.mjs    # the LIVE database against the mapper — needs .env
 ```
@@ -271,12 +273,39 @@ you, commentary with no status kept on the program, and the programs report
 carrying the words, the commentary and the counts. `lines.mjs` is production lines as a place of their own (Rowland, 12 October:
 "I just want to be able to open a production line and use these tools inside
 the production line ... I need a record of production lines"): from an empty
-device, no project — the control room's Production lines saying none yet, New
-line by a name and the line's own page, the rail's Lines carrying it, the
+device, no project — the control room's Your factory saying set it up first,
+a line added there by a name and opened to its own page, the rail's Your factory carrying it, the
 Problem button on it with the line set and no project, the problem on the
 line's page, tapped to the Problems page on that line with it open, Line
 capacity and SMED opened on the line saying none yet with New starting on it,
-the control room counting the problem, and the phone. `line-capacity.mjs` is Line capacity: the views named for what they
+the control room counting the problem, and the phone. `factory.mjs` is Your
+factory, the backbone (Rowland, 13 October: "a factory setup before the new
+projects ... build your factory, edit your factory, let me put more lines,
+change the types, the names of the lines. Again, always full edit
+control"): from an empty device, the control room's Your factory first
+saying set it up first, three lines added one after another with the type
+kept for the next, the factory in words, a name and a type typed over and
+each said saved, a line moved up and the order kept after a reload, the
+control room's cards and the rail in floor order with their types, a line's
+page saying its type and edited there, its Problems report named with its
+type, a line archived and restored, a fourth placed at the end with its
+name guessed, and the phone; then the jobs taking their lines from it — a
+project started from a line's page with that line picked, its lines the
+factory's, a line added from the factory and one not in it yet (added to
+the factory), a project's line made before the factory finding the
+factory's line of its name and never a second, and the factory, the line's
+page and the control room saying the job; then its paper — one page, the
+factory in words, every line in floor order with its type, its jobs and
+what is open — and a tool's Which line offering the factory in floor order,
+a line made there put at the end of the factory. `line-standard.mjs` is the line standard's board (Rowland, 13 October: "I
+can't drag the interface down ... I only have a small surface area ... I
+also can't change the colour of the people"): the empty board the page's to
+scroll and pinch while a person and a shape are the board's to drag, a tap
+placing a person and a drag placing nothing, a person dragged and kept, a
+person's colour on the board, in Who does what and on the record, a plain
+board made tall with everything where it stood, the card drawing the person
+in their colour and the board tall, full screen edge to edge and back, and
+the phone. `line-capacity.mjs` is Line capacity: the views named for what they
 are, the V-curve and the capacity sheet as `lib/capacity` says, a machine
 not on its plate speed said so, the owner's V margin and the guide, a
 person's standard time from the time study used with a tap, and the

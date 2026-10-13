@@ -9,11 +9,13 @@
  * person's page, opening straight onto the A3 was right. Now that people are
  * invited into it, "which project?" is a real question and has to be asked
  * before the answer is shown. */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { useProjects } from '../lib/useProjects';
 import { MODELS, type PlanModel } from '../lib/planModel';
-import { STORE_WORDS, updateProject } from '../db';
+import { STORE_WORDS, addPaceLine, listWorkspaces, onDataChange, updateProject } from '../db';
+import { lineKey, liveProductionLines } from '../lib/lines';
+import type { Workspace } from '../types';
 import { useCanStartProjects } from '../cloud/access';
 import { useAccessByJob } from '../ui/JobsBoard';
 
@@ -35,6 +37,20 @@ export function ProjectsScreen() {
   const [name, setName] = useState('');
   const [lead, setLead] = useState('');
   const [handover, setHandover] = useState('');
+  /* WHICH LINES IT IS ON — taken from Your factory (Rowland, 13 October: "a
+     factory setup before the new projects ... assign everything to a
+     production line"). Several, as manufacturing is; none is allowed and
+     added later in Lines & people. */
+  const [factory, setFactory] = useState<Workspace[]>([]);
+  /* opened from a line's own page (Start a project on this line), that line is picked */
+  const [onLines, setOnLines] = useState<string[]>(() => (q.get('line') ? [q.get('line') as string] : []));
+  useEffect(() => {
+    let live = true;
+    const load = () => void listWorkspaces().then(liveProductionLines).then(ls => { if (live) setFactory(ls); });
+    load();
+    const off = onDataChange(load);
+    return () => { live = false; off(); };
+  }, []);
   /* THE PLAN MODEL, ASKED FOR ONCE, AT THE START.
    *
    * A project runs its plan on the 3P board (People / Plant / Process, off the
@@ -60,7 +76,11 @@ export function ProjectsScreen() {
     if (model === 'commissioning' && handover) {
       await updateProject({ ...p, plannedAt: handover, expectedAt: handover, updatedAt: Date.now() });
     }
-    setName(''); setLead(''); setHandover(''); setAdding(false); setModel(null);
+    /* the lines picked from the factory become the project's lines, each
+       naming its factory line — never a second line of the same name */
+    const picked = factory.filter(w => onLines.includes(w.id));
+    for (const [i, w] of picked.entries()) await addPaceLine({ projectId: p.id, key: lineKey(w.name), name: w.name, workspaceId: w.id, sort: i + 1 });
+    setName(''); setLead(''); setHandover(''); setAdding(false); setModel(null); setOnLines([]);
     /* Straight into the job. A commissioning project starts with its machines
        and its first test, on the Testing screen; it used to land on Lines &
        people and ask for a line with a sponsor. A 3P or lever-tree project is
@@ -142,6 +162,24 @@ export function ProjectsScreen() {
                   placeholder="Who is accountable for it" onChange={e => setLead(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') void doCreate(); }} />
               </label>
+              <div className="proj-field proj-lines" role="group" aria-label="Which lines it is on">
+                <span className="field-label">Which line{factory.length === 1 ? '' : 's'} is it on? <span className="cw-f-opt">from your factory</span></span>
+                {factory.length === 0
+                  ? <span className="chip-hint">Your factory has no lines yet. <a href="#/factory?add=1">Set up your factory ›</a> — or start now and add the lines later.</span>
+                  : (
+                    <span className="proj-lines-chips">
+                      {factory.map(w => {
+                        const on = onLines.includes(w.id);
+                        return (
+                          <button key={w.id} type="button" className={'chip' + (on ? ' on' : '')} aria-pressed={on}
+                            onClick={() => setOnLines(xs => (on ? xs.filter(x => x !== w.id) : [...xs, w.id]))}>
+                            {w.name}{w.lineType ? <span className="proj-lines-t"> · {w.lineType}</span> : null}
+                          </button>
+                        );
+                      })}
+                    </span>
+                  )}
+              </div>
               {model === 'commissioning' && (
                 <label className="proj-field">
                   <span className="field-label">Handover agreed <span className="cw-f-opt">if there is one yet</span></span>

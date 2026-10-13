@@ -29,7 +29,10 @@ import type { Can } from '../lib/access';
 import { useAccess } from '../cloud/access';
 import { AccessNote } from '../ui/AccessNote';
 import { usePaceLines } from '../lib/usePaceLines';
-import { STORE_WORDS, createWorkspace, getProject, type PaceLineRow } from '../db';
+import { STORE_WORDS, getProject, type PaceLineRow } from '../db';
+import { factoryLineFor, lineKey, liveProductionLines } from '../lib/lines';
+import { listWorkspaces, onDataChange } from '../db';
+import type { Workspace } from '../types';
 import { useProjectMembers, type ProjectRole } from '../cloud/members';
 import { LineTidyPanel } from './LineTidyPanel';
 import { MeasuresSetup } from './MeasuresSetup';
@@ -125,7 +128,8 @@ function LineRow({ line, first, last, state, projectId, members, can }: {
     if (line.workspaceId) { nav(`/w/${line.workspaceId}/capture`); return; }
     setBusy(true);
     try {
-      const ws = await createWorkspace(line.name, 'food-packing');
+      /* the factory's line of that name, never a second one (lib/lines) */
+      const ws = await factoryLineFor(line.name, 'food-packing');
       await state.editLine(line.id, { workspaceId: ws.id });
       nav(`/w/${ws.id}/capture`);
     } finally { setBusy(false); }
@@ -169,6 +173,11 @@ function LineRow({ line, first, last, state, projectId, members, can }: {
         <button className="btn btn-ghost pset-ws" onClick={() => nav(`/project/${projectId}/line/${line.id}`)}>
           Open pack
         </button>
+        {/* THE LINE IN YOUR FACTORY — its own page, its problems and tools,
+            every job on it (13 October) */}
+        {line.workspaceId && (
+          <button className="btn btn-ghost pset-ws" onClick={() => nav(`/lines/${line.workspaceId}`)}>In your factory ›</button>
+        )}
         {can.edit && (
           <button className="btn btn-ghost pset-ws" disabled={busy} onClick={() => void openWorkspace()}>
             {/* NAMED FOR WHAT IT OPENS — the line's stopwatch and its filmed
@@ -182,12 +191,36 @@ function LineRow({ line, first, last, state, projectId, members, can }: {
   );
 }
 
+/* ADD A LINE — FROM YOUR FACTORY (Rowland, 13 October: "a factory setup
+   before the new projects ... assign everything to a production line"). The
+   lines the factory has and the project has not are offered first; picking
+   one fills its name and short key, both still typed over. "A line not in
+   the factory yet" keeps the boxes as they were, and the line is added to
+   the factory as it is added here — so a project's line is always one of the
+   factory's, never a second of the same name. */
+const NEW = '__new__';
 function AddLine({ state }: { state: ReturnType<typeof usePaceLines> }) {
   const [key, setKey] = useState('');
   const [name, setName] = useState('');
   const [owner, setOwner] = useState('');
   const [sponsor, setSponsor] = useState('');
   const [note, setNote] = useState('');
+  const [factory, setFactory] = useState<Workspace[]>([]);
+  const [pick, setPick] = useState('');
+  useEffect(() => {
+    let live = true;
+    const load = () => void listWorkspaces().then(liveProductionLines).then(ls => { if (live) setFactory(ls); });
+    load();
+    const off = onDataChange(load);
+    return () => { live = false; off(); };
+  }, []);
+  const taken = new Set(state.lines.map(l => l.workspaceId).filter(Boolean));
+  const offered = factory.filter(w => !taken.has(w.id));
+  const choose = (v: string) => {
+    setPick(v); setNote('');
+    const w = factory.find(x => x.id === v);
+    if (w) { setName(w.name); setKey(lineKey(w.name)); } else { setName(''); setKey(''); }
+  };
 
   const add = async () => {
     const k = key.trim();
@@ -196,13 +229,24 @@ function AddLine({ state }: { state: ReturnType<typeof usePaceLines> }) {
       setNote(`This project already has a line ${k}.`);
       return;
     }
-    await state.addLine({ key: k, name: name.trim() || undefined, owner: owner.trim() || undefined, sponsor: sponsor.trim() || undefined });
-    setKey(''); setName(''); setOwner(''); setSponsor(''); setNote('');
+    const picked = factory.find(x => x.id === pick);
+    /* a line not in the factory yet goes into it now (lib/lines) */
+    const ws = picked ?? await factoryLineFor(name.trim() || `Line ${k}`, 'food-packing');
+    await state.addLine({ key: k, name: name.trim() || ws.name, owner: owner.trim() || undefined, sponsor: sponsor.trim() || undefined, workspaceId: ws.id });
+    setKey(''); setName(''); setOwner(''); setSponsor(''); setNote(''); setPick('');
   };
 
   return (
     <div className="pset-add">
       <div className="field-label">Add a line</div>
+      <label className="proj-field pset-from">
+        <span className="field-label">From your factory</span>
+        <select className="text-input" value={pick} aria-label="Which line of your factory" onChange={e => choose(e.target.value)}>
+          <option value="">{offered.length ? 'Pick a line…' : factory.length ? 'Every line of your factory is on this project' : 'Your factory has no lines yet'}</option>
+          {offered.map(w => <option key={w.id} value={w.id}>{w.name}{w.lineType ? ` · ${w.lineType}` : ''}</option>)}
+          <option value={NEW}>A line not in the factory yet…</option>
+        </select>
+      </label>
       <div className="pset-add-grid">
         <label className="proj-field">
           <span className="field-label">Line</span>
@@ -230,6 +274,7 @@ function AddLine({ state }: { state: ReturnType<typeof usePaceLines> }) {
         </label>
         <button className="btn btn-primary pset-add-btn" disabled={!key.trim()} onClick={() => void add()}>Add line</button>
       </div>
+      {(!pick || pick === NEW) && key.trim() && <p className="chip-hint">Not picked from your factory — it is added to the factory as it is added here.</p>}
       {note && <p className="chip-note">{note}</p>}
     </div>
   );

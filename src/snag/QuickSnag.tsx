@@ -28,13 +28,13 @@ import { BetterWords } from '../ui/BetterWords';
 import { EvidenceViewer, withPins } from '../ui/Evidence';
 import { Icon } from '../ui/Icon';
 import { offerUndo } from '../ui/Undo';
-import { addSnag, updateSnag, listWorkspaces, createWorkspace, listAssets } from '../db';
+import { addSnag, updateSnag, listWorkspaces, listAssets } from '../db';
 import { useProjects } from '../lib/useProjects';
 import { uid } from '../lib/ids';
 import type { MediaRef, Workspace } from '../types';
 import { SNAG_STATUS_META, dueFromInput, dueToInput, type Snag, type SnagStatus } from './types';
 import { pinSnag, recall, remember } from './quick';
-import { liveProductionLines } from '../lib/lines';
+import { addLineToFactory, liveProductionLines } from '../lib/lines';
 
 /* ---- one way in, from anywhere: the button, the FAB, a row on the page ---- */
 type Opener = (s?: Snag) => void;
@@ -127,7 +127,7 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
     try {
       let workspaceId = line;
       if (line === NEW_LINE) {
-        const w = await createWorkspace(newLine.trim());
+        const w = await addLineToFactory(newLine.trim());   /* a new line goes into Your factory, at the end of the floor */
         workspaceId = w.id;
         setLines(ls => [w, ...(ls ?? [])]); setLine(w.id); setNewLine('');
       }

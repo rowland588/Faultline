@@ -204,28 +204,68 @@ export async function chainForWorkspace(wsId: ID): Promise<{
   stageGate?: boolean;
 } | null> {
   const db = await getDB();
-  const line = (await db.getAll('pace_ppm')).find(l => l.workspaceId === wsId && !l.deletedAt);
-  const projectId = line ? (line.projectId ?? DEFAULT_PROJECT_ID) : await projectForWorkspace(wsId);
-  if (!projectId) return null;
-  const p = await db.get('projects', projectId);
-  if (p?.deletedAt) return null;
-  return {
-    projectId,
-    projectName: p?.name ?? 'the project',
-    lineId: line?.id,
-    lineName: line?.name,
-    stageGate: !!p?.commissioning,
-  };
+  /* AN ARCHIVED JOB IS NOBODY'S CONTEXT (Rowland, 13 October: "somehow it
+     was aligned to an old project ... an old archived project ... archive is
+     causing issues"). A line of the factory can be on several jobs; the
+     chain is the first job still live on it — never one archived or
+     deleted, whose rail, name and lists must not wrap the line's tools. */
+  const lines = (await db.getAll('pace_ppm')).filter(l => l.workspaceId === wsId && !l.deletedAt).sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
+  const walkOf = lines.length ? null : await projectForWorkspace(wsId);
+  const candidates = lines.length ? lines.map(l => ({ line: l as typeof l | undefined, projectId: l.projectId ?? DEFAULT_PROJECT_ID })) : walkOf ? [{ line: undefined, projectId: walkOf }] : [];
+  for (const c of candidates) {
+    const p = await db.get('projects', c.projectId);
+    if (p?.deletedAt || p?.archivedAt) continue;
+    return {
+      projectId: c.projectId,
+      projectName: p?.name ?? 'the project',
+      lineId: c.line?.id,
+      lineName: c.line?.name,
+      stageGate: !!p?.commissioning,
+    };
+  }
+  return null;
 }
 
 /** Is this workspace part of a project that has been archived? Archiving a job
  *  puts away everything under it, so what it held — its cases included — must
  *  not keep counting on Home or on the improvement-work screen. */
 export async function inArchivedProject(wsId: ID): Promise<boolean> {
-  const c = await chainForWorkspace(wsId);
-  if (!c) return false;
-  const p = await (await getDB()).get('projects', c.projectId);
-  return !!p?.archivedAt;
+  /* A line of the factory can be on several jobs at once (Your factory,
+     13 October): it goes into the archive only when every job it is on has
+     gone there — one job archived never takes a line another is still using. */
+  const ids = await projectsOnWorkspace(wsId);
+  if (!ids.length) return false;
+  const db = await getDB();
+  const ps = await Promise.all(ids.map(id => db.get('projects', id)));
+  return ps.every(p => !p || !!p.archivedAt || !!p.deletedAt);
+}
+
+/** EVERY JOB A WORKSPACE IS ON — each project whose line names it, and the
+ *  project whose own walk it is. A factory line is shared: Line 2A can be a
+ *  stage-gate job's line and a 6M job's at once. */
+export async function projectsOnWorkspace(wsId: ID): Promise<string[]> {
+  const db = await getDB();
+  const fromLines = (await db.getAll('pace_ppm')).filter(l => l.workspaceId === wsId && !l.deletedAt).map(l => l.projectId ?? DEFAULT_PROJECT_ID);
+  const walk = fromLines.length ? null : await projectForWorkspace(wsId);
+  return [...new Set([...fromLines, ...(walk ? [walk] : [])])];
+}
+
+/** THE PROJECTS' OWN WALKS — the workspaces a project films its walk in when
+ *  it has no line ("<project> — line walk"). They are the project's, reached
+ *  from it, and never a line of the factory: listed among the lines they read
+ *  as a line nobody has. A workspace a project's line also names is a line. */
+export async function projectWalkIds(): Promise<Set<string>> {
+  const db = await getDB();
+  const lineWs = new Set((await db.getAll('pace_ppm')).filter(l => !l.deletedAt && l.workspaceId).map(l => l.workspaceId as string));
+  const walks = new Set<string>();
+  for (const p of await db.getAll('projects')) if (p.walkWorkspaceId && !p.deletedAt) walks.add(p.walkWorkspaceId);
+  for (const key of await db.getAllKeys('meta')) {
+    const k = String(key);
+    if (k !== 'paceWorkspace' && !k.startsWith('paceWorkspace:')) continue;
+    const m = (await db.get('meta', key)) as { id?: ID } | undefined;
+    if (m?.id) walks.add(m.id);
+  }
+  return new Set([...walks].filter(id => !lineWs.has(id)));
 }
 
 /** Which project a workspace belongs to, if any — its project's line-walk

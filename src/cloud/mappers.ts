@@ -53,6 +53,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         crew: w.crew ?? null, labour_rate_per_hour: w.labourRatePerHour ?? null, labour_burden: w.labourBurden ?? null,
         packs_per_min: w.packsPerMin ?? null, margin_per_pack: w.marginPerPack ?? null,
         last_category: w.lastCategory ?? null, last_asset: w.lastAsset ?? null,
+        line_type: w.lineType ?? null, floor_order: w.floorOrder ?? null,
         archived: !!w.archived, created_at: w.createdAt, updated_at: w.updatedAt ?? w.createdAt, deleted_at: null,
       };
     },
@@ -65,6 +66,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       crew: n(r.crew), labourRatePerHour: n(r.labour_rate_per_hour), labourBurden: n(r.labour_burden),
       packsPerMin: n(r.packs_per_min), marginPerPack: n(r.margin_per_pack),
       lastCategory: (r.last_category as string) ?? undefined, lastAsset: (r.last_asset as string) ?? undefined,
+      lineType: (r.line_type as string) ?? undefined, floorOrder: n(r.floor_order),
       archived: !!r.archived, createdAt: Number(r.created_at), updatedAt: Number(r.updated_at),
     }),
   },
@@ -643,7 +645,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         id: s.id, owner_id: fallbackOwner, project_id: s.projectId || null,
         workspace_id: s.workspaceId ?? null, capacity: s.capacity ?? null,
         product: s.product, program_id: s.programId ?? null,
-        photo_key: s.photoKey ?? null, marks: s.marks ?? [], note: s.note ?? null,
+        photo_key: s.photoKey ?? null, board: s.board ?? null, marks: s.marks ?? [], note: s.note ?? null,
         sort: s.sort, created_at: s.createdAt,
         updated_at: s.updatedAt, deleted_at: s.deletedAt ?? null,
       };
@@ -655,6 +657,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       product: (r.product as string) ?? '',
       programId: (r.program_id as string) ?? undefined,
       photoKey: (r.photo_key as string) ?? undefined,
+      ...(r.board ? { board: r.board as Standard['board'] } : {}),
       marks: Array.isArray(r.marks) ? (r.marks as StandardMark[]) : [],
       note: (r.note as string) ?? undefined,
       sort: Number(r.sort) || 0, createdAt: Number(r.created_at),

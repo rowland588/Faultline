@@ -15,7 +15,8 @@
  * records point at it, and the drawer's branch (ui/StudyLinks) reads the same
  * link from the other end. */
 import { useEffect, useMemo, useState } from 'react';
-import { listProjectCases, listWorkspaces, onDataChange, patchStudy, putPaceTodo, putTest } from '../db';
+import { listProjectCases, onDataChange, patchStudy, putPaceTodo, putTest } from '../db';
+import { useFactoryLines } from '../lib/useFactoryLines';
 import { useProject } from '../lib/useProjects';
 import { planModel } from '../lib/planModel';
 import { useActions } from '../lib/actions';
@@ -30,19 +31,14 @@ import { live, nextFrom, type Test } from '../lib/testing';
 import { betterWords, worthBetter, linkOf, countermeasureFrom, recordHref, ROLE_WORD, type StudyContext } from '../lib/studyLinks';
 import type { StudyUse, ToolStudy } from '../lib/study';
 import type { Can } from '../lib/access';
-import type { Workspace } from '../types';
 
 
 export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
   const { projects } = useProjects();
   const accessOn = useAccessByJob(projects);
-  const [lines, setLines] = useState<Workspace[]>([]);
+  /* the lines of Your factory, in floor order, and the line it is on (lib/useFactoryLines) */
+  const lines = useFactoryLines(s.workspaceId);
   const [picking, setPicking] = useState<'line' | 'job' | null>(null);
-  useEffect(() => {
-    const load = () => void listWorkspaces().then(setLines);
-    load();
-    return onDataChange(load);
-  }, []);
   const line = lines.find(l => l.id === s.workspaceId);
   const job = projects.find(p => p.id === s.projectId);
   /* The jobs on its line first; only the ones this person may change (a

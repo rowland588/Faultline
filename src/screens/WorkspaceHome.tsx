@@ -19,18 +19,18 @@ import { useEffect, useRef, useState } from 'react';
 import type { Workspace } from '../types';
 import {
   listWorkspaces, listObservations, listSegments, snagsForWorkspace, listCases, deleteWorkspace,
-  archiveWorkspace, restoreWorkspace, listArchivedWorkspaces, workspaceContents, createWorkspace,
+  listArchivedWorkspaces,
 } from '../db';
 import { Toast } from '../ui/Toast';
 import { nav } from '../state/useRoute';
-import { fmtRelative, plural } from '../lib/format';
+import { plural } from '../lib/format';
 import { CloudPanel } from '../cloud/CloudPanel';
 import { useSyncedAt } from '../cloud/session';
 import { InstallPanel } from '../ui/InstallPanel';
 import { useProjects } from '../lib/useProjects';
-import { chainForWorkspace, inArchivedProject, onDataChange } from '../db';
+import { inArchivedProject, onDataChange, projectsOnWorkspace } from '../db';
 import { DEMO_NAME } from '../lib/lines';
-import { liveProductionLines, productionLines } from '../lib/lines';
+import { factorySays, liveProductionLines, productionLines } from '../lib/lines';
 import { JobsBoard } from '../ui/JobsBoard';
 import { useCanStartProjects } from '../cloud/access';
 
@@ -84,10 +84,8 @@ export function WorkspaceHome() {
   // treated as CANCELLED: losing an intent beats losing a workspace.
   const [pendingDel, setPendingDel] = useState<{ id: string; name: string } | null>(null);
   const [delTick, setDelTick] = useState(0);
-  const [archived, setArchived] = useState<Awaited<ReturnType<typeof listArchivedWorkspaces>>>([]);
-  const [showArchive, setShowArchive] = useState(false);
-  const [addingLine, setAddingLine] = useState(false);
-  const [lineName, setLineName] = useState('');
+  /* how many lines are archived — said beside the factory; they are kept on Your factory */
+  const [archivedN, setArchivedN] = useState(0);
 
   /* RE-READ WHEN ANYTHING IS WRITTEN. This screen used to re-read only after a
      sync or a delete of its own, which was survivable while it was one list
@@ -106,7 +104,7 @@ export function WorkspaceHome() {
     return () => { window.clearTimeout(t); off(); };
   }, []);
 
-  useEffect(() => { void listArchivedWorkspaces().then(setArchived); }, [delTick, dataTick]);
+  useEffect(() => { void listArchivedWorkspaces().then(a => setArchivedN(a.length)); }, [delTick, dataTick]);
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem('faultline-pending-delete');
@@ -146,6 +144,7 @@ export function WorkspaceHome() {
      line, and an empty map says every one of them is loose — so an empty map
      used as "not read yet" would flash the whole list on every load. */
   const [belongs, setBelongs] = useState<Record<string, string> | null>(null);
+  const jobsKey = projects.map(p => `${p.id}:${p.name}`).join('|');
 
   // Re-reads whenever a sync finishes, so data pulled in the background (e.g.
   // straight after signing in on a new device) appears without a manual refresh.
@@ -191,14 +190,14 @@ export function WorkspaceHome() {
     let alive = true;
     void (async () => {
       const ws = list ?? [];
-      const pairs = await Promise.all(ws.map(async w => {
-        const c = await chainForWorkspace(w.id);
-        return [w.id, c ? (c.lineName ? `${c.lineName} · ${c.projectName}` : c.projectName) : ''] as const;
-      }));
+      /* every live job each line is on — a line of the factory can be on several (13 October) */
+      const names = new Map(projects.map(p => [p.id, p.name]));
+      const pairs = await Promise.all(ws.map(async w => [w.id, (await projectsOnWorkspace(w.id)).map(id => names.get(id)).filter(Boolean).join(', ')] as const));
       if (alive) setBelongs(Object.fromEntries(pairs.filter(([, v]) => v)));
     })();
     return () => { alive = false; };
-  }, [list]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the jobs' names, by key: the list is a new array every render
+  }, [list, jobsKey]);
 
   /* WHAT IS LEFT OVER. A workspace that hangs off a line is one tap away on its
      project card, so listing it again here is the second door in list form —
@@ -245,6 +244,49 @@ export function WorkspaceHome() {
         <p className="home-tag">A control room for change on your lines — new equipment brought into use, a line made to perform better, a number hit by a date — and one view of whether all of it is in hand.</p>
       )}
 
+      {/* YOUR FACTORY — first, above the jobs: the backbone everything hangs
+          off. Rowland, 13 October: "a factory setup before the new projects
+          ... your production lines. So then we were able to assign everything
+          to a production line ... build your factory, edit your factory."
+          The lines in floor order, each with its type and what is open on it,
+          one tap to its own page; every change to them — a line added,
+          renamed, typed, moved, archived — is made on Your factory
+          (screens/FactoryScreen). This takes the place of the Production
+          lines list that sat under the jobs, with its New line and its
+          archive: those are on Your factory now, with the type and the floor
+          order beside the name, so a line is made and changed in one place. */}
+      <section className="home-spaces fac-home" aria-label="Your factory">
+        <div className="home-sec-head">
+          <h2 className="home-sec-title">Your factory</h2>
+          {prodLines.length > 0 && <button className="btn" onClick={() => nav('/factory')}>Edit your factory</button>}
+        </div>
+        {prodLines.length === 0 ? (
+          <div className="fac-empty">
+            <p>Set up your factory first — your production lines, each with its name and its type. Every project, problem and tool then hangs off one of them.</p>
+            <button className="btn btn-primary" onClick={() => nav('/factory?add=1')}>Set up your factory</button>
+          </div>
+        ) : (
+          <>
+            <p className="sub home-sec-sub fac-says">{factorySays(prodLines)}{archivedN > 0 ? ` · ${archivedN} archived` : ''}</p>
+            <ul className="fac-floor" aria-label="The lines, in floor order">
+              {prodLines.map(w => {
+                const c = counts[w.id];
+                const on = belongs?.[w.id];
+                return (
+                  <li key={w.id}>
+                    <button className="fac-card" onClick={() => nav(`/lines/${w.id}`)}>
+                      <b className="fac-card-name">{w.name}</b>
+                      <span className="fac-card-type">{w.lineType || 'No type yet'}</span>
+                      <span className="fac-card-meta">{contentsLabel(c)}{on ? ` · on ${on}` : ''}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
+        )}
+      </section>
+
       {/* EVERY JOB, ONE HOME — the first thing the app opens on. Rowland
           reviewing the board: it lived one tap in, on Projects, which is not
           where the app opens. Everything below it on this screen stays. */}
@@ -279,115 +321,6 @@ export function WorkspaceHome() {
           </p>
         </section>
       )}
-
-      {/* THE PRODUCTION LINES — each its own page: its problems and its tools,
-          no project needed. Rowland, 12 October: "I want to just be able to
-          open a production line and use these tools inside the production
-          line ... I need a record of production lines ... Control room, yes,
-          of course, make them from there." This takes the place of the "Not
-          on a project" shelf, which listed only the lines attached to nothing
-          (and once took away "＋ New workspace", the second way to make a
-          line he tripped over): now there is one list of lines, every line
-          in it, and one way to make one — a name — here, on the Problems
-          page or in the Problem button's sheet. A line attached to nothing
-          still keeps its Archive. */}
-      <section className="home-spaces pl-home" aria-label="Production lines">
-        <div className="home-sec-head">
-          <h2 className="home-sec-title">Production lines</h2>
-          {!addingLine && <button className="btn" onClick={() => setAddingLine(true)}>New line</button>}
-        </div>
-        {addingLine && (
-          <form className="pl-new" onSubmit={e => {
-            e.preventDefault();
-            const name = lineName.trim();
-            if (!name) return;
-            void createWorkspace(name).then(w => { setLineName(''); setAddingLine(false); nav(`/lines/${w.id}`); });
-          }}>
-            <input className="text-input" autoFocus value={lineName} maxLength={80} placeholder="e.g. Line 2B" aria-label="The new line's name" onChange={e => setLineName(e.target.value)} />
-            <button className="btn btn-primary" type="submit" disabled={!lineName.trim()}>Make the line</button>
-            <button className="btn btn-ghost" type="button" onClick={() => { setAddingLine(false); setLineName(''); }}>Cancel</button>
-          </form>
-        )}
-        {prodLines.length === 0 && !addingLine && (
-          <p className="sub home-sec-sub">No lines yet. Make one — a name is all it takes — and take problems on it, and use the tools on it, with no project.</p>
-        )}
-        {prodLines.length > 0 && (
-          <div className="ws-list">
-            {prodLines.map(w => {
-              const c = counts[w.id];
-              const on = belongs?.[w.id];
-              return (
-                <div key={w.id} className="ws-row">
-                  <button className="ws-card" onClick={() => nav(`/lines/${w.id}`)}>
-                    <span className="ws-card-main">
-                      <span className="ws-card-name">{w.name}</span>
-                      <span className="ws-card-meta">
-                        {contentsLabel(c)}{on ? ` · on ${on}` : ''}
-                      </span>
-                    </span>
-                    <span className="ws-card-go">Open ›</span>
-                  </button>
-                  {belongs !== null && !on && (
-                    <button className="btn btn-ghost ws-archive" title={`Archive ${w.name}`}
-                      onClick={() => {
-                        if (!confirm(`Archive “${w.name}”?\n\nIt leaves this list and loses nothing — its problems, captures, the walk and the evidence all stay. You can restore it whenever you like.`)) return;
-                        void archiveWorkspace(w.id).then(() => setDelTick(t => t + 1));
-                      }}>Archive</button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-          {/* THE ARCHIVE. Behind one tap and closed by default — it is where
-              things go to stop being looked at, so it must not take up room in
-              the list it was meant to shorten. */}
-          {archived.length > 0 && (
-            <div className="proj-arch">
-              <button className="proj-arch-h" onClick={() => setShowArchive(v => !v)} aria-expanded={showArchive}>
-                <span>Archived lines</span>
-                <span className="proj-arch-n">{archived.length}</span>
-                <span className="proj-arch-x" aria-hidden>{showArchive ? '−' : '+'}</span>
-              </button>
-              {showArchive && (
-                <div className="proj-arch-list">
-                  {archived.map(w => (
-                    <div key={w.id} className="proj-arch-row">
-                      <span className="proj-arch-dot" style={{ background: w.color }} aria-hidden />
-                      <span className="proj-arch-main">
-                        <span className="proj-arch-t">{w.name}</span>
-                        <span className="proj-arch-s">Archived · {fmtRelative(w.updatedAt)}</span>
-                      </span>
-                      <button className="btn btn-ghost btn-sm"
-                        onClick={() => void restoreWorkspace(w.id).then(() => setDelTick(t => t + 1))}>
-                        Restore
-                      </button>
-                      {/* DELETING A LINE DESTROYS FILM THAT EXISTS NOWHERE ELSE,
-                          so the confirm counts it out loud first. */}
-                      <button className="btn btn-sm proj-arch-del"
-                        onClick={() => void (async () => {
-                          const owned = await workspaceContents(w.id);
-                          const what = owned.length
-                            ? owned.map(c => `${c.count} ${c.what}`).join('\n  ')
-                            : 'nothing — it is empty';
-                          if (!confirm(
-                            `Delete “${w.name}” for ever?\n\nThis also deletes:\n  ${what}\n\n` +
-                            'The videos and photographs go with it, and they exist nowhere else.\n\n' +
-                            'This cannot be undone, on any device.',
-                          )) return;
-                          await deleteWorkspace(w.id);
-                          setDelTick(t => t + 1);
-                        })()}>
-                        Delete for ever
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-      </section>
-
 
       {/* Signing in and installing are settings, not destinations. They used to
           sit above everything, so the first third of the app's front door was
