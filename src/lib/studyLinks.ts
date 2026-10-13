@@ -520,3 +520,52 @@ export function worthBetter(s: ToolStudy): boolean {
   if (s.tool === 'sampling') return (samplingWorst(s.agreed?.sampling, s.facts.taps ?? [])?.share ?? 0) >= 0.1;
   return said.tone === 'r' || said.capability?.tone === 'a';
 }
+
+/* ---------------------- what it could be used for, machine by machine ---------------------- */
+
+/** The words a machine's name is told by: three letters or more, and not the
+ *  words every machine shares. */
+const machineWords = (name?: string): string[] =>
+  (name ?? '').toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length >= 3 && !/^(the|and|line|machine|unit|new|old)$/.test(w));
+
+/** WHICH OF A JOB'S MACHINES A STUDY IS OF (flow audit #15): its own
+ *  (`assetId`, a stage-gate job's machine), else the one its machine's words
+ *  name — the same name, one inside the other, else the one sharing the most
+ *  words ("Ishida CCW-RV-214W multihead weigher" · "Ishida checkweigher").
+ *  Undefined when none does: then no machine is put first. */
+export function studyMachineOf(s: Pick<ToolStudy, 'assetId' | 'machine'>, assets: readonly { id: ID; name: string }[]): ID | undefined {
+  if (s.assetId && assets.some(a => a.id === s.assetId)) return s.assetId;
+  const m = (s.machine ?? '').trim().toLowerCase();
+  if (!m) return undefined;
+  const direct = assets.find(a => { const n = a.name.trim().toLowerCase(); return !!n && (n === m || n.includes(m) || m.includes(n)); });
+  if (direct) return direct.id;
+  const mine = machineWords(m);
+  const same = (x: string, w: string) => x === w || (x.length >= 5 && w.length >= 5 && (x.includes(w) || w.includes(x)));
+  return assets.map(a => ({ a, n: machineWords(a.name).filter(w => mine.some(x => same(x, w))).length }))
+    .filter(x => x.n > 0).sort((p, q) => q.n - p.n)[0]?.a.id;
+}
+
+/** One heading of the pick-list and what is under it. */
+export interface UseGroup<T> { label: string; mine: boolean; items: T[] }
+
+/** WHAT A STUDY COULD BE USED FOR ON A STAGE-GATE JOB, MACHINE BY MACHINE
+ *  (flow audit #15: "It lists 20 rows: every test on the job and every fix
+ *  twice … with no machine named. Performance run at the agreed rate
+ *  appears twice."): the study's own machine first and said to be, then the
+ *  job's other machines in their order, then what is on no one machine —
+ *  the tests before the fixes under each. Nothing is left out: a weight
+ *  study can still prove a test on another machine, it is only not first. */
+export function usedForGroups<T extends { machine?: ID; kind: string }>(items: readonly T[], assets: readonly { id: ID; name: string }[], mine?: ID): UseGroup<T>[] {
+  const testsFirst = (xs: T[]) => [...xs.filter(x => x.kind === 'test'), ...xs.filter(x => x.kind !== 'test')];
+  const order = [...(mine ? [mine] : []), ...assets.map(a => a.id).filter(id => id !== mine)];
+  const out: UseGroup<T>[] = [];
+  for (const id of order) {
+    const xs = items.filter(x => x.machine === id);
+    if (!xs.length) continue;
+    const name = assets.find(a => a.id === id)?.name.trim() || 'A machine';
+    out.push({ label: id === mine ? `${name} — this study’s machine` : name, mine: id === mine, items: testsFirst(xs) });
+  }
+  const rest = items.filter(x => !x.machine || !order.includes(x.machine));
+  if (rest.length) out.push({ label: 'The line — on no one machine', mine: false, items: testsFirst(rest) });
+  return out;
+}

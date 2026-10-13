@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { linkedTo, beforeAfter, proveItFrom, readingsFor, owedOf, betterWords, worthBetter, studyLine, sameScope, studyHref, studyTitle, currentBalance, countermeasureFrom, recordHref, provedLine, recordProvedLine, measuredOn, measuredDays, squareWord, linkOf, currentMap, flowLine, currentChangeover, changeoverLine, betterExpect, compareChangeoverStep, currentLosses, lossCardLine } from '../studyLinks';
+import { studyMachineOf, usedForGroups, linkedTo, beforeAfter, proveItFrom, readingsFor, owedOf, betterWords, worthBetter, studyLine, sameScope, studyHref, studyTitle, currentBalance, countermeasureFrom, recordHref, provedLine, recordProvedLine, measuredOn, measuredDays, squareWord, linkOf, currentMap, flowLine, currentChangeover, changeoverLine, betterExpect, compareChangeoverStep, currentLosses, lossCardLine } from '../studyLinks';
 import { carryFlow } from '../ie/steps';
 import type { ToolStudy } from '../study';
 
@@ -360,5 +360,31 @@ describe('a shift’s loss count inside a change (tool 7)', () => {
     const later: ToolStudy = { ...ev, id: 'l2', facts: { losses: { ...count, from: FROM + DAY, to: TO + DAY } } };
     expect(currentLosses([ev, blank, later], 'w7')?.id).toBe('l2');
     expect(lossCardLine(ev, ctx, TO + 20 * H)).toEqual({ text: 'Shift 1 yesterday: 85 min lost · 9 min slow running and short stops', abnormal: true });
+  });
+});
+
+/* FLOW AUDIT #15: "Use it for… lists 20 tests and fixes flat, Performance run
+ * at the agreed rate twice with no machine named." Grouped by machine, the
+ * study's own first and named. */
+describe('what a study could be used for, machine by machine', () => {
+  const assets = [{ id: 'wr', name: 'Ilapak flow wrapper' }, { id: 'cw', name: 'Ishida checkweigher' }, { id: 'cd', name: 'Domino coder' }];
+  it('finds the study’s machine: its own, the same name, else the most words shared', () => {
+    expect(studyMachineOf({ assetId: 'cd' }, assets)).toBe('cd');
+    expect(studyMachineOf({ machine: 'ishida checkweigher' }, assets)).toBe('cw');
+    expect(studyMachineOf({ machine: 'Ishida CCW-RV-214W multihead weigher' }, assets)).toBe('cw');
+    expect(studyMachineOf({ machine: 'Coder' }, assets)).toBe('cd');
+    expect(studyMachineOf({ machine: 'Palletiser' }, assets)).toBeUndefined();
+    expect(studyMachineOf({}, assets)).toBeUndefined();
+  });
+  it('puts the study’s machine first and says so, then the others, then the line — tests before fixes', () => {
+    const items = [
+      { id: 1, kind: 'fix', machine: 'wr' }, { id: 2, kind: 'test', machine: 'wr' }, { id: 3, kind: 'test', machine: 'cw' },
+      { id: 4, kind: 'fix', machine: 'cw' }, { id: 5, kind: 'test' }, { id: 6, kind: 'test', machine: 'gone' },
+    ];
+    const g = usedForGroups(items, assets, 'cw');
+    expect(g.map(x => x.label)).toEqual(['Ishida checkweigher — this study’s machine', 'Ilapak flow wrapper', 'The line — on no one machine']);
+    expect(g.map(x => x.items.map(i => i.id))).toEqual([[3, 4], [2, 1], [5, 6]]);
+    expect(g[0].mine).toBe(true);
+    expect(usedForGroups(items, assets).map(x => x.label)).toEqual(['Ilapak flow wrapper', 'Ishida checkweigher', 'The line — on no one machine']);
   });
 });
