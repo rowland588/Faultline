@@ -24,7 +24,7 @@
  *      open; Install's Needs you lists the machine late on site that the
  *      control room lists, and its rail count carries it; Hand over's Needs
  *      you names the machines with none of its items
- *  19  "Start a project on this line" says "A change on Line 7" with the
+ *  19  "Start a job on this line" says "A change on Line 7" with the
  *      line's problems, its latest shift counted and its late program over
  *      the three ways; the new 6M job's "Open the first problem" is not done
  *      by another job's case on the line
@@ -177,7 +177,7 @@ ok(jobsOn.length > 0 && jobsOn.every(j => verdicts[j.name ?? ''] && verdicts[j.n
   `10e each job its verdict, the control room's own: ${jobsOn.map(j => `${j.name}: ${j.w} — ${j.r}`).join(' | ')}`);
 
 /* ---- 19 — a change started from the line ---- */
-await page.getByRole('button', { name: 'Start a project on this line ›' }).click(); await page.waitForTimeout(2500);
+await page.getByRole('button', { name: 'Start a job on this line ›' }).click(); await page.waitForTimeout(2500);
 await shot('19-start');
 const sit = flat(await page.locator('.proj-sit').innerText().catch(() => ''));
 ok(/^A change on Line 7 1 problem open · 1 critical · 1 late/.test(sit) && sit.includes(PROBLEM) && sit.includes('3 days late') && sit.includes(`The latest shift counted: ${truth.loss}`) && /P-200 Express — test was /.test(sit),

@@ -118,7 +118,7 @@ export function ProjectsScreen() {
      production line"). Several, as manufacturing is; none is allowed and
      added later in Lines & people. */
   const [factory, setFactory] = useState<Workspace[]>([]);
-  /* opened from a line's own page (Start a project on this line), that line is picked */
+  /* opened from a line's own page (Start a job on this line), that line is picked */
   const fromLine = q.get('line') ?? '';
   const [onLines, setOnLines] = useState<string[]>(() => (fromLine ? [fromLine] : []));
   useEffect(() => {
