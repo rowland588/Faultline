@@ -38,7 +38,8 @@ import { todayISO } from '../lib/weeks';
 import { partsOf, resultNow } from '../lib/noted';
 import { useProjects } from '../lib/useProjects';
 import { useTesting } from '../lib/useTesting';
-import { GATE_WORD, answerOf, doneTodayPatch, installGrid, installOf, usualHolder, usualStages } from '../lib/install';
+import { GATE_WORD, answerOf, doneTodayPatch, gateGaps, installGrid, installOf, usualHolder, usualStages } from '../lib/install';
+import { jobItems, lateWhen } from '../lib/portfolio';
 import { changeTests } from '../ui/WhyMoved';
 import { gateOf, type StepGate, type Test, type TestItem } from '../lib/testing';
 import { usePrograms } from '../lib/usePrograms';
@@ -125,15 +126,24 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
   const machines = tt.assets.filter(a => !a.deletedAt).map(a => installOf(a, tt.tests, tt.items, today, gate));
   const line = installOf(undefined, tt.tests, tt.items, today, gate);
   const done = steps.filter(t => t.outcome === 'passed').length;
-  const late = [...machines, line].reduce((n, m) => n + m.late, 0);
+  /* A MACHINE LATE ON SITE is Install's (FLOW-AUDIT.md, 16): the control
+     room listed the Domino coder, 3 days late, and Install's Needs you did
+     not. Read by the control room's own rule (lib/portfolio jobItems). */
+  const lateMachines = gate === 'install'
+    ? jobItems({ project, tests: tt.tests, items: tt.items, assets: tt.assets, materials: [], programs: [] }, today).filter(x => x.kind === 'machine' && x.late)
+    : [];
+  const late = [...machines, line].reduce((n, m) => n + m.late, 0) + lateMachines.length;
   /* Machines with something started and not finished — "8 machines
      installing" was said with nothing done (docs/JOBSTART.md). */
   const going = machines.filter(m => m.done > 0 && m.done < m.total).length;
   const grid = installGrid(tt.assets, tt.tests, tt.items, today, stages.stages, gate);
   const onGrid = grid.rows.length > 0;
   /* Stages a machine has on the grid with nothing planned in them. "1 of 2
-     steps done" over five stages read as nearly half way; it is one of five. */
-  const unplanned = grid.rows.filter(r => r.view.total > 0).reduce((n, r) => n + r.cells.filter(c => !c).length, 0);
+     steps done" over five stages read as nearly half way; it is one of five.
+     And the machines with none of this gate's stages at all — said at the
+     head and in Needs you, as the grid offers them (lib/install gateGaps). */
+  const gaps = gateGaps(grid, gate);
+  const unplanned = gaps.unplanned;
 
   return (
     <div className="wrap pace cm-screen">
@@ -150,6 +160,7 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
                 {/* A stage not on a machine's list — "not added yet", the one word the
                     grid, its key and the client report use for it. */}
                 {unplanned > 0 && <span className="sub">{unplanned} not added yet</span>}
+                {gaps.bare.length > 0 && <span className="sub">{gaps.bare.length} machine{gaps.bare.length === 1 ? '' : 's'} with none yet</span>}
               </>}
             <button className="cw-link" onClick={() => nav(`/project/${projectId}/day`)}>Read the day</button>
             {/* THE HANDOVER REPORT — the line as it was really handed over
@@ -179,14 +190,32 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
           const said = resultNow(p);
           return said?.is === 'noProgram' && p.doneAt == null ? [{ c, p, note: said.note, machine: r.asset?.name ?? 'The line' }] : [];
         }))));
-        const n = needs.length + failed.length + noProgram.length;
+        /* WHAT THE GATE IS MISSING (FLOW-AUDIT.md, 16): Needs you said
+           "Nothing" while machines had none of its stages — the machines with
+           none, and the squares not added yet, each a row that opens the
+           grid's own offer to add them. */
+        const missing = [
+          ...(gaps.bare.length ? [{ key: 'bare', what: `${gaps.bare.map(a => a.name).join(', ')} — none of the ${gate === 'handover' ? 'hand-over items' : 'stages'} yet` }] : []),
+          ...gaps.byMachine.map(x => ({ key: x.asset?.id ?? 'line', what: `${x.asset?.name ?? 'The line'} — ${x.n} ${gate === 'handover' ? `item${x.n === 1 ? '' : 's'}` : `stage${x.n === 1 ? '' : 's'}`} not added yet` })),
+        ];
+        const n = needs.length + failed.length + noProgram.length + lateMachines.length + missing.length;
         return (
           <section className="cmp-sec cg-needs" aria-label="Needs you">
             <div className="cw-sec-h"><h2 className="cmp-h">Needs you</h2>{n > 0 && <span className="cmp-h-n">{n}</span>}</div>
             {n === 0
-              ? <p className="sub tw-note">Nothing — no stage is late or stuck on a problem.</p>
+              ? <p className="sub tw-note">Nothing — no stage is late or stuck on a problem, and every machine has its {gate === 'handover' ? 'hand-over items' : 'stages'}.</p>
               : (
                 <ul className="nd-list">
+                  {/* a machine late on site, as the control room lists it */}
+                  {lateMachines.map(x => (
+                    <li key={x.id ?? x.what} className="nd-row is-late">
+                      <button type="button" className="nd-main" onClick={() => x.id && openRecord(projectId, x.id)}>
+                        <span className="nd-tag is-late">Late</span>
+                        <b>{x.what} — not on site, {lateWhen(x, today)}</b>
+                        {x.who && <span className="sub">{x.who}</span>}
+                      </button>
+                    </li>
+                  ))}
                   {needs.map(({ c, machine }) => (
                     <li key={c.step.id} className={'nd-row is-' + (c.tone === 'problem' ? 'failed' : 'late')}>
                       <button type="button" className="nd-main" onClick={() => openRecord(projectId, c.step.id)}>
@@ -222,6 +251,15 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
                         <span className="nd-tag is-failed">Failed</span>
                         <b>{machine} — {c.step.title} — {p.what}</b>
                         {note && <span className="sub">{note}</span>}
+                      </button>
+                    </li>
+                  ))}
+                  {/* not added yet — grey, the grid's word for it; it opens the grid */}
+                  {missing.map(x => (
+                    <li key={x.key} className="nd-row is-none">
+                      <button type="button" className="nd-main" onClick={() => document.querySelector('.ig-head')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+                        <span className="nd-tag is-none">Not added yet</span>
+                        <b>{x.what}</b>
                       </button>
                     </li>
                   ))}

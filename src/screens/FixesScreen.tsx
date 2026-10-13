@@ -60,7 +60,7 @@ import { VoiceNote, VoiceReview } from '../ui/Voice';
 import { changesFor, contextFor, type VoiceResult } from '../lib/voice';
 import { AccessNote } from '../ui/AccessNote';
 import { useAccess } from '../cloud/access';
-import { notedProblems, type Noted } from '../lib/noted';
+import { notedProblems, problemsTally, type Noted } from '../lib/noted';
 import { hoursWord } from '../lib/hoursLost';
 import { EvidenceThumb, EvidenceViewer, pinsOnJob } from '../ui/Evidence';
 import type { MediaRef } from '../types';
@@ -177,8 +177,8 @@ export function FixesScreen({ projectId }: { projectId: string }) {
   /* The soonest one that has a day on it — the list is already in that order,
      so this is its head rather than a second sort. */
   const nextBy = st.upcoming.length ? plannedEnd(st.upcoming[0]) : undefined;
-  const late = st.upcoming.filter(t => isOverdue(t)).length;
   const noted = notedProblems(tt.tests, tt.items, tt.assets);
+  const tally = problemsTally(tt.tests, tt.items, tt.assets);
   /* A CRITICAL PROBLEM LEADS the problems with no fix (lib/critical), the
      oldest first as the rest are; a fix booked from one carries its tag. */
   /* Then the high risks, then the rest. */
@@ -225,15 +225,19 @@ export function FixesScreen({ projectId }: { projectId: string }) {
           <h1 className="pace-title">{project.name} — problems</h1>
           <p className="qsl-path">This project's problems, and the fix that puts each right.{' '}
             <button type="button" className="linkish" onClick={() => nav('/snags')}>Every problem, every line and project: Control room problems ›</button></p>
+          {/* THE PAGE'S COUNT IS THE RAIL'S (lib/noted problemsTally): the
+              fixes still to do and the problems no fix is booked for — the
+              rail said "Problems 5" over 7 more (FLOW-AUDIT.md, 16). */}
           <p className="cw-handover">
-            {st.upcoming.length > 0
+            {tally.open > 0
               ? <>
-                <b>{st.upcoming.length} still to do</b>
-                {late > 0 && <span className="sub in-late">{late} late</span>}
-                {st.done.length > 0 && <span className="sub">{st.done.length} done</span>}
+                <b>{tally.open} open</b>
+                <span className="sub">{[tally.fixes ? `${tally.fixes} fix${tally.fixes === 1 ? '' : 'es'} still to do` : '', tally.noFix ? `${tally.noFix} with no fix yet` : ''].filter(Boolean).join(' · ')}</span>
+                {tally.late > 0 && <span className="sub in-late">{tally.late} late</span>}
+                {tally.done > 0 && <span className="sub">{tally.done} done</span>}
               </>
-              : st.done.length > 0
-                ? <b>Nothing outstanding — {st.done.length} done</b>
+              : tally.done > 0
+                ? <b>Nothing outstanding — {tally.done} done</b>
                 : <b>Nothing on the list yet</b>}
           </p>
         </div>

@@ -378,7 +378,9 @@ export function jobItems(j: JobInput, today: string): JobItem[] {
   for (const a of live(j.assets)) {
     if (assetStateOf(a) !== 'awaited') continue;
     out.push({
-      ...base, kind: 'machine', what: a.name, who: a.oem ?? '',
+      /* its id: the row opens the machine itself (ui/MachinePanel), on the
+         control room and on Install's Needs you alike */
+      ...base, kind: 'machine', id: a.id, what: a.name, who: a.oem ?? '',
       on: a.onSiteOn ? undefined : a.dueOn, late: !!a.dueOn && a.dueOn < today && !a.onSiteOn,
     });
   }

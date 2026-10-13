@@ -11,7 +11,7 @@
  * nothing else pointed at it. These are those, open until somebody says it is
  * sorted (doneAt — the item's own "closed"), whatever the stage's state. No
  * new list: read off what is already kept. */
-import { live, type Asset, type PartResult, type PartResultIs, type Test, type TestItem } from './testing';
+import { isOverdue, isSettled, live, type Asset, type PartResult, type PartResultIs, type Test, type TestItem } from './testing';
 import { niceDay, todayISO } from './weeks';
 
 export interface Noted {
@@ -46,6 +46,25 @@ export function notedProblems(tests: Test[], items: TestItem[], assets: Asset[])
     open: rows.filter(r => r.item.doneAt == null).sort((a, b) => a.item.createdAt - b.item.createdAt),
     sorted: rows.filter(r => r.item.doneAt != null).sort((a, b) => (b.item.doneAt ?? 0) - (a.item.doneAt ?? 0)),
   };
+}
+
+/** A JOB'S PROBLEMS, COUNTED ONCE — what its Problems page says at its head
+ *  and the rail's Problems line carries. The flow audit (13 October, 16):
+ *  the rail said "Problems 5", counting the fixes, while the page under it
+ *  held 7 problems with no fix, the Critical among them. Open is both: the
+ *  fixes still to do and the problems no fix has been booked for; late is
+ *  the fixes past their day (a problem with no fix has no day to be late
+ *  by); done is the fixes passed. */
+export interface ProblemsTally { open: number; fixes: number; noFix: number; late: number; done: number }
+
+export function problemsTally(tests: Test[], items: TestItem[], assets: Asset[], today = todayISO()): ProblemsTally {
+  const fixes = live(tests).filter(t => t.kind === 'fix');
+  /* a fix is off the list when it passed, and late past its day — the
+     Problems page's own rules (lib/testing isSettled, isOverdue) */
+  const toDo = fixes.filter(t => !isSettled(t));
+  const late = toDo.filter(t => isOverdue(t, today)).length;
+  const noFix = notedProblems(tests, items, assets).open.length;
+  return { open: toDo.length + noFix, fixes: toDo.length, noFix, late, done: fixes.length - toDo.length };
 }
 
 /* PART OF THE PLAN (ui/StageParts) — a stage's own lines, which are not
