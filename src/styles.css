@@ -1027,6 +1027,13 @@ body:has(.sheet-scrim, .ig-scrim) .toast { top: calc(12px + env(safe-area-inset-
 .mini-update { display: block; width: 100%; margin-top: 4px; background: none; border: none; border-bottom: 1px dashed var(--line); color: var(--ink-2); font: inherit; font-size: var(--t-label); font-style: italic; padding: 2px 0; border-radius: 0; }
 .mini-update::placeholder { color: var(--muted); opacity: 0.65; }
 .mini-update:focus { border-bottom: 1px solid var(--accent); }
+/* By thumb (docs/AUDIT.md, bar 5): the update line, the due date and the
+   row's tick were 20, 31 and 20px — the tick is pressed through its label. */
+@media (pointer: coarse) {
+  .mini-update { padding-block: 9px; }
+  .mini-due { min-height: 44px; }
+  .st-tick { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; }
+}
 .st-upd-when { font-family: var(--mono); font-size: var(--t-label); color: var(--muted); }
 /* the time strip: raised → today → due. Fill = elapsed, notch = the due day. */
 .time-strip { position: relative; display: block; width: 100%; max-width: 150px; height: 6px; border-radius: var(--radius-sm); background: var(--line); }
@@ -1404,6 +1411,7 @@ body:has(.sheet-scrim, .ig-scrim) .toast { top: calc(12px + env(safe-area-inset-
 .case-root { max-width: 860px; }
 .case-title { width: 100%; background: none; border: none; border-bottom: 1px dashed transparent; font-size: var(--t-page); font-weight: 700; letter-spacing: -0.02em; color: var(--ink); padding: 0; font-family: inherit; }
 .case-title:hover, .case-title:focus { border-bottom-color: var(--line); }
+@media (pointer: coarse) { .case-title { min-height: 44px; } }
 .case-box { margin: 18px 0; break-inside: avoid; page-break-inside: avoid; }
 .case-box-h { font-size: var(--t-detail); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--line); padding-bottom: 5px; margin-bottom: 10px; }
 .case-note { font-size: var(--t-detail); }
@@ -3554,8 +3562,10 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   font-size: var(--t-label); font-weight: 700; white-space: nowrap;
 }
 .lt-status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
+/* over the pill's border too: a tap on the rim opens it (inset 0 left a
+   pixel round the edge that only focused it) */
 .lt-status-sel {
-  position: absolute; inset: 0; opacity: 0; cursor: pointer;
+  position: absolute; inset: -1px; opacity: 0; cursor: pointer;
   appearance: none; border: 0; font-size: var(--t-body);   /* 16px stops iOS zooming in */
 }
 .lt-status.is-n { color: var(--st-n); background: color-mix(in srgb, var(--st-n) 10%, var(--surface)); }
@@ -6500,6 +6510,12 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
   .acct-btn::after {
     content: ''; position: absolute; inset: -10px;
   }
+  /* The same halo on the other words that are links (docs/AUDIT.md, bar 5:
+     "Set the V's margin", a line's name over its programs, "Your factory ›"
+     were 14 to 23px). Placed by :where, so a link that is positioned for
+     its own reasons keeps them. */
+  :where(.linkish, .pl-fac, .lp-line-a) { position: relative; }
+  .linkish::after, .pl-fac::after, .lp-line-a::after { content: ''; position: absolute; inset: -10px; }
 }
 
 /* The supplier takes the whole first row of a machine's details. */
@@ -7757,6 +7773,7 @@ body:has(.ls.is-full) .qs-fab { display: none; }
 .ls-role { font: inherit; font-weight: 700; font-size: var(--t-detail); padding: 3px 6px; border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--ink); min-width: 0; }
 .ls-task { grid-column: 2; font: inherit; font-size: var(--t-detail); padding: 5px 7px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); color: var(--ink); resize: vertical; min-width: 0; }
 .ls-role:hover, .ls-role:focus { border-color: var(--line-2); outline: none; }
+@media (pointer: coarse) { input.ls-role { min-height: 36px; } }
 .ls-del { justify-self: start; color: var(--danger); margin-top: 6px; }
 /* A client's map (lib/access): read, not worked — nothing grabs or moves. */
 .ls-product.is-read { margin: 0; border-bottom-color: transparent; }
@@ -9980,7 +9997,8 @@ label.ax-done-on, .pc-closed-on { flex: 0 0 auto; max-width: 260px; }
 .pdfr-m .sub { font-size: var(--t-label); }
 .pdfr-acts { display: flex; align-items: center; gap: 6px; flex: none; }
 .pdfr-btn { min-height: 40px; padding: 0 14px; font-size: var(--t-detail); text-decoration: none; }
-.pdfr-x { background: none; border: 0; color: var(--muted); padding: 8px; cursor: pointer; display: inline-flex; }
+/* the × as tall as Open and Send beside it (it was 31px square) */
+.pdfr-x { background: none; border: 0; color: var(--muted); padding: 8px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; min-width: 40px; min-height: 40px; }
 @media print { .pdfr { display: none !important; } }
 /* While a sheet is open it steps aside — it sat over the sheet's own buttons
    ("Move 1" under "Open", found by the Problems acceptance) — and is back
@@ -10216,6 +10234,7 @@ body:has(.rd-scrim) .toast { top: calc(12px + env(safe-area-inset-top)); bottom:
 }
 .tc-row-go:hover { color: var(--accent); text-decoration: underline; }
 .tc-row-go:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+@media (pointer: coarse) { .tc-row-go { padding-block: 7px; margin-block: -7px; } }
 .tc-next-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 8px; }
 .tc-next-acts .cw-add, .tc-adds .cw-add { width: auto; padding-left: 0; padding-right: 6px; }
 .tc-next-acts .cw-add:hover, .tc-adds .cw-add:hover { background: none; text-decoration: underline; }
@@ -10465,6 +10484,7 @@ body:has(.rd-scrim) .toast { top: calc(12px + env(safe-area-inset-top)); bottom:
 .nv-deep-c:hover { background: var(--surface-2); }
 .nv-deep-c.is-here { color: var(--ink); font-weight: 700; cursor: default; }
 .nv-deep-c.is-here:hover { background: none; }
+@media (pointer: coarse) { .nv-deep-c { display: inline-flex; align-items: center; min-height: 44px; } }
 .nv-deep-sep { color: var(--muted); }
 
 /* ---- the header every page wears: its name, one line, one button ----
@@ -11403,6 +11423,13 @@ button.gt-fixlab small { font-size: 11.5px; }
 .mt-row-main:has(.pg-move) > .mt-what { padding-right: 68px; box-sizing: border-box; }
 /* In a stage's parts and its machine's programs: in the row, first, not floated. */
 .pg-move.is-inline { position: static; align-self: center; flex: none; }
+/* By thumb: up and down were 30 × 24 — now 36 square, centred on the name's
+   44px box, which keeps its words clear of them. */
+@media (pointer: coarse) {
+  .pg-move { top: 4px; }
+  .pg-move-b { width: 34px; height: 34px; font-size: 13px; }
+  .mt-row-main:has(.pg-move) > .mt-what { padding-right: 84px; }
+}
 .spp-panel .spp-probs { margin: 0; font-size: var(--t-detail); }
 /* A PROGRAM'S RUN IN COMMISSION (lib/programRun), in its panel — what it
    netted against what was agreed, or the run planned from here. */
@@ -11470,6 +11497,7 @@ button.gt-fixlab small { font-size: 11.5px; }
 .cr-toc .cr-door:hover { color: var(--ink); border-bottom-color: var(--line); }
 .cr-toc .cr-door:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .cr-toc .cr-door.is-sorted { color: var(--muted, var(--ink-2)); }
+@media (pointer: coarse) { .cr-toc .cr-door { padding-block: 8px; } }
 .cr-toc .cr-door b.in-late { color: var(--st-r); }
 .cr-toc .cr-door b.in-problem { color: var(--st-a); }
 .cr-note { display: grid; gap: 6px; margin: 4px 0 12px; padding: 12px 14px; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); }
@@ -11543,6 +11571,9 @@ button.gt-lab small b { display: inline; font-size: inherit; font-weight: 800; }
 button.gt-mnext { cursor: pointer; }
 button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
 .gt.is-stacked .gt-mnext { font-size: 11px; }
+/* By thumb: the next stage's line was 13px high — it reaches 10px each way,
+   into the foot of the machine's band and the gap over its bars. */
+@media (pointer: coarse) { .gt-mnext { padding-block: 10px; margin-block: -9px -10px; } }
 
 /* =====================================================================
    SLICE: THE CONTROL ROOM (docs/CONTROLROOM.md) — the week as a list, the
@@ -11599,6 +11630,8 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
 /* Each usual stage's details, under its name: who it is with, what it must show. */
 .in-usual-det { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 2px 0 8px 28px; }
 .in-usual-det .chip { font-size: 12px; padding: 3px 10px; min-height: 0; line-height: 1.4; }
+/* By thumb: who a stage is with and what it must show were 25px chips. */
+@media (pointer: coarse) { .in-usual-det .chip { min-height: 36px; } }
 .in-usual-pass { flex: 1 1 240px; min-width: 0; }
 .in-usual-run { display: flex; flex-wrap: wrap; gap: 8px; flex: 1 1 100%; }
 .in-usual-run input { width: 7em; }
@@ -11619,6 +11652,10 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
 .ig-rowh .mp-name { font-size: var(--t-detail); }
 .igm-h .mp-name { font-size: var(--t-body); }
 .pp-mh h2 .mp-name { font-size: inherit; }
+/* By thumb: a machine's name in a row was 16 to 21px high. Its box grows
+   into the space around it and the line stays where it was (its own
+   overflow would clip a halo, so the padding is the reach). */
+@media (pointer: coarse) { .mp-name { padding-block: 9px; margin-block: -9px; } }
 /* The machine in a record's "What" line. */
 .rd-link-in { appearance: none; padding: 0; border: 0; background: none; font: inherit; color: var(--brand); cursor: pointer; text-align: left; }
 .rd-link-in:hover { text-decoration: underline; }
@@ -11905,6 +11942,7 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
 .vs-play { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0 8px; }
 .vs-speed { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-detail); color: var(--muted); }
 .vs-speed input { width: 110px; }
+@media (pointer: coarse) { .vs-speed input { height: 44px; } }
 .vs-scroll { overflow-x: auto; max-width: 100%; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 8px 0; }
 .vs-grid { --vs-area: 150px; display: grid; grid-auto-rows: 30px; align-items: center; justify-items: center; min-width: max-content; }
 .vs-h, .vs-lane { position: sticky; left: 0; z-index: 1; background: var(--surface); justify-self: stretch; height: 100%; display: flex; align-items: center; padding: 0 10px; font-size: var(--t-detail); font-weight: 700; color: var(--ink-2, var(--ink)); }
@@ -11957,6 +11995,7 @@ button.vs-sq:focus-visible { outline: 2.5px solid var(--brand); outline-offset: 
 .vs-step-acts { display: flex; flex-wrap: wrap; gap: 8px; }
 .vs-bad { color: var(--st-r); }
 .vs-burst-f { display: flex; gap: 8px; align-items: center; font-size: var(--t-detail); }
+@media (pointer: coarse) { .vs-burst-f { min-height: 44px; } }
 .chip.vs-v.is-adds.on { background: var(--vs-va); color: #fff; border-color: var(--vs-va); }
 .chip.vs-v.is-needed.on { background: var(--vs-ne); color: #2b2100; border-color: var(--vs-ne); }
 .chip.vs-v.is-waste.on { background: var(--vs-nv); color: #fff; border-color: var(--vs-nv); }
@@ -12448,5 +12487,6 @@ button.co-step-b:hover { background: color-mix(in srgb, var(--brand) 5%, transpa
 .ls-pn { flex: none; width: 22px; height: 22px; border-radius: 50%; color: #fff; font-size: 12px; font-weight: 800; display: inline-grid; place-items: center; }
 .ls-person.is-bn { box-shadow: inset 3px 0 0 var(--ink); padding-left: 6px; }
 .ls-bn-b { grid-column: 2; justify-self: start; margin-top: 2px; min-height: 30px; padding: 2px 10px; font-size: var(--t-label); }
+@media (pointer: coarse) { .ls-bn-b { min-height: 40px; } }
 .ls-bn-check { display: flex; gap: 8px; align-items: flex-start; margin-top: 12px; font-weight: 600; }
 .ls-bn-check input { margin-top: 3px; }
