@@ -101,14 +101,26 @@ describe('the control room counts the line beside the jobs', () => {
     expect(portfolio([], TODAY, [], [line7([crit])], REF).says).toBe('No job running yet. 1 thing late — 1 on Line 7, outside any job · 1 critical on the lines.');
   });
 
-  it('prints the line on the report, beside every job, at every step', () => {
+  it('prints the line on the report, beside every job, at every step — a row, and at the very last a line', () => {
     for (const step of CR_STEPS) {
       const r = controlRoomReport(after, TODAY, step);
-      expect(r.lines.map(l => l.name)).toEqual(['Line 7']);
-      expect(r.lines[0]).toMatchObject({ word: '2 late', tone: 'behind', late: 2 });
+      if (step.lineRows) {
+        expect(r.lines.map(l => l.name)).toEqual(['Line 7']);
+        expect(r.lines[0]).toMatchObject({ word: '2 late', tone: 'behind', late: 2 });
+      } else {
+        expect(r.lines).toEqual([]);
+        expect(r.linesSaid).toBe('Line 7: 2 late, 1 critical');
+      }
       expect(r.totals).toEqual(after.totals);
     }
     expect(controlRoomReport(after, TODAY).lines[0].critical).toBe('1 critical: Bagger jaw jams on 2kg film');
     expect(controlRoomReport(after, TODAY).late.map(l => l.job)).toEqual(expect.arrayContaining(['Line 7']));
+  });
+
+  it('a line owing work with nothing late or critical is counted under the rows, never a row of its own', () => {
+    const owing = portfolio(jobs, TODAY, [], [line7([crit], [lateProgram]), { line: { id: 'L2', name: 'Line 2' }, snags: [snag({ workspaceId: 'L2', owner: 'Dave' })], programs: [] }], REF);
+    const r = controlRoomReport(owing, TODAY);
+    expect(r.lines.map(l => l.name)).toEqual(['Line 7']);
+    expect(r.linesQuiet).toBe('and 1 more line owes 1, none of it late — on the control room.');
   });
 });
