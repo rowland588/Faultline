@@ -257,7 +257,7 @@ describe('a line can be put away too, and its film is what makes deleting it dif
     // destroy a year of film reads as carelessness.
     expect(by['filmed walk']).toBe(1);
     expect(by['pinned machine']).toBe(1);
-    expect(by.snag).toBe(1);
+    expect(by.problem, "the line's problems, in the word a person reads").toBe(1);
     expect(owned.map(c => c.what)).not.toContain('filmed walks');
     // Nothing that is empty is listed — "0 cases (A3s)" is noise in a warning.
     expect(owned.every(c => c.count > 0)).toBe(true);

@@ -287,6 +287,29 @@ mergeLines`). Accepted by `factory.mjs` 27-30.
 - *Accepted by:* `programs.mjs` extended (a line's programs with no job; a job
   seeing them), `factory.mjs` (machines).
 
+*The database, read from the live policies on 13 October* (`supabase/
+MACHINES_AND_PROGRAMS.sql`, the `LINE_TOOLS.sql` pattern line standards
+already follow):
+- `programs` and `commission_assets`: `project_id` is NOT NULL today; add
+  `workspace_id uuid`, drop the NOT NULL, and check one of the two is set; an
+  index on `workspace_id`.
+- Today a row with no job is seen and written only by whoever made it: the
+  permissive "member … select/insert/update" rules and the RESTRICTIVE
+  "editors only insert/update" rules all fall back to `owner_id = auth.uid()`
+  when `project_id` is null. Add a permissive **"line programs" / "line
+  machines"** rule (`workspace_id is not null and is_ws_member(workspace_id)`)
+  beside the job's, and add the same clause to the two restrictive rules, so
+  everyone on the line works a line's program and a project-only client still
+  cannot. A row with a job keeps the job's rules.
+- `faultline_keep_agreement` already lets a row with no job through (`pid is
+  null`), so a line's program or machine has no agreed fields to keep — the
+  same as a line standard.
+- Backfill: a program or machine whose job has its line (`line_id` → the job's
+  line → its `workspace_id`) gets that line; the rest are asked on screen once.
+- Read back: `pg_policies` for both tables (each select rule has no
+  `with_check`, each insert rule no `qual` — `SECURITY_RLS.sql`'s lesson),
+  `information_schema.columns`, the constraint.
+
 ### Stage 3 — The line is the hub
 - The line page in the order of §3, with the products readiness grid.
 - The control room's factory cards carry each line's health; Needs you works
