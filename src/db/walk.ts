@@ -8,8 +8,8 @@ import type { ID } from '../types';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 import { now } from '../lib/ids';
 import { getDB, signalWrite } from './core';
-import { recordTombstones } from './sync';
-import { deleteBlobs } from './blobs';
+import { recordTombstones, restoreRows, type Restore } from './sync';
+import { deleteBlobs, getBlob, putBlob } from './blobs';
 
 /* ---------- segments ---------- */
 export async function listSegments(workspaceId: ID): Promise<Segment[]> {
@@ -84,6 +84,7 @@ export async function deleteSnagAsset(id: ID): Promise<void> {
   await tx.done;
   await recordTombstones('snag_assets', [id]);
   await recordTombstones('snags', snags.map(s => s.id));
+  signalWrite();
 }
 
 /** Rewrite the sequence column to a new walk order. */
@@ -142,13 +143,23 @@ export async function updateSnag(s: Snag): Promise<void> {
   await (await getDB()).put('snags', { ...s, updatedAt: now() });
   signalWrite();
 }
-export async function deleteSnag(id: ID): Promise<void> {
+/** Deleted with an undo (ui/Undo): the problem and its close-up photo are
+ *  handed back, so Undo puts back exactly what went, on every device. It now
+ *  says so to the screens and the sync too (signalWrite) — it never did, so a
+ *  problem deleted waited for the next write to leave the other devices. */
+export async function deleteSnag(id: ID): Promise<Restore> {
   const db = await getDB();
   const s = await db.get('snags', id);
-  if (!s) return;
+  if (!s) return async () => {};
+  const photo = s.detailPhotoKey ? await getBlob(s.detailPhotoKey) : undefined;
   if (s.detailPhotoKey) await deleteBlobs([s.detailPhotoKey]);
   await db.delete('snags', id);
   await recordTombstones('snags', [id]);
+  signalWrite();
+  return async () => {
+    if (photo && s.detailPhotoKey) await putBlob(s.detailPhotoKey, photo);
+    await restoreRows('snags', [s]);
+  };
 }
 export async function setSnagsStatus(ids: ID[], status: Snag['status']): Promise<void> {
   const db = await getDB();

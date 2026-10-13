@@ -27,6 +27,9 @@
  *      2  what it was, its minutes, its note changed — minutes typed over
  *         say typed, its end moves with them (lib/stopEdit)
  *      3  Undo: as the stopwatch timed it
+ *   D  A WIN AND A READING — each asked, then gone for good; now Undo
+ *   F  A PROBLEM IN THE REGISTER — asked, then gone for good (and the other
+ *      devices not told until the next write); now Undo
  *   and no console error anywhere.
  *
  *   node scripts/acceptance/edit-delete.mjs      (SMOKE_BASE, as smoke) */
@@ -180,6 +183,43 @@ for (const [id, to] of [[sd.lineMapId, 'Line 7, run released to pallet away'], [
   await undo();
   const back = (await db((D, ws) => D.listObservations(ws), sd.wsId)).find(x => x.id === o.id);
   ok(back.category === o.category && back.durationMs === o.durationMs && back.timing === 'stopwatch', 'C3 Undo: the stop as the stopwatch timed it');
+}
+
+/* ================= D · A WIN, A READING — Undo after the ask ================= */
+{
+  const wins = () => db((D, a) => D.listPaceWins(a[0], a[1]), [sd.projectId, sd.lineId]);
+  const w0 = (await wins()).find(w => w.title === 'seeded win');
+  await go(`#/project/${sd.projectId}/line/${sd.lineId}?view=wins`);
+  await main().getByRole('button', { name: 'Delete this win', exact: true }).first().click(); await page.waitForTimeout(900);
+  ok(!(await wins()).some(w => w.id === w0.id) && /Undo brings it back/.test(asked) && /Deleted the win “seeded win”/.test(await page.locator('body').innerText()), 'D1 a win deleted: asked, said, Undo offered');
+  await undo();
+  ok((await wins()).some(w => w.id === w0.id && w.title === 'seeded win'), 'D1 Undo: the win is back');
+}
+{
+  const reads = () => db((D, id) => D.listReadings(id), sd.pacedProjectId);
+  const n0 = (await reads()).length;
+  await go(`#/project/${sd.pacedProjectId}?view=data`);
+  const x = main().locator('button[aria-label^="Remove "][aria-label*=" on 20"]').first();
+  const label = await x.getAttribute('aria-label');
+  await x.click(); await page.waitForTimeout(900);
+  ok((await reads()).length === n0 - 1 && /Deleted the reading of /.test(await page.locator('body').innerText()), `D2 a reading deleted (${label}): said, Undo offered`);
+  await undo();
+  ok((await reads()).length === n0, 'D2 Undo: the reading is back');
+}
+
+/* ================= F · A PROBLEM IN THE REGISTER — Undo after the ask ================= */
+{
+  const all = () => db(D => D.listAllSnags());
+  const s0 = (await all()).find(x => x.problem === 'seeded snag 0');
+  await go('#/snags');
+  const r = page.locator('.qsl-row', { hasText: 'seeded snag 0' }).first();
+  await r.locator('.qsl-tick input').check();
+  await page.locator('.qsl-bar').getByRole('button', { name: 'Delete', exact: true }).click(); await page.waitForTimeout(1200);
+  ok(!(await all()).some(x => x.id === s0.id) && /Undo brings it back/.test(asked) && await page.locator('.qsl-row', { hasText: 'seeded snag 0' }).count() === 0 && /Deleted 1 problem/.test(await page.locator('body').innerText()),
+    'F1 a problem deleted from the register: asked, gone from the page, Undo offered');
+  await undo();
+  const back = (await all()).find(x => x.id === s0.id);
+  ok(!!back && back.problem === 'seeded snag 0' && back.status === s0.status && await page.locator('.qsl-row', { hasText: 'seeded snag 0' }).count() === 1, 'F1 Undo: the problem is back on the register');
 }
 
 ok(errors.length === 0, `no console errors${errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''}`);

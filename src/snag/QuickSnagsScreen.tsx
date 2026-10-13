@@ -464,7 +464,7 @@ export function QuickSnagsScreen() {
                       onSave={() => { flip(s.id); setSavedOn({ id: s.id, at: Date.now() }); }} machines={machinesFor(s.workspaceId)} frame={s.assetId ? frames.get(s.assetId) : undefined}
                       put={p => void put(s.id, p)} onView={m => setViewing({ snagId: s.id, media: m })} busy={busy}
                       onCard={() => void cards([s])} onWalk={() => nav(`/w/${s.workspaceId}/asset/${s.assetId}`)}
-                      onDelete={() => { if (window.confirm('Delete this problem? Its photos and everything written about it go with it.')) void deleteSnag(s.id); }} />}
+                      onDelete={() => { if (window.confirm('Delete this problem? Its photos and everything written about it go with it.\n\nUndo brings it back for a few seconds.')) void deleteSnag(s.id).then(back => offerUndo(`Deleted “${s.problem.trim().length > 40 ? s.problem.trim().slice(0, 39) + '…' : s.problem.trim() || 'the problem'}”`, back)); }} />}
                   </li>
                 );
               })}
@@ -559,8 +559,14 @@ export function QuickSnagsScreen() {
           <button type="button" className="btn" disabled={!!busy} onClick={() => void cards(chosen)}>{busy === 'cards' ? 'Making…' : 'Report cards'}</button>
           <button type="button" className="btn qsl-del" onClick={() => {
             const n = chosen.length, them = n === 1 ? 'it' : 'them';
-            if (!window.confirm(`Delete ${n} problem${n === 1 ? '' : 's'}? The photos and everything written about ${them} go with ${them}.`)) return;
-            void (async () => { for (const x of chosen) await deleteSnag(x.id); setPicked(new Set()); })();
+            if (!window.confirm(`Delete ${n} problem${n === 1 ? '' : 's'}? The photos and everything written about ${them} go with ${them}.\n\nUndo brings ${them} back for a few seconds.`)) return;
+            /* with Undo, like every delete (ui/Undo) — asked, then gone for good before */
+            void (async () => {
+              const backs: (() => Promise<void>)[] = [];
+              for (const x of chosen) backs.push(await deleteSnag(x.id));
+              setPicked(new Set());
+              offerUndo(`Deleted ${n} problem${n === 1 ? '' : 's'}`, async () => { for (const b of backs) await b(); });
+            })();
           }}>Delete</button>
           <button type="button" className="btn btn-ghost" onClick={() => setPicked(new Set())}>Clear</button>
         </div>

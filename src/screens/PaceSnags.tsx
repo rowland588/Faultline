@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Toast } from '../ui/Toast';
 import { nav } from '../state/useRoute';
+import { offerUndo } from '../ui/Undo';
 import { listSegments, listSnagAssets, snagsForWorkspace, deleteSegment, deleteSnag, deleteSnagAsset } from '../db';
 import { ConvertBanner } from '../snag/ConvertBanner';
 import { usePaceWorkspace, useLineWorkspace } from '../lib/usePaceWorkspace';
@@ -218,9 +219,10 @@ export function PaceSnags({ projectId, projectName, line, alsoFrom = [], can = c
 
   const removeSnag = async (sn: Snag) => {
     if (!wsId) return;
-    if (!window.confirm(`Delete this?\n\n"${sn.problem}"\n\nIts photo and notes go with it. This cannot be undone.`)) return;
-    await deleteSnag(sn.id);
+    if (!window.confirm(`Delete this?\n\n"${sn.problem}"\n\nIts photo and notes go with it. Undo brings it back for a few seconds.`)) return;
+    const back = await deleteSnag(sn.id);
     await load(wsId);
+    offerUndo(`Deleted “${sn.problem.trim() || 'the problem'}”`, async () => { await back(); await load(wsId); });
   };
 
   const removeAsset = async (a: SnagAsset) => {
