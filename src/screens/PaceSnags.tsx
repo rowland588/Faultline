@@ -39,7 +39,7 @@ function SegmentCard({ seg, assets, snags, onOpen, onDelete }: {
         <span className="ps-seg-main">
           <span className="ps-seg-name">{seg.name || `Walk ${seg.sequence}`}</span>
           <span className="ps-seg-meta">
-            {fmtDur(seg.durationS)} · {assets.length} asset{assets.length === 1 ? '' : 's'}
+            {fmtDur(seg.durationS)} · {assets.length} marked frame{assets.length === 1 ? '' : 's'}
             {mine.length > 0 && <> · {open} open of {mine.length}</>}
           </span>
         </span>

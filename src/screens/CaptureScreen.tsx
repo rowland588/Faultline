@@ -226,9 +226,10 @@ export function CaptureScreen() {
       <StudyChips wsId={workspace.id} observations={observations} />
       {/* pickers lock while a timer runs so the elapsed time can't be re-attributed */}
       <fieldset className="cap-fields" data-tour="cap-fields" disabled={timing}>
-      {/* ASSET — where on the line (the floor thinks asset-first: this machine stopped) */}
+      {/* THE MACHINE — where on the line (the floor thinks machine-first: this
+          machine stopped). The line's machines, in flow order (workspace.assets). */}
       <div className="cap-block">
-        <div className="field-label">Which asset?</div>
+        <div className="field-label">Which machine?</div>
         <ChipPicker
           options={workspace.assets}
           value={asset}          onChange={setAsset}
@@ -360,7 +361,7 @@ export function CaptureScreen() {
           <button type="button" className="cw-link cap-setup" onClick={() => withQuery('setup', '1')}>Set up ›</button>
 </div>
         {recent.length === 0 ? (
-          <p className="cap-feed-empty">Nothing yet. Pick an asset, say what you saw, put a time to it — it lands here.</p>
+          <p className="cap-feed-empty">Nothing yet. Pick a machine, say what you saw, put a time to it — it lands here.</p>
         ) : (
           <div className="cap-feed-list">
             {recent.map(o => (

@@ -21,7 +21,7 @@ export const dimOf: Record<DimensionKey, (o: Observation) => string> = {
 };
 
 export const DIM_LABEL: Record<DimensionKey, string> = {
-  asset: 'Asset',
+  asset: 'Machine',
   category: 'Category',
   subcategory: 'Sub-category',
   shift: 'Shift',

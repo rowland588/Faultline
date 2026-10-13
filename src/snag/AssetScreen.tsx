@@ -184,7 +184,7 @@ export function AssetScreen({ wsId, assetId }: { wsId: string; assetId: string }
       )}
 
       {(!job || visible.length > 0) && <div className="card" style={{ marginTop: 12 }}>
-        <div className="field-label" style={{ marginBottom: 8 }}>{job ? 'Evidence pinned here earlier' : 'On this asset'}</div>
+        <div className="field-label" style={{ marginBottom: 8 }}>{job ? 'Evidence pinned here earlier' : 'On this machine'}</div>
         {visible.length === 0 ? <p className="sub">Nothing on this frame yet — tap it where you see something.</p>
           : visible.map(s => (
             <button key={s.id} className="snag-line-row" onClick={() => { setDraft(null); setEditing(s); }}>
@@ -493,10 +493,10 @@ function RenameSheet({ asset, open, onClose, onSaved }: { asset: SnagAsset; open
   };
 
   return (
-    <Sheet open={open} onClose={onClose} title="Rename asset">
-      <div className="field-label">Asset name</div>
+    <Sheet open={open} onClose={onClose} title="Rename the machine">
+      <div className="field-label">The machine’s name</div>
       <input className="text-input" autoFocus value={name} onChange={e => setName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void save(); }} />
-      <div className="field-label" style={{ marginTop: 10 }}>Asset code <span className="opt">optional</span></div>
+      <div className="field-label" style={{ marginTop: 10 }}>Its code <span className="opt">optional</span></div>
       <input className="text-input" value={code} placeholder="e.g. MHW-04" onChange={e => setCode(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void save(); }} />
       <div className="row-end" style={{ marginTop: 14 }}>
         <button className="btn btn-ghost" onClick={onClose}>Cancel</button>

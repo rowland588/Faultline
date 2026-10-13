@@ -74,8 +74,8 @@ export function WalkthroughScreen({ wsId }: { wsId: string }) {
           </div>
         </div>
         <aside className="walk-rail">
-          <div className="walk-rail-head">Assets · flow order</div>
-          {flat.length === 0 ? <p className="sub" style={{ padding: '0 12px' }}>No assets marked yet.</p>
+          <div className="walk-rail-head">Machines · flow order</div>
+          {flat.length === 0 ? <p className="sub" style={{ padding: '0 12px' }}>No machines marked yet.</p>
             : flat.map(f => (
               <button key={f.asset.id} className={'walk-rail-item' + (nearest?.asset.id === f.asset.id ? ' current' : '')} onClick={() => seekTo(f)}>
                 <span className="wri-name">{f.asset.name}</span>
