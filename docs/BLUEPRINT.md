@@ -404,4 +404,39 @@ is still wired.
   when there is one, and on no job wears no job's rail. On a phone the V lies
   on its side and the sheet is a card a station. Accepted by
   `line-capacity.mjs` 8–11.
+- **The line standard's map says the bottleneck** (Rowland, 13 October: "a
+  few more options with lines and colors ... highlight kind of bottleneck
+  areas ... fading out a certain area of a color ... when I'm putting in a
+  name, it's too long, it covers up too much of the map ... having all the
+  commentary just on the right hand side ... a little summary there saying
+  ... this person's the bottleneck"). Placed (§8): *On the line*, the tool
+  Line standard; record `standards.marks` (a mark's `fill`, `line` and
+  `bottleneck` — no new record); shows on the board, Who does what on the
+  right, and the line standard card. An area is solid, light or faded in
+  its own colour, its line solid, dashed or dotted, thin or heavy; two more
+  colours for areas and flow (purple, teal — never a state's hue). A
+  person, an area or a machine is marked the bottleneck from its sheet or
+  from Who does what: tagged BOTTLENECK on the map, a heavier edge, and
+  summed up first on the right ("Line lead — runs the bagger"). Names on
+  the map are short by default (the whole name on the right), or numbers
+  matching the right, or full — kept per device. The card draws the same.
+  Accepted by `line-standard.mjs` 9–12.
+- **What a pack costs in labour** (Rowland, 13 October: "I need to be able
+  to provide an hourly rate ... how much we run in a minute equals how much
+  we run in an hour. If I put two people there ... is my cost per pack
+  higher or lower?"). Placed (§8): *On the line*, the tool Line capacity —
+  the one place that knows the output; record `standards.capacity.labour`
+  (people and pounds an hour, both optional); shows on Line capacity under
+  the sheet, in each what-if, and on the product's card on paper — the
+  line standards report and the client report ("· 24.4p a bag in labour —
+  8 people at £12.50 an hour"). People stand in from the line standard's
+  headcount, then the line's crew; the rate from the line's labour rate
+  with its on-cost (Your factory) — each said where it came from, typed
+  over to change it. The sum (`lib/capacity` `labourCost`): people × rate
+  an hour ÷ the packs the line makes an hour (its good output, a minute ×
+  60). When the bottleneck is a people station, one more person there is
+  worked out — the packs the line then makes (and what limits it next),
+  the pounds an hour, and the cost a pack against today's: lower ("they
+  pay for themselves") or higher — with Make it so. `docs/CAPACITY.md` §6.
+  Accepted by `line-capacity.mjs` 12.
 - **Next:** Stage 2 — machines and programs on the line.

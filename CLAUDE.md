@@ -190,8 +190,8 @@ node scripts/acceptance/value-stream.mjs  # B: a line's value stream — who and
 node scripts/acceptance/changeover.mjs  # F: SMED — a quick session on its own; Lap with who, Shingo's stages on the grid, the plate speed, what the changeovers cost, set as the standard, timed again, before → after, the paper, the fishbone
 node scripts/acceptance/work-sampling.mjs  # H1: what people are doing at random moments — the moment asks, one tap each, the shares with their margins, the fix, the 6M line's card, the fishbone, the 6M report
 node scripts/acceptance/shift-losses.mjs  # E: a shift's losses — counted on the phone at the bottleneck's ideal speed, the shift less its breaks, the waterfall, slow running told from short stops, the pounds in two parts, a bar made better, the next shift counted, before → after, the fishbone, both papers
-node scripts/acceptance/line-capacity.mjs  # Line capacity: the V-curve, the capacity sheet, the margin, a person's standard time, the bottleneck walked; a person as the floor says them (what reaches them, keeping up, people needed); each tool its own products; the phone
-node scripts/acceptance/line-standard.mjs  # the line standard's board: the page scrolls off it, a tap places, a drag moves, people's colours, a tall board, full screen — screen and card
+node scripts/acceptance/line-capacity.mjs  # Line capacity: the V-curve, the capacity sheet, the margin, a person's standard time, the bottleneck walked; a person as the floor says them (what reaches them, keeping up, people needed); each tool its own products; the phone; what a pack costs in labour and one more person at the bottleneck
+node scripts/acceptance/line-standard.mjs  # the line standard's board: the page scrolls off it, a tap places, a drag moves, people's colours, a tall board, full screen; the bottleneck said (a person, an area faded), names short with the words on the right — screen and card
 node scripts/acceptance/programs.mjs  # a program's status with commentary: the five statuses (not tested and no program among them), commentary on its own, Needs you, the paper
 node scripts/acceptance/snags.mjs  # Problems: the register — every problem written and edited where it sits, assigned not moved, its journey, a photo marked, on paper, a fresh start
 node scripts/acceptance/lines.mjs  # production lines: made in Your factory, opened on their own, a problem taken on one with no project, its tools opened on it, the phone
@@ -318,7 +318,16 @@ placing a person and a drag placing nothing, a person dragged and kept, a
 person's colour on the board, in Who does what and on the record, a plain
 board made tall with everything where it stood, the card drawing the person
 in their colour and the board tall, full screen edge to edge and back, and
-the phone. `line-capacity.mjs` is Line capacity: the views named for what they
+the phone; then the bottleneck said on the map (Rowland, 13 October:
+"highlight ... bottleneck areas ... fading out a certain area of a color
+... a little summary ... this person's the bottleneck") — a person marked
+from Who does what, tagged on the map and summed up first on the right, an
+area faded in its colour with its line dashed and tagged; names short on
+the map with the whole name on the right ("it covers up too much of the
+map"), numbers matching the right and kept after a reload, and full; and
+the card drawing the tags, the faded area and the short name; and a
+machine on the map marked the bottleneck from its sheet.
+`line-capacity.mjs` is Line capacity: the views named for what they
 are, the V-curve and the capacity sheet as `lib/capacity` says, a machine
 not on its plate speed said so, the owner's V margin and the guide, a
 person's standard time from the time study used with a tap, and the
@@ -331,7 +340,12 @@ the line's unit, whether they keep up in seconds, Make it 2 people; each
 tool listing its own products (a product only mapped is not in Line
 capacity) and New on one already on the line opening it; Line capacity's
 own page and its rail on no job; and the phone — the V on its side, the
-sheet a card a station.
+sheet a card a station; then what a pack costs in labour (Rowland, 13
+October: "provide an hourly rate ... If I put two people there ... is my
+cost per pack higher or lower?") — the people standing in from the line
+standard, the rate typed and kept, the cost a pack as `lib/capacity` says,
+one more person at the bottleneck lower or higher as the module says, Make
+it so, a what-if's labour, and the card's line carrying the cost a pack.
 
 `scripts/sync-two-devices.mjs` runs two real devices of the app (a phone and a
 laptop, separate storage) against `scripts/fake-cloud.mjs`, which keeps the

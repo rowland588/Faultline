@@ -22,7 +22,7 @@
  *   └─────────────────────────────────────────────────────────┘ */
 import { getBlob } from '../db';
 import { analyse, shortSays } from './capacity';
-import { BOARDS, boardOf, colourOf, headcount, isShape, manyOf, markOf, MARKS, peopleOf, TONES, type Standard, type StandardMark } from './standard';
+import { BOARDS, boardOf, bottlenecksOf, colourOf, dashOf, FADED_ALPHA, headcount, isShape, manyOf, markOf, MARKS, peopleOf, shortLabel, TONES, weightOf, type Standard, type StandardMark } from './standard';
 
 /** A4 landscape at 150 dpi: sharp on paper, light enough for a phone. */
 export const CARD_W = 1754, CARD_H = 1240;
@@ -108,6 +108,17 @@ function pillLabel(ctx: CanvasRenderingContext2D, text: string, cx: number, top:
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
 }
 
+/** THE BOTTLENECK, in words — an ink tag, never a state colour (the map
+ *  says it as the screen does). `left` places it from its left edge; else it
+ *  is centred on `cx`. */
+function bnTag(ctx: CanvasRenderingContext2D, cx: number, top: number, size: number, left?: boolean) {
+  ctx.font = `800 ${size}px ${FONT}`;
+  const text = 'BOTTLENECK', tw = ctx.measureText(text).width, h = size * 1.55, w = tw + size * 1.1;
+  const x = left ? cx : cx - w / 2;
+  ctx.fillStyle = '#0f1a2e'; round(ctx, x, top, w, h, 4); ctx.fill();
+  ctx.fillStyle = '#ffffff'; ctx.textBaseline = 'middle'; ctx.fillText(text, x + size * 0.55, top + h / 2 + 1); ctx.textBaseline = 'alphabetic';
+}
+
 /** A shape on the map: the same geometry the editor draws, its words in the middle. */
 function drawShape(ctx: CanvasRenderingContext2D, m: StandardMark, ix: number, iy: number, iw: number, ih: number) {
   const t = TONES[m.tone ?? (m.shape === 'text' ? 'grey' : 'blue')];
@@ -117,12 +128,13 @@ function drawShape(ctx: CanvasRenderingContext2D, m: StandardMark, ix: number, i
   ctx.save();
   if (m.shape === 'arrow') {
     const x2 = cx + w, y2 = cy + h, ang = Math.atan2(h, w), head = Math.max(14, iw * 0.016);
-    ctx.strokeStyle = t.stroke; ctx.fillStyle = t.stroke; ctx.lineWidth = lw * 1.6; ctx.lineCap = 'round';
+    ctx.strokeStyle = t.stroke; ctx.fillStyle = t.stroke; ctx.lineWidth = lw * 1.6 * weightOf(m.line); ctx.lineCap = 'round';
+    ctx.setLineDash(dashOf(m.line, lw * 1.6 * weightOf(m.line)));
     ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x2 - Math.cos(ang) * head * 0.6, y2 - Math.sin(ang) * head * 0.6); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(x2, y2);
     ctx.lineTo(x2 - head * Math.cos(ang - 0.45), y2 - head * Math.sin(ang - 0.45));
     ctx.lineTo(x2 - head * Math.cos(ang + 0.45), y2 - head * Math.sin(ang + 0.45));
-    ctx.closePath(); ctx.fill();
+    ctx.setLineDash([]); ctx.closePath(); ctx.fill();
     ctx.restore();
     return;
   }
@@ -132,8 +144,14 @@ function drawShape(ctx: CanvasRenderingContext2D, m: StandardMark, ix: number, i
   else if (m.shape === 'triangle') { ctx.moveTo(cx, y); ctx.lineTo(x + w, y + h); ctx.lineTo(x, y + h); ctx.closePath(); }
   else { round(ctx, x, y, w, h, Math.min(10, w * 0.06)); }
   if (m.shape !== 'text') {
-    ctx.fillStyle = t.fill; ctx.fill();
-    ctx.strokeStyle = t.stroke; ctx.lineWidth = lw; ctx.stroke();
+    /* its fill — light (the colour's wash), faded (the colour, the picture seen through) or none — and its line */
+    if (m.fill !== 'none') {
+      ctx.save();
+      if (m.fill === 'faded') { ctx.globalAlpha = FADED_ALPHA; ctx.fillStyle = t.stroke; } else ctx.fillStyle = t.fill;
+      ctx.fill(); ctx.restore();
+    }
+    const lwi = lw * weightOf(m.line) * (m.bottleneck ? 1.6 : 1);
+    ctx.strokeStyle = t.stroke; ctx.lineWidth = lwi; ctx.setLineDash(dashOf(m.line, lwi)); ctx.stroke(); ctx.setLineDash([]);
   }
   if (m.label?.trim()) {
     const size = Math.max(16, Math.min(iw * 0.02, h * 0.34));
@@ -143,6 +161,8 @@ function drawShape(ctx: CanvasRenderingContext2D, m: StandardMark, ix: number, i
     const lh = size * 1.15, ty0 = (m.shape === 'triangle' ? cy + h * 0.18 : cy) - ((lines.length - 1) * lh) / 2;
     lines.forEach((l, i) => ctx.fillText(l, cx, ty0 + i * lh));
   }
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  if (m.bottleneck) bnTag(ctx, x + 6, y + 6, Math.max(13, iw * 0.012), true);
   ctx.restore();
 }
 
@@ -237,8 +257,11 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
   for (const m of s.marks) {
     if (isShape(m)) continue;
     const cx = ix + (m.x / 100) * iw, cy = iy + (m.y / 100) * ih;
+    if (m.bottleneck) { ctx.beginPath(); ctx.arc(cx, cy, r + 9, 0, Math.PI * 2); ctx.strokeStyle = '#0f1a2e'; ctx.lineWidth = 5; ctx.stroke(); }
     drawIcon(ctx, m.kind, cx, cy, r, colourOf(m));
-    if (m.label) pillLabel(ctx, m.label, cx, cy + r + 8, Math.round(r * 0.72));
+    /* the name short on the map — the whole of it, and what they do, are beside it in Who does what */
+    if (m.label) pillLabel(ctx, shortLabel(m.label, 16), cx, cy + r + 8, Math.round(r * 0.72));
+    if (m.bottleneck) bnTag(ctx, cx, cy - r - 12 - Math.round(r * 0.6) * 1.55, Math.round(r * 0.6));
   }
   ctx.restore();
   ctx.strokeStyle = LINE; ctx.lineWidth = 2; round(ctx, mapX, top, mapW, mapH, 22); ctx.stroke();
@@ -249,6 +272,14 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
   ctx.fillStyle = BLUE; ctx.font = `800 21px ${FONT}`; ctx.fillText('W H O   D O E S   W H A T', sx, y + 16);
   y += 44;
   const people = peopleOf(s);
+  /* THE BOTTLENECK, first, in words */
+  for (const b of bottlenecksOf(s).slice(0, 2)) {
+    bnTag(ctx, sx, y, 18, true);
+    ctx.fillStyle = INK; ctx.font = `700 24px ${FONT}`;
+    const ls = wrap(ctx, b.words, sideW - 150, 2);
+    ls.forEach((l, i) => ctx.fillText(l, sx + 148, y + 22 + i * 28));
+    y += Math.max(40, ls.length * 28 + 14);
+  }
   if (people.length === 0) { ctx.fillStyle = MUTED; ctx.font = `500 26px ${FONT}`; ctx.fillText('Nobody placed yet.', sx, y + 24); y += 50; }
   const listBottom = top + mapH - 170;
   people.forEach((p, i) => {

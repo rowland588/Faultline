@@ -20,6 +20,15 @@
  *      tall
  *   7  full screen: the tools and the board, edge to edge; Done goes back
  *   8  on a phone: nothing off the side; full screen fills the width
+ *   9  the bottleneck said on the map (Rowland, 13 October: "highlight a
+ *      bottleneck ... this area is this person's — the bottleneck"): a person
+ *      marked from Who does what — tagged on the map, summed up first on the
+ *      right — and an area faded in its colour, its line dashed, tagged
+ *   10 names on the map ("when I'm putting in a name, it's too long, it
+ *      covers up too much of the map"): short by default, the whole of it
+ *      and what they do on the right; full, or numbers; kept on the device
+ *   11 the card says the same: the bottleneck tagged and summed up, the
+ *      area faded, the names short
  *   and no console error anywhere.
  *
  *   node scripts/acceptance/line-standard.mjs      (SMOKE_BASE, as smoke) */
@@ -79,8 +88,9 @@ await sheet.getByRole('group', { name: 'Their colour' }).getByRole('button', { n
 await sheet.getByRole('button', { name: 'Done' }).click(); await page.waitForTimeout(1000);
 const fills = await page.locator('.ls-mark .ls-ic circle:nth-of-type(2)').evaluateAll(els => els.map(e => e.getAttribute('fill')));
 ok(fills.includes('#7c3aed') && fills.includes('#1f63e0'), `4 the new person purple on the board, the line lead still blue (${fills.join(', ')})`);
-const side = await page.locator('.ls-person .ls-ic circle:nth-of-type(2)').evaluateAll(els => els.map(e => e.getAttribute('fill')));
-ok(side.includes('#7c3aed'), '4b and purple in Who does what');
+/* Who does what numbers each person in their colour — the same number the map shows in Numbers, and the card */
+const side = await page.locator('.ls-person .ls-pn').evaluateAll(els => els.map(e => getComputedStyle(e).backgroundColor));
+ok(side.includes('rgb(124, 58, 237)'), `4b and purple in Who does what, numbered (${side.join(', ')})`);
 const r4 = await rec();
 ok(r4.marks.some(m => m.kind === 'person' && m.colour === 'purple'), '4c kept on the record');
 
@@ -136,7 +146,78 @@ const pb = await page.locator('.ls-board').boundingBox();
 ok(pb.width >= 360, `8b phone, full screen: the board fills the width (${Math.round(pb.width)} px)`);
 if (OUT) await page.screenshot({ path: `${OUT}/ls-3-phone-full.png` });
 
+/* 9 — the bottleneck, said on the map */
+await page.setViewportSize({ width: 1360, height: 900 });
+await page.evaluate(async id => {
+  const db = await import('/src/db.ts'); const st = (await db.listAllStandards()).find(s => s.id === id);
+  await db.putStandard({ ...st, marks: [...st.marks.map(m => m.id === 'p-lead' ? { ...m, label: 'Line lead — runs the bagger and clears every jam', task: 'Runs the bagger' } : m),
+    { id: 'zone', kind: 'shape', shape: 'rect', x: 70, y: 50, w: 22, h: 30, tone: 'red', label: 'Basket station' }] });
+}, blankId);
+await page.reload(); await page.waitForTimeout(2500);
+await page.locator('.ls-person', { has: page.locator('textarea[aria-label="What they do"]') }).first().getByRole('button', { name: /is the bottleneck/ }).click(); await page.waitForTimeout(800);
+let r9 = await rec();
+const lead9 = r9.marks.find(m => m.id === 'p-lead');
+ok(lead9.bottleneck === true && await page.locator('.ls-mark.is-bn .ls-bn-tag').count() === 1, '9 a person marked the bottleneck from Who does what — tagged on the map');
+const sum = (await page.locator('.ls-bn-sum').innerText()).replace(/\s+/g, ' ');
+ok(/BOTTLENECK/i.test(sum) && sum.includes('Line lead — runs the bagger and clears every jam — Runs the bagger'), `9b summed up first on the right: ${sum}`);
+await page.getByRole('button', { name: 'Select', exact: true }).click();
+const zone = page.locator('.ls-shape').first();
+await zone.locator('rect').first().click({ force: true }); await page.waitForTimeout(300);
+await zone.locator('rect').first().click({ force: true }); await page.waitForTimeout(600);
+const sheet9 = page.locator('.sheet').last();
+await sheet9.getByRole('group', { name: 'Fill' }).getByRole('button', { name: 'Faded' }).click();
+await sheet9.getByRole('group', { name: 'Line' }).getByRole('button', { name: 'Dashed' }).click();
+await sheet9.getByLabel(/This area is the bottleneck/).check();
+await sheet9.getByRole('button', { name: 'Done' }).click(); await page.waitForTimeout(1000);
+r9 = await rec();
+const z9 = r9.marks.find(m => m.id === 'zone');
+const g = await page.locator('.ls-shape.is-bn').first().evaluate(el => ({ op: el.getAttribute('fill-opacity'), dash: el.getAttribute('stroke-dasharray') }));
+ok(z9.fill === 'faded' && z9.line === 'dashed' && z9.bottleneck === true && Number(g.op) > 0 && Number(g.op) < 1 && !!g.dash && await page.locator('.ls-bn-tag.is-area').count() === 1,
+  `9c an area faded in its colour (${g.op}), its line dashed (${g.dash}), tagged the bottleneck`);
+ok((await page.locator('.ls-bn-words').allInnerTexts()).includes('The Basket station'), '9d and named in the summary');
+
+/* 10 — names on the map */
+const leadLabel = async () => (await page.locator('.ls-mark.is-bn .ls-mark-l').innerText()).trim();
+ok((await leadLabel()) === 'Line lead — r…' && (await page.locator('.ls-person input[aria-label="Role"]').first().inputValue()) === 'Line lead — runs the bagger and clears every jam',
+  `10 short on the map by default (${await leadLabel()}), the whole name on the right`);
+await page.getByRole('group', { name: 'Names on the map' }).getByRole('button', { name: 'Numbers' }).click(); await page.waitForTimeout(300);
+ok((await leadLabel()) === '1', '10b numbers: the person\'s number, the same as on the right');
+await page.reload(); await page.waitForTimeout(2500);
+ok((await leadLabel()) === '1', '10c kept on this device after a reload');
+await page.getByRole('group', { name: 'Names on the map' }).getByRole('button', { name: 'Full' }).click(); await page.waitForTimeout(300);
+ok((await leadLabel()) === 'Line lead — runs the bagger and clears every jam', '10d full: the whole name');
+await page.getByRole('group', { name: 'Names on the map' }).getByRole('button', { name: 'Short' }).click(); await page.waitForTimeout(300);
+
+/* 11 — the card says the same */
+const card11 = await page.evaluate(async id => {
+  const texts = [], alphas = [];
+  const P = CanvasRenderingContext2D.prototype, ft = P.fillText, fill = P.fill;
+  P.fillText = function (t, ...a) { texts.push(String(t)); return ft.call(this, t, ...a); };
+  P.fill = function (...a) { alphas.push(this.globalAlpha); return fill.apply(this, a); };
+  try {
+    const s = (await (await import('/src/db.ts')).listAllStandards()).find(x => x.id === id);
+    await (await import('/src/lib/standardCard.ts')).renderCard(s, 'Line 7', '13 Oct 2026');
+  } finally { P.fillText = ft; P.fill = fill; }
+  const { shortLabel } = await import('/src/lib/standard.ts');
+  return { tags: texts.filter(t => t === 'BOTTLENECK').length, short: texts.includes(shortLabel('Line lead — runs the bagger and clears every jam', 16)), area: texts.some(t => t.includes('The Basket station')), faded: alphas.some(a => a > 0.2 && a < 0.5) };
+}, blankId);
+ok(card11.tags >= 3 && card11.short && card11.area && card11.faded, `11 the card: the bottleneck tagged on the map and summed up, the area faded, the name short (${JSON.stringify(card11)})`);
+
+/* 12 — a machine on the map, the bottleneck */
+await page.evaluate(async id => {
+  const db = await import('/src/db.ts'); const st = (await db.listAllStandards()).find(s => s.id === id);
+  await db.putStandard({ ...st, marks: [...st.marks, { id: 'bag2', kind: 'bagger', x: 30, y: 75, label: 'Bagger 2' }] });
+}, blankId);
+await page.reload(); await page.waitForTimeout(2500);
+await page.locator('.ls-mark[aria-label^="Bagger — Bagger 2"]').click(); await page.waitForTimeout(600);
+const sheet12 = page.locator('.sheet').last();
+await sheet12.getByLabel(/This bagger is the bottleneck/).check();
+await sheet12.getByRole('button', { name: 'Done' }).click(); await page.waitForTimeout(1000);
+const bag12 = (await rec()).marks.find(m => m.id === 'bag2');
+ok(bag12.bottleneck === true && (await page.locator('.ls-bn-words').allInnerTexts()).includes('The Bagger 2') && await page.locator('.ls-mark.is-bn[aria-label^="Bagger"] .ls-bn-tag').count() === 1,
+  '12 a machine marked the bottleneck from its sheet — tagged on the map and named in the summary');
+
 ok(errs.length === 0, `no console errors ${errs.slice(0, 3).join(' | ')}`);
 await b.close();
-console.log(fail ? `\nLine standard board NOT accepted: ${fail} failed` : '\nLine standard board accepted: the page scrolls off the board, a tap places, a drag moves, people in their colours, a tall board and full screen — on the screen and the card');
+console.log(fail ? `\nLine standard board NOT accepted: ${fail} failed` : '\nLine standard board accepted: the page scrolls off the board, a tap places, a drag moves, people in their colours, a tall board and full screen, the bottleneck said, names short — on the screen and the card');
 process.exit(fail ? 1 : 0);
