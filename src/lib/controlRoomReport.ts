@@ -1,4 +1,5 @@
-/* THE CONTROL ROOM REPORT — every job on one page (docs/CONTROLROOM.md).
+/* THE CONTROL ROOM REPORT — every job, and every line's own work, on one
+ * page (docs/CONTROLROOM.md).
  *
  * Rowland, 1 October: "show the business a formal process, to show that I am
  * in control of the project." The control room answered that on the screen,
@@ -41,6 +42,11 @@ export interface ControlRoomReport {
   says: string;
   totals: Portfolio['totals'];
   jobs: CrJob[];
+  /** THE LINES' OWN WORK, outside any job (lib/lineWork) — a row a line with
+   *  anything to chase, in the jobs' shape: its name, what is late and
+   *  critical on it, the critical named and what is owed next. The page said
+   *  "every job" and drew jobs only (FLOW-AUDIT.md, 1). */
+  lines: CrJob[];
   owes: { who: string; open: number; late: number; jobs: string }[];
   owesMore: number;
   late: CrLine[];
@@ -110,6 +116,22 @@ export function controlRoomReport(pf: Portfolio, today: string, limits: CrLimits
     open: o.open, late: o.late,
     jobs: pf.jobs.length > 1 && limits.split ? o.byJob.map(b => `${nameIn(b.job, 30)}: ${b.open}`).join(' · ') : '',
   }));
+  const lines: CrJob[] = pf.lines.map(l => {
+    const next = l.items[0];
+    const owed = l.items.length;
+    return {
+      name: nameIn(l.name, 60), method: 'the line itself, no job',
+      word: l.late ? `${l.late} late` : l.critical.length ? criticalCount(l.critical.length) : 'Nothing late',
+      tone: l.late || l.critical.length ? 'behind' as const : 'none' as const,
+      why: [owed ? `${owed} owed` : '', l.late ? `${l.late} late` : '', l.critical.length && !limits.critical ? criticalCount(l.critical.length) : ''].filter(Boolean).join(' · ') || 'nothing owed',
+      ...(l.critical[0] && limits.critical ? { critical: `${criticalCount(l.critical.length)}: ${nameIn(l.critical[0].what, NAME)}${l.critical.length > 1 ? ` and ${l.critical.length - 1} more` : ''}` } : {}),
+      ...(next && limits.next ? {
+        next: `${nameIn(next.what, NAME)}${next.who ? ` · ${nameIn(next.who, 40)}` : ''}${next.on ? ` · ${next.late ? 'was ' : ''}${niceDay(next.on)}` : ''}`,
+        nextLate: next.late,
+      } : {}),
+      late: l.late, outstanding: owed,
+    };
+  });
   const late = pf.items.filter(x => x.late);
   const soon = pf.week.filter(x => !x.late);
   return {
@@ -117,6 +139,7 @@ export function controlRoomReport(pf: Portfolio, today: string, limits: CrLimits
     says: pf.says,
     totals: pf.totals,
     jobs,
+    lines,
     owes: owes.slice(0, limits.owes), owesMore: Math.max(0, owes.length - limits.owes),
     late: late.slice(0, limits.late).map(x => line(x, today, NAME)), lateMore: Math.max(0, late.length - limits.late),
     week: soon.slice(0, limits.week).map(x => line(x, today, NAME)), weekMore: Math.max(0, soon.length - limits.week),

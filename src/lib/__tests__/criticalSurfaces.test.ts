@@ -35,7 +35,9 @@ describe('Needs you and the control room', () => {
     /* One door (docs/DOORS.md): the row opens the problem; its stage is one tap from it. */
     expect(criticalItems(j)).toEqual([expect.objectContaining({
       id: 'c1', kind: 'setup', what: 'Programs cannot be copied over', who: 'Ilapak UK', late: false,
-      critical: { where: 'Pick and place — Programs loaded', impact: 'The line cannot go back to production on the agreed day.', state: 'open · going with: A belt to bypass the robot' },
+      critical: { where: 'Pick and place — Programs loaded', impact: 'The line cannot go back to production on the agreed day.', state: 'open · going with: A belt to bypass the robot',
+        /* the word for a narrow column, the rest the row's branch (FLOW-AUDIT.md, 6) */
+        word: 'open', more: 'going with: A belt to bypass the robot' },
     })]);
   });
 
