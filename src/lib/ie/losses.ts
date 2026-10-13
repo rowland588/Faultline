@@ -59,7 +59,7 @@ import { boneOfStop } from '../sixm';
 import { labourPerHour } from '../cost';
 import { analyse, lineSpeed, type Capacity, type Station } from '../capacity';
 import { shiftWindow } from '../shifts';
-import { todayISO } from '../weeks';
+import { niceDay, todayISO } from '../weeks';
 import type { Tone } from './sample';
 
 const DAY = 86_400_000;
@@ -184,6 +184,24 @@ export function plannedOf(c: Pick<LossCount, 'from' | 'to'> & Partial<Pick<LossC
       : c.breakMin === 0 ? `${windowMin} min ${span}, no planned breaks` : `${windowMin} min ${span}, no breaks set`;
   const words = changed ? `${head} = ${workedOut}; ${whole(planned as number)} planned for the day — ${c.plannedWhy?.trim() || 'no reason given'}` : `${head} = ${workedOut} planned`;
   return { windowMin, breakMin, workedOut, ...(planned !== undefined ? { planned } : {}), changed, words };
+}
+
+/* ------------------------------------------------------- the rate counted */
+
+/** WHAT THE LINE MADE A MINUTE, COUNTED — the good packs made ÷ the planned
+ *  minutes: a shift's count said as a rate, by hand, never a score. Flow
+ *  audit #8: "the gap is typed, not counted" — a 6M job's Numbers offers it
+ *  as a reading in one tap, said as counted, so a line cannot read "on
+ *  target" in its typed number while its own counts say otherwise. Undefined
+ *  until both are in. */
+export interface CountedRate { perMin: number; made: number; plannedMin: number; day: string; words: string }
+
+export function countedRate(c: LossCount | undefined): CountedRate | undefined {
+  const made = c?.made, planned = c?.plannedMin;
+  if (!c || made === undefined || made < 0 || planned === undefined || planned <= 0) return undefined;
+  const perMin = Math.round((made / planned) * 10) / 10;
+  const day = todayISO(new Date(c.from));
+  return { perMin, made, plannedMin: planned, day, words: `${shiftWords(c)}, ${niceDay(day)}: ${packs(made)} good packs in ${whole(planned)} planned min — ${rateWords(perMin)}` };
 }
 
 /* ------------------------------------------------------- the running speed */

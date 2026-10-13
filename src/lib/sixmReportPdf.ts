@@ -31,7 +31,7 @@ import type { Phase, ProblemView } from './problems';
 import { PHASE_WORD } from './problems';
 import { KNOWN_WORD, SIXM, everyWords, holdDue, sixmLabel, toSixM, type Cause, type CauseStatus, type Grade, type SixM } from './sixm';
 import type { FishboneData } from './fishbone';
-import { factsOf, therefore } from './fishbone';
+import { factsOf, lineCapacityOf, therefore } from './fishbone';
 import { gapOf, lineSeries, say } from './measures';
 import { paretoFromLog } from './paretoFromLog';
 import { paretoView } from './paretoView';
@@ -333,12 +333,16 @@ export function sixmReport(o: SixMInput): SixMReport {
   } : undefined;
 
   /* ---------------------------- the constraint --------------------------- */
+  /* Each line's capacity as the job reads it — its own line balance, else
+     the product's Line capacity on the line (lib/fishbone lineCapacityOf),
+     the product named: the same the fishbone's "The constraint" reads. */
   const constraints: SixMReport['constraints'] = lines.flatMap(l => {
-    if (!l.capacity || l.capacity.stations.length < 2) return [];
-    const r = analyse(l.capacity);
+    const lc = lineCapacityOf(l, data.standards, data.programs);
+    if (!lc || lc.cap.stations.length < 2) return [];
+    const r = analyse(lc.cap);
     if (!r.limit || r.line == null) return [];
     return [{
-      line: l.name, unit: r.unit, says: r.sentence,
+      line: lc.product ? `${l.name} · ${lc.product}` : l.name, unit: r.unit, says: r.sentence,
       stations: r.ok.map(x => ({ name: x.station.name.trim() || `Station ${x.index + 1}`, running: x.running, effective: x.effective, limit: x.index === r.limit?.index })),
     }];
   });

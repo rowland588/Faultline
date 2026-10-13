@@ -16,8 +16,10 @@ import { useMemo, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { readNumber } from '../lib/format';
 import { MeasureChart } from '../charts/MeasureChart';
-import { useMeasures } from '../lib/useMeasures';
-import { lineSeries, seriesFor, say, todayISO, type Measure, type Reading } from '../lib/measures';
+import { useMeasures, type MeasuresState } from '../lib/useMeasures';
+import { lineSeries, perMinuteMeasure, seriesFor, say, todayISO, type Measure, type Reading } from '../lib/measures';
+import { useLineCapacity } from '../lib/useLineCapacity';
+import { countedRate } from '../lib/ie/losses';
 import type { PaceLineRow } from '../db';
 import { Icon } from '../ui/Icon';
 import { DateInput } from '../ui/DateInput';
@@ -123,6 +125,49 @@ function Recent({ rows, onRemove, onSave, unit, limit = 8 }: {
   );
 }
 
+/** COUNTED ON THE LINE — A READING IN ONE TAP (flow audit #8: "The gap is
+ *  typed, not counted. Line 7's pace is On target at 44 a minute. Line 7's
+ *  own count says 91 a minute against a plate speed of 100").
+ *
+ *  Each shift counted on one of the job's lines — a Loss count, by hand:
+ *  the good packs made ÷ the planned minutes (lib/ie/losses countedRate) —
+ *  is offered as a reading of the rate the job is judged on (lib/measures
+ *  perMinuteMeasure), said as counted, until it is recorded; recorded, it
+ *  is a reading like any other, on its day, against the target, and its
+ *  note says it was counted. The gap starts from what the line counted, not
+ *  only from what somebody typed. The team's (it records a reading). */
+function CountedOffers({ projectId, lines, state }: { projectId: string; lines: PaceLineRow[]; state: MeasuresState }) {
+  const { counts } = useLineCapacity(projectId, lines);
+  const m = perMinuteMeasure(state.measures);
+  if (!m) return null;
+  const recorded = (lineId: string, day: string, v: number) =>
+    state.readings.some(r => !r.deletedAt && r.lineId === lineId && r.measureId === m.id && r.at === day && Math.abs(r.value - v) < 0.05);
+  const offers = lines.flatMap(l => (counts.get(l.id) ?? [])
+    .flatMap(s => { const c = countedRate(s.facts.losses); return c && !recorded(l.id, c.day, c.perMin) ? [{ l, s, c }] : []; })
+    .slice(0, 3));
+  if (!offers.length) return null;
+  return (
+    <div className="card nm-card nm-counted" aria-label="Counted on the line">
+      <div className="field-label">Counted on the line — a reading in one tap</div>
+      <ul className="nm-list">
+        {offers.map(({ l, s, c }) => (
+          <li key={s.id} className="nm-row nm-offer">
+            <span className="nm-offer-t">{lines.length > 1 && <b className="nm-line">{l.name} · </b>}{c.words}, counted</span>
+            <button type="button" className="btn btn-sm nm-offer-go"
+              onClick={() => void state.addReading(l.id, m.id, c.day, c.perMin, `Counted — loss count, ${c.words}`)}>
+              Record {say(c.perMin, m.unit)}
+            </button>
+          </li>
+        ))}
+      </ul>
+      <p className="sub nm-offer-s">
+        A shift counted by hand is the line’s {m.name.toLowerCase()} as it ran — good packs ÷ planned minutes. Recorded,
+        it is a reading like any other, judged against the target.
+      </p>
+    </div>
+  );
+}
+
 /** Nothing measured yet, said once, with the way out. Shown instead of an empty
  *  chart, because "no measures defined" and "no readings yet" are two different
  *  problems with two different next moves. */
@@ -131,7 +176,7 @@ function NoMeasures({ projectId, agree }: { projectId: string; agree: boolean })
     <div className="pace-empty">
       <p className="sub">
         This project hasn’t said what it measures yet. A measure is a name, a unit and which way is
-        good — packs per minute, waste, OEE, first-pass yield, whatever this business runs on.
+        good — packs per minute, waste, first-pass yield, whatever this business counts.
         {/* What the lines are judged on is agreed, so it is the owner's to set
             (ProjectSetupScreen shows anyone else the measures read-only). */}
         {!agree && ' The project’s owner sets them.'}
@@ -153,6 +198,7 @@ export function LineNumbers({ projectId, line }: { projectId: string; line: Pace
 
   return (
     <>
+      {can.edit && <CountedOffers projectId={projectId} lines={[line]} state={state} />}
       {state.measures.map(m => {
         const series = lineSeries(state.measures, state.periods, state.targets, state.readings, line.id, m.id);
         const rows = seriesFor(state.readings, line.id, m.id);
@@ -227,6 +273,7 @@ export function ProjectNumbers({ projectId, lines }: { projectId: string; lines:
 
   return (
     <>
+      {can.edit && <CountedOffers projectId={projectId} lines={lines} state={state} />}
       {can.edit && <AddFold label="Record a reading" start={newest.length === 0}>
       <div className="card nm-card">
         <div className="field-label">Record a reading</div>

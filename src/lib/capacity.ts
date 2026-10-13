@@ -606,6 +606,15 @@ export function shortSays(r: CapacityResult): string | undefined {
   return r.next ? `${nm} limits at ${fmtN(r.line)} ${r.unit}/min${tgt}` : `${nm} runs ${fmtN(r.line)} ${r.unit}/min — add the rest of the line`;
 }
 
+/** WHAT THE LINE CAN MAKE, in the words a target sits beside — "can make
+ *  100 bags a minute": its limit once stops are counted. A 6M job shows it
+ *  under each line's target, so a target far below what the line can make
+ *  is seen as one (flow audit #8). Undefined until the line can be worked out. */
+export function canMakeWords(r: CapacityResult): string | undefined {
+  if (!r.limit || r.line == null) return undefined;
+  return `can make ${fmtN(r.line)} ${r.unit} a minute`;
+}
+
 /* =========================== what a pack costs ============================
  * Labour's cost per pack: the people on the line × what one costs an hour,
  * over the good packs the line makes an hour (its bottleneck, its rejects

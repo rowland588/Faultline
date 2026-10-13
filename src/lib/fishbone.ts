@@ -32,7 +32,7 @@ import type { Measure, Period, Reading, Target } from './measures';
 import { SIXM, boneOfStop } from './sixm';
 import { weekStart } from './stats';
 import { niceDay, todayISO, daysBetween } from './weeks';
-import { analyse, fmtN } from './capacity';
+import { analyse, fmtN, type Capacity } from './capacity';
 import { headcount } from './standard';
 import type { ToolStudy } from './study';
 import { balance, secs } from './ie/balance';
@@ -200,7 +200,8 @@ export function scopeOf(problem: Case, data: FishboneData): Scope {
   const line = lineOf(problem, data.lines);
   const whole: Scope = { label: `Lost time on ${line?.name ?? 'the line'}`, match: () => true, whole: true };
   if (src?.kind === 'constraint') {
-    const st = line?.capacity?.stations.find(s => s.id === src.station || sameName(s.name, src.station));
+    /* the station on the line's capacity — its own, else its Line capacity (lineCapacityOf) */
+    const st = lineCapacityOf(line, data.standards, data.programs)?.cap.stations.find(s => s.id === src.station || sameName(s.name, src.station));
     const name = st?.name || src.station || src.asset || '';
     const asset = st?.asset?.trim() || st?.name || src.asset || src.station;
     if (!asset) return whole;
@@ -438,6 +439,26 @@ export function lineStandardOf(line: PaceLineRow | undefined, all: Standard[], p
     ?? (strict ? undefined : standards[0]);
 }
 
+/** A line's capacity, and the product's Line capacity it was read from. */
+export interface LineCapacity { cap: Capacity; product?: string; standardId?: string }
+
+/** THE LINE'S CAPACITY, AS A JOB ON IT READS IT (docs/BLUEPRINT.md D3: "Line
+ *  capacity lives per product on the line; a 6M job reads it"): the job
+ *  line's own line balance when it has stations, else the line's Line
+ *  capacity — a product's on this line (its program is on the line, or it
+ *  was worked out on the line's workspace) with stations, the one last
+ *  worked on when there are several. Flow audit #8: "The constraint says
+ *  not counted yet although a capacity for that line is on that job." */
+export function lineCapacityOf(line: PaceLineRow | undefined, all: Standard[], programs: Program[] = []): LineCapacity | undefined {
+  if (!line) return undefined;
+  if (line.capacity?.stations.length) return { cap: line.capacity };
+  const linePrograms = new Set(programs.filter(p => !p.deletedAt && p.lineId === line.id).map(p => p.id));
+  const s = all.filter(x => !x.deletedAt && (x.capacity?.stations.length ?? 0) > 0
+      && ((!!x.programId && linePrograms.has(x.programId)) || (!!line.workspaceId && x.workspaceId === line.workspaceId)))
+    .sort((a, b) => b.updatedAt - a.updatedAt)[0];
+  return s?.capacity ? { cap: s.capacity, product: s.product, standardId: s.id } : undefined;
+}
+
 export function suggestionsFor(problem: Case, data: FishboneData, today = Date.now()): Suggestion[] {
   const out: Suggestion[] = [];
   const line = lineOf(problem, data.lines);
@@ -645,9 +666,12 @@ export function suggestionsFor(problem: Case, data: FishboneData, today = Date.n
   }
 
   /* 5. THE LINE BALANCE. The limiting station, when the head is about it or
-     about the whole line. A person is People; a machine is Machine. */
-  if (line?.capacity?.stations.length) {
-    const r = analyse(line.capacity);
+     about the whole line. A person is People; a machine is Machine. Read
+     from the line's capacity as the job reads it — its own line balance,
+     else the product's Line capacity on the line (lineCapacityOf). */
+  const lineCap = lineCapacityOf(line, data.standards, data.programs);
+  if (lineCap) {
+    const r = analyse(lineCap.cap);
     const st = r.limit?.station;
     const about = !!st && (scope.whole || problem.source?.kind === 'constraint'
       || sameThing(st.asset?.trim() || st.name, scope.asset));

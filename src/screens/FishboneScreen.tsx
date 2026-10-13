@@ -49,7 +49,7 @@ import { getStudy, removeCase, restoreCase, snagsForWorkspace, type PaceLineRow 
 import { currentLosses, lossCardLine, studyHref } from '../lib/studyLinks';
 import { useJobStudies } from '../ui/StudyLinks';
 import { offerUndo } from '../ui/Undo';
-import { drillOfRef, factsOf, lineOf, oldWhysOf, startingWhys } from '../lib/fishbone';
+import { drillOfRef, factsOf, lineCapacityOf, lineOf, oldWhysOf, startingWhys, type FishboneData } from '../lib/fishbone';
 import { closedProblemOn, putOldWhysOnBone } from '../lib/useProblems';
 import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
@@ -143,7 +143,7 @@ interface Door {
   source: NonNullable<Case['source']>;
 }
 
-function useDoors(projectId: string, line: PaceLineRow | undefined): Door[] {
+function useDoors(projectId: string, line: PaceLineRow | undefined, data: FishboneData | null): Door[] {
   const nums = useMeasures(projectId);
   const stops = useLineStops(line?.workspaceId);
   const studies = useJobStudies(projectId);
@@ -189,20 +189,25 @@ function useDoors(projectId: string, line: PaceLineRow | undefined): Door[] {
     } else {
       doors.push({ key: 'pareto', label: 'The top Pareto bar', says: 'Nothing timed on this line in the last four weeks', source: { kind: 'pareto' } });
     }
-    /* THE CONSTRAINT — the station the line balance says limits the line. */
-    const r = line.capacity && line.capacity.stations.length > 0 ? analyse(line.capacity) : undefined;
+    /* THE CONSTRAINT — the station the line's capacity says limits the line:
+       the job line's own line balance, else the product's Line capacity on
+       the line (lib/fishbone lineCapacityOf; flow audit #8 — it said "not
+       counted yet" beside a Line capacity on the same job). */
+    const lc = lineCapacityOf(line, data?.standards ?? [], data?.programs ?? []);
+    const r = lc ? analyse(lc.cap) : undefined;
     const station = r?.limit ? (r.limit.station.name.trim() || `Station ${r.limit.index + 1}`) : undefined;
-    if (station) {
+    if (station && r?.limit) {
+      const asset = r.limit.station.asset?.trim() || station;
       doors.push({ key: 'constraint', label: 'The constraint',
         title: `${station} limits ${line.name}`,
-        says: r?.sentence ?? `${station} is the slowest station`,
-        source: { kind: 'constraint', station } });
+        says: `${lc?.product ? `Line capacity, ${lc.product}: ` : ''}${r.sentence}`,
+        source: { kind: 'constraint', station, asset } });
     } else {
       doors.push({ key: 'constraint', label: 'The constraint', says: 'The line capacity is not counted yet', source: { kind: 'constraint' } });
     }
     doors.push({ key: 'observed', label: 'Something seen', says: 'A problem seen on the line, in your own words', source: { kind: 'observed' } });
     return doors;
-  }, [line, nums.measures, nums.periods, nums.targets, nums.readings, stops.obs, stops.from, stops.to, studies]);
+  }, [line, nums.measures, nums.periods, nums.targets, nums.readings, stops.obs, stops.from, stops.to, studies, data]);
 }
 
 /** "Bagger minor stops on Line 2" — a Pareto bar as the head of the fish. */
@@ -442,7 +447,7 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
     [api.problems, lineId, ppm.lines],
   );
   const view = mine.find(p => p.problem.id === askedProblem) ?? mainProblem(mine);
-  const doors = useDoors(projectId, line);
+  const doors = useDoors(projectId, line, api.data);
   const board = useActions(projectId);
   const wide = useWide();
 
@@ -546,7 +551,15 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
         if (line?.workspaceId) nav(`/w/${line.workspaceId}/snaglist`);
         return;
       }
-      case 'capacity': if (lid) nav(`/project/${projectId}/line/${lid}?view=capacity`); return;
+      case 'capacity': {
+        /* the job line's own line balance, else the product's Line capacity
+           on the line it was read from (lib/fishbone lineCapacityOf) */
+        const pl = ppm.lines.find(l => l.id === lid);
+        const lc = lineCapacityOf(pl, api.data?.standards ?? [], api.data?.programs ?? []);
+        if (lc?.standardId && pl?.workspaceId) nav(`/w/${pl.workspaceId}/standards/${encodeURIComponent(lc.standardId)}?at=balance`);
+        else if (lid) nav(`/project/${projectId}/line/${lid}?view=capacity`);
+        return;
+      }
       case 'standard': nav(`/project/${projectId}/standard${s.ref ? `/${encodeURIComponent(s.ref)}` : ''}`); return;
       case 'study': { const st = s.ref ? await getStudy(s.ref.split('#')[0]) : undefined; if (st) nav(studyHref(st)); return; }
       case 'material': nav(`/project/${projectId}/materials`); return;

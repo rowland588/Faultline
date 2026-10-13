@@ -14,7 +14,7 @@ import type { WalkSnag } from '../walkSnags';
 import { SIXM, blamesAPerson, boneOfStop } from '../sixm';
 import {
   acceptSuggestion, belongsTo, buildView, causeFromOldWhys, causeRefOf, oldWhysOf, countermeasuresOf, drillOfRef, fishboneData,
-  factsOf, fullWeeks, lineStandardOf, logGaps, measureOf, parseCauseRef, phaseOf, scopeOf, scopeMsWeek, startingWhys, suggestionsFor, therefore,
+  factsOf, fullWeeks, lineCapacityOf, lineStandardOf, logGaps, measureOf, parseCauseRef, phaseOf, scopeOf, scopeMsWeek, startingWhys, suggestionsFor, therefore,
   type Countermeasure, type FishboneData,
 } from '../fishbone';
 
@@ -384,6 +384,24 @@ describe('suggestionsFor — the walk, the standard, the balance, materials, pro
     expect(lineStandardOf(l, [a, b], [])?.id).toBe('b');
     expect(lineStandardOf({ id: 'L2' } as PaceLineRow, [a, b], [])?.id).toBe('a');
     expect(lineStandardOf({ id: 'L2' } as PaceLineRow, [a, b], [], true)).toBeUndefined();
+  });
+
+  /* Flow audit #8: "The constraint says not counted yet although a capacity
+     for that line is on that job." The job line's own line balance, else the
+     product's Line capacity on the line — the one last worked on. */
+  it('the line\'s capacity as the job reads it: its own, else a product\'s Line capacity on the line', () => {
+    const cap = (rate: number) => ({ stations: [{ id: 'b', name: 'Bagger', kind: 'machine' as const, unit: 'bags', contains: 1, rate, ratePer: 'min' as const, source: 'plate' as const }] });
+    const onLine = { ...std(1), id: 'on', workspaceId: 'ws2', product: 'Maris Piper 2kg', capacity: cap(100), updatedAt: 5 };
+    const newer = { ...std(1), id: 'new', workspaceId: 'ws2', product: 'Express', capacity: cap(80), updatedAt: 9 };
+    const mapOnly = { ...std(1), id: 'map', workspaceId: 'ws2', updatedAt: 20 };
+    const elsewhere = { ...std(1), id: 'far', workspaceId: 'ws9', capacity: cap(50), updatedAt: 30 };
+    expect(lineCapacityOf(line, [onLine])).toEqual({ cap: line.capacity });
+    expect(lineCapacityOf(other, [onLine, mapOnly, elsewhere])).toMatchObject({ product: 'Maris Piper 2kg', standardId: 'on' });
+    expect(lineCapacityOf(other, [onLine, newer, mapOnly])?.standardId).toBe('new');
+    expect(lineCapacityOf(other, [elsewhere, mapOnly])).toBeUndefined();
+    // and the fishbone reads it: Line 7's constraint is offered on its whole-line problem
+    const s = suggestionsFor(problem({ lineId: 'L2', workspaceId: 'ws2', source: { kind: 'gap' } }), data({ standards: [onLine] }), TODAY).find(x => x.source.kind === 'capacity');
+    expect(s?.text).toMatch(/^Bagger limits the line at 100 bags\/min/);
   });
 
   it('the limiting station → Machine, measured, when the head is about it', () => {

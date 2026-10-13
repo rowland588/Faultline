@@ -60,7 +60,9 @@ import { IMPACT_WORD } from '../lib/impact';
 import { useProject } from '../lib/useProjects';
 import { ProjectTitle } from '../ui/ProjectTitle';
 import { useAllLinePacks, emptyPack, type LinePack } from '../lib/useLinePack';
-import { analyse, shortSays } from '../lib/capacity';
+import { analyse, canMakeWords, shortSays } from '../lib/capacity';
+import { useLineCapacity } from '../lib/useLineCapacity';
+import type { LineCapacity } from '../lib/fishbone';
 import { statusOfAction, treeStanding, withTrackerRows, bindSources, type TreeStanding } from '../lib/treeBind';
 import { LABEL as TREE_WORD, useTreeNodes } from './TreeStatic';
 import type { PaceLineRow } from '../db';
@@ -318,8 +320,11 @@ function NeedsYouPanel({ items, today, door, split, max }: {
 /** LINES AT TARGET — one row a line: the latest reading against the target
  *  in play, and whose line it is. The gap's words are lib/measures gapOf's,
  *  the same the 6M client report leads with; the row opens the line. */
-function LinesPanel({ projectId, lines, standing, can, project }: {
+function LinesPanel({ projectId, lines, standing, can, project, caps }: {
   projectId: string; lines: PaceLineRow[]; standing: Map<string, LineSeries | undefined>; can: Can; project: Project;
+  /** Each line's capacity as the job reads it (lib/useLineCapacity) — said
+   *  under its target, so a target far below what the line can make is seen. */
+  caps: Map<string, LineCapacity>;
 }) {
   const judged = lines.filter(l => standing.get(l.id)?.meeting != null);
   const at = judged.filter(l => standing.get(l.id)?.meeting === true).length;
@@ -352,6 +357,8 @@ function LinesPanel({ projectId, lines, standing, can, project }: {
                       <small>
                         {l.owner ? <>Owner {l.owner}</> : 'No owner yet'}
                         {s?.target != null && <> · {s.period ? `${s.period.name} target` : 'target'} {say(s.target, s.measure.unit)}</>}
+                        {/* WHAT THE LINE CAN MAKE, beside its target (flow audit #8) */}
+                        {(() => { const c = caps.get(l.id); const w = c ? canMakeWords(analyse(c.cap)) : undefined; return w ? <> · <span className="fp-cap">{w}</span></> : null; })()}
                       </small>
                     </span>
                     <span className="fp-row-num">
@@ -420,9 +427,13 @@ function TreeTopPanel({ projectId, tree }: { projectId: string; tree?: TreeStand
 /* Who is against a line, under its chart. A chart with nobody's name on it is
  * a number; with a name on it, it is somebody's number — which is the whole
  * point of putting owners and sponsors on the project in the first place. */
-function LinePeople({ line, projectId }: { line: PaceLineRow; projectId: string }) {
+function LinePeople({ line, projectId, cap }: { line: PaceLineRow; projectId: string;
+  /** What the line can make — its capacity as the job reads it — beside the
+   *  target its chart is drawn against (flow audit #8). */
+  cap?: string }) {
   return (
     <div className="pace-line-people">
+      {cap && <p className="pace-line-cap">Line capacity — {cap}</p>}
       {line.owner && <span className="pace-who"><span className="pace-who-role">Owner</span> {line.owner}</span>}
       {line.sponsor && <span className="pace-who"><span className="pace-who-role">Sponsor</span> {line.sponsor}</span>}
       <button className="pace-who-go" onClick={() => nav(`/project/${projectId}/line/${line.id}`)}>
@@ -436,10 +447,13 @@ function LinePeople({ line, projectId }: { line: PaceLineRow; projectId: string 
  * is sitting in its pack. The whole card is the way in — the owner's pack is
  * where the work actually happens, so getting there should not need aiming at
  * a small link. */
-function LineCard({ line, pack, projectId, series, balance, work, flow, change, shift, sample }: {
+function LineCard({ line, pack, projectId, series, balance, balanceHref, work, flow, change, shift, sample }: {
   line: PaceLineRow; pack: LinePack; projectId: string;
   /** What the line's balance says, once its stations are in; absent until then. */
   balance?: string;
+  /** Where it opens when it is the product's Line capacity on the line, not
+   *  the job line's own (lib/fishbone lineCapacityOf). */
+  balanceHref?: string;
   /** The line standard's work, timed (ui/WorkBalance) — a branch under the
    *  balance, only once somebody has timed it. */
   work?: { text: string; over: boolean; href: string };
@@ -495,7 +509,7 @@ function LineCard({ line, pack, projectId, series, balance, work, flow, change, 
       </button>
       {/* LINE BALANCE, on the card of the line it is about — where each machine
           and person runs at its own speed and the slowest is the limit. */}
-      <button className={'lc-bal' + (balance ? ' is-set' : '')} onClick={() => nav(`/project/${projectId}/line/${line.id}?view=capacity`)}>
+      <button className={'lc-bal' + (balance ? ' is-set' : '')} onClick={() => nav(balanceHref ?? `/project/${projectId}/line/${line.id}?view=capacity`)}>
         <span className="lc-bal-k">Line capacity</span>
         <span className="lc-bal-t">{balance ?? 'Not counted yet — add the machines and people, each at its own speed'}</span>
         <span className="lc-bal-go" aria-hidden>›</span>
@@ -715,6 +729,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   const ax = useActions(projectId);
   const { impacts } = useImpacts(projectId);
   const ppm = usePaceLines(projectId);
+  const lineCaps = useLineCapacity(projectId, ppm.lines);
   const standards = useStandards(projectId);
   const studies = useJobStudies(projectId);
   /* what a loss count reads beside its facts: its line's stops and cost model */
@@ -745,7 +760,16 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
     l.id, lineSeries(nums.measures, nums.periods, nums.targets, nums.readings, l.id),
   ]));
   const headline = nums.measures[0];
-  const limited = ppm.lines.map(l => ({ line: l, says: l.capacity ? shortSays(analyse(l.capacity)) : undefined }));
+  /* EACH LINE'S CAPACITY AS THE JOB READS IT — its own line balance, else
+     the product's Line capacity on the line (lib/fishbone lineCapacityOf;
+     flow audit #8): what the card says and opens, and what the lines'
+     targets are shown beside. */
+  const limited = ppm.lines.map(l => {
+    const c = lineCaps.capacities.get(l.id);
+    const says = c ? shortSays(analyse(c.cap)) : undefined;
+    return { line: l, says: says && c?.product ? `${c.product}: ${says}` : says,
+      ...(c?.standardId && l.workspaceId ? { href: `/w/${l.workspaceId}/standards/${encodeURIComponent(c.standardId)}?at=balance` } : {}) };
+  });
   /* Each line's standard's work, timed — only a standard that is this line's
      own (its product's program on the line, or drawn on its workspace). */
   const workOn = (l: PaceLineRow) => {
@@ -925,7 +949,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
                   not tell how the outcome stood without opening the tree. */}
               {model === 'tree' && treeRows && <TreeTopPanel projectId={projectId} tree={tree} />}
               <NeedsYouPanel items={owed} today={today} split max={5} door={{ label: 'The board', to: `/project/${projectId}/board` }} />
-              <LinesPanel projectId={projectId} lines={ppm.lines} standing={standing} can={can} project={project} />
+              <LinesPanel projectId={projectId} lines={ppm.lines} standing={standing} can={can} project={project} caps={lineCaps.capacities} />
             </div>
             )}
           </>
@@ -954,7 +978,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
               <div className="lc-grid">
                 {ppm.lines.map(l => (
                   <LineCard key={l.id} line={l} pack={packs.get(l.id) ?? emptyPack} projectId={projectId}
-              series={standing.get(l.id)} balance={limited.find(x => x.line.id === l.id)?.says} work={workOn(l)} flow={flowOn(l)} change={changeOn(l)} shift={shiftOn(l)} sample={sampleOn(l)} />
+              series={standing.get(l.id)} balance={limited.find(x => x.line.id === l.id)?.says} balanceHref={limited.find(x => x.line.id === l.id)?.href} work={workOn(l)} flow={flowOn(l)} change={changeOn(l)} shift={shiftOn(l)} sample={sampleOn(l)} />
                 ))}
               </div>
               {can.edit && (
@@ -1065,7 +1089,8 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
                   return series ? (
                     <div key={l.key} className="pace-chart-cell">
                       <MeasureChart series={series} who={{ name: l.name, owner: l.owner, sponsor: l.sponsor, variant: l.variant }} />
-                      <LinePeople line={l} projectId={projectId} />
+                      {/* what the line can make, beside the target the chart is drawn against (flow audit #8) */}
+                      <LinePeople line={l} projectId={projectId} cap={limited.find(y => y.line.id === l.id)?.says} />
                     </div>
                   ) : null;
                 })}

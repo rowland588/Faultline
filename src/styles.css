@@ -2116,6 +2116,10 @@ button.st-pill { cursor: pointer; }
 .nm-row input.nm-when { flex: 0 0 150px; width: 150px; min-width: 0; color: var(--ink-2); }
 .nm-row input.nm-val { flex: 0 0 76px; width: 76px; text-align: left; }
 @media (max-width: 560px) { .nm-row { flex-wrap: wrap; row-gap: 4px; } }
+/* A shift counted on the line, offered as a reading in one tap (flow audit #8). */
+.nm-offer-t { flex: 1 1 260px; min-width: 0; color: var(--ink-2); overflow-wrap: anywhere; }
+.nm-offer-go { flex: 0 0 auto; margin-left: auto; }
+.nm-offer-s { margin: 0; font-size: var(--t-label); }
 
 .chip-note.is-good { color: var(--ok); }
 
@@ -3033,6 +3037,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   margin-top: -6px; padding: 8px 16px 10px;
   background: var(--surface); box-shadow: var(--shadow); border-radius: 0 0 var(--radius) var(--radius);
 }
+.pace-line-cap { flex: 1 0 100%; margin: 0; font-size: var(--t-label); color: var(--ink-2); overflow-wrap: anywhere; }
 .pace-who { font-size: var(--t-label); color: var(--ink); }
 .pace-who-role {
   font-size: var(--t-label); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
