@@ -212,7 +212,7 @@ export function SnagListScreen() {
 
   const renderRow = (r: Row) => (
     <tr key={r.snag.id} className={`is-${r.snag.status} ` + (isOverdue(r.snag) ? 'row-over' : isStaleOpen(r.snag) ? 'row-stale' : '')}>
-      <td className="st-check"><input type="checkbox" checked={sel.has(r.snag.id)} onChange={() => toggleSel(r.snag.id)} /></td>
+      <td className="st-check"><label className="st-tick"><input type="checkbox" aria-label={`Tick: ${r.snag.problem}`} checked={sel.has(r.snag.id)} onChange={() => toggleSel(r.snag.id)} /></label></td>
       <td data-label="Asset">{r.assetId
         ? <button className="linkish" onClick={() => nav(`/w/${workspace.id}/asset/${r.assetId}`)}>{r.assetName}</button>
         : isQuickSnag(r.snag)
