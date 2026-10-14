@@ -356,7 +356,11 @@ there for a day; a line's program with no machine on the job tested on the
 line itself, didn't pass in red on the row and the board; a line on a
 machine's "Programs loaded" with no program record tested the same (14
 October: "I've gone to programs, nothing's changed") — its record made,
-proved, and on Commission's board; Your
+proved, and on Commission's board; a program's journey (14 October:
+"we decide to run a retest ... successful at 50 ... a retest at 55 ... show
+the journey") — tested again at 55 with its speed, minutes, packs and
+rejects, a re-test following the pass, both on the row with the pass
+standing, on Commission's sheet and on the commissioning report; Your
 factory's row and its paper; the line's programs report; Line capacity
 offering the line's machines; and the phone. `list-paper.mjs` is the audit's
 bar 3 (`docs/AUDIT.md`; Rowland, 13 October: "I'm always asking for

@@ -22,7 +22,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { Program } from '../lib/programs';
 import { isProved, provingTitle } from '../lib/programs';
 import type { Outcome, Test } from '../lib/testing';
-import { provingTestOf, testCell } from '../lib/commission';
+import { provingTestOf } from '../lib/commission';
+import { programJourney } from '../lib/programJourney';
 import type { useTesting } from '../lib/useTesting';
 import type { Can } from '../lib/access';
 import { niceDay, todayISO } from '../lib/weeks';
@@ -54,28 +55,36 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
 }) {
   const today = todayISO();
   const test = provingTestOf(p, tt.tests);
+  /* EVERY ATTEMPT, first to last (lib/programJourney) — the journey. */
+  const journey = p.id ? programJourney(p, tt.tests, today) : { attempts: [] };
   const [open, setOpen] = useState(openAtStart && can.edit);
   const [how, setHow] = useState<How | null>(null);
   const [seen, setSeen] = useState('');
   const [day, setDay] = useState(today);
+  /* What this attempt aims at and what it did — typed as words, read as
+     numbers on Save, so a box never turns 12 into 102 (CLAUDE.md). */
+  const [f, setF] = useState<Nums>(EMPTY);
   const busy = useRef(false);
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => { if (openAtStart && box.current) box.current.scrollIntoView({ block: 'center' }); }, [openAtStart]);
 
   const ran = test && test.outcome !== 'planned';
-  /* Its test gone wrong is tested again: a re-test, as Commission plans one. */
-  const again = !!test && (test.outcome === 'failed' || test.outcome === 'notRun');
   const start = () => {
     setHow(null); setSeen('');
     setDay(test && !ran && test.plannedFor && test.plannedFor <= today ? test.plannedFor : today);
+    /* The aim carries from the attempt before — changed here when this one
+       aims higher (Rowland: "it can change between attempts"). */
+    const a = test?.runAgreed, d = test && !ran ? test.run : undefined;
+    setF({ rate: str(a?.rate), mins: str(a?.minutes), speed: str(d?.speed), ran: str(d?.minutes), packs: str(d?.packs), rejects: str(d?.rejects) });
     setOpen(true);
   };
 
-  /* The test to answer: this one still to run, a re-test of one gone wrong,
-     or a new proving test carrying what the program says. */
+  /* The test to answer: this one still to run; after one that ran — passed
+     or not — the next attempt, following it; or a first proving test. */
   const target = async (): Promise<{ id: string; made: boolean }> => {
     if (test && !ran) return { id: test.id, made: false };
-    if (test && again) return { id: await tt.planNextFrom(test), made: true };
+    /* each attempt keeps the program's name; its number in the journey says which */
+    if (test && ran) return { id: await tt.planNextFrom(test, undefined, provingTitle(p)), made: true };
     const programId = p.id || await record?.();
     if (!programId) return { id: '', made: false };
     const [id] = await tt.planTests([{ title: provingTitle(p), ...(assetId ? { assetId } : {}),
@@ -91,7 +100,9 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
     /* Undo puts the test back first — so the program it proved is put
        back with it (followTest) — then takes away one made here. */
     offerUndo(said, async () => {
-      await tt.patchTest(id, before ? { outcome: before.outcome, ranOn: before.ranOn, result: before.result, plannedFor: before.plannedFor } : { outcome: 'planned', ranOn: undefined });
+      await tt.patchTest(id, before
+        ? { outcome: before.outcome, ranOn: before.ranOn, result: before.result, plannedFor: before.plannedFor, runAgreed: before.runAgreed, run: before.run }
+        : { outcome: 'planned', ranOn: undefined });
       if (made) await tt.removeTest(id);
     });
   };
@@ -101,34 +112,74 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
     busy.current = true;
     void answer(patch, said).finally(() => { busy.current = false; });
   };
+  const aimOf = (): Test['runAgreed'] => tidy({ rate: n(f.rate), minutes: n(f.mins) });
+  const dayOf = (): Test['run'] => tidy({ speed: n(f.speed), minutes: n(f.ran), packs: n(f.packs), rejects: n(f.rejects) });
   const save = () => {
     if (!how || !day) return;
     const words = seen.trim();
-    write(cur => ({ outcome: how, ranOn: day, plannedFor: cur.plannedFor ?? day, ...(words ? { result: words } : {}) }),
-      `${p.what} — ${HOW.find(h => h.is === how)?.word.toLowerCase()} ${niceDay(day)}`);
+    const aim = aimOf(), did = dayOf();
+    write(cur => ({ outcome: how, ranOn: day, plannedFor: cur.plannedFor ?? day, result: words || undefined, runAgreed: aim, run: did }),
+      `${p.what} — ${HOW.find(h => h.is === how)?.word.toLowerCase()} ${niceDay(day)}${did?.speed != null ? ` at ${did.speed} ppm` : ''}`);
   };
   const book = () => {
     if (!day) return;
-    write(() => ({ outcome: 'planned', plannedFor: day }), `${p.what} — test booked ${niceDay(day)}`);
+    const aim = aimOf();
+    write(() => ({ outcome: 'planned', plannedFor: day, runAgreed: aim }), `${p.what} — test booked ${niceDay(day)}${aim?.rate != null ? ` at ${aim.rate} ppm` : ''}`);
   };
 
-  const cell = test && testCell(test, today);
-  const label = again ? 'Test it again' : test && !ran ? 'Say how it went' : 'Test it';
+  const label = test && ran ? 'Go again' : test ? 'Say how it went' : 'Test it';
+  const box2 = (k: keyof Nums, word: string, unit: string) => (
+    <label className="ptx-n">
+      <span className="field-label">{word}</span>
+      <span className="ptx-n-in">
+        <input className="text-input" inputMode="decimal" value={f[k]} aria-label={`${word} — ${p.what}`} onChange={e => setF({ ...f, [k]: e.target.value })} />
+        <span className="sub">{unit}</span>
+      </span>
+    </label>
+  );
   return (
     <div className="ptx" ref={box}>
-      <span className="ptx-now">
-        {cell
-          ? <>Its test: <span className={'cg-pstate is-' + cell.tone}>{cell.word}</span>
-              {test.result?.trim() && ran && <span className="sub"> — {test.result.trim()}</span>}
-              {' '}<button type="button" className="cw-link" onClick={() => openRecord(projectId, test.id)}>Open the test</button></>
-          : <span className="sub">{isProved(p) ? 'Proved by hand — no test behind it' : 'Not tested yet'}</span>}
-        {can.edit && !open && !(isProved(p) && test?.outcome === 'passed') && (
-          <button type="button" className={'btn btn-sm ptx-go' + (isProved(p) ? ' btn-ghost' : '')} onClick={start}>{label}</button>
-        )}
-      </span>
+      {/* THE JOURNEY — every attempt, first to last, each opening its test. */}
+      {journey.attempts.length > 0 ? (
+        <div className="ptx-j">
+          <span className="ptx-j-h">
+            <b>Its tests</b> <span className="sub">{journey.says}</span>
+            {journey.best && <span className="ptx-best">{journey.best}</span>}
+          </span>
+          <ol className="ptx-ladder" aria-label={`The tests of ${p.what}`}>
+            {journey.attempts.map(a => (
+              <li key={a.test.id} className={'is-' + a.result.tone}>
+                <button type="button" className="ptx-step" onClick={() => openRecord(projectId, a.test.id)}>
+                  <b>Test {a.n}</b>
+                  <span className="ptx-when">{a.test.ranOn ? a.when : ''}</span>
+                  {a.aim && <span className="sub">{a.aim}</span>}
+                  {a.did && <span>{a.did}</span>}
+                  <span className={'cg-pstate is-' + a.result.tone}>{a.result.word}</span>
+                  {a.seen && <span className="ptx-seen">{a.seen}</span>}
+                </button>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : (
+        <span className="sub ptx-none">{isProved(p) ? 'Proved by hand — no test behind it' : 'Not tested yet'}</span>
+      )}
+      {can.edit && !open && (
+        <button type="button" className="btn btn-sm ptx-go" onClick={start}>{label}</button>
+      )}
       {open && (
         <div className="ptx-panel" role="group" aria-label={`Test ${p.what}`}>
-          <span className="ptx-h">How did {p.what} go?</span>
+          <span className="ptx-h">{test && ran ? `Test ${journey.attempts.length + 1} of ${p.what}` : `How did ${p.what} go?`}</span>
+          <span className="ptx-nums">
+            {box2('rate', 'Aiming for', 'ppm')}
+            {box2('mins', 'Aiming to run', 'min')}
+          </span>
+          <span className="ptx-nums">
+            {box2('speed', 'Set at', 'ppm')}
+            {box2('ran', 'Ran for', 'min')}
+            {box2('packs', 'Packs', 'made')}
+            {box2('rejects', 'Rejects', 'packs')}
+          </span>
           <span className="spp-pick" role="group" aria-label={`How ${p.what} went`}>
             {HOW.map(h => (
               <button key={h.is} type="button" className={'spp-opt is-' + h.tone + (how === h.is ? ' is-on' : '')} aria-pressed={how === h.is}
@@ -138,7 +189,7 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
           <label className="ptx-f">
             <span className="field-label">What was seen</span>
             <textarea className="text-input" rows={2} maxLength={400} value={seen} aria-label={`What was seen when ${p.what} ran`}
-              placeholder={p.runs ? `e.g. ran ${p.runs}, 500 packs, seals checked` : 'What was run and what was seen'}
+              placeholder={p.runs ? `e.g. ran ${p.runs}, seals checked, film tracked` : 'What was run and what was seen'}
               onChange={e => setSeen(e.target.value)} />
           </label>
           <label className="ptx-f ptx-day">
@@ -153,9 +204,23 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
             )}
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>Cancel</button>
           </span>
-          {how === 'passed' && <small className="sub">Passing it proves {p.what} on that day — on the line, the control room and every paper.</small>}
+          {how === 'passed' && <small className="sub">A pass proves {p.what} on that day. A later test at a higher speed that does not pass leaves this pass standing.</small>}
         </div>
       )}
     </div>
   );
+}
+
+interface Nums { rate: string; mins: string; speed: string; ran: string; packs: string; rejects: string }
+const EMPTY: Nums = { rate: '', mins: '', speed: '', ran: '', packs: '', rejects: '' };
+const str = (v?: number) => (v == null ? '' : String(v));
+/** A typed number, or nothing — "50", "50.5", "1,480". */
+const n = (s: string): number | undefined => {
+  const v = Number(s.replace(/,/g, '').trim());
+  return s.trim() && Number.isFinite(v) && v >= 0 ? v : undefined;
+};
+/** Only the numbers given; nothing at all when none were. */
+function tidy<T extends Record<string, number | undefined>>(o: T): T | undefined {
+  const kept = Object.fromEntries(Object.entries(o).filter(([, v]) => v != null));
+  return Object.keys(kept).length ? kept as T : undefined;
 }

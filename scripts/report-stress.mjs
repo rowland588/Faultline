@@ -341,10 +341,13 @@ for (const size of SIZES) {
       from = 'commissioning: a machine'; add('commissioning', m.name, m.verdict.word, m.testsSaid, m.next ? `Next: ${m.next}` : '');
       from = 'commissioning: a test'; for (const t of m.tests) add('commissioning', t.title, t.word, t.passesIf ? `Had to show: ${t.passesIf}` : '', t.said ? `Seen: ${t.said}` : '');
       from = 'commissioning: still open'; add('commissioning', ...m.open);
+      /* each program's journey — every test of it, the speed and the time (lib/programJourney) */
+      from = 'commissioning: a program\'s journey'; for (const j of m.journeys ?? []) add('commissioning', j.what, j.best, ...j.steps.map(st => st.text));
       from = 'commissioning card: a machine'; add('commissioningCards', m.name, m.verdict.word, m.next ? `Next: ${m.next}` : '');
       from = 'commissioning card: a test'; for (const t of m.tests) add('commissioningCards', t.title, t.word);
       from = 'commissioning card: still open'; add('commissioningCards', ...m.open);
     }
+    from = 'commissioning: the line itself\'s journeys'; for (const j of cm.lineJourneys ?? []) add('commissioning', j.what, j.best, ...j.steps.map(st => st.text));
     from = 'commissioning: why'; for (const l of cm.why) add('commissioning', l.text, l.meta);
     from = 'commissioning: doing'; for (const l of cm.doing) add('commissioning', l.text, l.meta);
     from = 'commissioning: booked next'; for (const l of cm.booked) add('commissioning', l.text);

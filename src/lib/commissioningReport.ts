@@ -30,6 +30,7 @@ import { latestAttempts, live, plannedEnd, type Asset, type Test } from './testi
 import { programsCell, programsWords } from './commission';
 import type { Program } from './programs';
 import { niceDay } from './weeks';
+import { programJourney } from './programJourney';
 
 /** A machine's word, in the house's colours: g ready or handed over, r
  *  behind, a passed but with something still open, w under way, n not
@@ -55,7 +56,13 @@ export interface CmMachine {
   open: string[];
   /** "Seal integrity — booked Thu 16 Oct": its next test with a day ahead. */
   next?: string;
+  /** EACH PROGRAM'S JOURNEY — every test of it, first to last, with the speed
+   *  and the time it ran (lib/programJourney; Rowland, 14 October: "show the
+   *  journey of our commissioning"). Only programs tested at least once. */
+  journeys: CmJourney[];
 }
+
+export interface CmJourney { what: string; says: string; best?: string; steps: { text: string; tone: CmTone }[] }
 
 export interface CmLine { text: string; meta?: string; tone: CmTone }
 
@@ -87,6 +94,8 @@ export interface CommissioningReport {
   linePrograms: { line: string; says: string; open: string[] }[];
   /** The performance runs, a row a product (the client report's). */
   runs: RunRow[];
+  /** The journeys of programs on the line itself — on no machine of the job. */
+  lineJourneys: CmJourney[];
 }
 
 export interface CommissioningInput {
@@ -157,10 +166,12 @@ export function commissioningReport(x: CommissioningInput): CommissioningReport 
         counts.booked && `${counts.booked} booked`, counts.noDay && `${counts.noDay} with no day`].filter(Boolean).join(' · ')
       : 'no tests planned';
     const m = { at: hm.at, counts, open: hm.open, programsWrong: pc?.wrong ?? 0 };
+    const journeys = a ? journeysOf(x.programs.filter(p => (p.assetId ?? '') === a.id), x.tests, today) : [];
     return {
       name: hm.name, at: hm.at, verdict: verdictOf(m), counts, testsSaid, tests: hm.tests,
       ...(pc ? { programs: programsWords(pc) } : {}), programsWrong: pc?.wrong ?? 0, open: hm.open,
       ...(next ? { next: `${next.title} — ${whenBooked(next, today)}` } : {}),
+      journeys,
     };
   });
 
@@ -203,5 +214,14 @@ export function commissioningReport(x: CommissioningInput): CommissioningReport 
     verdict: c.onTarget, says: commission?.says ?? 'No tests planned yet', dates, machinesSaid,
     ...(c.commentary ? { commentary: c.commentary } : {}),
     machines, why, doing, booked, line: h.line, linePrograms: h.linePrograms, runs: commission?.runs ?? [],
+    lineJourneys: journeysOf(x.programs.filter(p => !p.assetId || !assets.some(a => a.id === p.assetId)), x.tests, today),
   };
+}
+
+/** Each program's journey, those tested at least once (lib/programJourney). */
+function journeysOf(programs: Program[], tests: Test[], today: string): CmJourney[] {
+  return programs.filter(p => !p.deletedAt).flatMap(p => {
+    const j = programJourney(p, tests, today);
+    return j.attempts.length ? [{ what: p.what, says: j.says ?? '', ...(j.best ? { best: j.best } : {}), steps: j.attempts.map(s => ({ text: s.text, tone: s.result.tone })) }] : [];
+  });
 }
