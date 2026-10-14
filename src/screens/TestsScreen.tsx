@@ -155,6 +155,13 @@ export function TestsScreen({ projectId }: { projectId: string }) {
         {/* A CARD FOR EVERY TEST ON THE BOARD (docs/AUDIT.md, bar 3) — each
             the card its record prints, one document (lib/testCards) */}
         <div className="pace-head-actions">
+          {/* THE COMMISSIONING REPORT AND CARDS (Rowland, 14 October: "a
+              commissioning report, commissioning cards ... I can present in
+              the meeting or send") — where this gate has got to, machine by
+              machine, on the report screen with its cards */}
+          <button type="button" className="btn btn-primary" onClick={() => nav(`/project/${projectId}/report?doc=commissioning`)}
+            aria-label="Commissioning report — where commissioning has got to, machine by machine, and a card a machine">
+            <Icon name="document" size="1.05em" />Commissioning report</button>
           <button type="button" className="btn" disabled={cardsBusy || proofs.length === 0} onClick={() => void allCards()}
             aria-label="Test cards — a card for every test on the board (PDF)"><Icon name="document" size="1.05em" />{cardsBusy ? 'Making…' : 'Test cards'}</button>
         </div>

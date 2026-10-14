@@ -741,6 +741,25 @@ is still wired.
   A test's page and its drawer name a line's program too
   (`lib/useJobPrograms`). The board and Needs you count a line's program once
   this job has a test for it — a test proving one was on no square before.
-  Accepted by `machines-programs.mjs` 7e–7g. The commissioning report and
-  cards follow.
+  Accepted by `machines-programs.mjs` 7e–7g.
+- **The commissioning report and cards** (Rowland, 14 October: "make sure we
+  have a fully functional commissioning report ... where we got to, the
+  problems ... a commissioning report, commissioning cards, something that
+  way I can present in the meeting or send"). Placed (§8): *Jobs*, the stage
+  gate's papers; no new record — read off the full report's reading of
+  Commission, the handover reading's machines and the Commission board's
+  programs (`lib/commissioningReport`), so it cannot disagree with them.
+  Where we are (the verdict, the gate's count, the handover dates, every
+  machine in a row with its word — ready, under way, behind, not started —
+  and its next test); why we are not where we should be (each test that did
+  not pass or run with what was seen, programs gone wrong, critical issues);
+  what we are doing about it (the fixes, the problems taken for the job, the
+  tests booked next); the runs; each machine whole. The cards: a page a
+  machine for the meeting — its word in its colour, tiles for its tests,
+  programs and what is open, its tests, its next test (`lib/commissioningPdf`).
+  Shows on Commission's header (*Commissioning report*), the report screen's
+  own chip with *Cards — a page a machine*, and the job's Reports sheet
+  (with *Test cards*, which were only on Commission). Accepted by
+  `commissioning-report.mjs`; the paper by `report-stress.mjs` at three
+  sizes.
 - **Next:** Stage 3 — the line is the hub (its products, readiness, health).

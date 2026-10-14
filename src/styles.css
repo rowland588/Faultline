@@ -12724,3 +12724,13 @@ button.vc-row-in:focus-visible { outline: 2px solid var(--brand); outline-offset
 .pk-test { font-size: var(--t-detail); }
 .pk-show { margin: 6px 0 0; }
 .pk-go { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; position: sticky; bottom: 0; background: var(--surface); padding: 8px 0 2px; }
+
+/* THE COMMISSIONING REPORT in words (screens/ClientReportScreen): a machine a
+   line, its word in its colour, with the words */
+.cm-toc .cm-m { display: block; padding: 3px 0; }
+.cm-word { font-weight: 700; }
+.cm-word.is-g { color: var(--st-g); }
+.cm-word.is-r { color: var(--st-r); }
+.cm-word.is-a { color: var(--st-a); }
+.cm-word.is-w { color: var(--st-w); }
+.cm-word.is-n { color: var(--muted); }

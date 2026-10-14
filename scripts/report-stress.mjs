@@ -197,7 +197,7 @@ for (const size of SIZES) {
     const { getWorkspace } = await import('/src/db/workspaces.ts');
     const studyContext = { observations: (await Promise.all(lossWs.map(id => listObservations(id)))).flat(), workspaces: (await Promise.all(lossWs.map(id => getWorkspace(id)))).filter(Boolean) };
     const r = clientReport({ project, projects: [project], assets, tests, items, materials, programs, standards: [], walk: [], studies, studyContext, today });
-    const out = { client: [], card: [], fix: [], day: [], status: [], programs: [], handover: [], labels: [] };
+    const out = { client: [], card: [], fix: [], day: [], status: [], programs: [], handover: [], labels: [], commissioning: [], commissioningCards: [] };
     const add = (k, ...xs) => { for (const x of xs) { const v = typeof x === 'number' ? String(x) : x; if (v && san(v)) out[k].push([v, san(v), from]); } };
     let from = '';
     /* ARE WE ON TARGET? leads the first page, the word and its reason
@@ -328,6 +328,26 @@ for (const size of SIZES) {
       from = 'handover: still open'; add('handover', ...m.open);
     }
     from = 'handover: open on the line'; add('handover', ...ho.line);
+    /* THE COMMISSIONING REPORT AND CARDS (lib/commissioningReport, 14
+       October) — every machine with its word and its tests in a line, each
+       test with its word and what was seen, why and what we are doing, the
+       tests booked next, what is still open; on the cards, a machine a page:
+       its name, its word, its tests and what is open. */
+    const { commissioningReport } = await import('/src/lib/commissioningReport.ts');
+    const { commissionPrograms } = await import('/src/lib/commissionPrograms.ts');
+    const cm = commissioningReport({ client: r, handover: ho, assets, tests, programs: commissionPrograms(programs, [], assets, tests), today });
+    from = 'commissioning: top'; add('commissioning', cm.name, 'Scan for it now'); add('commissioningCards', cm.name.toUpperCase());
+    for (const m of cm.machines) {
+      from = 'commissioning: a machine'; add('commissioning', m.name, m.verdict.word, m.testsSaid, m.next ? `Next: ${m.next}` : '');
+      from = 'commissioning: a test'; for (const t of m.tests) add('commissioning', t.title, t.word, t.passesIf ? `Had to show: ${t.passesIf}` : '', t.said ? `Seen: ${t.said}` : '');
+      from = 'commissioning: still open'; add('commissioning', ...m.open);
+      from = 'commissioning card: a machine'; add('commissioningCards', m.name, m.verdict.word, m.next ? `Next: ${m.next}` : '');
+      from = 'commissioning card: a test'; for (const t of m.tests) add('commissioningCards', t.title, t.word);
+      from = 'commissioning card: still open'; add('commissioningCards', ...m.open);
+    }
+    from = 'commissioning: why'; for (const l of cm.why) add('commissioning', l.text, l.meta);
+    from = 'commissioning: doing'; for (const l of cm.doing) add('commissioning', l.text, l.meta);
+    from = 'commissioning: booked next'; for (const l of cm.booked) add('commissioning', l.text);
     const cardOf = (id, k) => {
       const t = tests.find(x => x.id === id); if (!t) return;
       const c = trialCard(t, tests, items, assets, studies);
@@ -369,6 +389,9 @@ for (const size of SIZES) {
     ['programs', `#/project/${job.projectId}/report`, [['Programs report'], ['PDF']], must.programs],
     /* The handover, as it really went (9 October). */
     ['handover', `#/project/${job.projectId}/report`, [['Handover report'], ['PDF']], must.handover],
+    /* The commissioning report and its cards (14 October). */
+    ['commissioning', `#/project/${job.projectId}/report`, [['Commissioning'], ['PDF']], must.commissioning],
+    ['commissioning cards', `#/project/${job.projectId}/report`, [['Commissioning'], ['Commissioning cards — a page a machine (PDF)']], must.commissioningCards],
     /* The machine labels, from the Reports index's own door (ui/ReportsSheet). */
     ...(must.labels.length ? [['machine labels', `#/project/${job.projectId}`, [['Reports'], [/^Machine labels/]], must.labels]] : []),
     /* The card is the record's own page now (screens/TestScreen); its button
