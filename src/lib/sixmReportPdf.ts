@@ -632,7 +632,7 @@ export async function drawSixMReport(doc: jsPDF, report: SixMReport): Promise<vo
     font(doc, 7.5, 'normal', MUTED);
     const num = `${i} of ${pages}`;
     const room = pw - 2 * M - doc.getTextWidth(num) - 16;
-    doc.text(fitLine(doc, r.name, `${r.scope ? ` — ${r.scope}` : ''}  ·  client report  ·  ${r.printed}`, room), M, ph - 18);
+    doc.text(fitLine(doc, r.name, r.scope ?? '', `  ·  client report  ·  ${r.printed}`, room), M, ph - 18);
     doc.text(num, pw - M, ph - 18, { align: 'right' });
   }
 }
@@ -748,7 +748,7 @@ export async function drawSixMStatus(doc: jsPDF, report: SixMReport): Promise<vo
     const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
     font(doc, 7.5, 'normal', MUTED);
     const num = `${i} of ${pages}`;
-    doc.text(fitLine(doc, s.name, `${s.scope ? ` — ${s.scope}` : ''}  ·  status report  ·  ${s.printed}  ·  every detail is in the full report`, pw - 2 * M - doc.getTextWidth(num) - 16), M, ph - 18);
+    doc.text(fitLine(doc, s.name, s.scope ?? '', `  ·  status report  ·  ${s.printed}  ·  every detail is in the full report`, pw - 2 * M - doc.getTextWidth(num) - 16), M, ph - 18);
     doc.text(num, pw - M, ph - 18, { align: 'right' });
   }
 }
@@ -756,12 +756,25 @@ export async function drawSixMStatus(doc: jsPDF, report: SixMReport): Promise<vo
 /** One line that fits — for the running footer only; the full name is on
  *  page 1. It is the job's name that gives way, never the line, the words
  *  "client report" or the day it was printed (a long name used to push the
- *  date off a line deck's footer: "… · client report · 4…"). */
-function fitLine(doc: jsPDF, name: string, rest: string, w: number): string {
-  if (doc.getTextWidth(name + rest) <= w) return name + rest;
+ *  date off a line deck's footer: "… · client report · 4…"). Only a line
+ *  whose own name will not fit beside the words — one long code, from the
+ *  random seeds — is cut too, at its end, so nothing runs into the page
+ *  number. */
+function fitLine(doc: jsPDF, name: string, scope: string, tail: string, w: number): string {
+  const said = (n: string, sc: string) => `${n}${sc ? ` — ${sc}` : ''}${tail}`;
+  if (doc.getTextWidth(said(name, scope)) <= w) return said(name, scope);
   const words = name.split(' ');
-  while (words.length > 1 && doc.getTextWidth(words.join(' ') + '…' + rest) > w) words.pop();
-  return words.join(' ') + '…' + rest;
+  while (words.length > 1 && doc.getTextWidth(said(words.join(' ') + '…', scope)) > w) words.pop();
+  const short = words.join(' ') + (words.length < name.split(' ').length ? '…' : '');
+  if (doc.getTextWidth(said(short, scope)) <= w) return said(short, scope);
+  let sc = scope;
+  while (sc && doc.getTextWidth(said(short, sc + '…')) > w) sc = sc.slice(0, -1);
+  const t = said(short, sc ? sc.trimEnd() + '…' : '');
+  if (doc.getTextWidth(t) <= w) return t;
+  /* the words alone are longer than the line: cut at the end */
+  let cut = t;
+  while (cut.length > 1 && doc.getTextWidth(cut + '…') > w) cut = cut.slice(0, -1);
+  return cut.trimEnd() + '…';
 }
 
 const rule = (f: Frame, y: number) => { f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.5); f.doc.line(f.x, y, f.x + f.w, y); };

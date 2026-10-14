@@ -117,12 +117,15 @@ export async function drawClientReport(doc: jsPDF, report: ClientReport, extras:
 }
 
 /** One line that fits, shortened at a word with "…" — for a running footer
- *  only, where the full name is on page 1. */
+ *  only, where the full name is on page 1. A first word longer than the
+ *  line (one long code) is cut within it, never run into the page number. */
 function fitLine(doc: jsPDF, t: string, w: number): string {
   if (doc.getTextWidth(t) <= w) return t;
   const words = t.split(' ');
   while (words.length > 1 && doc.getTextWidth(words.join(' ') + '…') > w) words.pop();
-  return words.join(' ') + '…';
+  let cut = words.join(' ');
+  while (cut.length > 1 && doc.getTextWidth(cut + '…') > w) cut = cut.slice(0, -1);
+  return cut.trimEnd() + '…';
 }
 
 const pillPath = (doc: jsPDF, x: number, py: number, w: number, h: number, tone: GateTone, text: string) => {
