@@ -707,4 +707,19 @@ is still wired.
   a rate that reads like a time asked about with the time one tap away.
   `docs/CAPACITY.md` §1 holds the science and its sources; the lifting
   check is §6 10a. Accepted by `line-capacity.mjs` 8–8p.
+- **Line capacity's V, redrawn** (Rowland, 14 October: "improve the graphics
+  on the line capacity ... sometimes you can't read what the bottom line
+  says ... it looks very bland, very old ... more engaging and colourful").
+  Placed (§8): *On the line*, Line capacity; record `standards.capacity`
+  (nothing new stored). The V is a column a station — its share of the
+  bottleneck once its stops count, what more it does while running hatched
+  on top — every name in full under its column, scrolling with the scale
+  still past what the box holds, opened on the bottleneck; a column opens
+  its station. Coloured by how close a station runs to the bottleneck —
+  navy at it, the brand's blue lighter with room to spare (Rowland's third
+  colour exception, `CLAUDE.md`), amber only under the V; the phone's bars,
+  the capacity sheet's share column and the paper the same. On paper the V
+  is drawn too — a bar a station under the V's sentence, its scale carried
+  over a page. Accepted by `line-capacity.mjs` 2–2d; the paper by
+  `report-stress.mjs`.
 - **Next:** Stage 3 — the line is the hub (its products, readiness, health).

@@ -401,7 +401,8 @@ person's standard time from the time study used with a tap, and the
 bottleneck walked against the sums; then a person as the floor says them
 (Rowland, 13 October: "8 units in a tray ... a tray every 8 seconds";
 "70 a minute ... 10 to a basket ... one basket goes to a human every X") —
-asked how many units make one tray, what reaches them worked out before
+the V a column a station, each named in full under it, the bottleneck
+navy, a column opening its station; asked how many units make one tray, what reaches them worked out before
 they have a speed, "a tray every 8 seconds" said back as a minute and in
 the line's unit, whether they keep up in seconds, Make it 2 people, a
 person's time carrying the ILO's 9% rest (14 October: "bring in science
@@ -648,7 +649,15 @@ what by when?
    the letters VA · NE · NV beside the colour, and only on that grid and its
    paper. And his second (12 October): a problem's PRIORITY is RAG —
    Critical red, High amber, Low green — always with its word, only on the
-   priority tag, its counts and its paper (Problems, `lib/snagsReport`).** The PDFs use the same
+   priority tag, its counts and its paper (Problems, `lib/snagsReport`).
+   And his third (14 October, "it looks very bland, very old ... more
+   engaging and colourful"): Line capacity's V is coloured by how close a
+   station runs to the bottleneck — the bottleneck in the house's navy, the
+   rest in the brand's blue, lighter the more they have to spare — on its
+   columns, the phone's bars, the capacity sheet and its paper
+   (`lib/capacity` `shareColours`); amber still only under the agreed V, red
+   only a target the bottleneck cannot meet, and every figure in words
+   beside its colour.** The PDFs use the same
    five values. Set 4 October: a step with a day booked is still ahead
    (indigo); a step with no day is not started (grey); a gate where nothing
    has started is grey and says "not started"; a stage not on a machine's

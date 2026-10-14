@@ -316,6 +316,11 @@ already agreed before it is run; its words follow this time model (§5).
   the owner's margin; the **bottleneck walk** on the phone, its tally against
   the calculated bottleneck; each buffer's accumulation against the minor
   stops at its neighbour.
+- **The V, drawn:** a column a station, as tall as its share of the
+  bottleneck once its stops count, the rest while running hatched on top;
+  coloured by how close it runs to the bottleneck (navy at it, blue lighter
+  with room to spare), amber under the agreed V; the same as bars on a
+  phone and on paper.
 - **SMED:** the changeover from the last good piece to the first good piece
   at full rate; its minutes × how many a shift come off each shift in Line
   capacity's capacity a shift.

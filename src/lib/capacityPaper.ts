@@ -62,6 +62,9 @@ export interface CapacityPaperRow {
   /** The target needs more than it can do. */
   over: boolean;
   limit: boolean;
+  /** Its share of the bottleneck as a number — once its own stops count,
+   *  while running, and what the agreed V asks — for the V drawn on paper. */
+  pct?: number; runningPct?: number; guide?: number;
 }
 
 export interface CapacityPaperShift {
@@ -84,6 +87,8 @@ export interface CapacityPaper {
   sentence: string;
   /** "60 bags a minute", when a target is set. */
   target?: string;
+  /** The target as a share of the bottleneck, for the V drawn on paper. */
+  targetPct?: number;
   /** Every station counted, in flow order. */
   rows: CapacityPaperRow[];
   /** The V either side of the bottleneck (lib/capacity vCurve) — with two or more counted. */
@@ -190,6 +195,7 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
       ...(target != null ? { needs: need != null ? `${fmtN(Math.round(need))}%` : '—' } : {}),
       over: need != null && need > 100 + 1e-9,
       limit: isLimit,
+      ...(p ? { pct: p.pct, runningPct: p.runningPct, ...(p.guide != null ? { guide: p.guide } : {}) } : {}),
     };
   });
 
@@ -243,6 +249,7 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
     short: (r.gap ?? 0) > 0 && !!r.next,
     sentence: r.sentence,
     ...(target != null ? { target: `${fmtN(target)} ${r.unit} a minute` } : {}),
+    ...(target != null && r.limit && r.limit.effective > 0 ? { targetPct: (target / r.limit.effective) * 100 } : {}),
     rows,
     ...(v && r.ok.length >= 2 ? { v: { text: v.sentence, tone: (v.under.length ? 'a' : 'n') as Tone } } : {}),
     ...(x.walk ? { walk: { text: x.walk.sentence, tone: (x.walk.against === 'disagrees' ? 'a' : 'n') as Tone } } : {}),

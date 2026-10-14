@@ -7,8 +7,9 @@
  * 2kg) with the real controls:
  *
  *   1  the views say what they are: Capacity, and the people's work against takt
- *   2  the V-curve reads as lib/capacity says — a point per station, the
- *      bottleneck filled and named, the sentence the module's
+ *   2  the V-curve reads as lib/capacity says — a column per station, the
+ *      bottleneck navy and named, the sentence the module's; every station's
+ *      whole name under its column; a column opens its station
  *   3  the capacity sheet: a row per station, the bottleneck marked, a machine
  *      not on its plate speed said so
  *   4  the owner sets the V's margin; the guide is drawn and the sentence says
@@ -106,6 +107,18 @@ await page.locator('.vc-says').first().waitFor({ timeout: 10000 }).catch(() => {
   ok((await words('.vc-says')) === t.says, `2 the V says what the module says: ${t.says}`);
   ok((await page.locator('.vc-pt').count()) === t.n && (await page.locator('.vc-pt.is-limit').count()) === 1 && /BOTTLENECK/.test(await page.locator('.vc-neck').first().textContent() ?? ''), `2 a point per station (${t.n}), the bottleneck — ${t.limit} — filled and named`);
   ok(t.margin == null && (await page.locator('.vc-guide').count()) === 0, '2 no margin agreed: no guide V drawn');
+  /* the V as columns (14 October: "sometimes you can't read what the bottom
+     line says"): each station's whole name, words under its column, in flow
+     order; the bottleneck's column navy; a column opens its station */
+  const names = (await page.locator('.vc-nm').allTextContents()).map(x => x.trim());
+  const want = t.stations.filter((s, i) => i < t.n).map(s => s.name.trim());
+  ok(names.join('|') === want.join('|'), `2b every station named in full under its column: ${names.join(' · ')}`);
+  const neckBg = await page.locator('.vc-bar.is-limit').evaluate(e => getComputedStyle(e).backgroundImage);
+  ok(/rgb\(13, 31, 60\)/.test(neckBg), `2c the bottleneck's column the house's navy (${neckBg.slice(0, 60)}…)`);
+  await page.locator('.vc-col').first().click(); await page.waitForTimeout(700);
+  const opened = await page.locator('.cap-st').first().locator('button[aria-expanded="true"]').count();
+  ok(opened === 1, '2d a column tapped opens its station');
+  await page.locator('.cap-st').first().getByRole('button', { name: 'Done' }).click(); await page.waitForTimeout(300);
 }
 /* ---- 3 the capacity sheet ---- */
 {

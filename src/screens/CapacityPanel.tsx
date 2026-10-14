@@ -42,7 +42,7 @@ import type { Can } from '../lib/access';
 import {
   EMPTY_CAPACITY, analyse, syncWhatIfs, withWhatIfStations, blankStation, changedWords, compareSays, crossCheck, fmtN, lineIfRaised, makeItSoWords,
   stopStats, suggestRunning, vCurve, accumulation, whatIfCapacity, paceSays, perMinute, oneOf, fmtSec,
-  typedPerMinute, chainFactor, chainWords, fmtDur, typedSpeedWords, REST_ALLOWANCE_PCT, cycleWords, rateAsTime,
+  typedPerMinute, chainFactor, chainWords, fmtDur, typedSpeedWords, REST_ALLOWANCE_PCT, cycleWords, rateAsTime, shareColours,
   labourCost, labourInputs, oneMorePerson, whatIfLabour, fmtMoney, fmtBig,
   type Capacity, type CapacityResult, type LabourInputs, type PaceSays, type RateAsTime, type RatePer, type Station, type StationResult, type WhatIf,
 } from '../lib/capacity';
@@ -104,7 +104,11 @@ function CapacitySheet({ r, v, target, study, onUse }: { r: ReturnType<typeof an
                 <td data-k="Good" className="n">{s.goodPct != null && s.goodPct < 100 ? `${fmtN(s.goodPct)}%` : '—'}</td>
                 <td data-k={`${r.unit} a min`} className="n"><b>{fmtN(x.effective)}</b></td>
                 <td data-k={`${r.unit} an hour`} className="n">{fmtN(x.effective * 60)}</td>
-                <td data-k="Of the bottleneck" className="n">{isLimit ? <b>the bottleneck</b> : p ? <span className={p.under ? 'cap-sheet-a' : ''}>{fmtN(Math.round(p.pct))}%{p.under ? ' · under the V' : ''}</span> : '—'}</td>
+                <td data-k="Of the bottleneck" className="n">{isLimit ? <b>the bottleneck</b> : p ? <span className={p.under ? 'cap-sheet-a' : ''}>{fmtN(Math.round(p.pct))}%{p.under ? ' · under the V' : ''}</span> : '—'}
+                  {/* the V's colour and length, a row at a time (ui/VCurve) */}
+                  {p && (() => { const [c, c2] = shareColours(p.pct, isLimit, p.under); return (
+                    <span className="cap-share" aria-hidden><i style={{ width: `${Math.min(100, (p.pct / Math.max(200, ...v.points.map(q => Math.min(q.pct, 300)))) * 100)}%`, background: `linear-gradient(90deg, ${c}, ${c2})` }} /></span>
+                  ); })()}</td>
                 {target != null && <td data-k="Target needs" className="n"><span className={need != null && need > 100 + 1e-9 ? 'cap-sheet-r' : ''}>{need != null ? `${fmtN(Math.round(need))}%` : '—'}</span></td>}
                 <td data-k="Can collect after" className="n">{s.bufferAfter ? `${fmtN(s.bufferAfter)} ${s.unit}` : '—'}</td>
               </tr>
@@ -176,7 +180,7 @@ function StationCard({ s, i, last, prevUnit, chain, planned, why, wait, own, coL
   const logged = key(s.asset?.trim() || s.name);
   const matched = !!logged && assets.some(a => key(a) === logged);
   return (
-    <li className={'cap-st' + (why ? ' has-problem' : '')}>
+    <li id={`cap-st-${s.id}`} className={'cap-st' + (why ? ' has-problem' : '')}>
       <div className="cap-st-h">
         <span className="cap-st-n">{i + 1}</span>
         {ro ? <>
@@ -583,6 +587,14 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
   }, [lineRec, rec.loading, machines, cap.stations]);
 
   const r = useMemo(() => analyse(current), [current]);
+  /* A COLUMN OF THE V TAPPED: its station brought into view, and opened for
+     whoever may change it */
+  const pick = (index: number) => {
+    const s = current.stations[index];
+    if (!s) return;
+    if (can.edit) setEditing(s.id);
+    requestAnimationFrame(() => document.getElementById(`cap-st-${s.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+  };
   const asRun = useMemo(() => analyse(cap), [cap]);
   const compare = w ? compareSays(asRun, r, w.name) : undefined;
   const changed = useMemo(() => (w ? changedWords(cap.stations, current.stations) : []), [cap.stations, w, current.stations]);
@@ -779,7 +791,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
       </div>
 
       {r.ok.length > 0 && <VCurveView r={r} v={vCurve(r, cap.vMarginPct)} target={current.targetPerMin} margin={cap.vMarginPct} canAgree={can.agree && !w}
-        onMargin={m => commit({ ...cap, vMarginPct: m })} />}
+        onMargin={m => commit({ ...cap, vMarginPct: m })} onPick={pick} />}
       {r.ok.length > 0 && <CapacitySheet r={r} v={vCurve(r, cap.vMarginPct)} target={current.targetPerMin} study={study}
         {...(can.edit ? { onUse: (id: string, cycleSec: number) => patchStation(id, { cycleSec, perCycle: 1, rate: undefined, source: 'standard', note: 'standard time, from the time study' }) } : {})} />}
       {r.ok.length > 0 && <LabourBox r={r} cap={cap} current={current} {...(w ? { w } : {})} rAsRun={asRun} li={labourInputs(cap, mapPeople, lineWs)} canEdit={can.edit && !w}
