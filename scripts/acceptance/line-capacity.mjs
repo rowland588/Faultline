@@ -33,7 +33,9 @@
  *      palletiser (14 October: "each pallet holds 36 baskets ... it's 360"):
  *      the chain said where it is typed, timed per tray with the pallet
  *      worked out, what reaches them a tray and a pallet, fed straight by a
- *      person past 90% said in amber, and not once trays can collect
+ *      person past 90% said in amber, and not once trays can collect; and a
+ *      rate that reads like a time ("5 pallets a minute" for one every 5
+ *      minutes) asked, made so in a tap, the cycle kept in minutes
  *   9  each tool lists its own: a product only mapped is not in Line
  *      capacity, a product only worked out for capacity is not in Line
  *      standard; New on a product already on the line is that record; the
@@ -299,6 +301,32 @@ let TRAY;
   await card.getByLabel('How many can collect between it and the next station').fill('12'); await card.getByLabel('How many can collect between it and the next station').press('Enter'); await page.waitForTimeout(800);
   q = await pal();
   ok(q.paced === undefined && await main.locator('.cap-st').nth(2).locator('.cap-st-paced').count() === 0, '8l twelve trays can collect before them: not said');
+
+  /* A RATE THAT READS LIKE A TIME (Rowland, 14 October: "it says 5 pallets a
+     minute ... it isn't ... it takes 5 minutes to do one pallet") */
+  await card.getByRole('button', { name: 'Done' }).click(); await page.waitForTimeout(300);
+  card = main.locator('.cap-st').nth(2);
+  await card.getByRole('button', { name: 'Edit' }).click(); await page.waitForTimeout(400);
+  await card.getByRole('group', { name: 'Timed per' }).getByRole('button', { name: 'pallet' }).click(); await page.waitForTimeout(400);
+  await card.getByRole('button', { name: 'How many in a time' }).click(); await page.waitForTimeout(300);
+  await card.getByLabel('Speed', { exact: true }).fill('4'); await card.getByLabel('Speed', { exact: true }).press('Enter'); await page.waitForTimeout(800);
+  const asked = () => page.evaluate(async id => {
+    const db = await import('/src/db.ts'); const C = await import('/src/lib/capacity.ts');
+    const st = await db.getStandard(id); const r = C.analyse(st.capacity); const [, k, p] = st.capacity.stations;
+    return { q: C.rateAsTime(r, p, k.unit) ?? null, say: C.paceSays(r, p, k.unit, k), p };
+  }, TRAY);
+  let a = await asked();
+  ok(a.q?.says === '4 pallets a minute is 1,152 units a minute — 16 times what reaches them.' && a.q?.ask === 'One pallet every 4 minutes?'
+    && flat(await card.locator('.cap-astime').innerText()) === `${a.q.says} ${a.q.ask} Make it a pallet every 4 min`,
+    `8m "4" typed as a rate, many times what reaches them and like one every 4 minutes: asked — ${flat(await card.locator('.cap-astime').innerText())}`);
+  await card.getByRole('button', { name: 'Make it a pallet every 4 min' }).click(); await page.waitForTimeout(800);
+  a = await asked();
+  ok(a.q === null && a.p.cycleSec === 240 && a.p.cycleIn === 'min' && a.p.rate == null && await card.getByLabel('Minutes each time').inputValue() === '4'
+    && await card.getByLabel('Seconds or minutes').inputValue() === 'min' && flat(await card.locator('.cap-st-says').innerText()) === a.say.verdict,
+    `8n made so: one every 4 minutes, kept as 240 s, shown in minutes — ${a.say.verdict}`);
+  ok(flat(await card.locator('.cap-is').innerText()).startsWith('= 15 pallets an hour each · 72 units a minute'), `8o said back an hour, not 0.25 a minute: ${flat(await card.locator('.cap-is').innerText())}`);
+  await card.getByRole('button', { name: 'Done' }).click(); await page.waitForTimeout(300);
+  ok(flat(await card.locator('.cap-sum').innerText()).startsWith('a pallet every 4 min ·'), `8p shut, the card says it as typed: ${flat(await card.locator('.cap-sum').innerText())}`);
 }
 
 /* ---- 9 each tool lists its own ---- */

@@ -42,9 +42,9 @@ import type { Can } from '../lib/access';
 import {
   EMPTY_CAPACITY, analyse, syncWhatIfs, withWhatIfStations, blankStation, changedWords, compareSays, crossCheck, fmtN, lineIfRaised, makeItSoWords,
   stopStats, suggestRunning, vCurve, accumulation, whatIfCapacity, paceSays, perMinute, oneOf, fmtSec,
-  typedPerMinute, chainFactor, chainWords, fmtDur, typedSpeedWords, REST_ALLOWANCE_PCT,
+  typedPerMinute, chainFactor, chainWords, fmtDur, typedSpeedWords, REST_ALLOWANCE_PCT, cycleWords, rateAsTime,
   labourCost, labourInputs, oneMorePerson, whatIfLabour, fmtMoney, fmtBig,
-  type Capacity, type CapacityResult, type LabourInputs, type PaceSays, type RatePer, type Station, type StationResult, type WhatIf,
+  type Capacity, type CapacityResult, type LabourInputs, type PaceSays, type RateAsTime, type RatePer, type Station, type StationResult, type WhatIf,
 } from '../lib/capacity';
 import { useLineStops } from '../lib/useLineStops';
 import { Icon } from '../ui/Icon';
@@ -85,7 +85,7 @@ function CapacitySheet({ r, v, target, study, onUse }: { r: ReturnType<typeof an
             const prevUnit = [...r.ok, ...r.skipped].find(y => y.index === x.index - 1)?.station.unit;
             const speed = s.speedIn === 'before' ? typedSpeedWords(s, prevUnit)
               : s.rate != null ? `${fmtN(s.rate)} a ${s.ratePer === 'hour' ? 'hour' : s.ratePer === 'sec' ? 'second' : 'minute'}`
-              : s.cycleSec ? ((s.perCycle ?? 1) === 1 ? `a ${oneOf(s.unit)} every ${fmtN(s.cycleSec)} s` : `${fmtN(s.perCycle ?? 1)} every ${fmtN(s.cycleSec)} s`) : '—';
+              : s.cycleSec ? cycleWords(s.perCycle ?? 1, s.cycleSec, s.unit) : '—';
             return (
               <tr key={s.id} className={isLimit ? 'is-limit' : ''}>
                 <td data-k="#">{x.index + 1}</td>
@@ -118,7 +118,7 @@ function CapacitySheet({ r, v, target, study, onUse }: { r: ReturnType<typeof an
 
 /* =============================== one station ================================ */
 
-function StationCard({ s, i, last, prevUnit, chain, planned, why, wait, own, coLeft = 0, suggested, say, factor, lineUnit, patch, move, remove, assets, machines = [], open: wantOpen, onToggle, ro }: {
+function StationCard({ s, i, last, prevUnit, chain, planned, why, wait, own, coLeft = 0, suggested, say, asTime, factor, lineUnit, patch, move, remove, assets, machines = [], open: wantOpen, onToggle, ro }: {
   s: Station; i: number; last: boolean; prevUnit?: string;
   /** "1 pallet = 36 baskets = 360 units" — its unit read back to the line's (lib/capacity chainWords). */
   chain?: string;
@@ -131,6 +131,9 @@ function StationCard({ s, i, last, prevUnit, chain, planned, why, wait, own, coL
    *  out from the line before it as soon as it says what it counts in and how
    *  many of the one before make one; a person in seconds a piece. */
   say: PaceSays;
+  /** A RATE THAT READS LIKE A TIME — "5 pallets a minute" typed for one pallet
+   *  every 5 minutes — asked, with the time one tap away (lib/capacity rateAsTime). */
+  asTime?: RateAsTime;
   /** How many of the line's unit are in one of its own, when counted. */
   factor?: number; lineUnit: string;
   patch: (p: Partial<Station>) => void; move: (by: -1 | 1) => void; remove: () => void; assets: string[];
@@ -158,6 +161,7 @@ function StationCard({ s, i, last, prevUnit, chain, planned, why, wait, own, coL
   const before = canBefore && s.speedIn === 'before';
   const spUnit = (before ? prevUnit as string : s.unit).trim() || 'units';
   const spOne = oneOf(spUnit);
+  const inMin = s.cycleIn === 'min';
   const typed = typedPerMinute(s);
   /* switching keeps the speed: the numbers are put into the other unit */
   const timePer = (to: 'own' | 'before') => {
@@ -202,7 +206,7 @@ function StationCard({ s, i, last, prevUnit, chain, planned, why, wait, own, coL
       {!open && (
         <p className="cap-sum">
           {s.rate != null ? `${fmtN(s.rate)} ${spUnit} ${PER_WORD[s.ratePer ?? 'min']}`
-            : s.perCycle != null || s.cycleSec != null ? (s.perCycle === 1 ? `a ${spOne} every ${fmtN(s.cycleSec ?? 0)} s` : `${fmtN(s.perCycle ?? 0)} ${spUnit} every ${fmtN(s.cycleSec ?? 0)} s`)
+            : s.perCycle != null || s.cycleSec != null ? cycleWords(s.perCycle ?? 0, s.cycleSec ?? 0, spUnit)
               : 'no speed yet'}
           {' · '}{s.crew ?? 1} {s.kind === 'people' ? (s.crew === 1 ? 'person' : 'people') : 'of it'}
           {' · '}{s.runningPct ?? 100}% running · {s.goodPct ?? 100}% good
@@ -223,6 +227,19 @@ function StationCard({ s, i, last, prevUnit, chain, planned, why, wait, own, coL
           )}
           {/* fed straight by a machine or a person, nothing collecting between (docs/CAPACITY.md §1) */}
           {say.paced && <span className="cap-st-paced" role="note">{say.paced}</span>}
+        </p>
+      )}
+      {/* A RATE THAT READS LIKE A TIME (Rowland, 14 October: "it says 5
+          pallets a minute ... it isn't ... it takes 5 minutes to do one
+          pallet") — asked, never changed by itself */}
+      {asTime && (
+        <p className="cap-astime" role="note">
+          <span>{asTime.says} <b>{asTime.ask}</b></span>
+          {!ro && (
+            <button type="button" className="cw-link" onClick={() => { setMode('cycle'); patch({ rate: undefined, ratePer: undefined, perCycle: 1, cycleSec: asTime.cycleSec, cycleIn: asTime.cycleIn }); }}>
+              Make it {asTime.every}
+            </button>
+          )}
         </p>
       )}
 
@@ -259,9 +276,9 @@ function StationCard({ s, i, last, prevUnit, chain, planned, why, wait, own, coL
               <button type="button" className={'chip' + (before ? ' on' : '')} aria-pressed={before} onClick={() => timePer('before')}>{oneOf(prevUnit as string)}</button>
             </span>
           )}
-          <span className="cw-seg" role="group" aria-label="Rate or cycle">
-            <button type="button" className={'chip' + (mode === 'rate' ? ' on' : '')} aria-pressed={mode === 'rate'} onClick={() => setMode('rate')}>A rate</button>
-            <button type="button" className={'chip' + (mode === 'cycle' ? ' on' : '')} aria-pressed={mode === 'cycle'} onClick={() => setMode('cycle')}>A cycle</button>
+          <span className="cw-seg" role="group" aria-label="A rate or how long one takes">
+            <button type="button" className={'chip' + (mode === 'rate' ? ' on' : '')} aria-pressed={mode === 'rate'} onClick={() => setMode('rate')}>How many in a time</button>
+            <button type="button" className={'chip' + (mode === 'cycle' ? ' on' : '')} aria-pressed={mode === 'cycle'} onClick={() => setMode('cycle')}>How long one takes</button>
           </span>
           {mode === 'rate' ? (
             <span className="cap-inline">
@@ -278,15 +295,29 @@ function StationCard({ s, i, last, prevUnit, chain, planned, why, wait, own, coL
               {/* one at a time unless said otherwise: "a tray every 8 seconds" */}
               <DraftNumber className="text-input cap-num" value={s.perCycle ?? 1} placeholder="1" label={`How many ${spUnit} at a time`} onSave={v => patch({ perCycle: v ?? 1, rate: undefined })} />
               <span className="cap-unit">{(s.perCycle ?? 1) === 1 ? spOne : spUnit} every</span>
-              <DraftNumber className="text-input cap-num" value={s.cycleSec} placeholder="8" label="Seconds each time" onSave={v => patch({ cycleSec: v, perCycle: s.perCycle ?? 1, rate: undefined })} />
-              <span className="cap-unit">seconds</span>
+              {/* SECONDS OR MINUTES — "it takes 5 minutes to do one pallet":
+                  kept in seconds, shown and typed in what was picked */}
+              <DraftNumber className="text-input cap-num" value={s.cycleSec == null ? undefined : inMin ? Math.round((s.cycleSec / 60) * 1000) / 1000 : s.cycleSec}
+                placeholder={inMin ? '5' : '8'} label={inMin ? 'Minutes each time' : 'Seconds each time'}
+                onSave={v => patch({ cycleSec: v == null ? undefined : inMin ? v * 60 : v, perCycle: s.perCycle ?? 1, rate: undefined })} />
+              <select className="text-input cap-sel" value={inMin ? 'min' : 'sec'} aria-label="Seconds or minutes"
+                onChange={e => {
+                  /* the number typed stays: "5" then minutes is five minutes */
+                  const toMin = e.target.value === 'min';
+                  const shown = s.cycleSec == null ? undefined : inMin ? s.cycleSec / 60 : s.cycleSec;
+                  patch({ cycleIn: toMin ? 'min' : undefined, ...(shown != null ? { cycleSec: toMin ? shown * 60 : shown } : {}) });
+                }}>
+                <option value="sec">seconds</option>
+                <option value="min">minutes</option>
+              </select>
             </span>
           )}
           {/* WHAT THAT COMES TO, said back at once — a slip ("8 trays" for "8
               bags a tray") shows here, not three tables later */}
           {speed != null && !before && (
             <span className="cap-hint cap-is">
-              = {fmtN(speed)} {s.unit.trim() || 'units'} a minute{s.kind === 'people' ? ' each' : ''}
+              {/* under one a minute, said an hour: "12 pallets an hour", not "0.2 pallets a minute" */}
+              = {speed < 1 ? `${fmtN(speed * 60)} ${s.unit.trim() || 'units'} an hour` : `${fmtN(speed)} ${s.unit.trim() || 'units'} a minute`}{s.kind === 'people' ? ' each' : ''}
               {factor != null && Math.abs(factor - 1) > 1e-9 ? ` · ${fmtN(speed * factor)} ${lineUnit} a minute` : ''}
               {s.kind === 'people' && s.rate != null ? ` · a ${one} every ${fmtSec(60 / speed)}` : ''}
             </span>
@@ -881,7 +912,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
             wait={stats[s.id]?.waitMins ?? 0} own={stats[s.id]?.ownMins ?? 0}
             coLeft={coOff ? stats[s.id]?.changeoverMins ?? 0 : 0}
             suggested={suggestRunning((stats[s.id]?.ownMins ?? 0) - (coOff ? stats[s.id]?.changeoverMins ?? 0 : 0), cap.plannedHoursPerWeek, stops.weeks)}
-            say={paceSays(r, s, current.stations[i - 1]?.unit, current.stations[i - 1])} factor={result(s.id)?.factor ?? chainFactor(current.stations, i)} lineUnit={r.unit}
+            say={paceSays(r, s, current.stations[i - 1]?.unit, current.stations[i - 1])} asTime={rateAsTime(r, s, current.stations[i - 1]?.unit)} factor={result(s.id)?.factor ?? chainFactor(current.stations, i)} lineUnit={r.unit}
             chain={chainWords(current.stations, i)}
             patch={p => patchStation(s.id, p)} move={by => move(i, by)} remove={() => remove(s)} assets={assets} machines={machines}
             open={editing === s.id || !s.name.trim()} onToggle={() => setEditing(editing === s.id ? null : s.id)} ro={!can.edit} />
@@ -913,7 +944,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
 function Working({ r }: { r: ReturnType<typeof analyse> }) {
   const row = (x: StationResult) => {
     const s = x.station;
-    const speed = s.rate != null ? `${fmtN(s.rate)} ${s.unit} ${PER_WORD[s.ratePer ?? 'min']}` : `${fmtN(s.perCycle ?? 0)} every ${fmtN(s.cycleSec ?? 0)} s`;
+    const speed = s.rate != null ? `${fmtN(s.rate)} ${s.unit} ${PER_WORD[s.ratePer ?? 'min']}` : cycleWords(s.perCycle ?? 0, s.cycleSec ?? 0, s.unit);
     return (
       <tr key={s.id}>
         <th scope="row">{s.name.trim() || `Station ${x.index + 1}`}</th>

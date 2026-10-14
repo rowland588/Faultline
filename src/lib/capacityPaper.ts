@@ -24,7 +24,7 @@
  * a person over takt (red). The bottleneck is marked, not coloured — it is
  * the limit, not a failure. */
 import {
-  allowanceOf, analyse, changedWords, compareSays, fmtBig, fmtMoney, fmtN, labourCost, oneMorePerson, oneOf, shiftCapacity, shortSays,
+  allowanceOf, analyse, changedWords, cycleWords, compareSays, fmtBig, fmtMoney, fmtN, labourCost, oneMorePerson, oneOf, shiftCapacity, shortSays,
   vCurve, whatIfCapacity, whatIfLabour, whatIfStations,
   type Capacity, type ChangeoverIn, type LabourInputs, type ShiftIn, type Station,
 } from './capacity';
@@ -112,7 +112,7 @@ const HOW: Record<NonNullable<Station['source']>, string> = { plate: 'on the pla
 export function speedWords(s: Station, prevUnit?: string): string {
   const unit = (s.speedIn === 'before' && prevUnit?.trim() ? prevUnit : s.unit).trim() || 'units';
   if (s.rate != null && s.rate > 0) return `${fmtN(s.rate)} ${unit} ${PER[s.ratePer ?? 'min']}`;
-  if (s.cycleSec) return (s.perCycle ?? 1) === 1 ? `a ${oneOf(unit)} every ${fmtN(s.cycleSec)} s` : `${fmtN(s.perCycle ?? 1)} ${unit} every ${fmtN(s.cycleSec)} s`;
+  if (s.cycleSec) return cycleWords(s.perCycle ?? 1, s.cycleSec, unit);
   return 'no speed yet';
 }
 

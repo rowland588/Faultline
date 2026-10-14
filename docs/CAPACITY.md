@@ -105,6 +105,20 @@ and chosen: *the timed pace plus the allowances, nothing more taken off*).
   what reaches them is said per basket and per pallet ("A basket reaches
   them every 8.6 s — 7 a minute; a full pallet of 36 every 5 min 9 s"), and
   whether they keep up per basket.
+- **A time typed in minutes, and a rate that reads like a time.** Rowland:
+  "counts in pallets, each pallet holds 36 baskets ... 5 ... it says 5
+  pallets a minute ... it isn't ... it takes 5 minutes to do one pallet."
+  The cycle only took seconds, so a time in minutes went into the rate's
+  box. Now the speed is asked two ways, named for what they are — *How many
+  in a time* and *How long one takes* — and how long one takes is in
+  seconds or minutes ("a pallet every 5 min", kept in seconds underneath;
+  the number typed stays when the unit is changed). A speed under one a
+  minute is said back an hour ("15 pallets an hour"). And a rate many times
+  what reaches the station, whose reading as one every N is close to what
+  reaches it, is asked about — "5 pallets a minute is 1,800 units a minute —
+  26 times what reaches them. One pallet every 5 minutes?" — with *Make it a
+  pallet every 5 min* one tap away; never changed by itself
+  (`lib/capacity` `rateAsTime`).
 - **The chain said where it is typed.** Under "Each pallet holds 36
   baskets": "1 pallet = 36 baskets = 360 units" — the conversion carried all
   the way to the start of the line, so a wrong number in it shows at once

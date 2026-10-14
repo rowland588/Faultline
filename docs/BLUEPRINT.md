@@ -701,6 +701,10 @@ is still wired.
   from the time study none again; nothing more taken off ("100% +
   allowances only", asked and chosen); a person fed straight by a machine
   or a person, nothing collecting between, loaded past 90% of their pace,
-  said in amber. `docs/CAPACITY.md` §1 holds the science and its sources;
-  the lifting check is §6 10a. Accepted by `line-capacity.mjs` 8–8l.
+  said in amber. The same day ("it says 5 pallets a minute ... it takes 5
+  minutes to do one pallet"): how long one takes in seconds or minutes, the
+  speed's two ways named *How many in a time* and *How long one takes*, and
+  a rate that reads like a time asked about with the time one tap away.
+  `docs/CAPACITY.md` §1 holds the science and its sources; the lifting
+  check is §6 10a. Accepted by `line-capacity.mjs` 8–8p.
 - **Next:** Stage 3 — the line is the hub (its products, readiness, health).

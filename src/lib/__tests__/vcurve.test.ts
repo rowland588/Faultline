@@ -16,7 +16,8 @@ const st = (o: Partial<Station> & { name: string; unit: string }): Station => ({
 const LINE: Station[] = [
   st({ name: 'Weigher', unit: 'bags', rate: 90, ratePer: 'min', runningPct: 95, source: 'plate' }),
   st({ name: 'Bagger', unit: 'bags', rate: 75, ratePer: 'min', runningPct: 94, source: 'plate' }),
-  st({ name: 'Op 3', kind: 'people', unit: 'baskets', contains: 12, cycleSec: 12, perCycle: 1, source: 'timed' }),
+  /* typed as the pace to plan on — no rest allowance on top (docs/CAPACITY.md §1) */
+  st({ name: 'Op 3', kind: 'people', unit: 'baskets', contains: 12, cycleSec: 12, perCycle: 1, source: 'timed', allowancePct: 0 }),
   st({ name: 'Lidder', unit: 'baskets', contains: 1, rate: 5.3, ratePer: 'min', source: 'plate' }),
   st({ name: 'Palletiser', unit: 'pallets', contains: 48, rate: 0.15, ratePer: 'min', runningPct: 97, source: 'plate' }),
 ];

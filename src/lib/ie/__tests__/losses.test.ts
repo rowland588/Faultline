@@ -84,7 +84,7 @@ const st = (o: Partial<Station> & Pick<Station, 'id' | 'name'>): Station => ({ k
 const line7 = [
   st({ id: 'b', name: 'Bagger', rate: 100, source: 'plate' }),
   st({ id: 'c', name: 'Checkweigher', rate: 2.2, ratePer: 'sec', source: 'plate' }),
-  st({ id: 'p', name: 'Packer', kind: 'people', unit: 'cases', contains: 10, cycleSec: 5, perCycle: 1, crew: 2, source: 'timed' }),
+  st({ id: 'p', name: 'Packer', kind: 'people', unit: 'cases', contains: 10, cycleSec: 5, perCycle: 1, crew: 2, source: 'timed', allowancePct: 0 }),
 ];
 
 describe('a shift’s losses (tool 7)', () => {
@@ -96,10 +96,14 @@ describe('a shift’s losses (tool 7)', () => {
     expect(rateOf({ stations: line7 }, 90)).toEqual({ ratePerMin: 100, rateFrom: 'plate', rateMachine: 'Bagger', why: 'plate speed of the Bagger' });
   });
   it('a person slower than every machine sets the pace at their standard time — the time study’s, or their pace as timed; a guess is typed, and why', () => {
-    const op3 = (source: Station['source']) => [...line7.slice(0, 2), st({ id: 'o3', name: 'Op 3', kind: 'people', unit: 'cases', contains: 10, cycleSec: 6.25, perCycle: 1, source })];
+    const op3 = (source: Station['source'], allowancePct: number | null = 0) => [...line7.slice(0, 2), st({ id: 'o3', name: 'Op 3', kind: 'people', unit: 'cases', contains: 10, cycleSec: 6.25, perCycle: 1, source, ...(allowancePct != null ? { allowancePct } : {}) })];
     expect(idealOf({ stations: op3('standard') })).toEqual({ rate: 96, station: 'Op 3', how: 'standard', why: 'standard time of Op 3 (the time study)', anyIdeal: true });
     expect(rateOf({ stations: op3('standard') }, 90)).toEqual({ ratePerMin: 96, rateFrom: 'standard-time', ratePerson: 'Op 3', why: 'standard time of Op 3 (the time study)' });
     expect(rateOf({ stations: op3('timed') })).toEqual({ ratePerMin: 96, rateFrom: 'standard-time', ratePerson: 'Op 3', rateTimed: true, why: 'Op 3’s timed pace' });
+    /* timed with the ILO's 9% rest on it (docs/CAPACITY.md §1): their rest is not a loss — 96 ÷ 1.09 */
+    expect(rateOf({ stations: op3('timed', null) })?.ratePerMin).toBe(88.07); // to the hundredth
+    /* a standard time carries its own allowances: none added again */
+    expect(rateOf({ stations: op3('standard', null) }, 90)?.ratePerMin).toBeCloseTo(96, 9);
     expect(rateOf({ stations: op3('estimate') }, 90)).toEqual({ why: 'typed — Op 3 sets the pace and their speed is a guess — time them in the time study' });
     expect([paceWords({ rateFrom: 'standard-time', ratePerson: 'Op 3' }), paceWords({ rateFrom: 'standard-time', ratePerson: 'Op 3', rateTimed: true })])
       .toEqual(['standard time of Op 3 (the time study)', 'Op 3’s timed pace']);

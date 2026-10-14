@@ -407,8 +407,10 @@ the line's unit, whether they keep up in seconds, Make it 2 people, a
 person's time carrying the ILO's 9% rest (14 October: "bring in science
 when it comes to humans"), a palletiser timed per tray with "1 pallet = 36
 trays = 288 units" said and the pallet worked out ("all I did is do the
-division of 70 a minute"), and a person fed straight past 90% of their pace
-said in amber; each tool listing its own products (a product only mapped is not in Line
+division of 70 a minute"), a person fed straight past 90% of their pace
+said in amber, and "4 pallets a minute" asked as one every 4 minutes, made
+so in a tap and kept in minutes ("it takes 5 minutes to do one pallet");
+each tool listing its own products (a product only mapped is not in Line
 capacity) and New on one already on the line opening it; Line capacity's
 own page and its rail on no job; and the phone — the V on its side, the
 sheet a card a station; then what a pack costs in labour (Rowland, 13

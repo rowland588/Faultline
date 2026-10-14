@@ -23,7 +23,7 @@
  *   cannot match a machine piece for piece: said, unless something can
  *   collect between them. */
 import { describe, expect, it } from 'vitest';
-import { REST_ALLOWANCE_PCT, allowanceOf, analyse, chainWords, paceSays, perMinute, planPerMinute, stationDetail, type Station } from '../capacity';
+import { REST_ALLOWANCE_PCT, allowanceOf, analyse, chainWords, cycleWords, everyWords, paceSays, perMinute, planPerMinute, rateAsTime, stationDetail, typedSpeedWords, type Station } from '../capacity';
 import { speedWords } from '../capacityPaper';
 
 const bagger: Station = { id: 'b', name: 'Bagger', kind: 'machine', unit: 'units', contains: 1, rate: 70, ratePer: 'min', source: 'plate' };
@@ -97,6 +97,53 @@ describe('a person fed straight by a machine, nothing collecting between', () =>
 describe('on paper, the time as typed and the rest beside it', () => {
   it('the sheet’s speed, in the unit it was timed in', () => {
     expect(speedWords(palletiser, 'baskets')).toBe('a basket every 6 s');
-    expect(stationDetail(palletiser, 'baskets')).toMatch(/^1 baskets every 6 s \+ 9% rest · 1 person/);
+    expect(stationDetail(palletiser, 'baskets')).toMatch(/^a basket every 6 s \+ 9% rest · 1 person/);
+  });
+});
+
+/* A RATE THAT READS LIKE A TIME (Rowland, 14 October: "counts in pallets,
+ * each pallet holds 36 baskets ... 5 ... it says 5 pallets a minute ... it
+ * isn't ... it takes 5 minutes to do one pallet"). Worked by hand:
+ *   what reaches the palletiser: 70 ÷ 360 = 0.194 pallets a minute
+ *   "5 pallets a minute" = 1,800 units a minute — 25.7 times that
+ *   read as one every 5 minutes: 0.2 a minute — beside 0.194: asked
+ *   one every 5 min + 9% = 5 min 27 s, against one every 5 min 9 s: 18 s short */
+describe('a rate that reads like a time', () => {
+  const typed: Station = { id: 'p', name: 'Palletiser', kind: 'people', unit: 'pallets', contains: 36, rate: 5, ratePer: 'min', source: 'timed' };
+  it('"5 pallets a minute" on a palletiser fed a pallet every 5 min 9 s: asked whether it is one every 5 minutes', () => {
+    const q = rateAsTime(analyse({ stations: [bagger, wrapper, typed] }), typed, 'baskets');
+    expect(q).toEqual({
+      says: '5 pallets a minute is 1,800 units a minute — 26 times what reaches them.',
+      ask: 'One pallet every 5 minutes?',
+      cycleSec: 300, cycleIn: 'min', every: 'a pallet every 5 min',
+    });
+  });
+  it('made so: a pallet every 5 min, kept in seconds, said in minutes — and short once their rest is in it', () => {
+    const made: Station = { ...typed, rate: undefined, ratePer: undefined, perCycle: 1, cycleSec: 300, cycleIn: 'min' };
+    expect(perMinute(made)).toBeCloseTo(0.2, 9);
+    expect(typedSpeedWords(made)).toBe('a pallet every 5 min');
+    expect(stationDetail(made)).toMatch(/^a pallet every 5 min \+ 9% rest · 1 person/);
+    const r = analyse({ stations: [bagger, wrapper, made] });
+    expect(rateAsTime(r, made, 'baskets')).toBeUndefined();
+    expect(paceSays(r, made, 'baskets', wrapper).verdict).toBe('They take 5 min a pallet — 5 min 27 s with 9% rest — 18 s too slow: they hold the line back. It needs 2 people to keep up.');
+  });
+  it('never asked of a rate near what reaches it, an hour’s rate, or the front of the line', () => {
+    const near = { ...typed, rate: 0.25 };
+    expect(rateAsTime(analyse({ stations: [bagger, wrapper, near] }), near, 'baskets')).toBeUndefined();
+    const hourly = { ...typed, rate: 5, ratePer: 'hour' as const };
+    expect(rateAsTime(analyse({ stations: [bagger, wrapper, hourly] }), hourly, 'baskets')).toBeUndefined();
+    expect(rateAsTime(analyse({ stations: [bagger] }), bagger)).toBeUndefined();
+  });
+  it('a rate many times what reaches it but nothing like it read as a time: not asked — it is just fast', () => {
+    const fast = { ...typed, rate: 40 };     // one every 40 minutes would be 0.025 a minute — not 0.194
+    expect(rateAsTime(analyse({ stations: [bagger, wrapper, fast] }), fast, 'baskets')).toBeUndefined();
+  });
+});
+
+describe('a typed time as a person says it', () => {
+  it('seconds under a minute and a half, minutes beyond', () => {
+    expect([everyWords(6), everyWords(12.5), everyWords(75), everyWords(300), everyWords(100)]).toEqual(['6 s', '12.5 s', '75 s', '5 min', '1 min 40 s']);
+    expect(cycleWords(1, 300, 'pallets')).toBe('a pallet every 5 min');
+    expect(cycleWords(2, 20, 'baskets')).toBe('2 baskets every 20 s');
   });
 });

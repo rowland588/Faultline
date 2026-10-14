@@ -64,6 +64,10 @@ export interface Station {
    *  put into this one's by `contains` (36 baskets a pallet). Absent: in its
    *  own unit, as every station was typed before. */
   speedIn?: 'before';
+  /** THE CYCLE TYPED IN MINUTES — "it takes 5 minutes to do one pallet"
+   *  (Rowland, 14 October). Only how the box shows it: `cycleSec` is always
+   *  seconds. Absent: typed in seconds. */
+  cycleIn?: 'min';
   /** A PERSON'S REST ALLOWANCE, percent, added to their timed or typed time
    *  to give the time to plan on (docs/CAPACITY.md §1; Rowland, 14 October:
    *  "we need to bring in science when it comes to humans"). Absent: the
@@ -334,7 +338,7 @@ export function chainWords(stations: readonly Pick<Station, 'unit' | 'contains'>
 export function typedSpeedWords(s: Pick<Station, 'unit' | 'rate' | 'ratePer' | 'cycleSec' | 'perCycle' | 'speedIn'>, prevUnit?: string): string {
   const unit = (s.speedIn === 'before' && prevUnit?.trim() ? prevUnit : s.unit).trim() || 'units';
   if (s.rate != null && s.rate > 0) return `${fmtN(s.rate)} ${unit} ${PER_MIN_WORD[s.ratePer ?? 'min']}`;
-  if (s.cycleSec != null && s.cycleSec > 0) return (s.perCycle ?? 1) === 1 ? `a ${oneOf(unit)} every ${fmtSec(s.cycleSec)}` : `${fmtN(s.perCycle ?? 1)} ${unit} every ${fmtSec(s.cycleSec)}`;
+  if (s.cycleSec != null && s.cycleSec > 0) return cycleWords(s.perCycle ?? 1, s.cycleSec, unit);
   return 'no speed yet';
 }
 const PER_MIN_WORD: Record<RatePer, string> = { sec: 'a second', min: 'a minute', hour: 'an hour' };
@@ -656,6 +660,53 @@ export function fmtDur(sec: number): string {
   return mm ? `${h} h ${mm} min` : `${h} h`;
 }
 
+/** A time as it was typed, as a person says it: 8 s, 12.5 s, 5 min, 1 min 40 s. */
+export const everyWords = (sec: number): string => (sec < 90 ? `${fmtN(sec)} s` : fmtDur(sec));
+
+/** A cycle as typed: "a pallet every 5 min", "2 baskets every 20 s". */
+export const cycleWords = (perCycle: number, cycleSec: number, unit: string): string =>
+  perCycle === 1 ? `a ${oneOf(unit)} every ${everyWords(cycleSec)}` : `${fmtN(perCycle)} ${unit.trim() || 'units'} every ${everyWords(cycleSec)}`;
+
+/* ======================== a rate that reads like a time ======================
+ * Rowland, 14 October: "counts in pallets, each pallet holds 36 baskets ...
+ * 5 ... it says 5 pallets a minute ... well, it isn't ... it takes 5 minutes
+ * to do one pallet." A rate many times what reaches the station whose
+ * reading as "one every N" is close to it is the time typed in the rate's
+ * box. Asked, with the time offered — never changed by itself. */
+export interface RateAsTime {
+  /** "5 pallets a minute is 1,800 units a minute — 26 times what reaches them." */
+  says: string;
+  /** "One pallet every 5 minutes?" */
+  ask: string;
+  /** What "Make it…" puts on the station. */
+  cycleSec: number; cycleIn?: 'min';
+  /** "a pallet every 5 min" — the button's words. */
+  every: string;
+}
+export function rateAsTime(r: CapacityResult, s: Station, prevUnit?: string): RateAsTime | undefined {
+  const a = r.arrivals[s.id];
+  const per = s.ratePer ?? 'min';
+  if (!a || !(a.perMin > 0) || s.rate == null || !(s.rate > 0) || per === 'hour') return undefined;
+  const own = perMinute(s);
+  if (own == null || own < a.perMin * 5) return undefined;
+  const before = s.speedIn === 'before' && s.contains > 0 && !!prevUnit?.trim();
+  const k = before ? s.contains : 1;
+  const cycleSec = s.rate * (per === 'min' ? 60 : 1);
+  const read = 60 / cycleSec / k;                       // read as one every N, in its own unit a minute
+  if (read < a.perMin / 2 || read > a.perMin * 2) return undefined;
+  const unit = (before ? (prevUnit as string) : s.unit).trim() || 'units';
+  const factor = r.ok.find(x => x.station.id === s.id)?.factor;
+  const atLine = factor != null && Math.abs(factor - 1) > 1e-9 ? ` is ${fmtBig(own * factor)} ${r.unit} a minute —` : ' —';
+  const who = s.kind === 'people' ? 'them' : 'it';
+  const time = per === 'min' ? `${fmtN(s.rate)} ${s.rate === 1 ? 'minute' : 'minutes'}` : `${fmtN(s.rate)} seconds`;
+  return {
+    says: `${fmtN(s.rate)} ${unit} ${PER_MIN_WORD[per]}${atLine} ${fmtBig(own / a.perMin)} times what reaches ${who}.`,
+    ask: `One ${oneOf(unit)} every ${time}?`,
+    cycleSec, ...(per === 'min' ? { cycleIn: 'min' as const } : {}),
+    every: cycleWords(1, cycleSec, unit),
+  };
+}
+
 export interface PaceSays {
   /** "A tray reaches them every 6.9 s — 8.75 a minute: Bagger does 70 bags a
    *  minute, 8 to a tray." Absent at the front of the line. */
@@ -973,15 +1024,15 @@ function speedChange(a: Station, s: Station): string | undefined {
   const unit = s.unit.trim() || 'units';
   if (byRate(a) && byRate(s) && (a.ratePer ?? 'min') === (s.ratePer ?? 'min')) return `${fmtN(s.rate as number)} ${unit} ${PER_WORD[s.ratePer ?? 'min']} instead of ${fmtN(a.rate as number)}`;
   if (byCycle(a) && byCycle(s)) {
-    if (a.perCycle === s.perCycle) return `${fmtN(s.perCycle as number)} ${unit} every ${fmtN(s.cycleSec as number)} s instead of every ${fmtN(a.cycleSec as number)} s`;
-    if (a.cycleSec === s.cycleSec) return `${fmtN(s.perCycle as number)} ${unit} every ${fmtN(s.cycleSec as number)} s instead of ${fmtN(a.perCycle as number)}`;
-    return `${fmtN(s.perCycle as number)} ${unit} every ${fmtN(s.cycleSec as number)} s instead of ${fmtN(a.perCycle as number)} every ${fmtN(a.cycleSec as number)} s`;
+    if (a.perCycle === s.perCycle) return `${fmtN(s.perCycle as number)} ${unit} every ${everyWords(s.cycleSec as number)} instead of every ${everyWords(a.cycleSec as number)}`;
+    if (a.cycleSec === s.cycleSec) return `${fmtN(s.perCycle as number)} ${unit} every ${everyWords(s.cycleSec as number)} instead of ${fmtN(a.perCycle as number)}`;
+    return `${fmtN(s.perCycle as number)} ${unit} every ${everyWords(s.cycleSec as number)} instead of ${fmtN(a.perCycle as number)} every ${everyWords(a.cycleSec as number)}`;
   }
   // the way of saying it changed (a minute → an hour, a rate → a timing): both, as typed
   const typed = (x: Station, withUnit: boolean) => {
     const u = withUnit ? `${unit} ` : '';
     if (byRate(x)) return `${fmtN(x.rate as number)} ${u}${PER_WORD[x.ratePer ?? 'min']}`;
-    if (byCycle(x)) return `${fmtN(x.perCycle as number)} ${u}every ${fmtN(x.cycleSec as number)} s`;
+    if (byCycle(x)) return `${fmtN(x.perCycle as number)} ${u}every ${everyWords(x.cycleSec as number)}`;
     return withUnit ? speedWords(x) : speedWords(x).replace(` ${unit}`, '');
   };
   return `${typed(s, true)} instead of ${typed(a, false)}`;
@@ -1114,7 +1165,7 @@ const PER_WORDS: Record<RatePer, string> = { sec: 'a second', min: 'a minute', h
 export function stationDetail(s: Station, prevUnit?: string): string {
   const unit = (s.speedIn === 'before' && prevUnit?.trim() ? prevUnit : s.unit).trim() || 'units';
   const speed = s.rate != null && s.rate > 0 ? `${fmtN(s.rate)} ${unit} ${PER_WORDS[s.ratePer ?? 'min']}`
-    : s.perCycle != null && s.cycleSec != null ? `${fmtN(s.perCycle)} ${unit} every ${fmtN(s.cycleSec)} s` : 'no speed';
+    : s.perCycle != null && s.cycleSec != null ? cycleWords(s.perCycle, s.cycleSec, unit) : 'no speed';
   const crew = s.crew ?? 1;
   const who = s.kind === 'people' ? `${fmtN(crew)} ${crew === 1 ? 'person' : 'people'}` : crew === 1 ? '1 of it' : `${fmtN(crew)} of it`;
   const rest = allowanceOf(s);

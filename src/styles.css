@@ -8071,6 +8071,8 @@ span.ls-role:hover { border-color: transparent; }
 .cap-feed .cap-st-in, .cap-feed .cap-st-says { display: block; }
 .cap-feed .cap-st-in { color: var(--ink-2); font-weight: 600; }
 /* a person fed straight, loaded past what a person sustains — amber, said in words (docs/CAPACITY.md §1) */
+.cap-astime { margin: 4px 0 0; font-size: 13px; line-height: 1.4; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.cap-astime .cw-link { font-weight: 600; }
 .cap-feed .cap-st-paced { display: block; color: var(--st-a); font-weight: 600; margin-top: 4px; }
 /* timed per its own unit or the one before (a palletiser per basket) */
 .cap-per { display: inline-flex; align-items: center; gap: 6px; margin: 0 8px 6px 0; }
