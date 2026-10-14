@@ -555,6 +555,15 @@ pushed (`src/cloud/sync.ts`), so a stray local write cannot stall a sync.
   same pass (`src/cloud/sync.ts`, the push). Never go back to a plain upsert
   for an edited row. The engine keeps a trace of every decision
   (`syncTrace()`); the harness prints both devices' when a scenario fails.
+- **A sheet's back() undoes a script's goto.** A sheet closed by Escape or ×
+  takes its own history entry off a moment later with `history.back()`
+  (`ui/backCloses`). The app's own `nav()` waits for it (`afterPanelBack`); a
+  test's `page.goto` straight after does not, and the late back lands on top
+  of it — the page under the sheet where the next page was asked for. It
+  failed the 6M acceptance's PDF download once in three parallel runs and in
+  the gate (14 October), and read as "the download is slow". An acceptance
+  script that closes a sheet and then navigates waits for
+  `!history.state?.flPanel` first (`sixm-evidence.mjs` `go`).
 - **Schema drift is silent.** The app's mapper and the SQL migrations are two
   descriptions of the same columns. When they disagree the push is rejected, the
   cursor never advances, the row never leaves the device, and nothing on screen

@@ -47,7 +47,16 @@ page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) er
 
 let failed = 0;
 const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}`); if (!c) failed++; };
-const go = async h => { await page.goto(`${BASE}/${h}`); await page.waitForTimeout(2500); };
+/* A SHEET CLOSED JUST BEFORE (Escape) takes its own history entry off with a
+   back() of its own, a moment later (ui/backCloses). The app's navigation
+   waits for it (afterPanelBack); a goto does not, and a back landing after
+   the goto undid it — the page under the sheet back where the client report
+   was asked for, and no PDF to press (the 6M paper's download, once in three
+   runs at once and in the gate). So the entry goes first. */
+const go = async h => {
+  await page.waitForFunction(() => !(history.state && history.state.flPanel), null, { timeout: 5000 }).catch(() => {});
+  await page.goto(`${BASE}/${h}`); await page.waitForTimeout(2500);
+};
 const words = async sel => ((await page.locator(sel).count()) ? (await page.locator(sel).first().innerText()).replace(/\s+/g, ' ').trim() : '');
 const pdfText = f => execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
 
