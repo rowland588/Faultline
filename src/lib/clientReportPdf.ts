@@ -69,6 +69,10 @@ const CELL_COLOUR: Record<CellTone, { fill?: string; stroke: string }> = {
   none: { stroke: '#e3e9f1' },
 };
 const FIX_COLOUR: Record<string, string> = { late: DANGER, notRun: DANGER, soon: AMBER, ahead: BOOKED, done: OK };
+/* A REGISTER PROBLEM'S PRIORITY — RAG, always with its word, only on its tag
+   (Rowland, 12 October; lib/snagsReportPdf). */
+const PRIORITY_INK = { critical: DANGER, high: AMBER, low: OK } as const;
+const PRIORITY_TAG = { critical: 'CRITICAL', high: 'HIGH', low: 'LOW' } as const;
 
 export interface ClientReportExtras {
   /** A picture per fix id: its frame on the line with the dot, or its photo. */
@@ -338,7 +342,7 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
      printed a heading per gate, each saying "nothing kept" — three of a
      page's sections telling the client nothing. They are named together. */
   const said2 = (s: ClientReport['sections'][number]) =>
-    !!(s.grid?.rows.length || s.late.length || s.problems.length || s.failed?.length || s.accounts?.length || s.programs?.total || s.tests?.length);
+    !!(s.grid?.rows.length || s.late.length || s.problems.length || s.failed?.length || s.accounts?.length || s.programs?.total || s.linePrograms?.length || s.tests?.length);
   const quiet = r.sections.filter(s => !said2(s));
   for (const s of r.sections.filter(said2)) {
     out.push(heading(s.label, s.says));
@@ -401,6 +405,13 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
       out.push(text({ text: 'A problem — no time lost', size: S.small, style: 'bold', colour: AMBER, after: 3 }));
       s.problems.forEach((l, i, all) => out.push(text({ text: l, size: 9, colour: INK2, indent: 12, bullet: '•', after: i === all.length - 1 ? gap(d, 's') : 1 })));
     }
+    /* NOT ADDED YET — what the gate's Needs you says is missing (lib/install
+       gateGaps): a machine with none of its stages, stages not on a
+       machine's list. Grey: not started, not wrong (the colour rules). */
+    if (s.gaps?.length && s.grid) {
+      out.push(text({ text: 'Not added yet', size: S.small, style: 'bold', colour: MUTED, after: 3 }));
+      s.gaps.forEach((l, i, all) => out.push(text({ text: l, size: 9, colour: INK2, indent: 12, bullet: '•', after: i === all.length - 1 ? gap(d, 's') : 1 })));
+    }
 
     /* HOURS LOST — under what is late, in the same neutral ink: hours are the
        work, and only a finish that moved is late (on the plan). */
@@ -434,6 +445,13 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
     if (s.programs && s.programs.total) {
       out.push(text({ text: `Programs — ${s.programs.says}`, size: S.h2, style: 'bold', before: 4, after: 4 }));
       out.push(...programsBlocks(s.programs, d));
+    }
+    /* THE LINE'S OWN PROGRAMS — planned on the job's line with no job, on the
+       job's Programs page and proved by its tests: the line's reading, in the
+       words the line's Programs page says (lib/lineRecords). */
+    for (const lp of s.linePrograms ?? []) {
+      out.push({ ...text({ text: `On ${lp.line}, with no job — ${lp.reading.says}`, size: S.h2, style: 'bold', before: 4, after: 4 }), keepWithNext: true });
+      out.push(...programsBlocks(lp.reading, d));
     }
 
     /* THE PERFORMANCE RUNS — a row per product: what it netted against what
@@ -503,13 +521,15 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
         title: wrap(f.doc, t.title, f.w - sideW, 9.5, 'bold'),
         agreed: t.passesIf ? wrap(f.doc, `Passes if: ${t.passesIf}`, f.w - sideW, 8.5) : [],
         res: t.run || t.result ? wrap(f.doc, `Result: ${[t.run, t.result].filter(Boolean).join('. ')}`, f.w - sideW, 8.5) : [],
+        /* what proved it, or is still short — a study at the line (lib/studyLinks) */
+        proved: t.proved ? wrap(f.doc, t.proved, f.w - sideW, 8.5) : [],
         side: wrap(f.doc, [t.machine, t.when].filter(Boolean).join(' · '), 84, 8),
       });
       out.push(rows({
         rows: s.tests.map(t => ({
           h: f => {
             const p = parts(f, t);
-            return 10 + Math.max(p.title.length * 12 + (p.agreed.length + p.res.length) * 10.5, p.side.length * 10, 14) + 6;
+            return 10 + Math.max(p.title.length * 12 + (p.agreed.length + p.res.length + p.proved.length) * 10.5, p.side.length * 10, 14) + 6;
           },
           draw: (f, y) => {
             const p = parts(f, t);
@@ -517,7 +537,8 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
             font(f.doc, 9.5, 'bold'); f.doc.text(p.title, f.x, y + 13);
             let ty = y + 13 + p.title.length * 12;
             if (p.agreed.length) { font(f.doc, 8.5, 'normal', MUTED); f.doc.text(p.agreed, f.x, ty); ty += p.agreed.length * 10.5; }
-            if (p.res.length) { font(f.doc, 8.5, 'normal', INK2); f.doc.text(p.res, f.x, ty); }
+            if (p.res.length) { font(f.doc, 8.5, 'normal', INK2); f.doc.text(p.res, f.x, ty); ty += p.res.length * 10.5; }
+            if (p.proved.length) { font(f.doc, 8.5, 'normal', SHELL); f.doc.text(p.proved, f.x, ty); }
             font(f.doc, 8, 'normal', MUTED); f.doc.text(p.side, f.x + f.w - sideW + 6, y + 13);
             // A planned day is still ahead — indigo; no day yet stays grey (the colour rules).
             const tc = t.tone === 'done' ? 'done' : t.tone === 'failed' || t.tone === 'late' ? 'late' : t.tone === 'booked' ? 'going' : 'ahead';
@@ -579,6 +600,36 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
       out.push(text({ text: 'Sorted', size: S.small, style: 'bold', colour: OK, before: 4, after: 3 }));
       r.noted.sorted.forEach((l, i, all) => out.push(text({ text: l, size: 9, colour: INK2, indent: 12, bullet: '•', after: i === all.length - 1 ? gap(d, 's') : 1 })));
     }
+  }
+
+  /* PROBLEMS FOR THIS JOB — NOT ON IT YET: taken on the register for the job
+     and not yet a problem or a fix on it — the Fixes page's own list — each
+     with its priority tag in its word and its RAG colour (the priority
+     exception, CLAUDE.md), where, whose and by when; a day gone by in red. */
+  if (r.assigned.length) {
+    out.push(heading('Problems for this job — not on it yet', `${r.assigned.length} on the register`));
+    const tagW = 48, dueW = 96;
+    const parts = (f: Frame, a: (typeof r.assigned)[number]) => ({
+      what: wrap(f.doc, a.what, f.w - tagW - dueW - 8, 9.5, 'bold'),
+      meta: wrap(f.doc, a.meta, f.w - tagW - dueW - 8, 8.5),
+      due: a.due ? wrap(f.doc, a.due, dueW, 8.5, a.late ? 'bold' : 'normal') : [],
+    });
+    out.push(rows({
+      rows: r.assigned.map(a => ({
+        h: (f: Frame) => { const p = parts(f, a); return 6 + Math.max(p.what.length * 12 + p.meta.length * 10.5, p.due.length * 10.5) + 5; },
+        draw: (f: Frame, y: number) => {
+          const p = parts(f, a);
+          f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.5); f.doc.line(f.x, y, f.x + f.w, y);
+          f.doc.setFillColor(PRIORITY_INK[a.priority]); f.doc.roundedRect(f.x, y + 4, tagW - 8, 12, 3, 3, 'F');
+          font(f.doc, 6.5, 'bold', '#ffffff'); f.doc.text(PRIORITY_TAG[a.priority], f.x + (tagW - 8) / 2, y + 12.3, { align: 'center' });
+          font(f.doc, 9.5, 'bold', INK2); f.doc.text(p.what, f.x + tagW, y + 13);
+          font(f.doc, 8.5, 'normal', MUTED); f.doc.text(p.meta, f.x + tagW, y + 13 + p.what.length * 12);
+          /* by when, on the right — red only when its day has gone */
+          if (p.due.length) { font(f.doc, 8.5, a.late ? 'bold' : 'normal', a.late ? DANGER : INK2); f.doc.text(p.due, f.x + f.w - dueW, y + 13); }
+        },
+      })),
+      after: 'm',
+    }));
   }
 
   /* ================================ 4 · WHO OWES WHAT ================================ */
@@ -789,13 +840,16 @@ export async function drawStatusReport(doc: jsPDF, report: ClientReport): Promis
       if (p.note) out.push(text({ text: p.note, size: 8.5, colour: MUTED, indent: 22, after: last ? gap(d, 'l') : 3 }));
     });
     if (s.programMore) out.push(text({ text: `and ${s.programMore} more — in the programs report.`, size: 8.5, colour: MUTED, indent: 10, after: gap(d, 'l') }));
+    /* The line's own programs, a line each — the job's Programs page shows them. */
+    s.linePrograms.forEach((l, i, all) => out.push(text({ text: l, size: 9, style: 'bold', colour: INK2, after: i === all.length - 1 ? gap(d, 'l') : 2 })));
 
     /* 2 · WHY WE ARE NOT WHERE WE SHOULD BE — only the abnormal, a tag in
        its colour, what, and its cause or cost under it. */
     out.push(label('Why we are not where we should be', s.why.length ? DANGER : MUTED));
     if (!s.why.length) out.push(text({ text: 'Nothing — everything is on plan.', colour: INK2, after: gap(d, 'l') }));
     /* Not planned yet is grey — not started, not wrong (docs/JOBSTART.md). */
-    const tagColour: Record<string, string> = { critical: DANGER, risk: AMBER, late: DANGER, failed: DANGER, problem: AMBER, unplanned: MUTED };
+    /* One on the register for the job, not on it yet, is waiting on somebody to take it on — amber. */
+    const tagColour: Record<string, string> = { critical: DANGER, risk: AMBER, late: DANGER, failed: DANGER, problem: AMBER, unplanned: MUTED, assigned: AMBER };
     const tagW = 62;
     const whyParts = (f: Frame, w: (typeof s.why)[number]) => ({
       what: wrap(f.doc, w.what, f.w - tagW - 8, 9.5, 'bold'),

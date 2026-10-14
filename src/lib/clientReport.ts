@@ -23,23 +23,27 @@
  * Pure: the screen gathers the records, this shapes them, the drawer draws. */
 import { isRunTest, productFigures, productName, readRuns, runsLine } from './run';
 import type { MediaPin, Project } from '../types';
-import { answerOf, GATE_WORD, installGrid, jobJourney, lateOrProblemSays, handedOverWith, machineAt, machinesWhere, journeyOf, usualStages, type GateTone, type JourneyGate, type StepView, lateByWords, heldUpBy } from './install';
+import { answerOf, GATE_WORD, gateGaps, installGrid, jobJourney, lateOrProblemSays, handedOverWith, machineAt, machineNow, machinesWhere, journeyOf, usualStages, type GateTone, type JourneyGate, type StepView, lateByWords, heldUpBy } from './install';
 import { stageGateOnTarget, type OnTarget } from './onTarget';
 import { standing, slipWords, type OutstandingRow, type PlanMark } from './standing';
 import { fixTone, type FixTone } from './fixTone';
 import { isProgramsStage, type Program } from './programs';
-import { programsReading, type ProgramsReading } from './programsReport';
+import { programsOpenOn, programsReading, type ProgramsReading } from './programsReport';
+import { jobLineReadings, machineKey, type JobLinePrograms } from './lineRecords';
+import { assetStateOf } from './testing';
+import type { Snag } from '../snag/types';
+import { PRIORITY_RANK } from './snagsReport';
 import { filesSaid, live, hasRun, latestAttempts, outcomeWord, type Asset, type StepGate, type Test, type TestItem } from './testing';
 import type { Material } from './materials';
 import type { Standard } from './standard';
 import { niceDay, todayISO } from './weeks';
 import { dayLength, daysWord, hoursTally, hoursWord } from './hoursLost';
-import { notedProblems, partsOf, partWords, resultNow } from './noted';
+import { notedProblems, partsOf, partWords, resultNow, type Noted } from './noted';
 import { couldWords, criticalProblems, criticalState, riskProblems, type Critical } from './critical';
 import type { WalkSnag } from './walkSnags';
 import { climbsOf } from './rampUp';
 import type { ToolStudy } from './study';
-import { lossFiguresOf, provedLine, studyHref, studyLine, studyTitle, type StudyContext } from './studyLinks';
+import { lossFiguresOf, provedLine, recordProvedLine, studyHref, studyLine, studyTitle, type StudyContext } from './studyLinks';
 import { streamRows } from './ie/steps';
 import { agreedFor, changeoverSheet, moneyOf } from './ie/changeover';
 import { lossRows } from './ie/losses';
@@ -91,10 +95,22 @@ export interface GateSection {
    *  status and what was seen, and its proving in Commission
    *  (lib/programsReport). The same reading the programs report prints. */
   programs?: ProgramsReading;
+  /** Set up only: THE LINE'S OWN PROGRAMS — planned on the job's line with
+   *  no job, shown on the job's Programs page (ui/LineProgramsOnJob) and
+   *  proved by a test here: the line's reading (lib/lineRecords
+   *  lineProgramsReading), the same words the line's Programs page says. */
+  linePrograms?: { line: string; reading: ProgramsReading }[];
+  /** WHAT THE GATE'S NEEDS YOU SAYS IS MISSING (lib/install gateGaps) — a
+   *  machine with none of the gate's stages yet, a machine's stages not
+   *  added yet — in the gate screen's words, grey: not started, not late. */
+  gaps?: string[];
   /** Commission only: the tests, in the order they were planned. */
   tests?: { title: string; machine?: string; when: string; outcome: string; tone: 'done' | 'failed' | 'booked' | 'ahead' | 'late'; result?: string; passesIf?: string;
     /** A run at a rate, in one line (lib/run runLine). */
-    run?: string }[];
+    run?: string;
+    /** WHAT PROVED IT, or is still short — a study at the line (lib/studyLinks
+     *  recordProvedLine), as the hand-over and the test's row say it. */
+    proved?: string }[];
   /** Commission only: THE PERFORMANCE RUNS — a row per PRODUCT of the latest
    *  attempt of each run at a rate, with its numbers, first in the section.
    *  Rowland, 7 October: "this is my time of acceptance ... people ask how
@@ -212,6 +228,19 @@ export interface ClientReport {
   /** The same problems as records — for the Reports screen, where each row
    *  opens the problem in the drawer, to change it or take it off. */
   notedRows: { id: string; text: string; sorted: boolean }[];
+  /** PROBLEMS FOR THIS JOB — NOT ON IT YET: taken on the register for the
+   *  job and not yet made a problem or a fix on it (the Fixes page's own
+   *  list), each with its priority — Critical · High · Low, in its word — its
+   *  line and machine, whose and by when. */
+  assigned: { id: string; priority: 'critical' | 'high' | 'low';
+    /** The problem as written. */
+    what: string;
+    /** "Line 7 · Coder · Priya" — where and whose. */
+    meta: string;
+    /** "due 16 Oct" · "was due 7 Oct" — by when, when it has a day. */
+    due?: string;
+    /** Its day has gone. */
+    late: boolean }[];
   waiting: OutstandingRow[];
   /** THE LEAD'S COMMENTARY (Project.reportNote) — printed under "where we
    *  are" on both reports. Rowland, 9 October: "we have numbers but not the
@@ -286,10 +315,62 @@ export interface ClientReportInput {
    *  model (lib/studyLinks StudyContext). Absent: a count says its loss, and
    *  not where it went. */
   studyContext?: StudyContext;
+  /** The studies that can show a program proved — the job's and its lines'
+   *  (ToolStudy.programId): a program proved by a study on its line says so,
+   *  as the line's Programs page does, never "signed off by hand". */
+  proofStudies?: ToolStudy[];
+  /** THE JOB'S LINES' OWN PROGRAMS — planned on the line with no job
+   *  (ui/LineProgramsOnJob reads the same). */
+  linePrograms?: JobLinePrograms[];
+  /** The tests that prove programs, on whichever job (Test.programId): a
+   *  line's program proved on another job says its test, never "signed off
+   *  by hand" (ui/LineProgramsOnJob reads the same). */
+  provingTests?: Test[];
+  /** The register's problems taken for this job (Snag.projectId) — those not
+   *  yet sent to it are its "Problems for this job — not on it yet". */
+  assigned?: Snag[];
+  /** A line's name, for an assigned problem's line. */
+  lineName?: (wsId: string) => string;
   today: string;
 }
 
+/** THE REGISTER'S PROBLEMS FOR A JOB, NOT ON IT YET — the Fixes page's
+ *  list (screens/FixesScreen jobSnags): for the job, not sent to it, open,
+ *  not put away. Critical first, then High, then Low; oldest first in each. */
+export function assignedToJob(snags: readonly Snag[], projectId: string): Snag[] {
+  return snags.filter(sn => sn.projectId === projectId && !(sn.sent ?? []).length && sn.status !== 'closed' && !sn.deletedAt && !sn.archivedAt)
+    .sort((a, b) => PRIORITY_RANK[a.priority ?? 'low'] - PRIORITY_RANK[b.priority ?? 'low'] || a.raisedAt - b.raisedAt);
+}
+
+/** A register problem as the Fixes page's row says it — "Coder misprints the
+ *  date", "Line 7 · Coder · Priya" and "due 16 Oct" (its priority said beside
+ *  it, in its word); a day gone by "was due", the one part in red. */
+export function assignedWords(sn: Snag, today: string, lineName?: (wsId: string) => string): { what: string; meta: string; due?: string; late: boolean } {
+  const dueOn = sn.dueAt ? todayISO(new Date(sn.dueAt)) : '';
+  const late = !!dueOn && dueOn < today;
+  return {
+    what: sn.problem.trim() || 'A picture, no words yet',
+    meta: [lineName?.(sn.workspaceId) ?? '', sn.targetAsset?.trim() ?? '', sn.owner?.trim() || 'nobody yet'].filter(Boolean).join(' · '),
+    ...(dueOn ? { due: `${late ? 'was due' : 'due'} ${niceDay(dueOn)}` } : {}),
+    late,
+  };
+}
+
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+/** A register problem names its machine by name (Snag.targetAsset). */
+export const namesMachine = (sn: Pick<Snag, 'targetAsset'>, a: Pick<Asset, 'name'>): boolean =>
+  !!sn.targetAsset?.trim() && machineKey(sn.targetAsset) === machineKey(a.name);
+
+/** WHAT A HANDED-OVER MACHINE WENT WITH, beyond lib/install handedOverWith —
+ *  its programs not done as the Programs page says them (flow audit #3), its
+ *  problems with no fix (lib/noted), and the register's problems for the job
+ *  on it — in the same words on the full report and the handover. */
+export function wentWithAlso(a: Asset, progs: ProgramsReading | undefined, programs: readonly Program[], noted: readonly Noted[], assigned: readonly Pick<Snag, 'targetAsset'>[]): string[] {
+  const mine = noted.filter(r => r.on?.assetId === a.id).length;
+  const reg = assigned.filter(sn => namesMachine(sn, a)).length;
+  return [...programsOpenOn(progs, a.id, programs).counts, mine ? `${plural(mine, 'problem')} with no fix` : '', reg ? `${plural(reg, 'problem')} not on the job yet` : ''].filter(Boolean);
+}
 
 export function clientReport(x: ClientReportInput): ClientReport {
   const { project, today } = x;
@@ -301,15 +382,30 @@ export function clientReport(x: ClientReportInput): ClientReport {
     expectedAt: project.expectedAt, plannedAt: project.plannedAt, today,
   });
 
+  /* THE JOB'S STUDIES — evidence, never moved: each fix and test reads the one link. */
+  const studies = (x.studies ?? []).filter(s => !s.deletedAt && s.projectId === project.id);
+  /* the studies that can show a program proved — the job's and its lines' */
+  const proofStudies = x.proofStudies ?? studies;
+  /* THE PROGRAMS, read once (lib/programsReport) — Set up's section, the
+     programs report and what a machine was handed over with. */
+  const progs = programsReading({ tests, items, assets, programs, today, holder: project, studies: proofStudies });
+
+  const notedOpen = notedProblems(tests, items, assets).open;
+  const assignedSnags = assignedToJob(x.assigned ?? [], project.id);
+
   /* ---- where the job is ---- */
   const job = jobJourney(assets, tests, items, today, programs);
   const machines = assets.map(a => {
     const j = journeyOf(a, tests, items, today, programs);
     /* "Due on site" for a machine not here yet, never "Install" (machineAt). */
-    /* What it was handed over with, beside "Handed over" (docs/HANDOVER.md). */
-    const open = handedOverWith(a, tests, items, today, programs);
+    /* What it was handed over with, beside "Handed over" (docs/HANDOVER.md)
+       — a program that failed or is not proved among it (flow audit #3). */
+    const open = machineNow(j) === 'Handed over' ? [...handedOverWith(a, tests, items, today, programs), ...wentWithAlso(a, progs, programs, notedOpen, assignedSnags)] : [];
     return { name: a.name, at: machineAt(a, j).short, gates: j.map(g => g.tone), ...(open.length ? { with: open } : {}) };
   });
+  /* A MACHINE LATE ON SITE — awaited past its day, as the control room and
+     Install's Needs you list it (lib/portfolio jobItems). */
+  const lateOnSite = assets.filter(a => assetStateOf(a) === 'awaited' && !!a.dueOn && a.dueOn < today && !a.onSiteOn);
 
   /* ---- gate by gate ---- */
   const stepGate = (gate: StepGate): GateSection => {
@@ -389,6 +485,16 @@ export function clientReport(x: ClientReportInput): ClientReport {
         : h.hours >= day ? ' — the finish has not been moved for it' : '';
       return [`${r.asset?.name ?? 'The line'} — ${s.step.title}: ${hoursWord(h.hours)} lost${state} (${each.join('; ')})`];
     });
+    /* A machine late on site is late at Install — Needs you's first line,
+       opening the machine itself. */
+    const siteLate = gate === 'install' ? lateOnSite : [];
+    /* WHAT NEEDS YOU SAYS IS MISSING at this gate (lib/install gateGaps), in its words */
+    const gp = gateGaps(g, gate);
+    const things = gate === 'handover' ? 'hand-over items' : 'stages';
+    const gaps = [
+      ...(gp.bare.length ? [`${gp.bare.map(a => a.name).join(', ')} — none of the ${things} yet`] : []),
+      ...gp.byMachine.map(m => `${m.asset?.name ?? 'The line'} — ${m.n} ${gate === 'handover' ? `item${m.n === 1 ? '' : 's'}` : `stage${m.n === 1 ? '' : 's'}`} not added yet`),
+    ];
     const problems = problemSteps.length;
     const lateN = lateSteps.length;
     /* DONE, BUT LATE — Rowland, 7 October: "planned 5 to the 6th, done the
@@ -402,26 +508,32 @@ export function clientReport(x: ClientReportInput): ClientReport {
       /* A gate the machines are marked past with no steps kept is done, and
          says so — a green box reading "nothing kept" told the client two
          things at once (seen on a random-job report, 4 Oct). */
-      says: steps.length === 0 ? (tone === 'done' ? 'Done — no steps kept for it' : 'Nothing kept at this gate yet')
-        : `${done} of ${steps.length} done${doneLateN ? ` (${doneLateN} done late)` : ''}${lateN ? ` · ${lateN} late` : ''}${problems ? ` · ${problems} a problem` : ''}${unplanned ? ` · ${unplanned} not added yet` : ''}`,
+      says: steps.length === 0 ? (tone === 'done' ? 'Done — no steps kept for it' : `Nothing kept at this gate yet${siteLate.length ? ` · ${siteLate.length} machine${siteLate.length === 1 ? '' : 's'} late on site` : ''}`)
+        : `${done} of ${steps.length} done${doneLateN ? ` (${doneLateN} done late)` : ''}${lateN ? ` · ${lateN} late` : ''}${problems ? ` · ${problems} a problem` : ''}${unplanned ? ` · ${unplanned} not added yet` : ''}${siteLate.length ? ` · ${siteLate.length} machine${siteLate.length === 1 ? '' : 's'} late on site` : ''}${gp.bare.length ? ` · ${gp.bare.length} machine${gp.bare.length === 1 ? '' : 's'} with none yet` : ''}`,
       grid: rows.length ? { columns: g.columns, rows } : undefined,
-      late: lateSteps, lateIds: lateAll.map(({ s }) => s.step.id),
+      late: [...siteLate.map(a => `${a.name} — not on site, was due ${niceDay(a.dueOn)}`), ...lateSteps],
+      lateIds: [...siteLate.map(a => a.id), ...lateAll.map(({ s }) => s.step.id)],
       problems: problemSteps, problemIds: problemAll.map(({ s }) => s.step.id),
       ...(failedParts.length ? { failed: failedParts, failedIds: failedAll.map(x => x.id) } : {}),
       ...(hourLines.length ? { hours: { total: `${hoursWord(lostAll)} lost to problems — ${daysWord(lostAll, day)} at ${hoursWord(day)} a day`, lines: hourLines } } : {}),
       ...(accounts.length ? { accounts } : {}),
+      ...(gaps.length ? { gaps } : {}),
     };
   };
 
   const install = stepGate('install');
   const setup = stepGate('setup');
-  const progs = programsReading({ tests, items, assets, programs, today, holder: project });
   if (progs) {
     setup.programs = progs;
     setup.says = setup.says === 'Nothing kept at this gate yet'
       ? `${progs.doneAll} of ${progs.total} programs done`
       : `${setup.says} · ${progs.doneAll} of ${progs.total} programs done`;
   }
+  /* THE LINE'S OWN PROGRAMS, on the job's line with no job — the line's own
+     reading, its own words (lib/lineRecords), proved by a test here or a study */
+  const provingTests = [...tests, ...(x.provingTests ?? []).filter(t => !tests.some(u => u.id === t.id))];
+  const linePrograms = jobLineReadings(x.linePrograms ?? [], today, { tests: provingTests, studies: proofStudies });
+  if (linePrograms.length) setup.linePrograms = linePrograms;
 
   const proofs = tests.filter(t => (t.kind ?? 'test') === 'test').sort((a, b) => a.sort - b.sort);
   /* THE COUNTS ARE THE LATEST ATTEMPT OF EACH TEST. A test that failed and
@@ -447,6 +559,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
       tone: t.outcome === 'passed' ? 'done' : t.outcome === 'failed' || t.outcome === 'notRun' ? 'failed'
         : (endOf(t) ?? '\uffff') < today ? 'late' : t.plannedFor ? 'booked' : 'ahead',
       result: t.result, passesIf: t.passesIf,
+      ...((pr => (pr ? { proved: pr } : {}))(recordProvedLine(studies, t, x.studyContext))),
       /* A run's numbers are in the Performance runs table above; an earlier
          attempt, not in that table, carries them on its own line. */
       ...(runsLine(t) && !(isRunTest(t, answerOf(t, project)) && now.includes(t)) ? { run: runsLine(t) } : {}),
@@ -486,8 +599,6 @@ export function clientReport(x: ClientReportInput): ClientReport {
   const handover = stepGate('handover');
 
   /* ---- fixes ---- */
-  /* THE JOB'S STUDIES — evidence, never moved: each fix reads the one link. */
-  const studies = (x.studies ?? []).filter(s => !s.deletedAt && s.projectId === project.id);
   const ctx = x.studyContext;
   const provedOf = (fixId: string): string | undefined => provedLine(studies, fixId, 'fix', ctx);
   const fixRow = (t: Test): FixRow => {
@@ -561,6 +672,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
       return [...n.open.filter(plain).map(r => ({ id: r.item.id, text: line(r), sorted: false })),
         ...n.sorted.filter(plain).map(r => ({ id: r.item.id, text: line(r), sorted: true }))];
     })(),
+    assigned: assignedSnags.map(sn => ({ id: sn.id, priority: sn.priority ?? 'low', ...assignedWords(sn, today, x.lineName) })),
     waiting: st.rows,
     ...(project.reportNote?.trim() ? { commentary: {
       text: project.reportNote.trim(),

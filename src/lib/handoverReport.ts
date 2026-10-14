@@ -21,13 +21,19 @@
 import { recordProvedLine } from './studyLinks';
 import type { ToolStudy } from './study';
 import { filesSaid, isOverdue, latestAttempts, live, outcomeWord, plannedEnd, testOfFix, type Asset, type Test, type TestItem } from './testing';
-import { answerOf, doneLateBy, handedOverWith, installOf, isSignOff, journeyOf, machineAt, stillOpenOn } from './install';
+import { answerOf, doneLateBy, handedOverWith, installOf, isSignOff, journeyOf, machineAt, machineNow, stillOpenOn } from './install';
 import { standing } from './standing';
 import { stageGateOnTarget, type OnTarget } from './onTarget';
 import { isHere, type Material } from './materials';
 import type { Program } from './programs';
 import { niceDay } from './weeks';
 import type { Project } from '../types';
+import type { Snag } from '../snag/types';
+import { programsOpenOn, programsReading, type ProgramsReading } from './programsReport';
+import { jobLineReadings, type JobLinePrograms } from './lineRecords';
+import { notedProblems } from './noted';
+import { assignedToJob, assignedWords, namesMachine, wentWithAlso } from './clientReport';
+import { PRIORITY_WORD } from './snagsReport';
 
 /** done · didn't pass · late (its day gone, or never run) · still ahead · no day. */
 export type HoTone = 'done' | 'failed' | 'late' | 'ahead' | 'none';
@@ -75,8 +81,14 @@ export interface HoMachine {
   /** No test was ever kept on it. */
   noTest: boolean;
   items: HoItem[];
-  /** Everything still open on it, by name (lib/install stillOpenOn). */
+  /** Everything still open on it, by name (lib/install stillOpenOn) — and
+   *  its programs not done as the Programs page says them (lib/programsReport
+   *  programsOpenOn), its problems with no fix, and the register's problems
+   *  for this job on it, not on the job yet. */
   open: string[];
+  /** Its programs in a line — "4 programs · 3 done — 2 passed, 1 at
+   *  baseline · 1 failed" — when it has any. */
+  programs?: string;
 }
 
 export interface HandoverReport {
@@ -96,19 +108,44 @@ export interface HandoverReport {
   /** "3 of 4 machines handed over". */
   machinesSaid: string;
   machines: HoMachine[];
-  /** Still open on no one machine — a fix for the line, a material not in. */
+  /** Still open on no one machine — a fix for the line, a material not in,
+   *  a problem on no machine, one on the register for the job. */
   line: string[];
+  /** THE JOB'S LINES' OWN PROGRAMS — planned on the line with no job, shown
+   *  on the job's Programs page and proved by its tests: the line's reading
+   *  in a line, and those not done by name. */
+  linePrograms: { line: string; says: string; open: string[] }[];
   /** The lines to sign. */
   sign: string[];
 }
 
 export interface HandoverInput {
-  project: Pick<Project, 'name' | 'lead' | 'plannedAt' | 'expectedAt'> & Partial<Pick<Project, 'gateStages'>>;
+  project: Pick<Project, 'name' | 'lead' | 'plannedAt' | 'expectedAt'> & Partial<Pick<Project, 'gateStages' | 'id'>>;
   assets: Asset[]; tests: Test[]; items: TestItem[];
   materials: Material[]; programs: Program[];
   /** The job's studies — what proved each test (lib/study). */
   studies?: ToolStudy[];
+  /** The studies that can show a program proved — the job's and its lines'. */
+  proofStudies?: ToolStudy[];
+  /** The job's lines' own programs (lib/clientReport ClientReportInput). */
+  linePrograms?: JobLinePrograms[];
+  /** The tests that prove programs, on whichever job. */
+  provingTests?: Test[];
+  /** The register's problems taken for this job (Snag.projectId). */
+  assigned?: Snag[];
+  lineName?: (wsId: string) => string;
   today: string;
+}
+
+/** A PROGRAMS READING ON ONE MACHINE, in a line — "4 programs · 3 done — 2
+ *  passed, 1 at baseline · 1 failed · 1 to do". Undefined with none. */
+export function programsSaidOn(r: ProgramsReading | undefined, assetId: string): string | undefined {
+  const ls = (r?.lines ?? []).filter(l => (l.assetId ?? '') === assetId);
+  if (!ls.length) return undefined;
+  const n = (b: string) => ls.filter(l => l.bucket === b).length;
+  const done = n('done'), base = n('baseline'), all = done + base;
+  return [`${plural(ls.length, 'program')}`, `${all} done${all ? ` — ${[`${done} passed`, base ? `${base} at baseline` : ''].filter(Boolean).join(', ')}` : ''}`,
+    n('failed') ? `${n('failed')} failed` : '', n('late') ? `${n('late')} late` : '', n('open') ? `${n('open')} to do` : ''].filter(Boolean).join(' · ');
 }
 
 const day = (iso?: string) => (iso ? niceDay(iso) : undefined);
@@ -122,9 +159,26 @@ export function handoverReport(x: HandoverInput): HandoverReport {
   const st = standing({ tests, items, assets, materials, programs, expectedAt, plannedAt, today });
   const verdict = stageGateOnTarget({ project: x.project, tests, items, assets, materials, programs, today }, st);
 
+  /* THE PROGRAMS, read once — as the Programs page and the programs report
+     say them, proved by a test or a study on the line (lib/programsReport). */
+  const progs = programsReading({ tests, items, assets, programs, today, holder: x.project, studies: x.proofStudies ?? x.studies ?? [] });
+  /* PROBLEMS WITH NO FIX (lib/noted) — the machine's, and the line's. */
+  const noted = notedProblems(tests, items, assets).open;
+  const flag = (i: { critical?: boolean; risk?: boolean }) => (i.critical ? ' (critical)' : i.risk ? ' (high risk)' : '');
+  const problemOf = (r: (typeof noted)[number]) => `Problem, no fix${flag(r.item)}: ${r.item.what}${r.on ? ` — ${r.on.title}` : ''}`;
+  /* THE REGISTER'S PROBLEMS FOR THIS JOB, NOT ON IT YET — on the machine
+     they name, else on the line (the Fixes page's list). */
+  const assigned = assignedToJob(x.assigned ?? [], x.project.id ?? '').map(sn => ({ sn, w: assignedWords(sn, today, x.lineName) }));
+  const assignedOf = (a: { sn: Snag; w: ReturnType<typeof assignedWords> }) => `Problem for this job, not on it yet (${PRIORITY_WORD[a.sn.priority ?? 'low']}): ${a.w.what} — ${[a.w.meta, a.w.due].filter(Boolean).join(' · ')}`;
+  const onAsset = (a: Asset, sn: Snag) => namesMachine(sn, a);
+
   const machines: HoMachine[] = assets.map(a => {
     const j = journeyOf(a, tests, items, today, programs);
     const at = machineAt(a, j).says;
+    const progOpen = programsOpenOn(progs, a.id, programs);
+    const mineNoted = noted.filter(r => r.on?.assetId === a.id);
+    const mineAssigned = assigned.filter(x => onAsset(a, x.sn));
+    const progSaid = programsSaidOn(progs, a.id);
     const hand = installOf(a, tests, items, today, 'handover').steps.map(v => v.step);
     const on = at === 'Handed over'
       ? hand.filter(t => t.outcome === 'passed').map(t => t.ranTo ?? t.ranOn).filter((d): d is string => !!d).sort().pop()
@@ -132,7 +186,10 @@ export function handoverReport(x: HandoverInput): HandoverReport {
     const proofs = latestAttempts(tests).filter(t => t.assetId === a.id);
     return {
       name: a.name, at, ...(on ? { on } : {}),
-      with: handedOverWith(a, tests, items, today, programs),
+      /* what it went with — a program that failed or is not proved, a
+         problem with no fix, among it (flow audit #3) */
+      with: machineNow(j) === 'Handed over' ? [...handedOverWith(a, tests, items, today, programs), ...wentWithAlso(a, progs, programs, noted, assigned.map(x => x.sn))] : [],
+      ...(progSaid ? { programs: progSaid } : {}),
       tests: proofs.map((t): HoTest => {
         const tone: HoTone = t.outcome === 'passed' ? 'done' : t.outcome === 'failed' ? 'failed'
           : t.outcome === 'notRun' || isOverdue(t, today) ? 'late' : t.plannedFor ? 'ahead' : 'none';
@@ -165,7 +222,7 @@ export function handoverReport(x: HandoverInput): HandoverReport {
           ...(filesSaid(t) ? { files: filesSaid(t) } : done && answerOf(t, x.project, items) === 'paperwork' ? { files: 'No file kept' } : {}),
         };
       }),
-      open: stillOpenOn(a, tests, items, today, programs).names,
+      open: [...stillOpenOn(a, tests, items, today, programs).names, ...progOpen.names, ...mineNoted.map(problemOf), ...mineAssigned.map(assignedOf)],
     };
   });
 
@@ -176,7 +233,16 @@ export function handoverReport(x: HandoverInput): HandoverReport {
       .map(t => `Fix: ${t.title}${t.withWhom?.trim() ? ` · ${t.withWhom.trim()}` : ''}${t.plannedFor ? ` · ${isOverdue(t, today) ? 'was ' : ''}${day(plannedEnd(t) ?? t.plannedFor)}` : ''}`),
     ...materials.filter(m => !isHere(m))
       .map(m => `Material: ${m.what}${m.from?.trim() ? ` · ${m.from.trim()}` : ''}${m.due ? ` · ${m.due < today ? 'was due' : 'due'} ${day(m.due)}` : ''}`),
+    /* a program on the line itself, not done (lib/programsReport programsOpenOn) */
+    ...programsOpenOn(progs, '', programs).names,
+    ...noted.filter(r => !r.on?.assetId || !onMachine.has(r.on.assetId)).map(problemOf),
+    ...assigned.filter(x => !assets.some(a => onAsset(a, x.sn))).map(assignedOf),
   ];
+  /* THE LINE'S OWN PROGRAMS, as the line's Programs page reads them */
+  const proving = [...tests, ...(x.provingTests ?? []).filter(t => !tests.some(u => u.id === t.id))];
+  const linePrograms = jobLineReadings(x.linePrograms ?? [], today, { tests: proving, studies: x.proofStudies ?? [] }).map(({ line: name, reading: r }) => ({
+    line: name, says: r.says, open: r.lines.filter(p => p.bucket !== 'done' && p.bucket !== 'baseline').map(p => `${p.machine} — ${p.what}: ${p.word}${p.who ? ` · ${p.who}` : ''}`),
+  }));
 
   const handed = machines.filter(m => m.at.startsWith('Handed over')).length;
   return {
@@ -188,7 +254,7 @@ export function handoverReport(x: HandoverInput): HandoverReport {
     ...(expectedAt ? { expected: expectedAt } : {}),
     ...(st.handedOn ? { handedOn: st.handedOn } : {}),
     machinesSaid: assets.length ? `${handed} of ${plural(assets.length, 'machine')} handed over` : 'No machines on the job yet',
-    machines, line,
+    machines, line, linePrograms,
     sign: ['Handed over by', 'Taken over by', 'Safety'],
   };
 }

@@ -283,3 +283,37 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
     total, done, baseline, failed, late, open, notTested, noProgram, doneAll, says,
   };
 }
+
+/* ===================== WHAT IS STILL OPEN ON A MACHINE =====================
+ *
+ * The programs not done on one machine, as the hand-over and "handed over
+ * with" say them (docs/HANDOVER.md; flow audit #3: a failed program is never
+ * done). lib/install stillOpenOn names a program not written yet ("Program:
+ * Tesco 1.25 kg") from the record alone; this names the rest from the reading
+ * the programs report prints — one that failed, is late, was not tested, has
+ * no program, or is on the machine and not proved — so the papers say what
+ * the Programs page says. Never the one stillOpenOn already named. */
+
+/** The word for a program not done, as the hand-over lists it. */
+export function openWord(l: Pick<ProgramLine, 'bucket' | 'said'>): string {
+  if (l.said === 'notTested') return 'not tested';
+  if (l.said === 'noProgram') return 'no program';
+  if (l.bucket === 'failed') return 'didn’t pass';
+  if (l.bucket === 'late') return 'late';
+  return 'not done yet';
+}
+
+export function programsOpenOn(r: ProgramsReading | undefined, assetId: string, programs: readonly Program[]): { counts: string[]; names: string[] } {
+  if (!r) return { counts: [], names: [] };
+  const written = (id?: string) => { const p = id ? programs.find(q => q.id === id) : undefined; return !p || stateOf(p) !== 'needed'; };
+  /* one not written yet and only "to do" is stillOpenOn's line already; one
+     the floor said more of (failed, not tested…) is said here, with that */
+  const open = r.lines.filter(l => (l.assetId ?? '') === assetId && l.bucket !== 'done' && l.bucket !== 'baseline'
+    && (written(l.programId) || (!!l.partId && (l.bucket !== 'open' || !!l.said))));
+  const failed = open.filter(l => l.bucket === 'failed').length, rest = open.length - failed;
+  const many = (n: number, w: string) => `${n} program${n === 1 ? '' : 's'} ${w}`;
+  return {
+    counts: [failed ? many(failed, 'didn’t pass') : '', rest ? many(rest, 'not done') : ''].filter(Boolean),
+    names: open.map(l => `Program, ${openWord(l)}: ${l.what}${l.who ? ` · ${l.who}` : ''}${l.note ? ` — ${l.note}` : ''}`),
+  };
+}

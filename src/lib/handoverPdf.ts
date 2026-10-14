@@ -100,6 +100,8 @@ function blocksOf(r: HandoverReport, d: Density): Block[] {
   for (const m of r.machines) {
     out.push(heading(m.name, [m.at, m.on ? `on ${niceDay(m.on, { weekday: 'short' })}` : ''].filter(Boolean).join(' '), { size: SIZE.h2 + 1.5 }));
     if (m.with.length) out.push(text({ text: `Handed over with ${m.with.join(' · ')}`, size: 9, style: 'bold', colour: AMBER, after: gap(d, 's') }));
+    /* its programs in a line, as the Programs page counts them — each not done is under Still open */
+    if (m.programs) out.push(text({ text: `Programs: ${m.programs}`, size: 9, colour: INK2, after: gap(d, 's') }));
 
     out.push(label('Tests — against what was agreed'));
     if (m.noTest) out.push(text({ text: 'No test kept on this machine.', size: 9, style: 'bold', colour: AMBER, after: gap(d, 'm') }));
@@ -133,6 +135,15 @@ function blocksOf(r: HandoverReport, d: Density): Block[] {
   if (r.line.length) {
     out.push(label('Still open on the line', AMBER));
     r.line.forEach((o, i) => out.push(text({ text: o, size: 9, colour: INK2, indent: 10, bullet: '•', after: i === r.line.length - 1 ? gap(d, 'l') : 2 })));
+  }
+
+  /* THE LINE'S OWN PROGRAMS — planned on the line with no job, on the job's
+     Programs page and proved by its tests: the line's reading, and those not
+     done by name. */
+  for (const lp of r.linePrograms) {
+    out.push(label(`On ${lp.line}, with no job — programs`, lp.open.length ? AMBER : MUTED));
+    out.push(text({ text: lp.says, size: 9, style: 'bold', colour: INK2, after: lp.open.length ? 3 : gap(d, 'l') }));
+    lp.open.forEach((o, i) => out.push(text({ text: o, size: 9, colour: INK2, indent: 10, bullet: '•', after: i === lp.open.length - 1 ? gap(d, 'l') : 2 })));
   }
 
   /* THE LINES TO SIGN. */

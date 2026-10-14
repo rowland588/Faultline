@@ -34,6 +34,10 @@ never comes back.
    page says what to do first.
 7. **Simple with detail.** Where we are, why we are not where we should be,
    what we are doing about it — the rest one tap away (docs/SIMPLE.md).
+8. **The papers keep up.** Every record and every status a screen shows is on
+   each paper it belongs on, in the screen's words — the stage-gate job's
+   full report, one-page status, programs report and handover — and when it
+   changes, every one of them changes with it (docs/REPORTS.md, Relevance).
 
 ## How it is checked
 
@@ -54,6 +58,11 @@ never comes back.
 - (4) is checked module by module, against the practice, with hand-worked
   tests.
 - (2), (6) and (7) are read by hand from the audit's tables, page by page.
+- (8): `src/lib/__tests__/reportRelevance.test.ts` holds one job with every
+  status the screens show and reads each on all four papers;
+  `scripts/acceptance/report-relevance.mjs` makes the changes on the seeded
+  job, downloads the four PDFs from their buttons and reads them back, then
+  moves the statuses and reads them again.
 
 ## Findings, 13 October
 
@@ -130,3 +139,21 @@ audit knows they were read, not skipped.
 | 3.8 | 3 | Notes | — | Not paper, by design: private preparation, left out of every document (`screens/NotesScreen`). |
 | 3.9 | 3 | The studies' lists (Capability, Value stream, SMED, Work sampling, Loss count) | — | Fixed: row 7 above — PDF on every study's page and PDF (all shown) on every study list. |
 | 3.10 | 4 | Line capacity — the V-curve | A station thousands of times faster than the bottleneck (a unit or a rate typed wrong) drew the V's grid in steps of 40 to millions of lines: the tab ran out of memory. Found by the random capacity seeds that prove the new paper. | Fixed: past 400% the grid's step grows with the span — a handful of lines whatever is typed; a share past what a number holds draws no grid rather than looping for ever (`ui/VCurve`). `report-stress --seeds`. |
+
+### Bar 8 — the stage-gate papers keep up with the app, 14 October
+
+Rowland, 14 October: "Check the stage gate report must make sure they
+maintain relevance when things change in the app .. new functions the app
+does but also all changes in status. Check full report, 1 page status,
+programs, handover." Each paper was read against what the screens now say.
+
+| # | Bar | Where | What | State |
+|---|-----|-------|------|-------|
+| 8.1 | 8 | all four | **The line's own programs** (Stage 2, planned on the line with no job, shown on the job's Programs page and proved by its tests) were on none of them. | Fixed: the full report's Set up and the programs report print each line's reading after the job's — "On Line 7, with no job — 2 programs · 1 done · 1 late" and every program; the status page a line under the programs; the handover the reading and the ones not done (`lib/lineRecords jobLinePrograms`, `jobLineReadings` — the job's Programs page reads the same). The Programs page's own PDF carries them too. |
+| 8.2 | 8 | all four | **Problems taken on the register for the job, not on it yet** (the Fixes page's "Problems for this job — not on it yet") were on no paper — the status page could say "everything is on plan" over a Critical one. | Fixed: the full report's own section, each with its priority tag in its word and RAG colour, where, whose, and its day (red only when gone); the status page's NOT ON IT YET — a Critical one read with the critical issues, High and Low after the problems — opening the problem where it is kept; the handover lists each on the machine it names, else on the line. |
+| 8.3 | 8 | full, programs, the job's Programs page | **A program proved by a study on its line** read "Signed off by hand — nothing said shows it" (amber): only the job's own studies were read. | Fixed: the studies of the job's lines are read, as the line's Programs page reads them; a line's program proved on another job's test says its test. |
+| 8.4 | 8 | full, status | **A machine late on site** — the control room's and Install's Needs you's first line — was on neither. | Fixed: first in Install's late list ("Domino coder — not on site, was due 11 Oct"), counted in its line, a LATE line on the status page that opens the machine. |
+| 8.5 | 8 | handover, full | **Still open on a machine** left out a program that failed, was not tested, had no program or was not proved (only one not written yet was named), and every problem with no fix; "handed over with" counted neither. | Fixed: each named in the Programs page's word ("Program, didn't pass: PR-04 — Bag 8 mm short"), the problems with no fix (critical and high risk said), the machine's programs in a line; "handed over with" counts them, the same words on the full report (`lib/clientReport wentWithAlso`). |
+| 8.6 | 8 | full, status | **What a gate's Needs you says is missing** (flow audit #16 — a machine with none of the gate's stages) was not on paper; the gate's line counted only the squares. | Fixed: "Not added yet" under the gate, in Needs you's words, and "· 2 machines with none yet" in its line; one grey NOT ADDED line a gate on the status page, last. |
+| 8.7 | 8 | full | **A test proved by a study at the line** said so on the handover and not under the test on the full report. | Fixed: "Proved by: …" under the test. |
+

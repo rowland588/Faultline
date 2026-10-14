@@ -666,4 +666,15 @@ is still wired.
   Trend, the meeting, a Case's proof, the line's facts on its page and its
   settings. The reject's materials stay out, as
   asked.
+- **The stage-gate papers keep up** (Rowland, 14 October: "Check the stage
+  gate report must make sure they maintain relevance when things change in
+  the app .. new functions the app does but also all changes in status").
+  Placed (§8): *Jobs*, the papers; no new record — the full report, the
+  one-page status, the programs report and the handover now read what the
+  later stages added: the line's own programs (Stage 2), the register's
+  problems taken for the job, a program proved by a study on its line, a
+  machine late on site, what a gate is missing, and every program and
+  problem still open on a machine. `docs/REPORTS.md` (Relevance) is the
+  table of what reaches which paper, and its rule; `docs/AUDIT.md` bar 8.
+  Accepted by `report-relevance.mjs`.
 - **Next:** Stage 3 — the line is the hub (its products, readiness, health).

@@ -22,8 +22,9 @@
  * page and the full report cannot disagree. Pure: nothing stored, nothing
  * drawn. */
 import type { ClientReport, RunRow } from './clientReport';
+import { PRIORITY_WORD } from './snagsReport';
 
-export type WhyKind = 'critical' | 'risk' | 'late' | 'failed' | 'problem' | 'unplanned';
+export type WhyKind = 'critical' | 'risk' | 'late' | 'failed' | 'problem' | 'unplanned' | 'assigned';
 export interface StatusWhy {
   kind: WhyKind;
   /** The tag in words — "CRITICAL", "HIGH RISK", "LATE", "DIDN'T PASS", "PROBLEM". */
@@ -36,6 +37,9 @@ export interface StatusWhy {
   /** The record it is about — the problem, or the stage or test that is
    *  late, didn't pass or hit a problem — so the Reports screen opens it. */
   id?: string;
+  /** A problem on the register, taken for this job and not on it yet — the
+   *  Reports screen opens it where it is kept (snag/QuickSnag). */
+  snagId?: string;
 }
 export interface StatusNext {
   /** The fix — the Reports screen opens it. */
@@ -71,6 +75,10 @@ export interface StatusReport {
    *  still to do, at baseline — each with its word and what was seen. */
   programLines: { what: string; word: string; tone: string; note?: string }[];
   programMore: number;
+  /** THE LINE'S OWN PROGRAMS — planned on the job's line with no job, shown
+   *  on its Programs page and proved by its tests: "On Line 7, with no job —
+   *  3 programs · 1 done · 2 to do", a line each. */
+  linePrograms: string[];
   /** The lead's commentary, under where we are (Project.reportNote). */
   commentary?: ClientReport['commentary'];
 }
@@ -109,6 +117,11 @@ export const COMMENTARY_MAX = 520;
 
 const idOf = (ids: string[] | undefined, i: number): { id?: string } => (ids?.[i] ? { id: ids[i] } : {});
 
+/** A register problem for the job, not on it yet, as a "why" line — its
+ *  priority in its word, where, whose and by when under it. */
+const assignedWhy = (a: ClientReport['assigned'][number]): StatusWhy =>
+  ({ kind: 'assigned', tag: 'NOT ON IT YET', what: `${PRIORITY_WORD[a.priority]} priority — ${a.what}`, detail: [a.meta, a.due].filter(Boolean).join(' · '), snagId: a.id });
+
 export function statusReport(r: ClientReport, L: StatusLimits = STATUS_LIMITS): StatusReport {
   const why: StatusWhy[] = [
     ...r.critical.open.map((c): StatusWhy => ({
@@ -119,6 +132,7 @@ export function statusReport(r: ClientReport, L: StatusLimits = STATUS_LIMITS): 
       kind: 'risk', tag: 'HIGH RISK', what: c.what, id: c.id,
       detail: [c.could, c.impact].filter(Boolean).join(' — ') || undefined,
     })),
+    ...r.assigned.filter(a => a.priority === 'critical').map(assignedWhy),
     /* NOT PLANNED YET (docs/JOBSTART.md) — the one page said "Nothing —
        everything is on plan" over a job with 136 lines with no date. */
     ...(r.onTarget.gaps ? [{ kind: 'unplanned' as const, tag: 'NOT PLANNED', what: r.onTarget.gaps }] : []),
@@ -131,6 +145,15 @@ export function statusReport(r: ClientReport, L: StatusLimits = STATUS_LIMITS): 
        was seen (lib/clientReport GateSection.failed). */
     ...r.sections.flatMap(s => (s.failed ?? []).map((l, i): StatusWhy => ({ kind: 'failed', tag: 'DIDN’T PASS', what: l, ...idOf(s.failedIds, i) }))),
     ...r.sections.flatMap(s => s.problems.map((l, i): StatusWhy => ({ kind: 'problem', tag: 'PROBLEM', what: l, ...idOf(s.problemIds, i) }))),
+    /* PROBLEMS FOR THIS JOB, NOT ON IT YET — taken on the register for it
+       and not yet a problem or a fix here (the Fixes page's list): the one
+       page said "everything is on plan" over them. A Critical one is read
+       with the critical issues (above); High and Low here. */
+    ...r.assigned.filter(a => a.priority !== 'critical').map(assignedWhy),
+    /* WHAT A GATE IS MISSING — machines with none of its stages, stages not
+       added yet (lib/install gateGaps), a line a gate, grey: not started,
+       not wrong — last, so the abnormal leads. */
+    ...r.sections.filter(s => s.gaps?.length && s.grid).map((s): StatusWhy => ({ kind: 'unplanned', tag: 'NOT ADDED', what: `${s.label}: ${(s.gaps ?? []).join('; ')}` })),
   ];
   /* Late first, then soonest due — the order somebody acts in. */
   const fixes = [...r.fixes.open].sort((a, b) => Number(b.tone === 'late') - Number(a.tone === 'late'));
@@ -172,6 +195,7 @@ export function statusReport(r: ClientReport, L: StatusLimits = STATUS_LIMITS): 
         programMore: L.programs === false ? 0 : Math.max(0, told.length - n),
       };
     })(),
+    linePrograms: L.programs === false ? [] : (r.sections.find(s => s.gate === 'setup')?.linePrograms ?? []).map(l => `On ${l.line}, with no job — ${l.reading.says}`),
     /* THE COMMENTARY, on the one page: whole up to a paragraph; a longer one
        is cut at a word and says the rest is in the full report — the page
        is never a cut-down that pretends to be whole. */

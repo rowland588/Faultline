@@ -81,7 +81,11 @@ export function programsBlocks(reading: ProgramsReading, d: Density, o: { machin
 export async function drawProgramsReport(doc: jsPDF, x: { name: string; lead?: string; printed: string; reading: ProgramsReading;
   /** What it is the programs of — a stage-gate job (the default), a
    *  production line, or every line of the factory (docs/BLUEPRINT.md, Stage 2). */
-  eyebrow?: string }): Promise<void> {
+  eyebrow?: string;
+  /** A job's lines' own programs — planned on the line with no job, on the
+   *  job's Programs page (ui/LineProgramsOnJob): each line's reading, after
+   *  the job's own (lib/clientReport GateSection.linePrograms). */
+  linePrograms?: { line: string; reading: ProgramsReading }[] }): Promise<void> {
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
   const r = x.reading;
   const name = san(x.name);
@@ -109,7 +113,13 @@ export async function drawProgramsReport(doc: jsPDF, x: { name: string; lead?: s
       });
     }));
     out.push(text({ text: san(r.says), size: 9.5, colour: INK2, after: gap(d, 'm') }));
-    out.push(...programsBlocks(r, d));
+    /* a job with none of its own, and its line's to show, says so in a line —
+       never "No programs yet" over the line's */
+    if (r.total || !x.linePrograms?.length) out.push(...programsBlocks(r, d));
+    for (const lp of x.linePrograms ?? []) {
+      out.push({ ...text({ text: `On ${san(lp.line)}, with no job — ${san(lp.reading.says)}`, size: SIZE.h2, style: 'bold', before: gap(d, 's'), after: 4 }), keepWithNext: true });
+      out.push(...programsBlocks(lp.reading, d));
+    }
     return out;
   };
   const density = await chooseDensity(base, d => blocks(d));
