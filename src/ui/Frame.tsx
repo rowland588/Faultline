@@ -36,6 +36,7 @@ import { Icon } from './Icon';
 import { AccountMenu } from './AccountMenu';
 import { Sheet } from './Sheet';
 import { ReportsSheet } from './ReportsSheet';
+import { ControlRoomReports } from './ControlRoomReports';
 import { useJobStands } from './railJobs';
 import { QuickSnagButton, QuickSnagHost } from '../snag/QuickSnag';
 import { useFactoryLines } from '../lib/useFactoryLines';
@@ -300,7 +301,10 @@ function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: s
   }, [wsId]);
   const prodLines = useProductionLines();
   const groups: RailGroup[] = [
-    { lines: [controlRoom(here), snagsPlace(here), ...(loose && wsId ? [
+    /* REPORTS, as a job's rail has them — every paper, from the control
+       room (ui/ControlRoomReports; Rowland, 14 October: "we need the same
+       in control room") */
+    { lines: [controlRoom(here), snagsPlace(here), { key: 'reports', label: 'Reports', on: false, state: 'n', bare: true, icon: 'list' } as RailLine, ...(loose && wsId ? [
       { key: 'ws', label: wsName || 'Line study', to: `/w/${wsId}/capture`, on: false, state: 'n', bare: true } as RailLine,
       ...studyLines(wsId, here),
     ] : [])] },
@@ -348,15 +352,17 @@ function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: s
     { key: 'lines', label: 'Lines', to: '/factory', on: onLines, state: 'n', bare: true, icon: 'machine' },
     { key: 'more', label: 'More', on: !onLines && all.some(l => l.on && l.key !== 'home' && l.key !== 'quicksnags'), state: 'n', icon: 'grip' },
   ];
-  return <NavChrome groups={groups} bar={bar} />;
+  return <NavChrome groups={groups} bar={bar} home={projects} />;
 }
 
 /* ------------------------------------------------------------------------- */
 /*  THE CHROME — the rail on a laptop, the bar and its sheet on a phone      */
 /* ------------------------------------------------------------------------- */
 
-function NavChrome({ groups, project, model, bar }: {
+function NavChrome({ groups, project, model, bar, home }: {
   groups: RailGroup[]; project?: Project; model?: PlanModel; bar?: RailLine[];
+  /** Off a job: the control room's jobs, for its Reports. */
+  home?: Project[];
 }) {
   const five = bar ?? phoneBar(groups, model ?? 'commissioning');
   const [more, setMore] = useState(false);
@@ -394,6 +400,7 @@ function NavChrome({ groups, project, model, bar }: {
         </Sheet>
       )}
       {reports && project && <ReportsSheet project={project} onClose={() => setReports(false)} />}
+      {reports && !project && home && <ControlRoomReports projects={home} onClose={() => setReports(false)} />}
     </>
   );
 }

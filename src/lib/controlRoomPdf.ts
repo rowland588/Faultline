@@ -11,6 +11,7 @@
 import type { jsPDF } from 'jspdf';
 import type { OnTargetTone } from './onTarget';
 import type { Portfolio } from './portfolio';
+import type { Delivered } from './savePdf';
 import { CR_STEPS, controlRoomReport, type ControlRoomReport, type CrLine } from './controlRoomReport';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { SIZE, box, font, gap, label, rows, text, wrap } from './report/blocks';
@@ -178,3 +179,17 @@ export async function drawControlRoomReport(doc: jsPDF, pf: Portfolio, today: st
     doc.text(num, W - M, H - 18, { align: 'right' });
   }
 }
+
+/** THE CONTROL ROOM REPORT, MADE AND HANDED OVER — the band's button and the
+ *  control room's Reports (ui/ControlRoomReports) make the same page the same
+ *  way. Says how it was handed over (lib/savePdf deliverPdf). */
+export async function saveControlRoomReport(pf: Portfolio, today: string): Promise<Delivered> {
+  const { loadPdfLib, deliverPdf, titlePdf } = await import('./savePdf');
+  const { pdfFileName } = await import('./fileName');
+  const { jsPDF } = await loadPdfLib();
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+  titlePdf(doc, 'Control room report');
+  await drawControlRoomReport(doc, pf, today);
+  return deliverPdf(doc, pdfFileName('Control room', 'report', today));
+}
+

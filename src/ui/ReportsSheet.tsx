@@ -11,7 +11,7 @@ import { getPaceWorkspaceId } from '../db';
 import { nav } from '../state/useRoute';
 import { Sheet } from './Sheet';
 
-function Door({ title, says, onClick }: { title: string; says: string; onClick: () => void }) {
+export function Door({ title, says, onClick }: { title: string; says: string; onClick: () => void }) {
   return (
     <button type="button" className="meet-report" onClick={onClick}>
       <b>{title}</b><small>{says}</small>
@@ -20,6 +20,17 @@ function Door({ title, says, onClick }: { title: string; says: string; onClick: 
 }
 
 export function ReportsSheet({ project, onClose }: { project: Project; onClose: () => void }) {
+  return (
+    <Sheet open onClose={onClose} title="On paper">
+      <div className="meet-reports"><JobPapers project={project} onClose={onClose} /></div>
+    </Sheet>
+  );
+}
+
+/** ONE JOB'S PAPERS — the doors its Reports sheet lists, and the control
+ *  room's Reports lists under the job's name (ui/ControlRoomReports): the one
+ *  list, so the two cannot differ. */
+export function JobPapers({ project, onClose }: { project: Project; onClose: () => void }) {
   const stageGate = planModel(project) === 'commissioning';
   const tree = planModel(project) === 'tree';
   const { lines } = usePaceLines(project.id);
@@ -66,8 +77,7 @@ export function ReportsSheet({ project, onClose }: { project: Project; onClose: 
   ] })) : [];
   const nPapers = perLine.reduce((n, x) => n + x.papers.length, 0);
   return (
-    <Sheet open onClose={onClose} title="On paper">
-      <div className="meet-reports">
+      <>
         {/* A lever tree job's report leads with the tree; the door said only
             what a 3P job's carries. */}
         {/* WHO EACH IS FOR, said first (docs/STAGEGATE.md): the right paper
@@ -120,7 +130,6 @@ export function ReportsSheet({ project, onClose }: { project: Project; onClose: 
           : 'This job in one Excel file — what it waits on (materials and programs), its line standards and the problems on its walks. Its numbers, problems and board are on the client report.'}
           onClick={() => { if (!busy) void spreadsheet(); }} />
         {said && <p className="sub" role="status">{said}</p>}
-      </div>
-    </Sheet>
+      </>
   );
 }
