@@ -246,7 +246,30 @@ const phoneCrit = await page.evaluate(() => {
 });
 ok(phoneCrit.over.every(x => x <= 1) && phoneCrit.out <= 0 && phoneCrit.whens.includes('3 days late'), `6e on a phone nothing runs off (${phoneCrit.over.join(', ')}), whens: ${phoneCrit.whens.join(' | ')}`);
 
+/* ---- 12 the control room's Reports (Rowland, 14 October: "report is there
+   but only in projects not in the control room ... we need the same in
+   control room"): every paper, from the band and from More — the control
+   room's own, each line's, and each job's own list under its name ---- */
+{
+  await board();
+  await page.getByRole('button', { name: 'All reports ›' }).click(); await page.waitForTimeout(1200);
+  const doors = (await page.locator('.meet-report b').allInnerTexts()).map(flat);
+  const jobs = (await page.locator('.cr-job-papers > .meet-line-n').allInnerTexts()).map(flat);
+  ok(['Control room report — 1 page', 'Your factory', 'Control room problems', 'Programs', 'Line capacity', 'Line standard'].every(d => doors.includes(d))
+    && ['Client report', 'Handover report', 'Machine labels', 'The plan'].every(d => doors.includes(d)) && jobs.includes('Line 2 commissioning'),
+    `12a the band's All reports: the control room's papers, each line's and each job's own (${doors.length} doors; jobs ${jobs.join(', ')})`);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 40000 }), page.locator('.meet-report', { hasText: 'Control room report — 1 page' }).first().click()]);
+  const [lb] = await Promise.all([page.waitForEvent('download', { timeout: 40000 }), page.locator('.meet-report', { hasText: 'Machine labels' }).first().click()]);
+  ok(/Control-room-report/.test(dl.suggestedFilename()) && /machine-labels/.test(lb.suggestedFilename()), `12b made from it: ${dl.suggestedFilename()} · ${lb.suggestedFilename()}`);
+  await page.keyboard.press('Escape'); await page.waitForTimeout(500);
+  await page.goto(`${BASE}/#/factory`); await page.waitForTimeout(2000);
+  await page.locator('.nv-bar .nv-bi', { hasText: 'More' }).click(); await page.waitForTimeout(800);
+  await page.locator('.nv-sheet').getByRole('button', { name: 'Reports', exact: true }).click(); await page.waitForTimeout(1200);
+  ok(await page.locator('.meet-report', { hasText: 'Control room report — 1 page' }).count() === 1, '12c off a job, More › Reports opens the same list');
+  await page.keyboard.press('Escape');
+}
+
 ok(errs.length === 0, `no console errors ${errs.slice(0, 3).join(' | ')}`);
 await b.close();
-console.log(fail ? `\nThe control room NOT accepted: ${fail} failed` : '\nThe control room accepted: a line\'s own work counted, listed and printed; the critical list read; a line\'s page saying what its tools found and its jobs\' verdicts; the phone\'s answer first; every count its page\'s; a change started from the line');
+console.log(fail ? `\nThe control room NOT accepted: ${fail} failed` : '\nThe control room accepted: a line\'s own work counted, listed and printed; the critical list read; a line\'s page saying what its tools found and its jobs\' verdicts; the phone\'s answer first; every count its page\'s; a change started from the line; every report from the control room');
 process.exit(fail ? 1 : 0);

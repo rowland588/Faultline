@@ -677,4 +677,11 @@ is still wired.
   problem still open on a machine. `docs/REPORTS.md` (Relevance) is the
   table of what reaches which paper, and its rule; `docs/AUDIT.md` bar 8.
   Accepted by `report-relevance.mjs`.
+- **Every report from the control room** (Rowland, 14 October: "report is
+  there but only in projects not in the control room ... we need the same in
+  control room"). Placed (§8): *Control room*, its paper; no new record — an
+  index, as a job's Reports is. Shows as Reports in the control room's rail
+  (More on a phone) on every page off a job, and All reports in the band
+  beside the control room's one page: the control room's own papers, each
+  line's, and every job's own list under its name (`ui/ControlRoomReports`).
 - **Next:** Stage 3 — the line is the hub (its products, readiness, health).

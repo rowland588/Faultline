@@ -49,6 +49,7 @@ import { niceDay, todayISO } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 import { openRecord } from './RecordDrawer';
 import { Timeline } from './Timeline';
+import { ControlRoomReports } from './ControlRoomReports';
 import { GATE_TONE_WORD, recordHref } from '../lib/install';
 import { gateSpans, planHref } from '../lib/plan';
 import { Icon } from './Icon';
@@ -291,18 +292,14 @@ export function JobsBoard({ projects, after }: {
   /* The control room report, made from this board's own reading. */
   const [printing, setPrinting] = useState(false);
   const [printed, setPrinted] = useState('');
+  /* the control room's Reports, opened from the band */
+  const [papers, setPapers] = useState(false);
   const printReport = async () => {
     setPrinting(true); setPrinted('');
     try {
-      const { loadPdfLib, deliverPdf, titlePdf } = await import('../lib/savePdf');
-      const { drawControlRoomReport } = await import('../lib/controlRoomPdf');
-      const { pdfFileName } = await import('../lib/fileName');
-      const { jsPDF } = await loadPdfLib();
-      const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-      titlePdf(doc, 'Control room report');
       if (!pf) return;
-      await drawControlRoomReport(doc, pf, today);
-      const how = await deliverPdf(doc, pdfFileName('Control room', 'report', today));
+      const { saveControlRoomReport } = await import('../lib/controlRoomPdf');
+      const how = await saveControlRoomReport(pf, today);
       setPrinted(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
     } catch (e) {
       setPrinted(`The report could not be made — ${e instanceof Error ? e.message : 'try again'}.`);
@@ -381,8 +378,14 @@ export function JobsBoard({ projects, after }: {
           <button type="button" className="btn vd-report jb-report" disabled={printing} onClick={() => void printReport()}>
             {printing ? 'Making it…' : 'Control room report — 1 page'}
           </button>
+          {/* EVERY OTHER PAPER — each job's (its full report, programs,
+              handover, machine labels…), each line's and the tools' — the
+              control room's Reports (Rowland, 14 October: "we need the same
+              in control room") */}
+          <button type="button" className="btn vd-report jb-report jb-papers" onClick={() => setPapers(true)}>All reports ›</button>
         </div>
         {printed && <p className="jb-printed" role="status">{printed}</p>}
+        {papers && <ControlRoomReports projects={projects} onClose={() => setPapers(false)} />}
         {pf.owes.length > 0 && (
           <div className="jb-owes">
             <span className="jb-owes-h">Who owes what</span>
