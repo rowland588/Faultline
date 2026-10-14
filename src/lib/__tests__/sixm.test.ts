@@ -2,7 +2,7 @@
  * taxonomies ship has a decision — a usual bone, or left out on purpose so the
  * words decide — and a stop is sorted by it before any word guess. */
 import { describe, it, expect } from 'vitest';
-import { DEFAULT_BONE, SIXM, boneOfStop, boneOfSub, KNOWN_WORD } from '../sixm';
+import { DEFAULT_BONE, SIXM, boneOfStop, boneOfSub, everyWords, holdDue, KNOWN_WORD } from '../sixm';
 import { TAXONOMIES } from '../taxonomy';
 
 /** No usual bone: a symptom any of the six can cause, or a cause at another
@@ -80,5 +80,29 @@ describe('boneOfStop — the shipped map first, then the words', () => {
 describe('KNOWN_WORD', () => {
   it('says how a cause is known in the working method’s words', () => {
     expect(Object.values(KNOWN_WORD)).toEqual(['data', 'counted', 'seen', 'told']);
+  });
+});
+
+/* HOLDING IS CHASED (flow audit #9): whether the check that keeps the gain is
+ * owed is worked out here, once — for the card, the fishbone, Needs you, the
+ * control room's week and the 6M report alike. */
+describe('holdDue — is the check owed?', () => {
+  const h = { what: 'One changeover timed each week', everyDays: 7, since: '2026-10-01' };
+  it('is due every N days after the last check, in the app’s way of saying a day', () => {
+    expect(holdDue({ ...h, lastChecked: '2026-10-12' }, '2026-10-13')).toEqual({ next: '2026-10-19', days: 6, state: 'ok', words: 'next check 19 Oct' });
+  });
+  it('a check never made counts from the day it was set — a check set today is not late', () => {
+    expect(holdDue({ ...h, since: '2026-10-13' }, '2026-10-13').state).toBe('ok');
+    expect(holdDue(h, '2026-10-06')).toMatchObject({ next: '2026-10-08', state: 'due', words: 'check due 8 Oct' });
+  });
+  it('coming due within a few days is amber’s; today and tomorrow are said so', () => {
+    expect(holdDue({ ...h, lastChecked: '2026-10-06' }, '2026-10-13')).toMatchObject({ state: 'due', days: 0, words: 'check due today' });
+    expect(holdDue({ ...h, lastChecked: '2026-10-07' }, '2026-10-13')).toMatchObject({ state: 'due', days: 1, words: 'check due tomorrow' });
+  });
+  it('a day gone by is missed, and says the day it was due', () => {
+    expect(holdDue({ ...h, lastChecked: '2026-09-13' }, '2026-10-13')).toMatchObject({ state: 'missed', days: -23, words: 'check missed — was due 20 Sept' });
+  });
+  it('says how often as a person would', () => {
+    expect([1, 7, 14, 30, 10].map(everyWords)).toEqual(['every day', 'every week', 'every fortnight', 'every month', 'every 10 days']);
   });
 });

@@ -15,6 +15,7 @@ import { gateOf, live } from './testing';
 import { lateOrProblem } from './install';
 import { todayISO } from './weeks';
 import { programsReading } from './programsReport';
+import { problemsTally } from './noted';
 
 export interface StandingState {
   loading: boolean;
@@ -55,7 +56,7 @@ export function useStanding(projectId: string): StandingState {
      AND what they turned up, because that is where you go to deal with either. */
   const counts = useMemo(() => {
     const by = (k: string) => answer.rows.find(r => r.key === k);
-    const tests = by('tests'), obs = by('observations'), fixes = by('fixes');
+    const tests = by('tests'), obs = by('observations');
     /* DONE is what is on the list and not open. standing() keeps only what is
        owed, so the totals are read off the same records here: a strand's live
        rows less its open ones. */
@@ -78,8 +79,15 @@ export function useStanding(projectId: string): StandingState {
          you go to deal with either. Fixes are their own screen now and so are
          their own count. */
       testing: row('testing', (tests?.open ?? 0) + (obs?.open ?? 0), tests?.late ?? 0),
-      fixes: row('fixes', fixes?.open ?? 0, fixes?.late ?? 0),
-      install: { ...row('install', by('install')?.open ?? 0, by('install')?.late ?? 0), problem: problems('install') },
+      /* PROBLEMS — the fixes to do AND the problems no fix is booked for,
+         the late the fixes past their day: the count the Problems page says
+         at its head (lib/noted problemsTally). It counted the fixes alone —
+         "Problems 5" over a page holding 7 more (FLOW-AUDIT.md, 16). */
+      fixes: (x => ({ n: x.open, late: x.late, done: x.done }))(problemsTally(tt.tests, tt.items, tt.assets, today)),
+      /* INSTALL carries the machines still to land, the late ones late — its
+         Needs you lists a machine late on site as the control room does
+         (FLOW-AUDIT.md, 16). */
+      install: { ...(r => ({ ...r, n: r.n + (by('machines')?.open ?? 0), late: r.late + (by('machines')?.late ?? 0) }))(row('install', by('install')?.open ?? 0, by('install')?.late ?? 0)), problem: problems('install') },
       materials: row('materials', by('materials')?.open ?? 0, by('materials')?.late ?? 0),
       /* THE PROGRAMS line — every program (lib/programsReport): open is what
          has not passed; late what is past its day, failed what failed — two

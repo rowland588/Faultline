@@ -19,10 +19,11 @@
  * are joined by name, so a list of names is never migrated into records, and a
  * record is made the first time more than the name is said. */
 import type { ID, Workspace } from '../types';
-import type { Asset } from './testing';
+import type { Asset, Test } from './testing';
 import type { Program } from './programs';
 import { inOrder, isProved, standingOf, todayISO } from './programs';
-import { programsReading, type ProgramsReading } from './programsReport';
+import { programsReading, proofOf, type ProgramLine, type ProgramsReading } from './programsReport';
+import type { ToolStudy } from './study';
 
 /** Just enough of a job's line (db PaceLineRow) to know its factory line. */
 export interface JobLine { id: string; projectId?: string; workspaceId?: string; deletedAt?: number }
@@ -100,6 +101,33 @@ export function machinesOnLine(ws: Pick<Workspace, 'id' | 'assets'>, assets: rea
   return out;
 }
 
+/** "Whole line" — the stopwatch's place for a loss on no one machine. A
+ *  picker that offers places keeps it first (ui: the stopwatch). */
+export const isWholeLine = (name: string): boolean => machineKey(name) === 'whole line';
+
+/** EVERY "WHICH MACHINE" ON A LINE — the one source every picker reads
+ *  (BLUEPRINT §6.2; flow audit #14, 13 October: "One line has three lists
+ *  of machines. The problem sheet offers another line's machines. The
+ *  stopwatch offers 1 of 4. Capacity stations never reach the line's list
+ *  ... A study's machine is typed."). The line's machines in flow order —
+ *  its list, then the machines its jobs brought onto it (machinesOnLine) —
+ *  and, for a job on this line, that job's own machines not yet placed on
+ *  any one line (a job on several lines). Never another line's. Names only:
+ *  a stop, a problem, a station and a study are kept against the name. */
+export function machinesOf(ws: Pick<Workspace, 'id' | 'assets'>, assets: readonly Asset[], jobLines: readonly JobLine[], jobId?: string): string[] {
+  const out = machinesOnLine(ws, assets, jobLines).map(m => m.name);
+  const onThisLine = !!jobId && jobLines.some(l => !l.deletedAt && l.projectId === jobId && l.workspaceId === ws.id);
+  if (!onThisLine) return out;
+  const seen = new Set(out.map(machineKey));
+  for (const a of assets.filter(x => !x.deletedAt && x.projectId === jobId && !lineOfMachine(x, jobLines)).slice().sort((x, y) => x.sort - y.sort)) {
+    const k = machineKey(a.name);
+    if (!k || seen.has(k)) continue;
+    seen.add(k);
+    out.push(a.name.trim());
+  }
+  return out;
+}
+
 /** Every program on the line, in the order the person set (lib/programs). */
 export function programsOnLine(wsId: string, programs: readonly Program[], jobLines: readonly JobLine[]): Program[] {
   return inOrder(programs.filter(p => lineOfProgram(p, jobLines) === wsId));
@@ -134,7 +162,16 @@ export function productsOnLine(programs: readonly Pick<Program, 'runs'>[], stand
  *  line of its own): machine by machine in flow order, the line itself last.
  *  Every line at once names each machine with its line ("Line 7 · Bagger").
  *  A program on a machine that has left the line's list reads as the line's. */
-export function lineProgramsReading(lines: readonly { name: string; id: string; machines: readonly LineMachine[]; programs: readonly Program[] }[], today?: string): ProgramsReading | undefined {
+export function lineProgramsReading(lines: readonly { name: string; id: string; machines: readonly LineMachine[]; programs: readonly Program[] }[], today?: string,
+  /** What each job's floor said of its programs (lib/useJobFloor), and the
+   *  jobs' names: said under the program on paper, as on the screen (flow
+   *  audit #3: one program, one answer). */
+  o: { floor?: ReadonlyMap<string, { word: string; note?: string }>; jobName?: ReadonlyMap<string, string>;
+    /** The tests that prove programs, on whichever job (Test.programId), and
+     *  the studies naming them: how each proved one was proved (flow audit
+     *  #21). Without the tests, a program naming one says "Proved by its
+     *  test in Commission". */
+    tests?: readonly Test[]; studies?: readonly ToolStudy[] } = {}): ProgramsReading | undefined {
   const many = lines.length > 1;
   const assets: Asset[] = [];
   const programs: Program[] = [];
@@ -149,7 +186,18 @@ export function lineProgramsReading(lines: readonly { name: string; id: string; 
       programs.push({ ...p, ...(on ? { assetId: on } : { assetId: undefined }) });
     }
   }
-  return programsReading({ tests: [], items: [], assets, programs, ...(today ? { today } : {}) });
+  const r = programsReading({ tests: [], items: [], assets, programs, ...(today ? { today } : {}) });
+  if (!r) return r;
+  const byId = new Map(programs.map(p => [p.id, p]));
+  const withFloor = (l: ProgramLine): ProgramLine => {
+    const p = l.programId ? byId.get(l.programId) : undefined;
+    const f = l.programId ? o.floor?.get(l.programId) : undefined;
+    const job = p ? o.jobName?.get(p.projectId) : undefined;
+    const proof = p ? proofOf(p, o.tests, o.studies) : undefined;
+    return { ...l, ...(f ? { proving: `On ${job ?? 'its job'}'s Set up: ${f.word}${f.note ? ` — ${f.note}` : ''}` } : {}), ...(proof ? { proof } : {}) };
+  };
+  const machines = r.machines.map(m => ({ ...m, lines: m.lines.map(withFloor) }));
+  return { ...r, machines, lines: machines.flatMap(m => m.lines) };
 }
 
 export interface LineKit {

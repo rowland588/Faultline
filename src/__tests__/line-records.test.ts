@@ -79,3 +79,34 @@ describe('a job deleted for ever', () => {
     expect((await db.listAllPrograms()).map(p => [p.id, p.projectId, p.provedOn])).toEqual([['p-line', '', '2026-10-01']]);
   });
 });
+
+/* Flow audit #3, 13 October: PR-04 read "Proved 12 Oct" on the line and
+ * "Failed · closed 13 Oct" on the job — the floor's failure on Set up's
+ * programs stage never reached the program record the line shows. */
+describe('one program, one answer', () => {
+  const stage = { id: 'st', projectId: 'j', kind: 'install' as const, gate: 'setup' as const, title: 'Programs loaded', assetId: 'w', outcome: 'planned' as const, sort: 1, createdAt: 1, updatedAt: 1 };
+  const part = (results: { is: 'failed' | 'baseline' | 'passed'; on: string; at: number }[]) =>
+    ({ id: 'pt', projectId: 'j', testId: 'st', kind: 'next' as const, what: 'PR-04 Finest Red 2 kg', sort: 1, createdAt: 1, updatedAt: 1, results, doneAt: results.length ? results[results.length - 1].at : undefined });
+  it('a failure said on the floor after its test passed drops it back to on the machine; taken off, its test proves it again', async () => {
+    const { db } = await fresh();
+    await db.addProject(job('j', { commissioning: {} }));
+    await db.putTest(stage as never);
+    await db.putProgram({ id: 'p04', projectId: 'j', assetId: 'w', what: 'PR-04 Finest Red 2 kg', state: 'onMachine', sort: 1, createdAt: 1, updatedAt: 1 });
+    await db.putTest({ id: 'prove', projectId: 'j', kind: 'test', title: 'Prove program PR-04', assetId: 'w', programId: 'p04', outcome: 'passed', ranOn: '2026-10-12', sort: 2, createdAt: 1, updatedAt: 1 } as never);
+    const read = async () => (await db.listAllPrograms()).find(p => p.id === 'p04');
+    expect(await read()).toMatchObject({ state: 'proved', provedOn: '2026-10-12', testId: 'prove' });
+    /* the floor fails it the next day */
+    await db.putTestItem(part([{ is: 'failed', on: '2026-10-13', at: 2 }]) as never);
+    expect(await read()).toMatchObject({ state: 'onMachine', testId: 'prove' });
+    expect((await read())?.provedOn).toBeUndefined();
+    /* its passed test written again proves nothing older than the failure */
+    await db.patchTest('prove', { result: '500 packs, no rejects' });
+    expect((await read())?.provedOn).toBeUndefined();
+    /* the failure taken off (an undo): the test that proved it proves it again */
+    await db.putTestItem(part([]) as never);
+    expect(await read()).toMatchObject({ state: 'proved', provedOn: '2026-10-12' });
+    /* a failure on the same day it was proved leaves Commission's word standing */
+    await db.patchTestItem('pt', { results: [{ is: 'failed', on: '2026-10-12', at: 3 }] } as never);
+    expect((await read())?.provedOn).toBe('2026-10-12');
+  });
+});

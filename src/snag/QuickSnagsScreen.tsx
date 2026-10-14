@@ -48,6 +48,8 @@ import type { Asset, Test, TestItem } from '../lib/testing';
 import { SNAG_STATUS_META, dueFromInput, dueToInput, type Snag, type SnagAsset, type SnagStatus } from './types';
 import { pinSnag } from './quick';
 import { openQuickSnag } from './QuickSnag';
+import { useLineRecords } from '../lib/useLineRecords';
+import { machinesOf } from '../lib/lineRecords';
 
 /** A change to one problem: its fields, or worked out from the row as it is stored (db patchSnag). */
 type SnagChange = Partial<Snag> | ((stored: Snag) => Partial<Snag>);
@@ -71,14 +73,14 @@ interface JobData { tests: Test[]; items: TestItem[]; assets: Asset[]; todos: Pa
 /** A 6M job on a problem's line — where its root cause is found (FLOW-AUDIT #13). */
 interface RootOn { id: string; name: string; lineId: string }
 const todayInput = () => dueToInput(new Date().setHours(0, 0, 0, 0));
-const dedupe = (xs: string[]) => { const seen = new Set<string>(); return xs.filter(x => { const k = x.trim().toLowerCase(); if (!k || seen.has(k)) return false; seen.add(k); return true; }); };
 
 export function QuickSnagsScreen() {
   const { projects, archived: archivedJobs } = useProjects();
   const [snags, setSnags] = useState<Snag[] | null>(null);
   const [lines, setLines] = useState<Workspace[]>([]);
   const [frames, setFrames] = useState<Map<string, SnagAsset>>(new Map());
-  const [jobMachines, setJobMachines] = useState<string[]>([]);
+  /* the machines each problem's picker offers — its line's, never another's (lib/lineRecords machinesOf; flow audit #14) */
+  const rec = useLineRecords();
   const [jobData, setJobData] = useState<Map<string, JobData>>(new Map());
   /* the jobs' lines — which factory line each job is on (lib/lineRecords) */
   const [jobLines, setJobLines] = useState<PaceLineRow[]>([]);
@@ -140,8 +142,7 @@ export function QuickSnagsScreen() {
     /* EVERY PROJECT'S PROBLEMS AND FIXES — this page holds everything
        (Rowland, 12 October: "everything should still stay in the control
        problem page, because that's the page that has everything. That's the
-       page I do the report on"); and the machines on the jobs, offered when
-       a problem is given its machine. */
+       page I do the report on"). */
     const ids = jobKey.split(',').filter(Boolean);
     const sixm = new Set(sixmKey.split(',').filter(Boolean));
     const jd = new Map<string, JobData>();
@@ -154,7 +155,6 @@ export function QuickSnagsScreen() {
     }));
     setJobData(jd);
     setJobLines(await allPaceLines());
-    setJobMachines(dedupe([...jd.values()].flatMap(d => d.assets).filter(a => !a.deletedAt).map(a => a.name.trim())));
   }, [jobKey, sixmKey]);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
 
@@ -257,7 +257,7 @@ export function QuickSnagsScreen() {
   useEffect(() => { if (!savedOn) return; const t = window.setTimeout(() => setSavedOn(null), 4000); return () => window.clearTimeout(t); }, [savedOn]);
   /* each box patches its own fields into the row as it is stored now — never the copy this page last drew (FLOW-AUDIT #4) */
   const put = async (id: string, p: SnagChange) => { if (await patchSnag(id, p)) setSavedOn({ id, at: Date.now() }); };
-  const machinesFor = (lineId: string) => dedupe([...(lines.find(w => w.id === lineId)?.assets ?? []), ...jobMachines]);
+  const machinesFor = (lineId: string, jobId?: string) => { const w = rec.all.find(x => x.id === lineId); return w ? machinesOf(w, rec.machines, rec.jobLines, jobId) : []; };
   /* THE 6M JOBS ON A LINE — where a problem seen on the floor becomes the head of a fish (FLOW-AUDIT #13) */
   const sixmOn = (wsId: string): (RootOn & { canEdit: boolean })[] => liveJobs.filter(p => planModel(p) === 'board').flatMap(p => {
     const l = jobLines.find(x => x.projectId === p.id && x.workspaceId === wsId && !x.deletedAt);
@@ -522,7 +522,7 @@ export function QuickSnagsScreen() {
                     </button>
                     {isOpen && <ProblemEditor s={s} lines={factory} projects={liveJobs}
                       saved={savedOn?.id === s.id && Date.now() - savedOn.at < 4000} lineName={lineName} jobName={jobName}
-                      onSave={() => { flip(s.id); setSavedOn({ id: s.id, at: Date.now() }); }} machines={machinesFor(s.workspaceId)} frame={s.assetId ? frames.get(s.assetId) : undefined}
+                      onSave={() => { flip(s.id); setSavedOn({ id: s.id, at: Date.now() }); }} machines={machinesFor(s.workspaceId, s.projectId)} frame={s.assetId ? frames.get(s.assetId) : undefined}
                       put={p => void put(s.id, p)} onView={m => setViewing({ snagId: s.id, media: m })} busy={busy}
                       sixm={sixmOn(s.workspaceId)} onRoot={j => void toRootCause(s, j)} rootOf={rootOf(s)}
                       onStart={() => nav(`/projects?new=1&line=${encodeURIComponent(s.workspaceId)}`)}

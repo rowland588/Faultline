@@ -15,7 +15,7 @@
  * a line are already one tap away on the project card and are not listed here a
  * second time; the ones attached to nothing still are, because they hold film
  * that exists nowhere else and must never become unreachable. */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Workspace } from '../types';
 import {
   listWorkspaces, listObservations, listSegments, snagsForWorkspace, listCases, deleteWorkspace,
@@ -35,6 +35,20 @@ import { JobsBoard } from '../ui/JobsBoard';
 import { useLineRecords } from '../lib/useLineRecords';
 import { lineKit } from '../lib/lineRecords';
 import { useCanStartProjects } from '../cloud/access';
+import { lineProblems, lineProblemsSaid, type LineProblems } from '../lib/lineWork';
+
+/** Below 720 px the control room's answer comes first (FLOW-AUDIT.md, 11). */
+function useNarrow(q = '(max-width: 719px)'): boolean {
+  const [on, setOn] = useState(() => { try { return window.matchMedia(q).matches; } catch { return false; } });
+  useEffect(() => {
+    let m: MediaQueryList;
+    try { m = window.matchMedia(q); } catch { return; }
+    const f = () => setOn(m.matches);
+    m.addEventListener?.('change', f);
+    return () => m.removeEventListener?.('change', f);
+  }, [q]);
+  return on;
+}
 
 /* An installed PWA keeps serving its cached shell until the service worker
  * hands over, so a device can sit on an old build for a long time with nothing
@@ -65,17 +79,25 @@ function BuildStamp() {
 /* What a workspace card must answer: "what's in here?" — for ALL content, not
  * one kind of it. Counting only time observations made a workspace full of
  * walk videos and snags read "0 observations", i.e. "your work is gone". */
-interface WsContents { obs: number; videos: number; openSnags: number; cases?: number }
+interface WsContents { obs: number; videos: number;
+  /** Its problems open, critical and late — lib/lineWork lineProblems, the
+   *  count the line's own page and the control room's numbers use. */
+  problems: Pick<LineProblems, 'open' | 'critical' | 'late'>; cases?: number }
 
-function contentsLabel(c: WsContents | undefined): string {
+function contentsLabel(c: WsContents | undefined): ReactNode {
   if (!c) return '…';
-  const parts = [
-    /* its problems first — what a line is opened for (12 October) */
-    c.openSnags > 0 ? `${c.openSnags} problem${c.openSnags === 1 ? '' : 's'} open` : '',
+  const rest = [
     c.obs > 0 ? plural(c.obs, 'observation') : '',
     c.videos > 0 ? plural(c.videos, 'video') : '',
   ].filter(Boolean);
-  return parts.length ? parts.join(' · ') : 'Nothing on it yet';
+  /* its problems first — what a line is opened for (12 October) — the
+     critical and the late in red, each with its word (FLOW-AUDIT.md, 1) */
+  const probs = c.problems.open ? lineProblemsSaid(c.problems) : [];
+  if (!probs.length && !rest.length) return 'Nothing on it yet';
+  return <>
+    {probs.map((x, i) => (x.red ? <b key={i} className="is-r">{x.text}</b> : x.text))}
+    {probs.length && rest.length ? ' · ' : ''}{rest.join(' · ')}
+  </>;
 }
 
 export function WorkspaceHome() {
@@ -162,11 +184,13 @@ export function WorkspaceHome() {
         const [obs, segs, snags, cases, away] = await Promise.all([
           listObservations(w.id), listSegments(w.id), snagsForWorkspace(w.id), listCases(w.id), inArchivedProject(w.id),
         ]);
+        /* open, and not put away by a fresh start, moved or deleted (the
+           Problems register) — critical and late counted by the one rule */
+        const p = lineProblems(snags, w);
         return [w.id, {
           obs: obs.length,
           videos: segs.length,
-          /* open, and not put away by a fresh start or deleted (the Problems register) */
-          openSnags: snags.filter(s => s.status !== 'closed' && !s.archivedAt && !s.deletedAt).length,
+          problems: { open: p.open, critical: p.critical, late: p.late },
           cases: away ? 0 : cases.length,
         }] as const;
       }));
@@ -212,6 +236,54 @@ export function WorkspaceHome() {
   useEffect(() => { let on = true; void liveProductionLines(list ?? []).then(ls => { if (on) setLiveIds(new Set(ls.map(w => w.id))); }); return () => { on = false; }; }, [list]);
   const rec = useLineRecords();
   const prodLines = productionLines((list ?? []).filter(w => w.id !== pendingDel?.id && (liveIds === null || liveIds.has(w.id))));
+  /* ON A PHONE THE ANSWER COMES FIRST (FLOW-AUDIT.md, 11): the first screen
+     held the title, New project and the factory's cards, and the headline
+     began at the foot of it, under the Problem button. The line cards go
+     under the band there; at a desk the factory still leads. */
+  const narrow = useNarrow();
+
+  const factory = (
+    <section className="home-spaces fac-home" aria-label="Your factory">
+      <div className="home-sec-head">
+        <h2 className="home-sec-title">Your factory</h2>
+        {prodLines.length > 0 && (
+          <span className="pl-sec-acts">
+            {/* every line's programs, planned and proved, no job needed (Stage 2) */}
+            <button className="btn" onClick={() => nav('/programs')}>Programs</button>
+            <button className="btn" onClick={() => nav('/factory')}>Edit your factory</button>
+          </span>
+        )}
+      </div>
+      {prodLines.length === 0 ? (
+        <div className="fac-empty">
+          <p>Set up your factory first — your production lines, each with its name and its type. Every job, problem and tool then hangs off one of them.</p>
+          <button className="btn btn-primary" onClick={() => nav('/factory?add=1')}>Set up your factory</button>
+        </div>
+      ) : (
+        <>
+          <p className="sub home-sec-sub fac-says">{factorySays(prodLines)}{archivedN > 0 ? ` · ${archivedN} archived` : ''}</p>
+          <ul className="fac-floor" aria-label="The lines, in floor order">
+            {prodLines.map(w => {
+              const c = counts[w.id];
+              const on = belongs?.[w.id];
+              return (
+                <li key={w.id}>
+                  <button className="fac-card" onClick={() => nav(`/lines/${w.id}`)}>
+                    <b className="fac-card-name">{w.name}</b>
+                    <span className="fac-card-type">{w.lineType || 'No type yet'}</span>
+                    <span className="fac-card-meta">{contentsLabel(c)}{on ? ` · on ${on}` : ''}</span>
+                    {/* its programs not yet proved, the late in red (Stage 2) */}
+                    {(() => { const k = lineKit(w, rec.machines, rec.programs, rec.jobLines); const todo = k.programs.length - k.proved;
+                      return todo > 0 ? <span className="fac-card-meta">{todo} program{todo === 1 ? '' : 's'} to prove{k.late ? <> · <b className="is-r">{k.late} late</b></> : null}</span> : null; })()}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
+    </section>
+  );
 
   return (
     <div className="wrap home">
@@ -259,51 +331,16 @@ export function WorkspaceHome() {
           lines list that sat under the jobs, with its New line and its
           archive: those are on Your factory now, with the type and the floor
           order beside the name, so a line is made and changed in one place. */}
-      <section className="home-spaces fac-home" aria-label="Your factory">
-        <div className="home-sec-head">
-          <h2 className="home-sec-title">Your factory</h2>
-          {prodLines.length > 0 && (
-            <span className="pl-sec-acts">
-              {/* every line's programs, planned and proved, no job needed (Stage 2) */}
-              <button className="btn" onClick={() => nav('/programs')}>Programs</button>
-              <button className="btn" onClick={() => nav('/factory')}>Edit your factory</button>
-            </span>
-          )}
-        </div>
-        {prodLines.length === 0 ? (
-          <div className="fac-empty">
-            <p>Set up your factory first — your production lines, each with its name and its type. Every job, problem and tool then hangs off one of them.</p>
-            <button className="btn btn-primary" onClick={() => nav('/factory?add=1')}>Set up your factory</button>
-          </div>
-        ) : (
-          <>
-            <p className="sub home-sec-sub fac-says">{factorySays(prodLines)}{archivedN > 0 ? ` · ${archivedN} archived` : ''}</p>
-            <ul className="fac-floor" aria-label="The lines, in floor order">
-              {prodLines.map(w => {
-                const c = counts[w.id];
-                const on = belongs?.[w.id];
-                return (
-                  <li key={w.id}>
-                    <button className="fac-card" onClick={() => nav(`/lines/${w.id}`)}>
-                      <b className="fac-card-name">{w.name}</b>
-                      <span className="fac-card-type">{w.lineType || 'No type yet'}</span>
-                      <span className="fac-card-meta">{contentsLabel(c)}{on ? ` · on ${on}` : ''}</span>
-                      {/* its programs not yet proved, the late in red (Stage 2) */}
-                      {(() => { const k = lineKit(w, rec.machines, rec.programs, rec.jobLines); const todo = k.programs.length - k.proved;
-                        return todo > 0 ? <span className="fac-card-meta">{todo} program{todo === 1 ? '' : 's'} to prove{k.late ? <> · <b className="is-r">{k.late} late</b></> : null}</span> : null; })()}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </>
-        )}
-      </section>
+      {!narrow && factory}
 
       {/* EVERY JOB, ONE HOME — the first thing the app opens on. Rowland
           reviewing the board: it lived one tap in, on Projects, which is not
           where the app opens. Everything below it on this screen stays. */}
-      {jobs.length > 0 && <JobsBoard projects={jobs} />}
+      {/* The board reads every job and every line's own work (lib/lineWork):
+          a line can be out of control with no job on it (BLUEPRINT §6.6). */}
+      {jobs.length > 0 || prodLines.length > 0
+        ? <JobsBoard projects={jobs} after={narrow ? factory : undefined} />
+        : narrow && factory}
 
       {/* ONE LIST OF JOBS. The project cards that sat here listed the same
           jobs the control room lists, a second time. Rowland agreed they go

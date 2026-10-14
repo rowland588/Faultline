@@ -24,6 +24,10 @@ import type { Program, ProgramState } from '../lib/programs';
 import { STATE_WORD, daysOverdue, isProved, movedOne, standingOf, stateOf } from '../lib/programs';
 import { lineProgramsReading, machineOfProgram, machinesOnLine, productsOnLine, programsOnLine, type LineMachine } from '../lib/lineRecords';
 import { useLineRecords, type LineRecords } from '../lib/useLineRecords';
+import { useJobFloor, type FloorWord } from '../lib/useJobFloor';
+import type { Proof } from '../lib/programsReport';
+import { studyHref } from '../lib/studyLinks';
+import { ProveProgram } from '../ui/ProveProgram';
 import { asked } from '../lib/lines';
 import { niceDay, todayISO } from '../lib/weeks';
 import { pdfFileName } from '../lib/fileName';
@@ -66,7 +70,14 @@ export function LineProgramsScreen() {
   const today = todayISO();
 
   const shown = useMemo(() => readLines(rec, lineF === 'all' ? undefined : lineF), [rec, lineF]);
-  const reading = useMemo(() => lineProgramsReading(shown.map(s => ({ id: s.line.id, name: s.line.name, machines: s.machines, programs: s.programs })), today), [shown, today]);
+  /* WHAT EACH JOB'S FLOOR SAID of its programs on these lines — beside the
+     record's own state, on screen and paper (flow audit #3). */
+  const floor = useJobFloor(useMemo(() => shown.flatMap(s => s.programs.map(p => p.projectId)), [shown]));
+  const jobName = useMemo(() => new Map(rec.jobs.map(j => [j.id, j.name])), [rec.jobs]);
+  const reading = useMemo(() => lineProgramsReading(shown.map(s => ({ id: s.line.id, name: s.line.name, machines: s.machines, programs: s.programs })), today,
+    { floor, jobName, tests: rec.provingTests, studies: rec.studies }), [shown, today, floor, jobName, rec.provingTests, rec.studies]);
+  /* HOW EACH PROVED ONE WAS PROVED (flow audit #21) — the reading's own words. */
+  const proofs = useMemo(() => new Map((reading?.lines ?? []).flatMap(l => (l.programId && l.proof ? [[l.programId, l.proof] as const] : []))), [reading]);
   const counts = useMemo(() => new Map(readLines(rec).map(s => [s.line.id, s.programs.length])), [rec]);
 
   if (rec.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
@@ -127,7 +138,7 @@ export function LineProgramsScreen() {
               ))}
             </div>
           )}
-          {shown.map(s => <LineBlock key={s.line.id} s={s} rec={rec} may={may} today={today} startAdding={(adding || !s.programs.length) && lineF === s.line.id} />)}
+          {shown.map(s => <LineBlock key={s.line.id} s={s} rec={rec} may={may} today={today} floor={floor} proofs={proofs} startAdding={(adding || !s.programs.length) && lineF === s.line.id} />)}
         </>
       )}
     </div>
@@ -136,7 +147,7 @@ export function LineProgramsScreen() {
 
 /** One line: its machines in flow order, each with its programs, the line
  *  itself last; then Plan a program on it. */
-function LineBlock({ s, rec, may, today, startAdding }: { s: LineRead; rec: LineRecords; may: boolean; today: string; startAdding: boolean }) {
+function LineBlock({ s, rec, may, today, floor, proofs, startAdding }: { s: LineRead; rec: LineRecords; may: boolean; today: string; floor: Map<string, FloorWord>; proofs: ReadonlyMap<string, Proof>; startAdding: boolean }) {
   const { line, machines, programs } = s;
   const groups = [
     ...machines.map(m => ({ key: m.record?.id ?? m.name, m, rows: programs.filter(p => machineOfProgram(p, machines) === m) })),
@@ -156,7 +167,7 @@ function LineBlock({ s, rec, may, today, startAdding }: { s: LineRead; rec: Line
           <h3 className="lp-mh">{g.m ? g.m.name : 'The line itself'}{g.m?.record?.oem ? <span className="sub"> · {g.m.record.oem}</span> : null}</h3>
           <div className="mt-list">
             {g.rows.map(p => (
-              <ProgramRow key={p.id} p={p} line={line} machines={machines} today={today} may={may} rec={rec}
+              <ProgramRow key={p.id} p={p} line={line} machines={machines} today={today} may={may} rec={rec} floor={floor.get(p.id)} proof={proofs.get(p.id)}
                 move={!p.projectId && may ? async by => { const changed = movedOne(own, p.id, by, q => machineOfProgram(q, machines) === g.m); if (changed.length) await putPrograms(changed); } : undefined} />
             ))}
           </div>
@@ -171,19 +182,22 @@ function LineBlock({ s, rec, may, today, startAdding }: { s: LineRead; rec: Line
   );
 }
 
-function ProgramRow({ p, line, machines, today, may, rec, move }: {
+function ProgramRow({ p, line, machines, today, may, rec, floor, proof, move }: {
   p: Program; line: Workspace; machines: LineMachine[]; today: string; may: boolean; rec: LineRecords;
+  /** What its job's Set up said of it, when it is a job's (lib/useJobFloor). */
+  floor?: FloorWord;
+  /** How it was proved, when it is (lib/programsReport proofOf). */
+  proof?: Proof;
   move?: (by: -1 | 1) => Promise<void>;
 }) {
   const [proving, setProving] = useState(false);
-  const [on, setOn] = useState(today);
   const where = standingOf(p, today), got = stateOf(p);
   const job = p.projectId ? rec.jobs.find(j => j.id === p.projectId) : undefined;
   const machine = machineOfProgram(p, machines);
   /* A job's program is the job's to change, where it is set up and proved; a
      line's own is changed here. */
   const edit = may && !p.projectId;
-  const facts = [p.runs && `runs ${p.runs}`, p.from && `from ${p.from}`].filter(Boolean).join(' · ');
+  const facts = [p.runs && `runs ${p.runs}`, p.from && `whose: ${p.from}`].filter(Boolean).join(' · ');
   const save = (patch: Partial<Program>) => void putProgram({ ...p, ...patch });
 
   return (
@@ -201,6 +215,20 @@ function ProgramRow({ p, line, machines, today, may, rec, move }: {
         {facts && <div className="mt-facts">{facts}</div>}
         {job && (
           <div className="mt-facts lp-job">on <button type="button" className="cw-link" onClick={() => nav(`/project/${job.id}/programs`)}>{job.name} ›</button>{job.archivedAt ? ' (archived)' : ''}</div>
+        )}
+        {/* ONE PROGRAM, ONE ANSWER (flow audit #3): what its job's floor said
+            of it, beside the record's own state — a failure there has
+            already put it back on the machine here (lib/programs). */}
+        {job && floor && (
+          <div className="mt-facts lp-floor">On its Set up: <b className={'is-' + floor.tone}>{floor.word}</b>{floor.note ? ` — ${floor.note}` : ''}</div>
+        )}
+        {/* HOW IT WAS PROVED (flow audit #21) — its test, the study that
+            showed it (one tap to it), or signed off by hand; amber when
+            nothing said shows it. */}
+        {isProved(p) && proof && (
+          <div className={'lp-how is-' + proof.tone}>{proof.word}
+            {proof.studyId && (s => s && <>{' '}<button type="button" className="cw-link" onClick={() => nav(studyHref(s))}>Open it ›</button></>)(rec.studies.find(x => x.id === proof.studyId))}
+          </div>
         )}
         {/* COMMENTARY — what was seen, what is next (12 October: "allow
             commentary"), with or without a change of state. */}
@@ -230,7 +258,7 @@ function ProgramRow({ p, line, machines, today, may, rec, move }: {
           <select className={'text-input pg-state-sel is-pg-' + got} value={got} aria-label={`Where ${p.what} has got to`}
             onChange={e => {
               const next = e.target.value as ProgramState;
-              if (next === 'proved') { setOn(today); setProving(true); return; }
+              if (next === 'proved') { setProving(true); return; }
               save({ state: next, provedOn: undefined });
             }}>
             <option value="needed">Not written</option>
@@ -251,13 +279,13 @@ function ProgramRow({ p, line, machines, today, may, rec, move }: {
         )}
       </div>
 
+      {/* PROVED ASKS THE DAY AND WHAT SHOWED IT, or the study on the line
+          that did (flow audit #21) — a job's test in Commission is the third
+          way, planned on the job. */}
       {edit && proving && (
-        <div className="mt-mark">
-          <label className="mt-mark-l" htmlFor={`lp-pv-${p.id}`}>Proved on</label>
-          <input id={`lp-pv-${p.id}`} className="mt-due" type="date" value={on} onChange={e => setOn(e.target.value)} />
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => { save({ state: 'proved', provedOn: on, testOn: undefined }); setProving(false); }}>It&rsquo;s proved</button>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setProving(false)}>Cancel</button>
-        </div>
+        <ProveProgram p={p} studies={rec.studies.filter(x => x.workspaceId === line.id)} onClose={() => setProving(false)}
+          testDoor={(j => j && <>Or prove it by a test in Commission on <button type="button" className="cw-link" onClick={() => nav(`/project/${j.id}/programs`)}>{j.name} ›</button></>)(
+            rec.jobs.find(j => !!j.commissioning && !j.archivedAt && rec.jobLines.some(l => l.projectId === j.id && l.workspaceId === line.id && !l.deletedAt)))} />
       )}
       {edit && (
         <button type="button" className="pset-x" aria-label={`Remove ${p.what}`}
@@ -325,8 +353,8 @@ function AddLineProgram({ line, machines, products }: { line: Workspace; machine
           <input className="text-input" type="date" value={testOn} aria-label="The day it is tested" onChange={e => setTestOn(e.target.value)} />
         </label>
         <label className="proj-field">
-          <span className="field-label">From</span>
-          <input className="text-input" value={from} maxLength={80} placeholder="Who owes it" aria-label="Who owes it" onChange={e => setFrom(e.target.value)} />
+          <span className="field-label">Whose</span>
+          <input className="text-input" value={from} maxLength={80} placeholder="e.g. Ilapak UK" aria-label="Whose it is" onChange={e => setFrom(e.target.value)} />
         </label>
         <label className="proj-field mt-add-what">
           <span className="field-label">Commentary</span>

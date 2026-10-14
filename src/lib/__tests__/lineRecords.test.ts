@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
-  lineMachineId, lineOfMachine, lineOfProgram, machineKey, machinesOnLine, onlyLineOf, productsOnLine, programsOnLine,
+  isWholeLine, lineMachineId, lineOfMachine, lineOfProgram, lineProgramsReading, machineKey, machinesOf, machinesOnLine, onlyLineOf, productsOnLine, programsOnLine,
   type JobLine,
 } from '../lineRecords';
-import type { Asset } from '../testing';
+import { proofOf } from '../programsReport';
+import type { Asset, Test } from '../testing';
 import type { Program } from '../programs';
+import type { ToolStudy } from '../study';
 
 const jobLines: JobLine[] = [
   { id: 'jl-a', projectId: 'job-one', workspaceId: 'ws-7' },
@@ -66,6 +68,33 @@ describe('the line\'s machines in flow order', () => {
   });
 });
 
+/* Flow audit #14, 13 October: "One line has three lists of machines. The
+ * problem sheet offers another line's machines. The stopwatch offers 1 of 4." */
+describe('every "which machine" on a line', () => {
+  const lines: JobLine[] = [
+    { id: 'jl-1', projectId: 'job-one', workspaceId: 'ws-7' },
+    { id: 'jl-2', projectId: 'job-many', workspaceId: 'ws-7' },
+    { id: 'jl-3', projectId: 'job-many', workspaceId: 'ws-8' },
+    { id: 'jl-4', projectId: 'job-other', workspaceId: 'ws-8' },
+  ];
+  const assets = [
+    asset({ id: 'w', name: 'Ilapak flow wrapper', projectId: 'job-one', sort: 10 }),
+    asset({ id: 'c', name: 'Checkweigher', workspaceId: 'ws-7', sort: 0 }),
+    asset({ id: 'x', name: 'Another line wrapper', projectId: 'job-other', sort: 10 }),
+    asset({ id: 'm', name: 'Robot', projectId: 'job-many', sort: 20 }),
+    asset({ id: 'n', name: 'Robot two', projectId: 'job-many', workspaceId: 'ws-8', sort: 30 }),
+  ];
+  const ws = { id: 'ws-7', assets: ['Whole line', 'Bagger', 'checkweigher'] };
+  it('the line\'s list in flow order, then what its jobs brought onto it — never another line\'s, never "Whole line"', () => {
+    expect(machinesOf(ws, assets, lines)).toEqual(['Bagger', 'checkweigher', 'Ilapak flow wrapper']);
+  });
+  it('a job on several lines adds its machines not yet on any one line — only on a line it is on', () => {
+    expect(machinesOf(ws, assets, lines, 'job-many')).toEqual(['Bagger', 'checkweigher', 'Ilapak flow wrapper', 'Robot']);
+    expect(machinesOf(ws, assets, lines, 'job-other')).toEqual(['Bagger', 'checkweigher', 'Ilapak flow wrapper']);
+    expect(isWholeLine(' whole  LINE ')).toBe(true);
+  });
+});
+
 describe('the line\'s programs and products', () => {
   const programs = [
     prog({ id: 'p1', what: 'P-104', workspaceId: 'ws-7', sort: 30, runs: 'Finest Red 2kg' }),
@@ -79,6 +108,37 @@ describe('the line\'s programs and products', () => {
   it('the products: what the programs run and what the standards map, once each', () => {
     expect(productsOnLine(programs, [{ product: 'Express 1.25 kg' }, { product: 'FINEST RED 2KG' }, { product: 'Gone', deletedAt: 2 }]))
       .toEqual(['Finest Red 2kg', 'Express 1.25 kg']);
+  });
+});
+
+/* Flow audit #21, 13 October: "A line's program is Proved by a dropdown,
+ * with no test and no evidence." Proved says what showed it — its test, a
+ * study on the line, or the words of who signed it off; amber when nothing. */
+describe('how a line\'s program was proved', () => {
+  const T = '2026-10-13';
+  const study = { id: 's1', tool: 'capability', name: 'Weight 2 kg', workspaceId: 'ws-7', programId: 'p-cw', facts: { readings: [] }, uses: [], startedAt: 1, createdAt: 1, updatedAt: 1 } as unknown as ToolStudy;
+  const test = { id: 't1', projectId: 'job-one', kind: 'test', title: 'Prove program P-104', programId: 'p-104', outcome: 'passed', ranOn: '2026-10-12', sort: 1, createdAt: 1, updatedAt: 1 } as Test;
+  const programs = [
+    prog({ id: 'p-104', what: 'P-104', workspaceId: 'ws-7', state: 'proved', provedOn: '2026-10-12', testId: 't1' }),
+    prog({ id: 'p-cw', what: 'CW-3', workspaceId: 'ws-7', state: 'proved', provedOn: '2026-10-11' }),
+    prog({ id: 'p-hand', what: 'CW-1', workspaceId: 'ws-7', state: 'proved', provedOn: '2026-10-03', note: '500 packs, no rejects' }),
+    prog({ id: 'p-bare', what: 'LB-2', workspaceId: 'ws-7', state: 'proved', provedOn: '2026-10-02' }),
+    prog({ id: 'p-open', what: 'LB-3', workspaceId: 'ws-7', state: 'onMachine' }),
+  ];
+  it('says its test, the study that showed it, the hand that signed it off — amber when nothing shows it', () => {
+    expect(proofOf(programs[0], [test])).toMatchObject({ word: 'Proved by its test — Prove program P-104, passed 12 Oct', tone: 'g', testId: 't1' });
+    expect(proofOf(programs[1], [], [study])?.word).toMatch(/^Proved by the capability study “Weight 2 kg” — /);
+    expect(proofOf(programs[2], [])).toEqual({ word: 'Signed off by hand', tone: 'n' });
+    expect(proofOf(programs[3], [])).toEqual({ word: 'Signed off by hand — nothing said shows it', tone: 'a' });
+    expect(proofOf(programs[4], [])).toBeUndefined();
+    /* a paper that cannot see the job's tests still says a test proved it */
+    expect(proofOf(programs[0], undefined)?.word).toBe('Proved by its test in Commission');
+  });
+  it('the line\'s programs report carries it under each proved one', () => {
+    const r = lineProgramsReading([{ id: 'ws-7', name: 'Line 7', machines: [], programs }], T, { tests: [test], studies: [study] });
+    const by = (id: string) => r?.lines.find(l => l.programId === id)?.proof?.word;
+    expect([by('p-104'), by('p-hand'), by('p-bare'), by('p-open')]).toEqual(['Proved by its test — Prove program P-104, passed 12 Oct', 'Signed off by hand', 'Signed off by hand — nothing said shows it', undefined]);
+    expect(by('p-cw')).toMatch(/capability study “Weight 2 kg”/);
   });
 });
 

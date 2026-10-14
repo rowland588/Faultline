@@ -15,7 +15,8 @@
  * records point at it, and the drawer's branch (ui/StudyLinks) reads the same
  * link from the other end. */
 import { useEffect, useMemo, useState } from 'react';
-import { listProjectCases, onDataChange, patchStudy, putPaceTodo, putTest } from '../db';
+import { allPaceLines, listProjectCases, onDataChange, patchStudy, putPaceTodo, putTest } from '../db';
+import { onlyLineOf } from '../lib/lineRecords';
 import { useFactoryLines } from '../lib/useFactoryLines';
 import { useProject } from '../lib/useProjects';
 import { planModel } from '../lib/planModel';
@@ -28,9 +29,11 @@ import { useAccessByJob } from './JobsBoard';
 import { now, uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import { live, nextFrom, type Test } from '../lib/testing';
-import { betterWords, worthBetter, linkOf, countermeasureFrom, recordHref, ROLE_WORD, type StudyContext } from '../lib/studyLinks';
+import { niceDay } from '../lib/weeks';
+import { betterWords, worthBetter, linkOf, countermeasureFrom, recordHref, ROLE_WORD, studyMachineOf, usedForGroups, type StudyContext } from '../lib/studyLinks';
 import type { StudyUse, ToolStudy } from '../lib/study';
 import type { Can } from '../lib/access';
+import { StudyProves } from './ProveProgram';
 
 
 export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
@@ -65,6 +68,13 @@ export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
       window.alert('Sorry — the PDF could not be made. Please try again.');
     } finally { setPrinting(false); }
   };
+  /* ON A JOB, ON ITS LINE (flow audit #15): a study on no line takes the
+     job's line when the job is on one — "attached to Line 2 commissioning"
+     beside "On no line" was two answers to where it is. */
+  const attach = async (projectId: string) => {
+    const ws = s.workspaceId ? undefined : onlyLineOf(projectId, await allPaceLines());
+    set({ projectId, ...(ws ? { workspaceId: ws } : {}) });
+  };
   /* Off a job is the owner's (the cloud keeps it for anyone else); a quick
      session or a line's, its people's. */
   const mayLeaveJob = can.remove;
@@ -93,11 +103,13 @@ export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
         </select>
       )}
       {picking === 'job' && (
-        <select className="text-input ie-pick" autoFocus defaultValue="" aria-label="Attach it to which job" onChange={e => e.target.value && set({ projectId: e.target.value })} onBlur={() => setPicking(null)}>
+        <select className="text-input ie-pick" autoFocus defaultValue="" aria-label="Attach it to which job" onChange={e => { if (e.target.value) void attach(e.target.value); }} onBlur={() => setPicking(null)}>
           <option value="" disabled>Which job?</option>
           {jobs.map(p => <option key={p.id} value={p.id}>{p.name}{s.workspaceId && p.workspaceIds.includes(s.workspaceId) ? ' — on this line' : ''}</option>)}
         </select>
       )}
+      {/* the program it shows proved (flow audit #21) — a branch off the study */}
+      <StudyProves s={s} />
     </div>
   );
 }
@@ -107,6 +119,12 @@ const GROUPS: [StudyUse['kind'], string][] = [['cause', 'Causes on the fishbone'
 
 /** One record inside its job a study can be used for, and how. */
 interface Target { k: StudyUse['kind']; ref: string; title: string; roles: StudyUse['role'][]; bone?: SixM; lineId?: string;
+  /** A stage-gate test's or fix's machine — the pick-list groups by it. */
+  machine?: string;
+  /** What tells it from another of the same name on the same machine — the
+   *  products it runs and its day ("Performance run at the agreed rate" was
+   *  twice on the flow wrapper: the first try and its re-test). */
+  apart?: string;
   /** Shown when linked, but not offered for a new link: a closed problem's cause, a ruled-out one. */
   past?: boolean }
 
@@ -146,7 +164,10 @@ export function useBetter(s: ToolStudy, me?: string, ctx?: StudyContext) {
     : live(tt.tests).flatMap(t => {
       const k = t.kind ?? 'test';
       const roles: StudyUse['role'][] = k === 'test' ? ['proof'] : k === 'fix' ? ['evidence', 'proof'] : [];
-      return roles.length ? [{ k: k as StudyUse['kind'], ref: t.id, title: t.title, roles }] : [];
+      const products = [...new Set([...(t.runs ?? []).map(r => r.product?.trim()), t.product?.trim(), t.planned?.trim()].filter((x): x is string => !!x))];
+      const day = t.ranOn ?? t.plannedFor;
+      const apart = [products.join(', '), day ? niceDay(day) : '', t.fromTestId ? 're-test' : ''].filter(Boolean).join(' · ');
+      return roles.length ? [{ k: k as StudyUse['kind'], ref: t.id, title: t.title, roles, ...(t.assetId ? { machine: t.assetId } : {}), ...(apart ? { apart } : {}) }] : [];
     });
   const byRef = new Map(targets.map(x => [x.ref, x]));
 
@@ -179,11 +200,11 @@ export function useBetter(s: ToolStudy, me?: string, ctx?: StudyContext) {
     await patchStudy(s.id, cur => ({ uses: [...cur.uses, linkOf('fix', fix.id, 'evidence', at, me, uid(), step)] }));
     nav(recordHref(projectId, { kind: 'fix', ref: fix.id }));
   };
-  return { board, targets, byRef, better };
+  return { board, targets, byRef, better, assets: tt.assets };
 }
 
 export function UsedFor({ s, can, me }: { s: ToolStudy; can: Can; me?: string }) {
-  const { board, targets, byRef, better } = useBetter(s, me);
+  const { board, targets, byRef, better, assets } = useBetter(s, me);
   const [picking, setPicking] = useState(false);
   if (!s.projectId) return null;
   const projectId = s.projectId;
@@ -217,14 +238,21 @@ export function UsedFor({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
           {picking && (
             <select className="text-input ie-pick" autoFocus defaultValue="" aria-label="Use it for" onChange={e => link(e.target.value)} onBlur={() => setPicking(false)}>
               <option value="" disabled>Use it for…</option>
-              {GROUPS.map(([k, label]) => {
-                const here = options.filter(o => o.x.k === k);
-                return here.length ? (
-                  <optgroup key={k} label={label}>
-                    {here.map(o => <option key={`${o.x.ref}|${o.r}`} value={`${o.x.ref}|${o.r}`}>{ROLE_WORD[`${o.x.k}:${o.r}`]}: {o.x.title}</option>)}
-                  </optgroup>
-                ) : null;
-              })}
+              {/* A running line's: its causes, then its countermeasures. A
+                  stage-gate job's: machine by machine, the study's own
+                  first and named (lib/studyLinks usedForGroups). */}
+              {(board
+                ? GROUPS.map(([k, label]) => ({ label, items: options.filter(o => o.x.k === k) }))
+                : usedForGroups(options.map(o => ({ ...o, machine: o.x.machine, kind: o.x.k })), assets, studyMachineOf(s, assets))
+              ).map(g => g.items.length ? (
+                <optgroup key={g.label} label={g.label}>
+                  {g.items.map(o => {
+                    /* two of one name under one machine are told apart */
+                    const twin = o.x.apart && g.items.some(y => y !== o && y.r === o.r && y.x.title.trim() === o.x.title.trim());
+                    return <option key={`${o.x.ref}|${o.r}`} value={`${o.x.ref}|${o.r}`}>{ROLE_WORD[`${o.x.k}:${o.r}`]}: {o.x.title}{twin ? ` — ${o.x.apart}` : ''}</option>;
+                  })}
+                </optgroup>
+              ) : null)}
             </select>
           )}
           {worthBetter(s) && <button type="button" className="btn btn-primary" onClick={() => void better()}>{board ? 'Make it better — a countermeasure' : 'Make it better — raise a fix'}</button>}

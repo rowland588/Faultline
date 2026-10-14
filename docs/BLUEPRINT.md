@@ -145,12 +145,12 @@ the lines they are on.
 
 | Record | Line page | Control room | A job on that line | Paper |
 |---|---|---|---|---|
-| Problem | listed, late in red | counted on the line's card; the register | its Problems | card, line group, register, job reports |
-| Program | its programs; a product's row | programs due / not proved on the line's card; Programs | the stage-gate Programs gate | programs report (line, job) |
+| Problem | listed, late in red | counted on the line's card (critical and late in red); a line's own one with somebody or a day on it, and every Critical one, in the four numbers, Who owes what, This week and the critical list (`lib/lineWork`); the register | its Problems | card, line group, register, job reports; the control room report's "On the lines, outside any job" |
+| Program | its programs; a product's row | programs due / not proved on the line's card; a line's own one not proved in Who owes what, its late in the late and This week (`lib/lineWork`); Programs | the stage-gate Programs gate | programs report (line, job); the control room report's lines |
 | Machine | its machines | — | Install grid; every machine picker | factory report (flow order, makers); line report; stage-gate reports |
 | Product (standard, capacity, changeover) | its products row | products with gaps, counted | 6M line capacity; the client report | line standard cards; line report |
-| Study | its tools | — | evidence and proof | study's own page; job reports |
-| Job | jobs on it | jobs board | — | control room report |
+| Study | its tools, each saying what its latest found (the sentence its own list says) | — | evidence and proof | study's own page; job reports |
+| Job | jobs on it, each with its verdict and its late (the control room's own, `lib/useJobInputs`) | jobs board | — | control room report |
 | Line | — | your factory | lines it is on | factory report; line report |
 
 A screen that shows a record outside this table must add a row here.
@@ -222,7 +222,9 @@ there and what replaces it.
    other, and the empty one archived.
 8. **Shifts, crew and costs in the factory editor**, not in a hidden settings
    screen.
-9. **Needs you across lines**: programs due and problems late on lines with
+9. **Needs you across lines** (*built 13 October, the flow audit's finding
+   1: a line's own problems and programs counted in the control room's
+   numbers, its lists and its report — `lib/lineWork`*): programs due and problems late on lines with
    no job.
 10. **A people list** (D5).
 11. **A job's line is the factory's line — one page, one name** (flow audit
@@ -376,7 +378,50 @@ already follow):
   …", red) instead of "no test yet" — what the Programs list always said.
 - **A job deleted for ever** leaves a machine, a program or a line standard
   that is on a line where it stands, on no job (`purgeProject`).
-- *Accepted by* `scripts/acceptance/machines-programs.mjs` (stories 1–11).
+- **One program, one answer** (flow audit #3, 13 October: PR-04 read
+  *Proved 12 Oct* on the line and *Failed · closed 13 Oct* on the job; a
+  failed program was counted done). A failure said on the floor — Set up's
+  programs stage — after a program was proved drops it back to on the
+  machine (`lib/programs` `programAfterFloor`, on every write of a part:
+  `db/programs` `followPart`); a pass older than the failure proves nothing,
+  and the failure taken off hands it back to its test. A failed program is
+  never counted done: the Programs gate, each machine on it, the programs
+  report, the client report and the status page say "3 done — 2 passed, 1
+  at baseline · 1 failed". Each side says the other record beside its own —
+  the job's row its line's state ("On Line 7: on the machine · failed 13 Oct
+  — to prove again"), the line's row what its job's floor said ("On its Set
+  up: Failed · closed 13 Oct — …"), on the screen and on both papers. No new
+  record.
+- **Proved says what showed it** (flow audit #21, 13 October: a line's
+  program was *Proved* by a dropdown — no test, no evidence; LEAN40
+  principle 6, proved not asserted). *Proved* asks the day and what showed
+  it: in words (they become its commentary), or a study on its line that
+  shows it (the study names the program — `ToolStudy.programId`, a column
+  it already had); a test in Commission proves one on its own, and the form
+  says where to plan it. Every proved program says how, under its state
+  (`lib/programsReport` `proofOf`): "Proved by its test — …, passed 12 Oct",
+  "Proved by the capability study “…” — …" (one tap to it), "Signed off by
+  hand", or in amber "Signed off by hand — nothing said shows it" — on the
+  line's Programs, the job's Programs list, a job's view of its line's
+  programs, the line's and the job's programs reports and the client
+  report. The study's own page says the program it shows proved. No new
+  record.
+- **One list of machines, every picker** (flow audit #14, 13 October: "One
+  line has three lists of machines. The problem sheet offers another line's
+  machines. The stopwatch offers 1 of 4. Capacity stations never reach the
+  line's list ... A study's machine is typed"). `lib/lineRecords`
+  `machinesOf(line, job?)`: the line's machines in flow order with the ones
+  its jobs brought onto it, and a job's own not yet placed on one line —
+  never another line's. Every picker reads it (`useMachinesOf`, or the line
+  records): the Problem sheet and the register's editor, the stopwatch
+  ("Whole line" first), the walk, Line capacity's station names, SMED's
+  "where", a capability study's machine (offered when it is started on a
+  line; picked on its page once it sits on one, a typed one said "not one of
+  the line's machines"). Line capacity says its machine stations the line
+  does not list and adds them with one tap — offered, never written behind
+  the person's back. *Not here:* Install's *Add a machine* picking from the
+  line (Stage 4); the value stream map's places.
+- *Accepted by* `scripts/acceptance/machines-programs.mjs` (stories 1–14).
 - *Not in this stage:* plate speed per machine (it is per product — D3, Stage
   4); a job taking a line's machine onto its Install (Stage 4, "machines are
   picked from the line").
@@ -589,4 +634,24 @@ is still wired.
   6. *From a line's page*, the problem tapped is scrolled into view, its
      editor open, with *‹ the line* back to it.
   Accepted by `snags.mjs` 1b, 4b, 13, 15–18.
+- **The flow audit's control-room findings** (`docs/FLOW-AUDIT.md` 1, 6,
+  10, 11, 16, 19; Rowland, 13 October: "Fix what the audit finds and ship
+  it"). Placed (§8): *Control room* and *a line's page*; records `snags`,
+  `programs`, a job's tests and items, the studies and standards on a line —
+  no new record. A line's own problems (someone or a day on them, or
+  Critical) and programs (not proved; late past the test day) are counted
+  beside the jobs' in the four numbers, Who owes what, This week, the
+  critical list and the control room report, under the line's name with "on
+  the line, no job" (`lib/lineWork`); the line's card and its page say
+  critical and late in red by the same rule. The critical list's when is a
+  word, "going with …" its branch line. A line's page says what each tool's
+  latest record found and each job's verdict. On a phone the band comes
+  before the factory and the bar is Control room · Problems · Lines · More.
+  Each count is its page's: the rail's Problems is the fixes to do and the
+  problems with no fix (`lib/noted problemsTally`); Install's Needs you and
+  rail carry a machine late on site; a gate's Needs you names the machines
+  with none of its stages (`lib/install gateGaps`). A job started from
+  a line says "A change on Line 7" with its problems, latest shift and late
+  programs over the three ways, and its start steps count only its own
+  problems. Accepted by `scripts/acceptance/control-room.mjs`.
 - **Next:** Stage 3 — the line is the hub (its products, readiness, health).

@@ -14,7 +14,7 @@ import type { WalkSnag } from '../walkSnags';
 import { SIXM, blamesAPerson, boneOfStop } from '../sixm';
 import {
   acceptSuggestion, belongsTo, buildView, causeFromOldWhys, causeRefOf, oldWhysOf, countermeasuresOf, drillOfRef, fishboneData,
-  factsOf, fullWeeks, lineStandardOf, logGaps, measureOf, parseCauseRef, phaseOf, scopeOf, scopeMsWeek, startingWhys, suggestionsFor, therefore,
+  factsOf, fullWeeks, lineCapacityOf, lineStandardOf, logGaps, measureOf, parseCauseRef, phaseOf, scopeOf, scopeMsWeek, startingWhys, suggestionsFor, therefore,
   type Countermeasure, type FishboneData,
 } from '../fishbone';
 
@@ -387,6 +387,24 @@ describe('suggestionsFor — the walk, the standard, the balance, materials, pro
     expect(lineStandardOf({ id: 'L2' } as PaceLineRow, [a, b], [], true)).toBeUndefined();
   });
 
+  /* Flow audit #8: "The constraint says not counted yet although a capacity
+     for that line is on that job." The job line's own line balance, else the
+     product's Line capacity on the line — the one last worked on. */
+  it('the line\'s capacity as the job reads it: its own, else a product\'s Line capacity on the line', () => {
+    const cap = (rate: number) => ({ stations: [{ id: 'b', name: 'Bagger', kind: 'machine' as const, unit: 'bags', contains: 1, rate, ratePer: 'min' as const, source: 'plate' as const }] });
+    const onLine = { ...std(1), id: 'on', workspaceId: 'ws2', product: 'Maris Piper 2kg', capacity: cap(100), updatedAt: 5 };
+    const newer = { ...std(1), id: 'new', workspaceId: 'ws2', product: 'Express', capacity: cap(80), updatedAt: 9 };
+    const mapOnly = { ...std(1), id: 'map', workspaceId: 'ws2', updatedAt: 20 };
+    const elsewhere = { ...std(1), id: 'far', workspaceId: 'ws9', capacity: cap(50), updatedAt: 30 };
+    expect(lineCapacityOf(line, [onLine])).toEqual({ cap: line.capacity });
+    expect(lineCapacityOf(other, [onLine, mapOnly, elsewhere])).toMatchObject({ product: 'Maris Piper 2kg', standardId: 'on' });
+    expect(lineCapacityOf(other, [onLine, newer, mapOnly])?.standardId).toBe('new');
+    expect(lineCapacityOf(other, [elsewhere, mapOnly])).toBeUndefined();
+    // and the fishbone reads it: Line 7's constraint is offered on its whole-line problem
+    const s = suggestionsFor(problem({ lineId: 'L2', workspaceId: 'ws2', source: { kind: 'gap' } }), data({ standards: [onLine] }), TODAY).find(x => x.source.kind === 'capacity');
+    expect(s?.text).toMatch(/^Bagger limits the line at 100 bags\/min/);
+  });
+
   it('the limiting station → Machine, measured, when the head is about it', () => {
     const s = suggestionsFor(problem(), data(), TODAY).find(x => x.source.kind === 'capacity');
     expect(s?.source.ref).toBe('cap-basketer');
@@ -409,9 +427,10 @@ describe('suggestionsFor — the walk, the standard, the balance, materials, pro
   it('materials late → Material; programs not proved → Method', () => {
     const mat = (o: Partial<Material>): Material => ({ id: 'm1', projectId: 'P', what: 'Perforated film', sort: 1, createdAt: 1, updatedAt: 1, ...o });
     const prog = (o: Partial<Program>): Program => ({ id: 'p1', projectId: 'P', what: 'P-150', state: 'onMachine', sort: 1, createdAt: 1, updatedAt: 1, ...o });
+    /* on the problem's line: the job's line (lineId), or its factory line (workspaceId) */
     const s = suggestionsFor(problem(), data({
-      materials: [mat({ due: iso(3) }), mat({ id: 'm2', due: iso(-3) }), mat({ id: 'm3', due: iso(5), here: true }), mat({ id: 'm4', due: iso(5), lineId: 'L2' })],
-      programs: [prog({ testOn: iso(6) }), prog({ id: 'p2', testOn: iso(-4) }), prog({ id: 'p3' }), prog({ id: 'p4', provedOn: iso(2) }), prog({ id: 'p5', state: 'needed' })],
+      materials: [mat({ due: iso(3), lineId: 'L1' }), mat({ id: 'm2', due: iso(-3), lineId: 'L1' }), mat({ id: 'm3', due: iso(5), here: true, lineId: 'L1' }), mat({ id: 'm4', due: iso(5), lineId: 'L2' })],
+      programs: [prog({ testOn: iso(6), lineId: 'L1' }), prog({ id: 'p2', testOn: iso(-4), lineId: 'L1' }), prog({ id: 'p3', workspaceId: 'ws1' }), prog({ id: 'p4', provedOn: iso(2), lineId: 'L1' }), prog({ id: 'p5', state: 'needed', lineId: 'L1' })],
     }), TODAY);
     const m = s.filter(x => x.source.kind === 'material');
     expect(m.map(x => x.source.ref)).toEqual(['m1']);
@@ -422,6 +441,28 @@ describe('suggestionsFor — the walk, the standard, the balance, materials, pro
     expect(p.every(x => x.m === 'method')).toBe(true);
     expect(p[0].text).toMatch(/test day has passed/);
     expect(p[1].text).toMatch(/no test day/);
+  });
+
+  /* Flow audit #18: "Every problem is offered P-150 perforation not proved
+     under Method, and Upgraded jaw heater is 1 day late … whatever its head
+     says." What the job waits on on no line is offered only when it is about
+     the problem — its machine, or a word it shares. */
+  it('on no line, a material or a program is offered only when it is about the problem', () => {
+    const mat = (o: Partial<Material>): Material => ({ id: 'm1', projectId: 'P', what: 'Upgraded jaw heater', due: iso(3), sort: 1, createdAt: 1, updatedAt: 1, ...o });
+    const prog = (o: Partial<Program>): Program => ({ id: 'p1', projectId: 'P', what: 'P-150 perforation — 2kg', runs: 'Jacks Piper 2kg', state: 'onMachine', testOn: iso(6), sort: 1, createdAt: 1, updatedAt: 1, ...o });
+    const job = data({
+      materials: [mat({}), mat({ id: 'm2', what: 'Basketer guide rail — spare' }), mat({ id: 'm3', what: 'Perforated film', lineId: 'L2' })],
+      programs: [prog({}), prog({ id: 'p2', what: 'B-12 basket feed', runs: undefined }), prog({ id: 'p3', workspaceId: 'ws2' })],
+    });
+    const refs = (p: Case, kind: string) => suggestionsFor(p, job, TODAY).filter(x => x.source.kind === kind).map(x => x.source.ref);
+    // basket misfeeds: the Basketer's spare rail and the basket feed program — not the jaw heater, not P-150
+    expect(refs(problem(), 'material')).toEqual(['m2']);
+    expect(refs(problem(), 'program')).toEqual(['p2']);
+    // a problem whose cause names the jaw is offered the heater; one about the perforation, P-150 — never another line's
+    const jaw = problem({ id: 'C2', title: 'Seals open on the 2kg bag', source: { kind: 'observed' }, causes: [cause({ text: 'Sealing jaw slow to come up to heat' })] });
+    expect(refs(jaw, 'material')).toEqual(['m1']);
+    expect(refs(problem({ id: 'C3', title: 'Perforations missed on the bag', source: { kind: 'observed' } }), 'program')).toEqual(['p1']);
+    expect(refs(problem({ id: 'C3', title: 'Perforations missed on the bag', source: { kind: 'observed' } }), 'material')).toEqual([]);
   });
 });
 

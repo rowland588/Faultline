@@ -40,7 +40,8 @@ const pad = (f: Frame) => (f.density === 'compact' ? 4 : 7);
 
 function blocksOf(r: ControlRoomReport, d: Density): Block[] {
   const out: Block[] = [];
-  out.push(text({ text: 'CONTROL ROOM · EVERY JOB', size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
+  const onLines = r.lines.length > 0 || !!r.linesSaid || !!r.linesQuiet;
+  out.push(text({ text: onLines ? 'CONTROL ROOM · EVERY LINE AND JOB' : 'CONTROL ROOM · EVERY JOB', size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
   out.push(text({ text: 'Control room report', size: SIZE.title, style: 'bold', after: 4 }));
   out.push(text({ text: `Printed ${r.printed}`, colour: MUTED, after: gap(d, 'm') }));
 
@@ -59,7 +60,6 @@ function blocksOf(r: ControlRoomReport, d: Density): Block[] {
   /* 1 · WHERE EVERY JOB IS — one row a job: its name and kind of change, its
      verdict in its colour, the reason in one line, the critical in red and
      what is owed next. */
-  out.push(label('Where every job is'));
   const pillW = 92;
   const jobParts = (f: Frame, j: ControlRoomReport['jobs'][number]) => ({
     head: wrap(f.doc, `${j.name} — ${j.method}${j.at ? ` · ${j.at}` : ''}`, f.w - pillW - 10, 10, 'bold'),
@@ -67,8 +67,8 @@ function blocksOf(r: ControlRoomReport, d: Density): Block[] {
     crit: j.critical ? wrap(f.doc, j.critical, f.w - pillW - 10, 8.5, 'bold') : [],
     next: j.next ? wrap(f.doc, `Next: ${j.next}`, f.w - pillW - 10, 8.5) : [],
   });
-  out.push(rows({
-    rows: r.jobs.map(j => ({
+  const where = (list: ControlRoomReport['jobs']) => rows({
+    rows: list.map(j => ({
       h: (f: Frame) => { const p = jobParts(f, j); return 2 * pad(f) + p.head.length * 12.5 + (p.why.length + p.crit.length + p.next.length) * 10.5; },
       draw: (f: Frame, top: number) => {
         const p = jobParts(f, j), c = TONE[j.tone];
@@ -86,7 +86,17 @@ function blocksOf(r: ControlRoomReport, d: Density): Block[] {
       },
     })),
     after: 'l',
-  }));
+  });
+  if (r.jobs.length) { out.push(label('Where every job is')); out.push(where(r.jobs)); }
+  /* 1b · ON THE LINES, OUTSIDE ANY JOB — a line's own problems and programs
+     (lib/lineWork), in the jobs' shape: late and critical in red, the
+     critical named, what is owed next. */
+  if (onLines) {
+    out.push(label('On the lines, outside any job'));
+    if (r.lines.length) out.push(where(r.lines));
+    if (r.linesSaid) out.push(text({ text: r.linesSaid, size: 9, style: 'bold', colour: DANGER, after: gap(d, r.linesQuiet ? 's' : 'l') }));
+    if (r.linesQuiet) out.push(text({ text: r.linesQuiet, size: 8.5, colour: MUTED, after: gap(d, 'l') }));
+  }
 
   /* 2 · WHO OWES WHAT, ACROSS THE JOBS — suppliers first, the furthest
      behind leading, as the board orders them. */
@@ -164,7 +174,7 @@ export async function drawControlRoomReport(doc: jsPDF, pf: Portfolio, today: st
     doc.setPage(i);
     font(doc, 7.5, 'normal', MUTED);
     const num = `${i} of ${pages}`;
-    doc.text(fitLine(doc, `Control room report  ·  ${r.printed}  ·  every job's own report has its detail`, CW - doc.getTextWidth(num) - 16), M, H - 18);
+    doc.text(fitLine(doc, `Control room report  ·  ${r.printed}  ·  ${r.lines.length || r.linesSaid || r.linesQuiet ? 'every job\'s and every line\'s own report has its detail' : 'every job\'s own report has its detail'}`, CW - doc.getTextWidth(num) - 16), M, H - 18);
     doc.text(num, W - M, H - 18, { align: 'right' });
   }
 }

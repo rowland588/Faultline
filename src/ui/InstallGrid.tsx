@@ -17,7 +17,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import { deleteTest } from '../db';
 import type { Program } from '../lib/programs';
-import { answerOf, doneTodayPatch, foldInto, installGrid, isSignOff, whoFor, lateByWords, stepsNamed, untouched, type StepView, type usualStages } from '../lib/install';
+import { answerOf, doneTodayPatch, foldInto, gateGaps, installGrid, isSignOff, whoFor, lateByWords, stepsNamed, untouched, type StepView, type usualStages } from '../lib/install';
 import { UsualStages } from './UsualStages';
 import { WhyMoved, changeTests, moveTestsWithWhy, type WhyAnswer } from './WhyMoved';
 import { movedLater } from '../lib/story';
@@ -186,7 +186,9 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
      install gate says so; every gate after it is still to do. */
   const isIn = (a?: Asset) => gate === 'install' && !!a && ['installed', 'running'].includes(assetStateOf(a));
   const nothingDone = grid.rows.every(r => r.cells.every(c => !c || !isSettled(c.step)));
-  const bare = grid.rows.filter(r => r.asset && r.view.total === 0 && !isIn(r.asset));
+  /* the gate's head and its Needs you count the same machines (lib/install gateGaps) */
+  const bareOnes = gateGaps(grid, gate).bare;
+  const bare = grid.rows.filter(r => r.asset && bareOnes.includes(r.asset));
   const giveStages = (rows: typeof grid.rows) => add(
     rows.flatMap(r => usual.map(title => ({ title, assetId: r.asset?.id }))),
     rows.length === 1 ? `Added the ${usual.length} stages to ${rowName(rows[0].asset)}` : `Added the ${usual.length} stages to ${rows.length} machines`);

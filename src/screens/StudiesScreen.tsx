@@ -18,6 +18,7 @@ import { useFactoryLines } from '../lib/useFactoryLines';
 import { useArchivedPlaces } from '../lib/useFactoryLines';
 import type { Standard } from '../lib/standard';
 import { useProjects } from '../lib/useProjects';
+import { useMachinesOf } from '../lib/useLineRecords';
 import { now, uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import { Sheet } from '../ui/Sheet';
@@ -292,6 +293,10 @@ function NewStudy({ open, tool, onClose, onLine }: { open: boolean; tool: StudyT
      plate speed, the interval needs it — but a quick session on its own
      still times a changeover and works it through the stages). */
   const isChange = tool === 'changeover';
+  /* A study of a machine started on a line offers the line's machines —
+     the one list every "which machine" reads (lib/lineRecords machinesOf;
+     flow audit #14: "A study's machine is typed"). */
+  const lineMachines = useMachinesOf(!isLine && !isChange ? lineId || undefined : undefined);
   const ready = (!named || !!name.trim()) && !busy && (!isLine || !!lineId) && (!isChange || !!machine.trim());
   const make = async () => {
     if (!ready) return;
@@ -352,7 +357,8 @@ function NewStudy({ open, tool, onClose, onLine }: { open: boolean; tool: StudyT
           </label>
         )}
         <label className="field"><span className="field-label">{w.second.label} {!isChange && <i className="sub">optional</i>}</span>
-          <input className="text-input" value={machine} maxLength={80} placeholder={w.second.placeholder} list={isLine ? 'new-map-products' : isChange ? 'new-co-products' : undefined} onChange={e => setMachine(e.target.value)} />
+          <input className="text-input" value={machine} maxLength={80} placeholder={w.second.placeholder} list={isLine ? 'new-map-products' : isChange ? 'new-co-products' : lineMachines.length ? 'new-study-machines' : undefined} onChange={e => setMachine(e.target.value)} />
+          {!isLine && !isChange && lineMachines.length > 0 && <datalist id="new-study-machines">{lineMachines.map(m => <option key={m} value={m} />)}</datalist>}
           {(isLine || isChange) && <datalist id={isLine ? 'new-map-products' : 'new-co-products'}>{standards.filter(x => !x.deletedAt).map(x => <option key={x.id} value={x.product} />)}</datalist>}
           {isLine && standards.length > 0 && <span className="sub">{tool === 'map' ? 'A product with a line standard brings its people as the lanes.' : tool === 'losses' ? 'A product with a line standard brings its pace: the plate speed of its slowest machine, or a person’s standard time.' : 'A product with a line standard brings its people to watch.'}</span>}
           {isChange && standards.length > 0 && <span className="sub">A product with a line standard is where Set as the standard writes the agreed sequence.</span>}

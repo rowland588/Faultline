@@ -55,7 +55,9 @@ describe('the programs, machine by machine', () => {
     expect(l[2]).toMatchObject({ word: 'proved 6 Oct', tone: 'g', bucket: 'done' });
     expect(l[3]).toMatchObject({ word: 'passed — done 8 Oct', tone: 'g', bucket: 'done' });
     expect(l[4]).toMatchObject({ word: 'not written · no test yet', tone: 'n', bucket: 'open' });
-    expect(r?.says).toBe('5 programs · 4 done — 2 passed, 1 at baseline, 1 failed · 1 to do');
+    /* a failed program is not done (flow audit #3): counted and said apart */
+    expect(r?.says).toBe('5 programs · 3 done — 2 passed, 1 at baseline · 1 failed · 1 to do');
+    expect([r?.doneAll, r?.failed]).toEqual([3, 1]);
   });
   it('is nothing when there are no programs at all', () => {
     expect(programsReading({ tests: [], items: [], assets, programs: [], today: T })).toBeUndefined();
@@ -65,10 +67,10 @@ describe('the programs, machine by machine', () => {
     const x = clientReport({ project, projects: [project], assets, tests, items, materials: [], programs, standards: [], today: T });
     const setup = x.sections.find(s => s.gate === 'setup');
     expect(setup?.programs?.total).toBe(5);
-    expect(setup?.says).toMatch(/4 of 5 programs done/);
+    expect(setup?.says).toMatch(/3 of 5 programs done/);
     expect(JSON.stringify(setup?.accounts ?? [])).not.toContain('PR-12');
     expect(setup?.failed).toEqual(['Ilapak flow wrapper — Programs loaded — PR-04 Finest Red 2 kg: Bag 8 mm short']);
-    expect(statusReport(x).programs).toBe('5 programs · 4 done — 2 passed, 1 at baseline, 1 failed · 1 to do');
+    expect(statusReport(x).programs).toBe('5 programs · 3 done — 2 passed, 1 at baseline · 1 failed · 1 to do');
   });
 });
 
@@ -79,7 +81,8 @@ describe('proved, and what the floor said since', () => {
       items: [part('a', 's1', 'PR-04 Finest Red 2 kg', { results: [{ is: 'failed', on: T, note: 'Bag 8 mm short', at }] })],
       programs: [prog('p04', 'PR-04 Finest Red 2 kg', { assetId: 'w', state: 'proved', provedOn: '2026-10-07' })], today: T,
     });
-    expect(r?.lines[0]).toMatchObject({ word: 'Failed · closed 8 Oct', bucket: 'failed', proving: 'proved 7 Oct in Commission' });
+    /* the record's own state beside it — and it was proved by hand, not "in Commission" */
+    expect(r?.lines[0]).toMatchObject({ word: 'Failed · closed 8 Oct', bucket: 'failed', record: { word: 'proved 7 Oct', tone: 'g' }, proving: 'On the line: proved 7 Oct' });
   });
   it('and with proved when Commission proved it after the floor last spoke', () => {
     const r = programsReading({
@@ -112,10 +115,10 @@ describe('not tested, no program — and commentary with no status', () => {
     const r = programsReading({ tests, items: [...items, nt, np], assets, programs, today: T });
     expect(r?.lines.find(l => l.what === 'PR-20 Jacket 2.5 kg')).toMatchObject({ word: 'not tested · 8 Oct', note: 'Film not on site yet', said: 'notTested' });
     expect([r?.notTested, r?.noProgram]).toEqual([1, 1]);
-    expect(r?.says).toBe('7 programs · 4 done — 2 passed, 1 at baseline, 1 failed · 3 to do · 1 not tested, 1 with no program');
+    expect(r?.says).toBe('7 programs · 3 done — 2 passed, 1 at baseline · 1 failed · 3 to do · 1 not tested, 1 with no program');
     /* late as well: still counted as no program, and said so */
     const late = programsReading({ tests, items: [...items, nt, { ...np, due: '2026-10-06' }], assets, programs, today: T });
-    expect([late?.noProgram, late?.late, late?.says]).toEqual([1, 1, '7 programs · 4 done — 2 passed, 1 at baseline, 1 failed · 1 late · 2 to do · 1 not tested, 1 with no program']);
+    expect([late?.noProgram, late?.late, late?.says]).toEqual([1, 1, '7 programs · 3 done — 2 passed, 1 at baseline · 1 failed · 1 late · 2 to do · 1 not tested, 1 with no program']);
   });
   it('a done status after "passed" turns it back to to-do when it is said not tested; taking that off hands it back', async () => {
     const { saidResult, editedResult, withoutResult, partDone } = await import('../noted');
@@ -129,5 +132,34 @@ describe('not tested, no program — and commentary with no status', () => {
     const c = part('q', 's2', 'Case recipe 8-up', { note: 'Waiting on the 8-up change parts' });
     const r = programsReading({ tests, items: [...items, c], assets, programs, today: T });
     expect(r?.lines.find(l => l.what === 'Case recipe 8-up')).toMatchObject({ word: 'to do', note: 'Waiting on the 8-up change parts' });
+  });
+});
+
+/* Flow audit #3, 13 October: one program, two records, two answers — PR-04
+ * "Proved 12 Oct" on the line's Programs and "Failed · closed 13 Oct" on the
+ * job's; PR-12 "on the machine, testing 16 Oct" on the line and "baseline
+ * achieved, done 13 Oct" on the job, each place blind to the other. */
+describe('one program, one answer', () => {
+  it('finds the floor\'s newest failure on the part of its name on its machine\'s programs stage', async () => {
+    const { floorFailedOn, partsOfProgram } = await import('../programsReport');
+    const p = prog('p04', 'PR-04 finest red 2 KG', { assetId: 'w' });
+    expect(partsOfProgram(p, tests, items).map(i => i.id)).toEqual(['b']);
+    expect(floorFailedOn(p, tests, items)).toBe(T);
+    expect(floorFailedOn(prog('p12', 'PR-12 Express 1.25 kg', { assetId: 'w' }), tests, items)).toBe('2026-10-07');
+    /* another machine's part of the same name is not this program */
+    expect(floorFailedOn(prog('x', 'PR-04 Finest Red 2 kg', { assetId: 'c' }), tests, items)).toBeUndefined();
+  });
+  it('says the record\'s own state beside the floor\'s — and, failed since its test passed, back on the machine to prove again', () => {
+    const passed = { id: 't4', projectId: 'p', kind: 'test', title: 'Prove program PR-04', assetId: 'w', programId: 'p04', outcome: 'passed', ranOn: '2026-10-07', sort: 2, createdAt: 1, updatedAt: 1 } as Test;
+    const booked = { id: 't12', projectId: 'p', kind: 'test', title: 'Prove program PR-12', assetId: 'w', programId: 'p12', outcome: 'planned', plannedFor: '2026-10-16', sort: 3, createdAt: 1, updatedAt: 1 } as Test;
+    const r = programsReading({ tests: [stage('s1', 'w'), passed, booked], assets, today: T,
+      items: [items[0], items[1]],
+      programs: [prog('p12', 'PR-12 Express 1.25 kg', { assetId: 'w', testId: 't12', testOn: '2026-10-16' }), prog('p04', 'PR-04 Finest Red 2 kg', { assetId: 'w', testId: 't4' })] });
+    const [l12, l04] = r?.lines ?? [];
+    expect(l12).toMatchObject({ word: 'baseline achieved — done 8 Oct', record: { word: 'on the machine · test booked 16 Oct', tone: 'w' }, proving: 'On the line: on the machine · test booked 16 Oct' });
+    expect(l04).toMatchObject({ word: 'Failed · closed 8 Oct', bucket: 'failed', record: { word: 'on the machine · failed 8 Oct — to prove again', tone: 'r' } });
+    /* a part with no program record of its name has nothing beside it */
+    const alone = programsReading({ tests, items, assets, programs: [], today: T });
+    expect(alone?.lines.every(l => !l.record)).toBe(true);
   });
 });

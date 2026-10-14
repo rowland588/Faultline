@@ -185,7 +185,7 @@ node scripts/report-stress.mjs /tmp/fuzz --fuzz 40   # forty random jobs, every 
 node scripts/acceptance/stagegate-step1.mjs   # release 1's four stories, driven — same server
 node scripts/acceptance/ecosystem-capability.mjs  # release 2: a study, a line, a job, a fix, before → after, the report
 node scripts/acceptance/work-balance.mjs  # step 3: the work timed on the phone, stacked against takt, on a job, before → after
-node scripts/acceptance/sixm-evidence.mjs  # 2h: a study on a running line — a cause's evidence, a countermeasure, before → after, the 6M report
+node scripts/acceptance/sixm-evidence.mjs  # 2h: a study on a running line — a cause's evidence, a countermeasure, before → after, the 6M report; and the 6M loop's ends (flow audit): a missed check chased, a shift counted as a reading, the constraint from Line capacity, Use it for by machine, suggestions about the problem, the status page first
 node scripts/acceptance/value-stream.mjs  # B: a line's value stream — who and where, walked, a step made better, walked again, before → after, the paper, the fishbone
 node scripts/acceptance/changeover.mjs  # F: SMED — a quick session on its own; Lap with who, Shingo's stages on the grid, the plate speed, what the changeovers cost, set as the standard, timed again, before → after, the paper, the fishbone
 node scripts/acceptance/work-sampling.mjs  # H1: what people are doing at random moments — the moment asks, one tap each, the shares with their margins, the fix, the 6M line's card, the fishbone, the 6M report
@@ -197,6 +197,7 @@ node scripts/acceptance/snags.mjs  # Problems: the register — every problem wr
 node scripts/acceptance/lines.mjs  # production lines: made in Your factory, opened on their own, a problem taken on one with no project, its tools opened on it, the phone
 node scripts/acceptance/factory.mjs  # Your factory: set up first, lines added one after another, named, typed, moved, archived and restored — the control room, the rail, the line's page and its paper, the phone; the jobs taking their lines from it, never a second line of a name; its paper; the tools picking from it; a line's facts set up from its page; two lines merged
 node scripts/acceptance/machines-programs.mjs  # Stage 2: a program planned on a line with no job, from the control room; the line's machines in flow order; a job seeing and proving them; the factory and the paper
+node scripts/acceptance/control-room.mjs  # the flow audit's control room: a line's own problems and programs counted beside the jobs', the critical list read on a phone, a line's page saying its tools' findings and each job's verdict, every count its page's, a job started from a line
 node scripts/acceptance/edit-delete.mjs  # bar 2: every record edited and deleted where it sits, with Undo — studies on every list and page, a 6M problem's words, a timed stop, problems, wins, readings, a line's machines and the line itself, a marked frame
 node scripts/acceptance/audit.mjs  # the audit's fixes (docs/AUDIT.md): a way out of every sheet on a short phone, Escape on the photo viewer, a study on paper with Ppk and Cpk and its readings, every study list on paper
 node scripts/audit.mjs [out.json]     # not a pass/fail: walks every screen at desk and phone — ways out, phone fit, lists with no paper (docs/AUDIT.md)
@@ -233,7 +234,17 @@ after and the client report. `work-balance.mjs` is step 3: the line
 balance's work timed on the phone, stacked against takt, made better on a
 job and proved by timing it again. `sixm-evidence.mjs` is 2h: a study on a
 running line — a cause's evidence, a countermeasure on the board, before →
-after on it and the 6M report. `value-stream.mjs` is
+after on it and the 6M report; then the 6M loop walked (the flow audit, 13
+October): a closed problem's missed check said in red on the fishbone's
+strip and its Kept by (the days as days), a row on the job's Needs you and
+the control room's This week that opens it; the constraint read from the
+line's Line capacity, what the line can make beside its target, a shift
+counted offered as a reading and recorded in one tap, no OEE in a new 6M
+job's example; a study attached to a job taking its line, its Use it for
+machine by machine with its own first; the fishbone offering no other
+line's materials or programs; the Reports sheet's two papers with each
+line's folded, the spreadsheet worded for the job, and the client report's
+one-page status first. `value-stream.mjs` is
 B: a line's value stream map — lanes by who and by where, walked on the
 phone, a fix raised from a waste step, the line walked again, before → after
 on the fix, the stream as a table on the client report, and the fishbone

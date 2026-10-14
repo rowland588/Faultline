@@ -321,25 +321,59 @@ export interface ProvingTest {
   deletedAt?: number;
 }
 
-/** The program as the test leaves it, or undefined when nothing changes. */
-export function programAfterTest(p: Program, t: ProvingTest, today = todayISO()): Program | undefined {
+/** The program as the test leaves it, or undefined when nothing changes.
+ *  `floorFailedOn` is the newest day the floor said it FAILED on Set up's
+ *  programs stage (lib/programsReport floorFailedOn): a pass older than that
+ *  failure no longer proves it — the failure is the newer fact (flow audit
+ *  #3, 13 October: "Proved 12 Oct" on the line, "Failed · closed 13 Oct" on
+ *  the job). `freshPass` false — the test said passed already and is only
+ *  written again (a note, a photo) — and a failure on its own day stands
+ *  too: an edit is not a new proof. */
+export function programAfterTest(p: Program, t: ProvingTest, today = todayISO(), floorFailedOn?: string, freshPass = true): Program | undefined {
   if (t.programId !== p.id || t.deletedAt || p.deletedAt) return undefined;
   let next: Program = p;
-  if (t.outcome === 'passed') {
-    const on = t.ranOn ?? p.provedOn ?? today;
-    next = { ...p, state: 'proved', provedOn: on, testOn: undefined, testId: t.id };
+  const ranOn = t.ranOn ?? p.provedOn ?? today;
+  const failedSince = t.outcome === 'passed' && !!floorFailedOn && (freshPass ? floorFailedOn > ranOn : floorFailedOn >= ranOn);
+  if (t.outcome === 'passed' && !failedSince) {
+    next = { ...p, state: 'proved', provedOn: ranOn, testOn: undefined, testId: t.id };
   } else if (p.testId === t.id && p.provedOn) {
-    /* It was this test that proved it, and the test no longer says it passed. */
+    /* It was this test that proved it, and the test no longer says it passed
+       — or the floor has failed it since. */
     next = { ...p, state: 'onMachine', provedOn: undefined };
   }
   /* Its test date is the test's day, while it is still to prove. */
   if (!next.provedOn && t.outcome === 'planned' && t.plannedFor && next.testOn !== t.plannedFor) {
     next = { ...next, testOn: t.plannedFor, testId: t.id };
-  } else if (!next.provedOn && t.outcome !== 'passed' && next.testId !== t.id) {
+  } else if (!next.provedOn && (t.outcome !== 'passed' || failedSince) && next.testId !== t.id) {
     next = { ...next, testId: t.id };
   }
   const same = next.state === p.state && next.provedOn === p.provedOn && next.testOn === p.testOn && next.testId === p.testId;
   return same ? undefined : next;
+}
+
+/* ======================= FAILED ON THE FLOOR ===============================
+ *
+ * Flow audit #3 (13 October): one program, two records, two answers — PR-04
+ * read "Proved 12 Oct" on the line's Programs and "Failed · closed 13 Oct" on
+ * the job's, because the floor's status on Set up's programs stage (lib/noted)
+ * never reached the program. The header's rule is the answer: a failure drops
+ * the program back to on the machine, and the failure's own record (the part,
+ * with what was seen) says why — no fourth state. Called on every local write
+ * of a part (db/testing → db/programs followPart).
+ *
+ * THE NEWER WINS. A failure said on a day after the day it was proved
+ * un-proves it; one said on an earlier day does not, and a program proved by
+ * hand after the failure stays proved. On the same day the moment decides: a
+ * failure said after the program was last written (its proving among it) is
+ * the newer fact. */
+
+/** The program once the floor has failed it, or undefined when nothing
+ *  changes. `failed` — the newest failure the floor said: its day, and the
+ *  moment it was said. */
+export function programAfterFloor(p: Program, failed: { on: string; at: number } | undefined): Program | undefined {
+  if (!failed || p.deletedAt || !p.provedOn) return undefined;
+  const newer = failed.on > p.provedOn || (failed.on === p.provedOn && failed.at > p.updatedAt);
+  return newer ? { ...p, state: 'onMachine', provedOn: undefined } : undefined;
 }
 
 /** What a program's proving test is called — the program first, so it reads

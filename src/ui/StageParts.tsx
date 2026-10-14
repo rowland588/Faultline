@@ -69,7 +69,7 @@ export function PartsMark({ said, className }: { said?: { head: string; late: nu
   );
 }
 
-export function StageParts({ step, tt, can, onProblem, only, onOpen, onRunProblem, holder }: {
+export function StageParts({ step, tt, can, onProblem, only, onOpen, onRunProblem, holder, aside }: {
   step: Test; tt: Pick<TT, 'items' | 'tests' | 'assets' | 'addItem' | 'saveItem' | 'planTests' | 'patchTest'>; can: Can;
   /** The job, so the programs stage is the one its answer says (docs/PANELS.md). */
   holder?: AnswerHolder;
@@ -86,6 +86,10 @@ export function StageParts({ step, tt, can, onProblem, only, onOpen, onRunProble
   /** Only these, when the list is filtered (screens/ProgramsPage) — ▲ ▼ are
    *  offered only on the whole list, so a move is never to a place unseen. */
   only?: (p: TestItem) => boolean;
+  /** The other record of the same program, said beside its state — the
+   *  program record's on the line (screens/ProgramsPage; flow audit #3: one
+   *  program, two records, two answers). */
+  aside?: (p: TestItem) => { word: string; tone: string } | undefined;
 }) {
   const all = partsOf(step.id, tt.items);
   const parts = only ? all.filter(only) : all;
@@ -223,6 +227,7 @@ export function StageParts({ step, tt, can, onProblem, only, onOpen, onRunProble
                   <span className="spp-top">
                     <span className="spp-name">{p.what}</span>
                     <span className={'spp-pill is-' + st.tone}>{st.word}</span>
+                    {(a => a && <span className={'spp-pill spp-rec is-' + a.tone}>{a.word}</span>)(aside?.(p))}
                     {run && <span className={'spp-pill is-' + run.tone}>{run.word}</span>}
                     {runProbs > 0 && <span className="spp-pill is-r">{runProbs === 1 ? 'a problem on the run' : `${runProbs} problems on the run`}</span>}
                     {/* A problem open on it is said even when its status is. */}

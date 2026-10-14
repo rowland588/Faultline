@@ -2,7 +2,7 @@
    you made for the other gates — I now want this. Also programs are directly
    linked to commissioning, so make the link." */
 import { describe, expect, it } from 'vitest';
-import { programAfterTest, provingTitle, type Program } from '../programs';
+import { programAfterFloor, programAfterTest, provingTitle, type Program } from '../programs';
 import { commissionGrid, programsToProve, testCell } from '../commission';
 import { appStages, cleanStages, usualStages } from '../install';
 import { COMMISSION_TESTS, nextFrom, type Asset, type Test } from '../testing';
@@ -36,6 +36,30 @@ describe('a program is proved by its test in Commission', () => {
   });
   it('a re-test is still proving the same program', () => {
     expect(nextFrom(test({ programId: 'p1' }), () => 'n', 2).programId).toBe('p1');
+  });
+});
+
+/* Flow audit #3, 13 October: PR-04 "Proved 12 Oct" on the line, "Failed ·
+   closed 13 Oct" on the job — the floor's failure never reached the program. */
+describe('a failure on the floor drops it back to on the machine', () => {
+  it('a failure said after it was proved un-proves it; one before, or a hand proof since, stands', () => {
+    const proved = (o: Partial<Program> = {}) => prog({ state: 'proved', provedOn: '2026-10-12', updatedAt: 100, ...o });
+    const after = programAfterFloor(proved({ testId: 't1' }), { on: '2026-10-13', at: 50 });
+    expect([after?.state, after?.provedOn, after?.testId]).toEqual(['onMachine', undefined, 't1']);
+    /* the same day: said after the program was last written — its proving — it is the newer fact */
+    expect(programAfterFloor(proved(), { on: '2026-10-12', at: 200 })).toMatchObject({ state: 'onMachine' });
+    expect(programAfterFloor(proved(), { on: '2026-10-12', at: 50 })).toBeUndefined();
+    expect(programAfterFloor(proved({ provedOn: '2026-10-14' }), { on: '2026-10-13', at: 999 })).toBeUndefined();
+    expect(programAfterFloor(prog(), { on: '2026-10-13', at: 999 })).toBeUndefined();
+    expect(programAfterFloor(proved(), undefined)).toBeUndefined();
+  });
+  it('a pass older than the floor\'s failure proves nothing — written again, it links the test and leaves it on the machine', () => {
+    const passed = test({ programId: 'p1', outcome: 'passed', ranOn: '2026-10-12' });
+    const linked = programAfterTest(prog(), passed, TODAY, '2026-10-13');
+    expect([linked?.state, linked?.provedOn, linked?.testId]).toEqual(['onMachine', undefined, 't1']);
+    expect(programAfterTest(prog({ state: 'proved', provedOn: '2026-10-12', testId: 't1' }), passed, TODAY, '2026-10-13')).toMatchObject({ state: 'onMachine', provedOn: undefined });
+    /* a pass after the failure proves it */
+    expect(programAfterTest(prog(), test({ programId: 'p1', outcome: 'passed', ranOn: '2026-10-14' }), TODAY, '2026-10-13')).toMatchObject({ state: 'proved', provedOn: '2026-10-14' });
   });
 });
 

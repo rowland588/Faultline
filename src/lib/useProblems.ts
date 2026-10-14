@@ -12,7 +12,7 @@ import type { Cause, SixM } from './sixm';
 import type { ProblemsApi, ProblemView } from './problems';
 import {
   loadPaceLines, putPaceLine, projectWorkspaceIds, getPaceWorkspaceId, setPaceWorkspaceId,
-  createWorkspace, getWorkspace, getProject, listObservations, listStandards, listStudies, listMaterials,
+  createWorkspace, getWorkspace, getProject, listObservations, listStandards, listStandardsForLine, listStudies, listMaterials,
   listPrograms, listTargets, listReadings, listPaceTodos, listProjectCases, addCase, patchCase,
   onDataChange, getSnag, patchSnag, removeCase, type PaceLineRow, type PaceTodoRow,
 } from '../db';
@@ -55,7 +55,11 @@ export async function loadProblems(projectId: string): Promise<LoadedProblems> {
     Promise.all(wsIds.map(id => listObservations(id))).then(x => x.flat() as Observation[]),
     Promise.all(lineWs.map(id => getWorkspace(id))).then(x => x.filter((w): w is Workspace => !!w)),
     loadWalkSnags(projectId).catch(() => []),
-    listStandards(projectId),
+    /* the job's standards and its lines' own — a Line capacity worked out on
+       the line with no job is the line's capacity the job reads (lib/fishbone
+       lineCapacityOf; flow audit #8) */
+    Promise.all([listStandards(projectId), ...lineWs.map(id => listStandardsForLine(id))])
+      .then(x => [...new Map(x.flat().map(st => [st.id, st])).values()]),
     listStudies(projectId),
     listMaterials(projectId),
     listPrograms(projectId),

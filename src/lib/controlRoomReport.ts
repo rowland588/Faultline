@@ -1,4 +1,5 @@
-/* THE CONTROL ROOM REPORT — every job on one page (docs/CONTROLROOM.md).
+/* THE CONTROL ROOM REPORT — every job, and every line's own work, on one
+ * page (docs/CONTROLROOM.md).
  *
  * Rowland, 1 October: "show the business a formal process, to show that I am
  * in control of the project." The control room answered that on the screen,
@@ -41,6 +42,17 @@ export interface ControlRoomReport {
   says: string;
   totals: Portfolio['totals'];
   jobs: CrJob[];
+  /** THE LINES' OWN WORK, outside any job (lib/lineWork) — a row a line with
+   *  anything to chase, in the jobs' shape: its name, what is late and
+   *  critical on it, the critical named and what is owed next. The page said
+   *  "every job" and drew jobs only (FLOW-AUDIT.md, 1). */
+  lines: CrJob[];
+  /** The lines with something late or critical, in one line — when the page
+   *  is too busy for their rows (the last step): "Line 7: 2 late, 1 critical". */
+  linesSaid?: string;
+  /** The lines that owe work with nothing late or critical on it — counted,
+   *  never a row each: "and 7 more lines owe 28, none of it late". */
+  linesQuiet?: string;
   owes: { who: string; open: number; late: number; jobs: string }[];
   owesMore: number;
   late: CrLine[];
@@ -60,20 +72,24 @@ export interface CrLimits { owes: number; late: number; week: number;
   name: number;
   /** A job's critical named on a line of its own — at the very last, its
    *  count joins the reason's line instead, so a busy board stays one page. */
-  critical: boolean }
+  critical: boolean;
+  /** A line's own late or critical work a row each (lib/lineWork) — at the
+   *  very last, all of them in one line. */
+  lineRows: boolean }
 export const CR_STEPS: CrLimits[] = [
-  { owes: 8, late: 10, week: 8, next: true, split: true, name: 80, critical: true },
-  { owes: 6, late: 8, week: 6, next: true, split: true, name: 80, critical: true },
-  { owes: 5, late: 6, week: 4, next: true, split: true, name: 70, critical: true },
-  { owes: 4, late: 4, week: 3, next: true, split: true, name: 60, critical: true },
-  { owes: 3, late: 3, week: 2, next: true, split: true, name: 60, critical: true },
-  { owes: 3, late: 3, week: 0, next: false, split: true, name: 60, critical: true },
-  { owes: 3, late: 2, week: 0, next: false, split: false, name: 50, critical: true },
-  { owes: 2, late: 2, week: 0, next: false, split: false, name: 40, critical: true },
-  { owes: 1, late: 1, week: 0, next: false, split: false, name: 40, critical: true },
+  { owes: 8, late: 10, week: 8, next: true, split: true, name: 80, critical: true, lineRows: true },
+  { owes: 6, late: 8, week: 6, next: true, split: true, name: 80, critical: true, lineRows: true },
+  { owes: 5, late: 6, week: 4, next: true, split: true, name: 70, critical: true, lineRows: true },
+  { owes: 4, late: 4, week: 3, next: true, split: true, name: 60, critical: true, lineRows: true },
+  { owes: 3, late: 3, week: 2, next: true, split: true, name: 60, critical: true, lineRows: true },
+  { owes: 3, late: 3, week: 0, next: false, split: true, name: 60, critical: true, lineRows: true },
+  { owes: 3, late: 2, week: 0, next: false, split: false, name: 50, critical: true, lineRows: true },
+  { owes: 2, late: 2, week: 0, next: false, split: false, name: 40, critical: true, lineRows: true },
+  { owes: 1, late: 1, week: 0, next: false, split: false, name: 40, critical: true, lineRows: true },
   /* A board too busy for any list: every job, and where the lists are. */
-  { owes: 0, late: 0, week: 0, next: false, split: false, name: 40, critical: true },
-  { owes: 0, late: 0, week: 0, next: false, split: false, name: 40, critical: false },
+  { owes: 0, late: 0, week: 0, next: false, split: false, name: 40, critical: true, lineRows: true },
+  { owes: 0, late: 0, week: 0, next: false, split: false, name: 40, critical: false, lineRows: true },
+  { owes: 0, late: 0, week: 0, next: false, split: false, name: 40, critical: false, lineRows: false },
 ];
 
 /* A NAME, ON ONE LINE (lib/onTarget nameIn): this page is every job at once,
@@ -110,6 +126,28 @@ export function controlRoomReport(pf: Portfolio, today: string, limits: CrLimits
     open: o.open, late: o.late,
     jobs: pf.jobs.length > 1 && limits.split ? o.byJob.map(b => `${nameIn(b.job, 30)}: ${b.open}`).join(' · ') : '',
   }));
+  /* A LINE IS A ROW WHEN SOMETHING ON IT IS LATE OR CRITICAL — the abnormal,
+     as every job is always a row; a line owing work with nothing late on it
+     is counted under them, not drawn (visual rule 2: normal recedes). */
+  const abnormal = pf.lines.filter(l => l.late || l.critical.length);
+  const quiet = pf.lines.filter(l => !l.late && !l.critical.length);
+  const quietOwed = quiet.reduce((n, l) => n + l.items.length, 0);
+  const lines: CrJob[] = (limits.lineRows ? abnormal : []).map(l => {
+    const next = l.items[0];
+    const owed = l.items.length;
+    return {
+      name: nameIn(l.name, 60), method: 'the line itself, no job',
+      word: l.late ? `${l.late} late` : l.critical.length ? criticalCount(l.critical.length) : 'Nothing late',
+      tone: l.late || l.critical.length ? 'behind' as const : 'none' as const,
+      why: [owed ? `${owed} owed` : '', l.late ? `${l.late} late` : '', l.critical.length && !limits.critical ? criticalCount(l.critical.length) : ''].filter(Boolean).join(' · ') || 'nothing owed',
+      ...(l.critical[0] && limits.critical ? { critical: `${criticalCount(l.critical.length)}: ${nameIn(l.critical[0].what, NAME)}${l.critical.length > 1 ? ` and ${l.critical.length - 1} more` : ''}` } : {}),
+      ...(next && limits.next ? {
+        next: `${nameIn(next.what, NAME)}${next.who ? ` · ${nameIn(next.who, 40)}` : ''}${next.on ? ` · ${next.late ? 'was ' : ''}${niceDay(next.on)}` : ''}`,
+        nextLate: next.late,
+      } : {}),
+      late: l.late, outstanding: owed,
+    };
+  });
   const late = pf.items.filter(x => x.late);
   const soon = pf.week.filter(x => !x.late);
   return {
@@ -117,6 +155,9 @@ export function controlRoomReport(pf: Portfolio, today: string, limits: CrLimits
     says: pf.says,
     totals: pf.totals,
     jobs,
+    lines,
+    ...(!limits.lineRows && abnormal.length ? { linesSaid: abnormal.map(l => `${nameIn(l.name, 40)}: ${[l.late ? `${l.late} late` : '', l.critical.length ? criticalCount(l.critical.length) : ''].filter(Boolean).join(', ')}`).join(' · ') } : {}),
+    ...(quiet.length ? { linesQuiet: `${abnormal.length ? 'and ' : ''}${quiet.length}${abnormal.length ? ' more' : ''} line${quiet.length === 1 ? '' : 's'} owe${quiet.length === 1 ? 's' : ''} ${quietOwed}, none of it late — on the control room.` } : {}),
     owes: owes.slice(0, limits.owes), owesMore: Math.max(0, owes.length - limits.owes),
     late: late.slice(0, limits.late).map(x => line(x, today, NAME)), lateMore: Math.max(0, late.length - limits.late),
     week: soon.slice(0, limits.week).map(x => line(x, today, NAME)), weekMore: Math.max(0, soon.length - limits.week),

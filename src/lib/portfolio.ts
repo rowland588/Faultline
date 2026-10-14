@@ -43,10 +43,12 @@ import { openByBone } from './pillars';
 import { remindersOf } from './reminders';
 import { owedParts, partLate, partOnStage } from './noted';
 import type { TreeStanding } from './treeBind';
-import { PHASE_WORD, type Phase } from './problems';
-import { couldWords, criticalProblems, criticalState, riskProblems } from './critical';
+import { PHASE_WORD, type Phase, type ProblemView } from './problems';
+import { holdDue, type HoldCheck } from './sixm';
+import { couldWords, criticalParts, criticalProblems, criticalState, riskProblems } from './critical';
 import type { ToolStudy } from './study';
 import { linkedTo, owedOf } from './studyLinks';
+import { lineItems, LINE_COLOR, type LineInput } from './lineWork';
 
 export interface JobInput {
   project: Project;
@@ -100,8 +102,23 @@ export interface PacedInput {
 export interface LineLoss { lineId: string; line: string; text: string; abnormal: boolean; href: string }
 
 /** One 6M problem as the control room needs it: enough to say where it is and
- *  to open its fishbone. */
-export interface SixMProblem { id: string; title: string; lineId?: string; phase: Phase; says: string }
+ *  to open its fishbone — and, once closed, the check that keeps its gain,
+ *  so a check coming due or missed is owed like anything else (checksOwed). */
+export interface SixMProblem { id: string; title: string; lineId?: string; phase: Phase; says: string;
+  hold?: Pick<HoldCheck, 'what' | 'who' | 'everyDays' | 'since' | 'lastChecked'> }
+
+/** A problem as the engine reads it (lib/useProblems viewsOf), in the shape
+ *  the control room and the job's front page both take — one place, so the
+ *  two cannot read a problem two ways. The check rides only on a closed one:
+ *  a reopened problem is being worked again, not held. */
+export function sixmProblemOf(v: Pick<ProblemView, 'problem' | 'phase' | 'says'>): SixMProblem {
+  const h = v.problem.status === 'closed' ? v.problem.hold : undefined;
+  return {
+    id: v.problem.id, title: v.problem.title, phase: v.phase, says: v.says,
+    ...(v.problem.lineId ? { lineId: v.problem.lineId } : {}),
+    ...(h ? { hold: { what: h.what, ...(h.who ? { who: h.who } : {}), everyDays: h.everyDays, since: h.since, ...(h.lastChecked ? { lastChecked: h.lastChecked } : {}) } } : {}),
+  };
+}
 
 /** A piece of a sentence, and whether it is the abnormal part that carries a
  *  colour: `late` red (past its day, or slipped back), `waiting` amber, `none`
@@ -109,12 +126,18 @@ export interface SixMProblem { id: string; title: string; lineId?: string; phase
 export interface Said { text: string; tone?: 'late' | 'waiting' | 'none' }
 export const saidText = (parts: Said[]): string => parts.map(x => x.text).join('');
 
-/** One thing owed, on one job. */
+/** One thing owed, on one job — or on a line of the factory with no job
+ *  (lib/lineWork): then `line` is the line, `jobId` its group on the board
+ *  and `job` its name, where a job's name goes. */
 export interface JobItem {
   jobId: string;
   job: string;
   color: string;
-  kind: PlanMark['kind'];
+  /** A problem is a line's own (its register, lib/lineWork); a job's
+   *  problems are its fixes and its critical rows. */
+  kind: PlanMark['kind'] | 'problem';
+  /** A line's own work, with no job (lib/lineWork): the line it is on. */
+  line?: string;
   /** The record it opens: a test or fix id; absent for a list row. */
   id?: string;
   /** A PART OF THE PLAN on the stage `id` (ui/StageParts): the part's own
@@ -143,6 +166,9 @@ export interface JobItem {
    *  opens its stage (`id`) — the problem is a branch of it. Never in the
    *  week, the parties or the late count; it leads Needs you (needsYou). */
   critical?: { where: string; impact?: string; state: string;
+    /** How it stands in a word or two — "open", "3 days late" — for a
+     *  narrow column; the rest of `state` is `more`, the row's branch. */
+    word?: string; more?: string;
     /** A HIGH RISK (lib/critical riskProblems), not critical: amber, after
      *  the critical ones, never counted as "critical". */
     risk?: boolean };
@@ -257,9 +283,26 @@ export interface Portfolio {
   critical: JobItem[];
   /** Suppliers typed more than one way — the records disagree with each other. */
   variants: Company[];
-  /** `jobs` is the jobs running; `handedOver` the ones handed over, still on the board. */
-  totals: { jobs: number; handedOver: number; outstanding: number; late: number; week: number; critical: number };
+  /** THE LINES' OWN WORK, with no job (lib/lineWork) — each line with
+   *  anything to chase, in the factory's order: counted in every number
+   *  above beside the jobs', listed under its own name. */
+  lines: LineView[];
+  /** `jobs` is the jobs running; `handedOver` the ones handed over, still on
+   *  the board. `late` and `critical` count the lines' own work too;
+   *  `lineLate` is how many of the late are a line's own. */
+  totals: { jobs: number; handedOver: number; outstanding: number; late: number; week: number; critical: number; lineLate: number };
   says: string;
+}
+
+/** One factory line's own work, as the control room counts it. */
+export interface LineView {
+  id: string;
+  name: string;
+  /** What it owes, late first (byUrgency). */
+  items: JobItem[];
+  /** Its open Critical problems. */
+  critical: JobItem[];
+  late: number;
 }
 
 const WEEK_DAYS = 7;
@@ -350,7 +393,9 @@ export function jobItems(j: JobInput, today: string): JobItem[] {
   for (const a of live(j.assets)) {
     if (assetStateOf(a) !== 'awaited') continue;
     out.push({
-      ...base, kind: 'machine', what: a.name, who: a.oem ?? '',
+      /* its id: the row opens the machine itself (ui/MachinePanel), on the
+         control room and on Install's Needs you alike */
+      ...base, kind: 'machine', id: a.id, what: a.name, who: a.oem ?? '',
       on: a.onSiteOn ? undefined : a.dueOn, late: !!a.dueOn && a.dueOn < today && !a.onSiteOn,
     });
   }
@@ -372,7 +417,7 @@ export function criticalItems(j: Pick<JobInput, 'project' | 'tests' | 'items' | 
       /* The problem itself opens (docs/DOORS.md) — its stage is one tap from it. */
       id: c.item.id,
       what: c.item.what.trim() || 'A critical problem', who: c.item.owner?.trim() ?? '', late: false,
-      critical: { where: c.where, ...(impact ? { impact } : {}), state: criticalState(c) },
+      critical: { where: c.where, ...(impact ? { impact } : {}), state: criticalState(c), ...criticalParts(c) },
     };
   });
 }
@@ -404,15 +449,38 @@ export function pacedItems(j: PacedInput, today: string): JobItem[] {
   }));
 }
 
-/** EVERYTHING A 6M OR LEVER TREE JOB OWES — its board's open actions and the
- *  materials and programs not in yet: the list its own front page's Needs you
- *  shows, so "late" counts the same things on the control room, the rail, the
- *  job's header and its report (docs/CONTROLROOM.md, one count for late). A
- *  6M job's late used to be its board's actions only. */
+/** THE CHECKS THAT KEEP THE GAIN, when one is owed (lib/sixm holdDue;
+ *  docs/OPEX.md move 6, "one check that it stays"): a closed problem's check
+ *  coming due within a few days, or missed — a row owed by the check's who,
+ *  on the job's Needs you and the control room's week, late once its day has
+ *  gone, opening the problem on its fishbone (lib/plan planHref). A check
+ *  further off is not owed yet; its day is said on the problem's card.
+ *  Holding was a tick nobody was ever chased for (flow audit #9). */
+export function checksOwed(j: Pick<PacedInput, 'project' | 'problems'>, today: string): JobItem[] {
+  const p = j.project;
+  return (j.problems ?? []).flatMap((x): JobItem[] => {
+    if (!x.hold) return [];
+    const d = holdDue(x.hold, today);
+    if (d.state === 'ok') return [];
+    return [{
+      jobId: p.id, job: p.name, color: p.color, kind: 'check', id: x.id,
+      what: x.hold.what.trim() || 'The check that keeps the gain', who: (x.hold.who ?? '').trim(),
+      on: d.next, late: d.state === 'missed', branch: `Keeps the gain on “${x.title}”`,
+    }];
+  });
+}
+
+/** EVERYTHING A 6M OR LEVER TREE JOB OWES — its board's open actions, the
+ *  materials and programs not in yet, and a 6M job's checks that keep the
+ *  gain when one is owed: the list its own front page's Needs you shows, so
+ *  "late" counts the same things on the control room, the rail, the job's
+ *  header and its report (docs/CONTROLROOM.md, one count for late). A 6M
+ *  job's late used to be its board's actions only. */
 export function pacedOwed(j: PacedInput, today: string): JobItem[] {
   return [
     ...pacedItems(j, today),
     ...jobItems({ project: j.project, tests: [], items: [], materials: j.materials ?? [], programs: j.programs ?? [], assets: [] }, today),
+    ...checksOwed(j, today),
   ];
 }
 
@@ -513,7 +581,7 @@ export const byUrgency = (a: JobItem, b: JobItem) =>
  *  week and on the job's front page. */
 export const KIND_WORD: Record<JobItem['kind'], string> = {
   install: 'Install step', setup: 'Set-up step', handover: 'Hand-over item', test: 'Test', fix: 'Fix',
-  material: 'Material', program: 'Program', machine: 'Machine', action: 'Action', note: 'Reminder',
+  material: 'Material', program: 'Program', machine: 'Machine', action: 'Action', note: 'Reminder', check: 'Check', problem: 'Problem',
 };
 
 /** The word a row is filed under — a part of a stage says so, in the name
@@ -578,7 +646,10 @@ export function needsYou(all: JobItem[], today: string, o: { soonDays?: number; 
   };
 }
 
-export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInput[] = []): Portfolio {
+export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInput[] = [],
+  /** The factory's lines, in floor order — each line's own work, with no
+   *  job (lib/lineWork), is counted beside the jobs'. */
+  linesIn: LineInput[] = [], ref = Date.now()): Portfolio {
   /* The job whose date comes first, first — that is the order they get asked
      about in. A job with no date yet goes last rather than first. Stage gate,
      6M and lever tree jobs stand in one order. */
@@ -612,6 +683,14 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
 
   const all = entries.map(e => e.items);
   const weekEnd = addDays(today, WEEK_DAYS);
+  /* THE LINES' OWN WORK (lib/lineWork) — a line with nothing to chase is not
+     drawn; each that has is counted with the jobs, under its own name. */
+  const lines: LineView[] = linesIn.map(l => ({ l, ...lineItems(l, today, ref) }))
+    .filter(x => x.items.length || x.critical.length)
+    .map(x => ({ id: x.l.line.id, name: x.l.line.name, items: [...x.items].sort(byUrgency), critical: x.critical, late: x.items.filter(i => i.late).length }));
+  /* Everything owed, the jobs' then the lines' — what the week, the parties
+     and the late list are made of. */
+  const owedAll = [...all.flat(), ...lines.flatMap(l => l.items)];
 
   const jobs: JobView[] = entries.map((e, i) => {
     const p = e.project;
@@ -689,7 +768,7 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
   const axis: PlanAxis = jobs.find(v => v.axis.ticks.length)?.axis
     ?? layoutPlan([{ kind: 'test', at: today, label: '', tone: 'booked' }], { today }).axis;
 
-  const week = all.flat().filter(x => x.late || (!!x.on && x.on >= today && x.on <= weekEnd)).sort(byUrgency);
+  const week = owedAll.filter(x => x.late || (!!x.on && x.on >= today && x.on <= weekEnd)).sort(byUrgency);
 
   /* WHO OWES WHAT, ACROSS THE JOBS — by the same rules page 3 of the client
      report files it by, so the home board and the page a client reads say
@@ -717,10 +796,12 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
     for (const m of live(e.paced.materials ?? [])) if (m.from) supplierTyped.push(m.from);
     for (const pr of live(e.paced.programs ?? [])) if (pr.from) supplierTyped.push(pr.from);
   }
-  const allTyped = [...supplierTyped, ...all.flat().map(x => x.who)];
+  /* A line's own program comes from somebody, as a job's does. */
+  for (const l of lines) for (const x of l.items) if (x.kind === 'program' && x.who) supplierTyped.push(x.who);
+  const allTyped = [...supplierTyped, ...owedAll.map(x => x.who)];
   const res = resolver(allTyped);
   const supplierSet = new Set(supplierTyped.map(n => res(n).toLowerCase()));
-  for (const x of all.flat()) {
+  for (const x of owedAll) {
     const who = x.who.trim();
     if (!who) { x.party = NOBODY; x.partyKind = 'nobody'; }
     else if (supplierSet.has(res(who).toLowerCase())) { x.party = res(who); x.partyKind = 'supplier'; }
@@ -730,15 +811,17 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
      included where they name a supplier. */
   const variants = companies([
     ...supplierTyped,
-    ...all.flat().filter(x => x.partyKind === 'supplier').map(x => x.who),
+    ...owedAll.filter(x => x.partyKind === 'supplier').map(x => x.who),
   ]).filter(c => c.spellings.length > 1);
 
+  /* A party's share on each job, then on each line it owes on by itself. */
+  const slots = [...jobs.map(v => ({ jobId: v.id, job: v.name, color: v.color })), ...lines.map(l => ({ jobId: l.items[0]?.jobId ?? l.id, job: l.name, color: LINE_COLOR }))];
   const parties = new Map<string, Owed>();
-  for (const x of all.flat()) {
+  for (const x of owedAll) {
     const party = x.party ?? NOBODY;
     let o = parties.get(party);
     if (!o) {
-      o = { who: party, kind: x.partyKind ?? 'nobody', open: 0, late: 0, byJob: jobs.map(v => ({ jobId: v.id, job: v.name, color: v.color, open: 0, late: 0 })) };
+      o = { who: party, kind: x.partyKind ?? 'nobody', open: 0, late: 0, byJob: slots.map(v => ({ ...v, open: 0, late: 0 })) };
       parties.set(party, o);
     }
     o.open += 1;
@@ -754,7 +837,9 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
     .sort((a, b) => rank(a) - rank(b) || b.late - a.late || b.open - a.open || a.who.localeCompare(b.who));
 
   const outstanding = jobs.reduce((n, v) => n + v.outstanding, 0);
-  const late = jobs.reduce((n, v) => n + v.late, 0);
+  const lineLate = lines.reduce((n, l) => n + l.late, 0);
+  const late = jobs.reduce((n, v) => n + v.late, 0) + lineLate;
+  const lineCritical = lines.flatMap(l => l.critical);
 
   /* Reminders on the jobs' meeting notes — the same rule the project page and
      the device notification read (lib/reminders). */
@@ -767,11 +852,12 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
   }).sort(byUrgency);
 
   return {
-    axis, span, jobs, week, owes, variants, items: all.flat().sort(byUrgency), reminders,
-    critical: entries.flatMap(e => e.critical),
+    axis, span, jobs, week, owes, variants, items: owedAll.sort(byUrgency), reminders,
+    critical: [...entries.flatMap(e => e.critical), ...lineCritical],
     undated: all.flat().filter(x => x.kind === 'fix' && !x.on).sort((a, b) => a.job.localeCompare(b.job) || a.what.localeCompare(b.what)),
-    totals: { jobs: jobs.filter(v => !v.handedOver).length, handedOver: jobs.filter(v => v.handedOver).length, outstanding, late, week: week.length, critical: entries.reduce((n, e) => n + e.critical.length, 0) },
-    says: saysOf(jobs, owes, late),
+    lines,
+    totals: { jobs: jobs.filter(v => !v.handedOver).length, handedOver: jobs.filter(v => v.handedOver).length, outstanding, late, week: week.length, critical: entries.reduce((n, e) => n + e.critical.length, 0) + lineCritical.length, lineLate },
+    says: saysOf(jobs, owes, late, lines),
   };
 }
 
@@ -780,8 +866,17 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
  *  CONTROLROOM.md): a job already past the date it is expected on comes
  *  before the next one due. It named the next handover while another job was
  *  two days past its own. */
-function saysOf(jobs: JobView[], owes: Owed[], late: number): string {
-  if (jobs.length === 0) return 'No job running yet.';
+function saysOf(jobs: JobView[], owes: Owed[], late: number, lines: LineView[] = []): string {
+  /* THE LINES' OWN LATE, said where it is — "1 on Line 7, outside any job"
+     — so the late a person reads in the sentence is all of it (lib/lineWork). */
+  const lateLines = lines.filter(l => l.late > 0);
+  const lineLate = lateLines.reduce((n, l) => n + l.late, 0);
+  const onLines = !lineLate ? '' : lateLines.length === 1 ? `${lineLate} on ${lateLines[0].name}, outside any job` : `${lineLate} on ${lateLines.length} lines, outside any job`;
+  if (jobs.length === 0) {
+    const crit = lines.reduce((n, l) => n + l.critical.length, 0);
+    if (!lineLate && !crit) return 'No job running yet.';
+    return `No job running yet. ${[lineLate ? `${plural(lineLate, 'thing')} late — ${onLines}` : '', crit ? `${crit} critical on the lines` : ''].filter(Boolean).join(' · ')}.`;
+  }
   /* Handed over is counted apart, and is never past its handover. */
   const done = jobs.filter(v => v.handedOver).length;
   const bits = [jobs.length === done ? 'No job running' : plural(jobs.length - done, 'job') + ' running', ...(done ? [`${done} handed over`] : [])];
@@ -807,7 +902,7 @@ function saysOf(jobs: JobView[], owes: Owed[], late: number): string {
     : ` — ${share} of them ${owns(top.kind === 'site' ? 'the site' : top.who)}`;
   /* "late", not "past the day": a stage is late when its problems lost hours,
      before its day goes (lib/install lateOrProblem). */
-  return `${bits.join(' · ')}. ${plural(late, 'thing')} late${whose}.`;
+  return `${bits.join(' · ')}. ${plural(late, 'thing')} late${whose}${onLines ? `${whose ? ';' : ' —'} ${onLines}` : ''}.`;
 }
 
 /* ---------- MARKS THAT FALL ON TOP OF EACH OTHER ----------

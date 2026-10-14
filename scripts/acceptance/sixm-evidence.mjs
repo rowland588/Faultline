@@ -111,6 +111,8 @@ await page.locator('.ie-used').first().waitFor({ timeout: 10000 }).catch(() => {
 /* ---- 5 · the 6M report's PDF ---- */
 await go(`#/pace-report?project=${j.projectId}`);
 {
+  /* the full report — the status page is the one offered first (17 below) */
+  await page.getByRole('button', { name: 'Full report', exact: true }).click(); await page.waitForTimeout(400);
   const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'PDF', exact: true }).first().click()]);
   const pdf = join(OUT, 'sixm.pdf'); await dl.saveAs(pdf);
   const san = s => s.replace(/→/g, 'to').replace(/[–—]/g, '-').replace(/\s+/g, ' ');
@@ -123,6 +125,164 @@ await go(`${P}/board?a=${encodeURIComponent(j.action)}`);
 await page.locator('.sl').first().waitFor({ timeout: 10000 }).catch(() => {});
 ok((await page.locator('.sl').count()) === 1 && (await page.getByRole('button', { name: /^Prove it/ }).count()) === 0, 'a client reads how it is known and changes nothing');
 await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
+
+/* ===================== THE 6M LOOP, WALKED (flow audit, 13 October) =====================
+ * The loop's two loose ends and the noise between them, driven where the
+ * owner meets them: holding chased (#9), the gap counted (#8), the study's
+ * Use it for by machine (#15), the fishbone's suggestions about the
+ * problem (#18), the 6M's paper in order (#17). Every sentence is checked
+ * against the module that makes it. */
+const reHash = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/* ---- 9 · holding is chased: a missed check on the problem, Needs you and This week ---- */
+{
+  const h = await page.evaluate(async pid => {
+    const { listProjectCases } = await import('/src/db.ts'); const S = await import('/src/lib/sixm.ts'); const W = await import('/src/lib/weeks.ts');
+    const c = (await listProjectCases(pid, [])).find(x => !x.deletedAt && x.status === 'closed' && x.hold && S.holdDue(x.hold, W.todayISO()).state === 'missed');
+    return c && { id: c.id, line: c.lineId, title: c.title, what: c.hold.what, who: c.hold.who, due: S.holdDue(c.hold, W.todayISO()).words, last: W.niceDay(c.hold.lastChecked) };
+  }, j.projectId);
+  ok(!!h, `9 the 6M job has a closed problem whose check is missed: "${h?.title}"`);
+  await go(`${P}/fishbone?line=${h.line}&problem=${h.id}`);
+  await page.locator('.fr-strip').first().waitFor({ timeout: 10000 }).catch(() => {});
+  ok((await words('.fr-strip .pc-hold.is-r')) === h.due, `9 the fishbone's strip, in red: "${await words('.fr-strip .pc-hold')}"`);
+  await page.locator('.fr-strip').first().click(); await page.waitForTimeout(900);
+  const kept = await words('.fj-holdline');
+  ok(kept.includes(`last checked ${h.last}`) && kept.includes(h.due) && !/\d{4}-\d{2}-\d{2}/.test(kept), `9 the card's Kept by, the days said as days: "${kept}"`);
+  await go(P);
+  await page.locator('.fp-needs').first().waitFor({ timeout: 10000 }).catch(() => {});
+  const row = page.locator('.fp-needs .fp-row').filter({ hasText: h.what }).first();
+  const rw = (await row.count()) ? (await row.innerText()).replace(/\s+/g, ' ') : '';
+  ok(rw.includes(`Check · ${h.who}`) && rw.includes(`Keeps the gain on “${h.title}”`) && /is-r\b/.test(await row.getAttribute('class') ?? ''), `9 the job's Needs you, late: "${rw}"`);
+  if (await row.count()) { await row.click(); await page.waitForTimeout(1500); }
+  ok(new RegExp(`/fishbone\\?(.*&)?problem=${reHash(h.id)}`).test(decodeURIComponent(page.url())), '9 the row opens the problem on its fishbone');
+  await go('#/');
+  await page.locator('.jb-week').first().waitFor({ timeout: 10000 }).catch(() => {});
+  const wk = page.locator('.jb-week .jb-wl-row').filter({ hasText: h.what }).first();
+  ok((await wk.count()) === 1 && /is-late/.test(await wk.getAttribute('class') ?? ''), `9 the control room's This week, late: "${(await wk.count()) ? (await wk.innerText()).replace(/\s+/g, ' ') : ''}"`);
+}
+
+/* The smoke seed's jobs beside it: the stage-gate job and Line 7's 6M job. */
+const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
+const S6 = `#/project/${sd.pacedProjectId}`;
+
+/* ---- 8 · the gap counted: the constraint, what the line can make, a count as a reading, no OEE ---- */
+{
+  const t8 = await page.evaluate(async ([pid, l7]) => {
+    const db = await import('/src/db.ts'); const F = await import('/src/lib/fishbone.ts'); const C = await import('/src/lib/capacity.ts');
+    const Lo = await import('/src/lib/ie/losses.ts'); const M = await import('/src/lib/measures.ts');
+    const line = (await db.loadPaceLines(pid)).find(l => l.id === l7);
+    const standards = [...await db.listStandards(pid), ...await db.listStandardsForLine(line.workspaceId)];
+    const cap = F.lineCapacityOf(line, standards, await db.listPrograms(pid));
+    const r = cap && C.analyse(cap.cap);
+    const counts = (await db.listStudiesForLine(line.workspaceId)).filter(s => s.tool === 'losses' && !s.deletedAt).sort((a, b) => b.facts.losses.from - a.facts.losses.from);
+    const c = Lo.countedRate(counts[0]?.facts.losses);
+    const m = M.perMinuteMeasure((await db.getProject(pid)).measures ?? []);
+    return { station: r?.limit?.station.name, canMake: r && C.canMakeWords(r), c, m: m && { id: m.id, unit: m.unit }, said: c && M.say(c.perMin, m?.unit) };
+  }, [sd.pacedProjectId, sd.line7Id]);
+  await go(`${S6}/fishbone?line=${sd.line7Id}&open=1`);
+  const door = page.locator('.fj-door').filter({ hasText: 'The constraint' }).first();
+  await door.waitFor({ timeout: 10000 }).catch(() => {});
+  const dw = (await door.count()) ? (await door.innerText()).replace(/\s+/g, ' ') : '';
+  ok(!!t8.station && dw.includes(`${t8.station} limits Line 7`) && !(await door.isDisabled()), `8 The constraint reads Line 7's Line capacity: "${dw.slice(0, 140)}"`);
+  await go(S6);
+  await page.locator('.fp-lines').first().waitFor({ timeout: 10000 }).catch(() => {});
+  const l7 = page.locator('.fp-lines .fp-row').filter({ hasText: 'Line 7' }).first();
+  const lw = (await l7.count()) ? (await l7.innerText()).replace(/\s+/g, ' ') : '';
+  ok(!!t8.canMake && lw.includes(t8.canMake), `8 the line's capacity under its target: "${lw}"`);
+  await go(`${S6}?view=data`);
+  await page.locator('.nm-counted').first().waitFor({ timeout: 10000 }).catch(() => {});
+  const offer = page.locator('.nm-counted .nm-offer').filter({ hasText: t8.c?.words ?? '—' }).first();
+  ok(!!t8.c && (await offer.count()) === 1 && (await offer.innerText()).includes(`${t8.c.words}, counted`), `8 a count offered as a reading: "${(await offer.count()) ? (await offer.innerText()).replace(/\s+/g, ' ') : ''}"`);
+  if (await offer.count()) { await offer.getByRole('button', { name: `Record ${t8.said}` }).click(); await page.waitForTimeout(1500); }
+  const rec = await page.evaluate(async ([pid, l7, mid, day, v]) => (await (await import('/src/db.ts')).listReadings(pid))
+    .find(r => !r.deletedAt && r.lineId === l7 && r.measureId === mid && r.at === day && Math.abs(r.value - v) < 0.05), [sd.pacedProjectId, sd.line7Id, t8.m?.id, t8.c?.day, t8.c?.perMin]);
+  ok(!!rec && /^Counted — loss count/.test(rec.note ?? '') && (await page.locator('.nm-counted .nm-offer').filter({ hasText: t8.c?.words ?? '—' }).count()) === 0,
+    `8 one tap records it — ${rec ? `${rec.value} on ${rec.at}, "${rec.note}"` : 'no reading'} — and the offer goes`);
+  const fresh = await page.evaluate(async () => (await (await import('/src/db.ts')).createProject('A new 6M job', '#1b7f5a', 'Rowland', 'r@example.com', 'board')).id);
+  await go(`#/project/${fresh}`);
+  const startW = await words('body');
+  await go(`#/project/${fresh}?view=data`);
+  ok(/packs per minute, waste/.test(startW) && !/\bOEE\b/.test(startW) && !/\bOEE\b/.test(await words('body')), '8 a new 6M job asks for a number counted by people — no OEE in its example');
+}
+
+/* ---- 15 · a study's Use it for, machine by machine; attached, it takes the job's line ---- */
+{
+  await go(`#/capability/${sd.studyId}`);
+  await page.getByRole('button', { name: 'Attach to a job' }).click(); await page.waitForTimeout(400);
+  await page.getByLabel('Attach it to which job').selectOption(sd.projectId); await page.waitForTimeout(1500);
+  const st = await page.evaluate(async ([id, pid]) => {
+    const db = await import('/src/db.ts'); const R = await import('/src/lib/lineRecords.ts');
+    const s = await db.getStudy(id); const want = R.onlyLineOf(pid, await db.allPaceLines());
+    return { ws: s.workspaceId, pid: s.projectId, want, name: want ? (await db.getWorkspace(want))?.name : undefined, assets: (await db.listAssets(pid)).map(a => a.name) };
+  }, [sd.studyId, sd.projectId]);
+  const place = await words('.ie-place-w');
+  ok(st.pid === sd.projectId && !!st.want && st.ws === st.want && place.startsWith(`On ${st.name}`), `15 attached to a job, it takes the job's line: "${place}"`);
+  await page.getByRole('button', { name: 'Use it for…' }).click(); await page.waitForTimeout(400);
+  const g = await page.getByLabel('Use it for').locator('optgroup').evaluateAll(gs => gs.map(x => ({ label: x.getAttribute('label'), opts: [...x.querySelectorAll('option')].map(o => o.textContent) })));
+  ok(g[0]?.label === 'Ishida checkweigher — this study’s machine' && g[0].opts.length > 0
+    && g.slice(1).every(x => st.assets.includes(x.label) || x.label === 'The line — on no one machine')
+    && g.every(x => new Set(x.opts).size === x.opts.length),
+    `15 Use it for, machine by machine, the study's first: ${g.map(x => `${x.label} (${x.opts.length})`).join(' · ')}`);
+  await page.keyboard.press('Escape');
+}
+
+/* ---- 18 · the fishbone's suggestions are about the problem ---- */
+{
+  const s18 = await page.evaluate(async pid => {
+    const P = await import('/src/lib/useProblems.ts'); const F = await import('/src/lib/fishbone.ts');
+    const l = await P.loadProblems(pid); const bad = []; let n = 0;
+    for (const v of P.viewsOf(l, pid)) for (const b of v.bones) for (const x of b.suggestions) {
+      if (x.source.kind !== 'material' && x.source.kind !== 'program') continue;
+      n++;
+      const rec = (x.source.kind === 'material' ? l.data.materials : l.data.programs).find(r => r.id === x.source.ref);
+      const line = l.data.lines.find(q => q.id === v.problem.lineId);
+      const onLine = !!line && (rec.lineId === line.id || (!rec.lineId && !!rec.workspaceId && rec.workspaceId === line.workspaceId));
+      if (!onLine && !F.sharesAWord(F.problemWords(v.problem), rec.what, rec.runs, rec.note)) bad.push(`${v.problem.title}: ${x.text}`);
+    }
+    return { bad, n };
+  }, sd.pacedProjectId);
+  ok(s18.bad.length === 0, `18 every material and program offered is on the problem's line or about it (${s18.n} offered)${s18.bad.length ? ` — not: ${s18.bad.join(' | ')}` : ''}`);
+  await go(`${S6}/fishbone?line=${sd.pacedLineId}&problem=${sd.problemId}`);
+  await page.locator('.fr-fish').first().waitFor({ timeout: 10000 }).catch(() => {});
+  const fish = await words('.fr-fish');
+  ok(!/P-150|P-130|P-160|Upgraded jaw heater/.test(fish) && /Perforated film — 2kg, 60 micron is \d+ days? late/.test(fish),
+    '18 Basketer minor stops: no other line\'s programs or the jaw heater — Line 2A\'s late film still offered');
+}
+
+/* ---- 17 · the 6M's paper: the report first, each line's papers folded under it ---- */
+{
+  await go(S6);
+  await page.getByRole('button', { name: /^Reports/ }).first().click(); await page.waitForTimeout(700);
+  const dlg = page.getByRole('dialog');
+  const titles = async () => dlg.locator('.meet-report b').allInnerTexts();
+  const shut = await titles();
+  const sheetW = (await dlg.locator('.meet-report').filter({ hasText: 'Spreadsheet' }).innerText()).replace(/\s+/g, ' ');
+  ok(JSON.stringify(shut) === JSON.stringify(['Client report', 'Spreadsheet']) && (await dlg.locator('.meet-lines-h').getAttribute('aria-expanded')) === 'false',
+    `17 two papers and the lines folded: ${shut.join(' · ')} · "${(await words('.meet-lines-h'))}"`);
+  ok(/This job in one Excel file/.test(sheetW) && !/every project/.test(sheetW), `17 the spreadsheet worded for this job: "${sheetW}"`);
+  await dlg.locator('.meet-lines-h').click(); await page.waitForTimeout(400);
+  const open = await titles();
+  ok(['Line 2A', 'Line 7'].every(l => ['Client report', 'One-page report', 'Evidence cards'].every(t => open.includes(`${t} — ${l}`))) && open[0] === 'Client report',
+    `17 opened, each line's three papers: ${open.length} — ${open.slice(1, 4).join(' · ')}…`);
+  await page.keyboard.press('Escape');
+  /* the client report: the one-page status first, the full report beside it */
+  await go(`#/pace-report?project=${j.projectId}`);
+  const pressed = await page.locator('.cr-which .chip.on').innerText().catch(() => '');
+  const st = await page.evaluate(async pid => {
+    const P = await import('/src/lib/useProblems.ts'); const R = await import('/src/lib/sixmReportPdf.ts'); const S = await import('/src/lib/sixmStatus.ts');
+    const db = await import('/src/db.ts'); const l = await P.loadProblems(pid); const p = await db.getProject(pid); const now = Date.now();
+    const r = R.sixmReport({ project: { name: p.name, lead: p.lead }, data: l.data, problems: P.viewsOf(l, pid, undefined, now), todos: await db.listPaceTodos(pid), now });
+    const s = S.sixmStatus(r); return { sentence: s.sentence, why: s.why.map(w => w.what), tags: s.why.map(w => w.tag) };
+  }, j.projectId);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'PDF', exact: true }).first().click()]);
+  const file = join(OUT, 'sixm-status.pdf'); await dl.saveAs(file);
+  const pages = Number((execFileSync('pdfinfo', [file], { encoding: 'utf8' }).match(/Pages:\s+(\d+)/) ?? [])[1]);
+  const san = x => x.replace(/→/g, 'to').replace(/[–—]/g, '-').replace(/[“”]/g, '"').replace(/\s+/g, '');
+  const txt = san(pdfText(file));
+  ok(pressed === 'Status — 1 page' && pages === 1 && txt.includes(san(st.sentence).slice(0, 50)) && txt.includes(san('Why we are not where we should be').toUpperCase())
+    && st.tags.includes('CHECK MISSED') && txt.includes('CHECKMISSED'),
+    `17 the 6M client report offers the one-page status first: ${pages} page, "${st.sentence.slice(0, 60)}…", why: ${st.tags.join(', ')}`);
+}
 
 ok(errors.length === 0, errors.length ? `no console errors — ${errors.join(' | ')}` : 'no console errors');
 await browser.close();

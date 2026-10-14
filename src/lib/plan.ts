@@ -359,7 +359,7 @@ export function planAgenda(marks: PlanMark[]): PlanMonth[] {
 const MANY: Record<PlanMark['kind'], string> = {
   install: 'install steps', setup: 'set-up steps', handover: 'hand-over items', test: 'tests',
   fix: 'fixes', material: 'materials', program: 'programs', machine: 'machines', action: 'actions',
-  note: 'reminders',
+  note: 'reminders', check: 'checks',
 };
 
 /** SAME DAY, SAME KIND, SAME OUTCOME — ONE LINE. Line 2B proved sixteen
@@ -387,7 +387,7 @@ export function bunchPlan(marks: PlanMark[], least = 3): PlanMark[] {
 /** The screen each lane's records are listed on — where a bunch opens. */
 const LIST_OF: Record<PlanMark['kind'], string> = {
   install: 'install', setup: 'set-up', handover: 'handover', test: 'testing', fix: 'fixes',
-  material: 'materials', program: 'programs', machine: 'install', action: 'board', note: 'notes',
+  material: 'materials', program: 'programs', machine: 'install', action: 'board', note: 'notes', check: 'fishbone',
 };
 
 /** WHERE A MARK OPENS — the record it was drawn from. Rowland: "having nodes
@@ -397,10 +397,14 @@ const LIST_OF: Record<PlanMark['kind'], string> = {
  *  drawer over its list (lib/install recordHref), and the lists kept whole on one screen (materials, programs, notes,
  *  machines on Install) on that screen. A bunch stands for several, so it
  *  opens its lane's list rather than picking one of them. */
-export function planHref(projectId: string, m: { kind: PlanMark['kind']; id?: string; count?: number }): string {
+export function planHref(projectId: string, m: { kind: PlanMark['kind'] | 'problem'; id?: string; count?: number }): string {
   const base = `/project/${projectId}`;
+  /* a problem (lib/portfolio JobItem — a line's own, never a job's mark) opens the job's Problems */
+  if (m.kind === 'problem') return `${base}/fixes`;
   const one = m.id && !m.count ? m.id : undefined;
   if (one && m.kind === 'action') return `${base}/board?a=${encodeURIComponent(one)}`;
+  /* a check that keeps the gain opens its problem on the fishbone */
+  if (one && m.kind === 'check') return `${base}/fishbone?problem=${encodeURIComponent(one)}`;
   if (one && (m.kind === 'test' || m.kind === 'fix' || m.kind === 'install' || m.kind === 'setup' || m.kind === 'handover')) {
     return recordHref(projectId, one, m.kind);
   }
