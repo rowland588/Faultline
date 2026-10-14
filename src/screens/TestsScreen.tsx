@@ -11,13 +11,12 @@
  */
 import { DateWhy } from '../ui/DateWhy';
 import { HANDOVER_KEY, keyOf } from '../lib/story';
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { openRecord } from '../ui/RecordDrawer';
 import { nav } from '../state/useRoute';
 import { niceDay, todayISO } from '../lib/weeks';
 import { DraftField } from '../ui/Draft';
 import { useProject, useProjects } from '../lib/useProjects';
-import { usePrograms } from '../lib/usePrograms';
 import { CommissionGrid, NeedsYou } from '../ui/CommissionGrid';
 import { useTesting } from '../lib/useTesting';
 import { updateProject } from '../db';
@@ -29,6 +28,11 @@ import { Icon } from '../ui/Icon';
 import { DateInput } from '../ui/DateInput';
 import { AccessNote } from '../ui/AccessNote';
 import { useAccess } from '../cloud/access';
+import { useJobPrograms } from '../lib/useJobPrograms';
+import { commissionPrograms, programsToPick, provingPlans } from '../lib/commissionPrograms';
+import { provingTitle } from '../lib/programs';
+import { ProgramPicker } from '../ui/ProgramPicker';
+import { offerUndo } from '../ui/Undo';
 
 const nice = (iso?: string): string => niceDay(iso) || '—';
 
@@ -38,7 +42,7 @@ export function TestsScreen({ projectId }: { projectId: string }) {
   /* Every job, for the usual tests handed on from the last job that edited
      them (lib/install usualStages) — and this job's programs, proved here. */
   const { projects } = useProjects();
-  const { programs } = usePrograms(projectId);
+  const { job: programs, lines } = useJobPrograms(projectId);
   /* The numbers on the peers row come from lib/standing.ts, the same call the
      dashboard and the client report make — a row that said something different
      from the page under it would be the whole problem back again. */
@@ -56,6 +60,14 @@ export function TestsScreen({ projectId }: { projectId: string }) {
      actually worked through. */
   const [on, setOn] = useState<string[]>([]);
   const [cardsBusy, setCardsBusy] = useState(false);
+  /* PROGRAMS, PICKED HERE (lib/commissionPrograms; Rowland, 14 October:
+     "you can't pick a program from commissioning, which you should be able
+     to"): the job's own and its lines' own; the board and Needs you count the
+     job's and every line program this job has a test for. */
+  const pickGroups = useMemo(() => programsToPick(programs, lines, tt.assets, tt.tests), [programs, lines, tt.assets, tt.tests]);
+  const boardPrograms = useMemo(() => commissionPrograms(programs, lines, tt.assets, tt.tests), [programs, lines, tt.assets, tt.tests]);
+  const [picking, setPicking] = useState(false);
+  const [planning, setPlanning] = useState(false);
 
   if (loading || tt.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   if (!project) return <div className="wrap pace"><p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p></div>;
@@ -88,6 +100,20 @@ export function TestsScreen({ projectId }: { projectId: string }) {
   };
 
   const toggle = (id: string) => setOn(p => (p.includes(id) ? p.filter(x => x !== id) : [...p, id]));
+
+  /* A proving test a program ticked, on its machine (lib/commissionPrograms
+     provingPlans); one opens, several are said with one undo. */
+  const toProve = pickGroups.reduce((n, g) => n + g.rows.filter(r => !r.proved && !r.test).length, 0);
+  const planPicked = async (rows: Parameters<typeof provingPlans>[0]) => {
+    if (!rows.length || planning) return;
+    setPlanning(true);
+    try {
+      const ids = await tt.planTests(provingPlans(rows, provingTitle));
+      setPicking(false);
+      if (ids.length === 1) open(ids[0]);
+      else offerUndo(`${ids.length} proving tests planned — on the board under each machine's programs`, async () => { for (const id of ids) await tt.removeTest(id); });
+    } finally { setPlanning(false); }
+  };
 
   const allCards = async () => {
     if (cardsBusy) return;
@@ -172,8 +198,14 @@ export function TestsScreen({ projectId }: { projectId: string }) {
           the Programs page. What was owed in them is in Needs you. */}
       {/* What needs you FIRST — the abnormal in the first screenful, above
           the board (on a phone the board is three long cards). */}
-      <NeedsYou project={project} tt={tt} programs={programs} can={can} />
-      {(tt.assets.length > 0 || proofs.length > 0) && <CommissionGrid project={project} projects={projects} tt={tt} programs={programs} can={can} />}
+      <NeedsYou project={project} tt={tt} programs={boardPrograms} can={can} />
+      {(tt.assets.length > 0 || proofs.length > 0) && <CommissionGrid project={project} projects={projects} tt={tt} programs={boardPrograms} can={can} />}
+
+      {/* PROVE PROGRAMS — picked from Programs: the job's own and its lines'
+          own, each a proving test on its machine (ui/ProgramPicker). */}
+      {can.edit && picking && (
+        <ProgramPicker groups={pickGroups} busy={planning} onPlan={rows => void planPicked(rows)} onOpen={id => open(id)} onClose={() => setPicking(false)} />
+      )}
 
       {/* PLAN A TEST that is not one of the usual ones — the usual ones are
           the board's "+" squares. One door. */}
@@ -207,9 +239,16 @@ export function TestsScreen({ projectId }: { projectId: string }) {
               </span>
             </form>
           ) : (
-            <button className="cw-add" onClick={() => setAdding('test')}>
-              <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Plan a test that is not one of the usual ones
-            </button>
+            <span className="cmp-adds">
+              <button className="cw-add" onClick={() => setAdding('test')}>
+                <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Plan a test that is not one of the usual ones
+              </button>
+              {pickGroups.length > 0 && !picking && (
+                <button className="cw-add" onClick={() => setPicking(true)}>
+                  <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Prove programs — pick from Programs{toProve ? ` (${toProve} with no test yet)` : ''}
+                </button>
+              )}
+            </span>
           )}
         </section>
       )}

@@ -38,12 +38,11 @@ import { OnTheLine } from '../ui/OnTheLine';
 import { Evidence } from '../ui/EvidenceDoors';
 import { WhyMoved, followingSummary, recordMove } from '../ui/WhyMoved';
 import { movedLater } from '../lib/story';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { nav, useRoute } from '../state/useRoute';
 import { DraftArea, DraftField } from '../ui/Draft';
 import { EvidenceThumb, EvidenceViewer, pinsOnJob } from '../ui/Evidence';
 import { useProject } from '../lib/useProjects';
-import { usePrograms } from '../lib/usePrograms';
 import { useTesting } from '../lib/useTesting';
 import { trialCard, verdictLine, type CardFinding, type CardNext, type TrialCard } from '../lib/trialCard';
 import {
@@ -68,6 +67,7 @@ import { isRunTest, productRuns } from '../lib/run';
 import { climbsOf, climbsOn } from '../lib/rampUp';
 import { RunProducts } from '../ui/RunPanel';
 import { CardPdf, RecordFiles, RecordItems as Items, removeMedia } from '../ui/RecordMore';
+import { useJobPrograms } from '../lib/useJobPrograms';
 
 const nice = (iso?: string): string => niceDay(iso) || '';
 /** "9 Oct", or "5 Oct – 9 Oct" for a block of days. */
@@ -87,7 +87,13 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
   /* Programs, so a test or a fix can say which one it is about. Read here and
      passed down rather than fetched inside the block: one subscription, and
      the dropdown cannot be a beat behind the Programs screen. */
-  const { programs } = usePrograms(projectId);
+  /* AND ITS LINES' OWN (Stage 2; Rowland, 14 October: "find the programs that
+     should be available because they're in programs") — the dropdown offered
+     the job's alone, so a line's program could not be named from Commission. */
+  const jp = useJobPrograms(projectId);
+  const jobPrograms = jp.job;
+  const linePrograms = useMemo(() => jp.lines.filter(l => l.programs.length), [jp.lines]);
+  const programs = jp.all;
   /* Who is looking (lib/access): a client reads every box as text, a team
      member does the work but deletes nothing and leaves a written "passes if"
      where the owner agreed it. */
@@ -295,7 +301,14 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
               <label className="cw-f"><span>Program</span>
                 <select value={test.programId ?? ''} onChange={e => save({ programId: e.target.value || undefined })}>
                   <option value="">Not about one</option>
-                  {programs.map(p => <option key={p.id} value={p.id}>{p.what}{p.runs ? ` — ${p.runs}` : ''}</option>)}
+                  {linePrograms.length === 0
+                    ? jobPrograms.map(p => <option key={p.id} value={p.id}>{p.what}{p.runs ? ` — ${p.runs}` : ''}</option>)
+                    : <>
+                      {jobPrograms.length > 0 && <optgroup label="This job’s programs">{jobPrograms.map(p => <option key={p.id} value={p.id}>{p.what}{p.runs ? ` — ${p.runs}` : ''}</option>)}</optgroup>}
+                      {linePrograms.map(l => (
+                        <optgroup key={l.id} label={`${l.name}’s own programs`}>{l.programs.map(p => <option key={p.id} value={p.id}>{p.what}{p.runs ? ` — ${p.runs}` : ''}</option>)}</optgroup>
+                      ))}
+                    </>}
                 </select></label>
             )}
             {/* PLANNED FOR A DAY, OR FOR A BLOCK OF THEM. The second date is

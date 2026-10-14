@@ -345,7 +345,10 @@ made); where it has got to, its commentary, a test day gone by in red, proved
 with its day; the line's page — its machines in flow order with their makers
 and programs, one named there, "The line" no longer listing them twice; a
 machine renamed in Set up the line carrying its record; a job on the line
-seeing the line's own programs and proving one by a test in Commission; Your
+seeing the line's own programs and proving one by a test in Commission,
+and Commission picking a line's program itself (14 October: "you can't pick
+a program from commissioning") — its proving test planned on the job's
+machine, its drawer naming it, the picker never offering it twice; Your
 factory's row and its paper; the line's programs report; Line capacity
 offering the line's machines; and the phone. `list-paper.mjs` is the audit's
 bar 3 (`docs/AUDIT.md`; Rowland, 13 October: "I'm always asking for

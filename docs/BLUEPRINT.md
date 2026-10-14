@@ -729,4 +729,18 @@ is still wired.
   is drawn too — a bar a station under the V's sentence, its scale carried
   over a page. Accepted by `line-capacity.mjs` 2–2d; the paper by
   `report-stress.mjs`.
+- **Programs picked in Commission** (Rowland, 14 October: "I want to be
+  able to easily go into commission, find the programs that should be
+  available because they're in programs ... you can't pick a program from
+  commissioning"). Placed (§8): *Jobs*, the stage gate's Commission; records
+  `programs` and `tests` (the test's `programId`, as before — no new
+  record). Commission's *Prove programs — pick from Programs* lists the job's
+  programs, then each of its lines' own (Stage 2), each on the job's machine
+  of its name, with its test when it has one; tick several and each gets a
+  proving test on its machine (`lib/commissionPrograms`, `ui/ProgramPicker`).
+  A test's page and its drawer name a line's program too
+  (`lib/useJobPrograms`). The board and Needs you count a line's program once
+  this job has a test for it — a test proving one was on no square before.
+  Accepted by `machines-programs.mjs` 7e–7g. The commissioning report and
+  cards follow.
 - **Next:** Stage 3 — the line is the hub (its products, readiness, health).

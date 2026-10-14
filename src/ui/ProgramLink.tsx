@@ -11,7 +11,7 @@
  *   programs stage   "no test yet", opened from here
  *
  * The program record stays the one on the Programs page; nothing is copied. */
-import { usePrograms } from '../lib/usePrograms';
+import { useJobPrograms } from '../lib/useJobPrograms';
 import { STATE_WORD, isProgramsStage, isProved, stateOf, type Program } from '../lib/programs';
 import { provingTestOf, testCell } from '../lib/commission';
 import type { Test, TestItem } from '../lib/testing';
@@ -41,9 +41,10 @@ export function ProgramLink({ projectId, t, tests, onPatch, can, holder, items }
   onPatch: (patch: Partial<Test>) => void;
   can: Can;
 }) {
-  const { programs, loading } = usePrograms(projectId);
+  /* the job's and its lines' own (lib/useJobPrograms) — a test in Commission
+     may prove a line's program (Rowland, 14 October) */
+  const { all, job, lines, loading } = useJobPrograms(projectId);
   const today = todayISO();
-  const all = programs.filter(p => !p.deletedAt);
   if (loading) return null;
   const kind = t.kind ?? 'test';
 
@@ -63,7 +64,14 @@ export function ProgramLink({ projectId, t, tests, onPatch, can, holder, items }
           <select value={t.programId ?? ''} aria-label="Which program this test proves"
             onChange={e => onPatch({ programId: e.target.value || undefined })}>
             <option value="">{p ? 'Not about a program' : 'Not about a program — pick one it proves'}</option>
-            {choices.map(x => <option key={x.id} value={x.id}>{x.what}{x.runs ? ` — ${x.runs}` : ''}</option>)}
+            {lines.some(l => l.programs.length)
+              ? <>
+                {job.length > 0 && <optgroup label="This job’s programs">{choices.filter(x => job.some(j => j.id === x.id)).map(x => <option key={x.id} value={x.id}>{x.what}{x.runs ? ` — ${x.runs}` : ''}</option>)}</optgroup>}
+                {lines.filter(l => l.programs.length).map(l => (
+                  <optgroup key={l.id} label={`${l.name}’s own programs`}>{l.programs.map(x => <option key={x.id} value={x.id}>{x.what}{x.runs ? ` — ${x.runs}` : ''}</option>)}</optgroup>
+                ))}
+              </>
+              : choices.map(x => <option key={x.id} value={x.id}>{x.what}{x.runs ? ` — ${x.runs}` : ''}</option>)}
           </select>
         )}
         <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/programs`)}>Programs ›</button>
