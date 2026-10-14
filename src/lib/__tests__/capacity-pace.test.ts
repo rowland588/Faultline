@@ -7,7 +7,8 @@ import { describe, expect, it } from 'vitest';
 import { analyse, blankStation, fmtSec, oneOf, paceSays, type Station } from '../capacity';
 
 const bagger: Station = { id: 'b', name: 'Bagger', kind: 'machine', unit: 'bags', contains: 1, rate: 70, ratePer: 'min', source: 'plate' };
-const person = (x: Partial<Station>): Station => ({ id: 'p', name: 'Tray packer', kind: 'people', unit: 'trays', contains: 8, ...x });
+/* typed as the pace to plan on: no rest allowance added (a typed 0) — the allowance has tests of its own (capacity-people.test) */
+const person = (x: Partial<Station>): Station => ({ id: 'p', name: 'Tray packer', kind: 'people', unit: 'trays', contains: 8, allowancePct: 0, ...x });
 
 describe('what reaches a person, before they have a speed', () => {
   it('70 bags a minute, 8 to a tray: a tray every 6.9 s, 8.75 a minute', () => {
@@ -52,7 +53,7 @@ describe('a person timed: a tray every 8 seconds', () => {
 describe('a station after a slower one', () => {
   it('what reaches it is set by the slowest before, not the one next to it', () => {
     const basketer: Station = { id: 'k', name: 'Basketer', kind: 'machine', unit: 'baskets', contains: 12, rate: 5, ratePer: 'min', runningPct: 92 };
-    const packer: Station = { id: 'q', name: 'Packer', kind: 'people', unit: 'baskets', contains: 1, cycleSec: 15, perCycle: 1 };
+    const packer: Station = { id: 'q', name: 'Packer', kind: 'people', unit: 'baskets', contains: 1, cycleSec: 15, perCycle: 1, allowancePct: 0 };
     const r = analyse({ stations: [bagger, basketer, packer] });
     expect(r.arrivals.q.perMin).toBeCloseTo(4.6, 9);
     expect(r.arrivals.q.from.name).toBe('Basketer');

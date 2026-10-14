@@ -227,6 +227,14 @@ there and what replaces it.
    numbers, its lists and its report — `lib/lineWork`*): programs due and problems late on lines with
    no job.
 10. **A people list** (D5).
+10a. **Can a person do it all shift — the lifting check** (14 October, after
+    a person's pace was built on the work-measurement science,
+    `docs/CAPACITY.md` §1). The pace says whether they keep up; it does not
+    say whether a palletiser can lift 36 baskets a pallet safely for a
+    shift. The revised NIOSH lifting equation (ISO 11228-1) on a person's
+    station — the weight, the reach, how often — and repetitive actions a
+    minute (OCRA, ISO 11228-3), said beside the pace and on the paper; on
+    `standards.capacity`, no new record.
 11. **A job's line is the factory's line — one page, one name** (flow audit
     #7). The cheap part is built: the job's rail names each of its lines as
     Your factory does and opens the line's own page (`#/lines/:ws`), two of
@@ -677,4 +685,22 @@ is still wired.
   problem still open on a machine. `docs/REPORTS.md` (Relevance) is the
   table of what reaches which paper, and its rule; `docs/AUDIT.md` bar 8.
   Accepted by `report-relevance.mjs`.
+- **A person's pace, as the science counts it** (Rowland, 14 October: "it
+  doesn't seem to understand the previous quantities ... each pallet holds
+  36 baskets ... it's 360 a minute"; "I need to be able to determine the
+  speed of the human"; "bring in science when it comes to humans ... a human
+  having to keep up with machines"). Placed (§8): *On the line*, the tool
+  Line capacity; record `standards.capacity` (two optional fields on a
+  station, kept in its JSON — no database change); shows on the station's
+  card, the capacity sheet and the V, Line capacity's page and PDF. Every
+  station after the first says the chain under its conversion ("1 pallet =
+  36 baskets = 360 units"); a person whose unit holds several of the one
+  before is timed per either — a palletiser per basket — and the pallet
+  worked out, never divided by hand; a person's time carries the ILO's
+  9% rest (5% personal, 4% basic fatigue) unless changed, a standard time
+  from the time study none again; nothing more taken off ("100% +
+  allowances only", asked and chosen); a person fed straight by a machine
+  or a person, nothing collecting between, loaded past 90% of their pace,
+  said in amber. `docs/CAPACITY.md` §1 holds the science and its sources;
+  the lifting check is §6 10a. Accepted by `line-capacity.mjs` 8–8l.
 - **Next:** Stage 3 — the line is the hub (its products, readiness, health).

@@ -403,8 +403,12 @@ bottleneck walked against the sums; then a person as the floor says them
 "70 a minute ... 10 to a basket ... one basket goes to a human every X") —
 asked how many units make one tray, what reaches them worked out before
 they have a speed, "a tray every 8 seconds" said back as a minute and in
-the line's unit, whether they keep up in seconds, Make it 2 people; each
-tool listing its own products (a product only mapped is not in Line
+the line's unit, whether they keep up in seconds, Make it 2 people, a
+person's time carrying the ILO's 9% rest (14 October: "bring in science
+when it comes to humans"), a palletiser timed per tray with "1 pallet = 36
+trays = 288 units" said and the pallet worked out ("all I did is do the
+division of 70 a minute"), and a person fed straight past 90% of their pace
+said in amber; each tool listing its own products (a product only mapped is not in Line
 capacity) and New on one already on the line opening it; Line capacity's
 own page and its rail on no job; and the phone — the V on its side, the
 sheet a card a station; then what a pack costs in labour (Rowland, 13

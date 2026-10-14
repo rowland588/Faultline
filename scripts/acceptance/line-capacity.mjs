@@ -28,7 +28,12 @@
  *      minute ... 10 to a basket ... one basket goes to a human every X"):
  *      what reaches them worked out the moment they say 8 to a tray, before
  *      they have a speed; "a tray every 8 seconds" said back as a minute and
- *      in the line's unit; whether they keep up in seconds; Make it 2 people
+ *      in the line's unit; whether they keep up in seconds; Make it 2 people;
+ *      the ILO's 9% rest on a person's time (docs/CAPACITY.md §1); then a
+ *      palletiser (14 October: "each pallet holds 36 baskets ... it's 360"):
+ *      the chain said where it is typed, timed per tray with the pallet
+ *      worked out, what reaches them a tray and a pallet, fed straight by a
+ *      person past 90% said in amber, and not once trays can collect
  *   9  each tool lists its own: a product only mapped is not in Line
  *      capacity, a product only worked out for capacity is not in Line
  *      standard; New on a product already on the line is that record; the
@@ -249,13 +254,51 @@ let TRAY;
     `8b what reaches them, worked out before they have a speed: ${flat(await card.locator('.cap-st-in').innerText())}`);
   await card.getByLabel('Seconds each time').fill('8'); await card.getByLabel('Seconds each time').press('Enter'); await page.waitForTimeout(800);
   t = await said();
-  ok(t.perCycle === 1 && t.cycleSec === 8 && Math.abs(t.line - 60) < 1e-9, `8c "a tray every 8 seconds" is one tray every 8 s — 60 units a minute at the line (${t.line})`);
+  /* planned with the ILO's 9% rest (docs/CAPACITY.md §1): 7.5 ÷ 1.09 trays × 8 */
+  ok(t.perCycle === 1 && t.cycleSec === 8 && Math.abs(t.line - 60 / 1.09) < 1e-9, `8c "a tray every 8 seconds" is one tray every 8 s — 55 units a minute at the line, the 9% rest in it (${t.line})`);
   ok(flat(await card.locator('.cap-is').innerText()) === '= 7.5 trays a minute each · 60 units a minute', `8d said back at once: ${flat(await card.locator('.cap-is').innerText())}`);
-  ok(t.verdict === 'They take 8 s a tray — 1.1 s too slow: they hold the line back. It needs 2 people to keep up.' && flat(await card.locator('.cap-st-says').innerText()) === t.verdict && /is-short/.test(await card.locator('.cap-feed').getAttribute('class')),
+  ok(t.verdict === 'They take 8 s a tray — 8.7 s with 9% rest — 1.9 s too slow: they hold the line back. It needs 2 people to keep up.' && flat(await card.locator('.cap-st-says').innerText()) === t.verdict && /is-short/.test(await card.locator('.cap-feed').getAttribute('class')),
     '8e whether they keep up, in seconds a tray, red when short — and how many people would');
   await card.getByRole('button', { name: 'Make it 2 people' }).click(); await page.waitForTimeout(800);
   t = await said();
-  ok(t.crew === 2 && t.verdict === 'They take 8 s a tray each, 2 of them — they keep up, 2.9 s to spare a tray.' && flat(await card.locator('.cap-st-says').innerText()) === t.verdict, '8f Make it 2 people: two of them keep up, with the seconds to spare');
+  ok(t.crew === 2 && t.verdict === 'They take 8 s a tray each, 2 of them — 8.7 s with 9% rest — they keep up, 2.5 s to spare a tray.' && flat(await card.locator('.cap-st-says').innerText()) === t.verdict, '8f Make it 2 people: two of them keep up, with the seconds to spare');
+  const rest = flat(await card.getByLabel('Rest allowance, percent').locator('xpath=..').innerText());
+  ok(await card.getByLabel('Rest allowance, percent').inputValue() === '9' && rest.includes('Plan on a tray every 8.7 s') && rest.includes('5% personal needs, 4% basic fatigue'),
+    `8g a person's rest allowance, the ILO's 9% unless changed — the time to plan on said: ${rest.slice(0, 90)}…`);
+  await card.getByRole('button', { name: 'Done' }).click(); await page.waitForTimeout(300);
+
+  /* A PALLETISER TIMED PER TRAY (Rowland, 14 October: "each pallet holds 36
+     baskets, 10 in the basket. That's 360 ... it's making me put a rate in
+     myself, but all I did is do the division of 70 a minute") — the chain
+     read into its unit, timed per the unit before, fed straight by a person */
+  await main.getByRole('button', { name: 'Add a person or crew' }).click(); await page.waitForTimeout(500);
+  card = main.locator('.cap-st').nth(2);
+  await card.getByLabel('Station 3 name').fill('Palletiser'); await card.getByLabel('Station 3 name').press('Enter');
+  await card.getByLabel('What it counts in', { exact: true }).fill('pallets'); await card.getByLabel('What it counts in', { exact: true }).press('Enter'); await page.waitForTimeout(400);
+  await card.getByLabel('How many of the one before make one of these').fill('36'); await card.getByLabel('How many of the one before make one of these').press('Enter'); await page.waitForTimeout(600);
+  ok(flat(await card.locator('.cap-chain').innerText()) === '1 pallet = 36 trays = 288 units', `8h the step before read into it: ${flat(await card.locator('.cap-chain').innerText())}`);
+  await card.getByRole('group', { name: 'Timed per' }).getByRole('button', { name: 'tray' }).click(); await page.waitForTimeout(400);
+  await card.getByLabel('Seconds each time').fill('6'); await card.getByLabel('Seconds each time').press('Enter'); await page.waitForTimeout(800);
+  const pal = () => page.evaluate(async id => {
+    const db = await import('/src/db.ts'); const C = await import('/src/lib/capacity.ts');
+    const st = await db.getStandard(id); const r = C.analyse(st.capacity); const [, k, p] = st.capacity.stations;
+    return { ...C.paceSays(r, p, k.unit, k), speedIn: p.speedIn, cycleSec: p.cycleSec, perMin: C.perMinute(p), limit: r.limit?.station.name };
+  }, TRAY);
+  let q = await pal();
+  ok(q.speedIn === 'before' && q.cycleSec === 6 && Math.abs(q.perMin - 10 / 36) < 1e-9 && flat(await card.locator('.cap-is').innerText()) === '= 10 trays a minute each · a pallet every 3 min 36 s (36 trays) · 80 units a minute',
+    `8i "a tray every 6 seconds" kept as typed, a pallet worked out — never divided by hand: ${flat(await card.locator('.cap-is').innerText())}`);
+  ok(q.arrive === 'A tray reaches them every 6.9 s — 8.8 a minute; a full pallet of 36 every 4 min 7 s: Bagger does 70 units a minute.' && flat(await card.locator('.cap-st-in').innerText()) === q.arrive
+    && q.verdict === 'They take 6 s a tray — 6.5 s with 9% rest — they keep up, 0.3 s to spare a tray.' && flat(await card.locator('.cap-st-says').innerText()) === q.verdict && q.limit === 'Bagger',
+    `8j what reaches them a tray and a pallet, whether they keep up a tray: ${q.verdict}`);
+  ok(q.paced === 'Fed straight by Tray packer with nothing collecting between — loaded to 95% of their pace. A person can’t match another person piece for piece: plan them at 80–90%, or let some collect before them.'
+    && flat(await card.locator('.cap-st-paced').innerText()) === q.paced && /is-paced/.test(await card.locator('.cap-feed').getAttribute('class')),
+    '8k fed straight by a person, nothing collecting between, loaded past 90%: said, in amber');
+  await card.getByRole('button', { name: 'Done' }).click(); await page.waitForTimeout(300);
+  card = main.locator('.cap-st').nth(1);
+  await card.getByRole('button', { name: 'Edit' }).click(); await page.waitForTimeout(400);
+  await card.getByLabel('How many can collect between it and the next station').fill('12'); await card.getByLabel('How many can collect between it and the next station').press('Enter'); await page.waitForTimeout(800);
+  q = await pal();
+  ok(q.paced === undefined && await main.locator('.cap-st').nth(2).locator('.cap-st-paced').count() === 0, '8l twelve trays can collect before them: not said');
 }
 
 /* ---- 9 each tool lists its own ---- */

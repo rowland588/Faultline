@@ -24,7 +24,7 @@
  * a person over takt (red). The bottleneck is marked, not coloured — it is
  * the limit, not a failure. */
 import {
-  analyse, changedWords, compareSays, fmtBig, fmtMoney, fmtN, labourCost, oneMorePerson, oneOf, shiftCapacity, shortSays,
+  allowanceOf, analyse, changedWords, compareSays, fmtBig, fmtMoney, fmtN, labourCost, oneMorePerson, oneOf, shiftCapacity, shortSays,
   vCurve, whatIfCapacity, whatIfLabour, whatIfStations,
   type Capacity, type ChangeoverIn, type LabourInputs, type ShiftIn, type Station,
 } from './capacity';
@@ -106,9 +106,11 @@ export interface CapacityPaper {
 const PER: Record<NonNullable<Station['ratePer']>, string> = { sec: 'a second', min: 'a minute', hour: 'an hour' };
 const HOW: Record<NonNullable<Station['source']>, string> = { plate: 'on the plate', timed: 'timed', standard: 'standard time — the time study', estimate: 'a guess' };
 
-/** A station's speed as it was typed, in its own unit — the capacity sheet's words. */
-export function speedWords(s: Station): string {
-  const unit = s.unit.trim() || 'units';
+/** A station's speed as it was typed, in the unit it was typed in — its own,
+ *  or the one before's for a palletiser timed per basket — the capacity
+ *  sheet's words. `prevUnit`: the unit of the station before it. */
+export function speedWords(s: Station, prevUnit?: string): string {
+  const unit = (s.speedIn === 'before' && prevUnit?.trim() ? prevUnit : s.unit).trim() || 'units';
   if (s.rate != null && s.rate > 0) return `${fmtN(s.rate)} ${unit} ${PER[s.ratePer ?? 'min']}`;
   if (s.cycleSec) return (s.perCycle ?? 1) === 1 ? `a ${oneOf(unit)} every ${fmtN(s.cycleSec)} s` : `${fmtN(s.perCycle ?? 1)} ${unit} every ${fmtN(s.cycleSec)} s`;
   return 'no speed yet';
@@ -178,7 +180,8 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
     return {
       n: o.index + 1, name: s.name.trim() || `Station ${o.index + 1}`, people: s.kind === 'people', ...(crew ? { crew } : {}),
       unit: `${o.index === 0 ? `${s.unit.trim() || 'units'} — the line’s unit` : o.chain}${s.kind === 'people' ? ` · ${fmtN(s.crew ?? 1)} ${(s.crew ?? 1) === 1 ? 'person' : 'people'}` : ''}`,
-      speed: speedWords(s), how: how.text, notPlate: how.notPlate,
+      /* a person's time with their rest allowance said beside it (docs/CAPACITY.md §1) */
+      speed: `${speedWords(s, cap.stations[o.index - 1]?.unit)}${allowanceOf(s) > 0 ? ` + ${fmtN(allowanceOf(s) * 100)}% rest` : ''}`, how: how.text, notPlate: how.notPlate,
       stops: s.runningPct != null && s.runningPct < 100 ? `${fmtN(100 - s.runningPct)}%` : '—',
       good: s.goodPct != null && s.goodPct < 100 ? `${fmtN(s.goodPct)}%` : '—',
       perMin: fmtN(o.effective), perHour: fmtN(o.effective * 60),

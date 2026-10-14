@@ -44,13 +44,79 @@ as one. **What reaches a station** is worked out the moment it says its unit
 and that number — before it has a speed: the slowest station before it, put
 into its unit ("a tray reaches them every 6.9 s — 8.75 a minute: the bagger
 does 70 bags a minute, 8 to a tray"). With a speed, whether it keeps up — for
-a person in seconds a piece ("they take 8 s a tray — 1.1 s too slow") — and,
+a person in seconds a piece ("they take 8 s a tray — 8.7 s with 9% rest — 1.9 s too slow") — and,
 when short, how many people would (⌈what arrives ÷ one person's pace⌉), one
 tap to make it so (`lib/capacity` `arrivals`, `paceSays`).
 
 Sources: nameplate vs real capacity (Fabrico); ISO 22400-2 "planned run
 time per item" as the design speed; Toyota standard work, part 1 (All About
 Lean).
+
+**A person's pace — the science** (Rowland, 14 October: "because you bring a
+human into it, we don't talk about plate speeds ... we also need to bring in
+science when it comes to humans ... a human having to keep up with machines
+... research that science and build it in"; and the pace to plan on, asked
+and chosen: *the timed pace plus the allowances, nothing more taken off*).
+
+- **The time to plan on is the time timed, plus a rest allowance.** Work
+  measurement rates a person against the standard — 100 on the BS 3138
+  scale, the pace a qualified worker keeps naturally over a working day
+  without over-exertion (75 is steady and unhurried) — and adds allowances
+  for what no one can avoid over a shift. The ILO's **constant allowances**
+  go on every job: **5% personal needs and 4% basic fatigue — 9%**. On top,
+  **variable allowances** for the job's own strain: standing, an awkward
+  posture, force or weight lifted, poor light or air, close attention,
+  noise, mental strain, monotony, tedium (ILO, *Introduction to Work Study*).
+  So a person's station carries a **rest allowance, 9% unless changed**: "a
+  basket every 6 s" is planned as one every 6.5 s, said so on the card
+  ("They take 6 s a basket — 6.5 s with 9% rest") and on the paper ("a
+  basket every 6 s + 9% rest"). The person adds the variable part, never the
+  app. A **standard time from the time study already carries its
+  allowances** (`lib/ie/balance` `element`), so none is added again; a
+  machine has none (`lib/capacity` `allowanceOf`, `planPerMinute`).
+- **Nothing more is taken off the pace.** A "65% efficiency over a shift" is
+  a measure of a whole shift — pace, waiting, stops and changeovers in one
+  number. The loss count measures that lost time itself (§5), and Line
+  capacity's running % holds a station's own stops; taking an efficiency off
+  the pace as well would count the same minutes twice. The pace is what a
+  person keeps up while working, with the rest that keeps them at it.
+- **A person fed straight by a machine can't match it piece for piece.** A
+  person's cycles vary, one to the next; a machine's do not. With nothing
+  collecting between them, every slow cycle is a piece missed or a stop,
+  never made up on the next — and machine pacing is itself a cause of
+  strain and error (Salvendy & Smith, *Machine Pacing and Occupational
+  Stress*). The same holds for a person fed straight by another person. The
+  practice is to plan a paced person below their pace — a line balance
+  loads a person to 85–95% of what they can do, never to all of it — or to
+  give a slow cycle somewhere to be made up: a table, a stretch of
+  conveyor. So when a person is fed straight, nothing set to collect before
+  them, and what reaches them is over **90%** of their pace (rest
+  included), the card says so in amber: "Fed straight by the Bagger with
+  nothing collecting between — loaded to 99% of their pace. A person can't
+  match a machine piece for piece: plan them at 80–90%, or let some collect
+  before them." It is advice, not a stop: the sums still say they keep up
+  (`PACED_LOAD_MAX`, `paceSays`).
+- **Timed in the unit they handle.** A palletiser is timed per basket, not
+  per pallet. Rowland: "it's making me put a rate in myself, but all I did
+  is do the division of 70 a minute". So a person whose unit holds several
+  of the one before is timed per either — *Timed per pallet · basket* — and
+  the card works the rest out: "= 10 baskets a minute each · a pallet every
+  3 min 36 s (36 baskets) · 100 units a minute". Switching keeps the speed;
+  what reaches them is said per basket and per pallet ("A basket reaches
+  them every 8.6 s — 7 a minute; a full pallet of 36 every 5 min 9 s"), and
+  whether they keep up per basket.
+- **The chain said where it is typed.** Under "Each pallet holds 36
+  baskets": "1 pallet = 36 baskets = 360 units" — the conversion carried all
+  the way to the start of the line, so a wrong number in it shows at once
+  (`chainWords`).
+- **Left out, on purpose, for now:** a fatigue curve by hour of the shift
+  (longer shifts, twelve hours especially, show measurable falls in
+  alertness and performance — NIOSH, *Plain Language About Shiftwork* — but
+  the rest allowance is the practice's planned answer, and a curve would be
+  a guess per person); and a **lifting check** — the revised NIOSH lifting
+  equation (ISO 11228-1) on what a palletiser lifts, and repetitive actions
+  a minute (OCRA, ISO 11228-3). Those are the next piece: they answer "can a
+  person do this all shift safely", which the pace alone does not.
 
 ## 2. Capacity's three numbers
 
@@ -230,7 +296,9 @@ already agreed before it is run; its words follow this time model (§5).
   and short stops**, split when a running speed is timed; the pounds in two
   parts (idle labour · lost contribution when it cannot be made up).
 - **Line capacity:** machines at plate speed, people at their standard time
-  from the time study; the production capacity sheet and the V-curve with
+  from the time study, or a time typed plus the ILO's 9% rest; a person
+  timed in the unit they handle, the chain said; a person fed straight past
+  90% of their pace said so; the production capacity sheet and the V-curve with
   the owner's margin; the **bottleneck walk** on the phone, its tally against
   the calculated bottleneck; each buffer's accumulation against the minor
   stops at its neighbour.
@@ -253,3 +321,7 @@ already agreed before it is run; its words follow this time model (§5).
 - Cost of downtime at and away from the bottleneck — https://oxmaint.com/industries/manufacturing-plant/bottleneck-equipment-reliability-throughput-manufacturing ; https://shoplogix.com/machine-downtime-calculator/
 - Throughput per constraint minute — https://maaw.info/TOCClassProblem1.htm
 - EN 415-11 / DIN 8743 — https://6sku3uaup9f9.din.de/en/standard/din-8743/70366120
+- Rating, the BS 3138 scale and allowances (constant 5% personal + 4% basic fatigue; the variable table) — Kanawaty, G. (ed.), *Introduction to Work Study*, 4th ed., ILO, Geneva, 1992; BS 3138:1992
+- Machine pacing — Salvendy, G. and Smith, M. J. (eds), *Machine Pacing and Occupational Stress*, Taylor & Francis, 1981
+- Long shifts and performance — NIOSH, *Plain Language About Shiftwork*, DHHS (NIOSH) Publication No. 97-145, 1997
+- Lifting and repetitive work (the next piece) — Waters, T. R. et al., "Revised NIOSH equation for the design and evaluation of manual lifting tasks", *Ergonomics* 36(7), 1993; ISO 11228-1 and ISO 11228-3
