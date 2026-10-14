@@ -4,7 +4,8 @@
  * workspace's own rows; nothing is stored, everything derives. */
 import type { Observation, Workspace } from '../types';
 import type { Snag } from '../snag/types';
-import { costPerMs } from './cost';
+import { labourPerMs, ratedPerMin } from './cost';
+import { stopsTheLine, type Neck } from './lineLoss';
 
 const WEEK_MS = 7 * 24 * 3600_000;
 
@@ -27,36 +28,44 @@ export interface WeekPoint {
   start: number;      // Monday 00:00
   label: string;      // "w32", last one "now"
   ms: number;         // lost time that week
-  cost: number;       // £ (0 when the workspace has no rate)
+  cost: number;       // £ of idle labour (0 when the line has no crew and wage)
+  /** Packs not made that week — stops that stopped the line, at its rated
+   *  speed (lib/lineLoss); absent with no rated speed. */
+  packs?: number;
   count: number;      // observations
   current: boolean;   // the partial, still-running week
 }
 
 /** Lost time bucketed into calendar weeks, gaps filled, capped to `maxWeeks`
- *  ending at the current (partial) week. Deleted rows are excluded upstream. */
-export function weeklyLoss(obs: Observation[], workspace: Workspace, maxWeeks = 10): WeekPoint[] {
-  const factor = costPerMs(workspace);
+ *  ending at the current (partial) week. Deleted rows are excluded upstream.
+ *  Its pounds are labour; its packs the stops that stopped the line, at the
+ *  bottleneck `neck` (lib/lineLoss — every stop when it is not known). */
+export function weeklyLoss(obs: Observation[], workspace: Workspace, maxWeeks = 10, neck?: Neck): WeekPoint[] {
+  const factor = labourPerMs(workspace);
+  const rate = ratedPerMin(workspace);
   const nowStart = weekStart(Date.now());
   const first = obs.length ? Math.min(...obs.map(o => o.startedAt)) : nowStart;
   const from = Math.max(weekStart(first), nowStart - (maxWeeks - 1) * WEEK_MS);
-  const byWeek = new Map<number, { ms: number; count: number }>();
+  const byWeek = new Map<number, { ms: number; lineMs: number; count: number }>();
   for (const o of obs) {
     const w = weekStart(o.startedAt);
     if (w < from) continue;
-    const cur = byWeek.get(w) ?? { ms: 0, count: 0 };
+    const cur = byWeek.get(w) ?? { ms: 0, lineMs: 0, count: 0 };
     cur.ms += o.durationMs; cur.count += 1;
+    if (stopsTheLine(o, neck)) cur.lineMs += o.durationMs;
     byWeek.set(w, cur);
   }
   const out: WeekPoint[] = [];
   for (let w = from; w <= nowStart; w += WEEK_MS) {
-    const b = byWeek.get(w) ?? { ms: 0, count: 0 };
-    out.push({ start: w, label: w === nowStart ? 'now' : weekLabel(w), ms: b.ms, cost: b.ms * factor, count: b.count, current: w === nowStart });
+    const b = byWeek.get(w) ?? { ms: 0, lineMs: 0, count: 0 };
+    out.push({ start: w, label: w === nowStart ? 'now' : weekLabel(w), ms: b.ms, cost: b.ms * factor, ...(rate !== undefined ? { packs: (b.lineMs / 60_000) * rate } : {}), count: b.count, current: w === nowStart });
   }
   return out;
 }
 
 export interface HeadlineKpis {
-  lastWeekMs: number; lastWeekCost: number;
+  /** Last full week's lost time, its labour (£) and its packs not made. */
+  lastWeekMs: number; lastWeekCost: number; lastWeekPacks?: number;
   /** vs the average of the 4 prior weeks; null when there's no prior history. */
   deltaPct: number | null;
   costable: boolean;
@@ -73,8 +82,9 @@ export function headline(weeks: WeekPoint[], workspace: Workspace): HeadlineKpis
   return {
     lastWeekMs: last?.ms ?? 0,
     lastWeekCost: last?.cost ?? 0,
+    ...(last?.packs !== undefined ? { lastWeekPacks: last.packs } : ratedPerMin(workspace) !== undefined ? { lastWeekPacks: 0 } : {}),
     deltaPct: last && avg > 0 ? Math.round(((last.ms - avg) / avg) * 100) : null,
-    costable: costPerMs(workspace) > 0,
+    costable: labourPerMs(workspace) > 0,
   };
 }
 
@@ -82,7 +92,7 @@ export type Verdict = 'improving' | 'flat' | 'worsening';
 export interface CategoryTrend {
   category: string;
   msPerWeek: number;   // recent average
-  costPerWeek: number;
+  costPerWeek: number; // £ of idle labour a week
   verdict: Verdict;
   changePct: number | null; // recent vs prior; null with too little history
 }
@@ -90,7 +100,7 @@ export interface CategoryTrend {
 /** Per-category momentum: the last 3 full weeks vs the 3 before. The honest
  *  companion to the Pareto — which fixes are working, which loss just sits. */
 export function categoryTrends(obs: Observation[], workspace: Workspace): CategoryTrend[] {
-  const factor = costPerMs(workspace);
+  const factor = labourPerMs(workspace);
   const nowStart = weekStart(Date.now());
   const recentFrom = nowStart - 3 * WEEK_MS;   // 3 full weeks, excluding current
   const priorFrom = recentFrom - 3 * WEEK_MS;

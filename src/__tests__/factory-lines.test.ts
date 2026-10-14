@@ -99,7 +99,9 @@ describe('merge two lines (BLUEPRINT §6.7, Stage 1)', () => {
     const f = lines.lineFacts(w);
     expect(f.shifts).toBe('Early 06:00–14:00 (30 min breaks) · Late 14:00–22:00 (relief covers the breaks)');
     expect(f.crew).toBe('6 people');
-    expect(f.cost).toBe('£111/hr while it is down');
+    /* its lost time's cost in its two parts — never one £ (docs/CAPACITY.md §6) */
+    expect(f.cost).toBe('£111/hr labour while it is down');
+    expect(lines.lineFacts({ ...w, packsPerMin: 70 }).cost).toBe('£111/hr labour while it is down · 70 packs a minute lost when it stops the line');
     expect(f.machines).toBe('Bagger → Checkweigher');
     expect(f.short).toBe('2 shifts · 6 people');
     expect(lines.lineFacts({ ...w, shifts: [], crew: undefined, labourRatePerHour: undefined, assets: [] })).toEqual({});

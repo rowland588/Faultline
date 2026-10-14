@@ -7,7 +7,8 @@ import { useWorkspace } from '../state/WorkspaceProvider';
 import { goBack, nav } from '../state/useRoute';
 import { renameInObservations, renameLineMachine } from '../db';
 import { Toast } from '../ui/Toast';
-import { hasCost, costPerHour, labourPerHour, outputPerHour, burdenOf, fmtGBP } from '../lib/cost';
+import { hasLabour, labourPerHour, ratedPerMin, burdenOf, fmtGBP } from '../lib/cost';
+import { useLineNeck } from '../lib/useLineNeck';
 import { plural } from '../lib/format';
 import { supabase } from '../cloud/client';
 import { PeoplePanel } from './PeopleScreen';
@@ -85,6 +86,8 @@ function ChipEditor({ title, items, addLabel, usageOf, onAdd, onRename, onDelete
 
 export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
   const { workspace, observations, reload, patchWorkspace } = useWorkspace();
+  /* the line's bottleneck, from its Line capacity — where a stop costs packs (lib/lineLoss) */
+  const neck = useLineNeck(workspace.id);
   const [toast, setToast] = useState<string | null>(null);
   // refinements stay visible for anyone already using them; hidden until asked otherwise
   const [showBurden, setShowBurden] = useState(!!workspace.labourBurden);
@@ -244,16 +247,17 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
           </div>
         )}
 
-        {/* lost output — the bigger half of the money, strictly opt-in:
-            labour stays the default; this ADDS the contribution of the packs
-            that never got made while the line stood */}
+        {/* THE CAPACITY LOST — the packs a stop costs when it stops the line,
+            counted in packs beside the labour, never added into its £
+            (lib/lineLoss; docs/CAPACITY.md §6; Rowland, 14 October:
+            "capacity loss units and labour"). Opt-in: labour stays the default. */}
         {!showOutput ? (
           <button className="linkish" style={{ marginTop: 6, fontSize: 'var(--t-detail)', display: 'block' }} onClick={() => setShowOutput(true)}>
-            Know your line speed and margin per pack? Add lost output (optional) ›
+            Know your line speed? Count the packs a stop costs (optional) ›
           </button>
         ) : (
           <div style={{ marginTop: 10 }}>
-            <label className="mini-label">Lost output <span className="opt">optional — adds the packs never made to the £</span></label>
+            <label className="mini-label">Capacity lost <span className="opt">optional — the packs a stop costs when it stops the line</span></label>
             <div className="row-inline" style={{ alignItems: 'flex-end' }}>
               <div style={{ flex: 1 }}>
                 <label className="mini-label">Packs / min <span className="opt">rated speed</span></label>
@@ -266,7 +270,7 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
                   }} />
               </div>
               <div style={{ flex: 1 }}>
-                <label className="mini-label">£ margin / pack</label>
+                <label className="mini-label">£ margin / pack <span className="opt">for a shift’s loss count and SMED</span></label>
                 <input className="text-input" type="number" inputMode="decimal" min={0} step="0.001"
                   defaultValue={workspace.marginPerPack ?? ''} placeholder="e.g. 0.03"
                   onBlur={e => {
@@ -277,20 +281,24 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
               </div>
             </div>
             <p className="sub" style={{ margin: '6px 0 0', fontSize: 'var(--t-label)' }}>
-              Speed × margin = the contribution earned by packs that never got made while the line stood.
-              Honest when the time can't be recovered (sold-out line, fixed shift end) — which is most food
-              lines, most of the time. Leave blank to count idle labour only.
+              The rated speed counts the packs never made while a stop stopped the line — on its bottleneck
+              (from its Line capacity{neck ? `: ${neck.names.join(', ')}` : ', not counted yet — until it is, every stop is counted'}) or the whole line. A stop on
+              another machine costs its labour only: the line runs round it. The packs are said beside the
+              labour, never added into its £. The margin a pack prices the packs in a shift’s loss count and in SMED.
             </p>
           </div>
         )}
-        {hasCost(workspace) && (
+        {/* what a stop costs, in its two parts — never one £ */}
+        {hasLabour(workspace) && (
           <div className="cost-readout">
-            = <b>{fmtGBP(costPerHour(workspace))}/hr</b> while this line is down
-            <span className="sub">
-              {' '}({labourPerHour(workspace) > 0 ? `${fmtGBP(labourPerHour(workspace))} labour — ${workspace.crew} × £${workspace.labourRatePerHour}${burdenOf(workspace) !== 1 ? ` × ${burdenOf(workspace)}` : ''}` : ''}
-              {labourPerHour(workspace) > 0 && outputPerHour(workspace) > 0 ? ' + ' : ''}
-              {outputPerHour(workspace) > 0 ? `${fmtGBP(outputPerHour(workspace))} lost output at rated speed` : ''})
-            </span>
+            = <b>{fmtGBP(labourPerHour(workspace))}/hr labour</b> while this line is down
+            <span className="sub">{' '}({workspace.crew} × £{workspace.labourRatePerHour}{burdenOf(workspace) !== 1 ? ` × ${burdenOf(workspace)}` : ''})</span>
+          </div>
+        )}
+        {ratedPerMin(workspace) !== undefined && (
+          <div className="cost-readout">
+            {hasLabour(workspace) ? '+ ' : '= '}<b>{(ratedPerMin(workspace) ?? 0).toLocaleString('en-GB')} packs a minute</b> not made while a stop stops the line
+            <span className="sub">{' '}— {neck ? `on its bottleneck (${neck.names.join(', ')}) or the whole line` : 'every stop, until its Line capacity says its bottleneck'}</span>
           </div>
         )}
       </div>

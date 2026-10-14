@@ -10,7 +10,9 @@ import { buildCompare, divergenceTags } from '../engine/compare';
 import { ParetoChart, type CompareSlice } from '../charts/ParetoChart';
 import { EmptyState } from '../ui/EmptyState';
 import { fmtDuration, fmtDurationWords, plural } from '../lib/format';
-import { hasCost, costPerMs, fmtGBP } from '../lib/cost';
+import { hasLabour, labourPerMs, fmtGBP } from '../lib/cost';
+import { lostParts, lostWords, packsHow } from '../lib/lineLoss';
+import { useLineNeck } from '../lib/useLineNeck';
 import type { Observation, DimensionKey } from '../types';
 import { Icon } from '../ui/Icon';
 import { ShiftLossLine } from '../ui/ShiftLosses';
@@ -44,8 +46,10 @@ export function LineBoard({ since = 0, periodKey }: { since?: number; periodKey?
   const { workspace, observations } = useWorkspace();
   // the period lens: the board ranks what happened INSIDE the window
   const live = observations.filter(o => o.deletedAt == null && o.startedAt >= since);
-  const costable = hasCost(workspace);
-  const factor = costPerMs(workspace);
+  const costable = hasLabour(workspace);
+  const factor = labourPerMs(workspace);
+  /* the line's bottleneck — a machine's packs are counted only when its stops stopped the line (lib/lineLoss) */
+  const neck = useLineNeck(workspace.id);
   const screen = 'analyse';
 
   /* A SHIFT'S LOSSES, BESIDE THE PARETO (tool 7): how much of the latest
@@ -65,6 +69,8 @@ export function LineBoard({ since = 0, periodKey }: { since?: number; periodKey?
   }
 
   const assetSlices = toSlices(live, 'asset', costable, factor);
+  /* what the window's lost time cost, in its two parts (lib/lineLoss) */
+  const lostAll = lostParts(live, workspace, neck);
 
   // one card per asset, worst (most time) first
   const byAsset = new Map<string, Observation[]>();
@@ -99,8 +105,9 @@ export function LineBoard({ since = 0, periodKey }: { since?: number; periodKey?
       )}
       {shift}
       <div className="analyse-meta">
-        {plural(live.length, 'observation')} · {fmtDurationWords(totalMs)}{costable ? ` · ${fmtGBP(totalMs * factor)}` : ''}
+        {plural(live.length, 'observation')} · {fmtDurationWords(totalMs)}{lostWords(lostAll) ? ` · ${lostWords(lostAll)}` : ''}
       </div>
+      {packsHow(lostAll, neck) && <div className="analyse-meta sub">{packsHow(lostAll, neck)}</div>}
 
       {!costable && (
         <button className="cost-hint" onClick={() => withQuery('setup', '1')}>
@@ -114,7 +121,7 @@ export function LineBoard({ since = 0, periodKey }: { since?: number; periodKey?
           <div className="asset-card" key={a.name}>
             <button className="asset-card-head" onClick={() => goAsset(a.name)}>
               <span className="asset-card-name">{a.name}</span>
-              <span className="asset-card-total">{fmtDuration(a.ms)}{costable ? ` · ${fmtGBP(a.ms * factor)}` : ''} ›</span>
+              <span className="asset-card-total">{fmtDuration(a.ms)}{lostWords(lostParts(a.rows, workspace, neck)) ? ` · ${lostWords(lostParts(a.rows, workspace, neck))}` : ''} ›</span>
             </button>
             <ParetoChart slices={toSlices(a.rows, 'category', costable, factor)} color={LOSS} rankLabel="cumulative time" onDrill={key => goAssetCat(a.name, key)} canDrill compact={multi} />
           </div>

@@ -9,7 +9,9 @@ import { goBack } from '../state/useRoute';
 import { snagsForWorkspace } from '../db';
 import { useSyncedAt } from '../cloud/session';
 import { weeklyLoss, headline, weekStart } from '../lib/stats';
-import { fmtGBP, costPerMs } from '../lib/cost';
+import { fmtGBP, fmtPacks, labourPerMs } from '../lib/cost';
+import { lostParts, lostWords, packsHow } from '../lib/lineLoss';
+import { useLineNeck } from '../lib/useLineNeck';
 import { fmtDurationWords } from '../lib/format';
 import { LogoMark } from '../ui/Logo';
 import { ageDays, type Snag } from '../snag/types';
@@ -19,6 +21,8 @@ type Paper = 'A4' | 'A3';
 
 export function ReportScreen() {
   const { workspace, observations } = useWorkspace();
+  /* the line's bottleneck — packs are counted only for stops that stopped the line (lib/lineLoss) */
+  const neck = useLineNeck(workspace.id);
   const [snags, setSnags] = useState<Snag[]>([]);
   // A4 for the desk, A3 for the line-side board. The choice writes an @page
   // rule so the browser's print dialog is pre-set to the right sheet, and the
@@ -28,9 +32,9 @@ export function ReportScreen() {
   const syncedAt = useSyncedAt();
   useEffect(() => { void snagsForWorkspace(workspace.id).then(setSnags); }, [workspace.id, syncedAt]);
 
-  const weeks = useMemo(() => weeklyLoss(observations, workspace), [observations, workspace]);
+  const weeks = useMemo(() => weeklyLoss(observations, workspace, 10, neck), [observations, workspace, neck]);
   const kpi = useMemo(() => headline(weeks, workspace), [weeks, workspace]);
-  const factor = costPerMs(workspace);
+  const factor = labourPerMs(workspace);
 
   /* ONE PERIOD: LAST WEEK, MONDAY TO SUNDAY. The headline was the last full
      week and the bars the last 7 days, so on a Monday it could say "0m lost
@@ -50,6 +54,8 @@ export function ReportScreen() {
   const cats = [...byCat.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
   const maxMs = cats[0]?.[1] ?? 1;
   const totalMs = recent.reduce((a, o) => a + o.durationMs, 0);
+  /* the week's lost time, in its two parts — the labour, and the packs not made (lib/lineLoss) */
+  const lost = lostParts(recent, workspace, neck);
 
   const open = snags.filter(s => s.status !== 'closed').sort((a, b) => a.raisedAt - b.raisedAt);
   const stale = open.filter(s => ageDays(s.raisedAt) > 30);
@@ -89,7 +95,10 @@ export function ReportScreen() {
             {kpi.deltaPct != null && <em className={kpi.deltaPct <= 0 ? 'good' : 'bad'}>{kpi.deltaPct <= 0 ? '▼' : '▲'} {Math.abs(kpi.deltaPct)}% vs 4-wk avg</em>}
           </div>
           {kpi.costable && (
-            <div className="rstat"><b>{fmtGBP(kpi.lastWeekCost)}</b><span>cost of loss</span></div>
+            <div className="rstat"><b>{fmtGBP(kpi.lastWeekCost)}</b><span>labour, stood idle</span></div>
+          )}
+          {kpi.lastWeekPacks !== undefined && (
+            <div className="rstat"><b>{fmtPacks(kpi.lastWeekPacks)}</b><span>not made</span></div>
           )}
           <div className="rstat">
             <b>{open.length}</b><span>open evidence</span>
@@ -108,10 +117,11 @@ export function ReportScreen() {
               <div className="rbar" key={cat}>
                 <span className="rbar-lbl">{cat}</span>
                 <span className="rbar-track" style={{ width: `${Math.max(8, (ms / maxMs) * 160)}px`, background: i === 0 ? LOSS_TOP : LOSS }} />
-                <span className="rbar-val">{fmtDurationWords(ms)}{factor > 0 ? ` · ${fmtGBP(ms * factor)}` : ''}</span>
+                <span className="rbar-val">{fmtDurationWords(ms)}{factor > 0 ? ` · ${fmtGBP(ms * factor)} labour` : ''}</span>
               </div>
             ))}
-            {totalMs > 0 && <p className="report-note" style={{ marginTop: 8 }}>Total {fmtDurationWords(totalMs)}{factor > 0 ? ` · ${fmtGBP(totalMs * factor)}` : ''} across {recent.length} entries.</p>}
+            {totalMs > 0 && <p className="report-note" style={{ marginTop: 8 }}>Total {fmtDurationWords(totalMs)}{lostWords(lost) ? ` · ${lostWords(lost)}` : ''} across {recent.length} entries.</p>}
+            {totalMs > 0 && packsHow(lost, neck) && <p className="report-note">{packsHow(lost, neck)}</p>}
           </div>
 
           <div>

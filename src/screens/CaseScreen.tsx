@@ -14,7 +14,9 @@ import { isLate } from '../lib/actions';
 import { useSyncedAt } from '../cloud/session';
 import { applyDrill, drillNode } from '../engine/drill';
 import { weeklyLoss, weekStart } from '../lib/stats';
-import { hasCost, costPerMs, fmtGBP } from '../lib/cost';
+import { hasLabour, labourPerMs, fmtGBP, fmtPacks } from '../lib/cost';
+import { packsForMs } from '../lib/lineLoss';
+import { useLineNeck } from '../lib/useLineNeck';
 import { plural } from '../lib/format';
 import { ActionComposer } from './ActionComposer';
 import { TimeStrip, dueWord } from '../snag/TimeStrip';
@@ -81,9 +83,12 @@ function WhyChain({ whys, onChange }: { whys: string[]; onChange: (w: string[]) 
 /** The confirmation study, in its three states: not armed (the lab sheet),
  *  collecting (progress + live means), called (the verdict — the receipt).
  *  All arithmetic comes from lib/proof so no screen can disagree with it. */
-function ProofBox({ kase, scopedCount, result, costable, factor, onChange }: {
+function ProofBox({ kase, scopedCount, result, costable, factor, packsOf, onChange }: {
   kase: Case; scopedCount: number; result: ReturnType<typeof studyResult>;
-  costable: boolean; factor: number; onChange: (patch: Partial<Case>) => Promise<void>;
+  costable: boolean; factor: number;
+  /** The packs a week's saved time stands for (lib/lineLoss packsForMs) — absent with no rated speed. */
+  packsOf: (ms: number) => number | undefined;
+  onChange: (patch: Partial<Case>) => Promise<void>;
 }) {
   /* THE BOX HOLDS WHAT WAS TYPED; the number is clamped when it is used. It
      used to clamp on every keystroke, so the "1" of "12" became 3 at once and
@@ -119,7 +124,8 @@ function ProofBox({ kase, scopedCount, result, costable, factor, onChange }: {
   }
 
   if (!result) return null;
-  const money = (ms: number) => (costable ? fmtGBP(ms * factor) : fmtH(ms));
+  /* a saving said in its two parts — its labour, and the packs it gives back (lib/lineLoss) — never one £ */
+  const money = (ms: number) => [costable ? `${fmtGBP(ms * factor)} labour` : fmtH(ms), packsOf(ms) !== undefined ? fmtPacks(packsOf(ms) ?? 0) : ''].filter(Boolean).join(' · ');
   const called = kase.study.closedAt != null;
   const better = (result.changePct ?? 0) < 0;
   const fmtP = (p: number) => (p < 0.01 ? 'p<0.01' : `p=${p.toFixed(2)}`);
@@ -162,7 +168,7 @@ function ProofBox({ kase, scopedCount, result, costable, factor, onChange }: {
             <span className="sub">
               {result.savedMsWeek >= 0 ? 'saving ≈ ' : 'costing ≈ '}
               <b>{money(Math.abs(result.savedMsWeek))}/wk</b>
-              {costable ? ` (${fmtGBP(Math.abs(result.savedMsWeek) * factor * 52)}/yr)` : ''}
+              {costable ? ` (${fmtGBP(Math.abs(result.savedMsWeek) * factor * 52)} labour/yr)` : ''}
             </span>
           )}
         </div>
@@ -261,8 +267,10 @@ function ProofBox({ kase, scopedCount, result, costable, factor, onChange }: {
 
 export function CaseScreen({ caseId }: { caseId: string }) {
   const { workspace, observations } = useWorkspace();
-  const costable = hasCost(workspace);
-  const factor = costPerMs(workspace);
+  const costable = hasLabour(workspace);
+  const factor = labourPerMs(workspace);
+  /* the line's bottleneck — a scope's packs count only its stops that stopped the line (lib/lineLoss) */
+  const neck = useLineNeck(workspace.id);
   const syncedAt = useSyncedAt();
 
   const [kase, setKase] = useState<Case | null | undefined>(undefined); // undefined = loading
@@ -289,7 +297,8 @@ export function CaseScreen({ caseId }: { caseId: string }) {
     () => (kase ? applyDrill(observations, workspace.id, kase.path) : []),
     [observations, workspace.id, kase],
   );
-  const weeks = useMemo(() => weeklyLoss(scoped, workspace, 12), [scoped, workspace]);
+  const weeks = useMemo(() => weeklyLoss(scoped, workspace, 12, neck), [scoped, workspace, neck]);
+  const packsOf = (ms: number) => packsForMs(ms, scoped, workspace, neck);
   const nowMsWeek = caseNowMsWeek(weeks);
 
   /* A PROBLEM OF THE 6M METHOD IS WORKED ON ITS FISHBONE (docs/SIXM.md). A
@@ -326,7 +335,8 @@ export function CaseScreen({ caseId }: { caseId: string }) {
   // the verdict: recent truth vs baseline and target
   const vsBase = kase.baselineMsWeek > 0 ? Math.round(((nowMsWeek - kase.baselineMsWeek) / kase.baselineMsWeek) * 100) : null;
   const targetMet = kase.targetMsWeek != null && nowMsWeek <= kase.targetMsWeek;
-  const money = (v: number) => (costable ? `${fmtGBP(v * factor)}/wk` : `${fmtH(v)}/wk`);
+  /* a week's lost time in its two parts — labour and packs not made (lib/lineLoss) — never one £ */
+  const money = (v: number) => [costable ? `${fmtGBP(v * factor)} labour` : fmtH(v), packsOf(v) !== undefined ? fmtPacks(packsOf(v) ?? 0) : ''].filter(Boolean).join(' · ') + '/wk';
 
   // analysis, derived live at the scope
   const view: WorkstreamView = { workspaceId: workspace.id, measure: 'time', dimensionOrder: BOARD_ORDER, path: kase.path, mode: 'analyse' };
@@ -413,7 +423,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
             {kase.targetMsWeek != null && <div className="cw-line cw-target" style={{ bottom: `${(kase.targetMsWeek / maxWeekMs) * 100}%` }} title={`Target ${money(kase.targetMsWeek)}`} />}
             <div className="cw-line cw-base" style={{ bottom: `${(kase.baselineMsWeek / maxWeekMs) * 100}%` }} title={`Baseline ${money(kase.baselineMsWeek)}`} />
             {weeks.map(w => (
-              <div key={w.start} className={'cw-col' + (w.current ? ' cur' : '')} title={`${fmtH(w.ms)}${costable ? ` · ${fmtGBP(w.ms * factor)}` : ''}`}>
+              <div key={w.start} className={'cw-col' + (w.current ? ' cur' : '')} title={`${fmtH(w.ms)}${costable ? ` · ${fmtGBP(w.ms * factor)} labour` : ''}${w.packs !== undefined ? ` · ${fmtPacks(w.packs)}` : ''}`}>
                 <span className="cw-flag">{closedFlagWeeks.has(w.start) ? <Icon name="flag" size="1.1em" /> : ''}</span>
                 <span className="cw-bar" style={{ height: `${Math.max(2, (w.ms / maxWeekMs) * 100)}%`, background: LOSS }} />
                 <span className="cw-lbl">{w.current ? 'now' : w.label}</span>
@@ -432,7 +442,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
             {topSlices.map(sl => (
               <div key={sl.key} className="mt-bar-row">
                 <span className="mt-bar" style={{ width: `${Math.round(sl.share * 100)}%`, background: LOSS }} />
-                <span className="mt-bar-lbl">{sl.key} · {Math.round(sl.share * 100)}%{costable ? ` · ${fmtGBP(sl.value * factor)}` : ` · ${fmtH(sl.value)}`}</span>
+                <span className="mt-bar-lbl">{sl.key} · {Math.round(sl.share * 100)}%{costable ? ` · ${fmtGBP(sl.value * factor)} labour` : ` · ${fmtH(sl.value)}`}</span>
               </div>
             ))}
             {node.disagreement?.message && <p className="sub" style={{ marginTop: 6 }}><Icon name="flag" size="1.15em" /> {node.disagreement.message}</p>}
@@ -517,7 +527,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
       <section className="case-box" data-tour="proof">
         <h2 className="case-box-h">Did it work?</h2>
         <ProofBox kase={kase} scopedCount={scoped.length} result={studyResult(kase, scoped)}
-          costable={costable} factor={factor} onChange={mutateCase} />
+          costable={costable} factor={factor} packsOf={packsOf} onChange={mutateCase} />
       </section>
 
       <p className="report-foot">Faultline · case · {workspace.name} · {scopeLabel(kase)}</p>

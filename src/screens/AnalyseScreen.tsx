@@ -31,7 +31,9 @@ import { EvidenceStrip } from '../charts/EvidenceStrip';
 import { ActionComposer } from './ActionComposer';
 import { EmptyState } from '../ui/EmptyState';
 import { fmtDurationWords, plural } from '../lib/format';
-import { hasCost, costPerMs, fmtGBP } from '../lib/cost';
+import { hasLabour, labourPerMs, fmtGBP, fmtPacks } from '../lib/cost';
+import { lostParts, lostWords, packsHow, type Neck } from '../lib/lineLoss';
+import { useLineNeck } from '../lib/useLineNeck';
 import { Icon } from '../ui/Icon';
 
 /** Average weekly loss of the scope over its last 4 full weeks — the honest,
@@ -44,13 +46,15 @@ function baselineFor(rows: ReturnType<typeof applyDrill>, workspace: Parameters<
 }
 
 /** Weekly average ONLY when at least one full week backs it — the prize line
- *  refuses to annualize a Tuesday. */
-function weeklyAvgFor(rows: ReturnType<typeof applyDrill>, workspace: Parameters<typeof weeklyLoss>[1]): number | null {
-  const full = weeklyLoss(rows, workspace, 6).filter(w => !w.current);
+ *  refuses to annualize a Tuesday. Its time, and the packs it cost when the
+ *  line has a rated speed (lib/lineLoss — stops that stopped the line). */
+function weeklyAvgFor(rows: ReturnType<typeof applyDrill>, workspace: Parameters<typeof weeklyLoss>[1], neck?: Neck): { ms: number; packs?: number } | null {
+  const full = weeklyLoss(rows, workspace, 6, neck).filter(w => !w.current);
   const recent = full.slice(-4);
   if (!recent.length) return null;
   const avg = recent.reduce((a, w) => a + w.ms, 0) / recent.length;
-  return avg > 0 ? avg : null;
+  const packs = recent.every(w => w.packs !== undefined) ? recent.reduce((a, w) => a + (w.packs ?? 0), 0) / recent.length : undefined;
+  return avg > 0 ? { ms: avg, ...(packs !== undefined ? { packs } : {}) } : null;
 }
 
 const fmtHrs = (ms: number) => {
@@ -60,16 +64,18 @@ const fmtHrs = (ms: number) => {
 
 /** The prize, spoken where the pain is shown: what this drill position runs at
  *  per week, and what halving it recovers — the consultant's whiteboard
- *  arithmetic, computed live, clearly labelled as the halving scenario. */
-function PrizeLine({ weeklyMs, costable, factor }: { weeklyMs: number; costable: boolean; factor: number }) {
-  const money = (ms: number) => (costable ? fmtGBP(ms * factor) : fmtHrs(ms));
-  const year = (ms: number) => (costable ? fmtGBP(ms * factor * 52) : fmtHrs(ms * 52));
+ *  arithmetic, computed live, clearly labelled as the halving scenario. In
+ *  its two parts, never one £ (lib/lineLoss): the labour, and the packs not
+ *  made when the line has a rated speed; the time when it has neither. */
+function PrizeLine({ weekly, costable, factor }: { weekly: { ms: number; packs?: number }; costable: boolean; factor: number }) {
+  const said = (k: number) => [costable ? `${fmtGBP(weekly.ms * factor * k)} labour` : '', weekly.packs !== undefined ? fmtPacks(weekly.packs * k) : '']
+    .filter(Boolean).join(' · ') || fmtHrs(weekly.ms * k);
   return (
     <div className="prize-line" data-tour="prize">
       <span className="prize-ic" aria-hidden><Icon name="pound" size="1.2em" /></span>
       <span>
-        Running at <b>{money(weeklyMs)}/wk</b> ({year(weeklyMs)}/yr).
-        Halve it and you recover <b>{money(weeklyMs / 2)}/wk ≈ {year(weeklyMs / 2)}/yr</b>.
+        Running at <b>{said(1)} a week</b> ({said(52)} a year).
+        Halve it and you recover <b>{said(0.5)} a week ≈ {said(26)} a year</b>.
       </span>
     </div>
   );
@@ -77,6 +83,8 @@ function PrizeLine({ weeklyMs, costable, factor }: { weeklyMs: number; costable:
 
 export function AnalyseScreen({ route }: { route: Route }) {
   const { workspace, observations } = useWorkspace();
+  /* the line's bottleneck — a stop's packs are counted only when it stopped the line (lib/lineLoss) */
+  const neck = useLineNeck(workspace.id);
   const view = readWorkstreamView(route, workspace.id);
 
   // THE PERIOD LENS (lib/period): every Pareto is scoped to a rolling window —
@@ -119,9 +127,10 @@ export function AnalyseScreen({ route }: { route: Route }) {
   if (!view) {
     const live = observations.filter(o => o.deletedAt == null);
     const fr = freshness(live, walkTimes);
-    const costableB = hasCost(workspace);
-    const factorB = costPerMs(workspace);
-    const perYr = (msWeek: number) => (costableB ? `${fmtGBP(msWeek * factorB * 52)}/yr` : `${fmtHrs(msWeek * 52)}/yr`);
+    const costableB = hasLabour(workspace);
+    const factorB = labourPerMs(workspace);
+    /* a win's time saved, a year — its labour in pounds (lib/lineLoss: never one blended £) */
+    const perYr = (msWeek: number) => (costableB ? `${fmtGBP(msWeek * factorB * 52)} labour/yr` : `${fmtHrs(msWeek * 52)}/yr`);
     const dn = (ms: number) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     // the trophy shelf: cases whose study was CALLED and showed a real reduction
     const wins = cases
@@ -205,7 +214,7 @@ export function AnalyseScreen({ route }: { route: Route }) {
   if (!node) return null;
 
   const existing = view.path.length > 0 ? openCases.find(c => samePath(c.path, view.path)) : undefined;
-  const weeklyMs = weeklyAvgFor(node.rows, workspace);
+  const weekly = weeklyAvgFor(node.rows, workspace, neck);
   const openCaseHere = async () => {
     const baseline = baselineFor(node.rows, workspace);
     const c: Case = {
@@ -230,8 +239,12 @@ export function AnalyseScreen({ route }: { route: Route }) {
   const noRows = node.rows.length === 0;
   const hasChart = !!node.dimension && !noRows;
   const totalMs = node.rows.reduce((a, o) => a + o.durationMs, 0);
-  const costable = hasCost(workspace);
-  const factor = costPerMs(workspace);
+  const costable = hasLabour(workspace);
+  const factor = labourPerMs(workspace);
+  /* what this lost time cost, in its two parts — the labour, and the packs not made (lib/lineLoss) */
+  const lost = lostParts(node.rows, workspace, neck);
+  const lostSaid = lostWords(lost);
+  const packsSaid = packsHow(lost, neck);
 
   const byId = new Map(node.rows.map(o => [o.id, o]));
   const compareRows = !hasChart || !node.dimension ? [] : buildCompare(node.rows, node.dimension, rankByFreq ? 'count' : 'time');
@@ -291,8 +304,9 @@ export function AnalyseScreen({ route }: { route: Route }) {
                 />
               </div>
               <div className="analyse-meta">
-                {plural(node.rows.length, 'observation')}{totalMs > 0 ? ` · ${fmtDurationWords(totalMs)}${costable ? ` · ${fmtGBP(totalMs * factor)}` : ''}` : ''} · {periodWord(period)}
+                {plural(node.rows.length, 'observation')}{totalMs > 0 ? ` · ${fmtDurationWords(totalMs)}${lostSaid ? ` · ${lostSaid}` : ''}` : ''} · {periodWord(period)}
               </div>
+              {totalMs > 0 && packsSaid && <div className="analyse-meta sub">{packsSaid}</div>}
               {!costable && (
                 <button className="cost-hint" onClick={() => withQuery('setup', '1')}>
                   <Icon name="pound" size="1.15em" /> Put a £ on this lost time — add crew &amp; labour rate ›
@@ -302,7 +316,8 @@ export function AnalyseScreen({ route }: { route: Route }) {
           ) : (
             <div className="leaf">
               <div className="leaf-num">{plural(node.rows.length, 'observation')}</div>
-              {totalMs > 0 && <div className="leaf-sub">{fmtDurationWords(totalMs)}{costable ? ` · ${fmtGBP(totalMs * factor)}` : ''} in total</div>}
+              {totalMs > 0 && <div className="leaf-sub">{fmtDurationWords(totalMs)}{lostSaid ? ` · ${lostSaid}` : ''} in total</div>}
+              {totalMs > 0 && packsSaid && <p className="sub">{packsSaid}</p>}
               <p className="sub" style={{ marginTop: 6 }}>You've drilled to the bottom — this is the specific problem. The proof is below.</p>
             </div>
           )}
@@ -315,7 +330,7 @@ export function AnalyseScreen({ route }: { route: Route }) {
           <ActionComposer wsId={workspace.id} path={view.path} caseId={existing?.id} />
 
           {/* the prize, right where the pain is — then one tap makes it the target */}
-          {weeklyMs != null && <PrizeLine weeklyMs={weeklyMs} costable={costable} factor={factor} />}
+          {weekly != null && <PrizeLine weekly={weekly} costable={costable} factor={factor} />}
 
           {/* quiet next steps — the composer above is the one loud thing */}
           <div className="next-row">

@@ -654,4 +654,16 @@ is still wired.
   a line says "A change on Line 7" with its problems, latest shift and late
   programs over the three ways, and its start steps count only its own
   problems. Accepted by `scripts/acceptance/control-room.mjs`.
+- **Lost time in two parts — labour and the packs not made** (`docs/AUDIT.md`
+  4.21; Rowland, 14 October: "capacity loss units and labour .. leave reject
+  cost"). Placed (§8): *On the line* — its stops (`observations`), its Line
+  capacity (`standards.capacity`, for the bottleneck) and its cost settings
+  (`workspaces.crew`, `labour_rate_per_hour`, `packs_per_min`); no new record.
+  Every place a £ was put on lost time says the labour in pounds and the
+  packs not made beside it, counted only for a stop on the bottleneck or the
+  whole line (`lib/lineLoss`): the stopwatch's ticker and toast, the Pareto
+  and the board's machine cards, the line map's heat, the one-page Report,
+  Trend, the meeting, a Case's proof, the line's facts on its page and its
+  settings. The reject's materials stay out, as
+  asked.
 - **Next:** Stage 3 — the line is the hub (its products, readiness, health).

@@ -18,7 +18,9 @@ import { VideoRecorder, videoCaptureSupported } from '../ui/VideoRecorder';
 import { fmtDuration, fmtDurationWords, fmtRelative, plural } from '../lib/format';
 import { ChipPicker } from '../ui/Chip';
 import { Stopwatch, CostTicker } from '../ui/Stopwatch';
-import { costPerMs } from '../lib/cost';
+import { labourPerMs, ratedPerMin } from '../lib/cost';
+import { lostParts, lostWords, stopsTheLine } from '../lib/lineLoss';
+import { useLineNeck } from '../lib/useLineNeck';
 import { Toast } from '../ui/Toast';
 import { EvidenceThumb, EvidenceViewer } from '../ui/Evidence';
 import { useTeam } from '../cloud/team';
@@ -60,6 +62,8 @@ function StudyChips({ wsId, observations }: { wsId: string; observations: Observ
 export function CaptureScreen() {
   const { workspace, observations, addObs, removeObs, restoreObs, patchWorkspace, reload } = useWorkspace();
   const { whoIs, myId } = useTeam();
+  /* the line's bottleneck, so a stop's packs are counted only when it stops the line (lib/lineLoss) */
+  const neck = useLineNeck(workspace.id);
 
   const [category, setCategory] = useState(workspace.lastCategory ?? workspace.categories[0] ?? '');
   const [subcategory, setSubcategory] = useState('');
@@ -149,9 +153,9 @@ export function CaptureScreen() {
     await patchWorkspace({ lastCategory: category, lastAsset: asset, activeTimer: undefined });
     setPending([]);
     setStartedAt(null);
-    // name the £ the event just cost — the same rate the ticker was counting at
-    const cost = durationMs * costPerMs(workspace);
-    setToast({ msg: `Logged · ${o.asset} · ${o.category}${durationMs > 0 ? ' · ' + fmtDuration(durationMs) : ''}${cost > 0 ? ` · £${cost.toFixed(2)}` : ''}`, undo: () => void removeObs(o.id) });
+    // name what the stop just cost, in its two parts — the same the ticker was counting
+    const cost = durationMs > 0 ? lostWords(lostParts([o], workspace, neck), { pence: true }) : '';
+    setToast({ msg: `Logged · ${o.asset} · ${o.category}${durationMs > 0 ? ' · ' + fmtDuration(durationMs) : ''}${cost ? ` · ${cost}` : ''}`, undo: () => void removeObs(o.id) });
   };
 
   const start = async () => {
@@ -303,7 +307,8 @@ export function CaptureScreen() {
           <>
             <div className="cap-timer-what">{asset} · {category}</div>
             <div className="cap-clock"><span className="cap-dot" />{startedAt !== null && <Stopwatch startedAt={startedAt} />}</div>
-            {startedAt !== null && <CostTicker startedAt={startedAt} perMs={costPerMs(workspace)} />}
+            {startedAt !== null && <CostTicker startedAt={startedAt} perMs={labourPerMs(workspace)}
+              packsPerMs={ratedPerMin(workspace) !== undefined && stopsTheLine({ asset }, neck) ? (ratedPerMin(workspace) ?? 0) / 60_000 : 0} />}
             <div className="cap-timer-actions">
               <button className="btn btn-primary btn-lg cap-stop" onClick={stopAndLog}><Icon name="stop" /> Stop &amp; log</button>
               <button className="btn btn-ghost" onClick={discard}>Discard</button>

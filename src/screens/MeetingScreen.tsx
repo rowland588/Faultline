@@ -31,7 +31,9 @@ import { DisagreementBanner } from '../charts/DisagreementBanner';
 import { EvidenceStrip } from '../charts/EvidenceStrip';
 import { ActionComposer } from './ActionComposer';
 import { fmtDurationWords, plural } from '../lib/format';
-import { hasCost, costPerMs, fmtGBP } from '../lib/cost';
+import { hasLabour, labourPerMs, fmtGBP, fmtPacks } from '../lib/cost';
+import { lostParts, packsHow } from '../lib/lineLoss';
+import { useLineNeck } from '../lib/useLineNeck';
 import {
   SNAG_STATUS_META, actionTarget, isOverdue, isDueSoon, compareReview, dueToInput, dueFromInput,
   type Snag, type SnagStatus,
@@ -104,8 +106,10 @@ function WeekBars({ weeks, sel, flags, onPick }: {
 export function MeetingScreen() {
   const { workspace, observations } = useWorkspace();
   const live = useMemo(() => observations.filter(o => o.deletedAt == null), [observations]);
-  const costable = hasCost(workspace);
-  const factor = costPerMs(workspace);
+  const costable = hasLabour(workspace);
+  const factor = labourPerMs(workspace);
+  /* the line's bottleneck — packs are counted only for stops that stopped the line (lib/lineLoss) */
+  const neck = useLineNeck(workspace.id);
 
   // The meeting's birth moment — Act 5 diffs everything against it.
   const [sessionStart] = useState(() => Date.now());
@@ -135,7 +139,7 @@ export function MeetingScreen() {
   useEffect(() => { void loadSnags(); }, [workspace.id, syncedAt]);
   const mutate = async (s: Snag) => { await updateSnag(s); await loadSnags(); };
 
-  const weeks = useMemo(() => weeklyLoss(live, workspace, 12), [live, workspace]);
+  const weeks = useMemo(() => weeklyLoss(live, workspace, 12, neck), [live, workspace, neck]);
   const fullWeeks = useMemo(() => weeks.filter(w => !w.current), [weeks]);
   const lastFull = fullWeeks[fullWeeks.length - 1];
   // null = "auto": last full week once the data is in (observations load after
@@ -183,7 +187,10 @@ export function MeetingScreen() {
   }, []);
 
   const periodLabel = sel === 'all' ? 'All time' : weekOf(sel);
-  const money = (v: number) => (costable ? fmtGBP(v * factor) : fmtH(v));
+  /* lost time in pounds is its labour — the packs not made are said beside it, never added in (lib/lineLoss) */
+  const money = (v: number) => (costable ? `${fmtGBP(v * factor)} labour` : fmtH(v));
+  const lost = lostParts(rows, workspace, neck);
+  const packsSaid = lost.packs !== undefined ? `${fmtPacks(lost.packs)} not made` : '';
 
   // ---- shared derivations the overview tiles and acts both read
   const openActions = useMemo(
@@ -206,7 +213,7 @@ export function MeetingScreen() {
   const whereOf = (s: Snag): string => actionTarget(s) || (s.assetId ? assetNames.get(s.assetId) ?? '' : '');
 
   const copyMinutes = () => {
-    const lines = [`Faultline meeting — ${workspace.name} — ${new Date(sessionStart).toLocaleString()}`, `Period: ${periodLabel} · lost ${fmtH(ms)}${costable ? ` (${fmtGBP(ms * factor)})` : ''}`];
+    const lines = [`Faultline meeting — ${workspace.name} — ${new Date(sessionStart).toLocaleString()}`, `Period: ${periodLabel} · lost ${fmtH(ms)}${costable ? ` (${fmtGBP(ms * factor)} labour)` : ''}${packsSaid ? ` · ${packsSaid}` : ''}`];
     for (const s of touched) {
       const kind = s.raisedAt >= sessionStart ? 'RAISED' : (s.closedAt ?? 0) >= sessionStart ? 'CLOSED' : 'UPDATED';
       lines.push(`- [${kind}] ${s.problem}${s.owner ? ` — ${s.owner}` : ''}${s.dueAt ? ` — due ${dateNice(s.dueAt)}` : ''}${s.latestUpdate ? ` — ${s.latestUpdate}` : ''}`);
@@ -279,7 +286,7 @@ export function MeetingScreen() {
               <button className="meet-tile mt-number" onClick={() => setAct(1)}>
                 <span className="mt-eyebrow">1 · The number</span>
                 <span className="mt-big">{money(ms)}</span>
-                <span className="mt-sub">{fmtH(ms)} lost · {plural(rows.length, 'observation')}
+                <span className="mt-sub">{packsSaid ? `${packsSaid} · ` : ''}{fmtH(ms)} lost · {plural(rows.length, 'observation')}
                   {deltaPct != null && <b className={deltaPct <= 0 ? 'mt-good' : 'mt-bad'}> {deltaPct <= 0 ? '▼' : '▲'} {Math.abs(deltaPct)}%</b>}
                 </span>
               </button>
@@ -335,10 +342,11 @@ export function MeetingScreen() {
           <div className="meet-hero">
             <span className="meet-hero-n">{money(ms)}</span>
             <span className="meet-hero-sub">
-              {fmtH(ms)} of lost time · {plural(rows.length, 'observation')}
+              {packsSaid ? `${packsSaid} · ` : ''}{fmtH(ms)} of lost time · {plural(rows.length, 'observation')}
               {deltaPct != null && <b className={deltaPct <= 0 ? 'mt-good' : 'mt-bad'}> · {deltaPct <= 0 ? '▼' : '▲'} {Math.abs(deltaPct)}% vs the week before</b>}
             </span>
           </div>
+          {packsHow(lost, neck) && <p className="sub meet-packs-how">{packsHow(lost, neck)}</p>}
           {weeks.length > 1 && <WeekBars weeks={weeks} sel={sel} onPick={s => { setSel(s); setPath([]); }} />}
           {cats.length > 0 && (
             <div className="meet-movers">
@@ -349,7 +357,7 @@ export function MeetingScreen() {
                     {c.verdict === 'improving' ? '▼' : c.verdict === 'worsening' ? '▲' : '→'}
                   </span>
                   <span className="mm-name">{c.category}</span>
-                  <span className="mm-num">{costable ? fmtGBP(c.costPerWeek) : fmtH(c.msPerWeek)}/wk{c.changePct != null ? ` · ${c.changePct > 0 ? '+' : ''}${c.changePct}%` : ''}</span>
+                  <span className="mm-num">{costable ? `${fmtGBP(c.costPerWeek)} labour` : fmtH(c.msPerWeek)}/wk{c.changePct != null ? ` · ${c.changePct > 0 ? '+' : ''}${c.changePct}%` : ''}</span>
                 </div>
               ))}
             </div>

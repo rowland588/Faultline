@@ -8,7 +8,8 @@ import { nav } from '../state/useRoute';
 import { snagsForWorkspace } from '../db';
 import { useEffect, useState } from 'react';
 import { weeklyLoss, headline, categoryTrends, closedEvents, type ClosedEvent, type WeekPoint } from '../lib/stats';
-import { fmtGBP } from '../lib/cost';
+import { fmtGBP, fmtPacks } from '../lib/cost';
+import { useLineNeck } from '../lib/useLineNeck';
 import { useSyncedAt } from '../cloud/session';
 import { EmptyState } from '../ui/EmptyState';
 import type { Snag } from '../snag/types';
@@ -25,7 +26,9 @@ export function TrendPanel() {
   const syncedAt = useSyncedAt();
   useEffect(() => { void snagsForWorkspace(workspace.id).then(setSnags); }, [workspace.id, syncedAt]);
 
-  const weeks = useMemo(() => weeklyLoss(observations, workspace), [observations, workspace]);
+  /* the line's bottleneck — a week's packs count only the stops that stopped the line (lib/lineLoss) */
+  const neck = useLineNeck(workspace.id);
+  const weeks = useMemo(() => weeklyLoss(observations, workspace, 10, neck), [observations, workspace, neck]);
   const kpi = useMemo(() => headline(weeks, workspace), [weeks, workspace]);
   const cats = useMemo(() => categoryTrends(observations, workspace), [observations, workspace]);
   const flags = useMemo(() => closedEvents(snags, weeks), [snags, weeks]);
@@ -60,7 +63,13 @@ export function TrendPanel() {
                     {kpi.deltaPct <= 0 ? '▼' : '▲'} {Math.abs(kpi.deltaPct)}%
                   </span>
                 )}
-                <span className="kpi-lbl">cost of loss, last week</span>
+                <span className="kpi-lbl">labour stood idle, last week</span>
+              </div>
+            )}
+            {kpi.lastWeekPacks !== undefined && (
+              <div className="kpi-card">
+                <b>{fmtPacks(kpi.lastWeekPacks)}</b>
+                <span className="kpi-lbl">not made, last week{neck ? '' : ' — every stop counted'}</span>
               </div>
             )}
           </div>
@@ -84,7 +93,7 @@ export function TrendPanel() {
                   <div className="cat-trend-main">
                     <b>{c.category}</b>
                     <span className="sub">
-                      {fmtH(c.msPerWeek)}/wk{c.costPerWeek > 0 ? ` · ${fmtGBP(c.costPerWeek)}/wk` : ''}
+                      {fmtH(c.msPerWeek)}/wk{c.costPerWeek > 0 ? ` · ${fmtGBP(c.costPerWeek)} labour/wk` : ''}
                       {c.changePct != null ? ` · ${c.changePct <= 0 ? '▼' : '▲'} ${Math.abs(c.changePct)}%` : ''}
                     </span>
                   </div>
