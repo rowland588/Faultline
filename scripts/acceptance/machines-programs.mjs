@@ -228,6 +228,38 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   ok(/is-pg-proved/.test(await main.locator(`[data-program="${cw.id}"]`).getAttribute('class')), '7d proved on the control room\'s Programs too');
 }
 
+/* ---- 7e Commission picks the line's programs (Rowland, 14 October: "you
+   can't pick a program from commissioning, which you should be able to") ---- */
+{
+  /* one more of the line's own, still to prove — the ones above are proved */
+  await page.evaluate(async ws => {
+    const db = await import('/src/db.ts'); const t = Date.now();
+    await db.putProgram({ id: 'acc-lp-9', projectId: '', workspaceId: ws, what: 'LP-9 Express 1kg', runs: 'Express 1kg', state: 'onMachine', sort: 9000, createdAt: t, updatedAt: t });
+  }, WS);
+  await go(`#/project/${sd.projectId}/testing`);
+  await main.getByRole('button', { name: /^Prove programs — pick from Programs/ }).click(); await page.waitForTimeout(600);
+  const pk = main.locator('section.pk');
+  const groups = (await pk.locator('.pk-h').allInnerTexts()).map(flat);
+  ok(groups[0]?.startsWith('This job’s programs') && groups.some(g => g.startsWith('Line 7 — smoke test’s own programs')), `7e Commission offers the job's programs, then the line's own: ${groups.join(' · ')}`);
+  const lineG = pk.locator('.pk-g', { hasText: 'Line 7 — smoke test’s own programs' });
+  const box = lineG.locator('.pk-pick input').first();
+  const name = flat(await lineG.locator('.pk-pick .pk-main b').first().innerText());
+  await box.check(); await pk.getByRole('button', { name: 'Plan its test' }).click(); await page.waitForTimeout(1500);
+  const r = await page.evaluate(async ([pid, what]) => {
+    const db = await import('/src/db.ts');
+    const prog = (await db.listAllPrograms()).find(p => p.what === what);
+    const tests = (await db.listTests(pid)).filter(t => t.programId === prog?.id && !t.deletedAt);
+    return { prog, tests };
+  }, [sd.projectId, name]);
+  const sel = page.getByLabel('Which program this test proves');
+  ok(!!r.prog && r.prog.projectId === '' && r.tests.length === 1 && r.tests[0].title === `Prove program ${name}` && r.tests[0].outcome === 'planned'
+    && await sel.inputValue() === r.prog.id,
+    `7f a line's program picked in Commission: its proving test planned, opened, its drawer naming it (${name})`);
+  await page.keyboard.press('Escape'); await page.waitForTimeout(500);
+  await main.getByRole('button', { name: /^Prove programs — pick from Programs/ }).click(); await page.waitForTimeout(600);
+  ok(/Its test:/.test(flat(await main.locator('section.pk .pk-row', { hasText: name }).innerText())), '7g picked once, the picker says its test, never a second');
+}
+
 /* ---- 8 Your factory, screen and paper ---- */
 {
   await go('#/factory');
