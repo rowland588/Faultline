@@ -274,7 +274,8 @@ const S6 = `#/project/${sd.pacedProjectId}`;
     const r = R.sixmReport({ project: { name: p.name, lead: p.lead }, data: l.data, problems: P.viewsOf(l, pid, undefined, now), todos: await db.listPaceTodos(pid), now });
     const s = S.sixmStatus(r); return { sentence: s.sentence, why: s.why.map(w => w.what), tags: s.why.map(w => w.tag) };
   }, j.projectId);
-  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'PDF', exact: true }).first().click()]);
+  /* the button waits for the report's records — as long as the download may, under the gate's load */
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'PDF', exact: true }).first().click({ timeout: 60000 })]);
   const file = join(OUT, 'sixm-status.pdf'); await dl.saveAs(file);
   const pages = Number((execFileSync('pdfinfo', [file], { encoding: 'utf8' }).match(/Pages:\s+(\d+)/) ?? [])[1]);
   const san = x => x.replace(/→/g, 'to').replace(/[–—]/g, '-').replace(/[“”]/g, '"').replace(/\s+/g, '');

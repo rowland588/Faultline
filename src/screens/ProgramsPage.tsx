@@ -39,7 +39,7 @@ import { ProgramsScreen } from './ProgramsScreen';
 import { LineProgramsOnJob } from '../ui/LineProgramsOnJob';
 import { navReplace } from '../state/useRoute';
 import { answerOf } from '../lib/install';
-import { lineOfProgram } from '../lib/lineRecords';
+import { jobLinePrograms, jobLineReadings, lineOfProgram } from '../lib/lineRecords';
 import { useLineRecords } from '../lib/useLineRecords';
 
 /* The two said "why" of the ones to do (12 October): not tested, no program. */
@@ -68,8 +68,12 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
   const rec = useLineRecords();
 
   const reading = useMemo(() => (tt.loading || progs.loading ? undefined
-    : programsReading({ tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs, today, holder: project })),
-  [tt.loading, progs.loading, tt.tests, tt.items, tt.assets, progs.programs, today, project]);
+    : programsReading({ tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs, today, holder: project, studies: rec.studies })),
+  [tt.loading, progs.loading, tt.tests, tt.items, tt.assets, progs.programs, today, project, rec.studies]);
+  /* THE LINE'S OWN PROGRAMS on paper too — the page shows them under the
+     job's (ui/LineProgramsOnJob), so its report carries them (lib/lineRecords). */
+  const lineReadings = useMemo(() => jobLineReadings(jobLinePrograms(projectId, rec.all, rec.machines, rec.programs, rec.jobLines), today,
+    { tests: [...tt.tests, ...rec.provingTests.filter(t => !tt.tests.some(u => u.id === t.id))], studies: rec.studies }), [rec, projectId, today, tt.tests]);
 
   if (tt.loading || progs.loading || !project) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
 
@@ -98,14 +102,15 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
   const shownMachines = machines.filter(m => machineF === 'all' || m.id === machineF);
 
   const download = async () => {
-    if (!reading || busy) return;
+    if ((!reading && !lineReadings.length) || busy) return;
     setBusy(true); setSaid(null);
     try {
       const { loadPdfLib, deliverPdf } = await import('../lib/savePdf');
       const { drawProgramsReport } = await import('../lib/programsReportPdf');
       const { jsPDF } = await loadPdfLib();
       const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-      await drawProgramsReport(doc, { name: project.name, ...(project.lead ? { lead: project.lead } : {}), printed: niceDay(today, { year: true }), reading });
+      await drawProgramsReport(doc, { name: project.name, ...(project.lead ? { lead: project.lead } : {}), printed: niceDay(today, { year: true }), linePrograms: lineReadings,
+        reading: reading ?? { lines: [], machines: [], total: 0, done: 0, baseline: 0, failed: 0, late: 0, open: 0, notTested: 0, noProgram: 0, doneAll: 0, says: 'None of the job’s own yet — its line’s are below' } });
       const how = await deliverPdf(doc, pdfFileName(project.name, 'programs', today));
       setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
     } catch (e) {
@@ -122,7 +127,7 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
           <p className="pace-lede">Every program, machine by machine — where each stands, what was seen, the problems on it. Say its status, hit a problem, add one — all here.</p>
         </div>
         <div className="pace-head-actions">
-          <button type="button" className="btn btn-primary" disabled={!reading || busy} onClick={() => void download()}>{busy ? 'Making it…' : 'Programs report — PDF'}</button>
+          <button type="button" className="btn btn-primary" disabled={(!reading && !lineReadings.length) || busy} onClick={() => void download()}>{busy ? 'Making it…' : 'Programs report — PDF'}</button>
         </div>
       </header>
       {said && <p className="tc-ok" role="status">{said}</p>}

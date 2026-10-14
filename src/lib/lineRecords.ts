@@ -200,6 +200,28 @@ export function lineProgramsReading(lines: readonly { name: string; id: string; 
   return { ...r, machines, lines: machines.flatMap(m => m.lines) };
 }
 
+/** A JOB'S LINES' OWN PROGRAMS — each line the job is on (its job lines),
+ *  not archived, with its machines and the programs planned on it with no
+ *  job: what the job's Programs page shows (ui/LineProgramsOnJob) and every
+ *  paper of the job prints (lib/clientReport, lib/handoverReport). */
+export interface JobLinePrograms { name: string; id: string; machines: LineMachine[]; programs: Program[] }
+
+export function jobLinePrograms(projectId: string, all: readonly Workspace[], machines: readonly Asset[], programs: readonly Program[], jobLines: readonly JobLine[]): JobLinePrograms[] {
+  const ids = new Set(jobLines.filter(l => l.projectId === projectId && l.workspaceId && !l.deletedAt).map(l => l.workspaceId as string));
+  return all.filter(w => ids.has(w.id) && !w.archived).map(w => ({ name: w.name, id: w.id,
+    machines: machinesOnLine(w, machines, jobLines), programs: programsOnLine(w.id, programs, jobLines).filter(p => !p.projectId) }));
+}
+
+/** Each of those lines read as its own Programs page reads it — a line with
+ *  no programs of its own has none. `tests`: the tests on any job that prove
+ *  a program (a line's proved on another job says its test). */
+export function jobLineReadings(lines: readonly JobLinePrograms[], today: string, o: { tests?: readonly Test[]; studies?: readonly ToolStudy[] } = {}): { line: string; reading: ProgramsReading }[] {
+  return lines.flatMap(l => {
+    const r = l.programs.length ? lineProgramsReading([l], today, o) : undefined;
+    return r ? [{ line: l.name, reading: r }] : [];
+  });
+}
+
 export interface LineKit {
   machines: LineMachine[];
   programs: Program[];

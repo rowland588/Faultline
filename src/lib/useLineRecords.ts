@@ -64,7 +64,12 @@ export function useLineRecords(): LineRecords {
       ]);
       const lines = await liveProductionLines(all);
       if (live) setState({ loading: false, lines, all, machines, programs, standards: standards.filter(s => !s.deletedAt), jobLines, jobs: jobs.filter(j => !j.deletedAt), provingTests, studies });
-    })();
+    })().catch(e => {
+      /* a read that failed ends the wait with what was read before — never
+         "Loading…" for ever (the client report waits on this) — and says so */
+      console.error('line records could not be read', e);
+      if (live) setState(s => ({ ...s, loading: false }));
+    });
     load();
     const off = onDataChange(load);
     return () => { live = false; off(); };

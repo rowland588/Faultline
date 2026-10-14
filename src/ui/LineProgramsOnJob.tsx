@@ -10,7 +10,7 @@
 import { useMemo } from 'react';
 import type { Project } from '../types';
 import { STATE_WORD, isProved, provingTitle, standingOf, stateOf, todayISO } from '../lib/programs';
-import { machineKey, machineOfProgram, machinesOnLine, programsOnLine } from '../lib/lineRecords';
+import { jobLinePrograms, machineKey, machineOfProgram } from '../lib/lineRecords';
 import { useLineRecords } from '../lib/useLineRecords';
 import type { useTesting } from '../lib/useTesting';
 import { provingTestOf, testCell } from '../lib/commission';
@@ -23,13 +23,9 @@ import { openRecord } from './RecordDrawer';
 export function LineProgramsOnJob({ project, tt, can }: { project: Project; tt?: ReturnType<typeof useTesting>; can: Can }) {
   const rec = useLineRecords();
   const today = todayISO();
-  const lines = useMemo(() => {
-    const ids = new Set(rec.jobLines.filter(l => l.projectId === project.id && l.workspaceId && !l.deletedAt).map(l => l.workspaceId as string));
-    return rec.all.filter(w => ids.has(w.id) && !w.archived).map(w => ({
-      w, machines: machinesOnLine(w, rec.machines, rec.jobLines),
-      own: programsOnLine(w.id, rec.programs, rec.jobLines).filter(p => !p.projectId),
-    }));
-  }, [rec, project.id]);
+  /* the same lines every paper of the job prints (lib/lineRecords jobLinePrograms) */
+  const lines = useMemo(() => jobLinePrograms(project.id, rec.all, rec.machines, rec.programs, rec.jobLines)
+    .map(l => ({ w: { id: l.id, name: l.name }, machines: l.machines, own: l.programs })), [rec, project.id]);
   if (rec.loading || !lines.length) return null;
 
   return (

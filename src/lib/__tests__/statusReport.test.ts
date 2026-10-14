@@ -30,12 +30,14 @@ describe('the status report', () => {
     expect(s.verdict.reason).not.toContain(' · ');
     expect(s.gates.map(g => g.label)).toEqual(r.gates.map(g => g.label));
   });
-  it('names only what is wrong — late and didn’t pass — each once', () => {
-    expect(s.why.map(w => w.kind)).toEqual(['late', 'failed']);
+  it('names only what is wrong — late and didn’t pass — each once; then, grey and last, what a gate is missing', () => {
+    expect(s.why.map(w => w.kind)).toEqual(['late', 'failed', 'unplanned']);
     expect(s.why[1].what).toContain('Seal integrity');
+    /* the Install screen's Needs you, in its words (lib/install gateGaps) */
+    expect(s.why[2]).toEqual({ kind: 'unplanned', tag: 'NOT ADDED', what: 'Install: BU — none of the stages yet; De-staker — 6 stages not added yet' });
   });
   it('every line under "why" carries the record it is about, so the screen opens it (docs/FLOW.md item 1)', () => {
-    expect(s.why.map(w => w.id)).toEqual(['s2', 't1']);
+    expect(s.why.map(w => w.id)).toEqual(['s2', 't1', undefined]);
     const install = r.sections.find(g => g.gate === 'install');
     expect(install?.lateIds).toEqual(['s2']);
     expect(install?.late).toHaveLength(1);

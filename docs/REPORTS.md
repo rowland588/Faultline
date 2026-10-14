@@ -154,6 +154,44 @@ report keeps its sections, order and wording; what changes is that nothing is
 cut, nothing overlaps, empty sections stop printing, and small and huge jobs
 both come out as composed documents.
 
+## Relevance — the papers keep up with the app
+
+Rowland, 14 October: "Check the stage gate report must make sure they
+maintain relevance when things change in the app .. new functions the app
+does but also all changes in status. Check full report, 1 page status,
+programs, handover."
+
+A stage-gate job has four papers, all read off the same records: the **full
+report** (`lib/clientReport`), the **one-page status** (`lib/statusReport`,
+read off the full report's reading), the **programs report** (the Set up
+reading, `lib/programsReport`, and the job's lines' own) and the
+**handover** (`lib/handoverReport`). The table is where every record and
+status a screen shows reaches them. A dash is a choice, said why.
+
+| What the app shows | Full report | Status — 1 page | Programs report | Handover |
+|---|---|---|---|---|
+| A stage late, or a problem | Late / A problem lists under its gate | LATE · PROBLEM | — (not a program) | Still open on its machine |
+| A machine late on site | First in Install's late list; "1 machine late on site" | LATE, opens the machine | — | Where it is: due on site |
+| What a gate's Needs you says is missing | "Not added yet" under the gate; "N machines with none yet" | NOT ADDED, grey, last — one line a gate | — | — (its hand-over list says "No hand-over list on this machine yet") |
+| A test passed, failed, not run | Commission's rows | DIDN'T PASS | — | Tests against what was agreed |
+| A test proved by a study | "Proved by: …" under the test | — (the full report has it) | — | Under the test |
+| A program: done, baseline, failed, late, to do, not tested, no program | Set up's Programs, every one | The count; failed as DIDN'T PASS; the late, to-do and baseline told | Every one, a tile a state | Its machine's line; each not done still open, in its word |
+| A program proved — by its test, a study on its line, by hand | Its proof under it | — | Its proof under it | — (counted done) |
+| The line's own programs (no job) | "On Line 7, with no job — …" after the job's | A line under the programs | After the job's | Its reading and the ones not done |
+| A problem with no fix (critical, high risk) | Critical issues · High risks · Problems with no fix | CRITICAL · HIGH RISK | — | Still open on its machine, its flag said |
+| A problem on the register for the job, not on it yet | "Problems for this job — not on it yet", priority tag in RAG | NOT ON IT YET (Critical with the criticals) | — | On the machine it names, else the line |
+| A fix — open, late, done, proved | Fixes, with its picture and proof | What we are doing about it | — | Still open on its machine or the line |
+| A material not in | What we're waiting on | Waiting on | — | Still open on the line |
+| A handed-over machine | Where the job is — "with …" | — | — | Its hand-over list, sign-offs, "handed over with" |
+| The lead's commentary | Under where we are | Under where we are | — | — |
+
+**The rule.** A new record, or a new status of one, that a screen shows is
+placed in this table in the same commit, and a row added to
+`src/lib/__tests__/reportRelevance.test.ts` that reads it on every paper it
+belongs on. `scripts/acceptance/report-relevance.mjs` drives the seeded job
+in the gate: the changes made, the four PDFs downloaded from their buttons
+and read back, the statuses moved and the PDFs read again.
+
 ## Slices — each ships live on its own, with the stress check green
 
 Progress, 4 October — `report-stress.mjs`: 11 of 11 stage-gate reports clean

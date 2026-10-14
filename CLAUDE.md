@@ -202,6 +202,7 @@ node scripts/acceptance/edit-delete.mjs  # bar 2: every record edited and delete
 node scripts/acceptance/audit.mjs  # the audit's fixes (docs/AUDIT.md): a way out of every sheet on a short phone, Escape on the photo viewer, a study on paper with Ppk and Cpk and its readings, every study list on paper
 node scripts/audit.mjs [out.json]     # not a pass/fail: walks every screen at desk and phone — ways out, phone fit, lists with no paper (docs/AUDIT.md)
 node scripts/acceptance/list-paper.mjs  # the audit's bar 3: paper wherever there is a list — Line capacity's page and every product shown, Line standard's cards for all shown, Materials, a card for every test on Commission
+node scripts/acceptance/report-relevance.mjs  # the audit's bar 8: the stage-gate papers keep up — a machine late on site, a register problem for the job, the line's own programs, what a gate is missing, on the full report, the one page, the programs report and the handover; the statuses moved and all four moved with them
 node scripts/sync-two-devices.mjs     # a phone and a laptop against a fake cloud — video on one plays on the other
 node scripts/check-live-schema.mjs    # the LIVE database against the mapper — needs .env
 ```
@@ -357,7 +358,18 @@ one line only that line's; Line standard's PDF (all shown) — a card a page
 for every product shown; Materials — one page, how many are here as the
 header says, the late with how late as the list says, every material; Test
 cards — a card for every test on Commission's board, each numbering its own
-pages; and a client taking the paper too. `line-standard.mjs` is the line standard's board (Rowland, 13 October: "I
+pages; and a client taking the paper too. `report-relevance.mjs` is the
+audit's bar 8 (Rowland, 14 October: "Check the stage gate report must make
+sure they maintain relevance when things change in the app .. new functions
+the app does but also all changes in status"): on the seeded job a machine
+late on site, a Critical problem taken on the register for the job and the
+line's own program — each on the full report, the one-page status, the
+programs report and the handover as `docs/REPORTS.md` (Relevance) places
+it, the screen's contents saying the same; what a gate's Needs you says is
+missing on the full report as on its contents; the register problem's line
+on the status page opening the problem; then the problem closed, the
+machine landed and the line's program proved — and all four papers moving
+with them, the status still one page. `line-standard.mjs` is the line standard's board (Rowland, 13 October: "I
 can't drag the interface down ... I only have a small surface area ... I
 also can't change the colour of the people"): the empty board the page's to
 scroll and pinch while a person and a shape are the board's to drag, a tap
