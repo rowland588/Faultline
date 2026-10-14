@@ -544,7 +544,7 @@ await run(1, 'the phone makes a whole stage-gate job; the laptop shows all of it
   await p.waitForTimeout(500);
   /* The Programs list lives at the foot of the Programs page (8 October). */
   await go(p, `/project/${pid}/programs`);
-  const fold = p.getByRole('button', { name: /Test days and proving in Commission/ });
+  const fold = p.getByRole('button', { name: /Add a program, or change one/ });
   if ((await fold.getAttribute('aria-expanded')) !== 'true') await fold.click();
   await p.getByPlaceholder('P-104 perforation').fill('P-104 perforation');
   await p.getByRole('button', { name: 'Add it' }).click();

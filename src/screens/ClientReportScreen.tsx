@@ -17,6 +17,8 @@ import { todayISO } from '../lib/weeks';
 import { pdfFileName } from '../lib/fileName';
 import type { Shot } from '../lib/testReport';
 import type { jsPDF } from 'jspdf';
+import { commissioningReport, type CommissioningReport } from '../lib/commissioningReport';
+import { commissionPrograms } from '../lib/commissionPrograms';
 import { OnTargetLine } from '../ui/OnTarget';
 import { CriticalStory, CriticalTag } from '../ui/CriticalFields';
 import { DraftArea } from '../ui/Draft';
@@ -52,7 +54,7 @@ function Says({ says }: { says: string }) {
    full report's Programs section prints. */
 /* THE HANDOVER REPORT (lib/handoverReport, docs/HANDOVER.md) — the line as
    it was really handed over, every machine, and the lines to sign. */
-type Which = 'status' | 'full' | 'programs' | 'handover';
+type Which = 'status' | 'full' | 'programs' | 'handover' | 'commissioning';
 
 async function buildStatus(r: ClientReport): Promise<jsPDF> {
   const { loadPdfLib, titlePdf } = await import('../lib/savePdf');
@@ -90,6 +92,19 @@ async function buildHandover(r: HandoverReport): Promise<jsPDF> {
   return doc;
 }
 
+/* THE COMMISSIONING REPORT AND ITS CARDS (lib/commissioningReport; Rowland,
+   14 October: "a commissioning report, commissioning cards, something that way
+   I can present in the meeting or send"). */
+async function buildCommissioning(r: CommissioningReport, cards = false): Promise<jsPDF> {
+  const { loadPdfLib, titlePdf } = await import('../lib/savePdf');
+  const { drawCommissioningReport, drawCommissioningCards } = await import('../lib/commissioningPdf');
+  const { jsPDF } = await loadPdfLib();
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+  titlePdf(doc, `${r.name} — commissioning ${cards ? 'cards' : 'report'}`);
+  if (cards) await drawCommissioningCards(doc, r); else await drawCommissioningReport(doc, r);
+  return doc;
+}
+
 async function buildPdf(r: ClientReport, withStandards: boolean): Promise<jsPDF> {
   const { loadPdfLib, titlePdf } = await import('../lib/savePdf');
   const { drawClientReport } = await import('../lib/clientReportPdf');
@@ -117,7 +132,7 @@ async function buildPdf(r: ClientReport, withStandards: boolean): Promise<jsPDF>
   return doc;
 }
 
-const fileName = (r: ClientReport, which: Which) => pdfFileName(r.name, which === 'status' ? 'status report' : which === 'programs' ? 'programs' : which === 'handover' ? 'handover report' : 'client report', todayISO());
+const fileName = (r: ClientReport, which: Which) => pdfFileName(r.name, which === 'status' ? 'status report' : which === 'programs' ? 'programs' : which === 'handover' ? 'handover report' : which === 'commissioning' ? 'commissioning report' : 'client report', todayISO());
 
 export function ClientReportScreen({ projectId }: { projectId: string }) {
   const { projects, loading, rename } = useProjects();
@@ -160,7 +175,8 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
   const [withStandards, setWithStandards] = useState(true);
   /* ?doc=programs — opened from the Reports sheet or the Programs page. */
   const [which, setWhich] = useState<Which>(() => (/[?&]doc=programs\b/.test(window.location.hash) ? 'programs'
-    : /[?&]doc=handover\b/.test(window.location.hash) ? 'handover' : 'status'));
+    : /[?&]doc=handover\b/.test(window.location.hash) ? 'handover'
+      : /[?&]doc=commissioning\b/.test(window.location.hash) ? 'commissioning' : 'status'));
   const [busy, setBusy] = useState(false);
   /* What happened to the last press, said beside the button the way the test
      card and the day say it — a download with no word back read as nothing
@@ -191,14 +207,25 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
     proofStudies: rec.studies, provingTests: rec.provingTests, ...lineFacts,
   }) : null), [ready, project, tt.assets, tt.tests, tt.items, mats.materials, progs.programs, studies, rec.studies, rec.provingTests, lineFacts]);
 
+  /* THE COMMISSIONING REPORT — the client report's reading of Commission,
+     the handover reading's machines, and the programs the board counts:
+     the job's and each line's this job has a test for (lib/commissionPrograms). */
+  const commissioning = useMemo(() => (report && handover ? commissioningReport({
+    client: report, handover, assets: tt.assets, tests: tt.tests, today: todayISO(),
+    programs: commissionPrograms(progs.programs, lineFacts.linePrograms, tt.assets, tt.tests),
+  }) : null), [report, handover, tt.assets, tt.tests, progs.programs, lineFacts.linePrograms]);
+  const [cardsBusy, setCardsBusy] = useState(false);
+
   /* The preview is the PDF itself, redrawn when what is on it changes — and
      only then (lib/usePdfPreview). */
-  const previewKey = useMemo(() => (report && wide ? `${which}|${withStandards}|${JSON.stringify(which === 'handover' ? handover : report)}` : null), [report, handover, withStandards, wide, which]);
+  const previewKey = useMemo(() => (report && wide ? `${which}|${withStandards}|${JSON.stringify(which === 'handover' ? handover : which === 'commissioning' ? commissioning : report)}` : null), [report, handover, commissioning, withStandards, wide, which]);
   /* THE JOB'S ADDRESS, for the code on the first page (lib/report/codeHeader). */
   const link = jobLink(`${location.origin}${location.pathname}`, projectId);
   const build = () => (which === 'status' ? buildStatus({ ...(report as ClientReport), link })
     : which === 'programs' ? buildPrograms(report as ClientReport)
-      : which === 'handover' ? buildHandover({ ...(handover as HandoverReport), link }) : buildPdf({ ...(report as ClientReport), link }, withStandards));
+      : which === 'handover' ? buildHandover({ ...(handover as HandoverReport), link })
+        : which === 'commissioning' ? buildCommissioning({ ...(commissioning as CommissioningReport), link })
+          : buildPdf({ ...(report as ClientReport), link }, withStandards));
   const preview = usePdfPreview(previewKey, build);
   const status = useMemo(() => (report ? statusReport(report) : null), [report]);
 
@@ -215,19 +242,35 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
     } finally { setBusy(false); }
   };
 
+  /* THE CARDS — a page a machine, for the meeting (lib/commissioningPdf). */
+  const downloadCards = async () => {
+    if (!commissioning || cardsBusy) return;
+    setCardsBusy(true); setSaid(null); setErr(null);
+    try {
+      const { deliverPdf } = await import('../lib/savePdf');
+      const how = await deliverPdf(await buildCommissioning({ ...commissioning, link }, true), pdfFileName(commissioning.name, 'commissioning cards', todayISO()));
+      setSaid(how === 'downloaded' ? 'Cards saved — open or send them from the bar below.' : 'Cards ready — open them from the bar below.');
+    } catch (e) {
+      console.error('commissioning cards failed', e);
+      setErr(`The cards could not be made${e instanceof Error && e.message ? ` — ${e.message}` : ''}. Try again; if it fails again, reload the app.`);
+    } finally { setCardsBusy(false); }
+  };
+
   if (!ready || !report || !project) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
 
   return (
     <div className="wrap pace cr">
       <header className="pace-head">
         <div className="pace-head-main">
-          <h1 className="pace-title">{which === 'programs' ? 'Programs report' : which === 'handover' ? 'Handover report' : 'Client report'}</h1>
+          <h1 className="pace-title">{which === 'programs' ? 'Programs report' : which === 'handover' ? 'Handover report' : which === 'commissioning' ? 'Commissioning report' : 'Client report'}</h1>
           <p className="pace-lede">{which === 'status'
             ? 'One page: where we are, why we are not where we should be, and what we are doing about it. The one to send.'
             : which === 'programs'
               ? 'Every program, machine by machine — where each stands, what was seen, and what was said before.'
               : which === 'handover'
                 ? 'The line as it was really handed over — every machine, what it was proved against, what was still open, and who signed.'
+              : which === 'commissioning'
+                ? 'Where commissioning has got to, machine by machine — the tests, the programs, the problems and what is booked next. For the meeting, or to send; the cards are a page a machine.'
               : 'The whole record, in the order the job is run — for whoever wants every detail.'}</p>
           {/* The answer the first page leads with (lib/onTarget). */}
           {/* On the status view, the verdict and the handover only — what
@@ -237,6 +280,10 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
         </div>
         <div className="pace-head-actions">
           <button className="btn btn-primary" onClick={() => void download()} disabled={busy}>{busy ? 'Making it…' : 'PDF'}</button>
+          {which === 'commissioning' && (
+            <button className="btn" onClick={() => void downloadCards()} disabled={cardsBusy || !commissioning}
+              aria-label="Commissioning cards — a page a machine (PDF)">{cardsBusy ? 'Making…' : 'Cards — a page a machine'}</button>
+          )}
         </div>
       </header>
       {said && <p className="tc-ok" role="status">{said}</p>}
@@ -251,7 +298,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
           (faultline_keep_agreement), and the commentary is not one of them. */}
       {which !== 'programs' && which !== 'handover' && (can.edit || project.reportNote) && (
         <section className="cr-note">
-          <span className="cr-note-h">Commentary <i className="cw-f-opt">on both reports, under where we are</i></span>
+          <span className="cr-note-h">Commentary <i className="cw-f-opt">on the status, full and commissioning reports, under where we are</i></span>
           {can.edit
             ? <DraftArea className="text-area" rows={3} better="note" value={project.reportNote ?? ''} ariaLabel="Commentary"
                 placeholder="What the numbers mean this week — e.g. Install is two days behind on the Ishida, caught up by Friday; programs on track for the Tesco trial."
@@ -266,8 +313,41 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
         <button type="button" className={'chip' + (which === 'status' ? ' on' : '')} aria-pressed={which === 'status'} onClick={() => setWhich('status')}>Status — 1 page</button>
         <button type="button" className={'chip' + (which === 'full' ? ' on' : '')} aria-pressed={which === 'full'} onClick={() => setWhich('full')}>Full report</button>
         <button type="button" className={'chip' + (which === 'programs' ? ' on' : '')} aria-pressed={which === 'programs'} onClick={() => setWhich('programs')}>Programs report</button>
+        <button type="button" className={'chip' + (which === 'commissioning' ? ' on' : '')} aria-pressed={which === 'commissioning'} onClick={() => setWhich('commissioning')}>Commissioning</button>
         <button type="button" className={'chip' + (which === 'handover' ? ' on' : '')} aria-pressed={which === 'handover'} onClick={() => setWhich('handover')}>Handover report</button>
       </span>
+
+      {/* THE COMMISSIONING REPORT, in words beside its page (on a phone, the
+          words alone) — the same reading the PDF draws */}
+      {which === 'commissioning' && commissioning && (
+        <div className={'cr-body' + (wide ? ' is-wide' : '')}>
+          <ol className="cr-toc cm-toc">
+            <li><b>Where we are</b><span>Commission: {commissioning.says}</span><span className="sub">{commissioning.dates}</span></li>
+            <li><b>Machine by machine</b><span className="sub">{commissioning.machinesSaid}</span>
+              {commissioning.machines.map(m => (
+                <span key={m.name} className="cm-m">
+                  <b>{m.name}</b> <span className={'cm-word is-' + m.verdict.tone}>{m.verdict.word}</span>
+                  <span className="sub"> · {m.testsSaid}{m.programs ? ` · programs: ${m.programs}` : ''}{m.next ? ` · next: ${m.next}` : ''}</span>
+                </span>
+              ))}
+            </li>
+            <li><b>Why we are not where we should be</b>
+              {commissioning.why.length ? commissioning.why.map((w, i) => <span key={i} className="in-problem">{w.text}{w.meta ? <span className="sub"> — {w.meta}</span> : null}</span>)
+                : <span>Nothing — no test has failed or gone late, and no critical issue is open.</span>}
+            </li>
+            <li><b>What we are doing about it</b>
+              {commissioning.doing.length ? commissioning.doing.map((w, i) => <span key={i}>{w.text}{w.meta ? <span className="sub"> — {w.meta}</span> : null}</span>)
+                : <span>No fix open and no problem taken for the job.</span>}
+              {commissioning.booked.length > 0 && <span className="sub">Booked next: {commissioning.booked.slice(0, 5).map(b => b.text).join(' · ')}{commissioning.booked.length > 5 ? ` · and ${commissioning.booked.length - 5} more` : ''}</span>}
+            </li>
+          </ol>
+          {wide && (
+            <div className="cr-page">
+              {preview ? <iframe title="The commissioning report" src={preview} /> : <p className="sub">Drawing the report…</p>}
+            </div>
+          )}
+        </div>
+      )}
 
       {which === 'handover' && handover && (
         <div className={'cr-body' + (wide ? ' is-wide' : '')}>

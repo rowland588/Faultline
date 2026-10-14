@@ -18,15 +18,24 @@
  * machine, proved by a test in Commission) beside them; one of the same name
  * on the same machine is one program. A program only on the list can be
  * tracked here in one tap — it becomes a line on its machine's stage and can
- * then be given a status and a problem. The list itself — test days, proving
- * in Commission — is at the foot of the page, where it moved from Set up. */
+ * then be given a status and a problem.
+ *
+ * TESTED WHERE IT SITS (Rowland, 14 October: "the ui is poor and makes no
+ * sense ... reach it only from programs and improve the ui to actually run
+ * it?" — "do it"). Every program on the Programs list — the job's, and its
+ * lines' own on the job's machine of their name, marked by their line — has
+ * its test on its row (ui/ProgramTest): Test it, how it went, what was seen,
+ * the day. It replaced "Prove it in Commission" and "plan its test", which
+ * made a test and opened a drawer of boxes, and the lines' own section below
+ * the machines — a second list of the same kind of thing. The list itself —
+ * adding one, its name, machine, order and test day — is at the foot. */
 import { useEffect, useMemo, useState } from 'react';
 import { useTesting } from '../lib/useTesting';
 import { usePrograms } from '../lib/usePrograms';
 import { useProject } from '../lib/useProjects';
 import { useAccess } from '../cloud/access';
 import { live, type TestItem } from '../lib/testing';
-import { isProgramsStage } from '../lib/programs';
+import { STATE_WORD, isProgramsStage, stateOf } from '../lib/programs';
 import { programsReading, type ProgBucket, type ProgramLine } from '../lib/programsReport';
 import { niceDay, todayISO } from '../lib/weeks';
 import { pdfFileName } from '../lib/fileName';
@@ -36,8 +45,9 @@ import { MachineName } from '../ui/MachinePanel';
 import { AccessNote } from '../ui/AccessNote';
 import { Fold } from '../ui/Fold';
 import { ProgramsScreen } from './ProgramsScreen';
-import { LineProgramsOnJob } from '../ui/LineProgramsOnJob';
-import { navReplace } from '../state/useRoute';
+import { ProgramTest } from '../ui/ProgramTest';
+import { programsToPick, type PickRow } from '../lib/commissionPrograms';
+import { nav, navReplace } from '../state/useRoute';
 import { answerOf } from '../lib/install';
 import { jobLinePrograms, jobLineReadings, lineOfProgram } from '../lib/lineRecords';
 import { useLineRecords } from '../lib/useLineRecords';
@@ -66,6 +76,8 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
   const [said, setSaid] = useState<string | null>(null);
   const today = todayISO();
   const rec = useLineRecords();
+  /* ?test=<program> — Commission's "Test it" lands on that program's row, open. */
+  const [testing] = useState(() => /[?&]test=([^&]+)/.exec(window.location.hash)?.[1]);
 
   const reading = useMemo(() => (tt.loading || progs.loading ? undefined
     : programsReading({ tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs, today, holder: project, studies: rec.studies })),
@@ -80,6 +92,13 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
   const assets = live(tt.assets).sort((a, b) => a.sort - b.sort);
   const stages = live(tt.tests).filter(t => isProgramsStage(t, answerOf(t, project, tt.items)));
   const lines = reading?.lines ?? [];
+  /* THE LINES' OWN, each on the job's machine of its name (lib/commissionPrograms). */
+  const jobLines = jobLinePrograms(projectId, rec.all, rec.machines, rec.programs, rec.jobLines);
+  const lineRows = programsToPick([], jobLines, tt.assets, tt.tests).flatMap(g => g.rows.map(r => ({ ...r, line: jobLines.find(l => l.id === g.key)?.name ?? '' })));
+  const testOf = (p: { id: string } | undefined, assetId: string) => {
+    const prog = p && progs.programs.find(x => x.id === p.id);
+    return prog ? <ProgramTest projectId={projectId} program={prog} assetId={assetId || undefined} tt={tt} can={can} open={testing === prog.id} /> : null;
+  };
   /* ONE PROGRAM, ONE ANSWER (flow audit #3): where a part is a program on the
      Programs list, the record's own state — what the line's Programs and the
      control room say — beside the floor's, named with its line. */
@@ -98,7 +117,7 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
   /* The machines in the job's order, then the line itself when anything is
      on it — every machine shows, so a programs stage can be added to one. */
   const machines = [...assets.map(a => ({ id: a.id, name: a.name })),
-    ...(stages.some(s => !s.assetId) || lines.some(l => !l.assetId) ? [{ id: '', name: 'The line' }] : [])];
+    ...(stages.some(s => !s.assetId) || lines.some(l => !l.assetId) || lineRows.some(r => !r.assetId) ? [{ id: '', name: 'The line' }] : [])];
   const shownMachines = machines.filter(m => machineF === 'all' || m.id === machineF);
 
   const download = async () => {
@@ -124,7 +143,8 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
       <header className="pace-head">
         <div className="pace-head-main">
           <h1 className="pace-title">Programs</h1>
-          <p className="pace-lede">Every program, machine by machine — where each stands, what was seen, the problems on it. Say its status, hit a problem, add one — all here.</p>
+          <p className="pace-lede">Every program, machine by machine — where each stands, what was seen, the problems on it. Test it, say its status, hit a problem, add one — all here.
+            {jobLines.length > 0 && <>{' '}Its lines&rsquo; own are under their machines{jobLines.map(l => <span key={l.id}> · <button type="button" className="cw-link" onClick={() => nav(`/programs?line=${encodeURIComponent(l.id)}`)}>{l.name}&rsquo;s programs ›</button></span>)}</>}</p>
         </div>
         <div className="pace-head-actions">
           <button type="button" className="btn btn-primary" disabled={(!reading && !lineReadings.length) || busy} onClick={() => void download()}>{busy ? 'Making it…' : 'Programs report — PDF'}</button>
@@ -158,6 +178,10 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
       {shownMachines.map(m => {
         const stage = stages.find(s => (s.assetId ?? '') === m.id);
         const mine = lines.filter(l => (l.assetId ?? '') === m.id);
+        /* the lines' own on this machine — shown with every filter but the
+           machine's, as they are not counted in the tiles */
+        const theirs: (PickRow & { line: string })[] = filter === 'all' ? lineRows.filter(r => (r.assetId ?? '') === m.id) : [];
+        const programOfPart = new Map(mine.filter(l => l.partId && l.programId).map(l => [l.partId as string, l.programId as string]));
         /* On the Programs list only — no line on the stage yet. */
         const listOnly = mine.filter(l => !l.partId && keep(l));
         /* a failed program is not done — it is the red count beside (flow audit #3) */
@@ -172,7 +196,8 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
             {stage
               ? <StageParts step={stage} tt={tt} can={can} holder={project} only={onlyKept} onOpen={id => openRecord(projectId, id)} aside={p => recordOf.get(p.id)}
                   onRunProblem={can.edit ? (tid, rid) => openRecordAt(projectId, tid, rid) : undefined}
-                  onProblem={can.edit ? p => openRecordAt(projectId, stage.id, p.id) : undefined} />
+                  onProblem={can.edit ? p => openRecordAt(projectId, stage.id, p.id) : undefined}
+                  after={p => (id => id ? testOf({ id }, m.id) : null)(programOfPart.get(p.id))} />
               : can.edit && m.id
                 ? <p className="sub pp-nostage">No programs stage on this machine yet.{' '}
                     <button type="button" className="cw-link" onClick={() => void tt.planSteps(['Programs loaded'], m.id, 'setup')}>Add Programs loaded to it</button></p>
@@ -187,6 +212,22 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
                     {can.edit && stage && (
                       <button type="button" className="cw-link" onClick={() => void tt.addItem(stage.id, 'next', l.what, { owner: l.who })}>Track it here</button>
                     )}
+                    {testOf(l.programId ? { id: l.programId } : undefined, m.id)}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {/* ITS LINE'S OWN PROGRAMS on this machine — the line's records,
+                planned on the line, tested here (docs/BLUEPRINT.md, Stage 2). */}
+            {theirs.length > 0 && (
+              <ul className="pp-listonly pp-theirs" aria-label={`The line's own programs — ${m.name}`}>
+                {theirs.map(r => (
+                  <li key={r.program.id} data-program={r.program.id}>
+                    <span className="pp-line-tag">{r.line}&rsquo;s own</span>
+                    <b>{r.program.what}</b>{r.program.runs ? <span className="sub"> — runs {r.program.runs}</span> : null}
+                    <span className={'pg-state-sel is-pg-' + stateOf(r.program)}>{r.proved ? `proved ${niceDay(r.program.provedOn)}` : STATE_WORD[stateOf(r.program)]}</span>
+                    {m.id === '' && r.machine && <span className="sub">{r.machine} is not on this job — tested on the line itself</span>}
+                    <ProgramTest projectId={projectId} program={r.program} assetId={r.assetId} tt={tt} can={can} open={testing === r.program.id} />
                   </li>
                 ))}
               </ul>
@@ -195,15 +236,11 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
         );
       })}
 
-      {/* THE LINE'S OWN PROGRAMS — planned on the job's lines with no job, the
-          same records (docs/BLUEPRINT.md, Stage 2); one is proved here by a
-          test in Commission. */}
-      <LineProgramsOnJob project={project} tt={tt} can={can} />
-
-      {/* THE PROGRAMS LIST — test days, and proving each one in Commission. It
-          sat under Set up's grid; Programs is its home now. */}
-      <Fold id="pp-list" title="Test days and proving in Commission" start={false}
-        says="The Programs list: written, on the machine, its test day and the test that proved it.">
+      {/* THE PROGRAMS LIST — adding one, its name, machine, order and test
+          day. It sat under Set up's grid; Programs is its home now. Testing
+          one is on its row above. */}
+      <Fold id="pp-list" title="Add a program, or change one’s name, machine, order or test day" start={false}
+        says="The Programs list: each program, its machine, what it runs and its test day. Test one on its row above.">
         <ProgramsScreen projectId={projectId} embedded />
       </Fold>
     </div>

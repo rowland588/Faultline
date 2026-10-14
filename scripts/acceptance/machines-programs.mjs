@@ -21,9 +21,14 @@
  *      the machines a second time
  *   6  a machine renamed in Set up the line: the record and its programs
  *      follow the name
- *   7  a job on the line sees the line's own programs — the same records;
- *      "Prove it in Commission" plans its test; the test passed proves the
- *      line's program, on the line and in the control room
+ *   7  a job on the line sees the line's own programs under their machines,
+ *      marked by line — the same records; Test it on the row (passed, what
+ *      was seen, the day) makes its proving test and proves the line's
+ *      program, on the line and in the control room; Commission's programs
+ *      cell opens a machine's programs and a tap its test; Needs you's Test
+ *      it lands on the row on Programs, open — booked for a day there; a
+ *      line's program with no machine on the job tested on the line itself,
+ *      didn't pass said in red, on the row and the board
  *   8  Your factory: each line's machines in flow order and its programs in
  *      words, on the screen and on its paper
  *   9  the programs report of the line: its sentence and every program
@@ -73,7 +78,8 @@ page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) er
 
 let failed = 0;
 const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}`); if (!c) failed++; };
-const go = async h => { await page.goto(`${BASE}/${h}`); await page.waitForTimeout(2200); };
+/* a sheet closed by Escape takes its history entry off a moment later — wait for it, or it lands on top of the goto (CLAUDE.md) */
+const go = async h => { await page.waitForFunction(() => !history.state?.flPanel, null, { timeout: 3000 }).catch(() => {}); await page.goto(`${BASE}/${h}`); await page.waitForTimeout(2200); };
 const flat = s => (s ?? '').replace(/\s+/g, ' ').trim();
 const main = page.locator('.nv-main');
 
@@ -206,58 +212,82 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   await page.keyboard.press('Escape'); await page.waitForTimeout(400);
 }
 
-/* ---- 7 a job on the line sees the line's own programs ---- */
+/* ---- 7 a job on the line sees the line's own programs, under their
+   machines, and tests one on its row (Rowland, 14 October: "reach it only
+   from programs and improve the ui to actually run it?" — "do it") ---- */
 {
   await go(`#/project/${sd.projectId}/programs`);
-  const sec = main.locator('.lpj', { hasText: 'On Line 7 — smoke test, with no job' });
   const t = await truth();
   const own = t.programs.filter(p => !p.projectId);
-  const rows = await sec.locator('.lpj-row b').allInnerTexts();
-  ok(own.every(p => rows.includes(p.what)) && rows.length === own.length, `7 the job sees the line's own programs — the same records (${rows.join(', ')})`);
-  const cw3 = sec.locator('.lpj-row', { hasText: 'CW-3 Maris Piper 2kg' });
-  await cw3.getByRole('button', { name: 'Prove it in Commission' }).click(); await page.waitForTimeout(1500);
-  const test = await page.evaluate(async pid => (await (await import('/src/db.ts')).listTests(pid)).find(x => x.title === 'Prove program CW-3 Maris Piper 2kg'), sd.projectId);
+  const rows = (await main.locator('.pp-theirs li').allInnerTexts()).map(flat);
+  ok(own.every(p => rows.some(r => r.includes(p.what) && r.startsWith('Line 7 — smoke test’s own'))) && rows.length === own.length && await main.locator('.lpj').count() === 0,
+    `7 the job sees the line's own programs under their machines, marked by line — the same records, no second list (${rows.length})`);
   const cw = t.programs.find(p => p.what === 'CW-3 Maris Piper 2kg');
-  ok(!!test && test.programId === cw.id && test.outcome === 'planned', "7b Prove it in Commission plans its test, naming the line's program");
-  /* its test passed in Commission (the test's own screen writes the same) */
-  await page.evaluate(async ([tid, day]) => { const db = await import('/src/db.ts'); const row = await (await db.getDB()).get('tests', tid); await db.putTest({ ...row, outcome: 'passed', ranOn: day }); }, [test.id, iso(0)]);
-  await page.waitForTimeout(800);
+  const row = main.locator(`.pp-theirs li[data-program="${cw.id}"]`);
+  await row.getByRole('button', { name: 'Test it' }).click(); await page.waitForTimeout(300);
+  const panel = row.getByRole('group', { name: 'Test CW-3 Maris Piper 2kg' });
+  const saveOff = await panel.getByRole('button', { name: 'Save' }).isDisabled();
+  await panel.getByRole('button', { name: 'Passed' }).click();
+  await panel.getByLabel('What was seen when CW-3 Maris Piper 2kg ran').fill('500 packs at 60 a minute, seals checked');
+  await panel.getByRole('button', { name: 'Save' }).click(); await page.waitForTimeout(1500);
+  const test = await page.evaluate(async ([pid, id]) => (await (await import('/src/db.ts')).listTests(pid)).find(x => x.programId === id && !x.deletedAt), [sd.projectId, cw.id]);
+  ok(saveOff && !!test && test.title === 'Prove program CW-3 Maris Piper 2kg' && test.outcome === 'passed' && test.ranOn === iso(0) && test.result === '500 packs at 60 a minute, seals checked',
+    "7b Test it on the row: Save waits for how it went; passed, what was seen and the day — its proving test, naming the line's program");
   const after = (await truth()).programs.find(p => p.what === 'CW-3 Maris Piper 2kg');
-  ok(after.state === 'proved' && after.provedOn === iso(0) && after.projectId === '', "7c the test passed proves the line's program — still the line's, on no job");
+  const said = flat(await row.innerText());
+  ok(after.state === 'proved' && after.provedOn === iso(0) && after.projectId === '' && /Its test: passed/.test(said) && /Open the test/.test(said) && !/Test it/.test(said),
+    "7c passing it proves the line's program — still the line's, on no job; the row says its test and opens it");
   await go(`#/programs?line=${WS}`);
   ok(/is-pg-proved/.test(await main.locator(`[data-program="${cw.id}"]`).getAttribute('class')), '7d proved on the control room\'s Programs too');
-}
 
-/* ---- 7e Commission picks the line's programs (Rowland, 14 October: "you
-   can't pick a program from commissioning, which you should be able to") ---- */
-{
-  /* one more of the line's own, still to prove — the ones above are proved */
+  /* ---- 7e Commission opens a machine's programs from its cell ---- */
+  await go(`#/project/${sd.projectId}/testing`);
+  ok(await main.getByRole('button', { name: /Prove programs/ }).count() === 0, '7e Commission has no second picker');
+  const mname = await page.evaluate(async ([pid, id]) => (await (await import('/src/db.ts')).listAssets(pid)).find(a => a.id === id)?.name ?? 'The line itself', [sd.projectId, test.assetId]);
+  await main.getByRole('button', { name: new RegExp(`^${mname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} — programs:`) }).click(); await page.waitForTimeout(500);
+  const sheet = page.getByRole('dialog', { name: `Programs on ${mname}` });
+  const prow = sheet.locator('.cgp-row', { hasText: 'CW-3 Maris Piper 2kg' });
+  ok(/passed/.test(flat(await prow.innerText())) && /Open the test/.test(flat(await prow.innerText())), `7e its programs cell opens ${mname}'s programs, the line's tested one with its test`);
+  await prow.click(); await page.waitForTimeout(1200);
+  ok(await page.getByLabel('Which program this test proves').inputValue() === cw.id, "7e a tap opens its test, naming the line's program");
+  await page.keyboard.press('Escape'); await page.waitForTimeout(500);
+
+  /* ---- 7f Needs you's program with no test: Test it lands on its row on Programs, open ---- */
+  const aid = await page.evaluate(async pid => (await (await import('/src/db.ts')).listAssets(pid)).filter(a => !a.deletedAt)[0]?.id, sd.projectId);
+  await page.evaluate(async ([pid, aid]) => {
+    const db = await import('/src/db.ts'); const t = Date.now();
+    await db.putProgram({ id: 'acc-jp-1', projectId: pid, what: 'JP-1 Acceptance 500g', runs: 'Acceptance 500g', assetId: aid, state: 'onMachine', sort: 9001, createdAt: t, updatedAt: t });
+  }, [sd.projectId, aid]);
+  await page.waitForTimeout(800);
+  const need = main.locator('.nd-row', { hasText: 'JP-1 Acceptance 500g' });
+  await need.getByRole('button', { name: 'Test it' }).click(); await page.waitForTimeout(2200);
+  const jp = page.getByRole('group', { name: 'Test JP-1 Acceptance 500g' });
+  ok(/\/programs\?test=acc-jp-1/.test(page.url()) && await jp.isVisible(), "7f Needs you's Test it lands on the program's row on Programs, its test open");
+  await jp.getByLabel('The day JP-1 Acceptance 500g ran or is booked').fill(iso(3));
+  await jp.getByRole('button', { name: 'Not run yet — book it for this day' }).click(); await page.waitForTimeout(1500);
+  const jt = await page.evaluate(async pid => (await (await import('/src/db.ts')).listTests(pid)).find(x => x.programId === 'acc-jp-1' && !x.deletedAt), sd.projectId);
+  const jrow = main.locator('.ptx', { hasText: 'booked' }).filter({ has: page.getByRole('button', { name: 'Say how it went' }) });
+  ok(!!jt && jt.outcome === 'planned' && jt.plannedFor === iso(3) && jt.assetId === aid && await jrow.count() >= 1,
+    '7f not run yet: booked for its day on its machine, the row says booked and asks how it went');
+
+  /* ---- 7g a line's program with no machine on the job: tested on the line itself; didn't pass is said in red ---- */
   await page.evaluate(async ws => {
     const db = await import('/src/db.ts'); const t = Date.now();
     await db.putProgram({ id: 'acc-lp-9', projectId: '', workspaceId: ws, what: 'LP-9 Express 1kg', runs: 'Express 1kg', state: 'onMachine', sort: 9000, createdAt: t, updatedAt: t });
   }, WS);
+  await go(`#/project/${sd.projectId}/programs`);
+  const lp = main.locator('.pp-theirs li[data-program="acc-lp-9"]');
+  await lp.getByRole('button', { name: 'Test it' }).click(); await page.waitForTimeout(300);
+  const lpp = lp.getByRole('group', { name: 'Test LP-9 Express 1kg' });
+  await lpp.getByRole('button', { name: 'Didn’t pass' }).click();
+  await lpp.getByLabel('What was seen when LP-9 Express 1kg ran').fill('Film tracked off after 40 packs');
+  await lpp.getByRole('button', { name: 'Save' }).click(); await page.waitForTimeout(1500);
+  const lt = await page.evaluate(async pid => (await (await import('/src/db.ts')).listTests(pid)).find(x => x.programId === 'acc-lp-9' && !x.deletedAt), sd.projectId);
+  const lsaid = flat(await lp.innerText());
+  ok(!!lt && lt.outcome === 'failed' && !lt.assetId && /didn’t pass — Film tracked off after 40 packs/.test(lsaid) && await lp.locator('.cg-pstate.is-r').count() === 1 && /Test it again/.test(lsaid),
+    `7g a line's program tested on the line itself: didn't pass, in red, with what was seen, and Test it again (${lsaid.slice(0, 120)})`);
   await go(`#/project/${sd.projectId}/testing`);
-  await main.getByRole('button', { name: /^Prove programs — pick from Programs/ }).click(); await page.waitForTimeout(600);
-  const pk = main.locator('section.pk');
-  const groups = (await pk.locator('.pk-h').allInnerTexts()).map(flat);
-  ok(groups[0]?.startsWith('This job’s programs') && groups.some(g => g.startsWith('Line 7 — smoke test’s own programs')), `7e Commission offers the job's programs, then the line's own: ${groups.join(' · ')}`);
-  const lineG = pk.locator('.pk-g', { hasText: 'Line 7 — smoke test’s own programs' });
-  const box = lineG.locator('.pk-pick input').first();
-  const name = flat(await lineG.locator('.pk-pick .pk-main b').first().innerText());
-  await box.check(); await pk.getByRole('button', { name: 'Plan its test' }).click(); await page.waitForTimeout(1500);
-  const r = await page.evaluate(async ([pid, what]) => {
-    const db = await import('/src/db.ts');
-    const prog = (await db.listAllPrograms()).find(p => p.what === what);
-    const tests = (await db.listTests(pid)).filter(t => t.programId === prog?.id && !t.deletedAt);
-    return { prog, tests };
-  }, [sd.projectId, name]);
-  const sel = page.getByLabel('Which program this test proves');
-  ok(!!r.prog && r.prog.projectId === '' && r.tests.length === 1 && r.tests[0].title === `Prove program ${name}` && r.tests[0].outcome === 'planned'
-    && await sel.inputValue() === r.prog.id,
-    `7f a line's program picked in Commission: its proving test planned, opened, its drawer naming it (${name})`);
-  await page.keyboard.press('Escape'); await page.waitForTimeout(500);
-  await main.getByRole('button', { name: /^Prove programs — pick from Programs/ }).click(); await page.waitForTimeout(600);
-  ok(/Its test:/.test(flat(await main.locator('section.pk .pk-row', { hasText: name }).innerText())), '7g picked once, the picker says its test, never a second');
+  ok(/gone wrong/.test(flat(await main.getByRole('button', { name: /^The line itself — programs:/ }).innerText())), "7g and on Commission's board, the line itself's programs say one gone wrong");
 }
 
 /* ---- 8 Your factory, screen and paper ---- */
@@ -427,7 +457,7 @@ await page.setViewportSize({ width: 1360, height: 900 });
   ok(want.length >= 4 && !lost.length, `13e the line's programs report says how each of ${want.length} was proved${lost.length ? ` — lost: ${lost.join(' | ')}` : ''}`);
   /* the job's own Programs list asks the same, and offers its test */
   await go(`#/project/${sd.projectId}/programs`);
-  await main.getByRole('button', { name: /Test days and proving in Commission/ }).click(); await page.waitForTimeout(600);
+  await main.getByRole('button', { name: /Add a program, or change one/ }).click(); await page.waitForTimeout(600);
   /* its name is a box to type in: the row is found by its own controls */
   const r07 = main.locator('.mt-row', { has: page.getByLabel('Where PR-07 Baking Potatoes 2 kg has got to') }).first();
   await r07.getByRole('button', { name: 'Mark it proved' }).click(); await page.waitForTimeout(300);
@@ -436,9 +466,10 @@ await page.setViewportSize({ width: 1360, height: 900 });
   await r07.getByLabel('What showed PR-07 Baking Potatoes 2 kg works').fill('Ran 2 kg potatoes for an hour at 40 a minute, no rejects');
   await r07.getByRole('button', { name: 'It’s proved' }).click(); await page.waitForTimeout(1200);
   const j07 = await page.evaluate(async pid => (await (await import('/src/db.ts')).listPrograms(pid)).find(p => p.what === 'PR-07 Baking Potatoes 2 kg'), sd.projectId);
-  ok(blank && offers.includes('plan its test in Commission') && j07.state === 'proved' && j07.note === 'Ran 2 kg potatoes for an hour at 40 a minute, no rejects'
+  /* its test is on its machine's row above now (ui/ProgramTest), not here */
+  ok(blank && !offers.includes('plan its test') && j07.state === 'proved' && j07.note === 'Ran 2 kg potatoes for an hour at 40 a minute, no rejects'
     && flat(await r07.innerText()).includes('Signed off by hand — no test behind it'),
-    '13f the job\'s Programs list: proved asks what showed it, offers its test in Commission, and says how');
+    '13f the job\'s Programs list: proved asks what showed it and says how — its test is on its row above');
 }
 
 /* ---- 14 one list of machines, every picker (flow audit #14) ---- */

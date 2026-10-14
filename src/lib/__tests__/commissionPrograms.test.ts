@@ -4,8 +4,8 @@
  * of the line's own — one on a machine the job has (by name), one on a
  * machine it has not, one on the line itself. */
 import { describe, expect, it } from 'vitest';
-import { commissionPrograms, programsToPick, provingPlans } from '../commissionPrograms';
-import { provingTitle, type Program } from '../programs';
+import { commissionPrograms, programsToPick } from '../commissionPrograms';
+import type { Program } from '../programs';
 import type { Asset, Test } from '../testing';
 import type { JobLinePrograms } from '../lineRecords';
 
@@ -34,13 +34,6 @@ describe('programs to pick in Commission', () => {
     const g = programsToPick(job, lines, assets, [test('t1', 'l1')]);
     expect(g[1].rows[0].test?.id).toBe('t1');
     expect(g[1].rows[1].test).toBeUndefined();
-  });
-  it('a pick plans a proving test each, on its machine, with what the program says', () => {
-    const g = programsToPick(job, lines, assets, []);
-    expect(provingPlans([g[1].rows[0], g[1].rows[2]], provingTitle)).toEqual([
-      { title: 'Prove program LP-1 Tesco', assetId: 'a1', extra: { programId: 'l1', planned: 'Tesco 2kg', plannedFor: '2026-10-16', withWhom: 'Ishida' } },
-      { title: 'Prove program LP-3 Clean', extra: { programId: 'l3' } },
-    ]);
   });
 });
 

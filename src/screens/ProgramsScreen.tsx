@@ -168,8 +168,11 @@ function PutAllOn({ state, assets, addAsset }: {
   );
 }
 
-function Row({ p, today, lineName, assets, state, weeks, can, tt, first, last }: {
+function Row({ p, today, lineName, assets, state, weeks, can, tt, first, last, testHere }: {
   p: Program; today: string; lineName?: string; assets: Asset[]; weeks: Week[];
+  /** Its test on the row — not when embedded on a stage gate's Programs
+   *  page, whose machine rows above test it (ui/ProgramTest). */
+  testHere: boolean;
   /** Its place in the list — the ends have no further up or down. */
   first?: boolean; last?: boolean;
   state: ReturnType<typeof usePrograms>;
@@ -236,7 +239,7 @@ function Row({ p, today, lineName, assets, state, weeks, can, tt, first, last }:
         {/* ITS TEST IN COMMISSION (Rowland, 6 October: "programs are directly
             linked to commissioning"). Passing it proves this program on the
             day it ran (lib/programs programAfterTest); a fail puts it back. */}
-        {test ? (
+        {!testHere ? null : test ? (
           <div className="mt-facts pg-test">
             Its test in Commission: <span className={'cg-pstate is-' + testCell(test, today).tone}>{testCell(test, today).word}</span>
             {' '}<button className="cw-link" onClick={() => openRecord(p.projectId, test.id)}>Open it</button>
@@ -298,7 +301,7 @@ function Row({ p, today, lineName, assets, state, weeks, can, tt, first, last }:
           test in Commission, which proves it on its own. */}
       {!can.edit ? null : proving ? (
         <ProveProgram p={p} onClose={() => setProving(false)}
-          testDoor={test ? undefined : <>Or prove it by a test — <button type="button" className="cw-link" onClick={() => { setProving(false); void planTest(); }}>plan its test in Commission</button></>} />
+          testDoor={test || !testHere ? undefined : <>Or prove it by a test — <button type="button" className="cw-link" onClick={() => { setProving(false); void planTest(); }}>plan its test in Commission</button></>} />
       ) : isProved(p) ? (
         <button className="btn btn-ghost btn-sm mt-act" onClick={() => void state.markUnproved(p.id)}>
           Not proved after all
@@ -538,7 +541,7 @@ export function ProgramsScreen({ projectId, embedded = false }: {
               <WeekHead weeks={state.weeks} months={monthSpans(state.weeks)} />
               {state.programs.map((p, i) => (
                 <Row key={p.id} p={p} today={today} lineName={lineName(p.lineId)} assets={assets} state={state} weeks={state.weeks} can={can} tt={tt}
-                  first={i === 0} last={i === state.programs.length - 1} />
+                  first={i === 0} last={i === state.programs.length - 1} testHere={!embedded} />
               ))}
             </div>
             <p className="pg-key">

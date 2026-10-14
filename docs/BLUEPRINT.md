@@ -729,18 +729,47 @@ is still wired.
   is drawn too — a bar a station under the V's sentence, its scale carried
   over a page. Accepted by `line-capacity.mjs` 2–2d; the paper by
   `report-stress.mjs`.
-- **Programs picked in Commission** (Rowland, 14 October: "I want to be
+- **Programs tested where they sit** (Rowland, 14 October: "I want to be
   able to easily go into commission, find the programs that should be
-  available because they're in programs ... you can't pick a program from
-  commissioning"). Placed (§8): *Jobs*, the stage gate's Commission; records
-  `programs` and `tests` (the test's `programId`, as before — no new
-  record). Commission's *Prove programs — pick from Programs* lists the job's
-  programs, then each of its lines' own (Stage 2), each on the job's machine
-  of its name, with its test when it has one; tick several and each gets a
-  proving test on its machine (`lib/commissionPrograms`, `ui/ProgramPicker`).
-  A test's page and its drawer name a line's program too
-  (`lib/useJobPrograms`). The board and Needs you count a line's program once
-  this job has a test for it — a test proving one was on no square before.
-  Accepted by `machines-programs.mjs` 7e–7g. The commissioning report and
-  cards follow.
+  available because they're in programs"; then "its also in the program
+  page test a commission but the ui is poor and makes no sense, and in
+  commissioning cant access the programs .. reach it only from programs and
+  improve the ui to actually run it?" — "do it"). Placed (§8): *Jobs*, the
+  stage gate's Programs and Commission; records `programs` and `tests` (the
+  test's `programId`, as before — no new record). On Programs every program
+  — the job's, and its lines' own (Stage 2) under the job's machine of their
+  name, marked by line — has its test on its row (`ui/ProgramTest`): *Test
+  it* asks how it went (passed · didn't pass · didn't run), what was seen
+  and the day, or books it for a day; passing proves the program. It
+  replaced "Prove it in Commission" and "plan its test" (a test made and a
+  drawer of boxes opened), the lines' own section below the machines, and
+  Commission's tick-list picker (`ui/ProgramPicker`, live a day) — three
+  routes to one act. Commission's board opens a machine's programs from its
+  programs cell, each with its test and a tap into it; Needs you's *Test it*
+  lands on the row on Programs, open. The board and Needs you count a line's
+  program once this job has a test for it (`lib/commissionPrograms`). A
+  test's page and its drawer name a line's program too
+  (`lib/useJobPrograms`). The Programs list at the foot keeps adding,
+  naming, ordering and test days. Paper unchanged. Accepted by
+  `machines-programs.mjs` 7–7g.
+- **The commissioning report and cards** (Rowland, 14 October: "make sure we
+  have a fully functional commissioning report ... where we got to, the
+  problems ... a commissioning report, commissioning cards, something that
+  way I can present in the meeting or send"). Placed (§8): *Jobs*, the stage
+  gate's papers; no new record — read off the full report's reading of
+  Commission, the handover reading's machines and the Commission board's
+  programs (`lib/commissioningReport`), so it cannot disagree with them.
+  Where we are (the verdict, the gate's count, the handover dates, every
+  machine in a row with its word — ready, under way, behind, not started —
+  and its next test); why we are not where we should be (each test that did
+  not pass or run with what was seen, programs gone wrong, critical issues);
+  what we are doing about it (the fixes, the problems taken for the job, the
+  tests booked next); the runs; each machine whole. The cards: a page a
+  machine for the meeting — its word in its colour, tiles for its tests,
+  programs and what is open, its tests, its next test (`lib/commissioningPdf`).
+  Shows on Commission's header (*Commissioning report*), the report screen's
+  own chip with *Cards — a page a machine*, and the job's Reports sheet
+  (with *Test cards*, which were only on Commission). Accepted by
+  `commissioning-report.mjs`; the paper by `report-stress.mjs` at three
+  sizes.
 - **Next:** Stage 3 — the line is the hub (its products, readiness, health).

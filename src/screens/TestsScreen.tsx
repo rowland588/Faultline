@@ -29,10 +29,7 @@ import { DateInput } from '../ui/DateInput';
 import { AccessNote } from '../ui/AccessNote';
 import { useAccess } from '../cloud/access';
 import { useJobPrograms } from '../lib/useJobPrograms';
-import { commissionPrograms, programsToPick, provingPlans } from '../lib/commissionPrograms';
-import { provingTitle } from '../lib/programs';
-import { ProgramPicker } from '../ui/ProgramPicker';
-import { offerUndo } from '../ui/Undo';
+import { commissionPrograms } from '../lib/commissionPrograms';
 
 const nice = (iso?: string): string => niceDay(iso) || '—';
 
@@ -60,14 +57,10 @@ export function TestsScreen({ projectId }: { projectId: string }) {
      actually worked through. */
   const [on, setOn] = useState<string[]>([]);
   const [cardsBusy, setCardsBusy] = useState(false);
-  /* PROGRAMS, PICKED HERE (lib/commissionPrograms; Rowland, 14 October:
-     "you can't pick a program from commissioning, which you should be able
-     to"): the job's own and its lines' own; the board and Needs you count the
-     job's and every line program this job has a test for. */
-  const pickGroups = useMemo(() => programsToPick(programs, lines, tt.assets, tt.tests), [programs, lines, tt.assets, tt.tests]);
+  /* PROGRAMS ON THE BOARD (lib/commissionPrograms): the job's own and every
+     line program this job has a test for — each machine's programs cell
+     opens them; one is tested on its row on Programs (ui/ProgramTest). */
   const boardPrograms = useMemo(() => commissionPrograms(programs, lines, tt.assets, tt.tests), [programs, lines, tt.assets, tt.tests]);
-  const [picking, setPicking] = useState(false);
-  const [planning, setPlanning] = useState(false);
 
   if (loading || tt.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   if (!project) return <div className="wrap pace"><p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p></div>;
@@ -100,20 +93,6 @@ export function TestsScreen({ projectId }: { projectId: string }) {
   };
 
   const toggle = (id: string) => setOn(p => (p.includes(id) ? p.filter(x => x !== id) : [...p, id]));
-
-  /* A proving test a program ticked, on its machine (lib/commissionPrograms
-     provingPlans); one opens, several are said with one undo. */
-  const toProve = pickGroups.reduce((n, g) => n + g.rows.filter(r => !r.proved && !r.test).length, 0);
-  const planPicked = async (rows: Parameters<typeof provingPlans>[0]) => {
-    if (!rows.length || planning) return;
-    setPlanning(true);
-    try {
-      const ids = await tt.planTests(provingPlans(rows, provingTitle));
-      setPicking(false);
-      if (ids.length === 1) open(ids[0]);
-      else offerUndo(`${ids.length} proving tests planned — on the board under each machine's programs`, async () => { for (const id of ids) await tt.removeTest(id); });
-    } finally { setPlanning(false); }
-  };
 
   const allCards = async () => {
     if (cardsBusy) return;
@@ -155,6 +134,13 @@ export function TestsScreen({ projectId }: { projectId: string }) {
         {/* A CARD FOR EVERY TEST ON THE BOARD (docs/AUDIT.md, bar 3) — each
             the card its record prints, one document (lib/testCards) */}
         <div className="pace-head-actions">
+          {/* THE COMMISSIONING REPORT AND CARDS (Rowland, 14 October: "a
+              commissioning report, commissioning cards ... I can present in
+              the meeting or send") — where this gate has got to, machine by
+              machine, on the report screen with its cards */}
+          <button type="button" className="btn btn-primary" onClick={() => nav(`/project/${projectId}/report?doc=commissioning`)}
+            aria-label="Commissioning report — where commissioning has got to, machine by machine, and a card a machine">
+            <Icon name="document" size="1.05em" />Commissioning report</button>
           <button type="button" className="btn" disabled={cardsBusy || proofs.length === 0} onClick={() => void allCards()}
             aria-label="Test cards — a card for every test on the board (PDF)"><Icon name="document" size="1.05em" />{cardsBusy ? 'Making…' : 'Test cards'}</button>
         </div>
@@ -201,12 +187,6 @@ export function TestsScreen({ projectId }: { projectId: string }) {
       <NeedsYou project={project} tt={tt} programs={boardPrograms} can={can} />
       {(tt.assets.length > 0 || proofs.length > 0) && <CommissionGrid project={project} projects={projects} tt={tt} programs={boardPrograms} can={can} />}
 
-      {/* PROVE PROGRAMS — picked from Programs: the job's own and its lines'
-          own, each a proving test on its machine (ui/ProgramPicker). */}
-      {can.edit && picking && (
-        <ProgramPicker groups={pickGroups} busy={planning} onPlan={rows => void planPicked(rows)} onOpen={id => open(id)} onClose={() => setPicking(false)} />
-      )}
-
       {/* PLAN A TEST that is not one of the usual ones — the usual ones are
           the board's "+" squares. One door. */}
       {can.edit && (
@@ -243,11 +223,6 @@ export function TestsScreen({ projectId }: { projectId: string }) {
               <button className="cw-add" onClick={() => setAdding('test')}>
                 <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Plan a test that is not one of the usual ones
               </button>
-              {pickGroups.length > 0 && !picking && (
-                <button className="cw-add" onClick={() => setPicking(true)}>
-                  <span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Prove programs — pick from Programs{toProve ? ` (${toProve} with no test yet)` : ''}
-                </button>
-              )}
             </span>
           )}
         </section>

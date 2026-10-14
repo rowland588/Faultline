@@ -1,9 +1,13 @@
-/* PROGRAMS IN COMMISSION — picked there, and counted there once picked.
+/* PROGRAMS IN COMMISSION — which a job may test, and which its board counts.
  *
  * Rowland, 14 October: "I want to be able to easily go into commission, find
  * the programs that should be available because they're in programs ... so
  * that should be available to pick ... you can't pick a program from
- * commissioning, which you should be able to."
+ * commissioning, which you should be able to." And then: "the ui is poor
+ * and makes no sense ... reach it only from programs and improve the ui to
+ * actually run it?" — so every one is tested on its row on Programs
+ * (ui/ProgramTest, read by programsToPick), and Commission's board opens each
+ * machine's programs from its cell (commissionPrograms).
  *
  * A program was proved in Commission only from the other end: the Programs
  * page's "Prove it in Commission", or a test's record naming one — and the
@@ -20,8 +24,8 @@
  *                        that proves it when there is one
  *   commissionPrograms   what the board and Needs you count: the job's own,
  *                        and a line's program once this job has a test for
- *                        it — picked, so owed here. A line's program nobody
- *                        picked is the line's, not owed by this job (thirty
+ *                        it — tested here, so owed here. A line's program nobody
+ *                        tested is the line's, not owed by this job (thirty
  *                        of the OEM's on a line would be thirty rows of
  *                        "no test yet" on every job on it).
  *
@@ -94,13 +98,4 @@ export function commissionPrograms(jobPrograms: readonly Program[], lines: reado
     }
   }
   return [...own, ...picked];
-}
-
-/** The tests a pick plans: one proving test a program, on its machine, with
- *  what the program already says — its runs, its day, who brings it. */
-export function provingPlans(rows: readonly PickRow[], title: (p: Program) => string): { title: string; assetId?: string; extra: { programId: string; planned?: string; plannedFor?: string; withWhom?: string } }[] {
-  return rows.map(r => ({
-    title: title(r.program), ...(r.assetId ? { assetId: r.assetId } : {}),
-    extra: { programId: r.program.id, ...(r.program.runs ? { planned: r.program.runs } : {}), ...(r.program.testOn ? { plannedFor: r.program.testOn } : {}), ...(r.program.from ? { withWhom: r.program.from } : {}) },
-  }));
 }

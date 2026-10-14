@@ -12702,25 +12702,37 @@ button.vc-row-in:focus-visible { outline: 2px solid var(--brand); outline-offset
 .ls-bn-check { display: flex; gap: 8px; align-items: flex-start; margin-top: 12px; font-weight: 600; }
 .ls-bn-check input { margin-top: 3px; }
 
-/* PROVE PROGRAMS — picked in Commission (ui/ProgramPicker; Rowland, 14
-   October: "you can't pick a program from commissioning") */
+/* TEST IT — a program tested on its row on Programs (ui/ProgramTest;
+   Rowland, 14 October: "improve the ui to actually run it") */
 .cmp-adds { display: flex; flex-wrap: wrap; gap: 6px 18px; }
-.pk { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 14px 16px; box-shadow: var(--shadow); }
-.pk-find { width: 100%; max-width: 420px; margin: 4px 0 10px; }
-.pk-g { margin: 10px 0 4px; }
-.pk-h { font-size: var(--t-body); margin: 0 0 4px; display: flex; flex-wrap: wrap; gap: 2px 10px; align-items: baseline; }
-.pk-none { margin: 2px 0 6px; }
-.pk-rows { list-style: none; margin: 0; padding: 0; }
-.pk-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 6px 4px; border-bottom: 1px solid var(--line); border-radius: 8px; }
-.pk-row:last-child { border-bottom: 0; }
-.pk-row.is-on { background: var(--accent-soft); }
-.pk-row.is-proved { opacity: .75; }
-.pk-pick { display: flex; align-items: flex-start; gap: 10px; flex: 1 1 260px; min-width: 0; cursor: pointer; min-height: 40px;
-  font-size: var(--t-body); font-weight: 400; text-transform: none; letter-spacing: normal; color: var(--ink); }
-.pk-main b { font-size: var(--t-body); }
-.pk-main .sub { font-size: var(--t-detail); }
-.pk-pick input { width: 20px; height: 20px; margin-top: 2px; flex: none; accent-color: var(--brand); }
-.pk-main { display: flex; flex-direction: column; gap: 1px; flex: 1 1 220px; min-width: 0; }
-.pk-test { font-size: var(--t-detail); }
-.pk-show { margin: 6px 0 0; }
-.pk-go { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; position: sticky; bottom: 0; background: var(--surface); padding: 8px 0 2px; }
+.ptx { flex-basis: 100%; font-size: var(--t-detail); margin: 4px 0 2px; }
+.ptx-now { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.ptx-go { margin-left: 4px; }
+.ptx-panel { display: grid; gap: 8px; margin-top: 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface); box-shadow: var(--shadow); max-width: 640px; }
+.ptx-h { font-weight: 700; font-size: var(--t-body); }
+.ptx-f { display: grid; gap: 3px; }
+.ptx-f textarea { width: 100%; font: inherit; }
+.ptx-day input { max-width: 200px; }
+.ptx-go-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.spp-after { flex: 1 0 100%; padding: 0 0 2px 74px; }
+@media (max-width: 640px) { .spp-after { padding-left: 0; } }
+.pp-theirs li { flex-wrap: wrap; }
+.pp-line-tag { font-size: var(--t-label); font-weight: 700; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; }
+/* A MACHINE'S PROGRAMS, opened from its cell on Commission's board */
+.cgp-list { list-style: none; margin: 8px 0 12px; padding: 0; }
+.cgp-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; width: 100%; text-align: left; background: none; border: 0;
+  border-bottom: 1px solid var(--line); padding: 10px 4px; cursor: pointer; font: inherit; color: var(--ink); min-height: 44px; }
+.cgp-row:hover { background: var(--accent-soft); }
+.cgp-main { display: flex; flex-direction: column; gap: 1px; flex: 1 1 220px; min-width: 0; }
+.cgp-go { font-size: var(--t-detail); color: var(--brand); font-weight: 600; }
+
+/* THE COMMISSIONING REPORT in words (screens/ClientReportScreen): a machine a
+   line, its word in its colour, with the words */
+.cm-toc .cm-m { display: block; padding: 3px 0; }
+.cm-word { font-weight: 700; }
+.cm-word.is-g { color: var(--st-g); }
+.cm-word.is-r { color: var(--st-r); }
+.cm-word.is-a { color: var(--st-a); }
+.cm-word.is-w { color: var(--st-w); }
+.cm-word.is-n { color: var(--muted); }

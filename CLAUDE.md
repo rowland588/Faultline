@@ -202,6 +202,7 @@ node scripts/acceptance/edit-delete.mjs  # bar 2: every record edited and delete
 node scripts/acceptance/audit.mjs  # the audit's fixes (docs/AUDIT.md): a way out of every sheet on a short phone, Escape on the photo viewer, a study on paper with Ppk and Cpk and its readings, every study list on paper
 node scripts/audit.mjs [out.json]     # not a pass/fail: walks every screen at desk and phone — ways out, phone fit, lists with no paper (docs/AUDIT.md)
 node scripts/acceptance/list-paper.mjs  # the audit's bar 3: paper wherever there is a list — Line capacity's page and every product shown, Line standard's cards for all shown, Materials, a card for every test on Commission
+node scripts/acceptance/commissioning-report.mjs  # the commissioning report and cards: from Commission and the Reports sheet, the gate machine by machine, why and what we are doing, on paper and as a card a machine, moving when a test passes, on a phone and for a client
 node scripts/acceptance/report-relevance.mjs  # the audit's bar 8: the stage-gate papers keep up — a machine late on site, a register problem for the job, the line's own programs, what a gate is missing, on the full report, the one page, the programs report and the handover; the statuses moved and all four moved with them
 node scripts/sync-two-devices.mjs     # a phone and a laptop against a fake cloud — video on one plays on the other
 node scripts/check-live-schema.mjs    # the LIVE database against the mapper — needs .env
@@ -345,10 +346,14 @@ made); where it has got to, its commentary, a test day gone by in red, proved
 with its day; the line's page — its machines in flow order with their makers
 and programs, one named there, "The line" no longer listing them twice; a
 machine renamed in Set up the line carrying its record; a job on the line
-seeing the line's own programs and proving one by a test in Commission,
-and Commission picking a line's program itself (14 October: "you can't pick
-a program from commissioning") — its proving test planned on the job's
-machine, its drawer naming it, the picker never offering it twice; Your
+seeing the line's own programs under their machines, marked by line, and
+testing one on its row (14 October: "reach it only from programs and
+improve the ui to actually run it?") — Test it: passed, what was seen, the
+day; its proving test made, the line's program proved; Commission's
+programs cell opening a machine's programs and a tap its test, no second
+picker; Needs you's Test it landing on the row on Programs, open, booked
+there for a day; a line's program with no machine on the job tested on the
+line itself, didn't pass in red on the row and the board; Your
 factory's row and its paper; the line's programs report; Line capacity
 offering the line's machines; and the phone. `list-paper.mjs` is the audit's
 bar 3 (`docs/AUDIT.md`; Rowland, 13 October: "I'm always asking for
@@ -372,7 +377,18 @@ it, the screen's contents saying the same; what a gate's Needs you says is
 missing on the full report as on its contents; the register problem's line
 on the status page opening the problem; then the problem closed, the
 machine landed and the line's program proved — and all four papers moving
-with them, the status still one page. `line-standard.mjs` is the line standard's board (Rowland, 13 October: "I
+with them, the status still one page. `commissioning-report.mjs` is the commissioning report and its cards
+(Rowland, 14 October: "a commissioning report, commissioning cards,
+something that way I can present in the meeting or send"): Commission's
+*Commissioning report* opening it on its own chip; the gate's count as
+Commission's header says it, every machine with its word, why naming every
+test whose latest attempt did not pass or did not run, doing every open
+fix; the same on paper with the code to the job; the cards a page a
+machine, in order, each "i OF n"; a failed test passed on a re-test moving
+its machine's word, its why line and the paper; the job's Reports sheet
+opening it beside *Test cards*; a phone with nothing off the side; and a
+client taking the cards.
+`line-standard.mjs` is the line standard's board (Rowland, 13 October: "I
 can't drag the interface down ... I only have a small surface area ... I
 also can't change the colour of the people"): the empty board the page's to
 scroll and pinch while a person and a shape are the board's to drag, a tap
