@@ -12708,6 +12708,7 @@ button.vc-row-in:focus-visible { outline: 2px solid var(--brand); outline-offset
 .ptx { flex-basis: 100%; font-size: var(--t-detail); margin: 4px 0 2px; }
 .ptx-now { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
 .ptx-go { margin-left: 4px; }
+.ptx .btn-sm { min-height: 34px; padding: 4px 14px; font-size: var(--t-detail); }
 .ptx-panel { display: grid; gap: 8px; margin-top: 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius);
   background: var(--surface); box-shadow: var(--shadow); max-width: 640px; }
 .ptx-h { font-weight: 700; font-size: var(--t-body); }

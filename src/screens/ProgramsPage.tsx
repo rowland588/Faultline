@@ -77,7 +77,7 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
   const today = todayISO();
   const rec = useLineRecords();
   /* ?test=<program> — Commission's "Test it" lands on that program's row, open. */
-  const [testing] = useState(() => /[?&]test=([^&]+)/.exec(window.location.hash)?.[1]);
+  const [testing] = useState(() => (m => (m ? decodeURIComponent(m) : undefined))(/[?&]test=([^&]+)/.exec(window.location.hash)?.[1]));
 
   const reading = useMemo(() => (tt.loading || progs.loading ? undefined
     : programsReading({ tests: tt.tests, items: tt.items, assets: tt.assets, programs: progs.programs, today, holder: project, studies: rec.studies })),
@@ -99,11 +99,22 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
     const prog = p && progs.programs.find(x => x.id === p.id);
     return prog ? <ProgramTest projectId={projectId} program={prog} assetId={assetId || undefined} tt={tt} can={can} open={testing === prog.id} /> : null;
   };
+  /* A LINE ON A MACHINE'S "PROGRAMS LOADED" with no program record yet — how
+     most jobs hold their programs. Tested the same: its record is made, the
+     same name on the same machine, the moment its test is. */
+  const testOfPart = (part: TestItem, assetId: string) => (
+    <ProgramTest projectId={projectId} tt={tt} can={can} assetId={assetId || undefined} open={testing === `part:${part.id}`}
+      program={{ id: '', projectId, what: part.what.trim(), ...(assetId ? { assetId } : {}), state: 'onMachine', sort: 0, createdAt: 0, updatedAt: 0 }}
+      record={() => progs.add({ what: part.what, assetId: assetId || undefined, state: 'onMachine', ...(part.owner?.trim() ? { from: part.owner.trim() } : {}) })} />
+  );
   /* ONE PROGRAM, ONE ANSWER (flow audit #3): where a part is a program on the
      Programs list, the record's own state — what the line's Programs and the
      control room say — beside the floor's, named with its line. */
   const recordOf = new Map(lines.flatMap(l => {
-    if (rec.loading || !l.partId || !l.record || !l.programId) return [];
+    if (rec.loading || !l.partId || !l.programId) return [];
+    /* PROVED BY ITS TEST — said beside the floor's status, which may still
+       read "due soon" from before the test ran. */
+    if (!l.record) return l.bucket === 'done' ? [[l.partId, { word: l.word.replace(/^./, c => c.toUpperCase()), tone: l.tone }] as const] : [];
     const p = progs.programs.find(x => x.id === l.programId);
     const ws = p ? lineOfProgram(p, rec.jobLines) : undefined;
     const name = ws ? rec.all.find(w => w.id === ws)?.name : undefined;
@@ -197,7 +208,7 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
               ? <StageParts step={stage} tt={tt} can={can} holder={project} only={onlyKept} onOpen={id => openRecord(projectId, id)} aside={p => recordOf.get(p.id)}
                   onRunProblem={can.edit ? (tid, rid) => openRecordAt(projectId, tid, rid) : undefined}
                   onProblem={can.edit ? p => openRecordAt(projectId, stage.id, p.id) : undefined}
-                  after={p => (id => id ? testOf({ id }, m.id) : null)(programOfPart.get(p.id))} />
+                  after={p => (id => (id ? testOf({ id }, m.id) : testOfPart(p, m.id)))(programOfPart.get(p.id))} />
               : can.edit && m.id
                 ? <p className="sub pp-nostage">No programs stage on this machine yet.{' '}
                     <button type="button" className="cw-link" onClick={() => void tt.planSteps(['Programs loaded'], m.id, 'setup')}>Add Programs loaded to it</button></p>

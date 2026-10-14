@@ -36,9 +36,15 @@ const HOW: { is: How; word: string; tone: string }[] = [
   { is: 'notRun', word: 'Didn’t run', tone: 'r' },
 ];
 
-export function ProgramTest({ projectId, program: p, assetId, tt, can, open: openAtStart = false }: {
+export function ProgramTest({ projectId, program: p, assetId, tt, can, open: openAtStart = false, record }: {
   projectId: string;
+  /** The program — or, for a line on a machine's programs stage that is on
+   *  no Programs list yet, its name and machine (id ''), made a program the
+   *  moment it is tested (`record`). */
   program: Program;
+  /** Make its program record, the same name on the same machine, so the
+   *  stage's line and the record are one program (lib/programsReport). */
+  record?: () => Promise<string | undefined>;
   /** The job's machine its test sits on; none, the line itself. */
   assetId?: string;
   tt: ReturnType<typeof useTesting>;
@@ -70,8 +76,10 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
   const target = async (): Promise<{ id: string; made: boolean }> => {
     if (test && !ran) return { id: test.id, made: false };
     if (test && again) return { id: await tt.planNextFrom(test), made: true };
+    const programId = p.id || await record?.();
+    if (!programId) return { id: '', made: false };
     const [id] = await tt.planTests([{ title: provingTitle(p), ...(assetId ? { assetId } : {}),
-      extra: { programId: p.id, ...(p.runs ? { planned: p.runs } : {}), ...(p.from ? { withWhom: p.from } : {}) } }]);
+      extra: { programId, ...(p.runs ? { planned: p.runs } : {}), ...(p.from ? { withWhom: p.from } : {}) } }]);
     return { id, made: true };
   };
   const answer = async (patch: (cur: Test) => Partial<Test>, said: string) => {

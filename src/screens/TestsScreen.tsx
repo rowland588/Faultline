@@ -29,7 +29,7 @@ import { DateInput } from '../ui/DateInput';
 import { AccessNote } from '../ui/AccessNote';
 import { useAccess } from '../cloud/access';
 import { useJobPrograms } from '../lib/useJobPrograms';
-import { commissionPrograms } from '../lib/commissionPrograms';
+import { boardPrograms as boardProgramsOf } from '../lib/commissionPrograms';
 
 const nice = (iso?: string): string => niceDay(iso) || '—';
 
@@ -57,10 +57,11 @@ export function TestsScreen({ projectId }: { projectId: string }) {
      actually worked through. */
   const [on, setOn] = useState<string[]>([]);
   const [cardsBusy, setCardsBusy] = useState(false);
-  /* PROGRAMS ON THE BOARD (lib/commissionPrograms): the job's own and every
-     line program this job has a test for — each machine's programs cell
+  /* PROGRAMS ON THE BOARD (lib/commissionPrograms): the job's own, its
+     machines' "Programs loaded" lines, and every line program this job has a test for — each machine's programs cell
      opens them; one is tested on its row on Programs (ui/ProgramTest). */
-  const boardPrograms = useMemo(() => commissionPrograms(programs, lines, tt.assets, tt.tests), [programs, lines, tt.assets, tt.tests]);
+  const boardPrograms = useMemo(() => boardProgramsOf({ jobPrograms: programs, lines, assets: tt.assets, tests: tt.tests, items: tt.items, holder: project ?? undefined, projectId }),
+    [programs, lines, tt.assets, tt.tests, tt.items, project, projectId]);
 
   if (loading || tt.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   if (!project) return <div className="wrap pace"><p className="sub" style={{ marginTop: 24 }}>That project isn’t here any more.</p></div>;
