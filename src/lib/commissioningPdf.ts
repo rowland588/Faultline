@@ -280,7 +280,13 @@ export async function drawCommissioningReport(doc: jsPDF, r: CommissioningReport
 export async function drawCommissioningCards(doc: jsPDF, r: CommissioningReport): Promise<void> {
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
   if (!r.machines.length) {
-    await pour({ ...base, density: 'comfortable', dry: false }, [text({ text: 'No machines on the job yet — the cards are a page a machine.', colour: MUTED })], () => doc.addPage('a4', 'portrait'));
+    /* Still the job's, said at its top: a card with nothing on it is still
+       a card of this job (the fuzz caught it printing no name). */
+    await pour({ ...base, density: 'comfortable', dry: false }, [
+      text({ text: `COMMISSIONING CARDS · ${r.name.toUpperCase()}`, size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }),
+      text({ text: `Printed ${r.printed}`, size: 9, colour: MUTED, after: gap('comfortable', 'm') }),
+      text({ text: 'No machines on the job yet — the cards are a page a machine.', colour: MUTED }),
+    ], () => doc.addPage('a4', 'portrait'));
   }
   for (const [i, m] of r.machines.entries()) {
     if (i > 0) doc.addPage('a4', 'portrait');

@@ -25,7 +25,7 @@
  * line in its colour; the ones before it fold behind "N earlier". Passed
  * ticks it done. A failed one is on the gate's Needs you, the plan (screen
  * and paper), the day, and both reports as "Didn't pass" (lib/noted). */
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { PartResultIs, Test, TestItem } from '../lib/testing';
 import { live } from '../lib/testing';
 import { isProgramsStage } from '../lib/programs';
@@ -69,7 +69,7 @@ export function PartsMark({ said, className }: { said?: { head: string; late: nu
   );
 }
 
-export function StageParts({ step, tt, can, onProblem, only, onOpen, onRunProblem, holder, aside }: {
+export function StageParts({ step, tt, can, onProblem, only, onOpen, onRunProblem, holder, aside, after }: {
   step: Test; tt: Pick<TT, 'items' | 'tests' | 'assets' | 'addItem' | 'saveItem' | 'planTests' | 'patchTest'>; can: Can;
   /** The job, so the programs stage is the one its answer says (docs/PANELS.md). */
   holder?: AnswerHolder;
@@ -90,6 +90,9 @@ export function StageParts({ step, tt, can, onProblem, only, onOpen, onRunProble
    *  program record's on the line (screens/ProgramsPage; flow audit #3: one
    *  program, two records, two answers). */
   aside?: (p: TestItem) => { word: string; tone: string } | undefined;
+  /** Under the row, always shown: a program's test, tested where it sits
+   *  (screens/ProgramsPage, ui/ProgramTest). */
+  after?: (p: TestItem) => ReactNode;
 }) {
   const all = partsOf(step.id, tt.items);
   const parts = only ? all.filter(only) : all;
@@ -363,6 +366,7 @@ export function StageParts({ step, tt, can, onProblem, only, onOpen, onRunProble
                     )}
                   </div>
                 )}
+                {after && (n => n && <div className="spp-after">{n}</div>)(after(p))}
               </li>
             );
           })}

@@ -18,12 +18,13 @@ import { patchRuns, productRuns, readRuns, runAgain, runsBoard, runsBoardWords, 
 import { uid } from '../lib/ids';
 import { useState } from 'react';
 import { deleteTest } from '../db';
-import { commissionGrid, commissionNeeds, programsWords, type CommissionRow, type TestCell } from '../lib/commission';
+import { commissionGrid, commissionNeeds, programsWords, provingTestOf, testCell, type CommissionRow, type TestCell } from '../lib/commission';
 import { stepsNamed, untouched, usualAgreed, usualHolder, usualStages, whoFor } from '../lib/install';
 import { changeTests, moveTestsWithWhy } from './WhyMoved';
 import { movedLater } from '../lib/story';
 import { staggered } from '../lib/weeks';
-import { provingTitle, type Program } from '../lib/programs';
+import { isProved, type Program } from '../lib/programs';
+import { afterPanelBack } from './backCloses';
 import { isSettled, live, outcomeWord, plannedEnd, type Asset, type Outcome, type Test } from '../lib/testing';
 import type { useTesting } from '../lib/useTesting';
 import type { Can } from '../lib/access';
@@ -36,7 +37,7 @@ import { PlanWindow, Sheet, Who, usePhone } from './InstallGrid';
 import { offerUndo } from './Undo';
 import { Icon } from './Icon';
 import { nav } from '../state/useRoute';
-import { todayISO } from '../lib/weeks';
+import { niceDay, todayISO } from '../lib/weeks';
 import { squareWord } from '../lib/studyLinks';
 import { useJobStudies } from './StudyLinks';
 import type { ToolStudy } from '../lib/study';
@@ -64,6 +65,8 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
   const [colOpen, setColOpen] = useState<number | null>(null);
   /* Which phone card shows its not-yet-added usual tests, one at a time. */
   const [picking, setPicking] = useState<string | null>(null);
+  /* Which machine's programs are open, as a list (its programs cell). */
+  const [progsOf, setProgsOf] = useState<string | null>(null);
   const rowKey = (r: CommissionRow) => r.asset?.id ?? 'line';
   /* A phone gets a card per machine, its tests down the card with the state
      in words — as Install does; the laptop keeps the grid. */
@@ -103,6 +106,39 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
      stages open, and straight onto the boxes for whoever may change them
      (docs/STAGEGATE.md). It was a block that opened above the grid with a
      second "Edit" inside it. Back, ×, Save and Cancel close it. */
+  /* A MACHINE'S PROGRAMS, opened from its programs cell (Rowland, 14
+     October: "in commissioning cant access the programs") — each with where
+     its test has got to, a tap into that test; one with none is tested on
+     Programs, its row opened there (ui/ProgramTest). */
+  const progRow = progsOf == null ? undefined : rows.find(r => rowKey(r) === progsOf);
+  const progSheet = progRow ? (() => {
+    const mine = programs.filter(p => !p.deletedAt && (p.assetId ?? '') === (progRow.asset?.id ?? ''));
+    const close = (then: () => void) => { setProgsOf(null); afterPanelBack(then); };
+    return (
+      <DrawerShell label={`Programs on ${rowName(progRow.asset)}`} onClose={() => setProgsOf(null)} back>
+        <h2 className="rd-title">Programs on {rowName(progRow.asset)}</h2>
+        <p className="sub ig-sheet-sub">{progRow.programs ? programsWords(progRow.programs) : 'None'}{progRow.programs?.wrong ? ` · ${progRow.programs.wrong} gone wrong` : ''}</p>
+        <ul className="cgp-list">
+          {mine.map(p => {
+            const t = provingTestOf(p, tt.tests);
+            const c = t ? testCell(t, today) : undefined;
+            const word = isProved(p) && (!c || c.tone !== 'g') ? { tone: 'g', word: `proved ${niceDay(p.provedOn)}` } : c ?? { tone: 'n', word: 'no test yet' };
+            return (
+              <li key={p.id}>
+                <button type="button" className="cgp-row" onClick={() => close(() => (t ? openRecord(project.id, t.id) : nav(`/project/${project.id}/programs?test=${encodeURIComponent(p.id)}`)))}>
+                  <span className="cgp-main"><b>{p.what}</b>{p.runs && <span className="sub">runs {p.runs}</span>}</span>
+                  <span className={'cg-pstate is-' + word.tone}>{word.word}</span>
+                  <span className="cgp-go">{t ? 'Open the test ›' : can.edit && !isProved(p) ? 'Test it on Programs ›' : 'On Programs ›'}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        <p className="sub"><button type="button" className="cw-link" onClick={() => close(() => nav(`/project/${project.id}/programs`))}>Every program, and testing them — Programs ›</button></p>
+      </DrawerShell>
+    );
+  })() : null;
+
   const editor = editing ? (
     <DrawerShell label="The usual tests" onClose={() => setEditing(false)} back>
       <h2 className="rd-title">The usual tests</h2>
@@ -192,6 +228,7 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
       </div>
       {editor}
       {colSheet}
+      {progSheet}
       {can.edit && bare.length > 1 && (
         <p className="sub tw-note">
           {bare.length} machines have none of the usual tests yet — <button className="cw-link" onClick={() => void giveAll(bare)}>give them all the {usual.stages.length}</button>
@@ -238,7 +275,7 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
                 ))}
                 {r.programs && (
                   <button className={'igm-st' + (r.programs.proved === r.programs.total ? ' is-done' : r.programs.wrong ? ' is-late' : '')}
-                    onClick={() => nav(`/project/${project.id}/programs`)}>
+                    aria-label={`${rowName(r.asset)} — programs: ${programsWords(r.programs)}`} onClick={() => setProgsOf(rowKey(r))}>
                     <span className="igm-sq" aria-hidden />
                     <span className="igm-name">Programs</span>
                     <span className="igm-word">{r.programs.proved} of {r.programs.total} proved{r.programs.wrong ? ` · ${r.programs.wrong} gone wrong` : ''}</span>
@@ -304,8 +341,8 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
                   <td>
                     {r.programs ? (
                       <button className={'ig-cell cg-prog' + (r.programs.proved === r.programs.total ? ' is-done' : r.programs.wrong ? ' is-late' : '')}
-                        title={programsWords(r.programs)}
-                        onClick={() => nav(`/project/${project.id}/programs`)}>
+                        title={programsWords(r.programs)} aria-label={`${rowName(r.asset)} — programs: ${programsWords(r.programs)}`}
+                        onClick={() => setProgsOf(rowKey(r))}>
                         <span>{r.programs.proved} of {r.programs.total} proved</span>
                         {r.programs.wrong > 0 && <b className="pt-late">{r.programs.wrong} gone wrong</b>}
                       </button>
@@ -379,11 +416,8 @@ export function NeedsYou({ project, tt, programs, can }: { project: Project; tt:
       await tt.patchTest(t.id, cur => patchRuns(cur, productRuns(cur).filter(p => !!p.day || productRuns(t).some(q => q.id === p.id)), today));
     });
   };
-  const planProgram = async (p: Program) => {
-    const [id] = await tt.planTests([{ title: provingTitle(p), assetId: p.assetId,
-      extra: { programId: p.id, ...(p.runs ? { planned: p.runs } : {}), ...(p.testOn ? { plannedFor: p.testOn } : {}), ...(p.from ? { withWhom: p.from } : {}) } }]);
-    if (id) openRecord(project.id, id);
-  };
+  /* A program's test is said on its row on Programs (ui/ProgramTest). */
+  const testProgram = (p: Program) => nav(`/project/${project.id}/programs?test=${encodeURIComponent(p.id)}`);
   return (
     <section className="cmp-sec cg-needs" aria-label="Needs you">
       <div className="cw-sec-h">
@@ -396,7 +430,7 @@ export function NeedsYou({ project, tt, programs, can }: { project: Project; tt:
           <ul className="nd-list">
             {needs.map(n => (
               <li key={n.test?.id ?? n.program?.id} className={'nd-row is-' + n.kind}>
-                <button type="button" className="nd-main" onClick={() => (n.test ? openRecord(project.id, n.test.id) : nav(`/project/${project.id}/programs`))}>
+                <button type="button" className="nd-main" onClick={() => (n.test ? openRecord(project.id, n.test.id) : n.program ? testProgram(n.program) : nav(`/project/${project.id}/programs`))}>
                   <span className={'nd-tag is-' + n.kind}>{n.word}</span>
                   <b>{n.test?.title ?? n.program?.what}</b>
                   <span className="sub">{machine(n.test?.assetId ?? n.program?.assetId)}{n.why ? ` — ${n.why}` : ''}</span>
@@ -422,7 +456,7 @@ export function NeedsYou({ project, tt, programs, can }: { project: Project; tt:
                 )}
                 {can.edit && n.kind === 'program' && n.program && (
                   <span className="nd-acts">
-                    <button type="button" className="btn btn-sm" onClick={() => void planProgram(n.program as Program)}>Plan its test</button>
+                    <button type="button" className="btn btn-sm" onClick={() => testProgram(n.program as Program)}>Test it</button>
                   </span>
                 )}
               </li>
