@@ -28,7 +28,9 @@
  *      cell opens a machine's programs and a tap its test; Needs you's Test
  *      it lands on the row on Programs, open — booked for a day there; a
  *      line's program with no machine on the job tested on the line itself,
- *      didn't pass said in red, on the row and the board
+ *      didn't pass said in red, on the row and the board; a line on a
+ *      machine's "Programs loaded" with no record tested the same — its
+ *      record made, proved, and counted on Commission's board
  *   8  Your factory: each line's machines in flow order and its programs in
  *      words, on the screen and on its paper
  *   9  the programs report of the line: its sentence and every program
@@ -288,6 +290,42 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
     `7g a line's program tested on the line itself: didn't pass, in red, with what was seen, and Test it again (${lsaid.slice(0, 120)})`);
   await go(`#/project/${sd.projectId}/testing`);
   ok(/gone wrong/.test(flat(await main.getByRole('button', { name: /^The line itself — programs:/ }).innerText())), "7g and on Commission's board, the line itself's programs say one gone wrong");
+}
+
+/* ---- 7h a line on a machine's "Programs loaded" with no program record —
+   how a job's programs are mostly held (Rowland, 14 October: "I've gone to
+   programs, nothing's changed ... link it into the stage gate process") ---- */
+{
+  await go(`#/project/${sd.projectId}/programs`);
+  const what = 'First program to verify Tesco';
+  const before = await page.evaluate(async pid => (await (await import('/src/db.ts')).listPrograms(pid)).filter(p => !p.deletedAt).length, sd.projectId);
+  const row = main.locator('.spp-row', { hasText: what });
+  ok(await row.getByRole('button', { name: 'Test it' }).count() === 1, '7h a "Programs loaded" line with no record has Test it on its row');
+  await row.getByRole('button', { name: 'Test it' }).click(); await page.waitForTimeout(300);
+  await row.getByRole('button', { name: 'Passed' }).click();
+  await row.locator('.ptx-panel textarea').fill('Ran 200 packs through the de-nester, all placed');
+  await row.getByRole('button', { name: 'Save' }).click(); await page.waitForTimeout(1500);
+  const r = await page.evaluate(async ([pid, w]) => {
+    const db = await import('/src/db.ts');
+    const progs = (await db.listPrograms(pid)).filter(p => !p.deletedAt);
+    const p = progs.find(x => x.what.startsWith(w));
+    const t = p && (await db.listTests(pid)).find(x => x.programId === p.id && !x.deletedAt);
+    return { n: progs.length, p, t };
+  }, [sd.projectId, what]);
+  const said = flat(await row.innerText());
+  ok(r.n === before + 1 && !!r.p && !!r.t && r.t.outcome === 'passed' && r.p.provedOn === iso(0) && /Proved/.test(said) && /Its test: passed/.test(said),
+    `7h tested: its program made on its machine, its test passed, proved — said on the row (${said.slice(0, 160)})`);
+  await go(`#/project/${sd.projectId}/testing`);
+  const mname = await page.evaluate(async ([pid, id]) => (await (await import('/src/db.ts')).listAssets(pid)).find(a => a.id === id)?.name, [sd.projectId, r.t.assetId]);
+  await main.getByRole('button', { name: new RegExp(`^${mname} — programs:`) }).click(); await page.waitForTimeout(500);
+  const sheet = flat(await page.getByRole('dialog', { name: `Programs on ${mname}` }).innerText());
+  const others = await page.evaluate(async pid => {
+    const db = await import('/src/db.ts');
+    return (await db.listTestItems(pid)).filter(i => !i.deletedAt && i.kind === 'next').length;
+  }, sd.projectId);
+  ok(sheet.includes(what) && /passed/.test(sheet.slice(sheet.indexOf(what))) && sheet.includes('Back up the six programs to the site server') && others > 0,
+    `7h Commission's programs on ${mname} carry its "Programs loaded" lines, the tested one passed`);
+  await page.keyboard.press('Escape'); await page.waitForTimeout(500);
 }
 
 /* ---- 8 Your factory, screen and paper ---- */

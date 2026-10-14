@@ -25,7 +25,7 @@ export interface ProgramsState {
   add: (p: {
     what: string; runs?: string; lineId?: string; assetId?: string;
     from?: string; testOn?: string; state?: ProgramState; note?: string;
-  }) => Promise<void>;
+  }) => Promise<string | undefined>;
   save: (p: Program) => Promise<void>;
   remove: (id: string) => Promise<void>;
   /** It passed. The date is the day it was PROVED, which is not always today. */
@@ -66,13 +66,14 @@ export function usePrograms(projectId: string): ProgramsState {
 
   const add = useCallback(async (p: Parameters<ProgramsState['add']>[0]) => {
     const what = p.what.trim();
-    if (!what) return;
+    if (!what) return undefined;
     const t = now();
     /* On the job's line — the one its job line names, or the job's only
        factory line — so the line's page and Programs see it (Stage 2). */
     const workspaceId = await lineForJobRecord(projectId, p.lineId || undefined);
+    const id = uid();
     await putProgram({
-      id: uid(), projectId, ...(workspaceId ? { workspaceId } : {}), what,
+      id, projectId, ...(workspaceId ? { workspaceId } : {}), what,
       runs: p.runs?.trim() || undefined,
       lineId: p.lineId || undefined,
       assetId: p.assetId || undefined,
@@ -82,6 +83,7 @@ export function usePrograms(projectId: string): ProgramsState {
       state: p.state ?? 'needed',
       sort: nextSort(), createdAt: t, updatedAt: t,
     });
+    return id;
   }, [projectId, nextSort]);
 
   const save = useCallback(async (p: Program) => { await putProgram(p); }, []);

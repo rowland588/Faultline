@@ -32,7 +32,10 @@
  * Its machine is the job's: a line's program names the line's machine
  * record, and the board's rows are the job's machines — matched by name
  * (lib/lineRecords machineKey), as the Programs page's "Prove it" does. */
-import type { Asset, Test } from './testing';
+import type { Asset, Test, TestItem } from './testing';
+import { programsReading } from './programsReport';
+import { resultNow } from './noted';
+import type { AnswerHolder } from './install';
 import { isProved, live as liveProgs, type Program } from './programs';
 import { machineKey, machineOfProgram, type JobLinePrograms } from './lineRecords';
 import { provingTestOf } from './commission';
@@ -98,4 +101,32 @@ export function commissionPrograms(jobPrograms: readonly Program[], lines: reado
     }
   }
   return [...own, ...picked];
+}
+
+/** A line on a machine's "Programs loaded" with no program record — how most
+ *  jobs hold their programs — as the board counts it: its own id
+ *  (`part:<id>`), its machine, and proved on the day the floor said it
+ *  passed (or reached baseline). Tested on Programs, its record is made and
+ *  this stands aside for it (ui/ProgramTest). */
+export function stagePrograms(x: { tests: Test[]; items: TestItem[]; assets: Asset[]; programs: Program[]; holder?: AnswerHolder; projectId: string; today?: string }): Program[] {
+  const r = programsReading({ tests: x.tests, items: x.items, assets: x.assets, programs: x.programs, holder: x.holder, ...(x.today ? { today: x.today } : {}) });
+  return (r?.lines ?? []).filter(l => l.partId && !l.programId).map(l => {
+    const part = x.items.find(i => i.id === l.partId);
+    const done = l.bucket === 'done' || l.bucket === 'baseline';
+    const on = part && (resultNow(part)?.on ?? (part.doneAt != null ? new Date(part.doneAt).toISOString().slice(0, 10) : undefined));
+    return {
+      id: `part:${l.partId}`, projectId: x.projectId, what: l.what, ...(l.assetId ? { assetId: l.assetId } : {}),
+      state: 'onMachine' as const, ...(done && on ? { provedOn: on } : {}), sort: 0, createdAt: 0, updatedAt: 0,
+    };
+  });
+}
+
+/** Everything the board, Needs you and the commissioning paper count: the
+ *  job's programs, its lines' it has a test for, and its machines'
+ *  "Programs loaded" lines — the Programs page's programs, one answer. */
+export function boardPrograms(x: { jobPrograms: readonly Program[]; lines: readonly JobLinePrograms[]; assets: Asset[]; tests: Test[]; items: TestItem[]; holder?: AnswerHolder; projectId: string; today?: string }): Program[] {
+  return [
+    ...commissionPrograms(x.jobPrograms, x.lines, x.assets, x.tests),
+    ...stagePrograms({ tests: x.tests, items: x.items, assets: x.assets, programs: [...x.jobPrograms], holder: x.holder, projectId: x.projectId, ...(x.today ? { today: x.today } : {}) }),
+  ];
 }

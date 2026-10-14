@@ -18,7 +18,7 @@ import { pdfFileName } from '../lib/fileName';
 import type { Shot } from '../lib/testReport';
 import type { jsPDF } from 'jspdf';
 import { commissioningReport, type CommissioningReport } from '../lib/commissioningReport';
-import { commissionPrograms } from '../lib/commissionPrograms';
+import { boardPrograms } from '../lib/commissionPrograms';
 import { OnTargetLine } from '../ui/OnTarget';
 import { CriticalStory, CriticalTag } from '../ui/CriticalFields';
 import { DraftArea } from '../ui/Draft';
@@ -212,8 +212,8 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
      the job's and each line's this job has a test for (lib/commissionPrograms). */
   const commissioning = useMemo(() => (report && handover ? commissioningReport({
     client: report, handover, assets: tt.assets, tests: tt.tests, today: todayISO(),
-    programs: commissionPrograms(progs.programs, lineFacts.linePrograms, tt.assets, tt.tests),
-  }) : null), [report, handover, tt.assets, tt.tests, progs.programs, lineFacts.linePrograms]);
+    programs: boardPrograms({ jobPrograms: progs.programs, lines: lineFacts.linePrograms, assets: tt.assets, tests: tt.tests, items: tt.items, holder: project ?? undefined, projectId }),
+  }) : null), [report, handover, tt.assets, tt.tests, tt.items, progs.programs, lineFacts.linePrograms, project, projectId]);
   const [cardsBusy, setCardsBusy] = useState(false);
 
   /* The preview is the PDF itself, redrawn when what is on it changes — and

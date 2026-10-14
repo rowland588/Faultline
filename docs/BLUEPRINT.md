@@ -751,7 +751,17 @@ is still wired.
   test's page and its drawer name a line's program too
   (`lib/useJobPrograms`). The Programs list at the foot keeps adding,
   naming, ordering and test days. Paper unchanged. Accepted by
-  `machines-programs.mjs` 7–7g.
+  `machines-programs.mjs` 7–7g. **Then (same day, Rowland: "I've gone to
+  programs, nothing's changed ... I told you to link it into the stage gate
+  process")**: Test it had come only on programs with a Programs-list
+  record, and most jobs hold their programs as the lines of each machine's
+  "Programs loaded" stage — so on his job nothing showed. Every line of a
+  programs stage now has Test it; testing one makes its program record (the
+  same name on the same machine — one program, as the reading already
+  merges them) and its proving test. Commission's programs square, its sheet,
+  Needs you and the commissioning paper count those lines too
+  (`lib/commissionPrograms` `boardPrograms`) — the Programs page's programs,
+  one answer. Accepted by `machines-programs.mjs` 7h.
 - **The commissioning report and cards** (Rowland, 14 October: "make sure we
   have a fully functional commissioning report ... where we got to, the
   problems ... a commissioning report, commissioning cards, something that
