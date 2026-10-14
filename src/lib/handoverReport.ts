@@ -234,7 +234,7 @@ export function handoverReport(x: HandoverInput): HandoverReport {
     ...materials.filter(m => !isHere(m))
       .map(m => `Material: ${m.what}${m.from?.trim() ? ` · ${m.from.trim()}` : ''}${m.due ? ` · ${m.due < today ? 'was due' : 'due'} ${day(m.due)}` : ''}`),
     /* a program on the line itself, not done (lib/programsReport programsOpenOn) */
-    ...programsOpenOn(progs, '', programs).names,
+    ...programsOpenOn(progs, '', programs, { unwritten: true }).names,
     ...noted.filter(r => !r.on?.assetId || !onMachine.has(r.on.assetId)).map(problemOf),
     ...assigned.filter(x => !assets.some(a => onAsset(a, x.sn))).map(assignedOf),
   ];

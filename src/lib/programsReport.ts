@@ -303,9 +303,12 @@ export function openWord(l: Pick<ProgramLine, 'bucket' | 'said'>): string {
   return 'not done yet';
 }
 
-export function programsOpenOn(r: ProgramsReading | undefined, assetId: string, programs: readonly Program[]): { counts: string[]; names: string[] } {
+export function programsOpenOn(r: ProgramsReading | undefined, assetId: string, programs: readonly Program[],
+  /** Name the ones not written yet too — for the line itself, which
+   *  stillOpenOn (a machine's) never reads. */
+  o: { unwritten?: boolean } = {}): { counts: string[]; names: string[] } {
   if (!r) return { counts: [], names: [] };
-  const written = (id?: string) => { const p = id ? programs.find(q => q.id === id) : undefined; return !p || stateOf(p) !== 'needed'; };
+  const written = (id?: string) => { const p = id ? programs.find(q => q.id === id) : undefined; return !!o.unwritten || !p || stateOf(p) !== 'needed'; };
   /* one not written yet and only "to do" is stillOpenOn's line already; one
      the floor said more of (failed, not tested…) is said here, with that */
   const open = r.lines.filter(l => (l.assetId ?? '') === assetId && l.bucket !== 'done' && l.bucket !== 'baseline'

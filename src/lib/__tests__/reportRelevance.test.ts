@@ -55,6 +55,8 @@ const items: TestItem[] = [
 const programs = [
   /* proved, signed off with nothing said — but a study on its line names it */
   prog('p7', 'PR-07 Baking 2 kg', { assetId: 'w', state: 'proved', provedOn: '2026-10-06' }),
+  /* the job's own, on the line itself — not written yet */
+  prog('pl', 'Line recipe master', { state: 'needed', from: 'Ishida' }),
 ];
 const studies = [
   study('st1', 'Weight 2 kg', { programId: 'p7' }),
@@ -126,6 +128,12 @@ describe('a program proved by a study on its line', () => {
     const bare = clientReport({ ...input, studies: [], proofStudies: [] });
     expect(bare.sections.find(s => s.gate === 'setup')?.programs?.lines.find(l => l.what === 'PR-07 Baking 2 kg')?.proof?.word)
       .toBe('Signed off by hand — nothing said shows it');
+  });
+});
+
+describe('a program on the line itself, not written yet', () => {
+  it('handover: still open on the line — no machine’s list reads it', () => {
+    expect(handover.line).toContain('Program, not done yet: Line recipe master · Ishida');
   });
 });
 
