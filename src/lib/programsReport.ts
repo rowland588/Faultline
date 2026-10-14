@@ -128,7 +128,13 @@ export const studyWords = (s: Pick<ToolStudy, 'tool' | 'name'>): string =>
  *  program names one. */
 export function proofOf(p: Program, tests: readonly Test[] | undefined, studies: readonly ToolStudy[] = []): Proof | undefined {
   if (!isProved(p)) return undefined;
-  const t = tests ? provingTestOf(p, [...tests]) : undefined;
+  /* THE TEST THAT PROVED IT — not the latest attempt: a later test at a
+     higher speed that did not pass leaves this proof standing
+     (lib/programJourney). */
+  const mine = tests ? tests.filter(x => !x.deletedAt && (x.programId === p.id || x.id === p.testId)) : [];
+  const t = mine.find(x => x.id === p.testId && x.outcome === 'passed')
+    ?? mine.find(x => x.outcome === 'passed' && x.ranOn === p.provedOn)
+    ?? (tests ? provingTestOf(p, [...tests]) : undefined);
   if (t && t.outcome === 'passed') return { word: `Proved by its test — ${t.title}, passed${t.ranOn ? ` ${niceDay(t.ranOn)}` : ''}`, tone: 'g', testId: t.id };
   const s = studyProving(p, studies);
   if (s) {

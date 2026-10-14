@@ -133,6 +133,20 @@ function machineTable(r: CommissioningReport): Block {
 
 /** A machine whole: its tests against what each had to show, its programs,
  *  what is still open on it. */
+/** EACH PROGRAM'S JOURNEY — every test of it, first to last, the speed and
+ *  the time it ran and how it went (lib/programJourney). */
+function journeyBlocks(m: Pick<CmMachine, 'journeys'>, title = 'Programs — the journey of each'): Block[] {
+  if (!m.journeys.length) return [];
+  const out: Block[] = [label(title)];
+  for (const j of m.journeys) {
+    out.push(line(j.what, j.says, INK2));
+    if (j.best) out.push(text({ text: j.best, size: 8.5, style: 'bold', colour: OK, indent: 10 }));
+    for (const st of j.steps) out.push(text({ text: st.text, size: 8.5, colour: st.tone === 'r' ? DANGER : st.tone === 'w' ? BOOKED : INK2, indent: 10, bullet: '•', after: 1 }));
+  }
+  out.push({ height: f => gap(f.density, 's'), draw: () => undefined });
+  return out;
+}
+
 function machineBlocks(m: CmMachine, d: Density): Block[] {
   const out: Block[] = [];
   out.push(heading(m.name, `${m.at} · ${m.verdict.word}`, { size: SIZE.h2 + 1.5 }));
@@ -147,6 +161,7 @@ function machineBlocks(m: CmMachine, d: Density): Block[] {
     if (t.proved) out.push(text({ text: t.proved, size: 8.5, style: 'bold', colour: INK2, indent: 10 }));
   }
   if (m.tests.length) out.push({ height: f => gap(f.density, 's'), draw: () => undefined });
+  out.push(...journeyBlocks(m));
   out.push(label('Still open on it', m.open.length ? AMBER : MUTED));
   if (!m.open.length) out.push(text({ text: 'Nothing still open.', size: 9, colour: INK2, after: gap(d, 'l') }));
   else m.open.forEach((o, i) => out.push(text({ text: o, size: 9, colour: INK2, indent: 10, bullet: '•', after: i === m.open.length - 1 ? gap(d, 'l') : 2 })));
@@ -193,6 +208,8 @@ function reportBlocks(r: CommissioningReport, d: Density): Block[] {
 
   /* EACH MACHINE WHOLE */
   for (const m of r.machines) out.push(...machineBlocks(m, d));
+  /* PROGRAMS ON THE LINE ITSELF — their journeys, as a machine's are */
+  if (r.lineJourneys.length) out.push(...journeyBlocks({ journeys: r.lineJourneys }, 'Programs on the line itself — the journey of each'));
 
   /* OPEN ON NO ONE MACHINE, AND THE LINES' OWN PROGRAMS */
   if (r.line.length) {
@@ -250,6 +267,7 @@ function cardBlocks(r: CommissioningReport, m: CmMachine, d: Density, i: number)
     out.push(line(t.title, [t.word, t.when].filter(Boolean).join(' · '), HO[t.tone], { ...(t.said && (t.tone === 'failed' || t.tone === 'late') ? { under: `Seen: ${t.said}` } : {}) }));
   }
   if (m.tests.length) out.push({ height: f => gap(f.density, 'm'), draw: () => undefined });
+  out.push(...journeyBlocks(m));
   out.push(label('Still open on it', m.open.length ? AMBER : MUTED));
   if (!m.open.length) out.push(text({ text: 'Nothing still open.', size: 9, colour: INK2 }));
   else m.open.forEach(o => out.push(text({ text: o, size: 9.5, colour: INK2, indent: 10, bullet: '•', after: 3 })));

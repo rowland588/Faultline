@@ -762,6 +762,26 @@ is still wired.
   Needs you and the commissioning paper count those lines too
   (`lib/commissionPrograms` `boardPrograms`) — the Programs page's programs,
   one answer. Accepted by `machines-programs.mjs` 7h.
+- **A program's journey** (Rowland, 14 October: "I only run for 30 minutes,
+  so we decide to run a retest ... at 45 minutes and we achieve another
+  amount of speed ... even if it was successful ... at 50 packs per minute
+  ... let's do a retest at 55 ... There is no real pass and fail ultimate.
+  It's just the status of what was done ... show the journey of our
+  commissioning"). Placed (§8): *Jobs*, the stage gate's Programs,
+  Commission and its papers; no new record — each attempt is a proving test,
+  a re-test following the one before (`fromTestId`), what it aimed at its
+  agreed run (`runAgreed`, set per attempt so it can move), what it did its
+  day (`run`: speed set, minutes, packs, rejects), how it went its outcome,
+  what was seen its result (`lib/programJourney`). Test it asks those
+  numbers; *Go again* follows any attempt, passed or not; the program's row
+  shows the ladder — every attempt first to last, the fastest pass above it.
+  A pass stands: a later attempt that does not pass is a step in the
+  journey, not where the program stands (`lib/testing latestAttempts`, and
+  the program stays proved — `lib/programs programAfterTest`). Shows on the
+  row on Programs, Commission's machine sheet, and the commissioning report
+  and cards under each machine (and the line itself). Accepted by
+  `machines-programs.mjs` 7i; the fuzz reads every journey back off the
+  paper.
 - **The commissioning report and cards** (Rowland, 14 October: "make sure we
   have a fully functional commissioning report ... where we got to, the
   problems ... a commissioning report, commissioning cards, something that

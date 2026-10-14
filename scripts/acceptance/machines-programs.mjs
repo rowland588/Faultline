@@ -237,8 +237,9 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
     "7b Test it on the row: Save waits for how it went; passed, what was seen and the day — its proving test, naming the line's program");
   const after = (await truth()).programs.find(p => p.what === 'CW-3 Maris Piper 2kg');
   const said = flat(await row.innerText());
-  ok(after.state === 'proved' && after.provedOn === iso(0) && after.projectId === '' && /Its test: passed/.test(said) && /Open the test/.test(said) && !/Test it/.test(said),
-    "7c passing it proves the line's program — still the line's, on no job; the row says its test and opens it");
+  ok(after.state === 'proved' && after.provedOn === iso(0) && after.projectId === '' && await row.locator('.ptx-ladder li').count() === 1
+    && /Test 1/.test(said) && /passed/.test(said) && await row.getByRole('button', { name: 'Go again' }).count() === 1,
+    "7c passing it proves the line's program — still the line's, on no job; its journey on the row, and Go again");
   await go(`#/programs?line=${WS}`);
   ok(/is-pg-proved/.test(await main.locator(`[data-program="${cw.id}"]`).getAttribute('class')), '7d proved on the control room\'s Programs too');
 
@@ -286,8 +287,8 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   await lpp.getByRole('button', { name: 'Save' }).click(); await page.waitForTimeout(1500);
   const lt = await page.evaluate(async pid => (await (await import('/src/db.ts')).listTests(pid)).find(x => x.programId === 'acc-lp-9' && !x.deletedAt), sd.projectId);
   const lsaid = flat(await lp.innerText());
-  ok(!!lt && lt.outcome === 'failed' && !lt.assetId && /didn’t pass — Film tracked off after 40 packs/.test(lsaid) && await lp.locator('.cg-pstate.is-r').count() === 1 && /Test it again/.test(lsaid),
-    `7g a line's program tested on the line itself: didn't pass, in red, with what was seen, and Test it again (${lsaid.slice(0, 120)})`);
+  ok(!!lt && lt.outcome === 'failed' && !lt.assetId && /didn’t pass.*Film tracked off after 40 packs/.test(lsaid) && await lp.locator('.cg-pstate.is-r').count() === 1 && /Go again/.test(lsaid),
+    `7g a line's program tested on the line itself: didn't pass, in red, with what was seen, and Go again (${lsaid.slice(0, 120)})`);
   await go(`#/project/${sd.projectId}/testing`);
   ok(/gone wrong/.test(flat(await main.getByRole('button', { name: /^The line itself — programs:/ }).innerText())), "7g and on Commission's board, the line itself's programs say one gone wrong");
 }
@@ -313,7 +314,7 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
     return { n: progs.length, p, t };
   }, [sd.projectId, what]);
   const said = flat(await row.innerText());
-  ok(r.n === before + 1 && !!r.p && !!r.t && r.t.outcome === 'passed' && r.p.provedOn === iso(0) && /Proved/.test(said) && /Its test: passed/.test(said),
+  ok(r.n === before + 1 && !!r.p && !!r.t && r.t.outcome === 'passed' && r.p.provedOn === iso(0) && /Proved/.test(said) && /Test 1.*passed/.test(said),
     `7h tested: its program made on its machine, its test passed, proved — said on the row (${said.slice(0, 160)})`);
   await go(`#/project/${sd.projectId}/testing`);
   const mname = await page.evaluate(async ([pid, id]) => (await (await import('/src/db.ts')).listAssets(pid)).find(a => a.id === id)?.name, [sd.projectId, r.t.assetId]);
@@ -326,6 +327,59 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   ok(sheet.includes(what) && /passed/.test(sheet.slice(sheet.indexOf(what))) && sheet.includes('Back up the six programs to the site server') && others > 0,
     `7h Commission's programs on ${mname} carry its "Programs loaded" lines, the tested one passed`);
   await page.keyboard.press('Escape'); await page.waitForTimeout(500);
+}
+
+/* ---- 7i THE JOURNEY (Rowland, 14 October: "I only run for 30 minutes, so
+   we decide to run a retest ... successful at, say, 50 packs per minute.
+   Great. Now let's do a retest at 55 ... It's just the status of what was
+   done") — CW-3 passed above; tested again at 55 and short: both on its row,
+   the pass standing, on Commission's sheet and on the commissioning paper ---- */
+{
+  await go(`#/project/${sd.projectId}/programs`);
+  const t0 = await truth();
+  const cw = t0.programs.find(p => p.what === 'CW-3 Maris Piper 2kg');
+  const row = main.locator(`.pp-theirs li[data-program="${cw.id}"]`);
+  await row.getByRole('button', { name: 'Go again' }).click(); await page.waitForTimeout(300);
+  const pan = row.getByRole('group', { name: 'Test CW-3 Maris Piper 2kg' });
+  await pan.getByLabel('Aiming for — CW-3 Maris Piper 2kg', { exact: true }).fill('55');
+  await pan.getByLabel('Aiming to run — CW-3 Maris Piper 2kg', { exact: true }).fill('60');
+  await pan.getByLabel('Set at — CW-3 Maris Piper 2kg', { exact: true }).fill('55');
+  await pan.getByLabel('Ran for — CW-3 Maris Piper 2kg', { exact: true }).fill('45');
+  await pan.getByLabel('Packs — CW-3 Maris Piper 2kg', { exact: true }).fill('2,400');
+  await pan.getByLabel('Rejects — CW-3 Maris Piper 2kg', { exact: true }).fill('30');
+  await pan.getByRole('button', { name: 'Didn’t pass' }).click();
+  await pan.getByLabel('What was seen when CW-3 Maris Piper 2kg ran').fill('Seal temp low above 52');
+  await pan.getByRole('button', { name: 'Save' }).click(); await page.waitForTimeout(1500);
+  const r = await page.evaluate(async ([pid, id]) => {
+    const db = await import('/src/db.ts');
+    const ts = (await db.listTests(pid)).filter(t => t.programId === id && !t.deletedAt);
+    const J = await import('/src/lib/programJourney.ts');
+    const p = (await db.listAllPrograms()).find(x => x.id === id);
+    return { p, j: J.programJourney(p, ts, new Date().toISOString().slice(0, 10)), ts };
+  }, [sd.projectId, cw.id]);
+  const steps = (await row.locator('.ptx-ladder li').allInnerTexts()).map(flat);
+  const second = r.ts.find(t => t.fromTestId);
+  ok(r.ts.length === 2 && !!second && second.outcome === 'failed' && second.run?.speed === 55 && second.run?.minutes === 45 && second.run?.packs === 2400 && second.runAgreed?.rate === 55
+    && r.p.provedOn === iso(0) && steps.length === 2 && steps[1].includes('set at 55 ppm') && steps[1].includes('ran 45 min') && steps[1].includes('didn’t pass')
+    && flat(await row.locator('.ptx-best').innerText()) === r.j.best,
+    `7i tested again at 55: a re-test following the pass, its numbers kept, both on the row — the pass standing (${r.j.best}; ${steps[1]})`);
+  /* on Commission's sheet */
+  await go(`#/project/${sd.projectId}/testing`);
+  const mname = await page.evaluate(async ([pid, id]) => (await (await import('/src/db.ts')).listAssets(pid)).find(a => a.id === id)?.name ?? 'The line itself', [sd.projectId, second.assetId]);
+  await main.getByRole('button', { name: new RegExp(`^${mname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} — programs:`) }).click(); await page.waitForTimeout(500);
+  const sheetJ = (await page.getByRole('dialog', { name: `Programs on ${mname}` }).locator('.cgp-j li').allInnerTexts()).map(flat);
+  ok(sheetJ.length >= 2 && sheetJ.includes(r.j.attempts[1].text), `7i Commission's sheet carries the journey (${sheetJ.length} steps)`);
+  await page.keyboard.press('Escape'); await page.waitForTimeout(500);
+  /* and the commissioning paper */
+  await go(`#/project/${sd.projectId}/report?doc=commissioning`);
+  const dir = mkdtempSync(join(tmpdir(), 'cmj-'));
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), main.getByRole('button', { name: 'PDF', exact: true }).click()]);
+  const file = join(dir, 'cm.pdf'); await dl.saveAs(file);
+  const txt = flat(execFileSync('pdftotext', ['-layout', file, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
+  const want = [r.j.best, ...r.j.attempts.map(a => a.text)].map(w => w.replace(/[–—]/g, '-').replace(/[’]/g, "'").replace(/\s+/g, ''));
+  const tight = txt.replace(/[–—]/g, '-').replace(/[’]/g, "'");
+  const lost = want.filter(w => !tight.includes(w));
+  ok(!lost.length, `7i the commissioning report prints each program's journey${lost.length ? ` — lost: ${lost.join(' | ')}` : ''}`);
 }
 
 /* ---- 8 Your factory, screen and paper ---- */

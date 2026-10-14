@@ -12717,6 +12717,27 @@ button.vc-row-in:focus-visible { outline: 2px solid var(--brand); outline-offset
 .ptx-day input { max-width: 200px; }
 .ptx-go-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .spp-after { flex: 1 0 100%; padding: 0 0 2px 74px; }
+/* THE JOURNEY — every attempt of a program, first to last (lib/programJourney) */
+.ptx-j { display: grid; gap: 4px; margin-bottom: 6px; }
+.ptx-j-h { display: flex; flex-wrap: wrap; gap: 2px 10px; align-items: baseline; }
+.ptx-best { font-weight: 700; color: var(--st-g); }
+.ptx-ladder { list-style: none; margin: 0; padding: 0 0 0 12px; border-left: 2px solid var(--line); display: grid; gap: 2px; }
+.ptx-ladder li { position: relative; }
+.ptx-ladder li::before { content: ''; position: absolute; left: -18px; top: 11px; width: 10px; height: 10px; border-radius: 50%; background: var(--st-n); border: 2px solid var(--surface); }
+.ptx-ladder li.is-g::before { background: var(--st-g); }
+.ptx-ladder li.is-r::before { background: var(--st-r); }
+.ptx-ladder li.is-a::before { background: var(--st-a); }
+.ptx-ladder li.is-w::before { background: var(--st-w); }
+.ptx-step { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; width: 100%; text-align: left; background: none; border: 0; padding: 4px 6px;
+  border-radius: 8px; font: inherit; font-size: var(--t-detail); color: var(--ink); cursor: pointer; }
+.ptx-step:hover { background: var(--accent-soft); }
+.ptx-when { color: var(--ink-2); }
+.ptx-seen { flex-basis: 100%; color: var(--ink-2); }
+.ptx-nums { display: flex; flex-wrap: wrap; gap: 8px 12px; }
+.ptx-n { display: grid; gap: 2px; }
+.ptx-n-in { display: flex; align-items: center; gap: 6px; }
+.ptx-n-in input { width: 84px; }
+.ptx-none { margin-right: 8px; }
 @media (max-width: 640px) { .spp-after { padding-left: 0; } }
 .pp-theirs li { flex-wrap: wrap; }
 .pp-line-tag { font-size: var(--t-label); font-weight: 700; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; }
@@ -12727,6 +12748,9 @@ button.vc-row-in:focus-visible { outline: 2px solid var(--brand); outline-offset
 .cgp-row:hover { background: var(--accent-soft); }
 .cgp-main { display: flex; flex-direction: column; gap: 1px; flex: 1 1 220px; min-width: 0; }
 .cgp-go { font-size: var(--t-detail); color: var(--brand); font-weight: 600; }
+.cgp-j { margin: 0 0 6px; padding: 0 4px 6px 22px; font-size: var(--t-detail); color: var(--ink-2); display: grid; gap: 2px; border-bottom: 1px solid var(--line); }
+.cgp-j li.is-r::marker { color: var(--st-r); }
+.cgp-j li.is-g::marker { color: var(--st-g); }
 
 /* THE COMMISSIONING REPORT in words (screens/ClientReportScreen): a machine a
    line, its word in its colour, with the words */

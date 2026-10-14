@@ -25,6 +25,7 @@ import { movedLater } from '../lib/story';
 import { staggered } from '../lib/weeks';
 import { isProved, type Program } from '../lib/programs';
 import { afterPanelBack } from './backCloses';
+import { programJourney } from '../lib/programJourney';
 import { isSettled, live, outcomeWord, plannedEnd, type Asset, type Outcome, type Test } from '../lib/testing';
 import type { useTesting } from '../lib/useTesting';
 import type { Can } from '../lib/access';
@@ -130,6 +131,12 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
                   <span className={'cg-pstate is-' + word.tone}>{word.word}</span>
                   <span className="cgp-go">{t ? 'Open the test ›' : can.edit && !isProved(p) ? 'Test it on Programs ›' : 'On Programs ›'}</span>
                 </button>
+                {/* ITS JOURNEY — every test of it, first to last (lib/programJourney). */}
+                {(j => j.attempts.length > 1 && (
+                  <ol className="cgp-j" aria-label={`The tests of ${p.what}`}>
+                    {j.attempts.map(a => <li key={a.test.id} className={'is-' + a.result.tone}>{a.text}</li>)}
+                  </ol>
+                ))(programJourney(p, tt.tests, today))}
               </li>
             );
           })}

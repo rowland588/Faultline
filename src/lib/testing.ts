@@ -667,7 +667,21 @@ export const hasRun = (t: Test): boolean => t.outcome !== 'planned' || needsVerd
 export const latestAttempts = (all: Test[]): Test[] => {
   const tests = all.filter(t => !t.deletedAt && (t.kind ?? 'test') === 'test');
   const followedOn = new Set(tests.filter(t => t.fromTestId).map(t => t.fromTestId as string));
-  return tests.filter(t => !followedOn.has(t.id));
+  const byId = new Map(tests.map(t => [t.id, t]));
+  /* A PROGRAM'S PASS STANDS (lib/programJourney; Rowland, 14 October:
+     "successful at, say, 50 packs per minute. Great. Now let's do a retest at
+     55 ... There is no real pass and fail ultimate. It's just the status of
+     what was done"). A program's test that did not pass, or did not run,
+     after an earlier attempt of it passed does not take the pass away: the
+     pass is where it stands, the later attempt is a step in its journey. */
+  const standing = (t: Test): Test => {
+    if (!t.programId || (t.outcome !== 'failed' && t.outcome !== 'notRun')) return t;
+    for (let cur = t.fromTestId ? byId.get(t.fromTestId) : undefined, guard = 0; cur && guard < 100; cur = cur.fromTestId ? byId.get(cur.fromTestId) : undefined, guard++) {
+      if (cur.outcome === 'passed') return cur;
+    }
+    return t;
+  };
+  return tests.filter(t => !followedOn.has(t.id)).map(standing);
 };
 
 /** A record's words, with its machine in front ONLY where two records would
