@@ -401,10 +401,17 @@ person's standard time from the time study used with a tap, and the
 bottleneck walked against the sums; then a person as the floor says them
 (Rowland, 13 October: "8 units in a tray ... a tray every 8 seconds";
 "70 a minute ... 10 to a basket ... one basket goes to a human every X") —
-asked how many units make one tray, what reaches them worked out before
+the V a column a station, each named in full under it, the bottleneck
+navy, a column opening its station; asked how many units make one tray, what reaches them worked out before
 they have a speed, "a tray every 8 seconds" said back as a minute and in
-the line's unit, whether they keep up in seconds, Make it 2 people; each
-tool listing its own products (a product only mapped is not in Line
+the line's unit, whether they keep up in seconds, Make it 2 people, a
+person's time carrying the ILO's 9% rest (14 October: "bring in science
+when it comes to humans"), a palletiser timed per tray with "1 pallet = 36
+trays = 288 units" said and the pallet worked out ("all I did is do the
+division of 70 a minute"), a person fed straight past 90% of their pace
+said in amber, and "4 pallets a minute" asked as one every 4 minutes, made
+so in a tap and kept in minutes ("it takes 5 minutes to do one pallet");
+each tool listing its own products (a product only mapped is not in Line
 capacity) and New on one already on the line opening it; Line capacity's
 own page and its rail on no job; and the phone — the V on its side, the
 sheet a card a station; then what a pack costs in labour (Rowland, 13
@@ -548,6 +555,15 @@ pushed (`src/cloud/sync.ts`), so a stray local write cannot stall a sync.
   same pass (`src/cloud/sync.ts`, the push). Never go back to a plain upsert
   for an edited row. The engine keeps a trace of every decision
   (`syncTrace()`); the harness prints both devices' when a scenario fails.
+- **A sheet's back() undoes a script's goto.** A sheet closed by Escape or ×
+  takes its own history entry off a moment later with `history.back()`
+  (`ui/backCloses`). The app's own `nav()` waits for it (`afterPanelBack`); a
+  test's `page.goto` straight after does not, and the late back lands on top
+  of it — the page under the sheet where the next page was asked for. It
+  failed the 6M acceptance's PDF download once in three parallel runs and in
+  the gate (14 October), and read as "the download is slow". An acceptance
+  script that closes a sheet and then navigates waits for
+  `!history.state?.flPanel` first (`sixm-evidence.mjs` `go`).
 - **Schema drift is silent.** The app's mapper and the SQL migrations are two
   descriptions of the same columns. When they disagree the push is rejected, the
   cursor never advances, the row never leaves the device, and nothing on screen
@@ -642,7 +658,15 @@ what by when?
    the letters VA · NE · NV beside the colour, and only on that grid and its
    paper. And his second (12 October): a problem's PRIORITY is RAG —
    Critical red, High amber, Low green — always with its word, only on the
-   priority tag, its counts and its paper (Problems, `lib/snagsReport`).** The PDFs use the same
+   priority tag, its counts and its paper (Problems, `lib/snagsReport`).
+   And his third (14 October, "it looks very bland, very old ... more
+   engaging and colourful"): Line capacity's V is coloured by how close a
+   station runs to the bottleneck — the bottleneck in the house's navy, the
+   rest in the brand's blue, lighter the more they have to spare — on its
+   columns, the phone's bars, the capacity sheet and its paper
+   (`lib/capacity` `shareColours`); amber still only under the agreed V, red
+   only a target the bottleneck cannot meet, and every figure in words
+   beside its colour.** The PDFs use the same
    five values. Set 4 October: a step with a day booked is still ahead
    (indigo); a step with no day is not started (grey); a gate where nothing
    has started is grey and says "not started"; a stage not on a machine's

@@ -24,7 +24,7 @@
  * a person over takt (red). The bottleneck is marked, not coloured — it is
  * the limit, not a failure. */
 import {
-  analyse, changedWords, compareSays, fmtBig, fmtMoney, fmtN, labourCost, oneMorePerson, oneOf, shiftCapacity, shortSays,
+  allowanceOf, analyse, changedWords, cycleWords, compareSays, fmtBig, fmtMoney, fmtN, labourCost, oneMorePerson, oneOf, shiftCapacity, shortSays,
   vCurve, whatIfCapacity, whatIfLabour, whatIfStations,
   type Capacity, type ChangeoverIn, type LabourInputs, type ShiftIn, type Station,
 } from './capacity';
@@ -62,6 +62,9 @@ export interface CapacityPaperRow {
   /** The target needs more than it can do. */
   over: boolean;
   limit: boolean;
+  /** Its share of the bottleneck as a number — once its own stops count,
+   *  while running, and what the agreed V asks — for the V drawn on paper. */
+  pct?: number; runningPct?: number; guide?: number;
 }
 
 export interface CapacityPaperShift {
@@ -84,6 +87,8 @@ export interface CapacityPaper {
   sentence: string;
   /** "60 bags a minute", when a target is set. */
   target?: string;
+  /** The target as a share of the bottleneck, for the V drawn on paper. */
+  targetPct?: number;
   /** Every station counted, in flow order. */
   rows: CapacityPaperRow[];
   /** The V either side of the bottleneck (lib/capacity vCurve) — with two or more counted. */
@@ -106,11 +111,13 @@ export interface CapacityPaper {
 const PER: Record<NonNullable<Station['ratePer']>, string> = { sec: 'a second', min: 'a minute', hour: 'an hour' };
 const HOW: Record<NonNullable<Station['source']>, string> = { plate: 'on the plate', timed: 'timed', standard: 'standard time — the time study', estimate: 'a guess' };
 
-/** A station's speed as it was typed, in its own unit — the capacity sheet's words. */
-export function speedWords(s: Station): string {
-  const unit = s.unit.trim() || 'units';
+/** A station's speed as it was typed, in the unit it was typed in — its own,
+ *  or the one before's for a palletiser timed per basket — the capacity
+ *  sheet's words. `prevUnit`: the unit of the station before it. */
+export function speedWords(s: Station, prevUnit?: string): string {
+  const unit = (s.speedIn === 'before' && prevUnit?.trim() ? prevUnit : s.unit).trim() || 'units';
   if (s.rate != null && s.rate > 0) return `${fmtN(s.rate)} ${unit} ${PER[s.ratePer ?? 'min']}`;
-  if (s.cycleSec) return (s.perCycle ?? 1) === 1 ? `a ${oneOf(unit)} every ${fmtN(s.cycleSec)} s` : `${fmtN(s.perCycle ?? 1)} ${unit} every ${fmtN(s.cycleSec)} s`;
+  if (s.cycleSec) return cycleWords(s.perCycle ?? 1, s.cycleSec, unit);
   return 'no speed yet';
 }
 
@@ -178,7 +185,8 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
     return {
       n: o.index + 1, name: s.name.trim() || `Station ${o.index + 1}`, people: s.kind === 'people', ...(crew ? { crew } : {}),
       unit: `${o.index === 0 ? `${s.unit.trim() || 'units'} — the line’s unit` : o.chain}${s.kind === 'people' ? ` · ${fmtN(s.crew ?? 1)} ${(s.crew ?? 1) === 1 ? 'person' : 'people'}` : ''}`,
-      speed: speedWords(s), how: how.text, notPlate: how.notPlate,
+      /* a person's time with their rest allowance said beside it (docs/CAPACITY.md §1) */
+      speed: `${speedWords(s, cap.stations[o.index - 1]?.unit)}${allowanceOf(s) > 0 ? ` + ${fmtN(allowanceOf(s) * 100)}% rest` : ''}`, how: how.text, notPlate: how.notPlate,
       stops: s.runningPct != null && s.runningPct < 100 ? `${fmtN(100 - s.runningPct)}%` : '—',
       good: s.goodPct != null && s.goodPct < 100 ? `${fmtN(s.goodPct)}%` : '—',
       perMin: fmtN(o.effective), perHour: fmtN(o.effective * 60),
@@ -187,6 +195,7 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
       ...(target != null ? { needs: need != null ? `${fmtN(Math.round(need))}%` : '—' } : {}),
       over: need != null && need > 100 + 1e-9,
       limit: isLimit,
+      ...(p ? { pct: p.pct, runningPct: p.runningPct, ...(p.guide != null ? { guide: p.guide } : {}) } : {}),
     };
   });
 
@@ -240,6 +249,7 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
     short: (r.gap ?? 0) > 0 && !!r.next,
     sentence: r.sentence,
     ...(target != null ? { target: `${fmtN(target)} ${r.unit} a minute` } : {}),
+    ...(target != null && r.limit && r.limit.effective > 0 ? { targetPct: (target / r.limit.effective) * 100 } : {}),
     rows,
     ...(v && r.ok.length >= 2 ? { v: { text: v.sentence, tone: (v.under.length ? 'a' : 'n') as Tone } } : {}),
     ...(x.walk ? { walk: { text: x.walk.sentence, tone: (x.walk.against === 'disagrees' ? 'a' : 'n') as Tone } } : {}),

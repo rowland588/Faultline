@@ -193,12 +193,14 @@ describe('SMED — what the changeovers cost, extrapolated (worked example 2)', 
       .toEqual({ shiftsPerDay: 2, shiftHours: [8, 8] });
   });
   it('the speed is the critical machine\'s plate speed — unless people set the pace; else said as not a plate speed', () => {
-    const st = (id: string, name: string, kind: 'machine' | 'people', rate: number, source: 'plate' | 'timed' | 'standard' | 'estimate') => ({ id, name, kind, unit: 'bags', contains: 1, rate, ratePer: 'min' as const, source });
+    const st = (id: string, name: string, kind: 'machine' | 'people', rate: number, source: 'plate' | 'timed' | 'standard' | 'estimate', allowancePct: number | null = 0) => ({ id, name, kind, unit: 'bags', contains: 1, rate, ratePer: 'min' as const, source, ...(allowancePct != null ? { allowancePct } : {}) });
     /* the Bagger is the slowest on running speed, off its plate */
     expect(lineRateOf({ stations: [st('w', 'Weigher', 'machine', 140, 'plate'), st('b', 'Bagger', 'machine', 100, 'plate'), st('p', 'Packers', 'people', 120, 'timed')] }))
       .toEqual({ ratePerMin: 100, from: 'plate', station: 'Bagger' });
     /* people are slowest and were timed: they set the pace */
     expect(lineRateOf({ stations: [st('b', 'Bagger', 'machine', 100, 'plate'), st('p', 'Packers', 'people', 80, 'timed')] })).toEqual({ ratePerMin: 80, from: 'person', station: 'Packers' });
+    /* timed, with the ILO's 9% rest on it (docs/CAPACITY.md §1) */
+    expect(lineRateOf({ stations: [st('b', 'Bagger', 'machine', 100, 'plate'), st('p', 'Packers', 'people', 80, 'timed', null)] })?.ratePerMin).toBe(73.39); // 80 ÷ 1.09, to the hundredth
     /* or carry a standard time from the time study (Line capacity) — the same: people set the pace */
     expect(lineRateOf({ stations: [st('b', 'Bagger', 'machine', 100, 'plate'), st('p', 'Packers', 'people', 75, 'standard')] })).toEqual({ ratePerMin: 75, from: 'person', station: 'Packers' });
     /* the slowest is a guess: not a plate speed — the standard's target, then the line's setting */

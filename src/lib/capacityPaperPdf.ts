@@ -18,7 +18,7 @@ import { capacityPapersSay } from './capacityPaper';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { SIZE, box, font, gap, heading, label, lead, rows, space, text, wrap, type Row } from './report/blocks';
 import { san } from './reportKit';
-import { oneOf } from './capacity';
+import { fmtN, oneOf, shareColours } from './capacity';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK = '#0f1a2e', INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', BRAND = '#1f63e0', SURF = '#eef2f8';
@@ -71,6 +71,95 @@ function said(lead_: string, words: string, tone: Tone = 'n', o: { indent?: numb
       });
     },
   };
+}
+
+/* ------------------------------- the V, drawn ------------------------------ */
+
+/** A colour as jsPDF takes it — "#0d1f3c" or "rgb(31,99,224)". */
+function fillOf(doc: jsPDF, css: string, as: 'fill' | 'draw' = 'fill'): void {
+  const m = /^rgb\((\d+),(\d+),(\d+)\)$/.exec(css.replace(/\s/g, ''));
+  if (as === 'fill') { if (m) doc.setFillColor(+m[1], +m[2], +m[3]); else doc.setFillColor(css); }
+  else if (m) doc.setDrawColor(+m[1], +m[2], +m[3]); else doc.setDrawColor(css);
+}
+
+/** THE V ON PAPER (14 October: the screen's V redrawn — "very bland, very
+ *  old" — and the paper given it too, rule 2): a bar a station in flow
+ *  order, as the phone lies it on its side, as long as its share of the
+ *  bottleneck once its own stops count, paler to what it does while running;
+ *  the colours the screen's (lib/capacity shareColours) — the bottleneck navy,
+ *  the rest blue, lighter with room to spare, amber only under the agreed V;
+ *  the line at 100% the bottleneck's own, the V agreed a dashed tick, the
+ *  target dotted, red only when the bottleneck cannot meet it. The scale is
+ *  the screen's: from nothing to a little over the highest, never past 300%.
+ *  Splits between stations, the scale carried over. */
+function vBars(p: CapacityPaper): Block | null {
+  const pts = p.rows.filter(r => r.pct != null);
+  if (!pts.length || !pts.some(r => r.limit)) return null;
+  const most = Math.max(...pts.map(r => Math.max(r.runningPct ?? 0, r.guide ?? 0)), p.targetPct ?? 0);
+  const top = Number.isFinite(most) ? Math.min(300, Math.max(140, Math.ceil((most + 8) / 20) * 20)) : 300;
+  const NAME = 150, VAL = 74;
+  const geo = (f: Frame) => { const x0 = f.x + NAME + 8, x1 = f.x + f.w - VAL - 6; return { x0, x1, at: (v: number) => x0 + (Math.max(0, Math.min(v, top)) / top) * (x1 - x0) }; };
+  const over = (p.targetPct ?? 0) > 100 + 1e-9;
+  const name = (f: Frame, r: CapacityPaperRow) => wrap(f.doc, `${r.n}  ${r.name}${r.crew ? ` ${r.crew}` : ''}`, NAME - 4, T, 'bold');
+  const rowH = (f: Frame, r: CapacityPaperRow) => Math.max(name(f, r).length * LH + LS, 18) + 6;
+  /* the marks every row carries, so they run unbroken down the chart */
+  const marks = (f: Frame, y: number, h: number, r?: CapacityPaperRow) => {
+    const g = geo(f);
+    f.doc.setDrawColor(INK); f.doc.setLineWidth(0.9); f.doc.line(g.at(100), y, g.at(100), y + h);
+    if (p.targetPct != null) {
+      f.doc.setDrawColor(over ? RED : INK2); f.doc.setLineWidth(0.9); f.doc.setLineDashPattern([1, 1.6], 0);
+      f.doc.line(g.at(p.targetPct), y, g.at(p.targetPct), y + h); f.doc.setLineDashPattern([], 0);
+    }
+    if (r?.guide != null) {
+      f.doc.setDrawColor(INK2); f.doc.setLineWidth(0.9); f.doc.setLineDashPattern([2, 1.5], 0);
+      f.doc.line(g.at(r.guide), y + 3, g.at(r.guide), y + h - 3); f.doc.setLineDashPattern([], 0);
+    }
+  };
+  const header: Row = {
+    h: () => 16,
+    draw: (f, y) => {
+      const g = geo(f);
+      font(f.doc, SIZE.tiny, 'bold', MUTED);
+      f.doc.text('STATION, IN FLOW ORDER', f.x, y + 9);
+      f.doc.text('0%', g.x0, y + 9);
+      f.doc.text('100%', g.at(100), y + 9, { align: 'center' });
+      f.doc.text(`${top}%`, g.x1, y + 9, { align: 'right' });
+      f.doc.text('OF THE BOTTLENECK', f.x + f.w, y + 9, { align: 'right' });
+      f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.6); f.doc.line(f.x, y + 15, f.x + f.w, y + 15);
+    },
+  };
+  const body: Row[] = pts.map(r => ({
+    h: f => rowH(f, r),
+    draw: (f, y) => {
+      const g = geo(f), h = rowH(f, r), l = name(f, r);
+      const [deep, light] = shareColours(r.pct ?? 0, r.limit, r.under);
+      if (r.limit) { f.doc.setFillColor(SURF); f.doc.rect(f.x, y, f.w, h, 'F'); f.doc.setFillColor('#0d1f3c'); f.doc.rect(f.x, y, 3, h, 'F'); }
+      const ty = y + 4 + T * 0.92;
+      font(f.doc, T, 'bold', INK); f.doc.text(l, f.x + (r.limit ? 7 : 0), ty);
+      font(f.doc, S, 'normal', MUTED); f.doc.text(`${r.perMin} ${p.unit}/min`, f.x + (r.limit ? 7 : 0), ty + l.length * LH - 1);
+      /* the bar: paler to what it does while running, then its share once its stops count */
+      const by = y + h / 2 - 5, bh = 10;
+      f.doc.setFillColor('#e9eff7'); f.doc.roundedRect(g.x0, by, g.x1 - g.x0, bh, 3, 3, 'F');
+      if ((r.runningPct ?? 0) > (r.pct ?? 0) + 0.5) { fillOf(f.doc, light); f.doc.roundedRect(g.x0, by, Math.max(2, g.at(r.runningPct ?? 0) - g.x0), bh, 3, 3, 'F'); }
+      fillOf(f.doc, deep); f.doc.roundedRect(g.x0, by, Math.max(2, g.at(r.pct ?? 0) - g.x0), bh, 3, 3, 'F');
+      marks(f, y, h, r);
+      /* the figure, and the words only the abnormal needs */
+      const vx = f.x + f.w;
+      if (r.limit) { font(f.doc, S, 'bold', INK); f.doc.text('THE BOTTLENECK', vx, ty, { align: 'right' }); }
+      else {
+        font(f.doc, T, 'bold', r.under ? AMBER : INK); f.doc.text(`${fmtN(Math.round(r.pct ?? 0))}%`, vx, ty, { align: 'right' });
+        if (r.under) { font(f.doc, S, 'bold', AMBER); f.doc.text('under the V', vx, ty + LH - 1, { align: 'right' }); }
+      }
+      f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.4); f.doc.line(f.x, y + h - 0.5, f.x + f.w, y + h - 0.5);
+    },
+  }));
+  return rows({ header, rows: body, after: 's' });
+}
+
+/** The V's key: what the bar, the paler bar and the marks are. */
+function vKey(p: CapacityPaper): Block {
+  const words = `Bar: its share of the bottleneck once its own stops count; paler: more while running. Navy: the bottleneck; blue, lighter with room to spare; amber: under the V agreed. Solid line: 100%, the bottleneck${p.rows.some(r => r.guide != null) ? '; dashed tick: what the V asks of it' : ''}${p.targetPct != null ? `; dotted: the target${(p.targetPct ?? 0) > 100 + 1e-9 ? ', above the bottleneck' : ''}` : ''}.`;
+  return text({ text: words, size: S, colour: MUTED, after: 6 });
 }
 
 /* --------------------------- the capacity sheet --------------------------- */
@@ -246,6 +335,9 @@ export function productBlocks(p: CapacityPaper, d: Density, own: boolean, keep =
   out.push(label('Where it is limited'));
   if (p.target) out.push(said('The target:', `${p.target}.`));
   if (p.v) out.push(said('The V-curve:', p.v.text, p.v.tone));
+  /* the V drawn, as the screen draws it */
+  const vb = vBars(p);
+  if (vb) { out.push(vb); out.push(vKey(p)); }
   if (p.walk) out.push(said('The bottleneck, walked:', p.walk.text, p.walk.tone));
   out.push({ ...space('s'), keepWithNext: true });   // travels with the sheet, never strands the label
   out.push(sheet(p));

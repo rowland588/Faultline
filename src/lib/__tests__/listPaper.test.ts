@@ -24,7 +24,7 @@ const LINE: Capacity = {
   stations: [
     st({ id: 'b', name: 'Bagger', unit: 'bags', rate: 70, source: 'plate' }),
     st({ id: 'k', name: 'Basketer', unit: 'baskets', contains: 12, rate: 5.5, runningPct: 94, source: 'timed' }),
-    st({ id: 'c', name: 'Carrier', kind: 'people', unit: 'baskets', cycleSec: 20, perCycle: 2 }),
+    st({ id: 'c', name: 'Carrier', kind: 'people', unit: 'baskets', cycleSec: 20, perCycle: 2, allowancePct: 0 }),
     st({ id: 'p', name: 'Palletiser', unit: 'pallets', contains: 40, rate: 8, ratePer: 'hour', source: 'plate' }),
   ],
 };

@@ -56,6 +56,27 @@ export interface Station {
    *  every `cycleSec` seconds. Used when `rate` is not set. */
   cycleSec?: number;
   perCycle?: number;
+  /** WHAT THE SPEED IS TYPED IN. A person on a palletiser is timed per
+   *  basket, not per pallet (Rowland, 14 October: "I need to be able to
+   *  determine the speed of the human doing something" — he was dividing 70
+   *  a minute by hand to type a rate in pallets). 'before': the rate or the
+   *  cycle is in the PREVIOUS station's unit — "a basket every 6 s" — and is
+   *  put into this one's by `contains` (36 baskets a pallet). Absent: in its
+   *  own unit, as every station was typed before. */
+  speedIn?: 'before';
+  /** THE CYCLE TYPED IN MINUTES — "it takes 5 minutes to do one pallet"
+   *  (Rowland, 14 October). Only how the box shows it: `cycleSec` is always
+   *  seconds. Absent: typed in seconds. */
+  cycleIn?: 'min';
+  /** A PERSON'S REST ALLOWANCE, percent, added to their timed or typed time
+   *  to give the time to plan on (docs/CAPACITY.md §1; Rowland, 14 October:
+   *  "we need to bring in science when it comes to humans"). Absent: the
+   *  ILO's constant allowances, 9% — 5% personal needs and 4% basic fatigue
+   *  on every job (Kanawaty, Introduction to Work Study, ILO 1992) — more
+   *  typed for standing, awkward posture, weight lifted, heat, noise or
+   *  monotony. Never on a machine, and never on a standard time from the time
+   *  study, which carries its allowances already. */
+  allowancePct?: number;
   /** Identical machines or people side by side. Default 1. */
   crew?: number;
   /** Percent of the time it is actually running, its OWN stops only. Default
@@ -244,12 +265,83 @@ export const EMPTY_CAPACITY: Capacity = { stations: [] };
 const PER_MIN: Record<RatePer, number> = { sec: 60, min: 1, hour: 1 / 60 };
 
 /** The station's own speed, in its own unit per minute — or undefined when it
- *  has not been given one that can be used. */
+ *  has not been given one that can be used. Typed in the unit before it
+ *  (speedIn 'before'), it is put into its own: a basket every 6 s at 36 to a
+ *  pallet is 10 baskets a minute, 0.28 pallets. */
 export function perMinute(s: Station): number | undefined {
+  const typed = typedPerMinute(s);
+  if (typed == null) return undefined;
+  if (s.speedIn !== 'before') return typed;
+  return s.contains > 0 ? typed / s.contains : undefined;
+}
+
+/** THE ILO'S CONSTANT ALLOWANCES, percent: personal needs 5 + basic
+ *  fatigue 4 (Kanawaty, Introduction to Work Study, ILO 1992). */
+export const REST_ALLOWANCE_PCT = 9;
+
+/** The rest allowance on a station's speed, as a fraction: a person timed or
+ *  typed — 0.09 unless said — and nothing on a machine or on a standard time
+ *  (the time study's carries its own). */
+export function allowanceOf(s: Pick<Station, 'kind' | 'source' | 'allowancePct'>): number {
+  if (s.kind !== 'people' || s.source === 'standard') return 0;
+  const a = s.allowancePct ?? REST_ALLOWANCE_PCT;
+  return Number.isFinite(a) && a > 0 ? a / 100 : 0;
+}
+
+/** THE SPEED TO PLAN ON, its own unit a minute: what was timed or typed,
+ *  with a person's rest allowance taken off — 6 s a basket timed is 6.54 s
+ *  to plan on. What the line's capacity is worked out from. */
+export function planPerMinute(s: Station): number | undefined {
+  const v = perMinute(s);
+  return v == null ? undefined : v / (1 + allowanceOf(s));
+}
+
+/** The speed as it was typed, a minute, in the unit it was typed in. */
+export function typedPerMinute(s: Pick<Station, 'rate' | 'ratePer' | 'cycleSec' | 'perCycle'>): number | undefined {
   if (s.rate != null && s.rate > 0) return s.rate * PER_MIN[s.ratePer ?? 'min'];
   if (s.cycleSec != null && s.cycleSec > 0 && s.perCycle != null && s.perCycle > 0) return (s.perCycle * 60) / s.cycleSec;
   return undefined;
 }
+
+/** HOW MANY OF THE LINE'S UNIT ARE IN ONE OF A STATION'S — the steps before
+ *  read into it: 36 baskets of 10 is 360 units a pallet. Undefined while a
+ *  station up to it does not say how many of the one before make one. */
+export function chainFactor(stations: readonly Pick<Station, 'contains'>[], i: number): number | undefined {
+  let f = 1;
+  for (let k = 1; k <= i; k++) {
+    const c = stations[k]?.contains;
+    if (!(c != null && c > 0)) return undefined;
+    f *= c;
+  }
+  return f;
+}
+
+/** "1 pallet = 36 baskets = 360 units" — a station's unit read back through
+ *  every step before it to the line's own, so a wrong number in the chain is
+ *  something a person can see (docs/CAPACITY.md §1). Undefined at the front
+ *  of the line or while the chain is not whole. */
+export function chainWords(stations: readonly Pick<Station, 'unit' | 'contains'>[], i: number): string | undefined {
+  if (i <= 0 || chainFactor(stations, i) == null) return undefined;
+  const parts = [`1 ${oneOf(stations[i].unit) || 'one'}`];
+  let f = 1;
+  for (let k = i; k >= 1; k--) {
+    f *= stations[k].contains;
+    /* a one-for-one step is not said twice; the line's own unit always last */
+    if (stations[k].contains !== 1 || k === 1) parts.push(`${fmtN(f)} ${stations[k - 1].unit.trim() || 'units'}`);
+  }
+  return [...new Set(parts)].join(' = ');
+}
+
+/** A STATION'S SPEED AS IT WAS TYPED, in the unit it was typed in — "a
+ *  basket every 6 s" for a palletiser timed per basket, "70 bags a minute"
+ *  for a bagger. `prevUnit` is the unit of the station before it. */
+export function typedSpeedWords(s: Pick<Station, 'unit' | 'rate' | 'ratePer' | 'cycleSec' | 'perCycle' | 'speedIn'>, prevUnit?: string): string {
+  const unit = (s.speedIn === 'before' && prevUnit?.trim() ? prevUnit : s.unit).trim() || 'units';
+  if (s.rate != null && s.rate > 0) return `${fmtN(s.rate)} ${unit} ${PER_MIN_WORD[s.ratePer ?? 'min']}`;
+  if (s.cycleSec != null && s.cycleSec > 0) return cycleWords(s.perCycle ?? 1, s.cycleSec, unit);
+  return 'no speed yet';
+}
+const PER_MIN_WORD: Record<RatePer, string> = { sec: 'a second', min: 'a minute', hour: 'an hour' };
 
 const pct = (v: number | undefined, dflt: number): number => {
   if (v == null || !Number.isFinite(v)) return dflt;
@@ -376,7 +468,7 @@ export function lineSpeed(cap: Capacity | undefined): { perMin: number; unit: st
  *  minute at its place in the line: its speed × its crew × the line's units
  *  in one of its own — no rejects before it put back. */
 export const ownSpeed = (x: Pick<StationResult, 'station' | 'factor'>): number =>
-  (perMinute(x.station) ?? 0) * (x.station.crew != null && x.station.crew > 0 ? x.station.crew : 1) * x.factor;
+  (planPerMinute(x.station) ?? 0) * (x.station.crew != null && x.station.crew > 0 ? x.station.crew : 1) * x.factor;
 
 /** Numbers as a person would say them: 62, 66.5, 0.13 — no trailing zeros. */
 export function fmtN(n: number): string {
@@ -417,7 +509,7 @@ export function analyse(cap: Capacity): CapacityResult {
       skipped.push({ station: s, index: i, why: problem ?? `the chain of units breaks at ${chainBroken}` });
       return;
     }
-    const speed = perMinute(s) as number;
+    const speed = planPerMinute(s) as number;
     const crew = s.crew != null && s.crew > 0 ? s.crew : 1;
     const running = (speed * crew * factor) / upstream;
     const effective = running * pct(s.runningPct, 1);
@@ -559,6 +651,62 @@ export const oneOf = (unit: string): string => {
 /** Seconds as a person reads a stopwatch: 6.9 s, 12 s. */
 export const fmtSec = (sec: number): string => `${String(Number(sec.toFixed(sec < 10 ? 1 : 0)))} s`;
 
+/** A longer wait as a person says it: 8.6 s, 45 s, 5 min 9 s, 1 h 20 min. */
+export function fmtDur(sec: number): string {
+  if (sec < 90) return fmtSec(sec);
+  const m = Math.round(sec);
+  if (m < 3600) { const mm = Math.floor(m / 60), ss = m % 60; return ss ? `${mm} min ${ss} s` : `${mm} min`; }
+  const h = Math.floor(m / 3600), mm = Math.round((m % 3600) / 60);
+  return mm ? `${h} h ${mm} min` : `${h} h`;
+}
+
+/** A time as it was typed, as a person says it: 8 s, 12.5 s, 5 min, 1 min 40 s. */
+export const everyWords = (sec: number): string => (sec < 90 ? `${fmtN(sec)} s` : fmtDur(sec));
+
+/** A cycle as typed: "a pallet every 5 min", "2 baskets every 20 s". */
+export const cycleWords = (perCycle: number, cycleSec: number, unit: string): string =>
+  perCycle === 1 ? `a ${oneOf(unit)} every ${everyWords(cycleSec)}` : `${fmtN(perCycle)} ${unit.trim() || 'units'} every ${everyWords(cycleSec)}`;
+
+/* ======================== a rate that reads like a time ======================
+ * Rowland, 14 October: "counts in pallets, each pallet holds 36 baskets ...
+ * 5 ... it says 5 pallets a minute ... well, it isn't ... it takes 5 minutes
+ * to do one pallet." A rate many times what reaches the station whose
+ * reading as "one every N" is close to it is the time typed in the rate's
+ * box. Asked, with the time offered — never changed by itself. */
+export interface RateAsTime {
+  /** "5 pallets a minute is 1,800 units a minute — 26 times what reaches them." */
+  says: string;
+  /** "One pallet every 5 minutes?" */
+  ask: string;
+  /** What "Make it…" puts on the station. */
+  cycleSec: number; cycleIn?: 'min';
+  /** "a pallet every 5 min" — the button's words. */
+  every: string;
+}
+export function rateAsTime(r: CapacityResult, s: Station, prevUnit?: string): RateAsTime | undefined {
+  const a = r.arrivals[s.id];
+  const per = s.ratePer ?? 'min';
+  if (!a || !(a.perMin > 0) || s.rate == null || !(s.rate > 0) || per === 'hour') return undefined;
+  const own = perMinute(s);
+  if (own == null || own < a.perMin * 5) return undefined;
+  const before = s.speedIn === 'before' && s.contains > 0 && !!prevUnit?.trim();
+  const k = before ? s.contains : 1;
+  const cycleSec = s.rate * (per === 'min' ? 60 : 1);
+  const read = 60 / cycleSec / k;                       // read as one every N, in its own unit a minute
+  if (read < a.perMin / 2 || read > a.perMin * 2) return undefined;
+  const unit = (before ? (prevUnit as string) : s.unit).trim() || 'units';
+  const factor = r.ok.find(x => x.station.id === s.id)?.factor;
+  const atLine = factor != null && Math.abs(factor - 1) > 1e-9 ? ` is ${fmtBig(own * factor)} ${r.unit} a minute —` : ' —';
+  const who = s.kind === 'people' ? 'them' : 'it';
+  const time = per === 'min' ? `${fmtN(s.rate)} ${s.rate === 1 ? 'minute' : 'minutes'}` : `${fmtN(s.rate)} seconds`;
+  return {
+    says: `${fmtN(s.rate)} ${unit} ${PER_MIN_WORD[per]}${atLine} ${fmtBig(own / a.perMin)} times what reaches ${who}.`,
+    ask: `One ${oneOf(unit)} every ${time}?`,
+    cycleSec, ...(per === 'min' ? { cycleIn: 'min' as const } : {}),
+    every: cycleWords(1, cycleSec, unit),
+  };
+}
+
 export interface PaceSays {
   /** "A tray reaches them every 6.9 s — 8.75 a minute: Bagger does 70 bags a
    *  minute, 8 to a tray." Absent at the front of the line. */
@@ -571,42 +719,72 @@ export interface PaceSays {
   /** People needed to keep up with what reaches them, when that is more than
    *  are there. */
   needed?: number;
+  /** FED STRAIGHT BY A MACHINE OR A PERSON, nothing collecting between, and
+   *  loaded past what a person sustains (docs/CAPACITY.md §1): "Fed straight
+   *  by the Bagger with nothing collecting between — loaded to 95%: …". */
+  paced?: string;
 }
+
+/** HOW FULL A PERSON FED STRAIGHT BY THE STEP BEFORE MAY BE LOADED — what
+ *  reaches them over what they can do at their planning pace. A person's
+ *  time varies piece to piece and person to person (one operator to another
+ *  often 1 : 2 — Johnson, 1981), and fed cycle for cycle with nothing
+ *  collecting between they lose the long cycles (machine pacing: Salvendy &
+ *  Smith, 1981); the practice loads them to 80–90%, not 100. */
+export const PACED_LOAD_MAX = 0.9;
 
 /** WHAT A STATION IS ASKED TO DO, AND WHETHER IT DOES IT — worked out from the
  *  line before it (Rowland, 13 October: "70 a minute. How many go into a
  *  basket? 10. So one basket goes to a human every X"). A person is said in
  *  seconds a piece, the way they are timed; a machine in its rate. */
-export function paceSays(r: CapacityResult, s: Station): PaceSays {
+export function paceSays(r: CapacityResult, s: Station, prevUnit?: string,
+  /** The station before it — whether a person is fed straight by it. */
+  prev?: Pick<Station, 'name' | 'kind' | 'bufferAfter'>): PaceSays {
   const a = r.arrivals[s.id];
-  const one = oneOf(s.unit);
+  /* TIMED PER THE UNIT BEFORE — a palletiser per basket: said per basket,
+     the pallet beside it (Rowland, 14 October) */
+  const before = s.speedIn === 'before' && s.contains > 0 && !!prevUnit?.trim();
+  const k = before ? s.contains : 1;
+  const one = oneOf(before ? (prevUnit as string) : s.unit);
+  const whole = oneOf(s.unit);
   const people = s.kind === 'people';
   const who = people ? 'them' : 'it';
   const arrive = a
-    ? `A ${one} reaches ${who} every ${fmtSec(a.everySec)} — ${fmtN(a.perMin)} a minute: ${a.from.name} does ${fmtN(a.from.perMin)} ${a.from.unit} a minute${Math.abs(a.ratio - 1) > 1e-9 ? `, ${fmtN(a.ratio)} to a ${one}` : ''}.`
+    ? (before
+      ? `A ${one} reaches ${who} every ${fmtDur(a.everySec / k)} — ${fmtN(a.perMin * k)} a minute; a full ${whole} of ${fmtN(k)} every ${fmtDur(a.everySec)}: ${a.from.name} does ${fmtN(a.from.perMin)} ${a.from.unit} a minute.`
+      : `A ${one} reaches ${who} every ${fmtDur(a.everySec)} — ${fmtN(a.perMin)} a minute: ${a.from.name} does ${fmtN(a.from.perMin)} ${a.from.unit} a minute${Math.abs(a.ratio - 1) > 1e-9 ? `, ${fmtN(a.ratio)} to a ${one}` : ''}.`)
     : undefined;
-  const speed = perMinute(s);
+  /* the pace to plan on: a person's timed time with their rest allowance */
+  const speed = planPerMinute(s);
   if (speed == null) {
     return { ...(arrive ? { arrive } : {}), verdict: people ? `Time how long one ${one} takes them.` : `Give it its speed to see whether it keeps up.`, short: false };
   }
   const crew = s.crew != null && s.crew > 0 ? s.crew : 1;
   const running = pct(s.runningPct, 1) || 1;
   const does = speed * crew * running;             // its own unit a minute
-  const each = 60 / speed;                         // one of it, one of them
+  const each = 60 / speed / k;                     // one of what it is timed per, one of them, rest in it
+  const allow = allowanceOf(s);
+  const timedEach = each / (1 + allow);            // as timed or typed
+  const unitSaid = before ? (prevUnit as string).trim() : (s.unit.trim() || 'units');
+  const takes = `They take ${fmtDur(allow > 0 ? timedEach : each)} a ${one}${crew > 1 ? ` each, ${crew} of them` : ''}${allow > 0 ? ` — ${fmtDur(each)} with ${fmtN(allow * 100)}% rest` : ''}`;
   if (!a) {
-    return { verdict: people ? `They take ${fmtSec(each)} a ${one}${crew > 1 ? ` each, ${crew} of them` : ''} — ${fmtN(does)} a minute.` : `It does ${fmtN(does)} ${s.unit.trim() || 'units'} a minute.`, short: false };
+    return { verdict: people ? `${takes} — ${fmtN(does * k)} a minute.` : `It does ${fmtN(does * k)} ${unitSaid} a minute.`, short: false };
   }
   const short = does < a.perMin - 1e-9;
   const needed = Math.ceil(a.perMin / (speed * running) - 1e-9);
   if (!people) {
-    return { ...(arrive ? { arrive } : {}), verdict: short ? `It does ${fmtN(does)} a minute — holds the line back.` : `It does ${fmtN(does)} a minute — keeps up${does - a.perMin > 1e-9 ? `, ${fmtN(does - a.perMin)} to spare` : ''}.`, short };
+    return { ...(arrive ? { arrive } : {}), verdict: short ? `It does ${fmtN(does * k)} a minute — holds the line back.` : `It does ${fmtN(does * k)} a minute — keeps up${does - a.perMin > 1e-9 ? `, ${fmtN((does - a.perMin) * k)} to spare` : ''}.`, short };
   }
-  const gapSec = Math.abs(60 / does - a.everySec);
-  const takes = `They take ${fmtSec(each)} a ${one}${crew > 1 ? ` each, ${crew} of them` : ''}`;
+  const gapSec = Math.abs(60 / does - a.everySec) / k;
   const verdict = short
-    ? `${takes} — ${fmtSec(gapSec)} too slow: they hold the line back. It needs ${needed} ${needed === 1 ? 'person' : 'people'} to keep up.`
-    : `${takes} — they keep up${gapSec > 0.05 ? `, ${fmtSec(gapSec)} to spare a ${one}` : ''}.`;
-  return { ...(arrive ? { arrive } : {}), verdict, short, ...(short && needed > crew ? { needed } : {}) };
+    ? `${takes} — ${fmtDur(gapSec)} too slow: they hold the line back. It needs ${needed} ${needed === 1 ? 'person' : 'people'} to keep up.`
+    : `${takes} — they keep up${gapSec > 0.05 ? `, ${fmtDur(gapSec)} to spare a ${one}` : ''}.`;
+  /* FED STRAIGHT, nothing collecting between, loaded past what a person sustains */
+  const load = a.perMin / does;
+  const paced = prev && !short && !(prev.bufferAfter != null && prev.bufferAfter > 0) && load > PACED_LOAD_MAX + 1e-9
+    ? `Fed straight by ${prev.name.trim() || 'the step before'} with nothing collecting between — loaded to ${fmtN(Math.round(load * 100))}% of their pace. A person can’t match ${prev.kind === 'machine' ? 'a machine' : 'another person'} piece for piece: plan them at 80–90%, or let some collect before them.`
+    : undefined;
+  return { ...(arrive ? { arrive } : {}), verdict, short, ...(short && needed > crew ? { needed } : {}), ...(paced ? { paced } : {}) };
 }
 
 /** The finding in a few words, for a list of lines or a page header: "Basketer
@@ -840,18 +1018,21 @@ const byCycle = (s: Station) => !byRate(s) && s.cycleSec != null && s.cycleSec >
  *  itself changed does it fall back to a minute. */
 function speedChange(a: Station, s: Station): string | undefined {
   if (perMinute(a) === perMinute(s)) return undefined;
+  /* typed in the unit before on either side: the numbers typed are not in
+     the same unit, so it is said a minute in its own */
+  if (a.speedIn === 'before' || s.speedIn === 'before') return `${speedWords(s)} instead of ${speedWords(a).replace(` ${s.unit.trim() || 'units'}`, '')}`;
   const unit = s.unit.trim() || 'units';
   if (byRate(a) && byRate(s) && (a.ratePer ?? 'min') === (s.ratePer ?? 'min')) return `${fmtN(s.rate as number)} ${unit} ${PER_WORD[s.ratePer ?? 'min']} instead of ${fmtN(a.rate as number)}`;
   if (byCycle(a) && byCycle(s)) {
-    if (a.perCycle === s.perCycle) return `${fmtN(s.perCycle as number)} ${unit} every ${fmtN(s.cycleSec as number)} s instead of every ${fmtN(a.cycleSec as number)} s`;
-    if (a.cycleSec === s.cycleSec) return `${fmtN(s.perCycle as number)} ${unit} every ${fmtN(s.cycleSec as number)} s instead of ${fmtN(a.perCycle as number)}`;
-    return `${fmtN(s.perCycle as number)} ${unit} every ${fmtN(s.cycleSec as number)} s instead of ${fmtN(a.perCycle as number)} every ${fmtN(a.cycleSec as number)} s`;
+    if (a.perCycle === s.perCycle) return `${fmtN(s.perCycle as number)} ${unit} every ${everyWords(s.cycleSec as number)} instead of every ${everyWords(a.cycleSec as number)}`;
+    if (a.cycleSec === s.cycleSec) return `${fmtN(s.perCycle as number)} ${unit} every ${everyWords(s.cycleSec as number)} instead of ${fmtN(a.perCycle as number)}`;
+    return `${fmtN(s.perCycle as number)} ${unit} every ${everyWords(s.cycleSec as number)} instead of ${fmtN(a.perCycle as number)} every ${everyWords(a.cycleSec as number)}`;
   }
   // the way of saying it changed (a minute → an hour, a rate → a timing): both, as typed
   const typed = (x: Station, withUnit: boolean) => {
     const u = withUnit ? `${unit} ` : '';
     if (byRate(x)) return `${fmtN(x.rate as number)} ${u}${PER_WORD[x.ratePer ?? 'min']}`;
-    if (byCycle(x)) return `${fmtN(x.perCycle as number)} ${u}every ${fmtN(x.cycleSec as number)} s`;
+    if (byCycle(x)) return `${fmtN(x.perCycle as number)} ${u}every ${everyWords(x.cycleSec as number)}`;
     return withUnit ? speedWords(x) : speedWords(x).replace(` ${unit}`, '');
   };
   return `${typed(s, true)} instead of ${typed(a, false)}`;
@@ -981,13 +1162,14 @@ const PER_WORDS: Record<RatePer, string> = { sec: 'a second', min: 'a minute', h
 
 /** One station's detail line for the report — every figure that went into
  *  its bar, as the person typed it. */
-export function stationDetail(s: Station): string {
-  const unit = s.unit.trim() || 'units';
+export function stationDetail(s: Station, prevUnit?: string): string {
+  const unit = (s.speedIn === 'before' && prevUnit?.trim() ? prevUnit : s.unit).trim() || 'units';
   const speed = s.rate != null && s.rate > 0 ? `${fmtN(s.rate)} ${unit} ${PER_WORDS[s.ratePer ?? 'min']}`
-    : s.perCycle != null && s.cycleSec != null ? `${fmtN(s.perCycle)} ${unit} every ${fmtN(s.cycleSec)} s` : 'no speed';
+    : s.perCycle != null && s.cycleSec != null ? cycleWords(s.perCycle, s.cycleSec, unit) : 'no speed';
   const crew = s.crew ?? 1;
   const who = s.kind === 'people' ? `${fmtN(crew)} ${crew === 1 ? 'person' : 'people'}` : crew === 1 ? '1 of it' : `${fmtN(crew)} of it`;
-  const bits = [speed, who, `${fmtN(s.runningPct ?? 100)}% running`];
+  const rest = allowanceOf(s);
+  const bits = [rest > 0 ? `${speed} + ${fmtN(rest * 100)}% rest` : speed, who, `${fmtN(s.runningPct ?? 100)}% running`];
   if ((s.goodPct ?? 100) !== 100) bits.push(`${fmtN(s.goodPct ?? 100)}% good`);
   const how = SOURCE_WORD[s.source ?? 'estimate'] + (s.note?.trim() ? ` — ${s.note.trim()}` : '');
   return `${bits.join(' · ')} · ${how}`;
@@ -1043,7 +1225,7 @@ export function capacityReport(lines: { name: string; owner?: string; capacity?:
       rows: shown.map(x => ({
         name: x.station.name.trim() || `Station ${x.index + 1}`, kind: x.station.kind, chain: x.chain,
         running: x.running, effective: x.effective, limit: x.index === (r.limit as StationResult).index,
-        feed: x.feed, detail: stationDetail(x.station),
+        feed: x.feed, detail: stationDetail(x.station, cap.stations[x.index - 1]?.unit),
       })),
       more: r.ok.length - shown.length,
       whatIfs,
@@ -1093,6 +1275,21 @@ export interface VPoint {
   under: boolean;
 }
 export interface VCurve { points: VPoint[]; under: VPoint[]; limit?: VPoint; sentence: string }
+
+/** THE COLOUR OF A SHARE — the V's one rule on the screen, the sheet and the
+ *  paper (ui/VCurve, lib/capacityPaperPdf): the
+ *  bottleneck navy; under the V amber (a state: at risk); the rest the
+ *  brand's blue, lighter as they have more to spare, palest from 250%.
+ *  `[deep, light]` for a column's gradient. */
+export function shareColours(pct: number, isLimit: boolean, under: boolean): [string, string] {
+  if (isLimit) return ['#0d1f3c', '#23447f'];
+  if (under) return ['#8a5f14', '#c4923c'];
+  const t = Math.max(0, Math.min(1, (pct - 100) / 150));
+  const mix = (a: number[], b: number[], k: number) => `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * k)).join(',')})`;
+  /* --brand → a sky the landing's gradient ends in */
+  return [mix([31, 99, 224], [138, 184, 255], t), mix([92, 150, 255], [196, 220, 255], t)];
+}
+
 
 const nameOf = (x: StationResult): string => x.station.name.trim() || `Station ${x.index + 1}`;
 

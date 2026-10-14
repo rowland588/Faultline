@@ -25,7 +25,8 @@ const st = (o: Partial<Station> & { name: string; unit: string }): Station =>
 
 const bagger = () => st({ name: 'Bagger', unit: 'bags', rate: 70 });
 const basketer = (o: Partial<Station> = {}) => st({ name: 'Basketer', unit: 'baskets', contains: 12, rate: 5.5, ...o });
-const carrier = (o: Partial<Station> = {}) => st({ name: 'Carrier', kind: 'people', unit: 'baskets', contains: 1, cycleSec: 20, perCycle: 2, ...o });
+/* the worked line types each person's planning pace as it is: no rest allowance added (a typed 0) */
+const carrier = (o: Partial<Station> = {}) => st({ name: 'Carrier', kind: 'people', unit: 'baskets', contains: 1, cycleSec: 20, perCycle: 2, allowancePct: 0, ...o });
 const palletiser = (o: Partial<Station> = {}) => st({ name: 'Palletiser', unit: 'pallets', contains: 40, rate: 8, ratePer: 'hour', ...o });
 const line = (o: Partial<Capacity> = {}, ...s: Station[]): Capacity => ({ stations: s, ...o });
 
@@ -448,7 +449,7 @@ describe('a what-if beside the line', () => {
     expect(m.has(chain[0].id)).toBe(false);
   });
   it('a change is said in the words it was typed in, one a line', () => {
-    const packing: Station = { id: 'p', name: 'Packing', kind: 'people', unit: 'Baskets', contains: 8, cycleSec: 8, perCycle: 1, crew: 1, source: 'timed' };
+    const packing: Station = { id: 'p', name: 'Packing', kind: 'people', unit: 'Baskets', contains: 8, cycleSec: 8, perCycle: 1, crew: 1, source: 'timed', allowancePct: 0 };
     const m = changedByStation([chain[0], packing], [chain[0], { ...packing, cycleSec: 10, crew: 2 }]);
     expect(m.get('p')).toEqual(['1 Baskets every 10 s instead of every 8 s', '2 people instead of 1']);
     expect(changedByStation([chain[0], packing], [chain[0], { ...packing, crew: 2 }]).get('p')).toEqual(['2 people instead of 1']);
@@ -467,7 +468,7 @@ describe('a what-if beside the line', () => {
 
 describe('the report carries the detail behind every bar', () => {
   it('says the speed as typed, the crew, running and good, and how it is known', () => {
-    expect(stationDetail({ id: 'c', name: 'Carrier', kind: 'people', unit: 'baskets', contains: 1, cycleSec: 20, perCycle: 2, source: 'timed', note: 'Sustained pace, not best lap' }))
+    expect(stationDetail({ id: 'c', name: 'Carrier', kind: 'people', unit: 'baskets', contains: 1, cycleSec: 20, perCycle: 2, source: 'timed', note: 'Sustained pace, not best lap', allowancePct: 0 }))
       .toBe('2 baskets every 20 s · 1 person · 100% running · timed — Sustained pace, not best lap');
     expect(stationDetail({ id: 'b', name: 'Basketer', kind: 'machine', unit: 'baskets', contains: 12, rate: 5.5, ratePer: 'min', runningPct: 94, goodPct: 98, crew: 2, source: 'plate' }))
       .toBe('5.5 baskets a minute · 2 of it · 94% running · 98% good · on the plate');
@@ -495,7 +496,7 @@ describe('a what-if follows the line in everything it did not change', () => {
     const cases: Station[][] = [
       basketer8,
       [chain[0], chain[2]],                                                    // one left out
-      [chain[0], { id: 'x', name: 'Checker', kind: 'people', unit: 'baskets', contains: 1, rate: 9, ratePer: 'min' }, ...chain.slice(1)],
+      [chain[0], { id: 'x', name: 'Checker', kind: 'people', unit: 'baskets', contains: 1, rate: 9, ratePer: 'min', allowancePct: 0 }, ...chain.slice(1)],
       [chain[2], chain[0], chain[1]],                                          // moved
       [chain[0], { ...chain[1], rate: undefined, cycleSec: 8, perCycle: 1 }, chain[2]],   // a rate swapped for a cycle
     ];
