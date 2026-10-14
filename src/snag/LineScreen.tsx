@@ -25,7 +25,9 @@ import { listSnagAssets, snagsForWorkspace, listCases } from '../db';
 import { useSyncedAt } from '../cloud/session';
 import { useBlobUrl } from './useBlobUrl';
 import { fmtRelative, fmtDurationWords } from '../lib/format';
-import { hasCost, costPerMs, fmtGBP } from '../lib/cost';
+import { hasLabour, labourPerMs, fmtGBP, fmtPacks } from '../lib/cost';
+import { packsForMs } from '../lib/lineLoss';
+import { useLineNeck } from '../lib/useLineNeck';
 import { weeklyLoss } from '../lib/stats';
 import { applyDrill } from '../engine/drill';
 import { studyResult, provenWin } from '../lib/proof';
@@ -44,6 +46,9 @@ interface Stop {
   pins: Snag[];         // pinned snags on that still
   open: number;
   msWeek: number | null; // avg weekly loss of this machine (full weeks only)
+  /** The packs a week its stops cost — only when they stop the line: the
+   *  bottleneck or the whole line (lib/lineLoss); absent with no rated speed. */
+  packsWeek?: number;
   actions: Snag[];      // open work aimed here: open pins + board actions
   openCase?: Case;      // a case scoped to this machine, still being worked
   win?: { c: Case; savedMsWeek: number; slipping: boolean }; // the proven receipt (+ is it holding?)
@@ -65,7 +70,9 @@ function MachineSlide({ stop, wsId, layer, heat, money }: {
         <>
           {heat > 0 && <span className="line-heat" style={{ opacity: heat }} aria-hidden />}
           <span className={'line-cost-tag' + (heat >= 0.75 ? ' worst' : '')}>
-            {stop.msWeek != null && stop.msWeek > 0 ? <><b>{money(stop.msWeek)}</b><span>/wk lost here</span></> : <span>no measured loss</span>}
+            {stop.msWeek != null && stop.msWeek > 0
+              ? <><b>{money(stop.msWeek)}</b><span>/wk lost here{stop.packsWeek !== undefined ? (stop.packsWeek > 0 ? ` · ${fmtPacks(stop.packsWeek)} not made` : ' · no packs — the line runs round it') : ''}</span></>
+              : <span>no measured loss</span>}
           </span>
         </>
       )}
@@ -141,9 +148,11 @@ export function LineScreen({ wsId }: { wsId: string }) {
     void listCases(wsId).then(setCases);
   }, [wsId, syncedAt]);
 
-  const costable = hasCost(workspace);
-  const factor = costPerMs(workspace);
-  const money = (ms: number) => (costable ? fmtGBP(ms * factor) : fmtDurationWords(ms));
+  const costable = hasLabour(workspace);
+  const factor = labourPerMs(workspace);
+  /* a machine's lost time in pounds is its labour; the packs are said beside it (lib/lineLoss) */
+  const money = (ms: number) => (costable ? `${fmtGBP(ms * factor)} labour` : fmtDurationWords(ms));
+  const neck = useLineNeck(workspace.id);
 
   // The spine: the workspace's machines, in line order. Footage joins by name
   // (marking picks from the same list, so the join holds by construction).
@@ -162,6 +171,7 @@ export function LineScreen({ wsId }: { wsId: string }) {
       const mine = live.filter(o => o.asset === name);
       const full = weeklyLoss(mine, workspace, 6).filter(w => !w.current).slice(-4);
       const msWeek = full.length ? full.reduce((a, w) => a + w.ms, 0) / full.length : null;
+      const packsWeek = msWeek != null ? packsForMs(msWeek, mine, workspace, neck) : undefined;
       // open work physically aimed here: open pins + board actions targeting the machine
       const actions = [
         ...pins.filter(s => s.status !== 'closed'),
@@ -175,11 +185,11 @@ export function LineScreen({ wsId }: { wsId: string }) {
         .find(x => x && x.r && provenWin(x.r));
       return {
         name, asset, pins, open: pins.filter(s => s.status !== 'closed').length,
-        msWeek, actions, openCase,
+        msWeek, ...(packsWeek !== undefined ? { packsWeek } : {}), actions, openCase,
         win: win ? { c: win.c, savedMsWeek: win.r!.savedMsWeek!, slipping: !!win.r!.sinceCall?.slipping } : undefined,
       };
     });
-  }, [workspace, observations, assets, snags, cases, wsId]);
+  }, [workspace, observations, assets, snags, cases, wsId, neck]);
 
   const maxWk = Math.max(1, ...stops.map(s => s.msWeek ?? 0));
 

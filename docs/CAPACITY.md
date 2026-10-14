@@ -169,6 +169,21 @@ and actual production time; the OEE loss tree), counted by hand:
   lost contribution when it cannot be made up — never one blended figure;
   and with no cost on the line, no pounds at all. Cost deployment (WCM) is
   the same pounds over weeks, ranked, each pointed at its cause.
+- **As built for the stopwatch's stops** (14 October; Rowland: "capacity
+  loss units and labour"): every screen that put a £ on lost time — the
+  stopwatch's ticker and its toast, the Pareto, the board's machines, the
+  one-page Report, Trend, the meeting, a Case's proof, the line map's heat,
+  the line's facts and its settings — says its labour in pounds and its
+  capacity lost in packs (`lib/lineLoss`). The packs are the minutes of the
+  stops that stopped the line × its rated speed: a stop on its bottleneck
+  (the station its Line capacity says limits it, product by product), on
+  the whole line, or on no machine named. A stop on another machine costs
+  its labour and no packs — the line runs round it. With no Line capacity
+  the bottleneck is not known, every stop is counted, and the screen says
+  so. The packs are not priced here: the margin a pack prices them in a
+  shift's loss count and in SMED, where the count says if they can be made
+  up. Until then, one "£/hr while it is down" added the two and charged the
+  lost output on every machine's stops.
 
 **What a pack costs in labour** (Rowland, 13 October: "provide an hourly
 rate ... how much we run in a minute equals how much we run in an hour. If I

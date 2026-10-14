@@ -21,7 +21,7 @@ export interface CompareSlice {
   freqShare: number;   // 0..1
   cumShare: number;    // 0..1 (ranked measure)
   timeLabel: string;   // "6:00"
-  costLabel?: string;  // "£11" (only when priced)
+  costLabel?: string;  // "£11" of idle labour (only when the line has crew and wage)
   freqLabel: string;   // "6×"
   isVitalFew: boolean;
   media: number;
@@ -100,7 +100,7 @@ export function ParetoChart({
   const picker = !compact && (
     <div className="pk-picker" role="group" aria-label="Choose what the bars show">
       <button type="button" className={'pk-pick' + (show === 'time' ? ' on' : '')} onClick={() => setPicked('time')}>
-        <i className="pk-sw" style={{ background: color }} /> Lost time{display.some(s => s.costLabel) ? ' · £' : ''}
+        <i className="pk-sw" style={{ background: color }} /> Lost time{display.some(s => s.costLabel) ? ' · £ labour' : ''}
       </button>
       <button type="button" className={'pk-pick' + (show === 'freq' ? ' on' : '')} onClick={() => setPicked('freq')}>
         <i className="pk-sw pk-sw-freq" /> Frequency
@@ -135,7 +135,7 @@ export function ParetoChart({
           const hit = !!(onDrill && canDrill) && !s.aggregate;
           const activate = hit ? () => onDrill!(s.key) : undefined;
           const label = s.aggregate ? `${s.key} categories`
-            : `${s.key}: ${s.timeLabel} lost${s.costLabel ? ` (${s.costLabel})` : ''}, ${s.freqLabel}${s.tag ? ` — ${TAG_TEXT[s.tag]}` : ''}${hit ? ' — activate to drill in' : ''}`;
+            : `${s.key}: ${s.timeLabel} lost${s.costLabel ? ` (${s.costLabel} labour)` : ''}, ${s.freqLabel}${s.tag ? ` — ${TAG_TEXT[s.tag]}` : ''}${hit ? ' — activate to drill in' : ''}`;
           return (
             <g key={'b' + s.key} className={'pk-col' + (hit ? ' tap' : '')}
               onClick={activate} role={hit ? 'button' : undefined} tabIndex={hit ? 0 : undefined} aria-label={label}

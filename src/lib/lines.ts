@@ -12,7 +12,7 @@
 import type { Workspace } from '../types';
 import { projectWalkIds } from '../db/pace';
 import { createWorkspace, listWorkspaces, updateWorkspace } from '../db/workspaces';
-import { costPerHour, fmtGBP, hasCost } from './cost';
+import { perHourWords } from './lineLoss';
 
 export const DEMO_NAME = 'Demo — Packing Hall';
 
@@ -144,7 +144,8 @@ export function lineFacts(w: Workspace): { shifts?: string; crew?: string; cost?
   const shifts = (w.shifts ?? []).filter(s => s.name?.trim());
   const shiftWords = shifts.map(s => `${s.name} ${s.start}–${s.end}${s.relief ? ' (relief covers the breaks)' : s.breakMin ? ` (${s.breakMin} min breaks)` : ''}`).join(' · ');
   const crew = w.crew ? `${w.crew} ${w.crew === 1 ? 'person' : 'people'}` : undefined;
-  const cost = hasCost(w) ? `${fmtGBP(costPerHour(w))}/hr while it is down` : undefined;
+  /* what its lost time costs, in its two parts — never one £ (lib/lineLoss) */
+  const cost = perHourWords(w) || undefined;
   const machines = (w.assets ?? []).filter(a => a.trim() && a.trim().toLowerCase() !== 'whole line');
   const short = [shifts.length ? `${shifts.length} shift${shifts.length === 1 ? '' : 's'}` : '', crew ?? ''].filter(Boolean).join(' · ');
   return {

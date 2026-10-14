@@ -331,12 +331,12 @@ Along the way, one cheap future-proof: a `site` text label on workspaces
   imported; kills the cold start, fits the companion story) — when a real
   prospect has an export in hand and the empty first week is what's blocking
   the sale. Imported rows never mix into a proof study's after-sample.
-- **Cost lenses** (view any £ as total / labour only / lost-output only, and
-  later more metrics — energy, materials) — when a customer asks to see the
-  split. The seam already exists: lib/cost computes each component
-  separately and blends only at display; this is a lens, never a data
-  rework. Until then the blended £ with the labelled breakdown in Settings
-  is the product.
+- **Cost lenses** — decided 14 October (Rowland: "capacity loss units and
+  labour"): lost time is said in two parts everywhere, never one blended £
+  — the labour in pounds, and the capacity lost in packs, counted only for
+  a stop that stopped the line (its bottleneck, or the whole line;
+  `lib/lineLoss`, `docs/CAPACITY.md` §6). Later metrics (energy, materials)
+  stay a lens for when a customer asks.
 
 ## The demo system (the sales machine, Aug 2026)
 
