@@ -240,6 +240,14 @@ Each slice ships live on its own (gate → main → Vercel READY), then the next
   shifts counted — too few to plan on" — from the same `lineRates` as its
   capacity panel (`rateShort`), so the two cannot disagree; the unit stays
   on the line's page, where its products say it.
+- **L (the count) — built 15 October**: a shift's loss count says, on every
+  cause in its table and in the cause's sheet, whether its stops sit on the
+  line's constraint (its Line capacity, `constraintShare`) — nothing taken
+  off the table, the figures unchanged. Worded for one counted shift: off the
+  constraint it "cost output only where it starved or blocked" the
+  constraint, and making it better makes no more on its own. **Open:** the
+  same tag on paper (the 6M report's and the client report's loss table) —
+  their context does not carry the line's Line capacity yet.
 - **L (capture) — built 15 October**: *Again?* on Capture — the last four
   distinct reasons (machine · what · which kind) still on the line's lists,
   one tap sets all three (`recentReasons`). The Pareto already ranked by time
