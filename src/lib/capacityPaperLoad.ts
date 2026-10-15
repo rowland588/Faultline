@@ -52,6 +52,25 @@ export async function capacityPapersFor(list: Standard[], printed = printedOn())
 
 /** The paper for these products, drawn: one product's page, or — with
  *  `scope` — every product shown, the front first. */
+/** Each line read as its capacity panel reads it, for the paper's front —
+ *  only the lines the list's products stand on, in the order first met. */
+async function weeksFor(list: Standard[]): Promise<{ brief: string[] }[]> {
+  const ids = [...new Set(list.map(s => s.workspaceId).filter((x): x is string => !!x))];
+  if (!ids.length) return [];
+  const [{ readLine }, studies, ws, { listObservations, listStandardsForLine }] = await Promise.all([import('./lineRead'), listAllStudies(), listWorkspaces(), import('../db')]);
+  const now = Date.now();
+  return Promise.all(ids.map(async id => {
+    const w = ws.find(x => x.id === id);
+    const [obs, products] = await Promise.all([listObservations(id), listStandardsForLine(id)]);
+    const mine = studies.filter(x => x.workspaceId === id && !x.deletedAt);
+    return { brief: readLine({
+      obs, counts: mine.filter(x => x.tool === 'losses' && x.facts.losses), now,
+      smeds: mine.filter(x => x.tool === 'changeover' && x.facts.running).sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0)),
+      ...(w ? { ws: w, lineName: w.name } : {}), products: products.filter(p => !p.deletedAt),
+    }).brief };
+  }));
+}
+
 export async function capacityPdf(list: Standard[], o: { scope?: string } = {}): Promise<jsPDF> {
   const { loadPdfLib, titlePdf } = await import('./savePdf');
   const { drawCapacityPaper } = await import('./capacityPaperPdf');
@@ -60,7 +79,8 @@ export async function capacityPdf(list: Standard[], o: { scope?: string } = {}):
   const printed = printedOn();
   const papers = await capacityPapersFor(list, printed);
   titlePdf(doc, list.length === 1 && !o.scope ? `Line capacity — ${list[0].product}` : 'Line capacity');
-  await drawCapacityPaper(doc, papers, { ...(o.scope ? { scope: o.scope } : {}), printed });
+  const weeks = o.scope ? await weeksFor(list) : [];
+  await drawCapacityPaper(doc, papers, { ...(o.scope ? { scope: o.scope } : {}), printed, weeks });
   return doc;
 }
 

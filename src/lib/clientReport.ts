@@ -43,6 +43,7 @@ import { couldWords, criticalProblems, criticalState, riskProblems, type Critica
 import type { WalkSnag } from './walkSnags';
 import { climbsOf } from './rampUp';
 import type { ToolStudy } from './study';
+import { constraintOfBars } from './lineRead';
 import { lossFiguresOf, provedLine, recordProvedLine, studyHref, studyLine, studyTitle, type StudyContext } from './studyLinks';
 import { streamRows } from './ie/steps';
 import { agreedFor, changeoverSheet, moneyOf } from './ie/changeover';
@@ -704,7 +705,7 @@ export function studyEvidence(s: ToolStudy, tests: Pick<Test, 'id' | 'title'>[],
   }).filter(Boolean).join('; ');
   const l = studyLine(s, ctx);
   const branches = new Map(s.uses.flatMap(u => { const r = u.step && u.role === 'evidence' ? tests.find(t => t.id === u.ref) : undefined; return r && u.step ? [[u.step, r.title] as [string, string]] : []; }));
-  const losses = s.tool === 'losses' ? lossRows(lossFiguresOf(s, ctx), s.facts.losses) : undefined;
+  const losses = s.tool === 'losses' ? lossRows(lossFiguresOf(s, ctx), s.facts.losses, constraintOfBars(s, ctx?.observations ?? [], standards)) : undefined;
   const sampling = s.tool === 'sampling' && !s.agreed?.sampling?.walk ? samplingRows(s.agreed?.sampling, s.facts.taps ?? []) : undefined;
   return { id: s.id, title: studyTitle(s), href: studyHref(s),
     used: used || 'not used for a record yet', line: l.text, tone: l.tone,

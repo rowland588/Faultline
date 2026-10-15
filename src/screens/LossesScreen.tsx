@@ -21,7 +21,7 @@
  * lib/ie/losses on every render, from the count and the line's stops in the
  * window; only at close are they written down, as a receipt. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getStandard, getStudy, getWorkspace, listObservations, onDataChange, patchStudy } from '../db';
+import { getStandard, getStudy, getWorkspace, listObservations, listStandardsForLine, onDataChange, patchStudy } from '../db';
 import { useAccess } from '../cloud/access';
 import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
@@ -40,6 +40,7 @@ import { TOOL_WORDS } from './StudiesScreen';
 import { UsedFor, WhereItSits, useBetter } from '../ui/StudyPlace';
 import { StudyName } from '../ui/StudyActs';
 import { capacityForCount } from '../ui/ShiftLosses';
+import { constraintShare, lineConstraint, type ConstraintShare, type LineConstraint } from '../lib/intelligence';
 
 const OWNER = canAt('owner');
 
@@ -48,17 +49,22 @@ export function LossesScreen({ id }: { id: string }) {
   const [line, setLine] = useState<Workspace | undefined>(undefined);
   const [obs, setObs] = useState<Observation[]>([]);
   const [rate, setRate] = useState<RateOf>({ why: 'typed' });
+  const [constraint, setConstraint] = useState<LineConstraint | undefined>(undefined);
   const load = useCallback(async () => {
     const st = (await getStudy(id)) ?? null;
     if (!st) { setS(null); return; }
     /* The line: its shifts, its cost model, its stops and its capacity —
        what the count is read against. Nothing of it is copied onto the
        study but the rate the count was judged at. */
-    const [w, o, sd] = await Promise.all([
+    const [w, o, sd, stds] = await Promise.all([
       st.workspaceId ? getWorkspace(st.workspaceId) : Promise.resolve(undefined),
       st.workspaceId ? listObservations(st.workspaceId) : Promise.resolve([] as Observation[]),
       st.standardId ? getStandard(st.standardId) : Promise.resolve(undefined),
+      st.workspaceId ? listStandardsForLine(st.workspaceId) : Promise.resolve([]),
     ]);
+    /* where the line is held — its products' Line capacity, read as the
+       capacity panel reads it, so a bar here and a band there agree */
+    setConstraint(lineConstraint(stds.filter(x => !x.deletedAt).map(x => ({ product: x.product, capacity: x.capacity }))));
     const { cap, target } = await capacityForCount(st.workspaceId, sd);
     setLine(w); setObs(o); setRate(rateOf(cap, target)); setS(st);
   }, [id]);
@@ -70,7 +76,7 @@ export function LossesScreen({ id }: { id: string }) {
   const { session } = useSession();
   const me = displayName(session?.user.email) || undefined;
 
-  if (s === undefined) return <div className="wrap ie lf"><p className="sub">Opening…</p></div>;
+  if (s === undefined) return <div className="wrap ie lf" aria-busy="true"><div className="sk sk-line" /><div className="sk sk-row" /></div>;
   if (s === null) return (
     <div className="wrap ie lf">
       <h1>This loss count isn’t on this device</h1>
@@ -78,10 +84,10 @@ export function LossesScreen({ id }: { id: string }) {
       <button type="button" className="btn" onClick={() => nav('/losses')}>Every loss count</button>
     </div>
   );
-  return <Losses s={s} line={line} obs={obs} rate={rate} can={can} me={me} />;
+  return <Losses s={s} line={line} obs={obs} rate={rate} can={can} me={me} constraint={constraint} />;
 }
 
-function Losses({ s, line, obs, rate, can, me }: { s: ToolStudy; line?: Workspace; obs: Observation[]; rate: RateOf; can: Can; me?: string }) {
+function Losses({ s, line, obs, rate, can, me, constraint }: { s: ToolStudy; line?: Workspace; obs: Observation[]; rate: RateOf; can: Can; me?: string; constraint?: LineConstraint }) {
   const c = s.facts.losses;
   const ctx = useMemo<StudyContext>(() => ({ observations: obs, workspaces: line ? [line] : [] }), [obs, line]);
   const f = useMemo(() => lossFiguresOf(s, ctx), [s, ctx]);
@@ -104,6 +110,16 @@ function Losses({ s, line, obs, rate, can, me }: { s: ToolStudy; line?: Workspac
      Make it better on it (tools come out where the work is). */
   const [viewing, setViewing] = useState<string | null>(null);
   const bar = viewing ? f.bars.find(b => b.key === viewing) : undefined;
+  /* THE CONSTRAINT ON EVERY BAR (docs/upgrade-plan.md, L): how much of each
+     cause's stops sit on the machine that holds the line — off it, fixing
+     it makes no more on its own. Slow running and short stops are line time
+     at the pace-setter, so on it by definition; rejects are packs, not time. */
+  const onC = useMemo(() => {
+    const m = new Map<string, ConstraintShare>();
+    if (!constraint || !c) return m;
+    for (const b of f.bars) if (b.kind === 'cause' || b.kind === 'changeover') m.set(b.key, constraintShare(stopsOfBar(obs, c, b, s.workspaceId), constraint));
+    return m;
+  }, [constraint, c, f.bars, obs, s.workspaceId]);
 
   return (
     <div className="wrap ie lf">
@@ -131,7 +147,7 @@ function Losses({ s, line, obs, rate, can, me }: { s: ToolStudy; line?: Workspac
           phone full width — the count first until it is in, then the
           picture, the table under it. */}
       <div className={'lf-body' + (f.enough ? '' : ' is-counting') + (f.enough && f.bars.length > 0 ? ' has-table' : '')}>
-        {f.enough && f.bars.length > 0 && <div className="lf-tab"><CauseTable f={f} branches={branches} onOpen={setViewing} /></div>}
+        {f.enough && f.bars.length > 0 && <div className="lf-tab"><CauseTable f={f} branches={branches} onOpen={setViewing} onC={onC} /></div>}
         <div className="ie-pic lf-pic"><Waterfall f={f} said={said} onOpen={setViewing} /></div>
         <CountForm s={s} line={line} rate={rate} editable={editable} />
         <RunningSpeed s={s} f={f} editable={editable} me={me} />
@@ -141,7 +157,7 @@ function Losses({ s, line, obs, rate, can, me }: { s: ToolStudy; line?: Workspac
       <Act s={s} f={f} said={said} can={can} me={me} write={write} />
 
       {bar && c && (
-        <BarSheet bar={bar} f={f} c={c} obs={obs} workspaceId={s.workspaceId} board={board}
+        <BarSheet bar={bar} f={f} c={c} obs={obs} workspaceId={s.workspaceId} board={board} onC={onC.get(bar.key)} constraint={constraint}
           raised={(branches.get(bar.key) ?? []).map(ref => ({ ref, title: byRef.get(ref)?.title ?? 'a record' }))}
           canBetter={editable && !!s.projectId} onJob={!!s.projectId} canEdit={editable}
           openRef={ref => { if (s.projectId) nav(recordHref(s.projectId, { kind: board ? 'action' : 'fix', ref })); }}
@@ -234,7 +250,7 @@ function Waterfall({ f, said, onOpen }: { f: LossFigures; said: LossSays; onOpen
 /* ------------------------------------------------------------------ the causes as a table */
 const KNOWN: Record<LossBar['grade'], string> = { measured: 'timed', typed: 'typed', counted: 'counted', none: 'not logged' };
 
-function CauseTable({ f, branches, onOpen }: { f: LossFigures; branches: Map<string, string[]>; onOpen: (key: string) => void }) {
+function CauseTable({ f, branches, onOpen, onC }: { f: LossFigures; branches: Map<string, string[]>; onOpen: (key: string) => void; onC: Map<string, ConstraintShare> }) {
   /* the pounds in two parts, each a column only when the line has that cost */
   const lab = f.labour !== undefined, con = f.contribution !== undefined;
   const m = ' m' + ((lab ? 1 : 0) + (con ? 1 : 0));
@@ -252,6 +268,7 @@ function CauseTable({ f, branches, onOpen }: { f: LossFigures; branches: Map<str
             <span role="cell" className="lf-cause">
               <b>{b.label}</b>{b.asset ? <span className="sub"> · {b.asset}</span> : null}{b.kind === 'rejects' ? <span className="sub"> · {packs(b.packs ?? 0)} packs</span> : null}
               <span className="sub lf-known"> · {b.kind === 'performance' ? 'the rest, not yet told apart' : b.kind === 'short' ? 'the rest' : KNOWN[b.grade]}</span>
+              {(() => { const sh = onC.get(b.key); return !sh?.says ? null : sh.share >= 0.5 ? <em className="lch-tag">constraint</em> : <span className="sub lf-mirage"> · off the constraint</span>; })()}
               {raised > 0 && <span className="lf-branch">Being made better{raised > 1 ? ` · ${raised}` : ''}</span>}
             </span>
             <span role="cell" className="is-num">{b.stops !== undefined ? b.stops : '—'}</span>
@@ -275,8 +292,8 @@ function CauseTable({ f, branches, onOpen }: { f: LossFigures; branches: Map<str
 /* ------------------------------------------------------------------ one bar, opened */
 const clock = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
-function BarSheet({ bar, f, c, obs, workspaceId, board, raised, canBetter, onJob, canEdit, openRef, onBetter, onClose }: {
-  bar: LossBar; f: LossFigures; c: LossCount; obs: Observation[]; workspaceId?: string; board: boolean;
+function BarSheet({ bar, f, c, obs, workspaceId, board, onC, constraint, raised, canBetter, onJob, canEdit, openRef, onBetter, onClose }: {
+  bar: LossBar; f: LossFigures; c: LossCount; obs: Observation[]; workspaceId?: string; board: boolean; onC?: ConstraintShare; constraint?: LineConstraint;
   raised: { ref: string; title: string }[]; canBetter: boolean; onJob: boolean; canEdit: boolean;
   openRef: (ref: string) => void; onBetter: () => void; onClose: () => void;
 }) {
@@ -288,6 +305,12 @@ function BarSheet({ bar, f, c, obs, workspaceId, board, raised, canBetter, onJob
         <p className="lf-sheet-h"><b>{minWords(bar.min)}</b>{share !== undefined ? ` · ${share}% of the ${minWords(f.lostMin ?? 0)} lost` : ''}{bar.stops !== undefined ? ` · ${bar.stops} stop${bar.stops === 1 ? '' : 's'}` : ''}{bar.labour !== undefined ? ` · ${gbp(bar.labour)} idle labour` : ''}{bar.contribution !== undefined ? ` · ${gbp(bar.contribution)} lost contribution` : ''}</p>
         <dl className="lf-facts">
           {bar.asset && <div><dt>Where</dt><dd>{bar.asset}</dd></div>}
+          {constraint && (onC?.says || bar.kind === 'slow' || bar.kind === 'short' || bar.kind === 'performance') && (
+            <div><dt>The constraint</dt><dd className={onC && onC.share < 0.5 ? 'lf-mirage' : ''}>{!onC ? `On the constraint — slow running and short stops are time at the ${constraint.name}, the machine that holds the line.`
+            : onC.share >= 0.95 ? `On the ${constraint.name}, the constraint — every minute here is output lost.`
+              : onC.share <= 0.05 ? `Off the constraint — this shift it cost output only where it starved or blocked the ${constraint.name}. Making it better makes no more on its own: the line is held at the ${constraint.name}.`
+                : onC.says}</dd></div>
+          )}
           <div><dt>How known</dt><dd>{bar.kind === 'rejects' ? `${packs(bar.packs ?? 0)} packs counted, at ${rateWords(f.rate ?? 0)}`
             : bar.kind === 'performance' ? `Not logged — what the count says was lost, less every stop timed, the changeovers and the rejects: running below the ${f.ideal}, and stops too short to log, not yet told apart. Time the running speed on the count to split them.`
               : bar.kind === 'slow' ? (splitWords(f) ?? `The running speed timed against the ${f.ideal}.`)

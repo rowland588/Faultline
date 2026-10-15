@@ -409,12 +409,22 @@ function withHead(p: CapacityPaper, where: string, body: Block[], keep: boolean)
 
 /* ------------------------------ the front ------------------------------ */
 
-function frontBlocks(papers: CapacityPaper[], scope: string, printed: string, d: Density): Block[] {
+/** A line read as its capacity panel reads it (lib/lineRead): the week's
+ *  sentences, the first naming the line and the day. */
+export interface LineWeek { brief: string[] }
+
+function frontBlocks(papers: CapacityPaper[], scope: string, printed: string, d: Density, weeks: LineWeek[] = []): Block[] {
   const out: Block[] = [];
   out.push(text({ text: `LINE CAPACITY · ${scope.toUpperCase()}`, size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
   out.push(text({ text: 'Line capacity', size: SIZE.title, style: 'bold', after: 4 }));
   out.push(text({ text: `Where each line is limited, product by product · printed ${printed}`, colour: MUTED, after: gap(d, 'm') }));
   out.push(band(capacityPapersSay(papers), '', papers.some(p => p.short)));
+  /* WHAT EACH LINE CAN MAKE, AND ITS WEEK — the capacity panel's own
+     sentences (its weekly brief), so the paper says what the screen does */
+  for (const w of weeks.filter(x => x.brief.length > 1)) {
+    out.push(label(w.brief[0]));
+    out.push(text({ text: w.brief.slice(1).join(' '), colour: INK2, after: gap(d, 'm') }));
+  }
   out.push(label('Every product shown'));
   const xs = (f: Frame) => ({ product: f.x, line: f.x + Math.round(f.w * 0.3), says: f.x + Math.round(f.w * 0.52) });
   const parts = (f: Frame, p: CapacityPaper) => {
@@ -446,12 +456,12 @@ function frontBlocks(papers: CapacityPaper[], scope: string, printed: string, d:
 
 /** Draw one product's page — or, with `scope`, every product a list shows:
  *  the front, then each product's own. The first page is the current one. */
-export async function drawCapacityPaper(doc: jsPDF, papers: CapacityPaper[], o: { scope?: string; printed: string }): Promise<void> {
+export async function drawCapacityPaper(doc: jsPDF, papers: CapacityPaper[], o: { scope?: string; printed: string; weeks?: LineWeek[] }): Promise<void> {
   const one = papers.length === 1 && !o.scope;
   const build = (d: Density): Block[] => (one ? productBlocks(papers[0], d, true)
     /* the first product follows the front where it stands — kept whole
        overleaf, it left the front alone on a page */
-    : [...frontBlocks(papers, o.scope ?? 'every product shown', o.printed, d), ...papers.flatMap((p, i) => productBlocks(p, d, false, i > 0))]);
+    : [...frontBlocks(papers, o.scope ?? 'every product shown', o.printed, d, o.weeks), ...papers.flatMap((p, i) => productBlocks(p, d, false, i > 0))]);
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
   const density = await chooseDensity(base, build);
   await pour({ ...base, density, dry: false }, build(density), () => doc.addPage('a4', 'portrait'));

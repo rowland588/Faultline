@@ -12963,3 +12963,4 @@ button.why-src { cursor: pointer; }
   .lch-hm-a { grid-column: 1 / span 10; }
 }
 .lch-brief-t { margin: 8px 0; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--surface-2); line-height: 1.5; }
+.lf-mirage { color: var(--ink-2); font-style: italic; }
