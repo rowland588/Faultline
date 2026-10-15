@@ -220,6 +220,7 @@ node scripts/acceptance/list-paper.mjs  # the audit's bar 3: paper wherever ther
 node scripts/acceptance/commissioning-report.mjs  # the commissioning report and cards: from Commission and the Reports sheet, the gate machine by machine, why and what we are doing, on paper and as a card a machine, moving when a test passes, on a phone and for a client
 node scripts/acceptance/report-relevance.mjs  # the audit's bar 8: the stage-gate papers keep up — a machine late on site, a register problem for the job, the line's own programs, what a gate is missing, on the full report, the one page, the programs report and the handover; the statuses moved and all four moved with them
 node scripts/inventory.mjs            # docs/PAGES.md: every page shows what it must, at desk and phone — same server
+node scripts/acceptance/upgrade.mjs  # the upgrade (docs/upgrade-plan.md), AI off: what a line can make and why, Ask, where and when it stops, the week to send, the Pareto read, Again?, the line machine by machine, Jump to, the demo kept out, the phone
 node scripts/sync-two-devices.mjs     # a phone and a laptop against a fake cloud — video on one plays on the other
 node scripts/check-live-schema.mjs    # the LIVE database against the mapper — needs .env
 ```
