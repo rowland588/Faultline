@@ -1606,7 +1606,7 @@ const nameOf = (x: StationResult): string => x.station.name.trim() || `Station $
 export function vCurve(r: CapacityResult, marginPct?: number): VCurve {
   const lim = r.limit;
   if (!lim || !r.ok.length) return { points: [], under: [], sentence: 'Put in the stations and their speeds; the V draws itself once the bottleneck is known.' };
-  const at = r.ok.indexOf(lim);
+  const at = r.ok.findIndex(x => x.station.id === lim.station.id);
   const m = marginPct != null && marginPct > 0 ? marginPct : undefined;
   const points: VPoint[] = r.ok.map((x, i) => {
     const steps = i - at;
@@ -1647,7 +1647,7 @@ export interface Accumulation { rows: Protection[]; written: boolean; sentence: 
 export function accumulation(r: CapacityResult, stats: Record<string, StopStats>): Accumulation {
   const lim = r.limit;
   if (!lim || !r.ok.length) return { rows: [], written: false, sentence: '' };
-  const at = r.ok.indexOf(lim);
+  const at = r.ok.findIndex(x => x.station.id === lim.station.id);
   const written = r.ok.some(x => (x.station.bufferAfter ?? 0) > 0);
   const between = (from: number, to: number) => r.ok.slice(from, to).reduce((u, x) => u + (x.station.bufferAfter ?? 0) * x.factor, 0);
   const rows: Protection[] = [];
