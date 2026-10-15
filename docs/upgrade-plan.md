@@ -240,6 +240,12 @@ Each slice ships live on its own (gate → main → Vercel READY), then the next
   shifts counted — too few to plan on" — from the same `lineRates` as its
   capacity panel (`rateShort`), so the two cannot disagree; the unit stays
   on the line's page, where its products say it.
+- **C on paper — built 15 October**: Line capacity's PDF for a line (or
+  every product shown) now opens with each line's week in the panel's own
+  sentences — what it can make, where it is held, the biggest loss, what
+  changed, where and when it stops, whether the orders fit. The panel's sums
+  moved into one function (`lib/lineRead readLine`) that the screen and the
+  paper both call, so they cannot disagree. Nothing removed from the paper.
 - **L (the count) — built 15 October**: a shift's loss count says, on every
   cause in its table and in the cause's sheet, whether its stops sit on the
   line's constraint (its Line capacity, `constraintShare`) — nothing taken

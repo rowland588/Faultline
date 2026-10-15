@@ -18,10 +18,16 @@
  *   8  Jump to: Ctrl K, two letters, Enter — the place opened
  *   9  the demo kept out of the factory
  *  10  on a phone: the panel and the tour with nothing off the side
+ *  11  on paper: Line capacity's PDF for the line says the week, as the
+ *      panel does (CLAUDE.md rule 2 — screen and paper together)
  *   and no console error anywhere.
  *
  *   node scripts/acceptance/upgrade.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 const { chromium } = pkg;
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
@@ -126,6 +132,20 @@ for (const [p, what] of [[`#/balances?line=${hall}`, 'the capacity panel'], [`#/
   const sw = await page.evaluate(() => document.documentElement.scrollWidth);
   ok(sw <= 391, `10 phone: ${what}, nothing off the side (${sw}px)`);
 }
+
+/* 11 — the paper says what the panel says */
+await page.setViewportSize({ width: 1360, height: 900 });
+await page.goto(`${BASE}/#/`); await page.waitForTimeout(1500);
+const b64 = await page.evaluate(async h => {
+  const db = await import('/src/db.ts'); const m = await import('/src/lib/capacityPaperLoad.ts');
+  const list = (await db.listStandardsForLine(h)).filter(s => !s.deletedAt && s.capacity?.stations.length);
+  const doc = await m.capacityPdf(list, { scope: 'the line' });
+  const u = new Uint8Array(doc.output('arraybuffer')); let s = ''; for (const x of u) s += String.fromCharCode(x); return btoa(s);
+}, hall);
+const dir = mkdtempSync(join(tmpdir(), 'up-')), pdf = join(dir, 'cap.pdf');
+writeFileSync(pdf, Buffer.from(b64, 'base64'));
+const paperText = flat(execFileSync('pdftotext', ['-raw', pdf, '-'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }));
+ok(paperText.includes(flat(heatSays)) && paperText.includes(hero.split(';')[0]), '11 the Line capacity paper says the week as the panel does');
 
 ok(errs.length === 0, `no console errors${errs.length ? `: ${errs.slice(0, 3).join(' | ')}` : ''}`);
 await b.close();

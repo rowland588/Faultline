@@ -12,23 +12,20 @@ import type { Observation, Workspace } from '../types';
 import type { Standard } from '../lib/standard';
 import type { ToolStudy } from '../lib/study';
 import { listAllStudies, listObservations, getWorkspace, onDataChange, putStandard } from '../db';
-import { analyse } from '../lib/capacity';
 import { useAccess } from '../cloud/access';
 import { can as canOf } from '../lib/access';
 import { DraftNumber } from './Draft';
 import { offerUndo } from './Undo';
-import { lossFiguresOf } from '../lib/studyLinks';
 import { stopsOfBar } from '../lib/ie/losses';
-import { runningOf } from '../lib/ie/changeover';
 import {
-  ASK_EXAMPLES, askLine, changesThisWeek, constraintShare, confidenceOf, constraintTrend, figure, heatOf, leversOf, onConstraint, weeklyBrief, lineConstraint, lineRates, loadVsDemand, parseDemand, periodWaterfall, reasonOf, WEEK,
-  type Answer, type LineFacts,
+  ASK_EXAMPLES, askLine, constraintShare, confidenceOf, figure, heatOf, leversOf, onConstraint, parseDemand, reasonOf, WEEK,
+  type Answer,
   type Figure, type Source,
 } from '../lib/intelligence';
 import { Metric, WhyNumber } from './WhyNumber';
 import { askNarrated } from '../lib/askAi';
+import { PERIOD_WEEKS, readLine, unitOf } from '../lib/lineRead';
 
-const PERIOD_WEEKS = 6;
 const fmt = (n: number, d = 1) => n.toLocaleString('en-GB', { maximumFractionDigits: d });
 const when = (t: number) => new Date(t).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
@@ -56,37 +53,12 @@ export function LineCapacityHero({ wsId, products, lineName }: { wsId: string; p
 
   const now = Date.now();
   const from = now - PERIOD_WEEKS * WEEK;
-  const unit = useMemo(() => products.find(p => p.capacity?.stations.length)?.capacity?.stations[0]?.unit?.trim() || 'packs', [products]);
-  const a = useMemo(() => {
-    if (!obs) return undefined;
-    const recent = counts.filter(c => (c.facts.losses?.from ?? 0) >= from);
-    const rates = lineRates(recent.map(c => ({ id: c.id, count: c.facts.losses })), unit);
-    const constraint = lineConstraint(products.map(p => ({ product: p.product, capacity: p.capacity })));
-    const trend = constraintTrend(obs, now, PERIOD_WEEKS, constraint?.name);
-    const changes = changesThisWeek(obs, now).slice(0, 4);
-    const ctx = { observations: obs, workspaces: ws ? [ws] : [] };
-    const figs = recent.map(c => ({ id: c.id, figures: lossFiguresOf(c, ctx), study: c }));
-    const fall = periodWaterfall(figs, constraint);
-    /* the line's running pattern — its newest SMED's, never assumed */
-    const run = smeds.map(x => runningOf(x.facts.running).run).find(x => x && x.shifts > 0 && x.daysPerWeek > 0);
-    const shiftsPerWeek = run ? run.shifts * run.daysPerWeek : undefined;
-    /* the week the line has: its SMED's running pattern, else the planned hours its products' capacities say */
-    const planned = Math.max(0, ...products.map(p => p.capacity?.plannedHoursPerWeek ?? 0));
-    const minutesPerWeek = run ? run.minutesPerWeek : planned > 0 ? planned * 60 : undefined;
-    const weekFrom = run ? 'the line’s running pattern (its SMED)' : planned > 0 ? 'the planned running hours on its Line capacity' : undefined;
-    const eff = rates.plannable != null && rates.theoretical ? rates.plannable / rates.theoretical : undefined;
-    const load = loadVsDemand(products.map(p => ({ product: p.product, demandPerWeek: p.capacity?.demandPerWeek, ...(p.capacity?.stations.length ? { ratePerMin: analyse(p.capacity).line } : {}) }))
-      .map(x => ({ product: x.product, ...(x.demandPerWeek != null ? { demand: x.demandPerWeek } : {}), ...(x.ratePerMin ? { ratePerMin: x.ratePerMin } : {}) })), eff, minutesPerWeek, ws?.marginPerPack, unit);
-    /* how many of the line's unit make one of each word its stations count in — "40 pallets" asked */
-    const unitsPer: Record<string, number> = {};
-    for (const p of products) if (p.capacity?.stations.length) for (const x of analyse(p.capacity).ok) { const w = x.station.unit.trim().toLowerCase(); if (w && x.factor > 0 && unitsPer[w] == null) unitsPer[w] = x.factor; }
-    const facts: LineFacts = { line: lineName ?? 'This line', unit, rates, fall, ...(constraint ? { constraint } : {}), trend, changes, load, unitsPer };
-    return { recent, rates, constraint, trend, changes, fall, figs, shiftsPerWeek, load, weekFrom, facts };
+  const unit = useMemo(() => unitOf(products), [products]);
+  /* the panel's sums — the same function the paper reads (lib/lineRead) */
+  const a = useMemo(() => (obs ? readLine({ obs, counts, smeds, ...(ws ? { ws } : {}), products, ...(lineName ? { lineName } : {}), now }) : undefined),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `now` moves each render; the period is by the day
-  }, [obs, counts, smeds, ws, products, unit, from - (from % 86_400_000)]);
-  const heat = useMemo(() => heatOf(obs ?? [], now, ws?.assets ?? []),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `now` by the day
-    [obs, ws, Math.floor(now / 86_400_000)]);
+    [obs, counts, smeds, ws, products, lineName, Math.floor(now / 86_400_000)]);
+  const heat = a?.heat ?? heatOf([], now);
   const levers = useMemo(() => (a ? leversOf(a.fall, a.rates.theoretical, pct, a.shiftsPerWeek, unit) : undefined), [a, pct, unit]);
 
   if (!obs || !a) return <div className="lch is-loading" aria-busy="true"><div className="sk sk-line" /><div className="sk sk-row" /></div>;
@@ -99,7 +71,7 @@ export function LineCapacityHero({ wsId, products, lineName }: { wsId: string; p
     kind: 'stop', id: o.id, href: `#/w/${wsId}/log`,
     label: `${when(o.startedAt)} — ${reasonOf(o)}${o.asset.trim() ? ` · ${o.asset.trim()}` : ''} · ${fmt(o.durationMs / 60_000, 0)} min`,
   }));
-  const brief = weeklyBrief(a.facts, { asOf: new Date(now).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }), ...(heat.rows.length ? { heat: heat.says } : {}) });
+  const brief = a.brief;
   const per = `${unit}/min`;
   const r = a.rates;
   const theo = r.theoretical != null ? figure(`${fmt(r.theoretical)} ${per}`, 'The ideal speed each counted shift was judged against — the slowest station’s plate speed, or a person’s standard time (Line capacity).', shiftSrc(), { from, to: now, confidence: r.confidence }) : undefined;
