@@ -235,6 +235,11 @@ Each slice ships live on its own (gate → main → Vercel READY), then the next
   machine "usual" when it was worst in two weeks of six and then argued with
   this week's — "usual" now needs half the weeks or more, and the brief no
   longer says "the losses moved" twice.
+- **O (the control room) — built 15 October**: each line's card in Your
+  factory says what it can plan on — "Plans on 79 a minute · fair", or "2
+  shifts counted — too few to plan on" — from the same `lineRates` as its
+  capacity panel (`rateShort`), so the two cannot disagree; the unit stays
+  on the line's page, where its products say it.
 - **L (capture) — built 15 October**: *Again?* on Capture — the last four
   distinct reasons (machine · what · which kind) still on the line's lists,
   one tap sets all three (`recentReasons`). The Pareto already ranked by time

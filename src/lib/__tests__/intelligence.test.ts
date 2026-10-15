@@ -338,3 +338,16 @@ describe('the constraint over time, honestly', () => {
     expect(t.says).toBe('No one machine loses the most week after week: this week the Wrapper (60 min); the Detector in 2 of 6 weeks.');
   });
 });
+
+import { rateShort } from '../intelligence';
+
+describe('a line’s rate on a card', () => {
+  const base = { confidence: confidenceOf([NOW], 'shift'), says: '' };
+  it('nothing counted: nothing said', () => expect(rateShort({ shifts: [], ...base })).toBeUndefined());
+  it('too few: said so, no number to plan on', () => {
+    expect(rateShort({ shifts: [{ id: 'a', from: NOW, perMin: 50, made: 1, plannedMin: 1 }, { id: 'b', from: NOW, perMin: 52, made: 1, plannedMin: 1 }], demonstrated: 51, ...base })).toBe('2 shifts counted — too few to plan on');
+  });
+  it('enough: the plannable, rounded, with how sure', () => {
+    expect(rateShort({ shifts: Array.from({ length: 6 }, (_, i) => ({ id: `${i}`, from: NOW, perMin: 79, made: 1, plannedMin: 1 })), plannable: 79.4, ...base })).toBe('Plans on 79 a minute · thin');
+  });
+});

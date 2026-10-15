@@ -54,3 +54,13 @@ export function lineRates(counts: readonly { id: string; count?: LossCount }[], 
       : `The line proved ${f(demonstrated as number)} on a typical shift${theoretical ? ` (${Math.round((ofIdeal as number) * 100)}% of the ${f(theoretical)} ideal)` : ''}; plan on ${f(plannable as number)} — four shifts in five beat it.`;
   return { shifts, ...(theoretical != null ? { theoretical } : {}), ...(demonstrated != null ? { demonstrated } : {}), ...(plannable != null ? { plannable } : {}), ...(plannableRange ? { plannableRange } : {}), ...(ofIdeal != null ? { ofIdeal } : {}), confidence, says };
 }
+
+/** A line's rate in a few words, for a card that has room for one line:
+ *  "Plans on 79 a minute · fair" — the unit left to the line's own page,
+ *  where its products say it. Nothing when no shift is counted. */
+export function rateShort(r: LineRates): string | undefined {
+  const f = (n: number) => n.toLocaleString('en-GB', { maximumFractionDigits: 0 });
+  if (!r.shifts.length) return undefined;
+  if (r.plannable != null) return `Plans on ${f(r.plannable)} a minute · ${r.confidence.level}`;
+  return `${r.shifts.length === 1 ? 'One shift' : `${r.shifts.length} shifts`} counted — too few to plan on`;
+}
