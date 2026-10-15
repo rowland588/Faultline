@@ -762,6 +762,30 @@ is still wired.
   Needs you and the commissioning paper count those lines too
   (`lib/commissionPrograms` `boardPrograms`) — the Programs page's programs,
   one answer. Accepted by `machines-programs.mjs` 7h.
+- **Several lines feeding one place** (Rowland, 15 October: "two lines here
+  that then merge into individuals at the end of the line ... line A, line B,
+  running ... one person who has to wrap for both"; "the 150 was for both
+  lines merged"; "you can have 3, 4, 5 production lines all running, then
+  merging into one pack hole ... that happens all the time in manufacturing";
+  "what matters is the future, that I can name them"). Placed (§8): *On the
+  line*, Line capacity; no new record — the product's capacity (`standards.
+  capacity`, one jsonb) gains `lanes` (a list of named lines) and a station
+  gains `lane` (the line it is on; none = after they merge). Each line is its
+  own chain, worked out on its own; what the lines send together goes to the
+  shared stations as one more station standing for them
+  (`lib/capacity analyseLanes`); the whole is the merged chain's limit in the
+  line's unit a minute, so everything that reads a capacity — the dashboard's
+  "can make", the loss count's bottleneck, the labour cost a pack, one more
+  person — takes the whole without knowing about lines. The target is for all
+  the lines together. Shows as a group a line (named, its stations moved and
+  added inside it, *Add another line, like Line A*, *Remove this line*), a V
+  and a sheet a line and one where they merge, *Lines merge after this* on a
+  single chain's stations, *One line again*; the sentence and the checks say
+  it along each line; on the capacity paper a V and a sheet a line, then where
+  they merge; a what-if keeps the lines; the all-products sheet names each
+  station by its line. Left for later: the stops-and-walk readings stay by
+  station name (two lines' "bagger" share a log), and accumulation is drawn
+  for one chain only. Accepted by `line-capacity.mjs` 15.
 - **Line capacity screened for problems** (Rowland, 15 October, on his own
   line — target 150 a minute, and 319% · 279% · 273% on the V: "these
   percentages make no sense ... literally look at what I've put in ... screen

@@ -79,6 +79,10 @@ export interface Station {
   allowancePct?: number;
   /** Identical machines or people side by side. Default 1. */
   crew?: number;
+  /** WHICH LINE IT IS ON, when several lines feed one place (Capacity.lanes):
+   *  the line's id. Absent — or a line that is not on the list — it is after
+   *  the lines merge, where they all come to it. */
+  lane?: string;
   /** Percent of the time it is actually running, its OWN stops only. Default
    *  100 — most lines start by looking at speed alone. */
   runningPct?: number;
@@ -96,9 +100,22 @@ export interface Station {
   bufferAfter?: number;
 }
 
+/** A LINE OF SEVERAL THAT FEED ONE PLACE (Rowland, 15 October: "two lines here
+ *  that then merge into individuals at the end of the line ... line A, line B,
+ *  running ... then merge into one person who has to wrap for both" — and
+ *  "3, 4, 5 production lines all running, then merging into one pack hole;
+ *  that happens all the time in manufacturing"). Each is its own chain of
+ *  stations (Station.lane); the stations that have no line come after they
+ *  merge, one chain for all of them. */
+export interface Lane { id: string; name: string }
+
 export interface Capacity {
-  /** What the line should be doing, in the line's own unit per minute. */
+  /** What the line should be doing, in the line's own unit per minute — all
+   *  the lines together, when there are several. */
   targetPerMin?: number;
+  /** THE LINES THAT FEED ONE PLACE, in the order they are drawn. Absent or
+   *  empty: one chain of stations, as ever. */
+  lanes?: Lane[];
   /** Planned running hours in a week — what a share of stops is measured
    *  against. Only used to SUGGEST a running percentage, never silently. */
   plannedHoursPerWeek?: number;
@@ -256,7 +273,9 @@ export function syncWhatIfs(prev: Capacity, next: Capacity): Capacity {
 /** The what-if as a line of its own to analyse: its stations, its target if it
  *  set one, the line's planned hours. */
 export const whatIfCapacity = (cap: Capacity, w: WhatIf): Capacity =>
-  ({ targetPerMin: w.targetPerMin ?? cap.targetPerMin, plannedHoursPerWeek: cap.plannedHoursPerWeek, stations: whatIfStations(cap.stations, w) });
+  ({ targetPerMin: w.targetPerMin ?? cap.targetPerMin, plannedHoursPerWeek: cap.plannedHoursPerWeek, stations: whatIfStations(cap.stations, w),
+    /* the lines it feeds are the line's: a what-if changes their stations, not how many there are */
+    ...(cap.lanes?.length ? { lanes: cap.lanes } : {}) });
 
 export const EMPTY_CAPACITY: Capacity = { stations: [] };
 
@@ -435,6 +454,30 @@ export interface CapacityResult {
   /** What reaches each station after the first, by station id — every
    *  station whose chain of units is whole, counted or not yet. */
   arrivals: Record<string, Arrival>;
+  /** SEVERAL LINES FEEDING ONE PLACE (Capacity.lanes): each line worked out
+   *  on its own, and the place they merge worked out from what they send it.
+   *  Everything above is then the whole: `line` is all the lines together, the
+   *  limit the station that holds that, in the line's unit a minute. */
+  lanes?: LanesView;
+}
+
+export interface LaneSection {
+  id: string;
+  name: string;
+  /** The line alone — its stations' own limit, in its own unit a minute. */
+  result: CapacityResult;
+}
+
+export interface LanesView {
+  sections: LaneSection[];
+  /** After they merge: a station standing for the lines, sending what they
+   *  make (first in `ok`, index -1), then the shared stations. Absent when
+   *  nothing is shared. */
+  merged?: CapacityResult;
+  /** What the lines send together, in the line's unit a minute. */
+  sends: number;
+  /** Where the whole is held: the lines themselves, or the place they merge. */
+  heldBy: 'lanes' | 'shared';
 }
 
 /** THE LINE'S SPEED, as the practice takes it (docs/CAPACITY.md §1 —
@@ -480,6 +523,11 @@ export function fmtN(n: number): string {
 const norm = (s: string) => s.trim().toLowerCase();
 
 export function analyse(cap: Capacity): CapacityResult {
+  return cap.lanes && cap.lanes.length > 0 ? analyseLanes(cap) : analyseChain(cap);
+}
+
+/** ONE CHAIN OF STATIONS, in the order the product goes through them. */
+function analyseChain(cap: Capacity): CapacityResult {
   const stations = cap.stations;
   const unit = stations[0]?.unit.trim() || 'units';
   const notes: string[] = [];
@@ -638,6 +686,115 @@ function sentenceOf(r: CapacityResult, cap: Capacity): string {
   return parts.join(' ');
 }
 
+/* ============================ SEVERAL LINES, ONE PLACE =======================
+ * Each line is worked out on its own, as a chain. What they make together
+ * goes to the stations after they merge — a virtual first station standing for
+ * the lines, sending that much, then the shared stations in order. The whole
+ * is the merged chain's limit, in the line's unit a minute, and that is what
+ * every other reading of a capacity (the dashboard's "can make", the loss
+ * count's bottleneck, the labour cost a pack) takes of it. */
+const MERGE_ID = '__merge__';
+
+function analyseLanes(cap: Capacity): CapacityResult {
+  const lanes = cap.lanes ?? [];
+  const laneIds = new Set(lanes.map(l => l.id));
+  const at = new Map(cap.stations.map((st, i) => [st.id, i]));
+  const own = (id: string) => cap.stations.filter(st => st.lane === id);
+  const shared = cap.stations.filter(st => !st.lane || !laneIds.has(st.lane));
+  const nameOf = (l: Lane, i: number) => l.name.trim() || `Line ${String.fromCharCode(65 + (i % 26))}`;
+
+  /* a result whose stations are numbered as the whole capacity numbers them,
+     so a column of the V or a card opens the station it is */
+  const global = (x: StationResult): StationResult => ({ ...x, index: at.get(x.station.id) ?? -1 });
+  const globalise = (r: CapacityResult): CapacityResult => ({
+    ...r,
+    ok: r.ok.map(global),
+    skipped: r.skipped.map(k => ({ ...k, index: at.get(k.station.id) ?? k.index })),
+    ...(r.limit ? { limit: global(r.limit) } : {}),
+    ...(r.next ? { next: global(r.next) } : {}),
+    ...(r.limitAtRunning ? { limitAtRunning: global(r.limitAtRunning) } : {}),
+  });
+
+  const sections: LaneSection[] = lanes.map((l, i) => ({ id: l.id, name: nameOf(l, i), result: globalise(analyseChain({ stations: own(l.id) })) }));
+  const live = sections.filter(x => x.result.ok.length > 0 && x.result.line != null);
+  const notes: string[] = [];
+  const target = cap.targetPerMin != null && cap.targetPerMin > 0 ? cap.targetPerMin : undefined;
+  const unit = (live[0] ?? sections[0])?.result.unit ?? 'units';
+  const base: CapacityResult = { unit, ok: [], skipped: [], target, sentence: '', notes, arrivals: {} };
+
+  for (const x of sections) {
+    x.result.skipped.forEach(k => base.skipped.push(k));
+    x.result.notes.forEach(n => notes.push(`${x.name}: ${n}`));
+    Object.assign(base.arrivals, x.result.arrivals);
+  }
+  if (live.length === 0) {
+    return { ...base, lanes: { sections, sends: 0, heldBy: 'lanes' },
+      sentence: sections.some(x => x.result.skipped.length) ? 'None of the stations can be counted yet — see what each one is missing.' : 'Add the stations each line goes through, in order, with how fast each one runs.' };
+  }
+  const sameUnit = live.every(x => x.result.unit.trim().toLowerCase() === unit.trim().toLowerCase());
+  if (!sameUnit) notes.push(`The lines do not count in the same unit (${live.map(x => `${x.name}: ${x.result.unit}`).join(', ')}) — they are added as if they did.`);
+
+  const sends = live.reduce((n, x) => n + (x.result.line as number), 0);
+  const per = `${unit}/min`;
+  const names = (xs: LaneSection[]) => (xs.length <= 2 ? xs.map(x => x.name).join(' and ') : `${xs.slice(0, -1).map(x => x.name).join(', ')} and ${xs[xs.length - 1].name}`);
+
+  /* AFTER THEY MERGE: what they send, and the shared stations */
+  let merged: CapacityResult | undefined;
+  if (shared.length > 0) {
+    const lastOf = (l: LaneSection) => own(l.id)[own(l.id).length - 1];
+    /* the first shared station says how many of the unit before it make one
+       of its own — the lines' last unit — so it is put into the line's unit,
+       which the merged chain is worked out in */
+    const lastFactor = live[0].result.ok[live[0].result.ok.length - 1].factor;
+    const lastIsLast = live[0].result.ok[live[0].result.ok.length - 1].station.id === lastOf(live[0])?.id;
+    if (!lastIsLast) notes.push(`${live[0].name}: its last station is not counted, so what it sends on cannot be worked out.`);
+    const first = shared[0];
+    const feeder: Station = { id: MERGE_ID, name: `${names(live)} together`, kind: 'machine', unit, contains: 1, rate: sends, ratePer: 'min', crew: 1, source: 'plate', runningPct: 100, goodPct: 100 };
+    /* typed in the unit before (a basket every 6 s) is typed in the lines'
+       last unit: it is put into the line's, as the contains is */
+    const before = first.speedIn === 'before';
+    const chain: Station[] = [feeder, {
+      ...first, contains: first.contains > 0 ? first.contains * lastFactor : first.contains,
+      ...(before && first.rate != null ? { rate: first.rate * lastFactor } : {}),
+      ...(before && first.perCycle != null ? { perCycle: first.perCycle * lastFactor } : {}),
+    }, ...shared.slice(1)];
+    merged = globalise(analyseChain({ stations: chain }));
+    merged.ok = merged.ok.map(x => (x.station.id === MERGE_ID ? { ...x, index: -1 } : x));
+    if (merged.limit?.station.id === MERGE_ID) merged = { ...merged, limit: { ...merged.limit, index: -1 } };
+    merged.skipped.forEach(k => base.skipped.push(k));
+    merged.notes.forEach(n => notes.push(n));
+    Object.assign(base.arrivals, merged.arrivals);
+  }
+
+  const heldBy: 'lanes' | 'shared' = merged?.limit && merged.limit.station.id !== MERGE_ID ? 'shared' : 'lanes';
+  const total = merged && merged.line != null ? merged.line : sends;
+  const sharedOk = merged ? merged.ok.filter(x => x.station.id !== MERGE_ID) : [];
+  const lanesLimit = live.map(x => x.result.limit as StationResult).sort((p, q) => p.effective - q.effective)[0];
+  const lanesRun = live.map(x => x.result.limitAtRunning).filter((x): x is StationResult => !!x).sort((p, q) => p.running - q.running)[0];
+  const limit = heldBy === 'shared' ? (merged?.limit as StationResult) : lanesLimit;
+  const goodFrac = sends > 0 ? live.reduce((n, x) => n + (x.result.goodOut ?? x.result.line ?? 0), 0) / sends : 1;
+
+  base.ok = [...live.flatMap(x => x.result.ok), ...sharedOk];
+  base.limit = limit;
+  base.limitAtRunning = heldBy === 'shared' ? (merged?.limitAtRunning && merged.limitAtRunning.station.id !== MERGE_ID ? merged.limitAtRunning : limit) : lanesRun ?? limit;
+  base.line = total;
+  base.goodOut = total * goodFrac;
+  if (target != null) base.gap = target - total;
+  const tgt = target == null ? '' : (base.gap as number) > 0 ? ` — ${fmtN(base.gap as number)} short of the ${fmtN(target)} target` : ` — above the ${fmtN(target)} target`;
+  const nm = (x: StationResult) => x.station.name.trim() || `Station ${x.index + 1}`;
+  if (heldBy === 'shared' && limit) {
+    base.sentence = `${nm(limit)} holds ${live.length === 1 ? live[0].name : names(live)} to ${fmtN(total)} ${per} together — ${fmtN(sends)} ${per} arrive at it${tgt}.`;
+  } else {
+    const each = live.map(x => `${x.name} is held by ${nm(x.result.limit as StationResult)} at ${fmtN(x.result.line as number)}`).join('; ');
+    const out = `${names(live)} make${live.length === 1 ? 's' : ''} ${fmtN(sends)} ${per}${live.length > 1 ? ' together' : ''}${tgt}. ${each}.`;
+    const room = merged?.limit && merged.limit.station.id === MERGE_ID && merged.next ? ` ${nm(merged.next)} can take ${fmtN(merged.next.effective)}, so it is not what limits them.` : '';
+    base.sentence = out + room;
+  }
+  if (base.skipped.length) base.sentence += ` ${base.skipped.length} station${base.skipped.length === 1 ? '' : 's'} not counted yet.`;
+  base.lanes = { sections, ...(merged ? { merged } : {}), sends, heldBy };
+  return base;
+}
+
 /** A unit said once — "baskets" → "basket", "boxes" → "box". Typed units
  *  are usually plural; one of them reads in the singular. */
 export const oneOf = (unit: string): string => {
@@ -794,7 +951,8 @@ export function shortSays(r: CapacityResult): string | undefined {
   if (!r.limit || r.line == null) return undefined;
   const nm = r.limit.station.name.trim() || `Station ${r.limit.index + 1}`;
   const tgt = r.target == null ? '' : (r.gap as number) > 0 ? ` · ${fmtN(r.gap as number)} short of ${fmtN(r.target)}` : ` · target ${fmtN(r.target)} met`;
-  return r.next ? `${nm} limits at ${fmtN(r.line)} ${r.unit}/min${tgt}` : `${nm} runs ${fmtN(r.line)} ${r.unit}/min — add the rest of the line`;
+  /* several lines have no single "next": each is counted on its own */
+  return r.next || r.lanes ? `${nm} limits at ${fmtN(r.line)} ${r.unit}/min${tgt}` : `${nm} runs ${fmtN(r.line)} ${r.unit}/min — add the rest of the line`;
 }
 
 /** WHAT THE LINE CAN MAKE, in the words a target sits beside — "can make
@@ -836,6 +994,7 @@ export interface CapCheck {
 }
 
 export function screenCapacity(cap: Capacity, r: CapacityResult): CapCheck[] {
+  if (r.lanes) return screenLanes(cap, r);
   const out: CapCheck[] = [];
   const limit = r.limit;
   if (!limit || r.line == null || !(r.line > 0) || r.ok.length < 2) return out;
@@ -875,6 +1034,81 @@ export function screenCapacity(cap: Capacity, r: CapacityResult): CapCheck[] {
     out.push({ tone: 'a', station: x.index,
       text: `${nm(x)}: the ${fmtN(a * 100)}% rest allowance and a running of ${fmtN(s.runningPct)}% both take time off. If the ${fmtN(s.runningPct)}% is the same rest, it is counted twice — ${fmtN(once)} a minute instead of ${fmtN(x.effective)}.` });
   }
+  void cap;
+  return out.sort((p, q) => (p.tone === q.tone ? 0 : p.tone === 'r' ? -1 : 1));
+}
+
+/** SEVERAL LINES, SCREENED: the whole against its target; each line against
+ *  its own bottleneck (a V is steep or not along ONE line); a rest taken off
+ *  twice anywhere. A finding every line shares is said once, naming them all. */
+function screenLanes(cap: Capacity, r: CapacityResult): CapCheck[] {
+  const out: CapCheck[] = [];
+  const view = r.lanes as LanesView;
+  const limit = r.limit;
+  if (!limit || r.line == null || !(r.line > 0)) return out;
+  const nm = (x: StationResult) => x.station.name.trim() || `Station ${x.index + 1}`;
+  const per = `${r.unit} a minute`;
+  const total = r.line;
+  const live = view.sections.filter(x => x.result.ok.length > 0 && x.result.line != null);
+  const list = (xs: string[]) => (xs.length <= 2 ? xs.join(' and ') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+  const typedOf = (s: Station) => {
+    const unit = s.unit.trim() || 'units';
+    return !(s.rate != null && s.rate > 0) && s.cycleSec != null && s.cycleSec > 0 && s.perCycle != null && s.perCycle > 0
+      ? cycleWords(s.perCycle, s.cycleSec, unit)
+      : s.rate != null && s.rate > 0 ? `${fmtN(s.rate)} ${unit} ${PER_WORD[s.ratePer ?? 'min']}` : undefined;
+  };
+  const crewOf = (s: Station) => (s.crew != null && s.crew > 0 ? s.crew : 1);
+  const needWords = (s: Station, n: number) => (s.kind === 'people' ? `${fmtN(n)} ${n === 1 ? 'person' : 'people'} at it (it has ${fmtN(crewOf(s))})` : `${fmtN(n)} of them running (it has ${fmtN(crewOf(s))})`);
+
+  /* THE WHOLE FAR SHORT OF ITS TARGET */
+  if (r.target != null && total < r.target * 0.75) {
+    const pct = fmtN(Math.round((total / r.target) * 100));
+    if (view.heldBy === 'shared') {
+      const typed = typedOf(limit.station);
+      const takes = Math.ceil(crewOf(limit.station) * (view.sends / total) - 1e-9);
+      const lines = live.map(x => x.name);
+      out.push({ tone: 'r', station: limit.index,
+        text: `${nm(limit)} holds ${list(lines)} to ${fmtN(total)} ${per} together — ${pct}% of the ${fmtN(r.target)} target. They send it ${fmtN(view.sends)}.${typed ? ` It is typed as ${typed}: is that right?` : ''} To take all they send it would need ${needWords(limit.station, takes)}${view.sends < r.target ? ` — and they send ${fmtN(view.sends)}, short of ${fmtN(r.target)} themselves, so they need lifting too` : ''}.` });
+    } else {
+      const each = live.map(x => `${x.name} is held by ${nm(x.result.limit as StationResult)} at ${fmtN(x.result.line as number)}`).join('; ');
+      const needs = live.map(x => {
+        const l = x.result.limit as StationResult;
+        return `${nm(l)} in ${x.name}: ${needWords(l.station, Math.ceil(crewOf(l.station) * (r.target as number) / total - 1e-9))}`;
+      }).join('; ');
+      out.push({ tone: 'r', station: limit.index,
+        text: `${list(live.map(x => x.name))} make ${fmtN(total)} ${per} together — ${pct}% of the ${fmtN(r.target)} target. ${each}. To make ${fmtN(r.target)} each line, as it runs, would need ${needs}.` });
+    }
+  }
+
+  /* A LINE'S V THAT STEEP, against that line's own bottleneck */
+  const groups = new Map<string, string[]>();
+  const stationOf = new Map<string, number>();
+  for (const sec of live) {
+    const l = sec.result.limit as StationResult | undefined;
+    if (!l || sec.result.line == null) continue;
+    const steep = sec.result.ok.filter(x => x.index !== l.index && x.effective >= 2 * (sec.result.line as number));
+    if (!steep.length) continue;
+    const body = `${steep.map(x => `${nm(x)} ${fmtN(Math.round((x.effective / (sec.result.line as number)) * 100))}%`).join(' · ')} — those are against ${nm(l)}’s ${fmtN(sec.result.line as number)} ${per}, not against the target. A V this steep usually means ${nm(l)}’s speed or a unit conversion is mistyped, or the stations before it are far bigger than the line needs.`;
+    groups.set(body, [...(groups.get(body) ?? []), sec.name]);
+    if (!stationOf.has(body)) stationOf.set(body, l.index);
+  }
+  for (const [body, names] of groups) out.push({ tone: 'a', station: stationOf.get(body) as number, text: `${list(names)}: ${body}` });
+
+  /* A PERSON'S REST TAKEN OFF TWICE, anywhere */
+  const twice = new Map<string, { names: string[]; station: number }>();
+  for (const x of r.ok) {
+    const st = x.station;
+    const a = allowanceOf(st);
+    if (a <= 0 || st.runningPct == null) continue;
+    if (Math.abs(st.runningPct - 100 / (1 + a)) > 1.5) continue;
+    const once = x.effective / (st.runningPct / 100);
+    const where = view.sections.find(sec => sec.result.ok.some(y => y.station.id === st.id))?.name;
+    const body = `${nm(x)}: the ${fmtN(a * 100)}% rest allowance and a running of ${fmtN(st.runningPct)}% both take time off. If the ${fmtN(st.runningPct)}% is the same rest, it is counted twice — ${fmtN(once)} a minute instead of ${fmtN(x.effective)}.`;
+    const key = `${where ? 'lane:' : ''}${body}`;
+    const cur = twice.get(key);
+    twice.set(key, { names: [...(cur?.names ?? []), ...(where ? [where] : [])], station: cur?.station ?? x.index });
+  }
+  for (const [key, v] of twice) out.push({ tone: 'a', station: v.station, text: v.names.length ? `${list(v.names)}, ${key.replace(/^lane:/, '').replace(/^./, c => c.toLowerCase())}` : key });
   void cap;
   return out.sort((p, q) => (p.tone === q.tone ? 0 : p.tone === 'r' ? -1 : 1));
 }
@@ -1162,8 +1396,8 @@ function changedList(asRun: Station[], w: Station[]): { id: string; said: string
  *  limits it; Palletiser does." A what-if that changes nothing says so. */
 export function compareSays(asRun: CapacityResult, w: CapacityResult, name: string): string {
   const who = (x?: StationResult) => (x ? x.station.name.trim() || `Station ${x.index + 1}` : 'nothing');
-  if (asRun.line == null || !asRun.next) return `Finish the line as it runs first — the what-if is compared with it.`;
-  if (w.line == null || !w.next) return `${name} cannot be counted yet — ${w.skipped.length ? `${w.skipped.length} station${w.skipped.length === 1 ? '' : 's'} not counted` : 'add its stations'}.`;
+  if (asRun.line == null || (!asRun.next && !asRun.lanes)) return `Finish the line as it runs first — the what-if is compared with it.`;
+  if (w.line == null || (!w.next && !w.lanes)) return `${name} cannot be counted yet — ${w.skipped.length ? `${w.skipped.length} station${w.skipped.length === 1 ? '' : 's'} not counted` : 'add its stations'}.`;
   const per = `${asRun.unit}/min`;
   const d = w.line - asRun.line;
   const sameLimit = asRun.limit?.station.id === w.limit?.station.id;
@@ -1272,8 +1506,11 @@ export function capacityReport(lines: { name: string; owner?: string; capacity?:
   for (const l of lines) {
     if (!l.capacity || l.capacity.stations.length < 2) continue;
     const r = analyse(l.capacity);
-    if (!r.limit || !r.next || r.line == null) continue;
+    if (!r.limit || (!r.next && !r.lanes) || r.line == null) continue;
     const shown = r.ok.slice(0, CAP_REPORT_ROWS);
+    /* several lines: each station named by its line — "Line A · bagger" */
+    const laneOf = (x: StationResult) => r.lanes?.sections.find(sec => sec.result.ok.some(y => y.station.id === x.station.id))?.name;
+    const label = (x: StationResult) => `${laneOf(x) ? `${laneOf(x)} · ` : ''}${x.station.name.trim() || `Station ${x.index + 1}`}`;
     const cap = l.capacity;
     /* Each what-if analysed on its own, its rows cut to the same count. Its bars
        share the as-run scale, so a longer bar IS a faster station — the reader
@@ -1296,7 +1533,7 @@ export function capacityReport(lines: { name: string; owner?: string; capacity?:
       ...(cap.vMarginPct ? { vSays: vCurve(r, cap.vMarginPct).sentence } : {}),
       top,
       rows: shown.map(x => ({
-        name: x.station.name.trim() || `Station ${x.index + 1}`, kind: x.station.kind, chain: x.chain,
+        name: label(x), kind: x.station.kind, chain: x.chain,
         running: x.running, effective: x.effective, limit: x.index === (r.limit as StationResult).index,
         feed: x.feed, detail: stationDetail(x.station, cap.stations[x.index - 1]?.unit),
       })),

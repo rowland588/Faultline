@@ -65,6 +65,19 @@ export interface CapacityPaperRow {
   /** Its share of the bottleneck as a number — once its own stops count,
    *  while running, and what the agreed V asks — for the V drawn on paper. */
   pct?: number; runningPct?: number; guide?: number;
+  /** Which line it is on, or "After the lines merge", when several lines feed
+   *  one place (lib/capacity Lane) — each group has its own V and its own
+   *  bottleneck. Absent on a single line. */
+  group?: string;
+}
+
+/** A group of rows with its own V — a line, or the place they merge. */
+export interface CapacityPaperGroup {
+  name: string;
+  /** "on its own, 68.3 units/min" · "what they send, 137 units/min, against what the shared stations take". */
+  says: string;
+  /** The target as a share of this group's bottleneck, where the target is for it. */
+  targetPct?: number;
 }
 
 export interface CapacityPaperShift {
@@ -91,6 +104,8 @@ export interface CapacityPaper {
   targetPct?: number;
   /** Every station counted, in flow order. */
   rows: CapacityPaperRow[];
+  /** Several lines feeding one place: the groups the rows fall in, in order. */
+  groups?: CapacityPaperGroup[];
   /** The V either side of the bottleneck (lib/capacity vCurve) — with two or more counted. */
   v?: { text: string; tone: Tone };
   /** The bottleneck walked, against the sums (lib/ie/walk). */
@@ -174,30 +189,46 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
     return { ...base, headline: 'No stations yet — the line’s stations for this product are still to be written down', short: false,
       sentence: r.sentence, rows: [], check: [], whatIfs: [] };
   }
-  const v = r.ok.length ? vCurve(r, cap.vMarginPct) : undefined;
-  const pts = new Map((v?.points ?? []).map(p => [p.index, p]));
+  /* A SINGLE LINE is one group; several lines are a group each and the place
+     they merge (lib/capacity LanesView) — a V is read along ONE line. */
+  const sections: { name: string; says: string; res: typeof r; target?: number }[] = r.lanes
+    ? [...r.lanes.sections.filter(x => x.result.ok.length > 0).map(x => ({ name: x.name, says: `on its own, ${fmtN(x.result.line as number)} ${r.unit}/min`, res: x.result })),
+       ...(r.lanes.merged ? [{ name: 'After the lines merge', says: `what they send, ${fmtN(r.lanes.sends)} ${r.unit}/min, against what the shared stations take`, res: r.lanes.merged, ...(r.target != null ? { target: r.target } : {}) }] : [])]
+    : [{ name: '', says: '', res: r, ...(r.target != null ? { target: r.target } : {}) }];
+  const vs = sections.map(sec => ({ sec, v: sec.res.ok.length ? vCurve(sec.res, cap.vMarginPct) : undefined }));
+  const v = !r.lanes && r.ok.length ? vs[0]?.v : undefined;
   const target = r.target;
-  const rows: CapacityPaperRow[] = r.ok.map(o => {
-    const s = o.station, p = pts.get(o.index), isLimit = r.limit?.index === o.index;
-    const need = target != null && o.effective > 0 ? (target / o.effective) * 100 : undefined;
-    const how = howWords(s);
-    const crew = s.crew != null && s.crew > 1 ? `×${fmtN(s.crew)}` : undefined;
-    return {
-      n: o.index + 1, name: s.name.trim() || `Station ${o.index + 1}`, people: s.kind === 'people', ...(crew ? { crew } : {}),
-      unit: `${o.index === 0 ? `${s.unit.trim() || 'units'} — the line’s unit` : o.chain}${s.kind === 'people' ? ` · ${fmtN(s.crew ?? 1)} ${(s.crew ?? 1) === 1 ? 'person' : 'people'}` : ''}`,
-      /* a person's time with their rest allowance said beside it (docs/CAPACITY.md §1) */
-      speed: `${speedWords(s, cap.stations[o.index - 1]?.unit)}${allowanceOf(s) > 0 ? ` + ${fmtN(allowanceOf(s) * 100)}% rest` : ''}`, how: how.text, notPlate: how.notPlate,
-      stops: s.runningPct != null && s.runningPct < 100 ? `${fmtN(100 - s.runningPct)}%` : '—',
-      good: s.goodPct != null && s.goodPct < 100 ? `${fmtN(s.goodPct)}%` : '—',
-      perMin: fmtN(o.effective), perHour: fmtN(o.effective * 60),
-      ofNeck: isLimit ? 'the bottleneck' : p ? `${fmtN(Math.round(p.pct))}%${p.under ? ' · under the V' : ''}` : '—',
-      under: !!p?.under,
-      ...(target != null ? { needs: need != null ? `${fmtN(Math.round(need))}%` : '—' } : {}),
-      over: need != null && need > 100 + 1e-9,
-      limit: isLimit,
-      ...(p ? { pct: p.pct, runningPct: p.runningPct, ...(p.guide != null ? { guide: p.guide } : {}) } : {}),
-    };
+  const rows: CapacityPaperRow[] = vs.flatMap(({ sec, v: sv }) => {
+    const pts = new Map((sv?.points ?? []).map(p => [p.index, p]));
+    return sec.res.ok.map((o, k) => {
+      const s = o.station, p = pts.get(o.index), isLimit = sec.res.limit?.index === o.index;
+      const t = sec.target;
+      const need = t != null && o.effective > 0 ? (t / o.effective) * 100 : undefined;
+      const how = howWords(s);
+      const crew = s.crew != null && s.crew > 1 ? `×${fmtN(s.crew)}` : undefined;
+      const prevUnit = sec.res.ok[k - 1]?.station.unit ?? cap.stations[o.index - 1]?.unit;
+      return {
+        n: o.index + 1, name: s.name.trim() || `Station ${o.index + 1}`, people: s.kind === 'people', ...(crew ? { crew } : {}),
+        unit: `${k === 0 ? `${s.unit.trim() || 'units'} — the line’s unit` : o.chain}${s.kind === 'people' ? ` · ${fmtN(s.crew ?? 1)} ${(s.crew ?? 1) === 1 ? 'person' : 'people'}` : ''}`,
+        /* a person's time with their rest allowance said beside it (docs/CAPACITY.md §1) */
+        speed: `${speedWords(s, prevUnit)}${allowanceOf(s) > 0 ? ` + ${fmtN(allowanceOf(s) * 100)}% rest` : ''}`, how: how.text, notPlate: how.notPlate,
+        stops: s.runningPct != null && s.runningPct < 100 ? `${fmtN(100 - s.runningPct)}%` : '—',
+        good: s.goodPct != null && s.goodPct < 100 ? `${fmtN(s.goodPct)}%` : '—',
+        perMin: fmtN(o.effective), perHour: fmtN(o.effective * 60),
+        ofNeck: isLimit ? 'the bottleneck' : p ? `${fmtN(Math.round(p.pct))}%${p.under ? ' · under the V' : ''}` : '—',
+        under: !!p?.under,
+        ...(t != null ? { needs: need != null ? `${fmtN(Math.round(need))}%` : '—' } : {}),
+        over: need != null && need > 100 + 1e-9,
+        limit: isLimit,
+        ...(p ? { pct: p.pct, runningPct: p.runningPct, ...(p.guide != null ? { guide: p.guide } : {}) } : {}),
+        ...(sec.name ? { group: sec.name } : {}),
+      };
+    });
   });
+  const groups: CapacityPaperGroup[] | undefined = r.lanes
+    ? vs.map(({ sec }) => ({ name: sec.name, says: sec.says,
+        ...(sec.target != null && sec.res.limit && sec.res.limit.effective > 0 ? { targetPct: (sec.target / sec.res.limit.effective) * 100 } : {}) }))
+    : undefined;
 
   /* WHAT TO CHECK — only what is wrong: a station not counted and why, a
      conversion that reads like a missing number. */
@@ -248,11 +279,12 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
   return {
     ...base,
     headline: head ?? `${n} station${n === 1 ? '' : 's'} — speeds still to fill in`,
-    short: (r.gap ?? 0) > 0 && !!r.next,
+    short: (r.gap ?? 0) > 0 && (!!r.next || !!r.lanes),
     sentence: r.sentence,
     ...(target != null ? { target: `${fmtN(target)} ${r.unit} a minute` } : {}),
     ...(target != null && r.limit && r.limit.effective > 0 ? { targetPct: (target / r.limit.effective) * 100 } : {}),
     rows,
+    ...(groups ? { groups } : {}),
     ...(v && r.ok.length >= 2 ? { v: { text: v.sentence, tone: (v.under.length ? 'a' : 'n') as Tone } } : {}),
     ...(x.walk ? { walk: { text: x.walk.sentence, tone: (x.walk.against === 'disagrees' ? 'a' : 'n') as Tone } } : {}),
     check,

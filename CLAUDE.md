@@ -457,7 +457,13 @@ deleted there with no map on it — the record gone; then screened for problems
 third of the target and what it would need, the V's percentages said against
 the bottleneck they are against, a person's rest counted twice; red and
 amber, opening the station, on paper under "To check before the sums are
-trusted", and a line that meets its target not told it is short.
+trusted", and a line that meets its target not told it is short; then several
+lines feeding one place (Rowland, 15 October: "line A, line B ... one person
+who has to wrap for both"; "3, 4, 5 lines into one") — a chain split where
+the lines merge, a line added like the last and named, a station moved inside
+its own line, a line taken away and brought back, a what-if keeping the lines,
+the checks said along each line, and a V and a sheet a line on paper, then
+where they merge.
 
 `scripts/sync-two-devices.mjs` runs two real devices of the app (a phone and a
 laptop, separate storage) against `scripts/fake-cloud.mjs`, which keeps the
