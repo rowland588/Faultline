@@ -575,6 +575,9 @@ function analyseChain(cap: Capacity): CapacityResult {
      person typing the next speed sees the number it has to beat, and the
      sentence says at once whether this station keeps up. */
   let slowestBefore = Infinity;
+  /* only the slowest of them all holds the line back — a station under the
+     one before it but above the line's slowest just makes the one before wait */
+  const slowestOfAll = Math.min(...ok.map(x => x.effective));
   for (const x of ok) {
     const up = upGood.get(x.station.id) ?? 1;
     const own = x.station.unit.trim() || unit;
@@ -583,7 +586,7 @@ function analyseChain(cap: Capacity): CapacityResult {
       x.arrives = (slowestBefore * up) / x.factor;
       const gap = x.does - x.arrives;
       x.feed = gap < -1e-9
-        ? `${fmtN(x.arrives)} ${own} a minute arrive · it does ${fmtN(x.does)} — holds the line back`
+        ? `${fmtN(x.arrives)} ${own} a minute arrive · it does ${fmtN(x.does)} — ${x.effective <= slowestOfAll + 1e-9 ? 'holds the line back' : 'the one before waits'}`
         : `${fmtN(x.arrives)} ${own} a minute arrive · it does ${fmtN(x.does)} — keeps up${gap > 1e-9 ? `, ${fmtN(gap)} to spare` : ''}`;
     } else {
       x.feed = `the front of the line · it does ${fmtN(x.does)} ${own} a minute`;
@@ -930,15 +933,31 @@ export function paceSays(r: CapacityResult, s: Station, prevUnit?: string,
   if (!a) {
     return { verdict: people ? `${takes} — ${fmtN(does * k)} a minute.` : `It does ${fmtN(does * k)} ${unitSaid} a minute.`, short: false };
   }
-  const short = does < a.perMin - 1e-9;
+  const slower = does < a.perMin - 1e-9;
+  /* ONLY THE BOTTLENECK HOLDS THE LINE BACK (Rowland, 15 October: "the UI
+     logic is massively bad"). A station a little slower than the one feeding
+     it makes the one before wait — it is not what limits the line unless it
+     is the slowest: the line's, or its own line's when several feed in.
+     Red is kept for that one; the rest are said plainly, naming where the
+     line is held. */
+  const short = slower && r.limit?.station.id === s.id;
+  const heldAt = r.limit?.station.name.trim();
+  /* a line's own slowest, when several feed in: it holds its own line, not the whole */
+  const ownLine = r.lanes?.sections.find(x => x.result.limit?.station.id === s.id && r.limit?.station.id !== s.id);
+  const notIt = heldAt && r.limit?.station.id !== s.id
+    ? ownLine ? ` — it sets ${ownLine.name}'s pace, but the line as a whole is held at the ${heldAt}` : ` — the line is held at the ${heldAt}, not here`
+    : '';
   const needed = Math.ceil(a.perMin / (speed * running) - 1e-9);
   if (!people) {
-    return { ...(arrive ? { arrive } : {}), verdict: short ? `It does ${fmtN(does * k)} a minute — holds the line back.` : `It does ${fmtN(does * k)} a minute — keeps up${does - a.perMin > 1e-9 ? `, ${fmtN((does - a.perMin) * k)} to spare` : ''}.`, short };
+    return { ...(arrive ? { arrive } : {}), verdict: short ? `It does ${fmtN(does * k)} a minute — holds the line back.`
+      : slower ? `It does ${fmtN(does * k)} a minute — a little under what reaches it, so the one before waits${notIt}.`
+        : `It does ${fmtN(does * k)} a minute — keeps up${does - a.perMin > 1e-9 ? `, ${fmtN((does - a.perMin) * k)} to spare` : ''}.`, short };
   }
   const gapSec = Math.abs(60 / does - a.everySec) / k;
   const verdict = short
     ? `${takes} — ${fmtDur(gapSec)} too slow: they hold the line back. It needs ${needed} ${needed === 1 ? 'person' : 'people'} to keep up.`
-    : `${takes} — they keep up${gapSec > 0.05 ? `, ${fmtDur(gapSec)} to spare a ${one}` : ''}.`;
+    : slower ? `${takes} — ${fmtDur(gapSec)} slower than what reaches them, so the one before waits${notIt}. To keep up on their own it needs ${needed} ${needed === 1 ? 'person' : 'people'}.`
+      : `${takes} — they keep up${gapSec > 0.05 ? `, ${fmtDur(gapSec)} to spare a ${one}` : ''}.`;
   /* FED STRAIGHT, nothing collecting between, loaded past what a person sustains */
   const load = a.perMin / does;
   const paced = prev && !short && !(prev.bufferAfter != null && prev.bufferAfter > 0) && load > PACED_LOAD_MAX + 1e-9

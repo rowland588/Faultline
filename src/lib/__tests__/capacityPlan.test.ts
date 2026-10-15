@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import { analyse, vCurve, type Capacity, type Station } from '../capacity';
 import { planToTarget } from '../capacityPlan';
-import { chainOf, mergeAfterOf, reshape } from '../capacityLines';
+import { chainOf, lanesAlike, mergeAfterOf, reshape } from '../capacityLines';
 
 const machine = (id: string, name: string, rate: number): Station => ({ id, name, kind: 'machine', unit: 'units', contains: 1, rate, ratePer: 'min', crew: 1, source: 'plate', runningPct: 100, goodPct: 100 });
 const chain: Capacity = {
@@ -45,6 +45,25 @@ describe('the shape of the line', () => {
     expect(mergeAfterOf(early)).toBe(2);
     const late = reshape(two, 2, 4, uid);
     expect(late.stations.filter(s => !s.lane)).toHaveLength(0);
+  });
+  it('what was typed on a line is kept when the merge moves later or earlier (15 October: "doesn\u2019t work")', () => {
+    const typed: Capacity = { ...two, stations: two.stations.map(s => (s.lane === two.lanes?.[1].id && s.name === 'bagger' ? { ...s, rate: 90 } : s)) };
+    const late = reshape(typed, 2, 4, uid);
+    expect(late.stations.find(s => s.lane === typed.lanes?.[1].id && s.name === 'bagger')?.rate).toBe(90);
+    expect(late.stations.filter(s => s.lane === typed.lanes?.[1].id).map(s => s.name)).toEqual(['bagger', 'P160 Pick & Place', 'palletiser', 'Pallet wrapper']);
+    const early = reshape(typed, 2, 2, uid);
+    expect(early.stations.find(s => s.lane === typed.lanes?.[1].id && s.name === 'bagger')?.rate).toBe(90);
+  });
+  it('lines of different lengths still merge where asked — never locked', () => {
+    const extra: Capacity = { ...two, stations: [...two.stations.slice(0, 6), { ...two.stations[5], id: 'x', name: 'labeller' }, ...two.stations.slice(6)] };
+    expect(mergeAfterOf(extra)).toBe(3);
+    const moved = reshape(extra, 2, 2, uid);
+    expect(mergeAfterOf(moved)).toBe(2);
+    expect(moved.stations.filter(s => s.lane === extra.lanes?.[1].id).map(s => s.name)).toEqual(['bagger', 'P160 Pick & Place']);
+  });
+  it('lines alike are known as alike, and stop being so once one is changed', () => {
+    expect(lanesAlike(two)).toBe(true);
+    expect(lanesAlike({ ...two, stations: two.stations.map(s => (s.lane === two.lanes?.[1].id && s.name === 'bagger' ? { ...s, rate: 90 } : s)) })).toBe(false);
   });
   it('lines that do not merge add up', () => {
     const r = analyse(reshape(chain, 2, 4, uid));

@@ -152,7 +152,8 @@ export async function seedCapacityFor(size: string): Promise<CapacitySeed> {
   const LA = uid(), LB = uid();
   const lane = (id: string): Station[] => [
     { ...m('bagger', 'units', 1, { rate: 160, ratePer: 'min', source: 'plate' }), lane: id },
-    { ...m('P160 Pick & Place', 'units', 1, { rate: 140, ratePer: 'min', source: 'plate' }), lane: id },
+    /* Zoë's side runs the older pick & place — the two lines differ, so each is drawn */
+    { ...m('P160 Pick & Place', 'units', 1, { rate: id === LB ? 130 : 140, ratePer: 'min', source: 'plate' }), lane: id },
     { ...p('palletiser', 'baskets', 10, { cycleSec: 16, perCycle: 2, source: 'standard' }, { runningPct: 91, allowancePct: 10 }), lane: id },
   ];
   const ANALYSIS = 'BOTTLENECK – PALLET WRAPPER (ONE OPERATOR SERVING BOTH LINES)\n\nWrapper cycle: 10 min to wrap a pair of pallets (one from each line) + 2 min transfer = 12 min per pair → maximum 10 pallets/hr.\n\n'

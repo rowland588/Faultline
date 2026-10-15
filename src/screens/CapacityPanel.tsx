@@ -34,7 +34,7 @@ import { currentBalance } from '../lib/studyLinks';
 import { balance as balanceOf } from '../lib/ie/balance';
 import { niceDay } from '../lib/weeks';
 import { uid } from '../lib/ids';
-import { chainOf as lineChain, MAX_LINES, mergeAfterOf, reshape } from '../lib/capacityLines';
+import { chainOf as lineChain, lanesAlike, MAX_LINES, mergeAfterOf, reshape } from '../lib/capacityLines';
 import { planToTarget } from '../lib/capacityPlan';
 import { nav } from '../state/useRoute';
 import { type PillarKey } from '../lib/pillars';
@@ -532,6 +532,8 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
   const stored = line.capacity ?? EMPTY_CAPACITY;
   const [cap, setCap] = useState<Capacity>(stored);
   const [editing, setEditing] = useState<string | null>(null);
+  /* lines alike are edited once, in step, until someone makes them different */
+  const [apart, setApart] = useState(false);
   /* What this panel last wrote. A reload that has not caught up with it must
      not put the old document back over a field somebody has just left. */
   const sent = useRef<string | null>(null);
@@ -558,8 +560,10 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
   const setStations = (stations: Station[]) => (w
     ? commit({ ...cap, whatIfs: whatIfs.map(x => (x.id === w.id ? withWhatIfStations(cap.stations, x, stations) : x)) })
     : commit({ ...cap, stations }));
-  const patchStation = (id: string, p: Partial<Station>) =>
-    setStations(current.stations.map(s => (s.id === id ? { ...s, ...p } : s)));
+  const patchStation = (id: string, p: Partial<Station>) => {
+    const ids = stepIdsOf(id) ?? [id];
+    setStations(current.stations.map(s => (ids.includes(s.id) ? { ...s, ...p } : s)));
+  };
 
   const stops = useLineStops(line.workspaceId);
   const stats = useMemo(() => stopStats(stops.obs, current.stations, stops.from, stops.to), [stops.obs, stops.from, stops.to, current.stations]);
@@ -620,8 +624,9 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
   };
   const remove = (s: Station) => {
     const before = cap;
-    setStations(current.stations.filter(x => x.id !== s.id));
-    offerUndo(`Removed ${s.name || 'the station'}`, async () => commit(before));
+    const ids = stepIdsOf(s.id) ?? [s.id];
+    setStations(current.stations.filter(x => !ids.includes(x.id)));
+    offerUndo(`Removed ${s.name || 'the station'}${ids.length > 1 ? ` from each line` : ''}`, async () => commit(before));
   };
 
   /* SEVERAL LINES FEEDING ONE PLACE (lib/capacity Lane; Rowland, 15 October:
@@ -632,6 +637,17 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
      as run — a what-if changes the stations of the lines there are. */
   const lanes = current.lanes ?? [];
   const laneIds = new Set(lanes.map(l => l.id));
+  /* IN STEP: while every line holds the same stations, a change to the first
+     line's is made on each — one edit, not one per line (15 October: "an
+     absolute mess" — the same five stations typed twice). "Make the lines
+     different" lets each be changed on its own. */
+  const inStep = !w && !apart && lanesAlike(current);
+  const laneLists = () => lanes.map(l => current.stations.filter(x => x.lane === l.id));
+  const stepIdsOf = (id: string): string[] | undefined => {
+    if (!inStep) return undefined;
+    const ls = laneLists(), i = ls[0]?.findIndex(x => x.id === id) ?? -1;
+    return i < 0 ? undefined : ls.map(l => l[i]?.id).filter((x): x is string => !!x);
+  };
   const groups = lanes.length
     ? [...lanes.map((l, k) => ({ key: l.id, lane: l, name: l.name.trim() || `Line ${String.fromCharCode(65 + (k % 26))}`, stations: current.stations.filter(x => x.lane === l.id) })),
        { key: '', lane: undefined as Lane | undefined, name: 'After the lines merge', stations: current.stations.filter(x => !x.lane || !laneIds.has(x.lane)) }]
@@ -642,6 +658,12 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
     /* in its group's place: after the group's last station, else before the shared ones */
     const at = mine.length ? current.stations.indexOf(mine[mine.length - 1]) + 1 : lane ? current.stations.findIndex(x => !x.lane || !laneIds.has(x.lane)) : current.stations.length;
     const list = [...current.stations]; list.splice(at < 0 ? list.length : at, 0, st);
+    /* in step: the same new station on every other line too */
+    if (inStep && lane && lane === lanes[0]?.id) for (const l of lanes.slice(1)) {
+      const theirs = list.filter(x => x.lane === l.id);
+      const i = theirs.length ? list.indexOf(theirs[theirs.length - 1]) + 1 : list.findIndex(x => !x.lane || !laneIds.has(x.lane));
+      list.splice(i < 0 ? list.length : i, 0, { ...st, id: uid(), lane: l.id });
+    }
     setStations(list);
     setEditing(st.id);
   };
@@ -651,8 +673,10 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
     const k = g.stations.findIndex(y => y.id === id), o = g.stations[k + by];
     if (!o) return;
     const list = [...current.stations];
-    const a = list.findIndex(y => y.id === id), b = list.findIndex(y => y.id === o.id);
-    [list[a], list[b]] = [list[b], list[a]];
+    const pairs: [string, string][] = [[id, o.id]];
+    const ids = stepIdsOf(id), others = stepIdsOf(o.id);
+    if (ids && others) ids.slice(1).forEach((x, i) => { if (others[i + 1]) pairs.push([x, others[i + 1]]); });
+    for (const [p1, p2] of pairs) { const a = list.findIndex(y => y.id === p1), b = list.findIndex(y => y.id === p2); [list[a], list[b]] = [list[b], list[a]]; }
     setStations(list);
   };
   const nextLaneName = () => `Line ${String.fromCharCode(65 + (lanes.length % 26))}`;
@@ -704,6 +728,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
      stations each, the rest shared; the merge point is one choice. */
   const flow = lineChain(cap);
   const mergeAt = mergeAfterOf(cap);
+  const alike = lanesAlike(current);
   const ownCount = lanes.length ? current.stations.filter(x => x.lane === lanes[0].id).length : 0;
   const shapeK = lanes.length ? (mergeAt ?? ownCount) : Math.max(1, flow.length - 1);
   const shapeIt = (n: number, k: number) => {
@@ -918,9 +943,8 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
               </span>
               {lanes.length >= 2 && (
                 <label className="cap-shape-l"><b>Where do they merge?</b>
-                  <select className="text-input" aria-label="Where the lines merge" value={mergeAt ?? ''} disabled={mergeAt == null}
+                  <select className="text-input" aria-label="Where the lines merge" value={mergeAt ?? ''}
                     onChange={e => shapeIt(lanes.length, Number(e.target.value))}>
-                    {mergeAt == null && <option value="">The lines differ — set their stations, then choose</option>}
                     {flow.map((x, i) => <option key={x.id} value={i + 1}>{i + 1 < flow.length ? `After ${x.name.trim() || `station ${i + 1}`}` : 'They do not merge — each line ends on its own'}</option>)}
                   </select>
                 </label>
@@ -967,6 +991,117 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
         </section>
       )}
 
+      {/* THE LINE AS TYPED, UNDER ITS SHAPE (Rowland, 15 October: "the UI logic
+          is massively bad") — the stations sat at the foot of the page, under
+          every chart they feed. Set up, then read: the target and the stations
+          here, what they mean below. Nothing taken off; only the order. */}
+      <div className="cap-settings">
+        <label className="proj-field">
+          <span className="field-label">What the line should do — {r.unit} a minute</span>
+          {can.edit
+            ? <DraftNumber className="text-input cap-num" value={current.targetPerMin} placeholder="e.g. 66" label="Target, line units a minute"
+                onSave={v => (w ? putWhatIf(w.id, { targetPerMin: v }) : commit({ ...cap, targetPerMin: v }))} />
+            : <b className="cap-ro-v">{current.targetPerMin != null ? fmtN(current.targetPerMin) : 'not set'}</b>}
+        </label>
+        {!w && (
+          <label className="proj-field">
+            <span className="field-label">Planned running hours a week</span>
+            {can.edit ? <>
+              <DraftNumber className="text-input cap-num" value={cap.plannedHoursPerWeek} placeholder="e.g. 80" label="Planned hours a week"
+                onSave={v => commit({ ...cap, plannedHoursPerWeek: v })} />
+              <span className="cap-hint">Only used to suggest a running % from your stops. Nothing is changed for you.</span>
+            </> : <b className="cap-ro-v">{cap.plannedHoursPerWeek != null ? fmtN(cap.plannedHoursPerWeek) : 'not set'}</b>}
+          </label>
+        )}
+      </div>
+
+      <h3 className="cap-h">{w ? `The stations with ${w.name}, in order` : 'The stations, in order'}</h3>
+      {current.stations.length === 0 && (
+        <div className="pace-empty">
+          {!can.edit ? <p className="sub">No stations written down yet — the team keeps the line here.</p> : <p className="sub">
+            Start at the front of the line. A bagger that does 70 a minute, then baskets that hold 12 bags and run 5½ a minute,
+            then someone carrying them, then the palletiser. Each says what it counts in and how many of the one before make one of
+            its own — and the app puts them all in the first one’s unit, and tells each station what arrives from the one before.
+          </p>}
+          {machines.length > 0 && can.edit && (
+            <button className="btn btn-ghost" onClick={() => setStations(machines.map((a, i) => ({ ...blankStation(uid(), 'machine', i === 0), name: a })))}>
+              Start from the line&rsquo;s machines, in flow order ({machines.length})
+            </button>
+          )}
+          {machines.length === 0 && assets.length > 0 && can.edit && (
+            <button className="btn btn-ghost" onClick={() => setStations(assets.map((a, i) => ({ ...blankStation(uid(), 'machine', i === 0), name: a })))}>
+              Start from the machines in your stops log ({assets.length})
+            </button>
+          )}
+        </div>
+      )}
+      {groups.map((g, gi) => {
+        if (inStep && g.lane && g.lane.id !== lanes[0]?.id) return null;
+        /* the unit before a group's first station: a line's none; after they merge, the lines' last */
+        const prefix = !g.lane && lanes.length ? (groups[0].stations.slice(-1)) : [];
+        const chainOf = [...prefix, ...g.stations];
+        return (
+          <div key={g.key || 'shared'} className={'cap-grp' + (lanes.length ? ' has-lanes' : '')} aria-label={g.name || undefined}>
+            {lanes.length > 0 && (
+              <div className="cap-grp-h">
+                {g.lane && can.edit && !w
+                  ? <DraftText value={g.lane.name} placeholder={g.name} className="text-input cap-lane-name" max={40} ariaLabel={`Name of ${g.name}`} onSave={v => renameLane((g.lane as Lane).id, v)} />
+                  : <h3 className="cap-grp-t">{g.name}</h3>}
+                <span className="sub">{g.lane
+                  ? inStep
+                    ? `and ${lanes.slice(1).map(l => l.name.trim() || 'the next line').join(', ')} — the same stations, ${fmtN(r.lanes?.sections.find(x => x.id === g.key)?.result.line ?? 0)} ${r.unit}/min each; a change here is made on every line`
+                    : `its own stations — ${fmtN(r.lanes?.sections.find(x => x.id === g.key)?.result.line ?? 0)} ${r.unit}/min on its own`
+                  : 'where they all come to — one chain for every line'}</span>
+                {inStep && g.lane && can.edit && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setApart(true)}>Make the lines different</button>}
+                {g.lane && can.edit && !w && <button type="button" className="btn btn-ghost btn-sm" onClick={() => removeLane((g.lane as Lane).id)}>Remove this line</button>}
+              </div>
+            )}
+            <ol className="cap-sts">
+              {g.stations.map((s, i) => {
+                const gi2 = i + prefix.length;
+                return (
+                  <StationCard key={s.id} s={s} i={gi2} num={i + 1} canUp={i > 0} canDown={i < g.stations.length - 1} last={i === g.stations.length - 1}
+                    {...(!lanes.length && can.edit && !w && i < g.stations.length - 1 ? { onSplit: () => splitAfter(s.id) } : {})}
+                    prevUnit={chainOf[gi2 - 1]?.unit} planned={cap.plannedHoursPerWeek} why={why(s.id)}
+                    wait={stats[s.id]?.waitMins ?? 0} own={stats[s.id]?.ownMins ?? 0}
+                    coLeft={coOff ? stats[s.id]?.changeoverMins ?? 0 : 0}
+                    suggested={suggestRunning((stats[s.id]?.ownMins ?? 0) - (coOff ? stats[s.id]?.changeoverMins ?? 0 : 0), cap.plannedHoursPerWeek, stops.weeks)}
+                    say={paceSays(r, s, chainOf[gi2 - 1]?.unit, chainOf[gi2 - 1])} asTime={rateAsTime(r, s, chainOf[gi2 - 1]?.unit)} factor={result(s.id)?.factor ?? chainFactor(chainOf, gi2)} lineUnit={r.unit}
+                    chain={chainWords(chainOf, gi2)}
+                    patch={p => patchStation(s.id, p)} move={by => moveIn(s.id, by)} remove={() => remove(s)} assets={assets} machines={machines}
+                    open={editing === s.id || !s.name.trim()} onToggle={() => setEditing(editing === s.id ? null : s.id)} ro={!can.edit} />
+                );
+              })}
+            </ol>
+            {lanes.length > 0 && can.edit && (
+              <div className="row-inline">
+                <button className="cw-add" onClick={() => addTo('machine', g.lane?.id)}><span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a machine{g.lane ? ` to ${g.name}` : ''}</button>
+                <button className="cw-add" onClick={() => addTo('people', g.lane?.id)}><span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a person or crew{g.lane ? ` to ${g.name}` : ''}</button>
+              </div>
+            )}
+            {(gi === groups.length - 2 || (inStep && g.lane?.id === lanes[0]?.id)) && lanes.length > 0 && can.edit && !w && (
+              <div className="row-inline cap-lanes-do">
+                <button className="cw-add" onClick={addLane}><span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add another line, like {lanes[lanes.length - 1].name.trim() || 'the one before'}</button>
+                {lanes.length === 1 && <button className="btn btn-ghost btn-sm" onClick={oneLine}>One line again</button>}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {can.edit && !w && unlisted.length > 0 && lineRec && (
+        <p className="sub cap-unlisted">
+          {unlisted.join(', ')} {unlisted.length === 1 ? 'is' : 'are'} not on {lineRec.name}&rsquo;s machines yet, which the problem sheet, the stopwatch and every tool offer.{' '}
+          <button type="button" className="cw-link" onClick={() => void (async () => { for (const n of unlisted) await addMachineToLine(lineRec.id, n); })()}>
+            Add {unlisted.length === 1 ? 'it' : unlisted.length === 2 ? 'both' : `all ${unlisted.length}`} to the line ›
+          </button>
+        </p>
+      )}
+      {can.edit && !lanes.length && <div className="row-inline">
+        <button className="cw-add" onClick={() => add('machine')}><span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a machine</button>
+        <button className="cw-add" onClick={() => add('people')}><span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a person or crew</button>
+      </div>}
+
+
       {/* CHECK THE NUMBERS (lib/capacity screenCapacity; Rowland, 15 October:
           "319%, 279%, 273% ... these percentages make no sense ... screen it
           for problems") — what is wrong, said before the V, each a question
@@ -1009,7 +1144,10 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
       {/* SEVERAL LINES: each its own V and sheet, beside its own bottleneck —
           a V is steep or not along ONE line — then the place they merge, its
           first column what they send it, against the target for all of them. */}
-      {r.lanes && [...r.lanes.sections.filter(x => x.result.ok.length > 0).map(x => ({ key: x.id, title: x.name, sub: `on its own, ${fmtN(x.result.line as number)} ${r.unit}/min`, res: x.result, target: undefined as number | undefined })),
+      {/* LINES ALIKE ARE DRAWN ONCE (Rowland, 15 October: "an absolute mess") —
+          the same V and sheet twice said nothing the first did not */}
+      {r.lanes && [...(alike ? r.lanes.sections.filter(x => x.result.ok.length > 0).slice(0, 1).map(x => ({ key: x.id, title: `Each line — ${r.lanes?.sections.map(y => y.name).join(', ')} are the same`, sub: `each on its own, ${fmtN(x.result.line as number)} ${r.unit}/min`, res: x.result, target: undefined as number | undefined }))
+        : r.lanes.sections.filter(x => x.result.ok.length > 0).map(x => ({ key: x.id, title: x.name, sub: `on its own, ${fmtN(x.result.line as number)} ${r.unit}/min`, res: x.result, target: undefined as number | undefined }))),
         ...(r.lanes.merged ? [{ key: 'merged', title: 'After the lines merge', sub: `what they send, ${fmtN(r.lanes.sends)} ${r.unit}/min, against what the shared stations take`, res: r.lanes.merged, target: current.targetPerMin }] : [])].map(sec => (
         <section key={sec.key} className="cap-sec" aria-label={sec.title}>
           <h3 className="cap-sec-h">{sec.title} <span className="sub">{sec.sub}</span></h3>
@@ -1101,108 +1239,6 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
           </div>
         )
       )}
-
-      <div className="cap-settings">
-        <label className="proj-field">
-          <span className="field-label">What the line should do — {r.unit} a minute</span>
-          {can.edit
-            ? <DraftNumber className="text-input cap-num" value={current.targetPerMin} placeholder="e.g. 66" label="Target, line units a minute"
-                onSave={v => (w ? putWhatIf(w.id, { targetPerMin: v }) : commit({ ...cap, targetPerMin: v }))} />
-            : <b className="cap-ro-v">{current.targetPerMin != null ? fmtN(current.targetPerMin) : 'not set'}</b>}
-        </label>
-        {!w && (
-          <label className="proj-field">
-            <span className="field-label">Planned running hours a week</span>
-            {can.edit ? <>
-              <DraftNumber className="text-input cap-num" value={cap.plannedHoursPerWeek} placeholder="e.g. 80" label="Planned hours a week"
-                onSave={v => commit({ ...cap, plannedHoursPerWeek: v })} />
-              <span className="cap-hint">Only used to suggest a running % from your stops. Nothing is changed for you.</span>
-            </> : <b className="cap-ro-v">{cap.plannedHoursPerWeek != null ? fmtN(cap.plannedHoursPerWeek) : 'not set'}</b>}
-          </label>
-        )}
-      </div>
-
-      <h3 className="cap-h">{w ? `The stations with ${w.name}, in order` : 'The stations, in order'}</h3>
-      {current.stations.length === 0 && (
-        <div className="pace-empty">
-          {!can.edit ? <p className="sub">No stations written down yet — the team keeps the line here.</p> : <p className="sub">
-            Start at the front of the line. A bagger that does 70 a minute, then baskets that hold 12 bags and run 5½ a minute,
-            then someone carrying them, then the palletiser. Each says what it counts in and how many of the one before make one of
-            its own — and the app puts them all in the first one’s unit, and tells each station what arrives from the one before.
-          </p>}
-          {machines.length > 0 && can.edit && (
-            <button className="btn btn-ghost" onClick={() => setStations(machines.map((a, i) => ({ ...blankStation(uid(), 'machine', i === 0), name: a })))}>
-              Start from the line&rsquo;s machines, in flow order ({machines.length})
-            </button>
-          )}
-          {machines.length === 0 && assets.length > 0 && can.edit && (
-            <button className="btn btn-ghost" onClick={() => setStations(assets.map((a, i) => ({ ...blankStation(uid(), 'machine', i === 0), name: a })))}>
-              Start from the machines in your stops log ({assets.length})
-            </button>
-          )}
-        </div>
-      )}
-      {groups.map((g, gi) => {
-        /* the unit before a group's first station: a line's none; after they merge, the lines' last */
-        const prefix = !g.lane && lanes.length ? (groups[0].stations.slice(-1)) : [];
-        const chainOf = [...prefix, ...g.stations];
-        return (
-          <div key={g.key || 'shared'} className={'cap-grp' + (lanes.length ? ' has-lanes' : '')} aria-label={g.name || undefined}>
-            {lanes.length > 0 && (
-              <div className="cap-grp-h">
-                {g.lane && can.edit && !w
-                  ? <DraftText value={g.lane.name} placeholder={g.name} className="text-input cap-lane-name" max={40} ariaLabel={`Name of ${g.name}`} onSave={v => renameLane((g.lane as Lane).id, v)} />
-                  : <h3 className="cap-grp-t">{g.name}</h3>}
-                <span className="sub">{g.lane
-                  ? `its own stations — ${fmtN(r.lanes?.sections.find(x => x.id === g.key)?.result.line ?? 0)} ${r.unit}/min on its own`
-                  : 'where they all come to — one chain for every line'}</span>
-                {g.lane && can.edit && !w && <button type="button" className="btn btn-ghost btn-sm" onClick={() => removeLane((g.lane as Lane).id)}>Remove this line</button>}
-              </div>
-            )}
-            <ol className="cap-sts">
-              {g.stations.map((s, i) => {
-                const gi2 = i + prefix.length;
-                return (
-                  <StationCard key={s.id} s={s} i={gi2} num={i + 1} canUp={i > 0} canDown={i < g.stations.length - 1} last={i === g.stations.length - 1}
-                    {...(!lanes.length && can.edit && !w && i < g.stations.length - 1 ? { onSplit: () => splitAfter(s.id) } : {})}
-                    prevUnit={chainOf[gi2 - 1]?.unit} planned={cap.plannedHoursPerWeek} why={why(s.id)}
-                    wait={stats[s.id]?.waitMins ?? 0} own={stats[s.id]?.ownMins ?? 0}
-                    coLeft={coOff ? stats[s.id]?.changeoverMins ?? 0 : 0}
-                    suggested={suggestRunning((stats[s.id]?.ownMins ?? 0) - (coOff ? stats[s.id]?.changeoverMins ?? 0 : 0), cap.plannedHoursPerWeek, stops.weeks)}
-                    say={paceSays(r, s, chainOf[gi2 - 1]?.unit, chainOf[gi2 - 1])} asTime={rateAsTime(r, s, chainOf[gi2 - 1]?.unit)} factor={result(s.id)?.factor ?? chainFactor(chainOf, gi2)} lineUnit={r.unit}
-                    chain={chainWords(chainOf, gi2)}
-                    patch={p => patchStation(s.id, p)} move={by => moveIn(s.id, by)} remove={() => remove(s)} assets={assets} machines={machines}
-                    open={editing === s.id || !s.name.trim()} onToggle={() => setEditing(editing === s.id ? null : s.id)} ro={!can.edit} />
-                );
-              })}
-            </ol>
-            {lanes.length > 0 && can.edit && (
-              <div className="row-inline">
-                <button className="cw-add" onClick={() => addTo('machine', g.lane?.id)}><span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a machine{g.lane ? ` to ${g.name}` : ''}</button>
-                <button className="cw-add" onClick={() => addTo('people', g.lane?.id)}><span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a person or crew{g.lane ? ` to ${g.name}` : ''}</button>
-              </div>
-            )}
-            {gi === groups.length - 2 && lanes.length > 0 && can.edit && !w && (
-              <div className="row-inline cap-lanes-do">
-                <button className="cw-add" onClick={addLane}><span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add another line, like {lanes[lanes.length - 1].name.trim() || 'the one before'}</button>
-                {lanes.length === 1 && <button className="btn btn-ghost btn-sm" onClick={oneLine}>One line again</button>}
-              </div>
-            )}
-          </div>
-        );
-      })}
-      {can.edit && !w && unlisted.length > 0 && lineRec && (
-        <p className="sub cap-unlisted">
-          {unlisted.join(', ')} {unlisted.length === 1 ? 'is' : 'are'} not on {lineRec.name}&rsquo;s machines yet, which the problem sheet, the stopwatch and every tool offer.{' '}
-          <button type="button" className="cw-link" onClick={() => void (async () => { for (const n of unlisted) await addMachineToLine(lineRec.id, n); })()}>
-            Add {unlisted.length === 1 ? 'it' : unlisted.length === 2 ? 'both' : `all ${unlisted.length}`} to the line ›
-          </button>
-        </p>
-      )}
-      {can.edit && !lanes.length && <div className="row-inline">
-        <button className="cw-add" onClick={() => add('machine')}><span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a machine</button>
-        <button className="cw-add" onClick={() => add('people')}><span className="cw-add-p" aria-hidden><Icon name="plus" size={13} /></span> Add a person or crew</button>
-      </div>}
 
       {r.ok.length > 0 && (
         <Fold id="cap-working" title="The working" says={`${r.ok.length} station${r.ok.length === 1 ? '' : 's'} counted, in ${r.unit} a minute`} start={false}>
