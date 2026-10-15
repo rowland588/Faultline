@@ -53,10 +53,10 @@ export const isOpenOnLine = (s: Snag, wsId: string): boolean =>
  *  line's card on the control room and the line's own page both say. */
 export interface LineProblems { rows: SnagRow[]; open: number; critical: number; late: number }
 
-export function lineProblems(snags: readonly Snag[], line: { id: string; name: string }, o: { ref?: number; jobName?: (id: string) => string | undefined } = {}): LineProblems {
+export function lineProblems(snags: readonly Snag[], line: { id: string; name: string }, o: { ref?: number; jobName?: (id: string) => string | undefined; assetName?: (s: Snag) => string | undefined } = {}): LineProblems {
   const ref = o.ref ?? Date.now();
   const rows = snags.filter(s => isOpenOnLine(s, line.id))
-    .map(s => snagRow(s, line.name, undefined, s.projectId ? o.jobName?.(s.projectId) : undefined, ref))
+    .map(s => snagRow(s, line.name, o.assetName?.(s), s.projectId ? o.jobName?.(s.projectId) : undefined, ref))
     .sort((a, b) => PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] || Number(b.late) - Number(a.late) || b.raisedAt - a.raisedAt);
   return { rows, open: rows.length, critical: rows.filter(r => r.priority === 'critical').length, late: rows.filter(r => r.late).length };
 }

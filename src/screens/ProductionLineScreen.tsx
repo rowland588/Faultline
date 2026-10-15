@@ -15,9 +15,10 @@
  *
  * The page answers, in order: where the line is (its problems, the late in
  * red), and what to do next (take a problem; open a tool on this line). */
+import { LineTour } from '../ui/LineTour';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { nav } from '../state/useRoute';
-import { getWorkspace, listAllSnags, listObservations, listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, projectsOnWorkspace, updateWorkspace } from '../db';
+import { getWorkspace, listAllSnags, listObservations, listSnagAssets, listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, projectsOnWorkspace, updateWorkspace } from '../db';
 import { methodOf } from '../lib/planModel';
 import { useCanStartProjects } from '../cloud/access';
 import { lineFacts, lineTypesOffered, productionLines } from '../lib/lines';
@@ -46,7 +47,7 @@ import { addMachineToLine, archiveWorkspace, renameLineMachine, restoreWorkspace
 import { offerUndo } from '../ui/Undo';
 import type { LineMachine } from '../lib/lineRecords';
 import type { Program } from '../lib/programs';
-import type { Snag } from '../snag/types';
+import type { Snag, SnagAsset } from '../snag/types';
 
 const TONE_CLASS: Record<SnagTone, string> = { g: 'is-g', r: 'is-r', w: 'is-w', a: 'is-a', n: 'is-n' };
 /* PRIORITY, RAG (Rowland, 12 October) — always with its word. */
@@ -72,6 +73,7 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
   const [studies, setStudies] = useState<ToolStudy[]>([]);
   /* the line's stops — a loss count's sentence reads the ones in its window */
   const [obs, setObs] = useState<Observation[]>([]);
+  const [walkAssets, setWalkAssets] = useState<SnagAsset[]>([]);
   const [types, setTypes] = useState<string[]>([]);
   const [jobIds, setJobIds] = useState<string[]>([]);
   const [editing, setEditing] = useState(false);
@@ -81,20 +83,20 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
   const [settingUp, setSettingUp] = useState(false);
 
   const load = useCallback(async () => {
-    const [w, every, std, ss, ws, on, o] = await Promise.all([getWorkspace(wsId), listAllSnags(), listStandardsForLine(wsId), listStudiesForLine(wsId), listWorkspaces(), projectsOnWorkspace(wsId), listObservations(wsId)]);
+    const [w, every, std, ss, ws, on, o, wa] = await Promise.all([getWorkspace(wsId), listAllSnags(), listStandardsForLine(wsId), listStudiesForLine(wsId), listWorkspaces(), projectsOnWorkspace(wsId), listObservations(wsId), listSnagAssets(wsId)]);
     setLine(w ?? null);
     setJobIds(on);
     setTypes(lineTypesOffered(productionLines(ws)));
     const mine = every.filter(s => s.workspaceId === wsId && !s.deletedAt && !s.archivedAt && s.status !== 'closed');
     setMine(mine);
-    setStandards(std); setStudies(ss.filter(s => !s.deletedAt)); setObs(o);
+    setStandards(std); setStudies(ss.filter(s => !s.deletedAt)); setObs(o); setWalkAssets(wa);
   }, [wsId]);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
 
   /* its problems as rows, in priority order — the project each is for
      named; read by the one rule the control room's card and its numbers
      use (lib/lineWork lineProblems), so the three cannot disagree */
-  const probs = useMemo(() => lineProblems(mine, { id: wsId, name: line?.name ?? 'This line' }, { jobName: id => projects.find(p => p.id === id)?.name }), [mine, projects, line, wsId]);
+  const probs = useMemo(() => lineProblems(mine, { id: wsId, name: line?.name ?? 'This line' }, { jobName: id => projects.find(p => p.id === id)?.name, assetName: s => walkAssets.find(a => a.id === s.assetId)?.name }), [mine, projects, line, wsId, walkAssets]);
   const rows: SnagRow[] = probs.rows;
   const jobs = projects.filter(p => jobIds.includes(p.id));
   const facts = line ? lineFacts(line) : {};
@@ -215,6 +217,9 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
         </div>
       )}
 
+
+      {/* THE LINE, MACHINE BY MACHINE — the tour, read in seconds (ui/LineTour) */}
+      {kit && <LineTour line={line} machines={kit.machines.map(m => m.name)} rows={rows} snags={mine} obs={obs} standards={standards} />}
 
       <section className="pl-sec" aria-label="Problems on this line">
         <div className="pl-sec-h">

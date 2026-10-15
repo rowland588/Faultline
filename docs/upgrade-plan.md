@@ -210,6 +210,41 @@ Each slice ships live on its own (gate → main → Vercel READY), then the next
   every report. Decision 4 revised: the demo extends the app's existing demo
   line rather than a separate local database — that mechanism was already
   here and already kept out of real work.
+- **P — built 15 October**: *The line, machine by machine* on each line's
+  page (`ui/LineTour`) — one sentence (machines, problems open, critical,
+  late, where most sit, how many are on no machine, which machine stops the
+  most, where the line is held), then a card a machine in the factory's flow
+  order (then Line capacity's stations, then any machine a stop or a problem
+  names): its newest problem's photo, its problems by priority with whose and
+  when, its stops a week over four weeks in minutes and idle labour £ (and
+  output, at the constraint), the constraint tagged; late or critical edged
+  red; a tap opens its problems on the register. Found building it: a
+  problem pinned on the walk never said its machine on the line's page
+  (`lineProblems` had no asset names) — it does now, on the rows and the tour.
+- **C (the heatmap) — built 15 October**: *Where and when it stops* on
+  each line's capacity panel — a machine × day grid of stop minutes over four
+  weeks (`lib/intelligence heatOf`), the line's machines in flow order, in
+  neutral ink (never a state colour), its sentence naming the worst day and
+  the machine stopped on the most days (chronic when on half or more); every
+  cell opens the stops it is made of.
+- **C (the brief) — built 15 October**: *The week, to send* at the foot of
+  each line's capacity panel — the panel's own sentences as one paragraph
+  (what it can make, where it is held, the biggest loss, what changed, where
+  and when it stops, whether the orders fit) with *Copy the week*
+  (`weeklyBrief`, no AI). Found writing it: the constraint over time called a
+  machine "usual" when it was worst in two weeks of six and then argued with
+  this week's — "usual" now needs half the weeks or more, and the brief no
+  longer says "the losses moved" twice.
+- **O (the control room) — built 15 October**: each line's card in Your
+  factory says what it can plan on — "Plans on 79 a minute · fair", or "2
+  shifts counted — too few to plan on" — from the same `lineRates` as its
+  capacity panel (`rateShort`), so the two cannot disagree; the unit stays
+  on the line's page, where its products say it.
+- **L (capture) — built 15 October**: *Again?* on Capture — the last four
+  distinct reasons (machine · what · which kind) still on the line's lists,
+  one tap sets all three (`recentReasons`). The Pareto already ranked by time
+  and £ and cut by shift; a cut by product needs the product on a stop, which
+  is a new column — left in IDEAS.md.
 - **Found on the demo and fixed**: a stop of the whole line stops the
   constraint (never the mirage); a band made of several machines' stops says
   its own share on the constraint; slow running and short stops are line time

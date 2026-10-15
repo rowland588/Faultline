@@ -17,3 +17,21 @@ export function recurrence(obs: readonly Observation[], now: number, weeks = 6):
   const says = kind === 'one-off' ? (seen ? 'one week only' : 'not in the last weeks') : `${kind} — ${seen} of the last ${weeks} weeks`;
   return { seen, of: weeks, kind, says };
 }
+
+/** THE REASONS LOGGED LATELY — machine, what and which kind — newest first,
+ *  each once: the floor logs the same few stops again and again, so the last
+ *  ones come back as one tap (docs/upgrade-plan.md, L: "recent reasons
+ *  first ... one hand"). Only reasons still on the line's lists. Pure. */
+export interface Reason { asset: string; category: string; subcategory?: string }
+export function recentReasons(obs: readonly Observation[], n: number, on: { assets: readonly string[]; categories: readonly string[] }): Reason[] {
+  const out: Reason[] = [], seen = new Set<string>();
+  for (const o of [...live(obs)].sort((a, b) => b.createdAt - a.createdAt)) {
+    if (!on.assets.includes(o.asset) || !on.categories.includes(o.category)) continue;
+    const k = `${o.asset}\u0000${o.category}\u0000${o.subcategory ?? ''}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push({ asset: o.asset, category: o.category, ...(o.subcategory ? { subcategory: o.subcategory } : {}) });
+    if (out.length >= n) break;
+  }
+  return out;
+}

@@ -23,6 +23,10 @@ export const PAGES = (sd, cap) => [
     { what: 'the jobs on one timeline', sel: '.jb-gantt', desk: true },
   ] },
   { name: 'Your factory', path: '#/factory', must: [{ what: 'the lines in floor order', sel: '.fac-lines' }] },
+  { name: 'A line — its own page', path: `#/lines/${sd.line7WsId}`, must: [
+    { what: 'the line, machine by machine — the tour', sel: '.tour-says' },
+    { what: 'a card a machine', sel: '.tour-card', n: 2 },
+  ] },
   { name: 'Programs', path: '#/programs', must: [{ what: 'machine by machine', sel: '.mt-list' }] },
   { name: 'Problems', path: '#/snags', must: [{ what: 'the register, a line at a time', sel: '.qsl-rows' }] },
   { name: 'A stage-gate job — its front page', path: `#/project/${sd.projectId}`, must: [
@@ -59,6 +63,8 @@ export const PAGES = (sd, cap) => [
   { name: 'Line capacity — what a line can make', path: `#/balances?line=${sd.line7WsId}`, must: [
     { what: 'the answer first', sel: '.lch-hero' },
     { what: 'theoretical · demonstrated · plannable, each opening why', sel: '.lch-mx .mx', n: 3 },
+    { what: 'where and when it stops — a machine × day grid', sel: '.lch-hm-row', n: 2 },
+    { what: 'the week, to send', sel: '.lch-brief' },
     { what: 'ask about the line', sel: '.lch-ask' },
     { what: 'where the time went, band by band', sel: '.lch-bands .lch-band', n: 3 },
     { what: 'will next week’s orders fit', sel: '.lch-dem' },

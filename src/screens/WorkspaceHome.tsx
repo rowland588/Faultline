@@ -28,7 +28,8 @@ import { CloudPanel } from '../cloud/CloudPanel';
 import { useSyncedAt } from '../cloud/session';
 import { InstallPanel } from '../ui/InstallPanel';
 import { useProjects } from '../lib/useProjects';
-import { inArchivedProject, onDataChange, projectsOnWorkspace } from '../db';
+import { inArchivedProject, listAllStudies, onDataChange, projectsOnWorkspace } from '../db';
+import { lineRates, rateShort, WEEK } from '../lib/intelligence';
 import { isDemo } from '../lib/lines';
 import { factorySays, liveProductionLines, productionLines } from '../lib/lines';
 import { JobsBoard } from '../ui/JobsBoard';
@@ -235,6 +236,25 @@ export function WorkspaceHome() {
   const [liveIds, setLiveIds] = useState<Set<string> | null>(null);
   useEffect(() => { let on = true; void liveProductionLines(list ?? []).then(ls => { if (on) setLiveIds(new Set(ls.map(w => w.id))); }); return () => { on = false; }; }, [list]);
   const rec = useLineRecords();
+  /* WHAT EACH LINE CAN PLAN ON — its counted shifts over six weeks, read by
+     the same function as its capacity panel (lib/intelligence lineRates), so
+     the card and the panel cannot disagree (docs/upgrade-plan.md, O) */
+  const [rateOf, setRateOf] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let on = true;
+    const load = async () => {
+      const from = Date.now() - 6 * WEEK;
+      const counts = (await listAllStudies()).filter(x => x.tool === 'losses' && !x.deletedAt && x.facts.losses && (x.facts.losses.from ?? 0) >= from);
+      const by = new Map<string, typeof counts>();
+      for (const c of counts) if (c.workspaceId) (by.get(c.workspaceId) ?? by.set(c.workspaceId, []).get(c.workspaceId))?.push(c);
+      const out: Record<string, string> = {};
+      for (const [id, cs] of by) { const t = rateShort(lineRates(cs.map(c => ({ id: c.id, count: c.facts.losses })))); if (t) out[id] = t; }
+      if (on) setRateOf(out);
+    };
+    void load();
+    const off = onDataChange(() => { void load(); });
+    return () => { on = false; off(); };
+  }, []);
   const prodLines = productionLines((list ?? []).filter(w => w.id !== pendingDel?.id && (liveIds === null || liveIds.has(w.id))));
   /* ON A PHONE THE ANSWER COMES FIRST (FLOW-AUDIT.md, 11): the first screen
      held the title, New project and the factory's cards, and the headline
@@ -272,6 +292,7 @@ export function WorkspaceHome() {
                     <b className="fac-card-name">{w.name}</b>
                     <span className="fac-card-type">{w.lineType || 'No type yet'}</span>
                     <span className="fac-card-meta">{contentsLabel(c)}{on ? ` · on ${on}` : ''}</span>
+                    {rateOf[w.id] && <span className="fac-card-meta">{rateOf[w.id]}</span>}
                     {/* its programs not yet proved, the late in red (Stage 2) */}
                     {(() => { const k = lineKit(w, rec.machines, rec.programs, rec.jobLines); const todo = k.programs.length - k.proved;
                       return todo > 0 ? <span className="fac-card-meta">{todo} program{todo === 1 ? '' : 's'} to prove{k.late ? <> · <b className="is-r">{k.late} late</b></> : null}</span> : null; })()}

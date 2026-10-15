@@ -251,3 +251,103 @@ describe('a loss made of several machines', () => {
     expect(f.bands[0].onConstraint).toBe(true);
   });
 });
+
+import { recentReasons } from '../intelligence';
+
+describe('the reasons logged lately', () => {
+  const on = { assets: ['Bagger', 'Filler'], categories: ['Jam', 'Film'] };
+  it('newest first, each once, kind kept', () => {
+    const r = recentReasons([
+      stop('Bagger', 'Jam', day(1, 1), 5),
+      stop('Filler', 'Film', day(0, 1), 5, { subcategory: 'Splice' }),
+      stop('Bagger', 'Jam', day(0, 2), 5),
+    ], 3, on);
+    expect(r).toEqual([{ asset: 'Bagger', category: 'Jam' }, { asset: 'Filler', category: 'Film', subcategory: 'Splice' }]);
+  });
+  it('leaves out a deleted stop and a reason no longer on the lists, and stops at n', () => {
+    const r = recentReasons([
+      stop('Bagger', 'Jam', day(0, 3), 5, { deletedAt: NOW }),
+      stop('Capper', 'Jam', day(0, 2), 5),
+      stop('Bagger', 'Film', day(0, 1), 5),
+      stop('Filler', 'Jam', day(0, 0), 5),
+    ], 1, on);
+    expect(r).toEqual([{ asset: 'Bagger', category: 'Film' }]);
+  });
+});
+
+import { heatOf } from '../intelligence';
+
+describe('where and when the line stops', () => {
+  it('a row a machine in flow order, the minutes a day, the worst cell and the chronic machine said', () => {
+    const obs = [
+      ...Array.from({ length: 20 }, (_, i) => stop('Bagger', 'Jam', NOW - i * 86_400_000, 5)),
+      stop('Filler', 'Breakdown', NOW - 3 * 86_400_000, 90),
+      stop('Filler', 'Breakdown', NOW - 3 * 86_400_000 + 30 * MIN, 30),  // overlaps: counted once
+    ];
+    const h = heatOf(obs, NOW, ['Filler', 'Bagger']);
+    expect(h.rows.map(r => r.asset)).toEqual(['Filler', 'Bagger']);
+    expect(h.rows[0].total).toBe(90);
+    expect(h.rows[1].days).toBe(20);
+    expect(h.max).toBe(90);
+    expect(h.says).toMatch(/^The worst day: the Filler on .* — 90 min\. The Bagger stopped on 20 of 28 days — a chronic loss, not a bad day\.$/);
+  });
+  it('nothing logged says so', () => {
+    expect(heatOf([], NOW).says).toBe('No stops logged in the last four weeks.');
+  });
+});
+
+describe('the heat said of the whole line', () => {
+  it('says "the whole line", never "the Whole line"', () => {
+    expect(heatOf([stop('Whole line', 'Clean', NOW - 86_400_000, 40)], NOW).says).toMatch(/^The worst day: the whole line on .* — 40 min\. The whole line stopped on the most days — 1 of 28\.$/);
+  });
+});
+
+import { weeklyBrief } from '../intelligence';
+
+describe('the week, to send', () => {
+  const f: LineFacts = {
+    line: 'Line 3', unit: 'bags',
+    rates: { shifts: [], plannable: 50, demonstrated: 55, theoretical: 70, confidence: confidenceOf([NOW], 'shift'), says: 'The line proved 55 bags/min.' },
+    fall: { shifts: 6, plannedMin: 2700, goodMin: 2200, lostMin: 500, labour: 0, contribution: 0, hasMoney: false, says: '6 shifts counted.',
+      bands: [{ key: 'cause:Film', kind: 'cause', label: 'Film splice', min: 220, stops: 30, asset: 'Bagger', countIds: [], onConstraint: false, says: 'Not the constraint.' }] },
+    constraint: { name: 'Basketer', products: ['A'], others: [] }, trend: { weeks: [], moved: false, says: '' }, changes: [],
+    load: { rows: [], neededH: 0, says: 'No orders typed.' }, unitsPer: {},
+  };
+  it('says the panel’s own sentences, in order, and leaves out what is not known', () => {
+    expect(weeklyBrief(f, { asOf: 'Thu 15 Oct', heat: 'The worst day: the Bagger.' })).toEqual([
+      'Line 3 — the week to Thu 15 Oct.',
+      'The line proved 55 bags/min.',
+      'Line 3 is held at the Basketer (A).',
+      'The biggest loss: Film splice on the Bagger: 220 min over 6 counted shifts. But it is not the constraint — fixing it makes no more. The prize is at the Basketer.',
+      'Nothing moved enough this week to call a change.',
+      'The worst day: the Bagger.',
+    ]);
+  });
+});
+
+describe('the constraint over time, honestly', () => {
+  it('two weeks of six is not "usual" — nothing argues with this week', () => {
+    const obs = [
+      stop('Detector', 'Jam', day(5, 1), 50), stop('Detector', 'Jam', day(4, 1), 50),
+      stop('Wrapper', 'Jam', day(3, 1), 50), stop('Weigher', 'Jam', day(2, 1), 50),
+      stop('Capper', 'Jam', day(1, 1), 50), stop('Wrapper', 'Jam', day(0, 1), 60),
+    ];
+    const t = constraintTrend(obs, NOW, 6, 'Wrapper');
+    expect(t.usual).toBeUndefined();
+    expect(t.moved).toBe(false);
+    expect(t.says).toBe('No one machine loses the most week after week: this week the Wrapper (60 min); the Detector in 2 of 6 weeks.');
+  });
+});
+
+import { rateShort } from '../intelligence';
+
+describe('a line’s rate on a card', () => {
+  const base = { confidence: confidenceOf([NOW], 'shift'), says: '' };
+  it('nothing counted: nothing said', () => expect(rateShort({ shifts: [], ...base })).toBeUndefined());
+  it('too few: said so, no number to plan on', () => {
+    expect(rateShort({ shifts: [{ id: 'a', from: NOW, perMin: 50, made: 1, plannedMin: 1 }, { id: 'b', from: NOW, perMin: 52, made: 1, plannedMin: 1 }], demonstrated: 51, ...base })).toBe('2 shifts counted — too few to plan on');
+  });
+  it('enough: the plannable, rounded, with how sure', () => {
+    expect(rateShort({ shifts: Array.from({ length: 6 }, (_, i) => ({ id: `${i}`, from: NOW, perMin: 79, made: 1, plannedMin: 1 })), plannable: 79.4, ...base })).toBe('Plans on 79 a minute · thin');
+  });
+});

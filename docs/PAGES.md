@@ -48,6 +48,7 @@ So:
 |---|---|
 | Control room | its heading · Your factory · this week · the jobs' timeline (desk) |
 | Your factory | the lines in floor order |
+| A line — its own page | the line, machine by machine: the sentence, a card a machine (its problems by priority, whose, its stops a week in minutes and £, the constraint) |
 | Programs | machine by machine |
 | Problems | the register |
 | A stage-gate job | the verdict · Needs you · where each machine is |
@@ -57,7 +58,7 @@ So:
 | The 6M board | the six bones |
 | The Pareto | the ranked losses |
 | The lever tree | the tree drawn |
-| Line capacity — what a line can make | the answer first · theoretical / demonstrated / plannable · ask · where the time went · will next week's orders fit |
+| Line capacity — what a line can make | the answer first · theoretical / demonstrated / plannable · ask · where the time went · where and when it stops (machine × day) · the week, to send · will next week's orders fit |
 | Line capacity — one line | what the sums say · the V (desk) / on its side (phone) · the sheet · labour · the stations |
 | Line capacity — two lines into one | the sums · how many lines feed in · the map of the merge · the way to the target · a V and a sheet a line and where they merge |
 | The work against takt | each person's work stacked against takt |
