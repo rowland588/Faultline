@@ -777,7 +777,9 @@ for (const size of SIZES) {
       from = `${s.product.slice(0, 24)}: its finding`; add(C.shortSays(r), r.sentence);
       from = `${s.product.slice(0, 24)}: a station`; for (const x of r.ok) add(nm(x));
       from = `${s.product.slice(0, 24)}: to check`; for (const k of r.skipped) add(`${k.station.name.trim() || `Station ${k.index + 1}`} is not counted: ${k.why}.`); add(...r.notes);
-      if (r.ok.length >= 2) { from = `${s.product.slice(0, 24)}: the V`; add(C.vCurve(r, cap.vMarginPct).sentence); }
+      /* the V, along each line when several feed one place (each its own V and sentence) */
+      if (r.lanes) { from = `${s.product.slice(0, 24)}: a line's V`; for (const x of [...r.lanes.sections.map(q => q.result), ...(r.lanes.merged ? [r.lanes.merged] : [])]) if (x.ok.length >= 2) add(C.vCurve(x, cap.vMarginPct).sentence); }
+      else if (r.ok.length >= 2) { from = `${s.product.slice(0, 24)}: the V`; add(C.vCurve(r, cap.vMarginPct).sentence); }
       if (w && r.limit) {
         from = `${s.product.slice(0, 24)}: a shift`;
         const sc = C.shiftCapacity(r, C.shiftsIn(w.shifts), changeoverIn(cap.changeovers, studies, s.id));
@@ -835,7 +837,15 @@ for (const size of SIZES) {
         const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), btn.click()]);
         await dl.saveAs(file);
         const pages = Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [file], { encoding: 'utf8' }))?.[1]);
-        rows.push({ size: `cap-${size}`, report: 'standard cards', pages, faults: pages === shown ? [] : [`${pages} cards for ${shown} products shown`], said: shown });
+        /* a card a product — and after a card that had to cut what was written, its notes page(s) (lib/standardCard cardPages) */
+        const want = await page.evaluate(async () => {
+          const db = await import('/src/db.ts'); const C = await import('/src/lib/standardCard.ts'); const S = await import('/src/lib/standard.ts');
+          const list = (await db.listAllStandards()).filter(x => !x.deletedAt && S.inMapTool(x));
+          let n = 0; for (const x of list) n += (await C.cardPages(x, 'x', 'today')).length;
+          return { n, cards: list.length };
+        });
+        const notes = want.n - want.cards;
+        rows.push({ size: `cap-${size}`, report: 'standard cards', pages, faults: pages === shown + notes ? [] : [`${pages} pages for ${shown} products shown and ${notes} notes page${notes === 1 ? '' : 's'}`], said: shown });
       }
     } catch (e) {
       rows.push({ size: `cap-${size}`, report: 'standard cards', pages: 0, faults: [`could not make it: ${e.message.split('\n')[0]}`] });

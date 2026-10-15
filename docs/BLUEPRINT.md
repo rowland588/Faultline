@@ -786,6 +786,28 @@ is still wired.
   station by its line. Left for later: the stops-and-walk readings stay by
   station name (two lines' "bagger" share a log), and accumulation is drawn
   for one chain only. Accepted by `line-capacity.mjs` 15.
+- **Words printed whole, words up a shape, stretched from a side** (Rowland,
+  15 October, on his Line 2a & 2b map: "I've done bottleneck and there's a
+  large amount of context in there, but when I print it, the context is not
+  there ... if we have to put the context onto another page, so it becomes a
+  two-pager, then that should be fine"; "it only goes across, it doesn't let
+  me go upwards, so I have to squeeze things in. I can't stretch anything from
+  a side"). Placed (§8): *On the line*, Line standard; no new record — a mark
+  gains `dir` (across · up; absent: up when the shape is tall and narrow and a
+  word would not fit across, `lib/standard wordsUp`). The card cuts nothing
+  silently: what it cannot hold ends "(notes, 4)" under the map's number or an
+  area's letter, and its **notes page** follows — every cut text whole,
+  paragraphs and bullets as typed, two columns, as many pages as it takes
+  (`lib/standardCard cardPages`); the PDF, the preview ("2 pages — the card,
+  then its notes in full") and the all-products cards carry it. On screen:
+  the bottleneck summed up by its first paragraph, the person's box as tall as
+  their words, the words up a tall shape as on paper, and a handle on every
+  side and corner (the opposite side stays). Each line's V on the capacity
+  paper now says its sentence too. Accepted by `line-standard.mjs` 14.
+- **The memory written in** (Rowland, 15 October: "of course, I want the
+  memory written in") — `docs/PAGES.md`, `scripts/inventory.mjs` in the gate,
+  pictures compared before shipping; the huge capacity seed carries two lines
+  into one wrapper and a map with long notes.
 - **The shape asked, the V drawn, the way to the target** (Rowland, 15
   October, on seeing his converted line: "it should almost be asking how many
   lines you want to do, and do they merge at the end ... signal that this is

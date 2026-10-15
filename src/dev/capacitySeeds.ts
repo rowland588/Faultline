@@ -144,6 +144,32 @@ export async function seedCapacityFor(size: string): Promise<CapacitySeed> {
     m('Bagger', 'bags', 1, { rate: 70, ratePer: 'min', source: 'plate' }), m('Checkweigher', 'bags', 1, { rate: 90, ratePer: 'min', source: 'plate' }),
   ] });
   const a4 = await product(A.id, '€12,400 of spares — not yet a product', { stations: [] });
+  /* TWO LINES INTO ONE WRAPPER (Rowland's Line 2a & 2b, 15 October): the lanes
+     on the page and the paper, the way to the target worked out — and its map
+     with the wrapper's analysis typed as what they do, paragraphs and bullets
+     longer than any card, and tall narrow shapes whose words run up them, so
+     every gate prints the notes page and draws them. */
+  const LA = uid(), LB = uid();
+  const lane = (id: string): Station[] => [
+    { ...m('bagger', 'units', 1, { rate: 160, ratePer: 'min', source: 'plate' }), lane: id },
+    { ...m('P160 Pick & Place', 'units', 1, { rate: 140, ratePer: 'min', source: 'plate' }), lane: id },
+    { ...p('palletiser', 'baskets', 10, { cycleSec: 16, perCycle: 2, source: 'standard' }, { runningPct: 91, allowancePct: 10 }), lane: id },
+  ];
+  const ANALYSIS = 'BOTTLENECK – PALLET WRAPPER (ONE OPERATOR SERVING BOTH LINES)\n\nWrapper cycle: 10 min to wrap a pair of pallets (one from each line) + 2 min transfer = 12 min per pair → maximum 10 pallets/hr.\n\n'
+    + '• Tesco Express – 1200 units/pallet, 2 pallets = 2400 units ÷ 70 = 34 min to fill a pair. Not a bottleneck.\n\n• Large crate – 360/pallet, 720 units ÷ 70 = 10.3 min to fill a pair; the wrapper needs 12. Loss 10 ppm (14%).\n\n'
+    + '• Crate – 240/pallet, 480 units ÷ 70 = 6.9 min to fill a pair. Loss 30 ppm (43%).\n\nConclusion: on crate formats the wrapper operator’s 12-minute cycle sets the output, not line speed — Łukasz Wójcik’s crew agreed it 14 Oct.';
+  const lanes2 = await product(A.id, 'Line 2a & 2b — two lines into one pallet wrapper', {
+    targetPerMin: 150, lanes: [{ id: LA, name: 'Line A' }, { id: LB, name: 'Line B — Zoë Brontë’s side' }],
+    stations: [...lane(LA), ...lane(LB), p('Pallet wrapper', 'pallets', 36, { cycleSec: 720, perCycle: 2, source: 'estimate' }, { cycleIn: 'min', runningPct: 91 })],
+    labour: { people: 8, ratePerHour: 21.8 },
+  }, { board: 'square', marks: [
+    { id: uid(), kind: 'shape', shape: 'rect', tone: 'blue', label: 'Destaker', x: 8, y: 45, w: 5.7, h: 26 },
+    { id: uid(), kind: 'shape', shape: 'rect', tone: 'blue', label: 'Bagger B', x: 20, y: 64, w: 5.3, h: 18 },
+    { id: uid(), kind: 'shape', shape: 'text', tone: 'green', label: 'Q4 budget labour is 8 people. This labour model is to be used in Q1, Q2, Q3 and Q4 — and again when the second wrapper is costed, with the overtime on Saturdays.', x: 62, y: 64, w: 22, h: 8 },
+    { ...person('Robot op', 'Pick & place + destaker + palletising', 14, 44) },
+    { ...person('Pallet wrapper', ANALYSIS, 26, 8), bottleneck: true, colour: 'teal' },
+    { ...person('Grader', 'Grade', 48, 84) },
+  ] });
   /* a second line and a third, with their own */
   const B = await addLineToFactory('Line 9 — packing hall', 'Packing');
   await updateWorkspace({ ...B, shifts: [{ name: 'Shift 1', start: '06:00', end: '14:00', breakMin: 30 }, { name: 'Shift 2', start: '14:00', end: '22:00', breakMin: 30 }] });
@@ -159,7 +185,7 @@ export async function seedCapacityFor(size: string): Promise<CapacitySeed> {
     m('Infeed', 'packs', 1, { rate: 130, ratePer: 'min', source: 'plate' }), m('Wrapper', 'packs', 1, { rate: 118, ratePer: 'min', source: 'plate' }, { runningPct: 93 }),
   ] });
   return {
-    lines: [{ wsId: A.id, name: A.name, standardIds: [big, a2, a3, a4] }, { wsId: B.id, name: B.name, standardIds: [b1, b2] }, { wsId: C.id, name: C.name, standardIds: [c1] }],
+    lines: [{ wsId: A.id, name: A.name, standardIds: [big, a2, a3, a4, lanes2] }, { wsId: B.id, name: B.name, standardIds: [b1, b2] }, { wsId: C.id, name: C.name, standardIds: [c1] }],
     one: { wsId: A.id, id: big },
   };
 }

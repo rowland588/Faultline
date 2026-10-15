@@ -283,6 +283,92 @@ const crowd = await page.evaluate(async ([ws, shape]) => {
 }
 }
 
+/* 14 — WORDS PRINTED WHOLE, WORDS UP A TALL SHAPE, STRETCHED FROM A SIDE
+   (Rowland, 15 October, on his Line 2a & 2b: "I've done bottleneck and there's
+   a large amount of context in there, but when I print it, the context is not
+   there ... if we have to put the context onto another page, so it becomes a
+   two-pager, then that should be fine"; "it only goes across, it doesn't let
+   me go upwards"; "I can't stretch anything from a side"). His wrapper's
+   analysis as typed — a head, paragraphs, bullets, a conclusion. */
+{
+  const { execFileSync } = await import('node:child_process');
+  const { mkdtempSync } = await import('node:fs'); const { tmpdir } = await import('node:os'); const { join } = await import('node:path');
+  const LONG = 'BOTTLENECK – PALLET WRAPPER (ONE OPERATOR SERVING BOTH LINES)\n\nWrapper cycle: 10 min to wrap a pair of pallets (one from each line) + 2 min transfer = 12 min per pair → maximum 10 pallets/hr.\n\nLine output: both lines together run at 70 ppm.\n\n• Tesco Express – 1200 units/pallet, 2 pallets = 2400 units ÷ 70 = 34 min to fill a pair. Wrapper needs 12 min → 22 min spare. Not a bottleneck.\n\n• Crate – 8 per crate × 30 crates = 240/pallet, 2 pallets = 480 units ÷ 70 = 6.9 min to fill a pair. Wrapper needs 12 min → 5.1 min lost every pair. Lines capped at 10 pallets/hr = 2,400 units/hr = 40 ppm. Loss 30 ppm (43%).\n\nConclusion: on crate formats the wrapper operator’s 12-minute cycle sets the output, not line speed. Only Tesco Express gives the operator enough time to keep up.';
+  const longId = await page.evaluate(async ([ws, task]) => {
+    const db = await import('/src/db.ts');
+    const id = `std-long-${Date.now()}`, t = Date.now();
+    await db.putStandard({ id, projectId: '', workspaceId: ws, product: 'Line 2a & 2b — words test', board: 'square', sort: t, createdAt: t, updatedAt: t, marks: [
+      { id: 's-dest', kind: 'shape', shape: 'rect', tone: 'blue', label: 'Destaker', x: 10, y: 45, w: 5.7, h: 26 },
+      { id: 's-grade', kind: 'shape', shape: 'rect', tone: 'grey', label: 'Grading', x: 50, y: 80, w: 14, h: 10 },
+      { id: 'p-op', kind: 'person', label: 'Robot op', task: 'Pick & place + destaker', x: 20, y: 45 },
+      { id: 'p-wrap', kind: 'person', label: 'Pallet wrapper', task, x: 30, y: 10, bottleneck: true, colour: 'teal' },
+    ] });
+    return id;
+  }, [sd.wsId, LONG]);
+  const recL = async () => page.evaluate(async id => (await (await import('/src/db.ts')).listAllStandards()).find(s => s.id === id), longId);
+  await page.goto(`${BASE}/#/w/${sd.wsId}/standards/${longId}`); await page.waitForTimeout(2500);
+  ok(await page.locator('.ls-shape-t.is-up', { hasText: 'Destaker' }).count() === 1 && await page.locator('.ls-shape-t.is-up', { hasText: 'Grading' }).count() === 0,
+    '14 a tall, narrow shape writes its words upwards — "Destaker" whole, not "Dest aker"; a wide one across');
+  const sum = await page.locator('.ls-bn-sum').innerText();
+  ok(/Pallet wrapper — BOTTLENECK – PALLET WRAPPER \(ONE OPERATOR SERVING BOTH LINES\)/.test(sum) && !/Wrapper cycle/.test(sum), '14b the bottleneck summed up by its head; the analysis stays with the person');
+  const rows = Number(await page.getByLabel('What they do').nth(1).getAttribute('rows'));
+  ok(rows >= 10, `14c the wrapper's box as tall as what is written (${rows} lines), not two`);
+
+  /* the card cuts and says where; the notes page prints it whole */
+  const pages = await page.evaluate(async id => { const db = await import('/src/db.ts'); const C = await import('/src/lib/standardCard.ts'); const st = (await db.listAllStandards()).find(s => s.id === id); return (await C.cardPages(st, 'Line 2', '15 Oct 2026')).length; }, longId);
+  ok(pages === 2, `14d the card and one notes page (${pages} pages)`);
+  await page.getByRole('button', { name: 'PDF', exact: true }).first().click(); await page.waitForTimeout(2500);
+  ok(/2 pages — the card, then its notes in full/.test(await page.locator('.ls-print-acts').innerText()), '14e the preview says it: the card, then its notes');
+  const dir = mkdtempSync(join(tmpdir(), 'ls-notes-'));
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.locator('.ls-print-acts').getByRole('button', { name: 'PDF', exact: true }).click()]);
+  const file = join(dir, 'ls.pdf'); await dl.saveAs(file);
+  const pdfPages = Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [file], { encoding: 'utf8' }))?.[1]);
+  ok(pdfPages === 2, `14f the PDF is two pages (${pdfPages})`);
+  await page.keyboard.press('Escape'); await page.waitForFunction(() => !history.state?.flPanel, null, { timeout: 5000 }).catch(() => {});
+  /* the notes page's words, read off the picture the page is: drawn by the
+     same function, its text captured as it is written */
+  const said = await page.evaluate(async id => {
+    const written = [];
+    const orig = CanvasRenderingContext2D.prototype.fillText;
+    CanvasRenderingContext2D.prototype.fillText = function (t, ...a) { written.push(String(t)); return orig.call(this, t, ...a); };
+    try { const db = await import('/src/db.ts'); const C = await import('/src/lib/standardCard.ts'); const st = (await db.listAllStandards()).find(s => s.id === id); await C.cardPages(st, 'Line 2', '15 Oct 2026'); }
+    finally { CanvasRenderingContext2D.prototype.fillText = orig; }
+    return written.join(' ').replace(/\s+/g, ' ');
+  }, longId);
+  const words = LONG.replace(/•/g, ' ').split(/\s+/).filter(w => w.length > 3);
+  const lost = words.filter(w => !said.includes(w));
+  ok(lost.length === 0 && /\(notes, 2\)/.test(said) && /Notes in full on the next page/.test(said), `14g every word written is on paper — the card says "(notes, 2)" where it cuts, the notes page holds it whole${lost.length ? ` — lost: ${lost.slice(0, 5).join(' ')}` : ''}`);
+
+  /* stretched from a side: the opposite side stays */
+  /* the board afresh — the print sheet's late back() lands on the page (CLAUDE.md, Things that will bite) —
+     and the "saved" note closed, as a person would: it sits over the foot of the board */
+  await page.goto(`${BASE}/#/w/${sd.wsId}/standards/${longId}`); await page.waitForTimeout(2000);
+  if (await page.locator('.pdfr-x').count()) await page.locator('.pdfr-x').click();
+  const g0 = (await recL()).marks.find(m => m.id === 's-grade');
+  const gt = await page.locator('.ls-shape-t', { hasText: 'Grading' }).boundingBox();
+  await page.mouse.click(gt.x + 4, gt.y + 4); await page.waitForTimeout(300);
+  ok(await page.locator('.ls-handle').count() === 8, '14h a selected shape has a handle on every side and corner (8)');
+  const he = await page.locator('.ls-handle.is-e').boundingBox();
+  await page.mouse.move(he.x + 8, he.y + 8); await page.mouse.down(); await page.mouse.move(he.x + 88, he.y + 8, { steps: 6 }); await page.mouse.up(); await page.waitForTimeout(800);
+  const g1 = (await recL()).marks.find(m => m.id === 's-grade');
+  const hn = await page.locator('.ls-handle.is-n').boundingBox();
+  await page.mouse.move(hn.x + 8, hn.y + 8); await page.mouse.down(); await page.mouse.move(hn.x + 8, hn.y - 50, { steps: 6 }); await page.mouse.up(); await page.waitForTimeout(800);
+  const g2 = (await recL()).marks.find(m => m.id === 's-grade');
+  const L = m => m.x - m.w / 2, B = m => m.y + m.h / 2;
+  ok(g1.w > g0.w + 3 && Math.abs(L(g1) - L(g0)) < 0.2 && g1.h === g0.h, `14i its right side pulled: wider (${g0.w} → ${g1.w}), its left edge where it was`);
+  ok(g2.h > g1.h + 3 && Math.abs(B(g2) - B(g1)) < 0.2 && g2.w === g1.w, `14j its top pulled up: taller (${g1.h} → ${g2.h}), its bottom where it was`);
+
+  /* which way the words run, chosen */
+  await page.mouse.click(gt.x + 4, gt.y + 4); await page.waitForTimeout(400);
+  await page.getByRole('group', { name: 'Which way the words run' }).getByRole('button', { name: 'Upwards' }).click();
+  await page.getByRole('button', { name: 'Done' }).click(); await page.waitForTimeout(800);
+  ok((await recL()).marks.find(m => m.id === 's-grade').dir === 'up' && await page.locator('.ls-shape-t.is-up', { hasText: 'Grading' }).count() === 1, '14k Upwards chosen on a wide shape: kept, and written up it');
+
+  /* a map with nothing long prints one page, as before */
+  const short = await page.evaluate(async id => { const db = await import('/src/db.ts'); const C = await import('/src/lib/standardCard.ts'); const st = (await db.listAllStandards()).find(s => s.id === id); return (await C.cardPages(st, 'Line 2', '15 Oct 2026')).length; }, blankId);
+  ok(short === 1, `14l a map with nothing long is one page (${short})`);
+}
+
 ok(errs.length === 0, `no console errors ${errs.slice(0, 3).join(' | ')}`);
 await b.close();
 console.log(fail ? `\nLine standard board NOT accepted: ${fail} failed` : '\nLine standard board accepted: the page scrolls off the board, a tap places, a drag moves, people in their colours, a tall board and full screen, the bottleneck said, names short — on the screen and the card');

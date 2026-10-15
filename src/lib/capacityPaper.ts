@@ -79,6 +79,8 @@ export interface CapacityPaperGroup {
   says: string;
   /** The target as a share of this group's bottleneck, where the target is for it. */
   targetPct?: number;
+  /** Its V in words — the sentence the page says under each line's V. */
+  v?: { text: string; tone: Tone };
 }
 
 export interface CapacityPaperShift {
@@ -229,7 +231,7 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
     });
   });
   const groups: CapacityPaperGroup[] | undefined = r.lanes
-    ? vs.map(({ sec }) => ({ name: sec.name, says: sec.says,
+    ? vs.map(({ sec, v: sv }) => ({ name: sec.name, says: sec.says, ...(sv && sec.res.ok.length >= 2 ? { v: { text: sv.sentence, tone: (sv.under.length ? 'a' : 'n') as Tone } } : {}),
         ...(sec.target != null && sec.res.limit && sec.res.limit.effective > 0 ? { targetPct: (sec.target / sec.res.limit.effective) * 100 } : {}) }))
     : undefined;
 
