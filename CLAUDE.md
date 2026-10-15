@@ -695,7 +695,15 @@ states, and most "we need to store X" turns out to be "we have never drawn X".
 **The name and the look are settled.** Reviewed against alternatives on 11
 October (five names; four looks on the same mock screens; a dark theme) and
 kept by Rowland: *Faultline*, the landing blue, the five state colours, the
-type. Do not reopen either without him asking.
+type. Do not reopen either without him asking. **The five state colours
+were refreshed on 15 October** at his word ("just go for it", after a
+colour review asked for): the same five meanings, made clean signals — red
+`#c4281c`, amber `#b45309`, green `#15803d`, violet `#6d28d9` for under way
+(clear of the blue you press), grey `#a7afbd` as a fill with `--st-n-ink`
+`#6b7588` wherever grey is words. The oxblood and ochre read as two browns
+across a room; the indigo sat too near the brand's blue; the grey under
+white words was 2.2:1. Every one is 4.5:1 or better now, on screen and in
+every PDF (`src/styles.css` tokens, `lib/reportKit` and each PDF's own).
 
 Rowland, 2 October: "follow the lean visual management principles throughout
 the app." The test is the one a board on the floor passes: from across the

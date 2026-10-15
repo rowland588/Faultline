@@ -19,7 +19,7 @@ import { niceDay } from './weeks';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef';
-const BRAND = '#1f63e0', OK = '#1e6b4b', DANGER = '#9b3227', AMBER = '#8a5f14', BOOKED = '#4f46b8';
+const BRAND = '#1f63e0', OK = '#15803d', DANGER = '#c4281c', AMBER = '#b45309', BOOKED = '#6d28d9';
 
 /* One colour, one meaning — the app's, on paper. */
 const TONE: Record<HoTone, string> = { done: OK, failed: DANGER, late: DANGER, ahead: BOOKED, none: MUTED };

@@ -14,7 +14,7 @@ import { san } from './reportKit';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK = '#0f1a2e', INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', BRAND = '#1f63e0';
-const RED = '#9b3227';
+const RED = '#c4281c';
 const T = 8.5, S = 7.5, LH = 10.6, LS = 9.4;
 
 function band(headline: string, says: string, late: boolean): Block {

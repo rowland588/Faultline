@@ -51,11 +51,16 @@
 
   /* WHERE A BOX HAS GOT TO — five states, told apart at a glance and at 34%
      zoom, and each one carries its name so none of them relies on colour. */
-  --st-n: #a7afbd;   /* not started — deliberately quiet */
-  --st-w: #4f46b8;   /* in progress — indigo: booked, still ahead of us (blue is the brand now) */
-  --st-a: #8a5f14;   /* at risk — ochre: waiting on somebody, not yet wrong */
-  --st-r: #9b3227;   /* blocked — oxblood: the day has gone */
-  --st-g: #1e6b4b;   /* done — the one green */
+  /* Refreshed 15 October (Rowland, on the colour review: "just go for it"):
+     the meanings unchanged, the hues made clean signals — the oxblood and
+     ochre read as two browns across a room, and the indigo sat too near the
+     blue you press. Each 5:1 or better on white, and under white words. */
+  --st-n: #a7afbd;   /* not started — deliberately quiet: a fill and a rule, never words */
+  --st-n-ink: #6b7588; /* not started, as words — 4.6:1 on white (the fill is 2.2:1) */
+  --st-w: #6d28d9;   /* in progress — violet: booked, still ahead of us, clear of the brand's blue */
+  --st-a: #b45309;   /* at risk — amber: waiting on somebody, not yet wrong */
+  --st-r: #c4281c;   /* blocked — signal red: the day has gone */
+  --st-g: #15803d;   /* done — the one green */
 
   /* THE IDENTITY. The landing's blue, one job each for the rest. --brand
      fills the primary action; --accent is the same blue where text must
@@ -69,10 +74,10 @@
   --on-brand: #ffffff;
   /* THE BRIGHT BLUE IS THE MARK ON NAVY AND NOTHING ELSE. */
   --brand-mark: #3d8bff;
-  --blue: #4f46b8;        /* booked, planned — indigo, never a second identity */
-  --blue-soft: #eeedfa;
-  --gold: #8a5f14;        /* outstanding */
-  --gold-soft: #f7efdf;
+  --blue: #6d28d9;        /* booked, planned — violet, never a second identity */
+  --blue-soft: #f3eefd;
+  --gold: #b45309;        /* outstanding */
+  --gold-soft: #fdf1e4;
 
   /* THE SHELL — the dark frame: the spine, a project's top bar, the verdict
      card. Its own tokens rather than --chrome, which is the LIGHT cockpit the
@@ -99,9 +104,9 @@
   --chrome-muted: #56647c;
   --chrome-line: #d5dfec;
 
-  --ok: #1e6b4b;          /* good news — the done green, never a second one */
-  --warn: #8a5f14;        /* 5.0:1 on white — #a97822 was 3.4:1 on every 'to decide' tag */
-  --danger: #9b3227;
+  --ok: #15803d;          /* good news — the done green, never a second one */
+  --warn: #b45309;        /* 5.0:1 on white — #a97822 was 3.4:1 on every 'to decide' tag */
+  --danger: #c4281c;
   --freq: #84878c;        /* frequency series — neutral, pairs with any hue */
   /* ONE SKIN (5 October). Rowland: "aesthetically it needs to be more
      advanced, it still looks very basic as an app, there's no wow factor."
@@ -3598,7 +3603,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   position: absolute; inset: -1px; opacity: 0; cursor: pointer;
   appearance: none; border: 0; font-size: var(--t-body);   /* 16px stops iOS zooming in */
 }
-.lt-status.is-n { color: var(--st-n); background: color-mix(in srgb, var(--st-n) 10%, var(--surface)); }
+.lt-status.is-n { color: var(--st-n-ink); background: color-mix(in srgb, var(--st-n) 10%, var(--surface)); }
 .lt-status.is-w { color: var(--st-w); background: color-mix(in srgb, var(--st-w) 11%, var(--surface)); }
 .lt-status.is-a { color: var(--st-a); background: color-mix(in srgb, var(--st-a) 14%, var(--surface)); }
 .lt-status.is-r { color: var(--st-r); background: color-mix(in srgb, var(--st-r) 12%, var(--surface)); }
@@ -4448,7 +4453,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .bd-act-f { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 8px; }
 .bd-chip {
   padding: 2px 8px; border-radius: 999px; font-size: var(--t-label); font-weight: 700;
-  letter-spacing: 0.03em; text-transform: uppercase; color: #fff; background: var(--st-n);
+  letter-spacing: 0.03em; text-transform: uppercase; color: #fff; background: var(--st-n-ink);
 }
 .bd-chip.is-w { background: var(--st-w); }
 .bd-chip.is-a { background: var(--st-a); }
@@ -4536,7 +4541,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
   font-size: var(--ba-f-meta); line-height: 1.2; color: var(--ink-2);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.exec-bst { font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; margin-right: 6px; color: var(--st-n); }
+.exec-bst { font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; margin-right: 6px; color: var(--st-n-ink); }
 .exec-bst.is-w { color: var(--st-w); }
 .exec-bst.is-a { color: var(--st-a); }
 .exec-bst.is-r { color: var(--st-r); }
@@ -6581,7 +6586,7 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
   position: absolute; inset: -40%; z-index: -1; pointer-events: none;
   background:
     radial-gradient(40% 50% at 18% 30%, color-mix(in srgb, var(--g1, #1f63e0) 55%, transparent), transparent 70%),
-    radial-gradient(35% 45% at 82% 70%, color-mix(in srgb, var(--g2, #4f46b8) 45%, transparent), transparent 70%);
+    radial-gradient(35% 45% at 82% 70%, color-mix(in srgb, var(--g2, #6d28d9) 45%, transparent), transparent 70%);
   opacity: 0.55; filter: blur(10px);
   animation: jb-drift 18s ease-in-out infinite alternate;
 }
@@ -11474,7 +11479,7 @@ button.gt-fixlab small { font-size: 11.5px; }
 .pr-word.is-met { color: var(--st-g); }
 .pr-word.is-short { color: var(--st-r); }
 .pr-word.is-unjudged { color: var(--st-a); }
-.pr-word.is-rerun { color: var(--st-n); }
+.pr-word.is-rerun { color: var(--st-n-ink); }
 .pr-agreed { margin: 0; font-size: var(--t-label); color: var(--ink-2); overflow-wrap: anywhere; }
 .pr-figs { display: grid; grid-template-columns: 1.3fr repeat(5, minmax(0, 1fr)); gap: 6px; min-width: 0; }
 .pr-figs.is-compact { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -11517,7 +11522,7 @@ button.gt-fixlab small { font-size: 11.5px; }
 .nd-row.is-verdict { border-color: color-mix(in srgb, var(--st-a) 45%, var(--line)); }
 .nd-main { all: unset; cursor: pointer; flex: 1 1 260px; display: grid; gap: 2px; min-width: 0; }
 .nd-main b { font-size: var(--t-body); overflow-wrap: anywhere; }
-.nd-tag { justify-self: start; font-size: var(--t-label); font-weight: 800; letter-spacing: .02em; padding: 1px 7px; border-radius: 999px; color: #fff; background: var(--st-n); }
+.nd-tag { justify-self: start; font-size: var(--t-label); font-weight: 800; letter-spacing: .02em; padding: 1px 7px; border-radius: 999px; color: #fff; background: var(--st-n-ink); }
 .nd-tag.is-failed, .nd-tag.is-late { background: var(--st-r); }
 .nd-tag.is-verdict { background: var(--st-a); }
 .nd-acts { display: flex; gap: 6px; flex-wrap: wrap; }

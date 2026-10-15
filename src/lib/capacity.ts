@@ -1596,7 +1596,7 @@ export interface VCurve { points: VPoint[]; under: VPoint[]; limit?: VPoint; sen
  *  `[deep, light]` for a column's gradient. */
 export function shareColours(pct: number, isLimit: boolean, under: boolean): [string, string] {
   if (isLimit) return ['#0d1f3c', '#23447f'];
-  if (under) return ['#8a5f14', '#c4923c'];
+  if (under) return ['#b45309', '#e09a52'];
   const t = Math.max(0, Math.min(1, (pct - 100) / 150));
   const mix = (a: number[], b: number[], k: number) => `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * k)).join(',')})`;
   /* --brand → a sky the landing's gradient ends in */

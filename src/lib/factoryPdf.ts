@@ -10,7 +10,7 @@ import { chooseDensity, pour, type Block, type Density, type Frame } from './rep
 import { SIZE, box, font, gap, label, rows, text, wrap } from './report/blocks';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', BRAND = '#1f63e0', DANGER = '#9b3227';
+const INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', BRAND = '#1f63e0', DANGER = '#c4281c';
 
 const pad = (f: Frame) => (f.density === 'compact' ? 4 : 7);
 

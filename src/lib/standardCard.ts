@@ -510,7 +510,7 @@ async function renderCardWithNotes(s: Standard, projectName: string, printed: st
     const wk = workOf(p);
     ctx.font = `800 ${Math.round(st.task)}px ${FONT}`;
     const wkW = wk ? ctx.measureText(wk.text).width + 14 : 0;
-    if (wk) { ctx.textAlign = 'right'; ctx.fillStyle = wk.over ? '#9b3227' : INK2; ctx.fillText(wk.text, px + colW, mid + st.name * 0.36); ctx.textAlign = 'left'; }
+    if (wk) { ctx.textAlign = 'right'; ctx.fillStyle = wk.over ? '#c4281c' : INK2; ctx.fillText(wk.text, px + colW, mid + st.name * 0.36); ctx.textAlign = 'left'; }
     ctx.fillStyle = INK; ctx.font = `800 ${st.name}px ${FONT}`;
     const name = p.label?.trim() || `Person ${i + 1}`;
     if (plan.st === 'line') {
