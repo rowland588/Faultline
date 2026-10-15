@@ -57,6 +57,7 @@ So:
 | The 6M board | the six bones |
 | The Pareto | the ranked losses |
 | The lever tree | the tree drawn |
+| Line capacity — what a line can make | the answer first · theoretical / demonstrated / plannable · ask · where the time went · will next week's orders fit |
 | Line capacity — one line | what the sums say · the V (desk) / on its side (phone) · the sheet · labour · the stations |
 | Line capacity — two lines into one | the sums · how many lines feed in · the map of the merge · the way to the target · a V and a sheet a line and where they merge |
 | The work against takt | each person's work stacked against takt |
