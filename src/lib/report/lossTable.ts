@@ -19,7 +19,7 @@ import { font, rows, text, wrap, SIZE, type Row } from './blocks';
 import type { Block, Frame } from './flow';
 
 /** The house's amber — waiting on somebody, or not known yet. */
-const AMBER = '#8a5f14';
+const AMBER = '#b45309';
 const T = 8.5;
 const LH = 11;
 

@@ -267,7 +267,7 @@ export function SyncDetail({ onDone }: { onDone?: () => void }) {
           </div>
         ) : null}
         {repair !== 'idle' && (
-          <p className="sub" role="status" style={{ marginBottom: 10, color: repair === 'running' ? 'var(--ink-2)' : repair === 'failed' ? 'var(--st-r)' : 'var(--ok, #1e6b4b)' }}>
+          <p className="sub" role="status" style={{ marginBottom: 10, color: repair === 'running' ? 'var(--ink-2)' : repair === 'failed' ? 'var(--st-r)' : 'var(--ok, #15803d)' }}>
             {repair === 'running'
               ? 'Repairing — re-sending everything from this device and fetching everything back…'
               : repair === 'failed'

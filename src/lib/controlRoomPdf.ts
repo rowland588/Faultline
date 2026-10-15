@@ -18,7 +18,7 @@ import { SIZE, box, font, gap, label, rows, text, wrap } from './report/blocks';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef';
-const BRAND = '#1f63e0', OK = '#1e6b4b', DANGER = '#9b3227', AMBER = '#8a5f14', BOOKED = '#4f46b8';
+const BRAND = '#1f63e0', OK = '#15803d', DANGER = '#c4281c', AMBER = '#b45309', BOOKED = '#6d28d9';
 
 /* The verdict's colours — the status report's, so the two pages read alike. */
 const TONE: Record<OnTargetTone, { fill: string; stroke: string; text: string }> = {

@@ -23,7 +23,7 @@ import { fmtN, oneOf, shareColours } from './capacity';
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK = '#0f1a2e', INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', BRAND = '#1f63e0', SURF = '#eef2f8';
 /** The house's red and amber on paper (lib/report/lossTable, lib/factoryPdf). */
-const RED = '#9b3227', AMBER = '#8a5f14';
+const RED = '#c4281c', AMBER = '#b45309';
 const toneInk = (t?: Tone) => (t === 'r' ? RED : t === 'a' ? AMBER : INK2);
 
 const T = 8.5, S = 7.5, LH = 10.6, LS = 9.4;
