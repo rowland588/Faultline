@@ -21,7 +21,7 @@ import { lossFiguresOf } from '../lib/studyLinks';
 import { stopsOfBar } from '../lib/ie/losses';
 import { runningOf } from '../lib/ie/changeover';
 import {
-  ASK_EXAMPLES, askLine, changesThisWeek, constraintShare, confidenceOf, constraintTrend, figure, leversOf, lineConstraint, lineRates, loadVsDemand, parseDemand, periodWaterfall, reasonOf, WEEK,
+  ASK_EXAMPLES, askLine, changesThisWeek, constraintShare, confidenceOf, constraintTrend, figure, heatOf, leversOf, onConstraint, lineConstraint, lineRates, loadVsDemand, parseDemand, periodWaterfall, reasonOf, WEEK,
   type Answer, type LineFacts,
   type Figure, type Source,
 } from '../lib/intelligence';
@@ -83,6 +83,9 @@ export function LineCapacityHero({ wsId, products, lineName }: { wsId: string; p
     return { recent, rates, constraint, trend, changes, fall, figs, shiftsPerWeek, load, weekFrom, facts };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `now` moves each render; the period is by the day
   }, [obs, counts, smeds, ws, products, unit, from - (from % 86_400_000)]);
+  const heat = useMemo(() => heatOf(obs ?? [], now, ws?.assets ?? []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `now` by the day
+    [obs, ws, Math.floor(now / 86_400_000)]);
   const levers = useMemo(() => (a ? leversOf(a.fall, a.rates.theoretical, pct, a.shiftsPerWeek, unit) : undefined), [a, pct, unit]);
 
   if (!obs || !a) return <div className="lch is-loading" aria-busy="true"><div className="sk sk-line" /><div className="sk sk-row" /></div>;
@@ -180,6 +183,37 @@ export function LineCapacityHero({ wsId, products, lineName }: { wsId: string; p
           </ol>
         )}
       </div>
+      {/* WHERE AND WHEN IT STOPS — a machine × day grid, darker the more
+          minutes; a band across is chronic, a dark cell one bad day
+          (lib/intelligence heatOf). Neutral ink, never a state colour; the
+          sentence says what the eye should find. */}
+      {heat.rows.length > 0 && (
+        <div className="lch-heat">
+          <h3 className="lch-h">Where and when it stops <span className="sub">stop minutes a day, the last four weeks</span></h3>
+          <p className="lch-fall-says">{heat.says}</p>
+          <div className="lch-hm" role="table" aria-label="Stop minutes by machine and day" style={{ ['--hm-days' as string]: heat.days }}>
+            {heat.rows.map(row => {
+              const onC = onConstraint(row.asset, a.constraint).on === true;
+              return (
+                <div key={row.asset} className="lch-hm-row" role="row">
+                  <span className="lch-hm-l" role="rowheader">{row.asset}{onC && <em className="lch-tag">constraint</em>}</span>
+                  {row.min.map((m, i) => {
+                    const d0 = heat.from + i * 86_400_000;
+                    const day = new Date(d0).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+                    const list = obs.filter(o => !o.deletedAt && o.asset.trim().toLowerCase() === row.asset.toLowerCase() && o.startedAt >= d0 && o.startedAt < d0 + 86_400_000);
+                    return m < 1
+                      ? <span key={i} className="lch-hm-c" role="cell" aria-label={`${row.asset}, ${day}: no stops`} />
+                      : <button key={i} type="button" role="cell" className="lch-hm-c is-on" style={{ ['--hm' as string]: Math.max(0.12, m / heat.max) }}
+                          aria-label={`${row.asset}, ${day}: ${fmt(m, 0)} min stopped`} title={`${day} — ${fmt(m, 0)} min`}
+                          onClick={() => setWhy({ title: `${row.asset} — ${day}`, fig: figure(`${fmt(m, 0)} min`, `The ${row.asset}'s stops on ${day}, overlapping ones counted once.`, stopSrc(list), { from: d0, to: d0 + 86_400_000 }) })} />;
+                  })}
+                </div>
+              );
+            })}
+            <div className="lch-hm-row lch-hm-ax" aria-hidden><span className="lch-hm-l" /><span className="lch-hm-a">4 weeks ago</span><span className="lch-hm-b">today</span></div>
+          </div>
+        </div>
+      )}
       {/* NEXT WEEK'S ORDERS — will they fit? (lib/intelligence loadVsDemand) */}
       <details className="lch-lev lch-dem" open={a.load.rows.length > 0}>
         <summary className="lch-h">Will next week’s orders fit? <span className="sub">type or paste them — {a.weekFrom ? `the week from ${a.weekFrom}` : 'the line’s week is not known yet'}</span></summary>

@@ -63,6 +63,7 @@ export const PAGES = (sd, cap) => [
   { name: 'Line capacity — what a line can make', path: `#/balances?line=${sd.line7WsId}`, must: [
     { what: 'the answer first', sel: '.lch-hero' },
     { what: 'theoretical · demonstrated · plannable, each opening why', sel: '.lch-mx .mx', n: 3 },
+    { what: 'where and when it stops — a machine × day grid', sel: '.lch-hm-row', n: 2 },
     { what: 'ask about the line', sel: '.lch-ask' },
     { what: 'where the time went, band by band', sel: '.lch-bands .lch-band', n: 3 },
     { what: 'will next week’s orders fit', sel: '.lch-dem' },

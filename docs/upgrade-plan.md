@@ -221,6 +221,17 @@ Each slice ships live on its own (gate → main → Vercel READY), then the next
   red; a tap opens its problems on the register. Found building it: a
   problem pinned on the walk never said its machine on the line's page
   (`lineProblems` had no asset names) — it does now, on the rows and the tour.
+- **C (the heatmap) — built 15 October**: *Where and when it stops* on
+  each line's capacity panel — a machine × day grid of stop minutes over four
+  weeks (`lib/intelligence heatOf`), the line's machines in flow order, in
+  neutral ink (never a state colour), its sentence naming the worst day and
+  the machine stopped on the most days (chronic when on half or more); every
+  cell opens the stops it is made of.
+- **L (capture) — built 15 October**: *Again?* on Capture — the last four
+  distinct reasons (machine · what · which kind) still on the line's lists,
+  one tap sets all three (`recentReasons`). The Pareto already ranked by time
+  and £ and cut by shift; a cut by product needs the product on a stop, which
+  is a new column — left in IDEAS.md.
 - **Found on the demo and fixed**: a stop of the whole line stops the
   constraint (never the mirage); a band made of several machines' stops says
   its own share on the constraint; slow running and short stops are line time

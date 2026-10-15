@@ -274,3 +274,30 @@ describe('the reasons logged lately', () => {
     expect(r).toEqual([{ asset: 'Bagger', category: 'Film' }]);
   });
 });
+
+import { heatOf } from '../intelligence';
+
+describe('where and when the line stops', () => {
+  it('a row a machine in flow order, the minutes a day, the worst cell and the chronic machine said', () => {
+    const obs = [
+      ...Array.from({ length: 20 }, (_, i) => stop('Bagger', 'Jam', NOW - i * 86_400_000, 5)),
+      stop('Filler', 'Breakdown', NOW - 3 * 86_400_000, 90),
+      stop('Filler', 'Breakdown', NOW - 3 * 86_400_000 + 30 * MIN, 30),  // overlaps: counted once
+    ];
+    const h = heatOf(obs, NOW, ['Filler', 'Bagger']);
+    expect(h.rows.map(r => r.asset)).toEqual(['Filler', 'Bagger']);
+    expect(h.rows[0].total).toBe(90);
+    expect(h.rows[1].days).toBe(20);
+    expect(h.max).toBe(90);
+    expect(h.says).toMatch(/^The worst day: the Filler on .* — 90 min\. The Bagger stopped on 20 of 28 days — a chronic loss, not a bad day\.$/);
+  });
+  it('nothing logged says so', () => {
+    expect(heatOf([], NOW).says).toBe('No stops logged in the last four weeks.');
+  });
+});
+
+describe('the heat said of the whole line', () => {
+  it('says "the whole line", never "the Whole line"', () => {
+    expect(heatOf([stop('Whole line', 'Clean', NOW - 86_400_000, 40)], NOW).says).toMatch(/^The worst day: the whole line on .* — 40 min\. The whole line stopped on the most days — 1 of 28\.$/);
+  });
+});
