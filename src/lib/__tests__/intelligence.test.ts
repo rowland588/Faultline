@@ -229,3 +229,25 @@ describe('chronic or a one-off', () => {
     expect(recurrence([stop('Bagger', 'Film', day(0, 1), 10), stop('Bagger', 'Film', day(3, 1), 10)], NOW).kind).toBe('recurring');
   });
 });
+
+describe('a stop of the whole line', () => {
+  it('stops the constraint too — never called the mirage', () => {
+    const c = { name: 'Flow wrapper', products: ['A'], others: [] };
+    expect(onConstraint('Whole line', c).on).toBe(true);
+  });
+});
+
+import { constraintShare } from '../intelligence';
+
+describe('a loss made of several machines', () => {
+  const c = { name: 'Flow wrapper', products: ['A'], others: [] };
+  it('only the part on the constraint costs output', () => {
+    const s = constraintShare([stop('Flow wrapper', 'Breakdown', day(0, 1), 30), stop('Multihead weigher', 'Breakdown', day(0, 2), 90)], c);
+    expect(s.share).toBeCloseTo(0.25);
+    expect(s.says).toBe('30 min of it is on the constraint (25%) — that part costs output; the other 90 min makes no more when fixed.');
+  });
+  it('slow running and short stops are line time at the constraint', () => {
+    const f = periodWaterfall([{ id: 'x', figures: { enough: true, plannedMin: 450, rate: 60, made: 20000, bars: [{ key: 'performance', kind: 'performance', label: 'Slow running and short stops', min: 60, bone: 'Machine', grade: 'none' }] } as unknown as LossFigures }], c);
+    expect(f.bands[0].onConstraint).toBe(true);
+  });
+});

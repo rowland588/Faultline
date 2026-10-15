@@ -6,12 +6,13 @@
 import type { Observation } from '../types';
 import type { Neck } from '../lib/lineLoss';
 import { machineKey } from '../lib/lineRecords';
-import { recurrence, stopMinutes } from '../lib/intelligence';
+import { recurrence, stopMinutes, WHOLE_LINE } from '../lib/intelligence';
 import { fmtDurationWords } from '../lib/format';
 
 export function ParetoReading({ rows, now, neck }: { rows: { key: string; obs: Observation[] }[]; now: number; neck?: Neck }) {
   const necks = new Set((neck?.names ?? []).map(machineKey));
-  const onNeck = (o: Observation) => necks.has(machineKey(o.asset));
+  /* a stop of the whole line stops the constraint with it */
+  const onNeck = (o: Observation) => necks.has(machineKey(o.asset)) || WHOLE_LINE.test(o.asset.trim().toLowerCase());
   const top = rows.slice(0, 6).map(r => {
     const min = stopMinutes(r.obs);
     const onMin = stopMinutes(r.obs.filter(onNeck));

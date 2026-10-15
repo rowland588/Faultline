@@ -48,9 +48,13 @@ export interface OnConstraint {
 }
 
 /** Is this machine the constraint? Undefined: no constraint known. */
+/** A stop logged against the whole line stops the constraint too. */
+export const WHOLE_LINE = /^(whole line|the line|line|all|everything|whole)$/;
+
 export function onConstraint(machine: string | undefined, c: LineConstraint | undefined): OnConstraint {
   if (!c) return { on: undefined, says: 'Where the line is held is not known — work out its Line capacity to see which losses cost output.' };
   const m = norm(machine);
+  if (WHOLE_LINE.test(m)) return { on: true, says: `The whole line stops — the ${c.name} with it: every minute is output lost.` };
   if (m && m === norm(c.name)) return { on: true, says: `On the constraint — every minute here is a minute of the line's output.` };
   const other = c.others.find(o => norm(o.name) === m);
   if (other) return { on: true, says: `The constraint on ${other.products.join(', ')} — a minute here is output lost on those.` };
@@ -73,7 +77,8 @@ export function constraintTrend(obs: readonly Observation[], now: number, weeks 
   const w0 = weekStart(now);
   const rows: ConstraintWeek[] = [];
   for (let i = weeks - 1; i >= 0; i--) {
-    const from = w0 - i * WEEK, list = between(obs, from, from + WEEK);
+    /* a stop of the whole line is not a machine that could be the constraint */
+    const from = w0 - i * WEEK, list = between(obs, from, from + WEEK).filter(o => !WHOLE_LINE.test(norm(o.asset)));
     if (!list.length) continue;
     const per = new Map<string, number>();
     for (const m of new Set(list.map(o => o.asset.trim() || 'No machine named'))) per.set(m, stopMinutes(list.filter(o => (o.asset.trim() || 'No machine named') === m)));
@@ -93,4 +98,22 @@ export function constraintTrend(obs: readonly Observation[], now: number, weeks 
     : rows.length === 1 ? `The ${usual} lost the most stop minutes in the one week logged (${Math.round(last.minutes)} min).${vsNamed}`
       : `The ${usual} loses the most stop minutes in ${tally.get(usualK)} of ${rows.length} weeks.${vsNamed}`;
   return { weeks: rows, usual, moved, says };
+}
+
+export interface ConstraintShare { onMin: number; offMin: number; share: number; says?: string }
+
+/** How much of a loss's stops sit on the constraint — a band like
+ *  "Breakdown" is the flow wrapper's and the weigher's together, and only the
+ *  part on the constraint costs output. */
+export function constraintShare(stops: readonly Observation[], c: LineConstraint | undefined): ConstraintShare {
+  if (!c) return { onMin: 0, offMin: stopMinutes(stops), share: 0 };
+  const isOn = (o: Observation) => onConstraint(o.asset, c).on === true;
+  const onMin = stopMinutes(stops.filter(isOn)), offMin = stopMinutes(stops.filter(o => !isOn(o)));
+  const all = onMin + offMin, share = all > 0 ? onMin / all : 0;
+  const r = (n: number) => `${Math.round(n).toLocaleString('en-GB')} min`;
+  const says = !(all > 0) ? undefined
+    : share >= 0.95 ? `On the constraint — every minute is output lost.`
+      : share <= 0.05 ? `Not the constraint — fixing it will not make more on its own: the line is held at the ${c.name}. The prize is there.`
+        : `${r(onMin)} of it is on the constraint (${Math.round(share * 100)}%) — that part costs output; the other ${r(offMin)} makes no more when fixed.`;
+  return { onMin, offMin, share, ...(says ? { says } : {}) };
 }

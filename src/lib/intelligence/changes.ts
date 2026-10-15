@@ -27,10 +27,10 @@ export interface Change {
 
 export const MIN_DELTA = 30, MIN_RATIO = 1.5, BASE_WEEKS = 4, MIN_BASE = 2;
 
-const keyOf = (by: 'reason' | 'machine') => (o: Observation) => (by === 'reason' ? reasonOf(o) : o.asset.trim() || 'No machine named');
+const keyOf = (by: 'reason' | 'machine' | 'category') => (o: Observation) => (by === 'reason' ? reasonOf(o) : by === 'category' ? o.category.trim() || 'Unnamed' : o.asset.trim() || 'No machine named');
 const fm = (n: number) => `${Math.round(n).toLocaleString('en-GB')} min`;
 
-export function changesThisWeek(obs: readonly Observation[], now: number, by: 'reason' | 'machine' = 'reason'): Change[] {
+export function changesThisWeek(obs: readonly Observation[], now: number, by: 'reason' | 'machine' | 'category' = 'reason'): Change[] {
   const w0 = weekStart(now);
   const key = keyOf(by);
   const thisWeek = between(obs, w0, w0 + WEEK);
@@ -53,7 +53,7 @@ export function changesThisWeek(obs: readonly Observation[], now: number, by: 'r
     }
     if (logged < MIN_BASE) continue;
     const d = now_ - usual;
-    if (d >= MIN_DELTA && now_ >= usual * MIN_RATIO) out.push({ key: label, kind: 'up', thisWeek: now_, usual, ids, says: `${label}: ${fm(now_)} this week, about ${fm(usual)} a week before — up ${fm(d)}.` });
+    if (d >= MIN_DELTA && now_ >= usual * MIN_RATIO) out.push({ key: label, kind: 'up', thisWeek: now_, usual, ids, says: usual < 1 ? `${label}: ${fm(now_)} this week — hardly logged in the weeks before.` : `${label}: ${fm(now_)} this week, about ${fm(usual)} a week before — up ${fm(d)}.` });
     else if (-d >= MIN_DELTA && usual >= now_ * MIN_RATIO) out.push({ key: label, kind: now_ === 0 ? 'gone' : 'down', thisWeek: now_, usual, ids, says: now_ === 0 ? `${label}: none this week, about ${fm(usual)} a week before.` : `${label}: ${fm(now_)} this week, about ${fm(usual)} a week before — down ${fm(-d)}.` });
   }
   const rank: Record<ChangeKind, number> = { up: 0, new: 1, down: 2, gone: 3 };

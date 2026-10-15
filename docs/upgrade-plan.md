@@ -174,8 +174,11 @@ Each slice ships live on its own (gate → main → Vercel READY), then the next
 3. **Plannable is the 20th percentile of counted shifts**, needing at least
    five shifts; fewer, it is said as a range and marked thin. Reason: a
    plant manager plans on what the line does four days in five.
-4. **Demo data lives in its own local database and never syncs.** Reason: it
-   can never reach a real account or another device.
+4. **The demo is the app's existing demo line, grown to three lines** (revised
+   while building: the existing mechanism already keeps demo lines out of the
+   factory and every report). They are workspaces in the account, so they
+   sync like any line; "Build / rebuild the demo line" replaces them, and
+   deleting a demo line removes it.
 5. **The look is not redesigned.** New shared parts in the existing tokens.
    Reason: kept by Rowland on 11 October; "do not reopen without him asking"
    — the brief asks for a heightened UI, so the parts are raised, the
@@ -194,3 +197,21 @@ Each slice ships live on its own (gate → main → Vercel READY), then the next
   confidence); `ui/LineCapacityHero` on each line of Line capacity; the `ask`
   edge function (not deployed until the key decision, §5.2); `docs/PAGES.md`
   carries the panel.
+- **L (first part) — built 15 October**: the Pareto read under every drill
+  (chronic / recurring / one-off; on the constraint or the mirage; how much of
+  the lost time in view is on the constraint) and what changed this week on
+  the line's Pareto board, each a tap from its drill.
+- **D — built 15 October**: the demo factory (`src/lib/demoFactory.ts`), built
+  with the demo line from the account menu: the packing hall (flow wrapper
+  the constraint; six weeks counted, one thin; orders that do not fit; the
+  weigher's load-cell breakdowns an expensive loss off the constraint), a
+  punnet line (the filler; orders that fit), a bakery wrap (thin). Every demo
+  line named "Demo — …" (`lib/lines isDemo`), left out of the factory and
+  every report. Decision 4 revised: the demo extends the app's existing demo
+  line rather than a separate local database — that mechanism was already
+  here and already kept out of real work.
+- **Found on the demo and fixed**: a stop of the whole line stops the
+  constraint (never the mirage); a band made of several machines' stops says
+  its own share on the constraint; slow running and short stops are line time
+  at the constraint by definition; "about 0 min a week before" said as
+  "hardly logged before".

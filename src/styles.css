@@ -12918,3 +12918,4 @@ button.why-src { cursor: pointer; }
 .prd-rec.is-chronic { font-weight: 700; }
 .prd-c { font-size: var(--t-detail); }
 @media (max-width: 640px) { .prd-row { grid-template-columns: 1fr; gap: 2px; } }
+.an-chg { margin: 0 0 14px; padding: 12px 14px; background: var(--surface); box-shadow: var(--shadow); border-radius: var(--radius); }

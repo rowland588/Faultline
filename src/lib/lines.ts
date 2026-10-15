@@ -15,6 +15,9 @@ import { createWorkspace, listWorkspaces, updateWorkspace } from '../db/workspac
 import { perHourWords } from './lineLoss';
 
 export const DEMO_NAME = 'Demo — Packing Hall';
+/** A demo line — the packing hall and the demo factory's other lines
+ *  (lib/demoFactory): shown on their own, never counted as the factory's work. */
+export const isDemo = (name: string): boolean => name.startsWith('Demo — ');
 
 /** FLOOR ORDER — where each line sits in the factory (Rowland, 13 October:
  *  "build your factory, edit your factory"), the order lines are listed in
@@ -26,7 +29,7 @@ export function byFloor(a: Workspace, b: Workspace): number {
 
 /** Every line worked on: the demo aside, the archived aside, in floor order. */
 export function productionLines(ws: readonly Workspace[]): Workspace[] {
-  return ws.filter(w => w.name !== DEMO_NAME && !w.archived).sort(byFloor);
+  return ws.filter(w => !isDemo(w.name) && !w.archived).sort(byFloor);
 }
 
 /** THE TYPES OF LINE offered — the factory's own first, as it has named them,

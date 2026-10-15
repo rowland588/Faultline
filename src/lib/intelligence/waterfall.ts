@@ -59,7 +59,11 @@ export function periodWaterfall(shifts: readonly { id: string; figures: LossFigu
   }
   const bands: PeriodBand[] = [...by.values()].filter(b => b.min > 0).map(({ assets, ...b }) => {
     const asset = [...assets].sort((x, y) => y[1] - x[1])[0]?.[0];
-    const on = b.kind === 'cause' && asset ? onConstraint(asset, constraint) : undefined;
+    /* slow running and short stops are judged against the bottleneck's own
+       ideal speed: line time at the constraint by definition */
+    const pace = (b.kind === 'performance' || b.kind === 'slow' || b.kind === 'short') && constraint
+      ? { on: true as const, says: `Below the ${constraint.name}’s ideal speed — line time at the constraint: every minute is output.` } : undefined;
+    const on = pace ?? (b.kind === 'cause' && asset ? onConstraint(asset, constraint) : undefined);
     return { ...b, ...(asset ? { asset } : {}), ...(on && on.on != null ? { onConstraint: on.on, says: on.says } : {}) };
   }).sort((a, b) => b.min - a.min);
   const lost = bands.reduce((n, b) => n + b.min, 0);

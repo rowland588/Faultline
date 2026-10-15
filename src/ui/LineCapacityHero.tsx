@@ -21,7 +21,7 @@ import { lossFiguresOf } from '../lib/studyLinks';
 import { stopsOfBar } from '../lib/ie/losses';
 import { runningOf } from '../lib/ie/changeover';
 import {
-  ASK_EXAMPLES, askLine, changesThisWeek, confidenceOf, constraintTrend, figure, leversOf, lineConstraint, lineRates, loadVsDemand, parseDemand, periodWaterfall, reasonOf, WEEK,
+  ASK_EXAMPLES, askLine, changesThisWeek, constraintShare, confidenceOf, constraintTrend, figure, leversOf, lineConstraint, lineRates, loadVsDemand, parseDemand, periodWaterfall, reasonOf, WEEK,
   type Answer, type LineFacts,
   type Figure, type Source,
 } from '../lib/intelligence';
@@ -161,14 +161,18 @@ export function LineCapacityHero({ wsId, products, lineName }: { wsId: string; p
               const stops = b.kind === 'cause' || b.kind === 'changeover'
                 ? a.figs.filter(f => b.countIds.includes(f.id)).flatMap(f => (f.study.facts.losses ? stopsOfBar(obs, f.study.facts.losses, b, wsId) : []))
                 : [];
+              /* a band made of several machines' stops: its own share on the constraint, from its stops */
+              const sh = stops.length && a.constraint && b.kind === 'cause' ? constraintShare(stops, a.constraint) : undefined;
+              const onC = sh ? (sh.share >= 0.5) : b.onConstraint;
+              const said = sh?.says ?? b.says;
               return (
-                <li key={b.key} className={'lch-band' + (b.onConstraint === true ? ' is-on' : b.onConstraint === false ? ' is-off' : '')}>
-                  <button type="button" className="lch-bandb" onClick={() => setWhy({ title: b.label, fig: figure(`${fmt(b.min, 0)} min`, `${b.label}${b.asset ? `, mostly the ${b.asset}` : ''} — summed across ${b.countIds.length} counted shift${b.countIds.length === 1 ? '' : 's'}.${b.says ? ` ${b.says}` : ''}`, [...shiftSrc(b.countIds), ...stopSrc(stops)], { from, to: now }) })}>
-                    <span className="lch-bl">{b.label}{b.onConstraint === true && <em className="lch-tag">constraint</em>}</span>
+                <li key={b.key} className={'lch-band' + (onC === true ? ' is-on' : onC === false ? ' is-off' : '')}>
+                  <button type="button" className="lch-bandb" onClick={() => setWhy({ title: b.label, fig: figure(`${fmt(b.min, 0)} min`, `${b.label}${b.asset ? `, mostly the ${b.asset}` : ''} — summed across ${b.countIds.length} counted shift${b.countIds.length === 1 ? '' : 's'}.${said ? ` ${said}` : ''}`, [...shiftSrc(b.countIds), ...stopSrc(stops)], { from, to: now }) })}>
+                    <span className="lch-bl">{b.label}{onC === true && <em className="lch-tag">constraint</em>}</span>
                     <span className="lch-bar"><i style={{ width: `${Math.max(1, (b.min / max) * 100)}%` }} /></span>
                     <span className="lch-bv">{hours(b.min)}{b.contribution != null || b.labour != null ? <small> · £{fmt((b.labour ?? 0) + (b.contribution ?? 0), 0)}</small> : null}</span>
                   </button>
-                  {b.onConstraint === false && <p className="lch-mirage">{b.says}</p>}
+                  {said && onC !== true && <p className="lch-mirage">{said}</p>}
                 </li>
               );
             })}

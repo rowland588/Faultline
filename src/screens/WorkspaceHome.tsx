@@ -29,7 +29,7 @@ import { useSyncedAt } from '../cloud/session';
 import { InstallPanel } from '../ui/InstallPanel';
 import { useProjects } from '../lib/useProjects';
 import { inArchivedProject, onDataChange, projectsOnWorkspace } from '../db';
-import { DEMO_NAME } from '../lib/lines';
+import { isDemo } from '../lib/lines';
 import { factorySays, liveProductionLines, productionLines } from '../lib/lines';
 import { JobsBoard } from '../ui/JobsBoard';
 import { useLineRecords } from '../lib/useLineRecords';
@@ -200,7 +200,7 @@ export function WorkspaceHome() {
       // self-heal: rebuilds across devices and sessions can leave several demo
       // workspaces synced into one account. There is ONE demo — keep the
       // richest copy, delete the rest (tombstones sync the cleanup everywhere).
-      const demos = ws.filter(w => w.name === DEMO_NAME);
+      const demos = ws.filter(w => isDemo(w.name));
       if (demos.length > 1 && !dedupedDemos.current) {
         dedupedDemos.current = true;
         const keep = [...demos].sort((a, b) =>
