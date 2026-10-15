@@ -221,6 +221,36 @@ export interface StandardMark {
    *  an area named the one that holds the line. Said in words on the map and
    *  in Who does what, never by a state colour. */
   bottleneck?: boolean;
+  /** WHICH WAY A SHAPE'S WORDS RUN (Rowland, 15 October: "it only goes
+   *  across, it doesn't let me go upwards, so I have to squeeze things in").
+   *  'up': written up the shape's length, read from the bottom, as on a
+   *  drawing; 'across': as typed. Absent: up when the shape is tall and narrow
+   *  and a word would not fit across it (`wordsUp`), else across. */
+  dir?: WordDir;
+}
+
+export type WordDir = 'across' | 'up';
+export const WORD_DIRS: { dir: WordDir | undefined; word: string }[] = [
+  { dir: undefined, word: 'Auto' }, { dir: 'across', word: 'Across' }, { dir: 'up', word: 'Upwards' },
+];
+/** A bold letter's width against its size — one estimate, the same on the
+ *  screen and the card, so a shape's words turn the same way on both. */
+const EM = 0.6;
+/** Do a shape's words run up it? As set; or, unset, when it is at least half
+ *  as tall again as it is wide and its longest word would not fit across —
+ *  "Destaker" in a narrow box broke into "Dest aker". */
+export function wordsUp(m: Pick<StandardMark, 'dir' | 'label' | 'shape'>, wPx: number, hPx: number, fontPx: number): boolean {
+  if (m.shape === 'arrow' || !m.label?.trim()) return false;
+  if (m.dir) return m.dir === 'up';
+  if (!(Math.abs(hPx) > Math.abs(wPx) * 1.5)) return false;
+  const longest = Math.max(...m.label.split(/\s+/).map(w => w.length));
+  return longest * fontPx * EM > Math.abs(wPx) - 12;
+}
+
+/** The first paragraph of what was written — the summary a card has room
+ *  for; the rest is printed in full on the notes page. */
+export function firstPara(text: string): string {
+  return text.trim().split(/\n\s*\n/)[0].replace(/\s*\n\s*/g, ' ').trim();
 }
 
 export const isShape = (m: Pick<StandardMark, 'kind'>): boolean => m.kind === 'shape';
@@ -271,7 +301,10 @@ export function bottlenecksOf(s: Pick<Standard, 'marks'>): { id: ID; words: stri
   return s.marks.filter(m => m.bottleneck).map(m => {
     const person = m.kind === 'person';
     const label = (m.label ?? '').trim();
-    const words = person ? `${label || 'A person'}${m.task?.trim() ? ` — ${m.task.trim()}` : ''}`
+    /* the first paragraph: a long analysis written as what they do (his
+       pallet wrapper's, 15 October) is summed up by its head, and printed in
+       full on the card's notes */
+    const words = person ? `${label || 'A person'}${m.task?.trim() ? ` — ${firstPara(m.task)}` : ''}`
       : label ? `The ${label}` : isShape(m) ? 'An area' : `The ${markOf(m.kind).word.toLowerCase()}`;
     return { id: m.id, person, words };
   });

@@ -19,7 +19,7 @@ import { todayISO } from '../lib/weeks';
 import { useBlobUrl } from '../lib/useBlobUrl';
 import { usePrograms } from '../lib/usePrograms';
 import { planModel } from '../lib/planModel';
-import { bottlenecksOf, dashOf, FADED_ALPHA, FILLS, LABEL_KEY, LABEL_MODES, labelModeHere, LINES, mapLabel, weightOf, type LabelMode, type ShapeFill, type ShapeLine,
+import { bottlenecksOf, dashOf, FADED_ALPHA, FILLS, LABEL_KEY, LABEL_MODES, labelModeHere, LINES, mapLabel, weightOf, WORD_DIRS, wordsUp, type LabelMode, type ShapeFill, type ShapeLine,
   BOARDS, boardOf, colourOf, copyFor, hasMap, removingSays, type ProductTool, inMapTool, headcount, ICON_GROUPS, isShape, MARKS, markOf, nextRole, peopleOf, PERSON_COLOURS, reshaped, SHAPES, thingsOf, TONES, type BoardShape, type MarkKind, type PersonColour, type ShapeKind, type ShapeTone, type Standard, type StandardMark } from '../lib/standard';
 import { useStandards } from '../ui/StandardsCard';
 import { Sheet } from '../ui/Sheet';
@@ -58,7 +58,7 @@ async function standardsPdf(list: Standard[], name: string) {
    what is shown here and what goes into the PDF, so there is nothing to guess.
    Anything that goes wrong says so, rather than the button doing nothing. */
 function PrintSheet({ list, name, onClose }: { list: Standard[]; name: string; onClose: () => void }) {
-  const [cards, setCards] = useState<string[] | null>(null);
+  const [cards, setCards] = useState<{ img: string; product: string; notes: boolean }[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const wide = typeof window !== 'undefined' && window.matchMedia?.('(min-width: 900px)').matches;
@@ -69,12 +69,12 @@ function PrintSheet({ list, name, onClose }: { list: Standard[]; name: string; o
     let live = true;
     void (async () => {
       try {
-        const { cardImage } = await import('../lib/standardCard');
+        const { cardPages } = await import('../lib/standardCard');
         const { worksFor } = await import('../ui/WorkBalance');
         const { shiftShortsFor } = await import('../ui/ShiftCapacity');
         const works = await worksFor(list), shifts = await shiftShortsFor(list);
-        const out: string[] = [];
-        for (const st of list) out.push(await cardImage(st, name, printedToday(), works[st.id], shifts[st.id]));
+        const out: { img: string; product: string; notes: boolean }[] = [];
+        for (const st of list) (await cardPages(st, name, printedToday(), works[st.id], shifts[st.id])).forEach((img, k) => out.push({ img, product: st.product, notes: k > 0 }));
         if (live) setCards(out);
       } catch (e) {
         console.error('line standard card failed', e);
@@ -107,12 +107,12 @@ function PrintSheet({ list, name, onClose }: { list: Standard[]; name: string; o
       <div className="ls-print-acts">
         <button className="btn btn-primary" onClick={() => void go('download')} disabled={busy || !cards}>{busy ? 'Making it…' : 'PDF'}</button>
         {wide && <button className="btn" onClick={() => void go('print')} disabled={busy || !cards}>Print</button>}
-        <span className="sub">A4 landscape · {list.length === 1 ? 'one page' : `${list.length} pages, one a product`}</span>
+        <span className="sub">A4 landscape · {!cards ? '' : cards.length === 1 ? 'one page' : list.length === 1 ? `${cards.length} pages — the card, then its notes in full` : `${cards.length} pages — a card a product${cards.some(c => c.notes) ? ', each followed by its notes where it has them' : ''}`}</span>
       </div>
       {err && <p className="ls-print-err">{err}</p>}
       {!cards && !err && <p className="sub">Drawing the card…</p>}
       <div className="ls-print-cards">
-        {cards?.map((c, i) => <img key={i} className="ls-print-card" src={c} alt={`Line standard card for ${list[i]?.product}`} />)}
+        {cards?.map((c, i) => <img key={i} className="ls-print-card" src={c.img} alt={`${c.notes ? 'Notes' : 'Line standard card'} for ${c.product}`} />)}
       </div>
     </Sheet>
   );
@@ -286,16 +286,28 @@ function ProductCard({ s, onOpen }: { s: Standard; onOpen: () => void }) {
 /* -------------------------------- the map -------------------------------- */
 
 type Tool = { t: 'select' } | { t: 'icon'; kind: MarkKind } | { t: 'shape'; shape: ShapeKind };
-type Drag = { id: string; mode: 'move' | 'resize' | 'start' | 'end'; x0: number; y0: number; orig: StandardMark; moved: boolean };
+/** Which side of a shape is pulled: n s e w, or a corner (ne, sw …). */
+type Edge = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
+type Drag = { id: string; mode: 'move' | 'resize' | 'start' | 'end'; edge?: Edge; x0: number; y0: number; orig: StandardMark; moved: boolean };
 type Draw = { shape: ShapeKind; x0: number; y0: number; x1: number; y1: number };
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 const r1 = (v: number) => Math.round(v * 10) / 10;
 
+/** A box as tall as what is written in it — a paragraph a person typed is
+ *  read, not scrolled through two lines at a time (to 16 lines, then it scrolls). */
+const taskRows = (t?: string): number => {
+  if (!t) return 2;
+  const lines = t.split('\n').reduce((n, l) => n + Math.max(1, Math.ceil(l.length / 34)), 0);
+  return Math.min(16, Math.max(2, lines));
+};
+
+const EDGE_WORD: Record<Edge, string> = { n: 'top', s: 'bottom', e: 'right', w: 'left', ne: 'top right', nw: 'top left', se: 'bottom right', sw: 'bottom left' };
+
 /** A shape's outline, in board pixels — the same geometry the card draws. */
 function ShapeSvg({ m, bw, bh, selected, onDown }: {
   m: StandardMark; bw: number; bh: number; selected: boolean;
-  onDown: (e: RPointerEvent, mode: Drag['mode']) => void;
+  onDown: (e: RPointerEvent, mode: Drag['mode'], edge?: Edge) => void;
 }) {
   const t = TONES[m.tone ?? (m.shape === 'text' ? 'grey' : 'blue')];
   const w = ((m.w ?? 10) / 100) * bw, h = ((m.h ?? 10) / 100) * bh;
@@ -332,8 +344,16 @@ function ShapeSvg({ m, bw, bh, selected, onDown }: {
       strokeDasharray={m.shape === 'text' ? '4 3' : dashOf(m.line, sw * weightOf(m.line)).join(' ') || undefined}
       onPointerDown={e => onDown(e, 'move')}>
       {body}
-      {selected && <rect className="ls-handle" x={x + w - 8} y={y + h - 8} width={16} height={16} rx={3}
-        onPointerDown={e => { e.stopPropagation(); onDown(e, 'resize'); }} />}
+      {/* STRETCHED FROM ANY SIDE (Rowland, 15 October: "I can't stretch
+          anything from a side. I can only make things bigger or smaller") —
+          a handle on each side and each corner; a square or a circle keeps
+          its shape, so only its corners */}
+      {selected && ((m.shape === 'square' || m.shape === 'circle') ? (['nw', 'ne', 'sw', 'se'] as Edge[]) : (['n', 's', 'e', 'w', 'nw', 'ne', 'sw', 'se'] as Edge[])).map(ed => {
+        const hx = ed.includes('w') ? x : ed.includes('e') ? x + w : x + w / 2;
+        const hy = ed.includes('n') ? y : ed.includes('s') ? y + h : y + h / 2;
+        return <rect key={ed} className={'ls-handle is-' + ed} x={hx - 8} y={hy - 8} width={16} height={16} rx={3} aria-label={`Stretch from the ${EDGE_WORD[ed]}`}
+          onPointerDown={e => { e.stopPropagation(); onDown(e, 'resize', ed); }} />;
+      })}
     </g>
   );
 }
@@ -486,12 +506,12 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
   };
 
   /* ---- dragging: an icon or a shape moves; a handle resizes ---- */
-  const down = (e: RPointerEvent, id: string, mode: Drag['mode'] = 'move') => {
+  const down = (e: RPointerEvent, id: string, mode: Drag['mode'] = 'move', edge?: Edge) => {
     e.stopPropagation();
     if (ro) return;
     (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
     const orig = marks.find(m => m.id === id);
-    if (orig) drag.current = { id, mode, x0: e.clientX, y0: e.clientY, orig, moved: false };
+    if (orig) drag.current = { id, mode, ...(edge ? { edge } : {}), x0: e.clientX, y0: e.clientY, orig, moved: false };
   };
   const move = (e: RPointerEvent) => {
     if (draw) { const at = pct(e); setDraw({ ...draw, x1: at.x, y1: at.y }); return; }
@@ -507,11 +527,18 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
     else if (d.mode === 'end') patchMark(d.id, { w: r1((o.w ?? 0) + dx), h: r1((o.h ?? 0) + dy) });
     else if (d.mode === 'start') patchMark(d.id, { x: r1(o.x + dx), y: r1(o.y + dy), w: r1((o.w ?? 0) - dx), h: r1((o.h ?? 0) - dy) });
     else {
-      const left = o.x - (o.w ?? 0) / 2, top = o.y - (o.h ?? 0) / 2;
-      const w = Math.max(3, (o.w ?? 0) + dx);
-      let h = Math.max(3, (o.h ?? 0) + dy);
-      if (o.shape === 'square' || o.shape === 'circle') h = sameH(w);
-      patchMark(d.id, { w: r1(w), h: r1(h), x: r1(left + w / 2), y: r1(top + h / 2) });
+      /* the side pulled moves; the one opposite stays where it is */
+      const ed = d.edge ?? 'se';
+      let left = o.x - (o.w ?? 0) / 2, right = o.x + (o.w ?? 0) / 2, top = o.y - (o.h ?? 0) / 2, bottom = o.y + (o.h ?? 0) / 2;
+      if (ed.includes('e')) right = Math.max(left + 3, right + dx);
+      if (ed.includes('w')) left = Math.min(right - 3, left + dx);
+      if (ed.includes('s')) bottom = Math.max(top + 3, bottom + dy);
+      if (ed.includes('n')) top = Math.min(bottom - 3, top + dy);
+      if (o.shape === 'square' || o.shape === 'circle') {
+        const h = sameH(right - left);
+        if (ed.includes('n')) top = bottom - h; else bottom = top + h;
+      }
+      patchMark(d.id, { w: r1(right - left), h: r1(bottom - top), x: r1((left + right) / 2), y: r1((top + bottom) / 2) });
     }
   };
   const up = (e: RPointerEvent) => {
@@ -691,7 +718,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
               <svg className="ls-svg" width={size.bw} height={size.bh} viewBox={`0 0 ${size.bw} ${size.bh}`}>
                 {shapes.map(m => (
                   <ShapeSvg key={m.id} m={m} bw={size.bw} bh={size.bh} selected={selected === m.id}
-                    onDown={(e, mode) => down(e, m.id, mode)} />
+                    onDown={(e, mode, edge) => down(e, m.id, mode, edge)} />
                 ))}
                 {draw && (() => {
                   const x = Math.min(draw.x0, draw.x1), y = Math.min(draw.y0, draw.y1);
@@ -706,13 +733,17 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
               <span key={`bn-${m.id}`} className="ls-bn-tag is-area" style={{ left: `${m.x - (m.w ?? 0) / 2}%`, top: `${m.y - (m.h ?? 0) / 2}%` }}>Bottleneck</span>
             ))}
             {/* the words in the middle of each shape */}
-            {shapes.filter(m => m.shape !== 'arrow' && m.label).map(m => (
-              <span key={`t-${m.id}`} className={'ls-shape-t' + (m.shape === 'triangle' ? ' is-tri' : '')}
-                style={{
-                  left: `${m.x - (m.w ?? 0) / 2}%`, top: `${m.y - (m.h ?? 0) / 2}%`, width: `${m.w}%`, height: `${m.h}%`,
-                  color: TONES[m.tone ?? 'blue'].ink, fontSize: fontPx,
-                }}>{m.label}</span>
-            ))}
+            {shapes.filter(m => m.shape !== 'arrow' && m.label).map(m => {
+              /* up a tall, narrow shape, read from the bottom (lib/standard wordsUp) — as the card writes it */
+              const up = wordsUp(m, ((m.w ?? 0) / 100) * size.bw, ((m.h ?? 0) / 100) * size.bh, fontPx);
+              return (
+                <span key={`t-${m.id}`} className={'ls-shape-t' + (m.shape === 'triangle' && !up ? ' is-tri' : '') + (up ? ' is-up' : '')}
+                  style={{
+                    left: `${m.x - (m.w ?? 0) / 2}%`, top: `${m.y - (m.h ?? 0) / 2}%`, width: `${m.w}%`, height: `${m.h}%`,
+                    color: TONES[m.tone ?? 'blue'].ink, fontSize: fontPx,
+                  }}>{up ? <span className="ls-shape-up">{m.label}</span> : m.label}</span>
+              );
+            })}
             {icons_.map(m => (
               <button key={m.id} type="button" className={'ls-mark' + (editing === m.id ? ' is-on' : '') + (m.bottleneck ? ' is-bn' : '')} disabled={ro}
                 style={{ left: `${m.x}%`, top: `${m.y}%` }}
@@ -780,7 +811,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
                 onChange={e => patchMark(p.id, { label: e.target.value })}
                 onBlur={() => { typing.current = false; void putStandard({ ...s, marks }); }} />
               {work && workFor(p.label) && <span className={'ls-work' + (workFor(p.label)?.over ? ' is-r' : '')}>{(workFor(p.label)?.work ?? 0).toFixed(1)} s {workFor(p.label)?.untimed ? 'so far — not all timed' : `of ${work.taktSec.toFixed(1)} s takt`}</span>}
-              <textarea className="ls-task" rows={2} value={p.task ?? ''} aria-label="What they do" placeholder="What they do on this product"
+              <textarea className="ls-task" rows={taskRows(p.task)} value={p.task ?? ''} aria-label="What they do" placeholder="What they do on this product"
                 onFocus={() => { typing.current = true; }}
                 onChange={e => patchMark(p.id, { task: e.target.value })}
                 onBlur={() => { typing.current = false; void putStandard({ ...s, marks }); }} />
@@ -830,8 +861,15 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
             {editingMark.shape !== 'arrow' && (
               <>
                 <div className="field-label">{editingMark.shape === 'text' ? 'The words' : 'Name it'} <span className="opt">written in the middle</span></div>
-                <textarea className="text-area" rows={2} autoFocus value={editingMark.label ?? ''} placeholder="Bagger 1"
+                <textarea className="text-area" rows={Math.min(8, Math.max(2, (editingMark.label ?? '').split('\n').length + Math.floor((editingMark.label ?? '').length / 40)))} autoFocus value={editingMark.label ?? ''} placeholder="Bagger 1"
                   onChange={e => patchMark(editingMark.id, { label: e.target.value })} />
+                <div className="field-label" style={{ marginTop: 10 }}>The words run <span className="opt">Auto writes them up a tall, narrow shape</span></div>
+                <div className="chip-row" role="group" aria-label="Which way the words run">
+                  {WORD_DIRS.map(d => (
+                    <button key={d.word} type="button" className={'chip' + (editingMark.dir === d.dir ? ' on' : '')} aria-pressed={editingMark.dir === d.dir}
+                      onClick={() => patchMark(editingMark.id, { dir: d.dir })}>{d.word}</button>
+                  ))}
+                </div>
               </>
             )}
             <div className="field-label" style={{ marginTop: 10 }}>Colour</div>
@@ -884,7 +922,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
             {editingMark.kind === 'person' && (
               <>
                 <div className="field-label" style={{ marginTop: 10 }}>What they do <span className="opt">on this product</span></div>
-                <textarea className="text-area" rows={3} value={editingMark.task ?? ''} placeholder="Load film, check the weigher every 30 minutes"
+                <textarea className="text-area" rows={Math.max(3, taskRows(editingMark.task))} value={editingMark.task ?? ''} placeholder="Load film, check the weigher every 30 minutes"
                   onChange={e => patchMark(editingMark.id, { task: e.target.value })} />
                 {/* THEIR COLOUR (13 October) — on the board, in Who does what and on the card */}
                 <div className="field-label" style={{ marginTop: 10 }}>Colour <span className="opt">on the board and the card</span></div>

@@ -12813,3 +12813,12 @@ button.vc-row-in:focus-visible { outline: 2px solid var(--brand); outline-offset
 .cap-plan-says { margin: 0 0 6px; }
 .cap-plan-steps { margin: 0 0 10px; padding-left: 20px; display: grid; gap: 4px; }
 @media (max-width: 640px) { .cap-map-out { margin-left: 0; width: 100%; padding-left: 0; } .cap-map-n { width: 100%; } }
+
+/* WORDS UP A TALL SHAPE (lib/standard wordsUp) — read from the bottom, as on a drawing and the card */
+.ls-shape-t.is-up { padding: 6px 2px; }
+.ls-shape-up { writing-mode: vertical-rl; transform: rotate(180deg); max-height: 100%; overflow-wrap: break-word; }
+/* a handle on each side and corner, its cursor saying which way it pulls */
+.ls-handle.is-n, .ls-handle.is-s { cursor: ns-resize; }
+.ls-handle.is-e, .ls-handle.is-w { cursor: ew-resize; }
+.ls-handle.is-ne, .ls-handle.is-sw { cursor: nesw-resize; }
+.ls-handle.is-nw, .ls-handle.is-se { cursor: nwse-resize; }

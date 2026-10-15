@@ -22,7 +22,7 @@
  *   └─────────────────────────────────────────────────────────┘ */
 import { getBlob } from '../db';
 import { analyse, shortSays } from './capacity';
-import { BOARDS, boardOf, bottlenecksOf, colourOf, dashOf, FADED_ALPHA, headcount, isShape, labelModeHere, manyOf, mapLabel, markOf, MARKS, peopleOf, TONES, weightOf, type Standard, type StandardMark } from './standard';
+import { BOARDS, boardOf, bottlenecksOf, colourOf, dashOf, FADED_ALPHA, firstPara, headcount, isShape, labelModeHere, manyOf, mapLabel, markOf, MARKS, peopleOf, TONES, weightOf, wordsUp, type Standard, type StandardMark } from './standard';
 
 /** A4 landscape at 150 dpi: sharp on paper, light enough for a phone. */
 export const CARD_W = 1754, CARD_H = 1240;
@@ -82,6 +82,25 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, width: number, max: n
   return out;
 }
 
+/** Words into at most `max` lines; when they do not all fit, the last line
+ *  ends "… (notes, 4)" — where they are printed whole. Never cut silently. */
+function wrapRef(ctx: CanvasRenderingContext2D, text: string, width: number, max: number, ref: string, more = false): { lines: string[]; cut: boolean } {
+  const all = wrap(ctx, text, width, 10_000);
+  const tail = ` (notes, ${ref})`;
+  if (all.length <= max) {
+    if (!more) return { lines: all, cut: false };
+    /* all of it fits, and there is more on the notes: said at its end, or on a line of its own */
+    const last = all[all.length - 1];
+    if (ctx.measureText(`${last}${tail}`).width <= width) return { lines: [...all.slice(0, -1), `${last}${tail}`], cut: true };
+    if (all.length < max) return { lines: [...all, tail.trim()], cut: true };
+  }
+  const kept = all.slice(0, max);
+  let last = kept[max - 1];
+  while (last.length > 1 && ctx.measureText(`${last}…${tail}`).width > width) last = last.slice(0, -1);
+  kept[max - 1] = `${last.trimEnd()}…${tail}`;
+  return { lines: kept, cut: true };
+}
+
 /** One icon: a white-ringed disc in the kind's colour — or the person's own
  *  (lib/standard colourOf), the same as on the board — its glyph in white. */
 export function drawIcon(ctx: CanvasRenderingContext2D, kind: StandardMark['kind'], cx: number, cy: number, r: number, colour?: string) {
@@ -137,7 +156,7 @@ function bnTagSize(ctx: CanvasRenderingContext2D, size: number): { w: number; h:
 }
 
 /** A shape on the map: the same geometry the editor draws, its words in the middle. */
-function drawShape(ctx: CanvasRenderingContext2D, m: StandardMark, ix: number, iy: number, iw: number, ih: number) {
+function drawShape(ctx: CanvasRenderingContext2D, m: StandardMark, ix: number, iy: number, iw: number, ih: number): boolean {
   const t = TONES[m.tone ?? (m.shape === 'text' ? 'grey' : 'blue')];
   const cx = ix + (m.x / 100) * iw, cy = iy + (m.y / 100) * ih;
   const w = ((m.w ?? 10) / 100) * iw, h = ((m.h ?? 10) / 100) * ih;
@@ -153,7 +172,7 @@ function drawShape(ctx: CanvasRenderingContext2D, m: StandardMark, ix: number, i
     ctx.lineTo(x2 - head * Math.cos(ang + 0.45), y2 - head * Math.sin(ang + 0.45));
     ctx.setLineDash([]); ctx.closePath(); ctx.fill();
     ctx.restore();
-    return;
+    return false;
   }
   const x = cx - w / 2, y = cy - h / 2;
   ctx.beginPath();
@@ -170,16 +189,27 @@ function drawShape(ctx: CanvasRenderingContext2D, m: StandardMark, ix: number, i
     const lwi = lw * weightOf(m.line) * (m.bottleneck ? 1.6 : 1);
     ctx.strokeStyle = t.stroke; ctx.lineWidth = lwi; ctx.setLineDash(dashOf(m.line, lwi)); ctx.stroke(); ctx.setLineDash([]);
   }
+  let cut = false;
   if (m.label?.trim()) {
-    const size = Math.max(14, Math.min(iw * 0.017, h * 0.34));   /* the screen's: the board's width × 0.017 */
+    const up = wordsUp(m, w, h, iw * 0.017);
+    /* written up a tall shape: its length is the line, its width the room for lines */
+    const along = up ? Math.abs(h) : Math.abs(w), across = up ? Math.abs(w) : Math.abs(h);
+    const size = Math.max(14, Math.min(iw * 0.017, across * 0.34));   /* the screen's: the board's width × 0.017 */
     ctx.font = `800 ${size}px ${FONT}`; ctx.fillStyle = t.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    const inner = m.shape === 'triangle' ? w * 0.55 : m.shape === 'circle' ? w * 0.72 : w - 12;
-    const lines = m.label.split('\n').flatMap(part => wrap(ctx, part, Math.max(30, inner), 3)).slice(0, 4);
-    const lh = size * 1.15, ty0 = (m.shape === 'triangle' ? cy + h * 0.18 : cy) - ((lines.length - 1) * lh) / 2;
-    lines.forEach((l, i) => ctx.fillText(l, cx, ty0 + i * lh));
+    const inner = m.shape === 'triangle' ? along * 0.55 : m.shape === 'circle' ? along * 0.72 : along - 12;
+    const lh = size * 1.15, room = Math.max(1, Math.floor((across - 6) / lh));
+    const all = m.label.split('\n').flatMap(part => wrap(ctx, part, Math.max(30, inner), 10_000));
+    const max = Math.max(1, Math.min(4, room));
+    let lines = all;
+    if (all.length > max) { cut = true; lines = all.slice(0, max); let last = lines[max - 1]; while (last.length > 1 && ctx.measureText(`${last}…`).width > Math.max(30, inner)) last = last.slice(0, -1); lines[max - 1] = `${last.trimEnd()}…`; }
+    ctx.translate(cx, m.shape === 'triangle' && !up ? cy + h * 0.18 : cy);
+    if (up) ctx.rotate(-Math.PI / 2);
+    const ty0 = -((lines.length - 1) * lh) / 2;
+    lines.forEach((l, i) => ctx.fillText(l, 0, ty0 + i * lh));
   }
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   ctx.restore();
+  return cut;
 }
 
 /** Where a shape's words sit — for a person's name to keep clear of them
@@ -188,13 +218,16 @@ function shapeWordsBox(ctx: CanvasRenderingContext2D, m: StandardMark, ix: numbe
   if (!m.label?.trim() || m.shape === 'arrow') return undefined;
   const cx = ix + (m.x / 100) * iw, cy = iy + (m.y / 100) * ih;
   const w = ((m.w ?? 10) / 100) * iw, h = ((m.h ?? 10) / 100) * ih;
-  const size = Math.max(14, Math.min(iw * 0.017, h * 0.34));
+  const up = wordsUp(m, w, h, iw * 0.017);
+  const along = up ? Math.abs(h) : Math.abs(w), across = up ? Math.abs(w) : Math.abs(h);
+  const size = Math.max(14, Math.min(iw * 0.017, across * 0.34));
   ctx.font = `800 ${size}px ${FONT}`;
-  const inner = m.shape === 'triangle' ? w * 0.55 : m.shape === 'circle' ? w * 0.72 : w - 12;
-  const lines = m.label.split('\n').flatMap(part => wrap(ctx, part, Math.max(30, inner), 3)).slice(0, 4);
+  const inner = m.shape === 'triangle' ? along * 0.55 : m.shape === 'circle' ? along * 0.72 : along - 12;
+  const room = Math.max(1, Math.min(4, Math.floor((across - 6) / (size * 1.15))));
+  const lines = m.label.split('\n').flatMap(part => wrap(ctx, part, Math.max(30, inner), 3)).slice(0, room);
   const tw = Math.max(...lines.map(l => ctx.measureText(l).width)), th = lines.length * size * 1.15;
-  const my = m.shape === 'triangle' ? cy + h * 0.18 : cy;
-  return { x: cx - tw / 2 - 4, y: my - th / 2 - 2, w: tw + 8, h: th + 4 };
+  const my = m.shape === 'triangle' && !up ? cy + h * 0.18 : cy;
+  return up ? { x: cx - th / 2 - 2, y: my - tw / 2 - 4, w: th + 4, h: tw + 8 } : { x: cx - tw / 2 - 4, y: my - th / 2 - 2, w: tw + 8, h: th + 4 };
 }
 
 /** The whole card, as a canvas. */
@@ -203,7 +236,21 @@ function shapeWordsBox(ctx: CanvasRenderingContext2D, m: StandardMark, ix: numbe
 export interface CardWork { taktSec: number; people: { who: string; work: number; over: boolean; untimed?: boolean }[]; text: string; short?: string }
 
 /** `shift`: capacity a shift, short (ui/ShiftCapacity shiftShortsFor) — "32,400 bags a shift — 126 of 450 min changing over". */
+/** WORDS PRINTED WHOLE (Rowland, 15 October: "I've done bottleneck and
+ *  there's a large amount of context in there, but when I print it, the
+ *  context is not there ... if we have to put the context onto another page,
+ *  so it becomes a two-pager, then that should be fine"). Anything the card
+ *  has to cut — what a person does, an area's words, the note — is marked
+ *  "(notes, 4)" where it is cut, and printed in full on the notes page after
+ *  the card, under the same number as on the map. */
+export interface CardNote { ref: string; title: string; text: string; colour: string; bottleneck?: boolean; person?: boolean }
+
 export async function renderCard(s: Standard, projectName: string, printed: string, work?: CardWork, shift?: string): Promise<HTMLCanvasElement> {
+  return (await renderCardWithNotes(s, projectName, printed, work, shift)).canvas;
+}
+
+async function renderCardWithNotes(s: Standard, projectName: string, printed: string, work?: CardWork, shift?: string): Promise<{ canvas: HTMLCanvasElement; notes: CardNote[] }> {
+  const notes: CardNote[] = [];
   /* The photo first: nothing below waits on anything once drawing starts. A
      canvas draws in whatever face is loaded at that instant, so the app's own
      is asked for first — or the card came out in the system face. */
@@ -290,8 +337,19 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
     for (let x = ix; x < ix + iw; x += 40) { ctx.beginPath(); ctx.moveTo(x, iy); ctx.lineTo(x, iy + ih); ctx.stroke(); }
     for (let y = iy; y < iy + ih; y += 40) { ctx.beginPath(); ctx.moveTo(ix, y); ctx.lineTo(ix + iw, y); ctx.stroke(); }
   }
-  // shapes first — everything placed stands on them
-  for (const m of s.marks) if (isShape(m)) drawShape(ctx, m, ix, iy, iw, ih);
+  // shapes first — everything placed stands on them; an area whose words
+  // are cut carries a letter, and its words are on the notes page
+  const cutShapes: StandardMark[] = [];
+  for (const m of s.marks) if (isShape(m) && drawShape(ctx, m, ix, iy, iw, ih)) cutShapes.push(m);
+  cutShapes.forEach((m, i) => {
+    const ref = String.fromCharCode(65 + (i % 26));
+    const w = ((m.w ?? 10) / 100) * iw, h = ((m.h ?? 10) / 100) * ih;
+    const bx = ix + (m.x / 100) * iw + Math.abs(w) / 2, by = iy + (m.y / 100) * ih - Math.abs(h) / 2, rr = 14;
+    ctx.beginPath(); ctx.arc(bx, by, rr, 0, Math.PI * 2); ctx.fillStyle = TONES[m.tone ?? 'grey'].stroke; ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.font = `800 17px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(ref, bx, by + 1);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    notes.push({ ref, title: firstPara(m.label ?? '').slice(0, 60) || 'An area', text: (m.label ?? '').trim(), colour: TONES[m.tone ?? 'grey'].stroke, ...(m.bottleneck ? { bottleneck: true } : {}) });
+  });
   /* THE MARKS AS THE SCREEN DRAWS THEM (Rowland, 13 October: "everything's
      still merged together"). The screen draws a person 14 px across the
      middle and their name in 12 px type on a board about 1,000 px wide; the
@@ -373,7 +431,13 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
   { let kx = 0; for (const { k, n: c } of kit) { const w = 52 + ctx.measureText(kitWord(k, c)).width + 24; if (kx > 0 && kx + w > sideW) { kitRows++; kx = 0; } kx += w; } if (kit.length) kitRows++; }
   const kitH = kit.length ? 30 + kitRows * 58 : 0, kitTop = sideBottom - kitH;
   ctx.font = `italic 500 21px ${FONT}`;
-  const noteLines = s.note?.trim() ? wrap(ctx, s.note.trim(), sideW, 3) : [];
+  const noteFit = s.note?.trim() ? wrapRef(ctx, s.note.trim(), sideW, 3, 'the note') : { lines: [] as string[], cut: false };
+  const noteLines = noteFit.lines;
+  const personNotes = new Map<string, CardNote>();
+  const notePerson = (p: StandardMark, i: number) => {
+    if (!p.task?.trim() || personNotes.has(p.id)) return;
+    personNotes.set(p.id, { ref: String(i + 1), title: p.label?.trim() || `Person ${i + 1}`, text: p.task.trim(), colour: colourOf(p), person: true, ...(p.bottleneck ? { bottleneck: true } : {}) });
+  };
   const noteH = noteLines.length ? noteLines.length * 28 + 6 : 0;
   const noteTop = kitTop - (kit.length && noteH ? 22 : 0) - noteH;
   const listBottom = (noteH ? noteTop : kit.length ? kitTop : sideBottom) - 18;
@@ -388,7 +452,16 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
     const tx = sx + t.w + 12, tw = sideW - t.w - 12;
     ctx.fillStyle = INK; ctx.font = `700 23px ${FONT}`;
     let by = y + 21;
-    for (const b of bns) { for (const l of wrap(ctx, b.words, tw, 2)) { ctx.fillText(l, tx, by); by += 28; } by += 4; }
+    for (const b of bns) {
+      /* the head of what was written; the whole on the notes page */
+      const pi = people.findIndex(p => p.id === b.id), m = s.marks.find(x => x.id === b.id);
+      const ref = pi >= 0 ? String(pi + 1) : String.fromCharCode(65 + Math.max(0, cutShapes.indexOf(m as StandardMark)));
+      const more = !!m && (pi >= 0 ? (m.task?.trim() ?? '') !== firstPara(m.task ?? '') : cutShapes.includes(m));
+      const fit = wrapRef(ctx, b.words, tw, 2, ref, more);
+      if (fit.cut && pi >= 0 && m) notePerson(m, pi);
+      for (const l of fit.lines) { ctx.fillText(l, tx, by); by += 28; }
+      by += 4;
+    }
     y = Math.max(y + t.h, by - 28) + 22;
   }
   if (people.length === 0) { ctx.fillStyle = MUTED; ctx.font = `500 26px ${FONT}`; ctx.fillText('Nobody placed yet.', sx, y + 24); y += 50; }
@@ -404,7 +477,9 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
   };
   const avail = listBottom - y;
   const twoCols = sideW >= 640, colW2 = (sideW - 32) / 2;
-  const taskLines = (p: StandardMark, w: number) => { ctx.font = `500 ${STY.roomy.task}px ${FONT}`; return p.task?.trim() ? wrap(ctx, p.task.trim(), w - 64, 3) : []; };
+  const refOf = (p: StandardMark) => String(people.indexOf(p) + 1);
+  const taskFit = (p: StandardMark, w: number) => { ctx.font = `500 ${STY.roomy.task}px ${FONT}`; return p.task?.trim() ? wrapRef(ctx, p.task.trim(), w - 64, 3, refOf(p)) : { lines: [] as string[], cut: false }; };
+  const taskLines = (p: StandardMark, w: number) => taskFit(p, w).lines;
   const roomyH = (p: StandardMark, w: number) => 31 + taskLines(p, w).length * 31 + 26;
   const rowH = (st: Style, p: StandardMark, w: number) => (st === 'roomy' ? roomyH(p, w) : st === 'snug' ? (p.task?.trim() ? 72 : 46) : 42);
   const total = (st: Style, w: number) => people.reduce((n, p) => n + rowH(st, p, w), 0);
@@ -423,7 +498,9 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
     if (y + h > listBottom && col + 1 < plan.cols) { col++; y = listTop; }
     const px = sx + col * (colW + 32);
     if (y + h > listBottom) {
-      ctx.fillStyle = MUTED; ctx.font = `600 22px ${FONT}`; ctx.fillText(`and ${people.length - i} more on the map`, px, Math.min(y + 24, listBottom + 14)); break;
+      ctx.fillStyle = MUTED; ctx.font = `600 22px ${FONT}`; ctx.fillText(`and ${people.length - i} more on the map — all on the notes`, px, Math.min(y + 24, listBottom + 14));
+      for (let k = i; k < people.length; k++) personNotes.set(people[k].id, { ref: String(k + 1), title: people[k].label?.trim() || `Person ${k + 1}`, text: people[k].task?.trim() || '—', colour: colourOf(people[k]), person: true, ...(people[k].bottleneck ? { bottleneck: true } : {}) });
+      break;
     }
     // the number disc, in the person's colour — the same as on the map
     const d = st.disc, mid = y + d;
@@ -443,12 +520,16 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
       const used = ctx.measureText(nm).width;
       if (p.task?.trim() && used + 40 < tw - wkW) {
         ctx.fillStyle = INK2; ctx.font = `500 ${st.task}px ${FONT}`;
-        ctx.fillText(one(`— ${p.task.trim()}`, tw - wkW - used - 10), tx + used + 10, mid + st.name * 0.36);
-      }
+        const f = wrapRef(ctx, `— ${p.task.trim()}`, tw - wkW - used - 10, 1, refOf(p));
+        if (f.cut) notePerson(p, i);
+        ctx.fillText(f.lines[0] ?? '', tx + used + 10, mid + st.name * 0.36);
+      } else if (p.task?.trim()) notePerson(p, i);
     } else {
       ctx.fillText(one(name, tw - wkW), tx, y + st.name + 2);
       ctx.fillStyle = INK2; ctx.font = `500 ${st.task}px ${FONT}`;
-      const lines = plan.st === 'roomy' ? taskLines(p, colW) : p.task?.trim() ? [one(p.task.trim(), tw)] : [];
+      const fit = plan.st === 'roomy' ? taskFit(p, colW) : p.task?.trim() ? wrapRef(ctx, p.task.trim(), tw, 1, refOf(p)) : { lines: [] as string[], cut: false };
+      if (fit.cut) notePerson(p, i);
+      const lines = fit.lines;
       lines.forEach((l, k) => ctx.fillText(l, tx, y + st.name + 2 + (k + 1) * (st.task + 8)));
     }
     y += h;
@@ -500,10 +581,98 @@ export async function renderCard(s: Standard, projectName: string, printed: stri
       });
     }
   }
+  /* the notes, in the order a reader meets them: people by number, areas by letter, the note */
+  const all: CardNote[] = [
+    ...people.filter(p => personNotes.has(p.id)).map(p => personNotes.get(p.id) as CardNote),
+    ...notes,
+    ...(noteFit.cut && s.note ? [{ ref: '', title: 'Note', text: s.note.trim(), colour: MUTED }] : []),
+  ];
   ctx.textAlign = 'right'; ctx.fillStyle = INK2; ctx.font = `800 24px ${FONT}`;
   ctx.fillText('Faultline', CARD_W - M, fy + 54);
+  if (all.length) { ctx.fillStyle = BLUE; ctx.font = `700 18px ${FONT}`; ctx.fillText('Notes in full on the next page', CARD_W - M, fy + 84); }
   ctx.textAlign = 'left';
-  return cv;
+  return { canvas: cv, notes: all };
+}
+
+/* ------------------------------ the notes page ------------------------------
+ * The words the card had to cut, whole: each under its number or letter, in
+ * its colour, paragraphs and bullets as they were typed, poured down two
+ * columns and onto as many pages as it takes. */
+function notesPages(s: Standard, projectName: string, printed: string, notes: CardNote[]): HTMLCanvasElement[] {
+  const pages: HTMLCanvasElement[] = [];
+  const bandH = 150, top = bandH + 36, bottom = CARD_H - 70, gap = 48, colW = (CARD_W - 2 * M - gap) / 2;
+  const T = 22, LH = 31;
+  type Op = { h: number; head?: CardNote; text?: string; indent?: number; bullet?: boolean; keep?: boolean };
+  /* every note as lines, measured once */
+  const measure = document.createElement('canvas').getContext('2d') as CanvasRenderingContext2D;
+  const ops: Op[] = [];
+  for (const n of notes) {
+    ops.push({ h: 52, head: n, keep: true });
+    for (const raw of n.text.split('\n')) {
+      const line = raw.trim();
+      if (!line) { ops.push({ h: 12 }); continue; }
+      const bullet = /^[•\-*·]\s*/.test(line);
+      const indent = bullet ? 26 : 0;
+      measure.font = `500 ${T}px ${FONT}`;
+      const parts = wrap(measure, bullet ? line.replace(/^[•\-*·]\s*/, '') : line, colW - 52 - indent, 10_000);
+      parts.forEach((t, k) => ops.push({ h: LH, text: t, indent, bullet: bullet && k === 0 }));
+    }
+    ops.push({ h: 26 });
+  }
+  let ctx: CanvasRenderingContext2D | null = null, col = 0, y = top;
+  const newPage = () => {
+    const cv = document.createElement('canvas'); cv.width = CARD_W; cv.height = CARD_H;
+    const c = cv.getContext('2d') as CanvasRenderingContext2D;
+    c.fillStyle = '#ffffff'; c.fillRect(0, 0, CARD_W, CARD_H);
+    const grad = c.createLinearGradient(0, 0, CARD_W, bandH);
+    grad.addColorStop(0, NAVY); grad.addColorStop(0.65, '#14306a'); grad.addColorStop(1, BLUE);
+    c.fillStyle = grad; c.fillRect(0, 0, CARD_W, bandH);
+    c.fillStyle = '#9fc0ff'; c.font = `800 22px ${FONT}`; c.fillText('L I N E   S T A N D A R D   ·   N O T E S', M, 56);
+    c.fillStyle = '#ffffff'; c.font = `800 42px ${FONT}`; c.fillText(wrap(c, s.product || 'Untitled product', CARD_W - 2 * M - 420, 1)[0] ?? '', M, 108);
+    c.fillStyle = '#c9d6ee'; c.font = `500 22px ${FONT}`; c.textAlign = 'right';
+    c.fillText(`${projectName}  ·  printed ${printed}`, CARD_W - M, 108); c.textAlign = 'left';
+    c.fillStyle = MUTED; c.font = `500 19px ${FONT}`;
+    c.fillText('The words the card could not hold, in full — numbered as on the map.', M, CARD_H - 34);
+    pages.push(cv); ctx = c; col = 0; y = top;
+  };
+  newPage();
+  for (let i = 0; i < ops.length; i++) {
+    const op = ops[i];
+    /* a heading never stands alone at the foot: it goes with its first two lines */
+    const need = op.keep ? op.h + LH * 2 : op.h;
+    if (y + need > bottom) {
+      if (col === 0) { col = 1; y = top; } else newPage();
+      if (!op.head && !op.text) continue;   // a space at the top of a column is no space
+    }
+    const c = ctx as unknown as CanvasRenderingContext2D;
+    const x = M + col * (colW + gap);
+    if (op.head) {
+      const n = op.head, r = 18;
+      c.beginPath(); c.arc(x + r, y + r + 4, r, 0, Math.PI * 2); c.fillStyle = n.colour; c.fill();
+      c.fillStyle = '#ffffff'; c.font = `800 18px ${FONT}`; c.textAlign = 'center'; c.fillText(n.ref || '•', x + r, y + r + 10); c.textAlign = 'left';
+      let hx = x + 2 * r + 12;
+      if (n.bottleneck) { const t = bnTag(c, hx, y + 8, 16, true); hx += t.w + 10; }
+      c.fillStyle = INK; c.font = `800 26px ${FONT}`; c.fillText(wrap(c, n.title, x + colW - hx, 1)[0] ?? '', hx, y + 32);
+    } else if (op.text) {
+      c.fillStyle = INK2; c.font = `500 ${T}px ${FONT}`;
+      if (op.bullet) c.fillText('•', x + 56, y + 22);
+      c.fillText(op.text, x + 52 + (op.indent ?? 0), y + 22);
+    }
+    y += op.h;
+  }
+  pages.forEach((cv, k) => {
+    const c = cv.getContext('2d') as CanvasRenderingContext2D;
+    c.fillStyle = INK2; c.font = `800 20px ${FONT}`; c.textAlign = 'right';
+    c.fillText(pages.length > 1 ? `Notes ${k + 1} of ${pages.length}` : 'Notes', CARD_W - M, CARD_H - 34); c.textAlign = 'left';
+  });
+  return pages;
+}
+
+/** The card and, when it had to cut anything, its notes page(s) — every
+ *  page as a JPEG, for the screen and the PDF alike. */
+export async function cardPages(s: Standard, projectName: string, printed: string, work?: CardWork, shift?: string): Promise<string[]> {
+  const { canvas, notes } = await renderCardWithNotes(s, projectName, printed, work, shift);
+  return [canvas, ...(notes.length ? notesPages(s, projectName, printed, notes) : [])].map(c => c.toDataURL('image/jpeg', 0.9));
 }
 
 /** The card as a JPEG, for the screen and the PDF alike. */

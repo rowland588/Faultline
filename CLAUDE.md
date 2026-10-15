@@ -1,5 +1,20 @@
 # Faultline — how work gets delivered here
 
+## The memory is the repo
+
+The builder keeps nothing between sessions — only what is written here
+survives (Rowland, 15 October: "I actually didn't know that ... of course, I
+want the memory written in"). So before building, read what is built and how
+(`docs/BLUEPRINT.md`, the docs it names, the code); after building, write down
+what changed where the next session will look. **`docs/PAGES.md` is what each
+page must show**, checked in the gate by `scripts/inventory.mjs` — a thing
+taken off a page is taken off its list in the same commit, with the reason; a
+thing that vanishes by accident fails the gate. Before shipping anything a
+person sees, take the pictures on live and on the change (`--shots`,
+`--compare`) and look at every page that moved. A new page or a new shape of
+the data adds its lines and its seed; a check tests the drawn thing, never the
+box it sits in.
+
 ## The blueprint comes first
 
 **`docs/BLUEPRINT.md` is the one map of the app** — agreed with Rowland, 13
@@ -204,6 +219,7 @@ node scripts/audit.mjs [out.json]     # not a pass/fail: walks every screen at d
 node scripts/acceptance/list-paper.mjs  # the audit's bar 3: paper wherever there is a list — Line capacity's page and every product shown, Line standard's cards for all shown, Materials, a card for every test on Commission
 node scripts/acceptance/commissioning-report.mjs  # the commissioning report and cards: from Commission and the Reports sheet, the gate machine by machine, why and what we are doing, on paper and as a card a machine, moving when a test passes, on a phone and for a client
 node scripts/acceptance/report-relevance.mjs  # the audit's bar 8: the stage-gate papers keep up — a machine late on site, a register problem for the job, the line's own programs, what a gate is missing, on the full report, the one page, the programs report and the handover; the statuses moved and all four moved with them
+node scripts/inventory.mjs            # docs/PAGES.md: every page shows what it must, at desk and phone — same server
 node scripts/sync-two-devices.mjs     # a phone and a laptop against a fake cloud — video on one plays on the other
 node scripts/check-live-schema.mjs    # the LIVE database against the mapper — needs .env
 ```
@@ -419,7 +435,7 @@ merged together and PDF details gone strange even in the side commentary
 or the bottleneck") — ten people close together with long names: no name
 on the map crossing another or covering a person, every person named in
 Who does what, the note and the kit below the people, an area's
-BOTTLENECK tag clear of its own words.
+BOTTLENECK tag clear of its own words. Then words printed whole (Rowland, 15 October: "I've done bottleneck and there's a large amount of context in there, but when I print it, the context is not there"; "it only goes across, it doesn't let me go upwards"; "I can't stretch anything from a side") — a tall, narrow shape's words up it, the bottleneck summed up by its head, the person's box as tall as their words, the card and its notes page (two pages in the preview and the PDF), every word written on paper with "(notes, 2)" where the card cuts, a shape stretched from its right side and its top with the opposite side kept, Upwards chosen and kept, and a map with nothing long one page.
 `line-capacity.mjs` is Line capacity: the views named for what they
 are, the V-curve and the capacity sheet as `lib/capacity` says, a machine
 not on its plate speed said so, the owner's V margin and the guide, a

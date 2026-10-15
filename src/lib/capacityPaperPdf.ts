@@ -342,6 +342,7 @@ export function productBlocks(p: CapacityPaper, d: Density, own: boolean, keep =
     for (const g of p.groups) {
       const gp: CapacityPaper = { ...rest, rows: p.rows.filter(r => r.group === g.name), ...(g.targetPct != null ? { targetPct: g.targetPct } : {}) };
       out.push(label(`${g.name} — ${g.says}`));
+      if (g.v) out.push(said('The V-curve:', g.v.text, g.v.tone));
       const gv = vBars(gp);
       if (gv) { out.push(gv); out.push(vKey(gp)); }
       out.push({ ...space('s'), keepWithNext: true });
