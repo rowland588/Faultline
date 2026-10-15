@@ -251,9 +251,10 @@ Each slice ships live on its own (gate → main → Vercel READY), then the next
   line's constraint (its Line capacity, `constraintShare`) — nothing taken
   off the table, the figures unchanged. Worded for one counted shift: off the
   constraint it "cost output only where it starved or blocked" the
-  constraint, and making it better makes no more on its own. **Open:** the
-  same tag on paper (the 6M report's and the client report's loss table) —
-  their context does not carry the line's Line capacity yet.
+  constraint, and making it better makes no more on its own. On paper too:
+  the 6M report's and the client report's loss table say "· on the
+  constraint" or "· off the constraint" on each cause, by the same rule
+  (`lib/lineRead constraintOfBars`).
 - **L (capture) — built 15 October**: *Again?* on Capture — the last four
   distinct reasons (machine · what · which kind) still on the line's lists,
   one tap sets all three (`recentReasons`). The Pareto already ranked by time

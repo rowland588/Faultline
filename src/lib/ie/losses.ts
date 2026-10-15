@@ -696,11 +696,13 @@ const rateSource = (c?: Pick<LossCount, 'rateFrom' | 'rateMachine' | 'ratePerson
 /** THE WATERFALL AS A TABLE: a row per bar — cause · stops · minutes · idle
  *  labour · lost contribution — and the total lost; the head says how the
  *  planned minutes and the rate are known, and what was expected and made. */
-export function lossRows(f: LossFigures, c?: LossCount): { head: string; rows: LossRow[]; total: { minutes: string; labour: string; contribution: string } } | undefined {
+/** `where` — whether a bar's stops sit on the line's constraint, as the count's
+ *  own page says it (lib/lineRead constraintOfBars): the paper says it too. */
+export function lossRows(f: LossFigures, c?: LossCount, where?: (b: LossBar) => 'on' | 'off' | undefined): { head: string; rows: LossRow[]; total: { minutes: string; labour: string; contribution: string } } | undefined {
   if (!f.enough) return undefined;
   const money = (n?: number) => (n !== undefined ? gbp(n) : '');
   const rows: LossRow[] = f.bars.map(b => ({
-    cause: b.kind === 'cause' && b.asset ? `${b.label} — ${b.asset}` : b.kind === 'rejects' ? `Rejects (${packs(b.packs ?? 0)} packs)` : isRest(b) ? restCause(b, f) : b.label,
+    cause: `${b.kind === 'cause' && b.asset ? `${b.label} — ${b.asset}` : b.kind === 'rejects' ? `Rejects (${packs(b.packs ?? 0)} packs)` : isRest(b) ? restCause(b, f) : b.label}${(w => (w === 'on' ? ' · on the constraint' : w === 'off' ? ' · off the constraint' : ''))(where?.(b))}`,
     stops: b.stops !== undefined ? String(b.stops) : '—', minutes: minWords(b.min), labour: money(b.labour), contribution: money(b.contribution), kind: b.kind,
     ...(b.abnormal ? { abnormal: true } : {}),
   }));

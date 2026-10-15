@@ -42,6 +42,7 @@ import { PHASE_ORDER, bonesSaid, problemsSaid, saidText, type Said } from './por
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { SIZE, box, font, gap, heading, label, lead, rows, text, wrap, type Row } from './report/blocks';
 import { fixTag, fixesOf } from '../ui/fishbone/layout';
+import { constraintOfBars } from './lineRead';
 import { lossFiguresOf, provedLine, ROLE_WORD, studyLine, studyTitle, type StudyContext } from './studyLinks';
 import { lossRows } from './ie/losses';
 import { lossBlocks } from './report/lossTable';
@@ -544,7 +545,7 @@ export function sixmReport(o: SixMInput): SixMReport {
       const used = s.uses.flatMap(u => { const t = recordTitle(u)?.trim(); return t ? [`${(ROLE_WORD[`${u.kind}:${u.role}`] ?? u.role).toLowerCase()}: ${t}`] : []; }).join('; ');
       const branches = new Map(s.uses.flatMap(u => { const t = u.step && u.role === 'evidence' ? recordTitle(u) : undefined; return t && u.step ? [[u.step, t] as [string, string]] : []; }));
       const l = studyLine(s, studyCtx(data));
-      const losses = s.tool === 'losses' ? lossRows(lossFiguresOf(s, studyCtx(data)), s.facts.losses) : undefined;
+      const losses = s.tool === 'losses' ? lossRows(lossFiguresOf(s, studyCtx(data)), s.facts.losses, constraintOfBars(s, studyCtx(data).observations ?? [], data.standards)) : undefined;
       const sampling = s.tool === 'sampling' && !s.agreed?.sampling?.walk ? samplingRows(s.agreed?.sampling, s.facts.taps ?? []) : undefined;
       return { title: studyTitle(s), used: used || 'not used for a record yet', line: l.text, tone: l.tone,
         ...(s.tool === 'map' && (s.facts.flow ?? []).length ? { stream: streamRows(s.facts.flow, s.agreed?.map, branches) } : {}),

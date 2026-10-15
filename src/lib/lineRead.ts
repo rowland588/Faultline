@@ -10,6 +10,8 @@ import type { ToolStudy } from './study';
 import { analyse } from './capacity';
 import { lossFiguresOf } from './studyLinks';
 import { runningOf } from './ie/changeover';
+import { stopsOfBar, type LossBar } from './ie/losses';
+import { constraintShare } from './intelligence';
 import {
   changesThisWeek, constraintTrend, heatOf, lineConstraint, lineRates, loadVsDemand, periodWaterfall, weeklyBrief, WEEK,
   type LineFacts,
@@ -68,3 +70,19 @@ export function readLine(x: LineReadInput) {
   return { unit, from, recent, rates, constraint, trend, changes, fall, figs, shiftsPerWeek, load, weekFrom, facts, heat, brief };
 }
 export type LineRead = ReturnType<typeof readLine>;
+
+/** WHERE A COUNT'S CAUSES SIT — on the line's constraint or off it, by the
+ *  share of each cause's stops on the machine its Line capacity names (the
+ *  count's page tags its table the same way). Undefined when the line's
+ *  constraint is not known; slow running, short stops and rejects say nothing
+ *  here (the page says the first two in the cause's sheet). */
+export function constraintOfBars(s: ToolStudy, obs: readonly Observation[], standards: readonly Standard[]): ((b: LossBar) => 'on' | 'off' | undefined) | undefined {
+  const c = s.facts.losses;
+  const constraint = lineConstraint(standards.filter(x => !x.deletedAt && x.workspaceId === s.workspaceId).map(x => ({ product: x.product, capacity: x.capacity })));
+  if (!c || !constraint) return undefined;
+  return b => {
+    if (b.kind !== 'cause' && b.kind !== 'changeover') return undefined;
+    const sh = constraintShare(stopsOfBar([...obs], c, b, s.workspaceId), constraint);
+    return sh.says ? (sh.share >= 0.5 ? 'on' : 'off') : undefined;
+  };
+}
