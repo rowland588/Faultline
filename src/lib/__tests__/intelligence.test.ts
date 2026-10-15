@@ -251,3 +251,26 @@ describe('a loss made of several machines', () => {
     expect(f.bands[0].onConstraint).toBe(true);
   });
 });
+
+import { recentReasons } from '../intelligence';
+
+describe('the reasons logged lately', () => {
+  const on = { assets: ['Bagger', 'Filler'], categories: ['Jam', 'Film'] };
+  it('newest first, each once, kind kept', () => {
+    const r = recentReasons([
+      stop('Bagger', 'Jam', day(1, 1), 5),
+      stop('Filler', 'Film', day(0, 1), 5, { subcategory: 'Splice' }),
+      stop('Bagger', 'Jam', day(0, 2), 5),
+    ], 3, on);
+    expect(r).toEqual([{ asset: 'Bagger', category: 'Jam' }, { asset: 'Filler', category: 'Film', subcategory: 'Splice' }]);
+  });
+  it('leaves out a deleted stop and a reason no longer on the lists, and stops at n', () => {
+    const r = recentReasons([
+      stop('Bagger', 'Jam', day(0, 3), 5, { deletedAt: NOW }),
+      stop('Capper', 'Jam', day(0, 2), 5),
+      stop('Bagger', 'Film', day(0, 1), 5),
+      stop('Filler', 'Jam', day(0, 0), 5),
+    ], 1, on);
+    expect(r).toEqual([{ asset: 'Bagger', category: 'Film' }]);
+  });
+});

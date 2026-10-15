@@ -19,6 +19,7 @@ import { fmtDuration, fmtDurationWords, fmtRelative, plural } from '../lib/forma
 import { ChipPicker } from '../ui/Chip';
 import { Stopwatch, CostTicker } from '../ui/Stopwatch';
 import { labourPerMs, ratedPerMin } from '../lib/cost';
+import { recentReasons } from '../lib/intelligence';
 import { lostParts, lostWords, stopsTheLine } from '../lib/lineLoss';
 import { useLineNeck } from '../lib/useLineNeck';
 import { Toast } from '../ui/Toast';
@@ -241,12 +242,32 @@ export function CaptureScreen() {
      flow audit #14 — the stopwatch offered 1 of the line's 4). */
   const lineMachines = useMachinesOf(workspace.id);
   const places = [...new Set([...workspace.assets.filter(isWholeLine), ...lineMachines])];
+  const again = recentReasons(observations, 4, { assets: places, categories: workspace.categories });
 
   return (
     <div className="cap">
       <StudyChips wsId={workspace.id} observations={observations} />
       {/* pickers lock while a timer runs so the elapsed time can't be re-attributed */}
       <fieldset className="cap-fields" data-tour="cap-fields" disabled={timing}>
+      {/* AGAIN — the last few reasons logged, each one tap that sets the
+          machine, what and which kind together (the floor logs the same few
+          stops again and again; lib/intelligence recentReasons) */}
+      {again.length > 0 && (
+        <div className="cap-block cap-again">
+          <div className="field-label">Again?</div>
+          <div className="chip-row">
+            {again.map(r => {
+              const on = asset === r.asset && category === r.category && (subcategory || undefined) === r.subcategory;
+              return (
+                <button key={`${r.asset}|${r.category}|${r.subcategory ?? ''}`} type="button" className={'chip' + (on ? ' on' : '')} aria-pressed={on}
+                  onClick={() => { setAsset(r.asset); setCategory(r.category); setSubcategory(r.subcategory ?? ''); }}>
+                  {r.asset} · <b>{r.subcategory ?? r.category}</b>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
       {/* THE MACHINE — where on the line (the floor thinks machine-first: this
           machine stopped). The line's machines, in flow order (workspace.assets). */}
       <div className="cap-block">
