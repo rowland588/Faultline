@@ -13,6 +13,7 @@
  * which product, and a job when it is for one — none is a real answer, as on
  * a snag. Attaching it to a job later is on its own page (StandardScreen
  * BelongsTo), and an attached one shows in that job's line standard too. */
+import { LineCapacityHero } from '../ui/LineCapacityHero';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { addLineToFactory, asked } from '../lib/lines';
 import { listAllStandards, listAllStudies, listWorkspaces, onDataChange, putStandard } from '../db';
@@ -184,6 +185,10 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
             <h2>{groupName(k)}</h2>
             <span className="sub">{rows.length} product{rows.length === 1 ? '' : 's'}</span>
           </div>
+          {/* WHAT THE LINE CAN MAKE (docs/upgrade-plan.md, C) — the line's
+              answer above its products: what its counted shifts proved, where it
+              is held, what changed, where the time went */}
+          {tool === 'balance' && k.startsWith('ws:') && <LineCapacityHero wsId={k.slice(3)} products={rows} lineName={groupName(k)} />}
           {(() => {
             /* THE LINE'S CHANGEOVER — its newest, in one line, one tap to it:
                the minutes, the external work inside, how often each product runs. */

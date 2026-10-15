@@ -35,6 +35,8 @@ import { hasLabour, labourPerMs, fmtGBP, fmtPacks } from '../lib/cost';
 import { lostParts, lostWords, packsHow, type Neck } from '../lib/lineLoss';
 import { useLineNeck } from '../lib/useLineNeck';
 import { Icon } from '../ui/Icon';
+import { ParetoReading } from '../ui/ParetoReading';
+import { changesThisWeek } from '../lib/intelligence';
 
 /** Average weekly loss of the scope over its last 4 full weeks — the honest,
  *  measured "before" a new Case is born with. */
@@ -190,6 +192,19 @@ export function AnalyseScreen({ route }: { route: Route }) {
       {/* IS IT GETTING BETTER? It was a screen of its own, reached by a link
           from here; it is the other half of this screen's question, so it is
           a fold at its foot. ?trend=1 opens it — old links land on it. */}
+      {/* WHAT CHANGED THIS WEEK (lib/intelligence changesThisWeek) — each one tap from its drill */}
+      {(chg => chg.length > 0 && (
+        <section className="lch-chg an-chg" aria-label="What changed this week">
+          <h2 className="lch-h">What changed this week <span className="sub">against the usual of the four weeks before</span></h2>
+          <ul>
+            {chg.map(c => (
+              <li key={c.key} className={'is-' + c.kind}>
+                <button type="button" className="lch-link" onClick={() => nav(buildAnalyseHash(workspace.id, 'analyse', 'time', [{ dimension: 'category', value: c.key }], ['category', 'asset', 'subcategory'], period))}>{c.says}</button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))(changesThisWeek(live, Date.now(), 'category').slice(0, 4))}
       <section className={'fold study-trend' + (trendOpen ? ' is-open' : '')}>
         <button type="button" className="fold-h" aria-expanded={trendOpen} onClick={() => setTrendOpen(o => !o)}>
           <span className="fold-t">Is it getting better?</span>
@@ -307,6 +322,8 @@ export function AnalyseScreen({ route }: { route: Route }) {
                 {plural(node.rows.length, 'observation')}{totalMs > 0 ? ` · ${fmtDurationWords(totalMs)}${lostSaid ? ` · ${lostSaid}` : ''}` : ''} · {periodWord(period)}
               </div>
               {totalMs > 0 && packsSaid && <div className="analyse-meta sub">{packsSaid}</div>}
+              {/* THE PARETO, READ — chronic or one-off, on the constraint or the mirage */}
+              <ParetoReading now={Date.now()} {...(neck ? { neck } : {})} rows={compareRows.map(r => ({ key: r.key, obs: r.observationIds.map(id => byId.get(id)).filter((o): o is NonNullable<typeof o> => !!o) }))} />
               {!costable && (
                 <button className="cost-hint" onClick={() => withQuery('setup', '1')}>
                   <Icon name="pound" size="1.15em" /> Put a £ on this lost time — add crew &amp; labour rate ›

@@ -119,6 +119,9 @@ export interface Capacity {
   /** Planned running hours in a week — what a share of stops is measured
    *  against. Only used to SUGGEST a running percentage, never silently. */
   plannedHoursPerWeek?: number;
+  /** NEXT WEEK'S ORDERS for this product, in the line's unit — typed or pasted
+   *  on the line's capacity (lib/intelligence loadVsDemand); never from an ERP. */
+  demandPerWeek?: number;
   stations: Station[];
   /** THE V's MARGIN (docs/CAPACITY.md §4): how much faster, in percent, each
    *  station a step away from the bottleneck is agreed to be — so a short stop

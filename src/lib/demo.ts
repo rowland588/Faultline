@@ -26,7 +26,8 @@ import {
 import { uid } from './ids';
 import { readVideoMeta } from '../snag/frame';
 
-import { DEMO_NAME } from './lines';
+import { DEMO_NAME, isDemo } from './lines';
+import { seedDemoFactory } from './demoFactory';
 export { DEMO_NAME };
 
 /** The demo line is a showcase, not work. What gathers every line's snags —
@@ -34,7 +35,7 @@ export { DEMO_NAME };
  *  Rowland, 12 October: "Snag report has seeded data in app — remove it."
  *  The demo line itself is untouched, and still opens from its own card. */
 export function withoutDemo<T extends { workspaceId: string }>(rows: T[], lines: readonly { id: string; name: string }[]): T[] {
-  const demo = new Set(lines.filter(w => w.name === DEMO_NAME).map(w => w.id));
+  const demo = new Set(lines.filter(w => isDemo(w.name)).map(w => w.id));
   return demo.size ? rows.filter(r => !demo.has(r.workspaceId)) : rows;
 }
 const DAY = 86_400_000;
@@ -304,7 +305,7 @@ const scopedMs = (obs: Observation[], path: DrillPath, from: number, to: number)
  *  delete cascades and syncs to every device, same as any delete), then a
  *  fresh one is built. Returns the new workspace's id. */
 export async function rebuildDemo(onProgress?: (note: string) => void): Promise<string> {
-  const existing = (await listWorkspaces()).filter(w => w.name === DEMO_NAME);
+  const existing = (await listWorkspaces()).filter(w => isDemo(w.name));
   for (const w of existing) { onProgress?.('removing the old demo…'); await deleteWorkspace(w.id); }
   return seedDemoWorkspace(onProgress);
 }
@@ -512,6 +513,8 @@ export async function seedDemoWorkspace(onProgress?: (note: string) => void): Pr
   ];
   for (const a of actions) await addSnag(a);
 
+  note('the demo factory: products, counted shifts, orders, two more lines…');
+  await seedDemoFactory(ws, now);
   note('done — opening the line…');
   return ws.id;
 }

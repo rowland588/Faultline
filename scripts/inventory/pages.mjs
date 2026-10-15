@@ -56,6 +56,13 @@ export const PAGES = (sd, cap) => [
     { what: 'a V on its side for each line and where they merge', sel: '.vc-rows', n: 3, phone: true },
     { what: 'a sheet for each line and where they merge', sel: '.cap-sheet', n: 3 },
   ] }] : []),
+  { name: 'Line capacity — what a line can make', path: `#/balances?line=${sd.line7WsId}`, must: [
+    { what: 'the answer first', sel: '.lch-hero' },
+    { what: 'theoretical · demonstrated · plannable, each opening why', sel: '.lch-mx .mx', n: 3 },
+    { what: 'ask about the line', sel: '.lch-ask' },
+    { what: 'where the time went, band by band', sel: '.lch-bands .lch-band', n: 3 },
+    { what: 'will next week’s orders fit', sel: '.lch-dem' },
+  ] },
   { name: 'The work against takt', path: `#/w/${sd.wsId}/standards/${sd.lineStandardId}?at=balance&view=work`, must: [{ what: 'each person’s work, stacked against takt', sel: 'svg.wb-svg' }] },
   { name: 'Line standard — a map', path: `#/w/${sd.wsId}/standards/${sd.lineStandardId}`, must: [
     { what: 'the board', sel: '.ls-board' }, { what: 'who does what', sel: '.ls-side' },

@@ -34,6 +34,7 @@ import { gateOf } from '../lib/testing';
 import { LogoMark } from './Logo';
 import { Icon } from './Icon';
 import { AccountMenu } from './AccountMenu';
+import { JumpTo } from './JumpTo';
 import { Sheet } from './Sheet';
 import { ReportsSheet } from './ReportsSheet';
 import { ControlRoomReports } from './ControlRoomReports';
@@ -180,6 +181,7 @@ function TopBar({ project, projects, place }: { project?: Project; projects: Pro
           (docs/FLOW.md item 3): a control that does nothing is not true yet.
           The gap keeps the snag button and you at the right. */}
       <span className="nv-gap" aria-hidden />
+      <JumpTo />
       <QuickSnagButton />
       <AccountMenu />
     </header>
