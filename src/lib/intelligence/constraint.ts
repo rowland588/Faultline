@@ -64,7 +64,7 @@ export function onConstraint(machine: string | undefined, c: LineConstraint | un
 export interface ConstraintWeek { from: number; machine: string; minutes: number }
 export interface ConstraintTrend {
   weeks: ConstraintWeek[];
-  /** The machine losing the most stop minutes most weeks. */
+  /** The machine losing the most stop minutes in half the weeks or more. */
   usual?: string;
   /** True when the latest week's worst machine is not the usual one. */
   moved: boolean;
@@ -88,15 +88,22 @@ export function constraintTrend(obs: readonly Observation[], now: number, weeks 
   if (!rows.length) return { weeks: [], moved: false, says: 'No stops logged in the last weeks.' };
   const tally = new Map<string, number>();
   rows.forEach(r => tally.set(norm(r.machine), (tally.get(norm(r.machine)) ?? 0) + 1));
-  const usualK = [...tally].sort((a, b) => b[1] - a[1])[0][0];
-  const usual = rows.find(r => norm(r.machine) === usualK)?.machine as string;
+  const [topK, topN] = [...tally].sort((a, b) => b[1] - a[1])[0];
+  const top = rows.find(r => norm(r.machine) === topK)?.machine as string;
   const last = rows[rows.length - 1];
-  const moved = rows.length >= 3 && norm(last.machine) !== usualK;
-  const vsNamed = named && norm(named) !== usualK ? ` Line capacity names the ${named} as the bottleneck — the stops say the ${usual} loses the most. One of the two is not the whole story.` : '';
-  const says = moved
-    ? `The losses moved: this week the ${last.machine} lost the most (${Math.round(last.minutes)} min); in ${tally.get(usualK)} of ${rows.length} weeks it was the ${usual}.${vsNamed}`
-    : rows.length === 1 ? `The ${usual} lost the most stop minutes in the one week logged (${Math.round(last.minutes)} min).${vsNamed}`
-      : `The ${usual} loses the most stop minutes in ${tally.get(usualK)} of ${rows.length} weeks.${vsNamed}`;
+  /* "usual" only when one machine is worst in half the weeks or more — two
+     of six is not a pattern, and saying so would argue with this week */
+  const usualK = topN * 2 >= rows.length ? topK : undefined;
+  const usual = usualK ? top : undefined;
+  const moved = !!usualK && rows.length >= 3 && norm(last.machine) !== usualK;
+  const vsNamed = named && usual && norm(named) !== usualK && norm(named) !== norm(last.machine)
+    ? ` Line capacity names the ${named} as the bottleneck — the stops say the ${usual} loses the most. One of the two is not the whole story.` : '';
+  const says = !usual
+    ? `No one machine loses the most week after week: this week the ${last.machine} (${Math.round(last.minutes)} min)${norm(top) !== norm(last.machine) ? `; the ${top} in ${topN} of ${rows.length} weeks` : ''}.`
+    : moved
+      ? `The losses moved: this week the ${last.machine} lost the most (${Math.round(last.minutes)} min); in ${topN} of ${rows.length} weeks it was the ${usual}.${vsNamed}`
+      : rows.length === 1 ? `The ${usual} lost the most stop minutes in the one week logged (${Math.round(last.minutes)} min).${vsNamed}`
+        : `The ${usual} loses the most stop minutes in ${topN} of ${rows.length} weeks.${vsNamed}`;
   return { weeks: rows, usual, moved, says };
 }
 

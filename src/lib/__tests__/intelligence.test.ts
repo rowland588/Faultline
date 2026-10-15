@@ -301,3 +301,40 @@ describe('the heat said of the whole line', () => {
     expect(heatOf([stop('Whole line', 'Clean', NOW - 86_400_000, 40)], NOW).says).toMatch(/^The worst day: the whole line on .* — 40 min\. The whole line stopped on the most days — 1 of 28\.$/);
   });
 });
+
+import { weeklyBrief } from '../intelligence';
+
+describe('the week, to send', () => {
+  const f: LineFacts = {
+    line: 'Line 3', unit: 'bags',
+    rates: { shifts: [], plannable: 50, demonstrated: 55, theoretical: 70, confidence: confidenceOf([NOW], 'shift'), says: 'The line proved 55 bags/min.' },
+    fall: { shifts: 6, plannedMin: 2700, goodMin: 2200, lostMin: 500, labour: 0, contribution: 0, hasMoney: false, says: '6 shifts counted.',
+      bands: [{ key: 'cause:Film', kind: 'cause', label: 'Film splice', min: 220, stops: 30, asset: 'Bagger', countIds: [], onConstraint: false, says: 'Not the constraint.' }] },
+    constraint: { name: 'Basketer', products: ['A'], others: [] }, trend: { weeks: [], moved: false, says: '' }, changes: [],
+    load: { rows: [], neededH: 0, says: 'No orders typed.' }, unitsPer: {},
+  };
+  it('says the panel’s own sentences, in order, and leaves out what is not known', () => {
+    expect(weeklyBrief(f, { asOf: 'Thu 15 Oct', heat: 'The worst day: the Bagger.' })).toEqual([
+      'Line 3 — the week to Thu 15 Oct.',
+      'The line proved 55 bags/min.',
+      'Line 3 is held at the Basketer (A).',
+      'The biggest loss: Film splice on the Bagger: 220 min over 6 counted shifts. But it is not the constraint — fixing it makes no more. The prize is at the Basketer.',
+      'Nothing moved enough this week to call a change.',
+      'The worst day: the Bagger.',
+    ]);
+  });
+});
+
+describe('the constraint over time, honestly', () => {
+  it('two weeks of six is not "usual" — nothing argues with this week', () => {
+    const obs = [
+      stop('Detector', 'Jam', day(5, 1), 50), stop('Detector', 'Jam', day(4, 1), 50),
+      stop('Wrapper', 'Jam', day(3, 1), 50), stop('Weigher', 'Jam', day(2, 1), 50),
+      stop('Capper', 'Jam', day(1, 1), 50), stop('Wrapper', 'Jam', day(0, 1), 60),
+    ];
+    const t = constraintTrend(obs, NOW, 6, 'Wrapper');
+    expect(t.usual).toBeUndefined();
+    expect(t.moved).toBe(false);
+    expect(t.says).toBe('No one machine loses the most week after week: this week the Wrapper (60 min); the Detector in 2 of 6 weeks.');
+  });
+});

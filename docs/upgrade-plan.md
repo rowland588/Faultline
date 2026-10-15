@@ -227,6 +227,14 @@ Each slice ships live on its own (gate → main → Vercel READY), then the next
   neutral ink (never a state colour), its sentence naming the worst day and
   the machine stopped on the most days (chronic when on half or more); every
   cell opens the stops it is made of.
+- **C (the brief) — built 15 October**: *The week, to send* at the foot of
+  each line's capacity panel — the panel's own sentences as one paragraph
+  (what it can make, where it is held, the biggest loss, what changed, where
+  and when it stops, whether the orders fit) with *Copy the week*
+  (`weeklyBrief`, no AI). Found writing it: the constraint over time called a
+  machine "usual" when it was worst in two weeks of six and then argued with
+  this week's — "usual" now needs half the weeks or more, and the brief no
+  longer says "the losses moved" twice.
 - **L (capture) — built 15 October**: *Again?* on Capture — the last four
   distinct reasons (machine · what · which kind) still on the line's lists,
   one tap sets all three (`recentReasons`). The Pareto already ranked by time

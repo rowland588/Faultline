@@ -12,3 +12,4 @@ export * from './demand';
 export * from './ask';
 export * from './recurrence';
 export * from './heat';
+export * from './brief';

@@ -70,7 +70,7 @@ export function askLine(q: string, f: LineFacts): Answer {
   /* WHERE IT IS HELD */
   if (/\b(constraint|bottleneck|held|holding|limit|limits|limiting)\b/.test(s)) {
     return { matched: true, used: [f.trend.says],
-      text: f.constraint ? `${f.line} is held at the ${f.constraint.name} (${f.constraint.products.join(', ')}).${f.trend.moved ? ` But the losses moved: ${f.trend.says}` : ''}` : `Not known yet — work out a product’s Line capacity on ${f.line}.` };
+      text: f.constraint ? `${f.line} is held at the ${f.constraint.name} (${f.constraint.products.join(', ')}).${f.trend.moved ? ` But ${f.trend.says[0].toLowerCase()}${f.trend.says.slice(1)}` : ''}` : `Not known yet — work out a product’s Line capacity on ${f.line}.` };
   }
   /* WHAT IT CAN MAKE */
   if (/\b(make|rate|capacity|output|speed|how much|how many)\b/.test(s)) return { matched: true, text: f.rates.says, used: [f.rates.confidence.says] };

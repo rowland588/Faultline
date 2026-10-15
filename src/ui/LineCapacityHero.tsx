@@ -21,7 +21,7 @@ import { lossFiguresOf } from '../lib/studyLinks';
 import { stopsOfBar } from '../lib/ie/losses';
 import { runningOf } from '../lib/ie/changeover';
 import {
-  ASK_EXAMPLES, askLine, changesThisWeek, constraintShare, confidenceOf, constraintTrend, figure, heatOf, leversOf, onConstraint, lineConstraint, lineRates, loadVsDemand, parseDemand, periodWaterfall, reasonOf, WEEK,
+  ASK_EXAMPLES, askLine, changesThisWeek, constraintShare, confidenceOf, constraintTrend, figure, heatOf, leversOf, onConstraint, weeklyBrief, lineConstraint, lineRates, loadVsDemand, parseDemand, periodWaterfall, reasonOf, WEEK,
   type Answer, type LineFacts,
   type Figure, type Source,
 } from '../lib/intelligence';
@@ -42,6 +42,7 @@ export function LineCapacityHero({ wsId, products, lineName }: { wsId: string; p
   const [answer, setAnswer] = useState<(Answer & { q: string; narrated?: boolean; thinking?: boolean }) | null>(null);
   const [ws, setWs] = useState<Workspace | undefined>();
   const [why, setWhy] = useState<{ fig: Figure; title: string } | null>(null);
+  const [copied, setCopied] = useState(false);
   useEffect(() => {
     const load = async () => {
       const [o, ss, w] = await Promise.all([listObservations(wsId), listAllStudies(), getWorkspace(wsId)]);
@@ -98,6 +99,7 @@ export function LineCapacityHero({ wsId, products, lineName }: { wsId: string; p
     kind: 'stop', id: o.id, href: `#/w/${wsId}/log`,
     label: `${when(o.startedAt)} — ${reasonOf(o)}${o.asset.trim() ? ` · ${o.asset.trim()}` : ''} · ${fmt(o.durationMs / 60_000, 0)} min`,
   }));
+  const brief = weeklyBrief(a.facts, { asOf: new Date(now).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }), ...(heat.rows.length ? { heat: heat.says } : {}) });
   const per = `${unit}/min`;
   const r = a.rates;
   const theo = r.theoretical != null ? figure(`${fmt(r.theoretical)} ${per}`, 'The ideal speed each counted shift was judged against — the slowest station’s plate speed, or a person’s standard time (Line capacity).', shiftSrc(), { from, to: now, confidence: r.confidence }) : undefined;
@@ -243,6 +245,15 @@ export function LineCapacityHero({ wsId, products, lineName }: { wsId: string; p
           <p className="lch-lev-sum" aria-live="polite"><b>{levers.says}</b>{!a.shiftsPerWeek && <span className="sub"> The week needs the line’s running pattern — set it on the line’s SMED (how the line runs).</span>}</p>
         </details>
       )}
+      {/* THE WEEK, TO SEND — the panel's own sentences as one paragraph to
+          paste into a message (lib/intelligence weeklyBrief; no AI) */}
+      <details className="lch-lev lch-brief">
+        <summary className="lch-h">The week, to send <span className="sub">this panel in a paragraph — copy it into a message</span></summary>
+        <p className="lch-brief-t">{brief.join(' ')}</p>
+        <button type="button" className="btn" onClick={() => { void navigator.clipboard?.writeText(brief.join('\n')).then(() => setCopied(true), () => setCopied(false)); }}>
+          {copied ? 'Copied' : 'Copy the week'}
+        </button>
+      </details>
       <WhyNumber fig={why?.fig ?? null} title={why?.title} onClose={() => setWhy(null)} />
     </section>
   );
