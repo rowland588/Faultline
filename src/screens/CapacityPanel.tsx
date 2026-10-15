@@ -45,6 +45,7 @@ import {
   typedPerMinute, chainFactor, chainWords, fmtDur, typedSpeedWords, REST_ALLOWANCE_PCT, cycleWords, rateAsTime, shareColours,
   labourCost, labourInputs, oneMorePerson, whatIfLabour, fmtMoney, fmtBig,
   type Capacity, type CapacityResult, type LabourInputs, type PaceSays, type RateAsTime, type RatePer, type Station, type StationResult, type WhatIf,
+  screenCapacity,
 } from '../lib/capacity';
 import { useLineStops } from '../lib/useLineStops';
 import { Icon } from '../ui/Icon';
@@ -790,6 +791,23 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
         )}
       </div>
 
+      {/* CHECK THE NUMBERS (lib/capacity screenCapacity; Rowland, 15 October:
+          "319%, 279%, 273% ... these percentages make no sense ... screen it
+          for problems") — what is wrong, said before the V, each a question
+          with the station it is about one tap away. The paper prints the same. */}
+      {(checks => checks.length > 0 && (
+        <section className="cap-screen" aria-label="Check the numbers">
+          <h3 className="cap-screen-h">Check the numbers <span className="sub">{checks.length === 1 ? '1 thing' : `${checks.length} things`} to look at before you trust them</span></h3>
+          <ul className="cap-screen-list">
+            {checks.map(c => (
+              <li key={c.text} className={'is-' + c.tone}>
+                <span className="cap-screen-t">{c.text}</span>
+                {c.station != null && <button type="button" className="cw-link" onClick={() => pick(c.station as number)}>Open {r.ok.find(x => x.index === c.station)?.station.name.trim() || 'it'} ›</button>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))(screenCapacity(current, r))}
       {r.ok.length > 0 && <VCurveView r={r} v={vCurve(r, cap.vMarginPct)} target={current.targetPerMin} margin={cap.vMarginPct} canAgree={can.agree && !w}
         onMargin={m => commit({ ...cap, vMarginPct: m })} onPick={pick} />}
       {r.ok.length > 0 && <CapacitySheet r={r} v={vCurve(r, cap.vMarginPct)} target={current.targetPerMin} study={study}

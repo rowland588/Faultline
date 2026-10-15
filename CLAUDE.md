@@ -451,7 +451,13 @@ capacity anywhere ... always implement deletes and editing in
 everything") — renamed in its row with a name already on the line
 refused, its Line capacity deleted from its row with its map kept, said
 and undone, never gone from Line standard, renamed on its own page, and
-deleted there with no map on it — the record gone.
+deleted there with no map on it — the record gone; then screened for problems
+(Rowland, 15 October, on his own line: "a target of 150 ... 319%, 279%, 273%
+... screen it for problems") — his "10 in a tray" as entered: the wrapper a
+third of the target and what it would need, the V's percentages said against
+the bottleneck they are against, a person's rest counted twice; red and
+amber, opening the station, on paper under "To check before the sums are
+trusted", and a line that meets its target not told it is short.
 
 `scripts/sync-two-devices.mjs` runs two real devices of the app (a phone and a
 laptop, separate storage) against `scripts/fake-cloud.mjs`, which keeps the

@@ -806,6 +806,79 @@ export function canMakeWords(r: CapacityResult): string | undefined {
   return `can make ${fmtN(r.line)} ${r.unit} a minute`;
 }
 
+/* ======================== SCREENING THE NUMBERS ===============================
+ * Rowland, 15 October, looking at his own Line capacity — a target of 150 a
+ * minute, and 319%, 279% and 273% on the V: "These percentages make no
+ * sense ... I want you to screen it for problems."
+ *
+ * They were right and told him nothing: each is a station's speed against the
+ * BOTTLENECK's (the pallet wrapper, 50.1 a minute — one person, two pallets
+ * every 12 minutes), not against the target. The thing to say is that the
+ * bottleneck is a third of the target and is it typed right. Three screens,
+ * each only when it is so, each said in the words a person would say it — a
+ * question, never a change made by itself (CLAUDE.md: measured by people):
+ *
+ *   short    the line makes under three quarters of its target: what holds it,
+ *            how it is typed, what it would need to reach the target
+ *   steep    a station running at twice the bottleneck or more: it is the
+ *            bottleneck that is slow, or a speed or a unit that is mistyped
+ *   twice    a person's rest allowance AND a running % of about its inverse:
+ *            the same time taken off twice
+ *
+ * Read by the page above the V (screens/CapacityPanel) and by the paper's
+ * "To check before the sums are trusted" (lib/capacityPaper). Pure. */
+export interface CapCheck {
+  /** r: the line cannot do what it is asked · a: look at this number. */
+  tone: 'r' | 'a';
+  text: string;
+  /** The station to open, when one is the answer. */
+  station?: number;
+}
+
+export function screenCapacity(cap: Capacity, r: CapacityResult): CapCheck[] {
+  const out: CapCheck[] = [];
+  const limit = r.limit;
+  if (!limit || r.line == null || !(r.line > 0) || r.ok.length < 2) return out;
+  const nm = (x: StationResult) => x.station.name.trim() || `Station ${x.index + 1}`;
+  const per = `${r.unit} a minute`;
+  const line = r.line;
+
+  /* THE BOTTLENECK FAR SHORT OF THE TARGET */
+  if (r.target != null && line < r.target * 0.75) {
+    const s = limit.station;
+    const unit = s.unit.trim() || 'units';
+    const typed = !(s.rate != null && s.rate > 0) && s.cycleSec != null && s.cycleSec > 0 && s.perCycle != null && s.perCycle > 0
+      ? cycleWords(s.perCycle, s.cycleSec, unit)
+      : s.rate != null && s.rate > 0 ? `${fmtN(s.rate)} ${unit} ${PER_WORD[s.ratePer ?? 'min']}` : undefined;
+    const crew = s.crew != null && s.crew > 0 ? s.crew : 1;
+    const need = Math.ceil(crew * (r.target / line) - 1e-9);
+    const needs = s.kind === 'people' ? `${fmtN(need)} ${need === 1 ? 'person' : 'people'} at it (it has ${fmtN(crew)})` : `${fmtN(need)} of them running (it has ${fmtN(crew)})`;
+    out.push({ tone: 'r', station: limit.index,
+      text: `${nm(limit)} holds the line to ${fmtN(line)} ${per} — ${fmtN(Math.round((line / r.target) * 100))}% of the ${fmtN(r.target)} target.${typed ? ` It is typed as ${typed}: is that right?` : ''} To make ${fmtN(r.target)} it would need ${needs}.` });
+  }
+
+  /* A V THAT STEEP */
+  const steep = r.ok.filter(x => x.index !== limit.index && x.effective >= 2 * line);
+  if (steep.length) {
+    const list = steep.map(x => `${nm(x)} ${fmtN(Math.round((x.effective / line) * 100))}%`).join(' · ');
+    out.push({ tone: 'a', station: limit.index,
+      text: `${list} — those are against ${nm(limit)}’s ${fmtN(line)} ${per}, not against the ${r.target != null ? `${fmtN(r.target)} target` : 'target'}. A V this steep usually means ${nm(limit)}’s speed or a unit conversion is mistyped, or the other stations are far bigger than the line needs.` });
+  }
+
+  /* A PERSON'S REST TAKEN OFF TWICE */
+  for (const x of r.ok) {
+    const s = x.station;
+    const a = allowanceOf(s);
+    if (a <= 0 || s.runningPct == null) continue;
+    if (Math.abs(s.runningPct - 100 / (1 + a)) > 1.5) continue;
+    const once = x.effective / (s.runningPct / 100);
+    out.push({ tone: 'a', station: x.index,
+      text: `${nm(x)}: the ${fmtN(a * 100)}% rest allowance and a running of ${fmtN(s.runningPct)}% both take time off. If the ${fmtN(s.runningPct)}% is the same rest, it is counted twice — ${fmtN(once)} a minute instead of ${fmtN(x.effective)}.` });
+  }
+  void cap;
+  return out.sort((p, q) => (p.tone === q.tone ? 0 : p.tone === 'r' ? -1 : 1));
+}
+
 /* =========================== what a pack costs ============================
  * Labour's cost per pack: the people on the line × what one costs an hour,
  * over the good packs the line makes an hour (its bottleneck, its rejects

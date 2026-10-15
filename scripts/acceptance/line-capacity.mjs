@@ -24,6 +24,13 @@
  *      shift with no breaks said left out, relief run through, the SMED as
  *      timed and then as the standard, the day summed, on the card at the
  *      line, and the way to the SMED
+ *  14  screened for problems (Rowland, 15 October: "319%, 279%, 273% ...
+ *      these percentages make no sense ... screen it for problems"): his
+ *      line as entered — the bottleneck a third of the target, the V's
+ *      percentages said against it, a person's rest counted twice — red and
+ *      amber, as the module says them, a check opening its station, on paper
+ *      under "To check before the sums are trusted"; a line meeting its
+ *      target not told it is short
  *   8  a person, as the floor says them (Rowland, 13 October: "8 units in a
  *      tray ... a tray every 8 seconds ... very strange numbers"; "70 a
  *      minute ... 10 to a basket ... one basket goes to a human every X"):
@@ -459,6 +466,45 @@ let TRAY;
   page.once('dialog', d => void d.accept());
   await page.getByRole('button', { name: 'Delete this capacity' }).click(); await page.waitForTimeout(1200);
   ok((await rec(TRAY)) === null && page.url().includes('/balances?line='), '13g deleted from its own page — with no map on it, the record goes; back to Line capacity on its line');
+}
+
+/* ---- 14 screened for problems ---- Rowland, 15 October, on his own line: a
+   target of 150 a minute, and 319% · 279% · 273% on the V — "these
+   percentages make no sense ... screen it for problems". His "10 in a tray"
+   as entered: the wrapper makes 50.1, a third of the target; the V's
+   percentages are against it; its 91% running is its 9% rest again. */
+{
+  const { execFileSync } = await import('node:child_process');
+  const { mkdtempSync } = await import('node:fs'); const { tmpdir } = await import('node:os'); const { join } = await import('node:path');
+  const HIS = { labour: { people: 8, ratePerHour: 21.8 }, targetPerMin: 150, plannedHoursPerWeek: 77, stations: [
+    { id: 'a', crew: 1, kind: 'machine', name: 'bagger', rate: 160, unit: 'units', source: 'plate', goodPct: 100, ratePer: 'min', contains: 1, runningPct: 100 },
+    { id: 'b', crew: 1, kind: 'machine', name: 'P160 Pick & Place', rate: 140, unit: 'units', source: 'plate', goodPct: 100, ratePer: 'min', contains: 1, runningPct: 100 },
+    { id: 'c', crew: 2, kind: 'people', name: 'palletiser', unit: 'baskets', source: 'standard', goodPct: 100, ratePer: 'min', contains: 10, cycleSec: 16, perCycle: 2, runningPct: 91, allowancePct: 10 },
+    { id: 'd', crew: 1, kind: 'people', name: 'Pallet wrapper', unit: 'pallets', source: 'estimate', cycleIn: 'min', goodPct: 100, ratePer: 'min', contains: 36, cycleSec: 720, perCycle: 2, runningPct: 91 }] };
+  const before = await page.evaluate(async id => (await import('/src/db.ts')).getStandard(id), SID);
+  await page.evaluate(async ([id, cap]) => { const db = await import('/src/db.ts'); const st = await db.getStandard(id); await db.putStandard({ ...st, capacity: cap }); }, [SID, HIS]);
+  await go(CAP);
+  const mod = await page.evaluate(async cap => { const C = await import('/src/lib/capacity.ts'); return C.screenCapacity(cap, C.analyse(cap)); }, HIS);
+  const items = (await page.locator('.cap-screen-t').allInnerTexts()).map(t => t.replace(/\s+/g, ' ').trim());
+  ok(mod.length === 3 && items.length === 3 && items.every((t, i) => t === mod[i].text) && /33% of the 150 target/.test(items[0]) && /bagger 319% · P160 Pick & Place 279% · palletiser 273%/.test(items[1]),
+    `14 his line screened: the bottleneck a third of the target, the 319% · 279% · 273% said against it, the rest counted twice — as the module says them (${items.length})`);
+  ok(await page.locator('.cap-screen li.is-r').count() === 1 && await page.locator('.cap-screen li.is-a').count() === 2, '14b the one that matters red, the two to look at amber');
+  await page.locator('.cap-screen').getByRole('button', { name: /^Open Pallet wrapper/ }).first().click(); await page.waitForTimeout(600);
+  const opened = await page.evaluate(() => [...document.querySelectorAll('[id^="cap-st-"]')].filter(li => li.querySelector('button[aria-expanded="true"]')).map(li => li.id));
+  ok(opened.length === 1 && opened[0] === 'cap-st-d', `14c a check opens the station it is about — the Pallet wrapper's, open to edit (${opened.join(', ') || 'none open'})`);
+  /* on paper, in the list "to check before the sums are trusted" */
+  await go(CAP);
+  const dir = mkdtempSync(join(tmpdir(), 'cap-chk-'));
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'PDF', exact: true }).click()]);
+  const file = join(dir, 'cap.pdf'); await dl.saveAs(file);
+  const txt = execFileSync('pdftotext', ['-raw', file, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ').replace(/[–—]/g, '-').replace(/’/g, "'");
+  const lost = mod.map(m => m.text.replace(/\s+/g, ' ').replace(/[–—]/g, '-').replace(/’/g, "'")).filter(t => !txt.includes(t));
+  ok(/TO CHECK BEFORE THE SUMS ARE TRUSTED/i.test(txt) && !lost.length, `14d and on paper — each under "To check before the sums are trusted"${lost.length ? ` — lost: ${lost[0].slice(0, 70)}` : ''}`);
+  /* a line that meets its target says nothing */
+  await page.evaluate(async ([id, cap]) => { const db = await import('/src/db.ts'); const st = await db.getStandard(id); await db.putStandard({ ...st, capacity: { ...cap, targetPerMin: 45, stations: cap.stations.map(x => (x.id === 'd' ? { ...x, runningPct: 100 } : x.id === 'a' ? { ...x, rate: 60 } : x.id === 'b' ? { ...x, rate: 58 } : x)) } }); }, [SID, HIS]);
+  await go(CAP);
+  ok(await page.locator('.cap-screen li.is-r').count() === 0, '14e a line that meets its target is not told it is short');
+  await page.evaluate(async b => { const db = await import('/src/db.ts'); await db.putStandard(b); }, before);
 }
 
 /* ---- a client reads it and changes nothing ---- a line's own tool is its

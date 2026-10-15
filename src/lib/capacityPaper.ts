@@ -25,7 +25,7 @@
  * the limit, not a failure. */
 import {
   allowanceOf, analyse, changedWords, cycleWords, compareSays, fmtBig, fmtMoney, fmtN, labourCost, oneMorePerson, oneOf, shiftCapacity, shortSays,
-  vCurve, whatIfCapacity, whatIfLabour, whatIfStations,
+  screenCapacity, vCurve, whatIfCapacity, whatIfLabour, whatIfStations,
   type Capacity, type ChangeoverIn, type LabourInputs, type ShiftIn, type Station,
 } from './capacity';
 import type { WalkVerdict } from './ie/walk';
@@ -204,6 +204,8 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
   const check = [
     ...r.skipped.map(k => `${k.station.name.trim() || `Station ${k.index + 1}`} is not counted: ${k.why}.`),
     ...r.notes,
+    /* the page's "Check the numbers", in the same words (lib/capacity screenCapacity) */
+    ...screenCapacity(cap, r).map(c => c.text),
   ];
 
   /* A SHIFT — the line's own shifts, less the breaks it stops for and the
