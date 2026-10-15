@@ -8,9 +8,14 @@
  * follows is where they merge. k = all of them: they do not merge, each ends
  * on its own and what they make is added. n = 1: one chain again.
  *
- * Nothing is lost silently: a line that already holds exactly k stations is
- * kept as it is (its speeds, its crew); the others are copies of the first
- * line's, to change what differs. Pure — the page offers an Undo. */
+ * Every line keeps what was typed on it (Rowland, 15 October: "the how many
+ * lines system doesn't work" — moving the merge rebuilt every line as a copy
+ * of the first and threw away what differed, and a line one station longer
+ * than the others locked the merge for good). Now: more lines are copies of
+ * the first; moving the merge LATER hands the stations it passes to every line
+ * (each its own copy), keeping all they had; EARLIER makes each line's last
+ * stations shared (each keeps its first k), the first line's version kept. Lines of different lengths
+ * merge at the first line's point. Pure — the page offers an Undo. */
 import type { Capacity, Lane, Station } from './capacity';
 
 export const MAX_LINES = 8;
@@ -26,13 +31,22 @@ export function chainOf(cap: Capacity): Station[] {
   return [...first, ...cap.stations.filter(s => !s.lane || !ids.has(s.lane))];
 }
 
-/** How many stations each line has of its own now — the merge point, when the
- *  lines are all the same length; otherwise undefined (they differ). */
+/** Where the lines merge: after the first line's own stations. Undefined with
+ *  no lines. */
 export function mergeAfterOf(cap: Capacity): number | undefined {
   const lanes = cap.lanes ?? [];
   if (!lanes.length) return undefined;
-  const n = lanes.map(l => cap.stations.filter(s => s.lane === l.id).length);
-  return n.every(x => x === n[0]) ? n[0] : undefined;
+  return cap.stations.filter(s => s.lane === lanes[0].id).length;
+}
+
+/** True when every line holds the same stations at the same speeds — the page
+ *  then shows them once, "each of them", not the same V over and over. */
+export function lanesAlike(cap: Capacity): boolean {
+  const lanes = cap.lanes ?? [];
+  if (lanes.length < 2) return false;
+  const sig = (id: string) => JSON.stringify(cap.stations.filter(s => s.lane === id).map(s => { const { id: _i, lane: _l, ...rest } = s; void _i; void _l; return rest; }));
+  const a = sig(lanes[0].id);
+  return lanes.every(l => sig(l.id) === a);
 }
 
 export function reshape(cap: Capacity, lines: number, mergeAfter: number, uid: () => string): Capacity {
@@ -43,14 +57,27 @@ export function reshape(cap: Capacity, lines: number, mergeAfter: number, uid: (
   if (n === 1 || !chain.length) return { ...cap, lanes: undefined, stations: chain.map(strip) };
   const old = cap.lanes ?? [];
   const lanes: Lane[] = Array.from({ length: n }, (_, i) => old[i] ?? { id: uid(), name: laneLetter(i) });
-  const template = chain.slice(0, k);
-  const stations: Station[] = [];
-  lanes.forEach((l, i) => {
-    const own = cap.stations.filter(s => s.lane === l.id);
-    if (i === 0) template.forEach(s => stations.push({ ...s, lane: l.id }));
-    else if (own.length === k) own.forEach(s => stations.push(s));
-    else template.forEach(s => stations.push({ ...s, id: uid(), lane: l.id }));
+  const ids = new Set(old.map(l => l.id));
+  let shared = cap.stations.filter(s => !s.lane || !ids.has(s.lane)).map(strip);
+  /* each line's own stations as they stand — a new line a copy of the first's */
+  const firstOwn = old.length ? cap.stations.filter(s => s.lane === old[0].id) : chain.slice(0, 0);
+  const own: Station[][] = lanes.map((l, i) => {
+    if (!old.length) return [];
+    const mine = cap.stations.filter(s => s.lane === l.id);
+    return i < old.length ? mine : firstOwn.map(s => ({ ...s, id: uid(), lane: l.id }));
   });
-  chain.slice(k).forEach(s => stations.push(strip(s)));
-  return { ...cap, lanes, stations };
+  if (!old.length) { shared = chain.map(strip); }
+  const kA = old.length ? firstOwn.length : 0;
+  if (k > kA) {
+    /* LATER: the shared stations it passes become every line's own */
+    const pass = shared.slice(0, k - kA);
+    shared = shared.slice(k - kA);
+    lanes.forEach((l, i) => { own[i] = [...own[i], ...pass.map(s => (i === 0 ? { ...s, lane: l.id } : { ...s, id: uid(), lane: l.id }))]; });
+  } else if (k < kA) {
+    /* EARLIER: each line keeps its first k; what the first line had after
+       them becomes the shared stations, in front of what was shared */
+    shared = [...own[0].slice(k).map(strip), ...shared];
+    own.forEach((o, i) => { own[i] = o.slice(0, k); });
+  }
+  return { ...cap, lanes, stations: [...own.flat(), ...shared] };
 }

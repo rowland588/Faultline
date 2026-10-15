@@ -543,7 +543,12 @@ let TRAY;
   ok(c.lanes?.length === 2 && JSON.stringify(lanesOf(c)) === JSON.stringify([['Line A', ['bagger', 'P160 Pick & Place', 'palletiser']], ['Line B', ['bagger', 'P160 Pick & Place', 'palletiser']]])
     && c.stations.filter(st => !st.lane).map(st => st.name).join() === 'Pallet wrapper' && new Set(c.stations.map(st => st.id)).size === 7,
     '15b split where they merge: Line A the stations up to there, Line B a copy of them with its own, the wrapper shared');
-  ok(await page.locator('.cap-grp.has-lanes').count() === 3 && await page.locator('.cap-sec').count() === 3, '15c the page: a group and a V a line, then where they merge');
+  /* lines alike are drawn once and edited once, in step (15 October: "an
+     absolute mess" — the same V, sheet and stations over and over) */
+  ok(await page.locator('.cap-grp.has-lanes').count() === 2 && await page.locator('.cap-sec').count() === 2 && /the same stations/.test(await page.locator('.cap-grp.has-lanes').first().innerText()),
+    '15c lines alike: one group and one V for them, then where they merge');
+  await page.getByRole('button', { name: 'Make the lines different' }).click(); await page.waitForTimeout(600);
+  ok(await page.locator('.cap-grp.has-lanes').count() === 3, '15c2 made different: a group a line, then where they merge');
   const t1 = await page.evaluate(async cap => { const C = await import('/src/lib/capacity.ts'); const r = C.analyse(cap); return { says: r.sentence, line: r.line, sends: r.lanes.sends }; }, c);
   ok(await says() === t1.says && Math.abs(t1.line - 50.09) < 0.1 && Math.abs(t1.sends - 136.5) < 0.01,
     `15d the sentence is the module's: ${t1.says}`);
@@ -608,7 +613,7 @@ let TRAY;
   c = await cap();
   ok(c.lanes?.length === 2 && JSON.stringify(lanesOf(c)) === JSON.stringify([['Line A', ['bagger', 'P160 Pick & Place', 'palletiser']], ['Line B', ['bagger', 'P160 Pick & Place', 'palletiser']]])
     && c.stations.filter(st => !st.lane).map(st => st.name).join() === 'Pallet wrapper', '16a "2": two lines, the same first stations, merging before the last — the wrapper shared');
-  ok(await page.locator('.vc-svg').count() === 3, '16b a V is drawn on the page for each line and for where they merge (it was only on the paper)');
+  ok(await page.locator('.vc-svg').count() === 2, '16b a V is drawn on the page for the lines (alike, so once) and for where they merge (it was only on the paper)');
   ok(await page.locator('.cap-map-row').count() === 2 && await page.locator('.cap-map-merge').count() === 1 && /Lines merge here — 137 units\/min arrive/.test(await words('.cap-map-join')),
     '16c the map: a row a line with each station and its speed, then where they merge and what arrives');
   const mine = await page.evaluate(async cap => { const C = await import('/src/lib/capacity.ts'); const r = C.analyse(cap); const f = r.lanes.merged.ok.find(x => x.station.id !== '__merge__'); const prev = cap.stations.filter(s => s.lane === cap.lanes[0].id).slice(-1)[0]; const say = C.paceSays(r, f.station, prev.unit, prev); return [say.arrive, say.verdict].filter(Boolean).join(' '); }, c);
