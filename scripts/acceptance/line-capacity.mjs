@@ -24,6 +24,19 @@
  *      shift with no breaks said left out, relief run through, the SMED as
  *      timed and then as the standard, the day summed, on the card at the
  *      line, and the way to the SMED
+ *  14  screened for problems (Rowland, 15 October: "319%, 279%, 273% ...
+ *      these percentages make no sense ... screen it for problems"): his
+ *      line as entered — the bottleneck a third of the target, the V's
+ *      percentages said against it, a person's rest counted twice — red and
+ *      amber, as the module says them, a check opening its station, on paper
+ *      under "To check before the sums are trusted"; a line meeting its
+ *      target not told it is short
+ *  15  several lines feeding one place (Rowland, 15 October: "line A, line B
+ *      ... one person who has to wrap for both"; "3, 4, 5 lines into one"): a
+ *      chain split where they merge, a line added like the last and named, a
+ *      station moved inside its own line, a line taken away and brought back,
+ *      a what-if keeping the lines, the checks said along each line, and a V
+ *      and a sheet a line on paper, then where they merge
  *   8  a person, as the floor says them (Rowland, 13 October: "8 units in a
  *      tray ... a tray every 8 seconds ... very strange numbers"; "70 a
  *      minute ... 10 to a basket ... one basket goes to a human every X"):
@@ -459,6 +472,129 @@ let TRAY;
   page.once('dialog', d => void d.accept());
   await page.getByRole('button', { name: 'Delete this capacity' }).click(); await page.waitForTimeout(1200);
   ok((await rec(TRAY)) === null && page.url().includes('/balances?line='), '13g deleted from its own page — with no map on it, the record goes; back to Line capacity on its line');
+}
+
+/* ---- 14 screened for problems ---- Rowland, 15 October, on his own line: a
+   target of 150 a minute, and 319% · 279% · 273% on the V — "these
+   percentages make no sense ... screen it for problems". His "10 in a tray"
+   as entered: the wrapper makes 50.1, a third of the target; the V's
+   percentages are against it; its 91% running is its 9% rest again. */
+{
+  const { execFileSync } = await import('node:child_process');
+  const { mkdtempSync } = await import('node:fs'); const { tmpdir } = await import('node:os'); const { join } = await import('node:path');
+  const HIS = { labour: { people: 8, ratePerHour: 21.8 }, targetPerMin: 150, plannedHoursPerWeek: 77, stations: [
+    { id: 'a', crew: 1, kind: 'machine', name: 'bagger', rate: 160, unit: 'units', source: 'plate', goodPct: 100, ratePer: 'min', contains: 1, runningPct: 100 },
+    { id: 'b', crew: 1, kind: 'machine', name: 'P160 Pick & Place', rate: 140, unit: 'units', source: 'plate', goodPct: 100, ratePer: 'min', contains: 1, runningPct: 100 },
+    { id: 'c', crew: 2, kind: 'people', name: 'palletiser', unit: 'baskets', source: 'standard', goodPct: 100, ratePer: 'min', contains: 10, cycleSec: 16, perCycle: 2, runningPct: 91, allowancePct: 10 },
+    { id: 'd', crew: 1, kind: 'people', name: 'Pallet wrapper', unit: 'pallets', source: 'estimate', cycleIn: 'min', goodPct: 100, ratePer: 'min', contains: 36, cycleSec: 720, perCycle: 2, runningPct: 91 }] };
+  const before = await page.evaluate(async id => (await import('/src/db.ts')).getStandard(id), SID);
+  await page.evaluate(async ([id, cap]) => { const db = await import('/src/db.ts'); const st = await db.getStandard(id); await db.putStandard({ ...st, capacity: cap }); }, [SID, HIS]);
+  await go(CAP);
+  const mod = await page.evaluate(async cap => { const C = await import('/src/lib/capacity.ts'); return C.screenCapacity(cap, C.analyse(cap)); }, HIS);
+  const items = (await page.locator('.cap-screen-t').allInnerTexts()).map(t => t.replace(/\s+/g, ' ').trim());
+  ok(mod.length === 3 && items.length === 3 && items.every((t, i) => t === mod[i].text) && /33% of the 150 target/.test(items[0]) && /bagger 319% · P160 Pick & Place 279% · palletiser 273%/.test(items[1]),
+    `14 his line screened: the bottleneck a third of the target, the 319% · 279% · 273% said against it, the rest counted twice — as the module says them (${items.length})`);
+  ok(await page.locator('.cap-screen li.is-r').count() === 1 && await page.locator('.cap-screen li.is-a').count() === 2, '14b the one that matters red, the two to look at amber');
+  await page.locator('.cap-screen').getByRole('button', { name: /^Open Pallet wrapper/ }).first().click(); await page.waitForTimeout(600);
+  const opened = await page.evaluate(() => [...document.querySelectorAll('[id^="cap-st-"]')].filter(li => li.querySelector('button[aria-expanded="true"]')).map(li => li.id));
+  ok(opened.length === 1 && opened[0] === 'cap-st-d', `14c a check opens the station it is about — the Pallet wrapper's, open to edit (${opened.join(', ') || 'none open'})`);
+  /* on paper, in the list "to check before the sums are trusted" */
+  await go(CAP);
+  const dir = mkdtempSync(join(tmpdir(), 'cap-chk-'));
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'PDF', exact: true }).click()]);
+  const file = join(dir, 'cap.pdf'); await dl.saveAs(file);
+  const txt = execFileSync('pdftotext', ['-raw', file, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ').replace(/[–—]/g, '-').replace(/’/g, "'");
+  const lost = mod.map(m => m.text.replace(/\s+/g, ' ').replace(/[–—]/g, '-').replace(/’/g, "'")).filter(t => !txt.includes(t));
+  ok(/TO CHECK BEFORE THE SUMS ARE TRUSTED/i.test(txt) && !lost.length, `14d and on paper — each under "To check before the sums are trusted"${lost.length ? ` — lost: ${lost[0].slice(0, 70)}` : ''}`);
+  /* a line that meets its target says nothing */
+  await page.evaluate(async ([id, cap]) => { const db = await import('/src/db.ts'); const st = await db.getStandard(id); await db.putStandard({ ...st, capacity: { ...cap, targetPerMin: 45, stations: cap.stations.map(x => (x.id === 'd' ? { ...x, runningPct: 100 } : x.id === 'a' ? { ...x, rate: 60 } : x.id === 'b' ? { ...x, rate: 58 } : x)) } }); }, [SID, HIS]);
+  await go(CAP);
+  ok(await page.locator('.cap-screen li.is-r').count() === 0, '14e a line that meets its target is not told it is short');
+  await page.evaluate(async b => { const db = await import('/src/db.ts'); await db.putStandard(b); }, before);
+}
+
+/* ---- 15 several lines feeding one place ---- Rowland, 15 October: "two
+   lines here that then merge ... line A, line B, running ... one person who
+   has to wrap for both"; "the 150 was for both lines merged"; "3, 4, 5
+   production lines all running, then merging into one pack hole ... that
+   happens all the time in manufacturing". His "10 in a tray" as one chain, one
+   palletiser a line: split where the lines merge, a line added like the last,
+   named, a station moved inside its own line, a what-if, the checks, the paper. */
+{
+  const { execFileSync } = await import('node:child_process');
+  const { mkdtempSync } = await import('node:fs'); const { tmpdir } = await import('node:os'); const { join } = await import('node:path');
+  const CHAIN = { labour: { people: 8, ratePerHour: 21.8 }, targetPerMin: 150, plannedHoursPerWeek: 77, stations: [
+    { id: 'a', crew: 1, kind: 'machine', name: 'bagger', rate: 160, unit: 'units', source: 'plate', goodPct: 100, ratePer: 'min', contains: 1, runningPct: 100 },
+    { id: 'b', crew: 1, kind: 'machine', name: 'P160 Pick & Place', rate: 140, unit: 'units', source: 'plate', goodPct: 100, ratePer: 'min', contains: 1, runningPct: 100 },
+    { id: 'c', crew: 1, kind: 'people', name: 'palletiser', unit: 'baskets', source: 'standard', goodPct: 100, ratePer: 'min', contains: 10, cycleSec: 16, perCycle: 2, runningPct: 91, allowancePct: 10 },
+    { id: 'd', crew: 1, kind: 'people', name: 'Pallet wrapper', unit: 'pallets', source: 'estimate', cycleIn: 'min', goodPct: 100, ratePer: 'min', contains: 36, cycleSec: 720, perCycle: 2, runningPct: 91 }] };
+  const before = await page.evaluate(async id => (await import('/src/db.ts')).getStandard(id), SID);
+  await page.evaluate(async ([id, cap]) => { const db = await import('/src/db.ts'); const st = await db.getStandard(id); await db.putStandard({ ...st, capacity: cap }); }, [SID, CHAIN]);
+  await go(CAP);
+  const cap = () => page.evaluate(async id => (await (await import('/src/db.ts')).getStandard(id)).capacity, SID);
+  const says = () => words('.cap-says');
+  ok(await page.locator('.cap-grp.has-lanes').count() === 0 && await page.locator('#cap-st-c .cap-split').count() === 1 && await page.locator('#cap-st-d .cap-split').count() === 0,
+    '15 a single chain offers "Lines merge after this" on every station but the last');
+
+  /* split after the palletiser: Line A is what is up to there, Line B a copy, the wrapper shared */
+  await page.locator('#cap-st-c .cap-split').click(); await page.waitForTimeout(1200);
+  let c = await cap();
+  const lanesOf = x => (x.lanes ?? []).map(l => [l.name, x.stations.filter(st => st.lane === l.id).map(st => st.name)]);
+  ok(c.lanes?.length === 2 && JSON.stringify(lanesOf(c)) === JSON.stringify([['Line A', ['bagger', 'P160 Pick & Place', 'palletiser']], ['Line B', ['bagger', 'P160 Pick & Place', 'palletiser']]])
+    && c.stations.filter(st => !st.lane).map(st => st.name).join() === 'Pallet wrapper' && new Set(c.stations.map(st => st.id)).size === 7,
+    '15b split where they merge: Line A the stations up to there, Line B a copy of them with its own, the wrapper shared');
+  ok(await page.locator('.cap-grp.has-lanes').count() === 3 && await page.locator('.cap-sec').count() === 3, '15c the page: a group and a V a line, then where they merge');
+  const t1 = await page.evaluate(async cap => { const C = await import('/src/lib/capacity.ts'); const r = C.analyse(cap); return { says: r.sentence, line: r.line, sends: r.lanes.sends }; }, c);
+  ok(await says() === t1.says && Math.abs(t1.line - 50.09) < 0.1 && Math.abs(t1.sends - 136.5) < 0.01,
+    `15d the sentence is the module's: ${t1.says}`);
+
+  /* a third line, like the last; named; the wrapper takes what all three send */
+  await page.getByRole('button', { name: /^Add another line, like Line B/ }).click(); await page.waitForTimeout(1000);
+  c = await cap();
+  ok(c.lanes?.length === 3 && c.stations.filter(st => st.lane === c.lanes[2].id).length === 3 && c.lanes[2].name === 'Line C', '15e another line, like the last: Line C, its three stations copied');
+  const nm = page.getByLabel('Name of Line C'); await nm.fill('Packing 3'); await nm.press('Tab'); await page.waitForTimeout(800);
+  c = await cap();
+  ok(c.lanes[2].name === 'Packing 3' && /Line A, Line B and Packing 3/.test(await says()), '15f a line named — the sentence says its name');
+  const t3 = await page.evaluate(async cap => { const C = await import('/src/lib/capacity.ts'); return C.analyse(cap).lanes.sends; }, c);
+  ok(Math.abs(t3 - 204.75) < 0.01, `15g what three lines send is what the place takes (${t3})`);
+
+  /* a station moved inside its own line only */
+  await page.locator(`#cap-st-${c.stations.find(st => st.lane === c.lanes[1].id && st.name === 'bagger').id} button[aria-label="Move later in the line"]`).click(); await page.waitForTimeout(800);
+  c = await cap();
+  const names = id => c.stations.filter(st => st.lane === id).map(st => st.name).join();
+  ok(names(c.lanes[0].id) === 'bagger,P160 Pick & Place,palletiser' && names(c.lanes[1].id) === 'P160 Pick & Place,bagger,palletiser', '15h a station moved later in Line B, Line A as it was');
+
+  /* the third line taken away, with its stations; and undone */
+  await page.getByRole('button', { name: 'Remove this line' }).last().click(); await page.waitForTimeout(800);
+  c = await cap();
+  ok(c.lanes.length === 2 && c.stations.length === 7, '15i a line removed with its stations');
+  await page.getByRole('button', { name: 'Undo' }).click(); await page.waitForTimeout(800);
+  c = await cap();
+  ok(c.lanes.length === 3 && c.stations.length === 10, '15j and undone');
+  await page.getByRole('button', { name: 'Remove this line' }).last().click(); await page.waitForTimeout(800);
+
+  /* a what-if keeps the lines; a station changed there moves the whole */
+  await page.getByRole('button', { name: /What if$/ }).click(); await page.waitForTimeout(800);
+  ok(await page.locator('.cap-grp.has-lanes').count() === 3 && await page.getByRole('button', { name: 'Remove this line' }).count() === 0, '15k a what-if keeps the lines, and does not add or take away a line');
+  await page.getByRole('tab', { name: 'As run' }).click(); await page.waitForTimeout(500);
+
+  /* the checks, in the module's words, with the lines named */
+  c = await cap();
+  const chk = await page.evaluate(async cap => { const C = await import('/src/lib/capacity.ts'); return C.screenCapacity(cap, C.analyse(cap)).map(x => x.text); }, c);
+  const shown = (await page.locator('.cap-screen-t').allInnerTexts()).map(t => t.replace(/\s+/g, ' ').trim());
+  ok(chk.length >= 2 && shown.length === chk.length && shown.every((t, i) => t === chk[i]) && /^Pallet wrapper holds Line A and Line B/.test(chk[0]) && /Line A: bagger/.test(chk.join(" ")),
+    `15l checked as several lines: ${chk.length} things, the wrapper against both lines and each V along its own line (${shown.length} shown${shown.length === chk.length ? '' : `: ${shown.map(t => t.slice(0, 40)).join(' | ')} / module: ${chk.map(t => t.slice(0, 40)).join(' | ')}`})`);
+
+  /* on paper: each line, its own V and sheet, then where they merge */
+  const dir = mkdtempSync(join(tmpdir(), 'cap-lanes-'));
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'PDF', exact: true }).click()]);
+  const file = join(dir, 'cap.pdf'); await dl.saveAs(file);
+  const raw = execFileSync('pdftotext', ['-raw', file, '-'], { encoding: 'utf8' });
+  const txt = raw.replace(/\s+/g, ' ').replace(/[–—]/g, '-').replace(/’/g, "'");
+  const want = [`Line A - on its own, 68.3 units/min`, `Line B - on its own, 68.3 units/min`, `After the lines merge - what they send, 137 units/min`, ...chk];
+  const lost = want.map(w => w.replace(/\s+/g, ' ').replace(/[–—]/g, '-').replace(/’/g, "'")).filter(w => !txt.toLowerCase().includes(w.toLowerCase()));
+  ok(!lost.length && /Pallet wrapper holds Line A and Line B/.test(txt), `15m the paper: a V and a sheet a line and where they merge, the checks beneath${lost.length ? ` — lost: ${lost[0].slice(0, 80)}` : ''}`);
+  await page.evaluate(async b => { const db = await import('/src/db.ts'); await db.putStandard(b); }, before);
 }
 
 /* ---- a client reads it and changes nothing ---- a line's own tool is its

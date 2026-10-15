@@ -100,7 +100,7 @@ function vBars(p: CapacityPaper): Block | null {
   const NAME = 150, VAL = 74;
   const geo = (f: Frame) => { const x0 = f.x + NAME + 8, x1 = f.x + f.w - VAL - 6; return { x0, x1, at: (v: number) => x0 + (Math.max(0, Math.min(v, top)) / top) * (x1 - x0) }; };
   const over = (p.targetPct ?? 0) > 100 + 1e-9;
-  const name = (f: Frame, r: CapacityPaperRow) => wrap(f.doc, `${r.n}  ${r.name}${r.crew ? ` ${r.crew}` : ''}`, NAME - 4, T, 'bold');
+  const name = (f: Frame, r: CapacityPaperRow) => wrap(f.doc, `${r.n > 0 ? `${r.n}  ` : ''}${r.name}${r.crew ? ` ${r.crew}` : ''}`, NAME - 4, T, 'bold');
   const rowH = (f: Frame, r: CapacityPaperRow) => Math.max(name(f, r).length * LH + LS, 18) + 6;
   /* the marks every row carries, so they run unbroken down the chart */
   const marks = (f: Frame, y: number, h: number, r?: CapacityPaperRow) => {
@@ -253,7 +253,7 @@ function sheet(p: CapacityPaper): Block {
         const col = by[k]; if (!col) return;
         font(f.doc, T, style, ink); f.doc.text(san(v), col.x + col.w - 3, ty, { align: 'right' });
       };
-      font(f.doc, T, 'bold', MUTED); f.doc.text(String(r.n), (by.n?.x ?? f.x) + 15, ty, { align: 'right' });
+      font(f.doc, T, 'bold', MUTED); f.doc.text(r.n > 0 ? String(r.n) : '', (by.n?.x ?? f.x) + 15, ty, { align: 'right' });
       font(f.doc, T, 'bold', INK); f.doc.text(c.name, by.name.x, ty);
       font(f.doc, S, 'normal', MUTED); f.doc.text(c.unit, by.name.x, ty + c.name.length * LH - 1);
       font(f.doc, T, 'normal', INK2); f.doc.text(c.speed, by.speed.x, ty);
@@ -335,12 +335,26 @@ export function productBlocks(p: CapacityPaper, d: Density, own: boolean, keep =
   out.push(label('Where it is limited'));
   if (p.target) out.push(said('The target:', `${p.target}.`));
   if (p.v) out.push(said('The V-curve:', p.v.text, p.v.tone));
-  /* the V drawn, as the screen draws it */
-  const vb = vBars(p);
-  if (vb) { out.push(vb); out.push(vKey(p)); }
-  if (p.walk) out.push(said('The bottleneck, walked:', p.walk.text, p.walk.tone));
-  out.push({ ...space('s'), keepWithNext: true });   // travels with the sheet, never strands the label
-  out.push(sheet(p));
+  /* the V drawn, as the screen draws it — along each line, then the place
+     they merge, when several lines feed one (lib/capacity LanesView) */
+  if (p.groups?.length) {
+    const { targetPct: _all, ...rest } = p;
+    for (const g of p.groups) {
+      const gp: CapacityPaper = { ...rest, rows: p.rows.filter(r => r.group === g.name), ...(g.targetPct != null ? { targetPct: g.targetPct } : {}) };
+      out.push(label(`${g.name} — ${g.says}`));
+      const gv = vBars(gp);
+      if (gv) { out.push(gv); out.push(vKey(gp)); }
+      out.push({ ...space('s'), keepWithNext: true });
+      out.push(sheet(gp));
+    }
+    if (p.walk) out.push(said('The bottleneck, walked:', p.walk.text, p.walk.tone));
+  } else {
+    const vb = vBars(p);
+    if (vb) { out.push(vb); out.push(vKey(p)); }
+    if (p.walk) out.push(said('The bottleneck, walked:', p.walk.text, p.walk.tone));
+    out.push({ ...space('s'), keepWithNext: true });   // travels with the sheet, never strands the label
+    out.push(sheet(p));
+  }
   if (p.check.length) {
     out.push(label('To check before the sums are trusted', AMBER));
     for (const c of p.check) out.push(text({ text: c, size: T, colour: AMBER, indent: 10, bullet: '·', after: 3 }));
