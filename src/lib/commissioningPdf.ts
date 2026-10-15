@@ -23,7 +23,7 @@ import { SIZE, box, font, gap, heading, label, rows, text, wrap, type Row } from
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK = '#0f1a2e', INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef';
-const BRAND = '#1f63e0', OK = '#1e6b4b', DANGER = '#9b3227', AMBER = '#8a5f14', BOOKED = '#4f46b8', GREY = '#8a94a6';
+const BRAND = '#1f63e0', OK = '#15803d', DANGER = '#c4281c', AMBER = '#b45309', BOOKED = '#6d28d9', GREY = '#8a94a6';
 
 const HO: Record<HoTone, string> = { done: OK, failed: DANGER, late: DANGER, ahead: BOOKED, none: MUTED };
 const CM: Record<CmTone, string> = { g: OK, r: DANGER, a: AMBER, w: BOOKED, n: GREY };

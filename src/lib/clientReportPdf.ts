@@ -24,7 +24,7 @@ const INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef';
 /* The app's own state colours, so paper and screen say the same thing in the
    same colour: one red (the day has gone), one amber (waiting), one indigo
    (under way, still ahead), one green (done — and quiet). */
-const BRAND = '#1f63e0', SHELL = '#0d1f3c', OK = '#1e6b4b', DANGER = '#9b3227', AMBER = '#8a5f14', BOOKED = '#4f46b8';
+const BRAND = '#1f63e0', SHELL = '#0d1f3c', OK = '#15803d', DANGER = '#c4281c', AMBER = '#b45309', BOOKED = '#6d28d9';
 const DONE_WASH = '#e3efe9';
 
 /* Late and a problem said apart — Rowland, 6 October: never "late or a

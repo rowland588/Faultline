@@ -24,7 +24,7 @@ import { lossBlocks } from './report/lossTable';
 import { samplingBlocks } from './report/samplingTable';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', BRAND = '#1f63e0', DANGER = '#9b3227';
+const INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', BRAND = '#1f63e0', DANGER = '#c4281c';
 
 export interface StudyPaperItem {
   s: ToolStudy;

@@ -15,7 +15,7 @@ import { chooseDensity, pour, type Block, type Density, type Frame } from './rep
 import { SIZE, box, font, gap, rows, text, wrap } from './report/blocks';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', BRAND = '#1f63e0', AMBER = '#8a5f14';
+const INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', BRAND = '#1f63e0', AMBER = '#b45309';
 const TONE: Record<ProgTone, string> = { g: OK, r: DANGER, w: BLUE, a: AMBER, n: MUTED };
 
 const sanLine = (l: ProgramLine): ProgramLine => ({

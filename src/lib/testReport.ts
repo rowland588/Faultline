@@ -65,7 +65,7 @@ export function drawMarks(ctx: CanvasRenderingContext2D, w: number, h: number, p
   pins.forEach((p, i) => {
     const cx = (p.x / 100) * w, cy = (p.y / 100) * h;
     ctx.beginPath(); ctx.arc(cx, cy, r + Math.max(2, Math.round(r * 0.2)), 0, Math.PI * 2); ctx.fillStyle = '#ffffff'; ctx.fill();
-    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = '#9b3227'; ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = '#c4281c'; ctx.fill();
     ctx.fillStyle = '#ffffff'; ctx.font = `bold ${Math.round(r * 1.2)}px sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(String(i + 1), cx, cy + r * 0.06);

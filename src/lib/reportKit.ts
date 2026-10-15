@@ -22,7 +22,7 @@ export const ACCENT = '#1f5fd6', BRAND = '#1f63e0', SURF2 = '#e9eff7';
 export const GOLD = '#a97822';
 /** The dark frame a masthead or a verdict block is drawn on. */
 export const SHELL = '#0d1f3c', SHELL_2 = '#14294d', SHELL_MUTED = '#9fb0cc';
-export const OK = '#1e6b4b', WARN = '#a97822', DANGER = '#9b3227', BLUE = '#4f46b8';
+export const OK = '#15803d', WARN = '#b45309', DANGER = '#c4281c', BLUE = '#6d28d9';
 /** The validated chart pair — actual vs target (target is also dashed, so the
  *  two never rely on colour alone). */
 export const ACTUAL = '#1f4fb8', TARGET = '#a97822';

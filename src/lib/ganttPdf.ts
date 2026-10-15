@@ -19,7 +19,7 @@ import { walkMarkers } from './walkSnags';
 
 const PW = 842, PH = 595, M = 30, LAB = 186;
 const INK = '#0f1a2e', INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', SURF2 = '#eef3f9', WEEKEND = '#f1f4f8';
-const BRAND = '#1f63e0', OK = '#1e6b4b', DANGER = '#9b3227', AMBER = '#8a5f14', BOOKED = '#4f46b8';
+const BRAND = '#1f63e0', OK = '#15803d', DANGER = '#c4281c', AMBER = '#b45309', BOOKED = '#6d28d9';
 const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 /* A reminder from the meeting notes — its own colour, on paper as on screen. */
 const REMIND = '#b8237a';

@@ -588,7 +588,7 @@ const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK = '#0f1a2e', INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', RIB = '#b8c4d6';
 const BRAND = '#1f63e0', SHELL = '#0d1f3c';
 /* The app's five state colours — the same values the stage-gate report uses. */
-const OK = '#1e6b4b', DANGER = '#9b3227', AMBER = '#8a5f14', BOOKED = '#4f46b8', GREY = '#b8c4d6';
+const OK = '#15803d', DANGER = '#c4281c', AMBER = '#b45309', BOOKED = '#6d28d9', GREY = '#b8c4d6';
 const TONE: Record<Tone, { fill?: string; stroke: string; text: string; weight: number }> = {
   failed: { fill: DANGER, stroke: DANGER, text: '#ffffff', weight: 1 },
   late: { fill: '#fdf2f0', stroke: DANGER, text: DANGER, weight: 1.6 },
@@ -858,7 +858,7 @@ function blocksOf(r: SixMReport, d: Density): Block[] {
     r.evidence.forEach((e, i, all) => {
       out.push(text({ text: e.title, size: S.body, style: 'bold', before: i ? 4 : 0, after: 1 }));
       out.push(text({ text: `Used for: ${e.used}`, size: S.small, colour: MUTED, after: 1 }));
-      out.push(text({ text: e.line, size: S.small + 0.5, colour: e.tone === 'r' ? '#9b3227' : INK2, after: e.stream || e.changeover || e.losses || e.sampling ? 4 : i === all.length - 1 ? gap(d, 's') : 2 }));
+      out.push(text({ text: e.line, size: S.small + 0.5, colour: e.tone === 'r' ? '#c4281c' : INK2, after: e.stream || e.changeover || e.losses || e.sampling ? 4 : i === all.length - 1 ? gap(d, 's') : 2 }));
       if (e.stream) out.push(...streamBlocks(e.stream.rows, e.stream.total));
       if (e.changeover) out.push(...changeoverBlocks(e.changeover, e.line));
       if (e.losses) out.push(...lossBlocks(e.losses));
