@@ -210,6 +210,17 @@ Each slice ships live on its own (gate → main → Vercel READY), then the next
   every report. Decision 4 revised: the demo extends the app's existing demo
   line rather than a separate local database — that mechanism was already
   here and already kept out of real work.
+- **P — built 15 October**: *The line, machine by machine* on each line's
+  page (`ui/LineTour`) — one sentence (machines, problems open, critical,
+  late, where most sit, how many are on no machine, which machine stops the
+  most, where the line is held), then a card a machine in the factory's flow
+  order (then Line capacity's stations, then any machine a stop or a problem
+  names): its newest problem's photo, its problems by priority with whose and
+  when, its stops a week over four weeks in minutes and idle labour £ (and
+  output, at the constraint), the constraint tagged; late or critical edged
+  red; a tap opens its problems on the register. Found building it: a
+  problem pinned on the walk never said its machine on the line's page
+  (`lineProblems` had no asset names) — it does now, on the rows and the tour.
 - **Found on the demo and fixed**: a stop of the whole line stops the
   constraint (never the mirage); a band made of several machines' stops says
   its own share on the constraint; slow running and short stops are line time

@@ -23,6 +23,10 @@ export const PAGES = (sd, cap) => [
     { what: 'the jobs on one timeline', sel: '.jb-gantt', desk: true },
   ] },
   { name: 'Your factory', path: '#/factory', must: [{ what: 'the lines in floor order', sel: '.fac-lines' }] },
+  { name: 'A line — its own page', path: `#/lines/${sd.line7WsId}`, must: [
+    { what: 'the line, machine by machine — the tour', sel: '.tour-says' },
+    { what: 'a card a machine', sel: '.tour-card', n: 2 },
+  ] },
   { name: 'Programs', path: '#/programs', must: [{ what: 'machine by machine', sel: '.mt-list' }] },
   { name: 'Problems', path: '#/snags', must: [{ what: 'the register, a line at a time', sel: '.qsl-rows' }] },
   { name: 'A stage-gate job — its front page', path: `#/project/${sd.projectId}`, must: [

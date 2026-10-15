@@ -12933,3 +12933,15 @@ button.why-src { cursor: pointer; }
 .jt-s { color: var(--ink-2); font-size: var(--t-detail); }
 .jt-k { font-size: var(--t-label); color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.05em; }
 .jt-none { padding: 10px 12px; }
+/* the line, machine by machine (ui/LineTour) */
+.tour-says { margin: 0 0 10px; font-size: 1.05rem; font-weight: 600; }
+.tour-strip { list-style: none; margin: 0; padding: 0 0 6px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(220px, 260px); gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; }
+.tour-card { scroll-snap-align: start; }
+.tour-b { display: grid; gap: 6px; align-content: start; width: 100%; height: 100%; padding: 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); font: inherit; color: var(--ink); text-align: left; cursor: pointer; }
+.tour-card.is-on .tour-b { border-color: var(--navy, #0d1f3c); box-shadow: inset 0 0 0 1px var(--navy, #0d1f3c); }
+.tour-card.is-r .tour-b { border-left: 4px solid var(--st-r); }
+.tour-img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--radius-sm); background: var(--surface-2); }
+.tour-n { font-weight: 700; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.tour-n b { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--surface-2); font-size: var(--t-label); }
+.tour-p { display: grid; gap: 4px; font-size: var(--t-detail); }
+.tour-m { font-size: var(--t-detail); color: var(--ink-2); }

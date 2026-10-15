@@ -48,6 +48,7 @@ So:
 |---|---|
 | Control room | its heading · Your factory · this week · the jobs' timeline (desk) |
 | Your factory | the lines in floor order |
+| A line — its own page | the line, machine by machine: the sentence, a card a machine (its problems by priority, whose, its stops a week in minutes and £, the constraint) |
 | Programs | machine by machine |
 | Problems | the register |
 | A stage-gate job | the verdict · Needs you · where each machine is |
