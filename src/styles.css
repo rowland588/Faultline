@@ -12907,3 +12907,14 @@ button.why-src { cursor: pointer; }
 .lch-ans-q { margin: 0 0 4px; }
 .lch-ans-t { margin: 0; font-weight: 600; }
 .lch-ans-used ul { margin: 6px 0 0; padding-left: 18px; font-size: var(--t-detail); }
+/* the Pareto, read (ui/ParetoReading) */
+.prd { margin: 10px 0; padding: 12px 14px; background: var(--surface); box-shadow: var(--shadow); border-radius: var(--radius); }
+.prd-says { margin: 0 0 8px; }
+.prd-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.prd-row { display: grid; grid-template-columns: minmax(120px, 1.2fr) minmax(150px, 1fr) 1.4fr; gap: 10px; align-items: baseline; padding: 6px 8px; border-radius: var(--radius-sm); }
+.prd-row.is-on { background: var(--surface-2); box-shadow: inset 4px 0 0 var(--navy, #0d1f3c); }
+.prd-row.is-off .prd-c { color: var(--ink-2); font-style: italic; }
+.prd-rec { font-size: var(--t-detail); }
+.prd-rec.is-chronic { font-weight: 700; }
+.prd-c { font-size: var(--t-detail); }
+@media (max-width: 640px) { .prd-row { grid-template-columns: 1fr; gap: 2px; } }

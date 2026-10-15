@@ -35,6 +35,7 @@ import { hasLabour, labourPerMs, fmtGBP, fmtPacks } from '../lib/cost';
 import { lostParts, lostWords, packsHow, type Neck } from '../lib/lineLoss';
 import { useLineNeck } from '../lib/useLineNeck';
 import { Icon } from '../ui/Icon';
+import { ParetoReading } from '../ui/ParetoReading';
 
 /** Average weekly loss of the scope over its last 4 full weeks — the honest,
  *  measured "before" a new Case is born with. */
@@ -307,6 +308,8 @@ export function AnalyseScreen({ route }: { route: Route }) {
                 {plural(node.rows.length, 'observation')}{totalMs > 0 ? ` · ${fmtDurationWords(totalMs)}${lostSaid ? ` · ${lostSaid}` : ''}` : ''} · {periodWord(period)}
               </div>
               {totalMs > 0 && packsSaid && <div className="analyse-meta sub">{packsSaid}</div>}
+              {/* THE PARETO, READ — chronic or one-off, on the constraint or the mirage */}
+              <ParetoReading now={Date.now()} {...(neck ? { neck } : {})} rows={compareRows.map(r => ({ key: r.key, obs: r.observationIds.map(id => byId.get(id)).filter((o): o is NonNullable<typeof o> => !!o) }))} />
               {!costable && (
                 <button className="cost-hint" onClick={() => withQuery('setup', '1')}>
                   <Icon name="pound" size="1.15em" /> Put a £ on this lost time — add crew &amp; labour rate ›

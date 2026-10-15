@@ -10,3 +10,4 @@ export * from './waterfall';
 export * from './levers';
 export * from './demand';
 export * from './ask';
+export * from './recurrence';

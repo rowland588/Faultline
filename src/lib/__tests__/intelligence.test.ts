@@ -217,3 +217,15 @@ describe('ask — answered from the functions, no AI', () => {
   });
   it('anything else is handed on', () => { expect(askLine('who is on nights?', facts()).matched).toBe(false); });
 });
+
+import { recurrence } from '../intelligence';
+
+describe('chronic or a one-off', () => {
+  it('in four weeks of six: chronic', () => {
+    expect(recurrence([0, 1, 2, 3].map(w => stop('Basketer', 'Misfeed', day(w, 1), 10)), NOW).says).toBe('chronic — 4 of the last 6 weeks');
+  });
+  it('one bad day: a one-off; two or three weeks: recurring', () => {
+    expect(recurrence([stop('Bagger', 'Fire alarm', day(2, 3), 90)], NOW).kind).toBe('one-off');
+    expect(recurrence([stop('Bagger', 'Film', day(0, 1), 10), stop('Bagger', 'Film', day(3, 1), 10)], NOW).kind).toBe('recurring');
+  });
+});
