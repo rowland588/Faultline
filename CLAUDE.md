@@ -463,7 +463,7 @@ who has to wrap for both"; "3, 4, 5 lines into one") — a chain split where
 the lines merge, a line added like the last and named, a station moved inside
 its own line, a line taken away and brought back, a what-if keeping the lines,
 the checks said along each line, and a V and a sheet a line on paper, then
-where they merge.
+where they merge. Then the shape asked (Rowland, 15 October: "asking how many lines ... and do they merge at the end"; "the graph ... only available on the PDF now"): *How many lines feed in?* 1 to 6 and *Where do they merge?*, a map of the lines and the merge said in the shared station's cycle times, a V on the page for each line and where they merge, and the way to the target worked out (who is added where, *Make it so*, on paper).
 
 `scripts/sync-two-devices.mjs` runs two real devices of the app (a phone and a
 laptop, separate storage) against `scripts/fake-cloud.mjs`, which keeps the

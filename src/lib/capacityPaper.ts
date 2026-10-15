@@ -29,6 +29,7 @@ import {
   type Capacity, type ChangeoverIn, type LabourInputs, type ShiftIn, type Station,
 } from './capacity';
 import type { WalkVerdict } from './ie/walk';
+import { planToTarget } from './capacityPlan';
 
 export type Tone = 'r' | 'a' | 'n';
 
@@ -113,6 +114,8 @@ export interface CapacityPaper {
   /** What to check before trusting the sums — a station not counted, a unit
    *  counted one-for-one. Only what is wrong. */
   check: string[];
+  /** The way to the target, worked out (lib/capacityPlan) — only while short of it. */
+  plan?: { says: string; steps: string[] };
   /** Capacity a shift (lib/capacity shiftCapacity). */
   shift?: { rows: CapacityPaperShift[]; day?: CapacityPaperShift; sentence: string };
   /** What a pack costs in labour, and one more person at the bottleneck. */
@@ -239,6 +242,8 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
     ...screenCapacity(cap, r).map(c => c.text),
   ];
 
+  const plan = planToTarget(cap);
+
   /* A SHIFT — the line's own shifts, less the breaks it stops for and the
      changeovers SMED timed into this product, at the bottleneck. */
   const sc = x.shifts ? shiftCapacity(r, x.shifts, x.co) : undefined;
@@ -288,6 +293,7 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
     ...(v && r.ok.length >= 2 ? { v: { text: v.sentence, tone: (v.under.length ? 'a' : 'n') as Tone } } : {}),
     ...(x.walk ? { walk: { text: x.walk.sentence, tone: (x.walk.against === 'disagrees' ? 'a' : 'n') as Tone } } : {}),
     check,
+    ...(plan && plan.steps.length ? { plan: { says: plan.sentence, steps: plan.steps.map(x => x.text) } } : {}),
     ...(shift ? { shift } : {}),
     ...(labour ? { labour } : {}),
     ...(x.work ? { work: { text: x.work.text, lines: x.work.lines.map(l => ({ text: l.text, tone: (l.tone === 'r' || l.tone === 'a' ? l.tone : 'n') as Tone })) } } : {}),

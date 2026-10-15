@@ -594,6 +594,54 @@ let TRAY;
   const want = [`Line A - on its own, 68.3 units/min`, `Line B - on its own, 68.3 units/min`, `After the lines merge - what they send, 137 units/min`, ...chk];
   const lost = want.map(w => w.replace(/\s+/g, ' ').replace(/[–—]/g, '-').replace(/’/g, "'")).filter(w => !txt.toLowerCase().includes(w.toLowerCase()));
   ok(!lost.length && /Pallet wrapper holds Line A and Line B/.test(txt), `15m the paper: a V and a sheet a line and where they merge, the checks beneath${lost.length ? ` — lost: ${lost[0].slice(0, 80)}` : ''}`);
+
+  /* THE SHAPE ASKED, THE V DRAWN, THE WAY TO THE TARGET (Rowland, 15 October:
+     "it should almost be asking how many lines ... and do they merge at the
+     end"; "I think it's quite poor ... as much automation and intelligence ...
+     to interpret before and after and merges and cycle times"; "you move the
+     graph out the way. It's only available on the PDF now"). */
+  await page.evaluate(async ([id, cap]) => { const db = await import('/src/db.ts'); const st = await db.getStandard(id); await db.putStandard({ ...st, capacity: cap }); }, [SID, CHAIN]);
+  await go(CAP);
+  ok(await page.locator('.cap-seg-b').count() === 6 && await page.locator('.cap-grp.has-lanes').count() === 0 && await page.locator('.cap-map').count() === 0,
+    '16 a single chain asks how many lines feed in (1 to 6), and draws no lines');
+  await page.getByRole('group', { name: 'Lines feeding in' }).getByRole('button', { name: '2', exact: true }).click(); await page.waitForTimeout(1200);
+  c = await cap();
+  ok(c.lanes?.length === 2 && JSON.stringify(lanesOf(c)) === JSON.stringify([['Line A', ['bagger', 'P160 Pick & Place', 'palletiser']], ['Line B', ['bagger', 'P160 Pick & Place', 'palletiser']]])
+    && c.stations.filter(st => !st.lane).map(st => st.name).join() === 'Pallet wrapper', '16a "2": two lines, the same first stations, merging before the last — the wrapper shared');
+  ok(await page.locator('.vc-svg').count() === 3, '16b a V is drawn on the page for each line and for where they merge (it was only on the paper)');
+  ok(await page.locator('.cap-map-row').count() === 2 && await page.locator('.cap-map-merge').count() === 1 && /Lines merge here — 137 units\/min arrive/.test(await words('.cap-map-join')),
+    '16c the map: a row a line with each station and its speed, then where they merge and what arrives');
+  const mine = await page.evaluate(async cap => { const C = await import('/src/lib/capacity.ts'); const r = C.analyse(cap); const f = r.lanes.merged.ok.find(x => x.station.id !== '__merge__'); const prev = cap.stations.filter(s => s.lane === cap.lanes[0].id).slice(-1)[0]; const say = C.paceSays(r, f.station, prev.unit, prev); return [say.arrive, say.verdict].filter(Boolean).join(' '); }, c);
+  ok(mine && (await words('.cap-map-say')) === mine.replace(/\s+/g, ' '), '16d the merge said in the shared station\'s own cycle times — what reaches it, how long it takes, how many people it needs');
+  const sel = page.getByLabel('Where the lines merge');
+  await sel.selectOption('2'); await page.waitForTimeout(1200);
+  c = await cap();
+  ok(c.stations.filter(st => !st.lane).map(st => st.name).join() === 'palletiser,Pallet wrapper' && c.stations.filter(st => st.lane === c.lanes[0].id).length === 2,
+    '16e the merge moved earlier: the palletiser is shared now, each line has two stations of its own');
+  await sel.selectOption('3'); await page.waitForTimeout(1200);
+  c = await cap();
+  ok(c.stations.filter(st => !st.lane).map(st => st.name).join() === 'Pallet wrapper' && c.stations.filter(st => st.lane === c.lanes[1].id).length === 3, '16f and back to after the palletiser');
+
+  /* the way to the target: worked out, on the page, on the paper, and made so */
+  const plan = await page.evaluate(async cap => (await import('/src/lib/capacityPlan.ts')).planToTarget(cap), c);
+  ok(plan.reached && plan.people === 4 && (await words('.cap-plan-says')) === plan.sentence.replace(/\s+/g, ' ')
+    && (await page.locator('.cap-plan-steps li').count()) === plan.steps.length, `16g the way to 150: ${plan.sentence.slice(0, 90)}…`);
+  const [dl2] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'PDF', exact: true }).click()]);
+  const file2 = join(dir, 'plan.pdf'); await dl2.saveAs(file2);
+  const tx = execFileSync('pdftotext', ['-raw', file2, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ').replace(/[–—]/g, '-');
+  ok(/The way to the target/i.test(tx) && tx.includes(plan.steps[0].text.split(' — ')[0].replace(/ → /g, ' to ')), '16h the paper carries the way to the target, its steps in the page\'s words');
+  await page.getByRole('button', { name: /^Make it so — put these crews in/ }).click(); await page.waitForTimeout(1500);
+  c = await cap();
+  const crew = n => c.stations.filter(st => st.name === n).map(st => st.crew).join();
+  const after = await page.evaluate(async cap => (await import('/src/lib/capacity.ts')).analyse(cap).line, c);
+  ok(crew('Pallet wrapper') === '3' && crew('palletiser') === '2,2' && after >= 150 && c.labour.people === 12 && await page.locator('.cap-plan').count() === 0,
+    `16i made so: 3 at the wrapper, 2 on each palletiser, the line makes ${after.toFixed(1)}, the labour 8 → 12 people, the plan gone`);
+  await page.getByRole('group', { name: 'Lines feeding in' }).getByRole('button', { name: '3', exact: true }).click(); await page.waitForTimeout(1200);
+  c = await cap();
+  ok(c.lanes?.length === 3 && c.lanes[2].name === 'Line C' && c.stations.filter(st => st.lane === c.lanes[2].id).map(st => st.crew).join() === '1,1,2', '16j "3": Line C a copy of the first line, with its crew');
+  await page.getByRole('group', { name: 'Lines feeding in' }).getByRole('button', { name: '1', exact: true }).click(); await page.waitForTimeout(1200);
+  c = await cap();
+  ok(!c.lanes && c.stations.length === 4 && c.stations.map(st => st.name).join() === 'bagger,P160 Pick & Place,palletiser,Pallet wrapper', '16k "1": one chain again, the first line\'s stations and the wrapper');
   await page.evaluate(async b => { const db = await import('/src/db.ts'); await db.putStandard(b); }, before);
 }
 

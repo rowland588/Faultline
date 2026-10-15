@@ -360,6 +360,12 @@ export function productBlocks(p: CapacityPaper, d: Density, own: boolean, keep =
     for (const c of p.check) out.push(text({ text: c, size: T, colour: AMBER, indent: 10, bullet: '·', after: 3 }));
     out.push(space('s'));
   }
+  if (p.plan) {
+    out.push(label('The way to the target'));
+    out.push(text({ text: p.plan.says, size: T, after: 3 }));
+    for (const c of p.plan.steps) out.push(text({ text: c, size: T, indent: 10, bullet: '·', after: 3 }));
+    out.push(space('s'));
+  }
 
   /* WHAT IT MEANS — a shift, and a pack */
   if (p.shift) {

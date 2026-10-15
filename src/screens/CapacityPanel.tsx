@@ -34,6 +34,8 @@ import { currentBalance } from '../lib/studyLinks';
 import { balance as balanceOf } from '../lib/ie/balance';
 import { niceDay } from '../lib/weeks';
 import { uid } from '../lib/ids';
+import { chainOf as lineChain, MAX_LINES, mergeAfterOf, reshape } from '../lib/capacityLines';
+import { planToTarget } from '../lib/capacityPlan';
 import { nav } from '../state/useRoute';
 import { type PillarKey } from '../lib/pillars';
 import { BoneChips } from '../ui/ActionSheet';
@@ -696,6 +698,41 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
     offerUndo('Back to one line', async () => commit(before));
   };
 
+  /* HOW MANY LINES, AND WHERE THEY MEET (lib/capacityLines; Rowland, 15
+     October: "it should almost be asking how many lines do you want to do, and
+     do they merge at the end"). One tap makes the line N lines, the same first
+     stations each, the rest shared; the merge point is one choice. */
+  const flow = lineChain(cap);
+  const mergeAt = mergeAfterOf(cap);
+  const ownCount = lanes.length ? current.stations.filter(x => x.lane === lanes[0].id).length : 0;
+  const shapeK = lanes.length ? (mergeAt ?? ownCount) : Math.max(1, flow.length - 1);
+  const shapeIt = (n: number, k: number) => {
+    if (w || !can.edit) return;
+    const before = cap;
+    commit(reshape(cap, n, k, uid));
+    offerUndo(n === 1 ? 'Back to one line' : `${n} lines, merging ${k >= flow.length ? 'nowhere — each ends on its own' : `after ${flow[k - 1]?.name.trim() || `station ${k}`}`}`, async () => commit(before));
+  };
+  /* what happens at the merge, said as the station's own card says it */
+  const mergeSay = (() => {
+    if (!r.lanes) return undefined;
+    const g = groups[groups.length - 1];
+    const first = g.stations[0];
+    const prev = groups[0].stations.slice(-1)[0];
+    if (!first) return undefined;
+    const say = paceSays(r, first, prev?.unit, prev);
+    return [say.arrive, say.verdict].filter(Boolean).join(' ') || undefined;
+  })();
+  /* THE WAY TO THE TARGET, worked out (lib/capacityPlan) — made so in one tap */
+  const plan = useMemo(() => planToTarget(current), [current]);
+  const applyPlan = () => {
+    if (w || !can.edit || !plan || !plan.steps.length) return;
+    const before = cap;
+    const li = labourInputs(cap, mapPeople, lineWs);
+    commit({ ...cap, stations: cap.stations.map(x => (plan.crews[x.id] != null ? { ...x, crew: plan.crews[x.id] } : x)),
+      labour: { ...cap.labour, ...(li.people && plan.people > 0 ? { people: li.people + plan.people } : {}) } });
+    offerUndo(`Put in the crews for ${fmtN(plan.target)} a minute`, async () => commit(before));
+  };
+
   /* WHAT-IFS. A new one is a copy of whatever is on the screen — the line as
      run, or another what-if — so "the same line with one thing changed" is
      one tap, then the change. */
@@ -865,6 +902,71 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
         )}
       </div>
 
+      {/* THE SHAPE OF THE LINE: how many lines feed in, and where they meet —
+          asked, not found in a button on a station; the map shows it. */}
+      {(flow.length >= 2 || lanes.length > 0) && (can.edit && !w || r.lanes) && (
+        <section className="cap-shape" aria-label="The shape of the line">
+          {can.edit && !w && (
+            <div className="cap-shape-q">
+              <span className="cap-shape-l"><b>How many lines feed in?</b>
+                <span className="cap-seg" role="group" aria-label="Lines feeding in">
+                  {Array.from({ length: Math.min(MAX_LINES, Math.max(6, lanes.length)) }, (_, i) => i + 1).map(n => (
+                    <button key={n} type="button" className={'cap-seg-b' + ((lanes.length || 1) === n ? ' on' : '')} aria-pressed={(lanes.length || 1) === n}
+                      onClick={() => shapeIt(n, shapeK)}>{n}</button>
+                  ))}
+                </span>
+              </span>
+              {lanes.length >= 2 && (
+                <label className="cap-shape-l"><b>Where do they merge?</b>
+                  <select className="text-input" aria-label="Where the lines merge" value={mergeAt ?? ''} disabled={mergeAt == null}
+                    onChange={e => shapeIt(lanes.length, Number(e.target.value))}>
+                    {mergeAt == null && <option value="">The lines differ — set their stations, then choose</option>}
+                    {flow.map((x, i) => <option key={x.id} value={i + 1}>{i + 1 < flow.length ? `After ${x.name.trim() || `station ${i + 1}`}` : 'They do not merge — each line ends on its own'}</option>)}
+                  </select>
+                </label>
+              )}
+            </div>
+          )}
+          {lanes.length === 0 && can.edit && !w && <p className="sub">One line, one chain. Choose 2 or more if several lines run side by side and meet — the first stations are copied for each, the rest are shared.</p>}
+          {r.lanes && (
+            <div className="cap-map" role="group" aria-label="The lines and where they merge">
+              <div className="cap-map-lanes">
+                {r.lanes.sections.map(sec => (
+                  <div key={sec.id} className="cap-map-row">
+                    <b className="cap-map-n">{sec.name}</b>
+                    {sec.result.ok.map(x => (
+                      <button key={x.station.id} type="button" className={'cap-chip' + (r.limit?.station.id === x.station.id ? ' is-limit' : sec.result.limit?.station.id === x.station.id ? ' is-own' : '')}
+                        onClick={() => pick(x.index)}>
+                        <span className="cap-chip-n">{x.station.name.trim() || `Station ${x.index + 1}`}</span>
+                        <span className="cap-chip-v">{fmtN(x.effective)}/min</span>
+                      </button>
+                    ))}
+                    <span className="cap-map-out">{fmtN(sec.result.line ?? 0)}/min</span>
+                  </div>
+                ))}
+              </div>
+              {r.lanes.merged && r.lanes.merged.ok.some(x => x.station.id !== '__merge__') ? (
+                <div className="cap-map-merge">
+                  <span className="cap-map-join">Lines merge here — <b>{fmtN(r.lanes.sends)}</b> {r.unit}/min arrive</span>
+                  <div className="cap-map-shared">
+                    {r.lanes.merged.ok.filter(x => x.station.id !== '__merge__').map(x => (
+                      <button key={x.station.id} type="button" className={'cap-chip' + (r.limit?.station.id === x.station.id ? ' is-limit' : '')} onClick={() => pick(x.index)}>
+                        <span className="cap-chip-n">{x.station.name.trim() || `Station ${x.index + 1}`}</span>
+                        <span className="cap-chip-v">{fmtN(x.effective)}/min</span>
+                      </button>
+                    ))}
+                    <span className="cap-map-out">{fmtN(r.line ?? 0)}/min</span>
+                  </div>
+                  {mergeSay && <p className="cap-map-say">{mergeSay}</p>}
+                </div>
+              ) : (
+                <p className="cap-map-say">The lines do not merge — what they make is added: <b>{fmtN(r.lanes.sends)}</b> {r.unit}/min.</p>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
       {/* CHECK THE NUMBERS (lib/capacity screenCapacity; Rowland, 15 October:
           "319%, 279%, 273% ... these percentages make no sense ... screen it
           for problems") — what is wrong, said before the V, each a question
@@ -882,6 +984,24 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
           </ul>
         </section>
       ))(screenCapacity(current, r))}
+      {/* THE WAY TO THE TARGET, worked out (lib/capacityPlan): who is added
+          where, in what order, and what each one buys. */}
+      {plan && plan.steps.length > 0 && (
+        <section className="cap-plan" aria-label="The way to the target">
+          <h3 className="cap-plan-h">The way to {fmtN(plan.target)} {r.unit} a minute <span className="sub">worked out from the sums above</span></h3>
+          <p className="cap-plan-says">{plan.sentence}</p>
+          <ol className="cap-plan-steps">
+            {plan.steps.map(x => (
+              <li key={x.stationId}><b>{x.name}</b> {fmtN(x.from)} → {fmtN(x.to)} {x.kind === 'people' ? (x.to === 1 ? 'person' : 'people') : 'running'}
+                <span className="sub"> — the line then makes {fmtN(x.lineAfter)} {r.unit}/min</span></li>
+            ))}
+          </ol>
+          {can.edit && !w && plan.reached && (
+            <button type="button" className="btn btn-sm" onClick={applyPlan}>Make it so — put these crews in{plan.people > 0 ? ` (${fmtN(plan.people)} more ${plan.people === 1 ? 'person' : 'people'})` : ''}</button>
+          )}
+        </section>
+      )}
+
       {r.ok.length > 0 && !r.lanes && <VCurveView r={r} v={vCurve(r, cap.vMarginPct)} target={current.targetPerMin} margin={cap.vMarginPct} canAgree={can.agree && !w}
         onMargin={m => commit({ ...cap, vMarginPct: m })} onPick={pick} />}
       {r.ok.length > 0 && !r.lanes && <CapacitySheet r={r} v={vCurve(r, cap.vMarginPct)} target={current.targetPerMin} study={study}

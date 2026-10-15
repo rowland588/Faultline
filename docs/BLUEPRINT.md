@@ -786,6 +786,31 @@ is still wired.
   station by its line. Left for later: the stops-and-walk readings stay by
   station name (two lines' "bagger" share a log), and accumulation is drawn
   for one chain only. Accepted by `line-capacity.mjs` 15.
+- **The shape asked, the V drawn, the way to the target** (Rowland, 15
+  October, on seeing his converted line: "it should almost be asking how many
+  lines you want to do, and do they merge at the end ... signal that this is
+  the end merge"; "I think the intelligence is quite poor ... as much
+  automation and intelligence behind the code as possible to interpret before
+  and after and merges and cycle times"; "you move the graph out the way, it's
+  only available on the PDF now"). Placed (§8): *On the line*, Line capacity;
+  no new record — it reads and writes the product's capacity
+  (`standards.capacity`). Three things. **The V was missing on the page for
+  several lines** — a bug of mine (`vCurve` found the bottleneck by object, the
+  laned results copy it; now by station) — so each line's V and the merge's V
+  are drawn again, as the paper had them. **The shape is asked**: *How many
+  lines feed in?* 1–6 and *Where do they merge?* (after any station, or not at
+  all) above the checks (`lib/capacityLines reshape`: the first stations copied
+  per line, a line already that long kept with what was typed on it, the rest
+  shared), with a map of the lines — a row a line, each station and its speed,
+  the bottleneck in navy — and a dashed *Lines merge here — 137 units/min
+  arrive*, said in the shared station's own cycle times (what reaches it, how
+  long it takes, how many people). **The way to the target is worked out**
+  (`lib/capacityPlan planToTarget`): one more at the station holding the whole
+  back, worked again, until the target is met — identical lines move together
+  — said as the steps (wrapper 1 → 3, each palletiser 1 → 2, 4 more people)
+  with what each buys; *Make it so* puts the crews in (the labour's people
+  with them, Undo offered); on the paper under the checks. Accepted by
+  `line-capacity.mjs` 16.
 - **Line capacity screened for problems** (Rowland, 15 October, on his own
   line — target 150 a minute, and 319% · 279% · 273% on the V: "these
   percentages make no sense ... literally look at what I've put in ... screen
