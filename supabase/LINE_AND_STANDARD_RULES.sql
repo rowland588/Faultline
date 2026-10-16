@@ -1,7 +1,13 @@
 -- ============================================================================
--- FAULTLINE — A LINE'S DELETE STAYS WITH ITS OWNER; LINE STANDARDS FOLLOW THE
--- JOB TABLES' RULES; NO HARD DELETE FROM ANY LINE TABLE; A PROBLEM FOR A JOB
+-- FAULTLINE — A LINE'S DELETE STAYS WITH ITS OWNER; LINE STANDARDS ARE THE
+-- EDITORS' TO WRITE; NO HARD DELETE FROM ANY LINE TABLE; A PROBLEM FOR A JOB
 -- IS THE JOB'S EDITORS' TO WRITE.                      Run ONCE. Safe to re-run.
+--
+-- ADDS ONLY. Nothing here drops or replaces a policy: every rule is a new
+-- RESTRICTIVE policy, which Postgres ANDs with the permissive ones already in
+-- force, so it can only take access away and never hand out more. Re-runnable
+-- because each is made only when its name is not there yet, and the triggers
+-- with `create or replace trigger` (Postgres 14+; live is 17).
 --
 -- The upgrade audit of 16 October (docs/UPGRADE-AUDIT.md S1–S5; the live
 -- pg_policies and pg_trigger read back that day) found four holes the access
@@ -19,29 +25,31 @@
 --       with no owner (none live today; owner_id defaults to auth.uid()) is
 --       open, as the screen treats it — the two must say the same.
 --
---   S2  standards had no editors-only rule and kept the first-arm hole
---       SECURITY_RLS part C closed on every other job table: a client could
---       write a job's line standards and capacities, and any signed-in user
---       could insert a standards row into any job id they had seen.
---       → the same member select/insert/update + restrictive editors-only
---       policies as the job tables, and keep_owner / clamp_clock on it. With
---       NO owner arm: a row with no job is a line's (the check constraint
---       says one or the other), and the line's members' policies cover it;
---       an owner arm let any signed-in user plant a row on a line they were
---       not on (the independent review, 16 October).
+--   S2  standards had no editors-only rule: a client could write a job's line
+--       standards and capacities, and any signed-in user could insert a
+--       standards row into any job id they had seen (the permissive "project
+--       standards" policy lets the row's owner through, and the owner is
+--       whoever wrote it).  → restrictive editors-only insert and update, as
+--       the job tables have: the job's editors, or for a row with no job (a
+--       line's — the check constraint says one or the other) the line's
+--       members; and keep_owner / clamp_clock on it as on every other table.
 --
---   S3  `for all` policies on cases, observations, segments, snag_assets,
+--   S3  The `for all` policies on cases, observations, segments, snag_assets,
 --       snags, standards, studies, programs and commission_assets allowed a
---       hard DELETE the app never issues (it tombstones) — a hand-made request
---       would bypass the tombstones and keep_agreement.  → every one split
---       into select / insert / update with the predicate it had.
+--       hard DELETE the app never issues (it tombstones; src/cloud has no
+--       .delete() on any of them) — a hand-made request would bypass the
+--       tombstones and keep_agreement.  → a restrictive "no hard delete" on
+--       each: using (false). The service role (the remind function) is not
+--       subject to RLS and deletes none of them.
 --
 --   S5  snags.project_id ("a problem for a job") had no project-level write
 --       rule, where cases got one (SIXM.sql).  → the same restrictive rule.
 --
--- Every policy is re-created with EXACTLY the predicate and role it had on the
--- live database on 16 October (pg_policies read back); only its command set
--- changes. The select at the end prints what is in force.
+-- The first draft split each `for all` policy into select/insert/update and
+-- rebuilt the standards policies; it dropped policies to do it, which the
+-- connector holds for a confirmation, and an add-only rule says the same
+-- with nothing taken down first. The select at the end prints what is in
+-- force.
 -- ============================================================================
 
 -- ---------------------------------------------------------------- S1: the line
@@ -53,76 +61,53 @@ begin
   new.owner_id   := old.owner_id;
   return new;
 end $$;
-revoke execute on function public.faultline_keep_line() from public, anon, authenticated;
 
-drop trigger if exists faultline_keep_line on public.workspaces;
-create trigger faultline_keep_line before update on public.workspaces
+create or replace trigger faultline_keep_line before update on public.workspaces
   for each row execute function public.faultline_keep_line();
 
--- --------------------------------------------- S3: the line tables, no DELETE
--- A helper for this file only: re-make one `for all` policy as select / insert
--- / update with the same predicate and roles.
-create or replace function pg_temp.faultline_split_all(tbl text, pol text) returns void language plpgsql as $$
-declare p record;
+-- ------------------------------------------------ the rules, each made once
+do $$
+declare
+  t text;
 begin
-  select * into p from pg_policies where schemaname = 'public' and tablename = tbl and policyname = pol and cmd = 'ALL';
-  if not found then return; end if;
-  execute format('drop policy %I on public.%I', pol, tbl);
-  execute format('create policy %I on public.%I for select to %s using (%s)', pol || ' select', tbl, array_to_string(p.roles, ','), p.qual);
-  execute format('create policy %I on public.%I for insert to %s with check (%s)', pol || ' insert', tbl, array_to_string(p.roles, ','), coalesce(p.with_check, p.qual));
-  execute format('create policy %I on public.%I for update to %s using (%s) with check (%s)', pol || ' update', tbl, array_to_string(p.roles, ','), p.qual, coalesce(p.with_check, p.qual));
+  /* S3: no hard delete from a line table */
+  foreach t in array array['cases','observations','segments','snag_assets','snags','standards','studies','programs','commission_assets'] loop
+    if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = t and policyname = 'no hard delete') then
+      execute format('create policy %I on public.%I as restrictive for delete to public using (false)', 'no hard delete', t);
+    end if;
+  end loop;
+
+  /* S2: a line standard is the editors' to write */
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'standards' and policyname = 'editors only insert') then
+    create policy "editors only insert" on public.standards as restrictive for insert to authenticated
+      with check (public.is_project_editor(project_id)
+        or (project_id is null and workspace_id is not null and (select public.is_ws_member(workspace_id))));
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'standards' and policyname = 'editors only update') then
+    create policy "editors only update" on public.standards as restrictive for update to authenticated
+      using (public.is_project_editor(project_id)
+        or (project_id is null and workspace_id is not null and (select public.is_ws_member(workspace_id))))
+      with check (public.is_project_editor(project_id)
+        or (project_id is null and workspace_id is not null and (select public.is_ws_member(workspace_id))));
+  end if;
+
+  /* S5: a problem for a job is the job's editors' to write */
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'snags' and policyname = 'project editors only insert') then
+    create policy "project editors only insert" on public.snags as restrictive for insert to authenticated
+      with check (project_id is null or public.is_project_editor(project_id));
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'snags' and policyname = 'project editors only update') then
+    create policy "project editors only update" on public.snags as restrictive for update to authenticated
+      using (project_id is null or public.is_project_editor(project_id))
+      with check (project_id is null or public.is_project_editor(project_id));
+  end if;
 end $$;
 
-select pg_temp.faultline_split_all('cases',             'member cases');
-select pg_temp.faultline_split_all('observations',      'member observations');
-select pg_temp.faultline_split_all('segments',          'member segments');
-select pg_temp.faultline_split_all('snag_assets',       'member snag_assets');
-select pg_temp.faultline_split_all('snags',             'member snags');
-select pg_temp.faultline_split_all('programs',          'line programs');
-select pg_temp.faultline_split_all('commission_assets', 'line machines');
-select pg_temp.faultline_split_all('standards',         'line standards');
-select pg_temp.faultline_split_all('studies',           'line studies');
-select pg_temp.faultline_split_all('studies',           'own studies');
-select pg_temp.faultline_split_all('studies',           'project studies');
-
--- ------------------------------------------------- S2: standards, a job table
-drop policy if exists "project standards" on public.standards;
-
-drop policy if exists "member standards select" on public.standards;
-create policy "member standards select" on public.standards for select to authenticated
-  using (public.is_project_member(project_id));
-drop policy if exists "member standards insert" on public.standards;
-create policy "member standards insert" on public.standards for insert to authenticated
-  with check (public.is_project_member(project_id));
-drop policy if exists "member standards update" on public.standards;
-create policy "member standards update" on public.standards for update to authenticated
-  using (public.is_project_member(project_id))
-  with check (public.is_project_member(project_id));
-
-drop policy if exists "editors only insert" on public.standards;
-create policy "editors only insert" on public.standards as restrictive for insert to authenticated
-  with check (public.is_project_editor(project_id)
-    or (project_id is null and workspace_id is not null and (select public.is_ws_member(workspace_id))));
-drop policy if exists "editors only update" on public.standards;
-create policy "editors only update" on public.standards as restrictive for update to authenticated
-  using (public.is_project_editor(project_id)
-    or (project_id is null and workspace_id is not null and (select public.is_ws_member(workspace_id))))
-  with check (public.is_project_editor(project_id)
-    or (project_id is null and workspace_id is not null and (select public.is_ws_member(workspace_id))));
-
-drop trigger if exists faultline_keep_owner on public.standards;
-create trigger faultline_keep_owner before update on public.standards for each row execute function public.faultline_keep_owner();
-drop trigger if exists faultline_clamp_clock on public.standards;
-create trigger faultline_clamp_clock before insert or update on public.standards for each row execute function public.faultline_clamp_clock();
-
--- -------------------------------------------- S5: a problem for a job (snags)
-drop policy if exists "project editors only insert" on public.snags;
-create policy "project editors only insert" on public.snags as restrictive for insert to authenticated
-  with check (project_id is null or public.is_project_editor(project_id));
-drop policy if exists "project editors only update" on public.snags;
-create policy "project editors only update" on public.snags as restrictive for update to authenticated
-  using (project_id is null or public.is_project_editor(project_id))
-  with check (project_id is null or public.is_project_editor(project_id));
+-- ------------------------------------------- S2: standards' owner and clock
+create or replace trigger faultline_keep_owner before update on public.standards
+  for each row execute function public.faultline_keep_owner();
+create or replace trigger faultline_clamp_clock before insert or update on public.standards
+  for each row execute function public.faultline_clamp_clock();
 
 -- ------------------------------------------------------------- what is in force
 select tablename, policyname, permissive, cmd, roles::text
