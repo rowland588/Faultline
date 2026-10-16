@@ -111,7 +111,7 @@ await page.waitForTimeout(800);
 say(`  screen: ${await shot('problem-saved')}`);
 
 say('STEP 8 — where did it all land?');
-await tap('Analyse', page.getByRole('link', { name: 'Analyse' }).first());
+await tap('Analyse (the phone bar)', page.locator('.nv-bar').getByText('Analyse', { exact: true }).first());
 await page.waitForTimeout(1500);
 say(`  screen: ${await shot('analyse')} · says: ${JSON.stringify((await page.locator('.wrap').innerText()).replace(/\s+/g, ' ').slice(0, 400))}`);
 await page.goto(`${BASE}/#/lines/${wsId}`); await page.waitForTimeout(1500);

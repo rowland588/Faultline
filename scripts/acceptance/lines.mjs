@@ -56,6 +56,18 @@ if (OUT) await page.screenshot({ path: `${OUT}/l-1-line.png` });
 const rail = (await page.locator('.nv').innerText()).replace(/\s+/g, ' ');
 ok(/YOUR FACTORY Your factory Programs Line 2B/i.test(rail), '3 the rail has Your factory, its Programs › Line 2B');
 ok(/No problems open/.test(await txt()) && /Tools on this line/.test(await txt()), '4 the line page: no problems, its tools');
+// THE STOPWATCH FROM THE LINE (docs/UPGRADE-AUDIT.md F1): Time a stop first in the header; Stops timed first among the tools, none yet
+ok(/None yet — the stopwatch/.test(await page.locator('.pl-tool.is-stops').innerText()), '4a Stops timed, first tool: none yet');
+await page.locator('.pl .pace-head-actions .pl-time').click(); await page.waitForTimeout(1500);
+ok(/#\/w\/[^/]+\/capture$/.test(page.url()), `4b Time a stop opens the stopwatch on the line: ${page.url().split('#')[1]}`);
+await page.getByRole('button', { name: 'Start timing' }).click(); await page.waitForTimeout(1200);
+await page.locator('.cap-stop').click(); await page.waitForTimeout(800);
+ok(/Logged · Whole line/.test(await page.locator('.toast').innerText().catch(() => '')), '4c a stop timed in two taps');
+await page.goBack(); await page.waitForTimeout(1500);
+ok(/in 1 stop\b/.test(await page.locator('.pl-tool.is-stops').innerText()) && /The last four weeks/.test(await page.locator('.pl-tool.is-stops').innerText()), '4d back on the line, Stops timed counts it');
+await page.locator('.pl-tool.is-stops').click(); await page.waitForTimeout(1500);
+ok(/#\/w\/[^/]+\/analyse$/.test(page.url()), `4e with stops, the row opens the ranking: ${page.url().split('#')[1]}`);
+await page.goBack(); await page.waitForTimeout(1500);
 // take a problem on it
 await page.locator('.pl .pace-head-actions').getByRole('button', { name: 'Problem', exact: true }).click(); await page.waitForTimeout(900);
 const sheet = page.locator('.sheet, [role="dialog"]').last();
@@ -109,6 +121,14 @@ if (OUT) await page.screenshot({ path: `${OUT}/l-4-phone.png` });
 await page.getByRole('button', { name: 'More' }).click(); await page.waitForTimeout(800);
 ok(/Line 2B/.test(await page.locator('body').innerText()), '14 phone: More lists the line');
 if (OUT) await page.screenshot({ path: `${OUT}/l-5-phone-more.png` });
+await page.keyboard.press('Escape'); await page.waitForTimeout(500);
+// THE PHONE'S BAR INSIDE THE STUDY (docs/UPGRADE-AUDIT.md F2): one Problem button on the line's page; Capture · Analyse · Evidence on the bar
+ok(!(await page.locator('.pl .pl-problem').isVisible()) && (await page.locator('.qs-fab').isVisible()), '15 phone: the line page says Problem once — the round button');
+await page.locator('.pl .pace-head-actions .pl-time').click(); await page.waitForTimeout(1500);
+const bar = (await page.locator('.nv-bar').innerText()).replace(/\s+/g, ' ');
+ok(/Control room.*Capture.*Analyse.*Evidence.*More/.test(bar), `16 phone: the bar in a study is ${bar}`);
+await page.locator('.nv-bar').getByRole('link', { name: 'Analyse' }).or(page.locator('.nv-bar').getByRole('button', { name: 'Analyse' })).first().click(); await page.waitForTimeout(1500);
+ok(/#\/w\/[^/]+\/analyse$/.test(page.url()), `17 phone: Analyse is one tap from the stopwatch: ${page.url().split('#')[1]}`);
 ok(errs.length === 0, `no console errors ${errs.slice(0, 3).join(' | ')}`);
 await b.close();
 console.log(fail ? `\nProduction lines NOT accepted: ${fail} failed` : '\nProduction lines accepted: made in Your factory, opened on their own, a problem taken on one with no project, its tools opened on it, and the phone');

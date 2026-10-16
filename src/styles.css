@@ -10741,6 +10741,8 @@ body:has(.sheet-scrim, .ev-viewer, .rd-scrim, .rec-stage) .qs-fab { display: non
 body:has(.qsl-bar) .qs-fab { bottom: calc(var(--nv-bar) + 92px + env(safe-area-inset-bottom)); }
 body:has(.toast) .qs-fab { bottom: calc(var(--nv-bar) + 130px + env(safe-area-inset-bottom)); }
 @media (min-width: 900px) { .qs-fab { display: none; } }
+/* a line's page says Problem once on a phone: the round button is it (docs/UPGRADE-AUDIT.md F5) */
+@media (max-width: 899px) { .pl .pl-problem { display: none; } }
 @media (max-width: 899px) { .qs-top { display: none; } }
 @media print { .qs-fab, .qs-top { display: none !important; } }
 

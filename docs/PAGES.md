@@ -48,7 +48,7 @@ So:
 |---|---|
 | Control room | its heading · Your factory · this week · the jobs' timeline (desk) |
 | Your factory | the lines in floor order |
-| A line — its own page | the line, machine by machine: the sentence, a card a machine (its problems by priority, whose, its stops a week in minutes and £, the constraint) |
+| A line — its own page | the line, machine by machine: the sentence, a card a machine (its problems by priority, whose, its stops a week in minutes and £, the constraint) · Time a stop, first in the header · Stops timed first among its tools — the stopwatch and its Pareto (16 October, docs/UPGRADE-AUDIT.md F1: the floor's own tool had no door from the line) |
 | Programs | machine by machine · a row a program |
 | Programs — a stage-gate job | the programs in a sentence · the states worth showing, each a filter · a row a program, machine by machine · how its test went, on its row · a program added to a machine (16 October, docs/STAGEGATE-UX.md: the eight tiles became the chips worth showing, the machine chips a select, the Programs list folded at the foot went — every field is on the row) |
 | Problems | the register |

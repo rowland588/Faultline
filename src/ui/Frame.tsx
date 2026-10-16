@@ -372,7 +372,16 @@ function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: s
      rail, Jobs among it), in the top bar's job picker, and on the control
      room's own rows. */
   const onLines = here === 'factory' || here === 'lineprograms' || here.startsWith('line:');
-  const bar: RailLine[] = [
+  /* INSIDE A LINE STUDY the bar is the study's own screens — Capture ·
+     Analyse · Evidence — so a stop logged is one tap from its ranking
+     (docs/UPGRADE-AUDIT.md F2: Analyse was behind More, the walk's second
+     dead end); the line's page and the rest are under More. */
+  const study = loose && wsId ? studyLines(wsId, here).filter(l => l.key !== 'meeting').map(l => ({ ...l, sub: false })) : [];
+  const bar: RailLine[] = study.length ? [
+    ...all.filter(l => l.key === 'home'),
+    ...study,
+    { key: 'more', label: 'More', on: !study.some(l => l.on) && all.some(l => l.on && l.key !== 'home'), state: 'n', icon: 'grip' },
+  ] : [
     ...all.filter(l => l.key === 'home'),
     { ...snagsPlace(here), label: 'Problems', icon: 'flag' },
     { key: 'lines', label: 'Lines', to: '/factory', on: onLines, state: 'n', bare: true, icon: 'machine' },
