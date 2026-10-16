@@ -60,6 +60,7 @@ import { cloudConfigured } from './cloud/client';
 import { useSession } from './cloud/session';
 import { AutoConvert } from './snag/AutoConvert';
 import type { Route } from './state/useRoute';
+import { MachineScreen } from './screens/MachineScreen';
 
 function GoHome() {
   useEffect(() => { navReplace('/'); }, []);
@@ -187,6 +188,7 @@ function app(route: Route) {
   if (route.name === 'plan' && route.id) return gate(route.id, <PlanScreen projectId={route.id} />);
   if (route.name === 'materials' && route.id) return <MaterialsScreen projectId={route.id} />;
   if (route.name === 'programs' && route.id) return <ProgramsDoor projectId={route.id} />;
+  if (route.name === 'machine' && route.id && route.lineId) return gate(route.id, <MachineScreen key={route.lineId} projectId={route.id} assetId={route.lineId} />);
   if (route.name === 'clientReport' && route.id) return gate(route.id, <ClientReportScreen projectId={route.id} />);
   if (route.name === 'notes' && route.id) return <NotesScreen projectId={route.id} />;
   if (route.name === 'standard' && route.id) return <StandardScreen projectId={route.id} standardId={route.lineId} />;

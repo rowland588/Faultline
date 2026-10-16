@@ -13129,3 +13129,26 @@ button.cxb-row:hover .cxb-n { color: var(--accent); }
 .plt-n.is-done { color: var(--st-g); }
 .plt-time { margin-left: 10px; }
 @media (max-width: 560px) { .plt-h { display: none; } .plt-t { padding: 9px 9px 8px; } .plt-time { margin-left: 0; } }
+
+/* A MACHINE, A PAGE OF ITS OWN (screens/MachineScreen; docs/STAGEGATE-UX.md
+   slice 3) — its four gates in a row, each in its colour and its words; then
+   its stages and tests beside its programs. */
+.mpg-at.is-r { color: var(--st-r); } .mpg-at.is-g { color: var(--st-g); } .mpg-at.is-w { color: var(--st-w); }
+.mpg-steps { list-style: none; margin: 4px 0 18px; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.mpg-step { display: grid; gap: 2px; padding: 10px 12px; border: 1.5px solid var(--line-2); border-radius: 10px; background: var(--surface); min-width: 0; }
+.mpg-step b { font-size: var(--t-body); }
+.mpg-step span { font-size: var(--t-detail); color: var(--ink-2); overflow-wrap: anywhere; }
+.mpg-step.is-g { border-color: transparent; background: color-mix(in srgb, var(--st-g) 9%, var(--surface)); }
+.mpg-step.is-g b { color: var(--st-g); }
+.mpg-step.is-r { border-color: var(--st-r); background: color-mix(in srgb, var(--st-r) 6%, var(--surface)); }
+.mpg-step.is-r b { color: var(--st-r); }
+.mpg-step.is-a { border-color: var(--st-a); }
+.mpg-step.is-a b { color: var(--st-a); }
+.mpg-step.is-w { border-color: var(--st-w); }
+.mpg-step.is-w b { color: var(--st-w); }
+.mpg-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.mpg-main { padding: 4px 16px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); min-width: 0; }
+.mpg-side { min-width: 0; }
+.mpg-side .pp-m { margin-top: 0; }
+@media (max-width: 900px) { .mpg-cols { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 560px) { .mpg-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

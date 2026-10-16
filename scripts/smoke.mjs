@@ -151,6 +151,7 @@ const ROUTES = [
   ['materials — none yet', `#/project/${seeded.projectId}/materials`],
   ['programs', `#/project/${seeded.pacedProjectId}/programs`],
   ['programs — none yet', `#/project/${seeded.projectId}/programs`],
+  ['a machine — its own page', `#/project/${seeded.projectId}/machine/${seeded.machineId}`],
   ['measured deck', `#/pace-report?project=${seeded.pacedProjectId}`],
   ['line deck', `#/pace-report?project=${seeded.pacedProjectId}&line=${seeded.pacedLineId}`],
   /* THE 6M JOURNEY — the fishbone of every problem on the line, one open

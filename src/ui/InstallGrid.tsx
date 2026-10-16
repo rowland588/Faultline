@@ -30,6 +30,7 @@ import { PartsMark } from './StageParts';
 import { criticalCount, criticalOn, riskOn } from '../lib/critical';
 import { offerUndo } from './Undo';
 import { openRecord } from './RecordDrawer';
+import { openMachine } from './MachinePanel';
 import type { useTesting } from '../lib/useTesting';
 import { Icon } from './Icon';
 import { can as canOf, type Can } from '../lib/access';
@@ -366,7 +367,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
       return (
         <Sheet title={rowName(a)} sub={row.view.says} onClose={() => setOpen(null)}>
           {a && <p className="sub">{a.oem && <>{a.oem} · </>}{ASSET_STATE_WORD[assetStateOf(a)]}{on && (assetStateOf(a) === 'awaited' ? ` — due ${short(on)}` : ` since ${short(on)}`)}</p>}
-          {a && <button type="button" className="rd-link ig-machine" onClick={() => { setOpen(null); openRecord(projectId, a.id); }}>Everything on {a.name} — every gate, what is open ›</button>}
+          {a && <button type="button" className="rd-link ig-machine" onClick={() => { setOpen(null); openMachine(projectId, a.id); }}>Everything on {a.name} — every gate, what is open ›</button>}
         </Sheet>
       );
     }
@@ -377,7 +378,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
             opened from its name wherever it shows. This sheet keeps what is
             about this gate (docs/FLOW.md item 2). */}
         {row.asset && (
-          <button type="button" className="rd-link ig-machine" onClick={() => { const a = row.asset as Asset; setOpen(null); openRecord(projectId, a.id); }}>
+          <button type="button" className="rd-link ig-machine" onClick={() => { const a = row.asset as Asset; setOpen(null); openMachine(projectId, a.id); }}>
             Everything on {row.asset.name} — every gate, its supplier and dates ›
           </button>
         )}

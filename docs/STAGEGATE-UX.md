@@ -49,9 +49,7 @@ the tab); The day becomes Today's plan on the front page.
 1. **Programs — one row, one form, one date.** *Built 16 October* (below).
 2. **Plan.** *Built 16 October* (below). The four gates and the timeline
    are one Plan: one line in the rail, their tabs on each page.
-3. **A machine is a page.** Its gates as a stepper, what needs something
-   first, its programs and problems (the same rows as Programs); in the rail
-   under Machines; every machine name opens it.
+3. **A machine is a page.** *Built 16 October* (below).
 4. **The drawer.** One shape: state and name, three facts, at most three
    buttons, history folded; links open in the drawer with Back. The
    "Programs loaded" stage's drawer stops listing the programs a second time
@@ -113,3 +111,21 @@ the tab); The day becomes Today's plan on the front page.
   job's work you are on) · Problems · More.
 - **Gone, and why**: the four gate lines and "The plan" in the rail — five
   doors to one kind of page; every one is a tab now, one tap from the others.
+
+## Slice 3 as built — a machine is a page
+
+- **The page** (`src/screens/MachineScreen.tsx`, `#/project/:id/machine/:asset`):
+  its name, where it is (red when anything on it is late), its maker and when
+  it came on site; its four gates in a row, each in its colour and its words;
+  then, beside each other, its stages and tests gate by gate with its
+  problems, label and details (`ui/MachinePanel` in its `page` form — the
+  same reading as the drawer's) and its programs (`ProgramsPage only=` — the
+  same rows and form as the Programs page, under "Its programs").
+- **The rail** (`rail.ts` `machinesGroup`, `Frame` `useRailMachines`): a
+  stage-gate job's machines under Machines, each with its square (red late or
+  failed, amber a problem with no time lost, green handed over, violet under
+  way, grey nothing started) and its open stages and tests, the late part red.
+- **Every machine name opens it** (`MachinePanel` `openMachine`): Programs'
+  machine heads, Commission's rows, the front page's machines (Journey), and
+  Install's "Everything on …". The drawer form stays for a scanned label and
+  old links (`?open=`) until slice 4.

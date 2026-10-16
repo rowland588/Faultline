@@ -129,6 +129,7 @@ export function hereOf(route: Route): string {
     case 'install': return 'install';
     case 'gateSetup': return 'setup';
     case 'programs': return 'programs';
+    case 'machine': return `machine:${route.lineId ?? ''}`;
     case 'testing': case 'test': case 'trialCard': return 'testing';
     case 'handover': return 'handover';
     case 'fixes': return 'fixes';
@@ -240,6 +241,21 @@ export function gatesGroup(projectId: string, here: string, counts: Counts): Rai
       counted('materials', 'Materials', `${p}/materials`, here, counts, ['materials'], 'list'),
       plain('day', 'The day', `${p}/day`, here, 'time'),
     ],
+  };
+}
+
+/** THE MACHINES of a stage-gate job, each a page of its own (docs/
+ *  STAGEGATE-UX.md slice 3) — in the job's order, each with its square:
+ *  red when anything on it is late or failed, amber a problem with no time
+ *  lost, green handed over, indigo under way, grey nothing started. */
+export interface RailMachine { id: string; name: string; state: SquareState;
+  /** Its stages and tests not done — the work, neutral; of them, `late` red. */
+  open?: number; late?: number }
+export function machinesGroup(projectId: string, here: string, machines: readonly RailMachine[]): RailGroup {
+  return {
+    label: 'Machines',
+    lines: machines.map(m => ({ key: `machine:${m.id}`, label: m.name, to: `/project/${projectId}/machine/${encodeURIComponent(m.id)}`,
+      on: here === `machine:${m.id}`, state: m.state, ...(m.open ? { n: m.open } : {}), ...(m.late ? { late: m.late } : {}), icon: 'machine' as const })),
   };
 }
 

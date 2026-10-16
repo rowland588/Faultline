@@ -31,7 +31,7 @@ import type { useTesting } from '../lib/useTesting';
 import type { Can } from '../lib/access';
 import type { Project } from '../types';
 import { openRecord } from './RecordDrawer';
-import { MachineName } from './MachinePanel';
+import { MachineName, openMachine } from './MachinePanel';
 import { UsualStages } from './UsualStages';
 import { DrawerShell } from './DrawerShell';
 import { PlanWindow, Sheet, Who, usePhone } from './InstallGrid';
@@ -246,7 +246,7 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
           {rows.map(r => (
             <div key={r.asset?.id ?? 'line'} className="igm-card">
               <div className="igm-h">{r.asset
-                ? <MachineName name={rowName(r.asset)} onOpen={() => openRecord(project.id, (r.asset as Asset).id)} />
+                ? <MachineName name={rowName(r.asset)} onOpen={() => openMachine(project.id, (r.asset as Asset).id)} />
                 : <b>{rowName(r.asset)}</b>}
                 <span className="sub">{r.missing === 0 ? `all ${usualCount} usual tests` : `${usualCount - r.missing} of ${usualCount} usual tests`}</span></div>
               {can.edit && r.missing > 0 && (
@@ -315,7 +315,7 @@ export function CommissionGrid({ project, projects, tt, programs, can }: {
                   <span className="ig-rowh" style={{ cursor: 'default' }}>
                     {/* The machine's name opens the machine (docs/FLOW.md item 2). */}
                     {r.asset
-                      ? <MachineName name={rowName(r.asset)} onOpen={() => openRecord(project.id, (r.asset as Asset).id)} />
+                      ? <MachineName name={rowName(r.asset)} onOpen={() => openMachine(project.id, (r.asset as Asset).id)} />
                       : <b>{rowName(r.asset)}</b>}
                     <span>{r.missing === 0 ? `all ${usualCount} usual tests` : `${usualCount - r.missing} of ${usualCount} usual tests`}</span>
                   </span>
