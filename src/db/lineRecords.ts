@@ -13,6 +13,8 @@ import { putProgram, listAllPrograms } from './programs';
 import { allPaceLines } from './pace';
 import { patchWorkspaceRecord } from './workspaces';
 import { renameInObservations } from './observations';
+import { listAllSnags, patchSnag } from './walk';
+import { listStandardsForLine, putStandard } from './standards';
 
 /** A machine's name on the line's list, at the end, when it is not there. */
 async function onTheList(wsId: ID, name: string): Promise<void> {
@@ -69,6 +71,19 @@ export async function renameLineMachine(wsId: ID, from: string, to: string): Pro
   const [assets, jobLines] = await Promise.all([listAllAssets(), allPaceLines()]);
   for (const a of assets.filter(x => lineOfMachine(x, jobLines) === wsId && machineKey(x.name) === machineKey(from))) {
     await putAsset({ ...a, name: to.trim() });
+  }
+  /* THE PROBLEMS AND THE CAPACITY STATIONS FOLLOW TOO. Both join the machine
+     by its name (the register's `targetAsset`, Line capacity's station): a
+     rename that left them behind dropped the machine's problems off its row
+     and parted the bottleneck from its stops (docs/UPGRADE-AUDIT.md C3). */
+  const key = machineKey(from), name = to.trim();
+  for (const s of await listAllSnags()) {
+    if (s.workspaceId === wsId && !s.deletedAt && s.targetAsset && machineKey(s.targetAsset) === key) await patchSnag(s.id, { targetAsset: name });
+  }
+  for (const st of await listStandardsForLine(wsId)) {
+    const stations = st.capacity?.stations ?? [];
+    if (!stations.some(x => machineKey(x.name) === key)) continue;
+    await putStandard({ ...st, capacity: { ...st.capacity, stations: stations.map(x => (machineKey(x.name) === key ? { ...x, name } : x)) } as NonNullable<typeof st.capacity> });
   }
   return n;
 }

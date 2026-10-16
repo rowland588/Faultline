@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import type { Project } from '../types';
 import {
   listAssets, listMaterials, listPrograms, listStudies, listTestItems, listTests, listPaceTodos, listTargets, listReadings,
-  loadPaceLines, onDataChange, listTreeNodes,
+  loadPaceLines, onDataChange, listTreeNodes, listWorkspaces,
 } from '../db';
 import { bindSources, treeStanding, withTrackerRows } from './treeBind';
 import { stepAction } from './actions';
@@ -42,12 +42,16 @@ export function useJobInputs(projects: Project[]): JobInputs | null {
         /* a test proved by a study still short says so on its row */
         studies: await listStudies(project.id),
       })));
+      const factoryName = new Map((await listWorkspaces()).map(w => [w.id, w.name]));
       const paced = await Promise.all(pacedProjects.map(async (project): Promise<PacedInput> => {
-        const [steps, lines, targets, readings, items, materials, programs] = await Promise.all([
+        const [steps, rawLines, targets, readings, items, materials, programs] = await Promise.all([
           listPaceTodos(project.id), loadPaceLines(project.id), listTargets(project.id), listReadings(project.id), listTestItems(project.id),
           /* What it waits on — late here is late on the job (lib/portfolio pacedOwed). */
           listMaterials(project.id), listPrograms(project.id),
         ]);
+        /* a line of Your factory is said by the factory's name here as the rail
+           says it — never the job's copy of it (docs/UPGRADE-AUDIT.md C9) */
+        const lines = rawLines.map(l => ({ ...l, name: (l.workspaceId && factoryName.get(l.workspaceId)) || l.name }));
         // The same call the project's own page makes, so the row and the page agree.
         const series = lines.map(l => lineSeries(project.measures ?? [], project.periods ?? [], targets, readings, l.id));
         /* A lever tree job's tree, drawn the way the tree and the report draw

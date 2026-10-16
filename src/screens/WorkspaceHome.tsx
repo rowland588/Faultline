@@ -88,7 +88,7 @@ interface WsContents { obs: number; videos: number;
 function contentsLabel(c: WsContents | undefined): ReactNode {
   if (!c) return '…';
   const rest = [
-    c.obs > 0 ? plural(c.obs, 'observation') : '',
+    c.obs > 0 ? `${plural(c.obs, 'stop')} timed` : '',
     c.videos > 0 ? plural(c.videos, 'video') : '',
   ].filter(Boolean);
   /* its problems first — what a line is opened for (12 October) — the

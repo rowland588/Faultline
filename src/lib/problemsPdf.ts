@@ -18,6 +18,7 @@ import type { JobGroup } from './snagsReport';
 import { snagsReading } from './snagsReport';
 import type { SnagCardRow, JobCardRow } from './buildSnagCards';
 
+import { isOpenOnLine } from './lineWork';
 export interface ProblemsScope {
   /** The report's title — "Line 2B — problems", "Line 2 commissioning — problems". */
   title: string;
@@ -53,4 +54,4 @@ export async function saveProblemCardsFor(x: { name: string; note?: string; line
 
 /** How many a scope would print — a button with nothing behind it is greyed. */
 export const openIn = (snags: Snag[], jobs: JobGroup[]): number =>
-  snags.filter(s => !s.deletedAt && !s.archivedAt && s.status !== 'closed').length + jobs.reduce((n, g) => n + g.rows.filter(r => r.open).length, 0);
+  snags.filter(s => isOpenOnLine(s, s.workspaceId)).length + jobs.reduce((n, g) => n + g.rows.filter(r => r.open).length, 0);

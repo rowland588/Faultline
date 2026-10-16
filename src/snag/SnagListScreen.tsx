@@ -385,8 +385,8 @@ function PrintView({ wsName, assets, rows, filterNote, onDone }: { wsName: strin
         <p className="report-meta">{wsName} · {today}</p>
         {filterNote && <p className="report-filter">Showing: {filterNote}</p>}
         <div className="report-stats">
-          <span className="report-stat"><b>{all.length}</b> snag{all.length === 1 ? '' : 's'}</span>
-          <span className="report-stat"><b>{groups.length}</b> asset{groups.length === 1 ? '' : 's'}</span>
+          <span className="report-stat"><b>{all.length}</b> problem{all.length === 1 ? '' : 's'}</span>
+          <span className="report-stat"><b>{groups.length}</b> machine{groups.length === 1 ? '' : 's'}</span>
           <span className="report-stat st-open"><b>{c.open}</b> open</span>
           <span className="report-stat st-prog"><b>{c.in_progress}</b> in progress</span>
           <span className="report-stat st-closed"><b>{c.closed}</b> closed</span>

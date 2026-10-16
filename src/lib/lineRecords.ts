@@ -186,7 +186,9 @@ export function lineProgramsReading(lines: readonly { name: string; id: string; 
       programs.push({ ...p, ...(on ? { assetId: on } : { assetId: undefined }) });
     }
   }
-  const r = programsReading({ tests: [], items: [], assets, programs, ...(today ? { today } : {}) });
+  /* the proving tests go in, so a program that failed its test says failed on
+     the line as it does on the job (docs/UPGRADE-AUDIT.md C6) */
+  const r = programsReading({ tests: [...(o.tests ?? [])], items: [], assets, programs, ...(today ? { today } : {}) });
   if (!r) return r;
   const byId = new Map(programs.map(p => [p.id, p]));
   const withFloor = (l: ProgramLine): ProgramLine => {

@@ -21,7 +21,7 @@ import { CommissionGrid, NeedsYou } from '../ui/CommissionGrid';
 import { useTesting } from '../lib/useTesting';
 import { updateProject } from '../db';
 import {
-  ASSET_STATE_WORD, WORDS, assetStateOn, latestAttempts, weeksTo,
+  ASSET_STATE_WORD, WORDS, assetStateOf, assetStateOn, latestAttempts, weeksTo,
   type Asset, type TestKind,
 } from '../lib/testing';
 import { Icon } from '../ui/Icon';
@@ -245,7 +245,9 @@ export function MachineCard({ a, ran, save, remove }: {
 }) {
   const [dates, setDates] = useState(false);
   const on = assetStateOn(a);
-  const late = a.state === 'awaited' && !!a.dueOn && a.dueOn < todayISO();
+  /* the state the dates say, as every other place reads it (docs/UPGRADE-AUDIT.md C7) */
+  const state = assetStateOf(a);
+  const late = state === 'awaited' && !!a.dueOn && a.dueOn < todayISO();
   const set = (k: 'dueOn' | 'onSiteOn' | 'installedOn' | 'runningOn') =>
     (v: string) => void save({ ...a, [k]: v || undefined });
   return (
@@ -260,8 +262,8 @@ export function MachineCard({ a, ran, save, remove }: {
       <div className="tw-asset-r">
         <span className={'sub' + (late ? ' is-r' : '')}>
           {a.oem && <>{a.oem} · </>}
-          {ASSET_STATE_WORD[a.state]}
-          {on && (a.state === 'awaited' ? ` — due ${nice(on)}` : ` since ${nice(on)}`)}
+          {ASSET_STATE_WORD[state]}
+          {on && (state === 'awaited' ? ` — due ${nice(on)}` : ` since ${nice(on)}`)}
           {ran > 0 ? ` · ${ran} test${ran === 1 ? '' : 's'}` : ''}
         </span>
         <button className="cw-link" onClick={() => setDates(d => !d)}>{dates ? 'Done' : 'Edit'}</button>

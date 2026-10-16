@@ -11,6 +11,7 @@ import type { Snag } from '../snag/types';
 import { factorySays, lineFacts } from './lines';
 import { snagRow } from './snagsReport';
 
+import { isOpenOnLine } from './lineWork';
 export interface FactoryRow {
   /** Its place on the floor, from 1. */
   n: number;
@@ -43,7 +44,7 @@ export function factoryReading(lines: readonly Workspace[], snags: readonly Snag
    *  `says`, with its late) — as Your factory's row says them. */
   kit: ReadonlyMap<string, string> = new Map()): FactoryReading {
   const rows: FactoryRow[] = lines.map((w, i) => {
-    const mine = snags.filter(s => s.workspaceId === w.id && !s.deletedAt && !s.archivedAt && s.status !== 'closed').map(s => snagRow(s, w.name, undefined, undefined, ref));
+    const mine = snags.filter(s => isOpenOnLine(s, w.id)).map(s => snagRow(s, w.name, undefined, undefined, ref));
     return {
       n: i + 1, name: w.name, type: w.lineType?.trim() || undefined,
       open: mine.length, late: mine.filter(r => r.late).length, critical: mine.filter(r => r.priority === 'critical').length,

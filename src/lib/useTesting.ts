@@ -10,7 +10,7 @@ import {
   listAssets, putAsset, deleteAsset,
   listTests, putTest, patchTest, deleteTest, testContents,
   listTestItems, putTestItem, patchTestItem, deleteTestItem,
-  onDataChange, lineForJobRecord, machineJoinsLine,
+  onDataChange, lineForJobRecord, machineJoinsLine, allPaceLines, renameLineMachine,
 } from '../db';
 import { uid, now } from './ids';
 import { WORDS, assetStateOf, isSettled, live, nextFrom, standing } from './testing';
@@ -18,6 +18,7 @@ import type { Asset, AssetState, ItemKind, Standing, StepGate, Test, TestItem, T
 import { offerUndo } from '../ui/Undo';
 import { heldReading } from './heldReading';
 
+import { lineOfMachine } from './lineRecords';
 export interface TestingState {
   loading: boolean;
   assets: Asset[];
@@ -175,6 +176,15 @@ export function useTesting(projectId: string): TestingState {
   const saveAsset = useCallback(async (a: Asset) => {
     const was = assets.find(x => x.id === a.id);
     await putAsset({ ...a, state: assetStateOf(a), updatedAt: now() });
+    /* A MACHINE RENAMED ON THE JOB is renamed on its line too — its stops, its
+       problems, its capacity station (db/lineRecords renameLineMachine); it
+       used to leave the line showing the old name and the new as two machines
+       (docs/UPGRADE-AUDIT.md C3). */
+    const oldName = was?.name.trim(), newName = a.name.trim();
+    if (oldName && newName && oldName !== newName) {
+      const lineId = lineOfMachine(a, await allPaceLines());
+      if (lineId) await renameLineMachine(lineId, oldName, newName);
+    }
     /* A SUPPLIER'S NAME PUT RIGHT moves what it owes (docs/JOBSTART.md): each
        line copied the name when it was made, so correcting "Ilapk UK" on the
        machine left every open line owed by the misspelling. Lines done, and
