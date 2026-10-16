@@ -1,9 +1,14 @@
 /* WHERE EACH MACHINE IS — the four gates of a stage-gate job, one row per
  * machine. Rowland: "install, set up, commissioning, handover — these are the
  * gates." Read off lib/install's journeyOf, the same reading the client
- * report prints beside each machine. Tap a gate to go to it. */
-import { nav } from '../state/useRoute';
-import { MachineName, openMachine } from './MachinePanel';
+ * report prints beside each machine.
+ *
+ * ONE DOOR A MACHINE (docs/STAGEGATE-UX.md; Rowland, 16 October: "find dorrs
+ * that open othe rthings"): the whole row opens the machine's own page — its
+ * gates, stages, tests, programs and problems. Its four gates were four
+ * buttons, each opening a different page; they are its stepper now, read at
+ * a glance, and the gates are one tap from the machine's page or the Plan. */
+import { openMachine } from './MachinePanel';
 import { GATE_TONE_WORD, JOURNEY, handedOverWith, isWrongGate, machineAt, journeyOf, reasonsOf } from '../lib/install';
 import { live, type Asset, type Test, type TestItem } from '../lib/testing';
 import { todayISO } from '../lib/weeks';
@@ -40,13 +45,12 @@ export function Journey({ projectId, assets, tests, items, bare }: {
            (lib/install handedOverWith): the status, never a block. */
         const open = handedOverWith(a, tests, items, today, programs);
         return (
-          <div key={a.id} className="jr-row">
-            {/* The name opens the machine — everything on it (docs/FLOW.md item 2). */}
-            <span className="jr-m"><MachineName name={a.name} onOpen={() => openMachine(projectId, a.id)} /><span className="sub">{machineAt(a, j).says}{open.length > 0 && <span className="jr-with"> · {open.join(' · ')}</span>}</span>
+          <button key={a.id} type="button" className="jr-row is-door" onClick={() => openMachine(projectId, a.id)}
+            aria-label={`${a.name} — ${machineAt(a, j).says}: open the machine`}>
+            <span className="jr-m"><span className="mp-name jr-name">{a.name}</span><span className="sub">{machineAt(a, j).says}{open.length > 0 && <span className="jr-with"> · {open.join(' · ')}</span>}</span>
               {/* WHY IT IS RED OR AMBER, where the colour is — each reason in
                   its own: "Sensors checked — late, 2 h lost" red, "Dry run — a
-                  problem, no time lost" amber. Tapping the tile goes to where
-                  it is changed or put back. */}
+                  problem, no time lost" amber. */}
               {!bare && j.some(g => isWrongGate(g.tone)) && (() => {
                 const why = reasonsOf(a, tests, items, today);
                 return why.length > 0 && (
@@ -57,16 +61,14 @@ export function Journey({ projectId, assets, tests, items, bare }: {
                 );
               })()}
             </span>
-            <span className="jr-strip">
-              {j.map((g, i) => (
-                <button key={g.gate} className={'jr-seg is-' + g.tone} title={`${g.label}: ${TONE_WORD[g.tone]}`}
-                  aria-label={`${a.name} — ${g.label}: ${TONE_WORD[g.tone]}`}
-                  onClick={() => nav(`/project/${projectId}/${JOURNEY[i].path}`)}>
+            <span className="jr-strip" aria-hidden>
+              {j.map(g => (
+                <span key={g.gate} className={'jr-seg is-' + g.tone} title={`${g.label}: ${TONE_WORD[g.tone]}`}>
                   <span className="jr-seg-t">{g.label}</span>
-                </button>
+                </span>
               ))}
             </span>
-          </div>
+          </button>
         );
       })}
       <p className="jr-key">
