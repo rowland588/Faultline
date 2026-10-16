@@ -103,7 +103,7 @@ function Strip({ p, weeks }: { p: Program; weeks: Week[] }) {
  * It disappears the moment every program says which machine it is for, so it is
  * a way through rather than a permanent fixture.
  */
-function PutAllOn({ state, assets, addAsset }: {
+export function PutAllOn({ state, assets, addAsset }: {
   state: ReturnType<typeof usePrograms>;
   assets: Asset[];
   addAsset: (name: string) => Promise<string>;

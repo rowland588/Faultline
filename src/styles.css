@@ -10771,32 +10771,9 @@ body:has(.toast) .qs-fab { bottom: calc(var(--nv-bar) + 130px + env(safe-area-in
 /* THE PROGRAMS PAGE (screens/ProgramsPage) — a tile per state that is also
    its filter, then each machine's programs the whole width of the page. Only
    the abnormal count wears colour; a zero is grey. */
-.pp-tiles { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; margin: 12px 0; }
-.pp-tile { all: unset; box-sizing: border-box; cursor: pointer; display: grid; gap: 2px; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--surface); }
-.pp-tile b { font-size: 22px; line-height: 1.1; color: var(--ink); }
-.pp-tile span { font-size: var(--t-detail); color: var(--ink-2); }
-.pp-tile.is-g b { color: var(--st-g); }
-.pp-tile.is-w b { color: var(--st-w); }
-.pp-tile.is-a { border-color: var(--st-a); }
-.pp-tile.is-a b { color: var(--st-a); }
-.pp-tile.is-r { border-color: var(--st-r); }
-.pp-tile.is-r b { color: var(--st-r); }
-.pp-tile.is-z b, .pp-tile.is-z span { color: var(--muted); }
-.pp-tile.on { box-shadow: 0 0 0 2px var(--brand); border-color: var(--brand); }
-.pp-tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-@media (max-width: 1100px) { .pp-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-@media (max-width: 640px) { .pp-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.pp-mf { margin-bottom: 6px; }
 .pp-m { margin-top: 18px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
 .pp-mh { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
 .pp-mh h2 { margin: 0; font-size: 17px; flex: 1 1 auto; min-width: 0; }
-.pp-m .sp-parts { margin-top: 4px; }
-.pp-nostage { margin: 8px 0 0; }
-.pp-listonly { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 2px; }
-.pp-listonly li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding: 6px 0; border-top: 1px dashed var(--line); }
-.pp-listonly li > b { flex: 1 1 200px; min-width: 0; }
-.pp-word { font-size: var(--t-detail); font-weight: 700; color: var(--muted); }
-.pp-word.is-g { color: var(--st-g); } .pp-word.is-r { color: var(--st-r); } .pp-word.is-w { color: var(--st-w); } .pp-word.is-a { color: var(--st-a); }
 .pp-door p { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 6px 0 0; }
 
 /* A program's state on the report screen, in its colour and its words. */
@@ -12761,7 +12738,6 @@ button.vc-row-in:focus-visible { outline: 2px solid var(--brand); outline-offset
 .ptx-n-in input { width: 84px; }
 .ptx-none { margin-right: 8px; }
 @media (max-width: 640px) { .spp-after { padding-left: 0; } }
-.pp-theirs li { flex-wrap: wrap; }
 .pp-line-tag { font-size: var(--t-label); font-weight: 700; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; }
 /* A MACHINE'S PROGRAMS, opened from its cell on Commission's board */
 .cgp-list { list-style: none; margin: 8px 0 12px; padding: 0; }
@@ -13061,3 +13037,76 @@ button.cxb-row:hover .cxb-n { color: var(--accent); }
 .capx .cap-st-h .in-usual-b { min-width: 34px; min-height: 36px; padding: 0 6px; }
 .capx .cap-st-h .btn-sm { min-height: 36px; }
 @media (max-width: 640px) { .capx .cap-st-h { flex-wrap: wrap; } }
+
+/* ONE ROW A PROGRAM (ui/ProgramRow; Rowland, 16 October: "too many views and
+   doors"). The name and its one status on the first line, what it runs and
+   whose under it, what was seen; its test on the right — or, once it has a
+   journey, the attempts as chips under the row with the button at their end.
+   A tap opens everything else in a panel on the row. */
+.pp-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin: 14px 0 4px; }
+.pp-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pp-chip { all: unset; box-sizing: border-box; cursor: pointer; padding: 6px 12px; border: 1.5px solid var(--line); border-radius: 999px; background: var(--surface);
+  font-size: var(--t-detail); font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+.pp-chip b { margin-left: 4px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.pp-chip.is-r { border-color: color-mix(in srgb, var(--st-r) 45%, var(--line)); }
+.pp-chip.is-r b { color: var(--st-r); }
+.pp-chip.is-a b { color: var(--st-a); }
+.pp-chip.is-g b { color: var(--st-g); }
+.pp-chip.on { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+.pp-chip.on b { color: inherit; }
+.pp-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pp-mf { width: auto; min-width: 190px; }
+.pp-says { color: var(--ink); font-weight: 600; }
+.pp-how { margin: 2px 0 0; }
+.pgr-list { list-style: none; margin: 4px 0 0; padding: 0; display: grid; }
+.pgr { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 4px 14px; padding: 10px 0; border-top: 1px solid var(--line); }
+.pgr:first-child { border-top: 0; }
+.pgr-main { all: unset; box-sizing: border-box; cursor: pointer; grid-column: 1; min-width: 0; display: grid; gap: 2px; padding: 2px 0; }
+.pgr-main:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.pgr-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.pgr-name { min-width: 0; font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+.pgr-main:hover .pgr-name, .pgr.is-open .pgr-name { color: var(--brand); }
+.pgr-meta { font-size: var(--t-detail); color: var(--muted); }
+.pgr-said { font-size: var(--t-detail); color: var(--ink-2); white-space: pre-wrap; overflow-wrap: anywhere; }
+.pgr-aside { font-size: var(--t-detail); font-weight: 600; overflow-wrap: anywhere; }
+.pgr-aside.is-r { color: var(--st-r); }
+/* the test: beside the row while it has no journey; under it once it has */
+.pgr-test { grid-column: 1 / -1; min-width: 0; }
+.pgr:not(:has(.ptx-j)):not(:has(.ptx-panel)) .pgr-test { grid-column: 2; grid-row: 1; }
+.pgr .ptx { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.pgr .ptx-j { flex: 1 1 320px; margin: 0; }
+.pgr .ptx-go { margin-left: auto; }
+.pgr .ptx-panel { flex-basis: 100%; max-width: none; margin-top: 2px; }
+/* the journey in one line: its fastest pass, then an attempt a chip */
+.pgr .ptx-j { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.pgr .ptx-j-h > b, .pgr .ptx-j-h > .sub { display: none; }
+.pgr .ptx-ladder { display: flex; flex-wrap: wrap; gap: 6px; padding: 0; border: 0; }
+.pgr .ptx-ladder li::before { display: none; }
+.pgr .ptx-step { width: auto; max-width: 100%; gap: 2px 8px; padding: 3px 9px; border: 1px solid var(--line); border-left: 3px solid var(--st-n); border-radius: 8px; background: var(--surface); }
+.pgr .ptx-ladder li.is-g .ptx-step { border-left-color: var(--st-g); }
+.pgr .ptx-ladder li.is-r .ptx-step { border-left-color: var(--st-r); }
+.pgr .ptx-ladder li.is-a .ptx-step { border-left-color: var(--st-a); }
+.pgr .ptx-ladder li.is-w .ptx-step { border-left-color: var(--st-w); }
+.pgr .ptx-seen { flex-basis: auto; max-width: 44ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* everything else about it, on the row */
+.pgr-panel { grid-column: 1 / -1; display: grid; gap: 10px; margin-top: 4px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); }
+.pgr-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px 10px; }
+.pgr-form .spp-f-wide, .pgr-acts { grid-column: 1 / -1; }
+.pgr-form select { min-height: 38px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; background: var(--surface); color: var(--ink); width: 100%; box-sizing: border-box; }
+.pgr-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pgr-del { margin-left: auto; }
+.pgr-proof { margin: 0; font-size: var(--t-detail); font-weight: 600; color: var(--ink-2); }
+.pgr-proof.is-g { color: var(--st-g); } .pgr-proof.is-r { color: var(--st-r); } .pgr-proof.is-a { color: var(--st-a); } .pgr-proof.is-w { color: var(--st-w); }
+.pgr-probs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.pgr-prob { font-size: var(--t-detail); text-align: left; }
+.pgr-prob.is-open b { color: var(--st-r); }
+.pgr-own { margin: 0; }
+.pgr-add { margin-top: 10px; }
+.pgr-add-open { margin-top: 8px; font-size: var(--t-detail); text-align: left; }
+@media (max-width: 560px) {
+  .pgr { grid-template-columns: minmax(0, 1fr); }
+  .pgr:not(:has(.ptx-j)):not(:has(.ptx-panel)) .pgr-test { grid-column: 1; grid-row: auto; }
+  .pp-mf { min-width: 0; width: 100%; }
+}
+.pgr-after { grid-column: 1; min-width: 0; display: grid; gap: 2px; font-size: var(--t-detail); }
+.pgr-after .mt-facts, .pgr-after .lp-how { margin: 0; }

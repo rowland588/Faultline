@@ -5,11 +5,12 @@
  * program, and allow commentary." Driven in a real browser on the seeded
  * job's Programs page with the real controls:
  *
- *   1  the five statuses offered: baseline achieved, passed, failed, not
- *      tested, no program
+ *   1  the five statuses offered — passed, baseline achieved, didn't pass
+ *      (failed), not tested, no program — in the one form with the test's
+ *      own didn't run (16 October: one form, not two)
  *   2  not tested, with what was seen: said on its line in its words and
  *      kept — and the program is not done
- *   3  no program, with what was seen: amber, on its tile, and on the Set up
+ *   3  no program, with what was seen: amber, on its chip, and on the Set up
  *      screen's Needs you as a branch of its stage
  *   4  commentary with no status picked: kept on the program, shown on its line
  *   5  the programs report: the words, the commentary and the counts as
@@ -59,23 +60,27 @@ const truth = () => page.evaluate(async pid => {
   return { says: r?.says, notTested: r?.notTested, noProgram: r?.noProgram, lines: r?.lines.map(l => ({ what: l.what, word: l.word, note: l.note, tone: l.tone })) ?? [],
     items: items.filter(i => i.kind === 'next').map(i => ({ what: i.what, note: i.note, doneAt: i.doneAt, results: i.results })) };
 }, sd.projectId);
+/* ONE FORM (16 October): a program's status is said where its test is — the
+   button on its row (Test it · Say how it went · Go again) opens it. */
+const ROWS = '.pgr:not(:has(.pp-line-tag))';
+const openForm = async row => { await row.locator('.ptx-go').click(); await page.waitForTimeout(400); return row.locator('.ptx-panel'); };
 const say = async (k, is, note) => {
-  const row = page.locator('.spp-row').nth(k);
-  await row.locator('.spp-main').click(); await page.waitForTimeout(400);
-  if (is) await page.getByRole('button', { name: is, exact: true }).click();
-  await page.locator('.spp-note').fill(note);
-  await page.locator('.spp-form button[type=submit]').click(); await page.waitForTimeout(900);
+  const row = page.locator(ROWS).nth(k);
+  const form = await openForm(row);
+  if (is) await form.getByRole('button', { name: is, exact: true }).click();
+  await form.locator('textarea').fill(note);
+  await form.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(900);
   return flat(await row.innerText());
 };
 
 await go(PROGS);
-const names = (await page.locator('.spp-row .spp-name').allInnerTexts()).map(flat);
-/* ---- 1 the five statuses ---- */
+const names = (await page.locator(`${ROWS} .pgr-name`).allInnerTexts()).map(flat);
+/* ---- 1 the five statuses, in the one form with the test's ---- */
 {
-  await page.locator('.spp-row').first().locator('.spp-main').click(); await page.waitForTimeout(400);
-  const opts = (await page.locator('.spp-opt').allInnerTexts()).map(flat);
-  ok(opts.join('|') === 'Baseline achieved|Passed|Failed|Not tested|No program', `1 the statuses offered: ${opts.join(' · ')}`);
-  await page.locator('.spp-row').first().locator('.spp-main').click(); await page.waitForTimeout(300);
+  const form = await openForm(page.locator(ROWS).first());
+  const opts = (await form.locator('.spp-opt').allInnerTexts()).map(flat);
+  ok(opts.join('|') === 'Passed|Baseline achieved|Didn’t pass|Didn’t run|Not tested|No program', `1 the statuses offered, with the test's, in one form: ${opts.join(' · ')}`);
+  await form.getByRole('button', { name: 'Cancel' }).click(); await page.waitForTimeout(300);
 }
 /* ---- 2 not tested, with what was seen ---- */
 {
@@ -92,8 +97,9 @@ const names = (await page.locator('.spp-row .spp-name').allInnerTexts()).map(fla
   const t = await truth();
   const l = t.lines.find(x => x.what === names[1]);
   ok(!!l && /^no program/.test(l.word) && (l.tone === 'a' || l.tone === 'r') && line.includes('Brillopak to write it'), `3 no program on its line: "${l?.word}" (${l?.tone})`);
-  const tile = flat(await page.locator('.pp-tile', { hasText: 'No program' }).innerText());
-  ok(tile.startsWith(String(t.noProgram)) && t.noProgram === 1 && /is-a/.test(await page.locator('.pp-tile', { hasText: 'No program' }).getAttribute('class') ?? ''), `3 its tile: ${tile}`);
+  const chip = page.locator('.pp-chip', { hasText: 'No program' });
+  const tile = flat(await chip.innerText());
+  ok(tile.endsWith(String(t.noProgram)) && t.noProgram === 1 && /is-a/.test(await chip.getAttribute('class') ?? ''), `3 its chip, amber: ${tile}`);
   await go(`#/project/${sd.projectId}/set-up`);
   const needs = (await page.locator('.cg-needs .nd-row').allInnerTexts()).map(flat);
   ok(needs.some(n => n.startsWith('No program') && n.includes(names[1]) && n.includes('Brillopak to write it')), '3 on the Set up screen\'s Needs you, a branch of its stage');
@@ -104,10 +110,10 @@ const names = (await page.locator('.spp-row .spp-name').allInnerTexts()).map(fla
   const t0 = await truth();
   const k = t0.items.findIndex(i => !(i.results ?? []).length);
   if (k >= 0) {
-    const row = page.locator('.spp-row', { hasText: t0.items[k].what }).first();
-    await row.locator('.spp-main').click(); await page.waitForTimeout(400);
-    await page.locator('.spp-note').fill('Waiting on the change parts');
-    await page.locator('.spp-form button[type=submit]').click(); await page.waitForTimeout(900);
+    const row = page.locator(ROWS, { hasText: t0.items[k].what }).first();
+    const form = await openForm(row);
+    await form.locator('textarea').fill('Waiting on the change parts');
+    await form.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(900);
     const t = await truth();
     ok(t.items.find(i => i.what === t0.items[k].what)?.note === 'Waiting on the change parts' && flat(await row.innerText()).includes('Waiting on the change parts'), '4 commentary with no status: kept on the program and on its line');
   } else ok(true, '4 (every seeded program has a status — commentary-only proved by the unit test)');
@@ -126,5 +132,5 @@ const names = (await page.locator('.spp-row .spp-name').allInnerTexts()).map(fla
 
 ok(errors.length === 0, `no console errors${errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''}`);
 await browser.close();
-console.log(failed ? `\nPrograms NOT accepted: ${failed} failed` : '\nPrograms accepted: five statuses, each with commentary, and commentary on its own — on the line, the tiles, Needs you and the paper');
+console.log(failed ? `\nPrograms NOT accepted: ${failed} failed` : '\nPrograms accepted: five statuses, each with commentary, and commentary on its own — on the line, the chips, Needs you and the paper');
 process.exit(failed ? 1 : 0);
