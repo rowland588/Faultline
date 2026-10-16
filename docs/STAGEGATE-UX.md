@@ -50,8 +50,11 @@ the tab); The day becomes Today's plan on the front page.
 2. **Plan.** *Built 16 October* (below). The four gates and the timeline
    are one Plan: one line in the rail, their tabs on each page.
 3. **A machine is a page.** *Built 16 October* (below).
-4. **The drawer.** *First part built 16 October* (below). Still to do:
-   the buttons under the facts to three at most on every kind of record.
+4. **The drawer.** *Built 16 October* (below). **Decided, with the
+   reason:** the actions at a drawer's foot (plan a fix, attach a PDF,
+   something to raise at the meeting, its card, delete) stay where they
+   are — quiet links under the record, each used daily; the buttons that
+   change its state stay the two or three under its facts.
 5. **Today, calmer.** *Machine rows built 16 October*: each machine on the
    job's front page is one row, one door — to its own page — with its gates
    as its stepper (they were four buttons opening four pages).
