@@ -189,25 +189,37 @@ export async function workspaceContents(id: ID): Promise<{ what: string; count: 
  *  one); and the emptied line is archived, never deleted, so it can be
  *  brought back. Returns how many records moved. */
 export async function mergeLines(fromId: ID, toId: ID): Promise<number> {
+  return (await mergeLinesUndoable(fromId, toId)).moved;
+}
+
+/** The merge, with the way back: every record it moved is remembered as it
+ *  was, and `undo` puts each one back and the two lines as they were — a
+ *  merge is one tap on Your factory, and a merge of the wrong two lines
+ *  used to be for keeps (docs/UPGRADE-AUDIT.md S7). */
+export async function mergeLinesUndoable(fromId: ID, toId: ID): Promise<{ moved: number; undo: () => Promise<void> }> {
   const db = await getDB();
   const from = await db.get('workspaces', fromId), to = await db.get('workspaces', toId);
-  if (!from || !to || fromId === toId) return 0;
+  if (!from || !to || fromId === toId) return { moved: 0, undo: async () => undefined };
   const t = now();
   let moved = 0;
+  /* what was, to put back */
+  const before: { store: 'observations' | 'segments' | 'snag_assets' | 'snags' | 'cases' | 'studies' | 'standards' | 'pace_ppm' | 'projects'; row: unknown }[] = [];
+  const metaBefore: { key: string; value: unknown }[] = [];
   for (const store of ['observations', 'segments', 'snag_assets', 'snags', 'cases', 'studies'] as const) {
     for (const r of await db.getAllFromIndex(store, 'by_workspace', fromId)) {
+      before.push({ store, row: r });
       await db.put(store, { ...r, workspaceId: toId, updatedAt: t } as never);
       moved++;
     }
   }
-  for (const s of (await db.getAll('standards')).filter(x => x.workspaceId === fromId)) { await db.put('standards', { ...s, workspaceId: toId, updatedAt: t }); moved++; }
-  for (const l of (await db.getAll('pace_ppm')).filter(x => x.workspaceId === fromId && !x.deletedAt)) { await db.put('pace_ppm', { ...l, workspaceId: toId, updatedAt: t }); moved++; }
-  for (const p of (await db.getAll('projects')).filter(x => x.walkWorkspaceId === fromId)) await db.put('projects', { ...p, walkWorkspaceId: toId, updatedAt: t });
+  for (const s of (await db.getAll('standards')).filter(x => x.workspaceId === fromId)) { before.push({ store: 'standards', row: s }); await db.put('standards', { ...s, workspaceId: toId, updatedAt: t }); moved++; }
+  for (const l of (await db.getAll('pace_ppm')).filter(x => x.workspaceId === fromId && !x.deletedAt)) { before.push({ store: 'pace_ppm', row: l }); await db.put('pace_ppm', { ...l, workspaceId: toId, updatedAt: t }); moved++; }
+  for (const p of (await db.getAll('projects')).filter(x => x.walkWorkspaceId === fromId)) { before.push({ store: 'projects', row: p }); await db.put('projects', { ...p, walkWorkspaceId: toId, updatedAt: t }); }
   for (const key of await db.getAllKeys('meta')) {
     const k = String(key);
     if (k !== 'paceWorkspace' && !k.startsWith('paceWorkspace:')) continue;
     const m = (await db.get('meta', key)) as { id?: ID } | undefined;
-    if (m?.id === fromId) await db.put('meta', { ...m, id: toId }, key);
+    if (m?.id === fromId) { metaBefore.push({ key: k, value: m }); await db.put('meta', { ...m, id: toId }, key); }
   }
   const uniq = (xs: readonly string[]) => [...new Map(xs.filter(x => x.trim()).map(x => [x.trim().toLowerCase(), x])).values()];
   const subs: Record<string, string[]> = { ...from.subcategories };
@@ -225,5 +237,14 @@ export async function mergeLines(fromId: ID, toId: ID): Promise<number> {
   });
   await db.put('workspaces', { ...from, archived: true, updatedAt: t });
   signalWrite();
-  return moved;
+  const undo = async () => {
+    const d = await getDB();
+    const u = now();
+    for (const b of before) await d.put(b.store, { ...(b.row as object), updatedAt: u } as never);
+    for (const m of metaBefore) await d.put('meta', m.value as never, m.key);
+    await d.put('workspaces', { ...to, updatedAt: u });
+    await d.put('workspaces', { ...from, updatedAt: u });
+    signalWrite();
+  };
+  return { moved, undo };
 }

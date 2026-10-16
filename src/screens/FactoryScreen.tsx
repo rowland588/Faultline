@@ -22,7 +22,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Workspace } from '../types';
 import { nav } from '../state/useRoute';
 import {
-  archiveWorkspace, deleteWorkspace, mergeLines, projectsOnWorkspace, listAllSnags, listArchivedWorkspaces,
+  archiveWorkspace, deleteWorkspace, mergeLinesUndoable, projectsOnWorkspace, listAllSnags, listArchivedWorkspaces,
   listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, restoreWorkspace, updateWorkspace, workspaceContents,
 } from '../db';
 import { addLineToFactory, factorySays, lineFacts, lineTypesOffered, liveProductionLines, nextLineName, placeOnFloor, asked } from '../lib/lines';
@@ -31,6 +31,9 @@ import { lineKit } from '../lib/lineRecords';
 import { snagRow } from '../lib/snagsReport';
 import { Icon } from '../ui/Icon';
 import { useCanStartProjects } from '../cloud/access';
+import { useSession } from '../cloud/session';
+import { useProfile } from '../cloud/admin';
+import { offerUndo } from '../ui/Undo';
 import { fmtRelative } from '../lib/format';
 import { useProjects } from '../lib/useProjects';
 import type { Snag } from '../snag/types';
@@ -57,6 +60,14 @@ function CommitBox({ value, onCommit, label, list, placeholder, disabled }: {
 
 export function FactoryScreen() {
   const may = useCanStartProjects();
+  /* A LINE'S DELETE AND MERGE STAY WITH ITS OWNER (supabase/LINE_AND_STANDARD_RULES.sql;
+     docs/UPGRADE-AUDIT.md S1, S7): the database keeps deleted_at for anyone
+     else, so the button is not offered to them — a button the database would
+     refuse is a button that lies. A line not yet synced has no owner: it is
+     this device's own. */
+  const { session } = useSession();
+  const { profile } = useProfile();
+  const owns = (w: Workspace) => !w.ownerId || (!!session && w.ownerId === session.user.id) || !!profile?.is_super;
   const [lines, setLines] = useState<Workspace[] | null>(null);
   const [shelved, setShelved] = useState<Workspace[]>([]);
   const [open, setOpen] = useState<Map<string, { open: number; late: number }>>(new Map());
@@ -241,7 +252,7 @@ export function FactoryScreen() {
                 </span>
                 <span className="fac-acts">
                   <button type="button" className="btn btn-sm" onClick={() => nav(`/lines/${w.id}`)}>Open ›</button>
-                  {may && lines.length > 1 && (
+                  {may && owns(w) && lines.length > 1 && (
                     <button type="button" className="btn btn-ghost btn-sm" title={`Merge ${w.name} into another line`}
                       onClick={() => void mergeWhat(w.id).then(what => setMerging({ from: w, to: '', what }))}>Merge…</button>
                   )}
@@ -271,7 +282,11 @@ export function FactoryScreen() {
             <button type="button" className="btn btn-primary" disabled={!merging.to} onClick={() => {
               const into = (lines ?? []).find(x => x.id === merging.to);
               if (!into) return;
-              void mergeLines(merging.from.id, into.id).then(n => { setMerging(null); said(`${merging.from.name} merged into ${into.name} — ${n} record${n === 1 ? '' : 's'} moved; ${merging.from.name} archived, empty`); });
+              void mergeLinesUndoable(merging.from.id, into.id).then(r => {
+                setMerging(null);
+                said(`${merging.from.name} merged into ${into.name} — ${r.moved} record${r.moved === 1 ? '' : 's'} moved; ${merging.from.name} archived, empty`);
+                offerUndo(`${merging.from.name} merged into ${into.name}`, r.undo);
+              });
             }}>Merge</button>
             <button type="button" className="btn btn-ghost" onClick={() => setMerging(null)}>Cancel</button>
           </div>
@@ -297,7 +312,8 @@ export function FactoryScreen() {
                   </span>
                   {may && <button className="btn btn-ghost btn-sm" onClick={() => void restoreWorkspace(w.id).then(() => said(`${w.name} restored`))}>Restore</button>}
                   {/* DELETING A LINE DESTROYS FILM THAT EXISTS NOWHERE ELSE, so the confirm counts it out loud first. */}
-                  {may && (
+                  {may && !owns(w) && <span className="sub">Only the line’s owner can delete it</span>}
+                  {may && owns(w) && (
                     <button className="btn btn-sm proj-arch-del"
                       onClick={() => void (async () => {
                         const owned = await workspaceContents(w.id);
