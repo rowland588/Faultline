@@ -17,7 +17,7 @@ import type { PlanMark } from './standing';
 import { windowWords } from './plan';
 import { HANDOVER_KEY, keyOfMark, overlapOf, storyOf } from './story';
 import { isOverdue, isSettled, latestAttempts, live, type Asset, type StepGate, type Test, type TestItem } from './testing';
-import { niceDay, todayISO as isoDay } from './weeks';
+import { niceDay, isoDay } from './weeks';
 import { isLate, walkWords, type WalkLane, type WalkSnag } from './walkSnags';
 import { appStages, installOf, recordHref, JOURNEY, machineNow, handedOverWith, lateOrProblem, machineAt, journeyOf, redReasons, stageKey, doneLateBy, heldUpBy, lateByWords } from './install';
 import { partStatus, partsOf } from './noted';
@@ -191,7 +191,7 @@ const GROUPS: { kind: PlanMark['kind']; label: string }[] = [
 
 const DAY = 86_400_000;
 const utc = (iso: string) => Date.parse(`${iso}T00:00:00Z`);
-const isoOf = (t: number) => new Date(t).toISOString().slice(0, 10);
+const isoOf = (t: number) => isoDay(t);
 const addDays = (iso: string, n: number) => isoOf(utc(iso) + n * DAY);
 const between = (a: string, b: string) => Math.round((utc(b) - utc(a)) / DAY);
 /** 0 = Monday … 6 = Sunday. */
@@ -228,7 +228,7 @@ export function gantt(marks: PlanMark[], opts: { today: string; expectedAt?: str
   const underStage = new Set([...stories.values()].flatMap(st => st.fixes.map(f => f.id)));
   const fixDays = [...stories.values()].flatMap(st => [
     ...st.days, ...(st.original ? [st.original] : []),
-    ...st.fixes.flatMap(f => [f.plannedFor, f.plannedTo, f.ranOn, isoDay(new Date(f.createdAt))].filter((d): d is string => !!d)),
+    ...st.fixes.flatMap(f => [f.plannedFor, f.plannedTo, f.ranOn, isoDay(f.createdAt)].filter((d): d is string => !!d)),
   ]);
 
   /* THE CALENDAR'S EDGES: every bar, today and both handover dates, with a few
@@ -283,7 +283,7 @@ export function gantt(marks: PlanMark[], opts: { today: string; expectedAt?: str
     const until = f.ranOn ? f.ranTo : f.plannedTo;
     const tone: PlanMark['tone'] = f.outcome === 'passed' ? 'done' : f.outcome === 'failed' ? 'failed' : isOverdue(f, today) ? 'late' : 'booked';
     if (!at) {
-      const made = isoDay(new Date(f.createdAt));
+      const made = isoDay(f.createdAt);
       return { id: f.id, kind: 'fix', label: f.title, from: made, to: made, tone: 'none', start: between(from, made), span: 1, when: 'no date agreed', open: true };
     }
     const end = until && until > at ? until : at;

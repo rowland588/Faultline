@@ -25,7 +25,7 @@ import { fixTone } from './fixTone';
 import { isOverdue as fixOverdue, isSettled, live, testOfFix, type Asset, type Test, type TestItem } from './testing';
 import { notedProblems } from './noted';
 import { fixFlag } from './critical';
-import { niceDay } from './weeks';
+import { niceDay, isoDay, todayISO } from './weeks';
 import { factoryLinesOf, lineOfMachine, type JobLine } from './lineRecords';
 import { PHASE_WORD, type Phase } from './problems';
 import type { PaceTodoRow } from '../db/rows';
@@ -260,7 +260,7 @@ export function jobGroup(x: { projectId: string; job: string; tests: Test[]; ite
     return {
       kind: 'problem' as const, id: n.item.id, projectId: x.projectId, what: n.item.what.trim() || 'A problem', where: n.where,
       ...(n.item.owner?.trim() ? { who: n.item.owner.trim() } : {}),
-      word: open ? (crit ? 'Open — critical' : 'Open') : `Sorted ${niceDay(new Date(n.item.doneAt as number).toISOString().slice(0, 10))}`,
+      word: open ? (crit ? 'Open — critical' : 'Open') : `Sorted ${niceDay(isoDay(n.item.doneAt as number))}`,
       tone: open ? (crit ? 'r' : 'a') : 'g', open, late: false,
       ...(crit ? { flag: 'critical' as const } : n.item.risk ? { flag: 'risk' as const } : {}),
       priority: crit ? 'critical' as const : n.item.risk ? 'high' as const : 'low' as const,
@@ -285,7 +285,7 @@ export function jobGroup(x: { projectId: string; job: string; tests: Test[]; ite
     };
   });
   /* a snag moved to a 6M or lever-tree job is an action on its board */
-  const today = x.today ?? new Date().toISOString().slice(0, 10);
+  const today = x.today ?? todayISO();
   const actions: JobRow[] = (x.todos ?? []).filter(a => fromItem.has(a.id)).map(a => {
     const sn = fromItem.get(a.id) as Snag, done = a.state === 'done', late = !done && !!a.due && a.due < today;
     return {

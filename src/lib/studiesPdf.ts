@@ -23,6 +23,7 @@ import { changeoverBlocks } from './report/changeoverTable';
 import { lossBlocks } from './report/lossTable';
 import { samplingBlocks } from './report/samplingTable';
 
+import { todayISO } from './weeks';
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', BRAND = '#1f63e0', DANGER = '#c4281c';
 
@@ -138,5 +139,5 @@ export async function saveStudiesPdf(p: StudiesPaper, fileWhat: string): Promise
   const { jsPDF } = await loadPdfLib();
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   await drawStudies(doc, p);
-  await deliverPdf(doc, pdfFileName(fileWhat, 'report', new Date().toISOString().slice(0, 10)));
+  await deliverPdf(doc, pdfFileName(fileWhat, 'report', todayISO()));
 }

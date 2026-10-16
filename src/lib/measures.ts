@@ -23,7 +23,7 @@
  * somebody for making more waste.
  */
 import type { ID } from '../types';
-import { niceDay } from './weeks';
+import { niceDay, todayISO } from './weeks';
 
 export type Direction = 'up' | 'down';
 
@@ -189,7 +189,7 @@ export function quarters(fromISO: string, mkId: () => string): Period[] {
     const to = new Date(start); to.setMonth(to.getMonth() + (q + 1) * 3); to.setDate(to.getDate() - 1);
     return {
       id: mkId(), name: `Q${q + 1}`, sort: (q + 1) * 10,
-      from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10),
+      from: todayISO(from), to: todayISO(to),
     };
   });
 }
@@ -383,12 +383,9 @@ export interface LineSeries {
   meeting?: boolean;
 }
 
-/** Today, as an ISO date, in the reader's own zone — a reading is taken on a DAY
- *  and `toISOString()` in Manchester rolls to tomorrow all summer evening. */
-export function todayISO(d: Date = new Date()): string {
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
+/** Today, as an ISO date, in the reader's own zone — one definition, in
+ *  lib/weeks; this was a second copy of it (docs/UPGRADE-AUDIT.md R1). */
+export { todayISO } from './weeks';
 
 /** The measure a project leads on: the first one, in the order they set. Used
  *  wherever one number has to stand for a line — a card, a KPI, a roll-up row. */

@@ -26,7 +26,7 @@ import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
 import { can as canAt, type Can } from '../lib/access';
 import { uid } from '../lib/ids';
-import { niceDay } from '../lib/weeks';
+import { niceDay, isoDay } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 import { compareFlows, dur, flowFigures, flowSays, laneByDefault, parseDur, share, stepWorth, valueOf, whereOf, whoOf, type LaneBy } from '../lib/ie/steps';
 import type { AgreedMap, FlowKind, FlowStep, FlowValue, StudyUse, ToolStudy } from '../lib/study';
@@ -106,7 +106,7 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
         <small className="ie-eyebrow">Value stream map</small>
         <StudyName s={s} canEdit={can.edit && !s.closedAt} canRemove={can.remove} />
         <p className="sub ie-where">{/* the line is said once, just below, where it can be changed (ui/StudyPlace) */}
-          {lineName ? 'what is done, and who does it' : 'not on a line yet — put it on its line below'} · started {niceDay(new Date(s.startedAt).toISOString().slice(0, 10))}{s.product ? <> · <b>{s.product}</b></> : null}</p>
+          {lineName ? 'what is done, and who does it' : 'not on a line yet — put it on its line below'} · started {niceDay(isoDay(s.startedAt))}{s.product ? <> · <b>{s.product}</b></> : null}</p>
         <WhereItSits s={s} can={can} />
       </header>
 

@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getStudy, listAllStudies, onDataChange, putStudy } from '../db';
 import { now, uid } from '../lib/ids';
-import { niceDay } from '../lib/weeks';
+import { niceDay, isoDay } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 import type { Standard } from '../lib/standard';
 import type { Can } from '../lib/access';
@@ -20,7 +20,7 @@ import type { ToolStudy } from '../lib/study';
 import { standardLine } from '../lib/ie/changeover';
 import { changeoverLine, currentChangeover, studyHref } from '../lib/studyLinks';
 
-const day = (ms: number) => niceDay(new Date(ms).toISOString().slice(0, 10));
+const day = (ms: number) => niceDay(isoDay(ms));
 
 /** The newest changeover into a line standard, kept current; null when none. */
 export function useChangeoverFor(standardId: string): ToolStudy | null | undefined {

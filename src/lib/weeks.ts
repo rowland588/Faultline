@@ -16,6 +16,13 @@ export function todayISO(d: Date = new Date()): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
+/** The calendar day a moment fell on, in the reader's own zone — the one way
+ *  a timestamp becomes a date here. Twenty places made it with
+ *  `toISOString().slice(0, 10)`, which is the UTC day: every summer evening
+ *  after 11 pm a stop logged, a test done, a study closed was filed on
+ *  yesterday while `todayISO()` beside it said today (docs/UPGRADE-AUDIT.md R1). */
+export const isoDay = (ms: number): string => todayISO(new Date(ms));
+
 /** An ISO date, said the way a person says it: "24 Sept", "Wed 24 Sept",
  *  "24 Sept 2026". Parsed at MIDDAY, because `Date.parse('2026-09-24')` is
  *  midnight UTC and prints the 23rd anywhere west of Greenwich — on screen and
