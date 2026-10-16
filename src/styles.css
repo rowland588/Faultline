@@ -12969,3 +12969,95 @@ button.why-src { cursor: pointer; }
 }
 .lch-brief-t { margin: 8px 0; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--surface-2); line-height: 1.5; }
 .lf-mirage { color: var(--ink-2); font-style: italic; }
+
+/* LINE CAPACITY, SET UP ON THE LEFT AND SEEN ON THE RIGHT (Rowland, 16
+   October: "the bar chart and the illustrations should appear to the
+   right-hand side ... I've got to look up to go down"). The page takes the
+   frame's width (it was held to Capture's 860px by a shared class name); at a
+   desk the steps sit left and the picture right, held in view while the
+   stations are typed; on a phone the picture follows the stations. */
+.pace-sec.cap.capx { max-width: none; }
+.capx-grid { display: grid; gap: 20px; align-items: start; margin-top: 4px; }
+@media (min-width: 1080px) {
+  .capx-grid { grid-template-columns: minmax(0, 1.05fr) minmax(400px, 0.95fr); }
+  .capx-live { position: sticky; top: calc(var(--nv-top, 56px) + 12px); max-height: calc(100vh - var(--nv-top, 56px) - 24px); overflow-y: auto; overscroll-behavior: contain; }
+}
+.capx-in { display: grid; gap: 14px; min-width: 0; }
+.capx-step { margin: 0; padding: 14px 16px; background: var(--surface); box-shadow: var(--shadow); border-radius: var(--radius); min-width: 0; }
+.capx-step-h { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; font-size: var(--t-h); font-weight: 700; }
+.capx-n { display: inline-grid; place-items: center; flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--navy, #0b1b3a); color: #fff; font-size: var(--t-label); font-weight: 700; }
+.capx-step-say { margin: 4px 0 0; }
+.capx-step .cap-shape-q { margin-bottom: 4px; }
+.capx-step .cap-settings { margin: 0; }
+.capx-step .cap-grp { margin-top: 0; }
+.capx-live { display: grid; gap: 12px; align-content: start; padding: 14px 16px; background: var(--surface); box-shadow: var(--shadow); border-radius: var(--radius); min-width: 0; }
+.capx-live-h { margin: 0; font-size: var(--t-h); font-weight: 700; }
+.capx-live-h .sub { font-weight: 500; font-size: var(--t-detail); }
+.capx-live .cap-screen, .capx-live .cap-plan { margin: 0; box-shadow: none; padding: 10px 0 0; border-top: 1px solid var(--line); border-radius: 0; background: none; }
+.capx-more { display: grid; gap: 14px; margin-top: 22px; }
+
+/* the line, drawn */
+.cxf { width: 100%; min-width: 0; }
+.cxf-svg { display: block; max-width: 100%; height: auto; }
+.cxf-node rect { fill: var(--surface); stroke: var(--line-2); stroke-width: 1.5; }
+.cxf-node[role='button'] { cursor: pointer; }
+.cxf-node[role='button']:hover rect { stroke: var(--accent); }
+.cxf-node:focus-visible { outline: none; }
+.cxf-node:focus-visible rect { stroke: var(--accent); stroke-width: 3; }
+.cxf-name { font-size: 12.5px; font-weight: 700; fill: var(--ink); }
+.cxf-rate { font-size: 11.5px; font-weight: 500; fill: var(--ink-2); }
+.cxf-node.is-limit rect { fill: #0d1f3c; stroke: #0d1f3c; }
+.cxf-node.is-limit .cxf-name, .cxf-node.is-limit .cxf-rate { fill: #fff; }
+.cxf-node.is-own rect { stroke: var(--brand); stroke-width: 2.5; }
+.cxf-node.is-none rect { stroke-dasharray: 5 4; fill: var(--surface-2); }
+.cxf-node.is-none .cxf-rate { fill: var(--st-n-ink, #6b7588); font-style: italic; }
+.cxf-tag { fill: var(--brand); }
+.cxf-tag-t { font-size: 9.5px; font-weight: 800; letter-spacing: 0.06em; fill: #fff; }
+.cxf-lane { font-size: 12px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; fill: var(--ink-2); }
+.cxf-edge { fill: none; stroke: var(--line-2); stroke-width: 2; }
+.cxf-arrowhead { fill: var(--line-2); }
+.cxf-merge rect { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+.cxf-merge text { font-size: 12px; font-weight: 700; fill: var(--accent); }
+.cxf-out rect { fill: var(--surface-2); stroke: var(--line-2); stroke-width: 1.5; }
+.cxf-out-a { font-size: 13px; font-weight: 800; fill: var(--ink); }
+.cxf-out-b { font-size: 11.5px; font-weight: 600; fill: var(--ink-2); }
+.cxf-out.is-short rect { stroke: var(--st-r); stroke-width: 2; fill: color-mix(in srgb, var(--st-r) 6%, var(--surface)); }
+.cxf-out.is-short .cxf-out-b { fill: var(--st-r); }
+.cxf-key { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 6px 0 0; font-size: var(--t-label); color: var(--ink-2); }
+.cxf-k { display: inline-block; width: 14px; height: 10px; border-radius: 3px; vertical-align: -1px; margin-right: -6px; border: 1.5px solid var(--line-2); background: var(--surface); }
+.cxf-k.is-limit { background: #0d1f3c; border-color: #0d1f3c; }
+.cxf-k.is-own { border: 2.5px solid var(--brand); }
+.cxf-k.is-none { border-style: dashed; background: var(--surface-2); }
+
+/* what each station can do */
+.cxb { display: grid; gap: 14px; }
+.cxb-g { display: grid; gap: 6px; }
+.cxb-h { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 10px; align-items: baseline; font-size: var(--t-detail); }
+.cxb-hs { display: inline-flex; flex-wrap: wrap; gap: 2px 12px; color: var(--ink-2); font-size: var(--t-label); font-weight: 600; }
+.cxb-tg-l.is-short { color: var(--st-r); }
+.cxb-rows { display: grid; gap: 7px; }
+.cxb-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'n v' 't t'; gap: 2px 10px; width: 100%; padding: 2px 0; border: 0; background: none; font: inherit; color: var(--ink); text-align: left; }
+button.cxb-row { cursor: pointer; }
+button.cxb-row:hover .cxb-n { color: var(--accent); }
+.cxb-n { grid-area: n; font-size: var(--t-detail); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cxb-v { grid-area: v; font-size: var(--t-label); font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+.cxb-row.is-limit .cxb-v { color: var(--ink); font-weight: 800; }
+.cxb-row.is-none .cxb-v { color: var(--st-n-ink, #6b7588); font-style: italic; }
+.cxb-row.is-inflow .cxb-n { color: var(--ink-2); font-style: italic; }
+.cxb-track { grid-area: t; position: relative; display: block; height: 14px; border-radius: 4px; background: var(--surface-2); }
+.cxb-bar { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; }
+.cxb-ref { position: absolute; top: -3px; bottom: -3px; width: 0; border-left: 2px solid #0d1f3c; }
+.cxb-tg { position: absolute; top: -3px; bottom: -3px; width: 0; border-left: 2px dashed var(--muted); }
+.cxb-tg.is-short { border-left-color: var(--st-r); }
+.cxb-key { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0; font-size: var(--t-label); color: var(--ink-2); }
+.cxb-k-ref, .cxb-k-tg { display: inline-block; width: 0; height: 12px; vertical-align: -2px; border-left: 2px solid #0d1f3c; margin-left: 6px; }
+.cxb-k-tg { border-left: 2px dashed var(--muted); }
+.cxf-merge.is-none rect { fill: var(--surface-2); stroke: var(--line-2); stroke-dasharray: 5 4; }
+.cxf-merge.is-none text { fill: var(--st-n-ink, #6b7588); font-style: italic; font-weight: 600; }
+/* a station's card in the left column: one row where it fits */
+.capx .cap-st-h { flex-wrap: nowrap; }
+.capx .cap-st-h .cap-name { flex: 1 1 auto; min-width: 0; }
+.capx .cap-st-h .cw-seg .chip { min-height: 36px; padding: 0 12px; font-size: var(--t-detail); }
+.capx .cap-st-h .in-usual-b { min-width: 34px; min-height: 36px; padding: 0 6px; }
+.capx .cap-st-h .btn-sm { min-height: 36px; }
+@media (max-width: 640px) { .capx .cap-st-h { flex-wrap: wrap; } }

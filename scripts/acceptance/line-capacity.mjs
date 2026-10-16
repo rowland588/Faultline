@@ -533,11 +533,15 @@ let TRAY;
   await go(CAP);
   const cap = () => page.evaluate(async id => (await (await import('/src/db.ts')).getStandard(id)).capacity, SID);
   const says = () => words('.cap-says');
-  ok(await page.locator('.cap-grp.has-lanes').count() === 0 && await page.locator('#cap-st-c .cap-split').count() === 1 && await page.locator('#cap-st-d .cap-split').count() === 0,
-    '15 a single chain offers "Lines merge after this" on every station but the last');
+  /* THE SHAPE ASKED FIRST (16 October: "it doesn't appear first"): step 1 of
+     the page, before the stations — one place for it; no station carries a
+     second "Lines merge after this" */
+  const first = await page.evaluate(() => { const st = [...document.querySelectorAll('.capx-in .capx-step')]; return st[0]?.getAttribute('aria-label'); });
+  ok(await page.locator('.cap-grp.has-lanes').count() === 0 && first === 'The shape of the line' && await page.locator('.cap-split').count() === 0,
+    '15 a single chain: How many lines feed in? is step 1, above the stations, and no station carries a second door to it');
 
-  /* split after the palletiser: Line A is what is up to there, Line B a copy, the wrapper shared */
-  await page.locator('#cap-st-c .cap-split').click(); await page.waitForTimeout(1200);
+  /* two lines: Line A is what is up to the last station, Line B a copy, the wrapper shared */
+  await page.getByRole('group', { name: 'Lines feeding in' }).getByRole('button', { name: '2', exact: true }).click(); await page.waitForTimeout(1200);
   let c = await cap();
   const lanesOf = x => (x.lanes ?? []).map(l => [l.name, x.stations.filter(st => st.lane === l.id).map(st => st.name)]);
   ok(c.lanes?.length === 2 && JSON.stringify(lanesOf(c)) === JSON.stringify([['Line A', ['bagger', 'P160 Pick & Place', 'palletiser']], ['Line B', ['bagger', 'P160 Pick & Place', 'palletiser']]])
@@ -607,17 +611,26 @@ let TRAY;
      graph out the way. It's only available on the PDF now"). */
   await page.evaluate(async ([id, cap]) => { const db = await import('/src/db.ts'); const st = await db.getStandard(id); await db.putStandard({ ...st, capacity: cap }); }, [SID, CHAIN]);
   await go(CAP);
-  ok(await page.locator('.cap-seg-b').count() === 6 && await page.locator('.cap-grp.has-lanes').count() === 0 && await page.locator('.cap-map').count() === 0,
+  ok(await page.locator('.cap-seg-b').count() === 6 && await page.locator('.cap-grp.has-lanes').count() === 0 && await page.locator('.cxf-lane').count() === 0,
     '16 a single chain asks how many lines feed in (1 to 6), and draws no lines');
   await page.getByRole('group', { name: 'Lines feeding in' }).getByRole('button', { name: '2', exact: true }).click(); await page.waitForTimeout(1200);
   c = await cap();
   ok(c.lanes?.length === 2 && JSON.stringify(lanesOf(c)) === JSON.stringify([['Line A', ['bagger', 'P160 Pick & Place', 'palletiser']], ['Line B', ['bagger', 'P160 Pick & Place', 'palletiser']]])
     && c.stations.filter(st => !st.lane).map(st => st.name).join() === 'Pallet wrapper', '16a "2": two lines, the same first stations, merging before the last — the wrapper shared');
   ok(await page.locator('.vc-svg').count() === 2, '16b a V is drawn on the page for the lines (alike, so once) and for where they merge (it was only on the paper)');
-  ok(await page.locator('.cap-map-row').count() === 2 && await page.locator('.cap-map-merge').count() === 1 && /Lines merge here — 137 units\/min arrive/.test(await words('.cap-map-join')),
-    '16c the map: a row a line with each station and its speed, then where they merge and what arrives');
+  /* THE LINE, DRAWN beside the stations (16 October: "being able to see what
+     you're doing makes no sense"): a column a line, each station and its
+     speed as lib/capacityFlow has it, the lines meeting with what arrives,
+     the shared wrapper the bottleneck, what the line makes against the target */
+  const fm = await page.evaluate(async cap => { const C = await import('/src/lib/capacity.ts'); const F = await import('/src/lib/capacityFlow.ts'); const L = await import('/src/lib/capacityLines.ts'); return F.flowModel(cap, C.analyse(cap), L.lanesAlike(cap)); }, c);
+  const lanesDrawn = await page.locator('.capx-live .cxf-lane').evaluateAll(g => g.map(x => (x.textContent ?? '').trim()));
+  const nodesDrawn = (await page.locator('.capx-live .cxf-node').evaluateAll(g => g.map(x => x.getAttribute('aria-label'))));
+  const meet = ((await page.locator('.capx-live .cxf-merge').first().textContent()) ?? '').replace(/\s+/g, ' ').trim();
+  ok(JSON.stringify(lanesDrawn) === JSON.stringify(fm.columns.map(x => x.name)) && nodesDrawn.length === fm.columns.reduce((n, x) => n + x.nodes.length, 0) + fm.shared.length
+    && /The lines meet — 137 units\/min arrive/.test(meet) && nodesDrawn.some(t => /^Pallet wrapper: .*the bottleneck$/.test(t ?? '')),
+    `16c the line drawn beside the stations: a column a line, every station with its speed, the lines meeting with what arrives, the wrapper the bottleneck (${lanesDrawn.join(', ')} · ${nodesDrawn.length} stations · ${meet})`);
   const mine = await page.evaluate(async cap => { const C = await import('/src/lib/capacity.ts'); const r = C.analyse(cap); const f = r.lanes.merged.ok.find(x => x.station.id !== '__merge__'); const prev = cap.stations.filter(s => s.lane === cap.lanes[0].id).slice(-1)[0]; const say = C.paceSays(r, f.station, prev.unit, prev); return [say.arrive, say.verdict].filter(Boolean).join(' '); }, c);
-  ok(mine && (await words('.cap-map-say')) === mine.replace(/\s+/g, ' '), '16d the merge said in the shared station\'s own cycle times — what reaches it, how long it takes, how many people it needs');
+  ok(mine && (await words('.capx-live .cap-map-say')) === mine.replace(/\s+/g, ' '), '16d the merge said in the shared station\'s own cycle times — what reaches it, how long it takes, how many people it needs');
   const sel = page.getByLabel('Where the lines merge');
   await sel.selectOption('2'); await page.waitForTimeout(1200);
   c = await cap();

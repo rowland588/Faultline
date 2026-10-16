@@ -50,11 +50,18 @@ export const PAGES = (sd, cap) => [
     { what: 'the capacity sheet', sel: '.cap-sheet' },
     { what: 'what a unit costs in labour', sel: '.cap-cost' },
     { what: 'the stations, in order', sel: '.cap-grp' },
+    /* set up on the left, seen on the right (16 October) */
+    { what: 'the line, drawn beside the stations', sel: '.capx-live svg.cxf-svg' },
+    { what: 'what each station can do, in units a minute', sel: '.capx-live .cxb-row', n: 2 },
   ] },
   ...(cap ? [{ name: 'Line capacity — two lines into one wrapper', path: `#/w/${cap.wsId}/standards/${cap.lanesId}?at=balance`, must: [
     { what: 'what the sums say', sel: '.cap-says' },
     { what: 'how many lines feed in', sel: '.cap-shape', },
-    { what: 'the map of the lines and where they merge', sel: '.cap-map-merge' },
+    /* the chip map gave way to the drawing (16 October: "being able to see what
+       you're doing makes no sense") — the same stations, speeds and merge, drawn */
+    { what: 'how many lines feed in — step 1, above the stations', sel: '.capx-in .cap-shape' },
+    { what: 'the lines drawn meeting, beside the stations', sel: '.capx-live .cxf-merge' },
+    { what: 'a column a line in the drawing', sel: '.capx-live .cxf-lane', n: 2 },
     { what: 'the way to the target', sel: '.cap-plan' },
     { what: 'a V for each line and where they merge — on the page, not only the paper', sel: 'svg.vc-svg', n: 3, desk: true },
     { what: 'a V on its side for each line and where they merge', sel: '.vc-rows', n: 3, phone: true },

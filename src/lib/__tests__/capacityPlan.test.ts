@@ -65,6 +65,13 @@ describe('the shape of the line', () => {
     expect(lanesAlike(two)).toBe(true);
     expect(lanesAlike({ ...two, stations: two.stations.map(s => (s.lane === two.lanes?.[1].id && s.name === 'bagger' ? { ...s, rate: 90 } : s)) })).toBe(false);
   });
+  it('the lines can be chosen before any station is typed (16 October: "it doesn\u2019t appear first")', () => {
+    const empty = reshape({ stations: [] }, 3, 1, uid);
+    expect(empty.lanes?.map(l => l.name)).toEqual(['Line A', 'Line B', 'Line C']);
+    expect(empty.stations).toHaveLength(0);
+    expect(reshape(empty, 2, 1, uid).lanes).toHaveLength(2);
+    expect(reshape(empty, 1, 1, uid).lanes).toBeUndefined();
+  });
   it('lines that do not merge add up', () => {
     const r = analyse(reshape(chain, 2, 4, uid));
     expect(r.line).toBeCloseTo(2 * analyse({ stations: chain.stations }).line!, 6);
