@@ -94,7 +94,7 @@ function cellWord(s: StepView): string {
   }
 }
 
-export function InstallGrid({ tt, project, stages, otherName, gate = 'install', can = canOf('owner'), programs = [], holder }: {
+export function InstallGrid({ tt, project, stages, otherName, gate = 'install', can = canOf('owner'), programs = [], holder, everyGate }: {
   tt: TT; project: Project;
   /** What this person may do here (lib/access): a client reads the grid and
    *  opens a step; the team does the work but removes nothing. */
@@ -110,6 +110,9 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
   /** The job whose usual list this is (lib/install usualHolder) — who each
    *  stage is usually with, the supplier or the site. */
   holder?: Project;
+  /** Every gate's usual list for the machines with none, in one tap
+   *  (lib/giveGates) — "Install 6 · Set up 5 · Commission 6 · Hand over 5". */
+  everyGate?: { says: string; give: () => Promise<void> };
 }) {
   const projectId = project.id;
   const usual = stages.stages;
@@ -527,7 +530,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
       {/* How the grid is worked is said while nothing on it is done yet; once
           a square is done the grid has been used and the line is in the way.
           The offer to give new machines their stages is an action, and stays. */}
-      {(nothingDone || (bare.length > 1 && can.edit)) && <p className="sub ig-hint">
+      {(nothingDone || (bare.length > 1 && can.edit) || (bare.length > 0 && can.edit && everyGate)) && <p className="sub ig-hint">
         {nothingDone && (can.edit
           ? phone ? 'Tap a stage to mark it done or plan it. Tap a machine’s name to do it for all its stages.'
             : 'Tap a square to mark it done or plan it. Tap a stage name or a machine to do it for all of them.'
@@ -535,6 +538,9 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
             : 'Tap a square to read its step, or a machine to read where it has got to.')}
         {bare.length > 1 && can.edit && (
           <>{nothingDone ? ' ' : ''}{bare.length} machines have none of the stages yet — <button className="cw-link" onClick={() => void giveStages(bare)}>give them all the {usual.length}</button></>
+        )}
+        {bare.length > 0 && can.edit && everyGate && (
+          <>{bare.length > 1 ? ', or ' : `${nothingDone ? ' ' : ''}Give ${bare.length === 1 ? 'it' : 'them'} `}<button className="cw-link ig-every" onClick={() => void everyGate.give()}>every gate’s list at once — {everyGate.says}</button></>
         )}
       </p>}
       {phone ? phoneCards() : (

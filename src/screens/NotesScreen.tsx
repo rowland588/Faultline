@@ -286,7 +286,7 @@ export function NotesScreen({ projectId }: { projectId: string }) {
       {/* THE PLAN FOR TODAY sits beside these on The day (lib/huddle): notes
           are what to raise; the plan is what the huddle agreed to do today. */}
       {planModel(project) === 'commissioning' && (() => {
-        const plan = planFor(tt.items, todayISO());
+        const plan = planFor(tt.items, todayISO(), tt);
         return (
           <p className="sub nt-today">
             <b>The plan for today</b> — {plan.length ? planCount(plan) : can.edit ? 'not agreed yet' : 'none agreed'} ·{' '}

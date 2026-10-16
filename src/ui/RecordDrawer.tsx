@@ -363,7 +363,18 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
      fix keeps the day it ran (the record's page always did). */
   const setOutcome = (o: Outcome, said: string) =>
     changeTests(tt, [t], cur => ({ outcome: o, ranOn: o === 'planned' ? (kind === 'install' ? undefined : cur.ranOn) : cur.ranOn ?? today }), said);
-  const andClose = (p: Promise<void>) => { void p; onClose(); };
+  /* A STATE CHANGED ON A RECORD REACHED FROM ANOTHER goes back to that one —
+     a fix marked Fixed returns to its problem, then its test, where the next
+     step is (Plan the re-test); it closed the whole drawer and left the
+     person on the page under it (the stage-gate walk, 16 October; rule 3: a
+     drawer never loses where you were). A record opened on its own closes. */
+  const andClose = (p: Promise<void>) => { void p; if (trail.length > 0) onBack(); else onClose(); };
+  /* THE PROBLEM JUST SAID OPENS NEXT, in this drawer with Back to the record
+     it was found on (docs/STAGEGATE-UX.md rule 3) — where its fix is made
+     ("Make it a fix"). Saving it closed the drawer and left the person on the
+     page under it with nothing saying what comes next (the stage-gate walk,
+     16 October). A fix booked in the same answer shows on it, made. */
+  const openSaid = (problemId?: string) => { if (problemId) onOpen(problemId); };
   /* DONE TODAY — the one write (lib/install doneTodayPatch): a sign-off
      keeps what was still open on its machine, and who signed it. */
   const doneToday = (who?: string) => changeTests(tt, [t],
@@ -490,12 +501,12 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
               /* ON ONE PRODUCT'S RUN — written, its fix booked if one was, the
                  run's verdict left to its numbers. */
               const said = `${problemPart.what} (${t.title}) hit a problem${a.fix ? ', fix booked' : ''}`;
-              andClose(recordMove(tt, [{ step: t }], { ...a, partId: problemPart.id }).then(back => offerUndo(said, back)));
+              void recordMove(tt, [{ step: t }], { ...a, partId: problemPart.id }).then(back => { offerUndo(said, back); openSaid(back.made[0]); });
             } else {
-              andClose(recordProblem(tt, t, { ...a, ...(problemPart ? { partId: problemPart.id } : {}) },
+              void recordProblem(tt, t, { ...a, ...(problemPart ? { partId: problemPart.id } : {}) },
                 `${problemPart ? `${problemPart.what} (${t.title})` : t.title} hit a problem${a.to && movedLater(plannedEnd(t), a.to) ? ` — finish now ${short(a.to)}` : ''}${a.fix ? ', fix booked' : ''}`,
                 /* A test's verdict is its own — "didn't pass" is said above. */
-                { keepOutcome: kind === 'test' }));
+                { keepOutcome: kind === 'test' }).then(openSaid);
             }
             setProblem(false); setProblemPart(null);
           }} />

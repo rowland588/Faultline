@@ -198,6 +198,7 @@ node scripts/smoke.mjs                # needs a dev server on 5191, or SMOKE_BAS
 node scripts/report-stress.mjs        # every report at tiny, ordinary and huge — same server
 node scripts/report-stress.mjs /tmp/fuzz --fuzz 40   # forty random jobs, every fact reconciled
 node scripts/acceptance/stagegate-step1.mjs   # release 1's four stories, driven — same server
+node scripts/acceptance/stagegate-walk.mjs    # the stage gate walked: five site-lead journeys end to end, taps within a ceiling, no dead end, every place a change reaches in step
 node scripts/acceptance/ecosystem-capability.mjs  # release 2: a study, a line, a job, a fix, before → after, the report
 node scripts/acceptance/work-balance.mjs  # step 3: the work timed on the phone, stacked against takt, on a job, before → after
 node scripts/acceptance/sixm-evidence.mjs  # 2h: a study on a running line — a cause's evidence, a countermeasure, before → after, the 6M report; and the 6M loop's ends (flow audit): a missed check chased, a shift counted as a reading, the constraint from Line capacity, Use it for by machine, suggestions about the problem, the status page first
@@ -247,7 +248,19 @@ in the same commit. Never raise it to get green.
 real browser and checks every sentence on the screen against the module that
 makes it, so what was proved when a release was built stays proved in every
 gate after. `stagegate-step1.mjs` is release 1: the pace says when, the climb
-to rate, since you last looked, scan the machine. `ecosystem-capability.mjs`
+to rate, since you last looked, scan the machine. `stagegate-walk.mjs` is the
+stage gate walked as a site lead uses it (Rowland, 16 October: "you couldn't
+really navigate simply through things like a problem ... the way things were
+actually synced together"): a job started on a phone with its two machines
+and every gate's usual list in one tap; a stage ticked on the day's plan is
+the stage done on the day, Today and its gate, a line only about a done stage
+keeping its own tick, and a stage done in its drawer reading done on the
+plan; a re-test failed, its problem saved and opened in the same drawer, made
+a fix, Fixed going back to the problem, the next re-test planned (named "—
+re-test" once) and passed, the rail's count back where it was; a program
+tested on a phone with Commission hearing it; a hand-over item done and the
+front page counting it — each journey's taps under its ceiling and no dead
+end (it failed 12 checks on the code before the walk's fixes). `ecosystem-capability.mjs`
 is release 2: a capability study from a quick session to a fix's before →
 after and the client report. `work-balance.mjs` is step 3: the line
 balance's work timed on the phone, stacked against takt, made better on a

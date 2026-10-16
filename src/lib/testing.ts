@@ -877,7 +877,9 @@ export function nextFrom(t: Test, mkId: () => string, at: number, title?: string
     kind,
     /* A next step becoming a test keeps its OWN words — it is that work, not a
        re-run of the test that found it. Only a plain re-test is named one. */
-    title: title?.trim() || (fix ? t.title : `${t.title} — re-test`),
+    /* a re-test of a re-test is still "— re-test", never "— re-test — re-test"
+       (the stage-gate walk, 16 October); its place in the chain is its "Follows" */
+    title: title?.trim() || (fix ? t.title : / — re-test$/.test(t.title.trim()) ? t.title.trim() : `${t.title} — re-test`),
     assetId: t.assetId,
     /* The program it proves goes with it: a re-test of "Prove program P-121"
        is still proving P-121, and its pass is what proves it (lib/programs). */

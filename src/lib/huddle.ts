@@ -18,14 +18,34 @@
  * the old day still says honestly that it was not done that day.
  *
  * Pure: read off what is kept. */
-import { live, type TestItem } from './testing';
+import { live, type Asset, type Test, type TestItem } from './testing';
+
+/** A record as a line of the day's plan names it — "Ilapak flow wrapper —
+ *  Change parts fitted" for a stage, a test's or a fix's own title. The plan's
+ *  chip writes this; the day's words read it; one rule. */
+export const planNamed = (t: Pick<Test, 'kind' | 'title' | 'assetId'>, assets: readonly Pick<Asset, 'id' | 'name'>[]): string =>
+  t.kind === 'install' ? `${assets.find(a => a.id === t.assetId)?.name ?? 'The line'} — ${t.title}` : t.title;
 
 /** The kind a line of the day's plan is stored as. */
 export const TODAY_KIND = 'today' as const;
 
-/** The plan agreed for one day, in the order it was written. */
-export const planFor = (items: TestItem[], date: string): TestItem[] =>
-  live(items).filter(i => i.kind === TODAY_KIND && i.due === date).sort((a, b) => a.sort - b.sort || a.createdAt - b.createdAt);
+/** The plan agreed for one day, in the order it was written. Given the job's
+ *  records, a line that IS a stage, test or fix — its words the record's own
+ *  name, as the plan's chip writes it — reads done once the record is done:
+ *  the stage marked done in its drawer, on Install or from Needs you left
+ *  its line on the day's plan saying "to do" (the stage-gate walk, 16
+ *  October). A line only ABOUT a record ("Load the Express programs" on a
+ *  Programs loaded stage passed last week) keeps its own tick. Read, never
+ *  written. */
+export const planFor = (items: TestItem[], date: string, job?: { tests: readonly Test[]; assets: readonly Pick<Asset, 'id' | 'name'>[] }): TestItem[] => {
+  const lines = live(items).filter(i => i.kind === TODAY_KIND && i.due === date).sort((a, b) => a.sort - b.sort || a.createdAt - b.createdAt);
+  if (!job) return lines;
+  const passed = new Map(job.tests.filter(t => t.outcome === 'passed' && !t.deletedAt).map(t => [t.id, t]));
+  return lines.map(i => {
+    const t = i.doneAt == null && i.testId ? passed.get(i.testId) : undefined;
+    return t && planNamed(t, job.assets) === i.what.trim() ? { ...i, doneAt: t.updatedAt } : i;
+  });
+};
 
 /** The lines on a record's plan for a day — the branch under a stage. */
 export const planOn = (testId: string, items: TestItem[], date: string): TestItem[] =>
@@ -33,12 +53,12 @@ export const planOn = (testId: string, items: TestItem[], date: string): TestIte
 
 /** WHAT THE LAST HUDDLE LEFT UNDONE — from the latest earlier day with a
  *  plan, the lines not done and not already carried over. */
-export function leftFrom(items: TestItem[], date: string): { day: string; lines: TestItem[] } | undefined {
+export function leftFrom(items: TestItem[], date: string, job?: Parameters<typeof planFor>[2]): { day: string; lines: TestItem[] } | undefined {
   const plans = live(items).filter(i => i.kind === TODAY_KIND && !!i.due && i.due < date);
   const day = plans.map(i => i.due as string).sort().pop();
   if (!day) return undefined;
   const carried = new Set(live(items).filter(i => i.kind === TODAY_KIND && i.fromItemId).map(i => i.fromItemId));
-  const lines = planFor(items, day).filter(i => i.doneAt == null && !carried.has(i.id));
+  const lines = planFor(items, day, job).filter(i => i.doneAt == null && !carried.has(i.id));
   return lines.length ? { day, lines } : undefined;
 }
 

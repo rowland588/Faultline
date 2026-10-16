@@ -434,7 +434,7 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
      how it went: done said done in green; still to do, today, indigo; not
      done on a day that has gone, red-edged and said so. In words beside each,
      so it survives a black-and-white print. */
-  const agreed = planFor(items, date);
+  const agreed = planFor(items, date, { tests, assets });
   const byId = new Map(tests.map(t => [t.id, t]));
   const plan: DayLine[] = agreed.map(i => {
     const on = byId.get(i.testId);
