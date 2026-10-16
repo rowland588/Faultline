@@ -577,6 +577,9 @@ async function baseGet(kind: SyncKind, id: string): Promise<CloudRow | undefined
 async function basePut(kind: SyncKind, id: string, row: CloudRow): Promise<void> {
   await metaPut(baseKey(kind, id), row);
 }
+async function baseDel(kind: SyncKind, id: string): Promise<void> {
+  await (await getDB()).delete('meta', baseKey(kind, id));
+}
 async function basePrune(alive: Set<string>): Promise<void> {
   const db = await getDB();
   const keys = await db.getAllKeys('meta', IDBKeyRange.bound(BASE_PREFIX, `${BASE_PREFIX}￿`));
@@ -1097,7 +1100,11 @@ export async function syncNow(): Promise<void> {
           const got = await supabase.from(kind).select('*').eq('id', cur.row.id as string).limit(1);
           if (got.error) { if (isNoConnection(got.error)) throw new NoConnection(got.error.message); moved++; break; }
           const theirs = ((got.data as Record<string, unknown>[] | null) ?? [])[0];
-          if (!theirs) { moved++; break; }                    // gone from the cloud: it goes fresh next pass
+          /* gone from the cloud (a hard delete by hand): the base kept its
+             rev, so the row was retried as an edit every pass and never went
+             fresh — the base goes, and it is inserted next pass
+             (docs/UPGRADE-AUDIT.md R3) */
+          if (!theirs) { await baseDel(kind, cur.row.id as string); moved++; break; }
           await applyRemote(kind, theirs);
           const now = await rawGet(kind, cur.row.id as string);
           const nowClock = now ? map.clock(now) : -1;

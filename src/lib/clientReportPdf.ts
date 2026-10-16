@@ -267,7 +267,7 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
     });
     set.sorted.forEach((l, i, all) => out.push(text({ text: l, size: 9, colour: INK2, indent: 12, bullet: '•', after: i === all.length - 1 ? gap(d, 'm') : 1 })));
   };
-  tell(r.critical, 'Critical issues', 'CRITICAL', DANGER, 'What it means for the business');
+  tell(r.critical, 'Critical problems', 'CRITICAL', DANGER, 'What it means for the business');
   tell(r.risks, 'High risks', 'HIGH RISK', AMBER, 'The consequence if it happens');
 
   // the sentence, on the dark band — as tall as its words

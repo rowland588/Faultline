@@ -21,7 +21,7 @@ import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
 import { can as canAt } from '../lib/access';
 import { now, uid } from '../lib/ids';
-import { niceDay } from '../lib/weeks';
+import { niceDay, isoDay } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 import { sample, sampleSays, tneFor, CPK_FROM, type SampleFigures, type SampleSays } from '../lib/ie/sample';
 import type { AgreedReadings, StudyReading, ToolStudy } from '../lib/study';
@@ -77,7 +77,7 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
         <StudyName s={s} canEdit={can.edit && !closed} canRemove={can.remove} />
         <p className="sub ie-where">
           {s.workspaceId && can.edit && !closed ? <StudyMachine s={s} /> : s.machine ? <><b>{s.machine}</b> · </> : null}
-          started {niceDay(new Date(s.startedAt).toISOString().slice(0, 10))}
+          started {niceDay(isoDay(s.startedAt))}
         </p>
         <WhereItSits s={s} can={can} />
       </header>
@@ -417,7 +417,7 @@ function Act({ s, f, said, can, me, write }: {
   if (closed && s.receipt) {
     return (
       <div className="ie-act is-closed">
-        <p className="ie-receipt"><b>Closed {niceDay(new Date(s.receipt.at).toISOString().slice(0, 10))}{s.receipt.by ? ` by ${s.receipt.by}` : ''}</b> — a receipt: these figures stand as they were. {s.receipt.text}</p>
+        <p className="ie-receipt"><b>Closed {niceDay(isoDay(s.receipt.at))}{s.receipt.by ? ` by ${s.receipt.by}` : ''}</b> — a receipt: these figures stand as they were. {s.receipt.text}</p>
         {can.agree && (reopen === null
           ? <button type="button" className="btn" onClick={() => setReopen('')}>Reopen</button>
           : (
@@ -444,7 +444,7 @@ function Act({ s, f, said, can, me, write }: {
   const lastReopen = reopened[reopened.length - 1];
   return (
     <div className="ie-act">
-      {lastReopen && <p className="sub">Reopened {niceDay(new Date(lastReopen.at).toISOString().slice(0, 10))}{lastReopen.by ? ` by ${lastReopen.by}` : ''} — {lastReopen.why}</p>}
+      {lastReopen && <p className="sub">Reopened {niceDay(isoDay(lastReopen.at))}{lastReopen.by ? ` by ${lastReopen.by}` : ''} — {lastReopen.why}</p>}
       {can.edit && f.enough && <button type="button" className="btn btn-primary" onClick={close}>Close — keep these figures</button>}
       {can.agree && f.n > 0 && !s.overrule && over === null && (
         <button type="button" className="btn" onClick={() => setOver({ verdict: said.verdict === 'Passed' ? 'Didn’t pass' : 'Passed', why: '' })}>Overrule the verdict</button>

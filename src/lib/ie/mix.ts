@@ -117,8 +117,12 @@ export function mix(products: MixProduct[], weekMinutes: number): Mix {
   for (const r of rows) {
     r.minutesGiven = Math.min(left, r.minutesNeeded);
     left -= r.minutesGiven;
-    r.made = Math.min(r.product.demandPerWeek ?? 0, Math.floor(r.minutesGiven * (r.product.perConstraintMin ?? 0)));
-    r.unmade = Math.max(0, (r.product.demandPerWeek ?? 0) - r.made);
+    /* A product given every minute it needs is made whole: 15 ÷ 11 × 11 is
+       14.999… in floating point, and the floor said "1 unmade" of a demand
+       the week had room for (docs/UPGRADE-AUDIT.md M1). */
+    const demand = r.product.demandPerWeek ?? 0;
+    r.made = r.minutesGiven >= r.minutesNeeded - 1e-9 ? demand : Math.min(demand, Math.floor(r.minutesGiven * (r.product.perConstraintMin ?? 0) + 1e-9));
+    r.unmade = Math.max(0, demand - r.made);
   }
   const needed = rows.reduce((s, r) => s + r.minutesNeeded, 0);
   const fill = weekMinutes > 0 ? needed / weekMinutes : 0;
@@ -131,7 +135,9 @@ export function mix(products: MixProduct[], weekMinutes: number): Mix {
   else {
     const rank = rows.map((r, i) => `${r.product.name} ${i === 0 ? 'earns ' : ''}${fmtGBP(r.perMin)}${i === 0 ? ' a constraint minute' : ''}`).join(', ');
     const first = rows[0];
-    const week = fill > 1
+    /* the sentence reads the rows, so it never says "everything is made"
+       beside a row that says unmade */
+    const week = unmade.length
       ? `The week is full at ${pct(fill)} of it asked; ${unmade.map(r => `${n0(r.unmade)} of ${r.product.name}`).join(' and ')} unmade.`
       : `The week fills at ${pct(fill)}; everything is made.`;
     sentence = `${rank} — ${first ? first.product.name : ''} first. ${week}`;

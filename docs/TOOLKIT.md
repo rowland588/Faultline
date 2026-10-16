@@ -415,7 +415,7 @@ outside" is red; "Cpk 0.67" is amber with its word.
 | Measured test | mean, spread, outside | the agreed count is in | "12 of 30 in" |
 | Measured test | Cpk | 25 readings or more | "from 12 — too few for capability" |
 | Time study | standard time | n ≥ (t·s ÷ 0.05·mean)², t Student's at n − 1 df, five at least | "12 of 15 cycles" |
-| Work sampling | each share | N ≥ Z²p(1−p) ÷ E² for the margin wanted | "30% ±9 points from 100 taps — 223 more for ±5" |
+| Work sampling | each share | N ≥ Z²p(1−p) ÷ E² for the margin wanted; the margin shown is Wilson's half-width (the same at middling shares, never ±0 at 0% or 100%) | "30% ±9 points from 100 taps — 223 more for ±5" |
 | Ramp-up | the date it meets rate | 3 runs or more | "too early — 2 runs" |
 | Pace | the forecast | 5 stages finished or more | "too early to tell" |
 | A shift's losses | the waterfall | every stop in the shift logged; the running speed timed | "9 min of slow running and short stops" |

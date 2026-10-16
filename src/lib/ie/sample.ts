@@ -83,8 +83,10 @@ export interface SampleFigures {
   cp?: number;
   cpk?: number;
   cpkSide?: 'low' | 'high';
-  /** The share that would fall outside at this mean and overall spread. */
+  /** The share that would fall outside at this mean and overall spread — and each tail of it. */
   shareOut?: number;
+  shareLow?: number;
+  shareHigh?: number;
   /** Readings more than 3 spreads from the mean of the others — flagged, not struck. */
   flagged: string[];
   /** Decimal places the readings were taken to — never more precision than the measurement. */
@@ -177,7 +179,11 @@ export function sample(agreed: AgreedReadings | undefined, readings: StudyReadin
     const p = indexOf(m, s, lower, upper);
     f.ppk = p.k; f.ppkSide = p.side;
     if (p.c !== undefined) f.pp = p.c;
-    f.shareOut = (lower !== undefined ? upperTail((m - lower) / s) : 0) + (upper !== undefined ? upperTail((upper - m) / s) : 0);
+    /* each tail kept, so the words can say which side the share falls on —
+       or both, when it does (docs/UPGRADE-AUDIT.md M2) */
+    f.shareLow = lower !== undefined ? upperTail((m - lower) / s) : 0;
+    f.shareHigh = upper !== undefined ? upperTail((upper - m) / s) : 0;
+    f.shareOut = f.shareLow + f.shareHigh;
   }
   if (sw > 0 && (lower !== undefined || upper !== undefined)) {
     const c = indexOf(m, sw, lower, upper);
@@ -285,14 +291,23 @@ export const drifts = (f: SampleFigures): boolean =>
  *  readings: the verdict on Ppk, what was seen; Cpk beside it, pack to pack;
  *  and, when the two part, the run drifting said in words. */
 export function capabilityWords(f: SampleFigures, a: AgreedReadings): { text: string; tone: Tone } | undefined {
-  if (a.kind === 'ticks' || f.ppk === undefined || !Number.isFinite(f.ppk)) return undefined;
+  if (a.kind === 'ticks') return undefined;
+  /* every reading the same: no spread to judge by — said, never silent
+     (docs/UPGRADE-AUDIT.md M13) */
+  if (f.ppk === undefined && f.sd === 0 && f.n >= CPK_FROM && (a.lower !== undefined || a.upper !== undefined))
+    return { text: `Every reading the same — spread 0 from ${f.n}; capability cannot be worked out (is the instrument reading finely enough?).`, tone: 'n' };
+  if (f.ppk === undefined || !Number.isFinite(f.ppk)) return undefined;
   if (f.n < CPK_FROM) return { text: `Too few for capability — from ${f.n}.`, tone: 'n' };
   const c = f.ppk.toFixed(2), from = `from ${f.n}`;
   /* Cpk in the words only when it says something Ppk does not: the run drifting */
   const within = drifts(f) && f.cpk !== undefined ? ` Pack to pack it is steadier — Cpk ${f.cpk.toFixed(2)}: it drifts across the run.` : '';
   if (f.ppk >= CPK_CAPABLE) return { text: `Capable: Ppk ${c} ${from}.${within}`, tone: 'g' };
   if (f.ppk >= CPK_JUST) return { text: `Just capable: Ppk ${c} ${from} — watch it.${within}`, tone: 'a' };
-  const side = f.ppkSide ? sideWord(f.ppkSide, a.unit) : 'outside';
+  /* the share is two-tailed: when the far tail carries a tenth or more of
+     it, the words say both sides — "about 5 in 100 would be light or heavy",
+     never the whole on the near side */
+  const twoSided = f.shareOut !== undefined && f.shareOut > 0 && Math.min(f.shareLow ?? 0, f.shareHigh ?? 0) >= 0.1 * f.shareOut;
+  const side = twoSided ? `${sideWord('low', a.unit)} or ${sideWord('high', a.unit)}` : f.ppkSide ? sideWord(f.ppkSide, a.unit) : 'outside';
   const share = f.shareOut !== undefined ? ` — ${inWords(f.shareOut)} would be ${side}` : ` — would drift ${side}`;
   return { text: `Not capable: Ppk ${c} ${from}${share}.${within}`, tone: 'a' };
 }

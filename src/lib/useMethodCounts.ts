@@ -5,15 +5,25 @@
 import { useMemo } from 'react';
 import { useActions, isLate } from './actions';
 import { useStanding } from './useStanding';
+import { useProblems } from './useProblems';
+import { useProject } from './useProjects';
+import { checksOwed, sixmProblemOf } from './portfolio';
 import { todayISO } from './weeks';
 
 export function useMethodCounts(projectId: string): Record<string, { n: number; late: number; done: number }> {
   const ax = useActions(projectId);
   const stand = useStanding(projectId);
+  /* the hold checks a closed problem owes (lib/portfolio checksOwed) — the
+     control room's row and the front page counted a missed one as late and
+     the rail's square did not (docs/UPGRADE-AUDIT.md C1) */
+  const prob = useProblems(projectId);
+  const { project } = useProject(projectId);
   return useMemo(() => {
     const today = todayISO();
     const c = stand.counts as Record<string, { n: number; late: number; done: number } | undefined>;
+    const owed = project ? checksOwed({ project, problems: prob.problems.map(sixmProblemOf) }, today) : [];
     return {
+      checks: { n: owed.length, late: owed.filter(i => i.late).length, done: 0 },
       board: {
         n: ax.steps.filter(s => s.state !== 'done').length,
         late: ax.steps.filter(s => isLate(s, today)).length,
@@ -25,5 +35,5 @@ export function useMethodCounts(projectId: string): Record<string, { n: number; 
         done: (c.materials?.done ?? 0) + (c.programs?.done ?? 0),
       },
     };
-  }, [ax.steps, stand.counts]);
+  }, [ax.steps, stand.counts, prob.problems, project]);
 }

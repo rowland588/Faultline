@@ -33,7 +33,7 @@ import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
 import { can as canAt, type Can } from '../lib/access';
 import { now, uid } from '../lib/ids';
-import { niceDay } from '../lib/weeks';
+import { niceDay, isoDay } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 import { peopleOf, type Standard } from '../lib/standard';
 import {
@@ -53,7 +53,7 @@ import { useLineRecords } from '../lib/useLineRecords';
 import { machinesOf } from '../lib/lineRecords';
 
 const OWNER = canAt('owner');
-const day = (ms: number) => niceDay(new Date(ms).toISOString().slice(0, 10));
+const day = (ms: number) => niceDay(isoDay(ms));
 /** A time typed: a bare number is minutes — the floor says "4" for four minutes. */
 const minutesTyped = (t: string): number | undefined => (t.trim() ? parseDur(t, 'min') : undefined);
 const numTyped = (t: string): number | undefined => { const v = Number(t.replace(',', '.')); return t.trim() && Number.isFinite(v) && v > 0 ? v : undefined; };

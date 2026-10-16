@@ -333,7 +333,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
             </li>
             <li><b>Why we are not where we should be</b>
               {commissioning.why.length ? commissioning.why.map((w, i) => <span key={i} className="in-problem">{w.text}{w.meta ? <span className="sub"> — {w.meta}</span> : null}</span>)
-                : <span>Nothing — no test has failed or gone late, and no critical issue is open.</span>}
+                : <span>Nothing — no test has failed or gone late, and no critical problem is open.</span>}
             </li>
             <li><b>What we are doing about it</b>
               {commissioning.doing.length ? commissioning.doing.map((w, i) => <span key={i}>{w.text}{w.meta ? <span className="sub"> — {w.meta}</span> : null}</span>)
@@ -445,7 +445,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
           {/* CRITICAL ISSUES — first, as on the paper, each told whole
               (lib/critical): what it means for the business, the ways round
               it with the agreed one, its fix and how it stands. */}
-          {([['Critical issues', report.critical, false], ['High risks', report.risks, true]] as const).map(([title, set, risk]) =>
+          {([['Critical problems', report.critical, false], ['High risks', report.risks, true]] as const).map(([title, set, risk]) =>
             (set.open.length + set.sorted.length) > 0 && (
             <li key={title} className="cr-crit">
               <b>{title}</b>

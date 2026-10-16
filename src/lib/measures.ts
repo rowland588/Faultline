@@ -23,7 +23,7 @@
  * somebody for making more waste.
  */
 import type { ID } from '../types';
-import { niceDay } from './weeks';
+import { niceDay, todayISO } from './weeks';
 
 export type Direction = 'up' | 'down';
 
@@ -182,14 +182,18 @@ export function targetsAcross(
  *  that a period is a name and two dates, and the app has no business insisting
  *  a business runs on quarters. */
 export function quarters(fromISO: string, mkId: () => string): Period[] {
-  const start = new Date(fromISO);
+  /* parsed as LOCAL parts at midday: `new Date('2026-01-01')` is UTC
+     midnight, which `todayISO` printed as 31 December anywhere west of
+     Greenwich (the review of R1) */
+  const [y, mo, d] = fromISO.split('-').map(Number);
+  const start = y && mo >= 1 && mo <= 12 && d >= 1 && d <= 31 ? new Date(y, mo - 1, d, 12) : new Date(NaN);
   if (!Number.isFinite(start.getTime())) return [];
   return [0, 1, 2, 3].map((q): Period => {
     const from = new Date(start); from.setMonth(from.getMonth() + q * 3);
     const to = new Date(start); to.setMonth(to.getMonth() + (q + 1) * 3); to.setDate(to.getDate() - 1);
     return {
       id: mkId(), name: `Q${q + 1}`, sort: (q + 1) * 10,
-      from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10),
+      from: todayISO(from), to: todayISO(to),
     };
   });
 }
@@ -383,12 +387,9 @@ export interface LineSeries {
   meeting?: boolean;
 }
 
-/** Today, as an ISO date, in the reader's own zone — a reading is taken on a DAY
- *  and `toISOString()` in Manchester rolls to tomorrow all summer evening. */
-export function todayISO(d: Date = new Date()): string {
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
+/** Today, as an ISO date, in the reader's own zone — one definition, in
+ *  lib/weeks; this was a second copy of it (docs/UPGRADE-AUDIT.md R1). */
+export { todayISO } from './weeks';
 
 /** The measure a project leads on: the first one, in the order they set. Used
  *  wherever one number has to stand for a line — a card, a KPI, a roll-up row. */

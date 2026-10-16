@@ -924,6 +924,6 @@ export function daysBetween(a?: string, b?: string): number | undefined {
 
 /** Weeks from today to an ISO date. Negative is gone. */
 export function weeksTo(iso?: string, today = new Date()): number | undefined {
-  const d = daysBetween(today.toISOString().slice(0, 10), iso);
+  const d = daysBetween(todayISO(today), iso);
   return d === undefined ? undefined : Math.round(d / 7);
 }

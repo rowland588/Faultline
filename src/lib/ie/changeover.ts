@@ -118,12 +118,15 @@ export function arrange(seq: ChangeoverStep[] | undefined, rung: Rung, o: { unti
     if (rung !== 'now' && st.side === 'external') continue;
     const p = st.plan;
     let sec = secOf(st);
+    /* a plan never makes an element longer than it was timed: a target past
+       the time itself (typed the wrong way round) counts as the time, so the
+       ladder only ever comes down (docs/UPGRADE-AUDIT.md M14) */
     if ((rung === 'converted' || rung === 'streamlined') && p?.kind === 'convert') {
       if (!(p.targetSec && p.targetSec > 0)) continue;
-      sec = p.targetSec;
+      sec = Math.min(sec, p.targetSec);
     }
     if (rung === 'streamlined' && p?.kind === 'eliminate') continue;
-    if (rung === 'streamlined' && p?.kind === 'streamline' && p.targetSec !== undefined && p.targetSec >= 0) sec = p.targetSec;
+    if (rung === 'streamlined' && p?.kind === 'streamline' && p.targetSec !== undefined && p.targetSec >= 0) sec = Math.min(sec, p.targetSec);
     const planned = rung === 'streamlined' && p?.kind === 'streamline';
     inStop.push({ st, sec, crew: planned && crewOf(p?.crew).length ? crewOf(p?.crew) : crewOf(st.crew), alongside: planned && p?.alongside ? p.alongside : st.alongside });
   }
@@ -630,8 +633,10 @@ export function stepFigure(st: ChangeoverStep): string {
 export function actionWords(st: ChangeoverStep): string {
   const t = hasTime(st) ? mins(secOf(st)) : 'no time yet';
   const p = st.plan, how = p?.how ? ` (${HOW_WORD[p.how]})` : '';
-  if (p?.kind === 'convert') return `convert to external${how}, ${t}${p.targetSec ? ` — ${mins(p.targetSec)} left inside` : ''}`;
-  if (p?.kind === 'streamline') return `streamline${how}, ${t}${p.targetSec !== undefined ? ` → ${mins(p.targetSec)}` : ''}`;
+  /* the figures the ladder counts (M14): a target typed no shorter than
+     the time is not a saving, and is said so rather than printed as one */
+  if (p?.kind === 'convert') return `convert to external${how}, ${t}${p.targetSec ? ` — ${mins(Math.min(secOf(st) || p.targetSec, p.targetSec))} left inside` : ''}`;
+  if (p?.kind === 'streamline') return `streamline${how}, ${t}${p.targetSec !== undefined ? (hasTime(st) && p.targetSec >= secOf(st) ? ` — the target typed (${mins(p.targetSec)}) is no shorter, so ${mins(secOf(st))} stands` : ` → ${mins(p.targetSec)}`) : ''}`;
   if (p?.kind === 'eliminate') return `eliminate${how}, ${t}`;
   if (st.side === 'external') return `do it while the line runs (external), ${t}`;
   return stepFigure(st);
@@ -656,10 +661,11 @@ export function planWords(st: ChangeoverStep, nameOf?: (id: string) => string | 
   }
   const how = p.how ? ` — ${HOW_WORD[p.how]}` : '';
   const note = p.note?.trim() ? `: ${p.note.trim()}` : '';
-  if (p.kind === 'convert') return `Convert to external${how}${note}${p.targetSec ? ` (${mins(p.targetSec)} left inside)` : ''}`;
+  if (p.kind === 'convert') return `Convert to external${how}${note}${p.targetSec ? ` (${mins(Math.min(secOf(st) || p.targetSec, p.targetSec))} left inside)` : ''}`;
   if (p.kind === 'eliminate') return `Eliminate${how}${note}`;
   const along = p.alongside ? `, alongside ${nameOf?.(p.alongside) ?? 'another element'}${crewOf(p.crew).length ? ` (${crewOf(p.crew).join(', ')})` : ''}` : '';
-  return `Streamline${how}${note}${along}${p.targetSec !== undefined ? `${note ? '; ' : ': '}${mins(secOf(st))} → ${mins(p.targetSec)}` : ''}`;
+  const to = p.targetSec !== undefined ? (hasTime(st) && p.targetSec >= secOf(st) ? `${mins(secOf(st))} stands — the target typed (${mins(p.targetSec)}) is no shorter` : `${mins(secOf(st))} → ${mins(p.targetSec)}`) : '';
+  return `Streamline${how}${note}${along}${to ? `${note ? '; ' : ': '}${to}` : ''}`;
 }
 
 /** THE CHECKLIST the standard keeps: what is prepared before the line stops

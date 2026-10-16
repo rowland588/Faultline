@@ -7,6 +7,7 @@ import { recordTombstones, restoreRows, type Restore } from './sync';
 import { getBlob, putBlob } from './blobs';
 import { followPart, followTest } from './programs';
 
+import { isoDay } from '../lib/weeks';
 /* ---------- UNDO ----------
  * Every delete below hands back how to take it back: the rows as they were
  * and the photos they pointed at, kept in memory for the few seconds the
@@ -204,7 +205,7 @@ export async function actionsBecomeFixes(projectId: ID): Promise<number> {
         passesIf: i.note,
         fromTestId: i.testId,
         outcome: i.doneAt ? 'passed' : 'planned',
-        ranOn: i.doneAt ? new Date(i.doneAt).toISOString().slice(0, 10) : undefined,
+        ranOn: i.doneAt ? isoDay(i.doneAt) : undefined,
         sort: topSort + 1 + made,
         createdAt: i.createdAt,
         updatedAt: at,

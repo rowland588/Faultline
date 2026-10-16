@@ -40,6 +40,7 @@ import { isProved, live as liveProgs, type Program } from './programs';
 import { machineKey, machineOfProgram, type JobLinePrograms } from './lineRecords';
 import { provingTestOf } from './commission';
 
+import { isoDay } from './weeks';
 export interface PickRow {
   program: Program;
   /** The machine's name on this job, when it is on one. */
@@ -113,7 +114,7 @@ export function stagePrograms(x: { tests: Test[]; items: TestItem[]; assets: Ass
   return (r?.lines ?? []).filter(l => l.partId && !l.programId).map(l => {
     const part = x.items.find(i => i.id === l.partId);
     const done = l.bucket === 'done' || l.bucket === 'baseline';
-    const on = part && (resultNow(part)?.on ?? (part.doneAt != null ? new Date(part.doneAt).toISOString().slice(0, 10) : undefined));
+    const on = part && (resultNow(part)?.on ?? (part.doneAt != null ? isoDay(part.doneAt) : undefined));
     return {
       id: `part:${l.partId}`, projectId: x.projectId, what: l.what, ...(l.assetId ? { assetId: l.assetId } : {}),
       state: 'onMachine' as const, ...(done && on ? { provedOn: on } : {}), sort: 0, createdAt: 0, updatedAt: 0,

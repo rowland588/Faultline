@@ -34,6 +34,7 @@ import { currentLosses } from '../lib/studyLinks';
 import { useJobInputs } from '../lib/useJobInputs';
 import { portfolio, type JobView } from '../lib/portfolio';
 import type { Observation } from '../types';
+import { between, stopMinutes, WEEK } from '../lib/intelligence';
 import type { ToolStudy, StudyTool } from '../lib/study';
 import type { Workspace } from '../types';
 import { Icon } from '../ui/Icon';
@@ -127,6 +128,20 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
     /* a loss count's sentence names its shift itself */
     return { n: own.length, says: t.study === 'losses' ? said.text : `${s.name}: ${said.text}`, tone: said.tone };
   }, [standards, studies, obs, line, wsId]);
+  /* ITS STOPS, the last four weeks — the count, the minutes (overlaps on one
+     machine counted once, as every Pareto counts them) and the machine that
+     stopped the most; the words the Stops timed row says. */
+  const stops = useMemo(() => {
+    const now = Date.now();
+    const recent = between(obs, now - 4 * WEEK, now).filter(o => o.durationMs > 0 || o.timing === 'instant');
+    const n = recent.length;
+    if (!n) return { n: 0, tone: 'n' as const };
+    const byMachine = new Map<string, Observation[]>();
+    for (const o of recent) byMachine.set(o.asset, [...(byMachine.get(o.asset) ?? []), o]);
+    const worst = [...byMachine.entries()].map(([asset, os]) => ({ asset, min: stopMinutes(os) })).sort((a, b) => b.min - a.min)[0];
+    const mins = Math.round(stopMinutes(recent));
+    return { n, tone: 'n' as const, says: `${mins} min lost in ${n} stop${n === 1 ? '' : 's'}${worst && worst.min >= 1 ? ` — the ${worst.asset.trim() || 'whole line'} most, ${Math.round(worst.min)} min` : ''}` };
+  }, [obs]);
   /* ITS MACHINES AND PROGRAMS (docs/BLUEPRINT.md, Stage 2) — the line's own
      and those a job brought in, read as the control room's Programs reads them. */
   const rec = useLineRecords();
@@ -190,7 +205,13 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
           </p>
         </div>
         <div className="pace-head-actions">
-          <button type="button" className="btn btn-primary" onClick={() => openQuickSnag()}><Icon name="camera" size="1.05em" />Problem</button>
+          {/* THE FLOOR'S TWO ACTS, FIRST: time a stop, snap a problem. The
+              stopwatch had no door from the line — only a job's Pareto, its
+              setup and the fishbone opened it (docs/UPGRADE-AUDIT.md F1: the
+              first-timer's dead end). On a phone the Problem is the round
+              button; the header's copy hides there (F5). */}
+          <button type="button" className="btn btn-primary pl-time" onClick={() => nav(`/w/${wsId}/capture`)}><Icon name="time" size="1.05em" />Time a stop</button>
+          <button type="button" className="btn btn-primary pl-problem" onClick={() => openQuickSnag()}><Icon name="camera" size="1.05em" />Problem</button>
           <button type="button" className="btn" disabled={busy || !rows.length} onClick={() => void pdf('report')}><Icon name="document" size="1.05em" />Problems report</button>
           <button type="button" className="btn" disabled={busy || !rows.length} onClick={() => void pdf('cards')}>Report cards</button>
           {may && <button type="button" className="btn btn-ghost" aria-expanded={editing} onClick={() => setEditing(v => !v)}>{editing ? 'Done' : 'Edit the line'}</button>}
@@ -338,6 +359,18 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
       <section className="pl-sec" aria-label="Tools on this line">
         <div className="pl-sec-h"><h2>Tools on this line</h2></div>
         <ul className="pl-tools">
+          {/* THE STOPWATCH AND ITS PARETO, FIRST — the floor's own tool, read
+              from the line's stops as the tour reads them (lib/intelligence
+              stops): the last four weeks, the machine that stopped the most.
+              With stops it opens the ranking; with none, the stopwatch. */}
+          <li>
+            <button type="button" className="pl-tool is-stops" onClick={() => nav(`/w/${wsId}/${stops.n ? 'analyse' : 'capture'}`)}>
+              <b>Stops timed</b>
+              {stops.says && <span className={'pl-tool-says ie-tone is-' + stops.tone}>{stops.says}</span>}
+              <span className="sub">{stops.n ? `The last four weeks — where the time goes, ranked by ${line.packsPerMin ? 'what it costs' : 'minutes lost'}` : 'None yet — the stopwatch, and the Pareto of what the stops cost'}</span>
+              <span className="pl-tool-go" aria-hidden>›</span>
+            </button>
+          </li>
           {TOOLS.map(t => {
             const { n, says, tone } = toolSays(t);
             return (

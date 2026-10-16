@@ -158,6 +158,8 @@ function monthWords(y: number, m: number, firstYear: number): string {
 
 const dayMs = 86_400_000;
 const utc = (iso: string): number => Date.parse(`${iso}T00:00:00Z`);
+/* the UTC half of a date pair with `utc` (see lib/gantt): arithmetic on days,
+   never a real moment — `isoDay` (local) is for those */
 const iso = (t: number): string => new Date(t).toISOString().slice(0, 10);
 
 /** The first of the month an ISO date falls in. */

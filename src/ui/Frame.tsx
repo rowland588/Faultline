@@ -274,7 +274,7 @@ function MethodNav(p: NavProps & { method: 'board' | 'tree' }) {
   const groups: RailGroup[] = [
     /* The job's square is red for anything late on it — its board's actions
        and what it waits on — the count its header and the control room say. */
-    { lines: [controlRoom(p.here), snagsPlace(p.here), jobLine(p.project.id, p.project.name, p.here, (counts.board?.late ?? 0) + (counts.materials?.late ?? 0))] },
+    { lines: [controlRoom(p.here), snagsPlace(p.here), jobLine(p.project.id, p.project.name, p.here, (counts.board?.late ?? 0) + (counts.materials?.late ?? 0) + (counts.checks?.late ?? 0))] },
     methodGroup(p.project.id, p.method, p.here, counts,
       { pareto: !!p.project.pareto, tree: p.method !== 'tree' && !!p.project.leverTree }),
     workGroup(p.project.id, p.here, counts),
@@ -372,7 +372,16 @@ function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: s
      rail, Jobs among it), in the top bar's job picker, and on the control
      room's own rows. */
   const onLines = here === 'factory' || here === 'lineprograms' || here.startsWith('line:');
-  const bar: RailLine[] = [
+  /* INSIDE A LINE STUDY the bar is the study's own screens — Capture ·
+     Analyse · Evidence — so a stop logged is one tap from its ranking
+     (docs/UPGRADE-AUDIT.md F2: Analyse was behind More, the walk's second
+     dead end); the line's page and the rest are under More. */
+  const study = loose && wsId ? studyLines(wsId, here).filter(l => l.key !== 'meeting').map(l => ({ ...l, sub: false })) : [];
+  const bar: RailLine[] = study.length ? [
+    ...all.filter(l => l.key === 'home'),
+    ...study,
+    { key: 'more', label: 'More', on: !study.some(l => l.on) && all.some(l => l.on && l.key !== 'home'), state: 'n', icon: 'grip' },
+  ] : [
     ...all.filter(l => l.key === 'home'),
     { ...snagsPlace(here), label: 'Problems', icon: 'flag' },
     { key: 'lines', label: 'Lines', to: '/factory', on: onLines, state: 'n', bare: true, icon: 'machine' },

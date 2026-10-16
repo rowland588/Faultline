@@ -21,7 +21,7 @@ import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
 import { can as canAt } from '../lib/access';
 import { now, uid } from '../lib/ids';
-import { niceDay } from '../lib/weeks';
+import { niceDay, isoDay } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 import { peopleOf } from '../lib/standard';
 import {
@@ -85,7 +85,7 @@ function Sampling({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
         <StudyName s={s} canEdit={can.edit && !s.closedAt} canRemove={can.remove} />
         <p className="sub ie-where">
           {s.product ? <><b>{s.product}</b> · </> : null}
-          started {niceDay(new Date(s.startedAt).toISOString().slice(0, 10))}
+          started {niceDay(isoDay(s.startedAt))}
         </p>
         <WhereItSits s={s} can={can} />
       </header>
@@ -337,7 +337,7 @@ function Act({ s, a, taps, text, can, me }: { s: ToolStudy; a: AgreedSampling; t
   if (s.closedAt && s.receipt) {
     return (
       <div className="ie-act is-closed">
-        <p className="ie-receipt"><b>Closed {niceDay(new Date(s.receipt.at).toISOString().slice(0, 10))}{s.receipt.by ? ` by ${s.receipt.by}` : ''}</b> — a receipt: these figures stand as they were. {s.receipt.text}</p>
+        <p className="ie-receipt"><b>Closed {niceDay(isoDay(s.receipt.at))}{s.receipt.by ? ` by ${s.receipt.by}` : ''}</b> — a receipt: these figures stand as they were. {s.receipt.text}</p>
         {can.agree && (reopen === null
           ? <button type="button" className="btn" onClick={() => setReopen('')}>Reopen</button>
           : (

@@ -285,9 +285,9 @@ describe('suggestionsFor — the walk, the standard, the balance, materials, pro
     expect(s.map(x => [x.m, x.text, x.grade, x.source.ref, x.source.tool])).toEqual([
       ['method', 'Op 2 is waiting 25% of the time (±13 points, from 40 taps)', 'counted', 's1#Op 2#waiting', 'sampling'],
       ['people', 'Op 1 is away 20% of the time (±12 points, from 40 taps)', 'counted', 's1#Op 1#away', 'sampling'],
-      ['method', 'Op 2 is searching 10% of the time (±9 points, from 40 taps)', 'counted', 's1#Op 2#searching', 'sampling'],
+      ['method', 'Op 2 is searching 10% of the time (±10 points, from 40 taps)', 'counted', 's1#Op 2#searching', 'sampling'],   /* Wilson's width: ±10 where Wald said ±9 (UPGRADE-AUDIT M15) */
     ]);
-    expect(s[0].detail).toBe('Work sampling: Packing hall, day shift — 2 people · 80 taps · the biggest share within ±15 points');
+    expect(s[0].detail).toBe('Work sampling: Packing hall, day shift — 2 people · 80 taps · the biggest share within ±14 points');   /* Wilson's width (UPGRADE-AUDIT M15) */
     /* a bottleneck walk is not a sampling of people; another line's says nothing here; a machine's stop is not about people */
     expect(suggestionsFor(whole, data({ studies: [sm({ agreed: { sampling: { ...sm().agreed!.sampling!, walk: true } } })] }), TODAY).some(x => x.source.kind === 'study')).toBe(false);
     expect(suggestionsFor(whole, data({ studies: [sm({ workspaceId: 'ws2' })] }), TODAY).some(x => x.source.kind === 'study')).toBe(false);

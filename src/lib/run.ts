@@ -111,6 +111,16 @@ export const num = (n: number): string => {
 export const pct = (n: number): string =>
   `${(n > 0 && n < 1 ? Math.round(n * 100) / 100 : Math.round(n * 10) / 10).toLocaleString('en-GB', { maximumFractionDigits: 2 })}%`;
 
+/** One place more than `num` / `pct`, for a gap the usual rounding would hide. */
+const num2 = (n: number): string => (Math.round(n * 100) / 100).toLocaleString('en-GB', { maximumFractionDigits: 2 });
+const num3 = (n: number): string => (Math.round(n * 1000) / 1000).toLocaleString('en-GB', { maximumFractionDigits: 3 });
+const pct2 = (n: number): string => `${(Math.round(n * 1000) / 1000).toLocaleString('en-GB', { maximumFractionDigits: 3 })}%`;
+const pct3 = (n: number): string => `${(Math.round(n * 10000) / 10000).toLocaleString('en-GB', { maximumFractionDigits: 4 })}%`;
+/** The first way of saying two figures that tells them apart — one more
+ *  place, then two: a miss the rounding hides ("60 against 60 — 0 short", in
+ *  red) is said finely enough to see (docs/UPGRADE-AUDIT.md M12). */
+const apart = (a: number, b: number, fs: ((n: number) => string)[]): ((n: number) => string) => fs.find(f => f(a) !== f(b)) ?? fs[fs.length - 1];
+
 const ok = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n);
 
 export function readRun(t: Pick<Test, 'run' | 'runAgreed'>): RunReading {
@@ -121,13 +131,17 @@ export function readRun(t: Pick<Test, 'run' | 'runAgreed'>): RunReading {
   const checks: RunCheck[] = [];
   if (ok(agreed.rate) && net != null) {
     const met = net + 1e-9 >= agreed.rate;
-    checks.push({ what: 'rate', label: 'Net rate', got: `${num(net)} ppm`, agreed: `${num(agreed.rate)} ppm agreed`, ok: met,
-      ...(met ? {} : { gap: `${num(agreed.rate - net)} ppm short` }) });
+    /* a miss the rounding would hide — 59.96 against 60 read "60 against 60
+       — 0 short" in red — is said to one more place (docs/UPGRADE-AUDIT.md M12) */
+    const f = met ? num : apart(net, agreed.rate, [num, num2, num3]);
+    checks.push({ what: 'rate', label: 'Net rate', got: `${f(net)} ppm`, agreed: `${num(agreed.rate)} ppm agreed`, ok: met,
+      ...(met ? {} : { gap: `${f(agreed.rate - net)} ppm short` }) });
   }
   if (ok(agreed.rejectsMax) && rejectPct != null) {
     const met = rejectPct <= agreed.rejectsMax + 1e-9;
-    checks.push({ what: 'rejects', label: 'Rejects', got: pct(rejectPct), agreed: `${pct(agreed.rejectsMax)} at most`, ok: met,
-      ...(met ? {} : { gap: `${pct(rejectPct - agreed.rejectsMax)} over` }) });
+    const f = met ? pct : apart(rejectPct, agreed.rejectsMax, [pct, pct2, pct3]);
+    checks.push({ what: 'rejects', label: 'Rejects', got: f(rejectPct), agreed: `${pct(agreed.rejectsMax)} at most`, ok: met,
+      ...(met ? {} : { gap: `${f(rejectPct - agreed.rejectsMax)} over` }) });
   }
   if (ok(agreed.minutes) && ok(day.minutes)) {
     const met = day.minutes >= agreed.minutes;
@@ -165,8 +179,10 @@ export function runLine(t: Pick<Test, 'run' | 'runAgreed' | 'product' | 'planned
   const r = readRun(t);
   if (!r.ran) return '';
   const rate = r.checks.find(c => c.what === 'rate');
+  /* the net as the check says it — to one more place when the rounding would
+     hide a miss (docs/UPGRADE-AUDIT.md M12) */
   const head = r.net != null
-    ? `Netted ${num(r.net)} ppm${ok(r.agreed.rate) ? ` against ${num(r.agreed.rate)} agreed${rate && !rate.ok ? ` — ${rate.gap}` : ''}` : ''}`
+    ? `Netted ${rate ? rate.got : `${num(r.net)} ppm`}${ok(r.agreed.rate) ? ` against ${num(r.agreed.rate)} agreed${rate && !rate.ok ? ` — ${rate.gap}` : ''}` : ''}`
     : '';
   const bits = [
     head,
@@ -184,7 +200,9 @@ export function runLine(t: Pick<Test, 'run' | 'runAgreed' | 'product' | 'planned
 export function runShort(t: Pick<Test, 'run' | 'runAgreed'>): string {
   const r = readRun(t);
   if (r.net == null) return '';
-  return ok(r.agreed.rate) ? `${num(r.net)} of ${num(r.agreed.rate)} ppm` : `${num(r.net)} ppm net`;
+  /* the square says the rate the line says — 59.96, never "60 of 60" in red (M12) */
+  const rate = r.checks.find(c => c.what === 'rate');
+  return ok(r.agreed.rate) ? `${rate ? rate.got.replace(/ ppm$/, '') : num(r.net)} of ${num(r.agreed.rate)} ppm` : `${num(r.net)} ppm net`;
 }
 
 /** Only the numbers given — blanks dropped, so an emptied box clears. */

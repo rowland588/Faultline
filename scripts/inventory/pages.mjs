@@ -26,6 +26,9 @@ export const PAGES = (sd, cap) => [
   { name: 'A line — its own page', path: `#/lines/${sd.line7WsId}`, must: [
     { what: 'the line, machine by machine — the tour', sel: '.tour-says' },
     { what: 'a card a machine', sel: '.tour-card', n: 2 },
+    /* the floor's two acts first, and the stopwatch among the tools (16 October, docs/UPGRADE-AUDIT.md F1) */
+    { what: 'Time a stop', sel: '.pl-time' },
+    { what: 'the stopwatch and its Pareto, among the tools', sel: '.pl-tool.is-stops' },
   ] },
   { name: 'Programs', path: '#/programs', must: [{ what: 'machine by machine', sel: '.mt-list' }, { what: 'a row a program (16 October: one row, its boxes a tap away)', sel: '.mt-list .pgr' }] },
   { name: 'Problems', path: '#/snags', must: [{ what: 'the register, a line at a time', sel: '.qsl-rows' }] },

@@ -182,7 +182,7 @@ function reportBlocks(r: CommissioningReport, d: Density): Block[] {
 
   /* WHY WE ARE NOT WHERE WE SHOULD BE */
   out.push(label('Why we are not where we should be', r.why.length ? DANGER : MUTED));
-  if (!r.why.length) out.push(text({ text: 'Nothing — no test has failed or gone late, and no critical issue is open.', size: 9, colour: INK2, after: gap(d, 'm') }));
+  if (!r.why.length) out.push(text({ text: 'Nothing — no test has failed or gone late, and no critical problem is open.', size: 9, colour: INK2, after: gap(d, 'm') }));
   r.why.forEach((l, i) => { const b = said(l); out.push(i === r.why.length - 1 ? { ...b, after: f => gap(f.density, 'm'), height: f => b.height(f) + gap(f.density, 'm') } : b); });
 
   /* WHAT WE ARE DOING ABOUT IT */

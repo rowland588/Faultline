@@ -186,6 +186,12 @@ export function lineProgramsReading(lines: readonly { name: string; id: string; 
       programs.push({ ...p, ...(on ? { assetId: on } : { assetId: undefined }) });
     }
   }
+  /* no tests here on purpose: the line's reading counts a program proved by
+     its record, not by a job's test — passing the tests in re-counted the
+     proved and moved the words the line's page and paper say (the
+     machines-programs acceptance). A failed test travelling to the line
+     (docs/UPGRADE-AUDIT.md C6) waits on programsReading carrying "failed"
+     without re-counting proved — with C2, the Commission cell. */
   const r = programsReading({ tests: [], items: [], assets, programs, ...(today ? { today } : {}) });
   if (!r) return r;
   const byId = new Map(programs.map(p => [p.id, p]));

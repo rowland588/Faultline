@@ -44,11 +44,38 @@ describe('a program planned on a line', () => {
     let ws = (await db.listWorkspaces()).find(x => x.id === w.id);
     if (!ws) throw new Error('the line was not kept');
     expect(lr.machinesOnLine(ws, await db.listAllAssets(), []).map(m => [m.name, m.record?.oem])).toEqual([['Checkweigher', 'Ishida'], ['Case packer', undefined]]);
+    /* a problem on it and a capacity station named for it travel with the rename (docs/UPGRADE-AUDIT.md C3) */
+    const t = Date.now();
+    await db.addSnag({ id: 'sn1', workspaceId: w.id, problem: 'Guard loose', media: [], targetAsset: 'Checkweigher', status: 'open', raisedAt: t, updatedAt: t } as never);
+    await db.addSnag({ id: 'sn2', workspaceId: w.id, problem: 'Elsewhere', media: [], targetAsset: 'Case packer', status: 'open', raisedAt: t, updatedAt: t } as never);
+    await db.putStandard({ id: 'st1', workspaceId: w.id, product: 'Maris Piper 2kg', marks: [], sort: 1, updatedAt: t, createdAt: t,
+      capacity: { stations: [{ id: 'a', name: 'Checkweigher', kind: 'machine', unit: 'bags', contains: 1, rate: 100, ratePer: 'min' }, { id: 'b', name: 'Case packer', kind: 'machine', unit: 'bags', contains: 1, rate: 90, ratePer: 'min' }] } } as never);
     await db.updateWorkspace({ ...ws, assets: ['Check weigher', 'Case packer'] });
     await db.renameLineMachine(w.id, 'Checkweigher', 'Check weigher');
     ws = (await db.listWorkspaces()).find(x => x.id === w.id);
     if (!ws) throw new Error('the line was not kept');
     expect(lr.machinesOnLine(ws, await db.listAllAssets(), [])[0]).toMatchObject({ name: 'Check weigher', record: { oem: 'Ishida' } });
+    const snags = await db.listAllSnags();
+    expect(snags.find(s => s.id === 'sn1')?.targetAsset).toBe('Check weigher');
+    expect(snags.find(s => s.id === 'sn2')?.targetAsset).toBe('Case packer');
+    expect((await db.listStandardsForLine(w.id))[0]?.capacity?.stations.map(x => x.name)).toEqual(['Check weigher', 'Case packer']);
+  });
+
+  it('the line\'s own list is renamed by renameLineMachine itself — a job\'s Install renames the record alone (the review of C3)', async () => {
+    const { db, lines, lr } = await fresh();
+    const w = await lines.addLineToFactory('Line 8');
+    await db.addMachineToLine(w.id, 'Checkweigher', 'Ishida');
+    await db.addMachineToLine(w.id, 'Case packer');
+    await db.renameLineMachine(w.id, 'Checkweigher', 'Check weigher');
+    let ws = (await db.listWorkspaces()).find(x => x.id === w.id);
+    if (!ws) throw new Error('the line was not kept');
+    expect(ws.assets).toEqual(['Whole line', 'Check weigher', 'Case packer']);
+    expect(lr.machinesOnLine(ws, await db.listAllAssets(), []).map(x => x.name)).toEqual(['Check weigher', 'Case packer']);
+    /* renamed to a name already on the list: one entry, never two */
+    await db.renameLineMachine(w.id, 'Check weigher', 'Case packer');
+    ws = (await db.listWorkspaces()).find(x => x.id === w.id);
+    if (!ws) throw new Error('the line was not kept');
+    expect(ws.assets).toEqual(['Whole line', 'Case packer']);
   });
 
   it('a job\'s new program finds the job\'s only line', async () => {

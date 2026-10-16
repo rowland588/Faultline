@@ -29,7 +29,7 @@ import { listAllStudies, onDataChange, patchStudy, putStudy } from '../db';
 import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
 import { now, uid } from '../lib/ids';
-import { niceDay } from '../lib/weeks';
+import { niceDay, isoDay } from '../lib/weeks';
 import { currentBalance } from '../lib/studyLinks';
 import { useRoute, nav } from '../state/useRoute';
 import { UsedFor } from './StudyPlace';
@@ -94,7 +94,7 @@ export function WorkView({ s, can }: { s: Standard; can: Can }) {
     const back = () => { const q = new URLSearchParams(route.query); q.delete('study'); nav(`${window.location.hash.slice(1).split('?')[0]}?${q.toString()}`); };
     return (
       <>
-        <p className="wb-earlier sub">An earlier timing, started {niceDay(new Date(study.startedAt).toISOString().slice(0, 10))} — the line standard reads the newest.{' '}
+        <p className="wb-earlier sub">An earlier timing, started {niceDay(isoDay(study.startedAt))} — the line standard reads the newest.{' '}
           <button type="button" className="linkish" onClick={back}>Open the current one ›</button></p>
         <Work study={study} s={s} can={{ ...can, edit: false, agree: false, remove: false }} me={me} />
       </>
@@ -211,7 +211,7 @@ function Work({ study, s, can, me }: { study: ToolStudy; s: Standard; can: Can; 
       <div className="ie-act">
         {closed ? (
           <>
-            <p className="ie-receipt"><b>Set as the standard {niceDay(new Date(study.closedAt ?? 0).toISOString().slice(0, 10))}</b> — the map and its card read it. {study.receipt?.text}</p>
+            <p className="ie-receipt"><b>Set as the standard {niceDay(isoDay(study.closedAt ?? 0))}</b> — the map and its card read it. {study.receipt?.text}</p>
             {can.agree && <button type="button" className="btn" onClick={() => write({ closedAt: undefined })}>Reopen to time again</button>}
           </>
         ) : can.agree && f.people.length > 0 && !f.untimed && (

@@ -93,10 +93,13 @@ export function planToTarget(cap: Capacity): Plan | undefined {
   }
 
   /* the steps, a station once: its crew from where it was to where it ended,
-     placed when its last one was added, with what the line made then */
+     placed when its LAST one was added, with what the line made then — so
+     read in order the line only ever rises (a station added to early and
+     again late used to sit first with its late figure, and the next step
+     read as a fall; docs/UPGRADE-AUDIT.md M6) */
   const order: string[] = [];
   const lastAfter = new Map<string, number>();
-  moves.forEach(m => { if (!order.includes(m.id)) order.push(m.id); lastAfter.set(m.id, m.lineAfter); });
+  moves.forEach(m => { const i = order.indexOf(m.id); if (i >= 0) order.splice(i, 1); order.push(m.id); lastAfter.set(m.id, m.lineAfter); });
   const steps: PlanStep[] = order.map(id => {
     const s = work.stations.find(x => x.id === id) as Station;
     const from = original.get(id) ?? 1, to = crewOf(s);
