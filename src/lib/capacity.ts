@@ -740,7 +740,14 @@ function analyseLanes(cap: Capacity): CapacityResult {
   const sameUnit = live.every(x => x.result.unit.trim().toLowerCase() === unit.trim().toLowerCase());
   if (!sameUnit) notes.push(`The lines do not count in the same unit (${live.map(x => `${x.name}: ${x.result.unit}`).join(', ')}) — they are added as if they did.`);
 
-  const sends = live.reduce((n, x) => n + (x.result.line as number), 0);
+  /* WHAT THE LINES SEND ON is what leaves them: each line's good off its
+     end, its own rejects taken off — not what its first station has to be
+     fed. The shared station after the merge is compared with what reaches
+     it (docs/UPGRADE-AUDIT.md M4); `asked` is the lines' like-for-like at
+     their start, which the whole's `line` is kept in, as a chain's is. */
+  const asked = live.reduce((n, x) => n + (x.result.line as number), 0);
+  const sends = live.reduce((n, x) => n + (x.result.goodOut ?? x.result.line ?? 0), 0);
+  const goodFrac = asked > 0 ? sends / asked : 1;
   const per = `${unit}/min`;
   const names = (xs: LaneSection[]) => (xs.length <= 2 ? xs.map(x => x.name).join(' and ') : `${xs.slice(0, -1).map(x => x.name).join(', ')} and ${xs[xs.length - 1].name}`);
 
@@ -773,18 +780,22 @@ function analyseLanes(cap: Capacity): CapacityResult {
   }
 
   const heldBy: 'lanes' | 'shared' = merged?.limit && merged.limit.station.id !== MERGE_ID ? 'shared' : 'lanes';
-  const total = merged && merged.line != null ? merged.line : sends;
+  /* the whole, like for like at the lines' start: held after the merge, the
+     shared station's limit is what reaches it — the lines' start has to feed
+     that much more, their rejects put back; held by the lines, their own */
+  const total = heldBy === 'shared' && merged && merged.line != null && goodFrac > 0 ? merged.line / goodFrac : asked;
   const sharedOk = merged ? merged.ok.filter(x => x.station.id !== MERGE_ID) : [];
   const lanesLimit = live.map(x => x.result.limit as StationResult).sort((p, q) => p.effective - q.effective)[0];
   const lanesRun = live.map(x => x.result.limitAtRunning).filter((x): x is StationResult => !!x).sort((p, q) => p.running - q.running)[0];
   const limit = heldBy === 'shared' ? (merged?.limit as StationResult) : lanesLimit;
-  const goodFrac = sends > 0 ? live.reduce((n, x) => n + (x.result.goodOut ?? x.result.line ?? 0), 0) / sends : 1;
 
   base.ok = [...live.flatMap(x => x.result.ok), ...sharedOk];
   base.limit = limit;
   base.limitAtRunning = heldBy === 'shared' ? (merged?.limitAtRunning && merged.limitAtRunning.station.id !== MERGE_ID ? merged.limitAtRunning : limit) : lanesRun ?? limit;
   base.line = total;
-  base.goodOut = total * goodFrac;
+  /* good off the end: the merged chain takes the shared stations' rejects off
+     what the lines send; with nothing after the merge it is what they send */
+  base.goodOut = merged && merged.line != null ? (merged.goodOut ?? merged.line) : sends;
   if (target != null) base.gap = target - total;
   const tgt = target == null ? '' : (base.gap as number) > 0 ? ` — ${fmtN(base.gap as number)} short of the ${fmtN(target)} target` : ` — above the ${fmtN(target)} target`;
   const nm = (x: StationResult) => x.station.name.trim() || `Station ${x.index + 1}`;
@@ -1628,6 +1639,24 @@ const nameOf = (x: StationResult): string => x.station.name.trim() || `Station $
 export function vCurve(r: CapacityResult, marginPct?: number): VCurve {
   const lim = r.limit;
   if (!lim || !r.ok.length) return { points: [], under: [], sentence: 'Put in the stations and their speeds; the V draws itself once the bottleneck is known.' };
+  /* SEVERAL LINES INTO ONE PLACE: a V a line, each against its own
+     bottleneck, and one for the stations after the merge — as the page draws
+     them. Read as one row, Line B's palletiser sat three steps from Line A's
+     and was "under the V" of a station it never feeds (docs/UPGRADE-AUDIT.md
+     M5). The whole's limit is the one the whole names. */
+  if (r.lanes) {
+    const parts = [
+      ...r.lanes.sections.filter(s => s.result.ok.length > 0 && s.result.limit).map(s => ({ name: s.name, v: vCurve(s.result, marginPct) })),
+      ...(r.lanes.merged && r.lanes.merged.ok.some(x => x.index >= 0) && r.lanes.merged.limit
+        ? [{ name: 'after they merge', v: vCurve({ ...r.lanes.merged, ok: r.lanes.merged.ok.filter(x => x.index >= 0), limit: r.lanes.merged.limit.index >= 0 ? r.lanes.merged.limit : undefined }, marginPct) }]
+        : []),
+    ].filter(p => p.v.points.length);
+    const points = parts.flatMap(p => p.v.points);
+    const under = points.filter(p => p.under);
+    const limit = points.find(p => p.index === lim.index);
+    const sentence = parts.map(p => `${p.name}: ${p.v.sentence}`).join(' ');
+    return { points, under, ...(limit ? { limit } : {}), sentence };
+  }
   const at = r.ok.findIndex(x => x.station.id === lim.station.id);
   const m = marginPct != null && marginPct > 0 ? marginPct : undefined;
   const points: VPoint[] = r.ok.map((x, i) => {
@@ -1766,7 +1795,12 @@ export function shiftCapacity(r: CapacityResult, shifts: ShiftIn[], co?: Changeo
     : co.perShift == null ? `a changeover is ${minWord(co.min)} (${whose}), but how many a shift is not said on the SMED — none comes off until it is`
     : '';
   const breaksNot = unsaid.length ? `${unsaid.join(', ')}: the breaks are not said on the line’s settings, so no capacity is worked out for ${unsaid.length === 1 ? 'it' : 'them'}` : '';
-  const at = `At ${ln}’s ${fmtN(pace)} ${unit} a minute${rate < pace - 1e-9 ? ` (${fmtN(rate)} good off the end of the line)` : ''}`;
+  /* several lines held by themselves make the sum of their paces: the words
+     name the whole, not one line's bottleneck (docs/UPGRADE-AUDIT.md M5) */
+  const together = r.lanes && r.lanes.heldBy === 'lanes' && r.line != null ? r.line : undefined;
+  const at = together != null
+    ? `At ${fmtN(together)} ${unit} a minute across the lines together${rate < together - 1e-9 ? ` (${fmtN(rate)} good off the end)` : ''}`
+    : `At ${ln}’s ${fmtN(pace)} ${unit} a minute${rate < pace - 1e-9 ? ` (${fmtN(rate)} good off the end of the line)` : ''}`;
   const one = rows.length === 1 || rows.every(x => x.min === rows[0].min && x.breakMin === rows[0].breakMin);
   let head: string;
   if (one && said.length) {

@@ -46,23 +46,24 @@ describe('AUDIT mix — the product mix', () => {
       expect(m.sentence).not.toMatch(/NaN|Infinity/);
     }
   });
-  it('FINDING (bug): floor(minutesGiven × speed) loses a pack to floating point — a product the week has room for is said 1 unmade', () => {
-    /* demand 3 at 47 a minute: 3 ÷ 47 × 47 = 2.9999999999999996 → floor 2 → "1 of P unmade" with 99% of the week to spare */
+  it('FIXED (UPGRADE-AUDIT M1): floor(minutesGiven × speed) lost a pack to floating point — a product given every minute it needs is made whole', () => {
+    /* demand 3 at 47 a minute: 3 ÷ 47 × 47 = 2.9999999999999996 — the floor said 2 made, "1 of P unmade", with 99% of the week to spare */
     const m = mix([{ id: 'p', name: 'P', marginPerPack: 0.5, perConstraintMin: 47, demandPerWeek: 3 }], 2400);
     expect(m.fill).toBeLessThan(1);
-    expect(m.rows[0]!.made).toBe(2);
-    expect(m.rows[0]!.unmade).toBe(1);
+    expect(m.rows[0]!.made).toBe(3);
+    expect(m.rows[0]!.unmade).toBe(0);
+    expect(m.sentence).toMatch(/everything is made\.$/);
     /* and at a realistic scale: scan demands 100…20,000 at speeds to a tenth */
     const hits: [number, number][] = [];
     for (let d = 100; d <= 20_000 && hits.length < 5; d += 7) for (const per of [0.7, 1.3, 2.9, 3.3, 11.1, 23.4, 47, 49, 66.6, 70.7, 93.1]) {
       const mm = mix([{ id: 'p', name: 'P', marginPerPack: 0.5, perConstraintMin: per, demandPerWeek: d }], 1e9);
       if (mm.rows[0]!.unmade > 0) { hits.push([d, per]); break; }
     }
-    expect(hits.length).toBeGreaterThan(0);
-    /* and the row and the sentence then contradict each other: the row says 1 unmade, the sentence "everything is made" */
-    const mm = mix([{ id: 'p', name: 'P', marginPerPack: 0.5, perConstraintMin: hits[0]![1], demandPerWeek: hits[0]![0] }], 1e9);
-    expect(mm.rows[0]!.unmade).toBe(1);
-    expect(mm.sentence).toMatch(/everything is made/);
+    expect(hits).toEqual([]);
+    /* and a week that is truly short says so on the row AND in the sentence */
+    const mm = mix([{ id: 'p', name: 'P', marginPerPack: 0.5, perConstraintMin: 47, demandPerWeek: 100 }], 1);
+    expect(mm.rows[0]!.unmade).toBe(53);
+    expect(mm.sentence).toMatch(/53 of P unmade\.$/);
   });
 });
 

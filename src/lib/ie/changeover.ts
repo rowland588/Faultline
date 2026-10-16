@@ -118,12 +118,15 @@ export function arrange(seq: ChangeoverStep[] | undefined, rung: Rung, o: { unti
     if (rung !== 'now' && st.side === 'external') continue;
     const p = st.plan;
     let sec = secOf(st);
+    /* a plan never makes an element longer than it was timed: a target past
+       the time itself (typed the wrong way round) counts as the time, so the
+       ladder only ever comes down (docs/UPGRADE-AUDIT.md M14) */
     if ((rung === 'converted' || rung === 'streamlined') && p?.kind === 'convert') {
       if (!(p.targetSec && p.targetSec > 0)) continue;
-      sec = p.targetSec;
+      sec = Math.min(sec, p.targetSec);
     }
     if (rung === 'streamlined' && p?.kind === 'eliminate') continue;
-    if (rung === 'streamlined' && p?.kind === 'streamline' && p.targetSec !== undefined && p.targetSec >= 0) sec = p.targetSec;
+    if (rung === 'streamlined' && p?.kind === 'streamline' && p.targetSec !== undefined && p.targetSec >= 0) sec = Math.min(sec, p.targetSec);
     const planned = rung === 'streamlined' && p?.kind === 'streamline';
     inStop.push({ st, sec, crew: planned && crewOf(p?.crew).length ? crewOf(p?.crew) : crewOf(st.crew), alongside: planned && p?.alongside ? p.alongside : st.alongside });
   }

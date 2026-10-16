@@ -37,6 +37,8 @@ import { addDays, daysBetween, niceDay } from './weeks';
 
 /** Fewer measured runs than this, and it is too early to say when. */
 export const CLIMB_MIN_RUNS = 3;
+/** A forecast further out than this is said as "not within reach", not as a date. */
+export const CLIMB_HORIZON_DAYS = 365;
 /** How many runs the sentence lists, most recent last. */
 const SHOWN = 5;
 
@@ -108,7 +110,15 @@ export function climbOf(points: ClimbPoint[], agreed: number, opts: { product: s
   const nStar = Math.exp((Math.log(1 / agreed) - a) / b);
   const runNo = Math.max(ps.length + 1, Math.ceil(nStar - 1e-9));
   const cadence = Math.max(1, daysBetween(ps[0].on, last.on) / (ps.length - 1));
-  const at = addDays(last.on, Math.ceil((runNo - ps.length) * cadence));
+  const daysAway = Math.ceil((runNo - ps.length) * cadence);
+  /* A climb so slow the fit lands years out (100 → 100.1 → 100.2 against
+     120 gives run 3.5e44 and an invalid date) is not a forecast anyone can
+     act on: it is said as not reaching the rate, like a flat one
+     (docs/UPGRADE-AUDIT.md M11). */
+  if (!Number.isFinite(nStar) || !Number.isFinite(daysAway) || daysAway > CLIMB_HORIZON_DAYS) {
+    return { ...base, kind: 'flat', tone: 'risk', text: `${head} — climbing too slowly: at this climb it does not reach ${num(agreed)} within a year.` };
+  }
+  const at = addDays(last.on, daysAway);
   return {
     ...base, kind: 'climbing', at, runNo, learning: Math.pow(2, b),
     fit: (n: number) => 1 / Math.exp(a + b * Math.log(n)),

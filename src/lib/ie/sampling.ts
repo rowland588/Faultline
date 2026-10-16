@@ -44,8 +44,15 @@ export interface Share {
   margin: number;
 }
 
-/** The margin a share carries from n taps. */
-export const marginOf = (p: number, n: number, z = Z95): number => (n > 0 ? z * Math.sqrt((p * (1 - p)) / n) : 0);
+/** The margin a share carries from n taps — Wilson's half-width: the same
+ *  as the ILO's z √(p(1 − p) ÷ n) at middling shares, and never ±0 when
+ *  every tap was the one thing ("working 100% (±0)" from 30 taps — Wilson
+ *  says 94 ± 6; docs/UPGRADE-AUDIT.md M15). */
+export const marginOf = (p: number, n: number, z = Z95): number => {
+  if (!(n > 0)) return 0;
+  const z2 = (z * z) / n;
+  return (z * Math.sqrt((p * (1 - p)) / n + z2 / (4 * n))) / (1 + z2);
+};
 
 /** Taps needed for a share near p to be known within ±E (fractions). */
 export const tapsNeeded = (p: number, marginFrac: number, z = Z95): number => Math.ceil((z * z * p * (1 - p)) / (marginFrac * marginFrac));
@@ -71,11 +78,20 @@ export function shares(taps: Tap[], activities: readonly string[] = DEFAULT_ACTI
   return out;
 }
 
+/** The taps a share near p needs to be within ±E as the margin is counted:
+ *  the ILO's plan (`tapsNeeded`) — never fewer — and, at the ends where that
+ *  plan says none (a share of 0 or 1), as many as bring Wilson's width in. */
+export function tapsFor(p: number, marginFrac: number, z = Z95): number {
+  let n = Math.max(1, tapsNeeded(p, marginFrac, z));
+  while (marginOf(p, n, z) > marginFrac + 1e-12 && n < 1_000_000) n++;
+  return n;
+}
+
 /** How many more taps the biggest share needs to be within the margin wanted. */
 export function moreNeeded(list: Share[], n: number, marginPts = 5): number {
   const big = list.reduce<Share | undefined>((m, s) => (m && m.share >= s.share ? m : s), undefined);
   if (!big || !n) return 0;
-  return Math.max(0, tapsNeeded(big.share, marginPts / 100) - n);
+  return Math.max(0, tapsFor(big.share, marginPts / 100) - n);
 }
 
 /** `count` random instants inside the window, sorted — drawn once, kept on

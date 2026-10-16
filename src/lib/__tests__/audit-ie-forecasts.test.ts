@@ -2,7 +2,7 @@
  * unit curve fitted by least squares), lib/pace (the burn-down), lib/run
  * (net rate and the three rules), lib/cost (£/h), lib/hoursLost. */
 import { describe, it, expect } from 'vitest';
-import { climbOf, CLIMB_MIN_RUNS } from '../rampUp';
+import { climbOf, CLIMB_MIN_RUNS, CLIMB_HORIZON_DAYS } from '../rampUp';
 import { paceOf, PACE_MIN_DONE, PACE_WINDOW } from '../pace';
 import { readRun, runLine, num, pct } from '../run';
 import { labourPerHour, labourPerMs, burdenOf, fmtGBP } from '../cost';
@@ -30,12 +30,15 @@ describe('AUDIT rampUp — Crawford’s unit curve', () => {
       const nets = Array.from({ length: n }, (_, i) => 1 / (t1 * (i + 1) ** b));
       const agreed = nets[n - 1]! * (1.05 + r());
       const c = climbOf(pts(nets.map((v, i) => [addDays('2026-10-01', i * 2), v])), agreed, { product: 'P' });
-      expect(c.kind).toBe('climbing');
-      expect(c.learning).toBeCloseTo(rate, 9);
       const { a, b: bb } = refFit(nets);
       expect(bb).toBeCloseTo(b, 9);
       const nStar = Math.exp((Math.log(1 / agreed) - a) / bb);
-      expect(c.runNo).toBe(Math.max(n + 1, Math.ceil(nStar - 1e-9)));
+      const runNo = Math.max(n + 1, Math.ceil(nStar - 1e-9));
+      /* a forecast more than a year out is said as not within reach, never as a date (UPGRADE-AUDIT M11) */
+      if ((runNo - n) * 2 > CLIMB_HORIZON_DAYS) { expect(c.kind).toBe('flat'); expect(c.text).toMatch(/does not reach .* within a year/); continue; }
+      expect(c.kind).toBe('climbing');
+      expect(c.learning).toBeCloseTo(rate, 9);
+      expect(c.runNo).toBe(runNo);
       expect(c.fit!(n)).toBeCloseTo(nets[n - 1]!, 6);
       /* the date: the runs' own cadence (2 days) from the last run */
       expect(c.at).toBe(addDays(addDays('2026-10-01', (n - 1) * 2), Math.ceil((c.runNo! - n) * 2)));
@@ -47,17 +50,21 @@ describe('AUDIT rampUp — Crawford’s unit curve', () => {
     expect(climbOf(pts([['2026-10-01', 121]]), 120, { product: 'P' }).kind).toBe('meets');
     expect(climbOf(pts([['2026-10-01', 100], ['2026-10-02', 100], ['2026-10-03', 100]]), 120, { product: 'P' }).kind).toBe('flat');
   });
-  it('FINDING (bug): a barely-rising climb (100 → 100.1 → 100.2) forecasts run 3.5e44 and the date overflows to "NaN-NaN-NaN" in the sentence', () => {
+  it('FIXED (UPGRADE-AUDIT M11): a barely-rising climb (100 → 100.1 → 100.2) used to forecast run 3.5e44 and print "NaN-NaN-NaN" — it is said as not within reach', () => {
     const c = climbOf(pts([['2026-10-01', 100], ['2026-10-02', 100.1], ['2026-10-03', 100.2]]), 120, { product: 'P' });
-    expect(c.kind).toBe('climbing');
-    expect(c.runNo!).toBeGreaterThan(1e40);
-    expect(c.at).toBe('NaN-NaN-NaN');
-    expect(c.text).toMatch(/about NaN-NaN-NaN \(run 3\.5\d+e\+44\)/);
-    expect(Number.isNaN(daysBetween('2026-10-03', c.at!))).toBe(true);
-    /* a merely slow climb (b small but sane) still lands years out, said "about" */
+    expect(c.kind).toBe('flat');
+    expect(c.at).toBeUndefined();
+    expect(c.text).toBe('P: 100 → 100.1 → 100.2 a minute over 3 runs — climbing too slowly: at this climb it does not reach 120 within a year.');
+    expect(c.text).not.toMatch(/NaN|e\+/);
+    /* a merely slow climb that lands years out is said the same way, never as a date */
     const slow = climbOf(pts([['2026-10-01', 100], ['2026-10-02', 101], ['2026-10-03', 102]]), 120, { product: 'P' });
-    expect(slow.runNo!).toBeGreaterThan(1000);
-    expect(slow.at).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(slow.kind).toBe('flat');
+    expect(slow.at).toBeUndefined();
+    /* one that lands inside the year keeps its date and run */
+    const soon = climbOf(pts([['2026-10-01', 100], ['2026-10-02', 108], ['2026-10-03', 113]]), 120, { product: 'P' });
+    expect(soon.kind).toBe('climbing');
+    expect(soon.at).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(daysBetween('2026-10-03', soon.at!)).toBeLessThanOrEqual(CLIMB_HORIZON_DAYS);
   });
 });
 
@@ -105,15 +112,17 @@ describe('AUDIT run — net rate and the three rules', () => {
     /* exactly on the agreed numbers is met */
     expect(readRun({ run: { minutes: 60, packs: 3600, rejects: 36 }, runAgreed: { rate: 59.4, minutes: 60, rejectsMax: 1 } }).meets).toBe(true);
   });
-  it('FINDING (display): net 59.96 against 60 reads "Netted 60 ppm against 60 agreed — 0 ppm short" and is red', () => {
+  it('FIXED (UPGRADE-AUDIT M12): net 59.96 against 60 used to read "Netted 60 ppm against 60 agreed — 0 ppm short" in red — a miss the rounding hides is said to one more place', () => {
     const t = { run: { minutes: 50, packs: 2998, rejects: 0 }, runAgreed: { rate: 60 } };
     const x = readRun(t);
     expect(x.net).toBeCloseTo(59.96, 9);
     expect(x.meets).toBe(false);
-    expect(runLine(t)).toBe('Netted 60 ppm against 60 agreed — 0 ppm short · 0 rejects (0%) · 50 min');
-    /* rejects: 1.004% against 1% — "1% at most", got "1%", "0% over" */
+    expect(runLine(t)).toBe('Netted 59.96 ppm against 60 agreed — 0.04 ppm short · 0 rejects (0%) · 50 min');
+    /* rejects: 1.01% against 1% — "1% at most", got "1.01%", "0.01% over" */
     const y = readRun({ run: { minutes: 60, packs: 10_000, rejects: 101 }, runAgreed: { rate: 100, rejectsMax: 1 } });
-    expect(y.checks.find(c => c.what === 'rejects')).toMatchObject({ got: '1%', agreed: '1% at most', ok: false, gap: '0.01% over' });
+    expect(y.checks.find(c => c.what === 'rejects')).toMatchObject({ got: '1.01%', agreed: '1% at most', ok: false, gap: '0.01% over' });
+    /* a clear miss keeps the usual one place */
+    expect(runLine({ run: { minutes: 50, packs: 2900, rejects: 0 }, runAgreed: { rate: 60 } })).toBe('Netted 58 ppm against 60 agreed — 2 ppm short · 0 rejects (0%) · 50 min');
     expect([num(59.96), num(0.04), pct(0.004), pct(1.004)]).toEqual(['60', '0', '0%', '1%']);
   });
 });

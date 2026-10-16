@@ -59,8 +59,11 @@ export function askLine(q: string, f: LineFacts): Answer {
   if (/\b(biggest|largest|worst|top|main)\b.*\b(loss|losses|problem|stop|stops|issue)\b/.test(s) || /\bwhere\b.*\btime go/.test(s)) {
     const b = f.fall.bands[0];
     if (!b) return { matched: true, text: `${f.line} has no counted shifts in the last weeks — count one to see where its time goes.`, used: [] };
+    /* the pounds in their two parts, never added into one figure (lib/cost:
+       idle labour is money spent, lost contribution is money not made) */
+    const money = [b.labour ? `£${fmt(b.labour, 0)} idle labour` : '', b.contribution ? `£${fmt(b.contribution, 0)} lost contribution` : ''].filter(Boolean);
     return { matched: true, used: [f.fall.says, ...(b.says ? [b.says] : [])],
-      text: `${b.label}${b.asset ? ` on the ${b.asset}` : ''}: ${fmt(b.min, 0)} min over ${f.fall.shifts} counted shift${f.fall.shifts === 1 ? '' : 's'}${(b.labour ?? 0) + (b.contribution ?? 0) > 0 ? `, £${fmt((b.labour ?? 0) + (b.contribution ?? 0), 0)}` : ''}. ${b.onConstraint === false ? `But it is not the constraint — fixing it makes no more. The prize is at the ${f.constraint?.name}.` : b.onConstraint ? 'It is on the constraint: every minute back is output.' : ''}`.trim() };
+      text: `${b.label}${b.asset ? ` on the ${b.asset}` : ''}: ${fmt(b.min, 0)} min over ${f.fall.shifts} counted shift${f.fall.shifts === 1 ? '' : 's'}${money.length ? `, ${money.join(' · ')}` : ''}. ${b.onConstraint === false ? `But it is not the constraint — fixing it makes no more. The prize is at the ${f.constraint?.name}.` : b.onConstraint ? 'It is on the constraint: every minute back is output.' : ''}`.trim() };
   }
   /* WHAT CHANGED */
   if (/\b(changed|different|new|worse|better|this week)\b/.test(s)) {

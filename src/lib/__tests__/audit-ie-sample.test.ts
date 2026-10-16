@@ -100,7 +100,7 @@ describe('AUDIT sample — monotone and edge behaviour', () => {
     expect(capabilityWords(fj, LIM)?.tone).toBe('a');
     expect(capabilityWords(fj, LIM)?.text).toMatch(/^Just capable/);
   });
-  it('FINDING: a two-tailed share is said as one side — "about N in 100 would be light" when half of them would be heavy', () => {
+  it('FIXED (UPGRADE-AUDIT M2): a two-tailed share used to be said as one side — it now says "light or heavy" when both tails carry it', () => {
     /* centred at 402, 401 and 403 alternating: s 1.02, each limit 1.97 s away → 2.5% low AND 2.5% high = 4.9%;
        the zigzag keeps the moving range wide, so no drift clause joins the sentence */
     const xs = Array.from({ length: 30 }, (_, i) => (i % 2 ? 403 : 401));
@@ -109,18 +109,23 @@ describe('AUDIT sample — monotone and edge behaviour', () => {
     expect(drifts(f)).toBe(false);
     expect(f.shareOut).toBeCloseTo(2 * normalUpperTail(2 / (f.sd ?? 1)), 4);
     const w = capabilityWords(f, LIM)!;
-    /* the sentence attributes the WHOLE two-tailed share to one side */
-    expect(w.text).toMatch(/about \d+ in 100 would be (light|heavy)\.$/);
+    /* the whole share, said on both sides */
+    expect(w.text).toMatch(/about \d+ in 100 would be light or heavy\.$/);
     const said = Number(/about (\d+) in 100/.exec(w.text)![1]);
-    expect(said).toBe(Math.round(f.shareOut! * 100));            // the total, not the near side
-    expect(said).toBeGreaterThan(Math.round(normalUpperTail(2 / (f.sd ?? 1)) * 100)); // more than one side holds
+    expect(said).toBe(Math.round(f.shareOut! * 100));
+    expect(f.shareLow).toBeCloseTo(f.shareHigh!, 6);
+    /* off to one side — mean 400.6 against 400–404 — the far tail is nothing and the words name the one side */
+    const low = sample(LIM, rs(Array.from({ length: 30 }, (_, i) => (i % 2 ? 401 : 400.2))));   // alternating, so no drift clause joins the sentence
+    expect(capabilityWords(low, LIM)!.text).toMatch(/would be light\.$/);
   });
-  it('FINDING: thirty identical readings (a coarse instrument) → s = 0 → no Ppk and NO capability sentence at all', () => {
+  it('FIXED (UPGRADE-AUDIT M13): thirty identical readings (a coarse instrument) → s = 0 → no Ppk — said, not silent', () => {
     const f = sample(LIM, rs(Array.from({ length: 30 }, () => 401)));
     expect(f.sd).toBe(0);
     expect(f.ppk).toBeUndefined();
-    expect(capabilityWords(f, LIM)).toBeUndefined();
-    expect(sampleSays(f, LIM).capability).toBeUndefined();
+    expect(capabilityWords(f, LIM)).toEqual({ text: 'Every reading the same — spread 0 from 30; capability cannot be worked out (is the instrument reading finely enough?).', tone: 'n' });
+    expect(sampleSays(f, LIM).capability?.text).toMatch(/^Every reading the same/);
+    /* under 25 it is still too few, whatever the spread */
+    expect(capabilityWords(sample(LIM, rs(Array.from({ length: 12 }, () => 401))), LIM)).toBeUndefined();
   });
   it('FINDING: an agreed count of 0 (limits agreed, count never set) reads "12 of 0 in"', () => {
     const a: AgreedReadings = { kind: 'limits', unit: 'g', lower: 400, upper: 404, count: 0 };

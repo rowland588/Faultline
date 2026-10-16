@@ -97,7 +97,7 @@ describe('AUDIT changeover — EPEI (worked example 1)', () => {
 describe('AUDIT changeover — random sequences: the grid’s invariants', () => {
   const r = rng(42);
   const KIND: (ChangeoverStep['plan'] | undefined)[] = [undefined, { kind: 'keep' }, { kind: 'convert', how: 'prepare' }, { kind: 'convert', how: 'jig', targetSec: 0 }, { kind: 'streamline', how: 'clamps' }, { kind: 'eliminate' }];
-  let grew: { rung: Rung; from: number; to: number; plan: string }[] = [];
+  const grew: { rung: Rung; from: number; to: number; plan: string }[] = [];
   for (let k = 0; k < 150; k++) {
     const n = 1 + Math.floor(r() * 10);
     const seq: ChangeoverStep[] = [];
@@ -126,18 +126,19 @@ describe('AUDIT changeover — random sequences: the grid’s invariants', () =>
       const l = ladderOf(seq);
       expect(l.separated.elapsedSec).toBeLessThanOrEqual(l.now.elapsedSec + 1e-9);
       if (l.converted.elapsedSec > l.separated.elapsedSec + 1e-9) grew.push({ rung: 'converted', from: l.separated.elapsedSec, to: l.converted.elapsedSec, plan: 'convert with targetSec > sec' });
-      if (l.streamlined.elapsedSec > l.converted.elapsedSec + 1e-9) grew.push({ rung: 'streamlined', from: l.converted.elapsedSec, to: l.streamlined.elapsedSec, plan: 'streamline with targetSec > sec' });
+      /* a streamline plan that moves an element ALONGSIDE a shorter one can lengthen the stop — that is the plan's
+         own doing, read back honestly; a target can no longer (UPGRADE-AUDIT M14) */
+      if (l.streamlined.elapsedSec > l.converted.elapsedSec + 1e-9 && !seq.some(s => s.plan?.kind === 'streamline' && s.plan.alongside)) grew.push({ rung: 'streamlined', from: l.converted.elapsedSec, to: l.streamlined.elapsedSec, plan: 'streamline with targetSec > sec' });
       expect(changeoverFigures(seq).nowSec).toBeCloseTo(l.now.elapsedSec, 9);
     });
   }
-  it('FINDING: a plan whose target is longer than the element makes the ladder climb — no clamp on targetSec', () => {
+  it('FIXED (UPGRADE-AUDIT M14): a plan whose target is longer than the element used to make the ladder climb — a target past the time counts as the time', () => {
     const seq = [el('A', 1, 10, 'internal', { plan: { kind: 'streamline', how: 'clamps', targetSec: 20 * 60 } }), el('B', 2, 6, 'internal', { plan: { kind: 'convert', how: 'prepare', targetSec: 9 * 60 } })];
     const l = ladderOf(seq);
     expect(l.separated.elapsedSec / 60).toBe(16);
-    expect(l.converted.elapsedSec / 60).toBe(19);      // 10 + 9: converting B "leaves 9 inside" though it took 6
-    expect(l.streamlined.elapsedSec / 60).toBe(29);    // A streamlined to 20
-    expect(grew.length).toBeGreaterThan(0);
-    grew = [];
+    expect(l.converted.elapsedSec / 60).toBe(16);      // converting B cannot leave more than its 6 inside
+    expect(l.streamlined.elapsedSec / 60).toBe(16);    // A cannot be streamlined UP to 20
+    expect(grew).toEqual([]);
   });
   it('the agreed standard stores the separated minutes to a tenth — a derived figure rounded on the record', () => {
     const s = standardFrom([el('A', 1, 10.04, 'internal'), el('E', 2, 3, 'external')], { id: 'x', at: 1, studyId: 'st' });
