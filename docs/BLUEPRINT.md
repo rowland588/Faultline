@@ -154,6 +154,16 @@ the lines they are on.
 | Study | its tools, each saying what its latest found (the sentence its own list says) | — | evidence and proof | study's own page; job reports |
 | Job | jobs on it, each with its verdict and its late (the control room's own, `lib/useJobInputs`) | jobs board | — | control room report |
 | Line | — | your factory | lines it is on | factory report; line report |
+| Stop (timed) | Stops timed — the last four weeks, the machine that cost most, the door to the Pareto | "N stops timed" on the line's card | the 6M fishbone's Machine bone from the Pareto; the loss count's stops in its window | the 6M report's evidence; the shift's loss paper |
+| Stage / test | its programs, proved by a test's day | the job's square (late in red), Needs you | Install grid and its phone cards, Commission's board, the machine drawer, the front page's Needs you, Today's update | full report, one-page status, commissioning report and test cards, handover |
+| Fix / action (countermeasure) | On the projects, under the register | Who owes what, This week (`lib/lineWork`) | Fixes, the stage drawer (a branch off its stage), the 6M board, Needs you | client report, 6M report, Problems report, handover |
+| Material | — | — | Materials (the weeks grid), Needs you (late in red), Today's update | Materials PDF; full report |
+| Note | — | — | where it was written (a stage, a program, a fix); Today's update; a reminder pushed to every device that said yes | the programs report's commentary; the full report's stage lines |
+| Reading (measure) | what the line can make beside its target | "N of M lines at target", with the count | the 6M proof on the same number, before → after; the status page | 6M report; the client report's before → after |
+| 6M case (the problem) | the 6M job's card says it | the job's verdict | the head of the fish | 6M report, its status page first |
+| Win | — | — | the job's front page, Today's update, the meeting | client report; 6M report |
+| Walk (filmed, frames) | its tools | — | a marked frame on a problem; the standard's picture; a cause known by *observed* | the problem's card (the frame); the 6M report's evidence |
+| Tree node (lever tree) | — | the job's verdict | the tree | the client report for a lever-tree job |
 
 A screen that shows a record outside this table must add a row here.
 

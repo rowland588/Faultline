@@ -11,3 +11,5 @@ built without a decision (docs/upgrade-plan.md, the lean guardrails).
 - A walk's end: "rank what I saw" — the stops and problems of the last hour on one card, in minutes and £, before the walker leaves the floor (docs/UPGRADE-AUDIT.md §7).
 - The stopwatch on a watch face (one-tap start and stop) — a different device, not this app's problem yet.
 - A line's crew and cost asked the first time a £ is wanted, on the spot, not under Set up.
+- The job's line page folded by lens on a phone — each lens its own section first, the others behind their heading with a count (docs/UPGRADE-AUDIT.md D2).
+- The audit's open rows, decided and not built this round, are in docs/UPGRADE-AUDIT.md §6: C2 with C6, C4, C5, C12, S6.
