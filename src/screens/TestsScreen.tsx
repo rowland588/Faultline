@@ -30,6 +30,7 @@ import { AccessNote } from '../ui/AccessNote';
 import { useAccess } from '../cloud/access';
 import { useJobPrograms } from '../lib/useJobPrograms';
 import { boardPrograms as boardProgramsOf } from '../lib/commissionPrograms';
+import { PlanTabs } from '../ui/PlanTabs';
 
 const nice = (iso?: string): string => niceDay(iso) || '—';
 
@@ -109,6 +110,7 @@ export function TestsScreen({ projectId }: { projectId: string }) {
 
   return (
     <div className="wrap pace cm-screen">
+      <PlanTabs projectId={projectId} on={'testing'} />
       <header className="pace-head">
         <div className="pace-head-main">
           {/* COMMISSION — the gate where each machine is proved against what

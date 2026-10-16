@@ -46,7 +46,7 @@ import { programsReading, type ProgBucket, type ProgramLine } from '../lib/progr
 import { niceDay, todayISO } from '../lib/weeks';
 import { pdfFileName } from '../lib/fileName';
 import { openRecord, openRecordAt } from '../ui/RecordDrawer';
-import { MachineName } from '../ui/MachinePanel';
+import { MachineName, openMachine } from '../ui/MachinePanel';
 import { AccessNote } from '../ui/AccessNote';
 import { ProgramTest } from '../ui/ProgramTest';
 import { JobProgramRow, ProgramRowShell } from '../ui/ProgramRow';
@@ -71,7 +71,12 @@ const TILE_TONE: Record<Exclude<Filter, 'all'>, string> = { done: 'g', baseline:
 const isSaid = (f: Filter): f is Said => f === 'notTested' || f === 'noProgram';
 type LineRow = PickRow & { line: string; lineId: string };
 
-export function ProgramsPage({ projectId }: { projectId: string }) {
+export function ProgramsPage({ projectId, only }: {
+  projectId: string;
+  /** One machine's programs, on its own page (screens/MachineScreen): the
+   *  same rows and the same form, under "Its programs" — no page head. */
+  only?: string;
+}) {
   const tt = useTesting(projectId);
   const progs = usePrograms(projectId);
   const { project } = useProject(projectId);
@@ -119,7 +124,7 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
      on it — every machine shows, so a program can be added to one. */
   const machines = [...assets.map(a => ({ id: a.id, name: a.name })),
     ...(stages.some(s => !s.assetId) || lines.some(l => !l.assetId) || lineRows.some(r => !r.assetId) ? [{ id: '', name: 'The line' }] : [])];
-  const shownMachines = machines.filter(m => machineF === 'all' || m.id === machineF);
+  const shownMachines = only != null ? machines.filter(m => m.id === only) : machines.filter(m => machineF === 'all' || m.id === machineF);
   const machineOptions = [...assets.map(a => ({ value: a.id, label: a.name })), { value: '', label: 'The line itself' }];
   const keyOf = (l: ProgramLine) => l.partId ?? `p:${l.programId ?? l.what}`;
   const toggle = (k: string) => setOpenRow(openRow === k ? null : k);
@@ -143,6 +148,9 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
     } finally { setBusy(false); }
   };
 
+  if (only != null) {
+    return <div className="pp pp-one">{shownMachines.map(m => section(m))}</div>;
+  }
   return (
     <div className="wrap pace pp">
       <header className="pace-head">
@@ -183,7 +191,11 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
       </div>
       {can.edit && <PutAllOn state={progs} assets={assets} addAsset={name => tt.addAsset(name)} />}
 
-      {shownMachines.map(m => {
+      {shownMachines.map(m => section(m))}
+    </div>
+  );
+
+  function section(m: { id: string; name: string }) {
         const mine = lines.filter(l => (l.assetId ?? '') === m.id);
         const kept = mine.filter(keep);
         /* the lines' own on this machine — with every filter but the
@@ -196,7 +208,7 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
           <section key={m.id || 'line'} className="pp-m" aria-label={m.name}>
             <div className="pp-mh">
               {/* The machine's name opens the machine (docs/FLOW.md item 2). */}
-              <h2>{m.id ? <MachineName name={m.name} onOpen={() => openRecord(projectId, m.id)} /> : m.name}</h2>
+              <h2>{only != null ? 'Its programs' : m.id ? <MachineName name={m.name} onOpen={() => openMachine(projectId, m.id)} /> : m.name}</h2>
               <span className="sub">{n ? `${n} program${n === 1 ? '' : 's'} · ${done} done` : theirs.length ? `${theirs.length} of its line’s own` : 'No programs yet'}{bad ? <> · <b className="in-late">{bad} failed or late</b></> : null}</span>
             </div>
             {(kept.length > 0 || theirs.length > 0) && (
@@ -219,9 +231,7 @@ export function ProgramsPage({ projectId }: { projectId: string }) {
             {can.edit && filter === 'all' && <AddProgram machine={m} stages={stages} tt={tt} />}
           </section>
         );
-      })}
-    </div>
-  );
+  }
 }
 
 /** A LINE'S OWN PROGRAM on the job's machine of its name — the line's record,

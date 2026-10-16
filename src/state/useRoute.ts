@@ -9,7 +9,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'snags' | 'segment' | 'asset' | 'snaglist' | 'walk' | 'line'
   | 'trend' | 'history' | 'report' | 'case' | 'guide' | 'portfolio'
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
-  | 'testing' | 'test' | 'trialCard' | 'fixes' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'standard' | 'notes' | 'clientReport'
+  | 'testing' | 'test' | 'trialCard' | 'fixes' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'machine' | 'standard' | 'notes' | 'clientReport'
   | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools' | 'studies' | 'study' | 'lineHome' | 'factory' | 'linePrograms';
 
 export interface Route {
@@ -127,6 +127,8 @@ export function parseRoute(hash: string): Route {
     // What the job is waiting on — the films, the parts, the kit.
     if (segs[2] === 'materials') return { name: 'materials', id, query };
     if (segs[2] === 'programs') return { name: 'programs', id, query };
+    /* a machine of a stage-gate job, a page of its own (docs/STAGEGATE-UX.md slice 3) */
+    if (segs[2] === 'machine' && segs[3]) return { name: 'machine', id, lineId: decodeURIComponent(segs[3]), query };
     // The stage-gate client report.
     if (segs[2] === 'report') return { name: 'clientReport', id, query };
     // What to raise at the next meeting.

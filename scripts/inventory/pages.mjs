@@ -31,6 +31,13 @@ export const PAGES = (sd, cap) => [
   { name: 'Problems', path: '#/snags', must: [{ what: 'the register, a line at a time', sel: '.qsl-rows' }] },
   { name: 'A stage-gate job — its front page', path: `#/project/${sd.projectId}`, must: [
     { what: 'the verdict', sel: '.vd' }, { what: 'Needs you', sel: 'h2, h3', text: /Needs you/ }, { what: 'where each machine is', sel: '.fp-grid' },
+    /* the job's places, its machines each a page (16 October, docs/STAGEGATE-UX.md) */
+    { what: 'its machines in the rail, each a page', sel: '.nv-rail .nv-grp-l', text: /^Machines$/i, desk: true },
+  ] },
+  { name: 'A machine — its own page', path: `#/project/${sd.projectId}/machine/${sd.machineId}`, must: [
+    { what: 'its four gates in a row', sel: '.mpg-steps .mpg-step', n: 4 },
+    { what: 'its stages and tests, gate by gate', sel: '.mpg-main .mp-gate' },
+    { what: 'its programs', sel: '.mpg-side .pp-m' },
   ] },
   /* one row a program, its test on the row, one form (16 October: "too many views and doors") */
   { name: 'Programs — a stage-gate job', path: `#/project/${sd.projectId}/programs`, must: [
@@ -41,10 +48,12 @@ export const PAGES = (sd, cap) => [
     { what: 'a program added to a machine', sel: '.pgr-add-open' },
   ] },
   { name: 'Commission', path: `#/project/${sd.projectId}/testing`, must: [
+    /* the four gates and the timeline are one Plan, its tabs (16 October, docs/STAGEGATE-UX.md) */
+    { what: 'the plan’s tabs, Commission on', sel: '.plt .plt-t.on', text: /^Commission/ },
     { what: 'Needs you', sel: '.nd-list' }, { what: 'the board, machine by machine', sel: '.ig-grid', desk: true },
     { what: 'the board as a card a machine', sel: '.igm-card', phone: true },
   ] },
-  { name: 'The plan', path: `#/project/${sd.projectId}/plan`, must: [{ what: 'the Gantt', sel: '.gt-body' }] },
+  { name: 'The plan', path: `#/project/${sd.projectId}/plan`, must: [{ what: 'the Gantt', sel: '.gt-body' }, { what: 'the plan’s tabs, Timeline on', sel: '.plt .plt-t.on', text: /^Timeline/ }] },
   { name: 'A 6M job — its front page', path: `#/project/${sd.pacedProjectId}`, must: [
     { what: 'the verdict', sel: '.vd' }, { what: 'the fishbone, drawn', sel: 'svg.fb-svg' },
   ] },

@@ -18,7 +18,7 @@
  *
  * Every URL is unchanged. The frame reads the route; it never owns one.
  */
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Route } from '../state/useRoute';
 import { nav, useHash } from '../state/useRoute';
 import type { Project, Workspace } from '../types';
@@ -30,7 +30,11 @@ import { useWsChain } from '../lib/useTrail';
 import { planModel, type PlanModel } from '../lib/planModel';
 import { getStandard, getWorkspace, listTestItems, listTests, listWorkspaces, onDataChange } from '../db';
 import { liveProductionLines } from '../lib/lines';
-import { gateOf } from '../lib/testing';
+import { gateOf, live } from '../lib/testing';
+import { useTesting } from '../lib/useTesting';
+import { usePrograms } from '../lib/usePrograms';
+import { machineRecord } from '../lib/machineRecord';
+import { todayISO } from '../lib/weeks';
 import { LogoMark } from './Logo';
 import { Icon } from './Icon';
 import { AccountMenu } from './AccountMenu';
@@ -42,8 +46,8 @@ import { useJobStands } from './railJobs';
 import { QuickSnagButton, QuickSnagHost } from '../snag/QuickSnag';
 import { useFactoryLines } from '../lib/useFactoryLines';
 import {
-  controlRoom, snagsPlace, toolsGroup, jobLine, gatesGroup, methodGroup, workGroup, linesGroup, footGroup, studyLines, phoneBar, hereOf,
-  type RailGroup, type RailLine, type RailLineOf,
+  controlRoom, snagsPlace, toolsGroup, jobLine, gatesGroup, machinesGroup, methodGroup, workGroup, linesGroup, footGroup, studyLines, phoneBar, hereOf,
+  type RailGroup, type RailLine, type RailLineOf, type RailMachine, type SquareState,
 } from './rail';
 
 /** Which job a route is under. Every `/project/:id/…` route carries the job
@@ -228,12 +232,13 @@ interface NavProps {
 
 function GateNav(p: NavProps) {
   const stand = useStanding(p.project.id);
+  const machines = useRailMachines(p.project.id);
   const lines = linesGroup(p.project.id, p.lines, p.here, p.wsId);
   const groups: RailGroup[] = [
     { lines: [controlRoom(p.here), snagsPlace(p.here), jobLine(p.project.id, p.project.name, p.here, stand.standing.late,
       (['install', 'setup', 'handover'] as const).reduce((n, k) => n + (stand.counts[k]?.problem ?? 0), 0))] },
     gatesGroup(p.project.id, p.here, stand.counts),
-    workGroup(p.project.id, p.model, p.here, stand.counts),
+    ...(machines.length ? [machinesGroup(p.project.id, p.here, machines)] : []),
     footGroup(p.project.id, p.here, p.notes),
     /* The lines a stage-gate job is on go under paper, above the tools, so
        they no longer push the job down (docs/FLOW.md item 3) — named Lines,
@@ -245,6 +250,25 @@ function GateNav(p: NavProps) {
   return <NavChrome groups={withJobStudy(groups, p.wsId, p.lines, p.here)} project={p.project} model={p.model} />;
 }
 
+/** A stage-gate job's machines for the rail, each with its square — read by
+ *  lib/machineRecord, the reading the machine's own page makes. */
+function useRailMachines(projectId: string): RailMachine[] {
+  const tt = useTesting(projectId);
+  const progs = usePrograms(projectId);
+  return useMemo(() => {
+    if (tt.loading || progs.loading) return [];
+    const today = todayISO();
+    return live(tt.assets).sort((a, b) => a.sort - b.sort).map(a => {
+      const m = machineRecord(a, { tests: tt.tests, items: tt.items, programs: progs.programs, today });
+      const late = m.gates.reduce((n, g) => n + g.lines.filter(l => l.tone === 'late' || l.tone === 'failed').length, 0) + (m.arrivalLate ? 1 : 0);
+      const state: SquareState = late > 0 ? 'r' : m.gates.some(g => g.tone === 'problem') ? 'a'
+        : m.at.startsWith('Handed over') ? 'g' : m.gates.some(g => g.tone === 'going' || g.tone === 'done') ? 'w' : 'n';
+      const open = m.gates.reduce((n, g) => n + g.lines.filter(l => l.tone !== 'done').length, 0);
+      return { id: a.id, name: a.name, state, ...(open ? { open } : {}), ...(late ? { late } : {}) };
+    });
+  }, [tt.loading, progs.loading, tt.assets, tt.tests, tt.items, progs.programs]);
+}
+
 function MethodNav(p: NavProps & { method: 'board' | 'tree' }) {
   const counts = useMethodCounts(p.project.id);
   const groups: RailGroup[] = [
@@ -253,7 +277,7 @@ function MethodNav(p: NavProps & { method: 'board' | 'tree' }) {
     { lines: [controlRoom(p.here), snagsPlace(p.here), jobLine(p.project.id, p.project.name, p.here, (counts.board?.late ?? 0) + (counts.materials?.late ?? 0))] },
     methodGroup(p.project.id, p.method, p.here, counts,
       { pareto: !!p.project.pareto, tree: p.method !== 'tree' && !!p.project.leverTree }),
-    workGroup(p.project.id, p.model, p.here, counts),
+    workGroup(p.project.id, p.here, counts),
     /* A running line's lines are what the job is about, so they stay with
        the work; only the tools go to the foot. */
     linesGroup(p.project.id, p.lines, p.here, p.wsId),

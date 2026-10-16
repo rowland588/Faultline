@@ -570,14 +570,18 @@ await page.setViewportSize({ width: 1360, height: 900 });
   const blank = await f07.getByRole('button', { name: 'Save', exact: true }).isDisabled();
   await f07.getByRole('button', { name: 'Passed', exact: true }).click();
   await f07.locator('textarea').fill('Ran 2 kg potatoes for an hour at 40 a minute, no rejects');
-  await f07.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(1500);
-  const j07 = await page.evaluate(async pid => {
+  await f07.getByRole('button', { name: 'Save', exact: true }).click();
+  /* the test, the proof and the stage's line are three writes: read once all have landed (a loaded gate is slow) */
+  const read07 = () => page.evaluate(async pid => {
     const db = await import('/src/db.ts');
     const p = (await db.listPrograms(pid)).find(x => x.what === 'PR-07 Baking Potatoes 2 kg');
     const t = (await db.listTests(pid)).find(x => x.programId === p.id && !x.deletedAt);
     const part = (await db.listTestItems(pid)).find(i => !i.deletedAt && i.kind === 'next' && i.what === 'PR-07 Baking Potatoes 2 kg');
     return { p, t, part };
   }, sd.projectId);
+  let j07 = await read07();
+  for (let i = 0; i < 16 && !(j07.p.state === 'proved' && j07.t?.outcome === 'passed' && j07.part?.results?.length); i++) { await page.waitForTimeout(500); j07 = await read07(); }
+  await page.waitForTimeout(600);
   ok(blank && j07.p.state === 'proved' && j07.t?.outcome === 'passed' && j07.t?.result === 'Ran 2 kg potatoes for an hour at 40 a minute, no rejects'
     && j07.part?.results?.at(-1)?.is === 'passed' && /proved/.test(flat(await r07.locator('.pgr-top').innerText())),
     '13f the job\'s program on its list only: Passed with what was seen proves it — its test behind it, its line on the stage, "proved" on its row');

@@ -28,6 +28,11 @@ type TT = ReturnType<typeof useTesting>;
 /** A MACHINE'S NAME AS A DOOR TO IT — drawn as the name, and heard as what
  *  it does ("Case packer — everything on this machine"), so a screen reader
  *  tells it from a chip that picks the machine (docs/FLOW.md item 2). */
+/** A MACHINE IS A PAGE (docs/STAGEGATE-UX.md slice 3): its name, wherever it
+ *  shows, opens the machine's own page — its gates, its programs, its
+ *  problems — not a drawer over the page it was named on. */
+export const openMachine = (projectId: string, assetId: string): void => nav(`/project/${projectId}/machine/${encodeURIComponent(assetId)}`);
+
 export function MachineName({ name, onOpen }: { name: string; onOpen: () => void }) {
   return <button type="button" className="mp-name" aria-label={`${name} — everything on this machine`} onClick={onOpen}>{name}</button>;
 }
@@ -51,9 +56,12 @@ function Line({ l, onOpen, tag }: { l: MachineLine; onOpen: (id: string) => void
   );
 }
 
-export function MachinePanel({ asset, projectId, tt, programs, can, onOpen, onClose }: {
+export function MachinePanel({ asset, projectId, tt, programs, can, onOpen, onClose, page = false }: {
   asset: Asset; projectId: string; tt: TT; programs: Program[]; can: Can;
   onOpen: (id: string) => void; onClose: () => void;
+  /** On the machine's own page (screens/MachineScreen): its name and state
+   *  are the page's heading, and its programs are listed there in full. */
+  page?: boolean;
 }) {
   const today = todayISO();
   const m = machineRecord(asset, { tests: tt.tests, items: tt.items, programs, today });
@@ -62,10 +70,12 @@ export function MachinePanel({ asset, projectId, tt, programs, can, onOpen, onCl
   const climbs = climbsOf({ tests: tt.tests, assets: [asset] }).filter(c => c.machineId === asset.id);
   return (
     <>
-      <span className="rd-state-row">
-        <span className={'rd-state is-' + (m.at.startsWith('Handed over') ? 'g' : m.arrivalLate ? 'r' : 'w')}>{m.at}</span>
-      </span>
-      <h2 className="rd-title">{m.name}</h2>
+      {!page && <>
+        <span className="rd-state-row">
+          <span className={'rd-state is-' + (m.at.startsWith('Handed over') ? 'g' : m.arrivalLate ? 'r' : 'w')}>{m.at}</span>
+        </span>
+        <h2 className="rd-title">{m.name}</h2>
+      </>}
       <dl className="rd-facts">
         <div><dt>What</dt><dd>Machine{m.oem ? ` · ${m.oem}` : ''}</dd></div>
         <div><dt>On site</dt><dd className={m.arrivalLate ? 'in-late' : undefined}>{m.arrival}</dd></div>
@@ -84,7 +94,7 @@ export function MachinePanel({ asset, projectId, tt, programs, can, onOpen, onCl
             <span className="sub">{g.says}</span>
           </h3>
           {g.lines.length > 0 && <ul className="mp-lines">{g.lines.map(l => <Line key={l.id} l={l} onOpen={onOpen} />)}</ul>}
-          {g.gate === 'setup' && m.programs && (
+          {g.gate === 'setup' && m.programs && !page && (
             <button type="button" className="rd-link mp-progs" onClick={() => go('programs')}>{m.programs} — the Programs page ›</button>
           )}
           {/* THE CLIMB TO RATE (lib/rampUp) — each product's runs on this

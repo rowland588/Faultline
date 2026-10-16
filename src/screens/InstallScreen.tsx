@@ -47,6 +47,7 @@ import { programsReading } from '../lib/programsReport';
 import { AddAsset } from './TestsScreen';
 import { useAccess } from '../cloud/access';
 import { AccessNote } from '../ui/AccessNote';
+import { PlanTabs } from '../ui/PlanTabs';
 
 /* THE GATES OF A STAGE-GATE JOB — Install, Set up and Hand over are one
    screen with three faces: machines down the side, that gate's stages across
@@ -162,6 +163,7 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
 
   return (
     <div className="wrap pace cm-screen">
+      <PlanTabs projectId={projectId} on={gate} />
       <header className="pace-head">
         <div className="pace-head-main">
           <h1 className="pace-title">{GATE_WORD[gate]}</h1>

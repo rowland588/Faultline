@@ -100,33 +100,33 @@ describe('the square beside a line says its state, and the count stays the work'
     expect(footGroup(P, 'job').lines.every(l => l.bare)).toBe(true);
     expect(methodGroup(P, 'board', 'job', {}).lines.find(l => l.key === 'lines')?.bare).toBe(true);
     /* A list keeps its square even when it is empty: grey is true of it. */
-    expect(workGroup(P, 'commissioning', 'job', {}).lines.find(l => l.key === 'fixes')?.bare).toBeFalsy();
+    expect(gatesGroup(P, 'job', {}).lines.find(l => l.key === 'fixes')?.bare).toBeFalsy();
   });
 });
 
-describe('the gates, in the order the job goes through them', () => {
+describe('a stage-gate job’s places — the four gates one Plan (docs/STAGEGATE-UX.md)', () => {
   const counts = {
     install: { n: 2, late: 1, done: 4 }, setup: { n: 1, late: 1, done: 2 }, programs: { n: 2, late: 0, done: 1 },
-    testing: { n: 2, late: 1, done: 0 }, handover: { n: 0, late: 0, done: 2 },
+    testing: { n: 2, late: 1, done: 0 }, handover: { n: 0, late: 0, done: 2 }, fixes: { n: 4, late: 0, done: 1 },
   };
   const g = gatesGroup(P, 'setup', counts);
 
-  it('reads Install · Set up · Programs · Commission · Hand over — programs between where they are loaded and where they are proved', () => {
-    expect(labels(g)).toEqual(['Install', 'Set up', 'Programs', 'Commission', 'Hand over']);
-    expect(g.lines.map(l => l.to)).toEqual([`/project/${P}/install`, `/project/${P}/set-up`, `/project/${P}/programs`, `/project/${P}/testing`, `/project/${P}/handover`]);
+  it('reads Plan · Programs · Problems · Materials · The day — the gates are the Plan’s tabs, not four lines', () => {
+    expect(labels(g)).toEqual(['Plan', 'Programs', 'Problems', 'Materials', 'The day']);
+    expect(g.lines.map(l => l.to)).toEqual([`/project/${P}/install`, `/project/${P}/programs`, `/project/${P}/fixes`, `/project/${P}/materials`, `/project/${P}/day`]);
   });
 
-  it('Set up counts its steps; Programs counts its own', () => {
-    const [, setup, programs] = g.lines;
-    expect(setup.on).toBe(true);
-    expect([setup.n, setup.late, setup.state]).toEqual([1, 1, 'r']);
+  it('Plan counts every gate’s open work and its late part, and is on whichever gate you are in', () => {
+    const [plan, programs, fixes] = g.lines;
+    expect([plan.on, plan.n, plan.late, plan.state]).toEqual([true, 5, 3, 'r']);
     expect([programs.on, programs.n, programs.late, programs.state]).toEqual([false, 2, undefined, 'w']);
+    expect(fixes).toMatchObject({ n: 4, state: 'w', on: false });
+    for (const here of ['install', 'testing', 'handover', 'plan']) expect(gatesGroup(P, here, counts).lines[0].on).toBe(true);
   });
 
-  it('a gate with nothing left and something done is green, with no count', () => {
-    const hand = g.lines[4];
-    expect(hand.state).toBe('g');
-    expect(hand.n).toBeUndefined();
+  it('Plan opens on the gate the job is at — the first with work open — else the timeline', () => {
+    expect(gatesGroup(P, 'job', { install: { n: 0, late: 0, done: 6 }, testing: { n: 3, late: 0 } }).lines[0].to).toBe(`/project/${P}/testing`);
+    expect(gatesGroup(P, 'job', { install: { n: 0, late: 0, done: 6 } }).lines[0].to).toBe(`/project/${P}/plan`);
   });
 });
 
@@ -152,16 +152,8 @@ describe('the method of a 6M or tree job', () => {
 });
 
 describe('work, lines and the foot', () => {
-  it('a stage-gate job’s work is Fixes · Materials · The plan · The day', () => {
-    const w = workGroup(P, 'commissioning', 'fixes', { fixes: { n: 4, late: 0, done: 1 } });
-    expect(labels(w)).toEqual(['Problems', 'Materials', 'The plan', 'The day']);
-    expect(w.lines[0]).toMatchObject({ n: 4, state: 'w', on: true });
-    // The plan is becoming its own page; the address is the one that page takes.
-    expect(w.lines[2].to).toBe(`/project/${P}/plan`);
-  });
-
   it('a 6M job keeps its materials under work', () => {
-    expect(labels(workGroup(P, 'board', 'job', {}))).toEqual(['Materials']);
+    expect(labels(workGroup(P, 'job', {}))).toEqual(['Materials']);
   });
 
   it('every line of the job, and the study’s four screens under the line it belongs to — once', () => {
@@ -206,27 +198,18 @@ describe('the phone’s five', () => {
   const gateRail = (at: string): RailGroup[] => [
     { lines: [controlRoom(at), jobLine(P, 'Line 2 commissioning', at)] },
     gatesGroup(P, at, { install: { n: 2, late: 1, done: 0 } }),
-    workGroup(P, 'commissioning', at, {}),
     footGroup(P, at),
     toolsGroup(at, linesGroup(P, [{ id: 'L7', name: 'Line 7', workspaceId: 'ws' }], at, 'ws').lines),
   ];
 
-  it('Control room · This job · the gate you are in · Fixes · More', () => {
-    expect(phoneBar(gateRail('setup'), 'commissioning').map(l => l.label)).toEqual(['Control room', 'This job', 'Set up', 'Problems', 'More']);
-    // On the job itself, the first gate holds the third place.
-    expect(phoneBar(gateRail('job'), 'commissioning').map(l => l.label)).toEqual(['Control room', 'This job', 'Install', 'Problems', 'More']);
+  it('Control room · This job · Plan · Problems · More — Plan on whichever gate you are in', () => {
+    expect(phoneBar(gateRail('setup'), 'commissioning').map(l => l.label)).toEqual(['Control room', 'This job', 'Plan', 'Problems', 'More']);
+    expect(phoneBar(gateRail('setup'), 'commissioning')[2].on).toBe(true);
+    expect(phoneBar(gateRail('job'), 'commissioning').map(l => l.label)).toEqual(['Control room', 'This job', 'Plan', 'Problems', 'More']);
   });
 
-  it('off the gates, the gate the job is at — the first with work open, else the last', () => {
-    const at = (counts: Parameters<typeof gatesGroup>[2]): string | undefined => phoneBar([
-      { lines: [controlRoom('job'), jobLine(P, 'Line 2', 'job')] },
-      gatesGroup(P, 'job', counts),
-      workGroup(P, 'commissioning', 'job', {}),
-    ], 'commissioning')[2]?.label;
-    expect(at({ install: { n: 0, late: 0, done: 6 }, setup: { n: 0, late: 0, done: 3 }, testing: { n: 12, late: 0 }, handover: { n: 4, late: 0 } })).toBe('Commission');
-    expect(at({ install: { n: 0, late: 0, done: 6 }, handover: { n: 0, late: 0, done: 4 } })).toBe('Hand over');
-    // On a gate, that gate — wherever the job is.
-    expect(phoneBar(gateRail('handover'), 'commissioning')[2].label).toBe('Hand over');
+  it('on Programs, Programs holds the third place', () => {
+    expect(phoneBar(gateRail('programs'), 'commissioning')[2].label).toBe('Programs');
   });
 
   it('carries the late count, so the bar can say it', () => {
@@ -238,8 +221,10 @@ describe('the phone’s five', () => {
   });
 
   it('More is on when the screen lives only in the sheet', () => {
-    const bar = phoneBar(gateRail('day'), 'commissioning');
+    const bar = phoneBar(gateRail('notes'), 'commissioning');
     expect(bar.find(l => l.on)?.key).toBe('more');
+    // a place of the job's work you are on holds the third place
+    expect(phoneBar(gateRail('day'), 'commissioning')[2].label).toBe('The day');
     expect(phoneBar(gateRail('fixes'), 'commissioning').find(l => l.on)?.key).toBe('fixes');
   });
 
@@ -247,7 +232,7 @@ describe('the phone’s five', () => {
     const rail: RailGroup[] = [
       { lines: [controlRoom('fishbone'), jobLine(P, 'Line 7 pace', 'fishbone')] },
       methodGroup(P, 'board', 'fishbone', {}),
-      workGroup(P, 'board', 'fishbone', {}),
+      workGroup(P, 'fishbone', {}),
     ];
     expect(phoneBar(rail, 'board').map(l => l.label)).toEqual(['Control room', 'This job', 'Fishbone', 'Board', 'More']);
   });

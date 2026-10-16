@@ -129,6 +129,7 @@ export function hereOf(route: Route): string {
     case 'install': return 'install';
     case 'gateSetup': return 'setup';
     case 'programs': return 'programs';
+    case 'machine': return `machine:${route.lineId ?? ''}`;
     case 'testing': case 'test': case 'trialCard': return 'testing';
     case 'handover': return 'handover';
     case 'fixes': return 'fixes';
@@ -209,23 +210,52 @@ export const toolsGroup = (here: string, extra: RailLine[] = []): RailGroup =>
 export const jobLine = (projectId: string, name: string, here: string, late = 0, problem = 0): RailLine =>
   ({ key: 'job', label: name, to: `/project/${projectId}`, on: here === 'job', state: late > 0 ? 'r' : problem > 0 ? 'a' : 'w', icon: 'route' });
 
-/** THE GATES, in the order the job goes through them. Rowland: "install —
- *  next gate set up, programs; next commissioning; after that handover." The
- *  tests' key stays 'testing' because it is the URL and the count every
- *  screen already uses. */
+/** THE GATES, in the order the job goes through them — Install, Set up,
+ *  Commission, Hand over (Rowland: "install — next gate set up, programs;
+ *  next commissioning; after that handover"). The tests' key stays
+ *  'testing' because it is the URL and the count every screen already uses. */
+export const GATE_KEYS = ['install', 'setup', 'testing', 'handover'] as const;
+export type GateKey = typeof GATE_KEYS[number];
+export const GATE_PATH: Record<GateKey, string> = { install: 'install', setup: 'set-up', testing: 'testing', handover: 'handover' };
+
+/** A STAGE-GATE JOB'S PLACES (docs/STAGEGATE-UX.md; Rowland, 16 October:
+ *  "when i show peole the app, i get losst in it, find dorrs that open othe
+ *  rthings"). The four gates were four lines here, each opening the same
+ *  shape of page — Needs you and a machine-by-stage board; they are one
+ *  Plan now, the gates its tabs beside the timeline (ui/PlanTabs), and the
+ *  line opens on the gate the job is at: the first with work open. Then
+ *  Programs, the problems, materials and the day — one group, so the rail
+ *  says the job's places once. */
 export function gatesGroup(projectId: string, here: string, counts: Counts): RailGroup {
   const p = `/project/${projectId}`;
+  const at = GATE_KEYS.find(k => (counts[k]?.n ?? 0) > 0);
+  const plan = counted('plan', 'Plan', at ? `${p}/${GATE_PATH[at]}` : `${p}/plan`, here, counts, [...GATE_KEYS], 'machine');
   return {
-    label: 'Gates',
+    label: 'Work',
     lines: [
-      counted('install', 'Install', `${p}/install`, here, counts, ['install'], 'machine'),
-      counted('setup', 'Set up', `${p}/set-up`, here, counts, ['setup'], 'machine'),
-      /* PROGRAMS, a page of their own between Set up and Commission — loaded
-         at one, proved at the other (screens/ProgramsPage). */
+      { ...plan, on: here === 'plan' || (GATE_KEYS as readonly string[]).includes(here) },
+      /* PROGRAMS, a page of their own — loaded at Set up, proved at
+         Commission (screens/ProgramsPage). */
       counted('programs', 'Programs', `${p}/programs`, here, counts, ['programs'], 'list'),
-      counted('testing', 'Commission', `${p}/testing`, here, counts, ['testing'], 'machine'),
-      counted('handover', 'Hand over', `${p}/handover`, here, counts, ['handover'], 'machine'),
+      counted('fixes', 'Problems', `${p}/fixes`, here, counts, ['fixes'], 'flag'),
+      counted('materials', 'Materials', `${p}/materials`, here, counts, ['materials'], 'list'),
+      plain('day', 'The day', `${p}/day`, here, 'time'),
     ],
+  };
+}
+
+/** THE MACHINES of a stage-gate job, each a page of its own (docs/
+ *  STAGEGATE-UX.md slice 3) — in the job's order, each with its square:
+ *  red when anything on it is late or failed, amber a problem with no time
+ *  lost, green handed over, indigo under way, grey nothing started. */
+export interface RailMachine { id: string; name: string; state: SquareState;
+  /** Its stages and tests not done — the work, neutral; of them, `late` red. */
+  open?: number; late?: number }
+export function machinesGroup(projectId: string, here: string, machines: readonly RailMachine[]): RailGroup {
+  return {
+    label: 'Machines',
+    lines: machines.map(m => ({ key: `machine:${m.id}`, label: m.name, to: `/project/${projectId}/machine/${encodeURIComponent(m.id)}`,
+      on: here === `machine:${m.id}`, state: m.state, ...(m.open ? { n: m.open } : {}), ...(m.late ? { late: m.late } : {}), icon: 'machine' as const })),
   };
 }
 
@@ -252,22 +282,10 @@ export function methodGroup(projectId: string, method: 'board' | 'tree', here: s
   };
 }
 
-/** WORK — what every gate draws on. A stage-gate job also has the plan and
- *  the day's story; the other methods keep their materials here. The plan
- *  is its own page, /project/:id/plan (screens/PlanScreen). */
-export function workGroup(projectId: string, model: PlanModel, here: string, counts: Counts): RailGroup {
-  const p = `/project/${projectId}`;
-  return {
-    label: 'Work',
-    lines: model === 'commissioning'
-      ? [
-        counted('fixes', 'Problems', `${p}/fixes`, here, counts, ['fixes'], 'flag'),
-        counted('materials', 'Materials', `${p}/materials`, here, counts, ['materials'], 'list'),
-        plain('plan', 'The plan', `${p}/plan`, here, 'chart'),
-        plain('day', 'The day', `${p}/day`, here, 'time'),
-      ]
-      : [counted('materials', 'Materials', `${p}/materials`, here, counts, ['materials'], 'list')],
-  };
+/** WORK on a 6M or lever tree job — its materials. A stage-gate job's work
+ *  is in its one group (gatesGroup). */
+export function workGroup(projectId: string, here: string, counts: Counts): RailGroup {
+  return { label: 'Work', lines: [counted('materials', 'Materials', `/project/${projectId}/materials`, here, counts, ['materials'], 'list')] };
 }
 
 export interface RailLineOf { id: string; name: string; workspaceId?: string;
@@ -347,14 +365,12 @@ export function phoneBar(groups: RailGroup[], model: PlanModel): RailLine[] {
   const by = (k: string) => all.find(l => l.key === k);
   const home = by('home');
   const job = by('job');
-  const main = groups.find(g => g.label === 'Gates' || g.label === 'Method')?.lines ?? [];
+  const main = groups.find(g => g.label === (model === 'commissioning' ? 'Work' : 'Method'))?.lines ?? [];
   const inLine = all.find(l => l.on && (l.sub || l.key.startsWith('line:')));
-  /* Off the gates, a stage-gate job's bar carries the gate the job is at —
-     the first with work open — so the work is one tap (docs/FLOW.md item 3:
-     Commission sat under More wherever the job was). With nothing open, the
-     last gate. */
-  const at = model === 'commissioning' ? (main.find(l => (l.n ?? 0) > 0) ?? main[main.length - 1]) : main[0];
-  const current = main.find(l => l.on) ?? inLine ?? at;
+  /* A stage-gate job's bar carries the Plan — opening on the gate the job is
+     at — or the place it is on (docs/FLOW.md item 3; docs/STAGEGATE-UX.md). */
+  const at = model === 'commissioning' ? by('plan') : main[0];
+  const current = main.find(l => l.on && l.key !== 'fixes') ?? inLine ?? at;
   const fourth = model === 'commissioning' ? by('fixes') : (current?.key === 'board' ? by('materials') : by('board'));
   const five = [home, job, current, fourth].filter((l): l is RailLine => !!l);
   const onBar = five.some(l => l.on);

@@ -134,8 +134,10 @@ work sampling, loss count, the stopwatch and the walk. Each is used on a
 line, and can be attached to a job. Every "which line", "which machine" and
 "which product" offers the factory's.
 
-**Jobs.** Stage gate (Install, Set up, Programs, Commission, Hand over;
-Problems, Materials, The plan, The day; reports). 6M (board, fishbone,
+**Jobs.** Stage gate — its places (docs/STAGEGATE-UX.md, 16 October): the
+job (Today), the Plan (Install · Set up · Commission · Hand over · Timeline
+as its tabs), Programs, Problems, Materials, The day; reports. A machine
+becomes a page of its own next (slice 3). 6M (board, fishbone,
 evidence, proof). Lever tree. Their machines, programs and capacity come from
 the lines they are on.
 
