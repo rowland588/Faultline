@@ -52,11 +52,16 @@ the tab); The day becomes Today's plan on the front page.
 3. **A machine is a page.** *Built 16 October* (below).
 4. **The drawer.** *First part built 16 October* (below). Still to do:
    the buttons under the facts to three at most on every kind of record.
-5. **Today, calmer.** Needs you as quiet rows with a mark and one date, and
-   only there — each gate tab says its count in one line instead of its own
-   Needs you (moved here from slice 2: Commission's Needs you carries the
-   buttons that plan a re-test, and Today must carry them first); the
-   machines as steppers; today's plan folded in from The day.
+5. **Today, calmer.** *Machine rows built 16 October*: each machine on the
+   job's front page is one row, one door — to its own page — with its gates
+   as its stepper (they were four buttons opening four pages).
+   **Decided, with the reason:** each gate tab keeps its own Needs you. It
+   is not a second list but the gate's share of the one on Today, with the
+   buttons that act on it there (Commission's "Plan the re-test", "Run it
+   again", "Test it"); taking it off would move the work away from the
+   board it is about. **The day stays a place** in the rail: it is the
+   day's checklist, carried over items, its story, its dates and its PDF —
+   a page of its own, one line, opened from Today's "The day ›".
 6. **Phone.** Each slice at 390 px; the bar becomes Today · Plan · Machines ·
    Programs · Problems.
 
