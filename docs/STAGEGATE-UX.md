@@ -50,15 +50,21 @@ the tab); The day becomes Today's plan on the front page.
 2. **Plan.** *Built 16 October* (below). The four gates and the timeline
    are one Plan: one line in the rail, their tabs on each page.
 3. **A machine is a page.** *Built 16 October* (below).
-4. **The drawer.** One shape: state and name, three facts, at most three
-   buttons, history folded; links open in the drawer with Back. The
-   "Programs loaded" stage's drawer stops listing the programs a second time
-   (its "Plan its run in Commission" moves to the program's row first).
-5. **Today, calmer.** Needs you as quiet rows with a mark and one date, and
-   only there — each gate tab says its count in one line instead of its own
-   Needs you (moved here from slice 2: Commission's Needs you carries the
-   buttons that plan a re-test, and Today must carry them first); the
-   machines as steppers; today's plan folded in from The day.
+4. **The drawer.** *Built 16 October* (below). **Decided, with the
+   reason:** the actions at a drawer's foot (plan a fix, attach a PDF,
+   something to raise at the meeting, its card, delete) stay where they
+   are — quiet links under the record, each used daily; the buttons that
+   change its state stay the two or three under its facts.
+5. **Today, calmer.** *Machine rows built 16 October*: each machine on the
+   job's front page is one row, one door — to its own page — with its gates
+   as its stepper (they were four buttons opening four pages).
+   **Decided, with the reason:** each gate tab keeps its own Needs you. It
+   is not a second list but the gate's share of the one on Today, with the
+   buttons that act on it there (Commission's "Plan the re-test", "Run it
+   again", "Test it"); taking it off would move the work away from the
+   board it is about. **The day stays a place** in the rail: it is the
+   day's checklist, carried over items, its story, its dates and its PDF —
+   a page of its own, one line, opened from Today's "The day ›".
 6. **Phone.** Each slice at 390 px; the bar becomes Today · Plan · Machines ·
    Programs · Problems.
 
@@ -129,3 +135,28 @@ the tab); The day becomes Today's plan on the front page.
   machine heads, Commission's rows, the front page's machines (Journey), and
   Install's "Everything on …". The drawer form stays for a scanned label and
   old links (`?open=`) until slice 4.
+
+## Slice 4 as built (first part) — the drawer, short
+
+Measured on the seeded job: the "Programs loaded" stage's drawer went from
+2,825 px to about 1,300 px.
+
+- **A programs stage says its programs; it does not edit them a second
+  time** (`ui/ProgramLink`): its programs a line each with their state, and
+  one button to where they are worked on — the machine's page (Programs for
+  the line itself). Gone: the whole list with its editors, "Open Programs ›"
+  and "Programs report ›" (the report is on Programs and the Reports sheet).
+  How many and how many done is said once, beside the stage's state.
+- **Plan its run in Commission** moved with them: `ui/StageParts` `PartRun`
+  is the program's run at speed — said, and planned — on its row on
+  Programs (and on any stage's own list that is not the programs stage).
+- **A stage's story folds** to one line — its problems, the open and the
+  critical in red, the hours lost — opened with a tap. A test's and a fix's
+  stay open (their findings are what the record is).
+- **A run's products**: one that passed, or was run again below, is one
+  line in the drawer — net rate, packs, day — its figures a tap away.
+- **Two layout faults** found on the way: "On today's plan" stood 260 px
+  tall for one line (a flex basis meant for width); a critical problem's
+  "Ways round it" wrapped a word a line. Both fixed.
+- The drawer's own Back (‹ back to …) already walked the records opened
+  inside it; links out of a drawer are now only to a record's home.

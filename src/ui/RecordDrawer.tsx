@@ -42,6 +42,7 @@ import { DrawerShell } from './DrawerShell';
 import { StageStory, storyLength } from './StageStory';
 import { PartsMark, StageParts } from './StageParts';
 import { ProgramLink } from './ProgramLink';
+import { isProgramsStage } from '../lib/programs';
 import { planOn, TODAY_KIND } from '../lib/huddle';
 import { uid } from '../lib/ids';
 import { criticalCount, criticalOn, fixFlag, riskOn } from '../lib/critical';
@@ -230,6 +231,9 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
   /* A problem being written, or an Edit, left unsaved (lib/kept) opens
      again with what was typed. */
   const [problem, setProblem] = useState<boolean | ProblemFill>(() => hasKept(`problem:${id}::`));
+  /* A stage's story opens on a tap (or when the drawer is opened at a problem). */
+  const [storyOpen, setStoryOpen] = useState(false);
+  useEffect(() => { setStoryOpen(false); }, [id]);
   /* The part of the plan — or the product on a performance run — a problem is
      being written on, when it is one. A product's problem does not fail the
      whole run: one product out of five is not the test. */
@@ -667,18 +671,38 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
       <OnTodaysPlan t={t} title={kind === 'install' ? `${machine} — ${t.title}` : t.title} tt={tt} can={can} today={today} />
       <ProgramLink projectId={projectId} t={t} tests={tt.tests} onOpen={onOpen} can={can} holder={job} items={tt.items}
         onPatch={patch => void tt.patchTest(t.id, patch)} />
-      {kind !== 'fix' && <StageParts key={t.id} step={t} tt={tt} can={can} holder={job} onOpen={onOpen}
+      {/* A programs stage's parts are its programs: said above (ui/ProgramLink)
+          and worked on where they live — the machine's page, Programs. */}
+      {kind !== 'fix' && !isProgramsStage(t, answerOf(t, job, tt.items)) && <StageParts key={t.id} step={t} tt={tt} can={can} holder={job} onOpen={onOpen}
         onRunProblem={can.edit ? (tid, rid) => openRecordAt(projectId, tid, rid) : undefined}
         onProblem={can.edit && kind === 'install' ? p => { setProblemPart(p); setProblem(true); top.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } : undefined} />}
 
       {/* WHAT HAPPENED — only when something has: "nothing has happened, it
           is running to plan" said what the state above already says. */}
-      {storyLength(t.id, tt) > 0 && (
+      {storyLength(t.id, tt) > 0 && (kind !== 'install' || storyOpen ? (
         <div className="rd-blk">
           <small>What happened</small>
           <StageStory stepId={t.id} tt={tt} can={can} projectId={projectId} onOpenFix={onOpen} onOpenProblem={onOpen} />
         </div>
-      )}
+      ) : (
+        /* A STAGE'S STORY, FOLDED (docs/STAGEGATE-UX.md slice 4: one record,
+           short; history folded) — its problems in a line, the open and the
+           critical in red, the whole story one tap away. */
+        <div className="rd-blk rd-story-fold">
+          <button type="button" className="rd-fold-b" aria-expanded={false} onClick={() => setStoryOpen(true)}>
+            <small>What happened</small>
+            <span>{(() => {
+              const found = live(tt.items).filter(i => i.kind === 'found' && i.testId === t.id);
+              const open = found.filter(i => i.doneAt == null), crit = open.filter(i => i.critical && !i.risk).length, risk = open.filter(i => i.critical && i.risk).length;
+              const hours = found.reduce((n, i) => n + (i.hoursLost ?? 0), 0);
+              return <>{found.length ? `${found.length} problem${found.length === 1 ? '' : 's'}` : 'Its story'}
+                {open.length > 0 && <> · <b className="in-late">{open.length} open</b></>}
+                {crit > 0 && <> · <b className="in-late">{crit} critical</b></>}{risk > 0 && <> · <b className="is-a-t">{risk} high risk</b></>}
+                {hours > 0 && <> · {hours % 1 ? hours.toFixed(1) : hours} h lost</>} — show it ›</>;
+            })()}</span>
+          </button>
+        </div>
+      ))}
 
       {/* THE EVIDENCE — the record's own pictures and clips, taken here. */}
       {(can.edit || (t.media ?? []).length > 0) && (
