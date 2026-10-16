@@ -27,10 +27,18 @@ export const PAGES = (sd, cap) => [
     { what: 'the line, machine by machine — the tour', sel: '.tour-says' },
     { what: 'a card a machine', sel: '.tour-card', n: 2 },
   ] },
-  { name: 'Programs', path: '#/programs', must: [{ what: 'machine by machine', sel: '.mt-list' }] },
+  { name: 'Programs', path: '#/programs', must: [{ what: 'machine by machine', sel: '.mt-list' }, { what: 'a row a program (16 October: one row, its boxes a tap away)', sel: '.mt-list .pgr' }] },
   { name: 'Problems', path: '#/snags', must: [{ what: 'the register, a line at a time', sel: '.qsl-rows' }] },
   { name: 'A stage-gate job — its front page', path: `#/project/${sd.projectId}`, must: [
     { what: 'the verdict', sel: '.vd' }, { what: 'Needs you', sel: 'h2, h3', text: /Needs you/ }, { what: 'where each machine is', sel: '.fp-grid' },
+  ] },
+  /* one row a program, its test on the row, one form (16 October: "too many views and doors") */
+  { name: 'Programs — a stage-gate job', path: `#/project/${sd.projectId}/programs`, must: [
+    { what: 'the programs in a sentence', sel: '.pp-says' },
+    { what: 'the states worth showing, each a filter', sel: '.pp-chip', n: 2 },
+    { what: 'a row a program, machine by machine', sel: '.pgr-list .pgr', n: 4 },
+    { what: 'how its test went, on its row', sel: '.pgr .ptx-go' },
+    { what: 'a program added to a machine', sel: '.pgr-add-open' },
   ] },
   { name: 'Commission', path: `#/project/${sd.projectId}/testing`, must: [
     { what: 'Needs you', sel: '.nd-list' }, { what: 'the board, machine by machine', sel: '.ig-grid', desk: true },

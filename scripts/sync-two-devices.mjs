@@ -542,12 +542,17 @@ await run(1, 'the phone makes a whole stage-gate job; the laptop shows all of it
   await p.getByPlaceholder('10 reels').fill('10 reels');
   await p.getByRole('button', { name: 'Add it' }).click();
   await p.waitForTimeout(500);
-  /* The Programs list lives at the foot of the Programs page (8 October). */
+  /* A program added under its machine on Programs (a line on its programs
+     stage), then given what it runs on its row — which makes its program
+     record: both tables travel (16 October, docs/STAGEGATE-UX.md). */
   await go(p, `/project/${pid}/programs`);
-  const fold = p.getByRole('button', { name: /Add a program, or change one/ });
-  if ((await fold.getAttribute('aria-expanded')) !== 'true') await fold.click();
-  await p.getByPlaceholder('P-104 perforation').fill('P-104 perforation');
-  await p.getByRole('button', { name: 'Add it' }).click();
+  await p.getByRole('button', { name: /^\+ Add a program to the Case packer/ }).click();
+  await p.getByLabel('Add a program to Case packer').fill('P-104 perforation');
+  await p.getByRole('button', { name: 'Add', exact: true }).click();
+  await p.waitForTimeout(600);
+  await p.locator('.pgr', { hasText: 'P-104 perforation' }).locator('.pgr-main').click();
+  await p.getByLabel('What it runs').fill('Perforated film 2kg');
+  await p.locator('.pgr-form').getByRole('button', { name: 'Save', exact: true }).click();
   await p.waitForTimeout(500);
 
   /* The phone's own sync: nobody presses anything. */
@@ -592,7 +597,7 @@ await run(1, 'the phone makes a whole stage-gate job; the laptop shows all of it
   check(await seen(l, 'Finest Red 2kg film'), 'the laptop shows the material',
     `phone ${(await idb(p, 'materials')).length} · cloud ${cloud.rows('materials').length} · laptop ${(await idb(l, 'materials')).length}`);
   await go(l, `/project/${pid}/programs`);
-  check(await seen(l, 'P-104 perforation'), 'the laptop shows the program',
+  check(await seen(l, 'P-104 perforation') && (await idb(l, 'programs')).some(x => x.what === 'P-104 perforation' && x.runs === 'Perforated film 2kg'), 'the laptop shows the program, and holds its record',
     `phone ${(await idb(p, 'programs')).length} · cloud ${cloud.rows('programs').length} · laptop ${(await idb(l, 'programs')).length}`);
   await go(l, `/project/${pid}/notes`);
   check(await seen(l, 'Ask Brillopak about the splice sensor'), 'the laptop’s Notes show the note');

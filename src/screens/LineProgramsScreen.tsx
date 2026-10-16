@@ -34,10 +34,10 @@ import { pdfFileName } from '../lib/fileName';
 import { useCanStartProjects } from '../cloud/access';
 import { addLineProgram, deleteProgram, putProgram, putProgramOnMachine, putPrograms } from '../db';
 import { nav } from '../state/useRoute';
-import { DraftText } from '../ui/Draft';
 import { DateInput } from '../ui/DateInput';
 import { AddFold } from '../ui/AddFold';
 import { Icon } from '../ui/Icon';
+import { ProgramFields, ProgramRowShell } from '../ui/ProgramRow';
 import { offerUndo } from '../ui/Undo';
 
 /** One line's programs, read once for the page and the paper. */
@@ -165,12 +165,13 @@ function LineBlock({ s, rec, may, today, floor, proofs, startAdding }: { s: Line
       {groups.map(g => (
         <div key={g.key || 'line'} className="lp-m">
           <h3 className="lp-mh">{g.m ? g.m.name : 'The line itself'}{g.m?.record?.oem ? <span className="sub"> · {g.m.record.oem}</span> : null}</h3>
-          <div className="mt-list">
-            {g.rows.map(p => (
+          <ul className="mt-list pgr-list">
+            {g.rows.map((p, k) => (
               <ProgramRow key={p.id} p={p} line={line} machines={machines} today={today} may={may} rec={rec} floor={floor.get(p.id)} proof={proofs.get(p.id)}
-                move={!p.projectId && may ? async by => { const changed = movedOne(own, p.id, by, q => machineOfProgram(q, machines) === g.m); if (changed.length) await putPrograms(changed); } : undefined} />
+                {...(!p.projectId && may ? { move: (by => ({ ...(k > 0 ? { up: () => by(-1) } : {}), ...(k < g.rows.length - 1 ? { down: () => by(1) } : {}) }))(
+                  async (step: -1 | 1) => { const changed = movedOne(own, p.id, step, q => machineOfProgram(q, machines) === g.m); if (changed.length) await putPrograms(changed); }) } : {})} />
             ))}
-          </div>
+          </ul>
         </div>
       ))}
       {may && (
@@ -182,14 +183,22 @@ function LineBlock({ s, rec, may, today, floor, proofs, startAdding }: { s: Line
   );
 }
 
+/** ONE ROW A PROGRAM (ui/ProgramRow — the job's Programs draws the same):
+ *  its name, where it has got to and when in one pill, what it runs and
+ *  whose; a tap opens its name, machine, what it runs, whose, test day,
+ *  commentary, where it has got to (proved asks the day and what showed it),
+ *  order and Delete. The row used to be every one of those boxes at once,
+ *  open on every program (Rowland, 16 October: "cant edit simpley the ui
+ *  very long"). */
 function ProgramRow({ p, line, machines, today, may, rec, floor, proof, move }: {
   p: Program; line: Workspace; machines: LineMachine[]; today: string; may: boolean; rec: LineRecords;
   /** What its job's Set up said of it, when it is a job's (lib/useJobFloor). */
   floor?: FloorWord;
   /** How it was proved, when it is (lib/programsReport proofOf). */
   proof?: Proof;
-  move?: (by: -1 | 1) => Promise<void>;
+  move?: { up?: () => Promise<void>; down?: () => Promise<void> };
 }) {
+  const [open, setOpen] = useState(false);
   const [proving, setProving] = useState(false);
   const where = standingOf(p, today), got = stateOf(p);
   const job = p.projectId ? rec.jobs.find(j => j.id === p.projectId) : undefined;
@@ -197,22 +206,16 @@ function ProgramRow({ p, line, machines, today, may, rec, floor, proof, move }: 
   /* A job's program is the job's to change, where it is set up and proved; a
      line's own is changed here. */
   const edit = may && !p.projectId;
-  const facts = [p.runs && `runs ${p.runs}`, p.from && `whose: ${p.from}`].filter(Boolean).join(' · ');
-  const save = (patch: Partial<Program>) => void putProgram({ ...p, ...patch });
+  const word = isProved(p) ? when(p, today) : `${STATE_WORD[got].toLowerCase()} · ${when(p, today)}`;
+  const tone = isProved(p) ? 'g' : where === 'overdue' ? 'r' : got === 'needed' ? 'n' : 'w';
+  const save = (patch: Partial<Program>) => putProgram({ ...p, ...patch });
 
   return (
-    <div className={'mt-row lp-row is-pg-' + where} data-program={p.id}>
-      <div className="mt-row-main">
-        {move && (
-          <span className="pg-move" role="group" aria-label={`Move ${p.what}`}>
-            <button type="button" className="pg-move-b" aria-label={`Move ${p.what} up`} onClick={() => void move(-1)}>▲</button>
-            <button type="button" className="pg-move-b" aria-label={`Move ${p.what} down`} onClick={() => void move(1)}>▼</button>
-          </span>
-        )}
-        {edit
-          ? <DraftText className="mt-what" value={p.what} ariaLabel={`${p.what} — its name or number`} placeholder="Program name or number" onSave={v => save({ what: v || p.what })} />
-          : <div className="mt-what" style={{ borderColor: 'transparent' }}>{p.what}</div>}
-        {facts && <div className="mt-facts">{facts}</div>}
+    <ProgramRowShell className={'lp-row is-pg-' + where} dataProgram={p.id} what={p.what} word={word} tone={tone}
+      meta={[p.runs && `runs ${p.runs}`, p.from && `whose: ${p.from}`].filter(Boolean).join(' · ') || undefined}
+      {...(p.note ? { note: p.note } : {})}
+      open={open} onToggle={() => { setOpen(!open); setProving(false); }}
+      after={(job || (isProved(p) && proof)) ? <>
         {job && (
           <div className="mt-facts lp-job">on <button type="button" className="cw-link" onClick={() => nav(`/project/${job.id}/programs`)}>{job.name} ›</button>{job.archivedAt ? ' (archived)' : ''}</div>
         )}
@@ -230,68 +233,55 @@ function ProgramRow({ p, line, machines, today, may, rec, floor, proof, move }: 
             {proof.studyId && (s => s && <>{' '}<button type="button" className="cw-link" onClick={() => nav(studyHref(s))}>Open it ›</button></>)(rec.studies.find(x => x.id === proof.studyId))}
           </div>
         )}
-        {/* COMMENTARY — what was seen, what is next (12 October: "allow
-            commentary"), with or without a change of state. */}
-        {edit
-          ? <DraftText className="mt-what lp-note" value={p.note ?? ''} ariaLabel={`Commentary on ${p.what}`} placeholder="Commentary — what was seen, what is next" max={400} onSave={v => save({ note: v || undefined })} />
-          : p.note ? <div className="mt-facts">{p.note}</div> : null}
-        {edit && (
-          <label className="pg-machine">
-            <span className="field-label">Machine</span>
-            <select className="text-input" value={machine?.name ?? ''} aria-label={`Which machine ${p.what} is on`}
-              onChange={e => void putProgramOnMachine(p, line.id, e.target.value)}>
-              <option value="">The line itself</option>
-              {machines.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
-            </select>
-          </label>
+      </> : undefined}
+      {...(edit ? { panel: <>
+        <ProgramFields withNote
+          machines={[{ value: '', label: 'The line itself' }, ...machines.map(m => ({ value: m.name, label: m.name }))]}
+          start={{ what: p.what, machine: machine?.name ?? '', runs: p.runs ?? '', who: p.from ?? '', testDay: p.testOn ?? '', note: p.note ?? '' }}
+          onClose={() => setOpen(false)}
+          onSave={async d => {
+            const next: Program = { ...p, what: d.what.trim() || p.what, runs: d.runs.trim() || undefined, from: d.who.trim() || undefined,
+              testOn: d.testDay || undefined, note: d.note.trim() || undefined };
+            /* a machine not yet on the line's list joins it (db/lineRecords) */
+            if (d.machine !== (machine?.name ?? '')) await putProgramOnMachine(next, line.id, d.machine);
+            else await putProgram(next);
+            setOpen(false);
+            offerUndo(`“${next.what}” — saved`, () => putProgram(p));
+          }}
+          {...(move ? { onMove: { ...(move.up ? { up: () => void move.up?.() } : {}), ...(move.down ? { down: () => void move.down?.() } : {}) } } : {})}
+          onDelete={() => void deleteProgram(p.id).then(undo => offerUndo(`Took “${p.what}” off ${line.name}`, undo))}
+          extra={
+            /* Where it's got to. A select, not a toggle: three states are three
+               states. Proved asks the day and what showed it (flow audit #21). */
+            <label className="spp-f">
+              <span>Where it&rsquo;s got to</span>
+              <select className={'pg-state-sel is-pg-' + got} value={proving ? 'proved' : got} aria-label={`Where ${p.what} has got to`}
+                onChange={e => {
+                  const next = e.target.value as ProgramState;
+                  if (next === 'proved') { setProving(true); return; }
+                  setProving(false);
+                  void save({ state: next, provedOn: undefined });
+                }}>
+                <option value="needed">Not written</option>
+                <option value="onMachine">On the machine</option>
+                <option value="proved">Proved</option>
+              </select>
+            </label>
+          } />
+        {isProved(p) && (
+          <label className="spp-f lp-proved-on"><span>The day it was proved</span>
+            <DateInput className="mt-due" aria-label={`Day ${p.what} was proved`} value={p.provedOn}
+              onCommit={v => void save(v ? { state: 'proved', provedOn: v } : { state: 'onMachine', provedOn: undefined })} /></label>
         )}
-      </div>
-
-      {!edit ? (
-        <span className="pg-state">
-          <span className="field-label">Where it&rsquo;s got to</span>
-          <span className={'pg-state-sel is-pg-' + got}>{STATE_WORD[got]}</span>
-        </span>
-      ) : (
-        <label className="pg-state">
-          <span className="field-label">Where it&rsquo;s got to</span>
-          <select className={'text-input pg-state-sel is-pg-' + got} value={got} aria-label={`Where ${p.what} has got to`}
-            onChange={e => {
-              const next = e.target.value as ProgramState;
-              if (next === 'proved') { setProving(true); return; }
-              save({ state: next, provedOn: undefined });
-            }}>
-            <option value="needed">Not written</option>
-            <option value="onMachine">On the machine</option>
-            <option value="proved">Proved</option>
-          </select>
-        </label>
-      )}
-
-      <div className="mt-when">
-        <span className={'mt-when-n is-pg-' + where}>{when(p, today)}</span>
-        {edit && !isProved(p) && (
-          <DateInput className="mt-due" aria-label={`Day ${p.what} is tested`} value={p.testOn} onCommit={v => save({ testOn: v || undefined })} />
+        {/* PROVED ASKS THE DAY AND WHAT SHOWED IT, or the study on the line
+            that did (flow audit #21) — a job's test in Commission is the third
+            way, planned on the job. */}
+        {proving && (
+          <ProveProgram p={p} studies={rec.studies.filter(x => x.workspaceId === line.id)} onClose={() => setProving(false)}
+            testDoor={(j => j && <>Or prove it by a test in Commission on <button type="button" className="cw-link" onClick={() => nav(`/project/${j.id}/programs`)}>{j.name} ›</button></>)(
+              rec.jobs.find(j => !!j.commissioning && !j.archivedAt && rec.jobLines.some(l => l.projectId === j.id && l.workspaceId === line.id && !l.deletedAt)))} />
         )}
-        {edit && isProved(p) && (
-          <DateInput className="mt-due" aria-label={`Day ${p.what} was proved`} value={p.provedOn}
-            onCommit={v => save(v ? { state: 'proved', provedOn: v } : { state: 'onMachine', provedOn: undefined })} />
-        )}
-      </div>
-
-      {/* PROVED ASKS THE DAY AND WHAT SHOWED IT, or the study on the line
-          that did (flow audit #21) — a job's test in Commission is the third
-          way, planned on the job. */}
-      {edit && proving && (
-        <ProveProgram p={p} studies={rec.studies.filter(x => x.workspaceId === line.id)} onClose={() => setProving(false)}
-          testDoor={(j => j && <>Or prove it by a test in Commission on <button type="button" className="cw-link" onClick={() => nav(`/project/${j.id}/programs`)}>{j.name} ›</button></>)(
-            rec.jobs.find(j => !!j.commissioning && !j.archivedAt && rec.jobLines.some(l => l.projectId === j.id && l.workspaceId === line.id && !l.deletedAt)))} />
-      )}
-      {edit && (
-        <button type="button" className="pset-x" aria-label={`Remove ${p.what}`}
-          onClick={() => void deleteProgram(p.id).then(undo => offerUndo(`Took “${p.what}” off ${line.name}`, undo))}><Icon name="close" size="0.85em" /></button>
-      )}
-    </div>
+      </> } : {})} />
   );
 }
 

@@ -150,23 +150,26 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   ok(!!m && m.id === p?.assetId && t.list.includes('Labeller'), "3b on a machine not listed yet: the machine joins the line's list, its record made");
   ok(await main.locator('.lp-m', { hasText: 'Labeller' }).locator(`[data-program="${p?.id}"]`).count() === 1 && flat(await main.locator('.fac-added').innerText()).includes('LB-2 Express labels is planned on Line 7 — smoke test, on the Labeller'), '3c on the page under its machine, and said so');
   /* who owes it is "Whose", never "From" (flow audit #20) */
-  ok(p?.from === 'Herma' && flat(await main.locator(`[data-program="${p?.id}"] .mt-facts`).first().innerText()).includes('whose: Herma')
+  ok(p?.from === 'Herma' && flat(await main.locator(`[data-program="${p?.id}"] .pgr-meta`).first().innerText()).includes('whose: Herma')
     && await main.locator('.mt-add-card .field-label', { hasText: /^From$/ }).count() === 0, '3d whose it is: asked as "Whose", kept, and said "whose: Herma" on its row');
 }
 
 /* ---- 4 where it has got to, its commentary, its test day, proved ---- */
 {
-  /* a line's own row is its boxes — found by its record, not by its text */
+  /* a line's own row: one line, its boxes a tap away (16 October: "cant
+     edit simpley the ui very long") — found by its record, not by its text */
   const lb = (await truth()).programs.find(x => x.what === 'LB-2 Express labels');
   const row = () => main.locator(`[data-program="${lb.id}"]`);
+  const shut = await row().getByLabel('Where LB-2 Express labels has got to').count() === 0;
+  await row().locator('.pgr-main').click(); await page.waitForTimeout(400);
   await row().getByLabel('Where LB-2 Express labels has got to').selectOption('onMachine'); await page.waitForTimeout(800);
-  const note = row().getByLabel('Commentary on LB-2 Express labels');
-  await note.fill('On the HMI — not run yet'); await note.press('Enter'); await page.waitForTimeout(800);
-  await row().getByLabel('Day LB-2 Express labels is tested').fill(iso(-3)); await page.waitForTimeout(300);
-  await row().getByLabel('Day LB-2 Express labels is tested').blur(); await page.waitForTimeout(1000);
+  await row().getByLabel('Commentary on LB-2 Express labels').fill('On the HMI — not run yet');
+  await row().getByLabel('The day LB-2 Express labels is tested').fill(iso(-3));
+  await row().locator('.pgr-form').getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(1000);
   let p = (await truth()).programs.find(x => x.what === 'LB-2 Express labels');
-  ok(p.state === 'onMachine' && p.note === 'On the HMI — not run yet' && p.testOn === iso(-3), '4 on the machine, its commentary and its test day, kept');
-  ok(/is-pg-overdue/.test(await row().getAttribute('class')) && flat(await row().locator('.mt-when-n').innerText()) === 'test was 3 days ago', '4b a test day gone by: red, "test was 3 days ago"');
+  ok(shut && p.state === 'onMachine' && p.note === 'On the HMI — not run yet' && p.testOn === iso(-3), '4 a tap opens its boxes: on the machine, its commentary and its test day, kept');
+  ok(/is-pg-overdue/.test(await row().getAttribute('class')) && flat(await row().locator('.spp-pill').first().innerText()) === 'on the machine · test was 3 days ago', '4b a test day gone by: red, "test was 3 days ago" in its one pill');
+  await row().locator('.pgr-main').click(); await page.waitForTimeout(400);
   await row().getByLabel('Where LB-2 Express labels has got to').selectOption('proved'); await page.waitForTimeout(300);
   await row().getByLabel('The day LB-2 Express labels was proved').fill(iso(-1));
   /* flow audit #21: proved asks what showed it — nothing said, nothing proved */
@@ -221,11 +224,11 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   await go(`#/project/${sd.projectId}/programs`);
   const t = await truth();
   const own = t.programs.filter(p => !p.projectId);
-  const rows = (await main.locator('.pp-theirs li').allInnerTexts()).map(flat);
+  const rows = (await main.locator('.pgr:has(.pp-line-tag)').allInnerTexts()).map(flat);
   ok(own.every(p => rows.some(r => r.includes(p.what) && r.startsWith('Line 7 — smoke test’s own'))) && rows.length === own.length && await main.locator('.lpj').count() === 0,
     `7 the job sees the line's own programs under their machines, marked by line — the same records, no second list (${rows.length})`);
   const cw = t.programs.find(p => p.what === 'CW-3 Maris Piper 2kg');
-  const row = main.locator(`.pp-theirs li[data-program="${cw.id}"]`);
+  const row = main.locator(`.pgr[data-program="${cw.id}"]`);
   await row.getByRole('button', { name: 'Test it' }).click(); await page.waitForTimeout(300);
   const panel = row.getByRole('group', { name: 'Test CW-3 Maris Piper 2kg' });
   const saveOff = await panel.getByRole('button', { name: 'Save' }).isDisabled();
@@ -279,7 +282,7 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
     await db.putProgram({ id: 'acc-lp-9', projectId: '', workspaceId: ws, what: 'LP-9 Express 1kg', runs: 'Express 1kg', state: 'onMachine', sort: 9000, createdAt: t, updatedAt: t });
   }, WS);
   await go(`#/project/${sd.projectId}/programs`);
-  const lp = main.locator('.pp-theirs li[data-program="acc-lp-9"]');
+  const lp = main.locator('.pgr[data-program="acc-lp-9"]');
   await lp.getByRole('button', { name: 'Test it' }).click(); await page.waitForTimeout(300);
   const lpp = lp.getByRole('group', { name: 'Test LP-9 Express 1kg' });
   await lpp.getByRole('button', { name: 'Didn’t pass' }).click();
@@ -300,7 +303,7 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   await go(`#/project/${sd.projectId}/programs`);
   const what = 'First program to verify Tesco';
   const before = await page.evaluate(async pid => (await (await import('/src/db.ts')).listPrograms(pid)).filter(p => !p.deletedAt).length, sd.projectId);
-  const row = main.locator('.spp-row', { hasText: what });
+  const row = main.locator('.pgr', { hasText: what });
   ok(await row.getByRole('button', { name: 'Test it' }).count() === 1, '7h a "Programs loaded" line with no record has Test it on its row');
   await row.getByRole('button', { name: 'Test it' }).click(); await page.waitForTimeout(300);
   await row.getByRole('button', { name: 'Passed' }).click();
@@ -314,7 +317,7 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
     return { n: progs.length, p, t };
   }, [sd.projectId, what]);
   const said = flat(await row.innerText());
-  ok(r.n === before + 1 && !!r.p && !!r.t && r.t.outcome === 'passed' && r.p.provedOn === iso(0) && /Proved/.test(said) && /Test 1.*passed/.test(said),
+  ok(r.n === before + 1 && !!r.p && !!r.t && r.t.outcome === 'passed' && r.p.provedOn === iso(0) && /proved/i.test(said) && /Test 1.*passed/.test(said),
     `7h tested: its program made on its machine, its test passed, proved — said on the row (${said.slice(0, 160)})`);
   await go(`#/project/${sd.projectId}/testing`);
   const mname = await page.evaluate(async ([pid, id]) => (await (await import('/src/db.ts')).listAssets(pid)).find(a => a.id === id)?.name, [sd.projectId, r.t.assetId]);
@@ -338,16 +341,17 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   await go(`#/project/${sd.projectId}/programs`);
   const t0 = await truth();
   const cw = t0.programs.find(p => p.what === 'CW-3 Maris Piper 2kg');
-  const row = main.locator(`.pp-theirs li[data-program="${cw.id}"]`);
+  const row = main.locator(`.pgr[data-program="${cw.id}"]`);
   await row.getByRole('button', { name: 'Go again' }).click(); await page.waitForTimeout(300);
   const pan = row.getByRole('group', { name: 'Test CW-3 Maris Piper 2kg' });
   await pan.getByLabel('Aiming for — CW-3 Maris Piper 2kg', { exact: true }).fill('55');
   await pan.getByLabel('Aiming to run — CW-3 Maris Piper 2kg', { exact: true }).fill('60');
+  /* what it did is asked once how it went is said (16 October: the run's numbers belong to a test) */
+  await pan.getByRole('button', { name: 'Didn’t pass' }).click();
   await pan.getByLabel('Set at — CW-3 Maris Piper 2kg', { exact: true }).fill('55');
   await pan.getByLabel('Ran for — CW-3 Maris Piper 2kg', { exact: true }).fill('45');
   await pan.getByLabel('Packs — CW-3 Maris Piper 2kg', { exact: true }).fill('2,400');
   await pan.getByLabel('Rejects — CW-3 Maris Piper 2kg', { exact: true }).fill('30');
-  await pan.getByRole('button', { name: 'Didn’t pass' }).click();
   await pan.getByLabel('What was seen when CW-3 Maris Piper 2kg ran').fill('Seal temp low above 52');
   await pan.getByRole('button', { name: 'Save' }).click(); await page.waitForTimeout(1500);
   const r = await page.evaluate(async ([pid, id]) => {
@@ -453,13 +457,16 @@ await page.setViewportSize({ width: 1360, height: 900 });
     `12 PR-04, failed on the floor the day after its test passed, is back on the machine — not "Proved" (${l04.word})`);
   await go(`#/programs?line=${WS}`);
   let row = main.locator(`[data-program="${p04.id}"]`);
-  ok(flat(await row.locator('.pg-state-sel').innerText()) === 'On the machine' && flat(await row.locator('.lp-floor').innerText()).includes(`On its Set up: ${l04.word}`),
+  ok(flat(await row.locator('.spp-pill').first().innerText()).startsWith('on the machine') && flat(await row.locator('.lp-floor').innerText()).includes(`On its Set up: ${l04.word}`),
     `12b the line's Programs says the record's state and, beside it, what the job's floor said (${flat(await row.locator('.lp-floor').innerText()).slice(0, 60)})`);
   await go(`#/project/${sd.projectId}/programs`);
-  const pill = async what => flat(await main.locator('.spp-row', { hasText: what }).first().locator('.spp-rec').innerText().catch(() => ''));
-  const rec04 = j.lines.find(l => l.what === 'PR-04 Finest Red 2 kg').record, rec12 = j.lines.find(l => l.what === 'PR-12 Express 1.25 kg').record;
-  ok(await pill('PR-04 Finest Red 2 kg') === `On Line 7 — smoke test: ${rec04.word}` && await pill('PR-12 Express 1.25 kg') === `On Line 7 — smoke test: ${rec12.word}`,
-    `12c the job's row says the line's record beside the floor's ("${await pill('PR-12 Express 1.25 kg')}")`);
+  /* ONE STATUS A ROW (16 October): the record's word only when it says
+     something worse than the floor's — here it does not */
+  const jrow = what => main.locator('.pgr', { hasText: what }).first();
+  const one = async what => ({ pills: await jrow(what).locator('.pgr-top .spp-pill:not(.pgr-pn)').count(), word: flat(await jrow(what).locator('.pgr-top .spp-pill').first().innerText()), aside: await jrow(what).locator('.pgr-aside').count() });
+  const r04 = await one('PR-04 Finest Red 2 kg'), s12 = await one('PR-12 Express 1.25 kg');
+  ok(r04.pills === 1 && r04.word === l04.word && r04.aside === 0 && s12.pills === 1 && s12.word === j.lines.find(l => l.what === 'PR-12 Express 1.25 kg').word && s12.aside === 0,
+    `12c the job's row says one status — "${r04.word}", "${s12.word}" — the line's record only when it is worse`);
   const wrap = j.lines.filter(l => l.assetId === j.lines.find(x => x.what === 'PR-04 Finest Red 2 kg').assetId);
   const doneHere = wrap.filter(l => l.bucket === 'done' || l.bucket === 'baseline').length;
   const head = flat(await main.locator('.pp-mh', { hasText: 'Ilapak flow wrapper' }).innerText());
@@ -471,18 +478,21 @@ await page.setViewportSize({ width: 1360, height: 900 });
   await page.waitForTimeout(800);
   j = await job();
   ok(j.programs.find(p => p.id === p12.id).provedOn === iso(-1), '12e PR-12 proved by its test in Commission');
-  const r12 = main.locator('.spp-row', { hasText: 'PR-12 Express 1.25 kg' }).first();
-  await r12.locator('.spp-main').click(); await page.waitForTimeout(400);
-  await main.getByRole('button', { name: 'Failed', exact: true }).click();
-  await main.locator('.spp-note').fill('Film creasing again on the 1.25 kg — seal jaws cold');
-  await main.locator('.spp-form button[type=submit]').click(); await page.waitForTimeout(1500);
+  /* one form: didn't pass is the test's and the floor's at once */
+  await go(`#/project/${sd.projectId}/programs`);
+  const r12 = main.locator('.pgr', { hasText: 'PR-12 Express 1.25 kg' }).first();
+  await r12.locator('.ptx-go').click(); await page.waitForTimeout(400);
+  await r12.locator('.ptx-panel').getByRole('button', { name: 'Didn’t pass', exact: true }).click();
+  await r12.locator('.ptx-panel textarea').fill('Film creasing again on the 1.25 kg — seal jaws cold');
+  await r12.locator('.ptx-panel').getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(1500);
   j = await job();
   const after12 = j.programs.find(p => p.id === p12.id);
-  ok(!after12.provedOn && after12.state === 'onMachine' && /^on the machine · failed .* to prove again$/.test(j.lines.find(l => l.what === 'PR-12 Express 1.25 kg').record?.word ?? ''),
-    `12f said Failed on the floor: the program drops back to on the machine (${j.lines.find(l => l.what === 'PR-12 Express 1.25 kg').record?.word})`);
+  const part12 = await page.evaluate(async pid => (await (await import('/src/db.ts')).listTestItems(pid)).find(i => !i.deletedAt && i.kind === 'next' && i.what === 'PR-12 Express 1.25 kg'), sd.projectId);
+  ok(!after12.provedOn && after12.state === 'onMachine' && part12?.results?.at(-1)?.is === 'failed' && /^on the machine · (failed .* to prove again|test didn’t pass)$/.test(j.lines.find(l => l.what === 'PR-12 Express 1.25 kg').record?.word ?? ''),
+    `12f didn't pass in the one form: the floor says failed, and the program drops back to on the machine (${j.lines.find(l => l.what === 'PR-12 Express 1.25 kg').record?.word})`);
   await go(`#/programs?line=${WS}`);
   row = main.locator(`[data-program="${p12.id}"]`);
-  ok(!/is-pg-proved/.test(await row.getAttribute('class')) && flat(await row.locator('.pg-state-sel').innerText()) === 'On the machine' && flat(await row.locator('.lp-floor').innerText()).includes('Failed'),
+  ok(!/is-pg-proved/.test(await row.getAttribute('class')) && flat(await row.locator('.spp-pill').first().innerText()).startsWith('on the machine') && flat(await row.locator('.lp-floor').innerText()).includes('Failed'),
     '12g and the line\'s Programs says the same — on the machine, its floor\'s failure beside it');
   /* on paper: the job's programs report says the record beside the floor's, and counts no failure as done */
   await go(`#/project/${sd.projectId}/programs`);
@@ -523,6 +533,7 @@ await page.setViewportSize({ width: 1360, height: 900 });
   pr = await proofs();
   const cw7 = pr.lines.find(l => l.what === 'CW-7 Maris Piper 2.5kg');
   const row = main.locator(`[data-program="${cw7.id}"]`);
+  await row.locator('.pgr-main').click(); await page.waitForTimeout(400);
   await row.getByLabel('Where CW-7 Maris Piper 2.5kg has got to').selectOption('proved'); await page.waitForTimeout(300);
   await row.getByRole('button', { name: 'A study on the line' }).click();
   const choice = row.getByLabel('The study that showed CW-7 Maris Piper 2.5kg works');
@@ -547,21 +558,29 @@ await page.setViewportSize({ width: 1360, height: 900 });
   const want = pr.lines.filter(l => l.proof).map(l => l.proof.word.slice(0, 60));
   const lost = want.filter(w => !txt.includes(w.replace(/\s+/g, '')));
   ok(want.length >= 4 && !lost.length, `13e the line's programs report says how each of ${want.length} was proved${lost.length ? ` — lost: ${lost.join(' | ')}` : ''}`);
-  /* the job's own Programs list asks the same, and offers its test */
+  /* a job's program kept only on its list is proved where it sits: Passed
+     in its one form, with what was seen — its test behind it, its line on
+     its machine's stage made (it was "Track it here", then "Mark it proved"
+     in the list folded at the foot) */
   await go(`#/project/${sd.projectId}/programs`);
-  await main.getByRole('button', { name: /Add a program, or change one/ }).click(); await page.waitForTimeout(600);
-  /* its name is a box to type in: the row is found by its own controls */
-  const r07 = main.locator('.mt-row', { has: page.getByLabel('Where PR-07 Baking Potatoes 2 kg has got to') }).first();
-  await r07.getByRole('button', { name: 'Mark it proved' }).click(); await page.waitForTimeout(300);
-  const offers = flat(await r07.locator('.pv-test').innerText().catch(() => ''));
-  const blank = await r07.getByRole('button', { name: 'It’s proved' }).isDisabled();
-  await r07.getByLabel('What showed PR-07 Baking Potatoes 2 kg works').fill('Ran 2 kg potatoes for an hour at 40 a minute, no rejects');
-  await r07.getByRole('button', { name: 'It’s proved' }).click(); await page.waitForTimeout(1200);
-  const j07 = await page.evaluate(async pid => (await (await import('/src/db.ts')).listPrograms(pid)).find(p => p.what === 'PR-07 Baking Potatoes 2 kg'), sd.projectId);
-  /* its test is on its machine's row above now (ui/ProgramTest), not here */
-  ok(blank && !offers.includes('plan its test') && j07.state === 'proved' && j07.note === 'Ran 2 kg potatoes for an hour at 40 a minute, no rejects'
-    && flat(await r07.innerText()).includes('Signed off by hand — no test behind it'),
-    '13f the job\'s Programs list: proved asks what showed it and says how — its test is on its row above');
+  ok(await main.getByRole('button', { name: /Add a program, or change one/ }).count() === 0 && await main.getByRole('button', { name: 'Track it here' }).count() === 0, '13f no second list at the foot, no "Track it here"');
+  const r07 = main.locator('.pgr', { hasText: 'PR-07 Baking Potatoes 2 kg' }).first();
+  await r07.getByRole('button', { name: 'Test it' }).click(); await page.waitForTimeout(300);
+  const f07 = r07.getByRole('group', { name: 'Test PR-07 Baking Potatoes 2 kg' });
+  const blank = await f07.getByRole('button', { name: 'Save', exact: true }).isDisabled();
+  await f07.getByRole('button', { name: 'Passed', exact: true }).click();
+  await f07.locator('textarea').fill('Ran 2 kg potatoes for an hour at 40 a minute, no rejects');
+  await f07.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(1500);
+  const j07 = await page.evaluate(async pid => {
+    const db = await import('/src/db.ts');
+    const p = (await db.listPrograms(pid)).find(x => x.what === 'PR-07 Baking Potatoes 2 kg');
+    const t = (await db.listTests(pid)).find(x => x.programId === p.id && !x.deletedAt);
+    const part = (await db.listTestItems(pid)).find(i => !i.deletedAt && i.kind === 'next' && i.what === 'PR-07 Baking Potatoes 2 kg');
+    return { p, t, part };
+  }, sd.projectId);
+  ok(blank && j07.p.state === 'proved' && j07.t?.outcome === 'passed' && j07.t?.result === 'Ran 2 kg potatoes for an hour at 40 a minute, no rejects'
+    && j07.part?.results?.at(-1)?.is === 'passed' && /proved/.test(flat(await r07.locator('.pgr-top').innerText())),
+    '13f the job\'s program on its list only: Passed with what was seen proves it — its test behind it, its line on the stage, "proved" on its row');
 }
 
 /* ---- 14 one list of machines, every picker (flow audit #14) ---- */

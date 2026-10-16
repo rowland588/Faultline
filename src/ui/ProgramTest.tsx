@@ -21,7 +21,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Program } from '../lib/programs';
 import { isProved, provingTitle } from '../lib/programs';
-import type { Outcome, Test } from '../lib/testing';
+import type { Outcome, PartResultIs, Test } from '../lib/testing';
 import { provingTestOf } from '../lib/commission';
 import { programJourney } from '../lib/programJourney';
 import type { useTesting } from '../lib/useTesting';
@@ -30,14 +30,32 @@ import { niceDay, todayISO } from '../lib/weeks';
 import { openRecord } from './RecordDrawer';
 import { offerUndo } from './Undo';
 
-type How = Extract<Outcome, 'passed' | 'failed' | 'notRun'>;
-const HOW: { is: How; word: string; tone: string }[] = [
+type Ran = Extract<Outcome, 'passed' | 'failed' | 'notRun'>;
+/** How it went — a test's three outcomes, and, where the program is a line on
+ *  its machine's programs stage, the floor's own three: baseline achieved,
+ *  not tested, no program (lib/noted). ONE FORM FOR BOTH (Rowland, 16
+ *  October: "its very complex ... too many views and doors"): Status and Test
+ *  it were two forms saying nearly the same thing about one program, and the
+ *  two records they wrote disagreed on the same row. */
+type How = Ran | Exclude<PartResultIs, 'passed' | 'failed'>;
+const HOW: { is: How; word: string; tone: string; floorOnly?: boolean }[] = [
   { is: 'passed', word: 'Passed', tone: 'g' },
+  { is: 'baseline', word: 'Baseline achieved', tone: 'g', floorOnly: true },
   { is: 'failed', word: 'Didn’t pass', tone: 'r' },
   { is: 'notRun', word: 'Didn’t run', tone: 'r' },
+  { is: 'notTested', word: 'Not tested', tone: 'n', floorOnly: true },
+  { is: 'noProgram', word: 'No program', tone: 'a', floorOnly: true },
 ];
+const isRan = (h: How): h is Ran => h === 'passed' || h === 'failed' || h === 'notRun';
+/** What the floor is told of a test: passed and didn't pass as they are; a
+ *  test that didn't run left the program not tested — never "failed". */
+const FLOOR_OF: Record<Ran, PartResultIs> = { passed: 'passed', failed: 'failed', notRun: 'notTested' };
 
-export function ProgramTest({ projectId, program: p, assetId, tt, can, open: openAtStart = false, record }: {
+/** THE FLOOR'S STATUS, said with the test — the line on the machine's programs
+ *  stage (made the first time when there is none). Returns its undo. */
+export type FloorSay = (is: PartResultIs | undefined, note: string, day: string) => Promise<(() => Promise<void>) | undefined>;
+
+export function ProgramTest({ projectId, program: p, assetId, tt, can, open: openAtStart = false, record, floor, quiet = false }: {
   projectId: string;
   /** The program — or, for a line on a machine's programs stage that is on
    *  no Programs list yet, its name and machine (id ''), made a program the
@@ -52,6 +70,14 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
   can: Can;
   /** Opened on arrival — Commission's "Test it" lands here. */
   open?: boolean;
+  /** The floor's status, said in the same form (screens/ProgramsPage): adds
+   *  baseline achieved, not tested and no program, and what was seen with no
+   *  status is kept as its commentary. Absent for a line's own program, which
+   *  has no line on the job's stage. */
+  floor?: FloorSay;
+  /** On a row that already says where the program stands in its own pill
+   *  (ui/ProgramRow): "Not tested yet" is not said a second time. */
+  quiet?: boolean;
 }) {
   const today = todayISO();
   const test = provingTestOf(p, tt.tests);
@@ -91,35 +117,51 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
       extra: { programId, ...(p.runs ? { planned: p.runs } : {}), ...(p.from ? { withWhom: p.from } : {}) } }]);
     return { id, made: true };
   };
-  const answer = async (patch: (cur: Test) => Partial<Test>, said: string) => {
+  const answer = async (patch: (cur: Test) => Partial<Test>, said: string, alsoFloor?: () => ReturnType<FloorSay>) => {
     const { id, made } = await target();
     if (!id) return;
     const before = tt.tests.find(t => t.id === id);
     await tt.patchTest(id, patch);
+    const unsay = alsoFloor ? await alsoFloor() : undefined;
     setOpen(false);
     /* Undo puts the test back first — so the program it proved is put
-       back with it (followTest) — then takes away one made here. */
+       back with it (followTest) — then takes away one made here, then the
+       floor's status said with it. */
     offerUndo(said, async () => {
       await tt.patchTest(id, before
         ? { outcome: before.outcome, ranOn: before.ranOn, result: before.result, plannedFor: before.plannedFor, runAgreed: before.runAgreed, run: before.run }
         : { outcome: 'planned', ranOn: undefined });
       if (made) await tt.removeTest(id);
+      if (unsay) await unsay();
     });
   };
   /* ONE TAP, ONE TEST: a double tap would plan two. */
-  const write = (patch: (cur: Test) => Partial<Test>, said: string) => {
+  const write = (patch: (cur: Test) => Partial<Test>, said: string, alsoFloor?: () => ReturnType<FloorSay>) => {
     if (busy.current) return;
     busy.current = true;
-    void answer(patch, said).finally(() => { busy.current = false; });
+    void answer(patch, said, alsoFloor).finally(() => { busy.current = false; });
+  };
+  /* The floor's status alone — baseline achieved, not tested, no program,
+     or what was seen with none: no test is made for it. */
+  const sayOnly = (is: PartResultIs | undefined, words: string, said: string) => {
+    if (!floor || busy.current) return;
+    busy.current = true;
+    void floor(is, words, day).then(unsay => { setOpen(false); if (unsay) offerUndo(said, unsay); })
+      .finally(() => { busy.current = false; });
   };
   const aimOf = (): Test['runAgreed'] => tidy({ rate: n(f.rate), minutes: n(f.mins) });
   const dayOf = (): Test['run'] => tidy({ speed: n(f.speed), minutes: n(f.ran), packs: n(f.packs), rejects: n(f.rejects) });
   const save = () => {
-    if (!how || !day) return;
     const words = seen.trim();
+    if (!day || (!how && !(floor && words))) return;
+    if (!how) { sayOnly(undefined, words, `${p.what} — what was seen kept`); return; }
+    const word = HOW.find(h => h.is === how)?.word.toLowerCase();
+    if (!isRan(how)) { sayOnly(how, words, `${p.what} — ${word} ${niceDay(day)}`); return; }
     const aim = aimOf(), did = dayOf();
-    write(cur => ({ outcome: how, ranOn: day, plannedFor: cur.plannedFor ?? day, result: words || undefined, runAgreed: aim, run: did }),
-      `${p.what} — ${HOW.find(h => h.is === how)?.word.toLowerCase()} ${niceDay(day)}${did?.speed != null ? ` at ${did.speed} ppm` : ''}`);
+    const ran: Ran = how;
+    write(cur => ({ outcome: ran, ranOn: day, plannedFor: cur.plannedFor ?? day, result: words || undefined, runAgreed: aim, run: did }),
+      `${p.what} — ${word} ${niceDay(day)}${did?.speed != null ? ` at ${did.speed} ppm` : ''}`,
+      floor ? () => floor(FLOOR_OF[ran], words, day) : undefined);
   };
   const book = () => {
     if (!day) return;
@@ -161,7 +203,7 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
             ))}
           </ol>
         </div>
-      ) : (
+      ) : quiet ? null : (
         <span className="sub ptx-none">{isProved(p) ? 'Proved by hand — no test behind it' : 'Not tested yet'}</span>
       )}
       {can.edit && !open && (
@@ -170,22 +212,28 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
       {open && (
         <div className="ptx-panel" role="group" aria-label={`Test ${p.what}`}>
           <span className="ptx-h">{test && ran ? `Test ${journey.attempts.length + 1} of ${p.what}` : `How did ${p.what} go?`}</span>
-          <span className="ptx-nums">
-            {box2('rate', 'Aiming for', 'ppm')}
-            {box2('mins', 'Aiming to run', 'min')}
-          </span>
-          <span className="ptx-nums">
-            {box2('speed', 'Set at', 'ppm')}
-            {box2('ran', 'Ran for', 'min')}
-            {box2('packs', 'Packs', 'made')}
-            {box2('rejects', 'Rejects', 'packs')}
-          </span>
           <span className="spp-pick" role="group" aria-label={`How ${p.what} went`}>
-            {HOW.map(h => (
+            {HOW.filter(h => floor || !h.floorOnly).map(h => (
               <button key={h.is} type="button" className={'spp-opt is-' + h.tone + (how === h.is ? ' is-on' : '')} aria-pressed={how === h.is}
-                onClick={() => setHow(h.is)}>{h.word}</button>
+                onClick={() => setHow(how === h.is ? null : h.is)}>{h.word}</button>
             ))}
           </span>
+          {/* The run's numbers belong to a test — asked once it ran, or while
+              one is booked (what it aims at), never for a status alone. */}
+          {(!how || isRan(how)) && <>
+            <span className="ptx-nums">
+              {box2('rate', 'Aiming for', 'ppm')}
+              {box2('mins', 'Aiming to run', 'min')}
+            </span>
+            {how && (
+              <span className="ptx-nums">
+                {box2('speed', 'Set at', 'ppm')}
+                {box2('ran', 'Ran for', 'min')}
+                {box2('packs', 'Packs', 'made')}
+                {box2('rejects', 'Rejects', 'packs')}
+              </span>
+            )}
+          </>}
           <label className="ptx-f">
             <span className="field-label">What was seen</span>
             <textarea className="text-input" rows={2} maxLength={400} value={seen} aria-label={`What was seen when ${p.what} ran`}
@@ -193,11 +241,11 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
               onChange={e => setSeen(e.target.value)} />
           </label>
           <label className="ptx-f ptx-day">
-            <span className="field-label">{how ? 'The day it ran' : 'The day'}</span>
+            <span className="field-label">{how && isRan(how) ? 'The day it ran' : 'The day'}</span>
             <input className="text-input" type="date" value={day} aria-label={`The day ${p.what} ran or is booked`} onChange={e => setDay(e.target.value)} />
           </label>
           <span className="ptx-go-row">
-            <button type="button" className="btn btn-primary btn-sm" disabled={!how || !day} onClick={save}>Save</button>
+            <button type="button" className="btn btn-primary btn-sm" disabled={!day || (!how && !(floor && seen.trim()))} onClick={save}>Save</button>
             {!how && (
               <button type="button" className="btn btn-sm" disabled={!day} onClick={book}>
                 {test && !ran ? 'Move it to this day' : 'Not run yet — book it for this day'}</button>
