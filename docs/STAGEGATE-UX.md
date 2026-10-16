@@ -65,8 +65,11 @@ the tab); The day becomes Today's plan on the front page.
    board it is about. **The day stays a place** in the rail: it is the
    day's checklist, carried over items, its story, its dates and its PDF —
    a page of its own, one line, opened from Today's "The day ›".
+   *Needs you made quiet, 16 October* (below).
 6. **Phone.** Each slice at 390 px; the bar becomes Today · Plan · Machines ·
-   Programs · Problems.
+   Programs · Problems. *Rows fitted to the phone and the desk, 16 October*
+   (below); the bar stays Control room · This job · Plan · Problems · More,
+   as slice 2 built it.
 
 ## Slice 1 as built — Programs
 
@@ -160,3 +163,45 @@ Measured on the seeded job: the "Programs loaded" stage's drawer went from
   "Ways round it" wrapped a word a line. Both fixed.
 - The drawer's own Back (‹ back to …) already walked the records opened
   inside it; links out of a drawer are now only to a record's home.
+
+## Slices 5 and 6 as built (second part) — quiet rows, rows that fit
+
+Measured on the seeded job before and after, at 390 px and 1360 px
+(the pictures taken with each run).
+
+| | Before | After |
+|---|---|---|
+| Commission, phone, page height | 2,218 px | 2,056 px |
+| Today, phone, page height | 1,830 px | 1,780 px |
+| Commission's board at a 1360 px desk | 151 px past its box | fits |
+| Commission's board at 1100 px | 411 px sideways scroll | 98 px |
+| Nothing off the side on any stage-gate page | at 390 and 1360 | at 390 and 1360 |
+
+- **Needs you on every gate is quiet rows** (`.nd-row`): a mark down the
+  left in the state's colour, the state in words in that colour, the
+  title, where and why; the row's one button on the same line. They were
+  boxes with a two-pixel red border and a filled red pill each — a wall of
+  red on Commission — and on a phone each button sat on a line of its own.
+  On a phone the where-and-why is two lines at most; the whole of it is the
+  record's, one tap away. Rule 5 ("only late and failed carry colour, as a
+  mark beside the words").
+- **Today's critical and high-risk rows** keep the solid tag (a problem is
+  solid red, CLAUDE.md) and lose the box around them: the stripe and the
+  tint, what it means on one line, how it stands on two. The whole of both
+  is the problem's own page.
+- **Commission's test rows on a phone** (`.igm-st`) keep the name whole;
+  the state sits beside it when it fits and under it, to the right, when it
+  does not ("Performance run at the agreed rate" wrapped a word a line
+  beside a long state).
+- **A program's button stays beside it on a phone** (`.pgr`): Test it and
+  Say how it went sat on a line of their own under every row; a row with
+  its journey or form open still runs full width.
+- **Commission's board fits its box** (`.ig-grid.cg-grid`): it kept every
+  column at its widest words, so each machine's own tests — a red "didn't
+  run" among them — sat off the right edge at a 1360 px desk. The squares
+  keep their fingertip width and it scrolls only when even those do not fit.
+- **Kept, with the reason:** the drawer's order (its files sit under its
+  facts, docs/PANELS.md item 3: "yes, here they are" is part of the
+  answer); the Rename beside the job's title (already the quiet button);
+  the machines' gate steppers on Today (one row, one door, as slice 5 built).
+- Paper: none moves — every change is how a row is drawn on screen.
