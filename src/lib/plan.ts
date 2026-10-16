@@ -39,7 +39,6 @@
 import { recordHref } from './install';
 import type { PlanMark } from './standing';
 
-import { isoDay } from './weeks';
 /** A mark, placed. `at` and `until` are fractions of the axis, 0 at the left. */
 export interface PlacedMark {
   /** The record it was drawn from, so tapping the mark opens it. Absent on a
@@ -159,7 +158,9 @@ function monthWords(y: number, m: number, firstYear: number): string {
 
 const dayMs = 86_400_000;
 const utc = (iso: string): number => Date.parse(`${iso}T00:00:00Z`);
-const iso = (t: number): string => isoDay(t);
+/* the UTC half of a date pair with `utc` (see lib/gantt): arithmetic on days,
+   never a real moment — `isoDay` (local) is for those */
+const iso = (t: number): string => new Date(t).toISOString().slice(0, 10);
 
 /** The first of the month an ISO date falls in. */
 const monthStart = (s: string): string => `${s.slice(0, 7)}-01`;

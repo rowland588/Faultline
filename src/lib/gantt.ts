@@ -191,7 +191,13 @@ const GROUPS: { kind: PlanMark['kind']; label: string }[] = [
 
 const DAY = 86_400_000;
 const utc = (iso: string) => Date.parse(`${iso}T00:00:00Z`);
-const isoOf = (t: number) => isoDay(t);
+/* A DATE PAIR, both halves UTC on purpose: `utc` parses a date at UTC midnight
+   and `isoOf` prints it back — arithmetic on days that no zone may touch.
+   Printed as the local day (R1's sweep did, briefly) it broke west of
+   Greenwich: a UTC midnight is still yesterday evening there, so `addDays(d,
+   1)` was `d` and the first column was no longer a Monday. A real MOMENT —
+   when a fix was made — becomes a day with `isoDay`, which is local. */
+const isoOf = (t: number) => new Date(t).toISOString().slice(0, 10);
 const addDays = (iso: string, n: number) => isoOf(utc(iso) + n * DAY);
 const between = (a: string, b: string) => Math.round((utc(b) - utc(a)) / DAY);
 /** 0 = Monday … 6 = Sunday. */

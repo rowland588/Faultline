@@ -182,7 +182,11 @@ export function targetsAcross(
  *  that a period is a name and two dates, and the app has no business insisting
  *  a business runs on quarters. */
 export function quarters(fromISO: string, mkId: () => string): Period[] {
-  const start = new Date(fromISO);
+  /* parsed as LOCAL parts at midday: `new Date('2026-01-01')` is UTC
+     midnight, which `todayISO` printed as 31 December anywhere west of
+     Greenwich (the review of R1) */
+  const [y, mo, d] = fromISO.split('-').map(Number);
+  const start = y && mo >= 1 && mo <= 12 && d >= 1 && d <= 31 ? new Date(y, mo - 1, d, 12) : new Date(NaN);
   if (!Number.isFinite(start.getTime())) return [];
   return [0, 1, 2, 3].map((q): Period => {
     const from = new Date(start); from.setMonth(from.getMonth() + q * 3);

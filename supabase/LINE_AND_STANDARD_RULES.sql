@@ -15,14 +15,20 @@
 --       workspaces.  → faultline_keep_line: deleted_at and owner_id stay with
 --       the line's owner (or a superadmin). Archive, name, type and floor order
 --       stay open to the team: they lose nothing and the factory is edited
---       together (Rowland, 13 October: "always full edit control").
+--       together (Rowland, 13 October: "always full edit control"). A line
+--       with no owner (none live today; owner_id defaults to auth.uid()) is
+--       open, as the screen treats it — the two must say the same.
 --
 --   S2  standards had no editors-only rule and kept the first-arm hole
 --       SECURITY_RLS part C closed on every other job table: a client could
 --       write a job's line standards and capacities, and any signed-in user
 --       could insert a standards row into any job id they had seen.
 --       → the same member select/insert/update + restrictive editors-only
---       policies as the job tables, and keep_owner / clamp_clock on it.
+--       policies as the job tables, and keep_owner / clamp_clock on it. With
+--       NO owner arm: a row with no job is a line's (the check constraint
+--       says one or the other), and the line's members' policies cover it;
+--       an owner arm let any signed-in user plant a row on a line they were
+--       not on (the independent review, 16 October).
 --
 --   S3  `for all` policies on cases, observations, segments, snag_assets,
 --       snags, standards, studies, programs and commission_assets allowed a
@@ -42,7 +48,7 @@
 create or replace function public.faultline_keep_line()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  if public.is_super() or old.owner_id = auth.uid() then return new; end if;
+  if public.is_super() or old.owner_id is null or old.owner_id = auth.uid() then return new; end if;
   new.deleted_at := old.deleted_at;
   new.owner_id   := old.owner_id;
   return new;
@@ -84,24 +90,24 @@ drop policy if exists "project standards" on public.standards;
 
 drop policy if exists "member standards select" on public.standards;
 create policy "member standards select" on public.standards for select to authenticated
-  using (public.is_project_member(project_id) or (project_id is null and owner_id = (select auth.uid())));
+  using (public.is_project_member(project_id));
 drop policy if exists "member standards insert" on public.standards;
 create policy "member standards insert" on public.standards for insert to authenticated
-  with check (public.is_project_member(project_id) or (project_id is null and owner_id = (select auth.uid())));
+  with check (public.is_project_member(project_id));
 drop policy if exists "member standards update" on public.standards;
 create policy "member standards update" on public.standards for update to authenticated
-  using (public.is_project_member(project_id) or (project_id is null and owner_id = (select auth.uid())))
-  with check (public.is_project_member(project_id) or (project_id is null and owner_id = (select auth.uid())));
+  using (public.is_project_member(project_id))
+  with check (public.is_project_member(project_id));
 
 drop policy if exists "editors only insert" on public.standards;
 create policy "editors only insert" on public.standards as restrictive for insert to authenticated
-  with check (public.is_project_editor(project_id) or (project_id is null and owner_id = (select auth.uid()))
+  with check (public.is_project_editor(project_id)
     or (project_id is null and workspace_id is not null and (select public.is_ws_member(workspace_id))));
 drop policy if exists "editors only update" on public.standards;
 create policy "editors only update" on public.standards as restrictive for update to authenticated
-  using (public.is_project_editor(project_id) or (project_id is null and owner_id = (select auth.uid()))
+  using (public.is_project_editor(project_id)
     or (project_id is null and workspace_id is not null and (select public.is_ws_member(workspace_id))))
-  with check (public.is_project_editor(project_id) or (project_id is null and owner_id = (select auth.uid()))
+  with check (public.is_project_editor(project_id)
     or (project_id is null and workspace_id is not null and (select public.is_ws_member(workspace_id))));
 
 drop trigger if exists faultline_keep_owner on public.standards;

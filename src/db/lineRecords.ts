@@ -85,6 +85,21 @@ export async function renameLineMachine(wsId: ID, from: string, to: string): Pro
     if (!stations.some(x => machineKey(x.name) === key)) continue;
     await putStandard({ ...st, capacity: { ...st.capacity, stations: stations.map(x => (machineKey(x.name) === key ? { ...x, name } : x)) } as NonNullable<typeof st.capacity> });
   }
+  /* THE LINE'S OWN LIST — where the stopwatch, the walk and a problem pick a
+     machine — is renamed in place too, so every caller gets it: a job's
+     Install renamed the record alone and left the list saying the old name
+     beside the record's new one, two machines on the line's page (the review
+     of C3). A name already on the list is not added twice. */
+  const ws = await (await getDB()).get('workspaces', wsId) as Workspace | undefined;
+  const list = ws?.assets ?? [];
+  if (list.some(a => machineKey(a) === key)) {
+    const next: string[] = [];
+    for (const a of list) {
+      const nm = machineKey(a) === key ? name : a;
+      if (!next.some(x => machineKey(x) === machineKey(nm))) next.push(nm);
+    }
+    await patchWorkspaceRecord(wsId, { assets: next });
+  }
   return n;
 }
 

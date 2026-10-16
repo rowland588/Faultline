@@ -106,7 +106,7 @@ Every row below is a failing assertion in a reference test, checked by hand.
 | **C8** | The control room's line card counts the jobs' programs on the line; the band under it counts only the line's own. | 2·S | design | One sentence from `lineWork`: "N to prove (k on jobs) · j late". |
 | **C9** | The control room names a 6M job's lines by the job's copy; the rail by the factory's. | 2·S | bug | `useJobInputs` resolves the name through the factory line. |
 | **C10** | Three filters for "a problem open on a line" (`lineWork`, `factoryReport`, `problemsPdf`) that agree only because sending closes the snag. | 1·S | design | All read `isOpenOnLine`. |
-| **C11** | **Words:** "snags"/"assets" on the Evidence list; "Critical issues" on the client and commissioning papers vs "critical problem"; countermeasure (6M) vs action (control room, register); step vs stage for one record; `?view=snags`; "tracker row" in a sentence a person can meet. | 2·S | bug | Sweep; add *issue*, *step* (install) and `?view=snags` to smoke's old-word check. |
+| **C11** | **Words:** "snags"/"assets" on the Evidence list; "Critical issues" on the client and commissioning papers vs "critical problem"; countermeasure (6M) vs action (control room, register); step vs stage for one record; `?view=snags`; "tracker row" in a sentence a person can meet. | 2·S | bug — **done** | Swept (the last *tracker row*, in a sentence the lever tree can print, found by the review). Smoke's old-word check is unchanged: *issue* and *step* are true words elsewhere (the value stream's steps), so the sweep is locked by the modules' own tests. |
 | **C12** | Value stream: no verdict (`FlowSays` has no tone) and no timed/typed mark on a step. The only tool without its fourth layer. | 2·M | design (TOOLKIT Part 1) | `flowSays` returns a verdict (Over takt / Waits exceed work / Not timed / Within takt); `FlowStep.source` timed·typed·carried, printed on grid and paper. |
 | **C13** | BLUEPRINT §4 lacks rows for most records the screens show (stage/test, fix/action, material, note, measure, 6M case, win, walk, tree node). | 2·S | docs | Add the rows. |
 | **C14** | Doors reached only by URL and fields nobody fills: `/history/:asset`, `/project/:id/standard/:id`; `Observation.valueNum/costPer` reserved and written by nothing. | 1·S | question | Left alone this round; listed. |
@@ -163,17 +163,20 @@ a page changes.
 | 1 Maths | M1 M2 M3 M4 M5 M6 M7 M8 | The mix never says 1 unmade of a made demand; capability words say the side only when it is one side; Ask says the two £ parts; lines that merge count rejects once and agree with the plain chain; the shift and V sentences on lanes say the right pace; the plan to target never falls. Paper follows through the same modules. | the harvested reference tests, corrected where the reference was wrong, with the reason beside each |
 | 2 Time | R1 | One local `isoDay`; no date made from UTC. | a pinned-zone test |
 | 3 Floor | F1 F2 F5 (F3 kept) | Time a stop from the line's page; the stopwatch and its Pareto in the line's tools; the study's screens in the phone bar; the name opens the line on Your factory; one Problem button a screen. | `lines.mjs` extended; PAGES.md; `floorwalk.mjs` in `scripts/audit/` re-run: the two dead ends gone |
-| 4 One truth | C1 C3 C7 C9 C10 C11 M10 (C6 reverted) | The rail's late counts the missed check; renames travel to problems and stations; the drawer reads the dates; one name for a line; one filter for open; one word per thing; counts in the one-point verdicts. | unit tests per module; smoke's word list grown |
+| 4 One truth | C1 C3 C7 C9 C10 C11 M10 (C6 reverted) | The rail's late counts the missed check; renames travel to problems and stations; the drawer reads the dates; one name for a line; one filter for open; one word per thing; counts in the one-point verdicts. | unit tests per module |
 | 5 Security | S1 S2 S3 S4 S5 R3 | One migration in the house shape (`supabase/LINE_AND_STANDARD_RULES.sql`) — **written, not applied**: the connector's writes timed out and came back "cancelled" on 16 October, so it is pasted into the Supabase SQL editor and read back by hand (CLAUDE.md's fallback); the screens gate a line's delete and merge on its owner, with Undo, meanwhile. | `sync-schema` test; `pg_policies` read back and pasted in the commit; two-device harness |
 | 6 Fit | D1 D3 (D2 parked) | The job's line page fits a tablet (the halos clipped); the one bare button set reaches the fingertip size. D2 is parked: folding the other lenses hides what PAGES.md says the page must show and the lens already orders it — a slice of its own, decided with SIMPLE.md. | the three-width pass re-run; `--compare` pictures looked at |
 | 7 Coherence, larger | C2 C4 C5 C12 — **decided, not built** (below, §6) | Commission's programs cell a projection of the one reading; one capacity read for a line; one rate for packs lost; the value stream's verdict and how-known. | acceptance scripts extended |
 | 8 Roles | S6 (S7 done in wave 5) | `is_ws_editor`; line-level access on the screens — **not this round**: a new access level on the line needs the blueprint's §1 word on who a line's team is before a policy says it. | harness with a client device |
 | 9 Docs | C13 | BLUEPRINT §4 rows; IDEAS.md; this file's closing state. | `inventory.mjs` |
+| R Review | the independent review's 13 findings — 12 fixed, 1 recorded (§6) | The lanes' check counts what arrives against the shared station's own figure; one line feeding shared stations names its bottleneck and draws them on the V; the Gantt and the plan keep their UTC date pair; the run's square says the rate the line says, to as many places as tell a miss; a machine renamed on a job renames the line's list; the SQL's owner arm closed and its null-owner rule made to agree with the screen; SMED's words follow the ladder; the last *tracker row*. | `review-fixes.test.ts`, the line-records test; the zone-sensitive tests run under New York, Honolulu and Tokyo as well as UTC |
 
 ## 6. Left alone, and why
 
 - **Capture's defaults (F4)** — fewer taps wins; the toast and Undo are the check.
 - **The value stream's cells (D4)** — a grid; the row's editor is the phone's way in.
+- **Two UTC date pairs (R1)** — `lib/gantt` and `lib/plan` parse a date at UTC midnight and print it back the same way: arithmetic on days that no zone may touch. The sweep made the print half local and broke them west of Greenwich (the review); they are the UTC pair again, with the comment saying why. The local `isoDay` is for real moments.
+- **A machine renamed on a job renames every job's record of it on the line** (the review's finding 10) — as the line-side rename always did. Where the user cannot edit another job, that row's push is refused and counted; which jobs' machines a person may rename is line-level access (S6), decided there.
 - **The job's line page folded by lens (D2)** — the lens already orders the page, PAGES.md names what every lens must show, and five acceptance scripts read it; folding is a slice of its own under SIMPLE.md, not a fit fix.
 - **Commission's programs cell and the line's failed program (C2, C6)** — one decision, not two patches: which programs a job counts as its own (the line's with a proving test, or the job's) and whether a job's test can move the line's words. The C6 attempt showed a patch moves the line's page and paper; the decision belongs with the Programs slice.
 - **One capacity read for a line (C4)** — BLUEPRINT §2 moves the writer in Stage 4; a read-side change before it would make the fishbone say the factory's number and the job's own settings another, on the same screen.
@@ -191,3 +194,60 @@ a page changes.
 - The stopwatch on a watch face (one-tap start/stop) — a different device, not this app's problem yet.
 - A line's "crew and cost" asked the first time a £ is wanted, on the spot, not under Set up.
 - The job's line page folded by lens on a phone (D2) — each lens its own section first, the others behind their heading with a count.
+
+## 8. Closing state — the report (16 October)
+
+For the ops director. What is better, page by page; every figure that
+changed; what is proven and how; what was left alone; what is parked.
+
+### What is better
+
+- **A line's page.** Time a stop is the first button, beside Problem. Stops timed is the first tool: the last four weeks' minutes lost, the machine that cost most, the door to the ranking. On a phone the study's four screens are on the bar; one Problem button a screen. The walk a first-timer takes from an empty phone to a ranked Pareto has no dead end and nothing typed into the address bar (it had two dead ends and one address typed).
+- **Line capacity.** Lines that merge count rejects once and agree with the plain chain. Lines held apart say the pace of the lines together, and each line's V is drawn against its own bottleneck. The way to the target only ever rises as it is read.
+- **The 6M job.** The rail's late count agrees with the page under it (a missed hold check counted in both). The control room and the rail name a line the same way. Ask says the two parts of a loss's cost and never adds them.
+- **Programs and machines.** A machine renamed anywhere is renamed on its problems, its station and its line. The machine drawer reads the dates like every other place.
+- **Every day on every paper** is the reader's own day; a stop logged at 11 pm in summer is no longer filed on yesterday.
+- **Your factory.** Delete for ever and Merge are the owner's; a merge can be undone whole.
+- **Fit.** The job's line page fits a tablet. Every button on Materials and Programs reaches the fingertip size.
+
+### Every figure that changed (old → new, why)
+
+| Where | Old | New | Why |
+|---|---|---|---|
+| Mix, demand 3 at 47/min | 2 made, 1 unmade | 3 made | a product given every minute it needs is made whole; floating point had floored 2.999… |
+| Capability words, 401/403 against 400–404 | "about 5 in 100 would be light" | "… light or heavy" | the share is two-tailed |
+| Ask, the biggest loss | £340 | £107 idle labour · £340 lost contribution | the two parts are never added |
+| Lines that merge (bagger 100 → weigher 300, 10% rejected → shared packer 95) | packer limits at 95, 85.5 good | bagger limits at 100, 90 good | what a line sends on is its good off the end; the same as the plain chain |
+| Lines held apart, the shift sentence | "At palletiser's 68.3 a minute" | "At 137 units a minute across the lines together" | the figure was always the sum |
+| The way to the target | 79 → 62 → 85 | rises step by step | a step is placed at a station's last add |
+| The climb, 100 → 100.1 → 100.2 against 120 | "about NaN-NaN-NaN (run 3.5e+44)" | "climbing too slowly: … not within a year" | a forecast past a year is not a date |
+| A run, 2,998 packs in 50 min against 60 | "Netted 60 ppm — 0 ppm short" (red) | "Netted 59.96 ppm — 0.04 ppm short" | a miss the rounding hides is said to one more place |
+| Capability, thirty identical readings | nothing | "Every reading the same — spread 0 from 30; capability cannot be worked out" | silence is not honesty |
+| SMED, a target typed longer than the element | ladder 16 → 19 → 29 min | 16 → 16 → 16 | a plan never lengthens what was timed |
+| Work sampling, 100% from 30 taps | "(±0) … within ±5" | "(±6) … 5 more for ±5" | the margin is Wilson's half-width; the ILO's N stays the plan |
+| Lines that merge, the shared station's check (90 arrive, it takes 85 with 2) | "2 of them running (it has 2)" | "3 of them running (it has 2)" | what arrives is counted against the station's own figure, not the whole's like-for-like one (the review) |
+| One line feeding shared stations, the shift | "At 100 bags a minute across the lines together" | "At bagger's 100 bags a minute" | one line is one line (the review) |
+| A run's square, 2,998 packs in 50 min against 60 | "60 of 60 ppm" (red) | "59.96 of 60 ppm" | the square says what the line says (the review) |
+
+### What is proven, and how
+
+- 2,689 unit tests: 469 of them a reference worked from docs/CAPACITY.md and docs/TOOLKIT.md before the code was read, on the seeds and on random factories (where the reference and the app disagreed and the app was right, four places, the test says why); 10 of them the independent review's findings, locked. The date tests were also run under New York, Honolulu and Tokyo.
+- The full gate on the final commit: type-check, lint (ceiling 66, unchanged), build, every screen loaded with seeded data, every report at three sizes, forty random jobs' reports reconciled, twenty-two acceptance scripts driving the released stories in a real browser, the inventory of what every page must show at desk and phone, and two devices against a fake cloud (sync, 11 of 11).
+- The first-timer's walk re-run by script: 17 taps, 0 dead ends, nothing typed (was 15 taps, 1 typed, 2 dead ends).
+- An independent review of the six commits found 13 things, 4 of them regressions the waves themselves had made: a shared station's check said 2 of them would do where 3 are needed; one line feeding shared stations was said to run "across the lines together"; the Gantt's days ran wrong west of Greenwich; a run's square still said "60 of 60" in red. All 12 fixable findings are fixed in the seventh commit and locked by tests; the thirteenth (which jobs' machines a rename may touch) is recorded under line-level access.
+
+### What was left alone, and why
+
+- Commission's programs cell against the line's Programs (C2, with C6): which programs a job counts as its own is a decision, not a patch — the patch moved the line's page and paper and was reverted.
+- One capacity read and one rate for a line (C4, C5): BLUEPRINT Stage 4 moves the writer; a read-side change alone would show two numbers on one screen.
+- The value stream's verdict (C12): needs a timed-or-typed mark on every step first.
+- A line-level access role (S6): needs the blueprint's word on who a line's team is.
+- The job's line page folded by lens (D2), the value stream's cells (D4), CSP enforcement (S9), the URL-only doors (C14): listed, decided, not this round.
+
+### Parked in IDEAS.md
+
+Rank what I saw at a walk's end · the stopwatch on a watch face · crew and cost asked on the spot · the line page folded by lens.
+
+### One thing to do by hand
+
+`supabase/LINE_AND_STANDARD_RULES.sql` closes four holes on the line side of the database's rules (anyone on a line could delete it from every device; line standards had no editors' rule; nine tables allowed a hard delete the app never issues; a job's problem had no job-level rule). The connector refused writes on 16 October, so the file is **not applied**: paste it into the Supabase SQL editor once; the select at its end prints what is in force. Until then the screens hold the rule on their own, which is weaker.

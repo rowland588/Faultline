@@ -800,7 +800,13 @@ function analyseLanes(cap: Capacity): CapacityResult {
   const tgt = target == null ? '' : (base.gap as number) > 0 ? ` — ${fmtN(base.gap as number)} short of the ${fmtN(target)} target` : ` — above the ${fmtN(target)} target`;
   const nm = (x: StationResult) => x.station.name.trim() || `Station ${x.index + 1}`;
   if (heldBy === 'shared' && limit) {
-    base.sentence = `${nm(limit)} holds ${live.length === 1 ? live[0].name : names(live)} to ${fmtN(total)} ${per} together — ${fmtN(sends)} ${per} arrive at it${tgt}.`;
+    /* the shared station's figure is its own, in the unit that arrives at it;
+       the whole's headline (like for like at the lines' start, their rejects
+       put back) is said beside it when the two differ — "holds to 94 — 90
+       arrive at it" read as holding to more than arrived (the review of M4) */
+    const takes = merged?.line ?? total;
+    const alike = Math.abs(takes - total) >= 0.05 ? ` (${fmtN(total)} ${per} like for like at the lines’ start)` : '';
+    base.sentence = `${nm(limit)} holds ${live.length === 1 ? live[0].name : names(live)} to ${fmtN(takes)} ${per}${live.length > 1 ? ' together' : ''} — ${fmtN(sends)} ${per} arrive at it${alike}${tgt}.`;
   } else {
     const each = live.map(x => `${x.name} is held by ${nm(x.result.limit as StationResult)} at ${fmtN(x.result.line as number)}`).join('; ');
     const out = `${names(live)} make${live.length === 1 ? 's' : ''} ${fmtN(sends)} ${per}${live.length > 1 ? ' together' : ''}${tgt}. ${each}.`;
@@ -1098,10 +1104,16 @@ function screenLanes(cap: Capacity, r: CapacityResult): CapCheck[] {
     const pct = fmtN(Math.round((total / r.target) * 100));
     if (view.heldBy === 'shared') {
       const typed = typedOf(limit.station);
-      const takes = Math.ceil(crewOf(limit.station) * (view.sends / total) - 1e-9);
+      /* what the shared station takes is its own figure, in the unit that
+         arrives; what arrives (good) over the whole's like-for-like figure
+         (rejects put back) said 2 of them would do where 3 are needed (the
+         review of M4) */
+      const takesAt = view.merged?.line ?? total;
+      const takes = Math.ceil(crewOf(limit.station) * (view.sends / takesAt) - 1e-9);
+      const alike = Math.abs(takesAt - total) >= 0.05 ? ` (${fmtN(total)} ${per} like for like at the lines’ start)` : '';
       const lines = live.map(x => x.name);
       out.push({ tone: 'r', station: limit.index,
-        text: `${nm(limit)} holds ${list(lines)} to ${fmtN(total)} ${per} together — ${pct}% of the ${fmtN(r.target)} target. They send it ${fmtN(view.sends)}.${typed ? ` It is typed as ${typed}: is that right?` : ''} To take all they send it would need ${needWords(limit.station, takes)}${view.sends < r.target ? ` — and they send ${fmtN(view.sends)}, short of ${fmtN(r.target)} themselves, so they need lifting too` : ''}.` });
+        text: `${nm(limit)} holds ${list(lines)} to ${fmtN(takesAt)} ${per}${lines.length > 1 ? ' together' : ''}${alike} — ${pct}% of the ${fmtN(r.target)} target. They send it ${fmtN(view.sends)}.${typed ? ` It is typed as ${typed}: is that right?` : ''} To take all they send it would need ${needWords(limit.station, takes)}${view.sends < r.target ? ` — and they send ${fmtN(view.sends)}, short of ${fmtN(r.target)} themselves, so they need lifting too` : ''}.` });
     } else {
       const each = live.map(x => `${x.name} is held by ${nm(x.result.limit as StationResult)} at ${fmtN(x.result.line as number)}`).join('; ');
       const needs = live.map(x => {
@@ -1648,7 +1660,7 @@ export function vCurve(r: CapacityResult, marginPct?: number): VCurve {
     const parts = [
       ...r.lanes.sections.filter(s => s.result.ok.length > 0 && s.result.limit).map(s => ({ name: s.name, v: vCurve(s.result, marginPct) })),
       ...(r.lanes.merged && r.lanes.merged.ok.some(x => x.index >= 0) && r.lanes.merged.limit
-        ? [{ name: 'after they merge', v: vCurve({ ...r.lanes.merged, ok: r.lanes.merged.ok.filter(x => x.index >= 0), limit: r.lanes.merged.limit.index >= 0 ? r.lanes.merged.limit : undefined }, marginPct) }]
+        ? [mergedV(r.lanes.merged, r.unit, marginPct)]
         : []),
     ].filter(p => p.v.points.length);
     const points = parts.flatMap(p => p.v.points);
@@ -1674,6 +1686,21 @@ export function vCurve(r: CapacityResult, marginPct?: number): VCurve {
   else if (!under.length) sentence = `Every station clears the V: each step away from ${ln} is at least ${fmtN(m)}% faster, so a short stop beside it is absorbed.`;
   else sentence = under.map((p, i) => `${i ? 'the' : 'The'} ${p.name.toLowerCase().startsWith('op ') ? p.name : p.name.charAt(0).toLowerCase() + p.name.slice(1)} is only ${fmtN(Math.max(0, Math.round(p.pct - 100)))}% faster than ${ln} (the V asks ${fmtN(Math.round((p.guide ?? 100) - 100))}%) — a short stop there ${p.steps > 0 ? 'blocks' : 'starves'} ${ln}`).join('; ') + '.';
   return { points, under, ...(limit ? { limit } : {}), sentence };
+}
+
+/** The stations after the merge as a V. Held by one of them, a V of their
+ *  own; held by the lines, read against what the lines send — the feeder
+ *  (index −1) is the 100% point and is not drawn. It returned no points at
+ *  all in that case, so the card never named a shared station (the review
+ *  of M5). */
+function mergedV(mg: CapacityResult, unit: string, marginPct?: number): { name: string; v: VCurve } {
+  const lim = mg.limit as StationResult;
+  if (lim.index >= 0) return { name: 'after they merge', v: vCurve({ ...mg, ok: mg.ok.filter(x => x.index >= 0) }, marginPct) };
+  const v = vCurve(mg, marginPct);
+  const points = v.points.filter(p => p.index >= 0);
+  const under = v.under.filter(p => p.index >= 0);
+  const sentence = `the stations after the merge run against the ${fmtN(lim.effective)} ${unit} a minute the lines send${under.length ? `; ${under.map(p => p.name).join(', ')} ${under.length === 1 ? 'is' : 'are'} under the V` : ''}.`;
+  return { name: 'after they merge', v: { points, under, sentence } };
 }
 
 
@@ -1796,8 +1823,10 @@ export function shiftCapacity(r: CapacityResult, shifts: ShiftIn[], co?: Changeo
     : '';
   const breaksNot = unsaid.length ? `${unsaid.join(', ')}: the breaks are not said on the line’s settings, so no capacity is worked out for ${unsaid.length === 1 ? 'it' : 'them'}` : '';
   /* several lines held by themselves make the sum of their paces: the words
-     name the whole, not one line's bottleneck (docs/UPGRADE-AUDIT.md M5) */
-  const together = r.lanes && r.lanes.heldBy === 'lanes' && r.line != null ? r.line : undefined;
+     name the whole, not one line's bottleneck (docs/UPGRADE-AUDIT.md M5); one
+     line feeding shared stations is one line, and its bottleneck is named */
+  const liveLanes = r.lanes ? r.lanes.sections.filter(s => s.result.ok.length > 0 && s.result.line != null).length : 0;
+  const together = r.lanes && r.lanes.heldBy === 'lanes' && liveLanes > 1 && r.line != null ? r.line : undefined;
   const at = together != null
     ? `At ${fmtN(together)} ${unit} a minute across the lines together${rate < together - 1e-9 ? ` (${fmtN(rate)} good off the end)` : ''}`
     : `At ${ln}’s ${fmtN(pace)} ${unit} a minute${rate < pace - 1e-9 ? ` (${fmtN(rate)} good off the end of the line)` : ''}`;

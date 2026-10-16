@@ -61,6 +61,23 @@ describe('a program planned on a line', () => {
     expect((await db.listStandardsForLine(w.id))[0]?.capacity?.stations.map(x => x.name)).toEqual(['Check weigher', 'Case packer']);
   });
 
+  it('the line\'s own list is renamed by renameLineMachine itself — a job\'s Install renames the record alone (the review of C3)', async () => {
+    const { db, lines, lr } = await fresh();
+    const w = await lines.addLineToFactory('Line 8');
+    await db.addMachineToLine(w.id, 'Checkweigher', 'Ishida');
+    await db.addMachineToLine(w.id, 'Case packer');
+    await db.renameLineMachine(w.id, 'Checkweigher', 'Check weigher');
+    let ws = (await db.listWorkspaces()).find(x => x.id === w.id);
+    if (!ws) throw new Error('the line was not kept');
+    expect(ws.assets).toEqual(['Whole line', 'Check weigher', 'Case packer']);
+    expect(lr.machinesOnLine(ws, await db.listAllAssets(), []).map(x => x.name)).toEqual(['Check weigher', 'Case packer']);
+    /* renamed to a name already on the list: one entry, never two */
+    await db.renameLineMachine(w.id, 'Check weigher', 'Case packer');
+    ws = (await db.listWorkspaces()).find(x => x.id === w.id);
+    if (!ws) throw new Error('the line was not kept');
+    expect(ws.assets).toEqual(['Whole line', 'Case packer']);
+  });
+
   it('a job\'s new program finds the job\'s only line', async () => {
     const { db, lines, lr } = await fresh();
     const w = await lines.addLineToFactory('Line 2A');

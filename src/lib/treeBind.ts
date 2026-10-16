@@ -549,7 +549,7 @@ export function unplacedActions(nodes: TreeNodeRow[], actions: PaceAction[]): Pa
 /** Why one row is not on the tree, in words a person can act on. */
 export function whyUnplaced(a: PaceAction): string {
   if (!(a.line ?? '').trim()) return 'no line on the row';
-  if (!(a.category ?? '').trim()) return 'no category on the tracker row';
+  if (!(a.category ?? '').trim()) return 'no category on the row';
   return `${a.category} on ${a.line} — no box is linked to it`;
 }
 

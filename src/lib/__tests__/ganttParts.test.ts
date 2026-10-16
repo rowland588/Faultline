@@ -47,7 +47,7 @@ const row = (id: string) => g.groups.flatMap(gr => gr.rows).find(r => r.id === i
 
 describe('a stage’s parts on the plan', () => {
   it('reads each part’s state the way the floor would: done, late, due soon, booked, or no day yet', () => {
-    expect(partOf(item({ testId: 'x', what: 'a', doneAt: Date.parse('2026-10-06T09:00:00Z') }), TODAY)).toMatchObject({ state: 'done', says: 'done 6 Oct' });
+    expect(partOf(item({ testId: 'x', what: 'a', doneAt: new Date(2026, 9, 6, 9).getTime() }), TODAY)).toMatchObject({ state: 'done', says: 'done 6 Oct' });   // a local moment: the day is the reader's own, whatever the zone
     expect(partOf(item({ testId: 'x', what: 'a', due: '2026-10-04' }), TODAY)).toMatchObject({ state: 'late', says: 'late — due 4 Oct' });
     expect(partOf(item({ testId: 'x', what: 'a', due: '2026-10-08' }), TODAY)).toMatchObject({ state: 'soon', says: 'due 8 Oct' });
     expect(partOf(item({ testId: 'x', what: 'a', due: '2026-10-09' }), TODAY)).toMatchObject({ state: 'booked' });
