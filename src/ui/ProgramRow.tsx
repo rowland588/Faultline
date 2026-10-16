@@ -45,6 +45,7 @@ import type { Can } from '../lib/access';
 import { isWholeDate } from './DateInput';
 import { offerUndo } from './Undo';
 import { ProgramTest, type FloorSay } from './ProgramTest';
+import { PartRun } from './StageParts';
 
 type TT = ReturnType<typeof useTesting>;
 
@@ -268,7 +269,9 @@ export function JobProgramRow({ projectId, line: l, tt, progs, can, stages, mach
       panel={
         <>
           {l.proof && <p className={'pgr-proof is-' + l.proof.tone}>{l.proof.word}</p>}
-          {l.run && <p className={'pgr-proof is-' + (l.runTone ?? 'n')}>In Commission: {l.run}</p>}
+          {/* ITS RUN AT SPEED IN COMMISSION — said, and planned, here (it was
+              only in the stage's drawer, which no longer lists the programs). */}
+          {part && (stage => stage && <PartRun part={part} step={stage} tt={tt} can={can} onOpen={onOpen} {...(onProblem ? { onRunProblem: onProblem } : {})} />)(stages.find(s => s.id === part.testId))}
           {can.edit
             ? <ProgramFields machines={machines}
                 start={{ what: l.what, machine: assetId, runs: l.runs ?? '', who: l.who ?? '', testDay: part?.due ?? program?.testOn ?? '', note: '' }}

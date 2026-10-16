@@ -18,6 +18,8 @@ import type { Test, TestItem } from '../lib/testing';
 import { answerOf, type AnswerHolder } from '../lib/install';
 import { niceDay, todayISO } from '../lib/weeks';
 import { nav } from '../state/useRoute';
+import { partStatus, partsOf } from '../lib/noted';
+import { openMachine } from './MachinePanel';
 import type { Can } from '../lib/access';
 
 const progWords = (p: Program, tests: Test[], today: string): { word: string; tone: string } => {
@@ -81,16 +83,29 @@ export function ProgramLink({ projectId, t, tests, onPatch, can, holder, items }
   }
 
   if (!isProgramsStage(t, answerOf(t, holder, items))) return null;
-  /* ONE DOOR. Rowland, 8 October: "what door do I use?" The programs stage on
-     Set up is the quick look — its programs, above, the same list as the
-     Programs page — and the Programs page is their home: every machine,
-     the filters, the report, the Programs list and its test days. The list of
-     Programs-list records this drawer also drew was a second list of the
-     same programs; they are on the Programs page, beside their lines. */
+  /* ITS PROGRAMS, SAID — NOT EDITED A SECOND TIME (docs/STAGEGATE-UX.md
+     slice 4; Rowland, 16 October: "find dorrs that open othe rthings"). The
+     drawer listed every program again with its whole editor, under a big
+     door to Programs and a link to its report — 2,825 px for one stage.
+     Here: how many and how they stand, each in its words, and one way to
+     where they are worked on — the machine's own page (its programs as on
+     Programs), or Programs for the line itself. The report is on Programs
+     and the Reports sheet. */
+  const parts = items ? partsOf(t.id, items) : [];
+  const said = parts.map(p => ({ p, s: partStatus(p, today, 0, 2) }));
+  /* how many and how many done is said once, beside the stage's state at the
+     top of the drawer (ui/StageParts PartsMark) */
   return (
     <div className="rd-blk rd-prog-door">
-      <button type="button" className="btn btn-sm btn-primary" onClick={() => nav(`/project/${projectId}/programs`)}>Open Programs ›</button>
-      <button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/report?doc=programs`)}>Programs report ›</button>
+      <small>Its programs</small>
+      {!parts.length && <span className="sub">None written on it yet</span>}
+      {said.length > 0 && (
+        <ul className="rd-progs">
+          {said.map(({ p, s }) => <li key={p.id}><span>{p.what}</span><span className={'spp-pill is-' + s.tone}>{s.word}</span></li>)}
+        </ul>
+      )}
+      <button type="button" className="btn btn-sm btn-primary" onClick={() => (t.assetId ? openMachine(projectId, t.assetId) : nav(`/project/${projectId}/programs`))}>
+        {t.assetId ? 'Change them, or say how they went — on the machine’s page ›' : 'Change them, or say how they went — on Programs ›'}</button>
     </div>
   );
 }

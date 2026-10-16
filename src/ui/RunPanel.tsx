@@ -162,12 +162,30 @@ function ProductRow({ p, can, compact, boxes, changing, onChange, onDay, onPlan,
   const f = productFigures(p);
   const { run, r, state } = p;
   const open = boxes || !!changing;
+  const [shown, setShown] = useState(false);
   const lockAgreed = !mayWriteAgreement(can, agreedWords(changing?.agreed ?? {}) ? 'agreed' : '');
   const setAgreed = (k: keyof RunAgreed) => (v?: number) => onPlan(x => {
     const agreed = cleanRun({ ...(x.agreed ?? {}), [k]: v });
     return { id: x.id, product: x.product, ...(x.program ? { program: x.program } : {}), ...(x.note ? { note: x.note } : {}), ...(agreed ? { agreed } : {}), ...(x.day ? { day: x.day } : {}), ...(x.ranOn ? { ranOn: x.ranOn } : {}) };
   });
   const tone = (t: string) => (t ? ` is-${t}` : '');
+  /* NORMAL RECEDES (CLAUDE.md, visual rule 2; docs/STAGEGATE-UX.md slice 4):
+     in the drawer, a product that passed is one line — its net rate, what it
+     made, its day — and its figures a tap away; so is one run again below
+     (the later row is the one that counts). What did not pass and stands,
+     or is still to run, keeps them out. */
+  if (compact && (state === 'met' || p.rerun) && !open && !shown && !problems.length) {
+    return (
+      <li className={'pr-row is-folded is-' + (p.rerun ? 'rerun' : 'met')}>
+        <div className="pr-top">
+          <b className="pr-name">{productName(run)}</b>
+          <span className={'pr-word is-' + (p.rerun ? 'rerun' : 'met')}>{p.rerun ? `${p.word} — run again below` : p.word}</span>
+        </div>
+        <p className="pr-agreed">Net {f.net}{r.day.packs != null ? ` · ${r.day.packs.toLocaleString('en-GB')} packs` : ''}{run.ranOn ? ` · ran ${niceDay(run.ranOn)}` : ''}
+          {' '}<button type="button" className="cw-link" onClick={() => setShown(true)}>Its figures</button></p>
+      </li>
+    );
+  }
   return (
     <li className={'pr-row is-' + state + (p.rerun ? ' is-rerun' : '')}>
       <div className="pr-top">

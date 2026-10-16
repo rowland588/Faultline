@@ -115,8 +115,6 @@ export function StageParts({ step, tt, can, onProblem, only, onOpen, onRunProble
      the tools come out on the line being worked on (CLAUDE.md, simplicity 2). */
   const [open, setOpen] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
-  /* PLAN ITS RUN — the product and the numbers agreed, for the program open. */
-  const [runPlan, setRunPlan] = useState<{ product: string; rate: string; minutes: string; rejectsMax: string } | null>(null);
   if (!all.length && !can.edit) return null;
 
   /* Everyone named anywhere on the job, for the "who" box. */
@@ -140,7 +138,6 @@ export function StageParts({ step, tt, can, onProblem, only, onOpen, onRunProble
     offerUndo(p.doneAt != null ? `“${p.what}” — not done` : `“${p.what}” — done`, () => tt.saveItem(p));
   };
   const openIt = (p: TestItem) => {
-    setRunPlan(null);
     if (open === p.id) { setOpen(null); setDraft(null); return; }
     const last = lastResult(p);
     setOpen(p.id);
@@ -169,23 +166,6 @@ export function StageParts({ step, tt, can, onProblem, only, onOpen, onRunProble
     const next = withoutResult(p, at);
     void tt.saveItem(next);
     offerUndo('Status taken off', () => tt.saveItem(p));
-  };
-  /* A PROGRAM'S RUN IN COMMISSION (lib/programRun) — a product row on the
-     machine's performance run, naming the program; the run is made on the
-     machine if it has none. */
-  const num = (v: string) => { const n = Number(v.replace(',', '.')); return v.trim() && Number.isFinite(n) ? n : undefined; };
-  const planRun = async (p: TestItem) => {
-    if (!runPlan || !runPlan.product.trim()) return;
-    const agreed = cleanRun({ rate: num(runPlan.rate), minutes: num(runPlan.minutes), rejectsMax: num(runPlan.rejectsMax) });
-    const row = plannedRun(p, runPlan.product, agreed, uid());
-    const today = todayISO();
-    const onRun = runTestsOn(tt.tests, step.assetId)[0];
-    const testId = onRun?.id ?? (await tt.planTests([{ title: COMMISSION_TESTS[1], ...(step.assetId ? { assetId: step.assetId } : {}) }]))[0];
-    if (!testId) return;
-    await tt.patchTest(testId, cur => patchRuns(cur, [...productRuns(cur), row], today));
-    offerUndo(`${row.product} planned on the run in Commission`,
-      () => tt.patchTest(testId, cur => patchRuns(cur, productRuns(cur).filter(x => x.id !== row.id), today)));
-    setRunPlan(null);
   };
   /* ▲ ▼ — the parts in the order the person wants them (lib/noted partMoved). */
   const move = (p: TestItem, by: -1 | 1) => { for (const x of partMoved(step.id, tt.items, p.id, by)) void tt.saveItem(x); };
@@ -271,63 +251,7 @@ export function StageParts({ step, tt, can, onProblem, only, onOpen, onRunProble
                     )}
                     {/* IN COMMISSION — its run at the agreed rate: what it netted
                         against what was agreed, or the run planned from here. */}
-                    {prog && (
-                      <div className="spp-run">
-                        <span className="spp-f-h">In Commission — its run at speed</span>
-                        {runs.map(({ test, p: pr }) => {
-                          const f = productFigures(pr);
-                          const rp = problemsOnRun(tt.items, test.id, pr.run.id);
-                          return (
-                            <div key={pr.run.id} className="spp-run-one">
-                              {/* The run is its own door — it opens its test in the
-                                  drawer — not a row with "Open the run ›" beside it. */}
-                              <button type="button" className="sp-door spp-run-row" disabled={!onOpen} onClick={() => onOpen?.(test.id)}>
-                                <b className={'is-' + (pr.state === 'met' ? 'g' : pr.state === 'short' ? 'r' : 'w')}>{pr.word}</b>
-                                {' '}{pr.run.product}{f.agreed ? ` · agreed ${f.agreed}` : ''}{f.net !== '—' ? ` · netted ${f.net}` : ''}{pr.gap ? ` · ${pr.gap}` : ''}
-                              </button>
-                              {/* What was seen on the run, and its problems — the
-                                  run's own, as the program's are above. */}
-                              {pr.run.note && <p className="spp-run-row spp-run-note">{pr.run.note}</p>}
-                              {rp.length > 0 && (
-                                <ul className="spp-probs">
-                                  {rp.map(x => (
-                                    <li key={x.id} className={x.doneAt == null ? 'is-open' : 'is-sorted'}>
-                                      <button type="button" className="sp-door" disabled={!onOpen} onClick={() => onOpen?.(x.id)}>
-                                        <b>Problem on the run:</b> {x.what}{x.hoursLost ? ` · ${x.hoursLost} h lost` : ''} · {x.doneAt == null ? 'open' : 'sorted'}</button>
-                                    </li>
-                                  ))}
-                                </ul>
-                              )}
-                              <span className="spp-panel-acts">
-                                {can.edit && onRunProblem && <button type="button" className="cw-link spp-prob" onClick={() => onRunProblem(test.id, pr.run.id)}>Hit a problem on the run</button>}
-                              </span>
-                            </div>
-                          );
-                        })}
-                        {!runs.length && !runPlan && (can.edit
-                          ? <button type="button" className="btn btn-sm" onClick={() => {
-                              const a = agreedBefore(tt.tests, step.assetId);
-                              setRunPlan({ product: p.what, rate: a?.rate != null ? String(a.rate) : '', minutes: a?.minutes != null ? String(a.minutes) : '', rejectsMax: a?.rejectsMax != null ? String(a.rejectsMax) : '' });
-                            }}>Plan its run in Commission</button>
-                          : <p className="sub">No run planned for it yet.</p>)}
-                        {runPlan && (
-                          <form className="spp-runf" onSubmit={e => { e.preventDefault(); void planRun(p); }}>
-                            <label className="spp-f spp-f-wide"><span>Product to run</span>
-                              <input value={runPlan.product} aria-label="Product to run" onChange={e => setRunPlan({ ...runPlan, product: e.target.value })} /></label>
-                            <label className="spp-f"><span>Net rate, ppm</span>
-                              <input inputMode="decimal" value={runPlan.rate} placeholder="e.g. 60" aria-label="Agreed net rate, packs a minute" onChange={e => setRunPlan({ ...runPlan, rate: e.target.value })} /></label>
-                            <label className="spp-f"><span>For, min</span>
-                              <input inputMode="decimal" value={runPlan.minutes} placeholder="e.g. 60" aria-label="Agreed minutes" onChange={e => setRunPlan({ ...runPlan, minutes: e.target.value })} /></label>
-                            <label className="spp-f"><span>Rejects at most, %</span>
-                              <input inputMode="decimal" value={runPlan.rejectsMax} placeholder="e.g. 1" aria-label="Rejects at most, per cent" onChange={e => setRunPlan({ ...runPlan, rejectsMax: e.target.value })} /></label>
-                            <span className="spp-acts">
-                              <button type="submit" className="btn btn-sm btn-primary" disabled={!runPlan.product.trim()}>Plan the run</button>
-                              <button type="button" className="btn btn-sm btn-ghost" onClick={() => setRunPlan(null)}>Cancel</button>
-                            </span>
-                          </form>
-                        )}
-                      </div>
-                    )}
+                    {prog && <PartRun part={p} step={step} tt={tt} can={can} {...(onOpen ? { onOpen } : {})} {...(onRunProblem ? { onRunProblem } : {})} />}
                     {history.length > 0 && (
                       <div className="spp-hist">
                         <span className="spp-f-h">History</span>
@@ -393,6 +317,90 @@ export function StageParts({ step, tt, can, onProblem, only, onOpen, onRunProble
       {!all.length && can.edit && <p className="sub spp-why">{prog
         ? 'Each program this machine has to run — then tap one to say how it stands — baseline achieved, passed, failed, not tested or no program — and what you saw.'
         : `Planned work inside this ${(step.kind ?? 'test') === 'install' ? 'stage' : 'test'}. Not a problem — a problem is for what went wrong.`}</p>}
+    </div>
+  );
+}
+
+/** A PROGRAM'S RUN IN COMMISSION (lib/programRun) — a product row on the
+ *  machine's performance run, naming the program; the run is made on the
+ *  machine if it has none. Said, and planned, wherever the program is worked
+ *  on: its row on Programs (ui/ProgramRow) and its stage's own list. */
+export function PartRun({ part: p, step, tt, can, onOpen, onRunProblem }: {
+  part: TestItem; step: Test; tt: Pick<TT, 'items' | 'tests' | 'planTests' | 'patchTest'>; can: Can;
+  onOpen?: (id: string) => void;
+  onRunProblem?: (testId: string, runId: string) => void;
+}) {
+  const [runPlan, setRunPlan] = useState<{ product: string; rate: string; minutes: string; rejectsMax: string } | null>(null);
+  const runs = runsOfProgram(p, step.assetId, tt.tests);
+  const num = (v: string) => { const n = Number(v.replace(',', '.')); return v.trim() && Number.isFinite(n) ? n : undefined; };
+  const planRun = async () => {
+    if (!runPlan || !runPlan.product.trim()) return;
+    const agreed = cleanRun({ rate: num(runPlan.rate), minutes: num(runPlan.minutes), rejectsMax: num(runPlan.rejectsMax) });
+    const row = plannedRun(p, runPlan.product, agreed, uid());
+    const today = todayISO();
+    const onRun = runTestsOn(tt.tests, step.assetId)[0];
+    const testId = onRun?.id ?? (await tt.planTests([{ title: COMMISSION_TESTS[1], ...(step.assetId ? { assetId: step.assetId } : {}) }]))[0];
+    if (!testId) return;
+    await tt.patchTest(testId, cur => patchRuns(cur, [...productRuns(cur), row], today));
+    offerUndo(`${row.product} planned on the run in Commission`,
+      () => tt.patchTest(testId, cur => patchRuns(cur, productRuns(cur).filter(x => x.id !== row.id), today)));
+    setRunPlan(null);
+  };
+  return (
+    <div className="spp-run">
+      <span className="spp-f-h">In Commission — its run at speed</span>
+      {runs.map(({ test, p: pr }) => {
+        const f = productFigures(pr);
+        const rp = problemsOnRun(tt.items, test.id, pr.run.id);
+        return (
+          <div key={pr.run.id} className="spp-run-one">
+            {/* The run is its own door — it opens its test in the
+                drawer — not a row with "Open the run ›" beside it. */}
+            <button type="button" className="sp-door spp-run-row" disabled={!onOpen} onClick={() => onOpen?.(test.id)}>
+              <b className={'is-' + (pr.state === 'met' ? 'g' : pr.state === 'short' ? 'r' : 'w')}>{pr.word}</b>
+              {' '}{pr.run.product}{f.agreed ? ` · agreed ${f.agreed}` : ''}{f.net !== '—' ? ` · netted ${f.net}` : ''}{pr.gap ? ` · ${pr.gap}` : ''}
+            </button>
+            {/* What was seen on the run, and its problems — the
+                run's own, as the program's are above. */}
+            {pr.run.note && <p className="spp-run-row spp-run-note">{pr.run.note}</p>}
+            {rp.length > 0 && (
+              <ul className="spp-probs">
+                {rp.map(x => (
+                  <li key={x.id} className={x.doneAt == null ? 'is-open' : 'is-sorted'}>
+                    <button type="button" className="sp-door" disabled={!onOpen} onClick={() => onOpen?.(x.id)}>
+                      <b>Problem on the run:</b> {x.what}{x.hoursLost ? ` · ${x.hoursLost} h lost` : ''} · {x.doneAt == null ? 'open' : 'sorted'}</button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <span className="spp-panel-acts">
+              {can.edit && onRunProblem && <button type="button" className="cw-link spp-prob" onClick={() => onRunProblem(test.id, pr.run.id)}>Hit a problem on the run</button>}
+            </span>
+          </div>
+        );
+      })}
+      {!runs.length && !runPlan && (can.edit
+        ? <button type="button" className="btn btn-sm" onClick={() => {
+            const a = agreedBefore(tt.tests, step.assetId);
+            setRunPlan({ product: p.what, rate: a?.rate != null ? String(a.rate) : '', minutes: a?.minutes != null ? String(a.minutes) : '', rejectsMax: a?.rejectsMax != null ? String(a.rejectsMax) : '' });
+          }}>Plan its run in Commission</button>
+        : <p className="sub">No run planned for it yet.</p>)}
+      {runPlan && (
+        <form className="spp-runf" onSubmit={e => { e.preventDefault(); void planRun(); }}>
+          <label className="spp-f spp-f-wide"><span>Product to run</span>
+            <input value={runPlan.product} aria-label="Product to run" onChange={e => setRunPlan({ ...runPlan, product: e.target.value })} /></label>
+          <label className="spp-f"><span>Net rate, ppm</span>
+            <input inputMode="decimal" value={runPlan.rate} placeholder="e.g. 60" aria-label="Agreed net rate, packs a minute" onChange={e => setRunPlan({ ...runPlan, rate: e.target.value })} /></label>
+          <label className="spp-f"><span>For, min</span>
+            <input inputMode="decimal" value={runPlan.minutes} placeholder="e.g. 60" aria-label="Agreed minutes" onChange={e => setRunPlan({ ...runPlan, minutes: e.target.value })} /></label>
+          <label className="spp-f"><span>Rejects at most, %</span>
+            <input inputMode="decimal" value={runPlan.rejectsMax} placeholder="e.g. 1" aria-label="Rejects at most, per cent" onChange={e => setRunPlan({ ...runPlan, rejectsMax: e.target.value })} /></label>
+          <span className="spp-acts">
+            <button type="submit" className="btn btn-sm btn-primary" disabled={!runPlan.product.trim()}>Plan the run</button>
+            <button type="button" className="btn btn-sm btn-ghost" onClick={() => setRunPlan(null)}>Cancel</button>
+          </span>
+        </form>
+      )}
     </div>
   );
 }

@@ -11333,8 +11333,9 @@ button.gt-fixlab small { font-size: 11.5px; }
 .crit-tag.is-sorted { background: var(--surface-2); color: var(--muted); }
 .crit-on-stage { margin: 4px 0 2px; padding: 6px 0 6px 10px; border-left: 3px solid var(--st-r); display: grid; gap: 4px; }
 .crit-on-stage.is-sorted { border-left-color: var(--line-2); }
-.crit-story { display: grid; gap: 4px; font-size: var(--t-detail); line-height: 1.45; color: var(--ink); overflow-wrap: anywhere; }
+.crit-story { display: grid; gap: 4px; width: 100%; font-size: var(--t-detail); line-height: 1.45; color: var(--ink); overflow-wrap: break-word; }
 .crit-impact { margin: 0; }
+.crit-ways-r { width: 100%; min-width: 0; }
 .crit-ways-r ul { margin: 2px 0 0; padding-left: 18px; }
 .crit-ways-r li.is-agreed { font-weight: 600; }
 .crit-agreed { color: var(--st-g); font-weight: 700; }
@@ -11394,7 +11395,7 @@ button.gt-fixlab small { font-size: 11.5px; }
 .dp-what-in, .dp-edit .text-input:first-child { flex: 3 1 240px; min-width: 0; }
 .dp-who { flex: 1 1 120px; min-width: 0; }
 .dp-about { flex: 2 1 180px; min-width: 0; max-width: 100%; }
-.dp-branch .dp-tick { padding: 4px 0; }
+.dp-branch .dp-tick { padding: 4px 0; flex: none; }
 .nt-today { margin: 4px 0 12px; }
 
 /* A HIGH RISK (lib/critical riskProblems) — the critical marks in amber: it
@@ -11570,7 +11571,13 @@ button.gt-fixlab small { font-size: 11.5px; }
 .spp-runf > .spp-f-wide, .spp-runf > .spp-acts { grid-column: 1 / -1; }
 @media (max-width: 520px) { .spp-runf { grid-template-columns: 1fr 1fr; } }
 /* The programs stage's drawer: one door to the Programs page. */
-.rd-prog-door { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.rd-prog-door { display: grid; gap: 6px; justify-items: start; }
+/* a programs stage's programs, said in the drawer (ui/ProgramLink) — a line
+   each, its name and its state; changed on the machine's page */
+.rd-progs { list-style: none; margin: 2px 0 6px; padding: 0; display: grid; gap: 4px; width: 100%; }
+.rd-progs li { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 10px; font-size: var(--t-detail); color: var(--ink); }
+.rd-progs li > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.pr-row.is-folded .pr-agreed { margin-bottom: 0; }
 .pr-prog { font-size: var(--t-detail); margin-left: 8px; }
 /* One product's run in a program's panel: its words, then what was seen and
    its problems, then its doors. */
@@ -13152,3 +13159,9 @@ button.cxb-row:hover .cxb-n { color: var(--accent); }
 .mpg-side .pp-m { margin-top: 0; }
 @media (max-width: 900px) { .mpg-cols { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 560px) { .mpg-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* A stage's story folded in the drawer (ui/RecordDrawer) — one line, a tap. */
+.rd-fold-b { all: unset; box-sizing: border-box; cursor: pointer; display: grid; gap: 2px; width: 100%; font-size: var(--t-detail); color: var(--ink-2); }
+.rd-fold-b:hover span { color: var(--ink); }
+.rd-fold-b:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.is-a-t { color: var(--st-a); }
