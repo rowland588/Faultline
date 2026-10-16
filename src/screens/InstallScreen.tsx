@@ -26,6 +26,8 @@
  * lib/install's, one call, so the sentence here is the sentence on paper.
  */
 import { useEffect, useState } from 'react';
+import { everyGateOffer, giveEveryGate, takeBack } from '../lib/giveGates';
+import { offerUndo } from '../ui/Undo';
 import { Fold } from '../ui/Fold';
 import { PaceSnags } from './PaceSnags';
 import { framesForProject, getPaceWorkspaceId, onDataChange } from '../db';
@@ -186,8 +188,10 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
           </p>
         </div>
         <div className="pace-head-actions">
-          <button type="button" className="btn" disabled={cardsBusy || steps.length === 0} onClick={() => void allCards()}
-            aria-label={`${cardWord} cards — a card for every ${cardWord.toLowerCase()} on ${GATE_WORD[gate]} (PDF)`}><Icon name="document" size="1.05em" />{cardsBusy ? 'Making…' : `${cardWord} cards`}</button>
+          {/* a card a step — offered once there is a step to print; on a job
+              just started it stood there greyed out over nothing (the walk) */}
+          {steps.length > 0 && <button type="button" className="btn" disabled={cardsBusy} onClick={() => void allCards()}
+            aria-label={`${cardWord} cards — a card for every ${cardWord.toLowerCase()} on ${GATE_WORD[gate]} (PDF)`}><Icon name="document" size="1.05em" />{cardsBusy ? 'Making…' : `${cardWord} cards`}</button>}
         </div>
       </header>
       <AccessNote can={can} owner={project.lead} />
@@ -301,7 +305,18 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
 
       {onGrid
         ? <InstallGrid tt={tt} project={project} stages={stages} gate={gate} can={can} programs={progs.programs} holder={holder}
-            otherName={projects.find(p => p.id === stages.otherId)?.name} />
+            otherName={projects.find(p => p.id === stages.otherId)?.name}
+            everyGate={(() => {
+              /* EVERY GATE'S LIST IN ONE TAP (lib/giveGates) — for machines
+                 with none at two gates or more; it was "give them all" four
+                 times on four pages (the stage-gate walk, 16 October) */
+              const ids = tt.assets.filter(a => !a.deletedAt).map(a => a.id);
+              const offer = everyGateOffer(project, projects, tt.tests, ids);
+              return offer.says ? { says: offer.says, give: async () => {
+                const made = await giveEveryGate(tt, project, projects, tt.assets, ids);
+                if (made.length) offerUndo(`Every gate’s usual list given — ${offer.says}`, () => takeBack(made, project.id));
+              } } : undefined;
+            })()} />
         : (
           <p className="sub tw-note">
             {/* A client is never told to add what they cannot. */}

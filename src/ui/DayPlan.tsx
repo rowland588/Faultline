@@ -14,7 +14,8 @@
  * morning. Everything here can be changed or taken off. */
 import { useState } from 'react';
 import { live, WHOLE_JOB, type Test, type TestItem } from '../lib/testing';
-import { leftFrom, planCount, planFor, TODAY_KIND } from '../lib/huddle';
+import { leftFrom, planCount, planFor, planNamed, TODAY_KIND } from '../lib/huddle';
+import { answerOf, doneTodayPatch } from '../lib/install';
 import { niceDay } from '../lib/weeks';
 import { uid } from '../lib/ids';
 import { deleteTestItem } from '../db';
@@ -31,15 +32,17 @@ export function DayPlan({ projectId, today, tt, can, due }: {
   /** What the plan already has due or under way today — offered first. */
   due: Test[];
 }) {
-  const plan = planFor(tt.items, today);
-  const left = leftFrom(tt.items, today);
+  const plan = planFor(tt.items, today, tt);
+  const left = leftFrom(tt.items, today, tt);
+  /* what is kept, not what is read — a line reads done when its record is
+     done (lib/huddle planFor); a write keeps the line's own tick */
+  const kept = (i: TestItem): TestItem => tt.items.find(x => x.id === i.id) ?? i;
   const [what, setWhat] = useState('');
   const [who, setWho] = useState('');
   const [about, setAbout] = useState(WHOLE_JOB);
   const [editing, setEditing] = useState<{ id: string; what: string; owner: string } | null>(null);
   const tests = live(tt.tests);
-  const machine = (t?: Test) => tt.assets.find(a => a.id === t?.assetId)?.name;
-  const named = (t: Test) => (t.kind === 'install' ? `${machine(t) ?? 'The line'} — ${t.title}` : t.title);
+  const named = (t: Test) => planNamed(t, tt.assets);
   const onIt = new Set(plan.map(i => i.testId).filter(Boolean));
   const offer = due.filter(t => !onIt.has(t.id)).slice(0, 8);
   /* Everyone named on the job, for the "who" box. */
@@ -70,12 +73,37 @@ export function DayPlan({ projectId, today, tt, can, due }: {
     void put([{ what: w, ...(about ? { testId: about } : {}), ...(who.trim() ? { owner: who.trim() } : {}) }], `On today’s plan: “${w}”`);
     setWhat(''); setWho(''); setAbout(WHOLE_JOB);
   };
-  const tick = (i: TestItem) => {
+  const tick = (shown: TestItem) => {
+    const i = kept(shown), on = about_(i);
+    /* done by its record — put back there, where it was said */
+    if (shown.doneAt != null && i.doneAt == null && on) { openRecord(projectId, on.id); return; }
     const was = i.doneAt != null;
+    /* THE LINE THAT IS A STAGE does the stage: ticked, the stage is done
+       today with it, one Undo for both (lib/install doneTodayPatch) — the
+       line said done while the stage stayed late on Today, the Plan, the
+       machine and the reports (the stage-gate walk, 16 October). A sign-off
+       or paperwork stage, a test and a fix open, to say who signed or how it
+       went; a line only ABOUT a record ticks itself alone. */
+    const isIt = !!on && named(on) === i.what.trim();
+    if (!was && isIt && on.outcome !== 'passed') {
+      const ans = on.kind === 'install' ? answerOf(on, undefined, tt.items) : undefined;
+      if (on.kind === 'install' && ans !== 'signoff' && ans !== 'paperwork') {
+        const before = { outcome: on.outcome, ranOn: on.ranOn, result: on.result, withWhom: on.withWhom };
+        void (async () => {
+          await tt.saveItem({ ...i, doneAt: Date.now() });
+          await tt.patchTest(on.id, doneTodayPatch(on, { tests: tt.tests, items: tt.items, assets: tt.assets }, today)(on));
+        })();
+        offerUndo(`${named(on)} — done`, async () => { await tt.saveItem(i); await tt.patchTest(on.id, before); });
+        return;
+      }
+      openRecord(projectId, on.id);
+      return;
+    }
     void tt.saveItem({ ...i, doneAt: was ? undefined : Date.now() });
     offerUndo(was ? `“${i.what}” — not done` : `“${i.what}” — done`, () => tt.saveItem(i));
   };
-  const save = (i: TestItem, e: NonNullable<typeof editing>) => {
+  const save = (shown: TestItem, e: NonNullable<typeof editing>) => {
+    const i = kept(shown);
     const w = e.what.trim(), o = e.owner.trim() || undefined;
     if (w && (w !== i.what || o !== i.owner)) { void tt.saveItem({ ...i, what: w, owner: o }); offerUndo('Changed', () => tt.saveItem(i)); }
     setEditing(null);
@@ -147,7 +175,9 @@ export function DayPlan({ projectId, today, tt, can, due }: {
               from the plan, not a blank page. */}
           {offer.length > 0 && (
             <div className="dp-offer">
-              <span className="sub">Due or under way today:</span>
+              {/* the words say what a tap does — it read as the stage itself,
+                  and adding it to the plan surprised (the stage-gate walk) */}
+              <span className="sub">Due or under way today — tap to add it to the plan:</span>
               {offer.map(t => (
                 <button key={t.id} className="chip dp-chip" onClick={() => void put([{ what: named(t), testId: t.id, ...(t.withWhom ? { owner: t.withWhom } : {}) }], `On today’s plan: “${named(t)}”`)}>
                   <Icon name="plus" size="0.9em" /> {named(t)}

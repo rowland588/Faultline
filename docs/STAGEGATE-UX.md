@@ -205,3 +205,58 @@ Measured on the seeded job before and after, at 390 px and 1360 px
   answer); the Rename beside the job's title (already the quiet button);
   the machines' gate steppers on Today (one row, one door, as slice 5 built).
 - Paper: none moves — every change is how a row is drawn on screen.
+
+## The walk — the stage gate used end to end (16 October)
+
+Rowland, 16 October: "every single new user interface we actually designed
+always seems to have a complexity. And you couldn't really navigate simply
+through things like a problem ... the way things were actually synced
+together or working cohesively." Each slice had been checked page by page;
+the confusion lived between pages. So the five journeys a site lead makes
+were walked as a first-timer — pressing what the words on the screen say,
+every tap counted, a step with no control named for it a dead end, and
+every place the change must reach read back. The walk is now a gate script
+(`scripts/acceptance/stagegate-walk.mjs`): on the code before these fixes
+it fails 12 checks; after, none.
+
+| Journey | Before | After |
+|---|---|---|
+| Start a job, two machines, every gate's list (phone) | 16 taps — "give them all" on four pages | 9 taps — every gate's list in one tap |
+| A stage done from the day's plan (phone) | ticked the line only; the stage stayed late on Today, its gate, the machine and the reports | the line is the stage: done everywhere, one Undo |
+| A stage done in its drawer | its line on the day's plan still "to do" | reads done |
+| A failed test → problem → fix → re-test (desk) | dead end after saving the problem (the drawer closed, nothing said what came next); "Fixed" threw away the drawer; "re-test — re-test" | 9 taps in one drawer with Back: the problem opens, Make it a fix, Fixed returns to it, Plan the re-test, Passed |
+| A program tested (phone) | 5 taps, in step | 5 taps, in step |
+| A hand-over item done (desk) | 4 taps, in step | 4 taps, in step |
+
+What changed, where:
+
+- **A plan line that is a stage** (its words the stage's own name, as the
+  day's chip writes it) reads done once the stage is done, by any route —
+  the day, the front page's "plan for today", Notes and Today's update all
+  read it through `lib/huddle planFor`. Ticking it does the stage
+  (`doneTodayPatch`), one Undo for both; a sign-off, a paperwork stage, a
+  test and a fix open instead, to ask who signed or how it went. A line only
+  ABOUT a record ("Load the Express programs" on a Programs loaded stage
+  passed last week) keeps its own tick. The chips say what a tap does: "Due
+  or under way today — tap to add it to the plan".
+- **A problem just saved opens next** in the same drawer, Back to the record
+  it was found on, where "Make it a fix" is (`RecordDrawer openSaid`,
+  `WhyMoved recordProblem` returns it).
+- **A state changed on a record reached from another goes back to that
+  one** instead of closing the drawer (`RecordDrawer andClose`): Fixed on a
+  fix returns to its problem, then its test, where Plan the re-test is. A
+  record opened on its own still closes.
+- **A re-test of a re-test is "— re-test" once** (`lib/testing nextFrom`).
+- **Every gate's usual list in one tap** (`lib/giveGates`): on Install, for
+  machines with none at two gates or more, "every gate's list at once —
+  Install 6 · Set up 5 · Commission 6 · Hand over 5", each line with who it
+  is usually with and, on a test, what it must show — as each gate's own
+  button gives. One Undo.
+- **A gate's card PDF** is offered once there is a step to print.
+- **Kept, with the reason:** Programs under More on a phone (the bar is
+  Control room · This job · Plan · Problems · More, as slice 2 built it);
+  the front page's "The plan ›" on Needs you and on its own card — every
+  panel's door is the house pattern, and on a phone the card is three
+  panels further down.
+- Paper: Today's update and the status report read the plan through the
+  same rule, so a stage done reads done there too; nothing else moves.

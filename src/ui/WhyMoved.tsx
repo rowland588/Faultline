@@ -192,7 +192,7 @@ export async function moveTestsWithWhy(tt: TT, ts: Test[], from: string, to: str
 
 /** Keep the reason (and the fix, if asked) on each moved step. Returns how to
  *  take it all back — the caller restores the dates in the same Undo. */
-export async function recordMove(tt: TT, steps: { step: Test; from?: string; to?: string }[], a: WhyAnswer): Promise<() => Promise<void>> {
+export async function recordMove(tt: TT, steps: { step: Test; from?: string; to?: string }[], a: WhyAnswer): Promise<(() => Promise<void>) & { made: string[] }> {
   const made: { item: string; fix?: string }[] = [];
   const at = Date.now();
   for (const [k, { step, from, to }] of steps.entries()) {
@@ -228,13 +228,15 @@ export async function recordMove(tt: TT, steps: { step: Test; from?: string; to?
       await tt.patchTest(f.id, { plannedFor: f.plannedFor && addDays(f.plannedFor, days), plannedTo: f.plannedTo && addDays(f.plannedTo, days) });
     }
   }
-  return async () => {
+  const undo = async () => {
     for (const m of made) {
       await deleteTestItem(m.item);
       if (m.fix) await deleteTest(m.fix, steps[0].step.projectId);
     }
     for (const f of shifted) await tt.patchTest(f.id, { plannedFor: f.plannedFor, plannedTo: f.plannedTo });
   };
+  /* the problems it wrote, so the drawer can open the one just said */
+  return Object.assign(undo, { made: made.map(m => m.item) });
 }
 
 /** WHY ONE OF THE OTHER DATES MOVED — the handover, a machine, a material, a
@@ -459,7 +461,7 @@ export function ProblemForm({ step, onSave, onCancel, tests = [], items = [], as
 export async function recordProblem(tt: TT, step: Test, a: WhyAnswer & { to?: string }, said: string,
   /** A TEST'S verdict is its own: what was seen on it is written, its finish
    *  moved if asked, and "didn't pass" is said by the verdict, not by this. */
-  opts: { keepOutcome?: boolean } = {}): Promise<void> {
+  opts: { keepOutcome?: boolean } = {}): Promise<string | undefined> {
   const before = { outcome: step.outcome, ranOn: step.ranOn, plannedFor: step.plannedFor, plannedTo: step.plannedTo };
   const end = plannedEnd(step);
   const moved = !!a.to && movedLater(end, a.to);
@@ -469,4 +471,6 @@ export async function recordProblem(tt: TT, step: Test, a: WhyAnswer & { to?: st
   await tt.patchTest(step.id, opts.keepOutcome ? dates : { outcome: 'failed', ranOn: step.ranOn ?? todayISO(), ...dates });
   const back = await recordMove(tt, [{ step, ...(moved ? { from: end, to: a.to } : {}) }], a);
   offerUndo(said, async () => { await tt.patchTest(step.id, before); await back(); });
+  /* the problem just written — the drawer opens it next, where its fix is made */
+  return back.made[0];
 }

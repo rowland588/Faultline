@@ -582,8 +582,8 @@ const LENSES: { id: Lens; label: string; sub: string }[] = [
 ];
 
 /** Today's huddle plan, in words — "plan for today: 1 of 3 done". */
-function todaysPlan(items: TestItem[], today: string): string {
-  const plan = planFor(items, today);
+function todaysPlan(items: TestItem[], today: string, job?: Parameters<typeof planFor>[2]): string {
+  const plan = planFor(items, today, job);
   return plan.length ? `plan for today: ${planCount(plan)}` : 'nothing planned for today yet';
 }
 
@@ -686,7 +686,7 @@ function TestingOverview({ projectId, project, edit, remove = false }: { project
                   on this page — today's huddle plan, and how many dates. */}
               <span className="fp-doors">
                 <button className="fp-door" onClick={() => nav(`/project/${projectId}/day`)}>
-                  <b>The day ›</b><span className="sub">{todaysPlan(tt.items, today)}</span>
+                  <b>The day ›</b><span className="sub">{todaysPlan(tt.items, today, tt)}</span>
                 </button>
                 <button className="fp-door" onClick={() => nav(`/project/${projectId}/plan`)}>
                   <b>The plan ›</b><span className="sub">{planSays(st.plan, today)}</span>
