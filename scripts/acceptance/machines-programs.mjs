@@ -485,7 +485,15 @@ await page.setViewportSize({ width: 1360, height: 900 });
   await r12.locator('.ptx-panel').getByRole('button', { name: 'Didn’t pass', exact: true }).click();
   await r12.locator('.ptx-panel textarea').fill('Film creasing again on the 1.25 kg — seal jaws cold');
   await r12.locator('.ptx-panel').getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(1500);
-  j = await job();
+  /* the save writes the test, the record and the floor's word; read once it
+     has settled, not after a fixed pause — under the gate's load 1.5 s read
+     the record before it had dropped back (16 October, in the gate twice) */
+  for (let k = 0; k < 20; k++) {
+    j = await job();
+    const a12 = j.programs.find(p => p.id === p12.id);
+    if (!a12.provedOn && a12.state === 'onMachine') break;
+    await page.waitForTimeout(500);
+  }
   const after12 = j.programs.find(p => p.id === p12.id);
   const part12 = await page.evaluate(async pid => (await (await import('/src/db.ts')).listTestItems(pid)).find(i => !i.deletedAt && i.kind === 'next' && i.what === 'PR-12 Express 1.25 kg'), sd.projectId);
   ok(!after12.provedOn && after12.state === 'onMachine' && part12?.results?.at(-1)?.is === 'failed' && /^on the machine · (failed .* to prove again|test didn’t pass)$/.test(j.lines.find(l => l.what === 'PR-12 Express 1.25 kg').record?.word ?? ''),
