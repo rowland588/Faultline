@@ -13110,3 +13110,22 @@ button.cxb-row:hover .cxb-n { color: var(--accent); }
 }
 .pgr-after { grid-column: 1; min-width: 0; display: grid; gap: 2px; font-size: var(--t-detail); }
 .pgr-after .mt-facts, .pgr-after .lp-how { margin: 0; }
+
+/* THE PLAN'S TABS (ui/PlanTabs; docs/STAGEGATE-UX.md slice 2) — the four
+   gates and the timeline as one place, above each one's page. The tab you
+   are on is underlined in the blue you press; a tab's count as the rail
+   says it — the number neutral, only "late" red. */
+.plt { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin: 0 0 16px; border-bottom: 1px solid var(--line); }
+.plt-h { font-size: var(--t-label); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.plt-tabs { position: relative; display: flex; gap: 2px; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.plt-tabs::-webkit-scrollbar { display: none; }
+.plt-t { display: inline-flex; align-items: baseline; gap: 6px; padding: 10px 12px 9px; margin-bottom: -1px; border-bottom: 2.5px solid transparent;
+  color: var(--ink-2); font-weight: 600; text-decoration: none; white-space: nowrap; }
+.plt-t:hover { color: var(--ink); }
+.plt-t.on { color: var(--ink); border-bottom-color: var(--brand); }
+.plt-t:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 6px; }
+.plt-n { font-size: var(--t-detail); font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.plt-n b { color: var(--st-r); }
+.plt-n.is-done { color: var(--st-g); }
+.plt-time { margin-left: 10px; }
+@media (max-width: 560px) { .plt-h { display: none; } .plt-t { padding: 9px 9px 8px; } .plt-time { margin-left: 0; } }

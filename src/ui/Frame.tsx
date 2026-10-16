@@ -233,7 +233,6 @@ function GateNav(p: NavProps) {
     { lines: [controlRoom(p.here), snagsPlace(p.here), jobLine(p.project.id, p.project.name, p.here, stand.standing.late,
       (['install', 'setup', 'handover'] as const).reduce((n, k) => n + (stand.counts[k]?.problem ?? 0), 0))] },
     gatesGroup(p.project.id, p.here, stand.counts),
-    workGroup(p.project.id, p.model, p.here, stand.counts),
     footGroup(p.project.id, p.here, p.notes),
     /* The lines a stage-gate job is on go under paper, above the tools, so
        they no longer push the job down (docs/FLOW.md item 3) — named Lines,
@@ -253,7 +252,7 @@ function MethodNav(p: NavProps & { method: 'board' | 'tree' }) {
     { lines: [controlRoom(p.here), snagsPlace(p.here), jobLine(p.project.id, p.project.name, p.here, (counts.board?.late ?? 0) + (counts.materials?.late ?? 0))] },
     methodGroup(p.project.id, p.method, p.here, counts,
       { pareto: !!p.project.pareto, tree: p.method !== 'tree' && !!p.project.leverTree }),
-    workGroup(p.project.id, p.model, p.here, counts),
+    workGroup(p.project.id, p.here, counts),
     /* A running line's lines are what the job is about, so they stay with
        the work; only the tools go to the foot. */
     linesGroup(p.project.id, p.lines, p.here, p.wsId),

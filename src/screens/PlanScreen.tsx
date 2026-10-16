@@ -26,6 +26,7 @@ import { planGaps } from '../lib/onTarget';
 import { planSays } from '../lib/plan';
 import { paceOf } from '../lib/pace';
 import { todayISO } from '../lib/standing';
+import { PlanTabs } from '../ui/PlanTabs';
 
 export function PlanScreen({ projectId }: { projectId: string }) {
   /* All the jobs, for each gate's list as the Install grid finds it (lib/install usualStages). */
@@ -59,6 +60,7 @@ export function PlanScreen({ projectId }: { projectId: string }) {
 
   return (
     <div className="wrap pace cm-screen">
+      <PlanTabs projectId={projectId} on={'timeline'} />
       <header className="pace-head">
         <div className="pace-head-main">
           <h1 className="pace-title">The plan</h1>

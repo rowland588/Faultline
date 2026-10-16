@@ -204,9 +204,10 @@ await go(`#/project/${P}/install`, 3000);
 await shot('16-install');
 const needsI = (await page.locator('.cg-needs .nd-row').allInnerTexts()).map(flat);
 const lateHead = Number(/(\d+) late/.exec(flat(await page.locator('.pace-head .cw-handover').innerText()))?.[1] ?? 0);
-const railI = await railN('Install');
+/* the gates are the Plan's tabs (docs/STAGEGATE-UX.md): Install's count is its tab's */
+const railI = flat(await page.locator('.plt-t', { hasText: /^Install/ }).locator('.plt-n').innerText().catch(() => ''));
 ok(needsI.some(n => /^Late Domino coder — not on site, was /.test(n)) && Number(/(\d+) late/.exec(railI)?.[1] ?? -1) === lateHead,
-  `16b Install's Needs you: the coder late on site, as the control room lists it; rail "${railI}", head ${lateHead} late`);
+  `16b Install's Needs you: the coder late on site, as the control room lists it; its tab "${railI}", head ${lateHead} late`);
 await go(`#/project/${P}/handover`, 3000);
 const needsH = (await page.locator('.cg-needs .nd-row').allInnerTexts()).map(flat);
 const headH = flat(await page.locator('.pace-head .cw-handover').innerText());

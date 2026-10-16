@@ -53,8 +53,8 @@ So:
 | Programs — a stage-gate job | the programs in a sentence · the states worth showing, each a filter · a row a program, machine by machine · how its test went, on its row · a program added to a machine (16 October, docs/STAGEGATE-UX.md: the eight tiles became the chips worth showing, the machine chips a select, the Programs list folded at the foot went — every field is on the row) |
 | Problems | the register |
 | A stage-gate job | the verdict · Needs you · where each machine is |
-| Commission | Needs you · the board (desk) / a card a machine (phone) |
-| The plan | the Gantt |
+| Commission | the plan's tabs, Commission on · Needs you · the board (desk) / a card a machine (phone) |
+| The plan | the Gantt · the plan's tabs, Timeline on (16 October: the four gates and the timeline are one Plan in the rail, its tabs on each) |
 | A 6M job | the verdict · the fishbone drawn |
 | The 6M board | the six bones |
 | The Pareto | the ranked losses |

@@ -41,10 +41,12 @@ export const PAGES = (sd, cap) => [
     { what: 'a program added to a machine', sel: '.pgr-add-open' },
   ] },
   { name: 'Commission', path: `#/project/${sd.projectId}/testing`, must: [
+    /* the four gates and the timeline are one Plan, its tabs (16 October, docs/STAGEGATE-UX.md) */
+    { what: 'the plan’s tabs, Commission on', sel: '.plt .plt-t.on', text: /^Commission/ },
     { what: 'Needs you', sel: '.nd-list' }, { what: 'the board, machine by machine', sel: '.ig-grid', desk: true },
     { what: 'the board as a card a machine', sel: '.igm-card', phone: true },
   ] },
-  { name: 'The plan', path: `#/project/${sd.projectId}/plan`, must: [{ what: 'the Gantt', sel: '.gt-body' }] },
+  { name: 'The plan', path: `#/project/${sd.projectId}/plan`, must: [{ what: 'the Gantt', sel: '.gt-body' }, { what: 'the plan’s tabs, Timeline on', sel: '.plt .plt-t.on', text: /^Timeline/ }] },
   { name: 'A 6M job — its front page', path: `#/project/${sd.pacedProjectId}`, must: [
     { what: 'the verdict', sel: '.vd' }, { what: 'the fishbone, drawn', sel: 'svg.fb-svg' },
   ] },

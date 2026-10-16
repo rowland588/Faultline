@@ -47,10 +47,8 @@ the tab); The day becomes Today's plan on the front page.
 ## The slices, each live on its own
 
 1. **Programs — one row, one form, one date.** *Built 16 October* (below).
-2. **Plan.** The four gate pages become one Plan: Board | Timeline, and
-   Install · Set up · Commission · Hand over as the board's tabs; old links
-   land on the right tab; the rail drops to six places; Needs you only on
-   Today (each tab says its count in one line).
+2. **Plan.** *Built 16 October* (below). The four gates and the timeline
+   are one Plan: one line in the rail, their tabs on each page.
 3. **A machine is a page.** Its gates as a stepper, what needs something
    first, its programs and problems (the same rows as Programs); in the rail
    under Machines; every machine name opens it.
@@ -58,7 +56,10 @@ the tab); The day becomes Today's plan on the front page.
    buttons, history folded; links open in the drawer with Back. The
    "Programs loaded" stage's drawer stops listing the programs a second time
    (its "Plan its run in Commission" moves to the program's row first).
-5. **Today, calmer.** Needs you as quiet rows with a mark and one date; the
+5. **Today, calmer.** Needs you as quiet rows with a mark and one date, and
+   only there — each gate tab says its count in one line instead of its own
+   Needs you (moved here from slice 2: Commission's Needs you carries the
+   buttons that plan a re-test, and Today must carry them first); the
    machines as steppers; today's plan folded in from The day.
 6. **Phone.** Each slice at 390 px; the bar becomes Today · Plan · Machines ·
    Programs · Problems.
@@ -93,3 +94,22 @@ the tab); The day becomes Today's plan on the front page.
   the foot (`ProgramsScreen embedded`, a second editor of the same programs —
   every field is on the row; its week grid duplicated the plan; it stays on
   a non-stage-gate job's Materials, where it is the only list).
+
+## Slice 2 as built — the Plan
+
+- **The rail** (`src/ui/rail.ts` `gatesGroup`): a stage-gate job reads its
+  name, then **Plan · Programs · Problems · Materials · The day** in one
+  group (it was Gates: Install · Set up · Programs · Commission · Hand over,
+  then Work: Problems · Materials · The plan · The day). Plan counts every
+  gate's open work with its late part, opens on the gate the job is at (the
+  first with work open, else the timeline) and is lit on any gate, a step's
+  or a test's own page, and the timeline.
+- **The tabs** (`src/ui/PlanTabs.tsx`) on Install, Set up, Commission, Hand
+  over and the timeline: each gate with its count as the rail said it (the
+  number neutral, "late" red), Timeline last; the routes are unchanged, so
+  every link into a gate lands on its tab. On a phone they scroll sideways,
+  the one you are on in view.
+- **The phone's bar**: Control room · This job · Plan (or the place of the
+  job's work you are on) · Problems · More.
+- **Gone, and why**: the four gate lines and "The plan" in the rail — five
+  doors to one kind of page; every one is a tab now, one tap from the others.
