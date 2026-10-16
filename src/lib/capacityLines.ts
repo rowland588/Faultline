@@ -54,9 +54,12 @@ export function reshape(cap: Capacity, lines: number, mergeAfter: number, uid: (
   const n = Math.max(1, Math.min(MAX_LINES, Math.floor(lines)));
   const k = Math.max(1, Math.min(chain.length, Math.floor(mergeAfter)));
   const strip = (s: Station): Station => { const { lane: _drop, ...rest } = s; void _drop; return rest as Station; };
-  if (n === 1 || !chain.length) return { ...cap, lanes: undefined, stations: chain.map(strip) };
+  if (n === 1) return { ...cap, lanes: undefined, stations: chain.map(strip) };
   const old = cap.lanes ?? [];
   const lanes: Lane[] = Array.from({ length: n }, (_, i) => old[i] ?? { id: uid(), name: laneLetter(i) });
+  /* ASKED FIRST (16 October: "it doesn't appear first"): the lines chosen
+     before any station is typed — each line empty, ready for its stations */
+  if (!chain.length) return { ...cap, lanes, stations: cap.stations.filter(s => !s.lane || !old.some(l => l.id === s.lane) || lanes.some(l => l.id === s.lane)) };
   const ids = new Set(old.map(l => l.id));
   let shared = cap.stations.filter(s => !s.lane || !ids.has(s.lane)).map(strip);
   /* each line's own stations as they stand — a new line a copy of the first's */

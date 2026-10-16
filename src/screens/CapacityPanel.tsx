@@ -36,6 +36,9 @@ import { niceDay } from '../lib/weeks';
 import { uid } from '../lib/ids';
 import { chainOf as lineChain, lanesAlike, MAX_LINES, mergeAfterOf, reshape } from '../lib/capacityLines';
 import { planToTarget } from '../lib/capacityPlan';
+import { flowModel } from '../lib/capacityFlow';
+import { CapacityFlow } from '../ui/CapacityFlow';
+import { CapacityBars } from '../ui/CapacityBars';
 import { nav } from '../state/useRoute';
 import { type PillarKey } from '../lib/pillars';
 import { BoneChips } from '../ui/ActionSheet';
@@ -125,14 +128,11 @@ function CapacitySheet({ r, v, target, study, onUse }: { r: ReturnType<typeof an
 
 /* =============================== one station ================================ */
 
-function StationCard({ s, i, num, canUp, canDown, onSplit, last, prevUnit, chain, planned, why, wait, own, coLeft = 0, suggested, say, asTime, factor, lineUnit, patch, move, remove, assets, machines = [], open: wantOpen, onToggle, ro }: {
+function StationCard({ s, i, num, canUp, canDown, last, prevUnit, chain, planned, why, wait, own, coLeft = 0, suggested, say, asTime, factor, lineUnit, patch, move, remove, assets, machines = [], open: wantOpen, onToggle, ro }: {
   s: Station; i: number; last: boolean; prevUnit?: string;
   /** Its number on the card, and whether it can move earlier or later in ITS
    *  line — several lines feeding one place number and order each its own. */
   num: number; canUp: boolean; canDown: boolean;
-  /** "The lines merge after this": everything up to here runs once a line, the
-   *  rest is shared. Only offered on a single line, on the line as run. */
-  onSplit?: () => void;
   /** "1 pallet = 36 baskets = 360 units" — its unit read back to the line's (lib/capacity chainWords). */
   chain?: string;
   planned?: number;
@@ -209,7 +209,6 @@ function StationCard({ s, i, num, canUp, canDown, onSplit, last, prevUnit, chain
           <button className="btn btn-ghost in-usual-b" onClick={() => move(-1)} disabled={!canUp} aria-label="Move earlier in the line"><Icon name="arrowUp" size="1.1em" /></button>
           <button className="btn btn-ghost in-usual-b" onClick={() => move(1)} disabled={!canDown} aria-label="Move later in the line"><Icon name="arrowDown" size="1.1em" /></button>
           <button className="btn btn-ghost in-usual-b" onClick={remove} aria-label={`Remove ${s.name || 'this station'}`}><Icon name="close" size="1.1em" /></button>
-          {onSplit && <button type="button" className="btn btn-ghost btn-sm cap-split" onClick={onSplit} title="Several lines run this far, then feed one place">Lines merge after this</button>}
           <button type="button" className={'btn btn-sm' + (open ? ' btn-primary' : ' btn-ghost')} onClick={onToggle} aria-expanded={open}>{open ? 'Done' : 'Edit'}</button>
         </span>
         </>}
@@ -680,19 +679,10 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
     setStations(list);
   };
   const nextLaneName = () => `Line ${String.fromCharCode(65 + (lanes.length % 26))}`;
-  /* THE LINES MERGE AFTER THIS STATION: one line, split. What is up to here
-     is Line A; the rest is shared; Line B is a copy of A to change. */
-  const splitAfter = (id: string) => {
-    if (w || !can.edit) return;
-    const at = cap.stations.findIndex(x => x.id === id);
-    if (at < 0 || at >= cap.stations.length - 1) return;
-    const a = { id: uid(), name: 'Line A' }, b = { id: uid(), name: 'Line B' };
-    const before = cap;
-    const head = cap.stations.slice(0, at + 1).map(x => ({ ...x, lane: a.id }));
-    const copy = head.map(x => ({ ...x, id: uid(), lane: b.id }));
-    commit({ ...cap, lanes: [a, b], stations: [...head, ...copy, ...cap.stations.slice(at + 1).map(x => ({ ...x, lane: undefined }))] });
-    offerUndo('Split into two lines feeding one place', async () => commit(before));
-  };
+  /* (The lines are split from step 1, "How many lines feed in?" and "Where do
+     they meet?" — one place for the shape of the line. Each station card
+     carried a "Lines merge after this" too: the same split from a second door,
+     a row taller on every card. 16 October.) */
   /* ANOTHER LINE, LIKE THE LAST: its stations copied, to change what differs */
   const addLane = () => {
     if (w || !can.edit || !lanes.length) return;
@@ -735,7 +725,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
     if (w || !can.edit) return;
     const before = cap;
     commit(reshape(cap, n, k, uid));
-    offerUndo(n === 1 ? 'Back to one line' : `${n} lines, merging ${k >= flow.length ? 'nowhere — each ends on its own' : `after ${flow[k - 1]?.name.trim() || `station ${k}`}`}`, async () => commit(before));
+    offerUndo(n === 1 ? 'Back to one line' : !flow.length ? `${n} lines — type their stations` : `${n} lines, ${k >= flow.length ? 'each ending on its own' : `meeting after ${flow[k - 1]?.name.trim() || `station ${k}`}`}`, async () => commit(before));
   };
   /* what happens at the merge, said as the station's own card says it */
   const mergeSay = (() => {
@@ -870,16 +860,18 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
   // `raised`: the action just written may land a beat before the re-read does.
   const gone = !!w?.action && boardRows != null && !made && !raised;
 
+  /* THE LINE, DRAWN — one model for the right-hand pictures (lib/capacityFlow) */
+  const fm = useMemo(() => flowModel(current, r, alike), [current, r, alike]);
   const worth = !w && !r.lanes && limit && r.next && r.line != null
     ? lineIfRaised(r, limit.index, limit.running) : undefined;
 
   return (
-    <section className="pace-sec cap" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+    <section className="pace-sec cap capx" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <div className="pace-sec-head">
         <h2 className="pace-sec-title">Where {line.name} is limited</h2>
         <p className="pace-sec-sub">
-          The stations in the order product goes through them, each at its own speed, put into one unit.
-          The V below puts each one beside the bottleneck — the one that holds everything else back — a screen to show where to look, not a simulation.
+          Set the line up on the left — how many lines, what it should do, its stations — and watch it drawn on the right as you type:
+          where it is held, what each station can do, and the way to the target. A screen to show where to look, not a simulation.
         </p>
       </div>
 
@@ -927,77 +919,48 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
         )}
       </div>
 
-      {/* THE SHAPE OF THE LINE: how many lines feed in, and where they meet —
-          asked, not found in a button on a station; the map shows it. */}
-      {(flow.length >= 2 || lanes.length > 0) && (can.edit && !w || r.lanes) && (
-        <section className="cap-shape" aria-label="The shape of the line">
+      {/* SET IT UP ON THE LEFT, SEE IT ON THE RIGHT (Rowland, 16 October: "you
+          type something in, a bar chart appears at the top ... the bar chart
+          and the illustrations should appear to the right-hand side ... I've
+          got to look up to go down"; "adding multiple lines together and
+          merging ... doesn't appear first"). Three steps in the order a line
+          is thought of — how many lines and where they meet, what it should
+          do, its stations — and beside them, held in view while they are
+          typed, the line drawn, what each station can do, what to check and
+          the way to the target. The rest of the detail follows below. */}
+      <div className="capx-grid">
+        <div className="capx-in">
           {can.edit && !w && (
-            <div className="cap-shape-q">
-              <span className="cap-shape-l"><b>How many lines feed in?</b>
+            <section className="cap-shape capx-step" aria-label="The shape of the line">
+              <h3 className="capx-step-h"><span className="capx-n" aria-hidden>1</span> How many lines feed in?</h3>
+              <div className="cap-shape-q">
                 <span className="cap-seg" role="group" aria-label="Lines feeding in">
                   {Array.from({ length: Math.min(MAX_LINES, Math.max(6, lanes.length)) }, (_, i) => i + 1).map(n => (
                     <button key={n} type="button" className={'cap-seg-b' + ((lanes.length || 1) === n ? ' on' : '')} aria-pressed={(lanes.length || 1) === n}
                       onClick={() => shapeIt(n, shapeK)}>{n}</button>
                   ))}
                 </span>
-              </span>
-              {lanes.length >= 2 && (
-                <label className="cap-shape-l"><b>Where do they merge?</b>
-                  <select className="text-input" aria-label="Where the lines merge" value={mergeAt ?? ''}
-                    onChange={e => shapeIt(lanes.length, Number(e.target.value))}>
-                    {flow.map((x, i) => <option key={x.id} value={i + 1}>{i + 1 < flow.length ? `After ${x.name.trim() || `station ${i + 1}`}` : 'They do not merge — each line ends on its own'}</option>)}
-                  </select>
-                </label>
-              )}
-            </div>
-          )}
-          {lanes.length === 0 && can.edit && !w && <p className="sub">One line, one chain. Choose 2 or more if several lines run side by side and meet — the first stations are copied for each, the rest are shared.</p>}
-          {r.lanes && (
-            <div className="cap-map" role="group" aria-label="The lines and where they merge">
-              <div className="cap-map-lanes">
-                {r.lanes.sections.map(sec => (
-                  <div key={sec.id} className="cap-map-row">
-                    <b className="cap-map-n">{sec.name}</b>
-                    {sec.result.ok.map(x => (
-                      <button key={x.station.id} type="button" className={'cap-chip' + (r.limit?.station.id === x.station.id ? ' is-limit' : sec.result.limit?.station.id === x.station.id ? ' is-own' : '')}
-                        onClick={() => pick(x.index)}>
-                        <span className="cap-chip-n">{x.station.name.trim() || `Station ${x.index + 1}`}</span>
-                        <span className="cap-chip-v">{fmtN(x.effective)}/min</span>
-                      </button>
-                    ))}
-                    <span className="cap-map-out">{fmtN(sec.result.line ?? 0)}/min</span>
-                  </div>
-                ))}
+                {lanes.length >= 2 && flow.length > 0 && (
+                  <label className="cap-shape-l"><b>Where do they meet?</b>
+                    <select className="text-input" aria-label="Where the lines merge" value={mergeAt ?? ''}
+                      onChange={e => shapeIt(lanes.length, Number(e.target.value))}>
+                      {flow.map((x, i) => <option key={x.id} value={i + 1}>{i + 1 < flow.length ? `After ${x.name.trim() || `station ${i + 1}`}` : 'They do not meet — each line ends on its own'}</option>)}
+                    </select>
+                  </label>
+                )}
               </div>
-              {r.lanes.merged && r.lanes.merged.ok.some(x => x.station.id !== '__merge__') ? (
-                <div className="cap-map-merge">
-                  <span className="cap-map-join">Lines merge here — <b>{fmtN(r.lanes.sends)}</b> {r.unit}/min arrive</span>
-                  <div className="cap-map-shared">
-                    {r.lanes.merged.ok.filter(x => x.station.id !== '__merge__').map(x => (
-                      <button key={x.station.id} type="button" className={'cap-chip' + (r.limit?.station.id === x.station.id ? ' is-limit' : '')} onClick={() => pick(x.index)}>
-                        <span className="cap-chip-n">{x.station.name.trim() || `Station ${x.index + 1}`}</span>
-                        <span className="cap-chip-v">{fmtN(x.effective)}/min</span>
-                      </button>
-                    ))}
-                    <span className="cap-map-out">{fmtN(r.line ?? 0)}/min</span>
-                  </div>
-                  {mergeSay && <p className="cap-map-say">{mergeSay}</p>}
-                </div>
-              ) : (
-                <p className="cap-map-say">The lines do not merge — what they make is added: <b>{fmtN(r.lanes.sends)}</b> {r.unit}/min.</p>
-              )}
-            </div>
+              <p className="sub capx-step-say">{lanes.length === 0
+                ? 'One line, one chain of stations. Pick 2 or more when several lines run side by side and meet at one place — a wrapper, a palletiser, one person — and type each line’s own stations, then the ones after they meet.'
+                : flow.length === 0
+                  ? `${lanes.length} lines. Type ${lanes[0].name.trim() || 'the first line'}’s stations below${alike ? ' — while the lines are the same, every line takes them' : ''}, then the ones after they meet.`
+                  : `${lanes.length} lines, ${mergeAt != null && mergeAt < flow.length ? `meeting after ${flow[mergeAt - 1]?.name.trim() || `station ${mergeAt}`}` : 'each ending on its own'} — see The line, drawn.`}</p>
+            </section>
           )}
-        </section>
-      )}
-
-      {/* THE LINE AS TYPED, UNDER ITS SHAPE (Rowland, 15 October: "the UI logic
-          is massively bad") — the stations sat at the foot of the page, under
-          every chart they feed. Set up, then read: the target and the stations
-          here, what they mean below. Nothing taken off; only the order. */}
+          <section className="capx-step" aria-label="What the line should do">
+            <h3 className="capx-step-h">{can.edit && !w && <span className="capx-n" aria-hidden>2</span>} What the line should do</h3>
       <div className="cap-settings">
         <label className="proj-field">
-          <span className="field-label">What the line should do — {r.unit} a minute</span>
+          <span className="field-label">Target — {r.unit} a minute</span>
           {can.edit
             ? <DraftNumber className="text-input cap-num" value={current.targetPerMin} placeholder="e.g. 66" label="Target, line units a minute"
                 onSave={v => (w ? putWhatIf(w.id, { targetPerMin: v }) : commit({ ...cap, targetPerMin: v }))} />
@@ -1015,7 +978,9 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
         )}
       </div>
 
-      <h3 className="cap-h">{w ? `The stations with ${w.name}, in order` : 'The stations, in order'}</h3>
+          </section>
+          <section className="capx-step" aria-label="The stations">
+            <h3 className="capx-step-h">{can.edit && !w && <span className="capx-n" aria-hidden>3</span>} {w ? `The stations with ${w.name}, in order` : lanes.length ? 'Each line’s stations, then the ones after they meet' : 'The stations, in the order product goes through them'}</h3>
       {current.stations.length === 0 && (
         <div className="pace-empty">
           {!can.edit ? <p className="sub">No stations written down yet — the team keeps the line here.</p> : <p className="sub">
@@ -1049,8 +1014,8 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
                   : <h3 className="cap-grp-t">{g.name}</h3>}
                 <span className="sub">{g.lane
                   ? inStep
-                    ? `and ${lanes.slice(1).map(l => l.name.trim() || 'the next line').join(', ')} — the same stations, ${fmtN(r.lanes?.sections.find(x => x.id === g.key)?.result.line ?? 0)} ${r.unit}/min each; a change here is made on every line`
-                    : `its own stations — ${fmtN(r.lanes?.sections.find(x => x.id === g.key)?.result.line ?? 0)} ${r.unit}/min on its own`
+                    ? `and ${lanes.slice(1).map(l => l.name.trim() || 'the next line').join(', ')} — the same stations${(v => (v != null ? `, ${fmtN(v)} ${r.unit}/min each` : ''))(r.lanes?.sections.find(x => x.id === g.key)?.result.line)}; a change here is made on every line`
+                    : `its own stations${(v => (v != null ? ` — ${fmtN(v)} ${r.unit}/min on its own` : ''))(r.lanes?.sections.find(x => x.id === g.key)?.result.line)}`
                   : 'where they all come to — one chain for every line'}</span>
                 {inStep && g.lane && can.edit && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setApart(true)}>Make the lines different</button>}
                 {g.lane && can.edit && !w && <button type="button" className="btn btn-ghost btn-sm" onClick={() => removeLane((g.lane as Lane).id)}>Remove this line</button>}
@@ -1061,7 +1026,6 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
                 const gi2 = i + prefix.length;
                 return (
                   <StationCard key={s.id} s={s} i={gi2} num={i + 1} canUp={i > 0} canDown={i < g.stations.length - 1} last={i === g.stations.length - 1}
-                    {...(!lanes.length && can.edit && !w && i < g.stations.length - 1 ? { onSplit: () => splitAfter(s.id) } : {})}
                     prevUnit={chainOf[gi2 - 1]?.unit} planned={cap.plannedHoursPerWeek} why={why(s.id)}
                     wait={stats[s.id]?.waitMins ?? 0} own={stats[s.id]?.ownMins ?? 0}
                     coLeft={coOff ? stats[s.id]?.changeoverMins ?? 0 : 0}
@@ -1102,6 +1066,16 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
       </div>}
 
 
+          </section>
+        </div>
+        <aside className="capx-live" aria-label="The line, drawn">
+          <h3 className="capx-live-h">The line, drawn <span className="sub">as you type — tap a station to open it</span></h3>
+          <CapacityFlow m={fm} onPick={pick} />
+          {mergeSay && <p className="cap-map-say">{mergeSay}</p>}
+          {fm.columns.some(c => c.nodes.some(x => x.perMin != null)) && <>
+            <h3 className="capx-live-h">What each station can do <span className="sub">{r.unit} a minute</span></h3>
+            <CapacityBars m={fm} onPick={pick} />
+          </>}
       {/* CHECK THE NUMBERS (lib/capacity screenCapacity; Rowland, 15 October:
           "319%, 279%, 273% ... these percentages make no sense ... screen it
           for problems") — what is wrong, said before the V, each a question
@@ -1137,6 +1111,10 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
         </section>
       )}
 
+        </aside>
+      </div>
+
+      <div className="capx-more">
       {r.ok.length > 0 && !r.lanes && <VCurveView r={r} v={vCurve(r, cap.vMarginPct)} target={current.targetPerMin} margin={cap.vMarginPct} canAgree={can.agree && !w}
         onMargin={m => commit({ ...cap, vMarginPct: m })} onPick={pick} />}
       {r.ok.length > 0 && !r.lanes && <CapacitySheet r={r} v={vCurve(r, cap.vMarginPct)} target={current.targetPerMin} study={study}
@@ -1245,6 +1223,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
           <Working r={r} />
         </Fold>
       )}
+      </div>
     </section>
   );
 }
