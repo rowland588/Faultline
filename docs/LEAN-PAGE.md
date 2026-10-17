@@ -156,7 +156,15 @@ card) keep their card form; they take the band only.
    behind, the furthest named with its days, what is late and critical,
    what the slips cost. On paper, the control room report's tiles sit under
    its sentence (the counts line they replace) and the closing line at its
-   foot, still one page.
+   foot, still one page. **Your factory** (5b, `lib/factoryLean`): the
+   lines (with a job), the problems open (on how many lines), the late,
+   the critical when there is one, and **a day of the factory in margin**
+   — every line's own speed × its shifts less their breaks × its margin a
+   pack (lib/lineLoss lineDay), each priced line's share on its row; a
+   line with something unsaid named in the tile with what to give. The
+   page and the paper close on what is open, the line with the most of
+   it, and what a day is worth. The day (5c) next: its paper goes onto
+   the engine first.
 6. SMED, value stream, work sampling, capability.
 7. Commissioning, programs, handover, materials.
 

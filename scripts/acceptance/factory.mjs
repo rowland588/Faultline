@@ -230,6 +230,13 @@ ok(fpages === 1 && /Your factory/.test(fpaper) && /5 lines · 3 Packing · 1 Pal
 const at = n => fpaper.indexOf(n);
 ok(at('Line 1 — Packing') >= 0 && at('Line 1 — Packing') < at('Line 3B — Packing') && at('Line 3B — Packing') < at('Line 2A — Packing') && at('Line 4 — Palletising') < at('Line 9'), '21b every line in floor order, with its type');
 ok(/On: Line 1 performance/.test(fpaper) && /1 open/.test(fpaper), '21c the jobs on each line, and what is open on it');
+/* the lean page (slice 5b, lib/factoryLean): the page's tiles and closing line, word for word on the paper */
+const flat = s => s.replace(/\s+/g, '');
+const fTiles = await page.locator('.fac .sg-tiles .ln-tile').evaluateAll(ts => ts.map(t => ({ k: t.querySelector('.ln-k')?.textContent ?? '', v: t.querySelector('.ln-v')?.textContent ?? '' })));
+const fClose = (await page.locator('.fac .ln-close span:last-child').innerText()).trim();
+const fFlat = flat(fpaper);
+ok(fTiles.length >= 4 && fTiles.every(x => fFlat.includes(flat(x.k.toUpperCase())) || fFlat.includes(flat(x.k))) && fTiles.every(x => fFlat.includes(flat(x.v))) && fTiles.some(x => x.k === 'A day of the factory') && fFlat.includes(flat(fClose)),
+  `21d the page's tiles and closing line on the paper — ${fTiles.map(x => `${x.k} ${x.v}`).join(' · ')} — "${fClose.slice(0, 60)}…"`);
 /* a tool's New offers the factory, in floor order; a new line goes into it */
 await page.goto(`${BASE}/#/balances`); await page.waitForTimeout(2000);
 await page.getByRole('button', { name: 'New line capacity' }).first().click(); await page.waitForTimeout(800);

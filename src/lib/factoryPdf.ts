@@ -8,6 +8,9 @@ import type { jsPDF } from 'jspdf';
 import type { FactoryReading, FactoryRow } from './factoryReport';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { SIZE, box, font, gap, label, rows, text, wrap } from './report/blocks';
+import { leanClosing, leanTiles } from './report/lean';
+import { factoryClosing, factoryTiles } from './factoryLean';
+import { fmtGBP } from './cost';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', BRAND = '#0c7489', DANGER = '#c4281c';
@@ -20,14 +23,17 @@ function blocksOf(r: FactoryReading, d: Density): Block[] {
   out.push(text({ text: 'Your factory', size: SIZE.title, style: 'bold', after: 4 }));
   out.push(text({ text: `Printed ${r.printed}`, colour: MUTED, after: gap(d, 'm') }));
 
-  /* THE FACTORY IN ONE SENTENCE, and what is open across it. */
+  /* THE FACTORY IN ONE SENTENCE — and under it the lean page's tiles
+     (lib/factoryLean): the lines, what is open and late on them, and what a
+     day of the factory is worth. The line under the sentence that said what
+     was open is in the tiles now. */
   const saysLines = (f: Frame) => wrap(f.doc, r.says, f.w - 28, 11, 'bold');
-  out.push(box(f => 30 + saysLines(f).length * 14 + gap(f.density, 'l'), (f, y) => {
-    const l = saysLines(f), h = 24 + l.length * 14;
+  out.push(box(f => 14 + saysLines(f).length * 14 + gap(f.density, 'm'), (f, y) => {
+    const l = saysLines(f), h = 10 + l.length * 14;
     f.doc.setFillColor('#12171c'); f.doc.roundedRect(f.x, y, f.w, h, 6, 6, 'F');
     font(f.doc, 11, 'bold', '#ffffff'); f.doc.text(l, f.x + 14, y + 17);
-    font(f.doc, 8.5, 'normal', '#cbd6d8'); f.doc.text(r.problems, f.x + 14, y + 17 + l.length * 14);
-  }, f => gap(f.density, 'l')));
+  }, f => gap(f.density, 'm')));
+  out.push(leanTiles(factoryTiles(r)));
 
   /* EVERY LINE, IN FLOOR ORDER — its place, name and type; the jobs on it;
      on the right what is open, the late in red with the word. */
@@ -35,7 +41,7 @@ function blocksOf(r: FactoryReading, d: Density): Block[] {
   const rightW = 120, numW = 22;
   const parts = (f: Frame, x: FactoryRow) => ({
     head: wrap(f.doc, `${x.name}${x.type ? ` — ${x.type}` : ''}`, f.w - rightW - numW - 10, 10, 'bold'),
-    jobs: wrap(f.doc, [x.jobs.length ? `On: ${x.jobs.join(', ')}` : 'No job on it', x.facts ?? ''].filter(Boolean).join('   ·   '), f.w - rightW - numW - 10, 8.5),
+    jobs: wrap(f.doc, [x.jobs.length ? `On: ${x.jobs.join(', ')}` : 'No job on it', x.facts ?? '', x.margin != null ? `${fmtGBP(x.margin)} of margin a day` : ''].filter(Boolean).join('   ·   '), f.w - rightW - numW - 10, 8.5),
   });
   out.push(rows({
     rows: r.rows.map(x => ({
@@ -56,6 +62,8 @@ function blocksOf(r: FactoryReading, d: Density): Block[] {
     })),
     after: 'l',
   }));
+  /* THE CLOSING LINE — what is open and where, and what a day is worth. */
+  out.push(leanClosing(factoryClosing(r)));
   return out;
 }
 

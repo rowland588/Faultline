@@ -233,14 +233,16 @@ pack because of X" and £ a minute. Where it stands, 17 October:
   stops (lineLoss, lineRead), the mix and next week's orders, and the stage
   gate (what the slip costs: the days the handover has moved × a day of the
   job's lines not making, in margin — `lib/lineLoss` lineDay; the job's
-  front page, its one-page status and its full report, 17 October).
+  front page, its one-page status and its full report, 17 October), the
+  control room (what the slips cost across every running stage-gate job,
+  its band and its one page — the lean page 5a) and Your factory (a day of
+  every line in margin, its page and its paper — 5b).
 - **Missing — the next piece, tool by tool:** the capability study (what
   the rejects and give-away cost), the value stream map (what the waits and
   waste cost), work sampling (what the idle share costs a shift), the line
   standard map (what the people placed cost a pack), the problems register
   (what each problem costs while it is open), a 6M countermeasure (what it
-  is worth — before → after in money), the control room (the money at risk
-  across every line and job, first).
+  is worth — before → after in money).
 
 
 1. **Programs on a line, planned from the control room** (asked today). A
@@ -1054,7 +1056,22 @@ is still wired.
   foot, still one page). Proved by `report-stress.mjs` (the band's tile
   words, the money and the closing line on the paper, at the ordinary
   seed, the busiest board and random jobs) and `inventory.mjs`.
-- **Next:** the lean page, slice 5b — the factory and the day; and money
-  for a 6M countermeasure and a problem left open (§6)
+- **The lean page, slice 5b — Your factory.** No new record: the
+  factory's reading (lib/factoryReport) now carries each line's day in
+  margin (lib/lineLoss lineDay — its speed × its shifts less their breaks
+  × its margin a pack, or what is still unsaid), and `lib/factoryLean`
+  says the tiles — the lines (and how many have a job), the problems open
+  (on how many lines), the late, the critical when there is one, and **a
+  day of the factory in margin** — and the closing line (what is open,
+  the line with the most of it, what a day is worth). Shows on: Your
+  factory's page (the tiles under its header, each priced line's day on
+  its row, the closing line at the foot) and its paper (the tiles under
+  its sentence — the open-problems line they replace — each priced line's
+  day on its row, the closing line). Proved by `factory.mjs` (21d: the
+  page's tiles and closing line word for word on the paper) and
+  `inventory.mjs`.
+- **Next:** the lean page, slice 5c — the day (its paper is hand-laid and
+  goes onto the engine first); and money for a 6M countermeasure and a
+  problem left open (§6)
   (`docs/LEAN-PAGE.md`); then Stage 3 — the line is the hub (its products,
   readiness, health).
