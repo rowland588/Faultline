@@ -52,6 +52,8 @@ export interface StudiesPaper {
    *  its line's name, the line's other counts (since last time, the trend)
    *  and what has been raised from it (the action plan). */
   lineName?: string;
+  /** Printed from the count's own page — a list's PDF keeps its list form. */
+  lean?: boolean;
   history?: ToolStudy[];
   records?: { actions: ({ id: string; deletedAt?: number } & ActionLike)[]; fixes: ({ id: string; deletedAt?: number } & FixLike)[] };
 }
@@ -139,7 +141,7 @@ function lossLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Bloc
 }
 
 function blocksOf(p: StudiesPaper, d: Density): Block[] {
-  if (p.items.length === 1 && p.items[0].s.tool === 'losses') return lossLeanBlocks(p, p.items[0], d);
+  if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'losses') return lossLeanBlocks(p, p.items[0], d);
   const out: Block[] = [];
   out.push(text({ text: p.items.length === 1 ? 'A STUDY · MEASURED BY PEOPLE AT THE LINE' : `${p.items.length} STUDIES · MEASURED BY PEOPLE AT THE LINE`, size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
   out.push(text({ text: p.title, size: SIZE.title, style: 'bold', after: 4 }));

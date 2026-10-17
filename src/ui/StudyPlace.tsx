@@ -70,7 +70,7 @@ export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
       ]);
       await saveStudiesPdf({ title: studyTitle(s), printed: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
         items: [{ s, where }], standards, ctx: { observations, workspaces },
-        ...(lean ? { history, records: { actions, fixes }, ...(line ? { lineName: line.name } : {}) } : {}) }, studyTitle(s));
+        ...(lean ? { lean: true, history, records: { actions, fixes }, ...(line ? { lineName: line.name } : {}) } : {}) }, studyTitle(s));
     } catch (e) {
       console.error('study pdf failed', e);
       window.alert('Sorry — the PDF could not be made. Please try again.');

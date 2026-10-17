@@ -242,11 +242,14 @@ for (const [name, hash] of ROUTES) {
        and a problem ("snag"). Allowed: "snag" meaning film that catches — the
        loss category "Film / packaging snag" — and the seed's own problem text.
        And, from the flow audit (docs/FLOW-AUDIT.md #20): a machine called an
-       "asset", and Line capacity called a "line balance" or "Maps and balance"
+       "asset", and Line capacity called "line balancing" or "Maps and balance"
        (Rowland, 12 October: "the line balancing is actually a capacity model").
-       "Balance" alone stays — the people's work against takt is balanced. */
+       "Line balance" is a word again since 17 October: it is the people's tool
+       of its own — each person's work timed against takt (Rowland: "line
+       balance is about a more manual people process flow analysis"; CLAUDE.md,
+       the naming rule) — so only the capacity's old names stay barred. */
     const said = text.replace(/packaging snag|film snags?|seeded snag/gi, '');
-    const old = [...new Set((said.match(/\b(workspaces?|tracker|3P|snags?|assets?|line balanc(?:e|es|ing)|maps and balances?)\b/gi) ?? []).map(w => w.toLowerCase()))];
+    const old = [...new Set((said.match(/\b(workspaces?|tracker|3P|snags?|assets?|line balancing|maps and balances?)\b/gi) ?? []).map(w => w.toLowerCase()))];
     return { chars: text.length, crash: /something broke|something went wrong/i.test(text), head: text.split('\n')[0]?.slice(0, 40) ?? '', old };
   });
 

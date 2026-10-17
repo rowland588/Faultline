@@ -208,7 +208,9 @@ there and what replaces it.
    (1), "snag" (about 54). One sweep in Stage 0, and a smoke check so they
    never come back. The flow audit (13 October, `FLOW-AUDIT.md` #20) added
    three to the check: "asset" for a machine, and "line balance" and "Maps
-   and balance" for Line capacity.
+   and balance" for Line capacity. Since 17 October "line balance" is the
+   people's own tool (each person's work against takt), so the check bars
+   "line balancing" and "Maps and balance" only — the capacity's old names.
 10. **22 design docs.** This blueprint is the index. Each doc stays as the deep
    design of its part, marked where it is superseded; `MAP.md`'s shape is
    replaced by §1.
