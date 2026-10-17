@@ -51,7 +51,13 @@ page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) er
 
 let failed = 0;
 const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}`); if (!c) failed++; };
-const go = async h => { await page.goto(`${BASE}/${h}`); await page.waitForTimeout(2300); };
+/* a page is read once it has drawn — under the gate's load "Loading…" can
+   outlast a fixed wait, and a front page read then says nothing and never
+   counts the visit (the "since" story failed so, 17 October) */
+const go = async h => {
+  await page.goto(`${BASE}/${h}`); await page.waitForTimeout(2300);
+  await page.waitForFunction(() => !/Loading…/.test(document.querySelector('main')?.innerText ?? ''), null, { timeout: 15000 }).catch(() => {});
+};
 const words = async sel => ((await page.locator(sel).count()) ? (await page.locator(sel).first().innerText()).replace(/\s+/g, ' ').trim() : null);
 const pdfText = f => execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
 const pdfPages = f => Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [f], { encoding: 'utf8' }))[1]);

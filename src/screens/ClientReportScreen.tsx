@@ -29,7 +29,7 @@ import { useJobStudies } from '../ui/StudyLinks';
 import { useStudyContext } from '../ui/ShiftLosses';
 import { nav } from '../state/useRoute';
 import { useLineRecords } from '../lib/useLineRecords';
-import { jobLinePrograms } from '../lib/lineRecords';
+import { jobFactoryLines, jobLinePrograms } from '../lib/lineRecords';
 import { listAllSnags, onDataChange } from '../db';
 import { withoutDemo } from '../lib/demo';
 import { openQuickSnag } from '../snag/QuickSnag';
@@ -171,6 +171,8 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
     linePrograms: jobLinePrograms(projectId, rec.all, rec.machines, rec.programs, rec.jobLines),
     assigned: withoutDemo(snags ?? [], rec.all),
     lineName: (id: string) => rec.all.find(w => w.id === id)?.name ?? 'a line',
+    /* what a day late costs — the job's lines' speed, shifts and margin a pack (lib/lineLoss linesDay) */
+    factoryLines: jobFactoryLines(projectId, rec.jobLines, rec.all),
   }), [rec, snags, projectId]);
   const [withStandards, setWithStandards] = useState(true);
   /* ?doc=programs — opened from the Reports sheet or the Programs page. */

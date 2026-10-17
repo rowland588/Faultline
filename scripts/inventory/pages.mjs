@@ -34,6 +34,8 @@ export const PAGES = (sd, cap) => [
   { name: 'Problems', path: '#/snags', must: [{ what: 'the register, a line at a time', sel: '.qsl-rows' }] },
   { name: 'A stage-gate job — its front page', path: `#/project/${sd.projectId}`, must: [
     { what: 'the verdict', sel: '.vd' }, { what: 'Needs you', sel: 'h2, h3', text: /Needs you/ }, { what: 'where each machine is', sel: '.fp-grid' },
+    /* the band's five tiles — the same the one-page status and the full report count (17 October, docs/LEAN-PAGE.md) */
+    { what: 'the band’s tiles — handover, late of what is still to do, critical, fixes open, what the slip costs', sel: '.vd .vd-tile', n: 5 },
     /* the job's places, its machines each a page (16 October, docs/STAGEGATE-UX.md) */
     { what: 'its machines in the rail, each a page', sel: '.nv-rail .nv-grp-l', text: /^Machines$/i, desk: true },
   ] },

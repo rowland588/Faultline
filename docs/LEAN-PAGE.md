@@ -97,11 +97,22 @@ card) keep their card form; they take the band only.
 ## Slices — each ships live with the gate green
 
 1. **The kit and the loss count**, screen and paper. *(Live.)*
-2. **Line capacity, the line balance and All together**, screen and paper.
+2. **Line capacity, the line balance and All together**, screen and paper. *(Live.)*
    Line capacity keeps its inputs-left, picture-right layout (Rowland, 16
    October) between the tiles and the closing line; the line balance's paper
    is its list's and All together's — it has no page PDF of its own.
-3. The client report and the one-page status, and the job's front page.
+3. **The client report and the one-page status, and the job's front page.**
+   The front page's dark verdict band was already the band and the tiles
+   (Redesign, 5 October); it now counts what both papers count, five tiles:
+   the handover · late *of* what is still to do (Outstanding was a tile of
+   its own; it is the number Late is out of, so it is Late's "of" — the
+   abnormal number big, the work beside it) · critical (and high risks) ·
+   fixes open (and late) · and **the money: what the slip costs** — the days
+   the handover has moved × a day of the job's lines not making, in margin
+   (`lib/lineLoss` lineDay: the line's speed × its shifts less their breaks
+   × its margin a pack, all from Your factory); on time, what a day late
+   would cost; a line with something unsaid names what to give, and where.
+   The closing line says the slip in money too.
 4. The 6M report and Problems.
 5. The control room, the factory and the day.
 6. SMED, value stream, work sampling, capability.

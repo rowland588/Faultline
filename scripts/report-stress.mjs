@@ -196,7 +196,10 @@ for (const size of SIZES) {
     const { listObservations } = await import('/src/db/observations.ts');
     const { getWorkspace } = await import('/src/db/workspaces.ts');
     const studyContext = { observations: (await Promise.all(lossWs.map(id => listObservations(id)))).flat(), workspaces: (await Promise.all(lossWs.map(id => getWorkspace(id)))).filter(Boolean) };
-    const r = clientReport({ project, projects: [project], assets, tests, items, materials, programs, standards: [], walk: [], studies, studyContext, today });
+    /* the job's lines as Your factory holds them — what a day late costs (the money tile) */
+    const { jobFactoryLines } = await import('/src/lib/lineRecords.ts');
+    const factoryLines = jobFactoryLines(pid, await (await import('/src/db/pace.ts')).allPaceLines(), await (await import('/src/db/workspaces.ts')).listWorkspaces());
+    const r = clientReport({ project, projects: [project], assets, tests, items, materials, programs, standards: [], walk: [], studies, studyContext, factoryLines, today });
     const out = { client: [], card: [], fix: [], day: [], status: [], programs: [], handover: [], labels: [], commissioning: [], commissioningCards: [] };
     const add = (k, ...xs) => { for (const x of xs) { const v = typeof x === 'number' ? String(x) : x; if (v && san(v)) out[k].push([v, san(v), from]); } };
     let from = '';
@@ -207,6 +210,15 @@ for (const size of SIZES) {
     /* THE PACE SAYS WHEN (lib/pace) — under the answer, its sentence and its
        working, wherever the answer is printed. */
     from = 'top, the pace'; add('client', r.onTarget.pace?.text, r.onTarget.pace?.working);
+    /* THE LEAN PAGE (docs/LEAN-PAGE.md): the job's five tiles — what each
+       counts and its words — and the closing line, on the full report and the
+       one-page status alike (lib/stageGateLean) */
+    {
+      const L = await import('/src/lib/stageGateLean.ts');
+      from = 'the tiles';
+      for (const t of L.stageGateTiles(r.figures)) for (const k of ['client', 'status']) add(k, t.k.toUpperCase(), t.v, t.of);
+      from = 'the closing line'; const c = L.stageGateClosing(r.onTarget, r.figures).text; for (const k of ['client', 'status']) add(k, c.length > 90 ? c.slice(0, 90) : c);
+    }
     /* The code back to the live job, under its words (lib/report/codeHeader). */
     from = 'top, the code back to the job'; add('client', 'Scan for it now'); add('status', 'Scan for it now'); add('handover', 'Scan for it now');
     /* THE MACHINE LABELS — every machine's name on its label, whole (lib/machineLabels). */

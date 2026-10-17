@@ -40,6 +40,8 @@ import { niceDay, todayISO } from './weeks';
 import { dayLength, daysWord, hoursTally, hoursWord } from './hoursLost';
 import { notedProblems, partsOf, partWords, resultNow, type Noted } from './noted';
 import { couldWords, criticalProblems, criticalState, riskProblems, type Critical } from './critical';
+import type { JobFigures } from './stageGateLean';
+import { linesDay, type DayFacts } from './lineLoss';
 import type { WalkSnag } from './walkSnags';
 import { climbsOf } from './rampUp';
 import type { ToolStudy } from './study';
@@ -243,6 +245,10 @@ export interface ClientReport {
     /** Its day has gone. */
     late: boolean }[];
   waiting: OutstandingRow[];
+  /** THE TILES' FIGURES (lib/stageGateLean, docs/LEAN-PAGE.md) — the same
+   *  the job's front page counts: the handover, outstanding, late, critical
+   *  and high risk, fixes open and late. */
+  figures: JobFigures;
   /** THE LEAD'S COMMENTARY (Project.reportNote) — printed under "where we
    *  are" on both reports. Rowland, 9 October: "we have numbers but not the
    *  story ... I need a way to add commentary." */
@@ -332,6 +338,10 @@ export interface ClientReportInput {
   assigned?: Snag[];
   /** A line's name, for an assigned problem's line. */
   lineName?: (wsId: string) => string;
+  /** THE JOB'S LINES AS YOUR FACTORY HOLDS THEM (lib/lineRecords
+   *  jobFactoryLines) — their speed, shifts and margin a pack say what a day
+   *  late costs (lib/lineLoss linesDay; the money tile, lib/stageGateLean). */
+  factoryLines?: DayFacts[];
   today: string;
 }
 
@@ -631,6 +641,13 @@ export function clientReport(x: ClientReportInput): ClientReport {
     name: project.name, lead: project.lead,
     printed: niceDay(today, { year: true }),
     sentence: st.sentence,
+    figures: {
+      ...(st.daysToGo != null ? { daysToGo: st.daysToGo } : {}), ...(st.handedOver ? { handedOver: true } : {}), ...(st.handedVs != null ? { handedVs: st.handedVs } : {}),
+      outstanding: st.outstanding, late: st.late, ...(when ? { handoverOn: when } : {}),
+      critical: criticalProblems(tests, items, assets).open.length, risks: riskProblems(tests, items, assets).open.length,
+      fixesOpen: fixes.filter(f => f.tone !== 'done').length, fixesLate: fixes.filter(f => f.tone === 'late').length,
+      ...(st.slipDays != null ? { slipDays: st.slipDays } : {}), ...(x.factoryLines ? { day: linesDay(x.factoryLines) } : {}),
+    },
     onTarget: stageGateOnTarget({ project, tests, items, assets, materials: x.materials, programs, today }, st),
     dates: when ? `Handover ${moved ? 'expected' : ''} ${niceDay(when, { year: true })}${moved ? ` · agreed ${niceDay(project.plannedAt, { year: true })}` : ''}`.replace('  ', ' ') : undefined,
     slip: slipWords(st.slipDays),

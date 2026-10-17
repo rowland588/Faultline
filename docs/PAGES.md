@@ -52,7 +52,7 @@ So:
 | Programs | machine by machine · a row a program |
 | Programs — a stage-gate job | the programs in a sentence · the states worth showing, each a filter · a row a program, machine by machine · how its test went, on its row · a program added to a machine (16 October, docs/STAGEGATE-UX.md: the eight tiles became the chips worth showing, the machine chips a select, the Programs list folded at the foot went — every field is on the row) |
 | Problems | the register |
-| A stage-gate job | the verdict · Needs you · where each machine is · its machines in the rail, each a page (desk) |
+| A stage-gate job | the verdict · the band's five tiles — handover, late of what is still to do, critical, fixes open, what the slip costs (17 October: the same five the one-page status and the full report count, docs/LEAN-PAGE.md; Outstanding is Late's "of" now, not a tile of its own) · Needs you · where each machine is · its machines in the rail, each a page (desk) |
 | A machine — its own page | its four gates in a row · its stages and tests, gate by gate · its programs (16 October, docs/STAGEGATE-UX.md slice 3: a machine's name opens this page, not a drawer over the page it was named on) |
 | Commission | the plan's tabs, Commission on · Needs you · the board (desk) / a card a machine (phone) |
 | The plan | the Gantt · the plan's tabs, Timeline on (16 October: the four gates and the timeline are one Plan in the rail, its tabs on each) |

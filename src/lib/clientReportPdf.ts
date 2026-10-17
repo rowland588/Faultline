@@ -1,6 +1,8 @@
 /* THE CLIENT REPORT, ON PAPER — A4, portrait, in the order the job is run.
  * See lib/clientReport.ts for what is on it and why. This only draws. */
 import { codeHeader } from './report/codeHeader';
+import { leanClosing, leanTiles } from './report/lean';
+import { stageGateClosing, stageGateTiles } from './stageGateLean';
 import type { jsPDF } from 'jspdf';
 import type { ClientReport, CellTone, FixRow, StepAccount } from './clientReport';
 import { GATE_TONE_WORD, type GateTone } from './install';
@@ -201,6 +203,8 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
      its address (lib/report/codeHeader). */
   out.push(...codeHeader({ eyebrow: 'CLIENT REPORT · STAGE GATE', title: r.name, colour: BRAND, ...(r.link ? { link: r.link } : {}),
     line: [r.lead ? `Led by ${r.lead}` : '', `Printed ${r.printed}`, r.dates ?? ''].filter(Boolean).join('   ·   ') }, d));
+  /* THE TILES (docs/LEAN-PAGE.md) — the counts the job's front page shows */
+  out.push(leanTiles(stageGateTiles(r.figures)));
 
   /* ARE WE ON TARGET? — the answer first, in a word in its colour, and why
      in words beside it (lib/onTarget): Rowland, 6 October, "the header must
@@ -674,6 +678,10 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
     }));
   }
 
+  /* THE CLOSING LINE — the verdict and its why, at the foot of the report's
+     body (the line standard and the evidence are its appendix) */
+  out.push(leanClosing(stageGateClosing(r.onTarget, r.figures)));
+
   /* ================================ 5 · LINE STANDARD ================================ */
   if (extras.standards && r.standards.length) {
     const draw = extras.standards;
@@ -798,6 +806,8 @@ export async function drawStatusReport(doc: jsPDF, report: ClientReport): Promis
     const out: Block[] = [];
     out.push(...codeHeader({ eyebrow: 'STATUS REPORT · STAGE GATE', title: s.name, colour: BRAND, ...(report.link ? { link: report.link } : {}),
       line: [s.lead ? `Led by ${s.lead}` : '', `Printed ${s.printed}`, s.dates ?? ''].filter(Boolean).join('   ·   ') }, d));
+    /* THE TILES (docs/LEAN-PAGE.md) — the counts the job's front page shows */
+    out.push(leanTiles(stageGateTiles(report.figures)));
 
     /* 1 · WHERE WE ARE — the verdict, then a tile per gate. */
     const ot = s.verdict;
@@ -926,6 +936,8 @@ export async function drawStatusReport(doc: jsPDF, report: ClientReport): Promis
       }));
       if (s.runsMore) out.push(text({ text: `and ${s.runsMore} more — in the full report.`, size: 8.5, colour: MUTED, after: gap(d, 's') }));
     }
+    /* THE CLOSING LINE — the verdict and its why */
+    out.push(leanClosing(stageGateClosing(s.verdict, report.figures)));
     return out;
   };
   /* ONE PAGE, ALWAYS: the lists step down until it fits, and each says how
