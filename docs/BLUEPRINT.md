@@ -1006,7 +1006,8 @@ is still wired.
   the closing line (the verdict, its one-line why and the slip in money).
   Shows on: the front page's band (the same five; Outstanding is Late's
   "of" now), the one-page status (the tiles under its
-  header, the closing line at its foot, still one page — its lists give way
+  header, its verdict leading it and no second closing line — the room is its
+  critical rows', still one page — its lists give way
   first, each saying how many more) and the full report (the tiles under its
   header, the closing line at the foot of its body, before the line standard
   and the evidence). Proved by `report-stress.mjs`: every tile's words and the

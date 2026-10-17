@@ -128,11 +128,14 @@ export function statusReport(r: ClientReport, L: StatusLimits = STATUS_LIMITS): 
       kind: 'critical', tag: 'CRITICAL', what: c.what, id: c.id,
       detail: [c.impact, c.state.replace(/^open · /, 'Now: ')].filter(Boolean).join(' — '),
     })),
+    /* a Critical problem taken on the register for the job reads with the
+       critical issues, before the high risks — when the one page is short of
+       room it is the high risk that goes to "and N more", never the critical */
+    ...r.assigned.filter(a => a.priority === 'critical').map(assignedWhy),
     ...r.risks.open.map((c): StatusWhy => ({
       kind: 'risk', tag: 'HIGH RISK', what: c.what, id: c.id,
       detail: [c.could, c.impact].filter(Boolean).join(' — ') || undefined,
     })),
-    ...r.assigned.filter(a => a.priority === 'critical').map(assignedWhy),
     /* NOT PLANNED YET (docs/JOBSTART.md) — the one page said "Nothing —
        everything is on plan" over a job with 136 lines with no date. */
     ...(r.onTarget.gaps ? [{ kind: 'unplanned' as const, tag: 'NOT PLANNED', what: r.onTarget.gaps }] : []),

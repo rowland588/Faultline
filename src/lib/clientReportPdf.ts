@@ -936,8 +936,9 @@ export async function drawStatusReport(doc: jsPDF, report: ClientReport): Promis
       }));
       if (s.runsMore) out.push(text({ text: `and ${s.runsMore} more — in the full report.`, size: 8.5, colour: MUTED, after: gap(d, 's') }));
     }
-    /* THE CLOSING LINE — the verdict and its why */
-    out.push(leanClosing(stageGateClosing(s.verdict, report.figures)));
+    /* NO CLOSING LINE ON THE ONE PAGE: its verdict leads it, under the tiles,
+       and the room is the critical rows' (report-relevance: a critical
+       problem for the job fell into "and 1 more" when the page closed twice) */
     return out;
   };
   /* ONE PAGE, ALWAYS: the lists step down until it fits, and each says how

@@ -217,7 +217,8 @@ for (const size of SIZES) {
       const L = await import('/src/lib/stageGateLean.ts');
       from = 'the tiles';
       for (const t of L.stageGateTiles(r.figures)) for (const k of ['client', 'status']) add(k, t.k.toUpperCase(), t.v, t.of);
-      from = 'the closing line'; const c = L.stageGateClosing(r.onTarget, r.figures).text; for (const k of ['client', 'status']) add(k, c.length > 90 ? c.slice(0, 90) : c);
+      /* the closing line on the full report; the one page leads with its verdict and closes on its lists */
+      from = 'the closing line'; const c = L.stageGateClosing(r.onTarget, r.figures).text; add('client', c.length > 90 ? c.slice(0, 90) : c);
     }
     /* The code back to the live job, under its words (lib/report/codeHeader). */
     from = 'top, the code back to the job'; add('client', 'Scan for it now'); add('status', 'Scan for it now'); add('handover', 'Scan for it now');
