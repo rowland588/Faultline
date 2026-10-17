@@ -165,8 +165,12 @@ card) keep their card form; they take the band only.
    pack (lib/lineLoss lineDay), each priced line's share on its row; a
    line with something unsaid named in the tile with what to give. The
    page and the paper close on what is open, the line with the most of
-   it, and what a day is worth. The day (5c) next: its paper goes onto
-   the engine first.
+   it, and what a day is worth. **The day** (5c, `lib/dayLean`): the
+   story's sections counted — done (and where the first gate stood by its
+   end), late, went wrong, found (and the critical open) — and the job's
+   money last on a stage-gate job; the day in one sentence at the foot.
+   Its paper stays hand-laid: the tiles and the closing line are the lean
+   kit's own blocks drawn at its place.
 6. SMED, value stream, work sampling, capability.
 7. Commissioning, programs, handover, materials.
 

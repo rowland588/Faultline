@@ -16,6 +16,9 @@ import type { Shot } from './testReport';
 import type { OnTarget, OnTargetTone } from './onTarget';
 import { paceSays } from './pace';
 import { niceDay } from './weeks';
+import type { LeanTile, LeanTone } from './lean';
+import { leanClosing, leanTiles } from './report/lean';
+import type { Frame } from './report/flow';
 
 const M = 36;
 const TONE: Record<DayTone, string> = {
@@ -34,6 +37,10 @@ export interface DayReportMeta {
   onTarget?: OnTarget;
   /** "today, Tue 6 Oct" when the page is about another day. */
   asOf?: string;
+  /** THE LEAN PAGE (lib/dayLean): the day's story counted and the job's
+   *  money, under the band; the day in one sentence at the foot. */
+  tiles?: LeanTile[];
+  closing?: { text: string; tone: LeanTone };
 }
 
 export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
@@ -118,6 +125,16 @@ export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
   };
 
   let y = band(true);
+
+  /* THE TILES (lib/dayLean) — drawn by the lean kit's own blocks at this
+     page's place, so they read as every other paper's: done, late, went
+     wrong, found, and the job's money. */
+  const frame = (): Frame => ({ doc: d, x: M, w: CW, top: 0, bottom: H - 36, density: 'comfortable', dry: false });
+  if (meta.tiles?.length) {
+    const b = leanTiles(meta.tiles), f = frame(), h = b.height(f);
+    b.draw(f, y - 8);
+    y += h + 6;
+  }
 
   /* EACH GATE, AS IT STOOD — a bar, because "11 of 24" is read faster as a
      length. Install, Set up and Hand over, whichever have steps: the same
@@ -222,6 +239,15 @@ export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
       y += 6;
     }
     y += 10;
+  }
+
+  /* THE CLOSING LINE — the day in one sentence, the slip in money: the
+     foot of the story, before its pictures. */
+  if (meta.closing) {
+    const b = leanClosing(meta.closing), f = frame(), h = b.height(f);
+    room(h + 8);
+    b.draw(f, y - 6);
+    y += h + 8;
   }
 
   /* THE DAY'S PICTURES, as many as fit one row — and under each, what is

@@ -1074,8 +1074,19 @@ is still wired.
   day on its row, the closing line). Proved by `factory.mjs` (21d: the
   page's tiles and closing line word for word on the paper) and
   `inventory.mjs`.
-- **Next:** the lean page, slice 5c — the day (its paper is hand-laid and
-  goes onto the engine first); and money for a 6M countermeasure and a
-  problem left open (§6)
+- **The lean page, slice 5c — the day.** No new record: `lib/dayLean`
+  counts the day's own story (lib/day dayOf) — done (and where the first
+  gate stood by its end), late, went wrong, found (and the critical open)
+  — the job's money last on a stage-gate job (lib/useJobMoney), and says
+  the day in one sentence. Shows on: the day's page (the tiles under its
+  header, the closing line at the foot) and its paper — still hand-laid
+  (lib/dayReportPdf), the tiles and the closing line drawn by the lean
+  kit's own blocks at its place (lib/report/lean), so they read as every
+  other paper's. Proved by `report-stress.mjs` (the tiles and the closing
+  line on the day's paper, at three sizes and forty random jobs) and
+  `inventory.mjs` (the day's first entry: its update, tiles, closing line).
+- **Next:** money for a problem left open and a 6M countermeasure (§6);
+  then the lean page, slices 6–7 (SMED, value stream, work sampling,
+  capability; commissioning, programs, handover, materials papers)
   (`docs/LEAN-PAGE.md`); then Stage 3 — the line is the hub (its products,
   readiness, health).

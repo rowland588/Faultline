@@ -404,6 +404,10 @@ for (const size of SIZES) {
     from = 'day'; add('day', d.headline);
     from = 'the day\'s first picture, its marks'; if (d.media[0]?.kind === 'photo') add('day', ...(d.media[0].pins ?? []).map(p => p.note));
     for (const sec of d.sections) for (const l of sec.lines) add('day', l.text, l.detail);
+    /* THE LEAN PAGE (lib/dayLean): the story's tiles and its closing line (the money joins on the page) */
+    const { dayTiles, dayClosing } = await import('/src/lib/dayLean.ts');
+    from = 'day, the tiles'; for (const t of dayTiles(d)) add('day', t.k.toUpperCase(), t.v, t.of);
+    from = 'day, the closing line'; add('day', dayClosing(d).text);
     return out;
   }, { pid: job.projectId, tid: job.testId, fid: fixId });
 
