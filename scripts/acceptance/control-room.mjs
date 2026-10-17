@@ -66,7 +66,8 @@ const board = async () => {
   const more = page.locator('.jb-owe.is-more', { hasText: /^and \d+ more$/ });
   if (await more.count()) { await more.click(); await page.waitForTimeout(300); }
   return page.evaluate(() => {
-    const stat = w => Number([...document.querySelectorAll('.jb-stat')].find(e => e.textContent.trim().endsWith(w))?.querySelector('b')?.textContent ?? 0);
+    /* a number by its label — what it is of (.jb-of, the lean page) set aside */
+    const stat = w => Number([...document.querySelectorAll('.jb-stat')].find(e => { const c = e.cloneNode(true); c.querySelector('.jb-of')?.remove(); return c.textContent.trim().endsWith(w); })?.querySelector('b')?.textContent ?? 0);
     /* each party's count and late, read apart: "owes 11" and "3 late" run together as text */
     const owes = Object.fromEntries([...document.querySelectorAll('.jb-owe')].map(e => [e.querySelector('b')?.textContent ?? '', {
       n: Number(/\d+/.exec(e.querySelector('.jb-owe-n')?.textContent ?? '')?.[0] ?? 0), late: Number(/\d+/.exec(e.querySelector('.jb-owe-l')?.textContent ?? '')?.[0] ?? 0),
