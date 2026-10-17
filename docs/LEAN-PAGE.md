@@ -143,7 +143,20 @@ card) keep their card form; they take the band only.
    problem and where it is. No money in either yet: what a countermeasure
    is worth and what a problem costs while it is open are the next piece
    (BLUEPRINT §6), never a figure made up here.
-5. The control room, the factory and the day.
+5. **The control room** (5a, `lib/roomLean`), then the factory and the day
+   (5b). The control room's band keeps its numbers as its filters (each a
+   tap) and each now says what it is *of*: the jobs running (behind target,
+   handed over), late (a line's own share), critical (only when there is
+   one, as before), this week — and the money, **what the slips cost**:
+   every running job's days past its agreed handover × a day of its lines
+   not making, in margin, from Your factory — the stage gate's own money
+   tile added up across the jobs. No "outstanding": the planned gate steps
+   are the work ahead, not what is owed (Rowland: "states loads open but
+   they are gates"). The board closes on one line — how many jobs are
+   behind, the furthest named with its days, what is late and critical,
+   what the slips cost. On paper, the control room report's tiles sit under
+   its sentence (the counts line they replace) and the closing line at its
+   foot, still one page.
 6. SMED, value stream, work sampling, capability.
 7. Commissioning, programs, handover, materials.
 

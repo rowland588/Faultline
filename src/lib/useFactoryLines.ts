@@ -11,6 +11,7 @@ import { allProjects } from '../db/projects';
 import { liveProductionLines } from './lines';
 import { jobFactoryLines } from './lineRecords';
 import { allPaceLines } from '../db/pace';
+import { linesDay, type LinesDay } from './lineLoss';
 
 /** THE PLACES AN ARCHIVED JOB'S RECORDS SIT — `job:<id>` for each archived job,
  *  `ws:<id>` for each archived job's own walk — so a tool's list puts them away
@@ -50,6 +51,31 @@ export function useFactoryLines(keep?: string): Workspace[] {
     return () => { live = false; off(); };
   }, [keep]);
   return lines;
+}
+
+/** EVERY JOB'S DAY OF ITS LINES NOT MAKING (lib/lineLoss linesDay, from
+ *  Your factory) — what the control room's money reads (lib/roomLean).
+ *  Undefined until the lines are read, so no job is said to have none. */
+export async function readJobsDays(projectIds: readonly string[]): Promise<Map<string, LinesDay>> {
+  const [jobLines, all] = await Promise.all([allPaceLines(), listWorkspaces()]);
+  return new Map(projectIds.map(id => [id, linesDay(jobFactoryLines(id, jobLines, all))]));
+}
+
+export function useJobsDays(projectIds: readonly string[]): Map<string, LinesDay> | undefined {
+  const [got, setGot] = useState<Map<string, LinesDay> | undefined>(undefined);
+  const key = projectIds.join(',');
+  useEffect(() => {
+    let live = true;
+    const ids = key ? key.split(',') : [];
+    const load = () => void (async () => {
+      const days = await readJobsDays(ids);
+      if (live) setGot(days);
+    })();
+    load();
+    const off = onDataChange(load);
+    return () => { live = false; off(); };
+  }, [key]);
+  return got;
 }
 
 /** A JOB'S LINES AS YOUR FACTORY HOLDS THEM (lib/lineRecords jobFactoryLines)

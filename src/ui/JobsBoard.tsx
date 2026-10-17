@@ -59,6 +59,9 @@ import { supabase } from '../cloud/client';
 import { useSession } from '../cloud/session';
 import { useProfile } from '../cloud/admin';
 import { accessOf, can as canOf, type Can } from '../lib/access';
+import { roomClosing, roomMoney, roomTiles } from '../lib/roomLean';
+import { useJobsDays } from '../lib/useFactoryLines';
+import { LeanClosing } from './Lean';
 
 const PCT = (n: number) => `${(n * 100).toFixed(3)}%`;
 const OPEN_KEY = 'faultline.jobs.open';
@@ -270,6 +273,13 @@ export function JobsBoard({ projects, after }: {
   const editable = projects.filter(p => accessOn(p.id).edit).map(p => p.id);
   const today = todayISO();
   const pf = useMemo(() => (inputs && lineWork ? portfolio(inputs.gate, today, inputs.paced, lineWork) : null), [inputs, lineWork, today]);
+  /* THE LEAN PAGE (lib/roomLean): each number in the band says what it is
+     of, and the money — what the slips cost, every running job's days past
+     its agreed handover × a day of its lines not making (Your factory). */
+  const days = useJobsDays(pf?.jobs.map(j => j.id) ?? []);
+  const money = useMemo(() => (pf ? roomMoney(pf.jobs, days) : undefined), [pf, days]);
+  const tiles = useMemo(() => (pf ? roomTiles(pf, money) : []), [pf, money]);
+  const ofTile = (k: string) => tiles.find(x => x.k === k);
   /* SINCE YOU LAST LOOKED (lib/since) — each stage-gate job against this
      device's last visit to it; read here, never reset here. */
   const sinces = useMemo(() => new Map((inputs?.gate ?? []).map(g =>
@@ -351,6 +361,7 @@ export function JobsBoard({ projects, after }: {
         <div className="jb-stats">
           <button className="jb-stat" onClick={() => ganttRef.current?.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' })}>
             <b><Count n={pf.totals.jobs} still={still} /></b>{pf.totals.jobs === 1 ? 'job running' : 'jobs running'}
+            <small className="jb-of">{ofTile('Jobs running')?.of}</small>
           </button>
           {/* NO "OUTSTANDING" HERE ANY MORE. It added up every planned gate
               step on every job — the work ahead, not what is owed — and read
@@ -360,6 +371,7 @@ export function JobsBoard({ projects, after }: {
           <button className={'jb-stat' + (pf.totals.late ? ' is-late' : '') + (on({ t: 'late' }) ? ' is-on' : '')}
             onClick={() => pick({ t: 'late' })} aria-pressed={on({ t: 'late' })}>
             <b><Count n={pf.totals.late} still={still} /></b>late
+            <small className="jb-of">{ofTile('Late')?.of}</small>
           </button>
           {/* OPEN CRITICAL PROBLEMS, every job — only when there is one (a
               zero is not said); solid red, a problem's colour. */}
@@ -367,11 +379,21 @@ export function JobsBoard({ projects, after }: {
             <button className={'jb-stat is-crit' + (on({ t: 'critical' }) ? ' is-on' : '')}
               onClick={() => pick({ t: 'critical' })} aria-pressed={on({ t: 'critical' })}>
               <b><Count n={pf.totals.critical} still={still} /></b>critical
+              <small className="jb-of">{ofTile('Critical')?.of}</small>
             </button>
           )}
           <button className="jb-stat" onClick={() => weekRef.current?.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' })}>
             <b><Count n={pf.totals.week} still={still} /></b>this week
+            <small className="jb-of">{ofTile('This week')?.of}</small>
           </button>
+          {/* THE MONEY — what the slips cost (lib/roomLean): a figure, not a
+              filter, so not a button; red only when there is a slip. */}
+          {(m => m && (
+            <div className={'jb-stat is-money' + (m.tone === 'r' ? ' is-late' : m.tone === 'g' ? ' is-met' : '')}>
+              <b>{m.v}</b>{m.k.replace(/^The slips cost$/, 'the slips cost')}
+              <small className="jb-of">{m.of}</small>
+            </div>
+          ))(ofTile('The slips cost'))}
           {/* THE PAGE FOR THE BUSINESS (docs/CONTROLROOM.md): every job on one
               A4 — where each is, why, who owes what — read off this board
               (lib/controlRoomReport), where the job's band has its own. */}
@@ -504,6 +526,8 @@ export function JobsBoard({ projects, after }: {
           <span className="jb-key-say">Tap a dot to see what it is.</span>
         </p>
       </div>}
+      {/* THE CLOSING LINE — the board in one sentence, the slips in money */}
+      <LeanClosing closing={roomClosing(pf, money)} />
     </section>
   );
 }

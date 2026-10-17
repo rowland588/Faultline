@@ -1036,7 +1036,25 @@ is still wired.
   closing line) and its paper (the chips as lean tiles; the closing line).
   Proved by `report-stress.mjs` (the 6M papers' tiles and closing line, the
   register paper's tiles) and `inventory.mjs`.
-- **Next:** the lean page, slice 5 — the control room, the factory and the
-  day; and money for a 6M countermeasure and a problem left open (§6)
+- **The lean page, slice 5a — the control room.** No new record:
+  `lib/roomLean` reads the board's own reading (lib/portfolio — a
+  stage-gate job's view now carries its slip in days, lib/standing) into
+  the band's tiles and a closing line. The band's numbers stay its filters
+  and each says what it is of — the jobs running (and behind target, and
+  handed over), late (and how much is a line's own), critical (only when
+  there is one), this week — and **the money: what the slips cost**, every
+  running job's days past its agreed handover × a day of its lines not
+  making, in margin (`lib/useFactoryLines` readJobsDays → lib/lineLoss
+  linesDay, from Your factory) — the stage gate's money tile added up, no
+  second cost model; a job whose lines say nothing is named with what to
+  give. Shows on: the control room's band (the tiles' words under each
+  number, the money a figure of its own), the foot of the board (the
+  closing line) and the control room report (the tiles under its
+  sentence — the counts line they replace — and the closing line at its
+  foot, still one page). Proved by `report-stress.mjs` (the band's tile
+  words, the money and the closing line on the paper, at the ordinary
+  seed, the busiest board and random jobs) and `inventory.mjs`.
+- **Next:** the lean page, slice 5b — the factory and the day; and money
+  for a 6M countermeasure and a problem left open (§6)
   (`docs/LEAN-PAGE.md`); then Stage 3 — the line is the hub (its products,
   readiness, health).

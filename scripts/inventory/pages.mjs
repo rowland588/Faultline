@@ -21,6 +21,10 @@ export const PAGES = (sd, cap) => [
     { what: 'Your factory — every line', sel: '.fac-floor' },
     { what: 'this week, across every line and job', sel: '.jb-week' },
     { what: 'the jobs on one timeline', sel: '.jb-gantt', desk: true },
+    /* the lean page (17 October, slice 5; lib/roomLean): each number in the band says what it is of, the money is the slips' cost, and the board closes on one line */
+    { what: 'what each number in the band is of', sel: '.jb-hero .jb-of', n: 3 },
+    { what: 'what the slips cost', sel: '.jb-stat.is-money' },
+    { what: 'the closing line', sel: '.jb > .ln-close' },
   ] },
   { name: 'Your factory', path: '#/factory', must: [{ what: 'the lines in floor order', sel: '.fac-lines' }] },
   { name: 'A line — its own page', path: `#/lines/${sd.line7WsId}`, must: [

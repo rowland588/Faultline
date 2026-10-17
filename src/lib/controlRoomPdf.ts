@@ -15,6 +15,8 @@ import type { Delivered } from './savePdf';
 import { CR_STEPS, controlRoomReport, type ControlRoomReport, type CrLine } from './controlRoomReport';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { SIZE, box, font, gap, label, rows, text, wrap } from './report/blocks';
+import { leanClosing, leanTiles } from './report/lean';
+import type { LinesDay } from './lineLoss';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6';
@@ -46,17 +48,16 @@ function blocksOf(r: ControlRoomReport, d: Density): Block[] {
   out.push(text({ text: 'Control room report', size: SIZE.title, style: 'bold', after: 4 }));
   out.push(text({ text: `Printed ${r.printed}`, colour: MUTED, after: gap(d, 'm') }));
 
-  /* THE BOARD IN ONE SENTENCE, and its four numbers in words. */
-  const t = r.totals;
-  /* What the sentence does not already say: the jobs and the late are in it. */
-  const counts = [t.critical ? `${t.critical} critical` : '', `${t.week} due or late this week`].filter(Boolean).join('   ·   ');
+  /* THE BOARD IN ONE SENTENCE — and under it the lean page's tiles
+     (lib/roomLean): the band's numbers, each of what it is, and the money.
+     The counts line the band carried (critical, this week) is in them now. */
   const saysLines = (f: Frame) => wrap(f.doc, r.says, f.w - 28, 11, 'bold');
-  out.push(box(f => 30 + saysLines(f).length * 14 + gap(f.density, 'l'), (f, y) => {
-    const l = saysLines(f), h = 24 + l.length * 14;
+  out.push(box(f => 14 + saysLines(f).length * 14 + gap(f.density, 'm'), (f, y) => {
+    const l = saysLines(f), h = 10 + l.length * 14;
     f.doc.setFillColor('#12171c'); f.doc.roundedRect(f.x, y, f.w, h, 6, 6, 'F');
     font(f.doc, 11, 'bold', '#ffffff'); f.doc.text(l, f.x + 14, y + 17);
-    font(f.doc, 8.5, 'normal', '#cbd6d8'); f.doc.text(counts, f.x + 14, y + 17 + l.length * 14);
-  }, f => gap(f.density, 'l')));
+  }, f => gap(f.density, 'm')));
+  out.push(leanTiles(r.tiles));
 
   /* 1 · WHERE EVERY JOB IS — one row a job: its name and kind of change, its
      verdict in its colour, the reason in one line, the critical in red and
@@ -64,7 +65,7 @@ function blocksOf(r: ControlRoomReport, d: Density): Block[] {
   const pillW = 92;
   const jobParts = (f: Frame, j: ControlRoomReport['jobs'][number]) => ({
     head: wrap(f.doc, `${j.name} — ${j.method}${j.at ? ` · ${j.at}` : ''}`, f.w - pillW - 10, 10, 'bold'),
-    why: wrap(f.doc, j.why, f.w - pillW - 10, 8.5),
+    why: j.why ? wrap(f.doc, j.why, f.w - pillW - 10, 8.5) : [],
     crit: j.critical ? wrap(f.doc, j.critical, f.w - pillW - 10, 8.5, 'bold') : [],
     next: j.next ? wrap(f.doc, `Next: ${j.next}`, f.w - pillW - 10, 8.5) : [],
   });
@@ -99,9 +100,19 @@ function blocksOf(r: ControlRoomReport, d: Density): Block[] {
     if (r.linesQuiet) out.push(text({ text: r.linesQuiet, size: 8.5, colour: MUTED, after: gap(d, 'l') }));
   }
 
+  /* A BOARD TOO BUSY FOR ANY LIST: where the lists are, in one line, not
+     three — the room the tiles and the closing line need (the lean page). */
+  const gone = [!r.owes.length && r.owesMore ? 'who owes what' : '', !r.late.length && r.lateMore ? `the ${r.lateMore} late` : '',
+    !r.week.length && r.weekMore ? `the ${r.weekMore} due this week` : ''].filter(Boolean);
+  const merged = gone.length > 1;
+  if (merged) {
+    const said = gone.length > 2 ? `${gone.slice(0, -1).join(', ')} and ${gone[gone.length - 1]}` : gone.join(' and ');
+    out.push(text({ text: `${said.charAt(0).toUpperCase()}${said.slice(1)} — on the control room.`, size: 9, style: 'bold', colour: INK2, after: gap(d, 'l') }));
+  }
+
   /* 2 · WHO OWES WHAT, ACROSS THE JOBS — suppliers first, the furthest
      behind leading, as the board orders them. */
-  if (!r.owes.length && r.owesMore) out.push(text({ text: 'Who owes what — on the control room.', size: 9, style: 'bold', colour: INK2, after: gap(d, 'l') }));
+  if (!merged && !r.owes.length && r.owesMore) out.push(text({ text: 'Who owes what — on the control room.', size: 9, style: 'bold', colour: INK2, after: gap(d, 'l') }));
   if (r.owes.length) {
     out.push(label('Who owes what'));
     const owedParts = (f: Frame, o: ControlRoomReport['owes'][number]) => ({
@@ -126,8 +137,9 @@ function blocksOf(r: ControlRoomReport, d: Density): Block[] {
 
   /* 3 · WHAT IS LATE, and what is due this week — job, what, who, when. */
   const list = (title: string, items: CrLine[], more: number, empty: string, tone: string) => {
-    /* A list stepped down to nothing is one line saying where it is. */
-    if (!items.length && more) { out.push(text({ text: `${title} — on the control room.`, size: 9, style: 'bold', colour: INK2, after: gap(d, 'l') })); return; }
+    /* A list stepped down to nothing is one line saying where it is
+       (or said with the others, above, when the board is busiest). */
+    if (!items.length && more) { if (!merged) out.push(text({ text: `${title} — on the control room.`, size: 9, style: 'bold', colour: INK2, after: gap(d, 'l') })); return; }
     out.push(label(title, items.length ? tone : MUTED));
     if (!items.length) { out.push(text({ text: empty, colour: INK2, after: gap(d, 'l') })); return; }
     const whenW = 96, jobW = 96;
@@ -153,18 +165,20 @@ function blocksOf(r: ControlRoomReport, d: Density): Block[] {
   };
   list(`Late — ${r.late.length + r.lateMore}`, r.late, r.lateMore, 'Nothing is late.', DANGER);
   if (r.week.length || r.weekMore) list(`Due this week — ${r.week.length + r.weekMore}`, r.week, r.weekMore, '', BOOKED);
+  /* THE CLOSING LINE — the board in one sentence, the slips in money. */
+  out.push(leanClosing(r.closing));
   return out;
 }
 
 /** Draw the control room report into `doc`: one page, the lists stepping down
  *  until it fits (every job stays on it). */
-export async function drawControlRoomReport(doc: jsPDF, pf: Portfolio, today: string): Promise<void> {
+export async function drawControlRoomReport(doc: jsPDF, pf: Portfolio, today: string, days?: ReadonlyMap<string, LinesDay>): Promise<void> {
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
-  let r = controlRoomReport(pf, today, CR_STEPS[0]);
+  let r = controlRoomReport(pf, today, CR_STEPS[0], days);
   let density: Density = 'comfortable';
   const one = async (d: Density) => (await pour({ ...base, density: d, dry: true }, blocksOf(r, d), () => undefined)).pages === 1;
   steps: for (const limits of CR_STEPS) {
-    r = controlRoomReport(pf, today, limits);
+    r = controlRoomReport(pf, today, limits, days);
     for (const d of ['comfortable', 'compact'] as const) if (await one(d)) { density = d; break steps; }
     /* Past every step, and still more than a page: every job stays on it. */
     density = await chooseDensity(base, d => blocksOf(r, d));
@@ -189,7 +203,10 @@ export async function saveControlRoomReport(pf: Portfolio, today: string): Promi
   const { jsPDF } = await loadPdfLib();
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   titlePdf(doc, 'Control room report');
-  await drawControlRoomReport(doc, pf, today);
+  /* every job's day of its lines not making, read now, so the money is on
+     the page however soon the button was pressed */
+  const { readJobsDays } = await import('./useFactoryLines');
+  await drawControlRoomReport(doc, pf, today, await readJobsDays(pf.jobs.map(j => j.id)));
   return deliverPdf(doc, pdfFileName('Control room', 'report', today));
 }
 

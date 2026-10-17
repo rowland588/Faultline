@@ -46,7 +46,7 @@ So:
 
 | Page | Must show |
 |---|---|
-| Control room | its heading · Your factory · this week · the jobs' timeline (desk) |
+| Control room | its heading · Your factory · this week · the jobs' timeline (desk) · what each number in the band is of · what the slips cost · the closing line (17 October, the lean page slice 5: the band's numbers stay its filters and say what they are of; the money is every running job's days past its agreed handover × a day of its lines not making, from Your factory) |
 | Your factory | the lines in floor order |
 | A line — its own page | the line, machine by machine: the sentence, a card a machine (its problems by priority, whose, its stops a week in minutes and £, the constraint) · Time a stop, first in the header · Stops timed first among its tools — the stopwatch and its Pareto (16 October, docs/UPGRADE-AUDIT.md F1: the floor's own tool had no door from the line) |
 | Programs | machine by machine · a row a program |
