@@ -25,14 +25,19 @@ import { niceDay, isoDay } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 import { peopleOf } from '../lib/standard';
 import {
-  DEFAULT_ACTIVITIES, TOO_FEW_TAPS, dueRound, missedPrompts, nextPrompt, roundsDone, samplingEnough, samplingReading, samplingSays,
+  DEFAULT_ACTIVITIES, TOO_FEW_TAPS, dueRound, nextPrompt, samplingEnough, samplingReading, samplingSays,
   schedulePrompts, shares, tapsNeeded, tapsOf,
 } from '../lib/ie/sampling';
 import type { AgreedSampling, Tap, ToolStudy } from '../lib/study';
 import { TOOL_WORDS } from './StudiesScreen';
 import { walkVerdict } from '../lib/ie/walk';
 import { analyse } from '../lib/capacity';
-import { WhereItSits, UsedFor } from '../ui/StudyPlace';
+import { WhereItSits, UsedFor, useBetter } from '../ui/StudyPlace';
+import { LeanActions, LeanBand, LeanClosing, LeanPanel, LeanTiles } from '../ui/Lean';
+import { bandPage } from '../lib/lean';
+import { momentsAt, personRate, samplingClosing, samplingTiles } from '../lib/ie/samplingLean';
+import { raisedFrom } from '../lib/ie/lossLean';
+import { useFactoryLines } from '../lib/useFactoryLines';
 import { StudyName } from '../ui/StudyActs';
 
 const OWNER = canAt('owner');
@@ -70,6 +75,11 @@ function Sampling({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
   const round = a && !closed ? dueRound(a.prompts, taps, a.who, t) : undefined;
   useNudge(round?.at, round ? `Moment ${round.no} — tap what each person is doing` : undefined);
   const said = useMemo(() => samplingSays(a, taps), [a, taps]);
+  /* the line's own rate for one person — what the biggest share costs (lib/cost, the one cost model) */
+  const line = useFactoryLines(s.workspaceId).find(x => x.id === s.workspaceId);
+  const rate = personRate(line);
+  /* what was raised from it — the action plan (ui/StudyPlace useBetter) */
+  const { steps, tests } = useBetter(s, me);
 
   const tap = (who: string, activity: string, at: number) => void patchStudy(s.id, cur => ({
     facts: { ...cur.facts, taps: [...(cur.facts.taps ?? []), { id: uid(), at, who, activity, ...(me ? { by: me } : {}) }] },
@@ -80,21 +90,23 @@ function Sampling({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
 
   return (
     <div className="wrap ie ws">
-      <header className="ie-head">
-        <small className="ie-eyebrow">{a?.walk ? 'Bottleneck walk' : w?.one ?? 'Work sampling'}</small>
-        <StudyName s={s} canEdit={can.edit && !s.closedAt} canRemove={can.remove} />
+      {/* THE LEAN PAGE (docs/LEAN-PAGE.md, slice 6; lib/ie/samplingLean): the
+          band, the tiles in the strip's place — the biggest share not the
+          work in money too — the action plan and the closing line */}
+      <LeanBand page={bandPage(a?.walk ? 'Bottleneck walk' : w?.one ?? 'Work sampling', s, said.verdict, said.tone)} title={<StudyName s={s} canEdit={can.edit && !s.closedAt} canRemove={can.remove} />} />
+      <div className="ln-under">
         <p className="sub ie-where">
           {s.product ? <><b>{s.product}</b> · </> : null}
           started {niceDay(isoDay(s.startedAt))}
         </p>
         <WhereItSits s={s} can={can} />
-      </header>
+      </div>
 
       {!a || setting ? (
         <SetUp s={s} canAgree={can.agree && !closed} hasTaps={taps.length > 0} onDone={() => setSetting(false)} cancel={a ? () => setSetting(false) : undefined} />
       ) : (
         <>
-          <Strip a={a} taps={taps} t={t} verdict={said.verdict} />
+          <LeanTiles tiles={samplingTiles(a, taps, momentsAt(a, taps, t), rate)} className="ie-strip" />
           {!closed && can.edit && <Round a={a} taps={taps} t={t} round={round} onTap={tap} onStrike={id => strike(id, true)} />}
           <div className="ie-says">
             {a.walk && <WalkSays s={s} a={a} taps={taps} />}
@@ -108,6 +120,10 @@ function Sampling({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
           </p>
           <UsedFor s={s} can={can} me={me} />
           <Act s={s} a={a} taps={taps} text={said.text} can={can} me={me} />
+          <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
+            <LeanActions actions={raisedFrom(s, steps, tests)} empty="Nothing raised from it yet — Make it better raises a fix or a countermeasure from its biggest share." />
+          </LeanPanel>
+          <LeanClosing closing={samplingClosing(a, taps, said, rate)} />
         </>
       )}
     </div>
@@ -212,23 +228,6 @@ function SetUp({ s, canAgree, hasTaps, onDone, cancel }: { s: ToolStudy; canAgre
 }
 
 /* ------------------------------------------------------------------ strip */
-function Strip({ a, taps, t, verdict }: { a: AgreedSampling; taps: Tap[]; t: number; verdict: string }) {
-  const n = tapsOf(taps).length;
-  const done = roundsDone(a.prompts, taps, a.who);
-  const come = a.prompts.filter(p => p <= t).length;
-  const missed = Math.max(0, ...a.who.map(w => missedPrompts(a.prompts, taps, w, t).length));
-  const next = nextPrompt(a.prompts, t);
-  return (
-    <div className="ie-strip" role="group" aria-label="Where it stands">
-      <span className="ie-fig ie-verdict is-n"><b>{verdict}</b></span>
-      <span className={'ie-fig' + (n ? '' : ' is-zero')}><b>{n}</b> tap{n === 1 ? '' : 's'}</span>
-      <span className="ie-fig"><b>{done}</b> of {come} moment{come === 1 ? '' : 's'} so far answered</span>
-      <span className={'ie-fig' + (missed ? ' is-a' : ' is-zero')}><b>{missed}</b> missed</span>
-      <span className="ie-fig">{next ? <>next at <b>{hhmm(next)}</b></> : t >= a.to ? 'the shift is over' : 'no moments left'}</span>
-    </div>
-  );
-}
-
 /* ------------------------------------------------------------------ the moment: one tap per person */
 function Round({ a, taps, t, round, onTap, onStrike }: {
   a: AgreedSampling; taps: Tap[]; t: number; round?: { at: number; no: number; left: string[] };

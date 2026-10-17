@@ -173,8 +173,24 @@ card) keep their card form; they take the band only.
    money last on a stage-gate job; the day in one sentence at the foot.
    Its paper stays hand-laid: the tiles and the closing line are the lean
    kit's own blocks drawn at its place.
-6. SMED, value stream, work sampling, capability.
-7. Commissioning, programs, handover, materials.
+6. **SMED, value stream, work sampling, capability** (17 October). SMED
+   (`lib/ie/changeoverLean`): the band with its verdict; five tiles in the
+   strip's place — now (against its standard), inside the stop once the
+   external work runs outside, planned to (against single digits), a week
+   (or a year) stopped in packs and pounds, what the plan buys back; what it
+   says; the grid; the action plan — what was raised from an element, then
+   each element's plan in its SMED action's words; the closing line. Work
+   sampling (`lib/ie/samplingLean`): taps, people, the biggest share not the
+   work and **what it costs a shift** (that share × the shift × one person's
+   rate — the line's wage × on-costs), the next moment. The capability study
+   (`lib/ie/sampleLean`): readings of those agreed, the mean and range,
+   outside, Ppk with Cpk. The value stream keeps its seven cards as its
+   tiles, in the method's colours (`lib/ie/flowLean` the closing line: where
+   to start, a cycle over takt in red). Each prints as the same lean page
+   (`lib/studiesPdf`). The capability study's and the value stream's money —
+   what the readings outside, and the waits, cost — is still to come
+   (BLUEPRINT §6), never a figure made up.
+7. Commissioning, programs, handover, materials (done in 3b).
 
 Each slice says its effect on the screen and the paper together, adds its
 lines to `docs/PAGES.md`, and its checks to the acceptance script of the

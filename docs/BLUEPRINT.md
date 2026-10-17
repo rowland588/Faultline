@@ -235,11 +235,13 @@ pack because of X" and £ a minute. Where it stands, 17 October:
   job's lines not making, in margin — `lib/lineLoss` lineDay; the job's
   front page, its one-page status and its full report, 17 October), the
   control room (what the slips cost across every running stage-gate job,
-  its band and its one page — the lean page 5a) and Your factory (a day of
-  every line in margin, its page and its paper — 5b).
+  its band and its one page — the lean page 5a), Your factory (a day of
+  every line in margin, its page and its paper — 5b), the case for the
+  change (what a job is for, a week of margin — docs/CASE.md) and work
+  sampling (what the biggest share not the work costs a shift — slice 6).
 - **Missing — the next piece, tool by tool:** the capability study (what
   the rejects and give-away cost), the value stream map (what the waits and
-  waste cost), work sampling (what the idle share costs a shift), the line
+  waste cost), the line
   standard map (what the people placed cost a pack), the problems register
   (what each problem costs while it is open), a 6M countermeasure (what it
   is worth — before → after in money).

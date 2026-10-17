@@ -155,3 +155,12 @@ export function planOrder(rows: LeanAction[]): LeanAction[] {
   const rank = (r: LeanAction) => (r.state === 'Late' ? 0 : r.state === 'Done' ? 2 : 1);
   return rows.map((r, i) => ({ r, i })).sort((a, b) => rank(a.r) - rank(b.r) || a.i - b.i).map(x => x.r);
 }
+
+/** A PAGE THAT IS ONLY ITS BAND — the eyebrow, the record's name and its
+ *  verdict — for a tool whose tiles, plan and closing line are drawn in
+ *  place from its own builder (the capability study, work sampling, the
+ *  value stream; docs/LEAN-PAGE.md slice 6). */
+export function bandPage(eyebrow: string, s: { name: string }, verdict?: string, verdictTone?: string, facts: [string, string][] = []): LeanPage {
+  const t: LeanTone = verdictTone === 'r' || verdictTone === 'a' || verdictTone === 'g' ? verdictTone : 'n';
+  return { eyebrow, title: s.name, sub: '', ...(verdict ? { verdict: { text: verdict, tone: t } } : {}), facts, tiles: [], insights: [], actions: [], actionsEmpty: '', closing: { text: '', tone: 'n' } };
+}

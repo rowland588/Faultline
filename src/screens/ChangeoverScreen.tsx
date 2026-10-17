@@ -46,6 +46,9 @@ import type { ChangeoverProduct, ChangeoverSide, ChangeoverStep, SmedFunction, S
 import type { Workspace } from '../types';
 import { UsedFor, useBetter, WhereItSits } from '../ui/StudyPlace';
 import { StudyName } from '../ui/StudyActs';
+import { LeanActions, LeanBand, LeanClosing, LeanPanel, LeanTiles } from '../ui/Lean';
+import { smedLean } from '../lib/ie/changeoverLean';
+import { raisedFrom } from '../lib/ie/lossLean';
 import { recordHref } from '../lib/studyLinks';
 import { Sheet } from '../ui/Sheet';
 import { SmedGrid } from '../ui/SmedGrid';
@@ -129,13 +132,16 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
   const setPlan = (id: string, plan: SmedPlan | undefined) => setSeq(cur => cur.map(x => { if (x.id !== id) return x; const { plan: _p, ...rest } = x; void _p; return plan ? { ...rest, plan } : rest; }));
   /* SMED INSIDE A CHANGE: an element raises a fix (stage gate) or a
      countermeasure (6M) in its SMED action's words; it then wears the branch. */
-  const { board, byRef, better } = useBetter(s, me);
+  const { board, byRef, better, steps, tests } = useBetter(s, me);
   const branches = useMemo(() => {
     const m = new Map<string, StudyUse[]>();
     for (const u of s.uses) if (u.step && u.role === 'evidence' && byRef.has(u.ref)) m.set(u.step, [...(m.get(u.step) ?? []), u]);
     return m;
   }, [s.uses, byRef]);
   const branched = useMemo(() => new Set(branches.keys()), [branches]);
+  /* THE LEAN PAGE — the same reading its paper prints (lib/ie/changeoverLean) */
+  const lean = useMemo(() => smedLean({ s, f, l, said, cost, ...(money ? { money } : {}), ...(line ? { line: line.name } : {}), ...(agreed ? { agreed } : {}),
+    raised: raisedFrom(s, steps, tests, step => seq.find(x => x.id === step)?.name) }), [s, f, l, said, cost, money, line, agreed, steps, tests, seq]);
   /* Proving a fix: the elements carried from before, timed again one by one. */
   const carried = useMemo(() => seq.filter(x => x.source === 'carried'), [seq]);
   const from = s.facts.fromProduct?.trim(), to = (s.facts.toProduct ?? s.product)?.trim();
@@ -177,9 +183,13 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
 
   return (
     <div className="wrap ie co">
-      <header className="ie-head">
-        <small className="ie-eyebrow">SMED — quick changeover</small>
-        <StudyName s={s} canEdit={editable} canRemove={can.remove} />
+      {/* THE LEAN PAGE (docs/LEAN-PAGE.md, slice 6; lib/ie/changeoverLean):
+          the band, the tiles in the strip's place — every figure it held
+          among them, the money with them — the action plan and the closing
+          line, as its paper prints them. The products sit under the band
+          with their button, so the band does not say them twice. */}
+      <LeanBand page={{ ...lean, sub: '' }} title={<StudyName s={s} canEdit={editable} canRemove={can.remove} />} />
+      <div className="ln-under">
         <p className="sub ie-where co-products">
           {from || to ? <>From <b>{from || 'a product'}</b> to <b>{to || 'a product'}</b></> : 'Which two products?'}
           {s.machine ? <> · <b>{s.machine}</b></> : null}
@@ -187,20 +197,8 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
           {editable && <button type="button" className="linkish" onClick={() => setProducts(true)}>Change the products</button>}
         </p>
         <WhereItSits s={s} can={can} />
-      </header>
-
-      {/* THE STRIP — where it stands, the ladder's rungs; only the abnormal carries colour. */}
-      <div className="ie-strip" role="group" aria-label="Where it stands">
-        <span className={'ie-fig ie-verdict is-' + said.tone}><b>{said.verdict}</b></span>
-        <span className={'ie-fig' + (f.enough ? '' : ' is-zero')}><b>{f.enough ? mins(f.nowSec) : '—'}</b> now{f.untimed ? ' · at least' : ''}</span>
-        {f.enough && <span className="ie-fig"><b>{mins(l.separated.elapsedSec)}</b> separated</span>}
-        {f.enough && l.converts > 0 && <span className="ie-fig"><b>{mins(l.converted.elapsedSec)}</b> converted</span>}
-        {f.enough && l.streamlines > 0 && <span className="ie-fig"><b>{mins(l.streamlined.elapsedSec)}</b> streamlined</span>}
-        {f.enough && <span className="ie-fig is-n">target <b>under {mins(SMED_TARGET_SEC)}</b> — single digits</span>}
-        {f.enough && f.externalSec > 0 && !/external/.test(said.verdict) && <span className="ie-fig is-a"><b>{mins(f.externalSec)}</b> external inside</span>}
-        {cost.scale && <span className="ie-fig"><b>{span(cost.scale.week.sec)}</b> a week stopped</span>}
-        <span className="ie-fig is-n"><b>{f.steps}</b> element{f.steps === 1 ? '' : 's'} · {f.source === 'none' ? 'not timed' : f.source === 'carried' ? 'some carried from before' : f.source}</span>
       </div>
+      <LeanTiles tiles={lean.tiles} className="ie-strip" />
       <div className="ie-says">
         {said.lines.filter(x => x.tone === 'r').map(x => <p key={x.text} className="ie-say is-r">{x.text}</p>)}
         <p className={'ie-say' + (said.tone === 'r' ? ' is-r' : '')}>{said.text}</p>
@@ -334,7 +332,13 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
         )}
       </div>
 
+      {/* WHAT WE ARE DOING ABOUT IT — what was raised from an element, then
+          every element's plan in its SMED action's words */}
+      <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
+        <LeanActions actions={lean.actions} empty={lean.actionsEmpty} />
+      </LeanPanel>
       <UsedFor s={s} can={can} me={me} />
+      <LeanClosing closing={lean.closing} />
 
       {editing && (
         <ElementSheet key={editing === 'new' ? 'new' : editing.id} step={editing === 'new' ? undefined : seq.find(x => x.id === editing.id) ?? editing} seq={seq} people={people} places={places}

@@ -33,6 +33,10 @@ import type { AgreedMap, FlowKind, FlowStep, FlowValue, StudyUse, ToolStudy } fr
 import { KIND_WORD, StepFacts, VALUE_WORD, ValueStreamGrid, WalkIt } from '../ui/ValueStream';
 import { UsedFor, useBetter, WhereItSits } from '../ui/StudyPlace';
 import { StudyName } from '../ui/StudyActs';
+import { LeanActions, LeanBand, LeanClosing, LeanPanel } from '../ui/Lean';
+import { bandPage } from '../lib/lean';
+import { flowClosing } from '../lib/ie/flowLean';
+import { raisedFrom } from '../lib/ie/lossLean';
 import { recordHref, ROLE_WORD } from '../lib/studyLinks';
 import { Sheet } from '../ui/Sheet';
 
@@ -78,7 +82,7 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
   /* THE MAP INSIDE A CHANGE: a step's wait or waste raises a fix (stage gate)
      or a countermeasure (6M) — the same Make it better as Used for — and the
      step then wears the branch: a mark on its square, the record in its facts. */
-  const { board, byRef, better } = useBetter(s, me);
+  const { board, byRef, better, steps, tests } = useBetter(s, me);
   const branches = useMemo(() => {
     const m = new Map<string, StudyUse[]>();
     for (const u of s.uses) if (u.step && u.role === 'evidence' && byRef.has(u.ref)) m.set(u.step, [...(m.get(u.step) ?? []), u]);
@@ -102,13 +106,15 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
 
   return (
     <div className="wrap ie vs-page">
-      <header className="ie-head">
-        <small className="ie-eyebrow">Value stream map</small>
-        <StudyName s={s} canEdit={can.edit && !s.closedAt} canRemove={can.remove} />
+      {/* THE LEAN PAGE (docs/LEAN-PAGE.md, slice 6): the band; the seven cards
+          stay its tiles, in the method's colours; the action plan and the
+          closing line (lib/ie/flowLean) at its foot */}
+      <LeanBand page={bandPage('Value stream map', s, f.steps ? `${f.untimed ? '≥ ' : ''}${dur(f.leadSec)} lead time` : 'No steps yet', f.longestCycle?.overTakt ? 'r' : 'n')} title={<StudyName s={s} canEdit={can.edit && !s.closedAt} canRemove={can.remove} />} />
+      <div className="ln-under">
         <p className="sub ie-where">{/* the line is said once, just below, where it can be changed (ui/StudyPlace) */}
           {lineName ? 'what is done, and who does it' : 'not on a line yet — put it on its line below'} · started {niceDay(isoDay(s.startedAt))}{s.product ? <> · <b>{s.product}</b></> : null}</p>
         <WhereItSits s={s} can={can} />
-      </header>
+      </div>
 
       {agreeing ? <Agree s={s} onDone={() => setAgreeing(false)} />
         : (
@@ -170,7 +176,12 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
         : <div className="qsl-empty"><p><b>No steps yet.</b> Start where the line's work starts — the order released, the film arriving from stores — and add each thing that is done, in the lane of whoever does it (an operator, the machine, planning, quality, maintenance), to the pallet leaving.</p></div>}
 
 
+      {/* WHAT WE ARE DOING ABOUT IT — what was raised from a step's wait or waste */}
+      <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
+        <LeanActions actions={raisedFrom(s, steps, tests, step => list.find(x => x.id === step)?.name)} empty="Nothing raised from it yet — tap a red step's wait or waste and Make it better." />
+      </LeanPanel>
       <UsedFor s={s} can={can} me={me} />
+      <LeanClosing closing={flowClosing(f, a)} />
 
       {viewing && (
         <Sheet open onClose={() => setViewing(null)} title={`Step ${viewing.n}`}>

@@ -27,7 +27,11 @@ import { sample, sampleSays, tneFor, CPK_FROM, type SampleFigures, type SampleSa
 import type { AgreedReadings, StudyReading, ToolStudy } from '../lib/study';
 import { TOOL_WORDS } from './StudiesScreen';
 import { StudyName } from '../ui/StudyActs';
-import { WhereItSits, UsedFor } from '../ui/StudyPlace';
+import { WhereItSits, UsedFor, useBetter } from '../ui/StudyPlace';
+import { LeanActions, LeanBand, LeanClosing, LeanPanel, LeanTiles } from '../ui/Lean';
+import { bandPage } from '../lib/lean';
+import { sampleClosing, sampleTiles } from '../lib/ie/sampleLean';
+import { raisedFrom } from '../lib/ie/lossLean';
 import { DraftText } from '../ui/Draft';
 import { useMachinesOf } from '../lib/useLineRecords';
 
@@ -64,6 +68,8 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
   const [agreeing, setAgreeing] = useState(false);
   const write = (p: Parameters<typeof patchStudy>[1]) => void patchStudy(s.id, p);
   const w = TOOL_WORDS[s.tool];
+  /* what was raised from it — the action plan (ui/StudyPlace useBetter) */
+  const { steps, tests } = useBetter(s, me);
 
   const add = (r: Omit<StudyReading, 'id' | 'at'>) =>
     write(cur => ({ facts: { ...cur.facts, readings: [...(cur.facts.readings ?? []), { id: uid(), at: now(), ...(me ? { who: me } : {}), ...r }] } }));
@@ -72,21 +78,23 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
 
   return (
     <div className="wrap ie">
-      <header className="ie-head">
-        <small className="ie-eyebrow">{w?.one ?? 'Study'}</small>
-        <StudyName s={s} canEdit={can.edit && !closed} canRemove={can.remove} />
+      {/* THE LEAN PAGE (docs/LEAN-PAGE.md, slice 6; lib/ie/sampleLean): the
+          band with the verdict, the tiles in the strip's place, the action
+          plan and the closing line */}
+      <LeanBand page={bandPage(w?.one ?? 'Study', s, said.verdict, said.tone)} title={<StudyName s={s} canEdit={can.edit && !closed} canRemove={can.remove} />} />
+      <div className="ln-under">
         <p className="sub ie-where">
           {s.workspaceId && can.edit && !closed ? <StudyMachine s={s} /> : s.machine ? <><b>{s.machine}</b> · </> : null}
           started {niceDay(isoDay(s.startedAt))}
         </p>
         <WhereItSits s={s} can={can} />
-      </header>
+      </div>
 
       {!a || agreeing ? (
         <Agree s={s} canAgree={can.agree && !closed} hasReadings={f.n > 0} onDone={() => setAgreeing(false)} cancel={a ? () => setAgreeing(false) : undefined} />
       ) : (
         <>
-          <Strip f={f} a={a} said={said} />
+          <LeanTiles tiles={sampleTiles(f, a, said)} className="ie-strip" />
           <Says said={said} s={s} />
           <div className="ie-body">
             <div className="ie-pic">{a.kind === 'ticks' ? <Ticks readings={readings} /> : <Dots f={f} a={a} readings={readings} said={said} />}</div>
@@ -99,6 +107,10 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
           </p>
           <UsedFor s={s} can={can} me={me} />
           <Act s={s} f={f} said={said} can={can} me={me} write={write} />
+          <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
+            <LeanActions actions={raisedFrom(s, steps, tests)} empty="Nothing raised from it yet — Make it better raises a fix or a countermeasure in its own figures." />
+          </LeanPanel>
+          <LeanClosing closing={sampleClosing(f, a, said)} />
         </>
       )}
     </div>
@@ -213,31 +225,7 @@ export function agreedWords(a: AgreedReadings): string {
   return `${what}, ${a.count} reading${a.count === 1 ? '' : 's'}`;
 }
 
-/* ------------------------------------------------------------------ strip and says */
-function Strip({ f, a, said }: { f: SampleFigures; a: AgreedReadings; said: SampleSays }) {
-  const unit = a.unit ? ` ${a.unit}` : '';
-  const fx = (v?: number) => (v === undefined ? '—' : v.toFixed(f.dp));
-  const cap = said.capability;
-  return (
-    <div className="ie-strip" role="group" aria-label="Where it stands">
-      <span className={'ie-fig ie-verdict is-' + said.tone}><b>{said.verdict}</b></span>
-      <span className={'ie-fig' + (f.n ? '' : ' is-zero')}><b>{f.n}</b> of {f.count} in</span>
-      {a.kind !== 'ticks' && f.n > 0 && <>
-        <span className="ie-fig">mean <b>{fx(f.mean)}{unit}</b></span>
-        <span className="ie-fig">{fx(f.min)}–{fx(f.max)}</span>
-        <span className={'ie-fig' + (f.outside.length ? ' is-r' : ' is-zero')}><b>{f.outside.length}</b> outside</span>
-        {f.ppk !== undefined && Number.isFinite(f.ppk) && (
-          <span className={'ie-fig is-' + (cap?.tone ?? 'n')} title="Ppk: the readings as they came. Cpk: pack to pack, from each reading's difference from the one before.">
-            Ppk <b>{f.n >= CPK_FROM ? f.ppk.toFixed(2) : '—'}</b>
-            {f.cpk !== undefined && Number.isFinite(f.cpk) && <> · Cpk <b>{f.n >= CPK_FROM ? f.cpk.toFixed(2) : '—'}</b></>}
-            {' '}· from {f.n}{f.n < CPK_FROM ? ' · too few' : ''}
-          </span>
-        )}
-      </>}
-    </div>
-  );
-}
-
+/* ------------------------------------------------------------------ says */
 function Says({ said, s }: { said: SampleSays; s: ToolStudy }) {
   return (
     <div className="ie-says">

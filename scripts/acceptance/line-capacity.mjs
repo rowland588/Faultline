@@ -171,7 +171,7 @@ await page.locator('.vc-says').first().waitFor({ timeout: 10000 }).catch(() => {
 {
   await page.getByRole('button', { name: 'Walk the line' }).click(); await page.waitForTimeout(1800);
   const id = page.url().split('sampling/')[1]?.split(/[?#]/)[0];
-  ok(!!id && /bottleneck walk/i.test(await words('.ie-eyebrow')) && /Walk 1 of 12/.test(await words('.ws-round')), '6 Walk the line opens the walk: Walk 1 of 12, now');
+  ok(!!id && /bottleneck walk/i.test(await words('.ln-band .ln-eyebrow')) && /Walk 1 of 12/.test(await words('.ws-round')), '6 Walk the line opens the walk: Walk 1 of 12, now');
   const names = (await page.locator('.ws-round .ws-person .ws-who').allTextContents()).map(x => x.trim());
   for (const [i, n] of names.entries()) {
     await page.locator('.ws-round .ws-person', { hasText: n }).getByRole('button', { name: i === names.length - 1 ? 'working' : 'blocked', exact: true }).click(); await page.waitForTimeout(350);
