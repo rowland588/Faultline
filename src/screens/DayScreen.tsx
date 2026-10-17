@@ -33,6 +33,10 @@ import { planModel } from '../lib/planModel';
 import { DayPlan } from '../ui/DayPlan';
 import { Icon } from '../ui/Icon';
 import { isSettled, live, plannedEnd } from '../lib/testing';
+import { useJobMoney } from '../lib/useJobMoney';
+import { MONEY_WAIT } from '../lib/stageGatePages';
+import { dayClosing, dayTiles } from '../lib/dayLean';
+import { LeanClosing, LeanTiles } from '../ui/Lean';
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -46,6 +50,8 @@ export function DayScreen({ projectId }: { projectId: string }) {
   /* Nothing on the day is typed here, so a client reads all of it; the line
      at the top only says who runs the job (lib/access). */
   const can = useAccess(projectId);
+  /* the job's money — what the slip costs, or what a day late would (lib/useJobMoney) */
+  const jobMoney = useJobMoney(projectId);
   const asked = useRoute().query.get('d') ?? '';
   const today = todayISO();
   /* A day still to come has no story, and a link to one said "Nothing was
@@ -80,6 +86,8 @@ export function DayScreen({ projectId }: { projectId: string }) {
   /* ARE WE ON TARGET? — today's answer (lib/onTarget), at the top of the
      update and of its page. On another day it is still today's, and says so. */
   const onTarget = planModel(project) === 'commissioning' ? stageGateOnTarget({ project, ...input, today }) : undefined;
+  /* the money tile is a stage-gate job's: a 6M job's day has no handover to slip */
+  const money = planModel(project) === 'commissioning' ? jobMoney ?? MONEY_WAIT : undefined;
   const asOf = date === today ? undefined : `today, ${niceDay(today, { weekday: 'short' })}`;
   /* Back and forward step over the blank days, so the story reads on. */
   const days = activeDays(input);
@@ -140,7 +148,7 @@ export function DayScreen({ projectId }: { projectId: string }) {
       const { shotsOf } = await import('../lib/testReport');
       const shots = await shotsOf(day.media, 4);
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-      drawDayReport(pdf, day, { project: project.name, lead: project.lead, builtAt: Date.now(), shots, onTarget, asOf });
+      drawDayReport(pdf, day, { project: project.name, lead: project.lead, builtAt: Date.now(), shots, onTarget, asOf, tiles: dayTiles(day, money), closing: dayClosing(day, money) });
       const how = await deliverPdf(pdf, pdfFileName(project.name, 'day', date), { brand: false }); // its band carries the mark
       setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
     } catch (e) {
@@ -182,6 +190,9 @@ export function DayScreen({ projectId }: { projectId: string }) {
         </p>
       )}
       <AccessNote can={can} owner={project.lead} />
+      {/* THE LEAN PAGE (lib/dayLean): the day's story counted — done, late,
+          went wrong, found — and the job's money last */}
+      {!day.empty && <LeanTiles tiles={dayTiles(day, money)} className="sg-tiles" />}
 
       <nav className="dy-nav" aria-label="Pick a day">
         <button className="btn btn-ghost" disabled={!prev} onClick={() => prev && go(prev)}>
@@ -268,6 +279,8 @@ export function DayScreen({ projectId }: { projectId: string }) {
       {/* Said once, on an empty day; a day with a story does not need its button explained. */}
       {day.empty && <p className="sub tw-note">“{date === today ? 'Today’s update — PDF' : 'This day — PDF'}” at the top saves one page of this to your device — the day’s story, the gates’ bars and the day’s pictures — to read, then send from the bar it leaves.</p>}
 
+      {/* THE CLOSING LINE — the day in one sentence, the slip in money */}
+      <LeanClosing closing={dayClosing(day, money)} />
       {viewing && <EvidenceViewer media={viewing} onClose={() => setViewing(null)} />}
     </div>
   );

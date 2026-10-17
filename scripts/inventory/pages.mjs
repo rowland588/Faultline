@@ -91,6 +91,11 @@ export const PAGES = (sd, cap) => [
     { what: 'what we are waiting on, a row a material', sel: '.mt-list .mt-row', n: 2 },
     { what: 'the closing line', sel: '.ln-close' },
   ] },
+  /* the day (17 October, the lean page slice 5c; lib/dayLean): its update to send, the story counted in tiles, the job's money last, the closing line */
+  { name: 'The day', path: `#/project/${sd.projectId}/day`, must: [
+    { what: 'the update to send, at the top', sel: '.dy-head .btn-primary', text: /PDF/ },
+    { what: 'the tiles — done, late, went wrong, found, the job’s money', sel: '.cm-screen > .sg-tiles .ln-tile', n: 4 },
+    { what: 'the closing line', sel: '.cm-screen > .ln-close' }] },
   { name: 'The plan', path: `#/project/${sd.projectId}/plan`, must: [{ what: 'the Gantt', sel: '.gt-body' }, { what: 'the plan’s tabs, Timeline on', sel: '.plt .plt-t.on', text: /^Timeline/ },
     /* the lean page (17 October; lib/stageGatePages planTiles): the header's count line moved into the tiles, the job's money last; the closing line */
     { what: 'the tiles — done of the dates, late, still ahead, the job’s money', sel: '.cm-screen > .sg-tiles .ln-tile', n: 4 },
