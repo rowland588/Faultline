@@ -86,20 +86,22 @@
   --gold: #b45309;        /* outstanding */
   --gold-soft: #fdf1e4;
 
-  /* THE SHELL — the dark frame: the spine, a project's top bar, the verdict
-     card. Its own tokens rather than --chrome, which is the LIGHT cockpit the
-     meeting screen and the workspace bar are built on and must stay light. */
-  --shell: #12171c;       /* graphite — the frame and the dark cards */
-  --shell-2: #1b2229;
-  --shell-ink: #ffffff;
-  --shell-muted: #9aa7ae;
-  --shell-dim: #c4ced3;
-  --shell-line: #2a343c;
-  /* the two numbers allowed to carry colour on a dark card — and the
-     answer to "are we on target?" (ui/OnTarget), whose quiet green is this */
-  --shell-warn: #e0a94a;
-  --shell-bad: #e2796b;
-  --shell-ok: #8fd3b0;
+  /* THE SHELL — the bands: the verdict, the lean band, a product's band, the
+     control room's, the closing line. LIGHT, as paper is (Rowland, 17
+     October: "black background with white writing ... when it prints, it
+     won't work" — then "light everywhere"): a pale fill, a teal edge,
+     graphite words; what is on screen is what prints (lib/reportKit BAND). */
+  --shell: #eef3f3;       /* the band's pale fill — reportKit BAND */
+  --shell-2: #ffffff;     /* a tile or a panel on the band */
+  --shell-ink: #0f1417;
+  --shell-muted: #59666c;
+  --shell-dim: #323d43;
+  --shell-line: #d6dfdf;
+  /* the numbers allowed to carry colour on a band — and the answer to "are
+     we on target?" (ui/OnTarget) — the five states' own, readable on pale */
+  --shell-warn: #b45309;
+  --shell-bad: #c4281c;
+  --shell-ok: #15803d;
 
   --sweep: linear-gradient(135deg, #12171c 0%, #16323a 58%, #0c7489 100%);
   --sweep-soft: linear-gradient(135deg, #eef6f6 0%, #e5efef 100%);
@@ -6022,7 +6024,7 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .ot.is-none .ot-w { color: var(--ink-2); }
 /* On the dark band of the front page: first, across the whole card. */
 .vd > .ot { flex: 1 1 100%; margin: 0; max-width: none; }
-.ot.is-dark { background: rgba(255, 255, 255, 0.06); border-color: var(--shell-line); }
+.ot.is-dark { background: var(--shell-2); border-color: var(--shell-line); }
 .ot.is-dark .ot-q { color: var(--shell-muted); }
 .ot.is-dark .ot-a { color: var(--shell-ink); }
 .ot.is-dark .ot-r { color: var(--shell-dim); }
@@ -6626,11 +6628,11 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
 .jb-stat {
   display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 118px; padding: 10px 14px 11px;
   font: inherit; text-align: left; cursor: pointer; transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
-  border-radius: var(--radius); background: rgba(255, 255, 255, 0.06); border: 1px solid var(--shell-line);
+  border-radius: var(--radius); background: var(--shell-2); border: 1px solid var(--shell-line);
   font-size: var(--t-label); color: var(--shell-muted);
   animation: jb-rise 700ms cubic-bezier(.2, .8, .2, 1) both; animation-delay: 120ms;
 }
-.jb-stat:hover { background: rgba(255, 255, 255, 0.11); transform: translateY(-1px); }
+.jb-stat:hover { background: var(--surface-2); transform: translateY(-1px); }
 .jb-stat.is-on, .jb-owe.is-on { border-color: var(--brand-mark); box-shadow: 0 0 0 1px var(--brand-mark); }
 .jb-stat:focus-visible, .jb-owe:focus-visible { outline: 2px solid var(--brand-mark); outline-offset: 2px; }
 .jb-stat b { font-family: var(--display); font-size: var(--t-num); line-height: 1; color: var(--shell-ink); font-variant-numeric: tabular-nums; }
@@ -6640,7 +6642,7 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
 .jb-of { display: block; max-width: 22ch; margin-top: 2px; font-size: var(--t-label); line-height: 1.3; color: var(--shell-dim); opacity: 0.85; }
 /* The money: a figure, not a filter — no press, no lift. */
 .jb-stat.is-money { cursor: default; }
-.jb-stat.is-money:hover { background: rgba(255, 255, 255, 0.06); transform: none; }
+.jb-stat.is-money:hover { background: var(--shell-2); transform: none; }
 .jb-stat.is-met b { color: var(--shell-ok); }
 /* The control room's closing line, at the foot of the board. */
 .jb > .ln-close { margin: 18px 0 0; }
@@ -6648,13 +6650,13 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
 .jb-owes-h { font-size: var(--t-label); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--shell-muted); margin-right: 4px; }
 .jb-owe {
   position: relative; display: inline-flex; align-items: baseline; gap: 7px; padding: 7px 11px 10px;
-  border-radius: 999px; background: rgba(255, 255, 255, 0.08); font: inherit; font-size: var(--t-detail); overflow: hidden;
+  border-radius: 999px; background: var(--shell-2); font: inherit; font-size: var(--t-detail); overflow: hidden;
   color: var(--shell-ink); border: 1px solid transparent; cursor: pointer; transition: background 140ms ease;
 }
-.jb-owe:hover { background: rgba(255, 255, 255, 0.15); }
+.jb-owe:hover { background: var(--surface-2); }
 .jb-owe b { font-weight: 700; }
 .jb-owe-n { font-variant-numeric: tabular-nums; color: var(--shell-dim); }
-.jb-owe.is-site { background: rgba(255, 255, 255, 0.04); border-color: var(--shell-line); }
+.jb-owe.is-site { background: var(--shell); border-color: var(--shell-line); }
 .jb-owe.is-nobody { border: 1px dashed var(--shell-warn); background: transparent; }
 .jb-owe-l { font-size: var(--t-label); font-weight: 700; color: var(--shell-bad); }
 .jb-owe-jobs { display: inline-flex; gap: 8px; margin-left: 2px; font-size: var(--t-label); color: var(--shell-muted); }
@@ -6670,9 +6672,9 @@ button.tl-m.is-go:hover .tl-lab-t { text-decoration: underline; }
 .jb-tidy-acts { display: flex; flex-wrap: wrap; gap: 6px; }
 .jb-tidy-b {
   padding: 6px 12px; min-height: 34px; border-radius: 999px; font: inherit; font-size: var(--t-label); font-weight: 700;
-  color: var(--shell-ink); background: rgba(255, 255, 255, 0.12); border: 1px solid var(--shell-line); cursor: pointer;
+  color: var(--shell-ink); background: var(--shell-2); border: 1px solid var(--shell-line); cursor: pointer;
 }
-.jb-tidy-b:hover { background: rgba(255, 255, 255, 0.22); }
+.jb-tidy-b:hover { background: var(--surface-2); }
 
 /* ---- what a number or a party opens into ---- */
 .jb-focus {
@@ -13366,8 +13368,8 @@ button.cxb-row:hover .cxb-n { color: var(--accent); }
 .wb-el.is-wait .wb-el-n::before { border: 1.4px dashed var(--ink-2); }
 .tg-money { font-weight: 700; }
 /* WHAT THE BOTTLENECK COSTS A PACK — under the sums, the money said plainly */
-.cap-money { margin: 8px 0 0; font-weight: 700; font-size: var(--t-body); color: #fff; }
-.cap-money.is-r { color: #ffb4ab; }
+.cap-money { margin: 8px 0 0; font-weight: 700; font-size: var(--t-body); color: var(--shell-ink); }
+.cap-money.is-r { color: var(--shell-bad); }
 .cap-money.is-n { font-weight: 500; color: var(--shell-dim); font-size: var(--t-detail); }
 
 /* ============================================================ THE LEAN PAGE
@@ -13390,6 +13392,9 @@ button.cxb-row:hover .cxb-n { color: var(--accent); }
 .ln-band .ln-verdict.is-a { background: var(--st-a); border-color: var(--st-a); }
 .ln-band .ln-verdict.is-r { background: var(--st-r); border-color: var(--st-r); }
 .ln-band .ln-verdict.is-g { background: var(--st-g); border-color: var(--st-g); }
+/* a verdict in a state's colour says its word in white — a state pill, not a dark band */
+.ln-band .ln-verdict.is-a b, .ln-band .ln-verdict.is-r b, .ln-band .ln-verdict.is-g b,
+.ls-head.is-band .ln-verdict.is-a b, .ls-head.is-band .ln-verdict.is-r b, .ls-head.is-band .ln-verdict.is-g b { color: #fff; }
 .ln-facts { display: grid; grid-template-columns: auto auto; gap: 3px 14px; margin: 2px 0 0; font-size: var(--t-detail); align-content: start; }
 .ln-facts > div { display: contents; }
 .ln-facts dt { color: var(--shell-muted); font-weight: 700; }
@@ -13536,11 +13541,11 @@ button.ln-row:hover { background: var(--surface-2); }
    Rowland: "a new fresh looking app ... aesthetics that wow." Each is a
    finish on something already here, never a new colour job:
    · the top bar frosted over the page, so the page runs under it;
-   · the dark bands (the verdict, the lean bands, a product's band) graphite
-     with the brand's cyan glowing in from one corner — the mark's light, not
-     a state;
-   · the mark's trace, faint, along the foot of every dark band — the
-     brand's signature where the verdict is said;
+   · the bands (the verdict, the lean bands, a product's band, the control
+     room's, the closing line) pale with the brand's teal edge — light on
+     screen as on paper, never black with white words (17 October, evening);
+   · the mark's trace, faint, along the foot of every band — the brand's
+     signature where the verdict is said;
    · the rail's place you are on in the brand's soft teal with its edge;
    · what you press a little lit, and a tile lifting when it opens something.
    ========================================================================= */
@@ -13549,16 +13554,14 @@ button.ln-row:hover { background: var(--surface-2); }
   -webkit-backdrop-filter: saturate(1.5) blur(14px); backdrop-filter: saturate(1.5) blur(14px);
   border-bottom-color: color-mix(in srgb, var(--line) 80%, transparent);
 }
-.vd, .ln-band, .ls-head.is-band {
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 30'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1'%3E%3Cstop offset='0' stop-color='%2322c3d6' stop-opacity='0'/%3E%3Cstop offset='.68' stop-color='%2322c3d6' stop-opacity='.42'/%3E%3Cstop offset='1' stop-color='%2322c3d6' stop-opacity='.12'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 22 H430 L441 3 L453 28 L462 22 H640' fill='none' stroke='url(%23g)' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") right -60px bottom 0 / 640px 30px no-repeat,
-    radial-gradient(520px 260px at 100% 0%, rgba(34, 195, 214, 0.20), transparent 70%),
-    radial-gradient(420px 220px at 0% 100%, rgba(127, 227, 190, 0.07), transparent 70%),
-    var(--shell);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 22px 48px -18px rgba(18, 23, 28, 0.45);
+.vd, .ln-band, .ls-head.is-band, .jb-hero, .ln-close {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 30'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1'%3E%3Cstop offset='0' stop-color='%2322c3d6' stop-opacity='0'/%3E%3Cstop offset='.68' stop-color='%2322c3d6' stop-opacity='.42'/%3E%3Cstop offset='1' stop-color='%2322c3d6' stop-opacity='.12'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 22 H430 L441 3 L453 28 L462 22 H640' fill='none' stroke='url(%23g)' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") right -60px bottom 0 / 640px 30px no-repeat, var(--shell);
+  border-left: 4px solid var(--brand);
+  box-shadow: 0 1px 2px rgba(18, 23, 28, 0.05), 0 14px 32px -22px rgba(18, 23, 28, 0.28);
 }
-/* The control room's band keeps its jobs' own glow, and takes the trace too. */
-.jb-hero { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 30'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1'%3E%3Cstop offset='0' stop-color='%2322c3d6' stop-opacity='0'/%3E%3Cstop offset='.68' stop-color='%2322c3d6' stop-opacity='.42'/%3E%3Cstop offset='1' stop-color='%2322c3d6' stop-opacity='.12'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 22 H430 L441 3 L453 28 L462 22 H640' fill='none' stroke='url(%23g)' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") right -60px bottom 0 / 640px 30px no-repeat, var(--shell); }
+.ln-close { background: var(--shell); }
+/* the control room's drifting glow was light on dark; on the pale band it is left out */
+.jb-glow { display: none; }
 .nv-ri.is-on { background: var(--accent-soft); color: var(--ink); box-shadow: inset 3px 0 0 var(--brand); }
 .btn-primary { box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18) inset, 0 10px 22px -12px rgba(12, 116, 137, 0.75); }
 .btn-primary:hover { filter: brightness(1.06); }
@@ -13568,54 +13571,12 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 :focus-visible { outline-color: var(--brand); }
 @media (prefers-reduced-motion: reduce) { .ln-tile, .vd-tile { transition: none; } }
 
-/* THE CASE FOR THE CHANGE, under the band (ui/CaseLine, docs/CASE.md) —
-   the work, so neutral; measured under the case after its start in amber
-   (still climbing), at it in green — the words always beside the colour. */
-.bz-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 10px 0 0; padding: 10px 14px;
-  background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--line-2); border-radius: var(--radius);
-  font-size: var(--t-detail); line-height: 1.45; color: var(--ink-2); }
-.bz-line.is-a { border-left-color: var(--st-a); }
-.bz-line.is-g { border-left-color: var(--st-g); }
-.bz-k { font-size: var(--t-label); font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
-.bz-why { font-weight: 700; color: var(--ink); }
-.bz-worth { color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.bz-worth.is-none { color: var(--muted); }
-.bz-m { flex-basis: 100%; font-weight: 700; }
-.bz-m.is-a { color: var(--st-a); }
-.bz-m.is-g { color: var(--st-g); }
-.bz-edit { margin-left: auto; }
-.bz-sheet { display: grid; gap: 12px; }
-.bz-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
-.bz-row legend { padding: 0 4px; font-weight: 700; color: var(--ink); }
-.bz-row-says { grid-column: 1 / -1; }
-.bz-sheet .field > .label { display: block; margin: 0 0 4px; }
-.bz-days { display: block; max-width: 8em; }
-.bz-says { margin: 0; padding: 10px 12px; border-left: 4px solid var(--line-2); background: var(--surface-2, var(--surface)); border-radius: var(--radius); font-weight: 700; color: var(--ink); }
-.bz-acts { display: flex; gap: 8px; flex-wrap: wrap; }
-@media (max-width: 640px) {
-  .bz-line { padding: 8px 10px; }
-  .bz-edit { margin-left: 0; }
-}
-
 /* ============================================================================
-   PRINTING A SCREEN PAGE — the dark bands turn light.
-   Rowland, 17 October: "I see that you're doing black background with white
-   writing. Will this have an effect on printing? ... Usually not." Browsers
-   drop background colours when printing, so a dark band's white words would
-   print white on white; with backgrounds on, it is a slab of toner. In print
-   the dark frame is redefined light — the reports' own band (reportKit
-   BAND): a pale fill, a teal edge, graphite words — the glows and the trace
-   gone; the five states keep their colours and their words.
+   PRINTING A SCREEN PAGE. The bands are light on screen as on paper (Rowland,
+   17 October: "black background with white writing ... when it prints, it
+   won't work", then "light everywhere"), so a printed page is the page: only
+   the shadow goes, and the pale fill and the teal edge print as they are.
    ========================================================================== */
 @media print {
-  :root {
-    --shell: #eef3f3 !important; --shell-2: #ffffff !important; --shell-ink: #0f1417 !important;
-    --shell-muted: #59666c !important; --shell-dim: #323d43 !important; --shell-line: #d6dfdf !important;
-    --shell-bad: #c4281c !important; --shell-warn: #b45309 !important; --shell-ok: #15803d !important;
-  }
-  .vd, .ln-band, .ls-head.is-band, .jb-hero, .ln-close {
-    background: #eef3f3 !important; box-shadow: none !important; border-left: 4px solid #0c7489 !important;
-    -webkit-print-color-adjust: exact; print-color-adjust: exact;
-  }
-  .jb-glow { display: none !important; }
+  .vd, .ln-band, .ls-head.is-band, .jb-hero, .ln-close { box-shadow: none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }

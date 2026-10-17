@@ -230,7 +230,6 @@ node scripts/audit.mjs [out.json]     # not a pass/fail: walks every screen at d
 node scripts/acceptance/list-paper.mjs  # the audit's bar 3: paper wherever there is a list — Line capacity's page and every product shown, Line standard's cards for all shown, Materials, a card for every test on Commission
 node scripts/acceptance/commissioning-report.mjs  # the commissioning report and cards: from Commission and the Reports sheet, the gate machine by machine, why and what we are doing, on paper and as a card a machine, moving when a test passes, on a phone and for a client
 node scripts/acceptance/report-relevance.mjs  # the audit's bar 8: the stage-gate papers keep up — a machine late on site, a register problem for the job, the line's own programs, what a gate is missing, on the full report, the one page, the programs report and the handover; the statuses moved and all four moved with them
-node scripts/acceptance/business-case.mjs  # the case for the change (docs/CASE.md): what a job is for under its band, priced from Your factory (the line's shifts × its margin a pack), written by its owner and worked out as it is typed, on the one-page status and the full report, read by a client
 node scripts/inventory.mjs            # docs/PAGES.md: every page shows what it must, at desk and phone — same server
 node scripts/acceptance/upgrade.mjs  # the upgrade (docs/upgrade-plan.md), AI off: what a line can make and why, Ask, where and when it stops, the week to send, the Pareto read, Again?, the line machine by machine, Jump to, the demo kept out, the phone
 node scripts/sync-two-devices.mjs     # a phone and a laptop against a fake cloud — video on one plays on the other
@@ -755,11 +754,14 @@ it) took every navy, blue and blue-tinted grey to its place in the new
 scheme, and the state colours and people's own colours (a project's, a
 person's on the line standard) were left alone. **Paper is light.** The
 same day: "black background with white writing — will we be able to see it
-printed? Usually not." So no PDF or card spends a dark band: on paper every
+printed? Usually not." So no band is dark, on paper or on screen: every
 band is a pale fill with a teal edge and graphite words (`lib/reportKit`
-BAND, `paperBand`), and a screen page printed from the browser turns its
-dark bands light (`styles.css`, the last `@media print`). The screen keeps
-its dark bands. Do not reopen either without him asking. **The five state colours
+BAND, `paperBand`; on screen the `--shell` tokens in `styles.css`), so what
+is on screen is what prints. The screen kept its dark bands for an hour;
+the same evening, shown them: "I thought we agreed that you wouldn't do a
+black background or white writing" — light everywhere. Never put white
+words on a dark fill (a state's coloured pill with its word is the one
+exception). Do not reopen either without him asking. **The five state colours
 were refreshed on 15 October** at his word ("just go for it", after a
 colour review asked for): the same five meanings, made clean signals — red
 `#c4281c`, amber `#b45309`, green `#15803d`, violet `#6d28d9` for under way
@@ -817,8 +819,8 @@ what by when?
 Rowland, 17 October, with a standard and a lean capacity report side by side:
 "move on to all reports lean methodology applied ... the lean report is
 actually how we would want the app's UI." So every report, and every tool's
-page, is the lean page (`docs/LEAN-PAGE.md`): the band (what, where, when,
-in the house graphite), the tiles (a few counted figures, each *of* what it
+page, is the lean page (`docs/LEAN-PAGE.md`): the band (what, where, when —
+a pale fill with the teal edge), the tiles (a few counted figures, each *of* what it
 should be and *since the record before*, never OEE), the trend, the tool's
 own picture, the top causes, what it means, the action plan (action · owner
 · due) and the closing line — the three questions drawn as a board is

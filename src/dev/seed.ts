@@ -230,11 +230,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
    * findings and next steps that came out of it, one didn't run, and one planned
    * from a next step on the failed one. That last link is the cycle, and a
    * fixture that got it wrong would make the app look broken when it was right. */
-  /* THE CASE FOR THE CHANGE (docs/CASE.md): what it is for, the line from 0
-     to 120 a minute, five days a week — its line's shifts and margin not in
-     Your factory, so the case names what to give rather than a figure. */
-  await updateProject({ ...proj, plannedAt: iso(19), expectedAt: iso(27), updatedAt: t,
-    businessCase: { why: 'The 4-pack contract from December', lines: [{ lineId: ws.id, from: 0, to: 120 }], daysAWeek: 5 } });
+  await updateProject({ ...proj, plannedAt: iso(19), expectedAt: iso(27), updatedAt: t });
 
   /* Each machine carries its four days — expected, landed, installed, running —
      so the Machines lane of the plan draws from the seed the way it draws from

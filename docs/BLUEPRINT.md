@@ -236,8 +236,7 @@ pack because of X" and £ a minute. Where it stands, 17 October:
   front page, its one-page status and its full report, 17 October), the
   control room (what the slips cost across every running stage-gate job,
   its band and its one page — the lean page 5a), Your factory (a day of
-  every line in margin, its page and its paper — 5b), the case for the
-  change (what a job is for, a week of margin — docs/CASE.md) and work
+  every line in margin, its page and its paper — 5b) and work
   sampling (what the biggest share not the work costs a shift — slice 6).
 - **Missing — the next piece, tool by tool:** the capability study (what
   the rejects and give-away cost), the value stream map (what the waits and
@@ -300,6 +299,15 @@ pack because of X" and £ a minute. Where it stands, 17 October:
       by bone, Wins).
 
 **Faultline as a project-management system — six pieces it is missing**
+**Declined, 17 October — none of the six is built.** Rowland, the same
+evening: "This is a tool for a one man consultant — if we do all 6 it becomes
+a full business tool, so don't do any of them." The first (12) had been built
+and was taken off the screens and papers the same evening; the empty
+`projects.business_case` column stays in the database (dropping it means
+rewriting the agreement trigger too, for nothing), and `docs/CASE.md` keeps
+the design. The list stays here as the record of what was weighed and why it
+was left out — a request that grows Faultline into a business system is
+weighed against it first.
 (Rowland, 17 October, with a list of forty project-management practices:
 "at its core faultline is a project management system ... what we could
 introduce into faultline that would make it more powerful as a project
@@ -314,9 +322,8 @@ improvement is the 6M method. What is missing, each placed per §8, in the
 order to build:
 
 12. **The case for the change → what it was worth** (business case →
-    benefits realised). *Slice A built 17 October* (`docs/CASE.md`: the
-    stage-gate front page, its one-page status and full report; B — the
-    control room, a 6M job, the handover — next). A job says when it hands over, never what it is
+    benefits realised). *Built and taken off, 17 October* (declined —
+    above; `docs/CASE.md` keeps the design). A job says when it hands over, never what it is
     *for* in money. *Job layer, on `projects`* — no new record: what it
     should buy (packs a minute, £ a pack, a slip avoided — said in the one
     cost model, `lib/lineLoss` lineDay and `lib/capacity`), by when, and
