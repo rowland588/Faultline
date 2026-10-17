@@ -13,6 +13,7 @@
  * meaning, as on every screen: red the day gone or a failure, amber waiting,
  * indigo booked, green done, grey not started — and the words beside every
  * colour, so it survives a black-and-white copy. */
+import { paperBand } from './reportKit';
 import { codeHeader } from './report/codeHeader';
 import { leanClosing, leanTiles } from './report/lean';
 import type { jsPDF } from 'jspdf';
@@ -29,7 +30,7 @@ const BRAND = '#0c7489', OK = '#15803d', DANGER = '#c4281c', AMBER = '#b45309', 
 const HO: Record<HoTone, string> = { done: OK, failed: DANGER, late: DANGER, ahead: BOOKED, none: MUTED };
 const CM: Record<CmTone, string> = { g: OK, r: DANGER, a: AMBER, w: BOOKED, n: GREY };
 const CM_SOFT: Record<CmTone, string> = { g: '#e6f2ec', r: '#f8e6e3', a: '#f7efdf', w: '#eeedfa', n: '#eef1f5' };
-const VERDICT: Record<OnTargetTone, string> = { behind: '#ffb4a8', risk: '#f2cf86', on: '#9fd8bb', none: '#cbd6d8' };
+const VERDICT: Record<OnTargetTone, string> = { behind: '#c4281c', risk: '#b45309', on: '#15803d', none: '#59666c' }; /* the verdict's word on the light band (reportKit paperBand) */
 
 function fitLine(doc: jsPDF, t: string, w: number): string {
   font(doc, 7.5, 'normal', MUTED);
@@ -85,9 +86,9 @@ function band(r: CommissioningReport): Block {
   });
   return box(f => { const b = parts(f); return 24 + b.head.length * 14 + b.sub.length * 11.5 + 4; }, (f, y) => {
     const b = parts(f), hh = 24 + b.head.length * 14 + b.sub.length * 11.5;
-    f.doc.setFillColor('#12171c'); f.doc.roundedRect(f.x, y, f.w, hh, 6, 6, 'F');
+    paperBand(f.doc, f.x, y, f.w, hh, 6);
     font(f.doc, 11, 'bold', VERDICT[r.verdict.tone]); f.doc.text(b.head, f.x + 14, y + 18);
-    font(f.doc, 9, 'normal', '#e3e9ea'); f.doc.text(b.sub, f.x + 14, y + 18 + b.head.length * 14);
+    font(f.doc, 9, 'normal', '#323d43'); f.doc.text(b.sub, f.x + 14, y + 18 + b.head.length * 14);
   }, f => gap(f.density, 'm'));
 }
 

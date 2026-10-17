@@ -10,7 +10,7 @@
  * went badly is the day with the most to say, and it is the one that most
  * needs every line.
  */
-import { DANGER, INK, INK2, LINE, MUTED, OK, WARN, BLUE, SHELL_MUTED, drawMark, fit, nameFont, san, setFont, type Doc } from './reportKit';
+import { BAND, BAND_EDGE, DANGER, INK, INK2, LINE, MUTED, OK, WARN, BLUE, drawMark, fit, nameFont, san, setFont, type Doc } from './reportKit';
 import type { Day, DayTone } from './day';
 import type { Shot } from './testReport';
 import type { OnTarget, OnTargetTone } from './onTarget';
@@ -24,9 +24,9 @@ const M = 36;
 const TONE: Record<DayTone, string> = {
   done: OK, bad: DANGER, slipped: DANGER, asking: WARN, found: INK2, booked: BLUE, problem: WARN,
 };
-/* The verdict's word on the dark band — the app's dark-card reds and ambers
-   (styles.css --shell-bad, --shell-warn), a quiet green, a grey. */
-const ON_DARK: Record<OnTargetTone, string> = { behind: '#e2796b', risk: '#e0a94a', on: '#8fd3b0', none: '#9aa7ae' };
+/* The verdict's word on the band — light on paper (reportKit BAND: a dark
+   band spends toner and prints streaky), so the house's own state colours. */
+const ON_BAND: Record<OnTargetTone, string> = { behind: DANGER, risk: WARN, on: OK, none: MUTED };
 
 export interface DayReportMeta {
   project: string;
@@ -74,47 +74,48 @@ export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
   const otH = ot ? 12 + otLines.length * 12 + 6 : 0;
   const bandH = 74 + otH + headLines.length * 12 + 10;
   const band = (first: boolean): number => {
-    d.setFillColor(INK);
+    /* LIGHT ON PAPER (reportKit BAND): a pale band, the brand's teal along
+       its foot, graphite words — and the Faultline mark in it, as before. */
+    d.setFillColor(BAND);
     d.rect(0, 0, W, first ? bandH : 40, 'F');
-    /* The band's small type in the shell's own muted blues (it was a green
-       left over from an older palette), and the Faultline mark in the band —
-       the corner stamp every other document carries would sit on the dark. */
-    setFont(d, 7, 'bold', SHELL_MUTED);
+    d.setFillColor(BAND_EDGE);
+    d.rect(0, (first ? bandH : 40) - 3, W, 3, 'F');
+    setFont(d, 7, 'bold', MUTED);
     d.text('DAY REPORT', M, 20);
-    setFont(d, 7, 'normal', SHELL_MUTED);
+    setFont(d, 7, 'normal', MUTED);
     d.text(fit(d, san(meta.project), W / 2), M + 62, 20);
-    nameFont(d, 8, '#ffffff');
+    nameFont(d, 8, INK);
     const word = 'Faultline', tw = d.getTextWidth(word);
     d.text(word, W - M, 20, { align: 'right' });
     drawMark(d, W - M - tw - 15, 11.5, 11);
-    setFont(d, 6.5, 'normal', SHELL_MUTED);
+    setFont(d, 6.5, 'normal', MUTED);
     d.text(`Built ${new Date(meta.builtAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`, W - M, 32, { align: 'right' });
     if (!first) {
-      setFont(d, 9, 'bold', '#ffffff');
+      setFont(d, 9, 'bold', INK);
       d.text(`${san(niceDay(day.date, { weekday: 'short', year: true }))} — continued`, M, 32);
       return 56;
     }
-    setFont(d, 20, 'bold', '#ffffff');
+    setFont(d, 20, 'bold', INK);
     d.text(san(niceDay(day.date, { weekday: 'short', year: true })), M, 50);
     let hy = 68;
     if (ot) {
-      setFont(d, 6.5, 'bold', SHELL_MUTED);
+      setFont(d, 6.5, 'bold', MUTED);
       d.text(`ARE WE ON TARGET?${meta.asOf ? ` \u00b7 ${san(meta.asOf).toUpperCase()}` : ''}`, M, 67);
       otLines.forEach((l, i) => {
         const ly = 79 + i * 12;
         let lx = M;
         if (l.word) {
-          setFont(d, 10.5, 'bold', ON_DARK[ot.tone]);
+          setFont(d, 10.5, 'bold', ON_BAND[ot.tone]);
           d.text(l.word, M, ly);
           lx = M + d.getTextWidth(`${l.word} `);
         }
-        if (l.pace && ot.pace) setFont(d, 8.5, ot.pace.tone === 'risk' ? 'bold' : 'normal', ot.pace.tone === 'risk' ? ON_DARK.risk : SHELL_MUTED);
-        else setFont(d, 9.5, 'normal', '#ffffff');
+        if (l.pace && ot.pace) setFont(d, 8.5, ot.pace.tone === 'risk' ? 'bold' : 'normal', ot.pace.tone === 'risk' ? ON_BAND.risk : MUTED);
+        else setFont(d, 9.5, 'normal', INK);
         d.text(l.text, lx, ly);
       });
       hy = 67 + otH + 6;
     }
-    setFont(d, 9.5, 'normal', '#cbd5d7');
+    setFont(d, 9.5, 'normal', INK2);
     headLines.forEach((l, i) => d.text(l, M, hy + i * 12));
     return bandH + 16;
   };

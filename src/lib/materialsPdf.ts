@@ -14,7 +14,7 @@ import { leanClosing, leanTiles } from './report/lean';
 import type { LeanTile } from './lean';
 import { materialClosing, materialTiles } from './stageGatePages';
 import { niceDay } from './weeks';
-import { san } from './reportKit';
+import { san, paperBand } from './reportKit';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK = '#0f1417', INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', BRAND = '#0c7489';
@@ -26,10 +26,11 @@ function band(headline: string, says: string, late: boolean): Block {
   const height = (f: Frame) => { const p = parts(f); return 22 + p.h.length * 14 + (p.s.length ? 4 + p.s.length * LH : 0); };
   return box(f => height(f) + gap(f.density, 'm'), (f, y) => {
     const p = parts(f), h = height(f);
-    f.doc.setFillColor('#12171c'); f.doc.roundedRect(f.x, y, f.w, h, 6, 6, 'F');
-    if (late) { f.doc.setFillColor(RED); f.doc.rect(f.x, y + 6, 4, h - 12, 'F'); }
-    font(f.doc, 11, 'bold', '#ffffff'); f.doc.text(p.h, f.x + 15, y + 17);
-    font(f.doc, T, 'normal', '#cbd6d8'); f.doc.text(p.s, f.x + 15, y + 17 + p.h.length * 14 + 2);
+    paperBand(f.doc, f.x, y, f.w, h, 6);
+    /* late: the band's edge in red, as the screen's late border is */
+    if (late) { f.doc.setFillColor(RED); f.doc.roundedRect(f.x, y, 4, h, 2, 2, 'F'); }
+    font(f.doc, 11, 'bold', '#0f1417'); f.doc.text(p.h, f.x + 15, y + 17);
+    font(f.doc, T, 'normal', '#323d43'); f.doc.text(p.s, f.x + 15, y + 17 + p.h.length * 14 + 2);
   }, f => gap(f.density, 'm'));
 }
 

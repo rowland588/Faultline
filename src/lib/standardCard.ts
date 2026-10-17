@@ -27,7 +27,7 @@ import { BOARDS, boardOf, bottlenecksOf, colourOf, dashOf, FADED_ALPHA, firstPar
 /** A4 landscape at 150 dpi: sharp on paper, light enough for a phone. */
 export const CARD_W = 1754, CARD_H = 1240;
 const M = 64;
-const NAVY = '#12171c', BLUE = '#0c7489', INK = '#0f1417', INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', SOFT = '#f2f5f5';
+const NAVY = '#12171c', BLUE = '#0c7489', BAND_FILL = '#eef3f3', INK = '#0f1417', INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', SOFT = '#f2f5f5';
 /* The app's own face, as on every screen and every other PDF; the system
    faces only if it has not loaded. */
 const FONT = '"Instrument Sans Variable", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
@@ -262,28 +262,26 @@ async function renderCardWithNotes(s: Standard, projectName: string, printed: st
   if (!ctx) throw new Error('no 2d context');
   ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, CARD_W, CARD_H);
 
-  /* ---------------- the band ---------------- */
+  /* ---------------- the band ----------------
+     LIGHT ON PAPER (reportKit BAND): the card is printed and pinned at the
+     line, so its band is a pale fill with the brand's teal along its foot
+     and graphite words, not a slab of toner (Rowland, 17 October). */
   const bandH = 236;
-  const grad = ctx.createLinearGradient(0, 0, CARD_W, bandH);
-  grad.addColorStop(0, NAVY); grad.addColorStop(0.65, '#16323a'); grad.addColorStop(1, BLUE);
-  ctx.fillStyle = grad; ctx.fillRect(0, 0, CARD_W, bandH);
-  // a soft shimmer across the band
-  const sh = ctx.createRadialGradient(CARD_W * 0.78, -40, 10, CARD_W * 0.78, -40, 520);
-  sh.addColorStop(0, 'rgba(255,255,255,0.22)'); sh.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = sh; ctx.fillRect(0, 0, CARD_W, bandH);
+  ctx.fillStyle = BAND_FILL; ctx.fillRect(0, 0, CARD_W, bandH);
+  ctx.fillStyle = BLUE; ctx.fillRect(0, bandH - 8, CARD_W, 8);
 
-  ctx.fillStyle = '#8fdde5'; ctx.font = `800 24px ${FONT}`;
+  ctx.fillStyle = BLUE; ctx.font = `800 24px ${FONT}`;
   ctx.fillText('L I N E   S T A N D A R D', M, 70);
-  ctx.fillStyle = '#ffffff'; ctx.font = `800 60px ${FONT}`;
+  ctx.fillStyle = INK; ctx.font = `800 60px ${FONT}`;
   const title = wrap(ctx, s.product || 'Untitled product', CARD_W - 2 * M - 300, 2);
   title.forEach((l, i) => ctx.fillText(l, M, 138 + i * 64));
-  ctx.fillStyle = '#c6e6ea'; ctx.font = `500 26px ${FONT}`;
+  ctx.fillStyle = MUTED; ctx.font = `500 26px ${FONT}`;
   ctx.fillText(`${projectName}   ·   printed ${printed}`, M, title.length > 1 ? 222 : 190);
 
   // the headcount — the number a supervisor reads first
   const n = headcount(s);
   const bx = CARD_W - M - 104, by = bandH / 2;
-  ctx.beginPath(); ctx.arc(bx, by, 96, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,0.14)'; ctx.fill();
+  ctx.beginPath(); ctx.arc(bx, by, 96, 0, Math.PI * 2); ctx.fillStyle = 'rgba(12,116,137,0.14)'; ctx.fill();
   ctx.beginPath(); ctx.arc(bx, by, 82, 0, Math.PI * 2); ctx.fillStyle = '#ffffff'; ctx.fill();
   ctx.fillStyle = NAVY; ctx.textAlign = 'center';
   ctx.font = `800 ${n > 99 ? 54 : 70}px ${FONT}`; ctx.fillText(String(n), bx, by + 14);
@@ -624,12 +622,12 @@ function notesPages(s: Standard, projectName: string, printed: string, notes: Ca
     const cv = document.createElement('canvas'); cv.width = CARD_W; cv.height = CARD_H;
     const c = cv.getContext('2d') as CanvasRenderingContext2D;
     c.fillStyle = '#ffffff'; c.fillRect(0, 0, CARD_W, CARD_H);
-    const grad = c.createLinearGradient(0, 0, CARD_W, bandH);
-    grad.addColorStop(0, NAVY); grad.addColorStop(0.65, '#16323a'); grad.addColorStop(1, BLUE);
-    c.fillStyle = grad; c.fillRect(0, 0, CARD_W, bandH);
-    c.fillStyle = '#8fdde5'; c.font = `800 22px ${FONT}`; c.fillText('L I N E   S T A N D A R D   ·   N O T E S', M, 56);
-    c.fillStyle = '#ffffff'; c.font = `800 42px ${FONT}`; c.fillText(wrap(c, s.product || 'Untitled product', CARD_W - 2 * M - 420, 1)[0] ?? '', M, 108);
-    c.fillStyle = '#c6e6ea'; c.font = `500 22px ${FONT}`; c.textAlign = 'right';
+    /* light on paper, as the card's own band (reportKit BAND) */
+    c.fillStyle = BAND_FILL; c.fillRect(0, 0, CARD_W, bandH);
+    c.fillStyle = BLUE; c.fillRect(0, bandH - 6, CARD_W, 6);
+    c.fillStyle = BLUE; c.font = `800 22px ${FONT}`; c.fillText('L I N E   S T A N D A R D   ·   N O T E S', M, 56);
+    c.fillStyle = INK; c.font = `800 42px ${FONT}`; c.fillText(wrap(c, s.product || 'Untitled product', CARD_W - 2 * M - 420, 1)[0] ?? '', M, 108);
+    c.fillStyle = MUTED; c.font = `500 22px ${FONT}`; c.textAlign = 'right';
     c.fillText(`${projectName}  ·  printed ${printed}`, CARD_W - M, 108); c.textAlign = 'left';
     c.fillStyle = MUTED; c.font = `500 19px ${FONT}`;
     c.fillText('The words the card could not hold, in full — numbered as on the map.', M, CARD_H - 34);

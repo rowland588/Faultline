@@ -752,8 +752,13 @@ own); the dark bands glow faintly cyan and carry the mark's trace along
 their foot. The blues were mapped, never guessed: one table (the commit gives
 it) took every navy, blue and blue-tinted grey to its place in the new
 scheme, and the state colours and people's own colours (a project's, a
-person's on the line standard) were left alone. Do not
-reopen either without him asking. **The five state colours
+person's on the line standard) were left alone. **Paper is light.** The
+same day: "black background with white writing — will we be able to see it
+printed? Usually not." So no PDF or card spends a dark band: on paper every
+band is a pale fill with a teal edge and graphite words (`lib/reportKit`
+BAND, `paperBand`), and a screen page printed from the browser turns its
+dark bands light (`styles.css`, the last `@media print`). The screen keeps
+its dark bands. Do not reopen either without him asking. **The five state colours
 were refreshed on 15 October** at his word ("just go for it", after a
 colour review asked for): the same five meanings, made clean signals — red
 `#c4281c`, amber `#b45309`, green `#15803d`, violet `#6d28d9` for under way
