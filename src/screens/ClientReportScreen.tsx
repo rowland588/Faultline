@@ -226,7 +226,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
   const link = jobLink(`${location.origin}${location.pathname}`, projectId);
   const build = () => (which === 'status' ? buildStatus({ ...(report as ClientReport), link })
     : which === 'programs' ? buildPrograms(report as ClientReport)
-      : which === 'handover' ? buildHandover({ ...(handover as HandoverReport), link })
+      : which === 'handover' ? buildHandover({ ...(handover as HandoverReport), link, money: moneyTile((report as ClientReport).figures) })
         : which === 'commissioning' ? buildCommissioning({ ...(commissioning as CommissioningReport), link })
           : buildPdf({ ...(report as ClientReport), link }, withStandards));
   const preview = usePdfPreview(previewKey, build);

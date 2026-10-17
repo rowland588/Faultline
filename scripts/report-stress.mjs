@@ -340,6 +340,14 @@ for (const size of SIZES) {
       from = 'handover: still open'; add('handover', ...m.open);
     }
     from = 'handover: open on the line'; add('handover', ...ho.line);
+    /* the lean page (lib/stageGatePages): its tiles and closing line, the job's money as the screen passes it */
+    {
+      const P = await import('/src/lib/stageGatePages.ts'), L = await import('/src/lib/stageGateLean.ts');
+      const money = L.moneyTile(r.figures);
+      const hc = { machines: ho.machines.length, handed: ho.machines.filter(m => !!m.on).length, open: ho.machines.reduce((n, m) => n + m.open.length, 0) + ho.line.length, handedOver: ho.handedOver };
+      from = 'handover: the tiles'; for (const t of P.handoverTiles(hc, money)) add('handover', t.k.toUpperCase(), t.v, t.of);
+      from = 'handover: the closing line'; const c = P.handoverClosing(hc, money).text; add('handover', c.length > 90 ? c.slice(0, 90) : c);
+    }
     /* THE COMMISSIONING REPORT AND CARDS (lib/commissioningReport, 14
        October) — every machine with its word and its tests in a line, each
        test with its word and what was seen, why and what we are doing, the

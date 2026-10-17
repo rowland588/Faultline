@@ -33,6 +33,7 @@ import { programsOpenOn, programsReading, type ProgramsReading } from './program
 import { jobLineReadings, type JobLinePrograms } from './lineRecords';
 import { notedProblems } from './noted';
 import { assignedToJob, assignedWords, namesMachine, wentWithAlso } from './clientReport';
+import type { LeanTile } from './lean';
 import { PRIORITY_WORD } from './snagsReport';
 
 /** done · didn't pass · late (its day gone, or never run) · still ahead · no day. */
@@ -117,6 +118,10 @@ export interface HandoverReport {
   linePrograms: { line: string; says: string; open: string[] }[];
   /** The lines to sign. */
   sign: string[];
+  /** THE JOB'S MONEY (lib/stageGateLean moneyTile) — set by the screen that
+   *  prints it, from the client report's figures: the last tile, and the
+   *  slip in the closing line (lib/stageGatePages handoverTiles). */
+  money?: LeanTile;
 }
 
 export interface HandoverInput {

@@ -157,3 +157,23 @@ export function materialClosing(x: MaterialCounts, money: LeanTile): { text: str
   return { text: `Materials: ${x.here} of ${x.total} here${wrong.length ? ` — ${and(wrong)}` : x.here === x.total ? ' — everything the job needs is in' : ', the rest on time'}.${moneyClause(money)}`,
     tone: x.late ? 'r' : x.undated ? 'a' : x.here === x.total ? 'g' : 'n' };
 }
+
+/* ------------------------------------------------ the handover report */
+
+export interface HandoverCounts { machines: number; handed: number; open: number; handedOver: boolean }
+
+export function handoverTiles(x: HandoverCounts, money?: LeanTile): LeanTile[] {
+  return [
+    { k: 'Handed over', v: String(x.handed), of: x.machines ? `of ${x.machines} ${plural(x.machines, 'machine')}` : 'no machines on the job yet', ...(x.machines && x.handed === x.machines ? { tone: 'g' as LeanTone } : {}) },
+    { k: 'Still open', v: String(x.open), of: x.open ? (x.handedOver ? 'handed over with — said below, machine by machine' : 'to close before hand-over — said below') : 'nothing open', tone: x.open ? 'a' : 'n' },
+    ...(money ? [money] : []),
+  ];
+}
+
+export function handoverClosing(x: HandoverCounts, money?: LeanTile): { text: string; tone: LeanTone } {
+  if (!x.machines) return { text: 'Hand over: no machines on the job yet.', tone: 'n' };
+  return {
+    text: `Hand over: ${x.handed} of ${x.machines} ${plural(x.machines, 'machine')} handed over${x.open ? ` — ${x.open} still open` : ' — nothing left open'}.${money ? moneyClause(money) : ''}`,
+    tone: x.handed === x.machines && !x.open ? 'g' : x.open ? 'a' : 'n',
+  };
+}

@@ -125,8 +125,10 @@ card) keep their card form; they take the band only.
    costs, or what a day late would) and a closing line. Programs keeps its
    chips as its tiles (each is its filter) and gains the closing line. On
    paper: the commissioning report carries Commission's tiles and closing
-   line; the materials report its page's; the programs report its closing
-   line, the money in it when the slip has run one up.
+   line; the materials report its page's; the handover report machines
+   handed over of the job's, what is still open and the money, closing
+   before it is signed; the programs report its closing line, the money in
+   it when the slip has run one up.
 4. The 6M report and Problems.
 5. The control room, the factory and the day.
 6. SMED, value stream, work sampling, capability.

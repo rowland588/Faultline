@@ -2,7 +2,7 @@
  * tiles and closing line, from the counts its header said, with the job's
  * money last (lib/stageGateLean moneyTile). */
 import { describe, expect, it } from 'vitest';
-import { commissionClosing, commissionTiles, gateClosing, gateTiles, materialClosing, materialTiles, problemClosing, problemTiles, programClosing, programTiles } from '../stageGatePages';
+import { commissionClosing, commissionTiles, gateClosing, gateTiles, handoverClosing, handoverTiles, materialClosing, materialTiles, problemClosing, problemTiles, programClosing, programTiles } from '../stageGatePages';
 import type { LeanTile } from '../lean';
 
 const slip: LeanTile = { k: 'The slip costs', v: '£25.2k', of: '8 days × £3.2k — a day of Line 7 not making, in margin', tone: 'r' };
@@ -68,5 +68,16 @@ describe('Materials', () => {
       ['Here', '2', 'of 7 needed'], ['Late', '2', 'past the day they were due'], ['Waiting', '2', 'next due 20 Oct'], ['No date', '1', 'nobody has said when'], ['A day late', '£3.2k', aDay.of],
     ]);
     expect(materialClosing(x, aDay)).toEqual({ text: 'Materials: 2 of 7 here — 2 late and 1 with no date.', tone: 'r' });
+  });
+});
+
+describe('the handover report', () => {
+  it('2 of 3 machines handed over, 4 still open — the slip last and in the closing line', () => {
+    const x = { machines: 3, handed: 2, open: 4, handedOver: false };
+    expect(handoverTiles(x, slip).map(t => [t.k, t.v, t.of, t.tone])).toEqual([
+      ['Handed over', '2', 'of 3 machines', undefined], ['Still open', '4', 'to close before hand-over — said below', 'a'], ['The slip costs', '£25.2k', slip.of, 'r'],
+    ]);
+    expect(handoverClosing(x, slip)).toEqual({ text: 'Hand over: 2 of 3 machines handed over — 4 still open. The slip costs £25.2k.', tone: 'a' });
+    expect(handoverClosing({ machines: 3, handed: 3, open: 0, handedOver: true })).toEqual({ text: 'Hand over: 3 of 3 machines handed over — nothing left open.', tone: 'g' });
   });
 });
