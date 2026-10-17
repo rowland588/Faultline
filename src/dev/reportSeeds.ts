@@ -13,7 +13,7 @@
  *
  * Nothing in the app imports this, so it is not in the bundle. */
 import {
-  createProject, updateProject, putAsset, putTest, putTestItem, putMaterials, putPrograms,
+  createProject, getProject, updateProject, putAsset, putTest, putTestItem, putMaterials, putPrograms,
   addCase, addObservation, addPaceLine, addSegment, addSnag, addSnagAsset, createWorkspace, updateWorkspace,
   putPaceTodo, putReadings, putStandard, putTarget, putBlob, putStudy,
 } from '../db';
@@ -453,6 +453,14 @@ export async function seedReportJob(size: 'tiny' | 'huge'): Promise<ReportJob> {
   if (size === 'huge' && lossFixId) {
     const ws = await createWorkspace('Line 2 — rebuild');
     await updateWorkspace({ ...ws, shifts: [{ name: 'Shift 1', start: '06:00', end: '14:00', breakMin: 30 }], crew: 6, labourRatePerHour: 15.2, labourBurden: 1.32, packsPerMin: 100, marginPerPack: 0.05 });
+    /* THE CASE FOR THE CHANGE (docs/CASE.md), priced: the job on its line in
+       Your factory, the rebuilt line from 35 a minute to its rated 100, five
+       days a week, from the handover — and a long sentence, so the one page
+       is proved to hold it. */
+    await addPaceLine({ projectId: proj.id, workspaceId: ws.id, key: 'L2', name: 'Line 2', sort: 0 });
+    const cur = await getProject(proj.id);
+    if (cur) await updateProject({ ...cur, updatedAt: Date.now(),
+      businessCase: { why: 'The rebuild is for the Finest Red 2 kg contract from January — the old line tops out at 35 bags a minute on the 60 micron film, the contract needs the rated 100 on two shifts, and the bagging hall cannot be extended', lines: [{ lineId: ws.id, from: 35 }], daysAWeek: 5 } });
     const bagger = 'Ilapak Vegatronic 6000 vertical form-fill-seal bagger';
     const day = shiftOf(3, { rateMachine: bagger }), next = shiftOf(2, { rateMachine: bagger });
     const CAUSES: [string, string, string, number][] = [

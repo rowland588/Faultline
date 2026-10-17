@@ -1,4 +1,5 @@
 import type { Cause, HoldCheck, ProblemSource, SixM } from './lib/sixm';
+import type { BusinessCase } from './lib/businessCase';
 /* Faultline — the data model. One object matters: the Observation. Every one of
  * the seven quality tools is a *read* over Observation[], never a reshape.
  * Workspaces are the hard isolation boundary; time is epoch-ms; taxonomies are
@@ -340,6 +341,11 @@ export interface Project {
   reportNote?: string;
   /** When it was last written — printed beside it. */
   reportNoteAt?: Millis;
+  /** THE CASE FOR THE CHANGE (docs/CASE.md, supabase/BUSINESS_CASE.sql) —
+   *  what the job is for, each line's rate before and the rate it is for,
+   *  the days a week, the day it should start paying; agreed, so the
+   *  owner's. What it is worth is worked out, never kept (lib/businessCase). */
+  businessCase?: BusinessCase;
 
   createdAt: Millis;
   updatedAt: Millis;

@@ -1,6 +1,7 @@
 /* THE CLIENT REPORT for a stage-gate job — the page you open before sending
  * it. What is shown IS the PDF (drawn once, previewed in place on a desk), so
  * the screen and the paper cannot disagree. See lib/clientReport.ts. */
+import { useCaseLines } from '../lib/useJobCase';
 import { jobLink } from '../lib/machineLabels';
 import { useEffect, useMemo, useState } from 'react';
 import { usePdfPreview } from '../lib/usePdfPreview';
@@ -198,12 +199,14 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
     return () => mq.removeEventListener?.('change', on);
   }, []);
 
-  const ready = !loading && !tt.loading && !mats.loading && !progs.loading && standards != null && walk != null && !rec.loading && snags != null && !!project;
+  /* the job's lines as its case reads them — the case under where we are (lib/useJobCase) */
+  const caseLines = useCaseLines(projectId);
+  const ready = !loading && !tt.loading && !mats.loading && !progs.loading && standards != null && walk != null && !rec.loading && snags != null && caseLines != null && !!project;
   const report = useMemo(() => (ready && project ? clientReport({
     project, projects, assets: tt.assets, tests: tt.tests, items: tt.items,
     materials: mats.materials, programs: progs.programs, standards: standards ?? [], walk: walk ?? [], studies, studyContext, today: todayISO(),
-    proofStudies: rec.studies, provingTests: rec.provingTests, ...lineFacts,
-  }) : null), [ready, project, projects, tt.assets, tt.tests, tt.items, mats.materials, progs.programs, standards, walk, studies, studyContext, rec.studies, rec.provingTests, lineFacts]);
+    proofStudies: rec.studies, provingTests: rec.provingTests, ...lineFacts, ...(caseLines ? { caseLines } : {}),
+  }) : null), [ready, project, projects, tt.assets, tt.tests, tt.items, mats.materials, progs.programs, standards, walk, studies, studyContext, rec.studies, rec.provingTests, lineFacts, caseLines]);
 
   const handover = useMemo(() => (ready && project ? handoverReport({
     project, assets: tt.assets, tests: tt.tests, items: tt.items, materials: mats.materials, programs: progs.programs, studies, today: todayISO(),

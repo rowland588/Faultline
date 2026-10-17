@@ -312,7 +312,9 @@ improvement is the 6M method. What is missing, each placed per §8, in the
 order to build:
 
 12. **The case for the change → what it was worth** (business case →
-    benefits realised). A job says when it hands over, never what it is
+    benefits realised). *Slice A built 17 October* (`docs/CASE.md`: the
+    stage-gate front page, its one-page status and full report; B — the
+    control room, a 6M job, the handover — next). A job says when it hands over, never what it is
     *for* in money. *Job layer, on `projects`* — no new record: what it
     should buy (packs a minute, £ a pack, a slip avoided — said in the one
     cost model, `lib/lineLoss` lineDay and `lib/capacity`), by when, and

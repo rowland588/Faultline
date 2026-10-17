@@ -199,7 +199,11 @@ for (const size of SIZES) {
     /* the job's lines as Your factory holds them — what a day late costs (the money tile) */
     const { jobFactoryLines } = await import('/src/lib/lineRecords.ts');
     const factoryLines = jobFactoryLines(pid, await (await import('/src/db/pace.ts')).allPaceLines(), await (await import('/src/db/workspaces.ts')).listWorkspaces());
-    const r = clientReport({ project, projects: [project], assets, tests, items, materials, programs, standards: [], walk: [], studies, studyContext, factoryLines, today });
+    /* the job's lines as its case reads them — the case for the change (lib/businessCase, docs/CASE.md) */
+    const { caseLinesOf } = await import('/src/lib/businessCase.ts');
+    const M = await import('/src/db/measures.ts');
+    const caseLines = caseLinesOf(pid, project, await (await import('/src/db/pace.ts')).allPaceLines(), await (await import('/src/db/workspaces.ts')).listWorkspaces(), await M.listTargets(pid), await M.listReadings(pid), today);
+    const r = clientReport({ project, projects: [project], assets, tests, items, materials, programs, standards: [], walk: [], studies, studyContext, factoryLines, caseLines, today });
     const out = { client: [], card: [], fix: [], day: [], status: [], programs: [], handover: [], labels: [], commissioning: [], commissioningCards: [] };
     const add = (k, ...xs) => { for (const x of xs) { const v = typeof x === 'number' ? String(x) : x; if (v && san(v)) out[k].push([v, san(v), from]); } };
     let from = '';
@@ -304,6 +308,8 @@ for (const size of SIZES) {
     /* The lead's commentary, whole, on the full report; on the one page whole
        too, or its first part and where the rest is. */
     from = 'commentary'; if (r.commentary) add('client', r.commentary.text, r.commentary.by);
+    /* THE CASE FOR THE CHANGE, whole, under where the job is on both papers (lib/businessCase caseSays) */
+    from = 'the case'; if (r.case) { add('client', r.case.why, r.case.worth, r.case.measured); add('status', r.case.why, r.case.worth, r.case.measured); }
     /* THE STATUS REPORT (lib/statusReport) — every line its reading says the
        one page carries, and the "and N more" when there are more. */
     /* At the smallest lists the page steps down to on a very busy job, so

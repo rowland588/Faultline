@@ -46,6 +46,8 @@ export const PAGES = (sd, cap) => [
     /* the band's five tiles — the same the one-page status and the full report count (17 October, docs/LEAN-PAGE.md) */
     /* on a phone the band is the answer and the status report (the phone pass, 5 October): its tiles are the desk's */
     { what: 'the band’s tiles — handover, late of what is still to do, critical, fixes open, what the slip costs', sel: '.vd .vd-tile', n: 5, desk: true },
+    /* the case for the change under the band (17 October, docs/CASE.md): what the job is for, what it is worth or what to give */
+    { what: 'the case for the change — what it is for and what it is worth', sel: '[data-case] .bz-worth' },
     /* the job's places, its machines each a page (16 October, docs/STAGEGATE-UX.md) */
     { what: 'its machines in the rail, each a page', sel: '.nv-rail .nv-grp-l', text: /^Machines$/i, desk: true },
   ] },

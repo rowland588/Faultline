@@ -219,6 +219,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         gate_stages: p.gateStages ?? null,
         archived_at: p.archivedAt ?? null,
         report_note: p.reportNote ?? null, report_note_at: p.reportNoteAt ?? null,
+        business_case: p.businessCase ?? null,
         created_at: p.createdAt, updated_at: p.updatedAt, deleted_at: p.deletedAt ?? null,
       };
     },
@@ -242,6 +243,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       archivedAt: n(r.archived_at),
       reportNote: (r.report_note as string) ?? undefined,
       reportNoteAt: n(r.report_note_at),
+      businessCase: (r.business_case as Project['businessCase']) ?? undefined,
       createdAt: Number(r.created_at),
       updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     }),
