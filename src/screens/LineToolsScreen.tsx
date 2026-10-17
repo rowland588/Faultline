@@ -16,11 +16,12 @@
 import { LineCapacityHero } from '../ui/LineCapacityHero';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { addLineToFactory, asked } from '../lib/lines';
-import { listAllStandards, listAllStudies, listWorkspaces, onDataChange, putStandard } from '../db';
+import { deleteStudy, listAllStandards, listAllStudies, listWorkspaces, onDataChange, putStandard } from '../db';
 import { useFactoryLines } from '../lib/useFactoryLines';
 import { useArchivedPlaces } from '../lib/useFactoryLines';
 import type { ToolStudy } from '../lib/study';
-import { changeoverLine, currentChangeover, studyHref } from '../lib/studyLinks';
+import { changeoverLine, currentBalance, currentChangeover, studyHref, studyLine } from '../lib/studyLinks';
+import { offerUndo } from '../ui/Undo';
 import { useProjects } from '../lib/useProjects';
 import { headcount, inCapacityTool, inMapTool, removingSays, thingsOf, type Standard } from '../lib/standard';
 import { removeFromTool } from '../ui/StandardsCard';
@@ -34,7 +35,7 @@ import { nav } from '../state/useRoute';
 import { Sheet } from '../ui/Sheet';
 import type { Workspace } from '../types';
 
-export type LineTool = 'map' | 'balance';
+export type LineTool = 'map' | 'balance' | 'work';
 const NEW_LINE = '__new__';
 
 const WORDS: Record<LineTool, { title: string; lede: string; add: string; none: string }> = {
@@ -42,6 +43,14 @@ const WORDS: Record<LineTool, { title: string; lede: string; add: string; none: 
     title: 'Line standard',
     lede: 'Who stands where, and what they do, on each product — on every line. Use one on a line with no job, or attach it to a job.',
     add: 'New line standard', none: 'No line standards yet.',
+  },
+  /* THE LINE BALANCE, its own tool (Rowland, 17 October: "line balance is
+     about a more manual people process flow analysis ... what is happening
+     where and what people are doing") — it was Line capacity's People tab */
+  work: {
+    title: 'Line balance',
+    lede: 'What each person does on each product, timed at the line against takt — work, walking and waiting — where each works on the line, and what the bottleneck costs a pack and a minute. On a line with no job, or attached to one.',
+    add: 'New line balance', none: 'No line balances yet.',
   },
   balance: {
     title: 'Line capacity',
@@ -55,7 +64,7 @@ const WORDS: Record<LineTool, { title: string; lede: string; add: string; none: 
  *  the tool. */
 export const openOf = (s: Pick<Standard, 'id' | 'projectId' | 'workspaceId'>, tool: LineTool): string => {
   const base = s.workspaceId ? `/w/${s.workspaceId}/standards/${s.id}` : `/project/${s.projectId}/standard/${s.id}`;
-  return tool === 'balance' ? `${base}?at=balance` : base;
+  return tool === 'balance' ? `${base}?at=balance` : tool === 'work' ? `${base}?at=work` : base;
 };
 
 /** What a product's balance says in a line: "Filler limits at 42 packs/min ·
@@ -104,7 +113,9 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
      and never worked out for capacity is not in Line capacity, and the other
      way round (Rowland, 13 October: "in line capacity why do I still see line
      standard cards in there"). */
-  const inTool = tool === 'balance' ? inCapacityTool : inMapTool;
+  /* the line balance lists the products with a balance timed on them */
+  const withBalance = useMemo(() => new Set(studies.filter(x => x.tool === 'balance' && !x.deletedAt && x.standardId).map(x => x.standardId as string)), [studies]);
+  const inTool = useMemo(() => (tool === 'balance' ? inCapacityTool : tool === 'work' ? (s: Standard) => withBalance.has(s.id) : inMapTool), [tool, withBalance]);
   const groups = useMemo(() => {
     const by = new Map<string, Standard[]>();
     for (const s of (list ?? []).filter(inTool)) {
@@ -127,7 +138,16 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
     setMaking(true);
     try {
       const name = lineF === 'all' ? w.title : groupName(lineF);
-      if (tool === 'balance') {
+      if (tool === 'work') {
+        /* every balance shown, each person's work against takt and what the bottleneck costs (lib/studiesPdf) */
+        const [{ saveStudiesPdf }, { listObservations }] = await Promise.all([import('../lib/studiesPdf'), import('../db')]);
+        const rows = shown.flatMap(([, rs]) => rs);
+        const items = rows.map(s => ({ s: currentBalance(studies, s.id), where: `${s.product} · ${s.workspaceId ? lineName(s.workspaceId) : 'on no line'}${jobName(s.projectId) ? ` · for ${jobName(s.projectId)}` : ' · on no job'}` }))
+          .filter((x): x is { s: ToolStudy; where: string } => !!x.s);
+        const wsIds = [...new Set(rows.map(s => s.workspaceId).filter((x): x is string => !!x))];
+        const observations = (await Promise.all(wsIds.map(id => listObservations(id)))).flat();
+        await saveStudiesPdf({ title: name, printed: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), items, standards: list ?? [], ctx: { observations, workspaces: lines } }, name);
+      } else if (tool === 'balance') {
         const { saveCapacityPdf } = await import('../lib/capacityPaperLoad');
         await saveCapacityPdf(shown.flatMap(([, rows]) => rows), { scope: lineF === 'all' ? 'every product shown' : groupName(lineF), name });
       } else {
@@ -150,7 +170,7 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
         </div>
         <div className="pace-head-actions">
           <button type="button" className="btn" disabled={making || !shownCount} onClick={() => void paper()}
-            aria-label={tool === 'balance' ? 'PDF (all shown) — Line capacity for every product shown' : 'PDF (all shown) — a line standard card for every product shown'}>
+            aria-label={tool === 'balance' ? 'PDF (all shown) — Line capacity for every product shown' : tool === 'work' ? 'PDF (all shown) — the line balance for every product shown' : 'PDF (all shown) — a line standard card for every product shown'}>
             {making ? 'Making…' : 'PDF (all shown)'}</button>
           <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>{w.add}</button>
         </div>
@@ -203,7 +223,7 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
             ) : null;
           })()}
           <ul className="lt-rows">
-            {rows.map(s => <ToolRow key={s.id} s={s} tool={tool} job={jobName(s.projectId)} all={list ?? []} />)}
+            {rows.map(s => <ToolRow key={s.id} s={s} tool={tool} job={jobName(s.projectId)} all={list ?? []} studies={studies} />)}
           </ul>
         </section>
       ))}
@@ -218,12 +238,13 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
  *  takes this tool off the product and keeps the other (lib/standard
  *  afterRemoving), with Undo. On a job the job's access says who may (the
  *  owner deletes, the team renames); on a line with no job, the line's people. */
-function ToolRow({ s, tool, job, all }: { s: Standard; tool: LineTool; job?: string; all: Standard[] }) {
+function ToolRow({ s, tool, job, all, studies }: { s: Standard; tool: LineTool; job?: string; all: Standard[]; studies: ToolStudy[] }) {
   const jobCan = useAccess(s.projectId ?? '');
   const may = s.projectId ? jobCan : canOf('owner');
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState(s.product);
-  const said = tool === 'balance' ? balanceSays(s) : { text: mapSays(s), short: false };
+  const bal = tool === 'work' ? currentBalance(studies, s.id) : undefined;
+  const said = tool === 'balance' ? balanceSays(s) : tool === 'work' ? (bal ? (l => ({ text: l.text, short: l.tone === 'r' }))(studyLine(bal)) : { text: 'Not timed yet', short: false }) : { text: mapSays(s), short: false };
   const clash = all.find(x => x.id !== s.id && !x.deletedAt && x.workspaceId === s.workspaceId && (x.projectId ?? '') === (s.projectId ?? '')
     && x.product.trim().toLowerCase() === name.trim().toLowerCase());
   const rename = async () => {
@@ -233,6 +254,14 @@ function ToolRow({ s, tool, job, all }: { s: Standard; tool: LineTool; job?: str
     setNaming(false);
   };
   const remove = async () => {
+    /* a line balance is its studies on the product: taken off with an Undo, the product and its other tools kept */
+    if (tool === 'work') {
+      const mine = studies.filter(x => x.tool === 'balance' && x.standardId === s.id && !x.deletedAt);
+      if (!mine.length || !window.confirm(`Delete the line balance for “${s.product}”? Its map and its Line capacity stay.`)) return;
+      const backs = await Promise.all(mine.map(x => deleteStudy(x.id)));
+      offerUndo(`Line balance for ${s.product} deleted — its map and Line capacity kept`, async () => { for (const b of backs) await b(); });
+      return;
+    }
     if (!window.confirm(removingSays(s, tool).ask)) return;
     await removeFromTool(s, tool);
   };
@@ -258,7 +287,7 @@ function ToolRow({ s, tool, job, all }: { s: Standard; tool: LineTool; job?: str
       {(may.edit || may.remove) && (
         <span className="lt-acts">
           {may.edit && <button type="button" className="cw-link" onClick={() => setNaming(true)} aria-label={`Rename ${s.product}`}>Rename</button>}
-          {may.remove && <button type="button" className="cw-link sp-rm" onClick={() => void remove()} aria-label={`Delete ${tool === 'balance' ? 'the Line capacity' : 'the line standard'} for ${s.product}`}>Delete</button>}
+          {may.remove && <button type="button" className="cw-link sp-rm" onClick={() => void remove()} aria-label={`Delete ${tool === 'balance' ? 'the Line capacity' : tool === 'work' ? 'the line balance' : 'the line standard'} for ${s.product}`}>Delete</button>}
         </span>
       )}
     </li>
@@ -332,7 +361,7 @@ function NewOne({ open, tool, lines, list, onClose, onLine }: { open: boolean; t
         <label className="field"><span className="field-label">Which product{tool === 'balance' && <i className="sub"> — a line’s capacity is per product: the speeds differ by product</i>}</span>
           <input className="text-input" value={product} list="lt-products" placeholder="e.g. Maris Piper 2kg — Tall" onChange={e => setProduct(e.target.value)} />
           <datalist id="lt-products">{products.map(x => <option key={x} value={x} />)}</datalist>
-          {already && <span className="sub">{already.product} is already on this line — {tool === 'balance' ? (already.capacity ? 'its capacity opens' : 'its capacity starts on it') : 'its map opens'}.</span>}
+          {already && <span className="sub">{already.product} is already on this line — {tool === 'balance' ? (already.capacity ? 'its capacity opens' : 'its capacity starts on it') : tool === 'work' ? 'its line balance opens' : 'its map opens'}.</span>}
         </label>
         <label className="field"><span className="field-label">For a job?</span>
           <select value={job} onChange={e => setJob(e.target.value)} aria-label="Attach to a job">
@@ -340,7 +369,7 @@ function NewOne({ open, tool, lines, list, onClose, onLine }: { open: boolean; t
             {jobs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </label>
-        <button type="submit" className="btn btn-primary" disabled={!ready}>{tool === 'balance' ? 'Make it and balance the line' : 'Make it and draw the map'}</button>
+        <button type="submit" className="btn btn-primary" disabled={!ready}>{tool === 'balance' ? 'Make it and balance the line' : tool === 'work' ? 'Make it and time the people' : 'Make it and draw the map'}</button>
       </form>
     </Sheet>
   );

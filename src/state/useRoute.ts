@@ -83,6 +83,8 @@ export function parseRoute(hash: string): Route {
      balance, on every line and job (screens/LineToolsScreen). */
   if (segs[0] === 'standards') return { name: 'lineTools', view: 'map', query };
   if (segs[0] === 'balances') return { name: 'lineTools', view: 'balance', query };
+  /* THE LINE BALANCE, its own tool (17 October): the people's work, timed */
+  if (segs[0] === 'linebalance') return { name: 'lineTools', view: 'work', query };
   /* THE TOOLS' STUDIES (docs/TOOLKIT.md, Part 0): /capability is every
      capability study, unfiled first; /capability/:id is one of them. */
   /* /value-stream is every value stream map; /value-stream/:id one of them

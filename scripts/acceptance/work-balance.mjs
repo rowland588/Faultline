@@ -1,16 +1,19 @@
-/* ACCEPTANCE — STEP 3: THE WORK BALANCE, TIMED ON THE PHONE
- * (docs/BUILD.md, "Release 3 — step 3"; docs/TOOLKIT.md, tools 3 and 4).
+/* ACCEPTANCE — THE LINE BALANCE, TIMED ON THE PHONE
+ * (docs/BUILD.md, "Release 3 — step 3" and "The line balance, its own tool";
+ * docs/TOOLKIT.md, tools 3 and 4).
  *
  * Rowland, 10 October, of the line balance: "thought it would be more Lean
  * 4.0". The story, driven in a real browser on the seeded line standard
  * (Maris Piper 2kg on Line 7, no job) with the real controls:
  *
- *   1  the line balance's People view reads as the module says — who is over
- *      takt first, in red, then the stacks' sentence
- *   2  an element added and timed with the stopwatch — Start, Lap, Lap,
- *      Foreign — each lap on its element, the interruption kept out
- *   3  the pace seen, rated — the element's standard time moves as the
- *      module says
+ *   1  the line balance, its own page, reads as the module says — who is over
+ *      takt first, in red, then the stacks' sentence; Line capacity has no
+ *      People tab, a door to it instead; the old address still opens it
+ *   2  a step added to a person and timed with the full-screen stopwatch —
+ *      Start, Lap, Lap, Foreign — each lap on its element, the interruption
+ *      kept out; Undo takes the last lap back, Skip moves Now on
+ *   3  the pace seen, rated from the step's Edit — the element's standard
+ *      time moves as the module says
  *   4  the map reads it: the work's branch line and each person's seconds
  *   5  the line standard attached to a job — its work balance goes with it
  *   6  Make it better — a fix on whoever is over takt, the balance its
@@ -19,7 +22,15 @@
  *      same standard; the map reads the newest, the earlier opens as itself
  *   8  before → after on the fix — "the number moved"
  *   9  the client report's PDF, read back: the fix's before → after and the
- *      Evidence appendix naming the work balance
+ *      Evidence appendix naming the line balance
+ *   10 the link to Line capacity (Rowland, 17 October: "it can be linked
+ *      directly to the capacity"): a person put at a station — their time in
+ *      its unit, the people station taking their timed cycle, said whose;
+ *      the takt taken from Line capacity's target; what the bottleneck
+ *      costs a pack and a minute as lib/ie/balanceLink says; All together
+ *      saying each tool's sentence, the line station by station with who
+ *      works there, and its PDF; the Line balance list and its PDF; a phone
+ *      with nothing off the side and the timer filling the screen
  *   and a client reads it and changes nothing.
  *
  * Every sentence is checked against the module that makes it (lib/ie/balance,
@@ -69,7 +80,7 @@ const truth = (standardId, studyId) => page.evaluate(async ([sid, id]) => {
   const s = id ? all.find(x => x.id === id) : L.currentBalance(all, sid);
   const st = await getStandard(sid);
   if (!s || !st) return null;
-  const f = B.balance(s.facts.steps, s.agreed?.balance);
+  const f = (await import('/src/lib/ie/balanceLink.ts')).studyBalance(s);
   const onMap = peopleOf(st).length || undefined;
   const said = B.balanceSays(f, onMap);
   return {
@@ -96,26 +107,39 @@ const reds = async () => (await page.locator('.ie-says p.ie-say.is-r').allInnerT
   const wantRed = t.said.lines.filter(l => l.tone === 'r').map(l => l.text);
   ok(await main() === t.said.text && JSON.stringify(await reds()) === JSON.stringify(wantRed) && wantRed.length > 0,
     `1 the People view: "${(await reds()).join(' ')}" "${await main()}"`);
-  ok((await page.locator('.wb-svg').count()) === 1 && (await page.getByRole('tab', { name: 'People — the work against takt' }).getAttribute('aria-selected')) === 'true',
-    '1 the stacks against takt, under "People — the work against takt"');
+  ok((await page.locator('.wb-svg').count()) === 1 && /^Line balance/.test((await words('.ls-head .sub')) ?? ''),
+    `1 the stacks against takt, on the line balance's own page: "${await words('.ls-head .sub')}"`);
 }
 
 /* ---- 2 · an element added and timed with the stopwatch ---- */
-await page.getByLabel('Another element').fill('Check the seal');
-await page.getByLabel('Who does it').fill('Op 2');
-await page.getByRole('button', { name: 'Add', exact: true }).click(); await page.waitForTimeout(800);
+await page.getByLabel('Another step for Op 2').fill('Check the seal');
+await person('Op 2').getByRole('button', { name: 'Add', exact: true }).click(); await page.waitForTimeout(800);
 await person('Op 2').getByRole('button', { name: 'Time Op 2' }).click(); await page.waitForTimeout(400);
 const tap = async name => { await page.getByRole('button', { name }).click(); await page.waitForTimeout(1000); };
+const nowIs = async () => ((await page.locator('.wb-tm-step.is-now .wb-tm-name').innerText().catch(() => '')) || '').trim();
 await tap(/^Start — as /);
 await tap(/^Lap — Fold and tape the case done/);
 await tap(/^Lap — Check the seal done/);
+/* Undo takes the last lap back and Now returns to it; Lap again */
+{
+  const lapsOf = async () => ((await truth(SID)).steps.find(x => x.name === 'Check the seal')?.laps ?? []).length;
+  const was = await lapsOf();
+  await tap(/^Undo the last lap/);
+  ok(await lapsOf() === was - 1 && await nowIs() === 'Check the seal', `2 Undo the last lap: the lap taken back (${was} → ${await lapsOf()}), Now on "${await nowIs()}" again`);
+  await tap(/^Lap — Check the seal done/);
+}
 await tap(/^Foreign — leave this out/);
-await page.getByRole('button', { name: 'Stop' }).click(); await page.waitForTimeout(900);
+{
+  /* the timer is the whole screen while it runs */
+  const r = await page.locator('.wb-tm').boundingBox(); const vw = page.viewportSize();
+  ok(!!r && r.width >= vw.width - 1 && r.height >= vw.height - 1, `2 the timer fills the screen (${r?.width}×${r?.height})`);
+}
+await page.getByRole('button', { name: 'Stop timing' }).click(); await page.waitForTimeout(900);
 t = await truth(SID);
 {
   const fold = t.steps.find(x => x.name === 'Fold and tape the case'), seal = t.steps.find(x => x.name === 'Check the seal');
   const sealLaps = (seal?.laps ?? []).filter(l => !l.foreign), foreign = (fold?.laps ?? []).filter(l => l.foreign);
-  ok(sealLaps.length === 1 && sealLaps[0].sec >= 0.8 && sealLaps[0].sec <= 2.5 && foreign.length === 1 && (fold?.laps ?? []).length === 8,
+  ok(sealLaps.length === 1 && sealLaps[0].sec >= 0.8 && sealLaps[0].sec <= 6 && foreign.length === 1 && (fold?.laps ?? []).length === 8,
     `2 timed: Check the seal ${sealLaps.map(l => l.sec).join(', ')} s; the interruption kept on Fold and tape as foreign (${foreign.length})`);
   const sealSays = t.els.find(e => e.name === 'Check the seal')?.says;
   const shown = (await person('Op 2').locator('.wb-said').allInnerTexts()).map(x => x.trim());
@@ -125,6 +149,7 @@ t = await truth(SID);
 /* ---- 3 · the pace seen, rated ---- */
 {
   const row = person('Op 2').locator('.wb-el').nth(1);
+  await row.getByRole('button', { name: /^Edit / }).click(); await page.waitForTimeout(300);
   await row.getByRole('radio', { name: '125' }).click(); await page.waitForTimeout(800);
   t = await truth(SID);
   const sealSays = t.els.find(e => e.name === 'Check the seal')?.says ?? '';
@@ -183,7 +208,7 @@ await person('Op 1').getByRole('button', { name: 'Time Op 1' }).click(); await p
 await tap(/^Start — as /);
 await tap(/^Lap — Feed the bagger done/);
 await tap(/^Lap — Clear the jams done/);
-await page.getByRole('button', { name: 'Stop' }).click(); await page.waitForTimeout(800);
+await page.getByRole('button', { name: 'Stop timing' }).click(); await page.waitForTimeout(800);
 for (const [i, v] of [[0, '8'], [1, '1.5']]) {
   const box = person('Op 2').locator('.wb-el').nth(i).getByLabel('Typed seconds');
   await box.fill(v); await box.press('Tab'); await page.waitForTimeout(500);
@@ -212,8 +237,78 @@ const pdf = join(OUT, 'client.pdf'); await dl.saveAs(pdf);
 const txt = pdfText(pdf);
 const san = s => s.replace(/→/g, 'to').replace(/[–—]/g, '-').replace(/\s+/g, ' ');
 const has = s => san(txt).includes(san(s).slice(0, 60));
-ok(has('Evidence') && has('Work balance - Maris Piper 2kg'), '9 the client report: the Evidence appendix names the work balance');
+ok(has('Evidence') && has('Line balance - Maris Piper 2kg'), '9 the client report: the Evidence appendix names the line balance');
 ok(has('Before') && has(want.slice(0, 50)), '9 the client report: the fix carries its before → after');
+
+/* ---- 10 · the link to Line capacity, what it costs, All together ---- */
+{
+  const LB = `${MAP}?at=work`;
+  /* the line's labour rate, typed in Line capacity (one home) */
+  await page.evaluate(async id => { const db = await import('/src/db.ts'); const st = await db.getStandard(id);
+    await db.putStandard({ ...st, capacity: { ...st.capacity, labour: { ratePerHour: 15 } } }); }, SID);
+  await go(LB);
+  await page.locator('.wb-strip').first().waitFor({ timeout: 10000 }).catch(() => {});
+  await page.getByRole('button', { name: 'Take the takt from Line capacity' }).click(); await page.waitForTimeout(1200);
+  const opts = await page.getByLabel('Where Op 2 works').locator('option').allInnerTexts();
+  await page.getByLabel('Where Op 2 works').selectOption({ label: opts.find(o => /^Packer/.test(o)) ?? '' }); await page.waitForTimeout(1800);
+  const L = await page.evaluate(async id => {
+    const db = await import('/src/db.ts'); const S = await import('/src/lib/studyLinks.ts'); const K = await import('/src/lib/ie/balanceLink.ts'); const B = await import('/src/lib/ie/balance.ts');
+    const st = await db.getStandard(id); const b = S.currentBalance(await db.listAllStudies(), id); const f = K.studyBalance(b);
+    const ws = st.workspaceId ? await db.getWorkspace(st.workspaceId) : undefined;
+    const op2 = f.people.find(p => p.who === 'Op 2'); const k = K.balanceCost(f, K.costInputs(st.capacity, ws));
+    return { from: b.agreed?.balance?.from, packer: st.capacity.stations.find(x => x.name === 'Packer'), work: op2?.work, unit: op2?.unit, figure: op2 ? `${B.secs(op2.work)} of ${B.secs(op2.takt ?? 0)}${B.aPiece(op2)} takt` : '',
+      cost: k ? K.balanceCostSays(k, st.capacity.stations[0].unit).lines : null };
+  }, SID);
+  ok(L.from === 'target' && /Line capacity’s target/.test((await words('.wb-strip')) ?? ''), `10 the takt taken from Line capacity's target: "${await words('.wb-strip')}"`);
+  ok(L.packer?.source === 'standard' && Math.abs((L.packer?.cycleSec ?? 0) - Math.round((L.work ?? 0) * 100) / 100) < 0.006 && L.packer?.note === 'timed in the line balance — Op 2' && L.unit === 'baskets',
+    `10 Op 2 at the Packer: Line capacity's Packer takes their timed ${L.packer?.cycleSec} s a basket, "${L.packer?.note}"`);
+  ok(((await words('.wb-pw', person('Op 2'))) ?? '').startsWith(L.figure), `10 Op 2 read in their own piece: "${await words('.wb-pw', person('Op 2'))}"`);
+  const shown = (await page.locator('.wb-cost .wb-cost-l').allInnerTexts()).map(x => x.replace(/\s+/g, ' ').trim());
+  ok(!!L.cost && JSON.stringify(shown) === JSON.stringify(L.cost), `10 what it costs, a pack and a minute: "${shown.join(' ')}"`);
+  /* Skip moves Now on without a lap */
+  await person('Op 1').getByRole('button', { name: 'Time Op 1' }).click(); await page.waitForTimeout(400);
+  await tap(/^Start — as /);
+  const n0 = await nowIs(); await tap(/^Skip this step/); const n1 = await nowIs();
+  ok(n0 === 'Feed the bagger' && n1 === 'Clear the jams', `10 Skip: Now from "${n0}" to "${n1}"`);
+  await page.getByRole('button', { name: 'Stop timing' }).click(); await page.waitForTimeout(800);
+  /* ALL TOGETHER — each tool's sentence, the line station by station, its paper */
+  await go(`${MAP}?at=all`);
+  await page.locator('.tg-strip').first().waitFor({ timeout: 10000 }).catch(() => {});
+  await page.waitForTimeout(1500);
+  const T = await page.evaluate(async id => {
+    const db = await import('/src/db.ts'); const S = await import('/src/lib/studyLinks.ts'); const G = await import('/src/lib/together.ts');
+    const st = await db.getStandard(id); const t = G.togetherOf(st, S.currentBalance(await db.listAllStudies(), id));
+    return { cap: t.capacity.text, n: t.stations.length, limit: t.stations.find(x => x.limit)?.name, packer: t.stations.find(x => x.name === 'Packer')?.people.map(p => p.says) ?? [] };
+  }, SID);
+  const cap = ((await page.locator('.tg-cell .tg-v').first().innerText()) ?? '').trim();
+  const rows = await page.locator('.tg-st').count();
+  const packerRow = (await page.locator('.tg-st', { hasText: 'Packer' }).first().innerText()).replace(/\s+/g, ' ');
+  ok(cap === T.cap && rows === T.n && T.packer.length === 1 && packerRow.includes(`Op 2 ${T.packer[0]}`) && (await page.locator('.tg-st.is-limit').count()) === 1,
+    `10 All together: "${cap}", ${rows} stations, the bottleneck (${T.limit}) marked, the Packer "${packerRow.slice(0, 90)}"`);
+  const [dl2] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.locator('.tg .ls-head-actions').getByRole('button', { name: 'PDF', exact: true }).click()]);
+  const tpdf = join(OUT, 'together.pdf'); await dl2.saveAs(tpdf);
+  const tt = pdfText(tpdf);
+  const TT = tt.toUpperCase();
+  ok(TT.includes('ALL TOGETHER') && tt.includes('Maris Piper 2kg') && TT.includes('THE LINE, STATION BY STATION') && tt.includes('Packer') && TT.includes('WHAT IT COSTS') && TT.includes('WHO STANDS WHERE'),
+    '10 All together on paper: where it stands, the line station by station, the card, each person against takt, what it costs');
+  /* THE LINE BALANCE'S LIST — its sentence, and its paper */
+  await go('#/linebalance');
+  await page.locator('.lt-row').first().waitFor({ timeout: 10000 }).catch(() => {});
+  const lineSays = await page.evaluate(async id => { const db = await import('/src/db.ts'); const S = await import('/src/lib/studyLinks.ts'); return S.studyLine(S.currentBalance(await db.listAllStudies(), id)).text; }, SID);
+  const rowSays = ((await page.locator('.lt-row', { hasText: 'Maris Piper 2kg' }).first().locator('.lt-says').innerText()) ?? '').trim();
+  ok(rowSays === lineSays, `10 the Line balance list: "${rowSays.slice(0, 100)}"`);
+  const [dl3] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: /PDF \(all shown\)/ }).click()]);
+  const lpdf = join(OUT, 'linebalance.pdf'); await dl3.saveAs(lpdf);
+  const lt = pdfText(lpdf);
+  ok(lt.includes('Maris Piper 2kg') && lt.toUpperCase().includes('EACH PERSON AGAINST TAKT') && lt.toUpperCase().includes('WHAT IT COSTS'), '10 the Line balance list on paper: each person against takt, what it costs');
+  /* a phone: nothing off the side */
+  await page.setViewportSize({ width: 390, height: 844 });
+  await go(LB);
+  await page.locator('.wb-strip').first().waitFor({ timeout: 10000 }).catch(() => {});
+  const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  ok(over <= 1, `10 on a phone nothing is off the side (${over} px)`);
+  await page.setViewportSize({ width: 1360, height: 900 });
+}
 
 /* ---- a client reads it and changes nothing ---- */
 await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client'));
@@ -226,5 +321,5 @@ await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
 
 ok(errors.length === 0, errors.length ? `no console errors — ${errors.join(' | ')}` : 'no console errors');
 await browser.close();
-console.log(failed ? `\n${failed} acceptance check(s) failed` : '\nstep 3 accepted: the work balance holds, on its own and on a job');
+console.log(failed ? `\n${failed} acceptance check(s) failed` : '\nthe line balance accepted: its own tool, timed on the phone, linked to Line capacity, its costs, all together — on its own and on a job');
 process.exit(failed ? 1 : 0);

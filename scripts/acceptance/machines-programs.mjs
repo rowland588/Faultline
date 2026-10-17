@@ -308,15 +308,19 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   await row.getByRole('button', { name: 'Test it' }).click(); await page.waitForTimeout(300);
   await row.getByRole('button', { name: 'Passed' }).click();
   await row.locator('.ptx-panel textarea').fill('Ran 200 packs through the de-nester, all placed');
-  await row.getByRole('button', { name: 'Save' }).click(); await page.waitForTimeout(1500);
-  const r = await page.evaluate(async ([pid, w]) => {
+  await row.getByRole('button', { name: 'Save' }).click();
+  /* read once the save has settled — the program made, its test written and
+     the row re-read — up to 10 s, as 12f does (under the gate's load 1.5 s
+     read the row before it said "proved") */
+  const read7h = () => page.evaluate(async ([pid, w]) => {
     const db = await import('/src/db.ts');
     const progs = (await db.listPrograms(pid)).filter(p => !p.deletedAt);
     const p = progs.find(x => x.what.startsWith(w));
     const t = p && (await db.listTests(pid)).find(x => x.programId === p.id && !x.deletedAt);
     return { n: progs.length, p, t };
   }, [sd.projectId, what]);
-  const said = flat(await row.innerText());
+  let r = await read7h(), said = flat(await row.innerText());
+  for (let i = 0; i < 20 && !(r.p?.provedOn && /proved/i.test(said)); i++) { await page.waitForTimeout(500); r = await read7h(); said = flat(await row.innerText()); }
   ok(r.n === before + 1 && !!r.p && !!r.t && r.t.outcome === 'passed' && r.p.provedOn === iso(0) && /proved/i.test(said) && /Test 1.*passed/.test(said),
     `7h tested: its program made on its machine, its test passed, proved — said on the row (${said.slice(0, 160)})`);
   await go(`#/project/${sd.projectId}/testing`);

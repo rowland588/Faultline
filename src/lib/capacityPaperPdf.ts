@@ -320,6 +320,8 @@ export function productBlocks(p: CapacityPaper, d: Density, own: boolean, keep =
     out.push(text({ text: `${where} · printed ${p.printed}`, colour: MUTED, after: gap(d, 'm') }));
   }
   out.push(band(p.headline, p.rows.length ? p.sentence : '', p.short));
+  /* WHAT THE BOTTLENECK COSTS A PACK — the money, straight under the sums (17 October) */
+  if (p.money) out.push(text({ text: p.money.text, size: T + 0.5, style: 'bold', colour: p.money.short ? RED : INK2, after: gap(d, 'm') }));
   if (!p.rows.length) {
     out.push(text({ text: p.sentence, colour: INK2, after: gap(d, 'm') }));
     /* stations written down and none counted: each said, and why — it was

@@ -111,8 +111,10 @@ const truth = () => page.evaluate(async id => {
 await go(CAP);
 await page.locator('.vc-says').first().waitFor({ timeout: 10000 }).catch(() => {});
 {
-  const tabs = (await page.locator('.lb-views .chip').allTextContents()).map(x => x.trim());
-  ok(tabs.join('|') === 'Capacity|People — the work against takt', `1 the views: ${tabs.join(' · ')}`);
+  /* the people's work is the line balance's own page now (17 October) — a door, never a second tab here */
+  const tabs = await page.locator('.lb-views .chip').count();
+  const door = await page.getByRole('button', { name: 'Its line balance ›' }).count();
+  ok(tabs === 0 && door === 1, `1 Line capacity alone on its page, the line balance one door away (${tabs} tabs, ${door} door)`);
 }
 /* ---- 2 the V-curve ---- */
 {
@@ -158,11 +160,11 @@ await page.locator('.vc-says').first().waitFor({ timeout: 10000 }).catch(() => {
     const b = L.currentBalance(await db.listAllStudies(), id); const f = B.balance(b.facts.steps, b.agreed?.balance); const w = f.people.find(p => p.who === 'Op 2')?.work ?? 0;
     const x = C.analyse((await db.getStandard(id)).capacity).ok.find(s => s.station.name === 'Op 2'); return Math.round(w * (x?.factor ?? 1) * 100) / 100; }, SID);
   const offer = await words('.cap-sheet-use');
-  ok(/^The time study: [\d.,]+ s a basket — use it$/.test(offer), `5 the time study offers Op 2's standard time in the station's unit: ${offer}`);
+  ok(/^The line balance: [\d.,]+ s a basket — use it$/.test(offer), `5 the line balance offers Op 2's standard time in the station's unit: ${offer}`);
   if (offer) {
     await page.locator('.cap-sheet-use').first().click(); await page.waitForTimeout(900);
     const st = (await truth()).stations.find(s => s.name === 'Op 2');
-    ok(st?.source === 'standard' && st.cycleSec === want && /standard time — the time study/.test(await words('.cap-sheet tr:has-text("Op 2")')), `5 used: 1 every ${want} s, "standard time — the time study"`);
+    ok(st?.source === 'standard' && st.cycleSec === want && /standard time — the line balance/.test(await words('.cap-sheet tr:has-text("Op 2")')), `5 used: 1 every ${want} s, "standard time — the line balance"`);
   }
 }
 /* ---- 6 the bottleneck walked ---- */
@@ -405,6 +407,8 @@ let TRAY;
   await go(CAP);
   const box = page.locator('.cap-cost');
   ok(/placed on the line standard/.test(await box.innerText()) && /not said yet/.test(await box.innerText()), '12 the people stand in from the line standard; the rate not said yet');
+  /* WHAT THE BOTTLENECK COSTS A PACK, under the sums (17 October: "this is the cost per pack because of X") — first what it needs */
+  ok(/^What .+ costs a .+: say how many people are on the line and what one costs an hour/.test(((await words('.cap-money')) ?? '')), `12 the bottleneck's cost says what it needs: "${await words('.cap-money')}"`);
   await box.getByLabel('People on the line').fill('8'); await box.getByLabel('People on the line').press('Enter');
   await box.getByLabel('Pounds an hour each').fill('12.50'); await box.getByLabel('Pounds an hour each').press('Enter'); await page.waitForTimeout(900);
   const m = await page.evaluate(async id => {
@@ -416,6 +420,18 @@ let TRAY;
   }, SID);
   const said = (await box.locator('.cap-cost-says').innerText()).replace(/\s+/g, ' ');
   ok(m.labour?.people === 8 && m.labour?.ratePerHour === 12.5 && said.startsWith(`${m.perPack} a ${m.unit}`), `12b typed and kept: ${said}`);
+  {
+    const want = await page.evaluate(async id => {
+      const db = await import('/src/db.ts'); const C = await import('/src/lib/capacity.ts');
+      const st = await db.getStandard(id); const r = C.analyse(st.capacity); const ws = st.workspaceId ? await db.getWorkspace(st.workspaceId) : undefined;
+      const li = C.labourInputs(st.capacity, undefined, ws);
+      const k = C.bottleneckCost(r, st.capacity.labour?.people ?? li.people, st.capacity.labour?.ratePerHour ?? li.rate, ws?.marginPerPack);
+      return k ? C.bottleneckCostSays(k, r) : null;
+    }, SID);
+    const money = (await words('.cap-money')) ?? '';
+    ok(!!want && money === want.text && /because of/.test(money) && (await page.locator('.cap-money.is-r').count()) === (want.short ? 1 : 0),
+      `12b what the bottleneck costs a pack, as lib/capacity says: "${money}"`);
+  }
   if (m.more) {
     ok((await box.locator('.cap-cost-more').first().innerText()).replace(/\s+/g, ' ').startsWith(m.more), `12c one more person at the bottleneck, as the module says: ${m.more}`);
     await box.getByRole('button', { name: new RegExp(`^Make it ${m.crew + 1} at`) }).click(); await page.waitForTimeout(900);

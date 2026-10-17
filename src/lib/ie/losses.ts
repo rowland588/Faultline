@@ -123,11 +123,11 @@ export function idealOf(cap?: Pick<Capacity, 'stations'>): IdealPace {
   if (sp) {
     const rate = Math.round(sp.perMin * 100) / 100;
     if (sp.from === 'plate') return { rate, station: name, how: 'plate', why: `plate speed of the ${name}`, anyIdeal };
-    return src === 'standard' ? { rate, station: name, how: 'standard', why: `standard time of ${name} (the time study)`, anyIdeal }
+    return src === 'standard' ? { rate, station: name, how: 'standard', why: `standard time of ${name} (the line balance)`, anyIdeal }
       : { rate, station: name, how: 'timed', why: `${name}’s timed pace`, anyIdeal };
   }
   if (lim.station.kind === 'machine') return { why: `the ${name} sets the pace and its speed is ${MACHINE_NOT[src] ?? MACHINE_NOT.estimate}`, anyIdeal };
-  return { why: `${name} sets the pace and their speed is a guess — time them in the time study`, anyIdeal };
+  return { why: `${name} sets the pace and their speed is a guess — time them in the line balance`, anyIdeal };
 }
 
 /** What a count's rate starts from: the pace-setter's ideal speed; else the
@@ -154,7 +154,7 @@ export function rateOf(cap: Pick<Capacity, 'stations'> | undefined, standardTarg
  *  "the line standard's target — not a plate speed", "typed". */
 export function paceWords(c?: Pick<LossCount, 'rateFrom' | 'rateMachine' | 'ratePerson' | 'rateTimed'>, product?: string): string {
   if (c?.rateFrom === 'plate') return `plate speed of the ${c.rateMachine ?? 'machine that sets the pace'}`;
-  if (c?.rateFrom === 'standard-time') return c.rateTimed ? `${c.ratePerson ?? 'the pace-setter'}’s timed pace` : `standard time of ${c.ratePerson ?? 'the pace-setter'} (the time study)`;
+  if (c?.rateFrom === 'standard-time') return c.rateTimed ? `${c.ratePerson ?? 'the pace-setter'}’s timed pace` : `standard time of ${c.ratePerson ?? 'the pace-setter'} (the line balance)`;
   if (c?.rateFrom === 'standard') return `the line standard’s target${product ? ` for ${product}` : ''} — not a plate speed`;
   return 'typed';
 }

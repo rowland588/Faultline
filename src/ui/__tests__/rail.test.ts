@@ -242,10 +242,15 @@ describe('the tools beside the control room', () => {
   it('are the line standard, Line capacity and the studies, each lit where it is', async () => {
     const { toolPlaces, hereOf } = await import('../rail');
     const { parseRoute } = await import('../../state/useRoute');
-    expect(toolPlaces('').map(l => [l.label, l.to])).toEqual([['Line standard', '/standards'], ['Line capacity', '/balances'], ['Capability', '/capability'], ['Value stream', '/value-stream'], ['SMED', '/smed'], ['Work sampling', '/sampling'], ['Loss count', '/losses']]);
+    expect(toolPlaces('').map(l => [l.label, l.to])).toEqual([['Line standard', '/standards'], ['Line balance', '/linebalance'], ['Line capacity', '/balances'], ['Capability', '/capability'], ['Value stream', '/value-stream'], ['SMED', '/smed'], ['Work sampling', '/sampling'], ['Loss count', '/losses']]);
     expect(hereOf(parseRoute('#/standards'))).toBe('linestandard');
     expect(hereOf(parseRoute('#/balances'))).toBe('linebalance');
     expect(toolPlaces('linebalance').filter(l => l.on).map(l => l.label)).toEqual(['Line capacity']);
+    /* the line balance, its own tool (17 October): its list, a product's ?at=work, and the old People tab's address */
+    expect(hereOf(parseRoute('#/linebalance'))).toBe('linework');
+    expect(hereOf(parseRoute('#/w/ws/standards/s1?at=work'))).toBe('linework');
+    expect(hereOf(parseRoute('#/w/ws/standards/s1?at=balance&view=work'))).toBe('linework');
+    expect(toolPlaces('linework').filter(l => l.on).map(l => l.label)).toEqual(['Line balance']);
     expect(hereOf(parseRoute('#/capability'))).toBe('capability');
     expect(hereOf(parseRoute('#/capability/s1'))).toBe('capability');
     expect(hereOf(parseRoute('#/smed'))).toBe('changeover');
@@ -268,7 +273,7 @@ describe('the job first, the tools at the foot (docs/FLOW.md item 3)', () => {
   it('Tools holds the line standard, Line capacity and the studies — never the problems', () => {
     const g = toolsGroup('');
     expect(g.label).toBe('Tools');
-    expect(labels(g)).toEqual(['Line standard', 'Line capacity', 'Capability', 'Value stream', 'SMED', 'Work sampling', 'Loss count']);
+    expect(labels(g)).toEqual(['Line standard', 'Line balance', 'Line capacity', 'Capability', 'Value stream', 'SMED', 'Work sampling', 'Loss count']);
   });
 
   it('Control room problems is the control room’s, lit on its page (docs/FLOW-AUDIT.md #20)', async () => {

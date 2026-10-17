@@ -24,7 +24,7 @@
  * a person over takt (red). The bottleneck is marked, not coloured — it is
  * the limit, not a failure. */
 import {
-  allowanceOf, analyse, changedWords, cycleWords, compareSays, fmtBig, fmtMoney, fmtN, labourCost, oneMorePerson, oneOf, shiftCapacity, shortSays,
+  allowanceOf, analyse, bottleneckCost, bottleneckCostSays, changedWords, cycleWords, compareSays, fmtBig, fmtMoney, fmtN, labourCost, oneMorePerson, oneOf, shiftCapacity, shortSays,
   screenCapacity, vCurve, whatIfCapacity, whatIfLabour, whatIfStations,
   type Capacity, type ChangeoverIn, type LabourInputs, type ShiftIn, type Station,
 } from './capacity';
@@ -122,6 +122,9 @@ export interface CapacityPaper {
   shift?: { rows: CapacityPaperShift[]; day?: CapacityPaperShift; sentence: string };
   /** What a pack costs in labour, and one more person at the bottleneck. */
   labour?: { says: string; more?: string };
+  /** WHAT THE BOTTLENECK COSTS A PACK, under the headline (lib/capacity
+   *  bottleneckCost) — red when the line is short of its target. */
+  money?: { text: string; short: boolean };
   /** The people's work against takt (lib/ie/balance), its over-takt lines red. */
   work?: { text: string; lines: { text: string; tone: Tone }[] };
   /** Each what-if tried, what it would do against the line as run. */
@@ -129,7 +132,7 @@ export interface CapacityPaper {
 }
 
 const PER: Record<NonNullable<Station['ratePer']>, string> = { sec: 'a second', min: 'a minute', hour: 'an hour' };
-const HOW: Record<NonNullable<Station['source']>, string> = { plate: 'on the plate', timed: 'timed', standard: 'standard time — the time study', estimate: 'a guess' };
+const HOW: Record<NonNullable<Station['source']>, string> = { plate: 'on the plate', timed: 'timed', standard: 'standard time — the line balance', estimate: 'a guess' };
 
 /** A station's speed as it was typed, in the unit it was typed in — its own,
  *  or the one before's for a palletiser timed per basket — the capacity
@@ -177,6 +180,8 @@ export interface CapacityPaperIn {
   /** The changeover into this product (lib/ie/changeover changeoverIn). */
   co?: ChangeoverIn;
   labour: LabourInputs;
+  /** The line's contribution a pack (its margin), for what the packs not made are worth. */
+  margin?: number;
   /** The latest walk's verdict, against the sums. */
   walk?: WalkVerdict;
   /** The people's work against takt (lib/ie/balance balanceSays). */
@@ -264,6 +269,8 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
   /* WHAT A PACK COSTS IN LABOUR — and where its people and rate came from,
      so a stand-in is never read as a decision. */
   const says = labourSays(r, x.labour);
+  const bk = bottleneckCost(r, x.labour.people, x.labour.rate, x.margin);
+  const money = bk ? bottleneckCostSays(bk, r) : undefined;
   const more = oneMorePerson(cap, r, x.labour.people, x.labour.rate);
   const from = [x.labour.peopleFrom ? `people: ${FROM_PEOPLE[x.labour.peopleFrom]}` : '', x.labour.rateFrom ? `rate: ${FROM_RATE[x.labour.rateFrom]}` : ''].filter(Boolean).join('; ');
   const machine = says && !more && r.limit && r.limit.station.kind === 'machine'
@@ -286,6 +293,7 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
   return {
     ...base,
     headline: head ?? `${n} station${n === 1 ? '' : 's'} — speeds still to fill in`,
+    ...(money ? { money } : {}),
     short: (r.gap ?? 0) > 0 && (!!r.next || !!r.lanes),
     sentence: r.sentence,
     ...(target != null ? { target: `${fmtN(target)} ${r.unit} a minute` } : {}),

@@ -35,7 +35,7 @@ import { niceDay, todayISO, daysBetween } from './weeks';
 import { analyse, fmtN, type Capacity } from './capacity';
 import { headcount } from './standard';
 import type { ToolStudy } from './study';
-import { balance, secs } from './ie/balance';
+import { secs } from './ie/balance';
 import { boneOfStep, currentBalance, currentLosses, currentSampling, lossFiguresOf } from './studyLinks';
 import { boneOfActivity, samplingLine, samplingOffers, worstWords } from './ie/sampling';
 import { idealWord, minWords, shiftWords, type LossBar } from './ie/losses';
@@ -44,6 +44,7 @@ import { figuresOf, mins, stepFigure as changeoverStepFigure } from './ie/change
 import { stateOf as materialState, daysLate } from './materials';
 import { standingOf, stateOf as programState, daysOverdue } from './programs';
 import { bySort, lineSeries, say, seriesFor } from './measures';
+import { studyBalance } from './ie/balanceLink';
 
 const DAY = 86_400_000;
 const HOUR = 3_600_000;
@@ -536,10 +537,10 @@ export function suggestionsFor(problem: Case, data: FishboneData, today = Date.n
        element has a time: an untimed element is not zero seconds. The ref is
        "<study id>#<who>" — one cause per person, each opening the study. */
     const study = currentBalance(data.studies, std.id);
-    const f = study ? balance(study.facts.steps, study.agreed?.balance) : undefined;
+    const f = study ? studyBalance(study) : undefined;
     if (study && f?.taktSec && !f.untimed) {
       const graded = (src: string): Grade => (src === 'timed' ? 'measured' : 'reported');
-      const head = `Work balance: ${std.product}, ${secs(f.total)} of work at a ${secs(f.taktSec)} takt`;
+      const head = `Line balance: ${std.product}, ${secs(f.total)} of work at a ${secs(f.taktSec)} takt`;
       for (const p of f.people.filter(x => x.overBy > 0).sort((a, b) => b.overBy - a.overBy).slice(0, MAX_PER_SOURCE)) {
         out.push(mk('study', `${study.id}#${p.who}`, 'method', `${p.who} carries ${secs(p.work)} against a ${secs(f.taktSec)} takt — over by ${secs(p.overBy)}`,
           graded(p.source), { detail: head, label: std.product }));

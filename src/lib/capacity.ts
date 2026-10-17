@@ -1185,6 +1185,69 @@ export function labourCost(r: CapacityResult, people: number | undefined, ratePe
   return { people, ratePerHour, perHour, packsPerHour, perPack: perHour / packsPerHour };
 }
 
+/* ====================== what the bottleneck costs a pack ===================
+ * Rowland, 17 October: "the bottleneck is driving the cost per pack up,
+ * making it more expensive ... there was no monetary value being shown
+ * anywhere. All of that needs to be shown very clear and very simple, that
+ * this is the cost per pack because of X, including with the people." The
+ * people on the line are paid by the hour whatever the line makes, so the
+ * station that holds it sets what a pack costs:
+ *   labour a pack now     the people × one's rate ÷ the good packs an hour
+ *   then                  the same people over what the line would make
+ *                         without this bottleneck — the target when it is
+ *                         short of it, else the next station's limit (as far
+ *                         as fixing it lifts the line)
+ *   because of it         now − then, a pack
+ *   a minute              the people's £ a minute × (1 − now ÷ then) — paid
+ *                         for packs not made; and the contribution of those
+ *                         packs, when the line has a margin a pack
+ * Nothing until the line can be counted and its people and rate are known. */
+export interface BottleneckCost {
+  station: string;
+  /** Labour £ a pack as it runs, and without this bottleneck holding it. */
+  perPackNow: number;
+  perPackThen?: number;
+  /** What the line would make a minute without it, and against what. */
+  then?: number;
+  against?: 'target' | 'next';
+  next?: string;
+  /** £ a pack because of it, £ a minute paid for packs not made, and the contribution of those packs a minute. */
+  extraPerPack?: number;
+  perMin?: number;
+  contributionPerMin?: number;
+}
+
+export function bottleneckCost(r: CapacityResult, people: number | undefined, ratePerHour: number | undefined, marginPerPack?: number): BottleneckCost | undefined {
+  const now = labourCost(r, people, ratePerHour);
+  if (!now || !r.limit || r.line == null || !(r.line > 0)) return undefined;
+  const station = r.limit.station.name.trim() || `Station ${r.limit.index + 1}`;
+  const good = (r.goodOut ?? r.line) / r.line;
+  const short = r.target != null && r.gap != null && r.gap > 1e-9;
+  const then = short ? r.target : r.liftAtMost != null && r.liftAtMost > 1e-9 ? r.line + r.liftAtMost : undefined;
+  if (then == null) return { station, perPackNow: now.perPack };
+  const outNow = r.line * good, outThen = then * good;
+  const perPackThen = now.perHour / (outThen * 60);
+  return {
+    station, perPackNow: now.perPack, perPackThen, then, against: short ? 'target' : 'next',
+    ...(!short && r.next ? { next: r.next.station.name.trim() || `Station ${r.next.index + 1}` } : {}),
+    extraPerPack: now.perPack - perPackThen,
+    perMin: (now.perHour / 60) * (1 - outNow / outThen),
+    ...(marginPerPack != null && marginPerPack > 0 ? { contributionPerMin: (outThen - outNow) * marginPerPack } : {}),
+  };
+}
+
+/** The bottleneck's cost in one or two sentences, the client's words: "Packer
+ *  holds the line to 44 bags a minute against the 60 target: labour 34p a bag
+ *  instead of 25p — 9p a bag because of Packer. Each minute ..." */
+export function bottleneckCostSays(k: BottleneckCost, r: Pick<CapacityResult, 'unit' | 'line'>): { text: string; short: boolean } {
+  const one = oneOf(r.unit), line = fmtN(r.line ?? 0);
+  if (k.then == null || k.perPackThen == null || k.extraPerPack == null) return { text: `Labour ${fmtMoney(k.perPackNow)} a ${one}, at ${k.station}’s ${line} ${r.unit} a minute.`, short: false };
+  const minute = k.perMin != null && k.perMin > 0 ? ` Each minute ${fmtMoney(k.perMin)} of labour is paid for ${r.unit} not made${k.contributionPerMin != null ? `, and ${fmtMoney(k.contributionPerMin)} of contribution is lost` : ''}.` : '';
+  return k.against === 'target'
+    ? { text: `${k.station} holds the line to ${line} ${r.unit} a minute against the ${fmtN(k.then)} target: labour ${fmtMoney(k.perPackNow)} a ${one} instead of ${fmtMoney(k.perPackThen)} — ${fmtMoney(k.extraPerPack)} a ${one} because of ${k.station}.${minute}`, short: true }
+    : { text: `${k.station} sets the pace at ${line} ${r.unit} a minute: labour ${fmtMoney(k.perPackNow)} a ${one}. Lifted to ${fmtN(k.then)}${k.next ? `, where ${k.next} would hold it` : ''}, it would be ${fmtMoney(k.perPackThen)} — ${fmtMoney(k.extraPerPack)} a ${one} because of ${k.station}.`, short: false };
+}
+
 /** WHO AND WHAT, FOR THE COST — typed on this capacity, else the people
  *  placed on the product's line standard, else the line's crew; the rate
  *  typed, else the line's own (its wage × its on-costs, Stage 1). Said where
@@ -1509,7 +1572,7 @@ export interface CapacityReportLine {
   }[];
 }
 
-const SOURCE_WORD: Record<NonNullable<Station['source']>, string> = { plate: 'on the plate', timed: 'timed', standard: 'standard time, from the time study', estimate: 'a guess' };
+const SOURCE_WORD: Record<NonNullable<Station['source']>, string> = { plate: 'on the plate', timed: 'timed', standard: 'standard time, from the line balance', estimate: 'a guess' };
 const PER_WORDS: Record<RatePer, string> = { sec: 'a second', min: 'a minute', hour: 'an hour' };
 
 /** One station's detail line for the report — every figure that went into

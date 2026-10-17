@@ -358,12 +358,12 @@ await page.setViewportSize({ width: 1360, height: 900 });
   const id1 = await start();
   const t1 = await truth(id1);
   const c1 = t1?.s.facts.losses;
-  ok(c1?.ratePerMin === 96 && c1.rateFrom === 'standard-time' && c1.ratePerson === 'Op 3' && !c1.rateMachine && (await words('.lf-rate-why')) === 'standard time of Op 3 (the time study)',
+  ok(c1?.ratePerMin === 96 && c1.rateFrom === 'standard-time' && c1.ratePerson === 'Op 3' && !c1.rateMachine && (await words('.lf-rate-why')) === 'standard time of Op 3 (the line balance)',
     `8 a person slower than every machine sets the pace: ${c1?.ratePerMin} a minute — "${await words('.lf-rate-why')}"`);
   await page.evaluate(async std => (await import('/src/db.ts')).putStandard({ ...std, capacity: { stations: std.capacity.stations.map(x => (x.id === 'o3' ? { ...x, source: 'estimate' } : x)) }, updatedAt: Date.now() }), hp.std);
   const id2 = await start();
   const c2 = (await truth(id2))?.s.facts.losses;
-  ok(c2?.ratePerMin === undefined && (await words('.lf-rate-why')) === 'typed — Op 3 sets the pace and their speed is a guess — time them in the time study',
+  ok(c2?.ratePerMin === undefined && (await words('.lf-rate-why')) === 'typed — Op 3 sets the pace and their speed is a guess — time them in the line balance',
     `8 Op 3 on a guess: no rate offered — "${await words('.lf-rate-why')}"`);
 }
 

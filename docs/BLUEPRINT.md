@@ -217,6 +217,28 @@ there and what replaces it.
 
 ## 6. What we missed — what should have been built without being asked
 
+**Money in every tool** (Rowland, 17 October: "everything must derive a cost
+in the entire app ... it's all about money"; the rule is in CLAUDE.md,
+*Everything derives a cost*). One cost model — the people, one person's
+rate, the line's margin a pack — and every tool's finding said in it, "£ a
+pack because of X" and £ a minute. Where it stands, 17 October:
+- **Says money now:** Line capacity (labour a pack; the bottleneck's cost a
+  pack and a minute, under the sums and on its paper), Line balance (packs
+  lost to the slowest person, labour a pack now and at takt, paid for packs
+  not made, the others waiting, contribution lost — screen and paper), All
+  together (each tool's line), SMED (what the changeovers cost a shift, day,
+  week, year), the loss count (idle labour and lost contribution), a line's
+  stops (lineLoss, lineRead), the mix and next week's orders.
+- **Missing — the next piece, tool by tool:** the capability study (what
+  the rejects and give-away cost), the value stream map (what the waits and
+  waste cost), work sampling (what the idle share costs a shift), the line
+  standard map (what the people placed cost a pack), the problems register
+  (what each problem costs while it is open), a 6M countermeasure (what it
+  is worth — before → after in money), the stage gate (what a late gate
+  costs a day — the line not making), the control room (the money at risk
+  across every line and job, first).
+
+
 1. **Programs on a line, planned from the control room** (asked today). A
    running line gets new programs too, with no project.
 2. **Machines on a line**, in flow order, with plate speed — set once. Every
@@ -904,4 +926,36 @@ is still wired.
   (with *Test cards*, which were only on Commission). Accepted by
   `commissioning-report.mjs`; the paper by `report-stress.mjs` at three
   sizes.
+- **The line balance, its own tool — linked to Line capacity, its costs,
+  and All together** (Rowland, 17 October: "line balance is about a more
+  manual people process flow analysis visual of what is happening where and
+  what people are doing ... I input people, what they do, and should be able
+  to time them ... it can be linked directly to the capacity because that
+  has all of the timings"; then "my concern is you make it complex ... but
+  also what about option to do it all together"; and "Line balance must have
+  costs ... cost of loss because of bottleneck presented in a cost per pack
+  per min"). Placed (§8): *On the line*, a tool of its own beside Line
+  standard and Line capacity — Toyota's three forms, one product each: the
+  standardised work chart (Line standard), the combination table (Line
+  balance), the process capacity sheet (Line capacity). No new record: the
+  balance study (`studies`, tool `balance`) on the product's `standards`
+  row, its facts gaining `crew` (each person's station, id-keyed so two
+  phones merge) and a step's `kind` (work · walk · wait), its agreement
+  `from: 'target'` — all inside the study's jsonb, no column. One number,
+  one home: the target is Line capacity's and the takt follows it (a new
+  balance takes it; one agreed by hand keeps its own, the target offered);
+  a person's time is the balance's and a people station in Line capacity
+  takes it (`lib/ie/balanceLink`). Shows on: the rail and Jump to (*Line
+  balance*, `#/linebalance`), a line's page tools, the product's own page
+  (`?at=work` — the old People tab's address still opens it), Line capacity
+  (a door, its stations' speed said "timed in the line balance — Op 2"), the
+  map (the *Line balance* branch line, each person's work against their own
+  takt, *See it all together*), the fishbone and the job's reports as before
+  (named *Line balance* now), and its paper (`lib/report/balanceTable` in the
+  study's PDF and the list's PDF). **All together** (`?at=all`): the three
+  tools read side by side, never edited there — each tool's sentence, what
+  the bottleneck costs, the line station by station with who works there,
+  the line standard's card, each person against takt — and its paper
+  (`lib/togetherPdf`), from one pure reading (`lib/together`). Accepted by
+  `work-balance.mjs` (10); the pages by `inventory.mjs`.
 - **Next:** Stage 3 — the line is the hub (its products, readiness, health).

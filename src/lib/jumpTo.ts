@@ -11,6 +11,7 @@ export const TOOL_PLACES: Place[] = [
   { kind: 'page', label: 'Control room problems', href: '#/snags' },
   { kind: 'page', label: 'Your factory', href: '#/factory' },
   { kind: 'page', label: 'Programs', href: '#/programs' },
+  { kind: 'tool', label: 'Line balance', sub: 'each person’s work, timed against takt', href: '#/linebalance' },
   { kind: 'tool', label: 'Line capacity', sub: 'what each line can make', href: '#/balances' },
   { kind: 'tool', label: 'Line standard', sub: 'who stands where', href: '#/standards' },
   { kind: 'tool', label: 'Loss count', sub: 'a shift’s losses', href: '#/losses' },

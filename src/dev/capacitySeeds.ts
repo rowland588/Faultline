@@ -87,7 +87,7 @@ export async function seedCapacityFor(size: string): Promise<CapacitySeed> {
     m(MACHINES[4], 'bags', 1, { rate: 6000, ratePer: 'hour', source: 'plate' }, { goodPct: 99.6 }),
     m(MACHINES[9], 'bags', 1, { rate: 110, ratePer: 'min', source: 'estimate' }, { bufferAfter: 120, note: 'A guess until the conveyor’s plate is found' }),
     p('Tray loader — Zoë Brontë', 'trays', 8, { cycleSec: 6.5, perCycle: 1, source: 'timed' }, { crew: 2, note: 'Sustained pace, not best lap' }),
-    p('Tray checker', 'trays', 1, { cycleSec: 3, perCycle: 1, source: 'standard' }, { note: 'standard time, from the time study' }),
+    p('Tray checker', 'trays', 1, { cycleSec: 3, perCycle: 1, source: 'standard' }, { note: 'standard time, from the line balance' }),
     m(MACHINES[10], 'trays', 1, { rate: 18, ratePer: 'min', source: 'plate' }, { runningPct: 91 }),
     m(MACHINES[5], 'cases', 4, { rate: 5, ratePer: 'min', source: 'timed' }, { runningPct: 90, note: 'Seal "A" & seal "B" — both re-cut, timed after' }),
     m(MACHINES[6], 'cases', 1, { rate: 6.5, ratePer: 'min', source: 'plate' }, { bufferAfter: 20 }),

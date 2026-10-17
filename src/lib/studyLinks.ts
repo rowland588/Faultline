@@ -21,6 +21,7 @@ import { carryFlow, compareFlows, compareStep, dur as durOf, flowFigures, flowSa
 import { actionWords, availableOf, carrySequence, changeoverSays, compareChangeovers, figuresOf, intervalOf, intervalSays, ladderOf, ladderSays, mins, stepFigure as changeoverStepFigure } from './ie/changeover';
 import { samplingSays, samplingWorst, worstWords } from './ie/sampling';
 import { barExpect, barWords, compareLosses, findBar, inWindow, lossFigures, lossLine, lossSays, nextShift, type CostModel, type LossFigures } from './ie/losses';
+import { studyBalance } from './ie/balanceLink';
 
 const live = (ss: ToolStudy[]) => ss.filter(s => !s.deletedAt);
 
@@ -57,7 +58,7 @@ export function linkedTo(studies: ToolStudy[], kind: StudyUse['kind'], ref: ID, 
 /** What a study says, in the tool's words: a work balance by its stacks
  *  against takt, a measured test by its readings. */
 export function studySays(s: ToolStudy, ctx?: StudyContext): SampleSays {
-  if (s.tool === 'balance') return balanceLine(balance(s.facts.steps, s.agreed?.balance));
+  if (s.tool === 'balance') return balanceLine(studyBalance(s));
   if (s.tool === 'map') {
     const f = flowFigures(s.facts.flow, s.agreed?.map);
     return { text: flowSays(f, s.agreed?.map).text, tone: 'n', verdict: f.steps ? `Lead time ${f.untimed ? 'at least ' : ''}${durOf(f.leadSec)}` : 'No steps yet' };
@@ -82,7 +83,7 @@ export function studySays(s: ToolStudy, ctx?: StudyContext): SampleSays {
 }
 
 /** Each tool's name, as a study of it is called on screen and on paper. */
-export const TOOL_NAME: Partial<Record<ToolStudy['tool'], string>> = { capability: 'Capability study', balance: 'Work balance', map: 'Value stream map', changeover: 'SMED', sampling: 'Work sampling', losses: 'Loss count' };
+export const TOOL_NAME: Partial<Record<ToolStudy['tool'], string>> = { capability: 'Capability study', balance: 'Line balance', map: 'Value stream map', changeover: 'SMED', sampling: 'Work sampling', losses: 'Loss count' };
 
 /** "Capability study — Weight accuracy 400 g · Weigher 2". */
 export const studyTitle = (s: Pick<ToolStudy, 'tool' | 'name' | 'machine'>): string =>
@@ -93,7 +94,7 @@ export const studyTitle = (s: Pick<ToolStudy, 'tool' | 'name' | 'machine'>): str
  *  names itself so an earlier timing opens as itself. */
 export function studyHref(s: Pick<ToolStudy, 'id' | 'tool' | 'standardId' | 'projectId' | 'workspaceId'>): string {
   if (s.tool === 'balance' && s.standardId) {
-    const at = `?at=balance&view=work&study=${encodeURIComponent(s.id)}`;
+    const at = `?at=work&study=${encodeURIComponent(s.id)}`;
     if (s.projectId) return `/project/${s.projectId}/standard/${s.standardId}${at}`;
     if (s.workspaceId) return `/w/${s.workspaceId}/standards/${s.standardId}${at}`;
   }
@@ -223,7 +224,7 @@ export function beforeAfter(studies: ToolStudy[], fixId: ID, kind: FixKind = 'fi
   }
   if (before && after.tool === 'balance') {
     const ab = after.agreed?.balance;
-    return ab ? { ...compareBalances(balance(before.facts.steps, before.agreed?.balance), balance(after.facts.steps, ab)), before, after } : undefined;
+    return ab ? { ...compareBalances(studyBalance(before), balance(after.facts.steps, ab, after.facts.crew)), before, after } : undefined;
   }
   if (before && after.tool === 'map') {
     /* the stream walked again: the step the fix was raised from first, then
@@ -374,7 +375,7 @@ export function betterExpect(s: ToolStudy, stepId?: string, ctx?: StudyContext):
     return st ? `${st.name.trim() || 'The step'}: ${stepFigure(st, s.agreed?.map)} — shorter or gone, walked again on the same map` : undefined;
   }
   if (s.tool === 'balance') {
-    const f = balance(s.facts.steps, s.agreed?.balance), c = f.constraint;
+    const f = studyBalance(s), c = f.constraint;
     return c && f.taktSec ? `${c.who} within the ${secsOf(f.taktSec)} takt, timed again` : undefined;
   }
   return s.agreed?.readings && s.agreed.readings.kind !== 'ticks' ? 'Every reading within the limits, Ppk 1.33 or more, on the same readings again' : undefined;
@@ -498,7 +499,7 @@ export function betterWords(s: ToolStudy, stepId?: string, ctx?: StudyContext): 
   }
   const said = studySays(s, ctx);
   if (s.tool === 'balance') {
-    const f = balance(s.facts.steps, s.agreed?.balance), c = f.constraint;
+    const f = studyBalance(s), c = f.constraint;
     if (c && c.overBy > 0) return `${s.name}: ${c.who} carries ${secsOf(c.work)} against a ${secsOf(f.taktSec ?? 0)} takt — take ${secsOf(c.overBy)} of work off ${c.who}, or change how it is done.`;
   }
   if (s.tool === 'sampling') {
@@ -523,7 +524,7 @@ export function worthBetter(s: ToolStudy): boolean {
 
 /** A study's tool as said mid-sentence: "the capability study", "the SMED". */
 const TOOL_SAID: Partial<Record<ToolStudy['tool'], string>> = {
-  capability: 'capability study', balance: 'work balance', map: 'value stream map', changeover: 'SMED', sampling: 'work sampling study', losses: 'loss count',
+  capability: 'capability study', balance: 'line balance', map: 'value stream map', changeover: 'SMED', sampling: 'work sampling study', losses: 'loss count',
 };
 
 /** Each tool's own page — the list of every study made with it — and, for a

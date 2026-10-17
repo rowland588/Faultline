@@ -62,8 +62,13 @@ export interface StudyReading {
  *  is balanced against, and the allowance added to the timed work — agreed
  *  before the timing, by the owner on a job. */
 export interface AgreedBalance {
-  /** Seconds a piece: the pace the line must keep. */
+  /** Seconds a piece of the LINE's unit: the pace the line must keep. */
   taktSec: number;
+  /** TAKEN FROM LINE CAPACITY'S TARGET (Rowland, 17 October: the line
+   *  balance "can be linked directly to the capacity"): the target lives in
+   *  Line capacity, and the takt follows it — 60 ÷ the target a minute.
+   *  Absent: agreed here, by hand, as before (a line with no target). */
+  from?: 'target';
   /** Relaxation and contingency together, as a fraction: 0.14 is 14%. */
   allowance?: number;
 }
@@ -87,6 +92,35 @@ export interface BalanceStep {
   rating?: number;
   /** A time typed in, used until the element is timed — said "typed". */
   typedSec?: number;
+  /** WHAT KIND OF TIME IT IS (the standardised work combination table):
+   *  work, walking, or waiting — for a machine, for the next piece.
+   *  Absent: work. Walking and waiting are told apart by fill and word,
+   *  never by a state colour; waiting is time a person could take work in. */
+  kind?: StepKind;
+}
+
+export type StepKind = 'work' | 'walk' | 'wait';
+
+/** A PERSON IN THE LINE BALANCE, AND WHERE THEY ARE ON THE LINE — the
+ *  station of the product's Line capacity they work at (Rowland, 17 October:
+ *  "what is happening where and what people are doing"). Keyed by id, so two
+ *  phones each keep what they set. `per` and `unit` are that station's,
+ *  copied when it is linked and kept up with the capacity: a person at the
+ *  tray loader times a TRAY, so their cycle is seconds a tray and their takt
+ *  the line's takt × the packs in a tray. */
+export interface BalanceCrew {
+  id: string;
+  /** As on the elements — "Op 1". */
+  who: string;
+  /** The Line capacity station's id. Absent: on no station (their cycle is
+   *  then one of the line's own unit). */
+  stationId?: string;
+  /** The station's name, kept for paper and for when it is gone. */
+  station?: string;
+  /** How many of the line's unit are in one piece of theirs — 8 packs a tray. */
+  per?: number;
+  /** What one piece of theirs is — "trays". */
+  unit?: string;
 }
 
 /** THE VALUE STREAM (docs/TOOLKIT.md, tool 2): one step on a line's map —
@@ -375,6 +409,8 @@ export interface StudyFacts {
   readings?: StudyReading[];
   /** A work balance's elements, each with its laps. */
   steps?: BalanceStep[];
+  /** A work balance's people and where each is on the line. */
+  crew?: BalanceCrew[];
   /** A value stream's steps as it runs today, end to end. */
   flow?: FlowStep[];
   /** The same stream as it could run — copied from the flow, then struck,
@@ -503,6 +539,7 @@ export function factsOf(v: unknown): StudyFacts {
   const o = v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : {};
   return { ...o, ...(o.readings !== undefined ? { readings: listById<StudyReading>(o.readings) } : {}),
     ...(o.steps !== undefined ? { steps: listById<BalanceStep>(o.steps).map(st => ({ ...st, laps: listById<Lap>(st.laps) })) } : {}),
+    ...(o.crew !== undefined ? { crew: listById<BalanceCrew>(o.crew) } : {}),
     ...(o.flow !== undefined ? { flow: listById<FlowStep>(o.flow) } : {}),
     ...(o.future !== undefined ? { future: listById<FlowStep>(o.future) } : {}),
     ...(o.sequence !== undefined ? { sequence: listById<ChangeoverStep>(o.sequence) } : {}),
