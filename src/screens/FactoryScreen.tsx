@@ -27,6 +27,7 @@ import {
 } from '../db';
 import { addLineToFactory, factorySays, lineFacts, lineTypesOffered, liveProductionLines, nextLineName, placeOnFloor, asked } from '../lib/lines';
 import { useLineRecords } from '../lib/useLineRecords';
+import { lineProducts, productsSaid } from '../lib/lineProducts';
 import { lineKit } from '../lib/lineRecords';
 import { snagRow } from '../lib/snagsReport';
 import { Icon } from '../ui/Icon';
@@ -99,6 +100,9 @@ export function FactoryScreen() {
   /* each line's machines and programs (docs/BLUEPRINT.md, Stage 2) */
   const rec = useLineRecords();
   const kitOf = (w: Workspace) => lineKit(w, rec.machines, rec.programs, rec.jobLines);
+  /* its products, ready or not (Stage 3, lib/lineProducts) — as the line's
+     page and the control room's card say them */
+  const prodsOf = (w: Workspace) => lineProducts({ programs: kitOf(w).programs, standards: rec.standards.filter(x => x.workspaceId === w.id), studies: rec.studies.filter(x => x.workspaceId === w.id) });
   const nameRef = useRef<HTMLInputElement>(null);
   const savedTimer = useRef<number | undefined>(undefined);
 
@@ -167,7 +171,7 @@ export function FactoryScreen() {
       const names = new Map(projects.map(p => [p.id, p.name]));
       const jobsOn = new Map([...on.entries()].map(([id, ids]) => [id, ids.map(x => names.get(x)).filter((n): n is string => !!n)]));
       const today = todayISO();
-      const kit = new Map(lines.map(w => { const k = kitOf(w); return [w.id, [k.says, k.late ? `${k.late} program${k.late === 1 ? '' : 's'} late` : ''].filter(Boolean).join(' · ')]; }));
+      const kit = new Map(lines.map(w => { const k = kitOf(w), pr = prodsOf(w); return [w.id, [k.says, k.late ? `${k.late} program${k.late === 1 ? '' : 's'} late` : '', pr.rows.length ? productsSaid(pr).map(x => x.text).join('') : ''].filter(Boolean).join(' · ')]; }));
       await drawFactoryReport(doc, factoryReading(lines, snags, jobsOn, new Date(`${today}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), Date.now(), kit));
       await deliverPdf(doc, pdfFileName('Your factory', 'report', today));
     } catch (e) {
@@ -261,6 +265,7 @@ export function FactoryScreen() {
                   {/* a day of it, in margin (lib/lineLoss lineDay) — the factory tile's share */}
                   {(m => m != null && <span className="fac-job fac-day">{fmtGBP(m)} of margin a day</span>)(lineDay(w).margin)}
                   {(() => { const k = kitOf(w); return k.says ? <span className="fac-job fac-kit">{k.says}{k.late ? <> · <b className="is-r">{k.late} program{k.late === 1 ? '' : 's'} late</b></> : null}</span> : null; })()}
+                  {(() => { const pr = prodsOf(w); return pr.rows.length ? <span className="fac-job fac-kit fac-card-prods">{productsSaid(pr).map((x, i) => (x.tone ? <b key={i} className={'is-' + x.tone}>{x.text}</b> : <span key={i}>{x.text}</span>))}</span> : null; })()}
                 </span>
                 <span className="fac-acts">
                   <button type="button" className="btn btn-sm" onClick={() => nav(`/lines/${w.id}`)}>Open ›</button>
