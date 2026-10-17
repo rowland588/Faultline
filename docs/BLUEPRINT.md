@@ -208,7 +208,9 @@ there and what replaces it.
    (1), "snag" (about 54). One sweep in Stage 0, and a smoke check so they
    never come back. The flow audit (13 October, `FLOW-AUDIT.md` #20) added
    three to the check: "asset" for a machine, and "line balance" and "Maps
-   and balance" for Line capacity.
+   and balance" for Line capacity. Since 17 October "line balance" is the
+   people's own tool (each person's work against takt), so the check bars
+   "line balancing" and "Maps and balance" only — the capacity's old names.
 10. **22 design docs.** This blueprint is the index. Each doc stays as the deep
    design of its part, marked where it is superseded; `MAP.md`'s shape is
    replaced by §1.
@@ -958,4 +960,22 @@ is still wired.
   the line standard's card, each person against takt — and its paper
   (`lib/togetherPdf`), from one pure reading (`lib/together`). Accepted by
   `work-balance.mjs` (10); the pages by `inventory.mjs`.
-- **Next:** Stage 3 — the line is the hub (its products, readiness, health).
+- **The lean page — every report and tool's page laid out as a lean report**
+  (Rowland, 17 October, with a standard and a lean capacity report side by
+  side: "move on to all reports lean methodology applied ... the lean report
+  is actually how we would want the app's UI"). Placed (§8): every layer —
+  it is how a page is drawn, not a record. No new record: each tool's
+  builder reads its own module (`lib/ie/lossLean` reads `lib/ie/losses`, the
+  line's other counts for since last time and the trend, and the records a
+  count is evidence for — `studies.uses` — for the action plan). The design
+  and the order every report follows: `docs/LEAN-PAGE.md`. Slice 1, the loss
+  count: its page (the band with the verdict, five tiles that took the
+  strip's place, the trend beside the waterfall, the top causes with each
+  one's share, what it means beside the action plan, the closing line; the
+  count and the running speed under them) and its paper (one page, the same
+  eight, the waterfall drawn as on screen). Shows on: the count's page and its
+  PDF; the share column in every loss table (the 6M report's too). Accepted
+  by `shift-losses.mjs` (4b); the page by `inventory.mjs`.
+- **Next:** the lean page, slice 2 — Line capacity, the line balance and All
+  together (`docs/LEAN-PAGE.md`); then Stage 3 — the line is the hub (its
+  products, readiness, health).

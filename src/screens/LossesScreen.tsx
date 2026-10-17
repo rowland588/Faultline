@@ -21,7 +21,7 @@
  * lib/ie/losses on every render, from the count and the line's stops in the
  * window; only at close are they written down, as a receipt. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getStandard, getStudy, getWorkspace, listObservations, listStandardsForLine, onDataChange, patchStudy } from '../db';
+import { getStandard, getStudy, getWorkspace, listObservations, listStandardsForLine, listStudiesForLine, onDataChange, patchStudy } from '../db';
 import { useAccess } from '../cloud/access';
 import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
@@ -36,11 +36,12 @@ import { Sheet } from '../ui/Sheet';
 import { lossFiguresOf, recordHref, ROLE_WORD, type StudyContext } from '../lib/studyLinks';
 import type { LossCount, RunTiming, ToolStudy } from '../lib/study';
 import type { Observation, Workspace } from '../types';
-import { TOOL_WORDS } from './StudiesScreen';
 import { UsedFor, WhereItSits, useBetter } from '../ui/StudyPlace';
 import { StudyName } from '../ui/StudyActs';
 import { capacityForCount } from '../ui/ShiftLosses';
 import { constraintShare, lineConstraint, type ConstraintShare, type LineConstraint } from '../lib/intelligence';
+import { lossLean, lossPart, raisedFrom } from '../lib/ie/lossLean';
+import { LeanActions, LeanBand, LeanClosing, LeanInsights, LeanPanel, LeanTiles, LeanTrend } from '../ui/Lean';
 
 const OWNER = canAt('owner');
 
@@ -50,18 +51,22 @@ export function LossesScreen({ id }: { id: string }) {
   const [obs, setObs] = useState<Observation[]>([]);
   const [rate, setRate] = useState<RateOf>({ why: 'typed' });
   const [constraint, setConstraint] = useState<LineConstraint | undefined>(undefined);
+  const [counts, setCounts] = useState<ToolStudy[]>([]);
   const load = useCallback(async () => {
     const st = (await getStudy(id)) ?? null;
     if (!st) { setS(null); return; }
     /* The line: its shifts, its cost model, its stops and its capacity —
        what the count is read against. Nothing of it is copied onto the
        study but the rate the count was judged at. */
-    const [w, o, sd, stds] = await Promise.all([
+    const [w, o, sd, stds, line] = await Promise.all([
       st.workspaceId ? getWorkspace(st.workspaceId) : Promise.resolve(undefined),
       st.workspaceId ? listObservations(st.workspaceId) : Promise.resolve([] as Observation[]),
       st.standardId ? getStandard(st.standardId) : Promise.resolve(undefined),
       st.workspaceId ? listStandardsForLine(st.workspaceId) : Promise.resolve([]),
+      /* the line's other counts — since last time, and the trend (lib/ie/lossLean) */
+      st.workspaceId ? listStudiesForLine(st.workspaceId) : Promise.resolve([] as ToolStudy[]),
     ]);
+    setCounts(line.filter(x => x.tool === 'losses' && !x.deletedAt));
     /* where the line is held — its products' Line capacity, read as the
        capacity panel reads it, so a bar here and a band there agree */
     setConstraint(lineConstraint(stds.filter(x => !x.deletedAt).map(x => ({ product: x.product, capacity: x.capacity }))));
@@ -84,22 +89,29 @@ export function LossesScreen({ id }: { id: string }) {
       <button type="button" className="btn" onClick={() => nav('/losses')}>Every loss count</button>
     </div>
   );
-  return <Losses s={s} line={line} obs={obs} rate={rate} can={can} me={me} constraint={constraint} />;
+  return <Losses s={s} line={line} obs={obs} rate={rate} can={can} me={me} constraint={constraint} counts={counts} />;
 }
 
-function Losses({ s, line, obs, rate, can, me, constraint }: { s: ToolStudy; line?: Workspace; obs: Observation[]; rate: RateOf; can: Can; me?: string; constraint?: LineConstraint }) {
+function Losses({ s, line, obs, rate, can, me, constraint, counts }: { s: ToolStudy; line?: Workspace; obs: Observation[]; rate: RateOf; can: Can; me?: string; constraint?: LineConstraint; counts: ToolStudy[] }) {
   const c = s.facts.losses;
   const ctx = useMemo<StudyContext>(() => ({ observations: obs, workspaces: line ? [line] : [] }), [obs, line]);
   const f = useMemo(() => lossFiguresOf(s, ctx), [s, ctx]);
   const said = useMemo(() => lossSays(f, c, { ...(s.product ? { product: s.product } : {}) }), [f, c, s.product]);
   const closed = !!s.closedAt;
   const editable = can.edit && !closed;
-  const w = TOOL_WORDS[s.tool];
   const write = (p: Parameters<typeof patchStudy>[1]) => void patchStudy(s.id, p);
   /* MAKE IT BETTER ON A BAR: a fix (stage gate) or a countermeasure (6M) in
      the bar's own figures, this count its evidence naming the bar; the bar
      then says what was raised from it (ui/StudyPlace useBetter). */
-  const { board, byRef, better } = useBetter(s, me, ctx);
+  const { board, byRef, better, steps, tests } = useBetter(s, me, ctx);
+  /* THE LEAN PAGE (docs/LEAN-PAGE.md): the count read into the band, the
+     tiles with since last time, the trend, what it means, the action plan
+     and the closing line — the same reading its paper prints */
+  const lean = useMemo(() => lossLean({
+    s, f, said, ...(line ? { line: line.name } : {}),
+    history: counts.map(h => ({ s: h, f: h.id === s.id ? f : lossFiguresOf(h, ctx) })),
+    actions: raisedFrom(s, steps, tests, lossPart(f)),
+  }), [s, f, said, line, counts, ctx, steps, tests]);
   const branches = useMemo(() => {
     const m = new Map<string, string[]>();
     /* a record raised from the part once called "not yet explained" hangs off the rest */
@@ -121,37 +133,47 @@ function Losses({ s, line, obs, rate, can, me, constraint }: { s: ToolStudy; lin
     return m;
   }, [constraint, c, f.bars, obs, s.workspaceId]);
 
+  const detail = (
+    <div className={'lf-body lf-detail' + (f.enough ? '' : ' is-counting')}>
+      <CountForm s={s} line={line} rate={rate} editable={editable} />
+      <RunningSpeed s={s} f={f} editable={editable} me={me} />
+    </div>
+  );
   return (
-    <div className="wrap ie lf">
-      <header className="ie-head">
-        <small className="ie-eyebrow">{w?.one ?? 'Loss count'}</small>
-        <StudyName s={s} canEdit={editable} canRemove={can.remove} />
-        <p className="sub ie-where">
-          {line ? <><b>{line.name}</b> · </> : null}
-          {s.product ? <><b>{s.product}</b> · </> : null}
-          {c ? <>{windowWords(c)} · {niceDay(todayISO(new Date(c.from)), { weekday: 'short' })} · </> : null}
-          started {niceDay(todayISO(new Date(s.startedAt)))}
-        </p>
-        <WhereItSits s={s} can={can} />
-      </header>
+    <div className="wrap ie lf ln">
+      <LeanBand page={lean} title={<StudyName s={s} canEdit={editable} canRemove={can.remove} />} />
+      <div className="ln-under"><WhereItSits s={s} can={can} /></div>
+      <LeanTiles tiles={lean.tiles} className="ie-strip" />
 
-      <Strip f={f} said={said} />
-      <div className="ie-says">
-        <p className={'ie-say is-' + said.tone}>{said.text}</p>
-        {said.lines.map(l => <p key={l.text} className={'ie-say ie-cap is-' + l.tone}>{l.text}</p>)}
-        {s.overrule && <p className="ie-say ie-over"><b>{s.overrule.verdict}</b> · overruled{s.overrule.by ? ` by ${s.overrule.by}` : ''} — {s.overrule.why}</p>}
-      </div>
+      {/* Until the count is in, the count comes first — it is the one thing to do */}
+      {!f.enough && detail}
 
-      {/* THE FRAME (docs/TOOLKIT.md 3.1): on a laptop the causes as a table on
-          the left, the waterfall on the right, the count under them; on a
-          phone full width — the count first until it is in, then the
-          picture, the table under it. */}
-      <div className={'lf-body' + (f.enough ? '' : ' is-counting') + (f.enough && f.bars.length > 0 ? ' has-table' : '')}>
-        {f.enough && f.bars.length > 0 && <div className="lf-tab"><CauseTable f={f} branches={branches} onOpen={setViewing} onC={onC} /></div>}
-        <div className="ie-pic lf-pic"><Waterfall f={f} said={said} onOpen={setViewing} /></div>
-        <CountForm s={s} line={line} rate={rate} editable={editable} />
-        <RunningSpeed s={s} f={f} editable={editable} me={me} />
+      {/* THE EIGHT PARTS (docs/LEAN-PAGE.md), as the paper sets them: on a
+          laptop the trend beside the waterfall, the top causes across, what
+          it means beside the action plan; on a phone one under another. A
+          bar or a row tapped opens it, Make it better on it. */}
+      <div className="ln-grid">
+        {lean.trend && <LeanPanel title="Shift by shift"><LeanTrend trend={lean.trend} /></LeanPanel>}
+        <LeanPanel title="Where the minutes went" className={lean.trend ? '' : 'ln-span'}><div className="ie-pic lf-pic"><Waterfall f={f} said={said} onOpen={setViewing} /></div></LeanPanel>
       </div>
+      {f.enough && f.bars.length > 0 && <LeanPanel title="Top causes" className="ln-solo"><div className="lf-tab"><CauseTable f={f} branches={branches} onOpen={setViewing} onC={onC} /></div></LeanPanel>}
+      <div className="ln-grid">
+        <LeanPanel title="What it means">
+          <div className="ie-says">
+            <p className={'ie-say is-' + said.tone}>{said.text}</p>
+            {s.overrule && <p className="ie-say ie-over"><b>{s.overrule.verdict}</b> · overruled{s.overrule.by ? ` by ${s.overrule.by}` : ''} — {s.overrule.why}</p>}
+            <LeanInsights insights={lean.insights} />
+          </div>
+        </LeanPanel>
+        <LeanPanel title="Action plan" className="ln-plan-p">
+          <LeanActions actions={lean.actions} empty={lean.actionsEmpty}
+            onOpen={a => { if (s.projectId && a.open) nav(recordHref(s.projectId, { kind: a.open.kind, ref: a.open.ref })); }} />
+        </LeanPanel>
+      </div>
+      <LeanClosing closing={lean.closing} />
+
+      {/* WHAT IS TYPED — the count and the running speed, under the eight */}
+      {f.enough && detail}
 
       <UsedFor s={s} can={can} me={me} />
       <Act s={s} f={f} said={said} can={can} me={me} write={write} />
@@ -168,29 +190,6 @@ function Losses({ s, line, obs, rate, can, me, constraint }: { s: ToolStudy; lin
   );
 }
 
-
-/* ------------------------------------------------------------------ the strip */
-function Strip({ f, said }: { f: LossFigures; said: LossSays }) {
-  const rest = f.performanceMin ?? 0;
-  const amber = said.tone === 'a' && f.bars.some(b => b.abnormal);
-  const told = f.slowMin !== undefined && f.shortMin !== undefined;
-  return (
-    <div className="ie-strip" role="group" aria-label="Where it stands">
-      <span className={'ie-fig ie-verdict is-' + said.tone}><b>{said.verdict}</b></span>
-      {f.enough && <>
-        <span className="ie-fig">made <b>{packs(f.made ?? 0)}</b> of {packs(f.expected ?? 0)}</span>
-        {amber && <span className="ie-fig">lost <b>{minWords(f.lostMin ?? 0)}</b></span>}
-        {f.split && <span className={'ie-fig' + (f.stopsN + f.changeoverN ? '' : ' is-zero')}><b>{f.stopsN + f.changeoverN}</b> stop{f.stopsN + f.changeoverN === 1 ? '' : 's'} timed</span>}
-        {f.split && !amber && (told
-          ? <><span className={'ie-fig' + ((f.slowMin ?? 0) > 0.5 ? '' : ' is-zero')}><b>{minWords(f.slowMin ?? 0)}</b> slow running</span>
-            <span className={'ie-fig' + ((f.shortMin ?? 0) > 0.5 ? '' : ' is-zero')}><b>{minWords(f.shortMin ?? 0)}</b> short stops</span></>
-          : <span className={'ie-fig' + (rest > 0.5 ? '' : ' is-zero')}><b>{minWords(rest)}</b> slow running and short stops</span>)}
-        {f.labour !== undefined && <span className="ie-fig"><b>{gbp(f.labour)}</b> idle labour</span>}
-        {f.contribution !== undefined && <span className="ie-fig"><b>{gbp(f.contribution)}</b> lost contribution</span>}
-      </>}
-    </div>
-  );
-}
 
 /* ------------------------------------------------------------------ the waterfall */
 /** THE WATERFALL, drawn across: a row per bar, top to bottom — planned, each
@@ -272,7 +271,7 @@ function CauseTable({ f, branches, onOpen, onC }: { f: LossFigures; branches: Ma
               {raised > 0 && <span className="lf-branch">Being made better{raised > 1 ? ` · ${raised}` : ''}</span>}
             </span>
             <span role="cell" className="is-num">{b.stops !== undefined ? b.stops : '—'}</span>
-            <span role="cell" className="is-num">{minWords(b.min)}</span>
+            <span role="cell" className="is-num">{minWords(b.min)}{(f.lostMin ?? 0) > 0 && <small className="lf-share">{Math.round((b.min / (f.lostMin ?? 1)) * 100)}%</small>}</span>
             {lab && <span role="cell" className="is-num">{b.labour !== undefined ? gbp(b.labour) : '—'}</span>}
             {con && <span role="cell" className="is-num">{b.contribution !== undefined ? gbp(b.contribution) : '—'}</span>}
             <span className="lf-chev" aria-hidden>›</span>

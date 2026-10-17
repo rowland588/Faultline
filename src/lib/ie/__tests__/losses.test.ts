@@ -322,6 +322,8 @@ describe('a shift’s losses (tool 7)', () => {
       ['Slow running and short stops — the rest: below the plate speed, and stops too short to log; not yet told apart', '—', '9 min', '£11', '£36'],
     ]);
     expect(t?.rows[4].abnormal).toBe(true);
+    /* each cause's share of the 85 lost — 32 ÷ 85 = 38%, 20 ÷ 85 = 24%, 18 ÷ 85 = 21%, 6 ÷ 85 = 7%, 9 ÷ 85 = 11% */
+    expect(t?.rows.map(r => r.share)).toEqual(['38%', '24%', '21%', '7%', '11%']);
     expect(t?.total).toEqual({ minutes: '85 min', labour: '£107', contribution: '£340' });
     const split = lossRows(lossFigures(count, log(), undefined, timed), { ...count, rateFrom: 'standard', rateMachine: undefined });
     expect(split?.head).toBe('450 planned minutes (480 min shift − 30 min of breaks) at 100 a minute, the line standard’s target — not a plate speed — 45,000 expected, 36,500 made');

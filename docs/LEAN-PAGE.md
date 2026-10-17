@@ -1,0 +1,109 @@
+# The lean page — how every report, and every tool's page, is laid out
+
+Rowland, 17 October, with two capacity reports side by side, a standard one
+and a lean one:
+
+> "move on to all reports lean methodology applied — attached is a clear
+> example of what a lean manufacturing report looks like vs a standard
+> report ... and listen to this: the lean report is actually how we would
+> want the app's UI."
+
+The picture's own caption says the difference: *a standard report shows what
+happened, but doesn't explain why, what it means or what to do next; a lean
+report shows performance, finds the real issues, highlights opportunities and
+drives action.* That is the house's three questions (`docs/SIMPLE.md`) drawn
+the way a board on the floor is drawn. Our reports already said the three in
+sentences; the lean page says them in **a few big numbers, one picture, a
+ranked table, what it means, and who does what by when**.
+
+## The eight parts, in the order of the three questions
+
+| # | Part | Asks | What it is |
+|---|---|---|---|
+| 1 | **Band** | what, where, when | The house navy across the top: what this is, its title, the line and product (or job), and on the right the day, the shift and when it was printed. |
+| 2 | **Tiles** | where are we? | Three to five big numbers, each *of* what it should be ("40,900 of 45,000 · 91%") and, when there is one, **since last time** ("▲ 4,400 on 15 Oct"). |
+| 3 | **Trend** | where are we going? | The headline number over the records of the same kind on the same line, against what each should have been — only with two or more. |
+| 4 | **The picture** | why? | The tool's own picture: the waterfall, the V, the Yamazumi, the SMED grid, the stream, the fishbone, the plan. Never a second chart of the same thing. |
+| 5 | **Top causes** | why? | The ranked table: what took the time or the money, biggest first, with its share. |
+| 6 | **What it means** | why? | Three to six sentences the module already says, each marked: a cross for what is wrong, a tick for what is right, a dot for how it is known. |
+| 7 | **Action plan** | what are we doing? | Action · owner · due, from the records raised off this one (a fix, a countermeasure, a stage). None yet says so, with the door to raise one. |
+| 8 | **Closing line** | the verdict | One sentence in the navy band at the foot — what one side can now say to the other. |
+
+On a screen the same eight, in the same order: the band is the page's
+header (its edit controls stay on it); the tiles are a row (two across on a
+phone); the trend and the picture sit side by side on a laptop, stacked on a
+phone; the table and *What it means* likewise; the action plan full width;
+the closing line last. **What you type stays on the page, under the eight** —
+the count, the timings, the settings: detail one tap or one scroll away
+(`docs/SIMPLE.md`), never removed.
+
+## The honest substitutes — what is not copied from the picture
+
+- **No OEE, and no Availability · Performance · Quality.** MEASURED BY
+  PEOPLE, NOT BY SENSORS (CLAUDE.md): typed by hand its availability is a
+  guess. The tiles are counted figures — good packs against what the rate
+  expects, minutes lost against minutes planned, stops timed, rejects
+  counted, and the pounds. The donut of OEE becomes nothing: the tool's own
+  picture is the breakdown.
+- **"Since last time" is a record, never a guess.** A change is drawn only
+  against the previous record of the same kind on the same line (the count
+  before, the study before); with none, the tile says what it is *of* and no
+  arrow. Better is the house green, worse the house red, the same grey —
+  always with the number and the day it is against, so it survives a
+  black-and-white print.
+- **The house colours, not the picture's green.** The band is the house navy
+  (`--shell`, `SHELL`). A tile wears colour only when its number is abnormal
+  (red, or amber where the module says amber) or met (a quiet green wash);
+  otherwise it is plain. Brand blue stays for what you press. The tagline
+  ribbon ("Less waste | Higher OEE | …") is not copied: it says nothing about
+  this line.
+- **Every figure has a cost** (CLAUDE.md, EVERYTHING DERIVES A COST): one
+  tile is always the money, from the one cost model; where an input is
+  missing the tile says which and where to give it.
+
+## The kit — one model, drawn twice
+
+- `src/lib/lean.ts` — the model (`LeanPage`: band, tiles, trend, insights,
+  actions, closing) and its helpers: `since()` for a change against the
+  record before, `actionOf()` for an action, a fix or a countermeasure as a
+  row of the plan. Pure; tested.
+- `src/lib/report/lean.ts` — the paper: `leanBand`, `leanTiles`,
+  `leanTrend`, `leanInsights`, `leanActions`, `leanClosing` as report-engine
+  blocks (`docs/REPORTS.md`): measured, never cut, poured.
+- `src/ui/Lean.tsx` — the screen: `LeanBand`, `LeanTiles`, `LeanTrend`,
+  `LeanInsights`, `LeanActions`, `LeanClosing`, and the `.ln-*` styles.
+- Each tool has one pure builder that reads its own module's figures and
+  sentences into a `LeanPage` — nothing worked out twice. The screen and the
+  paper both call it, so they never part.
+
+## Where each report is going — the whole shape
+
+| Report (module) | Tiles | Trend | Picture | Top causes | Action plan |
+|---|---|---|---|---|---|
+| **Loss count** (`studiesPdf`, `LossesScreen`) — slice 1 | Good packs of expected · lost of planned · stops timed · rejects · what it cost | Good packs a shift against expected, the line's counts | The waterfall | The losses by cause, with share | Fixes and countermeasures raised from its bars |
+| **Line capacity** (`capacityPaperPdf`, `CapacityPanel`) | What the line makes · target · short by · cost a pack · people | — (its what-ifs are the alternatives) | The V | Stations, slowest first, % of the bottleneck | The way to the target (who is added where) |
+| **Line balance · All together** (`studiesPdf`, `togetherPdf`) | People · work against takt · the bottleneck person · cost a pack · lost a minute | — | The Yamazumi | People over takt, most over first | Set as standard; Make it better raised |
+| **SMED** (`changeoverTable`) | Changeover now · internal · target · cost a year | The changeover timed, session by session | The grid | Longest internal elements | SMED actions |
+| **Value stream · work sampling · capability** | Lead time / shares / Cpk | Studies of the line | Their grid / bars / run | Biggest waits / shares / outside | Fixes raised |
+| **Client report · one-page status** (`clientReport`, `statusReport`) | Gates done · late · problems · tests passed · handover date | The climb to rate | Where each machine is | Late and problems, worst first | Fixes: who, by when |
+| **6M report** (`sixmReportPdf`) | The gap now · causes · countermeasures done/open · held | The measure, reading by reading | The fishbone | Causes by evidence | Countermeasures: who, by when |
+| **Problems** (`snagsReportPdf`) | Open · critical · late · closed this week | Open a week | By line | By category | Each problem's owner and due |
+| **Control room · factory** | Lines · jobs off plan · late · critical · money at risk | Open problems a week | The lines | Worst jobs and lines | This week's owed actions |
+| **Commissioning · programs · handover · materials · day** | Their counts | — | Their grid | What did not pass / is late | Fixes, owners, days |
+
+Cards pinned at the line (test cards, problem cards, the line standard's
+card) keep their card form; they take the band only.
+
+## Slices — each ships live with the gate green
+
+1. **The kit and the loss count**, screen and paper. *(This slice.)*
+2. Line capacity, the line balance and All together.
+3. The client report and the one-page status, and the job's front page.
+4. The 6M report and Problems.
+5. The control room, the factory and the day.
+6. SMED, value stream, work sampling, capability.
+7. Commissioning, programs, handover, materials.
+
+Each slice says its effect on the screen and the paper together, adds its
+lines to `docs/PAGES.md`, and its checks to the acceptance script of the
+tool it changes.

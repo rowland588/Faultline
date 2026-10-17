@@ -20,7 +20,12 @@ import { chooseDensity, pour, type Block, type Density, type Frame } from './rep
 import { SIZE, font, gap, label, rows, text, wrap } from './report/blocks';
 import { streamBlocks } from './report/streamTable';
 import { changeoverBlocks } from './report/changeoverTable';
-import { lossBlocks } from './report/lossTable';
+import { lossBlocks, lossFallBlock } from './report/lossTable';
+import { boxed, leanActions, leanBand, leanClosing, leanHead, leanInsights, leanTiles, leanTrend, pair, stack } from './report/lean';
+import { lossFiguresOf } from './studyLinks';
+import { lossSays } from './ie/losses';
+import { lossLean, lossPart, raisedFrom } from './ie/lossLean';
+import type { ActionLike, FixLike } from './lean';
 import { samplingBlocks } from './report/samplingTable';
 import { balanceBlocks } from './report/balanceTable';
 import { balance } from './ie/balance';
@@ -43,6 +48,14 @@ export interface StudiesPaper {
   items: StudyPaperItem[];
   standards: Standard[];
   ctx?: StudyContext;
+  /** One loss count on its own prints as the lean page (docs/LEAN-PAGE.md):
+   *  its line's name, the line's other counts (since last time, the trend)
+   *  and what has been raised from it (the action plan). */
+  lineName?: string;
+  /** Printed from the count's own page — a list's PDF keeps its list form. */
+  lean?: boolean;
+  history?: ToolStudy[];
+  records?: { actions: ({ id: string; deletedAt?: number } & ActionLike)[]; fixes: ({ id: string; deletedAt?: number } & FixLike)[] };
 }
 
 /** A CAPABILITY STUDY'S FIGURES AND READINGS — the strip as a row, then
@@ -98,7 +111,37 @@ function capabilityBlocks(s: ToolStudy): Block[] {
   return out;
 }
 
+/** ONE LOSS COUNT AS THE LEAN PAGE — the band, the tiles, the trend beside
+ *  the waterfall, the top causes, what it means, the action plan and the
+ *  closing line, read as the screen reads them (lib/ie/lossLean). */
+function lossLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Block[] {
+  const { s, where } = item;
+  const f = lossFiguresOf(s, p.ctx);
+  const said = lossSays(f, s.facts.losses, { ...(s.product ? { product: s.product } : {}) });
+  const history = (p.history ?? []).filter(h => h.tool === 'losses' && !h.deletedAt).map(h => ({ s: h, f: h.id === s.id ? f : lossFiguresOf(h, p.ctx) }));
+  const page = lossLean({ s, f, said, ...(p.lineName ? { line: p.lineName } : {}), history, actions: raisedFrom(s, p.records?.actions ?? [], p.records?.fixes ?? [], lossPart(f)) });
+  const e = studyEvidence(s, [], p.standards, p.ctx);
+  const out: Block[] = [leanBand(page, p.printed)];
+  out.push(text({ text: `${where}${s.uses.length ? ` · used for ${s.uses.length} record${s.uses.length === 1 ? '' : 's'} on its job` : ''}`, size: 8, colour: MUTED, after: gap(d, 's') }));
+  out.push(leanTiles(page.tiles));
+  const pic = pair(page.trend ? boxed('Shift by shift', leanTrend(page.trend, 104)) : undefined, boxed('Where the minutes went', lossFallBlock(f)));
+  if (pic) out.push({ ...pic, after: () => gap(d, 'm'), height: fr => pic.height(fr) + gap(d, 'm') });
+  if (e.losses) { out.push(leanHead('Top causes')); out.push(...lossBlocks(e.losses, { head: false })); }
+  /* WHAT IT MEANS beside THE ACTION PLAN, as the screen sets them — when a
+     page holds both side by side; one under the other when there is more */
+  const means = [leanHead('What it means'), text({ text: said.text, size: 8.5, style: said.tone === 'r' ? 'bold' : 'normal', colour: said.tone === 'r' ? DANGER : INK2, after: 4 }), ...leanInsights(page.insights)];
+  const plan = [leanHead('Action plan'), ...leanActions(page.actions, page.actionsEmpty)];
+  if (page.insights.length <= 6 && page.actions.length <= 5) {
+    const both = pair(stack(means), stack(plan), 18) as Block;
+    out.push({ ...both, height: fr => both.height(fr) + gap(d, 's'), after: () => gap(d, 's') });
+  } else out.push(...means, ...plan);
+  out.push(leanClosing(page.closing));
+  if (s.receipt?.text && s.closedAt) out.push(text({ text: `Closed: ${s.receipt.text}`, size: 8, colour: MUTED, before: 2, after: 2 }));
+  return out;
+}
+
 function blocksOf(p: StudiesPaper, d: Density): Block[] {
+  if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'losses') return lossLeanBlocks(p, p.items[0], d);
   const out: Block[] = [];
   out.push(text({ text: p.items.length === 1 ? 'A STUDY · MEASURED BY PEOPLE AT THE LINE' : `${p.items.length} STUDIES · MEASURED BY PEOPLE AT THE LINE`, size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
   out.push(text({ text: p.title, size: SIZE.title, style: 'bold', after: 4 }));
