@@ -743,12 +743,19 @@ for (const size of CR_SIZES) {
     await page.goto(`${BASE}/#/`);
     await page.locator('.jb-says').filter({ hasNotText: 'Reading every job' }).waitFor({ timeout: 30000 });
     await page.waitForTimeout(1500);
+    /* the money tile reads the jobs' lines from Your factory — wait for it */
+    await page.waitForFunction(() => !document.querySelector('.jb-stat.is-money')?.textContent?.includes('…'), null, { timeout: 15000 }).catch(() => {});
     const must = await page.evaluate(async () => {
       const { san } = await import('/src/lib/reportKit.ts');
       await (await import('/src/lib/savePdf.ts')).loadPdfLib();
       const out = [];
       const add = (from, v) => { if (v && san(v)) out.push([v, san(v), from]); };
       add('the sentence', document.querySelector('.jb-says')?.textContent?.trim());
+      /* THE LEAN PAGE (lib/roomLean): what each of the band's numbers is
+         of, the money, and the closing line — the paper's tiles and foot. */
+      for (const s of document.querySelectorAll('.jb-hero .jb-of')) add('a tile', s.textContent?.trim());
+      add('the money', document.querySelector('.jb-stat.is-money b')?.textContent?.trim());
+      add('the closing line', document.querySelector('.jb > .ln-close span:last-child')?.textContent?.trim());
       /* A job's name runs on one line on paper (lib/onTarget nameIn, 60):
          a longer one is checked to its first forty characters. */
       for (const row of document.querySelectorAll('.jb-row-h')) {

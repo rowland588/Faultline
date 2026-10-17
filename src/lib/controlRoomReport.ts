@@ -17,6 +17,9 @@ import { nameIn, type OnTargetTone } from './onTarget';
 import { lateWhen, type JobItem, type Portfolio } from './portfolio';
 import { niceDay } from './weeks';
 import { criticalCount } from './critical';
+import type { LeanTile, LeanTone } from './lean';
+import type { LinesDay } from './lineLoss';
+import { roomClosing, roomMoney, roomTiles } from './roomLean';
 
 export interface CrJob {
   name: string;
@@ -41,6 +44,10 @@ export interface ControlRoomReport {
   printed: string;
   says: string;
   totals: Portfolio['totals'];
+  /** THE LEAN PAGE (lib/roomLean) — the band's numbers, each of what it is,
+   *  and the money; the closing line at the foot. */
+  tiles: LeanTile[];
+  closing: { text: string; tone: LeanTone };
   jobs: CrJob[];
   /** THE LINES' OWN WORK, outside any job (lib/lineWork) — a row a line with
    *  anything to chase, in the jobs' shape: its name, what is late and
@@ -101,7 +108,8 @@ const line = (x: JobItem, today: string, NAME: number): CrLine => ({
   when: x.late ? lateWhen(x, today) : x.on ? niceDay(x.on, { weekday: 'short' }) : x.kind === 'fix' ? 'no date agreed' : 'no date',
 });
 
-export function controlRoomReport(pf: Portfolio, today: string, limits: CrLimits = CR_STEPS[0]): ControlRoomReport {
+export function controlRoomReport(pf: Portfolio, today: string, limits: CrLimits = CR_STEPS[0], days?: ReadonlyMap<string, LinesDay>): ControlRoomReport {
+  const money = roomMoney(pf.jobs, days ?? new Map());
   const NAME = limits.name;
   const jobs: CrJob[] = pf.jobs.map(v => ({
     name: nameIn(v.name, 60), method: v.methodLabel,
@@ -154,6 +162,7 @@ export function controlRoomReport(pf: Portfolio, today: string, limits: CrLimits
     printed: niceDay(today, { year: true }),
     says: pf.says,
     totals: pf.totals,
+    tiles: roomTiles(pf, money), closing: roomClosing(pf, money),
     jobs,
     lines,
     ...(!limits.lineRows && abnormal.length ? { linesSaid: abnormal.map(l => `${nameIn(l.name, 40)}: ${[l.late ? `${l.late} late` : '', l.critical.length ? criticalCount(l.critical.length) : ''].filter(Boolean).join(', ')}`).join(' · ') } : {}),

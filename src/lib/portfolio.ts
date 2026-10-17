@@ -213,6 +213,9 @@ export interface JobView {
   lines?: { id: string; key: string; name: string; owner?: string }[];
   sentence: string;
   slip?: string;
+  /** Days the expected handover is past the agreed one (lib/standing) —
+   *  what the control room's money reads (lib/roomLean roomMoney). */
+  slipDays?: number;
   daysToGo?: number;
   /** Every machine handed over (lib/standing) — counted apart from the jobs
    *  running, below them, and never "past its handover". */
@@ -750,6 +753,7 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
       ...base,
       // A handed-over job has nothing left to count down to.
       sentence: st.sentence, slip: slipWords(st.slipDays), daysToGo: st.handedOver ? undefined : st.daysToGo,
+      ...(st.slipDays != null ? { slipDays: st.slipDays } : {}),
       ...(st.handedOver ? { handedOver: true } : {}),
       outstanding: st.outstanding, late: st.late,
       done: st.plan.filter(m => m.tone === 'done').length, total: st.plan.length,

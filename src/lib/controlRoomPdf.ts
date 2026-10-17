@@ -15,6 +15,8 @@ import type { Delivered } from './savePdf';
 import { CR_STEPS, controlRoomReport, type ControlRoomReport, type CrLine } from './controlRoomReport';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { SIZE, box, font, gap, label, rows, text, wrap } from './report/blocks';
+import { leanClosing, leanTiles } from './report/lean';
+import type { LinesDay } from './lineLoss';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6';
@@ -46,17 +48,16 @@ function blocksOf(r: ControlRoomReport, d: Density): Block[] {
   out.push(text({ text: 'Control room report', size: SIZE.title, style: 'bold', after: 4 }));
   out.push(text({ text: `Printed ${r.printed}`, colour: MUTED, after: gap(d, 'm') }));
 
-  /* THE BOARD IN ONE SENTENCE, and its four numbers in words. */
-  const t = r.totals;
-  /* What the sentence does not already say: the jobs and the late are in it. */
-  const counts = [t.critical ? `${t.critical} critical` : '', `${t.week} due or late this week`].filter(Boolean).join('   ·   ');
+  /* THE BOARD IN ONE SENTENCE — and under it the lean page's tiles
+     (lib/roomLean): the band's numbers, each of what it is, and the money.
+     The counts line the band carried (critical, this week) is in them now. */
   const saysLines = (f: Frame) => wrap(f.doc, r.says, f.w - 28, 11, 'bold');
-  out.push(box(f => 30 + saysLines(f).length * 14 + gap(f.density, 'l'), (f, y) => {
-    const l = saysLines(f), h = 24 + l.length * 14;
+  out.push(box(f => 14 + saysLines(f).length * 14 + gap(f.density, 'm'), (f, y) => {
+    const l = saysLines(f), h = 10 + l.length * 14;
     f.doc.setFillColor('#12171c'); f.doc.roundedRect(f.x, y, f.w, h, 6, 6, 'F');
     font(f.doc, 11, 'bold', '#ffffff'); f.doc.text(l, f.x + 14, y + 17);
-    font(f.doc, 8.5, 'normal', '#cbd6d8'); f.doc.text(counts, f.x + 14, y + 17 + l.length * 14);
-  }, f => gap(f.density, 'l')));
+  }, f => gap(f.density, 'm')));
+  out.push(leanTiles(r.tiles));
 
   /* 1 · WHERE EVERY JOB IS — one row a job: its name and kind of change, its
      verdict in its colour, the reason in one line, the critical in red and
@@ -153,18 +154,20 @@ function blocksOf(r: ControlRoomReport, d: Density): Block[] {
   };
   list(`Late — ${r.late.length + r.lateMore}`, r.late, r.lateMore, 'Nothing is late.', DANGER);
   if (r.week.length || r.weekMore) list(`Due this week — ${r.week.length + r.weekMore}`, r.week, r.weekMore, '', BOOKED);
+  /* THE CLOSING LINE — the board in one sentence, the slips in money. */
+  out.push(leanClosing(r.closing));
   return out;
 }
 
 /** Draw the control room report into `doc`: one page, the lists stepping down
  *  until it fits (every job stays on it). */
-export async function drawControlRoomReport(doc: jsPDF, pf: Portfolio, today: string): Promise<void> {
+export async function drawControlRoomReport(doc: jsPDF, pf: Portfolio, today: string, days?: ReadonlyMap<string, LinesDay>): Promise<void> {
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
-  let r = controlRoomReport(pf, today, CR_STEPS[0]);
+  let r = controlRoomReport(pf, today, CR_STEPS[0], days);
   let density: Density = 'comfortable';
   const one = async (d: Density) => (await pour({ ...base, density: d, dry: true }, blocksOf(r, d), () => undefined)).pages === 1;
   steps: for (const limits of CR_STEPS) {
-    r = controlRoomReport(pf, today, limits);
+    r = controlRoomReport(pf, today, limits, days);
     for (const d of ['comfortable', 'compact'] as const) if (await one(d)) { density = d; break steps; }
     /* Past every step, and still more than a page: every job stays on it. */
     density = await chooseDensity(base, d => blocksOf(r, d));
@@ -189,7 +192,10 @@ export async function saveControlRoomReport(pf: Portfolio, today: string): Promi
   const { jsPDF } = await loadPdfLib();
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   titlePdf(doc, 'Control room report');
-  await drawControlRoomReport(doc, pf, today);
+  /* every job's day of its lines not making, read now, so the money is on
+     the page however soon the button was pressed */
+  const { readJobsDays } = await import('./useFactoryLines');
+  await drawControlRoomReport(doc, pf, today, await readJobsDays(pf.jobs.map(j => j.id)));
   return deliverPdf(doc, pdfFileName('Control room', 'report', today));
 }
 
