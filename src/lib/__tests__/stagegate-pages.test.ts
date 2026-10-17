@@ -2,7 +2,7 @@
  * tiles and closing line, from the counts its header said, with the job's
  * money last (lib/stageGateLean moneyTile). */
 import { describe, expect, it } from 'vitest';
-import { commissionClosing, commissionTiles, gateClosing, gateTiles, handoverClosing, handoverTiles, machineClosing, machineTiles, materialClosing, materialTiles, problemClosing, problemTiles, programClosing, programTiles } from '../stageGatePages';
+import { commissionClosing, commissionTiles, gateClosing, gateTiles, handoverClosing, handoverTiles, machineClosing, machineTiles, materialClosing, planClosing, planCounts, planTiles, materialTiles, problemClosing, problemTiles, programClosing, programTiles } from '../stageGatePages';
 import type { LeanTile } from '../lean';
 
 const slip: LeanTile = { k: 'The slip costs', v: '£25.2k', of: '8 days × £3.2k — a day of Line 7 not making, in margin', tone: 'r' };
@@ -99,5 +99,22 @@ describe('a machine’s own page', () => {
     expect(machineTiles(x, aDay)[0]).toEqual({ k: 'Gates through', v: '4', of: 'of 4 — Handed over', tone: 'g' });
     expect(machineTiles(x, aDay)[2].of).toBe('none open · 1 done');
     expect(machineClosing(x, aDay)).toEqual({ text: 'Domino coder: Handed over — every gate through.', tone: 'g' });
+  });
+});
+
+describe('the plan’s timeline', () => {
+  it('29 dates: 11 done, 4 late, 9 ahead, 1 waiting on a verdict — counted as the plan’s sentence counts them', () => {
+    const marks = [...Array(11)].map(() => ({ tone: 'done', at: '2026-10-01' })).concat([...Array(4)].map(() => ({ tone: 'late', at: '2026-10-10' })),
+      [{ tone: 'ran', at: '2026-10-14' }], [...Array(9)].map(() => ({ tone: 'ahead', at: '2026-10-20' })), [...Array(4)].map(() => ({ tone: 'ahead', at: '2026-10-15' })));
+    const x = planCounts(marks, '2026-10-15');
+    expect(x).toEqual({ dates: 29, done: 11, late: 4, ahead: 9, ran: 1 });
+    expect(planTiles(x, slip).map(t => [t.k, t.v, t.of, t.tone])).toEqual([
+      ['Done', '11', 'of 29 dates on the plan', undefined], ['Late', '4', 'past their day', 'r'], ['Still ahead', '9', 'booked on the calendar', undefined],
+      ['Waiting on a verdict', '1', 'ran — not called yet', 'a'], ['The slip costs', '£25.2k', slip.of, 'r'],
+    ]);
+    expect(planClosing(x, slip, '1 test with nothing agreed to show')).toEqual({ text: 'The plan: 11 of 29 dates done — 4 late and 1 waiting on a verdict; not on it yet: 1 test with nothing agreed to show. The slip costs £25.2k.', tone: 'r' });
+  });
+  it('nothing dated says where to begin', () => {
+    expect(planClosing(planCounts([], '2026-10-15'), aDay).text).toMatch(/^The plan: nothing dated yet/);
   });
 });

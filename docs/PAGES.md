@@ -58,7 +58,7 @@ So:
 | Install (and Set up, Hand over) | the plan's tabs · the five tiles — done of the steps, late, problems, not added yet, what the slip costs (17 October: the header's counts moved into them) · Needs you · the closing line |
 | Problems — a stage-gate job | the five tiles — open, critical, late, no fix yet, what the slip costs (17 October: the header's count moved into them; the rail's tally is the Open tile) · the closing line |
 | Materials | the five tiles — here of what is needed, late, waiting, no date, what the slip costs (17 October: the header's count moved into them) · what we are waiting on, a row a material · the closing line |
-| The plan | the Gantt · the plan's tabs, Timeline on (16 October: the four gates and the timeline are one Plan in the rail, its tabs on each) |
+| The plan | the Gantt · the plan's tabs, Timeline on (16 October: the four gates and the timeline are one Plan in the rail, its tabs on each) · the tiles — done of the dates, late, still ahead, waiting on a verdict when any, what the slip costs · the closing line (17 October, the lean page: the header's count line, "29 dates · 11 done · …", moved into the tiles — one place, as on the gates' tabs; what is not on the plan yet stays said under the title) |
 | A 6M job | the verdict · the band's five tiles (desk) — the gap, problems, roots found, countermeasures, holding (17 October, the lean page: the 6M report's own, lib/sixmLean; the band's two — outstanding and late — were the board's actions, and the countermeasures tile carries them) · the fishbone drawn |
 | The 6M board | the six bones |
 | The Pareto | the ranked losses |

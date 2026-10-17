@@ -230,3 +230,36 @@ export function machineCounts(m: Pick<MachineRecord, 'name' | 'at' | 'gates' | '
     noFix: m.problems.length, critical: m.problems.filter(p => p.critical).length,
   };
 }
+
+/* ---------------------------------------------- the plan's timeline */
+
+/** THE PLAN (screens/PlanScreen, the Timeline tab) — its dated marks, as the
+ *  plan's own sentence counts them (lib/plan planSays): done of the dates,
+ *  late, still ahead, waiting on a verdict, and the job's money. */
+export interface PlanCounts { dates: number; done: number; late: number; ahead: number; ran: number }
+
+export function planCounts(marks: readonly { tone: string; at: string }[], today: string): PlanCounts {
+  return {
+    dates: marks.length, done: marks.filter(m => m.tone === 'done').length, late: marks.filter(m => m.tone === 'late').length,
+    ahead: marks.filter(m => m.at > today).length, ran: marks.filter(m => m.tone === 'ran').length,
+  };
+}
+
+export function planTiles(x: PlanCounts, money: LeanTile): LeanTile[] {
+  return [
+    { k: 'Done', v: String(x.done), of: x.dates ? `of ${x.dates} ${plural(x.dates, 'date')} on the plan` : 'nothing dated yet', ...(x.dates && x.done === x.dates ? { tone: 'g' as LeanTone } : {}) },
+    { k: 'Late', v: String(x.late), of: x.late ? 'past their day' : 'nothing past its day', tone: x.late ? 'r' : 'n' },
+    { k: 'Still ahead', v: String(x.ahead), of: x.ahead ? 'booked on the calendar' : 'nothing booked ahead' },
+    ...(x.ran ? [{ k: 'Waiting on a verdict', v: String(x.ran), of: 'ran — not called yet', tone: 'a' as LeanTone }] : []),
+    money,
+  ];
+}
+
+export function planClosing(x: PlanCounts, money: LeanTile, gaps?: string): { text: string; tone: LeanTone } {
+  if (!x.dates) return { text: 'The plan: nothing dated yet — book a step, a test, a material or a program with a day and it appears here.', tone: 'n' };
+  const wrong = [x.late ? `${x.late} late` : '', x.ran ? `${x.ran} waiting on a verdict` : ''].filter(Boolean);
+  return {
+    text: `The plan: ${x.done} of ${x.dates} ${plural(x.dates, 'date')} done${wrong.length ? ` — ${and(wrong)}` : x.done === x.dates ? ' — all of it' : ', nothing late'}${gaps ? `; not on it yet: ${gaps}` : ''}.${moneyClause(money)}`,
+    tone: x.late ? 'r' : x.ran || gaps ? 'a' : x.done === x.dates ? 'g' : 'n',
+  };
+}
