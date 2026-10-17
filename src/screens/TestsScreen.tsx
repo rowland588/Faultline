@@ -236,7 +236,7 @@ export function TestsScreen({ projectId }: { projectId: string }) {
         </section>
       )}
       {/* THE CLOSING LINE — the gate in one sentence, and the slip in money */}
-      {money && <LeanClosing closing={commissionClosing(counts, money)} />}
+      <LeanClosing closing={commissionClosing(counts, money ?? MONEY_WAIT)} />
     </div>
   );
 }

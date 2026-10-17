@@ -433,7 +433,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
         </p>
       )}
       {/* THE CLOSING LINE — the job's problems in one sentence, and the slip in money */}
-      {money && <LeanClosing closing={problemClosing(pcounts, money)} />}
+      <LeanClosing closing={problemClosing(pcounts, money ?? MONEY_WAIT)} />
     </div>
   );
 }

@@ -366,7 +366,7 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
           uses it. */}
       {gate === 'handover' && <StandardsCard projectId={projectId} can={can} />}
       {/* THE CLOSING LINE — the gate in one sentence, and the slip in money */}
-      {money && <LeanClosing closing={gateClosing(counts, money)} />}
+      <LeanClosing closing={gateClosing(counts, money ?? MONEY_WAIT)} />
     </div>
   );
 }

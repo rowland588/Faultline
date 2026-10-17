@@ -57,7 +57,7 @@ import { answerOf } from '../lib/install';
 import { jobLinePrograms, jobLineReadings, lineOfProgram } from '../lib/lineRecords';
 import { LeanClosing } from '../ui/Lean';
 import { useJobMoney } from '../lib/useJobMoney';
-import { programClosing } from '../lib/stageGatePages';
+import { MONEY_WAIT, programClosing } from '../lib/stageGatePages';
 import { useLineRecords } from '../lib/useLineRecords';
 
 /* The two said "why" of the ones to do (12 October): not tested, no program. */
@@ -201,7 +201,7 @@ export function ProgramsPage({ projectId, only }: {
           programs in one sentence, and the slip in money. The counted
           figures are the chips above: each is its filter (one thing, one
           place), so this page grows no second row of tiles. */}
-      {money && reading && <LeanClosing closing={programClosing(reading, money)} />}
+      {reading && <LeanClosing closing={programClosing(reading, money ?? MONEY_WAIT)} />}
     </div>
   );
 
