@@ -14,7 +14,8 @@
  * (lib/togetherPdf) both read this, so the two never part. Nothing is worked
  * out here that a tool does not already work out: the capacity is
  * lib/capacity's, the people lib/ie/balance's, the link lib/ie/balanceLink's. */
-import { analyse, fmtN, shortSays, type Capacity, type CapacityResult, type StationResult } from './capacity';
+import { analyse, bottleneckCost, bottleneckCostSays, fmtN, labourInputs, shortSays, type Capacity, type CapacityResult, type StationResult } from './capacity';
+import type { Workspace } from '../types';
 import { aPiece, balance, balanceSays, secs, type BalanceFigures, type PersonFigures } from './ie/balance';
 import { agreedFor, crewKept, stationsOf } from './ie/balanceLink';
 import { headcount, hasMap, type Standard } from './standard';
@@ -53,6 +54,8 @@ export interface Together {
   product: string;
   /** Line capacity's sentence, and whether the line is short of its target. */
   capacity: { text: string; short: boolean };
+  /** What the bottleneck costs a pack (lib/capacity bottleneckCost), when the people and their rate are known. */
+  money?: { text: string; short: boolean };
   /** The line balance's sentence — or what to do when there is none. */
   balance: { text: string; tone: Tone; red: string[] };
   /** People on the map, and what the work needs at this takt. */
@@ -84,8 +87,9 @@ function results(r: CapacityResult | undefined): Map<string, StationResult> {
   return out;
 }
 
-/** The product, all together. `study`: its newest line balance, if any. */
-export function togetherOf(s: Standard, study?: ToolStudy | null): Together {
+/** The product, all together. `study`: its newest line balance, if any;
+ *  `line`: the line it is on, for its labour rate and margin. */
+export function togetherOf(s: Standard, study?: ToolStudy | null, line?: Pick<Workspace, 'crew' | 'labourRatePerHour' | 'labourBurden' | 'marginPerPack'>): Together {
   const cap = s.capacity;
   const r = cap?.stations.length ? analyse(cap) : undefined;
   const byId = results(r);
@@ -111,9 +115,12 @@ export function togetherOf(s: Standard, study?: ToolStudy | null): Together {
   });
   const placed = new Set(crew.filter(c => c.stationId && stations.some(x => x.id === c.stationId)).map(c => c.who));
   const said = figures ? balanceSays(figures, onMap || undefined) : undefined;
+  const li = labourInputs(cap, onMap || undefined, line);
+  const bk = r ? bottleneckCost(r, li.people, li.rate, line?.marginPerPack) : undefined;
   return {
     product: s.product,
     capacity: capacitySays(cap),
+    ...(bk && r ? { money: bottleneckCostSays(bk, r) } : {}),
     balance: said
       ? { text: said.text, tone: said.tone, red: said.lines.filter(l => l.tone === 'r').map(l => l.text) }
       : { text: 'No line balance yet — time each person’s work against takt.', tone: 'n', red: [] },

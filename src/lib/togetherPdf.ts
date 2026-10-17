@@ -22,7 +22,7 @@ const INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', BRAND = '#1f63e0', 
 export interface TogetherPaper { s: Standard; study?: ToolStudy; name: string; printed: string; card?: string; line?: Awaited<ReturnType<typeof getWorkspace>> }
 
 function blocksOf(p: TogetherPaper, d: Density): Block[] {
-  const t = togetherOf(p.s, p.study);
+  const t = togetherOf(p.s, p.study, p.line);
   const unit = p.s.capacity?.stations[0]?.unit.trim() || undefined;
   const out: Block[] = [];
   out.push(text({ text: `ALL TOGETHER · ${p.name.toUpperCase()}`, size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
@@ -32,6 +32,7 @@ function blocksOf(p: TogetherPaper, d: Density): Block[] {
   out.push(label('Where it stands'));
   const strip: [string, string, boolean][] = [
     ['Line capacity', t.capacity.text, t.capacity.short],
+    ...(t.money ? [['What it costs', t.money.text, t.money.short] as [string, string, boolean]] : []),
     ['Line balance', t.balance.red[0] ?? t.balance.text, t.balance.red.length > 0],
     ['Line standard', t.people, false],
   ];

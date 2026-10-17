@@ -69,6 +69,7 @@ export const PAGES = (sd, cap) => [
     { what: 'the V on its side', sel: '.vc-rows', phone: true },
     { what: 'the capacity sheet', sel: '.cap-sheet' },
     { what: 'what a unit costs in labour', sel: '.cap-cost' },
+    { what: 'what the bottleneck costs a pack, under the sums (or what it needs)', sel: '.cap-money' },
     { what: 'the stations, in order', sel: '.cap-grp' },
     /* set up on the left, seen on the right (16 October) */
     { what: 'the line, drawn beside the stations', sel: '.capx-live svg.cxf-svg' },

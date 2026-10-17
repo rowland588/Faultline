@@ -13,11 +13,12 @@ import { useEffect, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { togetherOf } from '../lib/together';
 import type { Standard } from '../lib/standard';
-import { CostBlock, Legend, PersonBar, Stacks, useBalanceFor, worksFor } from './WorkBalance';
+import { CostBlock, Legend, PersonBar, Stacks, useBalanceFor, useLine, worksFor } from './WorkBalance';
 
 export function Together({ s, name, here }: { s: Standard; name: string; here: string }) {
   const study = useBalanceFor(s.id);
-  const t = togetherOf(s, study ?? undefined);
+  const line = useLine(s.workspaceId);
+  const t = togetherOf(s, study ?? undefined, line);
   const [card, setCard] = useState<string | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const sig = JSON.stringify([s.id, s.marks, s.photoKey, s.board, s.product, study?.updatedAt ?? 0]);
@@ -58,7 +59,9 @@ export function Together({ s, name, here }: { s: Standard; name: string; here: s
       {/* WHERE WE ARE — the three answers, the abnormal in red */}
       <div className="tg-strip" role="group" aria-label="Where it stands">
         <button type="button" className="tg-cell" onClick={() => nav(`${here}?at=balance`)}>
-          <span className="tg-k">Line capacity</span><span className={'tg-v' + (t.capacity.short ? ' is-r' : '')}>{t.capacity.text}</span><span className="tg-go">Open ›</span>
+          <span className="tg-k">Line capacity</span><span className={'tg-v' + (t.capacity.short ? ' is-r' : '')}>{t.capacity.text}</span>
+          {t.money && <span className={'tg-v tg-money' + (t.money.short ? ' is-r' : '')}>{t.money.text}</span>}
+          <span className="tg-go">Open ›</span>
         </button>
         <button type="button" className="tg-cell" onClick={() => nav(`${here}?at=work`)}>
           <span className="tg-k">Line balance</span><span className={'tg-v' + (t.balance.red.length ? ' is-r' : '')}>{t.balance.red[0] ?? t.balance.text}</span><span className="tg-go">Open ›</span>

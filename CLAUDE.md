@@ -712,6 +712,25 @@ building anything that holds a value, ask whether there is ever more than one
 fill in each on the day, and let the app add them up and give the verdict.
 A single slot where the floor has a list is a defect, however well drawn.
 
+EVERYTHING DERIVES A COST. Rowland, 17 October, walking the floor: "the
+bottleneck is driving the cost per pack up, making it more expensive ...
+there was no monetary value being shown anywhere. All of that needs to be
+shown very clear and very simple, that this is the cost per pack because of
+X, including with the people ... everything must have the cost in it ...
+Everything must derive a cost in the entire app ... It's all about money."
+So every tool's finding is said in money as well as in its own units — £ a
+pack and £ a minute (a shift, a week where that is how the floor reads it),
+"because of" the thing that causes it — from ONE cost model, never a second:
+the people (Line capacity's labour, else the line standard's head count,
+else the line's crew), one person's rate (Line capacity's, else the line's
+wage × on-costs), and the line's margin a pack (`lib/capacity` labourCost,
+bottleneckCost; `lib/ie/balanceLink` balanceCost; `lib/ie/losses`
+contributionOf). Where an input is missing the tool says which and where to
+give it — never a blank, never an invented figure. The merged view (All
+together) carries one cost line per tool, plainly labelled; it adds none of
+its own. Where money is still missing is listed in `docs/BLUEPRINT.md` §6
+(Money in every tool), and the next piece of work closes it tool by tool.
+
 A FIFTH CONCEPT IS ALMOST ALWAYS THE WRONG ANSWER. `src/lib/testing.ts` says it
 about tests and it holds everywhere: if something needs a new noun to explain
 it, look again — four of this app's five lists already carry dates, owners and

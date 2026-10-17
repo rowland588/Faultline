@@ -50,8 +50,7 @@ import {
   typedPerMinute, chainFactor, chainWords, fmtDur, typedSpeedWords, REST_ALLOWANCE_PCT, cycleWords, rateAsTime, shareColours,
   labourCost, labourInputs, oneMorePerson, whatIfLabour, fmtMoney, fmtBig,
   type Capacity, type CapacityResult, type Lane, type LabourInputs, type PaceSays, type RateAsTime, type RatePer, type Station, type StationResult, type WhatIf,
-  screenCapacity,
-} from '../lib/capacity';
+  screenCapacity, bottleneckCost, bottleneckCostSays } from '../lib/capacity';
 import { useLineStops } from '../lib/useLineStops';
 import { Icon } from '../ui/Icon';
 import { VCurveView } from '../ui/VCurve';
@@ -911,6 +910,16 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
         <span className="cap-eyebrow">{w ? 'What the sums say — against the line as run' : 'What the sums say'}</span>
         <p className="cap-says">{w ? compare : r.sentence}</p>
         {w && r.limit && <p className="cap-sub">{r.sentence}</p>}
+        {/* WHAT THE BOTTLENECK COSTS A PACK (17 October: "this is the cost per
+            pack because of X, including with the people") — the money, said
+            under the sums; or what it needs, and where to give it */}
+        {r.limit && r.line != null && (() => {
+          const li = labourInputs(cap, mapPeople, lineWs);
+          const k = bottleneckCost(r, li.people, li.rate, lineWs?.marginPerPack);
+          if (!k) return <p className="cap-money is-n">What {r.limit.station.name.trim() || 'the bottleneck'} costs a {oneOf(r.unit)}: say how many people are on the line and what one costs an hour, under <i>What a {oneOf(r.unit)} costs in labour</i>.</p>;
+          const said = bottleneckCostSays(k, r);
+          return <p className={'cap-money' + (said.short ? ' is-r' : '')}>{said.text}</p>;
+        })()}
         {worth != null && r.line != null && worth > r.line + 1e-9 && limit && (
           <p className="cap-sub">
             With none of {limit.station.name.trim() || 'its'}’s stops it would run {fmtN(limit.running)} {r.unit}/min — the line would then do {fmtN(worth)}

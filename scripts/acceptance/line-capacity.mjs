@@ -407,6 +407,8 @@ let TRAY;
   await go(CAP);
   const box = page.locator('.cap-cost');
   ok(/placed on the line standard/.test(await box.innerText()) && /not said yet/.test(await box.innerText()), '12 the people stand in from the line standard; the rate not said yet');
+  /* WHAT THE BOTTLENECK COSTS A PACK, under the sums (17 October: "this is the cost per pack because of X") — first what it needs */
+  ok(/^What .+ costs a .+: say how many people are on the line and what one costs an hour/.test(((await words('.cap-money')) ?? '')), `12 the bottleneck's cost says what it needs: "${await words('.cap-money')}"`);
   await box.getByLabel('People on the line').fill('8'); await box.getByLabel('People on the line').press('Enter');
   await box.getByLabel('Pounds an hour each').fill('12.50'); await box.getByLabel('Pounds an hour each').press('Enter'); await page.waitForTimeout(900);
   const m = await page.evaluate(async id => {
@@ -418,6 +420,18 @@ let TRAY;
   }, SID);
   const said = (await box.locator('.cap-cost-says').innerText()).replace(/\s+/g, ' ');
   ok(m.labour?.people === 8 && m.labour?.ratePerHour === 12.5 && said.startsWith(`${m.perPack} a ${m.unit}`), `12b typed and kept: ${said}`);
+  {
+    const want = await page.evaluate(async id => {
+      const db = await import('/src/db.ts'); const C = await import('/src/lib/capacity.ts');
+      const st = await db.getStandard(id); const r = C.analyse(st.capacity); const ws = st.workspaceId ? await db.getWorkspace(st.workspaceId) : undefined;
+      const li = C.labourInputs(st.capacity, undefined, ws);
+      const k = C.bottleneckCost(r, st.capacity.labour?.people ?? li.people, st.capacity.labour?.ratePerHour ?? li.rate, ws?.marginPerPack);
+      return k ? C.bottleneckCostSays(k, r) : null;
+    }, SID);
+    const money = (await words('.cap-money')) ?? '';
+    ok(!!want && money === want.text && /because of/.test(money) && (await page.locator('.cap-money.is-r').count()) === (want.short ? 1 : 0),
+      `12b what the bottleneck costs a pack, as lib/capacity says: "${money}"`);
+  }
   if (m.more) {
     ok((await box.locator('.cap-cost-more').first().innerText()).replace(/\s+/g, ' ').startsWith(m.more), `12c one more person at the bottleneck, as the module says: ${m.more}`);
     await box.getByRole('button', { name: new RegExp(`^Make it ${m.crew + 1} at`) }).click(); await page.waitForTimeout(900);

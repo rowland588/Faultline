@@ -13333,3 +13333,8 @@ button.cxb-row:hover .cxb-n { color: var(--accent); }
 .wb-el.is-walk .wb-el-n::before, .wb-el.is-wait .wb-el-n::before { content: ''; display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 2px; vertical-align: 0; }
 .wb-el.is-walk .wb-el-n::before { background: repeating-linear-gradient(45deg, var(--ink-2) 0 2px, var(--surface-2) 2px 5px); }
 .wb-el.is-wait .wb-el-n::before { border: 1.4px dashed var(--ink-2); }
+.tg-money { font-weight: 700; }
+/* WHAT THE BOTTLENECK COSTS A PACK — under the sums, the money said plainly */
+.cap-money { margin: 8px 0 0; font-weight: 700; font-size: var(--t-body); color: #fff; }
+.cap-money.is-r { color: #ffb4ab; }
+.cap-money.is-n { font-weight: 500; color: var(--shell-dim); font-size: var(--t-detail); }

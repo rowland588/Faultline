@@ -61,7 +61,7 @@ So:
 | The Pareto | the ranked losses |
 | The lever tree | the tree drawn |
 | Line capacity — what a line can make | the answer first · theoretical / demonstrated / plannable · ask · where the time went · where and when it stops (machine × day) · the week, to send · will next week's orders fit |
-| Line capacity — one line | what the sums say · the stations on the left · beside them, the line drawn and what each station can do (units a minute) · the V (desk) / on its side (phone) · the sheet · labour |
+| Line capacity — one line | what the sums say · what the bottleneck costs a pack (17 October) · the stations on the left · beside them, the line drawn and what each station can do (units a minute) · the V (desk) / on its side (phone) · the sheet · labour |
 | Line capacity — two lines into one | the sums · how many lines feed in (step 1) · the lines drawn meeting, a column a line (the chip map's replacement, 16 October) · the way to the target · a V and a sheet a line and where they merge |
 | Line balance — one product | each person's work stacked against takt · each person, where they work on the line and their cycle as a bar against their takt · what the bottleneck costs (or what it needs) · Time — each person (17 October: its own page, it was Line capacity's People tab; the old address opens it) |
 | Line balance — every product | each product with its balance said (17 October: its own tool in the rail) |

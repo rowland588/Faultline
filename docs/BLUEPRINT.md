@@ -217,6 +217,28 @@ there and what replaces it.
 
 ## 6. What we missed — what should have been built without being asked
 
+**Money in every tool** (Rowland, 17 October: "everything must derive a cost
+in the entire app ... it's all about money"; the rule is in CLAUDE.md,
+*Everything derives a cost*). One cost model — the people, one person's
+rate, the line's margin a pack — and every tool's finding said in it, "£ a
+pack because of X" and £ a minute. Where it stands, 17 October:
+- **Says money now:** Line capacity (labour a pack; the bottleneck's cost a
+  pack and a minute, under the sums and on its paper), Line balance (packs
+  lost to the slowest person, labour a pack now and at takt, paid for packs
+  not made, the others waiting, contribution lost — screen and paper), All
+  together (each tool's line), SMED (what the changeovers cost a shift, day,
+  week, year), the loss count (idle labour and lost contribution), a line's
+  stops (lineLoss, lineRead), the mix and next week's orders.
+- **Missing — the next piece, tool by tool:** the capability study (what
+  the rejects and give-away cost), the value stream map (what the waits and
+  waste cost), work sampling (what the idle share costs a shift), the line
+  standard map (what the people placed cost a pack), the problems register
+  (what each problem costs while it is open), a 6M countermeasure (what it
+  is worth — before → after in money), the stage gate (what a late gate
+  costs a day — the line not making), the control room (the money at risk
+  across every line and job, first).
+
+
 1. **Programs on a line, planned from the control room** (asked today). A
    running line gets new programs too, with no project.
 2. **Machines on a line**, in flow order, with plate speed — set once. Every
