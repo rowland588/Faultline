@@ -1,5 +1,11 @@
 # The case for the change — and what it was worth
 
+> **Declined and taken off, 17 October.** Rowland: "This is a tool for a one
+> man consultant — if we do all 6 it becomes a full business tool, so don't
+> do any of them." Slice A was live for an evening and is off the screens and
+> papers; the empty `projects.business_case` column stays. This page is the
+> design, kept as the record (BLUEPRINT §6).
+
 BLUEPRINT §6, 12. Rowland, 17 October, with a list of forty
 project-management practices: "at its core faultline is a project
 management system ... what we could introduce into faultline that would

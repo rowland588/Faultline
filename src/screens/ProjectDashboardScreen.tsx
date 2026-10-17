@@ -36,8 +36,6 @@ import { usePaceLines } from '../lib/usePaceLines';
 import { useJobFactoryLines } from '../lib/useFactoryLines';
 import { linesDay } from '../lib/lineLoss';
 import { stageGateTiles } from '../lib/stageGateLean';
-import { useCaseLines } from '../lib/useJobCase';
-import { CaseLine } from '../ui/CaseLine';
 import { sixmTiles, type SixMFigures } from '../lib/sixmLean';
 import type { FishboneData } from '../lib/fishbone';
 import type { ProblemView } from '../lib/problems';
@@ -602,8 +600,6 @@ function todaysPlan(items: TestItem[], today: string, job?: Parameters<typeof pl
    now, with the same count — ui/Frame useOpenNotes.) */
 
 function TestingOverview({ projectId, project, edit, remove = false }: { projectId: string; project: Project; edit: boolean; remove?: boolean }) {
-  /* the job's lines as its case reads them (lib/useJobCase) */
-  const caseLines = useCaseLines(projectId);
   const tt = useTesting(projectId);
   const studies = useJobStudies(projectId);
   /* THE WHOLE JOB, not just the testing. See lib/standing.ts — this page used
@@ -688,10 +684,6 @@ function TestingOverview({ projectId, project, edit, remove = false }: { project
               })(),
               day: linesDay(factory.lines),
             })} />
-          {/* THE CASE FOR THE CHANGE (docs/CASE.md) — what the job is for and
-              what it is worth, and once it has started what it is measured
-              at; the owner writes it here (ui/CaseLine). */}
-          <CaseLine project={project} lines={caseLines} />
           {/* WHAT CHANGED SINCE YOU LAST LOOKED — under the answer; nothing when
               nothing did (lib/since). */}
           <SinceLine projectId={projectId} since={sinceOf({ tests: tt.tests, items: tt.items, assets: tt.assets, seenAt })} />

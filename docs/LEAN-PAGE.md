@@ -20,14 +20,14 @@ ranked table, what it means, and who does what by when**.
 
 | # | Part | Asks | What it is |
 |---|---|---|---|
-| 1 | **Band** | what, where, when | The house graphite across the top on screen, a light band on paper (pale fill, teal edge, graphite words — 17 October: a dark band does not print well): what this is, its title, the line and product (or job), and on the right the day, the shift and when it was printed. |
+| 1 | **Band** | what, where, when | A light band across the top, on screen and on paper alike (pale fill, teal edge, graphite words — 17 October: a dark band does not print, so none is drawn anywhere): what this is, its title, the line and product (or job), and on the right the day, the shift and when it was printed. |
 | 2 | **Tiles** | where are we? | Three to five big numbers, each *of* what it should be ("40,900 of 45,000 · 91%") and, when there is one, **since last time** ("▲ 4,400 on 15 Oct"). |
 | 3 | **Trend** | where are we going? | The headline number over the records of the same kind on the same line, against what each should have been — only with two or more. |
 | 4 | **The picture** | why? | The tool's own picture: the waterfall, the V, the Yamazumi, the SMED grid, the stream, the fishbone, the plan. Never a second chart of the same thing. |
 | 5 | **Top causes** | why? | The ranked table: what took the time or the money, biggest first, with its share. |
 | 6 | **What it means** | why? | Three to six sentences the module already says, each marked: a cross for what is wrong, a tick for what is right, a dot for how it is known. |
 | 7 | **Action plan** | what are we doing? | Action · owner · due, from the records raised off this one (a fix, a countermeasure, a stage). None yet says so, with the door to raise one. |
-| 8 | **Closing line** | the verdict | One sentence in the band at the foot (graphite on screen, light on paper) — what one side can now say to the other. |
+| 8 | **Closing line** | the verdict | One sentence in a light band at the foot, on screen and paper alike — what one side can now say to the other. |
 
 On a screen the same eight, in the same order: the band is the page's
 header (its edit controls stay on it); the tiles are a row (two across on a
@@ -51,10 +51,10 @@ the count, the timings, the settings: detail one tap or one scroll away
   arrow. Better is the house green, worse the house red, the same grey —
   always with the number and the day it is against, so it survives a
   black-and-white print.
-- **The house colours, not the picture's green.** The band is the house graphite
-  on screen (`--shell`) and light on paper (`BAND`, `paperBand` — a pale fill,
-  the brand's teal edge, graphite words: Rowland, 17 October, "black background
-  with white writing ... usually not" printed well). A tile wears colour only when its number is abnormal
+- **The house colours, not the picture's green.** The band is light on screen
+  (`--shell`) and on paper (`BAND`, `paperBand`) alike — a pale fill, the brand's
+  teal edge, graphite words: Rowland, 17 October, "black background with white
+  writing ... usually not" printed well, then "light everywhere". A tile wears colour only when its number is abnormal
   (red, or amber where the module says amber) or met (a quiet green wash);
   otherwise it is plain. The brand's teal stays for what you press. The tagline
   ribbon ("Less waste | Higher OEE | …") is not copied: it says nothing about
@@ -173,8 +173,24 @@ card) keep their card form; they take the band only.
    money last on a stage-gate job; the day in one sentence at the foot.
    Its paper stays hand-laid: the tiles and the closing line are the lean
    kit's own blocks drawn at its place.
-6. SMED, value stream, work sampling, capability.
-7. Commissioning, programs, handover, materials.
+6. **SMED, value stream, work sampling, capability** (17 October). SMED
+   (`lib/ie/changeoverLean`): the band with its verdict; five tiles in the
+   strip's place — now (against its standard), inside the stop once the
+   external work runs outside, planned to (against single digits), a week
+   (or a year) stopped in packs and pounds, what the plan buys back; what it
+   says; the grid; the action plan — what was raised from an element, then
+   each element's plan in its SMED action's words; the closing line. Work
+   sampling (`lib/ie/samplingLean`): taps, people, the biggest share not the
+   work and **what it costs a shift** (that share × the shift × one person's
+   rate — the line's wage × on-costs), the next moment. The capability study
+   (`lib/ie/sampleLean`): readings of those agreed, the mean and range,
+   outside, Ppk with Cpk. The value stream keeps its seven cards as its
+   tiles, in the method's colours (`lib/ie/flowLean` the closing line: where
+   to start, a cycle over takt in red). Each prints as the same lean page
+   (`lib/studiesPdf`). The capability study's and the value stream's money —
+   what the readings outside, and the waits, cost — is still to come
+   (BLUEPRINT §6), never a figure made up.
+7. Commissioning, programs, handover, materials (done in 3b).
 
 Each slice says its effect on the screen and the paper together, adds its
 lines to `docs/PAGES.md`, and its checks to the acceptance script of the

@@ -101,16 +101,17 @@ await page.getByRole('button', { name: 'New work sampling' }).first().click(); a
   const t = id ? await truth(id) : null;
   const inOrder = !!t?.a && t.a.prompts.every((p, i, xs) => i === 0 || xs[i - 1] <= p) && t.a.prompts.every(p => p >= t.a.from && p <= t.a.to);
   ok(!!t?.a && t.a.prompts.length === 40 && inOrder && t.a.who.join(',') === 'Op 1,Team leader', `1 set up: ${t?.a?.prompts.length} moments in the shift, in order; watching ${t?.a?.who.join(', ')}`);
-  ok((await words('.ie-strip')).includes(t?.verdict ?? '—'), `1 it says "${t?.verdict}"`);
+  ok((await words('.ln-band .ln-verdict')).includes(t?.verdict ?? '—'), `1 it says "${t?.verdict}"`);
 }
 
 /* ---- 2 the seeded study reads as the module says ---- */
 await go(STUDY);
 {
   const t = await truth(sd.samplingId);
+  /* the lean page (slice 6): the verdict on the band, the taps a tile */
   const strip = await words('.ie-strip');
   const said = await words('.ie-says');
-  ok(strip.includes(t.verdict) && strip.includes(`${t.n} taps`), `2 the strip: ${t.verdict} · ${t.n} taps`);
+  ok((await words('.ln-band .ln-verdict')).includes(t.verdict) && new RegExp(`taps ${t.n}\\b`, 'i').test(strip), `2 the band and the tiles: ${t.verdict} · ${t.n} taps`);
   ok(t.readings.every(r => said.includes(r)), `2 each person's shares, with their margins: ${t.readings.join(' / ')}`);
   ok((await page.locator('.ws-bar').count()) >= 6, '2 the shares drawn as bars, each with its margin');
 }
@@ -126,7 +127,7 @@ await go(STUDY);
   const after = await truth(sd.samplingId);
   const at = after.taps.filter(x => x.at === t.due.at);
   ok(at.length === 2 && at.every(x => x.at === t.due.at) && after.n === t.n + 2, `3 two taps, stamped ${new Date(t.due.at).toTimeString().slice(0, 5)} — the moment, not when it was answered`);
-  ok((await page.locator('.ws-round').count()) === 0 && (await words('.ie-strip')).includes(`${after.n} taps`), `3 the moment is answered; the strip says ${after.n} taps`);
+  ok((await page.locator('.ws-round').count()) === 0 && new RegExp(`taps ${after.n}\\b`, 'i').test(await words('.ie-strip')), `3 the moment is answered; the tiles say ${after.n} taps`);
 }
 
 /* ---- 4 a mistap struck counts for nothing ---- */

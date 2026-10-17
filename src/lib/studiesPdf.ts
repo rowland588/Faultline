@@ -15,11 +15,19 @@ import type { ToolStudy } from './study';
 import type { Standard } from './standard';
 import type { StudyContext } from './studyLinks';
 import { studyEvidence } from './clientReport';
-import { sample, CPK_FROM } from './ie/sample';
+import { sample, sampleSays, CPK_FROM } from './ie/sample';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { SIZE, font, gap, label, rows, text, wrap } from './report/blocks';
 import { streamBlocks } from './report/streamTable';
 import { changeoverBlocks } from './report/changeoverTable';
+import { agreedFor as agreedForChangeover, changeoverSays, extrapolationSays, figuresOf, ladderOf, moneyOf } from './ie/changeover';
+import { smedLean } from './ie/changeoverLean';
+import { sampleClosing, sampleTiles } from './ie/sampleLean';
+import { momentsAt, personRate, samplingClosing, samplingTiles } from './ie/samplingLean';
+import { flowClosing, flowTiles } from './ie/flowLean';
+import { samplingSays } from './ie/sampling';
+import { dur, flowFigures } from './ie/steps';
+import { bandPage, type LeanTile, type LeanTone } from './lean';
 import { lossBlocks, lossFallBlock } from './report/lossTable';
 import { boxed, leanActions, leanBand, leanClosing, leanHead, leanInsights, leanTiles, leanTrend, pair, stack } from './report/lean';
 import { lossFiguresOf } from './studyLinks';
@@ -140,8 +148,75 @@ function lossLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Bloc
   return out;
 }
 
+/** ONE SMED AS THE LEAN PAGE (slice 6; lib/ie/changeoverLean) — the band,
+ *  the tiles, what it says, the changeover element by element, the action
+ *  plan and the closing line, read as the screen reads them. */
+function smedLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Block[] {
+  const { s, where } = item;
+  const ws = p.ctx?.workspaces?.find(w => w.id === s.workspaceId);
+  const st = p.standards.find(x => x.id === s.standardId);
+  const agreed = agreedForChangeover(st?.capacity?.changeovers, s.facts.fromProduct);
+  const f = figuresOf(s.facts), l = ladderOf(s.facts.sequence), said = changeoverSays(f, agreed), money = moneyOf(ws);
+  const cost = extrapolationSays(l, s.facts, money);
+  const page = smedLean({ s, f, l, said, cost, ...(money ? { money } : {}), ...(p.lineName ? { line: p.lineName } : {}), ...(agreed ? { agreed } : {}),
+    raised: raisedFrom(s, p.records?.actions ?? [], p.records?.fixes ?? [], step => (s.facts.sequence ?? []).find(x => x.id === step)?.name) });
+  const e = studyEvidence(s, [], p.standards, p.ctx);
+  const out: Block[] = [leanBand(page, p.printed)];
+  out.push(text({ text: `${where}${s.uses.length ? ` · used for ${s.uses.length} record${s.uses.length === 1 ? '' : 's'} on its job` : ''}`, size: 8, colour: MUTED, after: gap(d, 's') }));
+  out.push(leanTiles(page.tiles));
+  out.push(leanHead('What it says'));
+  out.push(text({ text: e.line, size: 9, colour: e.tone === 'r' ? DANGER : INK2, after: gap(d, 's') }));
+  if (e.changeover) { out.push(leanHead('The changeover, element by element')); out.push(...changeoverBlocks(e.changeover, e.line)); }
+  out.push(leanHead('Action plan'));
+  out.push(...leanActions(page.actions, page.actionsEmpty));
+  out.push(leanClosing(page.closing));
+  if (s.receipt?.text && s.closedAt) out.push(text({ text: `Closed: ${s.receipt.text}`, size: 8, colour: MUTED, before: 2, after: 2 }));
+  return out;
+}
+
+/** A CAPABILITY STUDY, WORK SAMPLING OR A VALUE STREAM AS THE LEAN PAGE
+ *  (slice 6) — the band with its verdict, the tiles its page shows, what it
+ *  says, its own table, the action plan and the closing line, from the same
+ *  builders the page reads (lib/ie/sampleLean, samplingLean, flowLean). */
+function studyLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Block[] {
+  const { s, where } = item;
+  const e = studyEvidence(s, [], p.standards, p.ctx);
+  const raised = raisedFrom(s, p.records?.actions ?? [], p.records?.fixes ?? []);
+  let eyebrow = 'Study', verdict: { text: string; tone: string } | undefined, tiles: LeanTile[] = [], closing: { text: string; tone: LeanTone } = { text: e.line, tone: 'n' };
+  let body: Block[] = [];
+  if (s.tool === 'capability' && s.agreed?.readings) {
+    const a = s.agreed.readings, f = sample(a, s.facts.readings ?? []), said = sampleSays(f, a);
+    eyebrow = 'Capability study'; verdict = { text: said.verdict, tone: said.tone }; tiles = sampleTiles(f, a, said); closing = sampleClosing(f, a, said);
+    body = capabilityBlocks(s);
+  } else if (s.tool === 'sampling' && s.agreed?.sampling) {
+    const a = s.agreed.sampling, taps = s.facts.taps ?? [], said = samplingSays(a, taps);
+    const rate = personRate(p.ctx?.workspaces?.find(w => w.id === s.workspaceId));
+    eyebrow = a.walk ? 'Bottleneck walk' : 'Work sampling'; verdict = { text: said.verdict, tone: said.tone };
+    tiles = samplingTiles(a, taps, momentsAt(a, taps, Date.now()), rate); closing = samplingClosing(a, taps, said, rate);
+    body = e.sampling ? samplingBlocks(e.sampling) : [];
+  } else if (s.tool === 'map') {
+    const list = s.facts.flow ?? [], f = flowFigures(list, s.agreed?.map);
+    eyebrow = 'Value stream map'; verdict = { text: f.steps ? `${f.untimed ? '≥ ' : ''}${dur(f.leadSec)} lead time` : 'No steps yet', tone: f.longestCycle?.overTakt ? 'r' : 'n' };
+    tiles = flowTiles(f, list); closing = flowClosing(f, s.agreed?.map);
+    body = e.stream ? streamBlocks(e.stream.rows, e.stream.total) : [];
+  }
+  const out: Block[] = [leanBand(bandPage(eyebrow, s, verdict?.text, verdict?.tone), p.printed)];
+  out.push(text({ text: `${where}${s.uses.length ? ` · used for ${s.uses.length} record${s.uses.length === 1 ? '' : 's'} on its job` : ''}`, size: 8, colour: MUTED, after: gap(d, 's') }));
+  if (tiles.length) out.push(leanTiles(tiles));
+  out.push(leanHead('What it says'));
+  out.push(text({ text: e.line, size: 9, colour: e.tone === 'r' ? DANGER : INK2, after: gap(d, 's') }));
+  out.push(...body);
+  out.push(leanHead('Action plan'));
+  out.push(...leanActions(raised, 'Nothing raised from it yet.'));
+  out.push(leanClosing(closing));
+  if (s.receipt?.text && s.closedAt) out.push(text({ text: `Closed: ${s.receipt.text}`, size: 8, colour: MUTED, before: 2, after: 2 }));
+  return out;
+}
+
 function blocksOf(p: StudiesPaper, d: Density): Block[] {
   if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'losses') return lossLeanBlocks(p, p.items[0], d);
+  if (p.lean && p.items.length === 1 && ['capability', 'sampling', 'map'].includes(p.items[0].s.tool)) return studyLeanBlocks(p, p.items[0], d);
+  if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'changeover') return smedLeanBlocks(p, p.items[0], d);
   const out: Block[] = [];
   out.push(text({ text: p.items.length === 1 ? 'A STUDY · MEASURED BY PEOPLE AT THE LINE' : `${p.items.length} STUDIES · MEASURED BY PEOPLE AT THE LINE`, size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
   out.push(text({ text: p.title, size: SIZE.title, style: 'bold', after: 4 }));

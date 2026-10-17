@@ -122,7 +122,7 @@ await page.getByRole('button', { name: 'New SMED' }).first().click(); await page
 }
 const Q = id();
 let t = await truth(Q);
-ok(!!Q && !t.ws && !t.pid && t.name === 'Finest Red 2kg → Express 1.25 kg' && (await page.locator('.ie-eyebrow').textContent())?.trim() === 'SMED — quick changeover',
+ok(!!Q && !t.ws && !t.pid && t.name === 'Finest Red 2kg → Express 1.25 kg' && (await page.locator('.ln-band .ln-eyebrow').textContent())?.trim() === 'SMED — quick changeover',
   `1 started on its own — no line, no job: "${t.name}", under "SMED — quick changeover"`);
 
 /* Lap two elements, who does each, Internal and External */

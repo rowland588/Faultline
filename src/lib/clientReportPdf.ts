@@ -194,21 +194,6 @@ function commentaryBlocks(c: ClientReport['commentary'], d: Density): Block[] {
   ];
 }
 
-/** THE CASE FOR THE CHANGE, under where the job is (docs/CASE.md) — the
- *  same words as under the job's band (ui/CaseLine, lib/businessCase
- *  caseSays): what it is for, what it is worth, what it is measured at —
- *  measured under the case in amber, at it in green, its words beside it. */
-function caseBlocks(c: ClientReport['case'], d: Density): Block[] {
-  if (!c) return [];
-  const m = c.tone === 'g' ? OK : c.tone === 'a' ? AMBER : INK2;
-  return [
-    { ...label('The case for the change'), keepWithNext: true },
-    ...(c.why ? [{ ...text({ text: san(c.why), size: 10, style: 'bold' as const, colour: INK, after: 2 }), keepWithNext: true }] : []),
-    { ...text({ text: san(c.worth), size: 9.5, colour: INK2, after: c.measured ? 2 : gap(d, 'l') }), keepWithNext: !!c.measured },
-    ...(c.measured ? [text({ text: san(c.measured), size: 9.5, style: 'bold' as const, colour: m, after: gap(d, 'l') })] : []),
-  ];
-}
-
 function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPlan: (pages: number[]) => void): Block[] {
   const out: Block[] = [];
   const S = SIZE;
@@ -246,7 +231,6 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
     drawPace(f, ot.pace, otPace(f), l.rest.length ? y + 42 + (l.rest.length - 1) * 12 : y + 30);
   }, f => gap(f.density, 'm')));
   out.push(...commentaryBlocks(r.commentary, d));
-  out.push(...caseBlocks(r.case, d));
 
   /* CRITICAL ISSUES — straight under the answer, before anything else
      (lib/critical). Rowland, 6 October: "say in a report — look at this, this
@@ -839,7 +823,6 @@ export async function drawStatusReport(doc: jsPDF, report: ClientReport): Promis
       drawPace(f, ot.pace, otPace(f), y + 39 + (l.length - 1) * 12);
     }, f => gap(f.density, 'm')));
     out.push(...commentaryBlocks(s.commentary, d));
-    out.push(...caseBlocks(report.case, d));
     const gw = (f: Frame) => (f.w - 3 * 8) / 4;
     const gateLines = (f: Frame) => s.gates.map(g => wrap(f.doc, g.says || GATE_COLOUR[g.tone].word, gw(f) - 14, 8));
     out.push(box(f => 24 + Math.max(...gateLines(f).map(l => l.length), 1) * 10 + gap(f.density, 'l'), (f, y) => {

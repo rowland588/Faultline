@@ -46,8 +46,6 @@ export const PAGES = (sd, cap) => [
     /* the band's five tiles — the same the one-page status and the full report count (17 October, docs/LEAN-PAGE.md) */
     /* on a phone the band is the answer and the status report (the phone pass, 5 October): its tiles are the desk's */
     { what: 'the band’s tiles — handover, late of what is still to do, critical, fixes open, what the slip costs', sel: '.vd .vd-tile', n: 5, desk: true },
-    /* the case for the change under the band (17 October, docs/CASE.md): what the job is for, what it is worth or what to give */
-    { what: 'the case for the change — what it is for and what it is worth', sel: '[data-case] .bz-worth' },
     /* the job's places, its machines each a page (16 October, docs/STAGEGATE-UX.md) */
     { what: 'its machines in the rail, each a page', sel: '.nv-rail .nv-grp-l', text: /^Machines$/i, desk: true },
   ] },
@@ -175,8 +173,12 @@ export const PAGES = (sd, cap) => [
     { what: 'the bottleneck said first', sel: '.ls-bn-sum' },
     { what: 'words up a tall, narrow shape', sel: '.ls-shape-t.is-up' },
   ] }] : []),
-  { name: 'A value stream map', path: `#/value-stream/${sd.lineMapId}`, must: [{ what: 'the grid', sel: '.vs-grid' }] },
-  { name: 'A SMED', path: `#/smed/${sd.changeoverId}`, must: [{ what: 'the grid', sel: '.vs-grid' }, { what: 'what it says', sel: '.ie-says' }] },
+  { name: 'A value stream map', path: `#/value-stream/${sd.lineMapId}`, must: [{ what: 'the grid', sel: '.vs-grid' },
+    { what: 'the band', sel: '.ln-band' }, { what: 'its seven cards', sel: '.vs-cards .vs-card2' }, { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' }] },
+  { name: 'A SMED', path: `#/smed/${sd.changeoverId}`, must: [{ what: 'the grid', sel: '.vs-grid' }, { what: 'what it says', sel: '.ie-says' },
+    /* the lean page (17 October, slice 6; lib/ie/changeoverLean): the band, five tiles in the strip's place, the action plan, the closing line */
+    { what: 'the band', sel: '.ln-band' }, { what: 'the five tiles — now, inside the stop, planned to, stopped in packs and £, bought back', sel: '.ie-strip .ln-tile', n: 5 },
+    { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' }] },
   { name: 'A loss count', path: `#/losses/${sd.lossId}`, must: [
     { what: 'the waterfall, drawn', sel: 'svg.lf-fall' }, { what: 'what it says', sel: '.ie-says' },
     /* the lean page (17 October, docs/LEAN-PAGE.md): the band, the tiles, the causes, the action plan, the closing line */
@@ -184,6 +186,9 @@ export const PAGES = (sd, cap) => [
     { what: 'the top causes', sel: '.lf-tab .lf-row' }, { what: 'the action plan — the countermeasure raised from its biggest bar', sel: '.ln-plan .ln-row' },
     { what: 'the closing line', sel: '.ln-close' },
   ] },
-  { name: 'Work sampling', path: `#/sampling/${sd.samplingId}`, must: [{ what: 'the round', sel: '.ws-round' }] },
-  { name: 'A capability study', path: `#/capability/${sd.studyId}`, must: [{ what: 'the readings, drawn', sel: 'svg.ie-dots' }] },
+  /* the lean page (17 October, slice 6): the band, the tiles in the strip's place, the action plan, the closing line */
+  { name: 'Work sampling', path: `#/sampling/${sd.samplingId}`, must: [{ what: 'the round', sel: '.ws-round' },
+    { what: 'the band', sel: '.ln-band' }, { what: 'the five tiles — what it costs among them', sel: '.ie-strip .ln-tile', n: 5 }, { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' }] },
+  { name: 'A capability study', path: `#/capability/${sd.studyId}`, must: [{ what: 'the readings, drawn', sel: 'svg.ie-dots' },
+    { what: 'the band', sel: '.ln-band' }, { what: 'the tiles', sel: '.ie-strip .ln-tile' }, { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' }] },
 ];

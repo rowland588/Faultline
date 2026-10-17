@@ -42,7 +42,6 @@ import { notedProblems, partsOf, partWords, resultNow, type Noted } from './note
 import { couldWords, criticalProblems, criticalState, riskProblems, type Critical } from './critical';
 import type { JobFigures } from './stageGateLean';
 import { linesDay, type DayFacts } from './lineLoss';
-import { caseSays, readCase, type CaseLineFacts, type CaseSays } from './businessCase';
 import type { WalkSnag } from './walkSnags';
 import { climbsOf } from './rampUp';
 import type { ToolStudy } from './study';
@@ -254,10 +253,6 @@ export interface ClientReport {
    *  are" on both reports. Rowland, 9 October: "we have numbers but not the
    *  story ... I need a way to add commentary." */
   commentary?: { text: string; on?: string; by?: string };
-  /** THE CASE FOR THE CHANGE (lib/businessCase caseSays, docs/CASE.md) —
-   *  what the job is for, what it is worth, what it is measured at: the
-   *  words under the job's band, printed under where we are on both. */
-  case?: CaseSays;
   standards: Standard[];
   /** EVIDENCE — every study on the job (docs/TOOLKIT.md, Part 0): what it is
    *  of, what it is used for, and what it says, in its own words. Measured by
@@ -347,8 +342,6 @@ export interface ClientReportInput {
    *  jobFactoryLines) — their speed, shifts and margin a pack say what a day
    *  late costs (lib/lineLoss linesDay; the money tile, lib/stageGateLean). */
   factoryLines?: DayFacts[];
-  /** The job's lines as its case reads them (lib/businessCase caseLinesOf). */
-  caseLines?: CaseLineFacts[];
   today: string;
 }
 
@@ -704,7 +697,6 @@ export function clientReport(x: ClientReportInput): ClientReport {
       ...(project.reportNoteAt ? { on: niceDay(todayISO(new Date(project.reportNoteAt))) } : {}),
       ...(project.lead?.trim() ? { by: project.lead.trim() } : {}),
     } } : {}),
-    ...(() => { const c = x.caseLines ? caseSays(readCase(project.businessCase, x.caseLines, today, when)) : undefined; return c ? { case: c } : {}; })(),
     standards: live(x.standards),
     evidence: studies.map(s => studyEvidence(s, tests, live(x.standards), ctx)),
     /* Notes are never on the client's copy — they are private

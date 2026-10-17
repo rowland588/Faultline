@@ -86,7 +86,7 @@ const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).se
     return { ppk: f.ppk.toFixed(2), cpk: f.cpk.toFixed(2), n: f.n, line: L.studyLine(s).text, values: s.facts.readings.slice(0, 3).map(r => r.value.toFixed(f.dp)) };
   }, sd.studyId);
   const strip = flat(await page.locator('.ie-strip').innerText());
-  ok(strip.includes(`Ppk ${m.ppk}`) && strip.includes(`Cpk ${m.cpk}`) && /Not capable: Ppk|Capable: Ppk|Just capable: Ppk/.test(flat(await page.locator('body').innerText())),
+  ok(new RegExp(`ppk ${m.ppk}\\b`, 'i').test(strip) && strip.includes(`Cpk ${m.cpk}`) && /Not capable: Ppk|Capable: Ppk|Just capable: Ppk/.test(flat(await page.locator('body').innerText())),
     `5 the strip says Ppk ${m.ppk} and Cpk ${m.cpk}; the verdict on Ppk`);
   const p = await pdfText(() => page.getByRole('button', { name: 'This study on paper (PDF)' }).click(), 'study.pdf');
   ok(p.text.includes('PPK') && p.text.includes(m.ppk) && p.text.includes('CPK') && p.text.includes(m.cpk) && m.values.every(v => p.text.includes(v)) && p.text.includes(flat(m.line).slice(0, 40)),
