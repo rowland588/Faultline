@@ -265,6 +265,21 @@ ok(has('Before') && has(want.slice(0, 50)), '9 the client report: the fix carrie
   ok(((await words('.wb-pw', person('Op 2'))) ?? '').startsWith(L.figure), `10 Op 2 read in their own piece: "${await words('.wb-pw', person('Op 2'))}"`);
   const shown = (await page.locator('.wb-cost .wb-cost-l').allInnerTexts()).map(x => x.replace(/\s+/g, ' ').trim());
   ok(!!L.cost && JSON.stringify(shown) === JSON.stringify(L.cost), `10 what it costs, a pack and a minute: "${shown.join(' ')}"`);
+  /* THE LEAN PAGE (docs/LEAN-PAGE.md): the tiles took the strip's place —
+     as lib/ie/balanceLean reads them — and the closing line */
+  {
+    const want = await page.evaluate(async id => {
+      const db = await import('/src/db.ts'); const S = await import('/src/lib/studyLinks.ts'); const K = await import('/src/lib/ie/balanceLink.ts');
+      const N = await import('/src/lib/ie/balanceLean.ts'); const D = await import('/src/lib/standard.ts');
+      const st = await db.getStandard(id); const b = S.currentBalance(await db.listAllStudies(), id); const f = K.studyBalance(b);
+      const ws = st.workspaceId ? await db.getWorkspace(st.workspaceId) : undefined;
+      const a = K.agreedFor(b.agreed?.balance, st.capacity, !!b.closedAt);
+      return N.balanceTiles(f, a, a ? K.balanceCost(f, K.costInputs(st.capacity, ws)) : undefined, st.capacity.stations[0]?.unit.trim() || undefined, D.peopleOf(st).length || undefined);
+    }, SID);
+    const vs = await page.locator('.wb-strip .ln-tile .ln-v').allInnerTexts();
+    ok(vs.join('|') === want.map(x => x.v).join('|') && (await page.locator('.wb .ln-close').count()) === 1,
+      `10 the tiles, as lib/ie/balanceLean reads them, and the closing line: ${want.map(x => `${x.k} ${x.v}`).join(' · ')}`);
+  }
   /* Skip moves Now on without a lap */
   await person('Op 1').getByRole('button', { name: 'Time Op 1' }).click(); await page.waitForTimeout(400);
   await tap(/^Start — as /);
@@ -285,6 +300,16 @@ ok(has('Before') && has(want.slice(0, 50)), '9 the client report: the fix carrie
   const packerRow = (await page.locator('.tg-st', { hasText: 'Packer' }).first().innerText()).replace(/\s+/g, ' ');
   ok(cap === T.cap && rows === T.n && T.packer.length === 1 && packerRow.includes(`Op 2 ${T.packer[0]}`) && (await page.locator('.tg-st.is-limit').count()) === 1,
     `10 All together: "${cap}", ${rows} stations, the bottleneck (${T.limit}) marked, the Packer "${packerRow.slice(0, 90)}"`);
+  {
+    const want = await page.evaluate(async id => {
+      const db = await import('/src/db.ts'); const S = await import('/src/lib/studyLinks.ts'); const G = await import('/src/lib/together.ts');
+      const st = await db.getStandard(id); const ws = st.workspaceId ? await db.getWorkspace(st.workspaceId) : undefined;
+      return G.togetherTiles(st, S.currentBalance(await db.listAllStudies(), id), ws);
+    }, SID);
+    const vs = await page.locator('.tg .ln-tiles .ln-tile .ln-v').allInnerTexts();
+    ok(vs.join('|') === want.map(x => x.v).join('|') && (await page.locator('.tg .ln-close').count()) === 1 && (await page.locator('.tg .ls-head.is-band').count()) === 1,
+      `10 All together's band, tiles and closing line — each figure from its own tool: ${want.map(x => `${x.k} ${x.v}`).join(' · ')}`);
+  }
   const [dl2] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.locator('.tg .ls-head-actions').getByRole('button', { name: 'PDF', exact: true }).click()]);
   const tpdf = join(OUT, 'together.pdf'); await dl2.saveAs(tpdf);
   const tt = pdfText(tpdf);

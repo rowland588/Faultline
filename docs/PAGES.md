@@ -61,11 +61,11 @@ So:
 | The Pareto | the ranked losses |
 | The lever tree | the tree drawn |
 | Line capacity — what a line can make | the answer first · theoretical / demonstrated / plannable · ask · where the time went · where and when it stops (machine × day) · the week, to send · will next week's orders fit |
-| Line capacity — one line | what the sums say · what the bottleneck costs a pack (17 October) · the stations on the left · beside them, the line drawn and what each station can do (units a minute) · the V (desk) / on its side (phone) · the sheet · labour |
+| Line capacity — one line | the band with what limits the line · the five tiles · the closing line (17 October, the lean page) · what the sums say · what the bottleneck costs a pack (17 October) · the stations on the left · beside them, the line drawn and what each station can do (units a minute) · the V (desk) / on its side (phone) · the sheet · labour |
 | Line capacity — two lines into one | the sums · how many lines feed in (step 1) · the lines drawn meeting, a column a line (the chip map's replacement, 16 October) · the way to the target · a V and a sheet a line and where they merge |
-| Line balance — one product | each person's work stacked against takt · each person, where they work on the line and their cycle as a bar against their takt · what the bottleneck costs (or what it needs) · Time — each person (17 October: its own page, it was Line capacity's People tab; the old address opens it) |
+| Line balance — one product | the band · the five tiles, in the strip's place (17 October, the lean page — every figure the strip held among them) · the closing line · each person's work stacked against takt · each person, where they work on the line and their cycle as a bar against their takt · what the bottleneck costs (or what it needs) · Time — each person (17 October: its own page, it was Line capacity's People tab; the old address opens it) |
 | Line balance — every product | each product with its balance said (17 October: its own tool in the rail) |
-| All together — one product | each tool's sentence (Line capacity, the line balance, the line standard) · the line station by station, who works there · the line standard's card · each person against takt (17 October: Rowland, "the option to do it all together") |
+| All together — one product | the band · the five tiles, each tool's own figure · the closing line (17 October, the lean page) · each tool's sentence (Line capacity, the line balance, the line standard) · the line station by station, who works there · the line standard's card · each person against takt (17 October: Rowland, "the option to do it all together") |
 | Line standard | the board · who does what |
 | Line standard — long notes | the board · the bottleneck said first · words up a tall shape |
 | Value stream · SMED | the grid (and SMED's sentence) |

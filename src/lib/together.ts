@@ -21,6 +21,11 @@ import { agreedFor, crewKept, stationsOf } from './ie/balanceLink';
 import { headcount, hasMap, type Standard } from './standard';
 import type { AgreedBalance, ToolStudy } from './study';
 import type { Tone } from './ie/sample';
+import type { LeanTile } from './lean';
+import { capacityPaper } from './capacityPaper';
+import { capacityLean } from './capacityLean';
+import { balanceTiles } from './ie/balanceLean';
+import { balanceCost, costInputs } from './ie/balanceLink';
 
 /** What a product's Line capacity says in a line: "Bagger limits at 58
  *  bags/min · 2 short of 60", and whether it is short — the only part that
@@ -132,4 +137,34 @@ export function togetherOf(s: Standard, study?: ToolStudy | null, line?: Pick<Wo
     hasMap: hasMap(s),
     hasBalance: !!study,
   };
+}
+
+/** ALL TOGETHER'S TILES (docs/LEAN-PAGE.md) — each tool's own figure,
+ *  labelled by the tool that says it, none worked out here: what the line
+ *  makes, against the target and labour a pack (Line capacity, lib/capacityLean),
+ *  the bottleneck person (the line balance, lib/ie/balanceLean), and the people
+ *  on the map (the line standard). Screen and paper read this. */
+export function togetherTiles(s: Standard, study?: ToolStudy | null, line?: Pick<Workspace, 'name' | 'crew' | 'labourRatePerHour' | 'labourBurden' | 'marginPerPack'>): LeanTile[] {
+  const cap = s.capacity;
+  const onMap = headcount(s);
+  const p = capacityPaper({ product: s.product, line: line?.name ?? '', printed: '', capacity: cap, labour: labourInputs(cap, onMap || undefined, line),
+    ...(line?.marginPerPack != null ? { margin: line.marginPerPack } : {}) });
+  const ct = capacityLean(p).tiles;
+  const crew = study ? crewKept(study.facts.crew ?? [], cap) : [];
+  const a = study ? agreedFor(study.agreed?.balance, cap, !!study.closedAt) : undefined;
+  const f = study ? balance(study.facts.steps, a, crew) : undefined;
+  const bt = f ? balanceTiles(f, a, a ? balanceCost(f, costInputs(cap, line)) : undefined, cap?.stations[0]?.unit.trim() || undefined) : undefined;
+  const person = bt?.find(x => x.k === 'The bottleneck');
+  return [
+    ...ct.filter(x => x.k === 'The line makes' || x.k === 'Against the target' || x.k.startsWith('Labour a')),
+    person ? { ...person, k: 'The bottleneck person' } : { k: 'The bottleneck person', v: '—', of: 'no line balance yet — time each person’s work' },
+    { k: 'People on the map', v: String(onMap), of: f?.fewest != null ? `the work needs ${f.fewest} at this takt` : hasMap(s) ? 'placed on the line standard' : 'no map yet' },
+  ];
+}
+
+/** All together's closing line — Line capacity's own (lib/capacityLean): the line is held where Line capacity says. */
+export function togetherClosing(s: Standard, line?: Pick<Workspace, 'name' | 'crew' | 'labourRatePerHour' | 'labourBurden' | 'marginPerPack'>): { text: string; tone: 'r' | 'a' | 'g' | 'n' } {
+  const cap = s.capacity;
+  return capacityLean(capacityPaper({ product: s.product, line: line?.name ?? '', printed: '', capacity: cap, labour: labourInputs(cap, headcount(s) || undefined, line),
+    ...(line?.marginPerPack != null ? { margin: line.marginPerPack } : {}) })).closing;
 }

@@ -432,6 +432,31 @@ let TRAY;
     ok(!!want && money === want.text && /because of/.test(money) && (await page.locator('.cap-money.is-r').count()) === (want.short ? 1 : 0),
       `12b what the bottleneck costs a pack, as lib/capacity says: "${money}"`);
   }
+  /* 12g THE LEAN PAGE (docs/LEAN-PAGE.md) — the band's verdict, the tiles and
+     the closing line as lib/capacityLean reads them, and the same on paper */
+  {
+    const want = await page.evaluate(async id => {
+      const db = await import('/src/db.ts'); const C = await import('/src/lib/capacity.ts'); const S = await import('/src/lib/standard.ts');
+      const P = await import('/src/lib/capacityPaper.ts'); const L = await import('/src/lib/capacityLean.ts'); const T = await import('/src/lib/together.ts');
+      const st = await db.getStandard(id); const ws = st.workspaceId ? await db.getWorkspace(st.workspaceId) : undefined;
+      const lean = L.capacityLean(P.capacityPaper({ product: st.product, line: ws?.name ?? '', printed: '', capacity: st.capacity,
+        labour: C.labourInputs(st.capacity, S.headcount(st) || undefined, ws), ...(ws?.marginPerPack != null ? { margin: ws.marginPerPack } : {}) }));
+      return { tiles: lean.tiles, closing: lean.closing, verdict: T.capacitySays(st.capacity).text };
+    }, SID);
+    const vs = await page.locator('.cap-tiles .ln-tile .ln-v').allInnerTexts(), ofs = await page.locator('.cap-tiles .ln-tile .ln-of').allInnerTexts();
+    ok(vs.join('|') === want.tiles.map(x => x.v).join('|') && ofs.join('|') === want.tiles.map(x => x.of).join('|') && want.tiles.some(x => x.k.startsWith('Labour a') && x.v !== '—'),
+      `12g the tiles, as lib/capacityLean reads them: ${want.tiles.map(x => `${x.k} ${x.v}`).join(' · ')}`);
+    ok((await words('.ls-head.is-band .ln-verdict')) === want.verdict && (await words('.ln-close > span:last-child')) === want.closing.text,
+      `12g the band's verdict "${want.verdict}" and the closing line "${want.closing.text.slice(0, 70)}…"`);
+    const { execFileSync } = await import('node:child_process');
+    const { mkdtempSync } = await import('node:fs'); const { tmpdir } = await import('node:os'); const { join } = await import('node:path');
+    const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'PDF', exact: true }).click()]);
+    const file = join(mkdtempSync(join(tmpdir(), 'cap-lean-')), 'lean.pdf'); await dl.saveAs(file);
+    const txt = execFileSync('pdftotext', ['-raw', file, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ').replace(/[–—]/g, '-').replace(/’/g, "'");
+    const norm = x => x.replace(/\s+/g, ' ').replace(/[–—]/g, '-').replace(/’/g, "'");
+    const missing = [...want.tiles.map(x => x.v), 'What it means', 'Action plan', norm(want.closing.text).slice(0, 50)].filter(x => !txt.includes(norm(x)));
+    ok(!missing.length, `12g on paper, the lean page: the band, the tiles, where it is limited, what it means, the action plan, the closing line${missing.length ? ` — missing: ${missing.join(' | ')}` : ''}`);
+  }
   if (m.more) {
     ok((await box.locator('.cap-cost-more').first().innerText()).replace(/\s+/g, ' ').startsWith(m.more), `12c one more person at the bottleneck, as the module says: ${m.more}`);
     await box.getByRole('button', { name: new RegExp(`^Make it ${m.crew + 1} at`) }).click(); await page.waitForTimeout(900);

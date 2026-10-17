@@ -11,9 +11,10 @@
  * Its paper is the same page (lib/togetherPdf). */
 import { useEffect, useState } from 'react';
 import { nav } from '../state/useRoute';
-import { togetherOf } from '../lib/together';
 import type { Standard } from '../lib/standard';
 import { CostBlock, Legend, PersonBar, Stacks, useBalanceFor, useLine, worksFor } from './WorkBalance';
+import { LeanClosing, LeanTiles } from './Lean';
+import { togetherClosing, togetherOf, togetherTiles } from '../lib/together';
 
 export function Together({ s, name, here }: { s: Standard; name: string; here: string }) {
   const study = useBalanceFor(s.id);
@@ -45,16 +46,23 @@ export function Together({ s, name, here }: { s: Standard; name: string; here: s
   };
   return (
     <div className="wrap pace ls tg">
-      <header className="ls-head">
+      <header className="ls-head is-band">
         <div className="ls-head-main">
           <p className="sub">All together{name ? ` · ${name}` : ''}</p>
           <h1 className="ls-product is-read">{s.product}</h1>
           <p className="sub tg-lede">Who stands where, what each person does against takt, and what the line can make — each read from its own tool, and changed there.</p>
+          {(s.capacity?.stations.length ?? 0) > 0 && <span className={'ln-verdict' + (t.capacity.short ? ' is-r' : '')}><b>{t.capacity.text}</b></span>}
         </div>
         <div className="ls-head-actions">
           <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => void paper()}>{busy ? 'Making…' : 'PDF'}</button>
         </div>
       </header>
+
+      {/* THE TILES (docs/LEAN-PAGE.md) — each tool's own figure, labelled by the
+          tool that says it: what the line makes, against the target, labour a
+          pack (Line capacity), the bottleneck person (the line balance), the
+          people on the map (the line standard) */}
+      <LeanTiles tiles={togetherTiles(s, study ?? undefined, line)} />
 
       {/* WHERE WE ARE — the three answers, the abnormal in red */}
       <div className="tg-strip" role="group" aria-label="Where it stands">
@@ -116,6 +124,7 @@ export function Together({ s, name, here }: { s: Standard; name: string; here: s
           </>
         )}
       </section>
+      <LeanClosing closing={togetherClosing(s, line)} />
     </div>
   );
 }

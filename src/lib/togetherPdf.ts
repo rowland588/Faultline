@@ -9,7 +9,8 @@ import type { jsPDF } from 'jspdf';
 import { getWorkspace } from '../db';
 import type { Standard } from './standard';
 import type { ToolStudy } from './study';
-import { togetherOf } from './together';
+import { togetherClosing, togetherOf, togetherTiles } from './together';
+import { leanBand, leanClosing, leanTiles } from './report/lean';
 import { balanceCost, costInputs } from './ie/balanceLink';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { SIZE, box, font, gap, label, rows, text, wrap } from './report/blocks';
@@ -17,7 +18,7 @@ import { balanceBlocks } from './report/balanceTable';
 import { todayISO } from './weeks';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', BRAND = '#1f63e0', DANGER = '#c4281c', NAVY = '#0f1a2e';
+const INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', DANGER = '#c4281c', NAVY = '#0f1a2e';
 
 export interface TogetherPaper { s: Standard; study?: ToolStudy; name: string; printed: string; card?: string; line?: Awaited<ReturnType<typeof getWorkspace>> }
 
@@ -25,9 +26,11 @@ function blocksOf(p: TogetherPaper, d: Density): Block[] {
   const t = togetherOf(p.s, p.study, p.line);
   const unit = p.s.capacity?.stations[0]?.unit.trim() || undefined;
   const out: Block[] = [];
-  out.push(text({ text: `ALL TOGETHER · ${p.name.toUpperCase()}`, size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
-  out.push(text({ text: p.s.product, size: SIZE.title, style: 'bold', after: 4 }));
-  out.push(text({ text: `Line standard, line balance and Line capacity, each as its own tool says it · printed ${p.printed}`, colour: MUTED, after: gap(d, 'm') }));
+  /* THE BAND AND THE TILES (docs/LEAN-PAGE.md) — as the screen has them */
+  out.push(leanBand({ eyebrow: 'All together', title: p.s.product, sub: [p.name, 'line standard, line balance and Line capacity, each as its own tool says it'].filter(Boolean).join(' · '),
+    ...((p.s.capacity?.stations.length ?? 0) > 0 ? { verdict: { text: t.capacity.text, tone: t.capacity.short ? 'r' : 'n' } } : {}),
+    facts: [['People', String(t.figures?.people.length ?? 0)], ['Stations', String(t.stations.length)]], tiles: [], insights: [], actions: [], actionsEmpty: '', closing: { text: '', tone: 'n' } }, p.printed));
+  out.push(leanTiles(togetherTiles(p.s, p.study, p.line)));
   /* where it stands */
   out.push(label('Where it stands'));
   const strip: [string, string, boolean][] = [
@@ -84,6 +87,8 @@ function blocksOf(p: TogetherPaper, d: Density): Block[] {
   /* each person against takt, and what the bottleneck costs */
   if (t.figures) out.push(...balanceBlocks(t.figures, { ...(cost ? { cost } : {}), ...(unit ? { unit } : {}), heading: 'What each person does, against takt' }));
   else out.push(text({ text: 'No line balance yet — the people’s work is not timed.', colour: MUTED }));
+  /* THE CLOSING LINE — what the bottleneck costs, as Line capacity says it */
+  out.push(leanClosing(togetherClosing(p.s, p.line)));
   return out;
 }
 

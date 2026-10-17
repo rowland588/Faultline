@@ -85,6 +85,8 @@ await page.evaluate(async pid => {
 }, sd.projectId);
 tr = await truth();
 await go('#/projects'); await go(J);
+/* under the gate's load the front page can take longer than go's wait to draw its pace */
+await page.locator('.ot-pace').first().waitFor({ timeout: 15000 }).catch(() => {});
 ok(tr.pace?.kind === 'forecast' && !!tr.pace.after && await words('.ot-pace') === `${tr.pace.text} ${tr.pace.working}`, `1 pace, the coder given its list: "${await words('.ot-pace')}"`);
 await go(`${J}/plan`);
 ok(/^At this pace /.test((await words('.gt-hand.is-pace')) ?? ''), `1 pace, on the plan: "${await words('.gt-hand.is-pace')}"`);

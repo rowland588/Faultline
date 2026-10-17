@@ -28,6 +28,7 @@ import { deleteMap, removeFromTool } from '../ui/StandardsCard';
 import { CapacityPanel } from './CapacityPanel';
 import { balanceSays } from './LineToolsScreen';
 import { WorkView, useBalanceFor, workOf } from '../ui/WorkBalance';
+import { capacitySays } from '../lib/together';
 import { Together } from '../ui/Together';
 import { ChangeoverLines } from '../ui/ChangeoverLines';
 import { mins } from '../lib/ie/changeover';
@@ -604,7 +605,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
      its own page, one tap from its Line capacity and its map. */
   if (atWork) return (
     <div className="wrap pace ls lb">
-      <header className="ls-head">
+      <header className="ls-head is-band">
         <div className="ls-head-main">
           <p className="sub"><button type="button" className="cw-link" onClick={() => nav(s.workspaceId ? `/linebalance?line=${encodeURIComponent(s.workspaceId)}` : home.base)}>Line balance</button>{home.name ? ` · ${home.name}` : ''}</p>
           {ro ? <h1 className="ls-product is-read">{s.product}</h1> : (
@@ -629,7 +630,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
      own speed, and the one that holds the line back (lib/capacity). */
   if (atBalance) return (
     <div className="wrap pace ls lb">
-      <header className="ls-head">
+      <header className="ls-head is-band">
         <div className="ls-head-main">
           {/* LINE CAPACITY'S OWN PAGE — back to Line capacity on this line, never
               to the line standard's list (Rowland, 13 October) */}
@@ -640,6 +641,8 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
               onChange={e => setProduct(e.target.value)}
               onBlur={() => { const v = product.trim(); if (v && v !== s.product) void save({ product: v }); else setProduct(s.product); }} />
           )}
+          {/* the band's verdict (docs/LEAN-PAGE.md): what limits the line, red when short */}
+          {(s.capacity?.stations.length ?? 0) > 0 && (() => { const c = capacitySays(s.capacity); return <span className={'ln-verdict' + (c.short ? ' is-r' : '')}><b>{c.text}</b></span>; })()}
         </div>
         <div className="ls-head-actions">
           {/* its line balance and its line standard, one tap away — the

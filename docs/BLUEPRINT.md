@@ -976,6 +976,22 @@ is still wired.
   eight, the waterfall drawn as on screen). Shows on: the count's page and its
   PDF; the share column in every loss table (the 6M report's too). Accepted
   by `shift-losses.mjs` (4b); the page by `inventory.mjs`.
-- **Next:** the lean page, slice 2 — Line capacity, the line balance and All
-  together (`docs/LEAN-PAGE.md`); then Stage 3 — the line is the hub (its
-  products, readiness, health).
+- **The lean page, slice 2 — Line capacity, the line balance and All
+  together.** No new record. Line capacity's paper reading
+  (`lib/capacityPaper`) carries the figures its tiles say (`figures`: what the
+  line makes and who holds it, the target and the gap, labour a pack now and
+  at the target, the people); `lib/capacityLean` reads it into the lean page;
+  `lib/ie/balanceLean` the line balance's tiles; `lib/together` togetherTiles
+  each tool's own figure for All together, adding none. Shows on: the three
+  pages' headers as the band (Line capacity's with what limits the line), Line
+  capacity's tiles under its what-if tabs and its closing line, the line
+  balance's tiles in its strip's place and its closing line, All together's
+  tiles and closing line; and on paper — a product's own Line capacity page
+  (band, tiles, where it is limited, what it means, the action plan — the way
+  to the target, the what-ifs, the people's work — and the closing line; a
+  list of products keeps its form) and All together's. Accepted by
+  `line-capacity.mjs` (12g) and `work-balance.mjs` (10); the pages by
+  `inventory.mjs`.
+- **Next:** the lean page, slice 3 — the client report and the one-page
+  status, and the job's front page (`docs/LEAN-PAGE.md`); then Stage 3 — the
+  line is the hub (its products, readiness, health).
