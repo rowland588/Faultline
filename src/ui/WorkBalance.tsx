@@ -46,6 +46,8 @@ import { agreedFor, balanceCost, balanceCostSays, capacityTaking, costInputs, cr
 import type { Workspace } from '../types';
 import type { AgreedBalance, BalanceCrew, BalanceStep, Lap, StepKind, ToolStudy } from '../lib/study';
 import type { Can } from '../lib/access';
+import { balanceClosing, balanceTiles } from '../lib/ie/balanceLean';
+import { LeanClosing, LeanTiles } from './Lean';
 
 const RATINGS = [75, 90, 100, 110, 125];
 const KINDS: { kind: StepKind; word: string }[] = [{ kind: 'work', word: 'Work' }, { kind: 'walk', word: 'Walk' }, { kind: 'wait', word: 'Wait' }];
@@ -197,6 +199,8 @@ function Work({ study, s, can, me }: { study: ToolStudy; s: Standard; can: Can; 
   const lineUnit = s.capacity?.stations[0]?.unit.trim() || undefined;
   const onMap = peopleOf(s).length || undefined;
   const said = balanceSays(f, onMap);
+  const line = useLine(s.workspaceId);
+  const cost = a ? balanceCost(f, costInputs(s.capacity, line)) : undefined;
   const ghost = suggest(f);
   const offer = closed ? undefined : targetOffer(study.agreed?.balance, s.capacity);
   const [showGhost, setShowGhost] = useState(false);
@@ -263,14 +267,11 @@ function Work({ study, s, can, me }: { study: ToolStudy; s: Standard; can: Can; 
 
   return (
     <div className="wb">
-      <div className="wb-strip ie-strip" role="group" aria-label="Where the work stands">
-        <span className={'ie-fig' + (a ? '' : ' is-n')}>takt <b>{a ? secs(a.taktSec) : '—'}</b>{a ? aPiece({ unit: lineUnit }) : ' not set'}{a?.from === 'target' ? ' · Line capacity’s target' : ''}</span>
-        <span className="ie-fig"><b>{secs(f.total)}</b> of work{aPiece({ unit: lineUnit })}</span>
-        {a && <span className={'ie-fig' + (onMap !== undefined && f.fewest !== undefined && onMap !== f.fewest ? ' is-a' : '')}><b>{f.fewest ?? '—'}</b> needed · {f.people.length} working</span>}
-        {f.efficiency !== undefined && a && <span className="ie-fig"><b>{Math.round(f.efficiency * 100)}%</b> balanced</span>}
-        {f.constraint && a && <span className={'ie-fig' + (f.constraint.overBy ? ' is-r' : '')}>constraint <b>{f.constraint.who}</b></span>}
-        {a?.allowance ? <span className="ie-fig is-n">+{Math.round(a.allowance * 100)}% allowance</span> : null}
-      </div>
+      {/* THE TILES (docs/LEAN-PAGE.md) — the people and what the work needs,
+          the takt and where it came from, the bottleneck person against their
+          takt, labour a pack, and what the bottleneck loses a minute; they
+          took the strip's place, every figure it held among them */}
+      <LeanTiles className="wb-strip ie-strip" tiles={balanceTiles(f, a, cost, lineUnit, onMap)} />
 
       {/* NO TAKT YET — the target is Line capacity's; timing never waits for it */}
       {!a && !agreeing && (
@@ -312,6 +313,9 @@ function Work({ study, s, can, me }: { study: ToolStudy; s: Standard; can: Can; 
           }}>Use it</button>
         )}
       </div>
+
+      {/* THE CLOSING LINE — the one sentence: what the bottleneck costs, or what the balance says */}
+      {f.people.length > 0 && <LeanClosing closing={balanceClosing(f, cost, said, lineUnit)} />}
 
       {editable && picks.length > 0 && crew.every(c => !c.stationId) && f.people.length > 0 && (
         <p className="wb-hint sub">Put each person at their station of Line capacity — their time is then in that station’s unit, held to its own takt, and Line capacity takes it.</p>

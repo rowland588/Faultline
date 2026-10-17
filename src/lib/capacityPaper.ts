@@ -129,6 +129,16 @@ export interface CapacityPaper {
   work?: { text: string; lines: { text: string; tone: Tone }[] };
   /** Each what-if tried, what it would do against the line as run. */
   whatIfs: { name: string; says: string; changed: string[]; onBoard: boolean; labour?: string }[];
+  /** THE FIGURES the lean page's tiles say (lib/capacityLean, docs/LEAN-PAGE.md):
+   *  what the line makes and who holds it, the target and the gap, labour a
+   *  pack now and at the target, the people and where the number came from. */
+  figures: {
+    stations: number; line?: number; limit?: string; target?: number; gap?: number;
+    perPack?: number; perHour?: number; perPackThen?: number; extraPerPack?: number; against?: 'target' | 'next';
+    /** What the line would make without the bottleneck, the station that would hold it then, £ a minute paid for packs not made, contribution lost a minute. */
+    then?: number; next?: string; perMin?: number; contributionPerMin?: number;
+    people?: number; peopleFrom?: LabourInputs['peopleFrom'];
+  };
 }
 
 const PER: Record<NonNullable<Station['ratePer']>, string> = { sec: 'a second', min: 'a minute', hour: 'an hour' };
@@ -197,7 +207,8 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
   const base = { product: x.product, line: x.line, ...(x.job ? { job: x.job } : {}), printed: x.printed, unit: r.unit };
   if (!n) {
     return { ...base, headline: 'No stations yet — the line’s stations for this product are still to be written down', short: false,
-      sentence: r.sentence, rows: [], check: [], whatIfs: [] };
+      sentence: r.sentence, rows: [], check: [], whatIfs: [],
+      figures: { stations: 0, ...(x.labour.people != null ? { people: x.labour.people, ...(x.labour.peopleFrom ? { peopleFrom: x.labour.peopleFrom } : {}) } : {}) } };
   }
   /* A SINGLE LINE is one group; several lines are a group each and the place
      they merge (lib/capacity LanesView) — a V is read along ONE line. */
@@ -308,6 +319,17 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
     ...(labour ? { labour } : {}),
     ...(x.work ? { work: { text: x.work.text, lines: x.work.lines.map(l => ({ text: l.text, tone: (l.tone === 'r' || l.tone === 'a' ? l.tone : 'n') as Tone })) } } : {}),
     whatIfs,
+    figures: (() => {
+      const lc = labourCost(r, x.labour.people, x.labour.rate);
+      return {
+        stations: n, ...(r.line != null ? { line: r.line } : {}), ...(r.limit ? { limit: r.limit.station.name.trim() || `Station ${r.limit.index + 1}` } : {}),
+        ...(target != null ? { target } : {}), ...(r.gap != null && r.gap > 1e-9 && target != null ? { gap: r.gap } : {}),
+        ...(lc ? { perPack: lc.perPack, perHour: lc.perHour } : {}),
+        ...(bk?.perPackThen != null ? { perPackThen: bk.perPackThen } : {}), ...(bk?.extraPerPack != null ? { extraPerPack: bk.extraPerPack } : {}), ...(bk?.against ? { against: bk.against } : {}),
+        ...(bk?.then != null ? { then: bk.then } : {}), ...(bk?.next ? { next: bk.next } : {}), ...(bk?.perMin != null ? { perMin: bk.perMin } : {}), ...(bk?.contributionPerMin != null ? { contributionPerMin: bk.contributionPerMin } : {}),
+        ...(x.labour.people != null ? { people: x.labour.people, ...(x.labour.peopleFrom ? { peopleFrom: x.labour.peopleFrom } : {}) } : {}),
+      };
+    })(),
   };
 }
 

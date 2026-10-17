@@ -20,8 +20,10 @@ const wash = (t: LeanTone): string | undefined => (t === 'g' ? '#f1f8f3' : t ===
 /** THE BAND — what, where, and the day, the shift, the rate and when printed. */
 export function leanBand(p: LeanPage, printed: string): Block {
   const facts: [string, string][] = [...p.facts, ['Printed', printed]];
-  const FW = 168, PAD = 12;
+  const FW = 168;
+  const padOf = (f: Frame) => (f.density === 'compact' ? 9 : 12);
   const lay = (f: Frame) => {
+    const PAD = padOf(f);
     const lw = f.w - FW - PAD * 3;
     const title = wrap(f.doc, p.title, lw, 19, 'bold');
     const sub = p.sub ? wrap(f.doc, p.sub, lw, 9.5, 'bold') : [];
@@ -31,10 +33,10 @@ export function leanBand(p: LeanPage, printed: string): Block {
     return { lw, title, sub, fl, h: Math.max(left, right, 64) };
   };
   return {
-    height: f => lay(f).h + 10,
-    after: () => 10,
+    height: f => lay(f).h + (f.density === 'compact' ? 7 : 10),
+    after: f => (f.density === 'compact' ? 7 : 10),
     draw: (f, y) => {
-      const d = f.doc, l = lay(f);
+      const d = f.doc, l = lay(f), PAD = padOf(f);
       d.setFillColor(SHELL); d.roundedRect(f.x, y, f.w, l.h, 7, 7, 'F');
       let yy = y + PAD + 7;
       font(d, 7.5, 'bold', SHELL_MUTED); d.text(san(p.eyebrow.toUpperCase()), f.x + PAD, yy);
@@ -82,15 +84,16 @@ export function leanTiles(tiles: LeanTile[]): Block {
       t, of: t.of ? wrap(f.doc, t.of, tw - 16, 7.5) : [], ch: t.change ? wrap(f.doc, t.change.text, tw - 26, 7.5, 'bold') : [],
       v: wrap(f.doc, t.v, tw - 16, 17, 'bold'),
     }));
-    const hOf = (e: typeof each[number]) => 10 + 9 + e.v.length * 19 + e.of.length * 9.5 + (e.ch.length ? 4 + e.ch.length * 9.5 : 0) + 9;
+    const pad = f.density === 'compact' ? 7 : 10;
+    const hOf = (e: typeof each[number]) => pad + 9 + e.v.length * 19 + e.of.length * 9.5 + (e.ch.length ? 4 + e.ch.length * 9.5 : 0) + pad - 1;
     const rowsOf: typeof each[] = [];
     for (let i = 0; i < each.length; i += PER) rowsOf.push(each.slice(i, i + PER));
     const rh = rowsOf.map(r => Math.max(...r.map(hOf)));
-    return { tw, rowsOf, rh, h: rh.reduce((a, b) => a + b, 0) + GAP * (rowsOf.length - 1) };
+    return { tw, rowsOf, rh, pad, h: rh.reduce((a, b) => a + b, 0) + GAP * (rowsOf.length - 1) };
   };
   return {
-    height: f => (tiles.length ? lay(f).h + 12 : 0),
-    after: () => 12,
+    height: f => (tiles.length ? lay(f).h + (f.density === 'compact' ? 8 : 12) : 0),
+    after: f => (f.density === 'compact' ? 8 : 12),
     draw: (f, y) => {
       const d = f.doc, l = lay(f);
       let ry = y;
@@ -102,7 +105,7 @@ export function leanTiles(tiles: LeanTile[]): Block {
           d.setDrawColor(LINE); d.setLineWidth(0.6);
           if (fill) { d.setFillColor(fill); d.roundedRect(x, ry, l.tw, h, 4, 4, 'FD'); } else d.roundedRect(x, ry, l.tw, h, 4, 4, 'S');
           d.setFillColor(tone === 'n' ? LINE2 : TONE[tone]); d.rect(x + 0.3, ry + 0.3, l.tw - 0.6, 3, 'F');
-          let yy = ry + 10 + 7;
+          let yy = ry + l.pad + 7;
           font(d, 6.8, 'bold', MUTED); d.text(san(e.t.k.toUpperCase()), x + 8, yy);
           font(d, 17, 'bold', tone === 'r' || tone === 'a' ? TONE[tone] : e.t.v === '—' ? GREY : INK);
           e.v.forEach(s => { yy += 19; d.text(s, x + 8, yy - 2); });
@@ -128,12 +131,12 @@ export function leanTiles(tiles: LeanTile[]): Block {
 export function leanHead(title: string, aside?: string): Block {
   return {
     keepWithNext: true,
-    height: () => 22,
+    height: f => (f.density === 'compact' ? 17 : 20),
     draw: (f, y) => {
-      const d = f.doc;
-      font(d, 11, 'bold', INK); d.text(san(title), f.x, y + 12);
-      if (aside) { font(d, 7.5, 'normal', MUTED); d.text(san(aside), f.x + f.w, y + 12, { align: 'right' }); }
-      d.setDrawColor(LINE); d.setLineWidth(0.7); d.line(f.x, y + 17, f.x + f.w, y + 17);
+      const d = f.doc, k = f.density === 'compact' ? 2 : 0;
+      font(d, 11, 'bold', INK); d.text(san(title), f.x, y + 11 - k);
+      if (aside) { font(d, 7.5, 'normal', MUTED); d.text(san(aside), f.x + f.w, y + 11 - k, { align: 'right' }); }
+      d.setDrawColor(LINE); d.setLineWidth(0.7); d.line(f.x, y + 15.5 - k, f.x + f.w, y + 15.5 - k);
     },
   };
 }
@@ -294,7 +297,7 @@ export function leanActions(xs: LeanAction[], empty: string): Block[] {
 export function leanClosing(c: { text: string; tone: LeanTone }): Block {
   const LH = 11.5;
   const lines = (f: Frame) => wrap(f.doc, c.text, f.w - 56, 9.5, 'bold');
-  const hOf = (f: Frame) => Math.max(34, lines(f).length * LH + 16);
+  const hOf = (f: Frame) => Math.max(f.density === 'compact' ? 30 : 34, lines(f).length * LH + (f.density === 'compact' ? 12 : 16));
   return {
     height: f => hOf(f) + 6,
     after: () => 6,

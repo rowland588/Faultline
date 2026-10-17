@@ -13475,3 +13475,27 @@ button.ln-row:hover { background: var(--surface-2); }
   .ln-grid .ln-pr .ln-pw { grid-column: 1 / -1; }
   .ln-grid .ln-ph { display: none; }
 }
+
+/* the product's own pages — Line capacity, the line balance, All together —
+   headed by the band (docs/LEAN-PAGE.md): its name, where it is, the verdict,
+   and the doors to its other tools, on the house navy */
+.ls-head.is-band { background: var(--shell); color: var(--shell-ink); border-radius: var(--radius); padding: 14px 18px 16px; align-items: flex-start; margin: 6px 0 12px; }
+.ls-head.is-band .ls-head-main { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+.ls-head.is-band .sub, .ls-head.is-band .cw-link { color: var(--shell-muted); }
+.ls-head.is-band .ls-product { color: var(--shell-ink); background: transparent; border-bottom-color: transparent; }
+.ls-head.is-band .ls-product:hover, .ls-head.is-band .ls-product:focus { border-bottom-color: var(--shell-line); }
+.ls-head.is-band .btn-ghost { color: var(--shell-ink); border-color: var(--shell-line); background: transparent; }
+.ls-head.is-band .btn-ghost:hover { background: var(--shell-2); }
+.ls-head.is-band .ls-del { color: var(--shell-bad); }
+.ls-head.is-band .ln-verdict { margin-top: 6px; border-radius: 999px; padding: 2px 10px; border: 1px solid var(--shell-line); background: var(--shell-2); font-size: var(--t-detail); }
+.ls-head.is-band .ln-verdict b { color: var(--shell-ink); }
+.ls-head.is-band .ln-verdict.is-r { background: var(--st-r); border-color: var(--st-r); }
+.ls-head.is-band .ln-verdict.is-a { background: var(--st-a); border-color: var(--st-a); }
+.ls-head.is-band .ln-verdict.is-g { background: var(--st-g); border-color: var(--st-g); }
+.cap-tiles { margin: 10px 0 12px; }
+@media (max-width: 760px) {
+  /* on a phone the band's doors are small — the band says where we are, the doors are a tap away */
+  .ls-head.is-band { padding: 12px 14px 14px; }
+  .ls-head.is-band .ls-head-actions { gap: 6px; }
+  .ls-head.is-band .btn { min-height: 36px; padding: 0 12px; font-size: var(--t-detail); }
+}

@@ -807,8 +807,10 @@ own picture, the top causes, what it means, the action plan (action · owner
 drawn. One model (`lib/lean`), one builder a tool (`lib/ie/lossLean` for the
 loss count), drawn on screen by `ui/Lean` and on paper by `lib/report/lean`,
 so the two never part. What is typed stays on the page under the eight.
-Built slice by slice (the doc's table): the loss count first; Line capacity,
-the line balance and All together next.
+Built slice by slice (the doc's table): the loss count, then Line capacity,
+the line balance and All together (`lib/capacityLean`, `lib/ie/balanceLean`,
+`lib/together` togetherTiles); the client report and the one-page status
+next.
 
 ## Simplicity — lean, applied to the screen
 

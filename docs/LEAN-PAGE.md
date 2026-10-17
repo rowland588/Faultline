@@ -96,8 +96,11 @@ card) keep their card form; they take the band only.
 
 ## Slices — each ships live with the gate green
 
-1. **The kit and the loss count**, screen and paper. *(This slice.)*
-2. Line capacity, the line balance and All together.
+1. **The kit and the loss count**, screen and paper. *(Live.)*
+2. **Line capacity, the line balance and All together**, screen and paper.
+   Line capacity keeps its inputs-left, picture-right layout (Rowland, 16
+   October) between the tiles and the closing line; the line balance's paper
+   is its list's and All together's — it has no page PDF of its own.
 3. The client report and the one-page status, and the job's front page.
 4. The 6M report and Problems.
 5. The control room, the factory and the day.

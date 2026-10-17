@@ -53,6 +53,9 @@ import {
   screenCapacity, bottleneckCost, bottleneckCostSays } from '../lib/capacity';
 import { useLineStops } from '../lib/useLineStops';
 import { Icon } from '../ui/Icon';
+import { LeanClosing, LeanTiles } from '../ui/Lean';
+import { capacityPaper } from '../lib/capacityPaper';
+import { capacityLean } from '../lib/capacityLean';
 import { VCurveView } from '../ui/VCurve';
 import { BottleneckWalk } from '../ui/BottleneckWalk';
 import { ShiftCapacityView, useShiftInputs } from '../ui/ShiftCapacity';
@@ -859,6 +862,10 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
   // `raised`: the action just written may land a beat before the re-read does.
   const gone = !!w?.action && boardRows != null && !made && !raised;
 
+  /* THE LEAN PAGE'S TILES AND CLOSING LINE — read as the paper reads them (lib/capacityLean) */
+  const lean = useMemo(() => capacityLean(capacityPaper({ product: line.name, line: lineWs?.name ?? '', printed: '', capacity: current,
+    labour: labourInputs(cap, mapPeople, lineWs), ...(lineWs?.marginPerPack != null ? { margin: lineWs.marginPerPack } : {}) })), [line.name, lineWs, current, cap, mapPeople]);
+
   /* THE LINE, DRAWN — one model for the right-hand pictures (lib/capacityFlow) */
   const fm = useMemo(() => flowModel(current, r, alike), [current, r, alike]);
   const worth = !w && !r.lanes && limit && r.next && r.line != null
@@ -905,6 +912,11 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
           )}
         </div>
       )}
+
+      {/* THE TILES (docs/LEAN-PAGE.md) — what the line makes and who holds it,
+          the target, against it, labour a pack, the people: the line on the
+          screen, as run or the what-if picked, read as its paper reads it */}
+      <LeanTiles tiles={lean.tiles} className="cap-tiles" />
 
       <div className="cap-verdict">
         <span className="cap-eyebrow">{w ? 'What the sums say — against the line as run' : 'What the sums say'}</span>
@@ -1226,6 +1238,8 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
           </div>
         )
       )}
+
+      {r.ok.length > 0 && <LeanClosing closing={lean.closing} />}
 
       {r.ok.length > 0 && (
         <Fold id="cap-working" title="The working" says={`${r.ok.length} station${r.ok.length === 1 ? '' : 's'} counted, in ${r.unit} a minute`} start={false}>

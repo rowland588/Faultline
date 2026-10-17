@@ -70,6 +70,10 @@ export const PAGES = (sd, cap) => [
     { what: 'the capacity sheet', sel: '.cap-sheet' },
     { what: 'what a unit costs in labour', sel: '.cap-cost' },
     { what: 'what the bottleneck costs a pack, under the sums (or what it needs)', sel: '.cap-money' },
+    /* the lean page (17 October, docs/LEAN-PAGE.md): the band, the tiles, the closing line */
+    { what: 'the band — the product, where it is, what limits the line', sel: '.ls-head.is-band .ln-verdict' },
+    { what: 'the tiles — what it makes, the target, against it, labour a pack, the people', sel: '.cap-tiles .ln-tile', n: 5 },
+    { what: 'the closing line', sel: '.ln-close' },
     { what: 'the stations, in order', sel: '.cap-grp' },
     /* set up on the left, seen on the right (16 October) */
     { what: 'the line, drawn beside the stations', sel: '.capx-live svg.cxf-svg' },
@@ -103,12 +107,18 @@ export const PAGES = (sd, cap) => [
     { what: 'each person, where they work and their bar against takt', sel: '.wb-person .wb-bar', n: 3 },
     { what: 'what the bottleneck costs, or what it needs', sel: '.wb-cost' },
     { what: 'time each person', sel: '.wb-time', n: 3 },
+    /* the lean page (17 October): the band, the tiles in the strip's place, the closing line */
+    { what: 'the band', sel: '.ls-head.is-band' }, { what: 'the tiles — people, takt, the bottleneck person, labour a pack, lost a minute', sel: '.wb-strip .ln-tile', n: 5 },
+    { what: 'the closing line', sel: '.wb .ln-close' },
   ] },
   { name: 'Line balance — every product', path: `#/linebalance?line=${sd.wsId}`, must: [{ what: 'each product with its balance said', sel: '.lt-row .lt-says' }] },
   { name: 'All together — one product', path: `#/w/${sd.wsId}/standards/${sd.lineStandardId}?at=all`, must: [
     { what: 'each tool’s sentence', sel: '.tg-strip .tg-cell', n: 3 },
     { what: 'the line station by station', sel: '.tg-st', n: 3 },
     { what: 'each person against takt', sel: '.tg-bars .wb-bar', n: 3 },
+    /* the lean page (17 October): the band, each tool's figure as a tile, the closing line */
+    { what: 'the band', sel: '.tg .ls-head.is-band' }, { what: 'the tiles — each tool’s own figure', sel: '.tg .ln-tiles .ln-tile', n: 5 },
+    { what: 'the closing line', sel: '.tg .ln-close' },
   ] },
   { name: 'Line standard — a map', path: `#/w/${sd.wsId}/standards/${sd.lineStandardId}`, must: [
     { what: 'the board', sel: '.ls-board' }, { what: 'who does what', sel: '.ls-side' },

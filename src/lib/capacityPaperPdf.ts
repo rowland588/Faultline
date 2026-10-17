@@ -19,6 +19,8 @@ import { chooseDensity, pour, type Block, type Density, type Frame } from './rep
 import { SIZE, box, font, gap, heading, label, lead, rows, space, text, wrap, type Row } from './report/blocks';
 import { san } from './reportKit';
 import { fmtN, oneOf, shareColours } from './capacity';
+import { capacityLean } from './capacityLean';
+import { leanActions, leanBand, leanClosing, leanHead, leanInsights, leanTiles } from './report/lean';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK = '#0f1a2e', INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', BRAND = '#1f63e0', SURF = '#eef2f8';
@@ -159,7 +161,7 @@ function vBars(p: CapacityPaper): Block | null {
 /** The V's key: what the bar, the paler bar and the marks are. */
 function vKey(p: CapacityPaper): Block {
   const words = `Bar: its share of the bottleneck once its own stops count; paler: more while running. Navy: the bottleneck; blue, lighter with room to spare; amber: under the V agreed. Solid line: 100%, the bottleneck${p.rows.some(r => r.guide != null) ? '; dashed tick: what the V asks of it' : ''}${p.targetPct != null ? `; dotted: the target${(p.targetPct ?? 0) > 100 + 1e-9 ? ', above the bottleneck' : ''}` : ''}.`;
-  return text({ text: words, size: S, colour: MUTED, after: 6 });
+  return text({ text: words, size: S, colour: MUTED, after: 4 });
 }
 
 /* --------------------------- the capacity sheet --------------------------- */
@@ -307,6 +309,37 @@ function shiftTable(p: CapacityPaper): Block | null {
   return rows({ header, rows: [...s.rows.map(r => line(r)), ...(s.day ? [line(s.day, true)] : [])], after: 's' });
 }
 
+/** WHERE IT IS LIMITED — the V drawn along each line (and where they merge,
+ *  when several feed one), the bottleneck walked, the capacity sheet a row a
+ *  station. `sayV`: the V's sentence beside it (the lean page says it under
+ *  What it means instead). */
+function limited(p: CapacityPaper, sayV: boolean): Block[] {
+  const out: Block[] = [];
+  if (sayV && p.v) out.push(said('The V-curve:', p.v.text, p.v.tone));
+  /* the V drawn, as the screen draws it — along each line, then the place
+     they merge, when several lines feed one (lib/capacity LanesView) */
+  if (p.groups?.length) {
+    const { targetPct: _all, ...rest } = p;
+    for (const g of p.groups) {
+      const gp: CapacityPaper = { ...rest, rows: p.rows.filter(r => r.group === g.name), ...(g.targetPct != null ? { targetPct: g.targetPct } : {}) };
+      out.push(label(`${g.name} — ${g.says}`));
+      if (g.v) out.push(said('The V-curve:', g.v.text, g.v.tone));
+      const gv = vBars(gp);
+      if (gv) { out.push(gv); out.push(vKey(gp)); }
+      out.push({ ...space('s'), keepWithNext: true });
+      out.push(sheet(gp));
+    }
+    if (sayV && p.walk) out.push(said('The bottleneck, walked:', p.walk.text, p.walk.tone));
+  } else {
+    const vb = vBars(p);
+    if (vb) { out.push(vb); out.push(vKey(p)); }
+    if (sayV && p.walk) out.push(said('The bottleneck, walked:', p.walk.text, p.walk.tone));
+    out.push({ ...space('s'), keepWithNext: true });   // travels with the sheet, never strands the label
+    out.push(sheet(p));
+  }
+  return out;
+}
+
 /* ------------------------------ one product ------------------------------ */
 
 /** The blocks of one product's page. `own`: the page is this product's
@@ -336,28 +369,7 @@ export function productBlocks(p: CapacityPaper, d: Density, own: boolean, keep =
   /* WHY — where it is limited */
   out.push(label('Where it is limited'));
   if (p.target) out.push(said('The target:', `${p.target}.`));
-  if (p.v) out.push(said('The V-curve:', p.v.text, p.v.tone));
-  /* the V drawn, as the screen draws it — along each line, then the place
-     they merge, when several lines feed one (lib/capacity LanesView) */
-  if (p.groups?.length) {
-    const { targetPct: _all, ...rest } = p;
-    for (const g of p.groups) {
-      const gp: CapacityPaper = { ...rest, rows: p.rows.filter(r => r.group === g.name), ...(g.targetPct != null ? { targetPct: g.targetPct } : {}) };
-      out.push(label(`${g.name} — ${g.says}`));
-      if (g.v) out.push(said('The V-curve:', g.v.text, g.v.tone));
-      const gv = vBars(gp);
-      if (gv) { out.push(gv); out.push(vKey(gp)); }
-      out.push({ ...space('s'), keepWithNext: true });
-      out.push(sheet(gp));
-    }
-    if (p.walk) out.push(said('The bottleneck, walked:', p.walk.text, p.walk.tone));
-  } else {
-    const vb = vBars(p);
-    if (vb) { out.push(vb); out.push(vKey(p)); }
-    if (p.walk) out.push(said('The bottleneck, walked:', p.walk.text, p.walk.tone));
-    out.push({ ...space('s'), keepWithNext: true });   // travels with the sheet, never strands the label
-    out.push(sheet(p));
-  }
+  out.push(...limited(p, true));
   if (p.check.length) {
     out.push(label('To check before the sums are trusted', AMBER));
     for (const c of p.check) out.push(text({ text: c, size: T, colour: AMBER, indent: 10, bullet: '·', after: 3 }));
@@ -397,6 +409,61 @@ export function productBlocks(p: CapacityPaper, d: Density, own: boolean, keep =
     for (const l of p.work.lines) out.push(text({ text: l.text, size: T, colour: toneInk(l.tone), indent: 10, bullet: '·', after: 3 }));
   }
   return own ? out : withHead(p, where, out, keep);
+}
+
+/** ONE PRODUCT'S OWN PAGE AS THE LEAN PAGE (docs/LEAN-PAGE.md): the band
+ *  and the tiles (lib/capacityLean, as the screen has them), where it is
+ *  limited — the V and the capacity sheet — what it means, the action plan
+ *  (the way to the target, the what-ifs, the people's work) and the closing
+ *  line. A list of products keeps its own form (productBlocks). */
+export function productLeanBlocks(p: CapacityPaper, d: Density): Block[] {
+  const page = capacityLean(p);
+  const out: Block[] = [leanBand(page, p.printed), leanTiles(page.tiles)];
+  const checks = (): Block[] => (p.check.length
+    ? [label('To check before the sums are trusted', AMBER), ...leanInsights(p.check.map(c => ({ text: c, tone: 'a' as const })))] : []);
+  if (!p.rows.length) {
+    out.push(text({ text: p.sentence, colour: INK2, after: gap(d, 'm') }));
+    out.push(...checks());
+    out.push(leanClosing(page.closing));
+    return out;
+  }
+  /* THE PICTURE — where it is limited */
+  out.push(leanHead('Where it is limited'));
+  out.push(...limited(p, false));
+  /* WHAT IT MEANS — the module's sentences, the checks under their own label,
+     a shift and a pack */
+  out.push(leanHead('What it means'));
+  /* what the bottleneck costs a pack is said once here: in the labour tile
+     and the closing line (lib/capacityLean) — the screen keeps its line under
+     the sums, where the sums are typed */
+  out.push(...leanInsights([...page.insights.filter(i => !p.check.includes(i.text)),
+    ...(p.labour ? [{ text: `What a ${oneOf(p.unit)} costs in labour: ${p.labour.says}`, tone: 'n' as const }] : [])]));
+  out.push(...checks());
+  if (p.shift) {
+    out.push(label('What the line makes a shift'));
+    const t = shiftTable(p);
+    if (t) out.push(t);
+    out.push(text({ text: p.shift.sentence, size: T, colour: INK2, after: gap(d, 'm') }));
+  }
+  /* THE ACTION PLAN — the way to the target, worked out; the what-ifs tried;
+     the people's work against takt. With none of them the closing line says
+     there is nothing to change, and the plan takes no room of its own. */
+  if (p.plan || p.whatIfs.length || p.work) {
+    out.push(leanHead('Action plan', p.plan ? 'The way to the target, worked out from the sums' : undefined));
+    if (p.plan) out.push(text({ text: `The way to the target: ${p.plan.says}`, size: T, colour: INK2, after: 4 }));
+    if (page.actions.length) out.push(...leanActions(page.actions, page.actionsEmpty));
+  }
+  for (const w of p.whatIfs) {
+    out.push(said(w.onBoard ? 'What if — on the board:' : 'What if:', w.says));
+    if (w.changed.length) out.push(text({ text: `Changed: ${w.changed.join('; ')}`, size: S, colour: MUTED, indent: 10, after: 3 }));
+    if (w.labour) out.push(text({ text: w.labour, size: S, colour: MUTED, indent: 10, after: 5 }));
+  }
+  if (p.work) {
+    out.push(said('The people’s work against takt:', p.work.text));
+    for (const l of p.work.lines) out.push(text({ text: l.text, size: T, colour: toneInk(l.tone), indent: 10, bullet: '·', after: 3 }));
+  }
+  out.push(leanClosing(page.closing));
+  return out;
 }
 
 /** One of many: under its name, kept on one page when the whole of it fits a page. */
@@ -460,7 +527,7 @@ function frontBlocks(papers: CapacityPaper[], scope: string, printed: string, d:
  *  the front, then each product's own. The first page is the current one. */
 export async function drawCapacityPaper(doc: jsPDF, papers: CapacityPaper[], o: { scope?: string; printed: string; weeks?: LineWeek[] }): Promise<void> {
   const one = papers.length === 1 && !o.scope;
-  const build = (d: Density): Block[] => (one ? productBlocks(papers[0], d, true)
+  const build = (d: Density): Block[] => (one ? productLeanBlocks(papers[0], d)
     /* the first product follows the front where it stands — kept whole
        overleaf, it left the front alone on a page */
     : [...frontBlocks(papers, o.scope ?? 'every product shown', o.printed, d, o.weeks), ...papers.flatMap((p, i) => productBlocks(p, d, false, i > 0))]);
