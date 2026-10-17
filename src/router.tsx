@@ -137,7 +137,7 @@ function app(route: Route) {
   if (route.name === 'factory') return <FactoryScreen />;
   /* ?line= opens it on one line — keyed on it, so a second line starts afresh */
   if (route.name === 'linePrograms') return <LineProgramsScreen key={route.query.get('line') ?? ''} />;
-  if (route.name === 'lineTools') return <LineToolsScreen key={route.query.get('line') ?? ''} tool={route.view === 'balance' ? 'balance' : 'map'} />;
+  if (route.name === 'lineTools') return <LineToolsScreen key={route.query.get('line') ?? ''} tool={route.view === 'balance' ? 'balance' : route.view === 'work' ? 'work' : 'map'} />;
   if (route.name === 'studies') return <StudiesScreen key={`${route.view ?? 'capability'}:${route.query.get('line') ?? ''}`} tool={route.view === 'map' ? 'map' : route.view === 'changeover' ? 'changeover' : route.view === 'sampling' ? 'sampling' : route.view === 'losses' ? 'losses' : 'capability'} />;
   if (route.name === 'study' && route.id) {
     if (route.view === 'map') return <MapScreen key={route.id} id={route.id} />;

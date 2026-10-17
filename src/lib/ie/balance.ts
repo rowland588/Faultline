@@ -40,7 +40,7 @@
  *   people decide    a far lap is flagged, never struck by the app; the
  *                    suggested balance is a suggestion, applied only when a
  *                    person says so */
-import type { AgreedBalance, BalanceStep, Lap } from '../study';
+import type { AgreedBalance, BalanceCrew, BalanceStep, Lap, StepKind } from '../study';
 import type { Tone } from './sample';
 
 /** Laps that count: not an interruption, not struck. */
@@ -89,6 +89,8 @@ export interface ElementFigures {
   enough: boolean;
   /** Lap ids far from the rest of this element's laps. */
   far: string[];
+  /** Work, walking or waiting (the combination table's three). */
+  kind: StepKind;
 }
 
 /** One element: observed mean, basic = observed × rating ÷ 100, standard =
@@ -96,7 +98,7 @@ export interface ElementFigures {
 export function element(st: BalanceStep, allowance = 0): ElementFigures {
   const laps = keptLaps(st.laps), xs = laps.map(l => l.sec);
   const rating = st.rating && st.rating > 0 ? st.rating : 100;
-  const base = { id: st.id, name: st.name, who: st.who, rating, n: xs.length };
+  const base = { id: st.id, name: st.name, who: st.who, rating, n: xs.length, kind: st.kind ?? 'work' as StepKind };
   if (!xs.length) {
     const typed = st.typedSec && st.typedSec > 0 ? st.typedSec : undefined;
     return { ...base, source: typed ? 'typed' : 'none', ...(typed ? { standard: typed } : {}), needed: 0, enough: false, far: [] };
@@ -113,12 +115,25 @@ export function element(st: BalanceStep, allowance = 0): ElementFigures {
 
 export interface PersonFigures {
   who: string;
+  /** Their cycle: every element's standard time, seconds a piece of theirs. */
   work: number;
+  /** Of it, walking and waiting — time that adds nothing. */
+  walk: number;
+  wait: number;
   elements: ElementFigures[];
   /** The weakest source under the stack. */
   source: 'timed' | 'typed' | 'none';
   overBy: number;
   spare: number;
+  /** THEIR OWN TAKT, seconds a piece of theirs: the line's takt × the line's
+   *  units in one of their pieces (a tray of 8 at a 3 s takt is 24 s). */
+  takt?: number;
+  /** Line units in one piece of theirs — 1 on no station. */
+  per: number;
+  /** What a piece of theirs is ("trays"), when it is not the line's unit. */
+  unit?: string;
+  /** The Line capacity station they work at. */
+  station?: string;
 }
 
 export interface BalanceFigures {
@@ -137,32 +152,60 @@ export interface BalanceFigures {
   short: number;
 }
 
-/** The whole balance: each person's stack, in the order they first appear. */
-export function balance(steps: BalanceStep[] | undefined, a: AgreedBalance | undefined): BalanceFigures {
+/** The whole balance: each person's stack, in the order they first appear.
+ *  `crew`: where each person is on the line (BalanceCrew) — a person at a
+ *  station that counts in trays times a tray, and is held to the line's
+ *  takt × the packs in a tray. Without it, everyone counts the line's unit,
+ *  as before. */
+export function balance(steps: BalanceStep[] | undefined, a: AgreedBalance | undefined, crew?: readonly BalanceCrew[]): BalanceFigures {
   const list = [...(steps ?? [])].sort((x, y) => x.order - y.order);
   const els = list.map(st => element(st, a?.allowance ?? 0));
   const order: string[] = [];
   for (const e of els) if (!order.includes(e.who)) order.push(e.who);
   const takt = a?.taktSec && a.taktSec > 0 ? a.taktSec : undefined;
-  const people = order.map(who => {
+  const people = order.map((who): PersonFigures => {
     const mine = els.filter(e => e.who === who);
-    const work = mine.reduce((t, e) => t + (e.standard ?? 0), 0);
+    const sum = (k?: StepKind) => mine.filter(e => !k || e.kind === k).reduce((t, e) => t + (e.standard ?? 0), 0);
+    const work = sum();
     const source: PersonFigures['source'] = mine.some(e => e.source === 'none') ? 'none' : mine.some(e => e.source === 'typed') ? 'typed' : 'timed';
-    return { who, work, elements: mine, source, overBy: takt ? Math.max(0, work - takt) : 0, spare: takt ? Math.max(0, takt - work) : 0 };
+    const c = crew?.find(x => x.who === who);
+    /* a station's unit counts only against a takt whose unit is known — Line
+       capacity's target, a minute in the line's unit — or none yet. A takt
+       typed here by hand is "seconds a piece" of whatever each person does,
+       as it always was: put through a station's 12 to a basket it read 12 s
+       as 144 s (found walking it, 17 October). */
+    const per = c?.per && c.per > 0 && (!a || a.from === 'target') ? c.per : 1;
+    const t = takt ? takt * per : undefined;
+    return { who, work, walk: sum('walk'), wait: sum('wait'), elements: mine, source, per,
+      ...(c?.unit?.trim() && per !== 1 ? { unit: c.unit.trim() } : {}), ...(c?.station?.trim() ? { station: c.station.trim() } : {}),
+      ...(t ? { takt: t } : {}), overBy: t ? Math.max(0, work - t) : 0, spare: t ? Math.max(0, t - work) : 0 };
   });
-  const total = people.reduce((t, p) => t + p.work, 0);
-  const longest = people.reduce<PersonFigures | undefined>((m, p) => (!m || p.work > m.work ? p : m), undefined);
+  /* Everything below is in the LINE's unit — a person's seconds a tray put
+     back into seconds a pack — so people counting different things add up. */
+  const load = (p: PersonFigures) => p.work / p.per;
+  const total = people.reduce((t, p) => t + load(p), 0);
+  /* the work in it: waiting is time a person could take work in, never work */
+  const doing = people.reduce((t, p) => t + (p.work - p.wait) / p.per, 0);
+  const longest = people.reduce<PersonFigures | undefined>((m, p) => (!m || load(p) > load(m) ? p : m), undefined);
   /* An element with no time is not zero seconds: until every element has a
      time, nobody is "the constraint" and no headcount or balance is claimed. */
   const untimed = els.filter(e => e.source === 'none').length;
   return {
     ...(takt ? { taktSec: takt } : {}), elements: els, people, total,
-    ...(takt && total > 0 && !untimed ? { fewest: Math.ceil(total / takt - 1e-9) } : {}),
-    ...(longest && longest.work > 0 && !untimed ? { efficiency: total / (people.length * longest.work), constraint: longest } : {}),
+    ...(takt && doing > 0 && !untimed ? { fewest: Math.ceil(doing / takt - 1e-9) } : {}),
+    ...(longest && longest.work > 0 && !untimed ? { efficiency: doing / (people.length * load(longest)), constraint: longest } : {}),
     untimed,
     short: els.filter(e => e.source === 'timed' && !e.enough).length,
   };
 }
+
+/** A piece of a person's, in words: " a tray" — nothing when it is the line's own unit. */
+export const aPiece = (p: Pick<PersonFigures, 'unit'>): string => {
+  const u = p.unit?.trim();
+  if (!u) return '';
+  const one = /ies$/i.test(u) ? u.replace(/ies$/i, 'y') : /(ches|shes|xes|sses)$/i.test(u) ? u.replace(/es$/i, '') : u.replace(/s$/i, '');
+  return ` a ${one}`;
+};
 
 /** A SUGGESTED BALANCE — the elements in their order (each must follow the
  *  one before), filled into the fewest people the takt allows, a person's
@@ -170,7 +213,8 @@ export function balance(steps: BalanceStep[] | undefined, a: AgreedBalance | und
  *  and Birnie, on elements that follow one another). A ghost until someone
  *  says "use it". */
 export function suggest(f: BalanceFigures): { who: string; ids: string[]; work: number }[] | undefined {
-  if (!f.taktSec || !f.fewest || f.untimed) return undefined;
+  /* only on one unit: elements timed per tray and per pack do not pile */
+  if (!f.taktSec || !f.fewest || f.untimed || f.people.some(p => p.per !== 1)) return undefined;
   const takt = f.taktSec;
   const out: { who: string; ids: string[]; work: number }[] = [];
   /* The next element joins the person before only while their stack stays
@@ -179,7 +223,8 @@ export function suggest(f: BalanceFigures): { who: string; ids: string[]; work: 
      one more when they do not — and never piles a stack past takt to reach
      the theoretical fewest (it once did: four 7 s elements at a 12 s takt
      gave 7 · 7 · 14). Only an element longer than takt on its own is over. */
-  for (const e of f.elements) {
+  /* waiting is not work to share out — it goes when the work is moved */
+  for (const e of f.elements.filter(x => x.kind !== 'wait')) {
     const t = e.standard ?? 0;
     const cur = out[out.length - 1];
     if (cur && cur.work + t <= takt + 1e-9) { cur.ids.push(e.id); cur.work += t; }
@@ -199,10 +244,25 @@ export interface BalanceSays { text: string; tone: Tone; lines: { text: string; 
  *  line standard's map, for the crewing check. */
 export function balanceSays(f: BalanceFigures, onMap?: number): BalanceSays {
   if (!f.elements.length) return { text: 'List the work — each element, and whose it is — then time it at the line.', tone: 'n', lines: [] };
-  if (!f.taktSec) return { text: 'Agree the takt — the pace the line must keep — to balance the work against it.', tone: 'n', lines: [] };
+  /* WAITING AND WALKING (the combination table): time that adds nothing —
+     waiting is room for work, walking the layout's to shorten */
+  const idle: { text: string; tone: Tone }[] = [];
+  const waits = f.people.filter(p => p.wait > 0);
+  if (waits.length) idle.push({ text: `Waiting: ${waits.map(p => `${p.who} ${secs(p.wait)}`).join(', ')} a cycle — time they could take work in.`, tone: 'a' });
+  const walks = f.people.filter(p => p.walk > 0);
+  if (walks.length) idle.push({ text: `Walking: ${walks.map(p => `${p.who} ${secs(p.walk)}`).join(', ')} a cycle — the layout’s to shorten.`, tone: 'n' });
+  if (!f.taktSec) {
+    /* timing never waits on the takt (Rowland, 17 October: "I input people,
+       what they do, and should be able to time them") — what is timed is
+       said, and what the takt would add */
+    const timed = f.elements.length - f.untimed, n = f.people.length;
+    return { text: `${n} ${n === 1 ? 'person' : 'people'}, ${timed} of ${f.elements.length} element${f.elements.length === 1 ? '' : 's'} with a time — ${secs(f.total)} of work so far. No takt yet to read it against: give Line capacity a target, or agree one here.`,
+      tone: 'n', lines: idle };
+  }
   const lines: { text: string; tone: Tone }[] = [];
   const over = f.people.filter(p => p.overBy > 0).sort((a, b) => b.overBy - a.overBy);
-  for (const p of over) lines.push({ text: `${p.who} carries ${secs(p.work)} — over takt by ${secs(p.overBy)}.`, tone: 'r' });
+  for (const p of over) lines.push({ text: `${p.who} carries ${secs(p.work)}${aPiece(p)} — over takt${p.per !== 1 && p.takt ? ` (${secs(p.takt)}${aPiece(p)})` : ''} by ${secs(p.overBy)}.`, tone: 'r' });
+  lines.push(...idle);
   if (onMap !== undefined && f.fewest !== undefined && onMap !== f.fewest && f.total > 0) {
     lines.push({ text: `The map has ${onMap} ${onMap === 1 ? 'person' : 'people'}; the work needs ${f.fewest}.`, tone: 'a' });
   }

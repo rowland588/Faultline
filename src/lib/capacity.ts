@@ -1509,7 +1509,7 @@ export interface CapacityReportLine {
   }[];
 }
 
-const SOURCE_WORD: Record<NonNullable<Station['source']>, string> = { plate: 'on the plate', timed: 'timed', standard: 'standard time, from the time study', estimate: 'a guess' };
+const SOURCE_WORD: Record<NonNullable<Station['source']>, string> = { plate: 'on the plate', timed: 'timed', standard: 'standard time, from the line balance', estimate: 'a guess' };
 const PER_WORDS: Record<RatePer, string> = { sec: 'a second', min: 'a minute', hour: 'an hour' };
 
 /** One station's detail line for the report — every figure that went into

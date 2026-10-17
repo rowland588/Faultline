@@ -96,7 +96,19 @@ export const PAGES = (sd, cap) => [
     { what: 'where the time went, band by band', sel: '.lch-bands .lch-band', n: 3 },
     { what: 'will next week’s orders fit', sel: '.lch-dem' },
   ] },
-  { name: 'The work against takt', path: `#/w/${sd.wsId}/standards/${sd.lineStandardId}?at=balance&view=work`, must: [{ what: 'each person’s work, stacked against takt', sel: 'svg.wb-svg' }] },
+  /* THE LINE BALANCE, its own tool (17 October) — at the old People tab's address too, which still opens it */
+  { name: 'Line balance — one product', path: `#/w/${sd.wsId}/standards/${sd.lineStandardId}?at=balance&view=work`, must: [
+    { what: 'each person’s work, stacked against takt', sel: 'svg.wb-svg' },
+    { what: 'each person, where they work and their bar against takt', sel: '.wb-person .wb-bar', n: 3 },
+    { what: 'what the bottleneck costs, or what it needs', sel: '.wb-cost' },
+    { what: 'time each person', sel: '.wb-time', n: 3 },
+  ] },
+  { name: 'Line balance — every product', path: `#/linebalance?line=${sd.wsId}`, must: [{ what: 'each product with its balance said', sel: '.lt-row .lt-says' }] },
+  { name: 'All together — one product', path: `#/w/${sd.wsId}/standards/${sd.lineStandardId}?at=all`, must: [
+    { what: 'each tool’s sentence', sel: '.tg-strip .tg-cell', n: 3 },
+    { what: 'the line station by station', sel: '.tg-st', n: 3 },
+    { what: 'each person against takt', sel: '.tg-bars .wb-bar', n: 3 },
+  ] },
   { name: 'Line standard — a map', path: `#/w/${sd.wsId}/standards/${sd.lineStandardId}`, must: [
     { what: 'the board', sel: '.ls-board' }, { what: 'who does what', sel: '.ls-side' },
   ] },

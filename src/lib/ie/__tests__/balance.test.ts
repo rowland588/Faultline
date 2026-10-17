@@ -95,7 +95,8 @@ describe('the Yamazumi (tool 4)', () => {
     expect([over.tone, over.lines[0].text]).toEqual(['r', 'Op 1 carries 13.0 s — over takt by 1.0 s.']);
   });
   it('no takt, nothing to balance against; no elements, nothing to time', () => {
-    expect(balanceSays(balance(steps, undefined)).text).toMatch(/^Agree the takt/);
+    /* timing never waits on the takt: what is timed is said, and what a takt would add */
+    expect(balanceSays(balance(steps, undefined)).text).toBe('5 people, 5 of 5 elements with a time — 54.0 s of work so far. No takt yet to read it against: give Line capacity a target, or agree one here.');
     expect(balanceSays(balance([], { taktSec: 12 })).text).toMatch(/^List the work/);
   });
   it('the suggestion fills the fewest people in order, never past takt', () => {

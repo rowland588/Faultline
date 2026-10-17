@@ -22,6 +22,9 @@ import { streamBlocks } from './report/streamTable';
 import { changeoverBlocks } from './report/changeoverTable';
 import { lossBlocks } from './report/lossTable';
 import { samplingBlocks } from './report/samplingTable';
+import { balanceBlocks } from './report/balanceTable';
+import { balance } from './ie/balance';
+import { agreedFor, balanceCost, costInputs, crewKept } from './ie/balanceLink';
 
 import { todayISO } from './weeks';
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
@@ -112,6 +115,16 @@ function blocksOf(p: StudiesPaper, d: Density): Block[] {
     if (e.changeover) out.push(...changeoverBlocks(e.changeover, e.line));
     if (e.losses) out.push(...lossBlocks(e.losses));
     if (e.sampling) out.push(...samplingBlocks(e.sampling));
+    /* THE LINE BALANCE — each person's work against takt, and what the
+       bottleneck costs a pack and a minute (lib/report/balanceTable) */
+    if (s.tool === 'balance') {
+      const st = p.standards.find(x => x.id === s.standardId), cap = st?.capacity;
+      const f = balance(s.facts.steps, agreedFor(s.agreed?.balance, cap, !!s.closedAt), crewKept(s.facts.crew ?? [], cap));
+      const line = p.ctx?.workspaces?.find(w => w.id === s.workspaceId);
+      const cost = balanceCost(f, costInputs(cap, line));
+      const unit = cap?.stations[0]?.unit.trim() || undefined;
+      out.push(...balanceBlocks(f, { ...(cost ? { cost } : {}), ...(unit ? { unit } : {}) }));
+    }
     if (s.receipt?.text && s.closedAt) out.push(text({ text: `Closed: ${s.receipt.text}`, size: 8, colour: MUTED, before: 2, after: 2 }));
   });
   return out;

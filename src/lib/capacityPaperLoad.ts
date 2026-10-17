@@ -36,7 +36,7 @@ export async function capacityPapersFor(list: Standard[], printed = printedOn())
       : undefined;
     /* the people's work against takt, as the standard's People view says it */
     const b = currentBalance(studies, s.id);
-    const f = b?.agreed?.balance ? balance(b.facts.steps, b.agreed.balance) : undefined;
+    const f = b?.agreed?.balance ? balance(b.facts.steps, b.agreed.balance, b.facts.crew) : undefined;
     const said = f && f.people.length ? balanceSays(f, peopleOf(s).length || undefined) : undefined;
     return capacityPaper({
       product: s.product, line: w?.name ?? (job ? `Job: ${job}` : 'On no line'), ...(job ? { job } : {}), printed,

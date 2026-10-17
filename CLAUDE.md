@@ -79,13 +79,23 @@ Running projects on a factory floor, three ways. Rowland, 30 September:
   now fully using the app." Stored as the `board` model; the problem is a `case`.
 - **Lever tree** — one outcome worked down to what has to be true for it.
 
-**The line balance is LINE CAPACITY.** Rowland, 12 October: "the line
-balancing is actually a capacity model ... I worded it as line balance";
-the name asked and chosen: *Line capacity* — stations in flow order,
-machines and people, each in its own unit converted down the line, the
-bottleneck once stops count, and the V-curve, laid out as a grid like the
-value stream map (`docs/BUILD.md`, Line capacity). The people's work against
-takt is its People view; the line standard is where people are put in places.
+**The capacity model is LINE CAPACITY; the people's work is the LINE
+BALANCE.** Rowland, 12 October: "the line balancing is actually a capacity
+model ... I worded it as line balance"; the name asked and chosen: *Line
+capacity* — stations in flow order, machines and people, each in its own
+unit converted down the line, the bottleneck once stops count, and the
+V-curve, laid out as a grid like the value stream map (`docs/BUILD.md`, Line
+capacity). Then, 17 October: "line balance is about a more manual people
+process flow analysis visual of what is happening where and what people are
+doing" — so the people's work, timed against takt, is the **Line balance**,
+a tool of its own (it was Line capacity's People tab), linked: the target is
+Line capacity's and the takt follows it; a person is put at a station and
+that people station's speed is their timed cycle; what the bottleneck costs
+a pack and a minute is said for the client; and **All together** reads the
+three on one page, editing none (`docs/BUILD.md`, The line balance, its own
+tool; `lib/ie/balanceLink`). Toyota's three forms: Line standard the chart,
+Line balance the combination table, Line capacity the capacity sheet. Never
+call it *the time study* or *the work balance* on a screen.
 
 **SMED is a tool, not a method and not a Pareto.** Rowland, 12 October: "For
 changeovers, you should be making the lean tool SMED ... and doing everything
@@ -200,7 +210,7 @@ node scripts/report-stress.mjs /tmp/fuzz --fuzz 40   # forty random jobs, every 
 node scripts/acceptance/stagegate-step1.mjs   # release 1's four stories, driven — same server
 node scripts/acceptance/stagegate-walk.mjs    # the stage gate walked: five site-lead journeys end to end, taps within a ceiling, no dead end, every place a change reaches in step
 node scripts/acceptance/ecosystem-capability.mjs  # release 2: a study, a line, a job, a fix, before → after, the report
-node scripts/acceptance/work-balance.mjs  # step 3: the work timed on the phone, stacked against takt, on a job, before → after
+node scripts/acceptance/work-balance.mjs  # the line balance: its own page, timed on the phone (Undo, Skip, the whole screen), stacked against takt, on a job, before → after; linked to Line capacity (a station takes its person's time, the takt from the target), what the bottleneck costs, All together and its paper, the list and its paper
 node scripts/acceptance/sixm-evidence.mjs  # 2h: a study on a running line — a cause's evidence, a countermeasure, before → after, the 6M report; and the 6M loop's ends (flow audit): a missed check chased, a shift counted as a reading, the constraint from Line capacity, Use it for by machine, suggestions about the problem, the status page first
 node scripts/acceptance/value-stream.mjs  # B: a line's value stream — who and where, walked, a step made better, walked again, before → after, the paper, the fishbone
 node scripts/acceptance/changeover.mjs  # F: SMED — a quick session on its own; Lap with who, Shingo's stages on the grid, the plate speed, what the changeovers cost, set as the standard, timed again, before → after, the paper, the fishbone
@@ -262,9 +272,13 @@ tested on a phone with Commission hearing it; a hand-over item done and the
 front page counting it — each journey's taps under its ceiling and no dead
 end (it failed 12 checks on the code before the walk's fixes). `ecosystem-capability.mjs`
 is release 2: a capability study from a quick session to a fix's before →
-after and the client report. `work-balance.mjs` is step 3: the line
-balance's work timed on the phone, stacked against takt, made better on a
-job and proved by timing it again. `sixm-evidence.mjs` is 2h: a study on a
+after and the client report. `work-balance.mjs` is the line balance
+(step 3, then its own tool on 17 October): the work timed on the phone with
+the full-screen timer (Undo, Skip), stacked against takt, made better on a
+job and proved by timing it again; then Op 2 put at the Packer and Line
+capacity's Packer taking their timed cycle, the takt taken from the target,
+what the bottleneck costs a pack and a minute as `lib/ie/balanceLink` says,
+All together and its PDF, the Line balance list and its PDF, and the phone. `sixm-evidence.mjs` is 2h: a study on a
 running line — a cause's evidence, a countermeasure on the board, before →
 after on it and the 6M report; then the 6M loop walked (the flow audit, 13
 October): a closed problem's missed check said in red on the fishbone's

@@ -1078,6 +1078,78 @@ the people's work against takt, only its second tab.
   what-if and the bottleneck moving, the V's guide margin set and a station
   under it said, the paper.
 
+### The line balance, its own tool — linked to Line capacity, its costs, all together (17 October)
+
+Rowland, 17 October, three things in one afternoon: "line balance is about a
+more manual people process flow analysis visual of what is happening where
+and what people are doing ... I input people, what they do, and should be
+able to time them ... it can be linked directly to the capacity because that
+has all of the timings — what's the correct link?"; "my concern is you make
+it complex ... but also what about option to do it all together this way
+when appropriate"; and "Line balance must have costs ... like capacity we
+want to show client cost of loss because of bottleneck presented in a cost
+per pack per min".
+
+**What was wrong (walked on a phone first).** The work balance was the second
+tab of Line capacity, called *People*, and capacity called it *the time
+study* — three names for one thing. Nobody could time a person until a takt
+was agreed: the takt form stood in front of the people. The timer promised
+"the next one lights" with no list to light, had no undo for a mis-tap, sat
+under the page's Delete button with the Problem button over it. Capacity
+took a person's time only when a station was named exactly as the person
+and every element was timed, then only as a small "use it".
+
+**The link — Toyota's three forms, one product each.** Line standard is the
+standardised work chart (who stands where), Line balance the combination
+table (each person's work, walking and waiting against takt), Line capacity
+the process capacity sheet (what the line can make). One number, one home:
+the target is Line capacity's and the takt follows it; a person's time is
+the balance's and a people station in Line capacity takes it
+(`lib/ie/balanceLink`: `stationsOf`, `agreedFor`, `targetOffer`, `crewKept`,
+`capacityTaking`). A person is put at a station of record (`crew`, never by
+matching words): their cycle is one piece of its unit (a tray) and, against
+a target's takt, their takt the line's × the packs in a tray. A takt typed by
+hand keeps its old meaning — seconds a piece of what each person does — and
+no station's unit is put through it: walked on the seed, 12 s typed read as
+144 s a basket, so the rule was set the same afternoon.
+
+**What it costs** (`balanceCost`, `balanceCostSays`) — the same money as Line
+capacity's labour cost a pack: the people × one's rate an hour (Line
+capacity's typed rate, else the line's wage × on-costs), over the packs the
+people's pace allows. Over takt: the packs a minute lost to the slowest
+person (their load put back into the line's unit), labour a pack as it runs
+and at takt, £ a minute paid for packs not made, and beside it £ a minute of
+the others' time waiting on the constraint (two costs, never one inside the
+other — the walk caught "of it" saying so), and contribution lost when the
+line has a margin a pack. Within takt: what the spare time costs. Nothing is
+claimed without the rate, the takt or every element timed.
+
+**The page, in the order it is used.** The strip (takt and where it comes
+from, the work a pack, people needed, balanced, the constraint); no takt
+yet — the door to Line capacity's target, timing not waiting; the sentence,
+the abnormal first; what it costs; the Yamazumi (walking hatched, waiting
+hollow, people counting trays put back into the line's unit, labelled in
+their own); each person in the line's flow order — where they work, their
+figure, *Time Op 1*, their cycle as a bar against their own takt, their
+steps (name, time, kind; the tools on *Edit*); *Add a person* (who, what
+they do, where). The timer fills the screen: the steps with Now marked, the
+cycle running against takt (red past it), Lap at the thumb, Undo the last
+lap (back to when the step began), Skip, Foreign, keys on a desk, the screen
+kept awake.
+
+**All together** (`?at=all`, `lib/together` read by `ui/Together` and
+`lib/togetherPdf`): each tool's sentence, what it costs, the line station by
+station (what each makes, the bottleneck, who works there and how they sit
+against takt), the line standard's card, each person against takt. Read
+only — every part opens its tool.
+
+**Proved by** `scripts/acceptance/work-balance.mjs` (now 1–10: the own page,
+a step timed with Undo and the screen filled, the link to the Packer, the
+takt from the target, the cost lines as the module says, Skip, All together
+and its PDF, the list and its PDF, the phone) and `inventory.mjs` (three
+pages); `lib/ie/__tests__/balanceLink.test.ts` holds the arithmetic, every
+figure worked by hand.
+
 ### A program's status — not tested, no program, and commentary on its own (12 October)
 
 Rowland, 12 October: "In programs we need option not tested, and no program,

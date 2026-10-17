@@ -57,6 +57,7 @@ const PRIO_CLASS: Record<Priority, string> = { critical: 'is-r', high: 'is-a', l
 /** The tools, as the rail names them, each opened on this line. */
 const TOOLS: { key: string; label: string; to: string; study?: StudyTool; standard?: true; what: string }[] = [
   { key: 'linestandard', label: 'Line standard', to: '/standards', standard: true, what: 'who stands where, product by product' },
+  { key: 'linework', label: 'Line balance', to: '/linebalance', study: 'balance', what: 'what each person does, timed against takt, and what it costs' },
   { key: 'linebalance', label: 'Line capacity', to: '/balances', standard: true, what: 'where the line is limited, and the V-curve' },
   { key: 'capability', label: 'Capability', to: '/capability', study: 'capability', what: 'readings against the limits agreed' },
   { key: 'valuestream', label: 'Value stream', to: '/value-stream', study: 'map', what: 'every step, who does it, the waits' },

@@ -73,14 +73,14 @@ describe('a work balance is evidence like any study (docs/BUILD.md, 3d)', () => 
   ];
   const bal = (o: Partial<ToolStudy>): ToolStudy => ({ id: 'w', tool: 'balance', name: 'Maris Piper 2kg', standardId: 'std', workspaceId: 'ws',
     agreed: { balance: { taktSec: 12 } }, facts: { steps: steps(12.9) }, uses: [], startedAt: 1, createdAt: 1, updatedAt: 1, ...o });
-  it('is called a work balance, said in its own words, the one over takt first', () => {
-    expect(studyTitle(bal({}))).toBe('Work balance — Maris Piper 2kg');
+  it('is called a line balance, said in its own words, the one over takt first', () => {
+    expect(studyTitle(bal({}))).toBe('Line balance — Maris Piper 2kg');
     expect(studyLine(bal({})).text).toMatch(/^Op 1 carries 12\.9 s — over takt by 0\.9 s\. 28\.7 s of work at a 12\.0 s takt/);
     expect(studyLine(bal({})).text).not.toMatch(/limits|readings/);
   });
   it('opens on its line standard — the job’s when attached, else the line’s — as itself', () => {
-    expect(studyHref(bal({}))).toBe('/w/ws/standards/std?at=balance&view=work&study=w');
-    expect(studyHref(bal({ projectId: 'p1' }))).toBe('/project/p1/standard/std?at=balance&view=work&study=w');
+    expect(studyHref(bal({}))).toBe('/w/ws/standards/std?at=work&study=w');
+    expect(studyHref(bal({ projectId: 'p1' }))).toBe('/project/p1/standard/std?at=work&study=w');
     expect(studyHref(study({ id: 'cap' }))).toBe('/capability/cap');
   });
   it('the line standard reads the newest timing of it', () => {
@@ -158,7 +158,7 @@ describe('what was measured on a day (docs/BUILD.md, 2j)', () => {
   it('a work balance counts its laps, an interruption and a struck lap for nothing', () => {
     const s = { ...study({}), tool: 'balance' as const, name: 'Maris Piper 2kg', agreed: { balance: { taktSec: 12 } },
       facts: { steps: [{ id: 'a', order: 0, name: 'x', who: 'Op 1', laps: [{ id: 'l1', sec: 6, at: 50 }, { id: 'l2', sec: 9, at: 50, foreign: true }, { id: 'l3', sec: 1, at: 50, struck: true }] }] } };
-    expect(measuredOn(s, '2026-10-10', day)?.text).toMatch(/^Work balance — Maris Piper 2kg: 1 lap timed — /);
+    expect(measuredOn(s, '2026-10-10', day)?.text).toMatch(/^Line balance — Maris Piper 2kg: 1 lap timed — /);
   });
 });
 

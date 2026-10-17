@@ -233,7 +233,7 @@ function shapeWordsBox(ctx: CanvasRenderingContext2D, m: StandardMark, ix: numbe
 /** The whole card, as a canvas. */
 /** THE WORK, TIMED (ui/WorkBalance workOf): each person's work against takt,
  *  and its sentence — printed beside each person and in the footer. */
-export interface CardWork { taktSec: number; people: { who: string; work: number; over: boolean; untimed?: boolean }[]; text: string; short?: string }
+export interface CardWork { taktSec: number; people: { who: string; work: number; over: boolean; untimed?: boolean; takt?: number; piece?: string }[]; text: string; short?: string }
 
 /** `shift`: capacity a shift, short (ui/ShiftCapacity shiftShortsFor) — "32,400 bags a shift — 126 of 450 min changing over". */
 /** WORDS PRINTED WHOLE (Rowland, 15 October: "I've done bottleneck and
@@ -469,7 +469,7 @@ async function renderCardWithNotes(s: Standard, projectName: string, printed: st
   /* Their work against takt, right-aligned on their row — red when over. */
   const workOf = (p: StandardMark) => {
     const w = work?.people.find(x => x.who === (p.label ?? '').trim());
-    return w && work ? { text: w.untimed ? `${w.work.toFixed(1)} s so far` : `${w.work.toFixed(1)} s of ${work.taktSec.toFixed(1)} s`, over: w.over } : undefined;
+    return w && work ? { text: w.untimed ? `${w.work.toFixed(1)} s so far` : `${w.work.toFixed(1)} s of ${(w.takt ?? work.taktSec).toFixed(1)} s${w.piece ?? ''}`, over: w.over } : undefined;
   };
   type Style = 'roomy' | 'snug' | 'line';
   const STY: Record<Style, { disc: number; name: number; task: number }> = {

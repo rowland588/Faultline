@@ -129,7 +129,7 @@ export interface CapacityPaper {
 }
 
 const PER: Record<NonNullable<Station['ratePer']>, string> = { sec: 'a second', min: 'a minute', hour: 'an hour' };
-const HOW: Record<NonNullable<Station['source']>, string> = { plate: 'on the plate', timed: 'timed', standard: 'standard time — the time study', estimate: 'a guess' };
+const HOW: Record<NonNullable<Station['source']>, string> = { plate: 'on the plate', timed: 'timed', standard: 'standard time — the line balance', estimate: 'a guess' };
 
 /** A station's speed as it was typed, in the unit it was typed in — its own,
  *  or the one before's for a palletiser timed per basket — the capacity

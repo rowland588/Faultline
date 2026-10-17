@@ -115,10 +115,10 @@ export function hereOf(route: Route): string {
     case 'lineHome': return `line:${route.wsId}`;
     case 'factory': return 'factory';
     case 'linePrograms': return 'lineprograms';
-    case 'lineTools': return route.view === 'balance' ? 'linebalance' : 'linestandard';
-    /* a line's own product — its map, or its Line capacity (?at=balance) —
-       lights the tool it is, as the list of them does */
-    case 'lineStandards': return route.query.get('at') === 'balance' ? 'linebalance' : 'linestandard';
+    case 'lineTools': return route.view === 'balance' ? 'linebalance' : route.view === 'work' ? 'linework' : 'linestandard';
+    /* a line's own product — its map, its line balance (?at=work) or its
+       Line capacity (?at=balance) — lights the tool it is, as the list does */
+    case 'lineStandards': return route.query.get('at') === 'work' || route.query.get('view') === 'work' ? 'linework' : route.query.get('at') === 'balance' ? 'linebalance' : 'linestandard';
     case 'studies': case 'study': return route.view === 'map' ? 'valuestream' : route.view === 'changeover' ? 'changeover' : route.view === 'sampling' ? 'sampling' : route.view === 'losses' ? 'losses' : 'capability';
     case 'projectDashboard': {
       const v = route.query.get('view');
@@ -185,6 +185,8 @@ export const snagsPlace = (here: string): RailLine =>
  *  under the control room (snagsPlace) — a problem is a record, not a tool. */
 export const toolPlaces = (here: string): RailLine[] => [
   { key: 'linestandard', label: 'Line standard', to: '/standards', on: here === 'linestandard', state: 'n', bare: true, icon: 'people' },
+  /* The line balance — the people's work, timed at the line against takt, and what the bottleneck costs (17 October). */
+  { key: 'linework', label: 'Line balance', to: '/linebalance', on: here === 'linework', state: 'n', bare: true, icon: 'time' },
   { key: 'linebalance', label: 'Line capacity', to: '/balances', on: here === 'linebalance', state: 'n', bare: true, icon: 'chart' },
   /* The capability study — readings against agreed limits, Cpk out (docs/TOOLKIT.md, tool 1). */
   { key: 'capability', label: 'Capability', to: '/capability', on: here === 'capability', state: 'n', bare: true, icon: 'hash' },

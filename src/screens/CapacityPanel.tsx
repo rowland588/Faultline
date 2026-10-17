@@ -62,7 +62,7 @@ import { machineKey, machinesOf } from '../lib/lineRecords';
 
 const PER_WORD: Record<RatePer, string> = { sec: 'a second', min: 'a minute', hour: 'an hour' };
 const SOURCES: { id: NonNullable<Station['source']>; label: string }[] = [
-  { id: 'plate', label: 'On the plate' }, { id: 'timed', label: 'I timed it' }, { id: 'standard', label: 'The time study' }, { id: 'estimate', label: 'A guess' },
+  { id: 'plate', label: 'On the plate' }, { id: 'timed', label: 'I timed it' }, { id: 'standard', label: 'The line balance' }, { id: 'estimate', label: 'A guess' },
 ];
 
 /* ============================ the capacity sheet ============================
@@ -73,9 +73,9 @@ const SOURCES: { id: NonNullable<Station['source']>; label: string }[] = [
  * hour in the line's unit once its stops count, its share of the bottleneck's
  * and what the target needs of it — over 100% red: it cannot. Read here;
  * changed on the station's card below. */
-const HOW: Record<NonNullable<Station['source']>, string> = { plate: 'on the plate', timed: 'timed', standard: 'standard time — the time study', estimate: 'a guess' };
+const HOW: Record<NonNullable<Station['source']>, string> = { plate: 'on the plate', timed: 'timed', standard: 'standard time — the line balance', estimate: 'a guess' };
 function CapacitySheet({ r, v, target, study, onUse }: { r: ReturnType<typeof analyse>; v: ReturnType<typeof vCurve>; target?: number;
-  /** A person's standard time from the time study on this standard — seconds a piece of the line's unit, by name. */
+  /** A person's standard time from the line balance on this standard — seconds a piece of the line's unit, by name. */
   study?: Map<string, number>; onUse?: (stationId: string, cycleSec: number) => void }) {
   if (!r.ok.length) return null;
   const pctOf = new Map(v.points.map(p => [p.index, p]));
@@ -101,10 +101,10 @@ function CapacitySheet({ r, v, target, study, onUse }: { r: ReturnType<typeof an
                 <td data-k="Speed" className="n cap-sheet-sp">{speed}<span className={'cap-sheet-k' + (s.kind === 'machine' && s.source !== 'plate' ? ' cap-sheet-a' : '')}>
                   {/* a machine goes by its plate speed (docs/CAPACITY.md §1); running below it is a loss, not a lower plate */}
                   {s.kind === 'machine' ? (s.source === 'plate' ? HOW.plate : `${s.source ? HOW[s.source] : 'typed'} — not its plate speed`) : s.source ? HOW[s.source] : 'not timed yet'}</span>
-                  {/* a person timed in the time study: their standard time, in this station's unit — one tap to use it (docs/CAPACITY.md §1) */}
+                  {/* a person timed in the line balance: their standard time, in this station's unit — one tap to use it (docs/CAPACITY.md §1) */}
                   {s.kind === 'people' && s.source !== 'standard' && study?.get(s.name.trim().toLowerCase()) != null && onUse && (() => {
                     const work = study.get(s.name.trim().toLowerCase()) ?? 0, cyc = Math.round(work * x.factor * 100) / 100;
-                    return <button type="button" className="linkish cap-sheet-use" onClick={() => onUse(s.id, cyc)}>The time study: {fmtN(cyc)} s a {s.unit.replace(/s$/, '')} — use it</button>;
+                    return <button type="button" className="linkish cap-sheet-use" onClick={() => onUse(s.id, cyc)}>The line balance: {fmtN(cyc)} s a {s.unit.replace(/s$/, '')} — use it</button>;
                   })()}</td>
                 <td data-k="Own stops" className="n">{s.runningPct != null && s.runningPct < 100 ? `${fmtN(100 - s.runningPct)}%` : '—'}</td>
                 <td data-k="Good" className="n">{s.goodPct != null && s.goodPct < 100 ? `${fmtN(s.goodPct)}%` : '—'}</td>
@@ -348,7 +348,7 @@ function StationCard({ s, i, num, canUp, canDown, last, prevUnit, chain, planned
 
         {/* A PERSON'S REST ALLOWANCE (docs/CAPACITY.md §1) — added to the
             time timed or typed to give the time to plan on; a standard time
-            from the time study carries its own */}
+            from the line balance carries its own */}
         {s.kind === 'people' && s.source !== 'standard' && (
           <label className="proj-field">
             <span className="field-label">Rest allowance — %</span>
@@ -1118,7 +1118,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
       {r.ok.length > 0 && !r.lanes && <VCurveView r={r} v={vCurve(r, cap.vMarginPct)} target={current.targetPerMin} margin={cap.vMarginPct} canAgree={can.agree && !w}
         onMargin={m => commit({ ...cap, vMarginPct: m })} onPick={pick} />}
       {r.ok.length > 0 && !r.lanes && <CapacitySheet r={r} v={vCurve(r, cap.vMarginPct)} target={current.targetPerMin} study={study}
-        {...(can.edit ? { onUse: (id: string, cycleSec: number) => patchStation(id, { cycleSec, perCycle: 1, rate: undefined, source: 'standard', note: 'standard time, from the time study' }) } : {})} />}
+        {...(can.edit ? { onUse: (id: string, cycleSec: number) => patchStation(id, { cycleSec, perCycle: 1, rate: undefined, source: 'standard', note: 'standard time, from the line balance' }) } : {})} />}
       {/* SEVERAL LINES: each its own V and sheet, beside its own bottleneck —
           a V is steep or not along ONE line — then the place they merge, its
           first column what they send it, against the target for all of them. */}
@@ -1132,7 +1132,7 @@ export function CapacityPanel({ projectId, line, onSave, board = true, can: give
           <VCurveView r={sec.res} v={vCurve(sec.res, cap.vMarginPct)} target={sec.target} margin={cap.vMarginPct} canAgree={can.agree && !w}
             onMargin={m => commit({ ...cap, vMarginPct: m })} onPick={pick} />
           <CapacitySheet r={sec.res} v={vCurve(sec.res, cap.vMarginPct)} target={sec.target} study={study}
-            {...(can.edit ? { onUse: (id: string, cycleSec: number) => patchStation(id, { cycleSec, perCycle: 1, rate: undefined, source: 'standard', note: 'standard time, from the time study' }) } : {})} />
+            {...(can.edit ? { onUse: (id: string, cycleSec: number) => patchStation(id, { cycleSec, perCycle: 1, rate: undefined, source: 'standard', note: 'standard time, from the line balance' }) } : {})} />
         </section>
       ))}
       {r.ok.length > 0 && <LabourBox r={r} cap={cap} current={current} {...(w ? { w } : {})} rAsRun={asRun} li={labourInputs(cap, mapPeople, lineWs)} canEdit={can.edit && !w}

@@ -28,6 +28,7 @@ import { deleteMap, removeFromTool } from '../ui/StandardsCard';
 import { CapacityPanel } from './CapacityPanel';
 import { balanceSays } from './LineToolsScreen';
 import { WorkView, useBalanceFor, workOf } from '../ui/WorkBalance';
+import { Together } from '../ui/Together';
 import { ChangeoverLines } from '../ui/ChangeoverLines';
 import { mins } from '../lib/ie/changeover';
 import { useProjects } from '../lib/useProjects';
@@ -382,9 +383,13 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
      It used to be one page, the balance scrolled to under the map. */
   const route = useRoute();
   const atBalance = route.query.get('at') === 'balance';
-  /* Two views of the balance: the machines (lib/capacity — speeds, as before)
-     and the people (ui/WorkBalance — the work timed at the line, against takt). */
-  const atWork = route.query.get('view') === 'work';
+  /* THE LINE BALANCE, ITS OWN PAGE (Rowland, 17 October): the people and
+     their work, timed against takt (ui/WorkBalance) — it was Line capacity's
+     second tab, "People"; that address still opens it. */
+  const atWork = route.query.get('at') === 'work' || (atBalance && route.query.get('view') === 'work');
+  /* ALL TOGETHER — the map, the people's times and the capacity on one page,
+     each read from its own tool, each a door to change it there. */
+  const atAll = route.query.get('at') === 'all';
   const balanceStudy = useBalanceFor(s.id);
   const here = window.location.hash.slice(1).split('?')[0] || home.base;
   const [printing, setPrinting] = useState(false);
@@ -595,6 +600,31 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
       : 'Tap a shape to select it, drag to move, pull the corner to resize. Tap it again to name it. Drag the empty board to scroll.';
   const fontPx = Math.max(10, size.bw * 0.017);
 
+  /* THE LINE BALANCE — the people's work, timed at the line, against takt:
+     its own page, one tap from its Line capacity and its map. */
+  if (atWork) return (
+    <div className="wrap pace ls lb">
+      <header className="ls-head">
+        <div className="ls-head-main">
+          <p className="sub"><button type="button" className="cw-link" onClick={() => nav(s.workspaceId ? `/linebalance?line=${encodeURIComponent(s.workspaceId)}` : home.base)}>Line balance</button>{home.name ? ` · ${home.name}` : ''}</p>
+          {ro ? <h1 className="ls-product is-read">{s.product}</h1> : (
+            <input className="ls-product" value={product} aria-label="Product"
+              onChange={e => setProduct(e.target.value)}
+              onBlur={() => { const v = product.trim(); if (v && v !== s.product) void save({ product: v }); else setProduct(s.product); }} />
+          )}
+        </div>
+        <div className="ls-head-actions">
+          <button type="button" className="btn btn-ghost" onClick={() => nav(`${here}?at=all`)}>All together</button>
+          <button type="button" className="btn btn-ghost" onClick={() => nav(`${here}?at=balance`)}>Its Line capacity ›</button>
+          {hasMap(s) && <button type="button" className="btn btn-ghost" onClick={() => nav(here)}>Its line standard ›</button>}
+        </div>
+      </header>
+      <BelongsTo s={s} home={home} can={can} onJob={projectId => { void save({ projectId }); void followStandard(s.id, projectId); }} />
+      <div id="ls-balance" className="ls-balance"><WorkView s={s} can={can} /></div>
+    </div>
+  );
+  if (atAll) return <Together s={s} name={home.name} here={here} />;
+
   /* THE LINE BALANCE — the balance alone: the stations in order, each at its
      own speed, and the one that holds the line back (lib/capacity). */
   if (atBalance) return (
@@ -612,7 +642,10 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
           )}
         </div>
         <div className="ls-head-actions">
-          {/* its line standard, one tap away — only when it has been mapped */}
+          {/* its line balance and its line standard, one tap away — the
+              balance its own page now (it was the People tab here) */}
+          <button type="button" className="btn btn-ghost" onClick={() => nav(`${here}?at=work`)}>Its line balance ›</button>
+          <button type="button" className="btn btn-ghost" onClick={() => nav(`${here}?at=all`)}>All together</button>
           {hasMap(s) && <button type="button" className="btn btn-ghost" onClick={() => nav(here)}>Its line standard ›</button>}
           {/* ITS PAPER — the product's capacity as its own page (lib/capacityPaper) */}
           <button type="button" className="btn btn-ghost" disabled={paperBusy} onClick={() => {
@@ -626,21 +659,15 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
         </div>
       </header>
       <BelongsTo s={s} home={home} can={can} onJob={projectId => { void save({ projectId }); void followStandard(s.id, projectId); }} />
-      <div className="chip-row lb-views" role="tablist" aria-label="Which balance">
-        <button type="button" role="tab" aria-selected={!atWork} className={'chip' + (!atWork ? ' on' : '')} onClick={() => nav(`${here}?at=balance`)}>Capacity</button>
-        <button type="button" role="tab" aria-selected={atWork} className={'chip' + (atWork ? ' on' : '')} onClick={() => nav(`${here}?at=balance&view=work`)}>People — the work against takt</button>
-      </div>
       <div id="ls-balance" className="ls-balance">
-        {atWork ? <WorkView s={s} can={can} /> : (
-          <CapacityPanel projectId={s.projectId} board={false} can={can}
-            line={{ id: s.id, name: s.product, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.capacity ? { capacity: s.capacity } : {}) }}
-            onSave={cap => save({ capacity: cap })} walk={{ standardId: s.id, product: s.product }} mapPeople={headcount(s)} />
-        )}
+        <CapacityPanel projectId={s.projectId} board={false} can={can}
+          line={{ id: s.id, name: s.product, ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.capacity ? { capacity: s.capacity } : {}) }}
+          onSave={cap => save({ capacity: cap })} walk={{ standardId: s.id, product: s.product }} mapPeople={headcount(s)} />
       </div>
     </div>
   );
   const balanceSaid = balanceSays(s);
-  const work = workOf(balanceStudy, people.length || undefined);
+  const work = workOf(balanceStudy, people.length || undefined, s.capacity);
   const workFor = (label?: string) => work?.people.find(w => w.who === (label ?? '').trim());
 
   return (
@@ -799,7 +826,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
             <div key={p.id} className={'ls-person' + (p.bottleneck ? ' is-bn' : '')}>
               <span className="ls-pn" style={{ background: colourOf(p) }} aria-hidden>{i + 1}</span>
               <span className="ls-role">{p.label || 'Unnamed'}{p.bottleneck && <span className="ls-bn-tag is-inline">Bottleneck</span>}</span>
-              {work && workFor(p.label) && <span className={'ls-work' + (workFor(p.label)?.over ? ' is-r' : '')}>{(workFor(p.label)?.work ?? 0).toFixed(1)} s {workFor(p.label)?.untimed ? 'so far — not all timed' : `of ${work.taktSec.toFixed(1)} s`}</span>}
+              {work && workFor(p.label) && <span className={'ls-work' + (workFor(p.label)?.over ? ' is-r' : '')}>{(workFor(p.label)?.work ?? 0).toFixed(1)} s {workFor(p.label)?.untimed ? 'so far — not all timed' : `of ${(workFor(p.label)?.takt ?? work.taktSec).toFixed(1)} s${workFor(p.label)?.piece ?? ''}`}</span>}
               {p.task && <p className="ls-task-r">{p.task}</p>}
             </div>
           ))}
@@ -810,7 +837,7 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
                 onFocus={() => { typing.current = true; }}
                 onChange={e => patchMark(p.id, { label: e.target.value })}
                 onBlur={() => { typing.current = false; void putStandard({ ...s, marks }); }} />
-              {work && workFor(p.label) && <span className={'ls-work' + (workFor(p.label)?.over ? ' is-r' : '')}>{(workFor(p.label)?.work ?? 0).toFixed(1)} s {workFor(p.label)?.untimed ? 'so far — not all timed' : `of ${work.taktSec.toFixed(1)} s takt`}</span>}
+              {work && workFor(p.label) && <span className={'ls-work' + (workFor(p.label)?.over ? ' is-r' : '')}>{(workFor(p.label)?.work ?? 0).toFixed(1)} s {workFor(p.label)?.untimed ? 'so far — not all timed' : `of ${(workFor(p.label)?.takt ?? work.taktSec).toFixed(1)} s${workFor(p.label)?.piece ?? ''} takt`}</span>}
               <textarea className="ls-task" rows={taskRows(p.task)} value={p.task ?? ''} aria-label="What they do" placeholder="What they do on this product"
                 onFocus={() => { typing.current = true; }}
                 onChange={e => patchMark(p.id, { task: e.target.value })}
@@ -842,13 +869,14 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
         <span className={'ls-bl-say' + (balanceSaid.short ? ' is-short' : '')}>{balanceSaid.text}</span>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`${here}?at=balance`)}>Open its Line capacity ›</button>
       </div>
-      {/* THE WORK, TIMED (ui/WorkBalance) — a branch off the map too: what the
-          people's work comes to against takt, and the door to it. */}
+      {/* THE LINE BALANCE (ui/WorkBalance) — a branch off the map too: what
+          the people's work comes to against takt, and the door to it. */}
       <div className="ls-balance-line">
-        <span className="ls-bl-h">The work{work?.set ? ' · the standard' : ''}</span>
+        <span className="ls-bl-h">Line balance{work?.set ? ' · the standard' : ''}</span>
         <span className={'ls-bl-say' + (work?.people.some(w => w.over) ? ' is-short' : '')}>{work ? work.text : 'Not timed yet — time each person’s work against takt.'}</span>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`${here}?at=balance&view=work`)}>{work ? 'Open the work ›' : 'Time the work ›'}</button>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`${here}?at=work`)}>{work ? 'Open its line balance ›' : 'Time the work ›'}</button>
       </div>
+      <p className="ls-together sub"><button type="button" className="linkish" onClick={() => nav(`${here}?at=all`)}>See it all together ›</button> — the map, the people’s times and the capacity on one page</p>
       {/* THE CHANGEOVER INTO THIS PRODUCT (ui/ChangeoverLines) — a branch off
           the map too: the newest changeover timed into it, the agreed
           sequence the standard holds, and the doors to both. */}
