@@ -23,6 +23,9 @@ import { openRecord } from '../ui/RecordDrawer';
 import { MachinePanel } from '../ui/MachinePanel';
 import { AccessNote } from '../ui/AccessNote';
 import { ProgramsPage } from './ProgramsPage';
+import { useJobMoney } from '../lib/useJobMoney';
+import { MONEY_WAIT, machineClosing, machineCounts, machineTiles } from '../lib/stageGatePages';
+import { LeanClosing, LeanTiles } from '../ui/Lean';
 
 /* The house's five colours, one meaning each (CLAUDE.md). */
 const GATE_SQ: Record<MachineGate['tone'], 'r' | 'a' | 'w' | 'g' | 'n'> = { done: 'g', going: 'w', late: 'r', problem: 'a', failed: 'r', ahead: 'n', none: 'n' };
@@ -32,6 +35,8 @@ export function MachineScreen({ projectId, assetId }: { projectId: string; asset
   const progs = usePrograms(projectId);
   const { project } = useProject(projectId);
   const can = useAccess(projectId);
+  /* the job's money — what the slip costs, or what a day late would (lib/useJobMoney) */
+  const money = useJobMoney(projectId);
 
   if (tt.loading || progs.loading || !project) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   const asset = live(tt.assets).find(a => a.id === assetId);
@@ -60,6 +65,9 @@ export function MachineScreen({ projectId, assetId }: { projectId: string; asset
         </div>
       </header>
       <AccessNote can={can} owner={project.lead} />
+      {/* THE LEAN PAGE (lib/stageGatePages): its gates through, what is late,
+          its fixes, the problems on it with no fix, and the job's money */}
+      <LeanTiles tiles={machineTiles(machineCounts(m), money ?? MONEY_WAIT)} className="sg-tiles" />
 
       {/* ITS FOUR GATES, IN ORDER — where it is at a glance, each in its colour
           and its words; the stages and tests are under them below. */}
@@ -81,6 +89,8 @@ export function MachineScreen({ projectId, assetId }: { projectId: string; asset
           <ProgramsPage projectId={projectId} only={asset.id} />
         </section>
       </div>
+      {/* THE CLOSING LINE — the machine in one sentence, the slip in money */}
+      <LeanClosing closing={machineClosing(machineCounts(m), money ?? MONEY_WAIT)} />
     </div>
   );
 }

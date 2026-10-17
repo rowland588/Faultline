@@ -13,6 +13,9 @@
  * the rail under Work, so this reads as one more page under the job. */
 import { useMemo } from 'react';
 import { AccessNote } from '../ui/AccessNote';
+import { useJobMoney } from '../lib/useJobMoney';
+import { MONEY_WAIT, planClosing, planCounts, planTiles } from '../lib/stageGatePages';
+import { LeanClosing, LeanTiles } from '../ui/Lean';
 import { Gantt } from '../ui/Gantt';
 import { nav } from '../state/useRoute';
 import { useProjects } from '../lib/useProjects';
@@ -23,7 +26,6 @@ import { usePrograms } from '../lib/usePrograms';
 import { useWalkSnags } from '../lib/useWalkSnags';
 import { useAccess } from '../cloud/access';
 import { planGaps } from '../lib/onTarget';
-import { planSays } from '../lib/plan';
 import { paceOf } from '../lib/pace';
 import { todayISO } from '../lib/standing';
 import { PlanTabs } from '../ui/PlanTabs';
@@ -42,6 +44,8 @@ export function PlanScreen({ projectId }: { projectId: string }) {
   /* What the filmed walk found — one lane on the plan. */
   const walk = useWalkSnags(projectId);
   const can = useAccess(projectId);
+  /* the job's money — what the slip costs, or what a day late would (lib/useJobMoney) */
+  const money = useJobMoney(projectId);
 
   if (loading || tt.loading || all.loading || progs.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   /* A link to a project that has gone is a dead end, not a crash — and it
@@ -57,6 +61,10 @@ export function PlanScreen({ projectId }: { projectId: string }) {
 
   const today = todayISO();
   const st = all.standing;
+  /* THE LEAN PAGE (lib/stageGatePages): the plan's dated marks, as its
+     sentence counted them, in tiles; the job's money last */
+  const counts = planCounts(st.plan, today);
+  const gaps = planGaps(tt.tests, tt.assets);
 
   return (
     <div className="wrap pace cm-screen">
@@ -64,14 +72,15 @@ export function PlanScreen({ projectId }: { projectId: string }) {
       <header className="pace-head">
         <div className="pace-head-main">
           <h1 className="pace-title">The plan</h1>
-          {/* The same sentence the front page's line says of the plan — one
-              reading (lib/plan planSays), two places. */}
-          {/* …and what is not on it yet (lib/onTarget planGaps,
-              docs/JOBSTART.md): the plan only drew what had a date. */}
-          <p className="cw-handover"><b>{planSays(st.plan, today)}</b>{(g => g && <span className="sub"> · not on it yet: {g}</span>)(planGaps(tt.tests, tt.assets))}</p>
+          {/* The plan's counts are its tiles now (the lean page, 17 October:
+              the header's count line moved into them, one place, as on the
+              gates' tabs); what is not on it yet stays said here (lib/onTarget
+              planGaps, docs/JOBSTART.md): the plan only draws what has a date. */}
+          {gaps && <p className="cw-handover"><span className="sub">Not on it yet: {gaps}</span></p>}
         </div>
       </header>
       <AccessNote can={can} owner={project.lead} />
+      {st.plan.length > 0 && <LeanTiles tiles={planTiles(counts, money ?? MONEY_WAIT)} className="sg-tiles" />}
 
       {st.plan.length === 0 ? (
         <p className="sub tw-note">
@@ -87,6 +96,8 @@ export function PlanScreen({ projectId }: { projectId: string }) {
           name={project.name} tests={tt.tests} items={tt.items} walk={walk ?? undefined} assets={tt.assets} programs={progs.programs}
           dayHours={project.dayHours} stages={stages} />
       )}
+      {/* THE CLOSING LINE — the plan in one sentence, the slip in money */}
+      <LeanClosing closing={planClosing(counts, money ?? MONEY_WAIT, gaps || undefined)} />
     </div>
   );
 }

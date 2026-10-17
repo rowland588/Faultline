@@ -118,8 +118,10 @@ card) keep their card form; they take the band only.
    Commission (passed of the tests, didn't pass, didn't run, still to run),
    Install · Set up · Hand over (done of the steps, late, problems, not
    added yet), the job's Problems (open, critical, late, no fix yet) and
-   Materials (here of what is needed, late, waiting, no date) each wear five
-   tiles under the header — **the header's count line moved into them**,
+   Materials (here of what is needed, late, waiting, no date), a
+   machine's own page (its gates through, late, fixes open, problems with
+   no fix yet) and the plan's Timeline (done of the dates, late, still
+   ahead, waiting on a verdict) each wear five tiles under the header — **the header's count line moved into them**,
    one place, as Materials' own note asked when it first lost its tiles —
    and every one ends on the job's money (`lib/useJobMoney`: what the slip
    costs, or what a day late would) and a closing line. Programs keeps its
