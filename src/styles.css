@@ -13568,6 +13568,35 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 :focus-visible { outline-color: var(--brand); }
 @media (prefers-reduced-motion: reduce) { .ln-tile, .vd-tile { transition: none; } }
 
+/* THE CASE FOR THE CHANGE, under the band (ui/CaseLine, docs/CASE.md) —
+   the work, so neutral; measured under the case after its start in amber
+   (still climbing), at it in green — the words always beside the colour. */
+.bz-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 10px 0 0; padding: 10px 14px;
+  background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--line-2); border-radius: var(--radius);
+  font-size: var(--t-detail); line-height: 1.45; color: var(--ink-2); }
+.bz-line.is-a { border-left-color: var(--st-a); }
+.bz-line.is-g { border-left-color: var(--st-g); }
+.bz-k { font-size: var(--t-label); font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.bz-why { font-weight: 700; color: var(--ink); }
+.bz-worth { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.bz-worth.is-none { color: var(--muted); }
+.bz-m { flex-basis: 100%; font-weight: 700; }
+.bz-m.is-a { color: var(--st-a); }
+.bz-m.is-g { color: var(--st-g); }
+.bz-edit { margin-left: auto; }
+.bz-sheet { display: grid; gap: 12px; }
+.bz-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
+.bz-row legend { padding: 0 4px; font-weight: 700; color: var(--ink); }
+.bz-row-says { grid-column: 1 / -1; }
+.bz-sheet .field > .label { display: block; margin: 0 0 4px; }
+.bz-days { display: block; max-width: 8em; }
+.bz-says { margin: 0; padding: 10px 12px; border-left: 4px solid var(--line-2); background: var(--surface-2, var(--surface)); border-radius: var(--radius); font-weight: 700; color: var(--ink); }
+.bz-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+@media (max-width: 640px) {
+  .bz-line { padding: 8px 10px; }
+  .bz-edit { margin-left: 0; }
+}
+
 /* ============================================================================
    PRINTING A SCREEN PAGE — the dark bands turn light.
    Rowland, 17 October: "I see that you're doing black background with white
