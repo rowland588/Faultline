@@ -233,14 +233,16 @@ pack because of X" and £ a minute. Where it stands, 17 October:
   stops (lineLoss, lineRead), the mix and next week's orders, and the stage
   gate (what the slip costs: the days the handover has moved × a day of the
   job's lines not making, in margin — `lib/lineLoss` lineDay; the job's
-  front page, its one-page status and its full report, 17 October).
+  front page, its one-page status and its full report, 17 October), the
+  control room (what the slips cost across every running stage-gate job,
+  its band and its one page — the lean page 5a) and Your factory (a day of
+  every line in margin, its page and its paper — 5b).
 - **Missing — the next piece, tool by tool:** the capability study (what
   the rejects and give-away cost), the value stream map (what the waits and
   waste cost), work sampling (what the idle share costs a shift), the line
   standard map (what the people placed cost a pack), the problems register
   (what each problem costs while it is open), a 6M countermeasure (what it
-  is worth — before → after in money), the control room (the money at risk
-  across every line and job, first).
+  is worth — before → after in money).
 
 
 1. **Programs on a line, planned from the control room** (asked today). A
