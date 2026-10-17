@@ -376,7 +376,7 @@ function chart(d: Doc, x: number, y: number, w: number, h: number, l: PaceReport
   const grid = scale.ticks;
   d.setLineWidth(0.4);
   for (const g of grid) {
-    d.setDrawColor('#eef3f8'); d.setLineDashPattern([2, 2], 0);
+    d.setDrawColor('#eef3f3'); d.setLineDashPattern([2, 2], 0);
     d.line(pL, py(g), pR, py(g));
     d.setLineDashPattern([], 0);
     setFont(d, 6, 'normal', MUTED);
@@ -930,7 +930,7 @@ function materialsSheet(d: Doc, data: PaceReportData, page: number, pages: numbe
        (ahead), green only once it is in (done): one colour, one meaning. */
     r.covered.forEach((on, c) => {
       const cx = gridX + c * wkW;
-      d.setFillColor(on ? (r.here ? OK : BLUE) : '#e9eff7');
+      d.setFillColor(on ? (r.here ? OK : BLUE) : '#edf1f1');
       d.setDrawColor('#ffffff'); d.setLineWidth(0.6);
       d.rect(cx + 0.5, y - rowH + 6, wkW - 1, rowH - 2.5, 'FD');
 
@@ -967,7 +967,7 @@ export function installPlan(n: number, H: number, M: number): { sheets: number; 
   return { sheets, per: Math.ceil(n / sheets) };
 }
 const IN_TONE: Record<NonNullable<PaceReportData['installation']>['rows'][number]['steps'][number]['tone'], string> = {
-  done: OK, problem: DANGER, asking: WARN, late: DANGER, ahead: '#e9eff7',
+  done: OK, problem: DANGER, asking: WARN, late: DANGER, ahead: '#edf1f1',
 };
 
 export const installHeight = (rows: number): number => IN_HEAD + rows * IN_ROW + IN_FOOT;
@@ -1017,11 +1017,11 @@ function installSheet(d: Doc, data: PaceReportData, page: number, pages: number,
       r.journey.forEach((g, k) => {
         const px = x0 + k * (pw + 3), py = y + 26;
         const red = g.tone === 'late' || g.tone === 'failed';
-        const col = g.tone === 'done' ? OK : g.tone === 'going' ? BRAND : red ? DANGER : g.tone === 'problem' ? WARN : g.tone === 'ahead' ? '#c6d2e3' : '#e1e8f2';
+        const col = g.tone === 'done' ? OK : g.tone === 'going' ? BRAND : red ? DANGER : g.tone === 'problem' ? WARN : g.tone === 'ahead' ? '#c7d1d2' : '#e1e7e7';
         if (g.tone === 'done') { d.setFillColor(OK); d.roundedRect(px, py, pw, 10, 3, 3, 'F'); }
-        else if (g.tone === 'none') { d.setFillColor('#f2f5fa'); d.roundedRect(px, py, pw, 10, 3, 3, 'F'); }
-        else { d.setDrawColor(col); d.setLineWidth(1); d.setFillColor(red ? '#fdf2f0' : g.tone === 'problem' ? '#f7eedb' : g.tone === 'going' ? '#e8f0fd' : '#ffffff'); d.roundedRect(px + 0.5, py + 0.5, pw - 1, 9, 3, 3, 'FD'); }
-        setFont(d, 5.6, 'bold', g.tone === 'done' ? '#ffffff' : g.tone === 'none' ? MUTED : col === '#c6d2e3' ? INK2 : col);
+        else if (g.tone === 'none') { d.setFillColor('#f2f5f5'); d.roundedRect(px, py, pw, 10, 3, 3, 'F'); }
+        else { d.setDrawColor(col); d.setLineWidth(1); d.setFillColor(red ? '#fdf2f0' : g.tone === 'problem' ? '#f7eedb' : g.tone === 'going' ? '#e3f4f6' : '#ffffff'); d.roundedRect(px + 0.5, py + 0.5, pw - 1, 9, 3, 3, 'FD'); }
+        setFont(d, 5.6, 'bold', g.tone === 'done' ? '#ffffff' : g.tone === 'none' ? MUTED : col === '#c7d1d2' ? INK2 : col);
         d.text(fit(d, g.label, pw - 3), px + pw / 2, py + 6.8, { align: 'center' });
       });
     } else {
@@ -1064,7 +1064,7 @@ function installSheet(d: Doc, data: PaceReportData, page: number, pages: number,
   if (place) return;
   setFont(d, 7, 'normal', MUTED);
   d.text(fit(d, `${data.title} \u00b7 client report \u00b7 page ${page} of ${pages} \u2014 the machines`, CW * 0.7), M, H - M + 6);
-  d.text('Steps: green done \u00b7 red ring late \u00b7 red hit a problem \u00b7 blue ring next.  Gates: green done \u00b7 blue under way \u00b7 red late.', W - M, H - M + 6, { align: 'right' });
+  d.text('Steps: green done \u00b7 red ring late \u00b7 red hit a problem \u00b7 teal ring next.  Gates: green done \u00b7 teal under way \u00b7 red late.', W - M, H - M + 6, { align: 'right' });
 }
 
 /* ---------- the trials ----------
@@ -3120,7 +3120,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData, out?: { board?: Boar
     setFont(d, 7, 'normal', MUTED);
     d.text(fit(d, [s.line, s.owner, `${s.days}d`].filter(Boolean).join(' · '), 94),
       lwX + colW - 12, sy, { align: 'right' });
-    d.setDrawColor('#eef3f8'); d.setLineWidth(0.4);
+    d.setDrawColor('#eef3f3'); d.setLineWidth(0.4);
     d.line(lwX + 12, sy + 5, lwX + colW - 12, sy + 5);
     sy += 17;
   }

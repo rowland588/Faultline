@@ -33,7 +33,7 @@ import { agreedFor, balanceCost, costInputs, crewKept } from './ie/balanceLink';
 
 import { todayISO } from './weeks';
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', BRAND = '#1f63e0', DANGER = '#c4281c';
+const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', BRAND = '#0c7489', DANGER = '#c4281c';
 
 export interface StudyPaperItem {
   s: ToolStudy;

@@ -10,7 +10,7 @@ import { chooseDensity, pour, type Block, type Density, type Frame } from './rep
 import { SIZE, box, font, gap, label, rows, text, wrap } from './report/blocks';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', BRAND = '#1f63e0', DANGER = '#c4281c';
+const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', BRAND = '#0c7489', DANGER = '#c4281c';
 
 const pad = (f: Frame) => (f.density === 'compact' ? 4 : 7);
 
@@ -24,9 +24,9 @@ function blocksOf(r: FactoryReading, d: Density): Block[] {
   const saysLines = (f: Frame) => wrap(f.doc, r.says, f.w - 28, 11, 'bold');
   out.push(box(f => 30 + saysLines(f).length * 14 + gap(f.density, 'l'), (f, y) => {
     const l = saysLines(f), h = 24 + l.length * 14;
-    f.doc.setFillColor('#0d1f3c'); f.doc.roundedRect(f.x, y, f.w, h, 6, 6, 'F');
+    f.doc.setFillColor('#12171c'); f.doc.roundedRect(f.x, y, f.w, h, 6, 6, 'F');
     font(f.doc, 11, 'bold', '#ffffff'); f.doc.text(l, f.x + 14, y + 17);
-    font(f.doc, 8.5, 'normal', '#c9d6ea'); f.doc.text(r.problems, f.x + 14, y + 17 + l.length * 14);
+    font(f.doc, 8.5, 'normal', '#cbd6d8'); f.doc.text(r.problems, f.x + 14, y + 17 + l.length * 14);
   }, f => gap(f.density, 'l')));
 
   /* EVERY LINE, IN FLOOR ORDER — its place, name and type; the jobs on it;

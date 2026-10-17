@@ -1696,16 +1696,17 @@ export interface VCurve { points: VPoint[]; under: VPoint[]; limit?: VPoint; sen
 
 /** THE COLOUR OF A SHARE — the V's one rule on the screen, the sheet and the
  *  paper (ui/VCurve, lib/capacityPaperPdf): the
- *  bottleneck navy; under the V amber (a state: at risk); the rest the
- *  brand's blue, lighter as they have more to spare, palest from 250%.
+ *  bottleneck graphite, the house's frame; under the V amber (a state: at
+ *  risk); the rest the brand's teal, lighter as they have more to spare,
+ *  palest from 250%.
  *  `[deep, light]` for a column's gradient. */
 export function shareColours(pct: number, isLimit: boolean, under: boolean): [string, string] {
-  if (isLimit) return ['#0d1f3c', '#23447f'];
+  if (isLimit) return ['#12171c', '#33414b'];
   if (under) return ['#b45309', '#e09a52'];
   const t = Math.max(0, Math.min(1, (pct - 100) / 150));
   const mix = (a: number[], b: number[], k: number) => `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * k)).join(',')})`;
-  /* --brand → a sky the landing's gradient ends in */
-  return [mix([31, 99, 224], [138, 184, 255], t), mix([92, 150, 255], [196, 220, 255], t)];
+  /* --brand → the pale cyan the landing's gradient ends in */
+  return [mix([12, 116, 137], [127, 219, 228], t), mix([31, 169, 190], [201, 240, 244], t)];
 }
 
 

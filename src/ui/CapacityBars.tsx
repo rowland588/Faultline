@@ -5,7 +5,7 @@
  * beside it — red only when the line cannot reach it (visual rule 1). One
  * group a line when several feed in (one for every line when they are alike),
  * then where they merge, its first bar what the lines send. Colours are the
- * V's (lib/capacity shareColours): the bottleneck navy, the rest lighter the
+ * V's (lib/capacity shareColours): the bottleneck graphite, the rest lighter the
  * more they have to spare — every figure in words beside its bar. A tap
  * opens the station. Reads lib/capacityFlow. */
 import { shareColours } from '../lib/capacity';
@@ -34,7 +34,7 @@ export function CapacityBars({ m, onPick }: { m: FlowModel; onPick?: (index: num
               {g.rows.map(x => {
                 const v = x.perMin;
                 const pct = v != null && g.ref ? (v / g.ref) * 100 : 100;
-                const [deep, light] = x.isInflow ? ['#8a9bb5', '#c3cddd'] : shareColours(pct, x.isLimit, false);
+                const [deep, light] = x.isInflow ? ['#8a999e', '#c4cdd0'] : shareColours(pct, x.isLimit, false);
                 const words = v == null ? 'no speed yet'
                   : x.isInflow ? `${perMinWords(v)} arrive`
                     : x.isLimit ? `${perMinWords(v)} — the bottleneck`

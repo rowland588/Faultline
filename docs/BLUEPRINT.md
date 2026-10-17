@@ -761,7 +761,7 @@ is still wired.
   on top — every name in full under its column, scrolling with the scale
   still past what the box holds, opened on the bottleneck; a column opens
   its station. Coloured by how close a station runs to the bottleneck —
-  navy at it, the brand's blue lighter with room to spare (Rowland's third
+  graphite at it, the brand's teal lighter with room to spare (Rowland's third
   colour exception, `CLAUDE.md`), amber only under the V; the phone's bars,
   the capacity sheet's share column and the paper the same. On paper the V
   is drawn too — a bar a station under the V's sentence, its scale carried
@@ -862,7 +862,7 @@ is still wired.
   all) above the checks (`lib/capacityLines reshape`: the first stations copied
   per line, a line already that long kept with what was typed on it, the rest
   shared), with a map of the lines — a row a line, each station and its speed,
-  the bottleneck in navy — and a dashed *Lines merge here — 137 units/min
+  the bottleneck in graphite — and a dashed *Lines merge here — 137 units/min
   arrive*, said in the shared station's own cycle times (what reaches it, how
   long it takes, how many people). **The way to the target is worked out**
   (`lib/capacityPlan planToTarget`): one more at the station holding the whole

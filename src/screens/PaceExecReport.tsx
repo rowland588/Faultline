@@ -487,7 +487,7 @@ function InstallationPage({ ins, title, scale, sheetH, n, of }: {
         </div>
         <footer className="exec-foot">
           <span>{title} · client report · page {n} of {of} — the machines</span>
-          <span>Steps: green done · red ring late · red hit a problem · blue ring next.  Gates: green done · blue under way · red late.</span>
+          <span>Steps: green done · red ring late · red hit a problem · teal ring next.  Gates: green done · teal under way · red late.</span>
         </footer>
       </section>
     </div>

@@ -626,7 +626,7 @@ marks. Class names are a proposal (`ie-…`).
   simply: ● operation · ➝ move · ◆ check · ▢ wait · ▽ store.
 - **Ergonomic bands** (the HSE sheets' green, amber, red, purple) are said
   in **words and stepped marks** (▪ ▪▪ ▪▪▪ ▪▪▪▪), never in those colours.
-- **Brand blue is what you press**: Walk it, Lap, ↵, Make it better.
+- **The brand's teal is what you press**: Walk it, Lap, ↵, Make it better.
 - **The suggestion is a ghost**: a suggested balance or a guessed waste is
   drawn in the quiet grey, dashed, beside the real thing, until applied.
 

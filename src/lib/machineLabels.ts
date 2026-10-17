@@ -50,7 +50,7 @@ export function machineLabels(x: { project: { id: string; name: string }; assets
 const W = 595.28, H = 841.89, M = 36, CW = W - 2 * M;
 const GAP = 14, COLS = 2, LW = (CW - GAP * (COLS - 1)) / COLS;
 const QR = 112, PAD = 12;
-const INK = '#0f1a2e', INK2 = '#33415a', MUTED = '#5b6b82', CUT = '#9aa8bd';
+const INK = '#0f1417', INK2 = '#323d43', MUTED = '#59666c', CUT = '#99a6ab';
 
 function labelLines(f: Frame, l: MachineLabel) {
   const tw = LW - QR - PAD * 3;

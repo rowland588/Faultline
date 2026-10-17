@@ -14,18 +14,18 @@ import type { jsPDF } from 'jspdf';
 export type Doc = jsPDF;
 
 /* ---------- the app's palette, as the report uses it ----------
-   The same colours as the screen (styles.css :root) — navy ink, cool white,
-   the landing's blue for the brand, deep navy for the dark frame, green only
-   for done. When one moves, the other moves with it. */
-export const INK = '#0f1a2e', INK2 = '#44526a', MUTED = '#7a879c', LINE = '#e1e8f2';
-export const ACCENT = '#1f5fd6', BRAND = '#1f63e0', SURF2 = '#e9eff7';
+   The same colours as the screen (styles.css :root) — graphite ink, fresh
+   paper, the landing's cyan-teal for the brand, graphite for the dark frame
+   (the fresh look, 17 October), green only for done. When one moves, the other moves with it. */
+export const INK = '#0f1417', INK2 = '#3c474c', MUTED = '#78858a', LINE = '#e1e7e7';
+export const ACCENT = '#0b7285', BRAND = '#0c7489', SURF2 = '#edf1f1';
 export const GOLD = '#a97822';
 /** The dark frame a masthead or a verdict block is drawn on. */
-export const SHELL = '#0d1f3c', SHELL_2 = '#14294d', SHELL_MUTED = '#9fb0cc';
+export const SHELL = '#12171c', SHELL_2 = '#1b2229', SHELL_MUTED = '#9aa7ae';
 export const OK = '#15803d', WARN = '#b45309', DANGER = '#c4281c', BLUE = '#6d28d9';
 /** The validated chart pair — actual vs target (target is also dashed, so the
  *  two never rely on colour alone). */
-export const ACTUAL = '#1f4fb8', TARGET = '#a97822';
+export const ACTUAL = '#0b6474', TARGET = '#a97822';
 
 /* THE LETTERS BEYOND LATIN-1 THE PDF FONTS DRAW — the names on a European
    site: Łukasz, Ştefan, Dvořák, Gülşen, Ørjan. Before 4 October san() dropped
@@ -244,15 +244,15 @@ export function wash(hex: string, amount: number): [number, number, number] {
 /* ---------------------------- the Faultline mark ---------------------------- */
 
 /** The mark — the same drawing as ui/Logo's LogoMark, at `size` points: a pale
- *  tile, the flat line in soft blue, the fault ripping through it in navy and
- *  brand blue. Drawn in vector, so it is sharp at any print size. */
+ *  tile, the flat line in soft cyan, the fault ripping through it in graphite
+ *  and the brand's teal. Drawn in vector, so it is sharp at any print size. */
 export function drawMark(d: Doc, x: number, y: number, size: number): void {
   const k = size / 32;
   const P = (px: number, py: number): [number, number] => [x + px * k, y + py * k];
-  d.setFillColor('#eef4fd'); d.setDrawColor('#d3e2f9'); d.setLineWidth(0.4 * Math.max(1, k * 2));
+  d.setFillColor('#eef6f6'); d.setDrawColor('#d0edf0'); d.setLineWidth(0.4 * Math.max(1, k * 2));
   d.roundedRect(x, y, size, size, 8 * k, 8 * k, 'FD');
   d.setLineCap('round'); d.setLineJoin('round');
-  d.setDrawColor('#8fb7f2'); d.setLineWidth(2.4 * k);
+  d.setDrawColor('#86d2dc'); d.setLineWidth(2.4 * k);
   d.line(...P(5, 20), ...P(11.5, 20)); d.line(...P(22, 20), ...P(27, 20));
   d.setLineWidth(3.2 * k);
   d.setDrawColor(SHELL); d.line(...P(11.5, 20), ...P(15, 8.5));

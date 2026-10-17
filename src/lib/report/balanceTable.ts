@@ -12,7 +12,7 @@ import { balanceCostSays, type BalanceCost } from '../ie/balanceLink';
 import type { Block, Frame } from './flow';
 import { SIZE, font, label, rows, text, wrap } from './blocks';
 
-const INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', DANGER = '#c4281c', WORK = '#44526a', WALK_BG = '#e9eff7';
+const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', DANGER = '#c4281c', WORK = '#3c474c', WALK_BG = '#edf1f1';
 const BAR = 13;
 
 /** A person's figure in words — the same sentence the screen prints beside them. */
@@ -51,7 +51,7 @@ function drawBar(fr: Frame, p: PersonFigures, x: number, y: number, w: number): 
       const ow = ((p.work - p.takt) / span) * w;
       d.setDrawColor(DANGER); d.setLineWidth(1.4); d.line(tx, y + BAR + 1.6, tx + ow, y + BAR + 1.6);
     }
-    d.setDrawColor('#0f1a2e'); d.setLineWidth(0.9); d.setLineDashPattern([2, 1.6], 0);
+    d.setDrawColor('#0f1417'); d.setLineWidth(0.9); d.setLineDashPattern([2, 1.6], 0);
     d.line(tx, y - 1, tx, y + BAR + 3); d.setLineDashPattern([], 0);
   }
 }

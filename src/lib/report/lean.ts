@@ -2,7 +2,7 @@
  * draws (ui/Lean), from the same model (lib/lean), as report-engine blocks
  * (docs/REPORTS.md): each measures itself with the real font, none is cut.
  *
- * The band and the closing line in the house navy; a tile's top edge and its
+ * The band and the closing line in the house graphite; a tile's top edge and its
  * number in a state colour only when abnormal or met; a change drawn with a
  * triangle and its words (green better, red worse, grey the same), so it
  * survives a black-and-white print. */
@@ -11,7 +11,7 @@ import { DANGER, INK, INK2, LINE, MUTED, OK, SHELL, SHELL_2, SHELL_MUTED, WARN, 
 import { SIZE, font, rows, text, wrap, type Row } from './blocks';
 import type { Block, Frame } from './flow';
 
-const DIM = '#c1cde0', LINE2 = '#c6d2e3', GREY = '#6b7588', BAR = '#9aa7ba';
+const DIM = '#c4ced3', LINE2 = '#c7d1d2', GREY = '#6b7588', BAR = '#98a5ab';
 const TONE: Record<LeanTone, string> = { r: DANGER, a: WARN, g: OK, n: GREY };
 const wash = (t: LeanTone): string | undefined => (t === 'g' ? '#f1f8f3' : t === 'r' ? '#fcf1f0' : undefined);
 
@@ -296,7 +296,7 @@ export function leanActions(xs: LeanAction[], empty: string): Block[] {
 
 /* --------------------------------------------------------- the closing line */
 
-/** THE CLOSING LINE — the one sentence, in the navy band at the foot. */
+/** THE CLOSING LINE — the one sentence, in the graphite band at the foot. */
 export function leanClosing(c: { text: string; tone: LeanTone }): Block {
   const LH = 11.5;
   const lines = (f: Frame) => wrap(f.doc, c.text, f.w - 56, 9.5, 'bold');

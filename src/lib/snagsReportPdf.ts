@@ -28,7 +28,7 @@ import { registerClosing, registerTiles } from './problemsLean';
 import { SIZE, font, gap, rows, text, wrap } from './report/blocks';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', BRAND = '#1f63e0';
+const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', BRAND = '#0c7489';
 const TONE: Record<SnagTone, string> = { g: OK, r: DANGER, w: BLUE, a: WARN, n: MUTED };
 const THUMB = 42, RIGHT = 150;
 /* PRIORITY, RAG — Rowland's own: Critical red, High amber, Low green, the word always with it */

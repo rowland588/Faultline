@@ -18,7 +18,7 @@ import { balanceBlocks } from './report/balanceTable';
 import { todayISO } from './weeks';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', DANGER = '#c4281c', NAVY = '#0f1a2e';
+const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', DANGER = '#c4281c', NAVY = '#0f1417';
 
 export interface TogetherPaper { s: Standard; study?: ToolStudy; name: string; printed: string; card?: string; line?: Awaited<ReturnType<typeof getWorkspace>> }
 

@@ -3,8 +3,9 @@
  * problem announces itself. It is the name made literal, and it echoes every
  * trend chart inside the app.
  *
- * The landing's colours: a white-into-pale-blue tile, the flat line in a soft
- * blue, the spike navy into bright blue. It was a green-to-blue tile with a
+ * The landing's colours: a white-into-pale-cyan tile, the flat line in a soft
+ * cyan, the spike graphite into the brand's teal and a bright cyan (the fresh
+ * look, 17 October; it was navy into blue). It was a green-to-blue tile with a
  * white trace; Rowland asked for the install icon to look like the landing
  * page, and the mark is the same drawing at every size — the top bar, the
  * splash, the favicon (public/mark.svg) and the install icons
@@ -18,19 +19,19 @@ export function LogoMark({ size = 28, id = 'fl' }: { size?: number; id?: string 
       <defs>
         <radialGradient id={t} cx="0.28" cy="0.18" r="1">
           <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="55%" stopColor="#f1f6ff" />
-          <stop offset="100%" stopColor="#d6e6ff" />
+          <stop offset="55%" stopColor="#eefafa" />
+          <stop offset="100%" stopColor="#d2f0f2" />
         </radialGradient>
         <linearGradient id={p} x1="11" y1="0" x2="22" y2="0" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#0d1f3c" />
-          <stop offset="55%" stopColor="#1f63e0" />
-          <stop offset="100%" stopColor="#3d8bff" />
+          <stop offset="0%" stopColor="#12171c" />
+          <stop offset="55%" stopColor="#0c7489" />
+          <stop offset="100%" stopColor="#22c3d6" />
         </linearGradient>
       </defs>
       <rect width="32" height="32" rx="8" fill={`url(#${t})`} />
-      <rect x="0.5" y="0.5" width="31" height="31" rx="7.5" fill="none" stroke="#1f63e0" strokeOpacity="0.16" />
-      <path d="M5 20 L11.5 20" stroke="#8fb7f2" strokeWidth="2.4" strokeLinecap="round" fill="none" />
-      <path d="M22 20 L27 20" stroke="#8fb7f2" strokeWidth="2.4" strokeLinecap="round" fill="none" />
+      <rect x="0.5" y="0.5" width="31" height="31" rx="7.5" fill="none" stroke="#0c7489" strokeOpacity="0.16" />
+      <path d="M5 20 L11.5 20" stroke="#86d2dc" strokeWidth="2.4" strokeLinecap="round" fill="none" />
+      <path d="M22 20 L27 20" stroke="#86d2dc" strokeWidth="2.4" strokeLinecap="round" fill="none" />
       <path d="M11.5 20 L15 8.5 L19 25 L22 20" stroke={`url(#${p})`} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
     </svg>
   );

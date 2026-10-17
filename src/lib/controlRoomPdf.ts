@@ -17,15 +17,15 @@ import { chooseDensity, pour, type Block, type Density, type Frame } from './rep
 import { SIZE, box, font, gap, label, rows, text, wrap } from './report/blocks';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef';
-const BRAND = '#1f63e0', OK = '#15803d', DANGER = '#c4281c', AMBER = '#b45309', BOOKED = '#6d28d9';
+const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6';
+const BRAND = '#0c7489', OK = '#15803d', DANGER = '#c4281c', AMBER = '#b45309', BOOKED = '#6d28d9';
 
 /* The verdict's colours — the status report's, so the two pages read alike. */
 const TONE: Record<OnTargetTone, { fill: string; stroke: string; text: string }> = {
   behind: { fill: '#fdf2f0', stroke: DANGER, text: DANGER },
   risk: { fill: '#f7eedb', stroke: AMBER, text: AMBER },
   on: { fill: '#eef6f1', stroke: '#9cc4af', text: OK },
-  none: { fill: '#f4f6fa', stroke: '#c6d2e3', text: MUTED },
+  none: { fill: '#f4f6fa', stroke: '#c7d1d2', text: MUTED },
 };
 
 function fitLine(doc: jsPDF, t: string, w: number): string {
@@ -53,9 +53,9 @@ function blocksOf(r: ControlRoomReport, d: Density): Block[] {
   const saysLines = (f: Frame) => wrap(f.doc, r.says, f.w - 28, 11, 'bold');
   out.push(box(f => 30 + saysLines(f).length * 14 + gap(f.density, 'l'), (f, y) => {
     const l = saysLines(f), h = 24 + l.length * 14;
-    f.doc.setFillColor('#0d1f3c'); f.doc.roundedRect(f.x, y, f.w, h, 6, 6, 'F');
+    f.doc.setFillColor('#12171c'); f.doc.roundedRect(f.x, y, f.w, h, 6, 6, 'F');
     font(f.doc, 11, 'bold', '#ffffff'); f.doc.text(l, f.x + 14, y + 17);
-    font(f.doc, 8.5, 'normal', '#c9d6ea'); f.doc.text(counts, f.x + 14, y + 17 + l.length * 14);
+    font(f.doc, 8.5, 'normal', '#cbd6d8'); f.doc.text(counts, f.x + 14, y + 17 + l.length * 14);
   }, f => gap(f.density, 'l')));
 
   /* 1 · WHERE EVERY JOB IS — one row a job: its name and kind of change, its

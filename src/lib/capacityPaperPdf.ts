@@ -23,7 +23,7 @@ import { capacityLean } from './capacityLean';
 import { leanActions, leanBand, leanClosing, leanHead, leanInsights, leanTiles } from './report/lean';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK = '#0f1a2e', INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', BRAND = '#1f63e0', SURF = '#eef2f8';
+const INK = '#0f1417', INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', BRAND = '#0c7489', SURF = '#eef2f8';
 /** The house's red and amber on paper (lib/report/lossTable, lib/factoryPdf). */
 const RED = '#c4281c', AMBER = '#b45309';
 const toneInk = (t?: Tone) => (t === 'r' ? RED : t === 'a' ? AMBER : INK2);
@@ -39,10 +39,10 @@ function band(headline: string, sentence: string, short: boolean): Block {
   const height = (f: Frame) => { const p = parts(f); return 22 + p.h.length * 14 + (p.s.length ? 4 + p.s.length * LH : 0); };
   return box(f => height(f) + gap(f.density, 'm'), (f, y) => {
     const p = parts(f), h = height(f);
-    f.doc.setFillColor('#0d1f3c'); f.doc.roundedRect(f.x, y, f.w, h, 6, 6, 'F');
+    f.doc.setFillColor('#12171c'); f.doc.roundedRect(f.x, y, f.w, h, 6, 6, 'F');
     if (short) { f.doc.setFillColor(RED); f.doc.rect(f.x, y + 6, 4, h - 12, 'F'); }
     font(f.doc, 11, 'bold', '#ffffff'); f.doc.text(p.h, f.x + 15, y + 17);
-    if (p.s.length) { font(f.doc, T, 'normal', '#c9d6ea'); f.doc.text(p.s, f.x + 15, y + 17 + p.h.length * 14 + 2); }
+    if (p.s.length) { font(f.doc, T, 'normal', '#cbd6d8'); f.doc.text(p.s, f.x + 15, y + 17 + p.h.length * 14 + 2); }
   }, f => gap(f.density, 'm'));
 }
 
@@ -77,7 +77,7 @@ function said(lead_: string, words: string, tone: Tone = 'n', o: { indent?: numb
 
 /* ------------------------------- the V, drawn ------------------------------ */
 
-/** A colour as jsPDF takes it — "#0d1f3c" or "rgb(31,99,224)". */
+/** A colour as jsPDF takes it — "#12171c" or "rgb(12,116,137)". */
 function fillOf(doc: jsPDF, css: string, as: 'fill' | 'draw' = 'fill'): void {
   const m = /^rgb\((\d+),(\d+),(\d+)\)$/.exec(css.replace(/\s/g, ''));
   if (as === 'fill') { if (m) doc.setFillColor(+m[1], +m[2], +m[3]); else doc.setFillColor(css); }
@@ -88,8 +88,8 @@ function fillOf(doc: jsPDF, css: string, as: 'fill' | 'draw' = 'fill'): void {
  *  old" — and the paper given it too, rule 2): a bar a station in flow
  *  order, as the phone lies it on its side, as long as its share of the
  *  bottleneck once its own stops count, paler to what it does while running;
- *  the colours the screen's (lib/capacity shareColours) — the bottleneck navy,
- *  the rest blue, lighter with room to spare, amber only under the agreed V;
+ *  the colours the screen's (lib/capacity shareColours) — the bottleneck graphite,
+ *  the rest teal, lighter with room to spare, amber only under the agreed V;
  *  the line at 100% the bottleneck's own, the V agreed a dashed tick, the
  *  target dotted, red only when the bottleneck cannot meet it. The scale is
  *  the screen's: from nothing to a little over the highest, never past 300%.
@@ -135,13 +135,13 @@ function vBars(p: CapacityPaper): Block | null {
     draw: (f, y) => {
       const g = geo(f), h = rowH(f, r), l = name(f, r);
       const [deep, light] = shareColours(r.pct ?? 0, r.limit, r.under);
-      if (r.limit) { f.doc.setFillColor(SURF); f.doc.rect(f.x, y, f.w, h, 'F'); f.doc.setFillColor('#0d1f3c'); f.doc.rect(f.x, y, 3, h, 'F'); }
+      if (r.limit) { f.doc.setFillColor(SURF); f.doc.rect(f.x, y, f.w, h, 'F'); f.doc.setFillColor('#12171c'); f.doc.rect(f.x, y, 3, h, 'F'); }
       const ty = y + 4 + T * 0.92;
       font(f.doc, T, 'bold', INK); f.doc.text(l, f.x + (r.limit ? 7 : 0), ty);
       font(f.doc, S, 'normal', MUTED); f.doc.text(`${r.perMin} ${p.unit}/min`, f.x + (r.limit ? 7 : 0), ty + l.length * LH - 1);
       /* the bar: paler to what it does while running, then its share once its stops count */
       const by = y + h / 2 - 5, bh = 10;
-      f.doc.setFillColor('#e9eff7'); f.doc.roundedRect(g.x0, by, g.x1 - g.x0, bh, 3, 3, 'F');
+      f.doc.setFillColor('#edf1f1'); f.doc.roundedRect(g.x0, by, g.x1 - g.x0, bh, 3, 3, 'F');
       if ((r.runningPct ?? 0) > (r.pct ?? 0) + 0.5) { fillOf(f.doc, light); f.doc.roundedRect(g.x0, by, Math.max(2, g.at(r.runningPct ?? 0) - g.x0), bh, 3, 3, 'F'); }
       fillOf(f.doc, deep); f.doc.roundedRect(g.x0, by, Math.max(2, g.at(r.pct ?? 0) - g.x0), bh, 3, 3, 'F');
       marks(f, y, h, r);
@@ -160,7 +160,7 @@ function vBars(p: CapacityPaper): Block | null {
 
 /** The V's key: what the bar, the paler bar and the marks are. */
 function vKey(p: CapacityPaper): Block {
-  const words = `Bar: its share of the bottleneck once its own stops count; paler: more while running. Navy: the bottleneck; blue, lighter with room to spare; amber: under the V agreed. Solid line: 100%, the bottleneck${p.rows.some(r => r.guide != null) ? '; dashed tick: what the V asks of it' : ''}${p.targetPct != null ? `; dotted: the target${(p.targetPct ?? 0) > 100 + 1e-9 ? ', above the bottleneck' : ''}` : ''}.`;
+  const words = `Bar: its share of the bottleneck once its own stops count; paler: more while running. Graphite: the bottleneck; teal, lighter with room to spare; amber: under the V agreed. Solid line: 100%, the bottleneck${p.rows.some(r => r.guide != null) ? '; dashed tick: what the V asks of it' : ''}${p.targetPct != null ? `; dotted: the target${(p.targetPct ?? 0) > 100 + 1e-9 ? ', above the bottleneck' : ''}` : ''}.`;
   return text({ text: words, size: S, colour: MUTED, after: 4 });
 }
 

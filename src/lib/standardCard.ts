@@ -27,7 +27,7 @@ import { BOARDS, boardOf, bottlenecksOf, colourOf, dashOf, FADED_ALPHA, firstPar
 /** A4 landscape at 150 dpi: sharp on paper, light enough for a phone. */
 export const CARD_W = 1754, CARD_H = 1240;
 const M = 64;
-const NAVY = '#0d1f3c', BLUE = '#1f63e0', INK = '#0f1a2e', INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', SOFT = '#f3f6fb';
+const NAVY = '#12171c', BLUE = '#0c7489', INK = '#0f1417', INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', SOFT = '#f2f5f5';
 /* The app's own face, as on every screen and every other PDF; the system
    faces only if it has not loaded. */
 const FONT = '"Instrument Sans Variable", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
@@ -106,7 +106,7 @@ function wrapRef(ctx: CanvasRenderingContext2D, text: string, width: number, max
 export function drawIcon(ctx: CanvasRenderingContext2D, kind: StandardMark['kind'], cx: number, cy: number, r: number, colour?: string) {
   const k = markOf(kind);
   ctx.save();
-  ctx.shadowColor = 'rgba(13,31,60,0.28)'; ctx.shadowBlur = r * 0.5; ctx.shadowOffsetY = r * 0.12;
+  ctx.shadowColor = 'rgba(18,23,28,0.28)'; ctx.shadowBlur = r * 0.5; ctx.shadowOffsetY = r * 0.12;
   ctx.beginPath(); ctx.arc(cx, cy, r + Math.max(2, r * 0.12), 0, Math.PI * 2); ctx.fillStyle = '#ffffff'; ctx.fill();
   ctx.restore();
   ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = colour ?? k.colour; ctx.fill();
@@ -131,7 +131,7 @@ function pillBox(ctx: CanvasRenderingContext2D, text: string, cx: number, top: n
 function pillLabel(ctx: CanvasRenderingContext2D, text: string, cx: number, top: number, size: number) {
   ctx.font = `700 ${size}px ${FONT}`;
   const tw = ctx.measureText(text).width, h = size * 1.5, w = tw + size * 1.1;
-  ctx.fillStyle = 'rgba(15,26,46,0.9)';
+  ctx.fillStyle = 'rgba(15,20,23,0.9)';
   round(ctx, cx - w / 2, top, w, h, h / 2); ctx.fill();
   ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(text, cx, top + h / 2 + 1);
@@ -145,7 +145,7 @@ function bnTag(ctx: CanvasRenderingContext2D, cx: number, top: number, size: num
   ctx.font = `800 ${size}px ${FONT}`;
   const text = 'BOTTLENECK', tw = ctx.measureText(text).width, h = size * 1.55, w = tw + size * 1.1;
   const x = left ? cx : cx - w / 2;
-  ctx.fillStyle = '#0f1a2e'; round(ctx, x, top, w, h, 4); ctx.fill();
+  ctx.fillStyle = '#0f1417'; round(ctx, x, top, w, h, 4); ctx.fill();
   ctx.fillStyle = '#ffffff'; ctx.textBaseline = 'middle'; ctx.fillText(text, x + size * 0.55, top + h / 2 + 1); ctx.textBaseline = 'alphabetic';
   return { x, y: top, w, h };
 }
@@ -265,19 +265,19 @@ async function renderCardWithNotes(s: Standard, projectName: string, printed: st
   /* ---------------- the band ---------------- */
   const bandH = 236;
   const grad = ctx.createLinearGradient(0, 0, CARD_W, bandH);
-  grad.addColorStop(0, NAVY); grad.addColorStop(0.65, '#14306a'); grad.addColorStop(1, BLUE);
+  grad.addColorStop(0, NAVY); grad.addColorStop(0.65, '#16323a'); grad.addColorStop(1, BLUE);
   ctx.fillStyle = grad; ctx.fillRect(0, 0, CARD_W, bandH);
   // a soft shimmer across the band
   const sh = ctx.createRadialGradient(CARD_W * 0.78, -40, 10, CARD_W * 0.78, -40, 520);
   sh.addColorStop(0, 'rgba(255,255,255,0.22)'); sh.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = sh; ctx.fillRect(0, 0, CARD_W, bandH);
 
-  ctx.fillStyle = '#9fc0ff'; ctx.font = `800 24px ${FONT}`;
+  ctx.fillStyle = '#8fdde5'; ctx.font = `800 24px ${FONT}`;
   ctx.fillText('L I N E   S T A N D A R D', M, 70);
   ctx.fillStyle = '#ffffff'; ctx.font = `800 60px ${FONT}`;
   const title = wrap(ctx, s.product || 'Untitled product', CARD_W - 2 * M - 300, 2);
   title.forEach((l, i) => ctx.fillText(l, M, 138 + i * 64));
-  ctx.fillStyle = '#c9d6ee'; ctx.font = `500 26px ${FONT}`;
+  ctx.fillStyle = '#c6e6ea'; ctx.font = `500 26px ${FONT}`;
   ctx.fillText(`${projectName}   ·   printed ${printed}`, M, title.length > 1 ? 222 : 190);
 
   // the headcount — the number a supervisor reads first
@@ -316,7 +316,7 @@ async function renderCardWithNotes(s: Standard, projectName: string, printed: st
   const mapX = M, mapW = Math.min(CARD_W - 2 * M - 520 - gap, Math.round(mapH * shape.w / shape.h));
   const sideW = CARD_W - 2 * M - mapW - gap;
   ctx.save();
-  ctx.shadowColor = 'rgba(13,31,60,0.16)'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 8;
+  ctx.shadowColor = 'rgba(18,23,28,0.16)'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 8;
   round(ctx, mapX, top, mapW, mapH, 22); ctx.fillStyle = SOFT; ctx.fill();
   ctx.restore();
   ctx.save();
@@ -333,7 +333,7 @@ async function renderCardWithNotes(s: Standard, projectName: string, printed: st
     const k = Math.min(mapW / b.w, mapH / b.h);
     iw = b.w * k; ih = b.h * k; ix = mapX + (mapW - iw) / 2; iy = top + (mapH - ih) / 2;
     ctx.fillStyle = '#f7f9fc'; ctx.fillRect(ix, iy, iw, ih);
-    ctx.strokeStyle = '#e1e8f2'; ctx.lineWidth = 1;
+    ctx.strokeStyle = '#e1e7e7'; ctx.lineWidth = 1;
     for (let x = ix; x < ix + iw; x += 40) { ctx.beginPath(); ctx.moveTo(x, iy); ctx.lineTo(x, iy + ih); ctx.stroke(); }
     for (let y = iy; y < iy + ih; y += 40) { ctx.beginPath(); ctx.moveTo(ix, y); ctx.lineTo(ix + iw, y); ctx.stroke(); }
   }
@@ -382,7 +382,7 @@ async function renderCardWithNotes(s: Standard, projectName: string, printed: st
   for (const t of tags) taken.push(t.box);
   /* the marks, then the tags */
   for (const { m, cx, cy } of icons) {
-    if (m.bottleneck) { ctx.beginPath(); ctx.arc(cx, cy, r + 7, 0, Math.PI * 2); ctx.strokeStyle = '#0f1a2e'; ctx.lineWidth = 4; ctx.stroke(); }
+    if (m.bottleneck) { ctx.beginPath(); ctx.arc(cx, cy, r + 7, 0, Math.PI * 2); ctx.strokeStyle = '#0f1417'; ctx.lineWidth = 4; ctx.stroke(); }
     drawIcon(ctx, m.kind, cx, cy, r, colourOf(m));
   }
   for (const t of tags) t.draw();
@@ -559,7 +559,7 @@ async function renderCardWithNotes(s: Standard, projectName: string, printed: st
   ctx.strokeStyle = LINE; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(M, fy); ctx.lineTo(CARD_W - M, fy); ctx.stroke();
   ctx.fillStyle = MUTED; ctx.font = `600 22px ${FONT}`;
   ctx.fillText('Agreed by', M, fy + 54);
-  ctx.strokeStyle = '#9aa8bd'; ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#99a6ab'; ctx.lineWidth = 1.5;
   ctx.beginPath(); ctx.moveTo(M + 132, fy + 56); ctx.lineTo(M + 520, fy + 56); ctx.stroke();
   ctx.fillText('Date', M + 560, fy + 54);
   ctx.beginPath(); ctx.moveTo(M + 630, fy + 56); ctx.lineTo(M + 830, fy + 56); ctx.stroke();
@@ -625,11 +625,11 @@ function notesPages(s: Standard, projectName: string, printed: string, notes: Ca
     const c = cv.getContext('2d') as CanvasRenderingContext2D;
     c.fillStyle = '#ffffff'; c.fillRect(0, 0, CARD_W, CARD_H);
     const grad = c.createLinearGradient(0, 0, CARD_W, bandH);
-    grad.addColorStop(0, NAVY); grad.addColorStop(0.65, '#14306a'); grad.addColorStop(1, BLUE);
+    grad.addColorStop(0, NAVY); grad.addColorStop(0.65, '#16323a'); grad.addColorStop(1, BLUE);
     c.fillStyle = grad; c.fillRect(0, 0, CARD_W, bandH);
-    c.fillStyle = '#9fc0ff'; c.font = `800 22px ${FONT}`; c.fillText('L I N E   S T A N D A R D   ·   N O T E S', M, 56);
+    c.fillStyle = '#8fdde5'; c.font = `800 22px ${FONT}`; c.fillText('L I N E   S T A N D A R D   ·   N O T E S', M, 56);
     c.fillStyle = '#ffffff'; c.font = `800 42px ${FONT}`; c.fillText(wrap(c, s.product || 'Untitled product', CARD_W - 2 * M - 420, 1)[0] ?? '', M, 108);
-    c.fillStyle = '#c9d6ee'; c.font = `500 22px ${FONT}`; c.textAlign = 'right';
+    c.fillStyle = '#c6e6ea'; c.font = `500 22px ${FONT}`; c.textAlign = 'right';
     c.fillText(`${projectName}  ·  printed ${printed}`, CARD_W - M, 108); c.textAlign = 'left';
     c.fillStyle = MUTED; c.font = `500 19px ${FONT}`;
     c.fillText('The words the card could not hold, in full — numbered as on the map.', M, CARD_H - 34);

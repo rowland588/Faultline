@@ -23,13 +23,13 @@ import { chooseDensity, pour, type Block, type Density, type Frame } from './rep
 import { SIZE, box, font, gap, heading, label, rows, text, wrap, type Row } from './report/blocks';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK = '#0f1a2e', INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef';
-const BRAND = '#1f63e0', OK = '#15803d', DANGER = '#c4281c', AMBER = '#b45309', BOOKED = '#6d28d9', GREY = '#8a94a6';
+const INK = '#0f1417', INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6';
+const BRAND = '#0c7489', OK = '#15803d', DANGER = '#c4281c', AMBER = '#b45309', BOOKED = '#6d28d9', GREY = '#8a9599';
 
 const HO: Record<HoTone, string> = { done: OK, failed: DANGER, late: DANGER, ahead: BOOKED, none: MUTED };
 const CM: Record<CmTone, string> = { g: OK, r: DANGER, a: AMBER, w: BOOKED, n: GREY };
 const CM_SOFT: Record<CmTone, string> = { g: '#e6f2ec', r: '#f8e6e3', a: '#f7efdf', w: '#eeedfa', n: '#eef1f5' };
-const VERDICT: Record<OnTargetTone, string> = { behind: '#ffb4a8', risk: '#f2cf86', on: '#9fd8bb', none: '#c9d6ea' };
+const VERDICT: Record<OnTargetTone, string> = { behind: '#ffb4a8', risk: '#f2cf86', on: '#9fd8bb', none: '#cbd6d8' };
 
 function fitLine(doc: jsPDF, t: string, w: number): string {
   font(doc, 7.5, 'normal', MUTED);
@@ -85,9 +85,9 @@ function band(r: CommissioningReport): Block {
   });
   return box(f => { const b = parts(f); return 24 + b.head.length * 14 + b.sub.length * 11.5 + 4; }, (f, y) => {
     const b = parts(f), hh = 24 + b.head.length * 14 + b.sub.length * 11.5;
-    f.doc.setFillColor('#0d1f3c'); f.doc.roundedRect(f.x, y, f.w, hh, 6, 6, 'F');
+    f.doc.setFillColor('#12171c'); f.doc.roundedRect(f.x, y, f.w, hh, 6, 6, 'F');
     font(f.doc, 11, 'bold', VERDICT[r.verdict.tone]); f.doc.text(b.head, f.x + 14, y + 18);
-    font(f.doc, 9, 'normal', '#e3eaf5'); f.doc.text(b.sub, f.x + 14, y + 18 + b.head.length * 14);
+    font(f.doc, 9, 'normal', '#e3e9ea'); f.doc.text(b.sub, f.x + 14, y + 18 + b.head.length * 14);
   }, f => gap(f.density, 'm'));
 }
 
