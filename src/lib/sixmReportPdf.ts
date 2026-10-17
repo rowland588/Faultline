@@ -53,6 +53,8 @@ import { agreedFor, changeoverSheet, moneyOf } from './ie/changeover';
 import { changeoverBlocks } from './report/changeoverTable';
 import { streamBlocks } from './report/streamTable';
 import type { StudyUse } from './study';
+import { leanClosing, leanTiles } from './report/lean';
+import { sixmClosing, sixmFigures, sixmTiles } from './sixmLean';
 
 /* ================================== the model ================================== */
 
@@ -665,6 +667,8 @@ export async function drawSixMStatus(doc: jsPDF, report: SixMReport): Promise<vo
       font(f.doc, 14, 'bold', '#ffffff'); f.doc.text(l, f.x + 16, y + 34);
       font(f.doc, 9.5, 'normal', '#c9d4e6'); f.doc.text(sl, f.x + 16, y + 36 + l.length * 17);
     }, f => gap(f.density, 'm')));
+    /* the tiles (lib/sixmLean) — the full report's, counted from the same model */
+    out.push(leanTiles(sixmTiles(sixmFigures(report))));
     for (const g of s.lines) out.push(gapBlock({ line: g.line, says: g.says, ...(g.short ? { short: g.short } : {}) }));
     if (s.gapNone) out.push(text({ text: s.gapNone, colour: MUTED, after: gap(d, 's') }));
     out.push({ height: f => gap(f.density, 's'), draw: () => undefined });
@@ -812,6 +816,10 @@ function blocksOf(r: SixMReport, d: Density): Block[] {
     font(f.doc, 14, 'bold', '#ffffff'); f.doc.text(l, f.x + 16, y + 34);
     font(f.doc, 9.5, 'normal', '#c9d4e6'); f.doc.text(sl, f.x + 16, y + 36 + l.length * 17);
   }, f => gap(f.density, 'l')));
+  /* THE TILES (docs/LEAN-PAGE.md; lib/sixmLean) — the gap, the problems, the
+     roots, the countermeasures, what is holding: the sections below, counted */
+  const figures = sixmFigures(r);
+  out.push(leanTiles(sixmTiles(figures)));
 
   /* ============================ 1 · the gap ============================ */
   if (r.gaps.length) {
@@ -851,6 +859,10 @@ function blocksOf(r: SixMReport, d: Density): Block[] {
     if (r.seen.rows.length) out.push(seenBlock(r.seen.rows));
     if (r.seen.closed.length) out.push(text({ text: `Closed since: ${r.seen.closed.join('; ')}.`, size: S.small, colour: MUTED, after: gap(d, 'm') }));
   }
+
+  /* THE CLOSING LINE — where the lines are and what is wrong with the work,
+     at the foot of the story; the evidence is its appendix */
+  out.push(leanClosing(sixmClosing(figures)));
 
   /* ======================= 6 · evidence ======================= */
   if (r.evidence.length) {

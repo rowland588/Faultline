@@ -23,7 +23,9 @@ import type { jsPDF } from 'jspdf';
 import { PRIORITY_WORD, type JobRow, type MovedRow, type Priority, type SnagRow, type SnagsReading, type SnagTone } from './snagsReport';
 import { san, OK, DANGER, BLUE, WARN } from './reportKit';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
-import { SIZE, box, font, gap, rows, text, wrap } from './report/blocks';
+import { leanClosing, leanTiles } from './report/lean';
+import { registerClosing, registerTiles } from './problemsLean';
+import { SIZE, font, gap, rows, text, wrap } from './report/blocks';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', BRAND = '#1f63e0';
@@ -137,7 +139,7 @@ export function snagsBlocks(r: SnagsReading, d: Density, photos: Map<string, Sna
  *  showing: "Everything open", "Fixes to do for Line 2 commissioning". */
 export async function drawSnagsReport(doc: jsPDF, x: { title: string; printed: string; reading: SnagsReading; photos: Map<string, SnagPhoto> }): Promise<void> {
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
-  const r = x.reading, c = r.counts;
+  const r = x.reading;
   const title = san(x.title);
   const blocks = (d: Density): Block[] => {
     const out: Block[] = [];
@@ -145,24 +147,14 @@ export async function drawSnagsReport(doc: jsPDF, x: { title: string; printed: s
     out.push(text({ text: title, size: SIZE.title, style: 'bold', after: 4 }));
     out.push(text({ text: `Printed ${san(x.printed)}`, colour: MUTED, after: 4 }));
     out.push(text({ text: 'Every problem in order of priority — Critical, High, Low — with what we will do and its journey: on a day, what we did and what came of it.', size: 8.5, colour: MUTED, after: gap(d, 'm') }));
-    /* WHERE THE SNAGS ARE — a tile per count; only the abnormal in its colour,
-       a zero grey (CLAUDE.md, visual management rule 3). */
-    const tiles: { n: number; word: string; c: string }[] = [
-      { n: c.critical, word: 'critical', c: DANGER }, { n: c.high, word: 'high', c: WARN }, { n: c.low, word: 'low', c: OK },
-      { n: c.late + c.jobLate, word: 'late', c: DANGER }, { n: c.closed + c.jobDone, word: 'done', c: OK },
-    ];
-    out.push(box(() => 46 + gap(d, 'm'), (f, y) => {
-      const tw = (f.w - 4 * 8) / 5;
-      tiles.forEach((t, i) => {
-        const tx = f.x + i * (tw + 8), col = t.n ? t.c : MUTED;
-        f.doc.setDrawColor(t.n ? col : LINE); f.doc.setLineWidth(t.n && t.c === DANGER ? 1.4 : 0.8);
-        f.doc.roundedRect(tx, y, tw, 40, 5, 5, 'S');
-        font(f.doc, 16, 'bold', col); f.doc.text(String(t.n), tx + 9, y + 20);
-        font(f.doc, 8, 'normal', t.n ? INK2 : MUTED); f.doc.text(wrap(f.doc, t.word, tw - 14, 8)[0] ?? '', tx + 9, y + 33);
-      });
-    }));
+    /* WHERE THE PROBLEMS ARE — the lean tiles (docs/LEAN-PAGE.md;
+       lib/problemsLean): open by priority in its RAG with the word, late, done;
+       only the abnormal in its colour, a zero grey (CLAUDE.md, rule 3). */
+    out.push(leanTiles(registerTiles(r)));
     out.push(text({ text: san(r.says), size: 9.5, colour: INK2, after: gap(d, 'm') }));
     out.push(...snagsBlocks(r, d, x.photos));
+    /* THE CLOSING LINE — the worst open problem, and where it is */
+    out.push(leanClosing(registerClosing(r)));
     return out;
   };
   const density = await chooseDensity(base, d => blocks(d));

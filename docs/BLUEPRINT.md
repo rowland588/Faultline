@@ -1026,6 +1026,17 @@ is still wired.
   the money in it). Proved by `report-stress.mjs` (the commissioning
   paper's tiles and closing line) and `inventory.mjs` (each page's tiles and
   closing line); the checks that read the old header counts read the tiles.
-- **Next:** the lean page, slice 4 — the 6M report and Problems
+- **The lean page, slice 4 — the 6M report and Problems.** No new record:
+  `lib/sixmLean` counts the 6M report's own model (lib/sixmReportPdf
+  sixmReport) into five tiles and a closing line; `lib/problemsLean` reads
+  the register's (lib/snagsReport). Shows on: the 6M full report and its one
+  page (the tiles under the band; the closing line before the evidence), the
+  6M job's front-page band (the same five, the report's model loaded on
+  demand), the Problems register's page (its chips stay its tiles; the
+  closing line) and its paper (the chips as lean tiles; the closing line).
+  Proved by `report-stress.mjs` (the 6M papers' tiles and closing line, the
+  register paper's tiles) and `inventory.mjs`.
+- **Next:** the lean page, slice 5 — the control room, the factory and the
+  day; and money for a 6M countermeasure and a problem left open (§6)
   (`docs/LEAN-PAGE.md`); then Stage 3 — the line is the hub (its products,
   readiness, health).

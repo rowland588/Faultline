@@ -129,7 +129,20 @@ card) keep their card form; they take the band only.
    handed over of the job's, what is still open and the money, closing
    before it is signed; the programs report its closing line, the money in
    it when the slip has run one up.
-4. The 6M report and Problems.
+4. **The 6M report and Problems.** The 6M report (`lib/sixmLean`, read
+   from its own model): five tiles — the gap, the problems being worked
+   (and any slipped back), the roots found on the fishbone, the
+   countermeasures (and the late), what is holding (and any check missed) —
+   under the band on the full report and the one page, and on the 6M job's
+   front-page band (its two tiles, outstanding and late, were the board's
+   actions; the countermeasures tile carries them); the closing line at the
+   foot of the story, before the evidence. The Problems register
+   (`lib/problemsLean`): its chips stay its tiles on the page (each a
+   filter) and become the lean tiles on its paper — Critical, High, Low in
+   their RAG with the word, late, done — and both close on the worst open
+   problem and where it is. No money in either yet: what a countermeasure
+   is worth and what a problem costs while it is open are the next piece
+   (BLUEPRINT §6), never a figure made up here.
 5. The control room, the factory and the day.
 6. SMED, value stream, work sampling, capability.
 7. Commissioning, programs, handover, materials.
