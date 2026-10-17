@@ -55,6 +55,10 @@ export const SIXM_STATUS_STEPS: { why: number; problems: number; next: number }[
   /* why we are not where we should be gives way last: it is the page's point */
   { why: 7, problems: 6, next: 8 }, { why: 6, problems: 5, next: 6 }, { why: 6, problems: 4, next: 5 },
   { why: 5, problems: 3, next: 4 }, { why: 4, problems: 3, next: 3 }, { why: 3, problems: 2, next: 3 },
+  /* the tiles under the band (the lean page, 17 October) took room a busy
+     job's long countermeasures needed: the lists give way further, never
+     the page's one-page promise */
+  { why: 3, problems: 2, next: 2 }, { why: 3, problems: 1, next: 1 }, { why: 2, problems: 1, next: 1 },
 ];
 
 const WORKED = new Set(['finding', 'acting', 'proving']);
