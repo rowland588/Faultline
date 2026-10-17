@@ -65,7 +65,7 @@ function blocksOf(r: ControlRoomReport, d: Density): Block[] {
   const pillW = 92;
   const jobParts = (f: Frame, j: ControlRoomReport['jobs'][number]) => ({
     head: wrap(f.doc, `${j.name} — ${j.method}${j.at ? ` · ${j.at}` : ''}`, f.w - pillW - 10, 10, 'bold'),
-    why: wrap(f.doc, j.why, f.w - pillW - 10, 8.5),
+    why: j.why ? wrap(f.doc, j.why, f.w - pillW - 10, 8.5) : [],
     crit: j.critical ? wrap(f.doc, j.critical, f.w - pillW - 10, 8.5, 'bold') : [],
     next: j.next ? wrap(f.doc, `Next: ${j.next}`, f.w - pillW - 10, 8.5) : [],
   });
@@ -100,9 +100,19 @@ function blocksOf(r: ControlRoomReport, d: Density): Block[] {
     if (r.linesQuiet) out.push(text({ text: r.linesQuiet, size: 8.5, colour: MUTED, after: gap(d, 'l') }));
   }
 
+  /* A BOARD TOO BUSY FOR ANY LIST: where the lists are, in one line, not
+     three — the room the tiles and the closing line need (the lean page). */
+  const gone = [!r.owes.length && r.owesMore ? 'who owes what' : '', !r.late.length && r.lateMore ? `the ${r.lateMore} late` : '',
+    !r.week.length && r.weekMore ? `the ${r.weekMore} due this week` : ''].filter(Boolean);
+  const merged = gone.length > 1;
+  if (merged) {
+    const said = gone.length > 2 ? `${gone.slice(0, -1).join(', ')} and ${gone[gone.length - 1]}` : gone.join(' and ');
+    out.push(text({ text: `${said.charAt(0).toUpperCase()}${said.slice(1)} — on the control room.`, size: 9, style: 'bold', colour: INK2, after: gap(d, 'l') }));
+  }
+
   /* 2 · WHO OWES WHAT, ACROSS THE JOBS — suppliers first, the furthest
      behind leading, as the board orders them. */
-  if (!r.owes.length && r.owesMore) out.push(text({ text: 'Who owes what — on the control room.', size: 9, style: 'bold', colour: INK2, after: gap(d, 'l') }));
+  if (!merged && !r.owes.length && r.owesMore) out.push(text({ text: 'Who owes what — on the control room.', size: 9, style: 'bold', colour: INK2, after: gap(d, 'l') }));
   if (r.owes.length) {
     out.push(label('Who owes what'));
     const owedParts = (f: Frame, o: ControlRoomReport['owes'][number]) => ({
@@ -127,8 +137,9 @@ function blocksOf(r: ControlRoomReport, d: Density): Block[] {
 
   /* 3 · WHAT IS LATE, and what is due this week — job, what, who, when. */
   const list = (title: string, items: CrLine[], more: number, empty: string, tone: string) => {
-    /* A list stepped down to nothing is one line saying where it is. */
-    if (!items.length && more) { out.push(text({ text: `${title} — on the control room.`, size: 9, style: 'bold', colour: INK2, after: gap(d, 'l') })); return; }
+    /* A list stepped down to nothing is one line saying where it is
+       (or said with the others, above, when the board is busiest). */
+    if (!items.length && more) { if (!merged) out.push(text({ text: `${title} — on the control room.`, size: 9, style: 'bold', colour: INK2, after: gap(d, 'l') })); return; }
     out.push(label(title, items.length ? tone : MUTED));
     if (!items.length) { out.push(text({ text: empty, colour: INK2, after: gap(d, 'l') })); return; }
     const whenW = 96, jobW = 96;

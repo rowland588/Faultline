@@ -59,14 +59,17 @@ export function roomMoney(jobs: readonly Job[], days: ReadonlyMap<string, LinesD
 /* A handover to slip is a stage-gate job's: a 6M or lever tree job has none. */
 const isGate = (j: Job) => (j.method ?? 'commissioning') === 'commissioning';
 
+/* Two named, then how many more — a busy board's tile stays a tile. */
+const named = (xs: string[]) => (xs.length > 2 ? `${xs.slice(0, 2).join(', ')} and ${xs.length - 2} more` : and(xs));
+
 const WAIT: LeanTile = { k: 'The slips cost', v: '…', of: 'reading the jobs’ lines' };
 
 function moneyTile(m: RoomMoney | undefined): LeanTile | undefined {
   if (!m) return WAIT;
   if (!m.slipping.length) return { k: 'The slips cost', v: '£0', of: 'every stage-gate job on its agreed handover', tone: 'g' };
-  if (m.cost == null) return { k: 'The slips cost', v: '—', of: `give ${and(m.missing)} in Your factory` };
+  if (m.cost == null) return { k: 'The slips cost', v: '—', of: `give ${named(m.missing)} in Your factory` };
   const n = m.slipping.filter(s => s.cost != null).length;
-  const rest = m.missing.length ? ` · ${and(m.missing.map(x => x.split(':')[0]))} not priced yet` : '';
+  const rest = m.missing.length ? ` · ${named(m.missing.map(x => x.split(':')[0]))} not priced yet` : '';
   return { k: 'The slips cost', v: fmtGBP(m.cost), of: `${m.days} ${plural(m.days, 'day')} late on ${n} ${plural(n, 'job')} × a day of their lines not making, in margin${rest}`, tone: 'r' };
 }
 

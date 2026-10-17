@@ -82,7 +82,12 @@ export interface CrLimits { owes: number; late: number; week: number;
   critical: boolean;
   /** A line's own late or critical work a row each (lib/lineWork) — at the
    *  very last, all of them in one line. */
-  lineRows: boolean }
+  lineRows: boolean;
+  /** Each job's one-line reason under its name — past every other step,
+   *  the busiest board keeps each job's name and verdict and drops the
+   *  reason (its own report has it), so the tiles and the closing line
+   *  still fit on the one page. Absent: kept. */
+  why?: boolean }
 export const CR_STEPS: CrLimits[] = [
   { owes: 8, late: 10, week: 8, next: true, split: true, name: 80, critical: true, lineRows: true },
   { owes: 6, late: 8, week: 6, next: true, split: true, name: 80, critical: true, lineRows: true },
@@ -97,6 +102,7 @@ export const CR_STEPS: CrLimits[] = [
   { owes: 0, late: 0, week: 0, next: false, split: false, name: 40, critical: true, lineRows: true },
   { owes: 0, late: 0, week: 0, next: false, split: false, name: 40, critical: false, lineRows: true },
   { owes: 0, late: 0, week: 0, next: false, split: false, name: 40, critical: false, lineRows: false },
+  { owes: 0, late: 0, week: 0, next: false, split: false, name: 40, critical: false, lineRows: false, why: false },
 ];
 
 /* A NAME, ON ONE LINE (lib/onTarget nameIn): this page is every job at once,
@@ -120,7 +126,7 @@ export function controlRoomReport(pf: Portfolio, today: string, limits: CrLimits
     tone: v.onTarget?.tone ?? (v.late ? 'behind' : 'none'),
     /* A 6M or lever tree job is judged on its lines; what it owes that is
        late is said beside it, so "On target" never hides five late things. */
-    why: [v.onTarget?.brief ?? v.onTarget?.reason ?? v.sentence, v.method !== 'commissioning' && v.late ? `${v.late} late` : '',
+    why: limits.why === false ? '' : [v.onTarget?.brief ?? v.onTarget?.reason ?? v.sentence, v.method !== 'commissioning' && v.late ? `${v.late} late` : '',
       !limits.critical && v.critical.length ? criticalCount(v.critical.length) : ''].filter(Boolean).join(' · '),
     ...(v.critical[0] && limits.critical ? { critical: `${criticalCount(v.critical.length)}: ${nameIn(v.critical[0].what, NAME)}${v.critical.length > 1 ? ` and ${v.critical.length - 1} more` : ''}` } : {}),
     ...(v.next && limits.next ? {
