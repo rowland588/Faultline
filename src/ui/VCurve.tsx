@@ -15,8 +15,8 @@
  * shrunk to fit a drawing (the whole name on hover and in the sheet below);
  * past what the box holds the columns scroll, faded at the edge that has more,
  * the scale and the target staying put, opened on the bottleneck. The colour says how close to the bottleneck
- * a station runs: the bottleneck in the house's deep navy, the stations
- * either side in the blue of what you press — a column opens its station —
+ * a station runs: the bottleneck in the house's graphite, the stations
+ * either side in the teal of what you press — a column opens its station —
  * lighter the more they have to spare, so the V is seen in colour as well as
  * height. Only the abnormal wears a state colour: a station under the agreed
  * V is amber, with the words; the target is red only when the bottleneck

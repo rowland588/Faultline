@@ -18,8 +18,8 @@ import { pdfFamily, san } from './reportKit';
 import { walkMarkers } from './walkSnags';
 
 const PW = 842, PH = 595, M = 30, LAB = 186;
-const INK = '#0f1a2e', INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', SURF2 = '#eef3f9', WEEKEND = '#f1f4f8';
-const BRAND = '#1f63e0', OK = '#15803d', DANGER = '#c4281c', AMBER = '#b45309', BOOKED = '#6d28d9';
+const INK = '#0f1417', INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', SURF2 = '#eef3f3', WEEKEND = '#f1f4f8';
+const BRAND = '#0c7489', OK = '#15803d', DANGER = '#c4281c', AMBER = '#b45309', BOOKED = '#6d28d9';
 const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 /* A reminder from the meeting notes — its own colour, on paper as on screen. */
 const REMIND = '#b8237a';
@@ -42,7 +42,7 @@ const TONE: Record<GanttTone, { fill: string; stroke: string; text: string }> = 
   /* A problem that lost no time — amber, waiting on something, not late. */
   problem: { fill: '#f7eedb', stroke: AMBER, text: AMBER },
   booked: { fill: '#e6e4f6', stroke: BOOKED, text: BOOKED },
-  none: { fill: SURF2, stroke: '#c6d2e3', text: MUTED },
+  none: { fill: SURF2, stroke: '#c7d1d2', text: MUTED },
 };
 
 const HEAD_TOP = 74;          // where the calendar band starts on a page
@@ -366,7 +366,7 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
     font(7, 'bold', MUTED); doc.text('WHAT', M + 6, HEAD_TOP + MONTH_H + DAY_H - 6);
     for (const mo of g.months) {
       const x = X(mo.start), w = mo.span * px;
-      doc.setDrawColor('#c6d2e3'); doc.setLineWidth(0.6); doc.line(x, HEAD_TOP, x, bottom);
+      doc.setDrawColor('#c7d1d2'); doc.setLineWidth(0.6); doc.line(x, HEAD_TOP, x, bottom);
       if (w >= 18) { font(7.5, 'bold', INK); doc.text(mo.label.toUpperCase(), x + 3, HEAD_TOP + 9.5, { maxWidth: w - 4 }); }
     }
     const dy = HEAD_TOP + MONTH_H;
@@ -428,7 +428,7 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
         const bad = b.tone === 'late' || b.tone === 'failed';
         doc.setFillColor(bad ? '#fbf1ef' : b.tone === 'problem' ? '#fbf6ec' : SURF2); doc.rect(M, y, PW - 2 * M, RH, 'F');
         doc.setFillColor(b.tone === 'done' ? '#9fc5b3' : SAY[b.tone]); doc.rect(M, y, 2.5, RH, 'F');
-        doc.setDrawColor('#c6d2e3'); doc.setLineWidth(0.6); doc.line(M, y, PW - M, y); doc.line(M, y + RH, PW - M, y + RH);
+        doc.setDrawColor('#c7d1d2'); doc.setLineWidth(0.6); doc.line(M, y, PW - M, y); doc.line(M, y + RH, PW - M, y + RH);
         const { name, says } = bandLabel(b, l.cont);
         font(8, 'bold', INK); doc.text(name, M + 8, y + 9, { lineHeightFactor: 8.5 / 8 });
         font(6.5, 'bold', SAY[b.tone]); doc.text(says, M + 8, y + 9 + name.length * 8.5 - 1, { lineHeightFactor: 7.5 / 6.5 });
@@ -436,7 +436,7 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
           /* The span is the machine's plan, in no state's colour; on it its
              own stages' days, each in its own tone — the screen's lane. */
           const bh = 8, bx = X(b.bar.start) + 0.6, bw = Math.max(2.4, b.bar.span * px - 1.2), by = y + (RH - bh) / 2;
-          doc.setDrawColor('#c6d2e3'); doc.setFillColor('#ffffff'); doc.setLineWidth(0.5);
+          doc.setDrawColor('#c7d1d2'); doc.setFillColor('#ffffff'); doc.setLineWidth(0.5);
           doc.roundedRect(bx, by, bw, bh, 2, 2, 'FD');
           for (const sg of b.bar.segs) {
             const t = TONE[sg.tone];
@@ -632,7 +632,7 @@ export function drawGantt(doc: jsPDF, gIn: Gantt, head: { eyebrow: string; title
       }
       y += RH;
     }
-    doc.setDrawColor('#c6d2e3'); doc.setLineWidth(0.6); doc.line(x0, HEAD_TOP, x0, bottom);
+    doc.setDrawColor('#c7d1d2'); doc.setLineWidth(0.6); doc.line(x0, HEAD_TOP, x0, bottom);
     doc.rect(M, HEAD_TOP, PW - 2 * M, bottom - HEAD_TOP);
 
     /* ---- today and the handover, over the rows ---- */

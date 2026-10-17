@@ -23,7 +23,7 @@ const TONE: Record<DayTone, string> = {
 };
 /* The verdict's word on the dark band — the app's dark-card reds and ambers
    (styles.css --shell-bad, --shell-warn), a quiet green, a grey. */
-const ON_DARK: Record<OnTargetTone, string> = { behind: '#e2796b', risk: '#e0a94a', on: '#8fd3b0', none: '#9fb0cc' };
+const ON_DARK: Record<OnTargetTone, string> = { behind: '#e2796b', risk: '#e0a94a', on: '#8fd3b0', none: '#9aa7ae' };
 
 export interface DayReportMeta {
   project: string;
@@ -107,7 +107,7 @@ export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
       });
       hy = 67 + otH + 6;
     }
-    setFont(d, 9.5, 'normal', '#c9d4e6');
+    setFont(d, 9.5, 'normal', '#cbd5d7');
     headLines.forEach((l, i) => d.text(l, M, hy + i * 12));
     return bandH + 16;
   };
@@ -141,7 +141,7 @@ export function drawDayReport(d: Doc, day: Day, meta: DayReportMeta): void {
       d.text(p.t, rx, y, { align: 'right' });
       rx -= d.getTextWidth(p.t);
     }
-    d.setFillColor('#e9eff7');
+    d.setFillColor('#edf1f1');
     d.roundedRect(M, y + 6, CW, 6, 3, 3, 'F');
     const doneW = done ? Math.max(6, CW * done / total) : 0;
     if (done) { d.setFillColor('#a9cdbb'); d.roundedRect(M, y + 6, doneW, 6, 3, 3, 'F'); }

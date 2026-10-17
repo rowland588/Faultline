@@ -2,8 +2,8 @@
  * comes after them and what the whole makes, drawn beside the stations while
  * they are typed (Rowland, 16 October: "I should be able to see things appear
  * to the right-hand side of my screen ... being able to see what you're doing
- * makes no sense"). The bottleneck is the house's navy and says so; a line's
- * own slowest wears the brand's blue edge; a station with no speed yet is
+ * makes no sense"). The bottleneck is the house's graphite and says so; a line's
+ * own slowest wears the brand's teal edge; a station with no speed yet is
  * dashed and says "no speed yet". A tap opens the station. Drawn at the width
  * it has, so its words stay their size on a phone. Reads lib/capacityFlow. */
 import { useEffect, useRef, useState } from 'react';

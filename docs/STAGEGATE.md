@@ -55,7 +55,7 @@ fresh page.
 
 **5. Colour and visual language.** One language mostly holds: red late or
 failed, amber waiting, due soon or a problem with no time lost, indigo
-ahead, green done, grey not started, a navy fill for the chosen segment.
+ahead, green done, grey not started, a graphite fill for the chosen segment.
 Breaks:
 - the rail says Programs "1 late" where the page says 0 late, 1 failed (the
   rail counted a failure as late);

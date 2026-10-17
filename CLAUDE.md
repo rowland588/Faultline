@@ -472,7 +472,7 @@ bottleneck walked against the sums; then a person as the floor says them
 (Rowland, 13 October: "8 units in a tray ... a tray every 8 seconds";
 "70 a minute ... 10 to a basket ... one basket goes to a human every X") —
 the V a column a station, each named in full under it, the bottleneck
-navy, a column opening its station; asked how many units make one tray, what reaches them worked out before
+graphite, a column opening its station; asked how many units make one tray, what reaches them worked out before
 they have a speed, "a tray every 8 seconds" said back as a minute and in
 the line's unit, whether they keep up in seconds, Make it 2 people, a
 person's time carrying the ILO's 9% rest (14 October: "bring in science
@@ -738,16 +738,28 @@ states, and most "we need to store X" turns out to be "we have never drawn X".
 
 ## Visual management — the rules every screen and PDF follows
 
-**The name and the look are settled.** Reviewed against alternatives on 11
-October (five names; four looks on the same mock screens; a dark theme) and
-kept by Rowland: *Faultline*, the landing blue, the five state colours, the
-type. Do not reopen either without him asking. **The five state colours
+**The name is settled; the look was made fresh on 17 October.** Reviewed
+against alternatives on 11 October (five names; four looks on the same mock
+screens; a dark theme) and kept by Rowland: *Faultline*, the five state
+colours, the type. Then, 17 October: "the apps colours im not keen on all
+blue i want a change"; "I want a new fresh looking app. This is about
+aesthetics that wow." So the frame is **graphite** (`--shell` `#12171c`),
+the page **fresh paper** (`#f4f6f6`), and what you press a **cyan-teal**
+(`--brand` `#0c7489`, the mark's bright end `#22c3d6`) — the landing, the
+mark and the install icons (`scripts/brand-assets.mjs`), every screen and
+every PDF together (`src/styles.css` tokens, `lib/reportKit`, each PDF's
+own); the dark bands glow faintly cyan and carry the mark's trace along
+their foot. The blues were mapped, never guessed: one table (the commit gives
+it) took every navy, blue and blue-tinted grey to its place in the new
+scheme, and the state colours and people's own colours (a project's, a
+person's on the line standard) were left alone. Do not
+reopen either without him asking. **The five state colours
 were refreshed on 15 October** at his word ("just go for it", after a
 colour review asked for): the same five meanings, made clean signals — red
 `#c4281c`, amber `#b45309`, green `#15803d`, violet `#6d28d9` for under way
-(clear of the blue you press), grey `#a7afbd` as a fill with `--st-n-ink`
+(clear of the teal you press), grey `#a7afbd` as a fill with `--st-n-ink`
 `#6b7588` wherever grey is words. The oxblood and ochre read as two browns
-across a room; the indigo sat too near the brand's blue; the grey under
+across a room; the indigo sat too near the brand's blue (then); the grey under
 white words was 2.2:1. Every one is 4.5:1 or better now, on screen and in
 every PDF (`src/styles.css` tokens, `lib/reportKit` and each PDF's own).
 
@@ -759,8 +771,8 @@ what by when?
 1. **One colour, one meaning, everywhere — screen and paper.** Red
    (`--st-r`) is the day that has gone, or a failure. Amber (`--st-a`) is
    waiting on somebody, or due soon. Indigo (`--st-w`) is under way or still
-   ahead. Green (`--st-g`) is done. Grey (`--st-n`) is not started. Brand blue
-   is for what you press, never a state. Nothing else wears these hues: the six
+   ahead. Green (`--st-g`) is done. Grey (`--st-n`) is not started. The brand's
+   teal is for what you press, never a state. Nothing else wears these hues: the six
    bones of the fishbone are told apart by place and name, not colour. **The
    one exception is Rowland's own (11 October): the value stream grid colours
    value the way the method does — VA green, NE amber, NV red — always with
@@ -770,8 +782,8 @@ what by when?
    priority tag, its counts and its paper (Problems, `lib/snagsReport`).
    And his third (14 October, "it looks very bland, very old ... more
    engaging and colourful"): Line capacity's V is coloured by how close a
-   station runs to the bottleneck — the bottleneck in the house's navy, the
-   rest in the brand's blue, lighter the more they have to spare — on its
+   station runs to the bottleneck — the bottleneck in the house's graphite,
+   the rest in the brand's teal, lighter the more they have to spare — on its
    columns, the phone's bars, the capacity sheet and its paper
    (`lib/capacity` `shareColours`); amber still only under the agreed V, red
    only a target the bottleneck cannot meet, and every figure in words
@@ -800,7 +812,7 @@ Rowland, 17 October, with a standard and a lean capacity report side by side:
 "move on to all reports lean methodology applied ... the lean report is
 actually how we would want the app's UI." So every report, and every tool's
 page, is the lean page (`docs/LEAN-PAGE.md`): the band (what, where, when,
-in the house navy), the tiles (a few counted figures, each *of* what it
+in the house graphite), the tiles (a few counted figures, each *of* what it
 should be and *since the record before*, never OEE), the trend, the tool's
 own picture, the top causes, what it means, the action plan (action · owner
 · due) and the closing line — the three questions drawn as a board is

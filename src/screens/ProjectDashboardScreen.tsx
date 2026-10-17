@@ -21,7 +21,7 @@
  * What the folds held lives where its tab is: the plan at /plan, the board
  * on Board, the charts on Numbers, "Did it work?" on Wins, line balance on
  * Lines. The lenses (?view=) are pages under the project, as a gate is. */
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Journey } from '../ui/Journey';
 import { openFold } from '../ui/Fold';
 import { live } from '../lib/testing';
@@ -36,6 +36,10 @@ import { usePaceLines } from '../lib/usePaceLines';
 import { useJobFactoryLines } from '../lib/useFactoryLines';
 import { linesDay } from '../lib/lineLoss';
 import { stageGateTiles } from '../lib/stageGateLean';
+import { sixmTiles, type SixMFigures } from '../lib/sixmLean';
+import type { FishboneData } from '../lib/fishbone';
+import type { ProblemView } from '../lib/problems';
+import type { PaceTodoRow } from '../db/rows';
 import { useLineRecords } from '../lib/useLineRecords';
 import { useMeasures } from '../lib/useMeasures';
 import { useMaterials } from '../lib/useMaterials';
@@ -765,6 +769,10 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
   /* Getting a new 6M or tree job running (lib/startHere): read here so the
      front page can lead with the steps until every one is done. */
   const probs = useProblems(projectId);
+  /* THE 6M JOB'S TILES (lib/sixmLean, docs/LEAN-PAGE.md slice 4) — counted
+     from the 6M report's own model, so the band and both papers say one
+     thing; the report code is loaded only when a 6M job's page needs it */
+  const sixmFig = useSixMFigures(project, probs, ax.steps, ax.loading);
   /* A 6M or tree job's materials and programs are owed like its actions are,
      so a late one is a row on "Needs you" beside the countermeasures. */
   const mats = useMaterials(projectId);
@@ -964,7 +972,8 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
         return (
           <>
             <Verdict st={verdict} eyebrow={ppm.lines.length === 1 ? 'Where the line is' : 'Where the lines are'}
-              onTarget={linesOnTarget(ppm.lines.map(l => ({ name: l.name, series: standing.get(l.id) })))} />
+              onTarget={linesOnTarget(ppm.lines.map(l => ({ name: l.name, series: standing.get(l.id) })))}
+              {...(model === 'board' && sixmFig ? { tiles: sixmTiles(sixmFig) } : {})} />
             <ProjectReminders projectId={projectId} />
             {/* THE METHOD'S OWN PICTURE LEADS, the list that needs you beside
                 it, and the lines under the picture — so the page is one
@@ -1153,4 +1162,24 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
       </footer>
     </div>
   );
+}
+
+/** THE 6M REPORT'S FIGURES FOR THE BAND (lib/sixmLean sixmFigures) — the
+ *  report's model built from what the page already holds (its problems, the
+ *  fishbones' data, the board), the module loaded on demand. Undefined until
+ *  it is. */
+function useSixMFigures(project: Project | undefined | null, probs: { problems: ProblemView[]; data: FishboneData | null; loading: boolean }, steps: PaceTodoRow[], stepsLoading: boolean): SixMFigures | undefined {
+  const [fig, setFig] = useState<SixMFigures | undefined>(undefined);
+  useEffect(() => {
+    if (!project || planModel(project) !== 'board' || probs.loading || !probs.data || stepsLoading) return;
+    let live = true;
+    const data = probs.data;
+    void Promise.all([import('../lib/sixmReportPdf'), import('../lib/sixmLean')]).then(([R, L]) => {
+      if (!live) return;
+      const now = Date.now();
+      setFig(L.sixmFigures(R.sixmReport({ project: { name: project.name, ...(project.lead ? { lead: project.lead } : {}) }, data, problems: probs.problems, todos: steps, now })));
+    });
+    return () => { live = false; };
+  }, [project, probs.problems, probs.data, probs.loading, steps, stepsLoading]);
+  return fig;
 }

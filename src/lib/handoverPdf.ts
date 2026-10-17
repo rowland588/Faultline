@@ -20,12 +20,12 @@ import { SIZE, box, font, gap, heading, label, rows, text, wrap } from './report
 import { niceDay } from './weeks';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef';
-const BRAND = '#1f63e0', OK = '#15803d', DANGER = '#c4281c', AMBER = '#b45309', BOOKED = '#6d28d9';
+const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6';
+const BRAND = '#0c7489', OK = '#15803d', DANGER = '#c4281c', AMBER = '#b45309', BOOKED = '#6d28d9';
 
 /* One colour, one meaning — the app's, on paper. */
 const TONE: Record<HoTone, string> = { done: OK, failed: DANGER, late: DANGER, ahead: BOOKED, none: MUTED };
-const VERDICT: Record<OnTargetTone, string> = { behind: '#ffb4a8', risk: '#f2cf86', on: '#9fd8bb', none: '#c9d6ea' };
+const VERDICT: Record<OnTargetTone, string> = { behind: '#ffb4a8', risk: '#f2cf86', on: '#9fd8bb', none: '#cbd6d8' };
 
 function fitLine(doc: jsPDF, t: string, w: number): string {
   font(doc, 7.5, 'normal', MUTED);
@@ -80,9 +80,9 @@ function blocksOf(r: HandoverReport, d: Density): Block[] {
   });
   out.push(box(f => { const b = band(f); return 24 + b.head.length * 14 + b.said.length * 11.5 + 4; }, (f, y) => {
     const b = band(f), h = 24 + b.head.length * 14 + b.said.length * 11.5;
-    f.doc.setFillColor('#0d1f3c'); f.doc.roundedRect(f.x, y, f.w, h, 6, 6, 'F');
+    f.doc.setFillColor('#12171c'); f.doc.roundedRect(f.x, y, f.w, h, 6, 6, 'F');
     font(f.doc, 11, 'bold', VERDICT[v.tone]); f.doc.text(b.head, f.x + 14, y + 18);
-    font(f.doc, 9, 'normal', '#e3eaf5'); f.doc.text(b.said, f.x + 14, y + 18 + b.head.length * 14);
+    font(f.doc, 9, 'normal', '#e3e9ea'); f.doc.text(b.said, f.x + 14, y + 18 + b.head.length * 14);
   }, f => gap(f.density, 'l')));
 
   /* THE THREE FACTS — the day agreed, the day it went, the machines. */
@@ -161,7 +161,7 @@ function blocksOf(r: HandoverReport, d: Density): Block[] {
     r.sign.forEach((s, i) => {
       const yy = y + i * 34 + 22;
       font(f.doc, 8.5, 'bold', INK2); f.doc.text(s, f.x, yy);
-      f.doc.setDrawColor('#9aa8bd'); f.doc.setLineWidth(0.6);
+      f.doc.setDrawColor('#99a6ab'); f.doc.setLineWidth(0.6);
       f.doc.line(f.x + 110, yy + 2, f.x + f.w - 130, yy + 2);
       font(f.doc, 7.5, 'normal', MUTED); f.doc.text('Date', f.x + f.w - 120, yy);
       f.doc.line(f.x + f.w - 96, yy + 2, f.x + f.w, yy + 2);

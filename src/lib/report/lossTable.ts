@@ -123,7 +123,7 @@ export function lossFallBlock(f: LossFigures): Block | undefined {
       const x = (v: number) => fr.x + RL + (Math.max(0, v) / top) * (fr.w - RL - RR);
       const label = (t: string, yy: number, colour = INK2, bold = false) => { font(d, 7.8, bold ? 'bold' : 'normal', colour); d.text(wrap(d, t, RL - 6, 7.8, bold ? 'bold' : 'normal')[0] ?? '', fr.x, yy); };
       const value = (t: string, yy: number, colour = INK) => { font(d, 7.8, 'bold', colour); d.text(t, fr.x + fr.w, yy, { align: 'right' }); };
-      const frame = (from: number, to: number, yy: number) => { d.setFillColor('#e9eff7'); d.setDrawColor('#c6d2e3'); d.setLineWidth(0.5); d.rect(x(from), yy, Math.max(0.8, x(to) - x(from)), RH - 7, 'FD'); };
+      const frame = (from: number, to: number, yy: number) => { d.setFillColor('#edf1f1'); d.setDrawColor('#c7d1d2'); d.setLineWidth(0.5); d.rect(x(from), yy, Math.max(0.8, x(to) - x(from)), RH - 7, 'FD'); };
       label('Planned', y + RH / 2 + 3, INK, true); frame(0, planned, y + 3.5); value(minWords(planned), y + RH / 2 + 3);
       let level = planned;
       f.bars.forEach((b, i) => {
@@ -133,7 +133,7 @@ export function lossFallBlock(f: LossFigures): Block | undefined {
         const hatch = b.kind === 'performance' || b.kind === 'short';
         const amber = !!b.abnormal;
         label(b.label === 'Slow running and short stops' ? 'Slow + short stops' : b.label, yy + RH / 2 + 3, amber ? AMBER : INK2, amber);
-        d.setDrawColor('#7a879c'); d.setLineWidth(0.4); d.setLineDashPattern([1.5, 1.5], 0);
+        d.setDrawColor('#78858a'); d.setLineWidth(0.4); d.setLineDashPattern([1.5, 1.5], 0);
         d.line(x(from), yy - RH + 3.5, x(from), yy + 3.5); d.setLineDashPattern([], 0);
         const bx = x(to), bw = Math.max(1.2, x(from) - x(to)), by = yy + 3.5, bh = RH - 7;
         if (hatch) {
@@ -146,7 +146,7 @@ export function lossFallBlock(f: LossFigures): Block | undefined {
             if (x2 < bx) { y2 += bx - x2; x2 = bx; }
             if (y1 > y2) d.line(x1, y1, x2, y2);
           }
-        } else { d.setFillColor(amber ? AMBER : '#44526a'); d.rect(bx, by, bw, bh, 'F'); }
+        } else { d.setFillColor(amber ? AMBER : '#3c474c'); d.rect(bx, by, bw, bh, 'F'); }
         value(minWords(b.min), yy + RH / 2 + 3, amber ? AMBER : INK);
       });
       const yy = y + (n - 1) * RH;

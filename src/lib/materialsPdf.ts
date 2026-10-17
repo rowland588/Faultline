@@ -17,7 +17,7 @@ import { niceDay } from './weeks';
 import { san } from './reportKit';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK = '#0f1a2e', INK2 = '#33415a', MUTED = '#5b6b82', LINE = '#dbe4ef', BRAND = '#1f63e0';
+const INK = '#0f1417', INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', BRAND = '#0c7489';
 const RED = '#c4281c';
 const T = 8.5, S = 7.5, LH = 10.6, LS = 9.4;
 
@@ -26,10 +26,10 @@ function band(headline: string, says: string, late: boolean): Block {
   const height = (f: Frame) => { const p = parts(f); return 22 + p.h.length * 14 + (p.s.length ? 4 + p.s.length * LH : 0); };
   return box(f => height(f) + gap(f.density, 'm'), (f, y) => {
     const p = parts(f), h = height(f);
-    f.doc.setFillColor('#0d1f3c'); f.doc.roundedRect(f.x, y, f.w, h, 6, 6, 'F');
+    f.doc.setFillColor('#12171c'); f.doc.roundedRect(f.x, y, f.w, h, 6, 6, 'F');
     if (late) { f.doc.setFillColor(RED); f.doc.rect(f.x, y + 6, 4, h - 12, 'F'); }
     font(f.doc, 11, 'bold', '#ffffff'); f.doc.text(p.h, f.x + 15, y + 17);
-    font(f.doc, T, 'normal', '#c9d6ea'); f.doc.text(p.s, f.x + 15, y + 17 + p.h.length * 14 + 2);
+    font(f.doc, T, 'normal', '#cbd6d8'); f.doc.text(p.s, f.x + 15, y + 17 + p.h.length * 14 + 2);
   }, f => gap(f.density, 'm'));
 }
 

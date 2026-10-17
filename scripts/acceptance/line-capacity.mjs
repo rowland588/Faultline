@@ -129,7 +129,7 @@ await page.locator('.vc-says').first().waitFor({ timeout: 10000 }).catch(() => {
   const want = t.stations.filter((s, i) => i < t.n).map(s => s.name.trim());
   ok(names.join('|') === want.join('|'), `2b every station named in full under its column: ${names.join(' · ')}`);
   const neckBg = await page.locator('.vc-bar.is-limit').evaluate(e => getComputedStyle(e).backgroundImage);
-  ok(/rgb\(13, 31, 60\)/.test(neckBg), `2c the bottleneck's column the house's navy (${neckBg.slice(0, 60)}…)`);
+  ok(/rgb\(18, 23, 28\)/.test(neckBg), `2c the bottleneck's column the house's graphite (${neckBg.slice(0, 60)}…)`);
   await page.locator('.vc-col').first().click(); await page.waitForTimeout(700);
   const opened = await page.locator('.cap-st').first().locator('button[aria-expanded="true"]').count();
   ok(opened === 1, '2d a column tapped opens its station');

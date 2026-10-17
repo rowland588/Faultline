@@ -49,6 +49,8 @@ import { SNAG_STATUS_META, dueFromInput, dueToInput, type Snag, type SnagAsset, 
 import { pinSnag } from './quick';
 import { openQuickSnag } from './QuickSnag';
 import { useLineRecords } from '../lib/useLineRecords';
+import { LeanClosing } from '../ui/Lean';
+import { registerClosing } from '../lib/problemsLean';
 import { machinesOf } from '../lib/lineRecords';
 
 /** A change to one problem: its fields, or worked out from the row as it is stored (db patchSnag). */
@@ -637,6 +639,10 @@ export function QuickSnagsScreen() {
           <button type="button" className="btn btn-ghost" onClick={() => setPicked(new Set())}>Clear</button>
         </div>
       )}
+      {/* THE CLOSING LINE (docs/LEAN-PAGE.md; lib/problemsLean) — the worst open
+          problem and where it is; the counted figures are the chips above,
+          each its filter, so the page grows no second row of tiles */}
+      {snags && <LeanClosing closing={registerClosing(reading)} />}
       {viewing && <EvidenceViewer media={viewing.media} onClose={() => setViewing(null)}
         {...(viewing.snagId ? { onPins: (pins: NonNullable<MediaRef['pins']>) => void pinSnag(viewing.snagId as string, viewing.media.id, pins) } : {})} />}
       {setting && <SetSheet snags={chosen} onClose={() => setSetting(false)} onDone={() => { setSetting(false); setPicked(new Set()); }} />}

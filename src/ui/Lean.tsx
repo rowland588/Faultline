@@ -6,7 +6,7 @@
  * the page below the eight.
  *
  * Colour as the house says (CLAUDE.md, visual management): the band is the
- * house navy; a tile wears colour only when its number is abnormal or met;
+ * house graphite; a tile wears colour only when its number is abnormal or met;
  * a change is green better, red worse, grey the same — always with its
  * number and the day it is against. */
 import type { ReactNode } from 'react';
@@ -135,7 +135,7 @@ export function LeanActions({ actions, empty, onOpen }: { actions: LeanAction[];
   );
 }
 
-/** THE CLOSING LINE — the one sentence, in the navy band at the foot. */
+/** THE CLOSING LINE — the one sentence, in the graphite band at the foot. */
 export function LeanClosing({ closing }: { closing: { text: string; tone: LeanTone } }) {
   return <p className={'ln-close is-' + closing.tone}><span className="ln-close-mark" aria-hidden>{MARK[closing.tone]}</span><span>{closing.text}</span></p>;
 }

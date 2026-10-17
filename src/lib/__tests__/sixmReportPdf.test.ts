@@ -303,7 +303,9 @@ describe('the 6M client report', () => {
     const r = build([kase('p1', 'Weigher breakdowns', causes)], []);
     const { doc, said, flat } = await paper(r);
     expect(doc.getNumberOfPages()).toBeGreaterThan(1);
-    expect(said.filter(x => x === 'Problem 1 — Weigher breakdowns (continued)').length).toBe(doc.getNumberOfPages() - 1);
+    // Page 1 is the front (the band, the tiles, the gap); the problem's head, then "(continued)", on every page after.
+    expect(said.filter(x => x === 'Problem 1 — Weigher breakdowns').length).toBe(1);
+    expect(said.filter(x => x === 'Problem 1 — Weigher breakdowns (continued)').length).toBeGreaterThanOrEqual(doc.getNumberOfPages() - 2);
     for (let k = 1; k <= 6; k++) expect(has(flat, `end${k} (seen)`)).toBe(true);
     expect(said.some(x => x.includes('…') && !x.includes('client report'))).toBe(false);
   });

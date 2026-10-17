@@ -20,14 +20,14 @@ ranked table, what it means, and who does what by when**.
 
 | # | Part | Asks | What it is |
 |---|---|---|---|
-| 1 | **Band** | what, where, when | The house navy across the top: what this is, its title, the line and product (or job), and on the right the day, the shift and when it was printed. |
+| 1 | **Band** | what, where, when | The house graphite across the top: what this is, its title, the line and product (or job), and on the right the day, the shift and when it was printed. |
 | 2 | **Tiles** | where are we? | Three to five big numbers, each *of* what it should be ("40,900 of 45,000 · 91%") and, when there is one, **since last time** ("▲ 4,400 on 15 Oct"). |
 | 3 | **Trend** | where are we going? | The headline number over the records of the same kind on the same line, against what each should have been — only with two or more. |
 | 4 | **The picture** | why? | The tool's own picture: the waterfall, the V, the Yamazumi, the SMED grid, the stream, the fishbone, the plan. Never a second chart of the same thing. |
 | 5 | **Top causes** | why? | The ranked table: what took the time or the money, biggest first, with its share. |
 | 6 | **What it means** | why? | Three to six sentences the module already says, each marked: a cross for what is wrong, a tick for what is right, a dot for how it is known. |
 | 7 | **Action plan** | what are we doing? | Action · owner · due, from the records raised off this one (a fix, a countermeasure, a stage). None yet says so, with the door to raise one. |
-| 8 | **Closing line** | the verdict | One sentence in the navy band at the foot — what one side can now say to the other. |
+| 8 | **Closing line** | the verdict | One sentence in the graphite band at the foot — what one side can now say to the other. |
 
 On a screen the same eight, in the same order: the band is the page's
 header (its edit controls stay on it); the tiles are a row (two across on a
@@ -51,10 +51,10 @@ the count, the timings, the settings: detail one tap or one scroll away
   arrow. Better is the house green, worse the house red, the same grey —
   always with the number and the day it is against, so it survives a
   black-and-white print.
-- **The house colours, not the picture's green.** The band is the house navy
+- **The house colours, not the picture's green.** The band is the house graphite
   (`--shell`, `SHELL`). A tile wears colour only when its number is abnormal
   (red, or amber where the module says amber) or met (a quiet green wash);
-  otherwise it is plain. Brand blue stays for what you press. The tagline
+  otherwise it is plain. The brand's teal stays for what you press. The tagline
   ribbon ("Less waste | Higher OEE | …") is not copied: it says nothing about
   this line.
 - **Every figure has a cost** (CLAUDE.md, EVERYTHING DERIVES A COST): one
@@ -129,7 +129,20 @@ card) keep their card form; they take the band only.
    handed over of the job's, what is still open and the money, closing
    before it is signed; the programs report its closing line, the money in
    it when the slip has run one up.
-4. The 6M report and Problems.
+4. **The 6M report and Problems.** The 6M report (`lib/sixmLean`, read
+   from its own model): five tiles — the gap, the problems being worked
+   (and any slipped back), the roots found on the fishbone, the
+   countermeasures (and the late), what is holding (and any check missed) —
+   under the band on the full report and the one page, and on the 6M job's
+   front-page band (its two tiles, outstanding and late, were the board's
+   actions; the countermeasures tile carries them); the closing line at the
+   foot of the story, before the evidence. The Problems register
+   (`lib/problemsLean`): its chips stay its tiles on the page (each a
+   filter) and become the lean tiles on its paper — Critical, High, Low in
+   their RAG with the word, late, done — and both close on the worst open
+   problem and where it is. No money in either yet: what a countermeasure
+   is worth and what a problem costs while it is open are the next piece
+   (BLUEPRINT §6), never a figure made up here.
 5. The control room, the factory and the day.
 6. SMED, value stream, work sampling, capability.
 7. Commissioning, programs, handover, materials.

@@ -486,6 +486,8 @@ for (const size of SIZES) {
       const said = done => {
         const out = [];
         const add = (from, v) => { if (v && san(v)) out.push([v, san(v), from]); };
+        /* the lean tiles (lib/problemsLean) — their names, always on the paper */
+        if (!done) for (const k of ['CRITICAL', 'HIGH', 'LOW', 'LATE', 'DONE']) add('a tile', k);
         for (const l of r.lines) for (const x of l.rows) if ((x.status === 'closed') === done) {
           add('problem', x.what); add('its plan', x.plan);
           for (const j of x.journey) { add('a step of its journey', j.did); add('what came of it', j.result); }
@@ -631,6 +633,15 @@ for (const size of SIXM_SIZES) {
         /* a work sampling: each person's taps, shares and margins, or too early */
         if (st.tool === 'sampling' && !st.agreed?.sampling?.walk) { const t = samplingRows(st.agreed?.sampling, st.facts.taps ?? []); if (t) { add(t.head, ...t.activities); for (const x of t.rows) add(x.who, String(x.n), x.early, ...x.cells.flatMap(c => (c.share === '—' ? [] : [c.share, c.margin]))); } }
       }
+      /* THE LEAN PAGE (lib/sixmLean): the tiles and the closing line, from the report's own model */
+      {
+        const { sixmReport } = await import('/src/lib/sixmReportPdf.ts');
+        const L = await import('/src/lib/sixmLean.ts');
+        const now = Date.now();
+        const f = L.sixmFigures(sixmReport({ project: { name: project.name, lead: project.lead }, data: loaded.data, problems: viewsOf(loaded, pid, lineId, now), todos: await listPaceTodos(pid), lineId, now }));
+        from = 'the tiles'; for (const t of L.sixmTiles(f)) add(t.k.toUpperCase(), t.v, t.of);
+        from = 'the closing line'; const c = L.sixmClosing(f).text; add(c.length > 90 ? c.slice(0, 90) : c);
+      }
       return out;
     }, { pid: job.projectId, lineId });
     /* Each problem in its four parts, in order, before the next one starts. */
@@ -683,7 +694,10 @@ for (const size of SIXM_SIZES) {
       const r = sixmReport({ project: { name: project.name, lead: project.lead }, data: loaded.data, problems: viewsOf(loaded, pid, lineId, now), todos: await listPaceTodos(pid), lineId, now });
       /* what the tightest step still carries — the page may step its lists down to fit */
       const st = sixmStatus(r, SIXM_STATUS_STEPS[SIXM_STATUS_STEPS.length - 1]);
-      return [st.sentence, ...st.why.map(w => w.what)].map(v => [v, san(v), 'the status']);
+      /* the lean page (lib/sixmLean): the one page carries the full report's tiles */
+      const L = await import('/src/lib/sixmLean.ts');
+      const tiles = L.sixmTiles(L.sixmFigures(r)).flatMap(t => [t.k.toUpperCase(), t.v, t.of]);
+      return [st.sentence, ...st.why.map(w => w.what), ...tiles].filter(Boolean).map(v => [v, san(v), 'the status']);
     }, { pid: job.projectId, lineId });
     const sFile = `${OUT}/6m-${size}-${lineId ? 'line' : 'client'}-status.pdf`;
     try {
