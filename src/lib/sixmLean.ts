@@ -16,6 +16,8 @@ import type { SixMReport } from './sixmReportPdf';
 const plural = (n: number, one: string, many = `${one}s`) => (n === 1 ? one : many);
 const and = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}` : xs[0] ?? '');
 const WORKED = new Set(['finding', 'acting', 'proving']);
+/** How far short, as the gap says it ("8 ppm short of target") — the amount alone. */
+const by = (short: string) => short.replace(/\s*short\b.*$/, '');
 
 export interface SixMFigures {
   measured: number; short: number; oneLine?: { line: string; short?: string };
@@ -47,7 +49,7 @@ export function sixmTiles(x: SixMFigures): LeanTile[] {
     ? { k: 'The gap', v: '—', of: 'no line measured against a target yet' }
     : x.oneLine
       ? (x.oneLine.short
-        ? { k: 'The gap', v: x.oneLine.short.replace(/\s*short$/, ''), of: `short — ${x.oneLine.line} against its target`, tone: 'r' }
+        ? { k: 'The gap', v: by(x.oneLine.short), of: `short — ${x.oneLine.line} against its target`, tone: 'r' }
         : { k: 'The gap', v: 'At target', of: `${x.oneLine.line} against its target`, tone: 'g' })
       : x.short
         ? { k: 'The gap', v: `${x.short} of ${x.measured}`, of: 'lines short of their target', tone: 'r' }
@@ -69,7 +71,7 @@ export function sixmTiles(x: SixMFigures): LeanTile[] {
  *  wrong with the work on them — what one side can say to the other. */
 export function sixmClosing(x: SixMFigures): { text: string; tone: LeanTone } {
   const where = !x.measured ? 'No line is measured against a target yet'
-    : x.oneLine ? (x.oneLine.short ? `${x.oneLine.line} is ${x.oneLine.short} of its target` : `${x.oneLine.line} is at its target`)
+    : x.oneLine ? (x.oneLine.short ? `${x.oneLine.line} is ${by(x.oneLine.short)} short of its target` : `${x.oneLine.line} is at its target`)
       : x.short ? `${x.short} of ${x.measured} lines are short of their target` : `All ${x.measured} lines are at their target`;
   const wrong = [x.slipped ? `${x.slipped} ${plural(x.slipped, 'problem')} slipped back` : '', x.actionsLate ? `${x.actionsLate} ${plural(x.actionsLate, 'countermeasure')} late` : '', x.missed ? `${x.missed} ${plural(x.missed, 'check')} missed` : ''].filter(Boolean);
   const work = x.open ? `${x.open} ${plural(x.open, 'problem')} being worked` : 'no problem being worked';

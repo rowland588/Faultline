@@ -20,7 +20,7 @@ describe('the 6M report’s tiles', () => {
     expect(sixmClosing(base)).toEqual({ text: '1 of 2 lines are short of their target; 3 problems being worked — 2 countermeasures late.', tone: 'r' });
   });
   it('one line short in its own words; a problem slipped back and a check missed in red', () => {
-    const x = { ...base, measured: 1, short: 1, oneLine: { line: 'Line 7', short: '3.2 ppm short' }, slipped: 1, missed: 1, actionsLate: 0 };
+    const x = { ...base, measured: 1, short: 1, oneLine: { line: 'Line 7', short: '3.2 ppm short of target' }, slipped: 1, missed: 1, actionsLate: 0 };
     const t = sixmTiles(x);
     expect([t[0], t[1].of, t[1].tone, t[4]]).toEqual([{ k: 'The gap', v: '3.2 ppm', of: 'short — Line 7 against its target', tone: 'r' }, '1 slipped back · 1 finding the cause · 1 acting on it · 1 checking it worked', 'r', { k: 'Holding', v: '1', of: 'kept by a check · 1 check missed', tone: 'r' }]);
     expect(sixmClosing(x).text).toBe('Line 7 is 3.2 ppm short of its target; 3 problems being worked — 1 problem slipped back and 1 check missed.');
