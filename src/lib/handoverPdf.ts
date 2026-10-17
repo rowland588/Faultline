@@ -9,6 +9,7 @@
  * what is open on no one machine; and the lines to sign. Long words, a long
  * account, many machines: it carries on over pages rather than cut anything,
  * and every account and sign-off note is printed whole. */
+import { paperBand } from './reportKit';
 import { codeHeader } from './report/codeHeader';
 import { leanClosing, leanTiles } from './report/lean';
 import { handoverClosing, handoverTiles } from './stageGatePages';
@@ -25,7 +26,7 @@ const BRAND = '#0c7489', OK = '#15803d', DANGER = '#c4281c', AMBER = '#b45309', 
 
 /* One colour, one meaning — the app's, on paper. */
 const TONE: Record<HoTone, string> = { done: OK, failed: DANGER, late: DANGER, ahead: BOOKED, none: MUTED };
-const VERDICT: Record<OnTargetTone, string> = { behind: '#ffb4a8', risk: '#f2cf86', on: '#9fd8bb', none: '#cbd6d8' };
+const VERDICT: Record<OnTargetTone, string> = { behind: '#c4281c', risk: '#b45309', on: '#15803d', none: '#59666c' }; /* the verdict's word on the light band (reportKit paperBand) */
 
 function fitLine(doc: jsPDF, t: string, w: number): string {
   font(doc, 7.5, 'normal', MUTED);
@@ -80,9 +81,9 @@ function blocksOf(r: HandoverReport, d: Density): Block[] {
   });
   out.push(box(f => { const b = band(f); return 24 + b.head.length * 14 + b.said.length * 11.5 + 4; }, (f, y) => {
     const b = band(f), h = 24 + b.head.length * 14 + b.said.length * 11.5;
-    f.doc.setFillColor('#12171c'); f.doc.roundedRect(f.x, y, f.w, h, 6, 6, 'F');
+    paperBand(f.doc, f.x, y, f.w, h, 6);
     font(f.doc, 11, 'bold', VERDICT[v.tone]); f.doc.text(b.head, f.x + 14, y + 18);
-    font(f.doc, 9, 'normal', '#e3e9ea'); f.doc.text(b.said, f.x + 14, y + 18 + b.head.length * 14);
+    font(f.doc, 9, 'normal', '#323d43'); f.doc.text(b.said, f.x + 14, y + 18 + b.head.length * 14);
   }, f => gap(f.density, 'l')));
 
   /* THE THREE FACTS — the day agreed, the day it went, the machines. */

@@ -2,16 +2,18 @@
  * draws (ui/Lean), from the same model (lib/lean), as report-engine blocks
  * (docs/REPORTS.md): each measures itself with the real font, none is cut.
  *
- * The band and the closing line in the house graphite; a tile's top edge and its
+ * The band and the closing line light on paper — a pale fill, a teal edge,
+ * graphite words (reportKit paperBand: a dark band spends toner and prints
+ * streaky; the screen keeps its dark band); a tile's top edge and its
  * number in a state colour only when abnormal or met; a change drawn with a
  * triangle and its words (green better, red worse, grey the same), so it
  * survives a black-and-white print. */
 import { changeTone, type LeanAction, type LeanInsight, type LeanPage, type LeanTile, type LeanTone, type LeanTrend } from '../lean';
-import { DANGER, INK, INK2, LINE, MUTED, OK, SHELL, SHELL_2, SHELL_MUTED, WARN, san } from '../reportKit';
+import { DANGER, INK, INK2, LINE, MUTED, OK, WARN, paperBand, san } from '../reportKit';
 import { SIZE, font, rows, text, wrap, type Row } from './blocks';
 import type { Block, Frame } from './flow';
 
-const DIM = '#c4ced3', LINE2 = '#c7d1d2', GREY = '#6b7588', BAR = '#98a5ab';
+const LINE2 = '#c7d1d2', GREY = '#6b7588', BAR = '#98a5ab';
 const TONE: Record<LeanTone, string> = { r: DANGER, a: WARN, g: OK, n: GREY };
 const wash = (t: LeanTone): string | undefined => (t === 'g' ? '#f1f8f3' : t === 'r' ? '#fcf1f0' : undefined);
 
@@ -41,16 +43,16 @@ export function leanBand(p: LeanPage, printed: string): Block {
     after: f => (f.density === 'compact' ? 7 : 10),
     draw: (f, y) => {
       const d = f.doc, l = lay(f), PAD = padOf(f);
-      d.setFillColor(SHELL); d.roundedRect(f.x, y, f.w, l.h, 7, 7, 'F');
+      paperBand(d, f.x, y, f.w, l.h);
       let yy = y + PAD + 7;
-      font(d, 7.5, 'bold', SHELL_MUTED); d.text(san(p.eyebrow.toUpperCase()), f.x + PAD, yy);
+      font(d, 7.5, 'bold', MUTED); d.text(san(p.eyebrow.toUpperCase()), f.x + PAD, yy);
       yy += 6;
-      font(d, 19, 'bold', '#ffffff'); l.title.forEach(s => { yy += 19; d.text(s, f.x + PAD, yy); yy += 3; });
-      font(d, 9.5, 'bold', DIM); l.sub.forEach(s => { yy += 12; d.text(s, f.x + PAD, yy); });
+      font(d, 19, 'bold', INK); l.title.forEach(s => { yy += 19; d.text(s, f.x + PAD, yy); yy += 3; });
+      font(d, 9.5, 'bold', INK2); l.sub.forEach(s => { yy += 12; d.text(s, f.x + PAD, yy); });
       if (p.verdict && l.said.length) {
         font(d, 8.5, 'bold', '#ffffff');
         const tw = Math.min(l.lw, Math.max(...l.said.map(s => d.getTextWidth(s))) + 16);
-        const fill = p.verdict.tone === 'n' ? SHELL_2 : TONE[p.verdict.tone];
+        const fill = TONE[p.verdict.tone];
         d.setFillColor(fill); d.roundedRect(f.x + PAD, yy + 7, tw, l.pill, 7.5, 7.5, 'F');
         l.said.forEach((s, i) => d.text(s, f.x + PAD + 8, yy + 17.5 + i * 10.5));
       }
@@ -58,8 +60,8 @@ export function leanBand(p: LeanPage, printed: string): Block {
       let fy = y + PAD + 7;
       const fx = f.x + f.w - FW - PAD;
       l.fl.forEach(({ k, v }) => {
-        font(d, 7.5, 'bold', SHELL_MUTED); d.text(san(k), fx, fy);
-        font(d, 8, 'bold', '#ffffff'); v.forEach((s, i) => d.text(s, fx + 50, fy + i * 10));
+        font(d, 7.5, 'bold', MUTED); d.text(san(k), fx, fy);
+        font(d, 8, 'bold', INK); v.forEach((s, i) => d.text(s, fx + 50, fy + i * 10));
         fy += Math.max(1, v.length) * 10 + 3;
       });
     },
@@ -296,7 +298,8 @@ export function leanActions(xs: LeanAction[], empty: string): Block[] {
 
 /* --------------------------------------------------------- the closing line */
 
-/** THE CLOSING LINE — the one sentence, in the graphite band at the foot. */
+/** THE CLOSING LINE — the one sentence, in the band at the foot (light on
+ *  paper, as the band is). */
 export function leanClosing(c: { text: string; tone: LeanTone }): Block {
   const LH = 11.5;
   const lines = (f: Frame) => wrap(f.doc, c.text, f.w - 56, 9.5, 'bold');
@@ -306,15 +309,15 @@ export function leanClosing(c: { text: string; tone: LeanTone }): Block {
     after: () => 6,
     draw: (f, y) => {
       const d = f.doc, l = lines(f), h = hOf(f);
-      d.setFillColor(SHELL); d.roundedRect(f.x, y, f.w, h, 7, 7, 'F');
-      const cx = f.x + 20, cy = y + h / 2;
-      d.setFillColor(c.tone === 'n' ? '#ffffff' : TONE[c.tone]); d.circle(cx, cy, 9, 'F');
-      d.setDrawColor(c.tone === 'n' ? SHELL : '#ffffff'); d.setLineWidth(1.7);
+      paperBand(d, f.x, y, f.w, h);
+      const cx = f.x + 22, cy = y + h / 2;
+      d.setFillColor(TONE[c.tone]); d.circle(cx, cy, 9, 'F');
+      d.setDrawColor('#ffffff'); d.setLineWidth(1.7);
       if (c.tone === 'g') { d.line(cx - 4, cy, cx - 1, cy + 3.2); d.line(cx - 1, cy + 3.2, cx + 4.5, cy - 3.6); }
       else if (c.tone === 'r') { d.line(cx - 3.6, cy - 3.6, cx + 3.6, cy + 3.6); d.line(cx + 3.6, cy - 3.6, cx - 3.6, cy + 3.6); }
       else if (c.tone === 'a') { d.line(cx, cy - 4.5, cx, cy + 1); d.setFillColor('#ffffff'); d.circle(cx, cy + 3.8, 0.9, 'F'); }
-      else { d.setFillColor(SHELL); d.circle(cx, cy, 1.8, 'F'); }
-      font(d, 9.5, 'bold', '#ffffff');
+      else { d.setFillColor('#ffffff'); d.circle(cx, cy, 1.8, 'F'); }
+      font(d, 9.5, 'bold', INK);
       const ty = y + (h - l.length * LH) / 2 + 8.5;
       l.forEach((s, i) => d.text(s, f.x + 40, ty + i * LH));
     },

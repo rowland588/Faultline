@@ -4,6 +4,7 @@
  * Laid out by the report engine (src/lib/report/, docs/REPORTS.md): the
  * factory in a sentence, then a row a line. A factory too big for a page
  * carries on rather than leaving a line out. */
+import { paperBand } from './reportKit';
 import type { jsPDF } from 'jspdf';
 import type { FactoryReading, FactoryRow } from './factoryReport';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
@@ -30,8 +31,8 @@ function blocksOf(r: FactoryReading, d: Density): Block[] {
   const saysLines = (f: Frame) => wrap(f.doc, r.says, f.w - 28, 11, 'bold');
   out.push(box(f => 14 + saysLines(f).length * 14 + gap(f.density, 'm'), (f, y) => {
     const l = saysLines(f), h = 10 + l.length * 14;
-    f.doc.setFillColor('#12171c'); f.doc.roundedRect(f.x, y, f.w, h, 6, 6, 'F');
-    font(f.doc, 11, 'bold', '#ffffff'); f.doc.text(l, f.x + 14, y + 17);
+    paperBand(f.doc, f.x, y, f.w, h, 6);
+    font(f.doc, 11, 'bold', '#0f1417'); f.doc.text(l, f.x + 14, y + 17);
   }, f => gap(f.density, 'm')));
   out.push(leanTiles(factoryTiles(r)));
 

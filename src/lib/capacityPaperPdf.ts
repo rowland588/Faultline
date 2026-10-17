@@ -17,7 +17,7 @@ import type { CapacityPaper, CapacityPaperRow, CapacityPaperShift, Tone } from '
 import { capacityPapersSay } from './capacityPaper';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { SIZE, box, font, gap, heading, label, lead, rows, space, text, wrap, type Row } from './report/blocks';
-import { san } from './reportKit';
+import { san, paperBand } from './reportKit';
 import { fmtN, oneOf, shareColours } from './capacity';
 import { capacityLean } from './capacityLean';
 import { leanActions, leanBand, leanClosing, leanHead, leanInsights, leanTiles } from './report/lean';
@@ -32,17 +32,18 @@ const T = 8.5, S = 7.5, LH = 10.6, LS = 9.4;
 
 /* ------------------------------- the band -------------------------------- */
 
-/** WHERE WE ARE — the dark band: what limits the line, and the sentence. A
- *  red edge when it is short of its target; the words say so too. */
+/** WHERE WE ARE — the band (light on paper, reportKit paperBand): what
+ *  limits the line, and the sentence. A red edge when it is short of its
+ *  target; the words say so too. */
 function band(headline: string, sentence: string, short: boolean): Block {
   const parts = (f: Frame) => ({ h: wrap(f.doc, headline, f.w - 30, 11, 'bold'), s: sentence ? wrap(f.doc, sentence, f.w - 30, T) : [] });
   const height = (f: Frame) => { const p = parts(f); return 22 + p.h.length * 14 + (p.s.length ? 4 + p.s.length * LH : 0); };
   return box(f => height(f) + gap(f.density, 'm'), (f, y) => {
     const p = parts(f), h = height(f);
-    f.doc.setFillColor('#12171c'); f.doc.roundedRect(f.x, y, f.w, h, 6, 6, 'F');
-    if (short) { f.doc.setFillColor(RED); f.doc.rect(f.x, y + 6, 4, h - 12, 'F'); }
-    font(f.doc, 11, 'bold', '#ffffff'); f.doc.text(p.h, f.x + 15, y + 17);
-    if (p.s.length) { font(f.doc, T, 'normal', '#cbd6d8'); f.doc.text(p.s, f.x + 15, y + 17 + p.h.length * 14 + 2); }
+    paperBand(f.doc, f.x, y, f.w, h, 6);
+    if (short) { f.doc.setFillColor(RED); f.doc.roundedRect(f.x, y, 4, h, 2, 2, 'F'); }
+    font(f.doc, 11, 'bold', '#0f1417'); f.doc.text(p.h, f.x + 15, y + 17);
+    if (p.s.length) { font(f.doc, T, 'normal', '#323d43'); f.doc.text(p.s, f.x + 15, y + 17 + p.h.length * 14 + 2); }
   }, f => gap(f.density, 'm'));
 }
 

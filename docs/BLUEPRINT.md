@@ -297,6 +297,82 @@ pack because of X" and £ a minute. Where it stands, 17 October:
     - a stage-gate job's line page loses the 6M sections it carries (Actions
       by bone, Wins).
 
+**Faultline as a project-management system — six pieces it is missing**
+(Rowland, 17 October, with a list of forty project-management practices:
+"at its core faultline is a project management system ... what we could
+introduce into faultline that would make it more powerful as a project
+management system"). Most of the forty are here already under the floor's
+own words: the charter is a job started from its line; the stakeholders are
+who is on the job and at what level (owner · team · client); the issue and
+risk logs are the Problems register and its Critical; quality is the tests
+against what was agreed; status reports, the dashboard and progress are the
+lean pages, the control room and the plan; templates and checklists are
+every gate's usual list; the handover is its own paper; process
+improvement is the 6M method. What is missing, each placed per §8, in the
+order to build:
+
+12. **The case for the change → what it was worth** (business case →
+    benefits realised). A job says when it hands over, never what it is
+    *for* in money. *Job layer, on `projects`* — no new record: what it
+    should buy (packs a minute, £ a pack, a slip avoided — said in the one
+    cost model, `lib/lineLoss` lineDay and `lib/capacity`), by when, and
+    how it will be measured (the line's own readings against its targets —
+    `measures`, `targets`, `readings`). Agreed, so `can.agree`. After
+    handover (stage gate) or a held gain (6M) the same figure measured on
+    the line beside it: before → after for the job, as a fix already has.
+    *Shows:* the job's band (a tile: "worth £x a week — measured: £y"),
+    the control room (what the running jobs should be worth, beside what
+    their slips cost), the one-page status and the client report's first
+    page, the handover paper.
+13. **What was decided, and what it changed** (change and decision log).
+    Today a moved handover says "8 days late" but not who agreed the move
+    or why; a "passes if" rewritten leaves no trace. *Job layer:* an agreed
+    field changed (the handover dates, a stage list, a "passes if" — the
+    fields `can.agree` already guards) asks for its reason and keeps who,
+    when, the old and the new; a decision with no field (a scope change, a
+    trade-off with the OEM) is written as one. One kind more on the job's
+    dated items, not a fifth noun. *Shows:* the plan as a marker on its
+    day, the stage drawer, Since you last looked, the full report's
+    "What was decided", the status page's one line when it moved the
+    handover; and the slip's money says which decision moved it.
+14. **The close: was it worth it, what we learned, what goes on the next
+    one's list** (closure, evaluation, lessons learned). *Job layer, at its
+    end:* three questions — did it deliver (12, measured), what went wrong
+    that must not again, what to do the same — and a lesson can be put on
+    a gate's usual list or a line's, so the next job on any line starts
+    with it ("learned on Line 2 commissioning"). *Shows:* the handover
+    paper, the job's front page once handed over, Your factory's paper
+    (lessons by line), a new job's usual lists.
+15. **The meeting pack** (agenda and minutes). A line already has its
+    Meeting (`screens/MeetingScreen`: five acts, the minutes a diff against
+    the moment it opened). The same for a job and for the control room, and
+    on paper: the agenda is Needs you (who owes what, the late first, then
+    this week); the minutes are what changed while it was open — the
+    decisions (13), the fixes and countermeasures raised with owner and
+    day, the problems closed. No new record. *Shows:* the job's and the
+    control room's Meeting, one page of paper to send after it.
+16. **What waits on what** (dependencies and the critical path). A stage
+    gate's stages have days but not order: electrical cannot start before
+    the machine is set down; the FAT before it ships. *Job layer, on the
+    plan's steps:* a step says what it waits on (another step, a material,
+    a program — the last two already late on Needs you); a late step moves
+    the ones after it, and the plan says which chain sets the handover —
+    the job's own bottleneck, as Line capacity says the line's. *Shows:*
+    the plan (a link drawn as a branch, the chain marked), the stage
+    drawer ("waits on: Set down — 3 days late"), Needs you, the slip's
+    money ("because of the electrical"), the plan's paper.
+17. **People across jobs** (resource loading) — D5, the people list, which
+    comes after Stage 4. One person owing fourteen things on Thursday across
+    three jobs is a risk no page shows today. *Control-room layer:* every
+    "whose" box read across every job and line, a week a row. *Shows:* the
+    control room's This week by person, a person's own page (what they owe,
+    where), the meeting pack.
+
+Held back on purpose: a budget against spend. The money here is what the
+line makes and loses — margin, labour a pack — counted by people on the
+floor; what a job spends is kept in the business's own finance system, and
+typing it twice is a field nobody is asked to keep up. Built when asked.
+
 ---
 
 ## 7. The build plan

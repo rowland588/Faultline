@@ -13567,3 +13567,26 @@ button.ln-row:hover { background: var(--surface-2); }
 button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow: var(--shadow-lift); }
 :focus-visible { outline-color: var(--brand); }
 @media (prefers-reduced-motion: reduce) { .ln-tile, .vd-tile { transition: none; } }
+
+/* ============================================================================
+   PRINTING A SCREEN PAGE — the dark bands turn light.
+   Rowland, 17 October: "I see that you're doing black background with white
+   writing. Will this have an effect on printing? ... Usually not." Browsers
+   drop background colours when printing, so a dark band's white words would
+   print white on white; with backgrounds on, it is a slab of toner. In print
+   the dark frame is redefined light — the reports' own band (reportKit
+   BAND): a pale fill, a teal edge, graphite words — the glows and the trace
+   gone; the five states keep their colours and their words.
+   ========================================================================== */
+@media print {
+  :root {
+    --shell: #eef3f3 !important; --shell-2: #ffffff !important; --shell-ink: #0f1417 !important;
+    --shell-muted: #59666c !important; --shell-dim: #323d43 !important; --shell-line: #d6dfdf !important;
+    --shell-bad: #c4281c !important; --shell-warn: #b45309 !important; --shell-ok: #15803d !important;
+  }
+  .vd, .ln-band, .ls-head.is-band, .jb-hero, .ln-close {
+    background: #eef3f3 !important; box-shadow: none !important; border-left: 4px solid #0c7489 !important;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .jb-glow { display: none !important; }
+}

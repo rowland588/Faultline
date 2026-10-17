@@ -20,8 +20,22 @@ export type Doc = jsPDF;
 export const INK = '#0f1417', INK2 = '#3c474c', MUTED = '#78858a', LINE = '#e1e7e7';
 export const ACCENT = '#0b7285', BRAND = '#0c7489', SURF2 = '#edf1f1';
 export const GOLD = '#a97822';
-/** The dark frame a masthead or a verdict block is drawn on. */
+/** The dark frame a masthead or a verdict block is drawn on — on the
+ *  screen. On paper, see BAND. */
 export const SHELL = '#12171c', SHELL_2 = '#1b2229', SHELL_MUTED = '#9aa7ae';
+/** THE BAND ON PAPER — light, so it prints. Rowland, 17 October: "I see
+ *  that you're doing black background with white writing. Will this have
+ *  an effect on printing? ... Usually not." A dark band does print from a
+ *  PDF, but it spends a slab of toner, comes out streaky grey on an office
+ *  printer and worse on a copy. So on paper every band is a pale fill with
+ *  a teal edge down its left and graphite words; the screen keeps its dark
+ *  band (styles.css), and flips to this when a screen page is printed. */
+export const BAND = '#eef3f3', BAND_EDGE = BRAND, BAND_LINE = '#d6dfdf';
+/** Draw the band's ground: the pale fill and its teal edge. */
+export function paperBand(d: Doc, x: number, y: number, w: number, h: number, r = 7): void {
+  d.setFillColor(BAND); d.roundedRect(x, y, w, h, r, r, 'F');
+  d.setFillColor(BAND_EDGE); d.roundedRect(x, y, 4, h, 2, 2, 'F');
+}
 export const OK = '#15803d', WARN = '#b45309', DANGER = '#c4281c', BLUE = '#6d28d9';
 /** The validated chart pair — actual vs target (target is also dashed, so the
  *  two never rely on colour alone). */

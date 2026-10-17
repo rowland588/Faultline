@@ -9,7 +9,7 @@ import { GATE_TONE_WORD, type GateTone } from './install';
 import type { OnTargetTone } from './onTarget';
 import { paceSays, type Pace } from './pace';
 import type { Shot } from './testReport';
-import { brandedAlready, san } from './reportKit';
+import { brandedAlready, paperBand, san } from './reportKit';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { SIZE, box, font, gap, heading, label, pagesOf, rows, space, text, wrap } from './report/blocks';
 import { streamBlocks } from './report/streamTable';
@@ -22,7 +22,7 @@ import { programsBlocks } from './programsReportPdf';
 import { moveLines } from './story';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6';
+const INK = '#0f1417', INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6';
 /* The app's own state colours, so paper and screen say the same thing in the
    same colour: one red (the day has gone), one amber (waiting), one indigo
    (under way, still ahead), one green (done — and quiet). */
@@ -274,7 +274,7 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
   tell(r.critical, 'Critical problems', 'CRITICAL', DANGER, 'What it means for the business');
   tell(r.risks, 'High risks', 'HIGH RISK', AMBER, 'The consequence if it happens');
 
-  // the sentence, on the dark band — as tall as its words
+  // the sentence, on the band (light on paper, reportKit paperBand) — as tall as its words
   const said = (f: Frame) => wrap(f.doc, r.sentence, f.w - 32, 14, 'bold');
   /* The answer above says the handover against the date agreed, both days
      named; the slip line ("The date has moved 8 days…") said it again here. */
@@ -282,10 +282,10 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
   out.push(box(f => 30 + said(f).length * 17 + slip(f).length * 12 + 6 + gap(f.density, 'l'), (f, y) => {
     const l = said(f), sl = slip(f);
     const bandH = 30 + l.length * 17 + sl.length * 12 + 6;
-    f.doc.setFillColor(SHELL); f.doc.roundedRect(f.x, y, f.w, bandH, 8, 8, 'F');
-    font(f.doc, 7.5, 'bold', '#8ea1a7'); f.doc.text('WHERE THE JOB IS', f.x + 16, y + 16);
-    font(f.doc, 14, 'bold', '#ffffff'); f.doc.text(l, f.x + 16, y + 34);
-    if (sl.length) { font(f.doc, 9, 'normal', '#cbd5d7'); f.doc.text(sl, f.x + 16, y + 34 + l.length * 17); }
+    paperBand(f.doc, f.x, y, f.w, bandH, 8);
+    font(f.doc, 7.5, 'bold', MUTED); f.doc.text('WHERE THE JOB IS', f.x + 16, y + 16);
+    font(f.doc, 14, 'bold', INK); f.doc.text(l, f.x + 16, y + 34);
+    if (sl.length) { font(f.doc, 9, 'normal', INK2); f.doc.text(sl, f.x + 16, y + 34 + l.length * 17); }
   }, f => gap(f.density, 'l')));
 
   // the four gates, for the whole job

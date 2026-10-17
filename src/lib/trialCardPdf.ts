@@ -25,7 +25,7 @@
  */
 import {
   ACCENT, BLUE, BRAND, DANGER, INK, INK2, LINE, MUTED, OK, WARN,
-  SHELL_MUTED, drawMark, fit, nameFont, san, setFont, wash, type Doc,
+  BAND, BAND_EDGE, drawMark, fit, nameFont, san, setFont, wash, type Doc,
 } from './reportKit';
 import { verdictLine, type TrialCard } from './trialCard';
 import type { Shot } from './testReport';
@@ -68,10 +68,10 @@ export interface TrialCardMeta {
 /* THE BAND GROWS WITH THE TITLE. A long title ended "…" at a fixed width —
    on the sheet whose whole job is the detail (docs/REPORTS.md: nothing is cut). */
 function titleLines(d: Doc, c: TrialCard, W: number): { title: string[]; line: string[] } {
-  setFont(d, 16, 'bold', '#ffffff');
+  setFont(d, 16, 'bold', INK);
   const title = d.splitTextToSize(san(c.title), W - 2 * M - 150) as string[];
   const machine = [c.machine, c.withWhom && `with ${c.withWhom}`, nice(c.ranOn ?? c.plannedFor)].filter(Boolean).join('  ·  ');
-  setFont(d, 8.5, 'normal', SHELL_MUTED);
+  setFont(d, 8.5, 'normal', MUTED);
   const line = d.splitTextToSize(san(machine), W - 2 * M - 150) as string[];
   return { title, line };
 }
@@ -80,32 +80,33 @@ function head(d: Doc, c: TrialCard, meta: TrialCardMeta, page: number): number {
   const W = d.internal.pageSize.getWidth();
   const tl = titleLines(d, c, W);
   const bandH = page === 1 ? 74 + (tl.title.length - 1) * 19 + (tl.line.length - 1) * 11 : 44;
-  d.setFillColor(INK);
+  /* LIGHT ON PAPER (reportKit BAND): a card printed and pinned at the line
+     is the last place to spend a slab of toner — a pale band, the brand's
+     teal along its foot, graphite words, the Faultline mark top right.
+     "Built" sits beside the project, where it reads as part of its line. */
+  d.setFillColor(BAND);
   d.rect(0, 0, W, bandH, 'F');
-
-  /* The band's small type in the shell's muted blues (a green left over from
-     an older palette), and the Faultline mark top right in the band — the
-     corner stamp other documents carry would sit on the dark. "Built" moves
-     beside the project, where it reads as part of the line it belongs to. */
-  setFont(d, 7, 'bold', SHELL_MUTED);
+  d.setFillColor(BAND_EDGE);
+  d.rect(0, bandH - 3, W, 3, 'F');
+  setFont(d, 7, 'bold', MUTED);
   const kicker = `${wordsOf(c).one.toUpperCase()} CARD`;
   d.text(kicker, M, 20);
   // Placed after the kicker, not at a fixed 58pt: "INSTALL STEP CARD" ran into the project name.
   const after = M + d.getTextWidth(kicker) + 14;
-  setFont(d, 7, 'normal', SHELL_MUTED);
+  setFont(d, 7, 'normal', MUTED);
   const built = `Built ${new Date(meta.builtAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`;
   d.text(fit(d, san(`${meta.project}  ·  ${built}`), W / 2), after, 20);
 
-  nameFont(d, 8, '#ffffff');
+  nameFont(d, 8, INK);
   const brand = 'Faultline', bw = d.getTextWidth(brand);
   d.text(brand, W - M, 20, { align: 'right' });
   drawMark(d, W - M - bw - 15, 11.5, 11);
 
   if (page === 1) {
-    setFont(d, 16, 'bold', '#ffffff');
+    setFont(d, 16, 'bold', INK);
     d.text(tl.title, M, 44, { lineHeightFactor: 19 / 16 });
     const lineY = 60 + (tl.title.length - 1) * 19;
-    setFont(d, 8.5, 'normal', SHELL_MUTED);
+    setFont(d, 8.5, 'normal', MUTED);
     d.text(tl.line, M, lineY, { lineHeightFactor: 11 / 8.5 });
 
     /* The verdict, as a pill, top right — the one thing somebody looks for
@@ -119,7 +120,7 @@ function head(d: Doc, c: TrialCard, meta: TrialCardMeta, page: number): number {
     return bandH;
   }
 
-  setFont(d, 9, 'bold', '#ffffff');
+  setFont(d, 9, 'bold', INK);
   d.text(fit(d, `${san(c.title)} — continued`, W - 2 * M), M, 32);
   return 44;
 }

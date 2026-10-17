@@ -37,7 +37,7 @@ import { paretoFromLog } from './paretoFromLog';
 import { paretoView } from './paretoView';
 import { analyse, fmtN } from './capacity';
 import { niceDay, todayISO } from './weeks';
-import { san } from './reportKit';
+import { san, paperBand } from './reportKit';
 import { PHASE_ORDER, bonesSaid, problemsSaid, saidText, type Said } from './portfolio';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { SIZE, box, font, gap, heading, label, lead, rows, text, wrap, type Row } from './report/blocks';
@@ -588,7 +588,7 @@ export function sixmReport(o: SixMInput): SixMReport {
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK = '#0f1417', INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', RIB = '#b9c4c7';
-const BRAND = '#0c7489', SHELL = '#12171c';
+const BRAND = '#0c7489';
 /* The app's five state colours — the same values the stage-gate report uses. */
 const OK = '#15803d', DANGER = '#c4281c', AMBER = '#b45309', BOOKED = '#6d28d9', GREY = '#b9c4c7';
 const TONE: Record<Tone, { fill?: string; stroke: string; text: string; weight: number }> = {
@@ -662,10 +662,10 @@ export async function drawSixMStatus(doc: jsPDF, report: SixMReport): Promise<vo
     const slip = (f: Frame) => wrap(f.doc, s.slip, f.w - 32, 9.5);
     out.push(box(f => 30 + said(f).length * 17 + slip(f).length * 12.5 + 8 + gap(f.density, 'm'), (f, y) => {
       const l = said(f), sl = slip(f);
-      f.doc.setFillColor(SHELL); f.doc.roundedRect(f.x, y, f.w, 30 + l.length * 17 + sl.length * 12.5 + 8, 8, 8, 'F');
-      font(f.doc, 7.5, 'bold', '#8ea1a7'); f.doc.text(s.manyLines ? 'WHERE THE LINES ARE' : 'WHERE THE LINE IS', f.x + 16, y + 16);
-      font(f.doc, 14, 'bold', '#ffffff'); f.doc.text(l, f.x + 16, y + 34);
-      font(f.doc, 9.5, 'normal', '#cbd5d7'); f.doc.text(sl, f.x + 16, y + 36 + l.length * 17);
+      paperBand(f.doc, f.x, y, f.w, 30 + l.length * 17 + sl.length * 12.5 + 8, 8);
+      font(f.doc, 7.5, 'bold', MUTED); f.doc.text(s.manyLines ? 'WHERE THE LINES ARE' : 'WHERE THE LINE IS', f.x + 16, y + 16);
+      font(f.doc, 14, 'bold', INK); f.doc.text(l, f.x + 16, y + 34);
+      font(f.doc, 9.5, 'normal', INK2); f.doc.text(sl, f.x + 16, y + 36 + l.length * 17);
     }, f => gap(f.density, 'm')));
     /* the tiles (lib/sixmLean) — the full report's, counted from the same model */
     out.push(leanTiles(sixmTiles(sixmFigures(report))));
@@ -811,10 +811,10 @@ function blocksOf(r: SixMReport, d: Density): Block[] {
   out.push(box(f => 30 + said(f).length * 17 + slip(f).length * 12.5 + 8 + gap(f.density, 'l'), (f, y) => {
     const l = said(f), sl = slip(f);
     const bandH = 30 + l.length * 17 + sl.length * 12.5 + 8;
-    f.doc.setFillColor(SHELL); f.doc.roundedRect(f.x, y, f.w, bandH, 8, 8, 'F');
-    font(f.doc, 7.5, 'bold', '#8ea1a7'); f.doc.text(r.manyLines ? 'WHERE THE LINES ARE' : 'WHERE THE LINE IS', f.x + 16, y + 16);
-    font(f.doc, 14, 'bold', '#ffffff'); f.doc.text(l, f.x + 16, y + 34);
-    font(f.doc, 9.5, 'normal', '#cbd5d7'); f.doc.text(sl, f.x + 16, y + 36 + l.length * 17);
+    paperBand(f.doc, f.x, y, f.w, bandH, 8);
+    font(f.doc, 7.5, 'bold', MUTED); f.doc.text(r.manyLines ? 'WHERE THE LINES ARE' : 'WHERE THE LINE IS', f.x + 16, y + 16);
+    font(f.doc, 14, 'bold', INK); f.doc.text(l, f.x + 16, y + 34);
+    font(f.doc, 9.5, 'normal', INK2); f.doc.text(sl, f.x + 16, y + 36 + l.length * 17);
   }, f => gap(f.density, 'l')));
   /* THE TILES (docs/LEAN-PAGE.md; lib/sixmLean) — the gap, the problems, the
      roots, the countermeasures, what is holding: the sections below, counted */
@@ -1276,11 +1276,13 @@ function drawFish(f: Frame, y: number, p: ProblemRep, l: FishLayout): void {
 
   /* the head: the problem, its number, and where it is — in words */
   const hh = l.head.h, hy = spineY - hh / 2;
-  doc.setFillColor(SHELL); doc.roundedRect(hx, hy, HEAD_W, hh, 9, 9, 'F');
-  font(doc, SIZE.tiny, 'bold', '#8ea1a7'); doc.text(`PROBLEM ${p.n}`, hx + 9, hy + 13);
-  font(doc, 9.5, 'bold', '#ffffff'); doc.text(l.head.lines, hx + 9, hy + 25);
+  /* light on paper (reportKit paperBand), its edge the brand's teal, its words graphite */
+  paperBand(doc, hx, hy, HEAD_W, hh, 9);
+  doc.setDrawColor('#d6dfdf'); doc.setLineWidth(0.6); doc.roundedRect(hx, hy, HEAD_W, hh, 9, 9, 'S');
+  font(doc, SIZE.tiny, 'bold', MUTED); doc.text(`PROBLEM ${p.n}`, hx + 9, hy + 13);
+  font(doc, 9.5, 'bold', INK); doc.text(l.head.lines, hx + 9, hy + 25);
   let yy = hy + 25 + l.head.lines.length * 11.5;
-  if (p.number) { font(doc, SIZE.small, 'normal', '#cbd5d7'); doc.text(p.number, hx + 9, yy - 2); yy += 12; }
+  if (p.number) { font(doc, SIZE.small, 'normal', INK2); doc.text(p.number, hx + 9, yy - 2); yy += 12; }
   const pw = Math.min(HEAD_W - 18, pillW(doc, p.phaseWord, HEAD_W - 18));
   doc.setFillColor('#ffffff'); doc.roundedRect(hx + 8, yy - 4, pw + 2, 14, 3, 3, 'F');
   pill(doc, hx + 9, yy - 3, pw, p.tone, p.phaseWord);
