@@ -34,6 +34,9 @@ export const PAGES = (sd, cap) => [
   { name: 'Problems', path: '#/snags', must: [{ what: 'the register, a line at a time', sel: '.qsl-rows' }] },
   { name: 'A stage-gate job — its front page', path: `#/project/${sd.projectId}`, must: [
     { what: 'the verdict', sel: '.vd' }, { what: 'Needs you', sel: 'h2, h3', text: /Needs you/ }, { what: 'where each machine is', sel: '.fp-grid' },
+    /* the band's five tiles — the same the one-page status and the full report count (17 October, docs/LEAN-PAGE.md) */
+    /* on a phone the band is the answer and the status report (the phone pass, 5 October): its tiles are the desk's */
+    { what: 'the band’s tiles — handover, late of what is still to do, critical, fixes open, what the slip costs', sel: '.vd .vd-tile', n: 5, desk: true },
     /* the job's places, its machines each a page (16 October, docs/STAGEGATE-UX.md) */
     { what: 'its machines in the rail, each a page', sel: '.nv-rail .nv-grp-l', text: /^Machines$/i, desk: true },
   ] },
@@ -49,12 +52,32 @@ export const PAGES = (sd, cap) => [
     { what: 'a row a program, machine by machine', sel: '.pgr-list .pgr', n: 4 },
     { what: 'how its test went, on its row', sel: '.pgr .ptx-go' },
     { what: 'a program added to a machine', sel: '.pgr-add-open' },
+    /* the lean page (17 October, docs/LEAN-PAGE.md): its counted figures are the chips, its closing line the programs in a sentence */
+    { what: 'the closing line', sel: '.ln-close' },
   ] },
   { name: 'Commission', path: `#/project/${sd.projectId}/testing`, must: [
     /* the four gates and the timeline are one Plan, its tabs (16 October, docs/STAGEGATE-UX.md) */
     { what: 'the plan’s tabs, Commission on', sel: '.plt .plt-t.on', text: /^Commission/ },
     { what: 'Needs you', sel: '.nd-list' }, { what: 'the board, machine by machine', sel: '.ig-grid', desk: true },
     { what: 'the board as a card a machine', sel: '.igm-card', phone: true },
+    /* the lean page (17 October, docs/LEAN-PAGE.md; lib/stageGatePages): the header's counts as tiles, and the money */
+    { what: 'the tiles — passed, didn’t pass, didn’t run, still to run, the money', sel: '.sg-tiles .ln-tile', n: 5 },
+    { what: 'the closing line', sel: '.ln-close' },
+  ] },
+  { name: 'Install', path: `#/project/${sd.projectId}/install`, must: [
+    { what: 'the plan’s tabs, Install on', sel: '.plt .plt-t.on', text: /^Install/ },
+    { what: 'the tiles — done, late, problems, not added yet, the money', sel: '.sg-tiles .ln-tile', n: 5 },
+    { what: 'Needs you', sel: '.cg-needs' },
+    { what: 'the closing line', sel: '.ln-close' },
+  ] },
+  { name: 'Problems — a stage-gate job', path: `#/project/${sd.projectId}/fixes`, must: [
+    { what: 'the tiles — open, critical, late, no fix yet, the money', sel: '.sg-tiles .ln-tile', n: 5 },
+    { what: 'the closing line', sel: '.ln-close' },
+  ] },
+  { name: 'Materials', path: `#/project/${sd.pacedProjectId}/materials`, must: [
+    { what: 'the tiles — here, late, waiting, no date, the money', sel: '.sg-tiles .ln-tile', n: 5 },
+    { what: 'what we are waiting on, a row a material', sel: '.mt-list .mt-row', n: 2 },
+    { what: 'the closing line', sel: '.ln-close' },
   ] },
   { name: 'The plan', path: `#/project/${sd.projectId}/plan`, must: [{ what: 'the Gantt', sel: '.gt-body' }, { what: 'the plan’s tabs, Timeline on', sel: '.plt .plt-t.on', text: /^Timeline/ }] },
   { name: 'A 6M job — its front page', path: `#/project/${sd.pacedProjectId}`, must: [

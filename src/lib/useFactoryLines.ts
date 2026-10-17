@@ -9,6 +9,8 @@ import type { Workspace } from '../types';
 import { inArchivedProject, listWorkspaces, onDataChange, projectWalkIds } from '../db';
 import { allProjects } from '../db/projects';
 import { liveProductionLines } from './lines';
+import { jobFactoryLines } from './lineRecords';
+import { allPaceLines } from '../db/pace';
 
 /** THE PLACES AN ARCHIVED JOB'S RECORDS SIT — `job:<id>` for each archived job,
  *  `ws:<id>` for each archived job's own walk — so a tool's list puts them away
@@ -48,4 +50,24 @@ export function useFactoryLines(keep?: string): Workspace[] {
     return () => { live = false; off(); };
   }, [keep]);
   return lines;
+}
+
+/** A JOB'S LINES AS YOUR FACTORY HOLDS THEM (lib/lineRecords jobFactoryLines)
+ *  — what a day late costs reads their speed, shifts and margin a pack
+ *  (lib/lineLoss linesDay). `loading` until both are read, so the money is
+ *  never said of no lines while the lines are still coming. */
+export function useJobFactoryLines(projectId: string): { loading: boolean; lines: Workspace[] } {
+  const [got, setGot] = useState<{ loading: boolean; lines: Workspace[] }>({ loading: true, lines: [] });
+  useEffect(() => {
+    let live = true;
+    setGot({ loading: true, lines: [] });
+    const load = () => void (async () => {
+      const [jobLines, all] = await Promise.all([allPaceLines(), listWorkspaces()]);
+      if (live) setGot({ loading: false, lines: jobFactoryLines(projectId, jobLines, all) });
+    })();
+    load();
+    const off = onDataChange(load);
+    return () => { live = false; off(); };
+  }, [projectId]);
+  return got;
 }

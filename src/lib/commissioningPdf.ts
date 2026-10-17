@@ -14,6 +14,7 @@
  * indigo booked, green done, grey not started — and the words beside every
  * colour, so it survives a black-and-white copy. */
 import { codeHeader } from './report/codeHeader';
+import { leanClosing, leanTiles } from './report/lean';
 import type { jsPDF } from 'jspdf';
 import type { OnTargetTone } from './onTarget';
 import type { HoTone } from './handoverReport';
@@ -172,6 +173,8 @@ function reportBlocks(r: CommissioningReport, d: Density): Block[] {
   const out: Block[] = [];
   out.push(...codeHeader({ eyebrow: 'COMMISSIONING · STAGE GATE', title: r.name, colour: BRAND, ...(r.link ? { link: r.link } : {}),
     line: [r.lead ? `Led by ${r.lead}` : '', `Printed ${r.printed}`].filter(Boolean).join('   ·   ') }, d));
+  /* THE TILES (docs/LEAN-PAGE.md) — the counts Commission's tiles say, and the money */
+  out.push(leanTiles(r.tiles));
 
   /* WHERE WE ARE */
   out.push(band(r));
@@ -205,6 +208,10 @@ function reportBlocks(r: CommissioningReport, d: Density): Block[] {
     }
     out.push({ height: f => gap(f.density, 'm'), draw: () => undefined });
   }
+
+  /* THE CLOSING LINE — the gate in one sentence and the slip in money, at
+     the foot of the report's body; each machine whole is its appendix */
+  out.push(leanClosing(r.closing));
 
   /* EACH MACHINE WHOLE */
   for (const m of r.machines) out.push(...machineBlocks(m, d));

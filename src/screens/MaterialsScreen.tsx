@@ -28,6 +28,9 @@ import { WeekHead, WeekStrip } from '../ui/Weeks';
 import { useProject } from '../lib/useProjects';
 import { usePaceLines } from '../lib/usePaceLines';
 import { useMaterials } from '../lib/useMaterials';
+import { LeanClosing, LeanTiles } from '../ui/Lean';
+import { useJobMoney } from '../lib/useJobMoney';
+import { MONEY_WAIT, materialClosing, materialTiles } from '../lib/stageGatePages';
 import {
   coveredIn, isHere, landsIn, stateOf, todayISO,
   type Material, type Week,
@@ -251,6 +254,8 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
      dashboard and the client report make — a row that said something different
      from the page under it would be the whole problem back again. */
   const can = useAccess(projectId);
+  /* THE JOB'S MONEY (lib/useJobMoney) — every stage-gate page's last tile */
+  const money = useJobMoney(projectId);
   const today = todayISO();
 
   if (loading || state.loading || lines.loading) {
@@ -273,7 +278,7 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
   const paper = async () => {
     try {
       const { saveMaterialsReport } = await import('../lib/materialsPdf');
-      await saveMaterialsReport(projectId, project.name, lineName);
+      await saveMaterialsReport(projectId, project.name, lineName, money);
     } catch (e) {
       console.error('materials pdf failed', e);
       window.alert('Sorry — the PDF could not be made. Please try again.');
@@ -289,22 +294,16 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
       <header className="pace-head">
         <div className="pace-head-main">
           <h1 className="pace-title">Materials</h1>
-          <p className="cw-handover">
-            {t.total === 0
-              ? <b>Nothing on the list yet</b>
-              : <>
-                <b>{t.here} of {t.total} here</b>
-                {t.late > 0 && <span className="sub in-late">{t.late} late</span>}
-                {t.waiting > 0 && <span className="sub">{t.waiting} waiting{t.nextDue ? `, next due ${nice(t.nextDue)}` : ''}</span>}
-                {t.undated > 0 && <span className="sub">{t.undated} with no date</span>}
-              </>}
-          </p>
+          {/* …said in the tiles under the header now (lib/stageGatePages:
+              here of what is needed, late, waiting and the next due, no date,
+              the money) — one place, as the list below is the one list. */}
         </div>
         <div className="pace-head-actions">
           <button type="button" className="btn" disabled={t.total === 0} onClick={() => void paper()}><Icon name="document" size="1.05em" />Materials report</button>
         </div>
       </header>
       <AccessNote can={can} owner={project.lead} />
+      {t.total > 0 && <LeanTiles tiles={materialTiles(t, money ?? MONEY_WAIT, iso => nice(iso))} className="sg-tiles" />}
 
       {t.total === 0 ? (
         <>
@@ -347,6 +346,8 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
           tabs stays six long. */}
       {!project.commissioning && <ProgramsScreen projectId={projectId} embedded />}
 
+      {/* THE CLOSING LINE — the materials in one sentence, and the slip in money */}
+      {t.total > 0 && <LeanClosing closing={materialClosing(t, money ?? MONEY_WAIT)} />}
       <footer className="pace-foot">
         <p>{project.name} · what we are waiting on</p>
       </footer>

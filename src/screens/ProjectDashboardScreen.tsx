@@ -33,6 +33,9 @@ import { PaceNextSteps } from './PaceNextSteps';
 import { PaceSuccess } from './PaceSuccess';
 import { MeasureChart } from '../charts/MeasureChart';
 import { usePaceLines } from '../lib/usePaceLines';
+import { useJobFactoryLines } from '../lib/useFactoryLines';
+import { linesDay } from '../lib/lineLoss';
+import { stageGateTiles } from '../lib/stageGateLean';
 import { useLineRecords } from '../lib/useLineRecords';
 import { useMeasures } from '../lib/useMeasures';
 import { useMaterials } from '../lib/useMaterials';
@@ -51,7 +54,7 @@ import { DUE_SOON_DAYS, useActions } from '../lib/actions';
 import { KIND_WORD, criticalItems, riskItems, jobItems, kindWord, lateWhen, needsYou, pacedOwed, pacedSays, sixmProblemOf, type JobItem, type Urgency } from '../lib/portfolio';
 import { openRecord } from '../ui/RecordDrawer';
 import { CriticalTag } from '../ui/CriticalFields';
-import { criticalCount } from '../lib/critical';
+import { criticalCount, criticalProblems, riskProblems } from '../lib/critical';
 import { linesOnTarget, stageGateOnTarget } from '../lib/onTarget';
 import { planCount, planFor } from '../lib/huddle';
 import type { TestItem } from '../lib/testing';
@@ -71,6 +74,7 @@ import type { Project } from '../types';
 import { methodOf, planModel } from '../lib/planModel';
 import { useTesting } from '../lib/useTesting';
 import { useStanding } from '../lib/useStanding';
+import { fixTone } from '../lib/fixTone';
 import { Verdict } from '../ui/Verdict';
 import { SinceLine, useSeenAt } from '../ui/SinceLine';
 import { sinceOf } from '../lib/since';
@@ -607,7 +611,9 @@ function TestingOverview({ projectId, project, edit, remove = false }: { project
   /* SINCE YOU LAST LOOKED (lib/since) — the visit this page counts from, kept
      on this device; opening the page starts a new one. */
   const seenAt = useSeenAt(projectId);
-  if (tt.loading || all.loading || mats.loading || progs.loading) return <p className="sub">Loading…</p>;
+  /* THE JOB'S LINES AS YOUR FACTORY HOLDS THEM — what a day late costs (the money tile) */
+  const factory = useJobFactoryLines(projectId);
+  if (tt.loading || all.loading || mats.loading || progs.loading || factory.loading) return <p className="sub">Loading…</p>;
 
   const today = todayISO();
   const st = all.standing;
@@ -661,7 +667,19 @@ function TestingOverview({ projectId, project, edit, remove = false }: { project
               page of its own (/plan), one line and a door here. */}
           {/* ARE WE ON TARGET? leads the band (lib/onTarget). */}
           <Verdict st={st} brief report={`/project/${projectId}/report`}
-            onTarget={stageGateOnTarget({ project, tests: tt.tests, items: tt.items, assets: tt.assets, materials: mats.materials, programs: progs.programs, today }, st)} />
+            onTarget={stageGateOnTarget({ project, tests: tt.tests, items: tt.items, assets: tt.assets, materials: mats.materials, programs: progs.programs, today }, st)}
+            tiles={stageGateTiles({
+              /* the same five the one-page status and the full report count (lib/stageGateLean) */
+              ...(st.daysToGo != null ? { daysToGo: st.daysToGo } : {}), ...(st.handedOver ? { handedOver: true } : {}), ...(st.handedVs != null ? { handedVs: st.handedVs } : {}),
+              ...(st.slipDays != null ? { slipDays: st.slipDays } : {}), outstanding: st.outstanding, late: st.late,
+              ...(project.expectedAt ?? project.plannedAt ? { handoverOn: (project.expectedAt ?? project.plannedAt) as string } : {}),
+              ...(() => {
+                const alive = tt.tests.filter(t => !t.deletedAt), fixes = alive.filter(t => t.kind === 'fix').map(t => fixTone(t, today).tone);
+                return { critical: criticalProblems(alive, tt.items, tt.assets).open.length, risks: riskProblems(alive, tt.items, tt.assets).open.length,
+                  fixesOpen: fixes.filter(x => x !== 'done').length, fixesLate: fixes.filter(x => x === 'late').length };
+              })(),
+              day: linesDay(factory.lines),
+            })} />
           {/* WHAT CHANGED SINCE YOU LAST LOOKED — under the answer; nothing when
               nothing did (lib/since). */}
           <SinceLine projectId={projectId} since={sinceOf({ tests: tt.tests, items: tt.items, assets: tt.assets, seenAt })} />

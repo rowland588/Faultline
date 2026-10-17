@@ -60,6 +60,8 @@ export interface MaterialsReading {
   /** What is in, named once: "Finest Red 2kg film (in on 3 Oct)". */
   here: string[];
   total: number;
+  /** The counts the page's tiles say (lib/stageGatePages materialTiles). */
+  tally: { here: number; total: number; late: number; waiting: number; undated: number; nextDue?: string };
 }
 
 /** The materials read for paper, in the list's own order (late first, then
@@ -93,6 +95,7 @@ export function materialsReading(x: {
   ].filter(Boolean).join(' ');
   return {
     job: x.job, printed: x.printed, total: t.total,
+    tally: { here: t.here, total: t.total, late: t.late, waiting: t.waiting, undated: t.undated, ...(t.nextDue ? { nextDue: t.nextDue } : {}) },
     headline: t.total ? `${t.here} of ${t.total} here` : 'Nothing on the list yet',
     says: t.total ? says : 'Nothing is being waited on.',
     late: late.map(row), coming: coming.map(row), undated: undated.map(row),

@@ -16,7 +16,7 @@
  * packs are, never silently. Nothing here is stored. */
 import type { Observation, Workspace } from '../types';
 import type { Standard } from './standard';
-import { analyse } from './capacity';
+import { analyse, shiftsIn } from './capacity';
 import { inCapacityTool } from './standard';
 import { isWholeLine, machineKey } from './lineRecords';
 import { fmtGBP, fmtPacks, labourPerHour, ratedPerMin } from './cost';
@@ -102,4 +102,41 @@ export function packsForMs(ms: number, rows: readonly Pick<Observation, 'duratio
   if (rate === undefined || total <= 0) return undefined;
   const line = rows.reduce((n, o) => n + (stopsTheLine(o, neck) ? Math.max(0, o.durationMs || 0) : 0), 0);
   return (ms * (line / total) / 60_000) * rate;
+}
+
+/** A DAY OF THE LINE NOT MAKING (BLUEPRINT §6, the stage gate: "what a late
+ *  gate costs a day — the line not making") — what a line not yet handed
+ *  over, or stood for a day, does not make: its rated speed × the minutes
+ *  its shifts run less their breaks, and that in margin at its margin a pack.
+ *  Each is the factory's (Your factory, the line's settings); what nobody
+ *  has said is named in `missing`, never guessed. */
+export interface LineDay { line: string; minutes?: number; packs?: number; margin?: number; missing: string[] }
+
+/** What a day of a line is priced from — the factory's own facts. */
+export type DayFacts = Pick<Workspace, 'name' | 'packsPerMin' | 'marginPerPack'> & { shifts?: Workspace['shifts'] };
+
+export function lineDay(w: DayFacts): LineDay {
+  const shifts = shiftsIn(w.shifts);
+  const minutes = shifts.length ? shifts.reduce((n, s) => n + Math.max(0, s.min - (s.breakMin ?? 0)), 0) : undefined;
+  const rate = ratedPerMin(w);
+  const per = w.marginPerPack && w.marginPerPack > 0 ? w.marginPerPack : undefined;
+  const packs = minutes != null && rate != null ? minutes * rate : undefined;
+  const missing = [rate == null ? 'its speed' : '', minutes == null ? 'its shifts' : '', per == null ? 'its margin a pack' : ''].filter(Boolean);
+  return { line: w.name, ...(minutes != null ? { minutes } : {}), ...(packs != null ? { packs } : {}), ...(packs != null && per != null ? { margin: packs * per } : {}), missing };
+}
+
+/** A JOB'S LINES, A DAY — the margin a day of them all not making, from the
+ *  lines that can be priced; the rest named with what each still needs
+ *  ("Line 3: its speed and its margin a pack"). */
+export interface LinesDay { lines: string[]; margin?: number; priced: string[]; missing: string[] }
+
+export function linesDay(ws: readonly DayFacts[]): LinesDay {
+  const days = ws.map(lineDay);
+  const priced = days.filter(d => d.margin != null);
+  const and = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}` : xs[0] ?? '');
+  return {
+    lines: days.map(d => d.line), priced: priced.map(d => d.line),
+    ...(priced.length ? { margin: priced.reduce((n, d) => n + (d.margin as number), 0) } : {}),
+    missing: days.filter(d => d.margin == null).map(d => `${d.line}: ${and(d.missing)}`),
+  };
 }

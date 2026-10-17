@@ -31,6 +31,9 @@ import { programsCell, programsWords } from './commission';
 import type { Program } from './programs';
 import { niceDay } from './weeks';
 import { programJourney } from './programJourney';
+import type { LeanTile, LeanTone } from './lean';
+import { moneyTile } from './stageGateLean';
+import { commissionClosing, commissionTiles } from './stageGatePages';
 
 /** A machine's word, in the house's colours: g ready or handed over, r
  *  behind, a passed but with something still open, w under way, n not
@@ -92,6 +95,11 @@ export interface CommissioningReport {
   line: string[];
   /** The job's lines' own programs (the handover reading's). */
   linePrograms: { line: string; says: string; open: string[] }[];
+  /** THE LEAN PAGE'S TILES AND CLOSING LINE (lib/stageGatePages) — the
+   *  counts Commission's tiles say, and the job's money (lib/stageGateLean
+   *  moneyTile, from the client report's figures). */
+  tiles: LeanTile[];
+  closing: { text: string; tone: LeanTone };
   /** The performance runs, a row a product (the client report's). */
   runs: RunRow[];
   /** The journeys of programs on the line itself — on no machine of the job. */
@@ -209,8 +217,11 @@ export function commissioningReport(x: CommissioningInput): CommissioningReport 
     !h.handedOver && h.expected && h.expected !== h.agreed && `now expected ${niceDay(h.expected, { weekday: 'short' })}`,
     h.handedOver && h.handedOn && `handed over ${niceDay(h.handedOn, { weekday: 'short' })}`].filter(Boolean).join(' · ') || 'No handover date agreed yet';
 
+  const counts = { passed: now.filter(t => t.outcome === 'passed').length, total: now.length, failed: now.filter(t => t.outcome === 'failed').length, notRun: now.filter(t => t.outcome === 'notRun').length };
+  const money = moneyTile(c.figures);
   return {
     name: c.name, ...(c.lead ? { lead: c.lead } : {}), printed: c.printed, ...(c.link ? { link: c.link } : {}),
+    tiles: commissionTiles(counts, money), closing: commissionClosing(counts, money),
     verdict: c.onTarget, says: commission?.says ?? 'No tests planned yet', dates, machinesSaid,
     ...(c.commentary ? { commentary: c.commentary } : {}),
     machines, why, doing, booked, line: h.line, linePrograms: h.linePrograms, runs: commission?.runs ?? [],

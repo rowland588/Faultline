@@ -230,14 +230,16 @@ pack because of X" and £ a minute. Where it stands, 17 October:
   not made, the others waiting, contribution lost — screen and paper), All
   together (each tool's line), SMED (what the changeovers cost a shift, day,
   week, year), the loss count (idle labour and lost contribution), a line's
-  stops (lineLoss, lineRead), the mix and next week's orders.
+  stops (lineLoss, lineRead), the mix and next week's orders, and the stage
+  gate (what the slip costs: the days the handover has moved × a day of the
+  job's lines not making, in margin — `lib/lineLoss` lineDay; the job's
+  front page, its one-page status and its full report, 17 October).
 - **Missing — the next piece, tool by tool:** the capability study (what
   the rejects and give-away cost), the value stream map (what the waits and
   waste cost), work sampling (what the idle share costs a shift), the line
   standard map (what the people placed cost a pack), the problems register
   (what each problem costs while it is open), a 6M countermeasure (what it
-  is worth — before → after in money), the stage gate (what a late gate
-  costs a day — the line not making), the control room (the money at risk
+  is worth — before → after in money), the control room (the money at risk
   across every line and job, first).
 
 
@@ -992,6 +994,38 @@ is still wired.
   list of products keeps its form) and All together's. Accepted by
   `line-capacity.mjs` (12g) and `work-balance.mjs` (10); the pages by
   `inventory.mjs`.
-- **Next:** the lean page, slice 3 — the client report and the one-page
-  status, and the job's front page (`docs/LEAN-PAGE.md`); then Stage 3 — the
-  line is the hub (its products, readiness, health).
+- **The lean page, slice 3 — a stage-gate job: its front page, its
+  one-page status and its full client report.** No new record: the client
+  report's reading carries the figures its tiles say (`figures`: the
+  handover, outstanding, late, critical and high risk, fixes open and late,
+  the slip — `lib/standing`, `lib/critical`, `lib/fixTone` — and a day of
+  the job's lines not making, `lib/lineLoss` lineDay, from each line's
+  speed, shifts and margin a pack in Your factory), and `lib/stageGateLean`
+  says the five tiles — the handover, late of what is still to do, critical,
+  fixes open and **what the slip costs** (the stage gate's money, §6) — and
+  the closing line (the verdict, its one-line why and the slip in money).
+  Shows on: the front page's band (the same five; Outstanding is Late's
+  "of" now), the one-page status (the tiles under its
+  header, its verdict leading it and no second closing line — the room is its
+  critical rows', still one page — its lists give way
+  first, each saying how many more) and the full report (the tiles under its
+  header, the closing line at the foot of its body, before the line standard
+  and the evidence). Proved by `report-stress.mjs`: every tile's words and the
+  closing line on both papers, at three sizes and forty random jobs; the band
+  by `inventory.mjs`.
+- **The lean page, slice 3b — the stage gate's pages and papers.** No new
+  record: `lib/stageGatePages` reads the counts each page's header already
+  said (lib/install, lib/noted problemsTally, lib/materialsReport,
+  lib/programsReport) into five tiles and a closing line, the last tile the
+  job's money (`lib/useJobMoney` → lib/stageGateLean moneyTile). Shows on:
+  Commission, Install, Set up, Hand over, the job's Problems and Materials
+  (the tiles under the header — the header's count line moved into them —
+  and the closing line at the foot); Programs (its chips stay its tiles; the
+  closing line); the commissioning report (Commission's tiles and closing
+  line), the materials report and the programs report (their closing line,
+  the money in it). Proved by `report-stress.mjs` (the commissioning
+  paper's tiles and closing line) and `inventory.mjs` (each page's tiles and
+  closing line); the checks that read the old header counts read the tiles.
+- **Next:** the lean page, slice 4 — the 6M report and Problems
+  (`docs/LEAN-PAGE.md`); then Stage 3 — the line is the hub (its products,
+  readiness, health).

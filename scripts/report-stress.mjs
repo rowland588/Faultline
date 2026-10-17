@@ -196,7 +196,10 @@ for (const size of SIZES) {
     const { listObservations } = await import('/src/db/observations.ts');
     const { getWorkspace } = await import('/src/db/workspaces.ts');
     const studyContext = { observations: (await Promise.all(lossWs.map(id => listObservations(id)))).flat(), workspaces: (await Promise.all(lossWs.map(id => getWorkspace(id)))).filter(Boolean) };
-    const r = clientReport({ project, projects: [project], assets, tests, items, materials, programs, standards: [], walk: [], studies, studyContext, today });
+    /* the job's lines as Your factory holds them — what a day late costs (the money tile) */
+    const { jobFactoryLines } = await import('/src/lib/lineRecords.ts');
+    const factoryLines = jobFactoryLines(pid, await (await import('/src/db/pace.ts')).allPaceLines(), await (await import('/src/db/workspaces.ts')).listWorkspaces());
+    const r = clientReport({ project, projects: [project], assets, tests, items, materials, programs, standards: [], walk: [], studies, studyContext, factoryLines, today });
     const out = { client: [], card: [], fix: [], day: [], status: [], programs: [], handover: [], labels: [], commissioning: [], commissioningCards: [] };
     const add = (k, ...xs) => { for (const x of xs) { const v = typeof x === 'number' ? String(x) : x; if (v && san(v)) out[k].push([v, san(v), from]); } };
     let from = '';
@@ -207,6 +210,16 @@ for (const size of SIZES) {
     /* THE PACE SAYS WHEN (lib/pace) — under the answer, its sentence and its
        working, wherever the answer is printed. */
     from = 'top, the pace'; add('client', r.onTarget.pace?.text, r.onTarget.pace?.working);
+    /* THE LEAN PAGE (docs/LEAN-PAGE.md): the job's five tiles — what each
+       counts and its words — and the closing line, on the full report and the
+       one-page status alike (lib/stageGateLean) */
+    {
+      const L = await import('/src/lib/stageGateLean.ts');
+      from = 'the tiles';
+      for (const t of L.stageGateTiles(r.figures)) for (const k of ['client', 'status']) add(k, t.k.toUpperCase(), t.v, t.of);
+      /* the closing line on the full report; the one page leads with its verdict and closes on its lists */
+      from = 'the closing line'; const c = L.stageGateClosing(r.onTarget, r.figures).text; add('client', c.length > 90 ? c.slice(0, 90) : c);
+    }
     /* The code back to the live job, under its words (lib/report/codeHeader). */
     from = 'top, the code back to the job'; add('client', 'Scan for it now'); add('status', 'Scan for it now'); add('handover', 'Scan for it now');
     /* THE MACHINE LABELS — every machine's name on its label, whole (lib/machineLabels). */
@@ -328,6 +341,14 @@ for (const size of SIZES) {
       from = 'handover: still open'; add('handover', ...m.open);
     }
     from = 'handover: open on the line'; add('handover', ...ho.line);
+    /* the lean page (lib/stageGatePages): its tiles and closing line, the job's money as the screen passes it */
+    {
+      const P = await import('/src/lib/stageGatePages.ts'), L = await import('/src/lib/stageGateLean.ts');
+      const money = L.moneyTile(r.figures);
+      const hc = { machines: ho.machines.length, handed: ho.machines.filter(m => !!m.on).length, open: ho.machines.reduce((n, m) => n + m.open.length, 0) + ho.line.length, handedOver: ho.handedOver };
+      from = 'handover: the tiles'; for (const t of P.handoverTiles(hc, money)) add('handover', t.k.toUpperCase(), t.v, t.of);
+      from = 'handover: the closing line'; const c = P.handoverClosing(hc, money).text; add('handover', c.length > 90 ? c.slice(0, 90) : c);
+    }
     /* THE COMMISSIONING REPORT AND CARDS (lib/commissioningReport, 14
        October) — every machine with its word and its tests in a line, each
        test with its word and what was seen, why and what we are doing, the
@@ -337,6 +358,9 @@ for (const size of SIZES) {
     const { commissionPrograms } = await import('/src/lib/commissionPrograms.ts');
     const cm = commissioningReport({ client: r, handover: ho, assets, tests, programs: commissionPrograms(programs, [], assets, tests), today });
     from = 'commissioning: top'; add('commissioning', cm.name, 'Scan for it now'); add('commissioningCards', cm.name.toUpperCase());
+    /* the lean page (lib/stageGatePages): Commission's tiles and closing line, on its paper too */
+    from = 'commissioning: the tiles'; for (const t of cm.tiles) add('commissioning', t.k.toUpperCase(), t.v, t.of);
+    from = 'commissioning: the closing line'; add('commissioning', cm.closing.text.length > 90 ? cm.closing.text.slice(0, 90) : cm.closing.text);
     for (const m of cm.machines) {
       from = 'commissioning: a machine'; add('commissioning', m.name, m.verdict.word, m.testsSaid, m.next ? `Next: ${m.next}` : '');
       from = 'commissioning: a test'; for (const t of m.tests) add('commissioning', t.title, t.word, t.passesIf ? `Had to show: ${t.passesIf}` : '', t.said ? `Seen: ${t.said}` : '');

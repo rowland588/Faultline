@@ -29,7 +29,8 @@ import { useJobStudies } from '../ui/StudyLinks';
 import { useStudyContext } from '../ui/ShiftLosses';
 import { nav } from '../state/useRoute';
 import { useLineRecords } from '../lib/useLineRecords';
-import { jobLinePrograms } from '../lib/lineRecords';
+import { jobFactoryLines, jobLinePrograms } from '../lib/lineRecords';
+import { moneyTile } from '../lib/stageGateLean';
 import { listAllSnags, onDataChange } from '../db';
 import { withoutDemo } from '../lib/demo';
 import { openQuickSnag } from '../snag/QuickSnag';
@@ -76,7 +77,7 @@ async function buildPrograms(r: ClientReport): Promise<jsPDF> {
   const reading = setup?.programs;
   /* the job's lines' own programs, after the job's (lib/clientReport) */
   const linePrograms = setup?.linePrograms ?? [];
-  await drawProgramsReport(doc, { name: r.name, ...(r.lead ? { lead: r.lead } : {}), printed: r.printed, linePrograms,
+  await drawProgramsReport(doc, { name: r.name, ...(r.lead ? { lead: r.lead } : {}), printed: r.printed, linePrograms, money: moneyTile(r.figures),
     reading: reading ?? { lines: [], machines: [], total: 0, done: 0, baseline: 0, failed: 0, late: 0, open: 0, notTested: 0, noProgram: 0, doneAll: 0,
       says: linePrograms.length ? 'None of the job’s own yet — its line’s are below' : 'No programs yet' } });
   return doc;
@@ -171,6 +172,8 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
     linePrograms: jobLinePrograms(projectId, rec.all, rec.machines, rec.programs, rec.jobLines),
     assigned: withoutDemo(snags ?? [], rec.all),
     lineName: (id: string) => rec.all.find(w => w.id === id)?.name ?? 'a line',
+    /* what a day late costs — the job's lines' speed, shifts and margin a pack (lib/lineLoss linesDay) */
+    factoryLines: jobFactoryLines(projectId, rec.jobLines, rec.all),
   }), [rec, snags, projectId]);
   const [withStandards, setWithStandards] = useState(true);
   /* ?doc=programs — opened from the Reports sheet or the Programs page. */
@@ -223,7 +226,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
   const link = jobLink(`${location.origin}${location.pathname}`, projectId);
   const build = () => (which === 'status' ? buildStatus({ ...(report as ClientReport), link })
     : which === 'programs' ? buildPrograms(report as ClientReport)
-      : which === 'handover' ? buildHandover({ ...(handover as HandoverReport), link })
+      : which === 'handover' ? buildHandover({ ...(handover as HandoverReport), link, money: moneyTile((report as ClientReport).figures) })
         : which === 'commissioning' ? buildCommissioning({ ...(commissioning as CommissioningReport), link })
           : buildPdf({ ...(report as ClientReport), link }, withStandards));
   const preview = usePdfPreview(previewKey, build);

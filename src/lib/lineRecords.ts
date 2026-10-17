@@ -42,6 +42,12 @@ export function factoryLinesOf(projectId: string, jobLines: readonly JobLine[]):
   return [...new Set(jobLines.filter(l => !l.deletedAt && l.projectId === projectId && l.workspaceId).map(l => l.workspaceId as string))];
 }
 
+/** The job's lines as the factory holds them — their speed, shifts and
+ *  margin a pack price a day late (lib/lineLoss linesDay). */
+export function jobFactoryLines<W extends { id: string }>(projectId: string, jobLines: readonly JobLine[], all: readonly W[]): W[] {
+  return factoryLinesOf(projectId, jobLines).flatMap(id => all.filter(w => w.id === id));
+}
+
 /** The factory line a job is on, when it is on exactly one. */
 export function onlyLineOf(projectId: string, jobLines: readonly JobLine[]): string | undefined {
   const ws = factoryLinesOf(projectId, jobLines);

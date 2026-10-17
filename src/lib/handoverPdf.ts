@@ -10,6 +10,8 @@
  * account, many machines: it carries on over pages rather than cut anything,
  * and every account and sign-off note is printed whole. */
 import { codeHeader } from './report/codeHeader';
+import { leanClosing, leanTiles } from './report/lean';
+import { handoverClosing, handoverTiles } from './stageGatePages';
 import type { jsPDF } from 'jspdf';
 import type { OnTargetTone } from './onTarget';
 import type { HandoverReport, HoTone } from './handoverReport';
@@ -62,6 +64,11 @@ function blocksOf(r: HandoverReport, d: Density): Block[] {
   const out: Block[] = [];
   out.push(...codeHeader({ eyebrow: 'HANDOVER · STAGE GATE', title: r.name, colour: BRAND, ...(r.link ? { link: r.link } : {}),
     line: [r.lead ? `Led by ${r.lead}` : '', `Printed ${r.printed}`].filter(Boolean).join('   ·   ') }, d));
+
+  /* THE TILES (docs/LEAN-PAGE.md; lib/stageGatePages) — machines handed over
+     of the job's, what is still open, and the job's money */
+  const counts = { machines: r.machines.length, handed: r.machines.filter(m => !!m.on).length, open: r.machines.reduce((n, m) => n + m.open.length, 0) + r.line.length, handedOver: r.handedOver };
+  out.push(leanTiles(handoverTiles(counts, r.money)));
 
   /* IS IT HANDED OVER, AND HOW DID IT GO — the verdict and the sentence. */
   const v = r.verdict;
@@ -147,6 +154,8 @@ function blocksOf(r: HandoverReport, d: Density): Block[] {
   }
 
   /* THE LINES TO SIGN. */
+  /* THE CLOSING LINE — the hand-over in one sentence, before it is signed */
+  out.push(leanClosing(handoverClosing(counts, r.money)));
   out.push(label('Signed'));
   out.push(box(() => r.sign.length * 34 + 6, (f, y) => {
     r.sign.forEach((s, i) => {

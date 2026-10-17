@@ -51,7 +51,11 @@ async function device(width) {
   await page.goto(`${BASE}/#/`); await page.waitForTimeout(3000);
   const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
   const W = { page, sd, taps: 0, dead: [] };
-  W.go = async h => { await page.goto(`${BASE}/${h}`); await page.waitForTimeout(1800); };
+  /* a page is read once it has drawn — "Loading…" can outlast a fixed wait under the gate's load */
+  W.go = async h => {
+    await page.goto(`${BASE}/${h}`); await page.waitForTimeout(1800);
+    await page.waitForFunction(() => !/Loading…/.test(document.querySelector('main')?.innerText ?? ''), null, { timeout: 15000 }).catch(() => {});
+  };
   W.tap = async (what, loc) => {
     await loc.scrollIntoViewIfNeeded({ timeout: 4000 }).catch(() => {});
     if (!(await loc.isVisible().catch(() => false))) { W.dead.push(what); console.log(`      dead end: nothing to press for "${what}"`); return false; }
@@ -88,13 +92,17 @@ const journey = (n, W, max, says) => {
   await W.tap('Done', P.getByRole('button', { name: 'Done', exact: true }));
   await W.tap('every gate’s list at once', W.btn(/every gate.s list at once/));
   await P.waitForTimeout(1500);
-  const got = await W.db(async id => {
+  /* the lists are written one after another; under the gate's load the last
+     can land after the wait — read until every gate of both has one, or 10 s */
+  const read = () => W.db(async id => {
     const db = await import('/src/db.ts');
     const ts = (await db.listTests(id)).filter(t => !t.deletedAt && t.projectId === id);
     const as = (await db.listAssets(id)).filter(a => !a.deletedAt && a.projectId === id);
     const at = (a, gate) => ts.filter(t => t.assetId === a.id && (gate === 'commission' ? t.kind === 'test' : t.kind === 'install' && (t.gate ?? 'install') === gate)).length;
     return as.map(a => ({ name: a.name, install: at(a, 'install'), setup: at(a, 'setup'), commission: at(a, 'commission'), handover: at(a, 'handover') }));
   }, jobId);
+  let got = await read();
+  for (let i = 0; i < 10 && !(got.length === 2 && got.every(g => g.install && g.setup && g.commission && g.handover)); i++) { await P.waitForTimeout(1000); got = await read(); }
   ok(got.length === 2 && got.every(g => g.install > 0 && g.setup > 0 && g.commission > 0 && g.handover > 0),
     `1a both machines have every gate's usual list from one tap — ${got.map(g => `${g.name}: ${g.install}/${g.setup}/${g.commission}/${g.handover}`).join('; ')}`);
   journey('1', W, 9, 'a job started, two machines added, every gate given its list');
@@ -159,6 +167,8 @@ const desk = await device(1360);
   ok(await P.locator('.rd').count() > 0, '3c Fixed goes back to the problem — the drawer stays, nothing lost');
   await W.tap('back to the test', D().getByRole('button', { name: /^back to Seal integrity/i }).first());
   await W.tap('Plan the re-test', D().getByRole('button', { name: /Plan the re-test/ }).first());
+  /* the new record is written, then opened — under the gate's load the drawer can open on it a moment before it lands */
+  await D().getByText(/— re-test/).first().waitFor({ timeout: 10000 }).catch(() => {});
   const title = flat(await D().locator('h2, h3, .rd-title').first().innerText().catch(() => ''));
   const newTest = flat(await D().innerText().catch(() => ''));
   ok(/back to Seal integrity/.test(newTest) && /— re-test/.test(newTest) && !/re-test\s*—\s*re-test/.test(newTest), `3d the re-test of a re-test is named "— re-test" once ("${title}")`);

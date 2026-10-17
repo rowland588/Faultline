@@ -17,18 +17,20 @@ import { slipWords, type Standing } from '../lib/standing';
 import type { OnTarget } from '../lib/onTarget';
 import { OnTargetLine } from './OnTarget';
 import { nav } from '../state/useRoute';
+import type { LeanTile } from '../lib/lean';
 
 /** One number and its word. Charcoal, with colour only where colour is a fact. */
-function Tile({ n, label, tone }: { n: string; label: string; tone?: 'warn' | 'bad' }) {
+function Tile({ n, label, tone, of }: { n: string; label: string; tone?: 'warn' | 'bad'; of?: string }) {
   return (
     <span className="vd-tile">
       <span className={'vd-n' + (tone ? ' is-' + tone : '')}>{n}</span>
       <span className="vd-l">{label}</span>
+      {of && <span className="vd-of">{of}</span>}
     </span>
   );
 }
 
-export function Verdict({ st, eyebrow = 'Where the job is', onTarget, brief, report }: {
+export function Verdict({ st, eyebrow = 'Where the job is', onTarget, brief, report, tiles }: {
   st: Standing; eyebrow?: string;
   /** ARE WE ON TARGET? (lib/onTarget) — the band's first line. */
   onTarget?: OnTarget;
@@ -38,6 +40,11 @@ export function Verdict({ st, eyebrow = 'Where the job is', onTarget, brief, rep
   brief?: boolean;
   /** Where the one-page status report is — the page to show anybody. */
   report?: string;
+  /** THE REPORTS' TILES (lib/stageGateLean, docs/LEAN-PAGE.md) — the
+   *  handover, late of what is still to do, critical, fixes open and what
+   *  the slip costs — so the band and both papers count the same five.
+   *  Without them the band keeps its own three (a running line's). */
+  tiles?: LeanTile[];
 }) {
   /* A job with nothing on any list has nothing to be in control OF, and a
      verdict card over an empty project is theatre. The caller shows its own
@@ -63,7 +70,9 @@ export function Verdict({ st, eyebrow = 'Where the job is', onTarget, brief, rep
         {slip && <p className="vd-slip">{slip}</p>}
       </div>}
 
-      <div className="vd-tiles">
+      {tiles ? <div className="vd-tiles is-lean">
+        {tiles.map(t => <Tile key={t.k} n={t.v} label={t.k} of={t.of} tone={t.tone === 'r' ? 'bad' : t.tone === 'a' ? 'warn' : undefined} />)}
+      </div> : <div className="vd-tiles">
         {/* HANDED OVER — the day it went, against the day agreed: "1 day
             early", "3 days late" in red, a grey "0 days late" on the day.
             It said "1 days past handover" in red on a job handed over a day
@@ -85,7 +94,7 @@ export function Verdict({ st, eyebrow = 'Where the job is', onTarget, brief, rep
             late carries colour, so the one number in red is the one to ask about. */}
         <Tile n={String(st.outstanding)} label="outstanding" />
         <Tile n={String(st.late)} label="late" tone={st.late ? 'bad' : undefined} />
-      </div>
+      </div>}
       {/* SHOW ANYBODY — the one-page status report, one tap from the job. */}
       {report && <button type="button" className="btn vd-report" onClick={() => nav(report)}>Status report — 1 page ›</button>}
     </section>
