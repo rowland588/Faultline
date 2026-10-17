@@ -265,7 +265,7 @@ export function FactoryScreen() {
                   {/* a day of it, in margin (lib/lineLoss lineDay) — the factory tile's share */}
                   {(m => m != null && <span className="fac-job fac-day">{fmtGBP(m)} of margin a day</span>)(lineDay(w).margin)}
                   {(() => { const k = kitOf(w); return k.says ? <span className="fac-job fac-kit">{k.says}{k.late ? <> · <b className="is-r">{k.late} program{k.late === 1 ? '' : 's'} late</b></> : null}</span> : null; })()}
-                  {(() => { const pr = prodsOf(w); return pr.rows.length ? <span className="fac-job fac-kit fac-card-prods">{productsSaid(pr).map((x, i) => (x.tone ? <b key={i} className={'is-' + x.tone}>{x.text}</b> : <span key={i}>{x.text}</span>))}</span> : null; })()}
+                  {(() => { const pr = prodsOf(w); return pr.rows.length ? <span className="fac-job fac-card-prods">{productsSaid(pr).map((x, i) => (x.tone ? <b key={i} className={'is-' + x.tone}>{x.text}</b> : <span key={i}>{x.text}</span>))}</span> : null; })()}
                 </span>
                 <span className="fac-acts">
                   <button type="button" className="btn btn-sm" onClick={() => nav(`/lines/${w.id}`)}>Open ›</button>

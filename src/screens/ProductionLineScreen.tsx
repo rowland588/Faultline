@@ -253,9 +253,7 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
           {/* where the line is, in words — only the abnormal carries colour;
               the words the control room's card for it says (lib/lineWork) */}
           <p className="pl-says">
-            {lineProblemsSaid(probs).map((x, i) => (x.red ? <b key={i} className="is-r">{x.text}</b> : x.text))}
-            {/* and its programs due — the second half of "where it is" (§3, 1) */}
-            {kit && kit.programs.length > kit.proved ? <> · {kit.programs.length - kit.proved} program{kit.programs.length - kit.proved === 1 ? '' : 's'} to prove{kit.late ? <> — <b className="is-r">{kit.late} late</b></> : null}</> : null}.
+            {lineProblemsSaid(probs).map((x, i) => (x.red ? <b key={i} className="is-r">{x.text}</b> : x.text))}{rows.length === 0 ? '.' : ''}
           </p>
         </div>
         <div className="pace-head-actions">

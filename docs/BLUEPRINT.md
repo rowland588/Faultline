@@ -578,8 +578,9 @@ placed), its capacity known? (Line capacity worked out; short of its target
 red), its changeover timed? (SMED) — gaps amber, failures red, always the
 word. Where it shows: the line's page — the five tiles (problems open,
 programs proved, products ready, stops timed, a day of the line in £ —
-`lib/lineLean`, the one cost model's `lineDay`), the problems and programs
-due said in the header, then machines, **Products** (a row a product, each
+`lib/lineLean`, the one cost model's `lineDay` — the programs due are its
+Programs proved tile, the header saying the problems as the card does), then
+machines, **Products** (a row a product, each
 answer a tap to the tool that gives it, on the line), programs, tools, jobs,
 the line's facts and the closing line; the control room's card for the line
 ("3 products · 1 ready · 1 with gaps · 1 failing", amber and red), Your

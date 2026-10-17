@@ -7,8 +7,8 @@
  *   1  the line's page: the five tiles as lib/lineLean says them from the
  *      line's own records; its products, a row a product with the four
  *      answers lib/lineProducts gives (program proved, line standard,
- *      capacity, changeover timed), each a word in its colour; the header
- *      saying its programs to prove; the closing line
+ *      capacity, changeover timed), each a word in its colour; the closing
+ *      line
  *   2  a program planned for a new product, its test day gone: the product
  *      comes on its row with "test was …" in red, the Products ready tile
  *      and the control room's card for the line count it failing; proved,
@@ -70,7 +70,6 @@ ok(JSON.stringify(got) === JSON.stringify(want.rows), `every product drawn with 
 ok(await page.locator('.pl-tiles .ln-tile').count() === 5, 'five tiles — problems, programs, products, stops, a day of the line');
 ok((await tile('Products ready')).includes(`${want.ready}`) && (await tile('Products ready')).includes(`of ${want.rows.length}`), `Products ready says ${want.ready} of ${want.rows.length} — "${await tile('Products ready')}"`);
 ok(flat(await page.locator('.pl-sec[aria-label="Products on this line"] .pl-sec-aside').innerText()) === want.said, `the products said: "${want.said}"`);
-if (want.toProve) ok(flat(await page.locator('.pl-says').first().innerText()).includes(`${want.toProve} program${want.toProve === 1 ? '' : 's'} to prove`), `the header says ${want.toProve} programs to prove`);
 ok(await page.locator('.pl > .ln-close').count() === 1, 'the closing line');
 const order = await page.evaluate(() => [...document.querySelectorAll('.pl > .pl-sec')].map(s => s.getAttribute('aria-label')));
 ok(order.indexOf('Machines on this line') < order.indexOf('Products on this line') && order.indexOf('Products on this line') < order.indexOf('Programs on this line'), `the page in §3's order — machines, products, programs (${order.join(' · ')})`);
