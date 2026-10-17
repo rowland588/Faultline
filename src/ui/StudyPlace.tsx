@@ -58,11 +58,19 @@ export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
     if (printing) return;
     setPrinting(true);
     try {
-      const [{ saveStudiesPdf }, { listAllStandards, listWorkspaces, listObservations }, { studyTitle }] = await Promise.all([
+      const [{ saveStudiesPdf }, { listAllStandards, listWorkspaces, listObservations, listStudiesForLine, listPaceTodos, listTests }, { studyTitle }] = await Promise.all([
         import('../lib/studiesPdf'), import('../db'), import('../lib/studyLinks')]);
       const [standards, workspaces, observations] = await Promise.all([listAllStandards(), listWorkspaces(), s.workspaceId ? listObservations(s.workspaceId) : Promise.resolve([])]);
+      /* a loss count prints as the lean page: its line's other counts and what was raised from it */
+      const lean = s.tool === 'losses';
+      const [history, actions, fixes] = await Promise.all([
+        lean && s.workspaceId ? listStudiesForLine(s.workspaceId) : Promise.resolve([]),
+        lean && s.projectId ? listPaceTodos(s.projectId) : Promise.resolve([]),
+        lean && s.projectId ? listTests(s.projectId) : Promise.resolve([]),
+      ]);
       await saveStudiesPdf({ title: studyTitle(s), printed: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
-        items: [{ s, where }], standards, ctx: { observations, workspaces } }, studyTitle(s));
+        items: [{ s, where }], standards, ctx: { observations, workspaces },
+        ...(lean ? { history, records: { actions, fixes }, ...(line ? { lineName: line.name } : {}) } : {}) }, studyTitle(s));
     } catch (e) {
       console.error('study pdf failed', e);
       window.alert('Sorry — the PDF could not be made. Please try again.');
@@ -200,7 +208,8 @@ export function useBetter(s: ToolStudy, me?: string, ctx?: StudyContext) {
     await patchStudy(s.id, cur => ({ uses: [...cur.uses, linkOf('fix', fix.id, 'evidence', at, me, uid(), step)] }));
     nav(recordHref(projectId, { kind: 'fix', ref: fix.id }));
   };
-  return { board, targets, byRef, better, assets: tt.assets };
+  /* the records themselves — for the action plan's owner and day (lib/ie/lossLean raisedFrom) */
+  return { board, targets, byRef, better, assets: tt.assets, steps: ax.steps, tests: tt.tests };
 }
 
 export function UsedFor({ s, can, me }: { s: ToolStudy; can: Can; me?: string }) {

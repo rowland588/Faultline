@@ -215,7 +215,7 @@ node scripts/acceptance/sixm-evidence.mjs  # 2h: a study on a running line — a
 node scripts/acceptance/value-stream.mjs  # B: a line's value stream — who and where, walked, a step made better, walked again, before → after, the paper, the fishbone
 node scripts/acceptance/changeover.mjs  # F: SMED — a quick session on its own; Lap with who, Shingo's stages on the grid, the plate speed, what the changeovers cost, set as the standard, timed again, before → after, the paper, the fishbone
 node scripts/acceptance/work-sampling.mjs  # H1: what people are doing at random moments — the moment asks, one tap each, the shares with their margins, the fix, the 6M line's card, the fishbone, the 6M report
-node scripts/acceptance/shift-losses.mjs  # E: a shift's losses — counted on the phone at the bottleneck's ideal speed, the shift less its breaks, the waterfall, slow running told from short stops, the pounds in two parts, a bar made better, the next shift counted, before → after, the fishbone, both papers
+node scripts/acceptance/shift-losses.mjs  # E: a shift's losses — counted on the phone at the bottleneck's ideal speed, the shift less its breaks, the waterfall, slow running told from short stops, the pounds in two parts, a bar made better, the next shift counted, before → after, the fishbone, both papers; the lean page — the band, the tiles since the count before, the trend, the action plan, the closing line, and its one page of paper
 node scripts/acceptance/line-capacity.mjs  # Line capacity: the V-curve, the capacity sheet, the margin, a person's standard time, the bottleneck walked; a person as the floor says them (what reaches them, keeping up, people needed); each tool its own products; the phone; what a pack costs in labour and one more person at the bottleneck; renamed and deleted where it sits, its map kept
 node scripts/acceptance/line-standard.mjs  # the line standard's board: the page scrolls off it, a tap places, a drag moves, people's colours, a tall board, full screen; the bottleneck said (a person, an area faded), names short with the words on the right — screen and card; a tall board's card a frame of its own shape; a crowded line on paper, wide and tall — no name crossing another or covering a person, everyone named, the note and kit below them, an area's tag clear of its words
 node scripts/acceptance/programs.mjs  # a program's status with commentary: the five statuses (not tested and no program among them), commentary on its own, Needs you, the paper
@@ -324,7 +324,7 @@ timed, the pounds in two parts (idle labour · lost contribution), the line's
 settings carrying each shift's breaks, a countermeasure raised from a bar in
 its own figures, the next shift counted as its proof, before → after on it,
 the line's card, the control room and the fishbone carrying the count, and
-the waterfall as a table on the 6M report and the stage-gate client report. `snags.mjs` is Problems, the register (Rowland, 12 October: "Every single
+the waterfall as a table on the 6M report and the stage-gate client report; then the count as the lean page (4b, `docs/LEAN-PAGE.md`) — the five tiles as `lib/ie/lossLean` reads them, each since the count before ("1,100 more than 16 Oct"), the band and its verdict, the trend over the line's counts, the countermeasure in the action plan with its owner and day, the closing line, and the same on the count's own paper. `snags.mjs` is Problems, the register (Rowland, 12 October: "Every single
 problem allows me to put in what the problem is ... a journey of improvement
 ... assign the problems to where they're going to be. I want a fresh start.
 Don't erase anything."; and "everything should still stay in the control
@@ -793,6 +793,22 @@ what by when?
 5. **One lane, merged markers, tap for detail.** Busy information is merged
    (days into weeks) rather than piled up. The plan never grows a row per item
    of evidence.
+
+## The lean page — how a report and a tool's page are laid out
+
+Rowland, 17 October, with a standard and a lean capacity report side by side:
+"move on to all reports lean methodology applied ... the lean report is
+actually how we would want the app's UI." So every report, and every tool's
+page, is the lean page (`docs/LEAN-PAGE.md`): the band (what, where, when,
+in the house navy), the tiles (a few counted figures, each *of* what it
+should be and *since the record before*, never OEE), the trend, the tool's
+own picture, the top causes, what it means, the action plan (action · owner
+· due) and the closing line — the three questions drawn as a board is
+drawn. One model (`lib/lean`), one builder a tool (`lib/ie/lossLean` for the
+loss count), drawn on screen by `ui/Lean` and on paper by `lib/report/lean`,
+so the two never part. What is typed stays on the page under the eight.
+Built slice by slice (the doc's table): the loss count first; Line capacity,
+the line balance and All together next.
 
 ## Simplicity — lean, applied to the screen
 

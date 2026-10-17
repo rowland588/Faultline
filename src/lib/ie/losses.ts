@@ -681,7 +681,9 @@ export function lossLine(f: LossFigures, c: LossCount, now = Date.now()): { text
 
 /** One row of the waterfall as paper says it (lib/report/lossTable): every
  *  figure already in words, so the PDF only draws. */
-export interface LossRow { cause: string; stops: string; minutes: string; labour: string; contribution: string; kind: LossBar['kind']; abnormal?: boolean }
+export interface LossRow { cause: string; stops: string; minutes: string; labour: string; contribution: string; kind: LossBar['kind']; abnormal?: boolean;
+  /** Its share of the minutes lost — "38%" — the lean page's top causes (docs/LEAN-PAGE.md). */
+  share: string }
 
 const restCause = (b: LossBar, f: LossFigures): string => {
   if (b.kind === 'slow') return `Slow running — timed at ${rateWords(f.running?.perMin ?? 0)} against the ${f.ideal} of ${rateWords(f.rate ?? 0)}`;
@@ -704,6 +706,7 @@ export function lossRows(f: LossFigures, c?: LossCount, where?: (b: LossBar) => 
   const rows: LossRow[] = f.bars.map(b => ({
     cause: `${b.kind === 'cause' && b.asset ? `${b.label} — ${b.asset}` : b.kind === 'rejects' ? `Rejects (${packs(b.packs ?? 0)} packs)` : isRest(b) ? restCause(b, f) : b.label}${(w => (w === 'on' ? ' · on the constraint' : w === 'off' ? ' · off the constraint' : ''))(where?.(b))}`,
     stops: b.stops !== undefined ? String(b.stops) : '—', minutes: minWords(b.min), labour: money(b.labour), contribution: money(b.contribution), kind: b.kind,
+    share: (f.lostMin ?? 0) > 0 ? `${Math.round((b.min / (f.lostMin ?? 1)) * 100)}%` : '',
     ...(b.abnormal ? { abnormal: true } : {}),
   }));
   const planned = c ? `${whole(f.plannedMin ?? 0)} planned minutes (${plannedOf(c).words.replace(/ = \d+ planned$/, '')})` : `${whole(f.plannedMin ?? 0)} planned minutes`;

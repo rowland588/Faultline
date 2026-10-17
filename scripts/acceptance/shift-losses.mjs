@@ -249,6 +249,51 @@ let tp = await truth(proofId);
   ok(tp?.s.facts.losses?.made === 42_000 && (await words('.ie-says p.ie-say')) === tp.said.text, `4 counted: "${tp?.said.text}"`);
 }
 
+/* ---- 4b · the lean page (docs/LEAN-PAGE.md) — the band, the tiles with
+   since last time, the trend, the action plan and the closing line, as
+   lib/ie/lossLean reads them; and the same on paper ---- */
+const lean = id => page.evaluate(async id => {
+  const db = await import('/src/db.ts'); const L = await import('/src/lib/studyLinks.ts');
+  const X = await import('/src/lib/ie/losses.ts'); const N = await import('/src/lib/ie/lossLean.ts');
+  const s = await db.getStudy(id);
+  const w = await db.getWorkspace(s.workspaceId);
+  const ctx = { observations: await db.listObservations(s.workspaceId), workspaces: [w] };
+  const f = L.lossFiguresOf(s, ctx);
+  const said = X.lossSays(f, s.facts.losses, { ...(s.product ? { product: s.product } : {}) });
+  const history = (await db.listStudiesForLine(s.workspaceId)).filter(x => x.tool === 'losses' && !x.deletedAt).map(x => ({ s: x, f: L.lossFiguresOf(x, ctx) }));
+  const actions = N.raisedFrom(s, await db.listPaceTodos(s.projectId), await db.listTests(s.projectId), N.lossPart(f));
+  return N.lossLean({ s, f, said, line: w.name, history, actions });
+}, id);
+{
+  const m = await lean(proofId);
+  const vs = await page.locator('.ln-tile .ln-v').allInnerTexts(), ofs = await page.locator('.ln-tile .ln-of').allInnerTexts();
+  const chs = (await page.locator('.ln-tile .ln-ch').allInnerTexts()).map(x => x.replace(/^[▲▼=]\s*/, '').trim());
+  const wantCh = m.tiles.filter(x => x.change).map(x => x.change.text);
+  ok(vs.join('|') === m.tiles.map(x => x.v).join('|') && ofs.join('|') === m.tiles.filter(x => x.of).map(x => x.of).join('|') && chs.join('|') === wantCh.join('|')
+    && m.tiles[0].k === 'Good packs' && m.tiles[0].v === '42,000' && /more than|fewer than|the same as/.test(m.tiles[0].change?.text ?? '') && m.tiles.some(x => x.k === 'What it cost'),
+    `4b the tiles, as the module reads them — no OEE: ${m.tiles.map(x => `${x.k} ${x.v}${x.change ? ` (${x.change.text})` : ''}`).join(' · ')}`);
+  ok((await words('.ln-band .ln-verdict')) === m.verdict.text && (await words('.ln-band .ln-sub')) === m.sub && (await page.locator('.ln-facts dd').allInnerTexts()).join('|') === m.facts.map(x => x[1]).join('|'),
+    `4b the band: "${m.title}" · ${m.sub} · ${m.facts.map(x => x.join(' ')).join(' · ')} — "${m.verdict.text}"`);
+  ok(!!m.trend && (await page.locator('.ln-trend .ln-bar').count()) === m.trend.points.length && (await page.locator('.ln-trend .ln-bar.is-now').count()) === 1 && m.trend.points.length >= 2,
+    `4b the trend: the line's ${m.trend?.points.length} counts, good packs against expected, this one darker`);
+  ok((await words('.ln-close > span:last-child')) === m.closing.text, `4b the closing line: "${m.closing.text}"`);
+}
+await go(`#/losses/${countId}`);
+{
+  const m = await lean(countId);
+  const row = await page.evaluate(async ([pid, id]) => (await (await import('/src/db.ts')).listPaceTodos(pid)).find(x => x.id === id), [sd.pacedProjectId, actionId]);
+  const plan = (await words('.ln-plan')) ?? '';
+  ok(m.actions.length === 1 && m.actions[0].what === row.what && m.actions[0].from === 'Breakdown on the Bagger' && plan.includes(row.what) && plan.includes('from Breakdown on the Bagger')
+    && plan.includes(m.actions[0].who ?? 'nobody yet') && (await page.locator('.ln-plan button.ln-row').count()) === 1,
+    `4b the action plan: the countermeasure raised from the bar — "${row.what}" · ${m.actions[0].who ?? 'nobody yet'} · ${m.actions[0].due ?? 'no day'}`);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'This study on paper (PDF)' }).click()]);
+  const pdf = join(OUT, 'count.pdf'); await dl.saveAs(pdf);
+  const txt = san(pdfText(pdf));
+  const has = x => txt.includes(san(x));
+  const missing = [m.title, m.verdict.text, ...m.tiles.map(x => x.v), 'Top causes', 'What it means', 'Action plan', row.what.slice(0, 40), m.closing.text.slice(0, 50)].filter(x => !has(x));
+  ok(!missing.length, `4b on paper, the lean page: the band, the tiles, the top causes, what it means, the action plan and the closing line${missing.length ? ` — missing: ${missing.join(' | ')}` : ''}`);
+}
+
 /* ---- 5 · before → after on the countermeasure ---- */
 const ba = await page.evaluate(async ([pid, aid]) => {
   const db = await import('/src/db.ts'); const L = await import('/src/lib/studyLinks.ts');

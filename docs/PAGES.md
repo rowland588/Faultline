@@ -69,7 +69,7 @@ So:
 | Line standard | the board · who does what |
 | Line standard — long notes | the board · the bottleneck said first · words up a tall shape |
 | Value stream · SMED | the grid (and SMED's sentence) |
-| Loss count | the waterfall drawn · what it says |
+| Loss count | the waterfall drawn · what it says · the band, the five tiles, the top causes, the action plan, the closing line (17 October: the lean page, docs/LEAN-PAGE.md — the tiles took the strip's place, every figure it held among them) |
 | Work sampling | the round |
 | Capability study | the readings drawn |
 

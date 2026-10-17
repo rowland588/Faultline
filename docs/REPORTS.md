@@ -145,6 +145,16 @@ still done by eye, on the PDFs the stress run leaves behind.
 It runs in the gate beside `smoke.mjs`. A report change is not done until
 all three sizes and the random jobs pass.
 
+## The lean page (17 October)
+
+What a report says, and in what order, is `docs/LEAN-PAGE.md`: the band,
+the tiles with since last time, the trend, the tool's picture, the top
+causes, what it means, the action plan and the closing line — drawn by the
+blocks in `src/lib/report/lean.ts` (`leanBand`, `leanTiles`, `leanTrend`,
+`leanInsights`, `leanActions`, `leanClosing`, and `pair`/`stack` to set two
+panels side by side when a page holds them). This engine still decides
+where; the lean page decides what comes first.
+
 ## Effect on the screen and on paper (house rule 2)
 
 The screen does not change: the reports are built from the same records and
