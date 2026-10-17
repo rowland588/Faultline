@@ -1054,7 +1054,22 @@ is still wired.
   foot, still one page). Proved by `report-stress.mjs` (the band's tile
   words, the money and the closing line on the paper, at the ordinary
   seed, the busiest board and random jobs) and `inventory.mjs`.
-- **Next:** the lean page, slice 5b — the factory and the day; and money
-  for a 6M countermeasure and a problem left open (§6)
+- **The lean page, slice 5b — Your factory.** No new record: the
+  factory's reading (lib/factoryReport) now carries each line's day in
+  margin (lib/lineLoss lineDay — its speed × its shifts less their breaks
+  × its margin a pack, or what is still unsaid), and `lib/factoryLean`
+  says the tiles — the lines (and how many have a job), the problems open
+  (on how many lines), the late, the critical when there is one, and **a
+  day of the factory in margin** — and the closing line (what is open,
+  the line with the most of it, what a day is worth). Shows on: Your
+  factory's page (the tiles under its header, each priced line's day on
+  its row, the closing line at the foot) and its paper (the tiles under
+  its sentence — the open-problems line they replace — each priced line's
+  day on its row, the closing line). Proved by `factory.mjs` (21d: the
+  page's tiles and closing line word for word on the paper) and
+  `inventory.mjs`.
+- **Next:** the lean page, slice 5c — the day (its paper is hand-laid and
+  goes onto the engine first); and money for a 6M countermeasure and a
+  problem left open (§6)
   (`docs/LEAN-PAGE.md`); then Stage 3 — the line is the hub (its products,
   readiness, health).

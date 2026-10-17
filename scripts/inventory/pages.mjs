@@ -26,7 +26,10 @@ export const PAGES = (sd, cap) => [
     { what: 'what the slips cost', sel: '.jb-stat.is-money' },
     { what: 'the closing line', sel: '.jb > .ln-close' },
   ] },
-  { name: 'Your factory', path: '#/factory', must: [{ what: 'the lines in floor order', sel: '.fac-lines' }] },
+  { name: 'Your factory', path: '#/factory', must: [{ what: 'the lines in floor order', sel: '.fac-lines' },
+    /* the lean page (17 October, slice 5b; lib/factoryLean): the tiles — lines, problems open, late, a day of the factory in margin — and the closing line */
+    { what: 'the tiles, a day of the factory among them', sel: '.fac .sg-tiles .ln-tile', n: 4 },
+    { what: 'the closing line', sel: '.fac .ln-close' }] },
   { name: 'A line — its own page', path: `#/lines/${sd.line7WsId}`, must: [
     { what: 'the line, machine by machine — the tour', sel: '.tour-says' },
     { what: 'a card a machine', sel: '.tour-card', n: 2 },

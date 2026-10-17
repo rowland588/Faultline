@@ -38,6 +38,11 @@ import { fmtRelative } from '../lib/format';
 import { useProjects } from '../lib/useProjects';
 import type { Snag } from '../snag/types';
 import { todayISO } from '../lib/weeks';
+import { factoryReading } from '../lib/factoryReport';
+import { factoryClosing, factoryTiles } from '../lib/factoryLean';
+import { lineDay } from '../lib/lineLoss';
+import { fmtGBP } from '../lib/cost';
+import { LeanClosing, LeanTiles } from '../ui/Lean';
 
 /** A box that keeps what is typed and saves it when the person is done —
  *  Enter or leaving the box; Escape puts the last saved words back. Never a
@@ -172,6 +177,10 @@ export function FactoryScreen() {
   };
 
   if (lines === null) return <div className="wrap fac"><p className="sub">Opening…</p></div>;
+  /* THE LEAN PAGE (lib/factoryLean): the factory's own reading, as its paper
+     reads it — the lines, what is open and late, what a day is worth. */
+  const jobNames = new Map(projects.map(p => [p.id, p.name]));
+  const reading = factoryReading(lines, snags, new Map([...on.entries()].map(([id, ids]) => [id, ids.map(x => jobNames.get(x)).filter((n): n is string => !!n)])), '');
 
   return (
     <div className="wrap fac">
@@ -189,6 +198,7 @@ export function FactoryScreen() {
           <button type="button" className="btn" disabled={!lines.length || printing} onClick={() => void printFactory()}><Icon name="document" size="1.05em" />Factory report</button>
         </div>
       </header>
+      {lines.length > 0 && <LeanTiles tiles={factoryTiles(reading)} className="sg-tiles" />}
       <p className="sub fac-why">
         Your production lines, in the order they stand on the floor. Every job, problem and tool hangs off one of them
         — open a line to take a problem on it or use a tool on it, no job needed.
@@ -248,6 +258,8 @@ export function FactoryScreen() {
                   {c?.open ? <>{c.open} problem{c.open === 1 ? '' : 's'} open{c.late ? <> · <b className="is-r">{c.late} late</b></> : null}</> : <span className="is-n">No problems open</span>}
                   {job && <span className="fac-job">on {job}</span>}
                   {lineFacts(w).short && <span className="fac-job">{lineFacts(w).short}</span>}
+                  {/* a day of it, in margin (lib/lineLoss lineDay) — the factory tile's share */}
+                  {(m => m != null && <span className="fac-job fac-day">{fmtGBP(m)} of margin a day</span>)(lineDay(w).margin)}
                   {(() => { const k = kitOf(w); return k.says ? <span className="fac-job fac-kit">{k.says}{k.late ? <> · <b className="is-r">{k.late} program{k.late === 1 ? '' : 's'} late</b></> : null}</span> : null; })()}
                 </span>
                 <span className="fac-acts">
@@ -269,6 +281,8 @@ export function FactoryScreen() {
           })}
         </ol>
       )}
+      {/* THE CLOSING LINE — what is open and where, and what a day is worth */}
+      {lines.length > 0 && <LeanClosing closing={factoryClosing(reading)} />}
 
       {merging && (
         <div className="fac-merge" role="group" aria-label="Merge a line">

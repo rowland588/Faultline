@@ -12,6 +12,7 @@ import { factorySays, lineFacts } from './lines';
 import { snagRow } from './snagsReport';
 
 import { isOpenOnLine } from './lineWork';
+import { lineDay } from './lineLoss';
 export interface FactoryRow {
   /** Its place on the floor, from 1. */
   n: number;
@@ -24,6 +25,11 @@ export interface FactoryRow {
   jobs: string[];
   /** Its shifts and crew, in a few words (lib/lines lineFacts) — absent when not said. */
   facts?: string;
+  /** A DAY OF IT, IN MARGIN (lib/lineLoss lineDay): its speed × its shifts
+   *  less their breaks × its margin a pack — absent while any is unsaid,
+   *  and `missing` names which. The lean page's money (lib/factoryLean). */
+  margin?: number;
+  missing?: string[];
 }
 
 export interface FactoryReading {
@@ -45,8 +51,10 @@ export function factoryReading(lines: readonly Workspace[], snags: readonly Snag
   kit: ReadonlyMap<string, string> = new Map()): FactoryReading {
   const rows: FactoryRow[] = lines.map((w, i) => {
     const mine = snags.filter(s => isOpenOnLine(s, w.id)).map(s => snagRow(s, w.name, undefined, undefined, ref));
+    const day = lineDay(w);
     return {
       n: i + 1, name: w.name, type: w.lineType?.trim() || undefined,
+      ...(day.margin != null ? { margin: day.margin } : { missing: day.missing }),
       open: mine.length, late: mine.filter(r => r.late).length, critical: mine.filter(r => r.priority === 'critical').length,
       jobs: jobsOn.get(w.id) ?? [],
       ...([lineFacts(w).short, kit.get(w.id)].filter(Boolean).length ? { facts: [lineFacts(w).short, kit.get(w.id)].filter(Boolean).join(' · ') } : {}),
