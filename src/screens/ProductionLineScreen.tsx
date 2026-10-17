@@ -28,6 +28,10 @@ import { openQuickSnag } from '../snag/QuickSnag';
 import { PRIORITY_WORD, type Priority, type SnagRow, type SnagTone } from '../lib/snagsReport';
 import { headcount, inCapacityTool, inMapTool, thingsOf, type Standard } from '../lib/standard';
 import { lineProblems, lineProblemsSaid } from '../lib/lineWork';
+import { lineProducts, productsSaid, READY_ASKS, READY_KEYS, type ReadyKey } from '../lib/lineProducts';
+import { lineClosing, lineTiles, type LineReading } from '../lib/lineLean';
+import { lineDay } from '../lib/lineLoss';
+import { LeanClosing, LeanTiles } from '../ui/Lean';
 import { balanceSays } from './LineToolsScreen';
 import { studyLine } from './StudiesScreen';
 import { currentLosses } from '../lib/studyLinks';
@@ -65,6 +69,9 @@ const TOOLS: { key: string; label: string; to: string; study?: StudyTool; standa
   { key: 'sampling', label: 'Work sampling', to: '/sampling', study: 'sampling', what: 'what people are doing, at random moments' },
   { key: 'losses', label: 'Loss count', to: '/losses', study: 'losses', what: 'a shift’s losses, in minutes and pounds' },
 ];
+
+/** Where each of a product's four answers is given, on this line. */
+const READY_TO: Record<ReadyKey, string> = { program: '/programs', standard: '/standards', capacity: '/balances', changeover: '/smed' };
 
 export function ProductionLineScreen({ wsId }: { wsId: string }) {
   const [line, setLine] = useState<Workspace | null | undefined>(undefined);
@@ -132,22 +139,31 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
   /* ITS STOPS, the last four weeks — the count, the minutes (overlaps on one
      machine counted once, as every Pareto counts them) and the machine that
      stopped the most; the words the Stops timed row says. */
-  const stops = useMemo(() => {
+  const stops = useMemo((): { n: number; minutes: number; worst?: string; says?: string; tone: 'n' } => {
     const now = Date.now();
     const recent = between(obs, now - 4 * WEEK, now).filter(o => o.durationMs > 0 || o.timing === 'instant');
     const n = recent.length;
-    if (!n) return { n: 0, tone: 'n' as const };
+    if (!n) return { n: 0, minutes: 0, tone: 'n' as const };
     const byMachine = new Map<string, Observation[]>();
     for (const o of recent) byMachine.set(o.asset, [...(byMachine.get(o.asset) ?? []), o]);
     const worst = [...byMachine.entries()].map(([asset, os]) => ({ asset, min: stopMinutes(os) })).sort((a, b) => b.min - a.min)[0];
     const mins = Math.round(stopMinutes(recent));
-    return { n, tone: 'n' as const, says: `${mins} min lost in ${n} stop${n === 1 ? '' : 's'}${worst && worst.min >= 1 ? ` — the ${worst.asset.trim() || 'whole line'} most, ${Math.round(worst.min)} min` : ''}` };
+    return { n, minutes: mins, ...(worst && worst.min >= 1 ? { worst: worst.asset.trim() || 'whole line' } : {}), tone: 'n' as const, says: `${mins} min lost in ${n} stop${n === 1 ? '' : 's'}${worst && worst.min >= 1 ? ` — the ${worst.asset.trim() || 'whole line'} most, ${Math.round(worst.min)} min` : ''}` };
   }, [obs]);
   /* ITS MACHINES AND PROGRAMS (docs/BLUEPRINT.md, Stage 2) — the line's own
      and those a job brought in, read as the control room's Programs reads them. */
   const rec = useLineRecords();
   const today = todayISO();
   const kit = useMemo(() => (line ? lineKit(line, rec.machines, rec.programs, rec.jobLines, today) : undefined), [line, rec, today]);
+  /* ITS PRODUCTS, READY OR NOT (BLUEPRINT Stage 3) — a row a product, the
+     four answers the floor asks before it runs one (lib/lineProducts) */
+  const products = useMemo(() => lineProducts({ programs: kit?.programs ?? [], standards, studies, today }), [kit, standards, studies, today]);
+  /* THE LINE AS A LEAN PAGE (lib/lineLean) — the tiles and the closing line
+     its page and its report both say */
+  const reading: LineReading | undefined = line ? {
+    name: line.name, problems: probs, programs: { n: kit?.programs.length ?? 0, proved: kit?.proved ?? 0, late: kit?.late ?? 0 },
+    products, stops: { n: stops.n, minutes: stops.minutes, ...(stops.worst ? { worst: stops.worst } : {}) }, day: lineDay(line), jobs: jobIds.length,
+  } : undefined;
   const [mName, setMName] = useState('');
   const [mOem, setMOem] = useState('');
 
@@ -174,6 +190,41 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
       else await saveProblemCardsFor({ name: named, lineRows: mine.map(snag => ({ snag, assetName: snag.targetAsset?.trim() || 'No machine named' })), jobRows: [] });
     } catch (e) {
       console.error('line pdf failed', e);
+      window.alert('Sorry — the PDF could not be made. Please try again.');
+    } finally { setBusy(false); }
+  };
+  /* THE LINE REPORT, ONE PAGE (BLUEPRINT §3, Stage 3) — the lean page on
+     paper: the tiles and closing line this page says, its products grid,
+     what is open, its machines and programs to prove, what its tools found
+     and its jobs' verdicts (lib/lineReportPdf). */
+  const printLine = async () => {
+    if (busy || !reading || !kit) return;
+    setBusy(true);
+    try {
+      const { loadPdfLib, deliverPdf, titlePdf } = await import('../lib/savePdf');
+      const { drawLineReport } = await import('../lib/lineReportPdf');
+      const { pdfFileName } = await import('../lib/fileName');
+      const { jsPDF } = await loadPdfLib();
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+      titlePdf(doc, `${named} — the line report`);
+      const late = (p: Program) => standingOf(p, today) === 'overdue';
+      await drawLineReport(doc, {
+        name: line.name, ...(line.lineType ? { type: line.lineType } : {}),
+        printed: new Date(`${today}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
+        reading,
+        problems: rows.map(r => ({ what: `${PRIORITY_WORD[r.priority]} · ${r.what}`, meta: [r.machine ?? '', r.forJob ? `for ${r.forJob}` : '', r.owner ?? 'nobody yet'].filter(Boolean).join(' · '),
+          right: r.late && r.due ? r.due : r.word, tone: r.late || r.priority === 'critical' ? 'r' : 'n' })),
+        machines: kit.flow,
+        programs: kit.programs.filter(p => !isProved(p)).sort((a, b) => Number(late(b)) - Number(late(a)) || (a.testOn ?? '9').localeCompare(b.testOn ?? '9')).map(p => ({
+          what: p.what, meta: [kit.machines.find(x => x.record?.id === p.assetId)?.name ?? 'the line itself', p.runs ? `runs ${p.runs}` : '', p.projectId ? `on ${projects.find(j => j.id === p.projectId)?.name ?? 'a job'}` : ''].filter(Boolean).join(' · '),
+          right: p.testOn ? `${late(p) ? 'test was ' : 'test '}${niceDay(p.testOn)}` : 'no test day', tone: late(p) ? 'r' : p.testOn ? 'w' : 'a' })),
+        tools: [...(stops.says ? [{ label: 'Stops timed', says: stops.says }] : []),
+          ...TOOLS.map(t => ({ t, said: toolSays(t) })).filter(x => x.said.says).map(x => ({ label: x.t.label, says: x.said.says as string, ...(x.said.tone ? { tone: x.said.tone } : {}) }))],
+        jobs: jobs.map(p => { const v = jobViews?.get(p.id); return { name: p.name, method: methodOf(p).label, ...(v?.onTarget ? { verdict: v.onTarget.word, tone: v.onTarget.tone } : {}) }; }),
+      });
+      await deliverPdf(doc, pdfFileName(line.name, 'line report', today));
+    } catch (e) {
+      console.error('line report failed', e);
       window.alert('Sorry — the PDF could not be made. Please try again.');
     } finally { setBusy(false); }
   };
@@ -213,7 +264,8 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
               button; the header's copy hides there (F5). */}
           <button type="button" className="btn btn-primary pl-time" onClick={() => nav(`/w/${wsId}/capture`)}><Icon name="time" size="1.05em" />Time a stop</button>
           <button type="button" className="btn btn-primary pl-problem" onClick={() => openQuickSnag()}><Icon name="camera" size="1.05em" />Problem</button>
-          <button type="button" className="btn" disabled={busy || !rows.length} onClick={() => void pdf('report')}><Icon name="document" size="1.05em" />Problems report</button>
+          <button type="button" className="btn" disabled={busy || !reading} onClick={() => void printLine()}><Icon name="document" size="1.05em" />Line report</button>
+          <button type="button" className="btn" disabled={busy || !rows.length} onClick={() => void pdf('report')}>Problems report</button>
           <button type="button" className="btn" disabled={busy || !rows.length} onClick={() => void pdf('cards')}>Report cards</button>
           {may && <button type="button" className="btn btn-ghost" aria-expanded={editing} onClick={() => setEditing(v => !v)}>{editing ? 'Done' : 'Edit the line'}</button>}
         </div>
@@ -239,6 +291,9 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
         </div>
       )}
 
+
+      {/* WHERE IT STANDS, COUNTED (lib/lineLean) — the tiles its report prints */}
+      {reading && <LeanTiles tiles={lineTiles(reading)} className="pl-tiles" />}
 
       {/* THE LINE, MACHINE BY MACHINE — the tour, read in seconds (ui/LineTour) */}
       {kit && <LineTour line={line} machines={kit.machines.map(m => m.name)} rows={rows} snags={mine} obs={obs} standards={standards} />}
@@ -270,23 +325,6 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
           )}
       </section>
 
-      {/* THE LINE — its facts, held by the factory (BLUEPRINT Stage 1: "the factory
-          holds the line's facts"): its shifts and breaks, its crew and what it costs
-          while it is down (its machines have a section of their own below). Set up the line opens the one
-          editor for them (ui/StudySetupSheet) — the same the stopwatch's Set up opens,
-          never a second copy. Read by the loss count (planned time, the £), capacity
-          a shift and work sampling. */}
-      <section className="pl-sec" aria-label="The line">
-        <div className="pl-sec-h">
-          <h2>The line</h2>
-          {may && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSettingUp(true)}>Set up the line ›</button>}
-        </div>
-        <dl className="pl-facts">
-          <dt>Shifts</dt><dd className={facts.shifts ? '' : 'is-n'}>{facts.shifts ?? 'Not said yet — the loss count and capacity a shift need them'}</dd>
-          <dt>Crew and cost</dt><dd className={facts.crew || facts.cost ? '' : 'is-n'}>{[facts.crew, facts.cost].filter(Boolean).join(' · ') || 'Not said yet — what a stop costs needs them'}</dd>
-        </dl>
-      </section>
-
       {/* ITS MACHINES, IN FLOW ORDER (Stage 2) — the line's list, the one every
           picker reads (the stopwatch, the walk, a problem), each with who made it
           and its programs; a machine a job brought in says which job. Named here
@@ -314,6 +352,38 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
             <button type="button" className="btn" disabled={!mName.trim()} onClick={() => void addMachineToLine(line.id, mName, mOem).then(() => { setMName(''); setMOem(''); })}>Add the machine</button>
           </div>
         )}
+      </section>
+
+      {/* ITS PRODUCTS, READY OR NOT (BLUEPRINT §3, Stage 3) — a row a
+          product: its program proved? its line standard set? its capacity
+          known? its changeover timed? Gaps amber, failures red, each with its
+          word (lib/lineProducts); a tap opens the tool that answers it, on
+          this line. */}
+      <section className="pl-sec" aria-label="Products on this line">
+        <div className="pl-sec-h">
+          <h2>Products</h2>
+          {products.rows.length > 0 && <span className="pl-sec-aside sub">{productsSaid(products).map((x, i) => (x.tone ? <b key={i} className={'is-' + x.tone}>{x.text}</b> : <span key={i}>{x.text}</span>))}</span>}
+        </div>
+        {products.rows.length === 0
+          ? <p className="sub">No product on this line yet. A product comes on when a program runs it, or a line standard or Line capacity is made for it.</p>
+          : (
+            <div className="pl-prods" role="table" aria-label="Each product, ready or not">
+              <div className="pl-prod is-head" role="row">
+                <span role="columnheader">Product</span>
+                {READY_KEYS.map(k => <span key={k} role="columnheader">{READY_ASKS[k]}</span>)}
+              </div>
+              {products.rows.map(p => (
+                <div key={p.name} className="pl-prod" role="row" data-product={p.name}>
+                  <b role="rowheader" className="pl-prod-name">{p.name}</b>
+                  {p.cells.map(c => (
+                    <button key={c.k} type="button" role="cell" className={'pl-ready is-' + c.tone} onClick={() => nav(`${READY_TO[c.k]}?line=${encodeURIComponent(wsId)}`)}>
+                      <span className="pl-ready-k">{READY_ASKS[c.k]}</span>{c.word}
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
       </section>
 
       {/* ITS PROGRAMS (Stage 2) — planned and proved, the line's own and its
@@ -413,6 +483,24 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
             </ul>
           )}
       </section>
+      {/* THE LINE — its facts, held by the factory (BLUEPRINT Stage 1: "the factory
+          holds the line's facts"): its shifts and breaks, its crew and what it costs
+          while it is down (its machines have a section of their own below). Set up the line opens the one
+          editor for them (ui/StudySetupSheet) — the same the stopwatch's Set up opens,
+          never a second copy. Read by the loss count (planned time, the £), capacity
+          a shift and work sampling. */}
+      <section className="pl-sec" aria-label="The line">
+        <div className="pl-sec-h">
+          <h2>The line</h2>
+          {may && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSettingUp(true)}>Set up the line ›</button>}
+        </div>
+        <dl className="pl-facts">
+          <dt>Shifts</dt><dd className={facts.shifts ? '' : 'is-n'}>{facts.shifts ?? 'Not said yet — the loss count and capacity a shift need them'}</dd>
+          <dt>Crew and cost</dt><dd className={facts.crew || facts.cost ? '' : 'is-n'}>{[facts.crew, facts.cost].filter(Boolean).join(' · ') || 'Not said yet — what a stop costs needs them'}</dd>
+        </dl>
+      </section>
+
+      {reading && <LeanClosing closing={lineClosing(reading)} />}
       {settingUp && <WorkspaceProvider wsId={wsId}><StudySetupSheet onClose={() => setSettingUp(false)} /></WorkspaceProvider>}
     </div>
   );

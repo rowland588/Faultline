@@ -36,6 +36,11 @@ export const PAGES = (sd, cap) => [
     /* the floor's two acts first, and the stopwatch among the tools (16 October, docs/UPGRADE-AUDIT.md F1) */
     { what: 'Time a stop', sel: '.pl-time' },
     { what: 'the stopwatch and its Pareto, among the tools', sel: '.pl-tool.is-stops' },
+    /* the line is the hub (17 October, BLUEPRINT Stage 3; lib/lineLean, lib/lineProducts) */
+    { what: 'the five tiles — problems, programs, products, stops, a day of the line', sel: '.pl-tiles .ln-tile', n: 5 },
+    { what: 'its products, a row a product with its four answers', sel: '.pl-prod:not(.is-head) .pl-ready', n: 4 },
+    { what: 'the line report', sel: 'button', text: /^Line report$/ },
+    { what: 'the closing line', sel: '.pl > .ln-close' },
   ] },
   { name: 'Programs', path: '#/programs', must: [{ what: 'machine by machine', sel: '.mt-list' }, { what: 'a row a program (16 October: one row, its boxes a tap away)', sel: '.mt-list .pgr' }] },
   { name: 'Problems', path: '#/snags', must: [{ what: 'the register, a line at a time', sel: '.qsl-rows' },

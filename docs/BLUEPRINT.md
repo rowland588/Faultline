@@ -568,6 +568,32 @@ already follow):
 - Paper: the line report (one page); the control room report carries the
   factory.
 
+**Built, 17 October** (Rowland: "start stage 3 as fast as you can"). A line's
+products are not a list of their own (D2): what its programs run, what its
+line standards and Line capacity are for, and what a changeover was timed
+into (`lib/lineProducts`). Each is asked the floor's four questions — its
+program proved? (the program: proved green, a test day gone red, a test
+booked violet, none or not written amber), its line standard set? (people
+placed), its capacity known? (Line capacity worked out; short of its target
+red), its changeover timed? (SMED) — gaps amber, failures red, always the
+word. Where it shows: the line's page — the five tiles (problems open,
+programs proved, products ready, stops timed, a day of the line in £ —
+`lib/lineLean`, the one cost model's `lineDay` — the programs due are its
+Programs proved tile, the header saying the problems as the card does), then
+machines, **Products** (a row a product, each
+answer a tap to the tool that gives it, on the line), programs, tools, jobs,
+the line's facts and the closing line; the control room's card for the line
+("3 products · 1 ready · 1 with gaps · 1 failing", amber and red), Your
+factory's row for it and the factory report's; and the
+**line report**, one page (`lib/lineReportPdf`): the band, the tiles, the
+products grid, the problems open, machines and programs to prove, what its
+tools found, its jobs' verdicts and the closing line — each list cut to fit
+and saying where the rest are. Needs you already worked across lines (the
+flow audit's control room, `lib/lineWork`), and the control room report
+already carried each line's own problems and programs ("On the lines,
+outside any job"); Your factory's paper is the factory report. Accepted by
+`line-hub.mjs`.
+
 ### Stage 4 — Jobs read the factory
 - 6M: line capacity and line balance read the line's per-product records
   (`pace_ppm.capacity` migrated); the job's walk evidence sits on its line.
@@ -623,6 +649,9 @@ is still wired.
   with your OK, whether the live database holds anything only they can read.
 - **D5 — A people list** (names picked, not typed) now, or later. *Agreed: yes —
   built after Stage 4, when every "whose" box is on the factory's records.*
+  **Left out, 17 October** — Rowland: "leave the people list out". It overlaps
+  the project-management pieces declined the same day (§6, "a tool for a one
+  man consultant"); every "whose" box stays typed.
 
 ---
 

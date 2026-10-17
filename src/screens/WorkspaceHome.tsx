@@ -32,6 +32,7 @@ import { inArchivedProject, listAllStudies, onDataChange, projectsOnWorkspace } 
 import { lineRates, rateShort, WEEK } from '../lib/intelligence';
 import { isDemo } from '../lib/lines';
 import { factorySays, liveProductionLines, productionLines } from '../lib/lines';
+import { lineProducts, productsSaid } from '../lib/lineProducts';
 import { JobsBoard } from '../ui/JobsBoard';
 import { useLineRecords } from '../lib/useLineRecords';
 import { lineKit } from '../lib/lineRecords';
@@ -295,7 +296,13 @@ export function WorkspaceHome() {
                     {rateOf[w.id] && <span className="fac-card-meta">{rateOf[w.id]}</span>}
                     {/* its programs not yet proved, the late in red (Stage 2) */}
                     {(() => { const k = lineKit(w, rec.machines, rec.programs, rec.jobLines); const todo = k.programs.length - k.proved;
-                      return todo > 0 ? <span className="fac-card-meta">{todo} program{todo === 1 ? '' : 's'} to prove{k.late ? <> · <b className="is-r">{k.late} late</b></> : null}</span> : null; })()}
+                      /* its products, ready or not (Stage 3, lib/lineProducts) — the gaps
+                         amber, the failing red, as the line's own page draws them */
+                      const pr = lineProducts({ programs: k.programs, standards: rec.standards.filter(x => x.workspaceId === w.id), studies: rec.studies.filter(x => x.workspaceId === w.id) });
+                      return <>
+                        {todo > 0 && <span className="fac-card-meta">{todo} program{todo === 1 ? '' : 's'} to prove{k.late ? <> · <b className="is-r">{k.late} late</b></> : null}</span>}
+                        {pr.rows.length > 0 && <span className="fac-card-meta fac-card-prods">{productsSaid(pr).map((x, i) => (x.tone ? <b key={i} className={'is-' + x.tone}>{x.text}</b> : <span key={i}>{x.text}</span>))}</span>}
+                      </>; })()}
                   </button>
                 </li>
               );
