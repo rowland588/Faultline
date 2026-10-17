@@ -1020,8 +1020,10 @@ is still wired.
   said (lib/install, lib/noted problemsTally, lib/materialsReport,
   lib/programsReport) into five tiles and a closing line, the last tile the
   job's money (`lib/useJobMoney` → lib/stageGateLean moneyTile). Shows on:
-  Commission, Install, Set up, Hand over, the job's Problems and Materials
-  (the tiles under the header — the header's count line moved into them —
+  Commission, Install, Set up, Hand over, the job's Problems, Materials and
+  a machine's own page (gates through, late, fixes open, no fix yet; the
+  closing line at its foot — lib/stageGatePages machineTiles, from
+  lib/machineRecord) (the tiles under the header — the header's count line moved into them —
   and the closing line at the foot); Programs (its chips stay its tiles; the
   closing line); the commissioning report (Commission's tiles and closing
   line), the materials report and the programs report (their closing line,

@@ -12,6 +12,7 @@
  * the job's lines in Your factory. The closing line is the page in one
  * sentence: where it stands, what is wrong, and the slip in money. */
 import type { LeanTile, LeanTone } from './lean';
+import type { MachineRecord } from './machineRecord';
 
 const plural = (n: number, one: string, many = `${one}s`) => (n === 1 ? one : many);
 const and = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}` : xs[0] ?? '');
@@ -175,5 +176,57 @@ export function handoverClosing(x: HandoverCounts, money?: LeanTile): { text: st
   return {
     text: `Hand over: ${x.handed} of ${x.machines} ${plural(x.machines, 'machine')} handed over${x.open ? ` — ${x.open} still open` : ' — nothing left open'}.${money ? moneyClause(money) : ''}`,
     tone: x.handed === x.machines && !x.open ? 'g' : x.open ? 'a' : 'n',
+  };
+}
+
+/* ---------------------------------------------- a machine's own page */
+
+/** A MACHINE'S PAGE (screens/MachineScreen) — its four gates through, what
+ *  is late or did not pass on them, its fixes open, the problems found on it
+ *  with no fix yet, and the job's money; read from lib/machineRecord, the
+ *  reading its gates row and its panel make. */
+export interface MachineCounts {
+  name: string;
+  /** "at Set up", "Handed over · 1 fix open" (lib/machineRecord machineAt). */
+  at: string;
+  gatesDone: number;
+  gates: number;
+  /** Stages and tests on its gates late, or tried and not passed. */
+  late: number;
+  fixes: number;
+  fixesLate: number;
+  fixesDone: number;
+  /** Problems found on it with no fix booked, still open. */
+  noFix: number;
+  critical: number;
+}
+
+export function machineTiles(x: MachineCounts, money: LeanTile): LeanTile[] {
+  return [
+    { k: 'Gates through', v: String(x.gatesDone), of: `of ${x.gates} — ${x.at}`, ...(x.gates && x.gatesDone === x.gates ? { tone: 'g' as LeanTone } : {}) },
+    { k: 'Late', v: String(x.late), of: x.late ? 'stages and tests past their day or not passed' : 'nothing past its day', tone: x.late ? 'r' : 'n' },
+    { k: 'Fixes open', v: String(x.fixes), of: x.fixes ? `${x.fixesLate ? `${x.fixesLate} late` : 'none late'}${x.fixesDone ? ` · ${x.fixesDone} done` : ''}` : x.fixesDone ? `none open · ${x.fixesDone} done` : 'none booked on it', ...(x.fixesLate ? { tone: 'r' as LeanTone } : {}) },
+    { k: 'No fix yet', v: String(x.noFix), of: x.noFix ? (x.critical ? `${x.critical} critical — problems nobody is putting right yet` : 'problems nobody is putting right yet') : 'every problem on it has a fix', tone: x.critical ? 'r' : x.noFix ? 'a' : 'n' },
+    money,
+  ];
+}
+
+export function machineClosing(x: MachineCounts, money: LeanTile): { text: string; tone: LeanTone } {
+  const wrong = [x.late ? `${x.late} late` : '', x.fixesLate ? `${x.fixesLate} ${plural(x.fixesLate, 'fix', 'fixes')} late` : '', x.noFix ? `${x.noFix} ${plural(x.noFix, 'problem')} with no fix yet` : ''].filter(Boolean);
+  const through = x.gates && x.gatesDone === x.gates;
+  return {
+    text: `${x.name}: ${x.at}${wrong.length ? ` — ${and(wrong)}` : through ? ' — every gate through' : ', nothing late'}.${moneyClause(money)}`,
+    tone: x.late || x.fixesLate || x.critical ? 'r' : x.noFix ? 'a' : through ? 'g' : 'n',
+  };
+}
+
+/** A machine's counts, from its record (lib/machineRecord). */
+export function machineCounts(m: Pick<MachineRecord, 'name' | 'at' | 'gates' | 'fixes' | 'fixesDone' | 'problems'>): MachineCounts {
+  const lines = m.gates.flatMap(g => g.lines);
+  return {
+    name: m.name, at: m.at, gatesDone: m.gates.filter(g => g.tone === 'done').length, gates: m.gates.length,
+    late: lines.filter(l => l.tone === 'late' || l.tone === 'failed').length,
+    fixes: m.fixes.length, fixesLate: m.fixes.filter(f => f.tone === 'late').length, fixesDone: m.fixesDone,
+    noFix: m.problems.length, critical: m.problems.filter(p => p.critical).length,
   };
 }

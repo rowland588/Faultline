@@ -2,7 +2,7 @@
  * tiles and closing line, from the counts its header said, with the job's
  * money last (lib/stageGateLean moneyTile). */
 import { describe, expect, it } from 'vitest';
-import { commissionClosing, commissionTiles, gateClosing, gateTiles, handoverClosing, handoverTiles, materialClosing, materialTiles, problemClosing, problemTiles, programClosing, programTiles } from '../stageGatePages';
+import { commissionClosing, commissionTiles, gateClosing, gateTiles, handoverClosing, handoverTiles, machineClosing, machineTiles, materialClosing, materialTiles, problemClosing, problemTiles, programClosing, programTiles } from '../stageGatePages';
 import type { LeanTile } from '../lean';
 
 const slip: LeanTile = { k: 'The slip costs', v: '£25.2k', of: '8 days × £3.2k — a day of Line 7 not making, in margin', tone: 'r' };
@@ -79,5 +79,25 @@ describe('the handover report', () => {
     ]);
     expect(handoverClosing(x, slip)).toEqual({ text: 'Hand over: 2 of 3 machines handed over — 4 still open. The slip costs £25.2k.', tone: 'a' });
     expect(handoverClosing({ machines: 3, handed: 3, open: 0, handedOver: true })).toEqual({ text: 'Hand over: 3 of 3 machines handed over — nothing left open.', tone: 'g' });
+  });
+});
+
+describe('a machine’s own page', () => {
+  it('1 of 4 gates through, 2 late, 3 fixes with 1 late, a critical problem with no fix — the slip last and where it closes', () => {
+    const x = { name: 'Ilapak flow wrapper', at: 'at Set up', gatesDone: 1, gates: 4, late: 2, fixes: 3, fixesLate: 1, fixesDone: 2, noFix: 1, critical: 1 };
+    expect(machineTiles(x, slip).map(t => [t.k, t.v, t.of, t.tone])).toEqual([
+      ['Gates through', '1', 'of 4 — at Set up', undefined],
+      ['Late', '2', 'stages and tests past their day or not passed', 'r'],
+      ['Fixes open', '3', '1 late · 2 done', 'r'],
+      ['No fix yet', '1', '1 critical — problems nobody is putting right yet', 'r'],
+      ['The slip costs', '£25.2k', slip.of, 'r'],
+    ]);
+    expect(machineClosing(x, slip)).toEqual({ text: 'Ilapak flow wrapper: at Set up — 2 late, 1 fix late and 1 problem with no fix yet. The slip costs £25.2k.', tone: 'r' });
+  });
+  it('handed over with nothing open, in green; a day late not said where it closes', () => {
+    const x = { name: 'Domino coder', at: 'Handed over', gatesDone: 4, gates: 4, late: 0, fixes: 0, fixesLate: 0, fixesDone: 1, noFix: 0, critical: 0 };
+    expect(machineTiles(x, aDay)[0]).toEqual({ k: 'Gates through', v: '4', of: 'of 4 — Handed over', tone: 'g' });
+    expect(machineTiles(x, aDay)[2].of).toBe('none open · 1 done');
+    expect(machineClosing(x, aDay)).toEqual({ text: 'Domino coder: Handed over — every gate through.', tone: 'g' });
   });
 });

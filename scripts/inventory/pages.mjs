@@ -53,6 +53,9 @@ export const PAGES = (sd, cap) => [
     { what: 'its four gates in a row', sel: '.mpg-steps .mpg-step', n: 4 },
     { what: 'its stages and tests, gate by gate', sel: '.mpg-main .mp-gate' },
     { what: 'its programs', sel: '.mpg-side .pp-m' },
+    /* the lean page (17 October; lib/stageGatePages machineTiles): gates through, late, fixes, no fix yet, the job's money — and the closing line */
+    { what: 'the five tiles — the job’s money last', sel: '.mpg > .sg-tiles .ln-tile', n: 5 },
+    { what: 'the closing line', sel: '.mpg > .ln-close' },
   ] },
   /* one row a program, its test on the row, one form (16 October: "too many views and doors") */
   { name: 'Programs — a stage-gate job', path: `#/project/${sd.projectId}/programs`, must: [
