@@ -430,37 +430,37 @@ export function productLeanBlocks(p: CapacityPaper, d: Density): Block[] {
   /* THE PICTURE — where it is limited */
   out.push(leanHead('Where it is limited'));
   out.push(...limited(p, false));
-  /* WHAT IT MEANS — the module's sentences, the checks under their own label,
-     a shift and a pack */
+  /* WHAT IT MEANS — the module's sentences, the people's work against takt,
+     the checks under their own label, a shift and a pack */
   out.push(leanHead('What it means'));
   /* what the bottleneck costs a pack is said once here: in the labour tile
      and the closing line (lib/capacityLean) — the screen keeps its line under
-     the sums, where the sums are typed */
+     the sums, where the sums are typed. Labour not worked out is the tile's
+     to say; a shift not set is one line, not a table's heading. */
+  const shiftTbl = p.shift ? shiftTable(p) : undefined;
   out.push(...leanInsights([...page.insights.filter(i => !p.check.includes(i.text)),
-    ...(p.labour ? [{ text: `What a ${oneOf(p.unit)} costs in labour: ${p.labour.says}`, tone: 'n' as const }] : [])]));
+    ...(p.labour && p.figures.perPack != null ? [{ text: `What a ${oneOf(p.unit)} costs in labour: ${p.labour.says}`, tone: 'n' as const }] : []),
+    ...(p.work ? [{ text: `The people’s work against takt: ${p.work.text}`, tone: 'n' as const }, ...p.work.lines.map(l => ({ text: l.text, tone: l.tone as 'r' | 'a' | 'g' | 'n' }))] : []),
+    ...(p.shift && !shiftTbl ? [{ text: p.shift.sentence, tone: 'n' as const }] : [])]));
   out.push(...checks());
-  if (p.shift) {
+  if (p.shift && shiftTbl) {
     out.push(label('What the line makes a shift'));
-    const t = shiftTable(p);
-    if (t) out.push(t);
+    out.push(shiftTbl);
     out.push(text({ text: p.shift.sentence, size: T, colour: INK2, after: gap(d, 'm') }));
   }
-  /* THE ACTION PLAN — the way to the target, worked out; the what-ifs tried;
-     the people's work against takt. With none of them the closing line says
-     there is nothing to change, and the plan takes no room of its own. */
-  if (p.plan || p.whatIfs.length || p.work) {
-    out.push(leanHead('Action plan', p.plan ? 'The way to the target, worked out from the sums' : undefined));
-    if (p.plan) out.push(text({ text: `The way to the target: ${p.plan.says}`, size: T, colour: INK2, after: 4 }));
+  /* THE ACTION PLAN — the way to the target, worked out (its steps the rows,
+     the whole in the heading's words; a plan that cannot reach the target
+     says why in full), and the what-ifs tried. With neither the closing line
+     says there is nothing to change, and the plan takes no room of its own. */
+  if (p.plan || p.whatIfs.length) {
+    out.push(leanHead('Action plan', p.plan ? (p.plan.sum ? `The way to the target: ${p.plan.sum}` : 'The way to the target, worked out from the sums') : undefined));
+    if (p.plan && !p.plan.sum) out.push(text({ text: p.plan.says, size: T, colour: INK2, after: 4 }));
     if (page.actions.length) out.push(...leanActions(page.actions, page.actionsEmpty));
   }
   for (const w of p.whatIfs) {
     out.push(said(w.onBoard ? 'What if — on the board:' : 'What if:', w.says));
     if (w.changed.length) out.push(text({ text: `Changed: ${w.changed.join('; ')}`, size: S, colour: MUTED, indent: 10, after: 3 }));
     if (w.labour) out.push(text({ text: w.labour, size: S, colour: MUTED, indent: 10, after: 5 }));
-  }
-  if (p.work) {
-    out.push(said('The people’s work against takt:', p.work.text));
-    for (const l of p.work.lines) out.push(text({ text: l.text, size: T, colour: toneInk(l.tone), indent: 10, bullet: '·', after: 3 }));
   }
   out.push(leanClosing(page.closing));
   return out;

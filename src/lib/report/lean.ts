@@ -28,9 +28,13 @@ export function leanBand(p: LeanPage, printed: string): Block {
     const title = wrap(f.doc, p.title, lw, 19, 'bold');
     const sub = p.sub ? wrap(f.doc, p.sub, lw, 9.5, 'bold') : [];
     const fl = facts.map(([k, v]) => ({ k, v: wrap(f.doc, v, FW - 50, 8, 'bold') }));
-    const left = PAD + 9 + 4 + title.length * 22 + sub.length * 12 + (p.verdict ? 22 : 0) + PAD - 2;
+    /* the verdict whole, however long — a long machine's name wraps the pill
+       to a second line rather than losing the end of the finding */
+    const said = p.verdict ? wrap(f.doc, p.verdict.text, lw - 16, 8.5, 'bold') : [];
+    const pill = said.length ? 15 + (said.length - 1) * 10.5 : 0;
+    const left = PAD + 9 + 4 + title.length * 22 + sub.length * 12 + (pill ? pill + 7 : 0) + PAD - 2;
     const right = PAD + fl.reduce((n, x) => n + Math.max(1, x.v.length) * 10 + 3, 0) + PAD - 4;
-    return { lw, title, sub, fl, h: Math.max(left, right, 64) };
+    return { lw, title, sub, fl, said, pill, h: Math.max(left, right, 64) };
   };
   return {
     height: f => lay(f).h + (f.density === 'compact' ? 7 : 10),
@@ -43,13 +47,12 @@ export function leanBand(p: LeanPage, printed: string): Block {
       yy += 6;
       font(d, 19, 'bold', '#ffffff'); l.title.forEach(s => { yy += 19; d.text(s, f.x + PAD, yy); yy += 3; });
       font(d, 9.5, 'bold', DIM); l.sub.forEach(s => { yy += 12; d.text(s, f.x + PAD, yy); });
-      if (p.verdict) {
-        const t = san(p.verdict.text);
+      if (p.verdict && l.said.length) {
         font(d, 8.5, 'bold', '#ffffff');
-        const tw = Math.min(l.lw, d.getTextWidth(t) + 16);
+        const tw = Math.min(l.lw, Math.max(...l.said.map(s => d.getTextWidth(s))) + 16);
         const fill = p.verdict.tone === 'n' ? SHELL_2 : TONE[p.verdict.tone];
-        d.setFillColor(fill); d.roundedRect(f.x + PAD, yy + 7, tw, 15, 7.5, 7.5, 'F');
-        d.text(wrap(d, t, tw - 14, 8.5, 'bold')[0] ?? '', f.x + PAD + 8, yy + 17.5);
+        d.setFillColor(fill); d.roundedRect(f.x + PAD, yy + 7, tw, l.pill, 7.5, 7.5, 'F');
+        l.said.forEach((s, i) => d.text(s, f.x + PAD + 8, yy + 17.5 + i * 10.5));
       }
       /* the facts on the right */
       let fy = y + PAD + 7;

@@ -151,6 +151,8 @@ const desk = await device(1360);
   ok(onProblem.includes('Seal jaw too cold on the second lane') && /back to Seal integrity/.test(onProblem) && onProblem.includes('Make it a fix'),
     '3a the problem just saved opens in the same drawer, Back to its test, where its fix is made');
   await W.tap('Make it a fix', D().getByRole('button', { name: /Make it a fix/ }).first());
+  /* the fix is made and opened in a moment — under the gate's load, more than the tap's wait */
+  await D().getByText(/back to Seal jaw too cold/i).first().waitFor({ timeout: 10000 }).catch(() => {});
   ok(/back to Seal jaw too cold/.test(flat(await D().innerText().catch(() => ''))), '3b its fix opens there too, Back to the problem');
   await W.tap('Fixed', D().getByRole('button', { name: /^Fixed$/ }).first());
   await P.waitForTimeout(800);
@@ -198,6 +200,7 @@ const desk = await device(1360);
   await W.tap('Passed', row.getByRole('button', { name: /^Passed$/ }).first());
   await W.tap('Save', row.getByRole('button', { name: /^Save$/ }).first());
   await P.waitForTimeout(1500);
+  await row.getByText(/proved/).first().waitFor({ timeout: 10000 }).catch(() => {});
   ok(/proved/.test(flat(await row.innerText())), `4b the row says proved ("${flat(await row.locator('.pgr-top').innerText()).slice(0, 60)}")`);
   await W.go(`${J}/testing`);
   const needs = (await P.locator('.cg-needs .nd-row').allInnerTexts()).map(flat);

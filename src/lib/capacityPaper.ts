@@ -117,7 +117,11 @@ export interface CapacityPaper {
    *  counted one-for-one. Only what is wrong. */
   check: string[];
   /** The way to the target, worked out (lib/capacityPlan) — only while short of it. */
-  plan?: { says: string; steps: string[] };
+  /** The way to the target (lib/capacityPlan): its sentence, its steps, and
+   *  — when it reaches the target — the whole in a few words ("1 more person
+   *  and 1 more machine. The line then makes 70."), so the steps need not be
+   *  said twice. */
+  plan?: { says: string; steps: string[]; sum?: string };
   /** Capacity a shift (lib/capacity shiftCapacity). */
   shift?: { rows: CapacityPaperShift[]; day?: CapacityPaperShift; sentence: string };
   /** What a pack costs in labour, and one more person at the bottleneck. */
@@ -314,7 +318,7 @@ export function capacityPaper(x: CapacityPaperIn): CapacityPaper {
     ...(v && r.ok.length >= 2 ? { v: { text: v.sentence, tone: (v.under.length ? 'a' : 'n') as Tone } } : {}),
     ...(x.walk ? { walk: { text: x.walk.sentence, tone: (x.walk.against === 'disagrees' ? 'a' : 'n') as Tone } } : {}),
     check,
-    ...(plan && plan.steps.length ? { plan: { says: plan.sentence, steps: plan.steps.map(x => x.text) } } : {}),
+    ...(plan && plan.steps.length ? { plan: { says: plan.sentence, steps: plan.steps.map(x => x.text), ...(plan.reached ? { sum: plan.sentence.split(' — ').pop() as string } : {}) } } : {}),
     ...(shift ? { shift } : {}),
     ...(labour ? { labour } : {}),
     ...(x.work ? { work: { text: x.work.text, lines: x.work.lines.map(l => ({ text: l.text, tone: (l.tone === 'r' || l.tone === 'a' ? l.tone : 'n') as Tone })) } } : {}),
