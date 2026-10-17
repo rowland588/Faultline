@@ -347,7 +347,7 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
       {!project.commissioning && <ProgramsScreen projectId={projectId} embedded />}
 
       {/* THE CLOSING LINE — the materials in one sentence, and the slip in money */}
-      {money && t.total > 0 && <LeanClosing closing={materialClosing(t, money)} />}
+      {t.total > 0 && <LeanClosing closing={materialClosing(t, money ?? MONEY_WAIT)} />}
       <footer className="pace-foot">
         <p>{project.name} · what we are waiting on</p>
       </footer>
