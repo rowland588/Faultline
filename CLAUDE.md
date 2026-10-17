@@ -810,7 +810,9 @@ so the two never part. What is typed stays on the page under the eight.
 Built slice by slice (the doc's table): the loss count, then Line capacity,
 the line balance and All together (`lib/capacityLean`, `lib/ie/balanceLean`,
 `lib/together` togetherTiles), then a stage-gate job's front page, one-page
-status and full report (`lib/stageGateLean`); the 6M report and Problems
+status and full report (`lib/stageGateLean`), then the stage gate's own
+pages and papers (`lib/stageGatePages`: Commission, the gates, Problems,
+Materials, Programs, the commissioning report); the 6M report and Problems
 next.
 
 ## Simplicity — lean, applied to the screen

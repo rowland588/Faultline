@@ -55,6 +55,9 @@ import { programsToPick, type PickRow } from '../lib/commissionPrograms';
 import { nav, navReplace } from '../state/useRoute';
 import { answerOf } from '../lib/install';
 import { jobLinePrograms, jobLineReadings, lineOfProgram } from '../lib/lineRecords';
+import { LeanClosing } from '../ui/Lean';
+import { useJobMoney } from '../lib/useJobMoney';
+import { programClosing } from '../lib/stageGatePages';
 import { useLineRecords } from '../lib/useLineRecords';
 
 /* The two said "why" of the ones to do (12 October): not tested, no program. */
@@ -81,6 +84,8 @@ export function ProgramsPage({ projectId, only }: {
   const progs = usePrograms(projectId);
   const { project } = useProject(projectId);
   const can = useAccess(projectId);
+  /* THE JOB'S MONEY (lib/useJobMoney) — said in the closing line when the slip has run one up */
+  const money = useJobMoney(projectId);
   const [filter, setFilter] = useState<Filter>('all');
   const [machineF, setMachineF] = useState('all');
   const [openRow, setOpenRow] = useState<string | null>(null);
@@ -138,7 +143,7 @@ export function ProgramsPage({ projectId, only }: {
       const { drawProgramsReport } = await import('../lib/programsReportPdf');
       const { jsPDF } = await loadPdfLib();
       const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-      await drawProgramsReport(doc, { name: project.name, ...(project.lead ? { lead: project.lead } : {}), printed: niceDay(today, { year: true }), linePrograms: lineReadings,
+      await drawProgramsReport(doc, { name: project.name, ...(project.lead ? { lead: project.lead } : {}), printed: niceDay(today, { year: true }), linePrograms: lineReadings, ...(money ? { money } : {}),
         reading: reading ?? { lines: [], machines: [], total: 0, done: 0, baseline: 0, failed: 0, late: 0, open: 0, notTested: 0, noProgram: 0, doneAll: 0, says: 'None of the job’s own yet — its line’s are below' } });
       const how = await deliverPdf(doc, pdfFileName(project.name, 'programs', today));
       setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
@@ -192,6 +197,11 @@ export function ProgramsPage({ projectId, only }: {
       {can.edit && <PutAllOn state={progs} assets={assets} addAsset={name => tt.addAsset(name)} />}
 
       {shownMachines.map(m => section(m))}
+      {/* THE CLOSING LINE (docs/LEAN-PAGE.md; lib/stageGatePages) — the
+          programs in one sentence, and the slip in money. The counted
+          figures are the chips above: each is its filter (one thing, one
+          place), so this page grows no second row of tiles. */}
+      {money && reading && <LeanClosing closing={programClosing(reading, money)} />}
     </div>
   );
 

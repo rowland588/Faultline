@@ -31,6 +31,9 @@ import { useAccess } from '../cloud/access';
 import { useJobPrograms } from '../lib/useJobPrograms';
 import { boardPrograms as boardProgramsOf } from '../lib/commissionPrograms';
 import { PlanTabs } from '../ui/PlanTabs';
+import { LeanClosing, LeanTiles } from '../ui/Lean';
+import { useJobMoney } from '../lib/useJobMoney';
+import { MONEY_WAIT, commissionClosing, commissionTiles } from '../lib/stageGatePages';
 
 const nice = (iso?: string): string => niceDay(iso) || '—';
 
@@ -47,6 +50,8 @@ export function TestsScreen({ projectId }: { projectId: string }) {
   /* Who is looking (lib/access). The handover dates are what was agreed, so
      only the owner opens them; a client plans nothing and answers nothing. */
   const can = useAccess(projectId);
+  /* THE JOB'S MONEY (lib/useJobMoney) — every stage-gate page's last tile */
+  const money = useJobMoney(projectId);
   const [dates, setDates] = useState(false);
   /* `adding` is which FACE is being planned, not merely whether the form is
      open — a fix and a test are the same record and the same form, and the only
@@ -84,6 +89,7 @@ export function TestsScreen({ projectId }: { projectId: string }) {
   const passed = proofs.filter(t => t.outcome === 'passed').length;
   const failed = proofs.filter(t => t.outcome === 'failed').length;
   const notRun = proofs.filter(t => t.outcome === 'notRun').length;
+  const counts = { passed, total: proofs.length, failed, notRun };
 
 
   const plan = () => {
@@ -120,14 +126,10 @@ export function TestsScreen({ projectId }: { projectId: string }) {
           {/* Where the gate has got to FIRST, as the other three gates say it —
               then the handover date this gate is driving at. "Rowland leading"
               is on the project itself; the four gate headers read alike. */}
+          {/* THE COUNTS ARE THE TILES under the header (lib/stageGatePages:
+              passed of the tests, didn't pass, didn't run, still to run, the
+              money) — the line here keeps the handover this gate drives at. */}
           <p className="cw-handover">
-            {proofs.length === 0
-              ? <b>No tests planned yet</b>
-              : <>
-                <b>{passed} of {proofs.length} passed</b>
-                {failed > 0 && <span className="sub in-late">{failed} didn’t pass</span>}
-                {notRun > 0 && <span className="sub in-late">{notRun} didn’t run</span>}
-              </>}
             {project.expectedAt
               ? <span className="sub">Handover {nice(project.expectedAt)}{weeks != null && ` · ${toGo(project.expectedAt, weeks)}`}</span>
               : <span className="sub">No handover date yet</span>}
@@ -149,6 +151,9 @@ export function TestsScreen({ projectId }: { projectId: string }) {
         </div>
       </header>
       <AccessNote can={can} owner={project.lead} />
+      {/* THE TILES (docs/LEAN-PAGE.md; lib/stageGatePages) — the header's
+          counts, each of what it should be, and the job's money */}
+      <LeanTiles tiles={commissionTiles(counts, money ?? MONEY_WAIT)} className="sg-tiles" />
 
       {dates && can.agree && (
         <div className="cx-dates">
@@ -230,6 +235,8 @@ export function TestsScreen({ projectId }: { projectId: string }) {
           )}
         </section>
       )}
+      {/* THE CLOSING LINE — the gate in one sentence, and the slip in money */}
+      {money && <LeanClosing closing={commissionClosing(counts, money)} />}
     </div>
   );
 }

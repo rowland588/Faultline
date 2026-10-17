@@ -89,7 +89,10 @@ const facts = () => page.evaluate(async pid => {
 let header;
 {
   await go(COMMISSION);
-  header = flat(await main.locator('.cw-handover').innerText());
+  /* the gate's counts are its tiles now (lib/stageGatePages), said back in the report's words */
+  const tiles = await main.locator('.sg-tiles .ln-tile').evaluateAll(els => els.map(e => ({ k: e.querySelector('.ln-k')?.textContent?.trim() ?? '', v: e.querySelector('.ln-v')?.textContent?.trim() ?? '', of: e.querySelector('.ln-of')?.textContent?.trim() ?? '' })));
+  const t = k => tiles.find(x => x.k === k) ?? { v: '', of: '' };
+  header = [`${t('Passed').v} ${t('Passed').of.replace(/^of (\d+) tests?$/, 'of $1')} passed`, `${t('Didn’t pass').v} didn’t pass`, `${t('Didn’t run').v} didn’t run`].join(' · ');
   await main.getByRole('button', { name: /^Commissioning report/ }).click(); await page.waitForTimeout(3500);
   const pressed = flat(await page.locator('.cr-which .chip.on').innerText());
   ok(page.url().includes('/report?doc=commissioning') && pressed === 'Commissioning' && flat(await page.locator('.pace-title').innerText()) === 'Commissioning report',

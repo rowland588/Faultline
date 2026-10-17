@@ -30,6 +30,7 @@ import { useStudyContext } from '../ui/ShiftLosses';
 import { nav } from '../state/useRoute';
 import { useLineRecords } from '../lib/useLineRecords';
 import { jobFactoryLines, jobLinePrograms } from '../lib/lineRecords';
+import { moneyTile } from '../lib/stageGateLean';
 import { listAllSnags, onDataChange } from '../db';
 import { withoutDemo } from '../lib/demo';
 import { openQuickSnag } from '../snag/QuickSnag';
@@ -76,7 +77,7 @@ async function buildPrograms(r: ClientReport): Promise<jsPDF> {
   const reading = setup?.programs;
   /* the job's lines' own programs, after the job's (lib/clientReport) */
   const linePrograms = setup?.linePrograms ?? [];
-  await drawProgramsReport(doc, { name: r.name, ...(r.lead ? { lead: r.lead } : {}), printed: r.printed, linePrograms,
+  await drawProgramsReport(doc, { name: r.name, ...(r.lead ? { lead: r.lead } : {}), printed: r.printed, linePrograms, money: moneyTile(r.figures),
     reading: reading ?? { lines: [], machines: [], total: 0, done: 0, baseline: 0, failed: 0, late: 0, open: 0, notTested: 0, noProgram: 0, doneAll: 0,
       says: linePrograms.length ? 'None of the job’s own yet — its line’s are below' : 'No programs yet' } });
   return doc;

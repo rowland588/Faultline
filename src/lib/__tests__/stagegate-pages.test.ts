@@ -1,0 +1,72 @@
+/* THE STAGE GATE'S PAGES AS LEAN PAGES (lib/stageGatePages) — each page's
+ * tiles and closing line, from the counts its header said, with the job's
+ * money last (lib/stageGateLean moneyTile). */
+import { describe, expect, it } from 'vitest';
+import { commissionClosing, commissionTiles, gateClosing, gateTiles, materialClosing, materialTiles, problemClosing, problemTiles, programClosing, programTiles } from '../stageGatePages';
+import type { LeanTile } from '../lean';
+
+const slip: LeanTile = { k: 'The slip costs', v: '£25.2k', of: '8 days × £3.2k — a day of Line 7 not making, in margin', tone: 'r' };
+const aDay: LeanTile = { k: 'A day late', v: '£3.2k', of: 'would cost a day of Line 7 not making, in margin' };
+
+describe('a gate of steps', () => {
+  it('Install: 4 of 6 done, 1 late, a stage stopped by a problem, 2 not added and a machine with none — the slip last', () => {
+    const x = { gate: 'install' as const, done: 4, total: 6, late: 1, problems: 1, notAdded: 2, bare: 1 };
+    expect(gateTiles(x, slip).map(t => [t.k, t.v, t.of, t.tone])).toEqual([
+      ['Done', '4', 'of 6 steps', undefined],
+      ['Late', '1', 'past their day', 'r'],
+      ['Problems', '1', 'stopping a stage', 'r'],
+      ['Not added yet', '3', '2 stages not on a machine\'s list · 1 machine with none yet', 'a'],
+      ['The slip costs', '£25.2k', slip.of, 'r'],
+    ]);
+    expect(gateClosing(x, slip)).toEqual({ text: 'Install: 4 of 6 steps done — 1 late, 1 stopped by a problem and 3 not added yet. The slip costs £25.2k.', tone: 'r' });
+  });
+  it('Hand over all done in green, and a day late is not said where it closes', () => {
+    const x = { gate: 'handover' as const, done: 3, total: 3, late: 0, problems: 0, notAdded: 0, bare: 0 };
+    expect(gateTiles(x, aDay)[0]).toEqual({ k: 'Done', v: '3', of: 'of 3 items', tone: 'g' });
+    expect(gateClosing(x, aDay)).toEqual({ text: 'Hand over: 3 of 3 items done — the gate is through.', tone: 'g' });
+    expect(gateClosing({ ...x, done: 0, total: 0 }, aDay).text).toBe('Hand over: nothing planned yet — give each machine its hand-over items.');
+  });
+});
+
+describe('Commission', () => {
+  it('3 of 8 passed, 1 didn’t pass, 1 didn’t run, 3 still to run', () => {
+    const x = { passed: 3, total: 8, failed: 1, notRun: 1 };
+    expect(commissionTiles(x, slip).map(t => [t.k, t.v, t.of])).toEqual([
+      ['Passed', '3', 'of 8 tests'], ['Didn’t pass', '1', 'ran and fell short'], ['Didn’t run', '1', 'booked, did not happen'], ['Still to run', '3', 'tests planned'], ['The slip costs', '£25.2k', slip.of],
+    ]);
+    expect(commissionClosing(x, slip)).toEqual({ text: 'Commission: 3 of 8 tests passed — 1 didn’t pass and 1 didn’t run. The slip costs £25.2k.', tone: 'r' });
+  });
+});
+
+describe('Programs', () => {
+  it('2 of 5 done, 1 failed, 2 to do with 1 late, 1 with no program', () => {
+    const x = { total: 5, doneAll: 2, failed: 1, late: 1, open: 2, notTested: 0, noProgram: 1 };
+    expect(programTiles(x, aDay).map(t => [t.k, t.v, t.of, t.tone])).toEqual([
+      ['Done', '2', 'of 5 programs — passed or at baseline', undefined], ['Failed', '1', 'tested and did not pass', 'r'],
+      ['To do', '2', '1 past its test day', 'r'], ['Not ready', '1', '1 with no program', 'a'], ['A day late', '£3.2k', aDay.of, undefined],
+    ]);
+    expect(programClosing(x, aDay)).toEqual({ text: 'Programs: 2 of 5 done — 1 failed, 1 past its test day and 1 with no program.', tone: 'r' });
+  });
+});
+
+describe('the job’s Problems', () => {
+  it('7 open: 5 fixes to do, 2 with no fix, 1 late, a critical and a high risk', () => {
+    const x = { open: 7, fixes: 5, noFix: 2, late: 1, done: 3, critical: 1, risks: 1 };
+    expect(problemTiles(x, slip).map(t => [t.k, t.v, t.of, t.tone])).toEqual([
+      ['Open', '7', '5 fixes still to do · 2 with no fix yet', undefined], ['Critical', '1', '1 high risk as well', 'r'],
+      ['Late', '1', 'fixes past their day', 'r'], ['No fix yet', '2', 'problems nobody is putting right yet', 'a'], ['The slip costs', '£25.2k', slip.of, 'r'],
+    ]);
+    expect(problemClosing(x, slip).text).toBe('Problems: 7 open — 1 critical, 1 fix late and 2 with no fix yet. The slip costs £25.2k.');
+    expect(problemClosing({ ...x, open: 0, fixes: 0, noFix: 0, late: 0, critical: 0, risks: 0 }, slip)).toEqual({ text: 'Problems: nothing outstanding — 3 put right.', tone: 'g' });
+  });
+});
+
+describe('Materials', () => {
+  it('2 of 7 here, 2 late, 2 waiting next due 20 Oct, 1 with no date', () => {
+    const x = { here: 2, total: 7, late: 2, waiting: 2, undated: 1, nextDue: '2026-10-20' };
+    expect(materialTiles(x, aDay, () => '20 Oct').map(t => [t.k, t.v, t.of])).toEqual([
+      ['Here', '2', 'of 7 needed'], ['Late', '2', 'past the day they were due'], ['Waiting', '2', 'next due 20 Oct'], ['No date', '1', 'nobody has said when'], ['A day late', '£3.2k', aDay.of],
+    ]);
+    expect(materialClosing(x, aDay)).toEqual({ text: 'Materials: 2 of 7 here — 2 late and 1 with no date.', tone: 'r' });
+  });
+});

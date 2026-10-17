@@ -129,7 +129,9 @@ const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).se
 /* ---- 4 Materials ---- the paced job's seven: two late, two coming, one undated, two in */
 {
   await go(`#/project/${sd.pacedProjectId}/materials`);
-  const head = await words('.cw-handover b');
+  /* "2 of 7 here" — its counts are the page's tiles now (lib/stageGatePages) */
+  const here = (await page.locator('.sg-tiles .ln-tile').evaluateAll(els => els.map(e => ({ k: e.querySelector('.ln-k')?.textContent?.trim() ?? '', v: e.querySelector('.ln-v')?.textContent?.trim() ?? '', of: e.querySelector('.ln-of')?.textContent?.trim() ?? '' })))).find(x => x.k === 'Here') ?? { v: '', of: '' };
+  const head = `${here.v} ${here.of.replace(/ needed$/, '')} here`;
   const rows = await page.locator('section.pace-sec', { hasText: 'What we are waiting on' }).first().locator('.mt-row').evaluateAll(els => els.map(e => ({ what: e.querySelector('.mt-what')?.textContent?.trim() ?? '', when: e.querySelector('.mt-when-n')?.textContent?.trim() ?? '', late: e.classList.contains('is-late') })));
   const p = await paper(page.getByRole('button', { name: 'Materials report' }), 'materials.pdf');
   const lost = await missing(p.text, [head, ...rows.map(r => r.what), ...rows.filter(r => r.late).map(r => r.when)]);

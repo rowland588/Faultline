@@ -65,7 +65,10 @@ import { hoursWord } from '../lib/hoursLost';
 import { EvidenceThumb, EvidenceViewer, pinsOnJob } from '../ui/Evidence';
 import type { MediaRef } from '../types';
 import { CriticalTag } from '../ui/CriticalFields';
-import { fixFlag } from '../lib/critical';
+import { criticalProblems, fixFlag, riskProblems } from '../lib/critical';
+import { LeanClosing, LeanTiles } from '../ui/Lean';
+import { useJobMoney } from '../lib/useJobMoney';
+import { MONEY_WAIT, problemClosing, problemTiles } from '../lib/stageGatePages';
 import { listAllSnags, listWorkspaces, onDataChange } from '../db';
 import { withoutDemo } from '../lib/demo';
 import { jobGroup } from '../lib/snagsReport';
@@ -84,6 +87,8 @@ export function FixesScreen({ projectId }: { projectId: string }) {
   const tt = useTesting(projectId);
   /* Who is looking (lib/access) — a client reads the fixes and plans none. */
   const can = useAccess(projectId);
+  /* THE JOB'S MONEY (lib/useJobMoney) — every stage-gate page's last tile */
+  const money = useJobMoney(projectId);
   /* Arriving from a test's "Add a fix for this test" opens the form with that
      test picked. */
   const forParam = useRoute().query.get('for') ?? '';
@@ -179,6 +184,10 @@ export function FixesScreen({ projectId }: { projectId: string }) {
   const nextBy = st.upcoming.length ? plannedEnd(st.upcoming[0]) : undefined;
   const noted = notedProblems(tt.tests, tt.items, tt.assets);
   const tally = problemsTally(tt.tests, tt.items, tt.assets);
+  /* THE TILES' COUNTS (lib/stageGatePages) — the rail's tally, and the
+     critical problems and high risks the front page counts (lib/critical) */
+  const alive = tt.tests.filter(t => !t.deletedAt);
+  const pcounts = { ...tally, critical: criticalProblems(alive, tt.items, tt.assets).open.length, risks: riskProblems(alive, tt.items, tt.assets).open.length };
   /* A CRITICAL PROBLEM LEADS the problems with no fix (lib/critical), the
      oldest first as the rest are; a fix booked from one carries its tag. */
   /* Then the high risks, then the rest. */
@@ -228,18 +237,8 @@ export function FixesScreen({ projectId }: { projectId: string }) {
           {/* THE PAGE'S COUNT IS THE RAIL'S (lib/noted problemsTally): the
               fixes still to do and the problems no fix is booked for — the
               rail said "Problems 5" over 7 more (FLOW-AUDIT.md, 16). */}
-          <p className="cw-handover">
-            {tally.open > 0
-              ? <>
-                <b>{tally.open} open</b>
-                <span className="sub">{[tally.fixes ? `${tally.fixes} fix${tally.fixes === 1 ? '' : 'es'} still to do` : '', tally.noFix ? `${tally.noFix} with no fix yet` : ''].filter(Boolean).join(' · ')}</span>
-                {tally.late > 0 && <span className="sub in-late">{tally.late} late</span>}
-                {tally.done > 0 && <span className="sub">{tally.done} done</span>}
-              </>
-              : tally.done > 0
-                ? <b>Nothing outstanding — {tally.done} done</b>
-                : <b>Nothing on the list yet</b>}
-          </p>
+          {/* …said in the tiles under the header now (lib/stageGatePages:
+              open, critical, late, no fix yet, the money) — one place. */}
         </div>
         <div className="pace-head-actions">
           <button type="button" className="btn" disabled={pdfBusy || !onPaper} onClick={() => void pdf('report')}><Icon name="document" size="1.05em" />Problems report</button>
@@ -247,6 +246,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
         </div>
       </header>
       <AccessNote can={can} owner={project.lead} />
+      <LeanTiles tiles={problemTiles(pcounts, money ?? MONEY_WAIT)} className="sg-tiles" />
 
       {/* A fix that was done and never signed off asks first. */}
       {can.edit && <Verdicts tests={fixes} projectId={projectId}
@@ -432,6 +432,8 @@ export function FixesScreen({ projectId }: { projectId: string }) {
           {nextBy && <> The next one is wanted by {nice(nextBy)}.</>}
         </p>
       )}
+      {/* THE CLOSING LINE — the job's problems in one sentence, and the slip in money */}
+      {money && <LeanClosing closing={problemClosing(pcounts, money)} />}
     </div>
   );
 }

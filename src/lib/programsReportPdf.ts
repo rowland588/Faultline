@@ -12,6 +12,9 @@ import type { jsPDF } from 'jspdf';
 import type { ProgramLine, ProgramsReading, ProgTone } from './programsReport';
 import { san, OK, DANGER, BLUE } from './reportKit';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
+import { leanClosing } from './report/lean';
+import type { LeanTile } from './lean';
+import { programClosing } from './stageGatePages';
 import { SIZE, box, font, gap, rows, text, wrap } from './report/blocks';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
@@ -85,7 +88,10 @@ export async function drawProgramsReport(doc: jsPDF, x: { name: string; lead?: s
   /** A job's lines' own programs — planned on the line with no job, on the
    *  job's Programs page (ui/LineProgramsOnJob): each line's reading, after
    *  the job's own (lib/clientReport GateSection.linePrograms). */
-  linePrograms?: { line: string; reading: ProgramsReading }[] }): Promise<void> {
+  linePrograms?: { line: string; reading: ProgramsReading }[];
+  /** The job's money (lib/useJobMoney) — said in the closing line when the
+   *  slip has run one up. */
+  money?: LeanTile }): Promise<void> {
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
   const r = x.reading;
   const name = san(x.name);
@@ -120,6 +126,9 @@ export async function drawProgramsReport(doc: jsPDF, x: { name: string; lead?: s
       out.push({ ...text({ text: `On ${san(lp.line)}, with no job — ${san(lp.reading.says)}`, size: SIZE.h2, style: 'bold', before: gap(d, 's'), after: 4 }), keepWithNext: true });
       out.push(...programsBlocks(lp.reading, d));
     }
+    /* THE CLOSING LINE (docs/LEAN-PAGE.md; lib/stageGatePages) — the programs in
+       one sentence, as the page closes; the tiles above are its chips */
+    if (r.total) out.push(leanClosing(programClosing(r, x.money ?? { k: '', v: '', of: '' })));
     return out;
   };
   const density = await chooseDensity(base, d => blocks(d));

@@ -193,7 +193,9 @@ ok(await step.count() === 1 && !/is-done/.test(await step.getAttribute('class') 
 const P = sd.projectId;
 await go(`#/project/${P}/fixes`, 3000);
 const railN = async label => flat(await page.locator('.nv-rail .nv-ri', { has: page.locator('.nv-ri-l', { hasText: new RegExp(`^${label}$`) }) }).first().locator('.nv-n').innerText().catch(() => ''));
-const probsHead = flat(await page.locator('.pace-head .cw-handover').innerText());
+/* the page's counts are its tiles now (lib/stageGatePages) */
+const tileOf = async k => (await page.locator('.sg-tiles .ln-tile').evaluateAll(els => els.map(e => ({ k: e.querySelector('.ln-k')?.textContent?.trim() ?? '', v: e.querySelector('.ln-v')?.textContent?.trim() ?? '', of: e.querySelector('.ln-of')?.textContent?.trim() ?? '' })))).find(x => x.k === k) ?? { v: '', of: '' };
+const probsHead = `${(await tileOf('Open')).v} open`;
 const tally = await page.evaluate(async pid => {
   const [db, noted] = await Promise.all([import('/src/db.ts'), import('/src/lib/noted.ts')]);
   return noted.problemsTally(await db.listTests(pid), await db.listTestItems(pid), await db.listAssets(pid));
@@ -203,14 +205,14 @@ ok(probsHead.startsWith(`${tally.open} open`) && (await railN('Problems')).start
 await go(`#/project/${P}/install`, 3000);
 await shot('16-install');
 const needsI = (await page.locator('.cg-needs .nd-row').allInnerTexts()).map(flat);
-const lateHead = Number(/(\d+) late/.exec(flat(await page.locator('.pace-head .cw-handover').innerText()))?.[1] ?? 0);
+const lateHead = Number((await tileOf('Late')).v || 0);
 /* the gates are the Plan's tabs (docs/STAGEGATE-UX.md): Install's count is its tab's */
 const railI = flat(await page.locator('.plt-t', { hasText: /^Install/ }).locator('.plt-n').innerText().catch(() => ''));
 ok(needsI.some(n => /^Late Domino coder — not on site, was /.test(n)) && Number(/(\d+) late/.exec(railI)?.[1] ?? -1) === lateHead,
   `16b Install's Needs you: the coder late on site, as the control room lists it; its tab "${railI}", head ${lateHead} late`);
 await go(`#/project/${P}/handover`, 3000);
 const needsH = (await page.locator('.cg-needs .nd-row').allInnerTexts()).map(flat);
-const headH = flat(await page.locator('.pace-head .cw-handover').innerText());
+const headH = (await tileOf('Not added yet')).of;
 const bareH = Number(/(\d+) machines? with none yet/.exec(headH)?.[1] ?? 0);
 ok(bareH > 0 && needsH.some(n => /^Not added yet .+ — none of the hand-over items yet$/.test(n)) && !needsH.some(n => /^Nothing/.test(n)),
   `16c Hand over's Needs you names the machines with none (${bareH}): ${needsH.join(' | ').slice(0, 160)}`);

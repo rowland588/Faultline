@@ -113,6 +113,20 @@ card) keep their card form; they take the band only.
    × its margin a pack, all from Your factory); on time, what a day late
    would cost; a line with something unsaid names what to give, and where.
    The closing line says the slip in money too.
+   **3b. The stage gate's pages and papers** (Rowland, 17 October: "Stage
+   gate entire system is the current priority") — `lib/stageGatePages`:
+   Commission (passed of the tests, didn't pass, didn't run, still to run),
+   Install · Set up · Hand over (done of the steps, late, problems, not
+   added yet), the job's Problems (open, critical, late, no fix yet) and
+   Materials (here of what is needed, late, waiting, no date) each wear five
+   tiles under the header — **the header's count line moved into them**,
+   one place, as Materials' own note asked when it first lost its tiles —
+   and every one ends on the job's money (`lib/useJobMoney`: what the slip
+   costs, or what a day late would) and a closing line. Programs keeps its
+   chips as its tiles (each is its filter) and gains the closing line. On
+   paper: the commissioning report carries Commission's tiles and closing
+   line; the materials report its page's; the programs report its closing
+   line, the money in it when the slip has run one up.
 4. The 6M report and Problems.
 5. The control room, the factory and the day.
 6. SMED, value stream, work sampling, capability.

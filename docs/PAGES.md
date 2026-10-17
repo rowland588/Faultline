@@ -50,11 +50,14 @@ So:
 | Your factory | the lines in floor order |
 | A line — its own page | the line, machine by machine: the sentence, a card a machine (its problems by priority, whose, its stops a week in minutes and £, the constraint) · Time a stop, first in the header · Stops timed first among its tools — the stopwatch and its Pareto (16 October, docs/UPGRADE-AUDIT.md F1: the floor's own tool had no door from the line) |
 | Programs | machine by machine · a row a program |
-| Programs — a stage-gate job | the programs in a sentence · the states worth showing, each a filter · a row a program, machine by machine · how its test went, on its row · a program added to a machine (16 October, docs/STAGEGATE-UX.md: the eight tiles became the chips worth showing, the machine chips a select, the Programs list folded at the foot went — every field is on the row) |
+| Programs — a stage-gate job | the programs in a sentence · the states worth showing, each a filter · a row a program, machine by machine · how its test went, on its row · a program added to a machine (16 October, docs/STAGEGATE-UX.md: the eight tiles became the chips worth showing, the machine chips a select, the Programs list folded at the foot went — every field is on the row) · the closing line (17 October: its counted figures are its chips, each a filter, so no second row of tiles) |
 | Problems | the register |
 | A stage-gate job | the verdict · the band's five tiles — handover, late of what is still to do, critical, fixes open, what the slip costs (17 October: the same five the one-page status and the full report count, docs/LEAN-PAGE.md; Outstanding is Late's "of" now, not a tile of its own) · Needs you · where each machine is · its machines in the rail, each a page (desk) |
 | A machine — its own page | its four gates in a row · its stages and tests, gate by gate · its programs (16 October, docs/STAGEGATE-UX.md slice 3: a machine's name opens this page, not a drawer over the page it was named on) |
-| Commission | the plan's tabs, Commission on · Needs you · the board (desk) / a card a machine (phone) |
+| Commission | the plan's tabs, Commission on · the five tiles — passed of the tests, didn't pass, didn't run, still to run, what the slip costs (17 October, the lean page: the header's counts moved into them, one place) · Needs you · the board (desk) / a card a machine (phone) · the closing line |
+| Install (and Set up, Hand over) | the plan's tabs · the five tiles — done of the steps, late, problems, not added yet, what the slip costs (17 October: the header's counts moved into them) · Needs you · the closing line |
+| Problems — a stage-gate job | the five tiles — open, critical, late, no fix yet, what the slip costs (17 October: the header's count moved into them; the rail's tally is the Open tile) · the closing line |
+| Materials | the five tiles — here of what is needed, late, waiting, no date, what the slip costs (17 October: the header's count moved into them) · what we are waiting on, a row a material · the closing line |
 | The plan | the Gantt · the plan's tabs, Timeline on (16 October: the four gates and the timeline are one Plan in the rail, its tabs on each) |
 | A 6M job | the verdict · the fishbone drawn |
 | The 6M board | the six bones |

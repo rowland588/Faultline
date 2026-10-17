@@ -1012,6 +1012,19 @@ is still wired.
   and the evidence). Proved by `report-stress.mjs`: every tile's words and the
   closing line on both papers, at three sizes and forty random jobs; the band
   by `inventory.mjs`.
+- **The lean page, slice 3b — the stage gate's pages and papers.** No new
+  record: `lib/stageGatePages` reads the counts each page's header already
+  said (lib/install, lib/noted problemsTally, lib/materialsReport,
+  lib/programsReport) into five tiles and a closing line, the last tile the
+  job's money (`lib/useJobMoney` → lib/stageGateLean moneyTile). Shows on:
+  Commission, Install, Set up, Hand over, the job's Problems and Materials
+  (the tiles under the header — the header's count line moved into them —
+  and the closing line at the foot); Programs (its chips stay its tiles; the
+  closing line); the commissioning report (Commission's tiles and closing
+  line), the materials report and the programs report (their closing line,
+  the money in it). Proved by `report-stress.mjs` (the commissioning
+  paper's tiles and closing line) and `inventory.mjs` (each page's tiles and
+  closing line); the checks that read the old header counts read the tiles.
 - **Next:** the lean page, slice 4 — the 6M report and Problems
   (`docs/LEAN-PAGE.md`); then Stage 3 — the line is the hub (its products,
   readiness, health).

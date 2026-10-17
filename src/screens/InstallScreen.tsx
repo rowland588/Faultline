@@ -48,6 +48,9 @@ import { usePrograms } from '../lib/usePrograms';
 import { programsReading } from '../lib/programsReport';
 import { AddAsset } from './TestsScreen';
 import { useAccess } from '../cloud/access';
+import { LeanClosing, LeanTiles } from '../ui/Lean';
+import { useJobMoney } from '../lib/useJobMoney';
+import { MONEY_WAIT, gateClosing, gateTiles } from '../lib/stageGatePages';
 import { AccessNote } from '../ui/AccessNote';
 import { PlanTabs } from '../ui/PlanTabs';
 
@@ -104,6 +107,8 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
   const face = FACE[gate];
   const filmed = useFilmed(projectId, tt.tests, tt.items);
   const can = useAccess(projectId);
+  /* THE JOB'S MONEY (lib/useJobMoney) — every stage-gate page's last tile */
+  const money = useJobMoney(projectId);
   /* The job's programs — what a sign-off says was still open on its machine
      (lib/install doneTodayPatch). */
   const progs = usePrograms(projectId);
@@ -148,6 +153,11 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
      head and in Needs you, as the grid offers them (lib/install gateGaps). */
   const gaps = gateGaps(grid, gate);
   const unplanned = gaps.unplanned;
+  /* STAGES STOPPED BY A PROBLEM, and parts said to have failed — what Needs
+     you lists first; counted once here for the tiles (lib/stageGatePages) */
+  const problems = grid.rows.reduce((n, r) => n + r.cells.reduce((k, c) => k + (!c ? 0
+    : (c.tone === 'problem' ? 1 : 0) + partsOf(c.step.id, tt.items).filter(p => resultNow(p)?.is === 'failed').length), 0), 0);
+  const counts = { gate, done, total: steps.length, late, problems, notAdded: unplanned, bare: gaps.bare.length };
   /* A CARD FOR EVERY STEP ON THE GATE (docs/AUDIT.md, bar 3) — each the card
      its record prints, machine by machine, one document (lib/testCards) */
   const cardWord = gate === 'handover' ? 'Item' : 'Step';
@@ -169,18 +179,12 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
       <header className="pace-head">
         <div className="pace-head-main">
           <h1 className="pace-title">{GATE_WORD[gate]}</h1>
+          {/* THE COUNTS ARE THE TILES under the header (lib/stageGatePages:
+              done of the steps, late, problems, not added yet — the one word
+              the grid, its key and the client report use — and the money);
+              the line here keeps how many machines are under way and the doors. */}
           <p className="cw-handover">
-            {steps.length === 0
-              ? <b>Nothing planned yet</b>
-              : <>
-                <b>{done} of {steps.length} {gate === 'handover' ? 'items' : 'steps'} done</b>
-                {going > 0 && <span className="sub">{going} machine{going === 1 ? '' : 's'} {face.doing}</span>}
-                {late > 0 && <span className="sub in-late">{late} late</span>}
-                {/* A stage not on a machine's list — "not added yet", the one word the
-                    grid, its key and the client report use for it. */}
-                {unplanned > 0 && <span className="sub">{unplanned} not added yet</span>}
-                {gaps.bare.length > 0 && <span className="sub">{gaps.bare.length} machine{gaps.bare.length === 1 ? '' : 's'} with none yet</span>}
-              </>}
+            {going > 0 && <span className="sub">{going} machine{going === 1 ? '' : 's'} {face.doing}</span>}
             <button className="cw-link" onClick={() => nav(`/project/${projectId}/day`)}>Read the day</button>
             {/* THE HANDOVER REPORT — the line as it was really handed over
                 (docs/HANDOVER.md), from the gate it is about. */}
@@ -195,6 +199,9 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
         </div>
       </header>
       <AccessNote can={can} owner={project.lead} />
+      {/* THE TILES (docs/LEAN-PAGE.md; lib/stageGatePages) — the header's
+          counts, each of what it should be, and the job's money */}
+      <LeanTiles tiles={gateTiles(counts, money ?? MONEY_WAIT)} className="sg-tiles" />
 
       {/* NEEDS YOU — first, as on Commission (docs/SIMPLE.md): only the
           stages that are late or hit a problem, machine and stage, in words;
@@ -358,6 +365,8 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
           The line standard is a tool; Hand over is where a stage-gate job
           uses it. */}
       {gate === 'handover' && <StandardsCard projectId={projectId} can={can} />}
+      {/* THE CLOSING LINE — the gate in one sentence, and the slip in money */}
+      {money && <LeanClosing closing={gateClosing(counts, money)} />}
     </div>
   );
 }

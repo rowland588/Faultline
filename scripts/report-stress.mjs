@@ -349,6 +349,9 @@ for (const size of SIZES) {
     const { commissionPrograms } = await import('/src/lib/commissionPrograms.ts');
     const cm = commissioningReport({ client: r, handover: ho, assets, tests, programs: commissionPrograms(programs, [], assets, tests), today });
     from = 'commissioning: top'; add('commissioning', cm.name, 'Scan for it now'); add('commissioningCards', cm.name.toUpperCase());
+    /* the lean page (lib/stageGatePages): Commission's tiles and closing line, on its paper too */
+    from = 'commissioning: the tiles'; for (const t of cm.tiles) add('commissioning', t.k.toUpperCase(), t.v, t.of);
+    from = 'commissioning: the closing line'; add('commissioning', cm.closing.text.length > 90 ? cm.closing.text.slice(0, 90) : cm.closing.text);
     for (const m of cm.machines) {
       from = 'commissioning: a machine'; add('commissioning', m.name, m.verdict.word, m.testsSaid, m.next ? `Next: ${m.next}` : '');
       from = 'commissioning: a test'; for (const t of m.tests) add('commissioning', t.title, t.word, t.passesIf ? `Had to show: ${t.passesIf}` : '', t.said ? `Seen: ${t.said}` : '');

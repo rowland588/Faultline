@@ -10,6 +10,10 @@ import type { jsPDF } from 'jspdf';
 import type { MaterialPaperRow, MaterialsReading } from './materialsReport';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { SIZE, box, font, gap, heading, rows, text, wrap, type Row } from './report/blocks';
+import { leanClosing, leanTiles } from './report/lean';
+import type { LeanTile } from './lean';
+import { materialClosing, materialTiles } from './stageGatePages';
+import { niceDay } from './weeks';
 import { san } from './reportKit';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
@@ -79,11 +83,20 @@ function table(list: MaterialPaperRow[]): Block {
   });
 }
 
-function blocksOf(r: MaterialsReading, d: Density): Block[] {
+/* THE LEAN PAGE (docs/LEAN-PAGE.md; lib/stageGatePages) — the page's tiles,
+   and its closing line, the job's money among them when the page passed it */
+const leanOf = (r: MaterialsReading, money?: LeanTile) => {
+  const m = money ?? { k: '', v: '', of: '' };
+  return { tiles: materialTiles(r.tally, m, iso => niceDay(iso)).slice(0, money ? 5 : 4), closing: materialClosing(r.tally, m) };
+};
+
+function blocksOf(r: MaterialsReading, d: Density, money?: LeanTile): Block[] {
   const out: Block[] = [];
+  const lean = leanOf(r, money);
   out.push(text({ text: `WHAT WE ARE WAITING ON · ${r.job.toUpperCase()}`, size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
   out.push(text({ text: 'Materials', size: SIZE.title, style: 'bold', after: 4 }));
   out.push(text({ text: `${r.job} · printed ${r.printed}`, colour: MUTED, after: gap(d, 'm') }));
+  if (r.total) out.push(leanTiles(lean.tiles));
   out.push(band(r.headline, r.says, r.late.length > 0));
   if (r.late.length) { out.push(heading('Late — what is holding us up', `${r.late.length} past the day ${r.late.length === 1 ? 'it was' : 'they were'} due, the longest first`)); out.push(table(r.late)); }
   if (r.coming.length) { out.push(heading('Still coming', 'by the day each is due')); out.push(table(r.coming)); }
@@ -92,14 +105,15 @@ function blocksOf(r: MaterialsReading, d: Density): Block[] {
     out.push(heading(`In — ${r.here.length} of ${r.total}`));
     out.push(text({ text: `${r.here.join(' · ')}.`, size: T, colour: INK2, after: gap(d, 'm') }));
   }
+  if (r.total) out.push(leanClosing(lean.closing));
   return out;
 }
 
 /** Draw the materials into `doc`: one page where it fits, every row always on it. */
-export async function drawMaterialsReport(doc: jsPDF, r: MaterialsReading): Promise<void> {
+export async function drawMaterialsReport(doc: jsPDF, r: MaterialsReading, money?: LeanTile): Promise<void> {
   const base = { doc, x: M, w: CW, top: M, bottom: H - M - 20 };
-  const density = await chooseDensity(base, d => blocksOf(r, d));
-  await pour({ ...base, density, dry: false }, blocksOf(r, density), () => doc.addPage('a4', 'portrait'));
+  const density = await chooseDensity(base, d => blocksOf(r, d, money));
+  await pour({ ...base, density, dry: false }, blocksOf(r, density, money), () => doc.addPage('a4', 'portrait'));
   const pages = doc.getNumberOfPages();
   const long = `${r.job} · what we are waiting on · printed ${r.printed}`;
   const foot = wrap(doc, long, CW - 60, 7.5).length === 1 ? long : `What we are waiting on · printed ${r.printed}`;
@@ -112,17 +126,17 @@ export async function drawMaterialsReport(doc: jsPDF, r: MaterialsReading): Prom
 }
 
 /** Made from the job's records and handed over: saved, the bar offering Open and Send. */
-export async function saveMaterialsReport(projectId: string, job: string, lineName: (id?: string) => string | undefined): Promise<void> {
+export async function saveMaterialsReport(projectId: string, job: string, lineName: (id?: string) => string | undefined, money?: LeanTile): Promise<void> {
   const { listMaterials, listTests, listTestItems } = await import('../db');
   const { loadPdfLib, deliverPdf, titlePdf } = await import('./savePdf');
   const { pdfFileName } = await import('./fileName');
   const { materialsReading } = await import('./materialsReport');
-  const { todayISO, niceDay } = await import('./weeks');
+  const { todayISO } = await import('./weeks');
   const [materials, tests, items] = await Promise.all([listMaterials(projectId), listTests(projectId), listTestItems(projectId)]);
   const { jsPDF } = await loadPdfLib();
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   const today = todayISO();
   titlePdf(doc, `${job} — materials`);
-  await drawMaterialsReport(doc, materialsReading({ job, printed: niceDay(today, { year: true }), materials, lineName, tests, items, today }));
+  await drawMaterialsReport(doc, materialsReading({ job, printed: niceDay(today, { year: true }), materials, lineName, tests, items, today }), money);
   await deliverPdf(doc, pdfFileName(job, 'materials', today));
 }

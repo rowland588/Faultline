@@ -5982,6 +5982,16 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .vd-n.is-warn { color: var(--shell-warn); }
 .vd-n.is-bad { color: var(--shell-bad); }
 .vd-l { font-size: var(--t-label); font-weight: 700; color: var(--shell-muted); }
+/* THE STAGE GATE'S PAGES (lib/stageGatePages) — the header's counts as the
+   lean tiles, under the header; on a phone, tight, so Needs you stays near the
+   top, the money across the foot of them */
+.ln-tiles.sg-tiles { margin: 4px 0 16px; }
+@media (max-width: 640px) {
+  .sg-tiles .ln-tile { padding: 8px 10px 9px; }
+  .sg-tiles .ln-v { font-size: 24px; }
+  .sg-tiles .ln-of { font-size: var(--t-label); }
+  .sg-tiles .ln-tile:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
 /* the lean tiles (lib/stageGateLean): what each number is of, under its word */
 .vd-of { font-size: var(--t-label); font-weight: 500; line-height: 1.3; color: var(--shell-dim); }
 .vd-tiles.is-lean .vd-tile { max-width: 172px; }
