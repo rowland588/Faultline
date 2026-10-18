@@ -56,7 +56,12 @@ interface Turn {
   /** Starting points offered with this turn — closest to what was said. */
   offers?: Start[];
 }
-interface Draft { def: FlowDefinition | null; turns: Turn[]; start?: Start; assisted: boolean }
+interface Draft {
+  def: FlowDefinition | null; turns: Turn[]; start?: Start; assisted: boolean;
+  /** A next version's conversation: when the method it began from was last
+   *  saved — a draft kept on this device is set aside if the method moved since. */
+  baseAt?: number;
+}
 
 const plural = (n: number, one: string, more = `${one}s`) => `${n} ${n === 1 ? one : more}`;
 const keyOfPage = (q: URLSearchParams) => `fl.design.${q.get('version') ? `v:${q.get('version')}` : q.get('from') ? `f:${q.get('from')}` : q.get('template') ? `t:${q.get('template')}` : 'new'}`;
@@ -107,7 +112,14 @@ export function DesignScreen() {
      to make a new one from, or a method's next version */
   const seeded = useRef(false);
   useEffect(() => {
-    if (seeded.current || draft.def || !methods) return;
+    if (!methods) return;
+    /* a conversation kept on this device about a method that has changed since is not the method as it stands */
+    if (!seeded.current && draft.def && versionOf && draft.baseAt !== (openDraft ?? versionOf).updatedAt) {
+      seeded.current = false;
+      setDraft({ def: null, turns: [], assisted: false });
+      return;
+    }
+    if (seeded.current || draft.def) return;
     const t = q.get('template'), f = q.get('from'), v = q.get('version');
     if (t) {
       const e = libraryEntry(t);
@@ -119,13 +131,13 @@ export function DesignScreen() {
       seeded.current = true;
       const from = openDraft ?? versionOf;
       setDraft({
-        def: structuredClone(from.definition), assisted: false,
+        def: structuredClone(from.definition), assisted: false, baseAt: from.updatedAt,
         turns: [{ who: 'app', text: openDraft
           ? `This is version ${openDraft.version} of “${versionOf.definition.name}”, already a draft — what you change here goes into it. Say what should change.`
           : `This is “${versionOf.definition.name}” as it stands, version ${versionOf.version}. Say what should change; it becomes version ${versionOf.version + 1}, a draft. Projects on version ${versionOf.version} stay on it until they are moved.` }],
       });
     }
-  }, [methods]); // eslint-disable-line react-hooks/exhaustive-deps -- seeded once, when the methods are first read
+  }, [methods, draft.def]); // eslint-disable-line react-hooks/exhaustive-deps -- seeded once, when the methods are first read
 
   const say = (t: Turn) => setDraft(d => ({ ...d, turns: [...d.turns, t] }));
   function begin(start: Start, d: FlowDefinition) {
@@ -199,7 +211,8 @@ export function DesignScreen() {
     if (!kept.ok) { setErr(kept.why); return; }
     if (approve) {
       const a = await approveMethod(ctx, kept.value.id);
-      if (!a.ok) { setErr(`${a.why} ${a.issues?.map(i => i.message).join(' ') ?? ''}`.trim()); return; }
+      /* kept, not approved: its own page says what stops it — never kept twice from here */
+      if (!a.ok) { writeDraft(store, null); nav(`/methods/${kept.value.id}`); return; }
     }
     writeDraft(store, null);
     nav(`/methods/${kept.value.id}${approve && mode === 'new' ? '?start=1' : ''}`);
