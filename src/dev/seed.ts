@@ -126,6 +126,13 @@ export interface Seeded {
   lossActionId: string;
   lossProofId: string;
   lossStageId: string;
+  /** A method of one's own (lib/flow): approved, with a draft of its next
+   *  version open, and a project running it part-way through. */
+  methodId: string;
+  methodDraftId: string;
+  flowProjectId: string;
+  /** A step of it that did not pass, "stage/step/machine". */
+  flowFailedStep: string;
 }
 
 /* A CHANGEOVER'S EIGHT ELEMENTS, as lapped on the phone (SMED, tool 6): who
@@ -1045,7 +1052,53 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   const cw1 = await addLineProgram(ws.id, { what: 'CW-1 Finest Red 2kg', machine: 'Checkweigher', runs: 'Finest Red 2kg' });
   if (cw1) await putProgram({ ...cw1, state: 'proved', provedOn: iso(-10) });
 
+  /* A METHOD OF ONE'S OWN (lib/flow; docs/PLATFORM-STATUS.md): the stage
+     gate's usual lists written as a method and approved; a project on it
+     with two machines, Install done on one and late on the other, its gate
+     passed over with a reason; a performance run below its rate; and the
+     draft of version 2 open. Every write through the operations, as a
+     person makes them. */
+  const flowSeed = await (async () => {
+    const ops = await import('../lib/flow/operations');
+    const { appStageGate } = await import('../lib/flow/templates');
+    const { can } = await import('../lib/access');
+    const ctx = { who: 'Rowland', can: can('owner'), today: iso(0) };
+    const m = await ops.createMethod(ctx, { definition: { ...appStageGate(), name: 'Commissioning — tray lines', purpose: 'New tray-line equipment taken through its gates to handover.' }, origin: 'usual' });
+    if (!m.ok) throw new Error(m.why);
+    await ops.approveMethod(ctx, m.value.id);
+    const p = await ops.startProject(ctx, { methodId: m.value.id, name: 'Line 9 — new tray line', machines: ['Tray sealer', 'Case packer'], startedOn: iso(-20), people: { site: 'Lee Hart', supplier: 'Brillopak — Dave' } });
+    if (!p.ok) throw new Error(p.why);
+    let fp = await ops.loadFlowProject(p.value.id, iso(0));
+    if (!fp) throw new Error('no flow project');
+    const [install, setup, commission] = fp.state.stages;
+    for (const st of install.steps) {
+      const ref = { projectId: p.value.id, stageKey: install.key, stepKey: st.def.key, ...(st.assetId ? { assetId: st.assetId } : {}) };
+      if (st.machine === 'Case packer' && st === install.steps.filter(x => x.machine === 'Case packer').slice(-1)[0]) {
+        await ops.recordStep(ctx, ref, { plannedFor: iso(-2) });
+      } else {
+        await ops.completeStep(ctx, ref, { note: st.machine === 'Tray sealer' ? 'Done with the OEM' : undefined });
+      }
+    }
+    await ops.passGate(ctx, { projectId: p.value.id, stageKey: install.key, override: 'Dry run on the case packer moved to Monday — agreed with the OEM' });
+    for (const st of setup.steps.slice(0, 3)) {
+      await ops.completeStep(ctx, { projectId: p.value.id, stageKey: setup.key, stepKey: st.def.key, ...(st.assetId ? { assetId: st.assetId } : {}) });
+    }
+    fp = await ops.loadFlowProject(p.value.id, iso(0));
+    const run = commission.steps.find(x => x.def.answer === 'measure' && x.machine === 'Tray sealer');
+    let failed = '';
+    if (run) {
+      const ref = { projectId: p.value.id, stageKey: commission.key, stepKey: run.def.key, ...(run.assetId ? { assetId: run.assetId } : {}) };
+      const vals = Object.fromEntries((run.def.fields ?? []).filter(f => f.type === 'reading').map(f => [f.key, f.min !== undefined ? f.min * 0.8 : f.max !== undefined ? f.max * 1.5 : 10]));
+      await ops.completeStep(ctx, ref, { values: vals, note: 'Film tracking off at speed' });
+      failed = `${commission.key}/${run.def.key}/${run.assetId ?? ''}`;
+    }
+    const v2 = await ops.draftNewVersion(ctx, m.value.id, undefined, 'A reliability run before handover');
+    if (!v2.ok) throw new Error(v2.why);
+    return { methodId: m.value.id, methodDraftId: v2.value.id, flowProjectId: p.value.id, flowFailedStep: failed || `${commission.key}//` };
+  })();
+
   return {
+    ...flowSeed,
     wsId: ws.id, projectId: proj.id, standardId, lineStandardId: lineOnly, lineOnJobId: lineOnJob, lineId: line.id, caseId: kase.id,
     segmentId: seg.id, assetId: asset.id,
     observations: (await listObservations(ws.id)).length,

@@ -203,7 +203,7 @@ export const roleName = (def: Pick<FlowDefinition, 'roles'>, key?: string): stri
  *  unique against the keys already taken. */
 export function keyOf(words: string, taken: Iterable<string> = []): string {
   const used = new Set(taken);
-  let base = words.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32);
+  let base = words.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32).replace(/-+$/, '');
   if (!base || !/^[a-z]/.test(base)) base = `k-${base || 'item'}`.slice(0, 32);
   let k = base, n = 2;
   while (used.has(k)) k = `${base}-${n++}`;
@@ -226,3 +226,44 @@ export const ANSWER_WORD: Record<FlowAnswer, string> = {
 export const FIELD_WORD: Record<FieldType, string> = {
   text: 'Words', number: 'Number', reading: 'Reading with limits', date: 'Date', choice: 'Choice', yesno: 'Yes or no', person: 'Person', calc: 'Worked out',
 };
+
+/** A field's key — a word a worked-out sum can name ("packs / minutes"), so
+ *  underscores, never hyphens (lib/flow/formula reads a-z, 0-9 and _). */
+export const fieldKeyOf = (label: string, taken: Iterable<string> = []): string =>
+  keyOf(label, [...taken].map(k => k.replace(/_/g, '-'))).replace(/-/g, '_');
+
+/* ---------------------------- renaming a key ------------------------------ */
+/* Keys never change under records. A first draft — never approved, so no
+   project has a record pointing at it — may take its keys from its words as
+   they are written, so a step is "kit-laid-out", not "a-new-step". These
+   move every reference with the key. */
+
+/** Give a step a new key, and everything that names it — its waits-on and
+ *  every gate condition — the new one. */
+export function rekeyStep(def: FlowDefinition, from: string, to: string): void {
+  if (from === to) return;
+  for (const st of def.stages) {
+    for (const s of st.steps) {
+      if (s.key === from) s.key = to;
+      if (s.after) s.after = s.after.map(a => (a === from ? to : a));
+    }
+    for (const c of st.gate.conditions) if ('step' in c && c.step === from) c.step = to;
+  }
+}
+
+/** Give a step's field a new key, and its sums and the gate conditions that
+ *  read it the new one. */
+export function rekeyField(def: FlowDefinition, stepKey: string, from: string, to: string): void {
+  if (from === to) return;
+  const word = new RegExp(`\\b${from.replace(/[^a-z0-9_]/g, '')}\\b`, 'g');
+  for (const st of def.stages) {
+    for (const s of st.steps) {
+      if (s.key !== stepKey) continue;
+      for (const f of s.fields ?? []) {
+        if (f.key === from) f.key = to;
+        if (f.formula) f.formula = f.formula.replace(word, to);
+      }
+    }
+    for (const c of st.gate.conditions) if (c.type === 'fieldMeets' && c.step === stepKey && c.field === from) c.field = to;
+  }
+}

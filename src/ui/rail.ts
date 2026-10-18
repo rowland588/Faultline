@@ -115,6 +115,7 @@ export function hereOf(route: Route): string {
     case 'lineHome': return `line:${route.wsId}`;
     case 'factory': return 'factory';
     case 'linePrograms': return 'lineprograms';
+    case 'methods': case 'method': return 'methods';
     case 'lineTools': return route.view === 'balance' ? 'linebalance' : route.view === 'work' ? 'linework' : 'linestandard';
     /* a line's own product — its map, its line balance (?at=work) or its
        Line capacity (?at=balance) — lights the tool it is, as the list does */
@@ -371,10 +372,14 @@ export function phoneBar(groups: RailGroup[], model: PlanModel): RailLine[] {
   const inLine = all.find(l => l.on && (l.sub || l.key.startsWith('line:')));
   /* A stage-gate job's bar carries the Plan — opening on the gate the job is
      at — or the place it is on (docs/FLOW.md item 3; docs/STAGEGATE-UX.md). */
-  const at = model === 'commissioning' ? by('plan') : main[0];
+  /* a method of one's own: the stage it is at — the first not passed — and its method */
+  const at = model === 'commissioning' ? by('plan')
+    : model === 'flow' ? (main.find(l => l.key.startsWith('stage-') && l.state !== 'g') ?? main[0]) : main[0];
   const current = main.find(l => l.on && l.key !== 'fixes') ?? inLine ?? at;
-  const fourth = model === 'commissioning' ? by('fixes') : (current?.key === 'board' ? by('materials') : by('board'));
-  const five = [home, job, current, fourth].filter((l): l is RailLine => !!l);
+  const fourth = model === 'commissioning' ? by('fixes') : model === 'flow' ? by('method')
+    : (current?.key === 'board' ? by('materials') : by('board'));
+  /* each place once — before a method's stages are read, its first line and its method line are the same */
+  const five = [home, job, current, fourth].filter((l, i, all): l is RailLine => !!l && all.findIndex(x => x?.key === l.key) === i);
   const onBar = five.some(l => l.on);
   return [
     ...five.map(l => ({ ...l, label: l.key === 'job' ? 'This job' : l.label })),

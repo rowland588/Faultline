@@ -125,6 +125,9 @@ export interface ProjectFlow {
   methodId: ID;
   familyId: ID;
   version: number;
+  /** The method's name when the project started on it — said on the control
+   *  room's row and the rail without reading the method. */
+  name?: string;
   /** ISO day the work started — steps due "n days from the start" count from it. */
   startedOn: string;
   /** Who does each role on this project — role key → a person's name. */

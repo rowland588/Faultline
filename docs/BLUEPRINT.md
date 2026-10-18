@@ -144,6 +144,16 @@ becomes a page of its own next (slice 3). 6M (board, fishbone,
 evidence, proof). Lever tree. Their machines, programs and capacity come from
 the lines they are on.
 
+**Methods** (`#/methods`, from the control room's rail; built 18 October,
+docs/PLATFORM-STATUS.md). Methods of one's own, written as data
+(`lib/flow`): the library; one method read as a plan and written while a
+draft — its roles, stages, steps (per machine or once; how each is
+answered; what it must show) and what each gate needs, the validator saying
+in words what stops it running — approved, versioned, and started on a
+project. **A job on a method** is a fourth kind of job beside the three: its
+front page is the lean page with the method's stages as its picture, a step
+and a gate each in a sheet, its paper the method report.
+
 ---
 
 ## 4. Connect the dots — where each record shows (target)
@@ -167,6 +177,9 @@ the lines they are on.
 | Win | — | — | the job's front page, Today's update, the meeting | client report; 6M report |
 | Walk (filmed, frames) | its tools | — | a marked frame on a problem; the standard's picture; a cause known by *observed* | the problem's card (the frame); the 6M report's evidence |
 | Tree node (lever tree) | — | the job's verdict | the tree | the client report for a lever-tree job |
+| Method | — | Methods (the library) on the rail | its rail's stages and "The method"; its Details say which version it runs | the method report's band |
+| Step done / gate passed | — | the job's row: its stages in their tones, at the stage it is on; its steps in the week, the late, Who owes what (a supplier-side role under the supplier) | the job's page: the stage strip, a step per machine, the gate line, the action plan; the rail's stage squares | the method report — every step, every gate condition, who confirmed a check, a pass over what was unmet with its reason |
+| Activity | — | — | the job's "What has happened"; the method's "Its history" | — (slice 5: on the report) |
 
 A screen that shows a record outside this table must add a row here.
 

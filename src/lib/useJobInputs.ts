@@ -19,6 +19,8 @@ import { currentLosses, lossCardLine, studyHref } from './studyLinks';
 import { linesOnTarget } from './onTarget';
 import { todayISO } from './weeks';
 import { sixmProblemOf, type JobInput, type PacedInput, type SixMProblem } from './portfolio';
+import { loadFlowProject } from './flow/operations';
+import { flowJobMissing, flowJobOf, suppliersOf } from './flow/job';
 
 export interface JobInputs { gate: JobInput[]; paced: PacedInput[] }
 
@@ -31,7 +33,9 @@ export function useJobInputs(projects: Project[]): JobInputs | null {
     let timer: number | undefined;
     const load = async () => {
       const gateProjects = projects.filter(p => planModel(p) === 'commissioning');
-      const pacedProjects = projects.filter(p => planModel(p) !== 'commissioning');
+      const pacedProjects = projects.filter(p => planModel(p) === 'board' || planModel(p) === 'tree');
+      /* a method of its own (lib/flow): read by its runtime, as its page reads it */
+      const flowProjects = projects.filter(p => planModel(p) === 'flow');
       const gate = await Promise.all(gateProjects.map(async project => ({
         project,
         tests: await listTests(project.id),
@@ -93,7 +97,11 @@ export function useJobInputs(projects: Project[]): JobInputs | null {
           onTarget: linesOnTarget(lines.map((l, i) => ({ name: l.name, series: series[i] }))),
         };
       }));
-      if (live) setInputs({ gate, paced });
+      const flows = await Promise.all(flowProjects.map(async (project): Promise<PacedInput> => {
+        const fp = await loadFlowProject(project.id, todayISO()).catch(() => undefined);
+        return { project, steps: [], lines: [], atTarget: 0, judged: 0, flow: fp ? flowJobOf(project, fp.state, suppliersOf(fp.method.definition, project.flow?.people)) : flowJobMissing() };
+      }));
+      if (live) setInputs({ gate, paced: [...paced, ...flows] });
     };
     void load();
     /* Anything written anywhere — here, or synced from the phone — redraws

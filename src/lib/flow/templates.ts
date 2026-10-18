@@ -166,3 +166,10 @@ export const startOf = (p: Pick<Project, 'plannedAt' | 'createdAt'>): string =>
   p.plannedAt ?? new Date(p.createdAt).toISOString().slice(0, 10);
 
 export { appStages };
+
+/** A method from nothing — one stage, its gate waiting on every step in it.
+ *  Kept runnable-shaped so the editor always has somewhere to add a step. */
+export const blankDefinition = (name = 'New method'): FlowDefinition => ({
+  schema: FLOW_SCHEMA, name, purpose: '', kind: 'other', roles: [],
+  stages: [{ key: 'stage-1', name: 'Stage 1', steps: [], gate: { conditions: [{ id: 'all-done', type: 'stepsDone', policy: 'block' }] } }],
+});

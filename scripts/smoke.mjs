@@ -59,6 +59,15 @@ const ROUTES = [
   ['home', '#/'], ['guide', '#/guide'], ['portfolio', '#/portfolio'],
   ['projects', '#/projects'], ['snags', '#/snags'], ['line standard tool', '#/standards'], ['line balance tool', '#/balances'], ['capability studies', '#/capability'], ['value stream maps', '#/value-stream'], ['SMED', '#/smed'], ['SMED, an old link', '#/changeover'], ['work sampling', '#/sampling'], ['pace report', '#/pace-report'],
   ['project dashboard', `#/project/${seeded.projectId}`],
+  /* METHODS OF ONE'S OWN (lib/flow): the library, a method approved with a
+     project on it, the draft of its next version, and the project running
+     it — its stages, a gate passed over, a run below its rate, a step open. */
+  ['methods', '#/methods'],
+  ['a method — approved, a project on it', `#/methods/${seeded.methodId}`],
+  ['a method — the draft of version 2', `#/methods/${seeded.methodDraftId}`],
+  ['a project on a method — its stages, a gate passed over', `#/project/${seeded.flowProjectId}`],
+  ['a project on a method — Commission, a run that did not pass, open', `#/project/${seeded.flowProjectId}?view=stage-${seeded.flowFailedStep.split('/')[0]}&step=${encodeURIComponent(seeded.flowFailedStep)}`],
+  ['a project on a method — its details', `#/project/${seeded.flowProjectId}/setup`],
   ['project setup', `#/project/${seeded.projectId}/setup`],
   ['lever tree', `#/project/${seeded.treeProjectId}/tree`],
   ['lever tree — front page', `#/project/${seeded.treeProjectId}`],

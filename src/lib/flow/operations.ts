@@ -150,7 +150,7 @@ export async function startProject(ctx: OpContext, input: StartInput): Promise<O
   if (usesMachines && !machines.length) return refuse('Name the machines it runs on — some steps are done on every machine.');
   const p = await createProject(input.name.trim() || m.definition.name, input.color ?? '#0c7489', input.lead);
   const flow: ProjectFlow = {
-    methodId: m.id, familyId: m.familyId, version: m.version,
+    methodId: m.id, familyId: m.familyId, version: m.version, name: m.definition.name,
     startedOn: input.startedOn ?? ctx.today ?? todayISO(),
     ...(input.people && Object.keys(input.people).length ? { people: input.people } : {}),
   };
@@ -230,12 +230,14 @@ export async function recordStep(ctx: OpContext, s: StepRef, patch: StepPatch): 
   const fp = await loadFlowProject(s.projectId, ctx.today);
   if (!fp) return refuse('That project is not running a method on this device.');
   if (!fp.state.stages.some(st => st.key === s.stageKey && st.steps.some(x => x.def.key === s.stepKey))) return refuse('That step is not on the method.');
-  const { rec, isNew } = await currentRecord(fp, s);
+  const { rec } = await currentRecord(fp, s);
   const values = patch.values ? { ...(rec.values ?? {}), ...patch.values } : rec.values;
   const next: FlowRecord = { ...rec, ...patch, ...(values ? { values } : {}) };
   await putFlowRecord(next);
-  if (isNew || patch.plannedFor || patch.who) {
-    const what = patch.plannedFor ? `planned for ${patch.plannedFor}` : patch.who ? `given to ${patch.who}` : 'started';
+  /* the log says what someone decided — a day, a person — not every box typed
+     or photo added on the way to done (those are on the step itself) */
+  if (patch.plannedFor || patch.who) {
+    const what = patch.plannedFor ? `planned for ${patch.plannedFor}` : `given to ${patch.who}`;
     await log(ctx, { projectId: s.projectId, methodId: fp.method.id, op: 'recordStep', target: { kind: 'flow_record', id: next.id }, summary: `${stepTitle(fp, s)} — ${what}` });
   }
   return { ok: true, value: next, said: 'Saved.' };

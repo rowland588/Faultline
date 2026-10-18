@@ -77,6 +77,10 @@ So:
 | Loss count | the waterfall drawn · what it says · the band, the five tiles, the top causes, the action plan, the closing line (17 October: the lean page, docs/LEAN-PAGE.md — the tiles took the strip's place, every figure it held among them) |
 | Work sampling | the band · the five tiles, in the strip's place — taps, people, the biggest share not the work, what it costs a shift (that share × the shift × one person's rate from Your factory), the next moment · the round · the action plan · the closing line (17 October, slice 6) |
 | Capability study | the band with the verdict · the tiles, in the strip's place — readings of those agreed, the mean and range, outside, Ppk with Cpk · the readings drawn · the action plan · the closing line (17 October, slice 6) |
+| Methods | a card a method (18 October, the platform's slice 3: methods of one's own, written, approved and run — docs/PLATFORM-STATUS.md) |
+| A method | its stages, a step a line in words · what each gate needs · the projects on it |
+| A method — a draft | can it run? — the validator's words, what to put right before Approve |
+| A project on a method | the band · the five tiles — steps done, gates passed, late, did not pass, problems open · its stages in a strip, each in its colour and word · the stage's steps, machine by machine · its gate in a line · the action plan · the closing line · its stages in the rail (desk) |
 
 The paper is held the same way by `scripts/report-stress.mjs` (every fact on
 every report, at three sizes and forty random jobs) and the acceptance scripts.

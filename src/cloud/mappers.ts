@@ -854,6 +854,7 @@ function flowOf(v: unknown): ProjectFlow | undefined {
   if (typeof f.methodId !== 'string' || typeof f.familyId !== 'string') return undefined;
   return {
     methodId: f.methodId, familyId: f.familyId, version: Number(f.version) || 1,
+    ...(typeof f.name === 'string' && f.name ? { name: f.name } : {}),
     startedOn: typeof f.startedOn === 'string' ? f.startedOn : '',
     ...(f.people && typeof f.people === 'object' ? { people: f.people as Record<string, string> } : {}),
   };

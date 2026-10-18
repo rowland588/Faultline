@@ -408,7 +408,8 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
      A commissioning job's rate is agreed once, per pack, and either proved or
      not — asking it for a quarterly target is asking a question the job has no
      answer to. */
-  const paced = !!project && planModel(project) !== 'commissioning';
+  /* a method of one's own (lib/flow) has no measures or periods: its stages say what is proved */
+  const paced = !!project && (planModel(project) === 'board' || planModel(project) === 'tree');
   // One people list, read by the invite box AND by the owner/sponsor pickers on
   // every line — so the moment somebody is invited they are assignable.
   const people = useProjectMembers(projectId);
@@ -589,7 +590,8 @@ function peopleSays(members: { access?: Access }[]): string {
 /** The project as agreed, for anyone who is not its owner: the same facts the
  *  owner's form holds, as words — not a form that refuses to save. */
 function ProjectIdentityRead({ project }: { project: Project }) {
-  const paced = planModel(project) !== 'commissioning';
+  const paced = planModel(project) === 'board' || planModel(project) === 'tree';
+  const own = planModel(project) === 'flow';
   const m = methodOf(project);
   return (
     <section className="card pset-identity">
@@ -597,7 +599,7 @@ function ProjectIdentityRead({ project }: { project: Project }) {
         <dt>Project</dt><dd>{project.name}</dd>
         <dt>Lead</dt><dd>{project.lead || 'nobody named yet'}</dd>
         {project.description && <><dt>What it is</dt><dd>{project.description}</dd></>}
-        {!paced && <>
+        {!paced && !own && <>
           <dt>Handover agreed</dt><dd>{project.plannedAt ? niceDay(project.plannedAt, { year: true }) : 'not agreed yet'}</dd>
           <dt>Now expected</dt><dd>{project.expectedAt ? niceDay(project.expectedAt, { year: true }) : 'not set yet'}</dd>
         </>}
@@ -688,43 +690,57 @@ function ProjectIdentity({ projectId }: { projectId: string }) {
           out to need the other one. Two buttons, not two checkboxes: a project
           runs ONE plan, not zero or both, so this is a switch and not a pair of
           independent opt-ins. */}
-      <div className="pset-tools">
-        <p className="field-label">How this project runs</p>
-        <div className="proj-model-grid">
-          {MODELS.map(m => (
-            <button key={m.id} type="button"
-              className={'proj-model-opt' + (planModel(project) === m.id ? ' on' : '')}
-              onClick={() => {
-                /* ASKED, NOT ASSUMED. One tap reshaped every screen and the
-                   client report, and a lever tree vanished behind the new
-                   method with nothing said. It says what the job becomes, and
-                   that nothing is deleted — switch back and it is all there. */
-                const now = methodOf(project);
-                if (now.id === m.id) return;
-                if (!window.confirm(
-                  `Run ${project.name} as ${m.label} instead of ${now.label}?\n\n`
-                  + `${m.label}: ${m.organised}. Every screen and the client report change to it.\n\n`
-                  + `Nothing is deleted. What belongs to ${now.label} is kept out of sight, and comes back if you switch back.`,
-                )) return;
-                /* AND IT CAN BE TAKEN BACK (HUNT 31). Asking first stops the
-                   slip of a finger; Undo catches the "no, not that one" that
-                   comes a second after OK. It puts back the method it ran
-                   before, onto the project as it is by then. Only whoever
-                   could switch sees this: the switch is behind can.agree. */
-                const back = switchBack(project);
-                void rename(project, setPlanModel(m.id)).then(() => {
-                  offerUndo(`${project.name} now runs as ${m.label}`, async () => {
-                    const fresh = await getProject(project.id);
-                    if (fresh) await rename(fresh, back);
-                  });
-                });
-              }}>
-              <span className="proj-model-t">{m.label}</span>
-              <span className="proj-model-s">{m.blurb}</span>
-            </button>
-          ))}
+      {/* A PROJECT RUNNING A METHOD OF ITS OWN is pinned to that method's
+          version (lib/flow): it never switches to one of the three — that
+          would leave its steps and gates with nothing to stand on. It says
+          which method it runs and opens it. */}
+      {planModel(project) === 'flow' && project.flow ? (
+        <div className="pset-tools">
+          <p className="field-label">How this project runs</p>
+          <p className="sub">
+            On the method <b>{methodOf(project).label}</b>, version {project.flow.version} — its stages, steps and gates.{' '}
+            <a href={`#/methods/${project.flow.methodId}`}>Open the method ›</a>
+          </p>
         </div>
-      </div>
+      ) : (
+      <div className="pset-tools">
+          <p className="field-label">How this project runs</p>
+          <div className="proj-model-grid">
+            {MODELS.map(m => (
+              <button key={m.id} type="button"
+                className={'proj-model-opt' + (planModel(project) === m.id ? ' on' : '')}
+                onClick={() => {
+                  /* ASKED, NOT ASSUMED. One tap reshaped every screen and the
+                     client report, and a lever tree vanished behind the new
+                     method with nothing said. It says what the job becomes, and
+                     that nothing is deleted — switch back and it is all there. */
+                  const now = methodOf(project);
+                  if (now.id === m.id) return;
+                  if (!window.confirm(
+                    `Run ${project.name} as ${m.label} instead of ${now.label}?\n\n`
+                    + `${m.label}: ${m.organised}. Every screen and the client report change to it.\n\n`
+                    + `Nothing is deleted. What belongs to ${now.label} is kept out of sight, and comes back if you switch back.`,
+                  )) return;
+                  /* AND IT CAN BE TAKEN BACK (HUNT 31). Asking first stops the
+                     slip of a finger; Undo catches the "no, not that one" that
+                     comes a second after OK. It puts back the method it ran
+                     before, onto the project as it is by then. Only whoever
+                     could switch sees this: the switch is behind can.agree. */
+                  const back = switchBack(project);
+                  void rename(project, setPlanModel(m.id)).then(() => {
+                    offerUndo(`${project.name} now runs as ${m.label}`, async () => {
+                      const fresh = await getProject(project.id);
+                      if (fresh) await rename(fresh, back);
+                    });
+                  });
+                }}>
+                <span className="proj-model-t">{m.label}</span>
+                <span className="proj-model-s">{m.blurb}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* AN EXTRA TOOL, NOT PART OF THE MODEL CHOICE. The Pareto sits beside
           whichever plan the project runs — it does not replace either one, so

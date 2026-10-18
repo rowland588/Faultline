@@ -28,6 +28,8 @@ import { useStanding } from '../lib/useStanding';
 import { useMethodCounts } from '../lib/useMethodCounts';
 import { useWsChain } from '../lib/useTrail';
 import { planModel, type PlanModel } from '../lib/planModel';
+import { useFlowProject } from '../lib/flow/useFlow';
+import { stageSquare } from '../lib/flow/view';
 import { getStandard, getWorkspace, listTestItems, listTests, listWorkspaces, onDataChange } from '../db';
 import { liveProductionLines } from '../lib/lines';
 import { gateOf, live } from '../lib/testing';
@@ -150,7 +152,7 @@ function placeOf(route: Route): string {
   switch (route.name) {
     case 'factory': case 'lineHome': case 'linePrograms': return 'Your factory';
     case 'lineTools': case 'studies': case 'study': case 'lineStandards': return 'Tools';
-    case 'home': case 'portfolio': case 'projects': case 'quickSnags': return 'Control room';
+    case 'home': case 'portfolio': case 'projects': case 'quickSnags': case 'methods': case 'method': return 'Control room';
     default: return route.wsId ? 'Your factory' : 'Control room';
   }
 }
@@ -222,7 +224,38 @@ function ProjectNav({ project, here, wsId }: { project: Project; here: string; w
   const lines = own.map(l => ({ ...l, factoryName: factory.find(w => w.id === l.workspaceId)?.name }));
   const notes = useOpenNotes(project.id);
   const shared = { project, here, wsId, lines, notes, model };
-  return model === 'commissioning' ? <GateNav {...shared} /> : <MethodNav {...shared} method={model} />;
+  return model === 'commissioning' ? <GateNav {...shared} />
+    : model === 'flow' ? <FlowNav {...shared} />
+      : <MethodNav {...shared} method={model} />;
+}
+
+/** A PROJECT RUNNING A METHOD OF ITS OWN (lib/flow): the job, then its
+ *  stages in order — each with its square and what is open on it, read by
+ *  the one runtime its page reads — and the method it runs. */
+function FlowNav(p: NavProps) {
+  const { fp } = useFlowProject(p.project.id);
+  const s = fp?.state;
+  const id = p.project.id;
+  const stages: RailLine[] = (s?.stages ?? []).map(st => {
+    const open = st.gate.passed ? 0 : st.steps.filter(x => !x.complete).length;
+    return {
+      key: `stage-${st.key}`, label: st.name, to: `/project/${id}?view=stage-${st.key}`, on: p.here === `stage-${st.key}`,
+      state: stageSquare(st), n: open || undefined, late: st.late || undefined, failed: st.failed || undefined, icon: 'route',
+    };
+  });
+  const groups: RailGroup[] = [
+    { lines: [controlRoom(p.here), snagsPlace(p.here), jobLine(id, p.project.name, p.here, (s?.counts.late ?? 0) + (s?.counts.failed ?? 0), s?.counts.asking ?? 0)] },
+    {
+      label: 'Method',
+      lines: [
+        ...stages,
+        ...(p.project.flow ? [{ key: 'method', label: 'The method', to: `/methods/${p.project.flow.methodId}`, on: false, state: 'n', bare: true, icon: 'list' } as RailLine] : []),
+      ],
+    },
+    footGroup(id, p.here, p.notes),
+    toolsGroup(p.here),
+  ];
+  return <NavChrome groups={groups} project={p.project} model={p.model} />;
 }
 
 interface NavProps {
@@ -330,7 +363,10 @@ function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: s
     /* REPORTS, as a job's rail has them — every paper, from the control
        room (ui/ControlRoomReports; Rowland, 14 October: "we need the same
        in control room") */
-    { lines: [controlRoom(here), snagsPlace(here), { key: 'reports', label: 'Reports', on: false, state: 'n', bare: true, icon: 'list' } as RailLine, ...(loose && wsId ? [
+    { lines: [controlRoom(here), snagsPlace(here), { key: 'reports', label: 'Reports', on: false, state: 'n', bare: true, icon: 'list' } as RailLine,
+      /* METHODS OF YOUR OWN — written, approved and run (lib/flow) */
+      { key: 'methods', label: 'Methods', to: '/methods', on: here === 'methods', state: 'n', bare: true, icon: 'route' } as RailLine,
+      ...(loose && wsId ? [
       { key: 'ws', label: wsName || 'Line study', to: `/w/${wsId}/capture`, on: false, state: 'n', bare: true } as RailLine,
       ...studyLines(wsId, here),
     ] : [])] },

@@ -51,27 +51,48 @@ list (a definition gives every machine the same steps).
 
 | Slice | What | Verified by | Live? |
 |---|---|---|---|
-| 1 | Definition, validator, formula, runtime, templates, tool registry | 43 unit tests incl. 300-job parity and randomized invariants | not yet merged |
+| 1 | Definition, validator, formula, runtime, templates, tool registry | 43 unit tests incl. 300-job parity and randomized invariants | ships with slice 3 |
+| 2 | Records and sync: IndexedDB v21 (`methods`, `flow_records`, `activity_log`), mappers, sync kinds, `projects.flow`; `supabase/METHODS.sql` and `FLOW_MEDIA.sql` applied to the live database and read back; the operations (`lib/flow/operations`) with permission checks and an activity line each | 11 operation tests on a real IndexedDB (owner / team / client), the schema test (both sides of every column, the media rule) | ships with slice 3 |
+| 3 | Screens, AI off: Methods library (`#/methods`: from the stage gate's usual lists, from a stage-gate job as it ran, or blank); one method (`#/methods/:id`) read as a plan and written while a draft — roles, stages, steps (per machine or once, answer, role, passes if, photos, files, due day, waits on, boxes with limits and worked-out sums), gate conditions (block or warn), the validator's words, Approve, a new version, delete a draft with Undo, the projects on it, its history; start a project; the project's page (`#/project/:id` when `project.flow`) — the lean page, the stage strip, a step per machine, the step sheet (fields, photos, files, sign-off, plan day, who, Done refused with what is missing, did not pass with what happened, try again keeping the attempt, take back), the gate sheet (each condition met or not, a check confirmed by name, pass over what is unmet only with a reason, reopen with a reason and Undo), who does what, machines, what has happened; the method report (PDF, lean page); the rail (Methods; a project's stages and its method); the control room's row, week, Who owes what (a supplier-side role under the supplier) and the rail's jobs; Details (no switching a method project to the three); Reports (the method report) | `lib/flow/__tests__/view.test.ts` (words, lean page, the control room's row through `portfolio()`, the report at one page and at many pages, nothing cut); `scripts/acceptance/methods.mjs` (the whole journey in a browser, team and client, phone); smoke seed (a method approved with a draft of v2 open, a project on it part-way, a run that did not pass); `docs/PAGES.md` and `scripts/inventory/pages.mjs` lines | gated with slices 1–2, shipped together |
 
 ## Next actions (in order)
 
-1. **Slice 2 — records and sync.** IndexedDB v21 stores `methods`,
-   `flow_records`, `activity`; mappers; sync kinds; `projects.flow`;
-   `supabase/METHODS.sql` applied live and read back; schema test; db
-   functions with undo; activity entries written by every operation.
-2. **Slice 3 — screens, AI off.** Methods library and editor; start a project
-   from a method; run view; step drawer (fields, photos, files, sign-off);
-   gate panel (block · warn · override · manual checks); report PDF;
-   acceptance script; PAGES.md lines; smoke seed.
-3. **Slice 4 — the gateway and design by conversation.**
-4. **Slice 5 — the assistant on a project, change proposals, versions and
-   moving a running project to a new version, the activity log on screen.**
-5. Slice 6 — tools as components (capability, losses, SMED, balance,
-   sampling, map, capacity).
+1. **Slice 4 — the gateway and design by conversation.** Edge function
+   `assist` (Claude, server-side key, session check, per-user daily budget
+   and usage table, structured output validated by the same validator,
+   recorded-response tests); "Describe the work" on the Methods page → a
+   proposed definition shown as the method page shows one, with the
+   validator's words → Accept as a draft (origin `assistant`, logged as the
+   assistant's proposal) → the person approves it as any draft. AI off: the
+   button says so and the form path is unchanged.
+2. **Slice 5 — the assistant on a project** (known · worked out · inferred ·
+   unknown, from `readFlow` only), change proposals as validated patches →
+   a new draft version, moving a running project to a new version with
+   completed work kept and the effect said first, the activity log on the
+   report.
+3. Slice 6 — tools as components: a step answered by a capability study,
+   loss count, SMED, line balance, work sampling, value stream map or Line
+   capacity (the registry exists; the step sheet's "attach a study" is the
+   missing piece).
+4. Later: organisations/tenancy; the server re-checking a gate pass with the
+   same runtime (today: the owner-only database policy plus the client's
+   own check).
 
 ## Known defects and limits
 
-- None open in slice 1.
+- A gate pass is checked by the app and the database lets only the owner
+  write a gate record; the server does not yet re-run the runtime on the
+  pass (slice 5/later).
+- A machine on a running project is added and renamed on its page, not
+  removed: its steps hang off it, and taking it away needs the same care the
+  stage gate's Install grid takes (slice 5, with versions).
+- Removing a box that a gate condition reads leaves the condition pointing
+  at nothing; the validator says so in words and Approve is held back until
+  the condition is pointed at a box again (by design: keys never change
+  under records).
+- The method library is the person's own (the `own methods` policy); a
+  method is shared only by a project that runs it. Organisation-wide
+  libraries wait for tenancy.
 
 ## Blockers needing Rowland
 

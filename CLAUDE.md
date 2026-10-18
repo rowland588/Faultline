@@ -201,7 +201,7 @@ Run all of it before merging. It is what CI runs, plus the two things CI cannot:
 
 ```
 npx tsc --noEmit
-npx eslint src --max-warnings 66      # a ratchet, not a target — see below
+npx eslint src --max-warnings 65      # a ratchet, not a target — see below
 npx vitest run
 npx vite build
 node scripts/smoke.mjs                # needs a dev server on 5191, or SMOKE_BASE
@@ -234,6 +234,7 @@ node scripts/acceptance/commissioning-report.mjs  # the commissioning report and
 node scripts/acceptance/report-relevance.mjs  # the audit's bar 8: the stage-gate papers keep up — a machine late on site, a register problem for the job, the line's own programs, what a gate is missing, on the full report, the one page, the programs report and the handover; the statuses moved and all four moved with them
 node scripts/inventory.mjs            # docs/PAGES.md: every page shows what it must, at desk and phone — same server
 node scripts/acceptance/upgrade.mjs  # the upgrade (docs/upgrade-plan.md), AI off: what a line can make and why, Ask, where and when it stops, the week to send, the Pareto read, Again?, the line machine by machine, Jump to, the demo kept out, the phone
+node scripts/acceptance/methods.mjs  # a method of your own, by hand (AI off): written in the editor, refused in words while it cannot run, approved, a project started on it; Done refused without its photo, a reading outside its limit kept as did not pass and tried again, a gate's check confirmed by name and passed; the method report; the control room's row; a new version that leaves the project on its own; a team member and a client; the phone
 node scripts/sync-two-devices.mjs     # a phone and a laptop against a fake cloud — video on one plays on the other
 node scripts/check-live-schema.mjs    # the LIVE database against the mapper — needs .env
 ```

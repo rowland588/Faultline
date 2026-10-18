@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { calc, formulaRefs, parseFormula, FormulaError } from '../formula';
 import { validateDefinition } from '../validate';
-import { FLOW_SCHEMA, keyOf } from '../definition';
+import { FLOW_SCHEMA, fieldKeyOf, keyOf, rekeyField, rekeyStep, type FlowDefinition } from '../definition';
 
 describe('a worked-out field', () => {
   it('works out arithmetic over the step\'s numbers', () => {
@@ -173,5 +173,37 @@ describe('a key from words', () => {
     expect(keyOf('Mechanical & Services')).toBe('mechanical-services');
     expect(keyOf('Dry run', ['dry-run'])).toBe('dry-run-2');
     expect(keyOf('3rd party check')).toMatch(/^k-/);
+  });
+});
+
+describe('keys taken from words, on a first draft', () => {
+  it('a field key is a word a sum can name — underscores, never hyphens', () => {
+    expect(fieldKeyOf('Packs made')).toBe('packs_made');
+    expect(fieldKeyOf('Packs made', ['packs_made'])).toBe('packs_made_2');
+    expect(calc(`${fieldKeyOf('Packs made')} / ${fieldKeyOf('Minutes run')}`, { packs_made: 600, minutes_run: 10 })).toBe(60);
+  });
+
+  it('renaming a step or a field moves every reference with it', () => {
+    const d: FlowDefinition = {
+      schema: FLOW_SCHEMA, name: 'M', purpose: 'p', kind: 'other', roles: [],
+      stages: [{
+        key: 's', name: 'S',
+        steps: [
+          { key: 'a-new-step', title: 'Trial', per: 'line', answer: 'measure', fields: [
+            { key: 'box_1', label: 'Packs', type: 'number' }, { key: 'box_2', label: 'Minutes', type: 'number' },
+            { key: 'rate', label: 'Rate', type: 'calc', formula: 'box_1 / box_2' },
+          ] },
+          { key: 'after', title: 'After', per: 'line', answer: 'done', after: ['a-new-step'] },
+        ],
+        gate: { conditions: [{ id: 'r', type: 'fieldMeets', step: 'a-new-step', field: 'box_1', op: '>=', value: 1, policy: 'block' }, { id: 'd', type: 'stepDone', step: 'a-new-step', policy: 'warn' }] },
+      }],
+    };
+    rekeyStep(d, 'a-new-step', 'trial');
+    rekeyField(d, 'trial', 'box_1', 'packs');
+    expect(d.stages[0].steps[0].key).toBe('trial');
+    expect(d.stages[0].steps[1].after).toEqual(['trial']);
+    expect(d.stages[0].steps[0].fields?.[2].formula).toBe('packs / box_2');
+    expect(d.stages[0].gate.conditions).toMatchObject([{ step: 'trial', field: 'packs' }, { step: 'trial' }]);
+    expect(validateDefinition(d).ok).toBe(true);
   });
 });
