@@ -11,7 +11,7 @@ import { addDays, niceDay } from '../weeks';
 import type { LeanAction, LeanInsight, LeanPage, LeanTile, LeanTone } from '../lean';
 import type { GateTone } from '../install';
 import { KIND_WORD, type FlowDefinition } from './definition';
-import { measureNumber, type FlowProblem, type FlowState, type MeasureState, type Outstanding, type StageState, type StepInstance, type StepTone } from './runtime';
+import { measureNumber, stepsDoneSaid, type FlowProblem, type FlowState, type MeasureState, type Outstanding, type StageState, type StepInstance, type StepTone } from './runtime';
 import type { FlowRecord } from './records';
 
 /** The house's five, as a square or a word wears them. */
@@ -22,8 +22,10 @@ export const STEP_WORD: Record<StepTone, string> = {
   asking: 'Not finished', going: 'Under way', ahead: 'To do',
 };
 
-/** A step's square: a day booked ahead is violet, no day grey (4 October). */
-export function stepSquare(s: Pick<StepInstance, 'tone' | 'due'>): Square {
+/** A step's square: a day booked ahead is violet, no day grey (4 October);
+ *  a step decided against is grey — settled, and never a green "done". */
+export function stepSquare(s: Pick<StepInstance, 'tone' | 'due' | 'notNeeded'>): Square {
+  if (s.notNeeded) return 'n';
   switch (s.tone) {
     case 'done': return 'g';
     case 'failed': case 'late': return 'r';
@@ -35,6 +37,7 @@ export function stepSquare(s: Pick<StepInstance, 'tone' | 'due'>): Square {
 
 /** A step in a word — "Done 16 Oct", "Due 22 Oct", "Late — was due 14 Oct". */
 export function stepWord(s: StepInstance): string {
+  if (s.notNeeded) return 'Not needed';
   const done = s.record?.doneOn;
   switch (s.tone) {
     case 'done': return done ? `Done ${niceDay(done)}` : 'Done';
@@ -51,6 +54,10 @@ export function stepWord(s: StepInstance): string {
  *  under its title on the screen and on paper. Empty when there is nothing
  *  to say beyond its word. */
 export function stepWhy(s: StepInstance): string {
+  /* a decision on what is found says itself: not needed and why, or needed
+     only when — decided when the step it reads is done */
+  if (s.notNeeded) return s.decision?.says ?? '';
+  if (s.decision && s.decision.needed === undefined && !s.complete) return s.decision.says;
   const logged = logSaid(s);
   if (s.complete) return [logged, s.record?.signedBy ? `signed by ${s.record.signedBy}` : '', s.record?.note?.trim() ?? ''].filter(Boolean).join(' — ');
   if (logged && !s.missing.length) return logged;
@@ -59,7 +66,7 @@ export function stepWhy(s: StepInstance): string {
   if (s.blockedBy.length) return `Waits on ${s.blockedBy.map(b => `“${b}”`).join(' and ')}`;
   if (s.record?.outcome === 'done' && s.missing.length) return `Still needs ${s.missing.join(', ')}`;
   if (s.missing.length && s.record) return `Needs ${s.missing.join(', ')}`;
-  return '';
+  return s.decision?.needed ? s.decision.says : '';
 }
 
 /** A log in a line — its entries and what its first analysis says:
@@ -88,7 +95,7 @@ export function stageWord(st: StageState): string {
     case 'failed': return `${st.failed} did not pass`;
     case 'late': return `${st.late} late`;
     case 'problem': return 'A problem to settle';
-    case 'going': return `${st.done} of ${st.total} done`;
+    case 'going': return stepsDoneSaid(st, false);
     case 'none': return 'No steps';
     default: return 'Not started';
   }

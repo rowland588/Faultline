@@ -29,7 +29,7 @@ import { uid } from '../../lib/ids';
 import { niceDay } from '../../lib/weeks';
 import { deliverBlob } from '../../lib/savePdf';
 import { isTest, type FlowField } from '../../lib/flow/definition';
-import type { StageState, StepInstance } from '../../lib/flow/runtime';
+import { stepsDoneSaid, type StageState, type StepInstance } from '../../lib/flow/runtime';
 import {
   completeStep, passGate, recordStep, reopenGate, reopenStep, stepDidNotPass, tryAgain,
   type FlowProject, type OpContext, type OpResult, type StepPatch, type StepRef,
@@ -430,7 +430,7 @@ export function GateSheet({ fp, stage, ctx, onClose }: { fp: FlowProject; stage:
           </div>
         )}
         {said && <p className={'sub' + (said.bad ? ' is-r' : ' is-g')} role="status">{said.text}</p>}
-        <p className="sub">{stage.done} of {stage.total} step{stage.total === 1 ? '' : 's'} done in {stage.name}.</p>
+        <p className="sub">{stepsDoneSaid(stage)} in {stage.name}.</p>
       </div>
     </Sheet>
   );

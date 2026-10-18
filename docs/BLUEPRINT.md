@@ -180,8 +180,17 @@ method's shape asked as at most four questions, each with answers to tap,
 a line on why it matters and a box for one's own answer; answered or
 skipped, the need is designed with the answers in it, in the person's
 words. Off, unreachable or unreadable, it is designed from the words as
-they are — the questions help and never stand in the way. Next: a tool's
-panel inside the step itself rather than its page; more blocks as the
+they are — the questions help and never stand in the way. And DECISIONS ON
+WHAT IS FOUND (`FlowStepDef.onlyIf`, `lib/flow/runtime`): a step can be
+needed only when an earlier step's figure says so — a cause looked for only
+when the control chart signalled. Until that step is done it waits on it
+and says so; decided, it is needed (with the figure) or "Not needed" (grey,
+with the figure and the rule), and a step decided against holds nothing up
+— its gate counts it settled, the stage says "none needed (3 not needed)",
+never "0 of 0". Written in the editor (Needed: Always / Only when … finds),
+proposed by the assistant (`only_if`), checked by the validator (only a
+figure of a step before it), and said on the method, the screen and the
+paper. Next: a tool's panel inside the step itself rather than its page; more blocks as the
 floor asks (a Weibull fit, a regression on several columns — each a block,
 each tested).
 

@@ -11,8 +11,8 @@
  * every problem is said in words a person can act on ("Stage 3, step 2 has
  * no title"), because the review screen shows them. */
 import {
-  ANSWERS, CONDITIONS, FIELD_TYPES, FLOW_SCHEMA, KEY_RE, LIMITS, numbersOf,
-  type FlowAnswer, type FlowCondition, type FlowDefinition, type FlowField, type FlowMeasure, type FlowNeed, type FlowRole,
+  ANSWERS, CONDITIONS, FIELD_TYPES, FLOW_SCHEMA, KEY_RE, LIMITS, RULE_OPS, numbersOf,
+  type FlowAnswer, type FlowCondition, type FlowDefinition, type FlowField, type FlowMeasure, type FlowNeed, type FlowRole, type FlowRule,
   type FlowStage, type FlowStepDef, type FieldType,
 } from './definition.ts';
 import { ANALYSIS_BLOCKS, WHEN_OPS, blockOf, isGroupColumn, isNumberColumn, type FlowAnalysis, type FlowWhen } from './analysis.ts';
@@ -140,6 +140,16 @@ export function validateDefinition(input: unknown): Checked {
         err(`${tp}.fields`, `${twhere} (${title}) is measured but has no number to measure.`);
       }
 
+      /* a decision on what is found — read here, checked against the step it reads below */
+      let onlyIf: FlowRule | undefined;
+      if (isObj(t.onlyIf)) {
+        const op = t.onlyIf.op;
+        const value = typeof t.onlyIf.value === 'boolean' ? t.onlyIf.value : num(t.onlyIf.value) ?? optStr(t.onlyIf.value, 80);
+        if (!(RULE_OPS as readonly unknown[]).includes(op)) err(`${tp}.onlyIf`, `${twhere} (${title}) is decided with "${String(op)}" — use > ≥ < ≤ = or ≠.`);
+        else if (value === undefined) err(`${tp}.onlyIf`, `${twhere} (${title}) says when it is needed, but not the value to compare.`);
+        else onlyIf = { step: str(t.onlyIf.step, 40), field: str(t.onlyIf.field, 40), op: op as FlowRule['op'], value };
+      }
+
       const step: FlowStepDef = {
         key: tkey, title, per, answer,
         ...(role ? { role } : {}),
@@ -152,6 +162,7 @@ export function validateDefinition(input: unknown): Checked {
         ...(columns.length ? { columns } : {}),
         ...(analyses.length ? { analyses } : {}),
         ...(minEntries !== undefined && minEntries >= 1 && minEntries <= 10000 && Math.round(minEntries) !== 1 ? { minEntries: Math.round(minEntries) } : {}),
+        ...(onlyIf ? { onlyIf } : {}),
         ...maybe('help', optStr(t.help, LIMITS.longText)),
       };
       stepIndex.set(tkey, { stage: si, step });
@@ -173,6 +184,21 @@ export function validateDefinition(input: unknown): Checked {
       else if (dep.stage > stage) err(`step:${k}.after`, `"${step.title}" waits on "${dep.step.title}", which is in a later stage.`);
       else if (a === k) err(`step:${k}.after`, `"${step.title}" waits on itself.`);
     }
+  }
+  /* ---- decisions on what is found: each reads a figure of a step before it ---- */
+  const orderOf = new Map([...stepIndex.keys()].map((k, i) => [k, i]));
+  for (const [k, { step }] of stepIndex) {
+    const r = step.onlyIf;
+    if (!r) continue;
+    const dep = stepIndex.get(r.step);
+    if (!dep) { err(`step:${k}.onlyIf`, `"${step.title}" is decided by a step that is not on the method: "${r.step}".`); continue; }
+    if ((orderOf.get(r.step) ?? 0) >= (orderOf.get(k) ?? 0)) { err(`step:${k}.onlyIf`, `"${step.title}" is decided by "${dep.step.title}", which does not come before it — a step is decided by what is found before it.`); continue; }
+    const asNumber = numbersOf(dep.step).find(f => f.key === r.field);
+    const asWords = (dep.step.fields ?? []).find(f => f.key === r.field && ['choice', 'yesno', 'text', 'person'].includes(f.type));
+    if (!asNumber && !asWords) { err(`step:${k}.onlyIf`, `"${step.title}" is decided by "${r.field}", which is not a box or a figure of “${dep.step.title}”.`); continue; }
+    if (asNumber && typeof r.value !== 'number') err(`step:${k}.onlyIf`, `"${step.title}" compares “${asNumber.label}”, a number, with "${String(r.value)}" — give a number.`);
+    else if (!asNumber && asWords && typeof r.value === 'number' && asWords.type !== 'text') err(`step:${k}.onlyIf`, `"${step.title}" compares “${asWords.label}” with a number — it is words: say which of them.`);
+    else if (!asNumber && r.op !== '=' && r.op !== '!=') err(`step:${k}.onlyIf`, `"${step.title}" compares “${asWords?.label}” by size — words are only the same (=) or not (≠).`);
   }
   const cyc = findCycle(stepIndex);
   if (cyc) err('after', `These steps wait on each other in a circle: ${cyc.map(k => `"${stepIndex.get(k)?.step.title ?? k}"`).join(' → ')}.`);

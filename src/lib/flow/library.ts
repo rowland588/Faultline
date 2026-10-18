@@ -369,6 +369,8 @@ export const LIBRARY: readonly LibraryEntry[] = [
         { key: 'shift', label: 'Shift', type: 'choice' as const, options: ['Early', 'Late', 'Night'] },
         { key: 'note', label: 'What was happening', type: 'text' as const },
       ];
+      /* a decision on what is found: a cause looked for only when the chart signalled */
+      const signalled: FlowStepDef['onlyIf'] = { step: 'log-before', field: 'signals', op: '>', value: 0 };
       const read = (more: FlowStepDef['analyses'] = []): FlowStepDef['analyses'] => [
         { key: 'signals', label: 'Signals', block: 'control', of: 'reading' },
         { key: 'average', label: 'Average', block: 'mean', of: 'reading' },
@@ -393,18 +395,18 @@ export const LIBRARY: readonly LibraryEntry[] = [
             gate: { conditions: [every] },
           },
           {
-            key: 'cause', name: 'The cause of each signal', purpose: 'What changed when the chart signalled, found and removed.',
+            key: 'cause', name: 'The cause of each signal', purpose: 'What changed when the chart signalled, found and removed — needed only when it signalled.',
             steps: [
               {
-                key: 'why', title: 'What changed at each signal', per: 'line', answer: 'form', role: 'lead', after: ['log-before'],
+                key: 'why', title: 'What changed at each signal', per: 'line', answer: 'form', role: 'lead', after: ['log-before'], onlyIf: signalled,
                 fields: [
                   { key: 'signals_seen', label: 'The signals, from the chart', type: 'text', required: true },
                   { key: 'changed', label: 'What changed then', type: 'text', required: true },
                   { key: 'cause', label: 'The cause', type: 'text', required: true },
                 ],
               },
-              { key: 'removed', title: 'The cause removed', per: 'line', answer: 'done', role: 'lead', evidence: { photos: 1 }, after: ['why'] },
-              { key: 'quality', title: 'Quality agrees it', per: 'line', answer: 'signoff', role: 'quality', after: ['removed'] },
+              { key: 'removed', title: 'The cause removed', per: 'line', answer: 'done', role: 'lead', evidence: { photos: 1 }, after: ['why'], onlyIf: signalled },
+              { key: 'quality', title: 'Quality agrees it', per: 'line', answer: 'signoff', role: 'quality', after: ['removed'], onlyIf: signalled },
             ],
             gate: { conditions: [every] },
           },

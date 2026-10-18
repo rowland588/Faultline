@@ -117,6 +117,24 @@ export interface FlowComponent {
   note?: string;
 }
 
+/** A DECISION THE METHOD MAKES ON WHAT IS FOUND (Rowland, 18 October: a
+ *  system that "guides decisions"): a step needed only when an earlier
+ *  step's figure — a box, a tool's number, a log's analysis — says so.
+ *  "Find the cause of each signal" only when the control chart shows one.
+ *  Decided once the step it reads is done; until then it is needed and waits
+ *  on it; decided against, it is "not needed", said why, and counts for
+ *  nothing it would have held up (lib/flow/runtime). */
+export const RULE_OPS = ['>', '>=', '<', '<=', '=', '!='] as const;
+export type RuleOp = typeof RULE_OPS[number];
+export interface FlowRule {
+  /** The earlier step whose figure decides it. */
+  step: string;
+  /** Its box, its tool's number or its log's analysis. */
+  field: string;
+  op: RuleOp;
+  value: number | string | boolean;
+}
+
 export interface FlowStepDef {
   key: string;
   title: string;
@@ -143,6 +161,8 @@ export interface FlowStepDef {
   analyses?: FlowAnalysis[];
   /** Entries it needs before it can be done (1 when absent). */
   minEntries?: number;
+  /** Needed only when an earlier figure says so — a decision on what is found. */
+  onlyIf?: FlowRule;
   help?: string;
 }
 
@@ -336,6 +356,7 @@ export function rekeyStep(def: FlowDefinition, from: string, to: string): void {
     for (const s of st.steps) {
       if (s.key === from) s.key = to;
       if (s.after) s.after = s.after.map(a => (a === from ? to : a));
+      if (s.onlyIf?.step === from) s.onlyIf.step = to;
     }
     for (const c of st.gate.conditions) if ('step' in c && c.step === from) c.step = to;
   }
@@ -356,6 +377,7 @@ export function rekeyField(def: FlowDefinition, stepKey: string, from: string, t
       }
     }
     for (const c of st.gate.conditions) if (c.type === 'fieldMeets' && c.step === stepKey && c.field === from) c.field = to;
+    for (const s of st.steps) if (s.onlyIf?.step === stepKey && s.onlyIf.field === from) s.onlyIf.field = to;
   }
   for (const m of def.measures ?? []) for (const f of m.from) if (f.step === stepKey && f.field === from) f.field = to;
 }

@@ -278,6 +278,49 @@ if (process.env.SHOW_PDF) console.log(pdf2);
 ok(pdf2.includes('Signals: 1 signal — 30 on 8 Oct above the upper limit') && /UCL/.test(pdf2) && /LCL/.test(pdf2) && /Line speed, across/.test(pdf2)
   && !/of \d+ Faultline/.test(pdf2.slice(pdf2.indexOf('The reading and line speed:'), pdf2.indexOf('Line speed, across'))), '8i on paper: the signal said, the control chart with its limits, the relationship with its axes on the page with its sentence', pdf2.slice(0, 500));
 
+/* 8j — a decision on what is found (FlowStepDef.onlyIf): the cause of a signal looked for
+   only when the chart signalled — waiting on the chart, then decided, said why, holding nothing up */
+const rowSaid = async key => flat(await page.locator(`.fw-row[data-step="${key}"]`).first().innerText());
+await page.locator('.fw-strip .fw-sg[data-stage="cause"]').click(); await page.waitForTimeout(500);
+ok(/Needed only when signals above 0 — decided when “Log the readings as they are taken” is done/.test(await rowSaid('why')), '8j decided on what is found: the cause waits on the chart, and says so', await rowSaid('why'));
+await page.locator('.fw-strip .fw-sg[data-stage="read"]').click(); await page.waitForTimeout(500);
+await page.locator('.fw-row[data-step="log-before"]').first().click(); await sheet().locator('.fw-log-panel').waitFor();
+await sheet().locator('.fw-entries-t tbody tr', { hasText: '30' }).first().getByRole('button', { name: 'Strike' }).click(); await page.waitForTimeout(500);
+for (const [i, w] of [11, 12, 10, 13, 11, 10, 12, 11, 13, 10, 12, 11, 12].entries()) {
+  const form = sheet().locator('.fw-entry').first();
+  await form.getByLabel('Reading', { exact: true }).fill(String(w));
+  await form.getByLabel('Line speed', { exact: true }).fill('61');
+  await form.getByLabel('The day it happened', { exact: true }).fill(`2026-10-${String(9 + i).padStart(2, '0')}`);
+  await form.getByRole('button', { name: 'Add the entry' }).click(); await page.waitForTimeout(250);
+}
+await page.waitForTimeout(400);
+ok(/Signals: in control — 20 readings within the limits/.test(flat(await sheet().locator('.fw-results').innerText())), '8k twenty readings in control — no signal', flat(await sheet().locator('.fw-results').innerText()).slice(0, 120));
+await sheet().getByRole('button', { name: 'Done', exact: true }).click(); await page.waitForTimeout(700);
+await page.keyboard.press('Escape'); await settle();
+await page.locator('.fw-gate-line[data-gate="read"]').click();
+await sheet().getByRole('button', { name: 'Pass the gate' }).click(); await page.waitForTimeout(700);
+await page.keyboard.press('Escape'); await settle();
+await page.locator('.fw-strip .fw-sg[data-stage="cause"]').click(); await page.waitForTimeout(500);
+const notNeeded = await Promise.all(['why', 'removed', 'quality'].map(async k => [
+  flat(await page.locator(`.fw-row[data-step="${k}"] .fw-row-why`).innerText()), flat(await page.locator(`.fw-row[data-step="${k}"] .fw-row-w`).innerText()), await page.locator(`.fw-row[data-step="${k}"].is-n`).count()]));
+if (process.env.SHOTS) await page.locator('.nv-main').screenshot({ path: join(process.env.SHOTS, 'decided.png') });
+ok(notNeeded.every(([why, word, grey]) => why === 'Not needed — Signals 0; it is needed only when signals above 0' && /^Not needed/.test(word) && grey === 1),
+  '8l decided against: each cause step "Not needed", why said with the figure, grey — never a green done', notNeeded.join(' | '));
+const causeSaid = flat(await page.locator('.nv-main').innerText());
+ok(causeSaid.includes('The cause of each signal — none needed (3 not needed)') && causeSaid.includes('The cause of each signal (stage 2 of 3): none needed (3 not needed) — ready to pass its gate.'),
+  '8l1 the stage says its steps were not needed — never "0 of 0 done"', causeSaid.slice(causeSaid.indexOf('The cause of each signal —'), causeSaid.indexOf('The cause of each signal —') + 80));
+await page.locator('.fw-gate-line[data-gate="cause"]').click();
+const causeGate = flat(await sheet().innerText());
+ok(/none needed \(3 not needed\)/.test(causeGate) && /Ready to pass/.test(causeGate), '8m its gate counts the steps not needed as settled — ready to pass', causeGate.slice(0, 300));
+await sheet().getByRole('button', { name: 'Pass the gate' }).click(); await page.waitForTimeout(700);
+await page.keyboard.press('Escape'); await settle();
+await page.locator('.fw-strip .fw-sg[data-stage="hold"]').click(); await page.waitForTimeout(500);
+ok(!/Waits on/.test(await rowSaid('log-after')), '8n and the step after them waits on nothing that was not needed', await rowSaid('log-after'));
+const [dl3] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Method report' }).click()]);
+const f3 = join(dir, 'decided.pdf'); await dl3.saveAs(f3);
+const pdf3 = flat(execFileSync('pdftotext', ['-raw', f3, '-'], { encoding: 'utf8' }));
+ok((pdf3.match(/Not needed — Signals 0; it is needed only when signals above 0/g) ?? []).length >= 3 && /What changed at each signal/.test(pdf3), '8o on paper: each step not needed, and why', pdf3.slice(pdf3.indexOf('The cause of each signal'), pdf3.indexOf('The cause of each signal') + 300));
+
 /* 9 — the phone */
 await page.setViewportSize({ width: 390, height: 844 });
 await page.goBack(); await page.waitForTimeout(800);

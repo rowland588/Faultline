@@ -5,12 +5,13 @@
  * (lib/flow/validate) then says what is still wrong with the whole. */
 import { useEffect, useState } from 'react';
 import {
-  ANSWERS, ANSWER_WORD, FIELD_TYPES, FIELD_WORD, allSteps, fieldKeyOf, keyOf, measureKeyOf, numbersOf, roleName,
-  type FlowCondition, type FlowDefinition, type FlowField, type FlowMeasure, type FlowStage, type FlowStepDef,
+  ANSWERS, ANSWER_WORD, FIELD_TYPES, FIELD_WORD, RULE_OPS, allSteps, fieldKeyOf, keyOf, measureKeyOf, numbersOf, roleName,
+  type FlowCondition, type FlowDefinition, type FlowField, type FlowMeasure, type FlowRule, type FlowStage, type FlowStepDef,
 } from '../../lib/flow/definition';
 import { COMPONENTS, componentOf } from '../../lib/flow/components';
 import { ANALYSIS_BLOCKS, BLOCKS, WHEN_OPS, isGroupColumn, isNumberColumn, type FlowAnalysis, type WhenOp } from '../../lib/flow/analysis';
 import { Sheet } from '../Sheet';
+import { ruleSaid } from '../../lib/flow/runtime';
 
 /** What each answer asks of the person on the floor. */
 export const ANSWER_SAYS: Record<FlowStepDef['answer'], string> = {
@@ -62,6 +63,13 @@ export function conditionSaid(def: FlowDefinition, c: FlowCondition): string {
 }
 
 /** A step in one line of words — under its title in the method. */
+/** A decision in words, on the method — "Log the readings finds Signals above 0". */
+export function ruleWords(def: FlowDefinition, r: FlowRule): string {
+  const dep = allSteps(def).find(x => x.step.key === r.step)?.step;
+  const f = dep ? [...numbersOf(dep), ...(dep.fields ?? [])].find(x => x.key === r.field) : undefined;
+  return `“${dep?.title ?? r.step}” finds ${ruleSaid(r, f)}`;
+}
+
 export function stepSaid(def: FlowDefinition, s: FlowStepDef): string {
   const parts = [
     s.per === 'machine' ? 'every machine' : 'once',
@@ -75,6 +83,7 @@ export function stepSaid(def: FlowDefinition, s: FlowStepDef): string {
     s.answer === 'log' && s.analyses?.length ? `works out ${s.analyses.map(a => a.label.toLowerCase()).join(', ')}` : '',
     s.dueDays !== undefined ? `due day ${s.dueDays}` : '',
     s.after?.length ? `after ${s.after.map(a => `“${def.stages.flatMap(x => x.steps).find(x => x.key === a)?.title ?? a}”`).join(', ')}` : '',
+    s.onlyIf ? `only when ${ruleWords(def, s.onlyIf)}` : '',
   ];
   return parts.filter(Boolean).join(' · ');
 }
@@ -297,6 +306,63 @@ function AnalysesEditor({ step, onChange, ro }: { step: FlowStepDef; onChange: (
   );
 }
 
+const RULE_SAID: Record<FlowRule['op'], string> = { '>': 'is above', '>=': 'is at least', '<': 'is below', '<=': 'is at most', '=': 'is', '!=': 'is not' };
+
+/** A DECISION ON WHAT IS FOUND (FlowStepDef.onlyIf): needed always, or only
+ *  when an earlier step's box, tool number or log's figure says so. */
+function RuleEditor({ def, earlier, rule, ro, onChange }: {
+  def: FlowDefinition; earlier: { key: string; title: string }[]; rule?: FlowRule; ro: boolean; onChange: (r: FlowRule | undefined) => void;
+}) {
+  const stepOf = (k?: string) => allSteps(def).find(x => x.step.key === k)?.step;
+  const figuresOf = (k?: string): FlowField[] => {
+    const st = stepOf(k);
+    if (!st) return [];
+    const nums = numbersOf(st);
+    return [...nums, ...(st.fields ?? []).filter(f => ['choice', 'yesno'].includes(f.type) && !nums.some(n => n.key === f.key))];
+  };
+  const candidates = earlier.filter(e => figuresOf(e.key).length > 0);
+  if (!candidates.length && !rule) return null;
+  const figs = figuresOf(rule?.step);
+  const fig = figs.find(f => f.key === rule?.field);
+  const words = !!fig && ['choice', 'yesno'].includes(fig.type);
+  const valueOf = (raw: string, f?: FlowField): FlowRule['value'] => (f && !['choice', 'yesno'].includes(f.type) && raw.trim() !== '' && Number.isFinite(Number(raw)) ? Number(raw) : f?.type === 'yesno' ? /^y/i.test(raw) : raw);
+  const begin = (k: string) => {
+    if (!k) { onChange(undefined); return; }
+    const f = figuresOf(k)[0];
+    if (f) onChange({ step: k, field: f.key, op: ['choice', 'yesno'].includes(f.type) ? '=' : '>', value: f.type === 'yesno' ? true : f.type === 'choice' ? f.options?.[0] ?? '' : 0 });
+  };
+  return (
+    <div className="fw-f fw-rule" data-rule={rule ? 'on' : 'off'}>
+      <span className="field-label">Needed</span>
+      <div className="fw-field-r">
+        <select className="text-input fw-in" aria-label="Needed always, or only when an earlier step finds" disabled={ro} value={rule?.step ?? ''} onChange={e => begin(e.target.value)}>
+          <option value="">Always</option>
+          {candidates.map(c => <option key={c.key} value={c.key}>Only when “{c.title}” finds…</option>)}
+        </select>
+        {rule && <>
+          <select className="text-input fw-in" aria-label="Its figure" disabled={ro} value={rule.field}
+            onChange={e => { const f = figs.find(x => x.key === e.target.value); if (f) onChange({ ...rule, field: f.key, op: ['choice', 'yesno'].includes(f.type) ? '=' : rule.op, value: valueOf(String(rule.value), f) }); }}>
+            {figs.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}
+          </select>
+          <select className="text-input fw-in" aria-label="Compared" disabled={ro} value={rule.op} onChange={e => onChange({ ...rule, op: e.target.value as FlowRule['op'] })}>
+            {RULE_OPS.filter(o => !words || o === '=' || o === '!=').map(o => <option key={o} value={o}>{RULE_SAID[o]}</option>)}
+          </select>
+          {fig?.type === 'choice'
+            ? <select className="text-input fw-in" aria-label="The value" disabled={ro} value={String(rule.value)} onChange={e => onChange({ ...rule, value: e.target.value })}>
+              {(fig.options ?? []).map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+            : fig?.type === 'yesno'
+              ? <select className="text-input fw-in" aria-label="The value" disabled={ro} value={rule.value === true ? 'yes' : 'no'} onChange={e => onChange({ ...rule, value: e.target.value === 'yes' })}>
+                <option value="yes">Yes</option><option value="no">No</option>
+              </select>
+              : <Words value={String(rule.value)} label="The value" disabled={ro} onSave={v => onChange({ ...rule, value: valueOf(v, fig) })} />}
+        </>}
+      </div>
+      {rule && <span className="sub">Decided once “{stepOf(rule.step)?.title}” is done; until then it waits on it. Decided against, it reads “Not needed”, says why, and holds nothing up.</span>}
+    </div>
+  );
+}
+
 export function StepEditor({ def, stageIndex, step, open, onClose, onChange, onRemove, onMove, readOnly }: {
   def: FlowDefinition; stageIndex: number; step: FlowStepDef; open: boolean; onClose: () => void;
   onChange: (next: FlowStepDef) => void; onRemove: () => void; onMove: (by: -1 | 1) => void; readOnly: boolean;
@@ -400,6 +466,8 @@ export function StepEditor({ def, stageIndex, step, open, onClose, onChange, onR
             </div>
           </div>
         )}
+
+        {earlier.length > 0 && <RuleEditor def={def} earlier={earlier} rule={step.onlyIf} ro={ro} onChange={r => set({ onlyIf: r })} />}
 
         {step.answer === 'log' && <>
           <div className="fw-f fw-log-cols"><span className="field-label">What each entry asks — its columns</span>

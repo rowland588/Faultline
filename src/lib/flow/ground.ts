@@ -13,6 +13,7 @@ import { niceDay } from '../weeks';
 import { ANSWER_WORD, numbersOf } from './definition';
 import type { FlowProject } from './operations';
 import type { Fact, Said } from './askCore';
+import { stepsDoneSaid } from './runtime';
 
 const many = (n: number, one: string, more = `${one}s`) => `${n} ${n === 1 ? one : more}`;
 
@@ -31,7 +32,7 @@ export function factsOf(fp: FlowProject): Fact[] {
   add('counts', `${s.counts.done} of ${many(s.counts.steps, 'step')} done; ${s.counts.gatesPassed} of ${many(s.counts.gates, 'gate')} passed; ${s.counts.late} late; ${s.counts.failed} did not pass.`, 'worked out');
   for (const st of s.stages) {
     const g = st.gate;
-    add(`stage:${st.key}`, `Stage ${st.index + 1}, ${st.name}: ${st.done} of ${many(st.total, 'step')} done${st.late ? `, ${st.late} late` : ''}${st.failed ? `, ${st.failed} did not pass` : ''}.`, 'worked out');
+    add(`stage:${st.key}`, `Stage ${st.index + 1}, ${st.name}: ${stepsDoneSaid(st)}${st.late ? `, ${st.late} late` : ''}${st.failed ? `, ${st.failed} did not pass` : ''}.`, 'worked out');
     if (g.pass) {
       add(`gate:${st.key}`, `${st.name}'s gate was passed${g.pass.doneOn ? ` on ${niceDay(g.pass.doneOn)}` : ''}${g.pass.who ? ` by ${g.pass.who}` : ''}${g.pass.override ? `, over what was unmet, because: “${g.pass.override}”` : ''}.`, 'known');
     } else {

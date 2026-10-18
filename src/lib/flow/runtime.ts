@@ -16,7 +16,7 @@
  * square; a step that ran without its answer complete is asked about, not
  * filed as planned. */
 import { addDays, niceDay } from '../weeks';
-import { allSteps, isTest, numbersOf, roleName, type FlowCondition, type FlowDefinition, type FlowField, type FlowMeasure, type FlowStage, type FlowStepDef } from './definition';
+import { allSteps, isTest, numbersOf, roleName, type FlowCondition, type FlowDefinition, type FlowField, type FlowMeasure, type FlowRule, type FlowStage, type FlowStepDef } from './definition';
 import { answeredByRecord, componentOf } from './components';
 import { calc } from './formula';
 import { analyse, figuresOf, type AnalysisResult } from './analysis';
@@ -89,6 +89,11 @@ export interface StepInstance {
   analysis?: Record<string, AnalysisResult>;
   /** A log: its entries not struck. */
   entries?: number;
+  /** A step needed only when an earlier figure says so (FlowStepDef.onlyIf):
+   *  needed or not once that step is done — absent until then — and why. */
+  decision?: { needed?: boolean; says: string };
+  /** Decided against: settled, counted in nothing it would have held up. */
+  notNeeded?: boolean;
 }
 
 /** One reading of a measure: a number recorded on one of the steps that feed it. */
@@ -139,8 +144,11 @@ export interface StageState {
   name: string;
   index: number;
   steps: StepInstance[];
+  /** Steps done, and the steps there are to do — those decided against left out of both. */
   done: number;
   total: number;
+  /** Steps decided against (FlowStepDef.onlyIf). */
+  notNeeded: number;
   late: number;
   failed: number;
   /** The steps alone, as the stage gate reads a gate (done when every step
@@ -308,6 +316,32 @@ function meets(c: Extract<FlowCondition, { type: 'fieldMeets' }>, v: number): bo
   return c.op === '>=' ? v >= c.value : c.op === '<=' ? v <= c.value : c.op === '=' ? Math.abs(v - c.value) < 1e-9 : v >= c.value && v <= (c.value2 ?? c.value);
 }
 
+const RULE_WORD: Record<FlowRule['op'], string> = { '>': 'above', '>=': 'at least', '<': 'below', '<=': 'at most', '=': 'is', '!=': 'is not' };
+const wordOf = (v: unknown) => (typeof v === 'boolean' ? (v ? 'yes' : 'no') : String(v).trim().toLowerCase().replace(/^true$/, 'yes').replace(/^false$/, 'no'));
+
+/** Whether a figure meets a decision's rule — a number by size, words the same or not. */
+export function ruleHolds(r: FlowRule, v: string | number | boolean | undefined): boolean {
+  if (v === undefined || v === '') return false;
+  if (typeof r.value === 'number') {
+    const n = typeof v === 'number' ? v : Number(v);
+    if (!Number.isFinite(n)) return false;
+    switch (r.op) {
+      case '>': return n > r.value;
+      case '>=': return n >= r.value;
+      case '<': return n < r.value;
+      case '<=': return n <= r.value;
+      case '=': return Math.abs(n - r.value) < 1e-9;
+      default: return Math.abs(n - r.value) >= 1e-9;
+    }
+  }
+  const same = wordOf(v) === wordOf(r.value);
+  return r.op === '=' ? same : r.op === '!=' ? !same : false;
+}
+
+const ruleValue = (r: FlowRule, f?: Pick<FlowField, 'unit'>) => (typeof r.value === 'number' ? `${fmt(r.value)}${f?.unit ? ` ${f.unit}` : ''}` : typeof r.value === 'boolean' ? (r.value ? 'Yes' : 'No') : r.value);
+/** A decision's rule in words — "Signals above 0", "Result is Fail". */
+export const ruleSaid = (r: FlowRule, f?: Pick<FlowField, 'label' | 'unit'>): string => `${f?.label ?? r.field} ${RULE_WORD[r.op]} ${ruleValue(r, f)}`;
+
 /** Read a project running a method. */
 export function readFlow(x: FlowInputs): FlowState {
   const { def, today } = x;
@@ -356,6 +390,37 @@ export function readFlow(x: FlowInputs): FlowState {
     instances.set(`${stage.key}/${step.key}`, list);
     byStep.set(step.key, list);
   }
+  /* DECISIONS ON WHAT IS FOUND (FlowStepDef.onlyIf): read in the method's
+     order — a step is decided only by one before it, so it is read first —
+     from the same machine's figure when both are per machine, else any of
+     them; decided once every one is done, and until then waiting on it */
+  for (const list of byStep.values()) {
+    for (const inst of list) {
+      const r = inst.def.onlyIf;
+      const dep = r ? byStep.get(r.step) : undefined;
+      if (!r || !dep?.length) continue;
+      const same = inst.assetId ? dep.filter(d => !d.assetId || d.assetId === inst.assetId) : dep;
+      const field = [...numbersOf(dep[0].def), ...(dep[0].def.fields ?? [])].find(f => f.key === r.field);
+      const rule = ruleSaid(r, field);
+      const title = dep[0].def.title;
+      if (!same.length || same.some(d => !d.complete)) {
+        inst.decision = { says: `Needed only when ${lowerFirst(rule)} — decided when “${title}” is done` };
+        inst.blockedBy.push(title);
+        continue;
+      }
+      if (same.every(d => d.notNeeded)) {
+        Object.assign(inst, { decision: { needed: false, says: `Not needed — “${title}” was not needed` }, notNeeded: true, complete: true, failed: false, late: false, missing: [], outOfLimits: [], tone: 'done' as const });
+        continue;
+      }
+      const vals = same.map(d => d.values[r.field]);
+      const shown = vals.map(v => (v === undefined ? 'not recorded' : typeof v === 'number' ? (field ? withUnit(v, field) : fmt(v)) : typeof v === 'boolean' ? (v ? 'Yes' : 'No') : String(v))).join(', ');
+      if (vals.some(v => ruleHolds(r, v))) {
+        inst.decision = { needed: true, says: `Needed — ${field?.label ?? r.field} ${shown}, ${RULE_WORD[r.op]} ${ruleValue(r, field)}` };
+      } else {
+        Object.assign(inst, { decision: { needed: false, says: `Not needed — ${field?.label ?? r.field} ${shown}; it is needed only when ${lowerFirst(rule)}` }, notNeeded: true, complete: true, failed: false, late: false, missing: [], outOfLimits: [], tone: 'done' as const });
+      }
+    }
+  }
   /* waits on: complete on the same machine when both are per machine, else
      every instance of the step waited on */
   for (const list of byStep.values()) {
@@ -364,7 +429,7 @@ export function readFlow(x: FlowInputs): FlowState {
         const dep = byStep.get(a);
         if (!dep) continue;
         const same = inst.assetId ? dep.filter(d => !d.assetId || d.assetId === inst.assetId) : dep;
-        if (same.some(d => !d.complete)) inst.blockedBy.push(dep[0].def.title);
+        if (same.some(d => !d.complete) && !inst.blockedBy.includes(dep[0].def.title)) inst.blockedBy.push(dep[0].def.title);
       }
     }
   }
@@ -387,7 +452,8 @@ export function readFlow(x: FlowInputs): FlowState {
     const tone: GateTone = passed ? 'done' : stepsTone === 'done' ? 'going' : stepsTone;
     stages.push({
       key: stage.key, name: stage.name, index, steps,
-      done: steps.filter(s => s.complete).length, total: steps.length,
+      done: steps.filter(s => s.complete && !s.notNeeded).length, total: steps.filter(s => !s.notNeeded).length,
+      notNeeded: steps.filter(s => s.notNeeded).length,
       late: steps.filter(s => s.late).length, failed: steps.filter(s => s.failed).length,
       stepsTone, tone,
       gate: {
@@ -434,13 +500,22 @@ export function readFlow(x: FlowInputs): FlowState {
   const current = stages.find(s => !s.gate.passed);
   const next = outstanding.find(o => !o.blocked && o.stageKey === current?.key) ?? outstanding.find(o => !o.blocked);
   const all = stages.flatMap(s => s.steps);
+  const needed = all.filter(s => !s.notNeeded);
   const counts = {
-    steps: all.length, done: all.filter(s => s.complete).length, late: all.filter(s => s.late).length,
+    steps: needed.length, done: needed.filter(s => s.complete).length, late: all.filter(s => s.late).length,
     failed: all.filter(s => s.failed).length, asking: all.filter(s => s.tone === 'asking').length,
     gatesPassed: stages.filter(s => s.gate.passed).length, gates: stages.length,
   };
   const done = stages.length > 0 && stages.every(s => s.gate.passed);
   return { stages, current, outstanding, next, done, counts, verdict: verdictOf(stages, current, done, counts), measures };
+}
+
+/** A stage's steps done, in words — "2 of 3 steps done (1 not needed)",
+ *  "none needed (3 not needed)": a step decided against is said, never counted. */
+export function stepsDoneSaid(st: Pick<StageState, 'done' | 'total' | 'notNeeded'>, stepWord = true): string {
+  const skipped = st.notNeeded ? ` (${st.notNeeded} not needed)` : '';
+  if (!st.total && st.notNeeded) return `none needed${skipped}`;
+  return `${st.done} of ${stepWord ? many(st.total, 'step') : st.total} done${skipped}`;
 }
 
 /** A number as a measure says it, with its unit. */
@@ -487,13 +562,15 @@ function readCondition(c: FlowCondition, stage: FlowStage, steps: StepInstance[]
   const across = (list: StepInstance[], one: string) => (list.length > 1 ? `${list.filter(s => s.complete).length} of ${list.length} ${one}` : '');
   switch (c.type) {
     case 'stepsDone': {
-      const done = steps.filter(s => s.complete).length;
-      return out(`Every step in ${stage.name} done`, done === steps.length, steps.length ? `${done} of ${steps.length} done` : 'no steps');
+      /* a step decided against is settled, and counted in nothing it would have held up */
+      const need = steps.filter(s => !s.notNeeded), skipped = steps.length - need.length;
+      const done = need.filter(s => s.complete).length;
+      return out(`Every step in ${stage.name} done`, done === need.length, steps.length ? `${need.length ? `${done} of ${need.length} done` : 'none needed'}${skipped ? ` (${skipped} not needed)` : ''}` : 'no steps');
     }
     case 'stepDone': {
       const list = byStep.get(c.step) ?? [];
       const ok = list.length > 0 && list.every(s => s.complete);
-      return out(`“${titled(c.step)}” done`, ok, ok ? 'done' : across(list, 'machines done') || (list[0]?.failed ? 'did not pass' : 'not done'));
+      return out(`“${titled(c.step)}” done`, ok, ok ? (list.every(s => s.notNeeded) ? 'not needed' : 'done') : across(list, 'machines done') || (list[0]?.failed ? 'did not pass' : 'not done'));
     }
     case 'evidence': {
       const list = byStep.get(c.step) ?? [];
@@ -548,7 +625,7 @@ function verdictOf(stages: StageState[], current: StageState | undefined, done: 
     return { text: `Every gate passed${last?.doneOn ? ` — the last on ${niceDay(last.doneOn)}` : ''}.`, tone: 'g' };
   }
   const st = current ?? stages[0];
-  const parts = [`${st.name} (stage ${st.index + 1} of ${stages.length}): ${st.done} of ${many(st.total, 'step')} done`];
+  const parts = [`${st.name} (stage ${st.index + 1} of ${stages.length}): ${stepsDoneSaid(st)}`];
   if (st.late) parts.push(`${st.late} late`);
   if (st.failed) parts.push(`${st.failed} did not pass`);
   const blocker = st.gate.conditions.find(c => c.blocking && c.type !== 'stepsDone');

@@ -33,7 +33,7 @@ import { setPeople } from '../lib/flow/operations';
 import { useFlowProject, useOpContext } from '../lib/flow/useFlow';
 import { flowLean, stageSquare, stageWord, stepSquare, stepWhy, stepWord } from '../lib/flow/view';
 import type { ActivityEntry, Method } from '../lib/flow/records';
-import { measureNumber, type StageState, type StepInstance } from '../lib/flow/runtime';
+import { measureNumber, stepsDoneSaid, type StageState, type StepInstance } from '../lib/flow/runtime';
 import { LeanActions, LeanBand, LeanClosing, LeanInsights, LeanPanel, LeanTiles } from '../ui/Lean';
 import { GateSheet, StepSheet } from '../ui/flow/RunParts';
 import { Words } from '../ui/flow/MethodParts';
@@ -168,7 +168,7 @@ export function FlowProjectScreen({ projectId }: { projectId: string }) {
       </nav>
 
       {chosen && (
-        <LeanPanel title={`${chosen.name} — ${chosen.done} of ${chosen.total} done`} className="fw-stage-run">
+        <LeanPanel title={`${chosen.name} — ${stepsDoneSaid(chosen, false)}`} className="fw-stage-run">
           {fp.method.definition.stages[chosen.index]?.purpose && <p className="sub">{fp.method.definition.stages[chosen.index].purpose}</p>}
           {chosen.ahead && <p className="sub is-a">Work recorded here before {chosen.gate.waitsOn} — kept; the gate still waits on it.</p>}
           {once.length > 0 && (
@@ -285,7 +285,7 @@ function GateLine({ stage, onOpen }: { stage: StageState; onOpen: () => void }) 
   const word = g.passed ? `Passed${g.pass?.doneOn ? ` ${niceDay(g.pass.doneOn)}` : ''}${g.pass?.override ? ' — over what was unmet' : ''}`
     : g.waitsOn ? `Waits on ${g.waitsOn}`
       : g.canPass ? 'Ready to pass'
-        : onSteps ? `Waits on its steps — ${stage.done} of ${stage.total} done` : `${unmet.length} thing${unmet.length === 1 ? '' : 's'} not met`;
+        : onSteps ? `Waits on its steps — ${stepsDoneSaid(stage, false)}` : `${unmet.length} thing${unmet.length === 1 ? '' : 's'} not met`;
   const tone = g.passed ? 'g' : g.canPass ? 'a' : g.waitsOn || onSteps ? 'n' : 'a';
   return (
     <button type="button" className={'fw-gate-line is-' + tone} onClick={onOpen} data-gate={stage.key}>

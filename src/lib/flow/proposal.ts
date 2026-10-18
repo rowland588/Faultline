@@ -14,8 +14,8 @@
  * scripts/sync-assist.mjs) so the server and the screen read a proposal the
  * same way. */
 import {
-  ANSWERS, CONDITIONS, FIELD_TYPES, FLOW_SCHEMA, fieldKeyOf, keyOf, measureKeyOf, numbersOf,
-  type FlowCondition, type FlowDefinition, type FlowField, type FlowMeasure, type FlowRole, type FlowStage, type FlowStepDef,
+  ANSWERS, CONDITIONS, FIELD_TYPES, FLOW_SCHEMA, RULE_OPS, fieldKeyOf, keyOf, measureKeyOf, numbersOf,
+  type FlowCondition, type FlowDefinition, type FlowField, type FlowMeasure, type FlowRole, type FlowRule, type FlowStage, type FlowStepDef, type RuleOp,
 } from './definition';
 import { COMPONENTS, componentOf } from './components';
 import { ANALYSIS_BLOCKS, WHEN_OPS, blockOf, isNumberColumn, type FlowAnalysis, type WhenOp } from './analysis';
@@ -67,6 +67,8 @@ export const PROPOSAL_SCHEMA = obj({
             }),
           },
           min_entries: INTQ,
+          /* a decision on what is found: needed only when an earlier step's figure says so */
+          only_if: obj({ step: S, field: S, op: { type: 'string', enum: ['', ...RULE_OPS] }, value: S }),
           help: S,
         }),
       },
@@ -156,6 +158,7 @@ export function fromProposal(input: unknown): Proposed {
       const photos = num(t.photos), files = num(t.files), due = num(t.due_days);
       const after = words(t.after, 10).map(a => seen.find(s => same(s.title, a))?.key ?? steps.map(x => ({ title: x.title, key: x.key })).find(s => same(s.title, a))?.key).filter((k): k is string => !!k);
       const role = roleKey(str(t.role));
+      const onlyIf = proposedRule(t.only_if, [...seen, ...steps.map(stepNumbers)]);
       const passesIf = str(t.passes_if, 2000), help = str(t.help, 2000);
       const tool = componentOf(str(t.tool, 40))?.id;
       const step: FlowStepDef = {
@@ -170,12 +173,13 @@ export function fromProposal(input: unknown): Proposed {
         ...(columns.length ? { columns } : {}),
         ...(analyses.length ? { analyses } : {}),
         ...(minEntries !== undefined && minEntries > 1 ? { minEntries: Math.round(minEntries) } : {}),
+        ...(onlyIf ? { onlyIf } : {}),
         ...(help ? { help } : {}),
       };
       steps.push(step);
     }
     /* a step's numbers: its boxes, and its tool's figures */
-    for (const s of steps) seen.push({ title: s.title, key: s.key, fields: numbersOf(s).concat((s.fields ?? []).filter(f => !numbersOf(s).includes(f))) });
+    for (const s of steps) seen.push(stepNumbers(s));
 
     const conditions: FlowCondition[] = [];
     const ids: string[] = [];
@@ -278,6 +282,22 @@ function proposedFields(raw: unknown, taken: readonly string[] = []): FlowField[
   return fields;
 }
 
+/** A step's numbers and boxes, as a later step or a gate names them. */
+const stepNumbers = (s: FlowStepDef) => ({ title: s.title, key: s.key, fields: numbersOf(s).concat((s.fields ?? []).filter(f => !numbersOf(s).includes(f))) });
+
+/** A decision as proposed — the earlier step by its title, its figure by its label. */
+function proposedRule(raw: unknown, earlier: readonly { title: string; key: string; fields: FlowField[] }[]): FlowRule | undefined {
+  if (!isObj(raw)) return undefined;
+  const st = earlier.find(s => same(s.title, str(raw.step)));
+  const f = st?.fields.find(x => same(x.label, str(raw.field)) || x.key === str(raw.field));
+  const op = (RULE_OPS as readonly string[]).includes(str(raw.op, 3)) ? str(raw.op, 3) as RuleOp : undefined;
+  const v = str(raw.value, 80);
+  if (!st || !f || !op || !v) return undefined;
+  const numeric = ['number', 'reading', 'calc'].includes(f.type) || !['choice', 'yesno', 'text', 'person', 'date'].includes(f.type);
+  const value = numeric && Number.isFinite(Number(v)) ? Number(v) : f.type === 'yesno' ? /^(y|yes|true)$/i.test(v) : v;
+  return { step: st.key, field: f.key, op, value };
+}
+
 /** A log's analyses as proposed — each column named by its label, found here. */
 function proposedAnalyses(raw: unknown, columns: FlowField[], taken: readonly string[]): FlowAnalysis[] {
   const out: FlowAnalysis[] = [];
@@ -304,6 +324,14 @@ function proposedAnalyses(raw: unknown, columns: FlowField[], taken: readonly st
   return out;
 }
 
+/** A decision said back by the step's title and the figure's label. */
+function ruleSaidBack(def: FlowDefinition, r?: FlowRule): Record<string, string> {
+  if (!r) return { step: '', field: '', op: '', value: '' };
+  const dep = def.stages.flatMap(s => s.steps).find(s => s.key === r.step);
+  const label = dep ? stepNumbers(dep).fields.find(f => f.key === r.field)?.label : undefined;
+  return { step: dep?.title ?? '', field: label ?? r.field, op: r.op, value: typeof r.value === 'boolean' ? (r.value ? 'yes' : 'no') : String(r.value) };
+}
+
 /** A definition said back in the proposal's shape — names and words, no
  *  keys — so the assistant can be asked to change a method as it stands. */
 export function toProposal(def: FlowDefinition): Record<string, unknown> {
@@ -326,6 +354,7 @@ export function toProposal(def: FlowDefinition): Record<string, unknown> {
           return { label: a.label, block: a.block, of: lab(a.of), by: lab(a.by), when_column: lab(a.when?.column), when_op: a.when?.op ?? '', when_value: a.when ? String(a.when.value) : '', unit: a.unit ?? '', against: lab(a.against), target: a.target ?? null };
         }),
         min_entries: s.minEntries ?? null,
+        only_if: ruleSaidBack(def, s.onlyIf),
         help: s.help ?? '',
       })),
       gate: st.gate.conditions.map(c => {
