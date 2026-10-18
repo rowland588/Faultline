@@ -351,6 +351,27 @@ export function programAfterTest(p: Program, t: ProvingTest, today = todayISO(),
   return same ? undefined : next;
 }
 
+/** THE PROGRAM ONCE ITS TEST IS DELETED, or undefined when nothing changes
+ *  (Rowland, 18 October: a test deleted on the job, and its program still
+ *  said "on the machine · test 20 Oct" — the record kept the memory of a
+ *  test that was gone). It forgets the test: no link to it, the day it was
+ *  booked for taken off when it was that test's day, and a proof that was
+ *  that test's pass taken off — back on the machine, as a failure leaves it.
+ *  `rest` — the program's other tests still kept (a re-test, an earlier
+ *  attempt): the newest of them is then read as programAfterTest reads it,
+ *  so the program follows the test it still has. */
+export function programAfterTestGone(p: Program, t: ProvingTest, rest: readonly (ProvingTest & { createdAt?: number })[] = [], today = todayISO()): Program | undefined {
+  if (p.deletedAt || (t.programId !== p.id && p.testId !== t.id)) return undefined;
+  let next: Program = p;
+  if (next.testId === t.id) next = { ...next, testId: undefined };
+  if (p.provedOn && p.testId === t.id) next = { ...next, state: 'onMachine', provedOn: undefined };
+  if (!next.provedOn && t.plannedFor && next.testOn === t.plannedFor) next = { ...next, testOn: undefined };
+  const kept = rest.filter(x => x.id !== t.id && !x.deletedAt && x.programId === p.id).sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0)).pop();
+  if (kept) next = programAfterTest(next, kept, today) ?? next;
+  const same = next.state === p.state && next.provedOn === p.provedOn && next.testOn === p.testOn && next.testId === p.testId;
+  return same ? undefined : next;
+}
+
 /* ======================= FAILED ON THE FLOOR ===============================
  *
  * Flow audit #3 (13 October): one program, two records, two answers — PR-04

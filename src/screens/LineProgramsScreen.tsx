@@ -32,7 +32,7 @@ import { asked } from '../lib/lines';
 import { niceDay, todayISO } from '../lib/weeks';
 import { pdfFileName } from '../lib/fileName';
 import { useCanStartProjects } from '../cloud/access';
-import { addLineProgram, deleteProgram, putProgram, putProgramOnMachine, putPrograms } from '../db';
+import { addLineProgram, deleteProgramWithTests, putProgram, putProgramOnMachine, putPrograms } from '../db';
 import { nav } from '../state/useRoute';
 import { DateInput } from '../ui/DateInput';
 import { AddFold } from '../ui/AddFold';
@@ -249,7 +249,7 @@ function ProgramRow({ p, line, machines, today, may, rec, floor, proof, move }: 
             offerUndo(`“${next.what}” — saved`, () => putProgram(p));
           }}
           {...(move ? { onMove: { ...(move.up ? { up: () => void move.up?.() } : {}), ...(move.down ? { down: () => void move.down?.() } : {}) } } : {})}
-          onDelete={() => void deleteProgram(p.id).then(undo => offerUndo(`Took “${p.what}” off ${line.name}`, undo))}
+          onDelete={() => void deleteProgramWithTests(p.id).then(undo => offerUndo(`Took “${p.what}” off ${line.name}`, undo))}
           extra={
             /* Where it's got to. A select, not a toggle: three states are three
                states. Proved asks the day and what showed it (flow audit #21). */

@@ -38,7 +38,7 @@ import { editedResult, partMoved, partsOf, resultWords, withoutResult } from '..
 import { provingTestOf } from '../lib/commission';
 import { todayISO } from '../lib/weeks';
 import { uid } from '../lib/ids';
-import { deleteProgram, deleteTestItem, putTestItem } from '../db';
+import { deleteProgram, deleteProgramWithTests, deleteTestItem, putTestItem } from '../db';
 import type { useTesting } from '../lib/useTesting';
 import type { ProgramsState } from '../lib/usePrograms';
 import type { Can } from '../lib/access';
@@ -242,7 +242,8 @@ export function JobProgramRow({ projectId, line: l, tt, progs, can, stages, mach
   const remove = async () => {
     const undos: (() => Promise<unknown>)[] = [];
     if (part) undos.push(await deleteTestItem(part.id));
-    if (program) undos.push(await deleteProgram(program.id));
+    /* its tests still to run go with it (db/testing deleteProgramWithTests) */
+    if (program) undos.push(await deleteProgramWithTests(program.id));
     offerUndo(`Took off “${l.what}”`, async () => { for (const u of undos) await u(); });
   };
   const unsay = (at: number) => {
