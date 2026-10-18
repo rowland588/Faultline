@@ -21,6 +21,7 @@
  * that station's unit (a tray), so their takt is the line's × the packs in
  * a tray. Pure: the capacity and the balance in, what each should now hold
  * out; the balance's page writes it. */
+import { stepsFromEvents, taktOf } from '../video/study';
 import { chainFactor, fmtMoney as m, labourInputs, syncWhatIfs, type Capacity, type Station, type StationKind } from '../capacity';
 import type { Workspace } from '../../types';
 import type { AgreedBalance, BalanceCrew, ToolStudy } from '../study';
@@ -29,7 +30,17 @@ import { balance, type BalanceFigures } from './balance';
 /** A work balance's figures as every reader takes them — its elements, the
  *  takt it holds to and where each person is on the line, all on the study
  *  (the balance's page keeps the takt and the stations up with Line capacity). */
-export const studyBalance = (s: Pick<ToolStudy, 'facts' | 'agreed'>): BalanceFigures => balance(s.facts.steps, s.agreed?.balance, s.facts.crew);
+export const studyBalance = (s: Pick<ToolStudy, 'facts' | 'agreed'>): BalanceFigures => {
+  /* READ FROM FOOTAGE (lib/video): the elements are the stations' accepted
+     events, timed by their lengths; the takt the agreed one, else the
+     demand the study was given */
+  const v = s.facts.video;
+  if (v) {
+    const takt = s.agreed?.balance ?? (taktOf(v.demand) ? { taktSec: taktOf(v.demand) as number } : undefined);
+    return balance(stepsFromEvents(v.job.config.zones, s.facts.vevents ?? [], 'verified', v.facts.durationSec, v.job.config.sampleSec), takt, s.facts.crew);
+  }
+  return balance(s.facts.steps, s.agreed?.balance, s.facts.crew);
+};
 
 /** A station a person can be at, in the order the product flows. */
 export interface StationPick {

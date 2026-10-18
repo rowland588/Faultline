@@ -36,26 +36,29 @@ export function smooth(v: readonly number[], w = 1): number[] {
   });
 }
 
-/** The quiet level and the working level of one station: two groups found
- *  in its own values (iterated means), with how far apart they are against
- *  the spread of the quiet one. */
-export function levels(v: readonly number[]): { quiet: number; busy: number; threshold: number; spread: number; contrast: number } {
+const pct = (sorted: readonly number[], p: number) => sorted[Math.min(sorted.length - 1, Math.max(0, Math.round((sorted.length - 1) * p)))];
+
+/** The quiet level and the working level of one station, from its own
+ *  values: quiet is its low twentieth and its spread the scatter of its
+ *  lowest fifth (the camera's grain — a station is idle at least that often
+ *  in any footage worth studying), busy its high tenth. Work is movement
+ *  above whichever is higher: `sensitivity` spreads over quiet, or a share
+ *  of the way from quiet to busy (a quarter at the usual sensitivity of 4) —
+ *  so grain never counts as work and a busy station's slow moments still do.
+ *  Found reading synthetic footage on 18 October: two groups split by their
+ *  means put a station busy three-quarters of the time wholly in "quiet",
+ *  and it showed no work at all; a spread from the lowest tenth alone let
+ *  grain through. */
+export function levels(v: readonly number[], sensitivity = 4): { quiet: number; busy: number; threshold: number; spread: number; contrast: number } {
   if (!v.length) return { quiet: 0, busy: 0, threshold: 0, spread: 0, contrast: 0 };
-  let lo = Math.min(...v), hi = Math.max(...v);
-  let t = (lo + hi) / 2;
-  for (let k = 0; k < 50; k++) {
-    const a = v.filter(x => x <= t), b = v.filter(x => x > t);
-    if (!a.length || !b.length) break;
-    lo = a.reduce((s, x) => s + x, 0) / a.length;
-    hi = b.reduce((s, x) => s + x, 0) / b.length;
-    const next = (lo + hi) / 2;
-    if (Math.abs(next - t) < 1e-9) break;
-    t = next;
-  }
-  const quiet = v.filter(x => x <= t);
-  const mean = quiet.reduce((s, x) => s + x, 0) / Math.max(1, quiet.length);
-  const spread = Math.sqrt(quiet.reduce((s, x) => s + (x - mean) ** 2, 0) / Math.max(1, quiet.length));
-  return { quiet: lo, busy: hi, threshold: t, spread, contrast: (hi - lo) / (spread + 1e-4) };
+  const s = [...v].sort((a, b) => a - b);
+  const quiet = pct(s, 0.05), busy = pct(s, 0.9);
+  const low = s.slice(0, Math.max(5, Math.ceil(s.length / 5)));
+  const m = low.reduce((t, x) => t + x, 0) / low.length;
+  const spread = Math.max(1e-4, Math.sqrt(low.reduce((t, x) => t + (x - m) ** 2, 0) / low.length));
+  const share = Math.min(0.5, Math.max(0.1, sensitivity / 16));
+  const threshold = quiet + Math.max(sensitivity * spread, share * (busy - quiet));
+  return { quiet, busy, threshold, spread, contrast: (busy - quiet) / spread };
 }
 
 /** The least the busy level must stand above the quiet one, as a share of the picture changing — below it, the station is said to show no work at all. */
@@ -69,7 +72,7 @@ export interface Interval { start: number; end: number; strength: number }
  *  dropped. */
 export function busyIntervals(times: readonly number[], values: readonly number[], c: Pick<ProcessingConfig, 'sensitivity' | 'joinGapSec' | 'minEventSec'>): { intervals: Interval[]; level: ReturnType<typeof levels> } {
   const v = smooth(values, 1);
-  const level = levels(v);
+  const level = levels(v, c.sensitivity);
   if (times.length < 3 || level.busy - level.quiet < FLOOR || level.contrast < c.sensitivity) return { intervals: [], level };
   const on = v.map(x => x > level.threshold);
   const raw: Interval[] = [];
@@ -79,10 +82,18 @@ export function busyIntervals(times: readonly number[], values: readonly number[
     if (!on[i]) { i++; continue; }
     let j = i;
     while (j + 1 < on.length && on[j + 1]) j++;
-    const start = i === 0 ? times[0] : half(i - 1, i);
-    const end = j === on.length - 1 ? times[j] : half(j, j + 1);
-    const seg = v.slice(i, j + 1);
-    raw.push({ start, end, strength: seg.reduce((s, x) => s + x, 0) / seg.length });
+    /* the smoothed signal finds the stretch; its edges are placed on the raw
+       values, where they cross halfway between quiet and this stretch's own
+       level — smoothing alone pushed every boundary a frame outwards */
+    const seg = values.slice(i, j + 1);
+    const own = seg.reduce((t, x) => t + x, 0) / seg.length;
+    const mid = (level.quiet + Math.max(own, level.threshold)) / 2;
+    let a = i, z = j;
+    while (a < z && values[a] < mid) a++;
+    while (z > a && values[z] < mid) z--;
+    const start = a === 0 ? times[0] : half(a - 1, a);
+    const end = z === on.length - 1 ? times[z] : half(z, z + 1);
+    raw.push({ start, end, strength: own });
     i = j + 1;
   }
   const joined: Interval[] = [];

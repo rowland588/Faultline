@@ -32,6 +32,7 @@ import Anthropic from "npm:@anthropic-ai/sdk@0.131.0";
 import { DESIGN_SYSTEM, allowance, changeUser, costMicros, designUser, readDesign } from "./flow/assistCore.ts";
 import { PROPOSAL_SCHEMA } from "./flow/proposal.ts";
 import { ASK_SCHEMA, ASK_SYSTEM, askUser, checkAnswer, type Fact } from "./flow/askCore.ts";
+import { VISION_LIMITS, VISION_SCHEMA, VISION_SYSTEM, checkLabels, visionUser, type LabelEvent, type LabelFrame } from "./video/visionCore.ts";
 
 const KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const MODEL = Deno.env.get("ASSIST_MODEL") ?? "claude-opus-5-5";
@@ -71,8 +72,17 @@ Deno.serve(async (req) => {
   const description = String(body.description ?? body.request ?? "").slice(0, 4000);
   const question = String(body.question ?? "").slice(0, 400);
   const facts: Fact[] = Array.isArray(body.facts) ? (body.facts as Fact[]).slice(0, 400).map(f => ({ id: String(f?.id ?? ""), text: String(f?.text ?? "").slice(0, 600), basis: f?.basis === "known" || f?.basis === "worked out" ? f.basis : "not recorded" })) : [];
-  if (task !== "design" && task !== "change" && task !== "ask") return json({ ok: false, why: "The assistant designs and changes methods and answers questions about a project; nothing else." }, 400);
-  if (task !== "ask" && description.trim().length < (task === "change" ? 5 : 20)) return json({ ok: false, why: "Say a little more about what you want." }, 400);
+  /* A VIDEO STUDY'S FRAMES (docs/VIDEO.md): a few small JPEGs of the events the
+     movement reading found, never the footage; held to the limits before any is sent on */
+  const vEvents: LabelEvent[] = Array.isArray(body.events) ? (body.events as LabelEvent[]).slice(0, VISION_LIMITS.events + 1).map(e => ({ id: String(e?.id ?? "").slice(0, 60), station: String(e?.station ?? "").slice(0, 80), track: String(e?.track ?? "").slice(0, 40), from: String(e?.from ?? "").slice(0, 12), to: String(e?.to ?? "").slice(0, 12) })) : [];
+  const vFrames: LabelFrame[] = Array.isArray(body.frames) ? (body.frames as LabelFrame[]).slice(0, VISION_LIMITS.frames + 1).map(f => ({ event: String(f?.event ?? ""), at: String(f?.at ?? ""), data: String(f?.data ?? "") })) : [];
+  if (task === "video-label") {
+    if (!vEvents.length || !vFrames.length) return json({ ok: false, why: "Events and their frames, please." }, 400);
+    if (vEvents.length > VISION_LIMITS.events || vFrames.length > VISION_LIMITS.frames) return json({ ok: false, why: `At most ${VISION_LIMITS.frames} frames and ${VISION_LIMITS.events} events at once.` }, 400);
+    if (vFrames.some(f => !/^[A-Za-z0-9+/=]+$/.test(f.data) || f.data.length * 0.75 > VISION_LIMITS.frameBytes || !vEvents.some(e => e.id === f.event))) return json({ ok: false, why: "A frame is not a small JPEG of an event asked about." }, 400);
+  }
+  if (task !== "design" && task !== "change" && task !== "ask" && task !== "video-label") return json({ ok: false, why: "The assistant designs and changes methods, answers questions about a project, and names the work in a video study's frames; nothing else." }, 400);
+  if (task !== "ask" && task !== "video-label" && description.trim().length < (task === "change" ? 5 : 20)) return json({ ok: false, why: "Say a little more about what you want." }, 400);
   if (task === "change" && !body.current) return json({ ok: false, why: "The method as it stands is needed to change it." }, 400);
   if (task === "ask" && (!question.trim() || !facts.length)) return json({ ok: false, why: "A question and the project's facts, please." }, 400);
 
@@ -86,6 +96,28 @@ Deno.serve(async (req) => {
   if (!left.ok) return json({ ok: false, why: left.why });
 
   const client = new Anthropic({ apiKey: KEY });
+  if (task === "video-label") {
+    try {
+      const msg = await client.beta.messages.create({
+        model: MODEL, max_tokens: 4000,
+        betas: ["server-side-fallback-2026-07-01"], fallbacks: "default",
+        output_config: { effort: ASK_EFFORT, format: { type: "json_schema", schema: VISION_SCHEMA } },
+        system: [{ type: "text", text: VISION_SYSTEM, cache_control: { type: "ephemeral" } }],
+        messages: [{ role: "user", content: visionUser(String(body.objective ?? ""), vEvents, vFrames) }],
+      } as unknown as Parameters<typeof client.beta.messages.create>[0]) as unknown as { model?: string; stop_reason?: string; content?: unknown; usage?: Record<string, number> };
+      const cost = costMicros(msg.model ?? MODEL, msg.usage ?? {});
+      const text = (Array.isArray(msg.content) ? msg.content : []).map((b: { type?: string; text?: string }) => (b?.type === "text" ? b.text ?? "" : "")).join("");
+      let raw: unknown = null;
+      try { raw = JSON.parse(text); } catch { /* unreadable */ }
+      const labels = msg.stop_reason === "refusal" ? [] : checkLabels(raw, vEvents.map(e => e.id));
+      await admin.from("assist_usage").insert({ user_id: user.id, task, model: msg.model ?? MODEL, input_tokens: msg.usage?.input_tokens ?? 0, output_tokens: msg.usage?.output_tokens ?? 0, cost_micros: cost, ok: labels.length > 0 });
+      return labels.length ? json({ ok: true, labels, model: msg.model ?? MODEL }) : json({ ok: false, why: "The assistant's labels could not be checked, so none are kept — name the work as you review." });
+    } catch (e) {
+      if (e instanceof Anthropic.RateLimitError) return json({ ok: false, why: "The assistant is busy — try again in a minute." });
+      if (e instanceof Anthropic.AuthenticationError) return json({ off: true, why: "The assistant's key is not accepted — name the work as you review." });
+      return json({ ok: false, why: "The assistant could not name the work just now — name it as you review." });
+    }
+  }
   try {
     const ask = task === "ask";
     const msg = await client.beta.messages.create({

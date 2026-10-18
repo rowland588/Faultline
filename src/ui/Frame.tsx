@@ -62,7 +62,7 @@ function projectOf(route: Route, chainProject?: string): string | undefined {
   if (route.name === 'lineHome' || route.name === 'factory' || route.name === 'linePrograms') return undefined;
   if (route.wsId) return chainProject;
   if (route.name === 'paceReport') return route.query.get('project') ?? undefined;
-  if (route.name === 'home' || route.name === 'projects' || route.name === 'share' || route.name === 'quickSnags' || route.name === 'lineTools' || route.name === 'studies' || route.name === 'study') return undefined;
+  if (route.name === 'home' || route.name === 'projects' || route.name === 'share' || route.name === 'quickSnags' || route.name === 'lineTools' || route.name === 'studies' || route.name === 'study' || route.name === 'videos' || route.name === 'videoStudy') return undefined;
   return route.id;
 }
 
@@ -151,7 +151,7 @@ function useHere(route: Route, project?: Project): string {
 function placeOf(route: Route): string {
   switch (route.name) {
     case 'factory': case 'lineHome': case 'linePrograms': return 'Your factory';
-    case 'lineTools': case 'studies': case 'study': case 'lineStandards': return 'Tools';
+    case 'lineTools': case 'studies': case 'study': case 'lineStandards': case 'videos': case 'videoStudy': return 'Tools';
     case 'home': case 'portfolio': case 'projects': case 'quickSnags': case 'methods': case 'method': case 'design': return 'Control room';
     default: return route.wsId ? 'Your factory' : 'Control room';
   }

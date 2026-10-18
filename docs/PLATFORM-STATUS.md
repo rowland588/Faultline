@@ -123,7 +123,20 @@ list (a definition gives every machine the same steps).
   method is shared only by a project that runs it. Organisation-wide
   libraries wait for tenancy.
 
+## Video intelligence (18 October) — docs/VIDEO.md
+
+A power tool beside the methods, not instead of them: footage uploaded,
+read on the device for the work at each station, reviewed on the footage,
+worked out as a line balance, on paper. Its record of what works, what was
+measured (synthetic footage, condition by condition), its limits and what
+waits on someone is docs/VIDEO.md. Its blockers are below.
+
 ## Blockers needing Rowland
+
+- **A video study's footage to the cloud** — `supabase/VIDEO_MEDIA.sql`
+  (the media rule taught to look in a study's footage) is written and not
+  applied. Until it is, footage stays on the device it was taken on, and the
+  study says so; its events, figures and reports sync.
 
 - **The assistant's allowance table** — `supabase/ASSIST_USAGE.sql` was not
   applied (the tool call was declined on 18 October). Either say yes to it

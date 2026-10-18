@@ -79,6 +79,8 @@ const ROUTES = [
   ['a method from Faultline’s library — tools and a measure', `#/methods/${seeded.smedMethodId}`],
   ['a project on SMED’s method — a step answered by a SMED study, the measure', `#/project/${seeded.smedProjectId}`],
   ['a project on SMED’s method — the step answered by SMED, open', `#/project/${seeded.smedProjectId}?step=${encodeURIComponent('record/time-now/')}`],
+  ['video studies — every one', '#/video'],
+  ['a video study — its footage elsewhere, its events reviewed, the line balance, takt', `#/video/${seeded.videoStudyId}`],
   ['project setup', `#/project/${seeded.projectId}/setup`],
   ['lever tree', `#/project/${seeded.treeProjectId}/tree`],
   ['lever tree — front page', `#/project/${seeded.treeProjectId}`],

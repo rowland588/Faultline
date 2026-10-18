@@ -90,7 +90,7 @@ of a line, are no longer under projects.
 | **Person** (a name who owes things) | — | Free text in every "whose" box; project members for access only | D5 |
 | **Problem** | `snags` (a line's) | `snags`; `test_items` of kind *found* (stage gate); `cases` (6M, the head of the fish); `observations` (stops timed) | Keep the four: each method asks different things of a problem. The register already shows all of them; Stage 5 makes them open in one place |
 | **Action / fix** | `tests` (stage-gate fixes), `pace_todos` (6M countermeasures) | Same | Keep; one view in the register and in Needs you |
-| **Study** (one use of a tool) | `studies` (+ `observations`, `segments` for the stopwatch and the walk) | Same | Keep |
+| **Study** (one use of a tool) | `studies` (+ `observations`, `segments` for the stopwatch and the walk) | Same | Keep. A **video study** is one (18 October, docs/VIDEO.md): a line balance study whose laps come from footage — `facts.video` (the footage, its facts, the job that reads it) and `facts.vevents` (the events and what a person decided), no new table |
 | **Measure** (a number to hit) | A job's targets on a line's readings (`measures`, `targets`, `readings`) | Same, plus `project_targets` / `project_actuals`, read by nothing | Stage 0 removes the dead pair |
 | **Job** (a change) | `projects` + its method | Same | Keep. Its lines are picked from the factory (built, in the gate) |
 | **Method** (a way of running a change, written as data) | `methods` — one row a version, a family's versions sharing `family_id`; an active version never changes | The three native methods are code (`lib/planModel`); nothing held a method as data | Built 18 October (`lib/flow`, `supabase/METHODS.sql`; docs/PLATFORM-REVIEW.md, docs/PLATFORM-STATUS.md). A job runs one through `projects.flow`; the native three stay as they are until their own acceptance scripts pass on the runtime |
@@ -199,6 +199,8 @@ it is, adapt, or copy; a person's method is as much a method as Faultline's.
 | Step done / gate passed | — | the job's row: its stages in their tones, at the stage it is on; its steps in the week, the late, Who owes what (a supplier-side role under the supplier) | the job's page: the stage strip, a step per machine, the gate line, the action plan; the rail's stage squares | the method report — every step, every gate condition, who confirmed a check, a pass over what was unmet with its reason |
 | Activity | — | — | the job's "What has happened"; the method's "Its history" | the method report's "What has happened" |
 
+| A video study (footage read for the work at each station) | — | Tools on the rail: Video study, every one | the study's page: the footage with its stations, the events to review on it, the line balance worked out from what was accepted, takt, what it says, questions answered; a method's step done with the line balance offers it and reads its figures | the video study's report (how it was read, each station, the stacks against takt, every event with how it is known and what was decided) |
+
 A screen that shows a record outside this table must add a row here.
 
 ---
@@ -274,6 +276,19 @@ line's rate, the good out, how far short of its target and labour a pack
 from `lib/capacity`, the one cost model; Faultline's library has *Bring a
 line to its rate* on it. Next: the 6M's and the lever tree's own pictures
 drawn from a method's records.
+
+**Video intelligence** (Rowland, 18 October: "upload a production video,
+describe the analysis they want in natural language, and receive a
+structured, reviewable manufacturing study"; docs/VIDEO.md). Built the same
+day as its first proof — a line balance read from footage: uploaded and
+checked from its bytes, read on the device with its state on the record
+(resumed after a reload), candidates found by movement, reviewed on the
+footage, worked out by the line balance's own arithmetic, takt asked for,
+on paper; measured on footage with known times. Next, in docs/VIDEO.md:
+the footage to the cloud (`supabase/VIDEO_MEDIA.sql`, waiting on Rowland),
+real footage timed by hand, stations drawn as rectangles, lighting told
+from work, SMED from footage, a video study on a product's Line capacity,
+and the job's own page listing its video studies.
 
 **Money in every tool** (Rowland, 17 October: "everything must derive a cost
 in the entire app ... it's all about money"; the rule is in CLAUDE.md,

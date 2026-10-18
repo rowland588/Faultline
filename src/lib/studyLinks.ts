@@ -92,7 +92,9 @@ export const studyTitle = (s: Pick<ToolStudy, 'tool' | 'name' | 'machine'>): str
 /** Where a study opens. A work balance lives on its product's line standard —
  *  the job's when it is attached, else the line's — at the People view, and
  *  names itself so an earlier timing opens as itself. */
-export function studyHref(s: Pick<ToolStudy, 'id' | 'tool' | 'standardId' | 'projectId' | 'workspaceId'>): string {
+export function studyHref(s: Pick<ToolStudy, 'id' | 'tool' | 'standardId' | 'projectId' | 'workspaceId'> & { facts?: Pick<ToolStudy['facts'], 'video'> }): string {
+  /* a line balance read from footage opens on its footage (docs/VIDEO.md) */
+  if (s.facts?.video) return `/video/${s.id}`;
   if (s.tool === 'balance' && s.standardId) {
     const at = `?at=work&study=${encodeURIComponent(s.id)}`;
     if (s.projectId) return `/project/${s.projectId}/standard/${s.standardId}${at}`;

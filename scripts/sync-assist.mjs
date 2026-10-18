@@ -12,11 +12,16 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
 export const SHARED = ['definition', 'formula', 'components', 'validate', 'proposal', 'assistCore', 'askCore'];
-export const forDeno = src => `// COPIED FROM src/lib/flow by scripts/sync-assist.mjs — edit the source, then run it.\n${src.replace(/from '\.\/([A-Za-z]+)'/g, "from './$1.ts'")}`;
+/* the video study's labelling (docs/VIDEO.md): what the assistant is asked about the frames, and what is kept */
+export const VIDEO_SHARED = ['record', 'visionCore'];
+export const forDeno = (src, from = 'src/lib/flow') => `// COPIED FROM ${from} by scripts/sync-assist.mjs — edit the source, then run it.\n${src.replace(/from '\.\/([A-Za-z]+)'/g, "from './$1.ts'")}`;
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const out = join(root, 'supabase/functions/assist/flow');
   mkdirSync(out, { recursive: true });
   for (const f of SHARED) writeFileSync(join(out, `${f}.ts`), forDeno(readFileSync(join(root, 'src/lib/flow', `${f}.ts`), 'utf8')));
-  console.log(`copied ${SHARED.length} files to supabase/functions/assist/flow`);
+  const vout = join(root, 'supabase/functions/assist/video');
+  mkdirSync(vout, { recursive: true });
+  for (const f of VIDEO_SHARED) writeFileSync(join(vout, `${f}.ts`), forDeno(readFileSync(join(root, 'src/lib/video', `${f}.ts`), 'utf8'), 'src/lib/video'));
+  console.log(`copied ${SHARED.length} files to supabase/functions/assist/flow and ${VIDEO_SHARED.length} to supabase/functions/assist/video`);
 }

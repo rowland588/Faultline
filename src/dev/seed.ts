@@ -138,6 +138,9 @@ export interface Seeded {
    *  minutes read into the step and the measure. */
   smedMethodId: string;
   smedProjectId: string;
+  /** A video study on the line (docs/VIDEO.md): its footage not on this
+   *  device, three stations, events read and some accepted, takt given. */
+  videoStudyId: string;
 }
 
 /* A CHANGEOVER'S EIGHT ELEMENTS, as lapped on the phone (SMED, tool 6): who
@@ -1124,9 +1127,42 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     return { smedMethodId: m.value.id, smedProjectId: p.value.id };
   })();
 
+  /* A VIDEO STUDY (docs/VIDEO.md): read from footage taken on another device —
+     so the footage is not here, and the study says so — its events found by
+     movement, most accepted, one corrected, one rejected, two still to review,
+     the demand given for takt. Every number is worked out from these. */
+  const videoStudyId = await (async () => {
+    const { newJob } = await import('../lib/video/job');
+    const { READING_VERSION } = await import('../lib/video/record');
+    const t = Date.now();
+    const zones = [0, 1, 2].map(i => ({ id: `s${i + 1}`, label: `Workstation ${i + 1}`, track: `Operator ${'ABC'[i]}`, x0: i / 3, x1: (i + 1) / 3, y0: 0, y1: 1 }));
+    const config = { sampleSec: 0.1, readWidth: 160, zones, sensitivity: 4, joinGapSec: 0.5, minEventSec: 0.6, version: READING_VERSION };
+    const ev = (zone: string, start: number, end: number, review: 'candidate' | 'accepted' | 'rejected', extra: object = {}) => ({
+      id: `seedv-${zone}-${start}`, start, end, category: 'work' as const, zone, track: zones.find(z => z.id === zone)?.track,
+      observed: `Movement at ${zones.find(z => z.id === zone)?.label}`, confidence: 0.86, frames: [start, (start + end) / 2, end],
+      basis: 'motion' as const, review, ...(review !== 'candidate' ? { by: 'Rowland', at: t } : {}), provenance: { provider: 'motion', version: READING_VERSION, key: 'seed' }, ...extra });
+    const vevents = [
+      ...[1.5, 9.5, 17.5, 25.5].map(s0 => ev('s1', s0, s0 + 4.1, 'accepted')),
+      ...[2.5, 10.5, 18.5].map(s0 => ev('s2', s0, s0 + 6.1, 'accepted')), ev('s2', 26.5, 31.5, 'candidate'),
+      ...[3.5, 11.5].map(s0 => ev('s3', s0, s0 + 3.0, 'accepted')), ev('s3', 19.5, 22.6, 'accepted', { proposed: { start: 19.5, end: 22.4, category: 'work', zone: 's3' } }),
+      ev('s3', 27.5, 30.4, 'candidate'), ev('s1', 6, 6.8, 'rejected'),
+    ];
+    const id = uid();
+    await putStudy({ id, tool: 'balance', name: 'Line 4 — packing, morning', workspaceId: ws.id, uses: [], startedAt: t, createdAt: t, updatedAt: t,
+      facts: { vevents, video: {
+        media: { id: uid(), blobKey: `video-seed-not-here-${id}`, mime: 'video/webm', capturedAt: t },
+        facts: { fileName: 'line4-morning.webm', mime: 'video/webm', bytes: 7_100_000, durationSec: 32, width: 1280, height: 720, fps: 25, orientation: 'landscape' },
+        objective: 'Analyse this video for line balance against takt', kind: 'balance',
+        job: { ...newJob(config, t), state: 'review', key: 'seed', said: '12 pieces of work found at 3 of 3 stations.', updatedAt: t, finishedAt: t },
+        demand: { units: 600, unit: 'packs', availableMin: 55, per: 'shift' },
+      } } });
+    return id;
+  })();
+
   return {
     ...flowSeed,
     ...smedSeed,
+    videoStudyId,
     wsId: ws.id, projectId: proj.id, standardId, lineStandardId: lineOnly, lineOnJobId: lineOnJob, lineId: line.id, caseId: kase.id,
     segmentId: seg.id, assetId: asset.id,
     observations: (await listObservations(ws.id)).length,

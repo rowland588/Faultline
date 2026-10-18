@@ -22,6 +22,7 @@
  * Never called "a study" on screen on its own — "Line study" already names a
  * line. It always carries its tool's name: "Capability study — Weight
  * accuracy 400 g". */
+import type { VideoEvent, VideoSource } from './video/record';
 import type { ID } from '../types';
 
 /** Every tool a study can be a use of. The cloud's check constraint holds the
@@ -450,6 +451,12 @@ export interface StudyFacts {
   /** The running speed timed through that shift — its own list, so two
    *  phones timing at once both keep theirs. */
   timings?: RunTiming[];
+  /** A STUDY READ FROM FOOTAGE (lib/video, docs/VIDEO.md): the recording, its
+   *  facts and the job that reads it. Its laps are then the accepted events'
+   *  lengths, worked out each time it is read, never stored as laps. */
+  video?: VideoSource;
+  /** The events found in the footage and what a person decided about each. */
+  vevents?: VideoEvent[];
 }
 
 /** What a study is evidence for, inside its job. Both ends write the same
@@ -545,5 +552,6 @@ export function factsOf(v: unknown): StudyFacts {
     ...(o.sequence !== undefined ? { sequence: listById<ChangeoverStep>(o.sequence) } : {}),
     ...(o.products !== undefined ? { products: listById<ChangeoverProduct>(o.products) } : {}),
     ...(o.taps !== undefined ? { taps: listById<Tap>(o.taps) } : {}),
-    ...(o.timings !== undefined ? { timings: listById<RunTiming>(o.timings) } : {}) };
+    ...(o.timings !== undefined ? { timings: listById<RunTiming>(o.timings) } : {}),
+    ...(o.vevents !== undefined ? { vevents: listById<VideoEvent>(o.vevents) } : {}) };
 }

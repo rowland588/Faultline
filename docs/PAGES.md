@@ -80,6 +80,8 @@ So:
 | Methods | a card a method (18 October, the platform's slice 3: methods of one's own, written, approved and run — docs/PLATFORM-STATUS.md) · Describe what you need — the studio (18 October, the vision slice) · Faultline's library, six methods (Bring a line to its rate, on Line capacity, added 18 October), each to adapt or use as it is · find a method by a word |
 | Design a method | what you need, in your words · the library to start from, closest to the words (the vision slice — Rowland, 18 October: "The user describes what they want. Faultline helps design it") |
 | Design a method — from Faultline's SMED method | the conversation · the method as it stands, its four stages · what it measures, before and after · Approve it and start a project |
+| Video studies | a row a study — its standing, its kind, its footage and line · New video study (18 October, docs/VIDEO.md) |
+| A video study | where it stands, never "verified" while one is to review · the footage and its facts, said kept on the device it was taken on · the stations in view · every event on its station's lane · every event listed with how it is known and what was decided · each station's work, cycles and waiting · the people's work stacked against takt · what it says, each line saying measured, worked out, proposed or not known · asked in words · the report (18 October, docs/VIDEO.md) |
 | A method from Faultline's library | a step done with one of the app's tools · what it measures |
 | A project on SMED's method | the measure, the first tile · what it measures — before → now, its readings |
 | A method | its stages, a step a line in words · what each gate needs · the projects on it · Change it with the assistant — the next version proposed, every change said in a line (slice 5) |

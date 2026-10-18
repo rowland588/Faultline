@@ -210,6 +210,23 @@ export const PAGES = (sd, cap) => [
     { what: 'what it measures, before and after', sel: '.fw-prev-m li' },
     { what: 'approve it and start a project', sel: '.fw-keep button', text: /^Approve it and start a project$/ },
   ] },
+  /* A VIDEO STUDY (18 October, docs/VIDEO.md): footage read for the work at each station, reviewed, worked out as a line balance */
+  { name: 'Video studies', path: '#/video', must: [
+    { what: 'a row a study — its standing, its kind, its footage and line', sel: '.lt-li[data-study]' },
+    { what: 'New video study', sel: '.pace-head-actions button', text: /^New video study$/ },
+  ] },
+  { name: 'A video study', path: `#/video/${sd.videoStudyId}`, must: [
+    { what: 'where it stands — never verified while one is to review', sel: '[data-standing]', text: /to review · \d+ accepted/ },
+    { what: 'the footage and its facts, said kept on the device it was taken on', sel: '.vs-facts', text: /line4-morning\.webm — 0:32\.0 · 1280×720/ },
+    { what: 'the stations in view', sel: '.vs-zone-rows li', n: 3 },
+    { what: 'every event on its station’s lane', sel: '.vs-bar', n: 12 },
+    { what: 'every event in the list, how it is known and what was decided', sel: '.vs-ev .vs-ev-how' },
+    { what: 'each station’s work, cycles and waiting', sel: '.vs-table tbody tr', n: 3 },
+    { what: 'the people’s work stacked against takt', sel: '.vs-stacks svg' },
+    { what: 'what it says, each line said how it is known', sel: '.vs-findings li[data-kind]' },
+    { what: 'asked in words', sel: '.vs-ask input' },
+    { what: 'the report', sel: '.pace-head-actions button', text: /^Report$/ },
+  ] },
   { name: 'A method from Faultline’s library', path: `#/methods/${sd.smedMethodId}`, must: [
     { what: 'a step done with one of the app’s tools', sel: '.fw-step-b', text: /with SMED/ },
     { what: 'what it measures', sel: '.fw-measures li' },

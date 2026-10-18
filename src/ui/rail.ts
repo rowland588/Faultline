@@ -116,6 +116,7 @@ export function hereOf(route: Route): string {
     case 'factory': return 'factory';
     case 'linePrograms': return 'lineprograms';
     case 'methods': case 'method': case 'design': return 'methods';
+    case 'videos': case 'videoStudy': return 'video';
     case 'lineTools': return route.view === 'balance' ? 'linebalance' : route.view === 'work' ? 'linework' : 'linestandard';
     /* a line's own product — its map, its line balance (?at=work) or its
        Line capacity (?at=balance) — lights the tool it is, as the list does */
@@ -199,6 +200,8 @@ export const toolPlaces = (here: string): RailLine[] => [
   { key: 'sampling', label: 'Work sampling', to: '/sampling', on: here === 'sampling', state: 'n', bare: true, icon: 'people' },
   /* A shift's losses by hand — two counts at the end of the shift and the stops already timed; the waterfall, in minutes and pounds (tool 7). */
   { key: 'losses', label: 'Loss count', to: '/losses', on: here === 'losses', state: 'n', bare: true, icon: 'time' },
+  /* A video study — footage of the line read for the work at each station, reviewed, worked out as a line balance (docs/VIDEO.md). */
+  { key: 'video', label: 'Video study', to: '/video', on: here === 'video', state: 'n', bare: true, icon: 'camera' },
 ];
 
 /** THE TOOLS AS ONE GROUP, at the foot of every rail, under paper and

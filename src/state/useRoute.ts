@@ -11,7 +11,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
   | 'testing' | 'test' | 'trialCard' | 'fixes' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'machine' | 'standard' | 'notes' | 'clientReport'
   | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools' | 'studies' | 'study' | 'lineHome' | 'factory' | 'linePrograms'
-  | 'methods' | 'method' | 'design';
+  | 'methods' | 'method' | 'design' | 'videos' | 'videoStudy';
 
 export interface Route {
   name: RouteName;
@@ -88,6 +88,10 @@ export function parseRoute(hash: string): Route {
      it (screens/DesignScreen). ?template= / ?from= / ?version= start it from
      Faultline's library, from a method of your own, or as its next version. */
   if (segs[0] === 'design') return { name: 'design', query };
+  /* A VIDEO STUDY (docs/VIDEO.md): footage uploaded, read for the work at
+     each station, reviewed, worked out as a line balance and put on paper.
+     /video is every one; /video/:id one of them. */
+  if (segs[0] === 'video') return segs[1] ? { name: 'videoStudy', id: decodeURIComponent(segs[1]), query } : { name: 'videos', query };
   /* THE LINE TOOLS, beside the snags: every line standard and every line
      balance, on every line and job (screens/LineToolsScreen). */
   if (segs[0] === 'standards') return { name: 'lineTools', view: 'map', query };

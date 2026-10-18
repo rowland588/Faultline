@@ -246,3 +246,57 @@ describe('asked in words', () => {
     expect(questionsFor('balance', f, { zones: 2, wantsTakt: true })).toEqual(['To compare with takt: how many does the line have to make, and in how many minutes (a shift or a day)?']);
   });
 });
+
+describe('the assistant’s labels — what is kept of them', () => {
+  it('keeps a label only for an event asked about, of a kind the study knows, its words trimmed', async () => {
+    const { checkLabels, visionUser, VISION_SYSTEM } = await import('../visionCore');
+    const raw = { labels: [
+      { id: 'e1', category: 'handling', observed: '  places a tray on the conveyor  ', inferred: 'loads trays', confidence: 0.8 },
+      { id: 'e1', category: 'work', observed: 'again', inferred: '', confidence: 0.9 },          /* the same event twice: the first kept */
+      { id: 'e9', category: 'work', observed: 'never asked', inferred: '', confidence: 0.9 },    /* not asked about */
+      { id: 'e2', category: 'dance', observed: 'x', inferred: '', confidence: 0.5 },             /* not a kind the study knows */
+      { id: 'e3', category: 'wait', observed: 'stands still', inferred: '', confidence: 7 },     /* confidence held to 0–1 */
+    ] };
+    expect(checkLabels(raw, ['e1', 'e2', 'e3'])).toEqual([
+      { id: 'e1', category: 'handling', observed: 'places a tray on the conveyor', inferred: 'loads trays', confidence: 0.8 },
+      { id: 'e3', category: 'wait', observed: 'stands still', confidence: 1 },
+    ]);
+    expect(checkLabels('junk', ['e1'])).toEqual([]);
+    expect(VISION_SYSTEM).toMatch(/Never identify, name or describe a person's face/);
+    const content = visionUser('line balance', [{ id: 'e1', station: 'Workstation 1', track: 'Operator A', from: '0:01.0', to: '0:05.0' }], [{ event: 'e1', at: '0:03.0', data: 'AAAA' }]);
+    expect(content).toEqual([
+      { type: 'text', text: 'The study: line balance.' },
+      { type: 'text', text: 'Event e1: Workstation 1, Operator A, 0:01.0–0:05.0.' },
+      { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: 'AAAA' } },
+      { type: 'text', text: 'Label each event above.' },
+    ]);
+  });
+  it('puts a label on a candidate only — boundaries and a person’s decision never touched', async () => {
+    const { applyLabels } = await import('../providers');
+    const es = detectEvents(signalOf(30), config);
+    const decided = decide(es[1], 'accepted', { by: 'R', at: 1 });
+    const out = applyLabels([es[0], decided], [{ id: es[0].id, category: 'handling', observed: 'places a tray', inferred: 'loads trays', confidence: 0.7 }, { id: decided.id, category: 'wait', observed: 'x', confidence: 1 }], { model: 'm' });
+    expect(out[0]).toMatchObject({ category: 'handling', observed: 'places a tray', inferred: 'loads trays', start: es[0].start, end: es[0].end, review: 'candidate', provenance: { provider: 'motion+vision', model: 'm' } });
+    expect(out[1]).toBe(decided);
+  });
+});
+
+describe('a footage read again', () => {
+  it('keeps what a person decided, drops the old candidates, and never proposes again what a person accepted or rejected', async () => {
+    const { mergeReading } = await import('../runner');
+    const first = detectEvents(signalOf(30), config, { idOf: (z, i) => `k1-${z}-${i}` });
+    const r = { by: 'R', at: 1 };
+    const existing = [decide(first[0], 'accepted', r), decide(first[1], 'rejected', r), ...first.slice(2), byHand({ id: 'p1', start: 28, end: 29.5, zone: 'z1', category: 'wait' }, r)];
+    const again = detectEvents(signalOf(30), { ...config, sensitivity: 5 }, { idOf: (z, i) => `k2-${z}-${i}` });
+    const merged = mergeReading(existing, again);
+    expect(merged.filter(e => e.review === 'accepted' && e.basis === 'motion').map(e => e.id)).toEqual([first[0].id]);
+    expect(merged.some(e => e.id === first[1].id && e.review === 'rejected')).toBe(true);
+    expect(merged.some(e => e.id === 'p1')).toBe(true);
+    expect(merged.some(e => e.id.startsWith('k1-') && e.review === 'candidate')).toBe(false);
+    /* the new reading's twin of the accepted event is not added again */
+    expect(merged.filter(e => e.zone === first[0].zone && Math.abs(e.start - first[0].start) < 0.5)).toHaveLength(1);
+    /* nor of the rejected one: a person said it was not work */
+    expect(merged.filter(e => e.zone === first[1].zone && Math.abs(e.start - first[1].start) < 0.5).map(e => e.review)).toEqual(['rejected']);
+    expect(merged.length).toBe(again.length + 1 /* the hand-made */);
+  });
+});
