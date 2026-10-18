@@ -404,7 +404,7 @@ export function MethodScreen({ id }: { id: string }) {
           })}
           {...(editingCond ? { onRemove: () => change(d => { d.stages[cond.stage].gate.conditions = d.stages[cond.stage].gate.conditions.filter(x => x.id !== editingCond.id); }) } : {})} />
       )}
-      {starting && <StartSheet method={m} onClose={() => setStarting(false)} ctx={ctx} />}
+      {starting && <StartSheet method={m} lineId0={route.query.get('line') ?? ''} onClose={() => setStarting(false)} ctx={ctx} />}
       {measuring && (
         <MeasureEditor open def={def} {...(measuring.key ? { measure: def.measures?.find(x => x.key === measuring.key) } : {})} onClose={() => setMeasuring(null)}
           onSave={x => change(d => {
@@ -425,8 +425,9 @@ export function MethodScreen({ id }: { id: string }) {
 }
 
 /** START A PROJECT ON IT — its name, the machines it runs on, the day it
- *  starts, and who does each role. */
-function StartSheet({ method, onClose, ctx }: { method: Method; onClose: () => void; ctx: ReturnType<typeof useOpContext> }) {
+ *  starts, and who does each role; on the line it was asked for from
+ *  (?line=, New job on a line), when there was one. */
+function StartSheet({ method, lineId0, onClose, ctx }: { method: Method; lineId0: string; onClose: () => void; ctx: ReturnType<typeof useOpContext> }) {
   const def = method.definition;
   const perMachine = def.stages.some(s => s.steps.some(t => t.per === 'machine'));
   const [name, setName] = useState('');
@@ -435,13 +436,13 @@ function StartSheet({ method, onClose, ctx }: { method: Method; onClose: () => v
   const [people, setPeople] = useState<Record<string, string>>({});
   const lines = useFactoryLines();
   const usesTools = def.stages.some(s => s.steps.some(t => t.component));
-  const [lineId, setLineId] = useState('');
+  const [lineId, setLineId] = useState(lineId0);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const go = async () => {
     setErr(null); setBusy(true);
     const r = await startProject(ctx, {
-      methodId: method.id, name: name.trim() || def.name, machines: machines.split('\n'), startedOn, people, ...(lineId ? { lineId } : {}),
+      methodId: method.id, name: name.trim() || def.name, machines: machines.split('\n'), startedOn, people, ...(lineId && lines.some(l => l.id === lineId) ? { lineId } : {}),
     });
     setBusy(false);
     if (!r.ok) { setErr(r.why); return; }

@@ -23,6 +23,10 @@ import { PRIORITY_WORD } from '../lib/snagsReport';
 import { currentLosses, lossCardLine } from '../lib/studyLinks';
 import { daysOverdue, stateOf } from '../lib/programs';
 import { niceDay, todayISO } from '../lib/weeks';
+import { isPicked } from '../lib/flow/established';
+import { LIBRARY } from '../lib/flow/library';
+import { useMethods } from '../lib/flow/useFlow';
+import { familiesOf } from './MethodsScreen';
 
 /* WHERE THE LINE IS, ABOVE THE CHOICE OF METHOD (FLOW-AUDIT.md, 19). "Start
  * a project on this line" opened three method cards that did not say the line,
@@ -140,7 +144,18 @@ export function ProjectsScreen() {
    *
    * NOTHING IS PICKED FOR YOU. Three methods, each for a different kind of
    * job — a default is a choice made without anybody noticing there was one. */
-  const [model, setModel] = useState<PlanModel | null>(null);
+  /* ...unless it was picked in the library (lib/flow/established, ?model=) */
+  const [model, setModel] = useState<PlanModel | null>(() => { const m = q.get('model'); return isPicked(m) ? m : null; });
+  /* ONE WAY TO START (docs/BLUEPRINT.md §3, the new product): what is needed,
+     said in words, goes to the studio with the line it is on; the library's
+     methods — the person's own approved ones and Faultline's — are offered
+     beside the three, each started on the same line */
+  const [words, setWords] = useState('');
+  const said = words.trim();
+  const onLine = fromLine ? `&line=${encodeURIComponent(fromLine)}` : '';
+  const design = () => { if (said.length >= 12) nav(`/design?say=${encodeURIComponent(said)}${onLine}`); };
+  const methods = useMethods();
+  const yours = familiesOf(methods ?? []).filter(f => f.shown.status === 'active').map(f => f.shown);
   /* the line it was started from, and where that line is */
   const startLine = factory.find(w => w.id === fromLine);
   const sit = useLineSituation(startLine);
@@ -209,13 +224,19 @@ export function ProjectsScreen() {
               name and the lead come once that is said. */}
           <div className="proj-model">
             <span className="field-label">{startLine ? `What are you trying to do on ${startLine.name}?` : 'What are you trying to do?'}</span>
-            {/* NONE OF THESE — the work is said in a person's own words and
-                Faultline designs its method, from its library or from nothing
-                (screens/DesignScreen); the three below are not the limit */}
-            <p className="proj-describe">
-              <span>Something else, or not sure which? Say what you need and Faultline designs the method for it — or adapts one from its library.</span>
-              <button type="button" className="btn btn-sm" onClick={() => nav('/design')}>Describe what you need ›</button>
-            </p>
+            {/* SAID IN WORDS FIRST — Faultline designs the method for it from
+                its tools and checks, or offers the library's closest when the
+                assistant is off (screens/DesignScreen); the line goes with it */}
+            <form className="proj-say" onSubmit={e => { e.preventDefault(); design(); }}>
+              <textarea className="text-input proj-say-in" rows={3} maxLength={4000} value={words} aria-label="What you need, in your words"
+                placeholder={`e.g. ${startLine ? `${startLine.name} keeps` : 'Line 2 keeps'} missing its packs a shift — find the cause and prove the fix`}
+                onChange={e => setWords(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); design(); } }} />
+              <span className="proj-say-acts">
+                <button type="submit" className="btn btn-primary" disabled={said.length < 12}>Design it ›</button>
+                <span className="sub">{said.length && said.length < 12 ? 'A little more — what, where, and what it has to reach.' : 'Faultline proposes a method from its own tools and checks; nothing is kept until you keep it.'}</span>
+              </span>
+            </form>
+            <span className="field-label proj-or">Or one of Faultline’s established methods — each runs on screens of its own</span>
             <div className="proj-model-grid">
               {MODELS.map(m => (
                 <button key={m.id} type="button" aria-pressed={model === m.id}
@@ -235,6 +256,23 @@ export function ProjectsScreen() {
               ))}
             </div>
             {!model && <p className="chip-hint">Pick the closest. It can be changed later under Details.</p>}
+            {!model && (
+              <div className="proj-lib" role="group" aria-label="Or a method from the library">
+                <span className="proj-lib-h"><span className="field-label">Or a method from the library</span>
+                  <button type="button" className="cw-link" onClick={() => nav('/methods')}>Every method ›</button></span>
+                <ul className="fw-lib fw-lib-s">
+                  {[...yours.map(m => ({ key: `m:${m.id}`, name: m.definition.name, purpose: m.definition.purpose, chip: 'Yours', to: `/methods/${m.id}?start=1${onLine}` })),
+                    ...LIBRARY.map(e => ({ key: `l:${e.id}`, name: e.name, purpose: e.purpose, chip: 'From Faultline', to: `/design?template=${e.id}${onLine}` }))].map(x => (
+                    <li key={x.key} className="fw-card" data-start={x.key}>
+                      <button type="button" className="fw-card-b" onClick={() => nav(x.to)}>
+                        <span className="fw-card-h"><b className="fw-card-t">{x.name}</b><span className="fw-chip">{x.chip}</span></span>
+                        <span className="fw-card-p">{x.purpose}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
           {model && (
             <div className="proj-new-grid" style={{ marginTop: 12 }}>
@@ -276,11 +314,15 @@ export function ProjectsScreen() {
               )}
             </div>
           )}
-          <div className="row-inline" style={{ marginTop: 10 }}>
-            <button className="btn btn-primary" disabled={!name.trim() || !model} onClick={() => void doCreate()}>
-              {!model ? 'Say what you are trying to do' : model === 'commissioning' ? 'Create and add the machines' : 'Create and add lines'}
-            </button>
-          </div>
+          {/* the Create comes with the method picked — before that, the words'
+              Design it and the library's cards are the ways on */}
+          {model && (
+            <div className="row-inline" style={{ marginTop: 10 }}>
+              <button className="btn btn-primary" disabled={!name.trim()} onClick={() => void doCreate()}>
+                {model === 'commissioning' ? 'Create and add the machines' : 'Create and add lines'}
+              </button>
+            </div>
+          )}
           {model && (
             <p className="chip-hint">
               {model === 'commissioning'

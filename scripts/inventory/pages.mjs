@@ -199,7 +199,8 @@ export const PAGES = (sd, cap) => [
     { what: 'the question, first', sel: '.fd-ask h1', text: /^What do you need to get done\?$/ },
     { what: 'the box to say it in', sel: '.fd-box textarea' },
     { what: 'what is under way — every project in a line', sel: '.fd-jobs li[data-project]' },
-    { what: 'the library to start from — Faultline’s six among it', sel: '.fd-lib .fw-card', n: 6 },
+    { what: 'the library to start from — Faultline’s six among it', sel: '.fd-lib .fw-card[data-start^="l:"]', n: 6 },
+    { what: 'and its established three — the lever tree among them', sel: '.fd-lib .fw-card[data-start^="e:"]', n: 3 },
     { what: 'the tools to use on their own', sel: '.fd-tools li[data-tool]', n: 9 },
     { what: 'the new product’s places — Home first', sel: '.nv-rail .nv-ri', text: /Home/, desk: true },
   ] },
@@ -207,7 +208,14 @@ export const PAGES = (sd, cap) => [
   { name: 'Methods', path: '#/methods', must: [{ what: 'a card a method', sel: '.fw-lib .fw-card' },
     { what: 'describe what you need — the studio', sel: '.pace-head-actions button', text: /^Describe what you need$/ },
     { what: 'Faultline’s library — each to adapt or use as it is', sel: '.fw-card.is-library', n: 6 },
+    { what: 'Faultline’s established methods, each on its own screens', sel: '.fw-card.is-established', n: 3 },
     { what: 'find a method by a word', sel: '.fw-find input' }] },
+  /* ONE WAY TO START (18 October, docs/BLUEPRINT.md §3): what is needed in words first, then the established three, then the library */
+  { name: 'New job', path: '#/projects?new=1', must: [
+    { what: 'what you need, in your words — first', sel: '.proj-say textarea' },
+    { what: 'Faultline’s established three', sel: '.proj-model-opt', n: 3 },
+    { what: 'the library — Faultline’s six among it', sel: '.proj-lib .fw-card', n: 6 },
+  ] },
   /* THE STUDIO (the vision slice): what is needed in words, the library beside it */
   { name: 'Design a method', path: '#/design', must: [
     { what: 'what you need, in your words', sel: '.fw-ask-box textarea' },

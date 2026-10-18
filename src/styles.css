@@ -4801,6 +4801,15 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .proj-model-t { font-size: var(--t-body); font-weight: 700; color: var(--ink); }
 .proj-model-opt.on .proj-model-t { color: var(--brand); }
 .proj-model-s { font-size: var(--t-label); line-height: 1.45; color: var(--muted); }
+/* ONE WAY TO START (screens/ProjectsScreen): what is needed said in words
+   first, then the established three, then the library */
+.proj-say { display: grid; gap: 8px; margin: 8px 0 14px; }
+.proj-say-in { font: inherit; font-size: 16px; line-height: 1.45; min-height: 84px; border-radius: 12px; padding: 12px 14px; }
+.proj-say-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.proj-or { display: block; margin-top: 4px; }
+.proj-lib { margin-top: 14px; }
+.proj-lib-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.proj-lib .fw-lib { margin-top: 8px; }
 
 /* ======================= COMMISSIONING — THE HANDOVER SHEET ==================
  * One question at the top, five short lists under it, one machine at a time.
@@ -13681,6 +13690,8 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 /* the editors' boxes */
 .fw-edit .fw-f, .fw-run .fw-f { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }
 .fw-in { width: 100%; min-width: 0; box-sizing: border-box; }
+/* a box written in is written in the page's own type, never the browser's monospace */
+textarea.fw-in { font: inherit; line-height: 1.45; }
 .fw-num { max-width: 140px; }
 .fw-inline { flex-direction: row !important; align-items: center; gap: 10px !important; }
 .fw-inline .fw-in { max-width: 240px; }
@@ -13805,6 +13816,10 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .fw-offers { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .fw-start { margin-top: 18px; }
 .fw-lib-s { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.fw-est { margin: 12px 0 0; font-size: var(--t-detail); line-height: 1.5; color: var(--muted); }
+.fw-est b { color: var(--ink); }
+.fw-est .btn { margin-left: 6px; }
+.fw-online { margin: 6px 0 0; }
 .fw-card.is-library { border-style: dashed; }
 .fw-card-b .fw-acts { margin-top: 6px; }
 .fw-keep { position: sticky; bottom: 0; background: var(--surface); padding: 10px 0 2px; border-top: 1px solid var(--line); }

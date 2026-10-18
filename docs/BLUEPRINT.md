@@ -120,11 +120,23 @@ workspace only once the workspace matches its native screens. Built 18
 October: the front door and the studio taking its words (`?say=`), proved
 end to end by `acceptance/front-door.mjs` — a need in plain words → a
 method → run (steps, a gate, a measured run against its limit, signed) →
-its report read back. Next, in order: (2) one way to start — New job through
-the conversation and the library, the lever tree in the library; (3) the
-workspace — a specialist tool's panel inside the step rather than its own
-page; (4) `#/` switches to the front door, the control room kept as the
-portfolio view, every acceptance moved with it.
+its report read back. Then the workspace: a specialist tool opened from a
+method's step opens inside the project — the address carries the step
+(`?for=`, ui/flow/Asking), the frame wears the project's navigation, and a
+bar (ui/flow/StepBar) names the project, stage and step, says the tool's
+figures come into it, and goes Back to the step (methods-design 9e2–9e3,
+video-study 8b1). Then one way to start: every job starts on New job, which
+leads with what is needed in words (taken to the studio with the line it is
+on, `?say=&line=`), then Faultline's established methods — the stage gate,
+6M and the lever tree, each on screens of its own (`lib/flow/established`)
+— then the library (the person's approved methods, then Faultline's); the
+library page and the front door list the established three beside the
+methods written as data, found by the same words, each started on New job
+with it picked (`?model=`); the studio offers the closest established one
+beside the library's, says the line, and carries it to the project's start
+(front-door.mjs 9–9o). Next: (4) `#/` switches to the front door, the
+control room kept as the portfolio view, every acceptance moved with it;
+then a tool's panel inside the step itself rather than its page.
 
 **Control room** (`#/`). Your factory first: a card per line saying its health
 (problems open and late, programs not proved or due, products with no

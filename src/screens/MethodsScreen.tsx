@@ -25,6 +25,7 @@ import { KIND_WORD, allSteps } from '../lib/flow/definition';
 import { appStageGate, blankDefinition, definitionFromJob, stageGateDefinition } from '../lib/flow/templates';
 import { createMethod } from '../lib/flow/operations';
 import { LIBRARY, closeness } from '../lib/flow/library';
+import { ESTABLISHED, establishedHref } from '../lib/flow/established';
 import { useMethods, useOpContext } from '../lib/flow/useFlow';
 import type { Method } from '../lib/flow/records';
 import { Sheet, SheetRow } from '../ui/Sheet';
@@ -71,6 +72,7 @@ export function MethodsScreen() {
   const hit = (m: { name: string; purpose: string; words?: readonly string[] }) => !words || `${m.name} ${m.purpose}`.toLowerCase().includes(words) || closeness(words, m) > 0;
   const shownFamilies = families.filter(f => hit({ name: f.shown.definition.name, purpose: f.shown.definition.purpose }));
   const shownLibrary = LIBRARY.filter(hit);
+  const shownEstablished = ESTABLISHED.filter(hit);
   const approved = families.filter(f => f.shown.status === 'active').length;
   const drafts = families.filter(f => f.shown.status === 'draft' || f.draft).length;
   const says = families.length
@@ -165,6 +167,30 @@ export function MethodsScreen() {
           </li>
         ))}
       </ul>
+
+      {/* FAULTLINE'S ESTABLISHED METHODS — the stage gate, 6M and the lever
+          tree, each on screens of its own and proven on real jobs; in the
+          library so every way of running work is found in one place, and
+          started the one way every job starts (lib/flow/established) */}
+      {shownEstablished.length > 0 && <>
+        <h2 className="ln-h fw-lib-h">Faultline’s established methods</h2>
+        <p className="sub">Each runs on screens of its own, built for that kind of work — not copied and changed like the methods above, but started as a job.</p>
+        <ul className="fw-lib" aria-label="Faultline’s established methods">
+          {shownEstablished.map(e => {
+            const running = projects.filter(p => planModel(p) === e.id).length;
+            return (
+              <li key={e.id} className="fw-card is-established" data-established={e.id}>
+                <div className="fw-card-b">
+                  <span className="fw-card-h"><b className="fw-card-t">{e.name}</b><span className="fw-chip">Its own screens</span></span>
+                  <span className="fw-card-p">{e.purpose}</span>
+                  <span className="fw-card-m">Runs on {e.screens}{running ? ` · ${running} job${running === 1 ? '' : 's'} on it` : ''}</span>
+                  {may && <span className="fw-acts"><button type="button" className="btn btn-sm btn-primary" onClick={() => nav(establishedHref(e.id))}>Start a job on it</button></span>}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </>}
 
       <Sheet open={adding} onClose={() => { setAdding(false); setFromJob(false); }} title={fromJob ? 'From a stage-gate job' : 'A new method — start from'}>
         {!fromJob ? (

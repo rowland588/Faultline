@@ -40,6 +40,8 @@ import { proposeChange, proposeMethod } from '../lib/flow/assist';
 import { approveMethod, createMethod, draftNewVersion, saveDraft } from '../lib/flow/operations';
 import { useMethods, useOpContext } from '../lib/flow/useFlow';
 import { LIBRARY, closest, libraryEntry } from '../lib/flow/library';
+import { ESTABLISHED, establishedHref } from '../lib/flow/established';
+import { useFactoryLines } from '../lib/useFactoryLines';
 import { blankDefinition } from '../lib/flow/templates';
 import type { Change } from '../lib/flow/change';
 import { familiesOf } from './MethodsScreen';
@@ -61,6 +63,9 @@ interface Draft {
   /** A next version's conversation: when the method it began from was last
    *  saved — a draft kept on this device is set aside if the method moved since. */
   baseAt?: number;
+  /** The line it is for (?line=, from New job on a line) — carried to the
+   *  project it starts. */
+  lineId?: string;
 }
 
 const plural = (n: number, one: string, more = `${one}s`) => `${n} ${n === 1 ? one : more}`;
@@ -102,7 +107,13 @@ export function DesignScreen() {
   /* WORDS FROM THE FRONT DOOR (screens/StartScreen, ?say=): a new conversation
      that begins with them — never added to one this device kept before */
   const said0 = mode === 'new' && !q.get('template') && !q.get('from') ? (q.get('say') ?? '').trim() : '';
-  const [draft, setDraft] = useState<Draft>(() => (said0 ? null : readDraft(store)) ?? { def: null, turns: [], assisted: false });
+  const line0 = q.get('line') ?? '';
+  const [draft, setDraft] = useState<Draft>(() => {
+    const d = (said0 ? null : readDraft(store)) ?? { def: null, turns: [], assisted: false };
+    return line0 ? { ...d, lineId: line0 } : d;
+  });
+  const lines = useFactoryLines();
+  const onLine = draft.lineId ? lines.find(l => l.id === draft.lineId) : undefined;
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -146,7 +157,7 @@ export function DesignScreen() {
   function begin(start: Start, d: FlowDefinition) {
     setTouched(new Set());
     setDraft(x => ({
-      def: d, start, assisted: x.assisted,
+      def: d, start, assisted: x.assisted, ...(x.lineId ? { lineId: x.lineId } : {}),
       turns: [...x.turns, { who: 'app', text: `${start.kind === 'library' ? 'Faultline’s' : 'Your'} “${start.name}”, to adapt — say what is different about your line, the machine, the product or the customer, and it is changed to suit. ${start.kind === 'method' ? 'The method it came from is not changed.' : ''}`.trim() }],
     }));
   }
@@ -156,6 +167,8 @@ export function DesignScreen() {
   const lib = LIBRARY.map(e => ({ kind: 'library' as const, id: e.id, name: e.name, purpose: e.purpose, words: e.words, uses: e.uses }));
   const said = text.trim() || turns.find(t => t.who === 'person')?.text || '';
   const near = said ? closest(said, [...lib, ...yours], 4) : [];
+  /* and Faultline's established methods, closest first — each runs on screens of its own, started from New job */
+  const est = said ? closest(said, ESTABLISHED, 1)[0] : undefined;
 
   const startFrom = (s: Start) => {
     if (s.kind === 'library') { const e = libraryEntry(s.id); if (e) begin(s, e.build()); return; }
@@ -227,14 +240,14 @@ export function DesignScreen() {
       if (!a.ok) { writeDraft(store, null); nav(`/methods/${kept.value.id}`); return; }
     }
     writeDraft(store, null);
-    nav(`/methods/${kept.value.id}${approve && mode === 'new' ? '?start=1' : ''}`);
+    nav(`/methods/${kept.value.id}${approve && mode === 'new' ? `?start=1${draft.lineId ? `&line=${encodeURIComponent(draft.lineId)}` : ''}` : ''}`);
   };
   const byHand = async () => {
     if (def) { await keep(false); return; }
     const r = await createMethod(ctx, { definition: blankDefinition(said ? said.split(/[.,;\n]/)[0].slice(0, 60) : 'New method'), origin: 'hand', ...(said ? { changeNote: `From: “${said.slice(0, 120)}”` } : {}) });
     if (r.ok) { writeDraft(store, null); nav(`/methods/${r.value.id}`); } else setErr(r.why);
   };
-  const again = () => { setDraft({ def: null, turns: [], assisted: false }); setTouched(new Set()); setErr(null); writeDraft(store, null); };
+  const again = () => { setDraft({ def: null, turns: [], assisted: false, ...(draft.lineId ? { lineId: draft.lineId } : {}) }); setTouched(new Set()); setErr(null); writeDraft(store, null); };
 
   if (!methods) return <div className="wrap fw"><p className="sub">Opening…</p></div>;
   if (mode === 'version' && !versionOf) return <div className="wrap fw"><p className="sub">That method is not on this device.</p><button type="button" className="btn btn-primary" onClick={() => nav('/methods')}>Every method</button></div>;
@@ -248,6 +261,7 @@ export function DesignScreen() {
           <p className="pl-eyebrow">{mode === 'version' ? 'A NEW VERSION' : 'DESIGN A METHOD'} · <a href="#/methods" className="pl-fac">Every method ›</a></p>
           <h1>{mode === 'version' && versionOf ? `Change “${versionOf.definition.name}”` : 'What do you need to achieve?'}</h1>
           <p className="pl-says">{mode === 'version' ? 'Say what should change; every change is said before anything is kept.' : 'Say it in your own words. Faultline proposes a method built from the app’s own tools and checks — you shape it, approve it, and run it.'}</p>
+          {mode === 'new' && onLine && <p className="sub fw-online" data-line={onLine.id}>On <b>{onLine.name}</b> — the project it starts is on this line.</p>}
         </div>
       </header>
       {!may && <p className="sub">You can read methods. Only someone invited to the app designs them.</p>}
@@ -306,6 +320,13 @@ export function DesignScreen() {
                   </li>
                 ))}
               </ul>
+              {/* FAULTLINE'S ESTABLISHED METHODS — not adapted here: each runs on
+                  screens of its own, started from New job (lib/flow/established) */}
+              <p className="fw-est" data-established={est?.id ?? ''}>
+                {est
+                  ? <>Or run it as a <b>{est.name}</b> job — {est.screens}. <button type="button" className="btn btn-sm" onClick={() => nav(establishedHref(est.id, draft.lineId))}>Start a {est.name} job ›</button></>
+                  : <>Or one of Faultline’s established methods, each with screens of its own: {ESTABLISHED.map((e, i) => <span key={e.id}>{i ? ' · ' : ''}<a href={`#${establishedHref(e.id, draft.lineId)}`}>{e.name}</a></span>)}</>}
+              </p>
             </section>
           )}
         </section>

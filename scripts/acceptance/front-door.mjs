@@ -11,7 +11,13 @@
  * project run — a stage's steps done and its gate passed, the next stage's
  * run measured against its limit and signed — the measure read before and
  * now; the report downloaded and read back; the front door listing the
- * project under way; and the phone.
+ * project under way; then one way to start (the new product's change 3):
+ * New job on a line leading with the words, then Faultline's established
+ * three, then the library — the words taken to the studio with the line,
+ * the closest established method offered there and started as a job on
+ * that line, a library method approved and started on the line carried
+ * through the studio, and the lever tree started from the library page;
+ * and the phone.
  *
  *   node scripts/acceptance/front-door.mjs      (SMOKE_BASE, as smoke) */
 import pkg from '/home/user/Faultline/node_modules/playwright/index.js';
@@ -73,7 +79,9 @@ const door = async () => { await page.goto(`${BASE}/#/start`); await page.locato
 await door();
 ok(/What do you need to get done\?/.test(await txt()) && await page.getByLabel('What you need, in your words', { exact: true }).count() === 1, '1 the front door: the question first, and the box to say it in');
 ok(/Nothing under way yet/.test(await txt()), '1a nothing under way yet, said');
-ok(await page.locator('.fd-lib .fw-card').count() === 6 && await page.locator('.fd-tools li[data-tool]').count() === 9, '1b the library to start from (six of Faultline’s) and the nine tools to use on their own');
+ok(await page.locator('.fd-lib .fw-card[data-start^="l:"]').count() === 6 && await page.locator('.fd-lib .fw-card[data-start^="e:"]').count() === 3 && await page.locator('.fd-tools li[data-tool]').count() === 9,
+  '1b the library to start from (six of Faultline’s methods and its three established ones) and the nine tools to use on their own');
+ok((await page.locator('.fd-lib .fw-card[data-start^="e:"] .fw-card-t').allInnerTexts()).join(' · ') === 'Stage gate · 6M · Lever tree', '1b1 the established three by name — the lever tree in the library');
 ok(await page.locator('.nv-rail .nv-ri.is-on').filter({ hasText: 'Home' }).count() === 1 && await page.locator('.nv-rail .nv-ri').count() === 5, '1c the new product’s five places, Home lit', await page.locator('.nv-rail').innerText().catch(() => ''));
 
 /* 2 — said in plain words, the assistant off */
@@ -156,13 +164,84 @@ ok(/Line 4 case packer/.test(row) && /Case packer to production/.test(row), '8 t
 await page.locator('.fd-jobs li[data-project] .lt-row').first().click(); await page.waitForTimeout(1500);
 ok(page.url().split('?')[0] === projUrl.split('?')[0], '8a and opened from it', page.url());
 
-/* 9 — the phone */
+/* 9 — one way to start: New job on a line leads with the words, then the
+   established three, then the library; the line goes with each way in */
+const flat = x => String(x ?? '').replace(/\s+/g, ' ').trim();
+mode = 'off';
+const L4 = await page.evaluate(async () => (await (await import('/src/lib/lines.ts')).addLineToFactory('Line 4', 'Packing')).id);
+const newJobOnLine = async () => {
+  await page.goto(`${BASE}/#/lines/${L4}`); await page.getByRole('button', { name: 'Start a job on this line ›' }).waitFor({ timeout: 20000 });
+  await page.getByRole('button', { name: 'Start a job on this line ›' }).click(); await page.locator('.proj-new').waitFor({ timeout: 10000 }); await page.waitForTimeout(800);
+};
+await newJobOnLine();
+const form = flat(await page.locator('.proj-new').innerText());
+ok(/What are you trying to do on Line 4\?/i.test(form) && await page.locator('.proj-new').getByLabel('What you need, in your words', { exact: true }).count() === 1, '9 New job on a line: the question says the line, and the box to say it in', form.slice(0, 200));
+const ys = await page.evaluate(() => ['.proj-say', '.proj-model-grid', '.proj-lib'].map(s => { const e = document.querySelector(s); return e ? e.getBoundingClientRect().top + window.scrollY : null; }));
+ok(ys.every(y => y != null) && ys[0] < ys[1] && ys[1] < ys[2], '9a in that order: said in words, then the established three, then the library', JSON.stringify(ys));
+const libCards = await page.locator('.proj-lib .fw-card').evaluateAll(els => els.map(e => e.textContent ?? ''));
+ok(libCards.length === 7 && /Case packer to production\s*Yours/.test(libCards[0]) && libCards.slice(1).every(t => /From Faultline/.test(t)), '9b the library: the method approved above, yours, first — then Faultline’s six', libCards.map(t => t.slice(0, 40)).join(' | '));
+const JAMS = 'Line 4 keeps jamming at the case erector and misses its packs a shift — find the cause and prove the fix';
+await page.locator('.proj-new').getByLabel('What you need, in your words', { exact: true }).fill(JAMS);
+await page.getByRole('button', { name: 'Design it ›' }).click();
+await page.locator('.fw-turn.is-app').waitFor({ timeout: 15000 }).catch(() => {});
+await page.waitForFunction(() => location.hash === '#/design', null, { timeout: 5000 }).catch(() => {});
+ok(/keeps jamming at the case erector/.test(await talk()) && /#\/design$/.test(page.url()), '9c the words straight into the studio, as said', page.url());
+ok(flat(await page.locator('.fw-online').innerText().catch(() => '')) === 'On Line 4 — the project it starts is on this line.', '9d the studio says the line it is for', await page.locator('.fw-design .pace-head').innerText().catch(() => ''));
+const est = page.locator('.fw-est[data-established="board"]');
+ok(await est.count() === 1 && /Or run it as a 6M job — its own screens — the fishbone/.test(flat(await est.innerText())), '9e the closest of the established methods offered beside the library: 6M, on its own screens', await page.locator('.fw-est').innerText().catch(() => ''));
+await est.getByRole('button', { name: 'Start a 6M job ›' }).click(); await page.locator('.proj-new').waitFor({ timeout: 10000 }); await page.waitForTimeout(1000);
+const picked = await page.locator('.proj-model-opt[aria-pressed="true"] .proj-model-t').allInnerTexts();
+const lineOn = await page.locator('.proj-lines .chip[aria-pressed="true"]').allInnerTexts();
+ok(picked.join() === 'Make a running line perform better' && lineOn.length === 1 && /^Line 4/.test(lineOn[0]), '9f New job with 6M picked and Line 4 on — the line carried through the studio', `${picked} · ${lineOn}`);
+await page.getByLabel('Name', { exact: true }).fill('Line 4 jams');
+await page.locator('.proj-new .btn-primary', { hasText: /^Create/ }).click(); await page.waitForFunction(() => /#\/project\//.test(location.hash), null, { timeout: 15000 }).catch(() => {});
+const jams = await page.evaluate(async L => {
+  const db = await import('/src/db.ts'); const pm = await import('/src/lib/planModel.ts');
+  const p = (await db.allProjects()).find(x => x.name === 'Line 4 jams');
+  return p ? { model: pm.planModel(p), lines: (await db.loadPaceLines(p.id)).map(l => l.workspaceId === L) } : null;
+}, L4);
+ok(jams?.model === 'board' && jams.lines.length === 1 && jams.lines[0], '9g a 6M job, on Line 4', JSON.stringify(jams));
+
+/* a method from the library, adapted in the studio and started on the line */
+await newJobOnLine();
+await page.locator('.proj-lib .fw-card[data-start="l:changeover-reduction"] button').click();
+await page.locator('.fw-proposed').waitFor({ timeout: 15000 }).catch(() => {});
+ok(flat(await page.locator('.fw-online').innerText().catch(() => '')) === 'On Line 4 — the project it starts is on this line.' && /Faultline’s “Changeover reduction \(SMED\)”, to adapt/.test(await talk()) && await page.locator('.fw-proposed').count() === 1, '9h Faultline’s SMED method from New job: in the studio to adapt, on Line 4');
+await page.getByRole('button', { name: 'Approve it and start a project' }).click();
+await sheet().waitFor({ timeout: 15000 }).catch(() => {});
+ok(await sheet().getByLabel('On which line', { exact: true }).inputValue() === L4, '9i approved, and its start already on Line 4', await sheetTxt());
+await page.getByLabel("The project's name", { exact: true }).fill('Line 4 changeovers');
+await page.getByLabel('The machines, one a line', { exact: true }).fill('Case erector');
+await sheet().getByRole('button', { name: 'Start it' }).click();
+await page.waitForFunction(() => /#\/project\//.test(location.hash), null, { timeout: 15000 }).catch(() => {});
+const smed = await page.evaluate(async () => (await (await import("/src/db.ts")).allProjects()).find(x => x.name === 'Line 4 changeovers'));
+ok(!!smed?.flow && (smed.workspaceIds ?? []).join() === L4, '9j the project on the method, on Line 4', JSON.stringify(smed?.workspaceIds));
+
+/* the lever tree, from the library page */
+await page.goto(`${BASE}/#/methods`); await page.locator('.fw-card[data-established]').first().waitFor({ timeout: 15000 }).catch(() => {});
+ok(await page.locator('.fw-card[data-established]').count() === 3 && /Faultline’s established methods/.test(await txt()), '9k the library page: Faultline’s established methods, the three');
+const treeCard = page.locator('.fw-card[data-established="tree"]');
+ok(/Lever tree\s*Its own screens/.test(flat(await treeCard.innerText())) && /Hit a number by a date/.test(await treeCard.innerText()), '9l the lever tree in the library, on its own screens', flat(await treeCard.innerText()));
+await treeCard.getByRole('button', { name: 'Start a job on it' }).click(); await page.locator('.proj-new').waitFor({ timeout: 10000 }); await page.waitForTimeout(800);
+ok((await page.locator('.proj-model-opt[aria-pressed="true"] .proj-model-t').allInnerTexts()).join() === 'Hit a number by a date', '9m New job with the lever tree picked');
+await page.getByLabel('Name', { exact: true }).fill('Line 4 to 30 cases a minute by March');
+await page.locator('.proj-lines .chip', { hasText: 'Line 4' }).click();
+await page.locator('.proj-new .btn-primary', { hasText: /^Create/ }).click(); await page.waitForFunction(() => /#\/project\//.test(location.hash), null, { timeout: 15000 }).catch(() => {});
+const tree = await page.evaluate(async () => { const p = (await (await import("/src/db.ts")).allProjects()).find(x => x.name === 'Line 4 to 30 cases a minute by March'); return p ? (await import('/src/lib/planModel.ts')).planModel(p) : null; });
+ok(tree === 'tree', '9n a lever tree job, started from the library', String(tree));
+await page.goto(`${BASE}/#/methods`); await page.locator('.fw-card[data-established="tree"]').waitFor({ timeout: 15000 }).catch(() => {});
+ok(/1 job on it/.test(await page.locator('.fw-card[data-established="tree"]').innerText()), '9o and the library counts it', await page.locator('.fw-card[data-established="tree"]').innerText());
+
+/* 10 — the phone */
 await page.setViewportSize({ width: 390, height: 844 });
+await newJobOnLine();
+const fitNew = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
+ok(fitNew, '10 New job on a phone: nothing off the side');
 await door();
 const fit = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
 const box = await page.getByLabel('What you need, in your words', { exact: true }).boundingBox();
-ok(fit && !!box && box.y + box.height < 844, '9 on a phone: nothing off the side, the box on the first screen', JSON.stringify(box));
-ok(/Home/.test(await page.locator('.nv-bar').innerText().catch(() => '')), '9a the phone’s bar: Home first');
+ok(fit && !!box && box.y + box.height < 844, '10a the front door on a phone: nothing off the side, the box on the first screen', JSON.stringify(box));
+ok(/Home/.test(await page.locator('.nv-bar').innerText().catch(() => '')), '10b the phone’s bar: Home first');
 
 ok(errs.length === 0, `no console errors${errs.length ? `: ${errs.slice(0, 3).join(' | ')}` : ''}`);
 await b.close();

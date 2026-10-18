@@ -10,7 +10,8 @@
  * assistant is off. Beneath it, in the order a person needs them: what is
  * under way (every project, whatever it runs on, said in one line by the
  * same reading the control room uses — lib/portfolio), the library to start
- * from (Faultline's methods and the person's own), and the specialist tools
+ * from (Faultline's methods, the person's own, and the established three
+ * — stage gate, 6M, lever tree — lib/flow/established), and the specialist tools
  * to use on their own (the tool registry — lib/flow/components — with the
  * line standard and the video study).
  *
@@ -27,6 +28,7 @@ import { useFactoryLines } from '../lib/useFactoryLines';
 import { portfolio } from '../lib/portfolio';
 import { todayISO } from '../lib/weeks';
 import { LIBRARY } from '../lib/flow/library';
+import { ESTABLISHED, establishedHref } from '../lib/flow/established';
 import { COMPONENTS } from '../lib/flow/components';
 import { useMethods } from '../lib/flow/useFlow';
 import { familiesOf } from './MethodsScreen';
@@ -115,7 +117,8 @@ export function StartScreen() {
         </div>
         <ul className="fw-lib fd-lib">
           {[...yours.map(m => ({ key: `m:${m.id}`, name: m.definition.name, purpose: m.definition.purpose, chip: 'Yours', to: `/methods/${m.id}` })),
-            ...LIBRARY.map(e => ({ key: `l:${e.id}`, name: e.name, purpose: e.purpose, chip: 'From Faultline', to: `/design?template=${e.id}` }))].map(x => (
+            ...LIBRARY.map(e => ({ key: `l:${e.id}`, name: e.name, purpose: e.purpose, chip: 'From Faultline', to: `/design?template=${e.id}` })),
+            ...ESTABLISHED.map(e => ({ key: `e:${e.id}`, name: e.name, purpose: e.purpose, chip: 'Its own screens', to: establishedHref(e.id) }))].map(x => (
             <li key={x.key} className="fw-card" data-start={x.key}>
               <button type="button" className="fw-card-b" onClick={() => nav(x.to)}>
                 <span className="fw-card-h"><b className="fw-card-t">{x.name}</b><span className="fw-chip">{x.chip}</span></span>
