@@ -13860,6 +13860,11 @@ textarea.fw-in { font: inherit; line-height: 1.45; }
 .fw-entries-t tr.is-struck td { color: var(--st-n-ink); text-decoration: line-through; }
 .fw-entry-acts { white-space: nowrap; text-align: right; }
 .fw-needs { border-left: 3px solid var(--st-a); padding: 8px 12px; background: var(--surface); border-radius: 0 12px 12px 0; }
+/* what Faultline cannot do yet, gathered on Methods, each with its brief (lib/flow/needs) */
+.fw-asks { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 8px; }
+.fw-ask-need { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 10px 12px; border: 1px solid var(--line); border-left: 3px solid var(--st-a); border-radius: 0 12px 12px 0; background: var(--surface); }
+.fw-ask-need-b { display: grid; gap: 2px; min-width: 0; flex: 1 1 280px; }
+.fw-brief { white-space: pre-wrap; word-break: break-word; font: inherit; font-size: 13px; line-height: 1.5; background: var(--paper, var(--surface)); border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin: 0 0 10px; max-height: 60vh; overflow: auto; }
 .fw-needs li { margin: 6px 0; line-height: 1.45; }
 .fw-est { margin: 12px 0 0; font-size: var(--t-detail); line-height: 1.5; color: var(--muted); }
 .fw-est b { color: var(--ink); }

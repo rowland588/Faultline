@@ -190,7 +190,13 @@ with the figure and the rule), and a step decided against holds nothing up
 never "0 of 0". Written in the editor (Needed: Always / Only when … finds),
 proposed by the assistant (`only_if`), checked by the validator (only a
 figure of a step before it), and said on the method, the screen and the
-paper. Next: a tool's panel inside the step itself rather than its page; more blocks as the
+paper. And WHAT FAULTLINE CANNOT DO YET (`lib/flow/needs`): every need a
+method has said, gathered on Methods — said once, with each method that
+asked it — and made a brief a developer builds from: what, why, from,
+method, how it is checked, the one place it goes (a block in
+`lib/flow/analysis`, its contract spelt out), how it is proved, and what it
+then reaches with nothing else changed; copied whole. Next: a tool's panel
+inside the step itself rather than its page; more blocks as the
 floor asks (a Weibull fit, a regression on several columns — each a block,
 each tested).
 

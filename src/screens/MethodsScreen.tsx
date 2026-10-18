@@ -26,6 +26,7 @@ import { appStageGate, blankDefinition, definitionFromJob, stageGateDefinition }
 import { createMethod } from '../lib/flow/operations';
 import { LIBRARY, closeness } from '../lib/flow/library';
 import { ESTABLISHED, establishedHref } from '../lib/flow/established';
+import { needBrief, needsAsked, type NeedAsked } from '../lib/flow/needs';
 import { useMethods, useOpContext } from '../lib/flow/useFlow';
 import type { Method } from '../lib/flow/records';
 import { Sheet, SheetRow } from '../ui/Sheet';
@@ -55,7 +56,10 @@ export function MethodsScreen() {
   const [fromJob, setFromJob] = useState(false);
   const [find, setFind] = useState('');
   const [err, setErr] = useState<string | null>(null);
+  const [brief, setBrief] = useState<NeedAsked | null>(null);
+  const [copied, setCopied] = useState(false);
   const families = useMemo(() => familiesOf(methods ?? []), [methods]);
+  const asked = useMemo(() => needsAsked(methods ?? []), [methods]);
   const gateJobs = projects.filter(p => planModel(p) === 'commissioning');
 
   const make = async (definition: ReturnType<typeof blankDefinition>, origin: Method['origin'], note?: string) => {
@@ -191,6 +195,34 @@ export function MethodsScreen() {
           })}
         </ul>
       </>}
+
+      {/* WHAT FAULTLINE CANNOT DO YET — every need a method has said, gathered,
+          each with the brief a developer builds it from (lib/flow/needs) */}
+      {asked.length > 0 && <>
+        <h2 className="ln-h fw-lib-h">What Faultline cannot do yet — asked for by your methods</h2>
+        <p className="sub">Arithmetic no block does. The methods run on what exists; each of these is work for development, with a brief to build it from — one block, its tests, and it reaches every method with nothing else rebuilt.</p>
+        <ul className="fw-asks" aria-label="What Faultline cannot do yet">
+          {asked.map(a => (
+            <li key={a.need.what} className="fw-ask-need" data-need={a.need.what}>
+              <span className="fw-ask-need-b"><b>{a.need.what}</b> <span className="sub">— {a.need.why}</span>
+                <span className="sub fw-ask-need-by">Asked for by {a.askedBy.map((m, i) => <span key={m.id}>{i ? ', ' : ''}<a href={`#/methods/${m.id}`}>{m.name}</a></span>)}</span></span>
+              <button type="button" className="btn btn-sm" onClick={() => { setCopied(false); setBrief(a); }}>The brief to build it</button>
+            </li>
+          ))}
+        </ul>
+      </>}
+
+      <Sheet open={!!brief} onClose={() => setBrief(null)} title={brief ? `To build: ${brief.need.what}` : ''}>
+        {brief && (
+          <div className="fw-sheet">
+            <pre className="fw-brief" aria-label="The development brief">{needBrief(brief)}</pre>
+            <div className="fw-acts">
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => void navigator.clipboard?.writeText(needBrief(brief)).then(() => setCopied(true), () => setCopied(false))}>Copy the brief</button>
+              {copied && <span className="sub" role="status">Copied — paste it where development work is kept.</span>}
+            </div>
+          </div>
+        )}
+      </Sheet>
 
       <Sheet open={adding} onClose={() => { setAdding(false); setFromJob(false); }} title={fromJob ? 'From a stage-gate job' : 'A new method — start from'}>
         {!fromJob ? (

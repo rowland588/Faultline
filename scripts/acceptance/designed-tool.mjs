@@ -69,7 +69,7 @@ const answer = req => {
 };
 
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
-const ctx = await b.newContext({ serviceWorkers: 'block', viewport: { width: 1360, height: 900 }, locale: 'en-GB', acceptDownloads: true });
+const ctx = await b.newContext({ serviceWorkers: 'block', viewport: { width: 1360, height: 900 }, locale: 'en-GB', acceptDownloads: true, permissions: ['clipboard-read', 'clipboard-write'] });
 await ctx.route('**://*.supabase.co/**', r => r.abort());
 await ctx.addInitScript(([k, s]) => { try { localStorage.setItem(k, JSON.stringify(s)); } catch { /* private mode */ } }, [`sb-${REF}-auth-token`, SESSION]);
 const page = await ctx.newPage();
@@ -225,6 +225,7 @@ await page.goto(`${BASE}/#/methods`); await page.locator('.fw-card[data-library=
 ok(/Rejects, logged and halved/.test(flat(await page.locator('.fw-card[data-library="rejects-log"]').innerText())), '8 the library holds a tool made from blocks — Rejects, logged and halved');
 await page.locator('.fw-card[data-library="rejects-log"]').getByRole('button', { name: 'Use it as it is' }).click();
 await page.waitForFunction(() => /#\/methods\/[^/]+$/.test(location.hash), null, { timeout: 15000 }).catch(() => {});
+await page.waitForFunction(() => /works out rejects a day/i.test(document.querySelector('.nv-main')?.textContent ?? ''), null, { timeout: 10000 }).catch(() => {});
 ok(/works out rejects a day, biggest reason, rejects by day, rejects by shift/.test(flat(await page.locator('.nv-main').innerText())), '8a taken: its log and what it works out, on the method page');
 
 /* 8b — statistical process control, a tool no screen was written for: the library's
@@ -234,7 +235,10 @@ await page.goto(`${BASE}/#/methods`); await page.locator('.fw-card[data-library=
 ok(/A process held in control/.test(flat(await page.locator('.fw-card[data-library="held-in-control"]').innerText())), '8b the library holds statistical process control, made of blocks — A process held in control');
 await page.locator('.fw-card[data-library="held-in-control"]').getByRole('button', { name: 'Use it as it is' }).click();
 await page.waitForFunction(() => /#\/methods\/[^/]+$/.test(location.hash), null, { timeout: 15000 }).catch(() => {});
-ok(/works out signals, average, spread, the shape of the readings, the reading and line speed/i.test(flat(await page.locator('.nv-main').innerText())), '8c taken: its log works out the signals, the spread, the shape and the link with line speed');
+/* the method page draws a moment after the address moves — wait for its steps, never read before them */
+await page.waitForFunction(() => /works out signals/i.test(document.querySelector('.nv-main')?.textContent ?? ''), null, { timeout: 10000 }).catch(() => {});
+const page8c = flat(await page.locator('.nv-main').innerText());
+ok(/works out signals, average, spread, the shape of the readings, the reading and line speed/i.test(page8c), '8c taken: its log works out the signals, the spread, the shape and the link with line speed', page8c.slice(page8c.search(/Log the readings/), page8c.search(/Log the readings/) + 300) || page8c.slice(0, 300));
 await page.getByRole('button', { name: 'Approve version 1' }).click();
 await page.getByRole('button', { name: 'Start a project on it' }).click();
 await sheet().waitFor();
@@ -320,6 +324,22 @@ const [dl3] = await Promise.all([page.waitForEvent('download', { timeout: 60000 
 const f3 = join(dir, 'decided.pdf'); await dl3.saveAs(f3);
 const pdf3 = flat(execFileSync('pdftotext', ['-raw', f3, '-'], { encoding: 'utf8' }));
 ok((pdf3.match(/Not needed — Signals 0; it is needed only when signals above 0/g) ?? []).length >= 3 && /What changed at each signal/.test(pdf3), '8o on paper: each step not needed, and why', pdf3.slice(pdf3.indexOf('The cause of each signal'), pdf3.indexOf('The cause of each signal') + 300));
+
+/* 8p — what Faultline cannot do yet: the need the proposal said, gathered on Methods with the
+   method that asked it, and the brief a developer builds it from (lib/flow/needs) */
+await page.goto(`${BASE}/#/methods`); await page.locator('.fw-asks').waitFor({ timeout: 15000 });
+const askRow = flat(await page.locator('.fw-ask-need', { hasText: 'A forecast of the next jam' }).innerText());
+ok(/A forecast of the next jam — So the infeed is cleaned before it stops, not after/.test(askRow) && /Asked for by Short stops on the bagger/.test(askRow),
+  '8p what Faultline cannot do yet, gathered on Methods with the method that asked it', askRow);
+await page.locator('.fw-ask-need', { hasText: 'A forecast of the next jam' }).getByRole('button', { name: 'The brief to build it' }).click();
+const brief = await page.getByLabel('The development brief', { exact: true }).innerText();
+ok(/What: A forecast of the next jam/.test(brief) && /Method: A Weibull fit of the time between jams/.test(brief) && /How it is checked: Against a month of logged jams/.test(brief)
+  && /One entry in src\/lib\/flow\/analysis\.ts \(BLOCKS\), beside the 16 there are/.test(brief) && /HOW IT IS PROVED/.test(brief),
+  '8q the brief to build it: what, why, from, method, how it is checked — and where it goes and how it is proved', brief.slice(0, 300));
+await sheet().getByRole('button', { name: 'Copy the brief' }).click(); await page.waitForTimeout(300);
+const clip = await page.evaluate(() => navigator.clipboard.readText()).catch(() => '');
+ok(clip.startsWith('FAULTLINE — A CAPABILITY TO DEVELOP') && /Copied/.test(flat(await sheet().innerText())), '8r copied whole, ready to hand to development');
+await page.keyboard.press('Escape'); await settle();
 
 /* 9 — the phone */
 await page.setViewportSize({ width: 390, height: 844 });
