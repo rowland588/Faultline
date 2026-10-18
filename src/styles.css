@@ -13938,3 +13938,10 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .fd-in { font-size: 16px; min-height: 96px; }
   .fd-tools { grid-template-columns: 1fr; }
 }
+
+/* THE STEP A TOOL'S PAGE ANSWERS (ui/flow/StepBar): a pale band with the teal
+   edge, at the top of the tool's page when it was opened from a project's step */
+.fw-stepbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; margin: 0 0 14px; padding: 10px 14px;
+  border: 1px solid var(--line); border-left: 4px solid var(--brand); border-radius: 10px; background: color-mix(in srgb, var(--brand) 6%, var(--surface)); }
+.fw-stepbar-b { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.fw-stepbar-w { color: var(--ink); overflow-wrap: anywhere; }

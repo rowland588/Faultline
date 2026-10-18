@@ -160,8 +160,12 @@ what waits on someone is docs/VIDEO.md. Its blockers are below.
   `{"off":true,"why":"The assistant is not switched on…"}` — the answer it
   gives when no key is set. Redeploy from the repo whenever
   `supabase/functions/assist` changes (the repo copy is the source).
-- **The key** — `ANTHROPIC_API_KEY` is NOT set as a Supabase secret (the
-  gateway's answer above). Rowland sets it himself in Supabase (Edge
+- **The key** — SET 18 October by Rowland, in Supabase's secrets and in
+  Vercel's environment. Checked from the database: the gateway now answers
+  an anonymous caller 401 "Sign in to use the assistant." — past the key.
+  Still to see: one proposal from a signed-in person and its row in
+  `assist_usage` (a key Anthropic refuses would say "not accepted" there).
+  Before it was set it was NOT a Supabase secret (the gateway's answer above). Rowland sets it himself in Supabase (Edge
   Functions → Secrets); it never passes through a chat or a file. Without it
   every AI feature says it is off and the studio, the library and the form
   work by hand. Two places read a Claude key, and they are separate:

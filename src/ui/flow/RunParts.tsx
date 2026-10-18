@@ -40,7 +40,7 @@ import { Evidence } from '../EvidenceDoors';
 import { EvidenceViewer } from '../Evidence';
 import { offerUndo } from '../Undo';
 import { Num, Words } from './MethodParts';
-import { askFor } from './Asking';
+import { askFor, withFor } from './Asking';
 
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100));
 
@@ -123,12 +123,11 @@ function ToolAnswer({ fp, inst, live, onAttach }: { fp: FlowProject; inst: StepI
   /* the tool's own list on the job's line, its New open — the study is made
      there, as any of that tool's, and attached to this step as it is made
      (ui/flow/Asking: the New says so, and Undo takes it back off) */
+  const here = { projectId: fp.project.id, stageKey: inst.stageKey, stepKey: inst.def.key, ...(inst.assetId ? { assetId: inst.assetId } : {}) };
   const open = (path = tool.listPath) => {
-    if (live && answeredByRecord(tool)) {
-      askFor({ ref: { projectId: fp.project.id, stageKey: inst.stageKey, stepKey: inst.def.key, ...(inst.assetId ? { assetId: inst.assetId } : {}) },
-        tool: tool.studyTool ?? tool.id, step: inst.def.title, project: fp.project.name });
-    }
-    nav(`${path}?add=1${lines[0] ? `&line=${encodeURIComponent(lines[0])}` : ''}`);
+    if (live && answeredByRecord(tool)) askFor({ ref: here, tool: tool.studyTool ?? tool.id, step: inst.def.title, project: fp.project.name });
+    /* the tool opens inside the project — its frame and the step's bar (ui/Frame StepBar) */
+    nav(withFor(`${path}?add=1${lines[0] ? `&line=${encodeURIComponent(lines[0])}` : ''}`, here));
   };
   if (!answeredByRecord(tool)) {
     return (
@@ -144,7 +143,7 @@ function ToolAnswer({ fp, inst, live, onAttach }: { fp: FlowProject; inst: StepI
       <span className="field-label">Answered by {tool.name}</span>
       {inst.tool ? (
         <div className="fw-tool-r">
-          <a href={`#${inst.tool.href ?? ''}`}><b>{inst.tool.name}</b></a>
+          <a href={`#${withFor(inst.tool.href ?? '', here)}`} data-open-record><b>{inst.tool.name}</b></a>
           <p className="sub">{inst.tool.verdict ? <b>{inst.tool.verdict}. </b> : null}{inst.tool.says}</p>
           {tool.figures.some(f => inst.tool?.figures[f.key] !== undefined) && (
             <ul className="fw-figs">

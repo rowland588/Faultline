@@ -27,6 +27,29 @@ const KEY = 'fl.flow.asking';
 /** Long enough to time a changeover in the tool; a tab left open overnight forgets it. */
 const KEEP_MS = 4 * 60 * 60 * 1000;
 
+/* A STEP'S RECORD OPENED INSIDE ITS PROJECT (docs/BLUEPRINT.md §3, the new
+   product's workspace): the tool's own page, its address carrying
+   ?for=<project>~<stage>~<step>~<machine>, wears the project's frame and a bar
+   that names the step it answers and goes back to it (ui/Frame StepBar). The
+   tool's page itself is unchanged — proven, and the same on its own. */
+export function forParam(ref: StepRef): string {
+  return `for=${encodeURIComponent([ref.projectId, ref.stageKey, ref.stepKey, ref.assetId ?? ''].join('~'))}`;
+}
+export function withFor(path: string, ref?: StepRef): string {
+  return ref ? `${path}${path.includes('?') ? '&' : '?'}${forParam(ref)}` : path;
+}
+export function readFor(q: URLSearchParams): StepRef | undefined {
+  const v = q.get('for');
+  if (!v) return undefined;
+  const [projectId, stageKey, stepKey, assetId] = v.split('~');
+  if (!projectId || !stageKey || !stepKey) return undefined;
+  return { projectId, stageKey, stepKey, ...(assetId ? { assetId } : {}) };
+}
+/** The step on its project's page, open (screens/FlowProjectScreen ?view=, ?step=). */
+export function stepHref(ref: StepRef): string {
+  return `/project/${ref.projectId}?view=stage-${ref.stageKey}&step=${encodeURIComponent(`${ref.stageKey}/${ref.stepKey}/${ref.assetId ?? ''}`)}`;
+}
+
 export function askFor(a: Omit<StepAsk, 'at'>): void {
   try { sessionStorage.setItem(KEY, JSON.stringify({ ...a, at: Date.now() })); } catch { /* private window: the study is offered on the step instead */ }
 }
@@ -48,7 +71,8 @@ export interface Asking {
   ask?: StepAsk;
   /** The step answered here, said until the person leaves. */
   answered?: StepAsk;
-  attach: (studyId: string) => Promise<void>;
+  /** The step it was attached to — the page made opens inside its project (withFor). */
+  attach: (studyId: string) => Promise<StepRef | undefined>;
   notFor: () => void;
 }
 
@@ -58,15 +82,16 @@ export function useAsking(tool: string): Asking {
   const [answered, setAnswered] = useState<StepAsk>();
   const can = useAccess(ask?.ref.projectId ?? '');
   const ctx = useOpContext(can.level);
-  const attach = useCallback(async (studyId: string) => {
-    if (!ask) return;
+  const attach = useCallback(async (studyId: string): Promise<StepRef | undefined> => {
+    if (!ask) return undefined;
     forgetAsk(); setAsk(undefined);
     const r = await recordStep(ctx, ask.ref, { studyId });
-    if (!r.ok) { console.warn('the study was not attached to its step:', r.why); return; }
+    if (!r.ok) { console.warn('the study was not attached to its step:', r.why); return undefined; }
     setAnswered(ask);
     /* said wherever the person lands next — the study's own page, usually —
        and taken back off the step with one tap */
     offerUndo(`Attached to “${ask.step}” on ${ask.project}`, async () => { await recordStep(ctx, ask.ref, { studyId: undefined }); });
+    return ask.ref;
   }, [ask, ctx]);
   const notFor = useCallback(() => { forgetAsk(); setAsk(undefined); }, []);
   return { ask, answered, attach, notFor };

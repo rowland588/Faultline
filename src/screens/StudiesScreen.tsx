@@ -32,7 +32,7 @@ import { dur, flowFigures, share } from '../lib/ie/steps';
 import { changeoverFigures, changeoverSays, figuresOf, mins } from '../lib/ie/changeover';
 import { samplingSays } from '../lib/ie/sampling';
 import { firstCount, lossLine, windowWords } from '../lib/ie/losses';
-import { AskingNote, useAsking } from '../ui/flow/Asking';
+import { AskingNote, useAsking, withFor } from '../ui/flow/Asking';
 import type { StudyTool, ToolStudy } from '../lib/study';
 import type { Observation, Workspace } from '../types';
 
@@ -315,9 +315,9 @@ function NewStudy({ open, tool, onClose, onLine }: { open: boolean; tool: StudyT
           ...(lineId ? { workspaceId: lineId } : {}), ...(std ? { standardId: std.id } : {}),
           facts: { fromProduct: from, toProduct: to, sequence: [] }, uses: [], startedAt: t, createdAt: t, updatedAt: t };
         await putStudy(s);
-        await asking.attach(s.id);
+        const forStep = await asking.attach(s.id);
         setName(''); setMachine(''); onClose();
-        nav(studyHref(s));
+        nav(withFor(studyHref(s), forStep));
         return;
       }
       const second = machine.trim() ? (isLine ? { product: machine.trim() } : { machine: machine.trim() }) : {};
@@ -333,9 +333,9 @@ function NewStudy({ open, tool, onClose, onLine }: { open: boolean; tool: StudyT
         ...(lineId ? { workspaceId: lineId } : {}), ...(tool === 'map' ? { agreed: { map: { scope: 'line' as const } } } : {}), ...(std ? { standardId: std.id } : {}),
         facts: tool === 'losses' ? { losses: firstCount(lines.find(l => l.id === lineId)?.shifts ?? [], await rateForCount(lineId, std), t) } : {}, uses: [], startedAt: t, createdAt: t, updatedAt: t };
       await putStudy(s);
-      await asking.attach(s.id);
+      const forStep = await asking.attach(s.id);
       setName(''); setMachine(''); onClose();
-      nav(studyHref(s));
+      nav(withFor(studyHref(s), forStep));
     } finally { setBusy(false); }
   };
   return (

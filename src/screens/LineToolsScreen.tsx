@@ -34,7 +34,7 @@ import { now, uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import { Sheet } from '../ui/Sheet';
 import type { Workspace } from '../types';
-import { AskingNote, useAsking } from '../ui/flow/Asking';
+import { AskingNote, useAsking, withFor } from '../ui/flow/Asking';
 
 export type LineTool = 'map' | 'balance' | 'work';
 const NEW_LINE = '__new__';
@@ -332,9 +332,9 @@ function NewOne({ open, tool, lines, list, onClose, onLine }: { open: boolean; t
       const same = list.find(x => x.workspaceId === workspaceId && !x.deletedAt && x.product.trim().toLowerCase() === product.trim().toLowerCase());
       if (same) {
         if (tool === 'balance' && !same.capacity) await putStandard({ ...same, capacity: { stations: [] } });
-        if (tool === 'balance') await asking.attach(same.id);
+        const forStep = tool === 'balance' ? await asking.attach(same.id) : undefined;
         setProduct(''); setNewLine(''); onClose();
-        nav(openOf(same, tool));
+        nav(withFor(openOf(same, tool), forStep));
         return;
       }
       /* The line does not move between products, the people do: a new map
@@ -346,9 +346,9 @@ function NewOne({ open, tool, lines, list, onClose, onLine }: { open: boolean; t
         ...(tool === 'map' && last?.photoKey ? { photoKey: last.photoKey } : {}),
         ...(tool === 'balance' ? { capacity: { stations: [] } } : {}), marks: [], sort: t, createdAt: t, updatedAt: t };
       await putStandard(s);
-      if (tool === 'balance') await asking.attach(s.id);
+      const forStep = tool === 'balance' ? await asking.attach(s.id) : undefined;
       setProduct(''); setNewLine(''); onClose();
-      nav(openOf(s, tool));
+      nav(withFor(openOf(s, tool), forStep));
     } finally { setBusy(false); }
   };
 

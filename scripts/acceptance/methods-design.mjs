@@ -269,12 +269,17 @@ await page.getByRole('button', { name: 'Start it' }).click();
 await page.locator('.toast', { hasText: 'Attached to' }).waitFor({ timeout: 15000 }).catch(() => {});
 const toast = (await page.locator('.toast').innerText().catch(() => '')).replace(/\s+/g, ' ');
 ok(/#\/smed\/[^/?]+/.test(page.url()) && /Attached to “Time the changeover as it is” on Line 4 changeovers/.test(toast) && /Undo/.test(toast), '9e2 made: its page opens, and it is said attached to the step, with Undo', `${page.url()} | ${toast}`);
+/* the tool's page opened inside the project (BLUEPRINT §3, the workspace): the step's bar, the project's navigation —
+   the bar was open on SMED's list already, and says the study is attached once the step has it */
+await page.waitForFunction(() => /Attached to this step/.test(document.querySelector('.fw-stepbar')?.textContent ?? ''), null, { timeout: 8000 }).catch(() => {});
+const bar9 = (await page.locator('.fw-stepbar').innerText().catch(() => '')).replace(/\s+/g, ' ');
+ok(/[?&]for=/.test(page.url()) && /Line 4 changeovers/.test(bar9) && /Time the changeover as it is/.test(bar9) && /Attached to this step — its changeover minutes, internal minutes, external minutes come into it/.test(bar9)
+  && /Line 4 changeovers/.test(await page.locator('.nv-rail').innerText().catch(() => '')), '9e2a SMED’s page opens inside the project: the step it answers, what comes into it, the project’s own navigation', `${page.url()} | ${bar9}`);
 await settle();
 await page.locator('.toast').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
-await page.goto(jobUrl); await page.waitForTimeout(1500);
-await page.locator('.fw-row[data-step="time-now"]').click();
+await page.locator('.fw-stepbar').getByRole('button', { name: 'Back to the step ›' }).click();
 await sheet().locator('.fw-tool-r').waitFor({ timeout: 15000 }).catch(() => {});
-ok(/SMED — Bagger 60 → Bagger 45/.test(await sheetTxt()) && /Take it off the step/.test(await sheetTxt()), '9e3 the step answered by the study made from it', await sheetTxt());
+ok(page.url().split('?')[0] === jobUrl && /SMED — Bagger 60 → Bagger 45/.test(await sheetTxt()) && /Take it off the step/.test(await sheetTxt()), '9e3 back to the step, open — answered by the study made from it', `${page.url()} | ${await sheetTxt()}`);
 await page.keyboard.press('Escape'); await settle();
 ok(/Time the changeover as it is — answered by SMED — Bagger 60 → Bagger 45/.test(await txt()), '9e4 the log says it: answered by the study');
 /* nothing timed on it yet — taken off, and the timed one used instead */

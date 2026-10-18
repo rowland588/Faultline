@@ -35,7 +35,7 @@ import type { ToolStudy } from '../lib/study';
 import { Sheet } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
 import { Legend, Stacks } from '../ui/WorkBalance';
-import { AskingNote, useAsking } from '../ui/flow/Asking';
+import { AskingNote, useAsking, withFor } from '../ui/flow/Asking';
 import { StudyProves } from '../ui/ProveProgram';
 import { asked } from '../lib/lines';
 import { getBlob } from '../db';
@@ -164,9 +164,9 @@ function NewVideoStudy({ open, onClose }: { open: boolean; onClose: () => void }
       const s: ToolStudy = { id, tool: 'balance', name: name.trim() || full.fileName, ...(lineId ? { workspaceId: lineId } : {}), ...(projectId ? { projectId } : {}),
         facts: { video: v, vevents: [] }, uses: [], startedAt: t, createdAt: t, updatedAt: t };
       await putStudy(s);
-      await asking.attach(id);
+      const forStep = await asking.attach(id);
       onClose();
-      nav(`/video/${id}`);
+      nav(withFor(`/video/${id}`, forStep));
     } finally { setBusy(false); }
   };
   return (

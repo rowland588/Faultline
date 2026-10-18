@@ -18,6 +18,8 @@
  *
  * Every URL is unchanged. The frame reads the route; it never owns one.
  */
+import { readFor } from './flow/Asking';
+import { StepBar } from './flow/StepBar';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Route } from '../state/useRoute';
 import { nav, useHash } from '../state/useRoute';
@@ -90,7 +92,9 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
   const product = route.name === 'lineStandards' ? route.id : undefined;
   const productJob = useProductJob(product);
   /* a line's product: its own job or none; the line's list of them: none */
-  const projectId = route.name === 'lineStandards' ? (product ? productJob || undefined : undefined) : projectOf(route, chain?.projectId);
+  /* a tool's page opened from a project's step opens inside the project (ui/flow/StepBar) */
+  const forStep = readFor(route.query);
+  const projectId = forStep?.projectId ?? (route.name === 'lineStandards' ? (product ? productJob || undefined : undefined) : projectOf(route, chain?.projectId));
   /* An archived job still opens (from the archive), and still wears its rail. */
   const project = projectId ? (projects.find(p => p.id === projectId) ?? archived.find(p => p.id === projectId)) : undefined;
   const jobHere = useHere(route, project);
@@ -109,7 +113,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
         : projectId && (loading || (route.wsId && chain === null))
           ? <NavChrome groups={[{ lines: [controlRoom(here), snagsPlace(here)] }, toolsGroup(here)]} bar={[controlRoom(here)]} />
           : <HomeNav projects={projects} here={here} wsId={route.wsId} loose={!!route.wsId && chain === null && route.name !== 'lineHome'} />}
-      <main className="nv-main">{children}</main>
+      <main className="nv-main">{forStep && <StepBar r={forStep} />}{children}</main>
       <QuickSnagHost wsId={route.wsId} projectId={projectId} />
     </div>
   );

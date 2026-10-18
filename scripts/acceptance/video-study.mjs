@@ -216,9 +216,14 @@ await page.locator('.vid-new [data-facts]').waitFor({ timeout: 20000 }).catch(()
 await page.getByLabel('Its name', { exact: true }).fill('Line 4 — filmed for the job');
 await page.getByRole('button', { name: 'Start the study' }).click();
 await page.locator('.toast', { hasText: 'Attached to' }).waitFor({ timeout: 15000 }).catch(() => {});
-const sid8 = page.url().split('/video/')[1] ?? '';
-ok(/#\/video\/[^/?]+$/.test(page.url()) && /Attached to “Time the line balance” on Line 4 rebalanced/.test(await page.locator('.toast').innerText().catch(() => '')),
+const sid8 = (page.url().split('/video/')[1] ?? '').split('?')[0];
+ok(/#\/video\/[^/?]+\?for=/.test(page.url()) && /Attached to “Time the line balance” on Line 4 rebalanced/.test(await page.locator('.toast').innerText().catch(() => '')),
   '8b made: the study opens, said attached to the step');
+/* opened inside the project (BLUEPRINT §3, the workspace) — the bar says attached once the step has it */
+await page.waitForFunction(() => /Attached to this step/.test(document.querySelector('.fw-stepbar')?.textContent ?? ''), null, { timeout: 8000 }).catch(() => {});
+const bar8 = (await page.locator('.fw-stepbar').innerText().catch(() => '')).replace(/\s+/g, ' ');
+ok(/Line 4 rebalanced/.test(bar8) && /Time the line balance/.test(bar8) && /Attached to this step/.test(bar8) && /balance efficiency, people needed, longest stack come into it/.test(bar8) && /Line 4 rebalanced/.test(await page.locator('.nv-rail').innerText().catch(() => '')),
+  '8b1 the video study opens inside the project: the step it answers, what comes into it, the project’s own navigation', bar8);
 await settle();
 await page.locator('.toast').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
 await page.goto(job); await page.waitForTimeout(1500);
