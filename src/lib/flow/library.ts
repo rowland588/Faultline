@@ -294,6 +294,9 @@ export const LIBRARY: readonly LibraryEntry[] = [
         { key: 'rejects', label: 'Rejects', type: 'number' as const, unit: 'packs', required: true },
         { key: 'shift', label: 'Shift', type: 'choice' as const, options: ['Early', 'Late', 'Night'] },
       ];
+      /* what a reject pack costs, typed once by the person — and what the rejects cost a day, worked out */
+      const costOfAPack = { key: 'cost_of_a_pack', label: 'What a reject pack costs', type: 'number' as const, unit: '£' };
+      const costADay = { key: 'cost_a_day', label: 'What rejects cost a day', block: 'calc' as const, formula: 'rejects_a_day * cost_of_a_pack', unit: '£' };
       return {
         schema: FLOW_SCHEMA, name: 'Rejects, logged and halved', kind: 'improvement',
         purpose: 'Every reject logged with its reason for a week, the biggest reason found by its Pareto, a countermeasure made, and the same log kept again to prove it on the rejects a day.',
@@ -302,12 +305,13 @@ export const LIBRARY: readonly LibraryEntry[] = [
           {
             key: 'log', name: 'Log the rejects', purpose: 'Every reject with its reason, as it happens, for a week.',
             steps: [{
-              key: 'log-before', title: 'Log every reject for a week', per: 'line', answer: 'log', role: 'op', minEntries: 10, columns,
+              key: 'log-before', title: 'Log every reject for a week', per: 'line', answer: 'log', role: 'op', minEntries: 10, columns, fields: [costOfAPack],
               analyses: [
                 { key: 'rejects_a_day', label: 'Rejects a day', block: 'perDay', of: 'rejects' },
                 { key: 'biggest_reason', label: 'Biggest reason', block: 'pareto', by: 'reason', of: 'rejects' },
                 { key: 'by_day', label: 'Rejects by day', block: 'trend', of: 'rejects' },
                 { key: 'by_shift', label: 'Rejects by shift', block: 'pareto', by: 'shift', of: 'rejects' },
+                costADay,
               ],
               help: 'One entry for each reject or batch of rejects, with its reason. Strike a mistype — never delete it.',
             }],
@@ -337,16 +341,21 @@ export const LIBRARY: readonly LibraryEntry[] = [
           {
             key: 'prove', name: 'Prove it', purpose: 'The same log kept again for a week.',
             steps: [{
-              key: 'log-after', title: 'Log every reject again for a week', per: 'line', answer: 'log', role: 'op', minEntries: 10, columns, after: ['quality'],
+              key: 'log-after', title: 'Log every reject again for a week', per: 'line', answer: 'log', role: 'op', minEntries: 10, columns, after: ['quality'], fields: [costOfAPack],
               analyses: [
                 { key: 'rejects_a_day', label: 'Rejects a day', block: 'perDay', of: 'rejects' },
                 { key: 'biggest_reason', label: 'Biggest reason', block: 'pareto', by: 'reason', of: 'rejects' },
+                costADay,
               ],
             }],
             gate: { conditions: [every] },
           },
         ],
-        measures: [{ key: 'rejects_a_day', name: 'Rejects a day', unit: 'packs', better: 'lower', from: [{ step: 'log-before', field: 'rejects_a_day' }, { step: 'log-after', field: 'rejects_a_day' }] }],
+        measures: [
+          { key: 'rejects_a_day', name: 'Rejects a day', unit: 'packs', better: 'lower', from: [{ step: 'log-before', field: 'rejects_a_day' }, { step: 'log-after', field: 'rejects_a_day' }] },
+          /* everything derives a cost (CLAUDE.md): the rate typed by the person, never a figure invented */
+          { key: 'cost_a_day', name: 'What rejects cost a day', unit: '£', better: 'lower', from: [{ step: 'log-before', field: 'cost_a_day' }, { step: 'log-after', field: 'cost_a_day' }] },
+        ],
       };
     },
   },

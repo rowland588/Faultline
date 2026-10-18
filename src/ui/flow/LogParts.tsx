@@ -14,7 +14,7 @@
  * lib/flow/operations, under the person's access. */
 import { useState } from 'react';
 import type { FlowField } from '../../lib/flow/definition';
-import { BLOCKS, entryValues, fmtNumber, type AnalysisPicture, type AnalysisResult, type FlowEntry, type SeriesPoint } from '../../lib/flow/analysis';
+import { BLOCKS, entryValues, fmtNumber, numberSaid, type AnalysisPicture, type AnalysisResult, type FlowEntry, type SeriesPoint } from '../../lib/flow/analysis';
 import type { StepInstance } from '../../lib/flow/runtime';
 import { addEntry, editEntry, strikeEntry, type FlowProject, type OpContext, type StepRef } from '../../lib/flow/operations';
 import { niceDay, todayISO } from '../../lib/weeks';
@@ -228,7 +228,7 @@ export function LogResults({ inst }: { inst: StepInstance }) {
         const label = (k?: string) => inst.def.columns?.find(c => c.key === k)?.label;
         return (
           <div key={a.key} className={'fw-result' + (pic ? ' has-pic' : '')} data-analysis={a.key}>
-            <span className="fw-result-h"><b className="fw-result-v">{typeof r.value === 'number' ? `${fmtNumber(r.value)}${r.unit ? (r.unit === '%' ? '%' : ` ${r.unit}`) : ''}` : '—'}</b>
+            <span className="fw-result-h"><b className="fw-result-v">{typeof r.value === 'number' ? numberSaid(r.value, r.unit) : '—'}</b>
               <span className="fw-result-l">{a.label}</span></span>
             <span className="sub fw-result-s">{r.says}</span>
             {pic && <AnalysisChart r={r} picture={picture} axes={{ x: label(a.against), y: label(a.of) }} />}

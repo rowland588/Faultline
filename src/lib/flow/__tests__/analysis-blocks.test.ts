@@ -170,3 +170,74 @@ describe('a new block is in everything at once', () => {
     expect(again.def?.stages[0].steps[0].analyses?.map(a => [a.block, a.of, a.against, a.target])).toEqual([['control', 'fill_weight', undefined, undefined], ['relation', 'rejects', 'line_speed', undefined], ['forecast', 'minutes', undefined, 10]]);
   });
 });
+
+describe('a worked-out figure — any arithmetic over the figures before it and the step’s boxes', () => {
+  const stopCols: FlowField[] = [{ key: 'minutes', label: 'Minutes', type: 'number', unit: 'min' }];
+  const fields: FlowField[] = [{ key: 'cost_of_a_minute', label: 'Cost of a stop minute', type: 'number', unit: '£' }];
+  const stops: FlowEntry[] = [
+    { id: 's1', on: '2026-10-12', at: 1, values: { minutes: 20 } },
+    { id: 's2', on: '2026-10-13', at: 2, values: { minutes: 10 } },
+  ];
+  const list: FlowAnalysis[] = [
+    { key: 'minutes_day', label: 'Stop minutes a day', block: 'perDay', of: 'minutes' },
+    { key: 'cost_day', label: 'Stops cost a day', block: 'calc', formula: 'minutes_day * cost_of_a_minute', unit: '£' },
+  ];
+  const labels = { cost_of_a_minute: 'Cost of a stop minute' };
+
+  it('worked out from a figure before it and a box typed once — money said as money', () => {
+    /* 30 minutes over 2 days = 15 a day; 15 × £12.50 = £187.50 */
+    const r = analyse(list, stopCols, stops, { values: { cost_of_a_minute: 12.5 }, labels });
+    expect(r.cost_day).toMatchObject({ value: 187.5, unit: '£', says: 'Stops cost a day: £187.50 — stop minutes a day × cost of a stop minute.' });
+  });
+
+  it('a box not typed yet is asked for, never guessed; nought divided is no answer', () => {
+    expect(analyse(list, stopCols, stops, { labels }).cost_day.says).toBe('Stops cost a day: needs cost of a stop minute — not worked out yet.');
+    const per = analyse([list[0], { key: 'x', label: 'Per pack', block: 'calc', formula: 'minutes_day / cost_of_a_minute' }], stopCols, stops, { values: { cost_of_a_minute: 0 }, labels });
+    expect([per.x.value, per.x.says]).toEqual([undefined, 'Per pack: cannot be worked out — stop minutes a day ÷ cost of a stop minute has no answer (a division by nought).']);
+  });
+
+  it('money as money: thousands, pence, and below nought', async () => {
+    const { numberSaid } = await import('../analysis');
+    expect([numberSaid(1204.5, '£'), numberSaid(-3, '£'), numberSaid(18.333, 'min'), numberSaid(62.5, '%')]).toEqual(['£1,204.50', '−£3.00', '18.33 min', '62.5%']);
+  });
+
+  const withLog = (analyses: unknown[]): FlowDefinition => ({
+    schema: FLOW_SCHEMA, name: 'Stops costed', purpose: 'Stops logged and costed.', kind: 'improvement', roles: [],
+    stages: [{ key: 's', name: 'Log', steps: [{ key: 'log', title: 'Log the stops', per: 'line', answer: 'log', columns: stopCols, fields, analyses: analyses as FlowAnalysis[] }],
+      gate: { conditions: [{ id: 'g', type: 'fieldMeets', policy: 'block', step: 'log', field: 'cost_day', op: '<=', value: 200 }] } }],
+  });
+
+  it('kept by the validator, read by a gate, and run by the project', async () => {
+    const c = validateDefinition(withLog(list));
+    expect(c.errors).toEqual([]);
+    const { readFlow } = await import('../runtime');
+    const s = readFlow({ def: c.def as FlowDefinition, records: [{ id: 'r', projectId: 'p', kind: 'step', stageKey: 's', stepKey: 'log', outcome: 'done', values: { cost_of_a_minute: 12.5 }, entries: stops, createdAt: 1, updatedAt: 1 } as never], machines: [], today: '2026-10-18' });
+    const inst = s.stages[0].steps[0];
+    expect(inst.values.cost_day).toBe(187.5);
+    expect(s.stages[0].gate.conditions[0]).toMatchObject({ met: true, why: '£187.50' });
+  });
+
+  it('refused in words when its arithmetic reads what it may not', () => {
+    const errs = (a: unknown[]) => validateDefinition(withLog(a)).errors.map(e => e.message).join(' | ');
+    expect(errs([list[0], { key: 'cost_day', label: 'Cost', block: 'calc' }])).toMatch(/is worked out — say how/);
+    expect(errs([list[0], { key: 'cost_day', label: 'Cost', block: 'calc', formula: 'minutes_day * wage' }])).toMatch(/reads "wage", which is not a figure before it or a number box of the step/);
+    expect(errs([{ key: 'cost_day', label: 'Cost', block: 'calc', formula: 'minutes_day * cost_of_a_minute' }, list[0]])).toMatch(/reads "minutes_day", which is not a figure before it/);
+    expect(errs([list[0], { key: 'shape', label: 'Shape', block: 'histogram', of: 'minutes' }, { key: 'cost_day', label: 'Cost', block: 'calc', formula: 'shape * 2' }])).toMatch(/reads "shape"/);
+    expect(errs([list[0], { key: 'cost_day', label: 'Cost', block: 'calc', formula: 'minutes_day *' }])).toMatch(/arithmetic cannot be read/);
+    expect(errs([{ key: 'cost_day', label: 'Total', block: 'sum', of: 'minutes', formula: 'minutes * 2' }])).toMatch(/only a worked-out figure has any/);
+  });
+
+  it('proposed by the assistant and said back the same', async () => {
+    const { fromProposal, toProposal } = await import('../proposal');
+    const c = validateDefinition(withLog(list));
+    const said = toProposal(c.def as FlowDefinition) as { stages: { steps: { analyses: Record<string, unknown>[] }[] }[] };
+    /* said in the words of the labels, as the assistant is told to write it */
+    expect(said.stages[0].steps[0].analyses[1]).toMatchObject({ block: 'calc', formula: 'stop_minutes_a_day * cost_of_a_stop_minute', unit: '£' });
+    const again = validateDefinition(fromProposal({ ...said, assumptions: [], questions: [] }).def);
+    expect(again.errors).toEqual([]);
+    expect(again.def?.stages[0].steps[0].analyses?.[1]).toMatchObject({ key: 'stops_cost_a_day', block: 'calc', formula: 'stop_minutes_a_day * cost_of_a_stop_minute', unit: '£' });
+    /* and it still works out */
+    const r = analyse(again.def?.stages[0].steps[0].analyses, stopCols, stops, { values: { cost_of_a_stop_minute: 12.5 }, labels: { cost_of_a_stop_minute: 'Cost of a stop minute' } });
+    expect(r.stops_cost_a_day.value).toBe(187.5);
+  });
+});

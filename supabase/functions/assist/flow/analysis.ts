@@ -25,7 +25,7 @@
  *
  * Nothing worked out is stored: every figure is read from the entries, every
  * time. A struck entry keeps its place and counts for nothing. */
-import { calc } from './formula.ts';
+import { calc, formulaRefs, parseFormula } from './formula.ts';
 import type { FlowField } from './definition.ts';
 
 /** One entry in a log — the step's columns, as typed, on a day, by somebody.
@@ -40,7 +40,7 @@ export interface FlowEntry {
   struck?: boolean;
 }
 
-export const ANALYSIS_BLOCKS = ['count', 'sum', 'mean', 'median', 'min', 'max', 'sd', 'share', 'perDay', 'pareto', 'trend', 'histogram', 'cpk', 'control', 'relation', 'forecast'] as const;
+export const ANALYSIS_BLOCKS = ['count', 'sum', 'mean', 'median', 'min', 'max', 'sd', 'share', 'perDay', 'pareto', 'trend', 'histogram', 'cpk', 'control', 'relation', 'forecast', 'calc'] as const;
 export type AnalysisBlockId = typeof ANALYSIS_BLOCKS[number];
 
 export const WHEN_OPS = ['=', '!=', '>=', '<=', '>', '<'] as const;
@@ -70,6 +70,9 @@ export interface FlowAnalysis {
   against?: string;
   /** The level it is heading for (a forecast says when it gets there). */
   target?: number;
+  /** A worked-out figure's arithmetic, over the analyses before it and the
+   *  step's number boxes, by their keys — "stop_minutes_a_day * cost_of_a_minute". */
+  formula?: string;
 }
 
 /** How a block's answer is drawn — on the screen (ui/flow/LogParts) and on
@@ -113,13 +116,21 @@ export interface AnalysisBlock {
   name: string;
   /** What it is for, in a line — for the designer and the assistant. */
   says: string;
-  needs: { of: Need; by: Need; when: Need; against: Need; target: Need };
+  needs: { of: Need; by: Need; when: Need; against: Need; target: Need; formula?: Need };
   /** of must be a number column. */
   numeric: boolean;
   /** number: a figure gates and measures can read; series: a picture; both. */
   output: 'number' | 'series' | 'both';
   picture: AnalysisPicture;
-  compute: (entries: readonly FlowEntry[], a: FlowAnalysis, columns: readonly FlowField[]) => AnalysisResult;
+  compute: (entries: readonly FlowEntry[], a: FlowAnalysis, columns: readonly FlowField[], ctx: AnalysisContext) => AnalysisResult;
+}
+
+/** What a block may read besides the entries: the analyses worked out before
+ *  it on the same log, and the step's own boxes (typed once for the log). */
+export interface AnalysisContext {
+  prior: Record<string, AnalysisResult>;
+  boxes: Record<string, number>;
+  labels: Record<string, string>;
 }
 
 /* ------------------------------------------------------------------ helpers */
@@ -184,7 +195,12 @@ const numbers = (rows: ReturnType<typeof rowsOf>, key?: string): number[] =>
 export const fmtNumber = (n: number): string => (Math.abs(n) >= 100 || Number.isInteger(n) ? String(Math.round(n * 10) / 10) : String(Math.round(n * 100) / 100));
 const col = (columns: readonly FlowField[], key?: string) => columns.find(c => c.key === key);
 const unitOf = (a: FlowAnalysis, columns: readonly FlowField[]) => a.unit ?? col(columns, a.of)?.unit;
-const withUnit = (n: number, unit?: string) => `${fmtNumber(n)}${unit ? (unit === '%' ? '%' : ` ${unit}`) : ''}`;
+/** A figure with its unit as the floor says it — "18.33 min", "62.5%", money
+ *  as money: "£1,204.50". */
+export const numberSaid = (n: number, unit?: string): string => (unit === '£'
+  ? `${n < 0 ? '−' : ''}£${Math.abs(n).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  : `${fmtNumber(n)}${unit ? (unit === '%' ? '%' : ` ${unit}`) : ''}`);
+const withUnit = numberSaid;
 const many = (n: number, one: string, more = `${one}s`) => `${n} ${n === 1 ? one : more}`;
 const whenSaid = (a: FlowAnalysis, columns: readonly FlowField[]) => (a.when ? ` where ${col(columns, a.when.column)?.label ?? a.when.column} ${a.when.op} ${String(a.when.value)}` : '');
 
@@ -460,16 +476,41 @@ export const BLOCKS: Record<AnalysisBlockId, AnalysisBlock> = {
       };
     },
   },
+  calc: {
+    id: 'calc', name: 'Worked out', says: 'A figure worked out from the figures before it and the step’s own boxes — any arithmetic (+ − × ÷ and brackets), money included: a cost, a yield, a rate',
+    needs: { of: 'none', by: 'none', when: 'none', against: 'none', target: 'none', formula: 'required' }, numeric: false, output: 'number', picture: 'none',
+    compute: (entries, a, _columns, ctx) => {
+      const unit = a.unit;
+      let refs: string[] = [];
+      try { refs = formulaRefs(parseFormula(a.formula ?? '')); } catch { return { n: 0, ...(unit ? { unit } : {}), says: `${a.label}: its arithmetic cannot be read.` }; }
+      const nums: Record<string, number | undefined> = { ...ctx.boxes };
+      for (const [k, r] of Object.entries(ctx.prior)) if (typeof r.value === 'number' && Number.isFinite(r.value)) nums[k] = r.value;
+      const name = (k: string) => (ctx.labels[k] ?? k.replace(/_/g, ' ')).toLowerCase();
+      const missing = refs.filter(k => typeof nums[k] !== 'number');
+      const n = live(entries).length;
+      if (missing.length) return { n, ...(unit ? { unit } : {}), says: `${a.label}: needs ${missing.map(name).join(' and ')} — not worked out yet.` };
+      const value = calc(a.formula ?? '', nums);
+      const how = (a.formula ?? '').replace(/[a-z_][a-z0-9_]*/gi, w => name(w.toLowerCase())).replace(/\*/g, '×').replace(/\//g, '÷').replace(/\s+/g, ' ').trim();
+      if (value === undefined || !Number.isFinite(value)) return { n, ...(unit ? { unit } : {}), says: `${a.label}: cannot be worked out — ${how} has no answer (a division by nought).` };
+      return { value, n, ...(unit ? { unit } : {}), says: `${a.label}: ${withUnit(value, unit)} — ${how}.` };
+    },
+  },
 };
 
 export const blockOf = (id?: string): AnalysisBlock | undefined => (id && (ANALYSIS_BLOCKS as readonly string[]).includes(id) ? BLOCKS[id as AnalysisBlockId] : undefined);
 
-/** Every analysis on a log, worked out from its entries. */
-export function analyse(analyses: readonly FlowAnalysis[] | undefined, columns: readonly FlowField[] | undefined, entries: readonly FlowEntry[] | undefined): Record<string, AnalysisResult> {
+/** Every analysis on a log, worked out from its entries — in order, so a
+ *  worked-out figure reads those before it, and the step's own boxes. */
+export function analyse(analyses: readonly FlowAnalysis[] | undefined, columns: readonly FlowField[] | undefined, entries: readonly FlowEntry[] | undefined,
+  boxes: { values?: Record<string, unknown>; labels?: Record<string, string> } = {}): Record<string, AnalysisResult> {
   const out: Record<string, AnalysisResult> = {};
+  const nums: Record<string, number> = {};
+  for (const [k, v] of Object.entries(boxes.values ?? {})) if (typeof v === 'number' && Number.isFinite(v)) nums[k] = v;
+  const labels: Record<string, string> = { ...(boxes.labels ?? {}) };
+  for (const a of analyses ?? []) labels[a.key] = a.label;
   for (const a of analyses ?? []) {
     const b = blockOf(a.block);
-    if (b) out[a.key] = b.compute(entries ?? [], a, columns ?? []);
+    if (b) out[a.key] = b.compute(entries ?? [], a, columns ?? [], { prior: { ...out }, boxes: nums, labels });
   }
   return out;
 }
@@ -485,5 +526,5 @@ export function figuresOf(results: Record<string, AnalysisResult>): Record<strin
  *  from the registry, so a new block is offered the day it is written. */
 export const BLOCK_CATALOGUE = ANALYSIS_BLOCKS.map(id => {
   const b = BLOCKS[id];
-  return { id, name: b.name, says: b.says, of: b.needs.of, by: b.needs.by, when: b.needs.when, against: b.needs.against, target: b.needs.target, numeric: b.numeric, output: b.output, picture: b.picture };
+  return { id, name: b.name, says: b.says, of: b.needs.of, by: b.needs.by, when: b.needs.when, against: b.needs.against, target: b.needs.target, formula: b.needs.formula ?? 'none', numeric: b.numeric, output: b.output, picture: b.picture };
 });

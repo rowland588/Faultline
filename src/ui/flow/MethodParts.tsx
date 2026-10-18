@@ -247,6 +247,7 @@ function AnalysesEditor({ step, onChange, ro }: { step: FlowStepDef; onChange: (
                     ...(nb.needs.when === 'none' ? { when: undefined } : {}),
                     ...(nb.needs.against === 'none' ? { against: undefined } : {}),
                     ...(nb.needs.target === 'none' ? { target: undefined } : {}),
+                    ...(nb.needs.formula !== 'required' ? { formula: undefined } : {}),
                   });
                 }}>
                 {ANALYSIS_BLOCKS.map(id => <option key={id} value={id}>{BLOCKS[id].name}</option>)}
@@ -277,6 +278,17 @@ function AnalysesEditor({ step, onChange, ro }: { step: FlowStepDef; onChange: (
                 <Num value={a.target} label={`Analysis ${i + 1}: target`} placeholder="the target it is heading for" disabled={ro} onSave={v => setA(i, { target: v })} />
               )}
             </div>
+            {b.needs.formula === 'required' && (() => {
+              /* what it may read: the figures before it, and the step's number boxes */
+              const names = [...list.slice(0, i).filter(x => BLOCKS[x.block].output !== 'series').map(x => x.key), ...(step.fields ?? []).filter(isNumberColumn).map(f => f.key)];
+              return (
+                <div className="fw-field-r">
+                  <Words value={a.formula ?? ''} label={`Analysis ${i + 1}: worked out as`} placeholder={names.length >= 2 ? `e.g. ${names[0]} * ${names[1]}` : 'e.g. rejects_a_day * cost_of_a_pack'} disabled={ro} onSave={v => setA(i, { formula: v.trim().toLowerCase() || undefined })} />
+                  <Words value={a.unit ?? ''} label={`Analysis ${i + 1}: its unit`} placeholder="unit (£ for money)" disabled={ro} onSave={v => setA(i, { unit: v.trim() || undefined })} />
+                  <span className="sub">{names.length ? `From: ${names.join(', ')}` : 'Add a figure before it, or a number box on the step, for it to read.'}</span>
+                </div>
+              );
+            })()}
             {b.needs.when !== 'none' && (
               <div className="fw-field-r">
                 <select className="text-input fw-in" value={a.when?.column ?? ''} disabled={ro} aria-label={`Analysis ${i + 1}: only entries where`}

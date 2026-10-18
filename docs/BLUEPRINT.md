@@ -195,8 +195,13 @@ method has said, gathered on Methods — said once, with each method that
 asked it — and made a brief a developer builds from: what, why, from,
 method, how it is checked, the one place it goes (a block in
 `lib/flow/analysis`, its contract spelt out), how it is proved, and what it
-then reaches with nothing else changed; copied whole. Next: a tool's panel
-inside the step itself rather than its page; more blocks as the
+then reaches with nothing else changed; copied whole. And A WORKED-OUT
+FIGURE (the `calc` block): any arithmetic over the figures before it on the
+log and the step's own number boxes — a yield, a rate, and money: the rate
+typed once by the person (never a figure invented), the cost worked out and
+said as money ("£179.17") on screen, in a gate and a measure, and on paper.
+Faultline's rejects log now says what the rejects cost a day, before and
+after. Next: a tool's panel inside the step itself rather than its page; more blocks as the
 floor asks (a Weibull fit, a regression on several columns — each a block,
 each tested).
 

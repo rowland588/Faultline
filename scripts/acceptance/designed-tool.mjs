@@ -40,8 +40,8 @@ const DESIGN = {
   name: 'Short stops on the bagger', purpose: 'Every short stop logged, the biggest reason found by its Pareto and fixed, proved on the stop minutes a day.', kind: 'improvement',
   roles: [{ name: 'Operator', side: 'site' }, { name: 'Line lead', side: 'site' }],
   stages: [
-    { name: 'Log the stops', purpose: 'Every stop as it happens.', steps: [step('Log every stop', { answer: 'log', role: 'Operator', columns: COLS, min_entries: 5,
-      analyses: [an('Stop minutes a day', 'perDay', { of: 'Minutes' }), an('Biggest reason', 'pareto', { by: 'Reason', of: 'Minutes' }), an('Stop minutes by day', 'trend', { of: 'Minutes' }), an('Long stops', 'share', { when_column: 'Minutes', when_op: '>', when_value: '5' }), an('Packs lost', 'sum', { of: 'Packs lost' }), an('Stop minutes a week on', 'forecast', { of: 'Minutes', target: 10 })] })],
+    { name: 'Log the stops', purpose: 'Every stop as it happens.', steps: [step('Log every stop', { answer: 'log', role: 'Operator', columns: COLS, min_entries: 5, fields: [fld('Cost of a stop minute', 'number', { unit: '£' })],
+      analyses: [an('Stop minutes a day', 'perDay', { of: 'Minutes' }), an('Biggest reason', 'pareto', { by: 'Reason', of: 'Minutes' }), an('Stop minutes by day', 'trend', { of: 'Minutes' }), an('Long stops', 'share', { when_column: 'Minutes', when_op: '>', when_value: '5' }), an('Packs lost', 'sum', { of: 'Packs lost' }), an('Stop minutes a week on', 'forecast', { of: 'Minutes', target: 10 }), an('Stops cost a day', 'calc', { formula: 'stop_minutes_a_day * cost_of_a_stop_minute', unit: '£' })] })],
       gate: [cond({})] },
     { name: 'Fix it', purpose: 'The biggest reason dealt with.', steps: [step('Countermeasure done', { role: 'Line lead' })], gate: [cond({})] },
     { name: 'Prove it', purpose: 'The same log again.', steps: [step('Log every stop again', { answer: 'log', role: 'Operator', columns: COLS, analyses: [an('Stop minutes a day', 'perDay', { of: 'Minutes' })] })],
@@ -109,7 +109,7 @@ ok(/Who logs the stops as they happen\? — The operator · Which shifts does th
 
 /* 1 — proposed with a log */
 const prop = flat(await page.locator('.fw-proposed').innerText());
-ok(/Log every stop · once · a log · Operator · 3 columns an entry · works out stop minutes a day, biggest reason, stop minutes by day, long stops, packs lost, stop minutes a week on/.test(prop), '1 proposed: a step that is a log — its columns and what it works out, a tool nobody coded', prop.slice(0, 400));
+ok(/Log every stop · once · a log · Operator · 1 box · 3 columns an entry · works out stop minutes a day, biggest reason, stop minutes by day, long stops, packs lost, stop minutes a week on, stops cost a day/.test(prop), '1 proposed: a step that is a log — its columns and what it works out, a tool nobody coded', prop.slice(0, 400));
 ok(/Needs development — what no block does yet/i.test(prop) && /A forecast of the next jam — So the infeed is cleaned before it stops/.test(prop) && /Method: A Weibull fit of the time between jams/.test(prop),
   '1a what no block does is said as a need for development, never faked', prop.slice(prop.search(/needs development/i), prop.search(/needs development/i) + 300));
 ok(/Stop minutes a day/.test(prop) && /It can run/.test(prop), '1b the measure fed by the two logs, and the validator content: it can run');
@@ -148,6 +148,19 @@ const truth = await page.evaluate(async ([stops, ds]) => {
 const results = flat(await sheet().locator('.fw-results').innerText());
 ok(results.includes(truth.perDay) && results.includes(truth.pareto) && results.includes(truth.lost), `3a what the entries add up to, as lib/flow/analysis says: "${truth.perDay}" · "${truth.pareto}" · "${truth.lost}"`, results.slice(0, 400));
 ok(await sheet().locator('svg.fw-chart.is-pareto .fw-bar').count() === 4 && await sheet().locator('svg.fw-chart.is-pareto .fw-cum').count() === 1, '3b the Pareto drawn — a bar a reason, the running share over them');
+/* a worked-out figure: the rate typed once on the step, what the stops cost a day worked out from it */
+ok(/Stops cost a day: needs cost of a stop minute — not worked out yet\./.test(results), '3f a worked-out figure asks for the rate it needs — never guessed');
+await sheet().getByLabel('Cost of a stop minute', { exact: true }).fill('12.5'); await sheet().getByLabel('Cost of a stop minute', { exact: true }).press('Enter'); await page.waitForTimeout(700);
+const costTruth = await page.evaluate(async ([stops, ds]) => {
+  const A = await import('/src/lib/flow/analysis.ts');
+  const cols = [{ key: 'reason', label: 'Reason', type: 'choice' }, { key: 'minutes', label: 'Minutes', type: 'number', unit: 'min' }];
+  const entries = stops.map(([reason, m], i) => ({ id: `t${i}`, on: ds[i], at: i, values: { reason, minutes: Number(m) } }));
+  const r = A.analyse([{ key: 'stop_minutes_a_day', label: 'Stop minutes a day', block: 'perDay', of: 'minutes' }, { key: 'stops_cost_a_day', label: 'Stops cost a day', block: 'calc', formula: 'stop_minutes_a_day * cost_of_a_stop_minute', unit: '£' }], cols, entries, { values: { cost_of_a_stop_minute: 12.5 }, labels: { cost_of_a_stop_minute: 'Cost of a stop minute' } });
+  return r.stops_cost_a_day.says;
+}, [STOPS, days]);
+const costSaid = flat(await sheet().locator('.fw-result[data-analysis="stops_cost_a_day"]').innerText());
+ok(costSaid.includes(costTruth) && /£179\.17/.test(costSaid), `3g what the stops cost a day, as lib/flow/analysis says: "${costTruth}"`, costSaid);
+
 /* a block written after the first: the forecast — the line through the days carried a week on, and the day it reaches the target */
 ok(results.includes(truth.forecast) && /falling 2 min a day/.test(truth.forecast) && /it reaches 10 min on 16 Oct at this rate/.test(truth.forecast), `3d the forecast, as lib/flow/analysis says: "${truth.forecast}"`, results.slice(0, 600));
 ok(await sheet().locator('svg.fw-chart.is-forecast .fw-fit.is-ahead').count() === 1 && await sheet().locator('svg.fw-chart.is-forecast .fw-target').count() === 1 && await sheet().locator('svg.fw-chart.is-forecast .fw-bar').count() === 3,
@@ -218,6 +231,7 @@ ok(/The log — Log every stop: 5 entries/.test(pdf) && pdf.includes('Biggest re
 ok(/line: the running share/.test(pdf), '7a the Pareto drawn on paper');
 ok(/Every entry/.test(pdf) && /No product · Minutes 4 min · Packs lost 160 packs.*struck, not counted/.test(pdf), '7b every entry printed — the struck one said struck', pdf.slice(pdf.indexOf('Every entry'), pdf.indexOf('Every entry') + 300));
 ok(/Needs development/.test(pdf) && /A forecast of the next jam/.test(pdf), '7c the need for development on paper');
+ok(/Stops cost a day: £\d[\d,]*\.\d\d — stop minutes a day × cost of a stop minute/.test(pdf), '7e what the stops cost a day, on paper, in money');
 ok(/Stop minutes a week on: falling/.test(pdf) && /a week on/.test(pdf.replace(/Stop minutes a week on/g, '')), '7d the forecast on paper — its sentence and its picture');
 
 /* 8 — Faultline's own tool made from blocks, in the library */
@@ -226,7 +240,7 @@ ok(/Rejects, logged and halved/.test(flat(await page.locator('.fw-card[data-libr
 await page.locator('.fw-card[data-library="rejects-log"]').getByRole('button', { name: 'Use it as it is' }).click();
 await page.waitForFunction(() => /#\/methods\/[^/]+$/.test(location.hash), null, { timeout: 15000 }).catch(() => {});
 await page.waitForFunction(() => /works out rejects a day/i.test(document.querySelector('.nv-main')?.textContent ?? ''), null, { timeout: 10000 }).catch(() => {});
-ok(/works out rejects a day, biggest reason, rejects by day, rejects by shift/.test(flat(await page.locator('.nv-main').innerText())), '8a taken: its log and what it works out, on the method page');
+ok(/works out rejects a day, biggest reason, rejects by day, rejects by shift, what rejects cost a day/.test(flat(await page.locator('.nv-main').innerText())), '8a taken: its log and what it works out — what the rejects cost a day among it — on the method page');
 
 /* 8b — statistical process control, a tool no screen was written for: the library's
    process held in control, made of the control chart, the spread, the histogram and
@@ -334,7 +348,7 @@ ok(/A forecast of the next jam — So the infeed is cleaned before it stops, not
 await page.locator('.fw-ask-need', { hasText: 'A forecast of the next jam' }).getByRole('button', { name: 'The brief to build it' }).click();
 const brief = await page.getByLabel('The development brief', { exact: true }).innerText();
 ok(/What: A forecast of the next jam/.test(brief) && /Method: A Weibull fit of the time between jams/.test(brief) && /How it is checked: Against a month of logged jams/.test(brief)
-  && /One entry in src\/lib\/flow\/analysis\.ts \(BLOCKS\), beside the 16 there are/.test(brief) && /HOW IT IS PROVED/.test(brief),
+  && brief.includes(`One entry in src/lib/flow/analysis.ts (BLOCKS), beside the ${await page.evaluate(async () => (await import('/src/lib/flow/analysis.ts')).ANALYSIS_BLOCKS.length)} there are`) && /HOW IT IS PROVED/.test(brief),
   '8q the brief to build it: what, why, from, method, how it is checked — and where it goes and how it is proved', brief.slice(0, 300));
 await sheet().getByRole('button', { name: 'Copy the brief' }).click(); await page.waitForTimeout(300);
 const clip = await page.evaluate(() => navigator.clipboard.readText()).catch(() => '');

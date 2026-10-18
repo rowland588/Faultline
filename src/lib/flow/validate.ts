@@ -456,9 +456,23 @@ function readAnalyses(raw: unknown, columns: FlowField[], fields: FlowField[], t
     const target = a.target === undefined || a.target === null || a.target === '' ? undefined : num(a.target);
     if (a.target !== undefined && a.target !== null && a.target !== '' && target === undefined) { err(`${ap}.target`, `${aw} has a target that is not a number.`); ok = false; }
     if (target !== undefined && block.needs.target === 'none') { err(`${ap}.target`, `${aw} has a target, but only a forecast reads one — judge the figure in a gate or a measure.`); ok = false; }
+    /* a worked-out figure: arithmetic over the figures before it and the step's number boxes, nothing else */
+    const formula = optStr(a.formula, 300);
+    if (block.needs.formula === 'required' && !formula) { err(`${ap}.formula`, `${aw} is worked out — say how (e.g. "stop_minutes_a_day * cost_of_a_minute").`); ok = false; }
+    if (formula && block.needs.formula !== 'required') { err(`${ap}.formula`, `${aw} has arithmetic, but only a worked-out figure has any.`); ok = false; }
+    if (formula && block.needs.formula === 'required') {
+      try {
+        const refs = formulaRefs(parseFormula(formula));
+        const before = new Set(out.filter(x => blockOf(x.block)?.output !== 'series').map(x => x.key));
+        const boxes = new Set(fields.filter(f => isNumberColumn(f)).map(f => f.key));
+        const stray = refs.filter(r => !before.has(r) && !boxes.has(r));
+        if (!refs.length) { err(`${ap}.formula`, `${aw} reads nothing — name the figures before it or the step's number boxes.`); ok = false; }
+        else if (stray.length) { err(`${ap}.formula`, `${aw} reads ${stray.map(x => `"${x}"`).join(', ')}, which ${stray.length === 1 ? 'is' : 'are'} not a figure before it or a number box of the step.`); ok = false; }
+      } catch (e) { err(`${ap}.formula`, `${aw}'s arithmetic cannot be read: ${e instanceof FormulaError ? e.message : 'it is not a formula'}`); ok = false; }
+    }
     if (block.id === 'cpk' && of && colOf(of) && colOf(of)?.min === undefined && colOf(of)?.max === undefined) { err(`${ap}.of`, `${aw} judges “${colOf(of)?.label}” against its limits, but the column has none — give it an at least or an at most.`); ok = false; }
     if (!ok) return;
-    out.push({ key, label, block: block.id, ...(of ? { of } : {}), ...(by ? { by } : {}), ...(when ? { when } : {}), ...(against ? { against } : {}), ...(target !== undefined ? { target } : {}), ...maybe('unit', optStr(a.unit, 40)) });
+    out.push({ key, label, block: block.id, ...(of ? { of } : {}), ...(by ? { by } : {}), ...(when ? { when } : {}), ...(against ? { against } : {}), ...(target !== undefined ? { target } : {}), ...(formula ? { formula } : {}), ...maybe('unit', optStr(a.unit, 40)) });
   });
   return out;
 }

@@ -64,7 +64,7 @@ export const PROPOSAL_SCHEMA = obj({
             items: obj({
               label: S, block: { type: 'string', enum: [...ANALYSIS_BLOCKS] }, of: S, by: S,
               when_column: S, when_op: { type: 'string', enum: ['', ...WHEN_OPS] }, when_value: S, unit: S,
-              against: S, target: NUMQ,
+              against: S, target: NUMQ, formula: S,
             }),
           },
           min_entries: INTQ,
@@ -154,7 +154,7 @@ export function fromProposal(input: unknown): Proposed {
       const fields = proposedFields(t.fields);
       const answer = oneOf(t.answer, ANSWERS, 'done');
       const columns = answer === 'log' ? proposedFields(t.columns, fields.map(f => f.key)) : [];
-      const analyses = answer === 'log' ? proposedAnalyses(t.analyses, columns, [...fields, ...columns].map(f => f.key)) : [];
+      const analyses = answer === 'log' ? proposedAnalyses(t.analyses, columns, [...fields, ...columns].map(f => f.key), fields) : [];
       const minEntries = num(t.min_entries);
       const photos = num(t.photos), files = num(t.files), due = num(t.due_days);
       const after = words(t.after, 10).map(a => seen.find(s => same(s.title, a))?.key ?? steps.map(x => ({ title: x.title, key: x.key })).find(s => same(s.title, a))?.key).filter((k): k is string => !!k);
@@ -300,8 +300,13 @@ function proposedRule(raw: unknown, earlier: readonly { title: string; key: stri
 }
 
 /** A log's analyses as proposed — each column named by its label, found here. */
-function proposedAnalyses(raw: unknown, columns: FlowField[], taken: readonly string[]): FlowAnalysis[] {
+/** A formula's names changed by a map — keys to words and back. */
+const renameRefs = (formula: string, to: (name: string) => string) => formula.replace(/[a-z_][a-z0-9_]*/gi, w => to(w.toLowerCase()));
+
+function proposedAnalyses(raw: unknown, columns: FlowField[], taken: readonly string[], boxes: readonly FlowField[] = []): FlowAnalysis[] {
   const out: FlowAnalysis[] = [];
+  /* a worked-out figure names the figures before it and the step's boxes by their words, lower case with underscores */
+  const byWords = (w: string) => out.find(x => fieldKeyOf(x.label) === w)?.key ?? boxes.find(f => fieldKeyOf(f.label) === w)?.key ?? w;
   const colOf = (v: unknown) => { const w = str(v, 80); return w ? columns.find(c => same(c.label, w) || c.key === w) : undefined; };
   for (const a of arr(raw).slice(0, 20)) {
     if (!isObj(a)) continue;
@@ -319,6 +324,7 @@ function proposedAnalyses(raw: unknown, columns: FlowField[], taken: readonly st
       ...(wc && op && value !== undefined ? { when: { column: wc.key, op, value } } : {}),
       ...(against ? { against: against.key } : {}),
       ...(typeof a.target === 'number' && Number.isFinite(a.target) ? { target: a.target } : {}),
+      ...(str(a.formula, 300) ? { formula: renameRefs(str(a.formula, 300).toLowerCase(), byWords) } : {}),
       ...(unit ? { unit } : {}),
     });
   }
@@ -352,7 +358,8 @@ export function toProposal(def: FlowDefinition): Record<string, unknown> {
         columns: (s.columns ?? []).map(fieldSaid),
         analyses: (s.analyses ?? []).map(a => {
           const lab = (k?: string) => (k ? s.columns?.find(c => c.key === k)?.label ?? k : '');
-          return { label: a.label, block: a.block, of: lab(a.of), by: lab(a.by), when_column: lab(a.when?.column), when_op: a.when?.op ?? '', when_value: a.when ? String(a.when.value) : '', unit: a.unit ?? '', against: lab(a.against), target: a.target ?? null };
+          return { label: a.label, block: a.block, of: lab(a.of), by: lab(a.by), when_column: lab(a.when?.column), when_op: a.when?.op ?? '', when_value: a.when ? String(a.when.value) : '', unit: a.unit ?? '', against: lab(a.against), target: a.target ?? null,
+            formula: a.formula ? renameRefs(a.formula, k => { const w = s.analyses?.find(x => x.key === k)?.label ?? s.fields?.find(x => x.key === k)?.label; return w ? fieldKeyOf(w) : k; }) : '' };
         }),
         min_entries: s.minEntries ?? null,
         only_if: ruleSaidBack(def, s.onlyIf),

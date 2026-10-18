@@ -19,7 +19,7 @@ import { addDays, niceDay } from '../weeks';
 import { allSteps, isTest, numbersOf, roleName, type FlowCondition, type FlowDefinition, type FlowField, type FlowMeasure, type FlowRule, type FlowStage, type FlowStepDef } from './definition';
 import { answeredByRecord, componentOf } from './components';
 import { calc } from './formula';
-import { analyse, figuresOf, type AnalysisResult } from './analysis';
+import { analyse, figuresOf, numberSaid, type AnalysisResult } from './analysis';
 import type { FlowRecord } from './records';
 import type { GateTone } from '../install';
 
@@ -195,7 +195,12 @@ const newest = (a: FlowRecord, b: FlowRecord) => (b.createdAt - a.createdAt) || 
 const many = (n: number, one: string, more = `${one}s`) => `${n} ${n === 1 ? one : more}`;
 const filled = (v: unknown) => v !== undefined && v !== null && !(typeof v === 'string' && !v.trim());
 const fmt = (n: number) => (Math.abs(n) >= 100 || Number.isInteger(n) ? String(Math.round(n * 10) / 10) : String(Math.round(n * 100) / 100));
-const withUnit = (n: number, f: FlowField) => `${fmt(n)}${f.unit ? ` ${f.unit}` : ''}`;
+const withUnit = (n: number, f: Pick<FlowField, 'unit'>) => (f.unit === '£' ? numberSaid(n, '£') : `${fmt(n)}${f.unit ? ` ${f.unit}` : ''}`);
+/** A log's analyses with what they may read besides its entries: the step's
+ *  boxes, typed once for the log, by key and label (a worked-out figure). */
+const logBoxes = (step: FlowStepDef, typed?: Record<string, string | number | boolean>) => ({
+  values: valuesOf(step, typed), labels: Object.fromEntries((step.fields ?? []).map(f => [f.key, f.label])),
+});
 
 /** The step's fields with the worked-out ones worked out — by the app, from
  *  the numbers typed. */
@@ -361,7 +366,7 @@ export function readFlow(x: FlowInputs): FlowState {
       const tool = step.component && record?.studyId ? x.tools?.[record.studyId] : undefined;
       /* a tool step's figures sit beside its boxes, as the tool filled them;
          a log's, as its entries add up (lib/flow/analysis) */
-      const analysis = step.answer === 'log' ? analyse(step.analyses, step.columns, record?.entries) : undefined;
+      const analysis = step.answer === 'log' ? analyse(step.analyses, step.columns, record?.entries, logBoxes(step, record?.values)) : undefined;
       const values = { ...valuesOf(step, record?.values), ...(tool?.figures ?? {}), ...(analysis ? figuresOf(analysis) : {}) };
       const outOfLimits = step.answer === 'measure' || (step.fields ?? []).some(f => f.min !== undefined || f.max !== undefined) ? limitsBroken(step, values) : [];
       const missing = missingOf(def, step, record, values, people, tool);
@@ -519,7 +524,7 @@ export function stepsDoneSaid(st: Pick<StageState, 'done' | 'total' | 'notNeeded
 }
 
 /** A number as a measure says it, with its unit. */
-export const measureNumber = (m: Pick<FlowMeasure, 'unit'>, n: number): string => `${fmt(n)}${m.unit ? ` ${m.unit}` : ''}`;
+export const measureNumber = (m: Pick<FlowMeasure, 'unit'>, n: number): string => withUnit(n, m);
 
 /** A measure read from every record of the steps that feed it — every
  *  attempt, not only the latest, so a step timed before and again after is
@@ -533,7 +538,7 @@ export function readMeasure(m: FlowMeasure, def: FlowDefinition, records: readon
       if (r.kind !== 'step' || r.stepKey !== f.step || r.stageKey !== ref.stage.key || r.outcome === 'planned') continue;
       const tool = ref.step.component && r.studyId ? tools?.[r.studyId] : undefined;
       if (ref.step.component && r.studyId && tool && !tool.enough) continue;
-      const logged = ref.step.answer === 'log' ? figuresOf(analyse(ref.step.analyses, ref.step.columns, r.entries)) : {};
+      const logged = ref.step.answer === 'log' ? figuresOf(analyse(ref.step.analyses, ref.step.columns, r.entries, logBoxes(ref.step, r.values))) : {};
       const v = { ...valuesOf(ref.step, r.values), ...(tool?.figures ?? {}), ...logged }[f.field];
       if (typeof v !== 'number' || !Number.isFinite(v)) continue;
       const machine = r.assetId ? machines.find(x => x.id === r.assetId)?.name : undefined;
