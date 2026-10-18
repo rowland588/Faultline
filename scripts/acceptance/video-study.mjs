@@ -80,27 +80,27 @@ await page.goto(`${BASE}/#/video`); await page.waitForTimeout(1200);
 ok(/Video studies/.test(await txt()) && /No video studies yet/.test(await txt()), '1 Video studies, from the rail’s tools: none yet, and how to start');
 await page.getByRole('button', { name: 'New video study' }).first().click(); await page.waitForTimeout(400);
 await page.getByLabel('The footage', { exact: true }).setInputFiles(notVideo); await page.waitForTimeout(1200);
-ok(/not a video the app can read/.test(await page.locator('.vs-problems').innerText().catch(() => '')) && await page.getByRole('button', { name: 'Start the study' }).isDisabled(), '1a a file that is not a video — whatever its name says — refused in words', await page.locator('.vs-problems').innerText().catch(() => ''));
+ok(/not a video the app can read/.test(await page.locator('.vid-problems').innerText().catch(() => '')) && await page.getByRole('button', { name: 'Start the study' }).isDisabled(), '1a a file that is not a video — whatever its name says — refused in words', await page.locator('.vid-problems').innerText().catch(() => ''));
 await page.getByLabel('The footage', { exact: true }).setInputFiles(file);
-await page.locator('.vs-new [data-facts]').waitFor({ timeout: 20000 }).catch(() => {});
-const facts = (await page.locator('.vs-new [data-facts]').innerText().catch(() => '')).replace(/\s+/g, ' ');
+await page.locator('.vid-new [data-facts]').waitFor({ timeout: 20000 }).catch(() => {});
+const facts = (await page.locator('.vid-new [data-facts]').innerText().catch(() => '')).replace(/\s+/g, ' ');
 ok(/line4\.webm — 0:3\d\.\d · 640×360/.test(facts), '1b the file read from itself: its length and its picture', facts);
 await page.getByLabel('What do you want to find out', { exact: true }).fill('Analyse this video for line balance against takt');
-ok(/Read as line balance, with takt\./.test(await page.locator('.vs-new').innerText()), '1c what is wanted, said in words, read as a line balance with takt');
+ok(/Read as line balance, with takt\./.test(await page.locator('.vid-new').innerText()), '1c what is wanted, said in words, read as a line balance with takt');
 await page.getByLabel('Which line', { exact: true }).selectOption(lineId);
 await page.getByLabel('Its name', { exact: true }).fill('Line 4 — packing, morning');
 await page.getByRole('button', { name: 'Start the study' }).click();
-await page.locator('.vs-study').waitFor({ timeout: 15000 }).catch(() => {});
+await page.locator('.vid-study').waitFor({ timeout: 15000 }).catch(() => {});
 ok(/#\/video\/[^/?]+$/.test(page.url()) && /Line 4 — packing, morning/.test(await txt()) && /Line 4/.test(await txt()) && /kept on this device only/.test(await txt()), '1d the study opens: its footage, its line, said kept on this device', page.url());
 const studyUrl = page.url();
 const sid = studyUrl.split('/video/')[1];
 
 /* 2 — the stations, and the reading */
 await page.getByLabel('How many stations are in view', { exact: true }).selectOption('3'); await page.waitForTimeout(600);
-ok(await page.locator('.vs-zone').count() === 3 && /Workstation 3/.test(await txt()), '2 three stations marked, drawn over the footage');
+ok(await page.locator('.vid-zone').count() === 3 && /Workstation 3/.test(await txt()), '2 three stations marked, drawn over the footage');
 const t0 = Date.now();
 await page.getByRole('button', { name: 'Read the footage' }).click();
-await page.locator('.vs-study[data-state="review"]').waitFor({ timeout: 240000 }).catch(() => {});
+await page.locator('.vid-study[data-state="review"]').waitFor({ timeout: 240000 }).catch(() => {});
 const readSec = (Date.now() - t0) / 1000;
 ok(/Ready for review/.test(await txt()) && /pieces? of work found at 3 of 3 stations/.test(await txt()), '2a read on the device, its state on the record: ready for review', (await txt()).slice(0, 600));
 const ev = await page.evaluate(async ({ id, truth }) => {
@@ -117,7 +117,7 @@ ok(ev.e.startErr <= 0.35 && ev.e.endErr <= 0.35, '2c measured: each boundary wit
 
 /* 3 — reviewed */
 ok(/\d+ to review · 0 accepted/.test(await txt()) && /To review/.test(await txt()), '3 every one a candidate until accepted — none counted yet');
-const before = await page.locator('.vs-table tbody').innerText().catch(() => '');
+const before = await page.locator('.vid-table tbody').innerText().catch(() => '');
 ok(/—/.test(before), '3a the figures count nothing until something is accepted', before);
 await page.getByRole('button', { name: 'With those to review (provisional)' }).click(); await page.waitForTimeout(400);
 ok(/Provisional — the \d+ still to review are counted as if accepted/.test(await txt()), '3b provisional figures said apart');
@@ -125,34 +125,34 @@ await page.getByRole('button', { name: 'Accepted only' }).click();
 await page.getByRole('button', { name: 'Accept every one still to review' }).click(); await page.waitForTimeout(900);
 ok(/Verified — \d+ events accepted/.test(await txt()), '3c all accepted — verified, said so', (await txt()).slice(0, 300));
 /* one boundary moved to the playhead: the first event's end, a fifth of a second later */
-const first = page.locator('.vs-ev').first();
+const first = page.locator('.vid-ev').first();
 const firstId = await first.getAttribute('data-event');
 const firstEnd = await page.evaluate(async ({ id, eid }) => (await (await import('/src/db.ts')).getStudy(id)).facts.vevents.find(e => e.id === eid).end, { id: sid, eid: firstId });
-await page.evaluate(t => { const v = document.querySelector('.vs-player video'); v.currentTime = t; v.dispatchEvent(new Event('timeupdate')); }, firstEnd + 0.2);
+await page.evaluate(t => { const v = document.querySelector('.vid-player video'); v.currentTime = t; v.dispatchEvent(new Event('timeupdate')); }, firstEnd + 0.2);
 await page.waitForTimeout(500);
 await first.getByRole('button', { name: 'End here' }).click(); await page.waitForTimeout(700);
 const moved = await page.evaluate(async ({ id, eid }) => (await (await import('/src/db.ts')).getStudy(id)).facts.vevents.find(e => e.id === eid), { id: sid, eid: firstId });
-ok(Math.abs(moved.end - (firstEnd + 0.2)) < 0.05 && moved.proposed && Math.abs(moved.proposed.end - firstEnd) < 0.001 && /corrected from/.test(await page.locator(`.vs-ev[data-event="${firstId}"]`).innerText()), '3d a boundary moved to the playhead — what the reading proposed kept, said "corrected from"', JSON.stringify(moved));
+ok(Math.abs(moved.end - (firstEnd + 0.2)) < 0.05 && moved.proposed && Math.abs(moved.proposed.end - firstEnd) < 0.001 && /corrected from/.test(await page.locator(`.vid-ev[data-event="${firstId}"]`).innerText()), '3d a boundary moved to the playhead — what the reading proposed kept, said "corrected from"', JSON.stringify(moved));
 /* one rejected: it stays on the record and counts for nothing */
-const last = page.locator('.vs-ev').last();
+const last = page.locator('.vid-ev').last();
 await last.getByRole('button', { name: 'Reject' }).click(); await page.waitForTimeout(700);
-ok(await page.locator('.vs-ev[data-review="rejected"]').count() === 1 && /1 rejected/.test(await txt()), '3e one rejected — kept on the record, counting for nothing');
+ok(await page.locator('.vid-ev[data-review="rejected"]').count() === 1 && /1 rejected/.test(await txt()), '3e one rejected — kept on the record, counting for nothing');
 
 /* 4 — the line balance */
-const table = (await page.locator('.vs-table tbody').innerText()).replace(/\s+/g, ' ');
+const table = (await page.locator('.vid-table tbody').innerText()).replace(/\s+/g, ' ');
 ok(/Workstation 1 Operator A \d\.\d s/.test(table) && /Workstation 2 Operator B \d\.\d s/.test(table) && /Workstation 3 Operator C \d\.\d s/.test(table), '4 each station: its work a cycle, its cycles, its range, its waiting', table);
-ok(await page.locator('svg.vs-load [data-station]').count() === 3, '4f each station’s workload drawn before any takt — work and waiting, the slowest darkest');
+ok(await page.locator('svg.vid-load [data-station]').count() === 3, '4f each station’s workload drawn before any takt — work and waiting, the slowest darkest');
 await page.getByRole('button', { name: 'What do you need to calculate takt?' }).click(); await page.waitForTimeout(300);
-ok(/To work out takt I need the demand/.test(await page.locator('.vs-answer').innerText()) && /not known yet/.test(await page.locator('.vs-answer').innerText()), '4b asked in words what takt needs — the demand and the minutes, said not known yet');
+ok(/To work out takt I need the demand/.test(await page.locator('.vid-answer').innerText()) && /not known yet/.test(await page.locator('.vid-answer').innerText()), '4b asked in words what takt needs — the demand and the minutes, said not known yet');
 await page.getByLabel('How many to make', { exact: true }).fill('600');
 await page.getByLabel('Minutes to make them in', { exact: true }).fill('55');
 await page.getByRole('button', { name: 'Work out takt' }).click(); await page.waitForTimeout(800);
-const says = (await page.locator('.vs-findings').innerText()).replace(/\s+/g, ' ');
+const says = (await page.locator('.vid-findings').innerText()).replace(/\s+/g, ' ');
 ok(/Takt is 5\.5 s a unit/.test(says) && /Workstation 2 is over takt by 0\.\d s — at its pace the demand is not met/.test(says), '4c takt given: 55 minutes for 600 is 5.5 s — the station over it said', says);
-ok(await page.locator('.vs-stacks svg').count() >= 1, '4a the people’s work stacked against takt — the line balance’s own Yamazumi');
+ok(await page.locator('.vid-stacks svg').count() >= 1, '4a the people’s work stacked against takt — the line balance’s own Yamazumi');
 ok(/Measured Workstation 1 \(Operator A\)/i.test(says) && /Proposed — not measured Moving about .* check the method, the reach and the safety/i.test(says), '4d each line saying how it is known: measured, worked out, proposed — never said to be safe', says);
 await page.getByRole('button', { name: 'Review the longest waiting periods' }).click(); await page.waitForTimeout(300);
-ok(/^The longest waits: /.test(await page.locator('.vs-answer').innerText()), '4e the longest waits answered from the figures');
+ok(/^The longest waits: /.test(await page.locator('.vid-answer').innerText()), '4e the longest waits answered from the figures');
 
 /* 5 — the report */
 const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Report', exact: true }).click()]);
@@ -165,20 +165,20 @@ ok(/Reports made: /.test(await txt()), '5c the report made is kept on the study'
 
 /* 6 — left and come back */
 await page.reload(); await page.waitForTimeout(2500);
-ok(/Line 4 — packing, morning/.test(await txt()) && await page.locator('.vs-ev[data-review="accepted"]').count() > 0 && await page.locator('.vs-ev[data-review="rejected"]').count() === 1 && await page.locator('.vs-player video').count() === 1, '6 come back to it: the footage, the decisions, the figures where they were');
+ok(/Line 4 — packing, morning/.test(await txt()) && await page.locator('.vid-ev[data-review="accepted"]').count() > 0 && await page.locator('.vid-ev[data-review="rejected"]').count() === 1 && await page.locator('.vid-player video').count() === 1, '6 come back to it: the footage, the decisions, the figures where they were');
 /* a second reading of new settings, stopped half-way by a reload, carries on */
-await page.locator('.vs-settings summary').click();
+await page.locator('.vid-settings summary').click();
 await page.getByLabel('Sensitivity', { exact: true }).fill('5'); await page.waitForTimeout(600);
 await page.getByRole('button', { name: 'Read it again' }).click();
 await page.waitForFunction(() => /Reading frame (\d+)/.test(document.body.innerText) && Number(/Reading frame (\d+)/.exec(document.body.innerText)?.[1]) > 40, null, { timeout: 60000 }).catch(() => {});
 await page.reload(); await page.waitForTimeout(1500);
-await page.locator('.vs-study[data-state="review"]').waitFor({ timeout: 240000 }).catch(() => {});
-ok(/Ready for review/.test(await txt()) && await page.locator('.vs-ev[data-review="rejected"]').count() === 1 && /corrected from/.test(await txt()), '6a a reading stopped by a reload carries on to the end — the person’s decisions kept through it');
+await page.locator('.vid-study[data-state="review"]').waitFor({ timeout: 240000 }).catch(() => {});
+ok(/Ready for review/.test(await txt()) && await page.locator('.vid-ev[data-review="rejected"]').count() === 1 && /corrected from/.test(await txt()), '6a a reading stopped by a reload carries on to the end — the person’s decisions kept through it');
 
 /* 7 — the footage deleted */
 page.once('dialog', d => void d.accept());
 await page.getByRole('button', { name: 'Delete the footage' }).click(); await page.waitForTimeout(1200);
-ok(/The footage was deleted by/.test(await txt()) && await page.locator('.vs-ev').count() > 0 && await page.locator('.vs-player video').count() === 0, '7 the footage deleted — what was found in it kept, and said so');
+ok(/The footage was deleted by/.test(await txt()) && await page.locator('.vid-ev').count() > 0 && await page.locator('.vid-player video').count() === 0, '7 the footage deleted — what was found in it kept, and said so');
 
 await page.goto(`${BASE}/#/video`); await page.waitForTimeout(1200);
 ok(/Line 4 — packing, morning/.test(await txt()) && /Line balance · 0:3\d\.\d of footage · Line 4/.test(await txt()), '7a on the list: its kind, its footage and its line');
@@ -203,16 +203,16 @@ await sheet().locator(`.fw-tool-c[data-study="${sid}"]`).waitFor({ timeout: 1500
 ok(/Answered by Line balance/i.test(await sheetTxt()) && await sheet().locator(`.fw-tool-c[data-study="${sid}"]`).count() === 1 && await sheet().locator('[data-also="/video"]').count() === 1,
   '8 a method’s line balance step offers the line’s video study, and to read one from a video', await sheetTxt());
 await sheet().getByRole('button', { name: 'Read it from a video of the line' }).click();
-await page.locator('.vs-new .fw-asking').waitFor({ timeout: 15000 }).catch(() => {});
-const ask8 = (await page.locator('.vs-new .fw-asking').innerText().catch(() => '')).replace(/\s+/g, ' ');
+await page.locator('.vid-new .fw-asking').waitFor({ timeout: 15000 }).catch(() => {});
+const ask8 = (await page.locator('.vid-new .fw-asking').innerText().catch(() => '')).replace(/\s+/g, ' ');
 /* the factory's lines arrive a moment after the sheet opens */
-await page.waitForFunction(lid => [...document.querySelectorAll('.vs-new select[aria-label="Which line"]')].some(x => x.value === lid), lineId, { timeout: 10000 }).catch(() => {});
+await page.waitForFunction(lid => [...document.querySelectorAll('.vid-new select[aria-label="Which line"]')].some(x => x.value === lid), lineId, { timeout: 10000 }).catch(() => {});
 const forJob = await page.getByLabel('For a job', { exact: true }).inputValue().catch(() => '');
 const onLine = await page.getByLabel('Which line', { exact: true }).inputValue().catch(() => '');
 ok(/#\/video\?add=1&line=/.test(page.url()) && /For “Time the line balance” on Line 4 rebalanced/.test(ask8) && forJob === pid && onLine === lineId,
   '8a the video study’s New, saying the step it answers, on the job and its line', `${page.url()} | ${ask8} | ${forJob} | ${onLine}`);
 await page.getByLabel('The footage', { exact: true }).setInputFiles(file);
-await page.locator('.vs-new [data-facts]').waitFor({ timeout: 20000 }).catch(() => {});
+await page.locator('.vid-new [data-facts]').waitFor({ timeout: 20000 }).catch(() => {});
 await page.getByLabel('Its name', { exact: true }).fill('Line 4 — filmed for the job');
 await page.getByRole('button', { name: 'Start the study' }).click();
 await page.locator('.toast', { hasText: 'Attached to' }).waitFor({ timeout: 15000 }).catch(() => {});

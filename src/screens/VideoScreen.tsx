@@ -82,7 +82,7 @@ export function VideosScreen() {
   const [adding, setAdding] = useState(() => !!asked('add'));
   useEffect(() => { if (list) void resumeLeftJobs(list); }, [list]);
   return (
-    <div className="wrap vs-list">
+    <div className="wrap vid-list">
       <header className="pace-head">
         <div className="pace-head-main">
           <h1>Video studies</h1>
@@ -170,7 +170,7 @@ function NewVideoStudy({ open, onClose }: { open: boolean; onClose: () => void }
   };
   return (
     <Sheet open={open} onClose={onClose} title="New video study">
-      <form className="lt-new vs-new" onSubmit={e => { e.preventDefault(); void make(); }}>
+      <form className="lt-new vid-new" onSubmit={e => { e.preventDefault(); void make(); }}>
         <AskingNote asking={asking} />
         <label className="field"><span className="field-label">The footage</span>
           <input type="file" accept="video/mp4,video/quicktime,video/webm,video/*" aria-label="The footage" onChange={e => void pick(e.target.files?.[0] ?? null)} />
@@ -178,9 +178,9 @@ function NewVideoStudy({ open, onClose }: { open: boolean; onClose: () => void }
         </label>
         {reading && <p className="sub">Reading the file…</p>}
         {facts && !problems.length && (
-          <p className="vs-facts" data-facts>{facts.fileName} — {clock(facts.durationSec ?? 0)} · {facts.width}×{facts.height}{facts.fps ? ` · ${facts.fps} frames a second` : ''} · {mb(facts.bytes ?? 0)}{facts.codec ? ` · ${facts.codec}` : ''}</p>
+          <p className="vid-facts" data-facts>{facts.fileName} — {clock(facts.durationSec ?? 0)} · {facts.width}×{facts.height}{facts.fps ? ` · ${facts.fps} frames a second` : ''} · {mb(facts.bytes ?? 0)}{facts.codec ? ` · ${facts.codec}` : ''}</p>
         )}
-        {problems.length > 0 && <ul className="vs-problems" role="alert">{problems.map(p => <li key={p}>{p}</li>)}</ul>}
+        {problems.length > 0 && <ul className="vid-problems" role="alert">{problems.map(p => <li key={p}>{p}</li>)}</ul>}
         <label className="field"><span className="field-label">What do you want to find out?</span>
           <textarea className="text-input" rows={3} value={objective} aria-label="What do you want to find out" placeholder="e.g. Analyse this video for line balance against takt" onChange={e => setObjective(e.target.value)} />
           <span className="chip-row">{EXAMPLES.map(x => <button key={x} type="button" className="chip" onClick={() => setObjective(x)}>{x}</button>)}</span>
@@ -324,7 +324,7 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
   const questions = questionsFor(v.kind ?? 'balance', verified, { zones: zones.length, wantsTakt: (v.objective ?? '').toLowerCase().includes('takt') });
 
   return (
-    <div className="wrap vs-study" data-state={job.state}>
+    <div className="wrap vid-study" data-state={job.state}>
       <header className="pace-head">
         <div className="pace-head-main">
           <p className="eyebrow">Video study · {v.kind ? KIND_WORD[v.kind] : 'Line balance'}</p>
@@ -336,41 +336,41 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
           <button type="button" className="btn btn-ghost" onClick={() => nav('/video')}>Every video study</button>
         </div>
       </header>
-      {said && <p className="vs-said" role="status">{said}</p>}
+      {said && <p className="vid-said" role="status">{said}</p>}
 
       {/* THE FOOTAGE — what it is, read from the file; kept on this device */}
-      <section className="vs-panel" aria-label="The footage">
-        <div className="vs-player">
+      <section className="vid-panel" aria-label="The footage">
+        <div className="vid-player">
           {url ? (
             <video ref={player} src={url} controls muted playsInline preload="auto" aria-label="The footage" onTimeUpdate={e => setT((e.target as HTMLVideoElement).currentTime)} />
           ) : (
-            <p className="vs-nofootage">{v.footageDeletedAt ? `The footage was deleted${v.footageDeletedBy ? ` by ${v.footageDeletedBy}` : ''} — what was found in it is kept.` : missing ? 'The footage is not on this device: it stays on the device it was taken on until the cloud takes a study’s footage. Open the study there to read or watch it.' : 'Opening the footage…'}</p>
+            <p className="vid-nofootage">{v.footageDeletedAt ? `The footage was deleted${v.footageDeletedBy ? ` by ${v.footageDeletedBy}` : ''} — what was found in it is kept.` : missing ? 'The footage is not on this device: it stays on the device it was taken on until the cloud takes a study’s footage. Open the study there to read or watch it.' : 'Opening the footage…'}</p>
           )}
           {url && zones.length > 0 && <ZoneOverlay zones={zones} />}
         </div>
-        <p className="sub vs-facts" data-facts>{v.facts.fileName} — {clock(v.facts.durationSec)} · {v.facts.width}×{v.facts.height}{v.facts.fps ? ` · ${v.facts.fps} frames a second` : ''} · {mb(v.facts.bytes)}{v.facts.codec ? ` · ${v.facts.codec}` : ''} · kept on this device only</p>
-        {v.objective && <p className="vs-objective"><span className="field-label">Asked for</span> “{v.objective}” — {readObjective(v.objective).said}</p>}
-        {questions.length > 0 && <ul className="vs-questions" aria-label="What the study needs">{questions.map(q => <li key={q}>{q}</li>)}</ul>}
+        <p className="sub vid-facts" data-facts>{v.facts.fileName} — {clock(v.facts.durationSec)} · {v.facts.width}×{v.facts.height}{v.facts.fps ? ` · ${v.facts.fps} frames a second` : ''} · {mb(v.facts.bytes)}{v.facts.codec ? ` · ${v.facts.codec}` : ''} · kept on this device only</p>
+        {v.objective && <p className="vid-objective"><span className="field-label">Asked for</span> “{v.objective}” — {readObjective(v.objective).said}</p>}
+        {questions.length > 0 && <ul className="vid-questions" aria-label="What the study needs">{questions.map(q => <li key={q}>{q}</li>)}</ul>}
       </section>
 
       {/* THE STATIONS IN VIEW and the reading */}
-      <section className="vs-panel" aria-label="The reading">
+      <section className="vid-panel" aria-label="The reading">
         <h2>Stations in view, left to right</h2>
         <Stations zones={zones} disabled={!can.edit || running} onChange={z => void patchV({ job: { ...job, config: { ...job.config, zones: z } } })} />
-        <details className="vs-settings">
+        <details className="vid-settings">
           <summary>How the footage is read</summary>
           <p className="sub">A frame every {job.config.sampleSec} s, read {job.config.readWidth} pixels wide; work is movement more than {job.config.sensitivity} times the station’s own quiet spread, gaps under {job.config.joinGapSec} s joined, anything under {job.config.minEventSec} s left out. Reading {job.config.version}.</p>
           <label className="field"><span className="field-label">Sensitivity (lower finds more)</span>
             <input type="number" className="text-input" min={1.5} max={12} step={0.5} value={job.config.sensitivity} disabled={!can.edit || running} aria-label="Sensitivity"
               onChange={e => { const n = Number(e.target.value); if (n >= 1.5 && n <= 12) void patchV({ job: { ...job, config: { ...job.config, sensitivity: n } } }); }} /></label>
         </details>
-        <label className="vs-vision"><input type="checkbox" checked={withVision} disabled={running} onChange={e => setWithVision(e.target.checked)} /> Name the work from the frames — {assistLabeller.sends}</label>
-        <div className="vs-job" data-job={job.state}>
+        <label className="vid-vision"><input type="checkbox" checked={withVision} disabled={running} onChange={e => setWithVision(e.target.checked)} /> Name the work from the frames — {assistLabeller.sends}</label>
+        <div className="vid-job" data-job={job.state}>
           <b className={job.state === 'failed' ? 'ie-tone is-r' : ''}>{STATE_WORD[job.state]}</b>
           {job.said && <span className="sub"> — {job.said}</span>}
           {running && <progress max={1} value={job.progress} aria-label="How far through" />}
           {job.state === 'failed' && job.error && <p className="ie-tone is-r" role="alert">{job.error}</p>}
-          <div className="vs-job-acts">
+          <div className="vid-job-acts">
             {can.edit && !running && url && <button type="button" className="btn btn-primary" onClick={() => void read()}>{job.state === 'uploaded' ? 'Read the footage' : job.state === 'failed' || job.state === 'cancelled' ? 'Try again' : 'Read it again'}</button>}
             {running && isRunning(s.id) && <button type="button" className="btn btn-ghost" onClick={() => abort.current?.abort()}>Stop</button>}
           </div>
@@ -379,22 +379,22 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
 
       {/* REVIEW — every event on the footage, accepted, corrected or rejected */}
       {events.length > 0 && (
-        <section className="vs-panel" aria-label="Review">
-          <div className="vs-head">
+        <section className="vid-panel" aria-label="Review">
+          <div className="vid-head">
             <h2>What was found — review it on the footage</h2>
             {can.edit && verified.candidates > 0 && <button type="button" className="btn btn-sm" onClick={() => setEvents(es => acceptAll(es, me))}>Accept every one still to review</button>}
           </div>
           <p className="sub">Each piece of work is a candidate until you accept it. Play to a moment and set a start or an end there, change what it is, merge, split or reject it. Only what is accepted is counted.</p>
           <Timeline zones={zones} events={events} durationSec={v.facts.durationSec} t={t} onPick={go} />
-          <ul className="vs-events" aria-label="Events">
+          <ul className="vid-events" aria-label="Events">
             {events.map((e, i) => {
               const z = zones.find(x => x.id === e.zone);
               const next = events.slice(i + 1).find(x => x.zone === e.zone);
               return (
-                <li key={e.id} className={`vs-ev is-${e.review}`} data-event={e.id} data-review={e.review}>
-                  <button type="button" className="vs-ev-t linkish" onClick={() => go(e.start)} aria-label={`Play from ${clock(e.start)}`}>{clock(e.start)}–{clock(e.end)}</button>
-                  <span className="vs-ev-z">{z?.label ?? e.zone}{e.track ? ` · ${e.track}` : ''}</span>
-                  <span className="vs-ev-w">
+                <li key={e.id} className={`vid-ev is-${e.review}`} data-event={e.id} data-review={e.review}>
+                  <button type="button" className="vid-ev-t linkish" onClick={() => go(e.start)} aria-label={`Play from ${clock(e.start)}`}>{clock(e.start)}–{clock(e.end)}</button>
+                  <span className="vid-ev-z">{z?.label ?? e.zone}{e.track ? ` · ${e.track}` : ''}</span>
+                  <span className="vid-ev-w">
                     {can.edit ? (
                       <select value={e.category} aria-label="What it is" onChange={x => one(e.id, y => reclassify(y, { category: x.target.value as EventCategory }, me))}>
                         {EVENT_CATEGORIES.map(c => <option key={c} value={c}>{EVENT_WORD[c]}</option>)}
@@ -402,10 +402,10 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
                     ) : <b>{EVENT_WORD[e.category]}</b>}
                     <span className="sub"> {sec1(e.end - e.start)} · seen: {e.observed}{e.inferred ? ` · believed: ${e.inferred}` : ''}</span>
                   </span>
-                  <span className="vs-ev-how sub">{BASIS_WORD[e.basis]}{e.basis !== 'person' ? `, ${Math.round(e.confidence * 100)}% sure` : ''}{e.provenance.model ? ` · named by the assistant` : ''}{e.proposed ? ` · corrected from ${clock(e.proposed.start)}–${clock(e.proposed.end)}` : ''}</span>
-                  <span className="vs-ev-state"><b>{e.review === 'candidate' ? 'To review' : e.review === 'accepted' ? `Accepted${e.by ? ` by ${e.by}` : ''}` : 'Rejected'}</b></span>
+                  <span className="vid-ev-how sub">{BASIS_WORD[e.basis]}{e.basis !== 'person' ? `, ${Math.round(e.confidence * 100)}% sure` : ''}{e.provenance.model ? ` · named by the assistant` : ''}{e.proposed ? ` · corrected from ${clock(e.proposed.start)}–${clock(e.proposed.end)}` : ''}</span>
+                  <span className="vid-ev-state"><b>{e.review === 'candidate' ? 'To review' : e.review === 'accepted' ? `Accepted${e.by ? ` by ${e.by}` : ''}` : 'Rejected'}</b></span>
                   {can.edit && (
-                    <span className="vs-ev-acts">
+                    <span className="vid-ev-acts">
                       {e.review !== 'accepted' && <button type="button" className="btn btn-sm" onClick={() => one(e.id, y => decide(y, 'accepted', me))}>Accept</button>}
                       {e.review !== 'rejected' && <button type="button" className="btn btn-sm btn-ghost" onClick={() => one(e.id, y => decide(y, 'rejected', me))}>Reject</button>}
                       <button type="button" className="btn btn-sm btn-ghost" disabled={!url} onClick={() => one(e.id, y => setBoundary(y, 'start', t, me))}>Start here ({clock(t)})</button>
@@ -419,7 +419,7 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
             })}
           </ul>
           {can.edit && url && (
-            <div className="vs-add">
+            <div className="vid-add">
               <span className="sub">Seen something it missed? At {clock(t)}:</span>
               {zones.map(z => (
                 <button key={z.id} type="button" className="btn btn-sm btn-ghost" onClick={() => setEvents(es => [...es, byHand({ id: `p-${uid()}`, start: t, end: Math.min(v.facts.durationSec, t + 2), zone: z.id, track: z.track, category: 'work' }, me)].sort((a, b) => a.start - b.start))}>Add work at {z.label}</button>
@@ -431,8 +431,8 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
 
       {/* THE LINE BALANCE, worked out from what was accepted */}
       {events.length > 0 && (
-        <section className="vs-panel" aria-label="The line balance">
-          <div className="vs-head">
+        <section className="vid-panel" aria-label="The line balance">
+          <div className="vid-head">
             <h2>The line balance</h2>
             <div className="chip-row" role="group" aria-label="Counted from">
               <button type="button" className={`chip${basis === 'verified' ? ' on' : ''}`} aria-pressed={basis === 'verified'} onClick={() => setBasis('verified')}>Accepted only</button>
@@ -440,7 +440,7 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
             </div>
           </div>
           <p className="sub">{basis === 'verified' ? `Worked out from the ${f.accepted} accepted event${f.accepted === 1 ? '' : 's'}.` : `Provisional — the ${f.candidates} still to review are counted as if accepted.`}</p>
-          <table className="vs-table" aria-label="Each station">
+          <table className="vid-table" aria-label="Each station">
             <thead><tr><th>Station</th><th>Work a cycle</th><th>Cycles</th><th>Range</th><th>A cycle every</th><th>Waiting between</th><th>Working</th></tr></thead>
             <tbody>
               {f.stations.map(x => (
@@ -458,11 +458,11 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
           </table>
           <Workload f={f} />
           {f.takt && f.balance.people.some(p => p.work > 0) && (
-            <div className="vs-stacks" aria-label="Each person's work stacked against takt"><Stacks f={f.balance} /><Legend f={f.balance} /></div>
+            <div className="vid-stacks" aria-label="Each person's work stacked against takt"><Stacks f={f.balance} /><Legend f={f.balance} /></div>
           )}
           <Takt v={v} disabled={!can.edit} onSave={d => void patchV({ demand: d })} />
           <h3>What it says</h3>
-          <ul className="vs-findings" aria-label="What it says">
+          <ul className="vid-findings" aria-label="What it says">
             {findings(f).map((x, i) => <li key={i} className={`is-${x.kind}`} data-kind={x.kind}><span className="field-label">{FINDING_WORD[x.kind]}</span> <span className={x.tone !== 'n' ? `ie-tone is-${x.tone}` : ''}>{x.text}</span></li>)}
           </ul>
           <Ask f={f} />
@@ -470,7 +470,7 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
       )}
 
       {/* WHERE IT SITS, and taking it away */}
-      <section className="vs-panel vs-where" aria-label="Where it sits">
+      <section className="vid-panel vid-where" aria-label="Where it sits">
         {can.edit && (
           <label className="field"><span className="field-label">For a job</span>
             <select className="text-input" value={s.projectId ?? ''} aria-label="Put it on a job" onChange={e => void patchStudy(s.id, { projectId: e.target.value || undefined })}>
@@ -480,7 +480,7 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
           </label>
         )}
         {v.reports?.length ? <p className="sub">Reports made: {v.reports.map(r => `${new Date(r.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} (${r.accepted} accepted${r.candidates ? `, ${r.candidates} to review` : ''})`).join(' · ')}</p> : null}
-        <div className="vs-job-acts">
+        <div className="vid-job-acts">
           {can.remove && !v.footageDeletedAt && <button type="button" className="btn btn-ghost" onClick={() => void deleteFootage()}>Delete the footage</button>}
           {can.remove && <button type="button" className="btn btn-ghost" onClick={() => void removeStudy()}>Delete the study</button>}
         </div>
@@ -501,21 +501,21 @@ function Workload({ f }: { f: ReturnType<typeof videoFigures> }) {
   const y = (v: number) => T + (1 - v / most) * (H - T - B);
   const col = (W - L - 8) / ss.length, bw = Math.min(64, col * 0.6);
   return (
-    <svg className="vs-load" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Each station's work and waiting in a cycle">
-      {[0, 0.25, 0.5, 0.75, 1].map(k => <g key={k}><line x1={L} x2={W - 4} y1={y(most * k)} y2={y(most * k)} className="vs-load-grid" /><text x={L - 4} y={y(most * k) + 3} className="vs-load-ax">{(most * k).toFixed(0)} s</text></g>)}
+    <svg className="vid-load" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Each station's work and waiting in a cycle">
+      {[0, 0.25, 0.5, 0.75, 1].map(k => <g key={k}><line x1={L} x2={W - 4} y1={y(most * k)} y2={y(most * k)} className="vid-load-grid" /><text x={L - 4} y={y(most * k) + 3} className="vid-load-ax">{(most * k).toFixed(0)} s</text></g>)}
       {ss.map((s, i) => {
         const x = L + 4 + i * col + (col - bw) / 2, work = s.workTime?.mean ?? 0, wait = s.waitTime?.mean ?? 0;
         return (
           <g key={s.zone.id} data-station={s.zone.id}>
-            <rect x={x} y={y(work)} width={bw} height={y(0) - y(work)} className={`vs-load-work${s === f.bottleneck ? ' is-most' : ''}`} />
-            {wait > 0 && <rect x={x} y={y(work + wait)} width={bw} height={y(work) - y(work + wait)} className="vs-load-wait" />}
-            <text x={x + bw / 2} y={y(work) - 4} className="vs-load-v">{sec1(work)}</text>
-            <text x={x + bw / 2} y={H - B + 14} className="vs-load-l">{s.zone.label}</text>
-            <text x={x + bw / 2} y={H - B + 26} className="vs-load-s">{s.zone.track}</text>
+            <rect x={x} y={y(work)} width={bw} height={y(0) - y(work)} className={`vid-load-work${s === f.bottleneck ? ' is-most' : ''}`} />
+            {wait > 0 && <rect x={x} y={y(work + wait)} width={bw} height={y(work) - y(work + wait)} className="vid-load-wait" />}
+            <text x={x + bw / 2} y={y(work) - 4} className="vid-load-v">{sec1(work)}</text>
+            <text x={x + bw / 2} y={H - B + 14} className="vid-load-l">{s.zone.label}</text>
+            <text x={x + bw / 2} y={H - B + 26} className="vid-load-s">{s.zone.track}</text>
           </g>
         );
       })}
-      {f.takt && <g><line x1={L} x2={W - 4} y1={y(f.takt)} y2={y(f.takt)} className="vs-load-takt" /><text x={W - 6} y={y(f.takt) - 4} className="vs-load-tl">takt {sec1(f.takt)}</text></g>}
+      {f.takt && <g><line x1={L} x2={W - 4} y1={y(f.takt)} y2={y(f.takt)} className="vid-load-takt" /><text x={W - 6} y={y(f.takt) - 4} className="vid-load-tl">takt {sec1(f.takt)}</text></g>}
     </svg>
   );
 }
@@ -523,9 +523,9 @@ function Workload({ f }: { f: ReturnType<typeof videoFigures> }) {
 /** The stations drawn over the footage, so what is read is what is seen. */
 function ZoneOverlay({ zones }: { zones: readonly VideoZone[] }) {
   return (
-    <div className="vs-zones" aria-hidden>
+    <div className="vid-zones" aria-hidden>
       {zones.map(z => (
-        <span key={z.id} className="vs-zone" style={{ left: `${z.x0 * 100}%`, width: `${(z.x1 - z.x0) * 100}%`, top: `${z.y0 * 100}%`, height: `${(z.y1 - z.y0) * 100}%` }}>
+        <span key={z.id} className="vid-zone" style={{ left: `${z.x0 * 100}%`, width: `${(z.x1 - z.x0) * 100}%`, top: `${z.y0 * 100}%`, height: `${(z.y1 - z.y0) * 100}%` }}>
           <i>{z.label}</i>
         </span>
       ))}
@@ -544,13 +544,13 @@ function Stations({ zones, disabled, onChange }: { zones: readonly VideoZone[]; 
     onChange(next);
   };
   return (
-    <div className="vs-stations">
+    <div className="vid-stations">
       <label className="field"><span className="field-label">How many stations are in view?</span>
         <select className="text-input" value={zones.length} disabled={disabled} aria-label="How many stations are in view" onChange={e => setN(Number(e.target.value))}>
           {[1, 2, 3, 4, 5, 6].map(n => <option key={n} value={n}>{n}</option>)}
         </select>
       </label>
-      <ul className="vs-zone-rows">
+      <ul className="vid-zone-rows">
         {zones.map((z, i) => (
           <li key={z.id} data-zone={z.id}>
             <input className="text-input" value={z.label} disabled={disabled} aria-label={`Station ${i + 1} name`} onChange={e => onChange(zones.map(x => (x.id === z.id ? { ...x, label: e.target.value } : x)))} />
@@ -570,15 +570,15 @@ function Stations({ zones, disabled, onChange }: { zones: readonly VideoZone[]; 
 function Timeline({ zones, events, durationSec, t, onPick }: { zones: readonly VideoZone[]; events: readonly VideoEvent[]; durationSec: number; t: number; onPick: (s: number) => void }) {
   const pc = (x: number) => `${(x / Math.max(0.001, durationSec)) * 100}%`;
   return (
-    <div className="vs-tl" aria-label="The events on the footage's timeline">
+    <div className="vid-tl" aria-label="The events on the footage's timeline">
       {zones.map(z => (
-        <div key={z.id} className="vs-lane">
-          <span className="vs-lane-l">{z.label}</span>
-          <div className="vs-lane-t">
+        <div key={z.id} className="vid-lane">
+          <span className="vid-lane-l">{z.label}</span>
+          <div className="vid-lane-t">
             {events.filter(e => e.zone === z.id).map(e => (
-              <button key={e.id} type="button" className={`vs-bar is-${e.review}`} style={{ left: pc(e.start), width: pc(e.end - e.start) }} title={`${clock(e.start)}–${clock(e.end)} ${EVENT_WORD[e.category]}`} aria-label={`${z.label} ${clock(e.start)} to ${clock(e.end)}`} onClick={() => onPick(e.start)} />
+              <button key={e.id} type="button" className={`vid-bar is-${e.review}`} style={{ left: pc(e.start), width: pc(e.end - e.start) }} title={`${clock(e.start)}–${clock(e.end)} ${EVENT_WORD[e.category]}`} aria-label={`${z.label} ${clock(e.start)} to ${clock(e.end)}`} onClick={() => onPick(e.start)} />
             ))}
-            <span className="vs-head-line" style={{ left: pc(t) }} />
+            <span className="vid-head-line" style={{ left: pc(t) }} />
           </div>
         </div>
       ))}
@@ -597,7 +597,7 @@ function Takt({ v, disabled, onSave }: { v: VideoSource; disabled: boolean; onSa
     onSave(u > 0 && m > 0 ? { units: u, unit: unit.trim() || 'units', availableMin: m, per } : undefined);
   };
   return (
-    <form className="vs-takt" onSubmit={e => { e.preventDefault(); save(); }} aria-label="Takt">
+    <form className="vid-takt" onSubmit={e => { e.preventDefault(); save(); }} aria-label="Takt">
       <span className="field-label">Takt — the demand and the time to make it</span>
       <input className="text-input" inputMode="numeric" value={units} disabled={disabled} aria-label="How many to make" placeholder="480" onChange={e => setUnits(e.target.value)} />
       <input className="text-input" value={unit} disabled={disabled} aria-label="Of what" onChange={e => setUnit(e.target.value)} />
@@ -619,13 +619,13 @@ function Ask({ f }: { f: ReturnType<typeof videoFigures> }) {
     setA(r ?? { how: 'not known', text: 'The app answers about the cycles, the waiting, takt, the bottleneck, what is still needed and the report. Ask about one of those.' });
   }, [f]);
   return (
-    <div className="vs-ask">
+    <div className="vid-ask">
       <form onSubmit={e => { e.preventDefault(); ask(q); }}>
         <input className="text-input" value={q} aria-label="Ask about this study" placeholder="e.g. What else do you need to work out takt?" onChange={e => setQ(e.target.value)} />
         <button type="submit" className="btn btn-sm">Ask</button>
       </form>
       <span className="chip-row">{['Identify repeated cycles', 'Review the longest waiting periods', 'What do you need to calculate takt?', 'Which station contributes most?'].map(x => <button key={x} type="button" className="chip" onClick={() => { setQ(x); ask(x); }}>{x}</button>)}</span>
-      {a && <p className="vs-answer" data-how={a.how}>{a.text} <span className="sub">— {a.how === 'worked out' ? 'worked out by the app from the study' : 'not known yet'}</span></p>}
+      {a && <p className="vid-answer" data-how={a.how}>{a.text} <span className="sub">— {a.how === 'worked out' ? 'worked out by the app from the study' : 'not known yet'}</span></p>}
     </div>
   );
 }
