@@ -13836,6 +13836,15 @@ textarea.fw-in { font: inherit; line-height: 1.45; }
 .fw-chart-axis { stroke: var(--line); }
 .fw-chart-v { font-size: 9px; fill: var(--ink-2); font-variant-numeric: tabular-nums; }
 .fw-chart-l { font-size: 8.5px; fill: var(--muted); }
+/* a control chart, a relationship, a forecast (lib/flow/analysis pictures) */
+.fw-lim line { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 4 3; }
+.fw-centre line { stroke: var(--ink-2); stroke-width: 1; }
+.fw-run { stroke: #9aa6ab; stroke-width: 1.2; }
+.fw-dot { fill: var(--ink-2); }
+.fw-dot.is-signal { fill: var(--st-r); }
+.fw-fit { stroke: var(--ink); stroke-width: 1.5; }
+.fw-fit.is-ahead { stroke-dasharray: 4 3; }
+.fw-target line { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 1.5 2.5; }
 .fw-entries { overflow-x: auto; }
 .fw-entries-t { width: 100%; border-collapse: collapse; font-size: var(--t-detail); }
 .fw-entries-t th { text-align: left; font-weight: 600; color: var(--muted); padding: 4px 8px 4px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }

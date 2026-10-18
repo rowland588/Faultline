@@ -160,9 +160,22 @@ development (`FlowDefinition.needs`: what, why, inputs, method, check) on
 the method's page and paper, never imitated. No database change: entries
 ride in the step record's `values` column, merged entry by entry. Faultline's
 library gains a tool made only from blocks (*Rejects, logged and halved*);
-`acceptance/designed-tool.mjs` drives one end to end. Next: a tool's panel
-inside the step itself rather than its page; more blocks as the floor asks
-(regression, control charts, a Weibull fit — each a block, each tested).
+`acceptance/designed-tool.mjs` drives one end to end. The same evening the
+registry proved its point: three blocks no screen of Faultline's had — a
+CONTROL CHART (individuals, I-MR: limits from the readings' own variation,
+a signal a reading outside them or 8 in a row on one side), a RELATIONSHIP
+(r and the line through two number columns, said with what it does not
+prove) and a FORECAST (the figure a day carried a week on, and the day it
+reaches a target) — each its arithmetic and its tests
+(`analysis-blocks.test.ts`), and each in the editor, the validator, the
+assistant's brief, the screen and the paper at once. A block now declares
+its PICTURE (none · bars · pareto · control · scatter · forecast) and the
+screen and paper draw by that word, never by the block's name, so the next
+block with an old picture is drawn the day it is written. The library gains
+statistical process control made only of blocks (*A process held in
+control*). Next: a tool's panel inside the step itself rather than its
+page; more blocks as the floor asks (a Weibull fit, a regression on several
+columns — each a block, each tested).
 
 **Control room** (`#/room`; `#/` until 18 October, when home became the
 front door). Your factory first: a card per line saying its health

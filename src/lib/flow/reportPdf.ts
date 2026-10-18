@@ -22,7 +22,7 @@ import type { FlowProject } from './operations';
 import type { ActivityEntry } from './records';
 import { stageWord, stepSquare, stepWhy, stepWord, type Square } from './view';
 import { measureNumber, type StepInstance } from './runtime';
-import { entryValues, fmtNumber, type AnalysisResult } from './analysis';
+import { BLOCKS, entryValues, fmtNumber, type AnalysisPicture, type AnalysisResult } from './analysis';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const GREY = '#6b7588';
@@ -47,35 +47,110 @@ function line(what: string, why: string, word: string, tone: Square): { h: (f: F
   };
 }
 
-/** An analysis's picture on paper — bars (a Pareto with its running share,
- *  a trend by day, a histogram), in neutral ink, as on the screen
- *  (ui/flow/LogParts AnalysisChart). */
-function chartBlock(res: AnalysisResult, kind: string): Block {
-  const pts = (res.series ?? []).slice(0, 24);
-  const H0 = 96;
+/** An analysis's picture on paper, drawn as its block says (lib/flow/analysis
+ *  AnalysisPicture) — bars (a trend, a histogram), a Pareto with its running
+ *  share, a control chart with its limits and signals, a relationship's dots
+ *  and line, a forecast carried a week on — in neutral ink as on the screen
+ *  (ui/flow/LogParts AnalysisChart), a control chart's signals in red. */
+function chartBlock(res: AnalysisResult, picture: AnalysisPicture, axes: { x?: string; y?: string } = {}): Block {
+  const pts = res.series ?? [];
+  const H0 = 104;
+  const drawn = picture !== 'none' && pts.length > 0 && (picture !== 'control' || !!res.limits) && (picture !== 'forecast' || !!res.fit);
+  const dayOf = (s: string) => (/^\d{4}-\d{2}-\d{2}$/.test(s) ? niceDay(s) : s);
   return {
-    height: () => (pts.length ? H0 + 6 : 0),
+    height: () => (drawn ? H0 + 6 : 0),
     draw: (f, y) => {
-      if (!pts.length) return;
-      const w = Math.min(f.w, 420), x0 = f.x + 10, top = y + 8, base = y + H0 - 22;
-      const max = Math.max(...pts.map(p => p.value), 0) || 1, bw = (w - 10) / pts.length;
-      f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.5); f.doc.line(x0, base, x0 + w - 10, base);
-      pts.forEach((p, i) => {
-        const h = (base - top) * (p.value / max), bx = x0 + i * bw + bw * 0.12;
-        f.doc.setFillColor(i === 0 && kind === 'pareto' ? INK2 : '#9aa6ab');
-        if (h > 0) f.doc.rect(bx, base - h, bw * 0.76, h, 'F');
-        font(f.doc, 6.5, 'normal', INK2); f.doc.text(fmtNumber(p.value), bx + bw * 0.38, base - h - 2, { align: 'center' });
-        font(f.doc, 6.5, 'normal', MUTED);
-        const lab = /^\d{4}-\d{2}-\d{2}$/.test(p.label) ? niceDay(p.label) : p.label;
-        f.doc.text(lab.slice(0, Math.max(4, Math.floor(bw / 3.6))), bx + bw * 0.38, base + 9, { align: 'center' });
-      });
-      if (kind === 'pareto' && pts.length > 1) {
-        f.doc.setDrawColor(INK2); f.doc.setLineWidth(0.8);
-        for (let i = 1; i < pts.length; i++) {
-          const ya = base - (base - top) * ((pts[i - 1].cum ?? 0) / 100), yb = base - (base - top) * ((pts[i].cum ?? 0) / 100);
-          f.doc.line(x0 + (i - 1) * bw + bw / 2, ya, x0 + i * bw + bw / 2, yb);
+      if (!drawn) return;
+      const doc = f.doc, w = Math.min(f.w, 420), x0 = f.x + 10, top = y + 8, base = y + H0 - 22, right = x0 + w - 10;
+      const scale = (vals: number[]) => {
+        let lo = Math.min(...vals), hi = Math.max(...vals);
+        if (hi === lo) { hi += 1; lo -= 1; }
+        const pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
+        return (v: number) => base - (base - top) * ((v - lo) / (hi - lo));
+      };
+      doc.setDrawColor(LINE); doc.setLineWidth(0.5); doc.line(x0, base, right, base);
+      if (picture === 'control' && res.limits) {
+        const L = res.limits, list = pts.slice(-60), lw = right - 40 - x0;
+        const yv = scale([...list.map(p => p.value), L.upper, L.lower]);
+        const xv = (i: number) => x0 + 4 + (lw - 8) * (list.length > 1 ? i / (list.length - 1) : 0);
+        doc.setDrawColor(INK2); doc.setLineWidth(0.6);
+        for (const [v, word, dash] of [[L.upper, 'UCL', true], [L.centre, 'CL', false], [L.lower, 'LCL', true]] as const) {
+          if (dash) doc.setLineDashPattern([3, 2], 0);
+          doc.line(x0, yv(v), x0 + lw, yv(v));
+          doc.setLineDashPattern([], 0);
+          font(doc, 6.5, 'normal', MUTED); doc.text(`${word} ${fmtNumber(v)}`, x0 + lw + 3, yv(v) + 2);
         }
-        font(f.doc, 6.5, 'normal', MUTED); f.doc.text('line: the running share', x0 + w - 10, top - 2, { align: 'right' });
+        doc.setDrawColor('#9aa6ab'); doc.setLineWidth(0.7);
+        for (let i = 1; i < list.length; i++) doc.line(xv(i - 1), yv(list[i - 1].value), xv(i), yv(list[i].value));
+        list.forEach((p, i) => { doc.setFillColor(p.flag ? DANGER : INK2); doc.circle(xv(i), yv(p.value), p.flag ? 1.9 : 1.2, 'F'); });
+        const every = Math.max(1, Math.ceil(list.length / 8));
+        font(doc, 6.5, 'normal', MUTED);
+        list.forEach((p, i) => { if (i % every === 0 && (i === 0 || p.label !== list[i - 1].label)) doc.text(dayOf(p.label), xv(i), base + 9, { align: 'center' }); });
+        return;
+      }
+      if (picture === 'scatter') {
+        const list = pts.filter(p => typeof p.x === 'number').slice(0, 300);
+        if (!list.length) return;
+        const left = x0 + 22, xs = list.map(p => p.x as number);
+        const lo = Math.min(...xs), hi = Math.max(...xs), room = hi > lo ? (hi - lo) * 0.06 : 1;
+        const a0 = lo - room, a1 = hi + room;
+        const xv = (v: number) => left + (right - left) * ((v - a0) / (a1 - a0));
+        const fit = res.fit;
+        const yv = scale([...list.map(p => p.value), ...(fit ? [fit.intercept + fit.slope * a0, fit.intercept + fit.slope * a1] : [])]);
+        doc.setDrawColor(LINE); doc.line(left, top, left, base);
+        if (fit) { doc.setDrawColor(INK2); doc.setLineWidth(0.9); doc.line(xv(a0), yv(fit.intercept + fit.slope * a0), xv(a1), yv(fit.intercept + fit.slope * a1)); }
+        doc.setFillColor(INK2);
+        for (const p of list) doc.circle(xv(p.x as number), yv(p.value), 1.4, 'F');
+        const yLo = Math.min(...list.map(p => p.value)), yHi = Math.max(...list.map(p => p.value));
+        font(doc, 6.5, 'normal', MUTED);
+        doc.text(fmtNumber(lo), xv(lo), base + 9, { align: 'center' });
+        if (hi > lo) doc.text(fmtNumber(hi), xv(hi), base + 9, { align: 'center' });
+        doc.text(fmtNumber(yHi), left - 3, yv(yHi) + 2, { align: 'right' }); doc.text(fmtNumber(yLo), left - 3, yv(yLo) + 2, { align: 'right' });
+        /* words, not arrows: the paper's font has no arrow */
+        if (axes.x) doc.text(`${axes.x}, across`, (left + right) / 2, base + 17, { align: 'center' });
+        if (axes.y) doc.text(`${axes.y}, up`, left + 4, top - 1);
+        return;
+      }
+      if (picture === 'forecast' && res.fit) {
+        const fit = res.fit, list = pts.slice(-60);
+        const d = (iso: string) => Date.parse(`${iso}T12:00:00Z`) / 86400000;
+        const d0 = d(list[0].label), last = d(list[list.length - 1].label) - d0, span = last + (res.ahead ?? 7);
+        const floor = list.every(p => p.value >= 0) ? 0 : -Infinity;
+        const at = (k: number) => Math.max(floor, fit.intercept + fit.slope * k);
+        const tops = [...list.map(p => p.value), at(0), at(span), ...(typeof res.target === 'number' ? [res.target] : []), 0];
+        const max = Math.max(...tops) || 1, min = Math.min(...tops, 0);
+        const yv = (v: number) => base - (base - top) * ((v - min) / (max - min || 1));
+        const bw = (right - x0) / (span + 1), xv = (k: number) => x0 + k * bw + bw / 2;
+        doc.setFillColor('#9aa6ab');
+        for (const p of list) { const k = d(p.label) - d0, h = yv(Math.max(0, min)) - yv(p.value); if (h > 0) doc.rect(xv(k) - bw * 0.38, yv(p.value), bw * 0.76, h, 'F'); }
+        doc.setDrawColor(INK2); doc.setLineWidth(0.9);
+        doc.line(xv(0), yv(at(0)), xv(last), yv(at(last)));
+        doc.setLineDashPattern([3, 2], 0); doc.line(xv(last), yv(at(last)), xv(span), yv(at(span)));
+        if (typeof res.target === 'number') { doc.setLineWidth(0.6); doc.setLineDashPattern([1, 2], 0); doc.line(x0, yv(res.target), right, yv(res.target)); }
+        doc.setLineDashPattern([], 0);
+        font(doc, 6.5, 'normal', MUTED);
+        if (typeof res.target === 'number') doc.text(`target ${fmtNumber(res.target)}`, right, yv(res.target) - 2, { align: 'right' });
+        doc.text(dayOf(list[0].label), x0, base + 9); doc.text(dayOf(list[list.length - 1].label), xv(last), base + 9, { align: 'center' });
+        doc.text('a week on', right, base + 9, { align: 'right' });
+        return;
+      }
+      const list = pts.slice(0, 24);
+      const max = Math.max(...list.map(p => p.value), 0) || 1, bw = (w - 10) / list.length;
+      list.forEach((p, i) => {
+        const h = (base - top) * (p.value / max), bx = x0 + i * bw + bw * 0.12;
+        doc.setFillColor(i === 0 && picture === 'pareto' ? INK2 : '#9aa6ab');
+        if (h > 0) doc.rect(bx, base - h, bw * 0.76, h, 'F');
+        font(doc, 6.5, 'normal', INK2); doc.text(fmtNumber(p.value), bx + bw * 0.38, base - h - 2, { align: 'center' });
+        font(doc, 6.5, 'normal', MUTED);
+        doc.text(dayOf(p.label).slice(0, Math.max(4, Math.floor(bw / 3.6))), bx + bw * 0.38, base + 9, { align: 'center' });
+      });
+      if (picture === 'pareto' && list.length > 1) {
+        doc.setDrawColor(INK2); doc.setLineWidth(0.8);
+        for (let i = 1; i < list.length; i++) {
+          const ya = base - (base - top) * ((list[i - 1].cum ?? 0) / 100), yb = base - (base - top) * ((list[i].cum ?? 0) / 100);
+          doc.line(x0 + (i - 1) * bw + bw / 2, ya, x0 + i * bw + bw / 2, yb);
+        }
+        font(doc, 6.5, 'normal', MUTED); doc.text('line: the running share', x0 + w - 10, top - 2, { align: 'right' });
       }
     },
   };
@@ -89,8 +164,11 @@ function logBlocks(s: StepInstance): Block[] {
   for (const a of s.def.analyses ?? []) {
     const res = s.analysis?.[a.key];
     if (!res) continue;
-    out.push(text({ text: res.says, size: 8, colour: INK2, indent: 10, after: 2 }));
-    if (res.series?.length) out.push(chartBlock(res, a.block));
+    const label = (k?: string) => s.def.columns?.find(c => c.key === k)?.label;
+    const chart = res.series?.length ? chartBlock(res, BLOCKS[a.block]?.picture ?? 'none', { x: label(a.against), y: label(a.of) }) : undefined;
+    /* the sentence travels with its picture — never a picture on the page after what it says */
+    out.push({ ...text({ text: res.says, size: 8, colour: INK2, indent: 10, after: 2 }), ...(chart ? { keepWithNext: true } : {}) });
+    if (chart) out.push(chart);
   }
   return out;
 }

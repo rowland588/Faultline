@@ -12,8 +12,10 @@
  * A step answered as a LOG (lib/flow/definition) keeps many entries, each
  * the step's columns. What they add up to is said by its analyses, each one
  * of the blocks below: count, sum, mean, median, the spread, a share, a
- * figure a day, a Pareto, a trend, a histogram, Cpk. A block is a pure
- * function with what it needs said as data — so a method written by a
+ * figure a day, a Pareto, a trend, a histogram, Cpk, a control chart, a
+ * relationship between two columns, a forecast. A block is a pure
+ * function with what it needs — and the picture it is drawn as — said as
+ * data — so a method written by a
  * person or proposed by the assistant composes them, the validator checks
  * every one, and the screen, the paper, a gate and a measure read the same
  * answer. A NEW BLOCK IS CODE: one entry here with its arithmetic and its
@@ -38,7 +40,7 @@ export interface FlowEntry {
   struck?: boolean;
 }
 
-export const ANALYSIS_BLOCKS = ['count', 'sum', 'mean', 'median', 'min', 'max', 'sd', 'share', 'perDay', 'pareto', 'trend', 'histogram', 'cpk'] as const;
+export const ANALYSIS_BLOCKS = ['count', 'sum', 'mean', 'median', 'min', 'max', 'sd', 'share', 'perDay', 'pareto', 'trend', 'histogram', 'cpk', 'control', 'relation', 'forecast'] as const;
 export type AnalysisBlockId = typeof ANALYSIS_BLOCKS[number];
 
 export const WHEN_OPS = ['=', '!=', '>=', '<=', '>', '<'] as const;
@@ -63,9 +65,25 @@ export interface FlowAnalysis {
   when?: FlowWhen;
   /** Said after the figure, when the column's own unit is not right. */
   unit?: string;
+  /** A second number column it is read against (a relationship: the one
+   *  that might drive it). */
+  against?: string;
+  /** The level it is heading for (a forecast says when it gets there). */
+  target?: number;
 }
 
-export interface SeriesPoint { label: string; value: number; cum?: number }
+/** How a block's answer is drawn — on the screen (ui/flow/LogParts) and on
+ *  paper (lib/flow/reportPdf) alike, by this word and never by the block's
+ *  id, so a new block with an old picture is drawn the day it is written. */
+export type AnalysisPicture = 'none' | 'bars' | 'pareto' | 'control' | 'scatter' | 'forecast';
+
+export interface SeriesPoint {
+  label: string; value: number; cum?: number;
+  /** A scatter's other axis (a relationship). */
+  x?: number;
+  /** A reading a control chart calls a signal, and why. */
+  flag?: 'outside' | 'run';
+}
 
 export interface AnalysisResult {
   /** The figure — absent when there is not enough to say one. */
@@ -77,6 +95,15 @@ export interface AnalysisResult {
   n: number;
   /** What it says, in a sentence. */
   says: string;
+  /** A control chart's centre and limits. */
+  limits?: { centre: number; upper: number; lower: number };
+  /** The straight line through the points (y = intercept + slope × x) —
+   *  a relationship's, or a forecast's over the days (x a day number from
+   *  the first day logged). */
+  fit?: { slope: number; intercept: number };
+  /** A forecast's: the days ahead it is carried to, and the target it is read against. */
+  ahead?: number;
+  target?: number;
 }
 
 type Need = 'required' | 'optional' | 'none';
@@ -86,11 +113,12 @@ export interface AnalysisBlock {
   name: string;
   /** What it is for, in a line — for the designer and the assistant. */
   says: string;
-  needs: { of: Need; by: Need; when: Need };
+  needs: { of: Need; by: Need; when: Need; against: Need; target: Need };
   /** of must be a number column. */
   numeric: boolean;
   /** number: a figure gates and measures can read; series: a picture; both. */
   output: 'number' | 'series' | 'both';
+  picture: AnalysisPicture;
   compute: (entries: readonly FlowEntry[], a: FlowAnalysis, columns: readonly FlowField[]) => AnalysisResult;
 }
 
@@ -176,10 +204,67 @@ export function cpkOf(xs: number[], lower?: number, upper?: number): number | un
   return Math.min(lower !== undefined ? (m - lower) / (3 * s) : Infinity, upper !== undefined ? (upper - m) / (3 * s) : Infinity);
 }
 
+/** A column totalled (or the entries counted) day by day, in day order. */
+function dayTotals(rows: ReturnType<typeof rowsOf>, of?: string): SeriesPoint[] {
+  const byDay = new Map<string, number>();
+  for (const r of rows) byDay.set(r.e.on, (byDay.get(r.e.on) ?? 0) + (of ? (typeof r.v[of] === 'number' ? (r.v[of] as number) : 0) : 1));
+  return [...byDay.entries()].sort((p, q) => p[0].localeCompare(q[0])).map(([label, value]) => ({ label, value }));
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const DAY = 86400000;
+/** A day as the app says one ("14 Oct") — here, so the gateway's copy stands alone. */
+export const daySaid = (iso: string): string => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso); return m ? `${Number(m[3])} ${MONTHS[Number(m[2]) - 1]}` : iso; };
+const dayNo = (iso: string) => { const [y, m, d] = iso.split('-').map(Number); return Math.round(Date.UTC(y, m - 1, d) / DAY); };
+const isoOf = (n: number) => new Date(n * DAY).toISOString().slice(0, 10);
+
+/** The least-squares line through the points, and how closely they follow it. */
+export function lineFit(xs: readonly number[], ys: readonly number[]): { slope: number; intercept: number; r?: number } | undefined {
+  const n = Math.min(xs.length, ys.length);
+  if (n < 2) return undefined;
+  const mx = mean(xs.slice(0, n)), my = mean(ys.slice(0, n));
+  let sxx = 0, syy = 0, sxy = 0;
+  for (let i = 0; i < n; i++) { sxx += (xs[i] - mx) ** 2; syy += (ys[i] - my) ** 2; sxy += (xs[i] - mx) * (ys[i] - my); }
+  if (!(sxx > 0)) return undefined;
+  const slope = sxy / sxx;
+  return { slope, intercept: my - slope * mx, ...(syy > 0 ? { r: sxy / Math.sqrt(sxx * syy) } : {}) };
+}
+
+/** An individuals control chart (I-MR), as Shewhart and the AIAG manual
+ *  work it: the centre the mean, the limits ± 2.66 × the average moving
+ *  range (3 ÷ d2, d2 = 1.128 for ranges of two). A SIGNAL is a reading
+ *  outside the limits (rule 1), or a run of 8 in a row on one side of the
+ *  centre (rule 2 of Nelson's, the 8-point run) — each run one signal. */
+export function controlOf(xs: readonly number[]): { centre: number; upper: number; lower: number; flags: (SeriesPoint['flag'] | undefined)[]; outside: number[]; runs: { from: number; length: number; above: boolean }[] } | undefined {
+  if (xs.length < 2) return undefined;
+  let t = 0;
+  for (let i = 1; i < xs.length; i++) t += Math.abs(xs[i] - xs[i - 1]);
+  const mr = t / (xs.length - 1);
+  if (!(mr > 0)) return undefined;
+  const centre = mean([...xs]), upper = centre + 2.66 * mr, lower = centre - 2.66 * mr;
+  const flags: (SeriesPoint['flag'] | undefined)[] = xs.map(x => (x > upper || x < lower ? 'outside' : undefined));
+  const outside = xs.map((x, i) => (x > upper || x < lower ? i : -1)).filter(i => i >= 0);
+  const runs: { from: number; length: number; above: boolean }[] = [];
+  let from = 0;
+  for (let i = 1; i <= xs.length; i++) {
+    const side = (k: number) => (xs[k] > centre ? 1 : xs[k] < centre ? -1 : 0);
+    if (i < xs.length && side(i) !== 0 && side(i) === side(from)) continue;
+    const length = i - from;
+    if (side(from) !== 0 && length >= 8) {
+      runs.push({ from, length, above: side(from) > 0 });
+      for (let k = from; k < i; k++) flags[k] = flags[k] ?? 'run';
+    }
+    from = i;
+  }
+  return { centre, upper, lower, flags, outside, runs };
+}
+
+const strength = (r: number) => { const a = Math.abs(r); return a >= 0.7 ? 'a strong' : a >= 0.4 ? 'a moderate' : a >= 0.2 ? 'a weak' : ''; };
+
 /** One statistic over a number column — sum, mean, median, min, max, the spread. */
 function stat(id: AnalysisBlockId, name: string, says: string, f: (xs: number[]) => number, min = 1): AnalysisBlock {
   return {
-    id, name, says, needs: { of: 'required', by: 'none', when: 'optional' }, numeric: true, output: 'number',
+    id, name, says, needs: { of: 'required', by: 'none', when: 'optional', against: 'none', target: 'none' }, numeric: true, output: 'number', picture: 'none',
     compute: (entries, a, columns) => {
       const rows = rowsOf(entries, a, columns), xs = numbers(rows, a.of), unit = unitOf(a, columns);
       const what = `${a.label}${whenSaid(a, columns)}`;
@@ -194,7 +279,7 @@ function stat(id: AnalysisBlockId, name: string, says: string, f: (xs: number[])
 
 export const BLOCKS: Record<AnalysisBlockId, AnalysisBlock> = {
   count: {
-    id: 'count', name: 'Count', says: 'How many entries — all, or those that meet a rule', needs: { of: 'none', by: 'none', when: 'optional' }, numeric: false, output: 'number',
+    id: 'count', name: 'Count', says: 'How many entries — all, or those that meet a rule', needs: { of: 'none', by: 'none', when: 'optional', against: 'none', target: 'none' }, numeric: false, output: 'number', picture: 'none',
     compute: (entries, a, columns) => {
       const n = rowsOf(entries, a, columns).length;
       return { value: n, n, unit: a.unit ?? 'entries', says: `${a.label}${whenSaid(a, columns)}: ${n}.` };
@@ -207,7 +292,7 @@ export const BLOCKS: Record<AnalysisBlockId, AnalysisBlock> = {
   max: stat('max', 'Highest', 'The highest value of a number column', xs => Math.max(...xs)),
   sd: stat('sd', 'Spread', 'The standard deviation of a number column — how much it varies', sd, 2),
   share: {
-    id: 'share', name: 'Share', says: 'The share of entries that meet a rule, as a percentage', needs: { of: 'none', by: 'none', when: 'required' }, numeric: false, output: 'number',
+    id: 'share', name: 'Share', says: 'The share of entries that meet a rule, as a percentage', needs: { of: 'none', by: 'none', when: 'required', against: 'none', target: 'none' }, numeric: false, output: 'number', picture: 'none',
     compute: (entries, a, columns) => {
       const all = rowsOf(entries, a, columns, false), hit = rowsOf(entries, a, columns);
       if (!all.length) return { n: 0, unit: '%', says: `${a.label}: no entries yet.` };
@@ -216,7 +301,7 @@ export const BLOCKS: Record<AnalysisBlockId, AnalysisBlock> = {
     },
   },
   perDay: {
-    id: 'perDay', name: 'A day', says: 'The total of a number column (or the count) a day, averaged over the days logged', needs: { of: 'optional', by: 'none', when: 'optional' }, numeric: true, output: 'number',
+    id: 'perDay', name: 'A day', says: 'The total of a number column (or the count) a day, averaged over the days logged', needs: { of: 'optional', by: 'none', when: 'optional', against: 'none', target: 'none' }, numeric: true, output: 'number', picture: 'none',
     compute: (entries, a, columns) => {
       const rows = rowsOf(entries, a, columns);
       const days = new Set(rows.map(r => r.e.on));
@@ -228,7 +313,7 @@ export const BLOCKS: Record<AnalysisBlockId, AnalysisBlock> = {
     },
   },
   pareto: {
-    id: 'pareto', name: 'Pareto', says: 'Entries grouped by a column, biggest first, with the running share — the few that make most', needs: { of: 'optional', by: 'required', when: 'optional' }, numeric: true, output: 'both',
+    id: 'pareto', name: 'Pareto', says: 'Entries grouped by a column, biggest first, with the running share — the few that make most', needs: { of: 'optional', by: 'required', when: 'optional', against: 'none', target: 'none' }, numeric: true, output: 'both', picture: 'pareto',
     compute: (entries, a, columns) => {
       const rows = rowsOf(entries, a, columns);
       const groups = new Map<string, number>();
@@ -255,12 +340,10 @@ export const BLOCKS: Record<AnalysisBlockId, AnalysisBlock> = {
     },
   },
   trend: {
-    id: 'trend', name: 'Trend', says: 'A number column totalled (or entries counted) day by day — is it moving?', needs: { of: 'optional', by: 'none', when: 'optional' }, numeric: true, output: 'both',
+    id: 'trend', name: 'Trend', says: 'A number column totalled (or entries counted) day by day — is it moving?', needs: { of: 'optional', by: 'none', when: 'optional', against: 'none', target: 'none' }, numeric: true, output: 'both', picture: 'bars',
     compute: (entries, a, columns) => {
       const rows = rowsOf(entries, a, columns);
-      const byDay = new Map<string, number>();
-      for (const r of rows) byDay.set(r.e.on, (byDay.get(r.e.on) ?? 0) + (a.of ? (typeof r.v[a.of] === 'number' ? (r.v[a.of] as number) : 0) : 1));
-      const series = [...byDay.entries()].sort((p, q) => p[0].localeCompare(q[0])).map(([label, value]) => ({ label, value }));
+      const series = dayTotals(rows, a.of);
       const unit = unitOf(a, columns) ?? (a.of ? undefined : 'entries');
       if (!series.length) return { n: 0, ...(unit ? { unit } : {}), says: `${a.label}: no entries yet.` };
       const last = series[series.length - 1], first = series[0];
@@ -269,7 +352,7 @@ export const BLOCKS: Record<AnalysisBlockId, AnalysisBlock> = {
     },
   },
   histogram: {
-    id: 'histogram', name: 'Histogram', says: 'How a number column is spread — the shape of the readings', needs: { of: 'required', by: 'none', when: 'optional' }, numeric: true, output: 'series',
+    id: 'histogram', name: 'Histogram', says: 'How a number column is spread — the shape of the readings', needs: { of: 'required', by: 'none', when: 'optional', against: 'none', target: 'none' }, numeric: true, output: 'series', picture: 'bars',
     compute: (entries, a, columns) => {
       const xs = numbers(rowsOf(entries, a, columns), a.of), unit = unitOf(a, columns);
       if (xs.length < 2) return { n: xs.length, ...(unit ? { unit } : {}), says: `${a.label}: needs 2 entries — ${xs.length} so far.` };
@@ -283,7 +366,7 @@ export const BLOCKS: Record<AnalysisBlockId, AnalysisBlock> = {
     },
   },
   cpk: {
-    id: 'cpk', name: 'Cpk', says: 'How capable a number column is against its own limits (its column’s at least / at most)', needs: { of: 'required', by: 'none', when: 'optional' }, numeric: true, output: 'number',
+    id: 'cpk', name: 'Cpk', says: 'How capable a number column is against its own limits (its column’s at least / at most)', needs: { of: 'required', by: 'none', when: 'optional', against: 'none', target: 'none' }, numeric: true, output: 'number', picture: 'none',
     compute: (entries, a, columns) => {
       const c = col(columns, a.of);
       const xs = numbers(rowsOf(entries, a, columns), a.of);
@@ -292,6 +375,87 @@ export const BLOCKS: Record<AnalysisBlockId, AnalysisBlock> = {
       if (k === undefined) return { n: xs.length, says: `${a.label}: needs readings that vary — ${many(xs.length, 'reading')} so far.` };
       const word = k >= 1.33 ? 'capable' : k >= 1 ? 'just capable' : 'not capable';
       return { value: k, n: xs.length, says: `${a.label}: Cpk ${fmtNumber(k)} — ${word}, from ${many(xs.length, 'reading')}${xs.length < 25 ? ' (fewer than 25: read it with care)' : ''}.` };
+    },
+  },
+  control: {
+    id: 'control', name: 'Control chart', says: 'Each reading in the order taken, against limits set by its own variation — what is ordinary, and the signals worth finding the cause of (a reading outside the limits, 8 in a row on one side)',
+    needs: { of: 'required', by: 'none', when: 'optional', against: 'none', target: 'none' }, numeric: true, output: 'both', picture: 'control',
+    compute: (entries, a, columns) => {
+      const rows = rowsOf(entries, a, columns).filter(r => a.of !== undefined && typeof r.v[a.of] === 'number')
+        .sort((p, q) => p.e.on.localeCompare(q.e.on) || p.e.at - q.e.at);
+      const xs = rows.map(r => r.v[a.of as string] as number), unit = unitOf(a, columns);
+      if (xs.length < 5) return { n: xs.length, unit: 'signals', says: `${a.label}: needs 5 readings to set its limits — ${xs.length} so far.` };
+      const c = controlOf(xs);
+      if (!c) return { n: xs.length, unit: 'signals', says: `${a.label}: every reading is the same — no variation to set limits from.` };
+      const series: SeriesPoint[] = rows.map((r, i) => ({ label: r.e.on, value: xs[i], ...(c.flags[i] ? { flag: c.flags[i] } : {}) }));
+      const signals = c.outside.length + c.runs.length;
+      const limits = { centre: c.centre, upper: c.upper, lower: c.lower };
+      const within = `${withUnit(c.lower, unit)} to ${withUnit(c.upper, unit)}, centre ${withUnit(c.centre, unit)}`;
+      const few = xs.length < 20 ? ' (fewer than 20: the limits are provisional)' : '';
+      if (!signals) return { value: 0, unit: 'signals', n: xs.length, series, limits, says: `${a.label}: in control — ${many(xs.length, 'reading')} within ${within}${few}.` };
+      const parts: string[] = [];
+      for (const i of c.outside.slice(0, 2)) parts.push(`${withUnit(xs[i], unit)} on ${daySaid(rows[i].e.on)} ${xs[i] > c.upper ? 'above' : 'below'} the limit`);
+      if (c.outside.length > 2) parts.push(`${c.outside.length - 2} more outside the limits`);
+      for (const r of c.runs.slice(0, 2)) parts.push(`${r.length} in a row ${r.above ? 'above' : 'below'} the centre from ${daySaid(rows[r.from].e.on)}`);
+      if (c.runs.length > 2) parts.push(`${c.runs.length - 2} more runs`);
+      return {
+        value: signals, unit: 'signals', n: xs.length, series, limits,
+        says: `${a.label}: ${many(signals, 'signal')} — ${parts.join('; ')}. Limits ${within}${few}: find what changed then.`,
+      };
+    },
+  },
+  relation: {
+    id: 'relation', name: 'Relationship', says: 'Whether one number column moves with another — how closely (r, from −1 to 1) and the line through the points; a link, not proof of a cause',
+    needs: { of: 'required', by: 'none', when: 'optional', against: 'required', target: 'none' }, numeric: true, output: 'both', picture: 'scatter',
+    compute: (entries, a, columns) => {
+      const yk = a.of, xk = a.against;
+      const rows = rowsOf(entries, a, columns).filter(r => yk !== undefined && xk !== undefined && typeof r.v[yk] === 'number' && typeof r.v[xk] === 'number');
+      const ys = rows.map(r => r.v[yk as string] as number), xs = rows.map(r => r.v[xk as string] as number);
+      const yc = col(columns, yk), xc = col(columns, xk);
+      const yl = yc?.label ?? yk ?? '', xl = xc?.label ?? xk ?? '';
+      if (rows.length < 3) return { n: rows.length, says: `${a.label}: needs 3 entries with both ${yl} and ${xl} — ${rows.length} so far.` };
+      const fit = lineFit(xs, ys);
+      const series: SeriesPoint[] = xs.map((x, i) => ({ label: fmtNumber(x), x, value: ys[i] }));
+      if (!fit || fit.r === undefined) return { n: rows.length, series, says: `${a.label}: ${fit ? yl : xl} does not vary in these entries — nothing to relate.` };
+      const r = fit.r, word = strength(r), few = rows.length < 10 ? ' (fewer than 10: read it with care)' : '';
+      if (!word) return { value: r, n: rows.length, series, fit: { slope: fit.slope, intercept: fit.intercept }, says: `${a.label}: no clear link between ${yl} and ${xl} — r = ${fmtNumber(r)}, from ${many(rows.length, 'entry', 'entries')}${few}.` };
+      return {
+        value: r, n: rows.length, series, fit: { slope: fit.slope, intercept: fit.intercept },
+        says: `${a.label}: ${word} link — r = ${fmtNumber(r)}; ${yl} ${fit.slope > 0 ? 'rises' : 'falls'} about ${withUnit(Math.abs(fit.slope), yc?.unit)} for every ${xc?.unit ? `1 ${xc.unit}` : 'one'} more ${xl.toLowerCase()}, from ${many(rows.length, 'entry', 'entries')}${few}. A link is not proof of a cause — test it.`,
+      };
+    },
+  },
+  forecast: {
+    id: 'forecast', name: 'Forecast', says: 'The figure a day (a column totalled, or the entries counted) with the straight line through it carried a week on — where it is heading, and the day it reaches a target',
+    needs: { of: 'optional', by: 'none', when: 'optional', against: 'none', target: 'optional' }, numeric: true, output: 'both', picture: 'forecast',
+    compute: (entries, a, columns) => {
+      const series = dayTotals(rowsOf(entries, a, columns), a.of);
+      const unit = unitOf(a, columns) ?? (a.of ? undefined : 'entries');
+      const u = unit ? { unit } : {};
+      const tgt = typeof a.target === 'number' ? { target: a.target } : {};
+      if (series.length < 3) return { n: series.length, ...u, ...tgt, series, says: `${a.label}: needs 3 days logged to see where it is heading — ${many(series.length, 'day')} so far.` };
+      const d0 = dayNo(series[0].label), xs = series.map(p => dayNo(p.label) - d0), ys = series.map(p => p.value);
+      const fit = lineFit(xs, ys);
+      if (!fit) return { n: series.length, ...u, ...tgt, series, says: `${a.label}: needs days apart to see where it is heading.` };
+      const ahead = 7, last = xs[xs.length - 1];
+      const floor = ys.every(y => y >= 0) ? 0 : -Infinity;
+      const at = (x: number) => Math.max(floor, fit.intercept + fit.slope * x);
+      const now = at(last), then = at(last + ahead);
+      const move = Math.abs(fit.slope) < 1e-9 ? 'flat' : `${fit.slope > 0 ? 'rising' : 'falling'} ${withUnit(Math.abs(fit.slope), unit)} a day`;
+      let toward = '';
+      if (typeof a.target === 'number') {
+        const T = a.target;
+        if (Math.abs(fit.slope) < 1e-9) toward = now === T ? ` — at the target of ${withUnit(T, unit)}` : ` — it does not move towards ${withUnit(T, unit)}`;
+        else {
+          const xT = (T - fit.intercept) / fit.slope;
+          toward = xT > last ? ` — it reaches ${withUnit(T, unit)} on ${daySaid(isoOf(d0 + Math.ceil(xT)))} at this rate` : ` — already past ${withUnit(T, unit)} on the line, and moving on`;
+        }
+      }
+      const few = series.length < 7 ? ' (fewer than 7 days: a rough guide)' : '';
+      return {
+        value: then, n: series.length, ...u, ...tgt, series, ahead, fit: { slope: fit.slope, intercept: fit.intercept },
+        says: `${a.label}: ${withUnit(now, unit)} on the latest day's line, ${move} — ${withUnit(then, unit)} in a week${toward}; from ${many(series.length, 'day')} logged${few}.`,
+      };
     },
   },
 };
@@ -319,5 +483,5 @@ export function figuresOf(results: Record<string, AnalysisResult>): Record<strin
  *  from the registry, so a new block is offered the day it is written. */
 export const BLOCK_CATALOGUE = ANALYSIS_BLOCKS.map(id => {
   const b = BLOCKS[id];
-  return { id, name: b.name, says: b.says, of: b.needs.of, by: b.needs.by, when: b.needs.when, numeric: b.numeric, output: b.output };
+  return { id, name: b.name, says: b.says, of: b.needs.of, by: b.needs.by, when: b.needs.when, against: b.needs.against, target: b.needs.target, numeric: b.numeric, output: b.output, picture: b.picture };
 });

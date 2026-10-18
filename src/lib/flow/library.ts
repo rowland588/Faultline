@@ -16,7 +16,7 @@
  * bottleneck's speed (docs/OPEX.md, the six moves), capability at Cpk 1.33,
  * a line balanced against takt. A number the app cannot know — a line's
  * own target, its speed — is left for the person, never invented. */
-import { FLOW_SCHEMA, type FlowDefinition } from './definition';
+import { FLOW_SCHEMA, type FlowDefinition, type FlowStepDef } from './definition';
 import { appStageGate } from './templates';
 
 export interface LibraryEntry {
@@ -347,6 +347,77 @@ export const LIBRARY: readonly LibraryEntry[] = [
           },
         ],
         measures: [{ key: 'rejects_a_day', name: 'Rejects a day', unit: 'packs', better: 'lower', from: [{ step: 'log-before', field: 'rejects_a_day' }, { step: 'log-after', field: 'rejects_a_day' }] }],
+      };
+    },
+  },
+  /* A PROCESS HELD IN CONTROL — statistical process control, a tool no screen
+     of Faultline's was written for, made of blocks written once (the control
+     chart, the spread, the relationship, the histogram): readings in the
+     order taken, read against limits set by their own variation; each
+     signal's cause found and removed; logged again until there is none. No
+     specification limit is invented: the chart needs none, and Cpk is added
+     by giving the reading its at least and at most when adapting it. */
+  {
+    id: 'held-in-control', name: 'A process held in control', kind: 'improvement',
+    purpose: 'Readings logged in the order they are taken and read on a control chart against limits set by their own variation; every signal’s cause found and removed; then logged again until the process holds with no signals.',
+    words: ['control chart', 'spc', 'statistical process control', 'in control', 'out of control', 'variation', 'varies', 'drift', 'drifting', 'stable', 'unstable', 'fill weight', 'weight', 'seal strength', 'temperature', 'reading', 'readings', 'shewhart'],
+    uses: [],
+    build: (): FlowDefinition => {
+      const columns = [
+        { key: 'reading', label: 'Reading', type: 'reading' as const, required: true },
+        { key: 'speed', label: 'Line speed', type: 'number' as const, unit: 'ppm' },
+        { key: 'shift', label: 'Shift', type: 'choice' as const, options: ['Early', 'Late', 'Night'] },
+        { key: 'note', label: 'What was happening', type: 'text' as const },
+      ];
+      const read = (more: FlowStepDef['analyses'] = []): FlowStepDef['analyses'] => [
+        { key: 'signals', label: 'Signals', block: 'control', of: 'reading' },
+        { key: 'average', label: 'Average', block: 'mean', of: 'reading' },
+        { key: 'spread', label: 'Spread', block: 'sd', of: 'reading' },
+        ...(more ?? []),
+      ];
+      return {
+        schema: FLOW_SCHEMA, name: 'A process held in control', kind: 'improvement',
+        purpose: 'Readings logged in the order they are taken and read on a control chart against limits set by their own variation; every signal’s cause found and removed; then logged again until the process holds with no signals.',
+        roles: [{ key: 'op', name: 'Operator', side: 'site' }, { key: 'lead', name: 'Line lead', side: 'site' }, { key: 'quality', name: 'Quality', side: 'site' }],
+        stages: [
+          {
+            key: 'read', name: 'Read it as it runs', purpose: 'Twenty readings or more, in the order taken, with what was happening.',
+            steps: [{
+              key: 'log-before', title: 'Log the readings as they are taken', per: 'line', answer: 'log', role: 'op', minEntries: 20, columns,
+              analyses: read([
+                { key: 'shape', label: 'The shape of the readings', block: 'histogram', of: 'reading' },
+                { key: 'with_speed', label: 'The reading and line speed', block: 'relation', of: 'reading', against: 'speed' },
+              ]),
+              help: 'One entry a reading, in the order it was taken, with the line speed and anything happening at the time. Strike a mistype — never delete it.',
+            }],
+            gate: { conditions: [every] },
+          },
+          {
+            key: 'cause', name: 'The cause of each signal', purpose: 'What changed when the chart signalled, found and removed.',
+            steps: [
+              {
+                key: 'why', title: 'What changed at each signal', per: 'line', answer: 'form', role: 'lead', after: ['log-before'],
+                fields: [
+                  { key: 'signals_seen', label: 'The signals, from the chart', type: 'text', required: true },
+                  { key: 'changed', label: 'What changed then', type: 'text', required: true },
+                  { key: 'cause', label: 'The cause', type: 'text', required: true },
+                ],
+              },
+              { key: 'removed', title: 'The cause removed', per: 'line', answer: 'done', role: 'lead', evidence: { photos: 1 }, after: ['why'] },
+              { key: 'quality', title: 'Quality agrees it', per: 'line', answer: 'signoff', role: 'quality', after: ['removed'] },
+            ],
+            gate: { conditions: [every] },
+          },
+          {
+            key: 'hold', name: 'Prove it holds', purpose: 'Twenty readings again, with no signal.',
+            steps: [{ key: 'log-after', title: 'Log the readings again', per: 'line', answer: 'log', role: 'op', minEntries: 20, columns, after: ['quality'], analyses: read() }],
+            gate: { conditions: [every, { id: 'no-signals', type: 'fieldMeets', policy: 'block', step: 'log-after', field: 'signals', op: '=', value: 0, label: 'No signals on the chart' }] },
+          },
+        ],
+        measures: [
+          { key: 'signals', name: 'Signals', unit: 'signals', better: 'lower', target: 0, from: [{ step: 'log-before', field: 'signals' }, { step: 'log-after', field: 'signals' }] },
+          { key: 'spread', name: 'Spread', better: 'lower', from: [{ step: 'log-before', field: 'spread' }, { step: 'log-after', field: 'spread' }] },
+        ],
       };
     },
   },

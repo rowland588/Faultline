@@ -41,7 +41,7 @@ const DESIGN = {
   roles: [{ name: 'Operator', side: 'site' }, { name: 'Line lead', side: 'site' }],
   stages: [
     { name: 'Log the stops', purpose: 'Every stop as it happens.', steps: [step('Log every stop', { answer: 'log', role: 'Operator', columns: COLS, min_entries: 5,
-      analyses: [an('Stop minutes a day', 'perDay', { of: 'Minutes' }), an('Biggest reason', 'pareto', { by: 'Reason', of: 'Minutes' }), an('Stop minutes by day', 'trend', { of: 'Minutes' }), an('Long stops', 'share', { when_column: 'Minutes', when_op: '>', when_value: '5' }), an('Packs lost', 'sum', { of: 'Packs lost' })] })],
+      analyses: [an('Stop minutes a day', 'perDay', { of: 'Minutes' }), an('Biggest reason', 'pareto', { by: 'Reason', of: 'Minutes' }), an('Stop minutes by day', 'trend', { of: 'Minutes' }), an('Long stops', 'share', { when_column: 'Minutes', when_op: '>', when_value: '5' }), an('Packs lost', 'sum', { of: 'Packs lost' }), an('Stop minutes a week on', 'forecast', { of: 'Minutes', target: 10 })] })],
       gate: [cond({})] },
     { name: 'Fix it', purpose: 'The biggest reason dealt with.', steps: [step('Countermeasure done', { role: 'Line lead' })], gate: [cond({})] },
     { name: 'Prove it', purpose: 'The same log again.', steps: [step('Log every stop again', { answer: 'log', role: 'Operator', columns: COLS, analyses: [an('Stop minutes a day', 'perDay', { of: 'Minutes' })] })],
@@ -79,7 +79,7 @@ await page.getByLabel('What you need, in your words', { exact: true }).fill(NEED
 await page.getByRole('button', { name: 'Start', exact: true }).click();
 await page.locator('.fw-proposed').waitFor({ timeout: 15000 });
 const prop = flat(await page.locator('.fw-proposed').innerText());
-ok(/Log every stop · once · a log · Operator · 3 columns an entry · works out stop minutes a day, biggest reason, stop minutes by day, long stops, packs lost/.test(prop), '1 proposed: a step that is a log — its columns and what it works out, a tool nobody coded', prop.slice(0, 400));
+ok(/Log every stop · once · a log · Operator · 3 columns an entry · works out stop minutes a day, biggest reason, stop minutes by day, long stops, packs lost, stop minutes a week on/.test(prop), '1 proposed: a step that is a log — its columns and what it works out, a tool nobody coded', prop.slice(0, 400));
 ok(/Needs development — what no block does yet/i.test(prop) && /A forecast of the next jam — So the infeed is cleaned before it stops/.test(prop) && /Method: A Weibull fit of the time between jams/.test(prop),
   '1a what no block does is said as a need for development, never faked', prop.slice(prop.search(/needs development/i), prop.search(/needs development/i) + 300));
 ok(/Stop minutes a day/.test(prop) && /It can run/.test(prop), '1b the measure fed by the two logs, and the validator content: it can run');
@@ -112,12 +112,17 @@ const truth = await page.evaluate(async ([stops, ds]) => {
   const A = await import('/src/lib/flow/analysis.ts');
   const cols = [{ key: 'reason', label: 'Reason', type: 'choice', options: ['Jam at infeed', 'Film change', 'Label fault', 'No product'] }, { key: 'minutes', label: 'Minutes', type: 'number', unit: 'min' }, { key: 'packs_lost', label: 'Packs lost', type: 'calc', unit: 'packs', formula: 'minutes * 40' }];
   const entries = stops.map(([reason, m], i) => ({ id: `t${i}`, on: ds[i], at: i, values: { reason, minutes: Number(m) } }));
-  const r = A.analyse([{ key: 'a', label: 'Stop minutes a day', block: 'perDay', of: 'minutes' }, { key: 'b', label: 'Biggest reason', block: 'pareto', by: 'reason', of: 'minutes' }, { key: 'c', label: 'Packs lost', block: 'sum', of: 'packs_lost' }], cols, entries);
-  return { perDay: r.a.says, pareto: r.b.says, lost: r.c.says };
+  const r = A.analyse([{ key: 'a', label: 'Stop minutes a day', block: 'perDay', of: 'minutes' }, { key: 'b', label: 'Biggest reason', block: 'pareto', by: 'reason', of: 'minutes' }, { key: 'c', label: 'Packs lost', block: 'sum', of: 'packs_lost' }, { key: 'd', label: 'Stop minutes a week on', block: 'forecast', of: 'minutes', target: 10 }], cols, entries);
+  return { perDay: r.a.says, pareto: r.b.says, lost: r.c.says, forecast: r.d.says };
 }, [STOPS, days]);
 const results = flat(await sheet().locator('.fw-results').innerText());
 ok(results.includes(truth.perDay) && results.includes(truth.pareto) && results.includes(truth.lost), `3a what the entries add up to, as lib/flow/analysis says: "${truth.perDay}" · "${truth.pareto}" · "${truth.lost}"`, results.slice(0, 400));
 ok(await sheet().locator('svg.fw-chart.is-pareto .fw-bar').count() === 4 && await sheet().locator('svg.fw-chart.is-pareto .fw-cum').count() === 1, '3b the Pareto drawn — a bar a reason, the running share over them');
+/* a block written after the first: the forecast — the line through the days carried a week on, and the day it reaches the target */
+ok(results.includes(truth.forecast) && /falling 2 min a day/.test(truth.forecast) && /it reaches 10 min on 16 Oct at this rate/.test(truth.forecast), `3d the forecast, as lib/flow/analysis says: "${truth.forecast}"`, results.slice(0, 600));
+ok(await sheet().locator('svg.fw-chart.is-forecast .fw-fit.is-ahead').count() === 1 && await sheet().locator('svg.fw-chart.is-forecast .fw-target').count() === 1 && await sheet().locator('svg.fw-chart.is-forecast .fw-bar').count() === 3,
+  '3e the forecast drawn as its block says — a bar a day, the line carried on dashed, the target across');
+if (process.env.SHOTS) await sheet().locator('.fw-result', { has: page.locator('svg.is-forecast') }).screenshot({ path: join(process.env.SHOTS, 'forecast.png') });
 ok(await sheet().locator('.fw-entries-t tbody tr').count() === 6 && /12 min/.test(flat(await sheet().locator('.fw-entries-t').innerText())) && /480 packs/.test(flat(await sheet().locator('.fw-entries-t').innerText())), '3c every entry listed, its worked-out column worked out (12 min → 480 packs)');
 
 /* 4 — corrected where it sits, and struck (never erased), with Undo */
@@ -183,6 +188,7 @@ ok(/The log — Log every stop: 5 entries/.test(pdf) && pdf.includes('Biggest re
 ok(/line: the running share/.test(pdf), '7a the Pareto drawn on paper');
 ok(/Every entry/.test(pdf) && /No product · Minutes 4 min · Packs lost 160 packs.*struck, not counted/.test(pdf), '7b every entry printed — the struck one said struck', pdf.slice(pdf.indexOf('Every entry'), pdf.indexOf('Every entry') + 300));
 ok(/Needs development/.test(pdf) && /A forecast of the next jam/.test(pdf), '7c the need for development on paper');
+ok(/Stop minutes a week on: falling/.test(pdf) && /a week on/.test(pdf.replace(/Stop minutes a week on/g, '')), '7d the forecast on paper — its sentence and its picture');
 
 /* 8 — Faultline's own tool made from blocks, in the library */
 await page.goto(`${BASE}/#/methods`); await page.locator('.fw-card[data-library="rejects-log"]').waitFor({ timeout: 15000 });
@@ -190,6 +196,57 @@ ok(/Rejects, logged and halved/.test(flat(await page.locator('.fw-card[data-libr
 await page.locator('.fw-card[data-library="rejects-log"]').getByRole('button', { name: 'Use it as it is' }).click();
 await page.waitForFunction(() => /#\/methods\/[^/]+$/.test(location.hash), null, { timeout: 15000 }).catch(() => {});
 ok(/works out rejects a day, biggest reason, rejects by day, rejects by shift/.test(flat(await page.locator('.nv-main').innerText())), '8a taken: its log and what it works out, on the method page');
+
+/* 8b — statistical process control, a tool no screen was written for: the library's
+   process held in control, made of the control chart, the spread, the histogram and
+   the relationship — started, read, a signal found, struck and brought back, on paper */
+await page.goto(`${BASE}/#/methods`); await page.locator('.fw-card[data-library="held-in-control"]').waitFor({ timeout: 15000 });
+ok(/A process held in control/.test(flat(await page.locator('.fw-card[data-library="held-in-control"]').innerText())), '8b the library holds statistical process control, made of blocks — A process held in control');
+await page.locator('.fw-card[data-library="held-in-control"]').getByRole('button', { name: 'Use it as it is' }).click();
+await page.waitForFunction(() => /#\/methods\/[^/]+$/.test(location.hash), null, { timeout: 15000 }).catch(() => {});
+ok(/works out signals, average, spread, the shape of the readings, the reading and line speed/i.test(flat(await page.locator('.nv-main').innerText())), '8c taken: its log works out the signals, the spread, the shape and the link with line speed');
+await page.getByRole('button', { name: 'Approve version 1' }).click();
+await page.getByRole('button', { name: 'Start a project on it' }).click();
+await sheet().waitFor();
+await page.getByLabel("The project's name", { exact: true }).fill('Depositor fill weight');
+await sheet().getByRole('button', { name: 'Start it' }).click();
+await page.locator('.fw-row[data-step="log-before"]').waitFor({ timeout: 15000 });
+await page.locator('.fw-row[data-step="log-before"]').first().click();
+await sheet().locator('.fw-log-panel').waitFor();
+const READ = [[10, 60], [12, 61], [11, 61], [13, 62], [10, 61], [11, 60], [12, 62], [30, 72]];
+for (const [i, [w, sp]] of READ.entries()) {
+  const form = sheet().locator('.fw-entry').first();
+  await form.getByLabel('Reading', { exact: true }).fill(String(w));
+  await form.getByLabel('Line speed', { exact: true }).fill(String(sp));
+  await form.getByLabel('The day it happened', { exact: true }).fill(`2026-10-0${i + 1}`);
+  await form.getByRole('button', { name: 'Add the entry' }).click(); await page.waitForTimeout(300);
+}
+await page.waitForTimeout(500);
+const spc = await page.evaluate(async read => {
+  const A = await import('/src/lib/flow/analysis.ts'), L = await import('/src/lib/flow/library.ts');
+  const st = L.libraryEntry('held-in-control').build().stages[0].steps[0];
+  const r = A.analyse(st.analyses, st.columns, read.map(([w, sp], i) => ({ id: `s${i}`, on: `2026-10-0${i + 1}`, at: i, values: { reading: w, speed: sp } })));
+  return { signals: r.signals.says, link: r.with_speed.says };
+}, READ);
+const spcSaid = flat(await sheet().locator('.fw-results').innerText());
+ok(spcSaid.includes(spc.signals) && /^Signals: 1 signal — 30 on 8 Oct above the upper limit/.test(spc.signals), `8d the control chart's signal, as lib/flow/analysis says: "${spc.signals}"`, spcSaid.slice(0, 400));
+ok(await sheet().locator('svg.fw-chart.is-control .fw-dot').count() === 8 && await sheet().locator('svg.fw-chart.is-control .fw-dot.is-signal').count() === 1 && await sheet().locator('svg.fw-chart.is-control .fw-lim').count() === 2,
+  '8e drawn as a control chart — every reading in order, the limits either side, the signal marked');
+ok(spcSaid.includes(spc.link) && await sheet().locator('svg.fw-chart.is-scatter .fw-dot').count() === 8 && await sheet().locator('svg.fw-chart.is-scatter .fw-fit').count() === 1,
+  `8f the reading against line speed — a dot an entry and the line through them: "${spc.link}"`);
+if (process.env.SHOTS) for (const [i, el] of (await sheet().locator('.fw-result.has-pic').all()).entries()) await el.screenshot({ path: join(process.env.SHOTS, `spc-${i}.png`) });
+await sheet().locator('.fw-entries-t tbody tr', { hasText: '30' }).first().getByRole('button', { name: 'Strike' }).click(); await page.waitForTimeout(600);
+ok(/Signals: in control — 7 readings within the limits/.test(flat(await sheet().locator('.fw-results').innerText())) && await sheet().locator('svg.fw-chart.is-control .fw-dot.is-signal').count() === 0,
+  '8g the odd reading struck — the chart in control, nothing marked', flat(await sheet().locator('.fw-results').innerText()).slice(0, 160));
+await page.getByRole('button', { name: 'Undo' }).click().catch(() => {}); await page.waitForTimeout(700);
+ok(/Signals: 1 signal/.test(flat(await sheet().locator('.fw-results').innerText())), '8h and Undo brings the signal back');
+await page.keyboard.press('Escape'); await settle();
+const [dl2] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Method report' }).click()]);
+const f2 = join(dir, 'spc.pdf'); await dl2.saveAs(f2);
+const pdf2 = flat(execFileSync('pdftotext', ['-raw', f2, '-'], { encoding: 'utf8' }));
+if (process.env.SHOW_PDF) console.log(pdf2);
+ok(pdf2.includes('Signals: 1 signal — 30 on 8 Oct above the upper limit') && /UCL/.test(pdf2) && /LCL/.test(pdf2) && /Line speed, across/.test(pdf2)
+  && !/of \d+ Faultline/.test(pdf2.slice(pdf2.indexOf('The reading and line speed:'), pdf2.indexOf('Line speed, across'))), '8i on paper: the signal said, the control chart with its limits, the relationship with its axes on the page with its sentence', pdf2.slice(0, 500));
 
 /* 9 — the phone */
 await page.setViewportSize({ width: 390, height: 844 });

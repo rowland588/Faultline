@@ -228,7 +228,18 @@ function AnalysesEditor({ step, onChange, ro }: { step: FlowStepDef; onChange: (
             <div className="fw-field-r">
               <Words value={a.label} label={`Analysis ${i + 1}'s name`} onSave={v => { if (v) setA(i, { label: v }); }} disabled={ro} />
               <select className="text-input fw-in" value={a.block} disabled={ro} aria-label={`Analysis ${i + 1}: worked out as`}
-                onChange={e => setA(i, { block: e.target.value as FlowAnalysis['block'] })}>
+                onChange={e => {
+                  /* what the new block does not read is let go, so the validator is never left a stray column */
+                  const nb = BLOCKS[e.target.value as FlowAnalysis['block']];
+                  setA(i, {
+                    block: nb.id,
+                    ...(nb.needs.of === 'none' || (nb.numeric && !isNumberColumn(cols.find(c => c.key === a.of))) ? { of: undefined } : {}),
+                    ...(nb.needs.by === 'none' ? { by: undefined } : {}),
+                    ...(nb.needs.when === 'none' ? { when: undefined } : {}),
+                    ...(nb.needs.against === 'none' ? { against: undefined } : {}),
+                    ...(nb.needs.target === 'none' ? { target: undefined } : {}),
+                  });
+                }}>
                 {ANALYSIS_BLOCKS.map(id => <option key={id} value={id}>{BLOCKS[id].name}</option>)}
               </select>
               {!ro && <button type="button" className="btn btn-ghost btn-sm" aria-label={`Remove analysis ${a.label}`} onClick={() => onChange(list.filter((_, j) => j !== i))}>Remove</button>}
@@ -246,6 +257,15 @@ function AnalysesEditor({ step, onChange, ro }: { step: FlowStepDef; onChange: (
                   <option value="">grouped by which column?</option>
                   {cols.filter(isGroupColumn).map(c => <option key={c.key} value={c.key}>by {c.label}</option>)}
                 </select>
+              )}
+              {b.needs.against !== 'none' && (
+                <select className="text-input fw-in" value={a.against ?? ''} disabled={ro} aria-label={`Analysis ${i + 1}: against`} onChange={e => setA(i, { against: e.target.value || undefined })}>
+                  <option value="">against which column?</option>
+                  {cols.filter(c => isNumberColumn(c) && c.key !== a.of).map(c => <option key={c.key} value={c.key}>against {c.label}</option>)}
+                </select>
+              )}
+              {b.needs.target !== 'none' && (
+                <Num value={a.target} label={`Analysis ${i + 1}: target`} placeholder="the target it is heading for" disabled={ro} onSave={v => setA(i, { target: v })} />
               )}
             </div>
             {b.needs.when !== 'none' && (

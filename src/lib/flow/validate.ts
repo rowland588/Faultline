@@ -418,9 +418,21 @@ function readAnalyses(raw: unknown, columns: FlowField[], fields: FlowField[], t
       else when = { column, op: op as FlowWhen['op'], value };
     }
     if (block.needs.when === 'required' && !when && ok) { err(`${ap}.when`, `${aw} is a share — say which entries it counts.`); ok = false; }
+    const against = optStr(a.against, 40);
+    if (block.needs.against === 'required' && !against) { err(`${ap}.against`, `${aw} reads one column against another — say which (“against”).`); ok = false; }
+    if (against) {
+      const c = colOf(against);
+      if (block.needs.against === 'none') { err(`${ap}.against`, `${aw} reads no second column — only a relationship does.`); ok = false; }
+      else if (!c) { err(`${ap}.against`, `${aw} reads against "${against}", which is not a column of the log.`); ok = false; }
+      else if (!isNumberColumn(c)) { err(`${ap}.against`, `${aw} reads against “${c.label}”, which is not a number.`); ok = false; }
+      else if (against === of) { err(`${ap}.against`, `${aw} reads “${c.label}” against itself — pick a second column.`); ok = false; }
+    }
+    const target = a.target === undefined || a.target === null || a.target === '' ? undefined : num(a.target);
+    if (a.target !== undefined && a.target !== null && a.target !== '' && target === undefined) { err(`${ap}.target`, `${aw} has a target that is not a number.`); ok = false; }
+    if (target !== undefined && block.needs.target === 'none') { err(`${ap}.target`, `${aw} has a target, but only a forecast reads one — judge the figure in a gate or a measure.`); ok = false; }
     if (block.id === 'cpk' && of && colOf(of) && colOf(of)?.min === undefined && colOf(of)?.max === undefined) { err(`${ap}.of`, `${aw} judges “${colOf(of)?.label}” against its limits, but the column has none — give it an at least or an at most.`); ok = false; }
     if (!ok) return;
-    out.push({ key, label, block: block.id, ...(of ? { of } : {}), ...(by ? { by } : {}), ...(when ? { when } : {}), ...maybe('unit', optStr(a.unit, 40)) });
+    out.push({ key, label, block: block.id, ...(of ? { of } : {}), ...(by ? { by } : {}), ...(when ? { when } : {}), ...(against ? { against } : {}), ...(target !== undefined ? { target } : {}), ...maybe('unit', optStr(a.unit, 40)) });
   });
   return out;
 }

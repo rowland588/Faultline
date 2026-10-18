@@ -64,6 +64,7 @@ export const PROPOSAL_SCHEMA = obj({
             items: obj({
               label: S, block: { type: 'string', enum: [...ANALYSIS_BLOCKS] }, of: S, by: S,
               when_column: S, when_op: { type: 'string', enum: ['', ...WHEN_OPS] }, when_value: S, unit: S,
+              against: S, target: NUMQ,
             }),
           },
           min_entries: INTQ,
@@ -287,7 +288,7 @@ function proposedAnalyses(raw: unknown, columns: FlowField[], taken: readonly st
     const block = blockOf(str(a.block, 20));
     if (!block) continue;
     const label = str(a.label) || block.name;
-    const of = colOf(a.of), by = colOf(a.by), wc = colOf(a.when_column);
+    const of = colOf(a.of), by = colOf(a.by), wc = colOf(a.when_column), against = colOf(a.against);
     const op = (WHEN_OPS as readonly string[]).includes(str(a.when_op, 4)) ? str(a.when_op, 4) as WhenOp : undefined;
     const raw2 = str(a.when_value, 80);
     const value = wc && raw2 ? (isNumberColumn(wc) && Number.isFinite(Number(raw2)) ? Number(raw2) : wc.type === 'yesno' ? /^(y|yes|true)$/i.test(raw2) : raw2) : undefined;
@@ -296,6 +297,8 @@ function proposedAnalyses(raw: unknown, columns: FlowField[], taken: readonly st
       key: fieldKeyOf(label, [...taken, ...out.map(x => x.key)]), label, block: block.id,
       ...(of ? { of: of.key } : {}), ...(by ? { by: by.key } : {}),
       ...(wc && op && value !== undefined ? { when: { column: wc.key, op, value } } : {}),
+      ...(against ? { against: against.key } : {}),
+      ...(typeof a.target === 'number' && Number.isFinite(a.target) ? { target: a.target } : {}),
       ...(unit ? { unit } : {}),
     });
   }
@@ -321,7 +324,7 @@ export function toProposal(def: FlowDefinition): Record<string, unknown> {
         columns: (s.columns ?? []).map(fieldSaid),
         analyses: (s.analyses ?? []).map(a => {
           const lab = (k?: string) => (k ? s.columns?.find(c => c.key === k)?.label ?? k : '');
-          return { label: a.label, block: a.block, of: lab(a.of), by: lab(a.by), when_column: lab(a.when?.column), when_op: a.when?.op ?? '', when_value: a.when ? String(a.when.value) : '', unit: a.unit ?? '' };
+          return { label: a.label, block: a.block, of: lab(a.of), by: lab(a.by), when_column: lab(a.when?.column), when_op: a.when?.op ?? '', when_value: a.when ? String(a.when.value) : '', unit: a.unit ?? '', against: lab(a.against), target: a.target ?? null };
         }),
         min_entries: s.minEntries ?? null,
         help: s.help ?? '',

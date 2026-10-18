@@ -120,7 +120,8 @@ beside the old routes, the gate green at each step:
 | 3 One way to start | New job leads with the words (to the studio with the line), then the established three (stage gate, 6M, lever tree — `lib/flow/established`), then the library; the three in the library page, the front door and the studio's offers; the line carried to the project's start | `front-door.mjs` 9–9o, `established.test.ts`, control-room, factory, methods-design | f685057 — gate6 |
 | 4 Home | `#/` is the front door, the control room at `#/room`; one rail off a project (Home · Projects · Methods, then the control room, Your factory, the jobs, the tools); the phone bar Home · Problems · Lines · More; the build stamp on both | `front-door.mjs` 1c–1f, the route and rail tests, control-room, methods, lines, smoke, inventory | d6a1202 + 4839a1b — gate6 |
 
-| 5 Beyond the existing tools | a step can be a log of entries; analyses from a registry of tested blocks (count … Pareto, trend, histogram, Cpk) feed gates and measures; screen, editor, paper and the assistant's brief read the same; needs for development said, never faked; a library method made only of blocks | `analysis.test.ts` (14), `designed-tool.mjs`, the library test, smoke and inventory (a method made of logs) | 5738b42 + this slice — next gate |
+| 5 Beyond the existing tools | a step can be a log of entries; analyses from a registry of tested blocks (count … Pareto, trend, histogram, Cpk) feed gates and measures; screen, editor, paper and the assistant's brief read the same; needs for development said, never faked; a library method made only of blocks | `analysis.test.ts` (14), `designed-tool.mjs`, the library test, smoke and inventory (a method made of logs) | 5738b42 + e9bcbf2 — next gate |
+| 6 Blocks written after the first | a control chart (I-MR, rules 1 and the 8-run), a relationship (r and its line), a forecast (a week on, the day it reaches a target) — each its arithmetic and tests, and in the editor, validator, assistant's brief, screen and paper at once; a block declares its picture and both screen and paper draw by it; *A process held in control* in the library | `analysis-blocks.test.ts` (14, figures worked by hand; the limits held to the capability study's spread), `designed-tool.mjs` 3d–3e, 7d, 8b–8i, the library test | this slice — next gate |
 
 ### Against the ambition (18 October, asked plainly)
 
@@ -133,15 +134,18 @@ the platform stands, honestly:
   conversation; approving, versioning, adapting, copying; running it — steps,
   evidence, sign-offs, gates, measured before → after; the method report.
   Logs with analyses make tools nobody coded: a downtime log with its
-  Pareto, a rejects log by reason and shift, a capability log with Cpk.
+  Pareto, a rejects log by reason and shift, a capability log with Cpk,
+  statistical process control (a control chart with its signals), what
+  drives a figure (a relationship), where a figure is heading (a forecast).
 - **Configurable without code:** any workflow or project structure from the
   blocks; any log with any columns and any of the analysis blocks over them;
   gates and measures on those figures.
 - **Needs development (and the platform says so):** arithmetic no block
-  does — a forecast, a reliability fit, a regression, a control chart, an
-  optimisation. Each is one new block in `lib/flow/analysis` with its tests;
-  it is then offered to the designer and the assistant with nothing else
-  rebuilt. Until then the assistant writes it as a need on the method.
+  does — a reliability fit, a regression on several columns, a non-linear
+  forecast, an optimisation. Each is one new block in `lib/flow/analysis`
+  with its tests; it is then offered to the designer and the assistant with
+  nothing else rebuilt — shown on 18 October by the control chart, the
+  relationship and the forecast, written that way in one slice. Until then the assistant writes it as a need on the method.
   Specialist screens beyond a log (a drawn layout, a timed video) stay hand-
   built tools, used as steps.
 - **Not built yet:** asking questions before proposing (today they come

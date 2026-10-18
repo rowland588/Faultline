@@ -37,6 +37,8 @@ describe('Faultline’s library', () => {
     expect(ids('I have filmed the line and want to see who is waiting')[0]).toBe('line-rebalance');
     /* a tool made from blocks — a log worked out as a Pareto, a trend and a figure a day */
     expect(ids('We need to track every reject on the tray sealer and find the biggest reason')[0]).toBe('rejects-log');
+    /* statistical process control, made of the control chart and the spread */
+    expect(ids('The fill weight on the depositor keeps drifting and we want it held in control')[0]).toBe('held-in-control');
     expect(ids('zzz qqq')).toEqual([]);
   });
 });
