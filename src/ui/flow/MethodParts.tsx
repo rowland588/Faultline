@@ -9,6 +9,7 @@ import {
   type FlowCondition, type FlowDefinition, type FlowField, type FlowMeasure, type FlowStage, type FlowStepDef,
 } from '../../lib/flow/definition';
 import { COMPONENTS, componentOf } from '../../lib/flow/components';
+import { ANALYSIS_BLOCKS, BLOCKS, WHEN_OPS, isGroupColumn, isNumberColumn, type FlowAnalysis, type WhenOp } from '../../lib/flow/analysis';
 import { Sheet } from '../Sheet';
 
 /** What each answer asks of the person on the floor. */
@@ -70,6 +71,8 @@ export function stepSaid(def: FlowDefinition, s: FlowStepDef): string {
     s.evidence?.photos ? `${s.evidence.photos} photo${s.evidence.photos === 1 ? '' : 's'}` : '',
     s.evidence?.files ? `${s.evidence.files} file${s.evidence.files === 1 ? '' : 's'}` : '',
     s.fields?.length ? `${s.fields.length} box${s.fields.length === 1 ? '' : 'es'}` : '',
+    s.answer === 'log' && s.columns?.length ? `${s.columns.length} column${s.columns.length === 1 ? '' : 's'} an entry` : '',
+    s.answer === 'log' && s.analyses?.length ? `works out ${s.analyses.map(a => a.label.toLowerCase()).join(', ')}` : '',
     s.dueDays !== undefined ? `due day ${s.dueDays}` : '',
     s.after?.length ? `after ${s.after.map(a => `“${def.stages.flatMap(x => x.steps).find(x => x.key === a)?.title ?? a}”`).join(', ')}` : '',
   ];
@@ -130,6 +133,150 @@ export function Num({ value, onSave, label, placeholder, disabled }: {
 /** EDIT A STEP — every part of it, in the order a person thinks of them:
  *  what it is, where it is done, how it is answered, who does it, what it
  *  must show, when, and what comes first. */
+/** WHAT NO BLOCK DOES YET — a method's needs for development, said as asked
+ *  (FlowDefinition.needs): what, why, from what, by what method, checked how.
+ *  Never run; the method runs on what exists until a block is written. */
+export function NeedsList({ def }: { def: FlowDefinition }) {
+  const needs = def.needs ?? [];
+  if (!needs.length) return null;
+  return (
+    <div className="fw-needs" role="note" aria-label="Needs development">
+      <span className="field-label">Needs development — what no block does yet</span>
+      <p className="sub">The method runs on what exists; these are work for development, and nothing here is run until a block is written and tested for it.</p>
+      <ul className="fw-list">
+        {needs.map((n, i) => (
+          <li key={i} data-need={i}><b>{n.what}</b> <span className="sub">— {n.why}</span>
+            {(n.inputs || n.method || n.check) && <span className="sub"><br />{[n.inputs ? `From: ${n.inputs}` : '', n.method ? `Method: ${n.method}` : '', n.check ? `Checked by: ${n.check}` : ''].filter(Boolean).join(' · ')}</span>}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** A step's boxes, or a log's columns — named, typed, limited, worked out. */
+function BoxesEditor({ boxes, onChange, ro, one, newType = 'text' }: { boxes: FlowField[]; onChange: (next: FlowField[]) => void; ro: boolean; one: 'box' | 'column'; newType?: FlowField['type'] }) {
+  const Name = one === 'box' ? 'Box' : 'Column';
+  const setBox = (i: number, patch: Partial<FlowField>) => onChange(boxes.map((f, j) => {
+    if (j !== i) return f;
+    const g: FlowField = { ...f, ...patch };
+    for (const k of Object.keys(patch) as (keyof FlowField)[]) if (patch[k] === undefined) delete g[k];
+    return g;
+  }));
+  return (
+    <>
+      {boxes.map((f, i) => (
+        <div key={f.key} className="fw-field" data-field={f.key}>
+          <div className="fw-field-r">
+            <Words value={f.label} label={`${Name} ${i + 1}'s name`} onSave={v => { if (v) setBox(i, { label: v }); }} disabled={ro} />
+            <select className="text-input fw-in" value={f.type} disabled={ro} aria-label={`${Name} ${i + 1}'s kind`}
+              onChange={e => setBox(i, { type: e.target.value as FlowField['type'] })}>
+              {FIELD_TYPES.map(t => <option key={t} value={t}>{FIELD_WORD[t]}</option>)}
+            </select>
+            {!ro && <button type="button" className="btn btn-ghost btn-sm" aria-label={`Remove ${one} ${f.label}`} onClick={() => onChange(boxes.filter((_, j) => j !== i))}>Remove</button>}
+          </div>
+          {(f.type === 'number' || f.type === 'reading' || f.type === 'calc') && (
+            <div className="fw-field-r">
+              <Words value={f.unit ?? ''} label={`${f.label}'s unit`} placeholder="unit — packs/min, mm" onSave={v => setBox(i, { unit: v || undefined })} disabled={ro} />
+              {f.type !== 'calc' && <Num value={f.min} label={`${f.label}: at least`} placeholder="at least" onSave={v => setBox(i, { min: v })} disabled={ro} />}
+              {f.type !== 'calc' && <Num value={f.max} label={`${f.label}: at most`} placeholder="at most" onSave={v => setBox(i, { max: v })} disabled={ro} />}
+            </div>
+          )}
+          {f.type === 'calc' && (
+            <div className="fw-field-r">
+              <Words value={f.formula ?? ''} label={`${f.label}'s sum`} placeholder={`e.g. ${boxes.filter(x => x.type === 'number' || x.type === 'reading').map(x => x.key).slice(0, 2).join(' / ') || 'packs / minutes'}`}
+                onSave={v => setBox(i, { formula: v || undefined })} disabled={ro} />
+              <span className="sub">Worked out by the app from the {one === 'box' ? 'boxes' : 'same entry’s columns'}, by their keys: {boxes.filter(x => x.key !== f.key && x.type !== 'text').map(x => x.key).join(', ') || 'none yet'}.</span>
+            </div>
+          )}
+          {f.type === 'choice' && (
+            <div className="fw-field-r">
+              <Words value={(f.options ?? []).join(', ')} label={`${f.label}'s options`} placeholder="options, separated by commas"
+                onSave={v => setBox(i, { options: v ? v.split(',').map(x => x.trim()).filter(Boolean) : undefined })} disabled={ro} />
+            </div>
+          )}
+          {f.type !== 'calc' && (
+            <label className="fw-check"><input type="checkbox" disabled={ro} checked={!!f.required} onChange={e => setBox(i, { required: e.target.checked || undefined })} />
+              <span>Must be filled{one === 'column' ? ' in every entry' : ' before it is done'}</span></label>
+          )}
+        </div>
+      ))}
+      {!ro && <button type="button" className="btn btn-sm" onClick={() => onChange([...boxes, { key: fieldKeyOf(`${one} ${boxes.length + 1}`, boxes.map(f => f.key)), label: `${Name} ${boxes.length + 1}`, type: newType }])}>Add a {one}</button>}
+    </>
+  );
+}
+
+/** What a log's entries add up to — each a block (lib/flow/analysis) on its columns. */
+function AnalysesEditor({ step, onChange, ro }: { step: FlowStepDef; onChange: (next: FlowAnalysis[]) => void; ro: boolean }) {
+  const cols = step.columns ?? [];
+  const list = step.analyses ?? [];
+  const setA = (i: number, patch: Partial<FlowAnalysis>) => onChange(list.map((a, j) => {
+    if (j !== i) return a;
+    const b: FlowAnalysis = { ...a, ...patch };
+    for (const k of Object.keys(patch) as (keyof FlowAnalysis)[]) if (patch[k] === undefined) delete b[k];
+    return b;
+  }));
+  const taken = () => [...cols, ...(step.fields ?? [])].map(c => c.key).concat(list.map(a => a.key));
+  return (
+    <div className="fw-f fw-analyses"><span className="field-label">What the entries add up to — each worked out by the app</span>
+      {list.length === 0 && <p className="sub">Nothing worked out yet — add a total, a Pareto, a trend.</p>}
+      {list.map((a, i) => {
+        const b = BLOCKS[a.block];
+        const ofCols = cols.filter(c => (b.numeric ? isNumberColumn(c) : true));
+        return (
+          <div key={a.key} className="fw-field" data-analysis={a.key}>
+            <div className="fw-field-r">
+              <Words value={a.label} label={`Analysis ${i + 1}'s name`} onSave={v => { if (v) setA(i, { label: v }); }} disabled={ro} />
+              <select className="text-input fw-in" value={a.block} disabled={ro} aria-label={`Analysis ${i + 1}: worked out as`}
+                onChange={e => setA(i, { block: e.target.value as FlowAnalysis['block'] })}>
+                {ANALYSIS_BLOCKS.map(id => <option key={id} value={id}>{BLOCKS[id].name}</option>)}
+              </select>
+              {!ro && <button type="button" className="btn btn-ghost btn-sm" aria-label={`Remove analysis ${a.label}`} onClick={() => onChange(list.filter((_, j) => j !== i))}>Remove</button>}
+            </div>
+            <span className="sub">{b.says}.</span>
+            <div className="fw-field-r">
+              {b.needs.of !== 'none' && (
+                <select className="text-input fw-in" value={a.of ?? ''} disabled={ro} aria-label={`Analysis ${i + 1}: of`} onChange={e => setA(i, { of: e.target.value || undefined })}>
+                  <option value="">{b.needs.of === 'required' ? 'of which column?' : 'count the entries'}</option>
+                  {ofCols.map(c => <option key={c.key} value={c.key}>of {c.label}</option>)}
+                </select>
+              )}
+              {b.needs.by !== 'none' && (
+                <select className="text-input fw-in" value={a.by ?? ''} disabled={ro} aria-label={`Analysis ${i + 1}: by`} onChange={e => setA(i, { by: e.target.value || undefined })}>
+                  <option value="">grouped by which column?</option>
+                  {cols.filter(isGroupColumn).map(c => <option key={c.key} value={c.key}>by {c.label}</option>)}
+                </select>
+              )}
+            </div>
+            {b.needs.when !== 'none' && (
+              <div className="fw-field-r">
+                <select className="text-input fw-in" value={a.when?.column ?? ''} disabled={ro} aria-label={`Analysis ${i + 1}: only entries where`}
+                  onChange={e => setA(i, { when: e.target.value ? { column: e.target.value, op: a.when?.op ?? '=', value: a.when?.value ?? '' } : undefined })}>
+                  <option value="">{b.needs.when === 'required' ? 'counting entries where…' : 'every entry'}</option>
+                  {cols.map(c => <option key={c.key} value={c.key}>where {c.label}</option>)}
+                </select>
+                {a.when && <>
+                  <select className="text-input fw-in" value={a.when.op} disabled={ro} aria-label={`Analysis ${i + 1}: compared`}
+                    onChange={e => setA(i, { when: { ...(a.when as NonNullable<FlowAnalysis['when']>), op: e.target.value as WhenOp } })}>
+                    {WHEN_OPS.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                  <Words value={String(a.when.value)} label={`Analysis ${i + 1}: value`} placeholder="value" disabled={ro}
+                    onSave={v => {
+                      const c = cols.find(x => x.key === a.when?.column);
+                      const value = c && isNumberColumn(c) && v.trim() !== '' && Number.isFinite(Number(v)) ? Number(v) : v;
+                      setA(i, { when: { ...(a.when as NonNullable<FlowAnalysis['when']>), value } });
+                    }} />
+                </>}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {!ro && <button type="button" className="btn btn-sm" onClick={() => onChange([...list, { key: fieldKeyOf(`analysis ${list.length + 1}`, taken()), label: 'Entries', block: 'count' }])}>Add an analysis</button>}
+    </div>
+  );
+}
+
 export function StepEditor({ def, stageIndex, step, open, onClose, onChange, onRemove, onMove, readOnly }: {
   def: FlowDefinition; stageIndex: number; step: FlowStepDef; open: boolean; onClose: () => void;
   onChange: (next: FlowStepDef) => void; onRemove: () => void; onMove: (by: -1 | 1) => void; readOnly: boolean;
@@ -145,19 +292,6 @@ export function StepEditor({ def, stageIndex, step, open, onClose, onChange, onR
     return list.map(x => ({ key: x.key, title: x.title, stage: s.name }));
   });
   const fields = step.fields ?? [];
-  const setField = (i: number, patch: Partial<FlowField>) => {
-    const next = fields.map((f, j) => {
-      if (j !== i) return f;
-      const g: FlowField = { ...f, ...patch };
-      for (const k of Object.keys(patch) as (keyof FlowField)[]) if (patch[k] === undefined) delete g[k];
-      return g;
-    });
-    set({ fields: next });
-  };
-  const addField = () => {
-    const key = fieldKeyOf(`box ${fields.length + 1}`, fields.map(f => f.key));
-    set({ fields: [...fields, { key, label: `Box ${fields.length + 1}`, type: step.answer === 'measure' ? 'reading' : 'text' }] });
-  };
   const ro = readOnly;
   return (
     <Sheet open={open} onClose={onClose} title={ro ? step.title : 'Edit the step'}>
@@ -178,10 +312,13 @@ export function StepEditor({ def, stageIndex, step, open, onClose, onChange, onR
           <select className="text-input fw-in" value={step.answer} disabled={ro} aria-label="How it is answered"
             onChange={e => {
               const answer = e.target.value as FlowStepDef['answer'];
-              /* a measurement needs a number to measure: give it one to start */
+              /* a measurement needs a number to measure: give it one to start;
+                 a log, a column and a count, to start from */
               set(answer === 'measure' && !fields.some(f => f.type === 'reading' || f.type === 'number')
                 ? { answer, fields: [...fields, { key: fieldKeyOf('reading', fields.map(f => f.key)), label: 'Reading', type: 'reading', required: true }] }
-                : { answer });
+                : answer === 'log' && !(step.columns ?? []).length
+                  ? { answer, columns: [{ key: 'value', label: 'Value', type: 'number' }], analyses: [{ key: 'entries', label: 'Entries', block: 'count' }] }
+                  : { answer });
             }}>
             {ANSWERS.map(a => <option key={a} value={a}>{ANSWER_WORD[a]}</option>)}
           </select>
@@ -244,45 +381,18 @@ export function StepEditor({ def, stageIndex, step, open, onClose, onChange, onR
           </div>
         )}
 
-        <div className="fw-f"><span className="field-label">Boxes to fill in{step.answer === 'measure' ? ' — the readings and their limits' : ''}</span>
+        {step.answer === 'log' && <>
+          <div className="fw-f fw-log-cols"><span className="field-label">What each entry asks — its columns</span>
+            <BoxesEditor boxes={step.columns ?? []} one="column" ro={ro} onChange={columns => set({ columns: columns.length ? columns : undefined })} />
+          </div>
+          <AnalysesEditor step={step} ro={ro} onChange={analyses => set({ analyses: analyses.length ? analyses : undefined })} />
+          <label className="fw-f"><span className="field-label">Entries it needs before it can be done</span>
+            <Num value={step.minEntries} label="Entries it needs" placeholder="1" disabled={ro} onSave={v => set({ minEntries: v && v > 1 ? Math.round(v) : undefined })} /></label>
+        </>}
+
+        <div className="fw-f"><span className="field-label">Boxes to fill in{step.answer === 'measure' ? ' — the readings and their limits' : step.answer === 'log' ? ' — once for the whole log, beside its entries' : ''}</span>
           {fields.length === 0 && <p className="sub">None — {step.answer === 'measure' ? 'a measurement needs at least one number.' : 'the step is answered without boxes.'}</p>}
-          {fields.map((f, i) => (
-            <div key={f.key} className="fw-field" data-field={f.key}>
-              <div className="fw-field-r">
-                <Words value={f.label} label={`Box ${i + 1}'s name`} onSave={v => { if (v) setField(i, { label: v }); }} disabled={ro} />
-                <select className="text-input fw-in" value={f.type} disabled={ro} aria-label={`Box ${i + 1}'s kind`}
-                  onChange={e => setField(i, { type: e.target.value as FlowField['type'] })}>
-                  {FIELD_TYPES.map(t => <option key={t} value={t}>{FIELD_WORD[t]}</option>)}
-                </select>
-                {!ro && <button type="button" className="btn btn-ghost btn-sm" aria-label={`Remove box ${f.label}`} onClick={() => set({ fields: fields.filter((_, j) => j !== i) })}>Remove</button>}
-              </div>
-              {(f.type === 'number' || f.type === 'reading' || f.type === 'calc') && (
-                <div className="fw-field-r">
-                  <Words value={f.unit ?? ''} label={`${f.label}'s unit`} placeholder="unit — packs/min, mm" onSave={v => setField(i, { unit: v || undefined })} disabled={ro} />
-                  {f.type !== 'calc' && <Num value={f.min} label={`${f.label}: at least`} placeholder="at least" onSave={v => setField(i, { min: v })} disabled={ro} />}
-                  {f.type !== 'calc' && <Num value={f.max} label={`${f.label}: at most`} placeholder="at most" onSave={v => setField(i, { max: v })} disabled={ro} />}
-                </div>
-              )}
-              {f.type === 'calc' && (
-                <div className="fw-field-r">
-                  <Words value={f.formula ?? ''} label={`${f.label}'s sum`} placeholder={`e.g. ${fields.filter(x => x.type === 'number' || x.type === 'reading').map(x => x.key).slice(0, 2).join(' / ') || 'packs / minutes'}`}
-                    onSave={v => setField(i, { formula: v || undefined })} disabled={ro} />
-                  <span className="sub">Worked out by the app from the boxes, by their keys: {fields.filter(x => x.key !== f.key && x.type !== 'text').map(x => x.key).join(', ') || 'none yet'}.</span>
-                </div>
-              )}
-              {f.type === 'choice' && (
-                <div className="fw-field-r">
-                  <Words value={(f.options ?? []).join(', ')} label={`${f.label}'s options`} placeholder="options, separated by commas"
-                    onSave={v => setField(i, { options: v ? v.split(',').map(x => x.trim()).filter(Boolean) : undefined })} disabled={ro} />
-                </div>
-              )}
-              {f.type !== 'calc' && (
-                <label className="fw-check"><input type="checkbox" disabled={ro} checked={!!f.required} onChange={e => setField(i, { required: e.target.checked || undefined })} />
-                  <span>Must be filled before it is done</span></label>
-              )}
-            </div>
-          ))}
-          {!ro && <button type="button" className="btn btn-sm" onClick={addField}>Add a box</button>}
+          <BoxesEditor boxes={fields} one="box" ro={ro} newType={step.answer === 'measure' ? 'reading' : 'text'} onChange={next => set({ fields: next.length ? next : undefined })} />
         </div>
 
         <label className="fw-f"><span className="field-label">How to do it — a note for whoever does it</span>

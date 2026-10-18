@@ -7,7 +7,7 @@
 import { KIND_WORD, allSteps, type FlowDefinition } from '../../lib/flow/definition';
 import { componentOf } from '../../lib/flow/components';
 import type { Issue } from '../../lib/flow/validate';
-import { conditionSaid, measureSaid, stepSaid } from './MethodParts';
+import { NeedsList, conditionSaid, measureSaid, stepSaid } from './MethodParts';
 
 export function MethodPreview({ def, errors, warnings, touched }: { def: FlowDefinition; errors: Issue[]; warnings: Issue[]; touched?: ReadonlySet<string> }) {
   const steps = allSteps(def);
@@ -32,6 +32,7 @@ export function MethodPreview({ def, errors, warnings, touched }: { def: FlowDef
           <ul className="fw-list">{(def.measures ?? []).map(m => <li key={m.key} data-measure={m.key}><b>{m.name}</b> <span className="sub">· {measureSaid(def, m)}</span></li>)}</ul>
         </div>
       )}
+      <NeedsList def={def} />
       <ol className="fw-prop">
         {def.stages.map((st, i) => (
           <li key={st.key} className={'fw-prop-st' + (touched?.has(st.key) ? ' is-touched' : '')} data-stage={st.key}>

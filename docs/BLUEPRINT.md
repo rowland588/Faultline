@@ -143,8 +143,26 @@ door's five places and the control room's rail merged, nothing taken off;
 the phone's bar is Home · Problems · Lines · More; the mark goes home, the
 top bar's picker still leads with the control room; the build stamp is on
 both. Every acceptance that opened the control room at `#/` opens `#/room`
-(front-door.mjs 1c–1f). Next: a tool's panel inside the step itself rather
-than its page.
+(front-door.mjs 1c–1f). Then BEYOND THE EXISTING TOOLS (Rowland, 18 October:
+"the existing application is a starting point, not the boundary of what
+Faultline can become"): a step can be a LOG — many entries, each the step's
+columns — and its ANALYSES are blocks from a registry of pure, tested
+functions (`lib/flow/analysis`: count, sum, mean, median, min, max, spread,
+share, a figure a day, Pareto, trend, histogram, Cpk). Every block's number
+is a box of the step, so gates and measures read it; screen
+(`ui/flow/LogParts`: the entry form, the results and their pictures, every
+entry corrected or struck with Undo), method editor (columns and analyses),
+paper (the analyses, their pictures, every entry) and the assistant's brief
+(generated from the registry) all read the same. A new capability is one
+block with its tests, and it reaches every designer, proposal and report
+with nothing else rebuilt; what no block does is said as a NEED for
+development (`FlowDefinition.needs`: what, why, inputs, method, check) on
+the method's page and paper, never imitated. No database change: entries
+ride in the step record's `values` column, merged entry by entry. Faultline's
+library gains a tool made only from blocks (*Rejects, logged and halved*);
+`acceptance/designed-tool.mjs` drives one end to end. Next: a tool's panel
+inside the step itself rather than its page; more blocks as the floor asks
+(regression, control charts, a Weibull fit — each a block, each tested).
 
 **Control room** (`#/room`; `#/` until 18 October, when home became the
 front door). Your factory first: a card per line saying its health

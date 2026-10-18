@@ -280,6 +280,76 @@ export const LIBRARY: readonly LibraryEntry[] = [
       ],
     }),
   },
+  /* A TOOL MADE FROM BLOCKS (lib/flow/analysis) — no screen of its own was
+     written for it: a log of every reject, worked out as a Pareto, a trend
+     and a figure a day, then the same log again to prove the countermeasure */
+  {
+    id: 'rejects-log', name: 'Rejects, logged and halved', kind: 'improvement',
+    purpose: 'Every reject logged with its reason for a week, the biggest reason found by its Pareto, a countermeasure made, and the same log kept again to prove it on the rejects a day.',
+    words: ['reject', 'rejects', 'scrap', 'waste', 'giveaway', 'defect', 'defects', 'quality', 'log', 'tally', 'record every', 'track', 'pareto', 'seal', 'label'],
+    uses: [],
+    build: (): FlowDefinition => {
+      const columns = [
+        { key: 'reason', label: 'Reason', type: 'choice' as const, options: ['Seal', 'Label', 'Weight', 'Damaged', 'Foreign body', 'Other'], required: true },
+        { key: 'rejects', label: 'Rejects', type: 'number' as const, unit: 'packs', required: true },
+        { key: 'shift', label: 'Shift', type: 'choice' as const, options: ['Early', 'Late', 'Night'] },
+      ];
+      return {
+        schema: FLOW_SCHEMA, name: 'Rejects, logged and halved', kind: 'improvement',
+        purpose: 'Every reject logged with its reason for a week, the biggest reason found by its Pareto, a countermeasure made, and the same log kept again to prove it on the rejects a day.',
+        roles: [{ key: 'op', name: 'Operator', side: 'site' }, { key: 'lead', name: 'Line lead', side: 'site' }, { key: 'quality', name: 'Quality', side: 'site' }],
+        stages: [
+          {
+            key: 'log', name: 'Log the rejects', purpose: 'Every reject with its reason, as it happens, for a week.',
+            steps: [{
+              key: 'log-before', title: 'Log every reject for a week', per: 'line', answer: 'log', role: 'op', minEntries: 10, columns,
+              analyses: [
+                { key: 'rejects_a_day', label: 'Rejects a day', block: 'perDay', of: 'rejects' },
+                { key: 'biggest_reason', label: 'Biggest reason', block: 'pareto', by: 'reason', of: 'rejects' },
+                { key: 'by_day', label: 'Rejects by day', block: 'trend', of: 'rejects' },
+                { key: 'by_shift', label: 'Rejects by shift', block: 'pareto', by: 'shift', of: 'rejects' },
+              ],
+              help: 'One entry for each reject or batch of rejects, with its reason. Strike a mistype — never delete it.',
+            }],
+            gate: { conditions: [every] },
+          },
+          {
+            key: 'cause', name: 'The cause', purpose: 'The biggest reason, drilled to its cause.',
+            steps: [{
+              key: 'why', title: 'Why the biggest reason happens', per: 'line', answer: 'form', role: 'lead', after: ['log-before'],
+              fields: [
+                { key: 'reason', label: 'The biggest reason, from the Pareto', type: 'text', required: true },
+                { key: 'why_1', label: 'Why 1', type: 'text', required: true },
+                { key: 'why_2', label: 'Why 2', type: 'text', required: true },
+                { key: 'why_3', label: 'Why 3', type: 'text' },
+              ],
+            }],
+            gate: { conditions: [every] },
+          },
+          {
+            key: 'fix', name: 'The countermeasure', purpose: 'What will be done about it, done, and signed by Quality.',
+            steps: [
+              { key: 'done', title: 'Countermeasure done', per: 'line', answer: 'done', role: 'lead', evidence: { photos: 1 }, after: ['why'] },
+              { key: 'quality', title: 'Quality agrees it', per: 'line', answer: 'signoff', role: 'quality', after: ['done'] },
+            ],
+            gate: { conditions: [every] },
+          },
+          {
+            key: 'prove', name: 'Prove it', purpose: 'The same log kept again for a week.',
+            steps: [{
+              key: 'log-after', title: 'Log every reject again for a week', per: 'line', answer: 'log', role: 'op', minEntries: 10, columns, after: ['quality'],
+              analyses: [
+                { key: 'rejects_a_day', label: 'Rejects a day', block: 'perDay', of: 'rejects' },
+                { key: 'biggest_reason', label: 'Biggest reason', block: 'pareto', by: 'reason', of: 'rejects' },
+              ],
+            }],
+            gate: { conditions: [every] },
+          },
+        ],
+        measures: [{ key: 'rejects_a_day', name: 'Rejects a day', unit: 'packs', better: 'lower', from: [{ step: 'log-before', field: 'rejects_a_day' }, { step: 'log-after', field: 'rejects_a_day' }] }],
+      };
+    },
+  },
 ];
 
 export const libraryEntry = (id: string): LibraryEntry | undefined => LIBRARY.find(e => e.id === id);

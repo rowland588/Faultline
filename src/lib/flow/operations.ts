@@ -23,6 +23,7 @@ import type { FlowDefinition } from './definition';
 import { validateDefinition, type Issue } from './validate';
 import { readFlow, type FlowProblem, type FlowState, type ToolReading } from './runtime';
 import type { ActivityEntry, FlowRecord, Method, ProjectFlow } from './records';
+import type { FlowEntry } from './analysis';
 
 export interface OpContext {
   /** The person, as they are known on screen. */
@@ -285,6 +286,84 @@ export async function recordStep(ctx: OpContext, s: StepRef, patch: StepPatch): 
     await log(ctx, { projectId: s.projectId, methodId: fp.method.id, op: 'recordStep', target: { kind: 'flow_record', id: next.id }, summary: `${stepTitle(fp, s)} — ${what}` });
   }
   return { ok: true, value: next, said: 'Saved.' };
+}
+
+/* ------------------------------------------------------------- a log's entries */
+
+/** One entry's boxes as typed, checked against the log's columns — a number
+ *  is a number, a choice one of its options, the needed ones filled. Worked-
+ *  out columns are never kept (lib/flow/analysis entryValues). */
+function readEntry(fp: FlowProject, s: StepRef, typed: Record<string, string | number | boolean>): { values?: Record<string, string | number | boolean>; why?: string } {
+  const step = fp.method.definition.stages.find(x => x.key === s.stageKey)?.steps.find(x => x.key === s.stepKey);
+  if (!step) return { why: 'That step is not on the method.' };
+  if (step.answer !== 'log') return { why: 'That step is not a log.' };
+  const cols = step.columns ?? [];
+  const values: Record<string, string | number | boolean> = {};
+  for (const c of cols) {
+    if (c.type === 'calc') continue;
+    const v = typed[c.key];
+    const blank = v === undefined || v === null || (typeof v === 'string' && !v.trim());
+    if (blank) { if (c.required) return { why: `Say ${c.label.toLowerCase()}.` }; continue; }
+    if (c.type === 'number' || c.type === 'reading') {
+      const n = typeof v === 'number' ? v : Number(String(v).replace(',', '.'));
+      if (!Number.isFinite(n)) return { why: `${c.label} is a number.` };
+      values[c.key] = n;
+    } else if (c.type === 'choice') {
+      const o = (c.options ?? []).find(x => x.trim().toLowerCase() === String(v).trim().toLowerCase());
+      if (!o) return { why: `${c.label} is one of ${(c.options ?? []).join(', ')}.` };
+      values[c.key] = o;
+    } else if (c.type === 'yesno') values[c.key] = v === true || /^(y|yes|true)$/i.test(String(v));
+    else values[c.key] = typeof v === 'string' ? v.trim().slice(0, 2000) : v;
+  }
+  if (!Object.keys(values).length) return { why: 'The entry is empty.' };
+  return { values };
+}
+
+/** Add an entry to a log — on the floor, as it happens. Not a line in the
+ *  activity log: the entries are the log (as a box typed is the step). */
+export async function addEntry(ctx: OpContext, s: StepRef, typed: Record<string, string | number | boolean>, on?: string): Promise<OpResult<FlowEntry>> {
+  if (!ctx.can.edit) return refuse('You can read this project but not change it.');
+  const today = ctx.today ?? todayISO();
+  const fp = await loadFlowProject(s.projectId, today);
+  if (!fp) return refuse('That project is not running a method on this device.');
+  const read = readEntry(fp, s, typed);
+  if (!read.values) return refuse(read.why ?? 'The entry cannot be read.');
+  const { rec } = await currentRecord(fp, s);
+  const entry: FlowEntry = { id: uid(), on: on && /^\d{4}-\d{2}-\d{2}$/.test(on) ? on : today, at: now(), ...(ctx.who ? { who: ctx.who } : {}), values: read.values };
+  await putFlowRecord({ ...rec, entries: [...(rec.entries ?? []), entry] });
+  return { ok: true, value: entry, said: 'Added.' };
+}
+
+/** Correct an entry's boxes — the same entry, its place kept. */
+export async function editEntry(ctx: OpContext, s: StepRef, id: ID, typed: Record<string, string | number | boolean>): Promise<OpResult<FlowEntry>> {
+  if (!ctx.can.edit) return refuse('You can read this project but not change it.');
+  const fp = await loadFlowProject(s.projectId, ctx.today);
+  if (!fp) return refuse('That project is not running a method on this device.');
+  const { rec } = await currentRecord(fp, s);
+  const was = (rec.entries ?? []).find(e => e.id === id);
+  if (!was) return refuse('That entry is not on this device.');
+  const read = readEntry(fp, s, { ...was.values, ...typed });
+  if (!read.values) return refuse(read.why ?? 'The entry cannot be read.');
+  const next: FlowEntry = { ...was, values: read.values };
+  await putFlowRecord({ ...rec, entries: (rec.entries ?? []).map(e => (e.id === id ? next : e)) });
+  return { ok: true, value: next, said: 'Saved.', undo: async () => { await editEntry(ctx, s, id, was.values); } };
+}
+
+/** Strike an entry, or bring it back — struck, never erased: a mistype keeps
+ *  its place and counts for nothing. Said in the activity log. */
+export async function strikeEntry(ctx: OpContext, s: StepRef, id: ID, struck = true): Promise<OpResult<FlowEntry>> {
+  if (!ctx.can.edit) return refuse('You can read this project but not change it.');
+  const fp = await loadFlowProject(s.projectId, ctx.today);
+  if (!fp) return refuse('That project is not running a method on this device.');
+  const { rec } = await currentRecord(fp, s);
+  const was = (rec.entries ?? []).find(e => e.id === id);
+  if (!was) return refuse('That entry is not on this device.');
+  const next: FlowEntry = { ...was };
+  if (struck) next.struck = true; else delete next.struck;
+  await putFlowRecord({ ...rec, entries: (rec.entries ?? []).map(e => (e.id === id ? next : e)) });
+  await log(ctx, { projectId: s.projectId, methodId: fp.method.id, op: struck ? 'strikeEntry' : 'restoreEntry', target: { kind: 'flow_record', id: rec.id },
+    summary: `${stepTitle(fp, s)} — an entry of ${was.on} ${struck ? 'struck' : 'brought back'}` });
+  return { ok: true, value: next, said: struck ? 'Struck — it counts for nothing, and keeps its place.' : 'Brought back.', undo: async () => { await strikeEntry(ctx, s, id, !struck); } };
 }
 
 /** Say a step is done. It must be complete — every field it needs, its photos

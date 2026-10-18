@@ -51,13 +51,23 @@ export function stepWord(s: StepInstance): string {
  *  under its title on the screen and on paper. Empty when there is nothing
  *  to say beyond its word. */
 export function stepWhy(s: StepInstance): string {
-  if (s.complete) return [s.record?.signedBy ? `signed by ${s.record.signedBy}` : '', s.record?.note?.trim() ?? ''].filter(Boolean).join(' — ');
+  const logged = logSaid(s);
+  if (s.complete) return [logged, s.record?.signedBy ? `signed by ${s.record.signedBy}` : '', s.record?.note?.trim() ?? ''].filter(Boolean).join(' — ');
+  if (logged && !s.missing.length) return logged;
   if (s.outOfLimits.length) return `Outside its limit: ${s.outOfLimits.join('; ')}`;
   if (s.failed) return s.record?.note?.trim() || 'Did not pass — to try again';
   if (s.blockedBy.length) return `Waits on ${s.blockedBy.map(b => `“${b}”`).join(' and ')}`;
   if (s.record?.outcome === 'done' && s.missing.length) return `Still needs ${s.missing.join(', ')}`;
   if (s.missing.length && s.record) return `Needs ${s.missing.join(', ')}`;
   return '';
+}
+
+/** A log in a line — its entries and what its first analysis says:
+ *  "8 entries · Biggest reason: Jam at infeed is 67.27% of minutes". */
+export function logSaid(s: StepInstance): string {
+  if (s.def.answer !== 'log' || !s.entries) return '';
+  const first = (s.def.analyses ?? []).map(a => s.analysis?.[a.key]).find(r => r && (r.value !== undefined || r.series?.length));
+  return `${s.entries} entr${s.entries === 1 ? 'y' : 'ies'}${first ? ` · ${first.says.replace(/\.$/, '')}` : ''}`;
 }
 
 /** A stage's square and word: passed is quiet green; ready to pass and a

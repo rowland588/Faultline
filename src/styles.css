@@ -13816,6 +13816,34 @@ textarea.fw-in { font: inherit; line-height: 1.45; }
 .fw-offers { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .fw-start { margin-top: 18px; }
 .fw-lib-s { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+/* A LOG (ui/flow/LogParts): the entry form, what the entries add up to, every entry */
+.fw-log-panel { display: grid; gap: 10px; margin: 8px 0; }
+.fw-entry { display: grid; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
+.fw-entry-r { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px 10px; align-items: end; }
+.fw-entry-r .fw-f { margin: 0; }
+.fw-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.fw-result { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.fw-result.has-pic { grid-column: 1 / -1; }
+.fw-result-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.fw-result-v { font-size: 20px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.fw-result-l { font-weight: 600; color: var(--ink-2); }
+.fw-result-s { line-height: 1.45; }
+.fw-chart { width: 100%; max-width: 440px; height: auto; display: block; }
+.fw-chart text { font-family: inherit; }
+.fw-bar { fill: #9aa6ab; }
+.fw-bar.is-top { fill: var(--ink-2); }
+.fw-cum { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 3 2; }
+.fw-chart-axis { stroke: var(--line); }
+.fw-chart-v { font-size: 9px; fill: var(--ink-2); font-variant-numeric: tabular-nums; }
+.fw-chart-l { font-size: 8.5px; fill: var(--muted); }
+.fw-entries { overflow-x: auto; }
+.fw-entries-t { width: 100%; border-collapse: collapse; font-size: var(--t-detail); }
+.fw-entries-t th { text-align: left; font-weight: 600; color: var(--muted); padding: 4px 8px 4px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.fw-entries-t td { padding: 5px 8px 5px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.fw-entries-t tr.is-struck td { color: var(--st-n-ink); text-decoration: line-through; }
+.fw-entry-acts { white-space: nowrap; text-align: right; }
+.fw-needs { border-left: 3px solid var(--st-a); padding: 8px 12px; background: var(--surface); border-radius: 0 12px 12px 0; }
+.fw-needs li { margin: 6px 0; line-height: 1.45; }
 .fw-est { margin: 12px 0 0; font-size: var(--t-detail); line-height: 1.5; color: var(--muted); }
 .fw-est b { color: var(--ink); }
 .fw-est .btn { margin-left: 6px; }

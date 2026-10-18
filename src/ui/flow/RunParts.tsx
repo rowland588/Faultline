@@ -41,6 +41,7 @@ import { EvidenceViewer } from '../Evidence';
 import { offerUndo } from '../Undo';
 import { Num, Words } from './MethodParts';
 import { askFor, withFor } from './Asking';
+import { LogPanel } from './LogParts';
 
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100));
 
@@ -241,6 +242,7 @@ export function StepSheet({ fp, inst, ctx, onClose }: { fp: FlowProject; inst: S
         )}
 
         {step.component && <ToolAnswer fp={fp} inst={inst} live={live && !done} onAttach={id => void save({ studyId: id })} />}
+        {step.answer === 'log' && <LogPanel fp={fp} inst={inst} ctx={ctx} live={live && !done} />}
 
         {(step.fields ?? []).map(f => (
           <FieldBox key={f.key} f={f} value={rec?.values?.[f.key]} worked={inst.values[f.key]} disabled={!live || done}

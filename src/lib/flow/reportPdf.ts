@@ -21,7 +21,8 @@ import { niceDay, todayISO } from '../weeks';
 import type { FlowProject } from './operations';
 import type { ActivityEntry } from './records';
 import { stageWord, stepSquare, stepWhy, stepWord, type Square } from './view';
-import { measureNumber } from './runtime';
+import { measureNumber, type StepInstance } from './runtime';
+import { entryValues, fmtNumber, type AnalysisResult } from './analysis';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const GREY = '#6b7588';
@@ -46,6 +47,54 @@ function line(what: string, why: string, word: string, tone: Square): { h: (f: F
   };
 }
 
+/** An analysis's picture on paper — bars (a Pareto with its running share,
+ *  a trend by day, a histogram), in neutral ink, as on the screen
+ *  (ui/flow/LogParts AnalysisChart). */
+function chartBlock(res: AnalysisResult, kind: string): Block {
+  const pts = (res.series ?? []).slice(0, 24);
+  const H0 = 96;
+  return {
+    height: () => (pts.length ? H0 + 6 : 0),
+    draw: (f, y) => {
+      if (!pts.length) return;
+      const w = Math.min(f.w, 420), x0 = f.x + 10, top = y + 8, base = y + H0 - 22;
+      const max = Math.max(...pts.map(p => p.value), 0) || 1, bw = (w - 10) / pts.length;
+      f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.5); f.doc.line(x0, base, x0 + w - 10, base);
+      pts.forEach((p, i) => {
+        const h = (base - top) * (p.value / max), bx = x0 + i * bw + bw * 0.12;
+        f.doc.setFillColor(i === 0 && kind === 'pareto' ? INK2 : '#9aa6ab');
+        if (h > 0) f.doc.rect(bx, base - h, bw * 0.76, h, 'F');
+        font(f.doc, 6.5, 'normal', INK2); f.doc.text(fmtNumber(p.value), bx + bw * 0.38, base - h - 2, { align: 'center' });
+        font(f.doc, 6.5, 'normal', MUTED);
+        const lab = /^\d{4}-\d{2}-\d{2}$/.test(p.label) ? niceDay(p.label) : p.label;
+        f.doc.text(lab.slice(0, Math.max(4, Math.floor(bw / 3.6))), bx + bw * 0.38, base + 9, { align: 'center' });
+      });
+      if (kind === 'pareto' && pts.length > 1) {
+        f.doc.setDrawColor(INK2); f.doc.setLineWidth(0.8);
+        for (let i = 1; i < pts.length; i++) {
+          const ya = base - (base - top) * ((pts[i - 1].cum ?? 0) / 100), yb = base - (base - top) * ((pts[i].cum ?? 0) / 100);
+          f.doc.line(x0 + (i - 1) * bw + bw / 2, ya, x0 + i * bw + bw / 2, yb);
+        }
+        font(f.doc, 6.5, 'normal', MUTED); f.doc.text('line: the running share', x0 + w - 10, top - 2, { align: 'right' });
+      }
+    },
+  };
+}
+
+/** A log on paper, under its step: its entries counted, each analysis said,
+ *  its pictures drawn. Every entry is printed at the end of the report. */
+function logBlocks(s: StepInstance): Block[] {
+  if (s.def.answer !== 'log') return [];
+  const out: Block[] = [text({ text: `The log — ${s.def.title}${s.machine ? `, ${s.machine}` : ''}: ${s.entries ?? 0} entr${s.entries === 1 ? 'y' : 'ies'}`, size: 8.5, style: 'bold', colour: INK2, indent: 10, before: 2, after: 2 })];
+  for (const a of s.def.analyses ?? []) {
+    const res = s.analysis?.[a.key];
+    if (!res) continue;
+    out.push(text({ text: res.says, size: 8, colour: INK2, indent: 10, after: 2 }));
+    if (res.series?.length) out.push(chartBlock(res, a.block));
+  }
+  return out;
+}
+
 function blocksOf(r: FlowReport, d: Density): Block[] {
   const { fp, page } = r;
   const out: Block[] = [];
@@ -63,6 +112,16 @@ function blocksOf(r: FlowReport, d: Density): Block[] {
     }
   }
 
+  /* WHAT NO BLOCK DOES YET — the method's needs for development, as on its page */
+  if (def.needs?.length) {
+    out.push(leanHead('Needs development', `${def.needs.length} — not run until a block is written`));
+    for (const n of def.needs) {
+      out.push(text({ text: `${n.what} — ${n.why}`, size: 8.5, style: 'bold', colour: INK2, after: 2 }));
+      const more = [n.inputs ? `From: ${n.inputs}` : '', n.method ? `Method: ${n.method}` : '', n.check ? `Checked by: ${n.check}` : ''].filter(Boolean).join(' · ');
+      if (more) out.push(text({ text: more, size: 8, colour: MUTED, indent: 10, after: 4 }));
+    }
+  }
+
   for (const st of fp.state.stages) {
     out.push(leanHead(`${st.index + 1}. ${st.name}`, stageWord(st)));
     const purpose = def.stages[st.index]?.purpose;
@@ -72,6 +131,7 @@ function blocksOf(r: FlowReport, d: Density): Block[] {
         rows: st.steps.map(s => line(`${s.def.title}${s.machine ? ` — ${s.machine}` : ''}`, [stepWhy(s), s.tool ? `answered by ${s.tool.name}${s.tool.verdict ? ` — ${s.tool.verdict}` : ''}` : '', s.who && !s.complete ? `for ${s.who}` : ''].filter(Boolean).join(' · '), stepWord(s), stepSquare(s))),
         after: 's',
       }));
+      for (const s of st.steps) out.push(...logBlocks(s));
     } else out.push(text({ text: 'No steps in this stage.', size: 8.5, colour: MUTED }));
     /* ITS GATE — each thing it needs, met or not, in words (no marks the paper's font may not hold) */
     const g = st.gate;
@@ -92,6 +152,21 @@ function blocksOf(r: FlowReport, d: Density): Block[] {
   out.push(leanHead('The action plan', page.actions.length ? `${fp.state.outstanding.length} outstanding` : undefined));
   out.push(...leanActions(page.actions, page.actionsEmpty));
   out.push(leanClosing(page.closing));
+
+  /* EVERY ENTRY IN EVERY LOG — nothing cut; a struck one said struck */
+  const logs = fp.state.stages.flatMap(st => st.steps).filter(s => s.def.answer === 'log' && (s.record?.entries ?? []).length);
+  if (logs.length) {
+    out.push(leanHead('Every entry', `${logs.reduce((n, s) => n + (s.record?.entries ?? []).length, 0)} in ${logs.length} log${logs.length === 1 ? '' : 's'}`));
+    for (const s of logs) {
+      const cols = s.def.columns ?? [];
+      out.push(text({ text: `${s.def.title}${s.machine ? ` — ${s.machine}` : ''}`, size: 8.5, style: 'bold', colour: INK2, before: 2, after: 2 }));
+      for (const e of [...(s.record?.entries ?? [])].sort((a, b) => a.on.localeCompare(b.on) || a.at - b.at)) {
+        const v = entryValues(cols, e.values);
+        const said = cols.map(c => { const x = v[c.key]; return x === undefined ? '' : `${c.label} ${typeof x === 'number' ? `${fmtNumber(x)}${c.unit ? ` ${c.unit}` : ''}` : typeof x === 'boolean' ? (x ? 'yes' : 'no') : x}`; }).filter(Boolean).join(' · ');
+        out.push(text({ text: `${niceDay(e.on)} — ${said}${e.who ? ` (${e.who})` : ''}${e.struck ? ' — struck, not counted' : ''}`, size: 8, colour: e.struck ? MUTED : INK2, indent: 10, after: 1 }));
+      }
+    }
+  }
 
   /* WHAT HAS HAPPENED — the screen's panel, on paper; every line, oldest last */
   const log = r.log ?? [];

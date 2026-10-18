@@ -249,6 +249,11 @@ export const PAGES = (sd, cap) => [
     { what: 'a step done with one of the app’s tools', sel: '.fw-step-b', text: /with SMED/ },
     { what: 'what it measures', sel: '.fw-measures li' },
   ] },
+  /* A TOOL MADE FROM BLOCKS (18 October, lib/flow/analysis): a step that is a log, and what it works out */
+  { name: 'A method made of logs', path: `#/methods/${sd.logMethodId}`, must: [
+    { what: 'a step that is a log — its columns and what it works out', sel: '.fw-step-b', text: /a log .*works out rejects a day, biggest reason/ },
+    { what: 'what it measures — fed by the two logs', sel: '.fw-measures li', text: /Rejects a day/ },
+  ] },
   { name: 'A project on SMED’s method', path: `#/project/${sd.smedProjectId}`, must: [
     { what: 'the measure, the first tile', sel: '.ln-tiles .ln-tile', text: /Changeover minutes/i },
     { what: 'what it measures — before → now, its readings', sel: '.fw-measured li' },

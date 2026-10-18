@@ -79,6 +79,7 @@ const ROUTES = [
   ['design a method — adapting one of yours', `#/design?from=${seeded.methodId}`],
   ['design a method — its next version', `#/design?version=${seeded.methodId}`],
   ['a method from Faultline’s library — tools and a measure', `#/methods/${seeded.smedMethodId}`],
+  ['a method made of logs — a tool from blocks', `#/methods/${seeded.logMethodId}`],
   ['a project on SMED’s method — a step answered by a SMED study, the measure', `#/project/${seeded.smedProjectId}`],
   ['a project on SMED’s method — the step answered by SMED, open', `#/project/${seeded.smedProjectId}?step=${encodeURIComponent('record/time-now/')}`],
   ['video studies — every one', '#/video'],

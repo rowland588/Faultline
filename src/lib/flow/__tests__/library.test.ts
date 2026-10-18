@@ -35,6 +35,8 @@ describe('Faultline’s library', () => {
     expect(ids('The wrapper is our bottleneck and we cannot make the rate')[0]).toBe('line-rate');
     /* footage of the line is read as a line balance (lib/video) — a method that uses one is the one offered */
     expect(ids('I have filmed the line and want to see who is waiting')[0]).toBe('line-rebalance');
+    /* a tool made from blocks — a log worked out as a Pareto, a trend and a figure a day */
+    expect(ids('We need to track every reject on the tray sealer and find the biggest reason')[0]).toBe('rejects-log');
     expect(ids('zzz qqq')).toEqual([]);
   });
 });

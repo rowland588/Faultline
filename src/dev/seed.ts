@@ -138,6 +138,9 @@ export interface Seeded {
    *  minutes read into the step and the measure. */
   smedMethodId: string;
   smedProjectId: string;
+  /** Faultline's rejects log (lib/flow/library) taken and approved — a tool
+   *  made from blocks: logs with a Pareto, a trend and a figure a day. */
+  logMethodId: string;
   /** A video study on the line (docs/VIDEO.md): its footage not on this
    *  device, three stations, events read and some accepted, takt given. */
   videoStudyId: string;
@@ -1127,6 +1130,21 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     return { smedMethodId: m.value.id, smedProjectId: p.value.id };
   })();
 
+  /* A TOOL MADE FROM BLOCKS (lib/flow/analysis): Faultline's rejects log,
+     taken and approved — no project on it, so no count elsewhere moves */
+  const logMethodId = await (async () => {
+    const ops = await import('../lib/flow/operations');
+    const { libraryEntry } = await import('../lib/flow/library');
+    const { can } = await import('../lib/access');
+    const ctx = { who: 'Rowland', can: can('owner'), today: iso(0) };
+    const e = libraryEntry('rejects-log');
+    if (!e) throw new Error('no rejects log in the library');
+    const m = await ops.createMethod(ctx, { definition: e.build(), origin: 'library', changeNote: `From Faultline’s library: “${e.name}”` });
+    if (!m.ok) throw new Error(m.why);
+    await ops.approveMethod(ctx, m.value.id);
+    return m.value.id;
+  })();
+
   /* A VIDEO STUDY (docs/VIDEO.md): read from footage taken on another device —
      so the footage is not here, and the study says so — its events found by
      movement, most accepted, one corrected, one rejected, two still to review,
@@ -1162,6 +1180,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   return {
     ...flowSeed,
     ...smedSeed,
+    logMethodId,
     videoStudyId,
     wsId: ws.id, projectId: proj.id, standardId, lineStandardId: lineOnly, lineOnJobId: lineOnJob, lineId: line.id, caseId: kase.id,
     segmentId: seg.id, assetId: asset.id,

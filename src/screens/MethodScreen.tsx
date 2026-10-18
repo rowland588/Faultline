@@ -31,7 +31,7 @@ import { validateDefinition } from '../lib/flow/validate';
 import { approveMethod, copyMethod, deleteDraft, draftNewVersion, saveDraft, startProject } from '../lib/flow/operations';
 import { useOpContext } from '../lib/flow/useFlow';
 import type { ActivityEntry, Method } from '../lib/flow/records';
-import { ConditionEditor, MeasureEditor, StepEditor, Words, conditionSaid, measureSaid, stepSaid } from '../ui/flow/MethodParts';
+import { ConditionEditor, MeasureEditor, NeedsList, StepEditor, Words, conditionSaid, measureSaid, stepSaid } from '../ui/flow/MethodParts';
 import { MoveSheet } from '../ui/flow/ChangeParts';
 import { useRoute } from '../state/useRoute';
 import { useFactoryLines } from '../lib/useFactoryLines';
@@ -234,6 +234,8 @@ export function MethodScreen({ id }: { id: string }) {
         </ul>
         {edit && <button type="button" className="btn btn-sm" onClick={() => setMeasuring({})}>Add a measure</button>}
       </section>
+
+      <NeedsList def={def} />
 
       <section className="ln-panel" aria-label="Who does what">
         <h2 className="ln-h">Who does what</h2>
