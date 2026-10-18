@@ -11,6 +11,7 @@ import { validateDefinition } from '../validate';
 import { fromProposal, toProposal } from '../proposal';
 import { changesOf, keepKeys } from '../change';
 import { readTool, toolFigures } from '../toolRead';
+import { flowRowFacts } from '../view';
 import type { ToolStudy } from '../../study';
 
 /* Changeover reduction, the shape Faultline's library gives it */
@@ -73,6 +74,8 @@ describe('a method built from the app’s tools and measures', () => {
     expect(gate.find(c => c.type === 'measureMet')).toMatchObject({ met: true, label: 'Changeover minutes at most 20 min', why: '18 min now' });
     expect(gate.find(c => c.type === 'fieldMeets')).toMatchObject({ met: true, label: '“Time it again”: External minutes at most 2 min' });
 
+    /* where the job's row is read — the control room — its number with it */
+    expect(flowRowFacts(s).sentence).toMatch(/ Changeover minutes: 42 min → 18 min, target at most 20 min — met\.$/);
     /* not there yet: the gate waits on the measure, in words */
     const short = readFlow({ def, records, machines: [], today: '2026-10-18', tools: { s1: reading(42), s2: reading(26) } });
     expect(short.measures[0].met).toBe(false);

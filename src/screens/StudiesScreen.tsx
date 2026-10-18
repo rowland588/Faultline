@@ -136,7 +136,9 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
   /* A loss count's line reads its stops in the window: the lines' logs, for
      the loss counts listed — nothing read for the other tools. */
   const [obs, setObs] = useState<Observation[]>([]);
-  const [adding, setAdding] = useState(false);
+  /* ?add=1 — opened from a method's step done with this tool (ui/flow/RunParts):
+     New is open at once, on the job's line */
+  const [adding, setAdding] = useState(() => asked('add') === '1');
   /* opened from a line's own page: that line's only, and New starts on it */
   const onLine = useMemo(() => asked('line'), []);
 

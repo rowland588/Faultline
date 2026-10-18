@@ -133,7 +133,8 @@ export async function factoryLineFor(name: string, taxonomyId?: string): Promise
 
 /** What the address asks for — `?line=<id>` (a list opened from a line's own
  *  page, on that line), `?open=<id>` (one record opened in it) or `?add=1`
- *  (Your factory opened on its Add lines). Read once,
+ *  (Your factory opened on its Add lines; a tool's list opened on its New —
+ *  from a method's step done with that tool). Read once,
  *  when the screen opens; the router keys the screen on the line. */
 export function asked(key: 'line' | 'open' | 'add'): string | undefined {
   return new URLSearchParams(window.location.hash.split('?')[1] ?? '').get(key) ?? undefined;

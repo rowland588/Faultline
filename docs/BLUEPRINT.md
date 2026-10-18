@@ -194,7 +194,7 @@ it is, adapt, or copy; a person's method is as much a method as Faultline's.
 | Walk (filmed, frames) | its tools | — | a marked frame on a problem; the standard's picture; a cause known by *observed* | the problem's card (the frame); the 6M report's evidence |
 | Tree node (lever tree) | — | the job's verdict | the tree | the client report for a lever-tree job |
 | Method | — | Methods (the library — yours and Faultline's) on the rail; Describe what you need in the header | its rail's stages and "The method"; its Details say which version it runs; the studio (new, adapt, next version) | the method report's band |
-| Measure (a number a method has to move — read from its steps, never typed) | — | — (next: the control room's row saying a job's measure against its target) | the job's first tiles, its "What it measures" — before → now, every reading; the method's "What it measures"; the studio's preview | the method report's "What it measures" |
+| Measure (a number a method has to move — read from its steps, never typed) | — | the job's row: its sentence ends with its first measure, before → now against its target | the job's first tiles, its "What it measures" — before → now, every reading; the method's "What it measures"; the studio's preview | the method report's "What it measures" |
 | A step done with a tool (a study attached) | — | — | the step sheet: the tool's studies on the job's line, Use this, its verdict and figures; the study's own page | the method report: the step "answered by" the study, its verdict |
 | Step done / gate passed | — | the job's row: its stages in their tones, at the stage it is on; its steps in the week, the late, Who owes what (a supplier-side role under the supplier) | the job's page: the stage strip, a step per machine, the gate line, the action plan; the rail's stage squares | the method report — every step, every gate condition, who confirmed a check, a pass over what was unmet with its reason |
 | Activity | — | — | the job's "What has happened"; the method's "Its history" | the method report's "What has happened" |
@@ -255,15 +255,14 @@ there and what replaces it.
 
 **A job's measure in the control room** (the vision slice, 18 October). A
 method's measures are its before → now against a target, on its page and
-paper; the control room's row says where the job is but not whether its
-number has moved. Next: the row's sentence carries its headline measure
-("Changeover minutes 42 → 18, target 9") and the week's slips read a
-measure that went the wrong way.
+paper — and, built the same day, on its control-room row's sentence
+("Changeover minutes: 42 min → 18 min, target at most 9 min"). Next: the
+week's slips reading a measure that went the wrong way.
 
 **A tool step that starts its own study** (the vision slice). A step done
-with SMED or a loss count offers the line's studies to attach; starting a
-new one opens the tool's list on the line. Next: the tool's New sheet opened
-from the step, on the job's line, and the study attached when it is made.
+with SMED or a loss count offers the line's studies to attach, and Start a …
+on the line opens the tool's own New on the job's line. Next: the study made
+there attached to the step by itself, without coming back for Use this.
 
 **Money in every tool** (Rowland, 17 October: "everything must derive a cost
 in the entire app ... it's all about money"; the rule is in CLAUDE.md,

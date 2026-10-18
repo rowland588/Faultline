@@ -108,7 +108,9 @@ function ToolAnswer({ fp, inst, live, onAttach }: { fp: FlowProject; inst: StepI
   }, [fp.project.id, tool?.studyTool, lines.join()]); // eslint-disable-line react-hooks/exhaustive-deps -- the lines by value
   if (!tool) return null;
   const studyId = inst.record?.studyId;
-  const open = () => nav(`${tool.listPath}${lines[0] ? `?line=${encodeURIComponent(lines[0])}` : ''}`);
+  /* the tool's own list on the job's line, its New open — the study is made
+     there, as any of that tool's, and attached here when it is */
+  const open = () => nav(`${tool.listPath}?add=1${lines[0] ? `&line=${encodeURIComponent(lines[0])}` : ''}`);
   if (!tool.studyTool) {
     return (
       <div className="fw-tool" data-tool={tool.id}>

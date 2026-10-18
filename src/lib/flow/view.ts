@@ -222,9 +222,16 @@ export interface FlowRowFacts {
 }
 
 export function flowRowFacts(s: FlowState): FlowRowFacts {
+  /* the number the job has to move, where its row is read — the first
+     measured, before → now against its target (the job's first tile) */
+  const m = s.measures.find(x => x.now);
+  const n = (v: number) => (m ? measureNumber(m.def, v) : String(v));
+  const measured = m?.now
+    ? ` ${m.def.name}: ${m.before && m.readings.length > 1 ? `${n(m.before.value)} → ` : ''}${n(m.now.value)}${m.def.target !== undefined ? `, target ${m.def.better === 'lower' ? 'at most' : 'at least'} ${n(m.def.target)}${m.met ? ' — met' : ''}` : ''}.`
+    : '';
   return {
     at: s.done ? 'Every gate passed' : s.current?.name ?? '—',
-    sentence: s.verdict.text,
+    sentence: s.verdict.text + measured,
     outstanding: s.outstanding.filter(o => o.kind === 'step').length,
     late: s.counts.late,
     done: s.counts.gatesPassed,

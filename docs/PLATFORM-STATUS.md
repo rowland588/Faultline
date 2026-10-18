@@ -88,9 +88,10 @@ list (a definition gives every machine the same steps).
    tried on 18 October — not retried) and deploy `supabase/functions/assist`
    from the repo; then he sets `ANTHROPIC_API_KEY`. Until then every AI
    feature says it is off and everything else works.
-3. A tool step started from the step itself: the tool's New sheet opened on
-   the project's line, and the study attached when it is made (today: the
-   step opens the tool's list on the line; the study is attached on return).
+3. A tool step's study attached by itself when it is made from the step
+   (today: Start a … on the line opens the tool's own New, on the job's
+   line; the study made there is offered on the step, and Use this attaches
+   it).
 4. Line capacity as a tool with figures (line rate, bottleneck) — it lives on
    a product's line standard, so a step names the standard.
 5. The 6M and the lever tree as library methods with their own pictures
