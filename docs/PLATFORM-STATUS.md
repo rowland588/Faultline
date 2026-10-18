@@ -142,14 +142,16 @@ what waits on someone is docs/VIDEO.md. Its blockers are below.
   applied. Until it is, footage stays on the device it was taken on, and the
   study says so; its events, figures and reports sync.
 
-- **The assistant's allowance table** — `supabase/ASSIST_USAGE.sql`, said
-  yes to by Rowland on 18 October, is still NOT applied: `apply_migration`
-  came back "cancelled", then timed out after a minute (the connector's
-  permission for that tool; read back both times — no table, nothing in the
-  migration history). Either allow `apply_migration` for the Supabase
-  connector (claude.ai/customize/connectors) or approve its prompt and it is
-  applied from here, or paste the file into the Supabase SQL editor. The
-  gateway refuses to call Claude without it (no cost control, no assistant).
+- **The assistant's allowance table** — DONE 18 October: Rowland pasted
+  `supabase/ASSIST_USAGE.sql` into the SQL editor, and it was read back —
+  `assist_usage` with its nine columns, row security on, one policy (`own
+  usage`, select, `user_id = auth.uid()`), no insert/update/delete policy,
+  indexes `assist_usage_pkey` and `assist_usage_user_at`, no rows. It is not
+  in Supabase's migration history: the connector's `apply_migration` came
+  back "cancelled" or timed out after a minute every time (read back after
+  each — nothing written by it). That is bookkeeping only; the file is safe
+  to re-run, so it can be applied through the connector once that tool is
+  allowed, to put it in the history.
 - **The gateway** — `supabase/functions/assist` DEPLOYED 18 October, 15:36
   UTC (version 1, `verify_jwt` on), from the repo's copy at 622d449 — the
   copy on `main` plus the video study's `video-label` task, which the live
