@@ -55,6 +55,7 @@ const ShareScreen = lazy(() => import('./screens/ShareScreen').then(m => ({ defa
 /* METHODS OF YOUR OWN (lib/flow) — the library, one method, and a project running one */
 const MethodsScreen = lazy(() => import('./screens/MethodsScreen').then(m => ({ default: m.MethodsScreen })));
 const MethodScreen = lazy(() => import('./screens/MethodScreen').then(m => ({ default: m.MethodScreen })));
+const DesignScreen = lazy(() => import('./screens/DesignScreen').then(m => ({ default: m.DesignScreen })));
 const FlowProjectScreen = lazy(() => import('./screens/FlowProjectScreen').then(m => ({ default: m.FlowProjectScreen })));
 import { RequireModel } from './ui/RequireModel';
 import { RecordDrawerHost } from './ui/RecordDrawer';
@@ -149,6 +150,7 @@ function app(route: Route) {
   if (route.name === 'lineHome' && route.wsId) return <ProductionLineScreen key={route.wsId} wsId={route.wsId} />;
   if (route.name === 'factory') return <FactoryScreen />;
   if (route.name === 'methods') return <MethodsScreen />;
+  if (route.name === 'design') return <DesignScreen />;
   if (route.name === 'method' && route.id) return <MethodScreen key={route.id} id={route.id} />;
   /* ?line= opens it on one line — keyed on it, so a second line starts afresh */
   if (route.name === 'linePrograms') return <LineProgramsScreen key={route.query.get('line') ?? ''} />;

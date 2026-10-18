@@ -133,6 +133,11 @@ export interface Seeded {
   flowProjectId: string;
   /** A step of it that did not pass, "stage/step/machine". */
   flowFailedStep: string;
+  /** Faultline's SMED method (lib/flow/library) taken and approved, and a
+   *  project on it whose first timing is the line's seeded SMED — its
+   *  minutes read into the step and the measure. */
+  smedMethodId: string;
+  smedProjectId: string;
 }
 
 /* A CHANGEOVER'S EIGHT ELEMENTS, as lapped on the phone (SMED, tool 6): who
@@ -1097,8 +1102,31 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     return { methodId: m.value.id, methodDraftId: v2.value.id, flowProjectId: p.value.id, flowFailedStep: failed || `${commission.key}//` };
   })();
 
+  /* FAULTLINE'S SMED METHOD, RUN (the vision slice): taken from the library
+     and approved; a project on it whose first timing is answered by the
+     line's own SMED study — the record's minutes read by SMED's arithmetic
+     into the step and the measure (lib/flow/toolRead). The study itself is
+     untouched: a step points at it. */
+  const smedSeed = await (async () => {
+    const ops = await import('../lib/flow/operations');
+    const { libraryEntry } = await import('../lib/flow/library');
+    const { can } = await import('../lib/access');
+    const ctx = { who: 'Rowland', can: can('owner'), today: iso(0) };
+    const e = libraryEntry('changeover-reduction');
+    if (!e) throw new Error('no SMED method in the library');
+    const m = await ops.createMethod(ctx, { definition: e.build(), origin: 'library', changeNote: `From Faultline’s library: “${e.name}”` });
+    if (!m.ok) throw new Error(m.why);
+    await ops.approveMethod(ctx, m.value.id);
+    const p = await ops.startProject(ctx, { methodId: m.value.id, name: 'Express changeover — cut it', machines: [], startedOn: iso(-10) });
+    if (!p.ok) throw new Error(p.why);
+    const done = await ops.completeStep(ctx, { projectId: p.value.id, stageKey: 'record', stepKey: 'time-now' }, { studyId: changeoverId });
+    if (!done.ok) throw new Error(done.why);
+    return { smedMethodId: m.value.id, smedProjectId: p.value.id };
+  })();
+
   return {
     ...flowSeed,
+    ...smedSeed,
     wsId: ws.id, projectId: proj.id, standardId, lineStandardId: lineOnly, lineOnJobId: lineOnJob, lineId: line.id, caseId: kase.id,
     segmentId: seg.id, assetId: asset.id,
     observations: (await listObservations(ws.id)).length,

@@ -152,7 +152,7 @@ function placeOf(route: Route): string {
   switch (route.name) {
     case 'factory': case 'lineHome': case 'linePrograms': return 'Your factory';
     case 'lineTools': case 'studies': case 'study': case 'lineStandards': return 'Tools';
-    case 'home': case 'portfolio': case 'projects': case 'quickSnags': case 'methods': case 'method': return 'Control room';
+    case 'home': case 'portfolio': case 'projects': case 'quickSnags': case 'methods': case 'method': case 'design': return 'Control room';
     default: return route.wsId ? 'Your factory' : 'Control room';
   }
 }

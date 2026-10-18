@@ -115,7 +115,7 @@ export function hereOf(route: Route): string {
     case 'lineHome': return `line:${route.wsId}`;
     case 'factory': return 'factory';
     case 'linePrograms': return 'lineprograms';
-    case 'methods': case 'method': return 'methods';
+    case 'methods': case 'method': case 'design': return 'methods';
     case 'lineTools': return route.view === 'balance' ? 'linebalance' : route.view === 'work' ? 'linework' : 'linestandard';
     /* a line's own product — its map, its line balance (?at=work) or its
        Line capacity (?at=balance) — lights the tool it is, as the list does */

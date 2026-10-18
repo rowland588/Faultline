@@ -11,7 +11,7 @@ import { addDays, niceDay } from '../weeks';
 import type { LeanAction, LeanInsight, LeanPage, LeanTile, LeanTone } from '../lean';
 import type { GateTone } from '../install';
 import { KIND_WORD, type FlowDefinition } from './definition';
-import type { FlowProblem, FlowState, Outstanding, StageState, StepInstance, StepTone } from './runtime';
+import { measureNumber, type FlowProblem, type FlowState, type MeasureState, type Outstanding, type StageState, type StepInstance, type StepTone } from './runtime';
 import type { FlowRecord } from './records';
 
 /** The house's five, as a square or a word wears them. */
@@ -128,7 +128,10 @@ export function flowLean(v: FlowView, today: string): LeanPage {
   const week = doneThisWeek(v.records, today);
   const pct = c.steps ? Math.round((c.done / c.steps) * 100) : 0;
 
+  /* WHAT IT MEASURES first — the number the work has to move, now against its
+     target, and how far it has come since the first reading */
   const tiles: LeanTile[] = [
+    ...s.measures.slice(0, 3).map(measureTile),
     {
       k: 'Steps done', v: String(c.done), of: c.steps ? `of ${c.steps} · ${pct}%` : 'no steps yet',
       ...(week ? { change: { dir: 'up' as const, text: `${week} done this week`, better: true } } : {}),
@@ -145,6 +148,7 @@ export function flowLean(v: FlowView, today: string): LeanPage {
   ];
 
   const insights: LeanInsight[] = [{ text: s.verdict.text, tone: s.verdict.tone }];
+  for (const m of s.measures) if (m.now) insights.push({ text: m.says, tone: m.met === true ? 'g' : 'n' });
   const failed = s.outstanding.filter(o => o.failed);
   for (const o of failed.slice(0, 3)) insights.push({ text: `${o.what} — ${o.why}.`, tone: 'r' });
   if (failed.length > 3) insights.push({ text: `And ${many(failed.length - 3, 'more step')} that did not pass.`, tone: 'r' });
@@ -187,6 +191,22 @@ export function flowLean(v: FlowView, today: string): LeanPage {
     tiles, insights, actions,
     actionsEmpty: s.done ? 'Nothing outstanding — every gate is passed.' : 'Nothing outstanding on the stages open.',
     closing,
+  };
+}
+
+/** A measure as a tile: where it stands now, its target, and the change since its first reading. */
+export function measureTile(m: MeasureState): LeanTile {
+  const n = (v: number) => measureNumber(m.def, v);
+  const goal = m.def.target !== undefined ? `target ${m.def.better === 'lower' ? 'at most' : 'at least'} ${n(m.def.target)}` : '';
+  return {
+    k: m.def.name,
+    v: m.now ? n(m.now.value) : '—',
+    of: m.now ? [goal || 'no target set', m.met === true ? 'met' : m.met === false ? 'not met yet' : ''].filter(Boolean).join(' · ') : `not measured yet${goal ? ` · ${goal}` : ''}`,
+    ...(m.change !== undefined && m.before ? {
+      change: m.change === 0 ? { dir: 'same' as const, text: `no change since ${n(m.before.value)}` }
+        : { dir: m.change < 0 ? 'down' as const : 'up' as const, text: `${n(Math.abs(m.change))} since the first, ${n(m.before.value)}`, ...(m.improved !== undefined ? { better: m.improved } : {}) },
+    } : {}),
+    tone: m.met === true ? 'g' : 'n',
   };
 }
 

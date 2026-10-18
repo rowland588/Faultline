@@ -18,7 +18,11 @@
 import { useEffect, useRef, useState } from 'react';
 import type { DocRef } from '../../lib/testing';
 import type { MediaRef } from '../../types';
-import { getBlob, putBlob } from '../../db';
+import { getBlob, listStudies, listStudiesForLine, onDataChange, putBlob } from '../../db';
+import { nav } from '../../state/useRoute';
+import type { ToolStudy } from '../../lib/study';
+import { studySays, studyTitle } from '../../lib/studyLinks';
+import { componentOf } from '../../lib/flow/components';
 import { uid } from '../../lib/ids';
 import { niceDay } from '../../lib/weeks';
 import { deliverBlob } from '../../lib/savePdf';
@@ -77,6 +81,81 @@ function FieldBox({ f, value, worked, onSave, disabled }: {
     default:
       return <label className="fw-f" data-field={f.key}>{head}<Words value={typeof value === 'string' ? value : ''} label={f.label} disabled={disabled} onSave={v => onSave(v)} /></label>;
   }
+}
+
+/** A STEP DONE WITH ONE OF THE APP'S TOOLS — the tool's record attached and
+ *  read: its verdict and its figures, which the step's gate and the method's
+ *  measures read as boxes (lib/flow/toolRead). The tool's studies on the
+ *  project's lines, and the project's own, are offered newest first; one
+ *  not made yet is started in the tool itself, on the line, and attached
+ *  here when it is. */
+function ToolAnswer({ fp, inst, live, onAttach }: { fp: FlowProject; inst: StepInstance; live: boolean; onAttach: (studyId: string | undefined) => void }) {
+  const tool = componentOf(inst.def.component?.tool);
+  const [found, setFound] = useState<ToolStudy[] | null>(null);
+  const lines = fp.project.workspaceIds ?? [];
+  useEffect(() => {
+    if (!tool?.studyTool) return;
+    let alive = true;
+    const load = () => void Promise.all([listStudies(fp.project.id), ...lines.map(l => listStudiesForLine(l))]).then(all => {
+      if (!alive) return;
+      const seen = new Map<string, ToolStudy>();
+      for (const s of all.flat()) if (!s.deletedAt && s.tool === tool.studyTool) seen.set(s.id, s);
+      setFound([...seen.values()].sort((a, b) => b.startedAt - a.startedAt));
+    });
+    load();
+    const off = onDataChange(load);
+    return () => { alive = false; off(); };
+  }, [fp.project.id, tool?.studyTool, lines.join()]); // eslint-disable-line react-hooks/exhaustive-deps -- the lines by value
+  if (!tool) return null;
+  const studyId = inst.record?.studyId;
+  const open = () => nav(`${tool.listPath}${lines[0] ? `?line=${encodeURIComponent(lines[0])}` : ''}`);
+  if (!tool.studyTool) {
+    return (
+      <div className="fw-tool" data-tool={tool.id}>
+        <span className="field-label">Done with {tool.name}</span>
+        <p className="sub">{tool.gives}. Open it on the line, then say the step is done here.</p>
+        <button type="button" className="btn btn-sm" onClick={open}>Open {tool.name}</button>
+      </div>
+    );
+  }
+  return (
+    <div className="fw-tool" data-tool={tool.id}>
+      <span className="field-label">Answered by {tool.name}</span>
+      {inst.tool ? (
+        <div className="fw-tool-r">
+          <a href={`#${inst.tool.href ?? ''}`}><b>{inst.tool.name}</b></a>
+          <p className="sub">{inst.tool.verdict ? <b>{inst.tool.verdict}. </b> : null}{inst.tool.says}</p>
+          {tool.figures.some(f => inst.tool?.figures[f.key] !== undefined) && (
+            <ul className="fw-figs">
+              {tool.figures.filter(f => inst.tool?.figures[f.key] !== undefined).map(f => (
+                <li key={f.key} data-figure={f.key}><span className="sub">{f.label}</span> <b>{inst.tool?.figures[f.key]}{f.unit ? ` ${f.unit}` : ''}</b></li>
+              ))}
+            </ul>
+          )}
+          {live && <button type="button" className="btn btn-ghost btn-sm" onClick={() => onAttach(undefined)}>Take it off the step</button>}
+        </div>
+      ) : studyId ? (
+        <p className="sub">Its study has not reached this device yet — it will once this device has synced.</p>
+      ) : (
+        <>
+          <p className="sub">{tool.gives}. Attach the one that answers this step — its figures{tool.figures.length ? ` (${tool.figures.map(f => f.label.toLowerCase()).join(', ')})` : ''} come into the step.</p>
+          {found === null && <p className="sub">Looking…</p>}
+          {found && found.length === 0 && <p className="sub">No {tool.name} on {lines.length ? 'this project’s line' : 'this project'} yet.</p>}
+          {found && found.length > 0 && (
+            <ul className="fw-list fw-tool-list">
+              {found.slice(0, 8).map(s => (
+                <li key={s.id} className="fw-tool-c" data-study={s.id}>
+                  <span><b>{studyTitle(s)}</b> <span className="sub">· {studySays(s).verdict ?? ''}</span></span>
+                  {live && <button type="button" className="btn btn-sm" onClick={() => onAttach(s.id)}>Use this</button>}
+                </li>
+              ))}
+            </ul>
+          )}
+          {live && <button type="button" className="btn btn-sm btn-ghost" onClick={open}>Start a {tool.name} on the line</button>}
+        </>
+      )}
+    </div>
+  );
 }
 
 /** THE STEP — what it is, what it needs, and its answer. */
@@ -139,6 +218,8 @@ export function StepSheet({ fp, inst, ctx, onClose }: { fp: FlowProject; inst: S
               <Words value={rec?.who ?? ''} label="Who does it" placeholder={inst.who ?? 'a name'} onSave={v => void save({ who: v || undefined })} /></label>
           </div>
         )}
+
+        {step.component && <ToolAnswer fp={fp} inst={inst} live={live && !done} onAttach={id => void save({ studyId: id })} />}
 
         {(step.fields ?? []).map(f => (
           <FieldBox key={f.key} f={f} value={rec?.values?.[f.key]} worked={inst.values[f.key]} disabled={!live || done}

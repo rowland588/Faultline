@@ -11,7 +11,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
   | 'testing' | 'test' | 'trialCard' | 'fixes' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'machine' | 'standard' | 'notes' | 'clientReport'
   | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools' | 'studies' | 'study' | 'lineHome' | 'factory' | 'linePrograms'
-  | 'methods' | 'method';
+  | 'methods' | 'method' | 'design';
 
 export interface Route {
   name: RouteName;
@@ -84,6 +84,10 @@ export function parseRoute(hash: string): Route {
      library, /methods/:id one version of one — read, edited while a draft,
      approved, and started on a project from there. */
   if (segs[0] === 'methods') return segs[1] ? { name: 'method', id: decodeURIComponent(segs[1]), query } : { name: 'methods', query };
+  /* DESIGN A METHOD — describe what you need; shape it in conversation; keep
+     it (screens/DesignScreen). ?template= / ?from= / ?version= start it from
+     Faultline's library, from a method of your own, or as its next version. */
+  if (segs[0] === 'design') return { name: 'design', query };
   /* THE LINE TOOLS, beside the snags: every line standard and every line
      balance, on every line and job (screens/LineToolsScreen). */
   if (segs[0] === 'standards') return { name: 'lineTools', view: 'map', query };

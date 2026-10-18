@@ -6,7 +6,11 @@
  * where a method lives: written once — from the stage gate's usual lists,
  * from a stage-gate job as it was actually run, or from nothing — approved,
  * then started on project after project, each pinned to the version it
- * started on.
+ * started on. Faultline's own methods sit in the same library
+ * (lib/flow/library), each one to use as it is or adapt; a person's own are
+ * as much methods as those. And the way in for anything new is to say what
+ * is needed (screens/DesignScreen) — the library is where it can start
+ * from, never the limit of what can be made.
  *
  * WHICH RECORD: the Method (versioned; supabase/METHODS.sql). WHERE IT
  * SHOWS: here, the control room's rail (Methods), each project running one
@@ -20,6 +24,7 @@ import { planModel } from '../lib/planModel';
 import { KIND_WORD, allSteps } from '../lib/flow/definition';
 import { appStageGate, blankDefinition, definitionFromJob, stageGateDefinition } from '../lib/flow/templates';
 import { createMethod } from '../lib/flow/operations';
+import { LIBRARY, closeness } from '../lib/flow/library';
 import { useMethods, useOpContext } from '../lib/flow/useFlow';
 import type { Method } from '../lib/flow/records';
 import { Sheet, SheetRow } from '../ui/Sheet';
@@ -47,6 +52,7 @@ export function MethodsScreen() {
   const ctx = useOpContext(may ? 'owner' : 'client');
   const [adding, setAdding] = useState(false);
   const [fromJob, setFromJob] = useState(false);
+  const [find, setFind] = useState('');
   const [err, setErr] = useState<string | null>(null);
   const families = useMemo(() => familiesOf(methods ?? []), [methods]);
   const gateJobs = projects.filter(p => planModel(p) === 'commissioning');
@@ -60,6 +66,11 @@ export function MethodsScreen() {
   };
 
   if (!methods) return <div className="wrap fw"><p className="sub">Opening…</p></div>;
+  /* a word finds a method by its name, what it is for and its own words */
+  const words = find.trim().toLowerCase();
+  const hit = (m: { name: string; purpose: string; words?: readonly string[] }) => !words || `${m.name} ${m.purpose}`.toLowerCase().includes(words) || closeness(words, m) > 0;
+  const shownFamilies = families.filter(f => hit({ name: f.shown.definition.name, purpose: f.shown.definition.purpose }));
+  const shownLibrary = LIBRARY.filter(hit);
   const approved = families.filter(f => f.shown.status === 'active').length;
   const drafts = families.filter(f => f.shown.status === 'draft' || f.draft).length;
   const says = families.length
@@ -75,7 +86,8 @@ export function MethodsScreen() {
           <p className="pl-says">{says}</p>
         </div>
         <div className="pace-head-actions">
-          {may && <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}><Icon name="plus" size="1em" />New method</button>}
+          {may && <button type="button" className="btn btn-primary" onClick={() => nav('/design')}>Describe what you need</button>}
+          {may && <button type="button" className="btn" onClick={() => setAdding(true)}><Icon name="plus" size="1em" />New method by hand</button>}
         </div>
       </header>
       <p className="sub fw-why">
@@ -87,14 +99,21 @@ export function MethodsScreen() {
 
       {families.length === 0 && (
         <div className="fac-empty">
-          <p>Start from the stage gate you already use — its usual lists become the method — or from a stage-gate job as it was actually run, or from nothing.</p>
-          {may && <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>New method</button>}
+          <p>Say what you need and Faultline designs a method for it — or take one of Faultline’s below and adapt it, or write one by hand.</p>
+          {may && <button type="button" className="btn btn-primary" onClick={() => nav('/design')}>Describe what you need</button>}
         </div>
       )}
 
+      {(families.length > 0 || LIBRARY.length > 0) && (
+        <label className="fw-f fw-find"><span className="field-label">Find a method</span>
+          <input className="text-input fw-in" value={find} placeholder="a word — changeover, trial, commissioning…" aria-label="Find a method" onChange={e => setFind(e.target.value)} /></label>
+      )}
+
+      {families.length > 0 && <h2 className="ln-h fw-lib-h">Yours</h2>}
+      {families.length > 0 && shownFamilies.length === 0 && <p className="sub">None of yours match “{find}”.</p>}
       {families.length > 0 && (
         <ul className="fw-lib" aria-label="The methods">
-          {families.map(({ shown, versions, draft }) => {
+          {shownFamilies.map(({ shown, versions, draft }) => {
             const d = shown.definition;
             const steps = allSteps(d).length;
             const running = projects.filter(p => p.flow?.familyId === shown.familyId);
@@ -123,6 +142,29 @@ export function MethodsScreen() {
           })}
         </ul>
       )}
+
+      {/* FAULTLINE'S LIBRARY — methods built from the app's own tools and
+          measures, each used as it is (a draft of your own) or adapted */}
+      <h2 className="ln-h fw-lib-h">From Faultline’s library</h2>
+      <p className="sub">Each is a method like yours — taken, it is a copy in your library to change, approve and version. Adapting it asks what is different about your line, machine or customer.</p>
+      {shownLibrary.length === 0 && <p className="sub">Nothing in the library matches “{find}” — <a href="#/design">describe what you need</a> instead.</p>}
+      <ul className="fw-lib" aria-label="Faultline’s library">
+        {shownLibrary.map(e => (
+          <li key={e.id} className="fw-card is-library" data-library={e.id}>
+            <div className="fw-card-b">
+              <span className="fw-card-h"><b className="fw-card-t">{e.name}</b><span className="fw-chip">From Faultline</span></span>
+              <span className="fw-card-p">{e.purpose}</span>
+              {e.uses.length > 0 && <span className="fw-card-m">Uses {e.uses.join(', ')}</span>}
+              {may && (
+                <span className="fw-acts">
+                  <button type="button" className="btn btn-sm btn-primary" onClick={() => nav(`/design?template=${e.id}`)}>Adapt it</button>
+                  <button type="button" className="btn btn-sm" onClick={() => void make(e.build(), 'library', `From Faultline’s library: “${e.name}”`)}>Use it as it is</button>
+                </span>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
 
       <Sheet open={adding} onClose={() => { setAdding(false); setFromJob(false); }} title={fromJob ? 'From a stage-gate job' : 'A new method — start from'}>
         {!fromJob ? (

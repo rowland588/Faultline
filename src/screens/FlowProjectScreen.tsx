@@ -13,10 +13,17 @@
  * A step or a gate opens in a sheet over the page (ui/flow/RunParts). The
  * route carries the stage (?view=stage-<key>) so the phone's Back walks out
  * of it, and a step (?step=<stage>/<step>/<machine>) so a row in the control
- * room opens it. */
+ * room opens it.
+ *
+ * When a later version of its method is approved, the page says so under
+ * the band and what moving would do is one tap away (ui/flow/ChangeParts
+ * MoveSheet) — the project stays on its version until its owner moves it.
+ * Under the closing line, Ask: a question answered from the project's own
+ * facts, each sentence saying how it is known (lib/flow/ground; the
+ * assistant, when on, for what the app cannot answer itself). */
 import { useEffect, useMemo, useState } from 'react';
 import { useRoute, withQuery } from '../state/useRoute';
-import { listActivity, listAssets, onDataChange, putAsset } from '../db';
+import { listActivity, listAssets, methodFamily, onDataChange, putAsset } from '../db';
 import { useAccess } from '../cloud/access';
 import { accessLine } from '../lib/access';
 import { uid, now } from '../lib/ids';
@@ -25,11 +32,12 @@ import { fmtRelative } from '../lib/format';
 import { setPeople } from '../lib/flow/operations';
 import { useFlowProject, useOpContext } from '../lib/flow/useFlow';
 import { flowLean, stageSquare, stageWord, stepSquare, stepWhy, stepWord } from '../lib/flow/view';
-import type { ActivityEntry } from '../lib/flow/records';
-import type { StageState, StepInstance } from '../lib/flow/runtime';
+import type { ActivityEntry, Method } from '../lib/flow/records';
+import { measureNumber, type StageState, type StepInstance } from '../lib/flow/runtime';
 import { LeanActions, LeanBand, LeanClosing, LeanInsights, LeanPanel, LeanTiles } from '../ui/Lean';
 import { GateSheet, StepSheet } from '../ui/flow/RunParts';
 import { Words } from '../ui/flow/MethodParts';
+import { AskPanel, MoveSheet } from '../ui/flow/ChangeParts';
 import { Icon } from '../ui/Icon';
 
 function useActivity(projectId: string): ActivityEntry[] {
@@ -42,6 +50,20 @@ function useActivity(projectId: string): ActivityEntry[] {
     return () => { live = false; off(); };
   }, [projectId]);
   return log;
+}
+
+/** The approved version of a method's family, read as it changes. */
+function useApproved(familyId: string | undefined): Method | undefined {
+  const [m, setM] = useState<Method | undefined>(undefined);
+  useEffect(() => {
+    if (!familyId) return;
+    let live = true;
+    const load = () => void methodFamily(familyId).then(f => { if (live) setM(f.find(x => x.status === 'active')); });
+    load();
+    const off = onDataChange(load);
+    return () => { live = false; off(); };
+  }, [familyId]);
+  return m;
 }
 
 function StepRow({ s, onOpen, machineShown }: { s: StepInstance; onOpen: () => void; machineShown?: boolean }) {
@@ -68,6 +90,9 @@ export function FlowProjectScreen({ projectId }: { projectId: string }) {
   const [gateOpen, setGateOpen] = useState<string | null>(null);
   const [printing, setPrinting] = useState(false);
   const [adding, setAdding] = useState('');
+  /* the version being moved onto, kept while the sheet says what happened */
+  const [moving, setMoving] = useState<Method | null>(null);
+  const approved = useApproved(fp?.method.familyId);
   const today = todayISO();
   const page = useMemo(() => (fp ? flowLean({
     project: fp.project, def: fp.method.definition, version: fp.method.version, startedOn: fp.project.flow?.startedOn,
@@ -95,6 +120,7 @@ export function FlowProjectScreen({ projectId }: { projectId: string }) {
   const roles = fp.method.definition.roles;
   const people = fp.project.flow?.people ?? {};
   const lineOf = accessLine(can, fp.project.lead ?? '');
+  const newer = approved && approved.version > fp.method.version ? approved : undefined;
 
   const print = async () => {
     if (printing) return;
@@ -121,6 +147,13 @@ export function FlowProjectScreen({ projectId }: { projectId: string }) {
         </div>
       </LeanBand>
       {lineOf && <p className="sub">{lineOf}</p>}
+      {newer && (
+        <p className="fw-state is-n fw-newer" data-newer={newer.version}>
+          <b>Version {newer.version} of the method is approved — this project runs version {fp.method.version}.</b>{' '}
+          Its work stays as it is until {ctx.can.agree ? 'you move it' : 'its owner moves it'}.{' '}
+          <button type="button" className="btn btn-sm" onClick={() => setMoving(newer)}>See what moving would do</button>
+        </p>
+      )}
       <LeanTiles tiles={page.tiles} />
 
       {/* THE STAGES, IN ORDER — each in its colour with its word */}
@@ -155,6 +188,22 @@ export function FlowProjectScreen({ projectId }: { projectId: string }) {
         </LeanPanel>
       )}
 
+      {/* WHAT IT MEASURES — each number before → now, against its target, every reading */}
+      {s.measures.length > 0 && (
+        <LeanPanel title="What it measures" className="fw-measured">
+          <ul className="fw-list">
+            {s.measures.map(m => (
+              <li key={m.def.key} data-measure={m.def.key} className={m.met === true ? 'is-g' : ''}>
+                <b>{m.says}</b>
+                {m.readings.length > 0 && (
+                  <span className="sub"> Readings: {m.readings.map(r => `${measureNumber(m.def, r.value)} — ${r.step}${r.machine ? `, ${r.machine}` : ''}${r.on ? `, ${niceDay(r.on)}` : ''}`).join(' · ')}.</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </LeanPanel>
+      )}
+
       <LeanPanel title="What it means"><LeanInsights insights={page.insights} /></LeanPanel>
       <LeanPanel title="The action plan">
         <LeanActions actions={page.actions} empty={page.actionsEmpty} onOpen={a => {
@@ -162,6 +211,8 @@ export function FlowProjectScreen({ projectId }: { projectId: string }) {
         }} />
       </LeanPanel>
       <LeanClosing closing={page.closing} />
+
+      <LeanPanel title="Ask about it"><AskPanel fp={fp} /></LeanPanel>
 
       <LeanPanel title="Who does what">
         {roles.length === 0 ? <p className="sub">The method names no roles.</p> : (
@@ -218,6 +269,7 @@ export function FlowProjectScreen({ projectId }: { projectId: string }) {
 
       {opened && <StepSheet fp={fp} inst={opened} ctx={ctx} onClose={() => withQuery('step', null, true)} />}
       {gateStage && <GateSheet fp={fp} stage={gateStage} ctx={ctx} onClose={() => setGateOpen(null)} />}
+      {moving && <MoveSheet projectId={fp.project.id} projectName={fp.project.name} to={moving} ctx={ctx} onClose={() => setMoving(null)} />}
     </div>
   );
 }

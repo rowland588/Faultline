@@ -209,6 +209,13 @@ export function ProjectsScreen() {
               name and the lead come once that is said. */}
           <div className="proj-model">
             <span className="field-label">{startLine ? `What are you trying to do on ${startLine.name}?` : 'What are you trying to do?'}</span>
+            {/* NONE OF THESE — the work is said in a person's own words and
+                Faultline designs its method, from its library or from nothing
+                (screens/DesignScreen); the three below are not the limit */}
+            <p className="proj-describe">
+              <span>Something else, or not sure which? Say what you need and Faultline designs the method for it — or adapts one from its library.</span>
+              <button type="button" className="btn btn-sm" onClick={() => nav('/design')}>Describe what you need ›</button>
+            </p>
             <div className="proj-model-grid">
               {MODELS.map(m => (
                 <button key={m.id} type="button" aria-pressed={model === m.id}

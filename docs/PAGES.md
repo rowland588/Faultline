@@ -77,10 +77,14 @@ So:
 | Loss count | the waterfall drawn · what it says · the band, the five tiles, the top causes, the action plan, the closing line (17 October: the lean page, docs/LEAN-PAGE.md — the tiles took the strip's place, every figure it held among them) |
 | Work sampling | the band · the five tiles, in the strip's place — taps, people, the biggest share not the work, what it costs a shift (that share × the shift × one person's rate from Your factory), the next moment · the round · the action plan · the closing line (17 October, slice 6) |
 | Capability study | the band with the verdict · the tiles, in the strip's place — readings of those agreed, the mean and range, outside, Ppk with Cpk · the readings drawn · the action plan · the closing line (17 October, slice 6) |
-| Methods | a card a method (18 October, the platform's slice 3: methods of one's own, written, approved and run — docs/PLATFORM-STATUS.md) |
-| A method | its stages, a step a line in words · what each gate needs · the projects on it |
+| Methods | a card a method (18 October, the platform's slice 3: methods of one's own, written, approved and run — docs/PLATFORM-STATUS.md) · Describe what you need — the studio (18 October, the vision slice) · Faultline's library, five methods, each to adapt or use as it is · find a method by a word |
+| Design a method | what you need, in your words · the library to start from, closest to the words (the vision slice — Rowland, 18 October: "The user describes what they want. Faultline helps design it") |
+| Design a method — from Faultline's SMED method | the conversation · the method as it stands, its four stages · what it measures, before and after · Approve it and start a project |
+| A method from Faultline's library | a step done with one of the app's tools · what it measures |
+| A project on SMED's method | the measure, the first tile · what it measures — before → now, its readings |
+| A method | its stages, a step a line in words · what each gate needs · the projects on it · Change it with the assistant — the next version proposed, every change said in a line (slice 5) |
 | A method — a draft | can it run? — the validator's words, what to put right before Approve |
-| A project on a method | the band · the five tiles — steps done, gates passed, late, did not pass, problems open · its stages in a strip, each in its colour and word · the stage's steps, machine by machine · its gate in a line · the action plan · the closing line · its stages in the rail (desk) |
+| A project on a method | the band · the five tiles — steps done, gates passed, late, did not pass, problems open · its stages in a strip, each in its colour and word · the stage's steps, machine by machine · its gate in a line · the action plan · the closing line · its stages in the rail (desk) · Ask about it — the four questions the app answers itself, the rest by the assistant from the project's facts, each sentence saying how it is known (slice 5) · what has happened — its activity log |
 
 The paper is held the same way by `scripts/report-stress.mjs` (every fact on
 every report, at three sizes and forty random jobs) and the acceptance scripts.

@@ -10,8 +10,8 @@
  * every problem is said in words a person can act on ("Stage 3, step 2 has
  * no title"), because the review screen shows them. */
 import {
-  ANSWERS, CONDITIONS, FIELD_TYPES, FLOW_SCHEMA, KEY_RE, LIMITS,
-  type FlowAnswer, type FlowCondition, type FlowDefinition, type FlowField, type FlowRole,
+  ANSWERS, CONDITIONS, FIELD_TYPES, FLOW_SCHEMA, KEY_RE, LIMITS, numbersOf,
+  type FlowAnswer, type FlowCondition, type FlowDefinition, type FlowField, type FlowMeasure, type FlowRole,
   type FlowStage, type FlowStepDef, type FieldType,
 } from './definition';
 import { FormulaError, formulaRefs, parseFormula } from './formula';
@@ -108,9 +108,6 @@ export function validateDefinition(input: unknown): Checked {
       if (role && !roleKeys.has(role)) err(`${tp}.role`, `${twhere} (${title}) is given to a role that is not on the method: "${role}".`);
 
       const fields = readFields(t.fields, tp, `${twhere} (${title || tkey})`, err);
-      if (answer === 'measure' && !fields.some(f => f.type === 'reading' || f.type === 'number' || f.type === 'calc')) {
-        err(`${tp}.fields`, `${twhere} (${title}) is measured but has no number to measure.`);
-      }
       if (answer === 'form' && !fields.length) warn(`${tp}.fields`, `${twhere} (${title}) is a form with no fields — it will read as a tick.`);
 
       const ev = isObj(t.evidence) ? t.evidence : {};
@@ -127,6 +124,10 @@ export function validateDefinition(input: unknown): Checked {
         const tool = str(t.component.tool, 40);
         if (!componentOf(tool)) err(`${tp}.component`, `${twhere} (${title}) uses a tool the app does not have: "${tool}".`);
         else component = { tool, ...maybe('note', optStr(t.component.note)) };
+      }
+      /* measured: a box with a number, or a tool that fills one */
+      if (answer === 'measure' && !numbersOf({ fields, ...(component ? { component } : {}) } as FlowStepDef).length) {
+        err(`${tp}.fields`, `${twhere} (${title}) is measured but has no number to measure.`);
       }
 
       const step: FlowStepDef = {
@@ -162,6 +163,33 @@ export function validateDefinition(input: unknown): Checked {
   }
   const cyc = findCycle(stepIndex);
   if (cyc) err('after', `These steps wait on each other in a circle: ${cyc.map(k => `"${stepIndex.get(k)?.step.title ?? k}"`).join(' → ')}.`);
+
+  /* ---- what it measures: each fed by numbers the method really has ---- */
+  const measures: FlowMeasure[] = [];
+  const rawMeasures = arr(input.measures);
+  if (rawMeasures.length > LIMITS.measures) err('measures', `A method may have at most ${LIMITS.measures} measures.`);
+  rawMeasures.slice(0, LIMITS.measures).forEach((m, mi) => {
+    const mp = `measures[${mi}]`;
+    if (!isObj(m)) { err(mp, `Measure ${ordinal(mi)} is not readable.`); return; }
+    const key = str(m.key, 40), mname = str(m.name);
+    const mw = `The measure ${mname ? `“${mname}”` : ordinal(mi)}`;
+    if (!KEY_RE.test(key)) { err(`${mp}.key`, `${mw} needs a short key of lower-case letters and numbers.`); return; }
+    if (measures.some(x => x.key === key)) { err(`${mp}.key`, `Two measures share the key "${key}".`); return; }
+    if (!mname) err(`${mp}.name`, `Measure "${key}" has no name.`);
+    const better = m.better === 'lower' ? 'lower' : 'higher';
+    const target = num(m.target);
+    const from: FlowMeasure['from'] = [];
+    for (const f of arr(m.from).slice(0, 20)) {
+      if (!isObj(f)) continue;
+      const sk = str(f.step, 40), fk = str(f.field, 40);
+      const st = stepIndex.get(sk)?.step;
+      if (!st) { err(`${mp}.from`, `${mw} is fed by a step that is not on the method: "${sk}".`); continue; }
+      if (!numbersOf(st).some(x => x.key === fk)) { err(`${mp}.from`, `${mw} is fed by "${fk}", which is not a number on “${st.title}”.`); continue; }
+      if (!from.some(x => x.step === sk && x.field === fk)) from.push({ step: sk, field: fk });
+    }
+    if (!from.length) err(`${mp}.from`, `${mw} is not fed by any step — say which step's number it reads.`);
+    measures.push({ key, name: mname, better, from, ...maybe('unit', optStr(m.unit, 40)), ...maybe('target', target) });
+  });
 
   /* ---- gates ---- */
   rawStages.slice(0, LIMITS.stages).forEach((s, si) => {
@@ -218,10 +246,19 @@ export function validateDefinition(input: unknown): Checked {
           if (value === undefined) err(`${cp}.value`, `${cw} has no number to meet.`);
           if (op === 'between' && value2 === undefined) err(`${cp}.value2`, `${cw} needs a second number for "between".`);
           const fkey = str(c.field, 40);
-          const field = st?.fields?.find(f => f.key === fkey);
+          /* a box typed on the step, or a figure its tool fills (lib/flow/components) */
+          const field = st ? numbersOf(st).find(f => f.key === fkey) ?? st.fields?.find(f => f.key === fkey) : undefined;
           if (st && !field) err(`${cp}.field`, `${cw} reads a field "${fkey}" that "${st.title}" does not have.`);
           else if (field && !['number', 'reading', 'calc'].includes(field.type)) err(`${cp}.field`, `${cw} compares "${field.label}", which is not a number.`);
           if (st && field && value !== undefined) cond = { ...base, type: 'fieldMeets', step: st.key, field: field.key, op, value, ...(op === 'between' && value2 !== undefined ? { value2 } : {}) };
+          break;
+        }
+        case 'measureMet': {
+          const mk = str(c.measure, 40);
+          const m = measures.find(x => x.key === mk);
+          if (!m) err(`${cp}.measure`, `${cw} needs a measure that is not on the method: "${mk}".`);
+          else if (m.target === undefined) err(`${cp}.measure`, `${cw} needs “${m.name}” to meet its target, and it has none — give the measure a target.`);
+          else cond = { ...base, type: 'measureMet', measure: m.key };
           break;
         }
         case 'noOpenProblems':
@@ -248,7 +285,7 @@ export function validateDefinition(input: unknown): Checked {
   });
 
   if (!roles.length) warn('roles', 'No roles are named — nobody will be asked to do anything by name.');
-  const def: FlowDefinition = { schema: FLOW_SCHEMA, name, purpose, kind, roles, stages };
+  const def: FlowDefinition = { schema: FLOW_SCHEMA, name, purpose, kind, roles, stages, ...(measures.length ? { measures } : {}) };
   return errors.length ? { ok: false, errors, warnings } : { ok: true, def, errors, warnings };
 }
 

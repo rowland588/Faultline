@@ -8,6 +8,13 @@
  * words, what still stops it running; Approve is offered only when nothing
  * does. An approved version is never edited — "Change it" makes the next
  * version as a draft, and the projects on this one keep running on it.
+ * "Change it with the assistant" opens the design studio on this method
+ * (screens/DesignScreen ?version=) — every change said before it is kept;
+ * "Adapt it into a new method" opens it as the start of another (?from=);
+ * "Make a copy" makes one at once. What it measures — each number with a
+ * before and an after, read from its steps — is written here too. A
+ * project on an older version is moved from here or its own page, only
+ * after what moving does has been said.
  *
  * WHICH RECORD: the Method and its family (versions). WHERE IT SHOWS: the
  * library (screens/MethodsScreen), each project running it (its rail, its
@@ -21,10 +28,13 @@ import { niceDay, todayISO } from '../lib/weeks';
 import { fmtRelative } from '../lib/format';
 import { KIND_WORD, allSteps, fieldKeyOf, keyOf, rekeyField, rekeyStep, type FlowDefinition } from '../lib/flow/definition';
 import { validateDefinition } from '../lib/flow/validate';
-import { approveMethod, deleteDraft, draftNewVersion, saveDraft, startProject } from '../lib/flow/operations';
+import { approveMethod, copyMethod, deleteDraft, draftNewVersion, saveDraft, startProject } from '../lib/flow/operations';
 import { useOpContext } from '../lib/flow/useFlow';
 import type { ActivityEntry, Method } from '../lib/flow/records';
-import { ConditionEditor, StepEditor, Words, conditionSaid, stepSaid } from '../ui/flow/MethodParts';
+import { ConditionEditor, MeasureEditor, StepEditor, Words, conditionSaid, measureSaid, stepSaid } from '../ui/flow/MethodParts';
+import { MoveSheet } from '../ui/flow/ChangeParts';
+import { useRoute } from '../state/useRoute';
+import { useFactoryLines } from '../lib/useFactoryLines';
 import { Sheet } from '../ui/Sheet';
 import { Icon } from '../ui/Icon';
 import { offerUndo } from '../ui/Undo';
@@ -72,7 +82,11 @@ export function MethodScreen({ id }: { id: string }) {
   }, [m]);
   const [editing, setEditing] = useState<{ stage: number; step: string } | null>(null);
   const [cond, setCond] = useState<{ stage: number; id?: string } | null>(null);
-  const [starting, setStarting] = useState(false);
+  const route = useRoute();
+  /* ?start=1: approved in the design studio — straight on to starting a project */
+  const [starting, setStarting] = useState(() => route.query.get('start') === '1');
+  const [moving, setMoving] = useState<{ id: string; name: string } | null>(null);
+  const [measuring, setMeasuring] = useState<{ key?: string } | null>(null);
   const [said, setSaid] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -118,6 +132,13 @@ export function MethodScreen({ id }: { id: string }) {
     if (!r.ok) { setErr(r.why); return; }
     nav(`/methods/${r.value.id}`);
   };
+  const copy = async () => {
+    setErr(null);
+    await chain.current;
+    const r = await copyMethod(ctx, m.id);
+    if (!r.ok) { setErr(r.why); return; }
+    nav(`/methods/${r.value.id}`);
+  };
   const remove = async () => {
     if (!confirm(`Delete the draft of “${def.name}” (version ${m.version})?`)) return;
     await chain.current;
@@ -151,6 +172,9 @@ export function MethodScreen({ id }: { id: string }) {
         <div className="pace-head-actions">
           {m.status === 'active' && ctx.can.agree && <button type="button" className="btn btn-primary" onClick={() => setStarting(true)}>Start a project on it</button>}
           {m.status === 'active' && ctx.can.agree && <button type="button" className="btn" onClick={() => void newVersion()}>{openDraft ? `Open the draft (v${openDraft.version})` : 'Change it — a new version'}</button>}
+          {m.status === 'active' && ctx.can.agree && <button type="button" className="btn" onClick={() => nav(`/design?version=${m.id}`)}>Change it with the assistant</button>}
+          {ctx.can.agree && <button type="button" className="btn btn-ghost" onClick={() => nav(`/design?from=${m.id}`)}>Adapt it into a new method</button>}
+          {ctx.can.agree && <button type="button" className="btn btn-ghost" onClick={() => void copy()}>Make a copy</button>}
           {m.status === 'retired' && active && <button type="button" className="btn" onClick={() => nav(`/methods/${active.id}`)}>Version {active.version}, in use ›</button>}
           {edit && <button type="button" className="btn btn-primary" disabled={!checked?.ok} onClick={() => void approve()}>Approve version {m.version}</button>}
           {edit && <button type="button" className="btn btn-ghost" onClick={() => void remove()}>Delete the draft</button>}
@@ -169,6 +193,9 @@ export function MethodScreen({ id }: { id: string }) {
         </nav>
       )}
       {m.changeNote && <p className="sub">What changed in this version: {m.changeNote}</p>}
+      {m.origin === 'assistant' && draft && (
+        <p className="fw-state is-a fw-prop-note"><b>Proposed by the assistant — read every step before you approve it.</b> It is a draft like any other: change anything here; it runs only when you approve it.</p>
+      )}
 
       {/* WHAT STOPS IT RUNNING — the validator's words, while it is a draft */}
       {draft && checked && (
@@ -191,6 +218,21 @@ export function MethodScreen({ id }: { id: string }) {
             </select></label>
         )}
         <p className="sub">{def.stages.length} stage{def.stages.length === 1 ? '' : 's'} · {steps.length} step{steps.length === 1 ? '' : 's'} · {steps.filter(s => s.step.per === 'machine').length} done on every machine</p>
+      </section>
+
+      {/* WHAT IT MEASURES — each number with a before and an after, read from its steps */}
+      <section className="ln-panel" aria-label="What it measures">
+        <h2 className="ln-h">What it measures</h2>
+        {(def.measures ?? []).length === 0 && <p className="sub">Nothing yet{edit ? ' — add the number the work has to move (changeover minutes, packs a shift, Cpk); it is read from a step’s box or a tool’s figure, first reading the before, latest the after.' : '.'}</p>}
+        <ul className="fw-list fw-measures">
+          {(def.measures ?? []).map(x => (
+            <li key={x.key} data-measure={x.key}>
+              {edit ? <button type="button" className="fw-step-b" onClick={() => setMeasuring({ key: x.key })}><b>{x.name}</b><span className="sub">{measureSaid(def, x)}</span></button>
+                : <><b>{x.name}</b> <span className="sub">· {measureSaid(def, x)}</span></>}
+            </li>
+          ))}
+        </ul>
+        {edit && <button type="button" className="btn btn-sm" onClick={() => setMeasuring({})}>Add a measure</button>}
       </section>
 
       <section className="ln-panel" aria-label="Who does what">
@@ -290,7 +332,11 @@ export function MethodScreen({ id }: { id: string }) {
         {running.length === 0
           ? <p className="sub">None yet{m.status === 'active' ? ' — start one from the top of the page.' : '.'}</p>
           : <ul className="fw-list">{running.map(p => (
-            <li key={p.id}><a href={`#/project/${p.id}`}>{p.name}</a> <span className="sub">· on version {p.flow?.version}{p.flow?.startedOn ? ` · started ${niceDay(p.flow.startedOn)}` : ''}</span></li>
+            <li key={p.id}><a href={`#/project/${p.id}`}>{p.name}</a> <span className="sub">· on version {p.flow?.version}{p.flow?.startedOn ? ` · started ${niceDay(p.flow.startedOn)}` : ''}</span>
+              {active && p.flow && p.flow.version < active.version && ctx.can.agree && (
+                <> <button type="button" className="btn btn-sm" onClick={() => setMoving({ id: p.id, name: p.name })}>Move to version {active.version}</button></>
+              )}
+            </li>
           ))}</ul>}
       </section>
 
@@ -359,6 +405,21 @@ export function MethodScreen({ id }: { id: string }) {
           {...(editingCond ? { onRemove: () => change(d => { d.stages[cond.stage].gate.conditions = d.stages[cond.stage].gate.conditions.filter(x => x.id !== editingCond.id); }) } : {})} />
       )}
       {starting && <StartSheet method={m} onClose={() => setStarting(false)} ctx={ctx} />}
+      {measuring && (
+        <MeasureEditor open def={def} {...(measuring.key ? { measure: def.measures?.find(x => x.key === measuring.key) } : {})} onClose={() => setMeasuring(null)}
+          onSave={x => change(d => {
+            const list = d.measures ?? [];
+            const i = list.findIndex(y => y.key === (measuring.key ?? x.key));
+            if (i >= 0) list[i] = x; else list.push(x);
+            d.measures = list;
+          })}
+          {...(measuring.key ? { onRemove: () => change(d => {
+            d.measures = (d.measures ?? []).filter(y => y.key !== measuring.key);
+            if (!d.measures.length) delete d.measures;
+            for (const st of d.stages) st.gate.conditions = st.gate.conditions.filter(c => !(c.type === 'measureMet' && c.measure === measuring.key));
+          }) } : {})} />
+      )}
+      {moving && active && <MoveSheet projectId={moving.id} projectName={moving.name} to={active} ctx={ctx} onClose={() => setMoving(null)} />}
     </div>
   );
 }
@@ -372,12 +433,15 @@ function StartSheet({ method, onClose, ctx }: { method: Method; onClose: () => v
   const [machines, setMachines] = useState('');
   const [startedOn, setStartedOn] = useState(todayISO());
   const [people, setPeople] = useState<Record<string, string>>({});
+  const lines = useFactoryLines();
+  const usesTools = def.stages.some(s => s.steps.some(t => t.component));
+  const [lineId, setLineId] = useState('');
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const go = async () => {
     setErr(null); setBusy(true);
     const r = await startProject(ctx, {
-      methodId: method.id, name: name.trim() || def.name, machines: machines.split('\n'), startedOn, people,
+      methodId: method.id, name: name.trim() || def.name, machines: machines.split('\n'), startedOn, people, ...(lineId ? { lineId } : {}),
     });
     setBusy(false);
     if (!r.ok) { setErr(r.why); return; }
@@ -391,6 +455,13 @@ function StartSheet({ method, onClose, ctx }: { method: Method; onClose: () => v
           <input className="text-input fw-in" autoFocus value={name} maxLength={120} placeholder={`e.g. Line 7 — ${def.name}`} aria-label="The project's name" onChange={e => setName(e.target.value)} /></label>
         <label className="fw-f"><span className="field-label">The machines it runs on — one a line{perMachine ? '' : ' (none needed: every step is once for the job)'}</span>
           <textarea className="text-input fw-in" rows={4} value={machines} aria-label="The machines, one a line" placeholder={'Tray sealer\nCase packer'} onChange={e => setMachines(e.target.value)} /></label>
+        {lines.length > 0 && (
+          <label className="fw-f"><span className="field-label">On which line{usesTools ? ' — its tools’ studies are made and found there' : ''}</span>
+            <select className="text-input fw-in" value={lineId} aria-label="On which line" onChange={e => setLineId(e.target.value)}>
+              <option value="">No line</option>
+              {lines.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </select></label>
+        )}
         <label className="fw-f"><span className="field-label">It starts</span>
           <input className="text-input fw-in" type="date" value={startedOn} aria-label="The day it starts" onChange={e => setStartedOn(e.target.value || todayISO())} /></label>
         {def.roles.length > 0 && (

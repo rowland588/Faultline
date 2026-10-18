@@ -16,13 +16,32 @@
  * square; a step that ran without its answer complete is asked about, not
  * filed as planned. */
 import { addDays, niceDay } from '../weeks';
-import { allSteps, isTest, roleName, type FlowCondition, type FlowDefinition, type FlowField, type FlowStage, type FlowStepDef } from './definition';
+import { allSteps, isTest, numbersOf, roleName, type FlowCondition, type FlowDefinition, type FlowField, type FlowMeasure, type FlowStage, type FlowStepDef } from './definition';
+import { componentOf } from './components';
 import { calc } from './formula';
 import type { FlowRecord } from './records';
 import type { GateTone } from '../install';
 
 export interface FlowMachine { id: string; name: string }
 export interface FlowProblem { id?: string; title?: string; open: boolean; priority?: 'critical' | 'high' | 'low' }
+
+/** WHAT A TOOL'S RECORD SAYS, read for a step it answers (lib/flow/toolRead
+ *  reads it from the study with the tool's own module; the runtime only
+ *  carries it). */
+export interface ToolReading {
+  tool: string;
+  /** The study's own name and title, as the tool says it. */
+  name: string;
+  /** The tool's sentence and its one-word verdict. */
+  says: string;
+  verdict?: string;
+  /** Enough recorded for its figures to stand. */
+  enough: boolean;
+  /** Its figures, by the keys lib/flow/components gives them. */
+  figures: Record<string, number>;
+  /** Where it opens. */
+  href?: string;
+}
 
 export interface FlowInputs {
   def: FlowDefinition;
@@ -34,6 +53,8 @@ export interface FlowInputs {
   /** Who does each role on this project. */
   people?: Record<string, string>;
   problems?: readonly FlowProblem[];
+  /** The tool records the steps point at, read — by study id. */
+  tools?: Readonly<Record<string, ToolReading>>;
 }
 
 export type StepTone = 'done' | 'failed' | 'problem' | 'late' | 'asking' | 'going' | 'ahead';
@@ -61,6 +82,26 @@ export interface StepInstance {
   blockedBy: string[];
   /** Who it is for — the person given the role, or the role's name. */
   who?: string;
+  /** A tool step: what its attached record says. */
+  tool?: ToolReading;
+}
+
+/** One reading of a measure: a number recorded on one of the steps that feed it. */
+export interface MeasureReading { value: number; on?: string; at: number; step: string; machine?: string }
+
+/** WHERE A MEASURE STANDS — the first reading is the before, the latest is now. */
+export interface MeasureState {
+  def: FlowMeasure;
+  readings: MeasureReading[];
+  before?: MeasureReading;
+  now?: MeasureReading;
+  /** Now meets the target, the way that is better. Absent with no target or no reading. */
+  met?: boolean;
+  /** now − before, when there are two readings. */
+  change?: number;
+  /** The change is the better way. */
+  improved?: boolean;
+  says: string;
 }
 
 export interface ConditionState {
@@ -132,6 +173,8 @@ export interface FlowState {
   done: boolean;
   counts: { steps: number; done: number; late: number; failed: number; asking: number; gatesPassed: number; gates: number };
   verdict: { text: string; tone: 'r' | 'a' | 'g' | 'n' };
+  /** What the work has to move, each before → now against its target. */
+  measures: MeasureState[];
 }
 
 const live = <T extends { deletedAt?: number }>(xs: readonly T[]): T[] => xs.filter(x => !x.deletedAt);
@@ -180,8 +223,9 @@ export function limitsBroken(step: FlowStepDef, values: Record<string, string | 
   return out;
 }
 
-/** What a step still needs before it is complete. */
-export function missingOf(def: FlowDefinition, step: FlowStepDef, rec: FlowRecord | undefined, values: Record<string, string | number | boolean>, people?: Record<string, string>): string[] {
+/** What a step still needs before it is complete. `tool`: what its attached
+ *  record says, when it is on this device. */
+export function missingOf(def: FlowDefinition, step: FlowStepDef, rec: FlowRecord | undefined, values: Record<string, string | number | boolean>, people?: Record<string, string>, tool?: ToolReading): string[] {
   const out: string[] = [];
   for (const f of step.fields ?? []) {
     if (f.required && f.type !== 'calc' && !filled(values[f.key])) out.push(f.label);
@@ -202,7 +246,14 @@ export function missingOf(def: FlowDefinition, step: FlowStepDef, rec: FlowRecor
     const by = (step.role && people?.[step.role]) || roleName(def, step.role);
     out.push(by ? `${by}'s sign-off` : 'a sign-off');
   }
-  if (step.component && !rec?.studyId) out.push(`its ${componentWord(step.component.tool)}`);
+  /* a tool step is answered by that tool's record — attached, and far enough
+     on for its figures to stand; Line capacity (no study) is ticked by hand */
+  if (step.component && componentOf(step.component.tool)?.studyTool) {
+    const word = componentWord(step.component.tool);
+    if (!rec?.studyId) out.push(`its ${word}`);
+    else if (!tool) out.push(`its ${word} (not on this device yet)`);
+    else if (!tool.enough) out.push(`its ${word} finished — ${tool.verdict ?? 'not enough recorded yet'}`);
+  }
   return out;
 }
 
@@ -263,9 +314,11 @@ export function readFlow(x: FlowInputs): FlowState {
     const list = targets.map(t => {
       const mine = records.filter(r => r.kind === 'step' && r.stageKey === stage.key && r.stepKey === step.key && (r.assetId ?? undefined) === (step.per === 'machine' ? t.id : undefined)).sort(newest);
       const record = mine[0];
-      const values = valuesOf(step, record?.values);
+      const tool = step.component && record?.studyId ? x.tools?.[record.studyId] : undefined;
+      /* a tool step's figures sit beside its boxes, as the tool filled them */
+      const values = { ...valuesOf(step, record?.values), ...(tool?.figures ?? {}) };
       const outOfLimits = step.answer === 'measure' || (step.fields ?? []).some(f => f.min !== undefined || f.max !== undefined) ? limitsBroken(step, values) : [];
-      const missing = missingOf(def, step, record, values, people);
+      const missing = missingOf(def, step, record, values, people, tool);
       const failed = record?.outcome === 'failed' || (record?.outcome === 'done' && outOfLimits.length > 0);
       const complete = record?.outcome === 'done' && !missing.length && !outOfLimits.length;
       const due = record?.plannedFor ?? (x.startedOn && step.dueDays !== undefined ? addDays(x.startedOn, step.dueDays) : undefined);
@@ -282,6 +335,7 @@ export function readFlow(x: FlowInputs): FlowState {
       const inst: StepInstance = {
         stageKey: stage.key, def: step, assetId: t.id, machine: t.name, record, attempts: mine.length,
         values, complete, failed, late, due, missing, outOfLimits, blockedBy: [], tone: 'ahead', who: record?.who?.trim() || whoFor(step),
+        ...(tool ? { tool } : {}),
       };
       inst.tone = instanceTone(inst);
       return inst;
@@ -302,6 +356,9 @@ export function readFlow(x: FlowInputs): FlowState {
     }
   }
 
+  /* ---- what it measures: every reading of the numbers that feed it ---- */
+  const measures = (def.measures ?? []).map(m => readMeasure(m, def, records, machines, x.tools));
+
   /* ---- the stages and their gates ---- */
   const stages: StageState[] = [];
   let prevPassed = true;
@@ -309,7 +366,7 @@ export function readFlow(x: FlowInputs): FlowState {
   def.stages.forEach((stage, index) => {
     const steps = stage.steps.flatMap(s => instances.get(`${stage.key}/${s.key}`) ?? []);
     const pass = records.filter(r => r.kind === 'gate' && r.stageKey === stage.key && r.outcome === 'done').sort(newest)[0];
-    const conditions = stage.gate.conditions.map(c => readCondition(c, stage, steps, byStep, x));
+    const conditions = stage.gate.conditions.map(c => readCondition(c, stage, steps, byStep, x, measures));
     const blockers = conditions.filter(c => c.blocking);
     const passed = !!pass;
     const canPass = !passed && prevPassed && !blockers.length;
@@ -370,10 +427,46 @@ export function readFlow(x: FlowInputs): FlowState {
     gatesPassed: stages.filter(s => s.gate.passed).length, gates: stages.length,
   };
   const done = stages.length > 0 && stages.every(s => s.gate.passed);
-  return { stages, current, outstanding, next, done, counts, verdict: verdictOf(stages, current, done, counts) };
+  return { stages, current, outstanding, next, done, counts, verdict: verdictOf(stages, current, done, counts), measures };
 }
 
-function readCondition(c: FlowCondition, stage: FlowStage, steps: StepInstance[], byStep: Map<string, StepInstance[]>, x: FlowInputs): ConditionState {
+/** A number as a measure says it, with its unit. */
+export const measureNumber = (m: Pick<FlowMeasure, 'unit'>, n: number): string => `${fmt(n)}${m.unit ? ` ${m.unit}` : ''}`;
+
+/** A measure read from every record of the steps that feed it — every
+ *  attempt, not only the latest, so a step timed before and again after is
+ *  its own before → after. */
+export function readMeasure(m: FlowMeasure, def: FlowDefinition, records: readonly FlowRecord[], machines: readonly FlowMachine[], tools?: Readonly<Record<string, ToolReading>>): MeasureState {
+  const readings: MeasureReading[] = [];
+  for (const f of m.from) {
+    const ref = allSteps(def).find(r => r.step.key === f.step);
+    if (!ref) continue;
+    for (const r of records) {
+      if (r.kind !== 'step' || r.stepKey !== f.step || r.stageKey !== ref.stage.key || r.outcome === 'planned') continue;
+      const tool = ref.step.component && r.studyId ? tools?.[r.studyId] : undefined;
+      if (ref.step.component && r.studyId && tool && !tool.enough) continue;
+      const v = { ...valuesOf(ref.step, r.values), ...(tool?.figures ?? {}) }[f.field];
+      if (typeof v !== 'number' || !Number.isFinite(v)) continue;
+      const machine = r.assetId ? machines.find(x => x.id === r.assetId)?.name : undefined;
+      readings.push({ value: v, ...(r.doneOn ? { on: r.doneOn } : {}), at: r.createdAt, step: ref.step.title, ...(machine ? { machine } : {}) });
+    }
+  }
+  readings.sort((a, b) => (a.on ?? '').localeCompare(b.on ?? '') || a.at - b.at);
+  const before = readings[0], now = readings[readings.length - 1];
+  const n = (v: number) => measureNumber(m, v);
+  const goal = m.target !== undefined ? `target ${m.better === 'lower' ? 'at most' : 'at least'} ${n(m.target)}` : '';
+  if (!now) return { def: m, readings, says: `${m.name}: not measured yet${goal ? ` — ${goal}` : ''}.` };
+  const met = m.target !== undefined ? (m.better === 'lower' ? now.value <= m.target : now.value >= m.target) : undefined;
+  const change = readings.length > 1 ? now.value - before.value : undefined;
+  const improved = change === undefined || change === 0 ? undefined : m.better === 'lower' ? change < 0 : change > 0;
+  const moved = change === undefined ? `${n(now.value)}, the first reading`
+    : change === 0 ? `${n(before.value)} before, ${n(now.value)} now — no change`
+      : `${n(before.value)} before, ${n(now.value)} now — ${n(Math.abs(change))} ${improved ? 'better' : 'worse'}`;
+  const verdict = met === undefined ? '' : met ? ` — ${goal}, met` : ` — ${goal}, not met yet`;
+  return { def: m, readings, before, now, ...(met !== undefined ? { met } : {}), ...(change !== undefined ? { change } : {}), ...(improved !== undefined ? { improved } : {}), says: `${m.name}: ${moved}${verdict}.` };
+}
+
+function readCondition(c: FlowCondition, stage: FlowStage, steps: StepInstance[], byStep: Map<string, StepInstance[]>, x: FlowInputs, measures: readonly MeasureState[]): ConditionState {
   const base = { id: c.id, type: c.type, policy: c.policy, manual: false };
   const out = (label: string, met: boolean, why: string): ConditionState => ({ ...base, label: c.label || label, met, why, blocking: !met && c.policy === 'block' });
   const titled = (key: string) => byStep.get(key)?.[0]?.def.title ?? key;
@@ -404,11 +497,18 @@ function readCondition(c: FlowCondition, stage: FlowStage, steps: StepInstance[]
     }
     case 'fieldMeets': {
       const list = byStep.get(c.step) ?? [];
-      const field = list[0]?.def.fields?.find(f => f.key === c.field);
+      const field = list[0] ? numbersOf(list[0].def).find(f => f.key === c.field) : undefined;
       const vals = list.map(s => s.values[c.field]).filter((v): v is number => typeof v === 'number');
       const ok = list.length > 0 && vals.length === list.length && vals.every(v => meets(c, v));
       const label = `“${titled(c.step)}”: ${field?.label ?? c.field} ${opWords(c, field)}`;
       return out(label, ok, vals.length ? vals.map(v => (field ? withUnit(v, field) : fmt(v))).join(', ') : 'not measured yet');
+    }
+    case 'measureMet': {
+      const m = measures.find(x2 => x2.def.key === c.measure);
+      if (!m) return out(`the measure “${c.measure}”`, false, 'not on the method');
+      const n = (v: number) => measureNumber(m.def, v);
+      const goal = m.def.target !== undefined ? `${m.def.better === 'lower' ? 'at most' : 'at least'} ${n(m.def.target)}` : 'its target';
+      return out(`${m.def.name} ${goal}`, m.met === true, m.now ? `${n(m.now.value)} now` : 'not measured yet');
     }
     case 'noOpenProblems': {
       const rank = { critical: 3, high: 2, low: 1 } as const;

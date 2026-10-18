@@ -22,6 +22,8 @@
  * assistant and for the server's re-check, the same function.
  */
 
+import { componentOf } from './components';
+
 /** Bumped only with an upgrade function for every older shape. */
 export const FLOW_SCHEMA = 1 as const;
 
@@ -37,6 +39,7 @@ export const LIMITS = {
   fieldsPerStep: 30,
   conditionsPerGate: 20,
   roles: 30,
+  measures: 12,
   text: 300,
   longText: 2000,
 } as const;
@@ -133,7 +136,7 @@ export interface FlowStepDef {
 
 /** The condition set. Closed on purpose: each is a rule the runtime can
  *  check from records alone and say in a sentence. */
-export const CONDITIONS = ['stepsDone', 'stepDone', 'evidence', 'signedOff', 'fieldMeets', 'noOpenProblems', 'dateReached', 'manual'] as const;
+export const CONDITIONS = ['stepsDone', 'stepDone', 'evidence', 'signedOff', 'fieldMeets', 'measureMet', 'noOpenProblems', 'dateReached', 'manual'] as const;
 export type ConditionType = typeof CONDITIONS[number];
 
 export type Policy = 'block' | 'warn';
@@ -153,6 +156,8 @@ export type FlowCondition = CondBase & (
   | { type: 'evidence'; step: string; kind: 'photo' | 'file'; min: number }
   | { type: 'signedOff'; step: string }
   | { type: 'fieldMeets'; step: string; field: string; op: '>=' | '<=' | '=' | 'between'; value: number; value2?: number }
+  /** A measure's latest reading meets its target (FlowMeasure). */
+  | { type: 'measureMet'; measure: string }
   | { type: 'noOpenProblems'; priority: 'critical' | 'high' | 'any' }
   | { type: 'dateReached'; dueDays: number }
   | { type: 'manual'; label: string }
@@ -170,6 +175,26 @@ export interface FlowStage {
   gate: FlowGate;
 }
 
+/* ------------------------------ what it measures ---------------------------- */
+
+/** WHAT THE WORK HAS TO MOVE — a number with a before and an after (CLAUDE.md:
+ *  "give every change a measured before and after"). It is fed by boxes on
+ *  the method's own steps or by a tool step's figures (lib/flow/components):
+ *  every reading of them, in the order recorded — the first is the before,
+ *  the latest is where it stands now — judged against the target, the way
+ *  that is better. Nothing is typed into a measure; it is read. */
+export interface FlowMeasure {
+  key: string;
+  name: string;
+  unit?: string;
+  better: 'higher' | 'lower';
+  /** What it has to reach. Absent: it is watched, not judged. */
+  target?: number;
+  /** The step boxes (or tool figures) that feed it — a step key and a field
+   *  or figure key each. */
+  from: { step: string; field: string }[];
+}
+
 /* ------------------------------- the definition ---------------------------- */
 
 export interface FlowDefinition {
@@ -181,6 +206,8 @@ export interface FlowDefinition {
   kind: 'stagegate' | 'investigation' | 'improvement' | 'other';
   roles: FlowRole[];
   stages: FlowStage[];
+  /** The numbers the work has to move — read from its steps. */
+  measures?: FlowMeasure[];
 }
 
 /* ----------------------------------- reading ------------------------------- */
@@ -196,6 +223,15 @@ export function findStep(def: Pick<FlowDefinition, 'stages'>, key: string): Step
   return allSteps(def).find(r => r.step.key === key);
 }
 
+/** A step's numbers as a gate or a measure can name them: the boxes typed on
+ *  it, then a tool step's figures (lib/flow/components) as boxes the tool
+ *  fills. */
+export function numbersOf(step: FlowStepDef): FlowField[] {
+  const own = (step.fields ?? []).filter(f => f.type === 'number' || f.type === 'reading' || f.type === 'calc');
+  const tool = componentOf(step.component?.tool)?.figures ?? [];
+  return [...own, ...tool.filter(t => !own.some(f => f.key === t.key)).map((t): FlowField => ({ key: t.key, label: t.label, type: 'number', ...(t.unit ? { unit: t.unit } : {}) }))];
+}
+
 export const roleName = (def: Pick<FlowDefinition, 'roles'>, key?: string): string | undefined =>
   key ? def.roles.find(r => r.key === key)?.name : undefined;
 
@@ -209,6 +245,9 @@ export function keyOf(words: string, taken: Iterable<string> = []): string {
   while (used.has(k)) k = `${base}-${n++}`;
   return k;
 }
+
+/** A measure's key from its name — a word like a field's. */
+export const measureKeyOf = (name: string, taken: Iterable<string> = []): string => fieldKeyOf(name, taken);
 
 /** A test or a measurement says "did not pass" when it goes wrong; a task
  *  says it "hit a problem". */
@@ -249,6 +288,7 @@ export function rekeyStep(def: FlowDefinition, from: string, to: string): void {
     }
     for (const c of st.gate.conditions) if ('step' in c && c.step === from) c.step = to;
   }
+  for (const m of def.measures ?? []) for (const f of m.from) if (f.step === from) f.step = to;
 }
 
 /** Give a step's field a new key, and its sums and the gate conditions that
@@ -266,4 +306,5 @@ export function rekeyField(def: FlowDefinition, stepKey: string, from: string, t
     }
     for (const c of st.gate.conditions) if (c.type === 'fieldMeets' && c.step === stepKey && c.field === from) c.field = to;
   }
+  for (const m of def.measures ?? []) for (const f of m.from) if (f.step === stepKey && f.field === from) f.field = to;
 }

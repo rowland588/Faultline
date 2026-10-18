@@ -5,7 +5,10 @@
  * band, the tiles, then the method's own picture — every stage in order,
  * each step on each machine with its word and why, and what its gate needs,
  * met or not, with the pass and any reason it was passed over — then what it
- * means, the action plan and the closing line. Nothing is cut: a long
+ * means, the action plan and the closing line; under it, what has happened
+ * — the project's activity log, the screen's own panel, newest first, each
+ * line saying who and when and whether the assistant proposed it (a move
+ * to another version of the method among them). Nothing is cut: a long
  * method runs on to the next page rather than leaving a step out. Laid out
  * by the report engine (src/lib/report/), never by a hand-kept y. */
 import type { jsPDF } from 'jspdf';
@@ -14,15 +17,17 @@ import { font, gap, rows, text, wrap } from '../report/blocks';
 import { leanActions, leanBand, leanClosing, leanHead, leanInsights, leanTiles } from '../report/lean';
 import { DANGER, INK2, LINE, MUTED, OK, WARN, BLUE } from '../reportKit';
 import type { LeanPage } from '../lean';
-import { niceDay } from '../weeks';
+import { niceDay, todayISO } from '../weeks';
 import type { FlowProject } from './operations';
+import type { ActivityEntry } from './records';
 import { stageWord, stepSquare, stepWhy, stepWord, type Square } from './view';
+import { measureNumber } from './runtime';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const GREY = '#6b7588';
 const TONE: Record<Square, string> = { r: DANGER, a: WARN, g: OK, w: BLUE, n: GREY };
 
-export interface FlowReport { fp: FlowProject; page: LeanPage; printed: string }
+export interface FlowReport { fp: FlowProject; page: LeanPage; printed: string; log?: readonly ActivityEntry[] }
 
 /** A list row: what on the left (and its why under it), the word on the right in its colour. */
 function line(what: string, why: string, word: string, tone: Square): { h: (f: Frame) => number; draw: (f: Frame, y: number) => void } {
@@ -49,13 +54,22 @@ function blocksOf(r: FlowReport, d: Density): Block[] {
   const def = fp.method.definition;
   if (def.purpose) out.push(text({ text: def.purpose, size: 9, colour: MUTED, after: gap(d, 'm') }));
 
+  /* WHAT IT MEASURES — the screen's panel: each number before → now against its target, every reading */
+  if (fp.state.measures.length) {
+    out.push(leanHead('What it measures', `${fp.state.measures.filter(m => m.met === true).length} of ${fp.state.measures.filter(m => m.def.target !== undefined).length} targets met`));
+    for (const m of fp.state.measures) {
+      out.push(text({ text: m.says, size: 9, style: 'bold', colour: m.met === true ? OK : INK2, after: 2 }));
+      if (m.readings.length) out.push(text({ text: `Readings: ${m.readings.map(r => `${measureNumber(m.def, r.value)} (${r.step}${r.machine ? `, ${r.machine}` : ''}${r.on ? `, ${niceDay(r.on)}` : ''})`).join('; ')}.`, size: 8, colour: MUTED, indent: 10, after: 4 }));
+    }
+  }
+
   for (const st of fp.state.stages) {
     out.push(leanHead(`${st.index + 1}. ${st.name}`, stageWord(st)));
     const purpose = def.stages[st.index]?.purpose;
     if (purpose) out.push(text({ text: purpose, size: 8.5, colour: MUTED, after: 4 }));
     if (st.steps.length) {
       out.push(rows({
-        rows: st.steps.map(s => line(`${s.def.title}${s.machine ? ` — ${s.machine}` : ''}`, [stepWhy(s), s.who && !s.complete ? `for ${s.who}` : ''].filter(Boolean).join(' · '), stepWord(s), stepSquare(s))),
+        rows: st.steps.map(s => line(`${s.def.title}${s.machine ? ` — ${s.machine}` : ''}`, [stepWhy(s), s.tool ? `answered by ${s.tool.name}${s.tool.verdict ? ` — ${s.tool.verdict}` : ''}` : '', s.who && !s.complete ? `for ${s.who}` : ''].filter(Boolean).join(' · '), stepWord(s), stepSquare(s))),
         after: 's',
       }));
     } else out.push(text({ text: 'No steps in this stage.', size: 8.5, colour: MUTED }));
@@ -78,6 +92,17 @@ function blocksOf(r: FlowReport, d: Density): Block[] {
   out.push(leanHead('The action plan', page.actions.length ? `${fp.state.outstanding.length} outstanding` : undefined));
   out.push(...leanActions(page.actions, page.actionsEmpty));
   out.push(leanClosing(page.closing));
+
+  /* WHAT HAS HAPPENED — the screen's panel, on paper; every line, oldest last */
+  const log = r.log ?? [];
+  out.push(leanHead('What has happened', log.length ? `${log.length} thing${log.length === 1 ? '' : 's'} recorded` : undefined));
+  if (!log.length) out.push(text({ text: 'Nothing recorded yet.', size: 8.5, colour: MUTED }));
+  for (const e of log) {
+    out.push(text({
+      text: `${niceDay(todayISO(new Date(e.at)))} — ${e.summary} (${e.who}${e.source === 'assistant' ? ', proposed by the assistant' : ''})`,
+      size: 8, colour: INK2, after: 2,
+    }));
+  }
   return out;
 }
 

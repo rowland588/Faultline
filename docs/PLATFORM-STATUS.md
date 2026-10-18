@@ -18,6 +18,24 @@ approval of routine technical choices.
 5. Every change validated, versioned and logged; completed work protected.
 6. The native stage gate, 6M, lever tree and every tool keep working.
 
+## The vision, checked against the code (18 October)
+
+Rowland, 18 October: "Faultline must not remain the same application with a
+chatbot added to it ... The user describes what they want. Faultline helps
+design it, builds the approved methodology from reusable application
+capabilities, executes it, and lets the user save and reuse it. The library
+is a foundation for creation, not a ceiling on it." Asked: what can AI
+create, is it genuinely new or a template filled in, does it run, is there a
+library, does the UI deliver it or add AI to the old one. Found, and done:
+
+| Question | Before | Now |
+|---|---|---|
+| What AI can create | A new method from words — stages, steps, roles, typed fields, sums, evidence, dependencies, gates — from the closed vocabulary (not a template) | The same, plus **steps done with the app's own tools** (SMED, a shift's losses, capability, line balance, work sampling, value stream map — their figures read into the step by each tool's own module) and **measures** with a before and an after against a target, and gates that wait on a measure. The assistant is told the tools from the registry, not left to guess |
+| Genuinely new? | Yes — composed from blocks, never chosen from templates | Yes; the blocks now include the app's manufacturing capabilities |
+| Does a saved method run? | Yes — per machine, evidence, gates, sign-offs, report, history | Yes, and a tool step attaches the tool's record from the project's line; measures show as the first tiles, on the page and the paper |
+| Library | Your methods, versioned; no copy, no adapt-into-new, no search, Faultline's own methods were fixed screens | **One library**: yours and Faultline's (stage gate, SMED changeover reduction, line performance by root cause, product trial, rebalance a line) as definitions; use as it is, adapt into a new method, make a copy, find by a word |
+| The UI | A one-shot form inside Methods | **The design studio** (`#/design`): say what you need; Faultline proposes; shape it turn by turn (keys kept, each change said, the stage it touched marked); its questions answered in a tap; the library beside it, closest to your words; approve and start a project in one go. Entered from the control room, New job and Methods. Works with the assistant off |
+
 ## Decisions taken (brief; the reasons are in the code's comments)
 
 | # | Decision | Where |
@@ -30,6 +48,10 @@ approval of routine technical choices.
 | D6 | Three new records, each justified in its header: `Method` (versioned definition), `FlowRecord` (a step done / a gate passed — kept apart from `tests` so cross-project readers are not misled), `ActivityEntry` (append-only). A project points at its method by `ProjectFlow`. | `src/lib/flow/records.ts` |
 | D7 | The stage gate's own usual lists become the first method (`stageGateDefinition`), so nothing anybody wrote is typed twice. | `src/lib/flow/templates.ts` |
 | D8 | Claude is the only conversational provider, through one gateway; model per task is configuration, default `claude-opus-5-5` (the user's to downgrade for cost). Gemini's free tier is not a dependency of anything new. | slice 4 |
+| D9 | A method uses the app's tools by reference: a step names a registered tool; its record (a study) is attached on the floor; the tool's own module reads its figures (`lib/flow/toolRead`) — the arithmetic is never copied into the engine. Line capacity (no study) is opened and ticked by hand until it has figures. | `src/lib/flow/components.ts`, `toolRead.ts` |
+| D10 | A measure is read, never typed: every reading of the step boxes or tool figures that feed it, every attempt, in order — the first is the before, the latest is now — against a target, the way that is better. A gate may wait on it (`measureMet`). | `definition.ts`, `runtime.ts` readMeasure |
+| D11 | Faultline's library is definitions like anyone's (`lib/flow/library`); taking one puts a copy in the person's library (origin `library`); nothing in it runs directly, and a person's method is as much a method. A number the app cannot know is left for the person. | `src/lib/flow/library.ts` |
+| D12 | One place for conversational design: the studio. It replaced the one-shot Describe sheet and Change sheet — it keeps shaping the same proposal turn after turn, offers the library beside it, and does all three: new, adapt into a new method, next version (kept into the open draft if there is one). The conversation itself is a per-device draft (sessionStorage); the kept method's history says how it began. | `src/screens/DesignScreen.tsx` |
 
 ## Parity with the stage gate
 
@@ -55,28 +77,28 @@ list (a definition gives every machine the same steps).
 | 2 | Records and sync: IndexedDB v21 (`methods`, `flow_records`, `activity_log`), mappers, sync kinds, `projects.flow`; `supabase/METHODS.sql` and `FLOW_MEDIA.sql` applied to the live database and read back; the operations (`lib/flow/operations`) with permission checks and an activity line each | 11 operation tests on a real IndexedDB (owner / team / client), the schema test (both sides of every column, the media rule) | ships with slice 3 |
 | 3 | Screens, AI off: Methods library (`#/methods`: from the stage gate's usual lists, from a stage-gate job as it ran, or blank); one method (`#/methods/:id`) read as a plan and written while a draft — roles, stages, steps (per machine or once, answer, role, passes if, photos, files, due day, waits on, boxes with limits and worked-out sums), gate conditions (block or warn), the validator's words, Approve, a new version, delete a draft with Undo, the projects on it, its history; start a project; the project's page (`#/project/:id` when `project.flow`) — the lean page, the stage strip, a step per machine, the step sheet (fields, photos, files, sign-off, plan day, who, Done refused with what is missing, did not pass with what happened, try again keeping the attempt, take back), the gate sheet (each condition met or not, a check confirmed by name, pass over what is unmet only with a reason, reopen with a reason and Undo), who does what, machines, what has happened; the method report (PDF, lean page); the rail (Methods; a project's stages and its method); the control room's row, week, Who owes what (a supplier-side role under the supplier) and the rail's jobs; Details (no switching a method project to the three); Reports (the method report) | `lib/flow/__tests__/view.test.ts` (words, lean page, the control room's row through `portfolio()`, the report at one page and at many pages, nothing cut); `scripts/acceptance/methods.mjs` (the whole journey in a browser, team and client, phone); smoke seed (a method approved with a draft of v2 open, a project on it part-way, a run that did not pass); `docs/PAGES.md` and `scripts/inventory/pages.mjs` lines | gated with slices 1–2, shipped together |
 
+| 4 | The gateway (`supabase/functions/assist`: session check, a daily allowance by number and cost, structured output held to the proposal's schema, read again by the app's validator; key server-side; off without the key or the usage table) and design by conversation | `assist.test.ts` (recorded answers, the copies word for word), `scripts/acceptance/methods-design.mjs` | code on the branch; the function is not deployed and its usage table not applied (below) |
+| 5 | The assistant on a project (`lib/flow/ground` facts with how each is known; the app answers the common questions itself; the assistant's answer checked — a figure it was not told is never shown as known); changes as a new version with every change said (`lib/flow/change`); moving a project to a new version with the effect said first, completed work kept, Undo; the history on the report | `ground.test.ts`, `change.test.ts`, the acceptance | with slice 4 |
+| V | The vision slice — tools and measures in the engine (D9, D10), Faultline's library (D11), the studio (D12), copy and adapt, a project's line, a tool step attaching a study, measures as tiles, on the page, the paper and the assistant's facts | `capabilities.test.ts` (tools, measures, measureMet, proposal round trip, keys kept, SMED read by SMED's module), `library.test.ts` (every entry valid and runnable, found from words), `methods-design.mjs` (41 checks: control room → studio, AI off and on, shaped, approved and started, version 2 with a measure, the project moved, measured 36 → 44, asked, the report, SMED's method adapted and run with a SMED study attached, used as it is, copied); smoke routes; PAGES and inventory lines; the seed's SMED method run | with slice 4 |
+
 ## Next actions (in order)
 
-1. **Slice 4 — the gateway and design by conversation.** Edge function
-   `assist` (Claude, server-side key, session check, per-user daily budget
-   and usage table, structured output validated by the same validator,
-   recorded-response tests); "Describe the work" on the Methods page → a
-   proposed definition shown as the method page shows one, with the
-   validator's words → Accept as a draft (origin `assistant`, logged as the
-   assistant's proposal) → the person approves it as any draft. AI off: the
-   button says so and the form path is unchanged.
-2. **Slice 5 — the assistant on a project** (known · worked out · inferred ·
-   unknown, from `readFlow` only), change proposals as validated patches →
-   a new draft version, moving a running project to a new version with
-   completed work kept and the effect said first, the activity log on the
-   report.
-3. Slice 6 — tools as components: a step answered by a capability study,
-   loss count, SMED, line balance, work sampling, value stream map or Line
-   capacity (the registry exists; the step sheet's "attach a study" is the
-   missing piece).
-4. Later: organisations/tenancy; the server re-checking a gate pass with the
-   same runtime (today: the owner-only database policy plus the client's
-   own check).
+1. Ship slices 4, 5 and V to `main` once the full gate passes.
+2. With Rowland's word: apply `supabase/ASSIST_USAGE.sql` (declined when
+   tried on 18 October — not retried) and deploy `supabase/functions/assist`
+   from the repo; then he sets `ANTHROPIC_API_KEY`. Until then every AI
+   feature says it is off and everything else works.
+3. A tool step started from the step itself: the tool's New sheet opened on
+   the project's line, and the study attached when it is made (today: the
+   step opens the tool's list on the line; the study is attached on return).
+4. Line capacity as a tool with figures (line rate, bottleneck) — it lives on
+   a product's line standard, so a step names the standard.
+5. The 6M and the lever tree as library methods with their own pictures
+   (the fishbone, the tree) drawn from a method's records — today they stay
+   the native screens, and the library's "Line performance" is the
+   configurable form of the 6M journey.
+6. Later: organisations/tenancy (a shared library); the server re-checking a
+   gate pass with the same runtime.
 
 ## Known defects and limits
 
@@ -96,9 +118,15 @@ list (a definition gives every machine the same steps).
 
 ## Blockers needing Rowland
 
-- None yet. When the gateway ships it needs `ANTHROPIC_API_KEY` set as a
-  Supabase secret (Ask already reads the same one); without it every AI
-  feature says it is off and the form path works.
+- **The assistant's allowance table** — `supabase/ASSIST_USAGE.sql` was not
+  applied (the tool call was declined on 18 October). Either say yes to it
+  being applied from here, or paste the file into the Supabase SQL editor.
+  The gateway refuses to run without it (no cost control, no assistant).
+- **The gateway** — `supabase/functions/assist` is written and tested, not
+  deployed; it is deployed from the repo with Rowland's yes.
+- **The key** — `ANTHROPIC_API_KEY` as a Supabase secret (Ask already reads
+  the same one). Without it every AI feature says it is off and the studio,
+  the library and the form work by hand.
 
 ## How to resume
 

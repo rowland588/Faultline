@@ -195,11 +195,34 @@ export const PAGES = (sd, cap) => [
   { name: 'Work sampling', path: `#/sampling/${sd.samplingId}`, must: [{ what: 'the round', sel: '.ws-round' },
     { what: 'the band', sel: '.ln-band' }, { what: 'the five tiles — what it costs among them', sel: '.ie-strip .ln-tile', n: 5 }, { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' }] },
   /* METHODS OF ONE'S OWN (18 October, docs/PLATFORM-STATUS.md slice 3; lib/flow): the library, a method read and written, and a project running one — the lean page with the method's stages as its picture */
-  { name: 'Methods', path: '#/methods', must: [{ what: 'a card a method', sel: '.fw-lib .fw-card' }] },
+  { name: 'Methods', path: '#/methods', must: [{ what: 'a card a method', sel: '.fw-lib .fw-card' },
+    { what: 'describe what you need — the studio', sel: '.pace-head-actions button', text: /^Describe what you need$/ },
+    { what: 'Faultline’s library — each to adapt or use as it is', sel: '.fw-card.is-library', n: 5 },
+    { what: 'find a method by a word', sel: '.fw-find input' }] },
+  /* THE STUDIO (the vision slice): what is needed in words, the library beside it */
+  { name: 'Design a method', path: '#/design', must: [
+    { what: 'what you need, in your words', sel: '.fw-ask-box textarea' },
+    { what: 'the library to start from', sel: '.fw-start .fw-card', n: 5 },
+  ] },
+  { name: 'Design a method — from Faultline’s SMED method', path: '#/design?template=changeover-reduction', must: [
+    { what: 'the conversation', sel: '.fw-turn' },
+    { what: 'the method as it stands — its stages', sel: '.fw-preview .fw-prop-st', n: 4 },
+    { what: 'what it measures, before and after', sel: '.fw-prev-m li' },
+    { what: 'approve it and start a project', sel: '.fw-keep button', text: /^Approve it and start a project$/ },
+  ] },
+  { name: 'A method from Faultline’s library', path: `#/methods/${sd.smedMethodId}`, must: [
+    { what: 'a step done with one of the app’s tools', sel: '.fw-step-b', text: /with SMED/ },
+    { what: 'what it measures', sel: '.fw-measures li' },
+  ] },
+  { name: 'A project on SMED’s method', path: `#/project/${sd.smedProjectId}`, must: [
+    { what: 'the measure, the first tile', sel: '.ln-tiles .ln-tile', text: /Changeover minutes/i },
+    { what: 'what it measures — before → now, its readings', sel: '.fw-measured li' },
+  ] },
   { name: 'A method', path: `#/methods/${sd.methodId}`, must: [
     { what: 'its stages, a step a line', sel: '.fw-stage .fw-step-b', n: 3 },
     { what: 'what each gate needs', sel: '.fw-gate .fw-cond-b' },
     { what: 'the projects on it', sel: '.fw-list li' },
+    { what: 'change it with the assistant (slice 5)', sel: '.pace-head-actions button', text: /^Change it with the assistant$/ },
   ] },
   { name: 'A method — a draft', path: `#/methods/${sd.methodDraftId}`, must: [{ what: 'can it run? — the validator in words', sel: '.fw-check-panel' }] },
   { name: 'A project on a method', path: `#/project/${sd.flowProjectId}`, must: [
@@ -209,6 +232,8 @@ export const PAGES = (sd, cap) => [
     { what: 'its gate, in a line', sel: '.fw-gate-line' },
     { what: 'the action plan', sel: '.ln-plan .ln-row' }, { what: 'the closing line', sel: '.ln-close' },
     { what: 'its stages in the rail', sel: '.nv-rail .nv-grp-l', text: /^Method$/i, desk: true },
+    { what: 'ask about it — the questions the app answers itself (slice 5)', sel: '.fw-ask .fw-chip-b', n: 4 },
+    { what: 'what has happened — its activity log', sel: '.fw-log li' },
   ] },
   { name: 'A capability study', path: `#/capability/${sd.studyId}`, must: [{ what: 'the readings, drawn', sel: 'svg.ie-dots' },
     { what: 'the band', sel: '.ln-band' }, { what: 'the tiles', sel: '.ie-strip .ln-tile' }, { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' }] },

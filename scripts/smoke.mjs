@@ -68,6 +68,17 @@ const ROUTES = [
   ['a project on a method — its stages, a gate passed over', `#/project/${seeded.flowProjectId}`],
   ['a project on a method — Commission, a run that did not pass, open', `#/project/${seeded.flowProjectId}?view=stage-${seeded.flowFailedStep.split('/')[0]}&step=${encodeURIComponent(seeded.flowFailedStep)}`],
   ['a project on a method — its details', `#/project/${seeded.flowProjectId}/setup`],
+  /* DESIGNED FROM WHAT IS NEEDED (the vision slice): the studio from nothing,
+     from Faultline's SMED method, adapting a method of one's own, and as a
+     method's next version; SMED's method taken and a project on it, its
+     first timing answered by the line's SMED study */
+  ['design a method — from nothing', '#/design'],
+  ['design a method — from Faultline’s SMED method', '#/design?template=changeover-reduction'],
+  ['design a method — adapting one of yours', `#/design?from=${seeded.methodId}`],
+  ['design a method — its next version', `#/design?version=${seeded.methodId}`],
+  ['a method from Faultline’s library — tools and a measure', `#/methods/${seeded.smedMethodId}`],
+  ['a project on SMED’s method — a step answered by a SMED study, the measure', `#/project/${seeded.smedProjectId}`],
+  ['a project on SMED’s method — the step answered by SMED, open', `#/project/${seeded.smedProjectId}?step=${encodeURIComponent('record/time-now/')}`],
   ['project setup', `#/project/${seeded.projectId}/setup`],
   ['lever tree', `#/project/${seeded.treeProjectId}/tree`],
   ['lever tree — front page', `#/project/${seeded.treeProjectId}`],

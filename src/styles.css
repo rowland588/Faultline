@@ -13648,7 +13648,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .fw-check-panel { border: 1px solid var(--line); border-left: 4px solid var(--st-g); border-radius: 10px; padding: 10px 14px; margin: 0 0 14px; background: var(--surface); }
 .fw-check-panel.is-bad { border-left-color: var(--st-r); }
 .fw-issues { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 3px; font-size: 14px; }
-.fw-stage-h { display: flex; align-items: center; gap: 10px; }
+.fw-stage-h { display: flex; align-items: center; justify-content: flex-start; gap: 10px; }
 .fw-stage-h .fw-in { font: inherit; font-weight: 700; }
 .fw-stage-n, .fw-sg-n {
   flex: none; display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
@@ -13764,6 +13764,66 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .fw-gc.is-r .fw-gc-m { color: var(--st-r); }
 .fw-gc.is-a .fw-gc-m { color: var(--st-a); }
 .fw-gc-in { grid-column: 2; max-width: 320px; }
+
+/* the assistant: a proposal, a change, a move, a question (ui/flow/DescribeSheet, ChangeParts).
+   No state colour is borrowed for how a sentence is known — the words say it. */
+.fw-prop-h { margin: 0 0 4px; font-size: 18px; }
+.fw-prop { margin: 8px 0; padding-left: 0; list-style: none; display: grid; gap: 10px; }
+.fw-prop-st { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; background: var(--surface); }
+.fw-prop-note { margin: 8px 0; }
+.fw-newer { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0 12px; }
+.fw-changes { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 4px; font-size: 14px; }
+.fw-ch { padding: 5px 8px; border-left: 3px solid var(--line); background: var(--surface-2); border-radius: 6px; }
+.fw-ch b { font-size: 13px; color: var(--ink-2); margin-right: 4px; }
+.fw-ch.is-removed { border-left-style: dashed; }
+.fw-ask { display: grid; gap: 8px; }
+.fw-ask .fw-acts { margin-top: 0; flex-wrap: nowrap; }
+.fw-ask-in { flex: 1; min-width: 0; }
+.fw-ask-q { display: flex; flex-wrap: wrap; gap: 6px; }
+.fw-chip-b { cursor: pointer; background: var(--surface); font: inherit; font-size: 13px; color: var(--brand); border-color: color-mix(in srgb, var(--brand) 40%, var(--surface)); }
+.fw-chip-b:hover { background: color-mix(in srgb, var(--brand) 7%, var(--surface)); }
+.fw-ask-a { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; background: var(--surface); }
+.fw-said { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; }
+.fw-said-l { padding-left: 10px; border-left: 3px solid var(--ink-2); }
+.fw-said-l.is-worked-out { border-left-color: var(--line); }
+.fw-said-l.is-inferred { border-left-style: dashed; border-left-color: var(--muted); }
+.fw-said-l.is-unknown { border-left-color: var(--line); color: var(--muted); }
+.fw-basis { font-size: 12px; color: var(--muted); font-style: italic; }
+
+/* the design studio (screens/DesignScreen): the conversation on the left, the method as it stands on the right */
+.fw-studio { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; align-items: start; }
+.fw-studio.has-def { grid-template-columns: minmax(300px, 2fr) minmax(0, 3fr); }
+.fw-talk, .fw-proposed { min-width: 0; }
+.fw-proposed { position: sticky; top: 72px; max-height: calc(100vh - 90px); overflow: auto; border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; background: var(--surface); }
+.fw-turns { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 10px; }
+.fw-turn { border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; background: var(--surface); }
+.fw-turn p { margin: 2px 0 4px; }
+.fw-turn.is-person { background: var(--surface-2); margin-left: 24px; }
+.fw-turn.is-app { border-style: dashed; }
+.fw-turn-who { font-size: 12px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: var(--muted); }
+.fw-ask-box { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--surface); }
+.fw-offers { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.fw-start { margin-top: 18px; }
+.fw-lib-s { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.fw-card.is-library { border-style: dashed; }
+.fw-card-b .fw-acts { margin-top: 6px; }
+.fw-keep { position: sticky; bottom: 0; background: var(--surface); padding: 10px 0 2px; border-top: 1px solid var(--line); }
+.fw-prev-m { margin: 8px 0; }
+.fw-prop-st.is-touched { border-left: 4px solid var(--brand); }
+.fw-touched { margin-left: 6px; color: var(--brand); border-color: color-mix(in srgb, var(--brand) 40%, var(--surface)); }
+.fw-find { max-width: 420px; margin: 10px 0; }
+.fw-lib-h { margin-top: 18px; }
+/* a step done with one of the app's tools (ui/flow/RunParts ToolAnswer) */
+.fw-tool { border: 1px solid var(--line); border-left: 4px solid var(--brand); border-radius: 10px; padding: 8px 12px; margin: 8px 0; background: var(--surface); }
+.fw-tool-r a { color: var(--brand); }
+.fw-figs { list-style: none; margin: 6px 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.fw-figs b { font-variant-numeric: tabular-nums; }
+.fw-tool-c { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.fw-measured li.is-g b { color: var(--st-g); }
+@media (max-width: 900px) {
+  .fw-studio.has-def { grid-template-columns: minmax(0, 1fr); }
+  .fw-proposed { position: static; max-height: none; }
+}
 @media (max-width: 760px) {
   .fw-lib { grid-template-columns: 1fr; }
   .fw-row { grid-template-columns: 12px 1fr; }

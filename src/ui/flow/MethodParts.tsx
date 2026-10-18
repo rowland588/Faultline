@@ -5,9 +5,10 @@
  * (lib/flow/validate) then says what is still wrong with the whole. */
 import { useEffect, useState } from 'react';
 import {
-  ANSWERS, ANSWER_WORD, FIELD_TYPES, FIELD_WORD, fieldKeyOf, keyOf, roleName,
-  type FlowCondition, type FlowDefinition, type FlowField, type FlowStage, type FlowStepDef,
+  ANSWERS, ANSWER_WORD, FIELD_TYPES, FIELD_WORD, allSteps, fieldKeyOf, keyOf, measureKeyOf, numbersOf, roleName,
+  type FlowCondition, type FlowDefinition, type FlowField, type FlowMeasure, type FlowStage, type FlowStepDef,
 } from '../../lib/flow/definition';
+import { COMPONENTS, componentOf } from '../../lib/flow/components';
 import { Sheet } from '../Sheet';
 
 /** What each answer asks of the person on the floor. */
@@ -26,6 +27,7 @@ export const CONDITION_WORD: Record<FlowCondition['type'], string> = {
   evidence: 'A step has its photos or files',
   signedOff: 'A sign-off signed',
   fieldMeets: 'A measurement meets a figure',
+  measureMet: 'A measure meets its target',
   noOpenProblems: 'No open problems',
   dateReached: 'Not before a day',
   manual: 'A check confirmed by hand',
@@ -41,10 +43,15 @@ export function conditionSaid(def: FlowDefinition, c: FlowCondition): string {
     case 'evidence': return `“${title(c.step)}” has ${c.min} ${c.kind}${c.min === 1 ? '' : 's'}`;
     case 'signedOff': return `“${title(c.step)}” signed`;
     case 'fieldMeets': {
-      const f = def.stages.flatMap(s => s.steps).find(s => s.key === c.step)?.fields?.find(x => x.key === c.field);
+      const st = def.stages.flatMap(s => s.steps).find(s => s.key === c.step);
+      const f = st ? numbersOf(st).find(x => x.key === c.field) : undefined;
       const u = f?.unit ? ` ${f.unit}` : '';
       const op = c.op === '>=' ? `at least ${c.value}${u}` : c.op === '<=' ? `at most ${c.value}${u}` : c.op === '=' ? `exactly ${c.value}${u}` : `between ${c.value} and ${c.value2 ?? c.value}${u}`;
       return `“${title(c.step)}”: ${f?.label ?? c.field} ${op}`;
+    }
+    case 'measureMet': {
+      const m = def.measures?.find(x => x.key === c.measure);
+      return m ? `${m.name} ${m.better === 'lower' ? 'at most' : 'at least'} ${m.target ?? '—'}${m.unit ? ` ${m.unit}` : ''}` : `The measure “${c.measure}” meets its target`;
     }
     case 'noOpenProblems': return c.priority === 'any' ? 'No open problems' : c.priority === 'critical' ? 'No open critical problems' : 'No open high or critical problems';
     case 'dateReached': return `Not before ${c.dueDays} day${c.dueDays === 1 ? '' : 's'} from the start`;
@@ -57,6 +64,7 @@ export function stepSaid(def: FlowDefinition, s: FlowStepDef): string {
   const parts = [
     s.per === 'machine' ? 'every machine' : 'once',
     ANSWER_WORD[s.answer].toLowerCase(),
+    s.component ? `with ${componentOf(s.component.tool)?.name ?? s.component.tool}` : '',
     s.role ? roleName(def, s.role) ?? s.role : '',
     s.evidence?.photos ? `${s.evidence.photos} photo${s.evidence.photos === 1 ? '' : 's'}` : '',
     s.evidence?.files ? `${s.evidence.files} file${s.evidence.files === 1 ? '' : 's'}` : '',
@@ -65,6 +73,17 @@ export function stepSaid(def: FlowDefinition, s: FlowStepDef): string {
     s.after?.length ? `after ${s.after.map(a => `“${def.stages.flatMap(x => x.steps).find(x => x.key === a)?.title ?? a}”`).join(', ')}` : '',
   ];
   return parts.filter(Boolean).join(' · ');
+}
+
+/** A measure in one line of words — what it reads, which way, to what. */
+export function measureSaid(def: FlowDefinition, m: FlowMeasure): string {
+  const from = m.from.map(f => {
+    const st = allSteps(def).find(r => r.step.key === f.step)?.step;
+    const n = st ? numbersOf(st).find(x => x.key === f.field) : undefined;
+    return st ? `${n?.label ?? f.field} on “${st.title}”` : f.field;
+  });
+  const goal = m.target !== undefined ? `${m.better === 'lower' ? 'at most' : 'at least'} ${m.target}${m.unit ? ` ${m.unit}` : ''}` : `${m.better} is better, no target`;
+  return `${goal} · read from ${from.join(', ') || 'nothing yet'}`;
 }
 
 /* ------------------------------------------------------------- the boxes */
@@ -166,6 +185,22 @@ export function StepEditor({ def, stageIndex, step, open, onClose, onChange, onR
             {ANSWERS.map(a => <option key={a} value={a}>{ANSWER_WORD[a]}</option>)}
           </select>
           <span className="sub">{ANSWER_SAYS[step.answer]}</span>
+        </label>
+
+        <label className="fw-f"><span className="field-label">Done with one of the app’s tools</span>
+          <select className="text-input fw-in" value={step.component?.tool ?? ''} disabled={ro} aria-label="Done with a tool"
+            onChange={e => set({ component: e.target.value ? { tool: e.target.value } : undefined })}>
+            <option value="">No tool — answered on the step</option>
+            {COMPONENTS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          {step.component && (
+            <span className="sub">
+              {componentOf(step.component.tool)?.gives}.{' '}
+              {componentOf(step.component.tool)?.figures.length
+                ? `It is answered by attaching one; its figures — ${componentOf(step.component.tool)?.figures.map(f => f.label.toLowerCase()).join(', ')} — come into the step for a gate or a measure.`
+                : 'It is opened on the line and the step is ticked by hand.'}
+            </span>
+          )}
         </label>
 
         <label className="fw-f"><span className="field-label">Who does it</span>
@@ -276,10 +311,11 @@ const blankOf = (type: FlowCondition['type'], id: string, stage: FlowStage, def:
     case 'evidence': return { id, type, policy: 'block', step: first, kind: 'photo', min: 1 };
     case 'signedOff': return { id, type, policy: 'block', step: steps.find(s => s.answer === 'signoff')?.key ?? first };
     case 'fieldMeets': {
-      const s = steps.find(x => (x.fields ?? []).some(f => f.type === 'number' || f.type === 'reading' || f.type === 'calc'));
-      const f = s?.fields?.find(x => x.type === 'number' || x.type === 'reading' || x.type === 'calc');
+      const s = steps.find(x => numbersOf(x).length > 0);
+      const f = s ? numbersOf(s)[0] : undefined;
       return { id, type, policy: 'block', step: s?.key ?? first, field: f?.key ?? '', op: '>=', value: 0 };
     }
+    case 'measureMet': return { id, type, policy: 'block', measure: def.measures?.find(m => m.target !== undefined)?.key ?? def.measures?.[0]?.key ?? '' };
     case 'noOpenProblems': return { id, type, policy: 'block', priority: 'critical' };
     case 'dateReached': return { id, type, policy: 'warn', dueDays: 7 };
     case 'manual': return { id, type, policy: 'block', label: 'Checked and agreed' };
@@ -297,7 +333,7 @@ export function ConditionEditor({ def, stageIndex, cond, open, onClose, onSave, 
   useEffect(() => { if (open) setC(cond ?? blankOf('stepsDone', keyOf('every-step', ids), stage, def)); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps -- reset only when opened
   /* the steps a gate may ask about: its own stage's and the stages before — never a later one's */
   const steps = def.stages.slice(0, stageIndex + 1).flatMap(s => s.steps);
-  const numeric = (k: string) => (steps.find(s => s.key === k)?.fields ?? []).filter(f => f.type === 'number' || f.type === 'reading' || f.type === 'calc');
+  const numeric = (k: string) => { const st = steps.find(s => s.key === k); return st ? numbersOf(st) : []; };
   const put = (patch: Record<string, unknown>) => setC(x => ({ ...x, ...patch }) as FlowCondition);
   return (
     <Sheet open={open} onClose={onClose} title={cond ? 'Edit what the gate needs' : 'What the gate needs'}>
@@ -341,6 +377,15 @@ export function ConditionEditor({ def, stageIndex, cond, open, onClose, onSave, 
             {c.op === 'between' && <label><span className="field-label">and</span><Num value={c.value2} label="and" onSave={v => put({ value2: v })} /></label>}
           </div>
         )}
+        {c.type === 'measureMet' && (
+          <label className="fw-f"><span className="field-label">Which measure</span>
+            {(def.measures ?? []).length
+              ? <select className="text-input fw-in" value={c.measure} aria-label="Which measure" onChange={e => put({ measure: e.target.value })}>
+                {(def.measures ?? []).map(m => <option key={m.key} value={m.key}>{m.name}{m.target === undefined ? ' (no target yet)' : ''}</option>)}
+              </select>
+              : <span className="sub">The method measures nothing yet — add a measure under What it measures first.</span>}
+          </label>
+        )}
         {c.type === 'noOpenProblems' && (
           <label className="fw-f"><span className="field-label">Which problems</span>
             <select className="text-input fw-in" value={c.priority} aria-label="Which problems" onChange={e => put({ priority: e.target.value })}>
@@ -363,6 +408,52 @@ export function ConditionEditor({ def, stageIndex, cond, open, onClose, onSave, 
           <button type="button" className="btn btn-primary" onClick={() => { onSave(c); onClose(); }}>{cond ? 'Save' : 'Add it to the gate'}</button>
           <span className="fw-gap" />
           {onRemove && <button type="button" className="btn btn-ghost btn-sm is-danger" onClick={() => { onRemove(); onClose(); }}>Take it off the gate</button>}
+        </div>
+      </div>
+    </Sheet>
+  );
+}
+
+/* ------------------------------------------------------------ a measure */
+
+/** WHAT IT MEASURES — a number the work has to move: its name, which way is
+ *  better, its target, and the step boxes or tool figures that feed it. */
+export function MeasureEditor({ def, measure, open, onClose, onSave, onRemove }: {
+  def: FlowDefinition; measure?: FlowMeasure; open: boolean; onClose: () => void; onSave: (m: FlowMeasure) => void; onRemove?: () => void;
+}) {
+  const fresh = (): FlowMeasure => ({ key: measureKeyOf('a measure', (def.measures ?? []).map(m => m.key)), name: 'A measure', better: 'lower', from: [] });
+  const [m, setM] = useState<FlowMeasure>(() => measure ?? fresh());
+  useEffect(() => { if (open) setM(measure ?? fresh()); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps -- reset only when opened
+  const sources = allSteps(def).flatMap(r => numbersOf(r.step).map(f => ({ step: r.step.key, field: f.key, says: `${f.label}${f.unit ? ` (${f.unit})` : ''} — “${r.step.title}”, ${r.stage.name}` })));
+  const on = (s: { step: string; field: string }) => m.from.some(f => f.step === s.step && f.field === s.field);
+  return (
+    <Sheet open={open} onClose={onClose} title={measure ? 'Edit the measure' : 'What it measures'}>
+      <div className="fw-sheet fw-edit">
+        <label className="fw-f"><span className="field-label">The number</span>
+          <Words value={m.name} label="The measure's name" placeholder="e.g. Changeover minutes" onSave={v => { if (v) setM(x => ({ ...x, name: v, ...(measure ? {} : { key: measureKeyOf(v, (def.measures ?? []).map(y => y.key)) }) })); }} /></label>
+        <div className="fw-f fw-row3">
+          <label><span className="field-label">Unit</span><Words value={m.unit ?? ''} label="The measure's unit" placeholder="min, packs, %" onSave={v => setM(x => { const y = { ...x, unit: v || undefined }; if (!v) delete y.unit; return y; })} /></label>
+          <label><span className="field-label">Better is</span>
+            <select className="text-input fw-in" value={m.better} aria-label="Better is" onChange={e => setM(x => ({ ...x, better: e.target.value === 'higher' ? 'higher' : 'lower' }))}>
+              <option value="lower">lower</option><option value="higher">higher</option>
+            </select></label>
+          <label><span className="field-label">Target</span><Num value={m.target} label="The target" onSave={v => setM(x => { const y = { ...x, target: v }; if (v === undefined) delete y.target; return y; })} /></label>
+        </div>
+        <div className="fw-f"><span className="field-label">Read from — the first reading is the before, the latest is now</span>
+          {sources.length === 0 && <p className="sub">No step has a number yet — give a step a number box, or a tool, first.</p>}
+          <div className="fw-checks">
+            {sources.map(s => (
+              <label key={`${s.step}/${s.field}`} className="fw-check">
+                <input type="checkbox" checked={on(s)} onChange={e => setM(x => ({ ...x, from: e.target.checked ? [...x.from, { step: s.step, field: s.field }] : x.from.filter(f => !(f.step === s.step && f.field === s.field)) }))} />
+                <span>{s.says}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+        <div className="fw-acts">
+          <button type="button" className="btn btn-primary" disabled={!m.from.length || !m.name.trim()} onClick={() => { onSave(m); onClose(); }}>{measure ? 'Save' : 'Add the measure'}</button>
+          <span className="fw-gap" />
+          {onRemove && <button type="button" className="btn btn-ghost btn-sm is-danger" onClick={() => { onRemove(); onClose(); }}>Take it off the method</button>}
         </div>
       </div>
     </Sheet>

@@ -2,6 +2,7 @@
  * its Reports (ui/ReportsSheet, ui/ControlRoomReports) alike, so the two
  * doors print the same paper. Read fresh, by the one runtime. */
 import { todayISO } from '../weeks';
+import { listActivity } from '../../db';
 import { loadFlowProject } from './operations';
 import { flowLean } from './view';
 
@@ -19,7 +20,8 @@ export async function printFlowReport(projectId: string): Promise<string> {
   const { jsPDF } = await loadPdfLib();
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   titlePdf(doc, `${fp.project.name} — ${fp.method.definition.name}`);
-  await drawFlowReport(doc, { fp, page, printed: new Date(`${today}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) });
+  const log = await listActivity(fp.project.id);
+  await drawFlowReport(doc, { fp, page, log, printed: new Date(`${today}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) });
   const name = pdfFileName(fp.project.name, 'method report', today);
   const how = await deliverPdf(doc, name);
   return how === 'downloaded' ? `Saved ${name}.` : `${name} is ready.`;

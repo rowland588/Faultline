@@ -39,8 +39,9 @@ export interface Method {
   definition: FlowDefinition;
   /** The version this one was made from, or the method it was adapted from. */
   parentId?: ID;
-  /** How it came to be — by hand, from the usual lists, or a proposal. */
-  origin?: 'hand' | 'usual' | 'assistant' | 'copy';
+  /** How it came to be — by hand, from the usual lists, a proposal, a copy
+   *  of another method, or taken from Faultline's library (lib/flow/library). */
+  origin?: 'hand' | 'usual' | 'assistant' | 'copy' | 'library';
   /** What changed from the version before, in words. */
   changeNote?: string;
   approvedBy?: string;

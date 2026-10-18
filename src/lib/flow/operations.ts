@@ -15,12 +15,13 @@ import { uid, now } from '../ids';
 import { todayISO } from '../weeks';
 import type { Restore } from '../../db';
 import {
-  addActivity, deleteFlowRecord, deleteMethodRow, getMethod, getProject, listAllSnags, listAssets,
-  listFlowRecords, methodFamily, putAsset, putFlowRecord, putMethod, updateProject, createProject,
+  addActivity, deleteFlowRecord, deleteMethodRow, getMethod, getProject, getStudy, listAllSnags, listAssets,
+  listFlowRecords, listObservations, listWorkspaces, methodFamily, putAsset, putFlowRecord, putMethod, updateProject, createProject,
 } from '../../db';
+import { readTool } from './toolRead';
 import type { FlowDefinition } from './definition';
 import { validateDefinition, type Issue } from './validate';
-import { readFlow, type FlowProblem, type FlowState } from './runtime';
+import { readFlow, type FlowProblem, type FlowState, type ToolReading } from './runtime';
 import type { ActivityEntry, FlowRecord, Method, ProjectFlow } from './records';
 
 export interface OpContext {
@@ -45,17 +46,31 @@ async function log(ctx: OpContext, e: Omit<ActivityEntry, 'id' | 'who' | 'at' | 
 
 /* ================================== methods ================================ */
 
-/** A new method, as a draft — by hand, from the usual lists, or a proposal. */
-export async function createMethod(ctx: OpContext, input: { definition: FlowDefinition; origin: Method['origin']; changeNote?: string }): Promise<OpResult<Method>> {
+/** A new method, as a draft — by hand, from the usual lists, a proposal, a
+ *  copy, or Faultline's library. `parentId`: the method it was made from — a
+ *  new method of its own (its own family), which says where it came from. */
+export async function createMethod(ctx: OpContext, input: { definition: FlowDefinition; origin: Method['origin']; changeNote?: string; parentId?: ID }): Promise<OpResult<Method>> {
   if (!ctx.can.agree) return refuse('Only a project owner writes methods.');
   const id = uid(), t = now();
   const m: Method = {
     id, familyId: id, version: 1, status: 'draft', definition: input.definition, origin: input.origin,
+    ...(input.parentId ? { parentId: input.parentId } : {}),
     ...(input.changeNote ? { changeNote: input.changeNote } : {}), createdAt: t, updatedAt: t,
   };
   await putMethod(m);
   await log(ctx, { methodId: id, op: 'createMethod', summary: `Started the method “${input.definition.name}” (draft)`, target: { kind: 'method', id } });
   return { ok: true, value: m, said: 'Saved as a draft.' };
+}
+
+/** A COPY — a method of its own made from another (any version), as a draft:
+ *  the same definition, a name that says it is a copy, and where it came
+ *  from. Changing it never touches the one it was copied from. */
+export async function copyMethod(ctx: OpContext, fromId: ID, name?: string): Promise<OpResult<Method>> {
+  const from = await getMethod(fromId);
+  if (!from) return refuse('That method is not on this device.');
+  const def = structuredClone(from.definition);
+  def.name = (name?.trim() || `${def.name} (copy)`).slice(0, 300);
+  return createMethod(ctx, { definition: def, origin: 'copy', parentId: from.id, changeNote: `A copy of “${from.definition.name}”, version ${from.version}` });
 }
 
 /** A draft's definition, saved as it stands — it need not be complete until it
@@ -138,6 +153,8 @@ export interface StartInput {
   /** Who does each role. */
   people?: Record<string, string>;
   lead?: string;
+  /** The line it runs on, from Your factory — where its tools' studies are made and found. */
+  lineId?: ID;
 }
 
 /** A project that runs an approved method. */
@@ -154,7 +171,7 @@ export async function startProject(ctx: OpContext, input: StartInput): Promise<O
     startedOn: input.startedOn ?? ctx.today ?? todayISO(),
     ...(input.people && Object.keys(input.people).length ? { people: input.people } : {}),
   };
-  const withFlow: Project = { ...p, flow };
+  const withFlow: Project = { ...p, flow, ...(input.lineId ? { workspaceIds: [input.lineId] } : {}) };
   await updateProject(withFlow);
   let sort = 0;
   for (const name of machines) {
@@ -175,7 +192,25 @@ export interface FlowProject {
   records: FlowRecord[];
   machines: { id: string; name: string }[];
   problems: FlowProblem[];
+  /** The tool records its steps point at, read by each tool's own module. */
+  tools: Record<string, ToolReading>;
   state: FlowState;
+}
+
+/** THE TOOL RECORDS A PROJECT'S STEPS POINT AT, read (lib/flow/toolRead) —
+ *  with what a loss count reads beside its own facts: its line's stops and
+ *  its line's cost model. A study not on this device is simply absent. */
+export async function readTools(studyIds: readonly string[]): Promise<Record<string, ToolReading>> {
+  const ids = [...new Set(studyIds.filter(Boolean))];
+  if (!ids.length) return {};
+  const studies = (await Promise.all(ids.map(id => getStudy(id)))).filter((x): x is NonNullable<typeof x> => !!x && !x.deletedAt);
+  const lines = [...new Set(studies.filter(x => x.tool === 'losses' && x.workspaceId).map(x => x.workspaceId as string))];
+  const [workspaces, observations] = lines.length
+    ? await Promise.all([listWorkspaces(), Promise.all(lines.map(l => listObservations(l))).then(xs => xs.flat())])
+    : [[], []];
+  const out: Record<string, ToolReading> = {};
+  for (const st of studies) out[st.id] = readTool(st, { observations, workspaces });
+  return out;
 }
 
 /** Everything a project running a method needs read, and read once. */
@@ -189,11 +224,12 @@ export async function loadFlowProject(projectId: ID, today: string = todayISO())
   const problems: FlowProblem[] = snags
     .filter(s => s.projectId === projectId && !s.deletedAt && !s.archivedAt)
     .map(s => ({ id: s.id, title: s.problem, open: s.status !== 'closed', priority: s.priority ?? 'low' }));
+  const tools = await readTools(records.filter(r => !r.deletedAt && r.studyId).map(r => r.studyId as string));
   const state = readFlow({
-    def: method.definition, records, machines, problems, today,
+    def: method.definition, records, machines, problems, today, tools,
     startedOn: project.flow.startedOn, people: project.flow.people,
   });
-  return { project, method, records, machines, problems, state };
+  return { project, method, records, machines, problems, tools, state };
 }
 
 export interface StepRef { projectId: ID; stageKey: string; stepKey: string; assetId?: ID }
@@ -236,8 +272,10 @@ export async function recordStep(ctx: OpContext, s: StepRef, patch: StepPatch): 
   await putFlowRecord(next);
   /* the log says what someone decided — a day, a person — not every box typed
      or photo added on the way to done (those are on the step itself) */
-  if (patch.plannedFor || patch.who) {
-    const what = patch.plannedFor ? `planned for ${patch.plannedFor}` : `given to ${patch.who}`;
+  if (patch.plannedFor || patch.who || 'studyId' in patch) {
+    const tool = patch.studyId ? (await readTools([patch.studyId]))[patch.studyId] : undefined;
+    const what = 'studyId' in patch ? (tool ? `answered by ${tool.name}` : patch.studyId ? 'a study attached' : 'its study taken off')
+      : patch.plannedFor ? `planned for ${patch.plannedFor}` : `given to ${patch.who}`;
     await log(ctx, { projectId: s.projectId, methodId: fp.method.id, op: 'recordStep', target: { kind: 'flow_record', id: next.id }, summary: `${stepTitle(fp, s)} — ${what}` });
   }
   return { ok: true, value: next, said: 'Saved.' };
@@ -255,9 +293,11 @@ export async function completeStep(ctx: OpContext, s: StepRef, patch: StepPatch 
   const values = patch.values ? { ...(rec.values ?? {}), ...patch.values } : rec.values;
   const trial: FlowRecord = { ...rec, ...patch, ...(values ? { values } : {}), outcome: 'done', doneOn: rec.doneOn ?? today };
   /* read the project again with the step as it would be, by the one runtime */
+  /* a study attached in the same breath is read before the step is judged */
+  const tools = trial.studyId && !fp.tools[trial.studyId] ? { ...fp.tools, ...(await readTools([trial.studyId])) } : fp.tools;
   const after = readFlow({
     def: fp.method.definition, records: [...fp.records.filter(r => r.id !== trial.id), trial], machines: fp.machines,
-    problems: fp.problems, today, startedOn: fp.project.flow?.startedOn, people: fp.project.flow?.people,
+    problems: fp.problems, today, startedOn: fp.project.flow?.startedOn, people: fp.project.flow?.people, tools,
   });
   const inst = after.stages.find(x => x.key === s.stageKey)?.steps.find(x => x.def.key === s.stepKey && (x.assetId ?? undefined) === (s.assetId ?? undefined));
   if (!inst) return refuse('That step is not on the method.');
