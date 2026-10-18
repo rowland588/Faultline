@@ -207,7 +207,7 @@ export const LIBRARY: readonly LibraryEntry[] = [
   {
     id: 'line-rebalance', name: 'Rebalance the people on a line', kind: 'improvement',
     purpose: 'People’s work timed against takt, moved so nobody is over and fewer wait, and timed again.',
-    words: ['balance', 'rebalance', 'people', 'labour', 'crew', 'takt', 'headcount', 'yamazumi', 'operators', 'staffing'],
+    words: ['balance', 'rebalance', 'people', 'labour', 'crew', 'takt', 'headcount', 'yamazumi', 'operators', 'staffing', 'video', 'footage', 'filmed', 'recording'],
     uses: ['Line balance', 'Work sampling'],
     build: (): FlowDefinition => ({
       schema: FLOW_SCHEMA, name: 'Rebalance the people on a line', kind: 'improvement',

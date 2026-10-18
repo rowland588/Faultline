@@ -123,19 +123,19 @@ function ToolAnswer({ fp, inst, live, onAttach }: { fp: FlowProject; inst: StepI
   /* the tool's own list on the job's line, its New open — the study is made
      there, as any of that tool's, and attached to this step as it is made
      (ui/flow/Asking: the New says so, and Undo takes it back off) */
-  const open = () => {
+  const open = (path = tool.listPath) => {
     if (live && answeredByRecord(tool)) {
       askFor({ ref: { projectId: fp.project.id, stageKey: inst.stageKey, stepKey: inst.def.key, ...(inst.assetId ? { assetId: inst.assetId } : {}) },
         tool: tool.studyTool ?? tool.id, step: inst.def.title, project: fp.project.name });
     }
-    nav(`${tool.listPath}?add=1${lines[0] ? `&line=${encodeURIComponent(lines[0])}` : ''}`);
+    nav(`${path}?add=1${lines[0] ? `&line=${encodeURIComponent(lines[0])}` : ''}`);
   };
   if (!answeredByRecord(tool)) {
     return (
       <div className="fw-tool" data-tool={tool.id}>
         <span className="field-label">Done with {tool.name}</span>
         <p className="sub">{tool.gives}. Open it on the line, then say the step is done here.</p>
-        <button type="button" className="btn btn-sm" onClick={open}>Open {tool.name}</button>
+        <button type="button" className="btn btn-sm" onClick={() => open()}>Open {tool.name}</button>
       </div>
     );
   }
@@ -172,7 +172,8 @@ function ToolAnswer({ fp, inst, live, onAttach }: { fp: FlowProject; inst: StepI
               ))}
             </ul>
           )}
-          {live && <button type="button" className="btn btn-sm btn-ghost" onClick={open}>Start a {tool.name} on the line</button>}
+          {live && <button type="button" className="btn btn-sm btn-ghost" onClick={() => open()}>Start a {tool.name} on the line</button>}
+          {live && tool.alsoFrom && <button type="button" className="btn btn-sm btn-ghost" data-also={tool.alsoFrom.path} onClick={() => open(tool.alsoFrom?.path)}>{tool.alsoFrom.label}</button>}
         </>
       )}
     </div>

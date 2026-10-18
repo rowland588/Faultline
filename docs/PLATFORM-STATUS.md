@@ -127,9 +127,13 @@ list (a definition gives every machine the same steps).
 
 A power tool beside the methods, not instead of them: footage uploaded,
 read on the device for the work at each station, reviewed on the footage,
-worked out as a line balance, on paper. Its record of what works, what was
-measured (synthetic footage, condition by condition), its limits and what
-waits on someone is docs/VIDEO.md. Its blockers are below.
+worked out as a line balance, on paper; a method's line balance step
+answered by one and started from the step (*Read it from a video of the
+line*). Its record of what works, what was measured (synthetic footage,
+condition by condition), the shared parts every specialist tool plugs into,
+the staged path V1–V7, how each statement says how it is known, the
+protocol for accuracy against observations timed by hand, its limits and
+what waits on someone is docs/VIDEO.md. Its blockers are below.
 
 ## Blockers needing Rowland
 
@@ -146,7 +150,17 @@ waits on someone is docs/VIDEO.md. Its blockers are below.
   deployed; it is deployed from the repo with Rowland's yes.
 - **The key** — `ANTHROPIC_API_KEY` as a Supabase secret (Ask already reads
   the same one). Without it every AI feature says it is off and the studio,
-  the library and the form work by hand.
+  the library and the form work by hand. Two places read a Claude key, and
+  they are separate: `api/wording` (the better-wording button) is a Vercel
+  function and reads `ANTHROPIC_API_KEY` from Vercel's environment — falling
+  back to the free Gemini key, or saying it is off; the gateway (`assist`)
+  and `ask` are Supabase edge functions and read it from Supabase's secrets.
+  Neither key is ever given a `VITE_` name (that would put it in the
+  browser). Checked 18 October: on Supabase only `remind` and `share` are
+  deployed (`assist` and `ask` are not); Vercel's variables could not be
+  read from here (the Vercel connector is refused for the team, 403), and
+  `GET /api/wording` on the live site answers `{"by":"claude"}`, `"gemini"`
+  or 503 without showing a key.
 
 ## How to resume
 

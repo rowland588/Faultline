@@ -284,11 +284,17 @@ day as its first proof — a line balance read from footage: uploaded and
 checked from its bytes, read on the device with its state on the record
 (resumed after a reload), candidates found by movement, reviewed on the
 footage, worked out by the line balance's own arithmetic, takt asked for,
-on paper; measured on footage with known times. Next, in docs/VIDEO.md:
-the footage to the cloud (`supabase/VIDEO_MEDIA.sql`, waiting on Rowland),
-real footage timed by hand, stations drawn as rectangles, lighting told
-from work, SMED from footage, a video study on a product's Line capacity,
-and the job's own page listing its video studies.
+on paper; measured on footage with known times; a method's line balance
+step answered by one, started from the step. Video is a major capability,
+not the whole product (Rowland, 18 October): it plugs into the same record,
+tool registry, methods, reports and words as every specialist tool.
+docs/VIDEO.md holds the staged path (V2 real footage timed by hand, V3 the
+reading made robust, V4 SMED from footage, V5 time and motion inside a
+cycle, V6 waiting and the constraint, V7 a worker for long footage — each
+proved before the next), how every statement says how it is known, and the
+protocol for measuring accuracy against observations timed by hand. Waiting
+on Rowland: the footage to the cloud (`supabase/VIDEO_MEDIA.sql`) and
+permissioned footage from the floor.
 
 **Money in every tool** (Rowland, 17 October: "everything must derive a cost
 in the entire app ... it's all about money"; the rule is in CLAUDE.md,

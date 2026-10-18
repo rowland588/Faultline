@@ -38,6 +38,9 @@ export interface ComponentInfo {
   figures: readonly ToolFigure[];
   /** Where the tool's own list opens — to start one on the line. */
   listPath: string;
+  /** Another way to make the same record — a line balance read from footage
+   *  of the line (lib/video) is a line balance study like one timed by hand. */
+  alsoFrom?: { label: string; path: string };
 }
 
 export const COMPONENTS: readonly ComponentInfo[] = [
@@ -64,6 +67,7 @@ export const COMPONENTS: readonly ComponentInfo[] = [
   },
   {
     id: 'balance', name: 'Line balance', gives: 'People’s work timed against takt', studyTool: 'balance', listPath: '/linebalance',
+    alsoFrom: { label: 'Read it from a video of the line', path: '/video' },
     figures: [
       { key: 'balance_efficiency', label: 'Balance efficiency', unit: '%', better: 'higher' },
       { key: 'people_needed', label: 'People needed', unit: 'people', better: 'lower' },

@@ -35,6 +35,8 @@ import type { ToolStudy } from '../lib/study';
 import { Sheet } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
 import { Legend, Stacks } from '../ui/WorkBalance';
+import { AskingNote, useAsking } from '../ui/flow/Asking';
+import { asked } from '../lib/lines';
 import { getBlob } from '../db';
 import { probe } from '../lib/video/extract';
 import { checkFootage, VIDEO_LIMITS } from '../lib/video/validate';
@@ -76,7 +78,8 @@ export function VideosScreen() {
   const list = useStudies();
   const lines = useFactoryLines();
   const { projects } = useProjects();
-  const [adding, setAdding] = useState(false);
+  /* opened on its New from a method's step done with the line balance (ui/flow/RunParts) */
+  const [adding, setAdding] = useState(() => !!asked('add'));
   useEffect(() => { if (list) void resumeLeftJobs(list); }, [list]);
   return (
     <div className="wrap vs-list">
@@ -127,8 +130,11 @@ function NewVideoStudy({ open, onClose }: { open: boolean; onClose: () => void }
   const [problems, setProblems] = useState<string[]>([]);
   const [reading, setReading] = useState(false);
   const [objective, setObjective] = useState('');
-  const [lineId, setLineId] = useState('');
-  const [projectId, setProjectId] = useState('');
+  /* a video study is a line balance study: one made from a method's line
+     balance step answers it, on that job's line (ui/flow/Asking) */
+  const asking = useAsking('balance');
+  const [lineId, setLineId] = useState(() => asked('line') ?? '');
+  const [projectId, setProjectId] = useState(() => asking.ask?.ref.projectId ?? '');
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   const read = readObjective(objective || 'line balance');
@@ -157,6 +163,7 @@ function NewVideoStudy({ open, onClose }: { open: boolean; onClose: () => void }
       const s: ToolStudy = { id, tool: 'balance', name: name.trim() || full.fileName, ...(lineId ? { workspaceId: lineId } : {}), ...(projectId ? { projectId } : {}),
         facts: { video: v, vevents: [] }, uses: [], startedAt: t, createdAt: t, updatedAt: t };
       await putStudy(s);
+      await asking.attach(id);
       onClose();
       nav(`/video/${id}`);
     } finally { setBusy(false); }
@@ -164,6 +171,7 @@ function NewVideoStudy({ open, onClose }: { open: boolean; onClose: () => void }
   return (
     <Sheet open={open} onClose={onClose} title="New video study">
       <form className="lt-new vs-new" onSubmit={e => { e.preventDefault(); void make(); }}>
+        <AskingNote asking={asking} />
         <label className="field"><span className="field-label">The footage</span>
           <input type="file" accept="video/mp4,video/quicktime,video/webm,video/*" aria-label="The footage" onChange={e => void pick(e.target.files?.[0] ?? null)} />
           <span className="sub">An MP4, MOV or WebM of up to {Math.round(VIDEO_LIMITS.maxDurationSec / 60)} minutes. It is read on this device; nothing is sent anywhere to read it.</span>

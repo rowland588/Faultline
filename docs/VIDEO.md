@@ -24,9 +24,10 @@ measured, what it does not do, and what waits on someone.
 - **Where it shows:** the rail's Tools (*Video study*, `/video`); the study's
   own page (`/video/:id`); anywhere a line balance is read
   (`lib/ie/balanceLink` `studyBalance` builds the elements from the accepted
-  events) — so a method's step done with the line balance offers it and reads
-  its figures (balance efficiency, people needed, the longest stack); its
-  report.
+  events) — so a method's step done with the line balance offers it, starts
+  one (*Read it from a video of the line*, attached to the step as it is
+  made) and reads its figures (balance efficiency, people needed, the longest
+  stack); its report.
 - **Replaces:** nothing.
 
 ## The pipeline as built
@@ -57,14 +58,17 @@ measured, what it does not do, and what waits on someone.
   states; the reading key; the words; the assistant's labels — what is kept
   and that a decided event is never touched; reading again over a person's
   decisions.
-- `scripts/acceptance/video-study.mjs` — 33 checks in a real browser from an
+- `scripts/acceptance/video-study.mjs` — 35 checks in a real browser from an
   empty device: footage made with a known schedule, uploaded through New; a
   file that is not a video refused; read on the device; **the reading
   measured against the truth** and printed; reviewed (all accepted, a
   boundary moved to the playhead, one rejected); the line balance, the
-  stacks, takt asked for and given; the report downloaded and read back; a
-  reload, and a second reading stopped by a reload carrying on; the footage
-  deleted with what was found kept; no console error.
+  workload drawn before takt, the stacks, takt asked for and given; the
+  report downloaded and read back; a reload, and a second reading stopped by
+  a reload carrying on; the footage deleted with what was found kept; a
+  method's line balance step (*Rebalance the people on a line*, run on the
+  line) offering the video study and starting one from footage, on the job
+  and its line, attached as it is made; no console error.
 - `scripts/video-eval.mjs` — the reading measured condition by condition
   (below). Not pass/fail.
 
@@ -103,6 +107,113 @@ recorded answers, but the gateway is not deployed (below), so how often its
 names are right, and what they cost, has not been seen. The percentage of
 observations a person corrects is not measured on real footage either.
 
+## Video in the whole product
+
+Rowland, 18 October: video is *"a major capability, not the whole product"*;
+it feeds the methodology runtime, project evidence, measurements, reporting
+and the library, and every other specialist tool is meant to plug in the same
+way. What a specialist tool is given, how video uses it, and what is not
+there yet:
+
+| Shared part | What any specialist tool gets | How video uses it | Not there yet |
+|---|---|---|---|
+| One record per use of a tool (`studies`; TOOLKIT Part 0) | On its own, on a line or on a job; used as evidence for a cause or proof for a fix (`uses`) | A video study is a line balance study (`tool: 'balance'`) | A study of a kind no tool has yet needs the table's tool check widened — a migration, said in the blueprint first |
+| The tool registry (`lib/flow/components`) | A method's step answered by the tool's record; its figures read into the step, a gate and a measure | The line balance's three figures from a video study, the same as from a stopwatch; the step starts one from footage (`alsoFrom`) | — |
+| Methods and the library (`lib/flow`) | Steps, gates, measures before → after, versions | *Rebalance the people on a line* — found from "I have filmed the line…" — run with its steps answered by video studies | No library method yet has a step whose answer must be footage (SMED from video, below) |
+| How each statement is known | Measured · counted · observed · reported on every cause (TOOLKIT, honesty rules) | Measured · worked out · proposed — not measured · not known yet; provisional kept apart (below) | One shared "how known" type across every tool's findings, so a method's report can say it for all of them alike |
+| Reports (`lib/report`, `lib/lean`) | The lean page, on screen and on paper, from one model | The video study's own report | A job's own report carrying its video studies |
+| Words (`lib/video/ask`, the studio, the `assist` gateway) | What is wanted said in words; questions asked back; answers from the figures | The objective read as a kind of study; the missing said and asked for; questions answered | The gateway is not deployed, so naming the work from frames is off; every figure is worked out without it |
+| Access, sync, deletion | A job's three levels; field-by-field sync; delete with Undo | The same; the footage deleted on its own, what was found kept | The footage itself syncs only once `VIDEO_MEDIA.sql` is applied |
+
+## How each statement is known
+
+Every sentence a video study says carries how it is known — on the page, in
+the answers and on paper — and nothing is said more strongly than that:
+
+| The mandate's word | The study says | What it is |
+|---|---|---|
+| Observed | **Measured** | Read from events a person has accepted — the start and end of work at a station, on the footage. |
+| Calculated | **Worked out** | Arithmetic on measured figures: cycles, the bottleneck, takt, balance, people needed. |
+| Estimated | **Provisional** | The same arithmetic with the events still to review counted as if accepted — chosen by the person, said on every figure. |
+| Hypothesis | **Proposed — not measured** | What might help ("moving about 2.1 s of work…"), always with "check the method, the reach and the safety before it is". |
+| — | **Not known yet** | What the footage cannot say, or too few cycles to say it, with what would settle it. |
+
+What is never said from footage: who a person is (temporary labels only);
+why a station waited (a wait is said as the time between two pieces of
+work at the station, never "starved", "blocked" or "the machine was down" —
+a machine's hidden state is not in the picture); a person's pace rating; that a proposed move is safe;
+an accuracy the measured table below does not support.
+
+## The staged path
+
+Each stage ships on its own, proved before the next starts. Video is one
+specialist tool among the others; its stages are taken in turn with the core
+work, not ahead of it.
+
+| Stage | What it adds | Proved by | Starts when |
+|---|---|---|---|
+| **V1 — a line balance read from footage** (built) | Upload, the job, movement read on the device, every event reviewed, the line balance and takt, the report; a method's line balance step answered by it | `video.test.ts`, `acceptance/video-study.mjs`, `video-eval.mjs` on synthetic footage (the table below) | — |
+| **V2 — real footage, timed by hand** | The protocol below run on permissioned clips from the floor; the measured table split by real conditions | The protocol's figures, written here with their date and reading version | Clips and permission from a site; `VIDEO_MEDIA.sql` applied so the footage reaches the people reviewing it |
+| **V3 — the reading made robust** | Stations as rectangles drawn on the frame; a change at every station at once told as the light, not work; a camera that moves refused in words; a person crossing into a neighbour's zone | V2's held-out clips scored before and after each change; no change kept that lowers a condition's figures | V2's figures say where it is weak |
+| **V4 — SMED from footage** | A changeover filmed from last good piece to first good: the activity sequence as candidates, internal or external **decided by a person** (never labelled convertible by the reading), into the SMED study (`changeover`) and its arithmetic | An acceptance like `changeover.mjs` from footage; the protocol on changeover clips | V2 on at least one changeover clip |
+| **V5 — time and motion inside a cycle** | One station's cycle split into its elements (reach, place, walk, wait) — boundaries proposed from movement, named by a person; into the line balance's elements, its rating asked, never read from the picture | The protocol at element level | V3 |
+| **V6 — waiting and the constraint** | Waits at a station read against the stations either side (work arrived or not, *as seen*); into Line capacity's bottleneck walk and a shift's losses as counted readings, said as seen | The protocol's wait figures; Line capacity's walk agreeing with the footage on the bottleneck | V3 |
+| **V7 — a worker for long footage** | Footage past twenty minutes, or read away from a phone: a separately deployed worker (FFmpeg, authenticated jobs, restricted storage) writing the same signal and the same job states | The same acceptance against the worker; the same reading key gives the same events | When footage that long is what a site films |
+
+## Validating accuracy against observations timed by hand
+
+The only honest accuracy figure is one measured against footage a person has
+timed. This is how it is done, and nothing on a screen or in this file claims
+more than it has measured.
+
+1. **The footage.** Permissioned clips from the floor, each tagged with its
+   conditions: camera (fixed or held), view (side-on, overhead, angled),
+   light (steady or changing), stations in view, people a station, people
+   crossing between stations, occlusion, the cycle's length, the kind of work
+   (assembly, packing, inspection, changeover). Kept off the app, its access
+   restricted, deleted at the end unless the site agrees otherwise; nobody
+   is identified.
+2. **The truth.** Two people each mark every piece of work — station, start,
+   end, kind — frame by frame at the footage's own frame rate, without seeing
+   the app's reading (so neither is anchored to it). Where they differ by more
+   than half a second, or on whether a piece happened at all, they watch it
+   together and settle it. Their agreement before settling is written down:
+   it is the most the reading can be held to. The truth is the same `Timed`
+   list `scripts/video-eval.mjs` already scores.
+3. **Tuning and held out.** The clips are split before anything is read: a
+   tuning set on which settings may be chosen, and a held-out set scored once
+   per reading version (`READING_VERSION`). Settings are never chosen on the
+   held-out clips.
+4. **Enough cycles.** Each station has at least as many hand-timed cycles as
+   a time study needs for ±5% at 95% confidence — n′ = (40·√(nΣx² − (Σx)²) / Σx)²
+   from the hand-timed cycles — and never fewer than ten.
+5. **The scores**, a clip and a condition at a time (`lib/video/evaluate`,
+   extended where marked ✱):
+   - pieces of work found: precision and recall, matched at 30% overlap and
+     ✱ at 50%; duplicates; missed;
+   - boundaries: the start and end error, median and ✱ 90th percentile;
+   - each station's work a cycle and its cycle time: the error in seconds and
+     ✱ as a share of the hand-timed figure;
+   - ✱ the right station: each matched piece on the station the truth says;
+   - ✱ the conclusions: the same bottleneck named, the same stations over
+     takt;
+   - ✱ the review: the share of events a person moved, re-kinded, split,
+     merged, rejected or added, and the minutes of review a minute of footage
+     (the study keeps what was first proposed on every event, so this is read
+     from the record);
+   - the reading's time a minute of footage and the device it ran on; where
+     the model names the work, ✱ how often its kind is right and what it cost.
+6. **What a figure lets the app say.** A condition counts as read well only
+   when its held-out clips show recall and precision of at least 0.95, the
+   cycle within 2% (or 0.3 s) at the 90th percentile, and the same bottleneck
+   in every clip. Until then the advice on filming says that footage of that
+   kind is read but every event wants checking — and whatever the figures,
+   every event stays a candidate until a person accepts it.
+7. **Kept up.** Every change to the reading re-runs `scripts/video-eval.mjs`
+   on the synthetic set and the held-out set; the table here is updated with
+   the date and the reading version, and a condition that got worse is
+   explained before the change ships.
+
 ## What it does not do yet
 
 - **Real footage, timed by hand** — the evaluation set the mandate asks for
@@ -125,9 +236,9 @@ observations a person corrects is not measured on real footage either.
 - **Capacity from footage** — the demand and the minutes are asked for takt;
   product mix, machine limits, downtime and yield are Line capacity's, and
   linking a video study to a product's Line capacity is next.
-- **The job's own page** does not yet list its video studies; the study
-  carries its job, the list shows it, and a method step done with the line
-  balance offers it.
+- **The job's own page and report** do not yet list its video studies; the
+  study carries its job, the list shows it, and a method's line balance step
+  offers one and starts one from footage.
 
 ## Waiting on someone
 
@@ -138,6 +249,8 @@ observations a person corrects is not measured on real footage either.
 | Permissioned real footage with hand-timed events | The only honest accuracy figure for the floor. | Rowland / the site |
 
 ## Next actions
+
+In the order of the staged path above:
 
 1. With the footage migration applied: studies name their footage for the
    sync (`cloud/mappers` studies.mediaKeys), the study's words change, and

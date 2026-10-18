@@ -33,6 +33,8 @@ describe('Faultline’s library', () => {
     expect(ids('We are installing a new tray sealer from the OEM and need to commission it')[0]).toBe('stage-gate');
     expect(ids('A new product trial for a customer next month')[0]).toBe('product-trial');
     expect(ids('The wrapper is our bottleneck and we cannot make the rate')[0]).toBe('line-rate');
+    /* footage of the line is read as a line balance (lib/video) — a method that uses one is the one offered */
+    expect(ids('I have filmed the line and want to see who is waiting')[0]).toBe('line-rebalance');
     expect(ids('zzz qqq')).toEqual([]);
   });
 });
