@@ -19,6 +19,7 @@ import { addDays, niceDay } from '../weeks';
 import { allSteps, isTest, numbersOf, roleName, type FlowCondition, type FlowDefinition, type FlowField, type FlowMeasure, type FlowStage, type FlowStepDef } from './definition';
 import { answeredByRecord, componentOf } from './components';
 import { calc } from './formula';
+import { analyse, figuresOf, type AnalysisResult } from './analysis';
 import type { FlowRecord } from './records';
 import type { GateTone } from '../install';
 
@@ -84,6 +85,10 @@ export interface StepInstance {
   who?: string;
   /** A tool step: what its attached record says. */
   tool?: ToolReading;
+  /** A log: what its entries add up to, analysis by analysis. */
+  analysis?: Record<string, AnalysisResult>;
+  /** A log: its entries not struck. */
+  entries?: number;
 }
 
 /** One reading of a measure: a number recorded on one of the steps that feed it. */
@@ -242,6 +247,10 @@ export function missingOf(def: FlowDefinition, step: FlowStepDef, rec: FlowRecor
   if (photos < wantPhotos) out.push(wantPhotos - photos === 1 ? 'a photo' : `${wantPhotos - photos} more photos`);
   if (files < wantFiles) out.push(wantFiles - files === 1 ? 'a file' : `${wantFiles - files} more files`);
   if (step.answer === 'paperwork' && photos + files === 0 && !wantPhotos && !wantFiles) out.push('the paperwork (a file or a photo)');
+  if (step.answer === 'log') {
+    const want = Math.max(1, step.minEntries ?? 1), have = (rec?.entries ?? []).filter(e => !e.struck).length;
+    if (have < want) out.push(want === 1 ? 'an entry in its log' : `${want} entries in its log (${have} so far)`);
+  }
   if (step.answer === 'signoff' && !rec?.signedBy?.trim()) {
     const by = (step.role && people?.[step.role]) || roleName(def, step.role);
     out.push(by ? `${by}'s sign-off` : 'a sign-off');
@@ -273,6 +282,7 @@ function instanceTone(i: Pick<StepInstance, 'complete' | 'failed' | 'late' | 're
      as the stage gate reads an install step. */
   const signs = !!i.record && (!!i.record.doneOn || Object.keys(i.values).length > 0 || !!i.record.note?.trim());
   if (signs && (isTest(i.def) || i.def.answer === 'form')) return 'going';
+  if (i.def.answer === 'log' && (i.record?.entries ?? []).some(e => !e.struck)) return 'going';
   return 'ahead';
 }
 
@@ -315,8 +325,10 @@ export function readFlow(x: FlowInputs): FlowState {
       const mine = records.filter(r => r.kind === 'step' && r.stageKey === stage.key && r.stepKey === step.key && (r.assetId ?? undefined) === (step.per === 'machine' ? t.id : undefined)).sort(newest);
       const record = mine[0];
       const tool = step.component && record?.studyId ? x.tools?.[record.studyId] : undefined;
-      /* a tool step's figures sit beside its boxes, as the tool filled them */
-      const values = { ...valuesOf(step, record?.values), ...(tool?.figures ?? {}) };
+      /* a tool step's figures sit beside its boxes, as the tool filled them;
+         a log's, as its entries add up (lib/flow/analysis) */
+      const analysis = step.answer === 'log' ? analyse(step.analyses, step.columns, record?.entries) : undefined;
+      const values = { ...valuesOf(step, record?.values), ...(tool?.figures ?? {}), ...(analysis ? figuresOf(analysis) : {}) };
       const outOfLimits = step.answer === 'measure' || (step.fields ?? []).some(f => f.min !== undefined || f.max !== undefined) ? limitsBroken(step, values) : [];
       const missing = missingOf(def, step, record, values, people, tool);
       const failed = record?.outcome === 'failed' || (record?.outcome === 'done' && outOfLimits.length > 0);
@@ -336,6 +348,7 @@ export function readFlow(x: FlowInputs): FlowState {
         stageKey: stage.key, def: step, assetId: t.id, machine: t.name, record, attempts: mine.length,
         values, complete, failed, late, due, missing, outOfLimits, blockedBy: [], tone: 'ahead', who: record?.who?.trim() || whoFor(step),
         ...(tool ? { tool } : {}),
+        ...(analysis ? { analysis, entries: (record?.entries ?? []).filter(e => !e.struck).length } : {}),
       };
       inst.tone = instanceTone(inst);
       return inst;
@@ -445,7 +458,8 @@ export function readMeasure(m: FlowMeasure, def: FlowDefinition, records: readon
       if (r.kind !== 'step' || r.stepKey !== f.step || r.stageKey !== ref.stage.key || r.outcome === 'planned') continue;
       const tool = ref.step.component && r.studyId ? tools?.[r.studyId] : undefined;
       if (ref.step.component && r.studyId && tool && !tool.enough) continue;
-      const v = { ...valuesOf(ref.step, r.values), ...(tool?.figures ?? {}) }[f.field];
+      const logged = ref.step.answer === 'log' ? figuresOf(analyse(ref.step.analyses, ref.step.columns, r.entries)) : {};
+      const v = { ...valuesOf(ref.step, r.values), ...(tool?.figures ?? {}), ...logged }[f.field];
       if (typeof v !== 'number' || !Number.isFinite(v)) continue;
       const machine = r.assetId ? machines.find(x => x.id === r.assetId)?.name : undefined;
       readings.push({ value: v, ...(r.doneOn ? { on: r.doneOn } : {}), at: r.createdAt, step: ref.step.title, ...(machine ? { machine } : {}) });

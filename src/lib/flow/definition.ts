@@ -23,6 +23,7 @@
  */
 
 import { componentOf } from './components';
+import { blockOf, type FlowAnalysis } from './analysis';
 
 /** Bumped only with an upgrade function for every older shape. */
 export const FLOW_SCHEMA = 1 as const;
@@ -40,6 +41,8 @@ export const LIMITS = {
   conditionsPerGate: 20,
   roles: 30,
   measures: 12,
+  analysesPerStep: 20,
+  needs: 10,
   text: 300,
   longText: 2000,
 } as const;
@@ -92,10 +95,12 @@ export interface FlowField {
  *   - paperwork  "here they are": at least one file or photo;
  *   - signoff    "signed": who signed, always asked;
  *   - measure    numbers against limits — passes or does not;
- *   - form       the step's fields, filled.
+ *   - form       the step's fields, filled;
+ *   - log        many entries, each the step's columns, worked out by its
+ *                analyses (lib/flow/analysis) — a tool designed as data.
  *  A task that goes wrong "hit a problem" (amber); a test or a measurement
  *  that goes wrong "did not pass" (red) — the stage gate's two words. */
-export const ANSWERS = ['done', 'check', 'paperwork', 'signoff', 'measure', 'form'] as const;
+export const ANSWERS = ['done', 'check', 'paperwork', 'signoff', 'measure', 'form', 'log'] as const;
 export type FlowAnswer = typeof ANSWERS[number];
 
 export interface FlowEvidence {
@@ -129,6 +134,14 @@ export interface FlowStepDef {
    *  are per machine). */
   after?: string[];
   component?: FlowComponent;
+  /* ---- a log (answer 'log'): many entries, each these columns ---- */
+  /** What each entry asks — the field palette, worked-out columns too. */
+  columns?: FlowField[];
+  /** What the entries add up to — each a block from lib/flow/analysis; its
+   *  key is a figure gates and measures read. */
+  analyses?: FlowAnalysis[];
+  /** Entries it needs before it can be done (1 when absent). */
+  minEntries?: number;
   help?: string;
 }
 
@@ -195,6 +208,23 @@ export interface FlowMeasure {
   from: { step: string; field: string }[];
 }
 
+/* ------------------------- what needs building first ------------------------ */
+
+/** A CAPABILITY THE BLOCKS CANNOT GIVE — said, never faked (Rowland, 18
+ *  October: "I am not expecting the AI to create reliable engineering
+ *  functionality magically or without validation"). When what is asked
+ *  needs arithmetic no analysis block does, the assistant writes it down as
+ *  work for development: what, why, from what inputs, by what method, and
+ *  how it will be checked. The method still runs on what exists; the need
+ *  is on its page and its paper until a block is written for it. */
+export interface FlowNeed {
+  what: string;
+  why: string;
+  inputs?: string;
+  method?: string;
+  check?: string;
+}
+
 /* ------------------------------- the definition ---------------------------- */
 
 export interface FlowDefinition {
@@ -208,6 +238,8 @@ export interface FlowDefinition {
   stages: FlowStage[];
   /** The numbers the work has to move — read from its steps. */
   measures?: FlowMeasure[];
+  /** What it needs that no block does yet — work for development. */
+  needs?: FlowNeed[];
 }
 
 /* ----------------------------------- reading ------------------------------- */
@@ -229,7 +261,25 @@ export function findStep(def: Pick<FlowDefinition, 'stages'>, key: string): Step
 export function numbersOf(step: FlowStepDef): FlowField[] {
   const own = (step.fields ?? []).filter(f => f.type === 'number' || f.type === 'reading' || f.type === 'calc');
   const tool = componentOf(step.component?.tool)?.figures ?? [];
-  return [...own, ...tool.filter(t => !own.some(f => f.key === t.key)).map((t): FlowField => ({ key: t.key, label: t.label, type: 'number', ...(t.unit ? { unit: t.unit } : {}) }))];
+  /* a log's figures: each analysis that says a number */
+  const logged = step.answer === 'log' ? (step.analyses ?? []).filter(a => blockOf(a.block)?.output !== 'series').map((a): FlowField => {
+    const unit = analysisUnit(a, step.columns ?? []);
+    return { key: a.key, label: a.label, type: 'number', ...(unit ? { unit } : {}) };
+  }) : [];
+  const taken = new Set(own.map(f => f.key));
+  const more = [...tool.map((t): FlowField => ({ key: t.key, label: t.label, type: 'number', ...(t.unit ? { unit: t.unit } : {}) })), ...logged];
+  return [...own, ...more.filter(f => (taken.has(f.key) ? false : (taken.add(f.key), true)))];
+}
+
+/** The unit an analysis's figure is said in, when it names none. */
+export function analysisUnit(a: FlowAnalysis, columns: readonly FlowField[]): string | undefined {
+  if (a.unit) return a.unit;
+  if (a.block === 'count') return 'entries';
+  if (a.block === 'share' || a.block === 'pareto') return '%';
+  if (a.block === 'cpk') return undefined;
+  const c = columns.find(x => x.key === a.of)?.unit;
+  if (a.block === 'perDay') return a.of ? `${c ?? ''} a day`.trim() : 'a day';
+  return c;
 }
 
 export const roleName = (def: Pick<FlowDefinition, 'roles'>, key?: string): string | undefined =>
@@ -259,7 +309,7 @@ export const KIND_WORD: Record<FlowDefinition['kind'], string> = {
 };
 
 export const ANSWER_WORD: Record<FlowAnswer, string> = {
-  done: 'Done', check: 'Passed or not', paperwork: 'Paperwork', signoff: 'Sign-off', measure: 'Measured', form: 'Form',
+  done: 'Done', check: 'Passed or not', paperwork: 'Paperwork', signoff: 'Sign-off', measure: 'Measured', form: 'Form', log: 'A log',
 };
 
 export const FIELD_WORD: Record<FieldType, string> = {

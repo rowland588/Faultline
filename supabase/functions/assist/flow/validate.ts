@@ -12,9 +12,10 @@
  * no title"), because the review screen shows them. */
 import {
   ANSWERS, CONDITIONS, FIELD_TYPES, FLOW_SCHEMA, KEY_RE, LIMITS, numbersOf,
-  type FlowAnswer, type FlowCondition, type FlowDefinition, type FlowField, type FlowMeasure, type FlowRole,
+  type FlowAnswer, type FlowCondition, type FlowDefinition, type FlowField, type FlowMeasure, type FlowNeed, type FlowRole,
   type FlowStage, type FlowStepDef, type FieldType,
 } from './definition.ts';
+import { ANALYSIS_BLOCKS, WHEN_OPS, blockOf, isGroupColumn, isNumberColumn, type FlowAnalysis, type FlowWhen } from './analysis.ts';
 import { FormulaError, formulaRefs, parseFormula } from './formula.ts';
 import { componentOf } from './components.ts';
 
@@ -111,6 +112,14 @@ export function validateDefinition(input: unknown): Checked {
       const fields = readFields(t.fields, tp, `${twhere} (${title || tkey})`, err);
       if (answer === 'form' && !fields.length) warn(`${tp}.fields`, `${twhere} (${title}) is a form with no fields — it will read as a tick.`);
 
+      /* a log: what each entry asks, and what the entries add up to */
+      const columns = answer === 'log' ? readFields(t.columns, tp, `${twhere} (${title || tkey})`, err, 'columns', 'column') : [];
+      if (answer === 'log' && !columns.length) err(`${tp}.columns`, `${twhere} (${title}) is a log with no columns — say what each entry asks.`);
+      const analyses = answer === 'log' ? readAnalyses(t.analyses, columns, fields, tp, `${twhere} (${title || tkey})`, err) : [];
+      if (answer === 'log' && columns.length && !analyses.length) warn(`${tp}.analyses`, `${twhere} (${title}) logs entries but works nothing out from them — add an analysis (a total, a Pareto, a trend…).`);
+      const minEntries = answer === 'log' ? num(t.minEntries) : undefined;
+      if (minEntries !== undefined && (minEntries < 1 || minEntries > 10000)) err(`${tp}.minEntries`, `${twhere} (${title}) needs ${minEntries} entries — say a number from 1 to 10000.`);
+
       const ev = isObj(t.evidence) ? t.evidence : {};
       const photos = num(ev.photos), files = num(ev.files);
       const evidence = {
@@ -140,6 +149,9 @@ export function validateDefinition(input: unknown): Checked {
         ...(dueDays !== undefined && dueDays >= 0 ? { dueDays: Math.round(dueDays) } : {}),
         ...(after.length ? { after } : {}),
         ...(component ? { component } : {}),
+        ...(columns.length ? { columns } : {}),
+        ...(analyses.length ? { analyses } : {}),
+        ...(minEntries !== undefined && minEntries >= 1 && minEntries <= 10000 && Math.round(minEntries) !== 1 ? { minEntries: Math.round(minEntries) } : {}),
         ...maybe('help', optStr(t.help, LIMITS.longText)),
       };
       stepIndex.set(tkey, { stage: si, step });
@@ -286,23 +298,35 @@ export function validateDefinition(input: unknown): Checked {
   });
 
   if (!roles.length) warn('roles', 'No roles are named — nobody will be asked to do anything by name.');
-  const def: FlowDefinition = { schema: FLOW_SCHEMA, name, purpose, kind, roles, stages, ...(measures.length ? { measures } : {}) };
+
+  /* ---- what it needs that no block does yet: said, kept, never run ---- */
+  const needs: FlowNeed[] = [];
+  const rawNeeds = arr(input.needs);
+  if (rawNeeds.length > LIMITS.needs) err('needs', `A method may name at most ${LIMITS.needs} things for development.`);
+  rawNeeds.slice(0, LIMITS.needs).forEach((x, ni) => {
+    if (!isObj(x)) return;
+    const what = str(x.what), why = str(x.why, LIMITS.longText);
+    if (!what || !why) { warn(`needs[${ni}]`, `A need for development is left out: it must say what is needed and why.`); return; }
+    needs.push({ what, why, ...maybe('inputs', optStr(x.inputs, LIMITS.longText)), ...maybe('method', optStr(x.method, LIMITS.longText)), ...maybe('check', optStr(x.check, LIMITS.longText)) });
+  });
+
+  const def: FlowDefinition = { schema: FLOW_SCHEMA, name, purpose, kind, roles, stages, ...(measures.length ? { measures } : {}), ...(needs.length ? { needs } : {}) };
   return errors.length ? { ok: false, errors, warnings } : { ok: true, def, errors, warnings };
 }
 
-function readFields(raw: unknown, tp: string, twhere: string, err: (p: string, m: string) => void): FlowField[] {
+function readFields(raw: unknown, tp: string, twhere: string, err: (p: string, m: string) => void, at: 'fields' | 'columns' = 'fields', one = 'field'): FlowField[] {
   const list = arr(raw);
-  if (list.length > LIMITS.fieldsPerStep) err(`${tp}.fields`, `${twhere} has more than ${LIMITS.fieldsPerStep} fields.`);
+  if (list.length > LIMITS.fieldsPerStep) err(`${tp}.${at}`, `${twhere} has more than ${LIMITS.fieldsPerStep} ${one}s.`);
   const fields: FlowField[] = [];
   const keys = new Set<string>();
   list.slice(0, LIMITS.fieldsPerStep).forEach((f, fi) => {
-    const fp = `${tp}.fields[${fi}]`;
-    if (!isObj(f)) { err(fp, `${twhere}, field ${ordinal(fi)} is not readable.`); return; }
+    const fp = `${tp}.${at}[${fi}]`;
+    if (!isObj(f)) { err(fp, `${twhere}, ${one} ${ordinal(fi)} is not readable.`); return; }
     const key = str(f.key, 40), label = str(f.label);
-    if (!KEY_RE.test(key)) { err(`${fp}.key`, `${twhere}, field ${ordinal(fi)}${label ? ` (${label})` : ''} needs a short key of lower-case letters and numbers.`); return; }
-    if (keys.has(key)) { err(`${fp}.key`, `${twhere} has two fields with the key "${key}".`); return; }
+    if (!KEY_RE.test(key)) { err(`${fp}.key`, `${twhere}, ${one} ${ordinal(fi)}${label ? ` (${label})` : ''} needs a short key of lower-case letters and numbers.`); return; }
+    if (keys.has(key)) { err(`${fp}.key`, `${twhere} has two ${one}s with the key "${key}".`); return; }
     keys.add(key);
-    if (!label) err(`${fp}.label`, `${twhere}, field "${key}" has no label.`);
+    if (!label) err(`${fp}.label`, `${twhere}, ${one} "${key}" has no label.`);
     const type = oneOf<FieldType>(f.type, FIELD_TYPES, 'text');
     if (f.type !== undefined && f.type !== type) err(`${fp}.type`, `${twhere}, field "${label || key}" is a kind the app does not know: "${String(f.type)}".`);
     const min = num(f.min), max = num(f.max);
@@ -330,11 +354,11 @@ function readFields(raw: unknown, tp: string, twhere: string, err: (p: string, m
     try {
       const refs = formulaRefs(parseFormula(f.formula));
       for (const r of refs) {
-        if (!numeric.has(r)) err(`${tp}.fields`, `${twhere}, "${f.label}" works out from "${r}", which is not a number on this step.`);
+        if (!numeric.has(r)) err(`${tp}.${at}`, `${twhere}, "${f.label}" works out from "${r}", which is not a number ${at === 'columns' ? 'in the same entry' : 'on this step'}.`);
       }
       deps.set(f.key, refs);
     } catch (e) {
-      err(`${tp}.fields`, `${twhere}, "${f.label}": ${e instanceof FormulaError ? e.message : 'the formula cannot be read.'}`);
+      err(`${tp}.${at}`, `${twhere}, "${f.label}": ${e instanceof FormulaError ? e.message : 'the formula cannot be read.'}`);
     }
   }
   const seen = new Set<string>(), stack = new Set<string>();
@@ -346,8 +370,60 @@ function readFields(raw: unknown, tp: string, twhere: string, err: (p: string, m
     stack.delete(k);
     return bad;
   };
-  for (const k of deps.keys()) if (visit(k)) { err(`${tp}.fields`, `${twhere} has worked-out fields that depend on each other in a circle.`); break; }
+  for (const k of deps.keys()) if (visit(k)) { err(`${tp}.${at}`, `${twhere} has worked-out ${one}s that depend on each other in a circle.`); break; }
   return fields;
+}
+
+/** A log's analyses — each a block the app has (lib/flow/analysis), on
+ *  columns that are there and of the kind it needs. */
+function readAnalyses(raw: unknown, columns: FlowField[], fields: FlowField[], tp: string, twhere: string, err: (p: string, m: string) => void): FlowAnalysis[] {
+  const list = arr(raw);
+  if (list.length > LIMITS.analysesPerStep) err(`${tp}.analyses`, `${twhere} has more than ${LIMITS.analysesPerStep} analyses.`);
+  const out: FlowAnalysis[] = [];
+  const taken = new Set([...columns, ...fields].map(c => c.key));
+  const colOf = (k?: string) => columns.find(c => c.key === k);
+  list.slice(0, LIMITS.analysesPerStep).forEach((a, ai) => {
+    const ap = `${tp}.analyses[${ai}]`;
+    if (!isObj(a)) { err(ap, `${twhere}, analysis ${ordinal(ai)} is not readable.`); return; }
+    const key = str(a.key, 40);
+    const block = blockOf(str(a.block, 20));
+    const label = str(a.label) || (block ? block.name : '');
+    const aw = `${twhere}, the analysis ${label ? `“${label}”` : ordinal(ai)}`;
+    if (!KEY_RE.test(key) || key.includes('-')) { err(`${ap}.key`, `${aw} needs a short key of lower-case letters, numbers and _.`); return; }
+    if (taken.has(key)) { err(`${ap}.key`, `${aw} has the key "${key}", which a column, a box or another analysis already has.`); return; }
+    if (!block) { err(`${ap}.block`, `${aw} uses a way of working out the app does not have: "${String(a.block)}". It has ${ANALYSIS_BLOCKS.join(', ')}.`); return; }
+    taken.add(key);
+    const of = optStr(a.of, 40), by = optStr(a.by, 40);
+    let ok = true;
+    if (block.needs.of === 'required' && !of) { err(`${ap}.of`, `${aw} needs a column to work on.`); ok = false; }
+    if (of) {
+      const c = colOf(of);
+      if (!c) { err(`${ap}.of`, `${aw} works on "${of}", which is not a column of the log.`); ok = false; }
+      else if (block.numeric && !isNumberColumn(c)) { err(`${ap}.of`, `${aw} works on “${c.label}”, which is not a number.`); ok = false; }
+      else if (block.needs.of === 'none') { err(`${ap}.of`, `${aw} counts entries — it works on no column.`); ok = false; }
+    }
+    if (block.needs.by === 'required' && !by) { err(`${ap}.by`, `${aw} needs a column to group by.`); ok = false; }
+    if (by) {
+      const c = colOf(by);
+      if (!c) { err(`${ap}.by`, `${aw} groups by "${by}", which is not a column of the log.`); ok = false; }
+      else if (!isGroupColumn(c)) { err(`${ap}.by`, `${aw} groups by “${c.label}”, a number — group by words (a choice, a reason, a person).`); ok = false; }
+    }
+    let when: FlowWhen | undefined;
+    if (isObj(a.when)) {
+      const column = str(a.when.column, 40), op = a.when.op, c = colOf(column);
+      const value = typeof a.when.value === 'boolean' ? a.when.value : num(a.when.value) ?? optStr(a.when.value, 80);
+      if (!c) { err(`${ap}.when`, `${aw} counts entries by "${column}", which is not a column of the log.`); ok = false; }
+      else if (!(WHEN_OPS as readonly unknown[]).includes(op)) { err(`${ap}.when`, `${aw} compares with "${String(op)}" — use = ≠ ≥ ≤ > or <.`); ok = false; }
+      else if (value === undefined) { err(`${ap}.when`, `${aw} says which entries count, but not the value to compare.`); ok = false; }
+      else if (op !== '=' && op !== '!=' && (!isNumberColumn(c) || typeof value !== 'number')) { err(`${ap}.when`, `${aw} compares “${c.label}” by size — that needs a number column and a number.`); ok = false; }
+      else when = { column, op: op as FlowWhen['op'], value };
+    }
+    if (block.needs.when === 'required' && !when && ok) { err(`${ap}.when`, `${aw} is a share — say which entries it counts.`); ok = false; }
+    if (block.id === 'cpk' && of && colOf(of) && colOf(of)?.min === undefined && colOf(of)?.max === undefined) { err(`${ap}.of`, `${aw} judges “${colOf(of)?.label}” against its limits, but the column has none — give it an at least or an at most.`); ok = false; }
+    if (!ok) return;
+    out.push({ key, label, block: block.id, ...(of ? { of } : {}), ...(by ? { by } : {}), ...(when ? { when } : {}), ...maybe('unit', optStr(a.unit, 40)) });
+  });
+  return out;
 }
 
 function findCycle(index: Map<string, { step: FlowStepDef }>): string[] | undefined {

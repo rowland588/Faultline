@@ -43,6 +43,16 @@ const k = (key: string | undefined, mime?: string, owner?: string): MediaKey[] =
 
 const n = (v: unknown): number | undefined => (v == null ? undefined : Number(v));
 
+/** A log's entries, kept inside a flow record's `values` column. */
+const ENTRIES = '_entries';
+/** A flow record's `values` column split back into its boxes and its log's entries. */
+function flowValues(raw: unknown): Pick<FlowRecord, 'values' | 'entries'> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const { [ENTRIES]: list, ...rest } = raw as Record<string, unknown>;
+  const entries = Array.isArray(list) ? (list as NonNullable<FlowRecord['entries']>).filter(e => !!e && typeof e === 'object' && typeof e.id === 'string') : undefined;
+  return { ...(Object.keys(rest).length ? { values: rest as FlowRecord['values'] } : {}), ...(entries ? { entries } : {}) };
+}
+
 export const MAPS: Record<SyncKind, EntityMap> = {
   workspaces: {
     clock: l => (l as Workspace).updatedAt ?? (l as Workspace).createdAt,
@@ -705,9 +715,14 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     } satisfies Method),
   },
 
-  /* A STEP DONE, OR A GATE PASSED, on a project running a method. */
+  /* A STEP DONE, OR A GATE PASSED, on a project running a method. A log's
+     entries ride in its `values` column under one key — no column of their
+     own, so no migration: the column is jsonb already. */
   flow_records: {
     clock: l => (l as FlowRecord).updatedAt,
+    /* the boxes key by key, a log's entries entry by entry: two devices
+       filling different boxes, or logging at once, both keep theirs */
+    nested: ['values'],
     mediaKeys: l => ((l as FlowRecord).media ?? []).flatMap(m => [...k(m.blobKey, m.mime), ...k(m.thumbKey, 'image/jpeg')])
       .concat(((l as FlowRecord).docs ?? []).flatMap(d => k(d.blobKey, d.mime))),
     toRow: (l, fallbackOwner) => {
@@ -716,7 +731,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         id: f.id, owner_id: fallbackOwner, project_id: f.projectId, kind: f.kind, stage: f.stageKey,
         step: f.stepKey ?? null, asset_id: f.assetId ?? null, version: f.version, outcome: f.outcome,
         planned_for: f.plannedFor ?? null, done_on: f.doneOn ?? null, who: f.who ?? null,
-        values: f.values ?? null, note: f.note ?? null,
+        values: f.values || f.entries ? { ...(f.values ?? {}), ...(f.entries ? { [ENTRIES]: f.entries } : {}) } : null, note: f.note ?? null,
         signed_by: f.signedBy ?? null, open_at_sign: f.openAtSign ?? null,
         media: f.media ?? null, docs: f.docs ?? null, study_id: f.studyId ?? null,
         override: f.override ?? null, open_at_pass: f.openAtPass ?? null, checks: f.checks ?? null,
@@ -734,7 +749,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       plannedFor: (r.planned_for as string) ?? undefined,
       doneOn: (r.done_on as string) ?? undefined,
       who: (r.who as string) ?? undefined,
-      values: (r.values as FlowRecord['values']) ?? undefined,
+      ...flowValues(r.values),
       note: (r.note as string) ?? undefined,
       signedBy: (r.signed_by as string) ?? undefined,
       openAtSign: Array.isArray(r.open_at_sign) ? (r.open_at_sign as string[]) : undefined,

@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
-export const SHARED = ['definition', 'formula', 'components', 'validate', 'proposal', 'assistCore', 'askCore'];
+export const SHARED = ['definition', 'formula', 'components', 'analysis', 'validate', 'proposal', 'assistCore', 'askCore'];
 /* the video study's labelling (docs/VIDEO.md): what the assistant is asked about the frames, and what is kept */
 export const VIDEO_SHARED = ['record', 'visionCore'];
 export const forDeno = (src, from = 'src/lib/flow') => `// COPIED FROM ${from} by scripts/sync-assist.mjs — edit the source, then run it.\n${src.replace(/from '\.\/([A-Za-z]+)'/g, "from './$1.ts'")}`;

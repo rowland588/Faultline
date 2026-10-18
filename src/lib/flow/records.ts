@@ -20,6 +20,7 @@
  *               mandate needs it ("controlled, validated, versioned and
  *               auditable"). Written once, never changed.
  */
+import type { FlowEntry } from './analysis';
 import type { ID, MediaRef } from '../../types';
 import type { DocRef } from '../testing';
 import type { FlowDefinition } from './definition';
@@ -75,6 +76,10 @@ export interface FlowRecord {
   who?: string;
   /** The step's fields, as typed. Worked-out fields are never kept. */
   values?: Record<string, string | number | boolean>;
+  /** A log's entries (answer 'log'), each the step's columns, oldest first.
+   *  Kept in the record's `values` column under `_entries` (cloud/mappers),
+   *  merged entry by entry when two devices log at once. */
+  entries?: FlowEntry[];
   /** What happened, in words. */
   note?: string;
   /** A sign-off: who signed, and what was still open when they did. */

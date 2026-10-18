@@ -10,6 +10,7 @@
  * approves it like any other. It computes nothing a project depends on. */
 import { fromProposal, type Proposed } from './proposal.ts';
 import { COMPONENTS } from './components.ts';
+import { BLOCK_CATALOGUE } from './analysis.ts';
 import { validateDefinition, type Issue } from './validate.ts';
 
 /** $ per million tokens, input and output (the claude-api reference, 6 October 2026). */
@@ -54,6 +55,11 @@ export function allowance(rows: readonly { at: string | number; cost_micros: num
  *  may build a step on, and the numbers each gives back. */
 const TOOLS_SAID = COMPONENTS.map(c => `  ${c.id} — ${c.name}: ${c.gives}.${c.figures.length ? ` Gives back: ${c.figures.map(f => `${f.label}${f.unit ? ` (${f.unit})` : ''}`).join(', ')}.` : ' Ticked by hand once looked at; gives back no numbers.'}`).join('\n');
 
+/** The analysis blocks in words, from lib/flow/analysis — what a log's
+ *  entries can be worked out by; a block written tomorrow is offered here
+ *  the day it is written. */
+const BLOCKS_SAID = BLOCK_CATALOGUE.map(b => `  ${b.id} — ${b.says}.${b.of === 'required' ? ` Needs of (a ${b.numeric ? 'number ' : ''}column).` : b.of === 'optional' ? ` of optional (a ${b.numeric ? 'number ' : ''}column; without it, it counts entries).` : ''}${b.by === 'required' ? ' Needs by (a words column: a choice, a reason, a person).' : ''}${b.when === 'required' ? ' Needs when (which entries it counts).' : b.when === 'optional' ? ' when optional.' : ''}${b.output === 'series' ? ' A picture only: no number for a gate or a measure.' : ''}`).join('\n');
+
 /** WHAT THE ASSISTANT IS TOLD — the closed vocabulary in words, the app's
  *  tools, and the floor's rules (CLAUDE.md: measured by people, no OEE,
  *  plain British English). Kept word-for-word stable so it can be cached. */
@@ -64,10 +70,14 @@ Write the method in the JSON shape you are given. Use only its choices:
 - roles: the people steps are given to, by job ("OEM fitter", "Site engineer", "Quality"), each the supplier's, the site's, or either.
 - stages, in order. Each has steps and a gate. Three to seven stages is usual; three to ten steps in a stage.
 - a step: a short title in plain words; per "machine" when it is done on every machine of the project, "line" when once for the job; its answer:
-  done (a task: done, or it hit a problem), check (a test: passed or did not pass), paperwork (files or photos are the answer), signoff (someone signs; always names who), measure (numbers judged against limits), form (boxes filled in);
+  done (a task: done, or it hit a problem), check (a test: passed or did not pass), paperwork (files or photos are the answer), signoff (someone signs; always names who), measure (numbers judged against limits), form (boxes filled in), log (many entries, each the step's columns — every stop, every reject, every reading over a week — worked out by its analyses);
   role: one of the roles' names, or "" for nobody; passes_if: what it must show, agreed before the day, or ""; photos and files: how many it needs (0 if none); due_days: days from the project's start, or null; after: titles of earlier steps it waits on; tool: one of the app's tools when the step is done with it (below), else ""; fields: boxes a person fills on the floor; help: one line on how to do it, or "".
 - the app's tools. A step with a tool is answered by that tool's own record, made on the line; the numbers it gives back count as the step's boxes, by those names, for a gate condition or a measure. Prefer a tool whenever the work is what it does — timing a changeover, where a shift's time went, whether a process holds its limits, people's work against takt, what people are doing, the flow and its waits:
 ${TOOLS_SAID}
+- a log: when the work is to record the same thing many times and work out what it adds up to, the step's answer is log. columns: what each entry asks (fields, below — a choice for a reason, a number for minutes or a count; a calc column works out from the same entry's numbers); analyses: each a label and a block from the list below, of (the column it works on, by its label, or ""), by (the column it groups by, or ""), when_column, when_op (= != >= <= > < or "") and when_value (which entries count, or all ""), unit or ""; min_entries: how many entries before the step can be done, or null. Every analysis that gives a number is a box of the step, by its label, for a gate condition or a measure — so a log built twice (before and after the change) feeds a measure's before and after, and a gate can wait on a log's figure. Build a log whenever no tool above does the work: this is how a new tool is made from blocks.
+  The blocks:
+${BLOCKS_SAID}
+- needs: when what is asked needs arithmetic or analysis that neither a tool nor a block does (a reliability fit, a forecast, an optimisation, a statistical test not listed), do not imitate it with blocks that only look like it. Say it in needs — what is needed, why, from what inputs, by what method, and how it would be checked — and build the rest of the method on what exists. A need is work for development, shown on the method's page; it is never run.
 - a field: label; type one of text, number, reading (a number with limits), date, choice (give options), yesno, person, calc (worked out by the app from the step's other numbers); unit or ""; min and max (null when not given); formula for calc only, naming the step's other fields by their label in lower case with underscores (e.g. "packs_made / minutes_run"), else ""; required.
 - a gate condition: type one of stepsDone (every step in the stage done), stepDone (one step done; give step), evidence (a step has its photos or files; give step, evidence, min), signedOff (give a signoff step), fieldMeets (a measured field or a tool's number meets a figure; give step, field label, op, value, value2 for between), measureMet (a measure meets its target; give measure by its name — only a measure with a target), noOpenProblems (give priority), dateReached (give due_days), manual (a check confirmed by hand at the pass; give label). policy block when the gate must wait for it, warn when it may pass and say it was open. Fill unused parts with "" or null. Every stage should have at least stepsDone.
 - measures: the numbers the work has to move, each with a before and an after — name, unit or "", better (higher or lower), target (null when not given), from: the steps (by title) and the box label or tool number that feeds it. The first reading is the before and the latest is now, so a method that improves something measures it early and again after the change (the same tool twice is usual). Any improvement or investigation has at least one measure; a stage gate may have none.

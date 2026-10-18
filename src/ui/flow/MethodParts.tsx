@@ -19,6 +19,7 @@ export const ANSWER_SAYS: Record<FlowStepDef['answer'], string> = {
   signoff: 'Signed — always asks who signed.',
   measure: 'Numbers against their limits — passes, or does not.',
   form: 'The step’s boxes, filled in.',
+  log: 'Many entries, each its columns — added up by its analyses (a Pareto, a trend, a total, Cpk…).',
 };
 
 export const CONDITION_WORD: Record<FlowCondition['type'], string> = {
