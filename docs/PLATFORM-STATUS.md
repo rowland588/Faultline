@@ -142,25 +142,40 @@ what waits on someone is docs/VIDEO.md. Its blockers are below.
   applied. Until it is, footage stays on the device it was taken on, and the
   study says so; its events, figures and reports sync.
 
-- **The assistant's allowance table** — `supabase/ASSIST_USAGE.sql` was not
-  applied (the tool call was declined on 18 October). Either say yes to it
-  being applied from here, or paste the file into the Supabase SQL editor.
-  The gateway refuses to run without it (no cost control, no assistant).
-- **The gateway** — `supabase/functions/assist` is written and tested, not
-  deployed; it is deployed from the repo with Rowland's yes.
-- **The key** — `ANTHROPIC_API_KEY` as a Supabase secret (Ask already reads
-  the same one). Without it every AI feature says it is off and the studio,
-  the library and the form work by hand. Two places read a Claude key, and
-  they are separate: `api/wording` (the better-wording button) is a Vercel
-  function and reads `ANTHROPIC_API_KEY` from Vercel's environment — falling
-  back to the free Gemini key, or saying it is off; the gateway (`assist`)
-  and `ask` are Supabase edge functions and read it from Supabase's secrets.
-  Neither key is ever given a `VITE_` name (that would put it in the
-  browser). Checked 18 October: on Supabase only `remind` and `share` are
-  deployed (`assist` and `ask` are not); Vercel's variables could not be
-  read from here (the Vercel connector is refused for the team, 403), and
-  `GET /api/wording` on the live site answers `{"by":"claude"}`, `"gemini"`
-  or 503 without showing a key.
+- **The assistant's allowance table** — `supabase/ASSIST_USAGE.sql`, said
+  yes to by Rowland on 18 October, is still NOT applied: `apply_migration`
+  came back "cancelled", then timed out after a minute (the connector's
+  permission for that tool; read back both times — no table, nothing in the
+  migration history). Either allow `apply_migration` for the Supabase
+  connector (claude.ai/customize/connectors) or approve its prompt and it is
+  applied from here, or paste the file into the Supabase SQL editor. The
+  gateway refuses to call Claude without it (no cost control, no assistant).
+- **The gateway** — `supabase/functions/assist` DEPLOYED 18 October, 15:36
+  UTC (version 1, `verify_jwt` on), from the repo's copy at 622d449 — the
+  copy on `main` plus the video study's `video-label` task, which the live
+  app calls only once the video slice ships. Checked by calling it from the
+  database (`net.http_post`, the public anon key): it loads and answers
+  `{"off":true,"why":"The assistant is not switched on…"}` — the answer it
+  gives when no key is set. Redeploy from the repo whenever
+  `supabase/functions/assist` changes (the repo copy is the source).
+- **The key** — `ANTHROPIC_API_KEY` is NOT set as a Supabase secret (the
+  gateway's answer above). Rowland sets it himself in Supabase (Edge
+  Functions → Secrets); it never passes through a chat or a file. Without it
+  every AI feature says it is off and the studio, the library and the form
+  work by hand. Two places read a Claude key, and they are separate:
+  `api/wording` (the better-wording button) is a Vercel function and reads
+  `ANTHROPIC_API_KEY` from Vercel's environment — falling back to the free
+  Gemini key, or saying it is off; the gateway (`assist`) and `ask` are
+  Supabase edge functions and read it from Supabase's secrets. Neither key
+  is ever given a `VITE_` name (that would put it in the browser). `ask` is
+  not deployed (the gateway's own `ask` task is what the app uses now).
+  Vercel's variables could not be read from here (the Vercel connector is
+  refused for the team, 403); `GET /api/wording` on the live site answers
+  `{"by":"claude"}`, `"gemini"` or 503 without showing a key.
+- **Once the table and the key are both there**, the same call from the
+  database answers 401 "Sign in to use the assistant." (the key passes, an
+  anonymous caller does not); then one proposal from the studio, signed in,
+  and its row read back in `assist_usage`.
 
 ## How to resume
 
