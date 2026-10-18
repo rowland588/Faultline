@@ -150,7 +150,8 @@ function app(route: Route) {
   if (route.name === 'lineHome' && route.wsId) return <ProductionLineScreen key={route.wsId} wsId={route.wsId} />;
   if (route.name === 'factory') return <FactoryScreen />;
   if (route.name === 'methods') return <MethodsScreen />;
-  if (route.name === 'design') return <DesignScreen />;
+  /* keyed by what it starts from, so moving between studios starts afresh */
+  if (route.name === 'design') return <DesignScreen key={route.query.toString()} />;
   if (route.name === 'method' && route.id) return <MethodScreen key={route.id} id={route.id} />;
   /* ?line= opens it on one line — keyed on it, so a second line starts afresh */
   if (route.name === 'linePrograms') return <LineProgramsScreen key={route.query.get('line') ?? ''} />;
