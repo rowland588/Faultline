@@ -1,0 +1,228 @@
+/* A METHOD WRITTEN AS DATA — the definition a project runs on
+ * (docs/PLATFORM-REVIEW.md §6.1; docs/PLATFORM-STATUS.md).
+ *
+ * Rowland, 18 October: "I describe the outcome. Faultline works out the
+ * appropriate structure and helps me put it into operation." Until now every
+ * method was code: the method two booleans on a project (lib/planModel), the
+ * stage gate's gates a fixed union and a database constraint (lib/testing).
+ * A definition is the same thing said as data — stages, the steps in each,
+ * who does them, what each must show, and what a gate needs before it can
+ * be passed — so a method can be written, adapted and versioned without a
+ * line of code, by a person on a form or by the assistant proposing one.
+ *
+ * A CLOSED VOCABULARY. Every building block is one of a short list below,
+ * and the validator (lib/flow/validate) refuses anything else. That is what
+ * makes it safe to let a model propose one: it can only compose what the app
+ * already knows how to run, check and print. A new kind of block is code,
+ * written and tested once — never something a sentence makes appear.
+ *
+ * NOTHING WORKED OUT IS STORED. Where a stage stands, what is outstanding and
+ * whether a gate can be passed are read by lib/flow/runtime from the
+ * definition and the records, every time — on the screen, on paper, for the
+ * assistant and for the server's re-check, the same function.
+ */
+
+/** Bumped only with an upgrade function for every older shape. */
+export const FLOW_SCHEMA = 1 as const;
+
+/** Keys name things inside a definition and never change once it is active —
+ *  records point at them. Lower case, short, no spaces. */
+export const KEY_RE = /^[a-z][a-z0-9_-]{0,39}$/;
+
+/** Limits that keep a definition a method, not a dump — and keep a model's
+ *  answer from running away with the page. */
+export const LIMITS = {
+  stages: 30,
+  stepsPerStage: 80,
+  fieldsPerStep: 30,
+  conditionsPerGate: 20,
+  roles: 30,
+  text: 300,
+  longText: 2000,
+} as const;
+
+/* ------------------------------- who does it ------------------------------ */
+
+/** A named responsibility — "OEM fitter", "Site engineer" — mapped to a
+ *  person when a project starts. `side` says whose people they are, the way a
+ *  stage gate's line is with the supplier or the site (lib/install usualWith). */
+export interface FlowRole {
+  key: string;
+  name: string;
+  side?: 'supplier' | 'site';
+  note?: string;
+}
+
+/* ------------------------------ what is kept ------------------------------ */
+
+/** The field palette. Each is a box a person fills on the floor; `calc` is
+ *  worked out from the step's own numbers by lib/flow/formula — never typed,
+ *  never a model's number. */
+export const FIELD_TYPES = ['text', 'number', 'reading', 'date', 'choice', 'yesno', 'person', 'calc'] as const;
+export type FieldType = typeof FIELD_TYPES[number];
+
+export interface FlowField {
+  key: string;
+  label: string;
+  type: FieldType;
+  /** number, reading, calc: "packs/min", "mm", "°C". */
+  unit?: string;
+  /** reading: what it must fall within — either may be absent ("at least 60"). */
+  min?: number;
+  max?: number;
+  /** choice: the options, in order. */
+  options?: string[];
+  /** calc: arithmetic over this step's number, reading and calc fields, by key
+   *  — "packs / minutes". */
+  formula?: string;
+  /** The step is not complete until it is filled. */
+  required?: boolean;
+  help?: string;
+}
+
+/* ------------------------------- how "yes" is said ------------------------ */
+
+/** The answer shapes a step can have — the stage gate's (lib/install
+ *  StageAnswer and a test's verdict), with a measurement in place of the run:
+ *   - done       a task: done today, or it hit a problem;
+ *   - check      a test: passed, or did not pass;
+ *   - paperwork  "here they are": at least one file or photo;
+ *   - signoff    "signed": who signed, always asked;
+ *   - measure    numbers against limits — passes or does not;
+ *   - form       the step's fields, filled.
+ *  A task that goes wrong "hit a problem" (amber); a test or a measurement
+ *  that goes wrong "did not pass" (red) — the stage gate's two words. */
+export const ANSWERS = ['done', 'check', 'paperwork', 'signoff', 'measure', 'form'] as const;
+export type FlowAnswer = typeof ANSWERS[number];
+
+export interface FlowEvidence {
+  photos?: number;
+  files?: number;
+}
+
+/** A tool the app already has, placed in a step: the step is answered by
+ *  that tool's own record and verdict (lib/flow/components). Only the
+ *  registered ids are valid. */
+export interface FlowComponent {
+  tool: string;
+  note?: string;
+}
+
+export interface FlowStepDef {
+  key: string;
+  title: string;
+  /** Once for the line, or once for every machine on it. */
+  per: 'line' | 'machine';
+  /** A role key — who does it. */
+  role?: string;
+  answer: FlowAnswer;
+  /** What it must show, agreed before the day — said on the step and on paper. */
+  passesIf?: string;
+  fields?: FlowField[];
+  evidence?: FlowEvidence;
+  /** Days from the project's start it is due by. */
+  dueDays?: number;
+  /** Step keys that must be complete first (on the same machine, when both
+   *  are per machine). */
+  after?: string[];
+  component?: FlowComponent;
+  help?: string;
+}
+
+/* ---------------------------- what a gate needs ---------------------------- */
+
+/** The condition set. Closed on purpose: each is a rule the runtime can
+ *  check from records alone and say in a sentence. */
+export const CONDITIONS = ['stepsDone', 'stepDone', 'evidence', 'signedOff', 'fieldMeets', 'noOpenProblems', 'dateReached', 'manual'] as const;
+export type ConditionType = typeof CONDITIONS[number];
+
+export type Policy = 'block' | 'warn';
+
+interface CondBase {
+  id: string;
+  /** block: the gate cannot be passed while it is unmet (an owner may still
+   *  pass it with a reason, kept); warn: it can, and the pass says it was open. */
+  policy: Policy;
+  /** How it is said, when the app's own words are not enough. */
+  label?: string;
+}
+
+export type FlowCondition = CondBase & (
+  | { type: 'stepsDone' }
+  | { type: 'stepDone'; step: string }
+  | { type: 'evidence'; step: string; kind: 'photo' | 'file'; min: number }
+  | { type: 'signedOff'; step: string }
+  | { type: 'fieldMeets'; step: string; field: string; op: '>=' | '<=' | '=' | 'between'; value: number; value2?: number }
+  | { type: 'noOpenProblems'; priority: 'critical' | 'high' | 'any' }
+  | { type: 'dateReached'; dueDays: number }
+  | { type: 'manual'; label: string }
+);
+
+export interface FlowGate {
+  conditions: FlowCondition[];
+}
+
+export interface FlowStage {
+  key: string;
+  name: string;
+  purpose?: string;
+  steps: FlowStepDef[];
+  gate: FlowGate;
+}
+
+/* ------------------------------- the definition ---------------------------- */
+
+export interface FlowDefinition {
+  schema: typeof FLOW_SCHEMA;
+  name: string;
+  /** What it is for, in a sentence — the question it answers. */
+  purpose: string;
+  /** The kind of change it runs, for the library and the control room. */
+  kind: 'stagegate' | 'investigation' | 'improvement' | 'other';
+  roles: FlowRole[];
+  stages: FlowStage[];
+}
+
+/* ----------------------------------- reading ------------------------------- */
+
+export interface StepRef { stage: FlowStage; step: FlowStepDef; stageIndex: number }
+
+/** Every step, with its stage, in order. */
+export function allSteps(def: Pick<FlowDefinition, 'stages'>): StepRef[] {
+  return def.stages.flatMap((stage, stageIndex) => stage.steps.map(step => ({ stage, step, stageIndex })));
+}
+
+export function findStep(def: Pick<FlowDefinition, 'stages'>, key: string): StepRef | undefined {
+  return allSteps(def).find(r => r.step.key === key);
+}
+
+export const roleName = (def: Pick<FlowDefinition, 'roles'>, key?: string): string | undefined =>
+  key ? def.roles.find(r => r.key === key)?.name : undefined;
+
+/** A key from words — "Mechanical & services" → "mechanical-services" —
+ *  unique against the keys already taken. */
+export function keyOf(words: string, taken: Iterable<string> = []): string {
+  const used = new Set(taken);
+  let base = words.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32);
+  if (!base || !/^[a-z]/.test(base)) base = `k-${base || 'item'}`.slice(0, 32);
+  let k = base, n = 2;
+  while (used.has(k)) k = `${base}-${n++}`;
+  return k;
+}
+
+/** A test or a measurement says "did not pass" when it goes wrong; a task
+ *  says it "hit a problem". */
+export const isTest = (s: Pick<FlowStepDef, 'answer'>): boolean => s.answer === 'check' || s.answer === 'measure';
+
+/** The kinds in words. */
+export const KIND_WORD: Record<FlowDefinition['kind'], string> = {
+  stagegate: 'Stage gate', investigation: 'Investigation', improvement: 'Improvement', other: 'Method',
+};
+
+export const ANSWER_WORD: Record<FlowAnswer, string> = {
+  done: 'Done', check: 'Passed or not', paperwork: 'Paperwork', signoff: 'Sign-off', measure: 'Measured', form: 'Form',
+};
+
+export const FIELD_WORD: Record<FieldType, string> = {
+  text: 'Words', number: 'Number', reading: 'Reading with limits', date: 'Date', choice: 'Choice', yesno: 'Yes or no', person: 'Person', calc: 'Worked out',
+};

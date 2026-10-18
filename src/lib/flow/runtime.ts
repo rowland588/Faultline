@@ -1,0 +1,455 @@
+/* WHERE A PROJECT RUNNING A METHOD STANDS — read, never stored
+ * (docs/PLATFORM-REVIEW.md §6.2).
+ *
+ * One pure function from a definition, the project's records and today to
+ * everything a person or the assistant needs to know: each stage and how far
+ * it has got, every step on every machine and what it is missing, each gate
+ * and what it still needs, what is outstanding and whose it is, what to do
+ * next, and the project in one sentence. The run view draws it, the report
+ * prints it, the assistant is sent it, and the server re-checks a gate pass
+ * with it — one reading, so they cannot disagree.
+ *
+ * The step's tones follow the stage gate's own reading (lib/install toneOf,
+ * journeyOf): done is quiet; a step that did not pass is a failure when it
+ * was measured and "hit a problem" (amber) when it was a task; late is a
+ * separate fact from a problem, and the louder of the two colours the
+ * square; a step that ran without its answer complete is asked about, not
+ * filed as planned. */
+import { addDays, niceDay } from '../weeks';
+import { allSteps, isTest, roleName, type FlowCondition, type FlowDefinition, type FlowField, type FlowStage, type FlowStepDef } from './definition';
+import { calc } from './formula';
+import type { FlowRecord } from './records';
+import type { GateTone } from '../install';
+
+export interface FlowMachine { id: string; name: string }
+export interface FlowProblem { id?: string; title?: string; open: boolean; priority?: 'critical' | 'high' | 'low' }
+
+export interface FlowInputs {
+  def: FlowDefinition;
+  records: readonly FlowRecord[];
+  machines: readonly FlowMachine[];
+  /** ISO day the project started — "due n days from the start" counts from it. */
+  startedOn?: string;
+  today: string;
+  /** Who does each role on this project. */
+  people?: Record<string, string>;
+  problems?: readonly FlowProblem[];
+}
+
+export type StepTone = 'done' | 'failed' | 'problem' | 'late' | 'asking' | 'going' | 'ahead';
+
+export interface StepInstance {
+  stageKey: string;
+  def: FlowStepDef;
+  assetId?: string;
+  machine?: string;
+  /** The current attempt — the newest record for this step on this machine. */
+  record?: FlowRecord;
+  attempts: number;
+  /** The fields as typed, with the worked-out ones worked out. */
+  values: Record<string, string | number | boolean>;
+  complete: boolean;
+  failed: boolean;
+  late: boolean;
+  due?: string;
+  tone: StepTone;
+  /** What it still needs, in words: "a photo", "Site engineer's sign-off". */
+  missing: string[];
+  /** Readings outside their limits: "Speed 52 packs/min — at least 60". */
+  outOfLimits: string[];
+  /** Steps it waits on that are not complete. */
+  blockedBy: string[];
+  /** Who it is for — the person given the role, or the role's name. */
+  who?: string;
+}
+
+export interface ConditionState {
+  id: string;
+  type: FlowCondition['type'];
+  policy: FlowCondition['policy'];
+  label: string;
+  met: boolean;
+  /** A manual check: confirmed when the gate is passed, not before. */
+  manual: boolean;
+  /** Unmet, and it stops the gate. */
+  blocking: boolean;
+  why: string;
+}
+
+export interface GateState {
+  conditions: ConditionState[];
+  /** Every blocking condition met, and the gate before passed. */
+  canPass: boolean;
+  /** The gate before this one, when it is not passed yet. */
+  waitsOn?: string;
+  /** Warnings that would be passed over — said on the pass. */
+  warnings: ConditionState[];
+  passed: boolean;
+  pass?: FlowRecord;
+}
+
+export interface StageState {
+  key: string;
+  name: string;
+  index: number;
+  steps: StepInstance[];
+  done: number;
+  total: number;
+  late: number;
+  failed: number;
+  /** The steps alone, as the stage gate reads a gate (done when every step
+   *  is done) — before the gate is asked about. */
+  stepsTone: GateTone;
+  /** The stage as a whole: done only when its gate is passed. */
+  tone: GateTone;
+  gate: GateState;
+  /** Work recorded here before the gate ahead of it was passed. */
+  ahead: boolean;
+}
+
+export interface Outstanding {
+  kind: 'step' | 'condition' | 'gate';
+  stageKey: string;
+  stageName: string;
+  what: string;
+  why: string;
+  who?: string;
+  due?: string;
+  late: boolean;
+  failed: boolean;
+  blocked: boolean;
+  stepKey?: string;
+  assetId?: string;
+  conditionId?: string;
+}
+
+export interface FlowState {
+  stages: StageState[];
+  /** The first stage whose gate is not passed. */
+  current?: StageState;
+  outstanding: Outstanding[];
+  next?: Outstanding;
+  done: boolean;
+  counts: { steps: number; done: number; late: number; failed: number; asking: number; gatesPassed: number; gates: number };
+  verdict: { text: string; tone: 'r' | 'a' | 'g' | 'n' };
+}
+
+const live = <T extends { deletedAt?: number }>(xs: readonly T[]): T[] => xs.filter(x => !x.deletedAt);
+const newest = (a: FlowRecord, b: FlowRecord) => (b.createdAt - a.createdAt) || (b.updatedAt - a.updatedAt);
+const many = (n: number, one: string, more = `${one}s`) => `${n} ${n === 1 ? one : more}`;
+const filled = (v: unknown) => v !== undefined && v !== null && !(typeof v === 'string' && !v.trim());
+const fmt = (n: number) => (Math.abs(n) >= 100 || Number.isInteger(n) ? String(Math.round(n * 10) / 10) : String(Math.round(n * 100) / 100));
+const withUnit = (n: number, f: FlowField) => `${fmt(n)}${f.unit ? ` ${f.unit}` : ''}`;
+
+/** The step's fields with the worked-out ones worked out — by the app, from
+ *  the numbers typed. */
+export function valuesOf(step: FlowStepDef, typed: Record<string, string | number | boolean> = {}): Record<string, string | number | boolean> {
+  const out: Record<string, string | number | boolean> = {};
+  for (const f of step.fields ?? []) {
+    if (f.type === 'calc') continue;
+    const v = typed[f.key];
+    if (!filled(v)) continue;
+    if (f.type === 'number' || f.type === 'reading') {
+      const n = typeof v === 'number' ? v : Number(v);
+      if (Number.isFinite(n)) out[f.key] = n;
+    } else out[f.key] = v;
+  }
+  /* worked out in order, so one may read another worked out before it */
+  for (let pass = 0; pass < 3; pass++) {
+    for (const f of step.fields ?? []) {
+      if (f.type !== 'calc' || !f.formula || out[f.key] !== undefined) continue;
+      const nums: Record<string, number | undefined> = {};
+      for (const [k, v] of Object.entries(out)) if (typeof v === 'number') nums[k] = v;
+      const r = calc(f.formula, nums);
+      if (r !== undefined) out[f.key] = r;
+    }
+  }
+  return out;
+}
+
+/** Readings outside their limits, in words. */
+export function limitsBroken(step: FlowStepDef, values: Record<string, string | number | boolean>): string[] {
+  const out: string[] = [];
+  for (const f of step.fields ?? []) {
+    if (f.type !== 'reading' && f.type !== 'number') continue;
+    const v = values[f.key];
+    if (typeof v !== 'number') continue;
+    if (f.min !== undefined && v < f.min) out.push(`${f.label} ${withUnit(v, f)} — at least ${withUnit(f.min, f)}`);
+    else if (f.max !== undefined && v > f.max) out.push(`${f.label} ${withUnit(v, f)} — at most ${withUnit(f.max, f)}`);
+  }
+  return out;
+}
+
+/** What a step still needs before it is complete. */
+export function missingOf(def: FlowDefinition, step: FlowStepDef, rec: FlowRecord | undefined, values: Record<string, string | number | boolean>, people?: Record<string, string>): string[] {
+  const out: string[] = [];
+  for (const f of step.fields ?? []) {
+    if (f.required && f.type !== 'calc' && !filled(values[f.key])) out.push(f.label);
+  }
+  if (step.answer === 'measure') {
+    for (const f of step.fields ?? []) {
+      if ((f.type === 'reading' || (f.type === 'number' && (f.min !== undefined || f.max !== undefined))) && !filled(values[f.key]) && !f.required) out.push(f.label);
+    }
+  }
+  const photos = (rec?.media ?? []).length;
+  const files = (rec?.docs ?? []).length;
+  const wantPhotos = step.evidence?.photos ?? 0;
+  const wantFiles = step.evidence?.files ?? 0;
+  if (photos < wantPhotos) out.push(wantPhotos - photos === 1 ? 'a photo' : `${wantPhotos - photos} more photos`);
+  if (files < wantFiles) out.push(wantFiles - files === 1 ? 'a file' : `${wantFiles - files} more files`);
+  if (step.answer === 'paperwork' && photos + files === 0 && !wantPhotos && !wantFiles) out.push('the paperwork (a file or a photo)');
+  if (step.answer === 'signoff' && !rec?.signedBy?.trim()) {
+    const by = (step.role && people?.[step.role]) || roleName(def, step.role);
+    out.push(by ? `${by}'s sign-off` : 'a sign-off');
+  }
+  if (step.component && !rec?.studyId) out.push(`its ${componentWord(step.component.tool)}`);
+  return out;
+}
+
+const componentWord = (tool: string) => ({
+  capability: 'capability study', losses: 'loss count', changeover: 'SMED study', balance: 'line balance',
+  sampling: 'work sampling', map: 'value stream map', capacity: 'Line capacity',
+} as Record<string, string>)[tool] ?? 'study';
+
+function instanceTone(i: Pick<StepInstance, 'complete' | 'failed' | 'late' | 'record' | 'def' | 'values'>): StepTone {
+  if (i.complete) return 'done';
+  if (i.failed) return isTest(i.def) ? 'failed' : i.late ? 'late' : 'problem';
+  if (i.late) return 'late';
+  if (i.record?.outcome === 'done') return 'asking';
+  /* Under way: a test or a measurement that has run and is waiting on its
+     verdict (lib/testing needsVerdict), or a form part-filled. A task is done
+     or it is not — a day typed against it without the tick is still ahead,
+     as the stage gate reads an install step. */
+  const signs = !!i.record && (!!i.record.doneOn || Object.keys(i.values).length > 0 || !!i.record.note?.trim());
+  if (signs && (isTest(i.def) || i.def.answer === 'form')) return 'going';
+  return 'ahead';
+}
+
+/** A list of steps read as the stage gate reads a gate (lib/install
+ *  journeyOf): failed beats late beats a problem; done when every one is. */
+export function tonesToGate(steps: readonly Pick<StepInstance, 'tone'>[]): GateTone {
+  if (!steps.length) return 'none';
+  const t = steps.map(s => s.tone);
+  if (t.every(x => x === 'done')) return 'done';
+  if (t.includes('failed')) return 'failed';
+  if (t.includes('late')) return 'late';
+  if (t.includes('problem') || t.includes('asking')) return 'problem';
+  if (t.some(x => x === 'done' || x === 'going')) return 'going';
+  return 'ahead';
+}
+
+function opWords(c: Extract<FlowCondition, { type: 'fieldMeets' }>, f?: FlowField): string {
+  const u = (n: number) => (f ? withUnit(n, f) : fmt(n));
+  return c.op === '>=' ? `at least ${u(c.value)}` : c.op === '<=' ? `at most ${u(c.value)}` : c.op === '=' ? `exactly ${u(c.value)}` : `between ${u(c.value)} and ${u(c.value2 ?? c.value)}`;
+}
+
+function meets(c: Extract<FlowCondition, { type: 'fieldMeets' }>, v: number): boolean {
+  return c.op === '>=' ? v >= c.value : c.op === '<=' ? v <= c.value : c.op === '=' ? Math.abs(v - c.value) < 1e-9 : v >= c.value && v <= (c.value2 ?? c.value);
+}
+
+/** Read a project running a method. */
+export function readFlow(x: FlowInputs): FlowState {
+  const { def, today } = x;
+  const records = live(x.records);
+  const machines = x.machines;
+  const people = x.people ?? {};
+  const whoFor = (step: FlowStepDef) => (step.role ? people[step.role]?.trim() || roleName(def, step.role) : undefined);
+
+  /* ---- every step on every machine ---- */
+  const instances = new Map<string, StepInstance[]>();
+  const byStep = new Map<string, StepInstance[]>();
+  for (const { stage, step } of allSteps(def)) {
+    const targets: { id?: string; name?: string }[] = step.per === 'machine' && machines.length ? machines.map(m => ({ id: m.id, name: m.name })) : [{}];
+    const list = targets.map(t => {
+      const mine = records.filter(r => r.kind === 'step' && r.stageKey === stage.key && r.stepKey === step.key && (r.assetId ?? undefined) === (step.per === 'machine' ? t.id : undefined)).sort(newest);
+      const record = mine[0];
+      const values = valuesOf(step, record?.values);
+      const outOfLimits = step.answer === 'measure' || (step.fields ?? []).some(f => f.min !== undefined || f.max !== undefined) ? limitsBroken(step, values) : [];
+      const missing = missingOf(def, step, record, values, people);
+      const failed = record?.outcome === 'failed' || (record?.outcome === 'done' && outOfLimits.length > 0);
+      const complete = record?.outcome === 'done' && !missing.length && !outOfLimits.length;
+      const due = record?.plannedFor ?? (x.startedOn && step.dueDays !== undefined ? addDays(x.startedOn, step.dueDays) : undefined);
+      /* Late is the stage gate's rule (lib/testing isOverdue): the day came and
+         it did not happen, or its day has gone and it is not settled — a task
+         is settled only when done; a test is settled once it has run, and one
+         that ran and did not pass says so, not "late". */
+      const ran = !!record && (record.outcome !== 'planned' || !!record.doneOn || !!record.note?.trim());
+      const settled = complete || (isTest(step) && ran);
+      /* A task that hit a problem on a day now gone, with no day planned, is
+         late from the day it hit it (lib/install lateOrProblem). */
+      const end = due ?? (record?.outcome === 'failed' ? record.doneOn : undefined);
+      const late = !complete && (record?.outcome === 'notRun' || (!!end && end < today && !settled));
+      const inst: StepInstance = {
+        stageKey: stage.key, def: step, assetId: t.id, machine: t.name, record, attempts: mine.length,
+        values, complete, failed, late, due, missing, outOfLimits, blockedBy: [], tone: 'ahead', who: record?.who?.trim() || whoFor(step),
+      };
+      inst.tone = instanceTone(inst);
+      return inst;
+    });
+    instances.set(`${stage.key}/${step.key}`, list);
+    byStep.set(step.key, list);
+  }
+  /* waits on: complete on the same machine when both are per machine, else
+     every instance of the step waited on */
+  for (const list of byStep.values()) {
+    for (const inst of list) {
+      for (const a of inst.def.after ?? []) {
+        const dep = byStep.get(a);
+        if (!dep) continue;
+        const same = inst.assetId ? dep.filter(d => !d.assetId || d.assetId === inst.assetId) : dep;
+        if (same.some(d => !d.complete)) inst.blockedBy.push(dep[0].def.title);
+      }
+    }
+  }
+
+  /* ---- the stages and their gates ---- */
+  const stages: StageState[] = [];
+  let prevPassed = true;
+  let prevName = '';
+  def.stages.forEach((stage, index) => {
+    const steps = stage.steps.flatMap(s => instances.get(`${stage.key}/${s.key}`) ?? []);
+    const pass = records.filter(r => r.kind === 'gate' && r.stageKey === stage.key && r.outcome === 'done').sort(newest)[0];
+    const conditions = stage.gate.conditions.map(c => readCondition(c, stage, steps, byStep, x));
+    const blockers = conditions.filter(c => c.blocking);
+    const passed = !!pass;
+    const canPass = !passed && prevPassed && !blockers.length;
+    const stepsTone = tonesToGate(steps);
+    const tone: GateTone = passed ? 'done' : stepsTone === 'done' ? 'going' : stepsTone;
+    stages.push({
+      key: stage.key, name: stage.name, index, steps,
+      done: steps.filter(s => s.complete).length, total: steps.length,
+      late: steps.filter(s => s.late).length, failed: steps.filter(s => s.failed).length,
+      stepsTone, tone,
+      gate: {
+        conditions, canPass, passed, pass,
+        ...(!prevPassed && !passed ? { waitsOn: `${prevName}'s gate` } : {}),
+        warnings: conditions.filter(c => !c.met && !c.manual && c.policy === 'warn'),
+      },
+      ahead: !prevPassed && steps.some(s => !!s.record),
+    });
+    prevPassed = prevPassed && passed;
+    prevName = stage.name;
+  });
+
+  /* ---- what is outstanding, whose, by when ---- */
+  const outstanding: Outstanding[] = [];
+  for (const st of stages) {
+    if (st.gate.passed) continue;
+    for (const s of st.steps) {
+      if (s.complete) continue;
+      const what = `${s.def.title}${s.machine ? ` — ${s.machine}` : ''}`;
+      const why = s.blockedBy.length ? `waits on ${s.blockedBy.map(b => `“${b}”`).join(' and ')}`
+        : s.failed ? (s.outOfLimits.length ? `did not pass: ${s.outOfLimits.join('; ')}` : 'did not pass — to try again')
+          : s.record?.outcome === 'done' && s.missing.length ? `needs ${s.missing.join(', ')}`
+            : s.record?.outcome === 'notRun' ? 'the day came and it did not happen'
+              : s.missing.length && s.record ? `needs ${s.missing.join(', ')}` : 'not done';
+      outstanding.push({ kind: 'step', stageKey: st.key, stageName: st.name, what, why, who: s.who, due: s.due, late: s.late, failed: s.failed, blocked: s.blockedBy.length > 0, stepKey: s.def.key, assetId: s.assetId });
+    }
+    for (const c of st.gate.conditions) {
+      if (c.met || c.manual || c.type === 'stepsDone' || c.type === 'stepDone') continue;
+      if (c.policy === 'warn') continue;
+      outstanding.push({ kind: 'condition', stageKey: st.key, stageName: st.name, what: c.label, why: c.why, late: false, failed: false, blocked: false, conditionId: c.id });
+    }
+    if (st.gate.canPass) {
+      outstanding.push({ kind: 'gate', stageKey: st.key, stageName: st.name, what: `Pass ${st.name}'s gate`, why: st.gate.warnings.length ? `ready — ${many(st.gate.warnings.length, 'warning')} to note` : 'every condition met', late: false, failed: false, blocked: false });
+    }
+  }
+  const order = new Map(stages.map(s => [s.key, s.index]));
+  outstanding.sort((a, b) =>
+    (Number(b.failed || b.late) - Number(a.failed || a.late))
+    || ((order.get(a.stageKey) ?? 0) - (order.get(b.stageKey) ?? 0))
+    || (Number(a.blocked) - Number(b.blocked))
+    || (a.due ?? '9999').localeCompare(b.due ?? '9999'));
+
+  const current = stages.find(s => !s.gate.passed);
+  const next = outstanding.find(o => !o.blocked && o.stageKey === current?.key) ?? outstanding.find(o => !o.blocked);
+  const all = stages.flatMap(s => s.steps);
+  const counts = {
+    steps: all.length, done: all.filter(s => s.complete).length, late: all.filter(s => s.late).length,
+    failed: all.filter(s => s.failed).length, asking: all.filter(s => s.tone === 'asking').length,
+    gatesPassed: stages.filter(s => s.gate.passed).length, gates: stages.length,
+  };
+  const done = stages.length > 0 && stages.every(s => s.gate.passed);
+  return { stages, current, outstanding, next, done, counts, verdict: verdictOf(stages, current, done, counts) };
+}
+
+function readCondition(c: FlowCondition, stage: FlowStage, steps: StepInstance[], byStep: Map<string, StepInstance[]>, x: FlowInputs): ConditionState {
+  const base = { id: c.id, type: c.type, policy: c.policy, manual: false };
+  const out = (label: string, met: boolean, why: string): ConditionState => ({ ...base, label: c.label || label, met, why, blocking: !met && c.policy === 'block' });
+  const titled = (key: string) => byStep.get(key)?.[0]?.def.title ?? key;
+  const across = (list: StepInstance[], one: string) => (list.length > 1 ? `${list.filter(s => s.complete).length} of ${list.length} ${one}` : '');
+  switch (c.type) {
+    case 'stepsDone': {
+      const done = steps.filter(s => s.complete).length;
+      return out(`Every step in ${stage.name} done`, done === steps.length, steps.length ? `${done} of ${steps.length} done` : 'no steps');
+    }
+    case 'stepDone': {
+      const list = byStep.get(c.step) ?? [];
+      const ok = list.length > 0 && list.every(s => s.complete);
+      return out(`“${titled(c.step)}” done`, ok, ok ? 'done' : across(list, 'machines done') || (list[0]?.failed ? 'did not pass' : 'not done'));
+    }
+    case 'evidence': {
+      const list = byStep.get(c.step) ?? [];
+      const count = (s: StepInstance) => (c.kind === 'photo' ? (s.record?.media ?? []).length : (s.record?.docs ?? []).length);
+      const ok = list.length > 0 && list.every(s => count(s) >= c.min);
+      const word = c.kind === 'photo' ? 'photo' : 'file';
+      const have = list.length === 1 ? count(list[0]) : list.filter(s => count(s) >= c.min).length;
+      return out(`“${titled(c.step)}” has ${many(c.min, word)}`, ok, list.length === 1 ? `${have} of ${c.min}` : `${have} of ${list.length} machines`);
+    }
+    case 'signedOff': {
+      const list = byStep.get(c.step) ?? [];
+      const ok = list.length > 0 && list.every(s => !!s.record?.signedBy?.trim() && s.record.outcome === 'done');
+      const by = list.map(s => s.record?.signedBy?.trim()).filter(Boolean);
+      return out(`the sign-off “${titled(c.step)}”`, ok, ok ? `signed by ${[...new Set(by)].join(', ')}` : by.length ? `${by.length} of ${list.length} signed` : 'not signed yet');
+    }
+    case 'fieldMeets': {
+      const list = byStep.get(c.step) ?? [];
+      const field = list[0]?.def.fields?.find(f => f.key === c.field);
+      const vals = list.map(s => s.values[c.field]).filter((v): v is number => typeof v === 'number');
+      const ok = list.length > 0 && vals.length === list.length && vals.every(v => meets(c, v));
+      const label = `“${titled(c.step)}”: ${field?.label ?? c.field} ${opWords(c, field)}`;
+      return out(label, ok, vals.length ? vals.map(v => (field ? withUnit(v, field) : fmt(v))).join(', ') : 'not measured yet');
+    }
+    case 'noOpenProblems': {
+      const rank = { critical: 3, high: 2, low: 1 } as const;
+      const want = c.priority === 'critical' ? 3 : c.priority === 'high' ? 2 : 1;
+      const open = (x.problems ?? []).filter(p => p.open && rank[p.priority ?? 'low'] >= want);
+      const word = c.priority === 'any' ? 'problems' : `${c.priority}${c.priority === 'high' ? ' or critical' : ''} problems`;
+      return out(`No open ${word}`, open.length === 0, open.length ? `${open.length} open${open[0]?.title ? `: ${open.slice(0, 2).map(p => p.title).join('; ')}` : ''}` : 'none open');
+    }
+    case 'dateReached': {
+      const day = x.startedOn ? addDays(x.startedOn, c.dueDays) : undefined;
+      const ok = !!day && x.today >= day;
+      return out(day ? `Not before ${niceDay(day)}` : `${c.dueDays} days from the start`, ok, day ? (ok ? 'reached' : `from ${niceDay(day)}`) : 'no start date');
+    }
+    case 'manual':
+      return { ...base, manual: true, label: c.label, met: false, blocking: false, why: 'confirmed when the gate is passed' };
+  }
+}
+
+function verdictOf(stages: StageState[], current: StageState | undefined, done: boolean, counts: FlowState['counts']): FlowState['verdict'] {
+  if (!stages.length) return { text: 'The method has no stages yet.', tone: 'n' };
+  if (done) {
+    const last = stages[stages.length - 1].gate.pass;
+    return { text: `Every gate passed${last?.doneOn ? ` — the last on ${niceDay(last.doneOn)}` : ''}.`, tone: 'g' };
+  }
+  const st = current ?? stages[0];
+  const parts = [`${st.name} (stage ${st.index + 1} of ${stages.length}): ${st.done} of ${many(st.total, 'step')} done`];
+  if (st.late) parts.push(`${st.late} late`);
+  if (st.failed) parts.push(`${st.failed} did not pass`);
+  const blocker = st.gate.conditions.find(c => c.blocking && c.type !== 'stepsDone');
+  let tail = '.';
+  if (st.gate.canPass) tail = ' — ready to pass its gate.';
+  else if (st.gate.waitsOn) tail = ` — ${st.gate.waitsOn} is not passed yet.`;
+  else if (blocker) tail = ` — its gate needs ${lowerFirst(blocker.label)}.`;
+  const tone: FlowState['verdict']['tone'] = st.failed || st.late || counts.failed ? 'r' : counts.asking || blocker ? 'a' : 'n';
+  return { text: parts.join(', ') + tail, tone };
+}
+
+const lowerFirst = (s: string) => (/^[A-Z][a-z]/.test(s) ? s[0].toLowerCase() + s.slice(1) : s);
+
+/** One stage's steps on one machine, read as the stage gate reads a gate —
+ *  what the parity check compares with lib/install journeyOf. */
+export function machineStageTone(stage: StageState, assetId: string): GateTone {
+  return tonesToGate(stage.steps.filter(s => s.assetId === assetId));
+}
