@@ -36,6 +36,7 @@ import { Sheet } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
 import { Legend, Stacks } from '../ui/WorkBalance';
 import { AskingNote, useAsking } from '../ui/flow/Asking';
+import { StudyProves } from '../ui/ProveProgram';
 import { asked } from '../lib/lines';
 import { getBlob } from '../db';
 import { probe } from '../lib/video/extract';
@@ -471,6 +472,8 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
 
       {/* WHERE IT SITS, and taking it away */}
       <section className="vid-panel vid-where" aria-label="Where it sits">
+        {/* the program it was named as proof of, as on every study's page (ui/StudyPlace) */}
+        <StudyProves s={s} />
         {can.edit && (
           <label className="field"><span className="field-label">For a job</span>
             <select className="text-input" value={s.projectId ?? ''} aria-label="Put it on a job" onChange={e => void patchStudy(s.id, { projectId: e.target.value || undefined })}>
