@@ -77,17 +77,16 @@ list (a definition gives every machine the same steps).
 | 2 | Records and sync: IndexedDB v21 (`methods`, `flow_records`, `activity_log`), mappers, sync kinds, `projects.flow`; `supabase/METHODS.sql` and `FLOW_MEDIA.sql` applied to the live database and read back; the operations (`lib/flow/operations`) with permission checks and an activity line each | 11 operation tests on a real IndexedDB (owner / team / client), the schema test (both sides of every column, the media rule) | ships with slice 3 |
 | 3 | Screens, AI off: Methods library (`#/methods`: from the stage gate's usual lists, from a stage-gate job as it ran, or blank); one method (`#/methods/:id`) read as a plan and written while a draft — roles, stages, steps (per machine or once, answer, role, passes if, photos, files, due day, waits on, boxes with limits and worked-out sums), gate conditions (block or warn), the validator's words, Approve, a new version, delete a draft with Undo, the projects on it, its history; start a project; the project's page (`#/project/:id` when `project.flow`) — the lean page, the stage strip, a step per machine, the step sheet (fields, photos, files, sign-off, plan day, who, Done refused with what is missing, did not pass with what happened, try again keeping the attempt, take back), the gate sheet (each condition met or not, a check confirmed by name, pass over what is unmet only with a reason, reopen with a reason and Undo), who does what, machines, what has happened; the method report (PDF, lean page); the rail (Methods; a project's stages and its method); the control room's row, week, Who owes what (a supplier-side role under the supplier) and the rail's jobs; Details (no switching a method project to the three); Reports (the method report) | `lib/flow/__tests__/view.test.ts` (words, lean page, the control room's row through `portfolio()`, the report at one page and at many pages, nothing cut); `scripts/acceptance/methods.mjs` (the whole journey in a browser, team and client, phone); smoke seed (a method approved with a draft of v2 open, a project on it part-way, a run that did not pass); `docs/PAGES.md` and `scripts/inventory/pages.mjs` lines | gated with slices 1–2, shipped together |
 
-| 4 | The gateway (`supabase/functions/assist`: session check, a daily allowance by number and cost, structured output held to the proposal's schema, read again by the app's validator; key server-side; off without the key or the usage table) and design by conversation | `assist.test.ts` (recorded answers, the copies word for word), `scripts/acceptance/methods-design.mjs` | code on the branch; the function is not deployed and its usage table not applied (below) |
+| 4 | The gateway (`supabase/functions/assist`: session check, a daily allowance by number and cost, structured output held to the proposal's schema, read again by the app's validator; key server-side; off without the key or the usage table) and design by conversation | `assist.test.ts` (recorded answers, the copies word for word), `scripts/acceptance/methods-design.mjs` | live (fc0178a); the function deployed (v1, from 622d449), its allowance table pasted by Rowland and read back, the key set (an anonymous call answers 401 "Sign in") — a signed-in proposal and its `assist_usage` row still to be seen (below) |
 | 5 | The assistant on a project (`lib/flow/ground` facts with how each is known; the app answers the common questions itself; the assistant's answer checked — a figure it was not told is never shown as known); changes as a new version with every change said (`lib/flow/change`); moving a project to a new version with the effect said first, completed work kept, Undo; the history on the report | `ground.test.ts`, `change.test.ts`, the acceptance | with slice 4 |
 | V | The vision slice — tools and measures in the engine (D9, D10), Faultline's library (D11), the studio (D12), copy and adapt, a project's line, a tool step attaching a study, measures as tiles, on the page, the paper and the assistant's facts | `capabilities.test.ts` (tools, measures, measureMet, proposal round trip, keys kept, SMED read by SMED's module), `library.test.ts` (every entry valid and runnable, found from words), `methods-design.mjs` (53 checks: control room → studio, AI off and on, shaped, approved and started, version 2 with a measure, the project moved, measured 36 → 44, asked, the report, SMED's method adapted and run with a SMED study attached, used as it is, copied); smoke routes; PAGES and inventory lines; the seed's SMED method run | with slice 4 |
 
 ## Next actions (in order)
 
-1. Ship slices 4, 5 and V to `main` once the full gate passes.
-2. With Rowland's word: apply `supabase/ASSIST_USAGE.sql` (declined when
-   tried on 18 October — not retried) and deploy `supabase/functions/assist`
-   from the repo; then he sets `ANTHROPIC_API_KEY`. Until then every AI
-   feature says it is off and everything else works.
+1. ~~Ship slices 4, 5 and V~~ — live (fc0178a).
+2. ~~ASSIST_USAGE, the deploy, the key~~ — done 18 October (below). Still
+   to see: a proposal from a signed-in person, and its `assist_usage` row
+   read back (task, model, tokens, cost, ok).
 3. ~~A tool step's study attached by itself when it is made from the
    step~~ — built 18 October (`ui/flow/Asking`): the tool's New says the
    step it answers, the study made there is attached by `recordStep` under
@@ -106,6 +105,24 @@ list (a definition gives every machine the same steps).
    configurable form of the 6M journey.
 6. Later: organisations/tenancy (a shared library); the server re-checking a
    gate pass with the same runtime.
+
+## The new product (18 October) — docs/BLUEPRINT.md §3
+
+Rowland, 18 October: "a genuinely new Faultline product experience ... the
+real milestone is being able to describe a manufacturing need in plain
+English and create, execute and report on a working methodology". Built
+beside the old routes, the gate green at each step:
+
+| Change | What | Verified by | Live? |
+|---|---|---|---|
+| 1 The front door | `screens/StartScreen`: the question and its box first; what is under way (`lib/portfolio`); the library; the tools on their own; the factory. The words go to the studio (`?say=`) | `front-door.mjs` 1–8: a need in plain words → a method (assistant off: the closest offered; on: a proposal) → approved and started → a stage done and its gate passed → a run measured against its limit and signed → the report read back → listed under way | 688e4ed — gate5 |
+| 2 The workspace | a tool opened from a method's step opens inside the project: the address carries the step (`?for=`), the project's rail, a bar naming the step with Back to it (`ui/flow/StepBar`) | `methods-design.mjs` 9e2–9e3, `video-study.mjs` 8b1 | 5dd1947 — gate5 |
+| 3 One way to start | New job leads with the words (to the studio with the line), then the established three (stage gate, 6M, lever tree — `lib/flow/established`), then the library; the three in the library page, the front door and the studio's offers; the line carried to the project's start | `front-door.mjs` 9–9o, `established.test.ts`, control-room, factory, methods-design | f685057 — gate6 |
+| 4 Home | `#/` is the front door, the control room at `#/room`; one rail off a project (Home · Projects · Methods, then the control room, Your factory, the jobs, the tools); the phone bar Home · Problems · Lines · More; the build stamp on both | `front-door.mjs` 1c–1f, the route and rail tests, control-room, methods, lines, smoke, inventory | d6a1202 + 4839a1b — gate6 |
+
+Next: a tool's own panel inside the step (today its page opens inside the
+project); the 6M and the lever tree as methods drawn from records (5
+above).
 
 ## Known defects and limits
 
