@@ -13900,3 +13900,15 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .vs-lane { grid-template-columns: 76px 1fr; }
   .vs-table { font-size: .8rem; display: block; overflow-x: auto; }
 }
+/* each station's workload — work dark (the slowest graphite), waiting light, takt dashed red */
+.vs-load { display: block; width: 100%; max-width: 640px; margin: 10px 0; }
+.vs-load-grid { stroke: var(--line); stroke-width: 1; }
+.vs-load-ax { font-size: 9px; fill: var(--muted); text-anchor: end; }
+.vs-load-work { fill: var(--brand); }
+.vs-load-work.is-most { fill: var(--shell-ink, #2b3640); }
+.vs-load-wait { fill: color-mix(in srgb, var(--st-n) 45%, transparent); }
+.vs-load-v { font-size: 10px; font-weight: 700; fill: var(--ink); text-anchor: middle; }
+.vs-load-l { font-size: 10px; fill: var(--ink); text-anchor: middle; }
+.vs-load-s { font-size: 9px; fill: var(--muted); text-anchor: middle; }
+.vs-load-takt { stroke: var(--st-r); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.vs-load-tl { font-size: 10px; font-weight: 700; fill: var(--st-r); text-anchor: end; }

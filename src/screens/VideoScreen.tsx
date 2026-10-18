@@ -448,7 +448,8 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
               ))}
             </tbody>
           </table>
-          {f.balance.people.length > 0 && f.balance.people.some(p => p.work > 0) && (
+          <Workload f={f} />
+          {f.takt && f.balance.people.some(p => p.work > 0) && (
             <div className="vs-stacks" aria-label="Each person's work stacked against takt"><Stacks f={f.balance} /><Legend f={f.balance} /></div>
           )}
           <Takt v={v} disabled={!can.edit} onSave={d => void patchV({ demand: d })} />
@@ -477,6 +478,37 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
         </div>
       </section>
     </div>
+  );
+}
+
+/** EACH STATION'S WORKLOAD — its work a cycle and its waiting between, side
+ *  by side, the slowest darkest; takt drawn across when it is known. Shown as
+ *  soon as one station is timed, takt or not (the line balance's own stacks
+ *  follow once takt is given). */
+function Workload({ f }: { f: ReturnType<typeof videoFigures> }) {
+  const ss = f.stations.filter(s => s.workTime);
+  if (!ss.length) return null;
+  const W = 560, H = 190, L = 34, B = 34, T = 12;
+  const most = Math.max(...ss.map(s => (s.workTime?.mean ?? 0) + (s.waitTime?.mean ?? 0)), f.takt ?? 0) * 1.12;
+  const y = (v: number) => T + (1 - v / most) * (H - T - B);
+  const col = (W - L - 8) / ss.length, bw = Math.min(64, col * 0.6);
+  return (
+    <svg className="vs-load" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Each station's work and waiting in a cycle">
+      {[0, 0.25, 0.5, 0.75, 1].map(k => <g key={k}><line x1={L} x2={W - 4} y1={y(most * k)} y2={y(most * k)} className="vs-load-grid" /><text x={L - 4} y={y(most * k) + 3} className="vs-load-ax">{(most * k).toFixed(0)} s</text></g>)}
+      {ss.map((s, i) => {
+        const x = L + 4 + i * col + (col - bw) / 2, work = s.workTime?.mean ?? 0, wait = s.waitTime?.mean ?? 0;
+        return (
+          <g key={s.zone.id} data-station={s.zone.id}>
+            <rect x={x} y={y(work)} width={bw} height={y(0) - y(work)} className={`vs-load-work${s === f.bottleneck ? ' is-most' : ''}`} />
+            {wait > 0 && <rect x={x} y={y(work + wait)} width={bw} height={y(work) - y(work + wait)} className="vs-load-wait" />}
+            <text x={x + bw / 2} y={y(work) - 4} className="vs-load-v">{sec1(work)}</text>
+            <text x={x + bw / 2} y={H - B + 14} className="vs-load-l">{s.zone.label}</text>
+            <text x={x + bw / 2} y={H - B + 26} className="vs-load-s">{s.zone.track}</text>
+          </g>
+        );
+      })}
+      {f.takt && <g><line x1={L} x2={W - 4} y1={y(f.takt)} y2={y(f.takt)} className="vs-load-takt" /><text x={W - 6} y={y(f.takt) - 4} className="vs-load-tl">takt {sec1(f.takt)}</text></g>}
+    </svg>
   );
 }
 

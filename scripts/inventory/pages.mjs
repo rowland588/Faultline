@@ -222,6 +222,7 @@ export const PAGES = (sd, cap) => [
     { what: 'every event on its station’s lane', sel: '.vs-bar', n: 12 },
     { what: 'every event in the list, how it is known and what was decided', sel: '.vs-ev .vs-ev-how' },
     { what: 'each station’s work, cycles and waiting', sel: '.vs-table tbody tr', n: 3 },
+    { what: 'each station’s workload drawn — work and waiting', sel: 'svg.vs-load [data-station]', n: 3 },
     { what: 'the people’s work stacked against takt', sel: '.vs-stacks svg' },
     { what: 'what it says, each line said how it is known', sel: '.vs-findings li[data-kind]' },
     { what: 'asked in words', sel: '.vs-ask input' },

@@ -141,6 +141,7 @@ ok(await page.locator('.vs-ev[data-review="rejected"]').count() === 1 && /1 reje
 /* 4 — the line balance */
 const table = (await page.locator('.vs-table tbody').innerText()).replace(/\s+/g, ' ');
 ok(/Workstation 1 Operator A \d\.\d s/.test(table) && /Workstation 2 Operator B \d\.\d s/.test(table) && /Workstation 3 Operator C \d\.\d s/.test(table), '4 each station: its work a cycle, its cycles, its range, its waiting', table);
+ok(await page.locator('svg.vs-load [data-station]').count() === 3, '4f each station’s workload drawn before any takt — work and waiting, the slowest darkest');
 await page.getByRole('button', { name: 'What do you need to calculate takt?' }).click(); await page.waitForTimeout(300);
 ok(/To work out takt I need the demand/.test(await page.locator('.vs-answer').innerText()) && /not known yet/.test(await page.locator('.vs-answer').innerText()), '4b asked in words what takt needs — the demand and the minutes, said not known yet');
 await page.getByLabel('How many to make', { exact: true }).fill('600');
