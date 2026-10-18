@@ -11,7 +11,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
   | 'testing' | 'test' | 'trialCard' | 'fixes' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'machine' | 'standard' | 'notes' | 'clientReport'
   | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools' | 'studies' | 'study' | 'lineHome' | 'factory' | 'linePrograms'
-  | 'methods' | 'method' | 'design' | 'videos' | 'videoStudy';
+  | 'methods' | 'method' | 'design' | 'videos' | 'videoStudy' | 'start';
 
 export interface Route {
   name: RouteName;
@@ -88,6 +88,8 @@ export function parseRoute(hash: string): Route {
      it (screens/DesignScreen). ?template= / ?from= / ?version= start it from
      Faultline's library, from a method of your own, or as its next version. */
   if (segs[0] === 'design') return { name: 'design', query };
+  /* THE FRONT DOOR of the new product (screens/StartScreen) — #/ switches to it once it starts and runs a project end to end */
+  if (segs[0] === 'start') return { name: 'start', query };
   /* A VIDEO STUDY (docs/VIDEO.md): footage uploaded, read for the work at
      each station, reviewed, worked out as a line balance and put on paper.
      /video is every one; /video/:id one of them. */

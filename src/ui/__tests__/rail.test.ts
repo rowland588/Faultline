@@ -267,6 +267,8 @@ describe('the tools beside the control room', () => {
     expect(hereOf(parseRoute('#/losses/s1'))).toBe('losses');
     expect(toolPlaces('losses').filter(l => l.on).map(l => l.label)).toEqual(['Loss count']);
     /* a line balance read from footage (docs/VIDEO.md): the list and one study light it */
+    /* the new product's front door lights Home in its own navigation (ui/Frame StartNav) */
+    expect(hereOf(parseRoute('#/start'))).toBe('start');
     expect(hereOf(parseRoute('#/video'))).toBe('video');
     expect(hereOf(parseRoute('#/video/v1'))).toBe('video');
     expect(toolPlaces('video').filter(l => l.on).map(l => l.label)).toEqual(['Video study']);

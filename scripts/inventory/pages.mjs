@@ -194,6 +194,15 @@ export const PAGES = (sd, cap) => [
   /* the lean page (17 October, slice 6): the band, the tiles in the strip's place, the action plan, the closing line */
   { name: 'Work sampling', path: `#/sampling/${sd.samplingId}`, must: [{ what: 'the round', sel: '.ws-round' },
     { what: 'the band', sel: '.ln-band' }, { what: 'the five tiles — what it costs among them', sel: '.ie-strip .ln-tile', n: 5 }, { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' }] },
+  /* THE FRONT DOOR (18 October, docs/BLUEPRINT.md §3): the new product starts with what you need, in your words */
+  { name: 'The front door', path: '#/start', must: [
+    { what: 'the question, first', sel: '.fd-ask h1', text: /^What do you need to get done\?$/ },
+    { what: 'the box to say it in', sel: '.fd-box textarea' },
+    { what: 'what is under way — every project in a line', sel: '.fd-jobs li[data-project]' },
+    { what: 'the library to start from — Faultline’s six among it', sel: '.fd-lib .fw-card', n: 6 },
+    { what: 'the tools to use on their own', sel: '.fd-tools li[data-tool]', n: 9 },
+    { what: 'the new product’s places — Home first', sel: '.nv-rail .nv-ri', text: /Home/, desk: true },
+  ] },
   /* METHODS OF ONE'S OWN (18 October, docs/PLATFORM-STATUS.md slice 3; lib/flow): the library, a method read and written, and a project running one — the lean page with the method's stages as its picture */
   { name: 'Methods', path: '#/methods', must: [{ what: 'a card a method', sel: '.fw-lib .fw-card' },
     { what: 'describe what you need — the studio', sel: '.pace-head-actions button', text: /^Describe what you need$/ },

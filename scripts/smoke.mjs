@@ -62,6 +62,8 @@ const ROUTES = [
   /* METHODS OF ONE'S OWN (lib/flow): the library, a method approved with a
      project on it, the draft of its next version, and the project running
      it — its stages, a gate passed over, a run below its rate, a step open. */
+  /* THE FRONT DOOR of the new product: say what you need, what is under way, the library, the tools */
+  ['the front door', '#/start'],
   ['methods', '#/methods'],
   ['a method — approved, a project on it', `#/methods/${seeded.methodId}`],
   ['a method — the draft of version 2', `#/methods/${seeded.methodDraftId}`],

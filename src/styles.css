@@ -13912,3 +13912,29 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .vid-load-s { font-size: 9px; fill: var(--muted); text-anchor: middle; }
 .vid-load-takt { stroke: var(--st-r); stroke-width: 1.5; stroke-dasharray: 5 4; }
 .vid-load-tl { font-size: 10px; font-weight: 700; fill: var(--st-r); text-anchor: end; }
+
+/* ===================== THE FRONT DOOR (screens/StartScreen; docs/BLUEPRINT.md §3) =====================
+   One question and its box first, large; then what is under way, the library
+   and the tools, each a plain section. Its own fd- names — never another
+   page's (the video study once borrowed the value stream's and broke it). */
+.fd { max-width: 980px; }
+.fd-ask { padding: 18px 0 8px; }
+.fd-ask h1 { font-size: clamp(26px, 4vw, 36px); margin: 0 0 8px; }
+.fd-box { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+.fd-in { font: inherit; font-size: 17px; line-height: 1.45; min-height: 112px; border-radius: 14px; padding: 14px 16px; }
+.fd-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.fd-eg { gap: 6px; }
+.fd-eg .chip { text-align: left; white-space: normal; font-size: 13px; font-weight: 500; padding: 5px 11px; color: var(--ink-2); background: transparent; }
+.fd-eg .chip:hover { color: var(--ink); border-color: var(--brand); }
+.fd-sec { margin-top: 26px; }
+.fd-sec-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.fd-lib { margin-top: 8px; }
+.fd-tools { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+.fd-tool { all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-direction: column; gap: 4px; width: 100%; height: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.fd-tool:hover { border-color: var(--brand); }
+.fd-tool:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.fd-tool b { color: var(--ink); }
+@media (max-width: 640px) {
+  .fd-in { font-size: 16px; min-height: 96px; }
+  .fd-tools { grid-template-columns: 1fr; }
+}

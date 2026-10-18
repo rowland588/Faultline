@@ -111,6 +111,7 @@ const KEY_OF: Record<string, string> = {
 export function hereOf(route: Route): string {
   switch (route.name) {
     case 'home': return 'home';
+    case 'start': return 'start';
     case 'quickSnags': return 'quicksnags';
     case 'lineHome': return `line:${route.wsId}`;
     case 'factory': return 'factory';

@@ -62,7 +62,7 @@ function projectOf(route: Route, chainProject?: string): string | undefined {
   if (route.name === 'lineHome' || route.name === 'factory' || route.name === 'linePrograms') return undefined;
   if (route.wsId) return chainProject;
   if (route.name === 'paceReport') return route.query.get('project') ?? undefined;
-  if (route.name === 'home' || route.name === 'projects' || route.name === 'share' || route.name === 'quickSnags' || route.name === 'lineTools' || route.name === 'studies' || route.name === 'study' || route.name === 'videos' || route.name === 'videoStudy') return undefined;
+  if (route.name === 'home' || route.name === 'start' || route.name === 'projects' || route.name === 'share' || route.name === 'quickSnags' || route.name === 'lineTools' || route.name === 'studies' || route.name === 'study' || route.name === 'videos' || route.name === 'videoStudy') return undefined;
   return route.id;
 }
 
@@ -100,7 +100,9 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
   return (
     <div className="nv">
       <TopBar project={project} projects={projects} place={placeOf(route)} />
-      {project
+      {route.name === 'start'
+        ? <StartNav projects={projects} here={here} />
+        : project
         ? <ProjectNav key={project.id} project={project} here={here} wsId={route.wsId} />
         /* While the job is still being read, only the first line — never the
            control room's list of jobs for a moment, then the job's rail. */
@@ -152,6 +154,7 @@ function placeOf(route: Route): string {
   switch (route.name) {
     case 'factory': case 'lineHome': case 'linePrograms': return 'Your factory';
     case 'lineTools': case 'studies': case 'study': case 'lineStandards': case 'videos': case 'videoStudy': return 'Tools';
+    case 'start': return 'Home';
     case 'home': case 'portfolio': case 'projects': case 'quickSnags': case 'methods': case 'method': case 'design': return 'Control room';
     default: return route.wsId ? 'Your factory' : 'Control room';
   }
@@ -349,6 +352,23 @@ function useProductionLines(): Workspace[] {
 /** On the control room, the Projects page, or a study attached to no line:
  *  the control room, then every job. A loose study (no project owns it) shows
  *  its name and its four screens under the control room. */
+/** THE NEW PRODUCT'S NAVIGATION (screens/StartScreen; docs/BLUEPRINT.md §3):
+ *  five places, not the control room's nineteen — Home (say what you need),
+ *  Projects, the Library, Your factory, and the control room as the view of
+ *  every project at once. Worn by the front door now; by every page off a
+ *  project once #/ switches to the front door. */
+function StartNav({ projects, here }: { projects: Project[]; here: string }) {
+  const places: RailLine[] = [
+    { key: 'start', label: 'Home', to: '/start', on: here === 'start', state: 'n', bare: true, icon: 'home' },
+    { key: 'projects', label: 'Projects', to: '/projects', on: false, state: 'n', bare: true, icon: 'board', n: projects.length || undefined },
+    { key: 'methods', label: 'Library', to: '/methods', on: false, state: 'n', bare: true, icon: 'route' },
+    { key: 'factory', label: 'Your factory', to: '/factory', on: false, state: 'n', bare: true, icon: 'machine' },
+    { ...controlRoom(here), icon: 'list' },
+  ];
+  const bar: RailLine[] = [places[0], places[1], places[2], { key: 'more', label: 'More', on: false, state: 'n', icon: 'grip' }];
+  return <NavChrome groups={[{ lines: places }]} bar={bar} home={projects} />;
+}
+
 function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: string; wsId?: string; loose: boolean }) {
   const [wsName, setWsName] = useState('');
   const stands = useJobStands();

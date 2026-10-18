@@ -99,7 +99,10 @@ export function DesignScreen() {
   const openDraft = versionOf ? methods?.find(m => m.familyId === versionOf.familyId && m.status === 'draft' && m.id !== versionOf.id) : undefined;
   const mode: 'new' | 'version' = q.get('version') ? 'version' : 'new';
 
-  const [draft, setDraft] = useState<Draft>(() => readDraft(store) ?? { def: null, turns: [], assisted: false });
+  /* WORDS FROM THE FRONT DOOR (screens/StartScreen, ?say=): a new conversation
+     that begins with them — never added to one this device kept before */
+  const said0 = mode === 'new' && !q.get('template') && !q.get('from') ? (q.get('say') ?? '').trim() : '';
+  const [draft, setDraft] = useState<Draft>(() => (said0 ? null : readDraft(store)) ?? { def: null, turns: [], assisted: false });
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -160,8 +163,8 @@ export function DesignScreen() {
     if (m) begin(s, { ...structuredClone(m.definition), name: `${m.definition.name} (adapted)` });
   };
 
-  const send = async () => {
-    const words = text.trim();
+  const send = async (given?: string) => {
+    const words = (given ?? text).trim();
     if (!words || busy) return;
     setErr(null);
     say({ who: 'person', text: words });
@@ -190,6 +193,15 @@ export function DesignScreen() {
       }
     } finally { setBusy(false); }
   };
+
+  /* sent once, as if typed here; the address then drops the words, so going
+     back to it opens this conversation, not a second one */
+  const sentSay = useRef(false);
+  useEffect(() => {
+    if (!said0 || sentSay.current || !methods || !may) return;
+    sentSay.current = true;
+    void send(said0).then(() => { try { history.replaceState(history.state, '', '#/design'); } catch { /* the address stays */ } });
+  }, [said0, methods, may]); // eslint-disable-line react-hooks/exhaustive-deps -- once, when the methods are read
 
   const checked = useMemo(() => (def ? validateDefinition(def) : null), [def]);
   const firstWords = turns.find(t => t.who === 'person')?.text.replace(/\s+/g, ' ');

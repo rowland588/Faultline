@@ -101,6 +101,31 @@ of a line, are no longer under projects.
 
 ## 3. The places — what each is for
 
+**THE NEW PRODUCT (Rowland, 18 October: "a genuinely new Faultline product
+experience, not simply improve the existing app's navigation ... design the
+new product around the vision; reuse existing code only where it serves
+that vision").** Three layers: the capabilities (tools, records and their
+arithmetic — `lib/ie`, `lib/capacity`, `lib/video`, studies, the factory,
+problems, programs — registered once in `lib/flow/components`), the method
+engine (`lib/flow`: a definition validated, versioned, run, measured), and
+the experience — say what you need → a method proposed from the
+capabilities → shaped → approved → one project workspace → its report. Its
+places: **Home** (`#/start`, screens/StartScreen — the question and its box
+first, then what is under way read by `lib/portfolio`, the library, the
+tools on their own, the factory), **Projects**, the **Library** (Methods),
+**Your factory**, and the control room as the view of every project at once.
+Built strangler-fashion, beside the existing routes, the gate green at each
+step; existing jobs keep their screens; a kind of project starts in the new
+workspace only once the workspace matches its native screens. Built 18
+October: the front door and the studio taking its words (`?say=`), proved
+end to end by `acceptance/front-door.mjs` — a need in plain words → a
+method → run (steps, a gate, a measured run against its limit, signed) →
+its report read back. Next, in order: (2) one way to start — New job through
+the conversation and the library, the lever tree in the library; (3) the
+workspace — a specialist tool's panel inside the step rather than its own
+page; (4) `#/` switches to the front door, the control room kept as the
+portfolio view, every acceptance moved with it.
+
 **Control room** (`#/`). Your factory first: a card per line saying its health
 (problems open and late, programs not proved or due, products with no
 standard). Then the jobs board, then Needs you across every line and job.

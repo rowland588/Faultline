@@ -56,6 +56,7 @@ const ShareScreen = lazy(() => import('./screens/ShareScreen').then(m => ({ defa
 const MethodsScreen = lazy(() => import('./screens/MethodsScreen').then(m => ({ default: m.MethodsScreen })));
 const MethodScreen = lazy(() => import('./screens/MethodScreen').then(m => ({ default: m.MethodScreen })));
 const DesignScreen = lazy(() => import('./screens/DesignScreen').then(m => ({ default: m.DesignScreen })));
+const StartScreen = lazy(() => import('./screens/StartScreen').then(m => ({ default: m.StartScreen })));
 const VideosScreen = lazy(() => import('./screens/VideoScreen').then(m => ({ default: m.VideosScreen })));
 const VideoStudyScreen = lazy(() => import('./screens/VideoScreen').then(m => ({ default: m.VideoStudyScreen })));
 const FlowProjectScreen = lazy(() => import('./screens/FlowProjectScreen').then(m => ({ default: m.FlowProjectScreen })));
@@ -153,6 +154,7 @@ function app(route: Route) {
   if (route.name === 'factory') return <FactoryScreen />;
   if (route.name === 'methods') return <MethodsScreen />;
   /* keyed by what it starts from, so moving between studios starts afresh */
+  if (route.name === 'start') return <StartScreen />;
   if (route.name === 'design') return <DesignScreen key={route.query.toString()} />;
   /* a video study (docs/VIDEO.md): every one, and one */
   if (route.name === 'videos') return <VideosScreen />;
