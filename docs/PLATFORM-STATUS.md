@@ -121,7 +121,8 @@ beside the old routes, the gate green at each step:
 | 4 Home | `#/` is the front door, the control room at `#/room`; one rail off a project (Home · Projects · Methods, then the control room, Your factory, the jobs, the tools); the phone bar Home · Problems · Lines · More; the build stamp on both | `front-door.mjs` 1c–1f, the route and rail tests, control-room, methods, lines, smoke, inventory | d6a1202 + 4839a1b — gate6 |
 
 | 5 Beyond the existing tools | a step can be a log of entries; analyses from a registry of tested blocks (count … Pareto, trend, histogram, Cpk) feed gates and measures; screen, editor, paper and the assistant's brief read the same; needs for development said, never faked; a library method made only of blocks | `analysis.test.ts` (14), `designed-tool.mjs`, the library test, smoke and inventory (a method made of logs) | 5738b42 + e9bcbf2 — next gate |
-| 6 Blocks written after the first | a control chart (I-MR, rules 1 and the 8-run), a relationship (r and its line), a forecast (a week on, the day it reaches a target) — each its arithmetic and tests, and in the editor, validator, assistant's brief, screen and paper at once; a block declares its picture and both screen and paper draw by it; *A process held in control* in the library | `analysis-blocks.test.ts` (14, figures worked by hand; the limits held to the capability study's spread), `designed-tool.mjs` 3d–3e, 7d, 8b–8i, the library test | this slice — next gate |
+| 6 Blocks written after the first | a control chart (I-MR, rules 1 and the 8-run), a relationship (r and its line), a forecast (a week on, the day it reaches a target) — each its arithmetic and tests, and in the editor, validator, assistant's brief, screen and paper at once; a block declares its picture and both screen and paper draw by it; *A process held in control* in the library | `analysis-blocks.test.ts` (14, figures worked by hand; the limits held to the capability study's spread), `designed-tool.mjs` 3d–3e, 7d, 8b–8i, the library test | e8f88f3 — next gate |
+| 7 Questions first | a need is read before it is designed: said back, and at most four questions with answers to tap, why each matters and one's own answer; the answers carried into the design request in the person's words; skipped in a tap; off or failing, designed from the words as they are (the deployed gateway learns `clarify` when it is redeployed) | `clarify.test.ts` (6), `designed-tool.mjs` 0–0d, front-door and methods-design unchanged (the assistant off for questions) | this slice — next gate |
 
 ### Against the ambition (18 October, asked plainly)
 
@@ -129,6 +130,8 @@ beside the old routes, the gate green at each step:
 the platform stands, honestly:
 
 - **Works today, tested:** describing a need in words; the assistant
+  reading it first and asking what the words leave open (at most four
+  questions, answered in a tap or in one's own words, or skipped); then
   proposing a whole method (stages, steps, roles, gates, measures, logs and
   analyses) checked by the validator before it can run; shaping it in
   conversation; approving, versioning, adapting, copying; running it — steps,
@@ -148,9 +151,7 @@ the platform stands, honestly:
   relationship and the forecast, written that way in one slice. Until then the assistant writes it as a need on the method.
   Specialist screens beyond a log (a drawn layout, a timed video) stay hand-
   built tools, used as steps.
-- **Not built yet:** asking questions before proposing (today they come
-  with the proposal and are answered in a tap); a tool's panel inside the
-  step; organisation-wide libraries; the server re-checking a gate pass.
+- **Not built yet:** a tool's panel inside the step; organisation-wide libraries; the server re-checking a gate pass.
   The deployed gateway still carries the schema from before logs: it must
   be redeployed from the repo (supabase/functions/assist) for the live
   assistant to propose logs — the app reads them already.

@@ -35,6 +35,8 @@ import { useMethods } from '../lib/flow/useFlow';
 import { familiesOf } from './MethodsScreen';
 import { toolPlaces } from '../ui/rail';
 import { BuildStamp } from '../ui/BuildStamp';
+import { InstallPanel } from '../ui/InstallPanel';
+import { CloudPanel } from '../cloud/CloudPanel';
 
 const EXAMPLES = [
   'We are fitting a new case packer on Line 4 and need it proved before production takes it',
@@ -153,6 +155,12 @@ export function StartScreen() {
         </div>
         <p className="sub">{lines.length ? `${plural(lines.length, 'line')} — ${lines.slice(0, 4).map(l => l.name).join(', ')}${lines.length > 4 ? '…' : ''}. Projects and tools take their lines from here.` : 'Your lines and their machines, set up once — every project and tool takes its lines from here.'}</p>
       </section>
+      {/* What the control room's foot carried while it was home — installing,
+          signing in, and backup trouble said in words (a row the cloud refused,
+          a file too big for it) — carried here now that this is home; each
+          says nothing while all is well (cloud/CloudPanel, ui/InstallPanel) */}
+      <InstallPanel />
+      <CloudPanel />
       <BuildStamp />
     </div>
   );

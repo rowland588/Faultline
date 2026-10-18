@@ -51,9 +51,20 @@ const DESIGN = {
   needs: [{ what: 'A forecast of the next jam', why: 'So the infeed is cleaned before it stops, not after', inputs: 'The time of every jam', method: 'A Weibull fit of the time between jams', check: 'Against a month of logged jams' }],
   assumptions: ['The bagger runs one line; a stop is anything over a minute.'], questions: ['Who will log the stops on the night shift?'],
 };
+/* asked before it is designed (lib/flow/clarifyCore): what the words leave open */
+const CLARIFY = {
+  understood: 'Every short stop on the bagger logged with its reason and minutes, the biggest cause fixed, and proved under 10 stop minutes a day', ready: false,
+  questions: [
+    { ask: 'Who logs the stops as they happen?', why: 'It says whose step the log is.', options: ['The operator', 'The line lead', 'Engineering'] },
+    { ask: 'Which shifts does the bagger run?', why: 'It says whether the log is kept on every shift.', options: ['Days only', 'Days and lates', 'All three shifts'] },
+    { ask: 'How long is a short stop?', why: 'It sets what counts as an entry.', options: ['Under a minute', 'Under five minutes'] },
+  ],
+};
+let designedFrom = '';
 const answer = req => {
   const body = JSON.parse(req.postData() ?? '{}');
-  if (body.task === 'design') return { ok: true, proposal: DESIGN, errors: [], warnings: [], left: { calls: 24 } };
+  if (body.task === 'clarify') return { ok: true, clarify: CLARIFY, left: { calls: 24 } };
+  if (body.task === 'design') { designedFrom = String(body.description ?? ''); return { ok: true, proposal: DESIGN, errors: [], warnings: [], left: { calls: 24 } }; }
   return { off: true, why: 'The assistant is not switched on for this.' };
 };
 
@@ -73,11 +84,30 @@ const sheet = () => page.getByRole('dialog').last();
 const settle = async () => { await page.waitForFunction(() => !history.state?.flPanel, null, { timeout: 5000 }).catch(() => {}); await page.waitForTimeout(300); };
 const NEED = 'Log every short stop on the bagger with its reason and minutes, find the biggest cause, fix it and prove it — under 10 stop minutes a day.';
 
-/* 1 — said at the front door, proposed with a log */
+/* 0 — said at the front door; read first, and what the words leave open asked */
 await page.goto(`${BASE}/#/`); await page.locator('.fd-ask h1').waitFor({ timeout: 20000 });
 await page.getByLabel('What you need, in your words', { exact: true }).fill(NEED);
 await page.getByRole('button', { name: 'Start', exact: true }).click();
+await page.locator('.fw-asking').waitFor({ timeout: 15000 });
+const askTurn = flat(await page.locator('.fw-turn', { has: page.locator('.fw-asking') }).innerText());
+ok(askTurn.includes(`${CLARIFY.understood}. Before it is designed, 3 questions`) && await page.locator('.fw-asking .fw-q').count() === 3 && /It says whose step the log is\./.test(askTurn) && await page.locator('.fw-proposed').count() === 0,
+  '0 read before it is designed: the need said back, three questions with why each matters — nothing proposed yet', askTurn.slice(0, 300));
+await page.locator('.fw-q[data-q="0"]').getByRole('radio', { name: 'The operator' }).click();
+if (process.env.SHOTS) { await page.getByLabel('Your own answer: Which shifts does the bagger run?', { exact: true }).fill('All three, 6 till 6'); await page.locator('.fw-turn', { has: page.locator('.fw-asking') }).screenshot({ path: join(process.env.SHOTS, 'asking.png') }); }
+await page.getByLabel('Your own answer: Which shifts does the bagger run?', { exact: true }).fill('All three, 6 till 6');
+ok(await page.locator('.fw-q[data-q="0"]').getByRole('radio', { name: 'The operator' }).getAttribute('aria-checked') === 'true', '0a an answer tapped, another written in the person’s own words, one left');
+await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(400);
+ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), '0d on a phone: the questions fit, nothing off the side');
+if (process.env.SHOTS) await page.locator('.fw-asking').screenshot({ path: join(process.env.SHOTS, 'asking-phone.png') });
+await page.setViewportSize({ width: 1360, height: 900 }); await page.waitForTimeout(300);
+await page.getByRole('button', { name: 'Design it with these answers' }).click();
 await page.locator('.fw-proposed').waitFor({ timeout: 15000 });
+ok(designedFrom.startsWith(NEED) && designedFrom.includes('Asked before designing:\n- Who logs the stops as they happen? — The operator\n- Which shifts does the bagger run? — All three, 6 till 6') && !designedFrom.includes('How long is a short stop?'),
+  '0b the design asked for with the need and the two answers given — the one left unanswered not put in its mouth', designedFrom.slice(-260));
+ok(/Who logs the stops as they happen\? — The operator · Which shifts does the bagger run\? — All three, 6 till 6/.test(flat(await page.locator('.fw-turns').innerText())) && await page.locator('.fw-asking').count() === 0,
+  '0c the answers said in the conversation; the questions kept above them, answered');
+
+/* 1 — proposed with a log */
 const prop = flat(await page.locator('.fw-proposed').innerText());
 ok(/Log every stop · once · a log · Operator · 3 columns an entry · works out stop minutes a day, biggest reason, stop minutes by day, long stops, packs lost, stop minutes a week on/.test(prop), '1 proposed: a step that is a log — its columns and what it works out, a tool nobody coded', prop.slice(0, 400));
 ok(/Needs development — what no block does yet/i.test(prop) && /A forecast of the next jam — So the infeed is cleaned before it stops/.test(prop) && /Method: A Weibull fit of the time between jams/.test(prop),

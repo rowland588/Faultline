@@ -161,6 +161,8 @@ const pdf = execFileSync('pdftotext', ['-raw', pdfPath, '-'], { encoding: 'utf8'
 ok(/VIDEO STUDY/.test(pdf) && /Line 4 — packing, morning/.test(pdf) && /How it was read/.test(pdf) && /A frame every 0\.\d+ s/.test(pdf), '5 the report: what was asked, of what footage, how it was read', pdf.slice(0, 400));
 ok(/Each station/.test(pdf) && /Workstation 2 · Operator B/.test(pdf) && /Takt: 55 minutes a shift × 60 ÷ 600 packs = 5\.5 s a unit/.test(pdf), '5a each station and takt worked out, with its units');
 ok(/Every event, on the footage/.test(pdf) && /corrected from/.test(pdf) && /rejected/.test(pdf) && /Measured — /.test(pdf) && /Proposed — not measured — /.test(pdf), '5b every event with its time, how it is known and what was decided; each finding said how it is known');
+/* the study is written after the file is handed over (lib/video/printReport) — wait for that write, never read before it */
+await page.waitForFunction(() => /Reports made: /.test(document.body.innerText), null, { timeout: 10000 }).catch(() => {});
 ok(/Reports made: /.test(await txt()), '5c the report made is kept on the study');
 
 /* 6 — left and come back */

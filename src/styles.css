@@ -13814,6 +13814,14 @@ textarea.fw-in { font: inherit; line-height: 1.45; }
 .fw-turn-who { font-size: 12px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: var(--muted); }
 .fw-ask-box { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--surface); }
 .fw-offers { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+/* questions before a design (lib/flow/clarifyCore) — answers to tap, or one's own */
+.fw-asking { display: grid; gap: 10px; margin-top: 8px; }
+.fw-q { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; margin: 0; display: grid; gap: 6px; min-width: 0; }
+.fw-q-ask { font-weight: 600; color: var(--ink); padding: 0 2px; }
+.fw-q-why { line-height: 1.4; }
+.fw-q-opts { display: flex; flex-wrap: wrap; gap: 6px; }
+.fw-chip-b.on { background: var(--accent-soft); color: var(--brand-2); border-color: var(--brand); font-weight: 600; }
+.fw-asked { margin: 4px 0 0; }
 .fw-start { margin-top: 18px; }
 .fw-lib-s { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
 /* A LOG (ui/flow/LogParts): the entry form, what the entries add up to, every entry */

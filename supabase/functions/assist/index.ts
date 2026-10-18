@@ -1,10 +1,13 @@
 /* ASSIST — the one gateway between Faultline and Claude (docs/PLATFORM-REVIEW.md
  * §6.4; docs/PLATFORM-STATUS.md, slice 4).
  *
- * POST with the person's session, one of three tasks →
+ * POST with the person's session, one of five tasks →
+ *   { task: 'clarify', description }      what to ask before designing — at most
+ *                                         four questions, or none when the words say enough
  *   { task: 'design', description }       a method proposed from their words
  *   { task: 'change', current, request }  the method as it stands, changed as asked
  *   { task: 'ask', facts, question }      a question about a project, from its facts
+ *   { task: 'video-label', events, frames } the work named in a video study's frames
  * →
  *   { ok: true, proposal | answer, ... }  the answer, held to its schema and read
  *   { ok: false, why }                    refused, over the allowance, unreadable
@@ -32,6 +35,7 @@ import Anthropic from "npm:@anthropic-ai/sdk@0.131.0";
 import { DESIGN_SYSTEM, allowance, changeUser, costMicros, designUser, readDesign } from "./flow/assistCore.ts";
 import { PROPOSAL_SCHEMA } from "./flow/proposal.ts";
 import { ASK_SCHEMA, ASK_SYSTEM, askUser, checkAnswer, type Fact } from "./flow/askCore.ts";
+import { CLARIFY_SCHEMA, CLARIFY_SYSTEM, clarifyUser, readClarify } from "./flow/clarifyCore.ts";
 import { VISION_LIMITS, VISION_SCHEMA, VISION_SYSTEM, checkLabels, visionUser, type LabelEvent, type LabelFrame } from "./video/visionCore.ts";
 
 const KEY = Deno.env.get("ANTHROPIC_API_KEY");
@@ -39,6 +43,8 @@ const MODEL = Deno.env.get("ASSIST_MODEL") ?? "claude-opus-5-5";
 const EFFORT = Deno.env.get("ASSIST_EFFORT") ?? "high";
 /* reading facts back is lighter work than designing a method */
 const ASK_EFFORT = Deno.env.get("ASSIST_ASK_EFFORT") ?? "low";
+/* the questions before a design: short, but they decide what is designed */
+const CLARIFY_EFFORT = Deno.env.get("ASSIST_CLARIFY_EFFORT") ?? "medium";
 const LIMIT = {
   calls: Number(Deno.env.get("ASSIST_DAILY_CALLS") ?? 25) || 25,
   micros: Math.round((Number(Deno.env.get("ASSIST_DAILY_USD") ?? 3) || 3) * 1_000_000),
@@ -81,7 +87,7 @@ Deno.serve(async (req) => {
     if (vEvents.length > VISION_LIMITS.events || vFrames.length > VISION_LIMITS.frames) return json({ ok: false, why: `At most ${VISION_LIMITS.frames} frames and ${VISION_LIMITS.events} events at once.` }, 400);
     if (vFrames.some(f => !/^[A-Za-z0-9+/=]+$/.test(f.data) || f.data.length * 0.75 > VISION_LIMITS.frameBytes || !vEvents.some(e => e.id === f.event))) return json({ ok: false, why: "A frame is not a small JPEG of an event asked about." }, 400);
   }
-  if (task !== "design" && task !== "change" && task !== "ask" && task !== "video-label") return json({ ok: false, why: "The assistant designs and changes methods, answers questions about a project, and names the work in a video study's frames; nothing else." }, 400);
+  if (task !== "clarify" && task !== "design" && task !== "change" && task !== "ask" && task !== "video-label") return json({ ok: false, why: "The assistant asks what it needs to know, designs and changes methods, answers questions about a project, and names the work in a video study's frames; nothing else." }, 400);
   if (task !== "ask" && task !== "video-label" && description.trim().length < (task === "change" ? 5 : 20)) return json({ ok: false, why: "Say a little more about what you want." }, 400);
   if (task === "change" && !body.current) return json({ ok: false, why: "The method as it stands is needed to change it." }, 400);
   if (task === "ask" && (!question.trim() || !facts.length)) return json({ ok: false, why: "A question and the project's facts, please." }, 400);
@@ -116,6 +122,28 @@ Deno.serve(async (req) => {
       if (e instanceof Anthropic.RateLimitError) return json({ ok: false, why: "The assistant is busy — try again in a minute." });
       if (e instanceof Anthropic.AuthenticationError) return json({ off: true, why: "The assistant's key is not accepted — name the work as you review." });
       return json({ ok: false, why: "The assistant could not name the work just now — name it as you review." });
+    }
+  }
+  if (task === "clarify") {
+    try {
+      const msg = await client.beta.messages.create({
+        model: MODEL, max_tokens: 3000,
+        betas: ["server-side-fallback-2026-07-01"], fallbacks: "default",
+        output_config: { effort: CLARIFY_EFFORT, format: { type: "json_schema", schema: CLARIFY_SCHEMA } },
+        system: [{ type: "text", text: CLARIFY_SYSTEM, cache_control: { type: "ephemeral" } }],
+        messages: [{ role: "user", content: clarifyUser(description) }],
+      } as unknown as Parameters<typeof client.beta.messages.create>[0]) as unknown as { model?: string; stop_reason?: string; content?: unknown; usage?: Record<string, number> };
+      const cost = costMicros(msg.model ?? MODEL, msg.usage ?? {});
+      const text = (Array.isArray(msg.content) ? msg.content : []).map((b: { type?: string; text?: string }) => (b?.type === "text" ? b.text ?? "" : "")).join("");
+      let raw: unknown = null;
+      try { raw = JSON.parse(text); } catch { /* unreadable */ }
+      const read = msg.stop_reason === "refusal" ? undefined : readClarify(raw);
+      await admin.from("assist_usage").insert({ user_id: user.id, task, model: msg.model ?? MODEL, input_tokens: msg.usage?.input_tokens ?? 0, output_tokens: msg.usage?.output_tokens ?? 0, cost_micros: cost, ok: !!read });
+      return read ? json({ ok: true, clarify: read, left: { calls: Math.max(0, LIMIT.calls - left.used.calls - 1) } }) : json({ ok: false, why: "The assistant's questions could not be read — it designs from your words as they are." });
+    } catch (e) {
+      if (e instanceof Anthropic.RateLimitError) return json({ ok: false, why: "The assistant is busy — try again in a minute." });
+      if (e instanceof Anthropic.AuthenticationError) return json({ off: true, why: "The assistant's key is not accepted — the app works by hand until it is put right." });
+      return json({ ok: false, why: "The assistant could not read the need just now." });
     }
   }
   try {

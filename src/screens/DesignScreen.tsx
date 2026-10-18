@@ -7,7 +7,9 @@
  * library is a foundation for creation, not a ceiling on it."
  *
  * One page, two halves. On the left the conversation: what the person
- * needs, in their words; what Faultline proposed or changed, a line a
+ * needs, in their words; what Faultline asks before it designs (at most
+ * four questions, each with answers to tap — lib/flow/clarifyCore; none
+ * when the words say enough, skipped in a tap); what it proposed or changed, a line a
  * change, what it took for granted, what it would ask (each answerable in
  * a tap). On the right the method as it now stands, drawn as its own page
  * draws it, with what the validator says. Every turn after the first
@@ -36,7 +38,8 @@ import { nav, useRoute } from '../state/useRoute';
 import { useCanStartProjects } from '../cloud/access';
 import { allSteps, type FlowDefinition } from '../lib/flow/definition';
 import { validateDefinition } from '../lib/flow/validate';
-import { proposeChange, proposeMethod } from '../lib/flow/assist';
+import { clarifyNeed, proposeChange, proposeMethod } from '../lib/flow/assist';
+import { withAnswers, type ClarifyQuestion } from '../lib/flow/clarifyCore';
 import { approveMethod, createMethod, draftNewVersion, saveDraft } from '../lib/flow/operations';
 import { useMethods, useOpContext } from '../lib/flow/useFlow';
 import { LIBRARY, closest, libraryEntry } from '../lib/flow/library';
@@ -57,7 +60,11 @@ interface Turn {
   questions?: string[];
   /** Starting points offered with this turn — closest to what was said. */
   offers?: Start[];
+  /** The questions asked before designing (lib/flow/clarifyCore). */
+  asked?: ClarifyQuestion[];
 }
+/** Questions asked and not yet answered: the need, and the answers so far. */
+interface Asking { need: string; questions: ClarifyQuestion[]; answers: string[] }
 interface Draft {
   def: FlowDefinition | null; turns: Turn[]; start?: Start; assisted: boolean;
   /** A next version's conversation: when the method it began from was last
@@ -66,6 +73,7 @@ interface Draft {
   /** The line it is for (?line=, from New job on a line) — carried to the
    *  project it starts. */
   lineId?: string;
+  asking?: Asking;
 }
 
 const plural = (n: number, one: string, more = `${one}s`) => `${n} ${n === 1 ? one : more}`;
@@ -176,6 +184,32 @@ export function DesignScreen() {
     if (m) begin(s, { ...structuredClone(m.definition), name: `${m.definition.name} (adapted)` });
   };
 
+  /** A method proposed from the need (with any answers in it). */
+  const design = async (description: string, need: string) => {
+    const got = await proposeMethod(description);
+    if (got.ok) {
+      setTouched(new Set(got.def.stages.map(s => s.key)));
+      setDraft(d => ({ ...d, def: got.def, assisted: true, turns: [...d.turns, { who: 'assistant', text: `Here is a proposal: ${proposalSaid(got.def)} Read it on the right, and say what should change.`, assumptions: got.assumptions, questions: got.questions }] }));
+    } else {
+      const offers = closest(need, [...lib, ...yours], 3).map(x => ({ kind: x.kind, id: x.id, name: x.name }));
+      say({ who: 'app', text: got.off ? `${got.why} ${offers.length ? 'Closest to what you said, to start from and adapt:' : 'Start from the library below, or write it by hand.'}` : got.why, ...(got.off && offers.length ? { offers } : {}) });
+    }
+  };
+
+  /* QUESTIONS BEFORE A DESIGN: answered (or skipped), the need goes on to be
+     designed with the answers in it, in the person's own words */
+  const asking = draft.asking;
+  const setAnswer = (i: number, v: string) => setDraft(d => (d.asking ? { ...d, asking: { ...d.asking, answers: d.asking.answers.map((x, j) => (j === i ? v : x)) } } : d));
+  const answerAndDesign = async (skip: boolean) => {
+    if (!asking || busy) return;
+    const said = asking.questions.map((qq, i) => ({ qq, a: asking.answers[i]?.trim() ?? '' })).filter(x => x.a);
+    const description = skip ? asking.need : withAnswers(asking.need, asking.questions, asking.answers);
+    setErr(null);
+    setDraft(d => ({ ...d, asking: undefined, turns: [...d.turns, { who: 'person', text: skip || !said.length ? 'Design it from what I said.' : said.map(x => `${x.qq.ask} — ${x.a}`).join(' · ') }] }));
+    setBusy(true);
+    try { await design(description, asking.need); } finally { setBusy(false); }
+  };
+
   const send = async (given?: string) => {
     const words = (given ?? text).trim();
     if (!words || busy) return;
@@ -185,14 +219,17 @@ export function DesignScreen() {
     setBusy(true);
     try {
       if (!def) {
-        const got = await proposeMethod(words);
-        if (got.ok) {
-          setTouched(new Set(got.def.stages.map(s => s.key)));
-          setDraft(d => ({ ...d, def: got.def, assisted: true, turns: [...d.turns, { who: 'assistant', text: `Here is a proposal: ${proposalSaid(got.def)} Read it on the right, and say what should change.`, assumptions: got.assumptions, questions: got.questions }] }));
-        } else {
-          const offers = closest(words, [...lib, ...yours], 3).map(x => ({ kind: x.kind, id: x.id, name: x.name }));
-          say({ who: 'app', text: got.off ? `${got.why} ${offers.length ? 'Closest to what you said, to start from and adapt:' : 'Start from the library below, or write it by hand.'}` : got.why, ...(got.off && offers.length ? { offers } : {}) });
+        /* read first: what the words leave open is asked; off, unreachable or
+           unreadable, it is designed from the words as they are */
+        const c = await clarifyNeed(words);
+        if (c.ok && c.questions.length) {
+          setDraft(d => ({
+            ...d, asking: { need: words, questions: c.questions, answers: c.questions.map(() => '') },
+            turns: [...d.turns, { who: 'assistant', text: `${c.understood ? `${c.understood.replace(/[.\s]*$/, '.')} ` : ''}Before it is designed, ${plural(c.questions.length, 'question')} — tap an answer or write your own, or skip them.`, asked: c.questions }],
+          }));
+          return;
         }
+        await design(words, words);
       } else {
         const prev = def;
         const got = await proposeChange(def, words);
@@ -248,6 +285,7 @@ export function DesignScreen() {
     if (r.ok) { writeDraft(store, null); nav(`/methods/${r.value.id}`); } else setErr(r.why);
   };
   const again = () => { setDraft({ def: null, turns: [], assisted: false, ...(draft.lineId ? { lineId: draft.lineId } : {}) }); setTouched(new Set()); setErr(null); writeDraft(store, null); };
+  const lastAsked = turns.reduce((k, t, i) => (t.asked ? i : k), -1);
 
   if (!methods) return <div className="wrap fw"><p className="sub">Opening…</p></div>;
   if (mode === 'version' && !versionOf) return <div className="wrap fw"><p className="sub">That method is not on this device.</p><button type="button" className="btn btn-primary" onClick={() => nav('/methods')}>Every method</button></div>;
@@ -283,6 +321,34 @@ export function DesignScreen() {
                       ))}</ul>
                     </div>
                   )}
+                  {t.asked && t.asked.length > 0 && (asking && i === lastAsked
+                    ? (
+                      <div className="fw-asking" aria-label="Questions before it is designed">
+                        {asking.questions.map((qq, j) => {
+                          const a = asking.answers[j] ?? '';
+                          return (
+                            <fieldset key={j} className="fw-q" data-q={j}>
+                              <legend className="fw-q-ask">{qq.ask}</legend>
+                              {qq.why && <span className="sub fw-q-why">{qq.why}</span>}
+                              {qq.options.length > 0 && (
+                                <div className="fw-q-opts" role="radiogroup" aria-label={qq.ask}>
+                                  {qq.options.map(o => <button key={o} type="button" role="radio" aria-checked={a === o} className={'fw-chip fw-chip-b' + (a === o ? ' on' : '')} disabled={busy || !may} onClick={() => setAnswer(j, a === o ? '' : o)}>{o}</button>)}
+                                </div>
+                              )}
+                              <input className="text-input fw-in" aria-label={`Your own answer: ${qq.ask}`} placeholder="Or your own answer" disabled={busy || !may}
+                                value={qq.options.includes(a) ? '' : a} onChange={e => setAnswer(j, e.target.value)} />
+                            </fieldset>
+                          );
+                        })}
+                        {may && (
+                          <div className="fw-acts">
+                            <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void answerAndDesign(false)}>Design it with these answers</button>
+                            <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => void answerAndDesign(true)}>Skip the questions — design it now</button>
+                          </div>
+                        )}
+                      </div>
+                    )
+                    : <ul className="fw-list fw-asked">{t.asked.map((qq, j) => <li key={j}>{qq.ask}</li>)}</ul>)}
                   {t.offers && t.offers.length > 0 && (
                     <div className="fw-offers">{t.offers.map(o => <button key={o.id} type="button" className="btn btn-sm" onClick={() => startFrom(o)}>Start from “{o.name}”</button>)}</div>
                   )}
@@ -291,7 +357,7 @@ export function DesignScreen() {
               {busy && <li className="fw-turn is-assistant" role="status"><span className="fw-turn-who">Faultline — the assistant</span><p>Thinking it through… this can take up to a minute.</p></li>}
             </ol>
           )}
-          {may && (
+          {may && !asking && (
             <form className="fw-ask-box" onSubmit={e => { e.preventDefault(); void send(); }}>
               <label className="fw-f"><span className="field-label">{def ? 'What should change' : 'What you need, in your words'}</span>
                 <textarea ref={box} className="text-input fw-in" rows={def ? 3 : 5} value={text} maxLength={def ? 2000 : 4000} disabled={busy}

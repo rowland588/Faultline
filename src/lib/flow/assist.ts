@@ -11,6 +11,7 @@ import { supabase } from '../../cloud/client';
 import { fromProposal, toProposal, type Proposed } from './proposal';
 import { validateDefinition, type Issue } from './validate';
 import { checkAnswer, type Fact, type Said } from './askCore';
+import { readClarify, type ClarifyQuestion } from './clarifyCore';
 import { changesOf, keepKeys, type Change } from './change';
 import type { FlowDefinition } from './definition';
 
@@ -49,6 +50,30 @@ export async function proposeMethod(description: string): Promise<Proposal> {
 }
 
 const UNREACHED = 'The assistant could not be reached just now — try again in a moment.';
+
+export type Clarified = { ok: true; understood: string; questions: ClarifyQuestion[] } | { ok: false; off?: boolean; why: string };
+
+/** Read the gateway's questions before a design (lib/flow/clarifyCore) — read
+ *  again here, as everything from the network is. */
+export function readClarified(data: unknown): Clarified {
+  const d = (data && typeof data === 'object' ? data : {}) as { ok?: boolean; off?: boolean; why?: unknown; clarify?: unknown };
+  if (d.off) return { ok: false, off: true, why: typeof d.why === 'string' && d.why ? d.why : OFF };
+  if (!d.ok) return { ok: false, why: typeof d.why === 'string' && d.why ? d.why : 'The assistant could not read the need just now.' };
+  const c = readClarify(d.clarify);
+  return c ? { ok: true, understood: c.understood, questions: c.questions } : { ok: false, why: 'The assistant’s questions could not be read.' };
+}
+
+/** Before a method is designed: what the assistant needs to know, asked as
+ *  at most four questions with answers to tap — or none, when the words say
+ *  enough. Off, unreachable or unreadable, the design goes ahead without
+ *  them: the questions help, they never stand in the way. */
+export async function clarifyNeed(description: string): Promise<Clarified> {
+  const words = description.trim();
+  if (words.length < 20) return { ok: false, why: 'Say a little more about the work.' };
+  const got = await call({ task: 'clarify', description: words.slice(0, 4000) });
+  if (got.off) return { ok: false, off: true, why: got.off };
+  return readClarified(got.data);
+}
 
 async function call(body: Record<string, unknown>): Promise<{ data?: unknown; off?: string }> {
   if (!supabase) return { off: OFF };

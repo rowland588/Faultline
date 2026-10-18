@@ -173,9 +173,17 @@ its PICTURE (none · bars · pareto · control · scatter · forecast) and the
 screen and paper draw by that word, never by the block's name, so the next
 block with an old picture is drawn the day it is written. The library gains
 statistical process control made only of blocks (*A process held in
-control*). Next: a tool's panel inside the step itself rather than its
-page; more blocks as the floor asks (a Weibull fit, a regression on several
-columns — each a block, each tested).
+control*). And QUESTIONS FIRST: a need said in words is read before it is
+designed (`lib/flow/clarifyCore`, the gateway's `clarify` task) — said back
+in a sentence, and what the words leave open that would change the
+method's shape asked as at most four questions, each with answers to tap,
+a line on why it matters and a box for one's own answer; answered or
+skipped, the need is designed with the answers in it, in the person's
+words. Off, unreachable or unreadable, it is designed from the words as
+they are — the questions help and never stand in the way. Next: a tool's
+panel inside the step itself rather than its page; more blocks as the
+floor asks (a Weibull fit, a regression on several columns — each a block,
+each tested).
 
 **Control room** (`#/room`; `#/` until 18 October, when home became the
 front door). Your factory first: a card per line saying its health

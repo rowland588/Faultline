@@ -259,6 +259,8 @@ export function controlOf(xs: readonly number[]): { centre: number; upper: numbe
   return { centre, upper, lower, flags, outside, runs };
 }
 
+/** "Line speed" mid-sentence as "line speed" — but "OEM fitter" kept. */
+const lowerFirst = (w: string) => (/^[A-Z][a-z]/.test(w) ? w[0].toLowerCase() + w.slice(1) : w);
 const strength = (r: number) => { const a = Math.abs(r); return a >= 0.7 ? 'a strong' : a >= 0.4 ? 'a moderate' : a >= 0.2 ? 'a weak' : ''; };
 
 /** One statistic over a number column — sum, mean, median, min, max, the spread. */
@@ -391,16 +393,16 @@ export const BLOCKS: Record<AnalysisBlockId, AnalysisBlock> = {
       const signals = c.outside.length + c.runs.length;
       const limits = { centre: c.centre, upper: c.upper, lower: c.lower };
       const within = `${withUnit(c.lower, unit)} to ${withUnit(c.upper, unit)}, centre ${withUnit(c.centre, unit)}`;
-      const few = xs.length < 20 ? ' (fewer than 20: the limits are provisional)' : '';
-      if (!signals) return { value: 0, unit: 'signals', n: xs.length, series, limits, says: `${a.label}: in control — ${many(xs.length, 'reading')} within ${within}${few}.` };
+      const few = xs.length < 20 ? ' (fewer than 20 readings: the limits are provisional)' : '';
+      if (!signals) return { value: 0, unit: 'signals', n: xs.length, series, limits, says: `${a.label}: in control — ${many(xs.length, 'reading')} within the limits ${within}${few}.` };
       const parts: string[] = [];
-      for (const i of c.outside.slice(0, 2)) parts.push(`${withUnit(xs[i], unit)} on ${daySaid(rows[i].e.on)} ${xs[i] > c.upper ? 'above' : 'below'} the limit`);
+      for (const i of c.outside.slice(0, 2)) parts.push(`${withUnit(xs[i], unit)} on ${daySaid(rows[i].e.on)} ${xs[i] > c.upper ? 'above the upper' : 'below the lower'} limit`);
       if (c.outside.length > 2) parts.push(`${c.outside.length - 2} more outside the limits`);
       for (const r of c.runs.slice(0, 2)) parts.push(`${r.length} in a row ${r.above ? 'above' : 'below'} the centre from ${daySaid(rows[r.from].e.on)}`);
       if (c.runs.length > 2) parts.push(`${c.runs.length - 2} more runs`);
       return {
-        value: signals, unit: 'signals', n: xs.length, series, limits,
-        says: `${a.label}: ${many(signals, 'signal')} — ${parts.join('; ')}. Limits ${within}${few}: find what changed then.`,
+        value: signals, unit: signals === 1 ? 'signal' : 'signals', n: xs.length, series, limits,
+        says: `${a.label}: ${many(signals, 'signal')} — ${parts.join('; ')}; find what changed then. Limits ${within}${few}.`,
       };
     },
   },
@@ -421,7 +423,7 @@ export const BLOCKS: Record<AnalysisBlockId, AnalysisBlock> = {
       if (!word) return { value: r, n: rows.length, series, fit: { slope: fit.slope, intercept: fit.intercept }, says: `${a.label}: no clear link between ${yl} and ${xl} — r = ${fmtNumber(r)}, from ${many(rows.length, 'entry', 'entries')}${few}.` };
       return {
         value: r, n: rows.length, series, fit: { slope: fit.slope, intercept: fit.intercept },
-        says: `${a.label}: ${word} link — r = ${fmtNumber(r)}; ${yl} ${fit.slope > 0 ? 'rises' : 'falls'} about ${withUnit(Math.abs(fit.slope), yc?.unit)} for every ${xc?.unit ? `1 ${xc.unit}` : 'one'} more ${xl.toLowerCase()}, from ${many(rows.length, 'entry', 'entries')}${few}. A link is not proof of a cause — test it.`,
+        says: `${a.label}: ${word} link — r = ${fmtNumber(r)}; ${yl} about ${withUnit(Math.abs(fit.slope), yc?.unit)} ${fit.slope > 0 ? 'higher' : 'lower'} for every ${xc?.unit ? `1 ${xc.unit}` : 'one'} more ${lowerFirst(xl)}, from ${many(rows.length, 'entry', 'entries')}${few}. A link is not proof of a cause — test it.`,
       };
     },
   },
@@ -445,16 +447,16 @@ export const BLOCKS: Record<AnalysisBlockId, AnalysisBlock> = {
       let toward = '';
       if (typeof a.target === 'number') {
         const T = a.target;
-        if (Math.abs(fit.slope) < 1e-9) toward = now === T ? ` — at the target of ${withUnit(T, unit)}` : ` — it does not move towards ${withUnit(T, unit)}`;
+        if (Math.abs(fit.slope) < 1e-9) toward = now === T ? `; at the target of ${withUnit(T, unit)}` : `; it does not move towards ${withUnit(T, unit)}`;
         else {
           const xT = (T - fit.intercept) / fit.slope;
-          toward = xT > last ? ` — it reaches ${withUnit(T, unit)} on ${daySaid(isoOf(d0 + Math.ceil(xT)))} at this rate` : ` — already past ${withUnit(T, unit)} on the line, and moving on`;
+          toward = xT > last ? `; it reaches ${withUnit(T, unit)} on ${daySaid(isoOf(d0 + Math.ceil(xT - 1e-9)))} at this rate` : `; already past ${withUnit(T, unit)} on the line, and moving on`;
         }
       }
       const few = series.length < 7 ? ' (fewer than 7 days: a rough guide)' : '';
       return {
         value: then, n: series.length, ...u, ...tgt, series, ahead, fit: { slope: fit.slope, intercept: fit.intercept },
-        says: `${a.label}: ${withUnit(now, unit)} on the latest day's line, ${move} — ${withUnit(then, unit)} in a week${toward}; from ${many(series.length, 'day')} logged${few}.`,
+        says: `${a.label}: ${move} — ${withUnit(now, unit)} now on the line through ${many(series.length, 'day')}, ${withUnit(then, unit)} a week on${toward}${few}.`,
       };
     },
   },
