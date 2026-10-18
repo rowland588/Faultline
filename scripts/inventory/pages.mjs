@@ -197,12 +197,12 @@ export const PAGES = (sd, cap) => [
   /* METHODS OF ONE'S OWN (18 October, docs/PLATFORM-STATUS.md slice 3; lib/flow): the library, a method read and written, and a project running one — the lean page with the method's stages as its picture */
   { name: 'Methods', path: '#/methods', must: [{ what: 'a card a method', sel: '.fw-lib .fw-card' },
     { what: 'describe what you need — the studio', sel: '.pace-head-actions button', text: /^Describe what you need$/ },
-    { what: 'Faultline’s library — each to adapt or use as it is', sel: '.fw-card.is-library', n: 5 },
+    { what: 'Faultline’s library — each to adapt or use as it is', sel: '.fw-card.is-library', n: 6 },
     { what: 'find a method by a word', sel: '.fw-find input' }] },
   /* THE STUDIO (the vision slice): what is needed in words, the library beside it */
   { name: 'Design a method', path: '#/design', must: [
     { what: 'what you need, in your words', sel: '.fw-ask-box textarea' },
-    { what: 'the library to start from', sel: '.fw-start .fw-card', n: 5 },
+    { what: 'the library to start from', sel: '.fw-start .fw-card', n: 6 },
   ] },
   { name: 'Design a method — from Faultline’s SMED method', path: '#/design?template=changeover-reduction', must: [
     { what: 'the conversation', sel: '.fw-turn' },

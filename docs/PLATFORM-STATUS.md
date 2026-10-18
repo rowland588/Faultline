@@ -79,7 +79,7 @@ list (a definition gives every machine the same steps).
 
 | 4 | The gateway (`supabase/functions/assist`: session check, a daily allowance by number and cost, structured output held to the proposal's schema, read again by the app's validator; key server-side; off without the key or the usage table) and design by conversation | `assist.test.ts` (recorded answers, the copies word for word), `scripts/acceptance/methods-design.mjs` | code on the branch; the function is not deployed and its usage table not applied (below) |
 | 5 | The assistant on a project (`lib/flow/ground` facts with how each is known; the app answers the common questions itself; the assistant's answer checked — a figure it was not told is never shown as known); changes as a new version with every change said (`lib/flow/change`); moving a project to a new version with the effect said first, completed work kept, Undo; the history on the report | `ground.test.ts`, `change.test.ts`, the acceptance | with slice 4 |
-| V | The vision slice — tools and measures in the engine (D9, D10), Faultline's library (D11), the studio (D12), copy and adapt, a project's line, a tool step attaching a study, measures as tiles, on the page, the paper and the assistant's facts | `capabilities.test.ts` (tools, measures, measureMet, proposal round trip, keys kept, SMED read by SMED's module), `library.test.ts` (every entry valid and runnable, found from words), `methods-design.mjs` (41 checks: control room → studio, AI off and on, shaped, approved and started, version 2 with a measure, the project moved, measured 36 → 44, asked, the report, SMED's method adapted and run with a SMED study attached, used as it is, copied); smoke routes; PAGES and inventory lines; the seed's SMED method run | with slice 4 |
+| V | The vision slice — tools and measures in the engine (D9, D10), Faultline's library (D11), the studio (D12), copy and adapt, a project's line, a tool step attaching a study, measures as tiles, on the page, the paper and the assistant's facts | `capabilities.test.ts` (tools, measures, measureMet, proposal round trip, keys kept, SMED read by SMED's module), `library.test.ts` (every entry valid and runnable, found from words), `methods-design.mjs` (53 checks: control room → studio, AI off and on, shaped, approved and started, version 2 with a measure, the project moved, measured 36 → 44, asked, the report, SMED's method adapted and run with a SMED study attached, used as it is, copied); smoke routes; PAGES and inventory lines; the seed's SMED method run | with slice 4 |
 
 ## Next actions (in order)
 
@@ -88,12 +88,18 @@ list (a definition gives every machine the same steps).
    tried on 18 October — not retried) and deploy `supabase/functions/assist`
    from the repo; then he sets `ANTHROPIC_API_KEY`. Until then every AI
    feature says it is off and everything else works.
-3. A tool step's study attached by itself when it is made from the step
-   (today: Start a … on the line opens the tool's own New, on the job's
-   line; the study made there is offered on the step, and Use this attaches
-   it).
-4. Line capacity as a tool with figures (line rate, bottleneck) — it lives on
-   a product's line standard, so a step names the standard.
+3. ~~A tool step's study attached by itself when it is made from the
+   step~~ — built 18 October (`ui/flow/Asking`): the tool's New says the
+   step it answers, the study made there is attached by `recordStep` under
+   the person's access with Undo, a line balance already timed is attached
+   only when asked; `methods-design.mjs` 9e1–9e4.
+4. ~~Line capacity as a tool with figures~~ — built 18 October: a step done
+   with Line capacity is answered by a product's line standard (its id kept
+   in the record's `studyId`, a text column — no schema change), read by
+   `lib/capacity` into line rate, good out, short of target and labour a
+   pack in pence (`lib/flow/toolRead` readCapacity); Faultline's library
+   gains *Bring a line to its rate*; `capabilities.test.ts`,
+   `methods-design.mjs` 11–11f.
 5. The 6M and the lever tree as library methods with their own pictures
    (the fishbone, the tree) drawn from a method's records — today they stay
    the native screens, and the library's "Line performance" is the

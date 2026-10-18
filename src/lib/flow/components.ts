@@ -31,6 +31,9 @@ export interface ComponentInfo {
   /** The study tool it opens (lib/study STUDY_TOOLS), when it is one — a step
    *  using it is answered by attaching one of that tool's studies. */
   studyTool?: string;
+  /** Answered by a product's line standard instead — its Line capacity, which
+   *  lives on the standard, not as a study. */
+  onStandard?: true;
   /** What it finds, as numbers the method can use. */
   figures: readonly ToolFigure[];
   /** Where the tool's own list opens — to start one on the line. */
@@ -76,9 +79,23 @@ export const COMPONENTS: readonly ComponentInfo[] = [
     figures: [{ key: 'lead_time_minutes', label: 'Lead time', unit: 'min', better: 'lower' }, { key: 'value_added_share', label: 'Value-added share', unit: '%', better: 'higher' }],
   },
   /* Line capacity lives on a product's line standard, not as a study: a step
-     using it opens it on the line and is ticked by hand — no figures yet. */
-  { id: 'capacity', name: 'Line capacity', gives: 'What each station can make and which one limits the line', figures: [], listPath: '/standards' },
+     using it is answered by that product's capacity, read by lib/capacity —
+     the line's rate once stops count, the good out of the end, how far short
+     of its target, and labour a pack from the one cost model (CLAUDE.md,
+     Everything derives a cost). */
+  {
+    id: 'capacity', name: 'Line capacity', gives: 'What each station can make, which one limits the line, and what a pack costs in labour', onStandard: true, listPath: '/balances',
+    figures: [
+      { key: 'line_rate', label: 'Line rate', unit: 'a minute', better: 'higher' },
+      { key: 'good_rate', label: 'Good out', unit: 'a minute', better: 'higher' },
+      { key: 'short_of_target', label: 'Short of target', unit: 'a minute', better: 'lower' },
+      { key: 'labour_per_pack', label: 'Labour a pack', unit: 'pence', better: 'lower' },
+    ],
+  },
 ];
+
+/** Answered by one of the app's records — a study, or a product's Line capacity. */
+export const answeredByRecord = (c?: ComponentInfo): boolean => !!c && (!!c.studyTool || !!c.onStandard);
 
 export const componentOf = (id?: string): ComponentInfo | undefined => COMPONENTS.find(c => c.id === id);
 

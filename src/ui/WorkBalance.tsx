@@ -30,7 +30,7 @@
  * raises a fix on whoever is over takt, and the fix's Prove it times the
  * same elements again — a second study on the same product, the newest the
  * one the map reads, the earlier one still opening as itself (?study=). */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { getWorkspace, listAllStudies, onDataChange, patchStudy, putStandard, putStudy } from '../db';
 import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
@@ -38,6 +38,7 @@ import { now, uid } from '../lib/ids';
 import { niceDay, isoDay } from '../lib/weeks';
 import { currentBalance } from '../lib/studyLinks';
 import { useRoute, nav } from '../state/useRoute';
+import { AskingNote, useAsking } from './flow/Asking';
 import { UsedFor } from './StudyPlace';
 import { peopleOf, type Standard } from '../lib/standard';
 import { fmtN, type Capacity } from '../lib/capacity';
@@ -148,8 +149,11 @@ export function WorkView({ s, can }: { s: Standard; can: Can }) {
   const { study, current } = useBalances(s.id, route.query.get('study'));
   const { session } = useSession();
   const me = displayName(session?.user.email) || undefined;
+  /* a method's step asking for a line balance (ui/flow/Asking): one started
+     here answers it; one already timed answers it when the person says so */
+  const asking = useAsking('balance');
   if (study === undefined) return <p className="sub">Opening…</p>;
-  if (study === null) return <Start s={s} can={can} />;
+  if (study === null) return <Start s={s} can={can} onMade={id => void asking.attach(id)} asking={<AskingNote asking={asking} />} />;
   if (current && current.id !== study.id) {
     /* An earlier timing, opened from a fix's "How we know": read as it stood. */
     const back = () => { const q = new URLSearchParams(route.query); q.delete('study'); nav(`${herePath()}?${q.toString()}`); };
@@ -161,25 +165,32 @@ export function WorkView({ s, can }: { s: Standard; can: Can }) {
       </>
     );
   }
-  return <Work study={study} s={s} can={can} me={me} />;
+  return (
+    <>
+      {can.edit && <AskingNote asking={asking} onUse={() => void asking.attach(study.id)} />}
+      <Work study={study} s={s} can={can} me={me} />
+    </>
+  );
 }
 
 /* ------------------------------------------------------------ the first time */
-function Start({ s, can }: { s: Standard; can: Can }) {
+function Start({ s, can, onMade, asking }: { s: Standard; can: Can; onMade: (studyId: string) => void; asking: ReactNode }) {
   const people = peopleOf(s);
   const t = taktFromTarget(s.capacity);
   const start = () => {
     const at = now();
     /* The map's people and what they do become the elements — nothing typed twice. */
     const steps: BalanceStep[] = people.map((p, i) => ({ id: uid(), order: i, name: p.task?.trim() || 'Their work', who: p.label?.trim() || `Op ${i + 1}` }));
-    void putStudy({ id: uid(), tool: 'balance', name: s.product, standardId: s.id,
+    const id = uid();
+    void putStudy({ id, tool: 'balance', name: s.product, standardId: s.id,
       ...(s.workspaceId ? { workspaceId: s.workspaceId } : {}), ...(s.projectId ? { projectId: s.projectId } : {}),
       /* a new balance takes its takt from Line capacity's target, and follows it */
       ...(t ? { agreed: { balance: { taktSec: t.taktSec, from: 'target' as const } } } : {}),
-      facts: { steps }, uses: [], startedAt: at, createdAt: at, updatedAt: at });
+      facts: { steps }, uses: [], startedAt: at, createdAt: at, updatedAt: at }).then(() => onMade(id));
   };
   return (
     <div className="wb-start">
+      {can.edit && asking}
       <p><b>Who does what on this product, and how long it takes — timed at the line.</b></p>
       <p className="sub">Put in the people and what each of them does{people.length ? ` (the map’s ${people.length} ${people.length === 1 ? 'person' : 'people'} to start with)` : ''}, then time them with one button.
         {t ? ` The takt comes from Line capacity’s target: ${secs(t.taktSec)}${aPiece({ unit: t.unit })}.` : ' The takt comes from Line capacity’s target — timing does not wait for it.'}</p>

@@ -22,8 +22,12 @@
  *   9  the library: Faultline's SMED method adapted (its target changed in
  *      words), approved, started on a line; a SMED study on the line attached
  *      to the step — its minutes read by SMED's own arithmetic into the step
- *      and the measure
+ *      and the measure; one started from the step on SMED's own New, saying
+ *      the step, attached as it is made, with Undo and the log saying so
  *  10  Line performance used as it is; a method copied
+ *  11  Line capacity as a tool step: Bring a line to its rate run on Line 4,
+ *      a product's capacity attached — its rate and labour a pack read by
+ *      lib/capacity — and one made from the step attached as it is made
  *   and no console error anywhere.
  *
  *   node scripts/acceptance/methods-design.mjs      (SMOKE_BASE, as smoke) */
@@ -218,7 +222,7 @@ ok(/What has happened/.test(pdf) && /Moved from version 1 to version 2/.test(pdf
 /* 9 — Faultline's SMED method adapted, started on a line, a SMED study attached */
 const lineId = await page.evaluate(async () => (await (await import('/src/db.ts')).createWorkspace('Line 4')).id);
 await page.goto(`${BASE}/#/methods`); await page.waitForTimeout(1800);
-ok(await page.locator('.fw-card.is-library').count() === 5 && /From Faultline’s library/.test(await txt()), '9 Faultline’s library on Methods, beside your own');
+ok(await page.locator('.fw-card.is-library').count() === 6 && /From Faultline’s library/.test(await txt()), '9 Faultline’s library on Methods, beside your own');
 await page.getByLabel('Find a method', { exact: true }).fill('changeover');
 ok(await page.locator('.fw-card.is-library').count() === 1, '9a found by a word');
 await page.locator('.fw-card[data-library="changeover-reduction"]').getByRole('button', { name: 'Adapt it' }).click(); await page.waitForTimeout(1500);
@@ -248,7 +252,36 @@ await page.evaluate(async lid => {
 await page.locator('.fw-row[data-step="time-now"]').click();
 await sheet().locator('.fw-tool-c[data-study="smed-acc"]').waitFor({ timeout: 15000 }).catch(() => {});
 ok(/Answered by SMED/i.test(await sheetTxt()) && /SMED — Bagger 45 → 60/.test(await sheetTxt()), '9e the step offers the SMED studies on its line', await sheetTxt());
-await sheet().getByRole('button', { name: 'Use this' }).click(); await page.waitForTimeout(1200);
+/* started from the step: SMED's own New on the job's line, saying the step it
+   answers; made there, it is attached to the step, said with Undo */
+const jobUrl = page.url().split('?')[0];
+await sheet().getByRole('button', { name: 'Start a SMED on the line' }).click();
+await page.locator('.fw-asking').waitFor({ timeout: 15000 }).catch(() => {});
+const asking = (await page.locator('.fw-asking').innerText().catch(() => '')).replace(/\s+/g, ' ');
+/* the picker fills from Your factory a moment after the sheet opens */
+await page.waitForFunction(lid => [...document.querySelectorAll('[role=dialog] select[aria-label="Which line"]')].some(x => x.value === lid), lineId, { timeout: 10000 }).catch(() => {});
+const onLine9 = await sheet().getByLabel('Which line', { exact: true }).inputValue().catch(e => `(${e.message.split('\n')[0]})`);
+ok(/#\/smed\?add=1&line=/.test(page.url()) && /For “Time the changeover as it is” on Line 4 changeovers — it is attached to that step once it is made/.test(asking)
+  && onLine9 === lineId, '9e1 SMED’s own New, on the job’s line, saying which step it answers', `${page.url()} | ${asking} | line ${onLine9} (want ${lineId})`);
+await page.getByLabel('From which product?').fill('Bagger 60');
+await page.getByLabel('To which product?').fill('Bagger 45');
+await page.getByRole('button', { name: 'Start it' }).click();
+await page.locator('.toast', { hasText: 'Attached to' }).waitFor({ timeout: 15000 }).catch(() => {});
+const toast = (await page.locator('.toast').innerText().catch(() => '')).replace(/\s+/g, ' ');
+ok(/#\/smed\/[^/?]+/.test(page.url()) && /Attached to “Time the changeover as it is” on Line 4 changeovers/.test(toast) && /Undo/.test(toast), '9e2 made: its page opens, and it is said attached to the step, with Undo', `${page.url()} | ${toast}`);
+await settle();
+await page.locator('.toast').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+await page.goto(jobUrl); await page.waitForTimeout(1500);
+await page.locator('.fw-row[data-step="time-now"]').click();
+await sheet().locator('.fw-tool-r').waitFor({ timeout: 15000 }).catch(() => {});
+ok(/SMED — Bagger 60 → Bagger 45/.test(await sheetTxt()) && /Take it off the step/.test(await sheetTxt()), '9e3 the step answered by the study made from it', await sheetTxt());
+await page.keyboard.press('Escape'); await settle();
+ok(/Time the changeover as it is — answered by SMED — Bagger 60 → Bagger 45/.test(await txt()), '9e4 the log says it: answered by the study');
+/* nothing timed on it yet — taken off, and the timed one used instead */
+await page.locator('.fw-row[data-step="time-now"]').click();
+await sheet().getByRole('button', { name: 'Take it off the step' }).click();
+await sheet().locator('.fw-tool-c[data-study="smed-acc"]').waitFor({ timeout: 15000 }).catch(() => {});
+await sheet().locator('.fw-tool-c[data-study="smed-acc"]').getByRole('button', { name: 'Use this' }).click(); await page.waitForTimeout(1200);
 const s9 = await sheetTxt();
 ok(/Internal minutes 40 min/.test(s9) && /External minutes 2 min/.test(s9), '9f attached: its figures read by SMED’s own arithmetic', s9);
 await sheet().getByRole('button', { name: 'Save the result' }).click(); await page.waitForTimeout(900);
@@ -262,6 +295,58 @@ await page.locator('.fw-card[data-library="line-performance"]').getByRole('butto
 ok(/Line performance — find the cause, prove the fix/.test(await txt()) && /Draft · version 1/.test(await txt()) && /with A shift’s losses/.test(await txt()) && /Lost minutes a shift/.test(await txt()), '10 used as it is: a draft of your own, its tool steps and measures with it');
 await page.getByRole('button', { name: 'Make a copy' }).click(); await page.waitForTimeout(1500);
 ok(/Line performance — find the cause, prove the fix \(copy\)/.test(await txt()) && /A copy of “Line performance/.test(await txt()), '10a a copy — a method of its own, saying where it came from');
+
+/* 11 — Line capacity as a tool step: Faultline's "Bring a line to its rate" used
+   as it is and run on Line 4; the step answered by a product's Line capacity,
+   its figures read by lib/capacity — the rate, labour a pack; and one made from
+   the step attached as it is made */
+await page.evaluate(async lid => {
+  const db = await import('/src/db.ts');
+  const t = Date.now();
+  await db.putStandard({ id: 'cap-acc', projectId: '', workspaceId: lid, product: 'Express 1kg', marks: [], sort: t, createdAt: t, updatedAt: t,
+    capacity: { targetPerMin: 60, labour: { people: 4, ratePerHour: 15 }, stations: [
+      { id: 'b', name: 'Bagger', kind: 'machine', unit: 'bags', contains: 1, rate: 70, ratePer: 'min', source: 'plate' },
+      { id: 'w', name: 'Wrapper', kind: 'machine', unit: 'bags', contains: 1, rate: 44, ratePer: 'min', source: 'plate' },
+    ] } });
+}, lineId);
+await page.goto(`${BASE}/#/methods`); await page.waitForTimeout(1500);
+await page.locator('.fw-card[data-library="line-rate"]').getByRole('button', { name: 'Use it as it is' }).click(); await page.waitForTimeout(1500);
+ok(/Bring a line to its rate/.test(await txt()) && /with Line capacity/.test(await txt()) && /Labour a pack/.test(await txt()), '11 Bring a line to its rate: its steps done with Line capacity, the rate and labour a pack its measures');
+await page.getByRole('button', { name: /^Approve version 1$/ }).click(); await page.waitForTimeout(1500);
+await page.getByRole('button', { name: 'Start a project on it' }).click(); await page.waitForTimeout(800);
+await page.getByLabel("The project's name", { exact: true }).fill('Line 4 to 60 a minute');
+await page.getByLabel('On which line', { exact: true }).selectOption(lineId);
+await sheet().getByRole('button', { name: 'Start it' }).click();
+await page.locator('.fw-row[data-step="capacity-now"]').waitFor({ timeout: 15000 }).catch(() => {});
+const capJob = page.url().split('?')[0];
+await page.locator('.fw-row[data-step="capacity-now"]').click();
+await sheet().locator('.fw-tool-c[data-study="cap-acc"]').waitFor({ timeout: 15000 }).catch(() => {});
+ok(/Answered by Line capacity/i.test(await sheetTxt()) && /Line capacity — Express 1kg · Short of its target/.test(await sheetTxt()), '11a the step offers the line’s Line capacities, each with its verdict', await sheetTxt());
+/* made from the step: Line capacity's own New, attached as it is made */
+await sheet().getByRole('button', { name: 'Start a Line capacity on the line' }).click();
+await page.locator('.fw-asking').waitFor({ timeout: 15000 }).catch(() => {});
+const ask11 = (await page.locator('.fw-asking').innerText().catch(() => '')).replace(/\s+/g, ' ');
+ok(/#\/balances\?add=1&line=/.test(page.url()) && /For “Line capacity as it is” on Line 4 to 60 a minute/.test(ask11), '11b Line capacity’s own New, saying the step it answers', `${page.url()} | ${ask11}`);
+await page.locator('.lt-new input[list="lt-products"]').fill('Express 1kg — trial');
+await page.getByRole('button', { name: 'Make it and balance the line' }).click();
+await page.locator('.toast', { hasText: 'Attached to' }).waitFor({ timeout: 15000 }).catch(() => {});
+ok(/\/standards\/[^?]+\?at=balance/.test(page.url()) && /Attached to “Line capacity as it is”/.test(await page.locator('.toast').innerText().catch(() => '')), '11c made: its page opens, said attached to the step');
+await settle();
+await page.locator('.toast').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
+await page.goto(capJob); await page.waitForTimeout(1500);
+await page.locator('.fw-row[data-step="capacity-now"]').click();
+await sheet().locator('.fw-tool-r').waitFor({ timeout: 15000 }).catch(() => {});
+ok(/Line capacity — Express 1kg — trial on Line 4/.test(await sheetTxt()) && /Speeds still to fill in/.test(await sheetTxt()), '11d the step answered by the capacity made from it — its speeds still to fill in', await sheetTxt());
+/* taken off, and the line's own capacity used instead */
+await sheet().getByRole('button', { name: 'Take it off the step' }).click();
+await sheet().locator('.fw-tool-c[data-study="cap-acc"]').waitFor({ timeout: 15000 }).catch(() => {});
+await sheet().locator('.fw-tool-c[data-study="cap-acc"]').getByRole('button', { name: 'Use this' }).click(); await page.waitForTimeout(1200);
+const c11 = await sheetTxt();
+ok(/Line capacity — Express 1kg on Line 4/.test(c11) && /Line rate 44 a minute/.test(c11) && /Short of target 16 a minute/.test(c11) && /Labour a pack 2\.27 pence/.test(c11), '11e attached: the rate, how short, and labour a pack, by Line capacity’s own arithmetic', c11);
+await sheet().getByRole('button', { name: 'Save the result' }).click(); await page.waitForTimeout(900);
+await page.keyboard.press('Escape'); await settle(); await page.waitForTimeout(900);
+const rate = (await page.locator('.ln-tile', { hasText: 'Line rate' }).first().innerText().catch(() => '')).replace(/\s+/g, ' ');
+ok(/44 a minute/.test(rate), '11f the measure read from the capacity: 44 a minute', rate);
 
 ok(errs.length === 0, `no console errors${errs.length ? `: ${errs.slice(0, 3).join(' | ')}` : ''}`);
 await b.close();

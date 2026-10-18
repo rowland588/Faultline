@@ -82,7 +82,8 @@ export interface FlowRecord {
   openAtSign?: string[];
   media?: MediaRef[];
   docs?: DocRef[];
-  /** A tool's record that answers the step (a study's id). */
+  /** A tool's record that answers the step: a study's id — or, for a step
+   *  done with Line capacity, the product's line standard's (lib/flow/toolRead). */
   studyId?: ID;
   /* ---- a gate ---- */
   /** Passed while a blocking condition was unmet: the owner's reason. */

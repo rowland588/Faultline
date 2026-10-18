@@ -242,6 +242,44 @@ export const LIBRARY: readonly LibraryEntry[] = [
       ],
     }),
   },
+  {
+    id: 'line-rate', name: 'Bring a line to its rate', kind: 'improvement',
+    purpose: 'What each station can make worked out, the bottleneck found, walked and raised, and the rate and labour a pack worked out again on the same capacity.',
+    words: ['rate', 'speed', 'capacity', 'bottleneck', 'throughput', 'output', 'constraint', 'faster', 'cost per pack', 'labour cost', 'packs a minute'],
+    uses: ['Line capacity'],
+    build: (): FlowDefinition => ({
+      schema: FLOW_SCHEMA, name: 'Bring a line to its rate', kind: 'improvement',
+      purpose: 'What each station can make worked out, the bottleneck found, walked and raised, and the rate and labour a pack worked out again on the same capacity.',
+      roles: [{ key: 'lead', name: 'Line lead', side: 'site' }, { key: 'ie', name: 'Industrial engineer', side: 'site' }, { key: 'eng', name: 'Engineer', side: 'site' }],
+      stages: [
+        {
+          key: 'see', name: 'See it as it is', purpose: 'Every station’s speed in its own unit, the bottleneck once stops count, and what a pack costs because of it.',
+          steps: [
+            { key: 'capacity-now', title: 'Line capacity as it is', per: 'line', answer: 'measure', role: 'ie', component: { tool: 'capacity' }, help: 'Machines at their plate speed, people at their timed cycle; the target the line has to make.' },
+            { key: 'walk', title: 'Walk the bottleneck', per: 'line', answer: 'done', role: 'lead', after: ['capacity-now'], help: 'Stand at it for a shift: is it the speed, the stops, or what reaches it?' },
+          ],
+          gate: { conditions: [every] },
+        },
+        {
+          key: 'raise', name: 'Raise the bottleneck', purpose: 'Its speed, its stops or its people — whichever the walk found — and the standard changed to hold it.',
+          steps: [
+            { key: 'raise-it', title: 'Raise the bottleneck', per: 'line', answer: 'done', role: 'eng', help: 'Line capacity’s way to the target says who is added where; a speed or a stop fixed is said on its station.' },
+            { key: 'standard', title: 'The line standard updated', per: 'line', answer: 'paperwork', role: 'lead', after: ['raise-it'], evidence: { files: 1 } },
+          ],
+          gate: { conditions: [every] },
+        },
+        {
+          key: 'prove', name: 'Prove it', purpose: 'The same capacity worked out again with the bottleneck raised.',
+          steps: [{ key: 'capacity-again', title: 'Line capacity with the bottleneck raised', per: 'line', answer: 'measure', role: 'ie', component: { tool: 'capacity' }, after: ['standard'] }],
+          gate: { conditions: [every] },
+        },
+      ],
+      measures: [
+        { key: 'line_rate', name: 'Line rate', unit: 'a minute', better: 'higher', from: [{ step: 'capacity-now', field: 'line_rate' }, { step: 'capacity-again', field: 'line_rate' }] },
+        { key: 'labour_per_pack', name: 'Labour a pack', unit: 'pence', better: 'lower', from: [{ step: 'capacity-now', field: 'labour_per_pack' }, { step: 'capacity-again', field: 'labour_per_pack' }] },
+      ],
+    }),
+  },
 ];
 
 export const libraryEntry = (id: string): LibraryEntry | undefined => LIBRARY.find(e => e.id === id);

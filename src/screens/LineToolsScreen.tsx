@@ -34,6 +34,7 @@ import { now, uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import { Sheet } from '../ui/Sheet';
 import type { Workspace } from '../types';
+import { AskingNote, useAsking } from '../ui/flow/Asking';
 
 export type LineTool = 'map' | 'balance' | 'work';
 const NEW_LINE = '__new__';
@@ -90,7 +91,8 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
   const [lines, setLines] = useState<Workspace[]>([]);
   /* opened from a line's own page: on that line, and New starts there */
   const [lineF, setLineF] = useState(() => (asked('line') ? `ws:${asked('line')}` : 'all'));
-  const [adding, setAdding] = useState(false);
+  /* ?add=1 — opened from a method's step done with the line balance (ui/flow/RunParts): New is open at once */
+  const [adding, setAdding] = useState(() => asked('add') === '1');
   /* The line's changeovers (tool 6): its newest is said under the line, beside its maps and balances. */
   const [studies, setStudies] = useState<ToolStudy[]>([]);
 
@@ -312,6 +314,10 @@ function NewOne({ open, tool, lines, list, onClose, onLine }: { open: boolean; t
   const already = onIt.find(x => x.product.trim().toLowerCase() === product.trim().toLowerCase());
   const jobs = projects.filter(p => !p.deletedAt && !p.archivedAt);
   const ready = !!product.trim() && (line !== NEW_LINE || !!newLine.trim()) && !busy;
+  /* a method's step asking for this tool's record: said here — a product's
+     Line capacity answers it as it is made or opened here; a line balance
+     when it is started (ui/WorkBalance) */
+  const asking = useAsking(tool === 'balance' ? 'capacity' : 'balance');
 
   const make = async () => {
     if (!ready) return;
@@ -326,6 +332,7 @@ function NewOne({ open, tool, lines, list, onClose, onLine }: { open: boolean; t
       const same = list.find(x => x.workspaceId === workspaceId && !x.deletedAt && x.product.trim().toLowerCase() === product.trim().toLowerCase());
       if (same) {
         if (tool === 'balance' && !same.capacity) await putStandard({ ...same, capacity: { stations: [] } });
+        if (tool === 'balance') await asking.attach(same.id);
         setProduct(''); setNewLine(''); onClose();
         nav(openOf(same, tool));
         return;
@@ -339,6 +346,7 @@ function NewOne({ open, tool, lines, list, onClose, onLine }: { open: boolean; t
         ...(tool === 'map' && last?.photoKey ? { photoKey: last.photoKey } : {}),
         ...(tool === 'balance' ? { capacity: { stations: [] } } : {}), marks: [], sort: t, createdAt: t, updatedAt: t };
       await putStandard(s);
+      if (tool === 'balance') await asking.attach(s.id);
       setProduct(''); setNewLine(''); onClose();
       nav(openOf(s, tool));
     } finally { setBusy(false); }
@@ -347,6 +355,7 @@ function NewOne({ open, tool, lines, list, onClose, onLine }: { open: boolean; t
   return (
     <Sheet open={open} onClose={onClose} title={WORDS[tool].add}>
       <form className="lt-new" onSubmit={e => { e.preventDefault(); void make(); }}>
+        {tool !== 'map' && <AskingNote asking={asking} />}
         <label className="field"><span className="field-label">Which line</span>
           <select value={line} onChange={e => setLine(e.target.value)}>
             {lines.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}

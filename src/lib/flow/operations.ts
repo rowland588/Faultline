@@ -15,10 +15,10 @@ import { uid, now } from '../ids';
 import { todayISO } from '../weeks';
 import type { Restore } from '../../db';
 import {
-  addActivity, deleteFlowRecord, deleteMethodRow, getMethod, getProject, getStudy, listAllSnags, listAssets,
+  addActivity, deleteFlowRecord, deleteMethodRow, getMethod, getProject, getStandard, getStudy, listAllSnags, listAssets,
   listFlowRecords, listObservations, listWorkspaces, methodFamily, putAsset, putFlowRecord, putMethod, updateProject, createProject,
 } from '../../db';
-import { readTool } from './toolRead';
+import { readCapacity, readTool } from './toolRead';
 import type { FlowDefinition } from './definition';
 import { validateDefinition, type Issue } from './validate';
 import { readFlow, type FlowProblem, type FlowState, type ToolReading } from './runtime';
@@ -210,6 +210,12 @@ export async function readTools(studyIds: readonly string[]): Promise<Record<str
     : [[], []];
   const out: Record<string, ToolReading> = {};
   for (const st of studies) out[st.id] = readTool(st, { observations, workspaces });
+  /* not a study: a product's line standard, read for its Line capacity */
+  const standards = (await Promise.all(ids.filter(id => !out[id]).map(id => getStandard(id)))).filter((x): x is NonNullable<typeof x> => !!x && !x.deletedAt);
+  if (standards.length) {
+    const ws = workspaces.length ? workspaces : await listWorkspaces();
+    for (const sd of standards) out[sd.id] = readCapacity(sd, ws.find(w => w.id === sd.workspaceId));
+  }
   return out;
 }
 

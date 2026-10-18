@@ -259,10 +259,21 @@ paper — and, built the same day, on its control-room row's sentence
 ("Changeover minutes: 42 min → 18 min, target at most 9 min"). Next: the
 week's slips reading a measure that went the wrong way.
 
-**A tool step that starts its own study** (the vision slice). A step done
-with SMED or a loss count offers the line's studies to attach, and Start a …
-on the line opens the tool's own New on the job's line. Next: the study made
-there attached to the step by itself, without coming back for Use this.
+**A tool step that starts its own study** (the vision slice; built 18
+October). A step done with SMED or a loss count offers the line's studies to
+attach, and Start a … on the line opens the tool's own New on the job's line,
+saying which step it answers (*For “Time the changeover as it is” on Line 4
+changeovers*) with *Not for that step* beside it. The study made there is
+attached to the step by the same operation Use this runs, under the person's
+own access, said with Undo, and the project's log says *answered by* it; a
+line balance already timed on the product is attached only when the person
+says *Use this one for that step* (`ui/flow/Asking`). Line capacity is one
+of the tools since the same day: a step done with it is answered by a
+product's line standard — the record Line capacity lives on — and reads the
+line's rate, the good out, how far short of its target and labour a pack
+from `lib/capacity`, the one cost model; Faultline's library has *Bring a
+line to its rate* on it. Next: the 6M's and the lever tree's own pictures
+drawn from a method's records.
 
 **Money in every tool** (Rowland, 17 October: "everything must derive a cost
 in the entire app ... it's all about money"; the rule is in CLAUDE.md,

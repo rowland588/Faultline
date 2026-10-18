@@ -17,7 +17,7 @@
  * filed as planned. */
 import { addDays, niceDay } from '../weeks';
 import { allSteps, isTest, numbersOf, roleName, type FlowCondition, type FlowDefinition, type FlowField, type FlowMeasure, type FlowStage, type FlowStepDef } from './definition';
-import { componentOf } from './components';
+import { answeredByRecord, componentOf } from './components';
 import { calc } from './formula';
 import type { FlowRecord } from './records';
 import type { GateTone } from '../install';
@@ -247,8 +247,8 @@ export function missingOf(def: FlowDefinition, step: FlowStepDef, rec: FlowRecor
     out.push(by ? `${by}'s sign-off` : 'a sign-off');
   }
   /* a tool step is answered by that tool's record — attached, and far enough
-     on for its figures to stand; Line capacity (no study) is ticked by hand */
-  if (step.component && componentOf(step.component.tool)?.studyTool) {
+     on for its figures to stand: a study, or a product's Line capacity */
+  if (step.component && answeredByRecord(componentOf(step.component.tool))) {
     const word = componentWord(step.component.tool);
     if (!rec?.studyId) out.push(`its ${word}`);
     else if (!tool) out.push(`its ${word} (not on this device yet)`);

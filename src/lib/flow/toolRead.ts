@@ -17,6 +17,9 @@ import { studyBalance } from '../ie/balanceLink';
 import { DEFAULT_ACTIVITIES, samplingEnough, shares, tapsOf } from '../ie/sampling';
 import { flowFigures } from '../ie/steps';
 import type { ToolReading } from './runtime';
+import { analyse, labourCost, labourInputs } from '../capacity';
+import { headcount, type Standard } from '../standard';
+import type { Workspace } from '../../types';
 
 const round = (n: number, dp = 2) => Math.round(n * 10 ** dp) / 10 ** dp;
 const put = (out: Record<string, number>, k: string, v: number | undefined, dp = 2) => {
@@ -78,4 +81,33 @@ export function readTool(s: ToolStudy, ctx?: StudyContext): ToolReading {
   const { enough, figures } = toolFigures(s, ctx);
   const said = studySays(s, ctx);
   return { tool: s.tool, name: studyTitle(s), says: said.text, ...(said.verdict ? { verdict: said.verdict } : {}), enough, figures, href: studyHref(s) };
+}
+
+/** A PRODUCT'S LINE CAPACITY, read for a step it answers — Line capacity lives
+ *  on the product's line standard, not as a study. lib/capacity's own
+ *  arithmetic: the line's rate once stops count, the good out of the end, how
+ *  far short of its target (0 when it meets it), and labour a pack in pence —
+ *  the people and one person's rate as the capacity page takes them (typed,
+ *  else the standard's people and the line's crew and wage). Enough once the
+ *  line can be counted. */
+export function capacityFigures(std: Pick<Standard, 'capacity' | 'marks'>, line?: Pick<Workspace, 'crew' | 'labourRatePerHour' | 'labourBurden'>): { enough: boolean; figures: Record<string, number>; says: string; short: boolean } {
+  const figures: Record<string, number> = {};
+  const cap = std.capacity;
+  if (!cap?.stations.length) return { enough: false, figures, says: 'No stations yet — the line’s stations for this product are still to write', short: false };
+  const r = analyse(cap);
+  put(figures, 'line_rate', r.line, 1);
+  put(figures, 'good_rate', r.goodOut, 1);
+  if (r.target != null && r.gap != null) put(figures, 'short_of_target', Math.max(0, r.gap), 1);
+  const li = labourInputs(cap, headcount(std), line);
+  const lc = labourCost(r, li.people, li.rate);
+  if (lc) put(figures, 'labour_per_pack', lc.perPack * 100, 2);
+  return { enough: r.line != null && r.line > 0, figures, says: r.sentence, short: (r.gap ?? 0) > 1e-9 };
+}
+
+/** Read a product's Line capacity for the step it answers. */
+export function readCapacity(std: Standard, line?: Workspace): ToolReading {
+  const f = capacityFigures(std, line);
+  const href = `${std.workspaceId ? `/w/${std.workspaceId}/standards/${std.id}` : `/project/${std.projectId}/standard/${std.id}`}?at=balance`;
+  const verdict = !f.enough ? 'Speeds still to fill in' : f.short ? 'Short of its target' : std.capacity?.targetPerMin != null ? 'Meets its target' : undefined;
+  return { tool: 'capacity', name: `Line capacity — ${std.product}${line ? ` on ${line.name}` : ''}`, says: f.says, ...(verdict ? { verdict } : {}), enough: f.enough, figures: f.figures, href };
 }

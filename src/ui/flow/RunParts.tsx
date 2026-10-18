@@ -18,11 +18,13 @@
 import { useEffect, useRef, useState } from 'react';
 import type { DocRef } from '../../lib/testing';
 import type { MediaRef } from '../../types';
-import { getBlob, listStudies, listStudiesForLine, onDataChange, putBlob } from '../../db';
+import { getBlob, listStandards, listStandardsForLine, listStudies, listStudiesForLine, onDataChange, putBlob } from '../../db';
 import { nav } from '../../state/useRoute';
 import type { ToolStudy } from '../../lib/study';
 import { studySays, studyTitle } from '../../lib/studyLinks';
-import { componentOf } from '../../lib/flow/components';
+import { answeredByRecord, componentOf } from '../../lib/flow/components';
+import { readCapacity } from '../../lib/flow/toolRead';
+import { inCapacityTool, type Standard } from '../../lib/standard';
 import { uid } from '../../lib/ids';
 import { niceDay } from '../../lib/weeks';
 import { deliverBlob } from '../../lib/savePdf';
@@ -38,6 +40,7 @@ import { Evidence } from '../EvidenceDoors';
 import { EvidenceViewer } from '../Evidence';
 import { offerUndo } from '../Undo';
 import { Num, Words } from './MethodParts';
+import { askFor } from './Asking';
 
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100));
 
@@ -83,6 +86,9 @@ function FieldBox({ f, value, worked, onSave, disabled }: {
   }
 }
 
+/** A record a tool step may be answered by, as the step offers it. */
+interface Offer { id: string; title: string; says: string }
+
 /** A STEP DONE WITH ONE OF THE APP'S TOOLS — the tool's record attached and
  *  read: its verdict and its figures, which the step's gate and the method's
  *  measures read as boxes (lib/flow/toolRead). The tool's studies on the
@@ -91,27 +97,40 @@ function FieldBox({ f, value, worked, onSave, disabled }: {
  *  here when it is. */
 function ToolAnswer({ fp, inst, live, onAttach }: { fp: FlowProject; inst: StepInstance; live: boolean; onAttach: (studyId: string | undefined) => void }) {
   const tool = componentOf(inst.def.component?.tool);
-  const [found, setFound] = useState<ToolStudy[] | null>(null);
+  const [found, setFound] = useState<Offer[] | null>(null);
   const lines = fp.project.workspaceIds ?? [];
   useEffect(() => {
-    if (!tool?.studyTool) return;
+    if (!tool || !answeredByRecord(tool)) return;
     let alive = true;
-    const load = () => void Promise.all([listStudies(fp.project.id), ...lines.map(l => listStudiesForLine(l))]).then(all => {
-      if (!alive) return;
-      const seen = new Map<string, ToolStudy>();
-      for (const s of all.flat()) if (!s.deletedAt && s.tool === tool.studyTool) seen.set(s.id, s);
-      setFound([...seen.values()].sort((a, b) => b.startedAt - a.startedAt));
-    });
+    /* a product's Line capacity lives on its line standard; every other tool's record is a study */
+    const load = () => void (tool.onStandard
+      ? Promise.all([listStandards(fp.project.id), ...lines.map(l => listStandardsForLine(l))]).then(all => {
+        const seen = new Map<string, Standard>();
+        for (const sd of all.flat()) if (!sd.deletedAt && inCapacityTool(sd)) seen.set(sd.id, sd);
+        return [...seen.values()].sort((a, b) => b.updatedAt - a.updatedAt).map(sd => { const r = readCapacity(sd); return { id: sd.id, title: r.name, says: r.verdict ?? '' }; });
+      })
+      : Promise.all([listStudies(fp.project.id), ...lines.map(l => listStudiesForLine(l))]).then(all => {
+        const seen = new Map<string, ToolStudy>();
+        for (const st of all.flat()) if (!st.deletedAt && st.tool === tool.studyTool) seen.set(st.id, st);
+        return [...seen.values()].sort((a, b) => b.startedAt - a.startedAt).map(st => ({ id: st.id, title: studyTitle(st), says: studySays(st).verdict ?? '' }));
+      })).then(offers => { if (alive) setFound(offers); });
     load();
     const off = onDataChange(load);
     return () => { alive = false; off(); };
-  }, [fp.project.id, tool?.studyTool, lines.join()]); // eslint-disable-line react-hooks/exhaustive-deps -- the lines by value
+  }, [fp.project.id, tool?.id, lines.join()]); // eslint-disable-line react-hooks/exhaustive-deps -- the lines by value
   if (!tool) return null;
   const studyId = inst.record?.studyId;
   /* the tool's own list on the job's line, its New open — the study is made
-     there, as any of that tool's, and attached here when it is */
-  const open = () => nav(`${tool.listPath}?add=1${lines[0] ? `&line=${encodeURIComponent(lines[0])}` : ''}`);
-  if (!tool.studyTool) {
+     there, as any of that tool's, and attached to this step as it is made
+     (ui/flow/Asking: the New says so, and Undo takes it back off) */
+  const open = () => {
+    if (live && answeredByRecord(tool)) {
+      askFor({ ref: { projectId: fp.project.id, stageKey: inst.stageKey, stepKey: inst.def.key, ...(inst.assetId ? { assetId: inst.assetId } : {}) },
+        tool: tool.studyTool ?? tool.id, step: inst.def.title, project: fp.project.name });
+    }
+    nav(`${tool.listPath}?add=1${lines[0] ? `&line=${encodeURIComponent(lines[0])}` : ''}`);
+  };
+  if (!answeredByRecord(tool)) {
     return (
       <div className="fw-tool" data-tool={tool.id}>
         <span className="field-label">Done with {tool.name}</span>
@@ -140,15 +159,15 @@ function ToolAnswer({ fp, inst, live, onAttach }: { fp: FlowProject; inst: StepI
         <p className="sub">Its study has not reached this device yet — it will once this device has synced.</p>
       ) : (
         <>
-          <p className="sub">{tool.gives}. Attach the one that answers this step — its figures{tool.figures.length ? ` (${tool.figures.map(f => f.label.toLowerCase()).join(', ')})` : ''} come into the step.</p>
+          <p className="sub">{tool.gives}. Attach the one that answers this step, or start one — it is attached as it is made. Its figures{tool.figures.length ? ` (${tool.figures.map(f => f.label.toLowerCase()).join(', ')})` : ''} come into the step.</p>
           {found === null && <p className="sub">Looking…</p>}
           {found && found.length === 0 && <p className="sub">No {tool.name} on {lines.length ? 'this project’s line' : 'this project'} yet.</p>}
           {found && found.length > 0 && (
             <ul className="fw-list fw-tool-list">
-              {found.slice(0, 8).map(s => (
-                <li key={s.id} className="fw-tool-c" data-study={s.id}>
-                  <span><b>{studyTitle(s)}</b> <span className="sub">· {studySays(s).verdict ?? ''}</span></span>
-                  {live && <button type="button" className="btn btn-sm" onClick={() => onAttach(s.id)}>Use this</button>}
+              {found.slice(0, 8).map(o => (
+                <li key={o.id} className="fw-tool-c" data-study={o.id}>
+                  <span><b>{o.title}</b>{o.says ? <span className="sub"> · {o.says}</span> : null}</span>
+                  {live && <button type="button" className="btn btn-sm" onClick={() => onAttach(o.id)}>Use this</button>}
                 </li>
               ))}
             </ul>

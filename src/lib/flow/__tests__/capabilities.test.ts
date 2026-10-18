@@ -10,9 +10,12 @@ import { readFlow, type ToolReading } from '../runtime';
 import { validateDefinition } from '../validate';
 import { fromProposal, toProposal } from '../proposal';
 import { changesOf, keepKeys } from '../change';
-import { readTool, toolFigures } from '../toolRead';
+import { capacityFigures, readCapacity, readTool, toolFigures } from '../toolRead';
 import { flowRowFacts } from '../view';
 import type { ToolStudy } from '../../study';
+import type { Capacity } from '../../capacity';
+import type { Standard } from '../../standard';
+import type { Workspace } from '../../../types';
 
 /* Changeover reduction, the shape Faultline's library gives it */
 const def: FlowDefinition = {
@@ -122,5 +125,43 @@ describe('a tool’s record read for a step', () => {
 
   it('says a study with nothing timed is not enough, with no figures', () => {
     expect(toolFigures(smed([]))).toEqual({ enough: false, figures: {} });
+  });
+});
+
+describe('a product’s Line capacity read for a step', () => {
+  /* the Wrapper holds the line to 44 bags a minute against 60; 4 people at £15 an hour:
+     £60 ÷ 2,640 bags an hour = 2.27p a bag (lib/capacity labourCost) */
+  const cap = (targetPerMin?: number): Capacity => ({ ...(targetPerMin != null ? { targetPerMin } : {}), labour: { people: 4, ratePerHour: 15 }, stations: [
+    { id: 'b', name: 'Bagger', kind: 'machine', unit: 'bags', contains: 1, rate: 70, ratePer: 'min', source: 'plate' },
+    { id: 'w', name: 'Wrapper', kind: 'machine', unit: 'bags', contains: 1, rate: 44, ratePer: 'min', source: 'plate' },
+  ] });
+  const std = (c?: Capacity): Standard => ({ id: 'sd', projectId: '', workspaceId: 'L4', product: 'Express 1kg', ...(c ? { capacity: c } : {}), marks: [], sort: 1, createdAt: 1, updatedAt: 1 });
+
+  it('reads it with Line capacity’s own arithmetic: the rate, the good out, how far short, labour a pack', () => {
+    expect(capacityFigures(std(cap(60)))).toMatchObject({ enough: true, short: true, figures: { line_rate: 44, good_rate: 44, short_of_target: 16, labour_per_pack: 2.27 } });
+    expect(capacityFigures(std(cap(40))).figures.short_of_target).toBe(0);
+    const r = readCapacity(std(cap(60)), { id: 'L4', name: 'Line 4' } as Workspace);
+    expect(r).toMatchObject({ tool: 'capacity', name: 'Line capacity — Express 1kg on Line 4', verdict: 'Short of its target', enough: true, href: '/w/L4/standards/sd?at=balance' });
+  });
+
+  it('says a capacity with no stations is not enough, with no figures', () => {
+    expect(capacityFigures(std({ stations: [] }))).toMatchObject({ enough: false, figures: {} });
+    expect(readCapacity(std()).verdict).toBe('Speeds still to fill in');
+  });
+
+  it('a step done with Line capacity feeds a measure, and a gate waits on its target', () => {
+    const d: FlowDefinition = {
+      schema: FLOW_SCHEMA, name: 'Line rate', purpose: 'Bring the line to its rate.', kind: 'improvement', roles: [],
+      stages: [{ key: 'see', name: 'See it', steps: [{ key: 'cap', title: 'The line’s capacity', per: 'line', answer: 'measure', component: { tool: 'capacity' } }],
+        gate: { conditions: [{ id: 'm', type: 'measureMet', policy: 'block', measure: 'rate' }] } }],
+      measures: [{ key: 'rate', name: 'Line rate', unit: 'a minute', better: 'higher', target: 60, from: [{ step: 'cap', field: 'line_rate' }] }],
+    };
+    expect(validateDefinition(d).errors).toEqual([]);
+    const none = readFlow({ def: d, records: [], machines: [], today: '2026-10-18' });
+    expect(none.stages[0].steps[0].missing).toEqual(['its Line capacity']);
+    const s = readFlow({ def: d, records: [rec({ stageKey: 'see', stepKey: 'cap', studyId: 'sd', doneOn: '2026-10-18' })], machines: [], today: '2026-10-18', tools: { sd: readCapacity(std(cap(60))) } });
+    expect(s.stages[0].steps[0]).toMatchObject({ complete: true, values: { line_rate: 44 } });
+    expect(s.measures[0].says).toBe('Line rate: 44 a minute, the first reading — target at least 60 a minute, not met yet.');
+    expect(s.stages[0].gate.conditions[0]).toMatchObject({ met: false, blocking: true, why: '44 a minute now' });
   });
 });

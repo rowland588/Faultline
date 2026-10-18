@@ -32,6 +32,7 @@ describe('Faultline’s library', () => {
     expect(ids('Line 4 keeps missing its packs a shift target, we need the root cause')[0]).toBe('line-performance');
     expect(ids('We are installing a new tray sealer from the OEM and need to commission it')[0]).toBe('stage-gate');
     expect(ids('A new product trial for a customer next month')[0]).toBe('product-trial');
+    expect(ids('The wrapper is our bottleneck and we cannot make the rate')[0]).toBe('line-rate');
     expect(ids('zzz qqq')).toEqual([]);
   });
 });
