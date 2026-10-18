@@ -355,6 +355,47 @@ const clip = await page.evaluate(() => navigator.clipboard.readText()).catch(() 
 ok(clip.startsWith('FAULTLINE — A CAPABILITY TO DEVELOP') && /Copied/.test(flat(await sheet().innerText())), '8r copied whole, ready to hand to development');
 await page.keyboard.press('Escape'); await settle();
 
+/* 8s — a capability developed from its brief: reliability, a Weibull fit of the times between
+   failures — Faultline's breakdowns method started, twelve breakdowns logged, the fit as the
+   module says, the curve with every time seen on it, and the paper */
+await page.goto(`${BASE}/#/methods`); await page.locator('.fw-card[data-library="breakdowns"]').waitFor({ timeout: 15000 });
+await page.locator('.fw-card[data-library="breakdowns"]').getByRole('button', { name: 'Use it as it is' }).click();
+await page.waitForFunction(() => /works out time between failures/i.test(document.querySelector('.nv-main')?.textContent ?? ''), null, { timeout: 15000 }).catch(() => {});
+ok(/works out time between failures, what fails most, failures/i.test(flat(await page.locator('.nv-main').innerText())), '8s the library holds reliability, written from its brief — Breakdowns, read for when the next one comes');
+await page.getByRole('button', { name: 'Approve version 1' }).click();
+await page.getByRole('button', { name: 'Start a project on it' }).click();
+await sheet().waitFor();
+await page.getByLabel("The project's name", { exact: true }).fill('Wrapper breakdowns');
+await sheet().getByRole('button', { name: 'Start it' }).click();
+await page.locator('.fw-row[data-step="log-before"]').waitFor({ timeout: 15000 });
+await page.locator('.fw-row[data-step="log-before"]').first().click(); await sheet().locator('.fw-log-panel').waitFor();
+/* twelve times at the quantiles of a Weibull of shape 2, scale 100 h — wear */
+const HOURS = Array.from({ length: 12 }, (_, i) => Math.round(100 * Math.sqrt(-Math.log(1 - (i + 0.5) / 12)) * 10) / 10);
+const FAILED = ['Jam', 'Film break', 'Jam', 'Sealer', 'Jam', 'Labeller', 'Jam', 'Film break', 'Jam', 'Sealer', 'Jam', 'Other'];
+for (const [i, h] of HOURS.entries()) {
+  const form = sheet().locator('.fw-entry').first();
+  await form.getByLabel('What failed', { exact: true }).selectOption(FAILED[i]);
+  await form.getByLabel('Hours run since the last', { exact: true }).fill(String(h));
+  await form.getByLabel('The day it happened', { exact: true }).fill(`2026-10-${String(1 + i).padStart(2, '0')}`);
+  await form.getByRole('button', { name: 'Add the entry' }).click(); await page.waitForTimeout(250);
+}
+await page.waitForTimeout(400);
+const relTruth = await page.evaluate(async ([hours, failed]) => {
+  const A = await import('/src/lib/flow/analysis.ts'), L = await import('/src/lib/flow/library.ts');
+  const st = L.libraryEntry('breakdowns').build().stages[0].steps[0];
+  return A.analyse(st.analyses, st.columns, hours.map((h, i) => ({ id: `b${i}`, on: `2026-10-${String(1 + i).padStart(2, '0')}`, at: i, values: { failed: failed[i], hours: h } }))).between.says;
+}, [HOURS, FAILED]);
+const relSaid = flat(await sheet().locator('.fw-result[data-analysis="between"]').innerText());
+ok(relSaid.includes(relTruth) && /failures come from wear/.test(relTruth), `8t the reliability fit, as lib/flow/analysis says: "${relTruth}"`, relSaid.slice(0, 300));
+ok(await sheet().locator('svg.fw-chart.is-curve .fw-fit').count() === 1 && await sheet().locator('svg.fw-chart.is-curve .fw-dot').count() === 12,
+  '8u drawn as its new picture — the chance of a failure by each time, every time between on it');
+if (process.env.SHOTS) await sheet().locator('.fw-result[data-analysis="between"]').screenshot({ path: join(process.env.SHOTS, 'reliability.png') });
+await page.keyboard.press('Escape'); await settle();
+const [dl4] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Method report' }).click()]);
+const f4 = join(dir, 'reliability.pdf'); await dl4.saveAs(f4);
+const pdf4 = flat(execFileSync('pdftotext', ['-raw', f4, '-'], { encoding: 'utf8' }));
+ok(pdf4.includes(relTruth) && /chance of a failure by then, up/.test(pdf4) && /Hours run since the last, across/.test(pdf4), '8v on paper: the fit said and its curve drawn', pdf4.slice(pdf4.indexOf('Time between failures'), pdf4.indexOf('Time between failures') + 300));
+
 /* 9 — the phone */
 await page.setViewportSize({ width: 390, height: 844 });
 await page.goBack(); await page.waitForTimeout(800);

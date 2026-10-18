@@ -39,7 +39,7 @@ export interface FlowEntry {
   struck?: boolean;
 }
 
-export const ANALYSIS_BLOCKS = ['count', 'sum', 'mean', 'median', 'min', 'max', 'sd', 'share', 'perDay', 'pareto', 'trend', 'histogram', 'cpk', 'control', 'relation', 'forecast', 'calc'] as const;
+export const ANALYSIS_BLOCKS = ['count', 'sum', 'mean', 'median', 'min', 'max', 'sd', 'share', 'perDay', 'pareto', 'trend', 'histogram', 'cpk', 'control', 'relation', 'forecast', 'calc', 'reliability'] as const;
 export type AnalysisBlockId = typeof ANALYSIS_BLOCKS[number];
 
 export const WHEN_OPS = ['=', '!=', '>=', '<=', '>', '<'] as const;
@@ -77,7 +77,7 @@ export interface FlowAnalysis {
 /** How a block's answer is drawn — on the screen (ui/flow/LogParts) and on
  *  paper (lib/flow/reportPdf) alike, by this word and never by the block's
  *  id, so a new block with an old picture is drawn the day it is written. */
-export type AnalysisPicture = 'none' | 'bars' | 'pareto' | 'control' | 'scatter' | 'forecast';
+export type AnalysisPicture = 'none' | 'bars' | 'pareto' | 'control' | 'scatter' | 'forecast' | 'curve';
 
 export interface SeriesPoint {
   label: string; value: number; cum?: number;
@@ -106,6 +106,11 @@ export interface AnalysisResult {
   /** A forecast's: the days ahead it is carried to, and the target it is read against. */
   ahead?: number;
   target?: number;
+  /** A reliability fit's observed points — each interval and its median rank,
+   *  as a share (0–100) — beside the fitted curve in `series`. */
+  points?: { x: number; y: number }[];
+  /** A reliability fit's shape (β) and scale (η). */
+  weibull?: { shape: number; scale: number };
 }
 
 type Need = 'required' | 'optional' | 'none';
@@ -277,6 +282,41 @@ export function controlOf(xs: readonly number[]): { centre: number; upper: numbe
 /** "Line speed" mid-sentence as "line speed" — but "OEM fitter" kept. */
 const lowerFirst = (w: string) => (/^[A-Z][a-z]/.test(w) ? w[0].toLowerCase() + w.slice(1) : w);
 const strength = (r: number) => { const a = Math.abs(r); return a >= 0.7 ? 'a strong' : a >= 0.4 ? 'a moderate' : a >= 0.2 ? 'a weak' : ''; };
+
+/** Γ(z) by Lanczos (g = 7, nine terms) — a mean from a Weibull fit needs it. */
+export function gammaFn(z: number): number {
+  const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+  if (z < 0.5) return Math.PI / (Math.sin(Math.PI * z) * gammaFn(1 - z));
+  const x = z - 1;
+  let a = c[0];
+  const t = x + 7.5;
+  for (let i = 1; i < 9; i++) a += c[i] / (x + i);
+  return Math.sqrt(2 * Math.PI) * t ** (x + 0.5) * Math.exp(-t) * a;
+}
+
+/** A Weibull fit by maximum likelihood, as reliability engineering does it:
+ *  the shape β solving Σxᵝ·ln x / Σxᵝ − 1/β − mean(ln x) = 0 (the left side
+ *  rises with β, so its root is bracketed and the bracket halved to 1e−10),
+ *  then the scale η = (Σxᵝ/n)^(1/β).
+ *  Times between failures, all of them failures (none still running). */
+export function weibullFit(xs: readonly number[]): { shape: number; scale: number } | undefined {
+  const v = xs.filter(x => Number.isFinite(x) && x > 0);
+  if (v.length < 3 || Math.max(...v) === Math.min(...v)) return undefined;
+  const lx = v.map(Math.log), mlx = mean(lx);
+  const g = (b: number) => {
+    let s0 = 0, s1 = 0;
+    for (let i = 0; i < v.length; i++) { const p = v[i] ** b; s0 += p; s1 += p * lx[i]; }
+    return s1 / s0 - 1 / b - mlx;
+  };
+  /* g rises with β: bracket the root, then halve the bracket */
+  let lo = 0.01, hi = 1;
+  while (g(hi) < 0 && hi < 200) hi *= 2;
+  if (g(hi) < 0 || g(lo) > 0) return undefined;
+  for (let k = 0; k < 200 && hi - lo > 1e-10; k++) { const m = (lo + hi) / 2; if (g(m) < 0) lo = m; else hi = m; }
+  const shape = (lo + hi) / 2;
+  const scale = (v.reduce((t, x) => t + x ** shape, 0) / v.length) ** (1 / shape);
+  return { shape, scale };
+}
 
 /** One statistic over a number column — sum, mean, median, min, max, the spread. */
 function stat(id: AnalysisBlockId, name: string, says: string, f: (xs: number[]) => number, min = 1): AnalysisBlock {
@@ -472,6 +512,34 @@ export const BLOCKS: Record<AnalysisBlockId, AnalysisBlock> = {
       return {
         value: then, n: series.length, ...u, ...tgt, series, ahead, fit: { slope: fit.slope, intercept: fit.intercept },
         says: `${a.label}: ${move} — ${withUnit(now, unit)} now on the line through ${many(series.length, 'day')}, ${withUnit(then, unit)} a week on${toward}${few}.`,
+      };
+    },
+  },
+  reliability: {
+    id: 'reliability', name: 'Reliability', says: 'How long it runs between failures, fitted as a Weibull curve — the mean time between, whether failures come early, at random or from wear, and the chance of one within a time (its target)',
+    needs: { of: 'required', by: 'none', when: 'optional', against: 'none', target: 'optional' }, numeric: true, output: 'both', picture: 'curve',
+    compute: (entries, a, columns) => {
+      const xs = numbers(rowsOf(entries, a, columns), a.of).filter(x => x > 0), unit = unitOf(a, columns);
+      const u = unit ? { unit } : {};
+      const what = `${a.label}${whenSaid(a, columns)}`;
+      if (xs.length < 3) return { n: xs.length, ...u, says: `${what}: needs 3 times between failures to fit — ${xs.length} so far.` };
+      const w = weibullFit(xs);
+      if (!w) return { n: xs.length, ...u, says: `${what}: every time between is the same — nothing to fit.` };
+      const mtbf = w.scale * gammaFn(1 + 1 / w.shape);
+      const F = (t: number) => 1 - Math.exp(-((t / w.scale) ** w.shape));
+      const top = Math.max(...xs, typeof a.target === 'number' ? a.target : 0) * 1.15;
+      const series: SeriesPoint[] = Array.from({ length: 25 }, (_, i) => { const t = (top * i) / 24; return { label: fmtNumber(t), x: t, value: F(t) * 100 }; });
+      const sorted = [...xs].sort((p, q) => p - q), n = sorted.length;
+      /* Bernard's median ranks: (i − 0.3) / (n + 0.4) */
+      const points = sorted.map((x, i) => ({ x, y: ((i + 1 - 0.3) / (n + 0.4)) * 100 }));
+      const kind = w.shape < 0.9 ? 'failures come early — in the run-up after a stop or a change: look at how it is started, not at wear'
+        : w.shape <= 1.2 ? 'failures come at random — a planned replacement would not prevent them: find their cause'
+          : 'failures come from wear — the longer it runs the likelier it fails: a planned service before then pays';
+      const within = typeof a.target === 'number' ? `; a ${fmtNumber(F(a.target) * 100)}% chance of one within ${withUnit(a.target, unit)} of the last` : '';
+      const few = n < 10 ? ' (fewer than 10: read it with care)' : '';
+      return {
+        value: mtbf, n, ...u, series, points, weibull: w, ...(typeof a.target === 'number' ? { target: a.target } : {}),
+        says: `${what}: ${withUnit(mtbf, unit)} between failures on average; shape ${fmtNumber(w.shape)} — ${kind}${within}; from ${many(n, 'time between', 'times between')}${few}.`,
       };
     },
   },

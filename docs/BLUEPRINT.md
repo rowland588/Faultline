@@ -201,7 +201,17 @@ log and the step's own number boxes — a yield, a rate, and money: the rate
 typed once by the person (never a figure invented), the cost worked out and
 said as money ("£179.17") on screen, in a gate and a measure, and on paper.
 Faultline's rejects log now says what the rejects cost a day, before and
-after. Next: a tool's panel inside the step itself rather than its page; more blocks as the
+after. And the path walked end to end: the acceptance's proposal said it
+could not forecast the next jam ("a Weibull fit of the time between
+jams"), Methods briefed it, and it was built from the brief as one block —
+RELIABILITY: a maximum-likelihood Weibull fit of the times between
+failures (held to a brute-force maximum of the likelihood and to the shape
+and scale the times came from), the mean time between, early · random ·
+wear said for the floor, the chance of a failure within a time, and a new
+picture (the chance by each time, every time seen on it) drawn once on
+screen and once on paper. Faultline's library gains *Breakdowns, read for
+when the next one comes*. Next: a tool's panel inside the step itself
+rather than its page; more blocks as the
 floor asks (a Weibull fit, a regression on several columns — each a block,
 each tested).
 

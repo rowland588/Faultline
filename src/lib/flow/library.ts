@@ -359,6 +359,68 @@ export const LIBRARY: readonly LibraryEntry[] = [
       };
     },
   },
+  /* BREAKDOWNS, READ FOR WHEN THE NEXT ONE COMES — reliability (TPM's
+     planned maintenance), made of blocks: every failure logged with the hours
+     run since the last, which fail most (the Pareto), and the Weibull fit of
+     the times between — the mean time between failures and whether failures
+     come early, at random or from wear — so a service is planned on what was
+     found, and the same log proves it. The capability was written from its
+     brief (lib/flow/needs): the block and its tests, and nothing else. */
+  {
+    id: 'breakdowns', name: 'Breakdowns, read for when the next one comes', kind: 'improvement',
+    purpose: 'Every breakdown logged with the hours run since the last; which fail most, and how long it runs between failures — early, random or wear — read from a Weibull fit; a service planned on that, and the same log kept again to prove the time between grew.',
+    words: ['breakdown', 'breakdowns', 'failure', 'failures', 'fails', 'reliability', 'mtbf', 'mean time between', 'weibull', 'wear', 'worn', 'maintenance', 'planned maintenance', 'tpm', 'service', 'next jam', 'how often'],
+    uses: [],
+    build: (): FlowDefinition => {
+      const columns = [
+        { key: 'failed', label: 'What failed', type: 'choice' as const, options: ['Jam', 'Film break', 'Sealer', 'Labeller', 'Drive or motor', 'Other'], required: true },
+        { key: 'hours', label: 'Hours run since the last', type: 'number' as const, unit: 'h', required: true },
+        { key: 'done', label: 'What was done', type: 'text' as const },
+      ];
+      const reads = [
+        { key: 'between', label: 'Time between failures', block: 'reliability' as const, of: 'hours' },
+        { key: 'most', label: 'What fails most', block: 'pareto' as const, by: 'failed' },
+        { key: 'failures', label: 'Failures', block: 'count' as const },
+      ];
+      return {
+        schema: FLOW_SCHEMA, name: 'Breakdowns, read for when the next one comes', kind: 'improvement',
+        purpose: 'Every breakdown logged with the hours run since the last; which fail most, and how long it runs between failures — early, random or wear — read from a Weibull fit; a service planned on that, and the same log kept again to prove the time between grew.',
+        roles: [{ key: 'op', name: 'Operator', side: 'site' }, { key: 'eng', name: 'Engineer', side: 'site' }],
+        stages: [
+          {
+            key: 'log', name: 'Log the breakdowns', purpose: 'Every failure, with the hours it ran since the last.',
+            steps: [{
+              key: 'log-before', title: 'Log every breakdown', per: 'line', answer: 'log', role: 'op', minEntries: 10, columns, analyses: reads,
+              help: 'One entry for each breakdown: what failed and the hours run since the one before (from the hour meter or the shift log). Strike a mistype — never delete it.',
+            }],
+            gate: { conditions: [every] },
+          },
+          {
+            key: 'plan', name: 'Plan the service', purpose: 'What the fit says, made a plan — before the mean time between if it is wear, the cause found if it is random or early.',
+            steps: [
+              {
+                key: 'decide', title: 'What the fit says, and the plan', per: 'line', answer: 'form', role: 'eng', after: ['log-before'],
+                fields: [
+                  { key: 'reading', label: 'What the fit says (early, random or wear)', type: 'choice', options: ['Early — how it is started', 'Random — find the cause', 'Wear — service before it fails'], required: true },
+                  { key: 'interval', label: 'The service interval planned', type: 'number', unit: 'h' },
+                  { key: 'cause', label: 'The cause, where it is early or random', type: 'text' },
+                ],
+                help: 'Read the shape on the log: wear (above 1.2) — set the service interval before the mean time between; random (around 1) — a service will not stop them, find the cause; early (below 0.9) — look at how it is started after a stop or a change.',
+              },
+              { key: 'done', title: 'The plan in place', per: 'line', answer: 'done', role: 'eng', evidence: { photos: 1 }, after: ['decide'] },
+            ],
+            gate: { conditions: [every] },
+          },
+          {
+            key: 'prove', name: 'Prove it', purpose: 'The same log kept again.',
+            steps: [{ key: 'log-after', title: 'Log every breakdown again', per: 'line', answer: 'log', role: 'op', minEntries: 10, columns, after: ['done'], analyses: reads }],
+            gate: { conditions: [every] },
+          },
+        ],
+        measures: [{ key: 'between', name: 'Time between failures', unit: 'h', better: 'higher', from: [{ step: 'log-before', field: 'between' }, { step: 'log-after', field: 'between' }] }],
+      };
+    },
+  },
   /* A PROCESS HELD IN CONTROL — statistical process control, a tool no screen
      of Faultline's was written for, made of blocks written once (the control
      chart, the spread, the relationship, the histogram): readings in the

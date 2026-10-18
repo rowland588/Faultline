@@ -55,7 +55,7 @@ function line(what: string, why: string, word: string, tone: Square): { h: (f: F
 function chartBlock(res: AnalysisResult, picture: AnalysisPicture, axes: { x?: string; y?: string } = {}): Block {
   const pts = res.series ?? [];
   const H0 = 104;
-  const drawn = picture !== 'none' && pts.length > 0 && (picture !== 'control' || !!res.limits) && (picture !== 'forecast' || !!res.fit);
+  const drawn = picture !== 'none' && pts.length > 0 && (picture !== 'control' || !!res.limits) && (picture !== 'forecast' || !!res.fit) && (picture !== 'curve' || pts.length > 1);
   const dayOf = (s: string) => (/^\d{4}-\d{2}-\d{2}$/.test(s) ? niceDay(s) : s);
   return {
     height: () => (drawn ? H0 + 6 : 0),
@@ -109,6 +109,28 @@ function chartBlock(res: AnalysisResult, picture: AnalysisPicture, axes: { x?: s
         /* words, not arrows: the paper's font has no arrow */
         if (axes.x) doc.text(`${axes.x}, across`, (left + right) / 2, base + 17, { align: 'center' });
         if (axes.y) doc.text(`${axes.y}, up`, left + 4, top - 1);
+        return;
+      }
+      if (picture === 'curve') {
+        /* a reliability fit: the chance of a failure by each time, the times seen, the time it is read at */
+        const list = pts.filter(p => typeof p.x === 'number');
+        const left = x0 + 26, topX = Math.max(...list.map(p => p.x as number)) || 1;
+        const xv = (v: number) => left + (right - left) * (v / topX), yv = (v: number) => base - (base - top) * (v / 100);
+        doc.setDrawColor(LINE); doc.line(left, top, left, base);
+        doc.setDrawColor(INK2); doc.setLineWidth(0.9);
+        for (let i = 1; i < list.length; i++) doc.line(xv(list[i - 1].x as number), yv(list[i - 1].value), xv(list[i].x as number), yv(list[i].value));
+        doc.setFillColor(INK2);
+        for (const p of res.points ?? []) doc.circle(xv(p.x), yv(p.y), 1.4, 'F');
+        font(doc, 6.5, 'normal', MUTED);
+        if (typeof res.target === 'number' && res.weibull) {
+          const T = res.target, at = (1 - Math.exp(-((T / res.weibull.scale) ** res.weibull.shape))) * 100;
+          doc.setLineWidth(0.6); doc.setLineDashPattern([1, 2], 0); doc.line(xv(T), top, xv(T), base); doc.setLineDashPattern([], 0);
+          doc.text(`within ${fmtNumber(T)}: ${fmtNumber(at)}%`, xv(T) + 3, top + 6);
+        }
+        doc.text('100%', left - 3, yv(100) + 2, { align: 'right' }); doc.text('0%', left - 3, yv(0) + 2, { align: 'right' });
+        doc.text('0', left, base + 9); doc.text(fmtNumber(topX), right, base + 9, { align: 'right' });
+        doc.text(axes.y ? `${axes.y}, across` : 'time between, across', (left + right) / 2, base + 17, { align: 'center' });
+        doc.text('chance of a failure by then, up', left + 4, top - 1);
         return;
       }
       if (picture === 'forecast' && res.fit) {

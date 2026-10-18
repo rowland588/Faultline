@@ -241,3 +241,53 @@ describe('a worked-out figure — any arithmetic over the figures before it and 
     expect(r.stops_cost_a_day.value).toBe(187.5);
   });
 });
+
+describe('reliability — a Weibull fit of the times between failures (a capability developed from its brief)', () => {
+  it('Γ as the tables give it', async () => {
+    const { gammaFn } = await import('../analysis');
+    expect(gammaFn(5)).toBeCloseTo(24, 9);
+    expect(gammaFn(0.5)).toBeCloseTo(Math.sqrt(Math.PI), 9);
+    expect(gammaFn(1.5)).toBeCloseTo(Math.sqrt(Math.PI) / 2, 9);
+  });
+
+  /* fifty times at the quantiles of a Weibull of shape 2, scale 100 */
+  const quantiles = (shape: number, scale: number, n: number) => Array.from({ length: n }, (_, i) => scale * (-Math.log(1 - (i + 0.5) / n)) ** (1 / shape));
+
+  it('finds the shape and scale the times came from', async () => {
+    const { weibullFit } = await import('../analysis');
+    const w = weibullFit(quantiles(2, 100, 50));
+    expect(w?.shape).toBeGreaterThan(1.9); expect(w?.shape).toBeLessThan(2.1);
+    expect(w?.scale).toBeGreaterThan(97); expect(w?.scale).toBeLessThan(103);
+    const e = weibullFit(quantiles(1, 40, 60));
+    expect(e?.shape).toBeGreaterThan(0.93); expect(e?.shape).toBeLessThan(1.07);
+  });
+
+  it('is the likelihood’s maximum — held to a brute-force search, not to itself', async () => {
+    const { weibullFit } = await import('../analysis');
+    const xs = [31, 58, 72, 90, 104, 118, 140, 166, 197, 240];
+    const ll = (b: number, h: number) => xs.reduce((t, x) => t + Math.log(b / h) + (b - 1) * Math.log(x / h) - (x / h) ** b, 0);
+    let best = { b: 0, h: 0, l: -Infinity };
+    for (let b = 0.5; b <= 4; b += 0.005) for (let h = 50; h <= 250; h += 0.25) { const l = ll(b, h); if (l > best.l) best = { b, h, l }; }
+    const w = weibullFit(xs);
+    expect(Math.abs((w?.shape ?? 0) - best.b)).toBeLessThan(0.01);
+    expect(Math.abs((w?.scale ?? 0) - best.h)).toBeLessThan(0.5);
+    expect(ll(w?.shape ?? 0, w?.scale ?? 0)).toBeGreaterThanOrEqual(best.l - 1e-6);
+  });
+
+  it('said for the floor: the mean between, early · random · wear, the chance within a time', async () => {
+    const { gammaFn } = await import('../analysis');
+    const cols: FlowField[] = [{ key: 'hours', label: 'Hours run since the last jam', type: 'number', unit: 'h' }];
+    const es: FlowEntry[] = quantiles(2, 100, 12).map((h, i) => ({ id: `j${i}`, on: day(i), at: i, values: { hours: Math.round(h * 10) / 10 } }));
+    const r = analyse([{ key: 'rel', label: 'Time between jams', block: 'reliability', of: 'hours', target: 60 }], cols, es).rel;
+    const w = r.weibull as { shape: number; scale: number };
+    expect(r.value).toBeCloseTo(w.scale * gammaFn(1 + 1 / w.shape), 9);
+    expect(r.says).toMatch(/^Time between jams: \d+(\.\d+)? h between failures on average; shape 2(\.\d+)? — failures come from wear — the longer it runs the likelier it fails: a planned service before then pays; a \d+(\.\d+)?% chance of one within 60 h of the last; from 12 times between\.$/);
+    /* the chance within 60 h is the fitted curve's, 1 − e^−(60/η)^β */
+    const chance = (1 - Math.exp(-((60 / w.scale) ** w.shape))) * 100;
+    expect(r.says).toContain(`a ${Math.round(chance * 100) / 100}% chance`);
+    expect(r.points).toHaveLength(12);
+    expect(r.series?.[0]).toMatchObject({ x: 0, value: 0 });
+    const few = analyse([{ key: 'rel', label: 'Time between jams', block: 'reliability', of: 'hours' }], cols, es.slice(0, 2)).rel;
+    expect(few.says).toBe('Time between jams: needs 3 times between failures to fit — 2 so far.');
+  });
+});

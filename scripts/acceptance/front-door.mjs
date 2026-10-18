@@ -80,8 +80,8 @@ const door = async () => { await page.goto(`${BASE}/#/`); await page.locator('.f
 await door();
 ok(/What do you need to get done\?/.test(await txt()) && await page.getByLabel('What you need, in your words', { exact: true }).count() === 1, '1 the front door: the question first, and the box to say it in');
 ok(/Nothing under way yet/.test(await txt()), '1a nothing under way yet, said');
-ok(await page.locator('.fd-lib .fw-card[data-start^="l:"]').count() === 8 && await page.locator('.fd-lib .fw-card[data-start^="e:"]').count() === 3 && await page.locator('.fd-tools li[data-tool]').count() === 9,
-  '1b the library to start from (eight of Faultline’s methods and its three established ones) and the nine tools to use on their own');
+ok(await page.locator('.fd-lib .fw-card[data-start^="l:"]').count() === 9 && await page.locator('.fd-lib .fw-card[data-start^="e:"]').count() === 3 && await page.locator('.fd-tools li[data-tool]').count() === 9,
+  '1b the library to start from (nine of Faultline’s methods and its three established ones) and the nine tools to use on their own');
 ok((await page.locator('.fd-lib .fw-card[data-start^="e:"] .fw-card-t').allInnerTexts()).join(' · ') === 'Stage gate · 6M · Lever tree', '1b1 the established three by name — the lever tree in the library');
 const first = await page.locator('.nv-rail .nv-grp').first().locator('.nv-ri-l').allInnerTexts();
 const groupsSaid = await page.locator('.nv-rail .nv-grp-l').allInnerTexts();
@@ -194,7 +194,7 @@ ok(/What are you trying to do on Line 4\?/i.test(form) && await page.locator('.p
 const ys = await page.evaluate(() => ['.proj-say', '.proj-model-grid', '.proj-lib'].map(s => { const e = document.querySelector(s); return e ? e.getBoundingClientRect().top + window.scrollY : null; }));
 ok(ys.every(y => y != null) && ys[0] < ys[1] && ys[1] < ys[2], '9a in that order: said in words, then the established three, then the library', JSON.stringify(ys));
 const libCards = await page.locator('.proj-lib .fw-card').evaluateAll(els => els.map(e => e.textContent ?? ''));
-ok(libCards.length === 9 && /Case packer to production\s*Yours/.test(libCards[0]) && libCards.slice(1).every(t => /From Faultline/.test(t)), '9b the library: the method approved above, yours, first — then Faultline’s eight', libCards.map(t => t.slice(0, 40)).join(' | '));
+ok(libCards.length === 10 && /Case packer to production\s*Yours/.test(libCards[0]) && libCards.slice(1).every(t => /From Faultline/.test(t)), '9b the library: the method approved above, yours, first — then Faultline’s nine', libCards.map(t => t.slice(0, 40)).join(' | '));
 const JAMS = 'Line 4 keeps jamming at the case erector and misses its packs a shift — find the cause and prove the fix';
 await page.locator('.proj-new').getByLabel('What you need, in your words', { exact: true }).fill(JAMS);
 await page.getByRole('button', { name: 'Design it ›' }).click();

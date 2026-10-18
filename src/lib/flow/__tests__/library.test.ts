@@ -39,6 +39,8 @@ describe('Faultline’s library', () => {
     expect(ids('We need to track every reject on the tray sealer and find the biggest reason')[0]).toBe('rejects-log');
     /* statistical process control, made of the control chart and the spread */
     expect(ids('The fill weight on the depositor keeps drifting and we want it held in control')[0]).toBe('held-in-control');
+    /* reliability, from the block written from its brief */
+    expect(ids('The wrapper keeps breaking down and we want to know how often and plan maintenance before it fails')[0]).toBe('breakdowns');
     expect(ids('zzz qqq')).toEqual([]);
   });
 });

@@ -125,7 +125,8 @@ beside the old routes, the gate green at each step:
 | 7 Questions first | a need is read before it is designed: said back, and at most four questions with answers to tap, why each matters and one's own answer; the answers carried into the design request in the person's words; skipped in a tap; off or failing, designed from the words as they are (the deployed gateway learns `clarify` when it is redeployed) | `clarify.test.ts` (6), `designed-tool.mjs` 0–0d, front-door and methods-design unchanged (the assistant off for questions) | fe3f04a — gate7 |
 | 8 Decisions on what is found | a step needed only when an earlier figure says so (`onlyIf`): waiting on that step until it is done, then needed (with the figure) or not needed (grey, with the figure and the rule) and holding nothing up — gates, counts, the stage's words and the paper all follow; in the editor, the proposal and the assistant's brief; the validator allows only a figure of a step before it; *A process held in control* looks for a cause only when the chart signalled | `decision.test.ts` (9), `designed-tool.mjs` 8j–8o, methods and methods-design unchanged | 2cb3eb2 — next gate |
 | 9 What Faultline cannot do yet | every need a method said, gathered on Methods (once, with each method that asked), each with a brief to build it from — what, why, from, method, check, the block's contract and where it goes, how it is proved, what it then reaches — copied whole | `needs.test.ts` (4), `designed-tool.mjs` 8p–8r | 13573be — next gate |
-| 10 A worked-out figure | any arithmetic over a log's figures before it and the step's number boxes (the `calc` block): a yield, a rate, a cost — the rate typed once by the person, never invented; money said as money on screen, in gates and measures and on paper; proposed by the assistant in the labels' words and read back to the keys; Faultline's rejects log costed before and after | `analysis-blocks.test.ts` (+6), `designed-tool.mjs` 3f–3g, 7e, 8a | this slice — next gate |
+| 10 A worked-out figure | any arithmetic over a log's figures before it and the step's number boxes (the `calc` block): a yield, a rate, a cost — the rate typed once by the person, never invented; money said as money on screen, in gates and measures and on paper; proposed by the assistant in the labels' words and read back to the keys; Faultline's rejects log costed before and after | `analysis-blocks.test.ts` (+6), `designed-tool.mjs` 3f–3g, 7e, 8a | ac15357 — next gate |
+| 11 A capability built from its brief | reliability: a maximum-likelihood Weibull fit of the times between failures — the mean time between, early · random · wear, the chance within a time — and a new picture (the chance by each time, every time seen) on screen and paper; *Breakdowns, read for when the next one comes* in the library — the need → brief → block path walked once, end to end | `analysis-blocks.test.ts` (+4: Γ as the tables give it, the shape and scale the times came from, a brute-force maximum of the likelihood, the floor's words), `designed-tool.mjs` 8s–8v, front-door and methods-design (nine in the library) | this slice — next gate |
 
 ### Against the ambition (18 October, asked plainly)
 
@@ -149,15 +150,15 @@ name the tests):
   figure (a relationship), where a figure is heading (a forecast).
 - **Configurable without code:** any workflow or project structure from
   the steps, answers, roles, gates and measures; any log with any columns
-  and any of the seventeen analysis blocks over them — a worked-out figure
+  and any of the eighteen analysis blocks over them — a worked-out figure
   among them, any arithmetic on the others and the step's boxes, money
   included; gates, measures and decisions on those figures; the established tools (Line capacity, SMED,
   the line balance, the capability study, the loss count, work sampling,
   the value stream map, video) as steps. With the assistant off, the same,
   by hand in the editor, and the library closest to the words.
 - **Needs development — and the platform says so:** arithmetic no block
-  does (a reliability fit, a regression on several columns, a non-linear
-  forecast, an optimisation). The assistant writes it as a need, never an
+  does (a regression on several columns, a non-linear forecast, an
+  optimisation — the reliability fit was one, and was built from its brief). The assistant writes it as a need, never an
   imitation; Methods gathers every need with the methods that asked it and
   the brief to build it — the block's contract, where it goes, how it is
   proved. Each is one block in `lib/flow/analysis` with its tests, and it

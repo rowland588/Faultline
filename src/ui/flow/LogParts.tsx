@@ -92,6 +92,7 @@ export function AnalysisChart({ r, picture, axes }: { r: AnalysisResult; picture
   if (picture === 'control') return <ControlChart r={r} />;
   if (picture === 'scatter') return <ScatterChart r={r} axes={axes} />;
   if (picture === 'forecast') return <ForecastChart r={r} />;
+  if (picture === 'curve') return <CurveChart r={r} axes={axes} />;
   return <BarsChart r={r} pareto={picture === 'pareto'} />;
 }
 
@@ -182,6 +183,36 @@ function ScatterChart({ r, axes }: { r: AnalysisResult; axes?: { x?: string; y?:
       <text className="fw-chart-l" x={left - 3} y={y(yHi) + 3} textAnchor="end">{fmtNumber(yHi)}</text>
       <text className="fw-chart-l" x={left - 3} y={y(yLo) + 3} textAnchor="end">{fmtNumber(yLo)}</text>
       {axes?.y && <text className="fw-chart-l" x={left + 4} y={padT + 2} textAnchor="start">{axes.y}, up</text>}
+    </svg>
+  );
+}
+
+/** A reliability fit: the chance of a failure by each time (the fitted
+ *  curve), each time between as it was seen (a dot at its median rank), and
+ *  the time it is read at, across. */
+function CurveChart({ r, axes }: { r: AnalysisResult; axes?: { x?: string; y?: string } }) {
+  const pts = (r.series ?? []).filter(p => typeof p.x === 'number');
+  if (pts.length < 2) return null;
+  const left = padL + 26, base = H - padB + 4, right = W - 8;
+  const top = Math.max(...pts.map(p => p.x as number)) || 1;
+  const x = (v: number) => left + (right - left) * (v / top);
+  const y = (v: number) => padT + (base - padT) * (1 - v / 100);
+  const T = typeof r.target === 'number' ? r.target : undefined;
+  const w = r.weibull;
+  const atT = T !== undefined && w ? (1 - Math.exp(-((T / w.scale) ** w.shape))) * 100 : undefined;
+  return (
+    <svg className="fw-chart is-curve" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={r.says}>
+      <line className="fw-chart-axis" x1={left} x2={right} y1={base} y2={base} />
+      <line className="fw-chart-axis" x1={left} x2={left} y1={padT} y2={base} />
+      <polyline className="fw-fit" fill="none" points={pts.map(p => `${x(p.x as number)},${y(p.value)}`).join(' ')} />
+      {(r.points ?? []).map((p, i) => <circle key={i} className="fw-dot" cx={x(p.x)} cy={y(p.y)} r={2.4}><title>{`${fmtNumber(p.x)}: ${fmtNumber(p.y)}%`}</title></circle>)}
+      {T !== undefined && <g className="fw-target"><line x1={x(T)} x2={x(T)} y1={padT} y2={base} /><text className="fw-chart-l" x={x(T) + 3} y={padT + 8}>{`within ${fmtNumber(T)}: ${fmtNumber(atT ?? 0)}%`}</text></g>}
+      <text className="fw-chart-l" x={left - 3} y={y(100) + 3} textAnchor="end">100%</text>
+      <text className="fw-chart-l" x={left - 3} y={y(0) + 3} textAnchor="end">0%</text>
+      <text className="fw-chart-l" x={left} y={base + 11} textAnchor="start">0</text>
+      <text className="fw-chart-l" x={right} y={base + 11} textAnchor="end">{fmtNumber(top)}</text>
+      <text className="fw-chart-l" x={(left + right) / 2} y={H - 4} textAnchor="middle">{axes?.y ? `${axes.y}, across` : 'time between, across'}</text>
+      <text className="fw-chart-l" x={left + 4} y={padT + 2} textAnchor="start">chance of a failure by then, up</text>
     </svg>
   );
 }
