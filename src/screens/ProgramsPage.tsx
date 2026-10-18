@@ -39,7 +39,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTesting } from '../lib/useTesting';
 import { usePrograms } from '../lib/usePrograms';
 import { useProject } from '../lib/useProjects';
-import { useAccess } from '../cloud/access';
 import { live, type Test } from '../lib/testing';
 import { STATE_WORD, isProgramsStage, standingOf, stateOf } from '../lib/programs';
 import { programsReading, type ProgBucket, type ProgramLine } from '../lib/programsReport';
@@ -49,7 +48,11 @@ import { openRecord, openRecordAt } from '../ui/RecordDrawer';
 import { MachineName, openMachine } from '../ui/MachinePanel';
 import { AccessNote } from '../ui/AccessNote';
 import { ProgramTest } from '../ui/ProgramTest';
-import { JobProgramRow, ProgramRowShell } from '../ui/ProgramRow';
+import { JobProgramRow, ProgramFields, ProgramRowShell } from '../ui/ProgramRow';
+import { useAccess, useCanStartProjects } from '../cloud/access';
+import { deleteProgramWithTests, putProgram, putProgramOnMachine } from '../db';
+import { offerUndo } from '../ui/Undo';
+import type { Program } from '../lib/programs';
 import { PutAllOn } from './ProgramsScreen';
 import { programsToPick, type PickRow } from '../lib/commissionPrograms';
 import { nav, navReplace } from '../state/useRoute';
@@ -235,6 +238,7 @@ export function ProgramsPage({ projectId, only }: {
                   );
                 })}
                 {theirs.map(r => <LineOwnRow key={r.program.id} r={r} onLine={m.id === ''} projectId={projectId} tt={tt} can={can} today={today}
+                  machines={jobLines.find(x => x.id === r.lineId)?.machines.map(x => x.name) ?? []}
                   open={openRow === `l:${r.program.id}`} onToggle={() => toggle(`l:${r.program.id}`)} testOpen={testing === r.program.id} />)}
               </ul>
             )}
@@ -245,13 +249,20 @@ export function ProgramsPage({ projectId, only }: {
 }
 
 /** A LINE'S OWN PROGRAM on the job's machine of its name — the line's record,
- *  planned on the line, tested here (docs/BLUEPRINT.md, Stage 2); changed on
- *  the line's Programs, where it is kept. */
-function LineOwnRow({ r, onLine, projectId, tt, can, today, open, onToggle, testOpen }: {
+ *  planned on the line, tested here (docs/BLUEPRINT.md, Stage 2); and now
+ *  changed and deleted where it sits too (Rowland, 18 October: "no delete,
+ *  but still holds memory" — the row only pointed at the line's Programs).
+ *  The same fields and the same rule as there: the factory's records are
+ *  changed by someone invited to the app; deleted, its tests still to run go
+ *  with it, with Undo. */
+function LineOwnRow({ r, onLine, projectId, tt, can, today, open, onToggle, testOpen, machines }: {
   r: LineRow; onLine: boolean; projectId: string;
   tt: ReturnType<typeof useTesting>; can: ReturnType<typeof useAccess>; today: string;
   open: boolean; onToggle: () => void; testOpen: boolean;
+  /** The line's machines, by name, in flow order. */
+  machines: string[];
 }) {
+  const may = useCanStartProjects();
   const p = r.program, st = stateOf(p), late = !r.proved && standingOf(p, today) === 'overdue';
   const word = r.proved ? `proved ${niceDay(p.provedOn)}` : late ? `test was due ${niceDay(p.testOn)}`
     : `${STATE_WORD[st].toLowerCase()}${p.testOn ? ` · test ${niceDay(p.testOn)}` : ''}`;
@@ -262,8 +273,26 @@ function LineOwnRow({ r, onLine, projectId, tt, can, today, open, onToggle, test
       {...(p.note ? { note: p.note } : {})}
       open={open} onToggle={onToggle}
       action={<ProgramTest projectId={projectId} program={p} {...(r.assetId ? { assetId: r.assetId } : {})} tt={tt} can={can} open={testOpen} quiet />}
-      panel={<p className="sub pgr-own">Planned on {r.line} — its name, machine, test day and commentary are kept there.{' '}
-        <button type="button" className="cw-link" onClick={() => nav(`/programs?line=${encodeURIComponent(r.lineId)}`)}>Change it on {r.line}&rsquo;s programs ›</button></p>} />
+      panel={<>
+        <p className="sub pgr-own">Planned on {r.line} — kept there, and changed here or there alike.{' '}
+          <button type="button" className="cw-link" onClick={() => nav(`/programs?line=${encodeURIComponent(r.lineId)}`)}>{r.line}&rsquo;s programs ›</button></p>
+        {may && (
+          <ProgramFields withNote
+            machines={[{ value: '', label: 'The line itself' }, ...machines.map(m => ({ value: m, label: m }))]}
+            start={{ what: p.what, machine: r.machine ?? '', runs: p.runs ?? '', who: p.from ?? '', testDay: p.testOn ?? '', note: p.note ?? '' }}
+            onClose={onToggle}
+            onSave={async d => {
+              const next: Program = { ...p, what: d.what.trim() || p.what, runs: d.runs.trim() || undefined, from: d.who.trim() || undefined,
+                testOn: d.testDay || undefined, note: d.note.trim() || undefined };
+              /* a machine not yet on the line's list joins it (db/lineRecords), as on the line's own page */
+              if (d.machine !== (r.machine ?? '')) await putProgramOnMachine(next, r.lineId, d.machine);
+              else await putProgram(next);
+              onToggle();
+              offerUndo(`“${next.what}” — saved`, () => putProgram(p));
+            }}
+            onDelete={() => void deleteProgramWithTests(p.id).then(undo => offerUndo(`Took “${p.what}” off ${r.line}`, undo))} />
+        )}
+      </>} />
   );
 }
 

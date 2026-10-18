@@ -1,11 +1,12 @@
 /* Testing — the machines, the tests, and what hangs off a test. */
 import type { ID } from '../types';
 import type { Asset, Test, TestItem } from '../lib/testing';
+import type { ProvingTest } from '../lib/programs';
 import { now } from '../lib/ids';
 import { getDB, signalWrite } from './core';
 import { recordTombstones, restoreRows, type Restore } from './sync';
 import { getBlob, putBlob } from './blobs';
-import { followPart, followTest } from './programs';
+import { deleteProgram, followPart, followTest, forgetTest } from './programs';
 
 import { isoDay } from '../lib/weeks';
 /* ---------- UNDO ----------
@@ -133,11 +134,28 @@ export async function deleteTest(id: ID, projectId: string): Promise<Restore> {
   await recordTombstones('tests', [id]);
   if (items.length) await recordTombstones('test_items', items.map(i => i.id));
   signalWrite();
+  /* ITS PROGRAM FORGETS IT (18 October: a test deleted and its program
+     still said "test 20 Oct") — db/programs forgetTest */
+  const program = test?.programId ? await forgetTest(test as ProvingTest) : undefined;
   return async () => {
     if (test) await restoreRows('tests', [test]);
     await restoreRows('test_items', items);
     await putBlobsBack(blobs);
+    if (program) await program();
   };
+}
+
+/** A PROGRAM DELETED WITH ITS TESTS STILL TO RUN — a booked test of a
+ *  program that is gone would sit on Commission proving nothing (18
+ *  October). A test that ran stays: it is what happened. One Undo puts the
+ *  program and its tests back. */
+export async function deleteProgramWithTests(programId: ID): Promise<Restore> {
+  const db = await getDB();
+  const booked = (await db.getAll('tests')).filter(t => t.programId === programId && !t.deletedAt && t.outcome === 'planned');
+  const undos: Restore[] = [];
+  for (const t of booked) undos.push(await deleteTest(t.id, t.projectId));
+  undos.push(await deleteProgram(programId));
+  return async () => { for (const u of undos.reverse()) await u(); };
 }
 
 /** What deleting a test would take with it, so the warning says a number rather

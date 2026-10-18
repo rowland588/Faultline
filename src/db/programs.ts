@@ -2,7 +2,7 @@
  * for why a program is three states and a date rather than a status field. */
 import type { ID } from '../types';
 import type { Test, TestItem } from '../lib/testing';
-import { programAfterFloor, programAfterTest, type Program, type ProvingTest } from '../lib/programs';
+import { programAfterFloor, programAfterTest, programAfterTestGone, type Program, type ProvingTest } from '../lib/programs';
 import { floorFailure, partsOfProgram } from '../lib/programsReport';
 import { now } from '../lib/ids';
 import { getDB, signalWrite } from './core';
@@ -66,6 +66,24 @@ export async function followTest(t: ProvingTest | undefined, before?: Pick<Provi
      proof — a hand proof's too — still takes it back to on the machine. */
   const next = after?.provedOn ? after : programAfterFloor(after ?? p, failed) ?? after;
   if (next) await putProgram(next);
+}
+
+/** A TEST DELETED, ITS PROGRAM FORGETS IT (lib/programs programAfterTestGone):
+ *  the link, the day it was booked for and a proof that was its pass come
+ *  off, and the program follows the test it still has. Returns what puts the
+ *  program back as it was, for the delete's Undo. Called by db/testing
+ *  deleteTest, after the test is gone. */
+export async function forgetTest(t: ProvingTest & { projectId?: string }): Promise<Restore> {
+  const db = await getDB();
+  const all = await db.getAll('programs') as Program[];
+  const p = all.find(x => !x.deletedAt && (x.id === t.programId || x.testId === t.id));
+  if (!p) return async () => undefined;
+  /* the program's other tests, on any job — a line's own is proved on whichever job tests it */
+  const rest = (await db.getAll('tests') as Test[]).filter(x => x.programId === p.id && x.id !== t.id && !x.deletedAt) as unknown as (ProvingTest & { createdAt?: number })[];
+  const next = programAfterTestGone(p, t, rest);
+  if (!next) return async () => undefined;
+  await putProgram(next);
+  return async () => { await restoreRows('programs', [p]); };
 }
 
 /** The newest failure the floor said of a job's program — on the part of

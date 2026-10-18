@@ -2,7 +2,7 @@
  * lib/programs.ts: three states, and a date is what makes one of them true. */
 import { useCallback, useEffect, useState } from 'react';
 import { heldReading } from './heldReading';
-import { listPrograms, putProgram, putPrograms, deleteProgram, onDataChange, lineForJobRecord } from '../db';
+import { listPrograms, putProgram, putPrograms, deleteProgramWithTests, onDataChange, lineForJobRecord } from '../db';
 import { uid, now } from './ids';
 import { offerUndo } from '../ui/Undo';
 import {
@@ -93,7 +93,7 @@ export function usePrograms(projectId: string): ProgramsState {
   }, [rows]);
   const remove = useCallback(async (id: string) => {
     const what = rows.find(x => x.id === id)?.what ?? "it";
-    offerUndo(`Took “${what}” off the list`, await deleteProgram(id));
+    offerUndo(`Took “${what}” off the list`, await deleteProgramWithTests(id));
   }, [rows]);
 
   const markProved = useCallback(async (id: string, on = todayISO(), testId?: string) => {
