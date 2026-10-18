@@ -83,7 +83,7 @@ export function MethodsScreen() {
     <div className="wrap fw">
       <header className="pace-head">
         <div className="pace-head-main">
-          <p className="pl-eyebrow">METHODS · <a href="#/" className="pl-fac">Control room ›</a></p>
+          <p className="pl-eyebrow">METHODS · <a href="#/room" className="pl-fac">Control room ›</a></p>
           <h1>Methods</h1>
           <p className="pl-says">{says}</p>
         </div>

@@ -22,6 +22,7 @@ import {
   listArchivedWorkspaces,
 } from '../db';
 import { Toast } from '../ui/Toast';
+import { BuildStamp } from '../ui/BuildStamp';
 import { nav } from '../state/useRoute';
 import { plural } from '../lib/format';
 import { CloudPanel } from '../cloud/CloudPanel';
@@ -52,31 +53,6 @@ function useNarrow(q = '(max-width: 719px)'): boolean {
   return on;
 }
 
-/* An installed PWA keeps serving its cached shell until the service worker
- * hands over, so a device can sit on an old build for a long time with nothing
- * on screen to say so — which makes "the fix isn't working" and "the fix hasn't
- * arrived" look identical. This shows which build you're on, and forces the
- * update through rather than waiting for it. */
-function BuildStamp() {
-  const [busy, setBusy] = useState(false);
-  const update = async () => {
-    setBusy(true);
-    try {
-      const regs = await navigator.serviceWorker?.getRegistrations?.() ?? [];
-      await Promise.all(regs.map(r => r.unregister()));
-      if (window.caches) for (const k of await caches.keys()) await caches.delete(k);
-    } catch { /* nothing cached to clear */ }
-    location.reload();
-  };
-  return (
-    <p className="build-stamp">
-      Build {__BUILD_STAMP__}
-      <button className="build-refresh" disabled={busy} onClick={update}>
-        {busy ? 'updating…' : 'check for update'}
-      </button>
-    </p>
-  );
-}
 
 /* What a workspace card must answer: "what's in here?" — for ALL content, not
  * one kind of it. Counting only time observations made a workspace full of

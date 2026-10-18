@@ -41,7 +41,7 @@ const flat = s => (s ?? '').replace(/\s+/g, ' ').trim();
 const go = async (hash, wait = 2500) => { await page.goto(`${BASE}/${hash}`); await page.waitForTimeout(wait); };
 const dir = mkdtempSync(join(tmpdir(), 'line-hub-'));
 
-await go('#/', 3000);
+await go('#/room', 3000);
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
 const LINE = sd.line7WsId;
 
@@ -85,7 +85,7 @@ want = await expected(); got = await drawn();
 const smash = got.find(r => r.name === 'Smash Mash 1kg');
 ok(!!smash && smash.cells[0].tone === 'r' && /^test was /.test(smash.cells[0].word), `the new product on its row, its test day gone in red — "${smash?.cells[0].word}"`);
 ok((await tile('Products ready')).includes(`${want.failing} failing`), `Products ready counts ${want.failing} failing — "${await tile('Products ready')}"`);
-await go('#/', 3500);
+await go('#/room', 3500);
 const card = await page.evaluate(n => [...document.querySelectorAll('.fac-card')].find(c => c.querySelector('.fac-card-name')?.textContent.trim() === n)?.querySelector('.fac-card-prods')?.textContent.replace(/\s+/g, ' ').trim() ?? '', want.name);
 ok(card === want.said, `the control room's card for ${want.name}: "${card}" (wanted "${want.said}")`);
 const cardRed = await page.evaluate(n => !![...document.querySelectorAll('.fac-card')].find(c => c.querySelector('.fac-card-name')?.textContent.trim() === n)?.querySelector('.fac-card-prods .is-r'), want.name);

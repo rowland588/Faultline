@@ -43,7 +43,7 @@ const page = await ctx.newPage();
 const errs = []; page.on('pageerror', e => errs.push(e.message)); page.on('console', m => { if (m.type() === 'error' && !/supabase|net::|Failed to fetch|DevTools/i.test(m.text())) errs.push(m.text().slice(0, 150)); });
 let fail = 0; const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}`); if (!c) fail++; };
 const txt = async () => (await page.locator('.nv-main').innerText()).replace(/\s+/g, ' ');
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(3500);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3500);
 ok(/Your factory/.test(await txt()) && /Set up your factory first/.test(await txt()), '1 control room: Your factory, none yet — set it up first');
 /* a line is made in Your factory (13 October), by a name — and opened from there */
 await page.locator('.nv-main').getByRole('button', { name: 'Set up your factory', exact: true }).click(); await page.waitForTimeout(1200);
@@ -109,7 +109,7 @@ await page.getByRole('button', { name: /New SMED|New/ }).first().click(); await 
 const smedLine = await page.locator('.sheet, [role="dialog"]').last().getByLabel('Which line').evaluate(el => el.options[el.selectedIndex]?.text).catch(() => 'no line box');
 ok(smedLine === 'Line 2B', `11 New SMED starts on ${smedLine}`);
 await page.keyboard.press('Escape'); await page.waitForTimeout(500);
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(2500);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
 ok(/Line 2B No type yet 1 problem open/.test(await txt()), '12 the control room: Line 2B, 1 problem open');
 if (OUT) await page.screenshot({ path: `${OUT}/l-3-control.png` });
 // phone
@@ -126,7 +126,7 @@ await page.keyboard.press('Escape'); await page.waitForTimeout(500);
 ok(!(await page.locator('.pl .pl-problem').isVisible()) && (await page.locator('.qs-fab').isVisible()), '15 phone: the line page says Problem once — the round button');
 await page.locator('.pl .pace-head-actions .pl-time').click(); await page.waitForTimeout(1500);
 const bar = (await page.locator('.nv-bar').innerText()).replace(/\s+/g, ' ');
-ok(/Control room.*Capture.*Analyse.*Evidence.*More/.test(bar), `16 phone: the bar in a study is ${bar}`);
+ok(/Home.*Capture.*Analyse.*Evidence.*More/.test(bar), `16 phone: the bar in a study is ${bar} (Home first since #/ became the front door)`);
 await page.locator('.nv-bar').getByRole('link', { name: 'Analyse' }).or(page.locator('.nv-bar').getByRole('button', { name: 'Analyse' })).first().click(); await page.waitForTimeout(1500);
 ok(/#\/w\/[^/]+\/analyse$/.test(page.url()), `17 phone: Analyse is one tap from the stopwatch: ${page.url().split('#')[1]}`);
 ok(errs.length === 0, `no console errors ${errs.slice(0, 3).join(' | ')}`);

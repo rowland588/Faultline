@@ -50,7 +50,7 @@ await ctx.addInitScript(([k, s]) => { try { localStorage.setItem(k, JSON.stringi
   [`sb-${REF}-auth-token`, SESSION]);
 
 const page = await ctx.newPage();
-await page.goto(`${BASE}/#/`, { waitUntil: 'domcontentloaded' });
+await page.goto(`${BASE}/#/room`, { waitUntil: 'domcontentloaded' });
 await page.waitForTimeout(2500);
 const seeded = await page.evaluate(async () => {
   const { seedForSmokeTest } = await import('/src/dev/seed.ts');

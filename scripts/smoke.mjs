@@ -45,7 +45,7 @@ await ctx.addInitScript(([key, s]) => {
 const page = await ctx.newPage();
 const bootErrors = [];
 page.on('pageerror', e => bootErrors.push(e.message.split('\n')[0]));
-await page.goto(`${BASE}/#/`, { waitUntil: 'domcontentloaded' });
+await page.goto(`${BASE}/#/room`, { waitUntil: 'domcontentloaded' });
 await page.waitForTimeout(3000);
 
 const seeded = await page.evaluate(async () => {
@@ -56,7 +56,7 @@ console.log('seeded:', JSON.stringify(seeded));
 if (bootErrors.length) console.log('errors during boot/seed:', bootErrors);
 
 const ROUTES = [
-  ['home', '#/'], ['guide', '#/guide'], ['portfolio', '#/portfolio'],
+  ['home', '#/room'], ['the front door at home', '#/'], ['guide', '#/guide'], ['portfolio', '#/portfolio'],
   ['projects', '#/projects'], ['snags', '#/snags'], ['line standard tool', '#/standards'], ['line balance tool', '#/balances'], ['capability studies', '#/capability'], ['value stream maps', '#/value-stream'], ['SMED', '#/smed'], ['SMED, an old link', '#/changeover'], ['work sampling', '#/sampling'], ['pace report', '#/pace-report'],
   ['project dashboard', `#/project/${seeded.projectId}`],
   /* METHODS OF ONE'S OWN (lib/flow): the library, a method approved with a

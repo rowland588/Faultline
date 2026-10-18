@@ -110,7 +110,7 @@ problems, programs — registered once in `lib/flow/components`), the method
 engine (`lib/flow`: a definition validated, versioned, run, measured), and
 the experience — say what you need → a method proposed from the
 capabilities → shaped → approved → one project workspace → its report. Its
-places: **Home** (`#/start`, screens/StartScreen — the question and its box
+places: **Home** (`#/`, screens/StartScreen — the question and its box
 first, then what is under way read by `lib/portfolio`, the library, the
 tools on their own, the factory), **Projects**, the **Library** (Methods),
 **Your factory**, and the control room as the view of every project at once.
@@ -134,11 +134,20 @@ library page and the front door list the established three beside the
 methods written as data, found by the same words, each started on New job
 with it picked (`?model=`); the studio offers the closest established one
 beside the library's, says the line, and carries it to the project's start
-(front-door.mjs 9–9o). Next: (4) `#/` switches to the front door, the
-control room kept as the portfolio view, every acceptance moved with it;
-then a tool's panel inside the step itself rather than its page.
+(front-door.mjs 9–9o). Then home switched: `#/` is the front door (the
+old `#/start` still opens it), the control room keeps its own address,
+`#/room`, and everything it was; off a project there is one rail — the new
+product's places first (Home, Projects, Methods), then the control room
+(its problems, Reports), Your factory, the jobs and the tools — the front
+door's five places and the control room's rail merged, nothing taken off;
+the phone's bar is Home · Problems · Lines · More; the mark goes home, the
+top bar's picker still leads with the control room; the build stamp is on
+both. Every acceptance that opened the control room at `#/` opens `#/room`
+(front-door.mjs 1c–1f). Next: a tool's panel inside the step itself rather
+than its page.
 
-**Control room** (`#/`). Your factory first: a card per line saying its health
+**Control room** (`#/room`; `#/` until 18 October, when home became the
+front door). Your factory first: a card per line saying its health
 (problems open and late, programs not proved or due, products with no
 standard). Then the jobs board, then Needs you across every line and job.
 Reports: the control room report and the factory report.

@@ -173,7 +173,7 @@ export function WorkspaceSettings({ bare = false }: { bare?: boolean }) {
   const removeAll = () => {
     if (!window.confirm(`Delete "${workspace.name}" and everything captured on it?`)) return;
     sessionStorage.setItem('faultline-pending-delete', JSON.stringify({ id: workspace.id, name: workspace.name, until: Date.now() + 8000 }));
-    nav('/');
+    nav('/room');
   };
 
   return (

@@ -44,7 +44,7 @@ async function device() {
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(e.message.split('\n')[0]));
-  await page.goto(`${BASE}/#/`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${BASE}/#/room`, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(1500);
   return { ctx, page, errors };
 }
@@ -744,7 +744,7 @@ for (const size of CR_SIZES) {
   const file = `${OUT}/control-room-${size}.pdf`;
   try {
     await page.goto(`${BASE}/#/snags`); await page.waitForTimeout(500);
-    await page.goto(`${BASE}/#/`);
+    await page.goto(`${BASE}/#/room`);
     await page.locator('.jb-says').filter({ hasNotText: 'Reading every job' }).waitFor({ timeout: 30000 });
     await page.waitForTimeout(1500);
     /* the money tile reads the jobs' lines from Your factory — wait for it */

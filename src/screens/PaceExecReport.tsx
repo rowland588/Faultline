@@ -1296,7 +1296,7 @@ function PaceExecReportA3() {
     return (
       <div className="wrap exec-report">
         <div className="exec-bar no-print">
-          <button className="btn btn-ghost" onClick={() => nav('/')}>← Control room</button>
+          <button className="btn btn-ghost" onClick={() => nav('/room')}>← Control room</button>
         </div>
         <p className="sub" style={{ padding: '40px' }}>
           {projectId

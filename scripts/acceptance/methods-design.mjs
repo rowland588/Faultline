@@ -116,7 +116,7 @@ const DESCRIBE = 'We are fitting a new film wrapper to Line 3. The OEM fits it, 
 const box = () => page.getByLabel(/^(What you need, in your words|What should change)$/);
 
 /* 1 — from the control room; the assistant off */
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(3500);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3500);
 await page.getByRole('button', { name: 'Describe what you need ›' }).first().click(); await page.waitForTimeout(1200);
 ok(/#\/design$/.test(page.url()) && /What do you need to achieve\?/.test(await txt()), '1 the control room opens the studio: what do you need to achieve?');
 ok(await page.locator('.fw-start .fw-card').count() >= 5, '1a the library offered before a word is said');

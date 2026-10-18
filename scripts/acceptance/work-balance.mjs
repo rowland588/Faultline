@@ -90,7 +90,7 @@ const truth = (standardId, studyId) => page.evaluate(async ([sid, id]) => {
   };
 }, [standardId, studyId ?? null]);
 
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(3000);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3000);
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
 const SID = sd.lineStandardId;
 const MAP = `#/w/${sd.wsId}/standards/${SID}`;

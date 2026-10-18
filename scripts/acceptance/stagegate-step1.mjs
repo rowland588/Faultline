@@ -63,7 +63,7 @@ const pdfText = f => execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'ut
 const pdfPages = f => Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [f], { encoding: 'utf8' }))[1]);
 const grab = async (click, name) => { const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), click()]); const f = join(OUT, name); await dl.saveAs(f); return f; };
 
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(3000);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3000);
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
 const J = `#/project/${sd.projectId}`;
 /* What the modules say, on the records as they stand. */

@@ -3,7 +3,8 @@
  * need in plain English and create, execute and report on a working
  * methodology through Faultline").
  *
- * From an empty device, at the front door (#/start): the question first,
+ * From an empty device, at the front door — home, #/ (the control room at
+ * #/room, its own address): the question first,
  * nothing under way, the library and the tools; a need said in plain words
  * with the assistant off — the studio says so and offers the closest
  * methods — and with it on (a recorded answer standing in for Claude, as
@@ -73,7 +74,7 @@ const sheetTxt = async () => (await sheet().innerText()).replace(/\s+/g, ' ');
 const talk = async () => (await page.locator('.fw-talk').innerText().catch(() => '')).replace(/\s+/g, ' ');
 const settle = async () => { await page.waitForFunction(() => !history.state?.flPanel, null, { timeout: 5000 }).catch(() => {}); await page.waitForTimeout(300); };
 const NEED = 'We are fitting a new case packer on Line 4. The OEM fits it, it must run at 20 cases a minute, and Quality signs it off before production takes it.';
-const door = async () => { await page.goto(`${BASE}/#/start`); await page.locator('.fd-ask h1').waitFor({ timeout: 20000 }).catch(() => {}); await page.waitForTimeout(800); };
+const door = async () => { await page.goto(`${BASE}/#/`); await page.locator('.fd-ask h1').waitFor({ timeout: 20000 }).catch(() => {}); await page.waitForTimeout(800); };
 
 /* 1 — the front door, on an empty device */
 await door();
@@ -82,7 +83,19 @@ ok(/Nothing under way yet/.test(await txt()), '1a nothing under way yet, said');
 ok(await page.locator('.fd-lib .fw-card[data-start^="l:"]').count() === 6 && await page.locator('.fd-lib .fw-card[data-start^="e:"]').count() === 3 && await page.locator('.fd-tools li[data-tool]').count() === 9,
   '1b the library to start from (six of Faultline’s methods and its three established ones) and the nine tools to use on their own');
 ok((await page.locator('.fd-lib .fw-card[data-start^="e:"] .fw-card-t').allInnerTexts()).join(' · ') === 'Stage gate · 6M · Lever tree', '1b1 the established three by name — the lever tree in the library');
-ok(await page.locator('.nv-rail .nv-ri.is-on').filter({ hasText: 'Home' }).count() === 1 && await page.locator('.nv-rail .nv-ri').count() === 5, '1c the new product’s five places, Home lit', await page.locator('.nv-rail').innerText().catch(() => ''));
+const first = await page.locator('.nv-rail .nv-grp').first().locator('.nv-ri-l').allInnerTexts();
+const groupsSaid = await page.locator('.nv-rail .nv-grp-l').allInnerTexts();
+ok(first.join(' · ') === 'Home · Projects · Methods' && await page.locator('.nv-rail .nv-ri.is-on').filter({ hasText: 'Home' }).count() === 1
+  && ['Control room', 'Your factory', 'Tools'].every(g => groupsSaid.some(x => x.toLowerCase() === g.toLowerCase())),
+  '1c one rail off a project: the new product’s places first, Home lit — then the control room, Your factory and the tools', `${first.join(' · ')} | ${groupsSaid.join(' · ')}`);
+/* home is the front door; the control room keeps its own address */
+await page.locator('.nv-rail .nv-ri', { hasText: /^Control room$/ }).first().click(); await page.waitForTimeout(1500);
+ok(/#\/room$/.test(page.url()) && await page.locator('.nv-rail .nv-ri.is-on').filter({ hasText: /^Control room$/ }).count() === 1, '1d the control room at #/room, lit in the rail', page.url());
+await page.locator('.nv-mark').click(); await page.waitForTimeout(1200);
+ok(/#\/$/.test(page.url()) && /What do you need to get done\?/.test(await txt()), '1e the mark goes home — the front door', page.url());
+await page.locator('.nv-job select').selectOption({ label: 'Control room' }); await page.waitForTimeout(1200);
+ok(/#\/room$/.test(page.url()), '1f the top bar’s picker still leads with the control room', page.url());
+await door();
 
 /* 2 — said in plain words, the assistant off */
 await page.getByLabel('What you need, in your words', { exact: true }).fill(NEED);

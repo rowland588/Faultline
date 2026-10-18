@@ -16,7 +16,7 @@
  * `n` — at least this many of it (one a line, one a station …). `desk` / `phone`
  * — only at that width. */
 export const PAGES = (sd, cap) => [
-  { name: 'Control room', path: '#/', must: [
+  { name: 'Control room', path: '#/room', must: [
     { what: 'its heading', sel: 'h1, h2', text: /Control room/ },
     { what: 'Your factory — every line', sel: '.fac-floor' },
     { what: 'this week, across every line and job', sel: '.jb-week' },
@@ -195,7 +195,7 @@ export const PAGES = (sd, cap) => [
   { name: 'Work sampling', path: `#/sampling/${sd.samplingId}`, must: [{ what: 'the round', sel: '.ws-round' },
     { what: 'the band', sel: '.ln-band' }, { what: 'the five tiles — what it costs among them', sel: '.ie-strip .ln-tile', n: 5 }, { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' }] },
   /* THE FRONT DOOR (18 October, docs/BLUEPRINT.md §3): the new product starts with what you need, in your words */
-  { name: 'The front door', path: '#/start', must: [
+  { name: 'The front door', path: '#/', must: [
     { what: 'the question, first', sel: '.fd-ask h1', text: /^What do you need to get done\?$/ },
     { what: 'the box to say it in', sel: '.fd-box textarea' },
     { what: 'what is under way — every project in a line', sel: '.fd-jobs li[data-project]' },

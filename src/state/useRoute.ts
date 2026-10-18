@@ -59,6 +59,12 @@ export function parseRoute(hash: string): Route {
   const [path, qs] = raw.split('?');
   const query = new URLSearchParams(qs || '');
   const segs = path.split('/').filter(Boolean);
+  /* HOME IS THE FRONT DOOR (docs/BLUEPRINT.md §3, the new product): #/ says
+     "What do you need to get done?" (screens/StartScreen); the control room —
+     every project and line at once — keeps its own address, #/room, and its
+     route name, 'home', so everything that reads it is unchanged. */
+  if (segs.length === 0) return { name: 'start', query };
+  if (segs[0] === 'room') return { name: 'home', query };
   if (segs[0] === 'guide') return { name: 'guide', query }; // public — no workspace, no session
   /* A share link: #/s/<token> opens one picture or clip for somebody with no
      account (src/cloud/shares.ts). Public, like the guide. The token is taken
@@ -88,7 +94,7 @@ export function parseRoute(hash: string): Route {
      it (screens/DesignScreen). ?template= / ?from= / ?version= start it from
      Faultline's library, from a method of your own, or as its next version. */
   if (segs[0] === 'design') return { name: 'design', query };
-  /* THE FRONT DOOR of the new product (screens/StartScreen) — #/ switches to it once it starts and runs a project end to end */
+  /* THE FRONT DOOR by its old address (#/start, before #/ switched to it) */
   if (segs[0] === 'start') return { name: 'start', query };
   /* A VIDEO STUDY (docs/VIDEO.md): footage uploaded, read for the work at
      each station, reviewed, worked out as a line balance and put on paper.
@@ -222,7 +228,7 @@ export const nav = (to: string | { page: string; [key: string]: any }): void => 
     const { page, ...params } = to;
     const qs = new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)])).toString();
     if (page === 'home') {
-      hash = '#/';
+      hash = '#/room';
     } else if (page === 'projects') {
       hash = '#/projects' + (qs ? '?' + qs : '');
     } else if (page === 'projectDashboard') {

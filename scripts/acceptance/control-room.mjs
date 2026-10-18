@@ -53,13 +53,13 @@ const flat = s => (s ?? '').replace(/\s+/g, ' ').trim();
 const go = async (hash, wait = 2500) => { await page.goto(`${BASE}/${hash}`); await page.waitForTimeout(wait); };
 const shot = async name => { if (OUT) await page.screenshot({ path: `${OUT}/cr-${name}.png` }); };
 
-await go('#/', 3000);
+await go('#/room', 3000);
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
 const LINE7 = sd.line7WsId;
 
 /* the board as it stands, read from the screen */
 const board = async () => {
-  await go('#/');
+  await go('#/room');
   await page.locator('.jb-says').filter({ hasNotText: 'Reading every job' }).waitFor({ timeout: 30000 });
   await page.waitForTimeout(1200);
   /* every party, not the first five */
@@ -232,14 +232,14 @@ const pos = await page.evaluate(() => {
 ok(pos.says > 0 && pos.says < 300 && pos.tilesBottom < 844 && pos.fac > pos.says && !pos.fabOverHeadline && pos.wide <= 1,
   `11a the answer first: headline at ${Math.round(pos.says)}px, the four numbers end at ${Math.round(pos.tilesBottom)}px, the factory after (${Math.round(pos.fac)}px), the Problem button off it`);
 const bar = await page.locator('.nv-bar .nv-bi .nv-bi-l').allInnerTexts();
-ok(bar.join(' · ') === 'Control room · Problems · Lines · More', `11b the bar: ${bar.join(' · ')}`);
+ok(bar.join(' · ') === 'Home · Problems · Lines · More', `11b the bar: ${bar.join(' · ')}`);
 await page.locator('.nv-bar .nv-bi', { hasText: 'Lines' }).click(); await page.waitForTimeout(1200);
 const linesOn = page.url().endsWith('#/factory') && await page.locator('.nv-bar .nv-bi.is-on', { hasText: 'Lines' }).count() === 1;
 await page.locator('.nv-bar .nv-bi', { hasText: 'Problems' }).click(); await page.waitForTimeout(1200);
 ok(linesOn && /#\/snags/.test(page.url()), `11c Lines opens Your factory, Problems the register (${page.url().split('#')[1]})`);
 await page.locator('.nv-bar .nv-bi', { hasText: 'More' }).click(); await page.waitForTimeout(800);
 const more = flat(await page.locator('.nv-sheet').innerText());
-ok(/JOBS/i.test(more) && ['Line 2 commissioning', 'Line 7 pace', 'Line 7 jams'].every(n => more.includes(n)), '11d every job is still in More');
+ok(/JOBS/i.test(more) && ['Line 2 commissioning', 'Line 7 pace', 'Line 7 jams'].every(n => more.includes(n)) && /Control room/.test(more), '11d every job is still in More, and the control room');
 await board();
 await page.locator('.jb-stat.is-crit').click(); await page.waitForTimeout(700);
 await shot('6-critical-phone');

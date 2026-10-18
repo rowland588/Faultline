@@ -77,7 +77,7 @@ const truth = id => page.evaluate(async id => {
   return { id: s.id, uses: s.uses, flow: s.facts.flow ?? [], said: S.flowSays(f, a), who: S.lanesOf(s.facts.flow ?? [], 'who', a), where: S.lanesOf(s.facts.flow ?? [], 'where', a) };
 }, id);
 
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(3000);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3000);
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
 const MAP = `#/value-stream/${sd.lineMapId}`;
 const J = `#/project/${sd.projectId}`;

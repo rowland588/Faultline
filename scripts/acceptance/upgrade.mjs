@@ -44,7 +44,7 @@ const errs = []; page.on('pageerror', e => errs.push(e.message)); page.on('conso
 let fail = 0; const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}`); if (!c) fail++; };
 const flat = s => s.replace(/\s+/g, ' ').trim();
 
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(3000);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3000);
 const hall = await page.evaluate(async () => (await import('/src/lib/demo.ts')).rebuildDemo());
 const name = await page.evaluate(async id => (await (await import('/src/db.ts')).getWorkspace(id))?.name, hall);
 
@@ -113,13 +113,13 @@ ok(/#\/snags\?line=/.test(page.url()) && /open=/.test(page.url()), '7 a tap open
 if (OUT) { await page.goto(`${BASE}/#/lines/${hall}`); await page.waitForTimeout(2500); await page.locator('.tour').screenshot({ path: `${OUT}/up-tour.png` }); }
 
 /* 8 — Jump to */
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(2500);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
 await page.keyboard.press('Control+k'); await page.waitForTimeout(400);
 ok(await page.locator('.jt').isVisible(), '8 Ctrl K opens Jump to');
 await page.keyboard.type('pack'); await page.waitForTimeout(300);
 const first = flat(await page.locator('.jt-list [role=option]').first().innerText());
 await page.keyboard.press('Enter'); await page.waitForTimeout(1500);
-ok(/Packing Hall/.test(first) && !(await page.locator('.jt').isVisible()) && page.url() !== `${BASE}/#/`, `8 two letters and Enter: ${first.slice(0, 40)} opened`);
+ok(/Packing Hall/.test(first) && !(await page.locator('.jt').isVisible()) && page.url() !== `${BASE}/#/room`, `8 two letters and Enter: ${first.slice(0, 40)} opened`);
 
 /* 9 — the demo stays out of the factory */
 await page.goto(`${BASE}/#/factory`); await page.waitForTimeout(2500);
@@ -135,7 +135,7 @@ for (const [p, what] of [[`#/balances?line=${hall}`, 'the capacity panel'], [`#/
 
 /* 11 — the paper says what the panel says */
 await page.setViewportSize({ width: 1360, height: 900 });
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(1500);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(1500);
 const b64 = await page.evaluate(async h => {
   const db = await import('/src/db.ts'); const m = await import('/src/lib/capacityPaperLoad.ts');
   const list = (await db.listStandardsForLine(h)).filter(s => !s.deletedAt && s.capacity?.stations.length);

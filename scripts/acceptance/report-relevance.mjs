@@ -55,7 +55,7 @@ const pdfText = f => execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'ut
 const pdfPages = f => Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [f], { encoding: 'utf8' }))[1]);
 const has = (txt, w) => tight(txt).includes(tight(w));
 
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(3000);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3000);
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
 const REPORT = `#/project/${sd.projectId}/report`;
 const today = await page.evaluate(async () => (await import('/src/lib/weeks.ts')).todayISO());

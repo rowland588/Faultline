@@ -15,7 +15,7 @@ const page=await ctx.newPage();
 const errs=[]; page.on('pageerror',e=>errs.push(e.message.split('\n')[0]));
 page.on('console',m=>{if(m.type()==='error'&&!/Supabase|net::ERR|Failed to fetch|DevTools/i.test(m.text()))errs.push('console: '+m.text().slice(0,200));});
 const out=[]; const say=(ok,w,x='')=>{out.push(`${ok?'ok  ':'FAIL'}  ${w}${x?' — '+x:''}`); if(!ok) process.exitCode=1;};
-await page.goto(`${BASE}/#/`,{waitUntil:'domcontentloaded'}); await page.waitForTimeout(2500);
+await page.goto(`${BASE}/#/room`,{waitUntil:'domcontentloaded'}); await page.waitForTimeout(2500);
 const s=await page.evaluate(async()=>(await import('/src/dev/seed.ts')).seedForSmokeTest());
 const PID=s.projectId;
 const stored = async (id) => page.evaluate(async id => (await (await import('/src/db/testing.ts')).listTests(await (async()=>{const t=(await (await import('/src/db/core.ts')).getDB()); return (await t.get('tests', id))?.projectId;})())).find(t=>t.id===id), id);

@@ -104,9 +104,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
   return (
     <div className="nv">
       <TopBar project={project} projects={projects} place={placeOf(route)} />
-      {route.name === 'start'
-        ? <StartNav projects={projects} here={here} />
-        : project
+      {project
         ? <ProjectNav key={project.id} project={project} here={here} wsId={route.wsId} />
         /* While the job is still being read, only the first line — never the
            control room's list of jobs for a moment, then the job's rail. */
@@ -159,7 +157,9 @@ function placeOf(route: Route): string {
     case 'factory': case 'lineHome': case 'linePrograms': return 'Your factory';
     case 'lineTools': case 'studies': case 'study': case 'lineStandards': case 'videos': case 'videoStudy': return 'Tools';
     case 'start': return 'Home';
-    case 'home': case 'portfolio': case 'projects': case 'quickSnags': case 'methods': case 'method': case 'design': return 'Control room';
+    case 'projects': return 'Projects';
+    case 'methods': case 'method': case 'design': return 'Methods';
+    case 'home': case 'portfolio': case 'quickSnags': return 'Control room';
     default: return route.wsId ? 'Your factory' : 'Control room';
   }
 }
@@ -172,7 +172,7 @@ function TopBar({ project, projects, place }: { project?: Project; projects: Pro
   const away = !project && place !== 'Control room';
   return (
     <header className="nv-top">
-      <button type="button" className="nv-mark" onClick={() => nav('/')} aria-label="Faultline — the control room">
+      <button type="button" className="nv-mark" onClick={() => nav('/')} aria-label="Faultline — home">
         <LogoMark size={28} id="nv" />
         <span className="nv-name">Faultline</span>
       </button>
@@ -182,7 +182,7 @@ function TopBar({ project, projects, place }: { project?: Project; projects: Pro
           also the way up — "home is home". */}
       <label className="nv-job">
         <select value={project?.id ?? ''} aria-label="Which job"
-          onChange={e => nav(e.target.value && e.target.value !== 'home' ? `/project/${e.target.value}` : '/')}>
+          onChange={e => nav(e.target.value && e.target.value !== 'home' ? `/project/${e.target.value}` : '/room')}>
           {away && <option value="" disabled>{place}</option>}
           <option value={away ? 'home' : ''}>Control room</option>
           {options.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -353,26 +353,13 @@ function useProductionLines(): Workspace[] {
   return ws;
 }
 
-/** On the control room, the Projects page, or a study attached to no line:
- *  the control room, then every job. A loose study (no project owns it) shows
- *  its name and its four screens under the control room. */
-/** THE NEW PRODUCT'S NAVIGATION (screens/StartScreen; docs/BLUEPRINT.md §3):
- *  five places, not the control room's nineteen — Home (say what you need),
- *  Projects, the Library, Your factory, and the control room as the view of
- *  every project at once. Worn by the front door now; by every page off a
- *  project once #/ switches to the front door. */
-function StartNav({ projects, here }: { projects: Project[]; here: string }) {
-  const places: RailLine[] = [
-    { key: 'start', label: 'Home', to: '/start', on: here === 'start', state: 'n', bare: true, icon: 'home' },
-    { key: 'projects', label: 'Projects', to: '/projects', on: false, state: 'n', bare: true, icon: 'board', n: projects.length || undefined },
-    { key: 'methods', label: 'Library', to: '/methods', on: false, state: 'n', bare: true, icon: 'route' },
-    { key: 'factory', label: 'Your factory', to: '/factory', on: false, state: 'n', bare: true, icon: 'machine' },
-    { ...controlRoom(here), icon: 'list' },
-  ];
-  const bar: RailLine[] = [places[0], places[1], places[2], { key: 'more', label: 'More', on: false, state: 'n', icon: 'grip' }];
-  return <NavChrome groups={[{ lines: places }]} bar={bar} home={projects} />;
-}
-
+/** OFF A PROJECT, ONE RAIL (docs/BLUEPRINT.md §3, the new product): its
+ *  places first — Home (say what you need, #/), Projects, Methods (the
+ *  library) — then the control room as the view of every project and line at
+ *  once (its problems, every paper), Your factory, the jobs, and the tools at
+ *  the foot. The front door's five places and the control room's rail were
+ *  two rails; they are merged, nothing taken off. A loose study (no project
+ *  owns it) shows its name and its four screens under the control room. */
 function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: string; wsId?: string; loose: boolean }) {
   const [wsName, setWsName] = useState('');
   const stands = useJobStands();
@@ -384,12 +371,18 @@ function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: s
   }, [wsId]);
   const prodLines = useProductionLines();
   const groups: RailGroup[] = [
-    /* REPORTS, as a job's rail has them — every paper, from the control
-       room (ui/ControlRoomReports; Rowland, 14 October: "we need the same
-       in control room") */
-    { lines: [controlRoom(here), snagsPlace(here), { key: 'reports', label: 'Reports', on: false, state: 'n', bare: true, icon: 'list' } as RailLine,
-      /* METHODS OF YOUR OWN — written, approved and run (lib/flow) */
+    /* THE NEW PRODUCT'S PLACES — Home, the projects, the library of methods
+       (written, approved and run — lib/flow; Faultline's established three
+       among them) */
+    { lines: [
+      { key: 'start', label: 'Home', to: '/', on: here === 'start', state: 'n', bare: true, icon: 'home' } as RailLine,
+      { key: 'projects', label: 'Projects', to: '/projects', on: here === 'projects', state: 'n', bare: true, icon: 'board', n: projects.length || undefined } as RailLine,
       { key: 'methods', label: 'Methods', to: '/methods', on: here === 'methods', state: 'n', bare: true, icon: 'route' } as RailLine,
+    ] },
+    /* THE CONTROL ROOM — every project and line at once; REPORTS, as a job's
+       rail has them — every paper (ui/ControlRoomReports; Rowland, 14
+       October: "we need the same in control room") */
+    { label: 'Control room', lines: [{ ...controlRoom(here), icon: 'list' }, snagsPlace(here), { key: 'reports', label: 'Reports', on: false, state: 'n', bare: true, icon: 'list' } as RailLine,
       ...(loose && wsId ? [
       { key: 'ws', label: wsName || 'Line study', to: `/w/${wsId}/capture`, on: false, state: 'n', bare: true } as RailLine,
       ...studyLines(wsId, here),
@@ -425,12 +418,13 @@ function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: s
     { ...toolsGroup(here), foot: true },
   ];
   const all = groups.flatMap(g => g.lines);
-  /* THE PHONE'S BAR, OFF A JOB: Control room · Problems · Lines · More
-     (FLOW-AUDIT.md, 11). It was the control room, the first three jobs and
-     More, so the lines — the backbone now — and the problems taken on them
-     were behind More. The jobs are one tap away still: in More (the whole
-     rail, Jobs among it), in the top bar's job picker, and on the control
-     room's own rows. */
+  /* THE PHONE'S BAR, OFF A JOB: Home · Problems · Lines · More
+     (FLOW-AUDIT.md, 11; Home first since #/ became the front door, 18
+     October). It was the control room, the first three jobs and More, so
+     the lines — the backbone now — and the problems taken on them were
+     behind More. The jobs and the control room are one tap away still: in
+     More (the whole rail), in the top bar's job picker (the control room
+     first), and on the front door's own rows. */
   const onLines = here === 'factory' || here === 'lineprograms' || here.startsWith('line:');
   /* INSIDE A LINE STUDY the bar is the study's own screens — Capture ·
      Analyse · Evidence — so a stop logged is one tap from its ranking
@@ -438,14 +432,14 @@ function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: s
      dead end); the line's page and the rest are under More. */
   const study = loose && wsId ? studyLines(wsId, here).filter(l => l.key !== 'meeting').map(l => ({ ...l, sub: false })) : [];
   const bar: RailLine[] = study.length ? [
-    ...all.filter(l => l.key === 'home'),
+    ...all.filter(l => l.key === 'start'),
     ...study,
-    { key: 'more', label: 'More', on: !study.some(l => l.on) && all.some(l => l.on && l.key !== 'home'), state: 'n', icon: 'grip' },
+    { key: 'more', label: 'More', on: !study.some(l => l.on) && all.some(l => l.on && l.key !== 'start'), state: 'n', icon: 'grip' },
   ] : [
-    ...all.filter(l => l.key === 'home'),
+    ...all.filter(l => l.key === 'start'),
     { ...snagsPlace(here), label: 'Problems', icon: 'flag' },
     { key: 'lines', label: 'Lines', to: '/factory', on: onLines, state: 'n', bare: true, icon: 'machine' },
-    { key: 'more', label: 'More', on: !onLines && all.some(l => l.on && l.key !== 'home' && l.key !== 'quicksnags'), state: 'n', icon: 'grip' },
+    { key: 'more', label: 'More', on: !onLines && all.some(l => l.on && l.key !== 'start' && l.key !== 'quicksnags'), state: 'n', icon: 'grip' },
   ];
   return <NavChrome groups={groups} bar={bar} home={projects} />;
 }

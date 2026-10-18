@@ -48,7 +48,7 @@ async function device(width) {
   page.on('dialog', d => void d.accept().catch(() => {}));
   page.on('pageerror', e => errors.push(e.message.split('\n')[0]));
   page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) errors.push(`console: ${m.text().slice(0, 200)}`); });
-  await page.goto(`${BASE}/#/`); await page.waitForTimeout(3000);
+  await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3000);
   const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
   const W = { page, sd, taps: 0, dead: [] };
   /* a page is read once it has drawn — "Loading…" can outlast a fixed wait under the gate's load */
@@ -74,7 +74,7 @@ const journey = (n, W, max, says) => {
 /* ======================= 1 · a job and its machines (phone) ======================= */
 {
   const W = await device(390); const P = W.page;
-  await W.go('#/');
+  await W.go('#/room');
   await W.tap('New job', W.btn(/New job/));
   await W.tap('Bring new equipment into use', W.btn(/Bring new equipment into use/));
   await P.getByLabel('Name', { exact: true }).fill('Line 7 new wrapper');

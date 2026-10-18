@@ -86,7 +86,7 @@ const go = async h => { await page.goto(`${BASE}/${h}`); await page.waitForTimeo
 const words = async (sel, root = page) => ((await root.locator(sel).count()) ? (await root.locator(sel).first().innerText()).replace(/\s+/g, ' ').trim() : '');
 const row = what => page.locator('.qsl-row', { hasText: what }).first();
 
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(3000);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3000);
 /* The seeded line and job (three problems pinned on the walk's Former roller),
    four written on the page — one late and Sam's, one in progress, one with a
    real picture, one for the job — one to delete, and the demo line's. */
@@ -485,7 +485,7 @@ await go('#/snags');
 /* ---- 14 a project's own problem and fix, worked in Control room problems (Rowland, 13 October: "full edit, full
    changes, it doesn't matter what it is, this is the power room") — before its project is archived in 12 ---- */
 {
-  await page.setViewportSize({ width: 1360, height: 900 }); await go('#/'); await go('#/snags');
+  await page.setViewportSize({ width: 1360, height: 900 }); await go('#/room'); await go('#/snags');
   const t = await truth();
   const prob = t.jobRows.find(r => r.kind === 'problem' && r.open && !r.photo);
   const jr = page.locator('.qsl-jrow', { hasText: prob.what }).first();
@@ -523,7 +523,7 @@ await go('#/snags');
     const c = await db.chainForWorkspace(ws); const id = c?.projectId ?? pid; await P.archiveProject(id);
     return { away: (await P.allProjects()).find(p => p.id === id)?.name, lineNm: (await db.listWorkspaces()).find(w => w.id === ws)?.name };
   }, { pid: sd.projectId, ws: sd.wsId });
-  await go('#/'); await go('#/snags');
+  await go('#/room'); await go('#/snags');
   /* the archived JOB's name is nowhere on the page (12 October: "the bloody title 2A2B ... doesn't exist because it's an
      archive project"); its LINE is still a line of the factory and its problems stay on it, worked (13 October: "archive
      is causing issues ... once and for all") */
@@ -558,7 +558,7 @@ await go('#/snags');
   /* the screen read first — "Saved" stays four seconds, and reading the store back can take longer on a busy machine */
   const sv = await page.locator('.preg-saved').count(), pe = await row(`${what} — saved with Save`).locator('.pe').count(), kept = !!(await snag(`${what} — saved with Save`));
   ok(kept && pe === 0 && sv === 1, `12 Save keeps what was typed, closes it and says Saved on its row (kept ${kept}, editors open ${pe}, saved shown ${sv})`);
-  await go('#/');
+  await go('#/room');
   const cr = (await page.locator('.fac-home').innerText()).replace(/\s+/g, ' ');
   ok(!cr.includes(away) && cr.includes(lineNm) && cr.includes('Line 2C'), `12 the control room's factory: ${lineNm} still there, Line 2C beside it, the archived job's name nowhere`);
 }
@@ -571,7 +571,7 @@ await go('#/snags');
   /* an open problem put for the project before it was archived (story 12) */
   const forArchId = t.snags.find(x => x.status !== 'closed' && !x.assetId)?.id;
   await page.evaluate(async ({ id, pid }) => { const db = await import('/src/db.ts'); const x = (await db.listAllSnags()).find(y => y.id === id); if (x) await db.updateSnag({ ...x, projectId: pid }); }, { id: forArchId, pid: sd.projectId });
-  await go('#/'); await go('#/snags');
+  await go('#/room'); await go('#/snags');
   const forArch = (await truth()).snags.find(x => x.id === forArchId);
   if (forArch) {
     const r = row(forArch.problem);
@@ -590,7 +590,7 @@ await go('#/snags');
     const db = await import('/src/db.ts'); const l = (await db.listWorkspaces()).find(x => x.name === 'Line 2C'); const t = Date.now();
     for (const [i, w] of ['Sorted first, low', 'Sorted second, low'].entries()) await db.addSnag({ id: crypto.randomUUID(), workspaceId: l.id, problem: w, status: 'open', raisedAt: t - i * 1000, updatedAt: t, media: [] });
   });
-  await go('#/'); await go('#/snags');
+  await go('#/room'); await go('#/snags');
   const any = page.locator('.qsl-work').last();
   const what2 = (await any.locator('.qsl-what').innerText()).replace(/^(LOW|HIGH|CRITICAL)\s*/i, '').trim();
   await row(what2).locator('.qsl-open').click(); await page.waitForTimeout(500);
@@ -611,7 +611,7 @@ await go('#/snags');
   } else ok(true, '13 (no open pinned problem left to look at)');
   /* one made a fix on its project says so under Done — put back on a line in use first, its own line having gone with its project */
   await page.evaluate(async () => { const db = await import('/src/db.ts'); const l = (await db.listWorkspaces()).find(x => x.name === 'Line 2C'); const x = (await db.listAllSnags()).find(y => y.problem === 'Coder misprints the date' && !y.deletedAt); if (x && l) await db.updateSnag({ ...x, workspaceId: l.id }); });
-  await go('#/'); await go('#/snags');
+  await go('#/room'); await go('#/snags');
   await page.locator('.qsl-f .chip', { hasText: /^Done/ }).click(); await page.waitForTimeout(400);
   ok(/Made a fix on /.test(await row('Coder misprints the date').locator('.qsl-state').innerText().catch(() => '')), '13 made a fix on its project: under Done it says "Made a fix on …", never a bare Closed');
 }

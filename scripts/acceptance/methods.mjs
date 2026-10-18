@@ -57,7 +57,7 @@ const shot = async n => { if (OUT) await page.screenshot({ path: `${OUT}/m-${n}.
 /* a 1×1 picture, for the Camera door */
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
 
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(3500);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3500);
 /* 1 — from the control room's rail */
 await page.locator('.nv-rail').getByRole('button', { name: 'Methods', exact: true }).click(); await page.waitForTimeout(1200);
 ok(/#\/methods$/.test(page.url()) && /No methods yet/.test(await txt()), '1 Methods from the rail: none yet');
@@ -182,7 +182,7 @@ ok(/Bagger kit trial — Line 4/.test(pdf) && /Kit laid out — Bagger 1/.test(p
 ok(/Confirmed by Lee — Kit stored on its shadow board/.test(pdf) && /Every gate passed/.test(pdf), '8a the gate, the check and who confirmed it');
 
 /* 9 — the control room */
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(3000);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3000);
 const room = await txt();
 ok(/Bagger kit trial — Line 4 Changeover kit trial · Every gate passed/.test(room), '9 the control room: the row, its method, where it is');
 ok(/Bagger kit trial — Line 4/.test((await page.locator('.nv-rail').innerText()).replace(/\s+/g, ' ')), '9a the rail lists it under Jobs');

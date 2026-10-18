@@ -16,8 +16,9 @@
  * line standard and the video study).
  *
  * WHICH RECORD: none of its own — projects, methods and the factory are read.
- * WHERE IT SHOWS: #/start, with the new product's navigation (ui/Frame,
- * StartNav). The control room stays the portfolio view until #/ switches. */
+ * WHERE IT SHOWS: home — #/ (and #/start, its first address) — under the one
+ * rail off a project (ui/Frame, HomeNav: Home first). The control room, the
+ * view of every project and line at once, is #/room. */
 import { useMemo, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { useCanStartProjects } from '../cloud/access';
@@ -33,6 +34,7 @@ import { COMPONENTS } from '../lib/flow/components';
 import { useMethods } from '../lib/flow/useFlow';
 import { familiesOf } from './MethodsScreen';
 import { toolPlaces } from '../ui/rail';
+import { BuildStamp } from '../ui/BuildStamp';
 
 const EXAMPLES = [
   'We are fitting a new case packer on Line 4 and need it proved before production takes it',
@@ -91,7 +93,7 @@ export function StartScreen() {
       <section className="fd-sec" aria-label="Under way">
         <div className="fd-sec-h">
           <h2 className="ln-h">Under way</h2>
-          {projects.length > 0 && <button type="button" className="cw-link" onClick={() => nav('/')}>The control room — every project at once ›</button>}
+          {projects.length > 0 && <button type="button" className="cw-link" onClick={() => nav('/room')}>The control room — every project at once ›</button>}
         </div>
         {!pf ? <p className="sub">Reading…</p> : pf.jobs.length === 0 ? (
           <p className="sub">Nothing under way yet — say what you need above, or start from the library.</p>
@@ -151,6 +153,7 @@ export function StartScreen() {
         </div>
         <p className="sub">{lines.length ? `${plural(lines.length, 'line')} — ${lines.slice(0, 4).map(l => l.name).join(', ')}${lines.length > 4 ? '…' : ''}. Projects and tools take their lines from here.` : 'Your lines and their machines, set up once — every project and tool takes its lines from here.'}</p>
       </section>
+      <BuildStamp />
     </div>
   );
 }

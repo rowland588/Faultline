@@ -27,7 +27,7 @@ const page = await ctx.newPage();
 const errs = []; page.on('pageerror', e => errs.push(e.message));
 page.on('dialog', d => d.accept());
 let fail = 0; const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}`); if (!c) fail++; };
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(3000);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3000);
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
 const P = sd.projectId;
 const prog = id => page.evaluate(async id => { const db = await import('/src/db.ts'); return (await db.listAllPrograms()).find(p => p.id === id) ?? null; }, id);

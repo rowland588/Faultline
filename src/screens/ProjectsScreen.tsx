@@ -371,7 +371,7 @@ export function ProjectsScreen() {
       ) : !adding && (
         <p className="sub proj-live">
           {projects.length} job{projects.length === 1 ? '' : 's'} running —{' '}
-          <button type="button" className="cw-link" onClick={() => nav('/')}>on the control room ›</button>
+          <button type="button" className="cw-link" onClick={() => nav('/room')}>on the control room ›</button>
         </p>
       )}
 

@@ -963,7 +963,7 @@ export function LeverTree({ projectId }: { projectId: string }) {
     return (
       <div className="wrap pace">
         <p className="sub">That project isn’t here any more.</p>
-        <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav('/')}>Back to the control room</button>
+        <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav('/room')}>Back to the control room</button>
       </div>
     );
   }

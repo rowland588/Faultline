@@ -70,7 +70,7 @@ const order = async () => page.locator('.fac-line').evaluateAll(els => els.map(e
 const saidSaved = async () => (await page.locator('.fac-saved').innerText().catch(() => '')).trim();
 
 /* 1 — empty: the factory first */
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(3500);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3500);
 const t1 = await txt();
 ok(/Your factory/.test(t1) && /Set up your factory first/.test(t1), '1 control room: Your factory, none yet — set it up first');
 ok(/YOUR FACTORY Set up your factory/i.test(await rail()), '1b the rail: Your factory › Set up your factory');
@@ -112,7 +112,7 @@ ok((await order()).join(' / ') === 'Line 1|Packing / Line 3|Filling / Line 2A|Pa
 ok(await page.getByRole('button', { name: 'Move Line 1 up' }).isDisabled(), '5c the first line cannot go higher');
 
 /* 6 — the control room: the factory above the jobs, in floor order; the rail the same */
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(2500);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
 const cards = await page.locator('.fac-card').evaluateAll(els => els.map(el => `${el.querySelector('.fac-card-name')?.textContent}|${el.querySelector('.fac-card-type')?.textContent}`));
 ok(cards.join(' / ') === 'Line 1|Packing / Line 3|Filling / Line 2A|Packing', `6 the control room's Your factory, in floor order: ${cards.join(' / ')}`);
 ok(/3 lines · 2 Packing · 1 Filling/.test(await txt()), '6b the control room says the factory');
@@ -164,7 +164,7 @@ await page.reload(); await page.waitForTimeout(2000);
 const wide = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 ok(wide <= 1, `11 phone, Your factory: nothing off the side (${wide}px)`);
 if (OUT) await page.screenshot({ path: `${OUT}/f-3-phone.png`, fullPage: true });
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(2000);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2000);
 const wide2 = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 ok(wide2 <= 1, `12 phone, the control room: nothing off the side (${wide2}px)`);
 if (OUT) await page.screenshot({ path: `${OUT}/f-4-phone-control.png` });
@@ -216,7 +216,7 @@ await page.goto(`${BASE}/#/lines/${line1}`); await page.waitForTimeout(2000);
 if (OUT) await page.screenshot({ path: `${OUT}/f-8-line-jobs.png` });
 const jobsSec = (await page.getByRole('region', { name: 'Jobs on this line' }).innerText()).replace(/\s+/g, ' ');
 ok(/Line 1 performance 6M/.test(jobsSec), `19 Line 1's page: its job — ${jobsSec}`);
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(2500);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
 ok(/on Line 1 performance/.test(await page.locator('.fac-card', { hasText: 'Line 1' }).first().innerText()), '20 the control room\'s card: on Line 1 performance');
 if (OUT) await page.screenshot({ path: `${OUT}/f-5-control-jobs.png` });
 

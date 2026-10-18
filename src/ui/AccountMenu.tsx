@@ -56,7 +56,7 @@ export function AccountMenu() {
 
       <Sheet open={open} onClose={() => setOpen(false)} title="Account">
         <p className="sub" style={{ marginBottom: 10 }}>{email}</p>
-        <SheetRow label="Control room" hint="every job" onClick={() => { setOpen(false); nav('/'); }} />
+        <SheetRow label="Control room" hint="every job" onClick={() => { setOpen(false); nav('/room'); }} />
         {profile?.is_super && (
           <SheetRow label="Team & invites" hint="invite people, see who’s joined"
             onClick={() => { setOpen(false); setTeam(true); }} />

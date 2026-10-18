@@ -85,7 +85,7 @@ const go = async h => { await page.waitForFunction(() => !history.state?.flPanel
 const flat = s => (s ?? '').replace(/\s+/g, ' ').trim();
 const main = page.locator('.nv-main');
 
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(3000);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3000);
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
 const WS = sd.wsId;
 
@@ -108,7 +108,7 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
 
 /* ---- 1 from the control room ---- */
 {
-  await go('#/');
+  await go('#/room');
   const card = main.locator('.fac-card', { hasText: 'Line 7 — smoke test' });
   const t = await truth();
   const todo = t.kit.n - t.kit.proved;

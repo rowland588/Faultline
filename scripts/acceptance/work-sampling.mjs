@@ -75,7 +75,7 @@ const truth = id => page.evaluate(async id => {
   };
 }, id);
 
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(3000);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3000);
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
 const STUDY = `#/sampling/${sd.samplingId}`;
 

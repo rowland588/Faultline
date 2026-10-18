@@ -71,7 +71,7 @@ const paper = async (button, name) => {
 const sanned = xs => page.evaluate(async xs => { const { san } = await import('/src/lib/reportKit.ts'); await (await import('/src/lib/savePdf.ts')).loadPdfLib(); return xs.map(x => san(x ?? '')); }, xs);
 const missing = async (text, xs) => (await sanned(xs.filter(Boolean))).filter(x => x && !flat(text).includes(flat(x)));
 
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(3000);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3000);
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
 
 /* ---- 1 Line capacity's own page ---- Line 7's Maris Piper 2kg: three

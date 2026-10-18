@@ -173,7 +173,7 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
       <div className="wrap pl">
         <h1>No such line</h1>
         <p className="sub">This line is not on this device — it may have been archived. The control room lists every line.</p>
-        <button type="button" className="btn" onClick={() => nav('/')}>Control room</button>
+        <button type="button" className="btn" onClick={() => nav('/room')}>Control room</button>
       </div>
     );
   }

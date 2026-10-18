@@ -193,7 +193,7 @@ export function FactoryScreen() {
           {/* what the page is, as a line's page says PRODUCTION LINE — and the
               way up. It said THE BACKBONE, a word of the build's, not the
               floor's (docs/FLOW-AUDIT.md #20). */}
-          <p className="pl-eyebrow">PRODUCTION LINES · <a href="#/" className="pl-fac">Control room ›</a></p>
+          <p className="pl-eyebrow">PRODUCTION LINES · <a href="#/room" className="pl-fac">Control room ›</a></p>
           <h1>Your factory</h1>
           <p className="pl-says">{factorySays(lines)}</p>
         </div>

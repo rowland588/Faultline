@@ -112,6 +112,7 @@ export function hereOf(route: Route): string {
   switch (route.name) {
     case 'home': return 'home';
     case 'start': return 'start';
+    case 'projects': return 'projects';
     case 'quickSnags': return 'quicksnags';
     case 'lineHome': return `line:${route.wsId}`;
     case 'factory': return 'factory';
@@ -171,7 +172,7 @@ const plain = (key: string, label: string, to: string, here: string, icon?: Rail
 
 /** The first line of every rail. */
 export const controlRoom = (here: string): RailLine =>
-  ({ key: 'home', label: 'Control room', to: '/', on: here === 'home', state: 'n', bare: true, icon: 'home' });
+  ({ key: 'home', label: 'Control room', to: '/room', on: here === 'home', state: 'n', bare: true, icon: 'home' });
 
 /** EVERY PROBLEM, every line — under the control room on every rail, because
  *  a problem is taken from anywhere (snag/QuickSnag) and sent on from there.

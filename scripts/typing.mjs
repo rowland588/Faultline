@@ -47,7 +47,7 @@ page.on('console', m => {
   }
 });
 
-await page.goto(`${BASE}/#/`, { waitUntil: 'domcontentloaded' });
+await page.goto(`${BASE}/#/room`, { waitUntil: 'domcontentloaded' });
 await page.waitForTimeout(2500);
 const seeded = await page.evaluate(async () => {
   const { seedForSmokeTest } = await import('/src/dev/seed.ts');

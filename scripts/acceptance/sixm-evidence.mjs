@@ -60,7 +60,7 @@ const go = async h => {
 const words = async sel => ((await page.locator(sel).count()) ? (await page.locator(sel).first().innerText()).replace(/\s+/g, ' ').trim() : '');
 const pdfText = f => execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
 
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(3000);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3000);
 const j = await page.evaluate(async () => {
   const j = await (await import('/src/dev/reportSeeds.ts')).seedSixMJob('huge');
   const { listStudies } = await import('/src/db.ts'); const L = await import('/src/lib/studyLinks.ts');
@@ -164,7 +164,7 @@ const reHash = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   ok(rw.includes(`Check · ${h.who}`) && rw.includes(`Keeps the gain on “${h.title}”`) && /is-r\b/.test(await row.getAttribute('class') ?? ''), `9 the job's Needs you, late: "${rw}"`);
   if (await row.count()) { await row.click(); await page.waitForTimeout(1500); }
   ok(new RegExp(`/fishbone\\?(.*&)?problem=${reHash(h.id)}`).test(decodeURIComponent(page.url())), '9 the row opens the problem on its fishbone');
-  await go('#/');
+  await go('#/room');
   await page.locator('.jb-week').first().waitFor({ timeout: 10000 }).catch(() => {});
   const wk = page.locator('.jb-week .jb-wl-row').filter({ hasText: h.what }).first();
   ok((await wk.count()) === 1 && /is-late/.test(await wk.getAttribute('class') ?? ''), `9 the control room's This week, late: "${(await wk.count()) ? (await wk.innerText()).replace(/\s+/g, ' ') : ''}"`);

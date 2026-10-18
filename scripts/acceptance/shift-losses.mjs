@@ -92,7 +92,7 @@ const truth = id => page.evaluate(async id => {
   return { s, f, said, rows: X.lossRows(f, s.facts.losses), line: L.studyLine(s, ctx).text };
 }, id);
 
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(3000);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3000);
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
 const P = `#/project/${sd.pacedProjectId}`;
 
@@ -320,7 +320,7 @@ await page.setViewportSize({ width: 1360, height: 900 });
   ok(card.id === proofId && ((await words('.sll-t')) ?? '') === card.line.text, `6 the line's board beside the Pareto: "${await words('.sll-t')}"`);
   await go(`${P}?view=lines`);
   ok(((await words('.lc-shift .lc-bal-t')) ?? '').toLowerCase() === card.line.text.toLowerCase(), `6 the line's card: "${await words('.lc-shift .lc-bal-t')}"`);
-  await go('#/');
+  await go('#/room');
   await page.locator('.jb-row').filter({ hasText: 'Line 7 pace' }).locator('.jb-lab').first().click(); await page.waitForTimeout(1200);
   ok(((await words('.jb-loss-t')) ?? '') === card.line.text, `6 the control room: under Line 7's gap — "${await words('.jb-loss-t')}"`);
   /* the fishbone: the latest count's biggest explained bars, each on its bone */

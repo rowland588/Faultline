@@ -62,10 +62,13 @@ describe('which line is on, from the address alone', () => {
     expect(here('#/w/ws/standards/s1?at=balance')).toBe('linebalance');
   });
 
-  it('the control room is home', () => {
-    expect(here('#/')).toBe('home');
+  it('home is the front door; the control room keeps its own place', () => {
+    expect(here('#/')).toBe('start');
+    expect(here('#/start')).toBe('start');
+    expect(here('#/room')).toBe('home');
+    expect(here('#/projects')).toBe('projects');
     expect(controlRoom('home').on).toBe(true);
-    expect(controlRoom('home').to).toBe('/');
+    expect(controlRoom('home').to).toBe('/room');
   });
 });
 

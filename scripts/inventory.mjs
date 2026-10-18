@@ -62,7 +62,7 @@ for (const [tag, viewport] of [['desk', { width: 1360, height: 900 }], ['phone',
   /* one moment for every picture, so a date on a page is not a change */
   if (SHOTS) await page.clock.setFixedTime(new Date('2026-10-15T10:00:00Z'));
   page.on('pageerror', e => errors.push(`${tag}: ${e.message}`));
-  await page.goto(`${BASE}/#/`); await page.waitForTimeout(2500);
+  await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
   const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
   const cap = await page.evaluate(async () => {
     const s = await (await import('/src/dev/capacitySeeds.ts')).seedCapacityFor('huge');

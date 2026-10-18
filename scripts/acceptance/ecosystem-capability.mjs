@@ -63,7 +63,7 @@ const truth = id => page.evaluate(async id => {
 const studyId = () => decodeURIComponent(page.url().split('/capability/')[1]?.split('?')[0] ?? '');
 const type30 = async vs => { for (const v of vs) { await page.keyboard.type(String(v)); await page.keyboard.press('Enter'); await page.waitForTimeout(60); } await page.waitForTimeout(600); };
 
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(3000);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3000);
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
 const J = `#/project/${sd.projectId}`;
 

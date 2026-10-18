@@ -43,7 +43,7 @@ const pdfText = async (click, name) => {
   return { text: flat(execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' })), pages: Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [f], { encoding: 'utf8' }))?.[1]) };
 };
 
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(2500);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
 
 /* 1 — a way out of every sheet */

@@ -111,7 +111,7 @@ for (const vp of [{ name: 'desk', width: 1280, height: 900, hasTouch: false }, {
   const page = await ctx.newPage();
   page.on('dialog', d => void d.dismiss().catch(() => {}));
   page.on('download', d => void d.cancel().catch(() => {}));
-  await page.goto(`${BASE}/#/`); await page.waitForTimeout(2500);
+  await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
   const seeded = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
   const ROUTES = new Function('seeded', `return ${routesSrc}`)(seeded);
 

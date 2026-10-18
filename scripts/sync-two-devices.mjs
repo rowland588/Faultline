@@ -172,7 +172,7 @@ async function device(name, viewport, mobile) {
     if (/WebSocket|realtime|net::ERR|Failed to fetch|Failed to load resource|ERR_CONNECTION|ERR_INTERNET_DISCONNECTED|DevTools/i.test(t)) return;
     appErrors.push(`${name} console: ${t.slice(0, 200)}`);
   });
-  await page.goto(`${BASE}/#/`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${BASE}/#/room`, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(2500);
   return { name, ctx, page };
 }

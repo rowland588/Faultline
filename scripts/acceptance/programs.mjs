@@ -48,7 +48,7 @@ const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}`); if (!c) fail
 const go = async h => { await page.goto(`${BASE}/${h}`); await page.waitForTimeout(2200); };
 const flat = s => (s ?? '').replace(/\s+/g, ' ').trim();
 
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(3000);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3000);
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
 const PROGS = `#/project/${sd.projectId}/programs`;
 /* What the module says of the programs as they stand. */

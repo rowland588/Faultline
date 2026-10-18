@@ -53,7 +53,7 @@ page.on('dialog', d => void d.accept());
 const errs = []; page.on('pageerror', e => errs.push(e.message)); page.on('console', m => { if (m.type() === 'error' && !/supabase|net::|Failed to fetch|DevTools/i.test(m.text())) errs.push(m.text().slice(0, 150)); });
 let fail = 0; const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}`); if (!c) fail++; };
 
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(2500);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
 /* a plain board of its own — no picture, one person on it — to work on */
 const blankId = await page.evaluate(async ws => {

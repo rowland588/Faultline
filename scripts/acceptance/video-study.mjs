@@ -52,7 +52,7 @@ const txt = async () => (await page.locator('.nv-main').innerText()).replace(/\s
 const settle = async () => { await page.waitForFunction(() => !history.state?.flPanel, null, { timeout: 5000 }).catch(() => {}); await page.waitForTimeout(300); };
 const dir = mkdtempSync(join(tmpdir(), 'video-study-'));
 
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(2500);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(2500);
 const lineId = await page.evaluate(async () => (await (await import('/src/db.ts')).createWorkspace('Line 4')).id);
 
 /* THE FOOTAGE: three stations, a known schedule — 4 s of work every 8 s, 6 s every 8 s, 3 s every 8 s */

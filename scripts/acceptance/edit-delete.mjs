@@ -70,7 +70,7 @@ const txt = async () => (await main().innerText()).replace(/\s+/g, ' ');
 const db = (fn, arg) => page.evaluate(async ([src, a]) => { const D = await import('/src/db.ts'); return (0, eval)(src)(D, a); }, [fn.toString(), arg]);
 const undo = async () => { await page.getByRole('button', { name: 'Undo', exact: true }).click(); await page.waitForTimeout(900); };
 
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(3000);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3000);
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
 const study = id => db((D, id) => D.getStudy(id), id);
 

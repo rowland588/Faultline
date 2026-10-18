@@ -96,7 +96,7 @@ const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${m}`); if (!c) fail
 const go = async h => { await page.goto(`${BASE}/${h}`); await page.waitForTimeout(2200); };
 const words = async sel => ((await page.locator(sel).count()) ? (await page.locator(sel).first().innerText()).replace(/\s+/g, ' ').trim() : '');
 
-await page.goto(`${BASE}/#/`); await page.waitForTimeout(3000);
+await page.goto(`${BASE}/#/room`); await page.waitForTimeout(3000);
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
 const SID = sd.lineStandardId;
 const CAP = `#/w/${sd.wsId}/standards/${SID}?at=balance`;

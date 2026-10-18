@@ -85,7 +85,7 @@ export function WorkspaceProvider({ wsId, children }: { wsId: ID; children: Reac
   if (missing) return (
     <div className="wrap">
       <p className="sub" style={{ marginTop: 24 }}>That line study isn’t here any more — it was deleted, or it has not synced to this device yet. If it was made on another phone, it appears here by itself once both have had a signal.</p>
-      <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav('/')}>Back to the control room</button>
+      <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav('/room')}>Back to the control room</button>
     </div>
   );
   if (!workspace) return <BootSplash />; // branded, not a blank flash, while the workspace loads
