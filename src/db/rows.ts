@@ -140,7 +140,8 @@ export interface Tombstone { id: string; kind: SyncKind; deletedAt: number }
    local stores stay defined, empty, until the cloud tables are dropped. */
 export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets' | 'snags' | 'cases' | 'projects'
   | 'pace_ppm' | 'pace_todos' | 'pace_wins' | 'tree_nodes'
-  | 'commission_assets' | 'tests' | 'test_items' | 'targets' | 'readings' | 'materials' | 'programs' | 'standards' | 'studies';
+  | 'commission_assets' | 'tests' | 'test_items' | 'targets' | 'readings' | 'materials' | 'programs' | 'standards' | 'studies'
+  | 'methods' | 'flow_records' | 'activity_log';
 
 /* WHERE A BOX HAS GOT TO. Five states, not four colours.
  *

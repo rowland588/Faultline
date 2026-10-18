@@ -114,6 +114,7 @@ export interface Observation {
 /* Aliased on the way in: `Measure` is already taken here by the engine's
    count | time | cost, and that one is older and used in more places. */
 import type { Measure as LineMeasure, Period as LinePeriod } from './lib/measures';
+import type { ProjectFlow } from './lib/flow/records';
 
 /* Lightweight — NO blob. Blob & thumb live in the `media` store by these keys. */
 export interface MediaRef {
@@ -326,6 +327,12 @@ export interface Project {
    *  type — see lib/measures.ts. */
   measures?: LineMeasure[];
   periods?: LinePeriod[];
+
+  /** THE METHOD IT RUNS, when it runs one written as data (lib/flow) — the
+   *  method's family and version, the day it started, who does each role.
+   *  Agreed, so the owner's (supabase/METHODS.sql). Absent on a stage gate,
+   *  6M or lever-tree job, which run on their own code as before. */
+  flow?: ProjectFlow;
 
   /** PUT AWAY, NOT DESTROYED. A finished commissioning job should leave the
    *  list without anybody having to decide whether they will ever want the

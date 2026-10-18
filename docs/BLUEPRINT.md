@@ -93,6 +93,9 @@ of a line, are no longer under projects.
 | **Study** (one use of a tool) | `studies` (+ `observations`, `segments` for the stopwatch and the walk) | Same | Keep |
 | **Measure** (a number to hit) | A job's targets on a line's readings (`measures`, `targets`, `readings`) | Same, plus `project_targets` / `project_actuals`, read by nothing | Stage 0 removes the dead pair |
 | **Job** (a change) | `projects` + its method | Same | Keep. Its lines are picked from the factory (built, in the gate) |
+| **Method** (a way of running a change, written as data) | `methods` — one row a version, a family's versions sharing `family_id`; an active version never changes | The three native methods are code (`lib/planModel`); nothing held a method as data | Built 18 October (`lib/flow`, `supabase/METHODS.sql`; docs/PLATFORM-REVIEW.md, docs/PLATFORM-STATUS.md). A job runs one through `projects.flow`; the native three stay as they are until their own acceptance scripts pass on the runtime |
+| **Step done / gate passed** on a job running a method | `flow_records` (faces: step · gate) | — | Built 18 October. The shape of a stage gate's test, kept apart from `tests` so every cross-job reader of tests is not misled |
+| **Activity** (who changed what, and whether the assistant proposed it) | `activity_log`, written once | — (rows carried only who made them and when they changed) | Built 18 October; every operation in `lib/flow/operations` writes one |
 
 ---
 

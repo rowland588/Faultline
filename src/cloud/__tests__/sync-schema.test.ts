@@ -138,13 +138,21 @@ describe('every face the app writes, the cloud accepts', () => {
   }
 });
 
+const MEDIA_RULE_FILE = 'FLOW_MEDIA.sql';   // the definition in force: a newer one moves this here and in scripts/fake-cloud.mjs
+
 /* A FILE IS ONLY ALLOWED UP IF A ROW NAMES IT. Storage's write and read policies
  * ask faultline_can_see_media whether any table the user can see points at the
  * key — so a kind that carries files but is missing from that function syncs its
  * rows and has every picture refused, with a 400 nobody sees. The line standard
  * shipped like that. Every kind whose mapper names media must be in it. */
 describe('every kind that carries files can upload them', () => {
-  const fn = /function\s+public\.faultline_can_see_media[\s\S]*?\$function\$|function\s+public\.faultline_can_see_media[\s\S]*?end\s*\$\w*\$/i.exec(sql)?.[0] ?? '';
+  /* Read from the definition in force (MEDIA_RULE_FILE, below) — from its
+     name to its closing `end $function$`. It used to be the first match
+     anywhere in the folder, which reached the right text only by luck of
+     the files' order: a newer file sorting first matched its own header and
+     nothing else. */
+  const ruleText = readFileSync(join(SQL_DIR, MEDIA_RULE_FILE), 'utf8');
+  const fn = /function\s+public\.faultline_can_see_media[\s\S]*?end\s*\$function\$/i.exec(ruleText)?.[0] ?? '';
   const withMedia = SYNC_KINDS.filter(k => !/^\(\)\s*=>\s*\[\]$/.test(MAPS[k].mediaKeys.toString().trim()));
   it('finds the function and the kinds', () => {
     expect(fn.length).toBeGreaterThan(100);
@@ -165,7 +173,6 @@ describe('every kind that carries files can upload them', () => {
  * a week every photo and clip taken with the Snag button was refused by the
  * bucket while the snag's words synced (8 October, SNAG_MEDIA.sql). Read from
  * the definition in force, not the first one in the folder. */
-const MEDIA_RULE_FILE = 'SNAG_MEDIA.sql';   // the definition in force: a newer one moves this here and in scripts/fake-cloud.mjs
 describe('every column that names a file is one the media rule looks in', () => {
   const ruleSql = readFileSync(join(SQL_DIR, MEDIA_RULE_FILE), 'utf8');
   const looks = new Map<string, Set<string>>();
