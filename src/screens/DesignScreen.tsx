@@ -353,6 +353,15 @@ export function DesignScreen() {
                 <span className="sub">{checked.ok ? 'Kept, it is in your library — yours to change, copy, adapt and version. Every project keeps the version it started on.' : 'It can be kept as a draft now and put right on its page; it is approved once it can run.'}</span>
               </div>
             )}
+            {/* the work said is what one of Faultline's established methods
+                runs on screens of its own — said beside the proposal too,
+                so the choice is made knowing it (lib/flow/established) */}
+            {mode === 'new' && may && est && (
+              <p className="fw-est fw-est-alt" data-established={est.id}>
+                Or run it as a <b>{est.name}</b> job instead — {est.screens}.
+                <button type="button" className="btn btn-sm" onClick={() => nav(establishedHref(est.id, draft.lineId))}>Start a {est.name} job ›</button>
+              </p>
+            )}
           </section>
         )}
       </div>

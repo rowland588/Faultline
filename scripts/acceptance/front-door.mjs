@@ -116,6 +116,8 @@ await page.locator('.fw-proposed').waitFor({ timeout: 15000 }).catch(() => {});
 const on = await talk();
 ok(/Here is a proposal: “Case packer to production” — 2 stages, 4 steps, measuring cases per minute before and after\./.test(on) && !/not switched on/.test(on), '3 a fresh conversation: the proposal, said — none of the last one carried into it', on);
 ok(/1\. Fit/.test(await page.locator('.fw-proposed').innerText()) && /Cases per minute/.test(await page.locator('.fw-proposed').innerText()), '3a the method on the right: its stages and what it measures');
+ok(/Or run it as a Stage gate job instead — its own screens — the machines/.test((await page.locator('.fw-est-alt[data-established="commissioning"]').innerText().catch(() => '')).replace(/\s+/g, ' ')),
+  '3b beside the proposal, the established Stage gate it could run on instead', await page.locator('.fw-est-alt').innerText().catch(() => 'none'));
 
 /* 4 — approved and started in one go */
 await page.getByRole('button', { name: 'Approve it and start a project' }).click();
