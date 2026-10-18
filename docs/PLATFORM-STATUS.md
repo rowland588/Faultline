@@ -129,39 +129,55 @@ beside the old routes, the gate green at each step:
 ### Against the ambition (18 October, asked plainly)
 
 "The existing application is a starting point, not the boundary." Where
-the platform stands, honestly:
+the platform stands, honestly — what is proved where (the tables above
+name the tests):
 
-- **Works today, tested:** describing a need in words; the assistant
-  reading it first and asking what the words leave open (at most four
-  questions, answered in a tap or in one's own words, or skipped); then
-  proposing a whole method (decisions on what is found among it — a step
-  needed only when an earlier figure says so) (stages, steps, roles, gates, measures, logs and
-  analyses) checked by the validator before it can run; shaping it in
-  conversation; approving, versioning, adapting, copying; running it — steps,
-  evidence, sign-offs, gates, measured before → after; the method report.
-  Logs with analyses make tools nobody coded: a downtime log with its
-  Pareto, a rejects log by reason and shift, a capability log with Cpk,
-  statistical process control (a control chart with its signals), what
-  drives a figure (a relationship), where a figure is heading (a forecast).
-- **Configurable without code:** any workflow or project structure from the
-  blocks; any log with any columns and any of the analysis blocks over them;
-  gates and measures on those figures.
-- **Needs development (and the platform says so):** arithmetic no block
-  does — a reliability fit, a regression on several columns, a non-linear
-  forecast, an optimisation. Each is one new block in `lib/flow/analysis`
-  with its tests; it is then offered to the designer and the assistant with
-  nothing else rebuilt — shown on 18 October by the control chart, the
-  relationship and the forecast, written that way in one slice. Until then the assistant writes it as a need on the method.
-  Specialist screens beyond a log (a drawn layout, a timed video) stay hand-
-  built tools, used as steps.
-- **Not built yet:** a tool's panel inside the step; organisation-wide libraries; the server re-checking a gate pass.
-  The deployed gateway still carries the schema from before logs: it must
-  be redeployed from the repo (supabase/functions/assist) for the live
-  assistant to propose logs — the app reads them already.
+- **Works today, tested in a real browser:** a need said in plain words at
+  the front door; the assistant reading it first and asking what the words
+  leave open (at most four questions, answered in a tap or in one's own
+  words, or skipped); proposing a whole method — stages, steps, roles,
+  gates, measures, logs with their analyses, and decisions on what is found
+  (a step needed only when an earlier figure says so) — checked by the
+  validator before it can run; shaping it in conversation; approving,
+  versioning, adapting, copying; running it — steps, evidence, sign-offs,
+  logs filled on the floor, gates, measured before → after; the method
+  report with every picture and entry. Logs and blocks make tools nobody
+  coded: a downtime log with its Pareto, a rejects log by reason and shift,
+  a capability log with Cpk, statistical process control (a control chart
+  and its signals, a cause looked for only when it signals), what drives a
+  figure (a relationship), where a figure is heading (a forecast).
+- **Configurable without code:** any workflow or project structure from
+  the steps, answers, roles, gates and measures; any log with any columns
+  and any of the sixteen analysis blocks over them; gates, measures and
+  decisions on those figures; the established tools (Line capacity, SMED,
+  the line balance, the capability study, the loss count, work sampling,
+  the value stream map, video) as steps. With the assistant off, the same,
+  by hand in the editor, and the library closest to the words.
+- **Needs development — and the platform says so:** arithmetic no block
+  does (a reliability fit, a regression on several columns, a non-linear
+  forecast, an optimisation). The assistant writes it as a need, never an
+  imitation; Methods gathers every need with the methods that asked it and
+  the brief to build it — the block's contract, where it goes, how it is
+  proved. Each is one block in `lib/flow/analysis` with its tests, and it
+  reaches the editor, the validator, the assistant, the screen and the
+  paper with nothing else rebuilt — shown on 18 October by the control
+  chart, the relationship and the forecast, written that way in one slice.
+  A new kind of picture is one drawing on screen and one on paper. A
+  specialist screen beyond a log (a drawn layout, footage) stays a
+  hand-built tool, used as a step.
+- **Not built yet:** a tool's own panel inside the step (today its page
+  opens inside the project); organisation-wide libraries (waiting on
+  tenancy); the server re-running the runtime on a gate pass (the app
+  checks it and the database lets only the owner write it). The deployed
+  gateway carries the schema from before logs, blocks, questions and
+  decisions: until it is redeployed from the repo the live assistant
+  proposes without them and designs without asking — the app reads all of
+  them already, and a gateway that does not know a task is designed
+  around, never broken.
 
-Next: a tool's own panel inside the step (today its page opens inside the
-project); the 6M and the lever tree as methods drawn from records (5
-above); more analysis blocks as the floor asks.
+Next: the gateway redeployed with the app live; a tool's own panel inside
+the step; the 6M and the lever tree as methods drawn from records; more
+blocks as the floor asks.
 
 ## Known defects and limits
 
