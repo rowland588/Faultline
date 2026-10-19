@@ -52,9 +52,11 @@ export function qualityOf(sig: Pick<Signal, 'times' | 'steady' | 'bright'>, samp
   const span = 10 * sampleSec;
   const shakingSpans = join(ws.filter(w => w.word === 'shaking').map(w => [w.at, w.at + span] as [number, number]));
   const light: [number, number][] = [];
+  /* the brightness is the last frames read when it began part-way */
+  const off = Math.max(0, sig.times.length - bright.length);
   for (let i = 1; i < bright.length; i++) {
     const a = bright[i - 1], b = bright[i];
-    if (a > 1 && Math.abs(b - a) / a > LIGHT_JUMP) light.push([sig.times[i - 1] ?? 0, sig.times[i] ?? 0]);
+    if (a > 1 && Math.abs(b - a) / a > LIGHT_JUMP) light.push([sig.times[off + i - 1] ?? 0, sig.times[off + i] ?? 0]);
   }
   const lightSpans = join(light, sampleSec);
   const mean = bright.length ? bright.reduce((t, x) => t + x, 0) / bright.length : 0;

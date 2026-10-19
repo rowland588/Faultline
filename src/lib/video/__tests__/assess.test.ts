@@ -103,6 +103,9 @@ describe('the footage’s own quality, tracked as it is read', () => {
     /* 120 → 160 is a third brighter, and back half a second later: two jumps */
     expect(q.lightSpans).toEqual([[24.8, 25], [25.4, 25.6]]);
     expect(q.brightness.max).toBe(160);
+    /* brightness begun part-way is the last frames read, never the first */
+    const late = qualityOf({ times, steady: marks, bright: bright.slice(100) }, 0.2) as ReadingQuality;
+    expect(late.lightSpans).toEqual([[24.8, 25], [25.4, 25.6]]);
   });
   it('flags each event by what the footage was doing while it happened, never deciding it', () => {
     const ev = (id: string, start: number, end: number): VideoEvent => ({ id, start, end, category: 'work', zone: 'z1', observed: 'movement', confidence: 0.8, frames: [], basis: 'motion', review: 'candidate', provenance: { provider: 'motion', version: READING_VERSION } });

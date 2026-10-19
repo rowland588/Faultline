@@ -169,23 +169,28 @@ function NewVideoStudy({ open, onClose }: { open: boolean; onClose: () => void }
   const plan = capturePlan(kind, { ...(cycleSec ? { cycleSec } : {}) });
   const fit = facts && !problems.length && facts.durationSec ? assessFootage({ kind, facts: facts as VideoFacts, zones: [], ...(view ? { view } : {}), ...(cycleSec ? { cycleHintSec: cycleSec } : {}), ...(scan ? { scan } : {}) }) : null;
 
+  /* the last file picked is the one said: a file picked while another is still being looked at replaces it */
+  const picking = useRef(0);
   const pick = async (f: File | null) => {
+    const mine = ++picking.current;
     setFile(f); setFacts(null); setProblems([]); setScan(null); setScanning('no');
     if (!f) return;
     setReading(true);
     let dur = 0, fine = false;
     try {
       const p = await probe(f, f.name);
+      if (mine !== picking.current) return;
       setFacts(p.facts);
       const bad = [...(p.error ? [p.error] : []), ...checkFootage(p.facts).map(x => x.message)];
       setProblems(bad);
       dur = p.facts.durationSec ?? 0; fine = !bad.length && dur > 0;
       if (!name) setName(f.name.replace(/\.[^.]+$/, ''));
-    } finally { setReading(false); }
+    } finally { if (mine === picking.current) setReading(false); }
     /* a quick look at the light and the camera over a stretch, as it comes in — every frame is checked as it is read */
-    if (!fine) return;
+    if (!fine || mine !== picking.current) return;
     setScanning('yes');
-    try { setScan(await scanFootage(f, dur)); setScanning('no'); } catch (e) { console.warn('the quick look at the footage did not finish', e); setScanning('failed'); }
+    try { const sc = await scanFootage(f, dur); if (mine === picking.current) { setScan(sc); setScanning('no'); } }
+    catch (e) { console.warn('the quick look at the footage did not finish', e); if (mine === picking.current) setScanning('failed'); }
   };
   const ok = !!file && !!facts && !problems.length && !reading && !busy;
   const make = async () => {

@@ -103,11 +103,13 @@ async function read(id: string, o: { withVision?: boolean; abort?: AbortSignal }
   if (now === 'queued') await setJob(id, 'extracting', { said: 'Opening the footage', key });
 
   let sig: Signal | undefined;
+  /* a signal kept from before the camera and the light were tracked on every frame is read again, so the footage's quality is never said unchecked */
+  const tracked = (x: Signal | undefined) => (x && x.steady && x.bright ? x : undefined);
   const done = await getBlob(`vsig-${key}`);
-  if (done) sig = JSON.parse(await done.text()) as Signal;
+  if (done) sig = tracked(JSON.parse(await done.text()) as Signal);
   if (!sig) {
     const part = await getBlob(`vsig-part-${key}`);
-    const start = part ? (JSON.parse(await part.text()) as Signal) : undefined;
+    const start = part ? tracked(JSON.parse(await part.text()) as Signal) : undefined;
     let lastSave = 0;
     try {
       sig = await readSignal(file, {
