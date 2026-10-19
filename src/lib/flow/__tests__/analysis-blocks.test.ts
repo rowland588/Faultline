@@ -149,7 +149,7 @@ describe('a new block is in everything at once', () => {
     expect(errs({ key: 'x', label: 'Link', block: 'relation', of: 'rej', against: 'shift' })).toMatch(/reads against “Shift”, which is not a number/);
     expect(errs({ key: 'x', label: 'Link', block: 'relation', of: 'rej', against: 'rej' })).toMatch(/reads “Rejects” against itself/);
     expect(errs({ key: 'x', label: 'Total', block: 'sum', of: 'rej', against: 'speed' })).toMatch(/reads no second column/);
-    expect(errs({ key: 'x', label: 'Total', block: 'sum', of: 'rej', target: 5 })).toMatch(/only a forecast reads one/);
+    expect(errs({ key: 'x', label: 'Total', block: 'sum', of: 'rej', target: 5 })).toMatch(/has a target, but only forecast, reliability, pack weights — the three rules, giveaway and lowest legal fill read one — judge the figure in a gate or a measure\./);
     expect(errs({ key: 'x', label: 'Ahead', block: 'forecast', of: 'm', target: 'soon' })).toMatch(/a target that is not a number/);
     expect(errs({ key: 'x', label: 'Chart', block: 'control', of: 'shift' })).toMatch(/not a number/);
   });

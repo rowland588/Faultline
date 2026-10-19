@@ -257,7 +257,7 @@ function AnalysesEditor({ step, onChange, ro, earlier = [] }: { step: FlowStepDe
                     ...(nb.needs.when === 'none' ? { when: undefined } : {}),
                     ...(nb.needs.against === 'none' ? { against: undefined } : {}),
                     ...((nb.needs.also ?? 'none') === 'none' ? { also: undefined } : {}),
-                    ...(nb.needs.target === 'none' ? { target: undefined } : {}),
+                    ...(nb.needs.target === 'none' ? { target: undefined, targetFrom: undefined } : {}),
                     ...(nb.needs.formula !== 'required' ? { formula: undefined } : {}),
                     ...((nb.needs.from ?? 'none') === 'none' ? { from: undefined, better: undefined } : {}),
                   });
@@ -308,8 +308,16 @@ function AnalysesEditor({ step, onChange, ro, earlier = [] }: { step: FlowStepDe
                   ))}
                 </span>
               )}
-              {b.needs.target !== 'none' && (
-                <Num value={a.target} label={`Analysis ${i + 1}: target`} placeholder="the target it is heading for" disabled={ro} onSave={v => setA(i, { target: v })} />
+              {b.needs.target !== 'none' && !a.targetFrom && (
+                <Num value={a.target} label={`Analysis ${i + 1}: target`} placeholder={b.targetSays ?? 'the target it is heading for'} disabled={ro} onSave={v => setA(i, { target: v })} />
+              )}
+              {/* …or typed on the floor, in one of the step's number boxes — a figure the method cannot know */}
+              {b.needs.target !== 'none' && (step.fields ?? []).some(isNumberColumn) && (
+                <select className="text-input fw-in" value={a.targetFrom ?? ''} disabled={ro} aria-label={`Analysis ${i + 1}: target typed in`}
+                  onChange={e => setA(i, e.target.value ? { targetFrom: e.target.value, target: undefined } : { targetFrom: undefined })}>
+                  <option value="">{a.targetFrom ? 'a number here instead' : 'or typed on the floor, in…'}</option>
+                  {(step.fields ?? []).filter(isNumberColumn).map(f => <option key={f.key} value={f.key}>typed in “{f.label}”</option>)}
+                </select>
               )}
             </div>
             {b.needs.formula === 'required' && (() => {

@@ -644,6 +644,80 @@ export const LIBRARY: readonly LibraryEntry[] = [
       };
     },
   },
+  /* PACK WEIGHTS — LEGAL, AND NO MORE GIVEN AWAY THAN NEEDED (19 October,
+     docs/CAPABILITY-CHECK.md, the demonstration): packs weighed off the line
+     against the law's three rules for packers (the average system, the ℮
+     mark — lib/flow/analysis packRules), the product given away over the
+     nominal costed a shift, the filler set to the lowest average the rules
+     allow at the line's own spread, agreed by Quality, and the packs weighed
+     again: legal, and less given away — proved, not hoped. The nominal, the
+     packs a shift and what the product costs are typed by the person on the
+     floor (target_box): a number the app cannot know is never invented. */
+  {
+    id: 'pack-weights', name: 'Pack weights — legal, and no more given away than needed', kind: 'improvement',
+    purpose: 'Packs weighed off the line against the three rules packers must keep (the average system, the ℮ mark), what is given away over the nominal costed a shift, the filler set to the lowest average the rules allow at the line’s spread, and the packs weighed again to prove it — legal, and less given away.',
+    words: ['weight', 'weights', 'weigh', 'weighed', 'giveaway', 'give away', 'overfill', 'over-fill', 'underweight', 'short weight', 'nominal', 'e-mark', 'emark', 'average quantity', 'average system', 'checkweigher', 'trading standards', 'tne', 'filler', 'fill', 'pack weight', 'packers'],
+    uses: [],
+    build: (): FlowDefinition => {
+      const columns = [
+        { key: 'weight', label: 'Weight', type: 'number' as const, unit: 'g', required: true },
+        { key: 'shift', label: 'Shift', type: 'choice' as const, options: ['Early', 'Late', 'Night'] },
+      ];
+      /* typed once on the floor: what the pack says, how many a shift, what the product costs */
+      const boxes = [
+        { key: 'nominal', label: 'Nominal on the pack', type: 'number' as const, unit: 'g' },
+        { key: 'packs_a_shift', label: 'Packs a shift', type: 'number' as const, unit: 'packs' },
+        { key: 'product_cost_a_kg', label: 'Product cost a kg', type: 'number' as const, unit: '£' },
+      ];
+      const weighed = [
+        { key: 'average_weight', label: 'Average weight', block: 'mean' as const, of: 'weight' },
+        { key: 'rules_broken', label: 'The three rules', block: 'emark' as const, of: 'weight', targetFrom: 'nominal' },
+        { key: 'giveaway_a_pack', label: 'Giveaway a pack', block: 'giveaway' as const, of: 'weight', targetFrom: 'nominal' },
+        { key: 'lowest_legal_fill', label: 'Lowest legal fill', block: 'fill' as const, of: 'weight', targetFrom: 'nominal' },
+        { key: 'weights_in_order', label: 'Weights in order', block: 'control' as const, of: 'weight' },
+        { key: 'giveaway_a_shift', label: 'Giveaway a shift', block: 'calc' as const, formula: 'giveaway_a_pack * packs_a_shift * product_cost_a_kg / 1000', unit: '£' },
+        { key: 'could_save_a_shift', label: 'Could save a shift', block: 'calc' as const, formula: '(average_weight - lowest_legal_fill) * packs_a_shift * product_cost_a_kg / 1000', unit: '£' },
+      ];
+      const legal = (step: string, policy: 'block' | 'warn') => ({ id: `legal-${step}`, type: 'fieldMeets' as const, policy, step, field: 'rules_broken', op: '=' as const, value: 0, label: 'Legal on all three rules' });
+      return {
+        schema: FLOW_SCHEMA, name: 'Pack weights — legal, and no more given away than needed', kind: 'improvement',
+        purpose: 'Packs weighed off the line against the three rules packers must keep (the average system, the ℮ mark), what is given away over the nominal costed a shift, the filler set to the lowest average the rules allow at the line’s spread, and the packs weighed again to prove it — legal, and less given away.',
+        roles: [{ key: 'op', name: 'Operator', side: 'site' }, { key: 'lead', name: 'Line lead', side: 'site' }, { key: 'quality', name: 'Quality', side: 'site' }],
+        stages: [
+          {
+            key: 'weigh', name: 'Weigh them as they run', purpose: 'Packs off the line weighed one by one — at least 30, across the shifts.',
+            steps: [{
+              key: 'weigh-before', title: 'Weigh packs off the line', per: 'line', answer: 'log', role: 'op', minEntries: 30, columns, fields: boxes, analyses: weighed,
+              help: 'One entry a pack, its net weight in grams (the pack’s own weight taken off). Weigh at least 30 across the shifts; strike a mistype — never delete it.',
+            }],
+            gate: { conditions: [every, legal('weigh-before', 'warn')] },
+          },
+          {
+            key: 'set', name: 'Set the filler', purpose: 'The filler set to the lowest legal fill — never below it — and Quality agrees.',
+            steps: [
+              { key: 'set-filler', title: 'Set the filler to its new target', per: 'line', answer: 'form', role: 'lead', after: ['weigh-before'],
+                fields: [{ key: 'new_target', label: 'New filler target', type: 'number', unit: 'g', required: true }, { key: 'why', label: 'Why that figure', type: 'text' }] },
+              { key: 'quality-agrees', title: 'Quality agrees the new target', per: 'line', answer: 'signoff', role: 'quality', after: ['set-filler'] },
+            ],
+            gate: { conditions: [every] },
+          },
+          {
+            key: 'prove', name: 'Weigh again, and prove it', purpose: 'The same weighing at the new target: legal on all three rules, and less given away — at least 95% sure it is not chance.',
+            steps: [{
+              key: 'weigh-after', title: 'Weigh packs off the line again', per: 'line', answer: 'log', role: 'op', minEntries: 30, columns, fields: boxes, after: ['quality-agrees'],
+              analyses: [...weighed, { key: 'proved', label: 'Less given away?', block: 'compare' as const, of: 'weight', from: 'weigh-before', better: 'lower' as const }],
+            }],
+            gate: { conditions: [every, legal('weigh-after', 'block'), { id: 'proved', type: 'fieldMeets', policy: 'block', step: 'weigh-after', field: 'proved', op: '>=', value: 95, label: 'Less given away — at least 95% sure it is not chance' }] },
+          },
+        ],
+        measures: [
+          { key: 'giveaway_a_pack', name: 'Giveaway a pack', unit: 'g', better: 'lower', from: [{ step: 'weigh-before', field: 'giveaway_a_pack' }, { step: 'weigh-after', field: 'giveaway_a_pack' }] },
+          /* everything derives a cost (CLAUDE.md): the cost typed by the person, never a figure invented */
+          { key: 'giveaway_a_shift', name: 'Giveaway a shift', unit: '£', better: 'lower', from: [{ step: 'weigh-before', field: 'giveaway_a_shift' }, { step: 'weigh-after', field: 'giveaway_a_shift' }] },
+        ],
+      };
+    },
+  },
 ];
 
 export const libraryEntry = (id: string): LibraryEntry | undefined => LIBRARY.find(e => e.id === id);

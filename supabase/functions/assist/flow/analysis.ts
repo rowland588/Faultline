@@ -17,7 +17,9 @@
  * time between failures, a log compared with an earlier one (before and
  * after, and how sure the change is not chance), whether a figure differs
  * from one group to another, what is past its day and still open (who
- * owes what by when), and which of several columns drive a figure. A block is a pure
+ * owes what by when), which of several columns drive a figure, and pack
+ * weights against the law's three rules for packers — the giveaway over the
+ * nominal and the lowest average fill the rules allow. A block is a pure
  * function with what it needs — and the picture it is drawn as — said as
  * data — so a method written by a
  * person or proposed by the assistant composes them, the validator checks
@@ -44,7 +46,7 @@ export interface FlowEntry {
   struck?: boolean;
 }
 
-export const ANALYSIS_BLOCKS = ['count', 'sum', 'mean', 'median', 'min', 'max', 'sd', 'share', 'perDay', 'pareto', 'trend', 'histogram', 'cpk', 'control', 'relation', 'forecast', 'calc', 'reliability', 'compare', 'groups', 'overdue', 'drivers'] as const;
+export const ANALYSIS_BLOCKS = ['count', 'sum', 'mean', 'median', 'min', 'max', 'sd', 'share', 'perDay', 'pareto', 'trend', 'histogram', 'cpk', 'control', 'relation', 'forecast', 'calc', 'reliability', 'compare', 'groups', 'overdue', 'drivers', 'emark', 'giveaway', 'fill'] as const;
 export type AnalysisBlockId = typeof ANALYSIS_BLOCKS[number];
 
 export const WHEN_OPS = ['=', '!=', '>=', '<=', '>', '<'] as const;
@@ -75,8 +77,12 @@ export interface FlowAnalysis {
   /** More number columns read with `against`, together — what drives it:
    *  each with the others held still. */
   also?: string[];
-  /** The level it is heading for (a forecast says when it gets there). */
+  /** The level it is heading for (a forecast says when it gets there), or
+   *  the nominal quantity printed on the pack (the pack-weight blocks). */
   target?: number;
+  /** …or that target typed on the floor, in one of the step's number boxes
+   *  (by its key) — a figure the method cannot know, left for the person. */
+  targetFrom?: string;
   /** A worked-out figure's arithmetic, over the analyses before it and the
    *  step's number boxes, by their keys — "stop_minutes_a_day * cost_of_a_minute". */
   formula?: string;
@@ -139,6 +145,8 @@ export interface AnalysisBlock {
   /** What it is for, in a line — for the designer and the assistant. */
   says: string;
   needs: { of: Need; by: Need; when: Need; against: Need; target: Need; formula?: Need; from?: Need; also?: Need };
+  /** What its target is, in words — "the level it is heading for", "the nominal quantity on the pack". */
+  targetSays?: string;
   /** of must be a number column. */
   numeric: boolean;
   /** number: a figure gates and measures can read; series: a picture; both. */
@@ -491,6 +499,65 @@ export function weibullFit(xs: readonly number[]): { shape: number; scale: numbe
   return { shape, scale };
 }
 
+/** An analysis's target — its own number, or the step's box it reads it from. */
+export const targetOf = (a: FlowAnalysis, ctx?: Pick<AnalysisContext, 'boxes'>): number | undefined =>
+  typeof a.target === 'number' ? a.target : a.targetFrom && typeof ctx?.boxes[a.targetFrom] === 'number' ? ctx.boxes[a.targetFrom] : undefined;
+/** Where a missing target is to be given, in words. */
+const targetWhere = (a: FlowAnalysis, ctx: AnalysisContext) => (a.targetFrom ? ` — type it in “${ctx.labels[a.targetFrom] ?? a.targetFrom.replace(/_/g, ' ')}”` : '');
+
+/** PACK WEIGHTS AND THE LAW — the average system for packers (the
+ *  Weights and Measures (Packaged Goods) Regulations 2006, Schedule 2; the
+ *  ℮ mark, Directive 76/211/EEC Annex I). The tolerable negative error for a
+ *  nominal quantity, in its own unit (g or ml): a percentage worked out and
+ *  rounded UP to the nearest tenth, as the table says. Below 5 or above
+ *  50,000 the table says nothing, and neither does this. */
+export function tneOf(nominal: number): number | undefined {
+  if (!(nominal >= 5 && nominal <= 50000)) return undefined;
+  const up = (x: number) => Math.ceil(x * 10 - 1e-9) / 10;
+  if (nominal <= 50) return up(nominal * 0.09);
+  if (nominal <= 100) return 4.5;
+  if (nominal <= 200) return up(nominal * 0.045);
+  if (nominal <= 300) return 9;
+  if (nominal <= 500) return up(nominal * 0.03);
+  if (nominal <= 1000) return 15;
+  if (nominal <= 10000) return up(nominal * 0.015);
+  if (nominal <= 15000) return 150;
+  return up(nominal * 0.01);
+}
+
+/** The share of a normal distribution below z (Φ): from the complementary
+ *  error function, Numerical Recipes' Chebyshev fit (fractional error under
+ *  1.2 × 10⁻⁷ everywhere). */
+export function normalBelow(z: number): number {
+  const x = -z / Math.SQRT2, a = Math.abs(x), t = 1 / (1 + 0.5 * a);
+  const r = t * Math.exp(-a * a - 1.26551223 + t * (1.00002368 + t * (0.37409196 + t * (0.09678418 + t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))));
+  return 0.5 * (x >= 0 ? r : 2 - r);
+}
+
+/** The margins a packer's lowest average fill keeps from the limits: no more
+ *  than 2.5% of packs under T1 (z = 1.96, rule 2) and no more than 1 in
+ *  10,000 under T2 — the practical reading of rule 3's "none" that packers'
+ *  guidance uses (z = 3.719). */
+export const PACK_Z = { t1: 1.959964, t2: 3.719016, t1Share: 0.025, t2Share: 0.0001 } as const;
+
+/** Packs weighed against the three rules: the average, the limits, how many
+ *  fell under each, and how many would at this average and spread (normal). */
+export function packRules(xs: readonly number[], nominal: number) {
+  const tne = tneOf(nominal);
+  if (tne === undefined || xs.length < 2) return undefined;
+  const t1 = Math.round((nominal - tne) * 10) / 10, t2 = Math.round((nominal - 2 * tne) * 10) / 10;
+  const m = mean([...xs]), s = sd([...xs]);
+  const under1 = xs.filter(x => x < t1).length, under2 = xs.filter(x => x < t2).length;
+  const est1 = s > 0 ? normalBelow((t1 - m) / s) : m < t1 ? 1 : 0, est2 = s > 0 ? normalBelow((t2 - m) / s) : m < t2 ? 1 : 0;
+  const rule1 = m >= nominal;
+  /* rule 2 judged by the spread; by the count too once forty packs make one in forty a count */
+  const rule2 = est1 <= PACK_Z.t1Share && (xs.length < 40 || under1 / xs.length <= PACK_Z.t1Share);
+  const rule3 = under2 === 0 && est2 <= PACK_Z.t2Share;
+  const lowest = Math.max(nominal, t1 + PACK_Z.t1 * s, t2 + PACK_Z.t2 * s);
+  const sets = lowest === nominal ? 1 : t1 + PACK_Z.t1 * s >= t2 + PACK_Z.t2 * s ? 2 : 3;
+  return { tne, t1, t2, mean: m, sd: s, n: xs.length, under1, under2, est1, est2, rule1, rule2, rule3, broken: [rule1, rule2, rule3].filter(r => !r).length, lowest, sets };
+}
+
 /** One statistic over a number column — sum, mean, median, min, max, the spread. */
 function stat(id: AnalysisBlockId, name: string, says: string, f: (xs: number[]) => number, min = 1): AnalysisBlock {
   return {
@@ -658,11 +725,12 @@ export const BLOCKS: Record<AnalysisBlockId, AnalysisBlock> = {
   forecast: {
     id: 'forecast', name: 'Forecast', says: 'The figure a day (a column totalled, or the entries counted) with the straight line through it carried a week on — where it is heading, and the day it reaches a target',
     needs: { of: 'optional', by: 'none', when: 'optional', against: 'none', target: 'optional' }, numeric: true, output: 'both', picture: 'forecast',
-    compute: (entries, a, columns) => {
+    compute: (entries, a, columns, ctx) => {
       const series = dayTotals(rowsOf(entries, a, columns), a.of);
       const unit = unitOf(a, columns) ?? (a.of ? undefined : 'entries');
       const u = unit ? { unit } : {};
-      const tgt = typeof a.target === 'number' ? { target: a.target } : {};
+      const T0 = targetOf(a, ctx);
+      const tgt = typeof T0 === 'number' ? { target: T0 } : {};
       if (series.length < 3) return { n: series.length, ...u, ...tgt, series, says: `${a.label}: needs 3 days logged to see where it is heading — ${many(series.length, 'day')} so far.` };
       const d0 = dayNo(series[0].label), xs = series.map(p => dayNo(p.label) - d0), ys = series.map(p => p.value);
       const fit = lineFit(xs, ys);
@@ -673,8 +741,8 @@ export const BLOCKS: Record<AnalysisBlockId, AnalysisBlock> = {
       const now = at(last), then = at(last + ahead);
       const move = Math.abs(fit.slope) < 1e-9 ? 'flat' : `${fit.slope > 0 ? 'rising' : 'falling'} ${withUnit(Math.abs(fit.slope), unit)} a day`;
       let toward = '';
-      if (typeof a.target === 'number') {
-        const T = a.target;
+      if (typeof T0 === 'number') {
+        const T = T0;
         if (Math.abs(fit.slope) < 1e-9) toward = now === T ? `; at the target of ${withUnit(T, unit)}` : `; it does not move towards ${withUnit(T, unit)}`;
         else {
           const xT = (T - fit.intercept) / fit.slope;
@@ -855,6 +923,68 @@ export const BLOCKS: Record<AnalysisBlockId, AnalysisBlock> = {
       return { value: fit.r2 * 100, n: rows.length, unit: '%', series, says: `${what}: ${whole}. ${eachSaid.charAt(0).toUpperCase()}${eachSaid.slice(1)}. ${next} On ${many(rows.length, 'entry', 'entries')}${few}. A link is not proof of a cause — test it.` };
     },
   },
+  /* PACK WEIGHTS AND THE LAW (packRules): each pack's weight against the nominal printed on it */
+  emark: {
+    id: 'emark', name: 'Pack weights — the three rules', says: 'Each pack weighed against the law’s three rules for packers (the average system, the ℮ mark): the average at least the nominal, no more than 2.5% under T1 (the nominal less its tolerable negative error), none under T2 (twice it) — judged from the packs weighed and their spread; its figure is how many rules are broken (0 is legal)',
+    needs: { of: 'required', by: 'none', when: 'optional', against: 'none', target: 'required' }, targetSays: 'the nominal quantity printed on the pack (g or ml)', numeric: true, output: 'both', picture: 'bars',
+    compute: (entries, a, columns, ctx) => {
+      const xs = numbers(rowsOf(entries, a, columns), a.of), unit = unitOf(a, columns), what = `${a.label}${whenSaid(a, columns)}`;
+      const qn = targetOf(a, ctx);
+      if (typeof qn !== 'number' || tneOf(qn) === undefined) return { n: xs.length, unit: 'rules broken', says: `${what}: needs the nominal quantity on the pack, from 5 to 50,000 (g or ml)${targetWhere(a, ctx)} — the law’s table says nothing outside it.` };
+      const r = packRules(xs, qn);
+      if (!r) return { n: xs.length, unit: 'rules broken', says: `${what}: needs at least 2 packs weighed — ${xs.length} so far.` };
+      const u = (x: number) => withUnit(x, unit);
+      /* short enough for a bar's label on screen and paper; the limits themselves are in the sentence */
+      const series: SeriesPoint[] = [
+        { label: 'under T2', value: r.under2 },
+        { label: 'T2–T1', value: xs.filter(x => x >= r.t2 && x < r.t1).length },
+        { label: 'T1–nominal', value: xs.filter(x => x >= r.t1 && x < qn).length },
+        { label: `to +${u(r.tne)}`, value: xs.filter(x => x >= qn && x < qn + r.tne).length },
+        { label: `over +${u(r.tne)}`, value: xs.filter(x => x >= qn + r.tne).length },
+      ];
+      const pct = (p: number) => (p < 0.0001 ? 'under 1 in 10,000' : p < 0.001 ? `about 1 in ${Math.round(1 / p).toLocaleString('en-GB')}` : `about ${fmtNumber(p * 100)}%`);
+      const broke = [!r.rule1 && `rule 1 (the average ${u(r.mean)} is under the nominal ${u(qn)})`, !r.rule2 && `rule 2 (${r.n >= 40 && r.under1 / r.n > PACK_Z.t1Share ? `${r.under1} of ${r.n} under T1` : `${pct(r.est1)} would be under T1 at this average and spread`} — 2.5% at most)`,
+        !r.rule3 && `rule 3 (${r.under2 ? `${many(r.under2, 'pack')} under T2` : `${pct(r.est2)} would be under T2 at this spread`} — none may be)`].filter(Boolean);
+      const verdict = r.broken ? `breaks ${broke.join('; ')}` : 'legal on all three rules';
+      const few = r.n < 30 ? `; from fewer than 30 packs the spread is an estimate — weigh more to be surer` : '';
+      return {
+        value: r.broken, unit: r.broken === 1 ? 'rule broken' : 'rules broken', n: r.n, series,
+        says: `${what}: ${verdict} — average ${u(r.mean)} against the nominal ${u(qn)}, ${r.under1} of ${r.n} under T1 (${u(r.t1)}; ${pct(r.est1)} at this spread), ${r.under2} under T2 (${u(r.t2)}); the tolerable negative error for ${u(qn)} is ${u(r.tne)}${few}.`,
+      };
+    },
+  },
+  giveaway: {
+    id: 'giveaway', name: 'Giveaway', says: 'The product given away a pack: how far the packs weighed average over the nominal printed on them (under it is said as short, not as giveaway)',
+    needs: { of: 'required', by: 'none', when: 'optional', against: 'none', target: 'required' }, targetSays: 'the nominal quantity printed on the pack (g or ml)', numeric: true, output: 'number', picture: 'none',
+    compute: (entries, a, columns, ctx) => {
+      const xs = numbers(rowsOf(entries, a, columns), a.of), unit = unitOf(a, columns), what = `${a.label}${whenSaid(a, columns)}`;
+      const qn = targetOf(a, ctx);
+      if (typeof qn !== 'number' || !(qn > 0)) return { n: xs.length, ...(unit ? { unit } : {}), says: `${what}: needs the nominal quantity on the pack${targetWhere(a, ctx)}.` };
+      if (!xs.length) return { n: 0, ...(unit ? { unit } : {}), says: `${what}: no packs weighed yet.` };
+      const over = mean(xs) - qn;
+      return { value: over, n: xs.length, ...(unit ? { unit } : {}), says: over >= 0
+        ? `${what}: ${withUnit(over, unit)} a pack over the nominal ${withUnit(qn, unit)} (${fmtNumber((over / qn) * 100)}%), from ${many(xs.length, 'pack')} averaging ${withUnit(mean(xs), unit)}.`
+        : `${what}: none — the packs average ${withUnit(-over, unit)} SHORT of the nominal ${withUnit(qn, unit)}, from ${many(xs.length, 'pack')}: rule 1 is broken.` };
+    },
+  },
+  fill: {
+    id: 'fill', name: 'Lowest legal fill', says: 'The lowest average a filler can be set to at the spread the packs show and still keep all three rules: the nominal, T1 + 1.96 spreads (2.5% under T1) or T2 + 3.72 spreads (1 in 10,000 under T2), whichever is highest — and which rule sets it',
+    needs: { of: 'required', by: 'none', when: 'optional', against: 'none', target: 'required' }, targetSays: 'the nominal quantity printed on the pack (g or ml)', numeric: true, output: 'number', picture: 'none',
+    compute: (entries, a, columns, ctx) => {
+      const xs = numbers(rowsOf(entries, a, columns), a.of), unit = unitOf(a, columns), what = `${a.label}${whenSaid(a, columns)}`;
+      const qn = targetOf(a, ctx);
+      if (typeof qn !== 'number' || tneOf(qn) === undefined) return { n: xs.length, ...(unit ? { unit } : {}), says: `${what}: needs the nominal quantity on the pack, from 5 to 50,000 (g or ml)${targetWhere(a, ctx)}.` };
+      const r = packRules(xs, qn);
+      if (!r || xs.length < 5) return { n: xs.length, ...(unit ? { unit } : {}), says: `${what}: needs at least 5 packs weighed to read their spread — ${xs.length} so far.` };
+      const u = (x: number) => withUnit(x, unit);
+      const why = r.sets === 1 ? 'the nominal itself (rule 1) — the spread is narrow enough that the average sets it'
+        : r.sets === 2 ? `T1 ${u(r.t1)} + 1.96 × the spread ${u(r.sd)} (rule 2: 2.5% at most under T1)`
+          : `T2 ${u(r.t2)} + 3.72 × the spread ${u(r.sd)} (rule 3: 1 in 10,000 at most under T2)`;
+      const now = r.mean - r.lowest;
+      const few = r.n < 30 ? '; from fewer than 30 packs the spread is an estimate — weigh more before setting the filler to it' : '';
+      return { value: r.lowest, n: r.n, ...(unit ? { unit } : {}), says: `${what}: ${u(r.lowest)} — set by ${why}. The packs average ${u(r.mean)}: ${now >= 0 ? `${u(now)} a pack above it` : `${u(-now)} a pack BELOW it — raise the fill`}${few}.` };
+    },
+  },
   calc: {
     id: 'calc', name: 'Worked out', says: 'A figure worked out from the figures before it and the step’s own boxes — any arithmetic (+ − × ÷ and brackets), money included: a cost, a yield, a rate',
     needs: { of: 'none', by: 'none', when: 'none', against: 'none', target: 'none', formula: 'required' }, numeric: false, output: 'number', picture: 'none',
@@ -905,5 +1035,5 @@ export function figuresOf(results: Record<string, AnalysisResult>): Record<strin
  *  from the registry, so a new block is offered the day it is written. */
 export const BLOCK_CATALOGUE = ANALYSIS_BLOCKS.map(id => {
   const b = BLOCKS[id];
-  return { id, name: b.name, says: b.says, of: b.needs.of, by: b.needs.by, when: b.needs.when, against: b.needs.against, target: b.needs.target, formula: b.needs.formula ?? 'none', from: b.needs.from ?? 'none', also: b.needs.also ?? 'none', numeric: b.numeric, output: b.output, picture: b.picture };
+  return { id, name: b.name, says: b.says, of: b.needs.of, by: b.needs.by, when: b.needs.when, against: b.needs.against, target: b.needs.target, targetSays: b.targetSays ?? 'the level it is heading for', formula: b.needs.formula ?? 'none', from: b.needs.from ?? 'none', also: b.needs.also ?? 'none', numeric: b.numeric, output: b.output, picture: b.picture };
 });

@@ -64,7 +64,7 @@ export const PROPOSAL_SCHEMA = obj({
             items: obj({
               label: S, block: { type: 'string', enum: [...ANALYSIS_BLOCKS] }, of: S, by: S,
               when_column: S, when_op: { type: 'string', enum: ['', ...WHEN_OPS] }, when_value: S, unit: S,
-              against: S, also: { type: 'array', items: S }, target: NUMQ, formula: S, from_step: S, better: { type: 'string', enum: ['', 'higher', 'lower'] },
+              against: S, also: { type: 'array', items: S }, target: NUMQ, target_box: S, formula: S, from_step: S, better: { type: 'string', enum: ['', 'higher', 'lower'] },
             }),
           },
           min_entries: INTQ,
@@ -328,6 +328,8 @@ function proposedAnalyses(raw: unknown, columns: FlowField[], taken: readonly st
       ...(against ? { against: against.key } : {}),
       ...(() => { const more = arr(a.also).map(colOf).filter((c): c is FlowField => !!c && c.key !== of?.key && c.key !== against?.key).map(c => c.key); const once = [...new Set(more)]; return once.length ? { also: once } : {}; })(),
       ...(typeof a.target === 'number' && Number.isFinite(a.target) ? { target: a.target } : {}),
+      /* the target typed on the floor: a number box of the step, by its label */
+      ...(() => { const w = str(a.target_box, 80); const box = w && !(typeof a.target === 'number' && Number.isFinite(a.target)) ? boxes.find(f => same(f.label, w) || f.key === w) : undefined; return box ? { targetFrom: box.key } : {}; })(),
       ...(str(a.formula, 300) ? { formula: renameRefs(str(a.formula, 300).toLowerCase(), byWords) } : {}),
       ...(from ? { from } : {}),
       ...(from && (a.better === 'higher' || a.better === 'lower') ? { better: a.better } : {}),
@@ -364,7 +366,7 @@ export function toProposal(def: FlowDefinition): Record<string, unknown> {
         columns: (s.columns ?? []).map(fieldSaid),
         analyses: (s.analyses ?? []).map(a => {
           const lab = (k?: string) => (k ? s.columns?.find(c => c.key === k)?.label ?? k : '');
-          return { label: a.label, block: a.block, of: lab(a.of), by: lab(a.by), when_column: lab(a.when?.column), when_op: a.when?.op ?? '', when_value: a.when ? String(a.when.value) : '', unit: a.unit ?? '', against: lab(a.against), also: (a.also ?? []).map(lab), target: a.target ?? null,
+          return { label: a.label, block: a.block, of: lab(a.of), by: lab(a.by), when_column: lab(a.when?.column), when_op: a.when?.op ?? '', when_value: a.when ? String(a.when.value) : '', unit: a.unit ?? '', against: lab(a.against), also: (a.also ?? []).map(lab), target: a.target ?? null, target_box: a.targetFrom ? s.fields?.find(f => f.key === a.targetFrom)?.label ?? a.targetFrom : '',
             formula: a.formula ? renameRefs(a.formula, k => { const w = s.analyses?.find(x => x.key === k)?.label ?? s.fields?.find(x => x.key === k)?.label; return w ? fieldKeyOf(w) : k; }) : '',
             from_step: a.from ? titleOf(a.from) : '', better: a.better ?? '' };
         }),

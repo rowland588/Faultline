@@ -14,7 +14,12 @@ import {
   type FlowAnswer, type FlowCondition, type FlowDefinition, type FlowField, type FlowMeasure, type FlowNeed, type FlowRole, type FlowRule,
   type FlowStage, type FlowStepDef, type FieldType,
 } from './definition';
-import { ANALYSIS_BLOCKS, WHEN_OPS, blockOf, isGroupColumn, isNumberColumn, type FlowAnalysis, type FlowWhen } from './analysis';
+import { ANALYSIS_BLOCKS, BLOCKS, WHEN_OPS, blockOf, isGroupColumn, isNumberColumn, type FlowAnalysis, type FlowWhen } from './analysis';
+/* the blocks that read a target, said from the registry — so a new one is named the day it is written */
+const TARGET_READERS = (() => {
+  const names = ANALYSIS_BLOCKS.filter(id => BLOCKS[id].needs.target !== 'none').map(id => BLOCKS[id].name.toLowerCase());
+  return names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0] ?? 'none';
+})();
 import { FormulaError, formulaRefs, parseFormula } from './formula';
 import { componentOf } from './components';
 
@@ -484,7 +489,17 @@ function readAnalyses(raw: unknown, columns: FlowField[], fields: FlowField[], t
     if (also.length > 5) { err(`${ap}.also`, `${aw} reads more than six columns together — fewer, or more entries than any line keeps.`); ok = false; }
     const target = a.target === undefined || a.target === null || a.target === '' ? undefined : num(a.target);
     if (a.target !== undefined && a.target !== null && a.target !== '' && target === undefined) { err(`${ap}.target`, `${aw} has a target that is not a number.`); ok = false; }
-    if (target !== undefined && block.needs.target === 'none') { err(`${ap}.target`, `${aw} has a target, but only a forecast reads one — judge the figure in a gate or a measure.`); ok = false; }
+    if (target !== undefined && block.needs.target === 'none') { err(`${ap}.target`, `${aw} has a target, but only ${TARGET_READERS} read${TARGET_READERS.includes(' and ') || TARGET_READERS.includes(', ') ? '' : 's'} one — judge the figure in a gate or a measure.`); ok = false; }
+    /* …or the target typed on the floor, in a number box of the same step (a figure the method cannot know) */
+    const targetFrom = optStr(a.targetFrom, 40);
+    if (targetFrom) {
+      const box = fields.find(f => f.key === targetFrom);
+      if (block.needs.target === 'none') { err(`${ap}.targetFrom`, `${aw} reads a target from a box, but only ${TARGET_READERS} read one.`); ok = false; }
+      else if (!box) { err(`${ap}.targetFrom`, `${aw} reads its target from "${targetFrom}", which is not a box of the step.`); ok = false; }
+      else if (!isNumberColumn(box)) { err(`${ap}.targetFrom`, `${aw} reads its target from “${box.label}”, which is not a number.`); ok = false; }
+      else if (target !== undefined) { err(`${ap}.targetFrom`, `${aw} has a target and reads one from “${box.label}” — one or the other.`); ok = false; }
+    }
+    if (target === undefined && !targetFrom && block.needs.target === 'required') { err(`${ap}.target`, `${aw} needs ${block.targetSays ?? 'its target'} — give it one, or a number box on the step to type it in.`); ok = false; }
     /* a worked-out figure: arithmetic over the figures before it and the step's number boxes, nothing else */
     const formula = optStr(a.formula, 300);
     if (block.needs.formula === 'required' && !formula) { err(`${ap}.formula`, `${aw} is worked out — say how (e.g. "stop_minutes_a_day * cost_of_a_minute").`); ok = false; }
@@ -509,7 +524,7 @@ function readAnalyses(raw: unknown, columns: FlowField[], fields: FlowField[], t
     if (block.id === 'overdue' && of && colOf(of) && colOf(of)?.type !== 'date') { err(`${ap}.of`, `${aw} judges “${colOf(of)?.label}” as the day it is due, but it is not a date — give it a date column.`); ok = false; }
     if (block.id === 'cpk' && of && colOf(of) && colOf(of)?.min === undefined && colOf(of)?.max === undefined) { err(`${ap}.of`, `${aw} judges “${colOf(of)?.label}” against its limits, but the column has none — give it an at least or an at most.`); ok = false; }
     if (!ok) return;
-    out.push({ key, label, block: block.id, ...(of ? { of } : {}), ...(by ? { by } : {}), ...(when ? { when } : {}), ...(against ? { against } : {}), ...(also.length ? { also } : {}), ...(target !== undefined ? { target } : {}), ...(formula ? { formula } : {}), ...(from ? { from } : {}), ...(better ? { better } : {}), ...maybe('unit', optStr(a.unit, 40)) });
+    out.push({ key, label, block: block.id, ...(of ? { of } : {}), ...(by ? { by } : {}), ...(when ? { when } : {}), ...(against ? { against } : {}), ...(also.length ? { also } : {}), ...(target !== undefined ? { target } : {}), ...(targetFrom ? { targetFrom } : {}), ...(formula ? { formula } : {}), ...(from ? { from } : {}), ...(better ? { better } : {}), ...maybe('unit', optStr(a.unit, 40)) });
   });
   return out;
 }

@@ -474,6 +474,17 @@ names. Next on that route: the count line (items crossing a line drawn
 across the flow), then presence in a box. Waiting on Rowland: permissioned
 footage from the floor, and that check run on the phone that would film it.
 
+**The capability check's gaps** (Rowland, 19 October: "I want to understand
+whether we're building the right kind of product"; docs/CAPABILITY-CHECK.md).
+The architecture holds — a methodology engine Claude designs for, not code
+Claude writes — and the check names what is still to be proved or built, in
+order: one live proposal from a signed-in person (the gateway redeployed first
+with the pack-weight blocks), its `assist_usage` row read back; the server
+re-checking a gate pass with the same runtime the device uses; a visible queue
+from a stated need to a live block, with Rowland agreeing the domain rule each
+block encodes; designable report layouts only when a real request needs one;
+an organisation's shared library with tenancy.
+
 **Money in every tool** (Rowland, 17 October: "everything must derive a cost
 in the entire app ... it's all about money"; the rule is in CLAUDE.md,
 *Everything derives a cost*). One cost model — the people, one person's
