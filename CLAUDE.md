@@ -659,7 +659,13 @@ pushed (`src/cloud/sync.ts`), so a stray local write cannot stall a sync.
   symlink) fought over it, and the sync's first page never loaded: "page.goto
   timeout" twice, before any scenario ran. `scripts/sync-vite.config.ts` has
   its own `cacheDir` since; a second checkout's dev server is stopped before
-  the gate's sync step, or given one of its own.
+  the gate's sync step, or given one of its own. And a cache that starts
+  empty is filled by scanning for the libraries from every `.html` under the
+  checkout — here that included a hundred copies of the app in
+  `.claude/worktrees`, and the scan never ended: the sync's first page hung
+  (gate 14). `vite.config.ts` scans from `index.html` only
+  (`optimizeDeps.entries`) since; a new cache dir is proved by a run of the
+  script that uses it, never assumed.
 - **A sheet's back() undoes a script's goto.** A sheet closed by Escape or ×
   takes its own history entry off a moment later with `history.back()`
   (`ui/backCloses`). The app's own `nav()` waits for it (`afterPanelBack`); a

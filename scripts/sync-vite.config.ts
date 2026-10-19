@@ -12,4 +12,7 @@ export default mergeConfig(base, {
      settings differed, and this one hung serving its first page (19 October,
      after a fresh container — CLAUDE.md, Things that will bite) */
   cacheDir: 'node_modules/.vite-sync',
+  /* and, its cache starting empty, it looks for those libraries from the app's
+     one page only (vite.config's optimizeDeps, merged in) — 2ec393a gave it the
+     cache without this and its first page never came (gate 14) */
 });

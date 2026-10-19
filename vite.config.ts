@@ -14,6 +14,11 @@ const BUILD_STAMP = process.env.FAULTLINE_BUILD_STAMP
 
 export default defineConfig({
   define: { __BUILD_STAMP__: JSON.stringify(BUILD_STAMP) },
+  /* the dev server's first look for the libraries to pre-bundle starts at the
+     app's one page, never at every .html below the checkout — a checkout that
+     holds other copies of the app (.claude/worktrees) had it crawl all of them
+     and never finish, so a fresh cache served nothing (19 October) */
+  optimizeDeps: { entries: ['index.html'] },
   build: {
     rollupOptions: {
       output: {
