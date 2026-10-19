@@ -222,7 +222,7 @@ ok(/What has happened/.test(pdf) && /Moved from version 1 to version 2/.test(pdf
 /* 9 — Faultline's SMED method adapted, started on a line, a SMED study attached */
 const lineId = await page.evaluate(async () => (await (await import('/src/db.ts')).createWorkspace('Line 4')).id);
 await page.goto(`${BASE}/#/methods`); await page.waitForTimeout(1800);
-ok(await page.locator('.fw-card.is-library').count() === 9 && /From Faultline’s library/.test(await txt()), '9 Faultline’s library on Methods, beside your own');
+ok(await page.locator('.fw-card.is-library').count() === 10 && /From Faultline’s library/.test(await txt()), '9 Faultline’s library on Methods, beside your own');
 await page.getByLabel('Find a method', { exact: true }).fill('changeover');
 ok(await page.locator('.fw-card.is-library').count() === 1, '9a found by a word');
 await page.locator('.fw-card[data-library="changeover-reduction"]').getByRole('button', { name: 'Adapt it' }).click(); await page.waitForTimeout(1500);

@@ -11,7 +11,7 @@
  * every problem is said in words a person can act on ("Stage 3, step 2 has
  * no title"), because the review screen shows them. */
 import {
-  ANSWERS, CONDITIONS, FIELD_TYPES, FLOW_SCHEMA, KEY_RE, LIMITS, RULE_OPS, numbersOf,
+  ANSWERS, CONDITIONS, FIELD_TYPES, FLOW_SCHEMA, KEY_RE, LIMITS, RULE_OPS, TIMER_UNITS, isNumberBox, isTypedNumber, numbersOf,
   type FlowAnswer, type FlowCondition, type FlowDefinition, type FlowField, type FlowMeasure, type FlowNeed, type FlowRole, type FlowRule,
   type FlowStage, type FlowStepDef, type FieldType,
 } from './definition.ts';
@@ -288,7 +288,7 @@ export function validateDefinition(input: unknown): Checked {
           /* a box typed on the step, or a figure its tool fills (lib/flow/components) */
           const field = st ? numbersOf(st).find(f => f.key === fkey) ?? st.fields?.find(f => f.key === fkey) : undefined;
           if (st && !field) err(`${cp}.field`, `${cw} reads a field "${fkey}" that "${st.title}" does not have.`);
-          else if (field && !['number', 'reading', 'calc'].includes(field.type)) err(`${cp}.field`, `${cw} compares "${field.label}", which is not a number.`);
+          else if (field && !isNumberBox(field.type)) err(`${cp}.field`, `${cw} compares "${field.label}", which is not a number.`);
           if (st && field && value !== undefined) cond = { ...base, type: 'fieldMeets', step: st.key, field: field.key, op, value, ...(op === 'between' && value2 !== undefined ? { value2 } : {}) };
           break;
         }
@@ -361,11 +361,14 @@ function readFields(raw: unknown, tp: string, twhere: string, err: (p: string, m
     if (type === 'choice' && options.length < 2) err(`${fp}.options`, `${twhere}, "${label}" is a choice with fewer than two options.`);
     const formula = optStr(f.formula);
     if (type === 'calc' && !formula) err(`${fp}.formula`, `${twhere}, "${label}" is worked out but has no formula.`);
+    /* a timed box keeps its time in seconds, minutes or hours — nothing else is a time */
+    const unit = optStr(f.unit, 40);
+    if (type === 'timer' && unit && !(TIMER_UNITS as readonly string[]).includes(unit)) err(`${fp}.unit`, `${twhere}, "${label}" is timed, so it is kept in ${TIMER_UNITS.join(', ')} — not "${unit}".`);
     fields.push({
       key, label, type,
-      ...maybe('unit', optStr(f.unit, 40)),
-      ...((type === 'reading' || type === 'number') && min !== undefined ? { min } : {}),
-      ...((type === 'reading' || type === 'number') && max !== undefined ? { max } : {}),
+      ...(type === 'timer' ? { unit: unit && (TIMER_UNITS as readonly string[]).includes(unit) ? unit : 's' } : maybe('unit', unit)),
+      ...(isTypedNumber(type) && min !== undefined ? { min } : {}),
+      ...(isTypedNumber(type) && max !== undefined ? { max } : {}),
       ...(type === 'choice' ? { options } : {}),
       ...(type === 'calc' && formula ? { formula } : {}),
       ...(f.required === true && type !== 'calc' ? { required: true } : {}),
@@ -373,7 +376,7 @@ function readFields(raw: unknown, tp: string, twhere: string, err: (p: string, m
     });
   });
   /* formulas read this step's numbers only, and no circle */
-  const numeric = new Map(fields.filter(f => f.type === 'number' || f.type === 'reading' || f.type === 'calc').map(f => [f.key, f]));
+  const numeric = new Map(fields.filter(f => isNumberBox(f.type)).map(f => [f.key, f]));
   const deps = new Map<string, string[]>();
   for (const f of fields) {
     if (f.type !== 'calc' || !f.formula) continue;

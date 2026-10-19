@@ -359,6 +359,82 @@ export const LIBRARY: readonly LibraryEntry[] = [
       };
     },
   },
+  /* SHORT STOPS, TIMED AS THEY ARE CLEARED — the stops too short for the
+     loss count to name one by one, each timed by the operator who clears it
+     (a timed box: Start when it stops, Stop when it runs — Lap when the next
+     follows at once), with what stopped it. What they add up to a day, the
+     cause that takes the most time (the Pareto, by time, not by count), how
+     long they run (the histogram) and what they cost a day at the line's own
+     rate, typed once. The biggest cause fixed and the same timing kept again
+     proves it. Measured by people, not by sensors (CLAUDE.md). */
+  {
+    id: 'short-stops', name: 'Short stops, timed as they are cleared', kind: 'improvement',
+    purpose: 'Every short stop timed by the operator who clears it, with what stopped it; the cause that takes the most time fixed, and the same timing kept again to prove it in time and money a day.',
+    words: ['short stop', 'short stops', 'micro stop', 'micro stops', 'minor stop', 'minor stops', 'jam', 'jams', 'stoppage', 'stoppages', 'stops', 'cleared', 'timed', 'time', 'stopwatch', 'how long', 'downtime'],
+    uses: [],
+    build: (): FlowDefinition => {
+      const columns = [
+        { key: 'stopped_by', label: 'What stopped it', type: 'choice' as const, options: ['Jam', 'Film or label', 'Product out of place', 'Sensor', 'Waiting for material', 'Other'], required: true },
+        { key: 'time_to_clear', label: 'Time to clear', type: 'timer' as const, unit: 's', required: true },
+        { key: 'machine', label: 'Machine', type: 'text' as const },
+      ];
+      /* what a minute of the line stopped costs, typed once by the person — never invented */
+      const costOfAMinute = { key: 'cost_of_a_minute', label: 'What a minute stopped costs', type: 'number' as const, unit: '£' };
+      const read = (more = true) => [
+        { key: 'stops_a_day', label: 'Stops a day', block: 'perDay' as const },
+        { key: 'lost_a_day', label: 'Time lost a day', block: 'perDay' as const, of: 'time_to_clear' },
+        { key: 'biggest_cause', label: 'The cause that takes the most time', block: 'pareto' as const, by: 'stopped_by', of: 'time_to_clear' },
+        ...(more ? [
+          { key: 'average_stop', label: 'An average stop', block: 'mean' as const, of: 'time_to_clear' },
+          { key: 'how_long', label: 'How long the stops run', block: 'histogram' as const, of: 'time_to_clear' },
+        ] : []),
+        { key: 'cost_a_day', label: 'What the stops cost a day', block: 'calc' as const, formula: 'lost_a_day / 60 * cost_of_a_minute', unit: '£' },
+      ];
+      return {
+        schema: FLOW_SCHEMA, name: 'Short stops, timed as they are cleared', kind: 'improvement',
+        purpose: 'Every short stop timed by the operator who clears it, with what stopped it; the cause that takes the most time fixed, and the same timing kept again to prove it in time and money a day.',
+        roles: [{ key: 'op', name: 'Operator', side: 'site' }, { key: 'lead', name: 'Line lead', side: 'site' }],
+        stages: [
+          {
+            key: 'time', name: 'Time the stops', purpose: 'Every short stop, timed from the moment it stops to the moment it runs.',
+            steps: [{
+              key: 'time-before', title: 'Time every short stop for a few shifts', per: 'line', answer: 'log', role: 'op', minEntries: 20, columns, fields: [costOfAMinute], analyses: read(),
+              help: 'Start when the machine stops, Stop when it runs again, then say what stopped it. When the next stop follows at once, Lap adds this one and times the next.',
+            }],
+            gate: { conditions: [every] },
+          },
+          {
+            key: 'cause', name: 'The cause', purpose: 'The cause that takes the most time, drilled to why.',
+            steps: [{
+              key: 'why', title: 'Why the biggest cause happens', per: 'line', answer: 'form', role: 'lead', after: ['time-before'],
+              fields: [
+                { key: 'cause', label: 'The cause, from the Pareto', type: 'text', required: true },
+                { key: 'why_1', label: 'Why 1', type: 'text', required: true },
+                { key: 'why_2', label: 'Why 2', type: 'text', required: true },
+                { key: 'why_3', label: 'Why 3', type: 'text' },
+              ],
+            }],
+            gate: { conditions: [every] },
+          },
+          {
+            key: 'fix', name: 'The countermeasure', purpose: 'What will be done about it, done.',
+            steps: [{ key: 'done', title: 'Countermeasure done', per: 'line', answer: 'done', role: 'lead', evidence: { photos: 1 }, after: ['why'] }],
+            gate: { conditions: [every] },
+          },
+          {
+            key: 'prove', name: 'Prove it', purpose: 'The same stops timed again.',
+            steps: [{ key: 'time-after', title: 'Time every short stop again', per: 'line', answer: 'log', role: 'op', minEntries: 20, columns, fields: [costOfAMinute], after: ['done'], analyses: read(false) }],
+            gate: { conditions: [every] },
+          },
+        ],
+        measures: [
+          { key: 'lost_a_day', name: 'Time lost a day', unit: 's a day', better: 'lower', from: [{ step: 'time-before', field: 'lost_a_day' }, { step: 'time-after', field: 'lost_a_day' }] },
+          /* everything derives a cost (CLAUDE.md): the rate typed by the person, never a figure invented */
+          { key: 'cost_a_day', name: 'What the stops cost a day', unit: '£', better: 'lower', from: [{ step: 'time-before', field: 'cost_a_day' }, { step: 'time-after', field: 'cost_a_day' }] },
+        ],
+      };
+    },
+  },
   /* BREAKDOWNS, READ FOR WHEN THE NEXT ONE COMES — reliability (TPM's
      planned maintenance), made of blocks: every failure logged with the hours
      run since the last, which fail most (the Pareto), and the Weibull fit of

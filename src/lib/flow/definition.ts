@@ -64,16 +64,27 @@ export interface FlowRole {
 /** The field palette. Each is a box a person fills on the floor; `calc` is
  *  worked out from the step's own numbers by lib/flow/formula — never typed,
  *  never a model's number. */
-export const FIELD_TYPES = ['text', 'number', 'reading', 'date', 'choice', 'yesno', 'person', 'calc'] as const;
+export const FIELD_TYPES = ['text', 'number', 'reading', 'timer', 'date', 'choice', 'yesno', 'person', 'calc'] as const;
 export type FieldType = typeof FIELD_TYPES[number];
+
+/** Boxes a person fills with a number — typed, read off a gauge against its
+ *  limits, or timed with a tap (a timer: Start, Stop, kept as the time). */
+export const isTypedNumber = (t: FieldType): boolean => t === 'number' || t === 'reading' || t === 'timer';
+/** Boxes that hold a number — those, and the ones the app works out. */
+export const isNumberBox = (t: FieldType): boolean => isTypedNumber(t) || t === 'calc';
+/** What a timed box is kept in — seconds unless the method says minutes or hours. */
+export const TIMER_UNITS = ['s', 'min', 'h'] as const;
+export type TimerUnit = typeof TIMER_UNITS[number];
+export const timerUnit = (f: Pick<FlowField, 'unit'>): TimerUnit => ((TIMER_UNITS as readonly string[]).includes(f.unit ?? '') ? f.unit as TimerUnit : 's');
 
 export interface FlowField {
   key: string;
   label: string;
   type: FieldType;
-  /** number, reading, calc: "packs/min", "mm", "°C". */
+  /** number, reading, calc: "packs/min", "mm", "°C"; timer: s, min or h. */
   unit?: string;
-  /** reading: what it must fall within — either may be absent ("at least 60"). */
+  /** reading (number and timer too): what it must fall within — either may
+   *  be absent ("at least 60"). */
   min?: number;
   max?: number;
   /** choice: the options, in order. */
@@ -279,7 +290,7 @@ export function findStep(def: Pick<FlowDefinition, 'stages'>, key: string): Step
  *  it, then a tool step's figures (lib/flow/components) as boxes the tool
  *  fills. */
 export function numbersOf(step: FlowStepDef): FlowField[] {
-  const own = (step.fields ?? []).filter(f => f.type === 'number' || f.type === 'reading' || f.type === 'calc');
+  const own = (step.fields ?? []).filter(f => isNumberBox(f.type));
   const tool = componentOf(step.component?.tool)?.figures ?? [];
   /* a log's figures: each analysis that says a number */
   const logged = step.answer === 'log' ? (step.analyses ?? []).filter(a => blockOf(a.block)?.output !== 'series').map((a): FlowField => {
@@ -333,7 +344,7 @@ export const ANSWER_WORD: Record<FlowAnswer, string> = {
 };
 
 export const FIELD_WORD: Record<FieldType, string> = {
-  text: 'Words', number: 'Number', reading: 'Reading with limits', date: 'Date', choice: 'Choice', yesno: 'Yes or no', person: 'Person', calc: 'Worked out',
+  text: 'Words', number: 'Number', reading: 'Reading with limits', timer: 'Timed with a tap', date: 'Date', choice: 'Choice', yesno: 'Yes or no', person: 'Person', calc: 'Worked out',
 };
 
 /** A field's key — a word a worked-out sum can name ("packs / minutes"), so

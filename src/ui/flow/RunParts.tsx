@@ -42,12 +42,13 @@ import { offerUndo } from '../Undo';
 import { Num, Words } from './MethodParts';
 import { askFor, withFor } from './Asking';
 import { LogPanel } from './LogParts';
+import { TimerBox } from './Timer';
 
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100));
 
 /** One box of a step, as the person fills it — or, worked out, as the app says it. */
-function FieldBox({ f, value, worked, onSave, disabled }: {
-  f: FlowField; value: unknown; worked: unknown; onSave: (v: string | number | boolean) => void; disabled: boolean;
+function FieldBox({ f, value, worked, onSave, disabled, keepAs }: {
+  f: FlowField; value: unknown; worked: unknown; onSave: (v: string | number | boolean) => void; disabled: boolean; keepAs: string;
 }) {
   const limit = f.min !== undefined && f.max !== undefined ? `between ${f.min} and ${f.max}` : f.min !== undefined ? `at least ${f.min}` : f.max !== undefined ? `at most ${f.max}` : '';
   const head = <span className="field-label">{f.label}{f.unit ? ` (${f.unit})` : ''}{f.required ? ' · needed' : ''}{limit ? ` · ${limit}` : ''}</span>;
@@ -59,6 +60,8 @@ function FieldBox({ f, value, worked, onSave, disabled }: {
           <span className="sub">Worked out by the app{f.formula ? `: ${f.formula}` : ''}{typeof worked !== 'number' ? ' — once the numbers it needs are in' : ''}.</span>
         </div>
       );
+    case 'timer':
+      return <div className="fw-f" data-field={f.key}>{head}<TimerBox f={f} value={typeof value === 'number' ? value : undefined} keepAs={keepAs} disabled={disabled} onTime={v => onSave(v ?? '')} /></div>;
     case 'number': case 'reading':
       return <label className="fw-f" data-field={f.key}>{head}<Num value={typeof value === 'number' ? value : typeof value === 'string' && value !== '' ? Number(value) : undefined} label={f.label} disabled={disabled} onSave={v => onSave(v ?? '')} /></label>;
     case 'date':
@@ -246,6 +249,7 @@ export function StepSheet({ fp, inst, ctx, onClose }: { fp: FlowProject; inst: S
 
         {(step.fields ?? []).map(f => (
           <FieldBox key={f.key} f={f} value={rec?.values?.[f.key]} worked={inst.values[f.key]} disabled={!live || done}
+            keepAs={`${fp.project.id}:${inst.stageKey}:${step.key}:${inst.assetId ?? ''}:${f.key}`}
             onSave={v => void save({ values: { [f.key]: v } })} />
         ))}
         {inst.outOfLimits.length > 0 && <p className="sub is-r">Outside its limit: {inst.outOfLimits.join('; ')}.</p>}

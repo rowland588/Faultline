@@ -210,10 +210,16 @@ and scale the times came from), the mean time between, early · random ·
 wear said for the floor, the chance of a failure within a time, and a new
 picture (the chance by each time, every time seen on it) drawn once on
 screen and once on paper. Faultline's library gains *Breakdowns, read for
-when the next one comes*. Next: a tool's panel inside the step itself
-rather than its page; more blocks as the
-floor asks (a Weibull fit, a regression on several columns — each a block,
-each tested).
+when the next one comes*. And A TIME TAKEN WITH A TAP (19 October): any
+box or column can be timed (`timer`) — Start when it begins, Stop when it
+ends, Lap when the next follows at once — on the floor by the person
+watching, the clock kept through a locked phone or a reload, typed or
+corrected by hand, and read by every block, gate and measure as the number
+it is (measured by people, not by sensors); Faultline's library gains
+*Short stops, timed as they are cleared* — the Pareto by time, the time lost
+and what it costs a day. Next: a tool's panel inside the step itself
+rather than its page; more blocks and ways to capture as the floor asks (a
+regression on several columns, a tally counted with a tap — each tested).
 
 **Control room** (`#/room`; `#/` until 18 October, when home became the
 front door). Your factory first: a card per line saying its health

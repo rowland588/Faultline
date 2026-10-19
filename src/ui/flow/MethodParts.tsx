@@ -5,7 +5,7 @@
  * (lib/flow/validate) then says what is still wrong with the whole. */
 import { useEffect, useState } from 'react';
 import {
-  ANSWERS, ANSWER_WORD, FIELD_TYPES, FIELD_WORD, RULE_OPS, allSteps, fieldKeyOf, keyOf, measureKeyOf, numbersOf, roleName,
+  ANSWERS, ANSWER_WORD, FIELD_TYPES, FIELD_WORD, RULE_OPS, TIMER_UNITS, allSteps, fieldKeyOf, isTypedNumber, keyOf, measureKeyOf, numbersOf, roleName, timerUnit,
   type FlowCondition, type FlowDefinition, type FlowField, type FlowMeasure, type FlowRule, type FlowStage, type FlowStepDef,
 } from '../../lib/flow/definition';
 import { COMPONENTS, componentOf } from '../../lib/flow/components';
@@ -179,11 +179,21 @@ function BoxesEditor({ boxes, onChange, ro, one, newType = 'text' }: { boxes: Fl
           <div className="fw-field-r">
             <Words value={f.label} label={`${Name} ${i + 1}'s name`} onSave={v => { if (v) setBox(i, { label: v }); }} disabled={ro} />
             <select className="text-input fw-in" value={f.type} disabled={ro} aria-label={`${Name} ${i + 1}'s kind`}
-              onChange={e => setBox(i, { type: e.target.value as FlowField['type'] })}>
+              onChange={e => { const type = e.target.value as FlowField['type']; setBox(i, { type, ...(type === 'timer' ? { unit: timerUnit(f) } : {}) }); }}>
               {FIELD_TYPES.map(t => <option key={t} value={t}>{FIELD_WORD[t]}</option>)}
             </select>
             {!ro && <button type="button" className="btn btn-ghost btn-sm" aria-label={`Remove ${one} ${f.label}`} onClick={() => onChange(boxes.filter((_, j) => j !== i))}>Remove</button>}
           </div>
+          {f.type === 'timer' && (
+            <div className="fw-field-r">
+              <select className="text-input fw-in" value={timerUnit(f)} disabled={ro} aria-label={`${f.label}: kept in`} onChange={e => setBox(i, { unit: e.target.value })}>
+                {TIMER_UNITS.map(u => <option key={u} value={u}>{u === 's' ? 'seconds' : u === 'min' ? 'minutes' : 'hours'}</option>)}
+              </select>
+              <Num value={f.min} label={`${f.label}: at least`} placeholder="at least" onSave={v => setBox(i, { min: v })} disabled={ro} />
+              <Num value={f.max} label={`${f.label}: at most`} placeholder="at most" onSave={v => setBox(i, { max: v })} disabled={ro} />
+              <span className="sub">Timed on the floor with a tap — Start, Stop{one === 'column' ? ', Lap for the next' : ''} — or typed.</span>
+            </div>
+          )}
           {(f.type === 'number' || f.type === 'reading' || f.type === 'calc') && (
             <div className="fw-field-r">
               <Words value={f.unit ?? ''} label={`${f.label}'s unit`} placeholder="unit — packs/min, mm" onSave={v => setBox(i, { unit: v || undefined })} disabled={ro} />
@@ -193,7 +203,7 @@ function BoxesEditor({ boxes, onChange, ro, one, newType = 'text' }: { boxes: Fl
           )}
           {f.type === 'calc' && (
             <div className="fw-field-r">
-              <Words value={f.formula ?? ''} label={`${f.label}'s sum`} placeholder={`e.g. ${boxes.filter(x => x.type === 'number' || x.type === 'reading').map(x => x.key).slice(0, 2).join(' / ') || 'packs / minutes'}`}
+              <Words value={f.formula ?? ''} label={`${f.label}'s sum`} placeholder={`e.g. ${boxes.filter(x => isTypedNumber(x.type)).map(x => x.key).slice(0, 2).join(' / ') || 'packs / minutes'}`}
                 onSave={v => setBox(i, { formula: v || undefined })} disabled={ro} />
               <span className="sub">Worked out by the app from the {one === 'box' ? 'boxes' : 'same entry’s columns'}, by their keys: {boxes.filter(x => x.key !== f.key && x.type !== 'text').map(x => x.key).join(', ') || 'none yet'}.</span>
             </div>
@@ -412,7 +422,7 @@ export function StepEditor({ def, stageIndex, step, open, onClose, onChange, onR
               const answer = e.target.value as FlowStepDef['answer'];
               /* a measurement needs a number to measure: give it one to start;
                  a log, a column and a count, to start from */
-              set(answer === 'measure' && !fields.some(f => f.type === 'reading' || f.type === 'number')
+              set(answer === 'measure' && !fields.some(f => isTypedNumber(f.type))
                 ? { answer, fields: [...fields, { key: fieldKeyOf('reading', fields.map(f => f.key)), label: 'Reading', type: 'reading', required: true }] }
                 : answer === 'log' && !(step.columns ?? []).length
                   ? { answer, columns: [{ key: 'value', label: 'Value', type: 'number' }], analyses: [{ key: 'entries', label: 'Entries', block: 'count' }] }

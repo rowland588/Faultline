@@ -14,7 +14,7 @@
  * scripts/sync-assist.mjs) so the server and the screen read a proposal the
  * same way. */
 import {
-  ANSWERS, CONDITIONS, FIELD_TYPES, FLOW_SCHEMA, RULE_OPS, fieldKeyOf, keyOf, measureKeyOf, numbersOf,
+  ANSWERS, CONDITIONS, FIELD_TYPES, FLOW_SCHEMA, RULE_OPS, TIMER_UNITS, fieldKeyOf, isNumberBox, keyOf, measureKeyOf, numbersOf,
   type FlowCondition, type FlowDefinition, type FlowField, type FlowMeasure, type FlowRole, type FlowRule, type FlowStage, type FlowStepDef, type RuleOp,
 } from './definition';
 import { COMPONENTS, componentOf } from './components';
@@ -226,7 +226,7 @@ export function fromProposal(input: unknown): Proposed {
       if (!isObj(f)) continue;
       const st = seen.find(x => same(x.title, str(f.step)));
       const field = st?.fields.find(x => same(x.label, str(f.field)) || x.key === str(f.field));
-      if (st && field && (field.type === 'number' || field.type === 'reading' || field.type === 'calc') && !from.some(x => x.step === st.key && x.field === field.key)) from.push({ step: st.key, field: field.key });
+      if (st && field && isNumberBox(field.type) && !from.some(x => x.step === st.key && x.field === field.key)) from.push({ step: st.key, field: field.key });
     }
     if (!from.length) continue;
     const unit = str(m.unit, 40), target = num(m.target);
@@ -271,7 +271,8 @@ function proposedFields(raw: unknown, taken: readonly string[] = []): FlowField[
     const options = words(f.options, 30, 80);
     fields.push({
       key: fieldKeyOf(label, [...taken, ...fields.map(x => x.key)]), label, type,
-      ...(unit && (type === 'number' || type === 'reading' || type === 'calc') ? { unit } : {}),
+      ...(type === 'timer' ? { unit: (TIMER_UNITS as readonly string[]).includes(unit) ? unit : /^min/i.test(unit) ? 'min' : /^h/i.test(unit) ? 'h' : 's' }
+        : unit && isNumberBox(type) ? { unit } : {}),
       ...(min !== undefined && type !== 'calc' ? { min } : {}),
       ...(max !== undefined && type !== 'calc' ? { max } : {}),
       ...(type === 'choice' && options.length ? { options } : {}),
@@ -293,7 +294,7 @@ function proposedRule(raw: unknown, earlier: readonly { title: string; key: stri
   const op = (RULE_OPS as readonly string[]).includes(str(raw.op, 3)) ? str(raw.op, 3) as RuleOp : undefined;
   const v = str(raw.value, 80);
   if (!st || !f || !op || !v) return undefined;
-  const numeric = ['number', 'reading', 'calc'].includes(f.type) || !['choice', 'yesno', 'text', 'person', 'date'].includes(f.type);
+  const numeric = isNumberBox(f.type) || !['choice', 'yesno', 'text', 'person', 'date'].includes(f.type);
   const value = numeric && Number.isFinite(Number(v)) ? Number(v) : f.type === 'yesno' ? /^(y|yes|true)$/i.test(v) : v;
   return { step: st.key, field: f.key, op, value };
 }

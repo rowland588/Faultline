@@ -13767,6 +13767,14 @@ textarea.fw-in { font: inherit; line-height: 1.45; }
 .fw-state.is-a b { color: var(--st-a); }
 .fw-state.is-g b { color: var(--st-g); }
 .fw-calc-v { font-size: 20px; font-variant-numeric: tabular-nums; }
+/* a timed box (ui/flow/Timer): Start big enough for a gloved thumb; the running clock the loudest thing in the box */
+.fw-timer { display: flex; flex-direction: column; gap: 6px; }
+.fw-timer-idle { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.fw-timer-idle .fw-num { width: 7em; }
+.fw-timer-b { min-height: 44px; min-width: 96px; font-size: 16px; }
+.fw-timer-clock { font-size: 34px; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: .01em; color: var(--ink); }
+.fw-timer.is-running { border-left: 3px solid var(--brand); padding-left: 10px; }
+.fw-entry-r .fw-f-timer { grid-column: 1 / -1; }
 .fw-docs { display: grid; gap: 6px; margin: 6px 0; }
 .fw-gate-list { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 6px; }
 .fw-gc { display: grid; grid-template-columns: 20px 1fr; gap: 4px 8px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--line); }

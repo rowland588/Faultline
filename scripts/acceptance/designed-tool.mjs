@@ -396,6 +396,88 @@ const f4 = join(dir, 'reliability.pdf'); await dl4.saveAs(f4);
 const pdf4 = flat(execFileSync('pdftotext', ['-raw', f4, '-'], { encoding: 'utf8' }));
 ok(pdf4.includes(relTruth) && /chance of a failure by then, up/.test(pdf4) && /Hours run since the last, across/.test(pdf4), '8v on paper: the fit said and its curve drawn', pdf4.slice(pdf4.indexOf('Time between failures'), pdf4.indexOf('Time between failures') + 300));
 
+/* 8w — a time taken with a tap (lib/flow/definition 'timer'; ui/flow/Timer): Faultline's short
+   stops method — Start when it stops, Stop when it runs, Lap when the next follows at once, the
+   clock kept through a reload, a time typed by hand — every figure the module's on the same
+   entries, the cost at the rate typed, and the times on paper in seconds */
+await page.goto(`${BASE}/#/methods`); await page.locator('.fw-card[data-library="short-stops"]').waitFor({ timeout: 15000 });
+await page.locator('.fw-card[data-library="short-stops"]').getByRole('button', { name: 'Use it as it is' }).click();
+await page.waitForFunction(() => /Time every short stop for a few shifts/i.test(document.querySelector('.nv-main')?.textContent ?? ''), null, { timeout: 15000 }).catch(() => {});
+await page.getByRole('button', { name: 'Approve version 1' }).click();
+await page.getByRole('button', { name: 'Start a project on it' }).click();
+await sheet().waitFor();
+await page.getByLabel("The project's name", { exact: true }).fill('Bagger short stops');
+await sheet().getByRole('button', { name: 'Start it' }).click();
+await page.locator('.fw-row[data-step="time-before"]').waitFor({ timeout: 15000 });
+const openTimed = async () => { if (!(await sheet().locator('.fw-log-panel').count())) await page.locator('.fw-row[data-step="time-before"]').first().click(); await sheet().locator('.fw-log-panel').waitFor(); };
+await openTimed();
+const tform = () => sheet().locator('.fw-entry').first();
+const timer = () => tform().locator('.fw-timer[data-timer="time_to_clear"]');
+const startBtn = () => timer().getByRole('button', { name: 'Start timing time to clear' });
+ok(await startBtn().count() === 1 && /or type it/.test(flat(await timer().innerText())), '8w a timed box on the floor: Start, or type it', flat(await timer().innerText()));
+await startBtn().click();
+await page.waitForTimeout(1300);
+const clock1 = flat(await timer().locator('.fw-timer-clock').innerText());
+await timer().getByRole('button', { name: 'Stop', exact: true }).click();
+const t1 = Number(await tform().getByLabel('Time to clear (s)', { exact: true }).inputValue());
+ok(/^0:01\.\d$/.test(clock1) && t1 >= 1.2 && t1 < 3, `8w1 timed: the clock ran (${clock1}) and Stop kept ${t1} s in the box`);
+await tform().getByLabel('What stopped it', { exact: true }).selectOption('Jam');
+await tform().getByRole('button', { name: 'Add the entry' }).click(); await page.waitForTimeout(500);
+ok(await sheet().locator('.fw-entries-t tbody tr').count() === 1 && await startBtn().count() === 1 && /or type it/.test(flat(await timer().innerText())), '8w2 added, and the box ready for the next stop');
+/* Lap: the next stop follows at once */
+await startBtn().click();
+await tform().getByLabel('What stopped it', { exact: true }).selectOption('Sensor');
+await page.waitForTimeout(800);
+await timer().getByRole('button', { name: 'Lap — add it, time the next' }).click(); await page.waitForTimeout(600);
+const lapped = { entries: await sheet().locator('.fw-entries-t tbody tr').count(), running: await timer().locator('.fw-timer-clock').count(), cause: await tform().getByLabel('What stopped it', { exact: true }).inputValue() };
+ok(lapped.entries === 2 && lapped.running === 1 && lapped.cause === 'Sensor', '8x Lap: the stop added, the next timed from the same moment, what stopped it kept for it', JSON.stringify(lapped));
+/* the phone locks, the page reloads — the clock is still running */
+await page.waitForTimeout(700);
+await page.reload(); await page.waitForTimeout(1500);
+await page.locator('.fw-row[data-step="time-before"]').first().waitFor({ timeout: 15000 });
+await openTimed();
+const clock2 = flat(await timer().locator('.fw-timer-clock').innerText().catch(() => ''));
+ok(/^0:0[1-9]\.\d$/.test(clock2), `8x1 kept through a reload: the clock still running from the lap (${clock2})`, clock2);
+/* on a phone, as it is used on the floor: the clock and Stop big enough for a thumb, nothing off the side */
+await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(500);
+const thumb = await timer().getByRole('button', { name: 'Stop', exact: true }).boundingBox();
+const phoneFits = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
+if (process.env.SHOTS) await sheet().screenshot({ path: join(process.env.SHOTS, 'timing-phone.png') });
+ok(phoneFits && (thumb?.height ?? 0) >= 44 && (thumb?.width ?? 0) >= 96, '8x2 on a phone: the running clock fits, Stop big enough for a thumb', JSON.stringify(thumb));
+await page.setViewportSize({ width: 1360, height: 900 }); await page.waitForTimeout(400);
+await timer().getByRole('button', { name: 'Stop', exact: true }).click();
+/* timed, then corrected by hand — the watch was started late */
+await tform().getByLabel('Time to clear (s)', { exact: true }).fill('45'); await tform().getByLabel('Time to clear (s)', { exact: true }).press('Enter');
+await tform().getByLabel('What stopped it', { exact: true }).selectOption('Jam');
+await tform().getByRole('button', { name: 'Add the entry' }).click(); await page.waitForTimeout(500);
+/* and one typed alone, as the floor sometimes does */
+await tform().getByLabel('Time to clear (s)', { exact: true }).fill('30'); await tform().getByLabel('Time to clear (s)', { exact: true }).press('Enter');
+await tform().getByLabel('What stopped it', { exact: true }).selectOption('Film or label');
+await tform().getByRole('button', { name: 'Add the entry' }).click(); await page.waitForTimeout(500);
+await sheet().getByLabel('What a minute stopped costs', { exact: true }).fill('12'); await sheet().getByLabel('What a minute stopped costs', { exact: true }).press('Enter');
+await page.waitForFunction(() => /What the stops cost a day: £/.test(document.querySelector('[role="dialog"] .fw-results')?.textContent ?? ''), null, { timeout: 10000 }).catch(() => {});
+const pidS = await page.evaluate(async () => (await (await import('/src/db.ts')).allProjects()).find(p => p.name === 'Bagger short stops')?.id);
+const stTruth = await page.evaluate(async pid => {
+  const A = await import('/src/lib/flow/analysis.ts'), L = await import('/src/lib/flow/library.ts'), F = await import('/src/db/flow.ts');
+  const st = L.libraryEntry('short-stops').build().stages[0].steps[0];
+  const rec = (await F.listFlowRecords(pid)).find(r => r.stepKey === 'time-before' && !r.deletedAt);
+  const entries = rec?.entries ?? [];
+  const r = A.analyse(st.analyses, st.columns, entries, { values: { cost_of_a_minute: 12 }, labels: { cost_of_a_minute: 'What a minute stopped costs' } });
+  return { times: entries.filter(e => !e.struck).map(e => e.values.time_to_clear), lost: r.lost_a_day.says, cause: r.biggest_cause.says, cost: r.cost_a_day.says, average: r.average_stop.says };
+}, pidS);
+const tSaid = flat(await sheet().locator('.fw-results').innerText());
+ok(stTruth.times.length === 4 && stTruth.times[0] === t1 && stTruth.times[1] > 0.6 && stTruth.times[1] < 2.5 && stTruth.times[2] === 45 && stTruth.times[3] === 30,
+  `8y each time kept as taken: ${stTruth.times.join(', ')} s — Stop, Lap, timed and corrected, typed`, JSON.stringify(stTruth.times));
+ok(tSaid.includes(stTruth.lost) && tSaid.includes(stTruth.cause) && tSaid.includes(stTruth.cost) && tSaid.includes(stTruth.average) && /Jam/.test(stTruth.cause),
+  `8y1 what the times add up to, as lib/flow/analysis says: "${stTruth.lost}" · "${stTruth.cause}" · "${stTruth.cost}"`, tSaid.slice(0, 400));
+ok(/45 s/.test(flat(await sheet().locator('.fw-entries-t').innerText())), '8y2 every entry with its time in seconds');
+if (process.env.SHOTS) await sheet().locator('.fw-log-panel').screenshot({ path: join(process.env.SHOTS, 'timed.png') });
+await page.keyboard.press('Escape'); await settle();
+const [dl5] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Method report' }).click()]);
+const f5 = join(dir, 'timed.pdf'); await dl5.saveAs(f5);
+const pdf5 = flat(execFileSync('pdftotext', ['-raw', f5, '-'], { encoding: 'utf8' }));
+ok(pdf5.includes(stTruth.lost) && pdf5.includes(stTruth.cost) && /Time to clear 45 s/.test(pdf5), '8z on paper: what the times add up to, the cost a day, and each time in seconds', pdf5.slice(pdf5.indexOf('Time every short stop'), pdf5.indexOf('Time every short stop') + 300));
+
 /* 9 — the phone */
 await page.setViewportSize({ width: 390, height: 844 });
 await page.goBack(); await page.waitForTimeout(800);

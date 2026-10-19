@@ -16,7 +16,7 @@
  * square; a step that ran without its answer complete is asked about, not
  * filed as planned. */
 import { addDays, niceDay } from '../weeks';
-import { allSteps, isTest, numbersOf, roleName, type FlowCondition, type FlowDefinition, type FlowField, type FlowMeasure, type FlowRule, type FlowStage, type FlowStepDef } from './definition';
+import { allSteps, isTest, isTypedNumber, numbersOf, roleName, type FlowCondition, type FlowDefinition, type FlowField, type FlowMeasure, type FlowRule, type FlowStage, type FlowStepDef } from './definition';
 import { answeredByRecord, componentOf } from './components';
 import { calc } from './formula';
 import { analyse, figuresOf, numberSaid, type AnalysisResult } from './analysis';
@@ -210,7 +210,7 @@ export function valuesOf(step: FlowStepDef, typed: Record<string, string | numbe
     if (f.type === 'calc') continue;
     const v = typed[f.key];
     if (!filled(v)) continue;
-    if (f.type === 'number' || f.type === 'reading') {
+    if (isTypedNumber(f.type)) {
       const n = typeof v === 'number' ? v : Number(v);
       if (Number.isFinite(n)) out[f.key] = n;
     } else out[f.key] = v;
@@ -232,7 +232,7 @@ export function valuesOf(step: FlowStepDef, typed: Record<string, string | numbe
 export function limitsBroken(step: FlowStepDef, values: Record<string, string | number | boolean>): string[] {
   const out: string[] = [];
   for (const f of step.fields ?? []) {
-    if (f.type !== 'reading' && f.type !== 'number') continue;
+    if (!isTypedNumber(f.type)) continue;
     const v = values[f.key];
     if (typeof v !== 'number') continue;
     if (f.min !== undefined && v < f.min) out.push(`${f.label} ${withUnit(v, f)} — at least ${withUnit(f.min, f)}`);
@@ -250,7 +250,7 @@ export function missingOf(def: FlowDefinition, step: FlowStepDef, rec: FlowRecor
   }
   if (step.answer === 'measure') {
     for (const f of step.fields ?? []) {
-      if ((f.type === 'reading' || (f.type === 'number' && (f.min !== undefined || f.max !== undefined))) && !filled(values[f.key]) && !f.required) out.push(f.label);
+      if ((f.type === 'reading' || (isTypedNumber(f.type) && (f.min !== undefined || f.max !== undefined))) && !filled(values[f.key]) && !f.required) out.push(f.label);
     }
   }
   const photos = (rec?.media ?? []).length;

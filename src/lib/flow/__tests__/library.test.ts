@@ -41,6 +41,8 @@ describe('Faultline’s library', () => {
     expect(ids('The fill weight on the depositor keeps drifting and we want it held in control')[0]).toBe('held-in-control');
     /* reliability, from the block written from its brief */
     expect(ids('The wrapper keeps breaking down and we want to know how often and plan maintenance before it fails')[0]).toBe('breakdowns');
+    /* a time taken with a tap — the short stops timed as they are cleared */
+    expect(ids('The bagger has lots of short stops and we want to time how long each jam takes to clear')[0]).toBe('short-stops');
     expect(ids('zzz qqq')).toEqual([]);
   });
 });

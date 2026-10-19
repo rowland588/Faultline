@@ -19,6 +19,7 @@ import type { StepInstance } from '../../lib/flow/runtime';
 import { addEntry, editEntry, strikeEntry, type FlowProject, type OpContext, type StepRef } from '../../lib/flow/operations';
 import { niceDay, todayISO } from '../../lib/weeks';
 import { offerUndo } from '../Undo';
+import { TimerBox } from './Timer';
 
 type Typed = Record<string, string | number | boolean>;
 
@@ -26,14 +27,26 @@ const shown = (v: string | number | boolean | undefined, c: FlowField) =>
   v === undefined || v === '' ? '—' : typeof v === 'boolean' ? (v ? 'Yes' : 'No') : typeof v === 'number' ? `${fmtNumber(v)}${c.unit ? ` ${c.unit}` : ''}` : String(v);
 
 /** The boxes of one entry, kept here until it is added. */
-function EntryForm({ columns, start, onSubmit, submitWord, onCancel }: {
+function EntryForm({ columns, start, onSubmit, submitWord, onCancel, keepAs }: {
   columns: FlowField[]; start?: Typed; onSubmit: (typed: Typed, on: string) => Promise<string | undefined>; submitWord: string; onCancel?: () => void;
+  /** Where a running timer's start is kept on the device (ui/flow/Timer). */
+  keepAs: string;
 }) {
   const [typed, setTyped] = useState<Typed>(start ?? {});
   const [on, setOn] = useState(todayISO());
   const [err, setErr] = useState<string | null>(null);
   const worked = entryValues(columns, typed);
   const set = (k: string, v: string | number | boolean) => setTyped(t => ({ ...t, [k]: v }));
+  /* a lap: the entry added with this time, the other boxes kept for the next
+     (the same station, the same reason), and the next timed from the same moment */
+  const lap = (k: string) => async (v: number): Promise<boolean> => {
+    const next = { ...typed, [k]: v };
+    const why = await onSubmit(next, on);
+    if (why) { setErr(why); setTyped(next); return false; }
+    setErr(null);
+    setTyped(Object.fromEntries(Object.entries(next).filter(([key]) => key !== k)));
+    return true;
+  };
   return (
     <form className="fw-entry" onSubmit={e => {
       e.preventDefault();
@@ -44,6 +57,13 @@ function EntryForm({ columns, start, onSubmit, submitWord, onCancel }: {
           const head = <span className="field-label">{c.label}{c.unit ? ` (${c.unit})` : ''}{c.required ? ' · needed' : ''}</span>;
           const v = typed[c.key];
           if (c.type === 'calc') return <div key={c.key} className="fw-f fw-calc" data-col={c.key}>{head}<b className="fw-calc-v">{typeof worked[c.key] === 'number' ? shown(worked[c.key], c) : '—'}</b></div>;
+          if (c.type === 'timer') return (
+            <div key={c.key} className="fw-f fw-f-timer" data-col={c.key}>{head}
+              <TimerBox f={c} value={typeof v === 'number' ? v : typeof v === 'string' && v.trim() && Number.isFinite(Number(v)) ? Number(v) : undefined} keepAs={`${keepAs}:${c.key}`}
+                onTime={t => setTyped(x => { const o = { ...x }; if (t === undefined) delete o[c.key]; else o[c.key] = t; return o; })}
+                onLap={start ? undefined : lap(c.key)} />
+            </div>
+          );
           if (c.type === 'choice') return (
             <label key={c.key} className="fw-f" data-col={c.key}>{head}
               <select className="text-input fw-in" aria-label={c.label} value={typeof v === 'string' ? v : ''} onChange={e => set(c.key, e.target.value)}>
@@ -284,7 +304,7 @@ export function LogPanel({ fp, inst, ctx, live }: { fp: FlowProject; inst: StepI
     <div className="fw-log-panel" data-log={inst.def.key}>
       <span className="field-label">The log — {counted} entr{counted === 1 ? 'y' : 'ies'}{want > 1 ? ` of the ${want} it needs` : ''}</span>
       {live && (
-        <EntryForm columns={cols} submitWord="Add the entry"
+        <EntryForm columns={cols} submitWord="Add the entry" keepAs={`log:${ref.projectId}:${ref.stageKey}:${ref.stepKey}:${ref.assetId ?? ''}`}
           onSubmit={async (typed, on) => { const r = await addEntry(ctx, ref, typed, on); return r.ok ? undefined : r.why; }} />
       )}
       <LogResults inst={inst} />
@@ -297,7 +317,7 @@ export function LogPanel({ fp, inst, ctx, live }: { fp: FlowProject; inst: StepI
                 const v = entryValues(cols, e.values);
                 if (fixing === e.id) return (
                   <tr key={e.id} className="fw-entry-fix"><td colSpan={cols.length + 3}>
-                    <EntryForm columns={cols} start={e.values} submitWord="Save the correction" onCancel={() => setFixing(null)}
+                    <EntryForm columns={cols} start={e.values} submitWord="Save the correction" onCancel={() => setFixing(null)} keepAs={`fix:${e.id}`}
                       onSubmit={async typed => {
                         const r = await editEntry(ctx, ref, e.id, typed);
                         if (!r.ok) return r.why;

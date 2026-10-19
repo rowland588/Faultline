@@ -19,7 +19,7 @@ import {
   listFlowRecords, listObservations, listWorkspaces, methodFamily, putAsset, putFlowRecord, putMethod, updateProject, createProject,
 } from '../../db';
 import { readCapacity, readTool } from './toolRead';
-import type { FlowDefinition } from './definition';
+import { isTypedNumber, type FlowDefinition } from './definition';
 import { validateDefinition, type Issue } from './validate';
 import { readFlow, type FlowProblem, type FlowState, type ToolReading } from './runtime';
 import type { ActivityEntry, FlowRecord, Method, ProjectFlow } from './records';
@@ -304,7 +304,7 @@ function readEntry(fp: FlowProject, s: StepRef, typed: Record<string, string | n
     const v = typed[c.key];
     const blank = v === undefined || v === null || (typeof v === 'string' && !v.trim());
     if (blank) { if (c.required) return { why: `Say ${c.label.toLowerCase()}.` }; continue; }
-    if (c.type === 'number' || c.type === 'reading') {
+    if (isTypedNumber(c.type)) {
       const n = typeof v === 'number' ? v : Number(String(v).replace(',', '.'));
       if (!Number.isFinite(n)) return { why: `${c.label} is a number.` };
       values[c.key] = n;
