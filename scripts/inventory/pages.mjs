@@ -231,6 +231,15 @@ export const PAGES = (sd, cap) => [
   { name: 'Video studies', path: '#/video', must: [
     { what: 'a row a study — its standing, its kind, its footage and line', sel: '.lt-li[data-study]' },
     { what: 'New video study', sel: '.pace-head-actions button', text: /^New video study$/ },
+    /* before a long study (19 October, docs/VIDEO-FEASIBILITY.md) */
+    { what: 'Can this phone film a long study?', sel: '.vck-door button', text: /^Can this phone film a long study\?$/ },
+  ] },
+  /* the phone check (19 October, docs/VIDEO-FEASIBILITY.md): what the phone offers, then the test — what it found shows only after a run, which video-check.mjs drives */
+  { name: 'Can this phone film a long study?', path: '#/video-check', must: [
+    { what: 'its question', sel: 'h1', text: /^Can this phone film a long study\?$/ },
+    { what: 'what this phone offers — what it films, the screen, room, the battery', sel: '.vck-offers .vck-line', n: 4 },
+    { what: 'how long — two minutes to an hour', sel: '.vck-len [role=radio]', n: 4 },
+    { what: 'Start the test', sel: '.vck-start .btn-primary', text: /^Start the test$/ },
   ] },
   { name: 'A video study', path: `#/video/${sd.videoStudyId}`, must: [
     { what: 'where it stands — never verified while one is to review', sel: '[data-standing]', text: /to review · \d+ accepted/ },

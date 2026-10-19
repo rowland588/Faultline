@@ -83,6 +83,7 @@ const ROUTES = [
   ['a project on SMED’s method — a step answered by a SMED study, the measure', `#/project/${seeded.smedProjectId}`],
   ['a project on SMED’s method — the step answered by SMED, open', `#/project/${seeded.smedProjectId}?step=${encodeURIComponent('record/time-now/')}`],
   ['video studies — every one', '#/video'],
+  ['can this phone film a long study? — what it offers, the lengths', '#/video-check'],
   ['a video study — its footage elsewhere, its events reviewed, the line balance, takt', `#/video/${seeded.videoStudyId}`],
   ['project setup', `#/project/${seeded.projectId}/setup`],
   ['lever tree', `#/project/${seeded.treeProjectId}/tree`],

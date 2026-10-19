@@ -36,19 +36,16 @@ export function schedule(o: SynthOptions): Timed[] {
   return out;
 }
 
-/** Record the footage. Takes as long as the footage runs. */
-export async function makeLineVideo(o: SynthOptions): Promise<{ blob: Blob; truth: Timed[]; mime: string }> {
-  const fps = o.fps ?? 25, W = o.width ?? 640, H = o.height ?? 360;
+/** The scene at any moment, drawn on a canvas — what makeLineVideo records,
+ *  and what a live reading is fed as if it were a camera
+ *  (scripts/video-feasibility.mjs: canvas.captureStream). */
+export function lineScene(o: SynthOptions): { canvas: HTMLCanvasElement; truth: Timed[]; draw: (t: number) => void } {
+  const W = o.width ?? 640, H = o.height ?? 360;
   const truth = schedule(o);
   const cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d');
   if (!ctx) throw new Error('no canvas');
-  const mime = ['video/webm;codecs=vp8', 'video/webm'].find(m => MediaRecorder.isTypeSupported(m)) ?? 'video/webm';
-  const stream = cv.captureStream(fps);
-  const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 2_500_000 });
-  const parts: Blob[] = [];
-  rec.ondataavailable = e => { if (e.data.size) parts.push(e.data); };
   const n = o.stations.length;
   const grain = o.grain ?? 10;
   const noise = rng((o.seed ?? 11) + 7);
@@ -77,6 +74,18 @@ export async function makeLineVideo(o: SynthOptions): Promise<{ blob: Blob; trut
       ctx.putImageData(img, 0, 0);
     }
   };
+  return { canvas: cv, truth, draw };
+}
+
+/** Record the footage. Takes as long as the footage runs. */
+export async function makeLineVideo(o: SynthOptions): Promise<{ blob: Blob; truth: Timed[]; mime: string }> {
+  const fps = o.fps ?? 25;
+  const { canvas: cv, truth, draw } = lineScene(o);
+  const mime = ['video/webm;codecs=vp8', 'video/webm'].find(m => MediaRecorder.isTypeSupported(m)) ?? 'video/webm';
+  const stream = cv.captureStream(fps);
+  const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 2_500_000 });
+  const parts: Blob[] = [];
+  rec.ondataavailable = e => { if (e.data.size) parts.push(e.data); };
   draw(0);
   rec.start(250);
   const t0 = performance.now();

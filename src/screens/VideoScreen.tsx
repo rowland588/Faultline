@@ -96,6 +96,8 @@ export function VideosScreen() {
         </div>
         <div className="pace-head-actions"><button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>New video study</button></div>
       </header>
+      {/* before a long study: whether the phone that would film it can (docs/VIDEO-FEASIBILITY.md) */}
+      <p className="vck-door"><button type="button" className="linkish" onClick={() => nav('/video-check')}>Can this phone film a long study?</button> Try it here first: the camera read as it films, clips, a steady camera, the screen and the battery.</p>
       {list && !list.length && (
         <div className="qsl-empty">
           <p>No video studies yet. A minute or two of the line, filmed side-on with every station in view, is enough for a first one.</p>

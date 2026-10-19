@@ -15,7 +15,8 @@ export function videoCaptureSupported(): boolean {
  * opens on anything, including Safari and Windows' default player; a VP9 WebM
  * is Chrome/Firefox only, so a clip filmed on an Android phone would refuse to
  * play on a colleague's Mac. We only fall back to WebM when MP4 isn't offered. */
-function pickMimeType(): string | undefined {
+export function pickMimeType(): string | undefined {
+  if (typeof MediaRecorder === 'undefined') return undefined;
   return [
     'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
     'video/mp4;codecs=avc1',

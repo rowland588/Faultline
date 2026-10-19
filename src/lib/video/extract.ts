@@ -118,10 +118,7 @@ export class Reader {
   grey(): Uint8ClampedArray {
     const { width: w, height: h } = this.canvas;
     this.ctx.drawImage(this.v, 0, 0, w, h);
-    const px = this.ctx.getImageData(0, 0, w, h).data;
-    const out = new Uint8ClampedArray(w * h);
-    for (let i = 0, j = 0; i < px.length; i += 4, j++) out[j] = (px[i] * 299 + px[i + 1] * 587 + px[i + 2] * 114) / 1000;
-    return out;
+    return toGrey(this.ctx.getImageData(0, 0, w, h).data);
   }
   size(): { w: number; h: number } { return { w: this.canvas.width, h: this.canvas.height }; }
   /** The frame now at full size, or a part of it, as a JPEG. */
@@ -136,6 +133,13 @@ export class Reader {
     return new Promise((resolve, reject) => cv.toBlob(b => (b ? resolve(b) : reject(new Error('The frame could not be made into a picture.'))), 'image/jpeg', 0.8));
   }
   close(): void { this.v.removeAttribute('src'); this.v.load(); URL.revokeObjectURL(this.url); }
+}
+
+/** A frame's colours as one brightness a pixel, 0–255 (the eye's weights). */
+export function toGrey(px: Uint8ClampedArray): Uint8ClampedArray {
+  const out = new Uint8ClampedArray(px.length / 4);
+  for (let i = 0, j = 0; i < px.length; i += 4, j++) out[j] = (px[i] * 299 + px[i + 1] * 587 + px[i + 2] * 114) / 1000;
+  return out;
 }
 
 /** HOW MUCH EACH STATION CHANGED between two grey frames — the mean

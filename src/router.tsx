@@ -59,6 +59,7 @@ const DesignScreen = lazy(() => import('./screens/DesignScreen').then(m => ({ de
 const StartScreen = lazy(() => import('./screens/StartScreen').then(m => ({ default: m.StartScreen })));
 const VideosScreen = lazy(() => import('./screens/VideoScreen').then(m => ({ default: m.VideosScreen })));
 const VideoStudyScreen = lazy(() => import('./screens/VideoScreen').then(m => ({ default: m.VideoStudyScreen })));
+const VideoCheckScreen = lazy(() => import('./screens/VideoCheckScreen').then(m => ({ default: m.VideoCheckScreen })));
 const FlowProjectScreen = lazy(() => import('./screens/FlowProjectScreen').then(m => ({ default: m.FlowProjectScreen })));
 import { RequireModel } from './ui/RequireModel';
 import { RecordDrawerHost } from './ui/RecordDrawer';
@@ -159,6 +160,7 @@ function app(route: Route) {
   /* a video study (docs/VIDEO.md): every one, and one */
   if (route.name === 'videos') return <VideosScreen />;
   if (route.name === 'videoStudy' && route.id) return <VideoStudyScreen key={route.id} id={route.id} />;
+  if (route.name === 'videoCheck') return <VideoCheckScreen />;
   if (route.name === 'method' && route.id) return <MethodScreen key={route.id} id={route.id} />;
   /* ?line= opens it on one line — keyed on it, so a second line starts afresh */
   if (route.name === 'linePrograms') return <LineProgramsScreen key={route.query.get('line') ?? ''} />;

@@ -29,6 +29,13 @@ measured, what it does not do, and what waits on someone.
   made) and reads its figures (balance efficiency, people needed, the longest
   stack); its report.
 - **Replaces:** nothing.
+- **Before a long study** (19 October): *Can this phone film a long study?*,
+  from Video studies (`#/video-check`, screens/VideoCheckScreen), tries each
+  thing a long study needs on the phone that would film it and says what it
+  found, a line an ability, with the figures to copy and send. It reads no
+  record and writes none — a phone's check is not evidence for a change — and
+  what it saves on the phone as it runs is deleted when it ends. Why it
+  exists and what it found: `docs/VIDEO-FEASIBILITY.md`.
 
 ## The pipeline as built
 

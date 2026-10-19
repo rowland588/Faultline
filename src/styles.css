@@ -13979,6 +13979,45 @@ textarea.fw-in { font: inherit; line-height: 1.45; }
   .vid-lane { grid-template-columns: 76px 1fr; }
   .vid-table { font-size: .8rem; display: block; overflow-x: auto; }
 }
+/* CAN THIS PHONE FILM A LONG STUDY? (screens/VideoCheckScreen) — a line an
+   ability, the state colour only on what is not right (a quiet green edge for
+   what is), the camera's picture with its thirds and how much each moves */
+.vck-door { margin: -4px 0 14px; color: var(--muted); }
+.vck-door .linkish { font-weight: 600; margin-right: 6px; }
+.vck-lines { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.vck-line { display: grid; grid-template-columns: 170px 1fr; gap: 2px 12px; padding: 8px 10px; border: 1px solid var(--line); border-left: 4px solid var(--st-n); border-radius: 8px; background: var(--surface); }
+.vck-line b { color: var(--ink); }
+.vck-line.is-g { border-left-color: color-mix(in srgb, var(--st-g) 55%, var(--line)); }
+.vck-line.is-a { border-left-color: var(--st-a); background: color-mix(in srgb, var(--st-a) 6%, var(--surface)); }
+.vck-line.is-r { border-left-color: var(--st-r); background: color-mix(in srgb, var(--st-r) 7%, var(--surface)); }
+.vck-line.is-r b { color: var(--st-r); }
+.vck-len { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 12px; }
+.vck-cam { position: relative; max-width: 720px; }
+.vck-cam video { display: block; width: 100%; max-height: 56vh; background: #000; border-radius: 8px; }
+.vck-thirds { position: absolute; inset: 0; pointer-events: none; }
+.vck-thirds i { position: absolute; top: 0; bottom: 0; border-right: 2px dashed rgba(34, 195, 214, .85); box-sizing: border-box; }
+.vck-thirds i:last-child { border-right: 0; }
+.vck-thirds b { position: absolute; left: 8px; bottom: 8px; width: 8px; max-height: calc(100% - 16px); background: rgba(34, 195, 214, .9); border-radius: 3px; transition: height .2s; }
+.vck-live { display: grid; gap: 4px; margin: 12px 0; }
+.vck-live > div { display: grid; grid-template-columns: 110px 1fr; gap: 8px; }
+.vck-live dt { color: var(--muted); }
+.vck-live dd { margin: 0; }
+.vck-head { font-size: 1.15rem; font-weight: 700; margin: 0 0 2px; padding-left: 10px; border-left: 4px solid var(--st-n); }
+.vck-head.is-g { border-left-color: var(--st-g); }
+.vck-head.is-a { border-left-color: var(--st-a); }
+.vck-head.is-r { border-left-color: var(--st-r); color: var(--st-r); }
+.vck-ran { margin: 0 0 10px; }
+.vck-next { margin: 10px 0 0; }
+.vck-acts { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 6px; }
+.vck-copied { margin: 4px 0; }
+.vck-text { width: 100%; min-height: 160px; font-family: ui-monospace, monospace; font-size: .75rem; }
+.vck-clip { margin: 14px 0 0; max-width: 520px; }
+.vck-clip video { display: block; width: 100%; border-radius: 8px; background: #000; }
+@media (max-width: 640px) {
+  .vck-line { grid-template-columns: 1fr; }
+  .vck-live > div { grid-template-columns: 92px 1fr; }
+}
+
 /* each station's workload — work dark (the slowest graphite), waiting light, takt dashed red */
 .vid-load { display: block; width: 100%; max-width: 640px; margin: 10px 0; }
 .vid-load-grid { stroke: var(--line); stroke-width: 1; }

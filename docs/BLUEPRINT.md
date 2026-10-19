@@ -453,7 +453,15 @@ proved before the next), how every statement says how it is known, and the
 protocol for measuring accuracy against observations timed by hand. The
 footage reaches the cloud since 19 October (`supabase/VIDEO_MEDIA.sql`,
 `lib/video/footage`: sent with the study, fetched by a device that lacks it,
-deleted everywhere). Waiting on Rowland: permissioned footage from the floor.
+deleted everywhere). Whether a long study — a phone left on the line for an
+hour or three — can be done was measured before any of it is built (Rowland,
+19 October: "make sure that the technical abilities are possible.. and then
+how we achieve them"; docs/VIDEO-FEASIBILITY.md): read live as it films and
+keep the reading, short clips and stills, never the hours; a fixed camera,
+side-on or from above, said steady or not as it reads (`lib/video/steady`);
+and *Can this phone film a long study?* from Video studies, which tries it on
+the phone itself. Waiting on Rowland: permissioned footage from the floor,
+and that check run on the phone that would film it.
 
 **Money in every tool** (Rowland, 17 October: "everything must derive a cost
 in the entire app ... it's all about money"; the rule is in CLAUDE.md,
