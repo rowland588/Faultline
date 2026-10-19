@@ -20,6 +20,7 @@ import type { LeanPage } from '../lean';
 import { niceDay, todayISO } from '../weeks';
 import type { FlowProject } from './operations';
 import type { ActivityEntry } from './records';
+import { checkOfPass } from './gateCheck';
 import { stageWord, stepSquare, stepWhy, stepWord, type Square } from './view';
 import { measureNumber, type StepInstance } from './runtime';
 import { BLOCKS, entryValues, fmtNumber, type AnalysisPicture, type AnalysisResult } from './analysis';
@@ -244,6 +245,9 @@ function blocksOf(r: FlowReport, d: Density): Block[] {
       out.push(text({ text: `${word} — ${c.label}${c.manual ? '' : ` (${c.why})`}`, size: 8, colour: c.met || (c.manual && g.pass?.checks?.[c.id]) ? OK : c.manual ? MUTED : c.policy === 'warn' ? WARN : DANGER, indent: 10, after: 2 }));
     }
     if (g.pass?.openAtPass?.length) out.push(text({ text: `Open when it was passed: ${g.pass.openAtPass.join('; ')}.`, size: 8, colour: MUTED, indent: 10, after: 2 }));
+    /* the server's reading of the pass, as the gate sheet says it — red when the records do not bear it out */
+    const check = checkOfPass(g.pass, fp.checks);
+    if (g.passed && check) out.push(text({ text: check.says, size: 8, style: check.verdict === 'disagrees' ? 'bold' : 'normal', colour: check.verdict === 'disagrees' ? DANGER : MUTED, indent: 10, after: 2 }));
     out.push({ height: f => gap(f.density, 'm'), draw: () => undefined });
   }
 

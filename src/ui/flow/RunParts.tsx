@@ -35,6 +35,8 @@ import {
   type FlowProject, type OpContext, type OpResult, type StepPatch, type StepRef,
 } from '../../lib/flow/operations';
 import { stepSquare, stepWhy, stepWord } from '../../lib/flow/view';
+import { NOT_CHECKED, checkOfPass } from '../../lib/flow/gateCheck';
+import { useSession } from '../../cloud/session';
 import { Sheet } from '../Sheet';
 import { Evidence } from '../EvidenceDoors';
 import { EvidenceViewer } from '../Evidence';
@@ -366,6 +368,8 @@ export function GateSheet({ fp, stage, ctx, onClose }: { fp: FlowProject; stage:
   const needsOverride = blockers.length > 0 || unchecked.length > 0;
   const owner = ctx.can.agree;
   const pass = g.pass;
+  const check = checkOfPass(pass, fp.checks);
+  const { session } = useSession();
 
   const doPass = async () => {
     const r = await passGate(ctx, { projectId: fp.project.id, stageKey: stage.key, checks, ...(needsOverride && override.trim() ? { override } : {}) });
@@ -410,6 +414,14 @@ export function GateSheet({ fp, stage, ctx, onClose }: { fp: FlowProject; stage:
           })}
         </ul>
         {pass?.openAtPass?.length ? <p className="sub">Open when it was passed: {pass.openAtPass.join('; ')}.</p> : null}
+        {/* THE SERVER'S READING (lib/flow/gateCheck): the device's word checked
+            where no device can write — quiet when borne out, red when not */}
+        {pass && check && (
+          <p className={check.verdict === 'disagrees' ? 'fw-state is-r fw-check' : 'sub fw-check'} data-check={check.verdict} role={check.verdict === 'disagrees' ? 'alert' : undefined}>
+            {check.says}{check.verdict === 'disagrees' ? (owner ? ' Reopen it below, or pass it again with the reason.' : ' Its owner can reopen it, or pass it again with the reason.') : ''}
+          </p>
+        )}
+        {pass && !check && session && <p className="sub fw-check" data-check="none">{NOT_CHECKED}</p>}
 
         {!pass && !owner && <p className="sub">Passing a gate is the project owner’s.</p>}
         {!pass && owner && !g.waitsOn && (

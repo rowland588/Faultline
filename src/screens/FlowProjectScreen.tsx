@@ -32,7 +32,8 @@ import { fmtRelative } from '../lib/format';
 import { setPeople } from '../lib/flow/operations';
 import { useFlowProject, useOpContext } from '../lib/flow/useFlow';
 import { flowLean, stageSquare, stageWord, stepSquare, stepWhy, stepWord } from '../lib/flow/view';
-import type { ActivityEntry, Method } from '../lib/flow/records';
+import type { ActivityEntry, GateCheck, Method } from '../lib/flow/records';
+import { checkOfPass } from '../lib/flow/gateCheck';
 import { measureNumber, stepsDoneSaid, type StageState, type StepInstance } from '../lib/flow/runtime';
 import { LeanActions, LeanBand, LeanClosing, LeanInsights, LeanPanel, LeanTiles } from '../ui/Lean';
 import { GateSheet, StepSheet } from '../ui/flow/RunParts';
@@ -96,7 +97,7 @@ export function FlowProjectScreen({ projectId }: { projectId: string }) {
   const today = todayISO();
   const page = useMemo(() => (fp ? flowLean({
     project: fp.project, def: fp.method.definition, version: fp.method.version, startedOn: fp.project.flow?.startedOn,
-    state: fp.state, problems: fp.problems, records: fp.records, machines: fp.machines,
+    state: fp.state, problems: fp.problems, records: fp.records, machines: fp.machines, checks: fp.checks,
   }, today) : null), [fp, today]);
 
   if (fp === undefined) return <div className="wrap fw"><p className="sub">Opening…</p></div>;
@@ -158,13 +159,17 @@ export function FlowProjectScreen({ projectId }: { projectId: string }) {
 
       {/* THE STAGES, IN ORDER — each in its colour with its word */}
       <nav className="fw-strip" aria-label="The stages">
-        {s.stages.map(st => (
-          <button key={st.key} type="button" className={'fw-sg is-' + stageSquare(st) + (chosen?.key === st.key ? ' on' : '')} aria-current={chosen?.key === st.key ? 'step' : undefined}
-            onClick={() => withQuery('view', `stage-${st.key}`, true)} data-stage={st.key}>
-            <span className="fw-sg-n">{st.index + 1}</span>
-            <span className="fw-sg-t"><b>{st.name}</b><span className="fw-sg-w">{stageWord(st)}</span></span>
-          </button>
-        ))}
+        {s.stages.map(st => {
+          /* a pass the server's reading does not bear out is a failure, said */
+          const unborne = checkOfPass(st.gate.pass, fp.checks)?.verdict === 'disagrees';
+          return (
+            <button key={st.key} type="button" className={'fw-sg is-' + (unborne ? 'r' : stageSquare(st)) + (chosen?.key === st.key ? ' on' : '')} aria-current={chosen?.key === st.key ? 'step' : undefined}
+              onClick={() => withQuery('view', `stage-${st.key}`, true)} data-stage={st.key}>
+              <span className="fw-sg-n">{st.index + 1}</span>
+              <span className="fw-sg-t"><b>{st.name}</b><span className="fw-sg-w">{unborne ? 'Passed — not borne out' : stageWord(st)}</span></span>
+            </button>
+          );
+        })}
       </nav>
 
       {chosen && (
@@ -184,7 +189,7 @@ export function FlowProjectScreen({ projectId }: { projectId: string }) {
             </div>
           ))}
           {chosen.steps.length === 0 && <p className="sub">No steps in this stage.</p>}
-          <GateLine stage={chosen} onOpen={() => setGateOpen(chosen.key)} />
+          <GateLine stage={chosen} check={checkOfPass(chosen.gate.pass, fp.checks)} onOpen={() => setGateOpen(chosen.key)} />
         </LeanPanel>
       )}
 
@@ -275,20 +280,22 @@ export function FlowProjectScreen({ projectId }: { projectId: string }) {
 }
 
 /** The stage's gate in one line, under its steps — opens the gate. */
-function GateLine({ stage, onOpen }: { stage: StageState; onOpen: () => void }) {
+function GateLine({ stage, check, onOpen }: { stage: StageState; check?: GateCheck; onOpen: () => void }) {
   const g = stage.gate;
   const unmet = g.conditions.filter(c => c.blocking);
   /* Not met yet is not wrong: a gate waiting on its own steps is grey, one
      waiting on something else amber; red is kept for a day gone or a failure
      (CLAUDE.md, visual management) — the steps above carry those. */
   const onSteps = unmet.length > 0 && unmet.every(c => c.type === 'stepsDone');
-  const word = g.passed ? `Passed${g.pass?.doneOn ? ` ${niceDay(g.pass.doneOn)}` : ''}${g.pass?.override ? ' — over what was unmet' : ''}`
+  /* the server's reading beside the pass: borne out is quiet, not borne out red */
+  const server = check?.verdict === 'disagrees' ? ' — not borne out by its records' : check?.verdict === 'agrees' ? ' — checked on the server' : '';
+  const word = g.passed ? `Passed${g.pass?.doneOn ? ` ${niceDay(g.pass.doneOn)}` : ''}${g.pass?.override ? ' — over what was unmet' : ''}${server}`
     : g.waitsOn ? `Waits on ${g.waitsOn}`
       : g.canPass ? 'Ready to pass'
         : onSteps ? `Waits on its steps — ${stepsDoneSaid(stage, false)}` : `${unmet.length} thing${unmet.length === 1 ? '' : 's'} not met`;
-  const tone = g.passed ? 'g' : g.canPass ? 'a' : g.waitsOn || onSteps ? 'n' : 'a';
+  const tone = check?.verdict === 'disagrees' ? 'r' : g.passed ? 'g' : g.canPass ? 'a' : g.waitsOn || onSteps ? 'n' : 'a';
   return (
-    <button type="button" className={'fw-gate-line is-' + tone} onClick={onOpen} data-gate={stage.key}>
+    <button type="button" className={'fw-gate-line is-' + tone} onClick={onOpen} data-gate={stage.key} {...(check ? { 'data-check': check.verdict } : {})}>
       <span className="fw-gate-k">The gate</span>
       <b>{word}</b>
       <span className="sub">{g.conditions.map(c => c.label).join(' · ')}</span>

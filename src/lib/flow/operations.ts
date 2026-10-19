@@ -15,14 +15,14 @@ import { uid, now } from '../ids';
 import { todayISO } from '../weeks';
 import type { Restore } from '../../db';
 import {
-  addActivity, deleteFlowRecord, deleteMethodRow, getMethod, getProject, getStandard, getStudy, listAllSnags, listAssets,
+  addActivity, deleteFlowRecord, deleteMethodRow, getMethod, getProject, getStandard, getStudy, listAllSnags, listAssets, listGateChecks,
   listFlowRecords, listObservations, listWorkspaces, methodFamily, putAsset, putFlowRecord, putMethod, updateProject, createProject,
 } from '../../db';
-import { readCapacity, readTool } from './toolRead';
+import { readToolsFrom } from './toolRead';
 import { isTypedNumber, type FlowDefinition } from './definition';
 import { validateDefinition, type Issue } from './validate';
 import { readFlow, type FlowProblem, type FlowState, type ToolReading } from './runtime';
-import type { ActivityEntry, FlowRecord, Method, ProjectFlow } from './records';
+import type { ActivityEntry, FlowRecord, GateCheck, Method, ProjectFlow } from './records';
 import type { FlowEntry } from './analysis';
 
 export interface OpContext {
@@ -196,6 +196,8 @@ export interface FlowProject {
   /** The tool records its steps point at, read by each tool's own module. */
   tools: Record<string, ToolReading>;
   state: FlowState;
+  /** The server's reading of each gate pass, by the pass's id (lib/flow/gateCheck). */
+  checks: Record<string, GateCheck>;
 }
 
 /** THE TOOL RECORDS A PROJECT'S STEPS POINT AT, read (lib/flow/toolRead) —
@@ -206,18 +208,13 @@ export async function readTools(studyIds: readonly string[]): Promise<Record<str
   if (!ids.length) return {};
   const studies = (await Promise.all(ids.map(id => getStudy(id)))).filter((x): x is NonNullable<typeof x> => !!x && !x.deletedAt);
   const lines = [...new Set(studies.filter(x => x.tool === 'losses' && x.workspaceId).map(x => x.workspaceId as string))];
-  const [workspaces, observations] = lines.length
+  /* not a study: a product's line standard, read for its Line capacity */
+  const found = new Set(studies.map(x => x.id));
+  const standards = (await Promise.all(ids.filter(id => !found.has(id)).map(id => getStandard(id)))).filter((x): x is NonNullable<typeof x> => !!x && !x.deletedAt);
+  const [workspaces, observations] = lines.length || standards.length
     ? await Promise.all([listWorkspaces(), Promise.all(lines.map(l => listObservations(l))).then(xs => xs.flat())])
     : [[], []];
-  const out: Record<string, ToolReading> = {};
-  for (const st of studies) out[st.id] = readTool(st, { observations, workspaces });
-  /* not a study: a product's line standard, read for its Line capacity */
-  const standards = (await Promise.all(ids.filter(id => !out[id]).map(id => getStandard(id)))).filter((x): x is NonNullable<typeof x> => !!x && !x.deletedAt);
-  if (standards.length) {
-    const ws = workspaces.length ? workspaces : await listWorkspaces();
-    for (const sd of standards) out[sd.id] = readCapacity(sd, ws.find(w => w.id === sd.workspaceId));
-  }
-  return out;
+  return readToolsFrom(ids, { studies, standards, workspaces, observations });
 }
 
 /** Everything a project running a method needs read, and read once. */
@@ -226,7 +223,7 @@ export async function loadFlowProject(projectId: ID, today: string = todayISO())
   if (!project?.flow) return undefined;
   const method = await getMethod(project.flow.methodId);
   if (!method) return undefined;
-  const [records, assets, snags] = await Promise.all([listFlowRecords(projectId), listAssets(projectId), listAllSnags()]);
+  const [records, assets, snags, checks] = await Promise.all([listFlowRecords(projectId), listAssets(projectId), listAllSnags(), listGateChecks(projectId)]);
   const machines = assets.filter(a => !a.deletedAt).sort((a, b) => a.sort - b.sort).map(a => ({ id: a.id, name: a.name }));
   const problems: FlowProblem[] = snags
     .filter(s => s.projectId === projectId && !s.deletedAt && !s.archivedAt)
@@ -236,7 +233,7 @@ export async function loadFlowProject(projectId: ID, today: string = todayISO())
     def: method.definition, records, machines, problems, today, tools,
     startedOn: project.flow.startedOn, people: project.flow.people,
   });
-  return { project, method, records, machines, problems, tools, state };
+  return { project, method, records, machines, problems, tools, state, checks };
 }
 
 export interface StepRef { projectId: ID; stageKey: string; stepKey: string; assetId?: ID }

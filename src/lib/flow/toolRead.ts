@@ -19,7 +19,7 @@ import { flowFigures } from '../ie/steps';
 import type { ToolReading } from './runtime';
 import { analyse, labourCost, labourInputs } from '../capacity';
 import { headcount, type Standard } from '../standard';
-import type { Workspace } from '../../types';
+import type { Observation, Workspace } from '../../types';
 
 const round = (n: number, dp = 2) => Math.round(n * 10 ** dp) / 10 ** dp;
 const put = (out: Record<string, number>, k: string, v: number | undefined, dp = 2) => {
@@ -110,4 +110,26 @@ export function readCapacity(std: Standard, line?: Workspace): ToolReading {
   const href = `${std.workspaceId ? `/w/${std.workspaceId}/standards/${std.id}` : `/project/${std.projectId}/standard/${std.id}`}?at=balance`;
   const verdict = !f.enough ? 'Speeds still to fill in' : f.short ? 'Short of its target' : std.capacity?.targetPerMin != null ? 'Meets its target' : undefined;
   return { tool: 'capacity', name: `Line capacity — ${std.product}${line ? ` on ${line.name}` : ''}`, says: f.says, ...(verdict ? { verdict } : {}), enough: f.enough, figures: f.figures, href };
+}
+
+/** EVERY TOOL RECORD A PROJECT'S STEPS POINT AT, read — from the rows whoever
+ *  holds them hands in: the device from its own store (lib/flow/operations
+ *  readTools), the server from the database (lib/flow/serverCheck). A step's
+ *  id is a study's, or else a product's line standard's for its Line
+ *  capacity; a loss count reads its line's stops and cost. One composition,
+ *  so the two read a step the same. */
+export function readToolsFrom(
+  ids: readonly string[],
+  rows: { studies: readonly ToolStudy[]; standards?: readonly Standard[]; workspaces?: readonly Workspace[]; observations?: readonly Observation[] },
+): Record<string, ToolReading> {
+  const want = new Set(ids.filter(Boolean));
+  const out: Record<string, ToolReading> = {};
+  const workspaces = [...(rows.workspaces ?? [])];
+  const observations = [...(rows.observations ?? [])];
+  for (const st of rows.studies) if (want.has(st.id) && !st.deletedAt) out[st.id] = readTool(st, { observations, workspaces });
+  for (const sd of rows.standards ?? []) {
+    if (!want.has(sd.id) || out[sd.id] || sd.deletedAt) continue;
+    out[sd.id] = readCapacity(sd, workspaces.find(w => w.id === sd.workspaceId));
+  }
+  return out;
 }

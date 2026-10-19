@@ -35,7 +35,7 @@ const records = [
 const method: Method = { id: 'M', familyId: 'M', version: 2, status: 'active', definition: def, createdAt: 0, updatedAt: 0 };
 const fp = (): FlowProject => ({
   project: { id: 'P', name: 'Bagger kit — Line 4', color: '#000', workspaceIds: [], createdAt: 0, updatedAt: 0, flow: { methodId: 'M', familyId: 'M', version: 2, startedOn: '2026-10-01', people: { fitter: 'Dave' } } },
-  method, records, machines, problems: [{ open: true, title: 'Guard loose', priority: 'high' }], tools: {},
+  method, records, machines, problems: [{ open: true, title: 'Guard loose', priority: 'high' }], tools: {}, checks: {},
   state: readFlow({ def, records, machines, today: '2026-10-20', startedOn: '2026-10-01', people: { fitter: 'Dave' } }),
 });
 

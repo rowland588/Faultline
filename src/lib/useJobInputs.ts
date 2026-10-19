@@ -99,7 +99,7 @@ export function useJobInputs(projects: Project[]): JobInputs | null {
       }));
       const flows = await Promise.all(flowProjects.map(async (project): Promise<PacedInput> => {
         const fp = await loadFlowProject(project.id, todayISO()).catch(() => undefined);
-        return { project, steps: [], lines: [], atTarget: 0, judged: 0, flow: fp ? flowJobOf(project, fp.state, suppliersOf(fp.method.definition, project.flow?.people)) : flowJobMissing() };
+        return { project, steps: [], lines: [], atTarget: 0, judged: 0, flow: fp ? flowJobOf(project, fp.state, suppliersOf(fp.method.definition, project.flow?.people), fp.checks) : flowJobMissing() };
       }));
       if (live) setInputs({ gate, paced: [...paced, ...flows] });
     };

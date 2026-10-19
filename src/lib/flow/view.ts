@@ -12,7 +12,8 @@ import type { LeanAction, LeanInsight, LeanPage, LeanTile, LeanTone } from '../l
 import type { GateTone } from '../install';
 import { KIND_WORD, type FlowDefinition } from './definition';
 import { measureNumber, stepsDoneSaid, type FlowProblem, type FlowState, type MeasureState, type Outstanding, type StageState, type StepInstance, type StepTone } from './runtime';
-import type { FlowRecord } from './records';
+import type { FlowRecord, GateCheck } from './records';
+import { checkOfPass } from './gateCheck';
 
 /** The house's five, as a square or a word wears them. */
 export type Square = 'r' | 'a' | 'w' | 'g' | 'n';
@@ -125,6 +126,16 @@ export interface FlowView {
   problems: readonly FlowProblem[];
   records: readonly FlowRecord[];
   machines: readonly { id: string; name: string }[];
+  /** The server's reading of each gate pass, by the pass's id (lib/flow/gateCheck). */
+  checks?: Readonly<Record<string, GateCheck>>;
+}
+
+/** The stages passed whose records, read on the server, do not bear the pass out. */
+export function notBorneOut(s: Pick<FlowState, 'stages'>, checks?: Readonly<Record<string, GateCheck>>): { stage: StageState; check: GateCheck }[] {
+  return s.stages.flatMap(stage => {
+    const check = stage.gate.passed ? checkOfPass(stage.gate.pass, checks) : undefined;
+    return check?.verdict === 'disagrees' ? [{ stage, check }] : [];
+  });
 }
 
 const many = (n: number, one: string, more = `${one}s`) => `${n} ${n === 1 ? one : more}`;
@@ -144,6 +155,7 @@ export function flowLean(v: FlowView, today: string): LeanPage {
   const critical = openProblems.filter(p => p.priority === 'critical').length;
   const week = doneThisWeek(v.records, today);
   const pct = c.steps ? Math.round((c.done / c.steps) * 100) : 0;
+  const unborne = notBorneOut(s, v.checks);
 
   /* WHAT IT MEASURES first — the number the work has to move, now against its
      target, and how far it has come since the first reading */
@@ -154,7 +166,10 @@ export function flowLean(v: FlowView, today: string): LeanPage {
       ...(week ? { change: { dir: 'up' as const, text: `${week} done this week`, better: true } } : {}),
       ...(c.steps && c.done === c.steps ? { tone: 'g' as const } : {}),
     },
-    { k: 'Gates passed', v: String(c.gatesPassed), of: `of ${c.gates}`, ...(c.gates && c.gatesPassed === c.gates ? { tone: 'g' as const } : {}) },
+    {
+      k: 'Gates passed', v: String(c.gatesPassed), of: `of ${c.gates}${unborne.length ? ` · ${unborne.length} not borne out` : ''}`,
+      ...(unborne.length ? { tone: 'r' as const } : c.gates && c.gatesPassed === c.gates ? { tone: 'g' as const } : {}),
+    },
     { k: 'Late', v: String(c.late), of: c.late ? 'past their day' : 'nothing past its day', tone: c.late ? 'r' : 'n' },
     { k: 'Did not pass', v: String(c.failed), of: c.failed ? 'to settle or try again' : 'none', tone: c.failed ? 'r' : 'n' },
     {
@@ -165,6 +180,10 @@ export function flowLean(v: FlowView, today: string): LeanPage {
   ];
 
   const insights: LeanInsight[] = [{ text: s.verdict.text, tone: s.verdict.tone }];
+  /* a pass the records do not bear out is the first thing wrong, whatever else */
+  for (const { stage, check } of unborne) {
+    insights.push({ text: `${stage.name}'s gate is passed, but its records do not bear it out — ${check.unmet.join('; ')}. Reopen it, or pass it again with the reason.`, tone: 'r' });
+  }
   for (const m of s.measures) if (m.now) insights.push({ text: m.says, tone: m.met === true ? 'g' : 'n' });
   const failed = s.outstanding.filter(o => o.failed);
   for (const o of failed.slice(0, 3)) insights.push({ text: `${o.what} — ${o.why}.`, tone: 'r' });
@@ -181,18 +200,22 @@ export function flowLean(v: FlowView, today: string): LeanPage {
   }
   for (const st of s.stages.filter(x => x.ahead)) insights.push({ text: `Work is recorded on ${st.name} ahead of ${st.gate.waitsOn ?? 'the gate before it'}.`, tone: 'n' });
   if (critical) insights.push({ text: `${many(critical, 'critical problem')} open on the project.`, tone: 'r' });
-  if (s.done) insights.splice(0, insights.length, { text: s.verdict.text, tone: 'g' });
+  if (s.done && !unborne.length) insights.splice(0, insights.length, { text: s.verdict.text, tone: 'g' });
 
   const actions = s.outstanding.slice(0, 14).map(actionOfOutstanding);
 
   const next = s.next;
-  const closing: LeanPage['closing'] = s.done
+  const unborneSaid = unborne.map(u => u.stage.name).join(' and ');
+  const closing: LeanPage['closing'] = unborne.length
+    ? { text: `${unborneSaid}'s gate ${unborne.length === 1 ? 'is' : 'are'} passed but not borne out by ${unborne.length === 1 ? 'its' : 'their'} records — reopen ${unborne.length === 1 ? 'it' : 'them'}, or pass ${unborne.length === 1 ? 'it' : 'them'} again with the reason.`, tone: 'r' }
+    : s.done
     ? { text: `Every gate passed — ${def.name} is done on ${v.project.name}.`, tone: 'g' }
     : next
       ? { text: `Next: ${next.what}${next.who ? ` — ${next.who}` : ''}${next.due ? `${next.late ? ', was due' : ', by'} ${niceDay(next.due)}` : ''}.`, tone: next.late || next.failed ? 'r' : 'n' }
       : { text: 'Nothing can move until the step it waits on is done.', tone: 'a' };
 
-  const verdict = s.done ? { text: 'Every gate passed', tone: 'g' as const }
+  const verdict = unborne.length ? { text: 'A pass not borne out', tone: 'r' as const }
+    : s.done ? { text: 'Every gate passed', tone: 'g' as const }
     : cur ? { text: `At ${cur.name}`, tone: s.verdict.tone } : undefined;
 
   return {
@@ -238,7 +261,7 @@ export interface FlowRowFacts {
   stages: { key: string; label: string; tone: GateTone }[];
 }
 
-export function flowRowFacts(s: FlowState): FlowRowFacts {
+export function flowRowFacts(s: FlowState, checks?: Readonly<Record<string, GateCheck>>): FlowRowFacts {
   /* the number the job has to move, where its row is read — the first
      measured, before → now against its target (the job's first tile) */
   const m = s.measures.find(x => x.now);
@@ -246,13 +269,16 @@ export function flowRowFacts(s: FlowState): FlowRowFacts {
   const measured = m?.now
     ? ` ${m.def.name}: ${m.before && m.readings.length > 1 ? `${n(m.before.value)} → ` : ''}${n(m.now.value)}${m.def.target !== undefined ? `, target ${m.def.better === 'lower' ? 'at most' : 'at least'} ${n(m.def.target)}${m.met ? ' — met' : ''}` : ''}.`
     : '';
+  const unborne = notBorneOut(s, checks);
+  const flagged = new Set(unborne.map(u => u.stage.key));
+  const warn = unborne.length ? `${unborne.map(u => u.stage.name).join(' and ')}'s gate ${unborne.length === 1 ? 'is' : 'are'} passed but not borne out by ${unborne.length === 1 ? 'its' : 'their'} records. ` : '';
   return {
     at: s.done ? 'Every gate passed' : s.current?.name ?? '—',
-    sentence: s.verdict.text + measured,
+    sentence: warn + s.verdict.text + measured,
     outstanding: s.outstanding.filter(o => o.kind === 'step').length,
     late: s.counts.late,
     done: s.counts.gatesPassed,
     total: s.counts.gates,
-    stages: s.stages.map(st => ({ key: st.key, label: st.name, tone: st.gate.passed ? 'done' : st.tone })),
+    stages: s.stages.map(st => ({ key: st.key, label: st.name, tone: flagged.has(st.key) ? 'failed' : st.gate.passed ? 'done' : st.tone })),
   };
 }

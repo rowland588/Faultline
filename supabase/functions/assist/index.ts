@@ -38,7 +38,17 @@ import { ASK_SCHEMA, ASK_SYSTEM, askUser, checkAnswer, type Fact } from "./flow/
 import { CLARIFY_SCHEMA, CLARIFY_SYSTEM, clarifyUser, readClarify } from "./flow/clarifyCore.ts";
 import { VISION_LIMITS, VISION_SCHEMA, VISION_SYSTEM, checkLabels, visionUser, type LabelEvent, type LabelFrame } from "./video/visionCore.ts";
 
-const KEY = Deno.env.get("ANTHROPIC_API_KEY");
+/* A key pasted into the dashboard with quotes or spaces round it is the key
+   all the same; a key the API still refuses is said in the logs by its SHAPE
+   only — the known prefix, its length, what was round it — never itself. */
+const RAW_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+const KEY = RAW_KEY?.trim().replace(/^["'`]+|["'`]+$/g, "").trim() || undefined;
+const keyShape = (): string => {
+  const k = KEY ?? "";
+  return `starts with sk-ant-: ${k.startsWith("sk-ant-") ? "yes" : "no"}; length ${k.length}; ` +
+    `had spaces or quotes round it: ${RAW_KEY !== undefined && RAW_KEY !== k ? "yes (removed)" : "no"}; spaces inside: ${/\s/.test(k) ? "yes" : "no"}`;
+};
+const refused = () => console.warn(`faultline assist: the API refused the key (401) — ${keyShape()}`);
 const MODEL = Deno.env.get("ASSIST_MODEL") ?? "claude-opus-5-5";
 const EFFORT = Deno.env.get("ASSIST_EFFORT") ?? "high";
 /* reading facts back is lighter work than designing a method */
@@ -120,7 +130,7 @@ Deno.serve(async (req) => {
       return labels.length ? json({ ok: true, labels, model: msg.model ?? MODEL }) : json({ ok: false, why: "The assistant's labels could not be checked, so none are kept — name the work as you review." });
     } catch (e) {
       if (e instanceof Anthropic.RateLimitError) return json({ ok: false, why: "The assistant is busy — try again in a minute." });
-      if (e instanceof Anthropic.AuthenticationError) return json({ off: true, why: "The assistant's key is not accepted — name the work as you review." });
+      if (e instanceof Anthropic.AuthenticationError) { refused(); return json({ off: true, why: "The assistant's key is not accepted — name the work as you review." }); }
       return json({ ok: false, why: "The assistant could not name the work just now — name it as you review." });
     }
   }
@@ -142,7 +152,7 @@ Deno.serve(async (req) => {
       return read ? json({ ok: true, clarify: read, left: { calls: Math.max(0, LIMIT.calls - left.used.calls - 1) } }) : json({ ok: false, why: "The assistant's questions could not be read — it designs from your words as they are." });
     } catch (e) {
       if (e instanceof Anthropic.RateLimitError) return json({ ok: false, why: "The assistant is busy — try again in a minute." });
-      if (e instanceof Anthropic.AuthenticationError) return json({ off: true, why: "The assistant's key is not accepted — the app works by hand until it is put right." });
+      if (e instanceof Anthropic.AuthenticationError) { refused(); return json({ off: true, why: "The assistant's key is not accepted — the app works by hand until it is put right." }); }
       return json({ ok: false, why: "The assistant could not read the need just now." });
     }
   }
@@ -181,7 +191,7 @@ Deno.serve(async (req) => {
       : json({ ok: false, why: read.why });
   } catch (e) {
     if (e instanceof Anthropic.RateLimitError) return json({ ok: false, why: "The assistant is busy — try again in a minute." });
-    if (e instanceof Anthropic.AuthenticationError) return json({ off: true, why: "The assistant's key is not accepted — the app works by hand until it is put right." });
+    if (e instanceof Anthropic.AuthenticationError) { refused(); return json({ off: true, why: "The assistant's key is not accepted — the app works by hand until it is put right." }); }
     if (e instanceof Anthropic.APIError) return json({ ok: false, why: `The assistant could not answer just now (${e.status ?? "no status"}). Try again, or write the method by hand.` });
     return json({ ok: false, why: "The assistant could not be reached just now. Try again, or write the method by hand." });
   }

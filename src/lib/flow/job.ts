@@ -8,6 +8,7 @@ import type { PlanMark } from '../standing';
 import type { JobItem } from '../portfolio';
 import type { FlowState } from './runtime';
 import type { FlowDefinition } from './definition';
+import type { GateCheck } from './records';
 import { flowRowFacts, type FlowRowFacts } from './view';
 
 export interface FlowJob {
@@ -28,7 +29,7 @@ export function suppliersOf(def: Pick<FlowDefinition, 'roles'>, people: Record<s
 
 const placeOf = (stageKey: string, stepKey: string, assetId?: string) => `${stageKey}/${stepKey}/${assetId ?? ''}`;
 
-export function flowJobOf(project: Pick<Project, 'id' | 'name' | 'color'>, s: FlowState, suppliers: string[] = []): FlowJob {
+export function flowJobOf(project: Pick<Project, 'id' | 'name' | 'color'>, s: FlowState, suppliers: string[] = [], checks?: Readonly<Record<string, GateCheck>>): FlowJob {
   const plan: PlanMark[] = s.stages.flatMap(st => st.steps.flatMap((x): PlanMark[] => {
     const settled = (x.complete || x.failed) && x.record?.doneOn;
     const at = settled ? x.record?.doneOn : x.due;
@@ -45,7 +46,7 @@ export function flowJobOf(project: Pick<Project, 'id' | 'name' | 'color'>, s: Fl
     ...(o.due ? { on: o.due } : {}), late: o.late,
     ...(o.failed ? { branch: o.why } : o.blocked ? { branch: o.why } : {}),
   }));
-  return { facts: flowRowFacts(s), plan, items, suppliers };
+  return { facts: flowRowFacts(s, checks), plan, items, suppliers };
 }
 
 /** A project whose method has not reached this device yet — said so, never blank. */
