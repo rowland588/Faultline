@@ -73,6 +73,9 @@ for (const [tag, viewport] of [['desk', { width: 1360, height: 900 }], ['phone',
   }).catch(() => undefined);
   for (const pg of PAGES(sd, cap)) {
     await page.goto(`${BASE}/${pg.path}`); await page.waitForTimeout(2200);
+    /* A page slower than that is waited for, never counted as missing what it shows: up to 8 s more for
+       the first thing it must show (19 October: the job's front page took 2.8–3.6 s after Problems). */
+    await page.waitForFunction(sel => [...document.querySelectorAll(sel)].some(e => e.getBoundingClientRect().width > 0), pg.must[0].sel, { timeout: 8000 }).catch(() => {});
     for (const m of pg.must) {
       if ((m.desk && tag !== 'desk') || (m.phone && tag !== 'phone')) continue;
       checked++;

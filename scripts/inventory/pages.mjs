@@ -234,7 +234,8 @@ export const PAGES = (sd, cap) => [
   ] },
   { name: 'A video study', path: `#/video/${sd.videoStudyId}`, must: [
     { what: 'where it stands — never verified while one is to review', sel: '[data-standing]', text: /to review · \d+ accepted/ },
-    { what: 'the footage and its facts, and where the footage is (on this device only, waiting to go up, in the cloud, or over what the cloud takes)', sel: '.vid-facts', text: /line4-morning\.webm — 0:32\.0 · 1280×720.* · (kept on this device only|on this device, waiting to go up to the cloud|in the cloud|over the \d+ MB the cloud takes|on this device only)/ },
+    /* the facts, and where the footage is: said after them when it is here, or in the player when it is not (the seed's is not) */
+    { what: 'the footage and its facts, and where the footage is (on this device only, waiting to go up, in the cloud, or over what the cloud takes)', sel: '.vid-panel', text: /^(?=[\s\S]*line4-morning\.webm — 0:32\.0 · 1280×720)(?=[\s\S]*(kept on this device only|on this device, waiting to go up to the cloud|in the cloud — your other devices play it|over the \d+ MB the cloud takes|sign in to send it to the cloud|not on this device yet))/ },
     { what: 'the stations in view', sel: '.vid-zone-rows li', n: 3 },
     { what: 'every event on its station’s lane', sel: '.vid-bar', n: 12 },
     { what: 'every event in the list, how it is known and what was decided', sel: '.vid-ev .vid-ev-how' },

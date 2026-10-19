@@ -287,11 +287,15 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   const lpp = lp.getByRole('group', { name: 'Test LP-9 Express 1kg' });
   await lpp.getByRole('button', { name: 'Didn’t pass' }).click();
   await lpp.getByLabel('What was seen when LP-9 Express 1kg ran').fill('Film tracked off after 40 packs');
-  await lpp.getByRole('button', { name: 'Save' }).click(); await page.waitForTimeout(1500);
+  await lpp.getByRole('button', { name: 'Save' }).click();
+  /* the row is read once the save has finished — a fixed 1.5 s read it mid-save on 19 October (it took 2.7 s on the dev server) */
+  await lp.getByRole('button', { name: 'Go again' }).waitFor({ timeout: 10000 }).catch(() => {});
   const lt = await page.evaluate(async pid => (await (await import('/src/db.ts')).listTests(pid)).find(x => x.programId === 'acc-lp-9' && !x.deletedAt), sd.projectId);
   const lsaid = flat(await lp.innerText());
-  ok(!!lt && lt.outcome === 'failed' && !lt.assetId && /didn’t pass.*Film tracked off after 40 packs/.test(lsaid) && await lp.locator('.cg-pstate.is-r').count() === 1 && /Go again/.test(lsaid),
-    `7g a line's program tested on the line itself: didn't pass, in red, with what was seen, and Go again (${lsaid.slice(0, 120)})`);
+  const red7g = await lp.locator('.cg-pstate.is-r').count();
+  const parts7g = [!lt ? 'no test' : lt.outcome !== 'failed' ? `outcome ${lt.outcome}` : '', lt?.assetId ? 'on a machine' : '', /didn’t pass.*Film tracked off after 40 packs/.test(lsaid) ? '' : 'not said', red7g === 1 ? '' : `${red7g} red`, /Go again/.test(lsaid) ? '' : 'no Go again'].filter(Boolean);
+  ok(!parts7g.length,
+    `7g a line's program tested on the line itself: didn't pass, in red, with what was seen, and Go again (${parts7g.join(', ')} · ${lsaid.slice(0, 300)})`);
   await go(`#/project/${sd.projectId}/testing`);
   ok(/gone wrong/.test(flat(await main.getByRole('button', { name: /^The line itself — programs:/ }).innerText())), "7g and on Commission's board, the line itself's programs say one gone wrong");
 }
