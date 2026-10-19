@@ -122,7 +122,7 @@ beside the old routes, the gate green at each step:
 
 | 5 Beyond the existing tools | a step can be a log of entries; analyses from a registry of tested blocks (count … Pareto, trend, histogram, Cpk) feed gates and measures; screen, editor, paper and the assistant's brief read the same; needs for development said, never faked; a library method made only of blocks | `analysis.test.ts` (14), `designed-tool.mjs`, the library test, smoke and inventory (a method made of logs) | 5738b42 + e9bcbf2 — live 19 Oct (54999e1) |
 | 6 Blocks written after the first | a control chart (I-MR, rules 1 and the 8-run), a relationship (r and its line), a forecast (a week on, the day it reaches a target) — each its arithmetic and tests, and in the editor, validator, assistant's brief, screen and paper at once; a block declares its picture and both screen and paper draw by it; *A process held in control* in the library | `analysis-blocks.test.ts` (14, figures worked by hand; the limits held to the capability study's spread), `designed-tool.mjs` 3d–3e, 7d, 8b–8i, the library test | e8f88f3 — live 19 Oct (54999e1) |
-| 7 Questions first | a need is read before it is designed: said back, and at most four questions with answers to tap, why each matters and one's own answer; the answers carried into the design request in the person's words; skipped in a tap; off or failing, designed from the words as they are (the deployed gateway learns `clarify` when it is redeployed) | `clarify.test.ts` (6), `designed-tool.mjs` 0–0d, front-door and methods-design unchanged (the assistant off for questions) | fe3f04a — live 19 Oct (54999e1) |
+| 7 Questions first | a need is read before it is designed: said back, and at most four questions with answers to tap, why each matters and one's own answer; the answers carried into the design request in the person's words; skipped in a tap; off or failing, designed from the words as they are (the deployed gateway asks since version 3, 19 Oct) | `clarify.test.ts` (6), `designed-tool.mjs` 0–0d, front-door and methods-design unchanged (the assistant off for questions) | fe3f04a — live 19 Oct (54999e1) |
 | 8 Decisions on what is found | a step needed only when an earlier figure says so (`onlyIf`): waiting on that step until it is done, then needed (with the figure) or not needed (grey, with the figure and the rule) and holding nothing up — gates, counts, the stage's words and the paper all follow; in the editor, the proposal and the assistant's brief; the validator allows only a figure of a step before it; *A process held in control* looks for a cause only when the chart signalled | `decision.test.ts` (9), `designed-tool.mjs` 8j–8o, methods and methods-design unchanged | 2cb3eb2 — live 19 Oct (54999e1) |
 | 9 What Faultline cannot do yet | every need a method said, gathered on Methods (once, with each method that asked), each with a brief to build it from — what, why, from, method, check, the block's contract and where it goes, how it is proved, what it then reaches — copied whole | `needs.test.ts` (4), `designed-tool.mjs` 8p–8r | 13573be — live 19 Oct (54999e1) |
 | 10 A worked-out figure | any arithmetic over a log's figures before it and the step's number boxes (the `calc` block): a yield, a rate, a cost — the rate typed once by the person, never invented; money said as money on screen, in gates and measures and on paper; proposed by the assistant in the labels' words and read back to the keys; Faultline's rejects log costed before and after | `analysis-blocks.test.ts` (+6), `designed-tool.mjs` 3f–3g, 7e, 8a | ac15357 — live 19 Oct (54999e1) |
@@ -189,16 +189,11 @@ name the tests):
   opens inside the project); organisation-wide libraries (waiting on
   tenancy); the server re-running the runtime on a gate pass (the app
   checks it and the database lets only the owner write it). The deployed
-  gateway (version 2, from d9a896a) carries the schema from before logs,
-  blocks, questions and decisions: until it is redeployed from the repo
-  (`supabase/functions/assist` at 54999e1 — the deploy waits on the
-  Supabase connector, which could not connect on 19 October) the live
-  assistant proposes without them and designs without asking — the app
-  reads all of them already, and a gateway that does not know a task is
-  designed around, never broken.
+  gateway is version 3, from 54999e1 (19 October, below): it asks before
+  it designs and proposes logs, every block, timed and counted boxes and
+  decisions — what the app already reads.
 
-Next: the gateway redeployed with the app live; a tool's own panel inside
-the step; the 6M and the lever tree as methods drawn from records; more
+Next: a tool's own panel inside the step; the 6M and the lever tree as methods drawn from records; more
 blocks and ways of capturing as the floor asks (a regression on several
 columns, a tally counted with a tap, a photo for an entry).
 
@@ -255,6 +250,16 @@ what waits on someone is docs/VIDEO.md. Its blockers are below.
   `{"off":true,"why":"The assistant is not switched on…"}` — the answer it
   gives when no key is set. Redeploy from the repo whenever
   `supabase/functions/assist` changes (the repo copy is the source).
+  REDEPLOYED 19 October, 04:51 UTC — version 3, `verify_jwt` on, from
+  `supabase/functions/assist` at 54999e1 (the copy on `main`): the twelve
+  files sent through the Supabase connector's `deploy_edge_function`, then
+  read back with `get_edge_function` and compared with `git show
+  54999e1:…` byte for byte — all twelve the same, sizes and SHA-256 alike
+  (index 14883 B, analysis 62306 B, validate 37283 B, proposal 23652 B …).
+  Called from the database (`net.http_post`, the anon key, no person) it
+  boots and answers 401 "Sign in to use the assistant." — past the key, and
+  refusing a caller with no session. Version 2 (from d9a896a) is the way
+  back: redeploy `git show d9a896a:supabase/functions/assist/…` the same way.
 - **The key** — SET 18 October by Rowland, in Supabase's secrets and in
   Vercel's environment. Checked from the database: the gateway now answers
   an anonymous caller 401 "Sign in to use the assistant." — past the key.
