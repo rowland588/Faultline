@@ -11,8 +11,9 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { PROPOSAL_SCHEMA, fromProposal } from '../proposal';
-import { DESIGN_SYSTEM, allowance, costMicros, designUser, readDesign } from '../assistCore';
+import { DETAIL_SCHEMA, OUTLINE_SCHEMA, PROPOSAL_SCHEMA, STEP_SCHEMA, fromProposal, joinDesign, withoutDetail } from '../proposal';
+import { DESIGN_SYSTEM, OUTLINE_NOTE, allowance, costMicros, designUser, readDesign, readJoined, readPass } from '../assistCore';
+import { DETAIL_ROUND_MS, MOST_ALONE, designInPasses, stageAsk, stepAsk, type Pass } from '../designPasses';
 import { readGateway } from '../assist';
 import { validateDefinition } from '../validate';
 import { readFlow } from '../runtime';
@@ -132,12 +133,174 @@ describe('the schema the API holds the answer to', () => {
     };
     expect(walk(PROPOSAL_SCHEMA, '$')).toEqual([]);
     expect(JSON.stringify(PROPOSAL_SCHEMA)).not.toMatch(/minimum|maximum|minLength|maxLength/);
+    /* the two passes the assistant is held to, by the same rules */
+    expect(walk(OUTLINE_SCHEMA, '$')).toEqual([]);
+    expect(walk(DETAIL_SCHEMA, '$')).toEqual([]);
   });
 
   it('tells the assistant the floor’s rules: measured by people, no OEE, no invented figures', () => {
     expect(DESIGN_SYSTEM).toMatch(/Nothing reads a machine\. Never use OEE/);
     expect(DESIGN_SYSTEM).toMatch(/Never invent a figure/);
     expect(designUser('x'.repeat(5000)).length).toBeLessThan(4100);
+  });
+});
+
+/* THE DESIGN IN TWO PASSES (19 October: the whole proposal's schema is "too
+   large" for the API to hold the assistant to) — the outline and each step's
+   detail, joined into the one shape: the same method as one answer would be */
+describe('a design in two passes', () => {
+  type Step = Record<string, unknown>;
+  const DETAIL = ['fields', 'columns', 'analyses', 'min_entries', 'only_if'];
+  const stepKeys = (s: unknown) => Object.keys(((s as { properties: Record<string, { items: { properties: Record<string, { items: { properties: Record<string, { items: { properties: object } }> } }> } }> }).properties.stages.items.properties.steps.items.properties));
+  const split = (p: typeof recorded) => ({
+    outline: { ...p, stages: p.stages.map(st => ({ ...st, steps: st.steps.map(sp => Object.fromEntries(Object.entries(sp).filter(([k]) => !DETAIL.includes(k)))) })) },
+    detail: { steps: p.stages.flatMap(st => st.steps.map(sp => ({ stage: st.name, title: sp.title, ...Object.fromEntries(Object.entries(sp).filter(([k]) => DETAIL.includes(k))) }))) },
+  });
+
+  it('the outline and the detail are the whole step between them, and nothing else', () => {
+    const outline = stepKeys(OUTLINE_SCHEMA), detail = Object.keys((DETAIL_SCHEMA as unknown as { properties: { steps: { items: { properties: object } } } }).properties.steps.items.properties);
+    expect(outline.filter(k => detail.includes(k))).toEqual(['title']);
+    expect([...new Set([...outline, ...detail.filter(k => k !== 'stage')])].sort()).toEqual(stepKeys(PROPOSAL_SCHEMA).sort());
+    expect(detail.filter(k => k !== 'stage' && k !== 'title').sort()).toEqual([...DETAIL].sort());
+  });
+
+  it('joined, they are the method one answer would have been', () => {
+    const { outline, detail } = split(recorded);
+    const one = readDesign(message(JSON.stringify(recorded)));
+    const two = readJoined(joinDesign(outline, detail));
+    expect(one.ok && two.ok).toBe(true);
+    if (!one.ok || !two.ok) return;
+    expect(two.proposed.def).toEqual(one.proposed.def);
+    expect(two.errors).toEqual(one.errors);
+  });
+
+  it('a detail is found by its title when its stage was renamed, used once, and a step with none is given an empty one', () => {
+    const { outline, detail } = split(recorded);
+    const renamed = { steps: detail.steps.map(d => ({ ...d, stage: 'Somewhere else' })) };
+    expect(readJoined(joinDesign(outline, renamed))).toEqual(readJoined(joinDesign(outline, detail)));
+    const none = joinDesign(outline, { steps: [] }) as { stages: { steps: Step[] }[] };
+    expect(none.stages[1].steps[0]).toMatchObject({ fields: [], columns: [], analyses: [], min_entries: null, only_if: { step: '', field: '', op: '', value: '' } });
+    const twice = { ...outline, stages: [outline.stages[0], { ...outline.stages[1], steps: [...outline.stages[1].steps, outline.stages[1].steps[0]] }] };
+    const joined = joinDesign(twice, detail) as { stages: { steps: Step[] }[] };
+    expect((joined.stages[1].steps[0].fields as unknown[]).length).toBeGreaterThan(0);
+    expect(joined.stages[1].steps[joined.stages[1].steps.length - 1].fields).toEqual([]);
+    expect(joinDesign('not an outline', detail)).toBe('not an outline');
+  });
+
+  it('each pass read as one answer is: refused, cut short or unreadable said so', () => {
+    expect(readPass(message('{"steps":[]}'))).toEqual({ ok: true, raw: { steps: [] } });
+    expect(readPass(message('', 'refusal'))).toMatchObject({ ok: false, why: expect.stringMatching(/would not propose/) });
+    expect(readPass(message('{"name":', 'max_tokens'))).toMatchObject({ ok: false, why: expect.stringMatching(/too long/) });
+    expect(readPass(message('not json'))).toMatchObject({ ok: false, why: expect.stringMatching(/could not be read/) });
+    expect(OUTLINE_NOTE).toMatch(/outline/);
+  });
+
+  it('says which steps the detail left out, by their stage and title', () => {
+    const { outline, detail } = split(recorded);
+    expect(withoutDetail(outline, detail)).toEqual([]);
+    expect(withoutDetail(outline, { steps: detail.steps.slice(1, 3) })).toEqual([
+      { stage: 'Install', title: 'Positioned and levelled' },
+      { stage: 'Prove it', title: 'Performance run' },
+      { stage: 'Prove it', title: 'Quality sign-off' },
+    ]);
+    expect(withoutDetail('not an outline', detail)).toEqual([]);
+    expect(Object.keys((STEP_SCHEMA as { properties: object }).properties).sort()).toEqual([...DETAIL].sort());
+  });
+});
+
+describe('a design in passes, inside the time the server has', () => {
+  const DETAIL = ['fields', 'columns', 'analyses', 'min_entries', 'only_if'];
+  const outline = { ...recorded, stages: recorded.stages.map(st => ({ ...st, steps: st.steps.map(sp => Object.fromEntries(Object.entries(sp).filter(([k]) => !DETAIL.includes(k)))) })) };
+  const detailOf = (stage: string, title: string) => {
+    const sp = recorded.stages.find(s => s.name === stage)!.steps.find(s => s.title === title)!;
+    return { fields: sp.fields, columns: [], analyses: [], min_entries: null, only_if: { step: '', field: '', op: '', value: '' } };
+  };
+  type Call = { last: string; schema: unknown; part: string; timeoutMs: number; at: number };
+  /** A fake API: the clock moves by `takes` for each request; `answer` says what each gives back. */
+  const api = (answer: (c: Call) => unknown, takes: (c: Call) => number = () => 10_000) => {
+    let t = 0;
+    const calls: Call[] = [];
+    const pass: Pass = async (messages, schema, o) => {
+      const c = { last: messages[messages.length - 1].content, schema, part: o.part, timeoutMs: o.timeoutMs, at: t };
+      calls.push(c);
+      const got = answer(c);
+      await Promise.resolve();
+      t = Math.max(t, c.at + takes(c));
+      if (got instanceof Error) throw got;
+      return got;
+    };
+    return { pass, calls, clock: { now: () => t, deadline: 138_000 } };
+  };
+  const stageOf = (last: string) => recorded.stages.find(s => last.includes(`“${s.name}”`))!;
+  const whole = (c: Call) => c.part === 'outline' ? message(JSON.stringify(outline))
+    : c.schema === STEP_SCHEMA ? message(JSON.stringify(detailOf(stageOf(c.last).name, recorded.stages.flatMap(s => s.steps).find(sp => c.last.includes(`“${sp.title}”`))!.title)))
+    : message(JSON.stringify({ steps: stageOf(c.last).steps.map(sp => ({ stage: stageOf(c.last).name, title: sp.title, ...detailOf(stageOf(c.last).name, sp.title) })) }));
+
+  it('outlines the method, then asks every stage’s detail at once, each naming its steps — the method one answer would have been', async () => {
+    const { pass, calls, clock } = api(whole);
+    const r = await designInPasses('the words', pass, clock);
+    expect(calls.map(c => c.part)).toEqual(['outline', 'detail', 'detail']);
+    expect(calls[0]).toMatchObject({ last: 'the words', schema: OUTLINE_SCHEMA, timeoutMs: 138_000 - DETAIL_ROUND_MS });
+    expect(calls[1].at).toBe(calls[2].at);
+    expect(calls[1].last).toBe(stageAsk('Install', ['Positioned and levelled', 'Power and air connected', 'Electrical test certificate']));
+    expect(calls[1].last).toMatch(/its 3 steps, in order — 1\. Positioned and levelled; 2\. Power and air connected; 3\. Electrical test certificate —/);
+    expect(calls[2].schema).toBe(DETAIL_SCHEMA);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.left).toEqual([]);
+    expect(r.requests).toBe(3);
+    expect(r.messages).toHaveLength(3);
+    const one = readDesign(message(JSON.stringify(recorded)));
+    expect(one.ok && r.proposed.def).toEqual(one.ok && one.proposed.def);
+  });
+
+  it('asks each step a stage left out on its own, and the method comes back whole', async () => {
+    const { pass, calls, clock } = api(c => (c.part === 'detail' && c.schema === DETAIL_SCHEMA && c.last.includes('“Prove it”')
+      ? message(JSON.stringify({ steps: [{ stage: 'Prove it', title: 'Quality sign-off', ...detailOf('Prove it', 'Quality sign-off') }] }))
+      : whole(c)));
+    const r = await designInPasses('the words', pass, clock);
+    expect(calls.filter(c => c.schema === STEP_SCHEMA).map(c => c.last)).toEqual([stepAsk('Prove it', 'Performance run')]);
+    expect(r.ok && r.left).toEqual([]);
+    const one = readDesign(message(JSON.stringify(recorded)));
+    expect(r.ok && r.proposed.def).toEqual(one.ok && one.proposed.def);
+    expect(r.ok && r.errors).toEqual([]);
+  });
+
+  it('a stage whose request failed is asked step by step; the failure is kept for the gateway to charge', async () => {
+    const down = new Error('timed out');
+    const { pass, calls, clock } = api(c => (c.schema === DETAIL_SCHEMA && c.last.includes('“Install”') ? down : whole(c)));
+    const r = await designInPasses('the words', pass, clock);
+    expect(calls.filter(c => c.schema === STEP_SCHEMA)).toHaveLength(3);
+    expect(r.failed).toEqual([down]);
+    expect(r.ok && r.left).toEqual([]);
+  });
+
+  it('with no time left for another round, a step still without its detail is named — never hidden — and the method still comes back', async () => {
+    const { pass, calls, clock } = api(
+      c => (c.schema === DETAIL_SCHEMA && c.last.includes('“Prove it”') ? message('{"steps":[]}') : whole(c)),
+      c => (c.part === 'outline' ? 100_000 : 25_000),
+    );
+    const r = await designInPasses('the words', pass, clock);
+    expect(calls.some(c => c.schema === STEP_SCHEMA)).toBe(false);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.left).toEqual([{ stage: 'Prove it', title: 'Performance run' }, { stage: 'Prove it', title: 'Quality sign-off' }]);
+    expect(r.errors.length).toBeGreaterThan(0);
+    expect(calls[1].timeoutMs).toBe(138_000 - 100_000 - 1000);
+  });
+
+  it('asks at most a dozen steps on their own', async () => {
+    const big = { ...outline, stages: [{ ...outline.stages[0], steps: Array.from({ length: 20 }, (_, i) => ({ ...outline.stages[0].steps[0], title: `Step ${i + 1}`, after: [] })) }] };
+    const { pass, calls, clock } = api(c => (c.part === 'outline' ? message(JSON.stringify(big)) : c.schema === DETAIL_SCHEMA ? message('{"steps":[]}') : message(JSON.stringify(detailOf('Install', 'Positioned and levelled')))));
+    const r = await designInPasses('the words', pass, clock);
+    expect(calls.filter(c => c.schema === STEP_SCHEMA)).toHaveLength(MOST_ALONE);
+    expect(r.ok && r.left).toHaveLength(20 - MOST_ALONE);
+  });
+
+  it('an outline refused or cut short is said so, and nothing more is asked', async () => {
+    const { pass, calls, clock } = api(() => message('', 'refusal'));
+    expect(await designInPasses('the words', pass, clock)).toMatchObject({ ok: false, why: expect.stringMatching(/would not propose/) });
+    expect(calls).toHaveLength(1);
   });
 });
 
