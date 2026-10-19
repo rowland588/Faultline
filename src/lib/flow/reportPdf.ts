@@ -157,7 +157,7 @@ function chartBlock(res: AnalysisResult, picture: AnalysisPicture, axes: { x?: s
         return;
       }
       const list = pts.slice(0, 24);
-      const max = Math.max(...list.map(p => p.value), 0) || 1, bw = (w - 10) / list.length;
+      const max = Math.max(...list.map(p => p.value), 0) || 1, bw = Math.min((w - 10) / list.length, 60);
       list.forEach((p, i) => {
         const h = (base - top) * (p.value / max), bx = x0 + i * bw + bw * 0.12;
         doc.setFillColor(i === 0 && picture === 'pareto' ? INK2 : '#9aa6ab');

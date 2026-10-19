@@ -19,7 +19,7 @@ import { addDays, niceDay } from '../weeks';
 import { allSteps, isTest, isTypedNumber, numbersOf, roleName, type FlowCondition, type FlowDefinition, type FlowField, type FlowMeasure, type FlowRule, type FlowStage, type FlowStepDef } from './definition';
 import { answeredByRecord, componentOf } from './components';
 import { calc } from './formula';
-import { analyse, figuresOf, numberSaid, type AnalysisResult } from './analysis';
+import { analyse, figuresOf, numberSaid, type AnalysisResult, type EarlierLog } from './analysis';
 import type { FlowRecord } from './records';
 import type { GateTone } from '../install';
 
@@ -202,6 +202,22 @@ const logBoxes = (step: FlowStepDef, typed?: Record<string, string | number | bo
   values: valuesOf(step, typed), labels: Object.fromEntries((step.fields ?? []).map(f => [f.key, f.label])),
 });
 
+/** The method's logs before a step, as a comparison reads them (the
+ *  'compare' block: a before and an after) — each the newest record of that
+ *  step, on the same machine where it is a machine's. Only worked out for a
+ *  step that compares. */
+function earlierLogs(def: FlowDefinition, records: readonly FlowRecord[], step: FlowStepDef, assetId?: string): Record<string, EarlierLog> | undefined {
+  if (!(step.analyses ?? []).some(a => a.from)) return undefined;
+  const out: Record<string, EarlierLog> = {};
+  for (const { stage, step: s } of allSteps(def)) {
+    if (s.key === step.key) break;
+    if (s.answer !== 'log') continue;
+    const mine = records.filter(r => r.kind === 'step' && r.stageKey === stage.key && r.stepKey === s.key && (s.per === 'machine' ? r.assetId === assetId : !r.assetId)).sort(newest);
+    out[s.key] = { title: s.title, columns: s.columns ?? [], entries: mine[0]?.entries ?? [] };
+  }
+  return out;
+}
+
 /** The step's fields with the worked-out ones worked out — by the app, from
  *  the numbers typed. */
 export function valuesOf(step: FlowStepDef, typed: Record<string, string | number | boolean> = {}): Record<string, string | number | boolean> {
@@ -366,7 +382,7 @@ export function readFlow(x: FlowInputs): FlowState {
       const tool = step.component && record?.studyId ? x.tools?.[record.studyId] : undefined;
       /* a tool step's figures sit beside its boxes, as the tool filled them;
          a log's, as its entries add up (lib/flow/analysis) */
-      const analysis = step.answer === 'log' ? analyse(step.analyses, step.columns, record?.entries, logBoxes(step, record?.values)) : undefined;
+      const analysis = step.answer === 'log' ? analyse(step.analyses, step.columns, record?.entries, logBoxes(step, record?.values), earlierLogs(def, records, step, step.per === 'machine' ? t.id : undefined)) : undefined;
       const values = { ...valuesOf(step, record?.values), ...(tool?.figures ?? {}), ...(analysis ? figuresOf(analysis) : {}) };
       const outOfLimits = step.answer === 'measure' || (step.fields ?? []).some(f => f.min !== undefined || f.max !== undefined) ? limitsBroken(step, values) : [];
       const missing = missingOf(def, step, record, values, people, tool);
@@ -538,7 +554,7 @@ export function readMeasure(m: FlowMeasure, def: FlowDefinition, records: readon
       if (r.kind !== 'step' || r.stepKey !== f.step || r.stageKey !== ref.stage.key || r.outcome === 'planned') continue;
       const tool = ref.step.component && r.studyId ? tools?.[r.studyId] : undefined;
       if (ref.step.component && r.studyId && tool && !tool.enough) continue;
-      const logged = ref.step.answer === 'log' ? figuresOf(analyse(ref.step.analyses, ref.step.columns, r.entries, logBoxes(ref.step, r.values))) : {};
+      const logged = ref.step.answer === 'log' ? figuresOf(analyse(ref.step.analyses, ref.step.columns, r.entries, logBoxes(ref.step, r.values), earlierLogs(def, records, ref.step, r.assetId ?? undefined))) : {};
       const v = { ...valuesOf(ref.step, r.values), ...(tool?.figures ?? {}), ...logged }[f.field];
       if (typeof v !== 'number' || !Number.isFinite(v)) continue;
       const machine = r.assetId ? machines.find(x => x.id === r.assetId)?.name : undefined;

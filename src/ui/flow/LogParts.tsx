@@ -129,8 +129,10 @@ function yScale(vals: number[], top = padT, base = H - padB) {
 
 function BarsChart({ r, pareto }: { r: AnalysisResult; pareto: boolean }) {
   const pts: SeriesPoint[] = (r.series ?? []).slice(0, 24);
-  const max = Math.max(...pts.map(p => p.value), 0) || 1;
-  const bw = (W - padL * 2) / pts.length;
+  /* headroom over the tallest bar, so its figure is never cut off */
+  const max = (Math.max(...pts.map(p => p.value), 0) || 1) * 1.15;
+  /* a few bars stay bars — a before and an after never fill the chart's width */
+  const bw = Math.min((W - padL * 2) / pts.length, 90);
   const y = (v: number) => padT + (H - padT - padB) * (1 - v / max);
   return (
     <svg className={`fw-chart is-${pareto ? 'pareto' : 'bars'}`} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={r.says}>

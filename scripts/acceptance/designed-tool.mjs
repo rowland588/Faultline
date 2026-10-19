@@ -32,7 +32,7 @@ const SESSION = { access_token: 'smoke', token_type: 'bearer', expires_in: 3600,
 
 /* the recorded answer: a method built on a log — no tool of the app's does this */
 const fld = (label, type, o = {}) => ({ label, type, unit: '', min: null, max: null, options: [], formula: '', required: false, ...o });
-const an = (label, block, o = {}) => ({ label, block, of: '', by: '', when_column: '', when_op: '', when_value: '', unit: '', ...o });
+const an = (label, block, o = {}) => ({ label, block, of: '', by: '', when_column: '', when_op: '', when_value: '', unit: '', against: '', target: null, formula: '', from_step: '', better: '', ...o });
 const step = (title, o = {}) => ({ title, per: 'line', answer: 'done', role: '', passes_if: '', photos: 0, files: 0, due_days: null, after: [], tool: '', fields: [], columns: [], analyses: [], min_entries: null, help: '', ...o });
 const cond = (o) => ({ type: 'stepsDone', policy: 'block', step: '', field: '', op: '>=', value: null, value2: null, evidence: 'photo', min: null, measure: '', priority: 'any', due_days: null, label: '', ...o });
 const COLS = [fld('Reason', 'choice', { options: ['Jam at infeed', 'Film change', 'Label fault', 'No product'], required: true }), fld('Minutes', 'number', { unit: 'min', required: true }), fld('Packs lost', 'calc', { unit: 'packs', formula: 'minutes * 40' })];
@@ -44,7 +44,7 @@ const DESIGN = {
       analyses: [an('Stop minutes a day', 'perDay', { of: 'Minutes' }), an('Biggest reason', 'pareto', { by: 'Reason', of: 'Minutes' }), an('Stop minutes by day', 'trend', { of: 'Minutes' }), an('Long stops', 'share', { when_column: 'Minutes', when_op: '>', when_value: '5' }), an('Packs lost', 'sum', { of: 'Packs lost' }), an('Stop minutes a week on', 'forecast', { of: 'Minutes', target: 10 }), an('Stops cost a day', 'calc', { formula: 'stop_minutes_a_day * cost_of_a_stop_minute', unit: '£' })] })],
       gate: [cond({})] },
     { name: 'Fix it', purpose: 'The biggest reason dealt with.', steps: [step('Countermeasure done', { role: 'Line lead' })], gate: [cond({})] },
-    { name: 'Prove it', purpose: 'The same log again.', steps: [step('Log every stop again', { answer: 'log', role: 'Operator', columns: COLS, analyses: [an('Stop minutes a day', 'perDay', { of: 'Minutes' })] })],
+    { name: 'Prove it', purpose: 'The same log again.', steps: [step('Log every stop again', { answer: 'log', role: 'Operator', columns: COLS, analyses: [an('Stop minutes a day', 'perDay', { of: 'Minutes' }), an('Is the drop real?', 'compare', { of: 'Minutes', from_step: 'Log every stop', better: 'lower' })] })],
       gate: [cond({}), cond({ type: 'fieldMeets', step: 'Log every stop again', field: 'Stop minutes a day', op: '<=', value: 10 }), cond({ type: 'measureMet', measure: 'Stop minutes a day' })] },
   ],
   measures: [{ name: 'Stop minutes a day', unit: 'min', better: 'lower', target: 10, from: [{ step: 'Log every stop', field: 'Stop minutes a day' }, { step: 'Log every stop again', field: 'Stop minutes a day' }] }],
@@ -212,6 +212,20 @@ for (const [reason, minutes, on] of [['Film change', '5', '2026-10-20'], ['Jam a
   await form.getByLabel('The day it happened', { exact: true }).fill(on);
   await form.getByRole('button', { name: 'Add the entry' }).click(); await page.waitForTimeout(350);
 }
+/* before and after, proved: the second log against the first — how far each stop moved, and how sure it got shorter, not by chance */
+const proofTruth = await page.evaluate(async () => {
+  const A = await import('/src/lib/flow/analysis.ts');
+  const cols = [{ key: 'reason', label: 'Reason', type: 'choice' }, { key: 'minutes', label: 'Minutes', type: 'number', unit: 'min' }];
+  const e = (m, i, struck) => ({ id: `p${i}`, on: '2026-10-12', at: i, values: { reason: 'Jam at infeed', minutes: m }, ...(struck ? { struck: true } : {}) });
+  const before = [12, 6, 8, 5, 10].map((m, i) => e(m, i)).concat([e(4, 9, true)]);
+  const r = A.analyse([{ key: 'p', label: 'Is the drop real?', block: 'compare', of: 'minutes', from: 'log-every-stop', better: 'lower' }], cols, [5, 3, 4].map((m, i) => e(m, 20 + i)), {}, { 'log-every-stop': { title: 'Log every stop', columns: cols, entries: before } });
+  return { says: r.p.says, value: r.p.value };
+});
+const proofSaid = flat(await sheet().locator('.fw-result[data-analysis="is_the_drop_real"]').innerText());
+ok(proofSaid.includes(proofTruth.says) && /fell from 8\.2 min to 4 min \(−51\.22%\) — better, and 9\d(\.\d+)?% sure it is not chance/.test(proofTruth.says),
+  `6b before and after, proved — the second log read against the first, as lib/flow/analysis says: "${proofTruth.says}"`, proofSaid.slice(0, 300));
+ok(await sheet().locator('.fw-result[data-analysis="is_the_drop_real"] svg.fw-chart.is-bars .fw-bar').count() === 2, '6c drawn as a before and a now');
+if (process.env.SHOTS) await sheet().locator('.fw-result[data-analysis="is_the_drop_real"]').screenshot({ path: join(process.env.SHOTS, 'proved.png') });
 await sheet().getByRole('button', { name: 'Done', exact: true }).click(); await page.waitForTimeout(700);
 await page.keyboard.press('Escape'); await settle();
 const measured = flat(await page.locator('.fw-measured').innerText().catch(() => ''));
@@ -233,6 +247,7 @@ ok(/Every entry/.test(pdf) && /No product · Minutes 4 min · Packs lost 160 pac
 ok(/Needs development/.test(pdf) && /A forecast of the next jam/.test(pdf), '7c the need for development on paper');
 ok(/Stops cost a day: £\d[\d,]*\.\d\d — stop minutes a day × cost of a stop minute/.test(pdf), '7e what the stops cost a day, on paper, in money');
 ok(/Stop minutes a week on: falling/.test(pdf) && /a week on/.test(pdf.replace(/Stop minutes a week on/g, '')), '7d the forecast on paper — its sentence and its picture');
+ok(pdf.includes(proofTruth.says) && /Before/.test(pdf) && /Now/.test(pdf), '7f before and after, proved, on paper — its sentence and its two bars', pdf.slice(pdf.indexOf('Is the drop real?'), pdf.indexOf('Is the drop real?') + 300));
 
 /* 8 — Faultline's own tool made from blocks, in the library */
 await page.goto(`${BASE}/#/methods`); await page.locator('.fw-card[data-library="rejects-log"]').waitFor({ timeout: 15000 });

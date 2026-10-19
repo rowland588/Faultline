@@ -369,7 +369,7 @@ export const LIBRARY: readonly LibraryEntry[] = [
      proves it. Measured by people, not by sensors (CLAUDE.md). */
   {
     id: 'short-stops', name: 'Short stops, timed as they are cleared', kind: 'improvement',
-    purpose: 'Every short stop timed by the operator who clears it, with what stopped it; the cause that takes the most time fixed, and the same timing kept again to prove it in time and money a day.',
+    purpose: 'Every short stop timed by the operator who clears it, with what stopped it; the cause that takes the most time fixed, and the same timing kept again to prove it — shorter, not by chance — in time and money a day.',
     words: ['short stop', 'short stops', 'micro stop', 'micro stops', 'minor stop', 'minor stops', 'jam', 'jams', 'stoppage', 'stoppages', 'stops', 'cleared', 'timed', 'time', 'stopwatch', 'how long', 'downtime'],
     uses: [],
     build: (): FlowDefinition => {
@@ -392,7 +392,7 @@ export const LIBRARY: readonly LibraryEntry[] = [
       ];
       return {
         schema: FLOW_SCHEMA, name: 'Short stops, timed as they are cleared', kind: 'improvement',
-        purpose: 'Every short stop timed by the operator who clears it, with what stopped it; the cause that takes the most time fixed, and the same timing kept again to prove it in time and money a day.',
+        purpose: 'Every short stop timed by the operator who clears it, with what stopped it; the cause that takes the most time fixed, and the same timing kept again to prove it — shorter, not by chance — in time and money a day.',
         roles: [{ key: 'op', name: 'Operator', side: 'site' }, { key: 'lead', name: 'Line lead', side: 'site' }],
         stages: [
           {
@@ -423,8 +423,12 @@ export const LIBRARY: readonly LibraryEntry[] = [
           },
           {
             key: 'prove', name: 'Prove it', purpose: 'The same stops timed again.',
-            steps: [{ key: 'time-after', title: 'Time every short stop again', per: 'line', answer: 'log', role: 'op', minEntries: 20, columns, fields: [costOfAMinute], after: ['done'], analyses: read(false) }],
-            gate: { conditions: [every] },
+            steps: [{
+              key: 'time-after', title: 'Time every short stop again', per: 'line', answer: 'log', role: 'op', minEntries: 20, columns, fields: [costOfAMinute], after: ['done'],
+              /* the proof: the same stops against the first timing — how sure they got shorter, not by chance */
+              analyses: [...read(false), { key: 'proved', label: 'Shorter, and not by chance', block: 'compare', of: 'time_to_clear', from: 'time-before', better: 'lower' }],
+            }],
+            gate: { conditions: [every, { id: 'proved', type: 'fieldMeets', policy: 'block', step: 'time-after', field: 'proved', op: '>=', value: 95, label: 'The stops shorter — at least 95% sure it is not chance' }] },
           },
         ],
         measures: [

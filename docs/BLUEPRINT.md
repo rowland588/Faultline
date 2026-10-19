@@ -217,7 +217,13 @@ watching, the clock kept through a locked phone or a reload, typed or
 corrected by hand, and read by every block, gate and measure as the number
 it is (measured by people, not by sensors); Faultline's library gains
 *Short stops, timed as they are cleared* — the Pareto by time, the time lost
-and what it costs a day. Next: a tool's panel inside the step itself
+and what it costs a day. And BEFORE AND AFTER, PROVED: a log read against an
+earlier one on the method (the `compare` block) says how far it moved and
+how sure it is not chance — Welch's t-test, the spreads free to differ — and,
+told which way is better, how sure it got better, so a gate on it ("at least
+95% sure") never passes a change for the worse. A measure says before → now;
+this says whether to believe it — the prove step of see, understand, commit,
+prove, show. The short-stops method closes on it. Next: a tool's panel inside the step itself
 rather than its page; more blocks and ways to capture as the floor asks (a
 regression on several columns, a tally counted with a tap — each tested).
 

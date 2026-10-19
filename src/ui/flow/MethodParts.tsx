@@ -226,7 +226,7 @@ function BoxesEditor({ boxes, onChange, ro, one, newType = 'text' }: { boxes: Fl
 }
 
 /** What a log's entries add up to — each a block (lib/flow/analysis) on its columns. */
-function AnalysesEditor({ step, onChange, ro }: { step: FlowStepDef; onChange: (next: FlowAnalysis[]) => void; ro: boolean }) {
+function AnalysesEditor({ step, onChange, ro, earlier = [] }: { step: FlowStepDef; onChange: (next: FlowAnalysis[]) => void; ro: boolean; earlier?: readonly FlowStepDef[] }) {
   const cols = step.columns ?? [];
   const list = step.analyses ?? [];
   const setA = (i: number, patch: Partial<FlowAnalysis>) => onChange(list.map((a, j) => {
@@ -258,6 +258,7 @@ function AnalysesEditor({ step, onChange, ro }: { step: FlowStepDef; onChange: (
                     ...(nb.needs.against === 'none' ? { against: undefined } : {}),
                     ...(nb.needs.target === 'none' ? { target: undefined } : {}),
                     ...(nb.needs.formula !== 'required' ? { formula: undefined } : {}),
+                    ...((nb.needs.from ?? 'none') === 'none' ? { from: undefined, better: undefined } : {}),
                   });
                 }}>
                 {ANALYSIS_BLOCKS.map(id => <option key={id} value={id}>{BLOCKS[id].name}</option>)}
@@ -282,6 +283,19 @@ function AnalysesEditor({ step, onChange, ro }: { step: FlowStepDef; onChange: (
                 <select className="text-input fw-in" value={a.against ?? ''} disabled={ro} aria-label={`Analysis ${i + 1}: against`} onChange={e => setA(i, { against: e.target.value || undefined })}>
                   <option value="">against which column?</option>
                   {cols.filter(c => isNumberColumn(c) && c.key !== a.of).map(c => <option key={c.key} value={c.key}>against {c.label}</option>)}
+                </select>
+              )}
+              {(b.needs.from ?? 'none') !== 'none' && (
+                <select className="text-input fw-in" value={a.from ?? ''} disabled={ro} aria-label={`Analysis ${i + 1}: compared with`} onChange={e => setA(i, { from: e.target.value || undefined })}>
+                  <option value="">{earlier.length ? 'compared with which log before it?' : 'no log before this one to compare with'}</option>
+                  {earlier.map(s => <option key={s.key} value={s.key}>against {s.title}</option>)}
+                </select>
+              )}
+              {(b.needs.from ?? 'none') !== 'none' && (
+                <select className="text-input fw-in" value={a.better ?? ''} disabled={ro} aria-label={`Analysis ${i + 1}: better when`} onChange={e => setA(i, { better: (e.target.value || undefined) as FlowAnalysis['better'] })}>
+                  <option value="">better either way — how sure it changed</option>
+                  <option value="lower">better lower — how sure it fell</option>
+                  <option value="higher">better higher — how sure it rose</option>
                 </select>
               )}
               {b.needs.target !== 'none' && (
@@ -495,7 +509,8 @@ export function StepEditor({ def, stageIndex, step, open, onClose, onChange, onR
           <div className="fw-f fw-log-cols"><span className="field-label">What each entry asks — its columns</span>
             <BoxesEditor boxes={step.columns ?? []} one="column" ro={ro} onChange={columns => set({ columns: columns.length ? columns : undefined })} />
           </div>
-          <AnalysesEditor step={step} ro={ro} onChange={analyses => set({ analyses: analyses.length ? analyses : undefined })} />
+          <AnalysesEditor step={step} ro={ro} earlier={(() => { const all = allSteps(def).map(r => r.step), at = all.findIndex(x => x.key === step.key); return at < 0 ? [] : all.slice(0, at).filter(x => x.answer === 'log'); })()}
+            onChange={analyses => set({ analyses: analyses.length ? analyses : undefined })} />
           <label className="fw-f"><span className="field-label">Entries it needs before it can be done</span>
             <Num value={step.minEntries} label="Entries it needs" placeholder="1" disabled={ro} onSave={v => set({ minEntries: v && v > 1 ? Math.round(v) : undefined })} /></label>
         </>}

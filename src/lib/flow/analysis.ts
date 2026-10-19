@@ -12,7 +12,9 @@
  * the step's columns. What they add up to is said by its analyses, each one
  * of the blocks below: count, sum, mean, median, the spread, a share, a
  * figure a day, a Pareto, a trend, a histogram, Cpk, a control chart, a
- * relationship between two columns, a forecast. A block is a pure
+ * relationship between two columns, a forecast, a worked-out figure, the
+ * time between failures, and a log compared with an earlier one (before and
+ * after, and how sure the change is not chance). A block is a pure
  * function with what it needs — and the picture it is drawn as — said as
  * data — so a method written by a
  * person or proposed by the assistant composes them, the validator checks
@@ -39,7 +41,7 @@ export interface FlowEntry {
   struck?: boolean;
 }
 
-export const ANALYSIS_BLOCKS = ['count', 'sum', 'mean', 'median', 'min', 'max', 'sd', 'share', 'perDay', 'pareto', 'trend', 'histogram', 'cpk', 'control', 'relation', 'forecast', 'calc', 'reliability'] as const;
+export const ANALYSIS_BLOCKS = ['count', 'sum', 'mean', 'median', 'min', 'max', 'sd', 'share', 'perDay', 'pareto', 'trend', 'histogram', 'cpk', 'control', 'relation', 'forecast', 'calc', 'reliability', 'compare'] as const;
 export type AnalysisBlockId = typeof ANALYSIS_BLOCKS[number];
 
 export const WHEN_OPS = ['=', '!=', '>=', '<=', '>', '<'] as const;
@@ -72,7 +74,17 @@ export interface FlowAnalysis {
   /** A worked-out figure's arithmetic, over the analyses before it and the
    *  step's number boxes, by their keys — "stop_minutes_a_day * cost_of_a_minute". */
   formula?: string;
+  /** An earlier log on the method this one is compared with — the before to
+   *  its after — by that step's key. */
+  from?: string;
+  /** Which way is better, for a before and an after: its figure is then how
+   *  sure it got better (a change the wrong way scores low), not only that it
+   *  changed. */
+  better?: 'higher' | 'lower';
 }
+
+/** An earlier log a block may read — a before for a comparison. */
+export interface EarlierLog { title: string; columns: readonly FlowField[]; entries: readonly FlowEntry[] }
 
 /** How a block's answer is drawn — on the screen (ui/flow/LogParts) and on
  *  paper (lib/flow/reportPdf) alike, by this word and never by the block's
@@ -120,7 +132,7 @@ export interface AnalysisBlock {
   name: string;
   /** What it is for, in a line — for the designer and the assistant. */
   says: string;
-  needs: { of: Need; by: Need; when: Need; against: Need; target: Need; formula?: Need };
+  needs: { of: Need; by: Need; when: Need; against: Need; target: Need; formula?: Need; from?: Need };
   /** of must be a number column. */
   numeric: boolean;
   /** number: a figure gates and measures can read; series: a picture; both. */
@@ -135,6 +147,8 @@ export interface AnalysisContext {
   prior: Record<string, AnalysisResult>;
   boxes: Record<string, number>;
   labels: Record<string, string>;
+  /** The method's earlier logs, by step key — on the same machine where the log is a machine's. */
+  logs: Record<string, EarlierLog>;
 }
 
 /* ------------------------------------------------------------------ helpers */
@@ -292,6 +306,72 @@ export function gammaFn(z: number): number {
   const t = x + 7.5;
   for (let i = 1; i < 9; i++) a += c[i] / (x + i);
   return Math.sqrt(2 * Math.PI) * t ** (x + 0.5) * Math.exp(-t) * a;
+}
+
+/** ln Γ(z) for z > 0, by the same Lanczos sum — large arguments without overflow. */
+function lnGamma(z: number): number {
+  const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+  if (z < 0.5) return Math.log(Math.PI / Math.abs(Math.sin(Math.PI * z))) - lnGamma(1 - z);
+  const x = z - 1;
+  let a = c[0];
+  const t = x + 7.5;
+  for (let i = 1; i < 9; i++) a += c[i] / (x + i);
+  return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
+}
+
+/** The continued fraction for the incomplete beta (Lentz's method, as
+ *  Numerical Recipes' betacf). */
+function betaFraction(x: number, a: number, b: number): number {
+  const TINY = 1e-300;
+  const qab = a + b, qap = a + 1, qam = a - 1;
+  let c = 1, d = 1 - (qab * x) / qap;
+  if (Math.abs(d) < TINY) d = TINY;
+  d = 1 / d;
+  let h = d;
+  for (let m = 1; m <= 300; m++) {
+    const m2 = 2 * m;
+    let aa = (m * (b - m) * x) / ((qam + m2) * (a + m2));
+    d = 1 + aa * d; if (Math.abs(d) < TINY) d = TINY;
+    c = 1 + aa / c; if (Math.abs(c) < TINY) c = TINY;
+    d = 1 / d; h *= d * c;
+    aa = (-(a + m) * (qab + m) * x) / ((a + m2) * (qap + m2));
+    d = 1 + aa * d; if (Math.abs(d) < TINY) d = TINY;
+    c = 1 + aa / c; if (Math.abs(c) < TINY) c = TINY;
+    d = 1 / d;
+    const step = d * c;
+    h *= step;
+    if (Math.abs(step - 1) < 1e-15) break;
+  }
+  return h;
+}
+
+/** The regularized incomplete beta I_x(a, b). */
+export function incompleteBeta(x: number, a: number, b: number): number {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  const front = Math.exp(lnGamma(a + b) - lnGamma(a) - lnGamma(b) + a * Math.log(x) + b * Math.log(1 - x));
+  return x < (a + 1) / (a + b + 2) ? (front * betaFraction(x, a, b)) / a : 1 - (front * betaFraction(1 - x, b, a)) / b;
+}
+
+/** The chance of a t at least this far from nought either way, by chance
+ *  alone, with df degrees of freedom (Student's t, two-sided). */
+export const tTwoSided = (t: number, df: number): number => (Number.isFinite(t) ? incompleteBeta(df / (df + t * t), df / 2, 0.5) : 0);
+
+/** Welch's t-test — two samples whose spreads need not be the same, as a
+ *  before and an after on the floor seldom are: the difference of the
+ *  means (after − before) over its standard error, the Welch–Satterthwaite
+ *  degrees of freedom, and the two-sided chance of so big a difference by
+ *  chance alone. Undefined with fewer than two on a side. */
+export function welch(before: readonly number[], after: readonly number[]): { diff: number; t: number; df: number; p: number } | undefined {
+  const nb = before.length, na = after.length;
+  if (nb < 2 || na < 2) return undefined;
+  const vb = sd([...before]) ** 2 / nb, va = sd([...after]) ** 2 / na;
+  const diff = mean([...after]) - mean([...before]);
+  const se = Math.sqrt(vb + va);
+  if (!(se > 0)) return { diff, t: diff === 0 ? 0 : Math.sign(diff) * Infinity, df: nb + na - 2, p: diff === 0 ? 1 : 0 };
+  const df = (vb + va) ** 2 / (vb ** 2 / (nb - 1) + va ** 2 / (na - 1));
+  const t = diff / se;
+  return { diff, t, df, p: tTwoSided(t, df) };
 }
 
 /** A Weibull fit by maximum likelihood, as reliability engineering does it:
@@ -543,6 +623,54 @@ export const BLOCKS: Record<AnalysisBlockId, AnalysisBlock> = {
       };
     },
   },
+  compare: {
+    id: 'compare', name: 'Before and after', says: 'This log against an earlier one on the method — how far it moved, and how sure it is not chance (Welch’s t on the entries, or on the entries a day); told which way is better, its figure is how sure it got better',
+    needs: { of: 'optional', by: 'none', when: 'optional', against: 'none', target: 'none', from: 'required' }, numeric: true, output: 'both', picture: 'bars',
+    compute: (entries, a, columns, ctx) => {
+      const was = a.from ? ctx.logs[a.from] : undefined;
+      const unit = a.of ? unitOf(a, columns) : 'a day';
+      const what = `${a.label}${whenSaid(a, columns)}`;
+      if (!was) return { n: 0, unit: '%', says: `${what}: needs the earlier log it is compared with — it is not on the method.` };
+      /* the same column on both logs, entry by entry; with no column, the entries a day */
+      const pick = (es: readonly FlowEntry[], cs: readonly FlowField[]) => {
+        const rows = rowsOf(es, a, cs);
+        return a.of ? numbers(rows, a.of) : dayTotals(rows).map(p => p.value);
+      };
+      const xs = pick(was.entries, was.columns), ys = pick(entries, columns);
+      const thing = a.of ? `${lowerFirst(col(columns, a.of)?.label ?? a.of)} an entry` : 'entries a day';
+      const sides = a.of ? `${many(xs.length, 'entry', 'entries')} before and ${ys.length} now` : `${many(xs.length, 'day')} before and ${ys.length} now`;
+      const w = welch(xs, ys);
+      if (!w) return { n: ys.length, unit: '%', says: `${what}: needs at least 2 ${a.of ? 'entries' : 'days logged'} on each side to compare — ${sides} (“${was.title}” before).` };
+      const mb = mean(xs), mn = mean(ys);
+      const series: SeriesPoint[] = [{ label: 'Before', value: mb }, { label: 'Now', value: mn }];
+      const pct = mb !== 0 ? ` (${w.diff < 0 ? '−' : '+'}${fmtNumber(Math.abs((w.diff / mb) * 100))}%)` : '';
+      const moved = w.diff === 0 ? `${thing} the same before and now, ${withUnit(mb, unit)}` : `${thing} ${w.diff < 0 ? 'fell' : 'rose'} from ${withUnit(mb, unit)} to ${withUnit(mn, unit)}${pct}`;
+      /* how sure, said as the floor reads it — never "100%" */
+      const said = (x: number) => (x > 99.9 ? 'more than 99.9%' : `${fmtNumber(x)}%`);
+      const few = Math.min(xs.length, ys.length) < 5 ? '; fewer than 5 on a side: read it with care' : '';
+      const tail = ` (on ${sides}, against “${was.title}”${few}).`;
+      if (w.diff === 0) return { value: 0, n: ys.length, unit: '%', series, says: `${what}: ${moved} — no change${tail}` };
+      if (!a.better) {
+        /* which way is better not said: how sure it changed at all (two-sided) */
+        const sure = (1 - w.p) * 100;
+        const verdict = w.p <= 0.05 ? `a real change: ${said(sure)} sure it is not chance`
+          : w.p <= 0.2 ? `probably real: ${said(sure)} sure — more entries would settle it`
+            : `not shown yet: it could be chance (${said(sure)} sure) — keep logging`;
+        return { value: Math.min(sure, 99.9), n: ys.length, unit: '%', series, says: `${what}: ${moved} — ${verdict}${tail}` };
+      }
+      /* which way is better said: how sure it got better (one-sided) — a change the wrong way scores low */
+      const right = a.better === 'lower' ? w.diff < 0 : w.diff > 0;
+      const pBetter = right ? w.p / 2 : 1 - w.p / 2;
+      const sure = (1 - pBetter) * 100;
+      const verdict = right
+        ? (pBetter <= 0.05 ? `better, and ${said(sure)} sure it is not chance`
+          : pBetter <= 0.2 ? `better, probably: ${said(sure)} sure — more entries would settle it`
+            : `better on these entries, but not shown yet: it could be chance (${said(sure)} sure) — keep logging`)
+        : (w.p / 2 <= 0.05 ? `worse — and ${said((1 - w.p / 2) * 100)} sure it is not chance: what changed with the countermeasure?`
+          : `worse on these entries, though it could be chance — not better`);
+      return { value: Math.min(sure, 99.9), n: ys.length, unit: '%', series, says: `${what}: ${moved} — ${verdict}${tail}` };
+    },
+  },
   calc: {
     id: 'calc', name: 'Worked out', says: 'A figure worked out from the figures before it and the step’s own boxes — any arithmetic (+ − × ÷ and brackets), money included: a cost, a yield, a rate',
     needs: { of: 'none', by: 'none', when: 'none', against: 'none', target: 'none', formula: 'required' }, numeric: false, output: 'number', picture: 'none',
@@ -569,7 +697,7 @@ export const blockOf = (id?: string): AnalysisBlock | undefined => (id && (ANALY
 /** Every analysis on a log, worked out from its entries — in order, so a
  *  worked-out figure reads those before it, and the step's own boxes. */
 export function analyse(analyses: readonly FlowAnalysis[] | undefined, columns: readonly FlowField[] | undefined, entries: readonly FlowEntry[] | undefined,
-  boxes: { values?: Record<string, unknown>; labels?: Record<string, string> } = {}): Record<string, AnalysisResult> {
+  boxes: { values?: Record<string, unknown>; labels?: Record<string, string> } = {}, logs: Record<string, EarlierLog> = {}): Record<string, AnalysisResult> {
   const out: Record<string, AnalysisResult> = {};
   const nums: Record<string, number> = {};
   for (const [k, v] of Object.entries(boxes.values ?? {})) if (typeof v === 'number' && Number.isFinite(v)) nums[k] = v;
@@ -577,7 +705,7 @@ export function analyse(analyses: readonly FlowAnalysis[] | undefined, columns: 
   for (const a of analyses ?? []) labels[a.key] = a.label;
   for (const a of analyses ?? []) {
     const b = blockOf(a.block);
-    if (b) out[a.key] = b.compute(entries ?? [], a, columns ?? [], { prior: { ...out }, boxes: nums, labels });
+    if (b) out[a.key] = b.compute(entries ?? [], a, columns ?? [], { prior: { ...out }, boxes: nums, labels, logs });
   }
   return out;
 }
@@ -593,5 +721,5 @@ export function figuresOf(results: Record<string, AnalysisResult>): Record<strin
  *  from the registry, so a new block is offered the day it is written. */
 export const BLOCK_CATALOGUE = ANALYSIS_BLOCKS.map(id => {
   const b = BLOCKS[id];
-  return { id, name: b.name, says: b.says, of: b.needs.of, by: b.needs.by, when: b.needs.when, against: b.needs.against, target: b.needs.target, formula: b.needs.formula ?? 'none', numeric: b.numeric, output: b.output, picture: b.picture };
+  return { id, name: b.name, says: b.says, of: b.needs.of, by: b.needs.by, when: b.needs.when, against: b.needs.against, target: b.needs.target, formula: b.needs.formula ?? 'none', from: b.needs.from ?? 'none', numeric: b.numeric, output: b.output, picture: b.picture };
 });

@@ -64,7 +64,7 @@ export const PROPOSAL_SCHEMA = obj({
             items: obj({
               label: S, block: { type: 'string', enum: [...ANALYSIS_BLOCKS] }, of: S, by: S,
               when_column: S, when_op: { type: 'string', enum: ['', ...WHEN_OPS] }, when_value: S, unit: S,
-              against: S, target: NUMQ, formula: S,
+              against: S, target: NUMQ, formula: S, from_step: S, better: { type: 'string', enum: ['', 'higher', 'lower'] },
             }),
           },
           min_entries: INTQ,
@@ -154,7 +154,7 @@ export function fromProposal(input: unknown): Proposed {
       const fields = proposedFields(t.fields);
       const answer = oneOf(t.answer, ANSWERS, 'done');
       const columns = answer === 'log' ? proposedFields(t.columns, fields.map(f => f.key)) : [];
-      const analyses = answer === 'log' ? proposedAnalyses(t.analyses, columns, [...fields, ...columns].map(f => f.key), fields) : [];
+      const analyses = answer === 'log' ? proposedAnalyses(t.analyses, columns, [...fields, ...columns].map(f => f.key), fields, [...seen, ...steps]) : [];
       const minEntries = num(t.min_entries);
       const photos = num(t.photos), files = num(t.files), due = num(t.due_days);
       const after = words(t.after, 10).map(a => seen.find(s => same(s.title, a))?.key ?? steps.map(x => ({ title: x.title, key: x.key })).find(s => same(s.title, a))?.key).filter((k): k is string => !!k);
@@ -304,7 +304,7 @@ function proposedRule(raw: unknown, earlier: readonly { title: string; key: stri
 /** A formula's names changed by a map — keys to words and back. */
 const renameRefs = (formula: string, to: (name: string) => string) => formula.replace(/[a-z_][a-z0-9_]*/gi, w => to(w.toLowerCase()));
 
-function proposedAnalyses(raw: unknown, columns: FlowField[], taken: readonly string[], boxes: readonly FlowField[] = []): FlowAnalysis[] {
+function proposedAnalyses(raw: unknown, columns: FlowField[], taken: readonly string[], boxes: readonly FlowField[] = [], earlier: readonly { title: string; key: string }[] = []): FlowAnalysis[] {
   const out: FlowAnalysis[] = [];
   /* a worked-out figure names the figures before it and the step's boxes by their words, lower case with underscores */
   const byWords = (w: string) => out.find(x => fieldKeyOf(x.label) === w)?.key ?? boxes.find(f => fieldKeyOf(f.label) === w)?.key ?? w;
@@ -319,6 +319,8 @@ function proposedAnalyses(raw: unknown, columns: FlowField[], taken: readonly st
     const raw2 = str(a.when_value, 80);
     const value = wc && raw2 ? (isNumberColumn(wc) && Number.isFinite(Number(raw2)) ? Number(raw2) : wc.type === 'yesno' ? /^(y|yes|true)$/i.test(raw2) : raw2) : undefined;
     const unit = str(a.unit, 40);
+    /* a before and an after: the earlier log by its title */
+    const from = earlier.find(s => same(s.title, str(a.from_step)))?.key;
     out.push({
       key: fieldKeyOf(label, [...taken, ...out.map(x => x.key)]), label, block: block.id,
       ...(of ? { of: of.key } : {}), ...(by ? { by: by.key } : {}),
@@ -326,6 +328,8 @@ function proposedAnalyses(raw: unknown, columns: FlowField[], taken: readonly st
       ...(against ? { against: against.key } : {}),
       ...(typeof a.target === 'number' && Number.isFinite(a.target) ? { target: a.target } : {}),
       ...(str(a.formula, 300) ? { formula: renameRefs(str(a.formula, 300).toLowerCase(), byWords) } : {}),
+      ...(from ? { from } : {}),
+      ...(from && (a.better === 'higher' || a.better === 'lower') ? { better: a.better } : {}),
       ...(unit ? { unit } : {}),
     });
   }
@@ -360,7 +364,8 @@ export function toProposal(def: FlowDefinition): Record<string, unknown> {
         analyses: (s.analyses ?? []).map(a => {
           const lab = (k?: string) => (k ? s.columns?.find(c => c.key === k)?.label ?? k : '');
           return { label: a.label, block: a.block, of: lab(a.of), by: lab(a.by), when_column: lab(a.when?.column), when_op: a.when?.op ?? '', when_value: a.when ? String(a.when.value) : '', unit: a.unit ?? '', against: lab(a.against), target: a.target ?? null,
-            formula: a.formula ? renameRefs(a.formula, k => { const w = s.analyses?.find(x => x.key === k)?.label ?? s.fields?.find(x => x.key === k)?.label; return w ? fieldKeyOf(w) : k; }) : '' };
+            formula: a.formula ? renameRefs(a.formula, k => { const w = s.analyses?.find(x => x.key === k)?.label ?? s.fields?.find(x => x.key === k)?.label; return w ? fieldKeyOf(w) : k; }) : '',
+            from_step: a.from ? titleOf(a.from) : '', better: a.better ?? '' };
         }),
         min_entries: s.minEntries ?? null,
         only_if: ruleSaidBack(def, s.onlyIf),

@@ -200,6 +200,20 @@ export function validateDefinition(input: unknown): Checked {
     else if (!asNumber && asWords && typeof r.value === 'number' && asWords.type !== 'text') err(`step:${k}.onlyIf`, `"${step.title}" compares “${asWords.label}” with a number — it is words: say which of them.`);
     else if (!asNumber && r.op !== '=' && r.op !== '!=') err(`step:${k}.onlyIf`, `"${step.title}" compares “${asWords?.label}” by size — words are only the same (=) or not (≠).`);
   }
+  /* ---- a before and an after: each compares with a log before it, on the same column ---- */
+  for (const [k, { step }] of stepIndex) {
+    for (const a of step.analyses ?? []) {
+      if (!a.from) continue;
+      const aw = `"${step.title}", the analysis “${a.label}”,`;
+      const dep = stepIndex.get(a.from);
+      if (!dep) { err(`step:${k}.analyses`, `${aw} compares with a step that is not on the method: "${a.from}".`); continue; }
+      if (dep.step.answer !== 'log') { err(`step:${k}.analyses`, `${aw} compares with “${dep.step.title}”, which is not a log.`); continue; }
+      if ((orderOf.get(a.from) ?? 0) >= (orderOf.get(k) ?? 0)) { err(`step:${k}.analyses`, `${aw} compares with “${dep.step.title}”, which does not come before it — the before is logged first.`); continue; }
+      const label = (key: string) => step.columns?.find(c => c.key === key)?.label ?? key;
+      if (a.of && !(dep.step.columns ?? []).some(c => c.key === a.of && isNumberColumn(c))) err(`step:${k}.analyses`, `${aw} compares “${label(a.of)}”, which “${dep.step.title}” does not log as a number.`);
+      if (a.when && !(dep.step.columns ?? []).some(c => c.key === a.when?.column)) err(`step:${k}.analyses`, `${aw} counts the entries where “${label(a.when.column)}” — which “${dep.step.title}” does not log.`);
+    }
+  }
   const cyc = findCycle(stepIndex);
   if (cyc) err('after', `These steps wait on each other in a circle: ${cyc.map(k => `"${stepIndex.get(k)?.step.title ?? k}"`).join(' → ')}.`);
 
@@ -474,9 +488,16 @@ function readAnalyses(raw: unknown, columns: FlowField[], fields: FlowField[], t
         else if (stray.length) { err(`${ap}.formula`, `${aw} reads ${stray.map(x => `"${x}"`).join(', ')}, which ${stray.length === 1 ? 'is' : 'are'} not a figure before it or a number box of the step.`); ok = false; }
       } catch (e) { err(`${ap}.formula`, `${aw}'s arithmetic cannot be read: ${e instanceof FormulaError ? e.message : 'it is not a formula'}`); ok = false; }
     }
+    /* a before and an after: the earlier log is checked once every step is read */
+    const from = optStr(a.from, 40);
+    if (block.needs.from === 'required' && !from) { err(`${ap}.from`, `${aw} compares this log with an earlier one — say which.`); ok = false; }
+    if (from && (block.needs.from ?? 'none') === 'none') { err(`${ap}.from`, `${aw} reads no earlier log — only a before-and-after does.`); ok = false; }
+    const better = a.better === 'higher' || a.better === 'lower' ? a.better : undefined;
+    if (a.better !== undefined && a.better !== null && a.better !== '' && !better) { err(`${ap}.better`, `${aw} says better is "${String(a.better)}" — higher or lower.`); ok = false; }
+    if (better && (block.needs.from ?? 'none') === 'none') { err(`${ap}.better`, `${aw} says which way is better, but only a before-and-after reads it — judge the figure in a gate or a measure.`); ok = false; }
     if (block.id === 'cpk' && of && colOf(of) && colOf(of)?.min === undefined && colOf(of)?.max === undefined) { err(`${ap}.of`, `${aw} judges “${colOf(of)?.label}” against its limits, but the column has none — give it an at least or an at most.`); ok = false; }
     if (!ok) return;
-    out.push({ key, label, block: block.id, ...(of ? { of } : {}), ...(by ? { by } : {}), ...(when ? { when } : {}), ...(against ? { against } : {}), ...(target !== undefined ? { target } : {}), ...(formula ? { formula } : {}), ...maybe('unit', optStr(a.unit, 40)) });
+    out.push({ key, label, block: block.id, ...(of ? { of } : {}), ...(by ? { by } : {}), ...(when ? { when } : {}), ...(against ? { against } : {}), ...(target !== undefined ? { target } : {}), ...(formula ? { formula } : {}), ...(from ? { from } : {}), ...(better ? { better } : {}), ...maybe('unit', optStr(a.unit, 40)) });
   });
   return out;
 }

@@ -367,6 +367,7 @@ export function rekeyStep(def: FlowDefinition, from: string, to: string): void {
       if (s.key === from) s.key = to;
       if (s.after) s.after = s.after.map(a => (a === from ? to : a));
       if (s.onlyIf?.step === from) s.onlyIf.step = to;
+      for (const a of s.analyses ?? []) if (a.from === from) a.from = to;
     }
     for (const c of st.gate.conditions) if ('step' in c && c.step === from) c.step = to;
   }
