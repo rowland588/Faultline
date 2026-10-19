@@ -158,7 +158,7 @@ export interface AnalysisContext {
 
 /* ------------------------------------------------------------------ helpers */
 
-const NUMERIC = new Set<FlowField['type']>(['number', 'reading', 'timer', 'calc']);
+const NUMERIC = new Set<FlowField['type']>(['number', 'reading', 'timer', 'tally', 'calc']);
 export const isNumberColumn = (f?: FlowField): boolean => !!f && NUMERIC.has(f.type);
 /** Columns a Pareto groups by: words, not numbers. */
 export const isGroupColumn = (f?: FlowField): boolean => !!f && ['text', 'choice', 'yesno', 'person', 'date'].includes(f.type);

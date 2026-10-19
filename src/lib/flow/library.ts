@@ -291,7 +291,8 @@ export const LIBRARY: readonly LibraryEntry[] = [
     build: (): FlowDefinition => {
       const columns = [
         { key: 'reason', label: 'Reason', type: 'choice' as const, options: ['Seal', 'Label', 'Weight', 'Damaged', 'Foreign body', 'Other'], required: true },
-        { key: 'rejects', label: 'Rejects', type: 'number' as const, unit: 'packs', required: true },
+        /* counted with a tap as they come off — +1 at a time, or typed */
+        { key: 'rejects', label: 'Rejects', type: 'tally' as const, unit: 'packs', required: true },
         { key: 'shift', label: 'Shift', type: 'choice' as const, options: ['Early', 'Late', 'Night'] },
       ];
       /* what a reject pack costs, typed once by the person — and what the rejects cost a day, worked out */

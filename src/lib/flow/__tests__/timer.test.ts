@@ -98,6 +98,24 @@ describe('the assistant’s timed box, read', () => {
   });
 });
 
+describe('a count taken with a tap', () => {
+  it('a number to every block, gate and measure; its unit and limits kept; read from a proposal and said back', () => {
+    const d = structuredClone(def('min')) as { stages: { steps: { fields: Record<string, unknown>[] }[] }[] };
+    d.stages[0].steps[0].fields.push({ key: 'rejects', label: 'Rejects', type: 'tally', unit: 'packs', max: 5 });
+    const c = validateDefinition(d);
+    expect(c.errors).toEqual([]);
+    expect(c.def?.stages[0].steps[0].fields?.[1]).toEqual({ key: 'rejects', label: 'Rejects', type: 'tally', unit: 'packs', max: 5 });
+    expect(numbersOf(c.def!.stages[0].steps[0]).map(f => f.key)).toEqual(['changeover', 'rejects']);
+    expect(isNumberColumn({ key: 'r', label: 'R', type: 'tally' })).toBe(true);
+    expect(limitsBroken(c.def!.stages[0].steps[0], { rejects: 7 })).toEqual(['Rejects 7 packs — at most 5 packs']);
+    const back = validateDefinition(fromProposal({ ...toProposal(c.def!), assumptions: [], questions: [] }).def);
+    expect(back.def?.stages[0].steps[0].fields?.[1]).toMatchObject({ type: 'tally', unit: 'packs', max: 5 });
+  });
+  it('Faultline’s rejects are counted with a tap', () => {
+    expect(libraryEntry('rejects-log')!.build().stages[0].steps[0].columns?.find(c => c.key === 'rejects')).toMatchObject({ type: 'tally', unit: 'packs' });
+  });
+});
+
 describe('Faultline’s short stops, timed as they are cleared', () => {
   const st = libraryEntry('short-stops')!.build().stages[0].steps[0];
   const col = st.columns!.find(c => c.key === 'time_to_clear')!;

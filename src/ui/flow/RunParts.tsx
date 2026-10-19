@@ -43,6 +43,7 @@ import { Num, Words } from './MethodParts';
 import { askFor, withFor } from './Asking';
 import { LogPanel } from './LogParts';
 import { TimerBox } from './Timer';
+import { TallyBox } from './Tally';
 
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100));
 
@@ -62,6 +63,8 @@ function FieldBox({ f, value, worked, onSave, disabled, keepAs }: {
       );
     case 'timer':
       return <div className="fw-f" data-field={f.key}>{head}<TimerBox f={f} value={typeof value === 'number' ? value : undefined} keepAs={keepAs} disabled={disabled} onTime={v => onSave(v ?? '')} /></div>;
+    case 'tally':
+      return <div className="fw-f" data-field={f.key}>{head}<TallyBox f={f} value={typeof value === 'number' ? value : undefined} disabled={disabled} onCount={v => onSave(v ?? '')} /></div>;
     case 'number': case 'reading':
       return <label className="fw-f" data-field={f.key}>{head}<Num value={typeof value === 'number' ? value : typeof value === 'string' && value !== '' ? Number(value) : undefined} label={f.label} disabled={disabled} onSave={v => onSave(v ?? '')} /></label>;
     case 'date':

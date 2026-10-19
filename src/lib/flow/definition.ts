@@ -64,12 +64,13 @@ export interface FlowRole {
 /** The field palette. Each is a box a person fills on the floor; `calc` is
  *  worked out from the step's own numbers by lib/flow/formula — never typed,
  *  never a model's number. */
-export const FIELD_TYPES = ['text', 'number', 'reading', 'timer', 'date', 'choice', 'yesno', 'person', 'calc'] as const;
+export const FIELD_TYPES = ['text', 'number', 'reading', 'timer', 'tally', 'date', 'choice', 'yesno', 'person', 'calc'] as const;
 export type FieldType = typeof FIELD_TYPES[number];
 
 /** Boxes a person fills with a number — typed, read off a gauge against its
- *  limits, or timed with a tap (a timer: Start, Stop, kept as the time). */
-export const isTypedNumber = (t: FieldType): boolean => t === 'number' || t === 'reading' || t === 'timer';
+ *  limits, timed with a tap (a timer: Start, Stop, kept as the time) or
+ *  counted with a tap (a tally: +1 at a time). */
+export const isTypedNumber = (t: FieldType): boolean => t === 'number' || t === 'reading' || t === 'timer' || t === 'tally';
 /** Boxes that hold a number — those, and the ones the app works out. */
 export const isNumberBox = (t: FieldType): boolean => isTypedNumber(t) || t === 'calc';
 /** What a timed box is kept in — seconds unless the method says minutes or hours. */
@@ -344,7 +345,7 @@ export const ANSWER_WORD: Record<FlowAnswer, string> = {
 };
 
 export const FIELD_WORD: Record<FieldType, string> = {
-  text: 'Words', number: 'Number', reading: 'Reading with limits', timer: 'Timed with a tap', date: 'Date', choice: 'Choice', yesno: 'Yes or no', person: 'Person', calc: 'Worked out',
+  text: 'Words', number: 'Number', reading: 'Reading with limits', timer: 'Timed with a tap', tally: 'Counted with a tap', date: 'Date', choice: 'Choice', yesno: 'Yes or no', person: 'Person', calc: 'Worked out',
 };
 
 /** A field's key — a word a worked-out sum can name ("packs / minutes"), so

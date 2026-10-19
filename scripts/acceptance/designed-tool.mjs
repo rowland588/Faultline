@@ -293,6 +293,24 @@ await page.locator('.fw-card[data-library="rejects-log"]').getByRole('button', {
 await page.waitForFunction(() => /#\/methods\/[^/]+$/.test(location.hash), null, { timeout: 15000 }).catch(() => {});
 await page.waitForFunction(() => /works out rejects a day/i.test(document.querySelector('.nv-main')?.textContent ?? ''), null, { timeout: 10000 }).catch(() => {});
 ok(/works out rejects a day, biggest reason, rejects by day, rejects by shift, what rejects cost a day/.test(flat(await page.locator('.nv-main').innerText())), '8a taken: its log and what it works out — what the rejects cost a day among it — on the method page');
+/* 8a1 — a count taken with a tap: the rejects counted +1 as they come off, a mistap taken back, the entry added */
+await page.getByRole('button', { name: 'Approve version 1' }).click();
+await page.getByRole('button', { name: 'Start a project on it' }).click();
+await sheet().waitFor();
+await page.getByLabel("The project's name", { exact: true }).fill('Sealer rejects');
+await sheet().getByRole('button', { name: 'Start it' }).click();
+await page.locator('.fw-row[data-step="log-before"]').waitFor({ timeout: 15000 });
+await page.locator('.fw-row[data-step="log-before"]').first().click(); await sheet().locator('.fw-log-panel').waitFor();
+const rform = () => sheet().locator('.fw-entry').first();
+for (let i = 0; i < 4; i++) await rform().getByRole('button', { name: 'Count one more — rejects' }).click();
+await rform().getByRole('button', { name: 'One fewer — rejects' }).click();
+const counted = flat(await rform().locator('.fw-tally[data-tally="rejects"] .fw-tally-n').innerText());
+await rform().getByLabel('Reason', { exact: true }).selectOption('Seal');
+await rform().getByRole('button', { name: 'Add the entry' }).click(); await page.waitForTimeout(500);
+const rrow = flat(await sheet().locator('.fw-entries-t tbody tr').first().innerText());
+ok(counted === '3 packs' && /Seal\s*3 packs/.test(rrow) && /Rejects a day: 3 packs a day/.test(flat(await sheet().locator('.fw-results').innerText())) && flat(await rform().locator('.fw-tally-n').innerText()) === '0 packs',
+  '8a1 a count taken with a tap — four taps, one taken back, 3 packs kept on the entry and read by the figures; the box back to nought for the next', `${counted} | ${rrow}`);
+await page.keyboard.press('Escape'); await settle();
 
 /* 8b — statistical process control, a tool no screen was written for: the library's
    process held in control, made of the control chart, the spread, the histogram and

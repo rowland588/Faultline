@@ -194,7 +194,7 @@ function BoxesEditor({ boxes, onChange, ro, one, newType = 'text' }: { boxes: Fl
               <span className="sub">Timed on the floor with a tap — Start, Stop{one === 'column' ? ', Lap for the next' : ''} — or typed.</span>
             </div>
           )}
-          {(f.type === 'number' || f.type === 'reading' || f.type === 'calc') && (
+          {(f.type === 'number' || f.type === 'reading' || f.type === 'tally' || f.type === 'calc') && (
             <div className="fw-field-r">
               <Words value={f.unit ?? ''} label={`${f.label}'s unit`} placeholder="unit — packs/min, mm" onSave={v => setBox(i, { unit: v || undefined })} disabled={ro} />
               {f.type !== 'calc' && <Num value={f.min} label={`${f.label}: at least`} placeholder="at least" onSave={v => setBox(i, { min: v })} disabled={ro} />}

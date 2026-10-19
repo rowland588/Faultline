@@ -228,7 +228,9 @@ GROUP? (the `groups` block, one-way analysis of variance): whether a figure
 differs by shift, crew, product or cause more than it varies within each,
 and how sure — written as one registry entry and nothing else, the claim
 that a new capability reaches every designer, proposal and paper unrebuilt,
-shown again. And WHO OWES WHAT BY WHEN (the `overdue` block): a log kept as
+shown again. And a COUNT TAKEN WITH A TAP (`tally`): +1 at a time as they
+come off, −1 for a mistap, or typed — Faultline's rejects are counted so.
+And WHO OWES WHAT BY WHEN (the `overdue` block): a log kept as
 an action register — what, who, the day it is due, done or not — says what
 has gone past its day and is still open, by owner, the oldest named and how
 late, and a gate can wait on none past due: the control room's own
@@ -390,6 +392,20 @@ there and what replaces it.
 ---
 
 ## 6. What we missed — what should have been built without being asked
+
+**A photo for each entry in a log** (19 October, the next capture piece).
+A defect log, a 5S walk, a jam log — the floor photographs each one. A
+method's step takes photos today (its evidence), but a log's entries live
+inside the record's values, where the media bucket's rule
+(`faultline_can_see_media`, FLOW_MEDIA.sql) never looks, so a photo kept on
+an entry would sync its words and have its picture refused. Built as: the
+photo kept in the record's own media list, tagged with its entry (the rule
+already reads that list — no database change), a `photo` column type that
+can be required, the entry's thumbnails on its row, its photo on paper
+beside its line, and the sync proved for two devices adding photos to one
+log at once (the record's media list must merge item by item, as entries
+already do). *Shows:* the log's entries, the step's evidence count, the
+method report.
 
 **A job's measure in the control room** (the vision slice, 18 October). A
 method's measures are its before → now against a target, on its page and

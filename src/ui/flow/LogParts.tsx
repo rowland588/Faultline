@@ -20,6 +20,7 @@ import { addEntry, editEntry, strikeEntry, type FlowProject, type OpContext, typ
 import { niceDay, todayISO } from '../../lib/weeks';
 import { offerUndo } from '../Undo';
 import { TimerBox } from './Timer';
+import { TallyBox } from './Tally';
 
 type Typed = Record<string, string | number | boolean>;
 
@@ -62,6 +63,12 @@ function EntryForm({ columns, start, onSubmit, submitWord, onCancel, keepAs }: {
               <TimerBox f={c} value={typeof v === 'number' ? v : typeof v === 'string' && v.trim() && Number.isFinite(Number(v)) ? Number(v) : undefined} keepAs={`${keepAs}:${c.key}`}
                 onTime={t => setTyped(x => { const o = { ...x }; if (t === undefined) delete o[c.key]; else o[c.key] = t; return o; })}
                 onLap={start ? undefined : lap(c.key)} />
+            </div>
+          );
+          if (c.type === 'tally') return (
+            <div key={c.key} className="fw-f fw-f-timer" data-col={c.key}>{head}
+              <TallyBox f={c} value={typeof v === 'number' ? v : typeof v === 'string' && v.trim() && Number.isFinite(Number(v)) ? Number(v) : undefined}
+                onCount={t => setTyped(x => { const o = { ...x }; if (t === undefined) delete o[c.key]; else o[c.key] = t; return o; })} />
             </div>
           );
           if (c.type === 'choice') return (
