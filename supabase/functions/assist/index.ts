@@ -32,8 +32,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Anthropic from "npm:@anthropic-ai/sdk@0.131.0";
-import { DESIGN_SYSTEM, allowance, changeUser, costMicros, designUser, readDesign } from "./flow/assistCore.ts";
-import { PROPOSAL_SCHEMA } from "./flow/proposal.ts";
+import { DESIGN_SYSTEM, OUTLINE_NOTE, allowance, changeUser, costMicros, designUser } from "./flow/assistCore.ts";
+import { designInPasses, type Pass } from "./flow/designPasses.ts";
 import { ASK_SCHEMA, ASK_SYSTEM, askUser, checkAnswer, type Fact } from "./flow/askCore.ts";
 import { CLARIFY_SCHEMA, CLARIFY_SYSTEM, clarifyUser, readClarify } from "./flow/clarifyCore.ts";
 import { VISION_LIMITS, VISION_SCHEMA, VISION_SYSTEM, checkLabels, visionUser, type LabelEvent, type LabelFrame } from "./video/visionCore.ts";
@@ -51,6 +51,12 @@ const keyShape = (): string => {
 const refused = () => console.warn(`faultline assist: the API refused the key (401) — ${keyShape()}`);
 const MODEL = Deno.env.get("ASSIST_MODEL") ?? "claude-opus-5-5";
 const EFFORT = Deno.env.get("ASSIST_EFFORT") ?? "high";
+/* a step's boxes, once the method is outlined: medium keeps every stage's
+   detail inside the time the server has (lib/flow/designPasses) */
+const DETAIL_EFFORT = Deno.env.get("ASSIST_DETAIL_EFFORT") ?? "medium";
+/* the free plan stops a function at 150 s; a design is back before then,
+   its cost recorded */
+const BUDGET_MS = Number(Deno.env.get("ASSIST_BUDGET_MS") ?? 138_000) || 138_000;
 /* reading facts back is lighter work than designing a method */
 const ASK_EFFORT = Deno.env.get("ASSIST_ASK_EFFORT") ?? "low";
 /* the questions before a design: short, but they decide what is designed */
@@ -72,6 +78,7 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" } });
 
 Deno.serve(async (req) => {
+  const began = Date.now();
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ ok: false, why: "POST only" }, 405);
   if (!KEY) return json({ off: true, why: "The assistant is not switched on for this app yet — write the method by hand; everything else works the same." });
@@ -156,42 +163,60 @@ Deno.serve(async (req) => {
       return json({ ok: false, why: "The assistant could not read the need just now." });
     }
   }
+  type Msg = { model?: string; stop_reason?: string; content?: unknown; usage?: Record<string, number> };
+  const calls = Math.max(0, LIMIT.calls - left.used.calls - 1);
+  /* one row a request, whatever it took: the passes' tokens and cost added up */
+  const log = (msgs: Msg[], ok: boolean) => admin.from("assist_usage").insert({
+    user_id: user.id, task, model: msgs[msgs.length - 1]?.model ?? MODEL,
+    input_tokens: msgs.reduce((n, m) => n + (m.usage?.input_tokens ?? 0), 0),
+    output_tokens: msgs.reduce((n, m) => n + (m.usage?.output_tokens ?? 0), 0),
+    cost_micros: msgs.reduce((n, m) => n + costMicros(m.model ?? MODEL, m.usage ?? {}), 0), ok,
+  });
   try {
-    const ask = task === "ask";
-    const msg = await client.beta.messages.create({
-      model: MODEL,
-      max_tokens: ask ? 4000 : 16000,
-      /* a refusal on a policy line is re-run on the fallback the API chooses, inside this call */
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      output_config: { effort: ask ? ASK_EFFORT : EFFORT, format: { type: "json_schema", schema: ask ? ASK_SCHEMA : PROPOSAL_SCHEMA } },
-      system: [{ type: "text", text: ask ? ASK_SYSTEM : DESIGN_SYSTEM, cache_control: { type: "ephemeral" } }],
-      messages: [{ role: "user", content: ask ? askUser(question, facts) : task === "change" ? changeUser(body.current, description) : designUser(description) }],
-    } as unknown as Parameters<typeof client.beta.messages.create>[0]) as unknown as { model?: string; stop_reason?: string; content?: unknown; usage?: Record<string, number> };
-    const cost = costMicros(msg.model ?? MODEL, msg.usage ?? {});
-    const calls = Math.max(0, LIMIT.calls - left.used.calls - 1);
-    const log = (ok: boolean) => admin.from("assist_usage").insert({
-      user_id: user.id, task, model: msg.model ?? MODEL,
-      input_tokens: msg.usage?.input_tokens ?? 0, output_tokens: msg.usage?.output_tokens ?? 0,
-      cost_micros: cost, ok,
-    });
-    if (ask) {
-      if (msg.stop_reason === "refusal") { await log(false); return json({ ok: false, why: "The assistant would not answer that. The project's page says where it stands." }); }
+    if (task === "ask") {
+      const msg = await client.beta.messages.create({
+        model: MODEL, max_tokens: 4000,
+        /* a refusal on a policy line is re-run on the fallback the API chooses, inside this call */
+        betas: ["server-side-fallback-2026-07-01"], fallbacks: "default",
+        output_config: { effort: ASK_EFFORT, format: { type: "json_schema", schema: ASK_SCHEMA } },
+        system: [{ type: "text", text: ASK_SYSTEM, cache_control: { type: "ephemeral" } }],
+        messages: [{ role: "user", content: askUser(question, facts) }],
+      } as unknown as Parameters<typeof client.beta.messages.create>[0]) as unknown as Msg;
+      if (msg.stop_reason === "refusal") { await log([msg], false); return json({ ok: false, why: "The assistant would not answer that. The project's page says where it stands." }); }
       const text = (Array.isArray(msg.content) ? msg.content : []).map((b: { type?: string; text?: string }) => (b?.type === "text" ? b.text ?? "" : "")).join("");
       let raw: unknown = null;
       try { raw = JSON.parse(text); } catch { /* unreadable */ }
       const said = checkAnswer(raw, facts);
-      await log(said.length > 0);
+      await log([msg], said.length > 0);
       return said.length ? json({ ok: true, answer: raw, left: { calls } }) : json({ ok: false, why: "The assistant's answer could not be checked against the project's facts, so it is not shown." });
     }
-    const read = readDesign(msg);
-    await log(read.ok);
-    return read.ok
-      ? json({ ok: true, proposal: read.raw, errors: read.errors, warnings: read.warnings, left: { calls } })
-      : json({ ok: false, why: read.why });
+    /* A DESIGN OR A CHANGE, IN PASSES (lib/flow/designPasses): the whole
+       proposal's schema compiles to a grammar larger than the API holds a
+       model to, so the outline first, then every stage's detail at once, then
+       any step left out on its own — inside the time the server has. */
+    const asked = (task === "change" ? changeUser(body.current, description) : designUser(description)) + OUTLINE_NOTE;
+    const pass: Pass = (messages, schema, o) => client.beta.messages.create({
+      model: MODEL, max_tokens: 16000,
+      betas: ["server-side-fallback-2026-07-01"], fallbacks: "default",
+      output_config: { effort: o.part === "outline" ? EFFORT : DETAIL_EFFORT, format: { type: "json_schema", schema } },
+      system: [{ type: "text", text: DESIGN_SYSTEM, cache_control: { type: "ephemeral" } }],
+      messages,
+    } as unknown as Parameters<typeof client.beta.messages.create>[0], { timeout: o.timeoutMs, maxRetries: 0 });
+    /* a pass stopped at the deadline is charged as if it had written all it
+       may — its tokens are not known, and the allowance never runs over */
+    const stopped: Msg = { model: MODEL, usage: { output_tokens: 16000 } };
+    const done = await designInPasses(asked, pass, { now: Date.now, deadline: began + BUDGET_MS }).catch(async e => {
+      if (e instanceof Anthropic.APIConnectionTimeoutError) await log([stopped], false);
+      throw e;
+    });
+    await log([...done.messages as Msg[], ...done.failed.filter(e => e instanceof Anthropic.APIConnectionTimeoutError).map(() => stopped)], done.ok);
+    return done.ok
+      ? json({ ok: true, proposal: done.raw, errors: done.errors, warnings: done.warnings, left: { calls }, unfinished: done.left })
+      : json({ ok: false, why: done.why });
   } catch (e) {
     if (e instanceof Anthropic.RateLimitError) return json({ ok: false, why: "The assistant is busy — try again in a minute." });
     if (e instanceof Anthropic.AuthenticationError) { refused(); return json({ off: true, why: "The assistant's key is not accepted — the app works by hand until it is put right." }); }
+    if (e instanceof Anthropic.APIConnectionTimeoutError) return json({ ok: false, why: "The method took longer to outline than the server allows. Try again, or describe a smaller piece of the work." });
     if (e instanceof Anthropic.APIError) return json({ ok: false, why: `The assistant could not answer just now (${e.status ?? "no status"}). Try again, or write the method by hand.` });
     return json({ ok: false, why: "The assistant could not be reached just now. Try again, or write the method by hand." });
   }
