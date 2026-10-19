@@ -96,6 +96,21 @@ true one share at least 30% of their joint span.
 | Six stations in view | 28 / 29 | 1.00 | 0.97 | 0.03 s | 0.12 s | 0.17 s | 0.01 s | 36 s for 32 s |
 | Flickering lights (every 1.3 s) | 13 / 12 | 0.92 | 1.00 | 0.38 s | 0.20 s | 0.53 s | 0.75 s | 28 s for 32 s |
 
+**The footage check on the same footage (19 October, reading motion-2;
+docs/VIDEO-DESIGN.md D6), and a seventh condition:**
+
+| Footage | Said | The camera | The light | Events flagged | Precision of those not flagged |
+|---|---|---|---|---|---|
+| Clean, heavy grain, busy nine-tenths, short pieces, six stations | Suits it | Steady over every frame read | Steady | 0 of 12, 12, 11, 20, 28 | 1.00 |
+| Flickering lights (every 1.3 s) | With limits | Steady | Jumped 24 times | 13 of 13 | — (none left) |
+| A camera that shakes (±4 px of 640, 8–20 s) | **Unfit to time** | Shook 41% of the time, up to 0.9% of the width | Steady | 3 of 8 | 1.00 |
+
+No false alarm on the five steady conditions; every event under the flicker
+flagged; and on the shaken footage the three flagged events were the false
+ones — the five it did not flag were all real work. The shake still costs
+what it costs (recall 0.42: the work under it merges into one long event a
+station), which is why the footage is said unfit rather than corrected.
+
 Read the table as: on clean or noisy footage of distinct work, the reading's
 boundaries are within a tenth or two of a second and each station's cycle
 within a few hundredths. It is weak where it was expected to be:
