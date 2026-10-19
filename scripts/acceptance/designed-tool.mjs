@@ -556,6 +556,50 @@ const f5 = join(dir, 'timed.pdf'); await dl5.saveAs(f5);
 const pdf5 = flat(execFileSync('pdftotext', ['-raw', f5, '-'], { encoding: 'utf8' }));
 ok(pdf5.includes(stTruth.lost) && pdf5.includes(stTruth.cost) && pdf5.includes(stTruth.groups) && /Time to clear 45 s/.test(pdf5), '8z on paper: what the times add up to, the cost a day, and each time in seconds', pdf5.slice(pdf5.indexOf('Time every short stop'), pdf5.indexOf('Time every short stop') + 300));
 
+/* 8α — what drives it, several conditions read together (the 'drivers' block — the status page's own
+   example of what needed development): Faultline's seal failures method started, twelve hours logged
+   with their conditions, the reading as lib/flow/analysis says, a bar a condition, and the paper */
+await page.goto(`${BASE}/#/methods`); await page.locator('.fw-card[data-library="what-drives-it"]').waitFor({ timeout: 15000 });
+await page.locator('.fw-card[data-library="what-drives-it"]').getByRole('button', { name: 'Use it as it is' }).click();
+await page.waitForFunction(() => /Count the failures with their conditions/i.test(document.querySelector('.nv-main')?.textContent ?? ''), null, { timeout: 15000 }).catch(() => {});
+await page.getByRole('button', { name: 'Approve version 1' }).click();
+await page.getByRole('button', { name: 'Start a project on it' }).click();
+await sheet().waitFor();
+await page.getByLabel("The project's name", { exact: true }).fill('Tray sealer leakers');
+await sheet().getByRole('button', { name: 'Start it' }).click();
+await page.locator('.fw-row[data-step="log-before"]').waitFor({ timeout: 15000 });
+await page.locator('.fw-row[data-step="log-before"]').first().click(); await sheet().locator('.fw-log-panel').waitFor();
+const SPEEDS = [50, 52, 55, 58, 60, 61, 63, 65, 68, 70, 72, 75], FAILS = [2, 3, 4, 5, 5, 5, 6, 6, 7, 8, 8, 9], JAWS = [180, 186, 182, 188, 181, 187, 183, 185, 180, 189, 184, 186];
+for (let i = 0; i < 12; i++) {
+  const form = sheet().locator('.fw-entry').first();
+  await form.getByLabel('Seal failures (packs)', { exact: true }).fill(String(FAILS[i])); await form.getByLabel('Seal failures (packs)', { exact: true }).press('Enter');
+  await form.getByLabel('Line speed', { exact: true }).fill(String(SPEEDS[i]));
+  await form.getByLabel('Jaw temperature', { exact: true }).fill(String(JAWS[i]));
+  await form.getByLabel('Film reel', { exact: true }).selectOption(['New reel', 'Mid reel', 'End of reel'][i % 3]);
+  await form.getByLabel('Shift', { exact: true }).selectOption(['Early', 'Late', 'Night'][i % 3]);
+  await form.getByRole('button', { name: 'Add the entry' }).click(); await page.waitForTimeout(250);
+}
+await page.waitForTimeout(500);
+const pidD = await page.evaluate(async () => (await (await import('/src/db.ts')).allProjects()).find(p => p.name === 'Tray sealer leakers')?.id);
+const drTruth = await page.evaluate(async pid => {
+  const A = await import('/src/lib/flow/analysis.ts'), L = await import('/src/lib/flow/library.ts'), F = await import('/src/db/flow.ts');
+  const st = L.libraryEntry('what-drives-it').build().stages[0].steps[0];
+  const rec = (await F.listFlowRecords(pid)).find(r => r.stepKey === 'log-before' && !r.deletedAt);
+  const r = A.analyse(st.analyses, st.columns, rec?.entries ?? []);
+  return { n: (rec?.entries ?? []).length, drives: r.drives.says, reel: r.by_reel.says };
+}, pidD);
+const drSaid = flat(await sheet().locator('.fw-results').innerText());
+ok(drTruth.n === 12 && drSaid.includes(drTruth.drives) && /line speed and jaw temperature together explain \d+(\.\d+)?% of the seal failures/.test(drTruth.drives) && /Look at line speed first/.test(drTruth.drives)
+  && await sheet().locator('.fw-result[data-analysis="drives"] svg.fw-chart.is-bars .fw-bar').count() === 2,
+  `8α what drives the failures, several conditions read together, as lib/flow/analysis says: "${drTruth.drives}"`, drSaid.slice(0, 500));
+ok(drSaid.includes(drTruth.reel), `8α1 and whether they depend on the reel: "${drTruth.reel}"`);
+if (process.env.SHOTS) await sheet().locator('.fw-result[data-analysis="drives"]').screenshot({ path: join(process.env.SHOTS, 'drivers.png') });
+await page.keyboard.press('Escape'); await settle();
+const [dl6] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Method report' }).click()]);
+const f6 = join(dir, 'drivers.pdf'); await dl6.saveAs(f6);
+const pdf6 = flat(execFileSync('pdftotext', ['-raw', f6, '-'], { encoding: 'utf8' }));
+ok(pdf6.includes(drTruth.drives) && pdf6.includes(drTruth.reel), '8α2 on paper: what drives them, and the reel');
+
 /* 9 — the phone */
 await page.setViewportSize({ width: 390, height: 844 });
 await page.goBack(); await page.waitForTimeout(800);

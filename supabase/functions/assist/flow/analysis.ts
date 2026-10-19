@@ -16,8 +16,8 @@
  * relationship between two columns, a forecast, a worked-out figure, the
  * time between failures, a log compared with an earlier one (before and
  * after, and how sure the change is not chance), whether a figure differs
- * from one group to another, and what is past its day and still open (who
- * owes what by when). A block is a pure
+ * from one group to another, what is past its day and still open (who
+ * owes what by when), and which of several columns drive a figure. A block is a pure
  * function with what it needs — and the picture it is drawn as — said as
  * data — so a method written by a
  * person or proposed by the assistant composes them, the validator checks
@@ -44,7 +44,7 @@ export interface FlowEntry {
   struck?: boolean;
 }
 
-export const ANALYSIS_BLOCKS = ['count', 'sum', 'mean', 'median', 'min', 'max', 'sd', 'share', 'perDay', 'pareto', 'trend', 'histogram', 'cpk', 'control', 'relation', 'forecast', 'calc', 'reliability', 'compare', 'groups', 'overdue'] as const;
+export const ANALYSIS_BLOCKS = ['count', 'sum', 'mean', 'median', 'min', 'max', 'sd', 'share', 'perDay', 'pareto', 'trend', 'histogram', 'cpk', 'control', 'relation', 'forecast', 'calc', 'reliability', 'compare', 'groups', 'overdue', 'drivers'] as const;
 export type AnalysisBlockId = typeof ANALYSIS_BLOCKS[number];
 
 export const WHEN_OPS = ['=', '!=', '>=', '<=', '>', '<'] as const;
@@ -72,6 +72,9 @@ export interface FlowAnalysis {
   /** A second number column it is read against (a relationship: the one
    *  that might drive it). */
   against?: string;
+  /** More number columns read with `against`, together — what drives it:
+   *  each with the others held still. */
+  also?: string[];
   /** The level it is heading for (a forecast says when it gets there). */
   target?: number;
   /** A worked-out figure's arithmetic, over the analyses before it and the
@@ -135,7 +138,7 @@ export interface AnalysisBlock {
   name: string;
   /** What it is for, in a line — for the designer and the assistant. */
   says: string;
-  needs: { of: Need; by: Need; when: Need; against: Need; target: Need; formula?: Need; from?: Need };
+  needs: { of: Need; by: Need; when: Need; against: Need; target: Need; formula?: Need; from?: Need; also?: Need };
   /** of must be a number column. */
   numeric: boolean;
   /** number: a figure gates and measures can read; series: a picture; both. */
@@ -314,6 +317,8 @@ export function controlOf(xs: readonly number[]): { centre: number; upper: numbe
 
 /** "Line speed" mid-sentence as "line speed" — but "OEM fitter" kept. */
 const lowerFirst = (w: string) => (/^[A-Z][a-z]/.test(w) ? w[0].toLowerCase() + w.slice(1) : w);
+/** "for every 1 ppm more", "every 1% more", "every one more" — one of a column's unit. */
+const perOne = (unit?: string) => (unit ? (unit === '%' ? '1%' : `1 ${unit}`) : 'one');
 const strength = (r: number) => { const a = Math.abs(r); return a >= 0.7 ? 'a strong' : a >= 0.4 ? 'a moderate' : a >= 0.2 ? 'a weak' : ''; };
 
 /** Γ(z) by Lanczos (g = 7, nine terms) — a mean from a Weibull fit needs it. */
@@ -416,6 +421,50 @@ export function oneWay(groups: readonly (readonly number[])[]): { f: number; d1:
   if (!(within > 0)) return { f: between > 0 ? Infinity : 0, d1, d2, p: between > 0 ? 0 : 1 };
   const f = (between / d1) / (within / d2);
   return { f, d1, d2, p: fUpper(f, d1, d2) };
+}
+
+/** Least squares with several columns at once (multiple linear regression):
+ *  y = b0 + b1·x1 + … + bk·xk by the normal equations, each coefficient's
+ *  standard error, t and two-sided chance, R² and the regression's F.
+ *  'collinear' when the columns move together so their effects cannot be
+ *  told apart; undefined with too few rows (k + 2 or fewer) or a y that never
+ *  varies. */
+export function leastSquares(xs: readonly (readonly number[])[], y: readonly number[]):
+  { beta: number[]; se: number[]; t: number[]; p: number[]; r2: number; f: number; fp: number; df: number } | 'collinear' | undefined {
+  const n = y.length, k = xs[0]?.length ?? 0, m = k + 1;
+  if (n < k + 3 || xs.length !== n) return undefined;
+  const ybar = mean([...y]);
+  const sst = y.reduce((t, v) => t + (v - ybar) ** 2, 0);
+  if (!(sst > 0)) return undefined;
+  /* X'X and X'y, the intercept first */
+  const row = (i: number) => [1, ...xs[i]];
+  const a: number[][] = Array.from({ length: m }, () => new Array(m).fill(0));
+  const b: number[] = new Array(m).fill(0);
+  for (let i = 0; i < n; i++) { const r = row(i); for (let p = 0; p < m; p++) { b[p] += r[p] * y[i]; for (let q = 0; q < m; q++) a[p][q] += r[p] * r[q]; } }
+  /* (X'X)⁻¹ by Gauss–Jordan with partial pivoting; a pivot near nought is columns moving together */
+  const inv: number[][] = a.map((r, i) => [...r, ...Array.from({ length: m }, (_, j) => (i === j ? 1 : 0))]);
+  const scale = Math.max(...a.map((r, i) => Math.abs(r[i])), 1);
+  for (let c = 0; c < m; c++) {
+    let piv = c;
+    for (let r = c + 1; r < m; r++) if (Math.abs(inv[r][c]) > Math.abs(inv[piv][c])) piv = r;
+    if (Math.abs(inv[piv][c]) < 1e-10 * scale) return 'collinear';
+    [inv[c], inv[piv]] = [inv[piv], inv[c]];
+    const d = inv[c][c];
+    for (let j = 0; j < 2 * m; j++) inv[c][j] /= d;
+    for (let r = 0; r < m; r++) if (r !== c) { const f = inv[r][c]; if (f) for (let j = 0; j < 2 * m; j++) inv[r][j] -= f * inv[c][j]; }
+  }
+  const ai = inv.map(r => r.slice(m));
+  const beta = ai.map(r => r.reduce((t, v, j) => t + v * b[j], 0));
+  let sse = 0;
+  for (let i = 0; i < n; i++) { const r = row(i); sse += (y[i] - r.reduce((t, v, j) => t + v * beta[j], 0)) ** 2; }
+  if (sse < 1e-12 * sst) sse = 0;
+  const df = n - m, s2 = sse / df;
+  const se = ai.map((r, j) => Math.sqrt(Math.max(0, s2 * r[j])));
+  const t = beta.map((v, j) => (se[j] > 0 ? v / se[j] : v === 0 ? 0 : Math.sign(v) * Infinity));
+  const p = t.map(v => tTwoSided(v, df));
+  const r2 = 1 - sse / sst;
+  const f = sse > 0 ? ((sst - sse) / k) / (sse / df) : Infinity;
+  return { beta, se, t, p, r2, f, fp: fUpper(f, k, df), df };
 }
 
 /** A Weibull fit by maximum likelihood, as reliability engineering does it:
@@ -602,7 +651,7 @@ export const BLOCKS: Record<AnalysisBlockId, AnalysisBlock> = {
       if (!word) return { value: r, n: rows.length, series, fit: { slope: fit.slope, intercept: fit.intercept }, says: `${a.label}: no clear link between ${yl} and ${xl} — r = ${fmtNumber(r)}, from ${many(rows.length, 'entry', 'entries')}${few}.` };
       return {
         value: r, n: rows.length, series, fit: { slope: fit.slope, intercept: fit.intercept },
-        says: `${a.label}: ${word} link — r = ${fmtNumber(r)}; ${yl} about ${withUnit(Math.abs(fit.slope), yc?.unit)} ${fit.slope > 0 ? 'higher' : 'lower'} for every ${xc?.unit ? `1 ${xc.unit}` : 'one'} more ${lowerFirst(xl)}, from ${many(rows.length, 'entry', 'entries')}${few}. A link is not proof of a cause — test it.`,
+        says: `${a.label}: ${word} link — r = ${fmtNumber(r)}; ${yl} about ${withUnit(Math.abs(fit.slope), yc?.unit)} ${fit.slope > 0 ? 'higher' : 'lower'} for every ${perOne(xc?.unit)} more ${lowerFirst(xl)}, from ${many(rows.length, 'entry', 'entries')}${few}. A link is not proof of a cause — test it.`,
       };
     },
   },
@@ -776,6 +825,36 @@ export const BLOCKS: Record<AnalysisBlockId, AnalysisBlock> = {
       };
     },
   },
+  drivers: {
+    id: 'drivers', name: 'What drives it', says: 'Which of several number columns drive a figure, read together — how much each moves it with the others held still, how sure each is not chance, and how much of it they explain (multiple linear regression); a link, not proof of a cause',
+    needs: { of: 'required', by: 'none', when: 'optional', against: 'required', target: 'none', also: 'optional' }, numeric: true, output: 'both', picture: 'bars',
+    compute: (entries, a, columns) => {
+      const yk = a.of ?? '', keys = [a.against, ...(a.also ?? [])].filter((k): k is string => !!k);
+      const yc = col(columns, yk), yl = lowerFirst(yc?.label ?? yk);
+      const names = keys.map(k => lowerFirst(col(columns, k)?.label ?? k));
+      const listed = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0] ?? '';
+      const rows = rowsOf(entries, a, columns).filter(r => typeof r.v[yk] === 'number' && keys.every(k => typeof r.v[k] === 'number'));
+      const what = `${a.label}${whenSaid(a, columns)}`;
+      const need = keys.length + 3;
+      if (rows.length < need) return { n: rows.length, unit: '%', says: `${what}: needs ${need} entries with ${yl} and ${listed} all filled — ${rows.length} so far.` };
+      const fit = leastSquares(rows.map(r => keys.map(k => r.v[k] as number)), rows.map(r => r.v[yk] as number));
+      if (fit === 'collinear') return { n: rows.length, unit: '%', says: `${what}: ${listed} move together in these entries — their effects cannot be told apart; drop one, or log them where they vary apart.` };
+      if (!fit) return { n: rows.length, unit: '%', says: `${what}: ${yl} does not vary in these entries — nothing to explain.` };
+      const said = (x: number) => (x > 99.9 ? 'more than 99.9%' : `${fmtNumber(x)}%`);
+      const each = keys.map((k, j) => {
+        const c = col(columns, k), b = fit.beta[j + 1], sure = (1 - fit.p[j + 1]) * 100;
+        const how = `${withUnit(Math.abs(b), yc?.unit)} ${b >= 0 ? 'higher' : 'lower'} for every ${perOne(c?.unit)} more`;
+        return { name: names[j], sure, shown: fit.p[j + 1] <= 0.05, says: `${names[j]}: ${how}${keys.length > 1 ? ', the others held still' : ''} — ${fit.p[j + 1] <= 0.05 ? `${said(sure)} sure` : `not shown (${said(sure)} sure)`}` };
+      });
+      const series: SeriesPoint[] = each.map(e => ({ label: e.name, value: Math.min(e.sure, 99.9) })).sort((p, q) => q.value - p.value || p.label.localeCompare(q.label));
+      const first = [...each].filter(e => e.shown).sort((p, q) => q.sure - p.sure)[0];
+      const whole = `${listed} ${keys.length > 1 ? 'together ' : ''}explain ${fmtNumber(fit.r2 * 100)}% of the ${yl} — ${fit.fp <= 0.05 ? `${said((1 - fit.fp) * 100)} sure it is not chance` : `not shown (${said((1 - fit.fp) * 100)} sure)`}`;
+      const next = first ? `Look at ${first.name} first.` : 'None is shown yet — more entries, or another cause.';
+      const few = rows.length < 10 * keys.length ? ` (fewer than ${10 * keys.length}: read it with care)` : '';
+      const eachSaid = each.map(e => e.says).join('; ');
+      return { value: fit.r2 * 100, n: rows.length, unit: '%', series, says: `${what}: ${whole}. ${eachSaid.charAt(0).toUpperCase()}${eachSaid.slice(1)}. ${next} On ${many(rows.length, 'entry', 'entries')}${few}. A link is not proof of a cause — test it.` };
+    },
+  },
   calc: {
     id: 'calc', name: 'Worked out', says: 'A figure worked out from the figures before it and the step’s own boxes — any arithmetic (+ − × ÷ and brackets), money included: a cost, a yield, a rate',
     needs: { of: 'none', by: 'none', when: 'none', against: 'none', target: 'none', formula: 'required' }, numeric: false, output: 'number', picture: 'none',
@@ -826,5 +905,5 @@ export function figuresOf(results: Record<string, AnalysisResult>): Record<strin
  *  from the registry, so a new block is offered the day it is written. */
 export const BLOCK_CATALOGUE = ANALYSIS_BLOCKS.map(id => {
   const b = BLOCKS[id];
-  return { id, name: b.name, says: b.says, of: b.needs.of, by: b.needs.by, when: b.needs.when, against: b.needs.against, target: b.needs.target, formula: b.needs.formula ?? 'none', from: b.needs.from ?? 'none', numeric: b.numeric, output: b.output, picture: b.picture };
+  return { id, name: b.name, says: b.says, of: b.needs.of, by: b.needs.by, when: b.needs.when, against: b.needs.against, target: b.needs.target, formula: b.needs.formula ?? 'none', from: b.needs.from ?? 'none', also: b.needs.also ?? 'none', numeric: b.numeric, output: b.output, picture: b.picture };
 });

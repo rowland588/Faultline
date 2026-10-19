@@ -131,7 +131,8 @@ beside the old routes, the gate green at each step:
 | 13 Before and after, proved | a block (`compare`) reads a log against an earlier one on the method — the same column entry by entry, or the entries a day — and says how far it moved and how sure it is not chance (Welch's t-test: the spreads need not match); told which way is better, its figure is how sure it got *better* (one-sided), so a gate on it never passes a change for the worse; the earlier log on the same machine where it is a machine's; in the editor (compared with which log, better which way), the validator (a log before it, logging the same column), the proposal (the earlier log by its title) and the assistant's brief (a log kept again gets one); drawn as a before and a now on screen and paper; *Short stops, timed as they are cleared* now closes on it — at least 95% sure the stops got shorter | `compare.test.ts` (18: the incomplete beta on its closed forms, the t-distribution on its exact forms and the printed 5% and 1% tables, Welch's test worked by hand and held to an integration of the t density sharing no code with it, every sentence, the runtime and its gate, per machine, the validator's words, the proposal round trip), `designed-tool.mjs` 6b–6c, 7f | dd905c5 — next gate |
 | 14 Does it differ by group? | a block (`groups`) asks whether a number differs from one group to another — the shift, the crew, the product, the cause — more than it varies within each (one-way analysis of variance): the highest and the lowest, how sure it is not chance, a group too small left out and said; written as ONE entry in the registry with its tests and nothing else — the editor, the validator, the assistant's brief, the screen and the paper took it from the catalogue; *Short stops* asks it of what stopped each stop | `groups.test.ts` (9: F = t² with one on top, the closed form with two, the printed 5% and 1% tables, a hand example whose chance is exactly one in a thousand, every sentence, the catalogue, the library), `designed-tool.mjs` 8y3, 8z | 5a3d298 — gate9 |
 | 15 Who owes what by when | a block (`overdue`, *Past due*) over a log kept as a register — what, who, the day it is due, done or not: the open entries gone past their day, counted, by owner, the oldest named and how late, the next due said; a gate waits on none past due; today handed to the analyses by the runtime; which entries count reads yes and no as the floor says them, and a box left blank as still open; the validator wants a date for the day it is due; the editor offers only date columns | `overdue.test.ts` (7: the register worked by hand, due today not late, a blank box open, no owner column, nothing dated, no today, the gate held and opened, the validator's words), `designed-tool.mjs` 5b–5e, 7g | 29ae211 — next gate |
-| 16 A count taken with a tap | a box or a log's column can be *counted* (`tally`): +1 at a time, −1 for a mistap, or typed — packs rejected as they come off, people waiting, trays short — a number to every block, gate, decision and measure; in the editor, the validator (its unit and limits kept), the proposal and the assistant's brief; Faultline's rejects log counts its rejects so | `timer.test.ts` (+2), `designed-tool.mjs` 8a1 | this slice — next gate |
+| 16 A count taken with a tap | a box or a log's column can be *counted* (`tally`): +1 at a time, −1 for a mistap, or typed — packs rejected as they come off, people waiting, trays short — a number to every block, gate, decision and measure; in the editor, the validator (its unit and limits kept), the proposal and the assistant's brief; Faultline's rejects log counts its rejects so | `timer.test.ts` (+2), `designed-tool.mjs` 8a1 | 798756e — gate10 |
+| 17 What drives it | a block (`drivers`) reads several number columns together by least squares (multiple linear regression): how much each moves the figure with the others held still, how sure each is not chance, how much they explain, where to look first — columns that move together said so, never split by guesswork; the extra columns (`also`) in the editor, the validator (each once, numbers only), the proposal and the assistant's brief; *Seal failures, traced to what drives them* in the library — the conditions read together, by reel and by shift, the strongest tried and proved better against the first log, then held | `drivers.test.ts` (9: an exact line found exactly, no nudge lowering the squared error, the textbook two-column formula, with one column the straight line and the Pearson test, columns that move together, the sentences, the validator's words, the proposal round trip), `designed-tool.mjs` 8α–8α2, the library test, front-door, methods-design and the inventory (eleven in the library) | this slice — next gate |
 
 ### Against the ambition (18 October, asked plainly)
 
@@ -156,11 +157,12 @@ name the tests):
   next breakdown comes (a Weibull fit), short stops timed with a tap and
   costed, whether a change really worked (before and after, how sure it
   got better), whether a figure depends on the shift or the cause
-  (a difference between groups, how sure) and who owes what by when (an
+  (a difference between groups, how sure), which of several conditions
+  drive it (each with the others held still) and who owes what by when (an
   action register, its gate on nothing past due).
 - **Configurable without code:** any workflow or project structure from
   the steps, answers, roles, gates and measures; any log with any columns
-  and any of the twenty-one analysis blocks over them — a worked-out figure
+  and any of the twenty-two analysis blocks over them — a worked-out figure
   among them, any arithmetic on the others and the step's boxes, money
   included; any box typed, chosen, timed with a tap or counted with a tap; a log
   read against an earlier one — how far it moved and how sure it got
@@ -169,8 +171,9 @@ name the tests):
   the value stream map, video) as steps. With the assistant off, the same,
   by hand in the editor, and the library closest to the words.
 - **Needs development — and the platform says so:** arithmetic no block
-  does (a regression on several columns, a non-linear forecast, an
-  optimisation — the reliability fit was one, and was built from its brief). The assistant writes it as a need, never an
+  does (a non-linear forecast, an optimisation, a designed experiment — the
+  reliability fit and the regression on several columns were ones, each
+  built as one block with its tests). The assistant writes it as a need, never an
   imitation; Methods gathers every need with the methods that asked it and
   the brief to build it — the block's contract, where it goes, how it is
   proved. Each is one block in `lib/flow/analysis` with its tests, and it

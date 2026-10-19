@@ -470,6 +470,18 @@ function readAnalyses(raw: unknown, columns: FlowField[], fields: FlowField[], t
       else if (!isNumberColumn(c)) { err(`${ap}.against`, `${aw} reads against “${c.label}”, which is not a number.`); ok = false; }
       else if (against === of) { err(`${ap}.against`, `${aw} reads “${c.label}” against itself — pick a second column.`); ok = false; }
     }
+    /* what drives it: more number columns read with "against", each once */
+    const also: string[] = [];
+    for (const raw of arr(a.also)) {
+      const k = str(raw, 40), c = colOf(k);
+      if (!k) continue;
+      if ((block.needs.also ?? 'none') === 'none') { err(`${ap}.also`, `${aw} reads no more columns — only what drives it does.`); ok = false; break; }
+      if (!c) { err(`${ap}.also`, `${aw} reads "${k}", which is not a column of the log.`); ok = false; continue; }
+      if (!isNumberColumn(c)) { err(`${ap}.also`, `${aw} reads “${c.label}”, which is not a number.`); ok = false; continue; }
+      if (k === of || k === against || also.includes(k)) { err(`${ap}.also`, `${aw} reads “${c.label}” twice — each column once.`); ok = false; continue; }
+      also.push(k);
+    }
+    if (also.length > 5) { err(`${ap}.also`, `${aw} reads more than six columns together — fewer, or more entries than any line keeps.`); ok = false; }
     const target = a.target === undefined || a.target === null || a.target === '' ? undefined : num(a.target);
     if (a.target !== undefined && a.target !== null && a.target !== '' && target === undefined) { err(`${ap}.target`, `${aw} has a target that is not a number.`); ok = false; }
     if (target !== undefined && block.needs.target === 'none') { err(`${ap}.target`, `${aw} has a target, but only a forecast reads one — judge the figure in a gate or a measure.`); ok = false; }
@@ -497,7 +509,7 @@ function readAnalyses(raw: unknown, columns: FlowField[], fields: FlowField[], t
     if (block.id === 'overdue' && of && colOf(of) && colOf(of)?.type !== 'date') { err(`${ap}.of`, `${aw} judges “${colOf(of)?.label}” as the day it is due, but it is not a date — give it a date column.`); ok = false; }
     if (block.id === 'cpk' && of && colOf(of) && colOf(of)?.min === undefined && colOf(of)?.max === undefined) { err(`${ap}.of`, `${aw} judges “${colOf(of)?.label}” against its limits, but the column has none — give it an at least or an at most.`); ok = false; }
     if (!ok) return;
-    out.push({ key, label, block: block.id, ...(of ? { of } : {}), ...(by ? { by } : {}), ...(when ? { when } : {}), ...(against ? { against } : {}), ...(target !== undefined ? { target } : {}), ...(formula ? { formula } : {}), ...(from ? { from } : {}), ...(better ? { better } : {}), ...maybe('unit', optStr(a.unit, 40)) });
+    out.push({ key, label, block: block.id, ...(of ? { of } : {}), ...(by ? { by } : {}), ...(when ? { when } : {}), ...(against ? { against } : {}), ...(also.length ? { also } : {}), ...(target !== undefined ? { target } : {}), ...(formula ? { formula } : {}), ...(from ? { from } : {}), ...(better ? { better } : {}), ...maybe('unit', optStr(a.unit, 40)) });
   });
   return out;
 }

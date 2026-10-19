@@ -43,6 +43,8 @@ describe('Faultline’s library', () => {
     expect(ids('The wrapper keeps breaking down and we want to know how often and plan maintenance before it fails')[0]).toBe('breakdowns');
     /* a time taken with a tap — the short stops timed as they are cleared */
     expect(ids('The bagger has lots of short stops and we want to time how long each jam takes to clear')[0]).toBe('short-stops');
+    /* several columns read together — what drives a figure */
+    expect(ids('Our seal failures seem to depend on the jaw temperature or the line speed — we need to know what drives them')[0]).toBe('what-drives-it');
     expect(ids('zzz qqq')).toEqual([]);
   });
 });

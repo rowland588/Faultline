@@ -256,6 +256,7 @@ function AnalysesEditor({ step, onChange, ro, earlier = [] }: { step: FlowStepDe
                     ...(nb.needs.by === 'none' ? { by: undefined } : {}),
                     ...(nb.needs.when === 'none' ? { when: undefined } : {}),
                     ...(nb.needs.against === 'none' ? { against: undefined } : {}),
+                    ...((nb.needs.also ?? 'none') === 'none' ? { also: undefined } : {}),
                     ...(nb.needs.target === 'none' ? { target: undefined } : {}),
                     ...(nb.needs.formula !== 'required' ? { formula: undefined } : {}),
                     ...((nb.needs.from ?? 'none') === 'none' ? { from: undefined, better: undefined } : {}),
@@ -297,6 +298,15 @@ function AnalysesEditor({ step, onChange, ro, earlier = [] }: { step: FlowStepDe
                   <option value="lower">better lower — how sure it fell</option>
                   <option value="higher">better higher — how sure it rose</option>
                 </select>
+              )}
+              {(b.needs.also ?? 'none') !== 'none' && (
+                <span className="fw-also" role="group" aria-label={`Analysis ${i + 1}: and with`}>
+                  {cols.filter(c => isNumberColumn(c) && c.key !== a.of && c.key !== a.against).map(c => (
+                    <label key={c.key} className="fw-check"><input type="checkbox" disabled={ro} checked={(a.also ?? []).includes(c.key)}
+                      onChange={e => { const next = e.target.checked ? [...(a.also ?? []), c.key] : (a.also ?? []).filter(k => k !== c.key); setA(i, { also: next.length ? next : undefined }); }} />
+                      <span>and {c.label}</span></label>
+                  ))}
+                </span>
               )}
               {b.needs.target !== 'none' && (
                 <Num value={a.target} label={`Analysis ${i + 1}: target`} placeholder="the target it is heading for" disabled={ro} onSave={v => setA(i, { target: v })} />

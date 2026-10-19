@@ -234,7 +234,13 @@ And WHO OWES WHAT BY WHEN (the `overdue` block): a log kept as
 an action register — what, who, the day it is due, done or not — says what
 has gone past its day and is still open, by owner, the oldest named and how
 late, and a gate can wait on none past due: the control room's own
-question, available to any method. Next: a tool's panel inside the step itself
+question, available to any method. And WHAT DRIVES IT (the `drivers`
+block): several conditions read together by least squares — each with the
+others held still, how sure, how much they explain, where to look first —
+the regression the status page listed as needing development, built as one
+block; Faultline's library gains *Seal failures, traced to what drives
+them*, which reads the conditions, tries the strongest and proves the trial
+against the first log. Next: a tool's panel inside the step itself
 rather than its page; more blocks and ways to capture as the floor asks (a
 regression on several columns, a tally counted with a tap — each tested).
 

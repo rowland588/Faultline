@@ -441,6 +441,74 @@ export const LIBRARY: readonly LibraryEntry[] = [
       };
     },
   },
+  /* SEAL FAILURES, TRACED TO WHAT DRIVES THEM — the six moves' cause and
+     proof made of blocks: each failure counted with the conditions it
+     might depend on (line speed, jaw temperature, the film reel, the
+     shift), read together for what drives it (each with the others held
+     still, how sure), by reel and by shift; the strongest changed in a
+     trial and the trial read against the first log — better, and how sure
+     it is not chance — then held as the standard. Measured by people, not
+     by sensors (CLAUDE.md): the temperature is read off the jaw's own
+     display and typed. */
+  {
+    id: 'what-drives-it', name: 'Seal failures, traced to what drives them', kind: 'investigation',
+    purpose: 'Seal failures counted with the conditions they might depend on, read together for what drives them; the strongest changed in a trial, proved better against the first log, and held.',
+    words: ['seal failure', 'seal failures', 'leakers', 'leaking', 'what drives', 'drives it', 'depends on', 'jaw', 'jaw temperature', 'film reel', 'regression', 'which setting', 'conditions'],
+    uses: [],
+    build: (): FlowDefinition => {
+      const columns = [
+        { key: 'failures', label: 'Seal failures', type: 'tally' as const, unit: 'packs', required: true },
+        { key: 'speed', label: 'Line speed', type: 'number' as const, unit: 'ppm', required: true },
+        { key: 'jaw', label: 'Jaw temperature', type: 'number' as const, unit: '°C', required: true },
+        { key: 'reel', label: 'Film reel', type: 'choice' as const, options: ['New reel', 'Mid reel', 'End of reel'] },
+        { key: 'shift', label: 'Shift', type: 'choice' as const, options: ['Early', 'Late', 'Night'] },
+      ];
+      return {
+        schema: FLOW_SCHEMA, name: 'Seal failures, traced to what drives them', kind: 'investigation',
+        purpose: 'Seal failures counted with the conditions they might depend on, read together for what drives them; the strongest changed in a trial, proved better against the first log, and held.',
+        roles: [{ key: 'op', name: 'Operator', side: 'site' }, { key: 'lead', name: 'Line lead', side: 'site' }, { key: 'quality', name: 'Quality', side: 'site' }],
+        stages: [
+          {
+            key: 'read', name: 'Read the conditions', purpose: 'Each hour: the failures counted, and the conditions they ran under.',
+            steps: [{
+              key: 'log-before', title: 'Count the failures with their conditions', per: 'line', answer: 'log', role: 'op', minEntries: 12, columns,
+              analyses: [
+                { key: 'drives', label: 'What drives the failures', block: 'drivers', of: 'failures', against: 'speed', also: ['jaw'] },
+                { key: 'by_reel', label: 'Do they depend on the reel?', block: 'groups', of: 'failures', by: 'reel' },
+                { key: 'by_shift', label: 'Do they depend on the shift?', block: 'groups', of: 'failures', by: 'shift' },
+                { key: 'failures_an_hour', label: 'Failures an hour', block: 'mean', of: 'failures' },
+              ],
+              help: 'One entry an hour: the failures counted with a tap, the line speed and the jaw temperature off their displays, the reel and the shift.',
+            }],
+            gate: { conditions: [every] },
+          },
+          {
+            key: 'trial', name: 'Try the strongest', purpose: 'The strongest driver changed, and the same hours counted again.',
+            steps: [
+              { key: 'change', title: 'What is changed, and to what', per: 'line', answer: 'form', role: 'lead', after: ['log-before'], fields: [{ key: 'changed', label: 'What is changed', type: 'text', required: true }, { key: 'to', label: 'To what', type: 'text', required: true }] },
+              {
+                key: 'log-after', title: 'Count them again in the trial', per: 'line', answer: 'log', role: 'op', minEntries: 12, columns, after: ['change'],
+                analyses: [
+                  { key: 'failures_an_hour', label: 'Failures an hour', block: 'mean', of: 'failures' },
+                  { key: 'proved', label: 'Fewer, and not by chance', block: 'compare', of: 'failures', from: 'log-before', better: 'lower' },
+                ],
+              },
+            ],
+            gate: { conditions: [every, { id: 'proved', type: 'fieldMeets', policy: 'block', step: 'log-after', field: 'proved', op: '>=', value: 95, label: 'Fewer failures — at least 95% sure it is not chance' }] },
+          },
+          {
+            key: 'hold', name: 'Hold it', purpose: 'The new setting made the standard, and Quality agrees it.',
+            steps: [
+              { key: 'standard', title: 'The setting written into the standard', per: 'line', answer: 'paperwork', role: 'lead', after: ['log-after'] },
+              { key: 'quality', title: 'Quality agrees it', per: 'line', answer: 'signoff', role: 'quality', after: ['standard'] },
+            ],
+            gate: { conditions: [every] },
+          },
+        ],
+        measures: [{ key: 'failures_an_hour', name: 'Failures an hour', unit: 'packs', better: 'lower', from: [{ step: 'log-before', field: 'failures_an_hour' }, { step: 'log-after', field: 'failures_an_hour' }] }],
+      };
+    },
+  },
   /* BREAKDOWNS, READ FOR WHEN THE NEXT ONE COMES — reliability (TPM's
      planned maintenance), made of blocks: every failure logged with the hours
      run since the last, which fail most (the Pareto), and the Weibull fit of
