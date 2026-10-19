@@ -36,6 +36,8 @@ const an = (label, block, o = {}) => ({ label, block, of: '', by: '', when_colum
 const step = (title, o = {}) => ({ title, per: 'line', answer: 'done', role: '', passes_if: '', photos: 0, files: 0, due_days: null, after: [], tool: '', fields: [], columns: [], analyses: [], min_entries: null, help: '', ...o });
 const cond = (o) => ({ type: 'stepsDone', policy: 'block', step: '', field: '', op: '>=', value: null, value2: null, evidence: 'photo', min: null, measure: '', priority: 'any', due_days: null, label: '', ...o });
 const COLS = [fld('Reason', 'choice', { options: ['Jam at infeed', 'Film change', 'Label fault', 'No product'], required: true }), fld('Minutes', 'number', { unit: 'min', required: true }), fld('Packs lost', 'calc', { unit: 'packs', formula: 'minutes * 40' })];
+/* who owes what by when: the fix's actions kept as a register, its gate on none past due */
+const ACTS = [fld('Action', 'text', { required: true }), fld('Owner', 'person'), fld('Due', 'date', { required: true }), fld('Done', 'yesno')];
 const DESIGN = {
   name: 'Short stops on the bagger', purpose: 'Every short stop logged, the biggest reason found by its Pareto and fixed, proved on the stop minutes a day.', kind: 'improvement',
   roles: [{ name: 'Operator', side: 'site' }, { name: 'Line lead', side: 'site' }],
@@ -43,7 +45,9 @@ const DESIGN = {
     { name: 'Log the stops', purpose: 'Every stop as it happens.', steps: [step('Log every stop', { answer: 'log', role: 'Operator', columns: COLS, min_entries: 5, fields: [fld('Cost of a stop minute', 'number', { unit: '£' })],
       analyses: [an('Stop minutes a day', 'perDay', { of: 'Minutes' }), an('Biggest reason', 'pareto', { by: 'Reason', of: 'Minutes' }), an('Stop minutes by day', 'trend', { of: 'Minutes' }), an('Long stops', 'share', { when_column: 'Minutes', when_op: '>', when_value: '5' }), an('Packs lost', 'sum', { of: 'Packs lost' }), an('Stop minutes a week on', 'forecast', { of: 'Minutes', target: 10 }), an('Stops cost a day', 'calc', { formula: 'stop_minutes_a_day * cost_of_a_stop_minute', unit: '£' })] })],
       gate: [cond({})] },
-    { name: 'Fix it', purpose: 'The biggest reason dealt with.', steps: [step('Countermeasure done', { role: 'Line lead' })], gate: [cond({})] },
+    { name: 'Fix it', purpose: 'The biggest reason dealt with.', steps: [step('Countermeasure done', { role: 'Line lead' }),
+      step('The actions', { answer: 'log', role: 'Line lead', columns: ACTS, analyses: [an('Past due', 'overdue', { of: 'Due', by: 'Owner', when_column: 'Done', when_op: '!=', when_value: 'yes' })] })],
+      gate: [cond({}), cond({ type: 'fieldMeets', step: 'The actions', field: 'Past due', op: '=', value: 0, label: 'No action past due' })] },
     { name: 'Prove it', purpose: 'The same log again.', steps: [step('Log every stop again', { answer: 'log', role: 'Operator', columns: COLS, analyses: [an('Stop minutes a day', 'perDay', { of: 'Minutes' }), an('Is the drop real?', 'compare', { of: 'Minutes', from_step: 'Log every stop', better: 'lower' })] })],
       gate: [cond({}), cond({ type: 'fieldMeets', step: 'Log every stop again', field: 'Stop minutes a day', op: '<=', value: 10 }), cond({ type: 'measureMet', measure: 'Stop minutes a day' })] },
   ],
@@ -197,7 +201,39 @@ await page.locator('.fw-strip .fw-sg[data-stage="fix-it"]').click(); await page.
 await page.locator('.fw-row[data-step="countermeasure-done"]').first().click();
 await sheet().getByRole('button', { name: 'Done', exact: true }).click(); await page.waitForTimeout(600);
 await page.keyboard.press('Escape'); await settle();
+/* 5b — who owes what by when: the actions as a register, one gone past its day */
+await page.locator('.fw-row[data-step="the-actions"]').first().click(); await sheet().locator('.fw-log-panel').waitFor();
+for (const [action, owner, due] of [['Guard the infeed', 'Sam', '2026-10-10'], ['Retrain the night shift', 'Lee', '2026-12-01']]) {
+  const form = sheet().locator('.fw-entry').first();
+  await form.getByLabel('Action', { exact: true }).fill(action);
+  await form.getByLabel('Owner', { exact: true }).fill(owner);
+  await form.getByLabel('Due', { exact: true }).fill(due);
+  await form.getByRole('button', { name: 'Add the entry' }).click(); await page.waitForTimeout(400);
+}
+const dueTruth = async done => page.evaluate(async d => {
+  const A = await import('/src/lib/flow/analysis.ts'), W = await import('/src/lib/weeks.ts');
+  const cols = [{ key: 'action', label: 'Action', type: 'text' }, { key: 'owner', label: 'Owner', type: 'person' }, { key: 'due', label: 'Due', type: 'date' }, { key: 'done', label: 'Done', type: 'yesno' }];
+  const e = [{ id: 'a', on: W.todayISO(), at: 1, values: { action: 'Guard the infeed', owner: 'Sam', due: '2026-10-10', ...(d ? { done: true } : {}) } }, { id: 'b', on: W.todayISO(), at: 2, values: { action: 'Retrain the night shift', owner: 'Lee', due: '2026-12-01' } }];
+  return A.analyse([{ key: 'p', label: 'Past due', block: 'overdue', of: 'due', by: 'owner', when: { column: 'done', op: '!=', value: true } }], cols, e, {}, {}, W.todayISO()).p.says;
+}, done);
+const late1 = await dueTruth(false);
+ok(flat(await sheet().locator('.fw-result[data-analysis="past_due"]').innerText()).includes(late1) && /1 past due — Sam 1; the oldest “Guard the infeed” \(Sam\), due 10 Oct — \d+ days late; the next due 1 Dec — “Retrain the night shift”, Lee/.test(late1),
+  `5b who owes what by when — the action gone past its day, its owner, how late, the next due, as lib/flow/analysis says: "${late1}"`, flat(await sheet().locator('.fw-results').innerText()).slice(0, 300));
+await page.keyboard.press('Escape'); await settle();
 await page.locator('.fw-gate-line[data-gate="fix-it"]').click();
+const heldGate = flat(await sheet().innerText());
+ok(/No action past due/.test(heldGate) && !/Ready to pass/.test(heldGate), '5c the gate held while an action is past due', heldGate.slice(0, 300));
+await page.keyboard.press('Escape'); await settle();
+await page.locator('.fw-row[data-step="the-actions"]').first().click(); await sheet().locator('.fw-log-panel').waitFor();
+await sheet().locator('.fw-entries-t tbody tr', { hasText: 'Guard the infeed' }).first().getByRole('button', { name: 'Correct' }).click();
+await sheet().locator('.fw-entry-fix').getByRole('radio', { name: 'Yes' }).click();
+await sheet().locator('.fw-entry-fix').getByRole('button', { name: 'Save the correction' }).click(); await page.waitForTimeout(600);
+const late0 = await dueTruth(true);
+ok(flat(await sheet().locator('.fw-result[data-analysis="past_due"]').innerText()).includes(late0) && /none — 1 open entry with a day, none gone by; the next due 1 Dec/.test(late0), `5d the action ticked done — nothing past due: "${late0}"`);
+await sheet().getByRole('button', { name: 'Done', exact: true }).click(); await page.waitForTimeout(600);
+await page.keyboard.press('Escape'); await settle();
+await page.locator('.fw-gate-line[data-gate="fix-it"]').click();
+ok(/Ready to pass/.test(flat(await sheet().innerText())), '5e and the gate opens');
 await sheet().getByRole('button', { name: 'Pass the gate' }).click(); await page.waitForTimeout(700);
 await page.keyboard.press('Escape'); await settle();
 
@@ -247,6 +283,7 @@ ok(/Every entry/.test(pdf) && /No product · Minutes 4 min · Packs lost 160 pac
 ok(/Needs development/.test(pdf) && /A forecast of the next jam/.test(pdf), '7c the need for development on paper');
 ok(/Stops cost a day: £\d[\d,]*\.\d\d — stop minutes a day × cost of a stop minute/.test(pdf), '7e what the stops cost a day, on paper, in money');
 ok(/Stop minutes a week on: falling/.test(pdf) && /a week on/.test(pdf.replace(/Stop minutes a week on/g, '')), '7d the forecast on paper — its sentence and its picture');
+ok(/Past due where Done is not yes: none — 1 open entry with a day/.test(pdf) && /Guard the infeed/.test(pdf) && /Retrain the night shift/.test(pdf), '7g the action register on paper — nothing past due, every action listed', pdf.slice(pdf.indexOf('Past due'), pdf.indexOf('Past due') + 200));
 ok(pdf.includes(proofTruth.says) && /Before/.test(pdf) && /Now/.test(pdf), '7f before and after, proved, on paper — its sentence and its two bars', pdf.slice(pdf.indexOf('Is the drop real?'), pdf.indexOf('Is the drop real?') + 300));
 
 /* 8 — Faultline's own tool made from blocks, in the library */

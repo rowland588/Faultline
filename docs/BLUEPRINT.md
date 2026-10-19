@@ -228,7 +228,11 @@ GROUP? (the `groups` block, one-way analysis of variance): whether a figure
 differs by shift, crew, product or cause more than it varies within each,
 and how sure — written as one registry entry and nothing else, the claim
 that a new capability reaches every designer, proposal and paper unrebuilt,
-shown again. Next: a tool's panel inside the step itself
+shown again. And WHO OWES WHAT BY WHEN (the `overdue` block): a log kept as
+an action register — what, who, the day it is due, done or not — says what
+has gone past its day and is still open, by owner, the oldest named and how
+late, and a gate can wait on none past due: the control room's own
+question, available to any method. Next: a tool's panel inside the step itself
 rather than its page; more blocks and ways to capture as the floor asks (a
 regression on several columns, a tally counted with a tap — each tested).
 

@@ -495,6 +495,7 @@ function readAnalyses(raw: unknown, columns: FlowField[], fields: FlowField[], t
     const better = a.better === 'higher' || a.better === 'lower' ? a.better : undefined;
     if (a.better !== undefined && a.better !== null && a.better !== '' && !better) { err(`${ap}.better`, `${aw} says better is "${String(a.better)}" — higher or lower.`); ok = false; }
     if (better && (block.needs.from ?? 'none') === 'none') { err(`${ap}.better`, `${aw} says which way is better, but only a before-and-after reads it — judge the figure in a gate or a measure.`); ok = false; }
+    if (block.id === 'overdue' && of && colOf(of) && colOf(of)?.type !== 'date') { err(`${ap}.of`, `${aw} judges “${colOf(of)?.label}” as the day it is due, but it is not a date — give it a date column.`); ok = false; }
     if (block.id === 'cpk' && of && colOf(of) && colOf(of)?.min === undefined && colOf(of)?.max === undefined) { err(`${ap}.of`, `${aw} judges “${colOf(of)?.label}” against its limits, but the column has none — give it an at least or an at most.`); ok = false; }
     if (!ok) return;
     out.push({ key, label, block: block.id, ...(of ? { of } : {}), ...(by ? { by } : {}), ...(when ? { when } : {}), ...(against ? { against } : {}), ...(target !== undefined ? { target } : {}), ...(formula ? { formula } : {}), ...(from ? { from } : {}), ...(better ? { better } : {}), ...maybe('unit', optStr(a.unit, 40)) });

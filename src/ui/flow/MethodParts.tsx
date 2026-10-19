@@ -241,7 +241,7 @@ function AnalysesEditor({ step, onChange, ro, earlier = [] }: { step: FlowStepDe
       {list.length === 0 && <p className="sub">Nothing worked out yet — add a total, a Pareto, a trend.</p>}
       {list.map((a, i) => {
         const b = BLOCKS[a.block];
-        const ofCols = cols.filter(c => (b.numeric ? isNumberColumn(c) : true));
+        const ofCols = cols.filter(c => (b.id === 'overdue' ? c.type === 'date' : b.numeric ? isNumberColumn(c) : true));
         return (
           <div key={a.key} className="fw-field" data-analysis={a.key}>
             <div className="fw-field-r">

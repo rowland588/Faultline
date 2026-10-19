@@ -382,7 +382,7 @@ export function readFlow(x: FlowInputs): FlowState {
       const tool = step.component && record?.studyId ? x.tools?.[record.studyId] : undefined;
       /* a tool step's figures sit beside its boxes, as the tool filled them;
          a log's, as its entries add up (lib/flow/analysis) */
-      const analysis = step.answer === 'log' ? analyse(step.analyses, step.columns, record?.entries, logBoxes(step, record?.values), earlierLogs(def, records, step, step.per === 'machine' ? t.id : undefined)) : undefined;
+      const analysis = step.answer === 'log' ? analyse(step.analyses, step.columns, record?.entries, logBoxes(step, record?.values), earlierLogs(def, records, step, step.per === 'machine' ? t.id : undefined), x.today) : undefined;
       const values = { ...valuesOf(step, record?.values), ...(tool?.figures ?? {}), ...(analysis ? figuresOf(analysis) : {}) };
       const outOfLimits = step.answer === 'measure' || (step.fields ?? []).some(f => f.min !== undefined || f.max !== undefined) ? limitsBroken(step, values) : [];
       const missing = missingOf(def, step, record, values, people, tool);
@@ -456,7 +456,7 @@ export function readFlow(x: FlowInputs): FlowState {
   }
 
   /* ---- what it measures: every reading of the numbers that feed it ---- */
-  const measures = (def.measures ?? []).map(m => readMeasure(m, def, records, machines, x.tools));
+  const measures = (def.measures ?? []).map(m => readMeasure(m, def, records, machines, x.tools, x.today));
 
   /* ---- the stages and their gates ---- */
   const stages: StageState[] = [];
@@ -545,7 +545,7 @@ export const measureNumber = (m: Pick<FlowMeasure, 'unit'>, n: number): string =
 /** A measure read from every record of the steps that feed it — every
  *  attempt, not only the latest, so a step timed before and again after is
  *  its own before → after. */
-export function readMeasure(m: FlowMeasure, def: FlowDefinition, records: readonly FlowRecord[], machines: readonly FlowMachine[], tools?: Readonly<Record<string, ToolReading>>): MeasureState {
+export function readMeasure(m: FlowMeasure, def: FlowDefinition, records: readonly FlowRecord[], machines: readonly FlowMachine[], tools?: Readonly<Record<string, ToolReading>>, today?: string): MeasureState {
   const readings: MeasureReading[] = [];
   for (const f of m.from) {
     const ref = allSteps(def).find(r => r.step.key === f.step);
@@ -554,7 +554,7 @@ export function readMeasure(m: FlowMeasure, def: FlowDefinition, records: readon
       if (r.kind !== 'step' || r.stepKey !== f.step || r.stageKey !== ref.stage.key || r.outcome === 'planned') continue;
       const tool = ref.step.component && r.studyId ? tools?.[r.studyId] : undefined;
       if (ref.step.component && r.studyId && tool && !tool.enough) continue;
-      const logged = ref.step.answer === 'log' ? figuresOf(analyse(ref.step.analyses, ref.step.columns, r.entries, logBoxes(ref.step, r.values), earlierLogs(def, records, ref.step, r.assetId ?? undefined))) : {};
+      const logged = ref.step.answer === 'log' ? figuresOf(analyse(ref.step.analyses, ref.step.columns, r.entries, logBoxes(ref.step, r.values), earlierLogs(def, records, ref.step, r.assetId ?? undefined), today)) : {};
       const v = { ...valuesOf(ref.step, r.values), ...(tool?.figures ?? {}), ...logged }[f.field];
       if (typeof v !== 'number' || !Number.isFinite(v)) continue;
       const machine = r.assetId ? machines.find(x => x.id === r.assetId)?.name : undefined;

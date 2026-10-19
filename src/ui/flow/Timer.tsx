@@ -71,7 +71,7 @@ export function TimerBox({ f, value, onTime, keepAs, disabled, onLap }: {
         </>
       ) : (
         <div className="fw-timer-idle">
-          <button type="button" className="btn btn-primary fw-timer-b" disabled={disabled} aria-label={`Start timing ${f.label.toLowerCase()}`} onClick={() => start()}>
+          <button type="button" className="btn btn-primary fw-timer-b" disabled={disabled} aria-label={value === undefined ? `Start timing ${f.label.toLowerCase()}` : `Time ${f.label.toLowerCase()} again`} onClick={() => start()}>
             {value === undefined ? 'Start' : 'Time it again'}
           </button>
           <span className="fw-timer-or sub">{value === undefined ? 'or type it' : `${fmtNumber(value)} ${unit} — correct it`}</span>

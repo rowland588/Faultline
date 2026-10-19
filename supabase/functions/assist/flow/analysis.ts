@@ -15,8 +15,9 @@
  * figure a day, a Pareto, a trend, a histogram, Cpk, a control chart, a
  * relationship between two columns, a forecast, a worked-out figure, the
  * time between failures, a log compared with an earlier one (before and
- * after, and how sure the change is not chance), and whether a figure
- * differs from one group to another. A block is a pure
+ * after, and how sure the change is not chance), whether a figure differs
+ * from one group to another, and what is past its day and still open (who
+ * owes what by when). A block is a pure
  * function with what it needs — and the picture it is drawn as — said as
  * data — so a method written by a
  * person or proposed by the assistant composes them, the validator checks
@@ -43,7 +44,7 @@ export interface FlowEntry {
   struck?: boolean;
 }
 
-export const ANALYSIS_BLOCKS = ['count', 'sum', 'mean', 'median', 'min', 'max', 'sd', 'share', 'perDay', 'pareto', 'trend', 'histogram', 'cpk', 'control', 'relation', 'forecast', 'calc', 'reliability', 'compare', 'groups'] as const;
+export const ANALYSIS_BLOCKS = ['count', 'sum', 'mean', 'median', 'min', 'max', 'sd', 'share', 'perDay', 'pareto', 'trend', 'histogram', 'cpk', 'control', 'relation', 'forecast', 'calc', 'reliability', 'compare', 'groups', 'overdue'] as const;
 export type AnalysisBlockId = typeof ANALYSIS_BLOCKS[number];
 
 export const WHEN_OPS = ['=', '!=', '>=', '<=', '>', '<'] as const;
@@ -151,6 +152,8 @@ export interface AnalysisContext {
   labels: Record<string, string>;
   /** The method's earlier logs, by step key — on the same machine where the log is a machine's. */
   logs: Record<string, EarlierLog>;
+  /** Today, as an ISO day — what a day in a log is judged against (past due). */
+  today?: string;
 }
 
 /* ------------------------------------------------------------------ helpers */
@@ -189,10 +192,16 @@ export function entryValues(columns: readonly FlowField[], typed: Record<string,
 
 const live = (entries: readonly FlowEntry[]) => entries.filter(e => !e.struck);
 
+/** Yes and no as the floor says them — a yes/no box holds true or false; a rule may say "Yes". */
+const yesNo = (v: unknown): boolean | undefined => (typeof v === 'boolean' ? v : typeof v === 'string' ? (/^(y|yes|true)$/i.test(v.trim()) ? true : /^(n|no|false)$/i.test(v.trim()) ? false : undefined) : undefined);
+
 function meets(v: string | number | boolean | undefined, w: FlowWhen): boolean {
-  if (v === undefined) return false;
+  /* nothing filled is never equal to anything — so it is "not" every value ("Done ≠ Yes" counts an action not yet ticked) */
+  if (v === undefined) return w.op === '!=';
   if (w.op === '=' || w.op === '!=') {
-    const same = typeof w.value === 'number' ? Number(v) === w.value : String(v).trim().toLowerCase() === String(w.value).trim().toLowerCase();
+    const asBool = typeof v === 'boolean' || typeof w.value === 'boolean' ? [yesNo(v), yesNo(w.value)] : undefined;
+    const same = asBool && asBool[0] !== undefined && asBool[1] !== undefined ? asBool[0] === asBool[1]
+      : typeof w.value === 'number' ? Number(v) === w.value : String(v).trim().toLowerCase() === String(w.value).trim().toLowerCase();
     return w.op === '=' ? same : !same;
   }
   const n = typeof v === 'number' ? v : Number(v), t = Number(w.value);
@@ -222,7 +231,15 @@ export const numberSaid = (n: number, unit?: string): string => (unit === '£'
   : `${fmtNumber(n)}${unit ? (unit === '%' ? '%' : ` ${unit}`) : ''}`);
 const withUnit = numberSaid;
 const many = (n: number, one: string, more = `${one}s`) => `${n} ${n === 1 ? one : more}`;
-const whenSaid = (a: FlowAnalysis, columns: readonly FlowField[]) => (a.when ? ` where ${col(columns, a.when.column)?.label ?? a.when.column} ${a.when.op} ${String(a.when.value)}` : '');
+const whenSaid = (a: FlowAnalysis, columns: readonly FlowField[]) => {
+  const w = a.when;
+  if (!w) return '';
+  const c = col(columns, w.column), label = c?.label ?? w.column;
+  /* a yes/no rule said as the floor says it — "where Done is not yes" */
+  const yn = (c?.type === 'yesno' || typeof w.value === 'boolean') && (w.op === '=' || w.op === '!=') ? yesNo(w.value) : undefined;
+  if (yn !== undefined) return ` where ${label} is ${w.op === '!=' ? 'not ' : ''}${yn ? 'yes' : 'no'}`;
+  return ` where ${label} ${w.op} ${String(w.value)}`;
+};
 
 const mean = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
 const median = (xs: number[]) => { const s = [...xs].sort((p, q) => p - q), m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
@@ -730,6 +747,35 @@ export const BLOCKS: Record<AnalysisBlockId, AnalysisBlock> = {
       return { value: Math.min(sure, 99.9), n, unit: '%', series, says: `${what}: ${spread} — ${verdict} (on ${n} entries in ${kept.length} groups${leftSaid}${few}).` };
     },
   },
+  overdue: {
+    id: 'overdue', name: 'Past due', says: 'Entries whose day (a date column — the day it is due) has gone and that are still open — counted, by owner, the oldest named: who owes what by when',
+    needs: { of: 'required', by: 'optional', when: 'optional', against: 'none', target: 'none' }, numeric: false, output: 'both', picture: 'bars',
+    compute: (entries, a, columns, ctx) => {
+      const what = `${a.label}${whenSaid(a, columns)}`;
+      if (!ctx.today) return { n: 0, says: `${what}: needs today's date to judge the days against.` };
+      const today = ctx.today;
+      const isDay = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+      const rows = rowsOf(entries, a, columns).filter(r => isDay(a.of ? r.v[a.of] : undefined));
+      /* what an entry is called: its first words column that is not the owner */
+      const nameCol = columns.find(c => c.type === 'text' && c.key !== a.by);
+      const nameOf = (r: (typeof rows)[number]) => { const t = nameCol ? r.v[nameCol.key] : undefined; return typeof t === 'string' && t.trim() ? `“${t.trim()}”` : `the one due ${daySaid(String(a.of ? r.v[a.of] : ''))}`; };
+      const late = rows.filter(r => String(a.of ? r.v[a.of] : '') < today).sort((p, q) => String(p.v[a.of ?? '']).localeCompare(String(q.v[a.of ?? ''])));
+      const ahead = rows.filter(r => String(a.of ? r.v[a.of] : '') >= today).sort((p, q) => String(p.v[a.of ?? '']).localeCompare(String(q.v[a.of ?? ''])));
+      const owner = (r: (typeof rows)[number]) => { const g = a.by ? r.v[a.by] : undefined; return g === undefined || g === '' ? 'no one named' : typeof g === 'boolean' ? (g ? 'Yes' : 'No') : String(g).trim(); };
+      const counts = new Map<string, number>();
+      for (const r of late) counts.set(owner(r), (counts.get(owner(r)) ?? 0) + 1);
+      const series: SeriesPoint[] | undefined = a.by ? [...counts.entries()].map(([label, value]) => ({ label, value })).sort((p, q) => q.value - p.value || p.label.localeCompare(q.label)) : undefined;
+      const next = ahead[0] ? `; the next due ${daySaid(String(ahead[0].v[a.of ?? '']))} — ${nameOf(ahead[0])}${a.by ? `, ${owner(ahead[0])}` : ''}` : '';
+      if (!rows.length) return { value: 0, n: 0, says: `${what}: nothing with a day yet.` };
+      if (!late.length) return { value: 0, n: rows.length, ...(series ? { series } : {}), says: `${what}: none — ${many(rows.length, 'open entry', 'open entries')} with a day, none gone by${next}.` };
+      const first = late[0], days = dayNo(today) - dayNo(String(first.v[a.of ?? '']));
+      const who = a.by ? ` — ${[...counts.entries()].sort((p, q) => q[1] - p[1] || p[0].localeCompare(q[0])).map(([o, c]) => `${o} ${c}`).join(', ')}` : '';
+      return {
+        value: late.length, n: rows.length, ...(series ? { series } : {}),
+        says: `${what}: ${late.length} past due${who}; the oldest ${nameOf(first)}${a.by ? ` (${owner(first)})` : ''}, due ${daySaid(String(first.v[a.of ?? '']))} — ${many(days, 'day')} late${next}.`,
+      };
+    },
+  },
   calc: {
     id: 'calc', name: 'Worked out', says: 'A figure worked out from the figures before it and the step’s own boxes — any arithmetic (+ − × ÷ and brackets), money included: a cost, a yield, a rate',
     needs: { of: 'none', by: 'none', when: 'none', against: 'none', target: 'none', formula: 'required' }, numeric: false, output: 'number', picture: 'none',
@@ -756,7 +802,7 @@ export const blockOf = (id?: string): AnalysisBlock | undefined => (id && (ANALY
 /** Every analysis on a log, worked out from its entries — in order, so a
  *  worked-out figure reads those before it, and the step's own boxes. */
 export function analyse(analyses: readonly FlowAnalysis[] | undefined, columns: readonly FlowField[] | undefined, entries: readonly FlowEntry[] | undefined,
-  boxes: { values?: Record<string, unknown>; labels?: Record<string, string> } = {}, logs: Record<string, EarlierLog> = {}): Record<string, AnalysisResult> {
+  boxes: { values?: Record<string, unknown>; labels?: Record<string, string> } = {}, logs: Record<string, EarlierLog> = {}, today?: string): Record<string, AnalysisResult> {
   const out: Record<string, AnalysisResult> = {};
   const nums: Record<string, number> = {};
   for (const [k, v] of Object.entries(boxes.values ?? {})) if (typeof v === 'number' && Number.isFinite(v)) nums[k] = v;
@@ -764,7 +810,7 @@ export function analyse(analyses: readonly FlowAnalysis[] | undefined, columns: 
   for (const a of analyses ?? []) labels[a.key] = a.label;
   for (const a of analyses ?? []) {
     const b = blockOf(a.block);
-    if (b) out[a.key] = b.compute(entries ?? [], a, columns ?? [], { prior: { ...out }, boxes: nums, labels, logs });
+    if (b) out[a.key] = b.compute(entries ?? [], a, columns ?? [], { prior: { ...out }, boxes: nums, labels, logs, ...(today ? { today } : {}) });
   }
   return out;
 }
