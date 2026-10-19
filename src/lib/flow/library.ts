@@ -37,7 +37,7 @@ export const LIBRARY: readonly LibraryEntry[] = [
   {
     id: 'stage-gate', name: 'Stage gate', kind: 'stagegate',
     purpose: 'New equipment taken through its gates — installed, set up, commissioned against what was agreed, handed over.',
-    words: ['new', 'equipment', 'machine', 'install', 'installation', 'commission', 'commissioning', 'handover', 'oem', 'supplier', 'fit', 'project'],
+    words: ['new', 'equipment', 'machine', 'install', 'installation', 'commission', 'commissioning', 'handover', 'oem', 'supplier', 'fit', 'fits', 'fitted', 'fitting', 'project'],
     uses: [],
     build: () => ({ ...appStageGate(), purpose: 'New equipment taken through its gates — installed, set up, commissioned against what was agreed, handed over.' }),
   },
