@@ -89,6 +89,10 @@ Rules:
 - Say in assumptions what you took for granted (at most eight, one line each); in questions what you would ask before it is used (at most five).
 - Plain British English, the floor's words, no jargon, no headings in text fields.`;
 
+/** THE PASSES (lib/flow/designPasses): the first asks for the method
+ *  without each step's detail; the detail is asked for next, stage by stage. */
+export const OUTLINE_NOTE = '\n\nAnswer in two parts. This first part is the outline: every stage, step, gate condition, measure, need, assumption and question — each step without its fields, log columns, analyses, min_entries or only_if, which are asked for next.';
+
 /** The person's words, as the assistant is sent them. */
 export const designUser = (description: string): string =>
   `Design a method for this work, in the person's own words:\n\n${description.trim().slice(0, 4000)}`;
@@ -105,6 +109,13 @@ export type Read =
  *  unreadable is said so; otherwise the proposal read into a definition and
  *  checked. Never trusts the answer's shape. */
 export function readDesign(message: unknown): Read {
+  const got = readPass(message);
+  return got.ok ? readJoined(got.raw) : got;
+}
+
+/** ONE PASS'S ANSWER read to its JSON — refused, cut short, empty or
+ *  unreadable said so in words. */
+export function readPass(message: unknown): { ok: true; raw: unknown } | { ok: false; why: string } {
   const m = (message && typeof message === 'object' ? message : {}) as { stop_reason?: string; content?: unknown };
   if (m.stop_reason === 'refusal') return { ok: false, why: 'The assistant would not propose a method for that. Write it by hand, or describe the work differently.' };
   if (m.stop_reason === 'max_tokens') return { ok: false, why: 'The proposal ran too long to finish. Describe a smaller piece of the work, or split it into two methods.' };
@@ -112,8 +123,12 @@ export function readDesign(message: unknown): Read {
     .map(b => (b && typeof b === 'object' && (b as { type?: string }).type === 'text' ? String((b as { text?: unknown }).text ?? '') : ''))
     .join('').trim();
   if (!text) return { ok: false, why: 'The assistant sent nothing back. Try again in a moment.' };
-  let raw: unknown;
-  try { raw = JSON.parse(text); } catch { return { ok: false, why: 'The assistant’s answer could not be read. Try again in a moment.' }; }
+  try { return { ok: true, raw: JSON.parse(text) }; } catch { return { ok: false, why: 'The assistant’s answer could not be read. Try again in a moment.' }; }
+}
+
+/** A whole proposal — as joinDesign made it from the two passes — read into
+ *  a definition and checked by the one validator. */
+export function readJoined(raw: unknown): Read {
   const proposed = fromProposal(raw);
   const checked = validateDefinition(proposed.def);
   return { ok: true, raw, proposed: { ...proposed, def: checked.def ?? proposed.def }, errors: checked.errors, warnings: checked.warnings };

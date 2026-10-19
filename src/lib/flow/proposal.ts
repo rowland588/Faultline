@@ -29,67 +29,66 @@ const FIELD = obj({
   options: { type: 'array', items: S }, formula: S, required: { type: 'boolean' },
 });
 
-/** The JSON schema the assistant's answer is held to (structured outputs:
- *  every object closed, every property present — null or empty when there
- *  is nothing to say). */
-export const PROPOSAL_SCHEMA = obj({
+/* A STEP, IN TWO PARTS. The whole proposal held to one schema compiles to a
+   grammar larger than the API will hold a model to — "The compiled grammar
+   is too large" (19 October, the first live design asked for: every test
+   before it had used recorded answers). So the assistant answers in two
+   passes (lib/flow/assistCore, supabase/functions/assist): the OUTLINE —
+   every step without its detail — and then the DETAIL of each step, named by
+   its stage and title; joinDesign puts the two back into the one shape
+   below, which every reader already takes. */
+const STEP_OUTLINE = {
+  title: S,
+  per: { type: 'string', enum: ['machine', 'line'] },
+  answer: { type: 'string', enum: [...ANSWERS] },
+  role: S,
+  passes_if: S,
+  photos: { type: 'integer' },
+  files: { type: 'integer' },
+  due_days: INTQ,
+  after: { type: 'array', items: S },
+  tool: { type: 'string', enum: ['', ...COMPONENTS.map(c => c.id)] },
+} as const;
+const STEP_DETAIL = {
+  fields: { type: 'array', items: FIELD },
+  /* a log: what each entry asks, what the entries add up to, how many it needs */
+  columns: { type: 'array', items: FIELD },
+  analyses: {
+    type: 'array',
+    items: obj({
+      label: S, block: { type: 'string', enum: [...ANALYSIS_BLOCKS] }, of: S, by: S,
+      when_column: S, when_op: { type: 'string', enum: ['', ...WHEN_OPS] }, when_value: S, unit: S,
+      against: S, also: { type: 'array', items: S }, target: NUMQ, formula: S, from_step: S, better: { type: 'string', enum: ['', 'higher', 'lower'] },
+    }),
+  },
+  min_entries: INTQ,
+  /* a decision on what is found: needed only when an earlier step's figure says so */
+  only_if: obj({ step: S, field: S, op: { type: 'string', enum: ['', ...RULE_OPS] }, value: S }),
+} as const;
+/** The step's detail, as joinDesign fills it when the detail pass gave none. */
+const NO_DETAIL = { fields: [], columns: [], analyses: [], min_entries: null, only_if: { step: '', field: '', op: '', value: '' } };
+const GATE = {
+  type: 'array',
+  items: obj({
+    type: { type: 'string', enum: [...CONDITIONS] },
+    policy: { type: 'string', enum: ['block', 'warn'] },
+    step: S, field: S,
+    op: { type: 'string', enum: ['>=', '<=', '=', 'between'] },
+    value: NUMQ, value2: NUMQ,
+    evidence: { type: 'string', enum: ['photo', 'file'] },
+    min: INTQ,
+    measure: S,
+    priority: { type: 'string', enum: ['critical', 'high', 'any'] },
+    due_days: INTQ,
+    label: S,
+  }),
+} as const;
+const shape = (step: Record<string, unknown>) => obj({
   name: S,
   purpose: S,
   kind: { type: 'string', enum: ['stagegate', 'investigation', 'improvement', 'other'] },
   roles: { type: 'array', items: obj({ name: S, side: { type: 'string', enum: ['supplier', 'site', 'either'] } }) },
-  stages: {
-    type: 'array',
-    items: obj({
-      name: S,
-      purpose: S,
-      steps: {
-        type: 'array',
-        items: obj({
-          title: S,
-          per: { type: 'string', enum: ['machine', 'line'] },
-          answer: { type: 'string', enum: [...ANSWERS] },
-          role: S,
-          passes_if: S,
-          photos: { type: 'integer' },
-          files: { type: 'integer' },
-          due_days: INTQ,
-          after: { type: 'array', items: S },
-          tool: { type: 'string', enum: ['', ...COMPONENTS.map(c => c.id)] },
-          fields: { type: 'array', items: FIELD },
-          /* a log: what each entry asks, what the entries add up to, how many it needs */
-          columns: { type: 'array', items: FIELD },
-          analyses: {
-            type: 'array',
-            items: obj({
-              label: S, block: { type: 'string', enum: [...ANALYSIS_BLOCKS] }, of: S, by: S,
-              when_column: S, when_op: { type: 'string', enum: ['', ...WHEN_OPS] }, when_value: S, unit: S,
-              against: S, also: { type: 'array', items: S }, target: NUMQ, formula: S, from_step: S, better: { type: 'string', enum: ['', 'higher', 'lower'] },
-            }),
-          },
-          min_entries: INTQ,
-          /* a decision on what is found: needed only when an earlier step's figure says so */
-          only_if: obj({ step: S, field: S, op: { type: 'string', enum: ['', ...RULE_OPS] }, value: S }),
-          help: S,
-        }),
-      },
-      gate: {
-        type: 'array',
-        items: obj({
-          type: { type: 'string', enum: [...CONDITIONS] },
-          policy: { type: 'string', enum: ['block', 'warn'] },
-          step: S, field: S,
-          op: { type: 'string', enum: ['>=', '<=', '=', 'between'] },
-          value: NUMQ, value2: NUMQ,
-          evidence: { type: 'string', enum: ['photo', 'file'] },
-          min: INTQ,
-          measure: S,
-          priority: { type: 'string', enum: ['critical', 'high', 'any'] },
-          due_days: INTQ,
-          label: S,
-        }),
-      },
-    }),
-  },
+  stages: { type: 'array', items: obj({ name: S, purpose: S, steps: { type: 'array', items: obj(step) }, gate: GATE }) },
   measures: {
     type: 'array',
     items: obj({
@@ -101,6 +100,72 @@ export const PROPOSAL_SCHEMA = obj({
   assumptions: { type: 'array', items: S },
   questions: { type: 'array', items: S },
 });
+
+/** The first pass: the method with every step's detail left out. */
+export const OUTLINE_SCHEMA = shape({ ...STEP_OUTLINE, help: S });
+/** The second pass: each step's detail, by its stage and title as the outline wrote them. */
+export const DETAIL_SCHEMA = obj({ steps: { type: 'array', items: obj({ stage: S, title: S, ...STEP_DETAIL }) } });
+
+/** One step's detail on its own — what is asked for a step the detail of
+ *  its stage left out (lib/flow/designPasses). */
+export const STEP_SCHEMA = obj({ ...STEP_DETAIL });
+
+/** Each step of the outline with the detail found for it, by its stage and
+ *  title (by its title alone when the stage was renamed in between; each
+ *  detail used once) — undefined where there is none. */
+function matchDetail(outline: Obj, detail: unknown): { stage: Obj; steps: { step: unknown; d?: Obj }[] }[] {
+  const rows = isObj(detail) ? arr(detail.steps).filter(isObj) : [];
+  const norm = (v: unknown) => String(v ?? '').trim().toLowerCase();
+  const used = new Set<number>();
+  const find = (stage: unknown, title: unknown) => {
+    let i = rows.findIndex((r, j) => !used.has(j) && norm(r.stage) === norm(stage) && norm(r.title) === norm(title));
+    if (i < 0) i = rows.findIndex((r, j) => !used.has(j) && norm(r.title) === norm(title));
+    if (i < 0) return undefined;
+    used.add(i);
+    return rows[i];
+  };
+  return arr(outline.stages).filter(isObj).map(st => ({ stage: st, steps: arr(st.steps).map(sp => ({ step: sp, ...(isObj(sp) ? { d: find(st.name, sp.title) } : {}) })) }));
+}
+
+/** THE OUTLINE AND THE DETAIL JOINED into the one proposal shape — each
+ *  step's detail found as matchDetail finds it, a step with none given an
+ *  empty detail. Never trusts either shape: what it cannot read it passes on
+ *  for fromProposal to drop. */
+export function joinDesign(outline: unknown, detail: unknown): unknown {
+  if (!isObj(outline)) return outline;
+  const found = matchDetail(outline, detail);
+  let k = 0;
+  return {
+    ...outline,
+    stages: arr(outline.stages).map(st => {
+      if (!isObj(st)) return st;
+      const m = found[k++];
+      return {
+        ...st,
+        steps: arr(st.steps).map((sp, j) => {
+          if (!isObj(sp)) return sp;
+          const d = m.steps[j].d;
+          return {
+            ...sp, ...NO_DETAIL,
+            ...(d ? { fields: arr(d.fields), columns: arr(d.columns), analyses: arr(d.analyses), min_entries: d.min_entries ?? null, ...(isObj(d.only_if) ? { only_if: d.only_if } : {}) } : {}),
+          };
+        }),
+      };
+    }),
+  };
+}
+
+/** The outline's steps the detail gave nothing for, by their stage and title. */
+export function withoutDetail(outline: unknown, detail: unknown): { stage: string; title: string }[] {
+  if (!isObj(outline)) return [];
+  return matchDetail(outline, detail).flatMap(m => m.steps.filter(s => isObj(s.step) && !s.d).map(s => ({ stage: String(m.stage.name ?? ''), title: String((s.step as Obj).title ?? '') })));
+}
+
+/** The JSON schema of a whole proposal, as joinDesign makes it and every
+ *  reader takes it (every object closed, every property present — null or
+ *  empty when there is nothing to say). Too large to hold the assistant to
+ *  in one pass; it is held to OUTLINE_SCHEMA and DETAIL_SCHEMA in turn. */
+export const PROPOSAL_SCHEMA = shape({ ...STEP_OUTLINE, ...STEP_DETAIL, help: S });
 
 export interface Proposed {
   def: FlowDefinition;
