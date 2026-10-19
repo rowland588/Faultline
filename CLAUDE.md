@@ -649,6 +649,16 @@ pushed (`src/cloud/sync.ts`), so a stray local write cannot stall a sync.
   same pass (`src/cloud/sync.ts`, the push). Never go back to a plain upsert
   for an edited row. The engine keeps a trace of every decision
   (`syncTrace()`); the harness prints both devices' when a scenario fails.
+- **Two dev servers, one dependency cache.** Vite keeps its pre-bundled
+  dependencies in `node_modules/.vite`, and a server whose settings differ
+  from the last one's rebuilds them on start ("Re-optimizing dependencies
+  because vite config has changed") — under any other server still using
+  them. After a fresh container (19 October) the gate's server on 5191 and
+  the sync harness's on 5192 (and a worktree's, its `node_modules` a
+  symlink) fought over it, and the sync's first page never loaded: "page.goto
+  timeout" twice, before any scenario ran. `scripts/sync-vite.config.ts` has
+  its own `cacheDir` since; a second checkout's dev server is stopped before
+  the gate's sync step, or given one of its own.
 - **A sheet's back() undoes a script's goto.** A sheet closed by Escape or ×
   takes its own history entry off a moment later with `history.back()`
   (`ui/backCloses`). The app's own `nav()` waits for it (`afterPanelBack`); a

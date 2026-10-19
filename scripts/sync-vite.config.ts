@@ -7,4 +7,9 @@ import base from '../vite.config';
 
 export default mergeConfig(base, {
   server: { hmr: false, watch: { ignored: ['**/*'] } },
+  /* its own pre-bundled dependencies: sharing node_modules/.vite with the
+     gate's server (or any other) made each rebuild them whenever the other's
+     settings differed, and this one hung serving its first page (19 October,
+     after a fresh container — CLAUDE.md, Things that will bite) */
+  cacheDir: 'node_modules/.vite-sync',
 });
