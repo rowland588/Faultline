@@ -17,6 +17,7 @@ import { detectEvents, type Signal } from './detect';
 import { fingerprint, readSignal, stillAt } from './extract';
 import { move, readingKey } from './job';
 import { applyLabels, assistLabeller } from './providers';
+import { flagEvents, qualityOf } from './assess';
 import type { JobState, VideoEvent, VideoSource } from './record';
 import { clock } from './study';
 import { checkConfig, keepValid, VIDEO_LIMITS } from './validate';
@@ -152,10 +153,16 @@ async function read(id: string, o: { withVision?: boolean; abort?: AbortSignal }
 
   await setJob(id, 'validating', { said: 'Checking what was found' });
   const { kept, refused } = keepValid(found, { durationSec: v.facts.durationSec, zones: config.zones });
-  await patchStudy(id, cur => ({ facts: { ...cur.facts, vevents: mergeReading(cur.facts.vevents ?? [], kept) } }));
+  /* what the reading found about the footage itself — the camera, the light — kept on the study, and every event flagged by it */
+  const quality = qualityOf(sig, config.sampleSec);
+  await patchStudy(id, cur => {
+    const cv = cur.facts.video;
+    return { facts: { ...cur.facts, vevents: flagEvents(mergeReading(cur.facts.vevents ?? [], kept), quality), ...(cv && quality ? { video: { ...cv, quality } } : {}) } };
+  });
   const zonesWith = new Set(kept.map(e => e.zone)).size;
+  const shook = quality && quality.shaking > 0 ? ` The camera shook for ${Math.round(quality.shaking * 100)}% of it — those events are flagged.` : '';
   await setJob(id, 'review', {
-    said: `${kept.length} piece${kept.length === 1 ? '' : 's'} of work found at ${zonesWith} of ${config.zones.length} station${config.zones.length === 1 ? '' : 's'}${refused.length ? `; ${refused.length} refused as malformed` : ''}.${note}`,
+    said: `${kept.length} piece${kept.length === 1 ? '' : 's'} of work found at ${zonesWith} of ${config.zones.length} station${config.zones.length === 1 ? '' : 's'}${refused.length ? `; ${refused.length} refused as malformed` : ''}.${shook}${note}`,
   });
 }
 

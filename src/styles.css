@@ -13979,6 +13979,45 @@ textarea.fw-in { font: inherit; line-height: 1.45; }
   .vid-lane { grid-template-columns: 76px 1fr; }
   .vid-table { font-size: .8rem; display: block; overflow-x: auto; }
 }
+/* HOW TO FILM IT and IS THIS FOOTAGE FIT? (ui/VideoFit; docs/VIDEO-DESIGN.md) —
+   a check a line, quiet when fine, amber to watch, red when it makes the footage
+   unfit; how a measure is known as a word in a box — measured solid, interpreted
+   dashed, not from footage grey — never a state colour of its own */
+.vfit-head { font-weight: 700; margin: 0 0 8px; padding-left: 10px; border-left: 4px solid var(--st-n); }
+.vfit-head.is-g { border-left-color: color-mix(in srgb, var(--st-g) 55%, var(--line)); }
+.vfit-head.is-a { border-left-color: var(--st-a); }
+.vfit-head.is-r { border-left-color: var(--st-r); color: var(--st-r); }
+.vfit-checks, .vfit-claims { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.vfit-check { display: grid; grid-template-columns: 190px 1fr; gap: 2px 12px; padding: 6px 10px; border: 1px solid var(--line); border-left: 4px solid var(--st-n); border-radius: 8px; background: var(--surface); font-size: .9rem; }
+.vfit-check.is-g { border-left-color: color-mix(in srgb, var(--st-g) 45%, var(--line)); }
+.vfit-check.is-a { border-left-color: var(--st-a); background: color-mix(in srgb, var(--st-a) 6%, var(--surface)); }
+.vfit-check.is-a b { color: var(--st-a); }
+.vfit-check.is-r { border-left-color: var(--st-r); background: color-mix(in srgb, var(--st-r) 7%, var(--surface)); }
+.vfit-check.is-r b { color: var(--st-r); }
+.vfit-what { color: var(--muted); }
+.vfit-fine { margin: 4px 0 0; font-size: .88rem; color: var(--muted); }
+.vfit-fine summary { cursor: pointer; padding: 4px 0; }
+.vfit-fine summary b { color: var(--ink); font-weight: 600; }
+.vfit-fine .vfit-checks { margin-top: 4px; }
+.vfit-claims li { display: grid; grid-template-columns: 190px 1fr; gap: 2px 12px; padding: 4px 0; border-bottom: 1px solid var(--line); font-size: .9rem; }
+.vfit-claim { display: inline-block; font-size: .75rem; font-weight: 600; padding: 1px 7px; border-radius: 5px; border: 1px solid var(--ink); color: var(--ink); align-self: start; justify-self: start; }
+.vfit-claim.is-interpreted { border-style: dashed; color: var(--muted); border-color: var(--muted); }
+.vfit-claim.is-not-measurable, .vfit-claim.is-not-yet { border-color: var(--st-n); color: var(--st-n-ink); background: color-mix(in srgb, var(--st-n) 18%, transparent); }
+.vfit-plan { border: 1px solid var(--line); border-left: 4px solid var(--brand); border-radius: 10px; padding: 8px 12px; background: var(--surface); margin: 4px 0 10px; }
+.vfit-plan summary { cursor: pointer; }
+.vfit-plan > p { margin: 8px 0; }
+.vfit-dl { margin: 0; display: grid; gap: 6px; }
+.vfit-dl > div { display: grid; grid-template-columns: 150px 1fr; gap: 2px 12px; }
+.vfit-dl dt { color: var(--muted); font-size: .85rem; }
+.vfit-dl dd { margin: 0; font-size: .9rem; }
+.vfit-dl ul { margin: 0; padding-left: 16px; }
+.vfit-dl li .vfit-claim { margin-right: 4px; }
+.vfit-pick { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 0 0 10px; }
+.vfit-pick .field { flex: 1 1 220px; margin: 0; }
+.vid-ev-flag { color: var(--st-a); font-weight: 600; }
+@media (max-width: 700px) {
+  .vfit-check, .vfit-claims li, .vfit-dl > div { grid-template-columns: 1fr; }
+}
 /* CAN THIS PHONE FILM A LONG STUDY? (screens/VideoCheckScreen) — a line an
    ability, the state colour only on what is not right (a quiet green edge for
    what is), the camera's picture with its thirds and how much each moves */

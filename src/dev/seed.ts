@@ -1158,19 +1158,21 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     const ev = (zone: string, start: number, end: number, review: 'candidate' | 'accepted' | 'rejected', extra: object = {}) => ({
       id: `seedv-${zone}-${start}`, start, end, category: 'work' as const, zone, track: zones.find(z => z.id === zone)?.track,
       observed: `Movement at ${zones.find(z => z.id === zone)?.label}`, confidence: 0.86, frames: [start, (start + end) / 2, end],
-      basis: 'motion' as const, review, ...(review !== 'candidate' ? { by: 'Rowland', at: t } : {}), provenance: { provider: 'motion', version: READING_VERSION, key: 'seed' }, ...extra });
+      basis: 'motion' as const, review, pm: 0.05, ...(review !== 'candidate' ? { by: 'Rowland', at: t } : {}), provenance: { provider: 'motion', version: READING_VERSION, key: 'seed' }, ...extra });
     const vevents = [
       ...[1.5, 9.5, 17.5, 25.5].map(s0 => ev('s1', s0, s0 + 4.1, 'accepted')),
       ...[2.5, 10.5, 18.5].map(s0 => ev('s2', s0, s0 + 6.1, 'accepted')), ev('s2', 26.5, 31.5, 'candidate'),
       ...[3.5, 11.5].map(s0 => ev('s3', s0, s0 + 3.0, 'accepted')), ev('s3', 19.5, 22.6, 'accepted', { proposed: { start: 19.5, end: 22.4, category: 'work', zone: 's3' } }),
-      ev('s3', 27.5, 30.4, 'candidate'), ev('s1', 6, 6.8, 'rejected'),
+      ev('s3', 27.5, 30.4, 'candidate'), ev('s1', 6, 6.8, 'rejected', { flags: ['light' as const] }),
     ];
     const id = uid();
     await putStudy({ id, tool: 'balance', name: 'Line 4 — packing, morning', workspaceId: ws.id, uses: [], startedAt: t, createdAt: t, updatedAt: t,
       facts: { vevents, video: {
         media: { id: uid(), blobKey: `video-seed-not-here-${id}`, mime: 'video/webm', capturedAt: t },
         facts: { fileName: 'line4-morning.webm', mime: 'video/webm', bytes: 7_100_000, durationSec: 32, width: 1280, height: 720, fps: 25, orientation: 'landscape' },
-        objective: 'Analyse this video for line balance against takt', kind: 'balance',
+        objective: 'Analyse this video for line balance against takt', kind: 'balance', view: 'side-raised' as const,
+        /* what the reading found about the footage itself: a steady camera, and a lamp switched on at 6 s — the rejected event (lib/video/assess) */
+        quality: { version: 'quality-1', sampleSec: 0.1, windows: 32, shaking: 0, moved: 0, shakeMax: 0.04, shakingSpans: [], lightSpans: [[6, 6.2] as [number, number]], brightness: { mean: 132, min: 128, max: 151 } },
         job: { ...newJob(config, t), state: 'review', key: 'seed', said: '12 pieces of work found at 3 of 3 stations.', updatedAt: t, finishedAt: t },
         demand: { units: 600, unit: 'packs', availableMin: 55, per: 'shift' },
       } } });

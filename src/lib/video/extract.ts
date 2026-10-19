@@ -15,8 +15,9 @@
  * would write the same signal and the same job states. */
 import { sniffMime, sniffVideoCodec } from '../mime';
 import { readVideoMeta } from '../../snag/frame';
-import type { VideoFacts, VideoZone } from './record';
+import type { FootageScan, VideoFacts, VideoZone } from './record';
 import type { Signal } from './detect';
+import { SteadyCheck, steadySummary } from './steady';
 
 /** What the file is, read from it: its type from its bytes, its length, its picture, its frame rate. */
 export async function probe(file: File | Blob, name: string): Promise<{ facts: Partial<VideoFacts>; error?: string }> {
@@ -164,12 +165,16 @@ export async function readSignal(file: Blob, o: {
   try {
     await r.open();
     const total = Math.floor(o.durationSec / o.sampleSec) + 1;
-    const sig: Signal = o.start ? { times: [...o.start.times], zones: o.start.zones.map(z => ({ zone: z.zone, values: [...z.values] })) } : { times: [], zones: o.zones.map(z => ({ zone: z.id, values: [] })) };
+    const sig: Signal = o.start
+      ? { times: [...o.start.times], zones: o.start.zones.map(z => ({ zone: z.zone, values: [...z.values] })), steady: [...(o.start.steady ?? [])], bright: [...(o.start.bright ?? [])] }
+      : { times: [], zones: o.zones.map(z => ({ zone: z.id, values: [] })), steady: [], bright: [] };
     const { w, h } = r.size();
+    /* the footage's own steadiness and light, from the frames the reading reads anyway (docs/VIDEO-DESIGN.md, D6) */
+    const check = new SteadyCheck(w, h);
     let prev: Uint8ClampedArray | undefined;
     let i = sig.times.length;
-    /* resumed: the frame before the first one still to read is read again, for its difference */
-    if (i > 0) { await r.seek(sig.times[i - 1]); prev = r.grey(); }
+    /* resumed: the first frame held again as the camera's reference, and the frame before the first one still to read read again, for its difference */
+    if (i > 0) { await r.seek(sig.times[0]); check.prime(r.grey()); await r.seek(sig.times[i - 1]); prev = r.grey(); }
     for (; i < total; i++) {
       if (o.abort?.aborted) throw new DOMException('Stopped', 'AbortError');
       const t = Math.round(i * o.sampleSec * 1000) / 1000;
@@ -178,10 +183,44 @@ export async function readSignal(file: Blob, o: {
       const d = prev ? changeByZone(prev, g, w, h, o.zones) : o.zones.map(() => 0);
       sig.times.push(t);
       d.forEach((v, k) => sig.zones[k].values.push(Math.round(v * 1e5) / 1e5));
+      let b = 0;
+      for (let k = 0; k < g.length; k++) b += g[k];
+      sig.bright?.push(Math.round((b / g.length) * 10) / 10);
+      const m = check.add(t, g)?.mark;
+      if (m) sig.steady?.push({ t: m.t, dx: Math.round(m.dx * 1000) / 1000, dy: Math.round(m.dy * 1000) / 1000, light: Math.round(m.light * 1000) / 1000 });
       prev = g;
       if (o.onChunk && ((i + 1) % (o.chunk ?? 25) === 0 || i === total - 1)) await o.onChunk(sig, i + 1, total);
     }
     return sig;
+  } finally { r.close(); }
+}
+
+export const SCAN_VERSION = 'scan-1';
+
+/** A QUICK LOOK AT FOOTAGE AS IT COMES IN, before it is read: its light at
+ *  sixteen moments across it, and the camera's steadiness over ten seconds a
+ *  quarter of the way in, a frame every quarter second (lib/video/steady). A
+ *  few seconds' work, so footage filmed in the hand or in the dark is said so
+ *  before anyone waits for it to be read. */
+export async function scanFootage(file: Blob, durationSec: number): Promise<FootageScan> {
+  const r = new Reader(file, 160);
+  try {
+    await r.open();
+    const { w, h } = r.size();
+    const bright: number[] = [];
+    const mean = (g: Uint8ClampedArray) => { let b = 0; for (let k = 0; k < g.length; k++) b += g[k]; return b / g.length; };
+    for (let k = 0; k < 16; k++) { await r.seek(((k + 0.5) / 16) * durationSec); bright.push(mean(r.grey())); }
+    const from = Math.max(0, Math.min(durationSec * 0.25, durationSec - 10)), to = Math.min(durationSec, from + 10);
+    const check = new SteadyCheck(w, h);
+    for (let t = from; t <= to + 1e-9; t += 0.25) { await r.seek(t); const g = r.grey(); bright.push(mean(g)); check.add(t, g); }
+    const s = steadySummary(check.marks);
+    const r1 = (x: number) => Math.round(x * 10) / 10, r3 = (x: number) => Math.round(x * 1000) / 1000;
+    return {
+      version: SCAN_VERSION, at: Date.now(), frames: bright.length,
+      brightness: { mean: r1(bright.reduce((a, x) => a + x, 0) / bright.length), min: r1(Math.min(...bright)), max: r1(Math.max(...bright)) },
+      stretch: [r3(from), r3(to)],
+      steady: { windows: s.windows, shaking: r3(s.shaking), moved: r3(s.moved), shakeMax: r3(s.shakeMax), ...(s.movedAt !== undefined ? { movedAt: r3(s.movedAt), movedBy: r3(s.movedBy ?? 0) } : {}) },
+    };
   } finally { r.close(); }
 }
 

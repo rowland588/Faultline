@@ -145,9 +145,15 @@ the answers and on paper — and nothing is said more strongly than that:
 | Hypothesis | **Proposed — not measured** | What might help ("moving about 2.1 s of work…"), always with "check the method, the reach and the safety before it is". |
 | — | **Not known yet** | What the footage cannot say, or too few cycles to say it, with what would settle it. |
 
+Since 19 October (docs/VIDEO-DESIGN.md, D2) a gap between two pieces of work
+is said as **no movement**, never as waiting — waiting is an interpretation a
+person makes on the footage; and every study first says whether its footage
+is fit for it and, measure by measure, what can be measured, worked out,
+only interpreted or not measured from it at all.
+
 What is never said from footage: who a person is (temporary labels only);
-why a station waited (a wait is said as the time between two pieces of
-work at the station, never "starved", "blocked" or "the machine was down" —
+why a station waited (a gap is said as the time with no movement between two
+pieces of work at the station, never "starved", "blocked" or "the machine was down" —
 a machine's hidden state is not in the picture); a person's pace rating; that a proposed move is safe;
 an accuracy the measured table below does not support.
 
@@ -161,7 +167,7 @@ work, not ahead of it.
 |---|---|---|---|
 | **V1 — a line balance read from footage** (built) | Upload, the job, movement read on the device, every event reviewed, the line balance and takt, the report; a method's line balance step answered by it | `video.test.ts`, `acceptance/video-study.mjs`, `video-eval.mjs` on synthetic footage (the table below) | — |
 | **V2 — real footage, timed by hand** | The protocol below run on permissioned clips from the floor; the measured table split by real conditions | The protocol's figures, written here with their date and reading version | Clips and permission from a site (the footage reaches the people reviewing it since 19 October) |
-| **V3 — the reading made robust** | Stations as rectangles drawn on the frame; a change at every station at once told as the light, not work; a camera that moves refused in words; a person crossing into a neighbour's zone | V2's held-out clips scored before and after each change; no change kept that lowers a condition's figures | V2's figures say where it is weak |
+| **V3 — the reading made robust** | Stations as rectangles drawn on the frame; a change at every station at once told as the light, not work; a person crossing into a neighbour's zone. **Built 19 October:** a camera that shakes or moves, and a light that jumps, found on every frame read, its events flagged and the footage said unfit to time (docs/VIDEO-DESIGN.md §3) | V2's held-out clips scored before and after each change; no change kept that lowers a condition's figures | V2's figures say where it is weak |
 | **V4 — SMED from footage** | A changeover filmed from last good piece to first good: the activity sequence as candidates, internal or external **decided by a person** (never labelled convertible by the reading), into the SMED study (`changeover`) and its arithmetic | An acceptance like `changeover.mjs` from footage; the protocol on changeover clips | V2 on at least one changeover clip |
 | **V5 — time and motion inside a cycle** | One station's cycle split into its elements (reach, place, walk, wait) — boundaries proposed from movement, named by a person; into the line balance's elements, its rating asked, never read from the picture | The protocol at element level | V3 |
 | **V6 — waiting and the constraint** | Waits at a station read against the stations either side (work arrived or not, *as seen*); into Line capacity's bottleneck walk and a shift's losses as counted readings, said as seen | The protocol's wait figures; Line capacity's walk agreeing with the footage on the bottleneck | V3 |
@@ -235,11 +241,12 @@ more than it has measured.
   one edge function cannot hold a video for minutes.
 - **Station zones beyond side-by-side bands.** Stations are vertical bands of
   the picture with movable edges; a free rectangle per station is next.
-- **SMED, cycle-only and waiting studies** are read as their kind from the
-  words, and the same events and engine serve them, but only the line
-  balance's figures and paper are built; SMED from footage (the activity
-  sequence, internal and external — never auto-labelled convertible) is the
-  next study on the same pipeline.
+- **Studies other than line balance and cycle times** (waiting, a machine's
+  stops, a changeover, walking, material flow, elements) are chosen, planned
+  and assessed as themselves since 19 October (`lib/video/objectives`), and
+  each says it is measured only partly or not yet, with the app's tool to use
+  meanwhile; their figures are still the movement in each box. The route to
+  each is docs/VIDEO-DESIGN.md §4 — the count line first.
 - **Capacity from footage** — the demand and the minutes are asked for takt;
   product mix, machine limits, downtime and yield are Line capacity's, and
   linking a video study to a product's Line capacity is next.
@@ -258,9 +265,9 @@ more than it has measured.
 
 In the order of the staged path above:
 
-1. With the footage migration applied: studies name their footage for the
-   sync (`cloud/mappers` studies.mediaKeys), the study's words change, and
-   `sync-two-devices` gains a study's footage played on the other device.
+1. (Done 19 October: the footage reaches the cloud; the study chosen from the
+   objective, how to film it, the footage assessed, its quality tracked and
+   its events flagged, ± and the cycles needed — docs/VIDEO-DESIGN.md §3.)
 2. Real footage: a first permissioned clip timed by hand, scored by
    `scripts/video-eval.mjs`, the table above split by real conditions.
 3. Station rectangles drawn on the frame; lighting change told from work (a

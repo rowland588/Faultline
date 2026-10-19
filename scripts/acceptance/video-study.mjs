@@ -85,6 +85,11 @@ await page.getByLabel('The footage', { exact: true }).setInputFiles(file);
 await page.locator('.vid-new [data-facts]').waitFor({ timeout: 20000 }).catch(() => {});
 const facts = (await page.locator('.vid-new [data-facts]').innerText().catch(() => '')).replace(/\s+/g, ' ');
 ok(/line4\.webm — 0:3\d\.\d · 640×360/.test(facts), '1b the file read from itself: its length and its picture', facts);
+/* the footage looked at as it comes in — the camera and the light over a stretch (lib/video/assess, docs/VIDEO-DESIGN.md D6) */
+await page.locator('.vid-new [data-fit-headline]').waitFor({ timeout: 60000 }).catch(() => {});
+const fitNew = (await page.locator('.vid-new [data-fit-headline]').innerText().catch(() => '')).replace(/\s+/g, ' ');
+ok(fitNew === 'This footage suits line balance. Checked on a stretch so far — every frame is checked as it is read.' && /Steady over 10 s looked at as it came in/.test(await page.locator('.vid-new [data-check="steady"]').textContent().catch(() => '')),
+  '1b1 looked at as it came in: a steady camera over the stretch — it suits a line balance, every frame still to be checked', fitNew);
 await page.getByLabel('What do you want to find out', { exact: true }).fill('Analyse this video for line balance against takt');
 ok(/Read as line balance, with takt\./.test(await page.locator('.vid-new').innerText()), '1c what is wanted, said in words, read as a line balance with takt');
 await page.getByLabel('Which line', { exact: true }).selectOption(lineId);
@@ -105,6 +110,11 @@ await page.getByRole('button', { name: 'Read the footage' }).click();
 await page.locator('.vid-study[data-state="review"]').waitFor({ timeout: 240000 }).catch(() => {});
 const readSec = (Date.now() - t0) / 1000;
 ok(/Ready for review/.test(await txt()) && /pieces? of work found at 3 of 3 stations/.test(await txt()), '2a read on the device, its state on the record: ready for review', (await txt()).slice(0, 600));
+const fitRead = (await page.locator('section.vid-fit').innerText()).replace(/\s+/g, ' ');
+ok(/^Is this footage fit for the study\? .*This footage suits line balance, with 1 thing to watch\./.test(fitRead) && /Reviewed by a person Watch — 0 of \d+ confirmed/.test(fitRead)
+  && /Steady over every frame read/.test(await page.locator('section.vid-fit [data-check="steady"]').textContent().catch(() => ''))
+  && /Measured When work starts and stops at each station\./.test(fitRead) && /Interpreted — not measured Whether a gap is waiting/.test(fitRead),
+  '2a1 fit for it, read on every frame: the camera steady, the review still to do; when work starts and stops measured, whether a gap is waiting only interpreted', fitRead.slice(0, 900));
 const ev = await page.evaluate(async ({ id, truth }) => {
   const db = await import('/src/db.ts');
   const { evaluate } = await import('/src/lib/video/evaluate.ts');
@@ -153,8 +163,8 @@ const says = (await page.locator('.vid-findings').innerText()).replace(/\s+/g, '
 ok(/Takt is 5\.5 s a unit/.test(says) && /Workstation 2 is over takt by 0\.\d s — at its pace the demand is not met/.test(says), '4c takt given: 55 minutes for 600 is 5.5 s — the station over it said', says);
 ok(await page.locator('.vid-stacks svg').count() >= 1, '4a the people’s work stacked against takt — the line balance’s own Yamazumi');
 ok(/Measured Workstation 1 \(Operator A\)/i.test(says) && /Proposed — not measured Moving about .* check the method, the reach and the safety/i.test(says), '4d each line saying how it is known: measured, worked out, proposed — never said to be safe', says);
-await page.getByRole('button', { name: 'Review the longest waiting periods' }).click(); await page.waitForTimeout(300);
-ok(/^The longest waits: /.test(await page.locator('.vid-answer').innerText()), '4e the longest waits answered from the figures');
+await page.getByRole('button', { name: 'Show the longest gaps with no movement' }).click(); await page.waitForTimeout(300);
+ok(/^The longest gaps with no movement: .*whether it is waiting is for a person/.test(await page.locator('.vid-answer').innerText()), '4e the longest gaps answered from the figures, never called waiting');
 
 /* 5 — the report */
 const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Report', exact: true }).click()]);

@@ -38,14 +38,18 @@ import { Legend, Stacks } from '../ui/WorkBalance';
 import { AskingNote, useAsking, withFor } from '../ui/flow/Asking';
 import { StudyProves } from '../ui/ProveProgram';
 import { asked } from '../lib/lines';
-import { probe } from '../lib/video/extract';
+import { probe, scanFootage } from '../lib/video/extract';
 import { checkFootage, VIDEO_LIMITS } from '../lib/video/validate';
 import { sampleInterval } from '../lib/video/detect';
 import { newJob, STATE_WORD, working } from '../lib/video/job';
 import { isRunning, resumeLeftJobs, runJob } from '../lib/video/runner';
 import { readObjective, questionsFor, answer } from '../lib/video/ask';
 import { assistLabeller } from '../lib/video/providers';
-import { BASIS_WORD, EVENT_CATEGORIES, EVENT_WORD, KIND_WORD, READING_VERSION, type EventCategory, type VideoEvent, type VideoFacts, type VideoSource, type VideoZone } from '../lib/video/record';
+import { BASIS_WORD, EVENT_CATEGORIES, EVENT_WORD, FLAG_WORD, KIND_WORD, READING_VERSION, type EventCategory, type FootageScan, type VideoEvent, type VideoFacts, type VideoSource, type VideoStudyKind, type VideoZone, type Viewpoint } from '../lib/video/record';
+import { KINDS, OBJECTIVES, READINESS_WORD, VIEWPOINTS } from '../lib/video/objectives';
+import { capturePlan } from '../lib/video/capture';
+import { assessFootage } from '../lib/video/assess';
+import { FilmPlan, FitView } from '../ui/VideoFit';
 import { byHand, decide, merge, reclassify, setBoundary, split, acceptAll } from '../lib/video/review';
 import { clock, FINDING_WORD, findings, sec1, standing, videoFigures, type Basis } from '../lib/video/study';
 import { checkEvent } from '../lib/video/validate';
@@ -86,6 +90,13 @@ export function VideosScreen() {
   const { projects } = useProjects();
   /* opened on its New from a method's step done with the line balance (ui/flow/RunParts) */
   const [adding, setAdding] = useState(() => !!asked('add'));
+  /* …or while this list is open: the page stays, so New is opened afresh — its line and its step read again */
+  const [addKey, setAddKey] = useState(0);
+  useEffect(() => {
+    const on = () => { if (asked('add')) { setAddKey(k => k + 1); setAdding(true); } };
+    window.addEventListener('hashchange', on);
+    return () => window.removeEventListener('hashchange', on);
+  }, []);
   useEffect(() => { if (list) void resumeLeftJobs(list); }, [list]);
   return (
     <div className="wrap vid-list">
@@ -123,7 +134,7 @@ export function VideosScreen() {
           })}
         </ul>
       )}
-      <NewVideoStudy open={adding} onClose={() => setAdding(false)} />
+      <NewVideoStudy key={addKey} open={adding} onClose={() => setAdding(false)} />
     </div>
   );
 }
@@ -138,6 +149,13 @@ function NewVideoStudy({ open, onClose }: { open: boolean; onClose: () => void }
   const [problems, setProblems] = useState<string[]>([]);
   const [reading, setReading] = useState(false);
   const [objective, setObjective] = useState('');
+  /* the study is chosen from what is to be found out (docs/VIDEO-DESIGN.md, D1): read
+     from the words, or picked; it decides how to film it and what may be claimed */
+  const [kindPick, setKindPick] = useState<VideoStudyKind | ''>('');
+  const [cycle, setCycle] = useState('');
+  const [view, setView] = useState<Viewpoint | ''>('');
+  const [scan, setScan] = useState<FootageScan | null>(null);
+  const [scanning, setScanning] = useState<'no' | 'yes' | 'failed'>('no');
   /* a video study is a line balance study: one made from a method's line
      balance step answers it, on that job's line (ui/flow/Asking) */
   const asking = useAsking('balance');
@@ -146,17 +164,28 @@ function NewVideoStudy({ open, onClose }: { open: boolean; onClose: () => void }
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   const read = readObjective(objective || 'line balance');
+  const kind: VideoStudyKind = kindPick || read.kind;
+  const cycleSec = Number(cycle) > 0 ? Number(cycle) : undefined;
+  const plan = capturePlan(kind, { ...(cycleSec ? { cycleSec } : {}) });
+  const fit = facts && !problems.length && facts.durationSec ? assessFootage({ kind, facts: facts as VideoFacts, zones: [], ...(view ? { view } : {}), ...(cycleSec ? { cycleHintSec: cycleSec } : {}), ...(scan ? { scan } : {}) }) : null;
 
   const pick = async (f: File | null) => {
-    setFile(f); setFacts(null); setProblems([]);
+    setFile(f); setFacts(null); setProblems([]); setScan(null); setScanning('no');
     if (!f) return;
     setReading(true);
+    let dur = 0, fine = false;
     try {
       const p = await probe(f, f.name);
       setFacts(p.facts);
-      setProblems([...(p.error ? [p.error] : []), ...checkFootage(p.facts).map(x => x.message)]);
+      const bad = [...(p.error ? [p.error] : []), ...checkFootage(p.facts).map(x => x.message)];
+      setProblems(bad);
+      dur = p.facts.durationSec ?? 0; fine = !bad.length && dur > 0;
       if (!name) setName(f.name.replace(/\.[^.]+$/, ''));
     } finally { setReading(false); }
+    /* a quick look at the light and the camera over a stretch, as it comes in — every frame is checked as it is read */
+    if (!fine) return;
+    setScanning('yes');
+    try { setScan(await scanFootage(f, dur)); setScanning('no'); } catch (e) { console.warn('the quick look at the footage did not finish', e); setScanning('failed'); }
   };
   const ok = !!file && !!facts && !problems.length && !reading && !busy;
   const make = async () => {
@@ -167,7 +196,8 @@ function NewVideoStudy({ open, onClose }: { open: boolean; onClose: () => void }
       await putBlob(blobKey, file);
       const full = facts as VideoFacts;
       const config = { sampleSec: sampleInterval(full.durationSec, full.fps, VIDEO_LIMITS.maxSamples), readWidth: 160, zones: bands(2), sensitivity: 4, joinGapSec: 0.5, minEventSec: 0.6, version: READING_VERSION };
-      const v: VideoSource = { media: { id: uid(), blobKey, mime: full.mime, capturedAt: file.lastModified || t }, facts: full, ...(objective.trim() ? { objective: objective.trim() } : {}), kind: read.kind, job: newJob(config, t) };
+      const v: VideoSource = { media: { id: uid(), blobKey, mime: full.mime, capturedAt: file.lastModified || t }, facts: full, ...(objective.trim() ? { objective: objective.trim() } : {}), kind, job: newJob(config, t),
+        ...(view ? { view } : {}), ...(cycleSec ? { cycleHintSec: cycleSec } : {}), ...(scan ? { scan } : {}) };
       const s: ToolStudy = { id, tool: 'balance', name: name.trim() || full.fileName, ...(lineId ? { workspaceId: lineId } : {}), ...(projectId ? { projectId } : {}),
         facts: { video: v, vevents: [] }, uses: [], startedAt: t, createdAt: t, updatedAt: t };
       await putStudy(s);
@@ -180,6 +210,25 @@ function NewVideoStudy({ open, onClose }: { open: boolean; onClose: () => void }
     <Sheet open={open} onClose={onClose} title="New video study">
       <form className="lt-new vid-new" onSubmit={e => { e.preventDefault(); void make(); }}>
         <AskingNote asking={asking} />
+        <label className="field"><span className="field-label">What do you want to find out?</span>
+          <textarea className="text-input" rows={3} value={objective} aria-label="What do you want to find out" placeholder="e.g. Analyse this video for line balance against takt" onChange={e => setObjective(e.target.value)} />
+          <span className="chip-row">{EXAMPLES.map(x => <button key={x} type="button" className="chip" onClick={() => setObjective(x)}>{x}</button>)}</span>
+          <span className="sub">{read.said}</span>
+        </label>
+        <div className="vfit-pick">
+          <label className="field"><span className="field-label">The study</span>
+            <select className="text-input" value={kindPick} aria-label="The study" onChange={e => setKindPick(e.target.value as VideoStudyKind | '')}>
+              <option value="">{KIND_WORD[read.kind]} — from the words</option>
+              {KINDS.map(k => <option key={k} value={k}>{KIND_WORD[k]} — {READINESS_WORD[OBJECTIVES[k].readiness].toLowerCase()}</option>)}
+            </select>
+          </label>
+          {(OBJECTIVES[kind].minCycles ?? 0) > 0 && (
+            <label className="field"><span className="field-label">One cycle takes about (seconds)</span>
+              <input type="number" inputMode="decimal" min={0} step={0.5} className="text-input" value={cycle} aria-label="One cycle takes about" placeholder="If you know — to work out how long to film" onChange={e => setCycle(e.target.value)} />
+            </label>
+          )}
+        </div>
+        <FilmPlan p={plan} open={!file} key={file ? 'filmed' : 'planning'} />
         <label className="field"><span className="field-label">The footage</span>
           <input type="file" accept="video/mp4,video/quicktime,video/webm,video/*" aria-label="The footage" onChange={e => void pick(e.target.files?.[0] ?? null)} />
           <span className="sub">An MP4, MOV or WebM of up to {Math.round(VIDEO_LIMITS.maxDurationSec / 60)} minutes. It is read on this device; nothing is sent anywhere to read it.</span>
@@ -189,11 +238,17 @@ function NewVideoStudy({ open, onClose }: { open: boolean; onClose: () => void }
           <p className="vid-facts" data-facts>{facts.fileName} — {clock(facts.durationSec ?? 0)} · {facts.width}×{facts.height}{facts.fps ? ` · ${facts.fps} frames a second` : ''} · {mb(facts.bytes ?? 0)}{facts.codec ? ` · ${facts.codec}` : ''}</p>
         )}
         {problems.length > 0 && <ul className="vid-problems" role="alert">{problems.map(p => <li key={p}>{p}</li>)}</ul>}
-        <label className="field"><span className="field-label">What do you want to find out?</span>
-          <textarea className="text-input" rows={3} value={objective} aria-label="What do you want to find out" placeholder="e.g. Analyse this video for line balance against takt" onChange={e => setObjective(e.target.value)} />
-          <span className="chip-row">{EXAMPLES.map(x => <button key={x} type="button" className="chip" onClick={() => setObjective(x)}>{x}</button>)}</span>
-          <span className="sub">{read.said}</span>
-        </label>
+        {facts && !problems.length && (
+          <label className="field"><span className="field-label">Where was the phone?</span>
+            <select className="text-input" value={view} aria-label="Where was the phone" onChange={e => setView(e.target.value as Viewpoint | '')}>
+              <option value="">Not said</option>
+              {(Object.keys(VIEWPOINTS) as Viewpoint[]).map(k => <option key={k} value={k}>{VIEWPOINTS[k].name}</option>)}
+            </select>
+          </label>
+        )}
+        {scanning === 'yes' && <p className="sub" role="status">Checking the camera and the light…</p>}
+        {scanning === 'failed' && <p className="sub">The camera and the light could not be checked now — every frame is checked as it is read.</p>}
+        {fit && scanning !== 'yes' && <section className="vid-fit-new" aria-label="Is this footage fit for the study"><FitView a={fit} /></section>}
         <label className="field"><span className="field-label">Which line</span>
           <select className="text-input" value={lineId} aria-label="Which line" onChange={e => setLineId(e.target.value)}>
             <option value="">No line yet</option>
@@ -344,7 +399,16 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
   };
 
   const line = lines.find(l => l.id === s.workspaceId), job0 = projects.find(p => p.id === s.projectId);
-  const questions = questionsFor(v.kind ?? 'balance', verified, { zones: zones.length, wantsTakt: (v.objective ?? '').toLowerCase().includes('takt') });
+  const kind: VideoStudyKind = v.kind ?? 'balance';
+  const obj = OBJECTIVES[kind];
+  const questions = questionsFor(kind, verified, { zones: zones.length, wantsTakt: (v.objective ?? '').toLowerCase().includes('takt') });
+  /* IS THIS FOOTAGE FIT FOR THE STUDY? — from the quick look as it came in, then every frame read; once read, the cycles and the review too */
+  const isRead = job.state === 'review' || job.state === 'reported';
+  const fit = useMemo(() => assessFootage({ kind, facts: v.facts, zones, ...(v.view ? { view: v.view } : {}), ...(v.cycleHintSec ? { cycleHintSec: v.cycleHintSec } : {}),
+    ...(v.scan ? { scan: v.scan } : {}), ...(v.quality ? { quality: v.quality } : {}), ...(isRead ? { figures: verified, events, read: true } : {}) }),
+  [kind, v.facts, zones, v.view, v.cycleHintSec, v.scan, v.quality, isRead, verified, events]);
+  const plan = capturePlan(kind, { stations: zones.length, ...((verified.bottleneck?.cycleTime?.mean ?? v.cycleHintSec) ? { cycleSec: verified.bottleneck?.cycleTime?.mean ?? v.cycleHintSec } : {}) });
+  const figuresTitle = kind === 'balance' ? 'The line balance' : kind === 'cycles' ? 'The cycles at each box' : `${KIND_WORD[kind]} — read as movement at each box`;
 
   return (
     <div className="wrap vid-study" data-state={job.state}>
@@ -377,6 +441,29 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
         <p className="sub vid-facts" data-facts>{v.facts.fileName} — {clock(v.facts.durationSec)} · {v.facts.width}×{v.facts.height}{v.facts.fps ? ` · ${v.facts.fps} frames a second` : ''} · {mb(v.facts.bytes)}{v.facts.codec ? ` · ${v.facts.codec}` : ''}{where ? ` · ${where}` : ''}</p>
         {v.objective && <p className="vid-objective"><span className="field-label">Asked for</span> “{v.objective}” — {readObjective(v.objective).said}</p>}
         {questions.length > 0 && <ul className="vid-questions" aria-label="What the study needs">{questions.map(q => <li key={q}>{q}</li>)}</ul>}
+      </section>
+
+      {/* IS THIS FOOTAGE FIT FOR THE STUDY? — the study, where the phone was, each check and what can be claimed (docs/VIDEO-DESIGN.md, D6) */}
+      <section className="vid-panel vid-fit" aria-label="Is this footage fit for the study">
+        <h2>Is this footage fit for the study?</h2>
+        {can.edit && (
+          <div className="vfit-pick">
+            <label className="field"><span className="field-label">The study</span>
+              <select className="text-input" value={kind} aria-label="The study" onChange={e => void patchV({ kind: e.target.value as VideoStudyKind })}>
+                {KINDS.map(k => <option key={k} value={k}>{KIND_WORD[k]} — {READINESS_WORD[OBJECTIVES[k].readiness].toLowerCase()}</option>)}
+              </select>
+            </label>
+            <label className="field"><span className="field-label">Where was the phone?</span>
+              <select className="text-input" value={v.view ?? ''} aria-label="Where was the phone" onChange={e => void patchV({ view: (e.target.value || undefined) as Viewpoint | undefined })}>
+                <option value="">Not said</option>
+                {(Object.keys(VIEWPOINTS) as Viewpoint[]).map(k => <option key={k} value={k}>{VIEWPOINTS[k].name}</option>)}
+              </select>
+            </label>
+          </div>
+        )}
+        <FitView a={fit} />
+        {obj.meanwhile && obj.readiness !== 'measured' && <p className="sub vid-meanwhile">Meanwhile, by hand: <button type="button" className="linkish" onClick={() => nav(obj.meanwhile?.path ?? '/')}>{obj.meanwhile.tool}</button> — {obj.meanwhile.why}.</p>}
+        <FilmPlan p={plan} />
       </section>
 
       {/* THE STATIONS IN VIEW and the reading */}
@@ -428,7 +515,7 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
                     ) : <b>{EVENT_WORD[e.category]}</b>}
                     <span className="sub"> {sec1(e.end - e.start)} · seen: {e.observed}{e.inferred ? ` · believed: ${e.inferred}` : ''}</span>
                   </span>
-                  <span className="vid-ev-how sub">{BASIS_WORD[e.basis]}{e.basis !== 'person' ? `, ${Math.round(e.confidence * 100)}% sure` : ''}{e.provenance.model ? ` · named by the assistant` : ''}{e.proposed ? ` · corrected from ${clock(e.proposed.start)}–${clock(e.proposed.end)}` : ''}</span>
+                  <span className="vid-ev-how sub">{BASIS_WORD[e.basis]}{e.basis !== 'person' ? `, ${Math.round(e.confidence * 100)}% sure` : ''} · each end ±{(e.pm ?? job.config.sampleSec / 2).toFixed(2)} s{e.provenance.model ? ` · named by the assistant` : ''}{e.proposed ? ` · corrected from ${clock(e.proposed.start)}–${clock(e.proposed.end)}` : ''}{e.flags?.length ? <span className="vid-ev-flag" data-flags={e.flags.join(' ')}> · {e.flags.map(x => FLAG_WORD[x]).join(', ')} — check it on the footage</span> : null}</span>
                   <span className="vid-ev-state"><b>{e.review === 'candidate' ? 'To review' : e.review === 'accepted' ? `Accepted${e.by ? ` by ${e.by}` : ''}` : 'Rejected'}</b></span>
                   {can.edit && (
                     <span className="vid-ev-acts">
@@ -459,21 +546,21 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
       {events.length > 0 && (
         <section className="vid-panel" aria-label="The line balance">
           <div className="vid-head">
-            <h2>The line balance</h2>
+            <h2>{figuresTitle}</h2>
             <div className="chip-row" role="group" aria-label="Counted from">
               <button type="button" className={`chip${basis === 'verified' ? ' on' : ''}`} aria-pressed={basis === 'verified'} onClick={() => setBasis('verified')}>Accepted only</button>
               <button type="button" className={`chip${basis === 'provisional' ? ' on' : ''}`} aria-pressed={basis === 'provisional'} onClick={() => setBasis('provisional')}>With those to review (provisional)</button>
             </div>
           </div>
-          <p className="sub">{basis === 'verified' ? `Worked out from the ${f.accepted} accepted event${f.accepted === 1 ? '' : 's'}.` : `Provisional — the ${f.candidates} still to review are counted as if accepted.`}</p>
+          <p className="sub">{basis === 'verified' ? `Worked out from the ${f.accepted} accepted event${f.accepted === 1 ? '' : 's'}.` : `Provisional — the ${f.candidates} still to review are counted as if accepted.`}{obj.readiness !== 'measured' ? ` Faultline ${obj.readiness === 'partly' ? 'measures only part of' : 'does not measure'} ${KIND_WORD[kind].toLowerCase()} from footage yet: below is the movement in each box, worked out as stations.` : ''}</p>
           <table className="vid-table" aria-label="Each station">
-            <thead><tr><th>Station</th><th>Work a cycle</th><th>Cycles</th><th>Range</th><th>A cycle every</th><th>Waiting between</th><th>Working</th></tr></thead>
+            <thead><tr><th>Station</th><th>Work a cycle</th><th>Cycles</th><th>Range</th><th>A cycle every</th><th>No movement between</th><th>Working</th></tr></thead>
             <tbody>
               {f.stations.map(x => (
                 <tr key={x.zone.id} data-station={x.zone.id}>
                   <td><b>{x.zone.label}</b><br /><span className="sub">{x.zone.track}</span></td>
-                  <td>{x.workTime ? sec1(x.workTime.mean) : '—'}{x.workTime ? <span className="sub"> (median {sec1(x.workTime.median)})</span> : null}</td>
-                  <td>{x.workTime?.n ?? 0}{x.partial.length ? <span className="sub"> + {x.partial.length} cut off</span> : null}</td>
+                  <td>{x.workTime ? sec1(x.workTime.mean) : '—'}{x.workTime ? <span className="sub" title="The larger of its 95% interval and the reading’s own ± on a length"> ±{Math.max(x.workTime.ci95 ?? 0, x.pm).toFixed(1)}</span> : null}{x.workTime ? <span className="sub"> · median {sec1(x.workTime.median)}</span> : null}</td>
+                  <td>{x.workTime?.n ?? 0}{x.workTime && x.needed && !x.enough ? <span className="ie-tone is-a"> of {x.needed} needed</span> : null}{x.partial.length ? <span className="sub"> + {x.partial.length} cut off</span> : null}</td>
                   <td>{x.workTime ? `${x.workTime.min.toFixed(1)}–${x.workTime.max.toFixed(1)} s` : '—'}</td>
                   <td>{x.cycleTime ? sec1(x.cycleTime.mean) : '—'}</td>
                   <td>{x.waitTime ? sec1(x.waitTime.mean) : '—'}</td>
@@ -517,7 +604,7 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
   );
 }
 
-/** EACH STATION'S WORKLOAD — its work a cycle and its waiting between, side
+/** EACH STATION'S WORKLOAD — its work a cycle and its time with no movement between, side
  *  by side, the slowest darkest; takt drawn across when it is known. Shown as
  *  soon as one station is timed, takt or not (the line balance's own stacks
  *  follow once takt is given). */
@@ -529,7 +616,7 @@ function Workload({ f }: { f: ReturnType<typeof videoFigures> }) {
   const y = (v: number) => T + (1 - v / most) * (H - T - B);
   const col = (W - L - 8) / ss.length, bw = Math.min(64, col * 0.6);
   return (
-    <svg className="vid-load" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Each station's work and waiting in a cycle">
+    <svg className="vid-load" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Each station's work and time with no movement in a cycle">
       {[0, 0.25, 0.5, 0.75, 1].map(k => <g key={k}><line x1={L} x2={W - 4} y1={y(most * k)} y2={y(most * k)} className="vid-load-grid" /><text x={L - 4} y={y(most * k) + 3} className="vid-load-ax">{(most * k).toFixed(0)} s</text></g>)}
       {ss.map((s, i) => {
         const x = L + 4 + i * col + (col - bw) / 2, work = s.workTime?.mean ?? 0, wait = s.waitTime?.mean ?? 0;
@@ -644,7 +731,7 @@ function Ask({ f }: { f: ReturnType<typeof videoFigures> }) {
   const [a, setA] = useState<{ text: string; how: string } | null>(null);
   const ask = useCallback((x: string) => {
     const r = answer(x, f);
-    setA(r ?? { how: 'not known', text: 'The app answers about the cycles, the waiting, takt, the bottleneck, what is still needed and the report. Ask about one of those.' });
+    setA(r ?? { how: 'not known', text: 'The app answers about the cycles, the gaps with no movement, takt, the bottleneck, what is still needed and the report. Ask about one of those.' });
   }, [f]);
   return (
     <div className="vid-ask">
@@ -652,7 +739,7 @@ function Ask({ f }: { f: ReturnType<typeof videoFigures> }) {
         <input className="text-input" value={q} aria-label="Ask about this study" placeholder="e.g. What else do you need to work out takt?" onChange={e => setQ(e.target.value)} />
         <button type="submit" className="btn btn-sm">Ask</button>
       </form>
-      <span className="chip-row">{['Identify repeated cycles', 'Review the longest waiting periods', 'What do you need to calculate takt?', 'Which station contributes most?'].map(x => <button key={x} type="button" className="chip" onClick={() => { setQ(x); ask(x); }}>{x}</button>)}</span>
+      <span className="chip-row">{['Identify repeated cycles', 'Show the longest gaps with no movement', 'What do you need to calculate takt?', 'Which station contributes most?'].map(x => <button key={x} type="button" className="chip" onClick={() => { setQ(x); ask(x); }}>{x}</button>)}</span>
       {a && <p className="vid-answer" data-how={a.how}>{a.text} <span className="sub">— {a.how === 'worked out' ? 'worked out by the app from the study' : 'not known yet'}</span></p>}
     </div>
   );

@@ -2,13 +2,14 @@
  * conversational integration).
  *
  * "Analyse this video for line balance." "What else do you need to work out
- * takt?" "Show the longest waits." Read here without an assistant — the
+ * takt?" "Show the longest gaps." Read here without an assistant — the
  * words a person uses for the study they want, and the questions the app can
  * answer from what it has worked out — so the study is asked for in words and
  * answered in words whether the assistant is on or not. Every answer is made
  * from lib/video/study's figures and says how it is known; anything the
  * figures cannot say is said to be not known, never guessed. */
 import { KIND_WORD, type VideoStudyKind } from './record';
+import { kindOfWords, OBJECTIVES } from './objectives';
 import { clock, findings, sec1, type VideoStudyFigures } from './study';
 
 const has = (t: string, ...ws: string[]) => ws.some(w => new RegExp(`\\b${w}`, 'i').test(t));
@@ -16,10 +17,8 @@ const has = (t: string, ...ws: string[]) => ws.some(w => new RegExp(`\\b${w}`, '
 /** What kind of study the words ask for, and what they ask of it. */
 export function readObjective(text: string): { kind: VideoStudyKind; wants: string[]; said: string } {
   const t = text.trim();
-  const kind: VideoStudyKind = has(t, 'changeover', 'change over', 'smed', 'setup', 'set-up', 'format change') ? 'changeover'
-    : has(t, 'wait', 'idle', 'starv', 'blocked') && !has(t, 'balanc') ? 'waiting'
-    : has(t, 'cycle', 'repeat', 'rate', 'output') && !has(t, 'balanc', 'workload', 'operator', 'station') ? 'cycles'
-    : 'balance';
+  /* the study the words ask for — from the catalogue of studies footage is filmed for (lib/video/objectives) */
+  const kind: VideoStudyKind = kindOfWords(t);
   const wants: string[] = [];
   if (has(t, 'takt', 'demand', 'customer')) wants.push('takt');
   if (has(t, 'wait', 'idle')) wants.push('waiting');
@@ -33,7 +32,10 @@ export function readObjective(text: string): { kind: VideoStudyKind; wants: stri
 export function questionsFor(kind: VideoStudyKind, f: VideoStudyFigures | undefined, o: { zones: number; wantsTakt: boolean }): string[] {
   const out: string[] = [];
   if (!o.zones) out.push('Where are the stations in the picture? Mark each one, left to right — a station is a place, its worker a label like Operator A.');
-  if (kind === 'changeover') out.push('A changeover study reads from the last good piece to the first good piece: say when each was, and the app times every activity between.');
+  const obj = OBJECTIVES[kind];
+  if (obj.readiness === 'not-yet') out.push(`${KIND_WORD[kind]} is not read from footage yet${obj.meanwhile ? ` — ${obj.meanwhile.tool} does it meanwhile: ${obj.meanwhile.why}` : ''}. Keep the footage here and mark what you see by hand.`);
+  if (kind === 'changeover') out.push('Say when the last good piece before and the first good piece after were, so the whole changeover is between them.');
+  if (kind === 'machine') out.push('Box the part of the machine that moves when it runs — the stroke, the wheel, the gripper — not the whole machine.');
   if (f && f.candidates) out.push(`Watch the ${f.candidates} event${f.candidates === 1 ? '' : 's'} found and accept, correct or reject each — the figures use only what is accepted.`);
   if ((o.wantsTakt || kind === 'balance') && f && !f.takt) out.push('To compare with takt: how many does the line have to make, and in how many minutes (a shift or a day)?');
   return out;
@@ -50,10 +52,10 @@ export function answer(q: string, f: VideoStudyFigures): Answer | undefined {
     if (!f.takt) return { how: 'not known', text: 'To work out takt I need the demand — how many the line has to make — and the minutes it has to make them in (a shift or a day, less the breaks). Put them in under Takt.' };
     return { how: 'worked out', text: `Takt is ${sec1(f.takt)} a unit. ${f.overTakt.length ? f.overTakt.map(o => `${o.station.zone.label} is over by ${sec1(o.bySec)}`).join('; ') : 'Every station is within it'} — ${basis}.` };
   }
-  if (has(t, 'wait', 'idle')) {
+  if (has(t, 'wait', 'idle', 'gap', 'no movement')) {
     const ws = f.stations.flatMap(s => s.waits.map(w => ({ ...w, label: s.zone.label }))).sort((a, b) => b.sec - a.sec).slice(0, 5);
-    if (!ws.length) return { how: 'not known', text: `No waiting between pieces of work ${f.basis === 'verified' ? 'among the accepted events' : 'was found'} yet.` };
-    return { how: 'worked out', text: `The longest waits: ${ws.map(w => `${sec1(w.sec)} at ${w.label} from ${clock(w.start)}`).join('; ')} — ${basis}.` };
+    if (!ws.length) return { how: 'not known', text: `No gap between pieces of work ${f.basis === 'verified' ? 'among the accepted events' : 'was found'} yet.` };
+    return { how: 'worked out', text: `The longest gaps with no movement: ${ws.map(w => `${sec1(w.sec)} at ${w.label} from ${clock(w.start)}`).join('; ')} — ${basis}. The footage shows no movement there; whether it is waiting is for a person who has seen it to say.` };
   }
   if (has(t, 'cycle', 'repeat', 'duration')) {
     const ss = f.stations.filter(s => s.cycleTime || s.workTime);

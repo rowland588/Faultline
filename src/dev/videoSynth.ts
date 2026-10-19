@@ -18,6 +18,8 @@ export interface SynthOptions {
   grain?: number;
   /** Lights that flicker: the whole picture brightened by this much (0–1), on and off every `flickerSec`. */
   flicker?: number; flickerSec?: number;
+  /** A camera that shakes: the whole picture moved up to `px` either way on every frame from `fromSec` to `toSec` (docs/VIDEO-DESIGN.md, D4). */
+  shake?: { fromSec: number; toSec: number; px: number };
 }
 
 function rng(seed: number) { let s = seed || 1; return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
@@ -49,8 +51,12 @@ export function lineScene(o: SynthOptions): { canvas: HTMLCanvasElement; truth: 
   const n = o.stations.length;
   const grain = o.grain ?? 10;
   const noise = rng((o.seed ?? 11) + 7);
+  const jolt = rng((o.seed ?? 11) + 13);
   const draw = (t: number) => {
-    ctx.fillStyle = '#9aa3a8'; ctx.fillRect(0, 0, W, H);
+    /* a camera that shakes: everything drawn moved by a little, a new way every frame */
+    const sh = o.shake && t >= o.shake.fromSec && t < o.shake.toSec ? o.shake.px : 0;
+    ctx.setTransform(1, 0, 0, 1, sh ? (jolt() * 2 - 1) * sh : 0, sh ? (jolt() * 2 - 1) * sh : 0);
+    ctx.fillStyle = '#9aa3a8'; ctx.fillRect(-40, -40, W + 80, H + 80);
     ctx.fillStyle = '#5d666b'; ctx.fillRect(0, H * 0.72, W, H * 0.08);           /* the conveyor */
     for (let i = 0; i < n; i++) {
       const x0 = (i / n) * W, cx = x0 + W / n / 2;
@@ -65,6 +71,7 @@ export function lineScene(o: SynthOptions): { canvas: HTMLCanvasElement; truth: 
       ctx.beginPath(); ctx.moveTo(cx + 18, H * 0.25); ctx.lineTo(cx + 30 - reach, H * 0.46 - lift); ctx.stroke();
       if (busy) { ctx.fillStyle = '#d96d1f'; ctx.fillRect(cx - 14 + reach * 0.6, H * 0.47 + lift * 0.5, 28, 20); } /* the part in hand */
     }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     /* lights that flicker: the whole picture lighter for a while, then not */
     if (o.flicker && Math.floor(t / (o.flickerSec ?? 1.3)) % 2 === 1) { ctx.fillStyle = `rgba(255,255,255,${o.flicker})`; ctx.fillRect(0, 0, W, H); }
     /* a camera's grain: the same small speckle on every frame, at random places */

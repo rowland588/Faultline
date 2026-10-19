@@ -133,7 +133,7 @@ describe('the study, worked out from the events a person accepted', () => {
   });
   it('feeds the line balance its own way: each station an element, timed by the accepted events', () => {
     const steps = stepsFromEvents(zones, all, 'verified', 30, 0.2);
-    expect(steps.map(s => `${s.name} · ${s.who} · ${s.kind}`)).toEqual(['Work at Workstation 1 · Operator A · work', 'Waiting at Workstation 1 · Operator A · wait', 'Work at Workstation 2 · Operator B · work', 'Waiting at Workstation 2 · Operator B · wait']);
+    expect(steps.map(s => `${s.name} · ${s.who} · ${s.kind}`)).toEqual(['Work at Workstation 1 · Operator A · work', 'No movement at Workstation 1 · Operator A · wait', 'Work at Workstation 2 · Operator B · work', 'No movement at Workstation 2 · Operator B · wait']);
     expect(steps[0].laps).toHaveLength(5);
     const f = videoFigures(source({ demand: { units: 480, unit: 'packs', availableMin: 40, per: 'shift' } }), all);
     expect(f.balance.people.map(p => p.who)).toEqual(['Operator A', 'Operator B']);
@@ -151,7 +151,7 @@ describe('the study, worked out from the events a person accepted', () => {
   });
   it('says each finding as measured, worked out, proposed or not known — a proposal never said to be safe', () => {
     const fs = findings(videoFigures(source({ demand: { units: 600, unit: 'packs', availableMin: 40, per: 'shift' } }), all));
-    expect(fs.find(x => x.kind === 'measured')?.text).toBe('Workstation 1 (Operator A): 3.2 s of work a cycle — 5 whole cycles accepted, median 3.2 s, range 3.2–3.2 s, varies 0%; one every 6.0 s; waiting 2.8 s between.');
+    expect(fs.find(x => x.kind === 'measured')?.text).toBe('Workstation 1 (Operator A): 3.2 s of work a cycle — 5 whole cycles accepted, 95% between 3.2 and 3.2 s, median 3.2 s, range 3.2–3.2 s, varies 0%; one every 6.0 s; no movement for 2.8 s between.');
     expect(fs.some(x => x.kind === 'calculated' && x.text === 'Workstation 2 is over takt by 0.6 s — at its pace the demand is not met.')).toBe(true);
     expect(fs.some(x => x.kind === 'calculated' && x.text === 'The work is 85% evenly spread across the stations (the work at every station ÷ the stations × the most at one).')).toBe(true);
     const p = fs.find(x => x.kind === 'proposed');
@@ -239,7 +239,7 @@ describe('asked in words', () => {
     const all = acceptAll(detectEvents(signalOf(30), config), { by: 'R', at: 1 });
     const f = videoFigures(source(), all);
     expect(answer('What additional information do you need to calculate takt time?', f)).toEqual({ how: 'not known', text: expect.stringMatching(/^To work out takt I need the demand/) });
-    expect(answer('Review the longest observed waiting periods', f)?.text).toMatch(/^The longest waits: 2\.\d s at Workstation 1 from/);
+    expect(answer('Review the longest observed waiting periods', f)?.text).toMatch(/^The longest gaps with no movement: 2\.\d s at Workstation 1 from .*whether it is waiting is for a person who has seen it to say\.$/);
     expect(answer('Identify repeated cycles', f)?.text).toMatch(/Workstation 1: 3\.2 s of work, a cycle every 6\.0 s \(4 cycles/);
     expect(answer('Which activities contribute most?', f)?.text).toMatch(/^Workstation 2 4\.6 s \(59%\), Workstation 1 3\.2 s \(41%\) — Workstation 2 sets the pace; from 10 accepted events\.$/);
     expect(answer('what is the weather', f)).toBeUndefined();

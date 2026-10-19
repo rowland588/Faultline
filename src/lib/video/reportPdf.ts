@@ -18,11 +18,22 @@ import { box, font, gap, rows, text, wrap } from '../report/blocks';
 import { leanBand, leanClosing, leanHead, leanTiles } from '../report/lean';
 import { DANGER, INK2, LINE, MUTED, OK, WARN, BLUE } from '../reportKit';
 import type { LeanPage } from '../lean';
-import { BASIS_WORD, EVENT_WORD, KIND_WORD, type VideoEvent, type VideoSource } from './record';
+import { BASIS_WORD, EVENT_WORD, FLAG_WORD, KIND_WORD, type VideoEvent, type VideoSource } from './record';
 import { clock, FINDING_WORD, findings, sec1, standing, type VideoStudyFigures } from './study';
+import { assessFootage, type Assessment, type CheckStatus } from './assess';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const TONE = { r: DANGER, a: WARN, g: OK, n: INK2 } as const;
+const STATUS_WORD: Record<CheckStatus, string> = { ok: 'fine', caution: 'watch', fail: 'NOT FIT', unknown: 'not known yet' };
+const STATUS_INK: Record<CheckStatus, string> = { ok: INK2, caution: WARN, fail: DANGER, unknown: MUTED };
+const FIT_WORD: Record<Assessment['verdict'], string> = { suitable: 'Suits the study', limits: 'Suits it, with limits', unsuitable: 'Not fit to time', 'not-yet': 'Not measured from footage yet' };
+
+/** Is this footage fit for the study? — the same assessment the study's page shows (lib/video/assess). */
+export function videoFit(r: Pick<VideoReport, 'v' | 'events' | 'f'>): Assessment {
+  const { v } = r;
+  return assessFootage({ kind: v.kind ?? 'balance', facts: v.facts, zones: v.job.config.zones, ...(v.view ? { view: v.view } : {}), ...(v.cycleHintSec ? { cycleHintSec: v.cycleHintSec } : {}),
+    ...(v.scan ? { scan: v.scan } : {}), ...(v.quality ? { quality: v.quality } : {}), figures: r.f, events: r.events, read: v.job.state === 'review' || v.job.state === 'reported' });
+}
 
 export interface VideoReport {
   name: string;
@@ -41,10 +52,11 @@ export function videoLean(r: VideoReport): LeanPage {
   const { f, v } = r;
   const st = standing(f);
   const b = f.bottleneck;
+  const fit = videoFit(r);
   return {
     eyebrow: 'VIDEO STUDY', title: r.name, sub: [r.line ?? 'On no line', r.job ? `for ${r.job}` : '', v.kind ? KIND_WORD[v.kind] : 'Line balance'].filter(Boolean).join(' · '),
     verdict: { text: st.text, tone: st.tone },
-    facts: [['Footage', `${clock(v.facts.durationSec)} · ${v.facts.width}×${v.facts.height}`], ['Printed', r.printed]],
+    facts: [['Footage', `${clock(v.facts.durationSec)} · ${v.facts.width}×${v.facts.height}`], ['Fit for it', FIT_WORD[fit.verdict]], ['Printed', r.printed]],
     tiles: [
       { k: 'Events accepted', v: String(f.accepted), of: `of ${f.accepted + f.candidates} not rejected`, tone: f.candidates ? 'a' : 'g' },
       { k: 'Slowest station', v: b?.workTime ? sec1(b.workTime.mean) : '—', of: b ? `${b.zone.label}, a cycle` : 'nothing timed yet' },
@@ -93,7 +105,7 @@ function stacksBox(f: VideoStudyFigures): Block | undefined {
       font(fr.doc, 7.5, 'normal', INK2); fr.doc.text(wrap(fr.doc, s.zone.label, w / ss.length - 6, 7.5), x + bw / 2, y + H0 + 10, { align: 'center' });
     });
     if (f.takt) { fr.doc.setDrawColor(DANGER); fr.doc.setLineWidth(1); fr.doc.setLineDashPattern([4, 3], 0); fr.doc.line(left, yOf(f.takt), left + w, yOf(f.takt)); fr.doc.setLineDashPattern([], 0); font(fr.doc, 7.5, 'bold', DANGER); fr.doc.text(`takt ${sec1(f.takt)}`, left + w, yOf(f.takt) - 3, { align: 'right' }); }
-    font(fr.doc, 7, 'normal', MUTED); fr.doc.text('Each station: its work a cycle (dark, the slowest darkest) and its waiting between (light), seconds.', fr.x, y + H0 + 24);
+    font(fr.doc, 7, 'normal', MUTED); fr.doc.text('Each station: its work a cycle (dark, the slowest darkest) and its time with no movement between (light), seconds.', fr.x, y + H0 + 24);
   }, fr => gap(fr.density, 'm'));
 }
 
@@ -108,6 +120,14 @@ function blocksOf(r: VideoReport, d: Density): Block[] {
   out.push(text({ text: v.objective ? `“${v.objective}”` : 'A line balance: the work at each station in view, timed from the footage.', size: 9.5, style: 'bold', colour: INK2, after: 3 }));
   out.push(text({ text: `${v.facts.fileName}: ${clock(v.facts.durationSec)} of footage, ${v.facts.width}×${v.facts.height}${v.facts.fps ? `, ${v.facts.fps} frames a second` : ''}${v.facts.codec ? `, ${v.facts.codec}` : ''}, ${(v.facts.bytes / (1024 * 1024)).toFixed(1)} MB.${r.gone ? ` The footage was deleted from the study on ${new Date(r.gone.at).toLocaleDateString('en-GB')}${r.gone.by ? ` by ${r.gone.by}` : ''}; what was found in it is kept.` : ''}`, size: 8.5, colour: MUTED, after: gap(d, 's') }));
 
+  /* IS THIS FOOTAGE FIT FOR THE STUDY? — check by check, then what can be claimed from it (docs/VIDEO-DESIGN.md, D6) */
+  const fit = videoFit(r);
+  out.push(leanHead('Is this footage fit for the study?', FIT_WORD[fit.verdict].toLowerCase()));
+  out.push(text({ text: fit.headline, size: 9.5, style: 'bold', colour: fit.verdict === 'unsuitable' ? DANGER : fit.verdict === 'limits' ? WARN : INK2, after: 3 }));
+  for (const ch of fit.checks) out.push(text({ text: `${ch.what}: ${STATUS_WORD[ch.status]} — ${ch.found}. ${ch.means}`, size: 8.2, colour: STATUS_INK[ch.status], after: 2 }));
+  out.push(text({ text: 'What this footage can tell you', size: 8.5, style: 'bold', colour: INK2, after: 2 }));
+  fit.verdicts.forEach((x, i) => out.push(text({ text: `${x.word} — ${x.what}. ${x.why}`, size: 8.2, colour: x.claim === 'not-measurable' || x.claim === 'not-yet' ? MUTED : INK2, after: i === fit.verdicts.length - 1 ? gap(d, 's') : 2 })));
+
   out.push(leanHead('How it was read'));
   const c = v.job.config;
   out.push(text({ text: `A frame every ${c.sampleSec} s, read ${c.readWidth} pixels wide, compared with the one before at each station: work is movement more than ${c.sensitivity} times the station's own quiet spread; gaps under ${c.joinGapSec} s are joined and anything under ${c.minEventSec} s left out. Boundaries are halfway between frames, so each is within ${(c.sampleSec / 2).toFixed(2)} s of the movement. Reading ${c.version}${v.job.key ? `, key ${v.job.key}` : ''}. Every event found was a candidate until a person reviewed it; the figures below count only what was accepted. Nobody was identified: a worker is a label at a station.`, size: 8.5, colour: INK2, after: 3 }));
@@ -116,11 +136,11 @@ function blocksOf(r: VideoReport, d: Density): Block[] {
   out.push(leanHead('Each station', `from ${f.accepted} accepted event${f.accepted === 1 ? '' : 's'}`));
   const wd = [0.22, 0.14, 0.1, 0.16, 0.14, 0.14, 0.1];
   out.push(rows({
-    header: cells(['Station', 'Work a cycle', 'Cycles', 'Range', 'A cycle every', 'Waiting', 'Working'], wd, { bold: true, colour: MUTED }),
+    header: cells(['Station', 'Work a cycle ±', 'Cycles', 'Range', 'A cycle every', 'No movement', 'Working'], wd, { bold: true, colour: MUTED }),
     rows: f.stations.map(s => cells([
       `${s.zone.label} · ${s.zone.track}`,
-      s.workTime ? `${sec1(s.workTime.mean)} (median ${sec1(s.workTime.median)})` : '—',
-      `${s.workTime?.n ?? 0}${s.partial.length ? ` + ${s.partial.length} cut off` : ''}`,
+      s.workTime ? `${sec1(s.workTime.mean)} ±${Math.max(s.workTime.ci95 ?? 0, s.pm).toFixed(1)} (median ${sec1(s.workTime.median)})` : '—',
+      `${s.workTime?.n ?? 0}${s.workTime && s.needed && !s.enough ? ` of ${s.needed} needed` : ''}${s.partial.length ? ` + ${s.partial.length} cut off` : ''}`,
       s.workTime ? `${s.workTime.min.toFixed(1)}–${s.workTime.max.toFixed(1)} s${s.workTime.cv !== undefined ? `, ${Math.round(s.workTime.cv * 100)}% CV` : ''}` : '—',
       s.cycleTime ? sec1(s.cycleTime.mean) : '—',
       s.waitTime ? sec1(s.waitTime.mean) : '—',
@@ -141,11 +161,11 @@ function blocksOf(r: VideoReport, d: Density): Block[] {
   out.push(rows({
     header: cells(['In the footage', 'Station', 'What', 'Seen (and believed)', 'How known · decided'], we, { bold: true, colour: MUTED }),
     rows: r.events.map(e => cells([
-      `${clock(e.start)}–${clock(e.end)} (${sec1(e.end - e.start)})`,
+      `${clock(e.start)}–${clock(e.end)} (${sec1(e.end - e.start)}), each end ±${(e.pm ?? v.job.config.sampleSec / 2).toFixed(2)} s`,
       `${v.job.config.zones.find(z => z.id === e.zone)?.label ?? e.zone}${e.track ? ` · ${e.track}` : ''}`,
       EVENT_WORD[e.category],
       `${e.observed}${e.inferred ? ` (believed: ${e.inferred})` : ''}`,
-      `${BASIS_WORD[e.basis]}${e.basis !== 'person' ? `, ${Math.round(e.confidence * 100)}%` : ''} · ${e.review === 'candidate' ? 'NOT REVIEWED' : e.review === 'accepted' ? `accepted${e.by ? ` by ${e.by}` : ''}` : 'rejected'}${e.proposed ? `; corrected from ${clock(e.proposed.start)}–${clock(e.proposed.end)}` : ''}`,
+      `${BASIS_WORD[e.basis]}${e.basis !== 'person' ? `, ${Math.round(e.confidence * 100)}%` : ''} · ${e.review === 'candidate' ? 'NOT REVIEWED' : e.review === 'accepted' ? `accepted${e.by ? ` by ${e.by}` : ''}` : 'rejected'}${e.proposed ? `; corrected from ${clock(e.proposed.start)}–${clock(e.proposed.end)}` : ''}${e.flags?.length ? `; FLAGGED: ${e.flags.map(x => FLAG_WORD[x]).join(', ')}` : ''}`,
     ], we, { colour: e.review === 'rejected' ? MUTED : INK2 })),
   }));
   out.push(leanClosing(page.closing));

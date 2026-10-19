@@ -139,6 +139,12 @@ export class SteadyCheck {
   private n = 0;
   readonly marks: SteadyMark[] = [];
   constructor(private readonly w: number, private readonly h: number) {}
+  /** Hold the others against this frame without marking it — a reading
+   *  resumed part way holds its frames against the footage's first one. */
+  prime(grey: ArrayLike<number>): void {
+    const f = zeroMean(grey);
+    if (f.mean > 10) this.first = f;
+  }
   add(t: number, grey: ArrayLike<number>): { mark: SteadyMark; shift: Shift } | undefined {
     const f = zeroMean(grey);
     if (!this.first) {

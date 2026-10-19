@@ -234,6 +234,13 @@ export const PAGES = (sd, cap) => [
     /* before a long study (19 October, docs/VIDEO-FEASIBILITY.md) */
     { what: 'Can this phone film a long study?', sel: '.vck-door button', text: /^Can this phone film a long study\?$/ },
   ] },
+  /* New, from what is to be found out (19 October, docs/VIDEO-DESIGN.md D1, D5): the study chosen, how to film it before the footage */
+  { name: 'New video study', path: '#/video?add=1', must: [
+    { what: 'what do you want to find out', sel: '.vid-new textarea' },
+    { what: 'the study — read from the words, or picked', sel: '.vid-new select[aria-label="The study"]' },
+    { what: 'how to film it, before the footage', sel: '.vid-new .vfit-plan summary', text: /^How to film it — side-on, raised · Measured from footage today$/ },
+    { what: 'the footage', sel: '.vid-new input[type=file]' },
+  ] },
   /* the phone check (19 October, docs/VIDEO-FEASIBILITY.md): what the phone offers, then the test — what it found shows only after a run, which video-check.mjs drives */
   { name: 'Can this phone film a long study?', path: '#/video-check', must: [
     { what: 'its question', sel: 'h1', text: /^Can this phone film a long study\?$/ },
@@ -245,11 +252,17 @@ export const PAGES = (sd, cap) => [
     { what: 'where it stands — never verified while one is to review', sel: '[data-standing]', text: /to review · \d+ accepted/ },
     /* the facts, and where the footage is: said after them when it is here, or in the player when it is not (the seed's is not) */
     { what: 'the footage and its facts, and where the footage is (on this device only, waiting to go up, in the cloud, or over what the cloud takes)', sel: '.vid-panel', text: /^(?=[\s\S]*line4-morning\.webm — 0:32\.0 · 1280×720)(?=[\s\S]*(kept on this device only|on this device, waiting to go up to the cloud|in the cloud — your other devices play it|over the \d+ MB the cloud takes|sign in to send it to the cloud|not on this device yet))/ },
+    /* is this footage fit for the study? (19 October, docs/VIDEO-DESIGN.md D6): the verdict, what is not fine, the rest folded, what it can tell, how to film it */
+    { what: 'is this footage fit for the study — the verdict', sel: 'section.vid-fit [data-fit-headline]', text: /^This footage suits line balance, with 3 things to watch\.$/ },
+    { what: 'the checks — what is not fine, the rest folded', sel: 'section.vid-fit .vfit-fine summary', text: /^Fine: .*the camera/ },
+    { what: 'what this footage can tell you — measured, worked out, interpreted', sel: 'section.vid-fit .vfit-claims li', n: 7 },
+    { what: 'how to film it', sel: 'section.vid-fit .vfit-plan summary', text: /^How to film it/ },
     { what: 'the stations in view', sel: '.vid-zone-rows li', n: 3 },
     { what: 'every event on its station’s lane', sel: '.vid-bar', n: 12 },
-    { what: 'every event in the list, how it is known and what was decided', sel: '.vid-ev .vid-ev-how' },
-    { what: 'each station’s work, cycles and waiting', sel: '.vid-table tbody tr', n: 3 },
-    { what: 'each station’s workload drawn — work and waiting', sel: 'svg.vid-load [data-station]', n: 3 },
+    { what: 'every event in the list, how it is known and what was decided — each end’s ±', sel: '.vid-ev .vid-ev-how', text: /each end ±0\.05 s/ },
+    { what: 'an event the footage flags — the light jumped', sel: '.vid-ev .vid-ev-flag', text: /the light jumped here — check it on the footage/ },
+    { what: 'each station’s work with its 95% interval, cycles of those needed, and no movement between', sel: '.vid-table tbody tr', n: 3 },
+    { what: 'each station’s workload drawn — work and no movement', sel: 'svg.vid-load [data-station]', n: 3 },
     { what: 'the people’s work stacked against takt', sel: '.vid-stacks svg' },
     { what: 'what it says, each line said how it is known', sel: '.vid-findings li[data-kind]' },
     { what: 'asked in words', sel: '.vid-ask input' },

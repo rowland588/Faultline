@@ -99,6 +99,14 @@ export const EVENT_WORD: Record<EventCategory, string> = {
   work: 'Work', wait: 'Waiting', walk: 'Walking', handling: 'Handling', cycle: 'A cycle', stop: 'A stop', other: 'Other',
 };
 
+/** Something about the footage around an event that makes its times less sure
+ *  (lib/video/assess): the camera shook or moved, the light jumped. */
+export type EventFlag = 'shaking' | 'moved' | 'light';
+
+export const FLAG_WORD: Record<EventFlag, string> = {
+  shaking: 'the camera shook here', moved: 'after the camera moved', light: 'the light jumped here',
+};
+
 /** Where a record came from. */
 export type EvidenceBasis = 'motion' | 'vision' | 'person';
 
@@ -127,6 +135,11 @@ export interface VideoEvent {
   inferred?: string;
   /** 0–1: how sure the reading is — never shown as certainty. */
   confidence: number;
+  /** ± seconds on each boundary: half the reading's interval for the reading,
+   *  one frame for a person at the player (docs/VIDEO-DESIGN.md, D7). */
+  pm?: number;
+  /** What around it makes its times less sure — said on review, figures and paper. */
+  flags?: EventFlag[];
   /** The source seconds of the frames that support it. */
   frames: number[];
   basis: EvidenceBasis;
@@ -140,6 +153,9 @@ export interface VideoEvent {
   provenance: { provider: string; version: string; model?: string; key?: string };
 }
 
+/** Where the phone was while it filmed (docs/VIDEO-DESIGN.md, D4). */
+export type Viewpoint = 'side-raised' | 'overhead' | 'high-corner' | 'across-flow' | 'close-up' | 'handheld' | 'moving';
+
 export interface VideoSource {
   /** The original recording — a media blob on this device (db putBlob), never a public address. */
   media: { id: string; blobKey: string; thumbKey?: string; mime: string; capturedAt: number };
@@ -151,6 +167,14 @@ export interface VideoSource {
   job: VideoJob;
   /** The demand and the time to make it in, when takt is asked for. */
   demand?: { units: number; unit: string; availableMin: number; per: 'shift' | 'day' };
+  /** About how long one cycle is, as the person said it before filming — for how long to film. */
+  cycleHintSec?: number;
+  /** Where the phone was, as the person said it (lib/video/objectives VIEWPOINTS) — a fixed view, or in the hand. */
+  view?: Viewpoint;
+  /** What a quick look at the footage found when it came in (lib/video/extract scanFootage). */
+  scan?: FootageScan;
+  /** What the reading found about the footage itself, over all of it (lib/video/assess qualityOf). */
+  quality?: ReadingQuality;
   /** The footage taken off this record by a person, keeping what was found in it. */
   footageDeletedAt?: number;
   footageDeletedBy?: string;
@@ -158,10 +182,43 @@ export interface VideoSource {
   reports?: { at: number; accepted: number; candidates: number; by?: string }[];
 }
 
-export type VideoStudyKind = 'balance' | 'cycles' | 'changeover' | 'waiting';
+/** THE MANUFACTURING STUDIES footage can be filmed for (lib/video/objectives
+ *  says what each needs, how it is read and what Faultline can measure of it). */
+export type VideoStudyKind = 'balance' | 'cycles' | 'waiting' | 'changeover' | 'movement' | 'flow' | 'machine' | 'elements';
 
 export const KIND_WORD: Record<VideoStudyKind, string> = {
-  balance: 'Line balance', cycles: 'Cycle times', changeover: 'Changeover (SMED)', waiting: 'Waiting and idle time',
+  balance: 'Line balance', cycles: 'Cycle times', waiting: 'Waiting and idle time', changeover: 'Changeover (SMED)',
+  movement: 'Walking and movement', flow: 'Product and material flow', machine: 'A machine’s output and stops', elements: 'Elements inside a cycle',
 };
 
-export const READING_VERSION = 'motion-1';
+/** A QUICK LOOK AT THE FOOTAGE as it comes in, before it is read — the light
+ *  across it and the camera over one stretch. Facts about the footage. */
+export interface FootageScan {
+  version: string;
+  at: number;
+  /** Frames looked at. */
+  frames: number;
+  /** Brightness 0–255 across the footage: its mean, darkest and brightest frame. */
+  brightness: { mean: number; min: number; max: number };
+  /** The stretch the camera was checked over, source seconds. */
+  stretch: [number, number];
+  /** The steady check over that stretch (lib/video/steady steadySummary). */
+  steady: { windows: number; shaking: number; moved: number; shakeMax: number; movedAt?: number; movedBy?: number };
+}
+
+/** WHAT THE READING FOUND ABOUT THE FOOTAGE ITSELF, over every frame it read. */
+export interface ReadingQuality {
+  version: string;
+  sampleSec: number;
+  windows: number;
+  /** Shares of the reading's two-second windows. */
+  shaking: number; moved: number;
+  shakeMax: number;
+  movedAt?: number; movedBy?: number;
+  /** Stretches, source seconds: the camera shaking; the light jumping from one frame to the next. */
+  shakingSpans: [number, number][];
+  lightSpans: [number, number][];
+  brightness: { mean: number; min: number; max: number };
+}
+
+export const READING_VERSION = 'motion-2';

@@ -343,7 +343,7 @@ it is, adapt, or copy; a person's method is as much a method as Faultline's.
 | Step done / gate passed | — | the job's row: its stages in their tones, at the stage it is on; its steps in the week, the late, Who owes what (a supplier-side role under the supplier) | the job's page: the stage strip, a step per machine, the gate line, the action plan; the rail's stage squares | the method report — every step, every gate condition, who confirmed a check, a pass over what was unmet with its reason |
 | Activity | — | — | the job's "What has happened"; the method's "Its history" | the method report's "What has happened" |
 
-| A video study (footage read for the work at each station) | — | Tools on the rail: Video study, every one | the study's page: the footage with its stations, the events to review on it, the line balance worked out from what was accepted, takt, what it says, questions answered; a method's step done with the line balance offers it and reads its figures | the video study's report (how it was read, each station, the stacks against takt, every event with how it is known and what was decided) |
+| A video study (footage read for the work at each station) | — | Tools on the rail: Video study, every one; New saying how to film the study chosen | the study's page: the footage with its stations, whether the footage is fit for the study and what it can tell, the events to review on it with their ± and flags, the line balance worked out from what was accepted, takt, what it says, questions answered; a method's step done with the line balance offers it and reads its figures | the video study's report (whether the footage was fit, how it was read, each station with its ±, the stacks against takt, every event with how it is known, its flags and what was decided) |
 
 A screen that shows a record outside this table must add a row here.
 
@@ -460,8 +460,19 @@ how we achieve them"; docs/VIDEO-FEASIBILITY.md): read live as it films and
 keep the reading, short clips and stills, never the hours; a fixed camera,
 side-on or from above, said steady or not as it reads (`lib/video/steady`);
 and *Can this phone film a long study?* from Video studies, which tries it on
-the phone itself. Waiting on Rowland: permissioned footage from the floor,
-and that check run on the phone that would film it.
+the phone itself. Since 19 October a video study starts from what is to be
+found out, never from the footage (docs/VIDEO-DESIGN.md: Rowland, "a serious
+manufacturing analysis capability, rather than simply uploading video to an
+AI model"): the study chosen says how to film it before anything is filmed;
+footage is assessed as it comes in and on every frame read — the camera, the
+light, the view, the frame rate, each station's width, the cycles — and
+said fit, fit with limits, unfit to time, or not measured from footage yet,
+measure by measure; every event carries its ± and is flagged where the
+footage was unsure; a gap is "no movement", never waiting. Times and counts
+are conventional vision measured against known times; the vision model only
+names. Next on that route: the count line (items crossing a line drawn
+across the flow), then presence in a box. Waiting on Rowland: permissioned
+footage from the floor, and that check run on the phone that would film it.
 
 **Money in every tool** (Rowland, 17 October: "everything must derive a cost
 in the entire app ... it's all about money"; the rule is in CLAUDE.md,

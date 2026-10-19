@@ -14,6 +14,7 @@
  * what the work is — and only about the frames this reading picks. Nothing
  * here is accepted: every event is a candidate until a person says so. */
 import { READING_VERSION, type ProcessingConfig, type VideoEvent, type VideoZone } from './record';
+import type { SteadyMark } from './steady';
 
 export interface ZoneSignal {
   zone: string;
@@ -25,6 +26,10 @@ export interface Signal {
   /** The source seconds of each frame read. */
   times: number[];
   zones: ZoneSignal[];
+  /** The camera's place against the first frame, a frame read (lib/video/steady) — the footage's own steadiness. */
+  steady?: SteadyMark[];
+  /** Each frame's brightness, 0–255. */
+  bright?: number[];
 }
 
 /** A moving average over `w` frames either side. */
@@ -125,7 +130,7 @@ export function detectEvents(sig: Signal, config: ProcessingConfig, o: { key?: s
       out.push({
         id: o.idOf ? o.idOf(zs.zone, i) : `${zs.zone}-${i + 1}`,
         start: round(r.start), end: round(r.end), category: 'work', zone: zs.zone, track: zone.track,
-        observed: `Movement at ${zone.label}`, confidence: round(confidence),
+        observed: `Movement at ${zone.label}`, confidence: round(confidence), pm: round(step / 2),
         frames: [round(r.start), round(mid), round(r.end)], basis: 'motion', review: 'candidate',
         provenance: { provider: 'motion', version: READING_VERSION, ...(o.key ? { key: o.key } : {}) },
       });
