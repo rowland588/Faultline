@@ -223,7 +223,12 @@ how sure it is not chance — Welch's t-test, the spreads free to differ — and
 told which way is better, how sure it got better, so a gate on it ("at least
 95% sure") never passes a change for the worse. A measure says before → now;
 this says whether to believe it — the prove step of see, understand, commit,
-prove, show. The short-stops method closes on it. Next: a tool's panel inside the step itself
+prove, show. The short-stops method closes on it. And DOES IT DIFFER BY
+GROUP? (the `groups` block, one-way analysis of variance): whether a figure
+differs by shift, crew, product or cause more than it varies within each,
+and how sure — written as one registry entry and nothing else, the claim
+that a new capability reaches every designer, proposal and paper unrebuilt,
+shown again. Next: a tool's panel inside the step itself
 rather than its page; more blocks and ways to capture as the floor asks (a
 regression on several columns, a tally counted with a tap — each tested).
 

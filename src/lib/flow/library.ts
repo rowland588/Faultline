@@ -386,6 +386,7 @@ export const LIBRARY: readonly LibraryEntry[] = [
         { key: 'biggest_cause', label: 'The cause that takes the most time', block: 'pareto' as const, by: 'stopped_by', of: 'time_to_clear' },
         ...(more ? [
           { key: 'average_stop', label: 'An average stop', block: 'mean' as const, of: 'time_to_clear' },
+          { key: 'by_cause', label: 'Does a stop’s length depend on what stopped it?', block: 'groups' as const, of: 'time_to_clear', by: 'stopped_by' },
           { key: 'how_long', label: 'How long the stops run', block: 'histogram' as const, of: 'time_to_clear' },
         ] : []),
         { key: 'cost_a_day', label: 'What the stops cost a day', block: 'calc' as const, formula: 'lost_a_day / 60 * cost_of_a_minute', unit: '£' },

@@ -14,8 +14,9 @@
  * of the blocks below: count, sum, mean, median, the spread, a share, a
  * figure a day, a Pareto, a trend, a histogram, Cpk, a control chart, a
  * relationship between two columns, a forecast, a worked-out figure, the
- * time between failures, and a log compared with an earlier one (before and
- * after, and how sure the change is not chance). A block is a pure
+ * time between failures, a log compared with an earlier one (before and
+ * after, and how sure the change is not chance), and whether a figure
+ * differs from one group to another. A block is a pure
  * function with what it needs — and the picture it is drawn as — said as
  * data — so a method written by a
  * person or proposed by the assistant composes them, the validator checks
@@ -42,7 +43,7 @@ export interface FlowEntry {
   struck?: boolean;
 }
 
-export const ANALYSIS_BLOCKS = ['count', 'sum', 'mean', 'median', 'min', 'max', 'sd', 'share', 'perDay', 'pareto', 'trend', 'histogram', 'cpk', 'control', 'relation', 'forecast', 'calc', 'reliability', 'compare'] as const;
+export const ANALYSIS_BLOCKS = ['count', 'sum', 'mean', 'median', 'min', 'max', 'sd', 'share', 'perDay', 'pareto', 'trend', 'histogram', 'cpk', 'control', 'relation', 'forecast', 'calc', 'reliability', 'compare', 'groups'] as const;
 export type AnalysisBlockId = typeof ANALYSIS_BLOCKS[number];
 
 export const WHEN_OPS = ['=', '!=', '>=', '<=', '>', '<'] as const;
@@ -375,6 +376,31 @@ export function welch(before: readonly number[], after: readonly number[]): { di
   return { diff, t, df, p: tTwoSided(t, df) };
 }
 
+/** The chance of an F at least this big by chance alone, with d1 and d2
+ *  degrees of freedom — P(F > f) = I_{d2/(d2 + d1·f)}(d2/2, d1/2). */
+export const fUpper = (f: number, d1: number, d2: number): number => (f <= 0 ? 1 : Number.isFinite(f) ? incompleteBeta(d2 / (d2 + d1 * f), d2 / 2, d1 / 2) : 0);
+
+/** One-way analysis of variance — does a number differ from one group to
+ *  another more than it varies within them? The groups' means, F, its
+ *  degrees of freedom and the chance of so big an F by chance alone.
+ *  Undefined with fewer than two groups of two. */
+export function oneWay(groups: readonly (readonly number[])[]): { f: number; d1: number; d2: number; p: number } | undefined {
+  const gs = groups.filter(g => g.length >= 2);
+  const N = gs.reduce((t, g) => t + g.length, 0), k = gs.length;
+  if (k < 2) return undefined;
+  const grand = gs.reduce((t, g) => t + g.reduce((u, x) => u + x, 0), 0) / N;
+  let between = 0, within = 0;
+  for (const g of gs) {
+    const m = mean([...g]);
+    between += g.length * (m - grand) ** 2;
+    for (const x of g) within += (x - m) ** 2;
+  }
+  const d1 = k - 1, d2 = N - k;
+  if (!(within > 0)) return { f: between > 0 ? Infinity : 0, d1, d2, p: between > 0 ? 0 : 1 };
+  const f = (between / d1) / (within / d2);
+  return { f, d1, d2, p: fUpper(f, d1, d2) };
+}
+
 /** A Weibull fit by maximum likelihood, as reliability engineering does it:
  *  the shape β solving Σxᵝ·ln x / Σxᵝ − 1/β − mean(ln x) = 0 (the left side
  *  rises with β, so its root is bracketed and the bracket halved to 1e−10),
@@ -670,6 +696,38 @@ export const BLOCKS: Record<AnalysisBlockId, AnalysisBlock> = {
         : (w.p / 2 <= 0.05 ? `worse — and ${said((1 - w.p / 2) * 100)} sure it is not chance: what changed with the countermeasure?`
           : `worse on these entries, though it could be chance — not better`);
       return { value: Math.min(sure, 99.9), n: ys.length, unit: '%', series, says: `${what}: ${moved} — ${verdict}${tail}` };
+    },
+  },
+  groups: {
+    id: 'groups', name: 'Differs by group', says: 'Whether a number differs from one group to another — the shift, the crew, the product, the cause — more than it varies within each, and how sure it is not chance (one-way analysis of variance)',
+    needs: { of: 'required', by: 'required', when: 'optional', against: 'none', target: 'none' }, numeric: true, output: 'both', picture: 'bars',
+    compute: (entries, a, columns) => {
+      const rows = rowsOf(entries, a, columns), unit = unitOf(a, columns);
+      const what = `${a.label}${whenSaid(a, columns)}`;
+      const byWord = lowerFirst(col(columns, a.by)?.label ?? a.by ?? 'group');
+      const ofWord = lowerFirst(col(columns, a.of)?.label ?? a.of ?? '');
+      const by = new Map<string, number[]>();
+      for (const r of rows) {
+        const g = a.by ? r.v[a.by] : undefined, x = a.of ? r.v[a.of] : undefined;
+        if (!filled(g) || typeof x !== 'number' || !Number.isFinite(x)) continue;
+        const name = typeof g === 'boolean' ? (g ? 'Yes' : 'No') : String(g).trim();
+        by.set(name, [...(by.get(name) ?? []), x]);
+      }
+      const kept = [...by.entries()].filter(([, xs]) => xs.length >= 2);
+      const left = [...by.entries()].filter(([, xs]) => xs.length < 2).map(([g]) => g);
+      const leftSaid = left.length ? `; ${left.join(', ')} left out — fewer than 2 entries` : '';
+      const n = kept.reduce((t, [, xs]) => t + xs.length, 0);
+      const r = oneWay(kept.map(([, xs]) => xs));
+      if (!r) return { n, unit: '%', says: `${what}: needs at least 2 ${byWord} groups with 2 entries each to compare — ${many(kept.length, 'group')} so far${leftSaid}.` };
+      const series: SeriesPoint[] = kept.map(([label, xs]) => ({ label, value: mean(xs) })).sort((p, q) => q.value - p.value || p.label.localeCompare(q.label));
+      const hi = series[0], lo = series[series.length - 1];
+      const sure = (1 - r.p) * 100, said = sure > 99.9 ? 'more than 99.9%' : `${fmtNumber(sure)}%`;
+      const spread = hi.value === lo.value ? `${ofWord} the same in every ${byWord}, ${withUnit(hi.value, unit)} an entry` : `${ofWord} highest for ${hi.label} at ${withUnit(hi.value, unit)} an entry, lowest for ${lo.label} at ${withUnit(lo.value, unit)}`;
+      const verdict = r.p <= 0.05 ? `it differs by ${byWord}: ${said} sure it is not chance — look at what ${hi.label} does differently`
+        : r.p <= 0.2 ? `it may differ by ${byWord}: ${said} sure — more entries would settle it`
+          : `no real difference by ${byWord} shown: it could be chance (${said} sure)`;
+      const few = kept.some(([, xs]) => xs.length < 5) ? '; fewer than 5 in a group: read it with care' : '';
+      return { value: Math.min(sure, 99.9), n, unit: '%', series, says: `${what}: ${spread} — ${verdict} (on ${n} entries in ${kept.length} groups${leftSaid}${few}).` };
     },
   },
   calc: {

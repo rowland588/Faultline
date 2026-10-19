@@ -469,6 +469,12 @@ await tform().getByRole('button', { name: 'Add the entry' }).click(); await page
 await tform().getByLabel('Time to clear (s)', { exact: true }).fill('30'); await tform().getByLabel('Time to clear (s)', { exact: true }).press('Enter');
 await tform().getByLabel('What stopped it', { exact: true }).selectOption('Film or label');
 await tform().getByRole('button', { name: 'Add the entry' }).click(); await page.waitForTimeout(500);
+/* two more, typed, so each cause has two — does a stop's length depend on what stopped it? */
+for (const [t, by] of [['2', 'Sensor'], ['28', 'Film or label']]) {
+  await tform().getByLabel('Time to clear (s)', { exact: true }).fill(t); await tform().getByLabel('Time to clear (s)', { exact: true }).press('Enter');
+  await tform().getByLabel('What stopped it', { exact: true }).selectOption(by);
+  await tform().getByRole('button', { name: 'Add the entry' }).click(); await page.waitForTimeout(500);
+}
 await sheet().getByLabel('What a minute stopped costs', { exact: true }).fill('12'); await sheet().getByLabel('What a minute stopped costs', { exact: true }).press('Enter');
 await page.waitForFunction(() => /What the stops cost a day: £/.test(document.querySelector('[role="dialog"] .fw-results')?.textContent ?? ''), null, { timeout: 10000 }).catch(() => {});
 const pidS = await page.evaluate(async () => (await (await import('/src/db.ts')).allProjects()).find(p => p.name === 'Bagger short stops')?.id);
@@ -478,12 +484,14 @@ const stTruth = await page.evaluate(async pid => {
   const rec = (await F.listFlowRecords(pid)).find(r => r.stepKey === 'time-before' && !r.deletedAt);
   const entries = rec?.entries ?? [];
   const r = A.analyse(st.analyses, st.columns, entries, { values: { cost_of_a_minute: 12 }, labels: { cost_of_a_minute: 'What a minute stopped costs' } });
-  return { times: entries.filter(e => !e.struck).map(e => e.values.time_to_clear), lost: r.lost_a_day.says, cause: r.biggest_cause.says, cost: r.cost_a_day.says, average: r.average_stop.says };
+  return { times: entries.filter(e => !e.struck).map(e => e.values.time_to_clear), lost: r.lost_a_day.says, cause: r.biggest_cause.says, cost: r.cost_a_day.says, average: r.average_stop.says, groups: r.by_cause.says };
 }, pidS);
 const tSaid = flat(await sheet().locator('.fw-results').innerText());
-ok(stTruth.times.length === 4 && stTruth.times[0] === t1 && stTruth.times[1] > 0.6 && stTruth.times[1] < 2.5 && stTruth.times[2] === 45 && stTruth.times[3] === 30,
+ok(stTruth.times.length === 6 && stTruth.times[0] === t1 && stTruth.times[1] > 0.6 && stTruth.times[1] < 2.5 && stTruth.times[2] === 45 && stTruth.times[3] === 30 && stTruth.times[4] === 2 && stTruth.times[5] === 28,
   `8y each time kept as taken: ${stTruth.times.join(', ')} s — Stop, Lap, timed and corrected, typed`, JSON.stringify(stTruth.times));
-ok(tSaid.includes(stTruth.lost) && tSaid.includes(stTruth.cause) && tSaid.includes(stTruth.cost) && tSaid.includes(stTruth.average) && /Jam/.test(stTruth.cause),
+ok(tSaid.includes(stTruth.groups) && /highest for (Jam|Film or label) at/.test(stTruth.groups) && /\(on 6 entries in 3 groups/.test(stTruth.groups) && await sheet().locator('.fw-result[data-analysis="by_cause"] svg.fw-chart.is-bars .fw-bar').count() === 3,
+  `8y3 does a stop's length depend on what stopped it — a block written as one entry in the registry, as the module says: "${stTruth.groups}"`, tSaid.slice(0, 600));
+ok(tSaid.includes(stTruth.lost) && tSaid.includes(stTruth.cause) && tSaid.includes(stTruth.cost) && tSaid.includes(stTruth.average) && /Film or label is/.test(stTruth.cause),
   `8y1 what the times add up to, as lib/flow/analysis says: "${stTruth.lost}" · "${stTruth.cause}" · "${stTruth.cost}"`, tSaid.slice(0, 400));
 ok(/45 s/.test(flat(await sheet().locator('.fw-entries-t').innerText())), '8y2 every entry with its time in seconds');
 if (process.env.SHOTS) await sheet().locator('.fw-log-panel').screenshot({ path: join(process.env.SHOTS, 'timed.png') });
@@ -491,7 +499,7 @@ await page.keyboard.press('Escape'); await settle();
 const [dl5] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Method report' }).click()]);
 const f5 = join(dir, 'timed.pdf'); await dl5.saveAs(f5);
 const pdf5 = flat(execFileSync('pdftotext', ['-raw', f5, '-'], { encoding: 'utf8' }));
-ok(pdf5.includes(stTruth.lost) && pdf5.includes(stTruth.cost) && /Time to clear 45 s/.test(pdf5), '8z on paper: what the times add up to, the cost a day, and each time in seconds', pdf5.slice(pdf5.indexOf('Time every short stop'), pdf5.indexOf('Time every short stop') + 300));
+ok(pdf5.includes(stTruth.lost) && pdf5.includes(stTruth.cost) && pdf5.includes(stTruth.groups) && /Time to clear 45 s/.test(pdf5), '8z on paper: what the times add up to, the cost a day, and each time in seconds', pdf5.slice(pdf5.indexOf('Time every short stop'), pdf5.indexOf('Time every short stop') + 300));
 
 /* 9 — the phone */
 await page.setViewportSize({ width: 390, height: 844 });
