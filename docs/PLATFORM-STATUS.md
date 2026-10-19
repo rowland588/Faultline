@@ -232,7 +232,7 @@ what waits on someone is docs/VIDEO.md. Its blockers are below.
   20261019050201) and read back, the rule proved by a probe that rolled
   itself back. The app sends a study's footage and its poster with the study
   (`lib/video/footage`), a device that lacks it fetches it, and the study
-  says where it is — this device only, going up, in the cloud, or over the
+  says where it is — this device only, waiting to go up, in the cloud, or over the
   50 MB the cloud takes (Backup makes it fit). Deleting it takes the name off
   the study (the rule then lets nobody open it), keeps the deletion as its
   own fact (`facts.videoGone`, so a device still writing the video cannot

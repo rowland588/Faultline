@@ -91,7 +91,9 @@ await page.getByLabel('Which line', { exact: true }).selectOption(lineId);
 await page.getByLabel('Its name', { exact: true }).fill('Line 4 — packing, morning');
 await page.getByRole('button', { name: 'Start the study' }).click();
 await page.locator('.vid-study').waitFor({ timeout: 15000 }).catch(() => {});
-ok(/#\/video\/[^/?]+$/.test(page.url()) && /Line 4 — packing, morning/.test(await txt()) && /Line 4/.test(await txt()) && /kept on this device only/.test(await txt()), '1d the study opens: its footage, its line, said kept on this device', page.url());
+/* where the footage is is said once the footage has opened on the page */
+await page.waitForFunction(() => /· on this device/.test(document.querySelector('.vid-study [data-facts]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+ok(/#\/video\/[^/?]+$/.test(page.url()) && /Line 4 — packing, morning/.test(await txt()) && /Line 4/.test(await txt()) && /· on this device, waiting to go up to the cloud/.test(await txt()), '1d the study opens: its footage, its line, and where the footage is — on this device, waiting to go up (the cloud is out of reach here)', `${page.url()} · ${await page.locator('.vid-study [data-facts]').innerText().catch(() => 'no facts line')}`);
 const studyUrl = page.url();
 const sid = studyUrl.split('/video/')[1];
 

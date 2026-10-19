@@ -227,7 +227,7 @@ function useStudy(id: string): ToolStudy | null | undefined {
 }
 
 /* WHERE THE FOOTAGE IS, said beside its facts (lib/video/footage): on this
-   device only, going up, in the cloud, or too big for the cloud — the
+   device only, waiting to go up, in the cloud, or too big for the cloud — the
    sync's own record of each, never a guess. */
 function useFootageWhere(s: ToolStudy, key: string | undefined, here: boolean): string {
   const status = useSyncStatus();
@@ -242,7 +242,7 @@ function useFootageWhere(s: ToolStudy, key: string | undefined, here: boolean): 
   if (!here || !key) return '';
   if (status.tooBig?.some(t => t.key === key)) return `over the ${Math.round(CLOUD_FILE_LIMIT / 1048576)} MB the cloud takes, so on this device only — Backup can make it fit`;
   if (status.state === 'signedout') return 'on this device only — sign in to send it to the cloud';
-  return up ? 'in the cloud — your other devices play it' : 'going up to the cloud';
+  return up ? 'in the cloud — your other devices play it' : 'on this device, waiting to go up to the cloud';
 }
 
 export function VideoStudyScreen({ id }: { id: string }) {
