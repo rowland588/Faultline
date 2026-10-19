@@ -26,9 +26,11 @@ import { supabase, cloudConfigured } from './client';
 import { MAPS, SYNC_KINDS, type MediaKey } from './mappers';
 import { withUsableMime } from '../lib/mime';
 import { CLOUD_FILE_LIMIT } from '../lib/transcode';
+import { goneKeys } from '../lib/video/footage';
+import type { StudyFacts } from '../lib/study';
 import type { SyncKind } from '../db';
 import {
-  rawAll, rawGet, rawPutIf, hasBlob, getBlob, putBlob, applyRemoteDelete,
+  rawAll, rawGet, rawPutIf, hasBlob, getBlob, putBlob, deleteBlobs, applyRemoteDelete,
   listTombstones, clearTombstones, getSyncCursor, setSyncCursor, getDB, onLocalWrite,
 } from '../db';
 
@@ -1171,6 +1173,8 @@ export async function syncNow(): Promise<void> {
       countDown(q);
     });
 
+    await forgetGoneFootage();
+
     if (overwritten.length !== overwrittenBefore) await metaPut(OVERWRITTEN_KEY, { rows: overwritten.slice(-20) });
     const over = overwritten.slice(-20);
     unsent += (await listTombstones()).length;
@@ -1193,6 +1197,33 @@ export async function syncNow(): Promise<void> {
     running = false;
     if (runQueued) { runQueued = false; requestSync(400); }
   }
+}
+
+/* FOOTAGE TAKEN OFF A STUDY (lib/video/footage) — forgotten on this device,
+   and taken out of the cloud. The cloud already lets nobody open it: the
+   study no longer names it. Taking it out is tried once a device; only the
+   device that sent it may (the bucket's delete rule is the sender's), so the
+   others' tries take out nothing and the sender's, on its next pass, does. */
+const GONE_KEY = 'footageRemoved';
+async function forgetGoneFootage(): Promise<void> {
+  const sb = supabase;
+  if (!sb) return;
+  const tried = await keySet(GONE_KEY);
+  const still = new Set<string>();
+  for (const local of await rawAll('studies')) {
+    const keys = goneKeys(((local as { facts?: StudyFacts }).facts) ?? {});
+    if (!keys.length) continue;
+    const here: string[] = [];
+    for (const k of keys) { still.add(k); if (await hasBlob(k)) here.push(k); }
+    if (here.length) { await deleteBlobs(here); tr(`footage deleted from a study: ${here.length} file(s) forgotten here`); }
+    const ask = keys.filter(k => !tried.has(k));
+    if (!ask.length) continue;
+    const { data, error } = await sb.storage.from(BUCKET).remove(ask);
+    if (error) { tr(`footage deleted from a study: taking it out of the cloud failed (${error.message.slice(0, 60)}), tried again next pass`); continue; }
+    tr(`footage deleted from a study: ${data?.length ?? 0} of ${ask.length} file(s) taken out of the cloud`);
+    for (const k of ask) tried.add(k);
+  }
+  await keySetPut(GONE_KEY, new Set([...tried].filter(k => still.has(k))));
 }
 
 /** Debounced sync request — writes call this (via the db signal), realtime

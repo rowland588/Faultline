@@ -55,6 +55,11 @@
  *   9 a photo whose file reaches the cloud well after its record: the laptop,
  *     told "not there" when the record came, shows it within seconds of the
  *     file landing — not on its next pass, and with nobody touching it
+ *  10 two devices add readings to one study; one strikes a reading
+ *  11 a video study's footage (supabase/VIDEO_MEDIA.sql): filmed on the phone,
+ *     it plays on the laptop, each saying it is in the cloud; deleted on the
+ *     laptop, the study names it nowhere, the cloud's copy is taken out, and
+ *     the phone forgets its own and says it was deleted
  *
  * WHAT IT CANNOT PROVE. The fake cloud is not Postgres: no real RLS beyond the
  * media rule, no column list (check-live-schema.mjs does that), no latency or
@@ -1102,14 +1107,70 @@ await run(10, 'two devices add readings to one study; one strikes a reading', as
   }
 });
 
+/* ---- 11 --------------------------------------------------------------- */
+await run(11, 'a video study’s footage: phone to laptop, then deleted everywhere', async () => {
+  /* supabase/VIDEO_MEDIA.sql, 19 October: the cloud takes a study's footage
+     once the study names it; lib/video/footage: deleted, it is named nowhere,
+     taken out of the cloud, and forgotten on every device. A short film made
+     in the phone's own page (a canvas, recorded), filed as a video study. */
+  const p = phone.page, l = laptop.page;
+  const made = await p.evaluate(async () => {
+    const c = document.createElement('canvas'); c.width = 160; c.height = 120;
+    const g = c.getContext('2d');
+    const stream = c.captureStream(15);
+    const rec = new MediaRecorder(stream, { mimeType: 'video/webm' });
+    const parts = []; rec.ondataavailable = e => { if (e.data.size) parts.push(e.data); };
+    let x = 0; const tick = setInterval(() => { g.fillStyle = '#123'; g.fillRect(0, 0, 160, 120); g.fillStyle = '#9cf'; g.fillRect(x = (x + 6) % 140, 40, 20, 40); }, 60);
+    rec.start(200); await new Promise(r => setTimeout(r, 1600)); rec.stop();
+    await new Promise(r => { rec.onstop = r; }); clearInterval(tick);
+    const blob = new Blob(parts, { type: 'video/webm' });
+    const db = await import('/src/db.ts');
+    const id = crypto.randomUUID(), key = `video-${crypto.randomUUID()}`, t = Date.now();
+    await db.putBlob(key, blob);
+    await db.putStudy({ id, tool: 'balance', name: 'Line 4 — packing, filmed', uses: [], startedAt: t, createdAt: t, updatedAt: t, facts: { vevents: [], video: {
+      media: { id: crypto.randomUUID(), blobKey: key, mime: 'video/webm', capturedAt: t },
+      facts: { fileName: 'line4.webm', mime: 'video/webm', bytes: blob.size, durationSec: 1.6, width: 160, height: 120, orientation: 'landscape' },
+      job: { state: 'uploaded', progress: 0, attempts: 0, config: { sampleSec: 0.2, readWidth: 160, zones: [], sensitivity: 4, joinGapSec: 0.5, minEventSec: 0.6, version: 'motion-1' }, updatedAt: t },
+    } } });
+    return { id, key, bytes: blob.size };
+  });
+  await settle(phone);
+  const up = await waitFor(() => cloud.objects.has(`media/${made.key}`), 30_000, 250);
+  check(up && cloud.rows('studies').find(r => r.id === made.id)?.facts?.video?.media?.blobKey === made.key, 'the phone’s footage is in the cloud, named by its study', `${made.bytes} bytes, ${up ? 'up' : 'not up'}`);
+  await settle(laptop);
+  await go(l, `/video/${made.id}`);
+  const plays = await waitFor(() => l.evaluate(() => { const v = document.querySelector('.vid-player video'); return !!v && v.readyState >= 2 && v.videoWidth > 0; }), 30_000, 250);
+  check(plays, 'the footage plays on the laptop, from the cloud');
+  const saysUp = async page => /in the cloud — your other devices play it/.test(await page.locator('[data-facts]').innerText().catch(() => ''));
+  await go(p, `/video/${made.id}`);
+  check(await waitFor(() => saysUp(p), 20_000, 500), 'the phone says its footage is in the cloud', await p.locator('[data-facts]').innerText().catch(() => ''));
+
+  /* deleted on the laptop, through its own button */
+  l.once('dialog', d => void d.accept());
+  await l.getByRole('button', { name: 'Delete the footage' }).click();
+  await l.waitForTimeout(800);
+  await settle(laptop);
+  const row = cloud.rows('studies').find(r => r.id === made.id);
+  check(row?.facts?.videoGone?.key === made.key && row?.facts?.video?.media?.blobKey === '', 'the study names the footage nowhere, and keeps its deletion', JSON.stringify(row?.facts?.videoGone ?? null));
+  const out = await waitFor(() => !cloud.objects.has(`media/${made.key}`), 20_000, 250);
+  check(out, 'the cloud’s copy is taken out');
+  check(!(await blobInfo(l, made.key)), 'the laptop holds no copy');
+  await settle(phone);
+  const forgot = await waitFor(async () => !(await blobInfo(p, made.key)), 30_000, 500);
+  check(forgot, 'the phone forgets its own copy');
+  await go(p, `/video/${made.id}`);
+  check(/The footage was deleted by/.test(await p.locator('.vid-nofootage').innerText().catch(() => '')) && await p.locator('.vid-player video').count() === 0,
+    'the phone says the footage was deleted, and shows none');
+});
+
 /* ======================================================================= */
 scn = 0;
 check(appErrors.length === 0, 'no error thrown by the app on either device', appErrors.slice(0, 5).join(' | '));
 
 const names = { 1: 'phone builds a job → laptop shows all', 2: 'laptop edits → phone', 3: 'offline phone, back online', 4: 'conflict while offline',
-  5: 'large film, uploads fail mid-way', 6: 'one refused row', 7: 'speed, untouched laptop', 8: 'file over 50 MB', 9: 'file lands after its record', 10: 'two devices, one study', 0: 'app health' };
+  5: 'large film, uploads fail mid-way', 6: 'one refused row', 7: 'speed, untouched laptop', 8: 'file over 50 MB', 9: 'file lands after its record', 10: 'two devices, one study', 11: 'video footage, sent and deleted', 0: 'app health' };
 console.log('\n================ SYNC — TWO DEVICES ================');
-for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 0]) {
+for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0]) {
   const rs = results.filter(r => r.scn === n);
   if (!rs.length) continue;
   const bad = rs.filter(r => !r.ok);

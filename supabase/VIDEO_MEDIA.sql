@@ -14,13 +14,15 @@
 -- runs with the person's own rights (not security definer), so a study they
 -- cannot see names nothing for them.
 --
--- NOT APPLIED YET. Rowland declined the last migration offered from here
--- (ASSIST_USAGE, 18 October), so this waits on his word. Until it is applied
--- the app does not send a study's footage (src/cloud/mappers.ts, studies
--- mediaKeys stays []) and says on the study that the footage is kept on this
--- device only; the events, the figures and the reports sync as any study's.
--- Once applied and read back: studies.mediaKeys names facts.video.media, and
--- the study's words change in the same commit.
+-- APPLIED 19 October 2026 at Rowland's word ("You apply it"), through the
+-- connector as VIDEO_MEDIA (history 20261019050201), and read back: the
+-- studies clause in the function, every earlier table kept, not security
+-- definer, the bucket's read and write policies calling it; and proved in a
+-- block that rolled itself back — a study naming footage and a poster made
+-- the rule say yes to both and no to a file nobody names. The app then sends
+-- a study's footage (src/cloud/mappers.ts studies mediaKeys, lib/video/footage)
+-- and says where it is; deleted, the study stops naming it, so this rule lets
+-- nobody open it again.
 -- ============================================================================
 
 create or replace function public.faultline_can_see_media(object_name text)

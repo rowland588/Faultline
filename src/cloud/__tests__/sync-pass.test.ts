@@ -33,6 +33,7 @@ function fakeCloud() {
     limit: Infinity,
     upserts: [] as { table: string; ids: string[]; ok: boolean }[],
     uploads: [] as string[],
+    removed: [] as string[],
     pulls: 0,
     rows: (t: string) => [...(tables.get(t)?.values() ?? [])],
     put(t: string, r: Row) { if (!tables.has(t)) tables.set(t, new Map()); tables.get(t)!.set(r.id as string, { ...r, rev: ++rev }); },
@@ -93,6 +94,12 @@ function fakeCloud() {
       download: async (path: string) => {
         const o = c.objects.get(path);
         return o ? { data: o, error: null } : { data: null, error: { status: 400, statusCode: '404', message: 'Object not found' } };
+      },
+      remove: async (paths: string[]) => {
+        if (c.offline) return { data: null, error: { message: 'Failed to fetch' } };
+        const gone = paths.filter(p => c.objects.delete(p));
+        c.removed.push(...gone);
+        return { data: gone.map(name => ({ name })), error: null };
       },
     }) },
   };
@@ -209,6 +216,62 @@ describe('a sync pass', () => {
     cloud.put('tests', { ...theirs, result: 'PHONE: 72 ppm', updated_at: mine!.updatedAt });
     await sync.syncNow();
     expect(cloud.rows('tests')[0]).toMatchObject({ result: 'PHONE: 72 ppm', with_whom: 'LAPTOP: Brillopak' });
+  });
+});
+
+/* A VIDEO STUDY'S FOOTAGE (lib/video/footage, supabase/VIDEO_MEDIA.sql): up
+   with its study, and once deleted, forgotten here and taken out of the cloud. */
+describe('a video study’s footage', () => {
+  beforeEach(() => { vi.unstubAllGlobals(); });
+  const facts = {
+    video: {
+      media: { id: 'm1', blobKey: 'video-1', mime: 'video/mp4', capturedAt: 1 },
+      facts: { fileName: 'line4.mp4', mime: 'video/mp4', bytes: 4, durationSec: 30, width: 640, height: 360, orientation: 'landscape' as const },
+      job: { state: 'review' as const, progress: 1, attempts: 1, config: { sampleSec: 0.2, readWidth: 160, zones: [], sensitivity: 4, joinGapSec: 0.5, minEventSec: 0.6, version: 'motion-1' }, updatedAt: 1 },
+    },
+  };
+  const S = { id: 's1', tool: 'balance' as const, name: 'Line 4', facts, uses: [], startedAt: 1, createdAt: 1, updatedAt: 1 };
+
+  it('goes up with the study; deleted, it is forgotten here and taken out of the cloud', async () => {
+    const { db, sync } = await boot();
+    const { withoutFootage } = await import('../../lib/video/footage');
+    await db.putBlob('video-1', new Blob(['film'], { type: 'video/mp4' }));
+    await db.putStudy(S);
+    await sync.syncNow();
+    expect(cloud.objects.has('video-1')).toBe(true);
+    expect((cloud.rows('studies')[0].facts as typeof facts).video.media.blobKey).toBe('video-1');
+
+    /* deleted — this device's copy left for the sync to forget, as on a device that did not delete it */
+    await db.patchStudy('s1', cur => ({ facts: withoutFootage(cur.facts, 50, 'Rowland'), updatedAt: 2 }));
+    await sync.syncNow();
+    expect(await db.hasBlob('video-1')).toBe(false);
+    expect(cloud.removed).toEqual(['video-1']);
+    expect(cloud.objects.has('video-1')).toBe(false);
+    const row = cloud.rows('studies')[0].facts as { video: { media: { blobKey: string } }; videoGone: { key: string } };
+    expect(row.video.media.blobKey).toBe('');
+    expect(row.videoGone.key).toBe('video-1');
+    /* tried once: the next pass asks the cloud nothing more */
+    await sync.syncNow();
+    expect(cloud.removed).toEqual(['video-1']);
+  });
+
+  it('deleted on the laptop while the phone wrote the video later: the cloud never names it again', async () => {
+    const { db, sync } = await boot();
+    const { withoutFootage } = await import('../../lib/video/footage');
+    await db.putBlob('video-1', new Blob(['film'], { type: 'video/mp4' }));
+    await db.putStudy(S);
+    await sync.syncNow();
+    /* the phone, still reading the footage, writes the video again — after the laptop's delete */
+    await db.patchStudy('s1', cur => ({ facts: withoutFootage(cur.facts, 50, 'Rowland'), updatedAt: 2 }));
+    const there = cloud.rows('studies')[0];
+    cloud.put('studies', { ...there, facts: { ...facts, video: { ...facts.video, job: { ...facts.video.job, progress: 0.5, updatedAt: 9 } } }, updated_at: 9 });
+    await sync.syncNow();
+    await sync.syncNow();
+    const f = cloud.rows('studies')[0].facts as { video: { media: { blobKey: string }; job: { progress: number } }; videoGone?: { key: string } };
+    expect(f.videoGone?.key).toBe('video-1');
+    expect(f.video.media.blobKey).toBe('');
+    expect(cloud.objects.has('video-1')).toBe(false);
+    expect(await db.hasBlob('video-1')).toBe(false);
   });
 });
 

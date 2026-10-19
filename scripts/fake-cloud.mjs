@@ -34,11 +34,16 @@ import { readFileSync } from 'node:fs';
 import crypto from 'node:crypto';
 
 /* THE MEDIA RULE IN FORCE — which table's which columns may name an uploaded
-   file (supabase/FLOW_MEDIA.sql; a newer definition moves this, and the one in
+   file (supabase/VIDEO_MEDIA.sql; a newer definition moves this, and the one in
    src/cloud/__tests__/sync-schema.test.ts). */
-const MEDIA_RULE_FILE = new URL('../supabase/FLOW_MEDIA.sql', import.meta.url);
-const MEDIA_RULE = [...readFileSync(MEDIA_RULE_FILE, 'utf8').matchAll(/from public\.(\w+) where ([^']*)'/g)]
+const MEDIA_RULE_FILE = new URL('../supabase/VIDEO_MEDIA.sql', import.meta.url);
+const MEDIA_RULE_SQL = readFileSync(MEDIA_RULE_FILE, 'utf8');
+const MEDIA_RULE = [...MEDIA_RULE_SQL.matchAll(/from public\.(\w+) where ([^']*)'/g)]
   .map(m => [m[1], [...m[2].matchAll(/(\w+)\s*(?:=|@>)/g)].map(c => c[1])]);
+/* A video study names its footage inside its facts (facts → video → media),
+   which the column rule above cannot say: read as the rule says it, and only
+   while the rule does. */
+const STUDY_FOOTAGE = MEDIA_RULE_SQL.includes("from public.studies where facts -> ''video'' -> ''media'' ->> ''blobKey'' = $1 or facts -> ''video'' -> ''media'' ->> ''thumbKey'' = $1");
 
 
 export function startFakeCloud({ port = 54392, user } = {}) {
@@ -173,6 +178,10 @@ export function startFakeCloud({ port = 54392, user } = {}) {
         if (cols.some(c => r[c] != null && (typeof r[c] === 'string' ? r[c] === k : JSON.stringify(r[c]).includes(`"${k}"`)))) return true;
       }
     }
+    if (STUDY_FOOTAGE) for (const r of tables.get('studies')?.values() ?? []) {
+      const m = r.facts?.video?.media;
+      if (m && (m.blobKey === k || m.thumbKey === k)) return true;
+    }
     return false;
   }
 
@@ -260,6 +269,15 @@ export function startFakeCloud({ port = 54392, user } = {}) {
           return send(res, 200, o.bytes, { 'content-type': o.type, 'content-length': String(o.bytes.length) });
         }
         if (req.method === 'DELETE') { objects.delete(id); return send(res, 200, {}); }
+      }
+      /* Several files taken out at once (storage-js remove): their names in the body. */
+      const bulk = /^\/storage\/v1\/object\/([^/]+)\/?$/.exec(u.pathname);
+      if (bulk && req.method === 'DELETE') {
+        const body = JSON.parse((await readBody(req)).toString() || '{}');
+        const gone = [];
+        for (const p of body.prefixes ?? []) { const id = `${bulk[1]}/${p}`; if (objects.delete(id)) gone.push({ name: p, bucket_id: bulk[1] }); }
+        cloud.removed = (cloud.removed ?? 0) + gone.length;
+        return send(res, 200, gone);
       }
       if (u.pathname.startsWith('/storage/v1/')) return send(res, 404, { statusCode: '404', error: 'not_found', message: 'fake cloud: not implemented ' + u.pathname });
 

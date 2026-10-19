@@ -138,7 +138,7 @@ describe('every face the app writes, the cloud accepts', () => {
   }
 });
 
-const MEDIA_RULE_FILE = 'FLOW_MEDIA.sql';   // the definition in force: a newer one moves this here and in scripts/fake-cloud.mjs
+const MEDIA_RULE_FILE = 'VIDEO_MEDIA.sql';   // the definition in force: a newer one moves this here and in scripts/fake-cloud.mjs
 
 /* A FILE IS ONLY ALLOWED UP IF A ROW NAMES IT. Storage's write and read policies
  * ask faultline_can_see_media whether any table the user can see points at the
@@ -181,6 +181,11 @@ describe('every column that names a file is one the media rule looks in', () => 
   }
   const FILE_COL = /^(media|photos|docs|causes|[a-z_]*_key)$/;
   it('reads the rule', () => { expect(looks.get('snags')?.has('media')).toBe(true); });
+  /* A study names its footage inside its facts, not in a column of its own
+     (lib/video/footage footageKeys): the rule must look at that very path. */
+  it('studies: facts → video → media, its blobKey and its thumbKey', () => {
+    expect(ruleSql).toContain("from public.studies where facts -> ''video'' -> ''media'' ->> ''blobKey'' = $1 or facts -> ''video'' -> ''media'' ->> ''thumbKey'' = $1");
+  });
   /* Only the kinds that carry files at all (their mapper's mediaKeys) — a
      line_key names a line, not a file. */
   const carries = (k: SyncKind) => !/^\(\)\s*=>\s*\[\]$/.test(MAPS[k].mediaKeys.toString().trim());

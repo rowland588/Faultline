@@ -12,6 +12,7 @@
  * not added again. */
 import { deleteBlobs, getBlob, getStudy, patchStudy, putBlob } from '../../db';
 import type { ToolStudy } from '../study';
+import { footageGone } from './footage';
 import { detectEvents, type Signal } from './detect';
 import { fingerprint, readSignal, stillAt } from './extract';
 import { move, readingKey } from './job';
@@ -83,9 +84,9 @@ async function read(id: string, o: { withVision?: boolean; abort?: AbortSignal }
   const s = await getStudy(id);
   const v = s?.facts.video;
   if (!s || !v) return;
-  if (v.footageDeletedAt) { await fail(id, 'The footage was deleted from this study, so it cannot be read again. What was found in it is kept.', false); return; }
+  if (footageGone(s.facts)) { await fail(id, 'The footage was deleted from this study, so it cannot be read again. What was found in it is kept.', false); return; }
   const file = await getBlob(v.media.blobKey);
-  if (!file) { await fail(id, 'The footage is not on this device — it was taken on another one and has not reached this one. Open the study there to read it.'); return; }
+  if (!file) { await fail(id, 'The footage is not on this device — it was taken on another one and has not come down from the cloud yet. Open the study there, or wait for it here.'); return; }
   const config = v.job.config;
   const problems = checkConfig(config, v.facts.durationSec, VIDEO_LIMITS);
   if (problems.length) { await fail(id, problems.map(p => p.message).join(' '), false); return; }

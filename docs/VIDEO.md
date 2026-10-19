@@ -46,7 +46,7 @@ measured, what it does not do, and what waits on someone.
 | Words | `lib/video/ask` | The study asked for in words on New ("Analyse this video for line balance against takt" → a line balance, with takt) and questions answered from the figures on the page — cycles, waiting, takt (and what it needs), the bottleneck, what is missing, the report — each answer saying it was worked out or is not known. No assistant needed. |
 | Report | `lib/video/reportPdf`, `lib/video/printReport` | The lean page on paper: the band, five tiles, what was asked of what footage, how it was read (every setting and the reading's key), each station with units, the stacks against takt drawn, takt worked out with its arithmetic, what it says by kind, every event with its time, how it is known and what was decided (*NOT REVIEWED* where it was not), the closing line. Each report made is kept on the study (when, from how many accepted and still to review), so a report made again after a correction never loses the one before. |
 | Access | `useAccess` | On a job, the job's levels: a client reads, the team reviews, the owner deletes; on no job, its maker. The studies table's rules apply to the record as to every study. |
-| Deletion | the study page | *Delete the footage* removes the recording from the device and marks the study (when and by whom); the events, figures and reports are kept and say the footage was deleted. *Delete the study* with Undo. |
+| Sync and deletion | `lib/video/footage`, `cloud/mappers` studies, `cloud/sync` | The footage and its poster go up with the study (`supabase/VIDEO_MEDIA.sql`: the cloud takes a file a study names); a device that lacks it fetches it; the study says where it is — this device only, going up, in the cloud, or over the 50 MB the cloud takes (Backup makes it fit). *Delete the footage* takes it off this device and the name off the study — the cloud then lets nobody open it — and keeps the deletion as its own fact (`facts.videoGone`, when and by whom), so a device still writing the video cannot bring it back; every device forgets its copy as it syncs and the device that sent it takes it out of the cloud. The events, figures and reports are kept and say the footage was deleted, on screen and paper. *Delete the study* with Undo. |
 
 ## Verified, and how
 
@@ -122,8 +122,8 @@ there yet:
 | Methods and the library (`lib/flow`) | Steps, gates, measures before → after, versions | *Rebalance the people on a line* — found from "I have filmed the line…" — run with its steps answered by video studies | No library method yet has a step whose answer must be footage (SMED from video, below) |
 | How each statement is known | Measured · counted · observed · reported on every cause (TOOLKIT, honesty rules) | Measured · worked out · proposed — not measured · not known yet; provisional kept apart (below) | One shared "how known" type across every tool's findings, so a method's report can say it for all of them alike |
 | Reports (`lib/report`, `lib/lean`) | The lean page, on screen and on paper, from one model | The video study's own report | A job's own report carrying its video studies |
-| Words (`lib/video/ask`, the studio, the `assist` gateway) | What is wanted said in words; questions asked back; answers from the figures | The objective read as a kind of study; the missing said and asked for; questions answered | The gateway is not deployed, so naming the work from frames is off; every figure is worked out without it |
-| Access, sync, deletion | A job's three levels; field-by-field sync; delete with Undo | The same; the footage deleted on its own, what was found kept | The footage itself syncs only once `VIDEO_MEDIA.sql` is applied |
+| Words (`lib/video/ask`, the studio, the `assist` gateway) | What is wanted said in words; questions asked back; answers from the figures | The objective read as a kind of study; the missing said and asked for; questions answered | Naming the work from frames goes through the gateway (version 3, 19 October, its key and allowance set); every figure is worked out without it |
+| Access, sync, deletion | A job's three levels; field-by-field sync; delete with Undo | The same; the footage synced with the study and deleted on its own everywhere, what was found kept | — |
 
 ## How each statement is known
 
@@ -153,7 +153,7 @@ work, not ahead of it.
 | Stage | What it adds | Proved by | Starts when |
 |---|---|---|---|
 | **V1 — a line balance read from footage** (built) | Upload, the job, movement read on the device, every event reviewed, the line balance and takt, the report; a method's line balance step answered by it | `video.test.ts`, `acceptance/video-study.mjs`, `video-eval.mjs` on synthetic footage (the table below) | — |
-| **V2 — real footage, timed by hand** | The protocol below run on permissioned clips from the floor; the measured table split by real conditions | The protocol's figures, written here with their date and reading version | Clips and permission from a site; `VIDEO_MEDIA.sql` applied so the footage reaches the people reviewing it |
+| **V2 — real footage, timed by hand** | The protocol below run on permissioned clips from the floor; the measured table split by real conditions | The protocol's figures, written here with their date and reading version | Clips and permission from a site (the footage reaches the people reviewing it since 19 October) |
 | **V3 — the reading made robust** | Stations as rectangles drawn on the frame; a change at every station at once told as the light, not work; a camera that moves refused in words; a person crossing into a neighbour's zone | V2's held-out clips scored before and after each change; no change kept that lowers a condition's figures | V2's figures say where it is weak |
 | **V4 — SMED from footage** | A changeover filmed from last good piece to first good: the activity sequence as candidates, internal or external **decided by a person** (never labelled convertible by the reading), into the SMED study (`changeover`) and its arithmetic | An acceptance like `changeover.mjs` from footage; the protocol on changeover clips | V2 on at least one changeover clip |
 | **V5 — time and motion inside a cycle** | One station's cycle split into its elements (reach, place, walk, wait) — boundaries proposed from movement, named by a person; into the line balance's elements, its rating asked, never read from the picture | The protocol at element level | V3 |
@@ -244,8 +244,7 @@ more than it has measured.
 
 | What | Why | Who |
 |---|---|---|
-| `supabase/VIDEO_MEDIA.sql` applied and read back | The media bucket takes a file only when a row the person can see names it; studies are not looked in yet. Until then the footage stays on the device it was taken on, and the study says so; everything else syncs. | Rowland's yes (the last migration offered was declined), or a paste into the Supabase SQL editor |
-| `supabase/ASSIST_USAGE.sql` applied, `supabase/functions/assist` deployed, `ANTHROPIC_API_KEY` set | Naming the work from the frames goes through the gateway, which never runs without its cost control. Until then the study says the assistant is off and every figure is worked out the same. | Rowland |
+| One study's frames named through the gateway, signed in, and its `assist_usage` row read back | The allowance table, the key and the gateway (version 3) are in place since 18–19 October; a real call has not been seen yet. | Rowland |
 | Permissioned real footage with hand-timed events | The only honest accuracy figure for the floor. | Rowland / the site |
 
 ## Next actions

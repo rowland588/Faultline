@@ -38,7 +38,6 @@ import { Legend, Stacks } from '../ui/WorkBalance';
 import { AskingNote, useAsking, withFor } from '../ui/flow/Asking';
 import { StudyProves } from '../ui/ProveProgram';
 import { asked } from '../lib/lines';
-import { getBlob } from '../db';
 import { probe } from '../lib/video/extract';
 import { checkFootage, VIDEO_LIMITS } from '../lib/video/validate';
 import { sampleInterval } from '../lib/video/detect';
@@ -50,6 +49,12 @@ import { BASIS_WORD, EVENT_CATEGORIES, EVENT_WORD, KIND_WORD, READING_VERSION, t
 import { byHand, decide, merge, reclassify, setBoundary, split, acceptAll } from '../lib/video/review';
 import { clock, FINDING_WORD, findings, sec1, standing, videoFigures, type Basis } from '../lib/video/study';
 import { checkEvent } from '../lib/video/validate';
+import { footageGone, footageKeys, withoutFootage } from '../lib/video/footage';
+import { useBlobSource } from '../lib/useBlobUrl';
+import { useSyncStatus } from '../cloud/session';
+import { backedUp } from '../cloud/sync';
+import { cloudConfigured } from '../cloud/client';
+import { CLOUD_FILE_LIMIT } from '../lib/transcode';
 
 const OWNER = canOf('owner');
 const TRACKS = ['Operator A', 'Operator B', 'Operator C', 'Operator D', 'Operator E', 'Operator F'];
@@ -221,16 +226,23 @@ function useStudy(id: string): ToolStudy | null | undefined {
   return s;
 }
 
-function useFootage(key?: string, gone?: boolean): { url?: string; missing: boolean } {
-  const [url, setUrl] = useState<string>();
-  const [missing, setMissing] = useState(false);
+/* WHERE THE FOOTAGE IS, said beside its facts (lib/video/footage): on this
+   device only, going up, in the cloud, or too big for the cloud — the
+   sync's own record of each, never a guess. */
+function useFootageWhere(s: ToolStudy, key: string | undefined, here: boolean): string {
+  const status = useSyncStatus();
+  const [up, setUp] = useState(false);
   useEffect(() => {
-    if (!key || gone) { setUrl(undefined); setMissing(!!gone); return; }
-    let u: string | undefined, alive = true;
-    void getBlob(key).then(b => { if (!alive) return; if (b) { u = URL.createObjectURL(b); setUrl(u); setMissing(false); } else setMissing(true); });
-    return () => { alive = false; if (u) URL.revokeObjectURL(u); };
-  }, [key, gone]);
-  return { url, missing };
+    if (!cloudConfigured || !key || !here) return;
+    let alive = true;
+    void backedUp('studies', s.id, s.updatedAt, [key]).then(b => { if (alive) setUp(b); });
+    return () => { alive = false; };
+  }, [s.id, s.updatedAt, key, here, status.lastSyncedAt]);
+  if (!cloudConfigured) return 'kept on this device only';
+  if (!here || !key) return '';
+  if (status.tooBig?.some(t => t.key === key)) return `over the ${Math.round(CLOUD_FILE_LIMIT / 1048576)} MB the cloud takes, so on this device only — Backup can make it fit`;
+  if (status.state === 'signedout') return 'on this device only — sign in to send it to the cloud';
+  return up ? 'in the cloud — your other devices play it' : 'going up to the cloud';
 }
 
 export function VideoStudyScreen({ id }: { id: string }) {
@@ -255,7 +267,11 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
   const f = useMemo(() => videoFigures(v, events, basis), [v, events, basis]);
   const verified = useMemo(() => videoFigures(v, events, 'verified'), [v, events]);
   const st = standing(verified);
-  const { url, missing } = useFootage(v.media.blobKey, !!v.footageDeletedAt);
+  const gone = footageGone(s.facts);
+  /* the footage from this device, or fetched from the cloud when another device filmed it */
+  const footage = useBlobSource(gone ? null : v.media.blobKey || null);
+  const url = footage.url ?? undefined, missing = footage.state === 'missing';
+  const where = useFootageWhere(s, gone ? undefined : v.media.blobKey, !!url);
   const player = useRef<HTMLVideoElement>(null);
   const [t, setT] = useState(0);
   const [said, setSaid] = useState<string | null>(null);
@@ -310,9 +326,13 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
   };
   const deleteFootage = async () => {
     if (!can.remove || !window.confirm('Delete the footage from this study? The events, the figures and the reports made from it are kept, and say the footage was deleted.')) return;
-    await deleteBlobs([v.media.blobKey]);
-    await patchV({ footageDeletedAt: Date.now(), footageDeletedBy: who });
-    setSaid('The footage is deleted from this device. What was found in it is kept.');
+    /* this device's copy now; the name off the study, so the cloud lets nobody open it; the
+       sender takes it out of the cloud and every device forgets it as it syncs (cloud/sync) */
+    await deleteBlobs(footageKeys(s.facts).map(x => x.key));
+    await patchStudy(s.id, cur => ({ facts: withoutFootage(cur.facts, Date.now(), who) }));
+    setSaid(cloudConfigured
+      ? 'The footage is deleted: gone from this device, nobody can open it from the cloud, and it goes from your other devices as they sync. What was found in it is kept.'
+      : 'The footage is deleted from this device. What was found in it is kept.');
   };
   const removeStudy = async () => {
     if (!can.remove) return;
@@ -339,17 +359,20 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
       </header>
       {said && <p className="vid-said" role="status">{said}</p>}
 
-      {/* THE FOOTAGE — what it is, read from the file; kept on this device */}
+      {/* THE FOOTAGE — what it is, read from the file, and where it is */}
       <section className="vid-panel" aria-label="The footage">
         <div className="vid-player">
           {url ? (
             <video ref={player} src={url} controls muted playsInline preload="auto" aria-label="The footage" onTimeUpdate={e => setT((e.target as HTMLVideoElement).currentTime)} />
           ) : (
-            <p className="vid-nofootage">{v.footageDeletedAt ? `The footage was deleted${v.footageDeletedBy ? ` by ${v.footageDeletedBy}` : ''} — what was found in it is kept.` : missing ? 'The footage is not on this device: it stays on the device it was taken on until the cloud takes a study’s footage. Open the study there to read or watch it.' : 'Opening the footage…'}</p>
+            <p className="vid-nofootage">{gone ? `The footage was deleted${gone.by ? ` by ${gone.by}` : ''} — what was found in it is kept.`
+              : !missing ? 'Opening the footage…'
+                : cloudConfigured ? `The footage is not on this device yet. It comes down from the cloud once the device that filmed it has sent it — a film over ${Math.round(CLOUD_FILE_LIMIT / 1048576)} MB waits on that device until its Backup makes it fit.`
+                  : 'The footage is not on this device: without the cloud it stays on the device it was taken on. Open the study there to read or watch it.'}</p>
           )}
           {url && zones.length > 0 && <ZoneOverlay zones={zones} />}
         </div>
-        <p className="sub vid-facts" data-facts>{v.facts.fileName} — {clock(v.facts.durationSec)} · {v.facts.width}×{v.facts.height}{v.facts.fps ? ` · ${v.facts.fps} frames a second` : ''} · {mb(v.facts.bytes)}{v.facts.codec ? ` · ${v.facts.codec}` : ''} · kept on this device only</p>
+        <p className="sub vid-facts" data-facts>{v.facts.fileName} — {clock(v.facts.durationSec)} · {v.facts.width}×{v.facts.height}{v.facts.fps ? ` · ${v.facts.fps} frames a second` : ''} · {mb(v.facts.bytes)}{v.facts.codec ? ` · ${v.facts.codec}` : ''}{where ? ` · ${where}` : ''}</p>
         {v.objective && <p className="vid-objective"><span className="field-label">Asked for</span> “{v.objective}” — {readObjective(v.objective).said}</p>}
         {questions.length > 0 && <ul className="vid-questions" aria-label="What the study needs">{questions.map(q => <li key={q}>{q}</li>)}</ul>}
       </section>
@@ -484,7 +507,7 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
         )}
         {v.reports?.length ? <p className="sub">Reports made: {v.reports.map(r => `${new Date(r.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} (${r.accepted} accepted${r.candidates ? `, ${r.candidates} to review` : ''})`).join(' · ')}</p> : null}
         <div className="vid-job-acts">
-          {can.remove && !v.footageDeletedAt && <button type="button" className="btn btn-ghost" onClick={() => void deleteFootage()}>Delete the footage</button>}
+          {can.remove && !gone && <button type="button" className="btn btn-ghost" onClick={() => void deleteFootage()}>Delete the footage</button>}
           {can.remove && <button type="button" className="btn btn-ghost" onClick={() => void removeStudy()}>Delete the study</button>}
         </div>
       </section>

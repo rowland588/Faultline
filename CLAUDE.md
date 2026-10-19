@@ -520,14 +520,17 @@ where they merge. Then the shape asked (Rowland, 15 October: "asking how many li
 `scripts/sync-two-devices.mjs` runs two real devices of the app (a phone and a
 laptop, separate storage) against `scripts/fake-cloud.mjs`, which keeps the
 live bucket's rules (no upload before a row names the file, nothing over
-50 MB). Ten scenarios: everything the phone does — a recorded clip, a photo,
+50 MB). Eleven scenarios: everything the phone does — a recorded clip, a photo,
 a PDF — shows and plays on the laptop; edits go back the other way; offline
 work arrives once and whole; two devices editing different boxes of one test
 both keep their edit (field by field, against the copy both last agreed);
 failed uploads retry; one refused row holds nothing else back; a file too big
 for the cloud is said so at once and kept; a file that lands after its record
 is on the other device within seconds, by itself; readings added to one study
-on two devices at once are all kept, and a strike holds. It cannot prove real
+on two devices at once are all kept, and a strike holds; a video study's
+footage filmed on the phone plays on the laptop, and deleted on the laptop is
+named nowhere, taken out of the cloud and forgotten by the phone
+(`supabase/VIDEO_MEDIA.sql`, `lib/video/footage`). It cannot prove real
 RLS, real signal or iOS Safari. Run it on its own, not beside the fuzz: its
 timing checks fail under that load.
 

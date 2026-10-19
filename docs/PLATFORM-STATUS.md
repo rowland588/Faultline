@@ -227,10 +227,18 @@ what waits on someone is docs/VIDEO.md. Its blockers are below.
 
 ## Blockers needing Rowland
 
-- **A video study's footage to the cloud** — `supabase/VIDEO_MEDIA.sql`
-  (the media rule taught to look in a study's footage) is written and not
-  applied. Until it is, footage stays on the device it was taken on, and the
-  study says so; its events, figures and reports sync.
+- **A video study's footage to the cloud** — DONE 19 October:
+  `supabase/VIDEO_MEDIA.sql` applied at Rowland's word (history
+  20261019050201) and read back, the rule proved by a probe that rolled
+  itself back. The app sends a study's footage and its poster with the study
+  (`lib/video/footage`), a device that lacks it fetches it, and the study
+  says where it is — this device only, going up, in the cloud, or over the
+  50 MB the cloud takes (Backup makes it fit). Deleting it takes the name off
+  the study (the rule then lets nobody open it), keeps the deletion as its
+  own fact (`facts.videoGone`, so a device still writing the video cannot
+  bring it back), and every device forgets its copy while the device that
+  sent it takes it out of the cloud. Proved by `footage.test.ts`, two passes
+  in `sync-pass.test.ts` and `sync-two-devices.mjs` scenario 11.
 
 - **The assistant's allowance table** — DONE 18 October: Rowland pasted
   `supabase/ASSIST_USAGE.sql` into the SQL editor, and it was read back —

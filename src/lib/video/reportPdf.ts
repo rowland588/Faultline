@@ -29,6 +29,8 @@ export interface VideoReport {
   line?: string;
   job?: string;
   v: VideoSource;
+  /** The footage deleted, when and by whom (lib/video/footage footageGone). */
+  gone?: { at: number; by?: string };
   events: readonly VideoEvent[];
   f: VideoStudyFigures;
   printed: string;
@@ -104,7 +106,7 @@ function blocksOf(r: VideoReport, d: Density): Block[] {
 
   out.push(leanHead('What was asked, of what footage'));
   out.push(text({ text: v.objective ? `“${v.objective}”` : 'A line balance: the work at each station in view, timed from the footage.', size: 9.5, style: 'bold', colour: INK2, after: 3 }));
-  out.push(text({ text: `${v.facts.fileName}: ${clock(v.facts.durationSec)} of footage, ${v.facts.width}×${v.facts.height}${v.facts.fps ? `, ${v.facts.fps} frames a second` : ''}${v.facts.codec ? `, ${v.facts.codec}` : ''}, ${(v.facts.bytes / (1024 * 1024)).toFixed(1)} MB.${v.footageDeletedAt ? ` The footage was deleted from the study on ${new Date(v.footageDeletedAt).toLocaleDateString('en-GB')}; what was found in it is kept.` : ''}`, size: 8.5, colour: MUTED, after: gap(d, 's') }));
+  out.push(text({ text: `${v.facts.fileName}: ${clock(v.facts.durationSec)} of footage, ${v.facts.width}×${v.facts.height}${v.facts.fps ? `, ${v.facts.fps} frames a second` : ''}${v.facts.codec ? `, ${v.facts.codec}` : ''}, ${(v.facts.bytes / (1024 * 1024)).toFixed(1)} MB.${r.gone ? ` The footage was deleted from the study on ${new Date(r.gone.at).toLocaleDateString('en-GB')}${r.gone.by ? ` by ${r.gone.by}` : ''}; what was found in it is kept.` : ''}`, size: 8.5, colour: MUTED, after: gap(d, 's') }));
 
   out.push(leanHead('How it was read'));
   const c = v.job.config;

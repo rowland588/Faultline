@@ -10,6 +10,7 @@ import type { Material } from '../lib/materials';
 import type { Program, ProgramState } from '../lib/programs';
 import type { Standard, StandardMark } from '../lib/standard';
 import { factsOf, listById, type StudyUse, type ToolStudy } from '../lib/study';
+import { footageKeys, forTheCloud } from '../lib/video/footage';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
 import type { ActivityEntry, FlowRecord, Method, ProjectFlow } from '../lib/flow/records';
 import type { FlowDefinition } from '../lib/flow/definition';
@@ -655,7 +656,9 @@ export const MAPS: Record<SyncKind, EntityMap> = {
      came, so an older phone saving the row back never rewrites a newer one's. */
   studies: {
     clock: l => (l as ToolStudy).updatedAt,
-    mediaKeys: () => [],
+    /* A video study's footage and its poster, while it has them
+       (supabase/VIDEO_MEDIA.sql: the cloud takes a file a study names). */
+    mediaKeys: l => { const s = l as ToolStudy; return footageKeys(s.facts ?? {}).flatMap(f => k(f.key, f.mime, s.ownerId)); },
     nested: ['facts'],
     toRow: (l, fallbackOwner) => {
       const s = l as ToolStudy;
@@ -664,7 +667,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         workspace_id: s.workspaceId ?? null, project_id: s.projectId || null,
         machine: s.machine ?? null, asset_id: s.assetId ?? null,
         product: s.product ?? null, program_id: s.programId ?? null, standard_id: s.standardId ?? null,
-        agreed: s.agreed ?? null, facts: s.facts ?? {}, uses: s.uses ?? [],
+        agreed: s.agreed ?? null, facts: forTheCloud(s.facts ?? {}), uses: s.uses ?? [],
         started_at: s.startedAt, closed_at: s.closedAt ?? null,
         receipt: s.receipt ?? null, overrule: s.overrule ?? null,
         created_at: s.createdAt, updated_at: s.updatedAt, deleted_at: s.deletedAt ?? null,

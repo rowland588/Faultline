@@ -23,6 +23,7 @@
  * line. It always carries its tool's name: "Capability study — Weight
  * accuracy 400 g". */
 import type { VideoEvent, VideoSource } from './video/record';
+import type { FootageGone } from './video/footage';
 import type { ID } from '../types';
 
 /** Every tool a study can be a use of. The cloud's check constraint holds the
@@ -457,6 +458,9 @@ export interface StudyFacts {
   video?: VideoSource;
   /** The events found in the footage and what a person decided about each. */
   vevents?: VideoEvent[];
+  /** The footage deleted — its own fact, so it is never undone by a device
+   *  still writing the video (lib/video/footage). */
+  videoGone?: FootageGone;
 }
 
 /** What a study is evidence for, inside its job. Both ends write the same

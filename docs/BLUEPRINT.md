@@ -450,9 +450,10 @@ docs/VIDEO.md holds the staged path (V2 real footage timed by hand, V3 the
 reading made robust, V4 SMED from footage, V5 time and motion inside a
 cycle, V6 waiting and the constraint, V7 a worker for long footage — each
 proved before the next), how every statement says how it is known, and the
-protocol for measuring accuracy against observations timed by hand. Waiting
-on Rowland: the footage to the cloud (`supabase/VIDEO_MEDIA.sql`) and
-permissioned footage from the floor.
+protocol for measuring accuracy against observations timed by hand. The
+footage reaches the cloud since 19 October (`supabase/VIDEO_MEDIA.sql`,
+`lib/video/footage`: sent with the study, fetched by a device that lacks it,
+deleted everywhere). Waiting on Rowland: permissioned footage from the floor.
 
 **Money in every tool** (Rowland, 17 October: "everything must derive a cost
 in the entire app ... it's all about money"; the rule is in CLAUDE.md,
