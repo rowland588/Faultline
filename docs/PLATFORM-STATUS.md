@@ -150,10 +150,14 @@ name the tests):
   coded: a downtime log with its Pareto, a rejects log by reason and shift,
   a capability log with Cpk, statistical process control (a control chart
   and its signals, a cause looked for only when it signals), what drives a
-  figure (a relationship), where a figure is heading (a forecast).
+  figure (a relationship), where a figure is heading (a forecast), when the
+  next breakdown comes (a Weibull fit), short stops timed with a tap and
+  costed, whether a change really worked (before and after, how sure it
+  got better) and whether a figure depends on the shift or the cause
+  (a difference between groups, how sure).
 - **Configurable without code:** any workflow or project structure from
   the steps, answers, roles, gates and measures; any log with any columns
-  and any of the eighteen analysis blocks over them — a worked-out figure
+  and any of the twenty analysis blocks over them — a worked-out figure
   among them, any arithmetic on the others and the step's boxes, money
   included; any box counted, typed, chosen or timed with a tap; a log
   read against an earlier one — how far it moved and how sure it got
@@ -169,7 +173,9 @@ name the tests):
   proved. Each is one block in `lib/flow/analysis` with its tests, and it
   reaches the editor, the validator, the assistant, the screen and the
   paper with nothing else rebuilt — shown on 18 October by the control
-  chart, the relationship and the forecast, written that way in one slice.
+  chart, the relationship and the forecast, written that way in one slice,
+  and on 19 October by the difference between groups, written as one
+  registry entry and its tests and nothing else.
   A new kind of picture is one drawing on screen and one on paper. A
   specialist screen beyond a log (a drawn layout, footage) stays a
   hand-built tool, used as a step.
@@ -185,7 +191,8 @@ name the tests):
 
 Next: the gateway redeployed with the app live; a tool's own panel inside
 the step; the 6M and the lever tree as methods drawn from records; more
-blocks as the floor asks.
+blocks and ways of capturing as the floor asks (a regression on several
+columns, a tally counted with a tap, a photo for an entry).
 
 ## Known defects and limits
 
