@@ -108,11 +108,14 @@ select 'the earlier tools are all still allowed',
          (array['%''capability''%', '%''map''%', '%''time''%', '%''balance''%', '%''cycle''%', '%''changeover''%', '%''losses''%', '%''sampling''%', '%''ergonomics''%', '%''layout''%'])
        then 'yes' else 'NO' end
 union all
+-- (the function's source doubles its quotes inside execute '…' — so these
+-- look for the doubled ones; looked for single, they said NO on 20 October
+-- while the function was right, read back by hand)
 select 'media rule looks in a talk''s turns',
-       case when pg_get_functiondef('public.faultline_can_see_media'::regproc) like '%facts -> ''turns'' @>%' then 'yes' else 'NO' end
+       case when strpos(pg_get_functiondef('public.faultline_can_see_media'::regproc), $q$facts -> ''turns'' @> $2$q$) > 0 then 'yes' else 'NO' end
 union all
 select 'media rule keeps a video''s footage',
-       case when pg_get_functiondef('public.faultline_can_see_media'::regproc) like '%''video'' -> ''media''%' then 'yes' else 'NO' end
+       case when strpos(pg_get_functiondef('public.faultline_can_see_media'::regproc), $q$facts -> ''video'' -> ''media'' ->> ''blobKey'' = $1$q$) > 0 then 'yes' else 'NO' end
 union all
 select 'media rule keeps flow_records',
        case when pg_get_functiondef('public.faultline_can_see_media'::regproc) like '%public.flow_records where media%' then 'yes' else 'NO' end
