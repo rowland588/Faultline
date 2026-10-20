@@ -15,6 +15,17 @@ person sees, take the pictures on live and on the change (`--shots`,
 the data adds its lines and its seed; a check tests the drawn thing, never the
 box it sits in.
 
+## The direction comes first — 20 October
+
+**Read `docs/DIRECTION.md` before anything else**; where an older document
+disagrees with it, it wins. Faultline is for Rowland's team first and sold
+later: its tools and its three kinds of change on the line, every finding in
+money, worked out by formulas. The AI is **one tool, Line Talk**
+(`docs/LINE-TALK.md`) — talk on the line, it makes the reports — never the
+app's driver and never a builder of methods, templates or tools. The method
+builder and the assistant built from 18 October are parked, nothing deleted.
+Nothing new is built until Rowland says go.
+
 ## The blueprint comes first
 
 **`docs/BLUEPRINT.md` is the one map of the app** — agreed with Rowland, 13

@@ -60,14 +60,23 @@ line's facts instead of asking again, says the result in money, prints, and
 has one door into a project. A new tool is added when a real problem on the
 line needs it — never to fill a catalogue.
 
-## The AI
+## The AI — one tool: Line Talk
 
-Not part of the product. Formulas do every calculation, and the app already
-says what its figures mean in sentences written from them. The one kept use
-is **voice**: a problem said on the floor is written up, and the words said
-are kept whatever happens. Any other use comes back only where the input is
-speech, photographs or a great deal of free text — never where a number has
-to be right — and only after it is measured on real use.
+Rowland, 20 October: *"Isn't AI a tool? ... I see it as being a tool rather
+than a main driving function of the app."* So the AI is **one tool among the
+others**, used when someone chooses to, never the app's driver and never a
+builder of methods, templates or tools. That tool is **Line Talk**
+(docs/LINE-TALK.md): one person talks on the line into their phone — pause,
+continue, photos — and it hears it, remembers the whole talk like a chat,
+and makes whatever is asked of it in words (a report, a summary for the
+manager, an OEM's punch list, a one-point lesson), knowing the line as
+Faultline holds it. The talk is kept, viewed like a chat and carried on
+later. What it finds in what was said — problems, actions, figures — it
+offers as cards a person adds; it never saves a record, never works out a
+figure, never passes a gate.
+
+Everything else is formulas: every calculation, and the sentences that say
+what the figures mean. The voice note on a form stays as it is.
 
 ## What is parked (20 October) — nothing deleted
 
@@ -83,6 +92,9 @@ scripts turn it on, so what was proved stays proved:
   project;
 - the video study's *Name the work from the frames*.
 
+(Not built yet: the switch exists and only the front door reads it — the
+work stopped on 20 October so the design could be agreed first.)
+
 A project already running on a method keeps running and opens as before.
 
 On the session branch (`claude/faultline-connection-1vx7kt`), never merged:
@@ -95,10 +107,16 @@ Rowland revokes it.
 
 ## What comes next, in order
 
-1. The filmed walk and its snags reachable from a line's own page — no job
+Nothing is built until Rowland says go.
+
+1. Park the builder and the assistant properly behind the switch (the rest
+   of the screens, the acceptance scripts turned to it, the inventory).
+2. The filmed walk and its snags reachable from a line's own page — no job
    needed (it is stored by line already; the line page had no door to it).
-2. Use Faultline for real for two or three weeks on Rowland's lines with his
+3. Line Talk, slice by slice (docs/LINE-TALK.md) — first finding out whether
+   Rowland's phone keeps recording with its screen locked.
+4. Use Faultline for real for two or three weeks on Rowland's lines with his
    team; write down every place it is slow, confusing or missing.
-3. Then deepen the tools that were used, close the evidence → cause → action
+5. Then deepen the tools that were used, close the evidence → cause → action
    → proof thread where it breaks, and add a tool only when a real problem
    needs one.
