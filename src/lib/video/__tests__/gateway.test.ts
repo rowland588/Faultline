@@ -32,5 +32,17 @@ describe('the gateway’s copies', () => {
       const back = copy.split('\n').slice(1).join('\n').replace(/from '\.\/([A-Za-z]+)\.ts'/g, "from './$1'");
       expect(back, `video/${f}.ts differs from its copy — run node scripts/sync-assist.mjs`).toBe(src);
     }
+    /* Line Talk's assistant (lib/talkAssist): the same rules on both sides */
+    const src = readFileSync(join(root, 'src/lib', 'talkAssist.ts'), 'utf8');
+    const copy = readFileSync(join(root, 'supabase/functions/assist/talk', 'talkAssist.ts'), 'utf8');
+    expect(copy.split('\n').slice(1).join('\n'), 'talkAssist.ts differs from its copy — run node scripts/sync-assist.mjs').toBe(src);
+    expect(copy.split('\n')[0]).toBe('// COPIED FROM src/lib by scripts/sync-assist.mjs — edit the source, then run it.');
+  });
+
+  it('a task’s refusal is said in its own words', () => {
+    const now = Date.parse('2026-10-21T12:00:00Z');
+    const rows = [{ at: now - 1000, cost_micros: 100 }];
+    expect(allowance(rows, now, { calls: 1, micros: 1e9 }, { calls: n => `${n} answers`, spent: u => `$${u} spent` })).toMatchObject({ ok: false, why: '1 answers' });
+    expect(allowance(rows, now, { calls: 9, micros: 100 }, { calls: n => `${n} answers`, spent: u => `$${u} spent` })).toMatchObject({ ok: false, why: '$0.00 spent' });
   });
 });

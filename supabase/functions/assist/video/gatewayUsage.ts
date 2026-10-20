@@ -33,13 +33,22 @@ export function costMicros(model: string, u: Usage): number {
 
 export interface Allowance { calls: number; micros: number }
 
+/** What a refusal says — by number, and by cost (in dollars, two places). */
+export interface AllowanceWords { calls: (n: number) => string; spent: (usd: string) => string }
+
+const NAMING: AllowanceWords = {
+  calls: n => `That is ${n} readings named in a day — the allowance comes back over the next 24 hours. Name the work as you review meanwhile.`,
+  spent: usd => `Today's allowance for naming the work is spent ($${usd}). Name it as you review meanwhile.`,
+};
+
 /** May this person ask again today? Counted over the last 24 hours of their
- *  own answers, by number and by cost. */
-export function allowance(rows: readonly { at: string | number; cost_micros: number | null }[], now: number, limit: Allowance): { ok: boolean; why?: string; used: Allowance } {
+ *  own answers, by number and by cost — each task its own allowance, said in
+ *  its own words (Line Talk's answers: lib/talkAssist TALK_ALLOWANCE). */
+export function allowance(rows: readonly { at: string | number; cost_micros: number | null }[], now: number, limit: Allowance, say: AllowanceWords = NAMING): { ok: boolean; why?: string; used: Allowance } {
   const since = now - 86_400_000;
   const mine = rows.filter(r => (typeof r.at === 'number' ? r.at : Date.parse(r.at)) > since);
   const used = { calls: mine.length, micros: mine.reduce((n, r) => n + (r.cost_micros ?? 0), 0) };
-  if (used.calls >= limit.calls) return { ok: false, why: `That is ${limit.calls} readings named in a day — the allowance comes back over the next 24 hours. Name the work as you review meanwhile.`, used };
-  if (used.micros >= limit.micros) return { ok: false, why: `Today's allowance for naming the work is spent ($${(limit.micros / 1e6).toFixed(2)}). Name it as you review meanwhile.`, used };
+  if (used.calls >= limit.calls) return { ok: false, why: say.calls(limit.calls), used };
+  if (used.micros >= limit.micros) return { ok: false, why: say.spent((limit.micros / 1e6).toFixed(2)), used };
   return { ok: true, used };
 }

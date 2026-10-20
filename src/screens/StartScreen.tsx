@@ -8,12 +8,19 @@
  * and a library of methods — the method builder; parked, then deleted on 20
  * October: docs/DIRECTION.md.)
  *
- * WHICH RECORD: none of its own — projects and the factory are read.
+ * LINE TALK (20 October, docs/LINE-TALK.md slice 2) just under the question:
+ * Rowland — "I open Faultline, talk or type, upload a picture when useful,
+ * ask questions, and ask for a report." Start one, or carry on the latest.
+ *
+ * WHICH RECORD: none of its own — projects, the factory and the talks are read.
  * WHERE IT SHOWS: home — #/ (and #/start, its first address) — under the one
  * rail off a project (ui/Frame, HomeNav: Home first). The control room, the
  * view of every project and line at once, is #/room. */
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { nav } from '../state/useRoute';
+import { listAllStudies, onDataChange } from '../db';
+import type { ToolStudy } from '../lib/study';
+import { Icon } from '../ui/Icon';
 import { useProjects } from '../lib/useProjects';
 import { useJobInputs } from '../lib/useJobInputs';
 import { useLineWork } from '../lib/useLineWork';
@@ -37,7 +44,7 @@ const TOOL_SAYS: Record<string, string> = {
   '/sampling': 'What people are doing at random moments, with margins',
   '/losses': 'Where a shift’s time went at the bottleneck’s speed, in packs and pounds',
   '/video': 'Film the line: the work at each station read from the footage, reviewed, worked out as a line balance',
-  '/talk': 'Talk on the line — every word heard and kept with its recording, carried on like a chat',
+  '/talk': 'Talk or type on the line, add photos, ask questions and ask for reports — every word kept with its recording',
 };
 
 const plural = (n: number, one: string, more = `${one}s`) => `${n} ${n === 1 ? one : more}`;
@@ -51,12 +58,28 @@ export function StartScreen() {
   /* every project said by the reading the control room draws from — one answer, never two */
   const pf = useMemo(() => (inputs && lineWork ? portfolio(inputs.gate, today, inputs.paced, lineWork) : null), [inputs, lineWork, today]);
   const tools = toolPlaces('');
+  /* the latest Line Talk, to carry on */
+  const [latest, setLatest] = useState<ToolStudy | null>(null);
+  useEffect(() => {
+    const load = () => void listAllStudies().then(all => setLatest(all.filter(x => x.tool === 'talk' && !x.deletedAt).sort((a, b) => b.updatedAt - a.updatedAt)[0] ?? null));
+    load();
+    return onDataChange(load);
+  }, []);
 
   return (
     <div className="wrap fd">
       <section className="fd-ask fd-plain" aria-label="What you need">
         <h1>What do you need to get done?</h1>
         <p className="pl-says">Start a project to drive a change through to its actions and proof, or use a tool on a line to measure it — every finding in money, from your factory’s own figures.</p>
+      </section>
+
+      <section className="fd-sec fd-talk" aria-label="Line Talk">
+        <div className="fd-sec-h"><h2 className="ln-h">Line Talk</h2></div>
+        <p className="sub">Talk or type on the line, add a photo when it helps, ask questions and ask for a report — answered from what you say and what Faultline holds about the line.</p>
+        <div className="fd-talk-a">
+          <button type="button" className="btn btn-primary fd-talk-start" onClick={() => nav('/talk')}><Icon name="mic" size="1.1em" />Start a Line Talk</button>
+          {latest && <button type="button" className="btn fd-talk-on" onClick={() => nav(`/talk/${latest.id}`)}>Carry on: {latest.name}</button>}
+        </div>
       </section>
 
       <section className="fd-sec" aria-label="Under way">

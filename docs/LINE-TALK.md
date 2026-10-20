@@ -1,8 +1,8 @@
 # Line Talk — talk on the line, and it makes the reports
 
 The design, agreed with Rowland on 20 October; his go the same day ("keep
-for good, go"). **Slice 1 is built** (record and keep — below, *Built*);
-slices 2–4 are not.
+for good, go"). **Slices 1 and 2 are built** (record and keep; ask it —
+below, *Built*); slices 3–4 are not.
 
 Rowland, 20 October: *"Consultant in a line speaking into his phone, the AI
 listening to everything, allows pause, continue speaking, it remembers
@@ -77,8 +77,11 @@ and today's date. And the whole talk so far.
 
 - Works out a figure. A number in what it writes is either something said in
   the talk or one of Faultline's own figures, and says which; one it was not
-  given is refused before it is shown (a grounded check, as the method
-  assistant's *Ask* made before it was deleted on 20 October).
+  given is said beside the answer to be checked before it is used (a
+  grounded check, as the method assistant's *Ask* made before it was deleted
+  on 20 October). Built in slice 2 as *said*, not refused: a figure read off
+  a gauge in a photo is the one figure it may give, as its reading, asking
+  for it to be confirmed — refusing it would refuse the photo.
 - Saves a record itself, passes a gate, or changes anything without a tap.
 - Identifies anyone in a photo.
 
@@ -91,8 +94,10 @@ and today's date. And the whole talk so far.
   on and hearing waits for signal.
 - **Replying:** one conversation call through a server-side gateway with the
   talk and its context; its proposed records come back in a fixed shape the
-  app checks before it shows them. Which model hears and which replies is
-  chosen when it is built — one provider if it can do both well.
+  app checks before it shows them. Built (slice 2): **Claude replies**
+  (`supabase/functions/assist`, task `talk`); the voice service hears
+  (`api/voice`, Gemini) — Claude takes text, pictures and PDFs but not
+  sound, so one provider cannot do both today.
 - **Keeping:** the recordings, photos and documents go to the cloud as
   footage does (`lib/video/footage`'s rules: a row names the file before it
   is uploaded; the size limit said at once), so the talk plays on another
@@ -158,3 +163,99 @@ the screen locked — tested on Rowland's phone first, as the video check did.
 - **Still open:** whether a phone keeps recording with its screen locked —
   tried on Rowland's phone first; and slice 1 is heard by the voice service
   as it stands (Gemini, `api/voice`), chosen again for slice 2.
+
+## Built — slice 2, ask it (20 October)
+
+Rowland, 20 October: *"a simple, reliable, ChatGPT-style manufacturing
+assistant inside Faultline, powered by our existing Claude API integration
+… talk or type naturally, ask questions about my manufacturing work, upload
+photographs, and ask the assistant to produce useful reports and documents."*
+Built on slice 1 — nothing of it replaced: the recording, the hearing, the
+corrections, the strikes, the pieces kept offline and the sync are as they
+were.
+
+- **Asking:** the bar's box takes typing at any time; *Send* adds it as a
+  typed turn and asks, *Reply* asks about what was said since the last
+  answer. Four chips (*Line-walk report*, *Summary for my manager*, *Punch
+  list for the OEM*, *Engineering report*) only put words in the box to be
+  changed before they are sent. *Photo* takes or picks pictures (several at
+  once), each labelled P1, P2 … in the order taken, struck ones keeping
+  their number.
+- **The answer is a turn** (`lib/talk` kind `reply`) in the same list as
+  everything else, merged by id between devices — no new record and no
+  migration. It holds its words, the document if one was asked for, the
+  figures to check (`unsure`) and the model that wrote it; while it waits it
+  says so (*Line Talk is answering…*). It is kept even when it fails: *No
+  signal* — answered by itself when the signal comes back; anything else —
+  why, in words, with *Ask again*. What was said, typed and photographed is
+  never lost to a failed answer.
+- **What it is told** (`lib/talkContext`, from `screens/useTalkContext`):
+  the line's own sentences, laid out under headings and never worked out
+  again — its machines in flow order and makers, shifts, crew and cost; its
+  open problems in priority order (owner, due, plan, latest step); its
+  programs not proved yet; what each of its tools last found, in the words
+  the line's page says them (`ProductionLineScreen` `toolSaysOf`, `stopsOf`,
+  shared, not copied); its jobs and their verdicts; the job the talk is on.
+  Shown on the talk as *What Line Talk knows*, opened to read whole. Then the
+  whole conversation — every turn with its time and how it came, a
+  correction as corrected, earlier answers and their documents as words —
+  and today's date. Pictures: the newest ten photos (`photosToSend`), each
+  drawn at 1,280 px at most and under 450 KB (`lib/talkPictures`); older
+  ones by their label alone.
+- **The gateway** (`supabase/functions/assist`, task `talk`; the core
+  shared word for word with the app, `lib/talkAssist` →
+  `assist/talk/talkAssist.ts` by `scripts/sync-assist.mjs`): the key stays
+  there; a signed-in person only; the request held to its limits
+  (`TALK_LIMITS`: 600 turns, 240,000 characters, 10 pictures); the
+  instructions the gateway's own (`TALK_SYSTEM` — the three kinds of
+  knowledge kept apart: what was observed, Faultline's records, its own
+  assessment; never invent or calculate a figure; never identify anyone;
+  never change a record); the answer held to a small JSON schema
+  (`TALK_SCHEMA`, the document first so the reply says what it holds) and
+  read again (`checkTalkAnswer` — a picture must be one of the talk's);
+  every figure not in what was said, the records or today's date returned
+  as `unsure`. An allowance a person a day — 60 answers and $5
+  (`ASSIST_TALK_DAILY_CALLS`, `ASSIST_TALK_DAILY_USD`) — kept in
+  `assist_usage` apart from the camera's. The model and effort are
+  configuration (`ASSIST_TALK_MODEL`, `ASSIST_TALK_EFFORT`, medium). The
+  conversation is cached up to its newest turn, so a long talk is not paid
+  for twice.
+- **A document** is a card in the conversation (its kind, title, sections,
+  photos, *edited* once changed) that opens `#/talk/<id>?doc=<reply>`
+  (`screens/TalkDocView`): every title, heading, paragraph, point, owner,
+  due date and caption edited where it stands, a point or a photo taken out,
+  each point saying where it comes from (*Observed · Faultline record ·
+  Assessment*); *As Line Talk wrote it* puts back the first version, kept
+  beside it (`docFirst`). *Save as PDF* (`lib/talkDocPdf`, the report
+  engine's blocks in the house look): the band, the key to where each point
+  comes from, the sections, the photos at their size with their labels and
+  captions, the figures to check said first. Nothing it writes becomes a
+  Faultline record — the person adds what should be one.
+- **Proved:** `lib/__tests__/talkAssist.test.ts`, `talk.test.ts`,
+  `talkContext.test.ts`, `video/__tests__/gateway.test.ts` (the gateway's
+  copy the same as its source); `scripts/acceptance/line-talk-assistant.mjs`
+  — the assistant answered by the script and what it was asked read back:
+  a typed question answered, a photo sent as its picture, a failure kept with
+  *Ask again*, no signal waiting and answered when it comes back, a document
+  opened, edited, put back and printed with its photo, the answers carried
+  in the next question, a reload; and the line-talk slice 1 script unchanged
+  in what it proves. **Live, 20 October** (the gateway's check entry — the
+  database's own key, no person, nothing logged; `assist` v11, its rules
+  fingerprint the repo's): a line-walk report from two spoken notes and
+  Line 7's records, machine by machine in flow order, each point marked
+  observed, record or assessment, no figure invented, the two figures heard
+  asked to be confirmed — 17.7 s, $0.04; a photo of a checkweigher infeed
+  described (the label, a rail with a step, *412 g* read off the display and
+  asked to confirm, `unsure` 412) and placed in an engineering report with
+  its caption — 17.6 s, $0.03, the instructions read from the cache; and a
+  follow-up to the walk ("what did I say about the bagger? … a punch list
+  for the OEM: Dave owns the guard, due Friday") answered from the earlier
+  turns, Dave and Friday on the guard alone and the others *Owner not named
+  yet* — 13.4 s, $0.03. The first try, before the document came first in
+  the schema, wrote a reply describing three machines over a document of
+  one section; the order was changed and the walk asked again.
+- **Still open:** slice 1's phone test (the screen locked, a signal lost)
+  and the first answers on Rowland's own phone; the camera and gallery
+  pickers on iOS and Android; whether to keep Gemini for hearing (the only
+  part of Line Talk not on Claude — Claude takes no sound) or move it to the
+  phone's own speech recognition; slices 3 and 4.

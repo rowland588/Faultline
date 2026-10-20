@@ -13776,6 +13776,8 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
    page's (the video study once borrowed the value stream's and broke it). */
 .fd { max-width: 980px; }
 .fd-ask { padding: 18px 0 8px; }
+.fd-talk-a { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.fd-talk-a .btn { display: inline-flex; align-items: center; gap: 8px; min-height: 46px; }
 .fd-ask h1 { font-size: clamp(26px, 4vw, 36px); margin: 0 0 8px; }
 .fd-sec { margin-top: 26px; }
 .fd-sec-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
@@ -13819,6 +13821,49 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .tk-type { display: flex; gap: 8px; }
 .tk-type .text-input { flex: 1; min-width: 0; }
 .tk-hint, .tk-said { margin: 0; }
+/* ASK IT (slice 2): Line Talk's answers on the left of the page, the person's turns as they were; a photo's label; the composer */
+.tk-turn.is-reply { background: var(--surface-2); border-color: var(--line); border-left: 3px solid var(--brand); }
+.tk-label { color: var(--ink); }
+.tk-ans { display: flex; flex-direction: column; gap: 6px; line-height: 1.5; }
+.tk-ans p { margin: 0; white-space: pre-wrap; }
+.tk-ans ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 3px; }
+.tk-doc { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 12px; }
+.tk-doc-k { font-size: var(--t-small); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.tk-doc-t { flex: 1 1 200px; }
+.tk-unsure { margin: 0; color: var(--st-a); font-weight: 600; }
+/* the shortcuts in one row, sideways on a phone — the conversation keeps the screen */
+.tk-chips { display: flex; flex-wrap: nowrap; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -2px; padding: 0 2px; }
+.tk-chips::-webkit-scrollbar { display: none; }
+.tk-chip { font-size: var(--t-small); flex: none; white-space: nowrap; padding-top: 6px; padding-bottom: 6px; }
+.tk-box, .tk-docv textarea, .tk-fix textarea { font: inherit; }
+.tk-type { align-items: flex-end; }
+.tk-box { resize: vertical; min-height: 44px; line-height: 1.4; }
+.tk-send { min-height: 44px; min-width: 84px; }
+.tk-online { margin-top: 8px; max-width: 360px; }
+.tk-knows { margin-top: 8px; font-size: var(--t-small); }
+.tk-knows summary { cursor: pointer; color: var(--muted); }
+.tk-knows-t { white-space: pre-wrap; word-break: break-word; font: inherit; font-size: var(--t-small); background: var(--surface-2); border-radius: var(--radius-sm); padding: 10px 12px; max-height: 320px; overflow: auto; margin: 6px 0 0; }
+/* a Line Talk document, opened: edited where it stands */
+.tk-docv .tk-dtitle { font-size: 1.35rem; font-weight: 700; width: 100%; margin-top: 6px; }
+.tk-docv .field select { max-width: 320px; }
+.tk-dacts { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; }
+.tk-dsec { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; margin: 12px 0; display: flex; flex-direction: column; gap: 8px; max-width: 860px; }
+.tk-dh { font-weight: 700; font-size: 1.05rem; }
+.tk-dtext-r { margin: 0; white-space: pre-wrap; }
+.tk-dpts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.tk-dpt { display: grid; grid-template-columns: 150px 1fr; gap: 6px 8px; align-items: start; border-top: 1px solid var(--line); padding-top: 8px; }
+.tk-dpt-m { grid-column: 2; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.tk-dpt-m .text-input { flex: 1 1 120px; min-width: 0; }
+.tk-dbasis-r { font-size: var(--t-small); font-weight: 700; text-transform: uppercase; color: var(--muted); }
+.tk-dpt:has(.tk-dbasis-r) { display: block; }
+.tk-dphotos { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.tk-dph { margin: 0; display: flex; flex-direction: column; gap: 6px; width: min(100%, 280px); }
+.tk-dph-i { width: 100%; max-height: 220px; object-fit: contain; border-radius: var(--radius-sm); background: var(--surface-2); }
+.tk-dph-none { display: block; padding: 24px 10px; background: var(--surface-2); border-radius: var(--radius-sm); }
+.tk-dph figcaption { display: flex; flex-direction: column; gap: 4px; font-size: var(--t-small); }
+.tk-daddph { max-width: 200px; }
+.tk-dsec-a { display: flex; gap: 14px; font-size: var(--t-small); }
+@media (max-width: 640px) { .tk-dpt { grid-template-columns: 1fr; } .tk-dpt-m { grid-column: 1; } }
 @media (max-width: 640px) { .tk-bar { margin: 8px -12px 0; padding-left: 12px; padding-right: 12px; } .tk-talk { flex: 1; justify-content: center; } }
 /* a phone: the talk's bar sits on the phone's own bar, and the quick Problem button gives way to Photo */
 @media (max-width: 899px) {
