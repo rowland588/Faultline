@@ -2,7 +2,7 @@
  * only. The rules (what may be approved, when a gate may be passed, what is
  * logged) are lib/flow/operations; nothing here decides anything. */
 import type { ID } from '../types';
-import type { ActivityEntry, FlowRecord, Method } from '../lib/flow/records';
+import type { ActivityEntry, FlowRecord, GateCheck, Method } from '../lib/flow/records';
 import { now } from '../lib/ids';
 import { getDB, signalWrite } from './core';
 import { recordTombstones, restoreRows, type Restore } from './sync';
@@ -99,4 +99,13 @@ export async function listActivity(projectId: ID): Promise<ActivityEntry[]> {
 export async function listMethodActivity(methodIds: readonly ID[]): Promise<ActivityEntry[]> {
   const ids = new Set(methodIds);
   return (await (await getDB()).getAll('activity_log')).filter(a => a.methodId && ids.has(a.methodId)).sort((a, b) => b.at - a.at);
+}
+
+/* ----------------------------- the server's reading ---------------------------- */
+
+/** The server's readings of a project's gate passes, by the pass's id — only
+ *  ever written here by the sync's pull (lib/flow/gateCheck). */
+export async function listGateChecks(projectId: ID): Promise<Record<ID, GateCheck>> {
+  const all = await (await getDB()).getAllFromIndex('gate_checks', 'by_project', projectId);
+  return Object.fromEntries(all.filter(live).map(c => [c.id, c]));
 }

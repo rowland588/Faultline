@@ -19,6 +19,12 @@
  *               assistant's proposal. Nothing recorded that before; the
  *               mandate needs it ("controlled, validated, versioned and
  *               auditable"). Written once, never changed.
+ *   Gate check  the SERVER's reading of a gate pass (lib/flow/gateCheck,
+ *               supabase/GATE_CHECKS.sql). It cannot be a field on the pass:
+ *               the device writes the pass's row whole, so anything on it is
+ *               the device's word. Only the server writes this one, so a pass
+ *               a device recorded that its records do not bear out is said so
+ *               on every other device and on paper.
  */
 import type { FlowEntry } from './analysis';
 import type { ID, MediaRef } from '../../types';
@@ -125,6 +131,33 @@ export interface ActivityEntry {
   detail?: Record<string, unknown>;
   createdAt: number;
   updatedAt: number;
+}
+
+/* ------------------------------ the server's reading ------------------------ */
+
+/** Whether the records bear a pass out — read on the server, as they stood
+ *  when the gate was passed (lib/flow/gateCheck). */
+export type GateVerdict = 'agrees' | 'override' | 'disagrees';
+
+export interface GateCheck {
+  /** The pass's own id: one reading a pass, read again when its records move. */
+  id: ID;
+  projectId: ID;
+  stageKey: string;
+  verdict: GateVerdict;
+  /** The sentence, as lib/flow/gateCheck says it. */
+  says: string;
+  /** What the records did not show when it was passed. */
+  unmet: string[];
+  /** What changed after it was passed — read as it is now. */
+  later: string[];
+  /** The owner's reason for passing over what was unmet, as kept on the pass. */
+  override?: string;
+  /** When the server read it. */
+  readAt: number;
+  createdAt: number;
+  updatedAt: number;
+  deletedAt?: number;
 }
 
 /** The project's link to its method: which family, which version. */

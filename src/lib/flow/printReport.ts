@@ -12,7 +12,7 @@ export async function printFlowReport(projectId: string): Promise<string> {
   if (!fp) return 'Its method has not reached this device yet — it will once this device has synced.';
   const page = flowLean({
     project: fp.project, def: fp.method.definition, version: fp.method.version, startedOn: fp.project.flow?.startedOn,
-    state: fp.state, problems: fp.problems, records: fp.records, machines: fp.machines,
+    state: fp.state, problems: fp.problems, records: fp.records, machines: fp.machines, checks: fp.checks,
   }, today);
   const { loadPdfLib, deliverPdf, titlePdf } = await import('../savePdf');
   const { drawFlowReport } = await import('./reportPdf');

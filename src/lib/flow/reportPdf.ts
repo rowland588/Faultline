@@ -20,9 +20,12 @@ import type { LeanPage } from '../lean';
 import { niceDay, todayISO } from '../weeks';
 import type { FlowProject } from './operations';
 import type { ActivityEntry } from './records';
+import { checkOfPass } from './gateCheck';
 import { stageWord, stepSquare, stepWhy, stepWord, type Square } from './view';
 import { measureNumber, type StepInstance } from './runtime';
 import { BLOCKS, entryValues, fmtNumber, type AnalysisPicture, type AnalysisResult } from './analysis';
+import { fishLayout } from './fishbone';
+import { linkSaid, linksSaid, linksTo } from './links';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const GREY = '#6b7588';
@@ -52,7 +55,41 @@ function line(what: string, why: string, word: string, tone: Square): { h: (f: F
  *  share, a control chart with its limits and signals, a relationship's dots
  *  and line, a forecast carried a week on — in neutral ink as on the screen
  *  (ui/flow/LogParts AnalysisChart), a control chart's signals in red. */
-function chartBlock(res: AnalysisResult, picture: AnalysisPicture, axes: { x?: string; y?: string } = {}): Block {
+/** A FISHBONE ON PAPER — the same layout as the screen's (lib/flow/fishbone),
+ *  at the column's width: the head, the spine, each bone with its causes, a
+ *  root cause bold with a dot. Every cause is whole in the entries printed at
+ *  the end of the report. */
+function fishBlock(res: AnalysisResult, head: string): Block {
+  const scale = (f: Frame) => ({ width: Math.min(f.w - 10, 520), line: 9, char: 3.05, headW: 104 });
+  const laid = (f: Frame) => fishLayout(res.bones ?? [], head, scale(f));
+  return {
+    height: f => (res.bones?.length ? laid(f).h + 10 : 0),
+    draw: (f, y) => {
+      if (!res.bones?.length) return;
+      const doc = f.doc, L = laid(f), x0 = f.x + 6, top = y + 4;
+      doc.setDrawColor(INK2); doc.setLineWidth(1.4);
+      doc.line(x0 + L.spineX0, top + L.spineY, x0 + L.head.x, top + L.spineY);
+      doc.setFillColor('#eef2f2'); doc.setLineWidth(0.9);
+      doc.roundedRect(x0 + L.head.x, top + L.head.y, L.head.w, L.head.h, 4, 4, 'FD');
+      font(doc, 7, 'bold', INK2);
+      L.head.lines.forEach((t, i) => doc.text(t, x0 + L.head.x + 5, top + L.head.y + 11 + i * 9));
+      for (const b of L.bones) {
+        doc.setDrawColor(INK2); doc.setLineWidth(0.8);
+        doc.line(x0 + b.line[0], top + b.line[1], x0 + b.line[2], top + b.line[3]);
+        font(doc, 7, 'bold', INK2); doc.text(b.name, x0 + b.nameX, top + b.nameY);
+        const nw = doc.getTextWidth(b.name);
+        font(doc, 7, 'normal', MUTED); doc.text(` · ${b.count}`, x0 + b.nameX + nw, top + b.nameY);
+        for (const c of b.causes) {
+          if (c.root) { doc.setFillColor(INK2); doc.circle(x0 + c.x - 3.5, top + c.y - 2, 1.5, 'F'); }
+          font(doc, 6, c.root ? 'bold' : 'normal', INK2); doc.text(c.text, x0 + c.x, top + c.y);
+        }
+      }
+    },
+  };
+}
+
+function chartBlock(res: AnalysisResult, picture: AnalysisPicture, axes: { x?: string; y?: string } = {}, head = ''): Block {
+  if (picture === 'fishbone') return fishBlock(res, head);
   const pts = res.series ?? [];
   const H0 = 104;
   const drawn = picture !== 'none' && pts.length > 0 && (picture !== 'control' || !!res.limits) && (picture !== 'forecast' || !!res.fit) && (picture !== 'curve' || pts.length > 1);
@@ -187,7 +224,7 @@ function logBlocks(s: StepInstance): Block[] {
     const res = s.analysis?.[a.key];
     if (!res) continue;
     const label = (k?: string) => s.def.columns?.find(c => c.key === k)?.label;
-    const chart = res.series?.length ? chartBlock(res, BLOCKS[a.block]?.picture ?? 'none', { x: label(a.against), y: label(a.of) }) : undefined;
+    const chart = res.series?.length ? chartBlock(res, BLOCKS[a.block]?.picture ?? 'none', { x: label(a.against), y: label(a.of) }, a.label) : undefined;
     /* the sentence travels with its picture — never a picture on the page after what it says */
     out.push({ ...text({ text: res.says, size: 8, colour: INK2, indent: 10, after: 2 }), ...(chart ? { keepWithNext: true } : {}) });
     if (chart) out.push(chart);
@@ -244,6 +281,9 @@ function blocksOf(r: FlowReport, d: Density): Block[] {
       out.push(text({ text: `${word} — ${c.label}${c.manual ? '' : ` (${c.why})`}`, size: 8, colour: c.met || (c.manual && g.pass?.checks?.[c.id]) ? OK : c.manual ? MUTED : c.policy === 'warn' ? WARN : DANGER, indent: 10, after: 2 }));
     }
     if (g.pass?.openAtPass?.length) out.push(text({ text: `Open when it was passed: ${g.pass.openAtPass.join('; ')}.`, size: 8, colour: MUTED, indent: 10, after: 2 }));
+    /* the server's reading of the pass, as the gate sheet says it — red when the records do not bear it out */
+    const check = checkOfPass(g.pass, fp.checks);
+    if (g.passed && check) out.push(text({ text: check.says, size: 8, style: check.verdict === 'disagrees' ? 'bold' : 'normal', colour: check.verdict === 'disagrees' ? DANGER : MUTED, indent: 10, after: 2 }));
     out.push({ height: f => gap(f.density, 'm'), draw: () => undefined });
   }
 
@@ -262,8 +302,11 @@ function blocksOf(r: FlowReport, d: Density): Block[] {
       out.push(text({ text: `${s.def.title}${s.machine ? ` — ${s.machine}` : ''}`, size: 8.5, style: 'bold', colour: INK2, before: 2, after: 2 }));
       for (const e of [...(s.record?.entries ?? [])].sort((a, b) => a.on.localeCompare(b.on) || a.at - b.at)) {
         const v = entryValues(cols, e.values);
-        const said = cols.map(c => { const x = v[c.key]; return x === undefined ? '' : `${c.label} ${typeof x === 'number' ? `${fmtNumber(x)}${c.unit ? ` ${c.unit}` : ''}` : typeof x === 'boolean' ? (x ? 'yes' : 'no') : x}`; }).filter(Boolean).join(' · ');
-        out.push(text({ text: `${niceDay(e.on)} — ${said}${e.who ? ` (${e.who})` : ''}${e.struck ? ' — struck, not counted' : ''}`, size: 8, colour: e.struck ? MUTED : INK2, indent: 10, after: 1 }));
+        /* a link is said by the entry it names, as it stands now */
+        const linked = (c: (typeof cols)[number], x: unknown) => { const l = linkSaid(fp.state, c, x, s.assetId); return l ? `“${l.title}”${l.struck ? ' (struck)' : ''}` : ''; };
+        const said = cols.map(c => { const x = v[c.key]; return x === undefined ? '' : `${c.label} ${c.type === 'ref' ? linked(c, x) : typeof x === 'number' ? `${fmtNumber(x)}${c.unit ? ` ${c.unit}` : ''}` : typeof x === 'boolean' ? (x ? 'yes' : 'no') : x}`; }).filter(Boolean).join(' · ');
+        const back = e.struck ? [] : linksTo(fp.state, s.def.key, e.id, s.assetId);
+        out.push(text({ text: `${niceDay(e.on)} — ${said}${e.who ? ` (${e.who})` : ''}${e.struck ? ' — struck, not counted' : ''}${back.length ? ` — linked: ${linksSaid(back)}` : ''}`, size: 8, colour: e.struck ? MUTED : INK2, indent: 10, after: 1 }));
       }
     }
   }

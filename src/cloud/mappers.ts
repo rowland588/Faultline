@@ -12,7 +12,7 @@ import type { Standard, StandardMark } from '../lib/standard';
 import { factsOf, listById, type StudyUse, type ToolStudy } from '../lib/study';
 import { footageKeys, forTheCloud } from '../lib/video/footage';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
-import type { ActivityEntry, FlowRecord, Method, ProjectFlow } from '../lib/flow/records';
+import type { ActivityEntry, FlowRecord, GateCheck, Method, ProjectFlow } from '../lib/flow/records';
 import type { FlowDefinition } from '../lib/flow/definition';
 
 type Row = Record<string, unknown>;
@@ -790,6 +790,32 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     } satisfies ActivityEntry),
   },
 
+  /* THE SERVER'S READING OF A GATE PASS (lib/flow/gateCheck) — the server
+     writes it (supabase/functions/gatecheck); a device only ever pulls it
+     (READ_ONLY_KINDS). toRow is the server's: it writes rows of this shape. */
+  gate_checks: {
+    clock: l => (l as GateCheck).updatedAt,
+    mediaKeys: () => [],
+    toRow: (l) => {
+      const c = l as GateCheck;
+      return {
+        id: c.id, project_id: c.projectId, stage: c.stageKey, verdict: c.verdict, says: c.says,
+        unmet: c.unmet, later: c.later, override: c.override ?? null, read_at: c.readAt,
+        created_at: c.createdAt, updated_at: c.updatedAt, deleted_at: c.deletedAt ?? null,
+      };
+    },
+    fromRow: (r) => ({
+      id: r.id as string, projectId: r.project_id as string, stageKey: (r.stage as string) ?? '',
+      verdict: (r.verdict === 'agrees' || r.verdict === 'override' ? r.verdict : 'disagrees') as GateCheck['verdict'],
+      says: (r.says as string) ?? '',
+      unmet: Array.isArray(r.unmet) ? (r.unmet as string[]) : [],
+      later: Array.isArray(r.later) ? (r.later as string[]) : [],
+      override: (r.override as string) ?? undefined,
+      readAt: Number(r.read_at) || 0,
+      createdAt: Number(r.created_at), updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
+    } satisfies GateCheck),
+  },
+
   materials: {
     clock: l => (l as Material).updatedAt,
     mediaKeys: () => [],
@@ -862,7 +888,13 @@ export const SYNC_KINDS: SyncKind[] = [
   // a method before the steps done under it; the activity log last, after
   // everything it can name
   'methods', 'flow_records', 'activity_log',
+  // the server's reading of a gate pass, after the passes it reads
+  'gate_checks',
 ];
+
+/** Kinds only the server writes: pulled like any other, never pushed and
+ *  never counted as this device's unsent work (cloud/sync). */
+export const READ_ONLY_KINDS: ReadonlySet<SyncKind> = new Set<SyncKind>(['gate_checks']);
 
 /** A project's link to its method, read defensively — a row from a build
  *  before methods has none. */

@@ -15,15 +15,16 @@ import { uid, now } from '../ids';
 import { todayISO } from '../weeks';
 import type { Restore } from '../../db';
 import {
-  addActivity, deleteFlowRecord, deleteMethodRow, getMethod, getProject, getStandard, getStudy, listAllSnags, listAssets,
+  addActivity, deleteFlowRecord, deleteMethodRow, getMethod, getProject, getStandard, getStudy, listAllSnags, listAssets, listGateChecks,
   listFlowRecords, listObservations, listWorkspaces, methodFamily, putAsset, putFlowRecord, putMethod, updateProject, createProject,
 } from '../../db';
-import { readCapacity, readTool } from './toolRead';
+import { readToolsFrom } from './toolRead';
 import { isTypedNumber, type FlowDefinition } from './definition';
 import { validateDefinition, type Issue } from './validate';
 import { readFlow, type FlowProblem, type FlowState, type ToolReading } from './runtime';
-import type { ActivityEntry, FlowRecord, Method, ProjectFlow } from './records';
+import type { ActivityEntry, FlowRecord, GateCheck, Method, ProjectFlow } from './records';
 import type { FlowEntry } from './analysis';
+import { linkedLog } from './links';
 
 export interface OpContext {
   /** The person, as they are known on screen. */
@@ -196,6 +197,8 @@ export interface FlowProject {
   /** The tool records its steps point at, read by each tool's own module. */
   tools: Record<string, ToolReading>;
   state: FlowState;
+  /** The server's reading of each gate pass, by the pass's id (lib/flow/gateCheck). */
+  checks: Record<string, GateCheck>;
 }
 
 /** THE TOOL RECORDS A PROJECT'S STEPS POINT AT, read (lib/flow/toolRead) —
@@ -206,18 +209,13 @@ export async function readTools(studyIds: readonly string[]): Promise<Record<str
   if (!ids.length) return {};
   const studies = (await Promise.all(ids.map(id => getStudy(id)))).filter((x): x is NonNullable<typeof x> => !!x && !x.deletedAt);
   const lines = [...new Set(studies.filter(x => x.tool === 'losses' && x.workspaceId).map(x => x.workspaceId as string))];
-  const [workspaces, observations] = lines.length
+  /* not a study: a product's line standard, read for its Line capacity */
+  const found = new Set(studies.map(x => x.id));
+  const standards = (await Promise.all(ids.filter(id => !found.has(id)).map(id => getStandard(id)))).filter((x): x is NonNullable<typeof x> => !!x && !x.deletedAt);
+  const [workspaces, observations] = lines.length || standards.length
     ? await Promise.all([listWorkspaces(), Promise.all(lines.map(l => listObservations(l))).then(xs => xs.flat())])
     : [[], []];
-  const out: Record<string, ToolReading> = {};
-  for (const st of studies) out[st.id] = readTool(st, { observations, workspaces });
-  /* not a study: a product's line standard, read for its Line capacity */
-  const standards = (await Promise.all(ids.filter(id => !out[id]).map(id => getStandard(id)))).filter((x): x is NonNullable<typeof x> => !!x && !x.deletedAt);
-  if (standards.length) {
-    const ws = workspaces.length ? workspaces : await listWorkspaces();
-    for (const sd of standards) out[sd.id] = readCapacity(sd, ws.find(w => w.id === sd.workspaceId));
-  }
-  return out;
+  return readToolsFrom(ids, { studies, standards, workspaces, observations });
 }
 
 /** Everything a project running a method needs read, and read once. */
@@ -226,7 +224,7 @@ export async function loadFlowProject(projectId: ID, today: string = todayISO())
   if (!project?.flow) return undefined;
   const method = await getMethod(project.flow.methodId);
   if (!method) return undefined;
-  const [records, assets, snags] = await Promise.all([listFlowRecords(projectId), listAssets(projectId), listAllSnags()]);
+  const [records, assets, snags, checks] = await Promise.all([listFlowRecords(projectId), listAssets(projectId), listAllSnags(), listGateChecks(projectId)]);
   const machines = assets.filter(a => !a.deletedAt).sort((a, b) => a.sort - b.sort).map(a => ({ id: a.id, name: a.name }));
   const problems: FlowProblem[] = snags
     .filter(s => s.projectId === projectId && !s.deletedAt && !s.archivedAt)
@@ -236,7 +234,7 @@ export async function loadFlowProject(projectId: ID, today: string = todayISO())
     def: method.definition, records, machines, problems, today, tools,
     startedOn: project.flow.startedOn, people: project.flow.people,
   });
-  return { project, method, records, machines, problems, tools, state };
+  return { project, method, records, machines, problems, tools, state, checks };
 }
 
 export interface StepRef { projectId: ID; stageKey: string; stepKey: string; assetId?: ID }
@@ -291,9 +289,11 @@ export async function recordStep(ctx: OpContext, s: StepRef, patch: StepPatch): 
 /* ------------------------------------------------------------- a log's entries */
 
 /** One entry's boxes as typed, checked against the log's columns — a number
- *  is a number, a choice one of its options, the needed ones filled. Worked-
- *  out columns are never kept (lib/flow/analysis entryValues). */
-function readEntry(fp: FlowProject, s: StepRef, typed: Record<string, string | number | boolean>): { values?: Record<string, string | number | boolean>; why?: string } {
+ *  is a number, a choice one of its options, a link an entry of the log it
+ *  names, the needed ones filled. Worked-out columns are never kept
+ *  (lib/flow/analysis entryValues). `kept`: the entry as it was — a link
+ *  left as it was stands, even to an entry struck since. */
+function readEntry(fp: FlowProject, s: StepRef, typed: Record<string, string | number | boolean>, kept?: Record<string, string | number | boolean>): { values?: Record<string, string | number | boolean>; why?: string } {
   const step = fp.method.definition.stages.find(x => x.key === s.stageKey)?.steps.find(x => x.key === s.stepKey);
   if (!step) return { why: 'That step is not on the method.' };
   if (step.answer !== 'log') return { why: 'That step is not a log.' };
@@ -313,7 +313,16 @@ function readEntry(fp: FlowProject, s: StepRef, typed: Record<string, string | n
       if (!o) return { why: `${c.label} is one of ${(c.options ?? []).join(', ')}.` };
       values[c.key] = o;
     } else if (c.type === 'yesno') values[c.key] = v === true || /^(y|yes|true)$/i.test(String(v));
-    else values[c.key] = typeof v === 'string' ? v.trim().slice(0, 2000) : v;
+    else if (c.type === 'ref') {
+      const id = String(v).trim();
+      if (kept?.[c.key] !== id) {
+        const log = linkedLog(fp.state, c, s.assetId);
+        const e = log?.record?.entries?.find(x => x.id === id);
+        if (!log || !e) return { why: `${c.label}: that entry is not on ${log ? `“${log.def.title}”` : 'the log it links to'}.` };
+        if (e.struck) return { why: `${c.label}: that entry is struck — link one that counts.` };
+      }
+      values[c.key] = id;
+    } else values[c.key] = typeof v === 'string' ? v.trim().slice(0, 2000) : v;
   }
   if (!Object.keys(values).length) return { why: 'The entry is empty.' };
   return { values };
@@ -342,7 +351,7 @@ export async function editEntry(ctx: OpContext, s: StepRef, id: ID, typed: Recor
   const { rec } = await currentRecord(fp, s);
   const was = (rec.entries ?? []).find(e => e.id === id);
   if (!was) return refuse('That entry is not on this device.');
-  const read = readEntry(fp, s, { ...was.values, ...typed });
+  const read = readEntry(fp, s, { ...was.values, ...typed }, was.values);
   if (!read.values) return refuse(read.why ?? 'The entry cannot be read.');
   const next: FlowEntry = { ...was, values: read.values };
   await putFlowRecord({ ...rec, entries: (rec.entries ?? []).map(e => (e.id === id ? next : e)) });

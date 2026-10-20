@@ -243,6 +243,29 @@ them*, which reads the conditions, tries the strongest and proves the trial
 against the first log. Next: a tool's panel inside the step itself
 rather than its page; more blocks and ways to capture as the floor asks (a
 regression on several columns, a tally counted with a tap — each tested).
+And VIEWS AND LINKS (20 October, docs/VIEWS.md — Rowland, 19 October: "a
+cohesive, polished working environment containing a project charter, PDCA
+management, an interactive fishbone diagram, action tracking ... connected
+and behave as one integrated system"): every step had been drawn by one
+panel, a table, and nothing on one step could point at another. Two
+additions, no new record and no database change. A step can be SHOWN AS a
+view from a closed registry (`lib/flow/views`: fishbone, board, charter,
+timeline), each slot bound to one of the step's own columns or boxes,
+checked by the validator, chosen in the editor (*Shown as*) and said on the
+method ("shown as a fishbone · bones from Bone"); a view draws and edits,
+the analysis blocks still work out every figure a gate or measure reads.
+And a column or box can be a LINK (`ref`, `lib/flow/links`): an entry of a
+log before it — "the root cause this experiment tests" — picked by its
+words, refused if it is not on that log or is struck, kept as it was when
+its entry is struck later, said by the entry's words on the screen and the
+paper, and followed back (the cause's row says "2 in PDCA experiments").
+The fishbone block draws every cause on its bone with the root causes
+marked, on screen and paper. Built: the registry, the link, the validator,
+the editor, the log's table and form, the paper (slice 1). Next, slice by
+slice: the fishbone and the board drawn as themselves (tap a bone to add a
+cause, cards moved between lanes), the charter and the timeline, Faultline's
+*Lean improvement project* in the library with its acceptance script, and
+the assistant proposing views and links once their grammar is proved live.
 
 **Control room** (`#/room`; `#/` until 18 October, when home became the
 front door). Your factory first: a card per line saying its health

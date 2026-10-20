@@ -20,6 +20,7 @@
  * is simply not counted). */
 import { allSteps, fieldKeyOf, keyOf, measureKeyOf, type FlowCondition, type FlowDefinition, type FlowMeasure, type FlowStepDef } from './definition';
 import { componentOf } from './components';
+import { viewSaid } from './views';
 import type { FlowRecord } from './records';
 
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
@@ -113,6 +114,7 @@ const stepWords = (s: FlowStepDef): string => [
   s.per === 'machine' ? 'every machine' : 'once', s.answer, s.role ?? '', s.passesIf ?? '',
   `p${s.evidence?.photos ?? 0}f${s.evidence?.files ?? 0}`, String(s.dueDays ?? ''), (s.after ?? []).join(','),
   (s.fields ?? []).map(fieldWords).join(';'), s.component?.tool ?? '',
+  (s.columns ?? []).map(fieldWords).join(';'), JSON.stringify(s.view ?? null),
 ].join('|');
 /* a condition in a form that does not depend on its id or the order its parts were written in */
 const condWords = (c: FlowCondition): string => {
@@ -175,6 +177,8 @@ function whatChanged(a: FlowStepDef, b: FlowStepDef): string {
   if ((a.after ?? []).join() !== (b.after ?? []).join()) parts.push('what it waits on');
   if ((a.fields ?? []).map(fieldWords).join(';') !== (b.fields ?? []).map(fieldWords).join(';')) parts.push('its boxes or their limits');
   if ((a.component?.tool ?? '') !== (b.component?.tool ?? '')) parts.push(b.component ? `done with ${componentOf(b.component.tool)?.name ?? b.component.tool}` : 'no longer done with a tool');
+  if ((a.columns ?? []).map(fieldWords).join(';') !== (b.columns ?? []).map(fieldWords).join(';')) parts.push('what each entry asks');
+  if (JSON.stringify(a.view ?? null) !== JSON.stringify(b.view ?? null)) parts.push(b.view ? (viewSaid(b) ?? 'shown another way') : 'shown as a table');
   return parts.join('; ') || 'changed';
 }
 

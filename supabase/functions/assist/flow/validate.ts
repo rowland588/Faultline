@@ -11,7 +11,7 @@
  * every problem is said in words a person can act on ("Stage 3, step 2 has
  * no title"), because the review screen shows them. */
 import {
-  ANSWERS, CONDITIONS, FIELD_TYPES, FLOW_SCHEMA, KEY_RE, LIMITS, RULE_OPS, TIMER_UNITS, isNumberBox, isTypedNumber, numbersOf,
+  ANSWERS, CONDITIONS, FIELD_TYPES, FIELD_WORD, FLOW_SCHEMA, KEY_RE, LIMITS, RULE_OPS, TIMER_UNITS, isNumberBox, isTypedNumber, numbersOf,
   type FlowAnswer, type FlowCondition, type FlowDefinition, type FlowField, type FlowMeasure, type FlowNeed, type FlowRole, type FlowRule,
   type FlowStage, type FlowStepDef, type FieldType,
 } from './definition.ts';
@@ -23,6 +23,7 @@ const TARGET_READERS = (() => {
 })();
 import { FormulaError, formulaRefs, parseFormula } from './formula.ts';
 import { componentOf } from './components.ts';
+import { VIEW_IDS, viewOf, type FlowView } from './views.ts';
 
 export interface Issue { path: string; message: string }
 export interface Checked {
@@ -122,6 +123,8 @@ export function validateDefinition(input: unknown): Checked {
       if (answer === 'log' && !columns.length) err(`${tp}.columns`, `${twhere} (${title}) is a log with no columns — say what each entry asks.`);
       const analyses = answer === 'log' ? readAnalyses(t.analyses, columns, fields, tp, `${twhere} (${title || tkey})`, err) : [];
       if (answer === 'log' && columns.length && !analyses.length) warn(`${tp}.analyses`, `${twhere} (${title}) logs entries but works nothing out from them — add an analysis (a total, a Pareto, a trend…).`);
+      /* how it is drawn: a view the app has, each slot bound to a column (a log) or box (a form) of its kind */
+      const view = t.view === undefined || t.view === null ? undefined : readView(t.view, answer, answer === 'log' ? columns : fields, tp, `${twhere} (${title || tkey})`, err);
       const minEntries = answer === 'log' ? num(t.minEntries) : undefined;
       if (minEntries !== undefined && (minEntries < 1 || minEntries > 10000)) err(`${tp}.minEntries`, `${twhere} (${title}) needs ${minEntries} entries — say a number from 1 to 10000.`);
 
@@ -168,6 +171,7 @@ export function validateDefinition(input: unknown): Checked {
         ...(analyses.length ? { analyses } : {}),
         ...(minEntries !== undefined && minEntries >= 1 && minEntries <= 10000 && Math.round(minEntries) !== 1 ? { minEntries: Math.round(minEntries) } : {}),
         ...(onlyIf ? { onlyIf } : {}),
+        ...(view ? { view } : {}),
         ...maybe('help', optStr(t.help, LIMITS.longText)),
       };
       stepIndex.set(tkey, { stage: si, step });
@@ -217,6 +221,19 @@ export function validateDefinition(input: unknown): Checked {
       const label = (key: string) => step.columns?.find(c => c.key === key)?.label ?? key;
       if (a.of && !(dep.step.columns ?? []).some(c => c.key === a.of && isNumberColumn(c))) err(`step:${k}.analyses`, `${aw} compares “${label(a.of)}”, which “${dep.step.title}” does not log as a number.`);
       if (a.when && !(dep.step.columns ?? []).some(c => c.key === a.when?.column)) err(`step:${k}.analyses`, `${aw} counts the entries where “${label(a.when.column)}” — which “${dep.step.title}” does not log.`);
+    }
+  }
+  /* ---- links: each names an entry of a log before it ---- */
+  for (const [k, { step }] of stepIndex) {
+    for (const f of [...(step.fields ?? []), ...(step.columns ?? [])]) {
+      if (f.type !== 'ref' || !f.of) continue;
+      const lw = `"${step.title}", “${f.label}”,`;
+      const dep = stepIndex.get(f.of);
+      if (!dep) err(`step:${k}.${f.key}`, `${lw} links to a log that is not on the method: "${f.of}".`);
+      else if (dep.step.answer !== 'log') err(`step:${k}.${f.key}`, `${lw} links to “${dep.step.title}”, which is not a log — a link names one of a log's entries.`);
+      else if (f.of === k) err(`step:${k}.${f.key}`, `${lw} links to its own log — link to a log before it.`);
+      else if ((orderOf.get(f.of) ?? 0) > (orderOf.get(k) ?? 0)) err(`step:${k}.${f.key}`, `${lw} links to “${dep.step.title}”, which comes after it — a link names an entry already logged.`);
+      else if (dep.step.per === 'machine' && step.per !== 'machine') err(`step:${k}.${f.key}`, `${lw} links to “${dep.step.title}”, which is kept machine by machine — a step for the whole line cannot say which machine's entry.`);
     }
   }
   const cyc = findCycle(stepIndex);
@@ -380,6 +397,8 @@ function readFields(raw: unknown, tp: string, twhere: string, err: (p: string, m
     if (type === 'choice' && options.length < 2) err(`${fp}.options`, `${twhere}, "${label}" is a choice with fewer than two options.`);
     const formula = optStr(f.formula);
     if (type === 'calc' && !formula) err(`${fp}.formula`, `${twhere}, "${label}" is worked out but has no formula.`);
+    const of = optStr(f.of, 40);
+    if (type === 'ref' && !of) err(`${fp}.of`, `${twhere}, "${label}" is linked to an entry but does not say which log.`);
     /* a timed box keeps its time in seconds, minutes or hours — nothing else is a time */
     const unit = optStr(f.unit, 40);
     if (type === 'timer' && unit && !(TIMER_UNITS as readonly string[]).includes(unit)) err(`${fp}.unit`, `${twhere}, "${label}" is timed, so it is kept in ${TIMER_UNITS.join(', ')} — not "${unit}".`);
@@ -390,6 +409,7 @@ function readFields(raw: unknown, tp: string, twhere: string, err: (p: string, m
       ...(isTypedNumber(type) && max !== undefined ? { max } : {}),
       ...(type === 'choice' ? { options } : {}),
       ...(type === 'calc' && formula ? { formula } : {}),
+      ...(type === 'ref' && of ? { of } : {}),
       ...(f.required === true && type !== 'calc' ? { required: true } : {}),
       ...maybe('help', optStr(f.help, LIMITS.longText)),
     });
@@ -528,6 +548,34 @@ function readAnalyses(raw: unknown, columns: FlowField[], fields: FlowField[], t
     out.push({ key, label, block: block.id, ...(of ? { of } : {}), ...(by ? { by } : {}), ...(when ? { when } : {}), ...(against ? { against } : {}), ...(also.length ? { also } : {}), ...(target !== undefined ? { target } : {}), ...(targetFrom ? { targetFrom } : {}), ...(formula ? { formula } : {}), ...(from ? { from } : {}), ...(better ? { better } : {}), ...maybe('unit', optStr(a.unit, 40)) });
   });
   return out;
+}
+
+/** A step's view — one the app has, for the step's answer, every slot it
+ *  needs bound, each to one column (a log) or box (a form) of its kind. */
+function readView(raw: unknown, answer: FlowAnswer, on: FlowField[], tp: string, twhere: string, err: (p: string, m: string) => void): FlowView | undefined {
+  const vp = `${tp}.view`;
+  if (!isObj(raw)) { err(vp, `${twhere} has a view that is not readable.`); return undefined; }
+  const v = viewOf(str(raw.id, 20));
+  if (!v) { err(vp, `${twhere} is drawn as "${String(raw.id)}", a view the app does not have. It has ${VIEW_IDS.join(', ')}.`); return undefined; }
+  const vw = `${twhere}'s ${v.name.toLowerCase()}`;
+  if (v.answer !== answer) { err(vp, `${twhere} is drawn as a ${v.name.toLowerCase()}, which draws ${v.answer === 'log' ? 'a log' : 'a form'} — the step is ${answer === 'log' ? 'a log' : answer === 'form' ? 'a form' : `answered “${answer}”`}.`); return undefined; }
+  const one = answer === 'log' ? 'column' : 'box';
+  const rawBind = isObj(raw.bind) ? raw.bind : {};
+  const bind: Record<string, string> = {};
+  const used = new Map<string, string>();
+  let ok = true;
+  for (const s of v.slots) {
+    const k = str(rawBind[s.key], 40);
+    if (!k) { if (s.required) { err(vp, `${vw} needs ${s.name} — say which ${one} it is drawn from.`); ok = false; } continue; }
+    const f = on.find(x => x.key === k);
+    if (!f) { err(vp, `${vw} draws ${s.name} from "${k}", which is not a ${one} of the step.`); ok = false; continue; }
+    if (!s.types.includes(f.type)) { err(vp, `${vw} draws ${s.name} from “${f.label}”, ${FIELD_WORD[f.type].toLowerCase()} — it needs ${s.types.map(t => FIELD_WORD[t].toLowerCase()).join(' or ')}.`); ok = false; continue; }
+    const twice = used.get(k);
+    if (twice) { err(vp, `${vw} draws both ${twice} and ${s.name} from “${f.label}” — one ${one} each.`); ok = false; continue; }
+    used.set(k, s.name);
+    bind[s.key] = k;
+  }
+  return ok ? { id: v.id, bind } : undefined;
 }
 
 function findCycle(index: Map<string, { step: FlowStepDef }>): string[] | undefined {

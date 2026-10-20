@@ -35,6 +35,8 @@ import {
   type FlowProject, type OpContext, type OpResult, type StepPatch, type StepRef,
 } from '../../lib/flow/operations';
 import { stepSquare, stepWhy, stepWord } from '../../lib/flow/view';
+import { NOT_CHECKED, checkOfPass } from '../../lib/flow/gateCheck';
+import { useSession } from '../../cloud/session';
 import { Sheet } from '../Sheet';
 import { Evidence } from '../EvidenceDoors';
 import { EvidenceViewer } from '../Evidence';
@@ -42,14 +44,18 @@ import { offerUndo } from '../Undo';
 import { Num, Words } from './MethodParts';
 import { askFor, withFor } from './Asking';
 import { LogPanel } from './LogParts';
+import { LinkSelect } from './LinkParts';
+import { linkChoices, type LinkChoice } from '../../lib/flow/links';
 import { TimerBox } from './Timer';
 import { TallyBox } from './Tally';
 
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100));
 
 /** One box of a step, as the person fills it — or, worked out, as the app says it. */
-function FieldBox({ f, value, worked, onSave, disabled, keepAs }: {
+function FieldBox({ f, value, worked, onSave, disabled, keepAs, choices = [] }: {
   f: FlowField; value: unknown; worked: unknown; onSave: (v: string | number | boolean) => void; disabled: boolean; keepAs: string;
+  /** A link box's entries to pick from (lib/flow/links). */
+  choices?: LinkChoice[];
 }) {
   const limit = f.min !== undefined && f.max !== undefined ? `between ${f.min} and ${f.max}` : f.min !== undefined ? `at least ${f.min}` : f.max !== undefined ? `at most ${f.max}` : '';
   const head = <span className="field-label">{f.label}{f.unit ? ` (${f.unit})` : ''}{f.required ? ' · needed' : ''}{limit ? ` · ${limit}` : ''}</span>;
@@ -78,6 +84,8 @@ function FieldBox({ f, value, worked, onSave, disabled, keepAs }: {
           </select>
         </label>
       );
+    case 'ref':
+      return <label className="fw-f" data-field={f.key}>{head}<LinkSelect choices={choices} value={value} label={f.label} disabled={disabled} onChange={id => onSave(id)} /></label>;
     case 'yesno':
       return (
         <div className="fw-f" data-field={f.key}>{head}
@@ -252,6 +260,7 @@ export function StepSheet({ fp, inst, ctx, onClose }: { fp: FlowProject; inst: S
 
         {(step.fields ?? []).map(f => (
           <FieldBox key={f.key} f={f} value={rec?.values?.[f.key]} worked={inst.values[f.key]} disabled={!live || done}
+            {...(f.type === 'ref' ? { choices: linkChoices(fp.state, f, inst.assetId) } : {})}
             keepAs={`${fp.project.id}:${inst.stageKey}:${step.key}:${inst.assetId ?? ''}:${f.key}`}
             onSave={v => void save({ values: { [f.key]: v } })} />
         ))}
@@ -366,6 +375,8 @@ export function GateSheet({ fp, stage, ctx, onClose }: { fp: FlowProject; stage:
   const needsOverride = blockers.length > 0 || unchecked.length > 0;
   const owner = ctx.can.agree;
   const pass = g.pass;
+  const check = checkOfPass(pass, fp.checks);
+  const { session } = useSession();
 
   const doPass = async () => {
     const r = await passGate(ctx, { projectId: fp.project.id, stageKey: stage.key, checks, ...(needsOverride && override.trim() ? { override } : {}) });
@@ -410,6 +421,14 @@ export function GateSheet({ fp, stage, ctx, onClose }: { fp: FlowProject; stage:
           })}
         </ul>
         {pass?.openAtPass?.length ? <p className="sub">Open when it was passed: {pass.openAtPass.join('; ')}.</p> : null}
+        {/* THE SERVER'S READING (lib/flow/gateCheck): the device's word checked
+            where no device can write — quiet when borne out, red when not */}
+        {pass && check && (
+          <p className={check.verdict === 'disagrees' ? 'fw-state is-r fw-check' : 'sub fw-check'} data-check={check.verdict} role={check.verdict === 'disagrees' ? 'alert' : undefined}>
+            {check.says}{check.verdict === 'disagrees' ? (owner ? ' Reopen it below, or pass it again with the reason.' : ' Its owner can reopen it, or pass it again with the reason.') : ''}
+          </p>
+        )}
+        {pass && !check && session && <p className="sub fw-check" data-check="none">{NOT_CHECKED}</p>}
 
         {!pass && !owner && <p className="sub">Passing a gate is the project owner’s.</p>}
         {!pass && owner && !g.waitsOn && (

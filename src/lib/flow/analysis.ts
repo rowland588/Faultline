@@ -45,7 +45,7 @@ export interface FlowEntry {
   struck?: boolean;
 }
 
-export const ANALYSIS_BLOCKS = ['count', 'sum', 'mean', 'median', 'min', 'max', 'sd', 'share', 'perDay', 'pareto', 'trend', 'histogram', 'cpk', 'control', 'relation', 'forecast', 'calc', 'reliability', 'compare', 'groups', 'overdue', 'drivers', 'emark', 'giveaway', 'fill'] as const;
+export const ANALYSIS_BLOCKS = ['count', 'sum', 'mean', 'median', 'min', 'max', 'sd', 'share', 'perDay', 'pareto', 'trend', 'histogram', 'cpk', 'control', 'relation', 'forecast', 'calc', 'reliability', 'compare', 'groups', 'overdue', 'drivers', 'emark', 'giveaway', 'fill', 'fishbone'] as const;
 export type AnalysisBlockId = typeof ANALYSIS_BLOCKS[number];
 
 export const WHEN_OPS = ['=', '!=', '>=', '<=', '>', '<'] as const;
@@ -100,7 +100,7 @@ export interface EarlierLog { title: string; columns: readonly FlowField[]; entr
 /** How a block's answer is drawn — on the screen (ui/flow/LogParts) and on
  *  paper (lib/flow/reportPdf) alike, by this word and never by the block's
  *  id, so a new block with an old picture is drawn the day it is written. */
-export type AnalysisPicture = 'none' | 'bars' | 'pareto' | 'control' | 'scatter' | 'forecast' | 'curve';
+export type AnalysisPicture = 'none' | 'bars' | 'pareto' | 'control' | 'scatter' | 'forecast' | 'curve' | 'fishbone';
 
 export interface SeriesPoint {
   label: string; value: number; cum?: number;
@@ -134,6 +134,10 @@ export interface AnalysisResult {
   points?: { x: number; y: number }[];
   /** A reliability fit's shape (β) and scale (η). */
   weibull?: { shape: number; scale: number };
+  /** A fishbone's bones, in the order the bone column lists them, each with
+   *  its causes as logged — a root cause marked, and how it is known when
+   *  the log says. */
+  bones?: FishBones;
 }
 
 type Need = 'required' | 'optional' | 'none';
@@ -573,6 +577,33 @@ function stat(id: AnalysisBlockId, name: string, says: string, f: (xs: number[])
 
 /* ------------------------------------------------------------------- blocks */
 
+/** A cause on a fishbone: the entry it is, its words, a root cause or not,
+ *  and how it is known when the log says. */
+export interface FishCause { id: string; text: string; root: boolean; known?: string }
+export type FishBones = { name: string; causes: FishCause[] }[];
+
+/** EVERY CAUSE ON ITS BONE — the one grouping the fishbone block, the
+ *  fishbone view (ui/flow/Views) and its paper share: the bones in the
+ *  order the bone column lists them, then any other bone an entry names,
+ *  then "Not placed"; a struck entry or one with no words left out. */
+export function bonesOf(entries: readonly FlowEntry[], columns: readonly FlowField[], o: { of?: string; by?: string; root?: FlowWhen; known?: string }): FishBones {
+  const bc = col(columns, o.by);
+  const rows = live(entries).map(e => ({ e, v: entryValues(columns, e.values) }))
+    .map(r => ({ ...r, text: typeof r.v[o.of ?? ''] === 'string' ? String(r.v[o.of ?? '']).trim() : '' }))
+    .filter(x => x.text);
+  const order = [...(bc?.type === 'choice' ? bc.options ?? [] : [])];
+  const placed = (v: unknown) => (v === undefined || v === '' ? 'Not placed' : typeof v === 'boolean' ? (v ? 'Yes' : 'No') : String(v).trim());
+  for (const x of rows) { const b = placed(x.v[o.by ?? '']); if (!order.some(n => n.trim().toLowerCase() === b.toLowerCase())) order.push(b); }
+  const nameOf = (b: string) => order.find(n => n.trim().toLowerCase() === b.toLowerCase()) ?? b;
+  const bones: FishBones = order.map(name => ({ name, causes: [] }));
+  for (const x of rows) {
+    const bone = bones.find(b => b.name === nameOf(placed(x.v[o.by ?? ''])));
+    const known = o.known && typeof x.v[o.known] === 'string' ? String(x.v[o.known]).trim() : '';
+    bone?.causes.push({ id: x.e.id, text: x.text, root: !!o.root && meets(x.v[o.root.column], o.root), ...(known ? { known: known.toLowerCase() } : {}) });
+  }
+  return bones;
+}
+
 export const BLOCKS: Record<AnalysisBlockId, AnalysisBlock> = {
   count: {
     id: 'count', name: 'Count', says: 'How many entries — all, or those that meet a rule', needs: { of: 'none', by: 'none', when: 'optional', against: 'none', target: 'none' }, numeric: false, output: 'number', picture: 'none',
@@ -1001,6 +1032,32 @@ export const BLOCKS: Record<AnalysisBlockId, AnalysisBlock> = {
       const how = (a.formula ?? '').replace(/[a-z_][a-z0-9_]*/gi, w => name(w.toLowerCase())).replace(/\*/g, '×').replace(/\//g, '÷').replace(/\s+/g, ' ').trim();
       if (value === undefined || !Number.isFinite(value)) return { n, ...(unit ? { unit } : {}), says: `${a.label}: cannot be worked out — ${how} has no answer (a division by nought).` };
       return { value, n, ...(unit ? { unit } : {}), says: `${a.label}: ${withUnit(value, unit)} — ${how}.` };
+    },
+  },
+  /* THE FISHBONE (Ishikawa): every cause logged, on its bone, the problem at
+     its head — the six of 6M (lib/sixm) or whatever the bone column lists */
+  fishbone: {
+    id: 'fishbone', name: 'Fishbone', says: 'Every cause logged (a words column), each on its bone (a choice column — People, Machine, Method, Material, Measurement, Environment, or the method’s own), drawn as a fishbone with the problem at its head (the analysis’s name); the entries meeting the rule are the root causes, marked and counted — how many causes, on how many bones, the bone with most, and the root causes named',
+    needs: { of: 'required', by: 'required', when: 'optional', against: 'none', target: 'none' }, numeric: false, output: 'both', picture: 'fishbone',
+    compute: (entries, a, columns) => {
+      const w = a.when;
+      /* how a cause is known — a choice column offering measured, counted, observed or reported */
+      const kc = columns.find(c => c.type === 'choice' && c.key !== a.by && (c.options ?? []).some(o => /^(measured|counted|observed|reported)$/i.test(o.trim())));
+      const bones = bonesOf(entries, columns, { of: a.of, by: a.by, ...(w ? { root: w } : {}), ...(kc ? { known: kc.key } : {}) });
+      const rows = bones.flatMap(b => b.causes);
+      const series: SeriesPoint[] = bones.map(b => ({ label: b.name, value: b.causes.length }));
+      const roots = bones.flatMap(b => b.causes.filter(c => c.root).map(c => ({ ...c, bone: b.name })));
+      const unit = w ? 'root cause(s)' : 'cause(s)';
+      if (!rows.length) return { value: 0, n: 0, unit, bones, series, says: `${a.label}: no causes yet — log each cause on its bone.` };
+      const on = bones.filter(b => b.causes.length), [most, next] = [...on].sort((p, q) => q.causes.length - p.causes.length);
+      const empty = bones.filter(b => !b.causes.length && b.name !== 'Not placed').map(b => b.name);
+      /* one bone named as holding the most only when it does — a tie is no lead */
+      const lead = most && next && most.causes.length > next.causes.length ? ` — ${most.name} holds the most (${most.causes.length})` : '';
+      const head = `${a.label}: ${many(rows.length, 'cause')} on ${on.length} of ${many(bones.filter(b => b.name !== 'Not placed' || b.causes.length).length, 'bone')}${lead}${empty.length ? `; nothing yet on ${empty.join(', ')}` : ''}.`;
+      const rootSaid = !w ? '' : roots.length
+        ? ` ${roots.length === 1 ? 'The root cause' : `${roots.length} root causes`}: ${roots.map(c => `“${c.text}” (${c.bone})`).join('; ')}.`
+        : ' No root cause marked yet — mark the ones the whys end at.';
+      return { value: w ? roots.length : rows.length, n: rows.length, unit, bones, series, says: head + rootSaid };
     },
   },
 };

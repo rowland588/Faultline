@@ -141,7 +141,7 @@ export interface Tombstone { id: string; kind: SyncKind; deletedAt: number }
 export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets' | 'snags' | 'cases' | 'projects'
   | 'pace_ppm' | 'pace_todos' | 'pace_wins' | 'tree_nodes'
   | 'commission_assets' | 'tests' | 'test_items' | 'targets' | 'readings' | 'materials' | 'programs' | 'standards' | 'studies'
-  | 'methods' | 'flow_records' | 'activity_log';
+  | 'methods' | 'flow_records' | 'activity_log' | 'gate_checks';
 
 /* WHERE A BOX HAS GOT TO. Five states, not four colours.
  *
