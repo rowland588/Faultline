@@ -9,10 +9,11 @@
  * what was heard), a photo taken, or words typed — merged by id between
  * devices as every study's lists are.
  *
- * NOTHING SAID IS LOST. A piece is kept the moment it is recorded; what the
- * voice service hears is written beside it, never over it; a correction is
- * kept beside what was heard; a piece that could not be heard yet waits, and
- * is heard when it can be. Struck, never erased.
+ * NOTHING SAID IS LOST. A piece is kept the moment it ends — the words the
+ * phone wrote down as it was said (lib/hearing), and its recording; a
+ * correction is kept beside what was heard; a piece the phone could not write
+ * down keeps its recording and says why, and the person types the words over
+ * it. Struck, never erased.
  *
  * Pure: read the same on every screen and in every test. */
 import { niceDay } from './weeks';
@@ -47,7 +48,9 @@ export interface TalkTurn {
   /** typed: the words; said: the person's correction of what was heard;
    *  photo: what it shows, if said; reply: the answer's words. */
   text?: string;
-  /** said: not heard yet, or could not be (with why). Absent once heard. */
+  /** said: not written down (with why) — the words are typed over it.
+   *  `waiting` is a piece recorded before the phone wrote the words down
+   *  (20 October), and reads the same. Absent once heard. */
   hearing?: 'waiting' | 'failed';
   /** reply: being answered, or could not be (with why). Absent once answered. */
   answering?: 'waiting' | 'failed';
@@ -79,36 +82,13 @@ export const wordsOf = (t: TalkTurn): string => (t.text ?? t.heard ?? '').trim()
 /** The person's own turns — said, typed, photographed — not Line Talk's answers. */
 export const isTheirs = (t: TalkTurn): boolean => t.kind !== 'reply';
 
-/** Pieces said and not heard yet — heard when there is signal. */
-export const toHear = (turns: readonly TalkTurn[]): TalkTurn[] =>
-  turns.filter(t => t.kind === 'said' && !t.struck && t.hearing === 'waiting');
-
-/** The whole talk as words, in order — a photo said where it was taken —
- *  for the voice service's sense of what came before, and later for what is
- *  asked of the talk. */
-export function talkText(turns: readonly TalkTurn[]): string {
-  return turns.filter(t => !t.struck && isTheirs(t)).map(t => {
-    if (t.kind === 'photo') return `[photo${t.text ? `: ${t.text}` : ''}]`;
-    const w = wordsOf(t);
-    return w || (t.kind === 'said' ? '[a piece not heard yet]' : '');
-  }).filter(Boolean).join('\n');
-}
-
-/** What was said before a piece — its last `max` characters, cut at a word —
- *  so "same as the last one" and "the machine after the sealer" are heard
- *  with what they point at. */
-export function earlierOf(turns: readonly TalkTurn[], beforeAt: number, max = 1500): string {
-  const text = talkText(turns.filter(t => t.at < beforeAt));
-  if (text.length <= max) return text;
-  const cut = text.slice(text.length - max);
-  const space = cut.indexOf(' ');
-  return `…${space >= 0 ? cut.slice(space + 1) : cut}`;
-}
+/** A piece said with no words — the phone could not write it down, and nobody has typed them yet. */
+export const notWritten = (t: TalkTurn): boolean => t.kind === 'said' && !t.struck && !wordsOf(t);
 
 const many = (n: number, one: string, more = `${one}s`) => `${n} ${n === 1 ? one : more}`;
 const minutes = (s: number) => (s < 60 ? `${Math.max(1, Math.round(s))} s` : `${Math.round(s / 60)} min`);
 
-/** A talk in a line — "6 pieces said, 14 min · 2 photos · 1 typed — 1 waiting to be heard". */
+/** A talk in a line — "6 pieces said, 14 min · 2 photos · 1 typed — 1 not written down". */
 export function talkSaid(turns: readonly TalkTurn[]): string {
   const answers = turns.filter(t => t.kind === 'reply' && !t.answering && !t.struck);
   const docs = answers.filter(t => t.doc).length;
@@ -123,9 +103,8 @@ export function talkSaid(turns: readonly TalkTurn[]): string {
     answers.length ? many(answers.length, 'answer') : '',
     docs ? many(docs, 'document') : '',
   ].filter(Boolean);
-  const waiting = toHear(live).length, failed = said.filter(t => t.hearing === 'failed').length;
-  const tail = [waiting ? `${waiting} waiting to be heard` : '', failed ? `${failed} could not be heard` : ''].filter(Boolean).join(', ');
-  return `${parts.join(' · ')}${tail ? ` — ${tail}` : ''}.`;
+  const unwritten = said.filter(notWritten).length;
+  return `${parts.join(' · ')}${unwritten ? ` — ${unwritten} not written down` : ''}.`;
 }
 
 /** A new talk's name — "Line 7 — 20 Oct". */
@@ -175,7 +154,7 @@ export function askTurnsOf(turns: readonly TalkTurn[]): TalkAskTurn[] {
     if (t.kind === 'photo') return [{ kind: 'photo', at, text: wordsOf(t), photo: labels.get(t.id) ?? 'P0' }];
     if (t.kind === 'reply') return [{ kind: 'reply', at, text: [wordsOf(t), t.doc ? docAsText(t.doc) : ''].filter(Boolean).join('\n\n') }];
     const w = wordsOf(t);
-    return [{ kind: t.kind, at, text: w || (t.kind === 'said' ? (t.hearing === 'failed' ? '(a piece that could not be heard)' : '(a piece not heard yet)') : '') }];
+    return [{ kind: t.kind, at, text: w || (t.kind === 'said' ? '(a piece not written down)' : '') }];
   }).filter(t => t.kind === 'photo' || t.text);
 }
 

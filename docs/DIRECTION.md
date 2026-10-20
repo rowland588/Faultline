@@ -91,7 +91,8 @@ builder was never used; nothing stored is lost.
 
 | AI in the app | Decision |
 |---|---|
-| Voice — the voice note in typed boxes, and Line Talk hearing what is said (`api/voice`) | **kept** — on Gemini, the one AI not on Claude (Claude takes no sound); its replacement is Rowland's choice |
+| Voice — the voice note in typed boxes (`api/voice`) | **kept** — on Gemini, which hears it and fills the boxes |
+| Line Talk hearing what is said | **the phone's own speech recognition** since 20 October ("Use the phone's own speech recognition instead of Gemini"; `lib/hearing`, docs/LINE-TALK.md *How it hears*) — no AI service, no key |
 | The camera — the video study's *Name the work from the frames* (`assist` gateway, task `video-label`) | **kept**, shown again (it was parked) |
 | Line Talk (docs/LINE-TALK.md), its slices as designed | **kept** — its answers and documents (slice 2) on Claude through the `assist` gateway, task `talk` |
 | The method builder — *Describe what you need*, the design studio, the assistant's proposals and *Ask about it*, Methods of one's own and Faultline's library of methods, the method engine and a project on a method | **deleted** |
@@ -162,11 +163,11 @@ Nothing new is built until Rowland says go.
    2, ask it — the conversation answered by Claude through the gateway, with
    the line's records, photos and documents on paper — built on his go the
    same day ("a simple, reliable, ChatGPT-style manufacturing assistant
-   inside Faultline, powered by our existing Claude API integration"). Next,
-   Rowland tries both on his phone on the floor — first, whether it keeps
-   recording with the screen locked. Open for him: the hearing is still the
-   voice service's (`api/voice`, Gemini) — Claude takes no sound — so it
-   stays, or moves to the phone's own speech recognition, at his word.
+   inside Faultline, powered by our existing Claude API integration"); and
+   its hearing moved off Gemini onto the phone's own speech recognition at
+   his word the same evening. Next, Rowland tries it on his phone on the
+   floor — how well the phone hears in the noise, whether it records and
+   hears at once, and what a locked screen does.
 4. Use Faultline for real for two or three weeks on Rowland's lines with his
    team; write down every place it is slow, confusing or missing.
 5. Then deepen the tools that were used, close the evidence → cause → action

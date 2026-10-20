@@ -129,9 +129,10 @@ export interface Seeded {
   /** A video study on the line (docs/VIDEO.md): its footage not on this
    *  device, three stations, events read and some accepted, takt given. */
   videoStudyId: string;
-  /** A Line Talk on the line (docs/LINE-TALK.md): pieces heard, one
-   *  corrected, a photo, a typed line, one waiting to be heard and one that
-   *  could not be — the recordings not on this device. */
+  /** A Line Talk on the line (docs/LINE-TALK.md): pieces the phone wrote
+   *  down, one corrected, a photo, a typed line, one not written down (no
+   *  signal) and one written by a phone that does not record — the
+   *  recordings not on this device. */
   talkId: string;
 }
 
@@ -1103,12 +1104,14 @@ export async function seedForSmokeTest(): Promise<Seeded> {
       { id: 'seedt-3', at: t + 2 * 60_000 + 40_000, kind: 'photo' as const, who: 'Rowland', text: 'the infeed guide rail',
         media: { blobKey: 'talk-seed-not-here-photo', mime: 'image/jpeg', capturedAt: t + 2 * 60_000 + 40_000 } },
       { id: 'seedt-4', at: t + 3 * 60_000, kind: 'typed' as const, who: 'Rowland', text: 'Ask Dave about the spare belt for the case packer.' },
-      { id: 'seedt-5', at: t + 4 * 60_000, kind: 'said' as const, who: 'Rowland', media: piece(5, 31), hearing: 'failed' as const, why: 'Voice is busy right now.' },
-      { id: 'seedt-6', at: t + 5 * 60_000, kind: 'said' as const, who: 'Rowland', media: piece(6, 44), hearing: 'waiting' as const },
+      { id: 'seedt-5', at: t + 4 * 60_000, kind: 'said' as const, who: 'Rowland', media: piece(5, 31), hearing: 'failed' as const,
+        why: 'No signal while it was said, so the phone could not write it down. The recording is kept — play it, and type what was said with Correct.' },
+      /* written down by a phone that gives its microphone to the hearing: the words, no recording */
+      { id: 'seedt-6', at: t + 5 * 60_000, kind: 'said' as const, who: 'Rowland', heard: 'Back at the bagger. The jaws are clean now.' },
       /* ASKED (slice 2): a question typed, Line Talk's answer, and the line-walk report it wrote with the photo — one figure in it flagged to check */
       { id: 'seedt-7', at: t + 6 * 60_000, kind: 'typed' as const, who: 'Rowland', text: 'Write a line-walk report from this, with the photo.' },
       { id: 'seedt-8', at: t + 6 * 60_000 + 30_000, kind: 'reply' as const, who: 'Line Talk', model: 'test-model',
-        text: 'Here is the line-walk report: what you saw at the bagger and the checkweigher, with **P1** beside the guide rail. One piece could not be heard, so it is not in it.',
+        text: 'Here is the line-walk report: what you saw at the bagger and the checkweigher, with **P1** beside the guide rail. One piece was not written down, so it is not in it.',
         unsure: ['8'],
         doc: { title: 'Line 7 — morning walk', kind: 'line-walk' as const, sections: [
           { heading: 'What was seen', text: 'A walk of Line 7 from the bagger to the case packer.', points: [

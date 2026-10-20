@@ -1,8 +1,8 @@
 /* LINE TALK (lib/talk; docs/LINE-TALK.md): a talk's turns in order, the
- * words as they stand, what waits to be heard, what was said before a piece,
- * the talk in a line, and the files it names for the cloud. */
+ * words as they stand, a piece the phone did not write down, the talk in a
+ * line, and the files it names for the cloud. */
 import { describe, expect, it } from 'vitest';
-import { askTurnsOf, earlierOf, pendingReply, photoLabels, photosToSend, talkMediaKeys, talkName, talkSaid, talkText, toHear, turnsOf, unanswered, wordsOf, type TalkTurn } from '../talk';
+import { askTurnsOf, notWritten, pendingReply, photoLabels, photosToSend, talkMediaKeys, talkName, talkSaid, turnsOf, unanswered, wordsOf, type TalkTurn } from '../talk';
 import { factsOf } from '../study';
 
 const said = (id: string, at: number, heard?: string, extra: Partial<TalkTurn> = {}): TalkTurn =>
@@ -26,33 +26,13 @@ describe('a talk', () => {
     expect(wordsOf(t[4])).toBe('');
   });
 
-  it('what waits to be heard — not a failed one, not a struck one', () => {
-    expect(toHear(TALK).map(x => x.id)).toEqual(['s3']);
+  it('a piece the phone did not write down — one recorded before it wrote the words, or one it could not — until the words are typed over it; not a struck one', () => {
+    expect(TALK.filter(notWritten).map(x => x.id)).toEqual(['s3', 's4']);
+    expect(notWritten({ ...TALK[5], text: 'Typed over it.' })).toBe(false);
   });
 
-  it('as words, a photo where it was taken, a piece not heard said so, a struck one left out', () => {
-    expect(talkText(turnsOf({ turns: TALK }))).toBe([
-      'Starting at the bagger — running at about 62 a minute.',
-      'The tray sealer is dropping the odd tray at the infeed.',
-      '[photo: the infeed guide]',
-      'Ask Dave about the belt.',
-      '[a piece not heard yet]',
-      '[a piece not heard yet]',
-    ].join('\n'));
-  });
-
-  it('what was said before a piece — only before it, and its last part when long, cut at a word', () => {
-    const t = turnsOf({ turns: TALK });
-    expect(earlierOf(t, 3000)).toBe('Starting at the bagger — running at about 62 a minute.\nThe tray sealer is dropping the odd tray at the infeed.');
-    expect(earlierOf(t, 1000)).toBe('');
-    const long = earlierOf(t, 3000, 40);
-    expect(long.startsWith('…')).toBe(true);
-    expect(long.length).toBeLessThanOrEqual(41);
-    expect(long.endsWith('the infeed.')).toBe(true);
-  });
-
-  it('in a line — pieces and minutes, photos, typed, and what waits or failed', () => {
-    expect(talkSaid(TALK)).toBe('4 pieces said, 3 min · 1 photo · 1 typed — 1 waiting to be heard, 1 could not be heard.');
+  it('in a line — pieces and minutes, photos, typed, and what is not written down', () => {
+    expect(talkSaid(TALK)).toBe('4 pieces said, 3 min · 1 photo · 1 typed — 2 not written down.');
     expect(talkSaid([])).toBe('Nothing said yet.');
     expect(talkSaid([said('a', 1, 'Hello.', { media: { blobKey: 'x', mime: 'audio/webm', capturedAt: 1, durationS: 20 } })])).toBe('1 piece said, 20 s.');
   });
@@ -107,8 +87,8 @@ describe('asking Line Talk', () => {
     expect(sent[0].at).toMatch(/^\d{1,2} [A-Z][a-z]{2} \d{2}:\d{2}$/);
     expect(sent[1].at).toMatch(/^\d{2}:\d{2}$/);
     expect(sent[4].text).toBe('Noted.\n\n[The document written: Line-walk report — Walk]\n## Seen\n- Film wandering (Observed)\n[P1: The guide]');
-    expect(sent[5].text).toBe('(a piece not heard yet)');
-    expect(sent[6].text).toBe('(a piece that could not be heard)');
+    expect(sent[5].text).toBe('(a piece not written down)');
+    expect(sent[6].text).toBe('(a piece not written down)');
   });
 
   it('sends the pictures of the newest photos only, as many as the gateway takes', () => {
@@ -116,11 +96,10 @@ describe('asking Line Talk', () => {
     expect(photosToSend(turnsOf({ turns: ASKED }), 10).map(t => t.id)).toEqual(['p1', 'p2']);
   });
 
-  it('the talk in a line counts its answers and documents; the words the voice service hears with leave them out', () => {
+  it('the talk in a line counts its answers and documents', () => {
     const doc = { title: 'Walk', kind: 'line-walk' as const, sections: [] };
     const t = [...ASKED, reply('r2', 9000, { doc })];
-    expect(talkSaid(t)).toBe('4 pieces said, 3 min · 2 photos · 2 typed · 2 answers · 1 document — 1 waiting to be heard, 1 could not be heard.');
-    expect(talkText(turnsOf({ turns: t }))).not.toMatch(/Noted\./);
+    expect(talkSaid(t)).toBe('4 pieces said, 3 min · 2 photos · 2 typed · 2 answers · 1 document — 2 not written down.');
   });
 });
 

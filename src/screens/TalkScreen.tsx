@@ -4,18 +4,23 @@
  * Rowland, 20 October: "Consultant in a line speaking into his phone, the AI
  * listening to everything, allows pause, continue speaking, it remembers
  * everything like Claude chat." A talk is a conversation about one line:
- *   Talk      records; a long stretch is cut into minute-long pieces as it is
- *             said (lib/talk PIECE_SECONDS), each kept on the phone the moment
- *             it ends — the screen kept awake while it records;
+ *   Talk      the phone writes down what is said as it is said, and records
+ *             it beside the words; a long stretch is cut into pieces about a
+ *             minute long, at a pause in what is said (lib/talk
+ *             PIECE_SECONDS), each kept the moment it ends — the screen kept
+ *             awake while it listens;
  *   Pause     ends the piece; Continue starts the next;
  *   Photo     a picture, where it was taken in the talk;
  *   Type      words, when talking will not do.
- * Each piece is heard by the voice service (api/voice, form 'talk') with the
- * line's machines and what was said before it, and what it heard is written
- * beside the recording — corrected by the person, never over what was heard.
- * A piece not heard yet waits and is heard when there is signal, here or
- * after a reload; one that could not be heard says why and can be tried again.
- * The recordings are kept for good (Rowland, 20 October).
+ * THE PHONE HEARS (Rowland, 20 October: "Use the phone's own speech
+ * recognition instead of Gemini"): the browser's own speech recognition
+ * (lib/hearing Ear), live, in British English — no key and no server. What it
+ * wrote is kept as heard and corrected by the person, never over it. A piece
+ * it could not write (no signal, a browser without it, refused) keeps its
+ * recording and says why, and the words are typed over it with Correct — a
+ * recording is never written down afterwards. A phone that will not record
+ * and hear at once keeps the words and stops recording, and says so. The
+ * recordings are kept for good (Rowland, 20 October).
  *
  * ASK IT (slice 2; Rowland, 20 October: "a simple, reliable, ChatGPT-style
  * manufacturing assistant … talk or type naturally, ask questions … upload
@@ -37,7 +42,7 @@
  * a job's. WHERE IT SHOWS: Line Talk in Tools (#/talk, ?line= on one line),
  * a line's page among its tools, the talk itself (#/talk/:id). */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getBlob, getStudy, listAllStudies, onDataChange, patchStudy, putBlob, putStudy } from '../db';
+import { getStudy, listAllStudies, onDataChange, patchStudy, putBlob, putStudy } from '../db';
 import { useAccess } from '../cloud/access';
 import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
@@ -45,11 +50,10 @@ import { can as canAt } from '../lib/access';
 import { now, uid } from '../lib/ids';
 import { todayISO, niceDay } from '../lib/weeks';
 import { nav, useRoute } from '../state/useRoute';
-import { askVoice, toWavBase64, VoiceError } from '../lib/voice';
-import { useMachinesOf } from '../lib/useLineRecords';
+import { Ear, SILENCED_SAID, SILENT_PEAK, notHeardWhy, recognitionOf, recordingPeak, troubleSaid, type Cut, type Heard, type Trouble } from '../lib/hearing';
 import { useFactoryLines } from '../lib/useFactoryLines';
 import { useBlobUrl } from '../lib/useBlobUrl';
-import { PIECE_SECONDS, askTurnsOf, earlierOf, isTheirs, pendingReply, photoLabels, photosToSend, talkName, talkSaid, toHear, turnsOf, unanswered, wordsOf, type TalkTurn } from '../lib/talk';
+import { PIECE_SECONDS, askTurnsOf, isTheirs, notWritten, pendingReply, photoLabels, photosToSend, talkName, talkSaid, turnsOf, unanswered, wordsOf, type TalkTurn } from '../lib/talk';
 import { DOC_KIND_WORD, TALK_LIMITS, type TalkAskImage } from '../lib/talkAssist';
 import { NO_SIGNAL, askTalk } from '../lib/talkAsk';
 import { pictureForAssistant } from '../lib/talkPictures';
@@ -63,6 +67,10 @@ import { Icon } from '../ui/Icon';
 const OWNER = canAt('owner');
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+/* this phone does not record while it writes down — learnt once, kept on the phone */
+const HEAR_ONLY = 'fl-talk-hear-only';
+const hearOnly = (): boolean => { try { return localStorage.getItem(HEAR_ONLY) === '1'; } catch { return false; } };
+const recordNoMore = (): void => { try { localStorage.setItem(HEAR_ONLY, '1'); } catch { /* the words are kept either way */ } };
 /* today as the assistant is told it — "Wednesday 21 October 2026" */
 const longDay = () => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -174,7 +182,6 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
   const me = displayName(session?.user.email) || undefined;
   const lines = useFactoryLines();
   const line = lines.find(l => l.id === s.workspaceId);
-  const machines = useMachinesOf(s.workspaceId, s.projectId);
   const turns = useMemo(() => turnsOf(s.facts), [s.facts]);
   const [rec, setRec] = useState<Rec>({ s: 'idle' });
   const [secs, setSecs] = useState(0);
@@ -206,144 +213,199 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
     },
   }));
 
-  /* ---- hearing: one piece at a time, in order, each with what came before ---- */
-  const chain = useRef<Promise<void>>(Promise.resolve());
-  const ctx = useRef({ line: line?.name, machines });
-  ctx.current = { line: line?.name, machines };
-  const hearOne = useCallback(async (turnId: string) => {
-    const cur = await getStudy(s.id);
-    const all = turnsOf(cur?.facts ?? {});
-    const t = all.find(x => x.id === turnId);
-    if (!t || t.kind !== 'said' || !t.media || t.hearing !== 'waiting') return;
-    const blob = await getBlob(t.media.blobKey);
-    /* recorded on another device: heard there */
-    if (!blob) return;
-    try {
-      const audio = await toWavBase64(blob);
-      const r = await askVoice('talk', audio, {
-        today: todayISO(), ...(ctx.current.line ? { line: ctx.current.line } : {}),
-        ...(ctx.current.machines.length ? { machines: ctx.current.machines } : {}),
-        earlier: earlierOf(all, t.at),
-      });
-      const words = (typeof r.fields.said === 'string' ? r.fields.said : '').trim() || r.transcript.trim();
-      await patchTurn(turnId, { heard: words || '(nothing said)', ...(r.transcript ? { transcript: r.transcript } : {}) }, ['hearing', 'why']);
-    } catch (e) {
-      const why = e instanceof VoiceError ? e.message : 'It could not be heard.';
-      /* no signal: it waits, and is heard when there is some */
-      if (!navigator.onLine) return;
-      await patchTurn(turnId, { hearing: 'failed', why });
-    }
-  }, [s.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  const hear = useCallback((turnId: string) => {
-    chain.current = chain.current.then(() => hearOne(turnId)).catch(() => undefined);
-  }, [hearOne]);
-
-  /* waiting pieces are heard when the talk opens, and when the signal comes back */
-  const asked = useRef(new Set<string>());
-  useEffect(() => {
-    if (!live) return;
-    const go = () => { for (const t of toHear(turns)) if (!asked.current.has(t.id)) { asked.current.add(t.id); hear(t.id); } };
-    go();
-    const back = () => { asked.current.clear(); go(); };
-    window.addEventListener('online', back);
-    return () => window.removeEventListener('online', back);
-  }, [turns, hear, live]);
-
-  /* ---- recording: pieces cut as they are said, the screen kept awake ---- */
+  /* ---- the phone hears and records: the words written as they are said (lib/hearing), the recording kept beside them ---- */
   const stream = useRef<MediaStream | null>(null);
   const recorder = useRef<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
   const pieceStart = useRef(0);
   const going = useRef(false);
+  const cutting = useRef(false);
   const wake = useRef<{ release: () => Promise<void> } | null>(null);
+  const ear = useRef<Ear | null>(null);
+  /* the words of the piece being ended — at once on a cut, a moment after a pause */
+  const wordsFor = useRef<Cut | Promise<Cut> | null>(null);
+  /* this phone would not record and hear at once: the recording stops after this piece */
+  const dropRecording = useRef(false);
+  const [heardNow, setHeardNow] = useState<Heard>({ final: '', interim: '' });
+  const [writing, setWriting] = useState(false);
 
-  const keepPiece = useCallback(async (blob: Blob, at: number, durationS: number) => {
-    /* a tap and nothing said is not a piece */
-    if (blob.size < 800 || durationS < 0.6) return;
-    const blobKey = `talk-${uid()}`;
-    await putBlob(blobKey, blob);
-    const t: TalkTurn = { id: uid(), at, ...(me ? { who: me } : {}), kind: 'said', media: { blobKey, mime: blob.type || 'audio/webm', capturedAt: at, durationS: Math.round(durationS * 10) / 10 }, hearing: 'waiting' };
-    await addTurn(t);
-    asked.current.add(t.id);
-    hear(t.id);
-  }, [me, hear]); // eslint-disable-line react-hooks/exhaustive-deps
+  const stopStream = () => {
+    stream.current?.getTracks().forEach(tr => tr.stop());
+    stream.current = null;
+  };
 
-  const startPiece = useCallback(() => {
-    if (!stream.current) return;
-    const r = new MediaRecorder(stream.current);
-    chunks.current = [];
-    pieceStart.current = Date.now();
-    const at = pieceStart.current;
-    r.ondataavailable = e => { if (e.data.size) chunks.current.push(e.data); };
-    r.onstop = () => {
-      const blob = new Blob(chunks.current, { type: r.mimeType || 'audio/webm' });
-      void keepPiece(blob, at, (Date.now() - at) / 1000);
-      /* the next piece, while the microphone is still ours */
-      if (going.current && stream.current?.getAudioTracks().some(tr => tr.readyState === 'live')) {
+  const keepPiece = async (blob: Blob | undefined, at: number, durationS: number, cut: Cut | Promise<Cut>) => {
+    const c = await cut;
+    const words = c.words.trim();
+    /* a recording the phone silenced (it gave the microphone to the hearing) is not kept — the words are */
+    const peak = blob && words ? await recordingPeak(blob) : null;
+    const silenced = !!blob && !!words && peak !== null && peak < SILENT_PEAK;
+    const recorded = !!blob && !silenced && blob.size >= 800 && durationS >= 0.6;
+    if (silenced) { recordNoMore(); dropRecording.current = true; setSaid({ text: SILENCED_SAID }); }
+    /* a tap, a breath, nothing written and nothing in the way: not a piece */
+    if (!words && (!recorded || (!c.trouble && durationS < 4))) return;
+    let media: TalkTurn['media'];
+    if (recorded && blob) {
+      const blobKey = `talk-${uid()}`;
+      await putBlob(blobKey, blob);
+      media = { blobKey, mime: blob.type || 'audio/webm', capturedAt: at, durationS: Math.round(durationS * 10) / 10 };
+    }
+    await addTurn({ id: uid(), at, ...(me ? { who: me } : {}), kind: 'said', ...(media ? { media } : {}),
+      ...(words ? { heard: words } : { hearing: 'failed' as const, why: notHeardWhy(c.trouble) }) });
+  };
+
+  /* after a piece: the next one while the talk goes on and the microphone is still ours; else the talk stops */
+  const carryOn = () => {
+    if (going.current) {
+      if (dropRecording.current) { dropRecording.current = false; stopStream(); ear.current?.start(); }
+      if (!stream.current || stream.current.getAudioTracks().some(tr => tr.readyState === 'live')) {
         try { startPiece(); return; } catch { /* said below */ }
       }
       /* the phone took the microphone (a call, another app, the screen off): what was said is kept, and it says so */
-      if (going.current) {
-        going.current = false;
-        void wake.current?.release().catch(() => undefined);
-        wake.current = null;
-        setRec({ s: 'idle' });
-        setSaid({ text: 'Recording stopped — the phone took the microphone or the screen went off. What was said up to then is kept. Press Continue to carry on.' });
-      }
-      stream.current?.getTracks().forEach(tr => tr.stop());
-      stream.current = null;
-    };
-    r.start(1000);
-    recorder.current = r;
+      going.current = false;
+      setSaid({ text: 'Recording stopped — the phone took the microphone or the screen went off. What was said up to then is kept. Press Continue to carry on.' });
+    }
+    void ear.current?.stop();
+    stopStream();
+    void wake.current?.release().catch(() => undefined);
+    wake.current = null;
+    setWriting(false);
+    setRec({ s: 'idle' });
+  };
+
+  const NO_EAR: Cut = { words: '', trouble: 'unsupported' };
+  const startPiece = () => {
+    pieceStart.current = Date.now();
+    const at = pieceStart.current;
+    cutting.current = false;
+    if (stream.current) {
+      const r = new MediaRecorder(stream.current);
+      chunks.current = [];
+      r.ondataavailable = e => { if (e.data.size) chunks.current.push(e.data); };
+      r.onstop = () => {
+        const blob = new Blob(chunks.current, { type: r.mimeType || 'audio/webm' });
+        const durationS = (Date.now() - at) / 1000;
+        /* stopped by the phone, not by a cut or a pause: the microphone gone, or the recording ended under us */
+        const lost = going.current && !wordsFor.current;
+        const cut = wordsFor.current ?? (ear.current ? (lost && !stream.current?.getAudioTracks().some(tr => tr.readyState === 'live') ? ear.current.stop() : ear.current.cut()) : NO_EAR);
+        wordsFor.current = null;
+        carryOn();
+        void keepPiece(blob, at, durationS, cut).then(() => setHeardNow(ear.current?.now() ?? { final: '', interim: '' }));
+      };
+      r.start(1000);
+      recorder.current = r;
+    } else recorder.current = null;
     setRec({ s: 'recording', since: at });
     setSecs(0);
-  }, [keepPiece]);
+  };
+
+  /* a long stretch cut into pieces; the talk goes on */
+  const cutPiece = () => {
+    if (cutting.current) return;
+    cutting.current = true;
+    const at = pieceStart.current;
+    wordsFor.current = ear.current ? ear.current.cut() : NO_EAR;
+    const r = recorder.current;
+    if (r && r.state !== 'inactive') { r.stop(); return; }
+    const cut = wordsFor.current;
+    wordsFor.current = null;
+    carryOn();
+    void keepPiece(undefined, at, (Date.now() - at) / 1000, cut).then(() => setHeardNow(ear.current?.now() ?? { final: '', interim: '' }));
+  };
+
+  /* WHAT GETS IN THE WAY, said as it happens — the phone that will not record and hear at once keeps the words */
+  const onTrouble = useRef<(t: Trouble) => void>(() => undefined);
+  onTrouble.current = t => {
+    if (t === 'mic-busy' && recorder.current?.state === 'recording') {
+      recordNoMore();
+      dropRecording.current = true;
+      setSaid({ text: troubleSaid('mic-busy', true) });
+      cutPiece();
+      return;
+    }
+    setSaid({ text: troubleSaid(t, !!recorder.current), bad: t !== 'network' });
+  };
 
   const startTalking = async () => {
     setSaid(null);
-    if (typeof MediaRecorder === 'undefined' || !navigator.mediaDevices?.getUserMedia) { setSaid({ text: 'This browser cannot record. Type instead, or open Faultline in the phone’s own browser.', bad: true }); return; }
-    try { stream.current = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch {
-      setSaid({ text: 'The microphone could not be opened — allow it for Faultline in the browser’s settings, then press Talk again.', bad: true });
-      return;
+    const Rec = recognitionOf(window);
+    const canRecord = typeof MediaRecorder !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
+    if (!Rec && !canRecord) { setSaid({ text: troubleSaid('unsupported', false), bad: true }); return; }
+    if (canRecord && !hearOnly()) {
+      try { stream.current = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) {
+        /* refused: neither can listen. Busy: the phone may still write down what is said */
+        if (!Rec || (e as { name?: string } | null)?.name === 'NotAllowedError') {
+          setSaid({ text: 'The microphone could not be opened — allow it for Faultline in the browser’s settings, then press Talk again.', bad: true });
+          return;
+        }
+        stream.current = null;
+      }
     }
-    /* the phone ending the microphone ends the piece (it is kept), and onstop says so */
-    stream.current.getAudioTracks().forEach(tr => tr.addEventListener('ended', () => { if (recorder.current?.state === 'recording') recorder.current.stop(); }));
+    if (stream.current) {
+      /* the phone ending the microphone ends the piece (it is kept), and carryOn says so */
+      stream.current.getAudioTracks().forEach(tr => tr.addEventListener('ended', () => { if (recorder.current?.state === 'recording') recorder.current.stop(); }));
+    }
     going.current = true;
     try { wake.current = await (navigator as unknown as { wakeLock?: { request: (k: 'screen') => Promise<{ release: () => Promise<void> }> } }).wakeLock?.request('screen') ?? null; } catch { wake.current = null; }
+    setHeardNow({ final: '', interim: '' });
+    if (Rec) {
+      ear.current = new Ear(Rec, { onWords: setHeardNow, onTrouble: t => onTrouble.current(t) }, 'en-GB', /Android/i.test(navigator.userAgent),
+        () => document.visibilityState === 'hidden');
+      ear.current.start();
+    } else {
+      ear.current = null;
+      setSaid({ text: troubleSaid('unsupported', true) });
+    }
+    setWriting(!!Rec);
     startPiece();
   };
-  const pause = useCallback(() => {
+  /* Pause runs this render's code — the person, the talk — however long ago the page was drawn */
+  const pausing = useRef<() => void>(() => undefined);
+  const pause = useCallback(() => pausing.current(), []);
+  pausing.current = () => {
+    if (!going.current) return;
     going.current = false;
-    if (recorder.current && recorder.current.state !== 'inactive') recorder.current.stop();
-    else { stream.current?.getTracks().forEach(tr => tr.stop()); stream.current = null; }
-    void wake.current?.release().catch(() => undefined);
-    wake.current = null;
+    const at = pieceStart.current;
+    const r = recorder.current;
+    const cut: Promise<Cut> = ear.current ? ear.current.stop() : Promise.resolve(NO_EAR);
+    if (r && r.state !== 'inactive') { if (!cutting.current) wordsFor.current = cut; r.stop(); }
+    else if (!cutting.current) { carryOn(); void keepPiece(undefined, at, (Date.now() - at) / 1000, cut).then(() => setHeardNow({ final: '', interim: '' })); }
     setRec({ s: 'idle' });
-  }, []);
+  };
 
-  /* the clock, and a long stretch cut into pieces as it is said */
+  /* the clock, and a long stretch cut into pieces — at a pause in what is said, unless it runs on */
   useEffect(() => {
     if (rec.s !== 'recording') return;
     const i = window.setInterval(() => {
       const sec = (Date.now() - pieceStart.current) / 1000;
       setSecs(sec);
-      if (sec >= PIECE_SECONDS && recorder.current?.state === 'recording') recorder.current.stop();
+      if (going.current && !cutting.current && sec >= PIECE_SECONDS && (!ear.current?.now().interim || sec >= PIECE_SECONDS + 15)) cutPiece();
     }, 250);
     return () => window.clearInterval(i);
-  }, [rec.s]);
+  }, [rec.s]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* the phone stopped it (the screen went off, another app took the mic): what was said is kept, and it says so */
+  const awayAt = useRef(0);
   useEffect(() => {
     const seen = () => {
-      if (document.visibilityState === 'visible' && going.current && recorder.current?.state !== 'recording') {
+      if (document.visibilityState === 'hidden') { awayAt.current = Date.now(); return; }
+      if (!going.current) return;
+      if (recorder.current && recorder.current.state !== 'recording') {
         pause();
         setSaid({ text: 'Recording stopped while the phone was away from Faultline — what was said up to then is kept. Press Continue to carry on.' });
+        return;
       }
+      /* back in sight: listening again at once; what was said meanwhile was not written down */
+      ear.current?.start();
+      if (Date.now() - awayAt.current < 1000) return;
+      setSaid({ text: recorder.current
+        ? 'Faultline was out of sight, so the phone did not write down what was said meanwhile — the recording has it. It is listening again.'
+        : 'Faultline was out of sight, so the phone did not write down what was said meanwhile, and it was not recording. It is listening again.' });
     };
     document.addEventListener('visibilitychange', seen);
     return () => document.removeEventListener('visibilitychange', seen);
   }, [pause]);
-  useEffect(() => () => { going.current = false; if (recorder.current?.state === 'recording') recorder.current.stop(); }, []);
+  useEffect(() => () => { going.current = false; ear.current?.abort(); if (recorder.current?.state === 'recording') recorder.current.stop(); stopStream(); }, []);
 
   /* ---- photos: taken there and then, or chosen from the phone — kept the moment they are picked ---- */
   const photoIn = useRef<HTMLInputElement>(null);
@@ -379,9 +441,6 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
   }, [s.id]); // eslint-disable-line react-hooks/exhaustive-deps
   /* the answer to everything said before `at`, filled into its turn */
   const answer = async (replyId: string, at: number) => {
-    /* what is still to be heard on this phone is heard first, so the answer has it */
-    for (const t of toHear(turnsOf((await getStudy(s.id))?.facts ?? {}))) hear(t.id);
-    await chain.current;
     const cur = turnsOf((await getStudy(s.id))?.facts ?? {});
     const asked = cur.filter(t => t.id !== replyId && t.at <= at);
     const named = photoLabels(cur);
@@ -473,7 +532,6 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
               setFixing(null);
               offerUndo('Corrected — what was heard is kept beside it', async () => { await patchTurn(t.id, was ? { text: was } : {}, was ? [] : ['text']); });
             }}
-            onHearAgain={async () => { await patchTurn(t.id, { hearing: 'waiting' }, ['why']); asked.current.add(t.id); hear(t.id); }}
             onStrike={struck => void strike(t, struck)} />
         ))}
       </ol>
@@ -495,7 +553,14 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
             {/* no `capture`: the phone offers its camera and its photos alike */}
             <input ref={photoIn} type="file" accept="image/*" multiple hidden aria-label="Add a photo" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
           </div>
-          {recording && <p className="sub tk-hint">Listening — a long stretch is kept a minute at a time. Pause when you stop; the screen stays on while it listens. Pause to ask Line Talk about it.</p>}
+          {recording && (
+            <p className="tk-live" aria-live="polite">
+              {heardNow.final || heardNow.interim
+                ? <>{heardNow.final}{heardNow.interim && <span className="tk-interim">{heardNow.final ? ' ' : ''}{heardNow.interim}</span>}</>
+                : <span className="sub">{writing ? 'Listening — what you say is written here as you say it.' : 'Recording.'}</span>}
+            </p>
+          )}
+          {recording && <p className="sub tk-hint">{writing ? 'The phone writes down what you say; a long stretch is kept about a minute at a time. Pause when you stop — the screen stays on while it listens — and Pause to ask Line Talk about it.' : 'Recording — a long stretch is kept a minute at a time. Pause when you stop; the screen stays on while it records.'}</p>}
           {!recording && !typing.trim() && turns.some(isTheirs) && (
             <div className="tk-chips" role="group" aria-label="Ask for a document">
               {ASKS.map(a => <button key={a.label} type="button" className="chip tk-chip" onClick={() => { setTyping(a.text); box.current?.focus(); }}>{a.label}</button>)}
@@ -566,9 +631,9 @@ function ReplyRow({ t, live, answeringHere, onAskAgain, onOpen, onStrike }: {
   );
 }
 
-function TurnRow({ t, live, label, fixing, onFix, onSaveFix, onHearAgain, onStrike }: {
+function TurnRow({ t, live, label, fixing, onFix, onSaveFix, onStrike }: {
   t: TalkTurn; live: boolean; label?: string; fixing?: string;
-  onFix: (text: string | undefined) => void; onSaveFix: (text: string) => Promise<void>; onHearAgain: () => void; onStrike: (struck: boolean) => void;
+  onFix: (text: string | undefined) => void; onSaveFix: (text: string) => Promise<void>; onStrike: (struck: boolean) => void;
 }) {
   const url = useBlobUrl(t.media?.blobKey);
   const words = wordsOf(t);
@@ -576,7 +641,7 @@ function TurnRow({ t, live, label, fixing, onFix, onSaveFix, onHearAgain, onStri
     <li className={`tk-turn is-${t.kind}${t.struck ? ' is-struck' : ''}`} data-turn={t.id} data-kind={t.kind}>
       <span className="tk-meta">{t.who ?? 'Said'} · {hhmm(t.at)}{t.kind === 'said' && t.media?.durationS ? ` · ${clock(t.media.durationS)}` : ''}{t.kind === 'photo' && label ? <> · <b className="tk-label">{label}</b></> : null}{t.struck ? ' · struck' : ''}</span>
       {t.kind === 'photo' && (url ? <img className="tk-photo-i" src={url} alt={t.text || 'A photo taken in the talk'} /> : <span className="sub">The photo is on another device — it comes here once that device has synced.</span>)}
-      {t.kind === 'said' && (url ? <audio className="tk-audio" controls preload="none" src={url} aria-label="The recording" /> : <span className="sub">The recording is on another device — it comes here once that device has synced.</span>)}
+      {t.kind === 'said' && t.media && (url ? <audio className="tk-audio" controls preload="none" src={url} aria-label="The recording" /> : <span className="sub">The recording is on another device — it comes here once that device has synced.</span>)}
       {fixing !== undefined ? (
         <form className="tk-fix" onSubmit={e => { e.preventDefault(); void onSaveFix(fixing); }}>
           <textarea className="text-input" rows={3} value={fixing} autoFocus aria-label="What was said" onChange={e => onFix(e.target.value)} />
@@ -584,17 +649,15 @@ function TurnRow({ t, live, label, fixing, onFix, onSaveFix, onHearAgain, onStri
         </form>
       ) : (
         <>
-          {t.kind === 'said' && t.hearing === 'waiting' && <p className="sub tk-wait">{url ? 'Being heard…' : 'Waiting to be heard on the phone it was said on.'}</p>}
-          {t.kind === 'said' && t.hearing === 'failed' && (
-            <p className="sub is-r tk-fail">Not heard yet — {t.why ?? 'it could not be heard.'} The recording is kept. {live && <button type="button" className="linkish" onClick={onHearAgain}>Hear it again</button>}</p>
-          )}
+          {/* not written down: waiting on the person to type it — the recording kept to play */}
+          {notWritten(t) && <p className="sub is-a tk-fail">Not written down — {t.why ?? notHeardWhy(null)}</p>}
           {words && <p className="tk-words">{words}</p>}
           {t.kind === 'said' && t.text && t.heard && <p className="sub tk-heard">As heard: {t.heard}</p>}
         </>
       )}
       {live && fixing === undefined && (
         <span className="tk-turn-a">
-          {t.kind !== 'photo' && !t.struck && (t.kind === 'typed' || t.heard) && <button type="button" className="linkish" onClick={() => onFix(words)}>Correct</button>}
+          {t.kind !== 'photo' && !t.struck && <button type="button" className="linkish" onClick={() => onFix(words)}>Correct</button>}
           <button type="button" className="linkish" onClick={() => onStrike(!t.struck)}>{t.struck ? 'Bring back' : 'Strike'}</button>
         </span>
       )}

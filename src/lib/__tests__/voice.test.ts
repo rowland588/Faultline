@@ -207,23 +207,3 @@ describe('a note said as the whys', () => {
     expect(whysFill({ transcript: '', fields: {} })).toEqual({ chain: [], blames: null });
   });
 });
-
-/* LINE TALK (docs/LINE-TALK.md): a piece of one person's talk on the line,
-   written down — the line, its machines and what came before go with it; only
-   what was said comes back */
-describe('voice for Line Talk', () => {
-  it('asks for what was said, with the line, its machines and the talk before it — and nothing filled in', () => {
-    const p = promptFor('talk', { today: '2026-10-20', line: 'Line 7', machines: ['Tray sealer', 'Bagger'], earlier: 'Starting at the bagger.' });
-    expect(p).toContain('walking a production line (Line 7)');
-    expect(p).toContain('Machines on this line: Tray sealer; Bagger.');
-    expect(p).toContain('«Starting at the bagger.»');
-    expect(p).toContain('do not write it again');
-    expect(p).not.toContain('installation and commissioning');
-    expect(promptFor('talk', { today: '2026-10-20' })).not.toContain('What they said before');
-    expect(schemaFor('talk')).toMatchObject({ properties: { fields: { properties: { said: { type: 'STRING' } } } } });
-  });
-  it('keeps what was said, and only that', () => {
-    const r = tidy('talk', { transcript: ' er the tray sealer is um dropping trays ', fields: { said: ' The tray sealer is dropping trays. ', title: 'x' } });
-    expect(r).toEqual({ transcript: 'er the tray sealer is um dropping trays', fields: { said: 'The tray sealer is dropping trays.' } });
-  });
-});
