@@ -87,17 +87,15 @@ and today's date. And the whole talk so far.
 
 ## How it is built (for the developer)
 
-- **Hearing:** the phone records the talk in pieces (as the voice note does
-  today, up to two minutes a piece), kept on the phone until each is heard.
-  The server's existing voice service (`api/voice`, the key server-side, only
-  for someone signed in) writes each piece down. Offline, recording carries
-  on and hearing waits for signal.
+- **Hearing:** the phone's own speech recognition writes the words down as
+  they are said (Rowland, 20 October: "Use the phone's own speech
+  recognition instead of Gemini" — below, *How it hears*), and the phone
+  records beside it; the talk is kept in pieces about a minute long.
 - **Replying:** one conversation call through a server-side gateway with the
   talk and its context; its proposed records come back in a fixed shape the
   app checks before it shows them. Built (slice 2): **Claude replies**
-  (`supabase/functions/assist`, task `talk`); the voice service hears
-  (`api/voice`, Gemini) — Claude takes text, pictures and PDFs but not
-  sound, so one provider cannot do both today.
+  (`supabase/functions/assist`, task `talk`); **the phone hears** — no other
+  AI is in Line Talk.
 - **Keeping:** the recordings, photos and documents go to the cloud as
   footage does (`lib/video/footage`'s rules: a row names the file before it
   is uploaded; the size limit said at once), so the talk plays on another
@@ -142,27 +140,21 @@ the screen locked — tested on Rowland's phone first, as the video check did.
   never a delete — **nothing in a talk is erased**, and every recording and
   photo, struck or not, is named for the cloud (`talkMediaKeys`) so it goes
   up and stays, as footage does.
-- **Recording:** the browser's MediaRecorder, cut into pieces of a minute
-  (`PIECE_SECONDS`) so a long stretch is kept as it is said; the screen kept
-  awake (Wake Lock) while it listens. The phone taking the microphone ends
-  the piece — kept — and the talk says so and offers Continue.
-- **Hearing:** each piece sent, one at a time and in order, to the existing
-  voice service (`api/voice`, form `talk`, the key server-side, signed in
-  only) with the line, its machines and **everything said before it**
-  (`earlierOf`, the last 1,500 characters) — so "same as the last one" is
-  understood. No signal: it waits, and is heard when the signal comes back;
-  refused: it says why and offers *Hear it again*; the recording is kept
-  either way. Recorded on another phone: heard there.
+- **Recording:** the browser's MediaRecorder, cut into pieces about a
+  minute long (`PIECE_SECONDS`) so a long stretch is kept as it is said; the
+  screen kept awake (Wake Lock) while it listens. The phone taking the
+  microphone ends the piece — kept — and the talk says so and offers
+  Continue.
+- **Hearing** (as built in slice 1 it was the voice service, `api/voice`
+  on Gemini; replaced the same day — below, *How it hears*).
 - **Database:** `supabase/LINE_TALK.sql` — `talk` added to the studies'
   tools, and the media rule taking a talk's recordings and photos.
 - **Proved:** `scripts/acceptance/line-talk.mjs` (Chromium's fake
-  microphone; the voice service answered by the script, and what it was
-  asked read back), `lib/__tests__/talk.test.ts`, the voice prompt in
-  `lib/__tests__/voice.test.ts`; seeded for the smoke test and the page
-  inventory (`dev/seed.ts` talkId).
+  microphone, the phone's recogniser played by the script),
+  `lib/__tests__/talk.test.ts`, `lib/__tests__/hearing.test.ts`; seeded for
+  the smoke test and the page inventory (`dev/seed.ts` talkId).
 - **Still open:** whether a phone keeps recording with its screen locked —
-  tried on Rowland's phone first; and slice 1 is heard by the voice service
-  as it stands (Gemini, `api/voice`), chosen again for slice 2.
+  tried on Rowland's phone first.
 
 ## Built — slice 2, ask it (20 October)
 
@@ -256,6 +248,73 @@ were.
   one section; the order was changed and the walk asked again.
 - **Still open:** slice 1's phone test (the screen locked, a signal lost)
   and the first answers on Rowland's own phone; the camera and gallery
-  pickers on iOS and Android; whether to keep Gemini for hearing (the only
-  part of Line Talk not on Claude — Claude takes no sound) or move it to the
-  phone's own speech recognition; slices 3 and 4.
+  pickers on iOS and Android; slices 3 and 4. (Gemini hearing: replaced by
+  the phone's own the same evening — below.)
+
+## How it hears — the phone's own speech recognition (20 October)
+
+Rowland, 20 October, asked whether to keep Gemini for hearing: *"Use the
+phone's own speech recognition instead of Gemini."* So Line Talk has no AI
+but Claude, and the hearing costs nothing and needs no key.
+
+- **What does it:** the browser's speech recognition (the Web Speech API —
+  Chrome and Edge on Android and at a desk, Safari on an iPhone), in British
+  English, wrapped once in `lib/hearing` (`Ear`). It listens while the
+  person talks and writes the words as they come: the words it is sure of
+  in ink, the ones still forming lighter, under Pause (`.tk-live`). A
+  stretch it is sure of is kept as a sentence — a capital and a stop, no
+  word changed (`sentence`). On Chrome on Android it writes one sentence a
+  session (a long session there repeats words); every phone ends sessions
+  by itself, and the Ear opens the next, a moment later each time one fails
+  at once. Where the words go: Chrome sends the sound to Google's speech
+  service, Safari to Apple's or does it on the phone — the phone's own
+  service either way, never Faultline's.
+- **A piece:** the words written while it was said, and its recording
+  beside them; cut about a minute in **at a pause in what is said** (never
+  mid-sentence, unless it runs on fifteen seconds more); words still forming
+  at a cut finish in the next piece. A tap, a breath and nothing written is
+  not a piece.
+- **What it cannot do, said in words** (`notHeardWhy`, `troubleSaid`):
+  - *no signal* — said as it happens; the recording carries on, and the
+    piece is kept *Not written down*, with why;
+  - *a browser with no speech recognition* (Firefox, some in-app browsers) —
+    recorded, not written;
+  - *refused* — the phone's settings named;
+  - *write a recording down afterwards* — it only hears live, so a piece
+    not written down is never written later: the person plays it and types
+    the words over it with **Correct** (they stand as the piece's words; the
+    talk stops counting it as not written down). *Hear it again* went with
+    Gemini.
+  - *the line's machine names* — it cannot be told them, so a name may come
+    out misheard; the person corrects it, and Line Talk's assistant is told
+    the words came by speech recognition and has the line's machines in its
+    records.
+- **A phone that will not record and hear at once** (it refuses the
+  microphone to the hearing while recording, or records silence while it
+  hears): the words win — the recording stops, the piece is kept with its
+  words, the talk says so, and the phone remembers it (`fl-talk-hear-only`):
+  its later talks write the words and record nothing. A silent recording is
+  told from the recording itself once it is made (`recordingPeak`), asked
+  only of a piece with words in it — someone spoke, so a recording that
+  heard them is never near silent.
+- **What went:** Line Talk's form in the voice service (`api/voice`, form
+  `talk`) and what was said before each piece (`earlierOf`, `talkText`),
+  and the state *waiting to be heard* (a piece recorded on an older copy of
+  the app reads *Not written down*). The voice note in the forms' boxes
+  (`ui/Voice`, `api/voice` — fix, found, test, install, problem, whys) is
+  unchanged: Gemini hears it and fills the boxes.
+- **Proved:** `lib/__tests__/hearing.test.ts` (a recogniser that behaves as
+  a phone's: words forming then final, sessions ended by itself, no signal,
+  refused, the microphone taken, a language not offered, stopped twice) and
+  `scripts/acceptance/line-talk.mjs` (live words, a session ended by the
+  phone, a cut at a pause a minute in, no signal and the words typed over,
+  the microphone taken, a phone that will not do both, a silent recording, a
+  browser without it, a reload; nothing sent to a voice service).
+- **On a real phone** (not provable here): how well it hears in the noise of
+  Rowland's line; whether an Android phone and an iPhone record and hear at
+  once, or fall back to words only; what a locked screen does. Out of sight
+  (the screen locked, another app in front) a browser stops its hearing:
+  the Ear waits that out — a refusal then is never taken as one — listens
+  again the moment Faultline is back, and the talk says that what was said
+  meanwhile was not written down (the recording has it, where the phone
+  records).

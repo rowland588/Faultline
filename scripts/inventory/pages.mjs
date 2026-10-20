@@ -262,15 +262,15 @@ export const PAGES = (sd, cap) => [
     { what: 'start one on this line', sel: '.tk-new .tk-start', text: /^Start a Line Talk on / },
     { what: 'every talk on the line, what was said in a line', sel: '.lt-row', text: /Line 7 — morning walk[\s\S]*4 pieces said/ },
   ] },
-  /* a talk: the conversation as it was left — pieces heard and corrected, a photo, a typed line, one waiting, one not heard; a report asked for and Line Talk's answer with the document it wrote (slice 2, 20 October) — and the bar to carry on */
+  /* a talk: the conversation as it was left — pieces the phone wrote down, one corrected, a photo, a typed line, one not written down, one written by a phone that does not record; a report asked for and Line Talk's answer with the document it wrote (slice 2, 20 October) — and the bar to carry on */
   { name: 'A Line Talk', path: `#/talk/${sd.talkId}`, must: [
     { what: 'where it is — the line, every Line Talk', sel: '.pl-eyebrow', text: /^LINE TALK · .+ › · Every Line Talk ›$/ },
-    { what: 'what was said, in a line — its answers and document counted', sel: '.tk-sum', text: /^4 pieces said, 3 min · 1 photo · 2 typed · 1 answer · 1 document — 1 waiting to be heard, 1 could not be heard\.$/ },
+    { what: 'what was said, in a line — its answers and document counted', sel: '.tk-sum', text: /^4 pieces said, 2 min · 1 photo · 2 typed · 1 answer · 1 document — 1 not written down\.$/ },
     { what: 'what Line Talk knows — the line’s records, said in a line', sel: '.tk-knows summary', text: /^What Line Talk knows — .+: \d+ machines? · / },
     { what: 'every turn in the order it happened', sel: '.tk-turn', n: 8 },
     { what: 'a correction over what was heard, the heard kept beside it', sel: '.tk-turn .tk-heard', text: /^As heard: Starting at the bagger, it is running at about sixty a minute/ },
-    { what: 'a piece not heard — why, and the recording kept', sel: '.tk-turn .tk-fail', text: /Not heard yet — Voice is busy right now\. The recording is kept\./ },
-    { what: 'a piece waiting to be heard', sel: '.tk-turn .tk-wait' },
+    { what: 'a piece not written down — why, the recording kept, and how to type the words over it', sel: '.tk-turn .tk-fail', text: /^Not written down — No signal while it was said, so the phone could not write it down\. The recording is kept — play it, and type what was said with Correct\.$/ },
+    { what: 'a piece written down by a phone that does not record — the words, no recording', sel: '.tk-turn[data-kind=said]:not(:has(> span.sub)):not(:has(audio))', text: /Back at the bagger\. The jaws are clean now\./ },
     { what: 'a photo by its label', sel: '.tk-turn[data-kind=photo] .tk-label', text: /^P1$/ },
     { what: 'Line Talk’s answer, its words as written', sel: '.tk-turn.is-reply .tk-ans', text: /Here is the line-walk report/ },
     { what: 'the document it wrote, to open, edit and print', sel: '.tk-turn.is-reply .tk-doc', text: /Line-walk report[\s\S]*Line 7 — morning walk[\s\S]*2 sections · 1 photo[\s\S]*Open — edit and print/i },

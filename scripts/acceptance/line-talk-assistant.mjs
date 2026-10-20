@@ -4,8 +4,10 @@
  * photographs, and ask the assistant to produce useful reports").
  *
  * In a real browser, from an empty device, with Chromium's fake microphone,
- * the voice service and Line Talk's gateway (supabase/functions/assist, task
- * `talk`) both answered by the script — and every request read back:
+ * the phone's speech recognition played by the script (lib/hearing; the
+ * phone writes the words down, no voice service), and Line Talk's gateway
+ * (supabase/functions/assist, task `talk`) answered by the script — every
+ * request read back:
  *
  *   1  started from the front door on a line with two machines and a
  *      critical problem; What Line Talk knows says them
@@ -54,9 +56,18 @@ const ctx = await b.newContext({ viewport: { width: 1360, height: 900 }, permiss
 await ctx.addInitScript(([k, s]) => { try { localStorage.setItem(k, JSON.stringify(s)); } catch { /* fine */ } }, [`sb-${REF}-auth-token`, SESSION]);
 await ctx.route('**://*.supabase.co/**', r => r.abort());
 
-/* THE VOICE SERVICE, answered by the script */
-await ctx.route('**/api/voice', r => r.fulfill({ status: 200, contentType: 'application/json',
-  body: JSON.stringify({ transcript: 'the bagger film is wandering left about 62 a minute', fields: { said: 'The bagger film is wandering to the left, running at about 62 a minute.' } }) }));
+/* THE PHONE'S SPEECH RECOGNITION, played by the script: what is said into it (__say) is written down */
+await ctx.addInitScript(() => {
+  class FakeRec {
+    constructor() { this.onresult = null; this.onerror = null; this.onend = null; this.running = false; this.results = []; }
+    start() { this.running = true; window.__ear = this; }
+    stop() { this.running = false; setTimeout(() => this.onend?.(), 30); }
+    abort() { this.running = false; setTimeout(() => this.onend?.(), 0); }
+  }
+  window.SpeechRecognition = FakeRec;
+  window.webkitSpeechRecognition = FakeRec;
+  window.__say = text => { const r = window.__ear; if (!r?.running) return false; r.results.push({ 0: { transcript: text }, length: 1, isFinal: true }); r.onresult?.({ results: [...r.results] }); return true; };
+});
 
 /* LINE TALK'S GATEWAY, answered by the script: each request kept; what it answers set by the step */
 const asks = [];
@@ -111,9 +122,11 @@ ok((await page.locator('.tk-send').innerText()).trim() === 'Reply' && await page
 plan.push({ a: { reply: 'You said the bagger film is wandering left.\n- Check the film **tension** on the Bagger\n- The guard problem on the Checkweigher is still open, owned by Dave' } });
 await page.locator('.tk-bar .tk-talk').click();
 await waitFor(async () => (await page.locator('.tk-bar .tk-talk').innerText()).startsWith('Pause'), 5000);
-await page.waitForTimeout(2200);
+await page.waitForFunction(() => window.__ear?.running, null, { timeout: 5000 }).catch(() => {});
+await page.evaluate(() => window.__say('the bagger film is wandering to the left running at about 62 a minute'));
+await page.waitForTimeout(1500);
 await page.locator('.tk-bar .tk-talk').click();
-ok(await waitFor(async () => /The bagger film is wandering to the left/.test(await page.locator('.tk-turn[data-kind=said] .tk-words').innerText().catch(() => ''))), '2 a piece said and heard');
+ok(await waitFor(async () => /The bagger film is wandering to the left/.test(await page.locator('.tk-turn[data-kind=said] .tk-words').innerText().catch(() => ''))), '2 a piece said and written down');
 ok(await waitFor(async () => !(await page.locator('.tk-send').isDisabled())) && (await page.locator('.tk-send').innerText()).trim() === 'Reply', '2 Reply, for what was said');
 await send();
 ok(await waitFor(async () => /Check the film tension on the Bagger/.test(await lastReply())), '2 answered', await lastReply());

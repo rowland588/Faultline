@@ -22,7 +22,7 @@
 
 /* ------------------------------ the contract ------------------------------ */
 
-export type VoiceForm = 'fix' | 'found' | 'test' | 'install' | 'problem' | 'whys' | 'talk';
+export type VoiceForm = 'fix' | 'found' | 'test' | 'install' | 'problem' | 'whys';
 
 export interface VoiceContext {
   /** Today, as the phone sees it — "Friday" means the Friday after this. */
@@ -35,11 +35,6 @@ export interface VoiceContext {
    *  reads now, so a second note on the same record is worked into the first
    *  rather than stacked under it. */
   on?: { title?: string; machine?: string; result?: string };
-  /** LINE TALK (docs/LINE-TALK.md): the line it is on, and what was said
-   *  before this piece in the same talk — so "the one after the sealer" and
-   *  "same as before" are heard with what they point at. */
-  line?: string;
-  earlier?: string;
 }
 
 export interface VoiceRequest {
@@ -92,15 +87,6 @@ const OUTCOME = (words: string) => ({ type: 'STRING', enum: ['passed', 'failed',
  *  names the field that carries the spoken account (default "result"): a
  *  second note on the same record is worked into it (promptFor). */
 export const FORMS: Record<VoiceForm, { what: string; fields: Record<string, unknown>; account?: string }> = {
-  /* LINE TALK (docs/LINE-TALK.md): a piece of one person's talk on the line,
-     written down — nothing filled in, nothing decided; what is made of the
-     talk is asked of it later, in words. */
-  talk: {
-    what: 'a LINE TALK: one person walking a production line, talking about what they see.',
-    fields: {
-      said: { type: 'STRING', description: 'What was said, as clean sentences in the speaker\'s own words: drop the ums, false starts and repeats; fix obvious mis-hearings, using the machine names on the list; keep every fact, name and number said. A new paragraph when they move to another machine or subject.' },
-    },
-  },
   fix: {
     what: 'a FIX: something on the line that has to be put right.',
     fields: {
@@ -191,18 +177,6 @@ const WHYS_SAY = [
 
 export function promptFor(form: VoiceForm, ctx: VoiceContext): string {
   const list = (label: string, xs?: string[]) => (xs && xs.length ? `${label}: ${xs.join('; ')}.` : '');
-  /* LINE TALK: written down, nothing more — what came before goes with it so
-     what points back is heard right, and is never written again */
-  if (form === 'talk') {
-    return [
-      `You are writing down a piece of what one person said while walking a production line${ctx.line ? ` (${ctx.line})` : ''} in a UK factory, talking about what they see.`,
-      'Speech recognition mangles names. When a name sounds like one on this list, use the list spelling exactly.',
-      list('Machines on this line', ctx.machines),
-      ctx.earlier?.trim() ? `What they said before this piece, for what "it", "that one" and "same as before" point at — do not write it again:\n«${ctx.earlier.trim()}»` : '',
-      'In "transcript", what was said word for word. In "said", the same as clean sentences, as the field says.',
-      'British English. Do not add anything that was not said, and do not answer or comment on it.',
-    ].filter(Boolean).join('\n');
-  }
   const whys = form === 'whys';
   return [
     whys

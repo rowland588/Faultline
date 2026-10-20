@@ -13821,6 +13821,9 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .tk-type { display: flex; gap: 8px; }
 .tk-type .text-input { flex: 1; min-width: 0; }
 .tk-hint, .tk-said { margin: 0; }
+/* the phone's hearing: what it has written of the piece so far, the words still forming lighter (lib/hearing) */
+.tk-live { margin: 0; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--surface-2); line-height: 1.45; max-height: 7.5em; overflow-y: auto; white-space: pre-wrap; }
+.tk-interim { color: var(--muted); }
 /* ASK IT (slice 2): Line Talk's answers on the left of the page, the person's turns as they were; a photo's label; the composer */
 .tk-turn.is-reply { background: var(--surface-2); border-color: var(--line); border-left: 3px solid var(--brand); }
 .tk-label { color: var(--ink); }
