@@ -100,8 +100,11 @@ builder was never used; nothing stored is lost.
 
 How it is taken out (in `main` only once the full gate passes):
 
-1. *Ask*'s AI answers: `lib/askAi` and its call; the `ask` function retired
-   (redeployed answering that it is retired) once the app no longer calls it.
+1. *Ask*'s AI answers: `lib/askAi` and its call. The `ask` function had
+   never been deployed (the server held `remind`, `share`, `assist` and
+   `keycheck`), so its folder simply goes. `keycheck` — a diagnostic made
+   for the builder's assistant that relayed requests to the API with the
+   saved key — is redeployed refusing everything.
 2. *Better wording*: `api/wording`, `lib/wording`, `ui/BetterWords` and the
    offer in every typed box (`ui/Draft`'s `better`); the voice note stays.
 3. The method builder: `lib/flow`, `ui/flow`, `db/flow`, the Methods,
