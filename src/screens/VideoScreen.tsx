@@ -59,6 +59,7 @@ import { useSyncStatus } from '../cloud/session';
 import { backedUp } from '../cloud/sync';
 import { cloudConfigured } from '../cloud/client';
 import { CLOUD_FILE_LIMIT } from '../lib/transcode';
+import { useBuilderShown } from '../lib/parked';
 
 const OWNER = canOf('owner');
 const TRACKS = ['Operator A', 'Operator B', 'Operator C', 'Operator D', 'Operator E', 'Operator F'];
@@ -338,6 +339,7 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
   const [t, setT] = useState(0);
   const [said, setSaid] = useState<string | null>(null);
   const [withVision, setWithVision] = useState(false);
+  const builder = useBuilderShown();
   const abort = useRef<AbortController | null>(null);
   const [printing, setPrinting] = useState(false);
   const zones = v.job.config.zones;
@@ -373,7 +375,7 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
   const read = async () => {
     abort.current = new AbortController();
     setSaid(null);
-    await runJob(s.id, { withVision, abort: abort.current.signal });
+    await runJob(s.id, { withVision: withVision && builder, abort: abort.current.signal });
   };
   const report = async () => {
     if (printing) return;
@@ -482,7 +484,8 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
             <input type="number" className="text-input" min={1.5} max={12} step={0.5} value={job.config.sensitivity} disabled={!can.edit || running} aria-label="Sensitivity"
               onChange={e => { const n = Number(e.target.value); if (n >= 1.5 && n <= 12) void patchV({ job: { ...job, config: { ...job.config, sensitivity: n } } }); }} /></label>
         </details>
-        <label className="vid-vision"><input type="checkbox" checked={withVision} disabled={running} onChange={e => setWithVision(e.target.checked)} /> Name the work from the frames — {assistLabeller.sends}</label>
+        {/* naming the work from the frames is the assistant's — parked (20 October, docs/DIRECTION.md) */}
+        {builder && <label className="vid-vision"><input type="checkbox" checked={withVision} disabled={running} onChange={e => setWithVision(e.target.checked)} /> Name the work from the frames — {assistLabeller.sends}</label>}
         <div className="vid-job" data-job={job.state}>
           <b className={job.state === 'failed' ? 'ie-tone is-r' : ''}>{STATE_WORD[job.state]}</b>
           {job.said && <span className="sub"> — {job.said}</span>}

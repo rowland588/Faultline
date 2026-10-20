@@ -39,6 +39,7 @@ import { GateSheet, StepSheet } from '../ui/flow/RunParts';
 import { Words } from '../ui/flow/MethodParts';
 import { AskPanel, MoveSheet } from '../ui/flow/ChangeParts';
 import { Icon } from '../ui/Icon';
+import { useBuilderShown } from '../lib/parked';
 
 function useActivity(projectId: string): ActivityEntry[] {
   const [log, setLog] = useState<ActivityEntry[]>([]);
@@ -92,6 +93,7 @@ export function FlowProjectScreen({ projectId }: { projectId: string }) {
   const [adding, setAdding] = useState('');
   /* the version being moved onto, kept while the sheet says what happened */
   const [moving, setMoving] = useState<Method | null>(null);
+  const builder = useBuilderShown();
   const approved = useApproved(fp?.method.familyId);
   const today = todayISO();
   const page = useMemo(() => (fp ? flowLean({
@@ -212,7 +214,8 @@ export function FlowProjectScreen({ projectId }: { projectId: string }) {
       </LeanPanel>
       <LeanClosing closing={page.closing} />
 
-      <LeanPanel title="Ask about it"><AskPanel fp={fp} /></LeanPanel>
+      {/* the assistant is parked (20 October, docs/DIRECTION.md) */}
+      {builder && <LeanPanel title="Ask about it"><AskPanel fp={fp} /></LeanPanel>}
 
       <LeanPanel title="Who does what">
         {roles.length === 0 ? <p className="sub">The method names no roles.</p> : (

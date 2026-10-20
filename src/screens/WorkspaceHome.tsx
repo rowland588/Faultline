@@ -39,6 +39,7 @@ import { useLineRecords } from '../lib/useLineRecords';
 import { lineKit } from '../lib/lineRecords';
 import { useCanStartProjects } from '../cloud/access';
 import { lineProblems, lineProblemsSaid, type LineProblems } from '../lib/lineWork';
+import { useBuilderShown } from '../lib/parked';
 
 /** Below 720 px the control room's answer comes first (FLOW-AUDIT.md, 11). */
 function useNarrow(q = '(max-width: 719px)'): boolean {
@@ -137,6 +138,7 @@ export function WorkspaceHome() {
   /* Let in by a project invite: the projects they were invited to, and no
      door to start one of their own (supabase/ACCESS_LEVELS.sql). */
   const mayStart = useCanStartProjects();
+  const builder = useBuilderShown();
   // Every job, on every method — the control room is not a stage-gate board.
   const jobs = projects;
 
@@ -314,8 +316,9 @@ export function WorkspaceHome() {
             three kinds of job under New job are not the limit of what runs */}
         {mayStart && (
           <div className="pace-head-actions">
-            <button className="btn" onClick={() => nav('/design')}>Describe what you need ›</button>
-            {projects.length > 0 && <button className="btn btn-primary" onClick={() => nav('/projects?new=1')}>New job</button>}
+            {/* the studio is parked (20 October, docs/DIRECTION.md) */}
+            {builder && <button className="btn" onClick={() => nav('/design')}>Describe what you need ›</button>}
+            {(projects.length > 0 || !builder) && <button className="btn btn-primary" onClick={() => nav('/projects?new=1')}>New job</button>}
           </div>
         )}
       </header>

@@ -50,6 +50,8 @@ import type { Change } from '../lib/flow/change';
 import { familiesOf } from './MethodsScreen';
 import { MethodPreview } from '../ui/flow/MethodPreview';
 import { Words } from '../ui/flow/MethodParts';
+import { useBuilderShown } from '../lib/parked';
+import { ParkedPage } from '../ui/ParkedSwitch';
 
 interface Start { kind: 'library' | 'method'; id: string; name: string }
 interface Turn {
@@ -99,7 +101,12 @@ function proposalSaid(def: FlowDefinition): string {
   return `“${def.name}” — ${plural(def.stages.length, 'stage')}, ${plural(steps.length, 'step')}${tools ? `, ${tools} done with the app’s tools` : ''}${ms.length ? `, measuring ${ms.map(m => m.name.toLowerCase()).join(' and ')} before and after` : ''}.`;
 }
 
+/* PARKED, 20 October (docs/DIRECTION.md): the studio — a method designed from words */
 export function DesignScreen() {
+  return useBuilderShown() ? <DesignBody /> : <ParkedPage title="Design a method" />;
+}
+
+function DesignBody() {
   const route = useRoute();
   const q = route.query;
   const store = keyOfPage(q);

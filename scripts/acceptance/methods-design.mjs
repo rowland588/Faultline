@@ -98,6 +98,8 @@ const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' })
 const ctx = await b.newContext({ serviceWorkers: 'block', viewport: { width: 1360, height: 900 }, locale: 'en-GB', acceptDownloads: true });
 await ctx.route('**://*.supabase.co/**', r => r.abort());
 await ctx.addInitScript(([k, s]) => { try { localStorage.setItem(k, JSON.stringify(s)); } catch { /* private mode */ } }, [`sb-${REF}-auth-token`, SESSION]);
+/* what this script proves was parked on 20 October (docs/DIRECTION.md, lib/parked) — shown here so it stays proved */
+await ctx.addInitScript(() => { try { localStorage.setItem('fl-parked-builder', 'shown'); } catch { /* private mode */ } });
 const page = await ctx.newPage();
 await page.route('**/functions/v1/assist', r => r.request().method() === 'OPTIONS'
   ? r.fulfill({ status: 200, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' }, body: 'ok' })

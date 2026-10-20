@@ -32,6 +32,8 @@ import type { Method } from '../lib/flow/records';
 import { Sheet, SheetRow } from '../ui/Sheet';
 import { Icon } from '../ui/Icon';
 import { niceDay, todayISO } from '../lib/weeks';
+import { useBuilderShown } from '../lib/parked';
+import { ParkedPage } from '../ui/ParkedSwitch';
 
 const STATUS_WORD: Record<Method['status'], string> = { draft: 'Draft', active: 'Approved', retired: 'Retired' };
 
@@ -47,7 +49,12 @@ export function familiesOf(methods: readonly Method[]): { shown: Method; version
   }).sort((a, b) => (a.shown.status === 'retired' ? 1 : 0) - (b.shown.status === 'retired' ? 1 : 0) || b.shown.updatedAt - a.shown.updatedAt);
 }
 
+/* PARKED, 20 October (docs/DIRECTION.md): methods of one's own and the library */
 export function MethodsScreen() {
+  return useBuilderShown() ? <MethodsBody /> : <ParkedPage title="Methods" />;
+}
+
+function MethodsBody() {
   const methods = useMethods();
   const { projects } = useProjects();
   const may = useCanStartProjects();

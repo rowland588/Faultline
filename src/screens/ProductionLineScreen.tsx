@@ -264,6 +264,11 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
               button; the header's copy hides there (F5). */}
           <button type="button" className="btn btn-primary pl-time" onClick={() => nav(`/w/${wsId}/capture`)}><Icon name="time" size="1.05em" />Time a stop</button>
           <button type="button" className="btn btn-primary pl-problem" onClick={() => openQuickSnag()}><Icon name="camera" size="1.05em" />Problem</button>
+          {/* THE FILMED WALK, FROM THE LINE (20 October, docs/DIRECTION.md): film
+              the line, freeze a frame, mark what is wrong on it — where Faultline
+              began. It was always the line's (its workspace), but only a job's
+              pages opened it; now the line does, no job needed. */}
+          <button type="button" className="btn pl-walk" onClick={() => nav(`/w/${wsId}/snags?manage=1`)}><Icon name="play" size="1.05em" />Film the line</button>
           <button type="button" className="btn" disabled={busy || !reading} onClick={() => void printLine()}><Icon name="document" size="1.05em" />Line report</button>
           <button type="button" className="btn" disabled={busy || !rows.length} onClick={() => void pdf('report')}>Problems report</button>
           <button type="button" className="btn" disabled={busy || !rows.length} onClick={() => void pdf('cards')}>Report cards</button>

@@ -53,6 +53,7 @@ import {
   controlRoom, snagsPlace, toolsGroup, jobLine, gatesGroup, machinesGroup, methodGroup, workGroup, linesGroup, footGroup, studyLines, phoneBar, hereOf,
   type RailGroup, type RailLine, type RailLineOf, type RailMachine, type SquareState,
 } from './rail';
+import { useBuilderShown } from '../lib/parked';
 
 /** Which job a route is under. Every `/project/:id/…` route carries the job
  *  as its `id`; a study's screens (`/w/:ws/…`) reach it through the chain the
@@ -370,6 +371,7 @@ function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: s
     return () => { live = false; };
   }, [wsId]);
   const prodLines = useProductionLines();
+  const builder = useBuilderShown();
   const groups: RailGroup[] = [
     /* THE NEW PRODUCT'S PLACES — Home, the projects, the library of methods
        (written, approved and run — lib/flow; Faultline's established three
@@ -377,7 +379,8 @@ function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: s
     { lines: [
       { key: 'start', label: 'Home', to: '/', on: here === 'start', state: 'n', bare: true, icon: 'home' } as RailLine,
       { key: 'projects', label: 'Projects', to: '/projects', on: here === 'projects', state: 'n', bare: true, icon: 'board', n: projects.length || undefined } as RailLine,
-      { key: 'methods', label: 'Methods', to: '/methods', on: here === 'methods', state: 'n', bare: true, icon: 'route' } as RailLine,
+      /* methods of one's own are parked (20 October, docs/DIRECTION.md) */
+      ...(builder ? [{ key: 'methods', label: 'Methods', to: '/methods', on: here === 'methods', state: 'n', bare: true, icon: 'route' } as RailLine] : []),
     ] },
     /* THE CONTROL ROOM — every project and line at once; REPORTS, as a job's
        rail has them — every paper (ui/ControlRoomReports; Rowland, 14

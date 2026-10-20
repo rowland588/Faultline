@@ -43,6 +43,8 @@ const ok = (c, what, detail) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${what}${
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--autoplay-policy=no-user-gesture-required'] });
 const ctx = await b.newContext({ viewport: { width: 1360, height: 900 }, acceptDownloads: true });
 await ctx.addInitScript(([k, s]) => { try { localStorage.setItem(k, JSON.stringify(s)); } catch { /* fine */ } }, [`sb-${REF}-auth-token`, SESSION]);
+/* what this script proves was parked on 20 October (docs/DIRECTION.md, lib/parked) — shown here so it stays proved */
+await ctx.addInitScript(() => { try { localStorage.setItem('fl-parked-builder', 'shown'); } catch { /* private mode */ } });
 await ctx.route('**://*.supabase.co/**', r => r.abort());
 const page = await ctx.newPage();
 const errs = [];

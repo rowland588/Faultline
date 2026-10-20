@@ -14102,3 +14102,8 @@ textarea.fw-in { font: inherit; line-height: 1.45; }
   border: 1px solid var(--line); border-left: 4px solid var(--brand); border-radius: 10px; background: color-mix(in srgb, var(--brand) 6%, var(--surface)); }
 .fw-stepbar-b { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .fw-stepbar-w { color: var(--ink); overflow-wrap: anywhere; }
+
+/* PARKED, 20 October (docs/DIRECTION.md) — the line at the foot of the front door, apart from the factory above it; a parked page reached by its address */
+.fd-parked { margin: 22px 0 0; padding-top: 10px; border-top: 1px solid var(--line); }
+.fd-parked-page { max-width: 640px; }
+.fd-parked-page .fw-acts { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0; }

@@ -38,6 +38,7 @@ import { useFactoryLines } from '../lib/useFactoryLines';
 import { Sheet } from '../ui/Sheet';
 import { Icon } from '../ui/Icon';
 import { offerUndo } from '../ui/Undo';
+import { useBuilderShown } from '../lib/parked';
 
 const STATUS_WORD: Record<Method['status'], string> = { draft: 'Draft', active: 'Approved', retired: 'Retired' };
 
@@ -68,6 +69,7 @@ function useMethodPage(id: string) {
 export function MethodScreen({ id }: { id: string }) {
   const { m, family, log } = useMethodPage(id);
   const may = useCanStartProjects();
+  const builder = useBuilderShown();
   const ctx = useOpContext(may ? 'owner' : 'client');
   const { projects } = useProjects();
   /* THE DRAFT AS IT IS BEING WRITTEN — every change saved as it is made,
@@ -172,8 +174,9 @@ export function MethodScreen({ id }: { id: string }) {
         <div className="pace-head-actions">
           {m.status === 'active' && ctx.can.agree && <button type="button" className="btn btn-primary" onClick={() => setStarting(true)}>Start a project on it</button>}
           {m.status === 'active' && ctx.can.agree && <button type="button" className="btn" onClick={() => void newVersion()}>{openDraft ? `Open the draft (v${openDraft.version})` : 'Change it — a new version'}</button>}
-          {m.status === 'active' && ctx.can.agree && <button type="button" className="btn" onClick={() => nav(`/design?version=${m.id}`)}>Change it with the assistant</button>}
-          {ctx.can.agree && <button type="button" className="btn btn-ghost" onClick={() => nav(`/design?from=${m.id}`)}>Adapt it into a new method</button>}
+          {/* the studio is parked (20 October, docs/DIRECTION.md) */}
+          {builder && m.status === 'active' && ctx.can.agree && <button type="button" className="btn" onClick={() => nav(`/design?version=${m.id}`)}>Change it with the assistant</button>}
+          {builder && ctx.can.agree && <button type="button" className="btn btn-ghost" onClick={() => nav(`/design?from=${m.id}`)}>Adapt it into a new method</button>}
           {ctx.can.agree && <button type="button" className="btn btn-ghost" onClick={() => void copy()}>Make a copy</button>}
           {m.status === 'retired' && active && <button type="button" className="btn" onClick={() => nav(`/methods/${active.id}`)}>Version {active.version}, in use ›</button>}
           {edit && <button type="button" className="btn btn-primary" disabled={!checked?.ok} onClick={() => void approve()}>Approve version {m.version}</button>}

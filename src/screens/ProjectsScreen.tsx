@@ -27,6 +27,7 @@ import { isPicked } from '../lib/flow/established';
 import { LIBRARY } from '../lib/flow/library';
 import { useMethods } from '../lib/flow/useFlow';
 import { familiesOf } from './MethodsScreen';
+import { useBuilderShown } from '../lib/parked';
 
 /* WHERE THE LINE IS, ABOVE THE CHOICE OF METHOD (FLOW-AUDIT.md, 19). "Start
  * a project on this line" opened three method cards that did not say the line,
@@ -152,6 +153,8 @@ export function ProjectsScreen() {
      beside the three, each started on the same line */
   const [words, setWords] = useState('');
   const said = words.trim();
+  /* PARKED, 20 October (docs/DIRECTION.md): the words box and the library of methods */
+  const builder = useBuilderShown();
   const onLine = fromLine ? `&line=${encodeURIComponent(fromLine)}` : '';
   const design = () => { if (said.length >= 12) nav(`/design?say=${encodeURIComponent(said)}${onLine}`); };
   const methods = useMethods();
@@ -227,7 +230,7 @@ export function ProjectsScreen() {
             {/* SAID IN WORDS FIRST — Faultline designs the method for it from
                 its tools and checks, or offers the library's closest when the
                 assistant is off (screens/DesignScreen); the line goes with it */}
-            <form className="proj-say" onSubmit={e => { e.preventDefault(); design(); }}>
+            {builder && <form className="proj-say" onSubmit={e => { e.preventDefault(); design(); }}>
               <textarea className="text-input proj-say-in" rows={3} maxLength={4000} value={words} aria-label="What you need, in your words"
                 placeholder={`e.g. ${startLine ? `${startLine.name} keeps` : 'Line 2 keeps'} missing its packs a shift — find the cause and prove the fix`}
                 onChange={e => setWords(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); design(); } }} />
@@ -235,8 +238,8 @@ export function ProjectsScreen() {
                 <button type="submit" className="btn btn-primary" disabled={said.length < 12}>Design it ›</button>
                 <span className="sub">{said.length && said.length < 12 ? 'A little more — what, where, and what it has to reach.' : 'Faultline proposes a method from its own tools and checks; nothing is kept until you keep it.'}</span>
               </span>
-            </form>
-            <span className="field-label proj-or">Or one of Faultline’s established methods — each runs on screens of its own</span>
+            </form>}
+            {builder && <span className="field-label proj-or">Or one of Faultline’s established methods — each runs on screens of its own</span>}
             <div className="proj-model-grid">
               {MODELS.map(m => (
                 <button key={m.id} type="button" aria-pressed={model === m.id}
@@ -256,7 +259,7 @@ export function ProjectsScreen() {
               ))}
             </div>
             {!model && <p className="chip-hint">Pick the closest. It can be changed later under Details.</p>}
-            {!model && (
+            {!model && builder && (
               <div className="proj-lib" role="group" aria-label="Or a method from the library">
                 <span className="proj-lib-h"><span className="field-label">Or a method from the library</span>
                   <button type="button" className="cw-link" onClick={() => nav('/methods')}>Every method ›</button></span>

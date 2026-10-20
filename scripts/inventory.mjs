@@ -72,6 +72,8 @@ for (const [tag, viewport] of [['desk', { width: 1360, height: 900 }], ['phone',
     return lanes ? { wsId: lanes.workspaceId, lanesId: lanes.id } : undefined;
   }).catch(() => undefined);
   for (const pg of PAGES(sd, cap)) {
+    /* what was parked on 20 October is checked with its switch on (lib/parked), the rest as the team sees it */
+    await page.evaluate(on => { if (on) localStorage.setItem('fl-parked-builder', 'shown'); else localStorage.removeItem('fl-parked-builder'); window.dispatchEvent(new Event('fl-parked')); }, !!pg.parked);
     await page.goto(`${BASE}/${pg.path}`); await page.waitForTimeout(2200);
     /* A page slower than that is waited for, never counted as missing what it shows: up to 8 s more for
        the first thing it must show (19 October: the job's front page took 2.8–3.6 s after Problems). */

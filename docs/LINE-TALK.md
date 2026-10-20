@@ -119,6 +119,6 @@ was said was heard right in the noise, and what it cost.
 4. Inside a project — a stage gate's punch list, a 6M's causes, a project's
    documents.
 
-Open before slice 1: whether the phone keeps recording with the screen
-locked (tested on Rowland's phone first, as the video check did), and whether
-the audio is kept for good or for a set time.
+**The recordings are kept for good** (Rowland, 20 October), with the talk,
+as footage is. Open before slice 1: whether the phone keeps recording with
+the screen locked — tested on Rowland's phone first, as the video check did.

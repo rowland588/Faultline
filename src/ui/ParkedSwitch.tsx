@@ -14,3 +14,19 @@ export function ParkedSwitch() {
     </p>
   );
 }
+
+/** A parked page reached by its address — what it was, why it is parked, and
+ *  the way on: the three kinds of project, or the switch. */
+export function ParkedPage({ title }: { title: string }) {
+  return (
+    <div className="wrap fw fd-parked-page" data-parked-page={title}>
+      <h1>{title}</h1>
+      <p className="pl-says">Parked on 20 October, with the rest of the method builder and the assistant: Faultline runs on its tools and its three kinds of project — the stage gate, the 6M and the lever tree. A project already running on a method still opens as before.</p>
+      <p className="fw-acts">
+        <a className="btn btn-primary" href="#/projects?new=1">Start a project</a>
+        <a className="btn" href="#/">Home</a>
+      </p>
+      <ParkedSwitch />
+    </div>
+  );
+}

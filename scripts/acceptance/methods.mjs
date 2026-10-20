@@ -44,6 +44,8 @@ const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' })
 const ctx = await b.newContext({ serviceWorkers: 'block', viewport: { width: 1360, height: 900 }, locale: 'en-GB', acceptDownloads: true });
 await ctx.route('**://*.supabase.co/**', r => r.abort());
 await ctx.addInitScript(([k, s]) => { try { localStorage.setItem(k, JSON.stringify(s)); } catch { /* private mode */ } }, [`sb-${REF}-auth-token`, SESSION]);
+/* what this script proves was parked on 20 October (docs/DIRECTION.md, lib/parked) — shown here so it stays proved */
+await ctx.addInitScript(() => { try { localStorage.setItem('fl-parked-builder', 'shown'); } catch { /* private mode */ } });
 const page = await ctx.newPage();
 page.setDefaultTimeout(20000);
 const errs = []; page.on('pageerror', e => errs.push(e.message)); page.on('console', m => { if (m.type() === 'error' && !/supabase|net::|Failed to fetch|DevTools/i.test(m.text())) errs.push(m.text().slice(0, 150)); });
