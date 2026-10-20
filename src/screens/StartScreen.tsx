@@ -37,6 +37,8 @@ import { toolPlaces } from '../ui/rail';
 import { BuildStamp } from '../ui/BuildStamp';
 import { InstallPanel } from '../ui/InstallPanel';
 import { CloudPanel } from '../cloud/CloudPanel';
+import { useBuilderShown } from '../lib/parked';
+import { ParkedSwitch } from '../ui/ParkedSwitch';
 
 const EXAMPLES = [
   'We are fitting a new case packer on Line 4 and need it proved before production takes it',
@@ -70,10 +72,19 @@ export function StartScreen() {
 
   const yours = useMemo(() => familiesOf(methods ?? []).filter(f => f.shown.status === 'active').map(f => f.shown), [methods]);
   const tools = toolPlaces('');
+  /* PARKED, 20 October (docs/DIRECTION.md): with the builder off the screens
+     the front door leads with the three kinds of change, then the tools */
+  const builder = useBuilderShown();
 
   return (
     <div className="wrap fd">
-      <section className="fd-ask" aria-label="What you need">
+      {!builder && (
+        <section className="fd-ask fd-plain" aria-label="What you need">
+          <h1>What do you need to get done?</h1>
+          <p className="pl-says">Start a project to drive a change through to its actions and proof, or use a tool on a line to measure it — every finding in money, from your factory’s own figures.</p>
+        </section>
+      )}
+      {builder && <section className="fd-ask" aria-label="What you need">
         <h1>What do you need to get done?</h1>
         <p className="pl-says">Describe the outcome or the system you need, in your own words — new equipment to prove, a line to make better, a changeover to cut, a trial to run. Faultline builds the method from its own tools and checks; you shape it, approve it and run it.</p>
         {may ? (
@@ -90,7 +101,7 @@ export function StartScreen() {
             </div>
           </form>
         ) : <p className="sub">You can read what is here. Only someone invited to the app starts a project.</p>}
-      </section>
+      </section>}
 
       <section className="fd-sec" aria-label="Under way">
         <div className="fd-sec-h">
@@ -98,7 +109,7 @@ export function StartScreen() {
           {projects.length > 0 && <button type="button" className="cw-link" onClick={() => nav('/room')}>The control room — every project at once ›</button>}
         </div>
         {!pf ? <p className="sub">Reading…</p> : pf.jobs.length === 0 ? (
-          <p className="sub">Nothing under way yet — say what you need above, or start from the library.</p>
+          <p className="sub">{builder ? 'Nothing under way yet — say what you need above, or start from the library.' : 'Nothing under way yet — start a project below.'}</p>
         ) : (
           <ul className="lt-rows fd-jobs">
             {pf.jobs.map(j => (
@@ -114,18 +125,18 @@ export function StartScreen() {
         )}
       </section>
 
-      <section className="fd-sec" aria-label="Start from the library">
+      <section className="fd-sec" aria-label={builder ? 'Start from the library' : 'Start a project'}>
         <div className="fd-sec-h">
-          <h2 className="ln-h">Start from the library</h2>
-          <button type="button" className="cw-link" onClick={() => nav('/methods')}>Every method ›</button>
+          <h2 className="ln-h">{builder ? 'Start from the library' : 'Start a project'}</h2>
+          {builder && <button type="button" className="cw-link" onClick={() => nav('/methods')}>Every method ›</button>}
         </div>
         <ul className="fw-lib fd-lib">
-          {[...yours.map(m => ({ key: `m:${m.id}`, name: m.definition.name, purpose: m.definition.purpose, chip: 'Yours', to: `/methods/${m.id}` })),
-            ...LIBRARY.map(e => ({ key: `l:${e.id}`, name: e.name, purpose: e.purpose, chip: 'From Faultline', to: `/design?template=${e.id}` })),
-            ...ESTABLISHED.map(e => ({ key: `e:${e.id}`, name: e.name, purpose: e.purpose, chip: 'Its own screens', to: establishedHref(e.id) }))].map(x => (
+          {[...(builder ? yours.map(m => ({ key: `m:${m.id}`, name: m.definition.name, purpose: m.definition.purpose, chip: 'Yours', to: `/methods/${m.id}` })) : []),
+            ...(builder ? LIBRARY.map(e => ({ key: `l:${e.id}`, name: e.name, purpose: e.purpose, chip: 'From Faultline', to: `/design?template=${e.id}` })) : []),
+            ...ESTABLISHED.map(e => ({ key: `e:${e.id}`, name: e.name, purpose: e.purpose, chip: builder ? 'Its own screens' : '', to: establishedHref(e.id) }))].map(x => (
             <li key={x.key} className="fw-card" data-start={x.key}>
               <button type="button" className="fw-card-b" onClick={() => nav(x.to)}>
-                <span className="fw-card-h"><b className="fw-card-t">{x.name}</b><span className="fw-chip">{x.chip}</span></span>
+                <span className="fw-card-h"><b className="fw-card-t">{x.name}</b>{x.chip && <span className="fw-chip">{x.chip}</span>}</span>
                 <span className="fw-card-p">{x.purpose}</span>
               </button>
             </li>
@@ -135,7 +146,7 @@ export function StartScreen() {
 
       <section className="fd-sec" aria-label="Specialist tools">
         <div className="fd-sec-h"><h2 className="ln-h">Use a tool on its own</h2></div>
-        <p className="sub">Each is also a step a method can use — what it finds comes into the project.</p>
+        <p className="sub">{builder ? 'Each is also a step a method can use — what it finds comes into the project.' : 'On a line, from its own figures — and what it finds can be taken into a project.'}</p>
         <ul className="fd-tools">
           {tools.map(t => (
             <li key={t.key} data-tool={t.key}>
@@ -161,6 +172,7 @@ export function StartScreen() {
           says nothing while all is well (cloud/CloudPanel, ui/InstallPanel) */}
       <InstallPanel />
       <CloudPanel />
+      <ParkedSwitch />
       <BuildStamp />
     </div>
   );
