@@ -12,6 +12,7 @@ import { COMPONENTS, componentOf } from '../../lib/flow/components';
 import { ANALYSIS_BLOCKS, BLOCKS, WHEN_OPS, isGroupColumn, isNumberColumn, type FlowAnalysis, type WhenOp } from '../../lib/flow/analysis';
 import { Sheet } from '../Sheet';
 import { ruleSaid } from '../../lib/flow/runtime';
+import { VIEW_IDS, VIEWS, boundOn, viewOf, viewSaid, type FlowView } from '../../lib/flow/views';
 
 /** What each answer asks of the person on the floor. */
 export const ANSWER_SAYS: Record<FlowStepDef['answer'], string> = {
@@ -84,6 +85,7 @@ export function stepSaid(def: FlowDefinition, s: FlowStepDef): string {
     s.dueDays !== undefined ? `due day ${s.dueDays}` : '',
     s.after?.length ? `after ${s.after.map(a => `“${def.stages.flatMap(x => x.steps).find(x => x.key === a)?.title ?? a}”`).join(', ')}` : '',
     s.onlyIf ? `only when ${ruleWords(def, s.onlyIf)}` : '',
+    viewSaid(s) ?? '',
   ];
   return parts.filter(Boolean).join(' · ');
 }
@@ -164,7 +166,11 @@ export function NeedsList({ def }: { def: FlowDefinition }) {
 }
 
 /** A step's boxes, or a log's columns — named, typed, limited, worked out. */
-function BoxesEditor({ boxes, onChange, ro, one, newType = 'text' }: { boxes: FlowField[]; onChange: (next: FlowField[]) => void; ro: boolean; one: 'box' | 'column'; newType?: FlowField['type'] }) {
+function BoxesEditor({ boxes, onChange, ro, one, newType = 'text', logs = [] }: {
+  boxes: FlowField[]; onChange: (next: FlowField[]) => void; ro: boolean; one: 'box' | 'column'; newType?: FlowField['type'];
+  /** The logs before the step a link may name. */
+  logs?: readonly { key: string; title: string }[];
+}) {
   const Name = one === 'box' ? 'Box' : 'Column';
   const setBox = (i: number, patch: Partial<FlowField>) => onChange(boxes.map((f, j) => {
     if (j !== i) return f;
@@ -179,7 +185,10 @@ function BoxesEditor({ boxes, onChange, ro, one, newType = 'text' }: { boxes: Fl
           <div className="fw-field-r">
             <Words value={f.label} label={`${Name} ${i + 1}'s name`} onSave={v => { if (v) setBox(i, { label: v }); }} disabled={ro} />
             <select className="text-input fw-in" value={f.type} disabled={ro} aria-label={`${Name} ${i + 1}'s kind`}
-              onChange={e => { const type = e.target.value as FlowField['type']; setBox(i, { type, ...(type === 'timer' ? { unit: timerUnit(f) } : {}) }); }}>
+              onChange={e => {
+                const type = e.target.value as FlowField['type'];
+                setBox(i, { type, ...(type === 'timer' ? { unit: timerUnit(f) } : {}), of: type === 'ref' ? f.of ?? logs[0]?.key : undefined });
+              }}>
               {FIELD_TYPES.map(t => <option key={t} value={t}>{FIELD_WORD[t]}</option>)}
             </select>
             {!ro && <button type="button" className="btn btn-ghost btn-sm" aria-label={`Remove ${one} ${f.label}`} onClick={() => onChange(boxes.filter((_, j) => j !== i))}>Remove</button>}
@@ -206,6 +215,15 @@ function BoxesEditor({ boxes, onChange, ro, one, newType = 'text' }: { boxes: Fl
               <Words value={f.formula ?? ''} label={`${f.label}'s sum`} placeholder={`e.g. ${boxes.filter(x => isTypedNumber(x.type)).map(x => x.key).slice(0, 2).join(' / ') || 'packs / minutes'}`}
                 onSave={v => setBox(i, { formula: v || undefined })} disabled={ro} />
               <span className="sub">Worked out by the app from the {one === 'box' ? 'boxes' : 'same entry’s columns'}, by their keys: {boxes.filter(x => x.key !== f.key && x.type !== 'text').map(x => x.key).join(', ') || 'none yet'}.</span>
+            </div>
+          )}
+          {f.type === 'ref' && (
+            <div className="fw-field-r">
+              <select className="text-input fw-in" value={f.of ?? ''} disabled={ro} aria-label={`${f.label}: links to`} onChange={e => setBox(i, { of: e.target.value || undefined })}>
+                <option value="">Which log?</option>
+                {logs.map(l => <option key={l.key} value={l.key}>{l.title}</option>)}
+              </select>
+              <span className="sub">{logs.length ? 'Picked from that log’s entries by their words, and followed back — the entry lists what links to it.' : 'There is no log before this step to link to — add one first.'}</span>
             </div>
           )}
           {f.type === 'choice' && (
@@ -417,6 +435,54 @@ function RuleEditor({ def, earlier, rule, ro, onChange }: {
   );
 }
 
+/** Each slot given the first column (or box) of its kind not yet taken —
+ *  where a view starts when it is chosen; every slot can then be changed. */
+export function guessBind(step: Pick<FlowStepDef, 'answer' | 'columns' | 'fields'>, id: FlowView['id']): Record<string, string> {
+  const on = boundOn(step), taken = new Set<string>(), bind: Record<string, string> = {};
+  for (const s of VIEWS[id].slots) {
+    const f = on.find(x => s.types.includes(x.type) && !taken.has(x.key));
+    if (f) { bind[s.key] = f.key; taken.add(f.key); }
+  }
+  return bind;
+}
+
+/** HOW THE STEP IS SHOWN — a view the app has (lib/flow/views), each of its
+ *  slots drawn from one of the step's columns (a log) or boxes (a form). */
+function ViewEditor({ step, ro, onChange }: { step: FlowStepDef; ro: boolean; onChange: (view: FlowView | undefined) => void }) {
+  const fits = VIEW_IDS.filter(id => VIEWS[id].answer === step.answer);
+  if (!fits.length && !step.view) return null;
+  const v = viewOf(step.view?.id);
+  const on = boundOn(step);
+  const one = step.answer === 'log' ? 'column' : 'box';
+  return (
+    <div className="fw-f fw-view-ed"><span className="field-label">Shown as</span>
+      <select className="text-input fw-in" value={step.view?.id ?? ''} disabled={ro} aria-label="Shown as"
+        onChange={e => { const id = e.target.value as FlowView['id'] | ''; onChange(id ? { id, bind: guessBind(step, id) } : undefined); }}>
+        <option value="">{step.answer === 'log' ? 'A table of its entries' : 'Its boxes'}</option>
+        {fits.map(id => <option key={id} value={id}>{VIEWS[id].name}</option>)}
+      </select>
+      {v && <span className="sub">{v.says}.</span>}
+      {v && v.slots.map(s => {
+        const can = on.filter(f => s.types.includes(f.type));
+        return (
+          <label key={s.key} className="fw-field-r" data-slot={s.key}>
+            <span className="fw-slot-n">{s.name[0].toUpperCase() + s.name.slice(1)}{s.required ? ' · needed' : ''}</span>
+            <select className="text-input fw-in" value={step.view?.bind[s.key] ?? ''} disabled={ro} aria-label={`${v.name}: ${s.name}`}
+              onChange={e => {
+                const bind = { ...(step.view?.bind ?? {}) };
+                if (e.target.value) bind[s.key] = e.target.value; else delete bind[s.key];
+                onChange({ id: v.id, bind });
+              }}>
+              <option value="">{can.length ? '—' : `No ${one} of its kind yet (${s.types.map(t => FIELD_WORD[t].toLowerCase()).join(' or ')})`}</option>
+              {can.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}
+            </select>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
 export function StepEditor({ def, stageIndex, step, open, onClose, onChange, onRemove, onMove, readOnly }: {
   def: FlowDefinition; stageIndex: number; step: FlowStepDef; open: boolean; onClose: () => void;
   onChange: (next: FlowStepDef) => void; onRemove: () => void; onMove: (by: -1 | 1) => void; readOnly: boolean;
@@ -433,6 +499,7 @@ export function StepEditor({ def, stageIndex, step, open, onClose, onChange, onR
   });
   const fields = step.fields ?? [];
   const ro = readOnly;
+  const logsBefore = (() => { const all = allSteps(def).map(r => r.step), at = all.findIndex(x => x.key === step.key); return at < 0 ? [] : all.slice(0, at).filter(x => x.answer === 'log').map(x => ({ key: x.key, title: x.title })); })();
   return (
     <Sheet open={open} onClose={onClose} title={ro ? step.title : 'Edit the step'}>
       <div className="fw-sheet fw-edit">
@@ -525,7 +592,7 @@ export function StepEditor({ def, stageIndex, step, open, onClose, onChange, onR
 
         {step.answer === 'log' && <>
           <div className="fw-f fw-log-cols"><span className="field-label">What each entry asks — its columns</span>
-            <BoxesEditor boxes={step.columns ?? []} one="column" ro={ro} onChange={columns => set({ columns: columns.length ? columns : undefined })} />
+            <BoxesEditor boxes={step.columns ?? []} one="column" ro={ro} logs={logsBefore} onChange={columns => set({ columns: columns.length ? columns : undefined })} />
           </div>
           <AnalysesEditor step={step} ro={ro} earlier={(() => { const all = allSteps(def).map(r => r.step), at = all.findIndex(x => x.key === step.key); return at < 0 ? [] : all.slice(0, at).filter(x => x.answer === 'log'); })()}
             onChange={analyses => set({ analyses: analyses.length ? analyses : undefined })} />
@@ -535,8 +602,10 @@ export function StepEditor({ def, stageIndex, step, open, onClose, onChange, onR
 
         <div className="fw-f"><span className="field-label">Boxes to fill in{step.answer === 'measure' ? ' — the readings and their limits' : step.answer === 'log' ? ' — once for the whole log, beside its entries' : ''}</span>
           {fields.length === 0 && <p className="sub">None — {step.answer === 'measure' ? 'a measurement needs at least one number.' : 'the step is answered without boxes.'}</p>}
-          <BoxesEditor boxes={fields} one="box" ro={ro} newType={step.answer === 'measure' ? 'reading' : 'text'} onChange={next => set({ fields: next.length ? next : undefined })} />
+          <BoxesEditor boxes={fields} one="box" ro={ro} logs={logsBefore} newType={step.answer === 'measure' ? 'reading' : 'text'} onChange={next => set({ fields: next.length ? next : undefined })} />
         </div>
+
+        <ViewEditor step={step} ro={ro} onChange={view => set({ view })} />
 
         <label className="fw-f"><span className="field-label">How to do it — a note for whoever does it</span>
           <Words value={step.help ?? ''} label="How to do it" long onSave={v => set({ help: v || undefined })} disabled={ro} /></label>

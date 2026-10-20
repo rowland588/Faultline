@@ -25,8 +25,13 @@ const S = { type: 'string' } as const;
 const NUMQ = { anyOf: [{ type: 'number' }, { type: 'null' }] } as const;
 const INTQ = { anyOf: [{ type: 'integer' }, { type: 'null' }] } as const;
 const obj = (properties: Record<string, unknown>) => ({ type: 'object', additionalProperties: false, required: Object.keys(properties), properties });
+/* A LINK (ref) is not proposed yet: it names another log by its key, which a
+   proposal does not have until it is read — the grammar that carries it is
+   proved against the live API before the gateway is redeployed (docs/VIEWS.md,
+   slice 5). Until then the assistant designs with the boxes it always had. */
+const PROPOSED_TYPES = FIELD_TYPES.filter(t => t !== 'ref');
 const FIELD = obj({
-  label: S, type: { type: 'string', enum: [...FIELD_TYPES] }, unit: S, min: NUMQ, max: NUMQ,
+  label: S, type: { type: 'string', enum: PROPOSED_TYPES }, unit: S, min: NUMQ, max: NUMQ,
   options: { type: 'array', items: S }, formula: S, required: { type: 'boolean' },
 });
 
@@ -331,7 +336,7 @@ function proposedFields(raw: unknown, taken: readonly string[] = []): FlowField[
     if (!isObj(f)) continue;
     const label = str(f.label);
     if (!label) continue;
-    const type = oneOf(f.type, FIELD_TYPES, 'text');
+    const type = oneOf(f.type, PROPOSED_TYPES, 'text');
     const min = num(f.min), max = num(f.max);
     const unit = str(f.unit, 40), formula = str(f.formula, 300);
     const options = words(f.options, 30, 80);

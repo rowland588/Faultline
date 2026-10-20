@@ -24,6 +24,7 @@ import { validateDefinition, type Issue } from './validate';
 import { readFlow, type FlowProblem, type FlowState, type ToolReading } from './runtime';
 import type { ActivityEntry, FlowRecord, GateCheck, Method, ProjectFlow } from './records';
 import type { FlowEntry } from './analysis';
+import { linkedLog } from './links';
 
 export interface OpContext {
   /** The person, as they are known on screen. */
@@ -288,9 +289,11 @@ export async function recordStep(ctx: OpContext, s: StepRef, patch: StepPatch): 
 /* ------------------------------------------------------------- a log's entries */
 
 /** One entry's boxes as typed, checked against the log's columns — a number
- *  is a number, a choice one of its options, the needed ones filled. Worked-
- *  out columns are never kept (lib/flow/analysis entryValues). */
-function readEntry(fp: FlowProject, s: StepRef, typed: Record<string, string | number | boolean>): { values?: Record<string, string | number | boolean>; why?: string } {
+ *  is a number, a choice one of its options, a link an entry of the log it
+ *  names, the needed ones filled. Worked-out columns are never kept
+ *  (lib/flow/analysis entryValues). `kept`: the entry as it was — a link
+ *  left as it was stands, even to an entry struck since. */
+function readEntry(fp: FlowProject, s: StepRef, typed: Record<string, string | number | boolean>, kept?: Record<string, string | number | boolean>): { values?: Record<string, string | number | boolean>; why?: string } {
   const step = fp.method.definition.stages.find(x => x.key === s.stageKey)?.steps.find(x => x.key === s.stepKey);
   if (!step) return { why: 'That step is not on the method.' };
   if (step.answer !== 'log') return { why: 'That step is not a log.' };
@@ -310,7 +313,16 @@ function readEntry(fp: FlowProject, s: StepRef, typed: Record<string, string | n
       if (!o) return { why: `${c.label} is one of ${(c.options ?? []).join(', ')}.` };
       values[c.key] = o;
     } else if (c.type === 'yesno') values[c.key] = v === true || /^(y|yes|true)$/i.test(String(v));
-    else values[c.key] = typeof v === 'string' ? v.trim().slice(0, 2000) : v;
+    else if (c.type === 'ref') {
+      const id = String(v).trim();
+      if (kept?.[c.key] !== id) {
+        const log = linkedLog(fp.state, c, s.assetId);
+        const e = log?.record?.entries?.find(x => x.id === id);
+        if (!log || !e) return { why: `${c.label}: that entry is not on ${log ? `“${log.def.title}”` : 'the log it links to'}.` };
+        if (e.struck) return { why: `${c.label}: that entry is struck — link one that counts.` };
+      }
+      values[c.key] = id;
+    } else values[c.key] = typeof v === 'string' ? v.trim().slice(0, 2000) : v;
   }
   if (!Object.keys(values).length) return { why: 'The entry is empty.' };
   return { values };
@@ -339,7 +351,7 @@ export async function editEntry(ctx: OpContext, s: StepRef, id: ID, typed: Recor
   const { rec } = await currentRecord(fp, s);
   const was = (rec.entries ?? []).find(e => e.id === id);
   if (!was) return refuse('That entry is not on this device.');
-  const read = readEntry(fp, s, { ...was.values, ...typed });
+  const read = readEntry(fp, s, { ...was.values, ...typed }, was.values);
   if (!read.values) return refuse(read.why ?? 'The entry cannot be read.');
   const next: FlowEntry = { ...was, values: read.values };
   await putFlowRecord({ ...rec, entries: (rec.entries ?? []).map(e => (e.id === id ? next : e)) });

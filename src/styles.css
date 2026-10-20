@@ -13867,6 +13867,19 @@ textarea.fw-in { font: inherit; line-height: 1.45; }
 .fw-fit { stroke: var(--ink); stroke-width: 1.5; }
 .fw-fit.is-ahead { stroke-dasharray: 4 3; }
 .fw-target line { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 1.5 2.5; }
+/* the fishbone (lib/flow/fishbone): its own width, scrolled on a phone, never shrunk past reading */
+.fw-fish-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.fw-fish { display: block; width: 100%; min-width: 600px; max-width: 760px; height: auto; }
+.fw-fish text { font-family: inherit; }
+.fw-fish-spine { stroke: var(--ink); stroke-width: 2.5; }
+.fw-fish-bone { stroke: var(--ink-2); stroke-width: 1.5; }
+.fw-fish-head { fill: var(--surface-2); stroke: var(--ink); stroke-width: 1.5; }
+.fw-fish-ht { font-size: 11px; font-weight: 700; fill: var(--ink); }
+.fw-fish-bn { font-size: 11px; font-weight: 700; fill: var(--ink); }
+.fw-fish-n { font-weight: 400; fill: var(--muted); }
+.fw-fish-c text { font-size: 10px; fill: var(--ink-2); }
+.fw-fish-c.is-root text { font-weight: 700; fill: var(--ink); }
+.fw-fish-c.is-root circle { fill: var(--ink); }
 .fw-entries { overflow-x: auto; }
 .fw-entries-t { width: 100%; border-collapse: collapse; font-size: var(--t-detail); }
 .fw-entries-t th { text-align: left; font-weight: 600; color: var(--muted); padding: 4px 8px 4px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }

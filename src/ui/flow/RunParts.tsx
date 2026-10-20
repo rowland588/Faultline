@@ -44,14 +44,18 @@ import { offerUndo } from '../Undo';
 import { Num, Words } from './MethodParts';
 import { askFor, withFor } from './Asking';
 import { LogPanel } from './LogParts';
+import { LinkSelect } from './LinkParts';
+import { linkChoices, type LinkChoice } from '../../lib/flow/links';
 import { TimerBox } from './Timer';
 import { TallyBox } from './Tally';
 
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100));
 
 /** One box of a step, as the person fills it — or, worked out, as the app says it. */
-function FieldBox({ f, value, worked, onSave, disabled, keepAs }: {
+function FieldBox({ f, value, worked, onSave, disabled, keepAs, choices = [] }: {
   f: FlowField; value: unknown; worked: unknown; onSave: (v: string | number | boolean) => void; disabled: boolean; keepAs: string;
+  /** A link box's entries to pick from (lib/flow/links). */
+  choices?: LinkChoice[];
 }) {
   const limit = f.min !== undefined && f.max !== undefined ? `between ${f.min} and ${f.max}` : f.min !== undefined ? `at least ${f.min}` : f.max !== undefined ? `at most ${f.max}` : '';
   const head = <span className="field-label">{f.label}{f.unit ? ` (${f.unit})` : ''}{f.required ? ' · needed' : ''}{limit ? ` · ${limit}` : ''}</span>;
@@ -80,6 +84,8 @@ function FieldBox({ f, value, worked, onSave, disabled, keepAs }: {
           </select>
         </label>
       );
+    case 'ref':
+      return <label className="fw-f" data-field={f.key}>{head}<LinkSelect choices={choices} value={value} label={f.label} disabled={disabled} onChange={id => onSave(id)} /></label>;
     case 'yesno':
       return (
         <div className="fw-f" data-field={f.key}>{head}
@@ -254,6 +260,7 @@ export function StepSheet({ fp, inst, ctx, onClose }: { fp: FlowProject; inst: S
 
         {(step.fields ?? []).map(f => (
           <FieldBox key={f.key} f={f} value={rec?.values?.[f.key]} worked={inst.values[f.key]} disabled={!live || done}
+            {...(f.type === 'ref' ? { choices: linkChoices(fp.state, f, inst.assetId) } : {})}
             keepAs={`${fp.project.id}:${inst.stageKey}:${step.key}:${inst.assetId ?? ''}:${f.key}`}
             onSave={v => void save({ values: { [f.key]: v } })} />
         ))}

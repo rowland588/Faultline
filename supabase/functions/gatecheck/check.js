@@ -3095,7 +3095,7 @@ function calc(src, values) {
 }
 
 // src/lib/flow/analysis.ts
-var ANALYSIS_BLOCKS = ["count", "sum", "mean", "median", "min", "max", "sd", "share", "perDay", "pareto", "trend", "histogram", "cpk", "control", "relation", "forecast", "calc", "reliability", "compare", "groups", "overdue", "drivers", "emark", "giveaway", "fill"];
+var ANALYSIS_BLOCKS = ["count", "sum", "mean", "median", "min", "max", "sd", "share", "perDay", "pareto", "trend", "histogram", "cpk", "control", "relation", "forecast", "calc", "reliability", "compare", "groups", "overdue", "drivers", "emark", "giveaway", "fill", "fishbone"];
 var NUMERIC = /* @__PURE__ */ new Set(["number", "reading", "timer", "tally", "calc"]);
 var filled = (v) => v !== void 0 && v !== null && !(typeof v === "string" && !v.trim());
 function entryValues(columns, typed = {}) {
@@ -3991,6 +3991,45 @@ var BLOCKS = {
       const how = (a.formula ?? "").replace(/[a-z_][a-z0-9_]*/gi, (w) => name(w.toLowerCase())).replace(/\*/g, "×").replace(/\//g, "÷").replace(/\s+/g, " ").trim();
       if (value === void 0 || !Number.isFinite(value)) return { n: n2, ...unit ? { unit } : {}, says: `${a.label}: cannot be worked out — ${how} has no answer (a division by nought).` };
       return { value, n: n2, ...unit ? { unit } : {}, says: `${a.label}: ${withUnit(value, unit)} — ${how}.` };
+    }
+  },
+  /* THE FISHBONE (Ishikawa): every cause logged, on its bone, the problem at
+     its head — the six of 6M (lib/sixm) or whatever the bone column lists */
+  fishbone: {
+    id: "fishbone",
+    name: "Fishbone",
+    says: "Every cause logged (a words column), each on its bone (a choice column — People, Machine, Method, Material, Measurement, Environment, or the method’s own), drawn as a fishbone with the problem at its head (the analysis’s name); the entries meeting the rule are the root causes, marked and counted — how many causes, on how many bones, the bone with most, and the root causes named",
+    needs: { of: "required", by: "required", when: "optional", against: "none", target: "none" },
+    numeric: false,
+    output: "both",
+    picture: "fishbone",
+    compute: (entries, a, columns) => {
+      const bc = col(columns, a.by), w = a.when;
+      const kc = columns.find((c) => c.type === "choice" && c.key !== a.by && (c.options ?? []).some((o) => /^(measured|counted|observed|reported)$/i.test(o.trim())));
+      const rows = rowsOf(entries, a, columns, false).map((r) => ({ r, text: typeof r.v[a.of ?? ""] === "string" ? String(r.v[a.of ?? ""]).trim() : "" })).filter((x) => x.text);
+      const order = [...bc?.type === "choice" ? bc.options ?? [] : []];
+      const placed = (v) => v === void 0 || v === "" ? "Not placed" : typeof v === "boolean" ? v ? "Yes" : "No" : String(v).trim();
+      for (const x of rows) {
+        const b = placed(x.r.v[a.by ?? ""]);
+        if (!order.some((o) => o.trim().toLowerCase() === b.toLowerCase())) order.push(b);
+      }
+      const nameOf = (b) => order.find((o) => o.trim().toLowerCase() === b.toLowerCase()) ?? b;
+      const bones = order.map((name) => ({ name, causes: [] }));
+      for (const x of rows) {
+        const bone = bones.find((b) => b.name === nameOf(placed(x.r.v[a.by ?? ""])));
+        const known = kc && typeof x.r.v[kc.key] === "string" ? String(x.r.v[kc.key]).trim() : "";
+        bone?.causes.push({ text: x.text, root: !!w && meets(x.r.v[w.column], w), ...known ? { known: known.toLowerCase() } : {} });
+      }
+      const series = bones.map((b) => ({ label: b.name, value: b.causes.length }));
+      const roots = bones.flatMap((b) => b.causes.filter((c) => c.root).map((c) => ({ ...c, bone: b.name })));
+      const unit = w ? "root cause(s)" : "cause(s)";
+      if (!rows.length) return { value: 0, n: 0, unit, bones, series, says: `${a.label}: no causes yet — log each cause on its bone.` };
+      const on = bones.filter((b) => b.causes.length), [most, next] = [...on].sort((p, q) => q.causes.length - p.causes.length);
+      const empty = bones.filter((b) => !b.causes.length && b.name !== "Not placed").map((b) => b.name);
+      const lead = most && next && most.causes.length > next.causes.length ? ` — ${most.name} holds the most (${most.causes.length})` : "";
+      const head = `${a.label}: ${many(rows.length, "cause")} on ${on.length} of ${many(bones.filter((b) => b.name !== "Not placed" || b.causes.length).length, "bone")}${lead}${empty.length ? `; nothing yet on ${empty.join(", ")}` : ""}.`;
+      const rootSaid = !w ? "" : roots.length ? ` ${roots.length === 1 ? "The root cause" : `${roots.length} root causes`}: ${roots.map((c) => `“${c.text}” (${c.bone})`).join("; ")}.` : " No root cause marked yet — mark the ones the whys end at.";
+      return { value: w ? roots.length : rows.length, n: rows.length, unit, bones, series, says: head + rootSaid };
     }
   }
 };

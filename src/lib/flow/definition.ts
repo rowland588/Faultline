@@ -24,6 +24,7 @@
 
 import { componentOf } from './components';
 import { blockOf, type FlowAnalysis } from './analysis';
+import type { FlowView } from './views';
 
 /** Bumped only with an upgrade function for every older shape. */
 export const FLOW_SCHEMA = 1 as const;
@@ -63,8 +64,10 @@ export interface FlowRole {
 
 /** The field palette. Each is a box a person fills on the floor; `calc` is
  *  worked out from the step's own numbers by lib/flow/formula — never typed,
- *  never a model's number. */
-export const FIELD_TYPES = ['text', 'number', 'reading', 'timer', 'tally', 'date', 'choice', 'yesno', 'person', 'calc'] as const;
+ *  never a model's number; `ref` is a LINK — an entry of an earlier log on
+ *  the method, picked by its words ("the root cause this experiment tests"),
+ *  kept as the entry's id and followed both ways (lib/flow/links). */
+export const FIELD_TYPES = ['text', 'number', 'reading', 'timer', 'tally', 'date', 'choice', 'yesno', 'person', 'calc', 'ref'] as const;
 export type FieldType = typeof FIELD_TYPES[number];
 
 /** Boxes a person fills with a number — typed, read off a gauge against its
@@ -93,6 +96,8 @@ export interface FlowField {
   /** calc: arithmetic over this step's number, reading and calc fields, by key
    *  — "packs / minutes". */
   formula?: string;
+  /** ref: the earlier log (a step key) whose entry it names. */
+  of?: string;
   /** The step is not complete until it is filled. */
   required?: boolean;
   help?: string;
@@ -174,6 +179,9 @@ export interface FlowStepDef {
   minEntries?: number;
   /** Needed only when an earlier figure says so — a decision on what is found. */
   onlyIf?: FlowRule;
+  /** How it is drawn — a fishbone, a board, a charter, a timeline
+   *  (lib/flow/views), bound to its own columns or boxes. Absent: the table. */
+  view?: FlowView;
   help?: string;
 }
 
@@ -345,7 +353,7 @@ export const ANSWER_WORD: Record<FlowAnswer, string> = {
 };
 
 export const FIELD_WORD: Record<FieldType, string> = {
-  text: 'Words', number: 'Number', reading: 'Reading with limits', timer: 'Timed with a tap', tally: 'Counted with a tap', date: 'Date', choice: 'Choice', yesno: 'Yes or no', person: 'Person', calc: 'Worked out',
+  text: 'Words', number: 'Number', reading: 'Reading with limits', timer: 'Timed with a tap', tally: 'Counted with a tap', date: 'Date', choice: 'Choice', yesno: 'Yes or no', person: 'Person', calc: 'Worked out', ref: 'Linked to an entry',
 };
 
 /** A field's key — a word a worked-out sum can name ("packs / minutes"), so
@@ -369,6 +377,7 @@ export function rekeyStep(def: FlowDefinition, from: string, to: string): void {
       if (s.after) s.after = s.after.map(a => (a === from ? to : a));
       if (s.onlyIf?.step === from) s.onlyIf.step = to;
       for (const a of s.analyses ?? []) if (a.from === from) a.from = to;
+      for (const f of [...(s.fields ?? []), ...(s.columns ?? [])]) if (f.of === from) f.of = to;
     }
     for (const c of st.gate.conditions) if ('step' in c && c.step === from) c.step = to;
   }
@@ -387,6 +396,8 @@ export function rekeyField(def: FlowDefinition, stepKey: string, from: string, t
         if (f.key === from) f.key = to;
         if (f.formula) f.formula = f.formula.replace(word, to);
       }
+      /* a form's view is drawn from its boxes */
+      if (s.answer !== 'log' && s.view) for (const [slot, k] of Object.entries(s.view.bind)) if (k === from) s.view.bind[slot] = to;
     }
     for (const c of st.gate.conditions) if (c.type === 'fieldMeets' && c.step === stepKey && c.field === from) c.field = to;
     for (const s of st.steps) if (s.onlyIf?.step === stepKey && s.onlyIf.field === from) s.onlyIf.field = to;

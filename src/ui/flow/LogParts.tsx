@@ -13,11 +13,14 @@
  * its place and counts for nothing — with Undo. Every write goes through
  * lib/flow/operations, under the person's access. */
 import { useState } from 'react';
-import type { FlowField } from '../../lib/flow/definition';
+import { allSteps, type FlowField } from '../../lib/flow/definition';
 import { BLOCKS, entryValues, fmtNumber, numberSaid, type AnalysisPicture, type AnalysisResult, type FlowEntry, type SeriesPoint } from '../../lib/flow/analysis';
+import { fishLayout } from '../../lib/flow/fishbone';
 import type { StepInstance } from '../../lib/flow/runtime';
 import { addEntry, editEntry, strikeEntry, type FlowProject, type OpContext, type StepRef } from '../../lib/flow/operations';
 import { niceDay, todayISO } from '../../lib/weeks';
+import { linkChoices, linkSaid, linksTo, type LinkChoice } from '../../lib/flow/links';
+import { Backlinks, LinkSelect, LinkWords } from './LinkParts';
 import { offerUndo } from '../Undo';
 import { TimerBox } from './Timer';
 import { TallyBox } from './Tally';
@@ -28,10 +31,12 @@ const shown = (v: string | number | boolean | undefined, c: FlowField) =>
   v === undefined || v === '' ? '—' : typeof v === 'boolean' ? (v ? 'Yes' : 'No') : typeof v === 'number' ? `${fmtNumber(v)}${c.unit ? ` ${c.unit}` : ''}` : String(v);
 
 /** The boxes of one entry, kept here until it is added. */
-function EntryForm({ columns, start, onSubmit, submitWord, onCancel, keepAs }: {
+export function EntryForm({ columns, start, onSubmit, submitWord, onCancel, keepAs, choices = {} }: {
   columns: FlowField[]; start?: Typed; onSubmit: (typed: Typed, on: string) => Promise<string | undefined>; submitWord: string; onCancel?: () => void;
   /** Where a running timer's start is kept on the device (ui/flow/Timer). */
   keepAs: string;
+  /** A link column's entries to pick from, by column key (lib/flow/links). */
+  choices?: Record<string, LinkChoice[]>;
 }) {
   const [typed, setTyped] = useState<Typed>(start ?? {});
   const [on, setOn] = useState(todayISO());
@@ -79,6 +84,11 @@ function EntryForm({ columns, start, onSubmit, submitWord, onCancel, keepAs }: {
               </select>
             </label>
           );
+          if (c.type === 'ref') return (
+            <label key={c.key} className="fw-f" data-col={c.key}>{head}
+              <LinkSelect choices={choices[c.key] ?? []} value={v} label={c.label} onChange={id => set(c.key, id)} />
+            </label>
+          );
           if (c.type === 'yesno') return (
             <div key={c.key} className="fw-f" data-col={c.key}>{head}
               <div className="fw-seg" role="radiogroup" aria-label={c.label}>
@@ -114,8 +124,9 @@ function EntryForm({ columns, start, onSubmit, submitWord, onCancel, keepAs }: {
  *  state until a gate or a measure judges it, with one exception — a control
  *  chart's signals are the abnormal readings, marked red, and said in words
  *  in the sentence above the picture (CLAUDE.md, visual management). */
-export function AnalysisChart({ r, picture, axes }: { r: AnalysisResult; picture: AnalysisPicture; axes?: { x?: string; y?: string } }) {
+export function AnalysisChart({ r, picture, axes, head }: { r: AnalysisResult; picture: AnalysisPicture; axes?: { x?: string; y?: string }; head?: string }) {
   if (picture === 'none' || !r.series?.length) return null;
+  if (picture === 'fishbone') return <FishboneChart r={r} head={head ?? ''} />;
   if (picture === 'control') return <ControlChart r={r} />;
   if (picture === 'scatter') return <ScatterChart r={r} axes={axes} />;
   if (picture === 'forecast') return <ForecastChart r={r} />;
@@ -246,6 +257,36 @@ function CurveChart({ r, axes }: { r: AnalysisResult; axes?: { x?: string; y?: s
   );
 }
 
+/** THE FISHBONE — the problem at the head, each bone with its causes, a
+ *  root cause bold with a dot before it (ink, not a state colour: a root
+ *  cause is a finding, not a failure). Its own width, scrolled sideways on a
+ *  phone rather than shrunk past reading; a cause cut short is whole in its
+ *  title, in the sentence and in the entries below (lib/flow/fishbone). */
+function FishboneChart({ r, head }: { r: AnalysisResult; head: string }) {
+  const L = fishLayout(r.bones ?? [], head);
+  return (
+    <div className="fw-fish-wrap">
+      <svg className="fw-fish" viewBox={`0 0 ${L.w} ${L.h}`} role="img" aria-label={r.says}>
+        <line className="fw-fish-spine" x1={L.spineX0} x2={L.head.x} y1={L.spineY} y2={L.spineY} />
+        <rect className="fw-fish-head" x={L.head.x} y={L.head.y} width={L.head.w} height={L.head.h} rx={8} />
+        {L.head.lines.map((t, i) => <text key={i} className="fw-fish-ht" x={L.head.x + 8} y={L.head.y + 16 + i * 13}>{t}</text>)}
+        {L.bones.map(b => (
+          <g key={b.name} data-bone={b.name}>
+            <line className="fw-fish-bone" x1={b.line[0]} y1={b.line[1]} x2={b.line[2]} y2={b.line[3]} />
+            <text className="fw-fish-bn" x={b.nameX} y={b.nameY}>{b.name}<tspan className="fw-fish-n"> · {b.count}</tspan></text>
+            {b.causes.map((c, i) => (
+              <g key={i} className={c.root ? 'fw-fish-c is-root' : 'fw-fish-c'}>
+                {c.root && <circle cx={c.x - 6} cy={c.y - 3.5} r={3} />}
+                <text x={c.x} y={c.y}>{c.text}<title>{c.full}{c.root ? ' — a root cause' : ''}</title></text>
+              </g>
+            ))}
+          </g>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
 /** The days logged as bars where they fell, the line through them carried
  *  a week on (dashed), and the target across. */
 function ForecastChart({ r }: { r: AnalysisResult }) {
@@ -291,7 +332,7 @@ export function LogResults({ inst }: { inst: StepInstance }) {
             <span className="fw-result-h"><b className="fw-result-v">{typeof r.value === 'number' ? numberSaid(r.value, r.unit) : '—'}</b>
               <span className="fw-result-l">{a.label}</span></span>
             <span className="sub fw-result-s">{r.says}</span>
-            {pic && <AnalysisChart r={r} picture={picture} axes={{ x: label(a.against), y: label(a.of) }} />}
+            {pic && <AnalysisChart r={r} picture={picture} axes={{ x: label(a.against), y: label(a.of) }} head={a.label} />}
           </div>
         );
       })}
@@ -309,24 +350,28 @@ export function LogPanel({ fp, inst, ctx, live }: { fp: FlowProject; inst: StepI
   const want = Math.max(1, inst.def.minEntries ?? 1);
   const counted = entries.filter(e => !e.struck).length;
   const shownRows = showAll ? entries : entries.slice(0, 12);
+  /* links: what each link column may name, and whether a later log names this one's entries */
+  const choices = Object.fromEntries(cols.filter(c => c.type === 'ref').map(c => [c.key, linkChoices(fp.state, c, inst.assetId)]));
+  const namedBy = allSteps(fp.method.definition).some(r => [...(r.step.columns ?? []), ...(r.step.fields ?? [])].some(c => c.type === 'ref' && c.of === inst.def.key));
+  const cell = (c: FlowField, v: Typed) => (c.type === 'ref' ? <LinkWords read={linkSaid(fp.state, c, v[c.key], inst.assetId)} /> : shown(v[c.key], c));
   return (
     <div className="fw-log-panel" data-log={inst.def.key}>
       <span className="field-label">The log — {counted} entr{counted === 1 ? 'y' : 'ies'}{want > 1 ? ` of the ${want} it needs` : ''}</span>
       {live && (
-        <EntryForm columns={cols} submitWord="Add the entry" keepAs={`log:${ref.projectId}:${ref.stageKey}:${ref.stepKey}:${ref.assetId ?? ''}`}
+        <EntryForm columns={cols} choices={choices} submitWord="Add the entry" keepAs={`log:${ref.projectId}:${ref.stageKey}:${ref.stepKey}:${ref.assetId ?? ''}`}
           onSubmit={async (typed, on) => { const r = await addEntry(ctx, ref, typed, on); return r.ok ? undefined : r.why; }} />
       )}
       <LogResults inst={inst} />
       {entries.length > 0 && (
         <div className="fw-entries">
           <table className="fw-entries-t">
-            <thead><tr><th>On</th>{cols.map(c => <th key={c.key}>{c.label}</th>)}<th>Who</th>{live && <th aria-label="Change it" />}</tr></thead>
+            <thead><tr><th>On</th>{cols.map(c => <th key={c.key}>{c.label}</th>)}{namedBy && <th>Linked to it</th>}<th>Who</th>{live && <th aria-label="Change it" />}</tr></thead>
             <tbody>
               {shownRows.map(e => {
                 const v = entryValues(cols, e.values);
                 if (fixing === e.id) return (
-                  <tr key={e.id} className="fw-entry-fix"><td colSpan={cols.length + 3}>
-                    <EntryForm columns={cols} start={e.values} submitWord="Save the correction" onCancel={() => setFixing(null)} keepAs={`fix:${e.id}`}
+                  <tr key={e.id} className="fw-entry-fix"><td colSpan={cols.length + 3 + (namedBy ? 1 : 0)}>
+                    <EntryForm columns={cols} choices={choices} start={e.values} submitWord="Save the correction" onCancel={() => setFixing(null)} keepAs={`fix:${e.id}`}
                       onSubmit={async typed => {
                         const r = await editEntry(ctx, ref, e.id, typed);
                         if (!r.ok) return r.why;
@@ -339,7 +384,8 @@ export function LogPanel({ fp, inst, ctx, live }: { fp: FlowProject; inst: StepI
                 return (
                   <tr key={e.id} className={e.struck ? 'is-struck' : ''} data-entry={e.id}>
                     <td>{niceDay(e.on)}</td>
-                    {cols.map(c => <td key={c.key}>{shown(v[c.key], c)}</td>)}
+                    {cols.map(c => <td key={c.key}>{cell(c, v)}</td>)}
+                    {namedBy && <td>{e.struck ? <span className="sub">—</span> : <Backlinks links={linksTo(fp.state, inst.def.key, e.id, inst.assetId)} />}</td>}
                     <td className="sub">{e.who ?? ''}</td>
                     {live && (
                       <td className="fw-entry-acts">
