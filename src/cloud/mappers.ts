@@ -12,8 +12,7 @@ import type { Standard, StandardMark } from '../lib/standard';
 import { factsOf, listById, type StudyUse, type ToolStudy } from '../lib/study';
 import { footageKeys, forTheCloud } from '../lib/video/footage';
 import type { Segment, SnagAsset, Snag } from '../snag/types';
-import type { ActivityEntry, FlowRecord, GateCheck, Method, ProjectFlow } from '../lib/flow/records';
-import type { FlowDefinition } from '../lib/flow/definition';
+import { talkMediaKeys } from '../lib/talk';
 
 type Row = Record<string, unknown>;
 
@@ -43,16 +42,6 @@ export interface EntityMap {
 const k = (key: string | undefined, mime?: string, owner?: string): MediaKey[] => (key ? [{ key, mime, owner }] : []);
 
 const n = (v: unknown): number | undefined => (v == null ? undefined : Number(v));
-
-/** A log's entries, kept inside a flow record's `values` column. */
-const ENTRIES = '_entries';
-/** A flow record's `values` column split back into its boxes and its log's entries. */
-function flowValues(raw: unknown): Pick<FlowRecord, 'values' | 'entries'> {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
-  const { [ENTRIES]: list, ...rest } = raw as Record<string, unknown>;
-  const entries = Array.isArray(list) ? (list as NonNullable<FlowRecord['entries']>).filter(e => !!e && typeof e === 'object' && typeof e.id === 'string') : undefined;
-  return { ...(Object.keys(rest).length ? { values: rest as FlowRecord['values'] } : {}), ...(entries ? { entries } : {}) };
-}
 
 export const MAPS: Record<SyncKind, EntityMap> = {
   workspaces: {
@@ -230,7 +219,6 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         measures: p.measures ?? null, periods: p.periods ?? null,
         install_stages: p.installStages ?? null,
         gate_stages: p.gateStages ?? null,
-        flow: p.flow ?? null,
         archived_at: p.archivedAt ?? null,
         report_note: p.reportNote ?? null, report_note_at: p.reportNoteAt ?? null,
         created_at: p.createdAt, updated_at: p.updatedAt, deleted_at: p.deletedAt ?? null,
@@ -253,7 +241,6 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       periods: (r.periods as Project['periods']) ?? undefined,
       installStages: (r.install_stages as string[]) ?? undefined,
       gateStages: (r.gate_stages as Project['gateStages']) ?? undefined,
-      flow: flowOf(r.flow),
       archivedAt: n(r.archived_at),
       reportNote: (r.report_note as string) ?? undefined,
       reportNoteAt: n(r.report_note_at),
@@ -658,7 +645,8 @@ export const MAPS: Record<SyncKind, EntityMap> = {
     clock: l => (l as ToolStudy).updatedAt,
     /* A video study's footage and its poster, while it has them
        (supabase/VIDEO_MEDIA.sql: the cloud takes a file a study names). */
-    mediaKeys: l => { const s = l as ToolStudy; return footageKeys(s.facts ?? {}).flatMap(f => k(f.key, f.mime, s.ownerId)); },
+    /* a video study's footage, and a Line Talk's recordings and photos (lib/talk) */
+    mediaKeys: l => { const s = l as ToolStudy; return [...footageKeys(s.facts ?? {}), ...talkMediaKeys(s.facts ?? {})].flatMap(f => k(f.key, f.mime, s.ownerId)); },
     nested: ['facts'],
     toRow: (l, fallbackOwner) => {
       const s = l as ToolStudy;
@@ -687,133 +675,6 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       overrule: r.overrule && typeof r.overrule === 'object' ? r.overrule as ToolStudy['overrule'] : undefined,
       createdAt: Number(r.created_at), updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
     } satisfies ToolStudy),
-  },
-
-  /* A METHOD'S VERSION (lib/flow/records Method; supabase/METHODS.sql). The
-     definition goes whole: it is checked by lib/flow/validate whenever it is
-     read for use, and an active version never changes. */
-  methods: {
-    clock: l => (l as Method).updatedAt,
-    mediaKeys: () => [],
-    toRow: (l, fallbackOwner) => {
-      const m = l as Method;
-      return {
-        id: m.id, owner_id: fallbackOwner, family_id: m.familyId, version: m.version, status: m.status,
-        definition: m.definition, parent_id: m.parentId ?? null, origin: m.origin ?? null,
-        change_note: m.changeNote ?? null, approved_by: m.approvedBy ?? null, approved_at: m.approvedAt ?? null,
-        created_at: m.createdAt, updated_at: m.updatedAt, deleted_at: m.deletedAt ?? null,
-      };
-    },
-    fromRow: (r) => ({
-      id: r.id as string, familyId: (r.family_id as string) ?? (r.id as string),
-      version: Number(r.version) || 1,
-      status: (r.status === 'active' || r.status === 'retired' ? r.status : 'draft') as Method['status'],
-      definition: r.definition as FlowDefinition,
-      parentId: (r.parent_id as string) ?? undefined,
-      origin: (r.origin as Method['origin']) ?? undefined,
-      changeNote: (r.change_note as string) ?? undefined,
-      approvedBy: (r.approved_by as string) ?? undefined,
-      approvedAt: n(r.approved_at),
-      createdAt: Number(r.created_at), updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
-    } satisfies Method),
-  },
-
-  /* A STEP DONE, OR A GATE PASSED, on a project running a method. A log's
-     entries ride in its `values` column under one key — no column of their
-     own, so no migration: the column is jsonb already. */
-  flow_records: {
-    clock: l => (l as FlowRecord).updatedAt,
-    /* the boxes key by key, a log's entries entry by entry: two devices
-       filling different boxes, or logging at once, both keep theirs */
-    nested: ['values'],
-    mediaKeys: l => ((l as FlowRecord).media ?? []).flatMap(m => [...k(m.blobKey, m.mime), ...k(m.thumbKey, 'image/jpeg')])
-      .concat(((l as FlowRecord).docs ?? []).flatMap(d => k(d.blobKey, d.mime))),
-    toRow: (l, fallbackOwner) => {
-      const f = l as FlowRecord;
-      return {
-        id: f.id, owner_id: fallbackOwner, project_id: f.projectId, kind: f.kind, stage: f.stageKey,
-        step: f.stepKey ?? null, asset_id: f.assetId ?? null, version: f.version, outcome: f.outcome,
-        planned_for: f.plannedFor ?? null, done_on: f.doneOn ?? null, who: f.who ?? null,
-        values: f.values || f.entries ? { ...(f.values ?? {}), ...(f.entries ? { [ENTRIES]: f.entries } : {}) } : null, note: f.note ?? null,
-        signed_by: f.signedBy ?? null, open_at_sign: f.openAtSign ?? null,
-        media: f.media ?? null, docs: f.docs ?? null, study_id: f.studyId ?? null,
-        override: f.override ?? null, open_at_pass: f.openAtPass ?? null, checks: f.checks ?? null,
-        sort: f.sort, created_at: f.createdAt, updated_at: f.updatedAt, deleted_at: f.deletedAt ?? null,
-      };
-    },
-    fromRow: (r) => ({
-      id: r.id as string, projectId: r.project_id as string,
-      kind: r.kind === 'gate' ? 'gate' : 'step',
-      stageKey: (r.stage as string) ?? '',
-      stepKey: (r.step as string) ?? undefined,
-      assetId: (r.asset_id as string) ?? undefined,
-      version: Number(r.version) || 1,
-      outcome: (['planned', 'done', 'failed', 'notRun'].includes(r.outcome as string) ? r.outcome : 'planned') as FlowRecord['outcome'],
-      plannedFor: (r.planned_for as string) ?? undefined,
-      doneOn: (r.done_on as string) ?? undefined,
-      who: (r.who as string) ?? undefined,
-      ...flowValues(r.values),
-      note: (r.note as string) ?? undefined,
-      signedBy: (r.signed_by as string) ?? undefined,
-      openAtSign: Array.isArray(r.open_at_sign) ? (r.open_at_sign as string[]) : undefined,
-      media: (r.media as FlowRecord['media']) ?? undefined,
-      docs: (r.docs as FlowRecord['docs']) ?? undefined,
-      studyId: (r.study_id as string) ?? undefined,
-      override: (r.override as string) ?? undefined,
-      openAtPass: Array.isArray(r.open_at_pass) ? (r.open_at_pass as string[]) : undefined,
-      checks: (r.checks as FlowRecord['checks']) ?? undefined,
-      sort: Number(r.sort) || 0, createdAt: Number(r.created_at),
-      updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
-    } satisfies FlowRecord),
-  },
-
-  /* WHO DID WHAT — written once (supabase/METHODS.sql keeps it as written). */
-  activity_log: {
-    clock: l => (l as ActivityEntry).updatedAt,
-    mediaKeys: () => [],
-    toRow: (l, fallbackOwner) => {
-      const a = l as ActivityEntry;
-      return {
-        id: a.id, owner_id: fallbackOwner, project_id: a.projectId ?? null, method_id: a.methodId ?? null,
-        who: a.who, at: a.at, op: a.op, summary: a.summary, source: a.source,
-        target: a.target ?? null, detail: a.detail ?? null,
-        created_at: a.createdAt, updated_at: a.updatedAt,
-      };
-    },
-    fromRow: (r) => ({
-      id: r.id as string, projectId: (r.project_id as string) ?? undefined, methodId: (r.method_id as string) ?? undefined,
-      who: (r.who as string) ?? '', at: Number(r.at), op: (r.op as string) ?? '', summary: (r.summary as string) ?? '',
-      source: r.source === 'assistant' ? 'assistant' : 'person',
-      target: (r.target as ActivityEntry['target']) ?? undefined,
-      detail: (r.detail as ActivityEntry['detail']) ?? undefined,
-      createdAt: Number(r.created_at), updatedAt: Number(r.updated_at),
-    } satisfies ActivityEntry),
-  },
-
-  /* THE SERVER'S READING OF A GATE PASS (lib/flow/gateCheck) — the server
-     writes it (supabase/functions/gatecheck); a device only ever pulls it
-     (READ_ONLY_KINDS). toRow is the server's: it writes rows of this shape. */
-  gate_checks: {
-    clock: l => (l as GateCheck).updatedAt,
-    mediaKeys: () => [],
-    toRow: (l) => {
-      const c = l as GateCheck;
-      return {
-        id: c.id, project_id: c.projectId, stage: c.stageKey, verdict: c.verdict, says: c.says,
-        unmet: c.unmet, later: c.later, override: c.override ?? null, read_at: c.readAt,
-        created_at: c.createdAt, updated_at: c.updatedAt, deleted_at: c.deletedAt ?? null,
-      };
-    },
-    fromRow: (r) => ({
-      id: r.id as string, projectId: r.project_id as string, stageKey: (r.stage as string) ?? '',
-      verdict: (r.verdict === 'agrees' || r.verdict === 'override' ? r.verdict : 'disagrees') as GateCheck['verdict'],
-      says: (r.says as string) ?? '',
-      unmet: Array.isArray(r.unmet) ? (r.unmet as string[]) : [],
-      later: Array.isArray(r.later) ? (r.later as string[]) : [],
-      override: (r.override as string) ?? undefined,
-      readAt: Number(r.read_at) || 0,
-      createdAt: Number(r.created_at), updatedAt: Number(r.updated_at), deletedAt: n(r.deleted_at),
-    } satisfies GateCheck),
   },
 
   materials: {
@@ -885,27 +746,5 @@ export const SYNC_KINDS: SyncKind[] = [
   // last, because a study can name a machine, a program, a standard, a test,
   // a problem or a fix — everything it is evidence for is already up
   'studies',
-  // a method before the steps done under it; the activity log last, after
-  // everything it can name
-  'methods', 'flow_records', 'activity_log',
-  // the server's reading of a gate pass, after the passes it reads
-  'gate_checks',
 ];
 
-/** Kinds only the server writes: pulled like any other, never pushed and
- *  never counted as this device's unsent work (cloud/sync). */
-export const READ_ONLY_KINDS: ReadonlySet<SyncKind> = new Set<SyncKind>(['gate_checks']);
-
-/** A project's link to its method, read defensively — a row from a build
- *  before methods has none. */
-function flowOf(v: unknown): ProjectFlow | undefined {
-  if (!v || typeof v !== 'object') return undefined;
-  const f = v as Record<string, unknown>;
-  if (typeof f.methodId !== 'string' || typeof f.familyId !== 'string') return undefined;
-  return {
-    methodId: f.methodId, familyId: f.familyId, version: Number(f.version) || 1,
-    ...(typeof f.name === 'string' && f.name ? { name: f.name } : {}),
-    startedOn: typeof f.startedOn === 'string' ? f.startedOn : '',
-    ...(f.people && typeof f.people === 'object' ? { people: f.people as Record<string, string> } : {}),
-  };
-}

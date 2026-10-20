@@ -24,7 +24,6 @@
 import { useEffect, useState } from 'react';
 import { Sheet } from '../ui/Sheet';
 import { Evidence } from '../ui/EvidenceDoors';
-import { BetterWords } from '../ui/BetterWords';
 import { EvidenceViewer, withPins } from '../ui/Evidence';
 import { Icon } from '../ui/Icon';
 import { offerUndo } from '../ui/Undo';
@@ -189,7 +188,6 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
         <label className="cw-f cw-f-wide"><span>WHAT’S WRONG</span>
           <textarea rows={2} value={words} maxLength={600} placeholder="e.g. Guard on the infeed conveyor is loose"
             onChange={e => setWords(e.target.value)} /></label>
-          <BetterWords text={words} field="snag" onUse={setWords} />
         <div className="qs-row">
           <label className="cw-f"><span>LINE</span>
             <select value={line} onChange={e => pickLine(e.target.value)} aria-label="Which line">

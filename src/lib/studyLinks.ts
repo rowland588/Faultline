@@ -83,7 +83,7 @@ export function studySays(s: ToolStudy, ctx?: StudyContext): SampleSays {
 }
 
 /** Each tool's name, as a study of it is called on screen and on paper. */
-export const TOOL_NAME: Partial<Record<ToolStudy['tool'], string>> = { capability: 'Capability study', balance: 'Line balance', map: 'Value stream map', changeover: 'SMED', sampling: 'Work sampling', losses: 'Loss count' };
+export const TOOL_NAME: Partial<Record<ToolStudy['tool'], string>> = { capability: 'Capability study', balance: 'Line balance', map: 'Value stream map', changeover: 'SMED', sampling: 'Work sampling', losses: 'Loss count', talk: 'Line Talk' };
 
 /** "Capability study — Weight accuracy 400 g · Weigher 2". */
 export const studyTitle = (s: Pick<ToolStudy, 'tool' | 'name' | 'machine'>): string =>
@@ -532,7 +532,7 @@ const TOOL_SAID: Partial<Record<ToolStudy['tool'], string>> = {
 /** Each tool's own page — the list of every study made with it — and, for a
  *  study on a line, that list opened on its line. Where a study's page goes
  *  once it is deleted. */
-const TOOL_PAGE: Partial<Record<ToolStudy['tool'], string>> = { capability: '/capability', map: '/value-stream', changeover: '/smed', sampling: '/sampling', losses: '/losses' };
+const TOOL_PAGE: Partial<Record<ToolStudy['tool'], string>> = { capability: '/capability', map: '/value-stream', changeover: '/smed', sampling: '/sampling', losses: '/losses', talk: '/talk' };
 export function toolListHref(s: Pick<ToolStudy, 'tool' | 'workspaceId'>): string {
   const page = TOOL_PAGE[s.tool] ?? '/capability';
   return s.workspaceId ? `${page}?line=${encodeURIComponent(s.workspaceId)}` : page;

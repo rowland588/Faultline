@@ -126,24 +126,13 @@ export interface Seeded {
   lossActionId: string;
   lossProofId: string;
   lossStageId: string;
-  /** A method of one's own (lib/flow): approved, with a draft of its next
-   *  version open, and a project running it part-way through. */
-  methodId: string;
-  methodDraftId: string;
-  flowProjectId: string;
-  /** A step of it that did not pass, "stage/step/machine". */
-  flowFailedStep: string;
-  /** Faultline's SMED method (lib/flow/library) taken and approved, and a
-   *  project on it whose first timing is the line's seeded SMED — its
-   *  minutes read into the step and the measure. */
-  smedMethodId: string;
-  smedProjectId: string;
-  /** Faultline's rejects log (lib/flow/library) taken and approved — a tool
-   *  made from blocks: logs with a Pareto, a trend and a figure a day. */
-  logMethodId: string;
   /** A video study on the line (docs/VIDEO.md): its footage not on this
    *  device, three stations, events read and some accepted, takt given. */
   videoStudyId: string;
+  /** A Line Talk on the line (docs/LINE-TALK.md): pieces heard, one
+   *  corrected, a photo, a typed line, one waiting to be heard and one that
+   *  could not be — the recordings not on this device. */
+  talkId: string;
 }
 
 /* A CHANGEOVER'S EIGHT ELEMENTS, as lapped on the phone (SMED, tool 6): who
@@ -1063,88 +1052,6 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   const cw1 = await addLineProgram(ws.id, { what: 'CW-1 Finest Red 2kg', machine: 'Checkweigher', runs: 'Finest Red 2kg' });
   if (cw1) await putProgram({ ...cw1, state: 'proved', provedOn: iso(-10) });
 
-  /* A METHOD OF ONE'S OWN (lib/flow; docs/PLATFORM-STATUS.md): the stage
-     gate's usual lists written as a method and approved; a project on it
-     with two machines, Install done on one and late on the other, its gate
-     passed over with a reason; a performance run below its rate; and the
-     draft of version 2 open. Every write through the operations, as a
-     person makes them. */
-  const flowSeed = await (async () => {
-    const ops = await import('../lib/flow/operations');
-    const { appStageGate } = await import('../lib/flow/templates');
-    const { can } = await import('../lib/access');
-    const ctx = { who: 'Rowland', can: can('owner'), today: iso(0) };
-    const m = await ops.createMethod(ctx, { definition: { ...appStageGate(), name: 'Commissioning — tray lines', purpose: 'New tray-line equipment taken through its gates to handover.' }, origin: 'usual' });
-    if (!m.ok) throw new Error(m.why);
-    await ops.approveMethod(ctx, m.value.id);
-    const p = await ops.startProject(ctx, { methodId: m.value.id, name: 'Line 9 — new tray line', machines: ['Tray sealer', 'Case packer'], startedOn: iso(-20), people: { site: 'Lee Hart', supplier: 'Brillopak — Dave' } });
-    if (!p.ok) throw new Error(p.why);
-    let fp = await ops.loadFlowProject(p.value.id, iso(0));
-    if (!fp) throw new Error('no flow project');
-    const [install, setup, commission] = fp.state.stages;
-    for (const st of install.steps) {
-      const ref = { projectId: p.value.id, stageKey: install.key, stepKey: st.def.key, ...(st.assetId ? { assetId: st.assetId } : {}) };
-      if (st.machine === 'Case packer' && st === install.steps.filter(x => x.machine === 'Case packer').slice(-1)[0]) {
-        await ops.recordStep(ctx, ref, { plannedFor: iso(-2) });
-      } else {
-        await ops.completeStep(ctx, ref, { note: st.machine === 'Tray sealer' ? 'Done with the OEM' : undefined });
-      }
-    }
-    await ops.passGate(ctx, { projectId: p.value.id, stageKey: install.key, override: 'Dry run on the case packer moved to Monday — agreed with the OEM' });
-    for (const st of setup.steps.slice(0, 3)) {
-      await ops.completeStep(ctx, { projectId: p.value.id, stageKey: setup.key, stepKey: st.def.key, ...(st.assetId ? { assetId: st.assetId } : {}) });
-    }
-    fp = await ops.loadFlowProject(p.value.id, iso(0));
-    const run = commission.steps.find(x => x.def.answer === 'measure' && x.machine === 'Tray sealer');
-    let failed = '';
-    if (run) {
-      const ref = { projectId: p.value.id, stageKey: commission.key, stepKey: run.def.key, ...(run.assetId ? { assetId: run.assetId } : {}) };
-      const vals = Object.fromEntries((run.def.fields ?? []).filter(f => f.type === 'reading').map(f => [f.key, f.min !== undefined ? f.min * 0.8 : f.max !== undefined ? f.max * 1.5 : 10]));
-      await ops.completeStep(ctx, ref, { values: vals, note: 'Film tracking off at speed' });
-      failed = `${commission.key}/${run.def.key}/${run.assetId ?? ''}`;
-    }
-    const v2 = await ops.draftNewVersion(ctx, m.value.id, undefined, 'A reliability run before handover');
-    if (!v2.ok) throw new Error(v2.why);
-    return { methodId: m.value.id, methodDraftId: v2.value.id, flowProjectId: p.value.id, flowFailedStep: failed || `${commission.key}//` };
-  })();
-
-  /* FAULTLINE'S SMED METHOD, RUN (the vision slice): taken from the library
-     and approved; a project on it whose first timing is answered by the
-     line's own SMED study — the record's minutes read by SMED's arithmetic
-     into the step and the measure (lib/flow/toolRead). The study itself is
-     untouched: a step points at it. */
-  const smedSeed = await (async () => {
-    const ops = await import('../lib/flow/operations');
-    const { libraryEntry } = await import('../lib/flow/library');
-    const { can } = await import('../lib/access');
-    const ctx = { who: 'Rowland', can: can('owner'), today: iso(0) };
-    const e = libraryEntry('changeover-reduction');
-    if (!e) throw new Error('no SMED method in the library');
-    const m = await ops.createMethod(ctx, { definition: e.build(), origin: 'library', changeNote: `From Faultline’s library: “${e.name}”` });
-    if (!m.ok) throw new Error(m.why);
-    await ops.approveMethod(ctx, m.value.id);
-    const p = await ops.startProject(ctx, { methodId: m.value.id, name: 'Express changeover — cut it', machines: [], startedOn: iso(-10) });
-    if (!p.ok) throw new Error(p.why);
-    const done = await ops.completeStep(ctx, { projectId: p.value.id, stageKey: 'record', stepKey: 'time-now' }, { studyId: changeoverId });
-    if (!done.ok) throw new Error(done.why);
-    return { smedMethodId: m.value.id, smedProjectId: p.value.id };
-  })();
-
-  /* A TOOL MADE FROM BLOCKS (lib/flow/analysis): Faultline's rejects log,
-     taken and approved — no project on it, so no count elsewhere moves */
-  const logMethodId = await (async () => {
-    const ops = await import('../lib/flow/operations');
-    const { libraryEntry } = await import('../lib/flow/library');
-    const { can } = await import('../lib/access');
-    const ctx = { who: 'Rowland', can: can('owner'), today: iso(0) };
-    const e = libraryEntry('rejects-log');
-    if (!e) throw new Error('no rejects log in the library');
-    const m = await ops.createMethod(ctx, { definition: e.build(), origin: 'library', changeNote: `From Faultline’s library: “${e.name}”` });
-    if (!m.ok) throw new Error(m.why);
-    await ops.approveMethod(ctx, m.value.id);
-    return m.value.id;
-  })();
-
   /* A VIDEO STUDY (docs/VIDEO.md): read from footage taken on another device —
      so the footage is not here, and the study says so — its events found by
      movement, most accepted, one corrected, one rejected, two still to review,
@@ -1179,11 +1086,33 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     return id;
   })();
 
+  /* A LINE TALK (docs/LINE-TALK.md): one walk of the line talked into the
+     phone — four pieces, the first corrected, a photo where it was taken, a
+     line typed, the last waiting for signal and one the service could not
+     hear. The recordings were made on another phone, so they are not here. */
+  const talkId = await (async () => {
+    const t = Date.now() - 40 * 60_000;
+    const piece = (n: number, durationS: number) => ({ blobKey: `talk-seed-not-here-${n}`, mime: 'audio/webm', capturedAt: t + n * 60_000, durationS });
+    const turns = [
+      { id: 'seedt-1', at: t + 60_000, kind: 'said' as const, who: 'Rowland', media: piece(1, 58),
+        heard: 'Starting at the bagger, it is running at about sixty a minute, the former looks clean.',
+        text: 'Starting at the bagger — running at about 62 a minute, the former looks clean.' },
+      { id: 'seedt-2', at: t + 2 * 60_000, kind: 'said' as const, who: 'Rowland', media: piece(2, 60),
+        heard: 'The checkweigher is kicking out the odd bag at the infeed, the guide rail looks bent.' },
+      { id: 'seedt-3', at: t + 2 * 60_000 + 40_000, kind: 'photo' as const, who: 'Rowland', text: 'the infeed guide rail',
+        media: { blobKey: 'talk-seed-not-here-photo', mime: 'image/jpeg', capturedAt: t + 2 * 60_000 + 40_000 } },
+      { id: 'seedt-4', at: t + 3 * 60_000, kind: 'typed' as const, who: 'Rowland', text: 'Ask Dave about the spare belt for the case packer.' },
+      { id: 'seedt-5', at: t + 4 * 60_000, kind: 'said' as const, who: 'Rowland', media: piece(5, 31), hearing: 'failed' as const, why: 'Voice is busy right now.' },
+      { id: 'seedt-6', at: t + 5 * 60_000, kind: 'said' as const, who: 'Rowland', media: piece(6, 44), hearing: 'waiting' as const },
+    ];
+    const id = uid();
+    await putStudy({ id, tool: 'talk', name: 'Line 7 — morning walk', workspaceId: ws.id, uses: [], startedAt: t, createdAt: t, updatedAt: t + 5 * 60_000, facts: { turns } });
+    return id;
+  })();
+
   return {
-    ...flowSeed,
-    ...smedSeed,
-    logMethodId,
     videoStudyId,
+    talkId,
     wsId: ws.id, projectId: proj.id, standardId, lineStandardId: lineOnly, lineOnJobId: lineOnJob, lineId: line.id, caseId: kase.id,
     segmentId: seg.id, assetId: asset.id,
     observations: (await listObservations(ws.id)).length,

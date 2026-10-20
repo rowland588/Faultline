@@ -21,29 +21,23 @@
  *                 Commissioning is one gate in the middle; the method is the
  *                 gates.
  *
- *   flow          A METHOD OF YOUR OWN — a project that runs a method written as
- *                 data (lib/flow; docs/PLATFORM-REVIEW.md): its stages,
- *                 steps and gates are the method's definition, pinned to the
- *                 version it started on (Project.flow). Never on the
- *                 new-project picker below: such a project is started from
- *                 the method (screens/MethodScreen), so the method is chosen
- *                 on purpose, not by a default.
+ *   (A fourth, `flow` — a method of one's own written as data — was built
+ *   from 18 October and deleted on 20 October with the method builder,
+ *   never used: docs/DIRECTION.md.)
  *
  * Stored as two booleans on Project rather than one field, because both of them
  * already existed and shipped to devices; a third state is cheaper to add than
  * a migration is to get wrong. This module is the only place that turns those
- * booleans into the answer, so nothing else has to know that. A project's
- * `flow` link wins over both: it is set once, when the project is started on
- * a method, and the booleans are never set beside it.
+ * booleans into the answer, so nothing else has to know that.
  */
 import type { Project } from '../types';
 
-export type PlanModel = 'board' | 'tree' | 'commissioning' | 'flow';
+export type PlanModel = 'board' | 'tree' | 'commissioning';
 
-type Held = Pick<Project, 'leverTree' | 'commissioning'> & Partial<Pick<Project, 'flow'>>;
+type Held = Pick<Project, 'leverTree' | 'commissioning'>;
 
 export const planModel = (p: Held): PlanModel =>
-  p.flow ? 'flow' : p.commissioning ? 'commissioning' : p.leverTree ? 'tree' : 'board';
+  p.commissioning ? 'commissioning' : p.leverTree ? 'tree' : 'board';
 
 /** The patch that switches a project to a model, clearing the others — the one
  *  write that keeps "exactly one" true. */
@@ -89,9 +83,8 @@ export interface Method {
   document: string;
 }
 
-/** The methods a new project is offered — the three; a method of your own is
- *  started from the method itself. */
-export type PickedModel = Exclude<PlanModel, 'flow'>;
+/** The methods a new project is offered — the three. */
+export type PickedModel = PlanModel;
 
 export const MODELS: (Method & { id: PickedModel })[] = [
   { id: 'commissioning', label: 'Stage gate',
@@ -121,20 +114,13 @@ export const MODELS: (Method & { id: PickedModel })[] = [
     document: 'The tree on one page · client report' },
 ];
 
-/** A project running a method of its own (lib/flow) — the same five things
- *  said of every such method; its own name is the label. Not in MODELS, so
- *  the new-project picker never offers it. */
-export const FLOW_METHOD: Method = {
-  id: 'flow', label: 'Own method',
-  situation: 'Run a method written for this kind of work',
-  blurb: 'Is every stage done and proved as the method says, so its gate can be passed?',
-  useWhen: 'Work the three methods do not fit — written once as a method, approved, then run on project after project.',
-  organised: 'Stages of steps, each per machine or once, with what each must show; a gate at the end of every stage',
-  rhythm: 'As the method sets it',
-  done: 'Every gate passed',
-  document: 'The method report',
-};
-
 export const methodOf = (p: Held): Method =>
-  p.flow ? { ...FLOW_METHOD, label: p.flow.name?.trim() || FLOW_METHOD.label }
-    : MODELS.find(m => m.id === planModel(p)) ?? MODELS[0];
+  MODELS.find(m => m.id === planModel(p)) ?? MODELS[0];
+
+/** Where a project of one kind is started: New job with it picked, on the
+ *  line it came from (the front door, a line's page). */
+export const startHref = (id: PickedModel, lineId?: string): string =>
+  `/projects?new=1&model=${id}${lineId ? `&line=${encodeURIComponent(lineId)}` : ''}`;
+
+/** A kind of project named in an address (?model=), or not. */
+export const isPicked = (x: string | null | undefined): x is PickedModel => MODELS.some(m => m.id === x);

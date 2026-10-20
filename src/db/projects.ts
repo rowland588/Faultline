@@ -143,8 +143,6 @@ const PROJECT_OWNED = [
   // the programs and the line standards are the project's too; leaving them
   // out of this list left both behind, syncing, after "delete for ever"
   'programs', 'standards',
-  // the steps done and gates passed under a method the project runs
-  'flow_records',
 ] as const;
 
 /** The same, for the four stores that predate the by_project index and are
@@ -192,7 +190,6 @@ export const STORE_WORDS: Record<string, string> = {
   programs: 'programs',
   standards: 'line standard maps',
   studies: 'studies taken with the tools that are on no line',
-  flow_records: 'steps done and gates passed',
   cases: 'problems, with their fishbones',
 };
 

@@ -4801,15 +4801,6 @@ textarea.win-in { field-sizing: content; min-height: 30px; }   /* grows with the
 .proj-model-t { font-size: var(--t-body); font-weight: 700; color: var(--ink); }
 .proj-model-opt.on .proj-model-t { color: var(--brand); }
 .proj-model-s { font-size: var(--t-label); line-height: 1.45; color: var(--muted); }
-/* ONE WAY TO START (screens/ProjectsScreen): what is needed said in words
-   first, then the established three, then the library */
-.proj-say { display: grid; gap: 8px; margin: 8px 0 14px; }
-.proj-say-in { font: inherit; font-size: 16px; line-height: 1.45; min-height: 84px; border-radius: 12px; padding: 12px 14px; }
-.proj-say-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
-.proj-or { display: block; margin-top: 4px; }
-.proj-lib { margin-top: 14px; }
-.proj-lib-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
-.proj-lib .fw-lib { margin-top: 8px; }
 
 /* ======================= COMMISSIONING — THE HANDOVER SHEET ==================
  * One question at the top, five short lists under it, one machine at a time.
@@ -11234,15 +11225,6 @@ body:has(.qsl-bar) .qs-fab { display: none; }
 .rd-state-row .rd-state { margin-right: 0; }
 .rd-state-row .pt-mark { font-size: 12.5px; }
 
-/* BETTER WORDING (ui/BetterWords) — a quiet link under a box; the suggestion
-   beside what was typed, used or not with one tap. */
-.bw-row { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
-.bw-ask { font-size: var(--t-detail); }
-.bw-err { font-size: var(--t-detail); }
-.bw-offer { display: grid; gap: 6px; margin-top: 6px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); }
-.bw-h { font-size: var(--t-label); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-2); }
-.bw-text { margin: 0; font-size: var(--t-body); color: var(--ink); white-space: pre-wrap; }
-.bw-acts { display: inline-flex; gap: 8px; }
 
 /* DELETE A MAP where the maps are listed (ui/StandardsCard, screens/StandardScreen). */
 .ls-strip-item { display: inline-grid; gap: 2px; justify-items: start; }
@@ -13617,314 +13599,19 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .vd, .ln-band, .ls-head.is-band, .jb-hero, .ln-close { box-shadow: none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 
-/* ===================================================================== */
-/*  METHODS OF YOUR OWN (lib/flow) — the library, one method, a project  */
-/*  running one, its step and its gate. The house's five state colours   */
-/*  only (--st-*), each beside its word; the teal is what you press.     */
-/* ===================================================================== */
-.fw { padding-bottom: 48px; }
-.fw .is-r { color: var(--st-r); }
-.fw .is-a { color: var(--st-a); }
-.fw .is-g { color: var(--st-g); }
-.fw-why { max-width: 72ch; margin: 4px 0 14px; }
-.fw-h1 .fw-in { font: inherit; font-size: inherit; font-weight: 800; padding: 2px 6px; width: 100%; max-width: 640px; }
-.fw-chip {
-  display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 700;
-  border: 1px solid var(--line-2); color: var(--ink-2); background: var(--surface); white-space: nowrap;
-}
-.fw-chip.is-active { border-color: color-mix(in srgb, var(--st-g) 55%, var(--surface)); color: var(--st-g); }
-.fw-chip.is-draft { border-color: color-mix(in srgb, var(--st-a) 55%, var(--surface)); color: var(--st-a); }
-.fw-chip.is-retired { color: var(--st-n-ink); }
-
-/* the library */
+/* THE CARDS of the three kinds of change on the front door (screens/StartScreen) —
+   fw- names kept from Methods, deleted with the method builder on 20 October
+   (docs/DIRECTION.md) */
 .fw-lib { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
 .fw-card { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
-.fw-card.is-retired { opacity: .78; }
 .fw-card-b { all: unset; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 14px 16px; cursor: pointer; border-radius: 12px; }
 .fw-card-b:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 @media (hover: hover) { .fw-card-b:hover { background: color-mix(in srgb, var(--surface-2) 50%, var(--surface)); } }
 .fw-card-h { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; }
 .fw-card-t { font-size: 16px; color: var(--ink); }
 .fw-card-p { color: var(--ink-2); font-size: 14px; }
-.fw-card-m { color: var(--muted); font-size: 13px; }
-.fw-sheet { display: flex; flex-direction: column; gap: 4px; padding: 4px 16px 18px; }
-.fw-sheet-note { margin-top: 8px; }
-
-/* one method */
-.fw-versions { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 12px; }
-.fw-ver { border: 1px solid var(--line-2); background: var(--surface); border-radius: 999px; padding: 4px 10px; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--ink-2); }
-.fw-ver.on { border-color: var(--brand); color: var(--brand); }
-.fw-check-panel { border: 1px solid var(--line); border-left: 4px solid var(--st-g); border-radius: 10px; padding: 10px 14px; margin: 0 0 14px; background: var(--surface); }
-.fw-check-panel.is-bad { border-left-color: var(--st-r); }
-.fw-issues { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 3px; font-size: 14px; }
-.fw-stage-h { display: flex; align-items: center; justify-content: flex-start; gap: 10px; }
-.fw-stage-h .fw-in { font: inherit; font-weight: 700; }
-.fw-stage-n, .fw-sg-n {
-  flex: none; display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
-  background: var(--surface-2); color: var(--ink-2); font-size: 13px; font-weight: 800;
-}
-.fw-steps { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 6px; }
-.fw-step-b {
-  all: unset; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px; width: 100%; cursor: pointer;
-  padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface);
-}
-.fw-step-b:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-@media (hover: hover) { .fw-step-b:hover { border-color: var(--line-2); } }
-.fw-passes { font-size: 13px; color: var(--ink-2); }
-.fw-gate { margin-top: 12px; padding: 10px 12px; border: 1px dashed var(--line-2); border-radius: 10px; }
-.fw-gate-h { margin: 0 0 6px; font-size: 14px; font-weight: 700; color: var(--ink-2); }
-.fw-conds { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 4px; }
-.fw-cond-b { all: unset; box-sizing: border-box; display: flex; gap: 8px; align-items: baseline; width: 100%; cursor: pointer; padding: 4px 2px; font-size: 14px; }
-.fw-cond-b:disabled { cursor: default; }
-.fw-pol { flex: none; font-size: 11px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--line-2); color: var(--ink-2); }
-.fw-pol.is-warn { color: var(--st-a); border-color: color-mix(in srgb, var(--st-a) 45%, var(--surface)); }
-.fw-roles { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 6px; }
-.fw-role { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.fw-role-k { min-width: 140px; font-weight: 700; color: var(--ink-2); }
-.fw-role .fw-in { flex: 1 1 180px; min-width: 0; }
-.fw-list, .fw-log { list-style: none; margin: 4px 0; padding: 0; display: grid; gap: 5px; font-size: 14px; }
-.fw-acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
-.fw-gap { flex: 1; }
-.btn.is-danger { color: var(--st-r); }
-
-/* the editors' boxes */
-.fw-edit .fw-f, .fw-run .fw-f { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }
-.fw-in { width: 100%; min-width: 0; box-sizing: border-box; }
-/* a box written in is written in the page's own type, never the browser's monospace */
-textarea.fw-in { font: inherit; line-height: 1.45; }
-.fw-num { max-width: 140px; }
-.fw-inline { flex-direction: row !important; align-items: center; gap: 10px !important; }
-.fw-inline .fw-in { max-width: 240px; }
-.fw-row3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px 12px; }
-.fw-row3 label { display: flex; flex-direction: column; gap: 4px; }
-.fw-seg { display: inline-flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--line-2); border-radius: 9px; overflow: hidden; width: max-content; max-width: 100%; }
-.fw-seg-b { border: 0; background: var(--surface); padding: 8px 12px; font-weight: 600; font-size: 14px; cursor: pointer; color: var(--ink-2); }
-.fw-seg-b + .fw-seg-b { border-left: 1px solid var(--line-2); }
-.fw-seg-b.on { background: var(--accent-soft); color: var(--brand-2); }
-.fw-checks { display: grid; gap: 4px; max-height: 220px; overflow: auto; }
-.fw-check { display: flex; gap: 8px; align-items: baseline; font-size: 14px; }
-.fw-field { border: 1px solid var(--line); border-radius: 9px; padding: 8px; display: grid; gap: 6px; margin: 4px 0; }
-.fw-field-r { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.fw-field-r > .fw-in { flex: 1 1 140px; width: auto; }
-.fw-pair { display: grid; grid-template-columns: minmax(110px, 160px) 1fr; gap: 8px; align-items: center; }
-
-/* a project running a method */
-.fw-band-acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; }
-.fw-strip { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 10px; margin: 6px 0 4px; scroll-snap-type: x proximity; }
-.fw-sg {
-  flex: 0 0 auto; scroll-snap-align: start; display: flex; gap: 8px; align-items: center; text-align: left;
-  min-width: 170px; max-width: 260px; padding: 9px 12px; border-radius: 10px; cursor: pointer;
-  border: 1px solid var(--line); border-top: 4px solid var(--st-n); background: var(--surface);
-}
-.fw-sg.is-r { border-top-color: var(--st-r); }
-.fw-sg.is-a { border-top-color: var(--st-a); }
-.fw-sg.is-w { border-top-color: var(--st-w); }
-.fw-sg.is-g { border-top-color: color-mix(in srgb, var(--st-g) 55%, var(--surface)); }
-.fw-sg.on { border-color: var(--brand); border-top-width: 4px; box-shadow: 0 0 0 1px var(--brand) inset; }
-.fw-sg-t { display: flex; flex-direction: column; min-width: 0; }
-.fw-sg-t b { font-size: 14px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fw-sg-w { font-size: 12.5px; color: var(--muted); }
-.fw-sg.is-r .fw-sg-w { color: var(--st-r); font-weight: 700; }
-.fw-sg.is-a .fw-sg-w { color: var(--st-a); font-weight: 700; }
-.fw-group { margin: 10px 0; }
-.fw-group-h { margin: 0 0 6px; font-size: 14.5px; font-weight: 800; color: var(--ink); }
-.fw-row {
-  all: unset; box-sizing: border-box; width: 100%; cursor: pointer; display: grid; grid-template-columns: 12px 1fr auto;
-  gap: 10px; align-items: baseline; padding: 9px 10px; border-bottom: 1px solid var(--line);
-}
-.fw-row:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
-@media (hover: hover) { .fw-row:hover { background: color-mix(in srgb, var(--surface-2) 45%, transparent); } }
-.fw-row.is-r { background: color-mix(in srgb, var(--st-r) 6%, var(--surface)); }
-.fw-row-t { display: flex; flex-direction: column; min-width: 0; }
-.fw-row-why { font-size: 13px; color: var(--muted); }
-.fw-row.is-r .fw-row-why { color: var(--st-r); }
-.fw-row.is-a .fw-row-why { color: var(--st-a); }
-.fw-row-w { font-size: 13.5px; font-weight: 700; color: var(--ink-2); text-align: right; white-space: nowrap; }
-.fw-row.is-g .fw-row-w { color: var(--st-g); font-weight: 600; }
-.fw-row.is-r .fw-row-w { color: var(--st-r); }
-.fw-row.is-a .fw-row-w { color: var(--st-a); }
-.fw-row.is-w .fw-row-w { color: var(--st-w); }
-.fw-gate-line {
-  all: unset; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; width: 100%; cursor: pointer;
-  margin-top: 12px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); border-left: 4px solid var(--st-n); background: var(--surface);
-}
-.fw-gate-line.is-r { border-left-color: var(--st-r); }
-.fw-gate-line.is-a { border-left-color: var(--st-a); }
-.fw-gate-line.is-g { border-left-color: var(--st-g); }
-.fw-gate-line.is-r b { color: var(--st-r); }
-.fw-gate-line.is-a b { color: var(--st-a); }
-.fw-gate-line.is-g b { color: var(--st-g); }
-.fw-gate-k { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
-.fw-gate-go { margin-left: auto; color: var(--brand); font-weight: 700; }
-
-/* the step and the gate, in their sheets */
-.fw-state { margin: 4px 0 2px; padding: 8px 10px; border-radius: 8px; border-left: 4px solid var(--st-n); background: var(--surface-2); }
-.fw-state.is-r { border-left-color: var(--st-r); background: color-mix(in srgb, var(--st-r) 8%, var(--surface)); }
-.fw-state.is-a { border-left-color: var(--st-a); background: color-mix(in srgb, var(--st-a) 8%, var(--surface)); }
-.fw-state.is-g { border-left-color: var(--st-g); background: color-mix(in srgb, var(--st-g) 7%, var(--surface)); }
-.fw-state.is-w { border-left-color: var(--st-w); }
-.fw-state.is-r b { color: var(--st-r); }
-.fw-state.is-a b { color: var(--st-a); }
-.fw-state.is-g b { color: var(--st-g); }
-.fw-calc-v { font-size: 20px; font-variant-numeric: tabular-nums; }
-/* a timed box (ui/flow/Timer): Start big enough for a gloved thumb; the running clock the loudest thing in the box */
-.fw-timer { display: flex; flex-direction: column; gap: 6px; }
-.fw-timer-idle { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.fw-timer-idle .fw-num { width: 7em; }
-.fw-timer-b { min-height: 44px; min-width: 96px; font-size: 16px; }
-.fw-timer-clock { font-size: 34px; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: .01em; color: var(--ink); }
-.fw-timer.is-running { border-left: 3px solid var(--brand); padding-left: 10px; }
-.fw-entry-r .fw-f-timer { grid-column: 1 / -1; }
-/* a count taken with a tap (ui/flow/Tally): the count the loudest thing in the box, +1 big enough for a gloved thumb */
-.fw-tally { display: flex; flex-direction: column; gap: 6px; }
-.fw-tally-n { font-size: 34px; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--ink); }
-.fw-tally-u { font-size: 15px; font-weight: 500; color: var(--ink-2); }
-.fw-tally-b { min-height: 44px; min-width: 64px; font-size: 18px; }
-.fw-tally .fw-num { width: 7em; }
-.fw-docs { display: grid; gap: 6px; margin: 6px 0; }
-.fw-gate-list { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 6px; }
-.fw-gc { display: grid; grid-template-columns: 20px 1fr; gap: 4px 8px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--line); }
-.fw-gc-m { font-weight: 800; text-align: center; color: var(--st-n-ink); }
-.fw-gc.is-g .fw-gc-m { color: var(--st-g); }
-.fw-gc.is-r .fw-gc-m { color: var(--st-r); }
-.fw-gc.is-a .fw-gc-m { color: var(--st-a); }
-.fw-gc-in { grid-column: 2; max-width: 320px; }
-
-/* the assistant: a proposal, a change, a move, a question (ui/flow/DescribeSheet, ChangeParts).
-   No state colour is borrowed for how a sentence is known — the words say it. */
-.fw-prop-h { margin: 0 0 4px; font-size: 18px; }
-.fw-prop { margin: 8px 0; padding-left: 0; list-style: none; display: grid; gap: 10px; }
-.fw-prop-st { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; background: var(--surface); }
-.fw-prop-note { margin: 8px 0; }
-.fw-newer { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0 12px; }
-.fw-changes { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 4px; font-size: 14px; }
-.fw-ch { padding: 5px 8px; border-left: 3px solid var(--line); background: var(--surface-2); border-radius: 6px; }
-.fw-ch b { font-size: 13px; color: var(--ink-2); margin-right: 4px; }
-.fw-ch.is-removed { border-left-style: dashed; }
-.fw-ask { display: grid; gap: 8px; }
-.fw-ask .fw-acts { margin-top: 0; flex-wrap: nowrap; }
-.fw-ask-in { flex: 1; min-width: 0; }
-.fw-ask-q { display: flex; flex-wrap: wrap; gap: 6px; }
-.fw-chip-b { cursor: pointer; background: var(--surface); font: inherit; font-size: 13px; color: var(--brand); border-color: color-mix(in srgb, var(--brand) 40%, var(--surface)); }
-.fw-chip-b:hover { background: color-mix(in srgb, var(--brand) 7%, var(--surface)); }
-.fw-ask-a { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; background: var(--surface); }
-.fw-said { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; }
-.fw-said-l { padding-left: 10px; border-left: 3px solid var(--ink-2); }
-.fw-said-l.is-worked-out { border-left-color: var(--line); }
-.fw-said-l.is-inferred { border-left-style: dashed; border-left-color: var(--muted); }
-.fw-said-l.is-unknown { border-left-color: var(--line); color: var(--muted); }
-.fw-basis { font-size: 12px; color: var(--muted); font-style: italic; }
-
-/* the design studio (screens/DesignScreen): the conversation on the left, the method as it stands on the right */
-.fw-studio { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; align-items: start; }
-.fw-studio.has-def { grid-template-columns: minmax(300px, 2fr) minmax(0, 3fr); }
-.fw-talk, .fw-proposed { min-width: 0; }
-.fw-proposed { position: sticky; top: 72px; max-height: calc(100vh - 90px); overflow: auto; border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; background: var(--surface); }
-.fw-turns { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 10px; }
-.fw-turn { border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; background: var(--surface); }
-.fw-turn p { margin: 2px 0 4px; }
-.fw-turn.is-person { background: var(--surface-2); margin-left: 24px; }
-.fw-turn.is-app { border-style: dashed; }
-.fw-turn-who { font-size: 12px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: var(--muted); }
-.fw-ask-box { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--surface); }
-.fw-offers { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-/* questions before a design (lib/flow/clarifyCore) — answers to tap, or one's own */
-.fw-asking { display: grid; gap: 10px; margin-top: 8px; }
-.fw-q { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; margin: 0; display: grid; gap: 6px; min-width: 0; }
-.fw-q-ask { font-weight: 600; color: var(--ink); padding: 0 2px; }
-.fw-q-why { line-height: 1.4; }
-.fw-q-opts { display: flex; flex-wrap: wrap; gap: 6px; }
-.fw-chip-b.on { background: var(--accent-soft); color: var(--brand-2); border-color: var(--brand); font-weight: 600; }
-.fw-asked { margin: 4px 0 0; }
-.fw-start { margin-top: 18px; }
-.fw-lib-s { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
-/* A LOG (ui/flow/LogParts): the entry form, what the entries add up to, every entry */
-.fw-log-panel { display: grid; gap: 10px; margin: 8px 0; }
-.fw-entry { display: grid; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
-.fw-entry-r { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px 10px; align-items: end; }
-.fw-entry-r .fw-f { margin: 0; }
-.fw-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
-.fw-result { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
-.fw-result.has-pic { grid-column: 1 / -1; }
-.fw-result-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
-.fw-result-v { font-size: 20px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
-.fw-result-l { font-weight: 600; color: var(--ink-2); }
-.fw-result-s { line-height: 1.45; }
-.fw-chart { width: 100%; max-width: 440px; height: auto; display: block; }
-.fw-chart text { font-family: inherit; }
-.fw-bar { fill: #9aa6ab; }
-.fw-bar.is-top { fill: var(--ink-2); }
-.fw-cum { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 3 2; }
-.fw-chart-axis { stroke: var(--line); }
-.fw-chart-v { font-size: 9px; fill: var(--ink-2); font-variant-numeric: tabular-nums; }
-.fw-chart-l { font-size: 8.5px; fill: var(--muted); }
-/* a control chart, a relationship, a forecast (lib/flow/analysis pictures) */
-.fw-lim line { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 4 3; }
-.fw-centre line { stroke: var(--ink-2); stroke-width: 1; }
-.fw-run { stroke: #9aa6ab; stroke-width: 1.2; }
-.fw-dot { fill: var(--ink-2); }
-.fw-dot.is-signal { fill: var(--st-r); }
-.fw-fit { stroke: var(--ink); stroke-width: 1.5; }
-.fw-fit.is-ahead { stroke-dasharray: 4 3; }
-.fw-target line { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 1.5 2.5; }
-/* the fishbone (lib/flow/fishbone): its own width, scrolled on a phone, never shrunk past reading */
-.fw-fish-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.fw-fish { display: block; width: 100%; min-width: 600px; max-width: 760px; height: auto; }
-.fw-fish text { font-family: inherit; }
-.fw-fish-spine { stroke: var(--ink); stroke-width: 2.5; }
-.fw-fish-bone { stroke: var(--ink-2); stroke-width: 1.5; }
-.fw-fish-head { fill: var(--surface-2); stroke: var(--ink); stroke-width: 1.5; }
-.fw-fish-ht { font-size: 11px; font-weight: 700; fill: var(--ink); }
-.fw-fish-bn { font-size: 11px; font-weight: 700; fill: var(--ink); }
-.fw-fish-n { font-weight: 400; fill: var(--muted); }
-.fw-fish-c text { font-size: 10px; fill: var(--ink-2); }
-.fw-fish-c.is-root text { font-weight: 700; fill: var(--ink); }
-.fw-fish-c.is-root circle { fill: var(--ink); }
-.fw-entries { overflow-x: auto; }
-.fw-entries-t { width: 100%; border-collapse: collapse; font-size: var(--t-detail); }
-.fw-entries-t th { text-align: left; font-weight: 600; color: var(--muted); padding: 4px 8px 4px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
-.fw-entries-t td { padding: 5px 8px 5px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
-.fw-entries-t tr.is-struck td { color: var(--st-n-ink); text-decoration: line-through; }
-.fw-entry-acts { white-space: nowrap; text-align: right; }
-.fw-needs { border-left: 3px solid var(--st-a); padding: 8px 12px; background: var(--surface); border-radius: 0 12px 12px 0; }
-/* what Faultline cannot do yet, gathered on Methods, each with its brief (lib/flow/needs) */
-.fw-asks { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 8px; }
-.fw-ask-need { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 10px 12px; border: 1px solid var(--line); border-left: 3px solid var(--st-a); border-radius: 0 12px 12px 0; background: var(--surface); }
-.fw-ask-need-b { display: grid; gap: 2px; min-width: 0; flex: 1 1 280px; }
-.fw-brief { white-space: pre-wrap; word-break: break-word; font: inherit; font-size: 13px; line-height: 1.5; background: var(--paper, var(--surface)); border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin: 0 0 10px; max-height: 60vh; overflow: auto; }
-.fw-needs li { margin: 6px 0; line-height: 1.45; }
-.fw-est { margin: 12px 0 0; font-size: var(--t-detail); line-height: 1.5; color: var(--muted); }
-.fw-est b { color: var(--ink); }
-.fw-est .btn { margin-left: 6px; }
-.fw-online { margin: 6px 0 0; }
-.fw-card.is-library { border-style: dashed; }
-.fw-card-b .fw-acts { margin-top: 6px; }
-.fw-keep { position: sticky; bottom: 0; background: var(--surface); padding: 10px 0 2px; border-top: 1px solid var(--line); }
-.fw-prev-m { margin: 8px 0; }
-.fw-prop-st.is-touched { border-left: 4px solid var(--brand); }
-.fw-touched { margin-left: 6px; color: var(--brand); border-color: color-mix(in srgb, var(--brand) 40%, var(--surface)); }
-.fw-find { max-width: 420px; margin: 10px 0; }
-.fw-lib-h { margin-top: 18px; }
-/* a step done with one of the app's tools (ui/flow/RunParts ToolAnswer) */
-.fw-tool { border: 1px solid var(--line); border-left: 4px solid var(--brand); border-radius: 10px; padding: 8px 12px; margin: 8px 0; background: var(--surface); }
-.fw-tool-r a { color: var(--brand); }
-.fw-figs { list-style: none; margin: 6px 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; }
-.fw-figs b { font-variant-numeric: tabular-nums; }
-.fw-tool-c { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.fw-asking { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; border: 1px solid var(--line); border-left: 4px solid var(--brand); border-radius: 10px; padding: 8px 12px; margin: 0 0 12px; background: var(--surface); }
-.fw-asking p { margin: 0; flex: 1 1 220px; }
-.fw-measured li.is-g b { color: var(--st-g); }
-@media (max-width: 900px) {
-  .fw-studio.has-def { grid-template-columns: minmax(0, 1fr); }
-  .fw-proposed { position: static; max-height: none; }
-}
 @media (max-width: 760px) {
   .fw-lib { grid-template-columns: 1fr; }
-  .fw-row { grid-template-columns: 12px 1fr; }
-  .fw-row-w { grid-column: 2; text-align: left; white-space: normal; }
-  .fw-sg { min-width: 150px; }
-  .fw-pair { grid-template-columns: 1fr; }
-  .fw-role-k { min-width: 0; width: 100%; }
 }
 
 /* ===================== A VIDEO STUDY (screens/VideoScreen; docs/VIDEO.md) =====================
@@ -14083,19 +13770,13 @@ textarea.fw-in { font: inherit; line-height: 1.45; }
 .vid-load-takt { stroke: var(--st-r); stroke-width: 1.5; stroke-dasharray: 5 4; }
 .vid-load-tl { font-size: 10px; font-weight: 700; fill: var(--st-r); text-anchor: end; }
 
-/* ===================== THE FRONT DOOR (screens/StartScreen; docs/BLUEPRINT.md §3) =====================
-   One question and its box first, large; then what is under way, the library
-   and the tools, each a plain section. Its own fd- names — never another
+/* ===================== THE FRONT DOOR (screens/StartScreen; docs/DIRECTION.md) =====================
+   The question first, large; then what is under way, the three kinds of
+   change and the tools, each a plain section. Its own fd- names — never another
    page's (the video study once borrowed the value stream's and broke it). */
 .fd { max-width: 980px; }
 .fd-ask { padding: 18px 0 8px; }
 .fd-ask h1 { font-size: clamp(26px, 4vw, 36px); margin: 0 0 8px; }
-.fd-box { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
-.fd-in { font: inherit; font-size: 17px; line-height: 1.45; min-height: 112px; border-radius: 14px; padding: 14px 16px; }
-.fd-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
-.fd-eg { gap: 6px; }
-.fd-eg .chip { text-align: left; white-space: normal; font-size: 13px; font-weight: 500; padding: 5px 11px; color: var(--ink-2); background: transparent; }
-.fd-eg .chip:hover { color: var(--ink); border-color: var(--brand); }
 .fd-sec { margin-top: 26px; }
 .fd-sec-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
 .fd-lib { margin-top: 8px; }
@@ -14105,13 +13786,42 @@ textarea.fw-in { font: inherit; line-height: 1.45; }
 .fd-tool:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .fd-tool b { color: var(--ink); }
 @media (max-width: 640px) {
-  .fd-in { font-size: 16px; min-height: 96px; }
   .fd-tools { grid-template-columns: 1fr; }
 }
 
-/* THE STEP A TOOL'S PAGE ANSWERS (ui/flow/StepBar): a pale band with the teal
-   edge, at the top of the tool's page when it was opened from a project's step */
-.fw-stepbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; margin: 0 0 14px; padding: 10px 14px;
-  border: 1px solid var(--line); border-left: 4px solid var(--brand); border-radius: 10px; background: color-mix(in srgb, var(--brand) 6%, var(--surface)); }
-.fw-stepbar-b { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.fw-stepbar-w { color: var(--ink); overflow-wrap: anywhere; }
+/* LINE TALK (docs/LINE-TALK.md) — the talk as a conversation, its bar kept at the foot of the screen on a phone */
+.tk-new { margin: 10px 0 18px; }
+.tk-new-f { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.tk-start { display: inline-flex; align-items: center; gap: 8px; }
+.tk-sum { margin-top: 2px; }
+.tk-turns { list-style: none; margin: 12px 0 0; padding: 0 0 12px; display: flex; flex-direction: column; gap: 10px; }
+.tk-empty { padding: 14px 0; }
+.tk-turn { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; max-width: 760px; }
+.tk-turn.is-typed { border-left: 3px solid var(--st-n); }
+.tk-turn.is-struck { opacity: 0.55; }
+.tk-turn.is-struck .tk-words { text-decoration: line-through; }
+.tk-meta { font-size: var(--t-small); color: var(--muted); }
+.tk-words { margin: 0; white-space: pre-wrap; line-height: 1.45; }
+.tk-heard { margin: 0; }
+.tk-wait { margin: 0; font-style: italic; }
+.tk-fail { margin: 0; }
+.tk-audio { width: 100%; max-width: 420px; height: 36px; }
+.tk-photo-i { max-width: 100%; max-height: 300px; border-radius: var(--radius-sm); object-fit: contain; align-self: flex-start; }
+.tk-turn-a { display: flex; gap: 14px; font-size: var(--t-small); }
+.tk-fix { display: flex; flex-direction: column; gap: 6px; }
+.tk-fix-a { display: flex; gap: 8px; }
+.tk-bar { position: sticky; bottom: 0; z-index: 4; background: var(--surface); border-top: 1px solid var(--line); margin: 8px -16px 0; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 8px; }
+.tk-bar.is-on { border-top: 2px solid var(--brand); }
+.tk-acts { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.tk-talk { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 22px; font-size: 1.05rem; }
+.tk-clock { font-variant-numeric: tabular-nums; opacity: 0.85; }
+.tk-photo { display: inline-flex; align-items: center; gap: 6px; min-height: 48px; }
+.tk-type { display: flex; gap: 8px; }
+.tk-type .text-input { flex: 1; min-width: 0; }
+.tk-hint, .tk-said { margin: 0; }
+@media (max-width: 640px) { .tk-bar { margin: 8px -12px 0; padding-left: 12px; padding-right: 12px; } .tk-talk { flex: 1; justify-content: center; } }
+/* a phone: the talk's bar sits on the phone's own bar, and the quick Problem button gives way to Photo */
+@media (max-width: 899px) {
+  .tk-bar { bottom: calc(var(--nv-bar) + env(safe-area-inset-bottom)); padding-bottom: 10px; }
+  body:has(.tk-bar) .qs-fab { display: none; }
+}

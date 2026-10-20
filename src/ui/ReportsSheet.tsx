@@ -76,24 +76,6 @@ export function JobPapers({ project, onClose }: { project: Project; onClose: () 
     ] : []),
   ] })) : [];
   const nPapers = perLine.reduce((n, x) => n + x.papers.length, 0);
-  /* A METHOD OF ITS OWN prints its method report — the lean page, every
-     stage with its steps and its gate (lib/flow/reportPdf) — and nothing a
-     method it does not run would print. */
-  if (planModel(project) === 'flow') {
-    return (
-      <>
-        <Door title="Method report" says={busy ? 'Drawing…' : 'For the client and the team — where it stands, every stage with its steps on each machine and what its gate needs, what is owed and by whom.'}
-          onClick={() => {
-            if (busy) return;
-            setBusy(true); setSaid('');
-            void import('../lib/flow/printReport').then(m => m.printFlowReport(project.id)).then(setSaid)
-              .catch(e => setSaid(`The report could not be made — ${e instanceof Error ? e.message : 'try again'}.`))
-              .finally(() => setBusy(false));
-          }} />
-        {said && <p className="sub" role="status">{said}</p>}
-      </>
-    );
-  }
   return (
       <>
         {/* A lever tree job's report leads with the tree; the door said only

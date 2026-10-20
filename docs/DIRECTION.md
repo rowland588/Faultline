@@ -78,7 +78,48 @@ figure, never passes a gate.
 Everything else is formulas: every calculation, and the sentences that say
 what the figures mean. The voice note on a form stays as it is.
 
-## What is parked (20 October) — nothing deleted
+## The only AI: voice and the camera — 20 October, later the same day
+
+Rowland: *"Are we removing the AI generation tool and report system? I think
+we should — the only AI is the voice and the camera video system."* Asked
+which pieces and how, he chose (20 October): **delete** the method builder,
+*Better wording* and the AI answers in *Ask*; keep voice, the camera's AI and
+Line Talk as designed (its reports included — not chosen for removal).
+
+What the live database said first: 0 methods and 0 method records — the
+builder was never used; nothing stored is lost.
+
+| AI in the app | Decision |
+|---|---|
+| Voice — the voice note in typed boxes, and Line Talk hearing what is said (`api/voice`) | **kept** |
+| The camera — the video study's *Name the work from the frames* (`assist` gateway, task `video-label`) | **kept**, shown again (it was parked) |
+| Line Talk (docs/LINE-TALK.md), its slices as designed | **kept** |
+| The method builder — *Describe what you need*, the design studio, the assistant's proposals and *Ask about it*, Methods of one's own and Faultline's library of methods, the method engine and a project on a method | **deleted** |
+| *Better wording* under typed boxes (`api/wording`; asked for on 6 October) | **deleted** |
+| The AI answers in *Ask* on the line and Line capacity (`ask` function) — the app's own answers, worked out by formulas, stay | **deleted** |
+
+How it is taken out (in `main` only once the full gate passes):
+
+1. *Ask*'s AI answers: `lib/askAi` and its call; the `ask` function retired
+   (redeployed answering that it is retired) once the app no longer calls it.
+2. *Better wording*: `api/wording`, `lib/wording`, `ui/BetterWords` and the
+   offer in every typed box (`ui/Draft`'s `better`); the voice note stays.
+3. The method builder: `lib/flow`, `ui/flow`, `db/flow`, the Methods,
+   Method, Design and method-project screens, the "own method" kind of
+   project (`lib/planModel` 'flow'), its rows in the control room, its
+   report, the steps that asked a tool for a study (the tools stay as they
+   were before 18 October), its seeds, its four acceptance scripts
+   (methods, methods-design, designed-tool, pack-weights — the features they
+   proved are gone; nothing they proved about the tools is lost: the tools'
+   own scripts stay) and the parked pages of the inventory; the switch
+   (`lib/parked`) goes with it. The `assist` function keeps only
+   `video-label`. The database's `methods`, `flow_records` and
+   `activity_log` tables stay, empty and no longer synced — dropping them is
+   a migration for another day, if ever.
+4. The front door keeps its question, what is under way, the three kinds of
+   change and the tools.
+
+## What was parked (20 October) — deleted later the same day (above)
 
 Off the screens behind one switch (`lib/parked` — *Show the parked builder
 and assistant on this device*, at the foot of the front door); the acceptance

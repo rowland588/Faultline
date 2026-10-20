@@ -64,10 +64,8 @@ export interface PlanMark {
   /** The record it is drawn from, so a row on the Gantt opens it. */
   id?: string;
   /** `check`: the check that keeps a closed 6M problem's gain, owed when it
-   *  comes due (lib/sixm holdDue) — a row, never a mark on the calendar.
-   *  `step`: a step of a method of one's own (lib/flow) — its id is the
-   *  step's place, "stage/step/machine", and it opens on the project's page. */
-  kind: 'install' | 'setup' | 'handover' | 'test' | 'fix' | 'material' | 'program' | 'machine' | 'action' | 'note' | 'check' | 'step';
+   *  comes due (lib/sixm holdDue) — a row, never a mark on the calendar. */
+  kind: 'install' | 'setup' | 'handover' | 'test' | 'fix' | 'material' | 'program' | 'machine' | 'action' | 'note' | 'check';
   /** ISO. For a machine, the day it landed or is due. */
   at: string;
   until?: string;

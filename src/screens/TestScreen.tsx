@@ -377,7 +377,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
               <DateInput value={test.ranTo ?? ''} min={test.ranOn ?? undefined}
                 onCommit={v => save({ ranTo: v || undefined })} /></label>
             <label className={'cw-f cw-f-wide' + hl('result')}><span>{words.happened}</span>
-              <DraftArea rows={5} better="account" value={test.result ?? ''}
+              <DraftArea rows={5} value={test.result ?? ''}
                 placeholder={kind === 'fix' ? 'Roller re-aligned, ran clean for the rest of the shift'
                   : kind === 'install' ? 'Air on and tested; the regulator is missing, so it is on a fix'
                     : '61 ppm, 3 leaked in 20'}
@@ -662,7 +662,7 @@ function PassesIf({ test, can, label, glow, onSave }: {
   return (
     <>
       <label className={'cw-f cw-f-wide' + glow}><span>{label}</span>
-        <DraftArea better="passes" value={test.passesIf ?? ''}
+        <DraftArea value={test.passesIf ?? ''}
           placeholder={kind === 'fix' ? 'Film creases as the web enters the former'
             : kind === 'install' ? 'Bolted down, level to 1 mm, guards on'
               : '65 ppm held for 30 minutes, under 2% waste'}

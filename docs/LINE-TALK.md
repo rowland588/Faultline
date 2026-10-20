@@ -1,7 +1,8 @@
 # Line Talk — talk on the line, and it makes the reports
 
-The design, agreed with Rowland on 20 October. **Nothing is built yet**:
-building waits on his go.
+The design, agreed with Rowland on 20 October; his go the same day ("keep
+for good, go"). **Slice 1 is built** (record and keep — below, *Built*);
+slices 2–4 are not.
 
 Rowland, 20 October: *"Consultant in a line speaking into his phone, the AI
 listening to everything, allows pause, continue speaking, it remembers
@@ -76,8 +77,8 @@ and today's date. And the whole talk so far.
 
 - Works out a figure. A number in what it writes is either something said in
   the talk or one of Faultline's own figures, and says which; one it was not
-  given is refused before it is shown (the grounded check the method
-  assistant's *Ask* already does).
+  given is refused before it is shown (a grounded check, as the method
+  assistant's *Ask* made before it was deleted on 20 October).
 - Saves a record itself, passes a gate, or changes anything without a tap.
 - Identifies anyone in a photo.
 
@@ -119,6 +120,41 @@ was said was heard right in the noise, and what it cost.
 4. Inside a project — a stage gate's punch list, a 6M's causes, a project's
    documents.
 
-Open before slice 1: whether the phone keeps recording with the screen
-locked (tested on Rowland's phone first, as the video check did), and whether
-the audio is kept for good or for a set time.
+**The recordings are kept for good** (Rowland, 20 October), with the talk,
+as footage is. Open before slice 1: whether the phone keeps recording with
+the screen locked — tested on Rowland's phone first, as the video check did.
+
+## Built — slice 1, record and keep (20 October)
+
+- **Where:** `#/talk` (every Line Talk; `?line=` for one line, with *Start a
+  Line Talk on* it) and `#/talk/<id>` (`screens/TalkScreen`); Line Talk in
+  Tools on the rail and on the line's page, whose tile says its latest talk
+  in a line (`lib/talk` talkSaid).
+- **The record:** a study, tool `talk` (`lib/study` STUDY_TOOLS); its turns in
+  `facts.turns` (`lib/talk` TalkTurn — `said` with its recording, `photo`,
+  `typed`), merged by id between devices like the video study's events.
+  A correction is kept in `text` beside what was `heard`; a strike is a mark,
+  never a delete — **nothing in a talk is erased**, and every recording and
+  photo, struck or not, is named for the cloud (`talkMediaKeys`) so it goes
+  up and stays, as footage does.
+- **Recording:** the browser's MediaRecorder, cut into pieces of a minute
+  (`PIECE_SECONDS`) so a long stretch is kept as it is said; the screen kept
+  awake (Wake Lock) while it listens. The phone taking the microphone ends
+  the piece — kept — and the talk says so and offers Continue.
+- **Hearing:** each piece sent, one at a time and in order, to the existing
+  voice service (`api/voice`, form `talk`, the key server-side, signed in
+  only) with the line, its machines and **everything said before it**
+  (`earlierOf`, the last 1,500 characters) — so "same as the last one" is
+  understood. No signal: it waits, and is heard when the signal comes back;
+  refused: it says why and offers *Hear it again*; the recording is kept
+  either way. Recorded on another phone: heard there.
+- **Database:** `supabase/LINE_TALK.sql` — `talk` added to the studies'
+  tools, and the media rule taking a talk's recordings and photos.
+- **Proved:** `scripts/acceptance/line-talk.mjs` (Chromium's fake
+  microphone; the voice service answered by the script, and what it was
+  asked read back), `lib/__tests__/talk.test.ts`, the voice prompt in
+  `lib/__tests__/voice.test.ts`; seeded for the smoke test and the page
+  inventory (`dev/seed.ts` talkId).
+- **Still open:** whether a phone keeps recording with its screen locked —
+  tried on Rowland's phone first; and slice 1 is heard by the voice service
+  as it stands (Gemini, `api/voice`), chosen again for slice 2.

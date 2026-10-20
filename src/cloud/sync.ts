@@ -23,7 +23,7 @@
  *    left a clip as "not on this device yet" forever, because retry only
  *    happened if its ROW changed again — which it never did. */
 import { supabase, cloudConfigured } from './client';
-import { MAPS, READ_ONLY_KINDS, SYNC_KINDS, type MediaKey } from './mappers';
+import { MAPS, SYNC_KINDS, type MediaKey } from './mappers';
 import { withUsableMime } from '../lib/mime';
 import { CLOUD_FILE_LIMIT } from '../lib/transcode';
 import { goneKeys } from '../lib/video/footage';
@@ -714,7 +714,6 @@ let lastClientOf = new Set<string>();
 async function countUnsent(sent: Sent): Promise<number> {
   let n = (await listTombstones()).length;
   for (const kind of SYNC_KINDS) {
-    if (READ_ONLY_KINDS.has(kind)) continue;
     const map = MAPS[kind];
     for (const local of await rawAll(kind)) {
       if (!needsPush(sent, kind, local.id as string, map.clock(local))) continue;
@@ -1014,8 +1013,7 @@ export async function syncNow(): Promise<void> {
           named.set(m.key, { owner: m.owner, mime: m.mime });
         }
         const clock = map.clock(local);
-        /* the server's own rows are kept, never sent: the cloud refuses them */
-        if (!READ_ONLY_KINDS.has(kind) && needsPush(sent, kind, local.id as string, clock)) {
+        if (needsPush(sent, kind, local.id as string, clock)) {
           const row = map.toRow(local, uid);
           if (clientOf.has(String(kind === 'projects' ? row.id : row.project_id))) continue;
           batch.push({ key, clock, row, local });

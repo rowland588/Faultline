@@ -408,7 +408,6 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
      A commissioning job's rate is agreed once, per pack, and either proved or
      not — asking it for a quarterly target is asking a question the job has no
      answer to. */
-  /* a method of one's own (lib/flow) has no measures or periods: its stages say what is proved */
   const paced = !!project && (planModel(project) === 'board' || planModel(project) === 'tree');
   // One people list, read by the invite box AND by the owner/sponsor pickers on
   // every line — so the moment somebody is invited they are assignable.
@@ -591,7 +590,6 @@ function peopleSays(members: { access?: Access }[]): string {
  *  owner's form holds, as words — not a form that refuses to save. */
 function ProjectIdentityRead({ project }: { project: Project }) {
   const paced = planModel(project) === 'board' || planModel(project) === 'tree';
-  const own = planModel(project) === 'flow';
   const m = methodOf(project);
   return (
     <section className="card pset-identity">
@@ -599,7 +597,7 @@ function ProjectIdentityRead({ project }: { project: Project }) {
         <dt>Project</dt><dd>{project.name}</dd>
         <dt>Lead</dt><dd>{project.lead || 'nobody named yet'}</dd>
         {project.description && <><dt>What it is</dt><dd>{project.description}</dd></>}
-        {!paced && !own && <>
+        {!paced && <>
           <dt>Handover agreed</dt><dd>{project.plannedAt ? niceDay(project.plannedAt, { year: true }) : 'not agreed yet'}</dd>
           <dt>Now expected</dt><dd>{project.expectedAt ? niceDay(project.expectedAt, { year: true }) : 'not set yet'}</dd>
         </>}
@@ -690,19 +688,6 @@ function ProjectIdentity({ projectId }: { projectId: string }) {
           out to need the other one. Two buttons, not two checkboxes: a project
           runs ONE plan, not zero or both, so this is a switch and not a pair of
           independent opt-ins. */}
-      {/* A PROJECT RUNNING A METHOD OF ITS OWN is pinned to that method's
-          version (lib/flow): it never switches to one of the three — that
-          would leave its steps and gates with nothing to stand on. It says
-          which method it runs and opens it. */}
-      {planModel(project) === 'flow' && project.flow ? (
-        <div className="pset-tools">
-          <p className="field-label">How this project runs</p>
-          <p className="sub">
-            On the method <b>{methodOf(project).label}</b>, version {project.flow.version} — its stages, steps and gates.{' '}
-            <a href={`#/methods/${project.flow.methodId}`}>Open the method ›</a>
-          </p>
-        </div>
-      ) : (
       <div className="pset-tools">
           <p className="field-label">How this project runs</p>
           <div className="proj-model-grid">
@@ -740,7 +725,6 @@ function ProjectIdentity({ projectId }: { projectId: string }) {
             ))}
           </div>
         </div>
-      )}
 
       {/* AN EXTRA TOOL, NOT PART OF THE MODEL CHOICE. The Pareto sits beside
           whichever plan the project runs — it does not replace either one, so

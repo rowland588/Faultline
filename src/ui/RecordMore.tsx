@@ -205,7 +205,7 @@ function ItemRow({ item, tt, can, onView }: { item: TestItem; tt: TT; can: Can; 
             </div>
           )}
           <label className="cw-f cw-f-wide"><span>What</span>
-            <DraftArea rows={2} better="problem" value={item.what} onSave={v => v.trim() && void tt.saveItem({ ...item, what: v.trim() })} /></label>
+            <DraftArea rows={2} value={item.what} onSave={v => v.trim() && void tt.saveItem({ ...item, what: v.trim() })} /></label>
           <label className="cw-f"><span>Whose</span>
             <DraftField value={item.owner ?? ''} placeholder="Ilapak UK" onSave={v => void tt.saveItem({ ...item, owner: v.trim() || undefined })} /></label>
           {item.kind === 'next' && (

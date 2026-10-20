@@ -29,6 +29,9 @@ const ICONS = {
   download: <path d="M12 4.5V15M7.75 10.75 12 15l4.25-4.25M4.5 14.5v4a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-4" />,
   play: <path d="M8 5.25v13.5L18.5 12z" />,
   stop: <rect x="6.25" y="6.25" width="11.5" height="11.5" rx="1.5" />,
+  /* Line Talk (docs/LINE-TALK.md): talk, and pause */
+  mic: <><rect x="9" y="3.25" width="6" height="11" rx="3" /><path d="M5.75 11.25a6.25 6.25 0 0 0 12.5 0M12 17.5v3.25M9 20.75h6" /></>,
+  pause: <path d="M9 5.75v12.5M15 5.75v12.5" />,
   pin: <><path d="M12 20.75s-6.5-5.5-6.5-10.75a6.5 6.5 0 0 1 13 0c0 5.25-6.5 10.75-6.5 10.75z" /><circle cx="12" cy="10" r="2.25" /></>,
   time: <><circle cx="12" cy="13.5" r="7" /><path d="M12 13.5v-3.75M10 3.25h4M12 3.25V6.5M18.25 6.75l1.5-1.5" /></>,
   flag: <path d="M5.5 20.75V4M5.5 4.5h11.25L14 8.75 16.75 13H5.5" />,

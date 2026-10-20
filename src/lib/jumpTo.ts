@@ -7,9 +7,8 @@
 export interface Place { kind: 'line' | 'job' | 'product' | 'tool' | 'page'; label: string; sub?: string; href: string }
 
 export const TOOL_PLACES: Place[] = [
-  { kind: 'page', label: 'Home', sub: 'say what you need', href: '#/' },
+  { kind: 'page', label: 'Home', sub: 'start a project or use a tool', href: '#/' },
   { kind: 'page', label: 'Control room', href: '#/room' },
-  { kind: 'page', label: 'Methods', sub: 'the library', href: '#/methods' },
   { kind: 'page', label: 'Control room problems', href: '#/snags' },
   { kind: 'page', label: 'Your factory', href: '#/factory' },
   { kind: 'page', label: 'Programs', href: '#/programs' },

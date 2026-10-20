@@ -2,9 +2,9 @@
  * figures it used shown with the answer (docs/upgrade-plan.md F4). The common
  * shapes are answered here, with no AI and no network: will an extra order fit,
  * the biggest loss, what changed, where the line is held, what it can make.
- * Anything else is handed on (ui: the `ask` edge function, when it is set up)
- * with these same facts — never the records — to be narrated, not computed.
- * Pure. */
+ * Anything else is said to be outside what it answers — the AI that narrated
+ * those was taken out on 20 October (docs/DIRECTION.md: the only AI is the
+ * voice and the camera). Pure. */
 import type { Change } from './changes';
 import type { ConstraintTrend, LineConstraint } from './constraint';
 import type { LoadVsDemand } from './demand';
