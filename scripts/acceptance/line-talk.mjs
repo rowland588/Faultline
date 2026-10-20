@@ -12,7 +12,9 @@
  *   2  talked, paused: the piece kept with its recording and heard into the
  *      conversation; asked with the line and its machines, nothing earlier
  *   3  a photo where it was taken; continued — the next piece heard with
- *      everything said before it; a line typed
+ *      everything said before it; a line typed — and, since slice 2, Line
+ *      Talk's answer to it after it (the gateway answered by the script;
+ *      acceptance/line-talk-assistant.mjs proves the asking itself)
  *   4  corrected — the words as corrected, what was heard kept beside it,
  *      Undo; a turn struck, kept and left out, brought back
  *   5  a piece the service could not hear: why, the recording kept, Hear it
@@ -64,6 +66,9 @@ const WORDS = [
 ];
 let nextWords = 0;
 let refuseNext = false;
+/* LINE TALK'S GATEWAY (slice 2), answered by the script: a typed line is answered */
+await ctx.route('**/functions/v1/assist', r => r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' },
+  body: JSON.stringify({ ok: true, answer: { reply: 'Noted — Dave, and the spare belt.' }, unsure: [], model: 'claude-opus-5-5' }) }));
 await ctx.route('**/api/voice', async r => {
   const body = r.request().postDataJSON();
   asked.push(body);
@@ -135,10 +140,11 @@ ok(await waitFor(async () => await page.locator('.tk-turn[data-kind=photo] img.t
 await talk(2.2);
 ok(await waitFor(async () => (await words()).includes(WORDS[1])), 'the next piece heard', JSON.stringify(await words()));
 ok((asked[1]?.context?.earlier ?? '').includes(WORDS[0]) && (asked[1]?.context?.earlier ?? '').includes('[photo'), 'heard with everything said before it — the words and the photo', asked[1]?.context?.earlier);
-await page.locator('.tk-type input').fill('Ask Dave about the spare belt.');
+await page.locator('.tk-type textarea').fill('Ask Dave about the spare belt.');
 await page.locator('.tk-type button[type=submit]').click();
 ok(await waitFor(async () => (await words()).includes('Ask Dave about the spare belt.')), 'a line typed into it');
-ok(JSON.stringify(await page.locator('.tk-turn').evaluateAll(els => els.map(e => e.getAttribute('data-kind')))) === JSON.stringify(['said', 'photo', 'said', 'typed']), 'every turn in the order it happened');
+ok(await waitFor(async () => /Noted — Dave, and the spare belt\./.test(await page.locator('.tk-turn.is-reply').innerText().catch(() => ''))), 'and Line Talk’s answer after it');
+ok(JSON.stringify(await page.locator('.tk-turn').evaluateAll(els => els.map(e => e.getAttribute('data-kind')))) === JSON.stringify(['said', 'photo', 'said', 'typed', 'reply']), 'every turn in the order it happened');
 
 /* 4 — corrected, struck */
 const first = turns().nth(0);

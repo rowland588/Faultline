@@ -60,7 +60,7 @@ const TONE_CLASS: Record<SnagTone, string> = { g: 'is-g', r: 'is-r', w: 'is-w', 
 const PRIO_CLASS: Record<Priority, string> = { critical: 'is-r', high: 'is-a', low: 'is-g' };
 
 /** The tools, as the rail names them, each opened on this line. */
-const TOOLS: { key: string; label: string; to: string; study?: StudyTool; standard?: true; what: string }[] = [
+export const TOOLS: { key: string; label: string; to: string; study?: StudyTool; standard?: true; what: string }[] = [
   { key: 'linestandard', label: 'Line standard', to: '/standards', standard: true, what: 'who stands where, product by product' },
   { key: 'linework', label: 'Line balance', to: '/linebalance', study: 'balance', what: 'what each person does, timed against takt, and what it costs' },
   { key: 'linebalance', label: 'Line capacity', to: '/balances', standard: true, what: 'where the line is limited, and the V-curve' },
@@ -72,6 +72,47 @@ const TOOLS: { key: string; label: string; to: string; study?: StudyTool; standa
   /* Line Talk — the AI tool (docs/LINE-TALK.md): talk on the line, every word heard and kept */
   { key: 'talk', label: 'Line Talk', to: '/talk', study: 'talk', what: 'talk on the line — every word heard and kept with its recording' },
 ];
+
+export type LineTool = typeof TOOLS[number];
+
+/** WHAT A TOOL'S LATEST FOUND ON A LINE, in its own words — the line's page
+ *  tile and its report (FLOW-AUDIT.md, 10), and what Line Talk's assistant is
+ *  told the line's tools found (screens/useTalkContext). */
+export function toolSaysOf(t: LineTool, d: { standards: Standard[]; studies: ToolStudy[]; obs: Observation[]; line: Workspace | null | undefined; wsId: string }): { n: number; says?: string; tone?: string } {
+  const { standards, studies, obs, line, wsId } = d;
+  if (t.standard) {
+    const own = standards.filter(t.key === 'linebalance' ? inCapacityTool : inMapTool).sort((a, b) => b.updatedAt - a.updatedAt);
+    const s = own[0];
+    if (!s) return { n: 0 };
+    if (t.key === 'linebalance') { const b = balanceSays(s); return { n: own.length, says: `${s.product}: ${b.text}`, tone: b.short ? 'r' : 'n' }; }
+    const people = headcount(s), things = thingsOf(s);
+    return { n: own.length, says: `${s.product}: ${people || things ? [`${people} ${people === 1 ? 'person' : 'people'}`, things].filter(Boolean).join(' · ') : 'nothing placed yet'}` };
+  }
+  const own = studies.filter(s => s.tool === t.study).sort((a, b) => b.startedAt - a.startedAt);
+  /* a loss count: the latest shift counted, as the line's card says it */
+  const s = (t.study === 'losses' ? currentLosses(own, wsId) : undefined) ?? own[0];
+  if (!s) return { n: 0 };
+  /* a Line Talk is said as its conversation stands (lib/talk) */
+  if (t.study === 'talk') return { n: own.length, says: `${s.name}: ${talkSaid(turnsOf(s.facts))}` };
+  const said = studyLine(s, t.study === 'losses' && line ? { observations: obs, workspaces: [line] } : undefined);
+  /* a loss count's sentence names its shift itself */
+  return { n: own.length, says: t.study === 'losses' ? said.text : `${s.name}: ${said.text}`, tone: said.tone };
+}
+
+/** A LINE'S STOPS, the last four weeks — the count, the minutes (overlaps on
+ *  one machine counted once, as every Pareto counts them) and the machine
+ *  that stopped the most; the words the Stops timed row says. */
+export function stopsOf(obs: Observation[]): { n: number; minutes: number; worst?: string; says?: string; tone: 'n' } {
+  const now = Date.now();
+  const recent = between(obs, now - 4 * WEEK, now).filter(o => o.durationMs > 0 || o.timing === 'instant');
+  const n = recent.length;
+  if (!n) return { n: 0, minutes: 0, tone: 'n' as const };
+  const byMachine = new Map<string, Observation[]>();
+  for (const o of recent) byMachine.set(o.asset, [...(byMachine.get(o.asset) ?? []), o]);
+  const worst = [...byMachine.entries()].map(([asset, os]) => ({ asset, min: stopMinutes(os) })).sort((a, b) => b.min - a.min)[0];
+  const mins = Math.round(stopMinutes(recent));
+  return { n, minutes: mins, ...(worst && worst.min >= 1 ? { worst: worst.asset.trim() || 'whole line' } : {}), tone: 'n' as const, says: `${mins} min lost in ${n} stop${n === 1 ? '' : 's'}${worst && worst.min >= 1 ? ` — the ${worst.asset.trim() || 'whole line'} most, ${Math.round(worst.min)} min` : ''}` };
+}
 
 /** Where each of a product's four answers is given, on this line. */
 const READY_TO: Record<ReadyKey, string> = { program: '/programs', standard: '/standards', capacity: '/balances', changeover: '/smed' };
@@ -122,39 +163,11 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
      tool's own list shows for its newest record on this line, then the
      count. Each tool counts its own products (lib/standard inCapacityTool) —
      a map is not a capacity. */
-  const toolSays = useMemo(() => (t: typeof TOOLS[number]): { n: number; says?: string; tone?: string } => {
-    if (t.standard) {
-      const own = standards.filter(t.key === 'linebalance' ? inCapacityTool : inMapTool).sort((a, b) => b.updatedAt - a.updatedAt);
-      const s = own[0];
-      if (!s) return { n: 0 };
-      if (t.key === 'linebalance') { const b = balanceSays(s); return { n: own.length, says: `${s.product}: ${b.text}`, tone: b.short ? 'r' : 'n' }; }
-      const people = headcount(s), things = thingsOf(s);
-      return { n: own.length, says: `${s.product}: ${people || things ? [`${people} ${people === 1 ? 'person' : 'people'}`, things].filter(Boolean).join(' · ') : 'nothing placed yet'}` };
-    }
-    const own = studies.filter(s => s.tool === t.study).sort((a, b) => b.startedAt - a.startedAt);
-    /* a loss count: the latest shift counted, as the line's card says it */
-    const s = (t.study === 'losses' ? currentLosses(own, wsId) : undefined) ?? own[0];
-    if (!s) return { n: 0 };
-    /* a Line Talk is said as its conversation stands (lib/talk) */
-    if (t.study === 'talk') return { n: own.length, says: `${s.name}: ${talkSaid(turnsOf(s.facts))}` };
-    const said = studyLine(s, t.study === 'losses' && line ? { observations: obs, workspaces: [line] } : undefined);
-    /* a loss count's sentence names its shift itself */
-    return { n: own.length, says: t.study === 'losses' ? said.text : `${s.name}: ${said.text}`, tone: said.tone };
-  }, [standards, studies, obs, line, wsId]);
+  const toolSays = useMemo(() => (t: LineTool) => toolSaysOf(t, { standards, studies, obs, line, wsId }), [standards, studies, obs, line, wsId]);
   /* ITS STOPS, the last four weeks — the count, the minutes (overlaps on one
      machine counted once, as every Pareto counts them) and the machine that
      stopped the most; the words the Stops timed row says. */
-  const stops = useMemo((): { n: number; minutes: number; worst?: string; says?: string; tone: 'n' } => {
-    const now = Date.now();
-    const recent = between(obs, now - 4 * WEEK, now).filter(o => o.durationMs > 0 || o.timing === 'instant');
-    const n = recent.length;
-    if (!n) return { n: 0, minutes: 0, tone: 'n' as const };
-    const byMachine = new Map<string, Observation[]>();
-    for (const o of recent) byMachine.set(o.asset, [...(byMachine.get(o.asset) ?? []), o]);
-    const worst = [...byMachine.entries()].map(([asset, os]) => ({ asset, min: stopMinutes(os) })).sort((a, b) => b.min - a.min)[0];
-    const mins = Math.round(stopMinutes(recent));
-    return { n, minutes: mins, ...(worst && worst.min >= 1 ? { worst: worst.asset.trim() || 'whole line' } : {}), tone: 'n' as const, says: `${mins} min lost in ${n} stop${n === 1 ? '' : 's'}${worst && worst.min >= 1 ? ` — the ${worst.asset.trim() || 'whole line'} most, ${Math.round(worst.min)} min` : ''}` };
-  }, [obs]);
+  const stops = useMemo(() => stopsOf(obs), [obs]);
   /* ITS MACHINES AND PROGRAMS (docs/BLUEPRINT.md, Stage 2) — the line's own
      and those a job brought in, read as the control room's Programs reads them. */
   const rec = useLineRecords();

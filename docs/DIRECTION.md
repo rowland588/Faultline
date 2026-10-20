@@ -91,9 +91,9 @@ builder was never used; nothing stored is lost.
 
 | AI in the app | Decision |
 |---|---|
-| Voice — the voice note in typed boxes, and Line Talk hearing what is said (`api/voice`) | **kept** |
+| Voice — the voice note in typed boxes, and Line Talk hearing what is said (`api/voice`) | **kept** — on Gemini, the one AI not on Claude (Claude takes no sound); its replacement is Rowland's choice |
 | The camera — the video study's *Name the work from the frames* (`assist` gateway, task `video-label`) | **kept**, shown again (it was parked) |
-| Line Talk (docs/LINE-TALK.md), its slices as designed | **kept** |
+| Line Talk (docs/LINE-TALK.md), its slices as designed | **kept** — its answers and documents (slice 2) on Claude through the `assist` gateway, task `talk` |
 | The method builder — *Describe what you need*, the design studio, the assistant's proposals and *Ask about it*, Methods of one's own and Faultline's library of methods, the method engine and a project on a method | **deleted** |
 | *Better wording* under typed boxes (`api/wording`; asked for on 6 October) | **deleted** |
 | The AI answers in *Ask* on the line and Line capacity (`ask` function) — the app's own answers, worked out by formulas, stay | **deleted** |
@@ -158,10 +158,15 @@ Nothing new is built until Rowland says go.
    wording* and *Ask*'s AI answers.
 2. ~~The filmed walk reachable from a line's own page~~ — done: *Film the
    line* on the line's page.
-3. Line Talk (docs/LINE-TALK.md): slice 1, record and keep, is built. Next,
-   Rowland tries it on his phone on the floor — first, whether it keeps
-   recording with the screen locked — then slice 2 (ask it for reports and
-   summaries) on his go.
+3. Line Talk (docs/LINE-TALK.md): slice 1, record and keep, is built; slice
+   2, ask it — the conversation answered by Claude through the gateway, with
+   the line's records, photos and documents on paper — built on his go the
+   same day ("a simple, reliable, ChatGPT-style manufacturing assistant
+   inside Faultline, powered by our existing Claude API integration"). Next,
+   Rowland tries both on his phone on the floor — first, whether it keeps
+   recording with the screen locked. Open for him: the hearing is still the
+   voice service's (`api/voice`, Gemini) — Claude takes no sound — so it
+   stays, or moves to the phone's own speech recognition, at his word.
 4. Use Faultline for real for two or three weeks on Rowland's lines with his
    team; write down every place it is slow, confusing or missing.
 5. Then deepen the tools that were used, close the evidence → cause → action

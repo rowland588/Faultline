@@ -1089,7 +1089,8 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   /* A LINE TALK (docs/LINE-TALK.md): one walk of the line talked into the
      phone — four pieces, the first corrected, a photo where it was taken, a
      line typed, the last waiting for signal and one the service could not
-     hear. The recordings were made on another phone, so they are not here. */
+     hear; then a report asked for and Line Talk's answer with the document it
+     wrote. The recordings were made on another phone, so they are not here. */
   const talkId = await (async () => {
     const t = Date.now() - 40 * 60_000;
     const piece = (n: number, durationS: number) => ({ blobKey: `talk-seed-not-here-${n}`, mime: 'audio/webm', capturedAt: t + n * 60_000, durationS });
@@ -1104,9 +1105,24 @@ export async function seedForSmokeTest(): Promise<Seeded> {
       { id: 'seedt-4', at: t + 3 * 60_000, kind: 'typed' as const, who: 'Rowland', text: 'Ask Dave about the spare belt for the case packer.' },
       { id: 'seedt-5', at: t + 4 * 60_000, kind: 'said' as const, who: 'Rowland', media: piece(5, 31), hearing: 'failed' as const, why: 'Voice is busy right now.' },
       { id: 'seedt-6', at: t + 5 * 60_000, kind: 'said' as const, who: 'Rowland', media: piece(6, 44), hearing: 'waiting' as const },
+      /* ASKED (slice 2): a question typed, Line Talk's answer, and the line-walk report it wrote with the photo — one figure in it flagged to check */
+      { id: 'seedt-7', at: t + 6 * 60_000, kind: 'typed' as const, who: 'Rowland', text: 'Write a line-walk report from this, with the photo.' },
+      { id: 'seedt-8', at: t + 6 * 60_000 + 30_000, kind: 'reply' as const, who: 'Line Talk', model: 'test-model',
+        text: 'Here is the line-walk report: what you saw at the bagger and the checkweigher, with **P1** beside the guide rail. One piece could not be heard, so it is not in it.',
+        unsure: ['8'],
+        doc: { title: 'Line 7 — morning walk', kind: 'line-walk' as const, sections: [
+          { heading: 'What was seen', text: 'A walk of Line 7 from the bagger to the case packer.', points: [
+            { text: 'The bagger was running at about 62 a minute and the former looked clean.', basis: 'observed' as const, owner: '', due: '' },
+            { text: 'The checkweigher is kicking out the odd bag at the infeed; the guide rail looks bent, about 8 mm out.', basis: 'observed' as const, owner: '', due: '' },
+          ], photos: [{ photo: 'P1', caption: 'The infeed guide rail, where bags catch' }] },
+          { heading: 'What to do next', text: '', points: [
+            { text: 'Check the infeed guide rail on the checkweigher before the next shift.', basis: 'interpretation' as const, owner: '', due: '' },
+            { text: 'Ask Dave about the spare belt for the case packer.', basis: 'observed' as const, owner: 'Dave', due: '' },
+          ], photos: [] },
+        ] } },
     ];
     const id = uid();
-    await putStudy({ id, tool: 'talk', name: 'Line 7 — morning walk', workspaceId: ws.id, uses: [], startedAt: t, createdAt: t, updatedAt: t + 5 * 60_000, facts: { turns } });
+    await putStudy({ id, tool: 'talk', name: 'Line 7 — morning walk', workspaceId: ws.id, uses: [], startedAt: t, createdAt: t, updatedAt: t + 6 * 60_000 + 30_000, facts: { turns } });
     return id;
   })();
 
