@@ -77,8 +77,8 @@ and today's date. And the whole talk so far.
 
 - Works out a figure. A number in what it writes is either something said in
   the talk or one of Faultline's own figures, and says which; one it was not
-  given is refused before it is shown (the grounded check the method
-  assistant's *Ask* already does).
+  given is refused before it is shown (a grounded check, as the method
+  assistant's *Ask* made before it was deleted on 20 October).
 - Saves a record itself, passes a gate, or changes anything without a tap.
 - Identifies anyone in a photo.
 

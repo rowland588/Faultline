@@ -137,11 +137,12 @@ export interface PaceSnapshotRow {
 export interface Tombstone { id: string; kind: SyncKind; deletedAt: number }
 /* RETIRED 13 October (docs/BLUEPRINT.md §5.1-5.2): project_targets, project_actuals and
    pace_snapshots — read by no screen, 0 rows in the cloud — are no longer synced. Their
-   local stores stay defined, empty, until the cloud tables are dropped. */
+   local stores stay defined, empty, until the cloud tables are dropped. The same since
+   20 October for methods, flow_records and activity_log: the method builder was deleted
+   (docs/DIRECTION.md), with 0 rows of any of them in the cloud. */
 export type SyncKind = 'workspaces' | 'observations' | 'segments' | 'snag_assets' | 'snags' | 'cases' | 'projects'
   | 'pace_ppm' | 'pace_todos' | 'pace_wins' | 'tree_nodes'
-  | 'commission_assets' | 'tests' | 'test_items' | 'targets' | 'readings' | 'materials' | 'programs' | 'standards' | 'studies'
-  | 'methods' | 'flow_records' | 'activity_log';
+  | 'commission_assets' | 'tests' | 'test_items' | 'targets' | 'readings' | 'materials' | 'programs' | 'standards' | 'studies';
 
 /* WHERE A BOX HAS GOT TO. Five states, not four colours.
  *

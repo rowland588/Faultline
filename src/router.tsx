@@ -52,17 +52,12 @@ const ChangeoverScreen = lazy(() => import('./screens/ChangeoverScreen').then(m 
 const SamplingScreen = lazy(() => import('./screens/SamplingScreen').then(m => ({ default: m.SamplingScreen })));
 const LossesScreen = lazy(() => import('./screens/LossesScreen').then(m => ({ default: m.LossesScreen })));
 const ShareScreen = lazy(() => import('./screens/ShareScreen').then(m => ({ default: m.ShareScreen })));
-/* METHODS OF YOUR OWN (lib/flow) — the library, one method, and a project running one */
-const MethodsScreen = lazy(() => import('./screens/MethodsScreen').then(m => ({ default: m.MethodsScreen })));
-const MethodScreen = lazy(() => import('./screens/MethodScreen').then(m => ({ default: m.MethodScreen })));
-const DesignScreen = lazy(() => import('./screens/DesignScreen').then(m => ({ default: m.DesignScreen })));
 const StartScreen = lazy(() => import('./screens/StartScreen').then(m => ({ default: m.StartScreen })));
 const VideosScreen = lazy(() => import('./screens/VideoScreen').then(m => ({ default: m.VideosScreen })));
 const VideoStudyScreen = lazy(() => import('./screens/VideoScreen').then(m => ({ default: m.VideoStudyScreen })));
 const TalksScreen = lazy(() => import('./screens/TalkScreen').then(m => ({ default: m.TalksScreen })));
 const TalkScreen = lazy(() => import('./screens/TalkScreen').then(m => ({ default: m.TalkScreen })));
 const VideoCheckScreen = lazy(() => import('./screens/VideoCheckScreen').then(m => ({ default: m.VideoCheckScreen })));
-const FlowProjectScreen = lazy(() => import('./screens/FlowProjectScreen').then(m => ({ default: m.FlowProjectScreen })));
 import { RequireModel } from './ui/RequireModel';
 import { RecordDrawerHost } from './ui/RecordDrawer';
 import { Frame } from './ui/Frame';
@@ -72,14 +67,11 @@ import { useSession } from './cloud/session';
 import { AutoConvert } from './snag/AutoConvert';
 import type { Route } from './state/useRoute';
 import { MachineScreen } from './screens/MachineScreen';
-import { useProject } from './lib/useProjects';
 
-/** A PROJECT'S FRONT PAGE — the page of the method it runs. A project
- *  started on a method of its own (Project.flow) reads its stages and gates
- *  (screens/FlowProjectScreen); every other the method's own front page. */
+/** A PROJECT'S FRONT PAGE — the page of the method it runs (the method
+ *  builder's own kind of project went with it on 20 October). */
 function ProjectDoor({ projectId }: { projectId: string }) {
-  const { project } = useProject(projectId);
-  return project?.flow ? <FlowProjectScreen projectId={projectId} /> : <ProjectDashboardScreen projectId={projectId} />;
+  return <ProjectDashboardScreen projectId={projectId} />;
 }
 
 function GoHome() {
@@ -155,10 +147,7 @@ function app(route: Route) {
   if (route.name === 'quickSnags') return <QuickSnagsScreen key={route.query.get('line') ?? ''} />;
   if (route.name === 'lineHome' && route.wsId) return <ProductionLineScreen key={route.wsId} wsId={route.wsId} />;
   if (route.name === 'factory') return <FactoryScreen />;
-  if (route.name === 'methods') return <MethodsScreen />;
-  /* keyed by what it starts from, so moving between studios starts afresh */
   if (route.name === 'start') return <StartScreen />;
-  if (route.name === 'design') return <DesignScreen key={route.query.toString()} />;
   /* a video study (docs/VIDEO.md): every one, and one */
   if (route.name === 'videos') return <VideosScreen />;
   if (route.name === 'videoStudy' && route.id) return <VideoStudyScreen key={route.id} id={route.id} />;
@@ -166,7 +155,6 @@ function app(route: Route) {
   /* Line Talk (docs/LINE-TALK.md): every talk (keyed on its line), and one */
   if (route.name === 'talks') return <TalksScreen key={route.query.get('line') ?? ''} />;
   if (route.name === 'talk' && route.id) return <TalkScreen key={route.id} id={route.id} />;
-  if (route.name === 'method' && route.id) return <MethodScreen key={route.id} id={route.id} />;
   /* ?line= opens it on one line — keyed on it, so a second line starts afresh */
   if (route.name === 'linePrograms') return <LineProgramsScreen key={route.query.get('line') ?? ''} />;
   if (route.name === 'lineTools') return <LineToolsScreen key={route.query.get('line') ?? ''} tool={route.view === 'balance' ? 'balance' : route.view === 'work' ? 'work' : 'map'} />;

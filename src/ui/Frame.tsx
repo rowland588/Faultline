@@ -18,8 +18,6 @@
  *
  * Every URL is unchanged. The frame reads the route; it never owns one.
  */
-import { readFor } from './flow/Asking';
-import { StepBar } from './flow/StepBar';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Route } from '../state/useRoute';
 import { nav, useHash } from '../state/useRoute';
@@ -30,8 +28,6 @@ import { useStanding } from '../lib/useStanding';
 import { useMethodCounts } from '../lib/useMethodCounts';
 import { useWsChain } from '../lib/useTrail';
 import { planModel, type PlanModel } from '../lib/planModel';
-import { useFlowProject } from '../lib/flow/useFlow';
-import { stageSquare } from '../lib/flow/view';
 import { getStandard, getWorkspace, listTestItems, listTests, listWorkspaces, onDataChange } from '../db';
 import { liveProductionLines } from '../lib/lines';
 import { gateOf, live } from '../lib/testing';
@@ -53,7 +49,6 @@ import {
   controlRoom, snagsPlace, toolsGroup, jobLine, gatesGroup, machinesGroup, methodGroup, workGroup, linesGroup, footGroup, studyLines, phoneBar, hereOf,
   type RailGroup, type RailLine, type RailLineOf, type RailMachine, type SquareState,
 } from './rail';
-import { useBuilderShown } from '../lib/parked';
 
 /** Which job a route is under. Every `/project/:id/…` route carries the job
  *  as its `id`; a study's screens (`/w/:ws/…`) reach it through the chain the
@@ -93,9 +88,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
   const product = route.name === 'lineStandards' ? route.id : undefined;
   const productJob = useProductJob(product);
   /* a line's product: its own job or none; the line's list of them: none */
-  /* a tool's page opened from a project's step opens inside the project (ui/flow/StepBar) */
-  const forStep = readFor(route.query);
-  const projectId = forStep?.projectId ?? (route.name === 'lineStandards' ? (product ? productJob || undefined : undefined) : projectOf(route, chain?.projectId));
+  const projectId = (route.name === 'lineStandards' ? (product ? productJob || undefined : undefined) : projectOf(route, chain?.projectId));
   /* An archived job still opens (from the archive), and still wears its rail. */
   const project = projectId ? (projects.find(p => p.id === projectId) ?? archived.find(p => p.id === projectId)) : undefined;
   const jobHere = useHere(route, project);
@@ -112,7 +105,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
         : projectId && (loading || (route.wsId && chain === null))
           ? <NavChrome groups={[{ lines: [controlRoom(here), snagsPlace(here)] }, toolsGroup(here)]} bar={[controlRoom(here)]} />
           : <HomeNav projects={projects} here={here} wsId={route.wsId} loose={!!route.wsId && chain === null && route.name !== 'lineHome'} />}
-      <main className="nv-main">{forStep && <StepBar r={forStep} />}{children}</main>
+      <main className="nv-main">{children}</main>
       <QuickSnagHost wsId={route.wsId} projectId={projectId} />
     </div>
   );
@@ -159,7 +152,6 @@ function placeOf(route: Route): string {
     case 'lineTools': case 'studies': case 'study': case 'lineStandards': case 'videos': case 'videoStudy': case 'talks': case 'talk': return 'Tools';
     case 'start': return 'Home';
     case 'projects': return 'Projects';
-    case 'methods': case 'method': case 'design': return 'Methods';
     case 'home': case 'portfolio': case 'quickSnags': return 'Control room';
     default: return route.wsId ? 'Your factory' : 'Control room';
   }
@@ -233,37 +225,7 @@ function ProjectNav({ project, here, wsId }: { project: Project; here: string; w
   const notes = useOpenNotes(project.id);
   const shared = { project, here, wsId, lines, notes, model };
   return model === 'commissioning' ? <GateNav {...shared} />
-    : model === 'flow' ? <FlowNav {...shared} />
-      : <MethodNav {...shared} method={model} />;
-}
-
-/** A PROJECT RUNNING A METHOD OF ITS OWN (lib/flow): the job, then its
- *  stages in order — each with its square and what is open on it, read by
- *  the one runtime its page reads — and the method it runs. */
-function FlowNav(p: NavProps) {
-  const { fp } = useFlowProject(p.project.id);
-  const s = fp?.state;
-  const id = p.project.id;
-  const stages: RailLine[] = (s?.stages ?? []).map(st => {
-    const open = st.gate.passed ? 0 : st.steps.filter(x => !x.complete).length;
-    return {
-      key: `stage-${st.key}`, label: st.name, to: `/project/${id}?view=stage-${st.key}`, on: p.here === `stage-${st.key}`,
-      state: stageSquare(st), n: open || undefined, late: st.late || undefined, failed: st.failed || undefined, icon: 'route',
-    };
-  });
-  const groups: RailGroup[] = [
-    { lines: [controlRoom(p.here), snagsPlace(p.here), jobLine(id, p.project.name, p.here, (s?.counts.late ?? 0) + (s?.counts.failed ?? 0), s?.counts.asking ?? 0)] },
-    {
-      label: 'Method',
-      lines: [
-        ...stages,
-        ...(p.project.flow ? [{ key: 'method', label: 'The method', to: `/methods/${p.project.flow.methodId}`, on: false, state: 'n', bare: true, icon: 'list' } as RailLine] : []),
-      ],
-    },
-    footGroup(id, p.here, p.notes),
-    toolsGroup(p.here),
-  ];
-  return <NavChrome groups={groups} project={p.project} model={p.model} />;
+    : <MethodNav {...shared} method={model} />;
 }
 
 interface NavProps {
@@ -371,16 +333,11 @@ function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: s
     return () => { live = false; };
   }, [wsId]);
   const prodLines = useProductionLines();
-  const builder = useBuilderShown();
   const groups: RailGroup[] = [
-    /* THE NEW PRODUCT'S PLACES — Home, the projects, the library of methods
-       (written, approved and run — lib/flow; Faultline's established three
-       among them) */
+    /* HOME AND THE PROJECTS */
     { lines: [
       { key: 'start', label: 'Home', to: '/', on: here === 'start', state: 'n', bare: true, icon: 'home' } as RailLine,
       { key: 'projects', label: 'Projects', to: '/projects', on: here === 'projects', state: 'n', bare: true, icon: 'board', n: projects.length || undefined } as RailLine,
-      /* methods of one's own are parked (20 October, docs/DIRECTION.md) */
-      ...(builder ? [{ key: 'methods', label: 'Methods', to: '/methods', on: here === 'methods', state: 'n', bare: true, icon: 'route' } as RailLine] : []),
     ] },
     /* THE CONTROL ROOM — every project and line at once; REPORTS, as a job's
        rail has them — every paper (ui/ControlRoomReports; Rowland, 14

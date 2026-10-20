@@ -32,7 +32,6 @@ import { dur, flowFigures, share } from '../lib/ie/steps';
 import { changeoverFigures, changeoverSays, figuresOf, mins } from '../lib/ie/changeover';
 import { samplingSays } from '../lib/ie/sampling';
 import { firstCount, lossLine, windowWords } from '../lib/ie/losses';
-import { AskingNote, useAsking, withFor } from '../ui/flow/Asking';
 import type { StudyTool, ToolStudy } from '../lib/study';
 import type { Observation, Workspace } from '../types';
 
@@ -137,8 +136,7 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
   /* A loss count's line reads its stops in the window: the lines' logs, for
      the loss counts listed — nothing read for the other tools. */
   const [obs, setObs] = useState<Observation[]>([]);
-  /* ?add=1 — opened from a method's step done with this tool (ui/flow/RunParts):
-     New is open at once, on the job's line */
+  /* ?add=1 — a link straight to New, open at once (lib/lines asked) */
   const [adding, setAdding] = useState(() => asked('add') === '1');
   /* opened from a line's own page: that line's only, and New starts on it */
   const onLine = useMemo(() => asked('line'), []);
@@ -300,8 +298,6 @@ function NewStudy({ open, tool, onClose, onLine }: { open: boolean; tool: StudyT
      the one list every "which machine" reads (lib/lineRecords machinesOf;
      flow audit #14: "A study's machine is typed"). */
   const lineMachines = useMachinesOf(!isLine && !isChange ? lineId || undefined : undefined);
-  /* opened from a method's step done with this tool: the study made here answers it (ui/flow/Asking) */
-  const asking = useAsking(tool);
   const ready = (!named || !!name.trim()) && !busy && (!isLine || !!lineId) && (!isChange || !!machine.trim());
   const make = async () => {
     if (!ready) return;
@@ -315,9 +311,8 @@ function NewStudy({ open, tool, onClose, onLine }: { open: boolean; tool: StudyT
           ...(lineId ? { workspaceId: lineId } : {}), ...(std ? { standardId: std.id } : {}),
           facts: { fromProduct: from, toProduct: to, sequence: [] }, uses: [], startedAt: t, createdAt: t, updatedAt: t };
         await putStudy(s);
-        const forStep = await asking.attach(s.id);
         setName(''); setMachine(''); onClose();
-        nav(withFor(studyHref(s), forStep));
+        nav(studyHref(s));
         return;
       }
       const second = machine.trim() ? (isLine ? { product: machine.trim() } : { machine: machine.trim() }) : {};
@@ -333,15 +328,13 @@ function NewStudy({ open, tool, onClose, onLine }: { open: boolean; tool: StudyT
         ...(lineId ? { workspaceId: lineId } : {}), ...(tool === 'map' ? { agreed: { map: { scope: 'line' as const } } } : {}), ...(std ? { standardId: std.id } : {}),
         facts: tool === 'losses' ? { losses: firstCount(lines.find(l => l.id === lineId)?.shifts ?? [], await rateForCount(lineId, std), t) } : {}, uses: [], startedAt: t, createdAt: t, updatedAt: t };
       await putStudy(s);
-      const forStep = await asking.attach(s.id);
       setName(''); setMachine(''); onClose();
-      nav(withFor(studyHref(s), forStep));
+      nav(studyHref(s));
     } finally { setBusy(false); }
   };
   return (
     <Sheet open={open} onClose={onClose} title={w.add}>
       <form className="lt-new" onSubmit={e => { e.preventDefault(); void make(); }}>
-        <AskingNote asking={asking} />
         {isChange && (
           <label className="field"><span className="field-label">Which line? <i className="sub">optional — its products are offered, and the interval needs it</i></span>
             <select className="text-input" value={lineId} aria-label="Which line" onChange={e => setLineId(e.target.value)}>

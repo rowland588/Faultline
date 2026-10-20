@@ -38,7 +38,6 @@ import { layoutPlan, type PlacedMark, type PlanAxis } from './plan';
 import { companies, resolver, type Company } from './names';
 import type { PaceLineRow, PaceTodoRow } from '../db';
 import { methodOf, planModel, type PlanModel } from './planModel';
-import type { FlowJob } from './flow/job';
 import { DUE_SOON_DAYS, isLate as stepIsLate } from './actions';
 import { openByBone } from './pillars';
 import { remindersOf } from './reminders';
@@ -96,9 +95,6 @@ export interface PacedInput {
    *  on the job, as its own Needs you lists them (pacedOwed). */
   materials?: Material[];
   programs?: Program[];
-  /** A project running a method of its own (lib/flow/job): its row is read
-   *  from the method's stages, never from a board it does not have. */
-  flow?: FlowJob;
 }
 
 /** One line's latest shift counted, as the control room says it — the slow
@@ -256,10 +252,6 @@ export interface JobView {
   /** Its open critical problems, oldest first (criticalItems) — "1 critical"
    *  in solid red on its row. Empty on a 6M or lever tree job. */
   critical: JobItem[];
-  /** A project running a method of its own: its stages in order, each in
-   *  its tone — what its row leads with, as a stage-gate row leads with its
-   *  gates. */
-  flow?: { stages: { key: string; label: string; tone: GateTone }[] };
 }
 
 export interface Owed {
@@ -592,7 +584,7 @@ export const byUrgency = (a: JobItem, b: JobItem) =>
  *  week and on the job's front page. */
 export const KIND_WORD: Record<JobItem['kind'], string> = {
   install: 'Install step', setup: 'Set-up step', handover: 'Hand-over item', test: 'Test', fix: 'Fix',
-  material: 'Material', program: 'Program', machine: 'Machine', action: 'Action', note: 'Reminder', check: 'Check', problem: 'Problem', step: 'Step',
+  material: 'Material', program: 'Program', machine: 'Machine', action: 'Action', note: 'Reminder', check: 'Check', problem: 'Problem',
 };
 
 /** The word a row is filed under — a part of a stage says so, in the name
@@ -674,7 +666,7 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
       return { project: j.project, plan: st.plan, items: jobItems(j, today), critical: criticalItems(j), gate: { j, st } };
     }),
     ...pacedIn.map((j): Entry => ({
-      project: j.project, plan: j.flow ? j.flow.plan : pacedPlan(j, today), items: j.flow ? j.flow.items : pacedOwed(j, today), critical: [], paced: j,
+      project: j.project, plan: pacedPlan(j, today), items: pacedOwed(j, today), critical: [], paced: j,
     })),
   ];
   const when = (e: Entry) => e.project.expectedAt ?? e.project.plannedAt ?? '\uffff';
@@ -722,17 +714,6 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
       next: [...items].sort(byUrgency)[0],
       critical: e.critical,
     };
-    if (e.paced?.flow) {
-      /* A METHOD OF ITS OWN: where it is (its stage), its verdict, what it
-         owes and how many gates of how many — the project's page's reading. */
-      const f = e.paced.flow.facts;
-      return {
-        ...base,
-        sentence: f.sentence, slip: undefined, outstanding: f.outstanding, late: f.late,
-        done: f.done, total: f.total, pillars: [], gates: [], at: f.at,
-        flow: { stages: f.stages },
-      };
-    }
     if (e.paced) {
       const j = e.paced;
       /* The job's late is everything it owes that is late; the sentence is
@@ -820,8 +801,6 @@ export function portfolio(unsorted: JobInput[], today: string, pacedIn: PacedInp
     if (!e.paced) continue;
     for (const m of live(e.paced.materials ?? [])) if (m.from) supplierTyped.push(m.from);
     for (const pr of live(e.paced.programs ?? [])) if (pr.from) supplierTyped.push(pr.from);
-    /* a method's supplier-side roles (lib/flow/job suppliersOf) */
-    for (const s of e.paced.flow?.suppliers ?? []) supplierTyped.push(s);
   }
   /* A line's own program comes from somebody, as a job's does. */
   for (const l of lines) for (const x of l.items) if (x.kind === 'program' && x.who) supplierTyped.push(x.who);

@@ -43,8 +43,6 @@ const ok = (c, what, detail) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${what}${
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--autoplay-policy=no-user-gesture-required'] });
 const ctx = await b.newContext({ viewport: { width: 1360, height: 900 }, acceptDownloads: true });
 await ctx.addInitScript(([k, s]) => { try { localStorage.setItem(k, JSON.stringify(s)); } catch { /* fine */ } }, [`sb-${REF}-auth-token`, SESSION]);
-/* what this script proves was parked on 20 October (docs/DIRECTION.md, lib/parked) — shown here so it stays proved */
-await ctx.addInitScript(() => { try { localStorage.setItem('fl-parked-builder', 'shown'); } catch { /* private mode */ } });
 await ctx.route('**://*.supabase.co/**', r => r.abort());
 const page = await ctx.newPage();
 const errs = [];
@@ -107,6 +105,9 @@ const sid = studyUrl.split('/video/')[1];
 /* 2 — the stations, and the reading */
 await page.getByLabel('How many stations are in view', { exact: true }).selectOption('3'); await page.waitForTimeout(600);
 ok(await page.locator('.vid-zone').count() === 3 && /Workstation 3/.test(await txt()), '2 three stations marked, drawn over the footage');
+/* the camera's AI, kept (20 October, docs/DIRECTION.md — the only AI is the voice and the camera): naming the work from the frames offered, off until ticked */
+ok(await page.locator('.vid-vision input[type=checkbox]').count() === 1 && !(await page.locator('.vid-vision input[type=checkbox]').isChecked()) && /Name the work from the frames — Sends a few small frames/.test(await page.locator('.vid-vision').innerText()),
+  '2 naming the work from the frames offered — the camera’s AI, off until ticked, saying what it sends');
 const t0 = Date.now();
 await page.getByRole('button', { name: 'Read the footage' }).click();
 await page.locator('.vid-study[data-state="review"]').waitFor({ timeout: 240000 }).catch(() => {});
@@ -199,56 +200,6 @@ ok(/The footage was deleted by/.test(await txt()) && await page.locator('.vid-ev
 await page.goto(`${BASE}/#/video`); await page.waitForTimeout(1200);
 ok(/Line 4 — packing, morning/.test(await txt()) && /Line balance · 0:3\d\.\d of footage · Line 4/.test(await txt()), '7a on the list: its kind, its footage and its line');
 
-/* 8 — from a method's step: Faultline's "Rebalance the people on a line" run
-   on Line 4; its line balance step offers the line's video study, and one read
-   from a video of the line is attached to the step as it is made (ui/flow/Asking) */
-const sheet = () => page.getByRole('dialog').last();
-const sheetTxt = async () => (await sheet().innerText()).replace(/\s+/g, ' ');
-await page.goto(`${BASE}/#/methods`); await page.waitForTimeout(1500);
-await page.locator('.fw-card[data-library="line-rebalance"]').getByRole('button', { name: 'Use it as it is' }).click(); await page.waitForTimeout(1500);
-await page.getByRole('button', { name: /^Approve version 1$/ }).click(); await page.waitForTimeout(1500);
-await page.getByRole('button', { name: 'Start a project on it' }).click(); await page.waitForTimeout(800);
-await page.getByLabel("The project's name", { exact: true }).fill('Line 4 rebalanced');
-await page.getByLabel('On which line', { exact: true }).selectOption(lineId);
-await sheet().getByRole('button', { name: 'Start it' }).click();
-await page.locator('.fw-row[data-step="balance-now"]').waitFor({ timeout: 15000 }).catch(() => {});
-const job = page.url().split('?')[0];
-const pid = job.split('/project/')[1];
-await page.locator('.fw-row[data-step="balance-now"]').click();
-await sheet().locator(`.fw-tool-c[data-study="${sid}"]`).waitFor({ timeout: 15000 }).catch(() => {});
-ok(/Answered by Line balance/i.test(await sheetTxt()) && await sheet().locator(`.fw-tool-c[data-study="${sid}"]`).count() === 1 && await sheet().locator('[data-also="/video"]').count() === 1,
-  '8 a method’s line balance step offers the line’s video study, and to read one from a video', await sheetTxt());
-await sheet().getByRole('button', { name: 'Read it from a video of the line' }).click();
-await page.locator('.vid-new .fw-asking').waitFor({ timeout: 15000 }).catch(() => {});
-const ask8 = (await page.locator('.vid-new .fw-asking').innerText().catch(() => '')).replace(/\s+/g, ' ');
-/* the factory's lines arrive a moment after the sheet opens */
-await page.waitForFunction(lid => [...document.querySelectorAll('.vid-new select[aria-label="Which line"]')].some(x => x.value === lid), lineId, { timeout: 10000 }).catch(() => {});
-const forJob = await page.getByLabel('For a job', { exact: true }).inputValue().catch(() => '');
-const onLine = await page.getByLabel('Which line', { exact: true }).inputValue().catch(() => '');
-ok(/#\/video\?add=1&line=/.test(page.url()) && /For “Time the line balance” on Line 4 rebalanced/.test(ask8) && forJob === pid && onLine === lineId,
-  '8a the video study’s New, saying the step it answers, on the job and its line', `${page.url()} | ${ask8} | ${forJob} | ${onLine}`);
-await page.getByLabel('The footage', { exact: true }).setInputFiles(file);
-await page.locator('.vid-new [data-facts]').waitFor({ timeout: 20000 }).catch(() => {});
-await page.getByLabel('Its name', { exact: true }).fill('Line 4 — filmed for the job');
-await page.getByRole('button', { name: 'Start the study' }).click();
-await page.locator('.toast', { hasText: 'Attached to' }).waitFor({ timeout: 15000 }).catch(() => {});
-const sid8 = (page.url().split('/video/')[1] ?? '').split('?')[0];
-ok(/#\/video\/[^/?]+\?for=/.test(page.url()) && /Attached to “Time the line balance” on Line 4 rebalanced/.test(await page.locator('.toast').innerText().catch(() => '')),
-  '8b made: the study opens, said attached to the step');
-/* opened inside the project (BLUEPRINT §3, the workspace) — the bar says attached once the step has it */
-await page.waitForFunction(() => /Attached to this step/.test(document.querySelector('.fw-stepbar')?.textContent ?? ''), null, { timeout: 8000 }).catch(() => {});
-const bar8 = (await page.locator('.fw-stepbar').innerText().catch(() => '')).replace(/\s+/g, ' ');
-ok(/Line 4 rebalanced/.test(bar8) && /Time the line balance/.test(bar8) && /Attached to this step/.test(bar8) && /balance efficiency, people needed, longest stack come into it/.test(bar8) && /Line 4 rebalanced/.test(await page.locator('.nv-rail').innerText().catch(() => '')),
-  '8b1 the video study opens inside the project: the step it answers, what comes into it, the project’s own navigation', bar8);
-await settle();
-await page.locator('.toast').waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
-await page.goto(job); await page.waitForTimeout(1500);
-await page.locator('.fw-row[data-step="balance-now"]').click();
-await sheet().locator('.fw-tool-r').waitFor({ timeout: 15000 }).catch(() => {});
-const kept = await page.evaluate(async id => (await (await import('/src/db.ts')).getStudy(id))?.projectId, sid8);
-ok(/Line 4 — filmed for the job/.test(await sheet().locator('.fw-tool-r').innerText().catch(() => '')) && kept === pid,
-  '8c the step answered by the video study made from it, and the study on the job', `${await sheetTxt()} | ${kept}`);
-await page.keyboard.press('Escape'); await settle();
 ok(errs.length === 0, `no console errors${errs.length ? `: ${errs.slice(0, 3).join(' | ')}` : ''}`);
 await b.close();
 console.log(fail ? `\n${fail} FAILED` : '\nALL PASS');

@@ -361,7 +361,7 @@ export function planAgenda(marks: PlanMark[]): PlanMonth[] {
 const MANY: Record<PlanMark['kind'], string> = {
   install: 'install steps', setup: 'set-up steps', handover: 'hand-over items', test: 'tests',
   fix: 'fixes', material: 'materials', program: 'programs', machine: 'machines', action: 'actions',
-  note: 'reminders', check: 'checks', step: 'steps',
+  note: 'reminders', check: 'checks',
 };
 
 /** SAME DAY, SAME KIND, SAME OUTCOME — ONE LINE. Line 2B proved sixteen
@@ -389,7 +389,7 @@ export function bunchPlan(marks: PlanMark[], least = 3): PlanMark[] {
 /** The screen each lane's records are listed on — where a bunch opens. */
 const LIST_OF: Record<PlanMark['kind'], string> = {
   install: 'install', setup: 'set-up', handover: 'handover', test: 'testing', fix: 'fixes',
-  material: 'materials', program: 'programs', machine: 'install', action: 'board', note: 'notes', check: 'fishbone', step: '',
+  material: 'materials', program: 'programs', machine: 'install', action: 'board', note: 'notes', check: 'fishbone',
 };
 
 /** WHERE A MARK OPENS — the record it was drawn from. Rowland: "having nodes
@@ -407,8 +407,6 @@ export function planHref(projectId: string, m: { kind: PlanMark['kind'] | 'probl
   if (one && m.kind === 'action') return `${base}/board?a=${encodeURIComponent(one)}`;
   /* a check that keeps the gain opens its problem on the fishbone */
   if (one && m.kind === 'check') return `${base}/fishbone?problem=${encodeURIComponent(one)}`;
-  /* a method's step opens on the project's page, its stage chosen and the step open */
-  if (m.kind === 'step') return one ? `${base}?view=stage-${encodeURIComponent(one.split('/')[0])}&step=${encodeURIComponent(one)}` : base;
   if (one && (m.kind === 'test' || m.kind === 'fix' || m.kind === 'install' || m.kind === 'setup' || m.kind === 'handover')) {
     return recordHref(projectId, one, m.kind);
   }

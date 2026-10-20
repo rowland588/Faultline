@@ -30,12 +30,10 @@ import { uid, now } from '../lib/ids';
 import { nav } from '../state/useRoute';
 import { useFactoryLines } from '../lib/useFactoryLines';
 import { useProjects } from '../lib/useProjects';
-import { useWho } from '../lib/flow/useFlow';
 import type { ToolStudy } from '../lib/study';
 import { Sheet } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
 import { Legend, Stacks } from '../ui/WorkBalance';
-import { AskingNote, useAsking, withFor } from '../ui/flow/Asking';
 import { StudyProves } from '../ui/ProveProgram';
 import { asked } from '../lib/lines';
 import { probe, scanFootage } from '../lib/video/extract';
@@ -55,11 +53,10 @@ import { clock, FINDING_WORD, findings, sec1, standing, videoFigures, type Basis
 import { checkEvent } from '../lib/video/validate';
 import { footageGone, footageKeys, withoutFootage } from '../lib/video/footage';
 import { useBlobSource } from '../lib/useBlobUrl';
-import { useSyncStatus } from '../cloud/session';
+import { useSession, useSyncStatus } from '../cloud/session';
 import { backedUp } from '../cloud/sync';
 import { cloudConfigured } from '../cloud/client';
 import { CLOUD_FILE_LIMIT } from '../lib/transcode';
-import { useBuilderShown } from '../lib/parked';
 
 const OWNER = canOf('owner');
 const TRACKS = ['Operator A', 'Operator B', 'Operator C', 'Operator D', 'Operator E', 'Operator F'];
@@ -89,9 +86,9 @@ export function VideosScreen() {
   const list = useStudies();
   const lines = useFactoryLines();
   const { projects } = useProjects();
-  /* opened on its New from a method's step done with the line balance (ui/flow/RunParts) */
+  /* ?add=1 — a link straight to New (lib/lines asked) */
   const [adding, setAdding] = useState(() => !!asked('add'));
-  /* …or while this list is open: the page stays, so New is opened afresh — its line and its step read again */
+  /* …or while this list is open: the page stays, so New is opened afresh — its line read again */
   const [addKey, setAddKey] = useState(0);
   useEffect(() => {
     const on = () => { if (asked('add')) { setAddKey(k => k + 1); setAdding(true); } };
@@ -157,11 +154,8 @@ function NewVideoStudy({ open, onClose }: { open: boolean; onClose: () => void }
   const [view, setView] = useState<Viewpoint | ''>('');
   const [scan, setScan] = useState<FootageScan | null>(null);
   const [scanning, setScanning] = useState<'no' | 'yes' | 'failed'>('no');
-  /* a video study is a line balance study: one made from a method's line
-     balance step answers it, on that job's line (ui/flow/Asking) */
-  const asking = useAsking('balance');
   const [lineId, setLineId] = useState(() => asked('line') ?? '');
-  const [projectId, setProjectId] = useState(() => asking.ask?.ref.projectId ?? '');
+  const [projectId, setProjectId] = useState('');
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   const read = readObjective(objective || 'line balance');
@@ -207,15 +201,13 @@ function NewVideoStudy({ open, onClose }: { open: boolean; onClose: () => void }
       const s: ToolStudy = { id, tool: 'balance', name: name.trim() || full.fileName, ...(lineId ? { workspaceId: lineId } : {}), ...(projectId ? { projectId } : {}),
         facts: { video: v, vevents: [] }, uses: [], startedAt: t, createdAt: t, updatedAt: t };
       await putStudy(s);
-      const forStep = await asking.attach(id);
       onClose();
-      nav(withFor(`/video/${id}`, forStep));
+      nav(`/video/${id}`);
     } finally { setBusy(false); }
   };
   return (
     <Sheet open={open} onClose={onClose} title="New video study">
       <form className="lt-new vid-new" onSubmit={e => { e.preventDefault(); void make(); }}>
-        <AskingNote asking={asking} />
         <label className="field"><span className="field-label">What do you want to find out?</span>
           <textarea className="text-input" rows={3} value={objective} aria-label="What do you want to find out" placeholder="e.g. Analyse this video for line balance against takt" onChange={e => setObjective(e.target.value)} />
           <span className="chip-row">{EXAMPLES.map(x => <button key={x} type="button" className="chip" onClick={() => setObjective(x)}>{x}</button>)}</span>
@@ -321,7 +313,8 @@ export function VideoStudyScreen({ id }: { id: string }) {
 function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
   const jobCan = useAccess(s.projectId ?? '');
   const can = s.projectId ? jobCan : OWNER;
-  const who = useWho();
+  const { session } = useSession();
+  const who = session?.user.email ?? 'This device';
   const me = { by: who, at: Date.now() };
   const { projects } = useProjects();
   const lines = useFactoryLines(s.workspaceId);
@@ -339,7 +332,6 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
   const [t, setT] = useState(0);
   const [said, setSaid] = useState<string | null>(null);
   const [withVision, setWithVision] = useState(false);
-  const builder = useBuilderShown();
   const abort = useRef<AbortController | null>(null);
   const [printing, setPrinting] = useState(false);
   const zones = v.job.config.zones;
@@ -375,7 +367,7 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
   const read = async () => {
     abort.current = new AbortController();
     setSaid(null);
-    await runJob(s.id, { withVision: withVision && builder, abort: abort.current.signal });
+    await runJob(s.id, { withVision, abort: abort.current.signal });
   };
   const report = async () => {
     if (printing) return;
@@ -484,8 +476,8 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
             <input type="number" className="text-input" min={1.5} max={12} step={0.5} value={job.config.sensitivity} disabled={!can.edit || running} aria-label="Sensitivity"
               onChange={e => { const n = Number(e.target.value); if (n >= 1.5 && n <= 12) void patchV({ job: { ...job, config: { ...job.config, sensitivity: n } } }); }} /></label>
         </details>
-        {/* naming the work from the frames is the assistant's — parked (20 October, docs/DIRECTION.md) */}
-        {builder && <label className="vid-vision"><input type="checkbox" checked={withVision} disabled={running} onChange={e => setWithVision(e.target.checked)} /> Name the work from the frames — {assistLabeller.sends}</label>}
+        {/* naming the work from the frames — the camera's AI, kept (20 October, docs/DIRECTION.md) */}
+        <label className="vid-vision"><input type="checkbox" checked={withVision} disabled={running} onChange={e => setWithVision(e.target.checked)} /> Name the work from the frames — {assistLabeller.sends}</label>
         <div className="vid-job" data-job={job.state}>
           <b className={job.state === 'failed' ? 'ie-tone is-r' : ''}>{STATE_WORD[job.state]}</b>
           {job.said && <span className="sub"> — {job.said}</span>}

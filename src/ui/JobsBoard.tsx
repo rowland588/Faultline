@@ -90,7 +90,7 @@ function whereTo(x: JobItem): string {
      board with the one you tapped somewhere in it. */
   if (x.kind === 'action') return `/project/${x.jobId}/board${x.id ? `?a=${encodeURIComponent(x.id)}` : ''}`;
   if (x.kind === 'note') return `/project/${x.jobId}/notes`;
-  if (x.kind === 'check' || x.kind === 'step') return planHref(x.jobId, x);
+  if (x.kind === 'check') return planHref(x.jobId, x);
   if (x.id) return recordHref(x.jobId, x.id, x.kind);
   if (x.kind === 'material') return `/project/${x.jobId}/materials`;
   if (x.kind === 'program') return `/project/${x.jobId}/programs`;
@@ -101,7 +101,7 @@ function whereTo(x: JobItem): string {
  *  room (ui/RecordDrawer) — × comes back here; anything else goes where it
  *  is kept. */
 function openItem(x: JobItem): void {
-  if (x.id && !x.line && x.kind !== 'action' && x.kind !== 'note' && x.kind !== 'check' && x.kind !== 'step') openRecord(x.jobId, x.id);
+  if (x.id && !x.line && x.kind !== 'action' && x.kind !== 'note' && x.kind !== 'check') openRecord(x.jobId, x.id);
   else nav(whereTo(x));
 }
 const RECORD_MARK = new Set(['test', 'fix', 'install', 'setup', 'handover']);
@@ -660,7 +660,6 @@ function JobRow({ v, i, open, onToggle, into, span, today, tip, setTip, edit, si
                 : v.gates.length > 0 && v.gates.every(g => g.tone === 'none')
                 ? <span className="jb-chip is-at is-none">Not started</span>
                 : <span className={'jb-chip is-at is-' + (v.gates.find(g => g.label === v.at)?.tone ?? 'none')}>at {v.at}</span>)
-              : v.flow ? <span className="jb-chip is-at is-none">{v.methodLabel} · {v.at === 'Every gate passed' ? v.at : `at ${v.at}`}</span>
               : <>
                 <span className="jb-chip is-at is-none">{v.methodLabel}</span>
                 {/* Indigo said "under way" of "2 of 2 at target". At target is
@@ -682,15 +681,6 @@ function JobRow({ v, i, open, onToggle, into, span, today, tip, setTip, edit, si
               {v.gates.map(g => (
                 <span key={g.gate} className={'jb-gate is-' + g.tone + (g.label === v.at ? ' is-now' : '')}
                   title={`${g.label}: ${GATE_WORD[g.tone]}`}>{g.label}</span>
-              ))}
-            </span>
-          ) : v.flow ? (
-            /* A METHOD OF ITS OWN LEADS WITH ITS STAGES, as a stage-gate row
-               with its gates — each in its tone, with its word for the eye
-               that cannot tell the colours apart. */
-            <span className="jb-gates" aria-label={v.flow.stages.map(g => `${g.label}: ${GATE_WORD[g.tone]}`).join(', ')}>
-              {v.flow.stages.map(g => (
-                <span key={g.key} className={'jb-gate is-' + g.tone + (g.label === v.at ? ' is-now' : '')} title={`${g.label}: ${GATE_WORD[g.tone]}`}>{g.label}</span>
               ))}
             </span>
           ) : v.tree ? (
@@ -750,11 +740,10 @@ function JobRow({ v, i, open, onToggle, into, span, today, tip, setTip, edit, si
             <span className="jb-empty">
               {v.method === 'commissioning'
                 ? (edit ? 'Nothing dated yet — add the machines and when they are due.' : 'Nothing dated yet.')
-                : v.flow ? (edit ? 'No step has a day yet — plan them on the job.' : 'No step has a day yet.')
                 : (edit ? 'No action has a due date yet — write them on the board.' : 'No action has a due date yet.')}
               {(edit || v.method !== 'commissioning') && (
-                <button className="btn btn-ghost btn-sm" onClick={() => nav(v.method === 'commissioning' ? `/project/${v.id}/testing` : v.flow ? `/project/${v.id}` : `/project/${v.id}/board`)}>
-                  {v.method === 'commissioning' ? 'Add them ›' : v.flow ? 'Open the job ›' : 'Open the board ›'}
+                <button className="btn btn-ghost btn-sm" onClick={() => nav(v.method === 'commissioning' ? `/project/${v.id}/testing` : `/project/${v.id}/board`)}>
+                  {v.method === 'commissioning' ? 'Add them ›' : 'Open the board ›'}
                 </button>
               )}
             </span>
@@ -906,7 +895,7 @@ function JobRow({ v, i, open, onToggle, into, span, today, tip, setTip, edit, si
                   {v.method === 'commissioning' ? <>
                     <button className="btn btn-ghost" onClick={() => nav(`/project/${v.id}/testing`)}>Commission</button>
                     <button className="btn btn-ghost" onClick={() => nav(`/project/${v.id}/fixes`)}>Problems</button>
-                  </> : v.flow ? null : <>
+                  </> : <>
                     <button className="btn btn-ghost" onClick={() => nav(`/project/${v.id}/board`)}>Board</button>
                     <button className="btn btn-ghost" onClick={() => nav(`/project/${v.id}?view=lines`)}>Lines</button>
                   </>}
@@ -918,7 +907,6 @@ function JobRow({ v, i, open, onToggle, into, span, today, tip, setTip, edit, si
               {empty
                 ? <p className="sub jb-drawer-empty">{v.method === 'commissioning'
                     ? 'When the machines have dates, the plan draws itself here.'
-                    : v.flow ? 'When the steps have days, the plan draws itself here.'
                     : 'When the board’s actions have due dates, the plan draws itself here.'}</p>
                 : <Timeline marks={v.plan} today={today} expectedAt={v.expectedAt} plannedAt={v.plannedAt} span={span}
                     onOpen={m => (m.id && !m.count && RECORD_MARK.has(m.kind) ? openRecord(v.id, m.id) : nav(planHref(v.id, m)))} />}

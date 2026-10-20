@@ -59,29 +59,11 @@ const ROUTES = [
   ['home', '#/room'], ['the front door at home', '#/'], ['guide', '#/guide'], ['portfolio', '#/portfolio'],
   ['projects', '#/projects'], ['snags', '#/snags'], ['line standard tool', '#/standards'], ['line balance tool', '#/balances'], ['capability studies', '#/capability'], ['value stream maps', '#/value-stream'], ['SMED', '#/smed'], ['SMED, an old link', '#/changeover'], ['work sampling', '#/sampling'], ['pace report', '#/pace-report'],
   ['project dashboard', `#/project/${seeded.projectId}`],
-  /* METHODS OF ONE'S OWN (lib/flow): the library, a method approved with a
-     project on it, the draft of its next version, and the project running
-     it — its stages, a gate passed over, a run below its rate, a step open. */
-  /* THE FRONT DOOR of the new product: say what you need, what is under way, the library, the tools */
+  /* THE FRONT DOOR: what you need, what is under way, the three kinds of change, the tools */
   ['the front door', '#/start'],
-  ['methods', '#/methods'],
-  ['a method — approved, a project on it', `#/methods/${seeded.methodId}`],
-  ['a method — the draft of version 2', `#/methods/${seeded.methodDraftId}`],
-  ['a project on a method — its stages, a gate passed over', `#/project/${seeded.flowProjectId}`],
-  ['a project on a method — Commission, a run that did not pass, open', `#/project/${seeded.flowProjectId}?view=stage-${seeded.flowFailedStep.split('/')[0]}&step=${encodeURIComponent(seeded.flowFailedStep)}`],
-  ['a project on a method — its details', `#/project/${seeded.flowProjectId}/setup`],
-  /* DESIGNED FROM WHAT IS NEEDED (the vision slice): the studio from nothing,
-     from Faultline's SMED method, adapting a method of one's own, and as a
-     method's next version; SMED's method taken and a project on it, its
-     first timing answered by the line's SMED study */
-  ['design a method — from nothing', '#/design'],
-  ['design a method — from Faultline’s SMED method', '#/design?template=changeover-reduction'],
-  ['design a method — adapting one of yours', `#/design?from=${seeded.methodId}`],
-  ['design a method — its next version', `#/design?version=${seeded.methodId}`],
-  ['a method from Faultline’s library — tools and a measure', `#/methods/${seeded.smedMethodId}`],
-  ['a method made of logs — a tool from blocks', `#/methods/${seeded.logMethodId}`],
-  ['a project on SMED’s method — a step answered by a SMED study, the measure', `#/project/${seeded.smedProjectId}`],
-  ['a project on SMED’s method — the step answered by SMED, open', `#/project/${seeded.smedProjectId}?step=${encodeURIComponent('record/time-now/')}`],
+  /* the method builder's old addresses, deleted on 20 October (docs/DIRECTION.md), land on the front door */
+  ['an old link to Methods', '#/methods'],
+  ['an old link to the studio', '#/design?template=changeover-reduction'],
   ['video studies — every one', '#/video'],
   ['can this phone film a long study? — what it offers, the lengths', '#/video-check'],
   ['a video study — its footage elsewhere, its events reviewed, the line balance, takt', `#/video/${seeded.videoStudyId}`],

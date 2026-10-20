@@ -18,7 +18,6 @@ import type { Material } from '../lib/materials';
 import type { Program } from '../lib/programs';
 import type { Standard } from '../lib/standard';
 import type { ToolStudy } from '../lib/study';
-import type { ActivityEntry, FlowRecord, Method } from '../lib/flow/records';
 import type {
   Tombstone, PaceSnapshotRow, PaceLineRow, PaceTodoRow, PaceWinRow, TreeNodeRow,
 } from './rows';
@@ -115,12 +114,13 @@ export interface AppDB extends DBSchema {
      evidence for what is inside it. See lib/study.ts. */
   studies: { key: string; value: ToolStudy; indexes: { by_project: string; by_workspace: string } };
 
-  /* METHODS AS DATA (v21) — a method's versions, the steps done and gates
-     passed on a project that runs one, and who changed what. See
-     lib/flow/records.ts and supabase/METHODS.sql. */
-  methods: { key: string; value: Method; indexes: { by_family: string } };
-  flow_records: { key: string; value: FlowRecord; indexes: { by_project: string } };
-  activity_log: { key: string; value: ActivityEntry; indexes: { by_project: string } };
+  /* METHODS AS DATA (v21, supabase/METHODS.sql) — the method builder's
+     stores, kept defined and empty since it was deleted on 20 October
+     (docs/DIRECTION.md): taking a store away needs a database upgrade on
+     every device, for nothing. Nothing reads or syncs them. */
+  methods: { key: string; value: { id: string }; indexes: { by_family: string } };
+  flow_records: { key: string; value: { id: string }; indexes: { by_project: string } };
+  activity_log: { key: string; value: { id: string }; indexes: { by_project: string } };
 }
 
 /* The app's local database. LEGACY_DBS are names this app shipped under before

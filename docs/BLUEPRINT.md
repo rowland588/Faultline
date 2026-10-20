@@ -93,13 +93,23 @@ of a line, are no longer under projects.
 | **Study** (one use of a tool) | `studies` (+ `observations`, `segments` for the stopwatch and the walk) | Same | Keep. A **video study** is one (18 October, docs/VIDEO.md): a line balance study whose laps come from footage — `facts.video` (the footage, its facts, the job that reads it) and `facts.vevents` (the events and what a person decided), no new table . A **Line Talk** is one too (20 October, docs/LINE-TALK.md): tool `talk`, its turns — pieces said with their recordings, photos, lines typed, what was heard and corrected — in `facts.turns`, merged by id |
 | **Measure** (a number to hit) | A job's targets on a line's readings (`measures`, `targets`, `readings`) | Same, plus `project_targets` / `project_actuals`, read by nothing | Stage 0 removes the dead pair |
 | **Job** (a change) | `projects` + its method | Same | Keep. Its lines are picked from the factory (built, in the gate) |
-| **Method** (a way of running a change, written as data) | `methods` — one row a version, a family's versions sharing `family_id`; an active version never changes | The three native methods are code (`lib/planModel`); nothing held a method as data | Built 18 October (`lib/flow`, `supabase/METHODS.sql`; docs/PLATFORM-REVIEW.md, docs/PLATFORM-STATUS.md). A job runs one through `projects.flow`; the native three stay as they are until their own acceptance scripts pass on the runtime |
-| **Step done / gate passed** on a job running a method | `flow_records` (faces: step · gate) | — | Built 18 October. The shape of a stage gate's test, kept apart from `tests` so every cross-job reader of tests is not misled |
-| **Activity** (who changed what, and whether the assistant proposed it) | `activity_log`, written once | — (rows carried only who made them and when they changed) | Built 18 October; every operation in `lib/flow/operations` writes one |
+| **Method** (a way of running a change, written as data) | `methods` — one row a version, a family's versions sharing `family_id`; an active version never changes | The three native methods are code (`lib/planModel`); nothing held a method as data | **Deleted 20 October** with the method builder (docs/DIRECTION.md — Rowland: "the only AI is the voice and the camera video system"; 0 rows in the cloud). The table stays, empty and no longer synced; its local store stays defined |
+| **Step done / gate passed** on a job running a method | `flow_records` (faces: step · gate) | — | **Deleted 20 October** with the method builder (docs/DIRECTION.md — Rowland: "the only AI is the voice and the camera video system"; 0 rows in the cloud). The table stays, empty and no longer synced; its local store stays defined |
+| **Activity** (who changed what, and whether the assistant proposed it) | `activity_log`, written once | — (rows carried only who made them and when they changed) | **Deleted 20 October** with the method builder (docs/DIRECTION.md — Rowland: "the only AI is the voice and the camera video system"; 0 rows in the cloud). The table stays, empty and no longer synced; its local store stays defined |
 
 ---
 
 ## 3. The places — what each is for
+
+**Since 20 October (docs/DIRECTION.md) the method builder is deleted** —
+the box to say a need in words, the design studio, Methods and Faultline's
+library of methods, a project on a method, the assistant's proposals and
+Ask, `lib/flow` and the switch that parked them. Home (`#/`) is the question,
+what is under way, the three kinds of change (`lib/planModel`), the tools on
+their own and Your factory; old links to `#/methods` and `#/design` land
+there. The passages below about the new product, Methods and the studio are
+the history of 18–20 October, kept so the next reader knows what was tried
+and why it went.
 
 **THE NEW PRODUCT (Rowland, 18 October: "a genuinely new Faultline product
 experience, not simply improve the existing app's navigation ... design the
@@ -337,11 +347,7 @@ it is, adapt, or copy; a person's method is as much a method as Faultline's.
 | Win | — | — | the job's front page, Today's update, the meeting | client report; 6M report |
 | Walk (filmed, frames) | its tools | — | a marked frame on a problem; the standard's picture; a cause known by *observed* | the problem's card (the frame); the 6M report's evidence |
 | Tree node (lever tree) | — | the job's verdict | the tree | the client report for a lever-tree job |
-| Method | — | Methods (the library — yours and Faultline's) on the rail; Describe what you need in the header | its rail's stages and "The method"; its Details say which version it runs; the studio (new, adapt, next version) | the method report's band |
-| Measure (a number a method has to move — read from its steps, never typed) | — | the job's row: its sentence ends with its first measure, before → now against its target | the job's first tiles, its "What it measures" — before → now, every reading; the method's "What it measures"; the studio's preview | the method report's "What it measures" |
-| A step done with a tool (a study attached) | — | — | the step sheet: the tool's studies on the job's line, Use this, its verdict and figures; the study's own page | the method report: the step "answered by" the study, its verdict |
-| Step done / gate passed | — | the job's row: its stages in their tones, at the stage it is on; its steps in the week, the late, Who owes what (a supplier-side role under the supplier) | the job's page: the stage strip, a step per machine, the gate line, the action plan; the rail's stage squares | the method report — every step, every gate condition, who confirmed a check, a pass over what was unmet with its reason |
-| Activity | — | — | the job's "What has happened"; the method's "Its history" | the method report's "What has happened" |
+| Method, measure, a step done with a tool, step done / gate passed, activity — the method builder's records | — | — | deleted 20 October with the builder (docs/DIRECTION.md) | — |
 
 | A video study (footage read for the work at each station) | — | Tools on the rail: Video study, every one; New saying how to film the study chosen | the study's page: the footage with its stations, whether the footage is fit for the study and what it can tell, the events to review on it with their ± and flags, the line balance worked out from what was accepted, takt, what it says, questions answered; a method's step done with the line balance offers it and reads its figures | the video study's report (whether the footage was fit, how it was read, each station with its ±, the stacks against takt, every event with how it is known, its flags and what was decided) |
 | A Line Talk (one person talking on the line — the AI tool, docs/DIRECTION.md) | — | Tools on the rail: Line Talk, every one; the line's tile saying its latest talk in a line | the talk's page: the conversation as it was left — each piece with its recording and what was heard, corrections with "As heard" beside them, photos where they were taken, lines typed, a piece waiting or not heard said so — Talk, Pause, Continue, Photo and typing to carry on | not yet — slice 2 writes what is asked for, on paper |

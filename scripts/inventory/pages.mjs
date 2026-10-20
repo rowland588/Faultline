@@ -14,9 +14,9 @@
  * someone wrote down, never an accident.
  *
  * `n` — at least this many of it (one a line, one a station …). `desk` / `phone`
- * — only at that width. `parked` — a page of what was parked on 20 October
- * (docs/DIRECTION.md, lib/parked): opened with the switch on, so what it
- * showed stays proved while it is out of sight. */
+ * — only at that width. (The pages of the method builder — Methods, the
+ * studio, a method, a project on one — were taken off on 20 October with
+ * the builder itself: docs/DIRECTION.md.) */
 export const PAGES = (sd, cap) => [
   { name: 'Control room', path: '#/room', must: [
     { what: 'its heading', sel: 'h1, h2', text: /Control room/ },
@@ -198,53 +198,20 @@ export const PAGES = (sd, cap) => [
   /* the lean page (17 October, slice 6): the band, the tiles in the strip's place, the action plan, the closing line */
   { name: 'Work sampling', path: `#/sampling/${sd.samplingId}`, must: [{ what: 'the round', sel: '.ws-round' },
     { what: 'the band', sel: '.ln-band' }, { what: 'the five tiles — what it costs among them', sel: '.ie-strip .ln-tile', n: 5 }, { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' }] },
-  /* THE FRONT DOOR with the builder parked (20 October, docs/DIRECTION.md): the
-     question, then what is under way, the three kinds of project, the tools and
-     the factory — the words box and the library of methods are parked below */
+  /* THE FRONT DOOR (20 October, docs/DIRECTION.md): the question, then what is
+     under way, the three kinds of project, the tools and the factory. The words
+     box, the library of methods and the switch that showed them went with the
+     method builder, deleted on 20 October. */
   { name: 'The front door', path: '#/', must: [
     { what: 'the question, first', sel: '.fd-ask h1', text: /^What do you need to get done\?$/ },
     { what: 'what is under way — every project in a line', sel: '.fd-jobs li[data-project]' },
     { what: 'the three kinds of project — the lever tree among them', sel: '.fd-lib .fw-card[data-start^="e:"]', n: 3 },
     { what: 'the tools to use on their own — Line Talk among them', sel: '.fd-tools li[data-tool]', n: 10 },
-    { what: 'what is parked, and the switch to show it', sel: '.fd-parked button' },
     { what: 'Home first in the rail', sel: '.nv-rail .nv-ri', text: /Home/, desk: true },
   ] },
-  /* THE FRONT DOOR (18 October, docs/BLUEPRINT.md §3): the new product starts with what you need, in your words — parked 20 October */
-  { name: 'The front door — the parked builder shown', path: '#/', parked: true, must: [
-    { what: 'the question, first', sel: '.fd-ask h1', text: /^What do you need to get done\?$/ },
-    { what: 'the box to say it in', sel: '.fd-box textarea' },
-    { what: 'what is under way — every project in a line', sel: '.fd-jobs li[data-project]' },
-    { what: 'the library to start from — Faultline’s twelve among it', sel: '.fd-lib .fw-card[data-start^="l:"]', n: 12 },
-    { what: 'and its established three — the lever tree among them', sel: '.fd-lib .fw-card[data-start^="e:"]', n: 3 },
-    { what: 'the tools to use on their own — Line Talk among them', sel: '.fd-tools li[data-tool]', n: 10 },
-    { what: 'the new product’s places — Home first', sel: '.nv-rail .nv-ri', text: /Home/, desk: true },
-  ] },
-  /* METHODS OF ONE'S OWN (18 October, docs/PLATFORM-STATUS.md slice 3; lib/flow): the library, a method read and written, and a project running one — the lean page with the method's stages as its picture */
-  { name: 'Methods', path: '#/methods', parked: true, must: [{ what: 'a card a method', sel: '.fw-lib .fw-card' },
-    { what: 'describe what you need — the studio', sel: '.pace-head-actions button', text: /^Describe what you need$/ },
-    { what: 'Faultline’s library — each to adapt or use as it is', sel: '.fw-card.is-library', n: 12 },
-    { what: 'Faultline’s established methods, each on its own screens', sel: '.fw-card.is-established', n: 3 },
-    { what: 'find a method by a word', sel: '.fw-find input' }] },
-  /* NEW JOB with the builder parked (20 October): the three kinds of project, chosen from the situation */
+  /* NEW JOB: the three kinds of project, chosen from the situation (the words box and the library went with the method builder, 20 October) */
   { name: 'New job', path: '#/projects?new=1', must: [
     { what: 'Faultline’s three kinds of project, each from its situation', sel: '.proj-model-opt', n: 3 },
-  ] },
-  /* ONE WAY TO START (18 October, docs/BLUEPRINT.md §3): what is needed in words first, then the established three, then the library — parked 20 October */
-  { name: 'New job — the parked builder shown', path: '#/projects?new=1', parked: true, must: [
-    { what: 'what you need, in your words — first', sel: '.proj-say textarea' },
-    { what: 'Faultline’s established three', sel: '.proj-model-opt', n: 3 },
-    { what: 'the library — Faultline’s six among it', sel: '.proj-lib .fw-card', n: 6 },
-  ] },
-  /* THE STUDIO (the vision slice): what is needed in words, the library beside it */
-  { name: 'Design a method', path: '#/design', parked: true, must: [
-    { what: 'what you need, in your words', sel: '.fw-ask-box textarea' },
-    { what: 'the library to start from', sel: '.fw-start .fw-card', n: 6 },
-  ] },
-  { name: 'Design a method — from Faultline’s SMED method', path: '#/design?template=changeover-reduction', parked: true, must: [
-    { what: 'the conversation', sel: '.fw-turn' },
-    { what: 'the method as it stands — its stages', sel: '.fw-preview .fw-prop-st', n: 4 },
-    { what: 'what it measures, before and after', sel: '.fw-prev-m li' },
-    { what: 'approve it and start a project', sel: '.fw-keep button', text: /^Approve it and start a project$/ },
   ] },
   /* A VIDEO STUDY (18 October, docs/VIDEO.md): footage read for the work at each station, reviewed, worked out as a line balance */
   { name: 'Video studies', path: '#/video', must: [
@@ -304,39 +271,6 @@ export const PAGES = (sd, cap) => [
     { what: 'Continue — the talk carries on', sel: '.tk-bar .tk-talk', text: /^Continue$/ },
     { what: 'a photo', sel: '.tk-bar .tk-photo', text: /^Photo$/ },
     { what: 'typing into it', sel: '.tk-bar .tk-type input' },
-  ] },
-  { name: 'A method from Faultline’s library', path: `#/methods/${sd.smedMethodId}`, parked: true, must: [
-    { what: 'a step done with one of the app’s tools', sel: '.fw-step-b', text: /with SMED/ },
-    { what: 'what it measures', sel: '.fw-measures li' },
-  ] },
-  /* A TOOL MADE FROM BLOCKS (18 October, lib/flow/analysis): a step that is a log, and what it works out */
-  { name: 'A method made of logs', path: `#/methods/${sd.logMethodId}`, parked: true, must: [
-    { what: 'a step that is a log — its columns and what it works out', sel: '.fw-step-b', text: /a log .*works out rejects a day, biggest reason/ },
-    { what: 'what it measures — fed by the two logs', sel: '.fw-measures li', text: /Rejects a day/ },
-  ] },
-  { name: 'A project on SMED’s method', path: `#/project/${sd.smedProjectId}`, must: [
-    { what: 'the measure, the first tile', sel: '.ln-tiles .ln-tile', text: /Changeover minutes/i },
-    { what: 'what it measures — before → now, its readings', sel: '.fw-measured li' },
-  ] },
-  { name: 'A method', path: `#/methods/${sd.methodId}`, parked: true, must: [
-    { what: 'its stages, a step a line', sel: '.fw-stage .fw-step-b', n: 3 },
-    { what: 'what each gate needs', sel: '.fw-gate .fw-cond-b' },
-    { what: 'the projects on it', sel: '.fw-list li' },
-    { what: 'change it with the assistant (slice 5)', sel: '.pace-head-actions button', text: /^Change it with the assistant$/ },
-  ] },
-  { name: 'A method — a draft', path: `#/methods/${sd.methodDraftId}`, parked: true, must: [{ what: 'can it run? — the validator in words', sel: '.fw-check-panel' }] },
-  { name: 'A project on a method', path: `#/project/${sd.flowProjectId}`, must: [
-    { what: 'the band', sel: '.ln-band' }, { what: 'the five tiles — steps done, gates passed, late, did not pass, problems open', sel: '.ln-tiles .ln-tile', n: 5 },
-    { what: 'its stages in a strip, each in its colour and word', sel: '.fw-strip .fw-sg', n: 4 },
-    { what: 'the stage’s steps, machine by machine', sel: '.fw-stage-run .fw-row', n: 4 },
-    { what: 'its gate, in a line', sel: '.fw-gate-line' },
-    { what: 'the action plan', sel: '.ln-plan .ln-row' }, { what: 'the closing line', sel: '.ln-close' },
-    { what: 'its stages in the rail', sel: '.nv-rail .nv-grp-l', text: /^Method$/i, desk: true },
-    { what: 'what has happened — its activity log', sel: '.fw-log li' },
-  ] },
-  /* the assistant's Ask about it — parked 20 October (docs/DIRECTION.md) */
-  { name: 'A project on a method — the parked assistant shown', path: `#/project/${sd.flowProjectId}`, parked: true, must: [
-    { what: 'ask about it — the questions the app answers itself (slice 5)', sel: '.fw-ask .fw-chip-b', n: 4 },
   ] },
   { name: 'A capability study', path: `#/capability/${sd.studyId}`, must: [{ what: 'the readings, drawn', sel: 'svg.ie-dots' },
     { what: 'the band', sel: '.ln-band' }, { what: 'the tiles', sel: '.ie-strip .ln-tile' }, { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' }] },
