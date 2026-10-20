@@ -100,8 +100,11 @@ builder was never used; nothing stored is lost.
 
 How it is taken out (in `main` only once the full gate passes):
 
-1. *Ask*'s AI answers: `lib/askAi` and its call; the `ask` function retired
-   (redeployed answering that it is retired) once the app no longer calls it.
+1. *Ask*'s AI answers: `lib/askAi` and its call. The `ask` function had
+   never been deployed (the server held `remind`, `share`, `assist` and
+   `keycheck`), so its folder simply goes. `keycheck` — a diagnostic made
+   for the builder's assistant that relayed requests to the API with the
+   saved key — is redeployed refusing everything.
 2. *Better wording*: `api/wording`, `lib/wording`, `ui/BetterWords` and the
    offer in every typed box (`ui/Draft`'s `better`); the voice note stays.
 3. The method builder: `lib/flow`, `ui/flow`, `db/flow`, the Methods,
@@ -148,14 +151,17 @@ Rowland revokes it.
 
 ## What comes next, in order
 
-Nothing is built until Rowland says go.
+Nothing new is built until Rowland says go.
 
-1. Park the builder and the assistant properly behind the switch (the rest
-   of the screens, the acceptance scripts turned to it, the inventory).
-2. The filmed walk and its snags reachable from a line's own page — no job
-   needed (it is stored by line already; the line page had no door to it).
-3. Line Talk, slice by slice (docs/LINE-TALK.md) — first finding out whether
-   Rowland's phone keeps recording with its screen locked.
+1. ~~Park the builder and the assistant behind the switch~~ — done, then
+   **deleted** the same day at his word (above): the builder, *Better
+   wording* and *Ask*'s AI answers.
+2. ~~The filmed walk reachable from a line's own page~~ — done: *Film the
+   line* on the line's page.
+3. Line Talk (docs/LINE-TALK.md): slice 1, record and keep, is built. Next,
+   Rowland tries it on his phone on the floor — first, whether it keeps
+   recording with the screen locked — then slice 2 (ask it for reports and
+   summaries) on his go.
 4. Use Faultline for real for two or three weeks on Rowland's lines with his
    team; write down every place it is slow, confusing or missing.
 5. Then deepen the tools that were used, close the evidence → cause → action
