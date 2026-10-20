@@ -144,6 +144,10 @@ export interface Seeded {
   /** A video study on the line (docs/VIDEO.md): its footage not on this
    *  device, three stations, events read and some accepted, takt given. */
   videoStudyId: string;
+  /** A Line Talk on the line (docs/LINE-TALK.md): pieces heard, one
+   *  corrected, a photo, a typed line, one waiting to be heard and one that
+   *  could not be — the recordings not on this device. */
+  talkId: string;
 }
 
 /* A CHANGEOVER'S EIGHT ELEMENTS, as lapped on the phone (SMED, tool 6): who
@@ -1179,11 +1183,36 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     return id;
   })();
 
+  /* A LINE TALK (docs/LINE-TALK.md): one walk of the line talked into the
+     phone — four pieces, the first corrected, a photo where it was taken, a
+     line typed, the last waiting for signal and one the service could not
+     hear. The recordings were made on another phone, so they are not here. */
+  const talkId = await (async () => {
+    const t = Date.now() - 40 * 60_000;
+    const piece = (n: number, durationS: number) => ({ blobKey: `talk-seed-not-here-${n}`, mime: 'audio/webm', capturedAt: t + n * 60_000, durationS });
+    const turns = [
+      { id: 'seedt-1', at: t + 60_000, kind: 'said' as const, who: 'Rowland', media: piece(1, 58),
+        heard: 'Starting at the bagger, it is running at about sixty a minute, the former looks clean.',
+        text: 'Starting at the bagger — running at about 62 a minute, the former looks clean.' },
+      { id: 'seedt-2', at: t + 2 * 60_000, kind: 'said' as const, who: 'Rowland', media: piece(2, 60),
+        heard: 'The checkweigher is kicking out the odd bag at the infeed, the guide rail looks bent.' },
+      { id: 'seedt-3', at: t + 2 * 60_000 + 40_000, kind: 'photo' as const, who: 'Rowland', text: 'the infeed guide rail',
+        media: { blobKey: 'talk-seed-not-here-photo', mime: 'image/jpeg', capturedAt: t + 2 * 60_000 + 40_000 } },
+      { id: 'seedt-4', at: t + 3 * 60_000, kind: 'typed' as const, who: 'Rowland', text: 'Ask Dave about the spare belt for the case packer.' },
+      { id: 'seedt-5', at: t + 4 * 60_000, kind: 'said' as const, who: 'Rowland', media: piece(5, 31), hearing: 'failed' as const, why: 'Voice is busy right now.' },
+      { id: 'seedt-6', at: t + 5 * 60_000, kind: 'said' as const, who: 'Rowland', media: piece(6, 44), hearing: 'waiting' as const },
+    ];
+    const id = uid();
+    await putStudy({ id, tool: 'talk', name: 'Line 7 — morning walk', workspaceId: ws.id, uses: [], startedAt: t, createdAt: t, updatedAt: t + 5 * 60_000, facts: { turns } });
+    return id;
+  })();
+
   return {
     ...flowSeed,
     ...smedSeed,
     logMethodId,
     videoStudyId,
+    talkId,
     wsId: ws.id, projectId: proj.id, standardId, lineStandardId: lineOnly, lineOnJobId: lineOnJob, lineId: line.id, caseId: kase.id,
     segmentId: seg.id, assetId: asset.id,
     observations: (await listObservations(ws.id)).length,

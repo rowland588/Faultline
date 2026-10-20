@@ -205,7 +205,7 @@ export const PAGES = (sd, cap) => [
     { what: 'the question, first', sel: '.fd-ask h1', text: /^What do you need to get done\?$/ },
     { what: 'what is under way — every project in a line', sel: '.fd-jobs li[data-project]' },
     { what: 'the three kinds of project — the lever tree among them', sel: '.fd-lib .fw-card[data-start^="e:"]', n: 3 },
-    { what: 'the tools to use on their own', sel: '.fd-tools li[data-tool]', n: 9 },
+    { what: 'the tools to use on their own — Line Talk among them', sel: '.fd-tools li[data-tool]', n: 10 },
     { what: 'what is parked, and the switch to show it', sel: '.fd-parked button' },
     { what: 'Home first in the rail', sel: '.nv-rail .nv-ri', text: /Home/, desk: true },
   ] },
@@ -216,7 +216,7 @@ export const PAGES = (sd, cap) => [
     { what: 'what is under way — every project in a line', sel: '.fd-jobs li[data-project]' },
     { what: 'the library to start from — Faultline’s twelve among it', sel: '.fd-lib .fw-card[data-start^="l:"]', n: 12 },
     { what: 'and its established three — the lever tree among them', sel: '.fd-lib .fw-card[data-start^="e:"]', n: 3 },
-    { what: 'the tools to use on their own', sel: '.fd-tools li[data-tool]', n: 9 },
+    { what: 'the tools to use on their own — Line Talk among them', sel: '.fd-tools li[data-tool]', n: 10 },
     { what: 'the new product’s places — Home first', sel: '.nv-rail .nv-ri', text: /Home/, desk: true },
   ] },
   /* METHODS OF ONE'S OWN (18 October, docs/PLATFORM-STATUS.md slice 3; lib/flow): the library, a method read and written, and a project running one — the lean page with the method's stages as its picture */
@@ -286,6 +286,24 @@ export const PAGES = (sd, cap) => [
     { what: 'what it says, each line said how it is known', sel: '.vid-findings li[data-kind]' },
     { what: 'asked in words', sel: '.vid-ask input' },
     { what: 'the report', sel: '.pace-head-actions button', text: /^Report$/ },
+  ] },
+  /* LINE TALK (20 October, docs/LINE-TALK.md): the AI tool — one person talks on the line; every talk on a line, newest first */
+  { name: 'Line Talk', path: `#/talk?line=${sd.wsId}`, must: [
+    { what: 'its name', sel: 'h1', text: /^Line Talk$/ },
+    { what: 'start one on this line', sel: '.tk-new .tk-start', text: /^Start a Line Talk on / },
+    { what: 'every talk on the line, what was said in a line', sel: '.lt-row', text: /Line 7 — morning walk[\s\S]*4 pieces said/ },
+  ] },
+  /* a talk: the conversation as it was left — pieces heard and corrected, a photo, a typed line, one waiting, one not heard — and the bar to carry on */
+  { name: 'A Line Talk', path: `#/talk/${sd.talkId}`, must: [
+    { what: 'where it is — the line, every Line Talk', sel: '.pl-eyebrow', text: /^LINE TALK · .+ › · Every Line Talk ›$/ },
+    { what: 'what was said, in a line', sel: '.tk-sum', text: /^4 pieces said, 3 min · 1 photo · 1 typed — 1 waiting to be heard, 1 could not be heard\.$/ },
+    { what: 'every turn in the order it happened', sel: '.tk-turn', n: 6 },
+    { what: 'a correction over what was heard, the heard kept beside it', sel: '.tk-turn .tk-heard', text: /^As heard: Starting at the bagger, it is running at about sixty a minute/ },
+    { what: 'a piece not heard — why, and the recording kept', sel: '.tk-turn .tk-fail', text: /Not heard yet — Voice is busy right now\. The recording is kept\./ },
+    { what: 'a piece waiting to be heard', sel: '.tk-turn .tk-wait' },
+    { what: 'Continue — the talk carries on', sel: '.tk-bar .tk-talk', text: /^Continue$/ },
+    { what: 'a photo', sel: '.tk-bar .tk-photo', text: /^Photo$/ },
+    { what: 'typing into it', sel: '.tk-bar .tk-type input' },
   ] },
   { name: 'A method from Faultline’s library', path: `#/methods/${sd.smedMethodId}`, parked: true, must: [
     { what: 'a step done with one of the app’s tools', sel: '.fw-step-b', text: /with SMED/ },

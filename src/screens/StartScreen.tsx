@@ -51,6 +51,7 @@ const EXAMPLES = [
 const TOOL_SAYS: Record<string, string> = {
   '/standards': 'Who does what where on the line, drawn as the line looks',
   '/video': 'Film the line: the work at each station read from the footage, reviewed, worked out as a line balance',
+  '/talk': 'Talk on the line — every word heard and kept with its recording, carried on like a chat',
   ...Object.fromEntries(COMPONENTS.map(c => [c.listPath, c.gives])),
 };
 

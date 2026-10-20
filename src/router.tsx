@@ -59,6 +59,8 @@ const DesignScreen = lazy(() => import('./screens/DesignScreen').then(m => ({ de
 const StartScreen = lazy(() => import('./screens/StartScreen').then(m => ({ default: m.StartScreen })));
 const VideosScreen = lazy(() => import('./screens/VideoScreen').then(m => ({ default: m.VideosScreen })));
 const VideoStudyScreen = lazy(() => import('./screens/VideoScreen').then(m => ({ default: m.VideoStudyScreen })));
+const TalksScreen = lazy(() => import('./screens/TalkScreen').then(m => ({ default: m.TalksScreen })));
+const TalkScreen = lazy(() => import('./screens/TalkScreen').then(m => ({ default: m.TalkScreen })));
 const VideoCheckScreen = lazy(() => import('./screens/VideoCheckScreen').then(m => ({ default: m.VideoCheckScreen })));
 const FlowProjectScreen = lazy(() => import('./screens/FlowProjectScreen').then(m => ({ default: m.FlowProjectScreen })));
 import { RequireModel } from './ui/RequireModel';
@@ -161,6 +163,9 @@ function app(route: Route) {
   if (route.name === 'videos') return <VideosScreen />;
   if (route.name === 'videoStudy' && route.id) return <VideoStudyScreen key={route.id} id={route.id} />;
   if (route.name === 'videoCheck') return <VideoCheckScreen />;
+  /* Line Talk (docs/LINE-TALK.md): every talk (keyed on its line), and one */
+  if (route.name === 'talks') return <TalksScreen key={route.query.get('line') ?? ''} />;
+  if (route.name === 'talk' && route.id) return <TalkScreen key={route.id} id={route.id} />;
   if (route.name === 'method' && route.id) return <MethodScreen key={route.id} id={route.id} />;
   /* ?line= opens it on one line — keyed on it, so a second line starts afresh */
   if (route.name === 'linePrograms') return <LineProgramsScreen key={route.query.get('line') ?? ''} />;

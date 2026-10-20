@@ -82,8 +82,8 @@ const door = async () => { await page.goto(`${BASE}/#/`); await page.locator('.f
 await door();
 ok(/What do you need to get done\?/.test(await txt()) && await page.getByLabel('What you need, in your words', { exact: true }).count() === 1, '1 the front door: the question first, and the box to say it in');
 ok(/Nothing under way yet/.test(await txt()), '1a nothing under way yet, said');
-ok(await page.locator('.fd-lib .fw-card[data-start^="l:"]').count() === 12 && await page.locator('.fd-lib .fw-card[data-start^="e:"]').count() === 3 && await page.locator('.fd-tools li[data-tool]').count() === 9,
-  '1b the library to start from (twelve of Faultline’s methods and its three established ones) and the nine tools to use on their own');
+ok(await page.locator('.fd-lib .fw-card[data-start^="l:"]').count() === 12 && await page.locator('.fd-lib .fw-card[data-start^="e:"]').count() === 3 && await page.locator('.fd-tools li[data-tool]').count() === 10,
+  '1b the library to start from (twelve of Faultline’s methods and its three established ones) and the ten tools to use on their own — Line Talk among them (20 October)');
 ok((await page.locator('.fd-lib .fw-card[data-start^="e:"] .fw-card-t').allInnerTexts()).join(' · ') === 'Stage gate · 6M · Lever tree', '1b1 the established three by name — the lever tree in the library');
 const first = await page.locator('.nv-rail .nv-grp').first().locator('.nv-ri-l').allInnerTexts();
 const groupsSaid = await page.locator('.nv-rail .nv-grp-l').allInnerTexts();

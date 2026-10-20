@@ -78,7 +78,7 @@ export interface RailLine {
    *  would say "not started", which is not true of the control room. */
   bare?: boolean;
   /** The phone's bar icon, when this line can be one of its five. */
-  icon?: 'home' | 'route' | 'machine' | 'flag' | 'board' | 'grip' | 'chart' | 'list' | 'time' | 'camera' | 'people' | 'hash';
+  icon?: 'home' | 'route' | 'machine' | 'flag' | 'board' | 'grip' | 'chart' | 'list' | 'time' | 'camera' | 'people' | 'hash' | 'mic';
 }
 
 /** `foot`: drawn at the bottom of the rail — paper, the next meeting, what
@@ -119,6 +119,7 @@ export function hereOf(route: Route): string {
     case 'linePrograms': return 'lineprograms';
     case 'methods': case 'method': case 'design': return 'methods';
     case 'videos': case 'videoStudy': return 'video';
+    case 'talks': case 'talk': return 'talk';
     case 'lineTools': return route.view === 'balance' ? 'linebalance' : route.view === 'work' ? 'linework' : 'linestandard';
     /* a line's own product — its map, its line balance (?at=work) or its
        Line capacity (?at=balance) — lights the tool it is, as the list does */
@@ -204,6 +205,8 @@ export const toolPlaces = (here: string): RailLine[] => [
   { key: 'losses', label: 'Loss count', to: '/losses', on: here === 'losses', state: 'n', bare: true, icon: 'time' },
   /* A video study — footage of the line read for the work at each station, reviewed, worked out as a line balance (docs/VIDEO.md). */
   { key: 'video', label: 'Video study', to: '/video', on: here === 'video', state: 'n', bare: true, icon: 'camera' },
+  /* Line Talk — talk on the line, every word heard and kept, carried on like a chat (docs/LINE-TALK.md): the AI tool */
+  { key: 'talk', label: 'Line Talk', to: '/talk', on: here === 'talk', state: 'n', bare: true, icon: 'mic' },
 ];
 
 /** THE TOOLS AS ONE GROUP, at the foot of every rail, under paper and

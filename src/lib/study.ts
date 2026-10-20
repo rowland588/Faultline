@@ -25,10 +25,11 @@
 import type { VideoEvent, VideoSource } from './video/record';
 import type { FootageGone } from './video/footage';
 import type { ID } from '../types';
+import type { TalkTurn } from './talk';
 
 /** Every tool a study can be a use of. The cloud's check constraint holds the
  *  same list (studies_tool_check): a tool added here is a migration there. */
-export const STUDY_TOOLS = ['capability', 'map', 'time', 'balance', 'cycle', 'changeover', 'losses', 'sampling', 'ergonomics', 'layout'] as const;
+export const STUDY_TOOLS = ['capability', 'map', 'time', 'balance', 'cycle', 'changeover', 'losses', 'sampling', 'ergonomics', 'layout', 'talk'] as const;
 export type StudyTool = typeof STUDY_TOOLS[number];
 
 export const isStudyTool = (v: unknown): v is StudyTool => (STUDY_TOOLS as readonly unknown[]).includes(v);
@@ -458,6 +459,9 @@ export interface StudyFacts {
   video?: VideoSource;
   /** The events found in the footage and what a person decided about each. */
   vevents?: VideoEvent[];
+  /** LINE TALK (lib/talk, docs/LINE-TALK.md): the conversation — each piece
+   *  said with its recording and what was heard, each photo, each typed line. */
+  turns?: TalkTurn[];
   /** The footage deleted — its own fact, so it is never undone by a device
    *  still writing the video (lib/video/footage). */
   videoGone?: FootageGone;
@@ -557,5 +561,6 @@ export function factsOf(v: unknown): StudyFacts {
     ...(o.products !== undefined ? { products: listById<ChangeoverProduct>(o.products) } : {}),
     ...(o.taps !== undefined ? { taps: listById<Tap>(o.taps) } : {}),
     ...(o.timings !== undefined ? { timings: listById<RunTiming>(o.timings) } : {}),
-    ...(o.vevents !== undefined ? { vevents: listById<VideoEvent>(o.vevents) } : {}) };
+    ...(o.vevents !== undefined ? { vevents: listById<VideoEvent>(o.vevents) } : {}),
+    ...(o.turns !== undefined ? { turns: listById<TalkTurn>(o.turns) } : {}) };
 }

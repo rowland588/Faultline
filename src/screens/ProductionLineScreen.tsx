@@ -53,6 +53,7 @@ import { offerUndo } from '../ui/Undo';
 import type { LineMachine } from '../lib/lineRecords';
 import type { Program } from '../lib/programs';
 import type { Snag, SnagAsset } from '../snag/types';
+import { talkSaid, turnsOf } from '../lib/talk';
 
 const TONE_CLASS: Record<SnagTone, string> = { g: 'is-g', r: 'is-r', w: 'is-w', a: 'is-a', n: 'is-n' };
 /* PRIORITY, RAG (Rowland, 12 October) — always with its word. */
@@ -68,6 +69,8 @@ const TOOLS: { key: string; label: string; to: string; study?: StudyTool; standa
   { key: 'changeover', label: 'SMED', to: '/smed', study: 'changeover', what: 'a changeover timed and cut down' },
   { key: 'sampling', label: 'Work sampling', to: '/sampling', study: 'sampling', what: 'what people are doing, at random moments' },
   { key: 'losses', label: 'Loss count', to: '/losses', study: 'losses', what: 'a shift’s losses, in minutes and pounds' },
+  /* Line Talk — the AI tool (docs/LINE-TALK.md): talk on the line, every word heard and kept */
+  { key: 'talk', label: 'Line Talk', to: '/talk', study: 'talk', what: 'talk on the line — every word heard and kept with its recording' },
 ];
 
 /** Where each of a product's four answers is given, on this line. */
@@ -132,6 +135,8 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
     /* a loss count: the latest shift counted, as the line's card says it */
     const s = (t.study === 'losses' ? currentLosses(own, wsId) : undefined) ?? own[0];
     if (!s) return { n: 0 };
+    /* a Line Talk is said as its conversation stands (lib/talk) */
+    if (t.study === 'talk') return { n: own.length, says: `${s.name}: ${talkSaid(turnsOf(s.facts))}` };
     const said = studyLine(s, t.study === 'losses' && line ? { observations: obs, workspaces: [line] } : undefined);
     /* a loss count's sentence names its shift itself */
     return { n: own.length, says: t.study === 'losses' ? said.text : `${s.name}: ${said.text}`, tone: said.tone };
