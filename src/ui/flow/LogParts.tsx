@@ -31,14 +31,19 @@ const shown = (v: string | number | boolean | undefined, c: FlowField) =>
   v === undefined || v === '' ? '—' : typeof v === 'boolean' ? (v ? 'Yes' : 'No') : typeof v === 'number' ? `${fmtNumber(v)}${c.unit ? ` ${c.unit}` : ''}` : String(v);
 
 /** The boxes of one entry, kept here until it is added. */
-export function EntryForm({ columns, start, onSubmit, submitWord, onCancel, keepAs, choices = {} }: {
+export function EntryForm({ columns, start, preset, compact, onSubmit, submitWord, onCancel, keepAs, choices = {} }: {
   columns: FlowField[]; start?: Typed; onSubmit: (typed: Typed, on: string) => Promise<string | undefined>; submitWord: string; onCancel?: () => void;
+  /** A new entry's boxes already said — the bone or the lane it was added in
+   *  (ui/flow/Views) — kept for the next one. */
+  preset?: Typed;
+  /** No day box: the entry is today's. */
+  compact?: boolean;
   /** Where a running timer's start is kept on the device (ui/flow/Timer). */
   keepAs: string;
   /** A link column's entries to pick from, by column key (lib/flow/links). */
   choices?: Record<string, LinkChoice[]>;
 }) {
-  const [typed, setTyped] = useState<Typed>(start ?? {});
+  const [typed, setTyped] = useState<Typed>(start ?? preset ?? {});
   const [on, setOn] = useState(todayISO());
   const [err, setErr] = useState<string | null>(null);
   const worked = entryValues(columns, typed);
@@ -56,7 +61,7 @@ export function EntryForm({ columns, start, onSubmit, submitWord, onCancel, keep
   return (
     <form className="fw-entry" onSubmit={e => {
       e.preventDefault();
-      void onSubmit(typed, on).then(why => { if (why) setErr(why); else { setErr(null); if (!start) setTyped({}); } });
+      void onSubmit(typed, on).then(why => { if (why) setErr(why); else { setErr(null); if (!start) setTyped(preset ?? {}); } });
     }}>
       <div className="fw-entry-r">
         {columns.map(c => {
@@ -104,7 +109,7 @@ export function EntryForm({ columns, start, onSubmit, submitWord, onCancel, keep
             </label>
           );
         })}
-        {!start && (
+        {!start && !compact && (
           <label className="fw-f fw-entry-on"><span className="field-label">On</span>
             <input className="text-input fw-in" type="date" aria-label="The day it happened" value={on} onChange={e => setOn(e.target.value || todayISO())} /></label>
         )}
@@ -315,8 +320,10 @@ function ForecastChart({ r }: { r: AnalysisResult }) {
   );
 }
 
-/** What a log's entries add up to — each analysis's figure, sentence and picture. */
-export function LogResults({ inst }: { inst: StepInstance }) {
+/** What a log's entries add up to — each analysis's figure, sentence and
+ *  picture; `drawn`: a picture the step's view already draws (a fishbone),
+ *  said and not drawn twice. */
+export function LogResults({ inst, drawn }: { inst: StepInstance; drawn?: AnalysisPicture }) {
   const list = inst.def.analyses ?? [];
   if (!list.length || !inst.analysis) return null;
   return (
@@ -325,7 +332,7 @@ export function LogResults({ inst }: { inst: StepInstance }) {
         const r = inst.analysis?.[a.key];
         if (!r) return null;
         const picture = BLOCKS[a.block]?.picture ?? 'none';
-        const pic = picture !== 'none' && !!r.series?.length;
+        const pic = picture !== 'none' && picture !== drawn && !!r.series?.length;
         const label = (k?: string) => inst.def.columns?.find(c => c.key === k)?.label;
         return (
           <div key={a.key} className={'fw-result' + (pic ? ' has-pic' : '')} data-analysis={a.key}>

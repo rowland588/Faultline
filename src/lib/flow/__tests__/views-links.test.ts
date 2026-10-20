@@ -281,3 +281,34 @@ describe('the fishbone block', () => {
     expect(analyse([a], CAUSES, []).roots.says).toBe('Leaks: no causes yet — log each cause on its bone.');
   });
 });
+
+describe('what a view draws', () => {
+  it('the fish: the view’s bindings, the block’s grouping, the problem at its head', async () => {
+    const { viewBones, fishHead } = await import('../viewData');
+    const causes = state().stages[1].steps[0];
+    const bones = viewBones(causes.def, causes.record?.entries ?? []);
+    expect(bones.map(b => `${b.name}:${b.causes.map(c => `${c.id}${c.root ? '*' : ''}`).join(',')}`)).toEqual(['People:', 'Machine:c1*', 'Method:', 'Material:c2', 'Measurement:', 'Environment:']);
+    expect(bones).toEqual(causes.analysis?.roots.bones);
+    expect(fishHead(causes.def)).toBe('Seal leaks');
+  });
+
+  it('the board: lanes in order, late first, a day gone said in words, the last lane done', async () => {
+    const { boardOf, nextLane } = await import('../viewData');
+    const x = exps();
+    const b = boardOf(x.def, [
+      ...(x.record?.entries ?? []),
+      ent('x6', '2026-10-17', { what: 'Check the seal strength', lane: 'Check', due: '2026-10-25', tests: 'c1' }),
+      ent('x7', '2026-10-17', { what: 'Write the standard', lane: 'Done', due: '2026-10-12', tests: 'c1' }),
+      ent('x8', '2026-10-18', { what: 'Run at 120 a minute', lane: 'Plan', due: '2026-10-19', tests: 'c1' }),
+      ent('x9', '2026-10-18', { what: 'Lane gone', lane: 'Parked', tests: 'c1' }),
+    ], '2026-10-20');
+    expect(b.lanes.map(l => `${l.name}:${l.cards.map(c => c.id).join(',')}`)).toEqual(['Plan:x8,x2,x4,x5', 'Do:x1', 'Check:x6', 'Act:', 'Done:x7', 'Parked:x9']);
+    expect(b.lanes.find(l => l.name === 'Do')?.cards[0]).toMatchObject({ title: 'Hold the jaw at 185 °C', owner: 'Lee', late: true, dueSaid: 'Late — was due 18 Oct' });
+    expect(b.lanes.find(l => l.name === 'Done')?.cards[0]).toMatchObject({ late: false, done: true, dueSaid: 'Was due 12 Oct' });
+    expect(b.lanes.find(l => l.name === 'Check')?.cards[0]).toMatchObject({ late: false, dueSaid: 'Due 25 Oct' });
+    expect(b.late).toBe(2);
+    expect(b.says).toBe('8 cards — Plan 4 · Do 1 · Check 1 · Act 0 · Done 1 · Parked 1; 2 late.');
+    expect([nextLane(b, 'Plan'), nextLane(b, 'Act'), nextLane(b, 'Done'), nextLane(b, 'Parked')]).toEqual(['Do', 'Done', undefined, 'Plan']);
+    expect(boardOf(x.def, []).says).toBe('No cards yet.');
+  });
+});
