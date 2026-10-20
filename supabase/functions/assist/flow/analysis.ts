@@ -138,7 +138,7 @@ export interface AnalysisResult {
   /** A fishbone's bones, in the order the bone column lists them, each with
    *  its causes as logged — a root cause marked, and how it is known when
    *  the log says. */
-  bones?: { name: string; causes: { text: string; root: boolean; known?: string }[] }[];
+  bones?: FishBones;
 }
 
 type Need = 'required' | 'optional' | 'none';
@@ -578,6 +578,33 @@ function stat(id: AnalysisBlockId, name: string, says: string, f: (xs: number[])
 
 /* ------------------------------------------------------------------- blocks */
 
+/** A cause on a fishbone: the entry it is, its words, a root cause or not,
+ *  and how it is known when the log says. */
+export interface FishCause { id: string; text: string; root: boolean; known?: string }
+export type FishBones = { name: string; causes: FishCause[] }[];
+
+/** EVERY CAUSE ON ITS BONE — the one grouping the fishbone block, the
+ *  fishbone view (ui/flow/Views) and its paper share: the bones in the
+ *  order the bone column lists them, then any other bone an entry names,
+ *  then "Not placed"; a struck entry or one with no words left out. */
+export function bonesOf(entries: readonly FlowEntry[], columns: readonly FlowField[], o: { of?: string; by?: string; root?: FlowWhen; known?: string }): FishBones {
+  const bc = col(columns, o.by);
+  const rows = live(entries).map(e => ({ e, v: entryValues(columns, e.values) }))
+    .map(r => ({ ...r, text: typeof r.v[o.of ?? ''] === 'string' ? String(r.v[o.of ?? '']).trim() : '' }))
+    .filter(x => x.text);
+  const order = [...(bc?.type === 'choice' ? bc.options ?? [] : [])];
+  const placed = (v: unknown) => (v === undefined || v === '' ? 'Not placed' : typeof v === 'boolean' ? (v ? 'Yes' : 'No') : String(v).trim());
+  for (const x of rows) { const b = placed(x.v[o.by ?? '']); if (!order.some(n => n.trim().toLowerCase() === b.toLowerCase())) order.push(b); }
+  const nameOf = (b: string) => order.find(n => n.trim().toLowerCase() === b.toLowerCase()) ?? b;
+  const bones: FishBones = order.map(name => ({ name, causes: [] }));
+  for (const x of rows) {
+    const bone = bones.find(b => b.name === nameOf(placed(x.v[o.by ?? ''])));
+    const known = o.known && typeof x.v[o.known] === 'string' ? String(x.v[o.known]).trim() : '';
+    bone?.causes.push({ id: x.e.id, text: x.text, root: !!o.root && meets(x.v[o.root.column], o.root), ...(known ? { known: known.toLowerCase() } : {}) });
+  }
+  return bones;
+}
+
 export const BLOCKS: Record<AnalysisBlockId, AnalysisBlock> = {
   count: {
     id: 'count', name: 'Count', says: 'How many entries — all, or those that meet a rule', needs: { of: 'none', by: 'none', when: 'optional', against: 'none', target: 'none' }, numeric: false, output: 'number', picture: 'none',
@@ -1014,22 +1041,11 @@ export const BLOCKS: Record<AnalysisBlockId, AnalysisBlock> = {
     id: 'fishbone', name: 'Fishbone', says: 'Every cause logged (a words column), each on its bone (a choice column — People, Machine, Method, Material, Measurement, Environment, or the method’s own), drawn as a fishbone with the problem at its head (the analysis’s name); the entries meeting the rule are the root causes, marked and counted — how many causes, on how many bones, the bone with most, and the root causes named',
     needs: { of: 'required', by: 'required', when: 'optional', against: 'none', target: 'none' }, numeric: false, output: 'both', picture: 'fishbone',
     compute: (entries, a, columns) => {
-      const bc = col(columns, a.by), w = a.when;
+      const w = a.when;
       /* how a cause is known — a choice column offering measured, counted, observed or reported */
       const kc = columns.find(c => c.type === 'choice' && c.key !== a.by && (c.options ?? []).some(o => /^(measured|counted|observed|reported)$/i.test(o.trim())));
-      const rows = rowsOf(entries, a, columns, false)
-        .map(r => ({ r, text: typeof r.v[a.of ?? ''] === 'string' ? String(r.v[a.of ?? '']).trim() : '' }))
-        .filter(x => x.text);
-      const order = [...(bc?.type === 'choice' ? bc.options ?? [] : [])];
-      const placed = (v: unknown) => (v === undefined || v === '' ? 'Not placed' : typeof v === 'boolean' ? (v ? 'Yes' : 'No') : String(v).trim());
-      for (const x of rows) { const b = placed(x.r.v[a.by ?? '']); if (!order.some(o => o.trim().toLowerCase() === b.toLowerCase())) order.push(b); }
-      const nameOf = (b: string) => order.find(o => o.trim().toLowerCase() === b.toLowerCase()) ?? b;
-      const bones = order.map(name => ({ name, causes: [] as { text: string; root: boolean; known?: string }[] }));
-      for (const x of rows) {
-        const bone = bones.find(b => b.name === nameOf(placed(x.r.v[a.by ?? ''])));
-        const known = kc && typeof x.r.v[kc.key] === 'string' ? String(x.r.v[kc.key]).trim() : '';
-        bone?.causes.push({ text: x.text, root: !!w && meets(x.r.v[w.column], w), ...(known ? { known: known.toLowerCase() } : {}) });
-      }
+      const bones = bonesOf(entries, columns, { of: a.of, by: a.by, ...(w ? { root: w } : {}), ...(kc ? { known: kc.key } : {}) });
+      const rows = bones.flatMap(b => b.causes);
       const series: SeriesPoint[] = bones.map(b => ({ label: b.name, value: b.causes.length }));
       const roots = bones.flatMap(b => b.causes.filter(c => c.root).map(c => ({ ...c, bone: b.name })));
       const unit = w ? 'root cause(s)' : 'cause(s)';

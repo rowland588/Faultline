@@ -3436,6 +3436,24 @@ function stat(id, name, says, f, min = 1) {
     }
   };
 }
+function bonesOf(entries, columns, o) {
+  const bc = col(columns, o.by);
+  const rows = live(entries).map((e) => ({ e, v: entryValues(columns, e.values) })).map((r) => ({ ...r, text: typeof r.v[o.of ?? ""] === "string" ? String(r.v[o.of ?? ""]).trim() : "" })).filter((x) => x.text);
+  const order = [...bc?.type === "choice" ? bc.options ?? [] : []];
+  const placed = (v) => v === void 0 || v === "" ? "Not placed" : typeof v === "boolean" ? v ? "Yes" : "No" : String(v).trim();
+  for (const x of rows) {
+    const b = placed(x.v[o.by ?? ""]);
+    if (!order.some((n2) => n2.trim().toLowerCase() === b.toLowerCase())) order.push(b);
+  }
+  const nameOf = (b) => order.find((n2) => n2.trim().toLowerCase() === b.toLowerCase()) ?? b;
+  const bones = order.map((name) => ({ name, causes: [] }));
+  for (const x of rows) {
+    const bone = bones.find((b) => b.name === nameOf(placed(x.v[o.by ?? ""])));
+    const known = o.known && typeof x.v[o.known] === "string" ? String(x.v[o.known]).trim() : "";
+    bone?.causes.push({ id: x.e.id, text: x.text, root: !!o.root && meets(x.v[o.root.column], o.root), ...known ? { known: known.toLowerCase() } : {} });
+  }
+  return bones;
+}
 var BLOCKS = {
   count: {
     id: "count",
@@ -4004,22 +4022,10 @@ var BLOCKS = {
     output: "both",
     picture: "fishbone",
     compute: (entries, a, columns) => {
-      const bc = col(columns, a.by), w = a.when;
+      const w = a.when;
       const kc = columns.find((c) => c.type === "choice" && c.key !== a.by && (c.options ?? []).some((o) => /^(measured|counted|observed|reported)$/i.test(o.trim())));
-      const rows = rowsOf(entries, a, columns, false).map((r) => ({ r, text: typeof r.v[a.of ?? ""] === "string" ? String(r.v[a.of ?? ""]).trim() : "" })).filter((x) => x.text);
-      const order = [...bc?.type === "choice" ? bc.options ?? [] : []];
-      const placed = (v) => v === void 0 || v === "" ? "Not placed" : typeof v === "boolean" ? v ? "Yes" : "No" : String(v).trim();
-      for (const x of rows) {
-        const b = placed(x.r.v[a.by ?? ""]);
-        if (!order.some((o) => o.trim().toLowerCase() === b.toLowerCase())) order.push(b);
-      }
-      const nameOf = (b) => order.find((o) => o.trim().toLowerCase() === b.toLowerCase()) ?? b;
-      const bones = order.map((name) => ({ name, causes: [] }));
-      for (const x of rows) {
-        const bone = bones.find((b) => b.name === nameOf(placed(x.r.v[a.by ?? ""])));
-        const known = kc && typeof x.r.v[kc.key] === "string" ? String(x.r.v[kc.key]).trim() : "";
-        bone?.causes.push({ text: x.text, root: !!w && meets(x.r.v[w.column], w), ...known ? { known: known.toLowerCase() } : {} });
-      }
+      const bones = bonesOf(entries, columns, { of: a.of, by: a.by, ...w ? { root: w } : {}, ...kc ? { known: kc.key } : {} });
+      const rows = bones.flatMap((b) => b.causes);
       const series = bones.map((b) => ({ label: b.name, value: b.causes.length }));
       const roots = bones.flatMap((b) => b.causes.filter((c) => c.root).map((c) => ({ ...c, bone: b.name })));
       const unit = w ? "root cause(s)" : "cause(s)";
