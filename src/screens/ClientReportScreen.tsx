@@ -303,7 +303,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
         <section className="cr-note">
           <span className="cr-note-h">Commentary <i className="cw-f-opt">on the status, full and commissioning reports, under where we are</i></span>
           {can.edit
-            ? <DraftArea className="text-area" rows={3} better="note" value={project.reportNote ?? ''} ariaLabel="Commentary"
+            ? <DraftArea className="text-area" rows={3} value={project.reportNote ?? ''} ariaLabel="Commentary"
                 placeholder="What the numbers mean this week — e.g. Install is two days behind on the Ishida, caught up by Friday; programs on track for the Tesco trial."
                 onSave={v => void rename(project, { reportNote: v.trim() || undefined, reportNoteAt: v.trim() ? Date.now() : undefined })} />
             : <p className="cr-note-t">{project.reportNote}</p>}

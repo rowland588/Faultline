@@ -28,7 +28,6 @@ import { movedLater, overlapOf } from '../lib/story';
 import { gateOf, live, plannedEnd, wordsOf, type Test, type TestItem } from '../lib/testing';
 import type { useTesting } from '../lib/useTesting';
 import { niceDay } from '../lib/weeks';
-import { BetterWords } from './BetterWords';
 import { CriticalFields, criticalDraftOf, criticalPatch } from './CriticalFields';
 import { SayIt, SayStep } from './RecordSay';
 import { offerUndo } from './Undo';
@@ -170,7 +169,6 @@ export function RecordEdit({ t, tt, can, names, onProblem, onClose }: {
     .sort((x, y) => (y.ranOn ?? y.plannedFor ?? '').localeCompare(x.ranOn ?? x.plannedFor ?? ''));
   const steps = live(tt.tests).filter(x => x.kind === 'install').sort((x, y) => x.sort - y.sort);
   const machineOf = (x: Test) => tt.assets.find(a => a.id === x.assetId)?.name ?? 'The line';
-  const spelled = [t.title, ...tt.assets.map(a => a.name)];
 
   return (
     <form className="re-form" onSubmit={e => {
@@ -198,7 +196,7 @@ export function RecordEdit({ t, tt, can, names, onProblem, onClose }: {
             placeholder="Every 2 kg pack creased is a reject — at 60 ppm that is the Tesco trial on Thursday at risk."
             onChange={e => setConcern(e.target.value)} /></label>
         <div className="re-wide">
-          <CriticalFields value={crit} onChange={setCrit} names={[t.title, ...tt.assets.map(x => x.name)]} noCould noImpact />
+          <CriticalFields value={crit} onChange={setCrit} noCould noImpact />
         </div>
         <label className="cw-f re-wide"><span>What’s the fix?</span>
           <input value={b.title} placeholder="Re-set the former shoulder and re-track the film" onChange={e => set('title')(e.target.value)} /></label>
@@ -283,7 +281,6 @@ export function RecordEdit({ t, tt, can, names, onProblem, onClose }: {
           placeholder={kind === 'fix' ? 'Roller re-aligned, ran clean for the rest of the shift'
             : kind === 'install' ? 'Air on and tested; the regulator is missing, so it is on a fix'
               : '61 ppm, 3 leaked in 20'} /></label>
-      <BetterWords text={b.result} field="account" names={spelled} onUse={set('result')} />
 
       <span className="ig-plan-acts re-wide">
         <button className="btn btn-primary" type="submit" disabled={!changed}>Save</button>

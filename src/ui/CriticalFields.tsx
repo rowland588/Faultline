@@ -12,7 +12,6 @@
  * un-agreed or taken off. */
 import type { WayRound } from '../lib/testing';
 import { uid } from '../lib/ids';
-import { BetterWords } from './BetterWords';
 import { Icon } from './Icon';
 
 /* THE LEVEL — not flagged, HIGH RISK (amber: it has not happened yet) or
@@ -43,10 +42,8 @@ export function criticalPatch(d: CriticalDraft): { critical?: boolean; risk?: bo
   };
 }
 
-export function CriticalFields({ value, onChange, names, noCould, noImpact }: {
+export function CriticalFields({ value, onChange, noCould, noImpact }: {
   value: CriticalDraft; onChange: (d: CriticalDraft) => void;
-  /** Machine and stage names, kept as spelled by Better wording. */
-  names?: string[];
 
   /** The problem form asks the hours once, itself (docs/DOORS.md). */
   noCould?: boolean;
@@ -79,7 +76,6 @@ export function CriticalFields({ value, onChange, names, noCould, noImpact }: {
               <textarea className="text-area" rows={3} value={value.impact}
                 placeholder="The line cannot go back to production on the agreed day — the launch on 2 November is at risk."
                 onChange={e => set({ impact: e.target.value })} /></label>
-            <BetterWords text={value.impact} field="other" onUse={v => set({ impact: v })} names={names} />
           </>}
           <div className="crit-ways">
             <span className="crit-ways-h">Ways round it <span className="cw-f-opt">tick the one agreed</span></span>
