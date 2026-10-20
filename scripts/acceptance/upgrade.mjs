@@ -63,6 +63,13 @@ await page.locator('.lch-ask input').fill('What is the biggest loss?');
 await page.locator('.lch-ask').press('Enter'); await page.waitForTimeout(800);
 const ans = flat(await page.locator('.lch-ans-t').innerText().catch(() => ''));
 ok(/min over \d+ counted shifts/.test(ans), `2 Ask answered from the functions: "${ans.slice(0, 80)}…"`);
+/* a question its own functions do not answer: said so, and nothing sent to an AI (20 October — docs/DIRECTION.md: the only AI is the voice and the camera) */
+let askedAi = 0;
+page.on('request', r => { if (/\/functions\/v1\/ask\b/.test(r.url())) askedAi++; });
+await page.locator('.lch-ask input').fill('Why is the sky blue?');
+await page.locator('.lch-ask').press('Enter'); await page.waitForTimeout(800);
+const notOwn = flat(await page.locator('.lch-ans-t').innerText().catch(() => ''));
+ok(/^I can answer questions like “/.test(notOwn) && askedAi === 0, `2 a question its figures do not answer: said so, nothing sent to an AI ("${notOwn.slice(0, 60)}…", ${askedAi} sent)`);
 
 /* 3 — where and when it stops, as the module says */
 const heatSays = await page.evaluate(async id => {

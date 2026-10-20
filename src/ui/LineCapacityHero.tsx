@@ -23,7 +23,6 @@ import {
   type Figure, type Source,
 } from '../lib/intelligence';
 import { Metric, WhyNumber } from './WhyNumber';
-import { askNarrated } from '../lib/askAi';
 import { PERIOD_WEEKS, readLine, unitOf } from '../lib/lineRead';
 
 const fmt = (n: number, d = 1) => n.toLocaleString('en-GB', { maximumFractionDigits: d });
@@ -36,7 +35,7 @@ export function LineCapacityHero({ wsId, products, lineName }: { wsId: string; p
   /* the levers' slider settings — a what-if on this screen, kept for nothing */
   const [pct, setPct] = useState<Record<string, number>>({});
   const [q, setQ] = useState('');
-  const [answer, setAnswer] = useState<(Answer & { q: string; narrated?: boolean; thinking?: boolean }) | null>(null);
+  const [answer, setAnswer] = useState<(Answer & { q: string }) | null>(null);
   const [ws, setWs] = useState<Workspace | undefined>();
   const [why, setWhy] = useState<{ fig: Figure; title: string } | null>(null);
   const [copied, setCopied] = useState(false);
@@ -86,17 +85,15 @@ export function LineCapacityHero({ wsId, products, lineName }: { wsId: string; p
   return (
     <section className="lch" aria-label="What this line can make">
       <p className="lch-hero">{r.says}</p>
-      {/* ASK — answered from the same functions; anything else narrated from these figures when the AI is set up */}
+      {/* ASK — answered from the same functions the figures come from; nothing else (the AI's narrated answers were
+          taken out on 20 October: the only AI is the voice and the camera — docs/DIRECTION.md) */}
       <form className="lch-ask" onSubmit={e => {
         e.preventDefault();
         const question = q.trim();
         if (!question) return;
         const own = askLine(question, a.facts);
-        if (own.matched) { setAnswer({ ...own, q: question }); return; }
-        setAnswer({ matched: false, text: '', used: [], q: question, thinking: true });
-        void askNarrated(question, a.facts).then(t => setAnswer(t
-          ? { matched: true, text: t, used: ['Narrated from this line’s figures — it computes nothing of its own.'], q: question, narrated: true }
-          : { matched: false, text: `I can answer questions like “${ASK_EXAMPLES.join('”, “')}” about this line.`, used: [], q: question }));
+        setAnswer(own.matched ? { ...own, q: question }
+          : { matched: false, text: `I can answer questions like “${ASK_EXAMPLES.join('”, “')}” about this line.`, used: [], q: question });
       }}>
         <input className="text-input lch-ask-in" value={q} onChange={e => setQ(e.target.value)} placeholder={`Ask about ${lineName ?? 'this line'} — “${ASK_EXAMPLES[0]}”`} aria-label={`Ask about ${lineName ?? 'this line'}`} maxLength={300} />
         <button type="submit" className="btn btn-sm" disabled={!q.trim()}>Ask</button>
@@ -104,7 +101,7 @@ export function LineCapacityHero({ wsId, products, lineName }: { wsId: string; p
       {answer && (
         <div className="lch-ans" role="status" aria-live="polite">
           <p className="lch-ans-q sub">{answer.q}</p>
-          {answer.thinking ? <div className="sk sk-line" /> : <p className="lch-ans-t">{answer.text}</p>}
+          <p className="lch-ans-t">{answer.text}</p>
           {answer.used.length > 0 && <details className="lch-ans-used"><summary className="sub">The figures used</summary><ul>{answer.used.filter(Boolean).map(u => <li key={u}>{u}</li>)}</ul></details>}
         </div>
       )}
