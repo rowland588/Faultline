@@ -179,7 +179,8 @@ export function TalkScreen({ id }: { id: string }) {
       <button type="button" className="btn" onClick={() => nav('/talk')}>Every Line Talk</button>
     </div>
   );
-  return <Talk s={s} can={can} />;
+  /* a talk of its own each time — its box and what is in it are that talk's */
+  return <Talk key={s.id} s={s} can={can} />;
 }
 
 function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
