@@ -28,7 +28,8 @@ import { useStanding } from '../lib/useStanding';
 import { useMethodCounts } from '../lib/useMethodCounts';
 import { useWsChain } from '../lib/useTrail';
 import { planModel, type PlanModel } from '../lib/planModel';
-import { getStandard, getWorkspace, listTestItems, listTests, listWorkspaces, onDataChange } from '../db';
+import { getStandard, getStudy, getWorkspace, listTestItems, listTests, listWorkspaces, onDataChange } from '../db';
+import { PROJECT_KEY } from '../lib/inProject';
 import { liveProductionLines } from '../lib/lines';
 import { gateOf, live } from '../lib/testing';
 import { useTesting } from '../lib/useTesting';
@@ -60,35 +61,50 @@ function projectOf(route: Route, chainProject?: string): string | undefined {
   if (route.name === 'lineHome' || route.name === 'factory' || route.name === 'linePrograms') return undefined;
   if (route.wsId) return chainProject;
   if (route.name === 'paceReport') return route.query.get('project') ?? undefined;
-  if (route.name === 'home' || route.name === 'start' || route.name === 'projects' || route.name === 'share' || route.name === 'quickSnags' || route.name === 'lineTools' || route.name === 'studies' || route.name === 'study' || route.name === 'videos' || route.name === 'videoStudy' || route.name === 'talks' || route.name === 'talk') return undefined;
+  /* A TOOL'S PAGE INSIDE A PROJECT carries it (lib/inProject; docs/PROJECTS.md,
+     P2): the rail's tools open with ?project=, and the page keeps the
+     project's rail. Outside one, the control room's, as before. */
+  if (TOOL_LISTS.has(route.name)) return route.query.get(PROJECT_KEY) ?? undefined;
+  if (route.name === 'home' || route.name === 'start' || route.name === 'projects' || route.name === 'share' || route.name === 'quickSnags' || RECORDS.has(route.name)) return undefined;
   return route.id;
 }
 
-/** A LINE'S PRODUCT WEARS ITS OWN JOB, OR NONE. A line standard or a line
- *  capacity on a line is the job's only when it is attached to one: a
- *  product on no job opened on a line that a job also uses wore that job's
- *  rail, and read as the job's (Rowland, 13 October). `undefined` while it
- *  is read; '' when it is on no job. */
-function useProductJob(standardId?: string): string | undefined {
-  const [job, setJob] = useState<{ id: string; job: string } | null>(null);
+/** A tool's list — every use of it, on every line and project. */
+const TOOL_LISTS = new Set<Route['name']>(['lineTools', 'studies', 'videos', 'talks']);
+/** A tool's record — a study, a video study, a talk — wears its own project. */
+const RECORDS = new Set<Route['name']>(['study', 'videoStudy', 'talk']);
+
+/** A RECORD WEARS ITS OWN PROJECT, OR NONE. A line standard or a line
+ *  capacity on a line is the project's only when it is attached to one: a
+ *  product on no project opened on a line that a project also uses wore that
+ *  project's rail, and read as its (Rowland, 13 October). So does a study, a
+ *  video study and a talk since 21 October (docs/PROJECTS.md, P2): made
+ *  inside a project, it is the project's and opens in it. `undefined` while
+ *  it is read; '' when it is on no project. */
+function useRecordProject(kind: 'standard' | 'study' | undefined, id?: string): string | undefined {
+  const [got, setGot] = useState<{ id: string; project: string } | null>(null);
   useEffect(() => {
     let live = true;
-    if (!standardId) return;
-    const load = () => void getStandard(standardId).then(s => { if (live) setJob({ id: standardId, job: s?.projectId ?? '' }); });
+    if (!kind || !id) return;
+    const load = () => void (kind === 'standard' ? getStandard(id) : getStudy(id)).then(r => { if (live) setGot({ id, project: r?.projectId ?? '' }); });
     load();
     const off = onDataChange(load);
     return () => { live = false; off(); };
-  }, [standardId]);
-  return standardId && job?.id === standardId ? job.job : undefined;
+  }, [kind, id]);
+  return kind && id && got?.id === id ? got.project : undefined;
 }
 
 export function Frame({ route, children }: { route: Route; children: ReactNode }) {
   const { projects, archived, loading } = useProjects();
   const chain = useWsChain(route.wsId);
   const product = route.name === 'lineStandards' ? route.id : undefined;
-  const productJob = useProductJob(product);
-  /* a line's product: its own job or none; the line's list of them: none */
-  const projectId = (route.name === 'lineStandards' ? (product ? productJob || undefined : undefined) : projectOf(route, chain?.projectId));
+  const record = product ? 'standard' : RECORDS.has(route.name) && route.id ? 'study' : undefined;
+  const recordProject = useRecordProject(record, product ?? route.id);
+  /* a record: its own project or none; a line's list of its products: the
+     project it was opened in, or none */
+  const projectId = record ? recordProject || undefined
+    : route.name === 'lineStandards' ? route.query.get(PROJECT_KEY) ?? undefined
+      : projectOf(route, chain?.projectId);
   /* An archived job still opens (from the archive), and still wears its rail. */
   const project = projectId ? (projects.find(p => p.id === projectId) ?? archived.find(p => p.id === projectId)) : undefined;
   const jobHere = useHere(route, project);
@@ -102,7 +118,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
         ? <ProjectNav key={project.id} project={project} here={here} wsId={route.wsId} />
         /* While the job is still being read, only the first line — never the
            control room's list of jobs for a moment, then the job's rail. */
-        : projectId && (loading || (route.wsId && chain === null))
+        : (projectId && (loading || (route.wsId && chain === null))) || (record && recordProject === undefined)
           ? <NavChrome groups={[{ lines: [controlRoom(here), snagsPlace(here)] }, toolsGroup(here)]} bar={[controlRoom(here)]} />
           : <HomeNav projects={projects} here={here} wsId={route.wsId} loose={!!route.wsId && chain === null && route.name !== 'lineHome'} />}
       <main className="nv-main">{children}</main>
@@ -248,7 +264,7 @@ function GateNav(p: NavProps) {
        by the factory's names: they sat unlabelled among the tools, called
        Line 7 and Line 8 for one line of the factory (docs/FLOW-AUDIT.md #7). */
     ...(lines.lines.length ? [lines] : []),
-    toolsGroup(p.here),
+    toolsGroup(p.here, [], p.project.id),
   ];
   return <NavChrome groups={withJobStudy(groups, p.wsId, p.lines, p.here)} project={p.project} model={p.model} />;
 }
@@ -285,7 +301,7 @@ function MethodNav(p: NavProps & { method: 'board' | 'tree' }) {
        the work; only the tools go to the foot. */
     linesGroup(p.project.id, p.lines, p.here, p.wsId),
     footGroup(p.project.id, p.here, p.notes),
-    toolsGroup(p.here),
+    toolsGroup(p.here, [], p.project.id),
   ];
   return <NavChrome groups={withJobStudy(groups, p.wsId, p.lines, p.here)} project={p.project} model={p.model} />;
 }

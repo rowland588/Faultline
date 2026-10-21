@@ -32,6 +32,7 @@
  */
 import type { Route } from '../state/useRoute';
 import type { PlanModel } from '../lib/planModel';
+import { inProject } from '../lib/inProject';
 
 /** How many are open, how many of those are late, and how many are already
  *  done — the three numbers a rail line's square and count are drawn from. */
@@ -187,7 +188,7 @@ export const snagsPlace = (here: string): RailLine =>
  *  on a line with no job, and attached to one when it is wanted (LINE_TOOLS.sql,
  *  screens/LineToolsScreen). The problems register sat first here; it went up
  *  under the control room (snagsPlace) — a problem is a record, not a tool. */
-export const toolPlaces = (here: string): RailLine[] => [
+export const toolPlaces = (here: string, projectId?: string): RailLine[] => ([
   { key: 'linestandard', label: 'Line standard', to: '/standards', on: here === 'linestandard', state: 'n', bare: true, icon: 'people' },
   /* The line balance — the people's work, timed at the line against takt, and what the bottleneck costs (17 October). */
   { key: 'linework', label: 'Line balance', to: '/linebalance', on: here === 'linework', state: 'n', bare: true, icon: 'time' },
@@ -206,15 +207,15 @@ export const toolPlaces = (here: string): RailLine[] => [
   { key: 'video', label: 'Video study', to: '/video', on: here === 'video', state: 'n', bare: true, icon: 'camera' },
   /* Line Talk — talk on the line, every word heard and kept, carried on like a chat (docs/LINE-TALK.md): the AI tool */
   { key: 'talk', label: 'Line Talk', to: '/talk', on: here === 'talk', state: 'n', bare: true, icon: 'mic' },
-];
+] as RailLine[]).map(l => (projectId && l.to ? { ...l, to: inProject(l.to, projectId) } : l));
 
 /** THE TOOLS AS ONE GROUP, at the foot of every rail, under paper and
  *  details. Rowland, 10 October, on the flow audit (docs/FLOW.md item 3):
  *  the rail leads with the job — its front page, its gates, its work — and
  *  the tools used inside it come after, where they no longer push the job
  *  down. On a stage-gate job the lines it filmed are tools too (`extra`). */
-export const toolsGroup = (here: string, extra: RailLine[] = []): RailGroup =>
-  ({ label: 'Tools', lines: [...toolPlaces(here), ...extra] });
+export const toolsGroup = (here: string, extra: RailLine[] = [], projectId?: string): RailGroup =>
+  ({ label: 'Tools', lines: [...toolPlaces(here, projectId), ...extra] });
 
 /** The job itself — on its front page, where the method's answer is. */
 export const jobLine = (projectId: string, name: string, here: string, late = 0, problem = 0): RailLine =>

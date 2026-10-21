@@ -47,6 +47,9 @@ import { todayISO, niceDay } from '../lib/weeks';
 import { nav, useRoute } from '../state/useRoute';
 import { Ear, NOTHING_HEARD, joinWords, notHeardWhy, recognitionOf, troubleSaid, type Trouble } from '../lib/hearing';
 import { useFactoryLines } from '../lib/useFactoryLines';
+import { useInProject } from '../lib/useInProject';
+import { inScope, startLine, type ProjectScope } from '../lib/inProject';
+import { ProjectScopeChips } from '../ui/ProjectScope';
 import { useBlobUrl } from '../lib/useBlobUrl';
 import { askTurnsOf, isTheirs, notWritten, pendingReply, photoLabels, photosToSend, talkName, talkSaid, turnsOf, unanswered, wordsOf, type TalkTurn } from '../lib/talk';
 import { DOC_KIND_WORD, TALK_LIMITS, type TalkAskImage } from '../lib/talkAssist';
@@ -97,19 +100,30 @@ const ASKS: { label: string; text: string }[] = [
 export function TalksScreen() {
   const route = useRoute();
   const lineId = route.query.get('line') ?? '';
-  const lines = useFactoryLines();
+  const factoryLines = useFactoryLines();
+  /* INSIDE A PROJECT (docs/PROJECTS.md, P2): its talks first, a new one on it
+     and on its line — Line Talk then knows the project it is on */
+  const inP = useInProject();
+  const [scope, setScope] = useState<ProjectScope>('project');
+  const mayP = useAccess(inP.id ?? '');
+  const mayAdd = !inP.id || mayP.edit;
+  const pLines = inP.lineIds;
+  const lines = useMemo(() => (pLines.length ? [...factoryLines.filter(l => pLines.includes(l.id)), ...factoryLines.filter(l => !pLines.includes(l.id))] : factoryLines), [factoryLines, pLines]);
   const line = lines.find(l => l.id === lineId);
   const [talks, setTalks] = useState<ToolStudy[] | null>(null);
   const [pick, setPick] = useState(lineId);
+  useEffect(() => { if (!lineId && pLines.length) setPick(p => p || startLine(pLines)); }, [lineId, pLines]);
   const { session } = useSession();
   const load = useCallback(async () => setTalks((await listAllStudies()).filter(s => s.tool === 'talk' && (!lineId || s.workspaceId === lineId)).sort((a, b) => b.updatedAt - a.updatedAt)), [lineId]);
   useEffect(() => { void load(); return onDataChange(() => void load()); }, [load]);
+  const shown = talks ? inScope(talks, scope, inP.id, inP.lineIds) : null;
 
   const start = async (wsId: string) => {
     const name = lines.find(l => l.id === wsId)?.name;
     const t = now();
     const s: ToolStudy = {
       id: uid(), tool: 'talk', name: talkName(name, todayISO()), ...(wsId ? { workspaceId: wsId } : {}),
+      ...(inP.project ? { projectId: inP.project.id } : {}),
       ...(session?.user.id ? { ownerId: session.user.id } : {}),
       facts: { turns: [] }, uses: [], startedAt: t, createdAt: t, updatedAt: t,
     };
@@ -126,7 +140,9 @@ export function TalksScreen() {
           <p className="pl-says">Talk or type on the line, add photos, ask questions and ask for reports — Line Talk answers from what you said and what Faultline holds about the line. Tap the microphone and your words come up in the box as you speak; Send, and Line Talk answers. Everything is kept, and a talk can be opened and carried on any day.</p>
         </div>
       </header>
-      <section className="tk-new" aria-label="Start a Line Talk">
+      {inP.id && <ProjectScopeChips name={inP.project?.name} lines={inP.lineIds.length} scope={scope} onScope={setScope} />}
+      {mayAdd && <section className="tk-new" aria-label="Start a Line Talk">
+        {inP.project && <p className="sub ie-for" data-for-project={inP.project.id}>For <b>{inP.project.name}</b> — Line Talk knows the project, and what it makes is the project’s.</p>}
         {line ? (
           <button type="button" className="btn btn-primary tk-start" onClick={() => void start(line.id)}><Icon name="mic" size="1.1em" />Start a Line Talk on {line.name}</button>
         ) : (
@@ -140,12 +156,12 @@ export function TalksScreen() {
             <button type="submit" className="btn btn-primary tk-start"><Icon name="mic" size="1.1em" />Start a Line Talk</button>
           </form>
         )}
-      </section>
+      </section>}
       <section aria-label="Every Line Talk">
-        <h2 className="ln-h">{line ? `Line Talks on ${line.name}` : 'Every Line Talk'}</h2>
-        {talks === null ? <p className="sub">Reading…</p> : talks.length === 0 ? <p className="sub">None yet.</p> : (
+        <h2 className="ln-h">{line ? `Line Talks on ${line.name}` : inP.project && scope === 'project' ? `Line Talks on ${inP.project.name}` : 'Every Line Talk'}</h2>
+        {shown === null ? <p className="sub">Reading…</p> : shown.length === 0 ? <p className="sub">None yet.</p> : (
           <ul className="lt-rows">
-            {talks.map(s => {
+            {shown.map(s => {
               const turns = turnsOf(s.facts);
               const last = turns[turns.length - 1];
               return (

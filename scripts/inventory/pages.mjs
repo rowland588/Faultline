@@ -188,6 +188,13 @@ export const PAGES = (sd, cap) => [
     /* the lean page (17 October, slice 6; lib/ie/changeoverLean): the band, five tiles in the strip's place, the action plan, the closing line */
     { what: 'the band', sel: '.ln-band' }, { what: 'the five tiles — now, inside the stop, planned to, stopped in packs and £, bought back', sel: '.ie-strip .ln-tile', n: 5 },
     { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' }] },
+  /* A TOOL INSIDE A PROJECT (21 October, docs/PROJECTS.md P2): opened from the
+     project's rail, the page keeps the project's rail and lists its own first */
+  { name: 'SMED inside a project', path: `#/smed?project=${sd.pacedProjectId}`, must: [
+    { what: 'the project’s rail — its fishbone among its places', sel: '.nv-rail .nv-ri', text: /Fishbone/, desk: true },
+    { what: 'the project’s bar', sel: '.nv-bar .nv-bi-l', text: /This project/, phone: true },
+    { what: 'whose — the project’s own, everything on its lines, every line', sel: '.ip-scope .chip', n: 3 },
+    { what: 'the project’s own SMED', sel: '.lt-li[data-study]' }] },
   { name: 'A loss count', path: `#/losses/${sd.lossId}`, must: [
     { what: 'the waterfall, drawn', sel: 'svg.lf-fall' }, { what: 'what it says', sel: '.ie-says' },
     /* the lean page (17 October, docs/LEAN-PAGE.md): the band, the tiles, the causes, the action plan, the closing line */

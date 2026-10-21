@@ -15,6 +15,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { asked } from '../lib/lines';
 import { listAllStudies, listObservations, listStandardsForLine, listWorkspaces, onDataChange, putStudy } from '../db';
 import { useFactoryLines } from '../lib/useFactoryLines';
+import { useInProject } from '../lib/useInProject';
+import { inScope, startLine, type ProjectScope } from '../lib/inProject';
+import { ProjectScopeChips } from '../ui/ProjectScope';
 import { useArchivedPlaces } from '../lib/useFactoryLines';
 import type { Standard } from '../lib/standard';
 import { useProjects } from '../lib/useProjects';
@@ -140,6 +143,12 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
   const [adding, setAdding] = useState(() => asked('add') === '1');
   /* opened from a line's own page: that line's only, and New starts on it */
   const onLine = useMemo(() => asked('line'), []);
+  /* INSIDE A PROJECT (docs/PROJECTS.md, P2): its own first, everything on its
+     lines or every line one tap away, and New made on it */
+  const inP = useInProject();
+  const [scope, setScope] = useState<ProjectScope>('project');
+  const mayP = useAccess(inP.id ?? '');
+  const mayAdd = !inP.id || mayP.edit;
 
   const load = useCallback(async () => {
     const [all, ws] = await Promise.all([listAllStudies(), listWorkspaces()]);
@@ -158,13 +167,13 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
   const put = useArchivedPlaces();
   const groups = useMemo(() => {
     const by = new Map<string, ToolStudy[]>();
-    for (const s of list ?? []) {
+    for (const s of inScope(list ?? [], scope, inP.id, inP.lineIds)) {
       const k = s.workspaceId ? `ws:${s.workspaceId}` : s.projectId ? `job:${s.projectId}` : 'none';
-      if (put.has(k)) continue;
+      if (put.has(k) && !(inP.id && s.projectId === inP.id)) continue;
       by.set(k, [...(by.get(k) ?? []), s]);
     }
     return [...by.entries()].sort(([a], [b]) => (a === 'none' ? -1 : b === 'none' ? 1 : a.localeCompare(b)));
-  }, [list, put]);
+  }, [list, put, scope, inP.id, inP.lineIds]);
   const shownGroups = onLine ? groups.filter(([k]) => k === `ws:${onLine}`) : groups;
   const onLineName = onLine ? (lines.find(l => l.id === onLine)?.name ?? 'this line') : undefined;
   const groupName = (k: string) => (k === 'none' ? 'Not filed'
@@ -184,7 +193,7 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
         const line = lines.find(l => l.id === s.workspaceId), job = projects.find(p => p.id === s.projectId);
         return { s, where: `${line ? `On ${line.name}` : 'On no line'} · ${job ? `attached to ${job.name}` : 'on no project'}` };
       }));
-      const title = onLineName ? `${w.title} — ${onLineName}` : w.title;
+      const title = onLineName ? `${w.title} — ${onLineName}` : inP.project && scope === 'project' ? `${w.title} — ${inP.project.name}` : w.title;
       await saveStudiesPdf({ title, printed: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
         items, standards: await listAllStandards(), ctx: { observations: obs, workspaces: lines } }, title);
     } catch (e) {
@@ -202,9 +211,10 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
         </div>
         <div className="pace-head-actions">
           {shownCount > 0 && <button type="button" className="btn btn-ghost" disabled={printing} onClick={() => void paper()} aria-label={`${w.title} on paper — every one shown (PDF)`}>{printing ? 'Making…' : 'PDF (all shown)'}</button>}
-          <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>{w.add}</button>
+          {mayAdd && <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>{w.add}</button>}
         </div>
       </header>
+      {inP.id && <ProjectScopeChips name={inP.project?.name} lines={inP.lineIds.length} scope={scope} onScope={setScope} />}
       {onLine && (
         <div className="chip-row qsl-f" role="group" aria-label="Which line">
           <button type="button" className="chip on" aria-pressed>{onLineName}</button>
@@ -213,8 +223,8 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
       )}
       {list && shownGroups.length === 0 && (
         <div className="qsl-empty">
-          <p>{onLine ? `None on ${onLineName} yet.` : w.none}</p>
-          <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>{w.add}</button>
+          <p>{onLine ? `None on ${onLineName} yet.` : inP.id && scope !== 'all' ? `None ${scope === 'project' ? 'on' : 'on the lines of'} ${inP.project?.name ?? 'this project'} yet.` : w.none}</p>
+          {mayAdd && <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>{w.add}</button>}
         </div>
       )}
       {shownGroups.map(([k, rows]) => (
@@ -228,7 +238,7 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
           </ul>
         </section>
       ))}
-      <NewStudy open={adding} tool={tool} onClose={() => setAdding(false)} onLine={onLine} />
+      <NewStudy open={adding} tool={tool} onClose={() => setAdding(false)} onLine={onLine} project={inP.project && mayAdd ? { id: inP.project.id, name: inP.project.name, lineIds: inP.lineIds } : undefined} />
     </div>
   );
 }
@@ -270,7 +280,9 @@ function StudyRow({ s, ctx }: { s: ToolStudy; ctx?: StudyContext }) {
 
 /** A NEW ONE — what it is of, and the machine if it is one. Nothing else is
  *  asked first: it is a quick session until it is put somewhere. */
-function NewStudy({ open, tool, onClose, onLine }: { open: boolean; tool: StudyTool; onClose: () => void; onLine?: string }) {
+function NewStudy({ open, tool, onClose, onLine, project }: { open: boolean; tool: StudyTool; onClose: () => void; onLine?: string;
+  /** Made inside a project: it is the project's, on its line when it has one (docs/PROJECTS.md, P2). */
+  project?: { id: string; name: string; lineIds: string[] } }) {
   const w = TOOL_WORDS[tool] ?? CAPABILITY;
   const [name, setName] = useState('');
   const [machine, setMachine] = useState('');
@@ -280,8 +292,12 @@ function NewStudy({ open, tool, onClose, onLine }: { open: boolean; tool: StudyT
      business-wide mapping ... but keep the line large, different
      departments can affect the line"). */
   const [lineId, setLineId] = useState(onLine ?? '');
+  /* inside a project, on the project's line when it has one — its lines offered first */
+  const pLines = project?.lineIds;
+  useEffect(() => { if (open && !lineId && pLines) setLineId(startLine(pLines)); }, [open, lineId, pLines]);
   /* the lines of Your factory, in floor order (lib/useFactoryLines) */
-  const lines = useFactoryLines(onLine);
+  const factoryLines = useFactoryLines(onLine);
+  const lines = useMemo(() => (pLines?.length ? [...factoryLines.filter(l => pLines.includes(l.id)), ...factoryLines.filter(l => !pLines.includes(l.id))] : factoryLines), [factoryLines, pLines]);
   const [standards, setStandards] = useState<Standard[]>([]);
   useEffect(() => { if (lineId) void listStandardsForLine(lineId).then(setStandards); else setStandards([]); }, [lineId]);
   /* a map is always a line's; a sampling study watches a line's people; a
@@ -308,7 +324,7 @@ function NewStudy({ open, tool, onClose, onLine }: { open: boolean; tool: StudyT
         const from = name.trim(), to = machine.trim();
         const std = standards.find(x => !x.deletedAt && x.product.trim().toLowerCase() === to.toLowerCase());
         const s: ToolStudy = { id: uid(), tool, name: `${from} → ${to}`, product: to,
-          ...(lineId ? { workspaceId: lineId } : {}), ...(std ? { standardId: std.id } : {}),
+          ...(lineId ? { workspaceId: lineId } : {}), ...(project ? { projectId: project.id } : {}), ...(std ? { standardId: std.id } : {}),
           facts: { fromProduct: from, toProduct: to, sequence: [] }, uses: [], startedAt: t, createdAt: t, updatedAt: t };
         await putStudy(s);
         setName(''); setMachine(''); onClose();
@@ -325,7 +341,7 @@ function NewStudy({ open, tool, onClose, onLine }: { open: boolean; tool: StudyT
       const std = isLine ? standards.find(x => !x.deletedAt && x.product.trim().toLowerCase() === machine.trim().toLowerCase()) : undefined;
       const s: ToolStudy = { id: uid(), tool, name: name.trim() || (tool === 'losses' ? 'Loss count' : ''), ...second,
         /* on its line — a line tool's always, any other's when started from the line's own page */
-        ...(lineId ? { workspaceId: lineId } : {}), ...(tool === 'map' ? { agreed: { map: { scope: 'line' as const } } } : {}), ...(std ? { standardId: std.id } : {}),
+        ...(lineId ? { workspaceId: lineId } : {}), ...(project ? { projectId: project.id } : {}), ...(tool === 'map' ? { agreed: { map: { scope: 'line' as const } } } : {}), ...(std ? { standardId: std.id } : {}),
         facts: tool === 'losses' ? { losses: firstCount(lines.find(l => l.id === lineId)?.shifts ?? [], await rateForCount(lineId, std), t) } : {}, uses: [], startedAt: t, createdAt: t, updatedAt: t };
       await putStudy(s);
       setName(''); setMachine(''); onClose();
@@ -335,6 +351,7 @@ function NewStudy({ open, tool, onClose, onLine }: { open: boolean; tool: StudyT
   return (
     <Sheet open={open} onClose={onClose} title={w.add}>
       <form className="lt-new" onSubmit={e => { e.preventDefault(); void make(); }}>
+        {project && <p className="sub ie-for" data-for-project={project.id}>For <b>{project.name}</b> — it is the project’s, with everything else in it.</p>}
         {isChange && (
           <label className="field"><span className="field-label">Which line? <i className="sub">optional — its products are offered, and the interval needs it</i></span>
             <select className="text-input" value={lineId} aria-label="Which line" onChange={e => setLineId(e.target.value)}>
@@ -369,3 +386,4 @@ function NewStudy({ open, tool, onClose, onLine }: { open: boolean; tool: StudyT
     </Sheet>
   );
 }
+

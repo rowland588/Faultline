@@ -72,7 +72,7 @@ missing is the experience: the project was not a place you worked *inside*.
 
 ## The slices
 
-### P1 — One word: project
+### P1 — One word: project — built 21 October
 
 Every screen and paper says *project* where it said *job*: the rail, the list
 (*Projects*, *New project*), the front pages, the tools' *Use it for*, the
@@ -80,7 +80,7 @@ reports, the control room and Line Talk's context. Code names (`jobLine`,
 `useJobInputs`) stay — they are not seen. The smoke test fails if *job* comes
 back on a screen, as it does for the other old words (BLUEPRINT §5.9).
 
-### P2 — Open a project and the app is that project
+### P2 — Open a project and the app is that project — built 21 October
 
 - The project is carried while you work in it: a tool opened from inside it
   keeps the project's rail, not the control room's.
@@ -96,6 +96,32 @@ back on a screen, as it does for the other old words (BLUEPRINT §5.9).
   sessions, its talks — the line's other work one tap away.
 - Outside a project, nothing changes: a tool used on a line is the line's,
   and *Move into a project* takes it in.
+
+**As built (21 October).** A tool's page is still one page for every line
+and project; inside a project its address carries it — `?project=<id>`,
+put on every tool in the project's rail (`lib/inProject` inProject, `ui/rail`
+toolsGroup) — so the frame keeps the project's rail (`ui/Frame` projectOf)
+and the page reads it (`lib/useInProject`). Its list opens on **the
+project's own**, with *Everything on its lines* (the line's own work and
+other projects' on the same lines) and *Every line* one tap away
+(`ui/ProjectScope`; `lib/inProject` inScope). **New** there makes it on the
+project — the sheet says *For <the project>*, never asks *For a project?* —
+on the project's line when it has one, its lines offered first when it has
+several (`startLine`): the five studies (capability, value stream, SMED,
+work sampling, loss count), the line standard, the line balance, Line
+capacity, the video study and Line Talk, which then knows the project it is
+on. A record opened — a study, a talk, a video study, a product's line
+standard — wears **its own** project's rail however it is reached, and a
+record on no project the control room's. The Problem button on any of them
+takes a problem for the project (it already did on the project's own pages).
+New is offered inside a project only to those who may change it
+(`useAccess` can.edit) — a client of the project reads, as before.
+
+*Not yet:* the links into a tool from inside the project's own pages (the
+6M Evidence lens, a stage's line standard, the fishbone's *Count a shift*)
+open the record or the line's list as before, not the project's list; and
+*Move into a project* is the record's own *Attach to a project* (StudyPlace,
+the line standard's BelongsTo), as it was.
 
 ### P3 — The project's actions
 

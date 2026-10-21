@@ -36,6 +36,9 @@ import { offerUndo } from '../ui/Undo';
 import { Legend, Stacks } from '../ui/WorkBalance';
 import { StudyProves } from '../ui/ProveProgram';
 import { asked } from '../lib/lines';
+import { useInProject } from '../lib/useInProject';
+import { inScope, startLine, type ProjectScope } from '../lib/inProject';
+import { ProjectScopeChips } from '../ui/ProjectScope';
 import { probe, scanFootage } from '../lib/video/extract';
 import { checkFootage, VIDEO_LIMITS } from '../lib/video/validate';
 import { sampleInterval } from '../lib/video/detect';
@@ -83,9 +86,15 @@ function useStudies(): ToolStudy[] | null {
 
 /* =============================================================== the list */
 export function VideosScreen() {
-  const list = useStudies();
+  const all = useStudies();
   const lines = useFactoryLines();
   const { projects } = useProjects();
+  /* INSIDE A PROJECT (docs/PROJECTS.md, P2): its video studies first, a new one on it */
+  const inP = useInProject();
+  const [scope, setScope] = useState<ProjectScope>('project');
+  const mayP = useAccess(inP.id ?? '');
+  const mayAdd = !inP.id || mayP.edit;
+  const list = useMemo(() => (all ? inScope(all, scope, inP.id, inP.lineIds) : null), [all, scope, inP.id, inP.lineIds]);
   /* ?add=1 — a link straight to New (lib/lines asked) */
   const [adding, setAdding] = useState(() => !!asked('add'));
   /* …or while this list is open: the page stays, so New is opened afresh — its line read again */
@@ -95,7 +104,7 @@ export function VideosScreen() {
     window.addEventListener('hashchange', on);
     return () => window.removeEventListener('hashchange', on);
   }, []);
-  useEffect(() => { if (list) void resumeLeftJobs(list); }, [list]);
+  useEffect(() => { if (all) void resumeLeftJobs(all); }, [all]);
   return (
     <div className="wrap vid-list">
       <header className="pace-head">
@@ -103,14 +112,15 @@ export function VideosScreen() {
           <h1>Video studies</h1>
           <p className="sub">Film the line, say what you want to find out, and the app reads the footage for the work at each station. You review every piece it finds on the footage itself; the cycles, the line balance, takt and the report are worked out from what you accept.</p>
         </div>
-        <div className="pace-head-actions"><button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>New video study</button></div>
+        <div className="pace-head-actions">{mayAdd && <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>New video study</button>}</div>
       </header>
+      {inP.id && <ProjectScopeChips name={inP.project?.name} lines={inP.lineIds.length} scope={scope} onScope={setScope} />}
       {/* before a long study: whether the phone that would film it can (docs/VIDEO-FEASIBILITY.md) */}
       <p className="vck-door"><button type="button" className="linkish" onClick={() => nav('/video-check')}>Can this phone film a long study?</button> Try it here first: the camera read as it films, clips, a steady camera, the screen and the battery.</p>
       {list && !list.length && (
         <div className="qsl-empty">
-          <p>No video studies yet. A minute or two of the line, filmed side-on with every station in view, is enough for a first one.</p>
-          <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>New video study</button>
+          <p>{inP.id && scope !== 'all' ? `No video studies ${scope === 'project' ? 'on' : 'on the lines of'} ${inP.project?.name ?? 'this project'} yet. ` : 'No video studies yet. '}A minute or two of the line, filmed side-on with every station in view, is enough for a first one.</p>
+          {mayAdd && <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>New video study</button>}
         </div>
       )}
       {list && list.length > 0 && (
@@ -132,15 +142,20 @@ export function VideosScreen() {
           })}
         </ul>
       )}
-      <NewVideoStudy key={addKey} open={adding} onClose={() => setAdding(false)} />
+      <NewVideoStudy key={addKey} open={adding} onClose={() => setAdding(false)}
+        project={inP.project && mayAdd ? { id: inP.project.id, name: inP.project.name, lineIds: inP.lineIds } : undefined} />
     </div>
   );
 }
 
 const EXAMPLES = ['Analyse this video for line balance', 'Identify repeated cycles and calculate their durations', 'Review the longest observed waiting periods'];
 
-function NewVideoStudy({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const lines = useFactoryLines();
+function NewVideoStudy({ open, onClose, project }: { open: boolean; onClose: () => void;
+  /** Made inside a project: it is the project's — no "For a project?" asked — on its line when it has one (docs/PROJECTS.md, P2). */
+  project?: { id: string; name: string; lineIds: string[] } }) {
+  const factoryLines = useFactoryLines();
+  const pLines = project?.lineIds;
+  const lines = useMemo(() => (pLines?.length ? [...factoryLines.filter(l => pLines.includes(l.id)), ...factoryLines.filter(l => !pLines.includes(l.id))] : factoryLines), [factoryLines, pLines]);
   const { projects } = useProjects();
   const [file, setFile] = useState<File | null>(null);
   const [facts, setFacts] = useState<Partial<VideoFacts> | null>(null);
@@ -155,7 +170,9 @@ function NewVideoStudy({ open, onClose }: { open: boolean; onClose: () => void }
   const [scan, setScan] = useState<FootageScan | null>(null);
   const [scanning, setScanning] = useState<'no' | 'yes' | 'failed'>('no');
   const [lineId, setLineId] = useState(() => asked('line') ?? '');
-  const [projectId, setProjectId] = useState('');
+  const [projectId, setProjectId] = useState(project?.id ?? '');
+  useEffect(() => { if (project) setProjectId(project.id); }, [project]);
+  useEffect(() => { if (open && !lineId && pLines?.length) setLineId(startLine(pLines)); }, [open, lineId, pLines]);
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   const read = readObjective(objective || 'line balance');
@@ -253,12 +270,16 @@ function NewVideoStudy({ open, onClose }: { open: boolean; onClose: () => void }
             {lines.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
         </label>
-        <label className="field"><span className="field-label">For a project?</span>
-          <select className="text-input" value={projectId} aria-label="For a project" onChange={e => setProjectId(e.target.value)}>
-            <option value="">No — a study on its own</option>
-            {projects.filter(p => !p.deletedAt && !p.archivedAt).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-        </label>
+        {project
+          ? <p className="sub ie-for" data-for-project={project.id}>For <b>{project.name}</b> — it is the project’s, with everything else in it.</p>
+          : (
+            <label className="field"><span className="field-label">For a project?</span>
+              <select className="text-input" value={projectId} aria-label="For a project" onChange={e => setProjectId(e.target.value)}>
+                <option value="">No — a study on its own</option>
+                {projects.filter(p => !p.deletedAt && !p.archivedAt).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </label>
+          )}
         <label className="field"><span className="field-label">Its name</span>
           <input className="text-input" value={name} maxLength={120} aria-label="Its name" onChange={e => setName(e.target.value)} />
         </label>

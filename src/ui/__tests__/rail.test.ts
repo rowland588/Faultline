@@ -291,6 +291,19 @@ describe('the job first, the tools at the foot (docs/FLOW.md item 3)', () => {
     expect(labels(g)).toEqual(['Line standard', 'Line balance', 'Line capacity', 'Capability', 'Value stream', 'SMED', 'Work sampling', 'Loss count', 'Video study', 'Line Talk']);
   });
 
+  it('inside a project, every tool opens on the project — its address carries it (docs/PROJECTS.md, P2)', async () => {
+    const { parseRoute } = await import('../../state/useRoute');
+    const g = toolsGroup('capability', [], 'p1');
+    expect(g.lines.map(l => l.to)).toEqual(['/standards', '/linebalance', '/balances', '/capability', '/value-stream', '/smed', '/sampling', '/losses', '/video', '/talk'].map(t => `${t}?project=p1`));
+    /* lit where it is, as outside a project */
+    expect(g.lines.filter(l => l.on).map(l => l.label)).toEqual(['Capability']);
+    /* each address still parses to its tool, with the project in its query */
+    for (const l of g.lines) expect(parseRoute(`#${l.to}`).query.get('project')).toBe('p1');
+    expect(hereOf(parseRoute('#/smed?project=p1'))).toBe('changeover');
+    /* outside a project, unchanged */
+    expect(toolsGroup('').lines.every(l => !l.to?.includes('?'))).toBe(true);
+  });
+
   it('Control room problems is the control room’s, lit on its page (docs/FLOW-AUDIT.md #20)', async () => {
     const { snagsPlace } = await import('../rail');
     expect(here('#/snags')).toBe('quicksnags');
