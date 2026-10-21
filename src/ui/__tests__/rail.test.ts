@@ -114,9 +114,9 @@ describe('a stage-gate job’s places — the four gates one Plan (docs/STAGEGAT
   };
   const g = gatesGroup(P, 'setup', counts);
 
-  it('reads Plan · Programs · Problems · Materials · The day — the gates are the Plan’s tabs, not four lines', () => {
+  it('reads Plan · Programs · Problems · Actions · Materials · The day — the gates are the Plan’s tabs, not four lines', () => {
     expect(labels(g)).toEqual(['Plan', 'Programs', 'Problems', 'Actions', 'Materials', 'The day']);
-    expect(g.lines.map(l => l.to)).toEqual([`/project/${P}/install`, `/project/${P}/programs`, `/project/${P}/fixes`, `/project/${P}/materials`, `/project/${P}/day`]);
+    expect(g.lines.map(l => l.to)).toEqual([`/project/${P}/install`, `/project/${P}/programs`, `/project/${P}/fixes`, `/project/${P}/actions`, `/project/${P}/materials`, `/project/${P}/day`]);
   });
 
   it('Plan counts every gate’s open work and its late part, and is on whichever gate you are in', () => {
