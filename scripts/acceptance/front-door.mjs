@@ -50,7 +50,7 @@ const sits = (await page.locator('.fd-lib .fw-card[data-start^="e:"] .fw-card-p'
 ok(/^Bring new equipment into use — /.test(sits) && /Make a running line perform better — /.test(sits) && /Hit a number by a date — /.test(sits), '1 each by its situation', sits);
 const tools = await page.locator('.fd-tools li[data-tool] b').allInnerTexts();
 ok(tools.length === 11 && tools.includes('Line Talk') && tools.includes('Video study') && tools.includes('Line capacity') && tools.includes('Reliability'), '1 the eleven tools to use on their own — Line Talk and Reliability among them', tools.join(' · '));
-ok(await page.locator('.fd-tools .sub').count() === 10, '1 each tool says what it is for');
+ok(await page.locator('.fd-tools .sub').count() === 11, '1 each tool says what it is for');
 ok(/Set it up ›/.test(await page.locator('.fd-factory').innerText()), '1 Your factory, to set up');
 const rail = (await page.locator('.nv-rail').innerText()).replace(/\s+/g, ' ');
 ok(/Home/.test(rail) && /Projects/.test(rail) && !/Methods/.test(rail), '1 Home and Projects in the rail — no Methods', rail.slice(0, 160));
@@ -87,7 +87,7 @@ await page.setViewportSize({ width: 390, height: 800 });
 await home();
 const wide = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 ok(wide <= 1, '5 the phone: nothing off the side', `${wide}px`);
-ok(await page.locator('.fd-lib .fw-card').count() === 3 && await page.locator('.fd-tools li').count() === 10, '5 the phone: the three and the tools');
+ok(await page.locator('.fd-lib .fw-card').count() === 3 && await page.locator('.fd-tools li').count() === 11, '5 the phone: the three and the tools');
 
 ok(errs.length === 0, 'no console error', errs.join(' | '));
 await b.close();
