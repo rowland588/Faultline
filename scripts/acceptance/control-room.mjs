@@ -239,7 +239,8 @@ await page.locator('.nv-bar .nv-bi', { hasText: 'Problems' }).click(); await pag
 ok(linesOn && /#\/snags/.test(page.url()), `11c Lines opens Your factory, Problems the register (${page.url().split('#')[1]})`);
 await page.locator('.nv-bar .nv-bi', { hasText: 'More' }).click(); await page.waitForTimeout(800);
 const more = flat(await page.locator('.nv-sheet').innerText());
-ok(/JOBS/i.test(more) && ['Line 2 commissioning', 'Line 7 pace', 'Line 7 jams'].every(n => more.includes(n)) && /Control room/.test(more), '11d every job is still in More, and the control room');
+const underProjects = flat(await page.locator('.nv-sheet .nv-grp', { has: page.locator('.nv-grp-l', { hasText: /^Projects$/ }) }).innerText().catch(() => ''));
+ok(['Line 2 commissioning', 'Line 7 pace', 'Line 7 jams'].every(n => underProjects.includes(n)) && /Control room/.test(more), '11d every project is still in More, under Projects, and the control room', underProjects);
 await board();
 await page.locator('.jb-stat.is-crit').click(); await page.waitForTimeout(700);
 await shot('6-critical-phone');
