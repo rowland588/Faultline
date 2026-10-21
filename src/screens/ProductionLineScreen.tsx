@@ -69,6 +69,7 @@ export const TOOLS: { key: string; label: string; to: string; study?: StudyTool;
   { key: 'changeover', label: 'SMED', to: '/smed', study: 'changeover', what: 'a changeover timed and cut down' },
   { key: 'sampling', label: 'Work sampling', to: '/sampling', study: 'sampling', what: 'what people are doing, at random moments' },
   { key: 'losses', label: 'Loss count', to: '/losses', study: 'losses', what: 'a shift’s losses, in minutes and pounds' },
+  { key: 'reliability', label: 'Reliability', to: '/reliability', study: 'reliability', what: 'a machine watched running: MTBF and the failure rate' },
   /* Line Talk — the AI tool (docs/LINE-TALK.md): talk on the line, every word heard and kept */
   { key: 'talk', label: 'Line Talk', to: '/talk', study: 'talk', what: 'talk or type on the line, as in a chat — it answers and writes the reports' },
 ];

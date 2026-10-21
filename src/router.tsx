@@ -50,6 +50,7 @@ const StudiesScreen = lazy(() => import('./screens/StudiesScreen').then(m => ({ 
 const StudyScreen = lazy(() => import('./screens/StudyScreen').then(m => ({ default: m.StudyScreen })));
 const MapScreen = lazy(() => import('./screens/MapScreen').then(m => ({ default: m.MapScreen })));
 const ChangeoverScreen = lazy(() => import('./screens/ChangeoverScreen').then(m => ({ default: m.ChangeoverScreen })));
+const ReliabilityScreen = lazy(() => import('./screens/ReliabilityScreen').then(m => ({ default: m.ReliabilityScreen })));
 const SamplingScreen = lazy(() => import('./screens/SamplingScreen').then(m => ({ default: m.SamplingScreen })));
 const LossesScreen = lazy(() => import('./screens/LossesScreen').then(m => ({ default: m.LossesScreen })));
 const ShareScreen = lazy(() => import('./screens/ShareScreen').then(m => ({ default: m.ShareScreen })));
@@ -161,12 +162,13 @@ function app(route: Route) {
   /* ?line= opens it on one line — keyed on it, so a second line starts afresh */
   if (route.name === 'linePrograms') return <LineProgramsScreen key={route.query.get('line') ?? ''} />;
   if (route.name === 'lineTools') return <LineToolsScreen key={`${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} tool={route.view === 'balance' ? 'balance' : route.view === 'work' ? 'work' : 'map'} />;
-  if (route.name === 'studies') return <StudiesScreen key={`${route.view ?? 'capability'}:${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} tool={route.view === 'map' ? 'map' : route.view === 'changeover' ? 'changeover' : route.view === 'sampling' ? 'sampling' : route.view === 'losses' ? 'losses' : 'capability'} />;
+  if (route.name === 'studies') return <StudiesScreen key={`${route.view ?? 'capability'}:${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} tool={route.view === 'map' ? 'map' : route.view === 'changeover' ? 'changeover' : route.view === 'sampling' ? 'sampling' : route.view === 'losses' ? 'losses' : route.view === 'reliability' ? 'reliability' : 'capability'} />;
   if (route.name === 'study' && route.id) {
     if (route.view === 'map') return <MapScreen key={route.id} id={route.id} />;
     if (route.view === 'changeover') return <ChangeoverScreen key={route.id} id={route.id} />;
     if (route.view === 'sampling') return <SamplingScreen key={route.id} id={route.id} />;
     if (route.view === 'losses') return <LossesScreen key={route.id} id={route.id} />;
+    if (route.view === 'reliability') return <ReliabilityScreen key={route.id} id={route.id} />;
     return <StudyScreen key={route.id} id={route.id} />;
   }
   /* THE PACED SURFACES, each behind the model it belongs to. Binding the id

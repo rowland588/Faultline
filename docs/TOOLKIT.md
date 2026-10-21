@@ -416,6 +416,7 @@ outside" is red; "Cpk 0.67" is amber with its word.
 | Measured test | Cpk | 25 readings or more | "from 12 — too few for capability" |
 | Time study | standard time | n ≥ (t·s ÷ 0.05·mean)², t Student's at n − 1 df, five at least | "12 of 15 cycles" |
 | Work sampling | each share | N ≥ Z²p(1−p) ÷ E² for the margin wanted; the margin shown is Wilson's half-width (the same at middling shares, never ±0 at 0% or 100%) | "30% ±9 points from 100 taps — 223 more for ±5" |
+| Reliability | MTBF and the failure rate | 5 events or more (under five said rough; none, only "at least", 90%) | "rough: 3 stops so far, 5 before it is said firmly" |
 | Ramp-up | the date it meets rate | 3 runs or more | "too early — 2 runs" |
 | Pace | the forecast | 5 stages finished or more | "too early to tell" |
 | A shift's losses | the waterfall | every stop in the shift logged; the running speed timed | "9 min of slow running and short stops" |
@@ -1374,6 +1375,76 @@ hours worked. *"Shift 1: 38 earned of 48 worked — 79%."*
 learning · can do it · can train it — as a matrix; cover and gaps by shift.
 It needs people as records, which the app keeps only as project members
 today; it waits.
+
+## 13. Reliability — MTBF and the failure rate, by a person at the machine
+
+Rowland, 21 October: *"a tool ... to measure machine reliability, MTBF and a
+failure rate ... a person stood at a machine, tapping a button every time an
+event happened, a stop, could be a failure or a pick or whatever the
+machine's function is ... also I start a clock watch I can stop and start,
+the calculation of MTBF makes sense why I need these 2 things ... allow
+continued testing, and continued testing builds up data"*.
+
+**The record.** A `studies` row of tool `reliability` (`supabase/RELIABILITY.sql`
+added it to the check). Agreed before the watch starts (`agreed.reliability`):
+what counts as an event, in the floor's words (a stop, a failure, a jam, a
+pick); what one can be when the team tells them apart (a button each); the
+MTBF wanted; the minutes the line stands for each. The facts, each an
+id-keyed list so two phones at one machine both keep theirs: `watch` (each
+stretch the watch ran — from, to, who), `events` (each tap — when, who, its
+kind, a note; struck, never erased) and `remarks` (the commentary — what was
+seen, tried, what to look at; edited where it sits, taken off with Undo).
+Coming back another day adds to the same lists; the figures firm up.
+
+**At the machine.** Two big controls: the watch (Start while watching it run;
+Stop while it is down, at a break, when leaving) and the event button (a tap
+each one seen; a button a kind). An event counts only while the watch runs.
+The last tap is said back with Undo, a kind and a note; every tap and every
+stretch can be struck later. The screen is kept awake while the watch runs.
+A stretch longer than twelve hours is asked about — left on? — and stopped at
+its last tap in one press, so a night is never counted as watched.
+
+**The arithmetic** (`lib/ie/reliability`, pure):
+
+- watched time T = the stretches the watch ran, overlaps counted once (two
+  phones); n = the events in them, not struck;
+- MTBF = T ÷ n; failure rate λ = n ÷ T, an hour;
+- 90% bounds, events at random over a time-ended watch: MTBF between
+  2T/χ²(0.95; 2n+2) and 2T/χ²(0.05; 2n) (χ² of even degrees exact, from the
+  Poisson sum); with none yet, only "at least 2T/χ²(0.90; 2)";
+- the chance of an hour with none, e^(−1 h ÷ MTBF), and the run nine in ten
+  last, MTBF × −ln 0.9;
+- the gaps between one event and the next in watched time — median, shortest,
+  longest, spread (CV): near 1 at random, well under regular (something that
+  comes round), well over in bursts (one brings the next); read from five gaps;
+- the trend, Laplace's test at 90% (from four events): coming more often as
+  the watching goes on (worse), less often (better), or no sign;
+- by kind: each one's count, share and its own MTBF (T over its count);
+- by day: watched, events and MTBF — the trend drawn;
+- against the MTBF wanted: met when the lower bound clears it, short when the
+  upper does not reach it, not yet sure either side between;
+- before → after (a reliability study as a fix's proof): longer or shorter
+  only when the bounds part — else "not yet sure, keep watching".
+
+**Money** (the one cost model, `lib/cost`): with the minutes stood an event,
+the minutes stood an hour of running = λ × those minutes; the crew's time
+(crew × wage × on-costs) and the packs not made at the line's rated speed
+where it stops the line, and their margin — an hour of running and a day of
+the line's shifts. What is not given is named, never guessed.
+
+**The page** (the lean page): the band and its verdict; the watch and the
+event button; the tiles — MTBF with its bounds and since the days before,
+failure rate, watched, events, what it costs; what it means; the graphs —
+events against watched hours (a straight line is a steady rate), the gaps,
+the MTBF day by day; what the events were; the days; every event and every
+stretch; what was agreed; the commentary; Used for and Make it better (short
+or not yet sure); the action plan; the closing line. Its paper
+(`lib/studiesPdf`, `lib/report/reliabilityTable`) carries the same. Proved by
+`scripts/acceptance/reliability.mjs`.
+
+**Not yet.** The time to put a stop right (MTTR) — the watch stopped for a
+repair is not yet told apart from a break; the fishbone offering a
+reliability study on the Machine bone; the line's card in the control room.
 
 ---
 

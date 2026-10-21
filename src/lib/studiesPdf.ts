@@ -38,6 +38,10 @@ import { samplingBlocks } from './report/samplingTable';
 import { balanceBlocks } from './report/balanceTable';
 import { balance } from './ie/balance';
 import { agreedFor, balanceCost, costInputs, crewKept } from './ie/balanceLink';
+import { costWords, relCost, reliability, reliabilityInsights, reliabilitySays, type RelFigures } from './ie/reliability';
+import { relClosing, relTiles, relTrend } from './ie/reliabilityLean';
+import { relChartBlock, relDaysBlocks, relKindsBlocks, remarksBlocks } from './report/reliabilityTable';
+import type { AgreedReliability } from './study';
 
 import { todayISO } from './weeks';
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
@@ -194,6 +198,12 @@ function studyLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Blo
     eyebrow = a.walk ? 'Bottleneck walk' : 'Work sampling'; verdict = { text: said.verdict, tone: said.tone };
     tiles = samplingTiles(a, taps, momentsAt(a, taps, Date.now()), rate); closing = samplingClosing(a, taps, said, rate);
     body = e.sampling ? samplingBlocks(e.sampling) : [];
+  } else if (s.tool === 'reliability' && s.agreed?.reliability) {
+    const a = s.agreed.reliability, f = reliability(a, s.facts.watch, s.facts.events), said = reliabilitySays(a, f);
+    const line = p.ctx?.workspaces?.find(w => w.id === s.workspaceId) as Parameters<typeof relCost>[2] | undefined;
+    eyebrow = 'Reliability study'; verdict = { text: said.verdict, tone: said.tone };
+    tiles = relTiles(a, f, relCost(f, a, line)); closing = relClosing(a, f, relCost(f, a, line), said);
+    body = reliabilityBlocks(s, a, f, line);
   } else if (s.tool === 'map') {
     const list = s.facts.flow ?? [], f = flowFigures(list, s.agreed?.map);
     eyebrow = 'Value stream map'; verdict = { text: f.steps ? `${f.untimed ? '≥ ' : ''}${dur(f.leadSec)} lead time` : 'No steps yet', tone: f.longestCycle?.overTakt ? 'r' : 'n' };
@@ -213,9 +223,30 @@ function studyLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Blo
   return out;
 }
 
+/** A RELIABILITY STUDY'S OWN PARTS — what it means, the events against watched
+ *  hours, the MTBF day by day, what the events were, what they cost, the days
+ *  and the commentary (lib/report/reliabilityTable), as its page shows them. */
+function reliabilityBlocks(s: ToolStudy, a: AgreedReliability, f: RelFigures, line?: Parameters<typeof relCost>[2]): Block[] {
+  const out: Block[] = [];
+  const ins = reliabilityInsights(a, f);
+  if (ins.length) out.push(...leanInsights(ins));
+  const chart = relChartBlock(f, a.event);
+  if (chart) { out.push(leanHead(`${a.event.charAt(0).toUpperCase()}${a.event.slice(1)}s against watched hours`)); out.push(chart); }
+  const trend = relTrend(a, f);
+  if (trend) { out.push(leanHead(trend.title)); out.push(leanTrend(trend)); }
+  if (f.kinds.length) { out.push(leanHead(`What they were`)); out.push(...relKindsBlocks(f)); }
+  const cost = relCost(f, a, line);
+  if (cost.downMinPerH !== undefined) out.push(text({ text: `What it costs: ${costWords(cost)}.`, size: 8.5, colour: INK2, after: 4 }));
+  else if (f.rate !== undefined && cost.missing.length) out.push(text({ text: `What it costs is said once given: ${cost.missing.join('; ')}.`, size: 8, colour: MUTED, after: 4 }));
+  if (f.days.length) { out.push(leanHead('Day by day')); out.push(...relDaysBlocks(f)); }
+  out.push(leanHead('Commentary'));
+  out.push(...remarksBlocks(s.facts.remarks));
+  return out;
+}
+
 function blocksOf(p: StudiesPaper, d: Density): Block[] {
   if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'losses') return lossLeanBlocks(p, p.items[0], d);
-  if (p.lean && p.items.length === 1 && ['capability', 'sampling', 'map'].includes(p.items[0].s.tool)) return studyLeanBlocks(p, p.items[0], d);
+  if (p.lean && p.items.length === 1 && ['capability', 'sampling', 'map', 'reliability'].includes(p.items[0].s.tool)) return studyLeanBlocks(p, p.items[0], d);
   if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'changeover') return smedLeanBlocks(p, p.items[0], d);
   const out: Block[] = [];
   out.push(text({ text: p.items.length === 1 ? 'A STUDY · MEASURED BY PEOPLE AT THE LINE' : `${p.items.length} STUDIES · MEASURED BY PEOPLE AT THE LINE`, size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
@@ -233,6 +264,11 @@ function blocksOf(p: StudiesPaper, d: Density): Block[] {
     if (e.changeover) out.push(...changeoverBlocks(e.changeover, e.line));
     if (e.losses) out.push(...lossBlocks(e.losses));
     if (e.sampling) out.push(...samplingBlocks(e.sampling));
+    /* A RELIABILITY STUDY — its own parts, as on its own paper */
+    if (s.tool === 'reliability' && s.agreed?.reliability) {
+      const a = s.agreed.reliability;
+      out.push(...reliabilityBlocks(s, a, reliability(a, s.facts.watch, s.facts.events), p.ctx?.workspaces?.find(w => w.id === s.workspaceId) as Parameters<typeof relCost>[2] | undefined));
+    }
     /* THE LINE BALANCE — each person's work against takt, and what the
        bottleneck costs a pack and a minute (lib/report/balanceTable) */
     if (s.tool === 'balance') {

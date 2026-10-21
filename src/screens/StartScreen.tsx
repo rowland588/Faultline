@@ -43,6 +43,7 @@ const TOOL_SAYS: Record<string, string> = {
   '/smed': 'A changeover timed element by element, internal and external',
   '/sampling': 'What people are doing at random moments, with margins',
   '/losses': 'Where a shift’s time went at the bottleneck’s speed, in packs and pounds',
+  '/reliability': 'A machine watched running, a tap for each stop: MTBF and the failure rate, with their bounds',
   '/video': 'Film the line: the work at each station read from the footage, reviewed, worked out as a line balance',
   '/talk': 'Talk or type on the line — your words come up as you speak — add photos, ask questions and ask for reports',
 };

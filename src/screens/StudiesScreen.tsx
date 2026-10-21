@@ -34,6 +34,7 @@ import { rateForCount } from '../ui/ShiftLosses';
 import { dur, flowFigures, share } from '../lib/ie/steps';
 import { changeoverFigures, changeoverSays, figuresOf, mins } from '../lib/ie/changeover';
 import { samplingSays } from '../lib/ie/sampling';
+import { reliability, reliabilitySays, span } from '../lib/ie/reliability';
 import { firstCount, lossLine, windowWords } from '../lib/ie/losses';
 import type { StudyTool, ToolStudy } from '../lib/study';
 import type { Observation, Workspace } from '../types';
@@ -97,9 +98,23 @@ const LOSSES: ToolWords = {
   none: 'No loss counts yet. Pick a line; at the end of the shift, pick the shift and type the packs made and the rejects — the stops timed through the shift explain the rest.',
   second: { label: 'Which product?', placeholder: 'e.g. Maris Piper 2kg' },
 };
+/* A MACHINE'S RELIABILITY (docs/TOOLKIT.md, tool 13; Rowland, 21 October):
+   a person at the machine, a watch started and stopped while it is watched
+   running, and a tap for each event — MTBF and the failure rate, firming up
+   as the watching builds. Stored as tool `reliability`. */
+const RELIABILITY: ToolWords = {
+  title: 'Reliability',
+  one: 'Reliability study',
+  lede: 'Stand at a machine: start the watch while you watch it run, stop it while it is down or you are away, and tap each event — a stop, a failure, a pick — as you see it. MTBF and the failure rate work themselves out, with how sure they are, the gaps, the trend and what it costs; come back another day and the figures build. Use one on its own, or on a line and a project.',
+  add: 'New reliability study',
+  placeholder: 'e.g. Filler 2 stops',
+  none: 'No reliability studies yet. Say which machine, agree what counts as an event, then start the watch at the machine and tap each one you see.',
+  second: { label: 'Which machine?', placeholder: 'e.g. Filler 2' },
+};
+
 const OWNER = canOf('owner');
 
-export const TOOL_WORDS: Partial<Record<StudyTool, ToolWords>> = { capability: CAPABILITY, map: MAP, changeover: CHANGEOVER, sampling: SAMPLING, losses: LOSSES };
+export const TOOL_WORDS: Partial<Record<StudyTool, ToolWords>> = { capability: CAPABILITY, map: MAP, changeover: CHANGEOVER, sampling: SAMPLING, losses: LOSSES, reliability: RELIABILITY };
 
 export { studyHref } from '../lib/studyLinks';
 
@@ -116,6 +131,7 @@ export function studyLine(s: ToolStudy, ctx?: StudyContext): { text: string; ton
     return { text: f.steps ? `lead time ${f.untimed ? 'at least ' : ''}${dur(f.leadSec)} · ${share(f.pce ?? 0)} adds value` : 'no steps yet', tone: 'n' };
   }
   if (s.tool === 'sampling') return { text: samplingSays(s.agreed?.sampling, s.facts.taps ?? []).verdict, tone: 'n' };
+  if (s.tool === 'reliability') { const said = reliabilitySays(s.agreed?.reliability, reliability(s.agreed?.reliability, s.facts.watch, s.facts.events)); return { text: said.verdict, tone: said.tone }; }
   if (s.tool === 'losses') {
     const c = s.facts.losses;
     if (!c) return { text: 'not yet counted', tone: 'n' };
@@ -129,7 +145,7 @@ export function studyLine(s: ToolStudy, ctx?: StudyContext): { text: string; ton
 }
 
 /** Each tool's list of every study, every line — "Every line" from one line's list. */
-const TOOL_HOME: Partial<Record<StudyTool, string>> = { capability: '/capability', map: '/value-stream', changeover: '/smed', sampling: '/sampling', losses: '/losses' };
+const TOOL_HOME: Partial<Record<StudyTool, string>> = { capability: '/capability', map: '/value-stream', changeover: '/smed', sampling: '/sampling', losses: '/losses', reliability: '/reliability' };
 
 export function StudiesScreen({ tool }: { tool: StudyTool }) {
   const w = TOOL_WORDS[tool] ?? CAPABILITY;
@@ -243,6 +259,13 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
   );
 }
 
+/** A reliability study on a list: watched time and events, and running now. */
+function relWhere(s: ToolStudy): string {
+  const f = reliability(s.agreed?.reliability, s.facts.watch, s.facts.events);
+  const ev = s.agreed?.reliability?.event ?? 'event';
+  return `${span(f.hours)} watched · ${f.n} ${f.n === 1 ? ev : `${ev}s`}${f.runningSince ? ' · watching now' : ''}`;
+}
+
 /** ONE STUDY ON ITS TOOL'S LIST — opened with a tap; renamed and deleted where
  *  it sits (Rowland, 13 October: "always implement deletes and editing in
  *  everything"), the same two its own page has (ui/StudyActs). On a job the
@@ -265,6 +288,7 @@ function StudyRow({ s, ctx }: { s: ToolStudy; ctx?: StudyContext }) {
         <span className={'lt-says ie-tone is-' + said.tone}>{said.text}</span>
         <span className="lt-where">{s.tool === 'sampling' ? `${(s.agreed?.sampling?.who ?? []).length} watched · ${(s.facts.taps ?? []).filter(x => !x.struck).length} taps` : s.tool === 'map' ? `${steps} step${steps === 1 ? '' : 's'}${(s.facts.future ?? []).length ? ' · a future state' : ''}`
           : s.tool === 'changeover' ? `${(s.facts.sequence ?? []).length} element${(s.facts.sequence ?? []).length === 1 ? '' : 's'}${changeoverFigures(s.facts.sequence).enough ? ` · ${mins(changeoverFigures(s.facts.sequence).nowSec)}` : ''}`
+          : s.tool === 'reliability' ? relWhere(s)
           : s.tool === 'losses' ? (lc ? `${windowWords(lc)} · ${new Date(lc.from).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}` : 'no shift picked yet')
             : count ? `${n} of ${count}` : `${n} reading${n === 1 ? '' : 's'}`}{s.closedAt ? ' · closed' : ''}</span>
       </button>
@@ -310,6 +334,10 @@ function NewStudy({ open, tool, onClose, onLine, project }: { open: boolean; too
      plate speed, the interval needs it — but a quick session on its own
      still times a changeover and works it through the stages). */
   const isChange = tool === 'changeover';
+  /* A RELIABILITY study is of a machine: the line is asked, optional — its
+     machines are offered and its cost model prices the events — and a quick
+     session on its own still watches a machine and counts. */
+  const isRel = tool === 'reliability';
   /* A study of a machine started on a line offers the line's machines —
      the one list every "which machine" reads (lib/lineRecords machinesOf;
      flow audit #14: "A study's machine is typed"). */
@@ -352,8 +380,8 @@ function NewStudy({ open, tool, onClose, onLine, project }: { open: boolean; too
     <Sheet open={open} onClose={onClose} title={w.add}>
       <form className="lt-new" onSubmit={e => { e.preventDefault(); void make(); }}>
         {project && <p className="sub ie-for" data-for-project={project.id}>For <b>{project.name}</b> — it is the project’s, with everything else in it.</p>}
-        {isChange && (
-          <label className="field"><span className="field-label">Which line? <i className="sub">optional — its products are offered, and the interval needs it</i></span>
+        {(isChange || isRel) && (
+          <label className="field"><span className="field-label">Which line? <i className="sub">{isRel ? 'optional — its machines are offered, and what the events cost needs it' : 'optional — its products are offered, and the interval needs it'}</i></span>
             <select className="text-input" value={lineId} aria-label="Which line" onChange={e => setLineId(e.target.value)}>
               <option value="">No line yet — a quick session</option>
               {lines.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}

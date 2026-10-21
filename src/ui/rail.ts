@@ -124,7 +124,7 @@ export function hereOf(route: Route): string {
     /* a line's own product — its map, its line balance (?at=work) or its
        Line capacity (?at=balance) — lights the tool it is, as the list does */
     case 'lineStandards': return route.query.get('at') === 'work' || route.query.get('view') === 'work' ? 'linework' : route.query.get('at') === 'balance' ? 'linebalance' : 'linestandard';
-    case 'studies': case 'study': return route.view === 'map' ? 'valuestream' : route.view === 'changeover' ? 'changeover' : route.view === 'sampling' ? 'sampling' : route.view === 'losses' ? 'losses' : 'capability';
+    case 'studies': case 'study': return route.view === 'map' ? 'valuestream' : route.view === 'changeover' ? 'changeover' : route.view === 'sampling' ? 'sampling' : route.view === 'losses' ? 'losses' : route.view === 'reliability' ? 'reliability' : 'capability';
     case 'projectDashboard': {
       const v = route.query.get('view');
       /* `next` is the board as a list; `snags` on a stage-gate job is sent to
@@ -205,6 +205,8 @@ export const toolPlaces = (here: string, projectId?: string): RailLine[] => ([
   { key: 'sampling', label: 'Work sampling', to: '/sampling', on: here === 'sampling', state: 'n', bare: true, icon: 'people' },
   /* A shift's losses by hand — two counts at the end of the shift and the stops already timed; the waterfall, in minutes and pounds (tool 7). */
   { key: 'losses', label: 'Loss count', to: '/losses', on: here === 'losses', state: 'n', bare: true, icon: 'time' },
+  /* Reliability — a person at a machine, a watch started and stopped and a tap for each event: MTBF and the failure rate (tool 13). */
+  { key: 'reliability', label: 'Reliability', to: '/reliability', on: here === 'reliability', state: 'n', bare: true, icon: 'machine' },
   /* A video study — footage of the line read for the work at each station, reviewed, worked out as a line balance (docs/VIDEO.md). */
   { key: 'video', label: 'Video study', to: '/video', on: here === 'video', state: 'n', bare: true, icon: 'camera' },
   /* Line Talk — talk on the line, every word heard and kept, carried on like a chat (docs/LINE-TALK.md): the AI tool */

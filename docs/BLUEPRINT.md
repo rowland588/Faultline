@@ -1482,6 +1482,22 @@ is still wired.
   other paper's. Proved by `report-stress.mjs` (the tiles and the closing
   line on the day's paper, at three sizes and forty random jobs) and
   `inventory.mjs` (the day's first entry: its update, tiles, closing line).
+- **Reliability — MTBF and the failure rate** (Rowland, 21 October: "a
+  person stood at a machine, tapping a button every time an event happened
+  ... also I start a clock watch I can stop and start"). Placed (§8): *On the
+  line*, a tool of its own among the tools, used on its own, on a line or in
+  a project. Record: `studies`, tool `reliability` — one value added to
+  `studies_tool_check` (`supabase/RELIABILITY.sql`, applied live 21 October
+  and read back); its facts `watch`, `events`, `remarks` and its agreement
+  `agreed.reliability` inside the study's jsonb, no column. Replaces nothing.
+  Shows on: the rail and Jump to (*Reliability*, `#/reliability`), the front
+  door's tools, a line's page tools (its latest's sentence — and Line Talk is
+  told it), the study's own page, its list (by line, and by project as P2
+  scopes every tool), a project's Used for and Make it better, a fix's
+  before → after when one is its proof, its paper (the lean page; the list's
+  PDF), and the reports' Evidence (its sentence, as every study's). Money:
+  `lib/cost`, from the minutes stood an event. The design: `docs/TOOLKIT.md`,
+  13. Accepted by `reliability.mjs`; the page by `inventory.mjs`.
 - **Next:** money for a problem left open and a 6M countermeasure (§6);
   then the lean page, slices 6–7 (SMED, value stream, work sampling,
   capability; commissioning, programs, handover, materials papers)

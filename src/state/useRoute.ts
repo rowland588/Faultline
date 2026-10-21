@@ -121,6 +121,11 @@ export function parseRoute(hash: string): Route {
   if (segs[0] === 'sampling') {
     return segs[1] ? { name: 'study', view: 'sampling', id: decodeURIComponent(segs[1]), query } : { name: 'studies', view: 'sampling', query };
   }
+  /* /reliability is every reliability study; /reliability/:id one of them
+     (docs/TOOLKIT.md, tool 13 — a machine's MTBF and failure rate, tapped). */
+  if (segs[0] === 'reliability') {
+    return segs[1] ? { name: 'study', view: 'reliability', id: decodeURIComponent(segs[1]), query } : { name: 'studies', view: 'reliability', query };
+  }
   if (segs[0] === 'capability') {
     return segs[1] ? { name: 'study', view: 'capability', id: decodeURIComponent(segs[1]), query } : { name: 'studies', view: 'capability', query };
   }
