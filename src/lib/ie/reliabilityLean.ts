@@ -1,0 +1,57 @@
+/* A RELIABILITY STUDY AS A LEAN PAGE (docs/LEAN-PAGE.md) — the tiles, the
+ * trend and the closing line its page (screens/ReliabilityScreen) and its
+ * paper say, read from lib/ie/reliability. Nothing is worked out here: the
+ * figures are the module's, the money its relCost (lib/cost, the one cost
+ * model). The MTBF wears a colour only against an MTBF agreed — green met,
+ * amber not yet sure, red short; without one it is grey, the team's to judge. */
+import { niceDay } from '../weeks';
+import { since, type LeanTile, type LeanTone, type LeanTrend } from '../lean';
+import type { AgreedReliability } from '../study';
+import { dayPoints, perHour, plural, span, type RelCost, type RelFigures, type RelSays } from './reliability';
+
+const gbp = (n: number): string => `£${n >= 100 ? Math.round(n).toLocaleString('en-GB') : n.toFixed(2)}`;
+const TONE: Record<NonNullable<RelFigures['verdict']>, LeanTone> = { met: 'g', 'met-unsure': 'a', 'short-unsure': 'a', short: 'r' };
+
+export function relTiles(a: AgreedReliability, f: RelFigures, c: RelCost): LeanTile[] {
+  const ev = a.event.trim() || 'event', evs = plural(ev);
+  const want = a.targetMin && a.targetMin > 0 ? a.targetMin / 60 : undefined;
+  /* the latest day watched against every day before it */
+  const withN = f.days.filter(d => d.mtbfH !== undefined);
+  const last = withN[withN.length - 1];
+  const before = withN.slice(0, -1);
+  const beforeH = before.reduce((s, d) => s + d.hours, 0), beforeN = before.reduce((s, d) => s + d.n, 0);
+  const change = last && beforeN ? since((last.mtbfH as number) * 60, (beforeH / beforeN) * 60, { fmt: x => `${Math.round(x)} min`, higher: true, against: `before ${niceDay(last.day)}` }) : undefined;
+  return [
+    f.mtbfH !== undefined
+      ? { k: 'MTBF', v: span(f.mtbfH), of: `mean time between ${evs} · 90% sure ${span(f.lo ?? 0)}–${span(f.hi ?? 0)}${want ? ` · ${span(want)} wanted` : ''}${f.enough === 'rough' ? ' · rough' : ''}`,
+        ...(change ? { change } : {}), ...(f.verdict ? { tone: TONE[f.verdict] } : {}) }
+      : { k: 'MTBF', v: f.lo !== undefined ? `≥ ${span(f.lo)}` : '—', of: f.hours > 0 ? `no ${evs} yet — 90% sure it is at least this` : 'start the watch at the machine', ...(f.verdict ? { tone: TONE[f.verdict] } : {}) },
+    f.rate !== undefined
+      ? { k: 'Failure rate', v: perHour(f.rate), of: `${evs} an hour of watched running · 90% sure ${perHour(f.rateLo ?? 0).replace(' an hour', '')}–${perHour(f.rateHi ?? 0)}` }
+      : { k: 'Failure rate', v: '—', of: f.rateHi !== undefined ? `at most ${perHour(f.rateHi)}, 90% sure` : `${evs} an hour, once watched` },
+    { k: 'Watched', v: span(f.hours), of: `${f.stretches} stretch${f.stretches === 1 ? '' : 'es'} of the watch over ${f.days.length} day${f.days.length === 1 ? '' : 's'}${f.runningSince ? ' · running now' : ''}` },
+    { k: plural(ev, 2).replace(/^./, x => x.toUpperCase()), v: String(f.n), of: [`counted in watched time`, f.struck ? `${f.struck} struck` : '', f.outside ? `${f.outside} while the watch was stopped` : ''].filter(Boolean).join(' · '),
+      ...(f.outside ? { tone: 'a' as LeanTone } : {}) },
+    c.labourPerH !== undefined || c.marginPerH !== undefined
+      ? { k: 'What it costs', v: gbp((c.labourPerH ?? 0) + (c.marginPerH ?? 0)), of: `an hour of running — ${[c.labourPerH !== undefined ? `${gbp(c.labourPerH)} of the crew’s time` : '', c.marginPerH !== undefined ? `${gbp(c.marginPerH)} margin where it stops the line` : ''].filter(Boolean).join(' + ')}, at ${a.downMin} min a ${ev}` }
+      : { k: 'What it costs', v: '—', of: f.rate === undefined ? 'said once there is a rate' : `give ${c.missing[0] ?? 'the line its cost'}` },
+  ];
+}
+
+/** THE TREND — the MTBF of each day watched, against the MTBF wanted. */
+export function relTrend(a: AgreedReliability, f: RelFigures): LeanTrend | undefined {
+  const pts = dayPoints(f);
+  if (pts.length < 2) return undefined;
+  const want = a.targetMin && a.targetMin > 0 ? a.targetMin : undefined;
+  const ps = pts.slice(-8).map((p, i, all) => ({ ...p, label: niceDay(p.label), ...(want ? { target: want } : {}), ...(i === all.length - 1 ? { now: true } : {}) }));
+  return { title: 'MTBF, day by day', unit: 'min', points: ps, bar: 'MTBF that day, minutes', ...(want ? { mark: 'MTBF wanted' } : {}) };
+}
+
+/** THE CLOSING LINE — the MTBF, the rate and what it costs. */
+export function relClosing(a: AgreedReliability, f: RelFigures, c: RelCost, said: RelSays): { text: string; tone: LeanTone } {
+  if (f.mtbfH === undefined) return { text: said.text, tone: said.tone };
+  const ev = a.event.trim() || 'event';
+  const money = c.labourPerH !== undefined || c.marginPerH !== undefined ? ` — ${gbp((c.labourPerH ?? 0) + (c.marginPerH ?? 0))} an hour of running` : '';
+  const top = f.kinds.find(k => k.kind !== 'not said');
+  return { text: `One ${ev} every ${span(f.mtbfH)} of running, ${perHour(f.rate ?? 0)}${money}${top ? `; the most, ${top.kind} (${top.n} of ${f.n})` : ''}.`, tone: said.tone };
+}

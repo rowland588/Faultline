@@ -19,6 +19,7 @@ export const TOOL_PLACES: Place[] = [
   { kind: 'tool', label: 'SMED', sub: 'changeovers', href: '#/smed' },
   { kind: 'tool', label: 'Value stream', href: '#/value-stream' },
   { kind: 'tool', label: 'Work sampling', href: '#/sampling' },
+  { kind: 'tool', label: 'Reliability', href: '#/reliability' },
   { kind: 'tool', label: 'Capability', href: '#/capability' },
 ];
 

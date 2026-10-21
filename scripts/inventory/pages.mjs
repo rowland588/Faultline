@@ -216,6 +216,23 @@ export const PAGES = (sd, cap) => [
   /* the lean page (17 October, slice 6): the band, the tiles in the strip's place, the action plan, the closing line */
   { name: 'Work sampling', path: `#/sampling/${sd.samplingId}`, must: [{ what: 'the round', sel: '.ws-round' },
     { what: 'the band', sel: '.ln-band' }, { what: 'the five tiles — what it costs among them', sel: '.ie-strip .ln-tile', n: 5 }, { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' }] },
+  /* A RELIABILITY STUDY (21 October, docs/TOOLKIT.md tool 13): the watch and the event button, the lean tiles (MTBF first), what it means, the graphs — events against watched hours, the gaps, the MTBF day by day — what the stops were, the days, the commentary, the closing line */
+  { name: 'Reliability study', path: `#/reliability/${sd.reliabilityId}`, must: [
+    { what: 'the band', sel: '.ln-band' },
+    { what: 'the watch, running, with its stop', sel: '.rl-watch.is-on .rl-go', text: /^Stop the watch$/ },
+    { what: 'the event button — a tap each one seen', sel: '.rl-event', text: /^Stop/ },
+    { what: 'a button for each kind', sel: '.rl-kinds .rl-kind', n: 3 },
+    { what: 'the five tiles — MTBF, failure rate, watched, stops, what it costs', sel: '.ie-strip .ln-tile', n: 5 },
+    { what: 'MTBF first, with its bounds', sel: '.ie-strip .ln-tile:first-child .ln-of', text: /mean time between stops · 90% sure/ },
+    { what: 'what it means', sel: '.ln-ins li' },
+    { what: 'the events against watched hours, drawn', sel: '.rl-fig .rl-step' },
+    { what: 'the gaps between stops, drawn', sel: '.rl-fig .rl-med' },
+    { what: 'what the stops were', sel: '.rl-kindbars .ws-bar', n: 4 },
+    { what: 'what it costs in money', sel: '.rl-cost', text: /^What it costs: .+min stood an hour of running/ },
+    { what: 'the days', sel: '.rl-days tbody tr' },
+    { what: 'the commentary — each remark kept', sel: '.rl-rem li[data-remark]', n: 2 },
+    { what: 'the closing line', sel: '.ln-close' },
+  ] },
   /* THE FRONT DOOR (20 October, docs/DIRECTION.md): the question, then what is
      under way, the three kinds of project, the tools and the factory. The words
      box, the library of methods and the switch that showed them went with the
@@ -224,7 +241,7 @@ export const PAGES = (sd, cap) => [
     { what: 'the question, first', sel: '.fd-ask h1', text: /^What do you need to get done\?$/ },
     { what: 'what is under way — every project in a line', sel: '.fd-jobs li[data-project]' },
     { what: 'the three kinds of project — the lever tree among them', sel: '.fd-lib .fw-card[data-start^="e:"]', n: 3 },
-    { what: 'the tools to use on their own — Line Talk among them', sel: '.fd-tools li[data-tool]', n: 10 },
+    { what: 'the tools to use on their own — Line Talk and Reliability among them', sel: '.fd-tools li[data-tool]', n: 11 },
     { what: 'Line Talk, near the top — start one, or carry on the latest', sel: '.fd-talk .fd-talk-start', text: /^Start a Line Talk$/ },
     { what: 'carry on the latest Line Talk', sel: '.fd-talk .fd-talk-on', text: /^Carry on: / },
     { what: 'Home first in the rail', sel: '.nv-rail .nv-ri', text: /Home/, desk: true },

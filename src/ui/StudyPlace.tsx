@@ -63,7 +63,7 @@ export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
       const [standards, workspaces, observations] = await Promise.all([listAllStandards(), listWorkspaces(), s.workspaceId ? listObservations(s.workspaceId) : Promise.resolve([])]);
       /* a loss count prints as the lean page: its line's other counts and what was raised from it */
       /* and SMED (slice 6): what was raised from its elements, its plan and its money */
-      const lean = s.tool === 'losses' || s.tool === 'changeover' || s.tool === 'capability' || s.tool === 'sampling' || s.tool === 'map';
+      const lean = s.tool === 'losses' || s.tool === 'changeover' || s.tool === 'capability' || s.tool === 'sampling' || s.tool === 'map' || s.tool === 'reliability';
       const [history, actions, fixes] = await Promise.all([
         s.tool === 'losses' && s.workspaceId ? listStudiesForLine(s.workspaceId) : Promise.resolve([]),
         lean && s.projectId ? listPaceTodos(s.projectId) : Promise.resolve([]),

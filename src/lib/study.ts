@@ -29,7 +29,7 @@ import type { TalkTurn } from './talk';
 
 /** Every tool a study can be a use of. The cloud's check constraint holds the
  *  same list (studies_tool_check): a tool added here is a migration there. */
-export const STUDY_TOOLS = ['capability', 'map', 'time', 'balance', 'cycle', 'changeover', 'losses', 'sampling', 'ergonomics', 'layout', 'talk'] as const;
+export const STUDY_TOOLS = ['capability', 'map', 'time', 'balance', 'cycle', 'changeover', 'losses', 'sampling', 'ergonomics', 'layout', 'talk', 'reliability'] as const;
 export type StudyTool = typeof STUDY_TOOLS[number];
 
 export const isStudyTool = (v: unknown): v is StudyTool => (STUDY_TOOLS as readonly unknown[]).includes(v);
@@ -400,7 +400,37 @@ export interface StudyAgreed {
   balance?: AgreedBalance;
   map?: AgreedMap;
   sampling?: AgreedSampling;
+  reliability?: AgreedReliability;
 }
+
+/** A RELIABILITY STUDY's agreement (lib/ie/reliability): what counts as an
+ *  event, in the floor's words — a stop, a failure, a pick, whatever the
+ *  machine's function is — and, when the team has them, what an event can
+ *  be, the MTBF it should reach and the minutes the line stands for each. */
+export interface AgreedReliability {
+  /** "stop" — one, as it is said: "12 stops". */
+  event: string;
+  /** What an event can be, when the team tells them apart: jam, misfeed. */
+  kinds?: string[];
+  /** The MTBF wanted, in minutes of watched running. */
+  targetMin?: number;
+  /** Minutes the line stands for each event, as the floor knows it — for
+   *  what the events cost. */
+  downMin?: number;
+}
+
+/** One stretch the watch ran at the machine: started, and stopped — absent
+ *  while it runs. Watched time is these stretches, never the clock on the
+ *  wall: the watch is stopped while the machine is down or nobody watches. */
+export interface WatchRun { id: string; from: number; to?: number; by?: string; struck?: boolean }
+
+/** One event tapped at the machine, at the moment it was seen. Struck, never
+ *  erased: a mistap keeps its place and counts for nothing. */
+export interface RelEvent { id: string; at: number; by?: string; kind?: string; note?: string; struck?: boolean }
+
+/** A REMARK — commentary kept on a study, for its page and its paper. Taken
+ *  off by striking, so Undo can bring it back. */
+export interface Remark { id: string; at: number; text: string; by?: string; editedAt?: number; struck?: boolean }
 
 /** One tap of work sampling: what one person was doing at one moment. Struck,
  *  never erased: a mistap keeps its place and counts for nothing. */
@@ -447,6 +477,13 @@ export interface StudyFacts {
   availableMinPerDay?: number;
   /** Work sampling's taps — one per person per moment. */
   taps?: Tap[];
+  /** A RELIABILITY STUDY (lib/ie/reliability): the stretches the watch ran,
+   *  the events tapped in them and the commentary — each its own list, so
+   *  two phones at one machine both keep theirs; a study carried on another
+   *  day adds to the same lists. */
+  watch?: WatchRun[];
+  events?: RelEvent[];
+  remarks?: Remark[];
   /** A shift's losses: the end-of-shift count (tool 7). The stops are the
    *  line's log in its window, never copied in. */
   losses?: LossCount;
@@ -560,6 +597,9 @@ export function factsOf(v: unknown): StudyFacts {
     ...(o.sequence !== undefined ? { sequence: listById<ChangeoverStep>(o.sequence) } : {}),
     ...(o.products !== undefined ? { products: listById<ChangeoverProduct>(o.products) } : {}),
     ...(o.taps !== undefined ? { taps: listById<Tap>(o.taps) } : {}),
+    ...(o.watch !== undefined ? { watch: listById<WatchRun>(o.watch) } : {}),
+    ...(o.events !== undefined ? { events: listById<RelEvent>(o.events) } : {}),
+    ...(o.remarks !== undefined ? { remarks: listById<Remark>(o.remarks) } : {}),
     ...(o.timings !== undefined ? { timings: listById<RunTiming>(o.timings) } : {}),
     ...(o.vevents !== undefined ? { vevents: listById<VideoEvent>(o.vevents) } : {}),
     ...(o.turns !== undefined ? { turns: listById<TalkTurn>(o.turns) } : {}) };

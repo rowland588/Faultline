@@ -245,7 +245,7 @@ describe('the tools beside the control room', () => {
   it('are the line standard, Line capacity and the studies, each lit where it is', async () => {
     const { toolPlaces, hereOf } = await import('../rail');
     const { parseRoute } = await import('../../state/useRoute');
-    expect(toolPlaces('').map(l => [l.label, l.to])).toEqual([['Line standard', '/standards'], ['Line balance', '/linebalance'], ['Line capacity', '/balances'], ['Capability', '/capability'], ['Value stream', '/value-stream'], ['SMED', '/smed'], ['Work sampling', '/sampling'], ['Loss count', '/losses'], ['Video study', '/video'], ['Line Talk', '/talk']]);
+    expect(toolPlaces('').map(l => [l.label, l.to])).toEqual([['Line standard', '/standards'], ['Line balance', '/linebalance'], ['Line capacity', '/balances'], ['Capability', '/capability'], ['Value stream', '/value-stream'], ['SMED', '/smed'], ['Work sampling', '/sampling'], ['Loss count', '/losses'], ['Reliability', '/reliability'], ['Video study', '/video'], ['Line Talk', '/talk']]);
     expect(hereOf(parseRoute('#/standards'))).toBe('linestandard');
     expect(hereOf(parseRoute('#/balances'))).toBe('linebalance');
     expect(toolPlaces('linebalance').filter(l => l.on).map(l => l.label)).toEqual(['Line capacity']);
@@ -281,6 +281,11 @@ describe('the tools beside the control room', () => {
     expect(hereOf(parseRoute('#/talk'))).toBe('talk');
     expect(hereOf(parseRoute('#/talk/t1'))).toBe('talk');
     expect(toolPlaces('talk').filter(l => l.on).map(l => l.label)).toEqual(['Line Talk']);
+    /* Reliability (21 October, docs/TOOLKIT.md tool 13): every study and one light it */
+    expect(parseRoute('#/reliability/r1')).toMatchObject({ name: 'study', view: 'reliability', id: 'r1' });
+    expect(hereOf(parseRoute('#/reliability'))).toBe('reliability');
+    expect(hereOf(parseRoute('#/reliability/r1'))).toBe('reliability');
+    expect(toolPlaces('reliability').filter(l => l.on).map(l => l.label)).toEqual(['Reliability']);
   });
 });
 
@@ -288,13 +293,13 @@ describe('the job first, the tools at the foot (docs/FLOW.md item 3)', () => {
   it('Tools holds the line standard, Line capacity and the studies — never the problems', () => {
     const g = toolsGroup('');
     expect(g.label).toBe('Tools');
-    expect(labels(g)).toEqual(['Line standard', 'Line balance', 'Line capacity', 'Capability', 'Value stream', 'SMED', 'Work sampling', 'Loss count', 'Video study', 'Line Talk']);
+    expect(labels(g)).toEqual(['Line standard', 'Line balance', 'Line capacity', 'Capability', 'Value stream', 'SMED', 'Work sampling', 'Loss count', 'Reliability', 'Video study', 'Line Talk']);
   });
 
   it('inside a project, every tool opens on the project — its address carries it (docs/PROJECTS.md, P2)', async () => {
     const { parseRoute } = await import('../../state/useRoute');
     const g = toolsGroup('capability', [], 'p1');
-    expect(g.lines.map(l => l.to)).toEqual(['/standards', '/linebalance', '/balances', '/capability', '/value-stream', '/smed', '/sampling', '/losses', '/video', '/talk'].map(t => `${t}?project=p1`));
+    expect(g.lines.map(l => l.to)).toEqual(['/standards', '/linebalance', '/balances', '/capability', '/value-stream', '/smed', '/sampling', '/losses', '/reliability', '/video', '/talk'].map(t => `${t}?project=p1`));
     /* lit where it is, as outside a project */
     expect(g.lines.filter(l => l.on).map(l => l.label)).toEqual(['Capability']);
     /* each address still parses to its tool, with the project in its query */

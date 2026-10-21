@@ -22,6 +22,7 @@ import { actionWords, availableOf, carrySequence, changeoverSays, compareChangeo
 import { samplingSays, samplingWorst, worstWords } from './ie/sampling';
 import { barExpect, barWords, compareLosses, findBar, inWindow, lossFigures, lossLine, lossSays, nextShift, type CostModel, type LossFigures } from './ie/losses';
 import { studyBalance } from './ie/balanceLink';
+import { compareReliability, reliability, reliabilitySays } from './ie/reliability';
 
 const live = (ss: ToolStudy[]) => ss.filter(s => !s.deletedAt);
 
@@ -74,6 +75,7 @@ export function studySays(s: ToolStudy, ctx?: StudyContext): SampleSays {
     return { text: [said.text, l.planned ? ladderSays(l).text : '', iv.ready ? intervalSays(iv, f).text : ''].filter(Boolean).join(' '), tone: said.tone, verdict: said.verdict };
   }
   if (s.tool === 'sampling') return samplingSays(s.agreed?.sampling, s.facts.taps ?? []);
+  if (s.tool === 'reliability') return reliabilitySays(s.agreed?.reliability, reliability(s.agreed?.reliability, s.facts.watch, s.facts.events));
   if (s.tool === 'losses') {
     const said = lossSays(lossFiguresOf(s, ctx), s.facts.losses, { ...(s.product ? { product: s.product } : {}) });
     return { text: said.text, tone: said.tone, verdict: said.verdict };
@@ -83,7 +85,7 @@ export function studySays(s: ToolStudy, ctx?: StudyContext): SampleSays {
 }
 
 /** Each tool's name, as a study of it is called on screen and on paper. */
-export const TOOL_NAME: Partial<Record<ToolStudy['tool'], string>> = { capability: 'Capability study', balance: 'Line balance', map: 'Value stream map', changeover: 'SMED', sampling: 'Work sampling', losses: 'Loss count', talk: 'Line Talk' };
+export const TOOL_NAME: Partial<Record<ToolStudy['tool'], string>> = { capability: 'Capability study', balance: 'Line balance', map: 'Value stream map', changeover: 'SMED', sampling: 'Work sampling', losses: 'Loss count', talk: 'Line Talk', reliability: 'Reliability study' };
 
 /** "Capability study — Weight accuracy 400 g · Weigher 2". */
 export const studyTitle = (s: Pick<ToolStudy, 'tool' | 'name' | 'machine'>): string =>
@@ -250,6 +252,12 @@ export function beforeAfter(studies: ToolStudy[], fixId: ID, kind: FixKind = 'fi
     /* before → after on the ladder: the changeover before carried the plan */
     const c = compareChangeovers(fb, fa, ladderOf(before.facts.sequence));
     return { text: `${one}${c.text}`, tone: st && stA?.source === 'carried' ? 'n' : c.tone, before, after };
+  }
+  if (before && after.tool === 'reliability') {
+    /* the machine watched again: the MTBF before → after, sure only when the bounds part */
+    const ra = after.agreed?.reliability ?? before.agreed?.reliability;
+    const c = compareReliability(reliability(before.agreed?.reliability, before.facts.watch, before.facts.events), reliability(ra, after.facts.watch, after.facts.events), ra?.event);
+    return { ...c, before, after };
   }
   const a = after.agreed?.readings;
   if (!before || !a) return undefined;
@@ -521,18 +529,20 @@ export function worthBetter(s: ToolStudy): boolean {
   if (s.tool === 'balance') return said.verdict === 'Over takt';
   /* a tenth of the time or more not working, known from enough taps */
   if (s.tool === 'sampling') return (samplingWorst(s.agreed?.sampling, s.facts.taps ?? [])?.share ?? 0) >= 0.1;
+  /* short of the MTBF wanted, or not yet sure it is met */
+  if (s.tool === 'reliability') return said.tone === 'r' || said.tone === 'a';
   return said.tone === 'r' || said.capability?.tone === 'a';
 }
 
 /** A study's tool as said mid-sentence: "the capability study", "the SMED". */
 const TOOL_SAID: Partial<Record<ToolStudy['tool'], string>> = {
-  capability: 'capability study', balance: 'line balance', map: 'value stream map', changeover: 'SMED', sampling: 'work sampling study', losses: 'loss count',
+  capability: 'capability study', balance: 'line balance', map: 'value stream map', changeover: 'SMED', sampling: 'work sampling study', losses: 'loss count', reliability: 'reliability study',
 };
 
 /** Each tool's own page — the list of every study made with it — and, for a
  *  study on a line, that list opened on its line. Where a study's page goes
  *  once it is deleted. */
-const TOOL_PAGE: Partial<Record<ToolStudy['tool'], string>> = { capability: '/capability', map: '/value-stream', changeover: '/smed', sampling: '/sampling', losses: '/losses', talk: '/talk' };
+const TOOL_PAGE: Partial<Record<ToolStudy['tool'], string>> = { capability: '/capability', map: '/value-stream', changeover: '/smed', sampling: '/sampling', losses: '/losses', talk: '/talk', reliability: '/reliability' };
 export function toolListHref(s: Pick<ToolStudy, 'tool' | 'workspaceId'>): string {
   const page = TOOL_PAGE[s.tool] ?? '/capability';
   return s.workspaceId ? `${page}?line=${encodeURIComponent(s.workspaceId)}` : page;

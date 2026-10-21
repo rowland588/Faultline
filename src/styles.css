@@ -13894,3 +13894,60 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .act-late { color: var(--st-r); font-weight: 700; }
 .act-soon { color: var(--st-a); font-weight: 600; }
 .act-li.is-late .lt-row { border-left: 3px solid var(--st-r); }
+
+/* ---------------------------------------------------------------- A RELIABILITY STUDY (screens/ReliabilityScreen; docs/TOOLKIT.md, tool 13)
+   The watch and the event button, big enough to use at a machine without looking twice;
+   the teal is for what you press, the watch running a quiet teal edge — never a state colour. */
+.rl .ln-solo { margin: 12px 0 0; }
+.rl-watch { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 14px; margin: 12px 0; padding: 14px;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.rl-watch.is-on { border: 2px solid var(--brand); background: var(--accent-soft); }
+.rl-clock { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.rl-k { font-size: var(--t-label); font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.rl-watch.is-on .rl-k { color: var(--brand); }
+.rl-time { font-family: var(--display); font-size: 40px; line-height: 1.05; font-variant-numeric: tabular-nums; color: var(--ink); letter-spacing: -0.02em; }
+.rl-go { min-height: var(--tap); margin-top: 6px; font-weight: 700; align-self: flex-start; }
+.rl-tap { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.rl-event { min-height: 116px; width: 100%; border-radius: var(--radius); border: 0; cursor: pointer; padding: 12px;
+  background: var(--brand); color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  font: inherit; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.rl-event b { font-family: var(--display); font-size: 30px; letter-spacing: -0.01em; }
+.rl-event span { font-size: var(--t-detail); opacity: .92; text-align: center; }
+.rl-event:active:not(:disabled) { transform: scale(0.985); filter: brightness(0.92); }
+.rl-event:disabled { background: var(--surface-2); color: var(--ink-2); cursor: not-allowed; }
+.rl-kinds { display: flex; flex-wrap: wrap; gap: 8px; }
+.rl-kind { min-height: var(--tap); flex: 1 1 96px; font-weight: 600; }
+.rl-last { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: var(--t-detail); color: var(--ink-2); }
+.rl-note { display: flex; gap: 8px; width: 100%; align-items: flex-start; }
+.rl-note .text-input { flex: 1; min-width: 0; }
+.rl-fig { margin: 0; }
+.rl-fig svg { width: 100%; height: auto; display: block; max-width: 720px; }
+.rl-axx { text-anchor: middle; }
+.rl-step { fill: none; stroke: var(--brand); stroke-width: 2; }
+.rl-dot { fill: var(--brand); }
+.rl-steady { stroke: var(--ink-2); stroke-width: 1.2; stroke-dasharray: 4 3; opacity: .7; }
+.rl-med { stroke: var(--ink); stroke-width: 1.4; stroke-dasharray: 3 2; }
+.ln-key.rl-key-step { height: 0; border-top: 2px solid var(--brand); margin-left: 0; }
+.ln-key.rl-key-steady { height: 0; border-top: 2px dashed var(--ink-2); }
+.ln-key.rl-key-med { height: 0; border-top: 2px dashed var(--ink); margin-left: 0; }
+.rl-kindbars .ws-bar { grid-template-columns: minmax(70px, 120px) 1fr auto; }
+.rl-cost { margin: 10px 0 0; max-width: 78ch; }
+.rl-days { width: 100%; max-width: 560px; border-collapse: collapse; font-size: var(--t-detail); font-variant-numeric: tabular-nums; }
+.rl-days th { text-align: right; font-size: var(--t-label); color: var(--muted); font-weight: 700; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+.rl-days td { text-align: right; padding: 5px 6px; border-bottom: 1px solid var(--line); color: var(--ink-2); }
+.rl-days th:first-child, .rl-days td:first-child { text-align: left; }
+.rl-days tr.is-all td { font-weight: 800; color: var(--ink); border-bottom: 0; }
+.rl-rem { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.rl-rem li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.rl-rem-t { margin: 0; flex: 1 1 100%; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); max-width: 78ch; }
+.rl-rem.is-off .rl-rem-t { color: var(--muted); text-decoration: line-through; }
+@media (max-width: 700px) {
+  .rl-watch { grid-template-columns: minmax(0, 1fr); }
+  .rl-time { font-size: 34px; }
+  .rl-event { min-height: 128px; }
+}
+.rl-graphs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr)); gap: 12px; margin-top: 12px; align-items: start; }
+.rl-graphs:empty { display: none; }
+.rl-lefton { margin: 6px 0 0; font-size: var(--t-detail); color: var(--st-a); max-width: 46ch; }
+.rl-lefton .linkish { color: var(--st-a); }
+.rl .rl-graphs .ln-solo { margin: 0; }
