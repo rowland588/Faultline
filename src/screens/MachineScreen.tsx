@@ -43,8 +43,8 @@ export function MachineScreen({ projectId, assetId }: { projectId: string; asset
   if (!asset) {
     return (
       <div className="wrap pace">
-        <p className="sub" style={{ marginTop: 24 }}>That machine is not on this job any more.</p>
-        <button type="button" className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav(`/project/${projectId}`)}>Back to the job</button>
+        <p className="sub" style={{ marginTop: 24 }}>That machine is not on this project any more.</p>
+        <button type="button" className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => nav(`/project/${projectId}`)}>Back to the project</button>
       </div>
     );
   }

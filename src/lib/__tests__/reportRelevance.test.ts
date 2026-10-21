@@ -150,7 +150,7 @@ describe('the line’s own programs, planned with no job', () => {
     expect(setup?.linePrograms?.map(l => [l.line, l.reading.says])).toEqual([['Line 7', '1 program · 0 done · 1 late']]);
   });
   it('status: a line under the programs', () => {
-    expect(status.linePrograms).toEqual(['On Line 7, with no job — 1 program · 0 done · 1 late']);
+    expect(status.linePrograms).toEqual(['On Line 7, with no project — 1 program · 0 done · 1 late']);
   });
   it('handover: the line’s reading and the one not done', () => {
     expect(handover.linePrograms).toEqual([{ line: 'Line 7', says: '1 program · 0 done · 1 late', open: ['The line — CW recipe 2 kg: on the machine · test was due 5 Oct'] }]);
@@ -174,8 +174,8 @@ describe('problems on the register for this job, not on it yet', () => {
     expect(ix(w => w.snagId === 'sn2')).toBeGreaterThan(ix(w => w.kind === 'failed'));
   });
   it('handover: on the machine it names, else on the line', () => {
-    expect(wrapper?.open).toContain('Problem for this job, not on it yet (Critical): Film tracks off the former — Line 7 · Ilapak flow wrapper · Priya · was due 7 Oct');
-    expect(handover.line).toContain('Problem for this job, not on it yet (Low): Paint chipped on the guard — Line 7 · nobody yet');
+    expect(wrapper?.open).toContain('Problem for this project, not on it yet (Critical): Film tracks off the former — Line 7 · Ilapak flow wrapper · Priya · was due 7 Oct');
+    expect(handover.line).toContain('Problem for this project, not on it yet (Low): Paint chipped on the guard — Line 7 · nobody yet');
   });
 });
 

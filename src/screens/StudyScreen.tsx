@@ -178,7 +178,7 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
 
   if (!canAgree) return (
     <div className="ie-agree is-wait">
-      <p><b>The limits aren’t agreed yet.</b> The job’s owner agrees what it is judged against, before the readings go in.</p>
+      <p><b>The limits aren’t agreed yet.</b> The project’s owner agrees what it is judged against, before the readings go in.</p>
     </div>
   );
   return (

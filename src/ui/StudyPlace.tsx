@@ -53,7 +53,7 @@ export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
   /* THE STUDY ON PAPER (lib/studiesPdf) — on its own, on a line or on a job:
      what it is, where it sits, its sentence and its table (docs/AUDIT.md, bar 3) */
   const [printing, setPrinting] = useState(false);
-  const where = `${line ? `On ${line.name}` : 'On no line'} · ${job ? `attached to ${job.name}` : 'on no job'}`;
+  const where = `${line ? `On ${line.name}` : 'On no line'} · ${job ? `attached to ${job.name}` : 'on no project'}`;
   const paper = async () => {
     if (printing) return;
     setPrinting(true);
@@ -93,16 +93,16 @@ export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
       <span className="ie-place-w">
         {line ? <>On <b>{line.name}</b></> : 'On no line'}
         {' · '}
-        {job ? <>attached to <b>{job.name}</b></> : 'on no job'}
+        {job ? <>attached to <b>{job.name}</b></> : 'on no project'}
         {!line && !job && <span className="sub"> — a quick session, yours alone</span>}
       </span>
       <button type="button" className="btn btn-ghost btn-sm ie-place-pdf" disabled={printing} onClick={() => void paper()} aria-label="This study on paper (PDF)">{printing ? 'Making…' : 'PDF'}</button>
       {can.edit && picking === null && (
         <span className="ie-place-acts">
           <button type="button" className="linkish" onClick={() => setPicking('line')}>{line ? 'Move to another line' : 'Put on a line'}</button>
-          {!job && <button type="button" className="linkish" onClick={() => setPicking('job')}>Attach to a job</button>}
+          {!job && <button type="button" className="linkish" onClick={() => setPicking('job')}>Attach to a project</button>}
           {line && !job && <button type="button" className="linkish" onClick={() => set({ workspaceId: undefined })}>Take it off the line</button>}
-          {job && mayLeaveJob && <button type="button" className="linkish" onClick={() => set({ projectId: undefined, uses: [] })}>Take it off the job</button>}
+          {job && mayLeaveJob && <button type="button" className="linkish" onClick={() => set({ projectId: undefined, uses: [] })}>Take it off the project</button>}
         </span>
       )}
       {picking === 'line' && (
@@ -112,8 +112,8 @@ export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
         </select>
       )}
       {picking === 'job' && (
-        <select className="text-input ie-pick" autoFocus defaultValue="" aria-label="Attach it to which job" onChange={e => { if (e.target.value) void attach(e.target.value); }} onBlur={() => setPicking(null)}>
-          <option value="" disabled>Which job?</option>
+        <select className="text-input ie-pick" autoFocus defaultValue="" aria-label="Attach it to which project" onChange={e => { if (e.target.value) void attach(e.target.value); }} onBlur={() => setPicking(null)}>
+          <option value="" disabled>Which project?</option>
           {jobs.map(p => <option key={p.id} value={p.id}>{p.name}{s.workspaceId && p.workspaceIds.includes(s.workspaceId) ? ' — on this line' : ''}</option>)}
         </select>
       )}
@@ -232,7 +232,7 @@ export function UsedFor({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
   return (
     <div className="ie-used">
       <small className="ie-h">Used for</small>
-      {uses.length === 0 && <p className="sub">{board ? 'Nothing on the job yet — use it for a cause it shows, or a countermeasure on the board.' : 'Nothing on the job yet — use it for a test it proves, or a fix.'}</p>}
+      {uses.length === 0 && <p className="sub">{board ? 'Nothing on the project yet — use it for a cause it shows, or a countermeasure on the board.' : 'Nothing on the project yet — use it for a test it proves, or a fix.'}</p>}
       <ul className="ie-uses">
         {uses.map(u => (
           <li key={u.id}>

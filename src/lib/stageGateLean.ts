@@ -51,7 +51,7 @@ export function stageGateTiles(x: JobFigures): LeanTile[] {
     handover,
     { k: 'Late', v: String(x.late), of: x.outstanding ? `of ${x.outstanding} still to do${x.late ? ' — past their day' : ', none past its day'}` : 'nothing left to do',
       ...(x.late ? { tone: 'r' as LeanTone } : x.outstanding ? { tone: 'n' as LeanTone } : { tone: 'g' as LeanTone }) },
-    { k: 'Critical', v: String(x.critical), of: x.risks ? `${x.risks} high ${plural(x.risks, 'risk')} as well` : x.critical ? 'problems that stop the job' : 'none open',
+    { k: 'Critical', v: String(x.critical), of: x.risks ? `${x.risks} high ${plural(x.risks, 'risk')} as well` : x.critical ? 'problems that stop the project' : 'none open',
       ...(x.critical ? { tone: 'r' as LeanTone } : x.risks ? { tone: 'a' as LeanTone } : {}) },
     { k: 'Fixes open', v: String(x.fixesOpen), of: x.fixesLate ? `${x.fixesLate} late` : x.fixesOpen ? 'none late' : 'none open', ...(x.fixesLate ? { tone: 'r' as LeanTone } : {}) },
     moneyTile(x),
@@ -67,7 +67,7 @@ const lateBy = (x: JobFigures): number => Math.max(0, (x.handedOver ? x.handedVs
 /** THE MONEY — what the slip costs, from the factory's own figures. */
 export function moneyTile(x: JobFigures): LeanTile {
   const d = x.day;
-  if (!d || !d.lines.length) return { k: 'A day late', v: '—', of: 'no line from Your factory on the job yet' };
+  if (!d || !d.lines.length) return { k: 'A day late', v: '—', of: 'no line from Your factory on the project yet' };
   if (d.margin == null) return { k: 'A day late', v: '—', of: `give ${and(d.missing)} in Your factory` };
   const names = and(d.priced), late = lateBy(x);
   const rest = d.missing.length ? ` · ${and(d.missing.map(m => m.split(':')[0]))} not priced yet` : '';

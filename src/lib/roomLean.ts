@@ -62,15 +62,15 @@ const isGate = (j: Job) => (j.method ?? 'commissioning') === 'commissioning';
 /* Two named, then how many more — a busy board's tile stays a tile. */
 const named = (xs: string[]) => (xs.length > 2 ? `${xs.slice(0, 2).join(', ')} and ${xs.length - 2} more` : and(xs));
 
-const WAIT: LeanTile = { k: 'The slips cost', v: '…', of: 'reading the jobs’ lines' };
+const WAIT: LeanTile = { k: 'The slips cost', v: '…', of: 'reading the projects’ lines' };
 
 function moneyTile(m: RoomMoney | undefined): LeanTile | undefined {
   if (!m) return WAIT;
-  if (!m.slipping.length) return { k: 'The slips cost', v: '£0', of: 'every stage-gate job on its agreed handover', tone: 'g' };
+  if (!m.slipping.length) return { k: 'The slips cost', v: '£0', of: 'every stage-gate project on its agreed handover', tone: 'g' };
   if (m.cost == null) return { k: 'The slips cost', v: '—', of: `give ${named(m.missing)} in Your factory` };
   const n = m.slipping.filter(s => s.cost != null).length;
   const rest = m.missing.length ? ` · ${named(m.missing.map(x => x.split(':')[0]))} not priced yet` : '';
-  return { k: 'The slips cost', v: fmtGBP(m.cost), of: `${m.days} ${plural(m.days, 'day')} late on ${n} ${plural(n, 'job')} × a day of their lines not making, in margin${rest}`, tone: 'r' };
+  return { k: 'The slips cost', v: fmtGBP(m.cost), of: `${m.days} ${plural(m.days, 'day')} late on ${n} ${plural(n, 'project')} × a day of their lines not making, in margin${rest}`, tone: 'r' };
 }
 
 const running = (r: Room) => r.jobs.filter(j => !j.handedOver);
@@ -79,9 +79,9 @@ const behind = (r: Room) => running(r).filter(j => j.onTarget?.tone === 'behind'
 export function roomTiles(r: Room, m: RoomMoney | undefined): LeanTile[] {
   const t = r.totals, b = behind(r);
   const tiles: LeanTile[] = [
-    { k: 'Jobs running', v: String(t.jobs), of: [b ? `${b} behind target` : t.jobs ? 'none behind target' : 'none yet', t.handedOver ? `${t.handedOver} handed over` : ''].filter(Boolean).join(' · ') },
+    { k: 'Projects running', v: String(t.jobs), of: [b ? `${b} behind target` : t.jobs ? 'none behind target' : 'none yet', t.handedOver ? `${t.handedOver} handed over` : ''].filter(Boolean).join(' · ') },
     { k: 'Late', v: String(t.late), of: t.late ? `owed past its day${t.lineLate ? ` — ${t.lineLate} a line’s own` : ''}` : 'nothing past its day', tone: t.late ? 'r' : 'n' },
-    ...(t.critical ? [{ k: 'Critical', v: String(t.critical), of: 'open — stopping a line or a job', tone: 'r' as LeanTone }] : []),
+    ...(t.critical ? [{ k: 'Critical', v: String(t.critical), of: 'open — stopping a line or a project', tone: 'r' as LeanTone }] : []),
     { k: 'This week', v: String(t.week), of: 'late or due in the next 7 days' },
   ];
   const money = running(r).some(isGate) ? moneyTile(m) : undefined;
@@ -94,9 +94,9 @@ export function roomTiles(r: Room, m: RoomMoney | undefined): LeanTile[] {
 export function roomClosing(r: Room, m: RoomMoney | undefined): { text: string; tone: LeanTone } {
   const t = r.totals, b = behind(r), run = running(r).length;
   const far = m?.slipping[0];
-  const where = !run ? (t.handedOver ? `Every job handed over (${t.handedOver})` : 'No job running')
-    : b ? `${b} of ${run} ${plural(run, 'job')} behind target${far ? ` — ${far.name} furthest, ${far.days} ${plural(far.days, 'day')} past its agreed handover` : ''}`
-      : `${run === 1 ? 'The job is' : `All ${run} jobs are`} on target`;
+  const where = !run ? (t.handedOver ? `Every project handed over (${t.handedOver})` : 'No project running')
+    : b ? `${b} of ${run} ${plural(run, 'project')} behind target${far ? ` — ${far.name} furthest, ${far.days} ${plural(far.days, 'day')} past its agreed handover` : ''}`
+      : `${run === 1 ? 'The project is' : `All ${run} projects are`} on target`;
   const wrong = [t.late ? `${t.late} late` : '', t.critical ? `${t.critical} critical` : ''].filter(Boolean);
   const cost = m?.cost != null ? `; the slips cost ${fmtGBP(m.cost)} of margin` : '';
   return {

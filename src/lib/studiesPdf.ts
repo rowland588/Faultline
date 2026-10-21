@@ -130,7 +130,7 @@ function lossLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Bloc
   const page = lossLean({ s, f, said, ...(p.lineName ? { line: p.lineName } : {}), history, actions: raisedFrom(s, p.records?.actions ?? [], p.records?.fixes ?? [], lossPart(f)) });
   const e = studyEvidence(s, [], p.standards, p.ctx);
   const out: Block[] = [leanBand(page, p.printed)];
-  out.push(text({ text: `${where}${s.uses.length ? ` · used for ${s.uses.length} record${s.uses.length === 1 ? '' : 's'} on its job` : ''}`, size: 8, colour: MUTED, after: gap(d, 's') }));
+  out.push(text({ text: `${where}${s.uses.length ? ` · used for ${s.uses.length} record${s.uses.length === 1 ? '' : 's'} on its project` : ''}`, size: 8, colour: MUTED, after: gap(d, 's') }));
   out.push(leanTiles(page.tiles));
   const pic = pair(page.trend ? boxed('Shift by shift', leanTrend(page.trend, 104)) : undefined, boxed('Where the minutes went', lossFallBlock(f)));
   if (pic) out.push({ ...pic, after: () => gap(d, 'm'), height: fr => pic.height(fr) + gap(d, 'm') });
@@ -162,7 +162,7 @@ function smedLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Bloc
     raised: raisedFrom(s, p.records?.actions ?? [], p.records?.fixes ?? [], step => (s.facts.sequence ?? []).find(x => x.id === step)?.name) });
   const e = studyEvidence(s, [], p.standards, p.ctx);
   const out: Block[] = [leanBand(page, p.printed)];
-  out.push(text({ text: `${where}${s.uses.length ? ` · used for ${s.uses.length} record${s.uses.length === 1 ? '' : 's'} on its job` : ''}`, size: 8, colour: MUTED, after: gap(d, 's') }));
+  out.push(text({ text: `${where}${s.uses.length ? ` · used for ${s.uses.length} record${s.uses.length === 1 ? '' : 's'} on its project` : ''}`, size: 8, colour: MUTED, after: gap(d, 's') }));
   out.push(leanTiles(page.tiles));
   out.push(leanHead('What it says'));
   out.push(text({ text: e.line, size: 9, colour: e.tone === 'r' ? DANGER : INK2, after: gap(d, 's') }));
@@ -201,7 +201,7 @@ function studyLeanBlocks(p: StudiesPaper, item: StudyPaperItem, d: Density): Blo
     body = e.stream ? streamBlocks(e.stream.rows, e.stream.total) : [];
   }
   const out: Block[] = [leanBand(bandPage(eyebrow, s, verdict?.text, verdict?.tone), p.printed)];
-  out.push(text({ text: `${where}${s.uses.length ? ` · used for ${s.uses.length} record${s.uses.length === 1 ? '' : 's'} on its job` : ''}`, size: 8, colour: MUTED, after: gap(d, 's') }));
+  out.push(text({ text: `${where}${s.uses.length ? ` · used for ${s.uses.length} record${s.uses.length === 1 ? '' : 's'} on its project` : ''}`, size: 8, colour: MUTED, after: gap(d, 's') }));
   if (tiles.length) out.push(leanTiles(tiles));
   out.push(leanHead('What it says'));
   out.push(text({ text: e.line, size: 9, colour: e.tone === 'r' ? DANGER : INK2, after: gap(d, 's') }));
@@ -226,7 +226,7 @@ function blocksOf(p: StudiesPaper, d: Density): Block[] {
     const e = studyEvidence(s, [], p.standards, p.ctx);
     out.push(text({ text: e.title, size: SIZE.h2, style: 'bold', before: i ? gap(d, 'l') : 0, after: 2 }));
     out.push(text({ text: where, size: 8, colour: MUTED, after: 1 }));
-    if (s.uses.length) out.push(text({ text: `Used for: ${s.uses.length} record${s.uses.length === 1 ? '' : 's'} on its job`, size: 8, colour: MUTED, after: 1 }));
+    if (s.uses.length) out.push(text({ text: `Used for: ${s.uses.length} record${s.uses.length === 1 ? '' : 's'} on its project`, size: 8, colour: MUTED, after: 1 }));
     out.push(text({ text: e.line, size: 9.5, colour: e.tone === 'r' ? DANGER : INK2, after: 6 }));
     if (s.tool === 'capability') out.push(...capabilityBlocks(s));
     if (e.stream) out.push(...streamBlocks(e.stream.rows, e.stream.total));

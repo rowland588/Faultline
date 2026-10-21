@@ -174,7 +174,7 @@ function TopBar({ project, projects, place }: { project?: Project; projects: Pro
           how to be a switcher. Its first option is the control room, so it is
           also the way up — "home is home". */}
       <label className="nv-job">
-        <select value={project?.id ?? ''} aria-label="Which job"
+        <select value={project?.id ?? ''} aria-label="Which project"
           onChange={e => nav(e.target.value && e.target.value !== 'home' ? `/project/${e.target.value}` : '/room')}>
           {away && <option value="" disabled>{place}</option>}
           <option value={away ? 'home' : ''}>Control room</option>
@@ -361,7 +361,7 @@ function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: s
       ],
     },
     ...(projects.length ? [{
-      label: 'Jobs',
+      label: 'Projects',
       /* Each job's square and count are the control room board's own answer
          (ui/railJobs) — red with "late" in words if anything is past its day,
          otherwise under way. The rail does not read every job a second time. */

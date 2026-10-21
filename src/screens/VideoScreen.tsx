@@ -253,8 +253,8 @@ function NewVideoStudy({ open, onClose }: { open: boolean; onClose: () => void }
             {lines.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
         </label>
-        <label className="field"><span className="field-label">For a job?</span>
-          <select className="text-input" value={projectId} aria-label="For a job" onChange={e => setProjectId(e.target.value)}>
+        <label className="field"><span className="field-label">For a project?</span>
+          <select className="text-input" value={projectId} aria-label="For a project" onChange={e => setProjectId(e.target.value)}>
             <option value="">No — a study on its own</option>
             {projects.filter(p => !p.deletedAt && !p.archivedAt).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
@@ -587,8 +587,8 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
         {/* the program it was named as proof of, as on every study's page (ui/StudyPlace) */}
         <StudyProves s={s} />
         {can.edit && (
-          <label className="field"><span className="field-label">For a job</span>
-            <select className="text-input" value={s.projectId ?? ''} aria-label="Put it on a job" onChange={e => void patchStudy(s.id, { projectId: e.target.value || undefined })}>
+          <label className="field"><span className="field-label">For a project</span>
+            <select className="text-input" value={s.projectId ?? ''} aria-label="Put it on a project" onChange={e => void patchStudy(s.id, { projectId: e.target.value || undefined })}>
               <option value="">No — a study on its own</option>
               {projects.filter(p => !p.deletedAt && !p.archivedAt).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>

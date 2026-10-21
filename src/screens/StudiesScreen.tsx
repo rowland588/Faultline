@@ -39,7 +39,7 @@ type ToolWords = { title: string; one: string; lede: string; add: string; placeh
 const CAPABILITY: ToolWords = {
   title: 'Capability study',
   one: 'Capability study',
-  lede: 'Readings against agreed limits — does it pass, and would it keep passing all shift (Cpk)? Use one on its own, then put it on a line or attach it to a job.',
+  lede: 'Readings against agreed limits — does it pass, and would it keep passing all shift (Cpk)? Use one on its own, then put it on a line or attach it to a project.',
   add: 'New capability study',
   placeholder: 'e.g. Weight accuracy 400 g',
   none: 'No capability studies yet. Say what it is of, agree the limits and how many readings, then take them — on the phone at the machine.',
@@ -51,7 +51,7 @@ const CAPABILITY: ToolWords = {
 const MAP: ToolWords = {
   title: 'Value stream map',
   one: 'Value stream map',
-  lede: 'One line, end to end — from the material arriving to the pallet leaving — every step in the lane of whoever does it, the departments that touch the line included, coloured by its value, with how long it takes and how long it waits. Use one on its own, or attach it to a job.',
+  lede: 'One line, end to end — from the material arriving to the pallet leaving — every step in the lane of whoever does it, the departments that touch the line included, coloured by its value, with how long it takes and how long it waits. Use one on its own, or attach it to a project.',
   add: 'New value stream map',
   placeholder: 'e.g. Film in to pallet away — Maris Piper 2kg',
   none: 'No value stream maps yet. Pick a line, start where its work starts, and add each thing done on it, in the lane of whoever does it, to the pallet leaving.',
@@ -64,7 +64,7 @@ const MAP: ToolWords = {
 const CHANGEOVER: ToolWords = {
   title: 'SMED',
   one: 'SMED — quick changeover',
-  lede: 'From the last good piece of one product to the first good piece of the next at full rate, element by element — lapped on the phone as it happens, with who does each. Then Shingo\'s stages: separate the internal (the line stopped) from the external, convert internal to external, streamline what is left — towards single-digit minutes — and what the changeovers cost a shift, a week, a year. Use one on its own, or on a line and a job.',
+  lede: 'From the last good piece of one product to the first good piece of the next at full rate, element by element — lapped on the phone as it happens, with who does each. Then Shingo\'s stages: separate the internal (the line stopped) from the external, convert internal to external, streamline what is left — towards single-digit minutes — and what the changeovers cost a shift, a week, a year. Use one on its own, or on a line and a project.',
   add: 'New SMED',
   placeholder: 'e.g. Finest Red 2kg',
   none: 'No SMED yet. Say which product the line runs and which it changes to, then Lap each element as it ends — on the phone at the line.',
@@ -169,7 +169,7 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
   const onLineName = onLine ? (lines.find(l => l.id === onLine)?.name ?? 'this line') : undefined;
   const groupName = (k: string) => (k === 'none' ? 'Not filed'
     : k.startsWith('ws:') ? (lines.find(l => l.id === k.slice(3))?.name ?? 'A line')
-    : `Job: ${projects.find(p => p.id === k.slice(4))?.name ?? 'a job'}`);
+    : `Project: ${projects.find(p => p.id === k.slice(4))?.name ?? 'a project'}`);
 
   /* EVERY ONE SHOWN, ON PAPER (lib/studiesPdf; docs/AUDIT.md, bar 3) — the
      studies in the order the page shows them, each said where it sits */
@@ -182,7 +182,7 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
       const [{ saveStudiesPdf }, { listAllStandards }] = await Promise.all([import('../lib/studiesPdf'), import('../db')]);
       const items = shownGroups.flatMap(([, rows]) => rows.map(s => {
         const line = lines.find(l => l.id === s.workspaceId), job = projects.find(p => p.id === s.projectId);
-        return { s, where: `${line ? `On ${line.name}` : 'On no line'} · ${job ? `attached to ${job.name}` : 'on no job'}` };
+        return { s, where: `${line ? `On ${line.name}` : 'On no line'} · ${job ? `attached to ${job.name}` : 'on no project'}` };
       }));
       const title = onLineName ? `${w.title} — ${onLineName}` : w.title;
       await saveStudiesPdf({ title, printed: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),

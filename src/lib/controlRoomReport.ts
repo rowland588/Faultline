@@ -150,7 +150,7 @@ export function controlRoomReport(pf: Portfolio, today: string, limits: CrLimits
     const next = l.items[0];
     const owed = l.items.length;
     return {
-      name: nameIn(l.name, 60), method: 'the line itself, no job',
+      name: nameIn(l.name, 60), method: 'the line itself, no project',
       word: l.late ? `${l.late} late` : l.critical.length ? criticalCount(l.critical.length) : 'Nothing late',
       tone: l.late || l.critical.length ? 'behind' as const : 'none' as const,
       why: [owed ? `${owed} owed` : '', l.late ? `${l.late} late` : '', l.critical.length && !limits.critical ? criticalCount(l.critical.length) : ''].filter(Boolean).join(' · ') || 'nothing owed',

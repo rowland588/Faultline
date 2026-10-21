@@ -283,7 +283,7 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
     const l = said(f), sl = slip(f);
     const bandH = 30 + l.length * 17 + sl.length * 12 + 6;
     paperBand(f.doc, f.x, y, f.w, bandH, 8);
-    font(f.doc, 7.5, 'bold', MUTED); f.doc.text('WHERE THE JOB IS', f.x + 16, y + 16);
+    font(f.doc, 7.5, 'bold', MUTED); f.doc.text('WHERE THE PROJECT IS', f.x + 16, y + 16);
     font(f.doc, 14, 'bold', INK); f.doc.text(l, f.x + 16, y + 34);
     if (sl.length) { font(f.doc, 9, 'normal', INK2); f.doc.text(sl, f.x + 16, y + 34 + l.length * 17); }
   }, f => gap(f.density, 'l')));
@@ -454,7 +454,7 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
        job's Programs page and proved by its tests: the line's reading, in the
        words the line's Programs page says (lib/lineRecords). */
     for (const lp of s.linePrograms ?? []) {
-      out.push({ ...text({ text: `On ${lp.line}, with no job — ${lp.reading.says}`, size: S.h2, style: 'bold', before: 4, after: 4 }), keepWithNext: true });
+      out.push({ ...text({ text: `On ${lp.line}, with no project — ${lp.reading.says}`, size: S.h2, style: 'bold', before: 4, after: 4 }), keepWithNext: true });
       out.push(...programsBlocks(lp.reading, d));
     }
 
@@ -611,7 +611,7 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
      with its priority tag in its word and its RAG colour (the priority
      exception, CLAUDE.md), where, whose and by when; a day gone by in red. */
   if (r.assigned.length) {
-    out.push(heading('Problems for this job — not on it yet', `${r.assigned.length} on the register`));
+    out.push(heading('Problems for this project — not on it yet', `${r.assigned.length} on the register`));
     const tagW = 48, dueW = 96;
     const parts = (f: Frame, a: (typeof r.assigned)[number]) => ({
       what: wrap(f.doc, a.what, f.w - tagW - dueW - 8, 9.5, 'bold'),

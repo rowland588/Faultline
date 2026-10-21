@@ -259,8 +259,8 @@ export function UsualStages({ project, usual, otherName, tests = [], renameSteps
         <div className="in-usual-h">
           <b>The usual {w.many}</b>
           <span className="sub">
-            {usual.from === 'job' ? 'this job’s own'
-              : usual.from === 'other' ? `taken from ${otherName ?? 'another job'}`
+            {usual.from === 'job' ? 'this project’s own'
+              : usual.from === 'other' ? `taken from ${otherName ?? 'another project'}`
                 : can.agree ? 'the app’s standard set — make them yours' : 'the app’s standard set'}
           </span>
           {can.agree && <button className="cw-link" onClick={() => startEditing([...usual.stages])}>Edit</button>}

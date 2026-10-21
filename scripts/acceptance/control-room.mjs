@@ -60,7 +60,7 @@ const LINE7 = sd.line7WsId;
 /* the board as it stands, read from the screen */
 const board = async () => {
   await go('#/room');
-  await page.locator('.jb-says').filter({ hasNotText: 'Reading every job' }).waitFor({ timeout: 30000 });
+  await page.locator('.jb-says').filter({ hasNotText: 'Reading every project' }).waitFor({ timeout: 30000 });
   await page.waitForTimeout(1200);
   /* every party, not the first five */
   const more = page.locator('.jb-owe.is-more', { hasText: /^and \d+ more$/ });
@@ -106,14 +106,14 @@ const l7 = said.lines.find(l => l.name === 'Line 7');
 ok(!!l7 && l7.late === 2 && l7.items.includes(PROBLEM) && l7.items.includes('P-200 Express') && l7.critical.includes(PROBLEM), `1c the module reads Line 7's own: ${JSON.stringify(l7)}`);
 /* where the late is, as the module counts it: one line by its name, several by how many */
 const lateLines = said.lines.filter(l => l.late > 0), lineLate = lateLines.reduce((n, l) => n + l.late, 0);
-const where = lateLines.length === 1 ? `${lineLate} on ${lateLines[0].name}, outside any job.` : `${lineLate} on ${lateLines.length} lines, outside any job.`;
-ok(after.says.endsWith(where) && lateLines.some(l => l.name === 'Line 7') && /every line and job/i.test(after.eyebrow), `1b the sentence says where: "${after.says}"`);
+const where = lateLines.length === 1 ? `${lineLate} on ${lateLines[0].name}, outside any project.` : `${lineLate} on ${lateLines.length} lines, outside any project.`;
+ok(after.says.endsWith(where) && lateLines.some(l => l.name === 'Line 7') && /every line and project/i.test(after.eyebrow), `1b the sentence says where: "${after.says}"`);
 const site0 = before.owes['The site'] ?? { n: 0, late: 0 }, site1 = after.owes['The site'] ?? { n: 0, late: 0 };
 const ish = after.owes['Ishida Europe'];
 ok(site1.n === site0.n + 1 && site1.late === site0.late + 1 && !!ish && ish.jobs.includes('Line 7 1'),
   `1d Who owes what: the site owes ${site0.n}→${site1.n}, late ${site0.late}→${site1.late} (Priya); Ishida Europe's shares ${ish?.jobs.join(', ')}`);
 ok(await page.locator('.jb-owe', { hasText: 'Ishida Europe' }).locator('.jb-owe-job.is-line', { hasText: 'Line 7' }).count() === 1, '1e its share on Line 7 wears the line\'s square, not a job\'s colour');
-const grp = page.locator('.jb-week .jb-wl-g.is-line', { has: page.locator('.jb-wl-job', { hasText: /^Line 7 · on the line, no job$/ }) });
+const grp = page.locator('.jb-week .jb-wl-g.is-line', { has: page.locator('.jb-wl-job', { hasText: /^Line 7 · on the line, no project$/ }) });
 const grpText = flat(await grp.first().innerText().catch(() => ''));
 ok(grpText.includes(PROBLEM) && /Problem · Priya Shah/.test(grpText) && grpText.includes('P-200 Express') && /Program · Ishida Europe/.test(grpText), `1f This week, under "Line 7 · on the line, no job": ${grpText.slice(0, 160)}`);
 /* the line's card: critical and late in red, each with its word */
@@ -135,7 +135,7 @@ const crit = await page.locator('.jb-focus .jb-fi').evaluateAll(els => els.map(e
 })));
 const title = flat(await page.locator('.jb-focus h3').innerText());
 const ours = crit.find(c => c.what === PROBLEM);
-ok(title === `${after.critical} critical, across every line and job` && crit.length === after.critical, `6a "${title}" — ${crit.length} rows`);
+ok(title === `${after.critical} critical, across every line and project` && crit.length === after.critical, `6a "${title}" — ${crit.length} rows`);
 ok(!!ours && ours.job === 'Line 7' && ours.when === '3 days late' && ours.b === `going with: ${PLAN}`, `6b the line's: when "${ours?.when}", branch "${ours?.b}"`);
 ok(crit.every(c => c.w >= 400 && (c.when ?? '').length <= 24), `6c every problem a row across the width (${crit.map(c => Math.round(c.w)).join(', ')} px), its when a word (${crit.map(c => c.when).join(' | ')})`);
 ok(crit.filter(c => c.what !== PROBLEM).every(c => /^going with: |ways? round it|^$/.test(c.b ?? '') || c.b === undefined), `6d a job's "going with" is its branch: ${crit.filter(c => c.what !== PROBLEM).map(c => c.b).join(' | ')}`);
@@ -149,7 +149,7 @@ const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }
 const pdf = join(dir, 'cr.pdf'); await dl.saveAs(pdf);
 const paper = execFileSync('pdftotext', ['-raw', pdf, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
 const pages = Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [pdf], { encoding: 'utf8' }))?.[1]);
-ok(/CONTROL ROOM · EVERY LINE AND JOB/.test(paper) && /ON THE LINES, OUTSIDE ANY JOB/.test(paper) && paper.includes(`1 critical: ${PROBLEM}`) && /Line 7 — the line itself, no job/.test(paper) && pages === 1,
+ok(/CONTROL ROOM · EVERY LINE AND PROJECT/.test(paper) && /ON THE LINES, OUTSIDE ANY PROJECT/.test(paper) && paper.includes(`1 critical: ${PROBLEM}`) && /Line 7 — the line itself, no project/.test(paper) && pages === 1,
   `1i the report prints the line: ${pages} page, "${(/ON THE LINES[^]{0,140}/.exec(paper) ?? [''])[0]}"`);
 
 /* ---- 10 — a line's page says what its tools found, and its jobs' verdicts ---- */
@@ -178,7 +178,7 @@ ok(jobsOn.length > 0 && jobsOn.every(j => verdicts[j.name ?? ''] && verdicts[j.n
   `10e each job its verdict, the control room's own: ${jobsOn.map(j => `${j.name}: ${j.w} — ${j.r}`).join(' | ')}`);
 
 /* ---- 19 — a change started from the line ---- */
-await page.getByRole('button', { name: 'Start a job on this line ›' }).click(); await page.waitForTimeout(2500);
+await page.getByRole('button', { name: 'Start a project on this line ›' }).click(); await page.waitForTimeout(2500);
 await shot('19-start');
 const sit = flat(await page.locator('.proj-sit').innerText().catch(() => ''));
 ok(/^A change on Line 7 1 problem open · 1 critical · 1 late/.test(sit) && sit.includes(PROBLEM) && sit.includes('3 days late') && sit.includes(`The latest shift counted: ${truth.loss}`) && /P-200 Express — test was /.test(sit),
@@ -239,7 +239,8 @@ await page.locator('.nv-bar .nv-bi', { hasText: 'Problems' }).click(); await pag
 ok(linesOn && /#\/snags/.test(page.url()), `11c Lines opens Your factory, Problems the register (${page.url().split('#')[1]})`);
 await page.locator('.nv-bar .nv-bi', { hasText: 'More' }).click(); await page.waitForTimeout(800);
 const more = flat(await page.locator('.nv-sheet').innerText());
-ok(/JOBS/i.test(more) && ['Line 2 commissioning', 'Line 7 pace', 'Line 7 jams'].every(n => more.includes(n)) && /Control room/.test(more), '11d every job is still in More, and the control room');
+const underProjects = flat(await page.locator('.nv-sheet .nv-grp', { has: page.locator('.nv-grp-l', { hasText: /^Projects$/ }) }).innerText().catch(() => ''));
+ok(['Line 2 commissioning', 'Line 7 pace', 'Line 7 jams'].every(n => underProjects.includes(n)) && /Control room/.test(more), '11d every project is still in More, under Projects, and the control room', underProjects);
 await board();
 await page.locator('.jb-stat.is-crit').click(); await page.waitForTimeout(700);
 await shot('6-critical-phone');

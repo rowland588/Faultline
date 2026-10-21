@@ -578,7 +578,7 @@ export function studyRemovingSays(s: Pick<ToolStudy, 'tool' | 'name' | 'facts' |
   const ask = [
     `Delete the ${what} “${name}”?`,
     held ? `${held} with it.` : '',
-    uses.length ? `It is ${andList(uses)} on its job — ${count === 1 ? 'that stays' : 'they stay'}, without its figures.` : '',
+    uses.length ? `It is ${andList(uses)} on its project — ${count === 1 ? 'that stays' : 'they stay'}, without its figures.` : '',
     'Undo brings it back for a few seconds.',
   ].filter(Boolean).join('\n\n');
   return { ask, done: `Deleted the ${what} “${name}”` };

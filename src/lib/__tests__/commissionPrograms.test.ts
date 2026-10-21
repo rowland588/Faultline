@@ -25,7 +25,7 @@ const lines: JobLinePrograms[] = [{ id: 'w7', name: 'Line 7', machines: [{ name:
 describe('programs to pick in Commission', () => {
   it('the job’s own, then the line’s own, each on this job’s machine by name', () => {
     const g = programsToPick(job, lines, assets, []);
-    expect(g.map(x => x.title)).toEqual(['This job’s programs', 'Line 7’s own programs']);
+    expect(g.map(x => x.title)).toEqual(['This project’s programs', 'Line 7’s own programs']);
     expect(g[0].rows.map(r => [r.program.id, r.machine, r.assetId, r.proved])).toEqual([['j1', 'Bagger', 'a1', false], ['j2', 'Checkweigher', 'a2', true]]);
     /* LP-1 on the line's Bagger is the job's Bagger; LP-2's Coder is not on this job; LP-3 is the line's */
     expect(g[1].rows.map(r => [r.program.id, r.machine ?? null, r.assetId ?? null])).toEqual([['l1', 'Bagger', 'a1'], ['l2', 'Coder', null], ['l3', null, null]]);

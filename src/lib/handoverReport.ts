@@ -174,7 +174,7 @@ export function handoverReport(x: HandoverInput): HandoverReport {
   /* THE REGISTER'S PROBLEMS FOR THIS JOB, NOT ON IT YET — on the machine
      they name, else on the line (the Fixes page's list). */
   const assigned = assignedToJob(x.assigned ?? [], x.project.id ?? '').map(sn => ({ sn, w: assignedWords(sn, today, x.lineName) }));
-  const assignedOf = (a: { sn: Snag; w: ReturnType<typeof assignedWords> }) => `Problem for this job, not on it yet (${PRIORITY_WORD[a.sn.priority ?? 'low']}): ${a.w.what} — ${[a.w.meta, a.w.due].filter(Boolean).join(' · ')}`;
+  const assignedOf = (a: { sn: Snag; w: ReturnType<typeof assignedWords> }) => `Problem for this project, not on it yet (${PRIORITY_WORD[a.sn.priority ?? 'low']}): ${a.w.what} — ${[a.w.meta, a.w.due].filter(Boolean).join(' · ')}`;
   const onAsset = (a: Asset, sn: Snag) => namesMachine(sn, a);
 
   const machines: HoMachine[] = assets.map(a => {
@@ -258,7 +258,7 @@ export function handoverReport(x: HandoverInput): HandoverReport {
     ...(plannedAt ? { agreed: plannedAt } : {}),
     ...(expectedAt ? { expected: expectedAt } : {}),
     ...(st.handedOn ? { handedOn: st.handedOn } : {}),
-    machinesSaid: assets.length ? `${handed} of ${plural(assets.length, 'machine')} handed over` : 'No machines on the job yet',
+    machinesSaid: assets.length ? `${handed} of ${plural(assets.length, 'machine')} handed over` : 'No machines on the project yet',
     machines, line, linePrograms,
     sign: ['Handed over by', 'Taken over by', 'Safety'],
   };

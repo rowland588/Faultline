@@ -253,7 +253,7 @@ export function WorkspaceHome() {
       </div>
       {prodLines.length === 0 ? (
         <div className="fac-empty">
-          <p>Set up your factory first — your production lines, each with its name and its type. Every job, problem and tool then hangs off one of them.</p>
+          <p>Set up your factory first — your production lines, each with its name and its type. Every project, problem and tool then hangs off one of them.</p>
           <button className="btn btn-primary" onClick={() => nav('/factory?add=1')}>Set up your factory</button>
         </div>
       ) : (
@@ -302,7 +302,7 @@ export function WorkspaceHome() {
             {/* How many jobs — the board under it says how many are running
                 and how many are handed over (docs/HANDOVER.md); "3 jobs
                 running" here said otherwise. */}
-            <span className="sub">{jobs.length === 0 ? 'Nothing running yet' : `${jobs.length} job${jobs.length === 1 ? '' : 's'}`}</span>
+            <span className="sub">{jobs.length === 0 ? 'Nothing running yet' : `${jobs.length} project${jobs.length === 1 ? '' : 's'}`}</span>
           </p>
         </div>
         {/* NEW JOB, where a page's main action sits — it was the Projects
@@ -311,7 +311,7 @@ export function WorkspaceHome() {
             and a board that call them jobs (docs/FLOW-AUDIT.md #20). */}
         {mayStart && (
           <div className="pace-head-actions">
-            <button className="btn btn-primary" onClick={() => nav('/projects?new=1')}>New job</button>
+            <button className="btn btn-primary" onClick={() => nav('/projects?new=1')}>New project</button>
           </div>
         )}
       </header>
@@ -354,23 +354,23 @@ export function WorkspaceHome() {
       {projects.length === 0 && !mayStart && (
         <section className="home-projects">
           <div className="home-sec-head">
-            <h2 className="home-sec-title">Jobs</h2>
+            <h2 className="home-sec-title">Projects</h2>
           </div>
           <p className="sub home-sec-sub">
-            You’ll see the jobs you’ve been invited to here, with what is late and who owes what.
+            You’ll see the projects you’ve been invited to here, with what is late and who owes what.
           </p>
         </section>
       )}
       {projects.length === 0 && mayStart && (
         <section className="home-projects">
           <div className="home-sec-head">
-            <h2 className="home-sec-title">Jobs</h2>
-            <button className="btn btn-primary" onClick={() => nav('/projects?new=1')}>Start a job</button>
+            <h2 className="home-sec-title">Projects</h2>
+            <button className="btn btn-primary" onClick={() => nav('/projects?new=1')}>Start a project</button>
           </div>
           <p className="sub home-sec-sub">
             Start here. Say what you are trying to change — new equipment, a line that has to
-            perform better, or a number to hit by a date — and the job is run the way that
-            kind of change is run. Every job you start shows up on this screen, with what is
+            perform better, or a number to hit by a date — and the project is run the way that
+            kind of change is run. Every project you start shows up on this screen, with what is
             late and who owes what.
           </p>
         </section>

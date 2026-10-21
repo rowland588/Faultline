@@ -448,7 +448,7 @@ await go('#/snags');
     await db.addSnag({ id: crypto.randomUUID(), workspaceId: ws, status: 'open', raisedAt: Date.now(), updatedAt: Date.now(), media: [], problem: 'Coder misprints the date', projectId: pid });
   }, { ws: sd.wsId, pid: sd.projectId });
   await go(`#/project/${sd.projectId}/fixes`);
-  const sec = page.locator('.cmp-sec', { hasText: 'Problems for this job — not on it yet' });
+  const sec = page.locator('.cmp-sec', { hasText: 'Problems for this project — not on it yet' });
   ok((await words('h1')) === `${sd.job} — problems` && (await sec.locator('.fxl-row', { hasText: 'Coder misprints the date' }).count()) === 1, '10 the project\'s own page — named for it — lists a problem assigned to it');
   await sec.locator('.fxl-row', { hasText: 'Coder misprints the date' }).getByRole('button', { name: 'Make it a fix' }).click(); await page.waitForTimeout(1500);
   ok(/seen first on /.test(await page.locator('.fxl-row', { hasText: 'Coder misprints the date' }).first().innerText()), '10 made a fix there, saying where it was seen first');
@@ -645,7 +645,7 @@ const ids = await page.evaluate(async () => {
   await go(`#/project/${ids.paced}`);
   await page.locator('.qs-top').first().click(); await page.waitForTimeout(900);
   sheet = page.locator('.sheet, [role="dialog"]').last();
-  const ask = sheet.getByRole('group', { name: "Which of the job's lines" });
+  const ask = sheet.getByRole('group', { name: "Which of the project's lines" });
   const offered = (await ask.locator('.chip').allInnerTexts()).map(x => x.trim());
   await sheet.locator('textarea').first().fill('Reject chute blocks on 1.25 kg');
   const held = await sheet.getByRole('button', { name: 'Save', exact: true }).isDisabled();

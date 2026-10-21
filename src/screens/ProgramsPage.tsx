@@ -147,7 +147,7 @@ export function ProgramsPage({ projectId, only }: {
       const { jsPDF } = await loadPdfLib();
       const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
       await drawProgramsReport(doc, { name: project.name, ...(project.lead ? { lead: project.lead } : {}), printed: niceDay(today, { year: true }), linePrograms: lineReadings, ...(money ? { money } : {}),
-        reading: reading ?? { lines: [], machines: [], total: 0, done: 0, baseline: 0, failed: 0, late: 0, open: 0, notTested: 0, noProgram: 0, doneAll: 0, says: 'None of the job’s own yet — its line’s are below' } });
+        reading: reading ?? { lines: [], machines: [], total: 0, done: 0, baseline: 0, failed: 0, late: 0, open: 0, notTested: 0, noProgram: 0, doneAll: 0, says: 'None of the project’s own yet — its line’s are below' } });
       const how = await deliverPdf(doc, pdfFileName(project.name, 'programs', today));
       setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
     } catch (e) {
@@ -269,7 +269,7 @@ function LineOwnRow({ r, onLine, projectId, tt, can, today, open, onToggle, test
   const tone = r.proved ? 'g' : late ? 'r' : st === 'needed' ? 'n' : 'w';
   return (
     <ProgramRowShell what={p.what} tag={`${r.line}’s own`} word={word} tone={tone} dataProgram={p.id}
-      meta={[p.runs && `runs ${p.runs}`, p.from, onLine && r.machine ? `${r.machine} is not on this job — tested on the line itself` : ''].filter(Boolean).join(' · ') || undefined}
+      meta={[p.runs && `runs ${p.runs}`, p.from, onLine && r.machine ? `${r.machine} is not on this project — tested on the line itself` : ''].filter(Boolean).join(' · ') || undefined}
       {...(p.note ? { note: p.note } : {})}
       open={open} onToggle={onToggle}
       action={<ProgramTest projectId={projectId} program={p} {...(r.assetId ? { assetId: r.assetId } : {})} tt={tt} can={can} open={testOpen} quiet />}

@@ -52,7 +52,7 @@ describe('the control room report', () => {
   it('carries the band’s tiles and the closing line at every step; the reason under each job goes only at the very last', () => {
     for (const step of CR_STEPS) {
       const r = controlRoomReport(pf, TODAY, step, new Map());
-      expect(r.tiles.map(t => t.k).slice(0, 2)).toEqual(['Jobs running', 'Late']);
+      expect(r.tiles.map(t => t.k).slice(0, 2)).toEqual(['Projects running', 'Late']);
       expect(r.closing.text.length).toBeGreaterThan(10);
       expect(r.jobs.every(j => !!j.why)).toBe(step.why !== false);
     }

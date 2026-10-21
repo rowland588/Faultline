@@ -402,7 +402,7 @@ function TreeTopPanel({ projectId, tree }: { projectId: string; tree?: TreeStand
     <Panel title="The tree" says={tree ? tree.says : 'nothing written on it yet'}
       door={{ label: 'Open the tree', to: `/project/${projectId}/tree` }} className="fp-tree">
       {!tree ? (
-        <p className="fp-empty">The tree starts with the outcome — the one number this job has to hit — and what has to be true for it.</p>
+        <p className="fp-empty">The tree starts with the outcome — the one number this project has to hit — and what has to be true for it.</p>
       ) : (
         <>
           <button className={'fp-out is-' + tree.outcome.rag} onClick={open}>
@@ -650,7 +650,7 @@ function TestingOverview({ projectId, project, edit, remove = false }: { project
               its one button planned a test — Commission, the third gate —
               when a stage-gate job starts at Install with the machines
               (HUNT 5). */}
-          <p className="sub">Nothing planned on this job yet. It starts at Install, with the machines it is putting in.</p>
+          <p className="sub">Nothing planned on this project yet. It starts at Install, with the machines it is putting in.</p>
           {/* A client reads the job and adds nothing (lib/access). */}
           {edit && (
             <button className="btn btn-primary" style={{ marginTop: 10 }}

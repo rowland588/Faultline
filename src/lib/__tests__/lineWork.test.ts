@@ -97,8 +97,8 @@ describe('the control room counts the line beside the jobs', () => {
   });
 
   it('says where the late is', () => {
-    expect(after.says).toMatch(/3 things late.*2 on Line 7, outside any job\.$/);
-    expect(portfolio([], TODAY, [], [line7([crit])], REF).says).toBe('No job running yet. 1 thing late — 1 on Line 7, outside any job · 1 critical on the lines.');
+    expect(after.says).toMatch(/3 things late.*2 on Line 7, outside any project\.$/);
+    expect(portfolio([], TODAY, [], [line7([crit])], REF).says).toBe('No project running yet. 1 thing late — 1 on Line 7, outside any project · 1 critical on the lines.');
   });
 
   it('prints the line on the report, beside every job, at every step — a row, and at the very last a line', () => {

@@ -10,7 +10,7 @@ import { useProjects } from '../lib/useProjects';
 import { nav } from '../state/useRoute';
 import { Icon } from './Icon';
 
-const KIND: Record<Place['kind'], string> = { line: 'Line', job: 'Job', product: 'Product', tool: 'Tool', page: '' };
+const KIND: Record<Place['kind'], string> = { line: 'Line', job: 'Project', product: 'Product', tool: 'Tool', page: '' };
 
 export function JumpTo() {
   const [open, setOpen] = useState(false);
@@ -50,13 +50,13 @@ export function JumpTo() {
 
   return (
     <>
-      <button type="button" className="nv-jump" onClick={() => setOpen(true)} aria-label="Jump to a line, job, product or tool (Ctrl K)">
+      <button type="button" className="nv-jump" onClick={() => setOpen(true)} aria-label="Jump to a line, project, product or tool (Ctrl K)">
         <Icon name="pointer" size="1.05em" /><span className="nv-jump-l">Jump to…</span><kbd className="nv-jump-k">⌘K</kbd>
       </button>
       {open && (
         <div className="jt-scrim" onClick={() => setOpen(false)}>
           <div className="jt" role="dialog" aria-modal="true" aria-label="Jump to" onClick={e => e.stopPropagation()}>
-            <input ref={input} autoFocus className="jt-in" value={q} placeholder="A line, a job, a product or a tool…" aria-label="Jump to"
+            <input ref={input} autoFocus className="jt-in" value={q} placeholder="A line, a project, a product or a tool…" aria-label="Jump to"
               onChange={e => { setQ(e.target.value); setAt(0); }}
               onKeyDown={e => {
                 if (e.key === 'ArrowDown') { e.preventDefault(); setAt(i => Math.min(hits.length - 1, i + 1)); }
@@ -73,7 +73,7 @@ export function JumpTo() {
                   </button>
                 </li>
               ))}
-              {!hits.length && <li className="sub jt-none">Nothing called that — try two letters of a line, job or tool.</li>}
+              {!hits.length && <li className="sub jt-none">Nothing called that — try two letters of a line, project or tool.</li>}
             </ul>
           </div>
         </div>

@@ -130,7 +130,7 @@ export function JobPapers({ project, onClose }: { project: Project; onClose: () 
         ))}
         <Door title="Spreadsheet" says={busy ? 'Building…' : stageGate
           ? 'The start-up record of every project — machines, tests, fixes, materials, programs, line standard and walks — in one Excel file.'
-          : 'This job in one Excel file — what it waits on (materials and programs), its line standards and the problems on its walks. Its numbers, problems and board are on the client report.'}
+          : 'This project in one Excel file — what it waits on (materials and programs), its line standards and the problems on its walks. Its numbers, problems and board are on the client report.'}
           onClick={() => { if (!busy) void spreadsheet(); }} />
         {said && <p className="sub" role="status">{said}</p>}
       </>

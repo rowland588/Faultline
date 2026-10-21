@@ -138,7 +138,7 @@ await page.locator('select[aria-label="Which line"]').selectOption(lineId);
 await page.locator('.tk-new .tk-start').click(); await settle(1200);
 const talkId = page.url().match(/#\/talk\/([^?]+)/)?.[1];
 ok(!!talkId, '1 a talk started on the line', page.url());
-ok(await waitFor(async () => /^What Line Talk knows — Line 7: 2 machines · 1 open problem · 0 programs to prove · 0 tool findings · 0 jobs$/.test((await page.locator('.tk-knows summary').innerText().catch(() => '')).trim())), '1 what Line Talk knows, said', await page.locator('.tk-knows summary').innerText().catch(() => ''));
+ok(await waitFor(async () => /^What Line Talk knows — Line 7: 2 machines · 1 open problem · 0 programs to prove · 0 tool findings · 0 projects$/.test((await page.locator('.tk-knows summary').innerText().catch(() => '')).trim())), '1 what Line Talk knows, said', await page.locator('.tk-knows summary').innerText().catch(() => ''));
 ok((await page.locator('.tk-send').innerText()).trim() === 'Send' && await page.locator('.tk-send').isDisabled(), '1 nothing to answer yet — Send waits');
 
 /* 2 — talked into the box, sent */

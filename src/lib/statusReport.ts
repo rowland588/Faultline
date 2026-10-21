@@ -198,7 +198,7 @@ export function statusReport(r: ClientReport, L: StatusLimits = STATUS_LIMITS): 
         programMore: L.programs === false ? 0 : Math.max(0, told.length - n),
       };
     })(),
-    linePrograms: L.programs === false ? [] : (r.sections.find(s => s.gate === 'setup')?.linePrograms ?? []).map(l => `On ${l.line}, with no job — ${l.reading.says}`),
+    linePrograms: L.programs === false ? [] : (r.sections.find(s => s.gate === 'setup')?.linePrograms ?? []).map(l => `On ${l.line}, with no project — ${l.reading.says}`),
     /* THE COMMENTARY, on the one page: whole up to a paragraph; a longer one
        is cut at a word and says the rest is in the full report — the page
        is never a cut-down that pretends to be whole. */

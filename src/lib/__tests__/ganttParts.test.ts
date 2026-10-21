@@ -94,7 +94,7 @@ describe('where am I', () => {
   });
 
   it('names the band of what is on no one machine for what it is, and says what is in it', () => {
-    expect(JOB_BAND).toBe('Whole job — not on one machine');
+    expect(JOB_BAND).toBe('Whole project — not on one machine');
     expect(jobContents([{ kind: 'handover' }, { kind: 'material' }, { kind: 'program' }], true)).toBe('handover · materials · programs · the filmed walk');
     const gm = withMachines(g, { assets, tests, items, today: TODAY });
     expect(gm.machines!.find(b => b.name === JOB_BAND)!.says).toBe('install on the line');

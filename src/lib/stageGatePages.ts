@@ -19,7 +19,7 @@ const and = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} an
 
 /** The money tile while the job's lines are still being read — the tiles
  *  show at once, the money a moment later (lib/useJobMoney). */
-export const MONEY_WAIT: LeanTile = { k: 'A day late', v: '…', of: 'reading the job’s lines' };
+export const MONEY_WAIT: LeanTile = { k: 'A day late', v: '…', of: 'reading the project’s lines' };
 
 /** The money said once more where the page closes — only when it is a cost
  *  already run up (the slip), never the "what a day would cost". */
@@ -125,7 +125,7 @@ export function problemTiles(x: ProblemCounts, money: LeanTile): LeanTile[] {
   return [
     { k: 'Open', v: String(x.open), of: x.open ? [x.fixes ? `${x.fixes} ${plural(x.fixes, 'fix', 'fixes')} still to do` : '', x.noFix ? `${x.noFix} with no fix yet` : ''].filter(Boolean).join(' · ') : x.done ? `nothing outstanding — ${x.done} done` : 'nothing on the list yet',
       ...(x.open ? {} : { tone: 'g' as LeanTone }) },
-    { k: 'Critical', v: String(x.critical), of: x.risks ? `${x.risks} high ${plural(x.risks, 'risk')} as well` : x.critical ? 'stopping the job' : 'none open', ...(x.critical ? { tone: 'r' as LeanTone } : x.risks ? { tone: 'a' as LeanTone } : {}) },
+    { k: 'Critical', v: String(x.critical), of: x.risks ? `${x.risks} high ${plural(x.risks, 'risk')} as well` : x.critical ? 'stopping the project' : 'none open', ...(x.critical ? { tone: 'r' as LeanTone } : x.risks ? { tone: 'a' as LeanTone } : {}) },
     { k: 'Late', v: String(x.late), of: x.late ? 'fixes past their day' : 'no fix past its day', tone: x.late ? 'r' : 'n' },
     { k: 'No fix yet', v: String(x.noFix), of: x.noFix ? `${plural(x.noFix, 'problem')} nobody is putting right yet` : 'every problem has its fix', tone: x.noFix ? 'a' : 'n' },
     money,
@@ -133,7 +133,7 @@ export function problemTiles(x: ProblemCounts, money: LeanTile): LeanTile[] {
 }
 
 export function problemClosing(x: ProblemCounts, money: LeanTile): { text: string; tone: LeanTone } {
-  if (!x.open) return { text: x.done ? `Problems: nothing outstanding — ${x.done} put right.` : 'Problems: none on the job.', tone: x.done ? 'g' : 'n' };
+  if (!x.open) return { text: x.done ? `Problems: nothing outstanding — ${x.done} put right.` : 'Problems: none on the project.', tone: x.done ? 'g' : 'n' };
   const wrong = [x.critical ? `${x.critical} critical` : '', x.late ? `${x.late} ${plural(x.late, 'fix', 'fixes')} late` : '', x.noFix ? `${x.noFix} with no fix yet` : ''].filter(Boolean);
   return { text: `Problems: ${x.open} open${wrong.length ? ` — ${and(wrong)}` : ', each with its fix on time'}.${moneyClause(money)}`, tone: x.critical || x.late ? 'r' : x.noFix ? 'a' : 'n' };
 }
@@ -153,9 +153,9 @@ export function materialTiles(x: MaterialCounts, money: LeanTile, nice: (iso: st
 }
 
 export function materialClosing(x: MaterialCounts, money: LeanTile): { text: string; tone: LeanTone } {
-  if (!x.total) return { text: 'Materials: nothing on the list yet — say what the job needs before it can run.', tone: 'n' };
+  if (!x.total) return { text: 'Materials: nothing on the list yet — say what the project needs before it can run.', tone: 'n' };
   const wrong = [x.late ? `${x.late} late` : '', x.undated ? `${x.undated} with no date` : ''].filter(Boolean);
-  return { text: `Materials: ${x.here} of ${x.total} here${wrong.length ? ` — ${and(wrong)}` : x.here === x.total ? ' — everything the job needs is in' : ', the rest on time'}.${moneyClause(money)}`,
+  return { text: `Materials: ${x.here} of ${x.total} here${wrong.length ? ` — ${and(wrong)}` : x.here === x.total ? ' — everything the project needs is in' : ', the rest on time'}.${moneyClause(money)}`,
     tone: x.late ? 'r' : x.undated ? 'a' : x.here === x.total ? 'g' : 'n' };
 }
 
@@ -165,14 +165,14 @@ export interface HandoverCounts { machines: number; handed: number; open: number
 
 export function handoverTiles(x: HandoverCounts, money?: LeanTile): LeanTile[] {
   return [
-    { k: 'Handed over', v: String(x.handed), of: x.machines ? `of ${x.machines} ${plural(x.machines, 'machine')}` : 'no machines on the job yet', ...(x.machines && x.handed === x.machines ? { tone: 'g' as LeanTone } : {}) },
+    { k: 'Handed over', v: String(x.handed), of: x.machines ? `of ${x.machines} ${plural(x.machines, 'machine')}` : 'no machines on the project yet', ...(x.machines && x.handed === x.machines ? { tone: 'g' as LeanTone } : {}) },
     { k: 'Still open', v: String(x.open), of: x.open ? (x.handedOver ? 'handed over with — said below, machine by machine' : 'to close before hand-over — said below') : 'nothing open', tone: x.open ? 'a' : 'n' },
     ...(money ? [money] : []),
   ];
 }
 
 export function handoverClosing(x: HandoverCounts, money?: LeanTile): { text: string; tone: LeanTone } {
-  if (!x.machines) return { text: 'Hand over: no machines on the job yet.', tone: 'n' };
+  if (!x.machines) return { text: 'Hand over: no machines on the project yet.', tone: 'n' };
   return {
     text: `Hand over: ${x.handed} of ${x.machines} ${plural(x.machines, 'machine')} handed over${x.open ? ` — ${x.open} still open` : ' — nothing left open'}.${money ? moneyClause(money) : ''}`,
     tone: x.handed === x.machines && !x.open ? 'g' : x.open ? 'a' : 'n',

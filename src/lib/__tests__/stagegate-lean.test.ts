@@ -44,7 +44,7 @@ describe('a stage-gate job’s tiles', () => {
       .toEqual({ k: 'The slip costs', v: '£25.2k', of: '8 days × £3.2k — a day of Line 7 not making, in margin', tone: 'r' });
   });
   it('the money asks for what it needs: no line on the job, or a line with nothing said', () => {
-    expect(stageGateTiles({ ...base, day: linesDay([]) })[4]).toEqual({ k: 'A day late', v: '—', of: 'no line from Your factory on the job yet' });
+    expect(stageGateTiles({ ...base, day: linesDay([]) })[4]).toEqual({ k: 'A day late', v: '—', of: 'no line from Your factory on the project yet' });
     expect(stageGateTiles({ ...base, day: linesDay([{ name: 'Line 3', packsPerMin: 40 }]) })[4]).toEqual({ k: 'A day late', v: '—', of: 'give Line 3: its shifts and its margin a pack in Your factory' });
   });
   it('past the handover in red; handed over three days late in red, a day early in green; nothing late of what is to do grey; nothing to do in green', () => {

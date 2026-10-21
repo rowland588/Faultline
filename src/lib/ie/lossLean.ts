@@ -134,7 +134,7 @@ export function lossLean(i: { s: ToolStudy; f: LossFigures; said: LossSays; line
     ...(points.length >= 2 ? { trend: { title: 'Good packs a shift, against what the rate expects', unit: 'packs', points, bar: 'Good packs made', mark: 'Expected at the rate' } } : {}),
     insights,
     actions: i.actions,
-    actionsEmpty: s.projectId ? 'Nothing raised from this count yet — tap a cause and Make it better.' : 'Nothing raised from this count yet — attach it to a job to raise a fix or a countermeasure from a cause.',
+    actionsEmpty: s.projectId ? 'Nothing raised from this count yet — tap a cause and Make it better.' : 'Nothing raised from this count yet — attach it to a project to raise a fix or a countermeasure from a cause.',
     closing,
   };
 }

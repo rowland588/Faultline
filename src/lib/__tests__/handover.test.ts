@@ -116,7 +116,7 @@ describe('the control room counts a handed-over job apart', () => {
     expect(pf.jobs[1]).toMatchObject({ handedOver: true, at: 'Handed over' });
     expect(pf.jobs[1].daysToGo).toBeUndefined();
     expect(pf.totals).toMatchObject({ jobs: 1, handedOver: 1 });
-    expect(pf.says).toMatch(/^1 job running · 1 handed over · Line 4 hands over first, in 11 days\./);
+    expect(pf.says).toMatch(/^1 project running · 1 handed over · Line 4 hands over first, in 11 days\./);
   });
 });
 

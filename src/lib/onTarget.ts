@@ -158,7 +158,7 @@ export function stageGateOnTarget(x: StageGateInput, st?: Standing): OnTarget {
   const when = handoverWords(expectedAt, plannedAt);
 
   if (!tests.length && !assets.length && !materials.length && !programs.length) {
-    return { tone: 'none', word: 'Nothing planned yet', reason: `${when} · no machines or steps on the job yet` };
+    return { tone: 'none', word: 'Nothing planned yet', reason: `${when} · no machines or steps on the project yet` };
   }
 
   /* HANDED OVER — the answer once every machine is (lib/standing), said with
@@ -248,7 +248,7 @@ export function stageGateOnTarget(x: StageGateInput, st?: Standing): OnTarget {
  *  short and by how much — the front page's "Lines at target" reading. */
 export function linesOnTarget(lines: { name: string; series?: LineSeries }[]): OnTarget {
   const none = (reason: string): OnTarget => ({ tone: 'none', word: 'Not measured yet', reason });
-  if (!lines.length) return none('no lines on the job yet');
+  if (!lines.length) return none('no lines on the project yet');
   if (!lines.some(l => l.series)) return none('no measure set yet');
   const judged = lines.filter(l => l.series?.meeting != null);
   if (!judged.length) return none('no line has a reading against a target yet');

@@ -214,7 +214,7 @@ function Open({ token, item, renewed, lost }: {
       </figure>
 
       {item.kind === 'photo' && <p className="sh-hint">Tap the picture to see it full size.</p>}
-      <p className="sh-foot">Only this {word} is shared — nothing else from the job.</p>
+      <p className="sh-foot">Only this {word} is shared — nothing else from the project.</p>
 
       {full && item.kind === 'photo' && (
         /* Fitted to the screen first; a tap on the picture shows it at its

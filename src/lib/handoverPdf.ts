@@ -137,7 +137,7 @@ function blocksOf(r: HandoverReport, d: Density): Block[] {
     if (!m.open.length) out.push(text({ text: 'Nothing still open.', size: 9, colour: INK2, after: gap(d, 'l') }));
     else m.open.forEach((o, i) => out.push(text({ text: o, size: 9, colour: INK2, indent: 10, bullet: '•', after: i === m.open.length - 1 ? gap(d, 'l') : 2 })));
   }
-  if (!r.machines.length) out.push(text({ text: 'No machines on the job yet.', colour: MUTED, after: gap(d, 'l') }));
+  if (!r.machines.length) out.push(text({ text: 'No machines on the project yet.', colour: MUTED, after: gap(d, 'l') }));
 
   /* OPEN ON NO ONE MACHINE. */
   if (r.line.length) {
@@ -149,7 +149,7 @@ function blocksOf(r: HandoverReport, d: Density): Block[] {
      Programs page and proved by its tests: the line's reading, and those not
      done by name. */
   for (const lp of r.linePrograms) {
-    out.push(label(`On ${lp.line}, with no job — programs`, lp.open.length ? AMBER : MUTED));
+    out.push(label(`On ${lp.line}, with no project — programs`, lp.open.length ? AMBER : MUTED));
     out.push(text({ text: lp.says, size: 9, style: 'bold', colour: INK2, after: lp.open.length ? 3 : gap(d, 'l') }));
     lp.open.forEach((o, i) => out.push(text({ text: o, size: 9, colour: INK2, indent: 10, bullet: '•', after: i === lp.open.length - 1 ? gap(d, 'l') : 2 })));
   }

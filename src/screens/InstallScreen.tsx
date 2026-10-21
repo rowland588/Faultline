@@ -63,15 +63,15 @@ import { PlanTabs } from '../ui/PlanTabs';
 const FACE: Record<StepGate, { peer: string; doing: string; empty: string }> = {
   install: {
     peer: 'install', doing: 'installing',
-    empty: 'Add the machines being installed — or paste a list of them. Then one tap gives them all the job’s stages — positioned, air and power, electrics, sensors and controls, dry run — and you tick them off as they happen.',
+    empty: 'Add the machines being installed — or paste a list of them. Then one tap gives them all the project’s stages — positioned, air and power, electrics, sensors and controls, dry run — and you tick them off as they happen.',
   },
   setup: {
     peer: 'setup', doing: 'being set up',
-    empty: 'Add the machines first. Then one tap gives them all the job’s set-up stages — programs loaded, recipes set, change parts, HMI, guards — and you tick them off as they happen.',
+    empty: 'Add the machines first. Then one tap gives them all the project’s set-up stages — programs loaded, recipes set, change parts, HMI, guards — and you tick them off as they happen.',
   },
   handover: {
     peer: 'handover', doing: 'handing over',
-    empty: 'Add the machines first. Then one tap gives them all the job’s hand-over check sheet — manuals, training, spares, safety sign-off, client signed — every line of it yours to change.',
+    empty: 'Add the machines first. Then one tap gives them all the project’s hand-over check sheet — manuals, training, spares, safety sign-off, client signed — every line of it yours to change.',
   },
 };
 

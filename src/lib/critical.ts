@@ -84,7 +84,7 @@ function flagged(tests: Test[], items: TestItem[], assets: Asset[], is: (i: Test
     const agreed = item.ways?.find(w => w.agreed);
     return {
       item, ...(on ? { on } : {}), ...(machine ? { machine } : {}),
-      where: on ? `${machine ?? 'The line'} — ${on.title}` : 'The job',
+      where: on ? `${machine ?? 'The line'} — ${on.title}` : 'The project',
       day: dayOfMs(item.createdAt), ...(fix ? { fix } : {}), sorted: sortedOf(item, fix), ...(agreed ? { agreed } : {}),
     };
   });

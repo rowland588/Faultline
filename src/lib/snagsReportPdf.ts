@@ -117,7 +117,7 @@ export function snagsBlocks(r: SnagsReading, d: Density, photos: Map<string, Sna
     out.push(rows({ rows: g.rows.map(x => ({ h: (f: Frame) => height(snagParts(f, x)), draw: (f: Frame, y: number) => drawRow(f, y, snagParts(f, x), x.photo ? photos.get(x.photo) : undefined) })), after: 'm' }));
   }
   if (r.jobs.length) {
-    out.push({ ...text({ text: 'ON THE JOBS — WITH THE FIX THAT PUTS EACH RIGHT', size: SIZE.eyebrow, style: 'bold', colour: BRAND, before: 8, after: 4 }), keepWithNext: true });
+    out.push({ ...text({ text: 'ON THE PROJECTS — WITH THE FIX THAT PUTS EACH RIGHT', size: SIZE.eyebrow, style: 'bold', colour: BRAND, before: 8, after: 4 }), keepWithNext: true });
     for (const g of r.jobs) {
       const said = [g.problemsOpen ? `${g.problemsOpen} with no fix yet` : '', g.fixesToDo ? `${g.fixesToDo} being fixed` : '', g.late ? `${g.late} late` : '', g.done ? `${g.done} done` : ''].filter(Boolean).join(', ');
       out.push({ ...text({ text: san(`${g.job}${said ? ` · ${said}` : ''}`), size: SIZE.h2, style: 'bold', colour: INK2, before: 4, after: 4 }), keepWithNext: true });
@@ -125,7 +125,7 @@ export function snagsBlocks(r: SnagsReading, d: Density, photos: Map<string, Sna
     }
   }
   if (r.moved.length) {
-    out.push({ ...text({ text: 'MOVED, AND NO LONGER ON THE JOB', size: SIZE.eyebrow, style: 'bold', colour: BRAND, before: 8, after: 4 }), keepWithNext: true });
+    out.push({ ...text({ text: 'MOVED, AND NO LONGER ON THE PROJECT', size: SIZE.eyebrow, style: 'bold', colour: BRAND, before: 8, after: 4 }), keepWithNext: true });
     for (const g of r.moved) {
       out.push({ ...text({ text: san(`${g.job} · ${g.rows.length}`), size: SIZE.h2, style: 'bold', colour: INK2, before: 4, after: 4 }), keepWithNext: true });
       out.push(rows({ rows: g.rows.map(x => ({ h: (f: Frame) => height(movedParts(f, x)), draw: (f: Frame, y: number) => drawRow(f, y, movedParts(f, x), x.photo ? photos.get(x.photo) : undefined) })), after: 'm' }));

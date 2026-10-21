@@ -109,7 +109,7 @@ export function ShareSheet({ open, onClose, projectId, testId, media, onMade }: 
               onChange={e => setCaption(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !busy) void make(); }} />
           </label>
           <p className="sl-terms">
-            Anyone with the link can {verb} this {what} until {until(ends)} — nothing else from the job.
+            Anyone with the link can {verb} this {what} until {until(ends)} — nothing else from the project.
             You can stop it at any time.
           </p>
           {error && <p className="sl-err" role="alert">{error}</p>}

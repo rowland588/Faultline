@@ -125,7 +125,7 @@ async function jobCard({ row, job }: JobCardRow): Promise<SnagCardData> {
   const machine = row.where.split(/ · | — /)[0]?.trim() || 'The line';
   return {
     problem: row.what || 'A problem',
-    ...(row.fixWhat ? { proposedSolution: `Fix: ${row.fixWhat}` } : row.kind === 'fix' ? { proposedSolution: 'Being fixed — the fix is booked on the job.' } : {}),
+    ...(row.fixWhat ? { proposedSolution: `Fix: ${row.fixWhat}` } : row.kind === 'fix' ? { proposedSolution: 'Being fixed — the fix is booked on the project.' } : {}),
     status: !row.open ? 'closed' : row.kind === 'problem' ? 'open' : 'in_progress',
     statusLabel: row.word, owner: row.who ?? '', assetName: machine, where: job,
     raised: dateNice(row.at), ageDays: ageDays(row.at), priority: row.priority,

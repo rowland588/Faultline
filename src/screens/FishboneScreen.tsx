@@ -679,7 +679,7 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
   /* A link to a problem that has gone — removed, or not on this device —
      says so, rather than quietly showing another problem in its place. */
   const gone = askedProblem && !asked && (
-    <p className="sub fj-gone" role="status">That problem isn’t on this job any more{view ? ' — this is the line’s main one.' : '.'}</p>
+    <p className="sub fj-gone" role="status">That problem isn’t on this project any more{view ? ' — this is the line’s main one.' : '.'}</p>
   );
 
   const empty = (

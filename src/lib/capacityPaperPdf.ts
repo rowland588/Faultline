@@ -347,7 +347,7 @@ function limited(p: CapacityPaper, sayV: boolean): Block[] {
  *  alone, headed by its name; otherwise it is one of many, under a heading. */
 export function productBlocks(p: CapacityPaper, d: Density, own: boolean, keep = true): Block[] {
   const out: Block[] = [];
-  const where = `${p.line}${p.job ? ` · for ${p.job}` : ' · on no job'}`;
+  const where = `${p.line}${p.job ? ` · for ${p.job}` : ' · on no project'}`;
   if (own) {
     out.push(text({ text: `LINE CAPACITY · ${p.line.toUpperCase()}`, size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
     out.push(text({ text: p.product, size: SIZE.title, style: 'bold', after: 4 }));

@@ -40,7 +40,7 @@ export function notedProblems(tests: Test[], items: TestItem[], assets: Asset[])
     .map(i => {
       const on = ts.find(t => t.id === i.testId);
       const machine = on?.assetId ? assets.find(a => a.id === on.assetId && !a.deletedAt)?.name : undefined;
-      return { item: i, ...(on ? { on } : {}), where: on ? `${machine ?? 'The line'} — ${on.title}` : 'The job', day: dayOfMs(i.createdAt) };
+      return { item: i, ...(on ? { on } : {}), where: on ? `${machine ?? 'The line'} — ${on.title}` : 'The project', day: dayOfMs(i.createdAt) };
     });
   return {
     open: rows.filter(r => r.item.doneAt == null).sort((a, b) => a.item.createdAt - b.item.createdAt),

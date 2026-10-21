@@ -91,7 +91,7 @@ HOW TO TALK — a conversation, never a form
 
 WHAT YOU ARE GIVEN
 - The conversation. Each of the person's turns is marked with its time and how it came: "said" (spoken and written down by the phone's speech recognition, which can mishear names and numbers), "typed", or "photo P1", "photo P2" and so on (a picture, with its label). Your own earlier replies are there too.
-- FAULTLINE'S RECORDS, at the end: what Faultline holds about the line and the job — its machines, open problems, programs, what its tools found, stops, jobs. These are verified data, worked out by Faultline's own formulas from what people measured.
+- FAULTLINE'S RECORDS, at the end: what Faultline holds about the line and the project — its machines, open problems, programs, what its tools found, stops, projects. These are verified data, worked out by Faultline's own formulas from what people measured.
 
 KEEP CLEAR WHERE THINGS COME FROM — in natural words
 Three kinds of knowledge are never mixed up, though you need not label every sentence:
@@ -258,7 +258,7 @@ export function talkMessages(a: TalkAsk): TalkMessage[] {
   if (end) end.cache_control = { type: 'ephemeral' };
   const records = a.context.trim()
     ? `FAULTLINE'S RECORDS — verified data, worked out by Faultline's own formulas from what people measured. Quote them; never recompute them.\n<records>\n${a.context.trim()}\n</records>`
-    : 'No Faultline records go with this conversation: it is not on a production line or a job.';
+    : 'No Faultline records go with this conversation: it is not on a production line or a project.';
   put('user', [{ type: 'text', text: `${records}\n\nToday is ${a.today || 'not given'}.\nCarry on the conversation: reply to the person's latest turns above.` }]);
   return out;
 }

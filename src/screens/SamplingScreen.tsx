@@ -187,7 +187,7 @@ function SetUp({ s, canAgree, hasTaps, onDone, cancel }: { s: ToolStudy; canAgre
   };
 
   if (!canAgree) return (
-    <div className="ie-agree is-wait"><p><b>It isn’t set up yet.</b> The job’s owner says who is watched and the shift, before the first tap.</p></div>
+    <div className="ie-agree is-wait"><p><b>It isn’t set up yet.</b> The project’s owner says who is watched and the shift, before the first tap.</p></div>
   );
   return (
     <form className="ie-agree" onSubmit={e => { e.preventDefault(); save(); }}>

@@ -79,7 +79,7 @@ async function buildPrograms(r: ClientReport): Promise<jsPDF> {
   const linePrograms = setup?.linePrograms ?? [];
   await drawProgramsReport(doc, { name: r.name, ...(r.lead ? { lead: r.lead } : {}), printed: r.printed, linePrograms, money: moneyTile(r.figures),
     reading: reading ?? { lines: [], machines: [], total: 0, done: 0, baseline: 0, failed: 0, late: 0, open: 0, notTested: 0, noProgram: 0, doneAll: 0,
-      says: linePrograms.length ? 'None of the job’s own yet — its line’s are below' : 'No programs yet' } });
+      says: linePrograms.length ? 'None of the project’s own yet — its line’s are below' : 'No programs yet' } });
   return doc;
 }
 
@@ -274,7 +274,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
                 ? 'The line as it was really handed over — every machine, what it was proved against, what was still open, and who signed.'
               : which === 'commissioning'
                 ? 'Where commissioning has got to, machine by machine — the tests, the programs, the problems and what is booked next. For the meeting, or to send; the cards are a page a machine.'
-              : 'The whole record, in the order the job is run — for whoever wants every detail.'}</p>
+              : 'The whole record, in the order the project is run — for whoever wants every detail.'}</p>
           {/* The answer the first page leads with (lib/onTarget). */}
           {/* On the status view, the verdict and the handover only — what
               is wrong is listed under it, once. */}
@@ -340,7 +340,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
             </li>
             <li><b>What we are doing about it</b>
               {commissioning.doing.length ? commissioning.doing.map((w, i) => <span key={i}>{w.text}{w.meta ? <span className="sub"> — {w.meta}</span> : null}</span>)
-                : <span>No fix open and no problem taken for the job.</span>}
+                : <span>No fix open and no problem taken for the project.</span>}
               {commissioning.booked.length > 0 && <span className="sub">Booked next: {commissioning.booked.slice(0, 5).map(b => b.text).join(' · ')}{commissioning.booked.length > 5 ? ` · and ${commissioning.booked.length - 5} more` : ''}</span>}
             </li>
           </ol>
@@ -364,7 +364,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
               </li>
             ))}
             {handover.line.length > 0 && <li><b>Still open on the line</b>{handover.line.map((l, i) => <span key={i}>{l}</span>)}</li>}
-            {handover.linePrograms.map(lp => <li key={lp.line}><b>On {lp.line}, with no job — programs</b><span>{lp.says}</span>{lp.open.map((o, i) => <span key={i} className="sub">{o}</span>)}</li>)}
+            {handover.linePrograms.map(lp => <li key={lp.line}><b>On {lp.line}, with no project — programs</b><span>{lp.says}</span>{lp.open.map((o, i) => <span key={i} className="sub">{o}</span>)}</li>)}
             <li><b>Signed</b><span>{handover.sign.join(' · ')} — lines to sign on the paper</span></li>
           </ol>
           {wide && (
@@ -381,7 +381,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
         return (
           <div className={'cr-body' + (wide ? ' is-wide' : '')}>
             <ol className="cr-toc">
-              <li><b>Programs</b><span>{pr ? pr.says : lps.length ? 'None of the job’s own yet — its line’s are below.' : 'No programs yet — write them on Set up’s programs stage, or on the Programs page.'}</span></li>
+              <li><b>Programs</b><span>{pr ? pr.says : lps.length ? 'None of the project’s own yet — its line’s are below.' : 'No programs yet — write them on Set up’s programs stage, or on the Programs page.'}</span></li>
               {pr?.machines.map(m => (
                 <li key={m.name}><b>{m.name}</b>
                   {m.lines.map((l, i) => (
@@ -391,7 +391,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
               ))}
               {/* THE LINE'S OWN PROGRAMS — as the job's Programs page shows them */}
               {lps.map(lp => (
-                <li key={lp.line}><b>On {lp.line}, with no job</b><span>{lp.reading.says}</span>
+                <li key={lp.line}><b>On {lp.line}, with no project</b><span>{lp.reading.says}</span>
                   {lp.reading.lines.map((l, i) => <span key={i}>{l.machine} — {l.what} — <b className={'cr-prog is-' + l.tone}>{l.word}</b>{l.note ? `: ${l.note}` : ''}</span>)}
                 </li>
               ))}
@@ -466,13 +466,13 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
               {set.sorted.map((l, i) => <span key={i} className="sub">{l}</span>)}
             </li>
           ))}
-          <li><b>Where the job is</b><span>{report.sentence}</span><span className="sub">{machinesSay(report)}</span></li>
+          <li><b>Where the project is</b><span>{report.sentence}</span><span className="sub">{machinesSay(report)}</span></li>
           {report.sections.map(s => (
             <li key={s.gate}>
               <b>{s.label}</b><Says says={s.says} />
               {/* What its Needs you says is missing, as the paper prints it (lib/install gateGaps). */}
               {s.grid && s.gaps?.map((g, i) => <span key={`gap${i}`} className="sub">Not added yet: {g}</span>)}
-              {s.linePrograms?.map(lp => <span key={lp.line} className="sub">On {lp.line}, with no job — {lp.reading.says}</span>)}
+              {s.linePrograms?.map(lp => <span key={lp.line} className="sub">On {lp.line}, with no project — {lp.reading.says}</span>)}
               {/* How each stage went — the same rows, in the same words, as
                   the paper prints under the gate's grid. */}
               {s.accounts && s.accounts.length > 0 && (
@@ -497,7 +497,7 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
           <li><b>Fixes</b><span>{report.fixes.open.length} open · {report.fixes.done.length} done</span>
             {report.fixes.open.map(f => <button key={f.id} type="button" className="cr-door" onClick={() => open(f.id)}>{f.title}{f.machine ? ` — ${f.machine}` : ''} · {f.when}</button>)}</li>
           {/* THE REGISTER'S PROBLEMS FOR THIS JOB, NOT ON IT YET — the Fixes page's list, opened where each is kept. */}
-          {report.assigned.length > 0 && <li><b>Problems for this job — not on it yet</b><span>{report.assigned.length} on the register</span>
+          {report.assigned.length > 0 && <li><b>Problems for this project — not on it yet</b><span>{report.assigned.length} on the register</span>
             {report.assigned.map(a => <button key={a.id} type="button" className="cr-door" onClick={() => openSnag(a.id)}>
               <span className={'qsl-prio ' + ({ critical: 'is-r', high: 'is-a', low: 'is-g' } as const)[a.priority]}>{PRIORITY_WORD[a.priority]}</span>{a.what} — {a.meta}{a.due && <> · <span className={a.late ? 'in-late' : undefined}>{a.due}</span></>}</button>)}</li>}
           {report.notedRows.length > 0 && <li><b>Problems with no fix</b><span>{report.noted.open.length} open{report.noted.sorted.length ? ` · ${report.noted.sorted.length} sorted` : ''}</span>

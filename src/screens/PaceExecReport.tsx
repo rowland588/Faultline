@@ -324,7 +324,7 @@ function PlanPage({ pl, marks, today, expectedAt, plannedAt, title, scale, sheet
       <section className="exec-sheet" style={{ transform: `scale(${scale})` }}>
         <div className="exec-body-1">
           <section className="exec-box">
-            <SectionHead n={String(n)} title="Where the job is" sowhat={pl.counted} />
+            <SectionHead n={String(n)} title="Where the project is" sowhat={pl.counted} />
             <p className="exec-plan-says">{pl.says}</p>
             {pl.slip && <p className="exec-plan-slip">{pl.slip}</p>}
             <Timeline marks={marks} today={today} expectedAt={expectedAt} plannedAt={plannedAt} />
@@ -349,7 +349,7 @@ function PlanPage({ pl, marks, today, expectedAt, plannedAt, title, scale, sheet
           </section>
         </div>
         <footer className="exec-foot">
-          <span>{title} · client report · page {n} of {of} — where the job is</span>
+          <span>{title} · client report · page {n} of {of} — where the project is</span>
           <span>Read off the same records the site and the OEM are working to.</span>
         </footer>
       </section>
@@ -616,7 +616,7 @@ function TrialsBox({ t }: { t: PaceReportData['trials'] }) {
     return (
       <section className="exec-box">
         <SectionHead n="1" title="What we are proving" sowhat="nothing planned yet" />
-        <p className="exec-empty">No test has been planned on this job yet — plan the first one under Testing.</p>
+        <p className="exec-empty">No test has been planned on this project yet — plan the first one under Testing.</p>
       </section>
     );
   }
@@ -1913,7 +1913,7 @@ function PaceExecReportA3() {
     /* The improvement board's lede — "L7 · L8 — tests and fixes, what we are
        waiting on…" — named the lines of a tracker a commissioning job does not
        keep. The commissioning report says what it is. */
-    subtitle: hasTracker ? subtitle : 'What we are proving · where the job is · who owes what, by when',
+    subtitle: hasTracker ? subtitle : 'What we are proving · where the project is · who owes what, by when',
     lines: reportLines.map(l => ({
       key: l.key, name: l.name, variant: l.variant,
       owner: l.owner, sponsor: l.sponsor,
@@ -2025,7 +2025,7 @@ function PaceExecReportA3() {
                 : project ? `${methodOf(project).label} · client report` : hasTracker ? 'Client report' : 'Stage gate · client report'}
             </p>
             <h1 className="exec-title">{title}</h1>
-            <p className="exec-lede">{hasTracker ? subtitle : 'What we are proving · where the job is · who owes what, by when'}</p>
+            <p className="exec-lede">{hasTracker ? subtitle : 'What we are proving · where the project is · who owes what, by when'}</p>
           </div>
           <div className="exec-head-meta">
             <span className="exec-asat">Status as at</span>
@@ -2050,11 +2050,11 @@ function PaceExecReportA3() {
               const reBooked = heads.filter(x => x.state === 'failed' && x.next?.what === 'Re-test').length;
               const pastDay = owesBlock?.parties.reduce((k, pt) => k + pt.late, 0) ?? 0;
               return (<>
-                <Stat n={String(heads.length)} label="Tests" sub="being proved on this job" tone="flat" />
+                <Stat n={String(heads.length)} label="Tests" sub="being proved on this project" tone="flat" />
                 <Stat n={String(n('proved'))} label="Proved" sub={`of ${heads.length}`} tone={n('proved') > 0 ? 'good' : 'flat'} />
                 <Stat n={String(n('failed'))} label="Failed" sub={n('failed') ? `${reBooked} with a re-test booked` : 'none'} tone={n('failed') > 0 ? 'bad' : 'flat'} />
                 <Stat n={String(n('noVerdict') + n('notRun'))} label="Waiting" sub={`${n('noVerdict')} no verdict \u00b7 ${n('notRun')} not run`} tone={n('noVerdict') + n('notRun') > 0 ? 'warn' : 'flat'} />
-                <Stat n={String(pastDay)} label="Past the day" sub="owed across the job — see who owes what" tone={pastDay > 0 ? 'bad' : 'flat'} />
+                <Stat n={String(pastDay)} label="Past the day" sub="owed across the project — see who owes what" tone={pastDay > 0 ? 'bad' : 'flat'} />
                 {installBlock && installBlock.total > 0 && (
                   <Stat n={`${installBlock.machinesIn}/${installBlock.machines}`} label="Installed"
                     sub={`${installBlock.done} of ${installBlock.total} install steps done`}

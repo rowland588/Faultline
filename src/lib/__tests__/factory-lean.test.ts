@@ -19,7 +19,7 @@ describe('Your factory’s tiles', () => {
       row(3, 'Line 9'),
     ]);
     expect(factoryTiles(r).map(t => [t.k, t.v, t.of, t.tone])).toEqual([
-      ['Lines', '3', '1 with a job on it', undefined],
+      ['Lines', '3', '1 with a project on it', undefined],
       ['Problems open', '5', 'on 2 of the 3 lines', undefined],
       ['Late', '1', 'problems past their day', 'r'],
       ['Critical', '1', 'open — stopping a line', 'r'],

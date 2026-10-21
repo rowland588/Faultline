@@ -436,7 +436,7 @@ export function Gantt({ marks, today, expectedAt, plannedAt, paceAt, projectId, 
           </span>
         )}
         <span className="gt-seg" role="group" aria-label="Scale">
-          <button type="button" className={fit ? 'on' : ''} onClick={() => setScale('fit')} title="The whole job on the screen">Fit</button>
+          <button type="button" className={fit ? 'on' : ''} onClick={() => setScale('fit')} title="The whole project on the screen">Fit</button>
           <button type="button" className={scale === 'day' ? 'on' : ''} onClick={() => setScale('day')}>Days</button>
           <button type="button" className={scale === 'week' ? 'on' : ''} onClick={() => setScale('week')}>Weeks</button>
         </span>

@@ -196,7 +196,7 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
             </div>
           )}
           {editable && shown === 'flow' && !branches.has(viewing.st.id) && stepWorth(list.find(x => x.id === viewing.st.id) ?? viewing.st, a) && !s.projectId && (
-            <p className="sub vs-branch">Attach the map to a job to raise a fix from this step.</p>
+            <p className="sub vs-branch">Attach the map to a project to raise a fix from this step.</p>
           )}
           <div className="vs-step-acts">
             {editable && shown === 'flow' && !!s.projectId && !branches.has(viewing.st.id) && stepWorth(list.find(x => x.id === viewing.st.id) ?? viewing.st, a) && (

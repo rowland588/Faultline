@@ -38,8 +38,8 @@ describe('what a study takes with it', () => {
   });
   it('what it serves on its job stays, by what it is to each', () => {
     const s = { ...base, uses: [use('fix', 'evidence', '1'), use('cause', 'evidence', '2'), use('cause', 'evidence', '3'), use('test', 'proof', '4')] };
-    expect(studyRemovingSays(s).ask).toContain('It is the evidence for 1 fix and 2 causes and the proof of 1 test on its job — they stay, without its figures.');
-    expect(studyRemovingSays({ ...base, uses: [use('action', 'proof', '1')] }).ask).toContain('It is the proof of 1 countermeasure on its job — that stays, without its figures.');
+    expect(studyRemovingSays(s).ask).toContain('It is the evidence for 1 fix and 2 causes and the proof of 1 test on its project — they stay, without its figures.');
+    expect(studyRemovingSays({ ...base, uses: [use('action', 'proof', '1')] }).ask).toContain('It is the proof of 1 countermeasure on its project — that stays, without its figures.');
   });
   it('a study with no name is said as not named', () => {
     expect(studyRemovingSays({ ...base, name: '  ' }).done).toBe('Deleted the capability study “Not named”');

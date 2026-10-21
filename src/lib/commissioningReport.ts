@@ -211,7 +211,7 @@ export function commissioningReport(x: CommissioningInput): CommissioningReport 
   const machinesSaid = machines.length
     ? [tally('g') && `${tally('g')} ready or handed over`, tally('a') && `${tally('a')} passed with something open`, tally('w') && `${tally('w')} under way`,
       tally('r') && `${tally('r')} behind`, tally('n') && `${tally('n')} not started`].filter(Boolean).join(' · ')
-    : 'no machines on the job yet';
+    : 'no machines on the project yet';
 
   const dates = [h.agreed && `Handover agreed ${niceDay(h.agreed, { weekday: 'short' })}`,
     !h.handedOver && h.expected && h.expected !== h.agreed && `now expected ${niceDay(h.expected, { weekday: 'short' })}`,

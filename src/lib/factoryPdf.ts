@@ -42,7 +42,7 @@ function blocksOf(r: FactoryReading, d: Density): Block[] {
   const rightW = 120, numW = 22;
   const parts = (f: Frame, x: FactoryRow) => ({
     head: wrap(f.doc, `${x.name}${x.type ? ` — ${x.type}` : ''}`, f.w - rightW - numW - 10, 10, 'bold'),
-    jobs: wrap(f.doc, [x.jobs.length ? `On: ${x.jobs.join(', ')}` : 'No job on it', x.facts ?? '', x.margin != null ? `${fmtGBP(x.margin)} of margin a day` : ''].filter(Boolean).join('   ·   '), f.w - rightW - numW - 10, 8.5),
+    jobs: wrap(f.doc, [x.jobs.length ? `On: ${x.jobs.join(', ')}` : 'No project on it', x.facts ?? '', x.margin != null ? `${fmtGBP(x.margin)} of margin a day` : ''].filter(Boolean).join('   ·   '), f.w - rightW - numW - 10, 8.5),
   });
   out.push(rows({
     rows: r.rows.map(x => ({

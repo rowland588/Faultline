@@ -71,7 +71,7 @@ export function useTalkContext(s: ToolStudy): TalkContextRead | null {
         what: `${p.what}${p.runs ? ` (runs ${p.runs})` : ''}`,
         machine: kit.machines.find(m => m.record?.id === p.assetId)?.name ?? 'the line itself',
         word: STATE_WORD[stateOf(p)], ...(p.testOn ? { test: niceDay(p.testOn) } : {}), late: standingOf(p, today) === 'overdue',
-        ...(p.projectId ? { job: projects.find(j => j.id === p.projectId)?.name ?? 'a job' } : {}),
+        ...(p.projectId ? { job: projects.find(j => j.id === p.projectId)?.name ?? 'a project' } : {}),
       }));
       /* each tool's latest, as the line's page says it — not Line Talk itself */
       input.tools = TOOLS.filter(t => t.study !== 'talk').flatMap(t => { const said = toolSaysOf(t, { standards, studies, obs, line, wsId }); return said.says ? [{ label: t.label, says: said.says }] : []; });

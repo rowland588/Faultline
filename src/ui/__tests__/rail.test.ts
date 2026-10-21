@@ -206,9 +206,9 @@ describe('the phone’s five', () => {
   ];
 
   it('Control room · This job · Plan · Problems · More — Plan on whichever gate you are in', () => {
-    expect(phoneBar(gateRail('setup'), 'commissioning').map(l => l.label)).toEqual(['Control room', 'This job', 'Plan', 'Problems', 'More']);
+    expect(phoneBar(gateRail('setup'), 'commissioning').map(l => l.label)).toEqual(['Control room', 'This project', 'Plan', 'Problems', 'More']);
     expect(phoneBar(gateRail('setup'), 'commissioning')[2].on).toBe(true);
-    expect(phoneBar(gateRail('job'), 'commissioning').map(l => l.label)).toEqual(['Control room', 'This job', 'Plan', 'Problems', 'More']);
+    expect(phoneBar(gateRail('job'), 'commissioning').map(l => l.label)).toEqual(['Control room', 'This project', 'Plan', 'Problems', 'More']);
   });
 
   it('on Programs, Programs holds the third place', () => {
@@ -237,7 +237,7 @@ describe('the phone’s five', () => {
       methodGroup(P, 'board', 'fishbone', {}),
       workGroup(P, 'fishbone', {}),
     ];
-    expect(phoneBar(rail, 'board').map(l => l.label)).toEqual(['Control room', 'This job', 'Fishbone', 'Board', 'More']);
+    expect(phoneBar(rail, 'board').map(l => l.label)).toEqual(['Control room', 'This project', 'Fishbone', 'Board', 'More']);
   });
 });
 

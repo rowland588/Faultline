@@ -21,8 +21,8 @@ export const PAGES = (sd, cap) => [
   { name: 'Control room', path: '#/room', must: [
     { what: 'its heading', sel: 'h1, h2', text: /Control room/ },
     { what: 'Your factory — every line', sel: '.fac-floor' },
-    { what: 'this week, across every line and job', sel: '.jb-week' },
-    { what: 'the jobs on one timeline', sel: '.jb-gantt', desk: true },
+    { what: 'this week, across every line and project', sel: '.jb-week' },
+    { what: 'the projects on one timeline', sel: '.jb-gantt', desk: true },
     /* the lean page (17 October, slice 5; lib/roomLean): each number in the band says what it is of, the money is the slips' cost, and the board closes on one line */
     { what: 'what each number in the band is of', sel: '.jb-hero .jb-of', n: 3 },
     { what: 'what the slips cost', sel: '.jb-stat.is-money' },
@@ -50,7 +50,7 @@ export const PAGES = (sd, cap) => [
   { name: 'Problems', path: '#/snags', must: [{ what: 'the register, a line at a time', sel: '.qsl-rows' },
     /* the lean page (17 October, slice 4; lib/problemsLean): its chips are its tiles, each a filter; the closing line names the worst open problem */
     { what: 'the closing line', sel: '.ln-close' }] },
-  { name: 'A stage-gate job — its front page', path: `#/project/${sd.projectId}`, must: [
+  { name: 'A stage-gate project — its front page', path: `#/project/${sd.projectId}`, must: [
     { what: 'the verdict', sel: '.vd' }, { what: 'Needs you', sel: 'h2, h3', text: /Needs you/ }, { what: 'where each machine is', sel: '.fp-grid' },
     /* the band's five tiles — the same the one-page status and the full report count (17 October, docs/LEAN-PAGE.md) */
     /* on a phone the band is the answer and the status report (the phone pass, 5 October): its tiles are the desk's */
@@ -63,11 +63,11 @@ export const PAGES = (sd, cap) => [
     { what: 'its stages and tests, gate by gate', sel: '.mpg-main .mp-gate' },
     { what: 'its programs', sel: '.mpg-side .pp-m' },
     /* the lean page (17 October; lib/stageGatePages machineTiles): gates through, late, fixes, no fix yet, the job's money — and the closing line */
-    { what: 'the five tiles — the job’s money last', sel: '.mpg > .sg-tiles .ln-tile', n: 5 },
+    { what: 'the five tiles — the project’s money last', sel: '.mpg > .sg-tiles .ln-tile', n: 5 },
     { what: 'the closing line', sel: '.mpg > .ln-close' },
   ] },
   /* one row a program, its test on the row, one form (16 October: "too many views and doors") */
-  { name: 'Programs — a stage-gate job', path: `#/project/${sd.projectId}/programs`, must: [
+  { name: 'Programs — a stage-gate project', path: `#/project/${sd.projectId}/programs`, must: [
     { what: 'the programs in a sentence', sel: '.pp-says' },
     { what: 'the states worth showing, each a filter', sel: '.pp-chip', n: 2 },
     { what: 'a row a program, machine by machine', sel: '.pgr-list .pgr', n: 4 },
@@ -91,7 +91,7 @@ export const PAGES = (sd, cap) => [
     { what: 'Needs you', sel: '.cg-needs' },
     { what: 'the closing line', sel: '.ln-close' },
   ] },
-  { name: 'Problems — a stage-gate job', path: `#/project/${sd.projectId}/fixes`, must: [
+  { name: 'Problems — a stage-gate project', path: `#/project/${sd.projectId}/fixes`, must: [
     { what: 'the tiles — open, critical, late, no fix yet, the money', sel: '.sg-tiles .ln-tile', n: 5 },
     { what: 'the closing line', sel: '.ln-close' },
   ] },
@@ -103,13 +103,13 @@ export const PAGES = (sd, cap) => [
   /* the day (17 October, the lean page slice 5c; lib/dayLean): its update to send, the story counted in tiles, the job's money last, the closing line */
   { name: 'The day', path: `#/project/${sd.projectId}/day`, must: [
     { what: 'the update to send, at the top', sel: '.dy-head .btn-primary', text: /PDF/ },
-    { what: 'the tiles — done, late, went wrong, found, the job’s money', sel: '.cm-screen > .sg-tiles .ln-tile', n: 4 },
+    { what: 'the tiles — done, late, went wrong, found, the project’s money', sel: '.cm-screen > .sg-tiles .ln-tile', n: 4 },
     { what: 'the closing line', sel: '.cm-screen > .ln-close' }] },
   { name: 'The plan', path: `#/project/${sd.projectId}/plan`, must: [{ what: 'the Gantt', sel: '.gt-body' }, { what: 'the plan’s tabs, Timeline on', sel: '.plt .plt-t.on', text: /^Timeline/ },
     /* the lean page (17 October; lib/stageGatePages planTiles): the header's count line moved into the tiles, the job's money last; the closing line */
-    { what: 'the tiles — done of the dates, late, still ahead, the job’s money', sel: '.cm-screen > .sg-tiles .ln-tile', n: 4 },
+    { what: 'the tiles — done of the dates, late, still ahead, the project’s money', sel: '.cm-screen > .sg-tiles .ln-tile', n: 4 },
     { what: 'the closing line', sel: '.cm-screen > .ln-close' }] },
-  { name: 'A 6M job — its front page', path: `#/project/${sd.pacedProjectId}`, must: [
+  { name: 'A 6M project — its front page', path: `#/project/${sd.pacedProjectId}`, must: [
     { what: 'the verdict', sel: '.vd' }, { what: 'the fishbone, drawn', sel: 'svg.fb-svg' },
     /* the lean page (17 October, docs/LEAN-PAGE.md slice 4; lib/sixmLean): the 6M report's five tiles on the band — the desk's, as the stage gate's */
     { what: 'the band’s tiles — the gap, problems, roots found, countermeasures, holding', sel: '.vd .vd-tile', n: 5, desk: true },
@@ -212,7 +212,7 @@ export const PAGES = (sd, cap) => [
     { what: 'Home first in the rail', sel: '.nv-rail .nv-ri', text: /Home/, desk: true },
   ] },
   /* NEW JOB: the three kinds of project, chosen from the situation (the words box and the library went with the method builder, 20 October) */
-  { name: 'New job', path: '#/projects?new=1', must: [
+  { name: 'New project', path: '#/projects?new=1', must: [
     { what: 'Faultline’s three kinds of project, each from its situation', sel: '.proj-model-opt', n: 3 },
   ] },
   /* A VIDEO STUDY (18 October, docs/VIDEO.md): footage read for the work at each station, reviewed, worked out as a line balance */

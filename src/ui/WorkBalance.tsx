@@ -470,7 +470,7 @@ function Agree({ study, can, cap, onDone, cancel }: { study: ToolStudy; can: Can
   const t = fromTarget ? fromTarget.taktSec : takt.trim() ? Number(takt) : fromDemand;
   const al = allow.trim() ? Number(allow) / 100 : 0;
   const problem = !(t && t > 0) ? 'The takt — seconds a piece, or what is needed in the time there is.' : !(al >= 0 && al < 1) ? 'The allowance as a percentage, under 100.' : '';
-  if (!can.agree) return <div className="ie-agree is-wait"><p><b>The takt isn’t agreed yet.</b> The job’s owner agrees the pace the line must keep, or Line capacity’s target sets it.</p></div>;
+  if (!can.agree) return <div className="ie-agree is-wait"><p><b>The takt isn’t agreed yet.</b> The project’s owner agrees the pace the line must keep, or Line capacity’s target sets it.</p></div>;
   return (
     <form className="ie-agree" onSubmit={e => { e.preventDefault(); if (problem || !t) return;
       const agreed: AgreedBalance = { taktSec: +t.toFixed(3), ...(fromTarget ? { from: 'target' as const } : {}), ...(al ? { allowance: al } : {}) };

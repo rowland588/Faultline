@@ -41,7 +41,7 @@ const NEW_LINE = '__new__';
 const WORDS: Record<LineTool, { title: string; lede: string; add: string; none: string }> = {
   map: {
     title: 'Line standard',
-    lede: 'Who stands where, and what they do, on each product — on every line. Use one on a line with no job, or attach it to a job.',
+    lede: 'Who stands where, and what they do, on each product — on every line. Use one on a line with no project, or attach it to a project.',
     add: 'New line standard', none: 'No line standards yet.',
   },
   /* THE LINE BALANCE, its own tool (Rowland, 17 October: "line balance is
@@ -49,12 +49,12 @@ const WORDS: Record<LineTool, { title: string; lede: string; add: string; none: 
      where and what people are doing") — it was Line capacity's People tab */
   work: {
     title: 'Line balance',
-    lede: 'What each person does on each product, timed at the line against takt — work, walking and waiting — where each works on the line, and what the bottleneck costs a pack and a minute. On a line with no job, or attached to one.',
+    lede: 'What each person does on each product, timed at the line against takt — work, walking and waiting — where each works on the line, and what the bottleneck costs a pack and a minute. On a line with no project, or attached to one.',
     add: 'New line balance', none: 'No line balances yet.',
   },
   balance: {
     title: 'Line capacity',
-    lede: 'Where each line is limited, product by product — the stations in the order the product flows, machines at their plate speed and people at their standard time, put into one unit; the bottleneck and the V-curve either side of it. On a line with no job, or attached to one.',
+    lede: 'Where each line is limited, product by product — the stations in the order the product flows, machines at their plate speed and people at their standard time, put into one unit; the bottleneck and the V-curve either side of it. On a line with no project, or attached to one.',
     add: 'New line capacity', none: 'No line capacity yet.',
   },
 };
@@ -126,7 +126,7 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
     }
     return [...by.entries()];
   }, [list, put, inTool]);
-  const groupName = (k: string) => (k.startsWith('ws:') ? lineName(k.slice(3)) : `Job: ${jobName(k.slice(4)) ?? 'a job'}`);
+  const groupName = (k: string) => (k.startsWith('ws:') ? lineName(k.slice(3)) : `Project: ${jobName(k.slice(4)) ?? 'a project'}`);
   const shown = groups.filter(([k]) => lineF === 'all' || k === lineF);
 
   /* PAPER FOR EVERYTHING SHOWN (docs/AUDIT.md, bar 3) — Line capacity's
@@ -143,7 +143,7 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
         /* every balance shown, each person's work against takt and what the bottleneck costs (lib/studiesPdf) */
         const [{ saveStudiesPdf }, { listObservations }] = await Promise.all([import('../lib/studiesPdf'), import('../db')]);
         const rows = shown.flatMap(([, rs]) => rs);
-        const items = rows.map(s => ({ s: currentBalance(studies, s.id), where: `${s.product} · ${s.workspaceId ? lineName(s.workspaceId) : 'on no line'}${jobName(s.projectId) ? ` · for ${jobName(s.projectId)}` : ' · on no job'}` }))
+        const items = rows.map(s => ({ s: currentBalance(studies, s.id), where: `${s.product} · ${s.workspaceId ? lineName(s.workspaceId) : 'on no line'}${jobName(s.projectId) ? ` · for ${jobName(s.projectId)}` : ' · on no project'}` }))
           .filter((x): x is { s: ToolStudy; where: string } => !!x.s);
         const wsIds = [...new Set(rows.map(s => s.workspaceId).filter((x): x is string => !!x))];
         const observations = (await Promise.all(wsIds.map(id => listObservations(id)))).flat();
@@ -154,7 +154,7 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
       } else {
         const { saveStandardCards } = await import('../ui/ToolPapers');
         /* each card under its place's name — the line's, or the job's, as on that job's own page */
-        await saveStandardCards(shown.map(([k, rows]) => ({ name: k.startsWith('job:') ? jobName(k.slice(4)) ?? 'A job' : groupName(k), list: rows })), name);
+        await saveStandardCards(shown.map(([k, rows]) => ({ name: k.startsWith('job:') ? jobName(k.slice(4)) ?? 'A project' : groupName(k), list: rows })), name);
       }
     } catch (e) {
       console.error('line tool paper failed', e);
@@ -196,7 +196,7 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
       )}
       {list && list.length === 0 && (
         <div className="qsl-empty">
-          <p><b>{w.none}</b> Pick a line and a product — one per product, on the line, attached to a job if it is for one.</p>
+          <p><b>{w.none}</b> Pick a line and a product — one per product, on the line, attached to a project if it is for one.</p>
           <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>{w.add}</button>
         </div>
       )}
@@ -283,7 +283,7 @@ function ToolRow({ s, tool, job, all, studies }: { s: Standard; tool: LineTool; 
         <b className="lt-what">{s.product}</b>
         <span className={'lt-says' + (said.short ? ' is-short' : '')}>{said.text}</span>
         {/* WHERE IT BELONGS — on a job, or a tool on the line alone. */}
-        <span className="lt-where">{job ? <>On <b>{job}</b></> : s.workspaceId ? 'On no job' : ''}</span>
+        <span className="lt-where">{job ? <>On <b>{job}</b></> : s.workspaceId ? 'On no project' : ''}</span>
       </button>
       {(may.edit || may.remove) && (
         <span className="lt-acts">
@@ -364,8 +364,8 @@ function NewOne({ open, tool, lines, list, onClose, onLine }: { open: boolean; t
           <datalist id="lt-products">{products.map(x => <option key={x} value={x} />)}</datalist>
           {already && <span className="sub">{already.product} is already on this line — {tool === 'balance' ? (already.capacity ? 'its capacity opens' : 'its capacity starts on it') : tool === 'work' ? 'its line balance opens' : 'its map opens'}.</span>}
         </label>
-        <label className="field"><span className="field-label">For a job?</span>
-          <select value={job} onChange={e => setJob(e.target.value)} aria-label="Attach to a job">
+        <label className="field"><span className="field-label">For a project?</span>
+          <select value={job} onChange={e => setJob(e.target.value)} aria-label="Attach to a project">
             <option value="">No — a tool on the line</option>
             {jobs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
