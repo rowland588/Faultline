@@ -123,7 +123,7 @@ open the record or the line's list as before, not the project's list; and
 *Move into a project* is the record's own *Attach to a project* (StudyPlace,
 the line standard's BelongsTo), as it was.
 
-### P3 — The project's actions
+### P3 — The project's actions — built 21 October
 
 One page in every project — **Actions** — the classic action tracker: every
 action in the project, from wherever it was raised, with **what · why (the
@@ -154,6 +154,27 @@ stands**.
   together however their name was cased.
 - The page is called **Actions**: *tracker* stays off the screens (it named
   the Excel import retired on 13 October, and the smoke test keeps it out).
+
+**As built (21 October).** *Actions* is on every project's rail, beside
+Problems (`#/project/:id/actions`, screens/ActionsScreen). Its rows are
+every thing the project owes, read the way its Needs you reads them — a
+stage, a test, a fix, a part of the plan, the board's actions, a check that
+keeps a gain, the materials, programs and machines waited on, the open
+critical problems and high risks (lib/portfolio, through the control room's
+own inputs) — and the register's problems taken for the project and not on
+it yet (lib/projectActions, lib/useProjectActions). So *late* here is the
+late of the band, the rail and the control room. Each row: what, its kind
+and priority in words, where, why, who, by when (late red, soon amber).
+Seen by **who**, **when** or **where**; only the **late**, the **critical
+and high**, or **nobody yet**. The lean page's six tiles and the closing
+line. A row opens its own record — the drawer over the page for a stage,
+test or fix, its list for the rest, the register for a problem. **Paper:**
+the list for the meeting, and each person's own (*Their list*;
+lib/projectActionsPdf). acceptance/actions.mjs drives it.
+
+*Not yet:* changing who, when and done on the Actions row itself (with Undo)
+— today the row opens the record, where each is changed; *Make it an action*
+on a finding that has none; names offered as you type.
 
 ### P4 — Every project's actions, in the control room
 

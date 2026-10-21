@@ -88,7 +88,7 @@ ok(JSON.stringify(chips) === JSON.stringify([NAME, 'Everything on its lines', 'E
   ok(same(await shownIds(), onLines), `1 everything on its lines, whoever's it is (${onLines.length})`);
   await page.locator('.ip-scope .chip', { hasText: 'Every line' }).click(); await page.waitForTimeout(500);
   const every = await shownIds();
-  ok(every.length >= onLines.length && every.includes(sd.changeoverId) && !own.includes(sd.changeoverId), `1 every line: ${every.length}, the quick session on no project among them`);
+  ok(every.length >= onLines.length && every.includes(sd.changeoverId) && !own.includes(sd.changeoverId), `1 every line: ${every.length}, another project's SMED among them`);
 }
 
 /* ---- 2 a new SMED inside the project is the project's ---- */
@@ -168,8 +168,20 @@ let made;
   ok(/YOUR FACTORY/i.test(await rail()) && await onProject() === '' && await page.locator('.ip-scope').count() === 0, '6 SMED from the control room: the control room’s rail, no project, every line');
   const all = (await studies()).filter(s => s.tool === 'changeover').map(s => s.id);
   ok((await shownIds()).every(id => all.includes(id)) && (await shownIds()).includes(sd.changeoverId) && (await shownIds()).includes(made?.id), '6 …every one listed, the project’s new one among them');
+  /* a quick session made outside any project is on none, and opens on none */
+  await page.getByRole('button', { name: 'New SMED' }).first().click(); await page.waitForTimeout(500);
+  const dlg = dialog();
+  ok(await dlg.locator('.ie-for').count() === 0, '6 New outside a project says no project');
+  await dlg.getByLabel('From which product?').fill('Quick one — P2');
+  await dlg.getByLabel(/To which product/).fill('Quick two — P2');
+  await dlg.getByRole('button', { name: 'Start it' }).click(); await page.waitForTimeout(1800);
+  const qid = page.url().split('#/smed/')[1]?.split(/[?#]/)[0];
+  const q = (await studies()).find(x => x.id === qid);
+  ok(!!q && !q.projectId && await onProject() === '' && /YOUR FACTORY/i.test(await rail()), '6 a quick session made from the control room is on no project, and opens on none', JSON.stringify({ qid, p: q?.projectId }));
+  /* another project's own opens in that project, not in the one last worked in */
+  const other = (await studies()).find(x => x.id === sd.changeoverId)?.projectId;
   await go(`#/smed/${sd.changeoverId}`);
-  ok(await onProject() === '' && /YOUR FACTORY/i.test(await rail()), '6 a quick session on no project opens on no project');
+  ok(!!other && other !== PID && await onProject() === other, '6 another project’s SMED opens in its own project');
   await go(`#/smed/${sd.pacedChangeoverId}`);
   ok(await onProject() === PID && await projectRail(), '6 the project’s own SMED, reached with no project in its address, opens in the project');
 }
