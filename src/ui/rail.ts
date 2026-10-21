@@ -139,6 +139,7 @@ export function hereOf(route: Route): string {
     case 'handover': return 'handover';
     case 'fixes': return 'fixes';
     case 'materials': return 'materials';
+    case 'actions': return 'actions';
     case 'day': return 'day';
     case 'notes': return 'notes';
     case 'projectSetup': return 'details';
@@ -249,6 +250,8 @@ export function gatesGroup(projectId: string, here: string, counts: Counts): Rai
          Commission (screens/ProgramsPage). */
       counted('programs', 'Programs', `${p}/programs`, here, counts, ['programs'], 'list'),
       counted('fixes', 'Problems', `${p}/fixes`, here, counts, ['fixes'], 'flag'),
+      /* every action on the project, whoever raised it (docs/PROJECTS.md, P3) */
+      plain('actions', 'Actions', `${p}/actions`, here, 'list'),
       counted('materials', 'Materials', `${p}/materials`, here, counts, ['materials'], 'list'),
       plain('day', 'The day', `${p}/day`, here, 'time'),
     ],
@@ -296,7 +299,11 @@ export function methodGroup(projectId: string, method: 'board' | 'tree', here: s
 /** WORK on a 6M or lever tree job — its materials. A stage-gate job's work
  *  is in its one group (gatesGroup). */
 export function workGroup(projectId: string, here: string, counts: Counts): RailGroup {
-  return { label: 'Work', lines: [counted('materials', 'Materials', `/project/${projectId}/materials`, here, counts, ['materials'], 'list')] };
+  return { label: 'Work', lines: [
+    /* every action on the project, whoever raised it (docs/PROJECTS.md, P3) */
+    plain('actions', 'Actions', `/project/${projectId}/actions`, here, 'list'),
+    counted('materials', 'Materials', `/project/${projectId}/materials`, here, counts, ['materials'], 'list'),
+  ] };
 }
 
 export interface RailLineOf { id: string; name: string; workspaceId?: string;

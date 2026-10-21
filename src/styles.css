@@ -13880,3 +13880,17 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
   .wrap.tk[data-talk] { padding-bottom: calc(var(--nv-bar) + env(safe-area-inset-bottom)); }
   body:has(.tk-bar) .qs-fab { display: none; }
 }
+
+/* A PROJECT'S ACTIONS (screens/ActionsScreen; docs/PROJECTS.md, P3) — a row
+   a thing owed: late in red, due soon amber, its priority tagged in words */
+.act-tiles { margin: 0 0 12px; }
+.act-g .qsl-gh { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.act-own { margin-left: auto; }
+.act-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.act-pri { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; color: #fff; }
+.act-pri.is-critical { background: var(--st-r); }
+.act-pri.is-high { background: var(--st-a); }
+.act-pri.is-low { background: var(--st-g); }
+.act-late { color: var(--st-r); font-weight: 700; }
+.act-soon { color: var(--st-a); font-weight: 600; }
+.act-li.is-late .lt-row { border-left: 3px solid var(--st-r); }

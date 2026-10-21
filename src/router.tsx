@@ -18,6 +18,7 @@ import { MaterialsScreen } from './screens/MaterialsScreen';
 import { ProgramsDoor } from './screens/ProgramsPage';
 import { TestsScreen } from './screens/TestsScreen';
 import { FixesScreen } from './screens/FixesScreen';
+import { ActionsScreen } from './screens/ActionsScreen';
 import { InstallScreen } from './screens/InstallScreen';
 import { DayScreen } from './screens/DayScreen';
 import { PlanScreen } from './screens/PlanScreen';
@@ -208,6 +209,8 @@ function app(route: Route) {
   if (route.name === 'day' && route.id) return gate(route.id, <DayScreen projectId={route.id} />);
   if (route.name === 'plan' && route.id) return gate(route.id, <PlanScreen projectId={route.id} />);
   if (route.name === 'materials' && route.id) return <MaterialsScreen projectId={route.id} />;
+  /* the project's actions, every method's (docs/PROJECTS.md, P3) */
+  if (route.name === 'actions' && route.id) return <ActionsScreen projectId={route.id} />;
   if (route.name === 'programs' && route.id) return <ProgramsDoor projectId={route.id} />;
   if (route.name === 'machine' && route.id && route.lineId) return gate(route.id, <MachineScreen key={route.lineId} projectId={route.id} assetId={route.lineId} />);
   if (route.name === 'clientReport' && route.id) return gate(route.id, <ClientReportScreen projectId={route.id} />);

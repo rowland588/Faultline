@@ -115,7 +115,7 @@ describe('a stage-gate job’s places — the four gates one Plan (docs/STAGEGAT
   const g = gatesGroup(P, 'setup', counts);
 
   it('reads Plan · Programs · Problems · Materials · The day — the gates are the Plan’s tabs, not four lines', () => {
-    expect(labels(g)).toEqual(['Plan', 'Programs', 'Problems', 'Materials', 'The day']);
+    expect(labels(g)).toEqual(['Plan', 'Programs', 'Problems', 'Actions', 'Materials', 'The day']);
     expect(g.lines.map(l => l.to)).toEqual([`/project/${P}/install`, `/project/${P}/programs`, `/project/${P}/fixes`, `/project/${P}/materials`, `/project/${P}/day`]);
   });
 
@@ -156,7 +156,7 @@ describe('the method of a 6M or tree job', () => {
 
 describe('work, lines and the foot', () => {
   it('a 6M job keeps its materials under work', () => {
-    expect(labels(workGroup(P, 'job', {}))).toEqual(['Materials']);
+    expect(labels(workGroup(P, 'job', {}))).toEqual(['Actions', 'Materials']);
   });
 
   it('every line of the job, and the study’s four screens under the line it belongs to — once', () => {
