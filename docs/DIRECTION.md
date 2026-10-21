@@ -167,7 +167,11 @@ Nothing new is built until Rowland says go.
    inside Faultline, powered by our existing Claude API integration"); and
    its hearing moved off Gemini onto the phone's own speech recognition at
    his word the same evening; and on 21 October its box made a chat's — talk,
-   the words come up in the box, Send — the recorder taken off at his word.
+   the words come up in the box, Send — the recorder taken off at his word,
+   and then a conversation, not a form: it talks back as a colleague does,
+   asks him back and builds on his answers, its reply appearing as it is
+   written ("like I do with you here, we ask questions to each other in
+   natural language, none scripted" — on screen, like this chat, his choice).
    Next, Rowland tries it on his phone on the floor — how well the phone
    hears in the noise, and whether his phone's browser listens or the
    keyboard's microphone is the way in.

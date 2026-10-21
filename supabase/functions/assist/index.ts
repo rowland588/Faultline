@@ -17,6 +17,9 @@
  *     → { ok: true, labels, model } | { ok: false, why } | { off: true, why }
  *   { task: 'talk', context, today, turns, images }   (lib/talkAssist TalkAsk)
  *     → { ok: true, answer, unsure, model } | { ok: false, why } | { off: true, why }
+ *   … with stream: true (the app, 21 October) → text/event-stream: the reply
+ *     so far as it is written, { partial, document }, then the same final
+ *     object — a refusal before the model is asked still comes as JSON
  *
  * THE RULES, every one kept here, server-side:
  *   - the key never leaves this function (ANTHROPIC_API_KEY, a Supabase
@@ -47,13 +50,14 @@
  * proved the same as the repo's, word for word.
  *
  * Model and effort are configuration (ASSIST_MODEL, ASSIST_ASK_EFFORT for
- * the frames; ASSIST_TALK_MODEL, ASSIST_TALK_EFFORT for the talk). */
+ * the frames; ASSIST_TALK_MODEL for the talk, ASSIST_TALK_EFFORT for a
+ * document asked of it, ASSIST_TALK_CHAT_EFFORT for the conversation). */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Anthropic from "npm:@anthropic-ai/sdk@0.131.0";
 import { allowance, costMicros } from "./video/gatewayUsage.ts";
 import { VISION_LIMITS, VISION_SCHEMA, VISION_SYSTEM, checkLabels, visionUser, type LabelEvent, type LabelFrame } from "./video/visionCore.ts";
-import { TALK_ALLOWANCE_WORDS, TALK_SCHEMA, TALK_SYSTEM, checkTalkAnswer, readAsk, talkMessages, unsureFigures, type TalkAnswer, type TalkAsk } from "./talk/talkAssist.ts";
+import { TALK_ALLOWANCE_WORDS, TALK_SCHEMA, TALK_SYSTEM, asksForDocument, checkTalkAnswer, partialAnswer, readAsk, talkMessages, unsureFigures, type TalkAnswer, type TalkAsk } from "./talk/talkAssist.ts";
 
 const KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const MODEL = Deno.env.get("ASSIST_MODEL") ?? "claude-opus-5-5";
@@ -63,9 +67,12 @@ const LIMIT = {
   calls: Number(Deno.env.get("ASSIST_DAILY_CALLS") ?? 25) || 25,
   micros: Math.round((Number(Deno.env.get("ASSIST_DAILY_USD") ?? 3) || 3) * 1_000_000),
 };
-/* a conversation and the documents asked of it: the model's own default effort */
+/* a document asked of a talk is written with care; the conversation itself is
+   answered quickly, as a person answers (Rowland, 21 October: "a full
+   conversational system ... like I do with you here") */
 const TALK_MODEL = Deno.env.get("ASSIST_TALK_MODEL") ?? MODEL;
 const TALK_EFFORT = Deno.env.get("ASSIST_TALK_EFFORT") ?? "medium";
+const TALK_CHAT_EFFORT = Deno.env.get("ASSIST_TALK_CHAT_EFFORT") ?? "low";
 const TALK_LIMIT = {
   calls: Number(Deno.env.get("ASSIST_TALK_DAILY_CALLS") ?? 60) || 60,
   micros: Math.round((Number(Deno.env.get("ASSIST_TALK_DAILY_USD") ?? 5) || 5) * 1_000_000),
@@ -91,17 +98,27 @@ type Talked =
 
 /* LINE TALK: the conversation asked of the model — its instructions the
    gateway's own, the conversation cached up to its newest turn (talkMessages),
-   the answer held to its schema and read again before it is returned. */
-async function answerTalk(client: Anthropic, ask: TalkAsk): Promise<Talked> {
+   the answer held to its schema and read again before it is returned. With
+   `onText`, the answer is streamed and its words so far handed on as they
+   come; the finished answer is checked the same. */
+type TalkMsg = { model?: string; stop_reason?: string; content?: unknown; usage?: Usage };
+async function answerTalk(client: Anthropic, ask: TalkAsk, onText?: (soFar: string) => void): Promise<Talked> {
   const t0 = Date.now();
   try {
-    const msg = await client.beta.messages.create({
+    const params = {
       model: TALK_MODEL, max_tokens: 16000,
       betas: ["server-side-fallback-2026-07-01"], fallbacks: "default",
-      output_config: { effort: TALK_EFFORT, format: { type: "json_schema", schema: TALK_SCHEMA } },
+      output_config: { effort: asksForDocument(ask.turns) ? TALK_EFFORT : TALK_CHAT_EFFORT, format: { type: "json_schema", schema: TALK_SCHEMA } },
       system: [{ type: "text", text: TALK_SYSTEM, cache_control: { type: "ephemeral" } }],
       messages: talkMessages(ask),
-    } as unknown as Parameters<typeof client.beta.messages.create>[0]) as unknown as { model?: string; stop_reason?: string; content?: unknown; usage?: Usage };
+    } as unknown as Parameters<typeof client.beta.messages.create>[0];
+    let msg: TalkMsg;
+    if (onText) {
+      let soFar = "";
+      const stream = client.beta.messages.stream(params as unknown as Parameters<typeof client.beta.messages.stream>[0]);
+      stream.on("text", (delta: string) => { soFar += delta; onText(soFar); });
+      msg = await stream.finalMessage() as unknown as TalkMsg;
+    } else msg = await client.beta.messages.create(params) as unknown as TalkMsg;
     const model = msg.model ?? TALK_MODEL;
     const usage = msg.usage ?? {};
     const cost = costMicros(model, usage);
@@ -123,6 +140,33 @@ async function answerTalk(client: Anthropic, ask: TalkAsk): Promise<Talked> {
   }
 }
 
+/* THE ANSWER AS IT IS WRITTEN — server-sent events: the reply so far (and
+   whether a document is being written ahead of it) as it grows, then the
+   finished answer exactly as the plain response gives it. `done` keeps the
+   allowance's record once the answer is in. */
+function streamTalk(client: Anthropic, ask: TalkAsk, done: (r: Talked) => Promise<void>, extra: Record<string, unknown> = {}): Response {
+  const enc = new TextEncoder();
+  const body = new ReadableStream({
+    async start(ctrl) {
+      let open = true;
+      const put = (o: unknown) => { if (!open) return; try { ctrl.enqueue(enc.encode(`data: ${JSON.stringify(o)}\n\n`)); } catch { open = false; } };
+      let lastReply = "", lastDoc = false, lastAt = 0;
+      const r = await answerTalk(client, ask, soFar => {
+        const p = partialAnswer(soFar);
+        const now = Date.now();
+        if ((p.reply !== lastReply || p.document !== lastDoc) && now - lastAt >= 80) {
+          lastReply = p.reply; lastDoc = p.document; lastAt = now;
+          put({ partial: p.reply, document: p.document });
+        }
+      });
+      await done(r).catch(() => undefined);
+      put({ ...(r.ok ? { ok: true, answer: r.answer, unsure: r.unsure, model: r.model } : r.off ? { off: true, why: r.why } : { ok: false, why: r.why }), ...extra });
+      if (open) { try { ctrl.close(); } catch { /* gone */ } }
+    },
+  });
+  return new Response(body, { headers: { ...CORS, "Content-Type": "text/event-stream", "Cache-Control": "no-store" } });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ ok: false, why: "POST only" }, 405);
@@ -140,7 +184,10 @@ Deno.serve(async (req) => {
     if (body.task !== "talk") return json({ ok: false, why: "The check asks a talk only.", rules: await rulesPrint() }, 400);
     const read = readAsk(body);
     if (!read.ok) return json({ ok: false, why: read.why, rules: await rulesPrint() }, 400);
-    return json({ ...(await answerTalk(new Anthropic({ apiKey: KEY }), read.ask)), rules: await rulesPrint() });
+    const rules = await rulesPrint();
+    /* the check asks as the app does — streamed when the app's ask is */
+    if (body.stream === true) return streamTalk(new Anthropic({ apiKey: KEY }), read.ask, async () => undefined, { rules, effort: asksForDocument(read.ask.turns) ? TALK_EFFORT : TALK_CHAT_EFFORT });
+    return json({ ...(await answerTalk(new Anthropic({ apiKey: KEY }), read.ask)), rules, effort: asksForDocument(read.ask.turns) ? TALK_EFFORT : TALK_CHAT_EFFORT });
   }
 
   let body: Record<string, unknown> = {};
@@ -169,8 +216,13 @@ Deno.serve(async (req) => {
     if (!read.ok) return json({ ok: false, why: read.why }, 400);
     const left = allowance(rows ?? [], Date.now(), TALK_LIMIT, TALK_ALLOWANCE_WORDS);
     if (!left.ok) return json({ ok: false, why: left.why });
+    const keep = async (r: Talked) => {
+      if (r.usage) await admin.from("assist_usage").insert({ user_id: user.id, task, model: r.model ?? TALK_MODEL, input_tokens: (r.usage.input_tokens ?? 0) + (r.usage.cache_read_input_tokens ?? 0) + (r.usage.cache_creation_input_tokens ?? 0), output_tokens: r.usage.output_tokens ?? 0, cost_micros: r.cost ?? 0, ok: r.ok });
+    };
+    /* the app asks for the answer as it is written; anything else has it whole */
+    if (body.stream === true) return streamTalk(client, read.ask, keep);
     const r = await answerTalk(client, read.ask);
-    if (r.usage) await admin.from("assist_usage").insert({ user_id: user.id, task, model: r.model ?? TALK_MODEL, input_tokens: (r.usage.input_tokens ?? 0) + (r.usage.cache_read_input_tokens ?? 0) + (r.usage.cache_creation_input_tokens ?? 0), output_tokens: r.usage.output_tokens ?? 0, cost_micros: r.cost ?? 0, ok: r.ok });
+    await keep(r);
     return r.ok ? json({ ok: true, answer: r.answer, unsure: r.unsure, model: r.model }) : json(r.off ? { off: true, why: r.why } : { ok: false, why: r.why });
   }
 

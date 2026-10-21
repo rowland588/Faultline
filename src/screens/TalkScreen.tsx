@@ -45,12 +45,12 @@ import { can as canAt } from '../lib/access';
 import { now, uid } from '../lib/ids';
 import { todayISO, niceDay } from '../lib/weeks';
 import { nav, useRoute } from '../state/useRoute';
-import { Ear, joinWords, notHeardWhy, recognitionOf, troubleSaid, type Trouble } from '../lib/hearing';
+import { Ear, NOTHING_HEARD, joinWords, notHeardWhy, recognitionOf, troubleSaid, type Trouble } from '../lib/hearing';
 import { useFactoryLines } from '../lib/useFactoryLines';
 import { useBlobUrl } from '../lib/useBlobUrl';
 import { askTurnsOf, isTheirs, notWritten, pendingReply, photoLabels, photosToSend, talkName, talkSaid, turnsOf, unanswered, wordsOf, type TalkTurn } from '../lib/talk';
 import { DOC_KIND_WORD, TALK_LIMITS, type TalkAskImage } from '../lib/talkAssist';
-import { NO_SIGNAL, askTalk } from '../lib/talkAsk';
+import { NO_SIGNAL, askTalk, type SoFar } from '../lib/talkAsk';
 import { pictureForAssistant } from '../lib/talkPictures';
 import { useTalkContext } from './useTalkContext';
 import { TalkDocView } from './TalkDocView';
@@ -75,6 +75,8 @@ const keepDraft = (id: string, d: Draft): void => {
   try { if (d.text.trim()) localStorage.setItem(draftKey(id), JSON.stringify(d)); else localStorage.removeItem(draftKey(id)); } catch { /* the box still holds it */ }
 };
 type WakeLock = { release: () => Promise<void> };
+/* how long listening may hear nothing before the way round it is said */
+const QUIET_MS = 6000;
 const askWake = async (): Promise<WakeLock | null> => {
   try { return await (navigator as unknown as { wakeLock?: { request: (k: 'screen') => Promise<WakeLock> } }).wakeLock?.request('screen') ?? null; } catch { return null; }
 };
@@ -190,6 +192,8 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
   const line = lines.find(l => l.id === s.workspaceId);
   const turns = useMemo(() => turnsOf(s.facts), [s.facts]);
   const [said, setSaid] = useState<{ text: string; bad?: boolean } | null>(null);
+  /* Line Talk's answer as it is written — shown in its turn until the finished answer is kept */
+  const [writing, setWriting] = useState<(SoFar & { id: string }) | null>(null);
   const [typing, setTyping] = useState(() => readDraft(s.id).text);
   const [fixing, setFixing] = useState<{ id: string; text: string } | null>(null);
   const live = can.edit;
@@ -237,6 +241,10 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
   const finishing = useRef<Promise<string> | null>(null);
   const edits = useRef(0);
   const letWake = () => { void wake.current?.release().catch(() => undefined); wake.current = null; };
+  /* listening and nothing heard after a while: a phone whose browser will not hear says nothing at all — so it is said, with the way round it */
+  const quiet = useRef<number | null>(null);
+  const quietSaid = useRef(false);
+  const stopQuiet = () => { if (quiet.current !== null) { window.clearTimeout(quiet.current); quiet.current = null; } };
 
   const stopListening = (): Promise<string> => {
     if (finishing.current) return finishing.current;
@@ -245,6 +253,7 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
     ear.current = null;
     setListening(false);
     letWake();
+    stopQuiet();
     const at = edits.current;
     const p = e.stop().then(c => {
       /* typed over while the phone finished: the box as typed wins */
@@ -275,13 +284,22 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
     if (!Rec) { setSaid({ text: troubleSaid('unsupported') }); box.current?.focus(); return; }
     base.current = typingRef.current.trim();
     const e: Ear = new Ear(Rec, {
-      onWords: h => { if (ear.current !== e) return; spoken.current = true; setBox(joinWords(base.current, h.final, h.interim)); },
+      onWords: h => {
+        if (ear.current !== e) return;
+        stopQuiet();
+        if (quietSaid.current) { quietSaid.current = false; setSaid(null); }
+        spoken.current = true;
+        setBox(joinWords(base.current, h.final, h.interim));
+      },
       onTrouble: t => onTrouble.current(t, e),
     }, 'en-GB', /Android/i.test(navigator.userAgent), () => document.visibilityState === 'hidden');
     ear.current = e;
     setListening(true);
     /* started in the tap itself — a phone listens only when asked by a touch */
     e.start();
+    stopQuiet();
+    quietSaid.current = false;
+    quiet.current = window.setTimeout(() => { quiet.current = null; if (ear.current === e) { quietSaid.current = true; setSaid({ text: NOTHING_HEARD }); } }, QUIET_MS);
     void askWake().then(w => { if (ear.current === e) wake.current = w; else void w?.release().catch(() => undefined); });
   };
 
@@ -295,12 +313,12 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
     document.addEventListener('visibilitychange', seen);
     return () => document.removeEventListener('visibilitychange', seen);
   }, []);
-  useEffect(() => () => { ear.current?.abort(); ear.current = null; void wake.current?.release().catch(() => undefined); }, []);
+  useEffect(() => () => { ear.current?.abort(); ear.current = null; void wake.current?.release().catch(() => undefined); if (quiet.current !== null) window.clearTimeout(quiet.current); }, []);
   /* the newest words in sight as they come */
   useEffect(() => { if (listening && box.current) box.current.scrollTop = box.current.scrollHeight; }, [listening, typing]);
   /* the newest turn in sight above the box, as a chat keeps it — on opening, on a turn added, on an answer come */
   const lastTurn = turns[turns.length - 1];
-  const newest = `${turns.length}:${lastTurn?.answering ?? ''}:${lastTurn?.text?.length ?? 0}`;
+  const newest = `${turns.length}:${lastTurn?.answering ?? ''}:${lastTurn?.text?.length ?? 0}:${writing?.reply.length ?? 0}`;
   useEffect(() => {
     const el = document.querySelector<HTMLElement>('.tk-turns > li:last-child');
     const top = document.querySelector('.tk-bar')?.getBoundingClientRect().top ?? window.innerHeight;
@@ -338,7 +356,7 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
         console.warn('Line Talk could not ask', e);
         await patchTurn(replyId, { answering: 'failed', why: 'Line Talk could not answer just now — ask again. What you said is kept.' });
       }
-    })().finally(() => { askingRef.current = false; setAsking(null); });
+    })().finally(() => { askingRef.current = false; setAsking(null); setWriting(null); });
   }, [s.id]); // eslint-disable-line react-hooks/exhaustive-deps
   /* the answer to everything said before `at`, filled into its turn */
   const answer = async (replyId: string, at: number) => {
@@ -351,7 +369,8 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
       const data = t.media ? await pictureForAssistant(t.media.blobKey, TALK_LIMITS.imageBytes) : undefined;
       if (photo && data) images.push({ photo, data });
     }
-    const r = await askTalk({ task: 'talk', context: contextRef.current?.text ?? '', today: longDay(), turns: askTurnsOf(asked), images });
+    const r = await askTalk({ task: 'talk', context: contextRef.current?.text ?? '', today: longDay(), turns: askTurnsOf(asked), images },
+      p => setWriting({ id: replyId, ...p }));
     if (r.ok) {
       const d = r.answer.document;
       await patchTurn(replyId, {
@@ -429,7 +448,7 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
       <ol className="tk-turns" aria-label="The talk">
         {turns.length === 0 && <li className="tk-empty sub">Nothing said yet. Tap the microphone and say what you see — your words come up in the box, then Send. Or type a question; add a photo whenever it helps, and ask for a report when you are done.</li>}
         {turns.map(t => t.kind === 'reply' ? (
-          <ReplyRow key={t.id} t={t} live={live} answeringHere={asking === t.id}
+          <ReplyRow key={t.id} t={t} live={live} answeringHere={asking === t.id} writing={writing?.id === t.id ? writing : undefined}
             onAskAgain={() => void ask()} onOpen={() => nav(`/talk/${s.id}?doc=${encodeURIComponent(t.id)}`)}
             onStrike={struck => void strike(t, struck)} />
         ) : (
@@ -464,7 +483,7 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
                 /* typed into while listening: the listening stops, the box as typed */
                 edits.current++;
                 const er = ear.current;
-                if (er) { ear.current = null; er.abort(); setListening(false); letWake(); }
+                if (er) { ear.current = null; er.abort(); setListening(false); letWake(); stopQuiet(); }
                 setBox(e.target.value);
               }}
               onKeyDown={e => {
@@ -509,8 +528,8 @@ function Said({ text }: { text: string }) {
   );
 }
 
-function ReplyRow({ t, live, answeringHere, onAskAgain, onOpen, onStrike }: {
-  t: TalkTurn; live: boolean; answeringHere: boolean; onAskAgain: () => void; onOpen: () => void; onStrike: (struck: boolean) => void;
+function ReplyRow({ t, live, answeringHere, writing, onAskAgain, onOpen, onStrike }: {
+  t: TalkTurn; live: boolean; answeringHere: boolean; writing?: SoFar; onAskAgain: () => void; onOpen: () => void; onStrike: (struck: boolean) => void;
 }) {
   const d = t.doc;
   const pics = d ? new Set(d.sections.flatMap(x => x.photos.map(p => p.photo))).size : 0;
@@ -518,7 +537,10 @@ function ReplyRow({ t, live, answeringHere, onAskAgain, onOpen, onStrike }: {
     <li className={`tk-turn is-reply${t.struck ? ' is-struck' : ''}`} data-turn={t.id} data-kind="reply">
       <span className="tk-meta">Line Talk · {hhmm(t.at)}{t.struck ? ' · struck' : ''}</span>
       {t.answering === 'waiting' && (answeringHere
-        ? <p className="sub tk-wait">Line Talk is answering…</p>
+        ? writing?.reply
+          /* its words as they are written, the way a chat shows them */
+          ? <div className="tk-writing" aria-live="polite"><Said text={writing.reply} /></div>
+          : <p className="sub tk-wait">{writing?.document ? 'Line Talk is writing the document…' : 'Line Talk is answering…'}</p>
         : <p className="sub tk-wait">{t.why ?? 'Not answered yet.'} {live && <button type="button" className="linkish" onClick={onAskAgain}>Ask again</button>}</p>)}
       {t.answering === 'failed' && <p className="sub is-r tk-fail">Not answered — {t.why ?? 'Line Talk could not answer.'} {live && <button type="button" className="linkish" onClick={onAskAgain}>Ask again</button>}</p>}
       {!t.answering && t.text && <Said text={t.text} />}
