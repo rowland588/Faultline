@@ -72,7 +72,7 @@ export function programsToPick(jobPrograms: readonly Program[], lines: readonly 
     const test = provingTestOf(p, tests);
     return { program: p, ...(a ? { machine: a.name, assetId: a.id } : {}), proved: isProved(p), ...(test ? { test } : {}) };
   });
-  const groups: PickGroup[] = job.length ? [{ key: 'job', title: 'This job’s programs', rows: job }] : [];
+  const groups: PickGroup[] = job.length ? [{ key: 'job', title: 'This project’s programs', rows: job }] : [];
   for (const l of lines) {
     const rows: PickRow[] = liveProgs([...l.programs]).map(p => {
       const m = machineOfProgram(p, l.machines);

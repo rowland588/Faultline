@@ -123,7 +123,7 @@ export async function drawProgramsReport(doc: jsPDF, x: { name: string; lead?: s
        never "No programs yet" over the line's */
     if (r.total || !x.linePrograms?.length) out.push(...programsBlocks(r, d));
     for (const lp of x.linePrograms ?? []) {
-      out.push({ ...text({ text: `On ${san(lp.line)}, with no job — ${san(lp.reading.says)}`, size: SIZE.h2, style: 'bold', before: gap(d, 's'), after: 4 }), keepWithNext: true });
+      out.push({ ...text({ text: `On ${san(lp.line)}, with no project — ${san(lp.reading.says)}`, size: SIZE.h2, style: 'bold', before: gap(d, 's'), after: 4 }), keepWithNext: true });
       out.push(...programsBlocks(lp.reading, d));
     }
     /* THE CLOSING LINE (docs/LEAN-PAGE.md; lib/stageGatePages) — the programs in

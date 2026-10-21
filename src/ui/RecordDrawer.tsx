@@ -316,7 +316,7 @@ export function RecordDrawer({ projectId, id, trail, onOpen, onBack, onClose }: 
     return (
       <DrawerShell label="Not here any more" onClose={onClose}>
         <h2 className="rd-title">That record isn’t here any more</h2>
-        <p className="sub">It has been deleted, or the link is to one on a different job.</p>
+        <p className="sub">It has been deleted, or the link is to one on a different project.</p>
       </DrawerShell>
     );
   }

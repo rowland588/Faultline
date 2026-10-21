@@ -39,7 +39,7 @@ export async function capacityPapersFor(list: Standard[], printed = printedOn())
     const f = b?.agreed?.balance ? balance(b.facts.steps, b.agreed.balance, b.facts.crew) : undefined;
     const said = f && f.people.length ? balanceSays(f, peopleOf(s).length || undefined) : undefined;
     return capacityPaper({
-      product: s.product, line: w?.name ?? (job ? `Job: ${job}` : 'On no line'), ...(job ? { job } : {}), printed,
+      product: s.product, line: w?.name ?? (job ? `Project: ${job}` : 'On no line'), ...(job ? { job } : {}), printed,
       ...(cap ? { capacity: cap } : {}),
       ...(w ? { shifts: shiftsIn(w.shifts) } : {}),
       ...(cap ? (() => { const co = changeoverIn(cap.changeovers, studies, s.id); return co ? { co } : {}; })() : {}),

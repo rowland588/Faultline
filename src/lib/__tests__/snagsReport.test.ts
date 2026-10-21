@@ -43,9 +43,9 @@ describe('the snags reading', () => {
     expect([r.lines[1].rows[0].word, r.lines[1].rows[0].tone]).toEqual(['Closed 10 Oct', 'g']);
     /* the moved one is the fix under its job; only the gone one is listed on its own */
     expect(r.jobs.map(g => [g.job, g.rows.map(x => [x.kind, x.what, x.fromSnag ?? ''])])).toEqual([['Wrapper install', [['fix', 'Infeed jam', 'a problem on Line 7'], ['problem', 'Guard missing', '']]]]);
-    expect(r.moved.map(g => [g.job, g.rows.map(x => [x.id, x.says])])).toEqual([['Wrapper install', [['e', 'no longer on the job — deleted there']]]]);
+    expect(r.moved.map(g => [g.job, g.rows.map(x => [x.id, x.says])])).toEqual([['Wrapper install', [['e', 'no longer on the project — deleted there']]]]);
     expect(r.counts).toEqual({ open: 1, in_progress: 1, closed: 1, late: 1, moved: 2, movedOpen: 1, lines: 2, problems: 1, fixes: 1, jobLate: 0, jobDone: 0, jobs: 1, critical: 0, high: 0, low: 4 });
-    expect(r.says).toBe('4 problems open — 0 critical, 0 high, 4 low; 1 late. 2 on 1 line, not on a job yet; 2 on 1 job, 1 being fixed. 1 problem moved to a job and no longer there.');
+    expect(r.says).toBe('4 problems open — 0 critical, 0 high, 4 low; 1 late. 2 on 1 line, not on a project yet; 2 on 1 project, 1 being fixed. 1 problem moved to a project and no longer there.');
     /* a problem made critical goes first on its line, and the counts say so */
     const p = snagsReading({ today: NOW, snags: [snag({ id: 'a', problem: 'Guard loose', raisedAt: NOW - DAY }), snag({ id: 'b', problem: 'Seal jaw marks', dueAt: new Date(2026, 9, 9).getTime() }), snag({ id: 'z', problem: 'Film tears', priority: 'critical' }), snag({ id: 'y', problem: 'Coder smudge', priority: 'high' })],
       lineName: id => lines[id] ?? 'A line', jobName: () => undefined, became: new Map() });

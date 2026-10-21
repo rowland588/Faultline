@@ -64,7 +64,7 @@ export function becameOn(projectId: string, tests: Test[], items: TestItem[], as
       m.set(i.id, { projectId, says: `a fix — ${flag}${lower(ft.when)}`, tone: FIX_TONE[ft.tone], open: fix.outcome !== 'passed', open_: { kind: 'record', id: fix.id } });
     } else {
       const done = i.doneAt != null;
-      m.set(i.id, { projectId, says: `a problem on ${t ? stageLabel(t) : 'the job'} — ${flag}${done ? 'sorted' : 'open'}`, tone: done ? 'g' : 'r', open: !done, open_: { kind: 'record', id: i.id } });
+      m.set(i.id, { projectId, says: `a problem on ${t ? stageLabel(t) : 'the project'} — ${flag}${done ? 'sorted' : 'open'}`, tone: done ? 'g' : 'r', open: !done, open_: { kind: 'record', id: i.id } });
     }
   }
   for (const a of todos) {
@@ -381,12 +381,12 @@ export function snagsReading(x: SnagsInput): SnagsReading {
      is listed on its own, saying so. */
   const moved: MovedRow[] = (x.register ? [] : all).filter(isMoved).filter(s => !(s.sent ?? []).some(t => x.became.has(t.itemId))).map(s => {
     const last = (s.sent ?? [])[(s.sent ?? []).length - 1];
-    const job = x.jobName(last?.projectId) ?? 'a job';
+    const job = x.jobName(last?.projectId) ?? 'a project';
     const photo = s.media?.find(m => m.kind === 'photo')?.blobKey ?? s.detailPhotoKey;
     return {
       id: s.id, line: x.lineName(s.workspaceId), what: s.problem?.trim() || 'A picture, no words yet', from: fromWords(s, x.assetName?.(s)),
       job, ...(last?.projectId ? { projectId: last.projectId } : {}),
-      says: x.jobName(last?.projectId) ? 'no longer on the job — deleted there' : 'on a job this device cannot open',
+      says: x.jobName(last?.projectId) ? 'no longer on the project — deleted there' : 'on a project this device cannot open',
       tone: 'n' as SnagTone, open: false, ...(photo ? { photo } : {}),
       movedAt: last?.at ?? s.updatedAt,
     };
@@ -423,11 +423,11 @@ export function snagsReading(x: SnagsInput): SnagsReading {
   if (openN) {
     parts.push(`${plural(openN, 'problem')} open — ${counts.critical} critical, ${counts.high} high, ${counts.low} low${late ? `; ${late} late` : ''}`);
     /* in the register a line's problem stays on its line, assigned to a project or not — never "not on a job yet" */
-    const where = [lineOpen ? `${lineOpen} on ${plural(new Set(here.filter(r => r.status !== 'closed').map(r => r.workspaceId)).size, 'line')}${x.register ? '' : ', not on a job yet'}` : '',
-      counts.problems + counts.fixes ? `${counts.problems + counts.fixes} on ${plural(counts.jobs, x.register ? 'project' : 'job')}${counts.fixes ? `, ${counts.fixes} being fixed` : ''}` : ''].filter(Boolean);
+    const where = [lineOpen ? `${lineOpen} on ${plural(new Set(here.filter(r => r.status !== 'closed').map(r => r.workspaceId)).size, 'line')}${x.register ? '' : ', not on a project yet'}` : '',
+      counts.problems + counts.fixes ? `${counts.problems + counts.fixes} on ${plural(counts.jobs, 'project')}${counts.fixes ? `, ${counts.fixes} being fixed` : ''}` : ''].filter(Boolean);
     if (where.length) parts.push(where.join('; '));
   } else if (counts.closed + counts.jobDone) parts.push(`no problem open — ${counts.closed + counts.jobDone} done`);
-  if (moved.length) parts.push(`${plural(moved.length, 'problem')} moved to a job and no longer there`);
+  if (moved.length) parts.push(`${plural(moved.length, 'problem')} moved to a project and no longer there`);
   const says = parts.length ? `${parts.map((p, i) => (i ? p.charAt(0).toUpperCase() + p.slice(1) : p.charAt(0).toUpperCase() + p.slice(1))).join('. ')}.` : 'No problems.';
   return { counts, says, lines, jobs, moved: movedGroups };
 }

@@ -107,7 +107,7 @@ export function LineProgramsScreen() {
         <div className="pace-head-main">
           <p className="pl-eyebrow">YOUR FACTORY · PROGRAMS · <a href="#/factory" className="pl-fac">Your factory ›</a></p>
           <h1 className="pace-title">Programs</h1>
-          <p className="pace-lede">Every line&rsquo;s programs, machine by machine — planned and proved. No job needed: plan one on a line here. A job&rsquo;s own programs on the line show beside them.</p>
+          <p className="pace-lede">Every line&rsquo;s programs, machine by machine — planned and proved. No project needed: plan one on a line here. A project&rsquo;s own programs on the line show beside them.</p>
           {/* where they are, in words — only the late carry colour */}
           <p className="pl-says lp-says">{!reading ? 'No programs yet.' : <>
             {reading.total} program{reading.total === 1 ? '' : 's'} · {reading.done} proved

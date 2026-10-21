@@ -66,7 +66,7 @@ function listRows(list: LineReportRow[], cap: number, more: (n: number) => strin
 function blocksOf(r: LineReport, d: Density): Block[] {
   const out: Block[] = [];
   const page = bandPage(`PRODUCTION LINE${r.type ? ` · ${r.type.toUpperCase()}` : ''} · THE LINE REPORT`, { name: r.name }, undefined, undefined,
-    [['Jobs on it', String(r.jobs.length)], ['Machines', r.machines ? String(r.machines.split(' → ').length) : '0']]);
+    [['Projects on it', String(r.jobs.length)], ['Machines', r.machines ? String(r.machines.split(' → ').length) : '0']]);
   const c = lineClosing(r.reading);
   out.push(leanBand({ ...page, verdict: { text: c.tone === 'r' ? 'Needs you' : c.tone === 'a' ? 'Gaps to close' : 'In hand', tone: c.tone } }, r.printed));
   out.push(leanTiles(lineTiles(r.reading)));
@@ -122,8 +122,8 @@ function blocksOf(r: LineReport, d: Density): Block[] {
   }
 
   /* THE JOBS ON IT — each with the control room's verdict. */
-  out.push(leanHead('Jobs on it'));
-  if (!r.jobs.length) out.push(text({ text: 'No job on this line now — its problems and its tools need none.', size: 8.5, colour: MUTED, after: gap(d, 'm') }));
+  out.push(leanHead('Projects on it'));
+  if (!r.jobs.length) out.push(text({ text: 'No project on this line now — its problems and its tools need none.', size: 8.5, colour: MUTED, after: gap(d, 'm') }));
   else out.push(...listRows(r.jobs.map(j => ({ what: j.name, meta: j.method, right: j.verdict ?? '', tone: toneOf(j.tone) })), 6, n => `and ${n} more — the control room report`));
 
   out.push(leanClosing(c));

@@ -45,7 +45,7 @@ const pad = (f: Frame) => (f.density === 'compact' ? 4 : 7);
 function blocksOf(r: ControlRoomReport, d: Density): Block[] {
   const out: Block[] = [];
   const onLines = r.lines.length > 0 || !!r.linesSaid || !!r.linesQuiet;
-  out.push(text({ text: onLines ? 'CONTROL ROOM · EVERY LINE AND JOB' : 'CONTROL ROOM · EVERY JOB', size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
+  out.push(text({ text: onLines ? 'CONTROL ROOM · EVERY LINE AND PROJECT' : 'CONTROL ROOM · EVERY PROJECT', size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }));
   out.push(text({ text: 'Control room report', size: SIZE.title, style: 'bold', after: 4 }));
   out.push(text({ text: `Printed ${r.printed}`, colour: MUTED, after: gap(d, 'm') }));
 
@@ -90,12 +90,12 @@ function blocksOf(r: ControlRoomReport, d: Density): Block[] {
     })),
     after: 'l',
   });
-  if (r.jobs.length) { out.push(label('Where every job is')); out.push(where(r.jobs)); }
+  if (r.jobs.length) { out.push(label('Where every project is')); out.push(where(r.jobs)); }
   /* 1b · ON THE LINES, OUTSIDE ANY JOB — a line's own problems and programs
      (lib/lineWork), in the jobs' shape: late and critical in red, the
      critical named, what is owed next. */
   if (onLines) {
-    out.push(label('On the lines, outside any job'));
+    out.push(label('On the lines, outside any project'));
     if (r.lines.length) out.push(where(r.lines));
     if (r.linesSaid) out.push(text({ text: r.linesSaid, size: 9, style: 'bold', colour: DANGER, after: gap(d, r.linesQuiet ? 's' : 'l') }));
     if (r.linesQuiet) out.push(text({ text: r.linesQuiet, size: 8.5, colour: MUTED, after: gap(d, 'l') }));
@@ -190,7 +190,7 @@ export async function drawControlRoomReport(doc: jsPDF, pf: Portfolio, today: st
     doc.setPage(i);
     font(doc, 7.5, 'normal', MUTED);
     const num = `${i} of ${pages}`;
-    doc.text(fitLine(doc, `Control room report  ·  ${r.printed}  ·  ${r.lines.length || r.linesSaid || r.linesQuiet ? 'every job\'s and every line\'s own report has its detail' : 'every job\'s own report has its detail'}`, CW - doc.getTextWidth(num) - 16), M, H - 18);
+    doc.text(fitLine(doc, `Control room report  ·  ${r.printed}  ·  ${r.lines.length || r.linesSaid || r.linesQuiet ? 'every project\'s and every line\'s own report has its detail' : 'every project\'s own report has its detail'}`, CW - doc.getTextWidth(num) - 16), M, H - 18);
     doc.text(num, W - M, H - 18, { align: 'right' });
   }
 }

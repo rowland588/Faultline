@@ -234,7 +234,7 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
           right: r.late && r.due ? r.due : r.word, tone: r.late || r.priority === 'critical' ? 'r' : 'n' })),
         machines: kit.flow,
         programs: kit.programs.filter(p => !isProved(p)).sort((a, b) => Number(late(b)) - Number(late(a)) || (a.testOn ?? '9').localeCompare(b.testOn ?? '9')).map(p => ({
-          what: p.what, meta: [kit.machines.find(x => x.record?.id === p.assetId)?.name ?? 'the line itself', p.runs ? `runs ${p.runs}` : '', p.projectId ? `on ${projects.find(j => j.id === p.projectId)?.name ?? 'a job'}` : ''].filter(Boolean).join(' · '),
+          what: p.what, meta: [kit.machines.find(x => x.record?.id === p.assetId)?.name ?? 'the line itself', p.runs ? `runs ${p.runs}` : '', p.projectId ? `on ${projects.find(j => j.id === p.projectId)?.name ?? 'a project'}` : ''].filter(Boolean).join(' · '),
           right: p.testOn ? `${late(p) ? 'test was ' : 'test '}${niceDay(p.testOn)}` : 'no test day', tone: late(p) ? 'r' : p.testOn ? 'w' : 'a' })),
         tools: [...(stops.says ? [{ label: 'Stops timed', says: stops.says }] : []),
           ...TOOLS.map(t => ({ t, said: toolSays(t) })).filter(x => x.said.says).map(x => ({ label: x.t.label, says: x.said.says as string, ...(x.said.tone ? { tone: x.said.tone } : {}) }))],
@@ -327,7 +327,7 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/snags?line=${encodeURIComponent(wsId)}`)}>Every problem on this line ›</button>
         </div>
         {rows.length === 0
-          ? <p className="sub">Nothing open on this line. Press Problem to take one — a picture and a few words, on this line, no job needed.</p>
+          ? <p className="sub">Nothing open on this line. Press Problem to take one — a picture and a few words, on this line, no project needed.</p>
           : (
             <ul className="pl-rows">
               {rows.map(r => (
@@ -421,7 +421,7 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
           </span>
         </div>
         {!kit?.programs.length
-          ? <p className="sub">No programs on this line yet. Plan one here — no job needed.</p>
+          ? <p className="sub">No programs on this line yet. Plan one here — no project needed.</p>
           : (
             <>
               <p className="pl-says">{kit.programs.length} program{kit.programs.length === 1 ? '' : 's'} · {kit.proved} proved{kit.late ? <> · <b className="is-r">{kit.late} late</b></> : null}</p>
@@ -486,13 +486,13 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
       {/* THE JOBS ON THIS LINE (13 October: "assign everything to a
           production line") — every live project whose lines name it, each
           one tap to its own page; a job is started on this line from here. */}
-      <section className="pl-sec" aria-label="Jobs on this line">
+      <section className="pl-sec" aria-label="Projects on this line">
         <div className="pl-sec-h">
-          <h2>Jobs on this line</h2>
-          {may && <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/projects?new=1&line=${encodeURIComponent(wsId)}`)}>Start a job on this line ›</button>}
+          <h2>Projects on this line</h2>
+          {may && <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/projects?new=1&line=${encodeURIComponent(wsId)}`)}>Start a project on this line ›</button>}
         </div>
         {jobs.length === 0
-          ? <p className="sub">No job on this line now. Its problems and its tools need none.</p>
+          ? <p className="sub">No project on this line now. Its problems and its tools need none.</p>
           : (
             <ul className="pl-jobs">
               {jobs.map(p => (

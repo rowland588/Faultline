@@ -309,7 +309,7 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
         <>
           <div className="pace-empty">
             <p className="sub">
-              What this job needs before it can run properly, when each thing is due, and whether it has
+              What this project needs before it can run properly, when each thing is due, and whether it has
               turned up — the same list you keep in the plan, except it works out what is late.{can.edit && ' Add what you are waiting on.'}
             </p>
           </div>

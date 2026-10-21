@@ -11,7 +11,7 @@ export async function printLabels(project: { id: string; name: string }, assets:
   const { loadPdfLib, deliverPdf, titlePdf } = await import('../lib/savePdf');
   const { pdfFileName } = await import('../lib/fileName');
   const labels = machineLabels({ project, assets: one ? assets.filter(a => a.id === one) : assets, base: `${location.origin}${location.pathname}` });
-  if (!labels.length) return 'No machines on this job yet — add one at Install, and it gets its label.';
+  if (!labels.length) return 'No machines on this project yet — add one at Install, and it gets its label.';
   const { jsPDF } = await loadPdfLib();
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   const today = todayISO();

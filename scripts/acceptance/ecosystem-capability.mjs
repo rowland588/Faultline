@@ -88,8 +88,8 @@ t = await truth(before);
 ok(t?.workspaceId === sd.wsId && /^On /.test(await words('.ie-place') ?? ''), `2 on a line: "${await words('.ie-place-w')}"`);
 
 /* ---- 3 · attached to a job ---- */
-await page.getByRole('button', { name: 'Attach to a job' }).click();
-await page.getByLabel('Attach it to which job').selectOption(sd.projectId); await page.waitForTimeout(900);
+await page.getByRole('button', { name: 'Attach to a project' }).click();
+await page.getByLabel('Attach it to which project').selectOption(sd.projectId); await page.waitForTimeout(900);
 t = await truth(before);
 ok(t?.projectId === sd.projectId && /attached to/.test(await words('.ie-place-w') ?? ''), `3 attached to the job: "${await words('.ie-place-w')}"`);
 

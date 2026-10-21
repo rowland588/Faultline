@@ -598,7 +598,7 @@ function planSheet(d: Doc, data: PaceReportData, page: number, pages: number,
      inside the box — the same mistake the test cards taught, in a new place. */
   const panelH = Math.min(room, planPanelHeight(pl, room, ROW_H));
   const panelBottom = panelTop + panelH;
-  const top = panel(d, M, panelTop, CW, panelH, place?.n ?? String(page), 'Where the job is', pl.counted);
+  const top = panel(d, M, panelTop, CW, panelH, place?.n ?? String(page), 'Where the project is', pl.counted);
   const x0 = M + 14, right = M + CW - 14;
 
   /* ---- the verdict, in the words the screen says it in --------------------- */
@@ -794,7 +794,7 @@ function planSheet(d: Doc, data: PaceReportData, page: number, pages: number,
      claiming to be two different pages at once. */
   if (place || opts.foot === false) return panelBottom;
   setFont(d, 7, 'normal', MUTED);
-  d.text(fit(d, `${data.title} · client report · page ${page} of ${pages} — where the job is`, CW * 0.8), M, H - M + 6);
+  d.text(fit(d, `${data.title} · client report · page ${page} of ${pages} — where the project is`, CW * 0.8), M, H - M + 6);
   d.text('Read off the same records the site and the OEM are working to.',
     W - M, H - M + 6, { align: 'right' });
   return panelBottom;
@@ -1390,7 +1390,7 @@ function trialsPanel(d: Doc, data: PaceReportData, M: number, top0: number, CW: 
 
   if (!t || split.strands.length === 0) {
     setFont(d, 8.5, 'normal', MUTED);
-    d.text('No test has been planned on this job yet.', M + 14, top + 22);
+    d.text('No test has been planned on this project yet.', M + 14, top + 22);
     return 0;
   }
   drawSheetCards(d, split, 0, M + 14, top + 14);
@@ -2209,7 +2209,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData, out?: { board?: Boar
   const nStrand = (st: StrandState) => headStrands.filter(x => x.state === st).length;
   const retestBooked = headStrands.filter(x => x.state === 'failed' && x.next?.what === 'Re-test').length;
   const commTiles: [string, string, string, string][] = [
-    [String(headStrands.length), 'Tests', 'being proved on this job', MUTED],
+    [String(headStrands.length), 'Tests', 'being proved on this project', MUTED],
     [String(nStrand('proved')), 'Proved', `of ${headStrands.length}`, nStrand('proved') > 0 ? OK : MUTED],
     [String(nStrand('failed')), 'Failed',
       nStrand('failed') ? `${retestBooked} with a re-test booked` : 'none',
@@ -2226,7 +2226,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData, out?: { board?: Boar
       const strandLate = headStrands.reduce((n, st) => n + st.owed.filter(o => o.late).length, 0);
       const late = owesLate ?? strandLate;
       return [[String(late), 'Past the day',
-        owesLate != null ? 'owed across the job — see who owes what' : 'owed and the date has gone',
+        owesLate != null ? 'owed across the project — see who owes what' : 'owed and the date has gone',
         late > 0 ? DANGER : MUTED]];
     })(),
     /* INSTALL, when the job keeps install steps: machines in, and the steps
@@ -2435,7 +2435,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData, out?: { board?: Boar
   /* What rides on the tail of a test sheet, and what its footer then says. */
   const rideTail = (page: number): string => {
     const bits: string[] = [];
-    if (planUnder) { planSheet(d, data, page, pages, { top: tailTop, n: '' }); bits.push('where the job is'); }
+    if (planUnder) { planSheet(d, data, page, pages, { top: tailTop, n: '' }); bits.push('where the project is'); }
     if (owesUnder && !hasPlan && owesPlan) { owesSheet(d, data, owesPlan, 0, page, pages, { top: afterPlanTop }); bits.push('who owes what'); }
     return bits.length ? `what we are proving, ${bits.join(', and ')}` : 'what we are proving';
   };
@@ -2502,7 +2502,7 @@ export function drawPaceReport(d: Doc, raw: PaceReportData, out?: { board?: Boar
       const alsoInstall = installRides && owesLast === 0;
       if (alsoInstall) installSheet(d, data, wherePage, pages, 0, { top: owesBottom + 12 });
       setFont(d, 7, 'normal', MUTED);
-      d.text(fit(d, `${data.title} · client report · page ${wherePage} of ${pages} — where the job is, who owes what${alsoInstall ? ', and installation' : ''}`, CW * 0.8), M, H - M + 6);
+      d.text(fit(d, `${data.title} · client report · page ${wherePage} of ${pages} — where the project is, who owes what${alsoInstall ? ', and installation' : ''}`, CW * 0.8), M, H - M + 6);
       d.text('The same debts as page 1, sorted by who owes them. Every line names what it hangs off.',
         W - M, H - M + 6, { align: 'right' });
     }

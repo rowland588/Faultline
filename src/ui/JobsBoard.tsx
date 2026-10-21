@@ -113,7 +113,7 @@ const whenOf = (x: JobItem) => (x.critical ? (x.critical.word ?? x.critical.stat
 const branchOf = (x: JobItem) => (x.critical ? (x.critical.word ? x.critical.more : undefined) : x.branch);
 /** "across every job", or "across every line and job" when a line's own
  *  work is among them. */
-const across = (items: JobItem[]) => (items.some(x => x.line) ? 'across every line and job' : 'across every job');
+const across = (items: JobItem[]) => (items.some(x => x.line) ? 'across every line and project' : 'across every project');
 
 const reduced = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -168,7 +168,7 @@ function focusOf(pf: Portfolio, f: Focus): { title: string; items: JobItem[] } {
   const items = pf.items.filter(x => owedBy(x, f.who));
   const jobs = new Set(items.filter(x => !x.line).map(x => x.jobId)).size;
   const lines = new Set(items.filter(x => x.line).map(x => x.jobId)).size;
-  const on = [jobs ? `${jobs} job${jobs === 1 ? '' : 's'}` : '', lines ? `${lines} line${lines === 1 ? '' : 's'}` : ''].filter(Boolean).join(' and ');
+  const on = [jobs ? `${jobs} project${jobs === 1 ? '' : 's'}` : '', lines ? `${lines} line${lines === 1 ? '' : 's'}` : ''].filter(Boolean).join(' and ');
   const acrossN = jobs + lines > 1 ? ` across ${on}` : '';
   return { title: f.who === SITE ? `What the site owes — ${items.length}${acrossN}` : f.who === NOBODY ? `${items.length} with no one named${acrossN}` : `What ${f.who} owes — ${items.length}${acrossN}`, items };
 }
@@ -339,7 +339,7 @@ export function JobsBoard({ projects, after }: {
   };
   const pick = (f: Focus) => setFocus(cur => (cur && JSON.stringify(cur) === JSON.stringify(f) ? null : f));
 
-  if (!pf) return <><section className="jb is-loading" aria-busy="true"><div className="jb-hero"><p className="jb-eyebrow">Every line and job</p><h1 className="jb-says">Reading every job…</h1></div></section>{after}</>;
+  if (!pf) return <><section className="jb is-loading" aria-busy="true"><div className="jb-hero"><p className="jb-eyebrow">Every line and project</p><h1 className="jb-says">Reading every project…</h1></div></section>{after}</>;
   /* No job, and no line with anything to chase: the factory is the page. */
   if (pf.jobs.length === 0 && pf.lines.length === 0) return <>{after}</>;
 
@@ -348,20 +348,20 @@ export function JobsBoard({ projects, after }: {
   const on = (f: Focus) => !!focus && JSON.stringify(focus) === JSON.stringify(f);
 
   return (
-    <section className={'jb' + (still ? ' is-still' : '')} aria-label="All jobs">
+    <section className={'jb' + (still ? ' is-still' : '')} aria-label="All projects">
       {/* ------------------------------ the band ------------------------------ */}
       <header className="jb-hero" style={glow}>
         <span className="jb-glow" aria-hidden />
         {/* Every line and every job: a line's own problems and programs are
             counted here beside the jobs' (lib/lineWork). */}
-        <p className="jb-eyebrow">Control room · {pf.lines.length ? 'every line and job' : 'every job'} · {niceDay(today, { weekday: 'short' })}</p>
+        <p className="jb-eyebrow">Control room · {pf.lines.length ? 'every line and project' : 'every project'} · {niceDay(today, { weekday: 'short' })}</p>
         {/* The page's one heading: Home had none, so a screen reader landed on
             the logo and "Who owes what" with no name for the page itself. */}
         <h1 className="jb-says">{pf.says}</h1>
         <div className="jb-stats">
           <button className="jb-stat" onClick={() => ganttRef.current?.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' })}>
-            <b><Count n={pf.totals.jobs} still={still} /></b>{pf.totals.jobs === 1 ? 'job running' : 'jobs running'}
-            <small className="jb-of">{ofTile('Jobs running')?.of}</small>
+            <b><Count n={pf.totals.jobs} still={still} /></b>{pf.totals.jobs === 1 ? 'project running' : 'projects running'}
+            <small className="jb-of">{ofTile('Projects running')?.of}</small>
           </button>
           {/* NO "OUTSTANDING" HERE ANY MORE. It added up every planned gate
               step on every job — the work ahead, not what is owed — and read
@@ -491,7 +491,7 @@ export function JobsBoard({ projects, after }: {
       {/* ---------------------------- this week ---------------------------- */}
       <div className="jb-week" ref={weekRef}>
         <div className="jb-sec-h">
-          <h3>This week, {pf.lines.length ? 'across every line and job' : 'across every job'}</h3>
+          <h3>This week, {pf.lines.length ? 'across every line and project' : 'across every project'}</h3>
           <span className="sub">{pf.week.length ? `${pf.week.length} to chase — late first` : 'nothing due, nothing late'}</span>
         </div>
         {pf.week.length > 0 && <WeekList items={pf.week} />}
@@ -500,7 +500,7 @@ export function JobsBoard({ projects, after }: {
       {/* ----------------------------- the Gantt ----------------------------- */}
       {pf.jobs.length > 0 && <div className="jb-gantt" ref={ganttRef}>
         <div className="jb-g-head">
-          <span className="jb-g-lab">{pf.jobs.length === 1 ? 'The job' : `${pf.jobs.length} jobs`}<span className="sub"> · tap one to open it here</span></span>
+          <span className="jb-g-lab">{pf.jobs.length === 1 ? 'The project' : `${pf.jobs.length} projects`}<span className="sub"> · tap one to open it here</span></span>
           <div className="jb-g-track">
             {axis.ticks.map(t => <span key={t.label} className="jb-month" style={{ left: PCT(t.at) }}>{t.label}</span>)}
             {axis.today != null && <span className="jb-today-pill" style={{ left: PCT(axis.today) }}>Today</span>}
@@ -559,7 +559,7 @@ function WeekList({ items }: { items: JobItem[] }) {
           {/* A LINE'S OWN WORK is said so — its name where a job's goes, and
               "on the line" beside it, so Line 7 the line is never read as a
               job called Line 7. */}
-          <h4 className="jb-wl-job"><i aria-hidden />{g.job}{g.line && <span className="jb-wl-on"> · on the line, no job</span>}</h4>
+          <h4 className="jb-wl-job"><i aria-hidden />{g.job}{g.line && <span className="jb-wl-on"> · on the line, no project</span>}</h4>
           <ul>
             {g.rows.map((x, i) => (
               <li key={`${x.kind}-${x.id ?? x.what}-${i}`}>
@@ -819,7 +819,7 @@ function JobRow({ v, i, open, onToggle, into, span, today, tip, setTip, edit, si
                 <div className="jb-6m-top">
                     <div className="jb-gap">
                       {v.sixm.gaps.length === 0
-                        ? <p className="sub">No measure is set on this job yet, so there is no gap to show.</p>
+                        ? <p className="sub">No measure is set on this project yet, so there is no gap to show.</p>
                         : v.sixm.gaps.map(g => {
                           const k = g.short ? g.says.indexOf(g.short) : -1;
                           const shift = v.sixm?.losses.find(x => x.lineId === g.lineId);
@@ -888,7 +888,7 @@ function JobRow({ v, i, open, onToggle, into, span, today, tip, setTip, edit, si
                   </span>
                 )}
                 <span className="jb-doors">
-                  <button className="btn btn-primary" onClick={() => nav(`/project/${v.id}`)}>Open the job ›</button>
+                  <button className="btn btn-primary" onClick={() => nav(`/project/${v.id}`)}>Open the project ›</button>
                   {/* The fishbone is a 6M job's journey, as the plan is a
                       stage-gate job's — its door comes first. */}
                   {v.sixm && <button className="btn btn-ghost" onClick={() => nav(fishboneUrl(v.id))}>Fishbone</button>}

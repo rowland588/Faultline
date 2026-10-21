@@ -186,7 +186,7 @@ function Products({ home, list: every, gone, can }: { home: StdHome; list: Stand
   const detach = async (x: Standard) => {
     await putStandard({ ...x, projectId: '' });
     await followStandard(x.id, '');
-    offerUndo(`${x.product} taken off this job — still on its line`, async () => { await putStandard(x); await followStandard(x.id, x.projectId); });
+    offerUndo(`${x.product} taken off this project — still on its line`, async () => { await putStandard(x); await followStandard(x.id, x.projectId); });
   };
   const create = async (product: string, programId?: string) => {
     const name = product.trim();
@@ -234,7 +234,7 @@ function Products({ home, list: every, gone, can }: { home: StdHome; list: Stand
               {/* One that belongs to a line is taken off the job, never deleted
                   from here: it is still the line's tool (LINE_TOOLS.sql). */}
               {can.remove && (s.workspaceId && home.project
-                ? <button type="button" className="cw-link ls-card-del" onClick={() => void detach(s)} aria-label={`Take ${s.product} off this job`}>Take off this job</button>
+                ? <button type="button" className="cw-link ls-card-del" onClick={() => void detach(s)} aria-label={`Take ${s.product} off this project`}>Take off this project</button>
                 : <button type="button" className="cw-link sp-rm ls-card-del" onClick={() => void deleteMap(s)} aria-label={`Delete the map for ${s.product}`}>Delete</button>)}
             </div>
           ))}
@@ -246,7 +246,7 @@ function Products({ home, list: every, gone, can }: { home: StdHome; list: Stand
       <Sheet open={adding && can.edit} onClose={() => setAdding(false)} title="Which product?">
         {offered.length > 0 && (
           <>
-            <p className="sub" style={{ marginTop: 0 }}>{commissioning ? 'From this job’s programs:' : 'From the programs:'}</p>
+            <p className="sub" style={{ marginTop: 0 }}>{commissioning ? 'From this project’s programs:' : 'From the programs:'}</p>
             <div className="ls-pick">
               {offered.map(p => <button key={p.id} className="ls-pick-b" onClick={() => void create(p.what, p.id)}>{p.what}</button>)}
             </div>
@@ -1091,14 +1091,14 @@ function BelongsTo({ s, home, can, onJob }: { s: Standard; home: StdHome; can: C
     <p className="ls-belongs sub">
       {s.workspaceId && <>On <b>{line ?? 'its line'}</b> · </>}
       {can.edit && home.wsId ? (
-        <label className="ls-job">On a job:{' '}
-          <select value={s.projectId} onChange={e => onJob(e.target.value)} aria-label="Attach to a job">
+        <label className="ls-job">On a project:{' '}
+          <select value={s.projectId} onChange={e => onJob(e.target.value)} aria-label="Attach to a project">
             <option value="">None — a tool on the line</option>
             {open.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </label>
-      ) : job ? <>attached to <b>{job.name}</b></> : 'on no job'}
-      {job && home.wsId && <> · <button type="button" className="cw-link" onClick={() => nav(`/project/${job.id}/standard/${s.id}`)}>Open it in the job ›</button></>}
+      ) : job ? <>attached to <b>{job.name}</b></> : 'on no project'}
+      {job && home.wsId && <> · <button type="button" className="cw-link" onClick={() => nav(`/project/${job.id}/standard/${s.id}`)}>Open it in the project ›</button></>}
     </p>
   );
 }

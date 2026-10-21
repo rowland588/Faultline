@@ -139,13 +139,13 @@ function LineMachines({ projectId }: { projectId: string }) {
   const failed = journeys.filter(j => !has(j, 'late') && has(j, 'failed')).length;
   const problem = journeys.filter(j => !has(j, 'late') && !has(j, 'failed') && has(j, 'problem')).length;
   const says = tt.loading ? undefined
-    : machines.length === 0 ? 'no machines on the job yet'
+    : machines.length === 0 ? 'no machines on the project yet'
       : <>{machinesWhere(machines.map((a, i) => machineAt(a, journeys[i]).short))}<Late n={late} word="late" /><Late n={failed} word="didn’t pass" /><Late n={problem} word="a problem" amber /></>;
   return (
     <div id="line-machines" className="ln-sec">
       <Fold id="line.machines" title="Where each machine is" says={says} need>
         {!tt.loading && machines.length === 0 && (
-          <p className="sub ln-none">The job’s machines are added on Install — each one is then taken through its gates here.</p>
+          <p className="sub ln-none">The project’s machines are added on Install — each one is then taken through its gates here.</p>
         )}
         <Journey projectId={projectId} assets={tt.assets} tests={tt.tests} items={tt.items} />
       </Fold>

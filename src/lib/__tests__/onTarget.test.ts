@@ -126,7 +126,7 @@ describe('a 6M or lever tree job — are its lines at target?', () => {
   it('not measured yet with no readings against a target', () => {
     expect(linesOnTarget([{ name: 'Line 2A', series: series(undefined, 60) }])).toMatchObject({ tone: 'none', word: 'Not measured yet' });
     expect(linesOnTarget([{ name: 'Line 2A' }])).toMatchObject({ tone: 'none', reason: 'no measure set yet' });
-    expect(linesOnTarget([])).toMatchObject({ tone: 'none', reason: 'no lines on the job yet' });
+    expect(linesOnTarget([])).toMatchObject({ tone: 'none', reason: 'no lines on the project yet' });
   });
 });
 

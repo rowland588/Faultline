@@ -877,15 +877,15 @@ function saysOf(jobs: JobView[], owes: Owed[], late: number, lines: LineView[] =
      — so the late a person reads in the sentence is all of it (lib/lineWork). */
   const lateLines = lines.filter(l => l.late > 0);
   const lineLate = lateLines.reduce((n, l) => n + l.late, 0);
-  const onLines = !lineLate ? '' : lateLines.length === 1 ? `${lineLate} on ${lateLines[0].name}, outside any job` : `${lineLate} on ${lateLines.length} lines, outside any job`;
+  const onLines = !lineLate ? '' : lateLines.length === 1 ? `${lineLate} on ${lateLines[0].name}, outside any project` : `${lineLate} on ${lateLines.length} lines, outside any project`;
   if (jobs.length === 0) {
     const crit = lines.reduce((n, l) => n + l.critical.length, 0);
-    if (!lineLate && !crit) return 'No job running yet.';
-    return `No job running yet. ${[lineLate ? `${plural(lineLate, 'thing')} late — ${onLines}` : '', crit ? `${crit} critical on the lines` : ''].filter(Boolean).join(' · ')}.`;
+    if (!lineLate && !crit) return 'No project running yet.';
+    return `No project running yet. ${[lineLate ? `${plural(lineLate, 'thing')} late — ${onLines}` : '', crit ? `${crit} critical on the lines` : ''].filter(Boolean).join(' · ')}.`;
   }
   /* Handed over is counted apart, and is never past its handover. */
   const done = jobs.filter(v => v.handedOver).length;
-  const bits = [jobs.length === done ? 'No job running' : plural(jobs.length - done, 'job') + ' running', ...(done ? [`${done} handed over`] : [])];
+  const bits = [jobs.length === done ? 'No project running' : plural(jobs.length - done, 'project') + ' running', ...(done ? [`${done} handed over`] : [])];
   /* "Hands over" is a stage-gate job's word. A running line is not handed
      over: its date is the day it should be at target. */
   const past = jobs.filter(v => v.daysToGo != null && v.daysToGo < 0).sort((a, b) => (a.daysToGo ?? 0) - (b.daysToGo ?? 0));

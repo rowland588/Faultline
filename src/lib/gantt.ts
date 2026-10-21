@@ -449,7 +449,7 @@ export interface GanttMachine {
 /** The band of what is on no one machine. Rowland, 6 October: "what is 'the
  *  line and the whole job'?" — so it says what it is, and its header says
  *  what is in it (jobContents). */
-export const JOB_BAND = 'Whole job — not on one machine';
+export const JOB_BAND = 'Whole project — not on one machine';
 
 /* What the whole job's band holds, in the floor's words, in the plan's order. */
 const JOB_WORD: Partial<Record<PlanMark['kind'], string>> = {

@@ -203,7 +203,7 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
         </div>
         {/* A JOB ON SEVERAL LINES ASKS WHICH — as it asks for the machine — its lines first */}
         {line === ASK && theirs.length > 1 && (
-          <div className="qs-mach qs-ask" role="group" aria-label="Which of the job's lines">
+          <div className="qs-mach qs-ask" role="group" aria-label="Which of the project's lines">
             <span className="qs-l">{projects.find(p => p.id === project)?.name ?? 'The project'} is on {theirs.length} lines — which is it on?</span>
             <div className="chip-row">
               {theirs.map(id => <button key={id} type="button" className="chip" onClick={() => pickLine(id)}>{lines?.find(w => w.id === id)?.name}</button>)}

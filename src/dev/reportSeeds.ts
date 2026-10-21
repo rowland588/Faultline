@@ -1263,7 +1263,7 @@ export async function seedSnagsFor(size: string, projectId: string): Promise<voi
   const { listTests } = await import('../db');
   const quick = made.filter(s => Array.isArray(s.media));
   const toMove = quick.slice(0, size === 'tiny' ? 1 : Math.max(2, Math.floor(quick.length / 4)));
-  if (toMove.length) await sendSnags(toMove.slice(0, Math.ceil(toMove.length / 2)), projectId, undefined, { fix: true }, 'the job');
+  if (toMove.length) await sendSnags(toMove.slice(0, Math.ceil(toMove.length / 2)), projectId, undefined, { fix: true }, 'the project');
   const stage = (await listTests(projectId)).find(x => x.kind === 'install' && !x.deletedAt);
-  if (toMove.length > 1) await sendSnags(toMove.slice(Math.ceil(toMove.length / 2)), projectId, stage?.id, { fix: false, flag: 'risk' }, 'the job');
+  if (toMove.length > 1) await sendSnags(toMove.slice(Math.ceil(toMove.length / 2)), projectId, stage?.id, { fix: false, flag: 'risk' }, 'the project');
 }

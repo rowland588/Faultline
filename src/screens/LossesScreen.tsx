@@ -335,7 +335,7 @@ function BarSheet({ bar, f, c, obs, workspaceId, board, onC, constraint, raised,
             ))}
           </div>
         )}
-        {canEdit && !onJob && <p className="sub">Attach the count to a job to raise a fix or a countermeasure from it.</p>}
+        {canEdit && !onJob && <p className="sub">Attach the count to a project to raise a fix or a countermeasure from it.</p>}
         <div className="vs-step-acts">
           {canBetter && raised.length === 0 && bar.min > 0.5 && (
             <button type="button" className="btn btn-primary" onClick={onBetter}>{board ? 'Make it better — a countermeasure' : 'Make it better — raise a fix'}</button>

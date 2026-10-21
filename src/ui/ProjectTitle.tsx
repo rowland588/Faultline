@@ -33,7 +33,7 @@ export function ProjectTitle({ project, canRename }: { project: Project; canRena
   if (editing) {
     return (
       <form className="ptitle-form" onSubmit={e => { e.preventDefault(); void save(); }}>
-        <input className="text-input ptitle-input" value={draft} autoFocus maxLength={120} aria-label="The job's name"
+        <input className="text-input ptitle-input" value={draft} autoFocus maxLength={120} aria-label="The project's name"
           onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { setDraft(project.name); setEditing(false); } }} />
         <button type="submit" className="btn btn-primary btn-sm" disabled={!draft.trim()}>Save</button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setDraft(project.name); setEditing(false); }}>Cancel</button>

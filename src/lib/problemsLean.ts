@@ -21,7 +21,7 @@ const plural = (n: number, one: string, many = `${one}s`) => (n === 1 ? one : ma
 export function registerTiles(r: SnagsReading): LeanTile[] {
   const c = r.counts, late = c.late + c.jobLate, done = c.closed + c.jobDone;
   return [
-    { k: 'Critical', v: String(c.critical), of: c.critical ? `open — stopping a line or a job` : 'none open', tone: c.critical ? 'r' : 'n' },
+    { k: 'Critical', v: String(c.critical), of: c.critical ? `open — stopping a line or a project` : 'none open', tone: c.critical ? 'r' : 'n' },
     { k: 'High', v: String(c.high), of: c.high ? 'open — to put right soon' : 'none open', tone: c.high ? 'a' : 'n' },
     { k: 'Low', v: String(c.low), of: c.low ? 'open' : 'none open', ...(c.low ? { tone: 'g' as LeanTone } : { tone: 'n' as LeanTone }) },
     { k: 'Late', v: String(late), of: late ? 'past the day they were due' : 'nothing past its day', tone: late ? 'r' : 'n' },

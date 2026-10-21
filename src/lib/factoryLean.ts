@@ -26,7 +26,7 @@ export function factoryTiles(r: FactoryReading): LeanTile[] {
   const margin = priced.reduce((s, x) => s + (x.margin as number), 0);
   const missing = r.rows.filter(x => x.margin == null).map(x => `${x.name}: ${and(x.missing ?? [])}`);
   return [
-    { k: 'Lines', v: String(n), of: withJobs ? `${withJobs} with a job on ${withJobs === 1 ? 'it' : 'them'}` : 'none with a job on it yet' },
+    { k: 'Lines', v: String(n), of: withJobs ? `${withJobs} with a project on ${withJobs === 1 ? 'it' : 'them'}` : 'none with a project on it yet' },
     { k: 'Problems open', v: String(r.open), of: r.open ? `on ${r.rows.filter(x => x.open).length} of the ${n} ${plural(n, 'line')}` : 'none on any line' },
     { k: 'Late', v: String(r.late), of: r.late ? 'problems past their day' : 'nothing past its day', tone: r.late ? 'r' : 'n' },
     ...(critical ? [{ k: 'Critical', v: String(critical), of: 'open — stopping a line', tone: 'r' as LeanTone }] : []),

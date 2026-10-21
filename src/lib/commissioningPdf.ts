@@ -182,7 +182,7 @@ function reportBlocks(r: CommissioningReport, d: Density): Block[] {
   if (r.commentary) out.push(text({ text: `“${r.commentary.text}”${r.commentary.by ? ` — ${r.commentary.by}` : ''}`, size: 9.5, colour: INK2, after: gap(d, 'm') }));
   out.push(label(`Machine by machine — ${r.machinesSaid}`));
   if (r.machines.length) out.push(machineTable(r));
-  else out.push(text({ text: 'No machines on the job yet.', colour: MUTED, after: gap(d, 'm') }));
+  else out.push(text({ text: 'No machines on the project yet.', colour: MUTED, after: gap(d, 'm') }));
 
   /* WHY WE ARE NOT WHERE WE SHOULD BE */
   out.push(label('Why we are not where we should be', r.why.length ? DANGER : MUTED));
@@ -191,7 +191,7 @@ function reportBlocks(r: CommissioningReport, d: Density): Block[] {
 
   /* WHAT WE ARE DOING ABOUT IT */
   out.push(label('What we are doing about it'));
-  if (!r.doing.length) out.push(text({ text: 'No fix open and no problem taken for the job.', size: 9, colour: INK2, after: gap(d, 's') }));
+  if (!r.doing.length) out.push(text({ text: 'No fix open and no problem taken for the project.', size: 9, colour: INK2, after: gap(d, 's') }));
   r.doing.forEach(l => out.push(said(l)));
   if (r.booked.length) {
     out.push(label(`Booked next — ${r.booked.length} test${r.booked.length === 1 ? '' : 's'}`, BOOKED));
@@ -225,7 +225,7 @@ function reportBlocks(r: CommissioningReport, d: Density): Block[] {
     r.line.forEach((o, i) => out.push(text({ text: o, size: 9, colour: INK2, indent: 10, bullet: '•', after: i === r.line.length - 1 ? gap(d, 'l') : 2 })));
   }
   for (const lp of r.linePrograms) {
-    out.push(label(`On ${lp.line}, with no job — programs`, lp.open.length ? AMBER : MUTED));
+    out.push(label(`On ${lp.line}, with no project — programs`, lp.open.length ? AMBER : MUTED));
     out.push(text({ text: lp.says, size: 9, style: 'bold', colour: INK2, after: lp.open.length ? 3 : gap(d, 'l') }));
     lp.open.forEach((o, i) => out.push(text({ text: o, size: 9, colour: INK2, indent: 10, bullet: '•', after: i === lp.open.length - 1 ? gap(d, 'l') : 2 })));
   }
@@ -311,7 +311,7 @@ export async function drawCommissioningCards(doc: jsPDF, r: CommissioningReport)
     await pour({ ...base, density: 'comfortable', dry: false }, [
       text({ text: `COMMISSIONING CARDS · ${r.name.toUpperCase()}`, size: SIZE.eyebrow, style: 'bold', colour: BRAND, after: 6 }),
       text({ text: `Printed ${r.printed}`, size: 9, colour: MUTED, after: gap('comfortable', 'm') }),
-      text({ text: 'No machines on the job yet — the cards are a page a machine.', colour: MUTED }),
+      text({ text: 'No machines on the project yet — the cards are a page a machine.', colour: MUTED }),
     ], () => doc.addPage('a4', 'portrait'));
   }
   for (const [i, m] of r.machines.entries()) {

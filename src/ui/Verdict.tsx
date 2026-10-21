@@ -30,7 +30,7 @@ function Tile({ n, label, tone, of }: { n: string; label: string; tone?: 'warn' 
   );
 }
 
-export function Verdict({ st, eyebrow = 'Where the job is', onTarget, brief, report, tiles }: {
+export function Verdict({ st, eyebrow = 'Where the project is', onTarget, brief, report, tiles }: {
   st: Standing; eyebrow?: string;
   /** ARE WE ON TARGET? (lib/onTarget) — the band's first line. */
   onTarget?: OnTarget;

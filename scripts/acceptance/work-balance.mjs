@@ -176,7 +176,7 @@ await page.locator('.ls-balance-line').nth(1).waitFor({ timeout: 10000 }).catch(
 }
 
 /* ---- 5 · attached to a job — the work balance goes with it ---- */
-await page.getByLabel('Attach to a job').first().selectOption(sd.projectId); await page.waitForTimeout(1200);
+await page.getByLabel('Attach to a project').first().selectOption(sd.projectId); await page.waitForTimeout(1200);
 t = await truth(SID);
 ok(t.projectId === sd.projectId, '5 the line standard on the job: its work balance is the job\'s now');
 

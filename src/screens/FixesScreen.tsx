@@ -258,7 +258,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
       {jobSnags.length > 0 && (
         <section className="cmp-sec">
           <div className="cw-sec-h">
-            <h2 className="cmp-h">Problems for this job — not on it yet</h2>
+            <h2 className="cmp-h">Problems for this project — not on it yet</h2>
             <span className="cmp-h-n">{jobSnags.length}</span>
           </div>
           <div className="fxl" role="list">
@@ -272,7 +272,7 @@ export function FixesScreen({ projectId }: { projectId: string }) {
                   </button>
                 </span>
                 <span className="fxl-side">
-                  {can.edit ? <button type="button" className="btn btn-sm" onClick={() => void makeFix(sn)}>Make it a fix</button> : <em className="fxl-when">Not on the job yet</em>}
+                  {can.edit ? <button type="button" className="btn btn-sm" onClick={() => void makeFix(sn)}>Make it a fix</button> : <em className="fxl-when">Not on the project yet</em>}
                 </span>
               </div>
             ))}

@@ -99,7 +99,7 @@ export function ProblemRecord({ item, tt, can, day, onDay, onOpen }: {
     ? { word: fixDone ? `fixed${fix.ranOn ? ` ${niceDay(fix.ranOn)}` : ''}` : `fix booked${fix.plannedFor ? ` · ${niceDay(fix.plannedFor)}` : ''}`, tone: fixDone ? 'g' : 'w' }
     : sorted ? { word: `sorted ${niceDay(todayISO(new Date(item.doneAt as number)))}`, tone: 'g' }
       : { word: 'open', tone: item.critical ? 'r' : 'a' };
-  const where = step ? `${machine ? `${machine} — ` : ''}${step.title}` : 'The job';
+  const where = step ? `${machine ? `${machine} — ` : ''}${step.title}` : 'The project';
   const cost = [
     item.hoursLost ? `${hoursWord(item.hoursLost)} lost` : '',
     item.couldLose ? `could cost ${hoursWord(item.couldLose)} (an estimate)` : '',

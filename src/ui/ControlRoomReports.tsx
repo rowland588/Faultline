@@ -53,10 +53,10 @@ export function ControlRoomReports({ projects, onClose }: {
       <div className="meet-reports">
         {/* THE CONTROL ROOM'S OWN — who each is for, said first, as a job's */}
         <Door title="Control room report — 1 page"
-          says={busy ? 'Making it…' : pf ? 'For the business — every job and every line on one page: where each is, why, and who owes what.' : 'Reading every job…'}
+          says={busy ? 'Making it…' : pf ? 'For the business — every project and every line on one page: where each is, why, and who owes what.' : 'Reading every project…'}
           onClick={() => void controlRoom()} />
         {said && <p className="sub" role="status">{said}</p>}
-        <Door title="Your factory" says="Every line in floor order, with its type, its jobs and what is open — one page. Print it from Your factory." onClick={() => go('/factory')} />
+        <Door title="Your factory" says="Every line in floor order, with its type, its projects and what is open — one page. Print it from Your factory." onClick={() => go('/factory')} />
         <Door title="Control room problems" says="Every problem on every line and project, in priority order — the Problems report, and a card for every problem. Print them from the page." onClick={() => go('/snags')} />
         <Door title="Programs" says="Every line's programs, machine by machine, planned and proved — the programs report, from the page." onClick={() => go('/programs')} />
         <Door title="Line capacity" says="Every product's capacity, a page each, with a front saying them all — PDF (all shown) on the list." onClick={() => go('/balances')} />
@@ -75,7 +75,7 @@ export function ControlRoomReports({ projects, onClose }: {
         ))}
 
         {/* EVERY JOB — its own Reports list, the same doors, under its name */}
-        {projects.length > 0 && <h3 className="meet-h">Each job</h3>}
+        {projects.length > 0 && <h3 className="meet-h">Each project</h3>}
         {projects.map(p => (
           <section key={p.id} className="meet-line cr-job-papers" aria-label={p.name}>
             <p className="meet-line-n">{p.name}</p>

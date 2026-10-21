@@ -217,8 +217,8 @@ const S6 = `#/project/${sd.pacedProjectId}`;
 /* ---- 15 · a study's Use it for, machine by machine; attached, it takes the job's line ---- */
 {
   await go(`#/capability/${sd.studyId}`);
-  await page.getByRole('button', { name: 'Attach to a job' }).click(); await page.waitForTimeout(400);
-  await page.getByLabel('Attach it to which job').selectOption(sd.projectId); await page.waitForTimeout(1500);
+  await page.getByRole('button', { name: 'Attach to a project' }).click(); await page.waitForTimeout(400);
+  await page.getByLabel('Attach it to which project').selectOption(sd.projectId); await page.waitForTimeout(1500);
   const st = await page.evaluate(async ([id, pid]) => {
     const db = await import('/src/db.ts'); const R = await import('/src/lib/lineRecords.ts');
     const s = await db.getStudy(id); const want = R.onlyLineOf(pid, await db.allPaceLines());
@@ -268,7 +268,7 @@ const S6 = `#/project/${sd.pacedProjectId}`;
   const sheetW = (await dlg.locator('.meet-report').filter({ hasText: 'Spreadsheet' }).innerText()).replace(/\s+/g, ' ');
   ok(JSON.stringify(shut) === JSON.stringify(['Client report', 'Spreadsheet']) && (await dlg.locator('.meet-lines-h').getAttribute('aria-expanded')) === 'false',
     `17 two papers and the lines folded: ${shut.join(' · ')} · "${(await words('.meet-lines-h'))}"`);
-  ok(/This job in one Excel file/.test(sheetW) && !/every project/.test(sheetW), `17 the spreadsheet worded for this job: "${sheetW}"`);
+  ok(/This project in one Excel file/.test(sheetW) && !/every project/.test(sheetW), `17 the spreadsheet worded for this job: "${sheetW}"`);
   await dlg.locator('.meet-lines-h').click(); await page.waitForTimeout(400);
   const open = await titles();
   ok(['Line 2A', 'Line 7'].every(l => ['Client report', 'One-page report', 'Evidence cards'].every(t => open.includes(`${t} — ${l}`))) && open[0] === 'Client report',

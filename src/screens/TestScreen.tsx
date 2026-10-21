@@ -304,7 +304,7 @@ export function TestScreen({ projectId, testId }: { projectId: string; testId: s
                   {linePrograms.length === 0
                     ? jobPrograms.map(p => <option key={p.id} value={p.id}>{p.what}{p.runs ? ` — ${p.runs}` : ''}</option>)
                     : <>
-                      {jobPrograms.length > 0 && <optgroup label="This job’s programs">{jobPrograms.map(p => <option key={p.id} value={p.id}>{p.what}{p.runs ? ` — ${p.runs}` : ''}</option>)}</optgroup>}
+                      {jobPrograms.length > 0 && <optgroup label="This project’s programs">{jobPrograms.map(p => <option key={p.id} value={p.id}>{p.what}{p.runs ? ` — ${p.runs}` : ''}</option>)}</optgroup>}
                       {linePrograms.map(l => (
                         <optgroup key={l.id} label={`${l.name}’s own programs`}>{l.programs.map(p => <option key={p.id} value={p.id}>{p.what}{p.runs ? ` — ${p.runs}` : ''}</option>)}</optgroup>
                       ))}

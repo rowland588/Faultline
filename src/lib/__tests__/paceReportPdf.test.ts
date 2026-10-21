@@ -385,7 +385,7 @@ describe('the optional sheets each cost exactly one page', () => {
     const many = { tracker: false, trials: trials(20, true) };
     const r = render(data({ ...many, plan: plan(2, 2) }));
     expect(r.pages).toBe(pagesFor(many));
-    expect(r.said.join('\n')).toContain('Where the job is');
+    expect(r.said.join('\n')).toContain('Where the project is');
   });
 
   it('and costs a sheet of its own when the last test sheet is full', () => {
@@ -393,7 +393,7 @@ describe('the optional sheets each cost exactly one page', () => {
     const tall = { ...plan(2, 2), lanes: Array.from({ length: 5 }, (_, i) => ({ ...plan(5, 0).lanes[i], rows: Array.from({ length: 5 }, () => plan(1, 0).lanes[0].rows[0]) })) };
     const before = pagesFor(many);
     const r = render(data({ ...many, plan: tall }));
-    expect(r.said.join('\n')).toContain('Where the job is');
+    expect(r.said.join('\n')).toContain('Where the project is');
     expect(r.pages).toBeGreaterThanOrEqual(before);
   });
 
@@ -581,7 +581,7 @@ describe('materials and programs take as many sheets as they need', () => {
     const base = data({ tracker: false, trials: trials(6), plan: plan(6, 6), owes: owes(1) });
     const r = render({ ...base, installation: installation(2) });
     expect(r.pages).toBe(render(base).pages);
-    expect(r.said.join('\n')).toMatch(/where the job is, who owes what, and installation/);
+    expect(r.said.join('\n')).toMatch(/where the project is, who owes what, and installation/);
   });
 
   it('keeps its own sheet when the debts ride on the tail of the tests', () => {

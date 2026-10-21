@@ -37,19 +37,19 @@ describe('the control room’s tiles', () => {
   it('jobs (and behind), late (and a line’s own), critical, this week, the money — no "outstanding"', () => {
     const m = roomMoney(room.jobs, new Map([['a', day(3200)], ['b', day(undefined, ['Line 2B: its speed'])]]));
     expect(roomTiles(room, m).map(t => [t.k, t.v, t.of, t.tone])).toEqual([
-      ['Jobs running', '3', '2 behind target · 1 handed over', undefined],
+      ['Projects running', '3', '2 behind target · 1 handed over', undefined],
       ['Late', '11', 'owed past its day — 1 a line’s own', 'r'],
-      ['Critical', '1', 'open — stopping a line or a job', 'r'],
+      ['Critical', '1', 'open — stopping a line or a project', 'r'],
       ['This week', '28', 'late or due in the next 7 days', undefined],
-      ['The slips cost', '£25.6k', '8 days late on 1 job × a day of their lines not making, in margin · Line 2B not priced yet', 'r'],
+      ['The slips cost', '£25.6k', '8 days late on 1 project × a day of their lines not making, in margin · Line 2B not priced yet', 'r'],
     ]);
   });
   it('no critical: no tile (a zero is not said on the band); nothing slipping: £0 in green; none priced: what to give; no stage-gate job: no money tile', () => {
-    expect(roomTiles({ jobs: [job('c', 'Line 7 pace', { method: 'board' })], totals: { ...totals, jobs: 1, handedOver: 0, critical: 0 } }, roomMoney([], new Map())).map(x => x.k)).toEqual(['Jobs running', 'Late', 'This week']);
+    expect(roomTiles({ jobs: [job('c', 'Line 7 pace', { method: 'board' })], totals: { ...totals, jobs: 1, handedOver: 0, critical: 0 } }, roomMoney([], new Map())).map(x => x.k)).toEqual(['Projects running', 'Late', 'This week']);
     const quiet: Room = { jobs: [job('e', 'Line 8 commissioning', { slipDays: 0 })], totals: { ...totals, jobs: 1, handedOver: 0, late: 0, lineLate: 0, critical: 0 } };
     const t = roomTiles(quiet, roomMoney(quiet.jobs, new Map()));
-    expect(t.map(x => x.k)).toEqual(['Jobs running', 'Late', 'This week', 'The slips cost']);
-    expect(t[3]).toEqual({ k: 'The slips cost', v: '£0', of: 'every stage-gate job on its agreed handover', tone: 'g' });
+    expect(t.map(x => x.k)).toEqual(['Projects running', 'Late', 'This week', 'The slips cost']);
+    expect(t[3]).toEqual({ k: 'The slips cost', v: '£0', of: 'every stage-gate project on its agreed handover', tone: 'g' });
     expect(roomTiles(room, roomMoney(room.jobs, new Map()))[4]).toEqual({ k: 'The slips cost', v: '—', of: 'give Line 2 commissioning: its line and Line 2B to 60 ppm: its line in Your factory' });
     expect(roomTiles(room, undefined)[4].v).toBe('…');
   });
@@ -58,12 +58,12 @@ describe('the control room’s tiles', () => {
 describe('the control room’s closing line', () => {
   it('how many are behind, the furthest named, what is late and critical, and what the slips cost', () => {
     const m = roomMoney(room.jobs, new Map([['a', day(3200)], ['b', day(1000)]]));
-    expect(roomClosing(room, m)).toEqual({ text: '2 of 3 jobs behind target — Line 2 commissioning furthest, 8 days past its agreed handover; 11 late and 1 critical; the slips cost £28.6k of margin.', tone: 'r' });
+    expect(roomClosing(room, m)).toEqual({ text: '2 of 3 projects behind target — Line 2 commissioning furthest, 8 days past its agreed handover; 11 late and 1 critical; the slips cost £28.6k of margin.', tone: 'r' });
   });
   it('all on target and nothing late, in green; every job handed over', () => {
     const ok: Room = { jobs: [job('c', 'Line 7 pace'), job('e', 'Line 8')], totals: { ...totals, jobs: 2, handedOver: 0, late: 0, lineLate: 0, critical: 0 } };
-    expect(roomClosing(ok, roomMoney(ok.jobs, new Map()))).toEqual({ text: 'All 2 jobs are on target.', tone: 'g' });
+    expect(roomClosing(ok, roomMoney(ok.jobs, new Map()))).toEqual({ text: 'All 2 projects are on target.', tone: 'g' });
     const done: Room = { jobs: [job('d', 'Line 9', { handedOver: true })], totals: { ...totals, jobs: 0, handedOver: 1, late: 0, lineLate: 0, critical: 0 } };
-    expect(roomClosing(done, undefined)).toEqual({ text: 'Every job handed over (1).', tone: 'n' });
+    expect(roomClosing(done, undefined)).toEqual({ text: 'Every project handed over (1).', tone: 'n' });
   });
 });

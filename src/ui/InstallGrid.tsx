@@ -287,7 +287,7 @@ export function InstallGrid({ tt, project, stages, otherName, gate = 'install', 
         const fresh = steps.filter(t => untouched(t, tt.tests, tt.items));
         const worked = steps.filter(t => !untouched(t, tt.tests, tt.items));
         return (
-          <Sheet title={col} sub={`Not one of the job’s stages · on ${steps.length} machine${steps.length === 1 ? '' : 's'}`} onClose={() => setOpen(null)}>
+          <Sheet title={col} sub={`Not one of the project’s stages · on ${steps.length} machine${steps.length === 1 ? '' : 's'}`} onClose={() => setOpen(null)}>
             <p className="ig-why">
               Steps were given this name before the stages changed, so it shows as a column of its own.
               Move them into one of the stages, or remove the ones never started.

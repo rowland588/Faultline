@@ -380,7 +380,7 @@ export const namesMachine = (sn: Pick<Snag, 'targetAsset'>, a: Pick<Asset, 'name
 export function wentWithAlso(a: Asset, progs: ProgramsReading | undefined, programs: readonly Program[], noted: readonly Noted[], assigned: readonly Pick<Snag, 'targetAsset'>[]): string[] {
   const mine = noted.filter(r => r.on?.assetId === a.id).length;
   const reg = assigned.filter(sn => namesMachine(sn, a)).length;
-  return [...programsOpenOn(progs, a.id, programs).counts, mine ? `${plural(mine, 'problem')} with no fix` : '', reg ? `${plural(reg, 'problem')} not on the job yet` : ''].filter(Boolean);
+  return [...programsOpenOn(progs, a.id, programs).counts, mine ? `${plural(mine, 'problem')} with no fix` : '', reg ? `${plural(reg, 'problem')} not on the project yet` : ''].filter(Boolean);
 }
 
 export function clientReport(x: ClientReportInput): ClientReport {

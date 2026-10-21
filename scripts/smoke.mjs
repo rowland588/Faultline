@@ -259,9 +259,13 @@ for (const [name, hash] of ROUTES) {
        "Line balance" is a word again since 17 October: it is the people's tool
        of its own — each person's work timed against takt (Rowland: "line
        balance is about a more manual people process flow analysis"; CLAUDE.md,
-       the naming rule) — so only the capacity's old names stay barred. */
-    const said = text.replace(/packaging snag|film snags?|seeded snag/gi, '');
-    const old = [...new Set((said.match(/\b(workspaces?|tracker|3P|snags?|assets?|line balancing|maps and balances?)\b/gi) ?? []).map(w => w.toLowerCase()))];
+       the naming rule) — so only the capacity's old names stay barred.
+       And "job" for a project, since 21 October (docs/PROJECTS.md, P1: "I
+       don't think a job should exist ... a project is the project"). Allowed:
+       "job" meaning a piece of work — the ILO's rest "on every job", a
+       station's "next job", "its job arrives by", and "do their job". */
+    const said = text.replace(/packaging snag|film snags?|seeded snag|on every job|next job reaches|job arrives by|do their job/gi, '');
+    const old = [...new Set((said.match(/\b(workspaces?|tracker|3P|snags?|assets?|line balancing|maps and balances?|jobs?)\b/gi) ?? []).map(w => w.toLowerCase()))];
     return { chars: text.length, crash: /something broke|something went wrong/i.test(text), head: text.split('\n')[0]?.slice(0, 40) ?? '', old };
   });
 

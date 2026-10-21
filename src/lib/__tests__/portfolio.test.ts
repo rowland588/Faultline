@@ -110,7 +110,7 @@ describe('who owes what, across the jobs', () => {
   });
 
   it('says it in one sentence, naming who carries most of the late', () => {
-    expect(pf.says).toBe('2 jobs running · Line 2B hands over first, in 27 days. 2 things late — all of them ilapak uk’s.'
+    expect(pf.says).toBe('2 projects running · Line 2B hands over first, in 27 days. 2 things late — all of them ilapak uk’s.'
       .replace('ilapak uk', pf.owes[0].who));
     expect(pf.totals).toMatchObject({ jobs: 2, late: 2 });
   });
@@ -120,7 +120,7 @@ describe('the edges', () => {
   it('says so when nothing is past its day', () => {
     const calm = job(project({ id: 'c', name: 'Line 3', expectedAt: '2026-12-01' }),
       { tests: [test({ plannedFor: '2026-10-30' })] });
-    expect(portfolio([calm], TODAY).says).toBe('1 job running · Line 3 hands over first, in 63 days. Nothing is late.');
+    expect(portfolio([calm], TODAY).says).toBe('1 project running · Line 3 hands over first, in 63 days. Nothing is late.');
   });
 
   it('puts a job with no handover date last', () => {
@@ -131,7 +131,7 @@ describe('the edges', () => {
   it('draws a board with no jobs without falling over', () => {
     const pf = portfolio([], TODAY);
     expect(pf.jobs).toEqual([]);
-    expect(pf.says).toBe('No job running yet.');
+    expect(pf.says).toBe('No project running yet.');
   });
 
   it('never counts a deleted record', () => {
@@ -565,7 +565,7 @@ describe('the control room says late once, the same way, and the most urgent job
     const past = job(project({ id: 'x', name: 'Line 11', expectedAt: '2026-09-27', plannedAt: '2026-09-27' }), {
       tests: [test({ title: 'Dry run', withWhom: 'Ilapak UK', plannedFor: '2026-09-25' })],
     });
-    expect(portfolio([twoB, past], TODAY).says).toMatch(/^2 jobs running · Line 11 is 2 days past its expected handover · Line 2B hands over next, in 27 days\./);
+    expect(portfolio([twoB, past], TODAY).says).toMatch(/^2 projects running · Line 11 is 2 days past its expected handover · Line 2B hands over next, in 27 days\./);
   });
 
   it('says "with no one named" when nobody owns most of what is late, never "Nobody named\'s"', () => {

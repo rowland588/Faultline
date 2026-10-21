@@ -206,7 +206,7 @@ export function lineProgramsReading(lines: readonly { name: string; id: string; 
     const f = l.programId ? o.floor?.get(l.programId) : undefined;
     const job = p ? o.jobName?.get(p.projectId) : undefined;
     const proof = p ? proofOf(p, o.tests, o.studies) : undefined;
-    return { ...l, ...(f ? { proving: `On ${job ?? 'its job'}'s Set up: ${f.word}${f.note ? ` — ${f.note}` : ''}` } : {}), ...(proof ? { proof } : {}) };
+    return { ...l, ...(f ? { proving: `On ${job ?? 'its project'}'s Set up: ${f.word}${f.note ? ` — ${f.note}` : ''}` } : {}), ...(proof ? { proof } : {}) };
   };
   const machines = r.machines.map(m => ({ ...m, lines: m.lines.map(withFloor) }));
   return { ...r, machines, lines: machines.flatMap(m => m.lines) };

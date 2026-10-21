@@ -483,7 +483,7 @@ export function dayOf(input: DayInput, date: string, today: string = todayISO())
 
 /** "<what> (<machine>) — <stage>", or "<what> — the job" off any stage. */
 const critLine = (c: Critical): string =>
-  c.on ? `${c.item.what}${c.machine ? ` (${c.machine})` : ''} — ${c.on.title}` : `${c.item.what} — the job`;
+  c.on ? `${c.item.what}${c.machine ? ` (${c.machine})` : ''} — ${c.on.title}` : `${c.item.what} — the project`;
 
 function headlineOf(done: DayLine[], wrong: DayLine[], found: DayLine[], booked: DayLine[], going: DayLine[], late: DayLine[],
   problems: DayLine[], pictures: number, gates: Day['gates'], isToday: boolean, counts?: { late: number; problem: number }): string {

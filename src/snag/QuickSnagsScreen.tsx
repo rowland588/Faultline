@@ -293,7 +293,7 @@ export function QuickSnagsScreen() {
 
   /* WHAT IS SHOWN, IN WORDS — the report's title and the cards' note. */
   const FILTER_TITLE: Record<Filter, string> = { open: 'Every problem open', critical: 'Critical problems', high: 'High-priority problems', low: 'Low-priority problems', late: 'Every problem late', done: 'Done' };
-  const title = [FILTER_TITLE[filter], lineF !== 'all' ? `on ${lineName(lineF)}` : '', jobF !== 'all' ? `for ${jobName(jobF) ?? 'a job'}` : '',
+  const title = [FILTER_TITLE[filter], lineF !== 'all' ? `on ${lineName(lineF)}` : '', jobF !== 'all' ? `for ${jobName(jobF) ?? 'a project'}` : '',
     whoF !== 'all' ? (whoF ? `— ${whoF}'s` : '— nobody’s yet') : '', search.trim() ? `— “${search.trim()}”` : ''].filter(Boolean).join(' ');
   const report = async () => {
     if (busy) return;
@@ -445,8 +445,8 @@ export function QuickSnagsScreen() {
             </select>
           )}
           {onJobs.length > 0 && (
-            <select className="text-input qsl-sel" value={jobF} onChange={e => setJobF(e.target.value)} aria-label="Which job">
-              <option value="all">Every job</option>
+            <select className="text-input qsl-sel" value={jobF} onChange={e => setJobF(e.target.value)} aria-label="Which project">
+              <option value="all">Every project</option>
               {onJobs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           )}
@@ -470,7 +470,7 @@ export function QuickSnagsScreen() {
           <button type="button" className="btn btn-primary" onClick={() => openQuickSnag()}><Icon name="camera" size="1.05em" />Problem</button>
         </div>
       )}
-      {snags && (here.length > 0 || anyJobRows) && !groups.length && !shownJobs.length && <p className="sub">None here — try Open, or every line and job.</p>}
+      {snags && (here.length > 0 || anyJobRows) && !groups.length && !shownJobs.length && <p className="sub">None here — try Open, or every line and project.</p>}
 
       {groups.map(g => {
         const all = g.rows.every(r => picked.has(r.id));
@@ -587,7 +587,7 @@ export function QuickSnagsScreen() {
             {PRIOS.map(k => <option key={k} value={k}>{PRIORITY_WORD[k]}</option>)}
           </select>
           {/* ASSIGN — where it belongs; it stays here, and shows on the job too */}
-          <select className="text-input qsl-sel qsl-bar-job" value="" aria-label="Assign every ticked problem to a job" onChange={e => {
+          <select className="text-input qsl-sel qsl-bar-job" value="" aria-label="Assign every ticked problem to a project" onChange={e => {
             const v = e.target.value; if (!v) return;
             const before = chosen.map(x => ({ ...x })), pid = v === '-' ? undefined : v;
             void (async () => { for (const x of chosen) await patchSnag(x.id, { projectId: pid }); setPicked(new Set()); setOpened(new Set()); setFrozen(null); offerUndo(`Saved — ${before.length} ${pid ? `assigned to ${jobName(pid)}` : 'on no project'}`, async () => { for (const x of before) await patchSnag(x.id, { projectId: x.projectId }); }); })();

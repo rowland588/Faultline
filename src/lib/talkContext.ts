@@ -68,13 +68,13 @@ export function talkContext(c: TalkContextIn): string {
     out.push(found.length ? "WHAT ITS TOOLS FOUND (each tool's latest record on this line, in its own words):" : "WHAT ITS TOOLS FOUND: no tool has been used on this line yet.");
     for (const t of found.slice(0, CAP.tools)) out.push(`- ${t.label}: ${t.says}`);
     out.push('');
-    out.push(c.jobs.length ? 'JOBS ON THIS LINE:' : 'JOBS ON THIS LINE: none.');
+    out.push(c.jobs.length ? 'PROJECTS ON THIS LINE:' : 'PROJECTS ON THIS LINE: none.');
     for (const j of c.jobs.slice(0, CAP.jobs)) out.push(`- ${j.name} (${j.method})${j.verdict ? ` — ${j.verdict}` : ''}`);
     out.push(...more(c.jobs.length - CAP.jobs, 'the control room'));
   }
   if (c.job) {
     if (out.length) out.push('');
-    out.push(`THIS CONVERSATION IS ON THE JOB: ${c.job.name} (${c.job.method})${c.job.verdict ? ` — ${c.job.verdict}` : ''}`);
+    out.push(`THIS CONVERSATION IS ON THE PROJECT: ${c.job.name} (${c.job.method})${c.job.verdict ? ` — ${c.job.verdict}` : ''}`);
   }
   const text = out.join('\n').trim();
   return text.length <= MAX_CHARS ? text : `${text.slice(0, MAX_CHARS).replace(/\n[^\n]*$/, '')}\n- and more in Faultline`;
@@ -84,11 +84,11 @@ const n = (k: number, one: string, many = `${one}s`) => `${k} ${k === 1 ? one : 
 
 /** What went in, in a line — "Line 7: 4 machines · 3 open problems · 2 programs to prove · 5 tool findings · 1 job". */
 export function contextSaid(c: TalkContextIn): string {
-  if (!c.line && !c.job) return 'Not on a line or a job — Line Talk answers from the conversation alone.';
+  if (!c.line && !c.job) return 'Not on a line or a project — Line Talk answers from the conversation alone.';
   const machines = c.machines?.trim() ? c.machines.split(' → ').length : 0;
   const parts = c.line ? [
     n(machines, 'machine'), n(c.problems.length, 'open problem'), n(c.programs.length, 'program', 'programs') + ' to prove',
-    n(c.tools.length + (c.stops ? 1 : 0), 'tool finding'), n(c.jobs.length, 'job'),
+    n(c.tools.length + (c.stops ? 1 : 0), 'tool finding'), n(c.jobs.length, 'project'),
   ] : [];
   return `${c.line ? c.line.name : c.job?.name}: ${[...parts, ...(c.job && c.line ? [`on ${c.job.name}`] : [])].join(' · ') || 'its name and method'}`;
 }

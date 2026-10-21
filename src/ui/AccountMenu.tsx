@@ -19,7 +19,7 @@ import { useProjects } from '../lib/useProjects';
  *  account row and its sheet signed out in one tap, with no question, and
  *  signing out clears this device's copy of every job. */
 export async function signOutAsked(): Promise<boolean> {
-  if (!window.confirm('Sign out of Faultline on this device? Its copy of the job is cleared — everything is in the cloud and comes back when you sign in again.')) return false;
+  if (!window.confirm('Sign out of Faultline on this device? Its copy of the project is cleared — everything is in the cloud and comes back when you sign in again.')) return false;
   const r = await signOut(); // session clears → the app returns to the sign-in screen
   if (!r.ok) window.alert(r.reason);
   return r.ok;
@@ -56,7 +56,7 @@ export function AccountMenu() {
 
       <Sheet open={open} onClose={() => setOpen(false)} title="Account">
         <p className="sub" style={{ marginBottom: 10 }}>{email}</p>
-        <SheetRow label="Control room" hint="every job" onClick={() => { setOpen(false); nav('/room'); }} />
+        <SheetRow label="Control room" hint="every project" onClick={() => { setOpen(false); nav('/room'); }} />
         {profile?.is_super && (
           <SheetRow label="Team & invites" hint="invite people, see who’s joined"
             onClick={() => { setOpen(false); setTeam(true); }} />

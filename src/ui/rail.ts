@@ -387,7 +387,7 @@ export function phoneBar(groups: RailGroup[], model: PlanModel): RailLine[] {
   const five = [home, job, current, fourth].filter((l, i, all): l is RailLine => !!l && all.findIndex(x => x?.key === l.key) === i);
   const onBar = five.some(l => l.on);
   return [
-    ...five.map(l => ({ ...l, label: l.key === 'job' ? 'This job' : l.label })),
+    ...five.map(l => ({ ...l, label: l.key === 'job' ? 'This project' : l.label })),
     { key: 'more', label: 'More', on: !onBar && all.some(l => l.on), state: 'n', icon: 'grip' },
   ];
 }

@@ -71,7 +71,7 @@ describe('the line as a lean page — tiles and closing line', () => {
       ['Programs proved', '1', 'of 2 · 1 past its test day', 'r'],
       ['Products ready', '0', 'of 3 · 2 failing · 1 with gaps', 'r'],
       ['Stops timed', '70 min', 'lost in 4 stops, the last four weeks — the Bagger most', undefined],
-      ['A day of the line', '£1.8k', 'of margin — its speed × its shifts × its margin a pack · 1 job on it', undefined],
+      ['A day of the line', '£1.8k', 'of margin — its speed × its shifts × its margin a pack · 1 project on it', undefined],
     ]);
     expect(lineClosing(r)).toEqual({ text: 'Line 7: 3 problems open — 1 late; 0 of 3 products ready (Maris Piper 2kg — capacity 44 a min — 16 short of 60); 1 program to prove, 1 late; a day of it is worth £1.8k of margin.', tone: 'r' });
   });

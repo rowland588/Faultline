@@ -31,12 +31,12 @@ export function LineProgramsOnJob({ project, tt, can }: { project: Project; tt?:
   return (
     <>
       {lines.map(({ w, machines, own }) => (
-        <section key={w.id} className="lpj" aria-label={`On ${w.name}, with no job`}>
-          <h2>On {w.name}, with no job</h2>
+        <section key={w.id} className="lpj" aria-label={`On ${w.name}, with no project`}>
+          <h2>On {w.name}, with no project</h2>
           <p className="sub">
             {own.length
               ? `The line's own programs — ${own.length}, ${own.filter(isProved).length} proved. The same records the line and the control room show${project.commissioning ? '; one put to a test in Commission is proved by it' : ''}.`
-              : `No programs planned on ${w.name} outside a job.`}
+              : `No programs planned on ${w.name} outside a project.`}
             {' '}<button type="button" className="cw-link" onClick={() => nav(`/programs?line=${encodeURIComponent(w.id)}`)}>{w.name}&rsquo;s programs ›</button>
           </p>
           {own.length > 0 && (

@@ -59,7 +59,7 @@ const moved = (s: Snag, projectId: string, itemId: string, at: number, said: str
  *  no stage it is always a fix (planned on its own, for nothing — its problem
  *  carried on the fix, as a fix flagged on its own does: ui/RecordEdit). Each
  *  snag then moves (above). Hands back how to take it all back. */
-export async function sendSnags(snags: Snag[], projectId: string, testId: string | undefined, how: SendHow = {}, jobName = 'the job'): Promise<Restore> {
+export async function sendSnags(snags: Snag[], projectId: string, testId: string | undefined, how: SendHow = {}, jobName = 'the project'): Promise<Restore> {
   const at = Date.now();
   const made: TestItem[] = [];
   const fixes: Test[] = [];
@@ -112,7 +112,7 @@ export async function sendSnags(snags: Snag[], projectId: string, testId: string
  *  so each snag becomes one: its words, its pictures (the same blob keys),
  *  whose it is, the day it is wanted by, its latest word as the write-up.
  *  Then it moves (above). Hands back how to take it all back. */
-export async function moveSnagsToActions(snags: Snag[], projectId: string, jobName = 'the job'): Promise<Restore> {
+export async function moveSnagsToActions(snags: Snag[], projectId: string, jobName = 'the project'): Promise<Restore> {
   const at = Date.now();
   const made: PaceTodoRow[] = [];
   for (const [k, s] of snags.entries()) {

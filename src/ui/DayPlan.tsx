@@ -190,7 +190,7 @@ export function DayPlan({ projectId, today, tt, can, due }: {
               aria-label="Add to today's plan" onChange={e => setWhat(e.target.value)} />
             <input className="text-input dp-who" list="dp-names" value={who} placeholder="Who" aria-label="Who" onChange={e => setWho(e.target.value)} />
             <select className="text-input dp-about" value={about} aria-label="What it is about" onChange={e => setAbout(e.target.value)}>
-              <option value={WHOLE_JOB}>The whole job</option>
+              <option value={WHOLE_JOB}>The whole project</option>
               {open.map(t => <option key={t.id} value={t.id}>{named(t)}</option>)}
             </select>
             <button type="submit" className="btn btn-primary btn-sm" disabled={!what.trim()}>Add</button>

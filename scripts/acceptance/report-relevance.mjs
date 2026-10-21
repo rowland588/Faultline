@@ -80,7 +80,7 @@ const set = await page.evaluate(async ([pid, due, problem]) => {
 }, [sd.projectId, dayBefore(3), PROBLEM]);
 ok(!!set.lineName && !!set.program, `0 the job is on ${set.lineName}, whose own program is “${set.program}”`);
 const LATE = `Domino coder — not on site, was due ${set.dueSaid}`;
-const LINE_HEAD = `On ${set.lineName}, with no job`;
+const LINE_HEAD = `On ${set.lineName}, with no project`;
 
 const go = async () => { await page.goto(`${BASE}/${REPORT}`); await page.waitForTimeout(2600); };
 const pick = async name => { await page.getByRole('button', { name, exact: true }).first().click(); await page.waitForTimeout(900); };
@@ -110,9 +110,9 @@ const a = await papers('before');
 
   ok(has(a.statusToc, `NOT ON IT YET Critical priority — ${PROBLEM}`) && has(a.statusText, 'NOT ON IT YET') && has(a.statusText, `Critical priority — ${PROBLEM}`),
     '1 a Critical problem on the register for this job — on the status page and its contents, tagged NOT ON IT YET');
-  ok(has(a.fullToc, 'Problems for this job — not on it yet') && has(a.fullText, 'Problems for this job — not on it yet') && has(a.fullText, PROBLEM) && has(a.fullText, 'CRITICAL'),
+  ok(has(a.fullToc, 'Problems for this project — not on it yet') && has(a.fullText, 'Problems for this project — not on it yet') && has(a.fullText, PROBLEM) && has(a.fullText, 'CRITICAL'),
     '1 …on the full report, under its own heading with its priority tag');
-  ok(has(a.handoverText, `Problem for this job, not on it yet (Critical): ${PROBLEM}`), '1 …and on the handover, still open on the machine it names');
+  ok(has(a.handoverText, `Problem for this project, not on it yet (Critical): ${PROBLEM}`), '1 …and on the handover, still open on the machine it names');
 
   ok(has(a.statusToc, LINE_HEAD) && has(a.statusText, LINE_HEAD), `1 the line’s own programs — a line on the status page: “${LINE_HEAD} — …”`);
   ok(has(a.fullToc, LINE_HEAD) && has(a.fullText, LINE_HEAD) && has(a.fullText, set.program), '1 …the full report, with the program');

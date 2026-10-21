@@ -560,7 +560,7 @@ export function sixmReport(o: SixMInput): SixMReport {
   /* ------------------------------ the band ------------------------------- */
   const measured = gaps.filter(g => g.series && g.says);
   const meeting = gaps.filter(g => g.series && !g.short && /on its|better than|under target/.test(g.says)).length;
-  const sentence = !gaps.length ? 'No measure is set on this job yet, so there is no gap to show.'
+  const sentence = !gaps.length ? 'No measure is set on this project yet, so there is no gap to show.'
     : gaps.length === 1 ? gaps[0].says
       : measured.length ? `${meeting} of ${plural(gaps.length, 'line')} at target${gaps.filter(g => g.short).length ? ` — ${listWords(gaps.filter(g => g.short).map(g => `${g.line} ${g.short}`))}` : ''}.`
         : `${plural(gaps.length, 'line')}, nothing measured yet.`;
@@ -572,7 +572,7 @@ export function sixmReport(o: SixMInput): SixMReport {
     printed: niceDay(today, { year: true }), sentence, slip, slipSaid,
     /* With no measure, this sentence is the one place each line is named —
        a three-line job must not read as if it had none. */
-    gaps, ...(data.measures.length ? {} : { gapNone: `No measure is set on ${lines.length ? listWords(lines.map(l => l.name)) : 'this job'} yet — the gap is drawn once a line has a measure and a target.` }),
+    gaps, ...(data.measures.length ? {} : { gapNone: `No measure is set on ${lines.length ? listWords(lines.map(l => l.name)) : 'this project'} yet — the gap is drawn once a line has a measure and a target.` }),
     manyLines: lines.length > 1,
     ...(pareto ? { pareto } : {}), constraints, problems,
     ...(views.length ? {} : { noProblems: 'No problem has been opened yet. When the gap, the Pareto or the line capacity names one, it goes at the head of a fishbone and its causes are found on the six bones.' }),
