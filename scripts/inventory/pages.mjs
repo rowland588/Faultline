@@ -226,7 +226,7 @@ export const PAGES = (sd, cap) => [
     { what: 'MTBF first, with its bounds', sel: '.ie-strip .ln-tile:first-child .ln-of', text: /mean time between stops · 90% sure/ },
     { what: 'what it means', sel: '.ln-ins li' },
     { what: 'the events against watched hours, drawn', sel: '.rl-fig .rl-step' },
-    { what: 'the gaps between stops, drawn', sel: '.rl-fig .rl-med' },
+    { what: 'the gaps between stops, drawn — a bar a stretch of running', sel: 'svg.rl-gaps rect.ln-bar', n: 3 },
     { what: 'what the stops were', sel: '.rl-kindbars .ws-bar', n: 4 },
     { what: 'what it costs in money', sel: '.rl-cost', text: /^What it costs: .+min stood an hour of running/ },
     { what: 'the days', sel: '.rl-days tbody tr' },

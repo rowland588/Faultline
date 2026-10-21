@@ -342,7 +342,7 @@ function Gaps({ f }: { f: RelFigures }) {
   const xm = L + (med / (bins.length * step)) * (W - L - R);
   return (
     <figure className="rl-fig">
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Gaps between events: typically ${span(g.medianH)}, from ${span(g.minH)} to ${span(g.maxH)}`}>
+      <svg className="rl-gaps" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Gaps between events: typically ${span(g.medianH)}, from ${span(g.minH)} to ${span(g.maxH)}`}>
         {bins.map((b, i) => (
           <g key={b.from}>
             <rect className="ln-bar" x={L + i * bw + 1.5} y={y(b.n)} width={Math.max(1, bw - 3)} height={Math.max(0, y(0) - y(b.n))}><title>{`${+b.from.toFixed(1)}–${+b.to.toFixed(1)} min: ${b.n}`}</title></rect>
