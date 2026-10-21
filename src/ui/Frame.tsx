@@ -168,7 +168,7 @@ function placeOf(route: Route): string {
     case 'lineTools': case 'studies': case 'study': case 'lineStandards': case 'videos': case 'videoStudy': case 'talks': case 'talk': return 'Tools';
     case 'start': return 'Home';
     case 'projects': return 'Projects';
-    case 'home': case 'portfolio': case 'quickSnags': return 'Control room';
+    case 'home': case 'portfolio': case 'quickSnags': case 'allActions': return 'Control room';
     default: return route.wsId ? 'Your factory' : 'Control room';
   }
 }
@@ -358,7 +358,10 @@ function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: s
     /* THE CONTROL ROOM — every project and line at once; REPORTS, as a job's
        rail has them — every paper (ui/ControlRoomReports; Rowland, 14
        October: "we need the same in control room") */
-    { label: 'Control room', lines: [{ ...controlRoom(here), icon: 'list' }, snagsPlace(here), { key: 'reports', label: 'Reports', on: false, state: 'n', bare: true, icon: 'list' } as RailLine,
+    { label: 'Control room', lines: [{ ...controlRoom(here), icon: 'list' }, snagsPlace(here),
+      /* every project's actions and every line's own problems (docs/PROJECTS.md, P4) */
+      { key: 'allactions', label: 'Every action', to: '/actions', on: here === 'allactions', state: 'n', bare: true, icon: 'list' } as RailLine,
+      { key: 'reports', label: 'Reports', on: false, state: 'n', bare: true, icon: 'list' } as RailLine,
       ...(loose && wsId ? [
       { key: 'ws', label: wsName || 'Line study', to: `/w/${wsId}/capture`, on: false, state: 'n', bare: true } as RailLine,
       ...studyLines(wsId, here),

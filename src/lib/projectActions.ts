@@ -49,6 +49,9 @@ export interface ProjectAction {
   item?: JobItem;
   /** A problem on the register, taken for the project and not on it yet. */
   snagId?: string;
+  /** Across every project (the control room's Actions, P4): whose project it
+   *  is on — none for a line's own problem. */
+  project?: { id: string; name: string };
 }
 
 /** A register problem, as much of it as the tracker reads (snag/types Snag). */
@@ -102,6 +105,25 @@ export function projectActions(owed: readonly JobItem[], register: readonly Regi
   const rank = (a: ProjectAction) => (a.priority === 'critical' ? 0 : a.priority === 'high' && a.kind !== 'Problem' ? 1 : 2);
   return [...fromOwed, ...fromRegister].sort((a, b) =>
     rank(a) - rank(b) || Number(b.late) - Number(a.late) || (a.due ?? '￿').localeCompare(b.due ?? '￿') || a.what.localeCompare(b.what));
+}
+
+/** EVERY PROJECT'S ACTIONS AND EVERY LINE'S OWN PROBLEMS — the control room's
+ *  Actions (docs/PROJECTS.md, P4): each project read as its own page reads it,
+ *  marked with its project; then the register's problems on a line with no
+ *  project. One order for all of them, as on a project's page. */
+export function everyAction(projects: readonly { id: string; name: string; owed: readonly JobItem[] }[], register: readonly RegisterProblem[], today: string): ProjectAction[] {
+  const live = new Set(projects.map(p => p.id));
+  const per = projects.flatMap(p => projectActions(p.owed, register, p.id, today).map(a => ({ ...a, key: `${p.id}:${a.key}`, project: { id: p.id, name: p.name } })));
+  const lines = projectActions([], register.filter(r => !r.projectId || !live.has(r.projectId)).map(r => ({ ...r, projectId: '' })), '', today);
+  const rank = (a: ProjectAction) => (a.priority === 'critical' ? 0 : a.priority === 'high' && a.kind !== 'Problem' ? 1 : 2);
+  return [...per, ...lines].sort((a, b) =>
+    rank(a) - rank(b) || Number(b.late) - Number(a.late) || (a.due ?? '￿').localeCompare(b.due ?? '￿') || a.what.localeCompare(b.what));
+}
+
+/** BY PROJECT — a group a project, the most late first; a line's own last. */
+export function byProject(rows: readonly ProjectAction[]): ActionGroup[] {
+  return group(rows, a => (a.project ? [a.project.id, a.project.name] : ['', 'On the lines, no project']))
+    .sort((a, b) => Number(!a.key) - Number(!b.key) || b.late - a.late || a.label.localeCompare(b.label));
 }
 
 /** One person's name as the tracker groups it — however it was cased or spaced. */

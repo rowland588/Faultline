@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { actionTiles, actionsClosing, byDate, byPerson, byWhere, personKey, projectActions, type RegisterProblem } from '../projectActions';
+import { actionTiles, actionsClosing, byDate, byPerson, byProject, byWhere, everyAction, personKey, projectActions, type RegisterProblem } from '../projectActions';
 import type { JobItem } from '../portfolio';
 
 /* A PROJECT'S ACTIONS (docs/PROJECTS.md, P3): every thing it owes, read the
@@ -68,5 +68,39 @@ describe('a project’s actions', () => {
     ]);
     expect(actionsClosing(rows)).toEqual({ text: '6 open, 2 late — Priya Shah has 1; 1 with no one named.', tone: 'r' });
     expect(actionsClosing([])).toEqual({ text: 'Nothing owed on the project.', tone: 'g' });
+  });
+});
+
+describe('every project’s actions and every line’s own problems (P4)', () => {
+  const reg: RegisterProblem[] = [
+    ...REGISTER,
+    { id: 'sn5', problem: 'Line 7 photo-eye dirty', priority: 'critical', owner: 'Priya Shah', status: 'open', line: 'Line 7' },
+    { id: 'sn6', problem: 'On a project gone', status: 'open', projectId: 'gone', line: 'Line 8' },
+  ];
+  const rows = everyAction([
+    { id: 'p1', name: 'Line 2 commissioning', owed: OWED },
+    { id: 'p2', name: 'Line 7 pace', owed: [owed({ jobId: 'p2', kind: 'action', id: 'a1', what: 'Retrain the night shift', who: 'Dave', on: '2026-10-19', late: true })] },
+  ], reg, TODAY);
+
+  it('each project’s own, marked with it, then the lines’ own problems — critical first, then late', () => {
+    expect(rows.map(r => [r.what, r.project?.name ?? '—'])).toEqual([
+      ['Guard interlock fails open', 'Line 2 commissioning'],
+      ['Line 7 photo-eye dirty', '—'],
+      ['Re-shim the infeed', 'Line 2 commissioning'],
+      ['Retrain the night shift', 'Line 7 pace'],
+      ['Coder misprints the date', 'Line 2 commissioning'],
+      ['Programs loaded — Tesco 1.25 kg (Ilapak flow wrapper)', 'Line 2 commissioning'],
+      ['Film reels', 'Line 2 commissioning'],
+      ['Another project’s', 'Line 7 pace'],
+      ['Emergency stops', 'Line 2 commissioning'],
+      ['On a project gone', '—'],
+    ]);
+    /* one key each, across projects */
+    expect(new Set(rows.map(r => r.key)).size).toBe(rows.length);
+  });
+
+  it('groups by project, the lines’ own last; one person across projects', () => {
+    expect(byProject(rows).map(g => [g.label, g.rows.length])).toEqual([['Line 2 commissioning', 6], ['Line 7 pace', 2], ['On the lines, no project', 2]]);
+    expect(byPerson(rows).find(g => g.label === 'Priya Shah')?.rows.map(r => r.what)).toEqual(['Line 7 photo-eye dirty', 'Re-shim the infeed', 'Programs loaded — Tesco 1.25 kg (Ilapak flow wrapper)']);
   });
 });

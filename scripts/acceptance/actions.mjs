@@ -15,6 +15,9 @@
  *      and one person's own
  *   6  a 6M project's actions — its board's actions among them
  *   7  the phone: nothing off the side
+ *   8  every project's actions and every line's own problems, from the
+ *      control room's rail (P4): each project's own as its page says, by
+ *      project, the lines' own under no project, on paper
  *   and no console error anywhere.
  *
  *   node scripts/acceptance/actions.mjs      (SMOKE_BASE, as smoke) */
@@ -127,6 +130,30 @@ await go(`#/project/${sd.pacedProjectId}/actions`);
 {
   const kinds = (await page.locator('.act-li .act-meta').allInnerTexts()).map(flat);
   ok(kinds.length > 0 && kinds.some(k => /\bAction\b/.test(k)) && (await page.locator('.ln-close').count()) === 1, `6 the 6M project's actions: ${kinds.length}, its board's actions among them`);
+}
+
+/* ---- 8 every project's actions, in the control room (P4) ---- */
+await go('#/room');
+await page.locator('.nv-rail').getByRole('button', { name: 'Every action', exact: true }).click(); await page.waitForTimeout(2500);
+{
+  ok(page.url().endsWith('#/actions') && /YOUR FACTORY/i.test(flat(await page.locator('.nv-rail').innerText())), '8 Every action, from the control room’s rail', page.url());
+  const all = (await page.locator('.act-li .lt-what').allInnerTexts()).map(flat);
+  ok(t.whats.every(w => all.includes(flat(w))) && all.length > t.n, `8 every project's actions — ${t.name}'s ${t.n} among ${all.length}`);
+  await page.getByRole('group', { name: 'Seen by' }).getByRole('button', { name: 'Project' }).click(); await page.waitForTimeout(300);
+  const groups = (await page.locator('.act-g .qsl-gh h2').allInnerTexts()).map(flat);
+  const sixm = await page.evaluate(async id => (await (await import('/src/db.ts')).getProject(id))?.name, sd.pacedProjectId);
+  ok(groups.includes(t.name) && groups.includes(sixm), `8 by project: ${groups.join(' · ')}`);
+  const own = page.locator('.act-g', { has: page.locator('h2', { hasText: t.name }) }).locator('.act-li');
+  ok(await own.count() === t.n, `8 ${t.name} holds its own ${t.n} — the same as its own page`);
+  const lineOwn = await page.evaluate(async () => {
+    const db = await import('/src/db.ts'); const L = await import('/src/lib/lines.ts');
+    const lines = new Set((await L.liveProductionLines(await db.listWorkspaces())).map(w => w.id));
+    return (await db.listAllSnags()).filter(s => !s.deletedAt && !s.archivedAt && s.status !== 'closed' && !s.projectId && lines.has(s.workspaceId)).map(s => s.problem);
+  });
+  const onLines = (await page.locator('.act-g', { has: page.locator('h2', { hasText: 'On the lines, no project' }) }).locator('.act-li .lt-what').allInnerTexts()).map(flat);
+  ok(same(onLines, lineOwn.map(flat)), `8 every line's own open problem, under no project: ${lineOwn.length}`, JSON.stringify({ onLines, lineOwn }));
+  const text = await pdfText(() => page.getByRole('button', { name: 'The action list on paper (PDF)' }).click());
+  ok(text.includes('Every project and line') && text.includes(t.name), '8 on paper: every project and line, each row marked with its project');
 }
 
 /* ---- 7 the phone ---- */

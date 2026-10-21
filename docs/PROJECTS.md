@@ -176,11 +176,19 @@ lib/projectActionsPdf). acceptance/actions.mjs drives it.
 — today the row opens the record, where each is changed; *Make it an action*
 on a finding that has none; names offered as you type.
 
-### P4 — Every project's actions, in the control room
+### P4 — Every project's actions, in the control room — built 21 October
 
 The same page across every project and every line's own problems — the
 team's view of everything: by person across projects, late first, filters
 by project and line; its tiles in the control room; its paper.
+
+**As built (21 October).** *Every action* under the control room on its rail
+(`#/actions`, screens/ActionsScreen EveryActionScreen): every project's
+Actions, each read as its own page reads it and marked with its project
+(lib/projectActions everyAction), then every open problem on a factory line
+with no project. The same tiles, closing line and paper; seen by who, when,
+where or **project** — one person's actions across every project in one
+group. *Not yet:* its tiles on the control room's own page; a filter by line.
 
 ## After P4 — tightening, once the project is the workspace
 

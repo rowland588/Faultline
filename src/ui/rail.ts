@@ -140,6 +140,7 @@ export function hereOf(route: Route): string {
     case 'fixes': return 'fixes';
     case 'materials': return 'materials';
     case 'actions': return 'actions';
+    case 'allActions': return 'allactions';
     case 'day': return 'day';
     case 'notes': return 'notes';
     case 'projectSetup': return 'details';

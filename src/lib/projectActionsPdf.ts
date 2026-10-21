@@ -32,7 +32,7 @@ export const whenWord = (a: Pick<ProjectAction, 'due' | 'late' | 'soon'>): strin
 
 function actionRows(list: ProjectAction[]): Block {
   const rightW = 120;
-  const meta = (a: ProjectAction) => [a.kind, a.priority ? PRIORITY_WORD[a.priority] : '', a.where ?? '', a.why ?? ''].filter(Boolean).join(' · ');
+  const meta = (a: ProjectAction) => [a.project?.name ?? '', a.kind, a.priority ? PRIORITY_WORD[a.priority] : '', a.where ?? '', a.why ?? ''].filter(Boolean).join(' · ');
   const parts = (f: Frame, a: ProjectAction) => ({ what: wrap(f.doc, a.what, f.w - rightW - 8, 9, 'bold'), meta: wrap(f.doc, meta(a), f.w - rightW - 8, 8) });
   return rows({
     rows: list.map(a => ({

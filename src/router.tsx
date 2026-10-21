@@ -18,7 +18,7 @@ import { MaterialsScreen } from './screens/MaterialsScreen';
 import { ProgramsDoor } from './screens/ProgramsPage';
 import { TestsScreen } from './screens/TestsScreen';
 import { FixesScreen } from './screens/FixesScreen';
-import { ActionsScreen } from './screens/ActionsScreen';
+import { ActionsScreen, EveryActionScreen } from './screens/ActionsScreen';
 import { InstallScreen } from './screens/InstallScreen';
 import { DayScreen } from './screens/DayScreen';
 import { PlanScreen } from './screens/PlanScreen';
@@ -149,6 +149,7 @@ function app(route: Route) {
   if (route.name === 'quickSnags') return <QuickSnagsScreen key={route.query.get('line') ?? ''} />;
   if (route.name === 'lineHome' && route.wsId) return <ProductionLineScreen key={route.wsId} wsId={route.wsId} />;
   if (route.name === 'factory') return <FactoryScreen />;
+  if (route.name === 'allActions') return <EveryActionScreen />;
   if (route.name === 'start') return <StartScreen />;
   /* a video study (docs/VIDEO.md): every one, and one */
   if (route.name === 'videos') return <VideosScreen key={route.query.get('project') ?? ''} />;
