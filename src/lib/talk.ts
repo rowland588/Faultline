@@ -5,15 +5,16 @@
  * listening to everything, allows pause, continue speaking, it remembers
  * everything like Claude chat." So a talk is a study of tool `talk` (no new
  * record: lib/study), on a line or a job, and its conversation is a list of
- * TURNS in its facts — each a piece said (the recording kept for good, and
- * what was heard), a photo taken, or words typed — merged by id between
- * devices as every study's lists are.
+ * TURNS in its facts — each words said (the phone wrote them into the box as
+ * they were said, lib/hearing), words typed, or a photo taken — merged by id
+ * between devices as every study's lists are.
  *
- * NOTHING SAID IS LOST. A piece is kept the moment it ends — the words the
- * phone wrote down as it was said (lib/hearing), and its recording; a
- * correction is kept beside what was heard; a piece the phone could not write
- * down keeps its recording and says why, and the person types the words over
- * it. Struck, never erased.
+ * NOTHING SAID IS LOST. What is sent is kept as sent; a correction after it is
+ * kept beside it; struck, never erased. A talk from before 21 October was
+ * recorded as well (Rowland, 21 October: "I see my words come up on the
+ * interface. I simply press send" replaced the recorder): its recordings are
+ * kept for good and played where they were said, and a piece the phone could
+ * not write down then says why, the words typed over it.
  *
  * Pure: read the same on every screen and in every test. */
 import { niceDay } from './weeks';
@@ -39,9 +40,9 @@ export interface TalkTurn {
   at: number;
   who?: string;
   kind: TalkKind;
-  /** said: the recording; photo: the picture. */
+  /** said: the recording (a talk before 21 October); photo: the picture. */
   media?: TalkMedia;
-  /** said: what the voice service heard, as clean sentences. */
+  /** said: the words as the phone wrote them down — as sent from the box. */
   heard?: string;
   /** said: what it heard word for word. */
   transcript?: string;
@@ -65,11 +66,6 @@ export interface TalkTurn {
   /** reply: the model that answered. */
   model?: string;
 }
-
-/** The longest piece sent to be heard — a long stretch of talk is cut into
- *  pieces this long as it is said, so each goes to the voice service whole
- *  (a minute of 16 kHz speech is well inside what the service takes). */
-export const PIECE_SECONDS = 60;
 
 /** The talk's turns, in the order they happened. */
 export const turnsOf = (facts: Pick<StudyFacts, 'turns'>): TalkTurn[] =>

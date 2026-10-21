@@ -1,9 +1,9 @@
 /* THE PHONE'S OWN HEARING (lib/hearing; docs/LINE-TALK.md, How it hears):
  * a session's words read the one way, kept across the sessions a phone ends
- * by itself, handed over a piece at a time, and what gets in the way said —
- * against a recogniser that behaves as a phone's does. */
+ * by itself, handed over when stopped, and what gets in the way said with the
+ * way round it — against a recogniser that behaves as a phone's does. */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Ear, finalCount, joinWords, notHeardWhy, recognitionOf, sentence, wordsOfResults, type HeardResult, type RecognitionCtor, type Trouble } from '../hearing';
+import { Ear, KEYBOARD_MIC, finalCount, joinWords, notHeardWhy, recognitionOf, sentence, troubleSaid, wordsOfResults, type HeardResult, type RecognitionCtor, type Trouble } from '../hearing';
 
 const res = (t: string, isFinal: boolean): HeardResult => ({ 0: { transcript: t }, length: 1, isFinal });
 
@@ -54,7 +54,13 @@ describe('words, read the one way', () => {
     expect(recognitionOf({ SpeechRecognition: R, webkitSpeechRecognition: () => 0 })).toBe(R);
     expect(recognitionOf({})).toBeUndefined();
   });
-  it('why a piece has no words — each keeping the recording and saying how to put them in', () => {
+  it('what gets in the way of talking into the box — said with the way round it: the keyboard’s own microphone wherever the browser will not listen', () => {
+    for (const t of ['not-allowed', 'language', 'mic-busy', 'unsupported'] as Trouble[]) expect(troubleSaid(t)).toContain(KEYBOARD_MIC);
+    expect(KEYBOARD_MIC).toMatch(/microphone on your keyboard[\s\S]*your words come up in the box[\s\S]*Send/);
+    expect(troubleSaid('network')).toMatch(/^No signal — .*What you said is in the box/);
+    expect(troubleSaid('not-allowed')).toMatch(/Siri & Dictation/);
+  });
+  it('why a piece recorded before 21 October has no words — each keeping the recording and saying how to put them in', () => {
     for (const t of ['network', 'unsupported', 'not-allowed', 'language', 'mic-busy', null] as (Trouble | null)[]) {
       expect(notHeardWhy(t)).toMatch(/The recording is kept — play it, and type what was said with Correct/);
     }

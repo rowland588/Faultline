@@ -44,7 +44,7 @@ const TOOL_SAYS: Record<string, string> = {
   '/sampling': 'What people are doing at random moments, with margins',
   '/losses': 'Where a shift’s time went at the bottleneck’s speed, in packs and pounds',
   '/video': 'Film the line: the work at each station read from the footage, reviewed, worked out as a line balance',
-  '/talk': 'Talk or type on the line, add photos, ask questions and ask for reports — every word kept with its recording',
+  '/talk': 'Talk or type on the line — your words come up as you speak — add photos, ask questions and ask for reports',
 };
 
 const plural = (n: number, one: string, more = `${one}s`) => `${n} ${n === 1 ? one : more}`;

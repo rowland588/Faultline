@@ -1,37 +1,32 @@
-/* LINE TALK, ON THE PHONE — talk on the line, and every word is kept
- * (docs/LINE-TALK.md, slice 1: record and keep).
+/* LINE TALK, ON THE PHONE — talk or type on the line, as in a chat
+ * (docs/LINE-TALK.md).
  *
  * Rowland, 20 October: "Consultant in a line speaking into his phone, the AI
  * listening to everything, allows pause, continue speaking, it remembers
- * everything like Claude chat." A talk is a conversation about one line:
- *   Talk      the phone writes down what is said as it is said, and records
- *             it beside the words; a long stretch is cut into pieces about a
- *             minute long, at a pause in what is said (lib/talk
- *             PIECE_SECONDS), each kept the moment it ends — the screen kept
- *             awake while it listens;
- *   Pause     ends the piece; Continue starts the next;
- *   Photo     a picture, where it was taken in the talk;
- *   Type      words, when talking will not do.
- * THE PHONE HEARS (Rowland, 20 October: "Use the phone's own speech
- * recognition instead of Gemini"): the browser's own speech recognition
- * (lib/hearing Ear), live, in British English — no key and no server. What it
- * wrote is kept as heard and corrected by the person, never over it. A piece
- * it could not write (no signal, a browser without it, refused) keeps its
- * recording and says why, and the words are typed over it with Correct — a
- * recording is never written down afterwards. A phone that will not record
- * and hear at once keeps the words and stops recording, and says so. The
- * recordings are kept for good (Rowland, 20 October).
+ * everything like Claude chat." And 21 October, of the recorder it was then:
+ * "I expected how I am doing it right now with you. I see my words come up on
+ * the interface. I simply press send … a version of ChatGPT or a version of
+ * Claude." So a talk is a conversation about one line, and its box is a
+ * chat's:
+ *   the microphone   tap it and talk — the phone writes the words into the
+ *                    box as they are said (lib/hearing Ear: the browser's own
+ *                    speech recognition, British English, no key and no
+ *                    server); tap it again to stop. The words are read and
+ *                    put right in the box, then sent. Where the browser will
+ *                    not listen, the keyboard's own microphone key writes
+ *                    into the box the same way, and it says so;
+ *   Send             the words go into the talk — as said, when the phone
+ *                    wrote them — and Line Talk answers; with nothing in the
+ *                    box, it answers what was added since its last answer;
+ *   Photo            taken or chosen from the phone, kept the moment it is
+ *                    picked, labelled P1, P2 … so a question or a document
+ *                    can name it.
+ * What is in the box is kept on the phone until it is sent (a reload, the
+ * phone closing the page). Nothing is recorded: a talk from before 21 October
+ * keeps its recordings, played where they were said.
  *
- * ASK IT (slice 2; Rowland, 20 October: "a simple, reliable, ChatGPT-style
- * manufacturing assistant … talk or type naturally, ask questions … upload
- * photographs, and ask the assistant to produce useful reports"):
- *   Send      words typed are added and Line Talk answers them;
- *   Reply     with nothing typed, it answers what was said and photographed
- *             since its last answer;
- *   a photo   taken or chosen from the phone, labelled P1, P2 … so a question
- *             or a document can name it.
- * It answers through the app's gateway (supabase/functions/assist, task
- * `talk`; lib/talkAsk) with the conversation, the newest photos and what
+ * Line Talk answers through the app's gateway (supabase/functions/assist,
+ * task `talk`; lib/talkAsk) with the conversation, the newest photos and what
  * Faultline holds about the line and the job (screens/useTalkContext) — and a
  * document when one is asked for, opened, edited and printed here
  * (screens/TalkDocView, lib/talkDocPdf). Its answer is a turn of the talk: the
@@ -50,10 +45,10 @@ import { can as canAt } from '../lib/access';
 import { now, uid } from '../lib/ids';
 import { todayISO, niceDay } from '../lib/weeks';
 import { nav, useRoute } from '../state/useRoute';
-import { Ear, SILENCED_SAID, SILENT_PEAK, notHeardWhy, recognitionOf, recordingPeak, troubleSaid, type Cut, type Heard, type Trouble } from '../lib/hearing';
+import { Ear, joinWords, notHeardWhy, recognitionOf, troubleSaid, type Trouble } from '../lib/hearing';
 import { useFactoryLines } from '../lib/useFactoryLines';
 import { useBlobUrl } from '../lib/useBlobUrl';
-import { PIECE_SECONDS, askTurnsOf, isTheirs, notWritten, pendingReply, photoLabels, photosToSend, talkName, talkSaid, turnsOf, unanswered, wordsOf, type TalkTurn } from '../lib/talk';
+import { askTurnsOf, isTheirs, notWritten, pendingReply, photoLabels, photosToSend, talkName, talkSaid, turnsOf, unanswered, wordsOf, type TalkTurn } from '../lib/talk';
 import { DOC_KIND_WORD, TALK_LIMITS, type TalkAskImage } from '../lib/talkAssist';
 import { NO_SIGNAL, askTalk } from '../lib/talkAsk';
 import { pictureForAssistant } from '../lib/talkPictures';
@@ -67,10 +62,22 @@ import { Icon } from '../ui/Icon';
 const OWNER = canAt('owner');
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
-/* this phone does not record while it writes down — learnt once, kept on the phone */
-const HEAR_ONLY = 'fl-talk-hear-only';
-const hearOnly = (): boolean => { try { return localStorage.getItem(HEAR_ONLY) === '1'; } catch { return false; } };
-const recordNoMore = (): void => { try { localStorage.setItem(HEAR_ONLY, '1'); } catch { /* the words are kept either way */ } };
+/* WHAT IS IN THE BOX, kept on the phone until it is sent — and whether the phone wrote any of it */
+interface Draft { text: string; said: boolean }
+const draftKey = (id: string) => `fl-talk-draft-${id}`;
+const readDraft = (id: string): Draft => {
+  try {
+    const d = JSON.parse(localStorage.getItem(draftKey(id)) ?? 'null') as Partial<Draft> | null;
+    return typeof d?.text === 'string' ? { text: d.text, said: !!d.said } : { text: '', said: false };
+  } catch { return { text: '', said: false }; }
+};
+const keepDraft = (id: string, d: Draft): void => {
+  try { if (d.text.trim()) localStorage.setItem(draftKey(id), JSON.stringify(d)); else localStorage.removeItem(draftKey(id)); } catch { /* the box still holds it */ }
+};
+type WakeLock = { release: () => Promise<void> };
+const askWake = async (): Promise<WakeLock | null> => {
+  try { return await (navigator as unknown as { wakeLock?: { request: (k: 'screen') => Promise<WakeLock> } }).wakeLock?.request('screen') ?? null; } catch { return null; }
+};
 /* today as the assistant is told it — "Wednesday 21 October 2026" */
 const longDay = () => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -114,7 +121,7 @@ export function TalksScreen() {
         <div className="pace-head-main">
           <p className="pl-eyebrow">LINE TALK{line ? <> · <a href={`#/lines/${encodeURIComponent(line.id)}`} className="pl-fac">{line.name} ›</a></> : null}</p>
           <h1>Line Talk</h1>
-          <p className="pl-says">Talk or type on the line, add photos, ask questions and ask for reports — Line Talk answers from what you said and what Faultline holds about the line. Every word is kept with its recording, and a talk can be opened and carried on any day.</p>
+          <p className="pl-says">Talk or type on the line, add photos, ask questions and ask for reports — Line Talk answers from what you said and what Faultline holds about the line. Tap the microphone and your words come up in the box as you speak; Send, and Line Talk answers. Everything is kept, and a talk can be opened and carried on any day.</p>
         </div>
       </header>
       <section className="tk-new" aria-label="Start a Line Talk">
@@ -175,18 +182,14 @@ export function TalkScreen({ id }: { id: string }) {
   return <Talk s={s} can={can} />;
 }
 
-type Rec = { s: 'idle' } | { s: 'recording'; since: number };
-
 function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
   const { session } = useSession();
   const me = displayName(session?.user.email) || undefined;
   const lines = useFactoryLines();
   const line = lines.find(l => l.id === s.workspaceId);
   const turns = useMemo(() => turnsOf(s.facts), [s.facts]);
-  const [rec, setRec] = useState<Rec>({ s: 'idle' });
-  const [secs, setSecs] = useState(0);
   const [said, setSaid] = useState<{ text: string; bad?: boolean } | null>(null);
-  const [typing, setTyping] = useState('');
+  const [typing, setTyping] = useState(() => readDraft(s.id).text);
   const [fixing, setFixing] = useState<{ id: string; text: string } | null>(null);
   const live = can.edit;
   const docId = useRoute().query.get('doc');
@@ -213,199 +216,96 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
     },
   }));
 
-  /* ---- the phone hears and records: the words written as they are said (lib/hearing), the recording kept beside them ---- */
-  const stream = useRef<MediaStream | null>(null);
-  const recorder = useRef<MediaRecorder | null>(null);
-  const chunks = useRef<Blob[]>([]);
-  const pieceStart = useRef(0);
-  const going = useRef(false);
-  const cutting = useRef(false);
-  const wake = useRef<{ release: () => Promise<void> } | null>(null);
+  /* ---- THE BOX: typed into, or talked into — the phone writes the words in as they are said (lib/hearing) ---- */
+  const box = useRef<HTMLTextAreaElement>(null);
+  const typingRef = useRef(typing);
+  /* some of what is in the box was said, not typed — it goes into the talk as said */
+  const spoken = useRef(readDraft(s.id).said);
+  const setBox = (text: string) => {
+    typingRef.current = text;
+    if (!text.trim()) spoken.current = false;
+    setTyping(text);
+    keepDraft(s.id, { text, said: spoken.current });
+  };
   const ear = useRef<Ear | null>(null);
-  /* the words of the piece being ended — at once on a cut, a moment after a pause */
-  const wordsFor = useRef<Cut | Promise<Cut> | null>(null);
-  /* this phone would not record and hear at once: the recording stops after this piece */
-  const dropRecording = useRef(false);
-  const [heardNow, setHeardNow] = useState<Heard>({ final: '', interim: '' });
-  const [writing, setWriting] = useState(false);
+  const wake = useRef<WakeLock | null>(null);
+  const [listening, setListening] = useState(false);
+  /* the box as it stood when listening began — what is heard goes after it */
+  const base = useRef('');
+  /* the last words being written as listening stops — Send waits for them */
+  const finishing = useRef<Promise<string> | null>(null);
+  const edits = useRef(0);
+  const letWake = () => { void wake.current?.release().catch(() => undefined); wake.current = null; };
 
-  const stopStream = () => {
-    stream.current?.getTracks().forEach(tr => tr.stop());
-    stream.current = null;
+  const stopListening = (): Promise<string> => {
+    if (finishing.current) return finishing.current;
+    const e = ear.current;
+    if (!e) return Promise.resolve(typingRef.current);
+    ear.current = null;
+    setListening(false);
+    letWake();
+    const at = edits.current;
+    const p = e.stop().then(c => {
+      /* typed over while the phone finished: the box as typed wins */
+      if (edits.current !== at) return typingRef.current;
+      const text = joinWords(base.current, c.words);
+      setBox(text);
+      return text;
+    });
+    finishing.current = p;
+    void p.finally(() => { if (finishing.current === p) finishing.current = null; });
+    return p;
+  };
+  const stopRef = useRef(stopListening);
+  stopRef.current = stopListening;
+
+  /* what gets in the way, said as it happens with the way round it: listening stops, what was said stays in the box */
+  const onTrouble = useRef<(t: Trouble, e: Ear) => void>(() => undefined);
+  onTrouble.current = (t, e) => {
+    if (ear.current !== e) return;
+    void stopListening();
+    setSaid({ text: troubleSaid(t), bad: t !== 'network' });
   };
 
-  const keepPiece = async (blob: Blob | undefined, at: number, durationS: number, cut: Cut | Promise<Cut>) => {
-    const c = await cut;
-    const words = c.words.trim();
-    /* a recording the phone silenced (it gave the microphone to the hearing) is not kept — the words are */
-    const peak = blob && words ? await recordingPeak(blob) : null;
-    const silenced = !!blob && !!words && peak !== null && peak < SILENT_PEAK;
-    const recorded = !!blob && !silenced && blob.size >= 800 && durationS >= 0.6;
-    if (silenced) { recordNoMore(); dropRecording.current = true; setSaid({ text: SILENCED_SAID }); }
-    /* a tap, a breath, nothing written and nothing in the way: not a piece */
-    if (!words && (!recorded || (!c.trouble && durationS < 4))) return;
-    let media: TalkTurn['media'];
-    if (recorded && blob) {
-      const blobKey = `talk-${uid()}`;
-      await putBlob(blobKey, blob);
-      media = { blobKey, mime: blob.type || 'audio/webm', capturedAt: at, durationS: Math.round(durationS * 10) / 10 };
-    }
-    await addTurn({ id: uid(), at, ...(me ? { who: me } : {}), kind: 'said', ...(media ? { media } : {}),
-      ...(words ? { heard: words } : { hearing: 'failed' as const, why: notHeardWhy(c.trouble) }) });
-  };
-
-  /* after a piece: the next one while the talk goes on and the microphone is still ours; else the talk stops */
-  const carryOn = () => {
-    if (going.current) {
-      if (dropRecording.current) { dropRecording.current = false; stopStream(); ear.current?.start(); }
-      if (!stream.current || stream.current.getAudioTracks().some(tr => tr.readyState === 'live')) {
-        try { startPiece(); return; } catch { /* said below */ }
-      }
-      /* the phone took the microphone (a call, another app, the screen off): what was said is kept, and it says so */
-      going.current = false;
-      setSaid({ text: 'Recording stopped — the phone took the microphone or the screen went off. What was said up to then is kept. Press Continue to carry on.' });
-    }
-    void ear.current?.stop();
-    stopStream();
-    void wake.current?.release().catch(() => undefined);
-    wake.current = null;
-    setWriting(false);
-    setRec({ s: 'idle' });
-  };
-
-  const NO_EAR: Cut = { words: '', trouble: 'unsupported' };
-  const startPiece = () => {
-    pieceStart.current = Date.now();
-    const at = pieceStart.current;
-    cutting.current = false;
-    if (stream.current) {
-      const r = new MediaRecorder(stream.current);
-      chunks.current = [];
-      r.ondataavailable = e => { if (e.data.size) chunks.current.push(e.data); };
-      r.onstop = () => {
-        const blob = new Blob(chunks.current, { type: r.mimeType || 'audio/webm' });
-        const durationS = (Date.now() - at) / 1000;
-        /* stopped by the phone, not by a cut or a pause: the microphone gone, or the recording ended under us */
-        const lost = going.current && !wordsFor.current;
-        const cut = wordsFor.current ?? (ear.current ? (lost && !stream.current?.getAudioTracks().some(tr => tr.readyState === 'live') ? ear.current.stop() : ear.current.cut()) : NO_EAR);
-        wordsFor.current = null;
-        carryOn();
-        void keepPiece(blob, at, durationS, cut).then(() => setHeardNow(ear.current?.now() ?? { final: '', interim: '' }));
-      };
-      r.start(1000);
-      recorder.current = r;
-    } else recorder.current = null;
-    setRec({ s: 'recording', since: at });
-    setSecs(0);
-  };
-
-  /* a long stretch cut into pieces; the talk goes on */
-  const cutPiece = () => {
-    if (cutting.current) return;
-    cutting.current = true;
-    const at = pieceStart.current;
-    wordsFor.current = ear.current ? ear.current.cut() : NO_EAR;
-    const r = recorder.current;
-    if (r && r.state !== 'inactive') { r.stop(); return; }
-    const cut = wordsFor.current;
-    wordsFor.current = null;
-    carryOn();
-    void keepPiece(undefined, at, (Date.now() - at) / 1000, cut).then(() => setHeardNow(ear.current?.now() ?? { final: '', interim: '' }));
-  };
-
-  /* WHAT GETS IN THE WAY, said as it happens — the phone that will not record and hear at once keeps the words */
-  const onTrouble = useRef<(t: Trouble) => void>(() => undefined);
-  onTrouble.current = t => {
-    if (t === 'mic-busy' && recorder.current?.state === 'recording') {
-      recordNoMore();
-      dropRecording.current = true;
-      setSaid({ text: troubleSaid('mic-busy', true) });
-      cutPiece();
-      return;
-    }
-    setSaid({ text: troubleSaid(t, !!recorder.current), bad: t !== 'network' });
-  };
-
-  const startTalking = async () => {
+  const startListening = () => {
     setSaid(null);
     const Rec = recognitionOf(window);
-    const canRecord = typeof MediaRecorder !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
-    if (!Rec && !canRecord) { setSaid({ text: troubleSaid('unsupported', false), bad: true }); return; }
-    if (canRecord && !hearOnly()) {
-      try { stream.current = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) {
-        /* refused: neither can listen. Busy: the phone may still write down what is said */
-        if (!Rec || (e as { name?: string } | null)?.name === 'NotAllowedError') {
-          setSaid({ text: 'The microphone could not be opened — allow it for Faultline in the browser’s settings, then press Talk again.', bad: true });
-          return;
-        }
-        stream.current = null;
-      }
-    }
-    if (stream.current) {
-      /* the phone ending the microphone ends the piece (it is kept), and carryOn says so */
-      stream.current.getAudioTracks().forEach(tr => tr.addEventListener('ended', () => { if (recorder.current?.state === 'recording') recorder.current.stop(); }));
-    }
-    going.current = true;
-    try { wake.current = await (navigator as unknown as { wakeLock?: { request: (k: 'screen') => Promise<{ release: () => Promise<void> }> } }).wakeLock?.request('screen') ?? null; } catch { wake.current = null; }
-    setHeardNow({ final: '', interim: '' });
-    if (Rec) {
-      ear.current = new Ear(Rec, { onWords: setHeardNow, onTrouble: t => onTrouble.current(t) }, 'en-GB', /Android/i.test(navigator.userAgent),
-        () => document.visibilityState === 'hidden');
-      ear.current.start();
-    } else {
-      ear.current = null;
-      setSaid({ text: troubleSaid('unsupported', true) });
-    }
-    setWriting(!!Rec);
-    startPiece();
-  };
-  /* Pause runs this render's code — the person, the talk — however long ago the page was drawn */
-  const pausing = useRef<() => void>(() => undefined);
-  const pause = useCallback(() => pausing.current(), []);
-  pausing.current = () => {
-    if (!going.current) return;
-    going.current = false;
-    const at = pieceStart.current;
-    const r = recorder.current;
-    const cut: Promise<Cut> = ear.current ? ear.current.stop() : Promise.resolve(NO_EAR);
-    if (r && r.state !== 'inactive') { if (!cutting.current) wordsFor.current = cut; r.stop(); }
-    else if (!cutting.current) { carryOn(); void keepPiece(undefined, at, (Date.now() - at) / 1000, cut).then(() => setHeardNow({ final: '', interim: '' })); }
-    setRec({ s: 'idle' });
+    /* a browser that does not listen: the keyboard's own microphone writes into the box — the box opened for it */
+    if (!Rec) { setSaid({ text: troubleSaid('unsupported') }); box.current?.focus(); return; }
+    base.current = typingRef.current.trim();
+    const e: Ear = new Ear(Rec, {
+      onWords: h => { if (ear.current !== e) return; spoken.current = true; setBox(joinWords(base.current, h.final, h.interim)); },
+      onTrouble: t => onTrouble.current(t, e),
+    }, 'en-GB', /Android/i.test(navigator.userAgent), () => document.visibilityState === 'hidden');
+    ear.current = e;
+    setListening(true);
+    /* started in the tap itself — a phone listens only when asked by a touch */
+    e.start();
+    void askWake().then(w => { if (ear.current === e) wake.current = w; else void w?.release().catch(() => undefined); });
   };
 
-  /* the clock, and a long stretch cut into pieces — at a pause in what is said, unless it runs on */
-  useEffect(() => {
-    if (rec.s !== 'recording') return;
-    const i = window.setInterval(() => {
-      const sec = (Date.now() - pieceStart.current) / 1000;
-      setSecs(sec);
-      if (going.current && !cutting.current && sec >= PIECE_SECONDS && (!ear.current?.now().interim || sec >= PIECE_SECONDS + 15)) cutPiece();
-    }, 250);
-    return () => window.clearInterval(i);
-  }, [rec.s]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  /* the phone stopped it (the screen went off, another app took the mic): what was said is kept, and it says so */
-  const awayAt = useRef(0);
+  /* out of sight the phone stops listening: what was said is in the box, and it says so */
   useEffect(() => {
     const seen = () => {
-      if (document.visibilityState === 'hidden') { awayAt.current = Date.now(); return; }
-      if (!going.current) return;
-      if (recorder.current && recorder.current.state !== 'recording') {
-        pause();
-        setSaid({ text: 'Recording stopped while the phone was away from Faultline — what was said up to then is kept. Press Continue to carry on.' });
-        return;
-      }
-      /* back in sight: listening again at once; what was said meanwhile was not written down */
-      ear.current?.start();
-      if (Date.now() - awayAt.current < 1000) return;
-      setSaid({ text: recorder.current
-        ? 'Faultline was out of sight, so the phone did not write down what was said meanwhile — the recording has it. It is listening again.'
-        : 'Faultline was out of sight, so the phone did not write down what was said meanwhile, and it was not recording. It is listening again.' });
+      if (document.visibilityState !== 'hidden' || !ear.current) return;
+      void stopRef.current();
+      setSaid({ text: 'Listening stopped when Faultline went out of sight — what you said is in the box. Tap the microphone to carry on.' });
     };
     document.addEventListener('visibilitychange', seen);
     return () => document.removeEventListener('visibilitychange', seen);
-  }, [pause]);
-  useEffect(() => () => { going.current = false; ear.current?.abort(); if (recorder.current?.state === 'recording') recorder.current.stop(); stopStream(); }, []);
+  }, []);
+  useEffect(() => () => { ear.current?.abort(); ear.current = null; void wake.current?.release().catch(() => undefined); }, []);
+  /* the newest words in sight as they come */
+  useEffect(() => { if (listening && box.current) box.current.scrollTop = box.current.scrollHeight; }, [listening, typing]);
+  /* the newest turn in sight above the box, as a chat keeps it — on opening, on a turn added, on an answer come */
+  const lastTurn = turns[turns.length - 1];
+  const newest = `${turns.length}:${lastTurn?.answering ?? ''}:${lastTurn?.text?.length ?? 0}`;
+  useEffect(() => {
+    const el = document.querySelector<HTMLElement>('.tk-turns > li:last-child');
+    const top = document.querySelector('.tk-bar')?.getBoundingClientRect().top ?? window.innerHeight;
+    const over = el ? el.getBoundingClientRect().bottom - top + 12 : 0;
+    if (over > 0) window.scrollBy({ top: over });
+  }, [newest]);
 
   /* ---- photos: taken there and then, or chosen from the phone — kept the moment they are picked ---- */
   const photoIn = useRef<HTMLInputElement>(null);
@@ -470,18 +370,27 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
     return () => window.removeEventListener('online', back);
   }, [live, ask]);
 
-  const box = useRef<HTMLTextAreaElement>(null);
-  const send = async () => {
-    const text = typing.trim();
-    if (text) { await addTurn({ id: uid(), at: Date.now(), ...(me ? { who: me } : {}), kind: 'typed', text }); setTyping(''); }
-    await ask();
+  /* SEND: the box into the talk — as said where the phone wrote any of it — and Line Talk answers */
+  const sending = useRef(false);
+  const send = (): Promise<void> => {
+    if (sending.current) return Promise.resolve();
+    sending.current = true;
+    /* one Send at a time; the flag let go however it ends */
+    return (async () => {
+      const text = (ear.current || finishing.current ? await stopListening() : typingRef.current).trim();
+      if (text) {
+        await addTurn({ id: uid(), at: Date.now(), ...(me ? { who: me } : {}), ...(spoken.current ? { kind: 'said' as const, heard: text } : { kind: 'typed' as const, text }) });
+        setBox('');
+        setSaid(null);
+      }
+      await ask();
+    })().finally(() => { sending.current = false; });
   };
   const strike = async (t: TalkTurn, struck: boolean) => {
     await patchTurn(t.id, struck ? { struck: true } : {}, struck ? [] : ['struck']);
     offerUndo(struck ? 'Struck — kept, and left out of the talk' : 'Brought back', async () => { await patchTurn(t.id, struck ? {} : { struck: true }, struck ? ['struck'] : []); });
   };
 
-  const recording = rec.s === 'recording';
   const docTurn = docId ? turns.find(t => t.id === docId && t.kind === 'reply' && t.doc) : undefined;
   const photosByLabel = useMemo(() => new Map(turns.filter(t => t.kind === 'photo').map(t => [labels.get(t.id) ?? '', t])), [turns, labels]);
   if (docTurn?.doc) {
@@ -489,7 +398,7 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
       onSave={(doc, first) => patchTurn(docTurn.id, { doc, ...(first && !docTurn.docFirst ? { docFirst: first } : {}) })}
       onBack={() => nav(`/talk/${s.id}`)} />;
   }
-  const canSend = live && !recording && !asking && (!!typing.trim() || theirs.length > 0);
+  const canSend = live && !asking && (!!typing.trim() || theirs.length > 0);
   return (
     <div className="wrap ie tk" data-talk={s.id}>
       <header className="pace-head">
@@ -517,7 +426,7 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
       </header>
 
       <ol className="tk-turns" aria-label="The talk">
-        {turns.length === 0 && <li className="tk-empty sub">Nothing said yet. Press Talk and say what you see, or type a question below — add a photo whenever it helps, and ask for a report when you are done.</li>}
+        {turns.length === 0 && <li className="tk-empty sub">Nothing said yet. Tap the microphone and say what you see — your words come up in the box, then Send. Or type a question; add a photo whenever it helps, and ask for a report when you are done.</li>}
         {turns.map(t => t.kind === 'reply' ? (
           <ReplyRow key={t.id} t={t} live={live} answeringHere={asking === t.id}
             onAskAgain={() => void ask()} onOpen={() => nav(`/talk/${s.id}?doc=${encodeURIComponent(t.id)}`)}
@@ -537,46 +446,43 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
       </ol>
 
       {live && (
-        <div className={'tk-bar' + (recording ? ' is-on' : '')} role="group" aria-label="Talk">
+        <div className={'tk-bar' + (listening ? ' is-on' : '')} role="group" aria-label="Talk or type">
           {said && <p className={'sub tk-said' + (said.bad ? ' is-r' : '')} role="status">{said.text}</p>}
-          <div className="tk-acts">
-            {recording ? (
-              <button type="button" className="btn btn-primary tk-talk is-on" onClick={pause} aria-label="Pause">
-                <Icon name="pause" size="1.2em" />Pause <span className="tk-clock" aria-live="off">{clock(secs)}</span>
-              </button>
-            ) : (
-              <button type="button" className="btn btn-primary tk-talk" onClick={() => void startTalking()}>
-                <Icon name="mic" size="1.2em" />{turns.some(t => t.kind === 'said') ? 'Continue' : 'Talk'}
-              </button>
-            )}
-            <button type="button" className="btn tk-photo" onClick={() => photoIn.current?.click()}><Icon name="camera" size="1.1em" />Photo</button>
-            {/* no `capture`: the phone offers its camera and its photos alike */}
-            <input ref={photoIn} type="file" accept="image/*" multiple hidden aria-label="Add a photo" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
-          </div>
-          {recording && (
-            <p className="tk-live" aria-live="polite">
-              {heardNow.final || heardNow.interim
-                ? <>{heardNow.final}{heardNow.interim && <span className="tk-interim">{heardNow.final ? ' ' : ''}{heardNow.interim}</span>}</>
-                : <span className="sub">{writing ? 'Listening — what you say is written here as you say it.' : 'Recording.'}</span>}
-            </p>
-          )}
-          {recording && <p className="sub tk-hint">{writing ? 'The phone writes down what you say; a long stretch is kept about a minute at a time. Pause when you stop — the screen stays on while it listens — and Pause to ask Line Talk about it.' : 'Recording — a long stretch is kept a minute at a time. Pause when you stop; the screen stays on while it records.'}</p>}
-          {!recording && !typing.trim() && turns.some(isTheirs) && (
+          {!listening && !typing.trim() && turns.some(isTheirs) && (
             <div className="tk-chips" role="group" aria-label="Ask for a document">
-              {ASKS.map(a => <button key={a.label} type="button" className="chip tk-chip" onClick={() => { setTyping(a.text); box.current?.focus(); }}>{a.label}</button>)}
+              {ASKS.map(a => <button key={a.label} type="button" className="chip tk-chip" onClick={() => { setBox(a.text); box.current?.focus(); }}>{a.label}</button>)}
             </div>
           )}
           <form className="tk-type" onSubmit={e => { e.preventDefault(); if (canSend) void send(); }}>
-            <textarea ref={box} className="text-input tk-box" rows={typing.length > 70 || typing.includes('\n') ? 3 : 1} value={typing} maxLength={4000}
-              placeholder="Type a question, or ask for a report…" aria-label="Type into the talk"
-              onChange={e => setTyping(e.target.value)}
+            <button type="button" className="btn tk-photo" aria-label="Add a photo" title="Add a photo" onClick={() => photoIn.current?.click()}><Icon name="camera" size="1.2em" /></button>
+            {/* no `capture`: the phone offers its camera and its photos alike */}
+            <input ref={photoIn} type="file" accept="image/*" multiple hidden aria-label="Choose photos" onChange={e => { void addPhotos([...(e.target.files ?? [])]); e.target.value = ''; }} />
+            <textarea ref={box} className="text-input tk-box" rows={typing.length > 160 ? 5 : typing.length > 60 || typing.includes('\n') ? 3 : 1} value={typing} maxLength={4000}
+              placeholder={listening ? 'Listening — talk…' : 'Talk or type…'} aria-label="Talk or type into the talk"
+              onChange={e => {
+                /* typed into while listening: the listening stops, the box as typed */
+                edits.current++;
+                const er = ear.current;
+                if (er) { ear.current = null; er.abort(); setListening(false); letWake(); }
+                setBox(e.target.value);
+              }}
               onKeyDown={e => {
                 /* Enter sends at a desk; on a phone it is a new line, as the phone's own keyboard says */
                 if (e.key === 'Enter' && !e.shiftKey && window.matchMedia?.('(pointer: fine)').matches) { e.preventDefault(); if (canSend) void send(); }
               }} />
-            <button type="submit" className="btn btn-primary tk-send" disabled={!canSend}>{typing.trim() ? 'Send' : 'Reply'}</button>
+            <button type="button" className={'btn tk-mic' + (listening ? ' is-on' : '')} aria-pressed={listening}
+              aria-label={listening ? 'Stop listening' : 'Talk into the box'} title={listening ? 'Stop listening' : 'Talk into the box'}
+              onClick={() => { if (listening) void stopListening(); else startListening(); }}>
+              <Icon name={listening ? 'stop' : 'mic'} size="1.3em" />
+            </button>
+            <button type="submit" className="btn btn-primary tk-send" disabled={!canSend}>Send</button>
           </form>
-          <p className="sub tk-hint">{asking ? 'Line Talk is answering — what you say and photograph meanwhile is kept for the next answer.' : typing.trim() ? 'Send adds your words and Line Talk answers.' : theirs.length ? 'Reply asks Line Talk about what you have said since its last answer.' : 'Talk, type or add a photo — then Reply or Send.'}</p>
+          {/* what got in the way says what to do — said once, not twice */}
+          {(listening || !said) && <p className="sub tk-hint" aria-live="polite">{listening ? 'Listening — your words come up in the box as you talk. Put anything right, then Send.'
+            : asking ? 'Line Talk is answering — what you say and photograph meanwhile is kept for the next answer.'
+            : typing.trim() ? 'Send, and Line Talk answers.'
+            : theirs.length ? 'Send asks Line Talk about what you have added since its last answer.'
+            : 'Tap the microphone and talk, or type — add a photo whenever it helps.'}</p>}
         </div>
       )}
     </div>

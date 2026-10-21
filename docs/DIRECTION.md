@@ -66,8 +66,9 @@ Rowland, 20 October: *"Isn't AI a tool? ... I see it as being a tool rather
 than a main driving function of the app."* So the AI is **one tool among the
 others**, used when someone chooses to, never the app's driver and never a
 builder of methods, templates or tools. That tool is **Line Talk**
-(docs/LINE-TALK.md): one person talks on the line into their phone — pause,
-continue, photos — and it hears it, remembers the whole talk like a chat,
+(docs/LINE-TALK.md): one person talks on the line into their phone — the
+words come up in the box as in a chat, then Send (21 October), photos — and
+it remembers the whole talk like a chat,
 and makes whatever is asked of it in words (a report, a summary for the
 manager, an OEM's punch list, a one-point lesson), knowing the line as
 Faultline holds it. The talk is kept, viewed like a chat and carried on
@@ -92,7 +93,7 @@ builder was never used; nothing stored is lost.
 | AI in the app | Decision |
 |---|---|
 | Voice — the voice note in typed boxes (`api/voice`) | **kept** — on Gemini, which hears it and fills the boxes |
-| Line Talk hearing what is said | **the phone's own speech recognition** since 20 October ("Use the phone's own speech recognition instead of Gemini"; `lib/hearing`, docs/LINE-TALK.md *How it hears*) — no AI service, no key |
+| Line Talk hearing what is said | **the phone's own speech recognition** since 20 October ("Use the phone's own speech recognition instead of Gemini"; `lib/hearing`, docs/LINE-TALK.md *How it hears*) — no AI service, no key; since 21 October it writes into the box, as a chat's dictation does, and nothing is recorded ("I see my words come up on the interface. I simply press send"; docs/LINE-TALK.md *The box, like a chat*) |
 | The camera — the video study's *Name the work from the frames* (`assist` gateway, task `video-label`) | **kept**, shown again (it was parked) |
 | Line Talk (docs/LINE-TALK.md), its slices as designed | **kept** — its answers and documents (slice 2) on Claude through the `assist` gateway, task `talk` |
 | The method builder — *Describe what you need*, the design studio, the assistant's proposals and *Ask about it*, Methods of one's own and Faultline's library of methods, the method engine and a project on a method | **deleted** |
@@ -165,9 +166,11 @@ Nothing new is built until Rowland says go.
    same day ("a simple, reliable, ChatGPT-style manufacturing assistant
    inside Faultline, powered by our existing Claude API integration"); and
    its hearing moved off Gemini onto the phone's own speech recognition at
-   his word the same evening. Next, Rowland tries it on his phone on the
-   floor — how well the phone hears in the noise, whether it records and
-   hears at once, and what a locked screen does.
+   his word the same evening; and on 21 October its box made a chat's — talk,
+   the words come up in the box, Send — the recorder taken off at his word.
+   Next, Rowland tries it on his phone on the floor — how well the phone
+   hears in the noise, and whether his phone's browser listens or the
+   keyboard's microphone is the way in.
 4. Use Faultline for real for two or three weeks on Rowland's lines with his
    team; write down every place it is slow, confusing or missing.
 5. Then deepen the tools that were used, close the evidence → cause → action

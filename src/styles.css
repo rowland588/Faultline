@@ -13814,16 +13814,18 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .tk-fix-a { display: flex; gap: 8px; }
 .tk-bar { position: sticky; bottom: 0; z-index: 4; background: var(--surface); border-top: 1px solid var(--line); margin: 8px -16px 0; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 8px; }
 .tk-bar.is-on { border-top: 2px solid var(--brand); }
-.tk-acts { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.tk-talk { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 22px; font-size: 1.05rem; }
-.tk-clock { font-variant-numeric: tabular-nums; opacity: 0.85; }
-.tk-photo { display: inline-flex; align-items: center; gap: 6px; min-height: 48px; }
-.tk-type { display: flex; gap: 8px; }
+/* the box, as a chat's: Photo · the words · the microphone · Send (Rowland, 21 October: "I see my words come up … I simply press send") */
+.tk-type { display: flex; gap: 6px; }
 .tk-type .text-input { flex: 1; min-width: 0; }
+.tk-photo, .tk-mic { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 44px; min-height: 44px; padding: 0; }
+/* listening: the microphone pressed in, the brand's teal — what you press, never a state */
+.tk-mic.is-on { background: var(--brand); border-color: var(--brand); color: #fff; box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 22%, transparent); }
+.tk-bar.is-on .tk-box { border-color: var(--brand); }
 .tk-hint, .tk-said { margin: 0; }
-/* the phone's hearing: what it has written of the piece so far, the words still forming lighter (lib/hearing) */
-.tk-live { margin: 0; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--surface-2); line-height: 1.45; max-height: 7.5em; overflow-y: auto; white-space: pre-wrap; }
-.tk-interim { color: var(--muted); }
+/* the box at the foot of the screen, as a chat's, however short the talk; as wide as the conversation */
+.wrap.tk[data-talk] { display: flex; flex-direction: column; min-height: calc(100dvh - var(--nv-top)); padding-bottom: 0; }
+.wrap.tk[data-talk] > .tk-bar { margin-top: auto; }
+.tk-bar > * { max-width: 820px; }
 /* ASK IT (slice 2): Line Talk's answers on the left of the page, the person's turns as they were; a photo's label; the composer */
 .tk-turn.is-reply { background: var(--surface-2); border-color: var(--line); border-left: 3px solid var(--brand); }
 .tk-label { color: var(--ink); }
@@ -13867,9 +13869,10 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .tk-daddph { max-width: 200px; }
 .tk-dsec-a { display: flex; gap: 14px; font-size: var(--t-small); }
 @media (max-width: 640px) { .tk-dpt { grid-template-columns: 1fr; } .tk-dpt-m { grid-column: 1; } }
-@media (max-width: 640px) { .tk-bar { margin: 8px -12px 0; padding-left: 12px; padding-right: 12px; } .tk-talk { flex: 1; justify-content: center; } }
-/* a phone: the talk's bar sits on the phone's own bar, and the quick Problem button gives way to Photo */
+@media (max-width: 640px) { .tk-bar { margin: 8px -12px 0; padding-left: 12px; padding-right: 12px; } .tk-send { min-width: 64px; padding-left: 12px; padding-right: 12px; } }
+/* a phone: the talk's box sits on the phone's own bar, and the quick Problem button gives way to it */
 @media (max-width: 899px) {
   .tk-bar { bottom: calc(var(--nv-bar) + env(safe-area-inset-bottom)); padding-bottom: 10px; }
+  .wrap.tk[data-talk] { padding-bottom: calc(var(--nv-bar) + env(safe-area-inset-bottom)); }
   body:has(.tk-bar) .qs-fab { display: none; }
 }

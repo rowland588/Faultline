@@ -11,7 +11,7 @@
  *
  *   1  started from the front door on a line with two machines and a
  *      critical problem; What Line Talk knows says them
- *   2  a piece said and heard, then Reply: the gateway asked with the words,
+ *   2  talked into the box and sent: the gateway asked with the words,
  *      the line's records (its machines, the problem as the register reads
  *      it) and today — no pictures; the answer drawn as a list, bold kept
  *   3  a follow-up typed and sent: the first answer goes with it as Line
@@ -56,7 +56,7 @@ const ctx = await b.newContext({ viewport: { width: 1360, height: 900 }, permiss
 await ctx.addInitScript(([k, s]) => { try { localStorage.setItem(k, JSON.stringify(s)); } catch { /* fine */ } }, [`sb-${REF}-auth-token`, SESSION]);
 await ctx.route('**://*.supabase.co/**', r => r.abort());
 
-/* THE PHONE'S SPEECH RECOGNITION, played by the script: what is said into it (__say) is written down */
+/* THE PHONE'S SPEECH RECOGNITION, played by the script: what is said into it (__say) is written into the box */
 await ctx.addInitScript(() => {
   class FakeRec {
     constructor() { this.onresult = null; this.onerror = null; this.onend = null; this.running = false; this.results = []; }
@@ -116,19 +116,17 @@ await page.locator('.tk-new .tk-start').click(); await settle(1200);
 const talkId = page.url().match(/#\/talk\/([^?]+)/)?.[1];
 ok(!!talkId, '1 a talk started on the line', page.url());
 ok(await waitFor(async () => /^What Line Talk knows — Line 7: 2 machines · 1 open problem · 0 programs to prove · 0 tool findings · 0 jobs$/.test((await page.locator('.tk-knows summary').innerText().catch(() => '')).trim())), '1 what Line Talk knows, said', await page.locator('.tk-knows summary').innerText().catch(() => ''));
-ok((await page.locator('.tk-send').innerText()).trim() === 'Reply' && await page.locator('.tk-send').isDisabled(), '1 nothing to answer yet — Reply waits');
+ok((await page.locator('.tk-send').innerText()).trim() === 'Send' && await page.locator('.tk-send').isDisabled(), '1 nothing to answer yet — Send waits');
 
-/* 2 — said, heard, Reply */
+/* 2 — talked into the box, sent */
 plan.push({ a: { reply: 'You said the bagger film is wandering left.\n- Check the film **tension** on the Bagger\n- The guard problem on the Checkweigher is still open, owned by Dave' } });
-await page.locator('.tk-bar .tk-talk').click();
-await waitFor(async () => (await page.locator('.tk-bar .tk-talk').innerText()).startsWith('Pause'), 5000);
+await page.locator('.tk-bar .tk-mic').click();
 await page.waitForFunction(() => window.__ear?.running, null, { timeout: 5000 }).catch(() => {});
 await page.evaluate(() => window.__say('the bagger film is wandering to the left running at about 62 a minute'));
-await page.waitForTimeout(1500);
-await page.locator('.tk-bar .tk-talk').click();
-ok(await waitFor(async () => /The bagger film is wandering to the left/.test(await page.locator('.tk-turn[data-kind=said] .tk-words').innerText().catch(() => ''))), '2 a piece said and written down');
-ok(await waitFor(async () => !(await page.locator('.tk-send').isDisabled())) && (await page.locator('.tk-send').innerText()).trim() === 'Reply', '2 Reply, for what was said');
+ok(await waitFor(async () => /^The bagger film is wandering to the left/.test(await page.locator('.tk-box').inputValue())), '2 the words in the box as they are said');
+ok(await waitFor(async () => !(await page.locator('.tk-send').isDisabled())), '2 Send, for what was said');
 await send();
+ok(await waitFor(async () => /The bagger film is wandering to the left/.test(await page.locator('.tk-turn[data-kind=said] .tk-words').innerText().catch(() => ''))), '2 sent: the words in the talk, as said');
 ok(await waitFor(async () => /Check the film tension on the Bagger/.test(await lastReply())), '2 answered', await lastReply());
 const a2 = asks[0];
 ok(a2?.task === 'talk' && a2.turns.length === 1 && a2.turns[0].kind === 'said' && /bagger film is wandering/.test(a2.turns[0].text), '2 asked with what was said', JSON.stringify(a2?.turns));
@@ -254,7 +252,7 @@ const wide = await page.evaluate(() => document.documentElement.scrollWidth - do
 ok(wide <= 1, '10 the phone: nothing off the side', `${wide}px`);
 const tops = await page.locator('.tk-chip').evaluateAll(els => [...new Set(els.map(e => Math.round(e.getBoundingClientRect().top)))]);
 ok(tops.length === 1, '10 the phone: the shortcuts in one row — the conversation keeps the screen', JSON.stringify(tops));
-ok(await page.locator('.tk-send').isVisible() && await page.locator('.tk-bar .tk-photo').isVisible() && await page.locator('.tk-bar .tk-talk').isVisible(), '10 the phone: Talk, Photo and Reply in reach');
+ok(await page.locator('.tk-send').isVisible() && await page.locator('.tk-bar .tk-photo').isVisible() && await page.locator('.tk-bar .tk-mic').isVisible(), '10 the phone: Photo, the microphone and Send in reach');
 
 ok(errs.length === 0, 'no console error', errs.join(' | '));
 await b.close();

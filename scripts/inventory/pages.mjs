@@ -262,7 +262,7 @@ export const PAGES = (sd, cap) => [
     { what: 'start one on this line', sel: '.tk-new .tk-start', text: /^Start a Line Talk on / },
     { what: 'every talk on the line, what was said in a line', sel: '.lt-row', text: /Line 7 — morning walk[\s\S]*4 pieces said/ },
   ] },
-  /* a talk: the conversation as it was left — pieces the phone wrote down, one corrected, a photo, a typed line, one not written down, one written by a phone that does not record; a report asked for and Line Talk's answer with the document it wrote (slice 2, 20 October) — and the bar to carry on */
+  /* a talk: the conversation as it was left — pieces the phone wrote down, one corrected, a photo, a typed line, one not written down (recorded before 21 October), one written down with no recording; a report asked for and Line Talk's answer with the document it wrote (slice 2, 20 October) — and the box to carry on, as a chat's (21 October) */
   { name: 'A Line Talk', path: `#/talk/${sd.talkId}`, must: [
     { what: 'where it is — the line, every Line Talk', sel: '.pl-eyebrow', text: /^LINE TALK · .+ › · Every Line Talk ›$/ },
     { what: 'what was said, in a line — its answers and document counted', sel: '.tk-sum', text: /^4 pieces said, 2 min · 1 photo · 2 typed · 1 answer · 1 document — 1 not written down\.$/ },
@@ -275,11 +275,12 @@ export const PAGES = (sd, cap) => [
     { what: 'Line Talk’s answer, its words as written', sel: '.tk-turn.is-reply .tk-ans', text: /Here is the line-walk report/ },
     { what: 'the document it wrote, to open, edit and print', sel: '.tk-turn.is-reply .tk-doc', text: /Line-walk report[\s\S]*Line 7 — morning walk[\s\S]*2 sections · 1 photo[\s\S]*Open — edit and print/i },
     { what: 'a figure it was not given, said to check', sel: '.tk-turn.is-reply .tk-unsure', text: /^Check before you use it: 8 is not in what was said or in Faultline’s records\.$/ },
-    { what: 'Continue — the talk carries on', sel: '.tk-bar .tk-talk', text: /^Continue$/ },
-    { what: 'a photo', sel: '.tk-bar .tk-photo', text: /^Photo$/ },
+    { what: 'the microphone in the box — talk, and the words come up in it (21 October)', sel: '.tk-bar .tk-mic[aria-label="Talk into the box"]' },
+    { what: 'a photo', sel: '.tk-bar .tk-photo[aria-label="Add a photo"]' },
     { what: 'the shortcuts to the usual documents', sel: '.tk-bar .tk-chip', n: 4 },
     { what: 'typing into it', sel: '.tk-bar .tk-type textarea' },
-    { what: 'Reply — nothing new to answer yet', sel: '.tk-bar .tk-send', text: /^Reply$/ },
+    { what: 'Send — nothing new to answer yet', sel: '.tk-bar .tk-send', text: /^Send$/ },
+    { what: 'how: the microphone or typing', sel: '.tk-bar .tk-hint', text: /^Tap the microphone and talk, or type — add a photo whenever it helps\.$/ },
   ] },
   /* the document Line Talk wrote, opened (slice 2): what it is, each section with its points saying where they come from, its photo with its caption, the PDF */
   { name: 'A Line Talk document', path: `#/talk/${sd.talkId}?doc=seedt-8`, must: [
