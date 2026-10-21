@@ -46,6 +46,20 @@ off: everything said, typed and photographed is kept, and an answer waits or
 says why.
 Nothing new is built until Rowland says go.
 
+## The project is the workspace — 21 October
+
+**Read `docs/PROJECTS.md`.** Rowland, 21 October: *"a project is the project
+and everything is inside the project ... all of them tools that you use are
+within that project automatically ... Everything will then automatically
+always go to the action tracker within that project."* So: one word,
+**project** (never *job* on a screen or paper); open a project and the app is
+that project — its method, its tools, its problems, its **Actions** (who is
+doing what, why, where, by when, with its priority), its reports, Line Talk
+— and whatever is done inside it lands in it with no *Use it for*. The factory
+stays shared (a project points at its lines — asked and chosen); work with no
+project stays on its line and is moved in with a tap; the control room sees
+every project's actions at once. Built in slices P1–P4 (the doc's table).
+
 ## The blueprint comes first
 
 **`docs/BLUEPRINT.md` is the one map of the app** — agreed with Rowland, 13

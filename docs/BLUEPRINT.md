@@ -56,6 +56,14 @@ JOBS           A change to one or more lines, run one of three ways — stage ga
                targets, proof, who owes what, the reports.
 ```
 
+**21 October — PROJECTS, the workspace** (docs/PROJECTS.md, agreed with
+Rowland): the bottom layer is called *projects* everywhere (*job* goes from
+every screen and paper), and a project is the place you work inside — open
+one and the app is that project, its tools inside it, everything done there
+landing in it, and its **Actions** the team's tracker. The rules below still
+hold: the factory is shared (rule 1, rule 2 — a project points at its lines,
+asked and chosen), and work with no project stays on its line.
+
 Four rules hold the shape:
 
 1. **One home per real thing**, at the lowest layer where it is true. A

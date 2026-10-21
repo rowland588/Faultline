@@ -175,6 +175,13 @@ Nothing new is built until Rowland says go.
    Next, Rowland tries it on his phone on the floor — how well the phone
    hears in the noise, and whether his phone's browser listens or the
    keyboard's microphone is the way in.
+3b. **The project is the workspace** (docs/PROJECTS.md — agreed 21 October,
+   go given): one word, *project* (*job* goes); open a project and the app is
+   that project, its tools inside it, everything done there landing in it;
+   every project's **Actions** — the team's action tracker, who is doing
+   what, why, by when — and the same across every project in the control
+   room. The factory stays shared; work with no project stays on its line.
+   Built in four slices (P1–P4), each live on its own.
 4. Use Faultline for real for two or three weeks on Rowland's lines with his
    team; write down every place it is slow, confusing or missing.
 5. Then deepen the tools that were used, close the evidence → cause → action
