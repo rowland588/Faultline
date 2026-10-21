@@ -72,7 +72,7 @@ missing is the experience: the project was not a place you worked *inside*.
 
 ## The slices
 
-### P1 — One word: project
+### P1 — One word: project — built 21 October
 
 Every screen and paper says *project* where it said *job*: the rail, the list
 (*Projects*, *New project*), the front pages, the tools' *Use it for*, the
@@ -80,7 +80,7 @@ reports, the control room and Line Talk's context. Code names (`jobLine`,
 `useJobInputs`) stay — they are not seen. The smoke test fails if *job* comes
 back on a screen, as it does for the other old words (BLUEPRINT §5.9).
 
-### P2 — Open a project and the app is that project
+### P2 — Open a project and the app is that project — built 21 October
 
 - The project is carried while you work in it: a tool opened from inside it
   keeps the project's rail, not the control room's.
@@ -97,7 +97,33 @@ back on a screen, as it does for the other old words (BLUEPRINT §5.9).
 - Outside a project, nothing changes: a tool used on a line is the line's,
   and *Move into a project* takes it in.
 
-### P3 — The project's actions
+**As built (21 October).** A tool's page is still one page for every line
+and project; inside a project its address carries it — `?project=<id>`,
+put on every tool in the project's rail (`lib/inProject` inProject, `ui/rail`
+toolsGroup) — so the frame keeps the project's rail (`ui/Frame` projectOf)
+and the page reads it (`lib/useInProject`). Its list opens on **the
+project's own**, with *Everything on its lines* (the line's own work and
+other projects' on the same lines) and *Every line* one tap away
+(`ui/ProjectScope`; `lib/inProject` inScope). **New** there makes it on the
+project — the sheet says *For <the project>*, never asks *For a project?* —
+on the project's line when it has one, its lines offered first when it has
+several (`startLine`): the five studies (capability, value stream, SMED,
+work sampling, loss count), the line standard, the line balance, Line
+capacity, the video study and Line Talk, which then knows the project it is
+on. A record opened — a study, a talk, a video study, a product's line
+standard — wears **its own** project's rail however it is reached, and a
+record on no project the control room's. The Problem button on any of them
+takes a problem for the project (it already did on the project's own pages).
+New is offered inside a project only to those who may change it
+(`useAccess` can.edit) — a client of the project reads, as before.
+
+*Not yet:* the links into a tool from inside the project's own pages (the
+6M Evidence lens, a stage's line standard, the fishbone's *Count a shift*)
+open the record or the line's list as before, not the project's list; and
+*Move into a project* is the record's own *Attach to a project* (StudyPlace,
+the line standard's BelongsTo), as it was.
+
+### P3 — The project's actions — built 21 October
 
 One page in every project — **Actions** — the classic action tracker: every
 action in the project, from wherever it was raised, with **what · why (the
@@ -129,11 +155,40 @@ stands**.
 - The page is called **Actions**: *tracker* stays off the screens (it named
   the Excel import retired on 13 October, and the smoke test keeps it out).
 
-### P4 — Every project's actions, in the control room
+**As built (21 October).** *Actions* is on every project's rail, beside
+Problems (`#/project/:id/actions`, screens/ActionsScreen). Its rows are
+every thing the project owes, read the way its Needs you reads them — a
+stage, a test, a fix, a part of the plan, the board's actions, a check that
+keeps a gain, the materials, programs and machines waited on, the open
+critical problems and high risks (lib/portfolio, through the control room's
+own inputs) — and the register's problems taken for the project and not on
+it yet (lib/projectActions, lib/useProjectActions). So *late* here is the
+late of the band, the rail and the control room. Each row: what, its kind
+and priority in words, where, why, who, by when (late red, soon amber).
+Seen by **who**, **when** or **where**; only the **late**, the **critical
+and high**, or **nobody yet**. The lean page's six tiles and the closing
+line. A row opens its own record — the drawer over the page for a stage,
+test or fix, its list for the rest, the register for a problem. **Paper:**
+the list for the meeting, and each person's own (*Their list*;
+lib/projectActionsPdf). acceptance/actions.mjs drives it.
+
+*Not yet:* changing who, when and done on the Actions row itself (with Undo)
+— today the row opens the record, where each is changed; *Make it an action*
+on a finding that has none; names offered as you type.
+
+### P4 — Every project's actions, in the control room — built 21 October
 
 The same page across every project and every line's own problems — the
 team's view of everything: by person across projects, late first, filters
 by project and line; its tiles in the control room; its paper.
+
+**As built (21 October).** *Every action* under the control room on its rail
+(`#/actions`, screens/ActionsScreen EveryActionScreen): every project's
+Actions, each read as its own page reads it and marked with its project
+(lib/projectActions everyAction), then every open problem on a factory line
+with no project. The same tiles, closing line and paper; seen by who, when,
+where or **project** — one person's actions across every project in one
+group. *Not yet:* its tiles on the control room's own page; a filter by line.
 
 ## After P4 — tightening, once the project is the workspace
 

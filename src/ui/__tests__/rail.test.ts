@@ -114,9 +114,9 @@ describe('a stage-gate job’s places — the four gates one Plan (docs/STAGEGAT
   };
   const g = gatesGroup(P, 'setup', counts);
 
-  it('reads Plan · Programs · Problems · Materials · The day — the gates are the Plan’s tabs, not four lines', () => {
-    expect(labels(g)).toEqual(['Plan', 'Programs', 'Problems', 'Materials', 'The day']);
-    expect(g.lines.map(l => l.to)).toEqual([`/project/${P}/install`, `/project/${P}/programs`, `/project/${P}/fixes`, `/project/${P}/materials`, `/project/${P}/day`]);
+  it('reads Plan · Programs · Problems · Actions · Materials · The day — the gates are the Plan’s tabs, not four lines', () => {
+    expect(labels(g)).toEqual(['Plan', 'Programs', 'Problems', 'Actions', 'Materials', 'The day']);
+    expect(g.lines.map(l => l.to)).toEqual([`/project/${P}/install`, `/project/${P}/programs`, `/project/${P}/fixes`, `/project/${P}/actions`, `/project/${P}/materials`, `/project/${P}/day`]);
   });
 
   it('Plan counts every gate’s open work and its late part, and is on whichever gate you are in', () => {
@@ -156,7 +156,7 @@ describe('the method of a 6M or tree job', () => {
 
 describe('work, lines and the foot', () => {
   it('a 6M job keeps its materials under work', () => {
-    expect(labels(workGroup(P, 'job', {}))).toEqual(['Materials']);
+    expect(labels(workGroup(P, 'job', {}))).toEqual(['Actions', 'Materials']);
   });
 
   it('every line of the job, and the study’s four screens under the line it belongs to — once', () => {
@@ -289,6 +289,19 @@ describe('the job first, the tools at the foot (docs/FLOW.md item 3)', () => {
     const g = toolsGroup('');
     expect(g.label).toBe('Tools');
     expect(labels(g)).toEqual(['Line standard', 'Line balance', 'Line capacity', 'Capability', 'Value stream', 'SMED', 'Work sampling', 'Loss count', 'Video study', 'Line Talk']);
+  });
+
+  it('inside a project, every tool opens on the project — its address carries it (docs/PROJECTS.md, P2)', async () => {
+    const { parseRoute } = await import('../../state/useRoute');
+    const g = toolsGroup('capability', [], 'p1');
+    expect(g.lines.map(l => l.to)).toEqual(['/standards', '/linebalance', '/balances', '/capability', '/value-stream', '/smed', '/sampling', '/losses', '/video', '/talk'].map(t => `${t}?project=p1`));
+    /* lit where it is, as outside a project */
+    expect(g.lines.filter(l => l.on).map(l => l.label)).toEqual(['Capability']);
+    /* each address still parses to its tool, with the project in its query */
+    for (const l of g.lines) expect(parseRoute(`#${l.to}`).query.get('project')).toBe('p1');
+    expect(hereOf(parseRoute('#/smed?project=p1'))).toBe('changeover');
+    /* outside a project, unchanged */
+    expect(toolsGroup('').lines.every(l => !l.to?.includes('?'))).toBe(true);
   });
 
   it('Control room problems is the control room’s, lit on its page (docs/FLOW-AUDIT.md #20)', async () => {

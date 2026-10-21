@@ -18,6 +18,7 @@ import { MaterialsScreen } from './screens/MaterialsScreen';
 import { ProgramsDoor } from './screens/ProgramsPage';
 import { TestsScreen } from './screens/TestsScreen';
 import { FixesScreen } from './screens/FixesScreen';
+import { ActionsScreen, EveryActionScreen } from './screens/ActionsScreen';
 import { InstallScreen } from './screens/InstallScreen';
 import { DayScreen } from './screens/DayScreen';
 import { PlanScreen } from './screens/PlanScreen';
@@ -143,22 +144,24 @@ function app(route: Route) {
   // is dropped and the list is shown — a list is a fair answer to "which one?",
   // and a redirect into a project that may not exist is not.
   if (route.name === 'projects') return <ProjectsScreen />;
-  /* ?line= opens a list on one line — from the line's own page; keyed on it, so a second line starts afresh */
+  /* ?line= opens a list on one line — from the line's own page; keyed on it, so a second line starts afresh;
+     ?project= inside a project (lib/inProject), keyed on it too */
   if (route.name === 'quickSnags') return <QuickSnagsScreen key={route.query.get('line') ?? ''} />;
   if (route.name === 'lineHome' && route.wsId) return <ProductionLineScreen key={route.wsId} wsId={route.wsId} />;
   if (route.name === 'factory') return <FactoryScreen />;
+  if (route.name === 'allActions') return <EveryActionScreen />;
   if (route.name === 'start') return <StartScreen />;
   /* a video study (docs/VIDEO.md): every one, and one */
-  if (route.name === 'videos') return <VideosScreen />;
+  if (route.name === 'videos') return <VideosScreen key={route.query.get('project') ?? ''} />;
   if (route.name === 'videoStudy' && route.id) return <VideoStudyScreen key={route.id} id={route.id} />;
   if (route.name === 'videoCheck') return <VideoCheckScreen />;
   /* Line Talk (docs/LINE-TALK.md): every talk (keyed on its line), and one */
-  if (route.name === 'talks') return <TalksScreen key={route.query.get('line') ?? ''} />;
+  if (route.name === 'talks') return <TalksScreen key={`${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} />;
   if (route.name === 'talk' && route.id) return <TalkScreen key={route.id} id={route.id} />;
   /* ?line= opens it on one line — keyed on it, so a second line starts afresh */
   if (route.name === 'linePrograms') return <LineProgramsScreen key={route.query.get('line') ?? ''} />;
-  if (route.name === 'lineTools') return <LineToolsScreen key={route.query.get('line') ?? ''} tool={route.view === 'balance' ? 'balance' : route.view === 'work' ? 'work' : 'map'} />;
-  if (route.name === 'studies') return <StudiesScreen key={`${route.view ?? 'capability'}:${route.query.get('line') ?? ''}`} tool={route.view === 'map' ? 'map' : route.view === 'changeover' ? 'changeover' : route.view === 'sampling' ? 'sampling' : route.view === 'losses' ? 'losses' : 'capability'} />;
+  if (route.name === 'lineTools') return <LineToolsScreen key={`${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} tool={route.view === 'balance' ? 'balance' : route.view === 'work' ? 'work' : 'map'} />;
+  if (route.name === 'studies') return <StudiesScreen key={`${route.view ?? 'capability'}:${route.query.get('line') ?? ''}:${route.query.get('project') ?? ''}`} tool={route.view === 'map' ? 'map' : route.view === 'changeover' ? 'changeover' : route.view === 'sampling' ? 'sampling' : route.view === 'losses' ? 'losses' : 'capability'} />;
   if (route.name === 'study' && route.id) {
     if (route.view === 'map') return <MapScreen key={route.id} id={route.id} />;
     if (route.view === 'changeover') return <ChangeoverScreen key={route.id} id={route.id} />;
@@ -207,6 +210,8 @@ function app(route: Route) {
   if (route.name === 'day' && route.id) return gate(route.id, <DayScreen projectId={route.id} />);
   if (route.name === 'plan' && route.id) return gate(route.id, <PlanScreen projectId={route.id} />);
   if (route.name === 'materials' && route.id) return <MaterialsScreen projectId={route.id} />;
+  /* the project's actions, every method's (docs/PROJECTS.md, P3) */
+  if (route.name === 'actions' && route.id) return <ActionsScreen projectId={route.id} />;
   if (route.name === 'programs' && route.id) return <ProgramsDoor projectId={route.id} />;
   if (route.name === 'machine' && route.id && route.lineId) return gate(route.id, <MachineScreen key={route.lineId} projectId={route.id} assetId={route.lineId} />);
   if (route.name === 'clientReport' && route.id) return gate(route.id, <ClientReportScreen projectId={route.id} />);

@@ -136,7 +136,7 @@ export async function factoryLineFor(name: string, taxonomyId?: string): Promise
  *  (Your factory opened on its Add lines; a tool's list opened on its New —
  *  from a method's step done with that tool). Read once,
  *  when the screen opens; the router keys the screen on the line. */
-export function asked(key: 'line' | 'open' | 'add'): string | undefined {
+export function asked(key: 'line' | 'open' | 'add' | 'project'): string | undefined {
   return new URLSearchParams(window.location.hash.split('?')[1] ?? '').get(key) ?? undefined;
 }
 

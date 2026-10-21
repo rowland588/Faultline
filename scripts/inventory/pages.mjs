@@ -188,6 +188,24 @@ export const PAGES = (sd, cap) => [
     /* the lean page (17 October, slice 6; lib/ie/changeoverLean): the band, five tiles in the strip's place, the action plan, the closing line */
     { what: 'the band', sel: '.ln-band' }, { what: 'the five tiles — now, inside the stop, planned to, stopped in packs and £, bought back', sel: '.ie-strip .ln-tile', n: 5 },
     { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' }] },
+  /* A TOOL INSIDE A PROJECT (21 October, docs/PROJECTS.md P2): opened from the
+     project's rail, the page keeps the project's rail and lists its own first */
+  /* A PROJECT'S ACTIONS (21 October, docs/PROJECTS.md P3): every thing it owes, who, why, where, by when */
+  { name: 'Actions — a stage-gate project', path: `#/project/${sd.projectId}/actions`, must: [
+    { what: 'the six tiles — open, late, this week, nobody yet, no date, done this week', sel: '.act-tiles .ln-tile', n: 6 },
+    { what: 'seen by who, when or where', sel: '[aria-label="Seen by"] .chip', n: 3 },
+    { what: 'a group a person, each with its actions', sel: '.act-g .act-li' },
+    { what: 'the closing line', sel: '.ln-close' }] },
+  { name: 'Actions — a 6M project', path: `#/project/${sd.pacedProjectId}/actions`, must: [
+    { what: 'the tiles', sel: '.act-tiles .ln-tile', n: 6 }, { what: 'its actions', sel: '.act-li' }, { what: 'the closing line', sel: '.ln-close' }] },
+  { name: 'Every action — the control room', path: '#/actions', must: [
+    { what: 'the six tiles', sel: '.act-tiles .ln-tile', n: 6 }, { what: 'seen by who, when, where or project', sel: '[aria-label="Seen by"] .chip', n: 4 },
+    { what: 'every project’s actions and every line’s own problems', sel: '.act-li' }, { what: 'the closing line', sel: '.ln-close' }] },
+  { name: 'SMED inside a project', path: `#/smed?project=${sd.pacedProjectId}`, must: [
+    { what: 'the project’s rail — its fishbone among its places', sel: '.nv-rail .nv-ri', text: /Fishbone/, desk: true },
+    { what: 'the project’s bar', sel: '.nv-bar .nv-bi-l', text: /This project/, phone: true },
+    { what: 'whose — the project’s own, everything on its lines, every line', sel: '.ip-scope .chip', n: 3 },
+    { what: 'the project’s own SMED', sel: '.lt-li[data-study]' }] },
   { name: 'A loss count', path: `#/losses/${sd.lossId}`, must: [
     { what: 'the waterfall, drawn', sel: 'svg.lf-fall' }, { what: 'what it says', sel: '.ie-says' },
     /* the lean page (17 October, docs/LEAN-PAGE.md): the band, the tiles, the causes, the action plan, the closing line */

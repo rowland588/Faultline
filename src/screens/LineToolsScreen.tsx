@@ -18,6 +18,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { addLineToFactory, asked } from '../lib/lines';
 import { deleteStudy, listAllStandards, listAllStudies, listWorkspaces, onDataChange, putStandard } from '../db';
 import { useFactoryLines } from '../lib/useFactoryLines';
+import { useInProject } from '../lib/useInProject';
+import { inScope, startLine, type ProjectScope } from '../lib/inProject';
+import { ProjectScopeChips } from '../ui/ProjectScope';
 import { useArchivedPlaces } from '../lib/useFactoryLines';
 import type { ToolStudy } from '../lib/study';
 import { changeoverLine, currentBalance, currentChangeover, studyHref, studyLine } from '../lib/studyLinks';
@@ -94,6 +97,12 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
   const [adding, setAdding] = useState(() => asked('add') === '1');
   /* The line's changeovers (tool 6): its newest is said under the line, beside its maps and balances. */
   const [studies, setStudies] = useState<ToolStudy[]>([]);
+  /* INSIDE A PROJECT (docs/PROJECTS.md, P2): its own first, everything on its
+     lines or every line one tap away, and New made on it */
+  const inP = useInProject();
+  const [scope, setScope] = useState<ProjectScope>('project');
+  const mayP = useAccess(inP.id ?? '');
+  const mayAdd = !inP.id || mayP.edit;
 
   const load = useCallback(async () => {
     const [all, ws, ss] = await Promise.all([listAllStandards(), listWorkspaces(), listAllStudies()]);
@@ -119,13 +128,13 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
   const inTool = useMemo(() => (tool === 'balance' ? inCapacityTool : tool === 'work' ? (s: Standard) => withBalance.has(s.id) : inMapTool), [tool, withBalance]);
   const groups = useMemo(() => {
     const by = new Map<string, Standard[]>();
-    for (const s of (list ?? []).filter(inTool)) {
+    for (const s of inScope((list ?? []).filter(inTool), scope, inP.id, inP.lineIds)) {
       const k = s.workspaceId ? `ws:${s.workspaceId}` : `job:${s.projectId}`;
-      if (put.has(k)) continue;
+      if (put.has(k) && !(inP.id && s.projectId === inP.id)) continue;
       by.set(k, [...(by.get(k) ?? []), s]);
     }
     return [...by.entries()];
-  }, [list, put, inTool]);
+  }, [list, put, inTool, scope, inP.id, inP.lineIds]);
   const groupName = (k: string) => (k.startsWith('ws:') ? lineName(k.slice(3)) : `Project: ${jobName(k.slice(4)) ?? 'a project'}`);
   const shown = groups.filter(([k]) => lineF === 'all' || k === lineF);
 
@@ -138,7 +147,7 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
     if (making || !shownCount) return;
     setMaking(true);
     try {
-      const name = lineF === 'all' ? w.title : groupName(lineF);
+      const name = lineF !== 'all' ? groupName(lineF) : inP.project && scope === 'project' ? `${w.title} — ${inP.project.name}` : w.title;
       if (tool === 'work') {
         /* every balance shown, each person's work against takt and what the bottleneck costs (lib/studiesPdf) */
         const [{ saveStudiesPdf }, { listObservations }] = await Promise.all([import('../lib/studiesPdf'), import('../db')]);
@@ -173,9 +182,16 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
           <button type="button" className="btn" disabled={making || !shownCount} onClick={() => void paper()}
             aria-label={tool === 'balance' ? 'PDF (all shown) — Line capacity for every product shown' : tool === 'work' ? 'PDF (all shown) — the line balance for every product shown' : 'PDF (all shown) — a line standard card for every product shown'}>
             {making ? 'Making…' : 'PDF (all shown)'}</button>
-          <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>{w.add}</button>
+          {mayAdd && <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>{w.add}</button>}
         </div>
       </header>
+      {inP.id && <ProjectScopeChips name={inP.project?.name} lines={inP.lineIds.length} scope={scope} onScope={setScope} />}
+      {inP.id && scope !== 'all' && list && list.length > 0 && groups.length === 0 && (
+        <div className="qsl-empty">
+          <p><b>None {scope === 'project' ? 'on' : 'on the lines of'} {inP.project?.name ?? 'this project'} yet.</b> Pick a product — one per product, on the line.</p>
+          {mayAdd && <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>{w.add}</button>}
+        </div>
+      )}
       {/* on one line (from its own page): its name, and the way back to every line */}
       {lineF !== 'all' && !groups.some(([k]) => k === lineF) && list && list.length > 0 && (
         <div className="qsl-empty">
@@ -228,7 +244,8 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
           </ul>
         </section>
       ))}
-      <NewOne open={adding} tool={tool} lines={factory} list={list ?? []} onClose={() => setAdding(false)} onLine={lineF.startsWith('ws:') ? lineF.slice(3) : undefined} />
+      <NewOne open={adding} tool={tool} lines={factory} list={list ?? []} onClose={() => setAdding(false)} onLine={lineF.startsWith('ws:') ? lineF.slice(3) : undefined}
+        project={inP.project && mayAdd ? { id: inP.project.id, name: inP.project.name, lineIds: inP.lineIds } : undefined} />
     </div>
   );
 }
@@ -297,14 +314,21 @@ function ToolRow({ s, tool, job, all, studies }: { s: Standard; tool: LineTool; 
 
 /** A NEW ONE — which line (or a new line), which product, and the job it is
  *  for, if any. It opens at the tool it was made for. */
-function NewOne({ open, tool, lines, list, onClose, onLine }: { open: boolean; tool: LineTool; lines: Workspace[]; list: Standard[]; onClose: () => void; onLine?: string }) {
+function NewOne({ open, tool, lines: factoryLines, list, onClose, onLine, project }: { open: boolean; tool: LineTool; lines: Workspace[]; list: Standard[]; onClose: () => void; onLine?: string;
+  /** Made inside a project: it is the project's — no "For a project?" asked — on its line when it has one (docs/PROJECTS.md, P2). */
+  project?: { id: string; name: string; lineIds: string[] } }) {
   const { projects } = useProjects();
   const [line, setLine] = useState('');
   const [newLine, setNewLine] = useState('');
   const [product, setProduct] = useState('');
-  const [job, setJob] = useState('');
+  const [job, setJob] = useState(project?.id ?? '');
   const [busy, setBusy] = useState(false);
-  useEffect(() => { if (open) setLine(l => (lines.some(x => x.id === l) ? l : onLine && lines.some(x => x.id === onLine) ? onLine : lines[0]?.id ?? NEW_LINE)); }, [open, lines, onLine]);
+  /* inside a project its lines are offered first, and its own line is where it starts */
+  const pLines = project?.lineIds;
+  const lines = useMemo(() => (pLines?.length ? [...factoryLines.filter(l => pLines.includes(l.id)), ...factoryLines.filter(l => !pLines.includes(l.id))] : factoryLines), [factoryLines, pLines]);
+  const first = startLine(pLines ?? [], onLine);
+  useEffect(() => { if (project) setJob(project.id); }, [project]);
+  useEffect(() => { if (open) setLine(l => (lines.some(x => x.id === l) ? l : first && lines.some(x => x.id === first) ? first : lines[0]?.id ?? NEW_LINE)); }, [open, lines, first]);
   /* THE LINE'S PRODUCTS (D2) — what its programs run and its other products,
      offered; one already on the line is the same record, never a second */
   const rec = useLineRecords();
@@ -364,12 +388,16 @@ function NewOne({ open, tool, lines, list, onClose, onLine }: { open: boolean; t
           <datalist id="lt-products">{products.map(x => <option key={x} value={x} />)}</datalist>
           {already && <span className="sub">{already.product} is already on this line — {tool === 'balance' ? (already.capacity ? 'its capacity opens' : 'its capacity starts on it') : tool === 'work' ? 'its line balance opens' : 'its map opens'}.</span>}
         </label>
-        <label className="field"><span className="field-label">For a project?</span>
-          <select value={job} onChange={e => setJob(e.target.value)} aria-label="Attach to a project">
-            <option value="">No — a tool on the line</option>
-            {jobs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-        </label>
+        {project
+          ? <p className="sub ie-for" data-for-project={project.id}>For <b>{project.name}</b> — it is the project’s, with everything else in it.</p>
+          : (
+            <label className="field"><span className="field-label">For a project?</span>
+              <select value={job} onChange={e => setJob(e.target.value)} aria-label="Attach to a project">
+                <option value="">No — a tool on the line</option>
+                {jobs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </label>
+          )}
         <button type="submit" className="btn btn-primary" disabled={!ready}>{tool === 'balance' ? 'Make it and balance the line' : tool === 'work' ? 'Make it and time the people' : 'Make it and draw the map'}</button>
       </form>
     </Sheet>
