@@ -1,20 +1,22 @@
-/* THE PHONE'S OWN HEARING — Line Talk's words, written down by the phone as
- * they are said (docs/LINE-TALK.md, How it hears).
+/* THE PHONE'S OWN HEARING — Line Talk's words, written into the message box
+ * by the phone as they are said (docs/LINE-TALK.md, How it hears).
  *
  * Rowland, 20 October: "Use the phone's own speech recognition instead of
  * Gemini." The browser's speech recognition (the Web Speech API — Chrome and
  * Edge on Android and at a desk, Safari on an iPhone) listens to the
  * microphone while the person talks and writes the words as it goes: no key,
- * no Faultline server, nothing to pay. What it cannot do, and the talk says
- * so: write down a recording after it was made (a piece said with no signal
- * keeps its recording, not its words — they are typed over it), or be told
- * the line's machine names (a name misheard is corrected, and Line Talk is
- * told the words came by speech recognition).
+ * no Faultline server, nothing to pay. And 21 October: "I see my words come
+ * up on the interface. I simply press send" — so the words go into the box,
+ * as a chat's dictation does, to be read, put right and sent. Where the
+ * browser will not listen, the keyboard's own microphone key does the same
+ * (KEYBOARD_MIC). It cannot be told the line's machine names: a name misheard
+ * is put right in the box, and Line Talk is told the words came by speech
+ * recognition.
  *
  * One session's words are read from its results the one way (wordsOfResults);
  * the Ear keeps them across the sessions a phone ends by itself — Chrome on
  * Android ends one after each sentence, Safari after a minute or so — and
- * hands them over a piece at a time (cut, stop). */
+ * hands them over when it is stopped (stop). */
 
 /** What the phone has heard: the words it is sure of, and the ones still forming. */
 export interface Heard { final: string; interim: string }
@@ -60,7 +62,10 @@ export function finalCount(results: ArrayLike<HeardResult>): number {
   return n;
 }
 
-/** Why a piece has no words, in words — each keeping the recording and saying how to put the words in. */
+/** Why a piece has no words, in words — each keeping the recording and saying
+ *  how to put the words in. Said on pieces recorded before 21 October, when a
+ *  talk was recorded as well as written down; a talk into the box keeps no
+ *  piece without words. */
 export function notHeardWhy(trouble: Trouble | null): string {
   switch (trouble) {
     case 'network': return 'No signal while it was said, so the phone could not write it down. The recording is kept — play it, and type what was said with Correct.';
@@ -242,48 +247,19 @@ export class Ear {
   }
 }
 
-/** HOW LOUD A RECORDING IS — to tell one that heard the person from one the
- *  phone silenced (some phones give the microphone to the hearing and record
- *  nothing). The loudest sample in it, 0 to 1, read from the recording itself
- *  once it is made — or nothing when it cannot be read, and then nothing is
- *  judged. Asked only of a piece the phone wrote words for: someone spoke, so
- *  a recording that heard them is never near silent. */
-export async function recordingPeak(blob: Blob): Promise<number | null> {
-  const OAC = (window as unknown as { OfflineAudioContext?: typeof OfflineAudioContext; webkitOfflineAudioContext?: typeof OfflineAudioContext }).OfflineAudioContext
-    ?? (window as unknown as { webkitOfflineAudioContext?: typeof OfflineAudioContext }).webkitOfflineAudioContext;
-  if (!OAC) return null;
-  try {
-    const buf = await new OAC(1, 1, 44100).decodeAudioData(await blob.arrayBuffer());
-    let peak = 0;
-    for (let c = 0; c < buf.numberOfChannels; c++) {
-      const d = buf.getChannelData(c);
-      for (let i = 0; i < d.length; i++) { const v = Math.abs(d[i]); if (v > peak) peak = v; }
-    }
-    return peak;
-  } catch {
-    return null;
-  }
-}
+/** The way that always works: the phone keyboard's own microphone key,
+ *  which writes the words into whatever box has the cursor — said wherever
+ *  the browser's own hearing will not do. */
+export const KEYBOARD_MIC = 'Tap the box, then the microphone on your keyboard, and talk — your words come up in the box the same way. Then press Send.';
 
-/** A recording with words heard in it but this quiet heard nobody: about −60 dB. */
-export const SILENT_PEAK = 0.001;
-
-/** What gets in the way, said while the person talks — `recording` when the
- *  phone is recording beside the hearing, so what is still kept is said too. */
-export function troubleSaid(t: Trouble, recording: boolean): string {
-  const still = recording ? ' The recording carries on.' : '';
+/** What gets in the way of talking into the box, said as it happens — each
+ *  with the way round it. What was said before it is in the box. */
+export function troubleSaid(t: Trouble): string {
   switch (t) {
-    case 'network': return recording
-      ? 'No signal — the phone cannot write down what is said until it comes back. The recording carries on; type over any piece it missed.'
-      : 'No signal — the phone cannot write down what is said until it comes back, and it is not recording: say it again then, or type it.';
-    case 'not-allowed': return `The phone did not allow its speech recognition for Faultline — allow the microphone and speech recognition for this browser in the phone’s settings (on an iPhone, Siri & Dictation must be on).${still}`;
-    case 'language': return `The phone cannot write down British English.${still}`;
-    case 'mic-busy': return 'This phone cannot record and write down at once — Line Talk keeps the words, and does not record on this phone from now.';
-    case 'unsupported': return recording
-      ? 'This browser does not write down speech — what you say is recorded, not written. Type what matters, or talk in Chrome or Safari.'
-      : 'This browser neither writes down speech nor records here — type instead, or talk in Chrome or Safari.';
+    case 'network': return 'No signal — this phone needs it to write down speech. What you said is in the box; type the rest, or tap the microphone again when the signal is back.';
+    case 'not-allowed': return `This browser was not allowed to listen. ${KEYBOARD_MIC} (To use the microphone here, allow the microphone and speech recognition for this browser in the phone’s settings — on an iPhone, Siri & Dictation must be on.)`;
+    case 'language': return `This phone cannot write down English here. ${KEYBOARD_MIC}`;
+    case 'mic-busy': return `Another app has the microphone. Close it and tap the microphone again — or: ${KEYBOARD_MIC}`;
+    case 'unsupported': return `This browser does not write down speech itself. ${KEYBOARD_MIC}`;
   }
 }
-
-/** Words written down but the recording silent — the phone gave the microphone to the hearing. */
-export const SILENCED_SAID = 'This phone gives its microphone to the hearing, so its recordings come out silent — Line Talk keeps the words, and does not record on this phone from now.';

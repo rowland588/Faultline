@@ -70,7 +70,7 @@ export const TOOLS: { key: string; label: string; to: string; study?: StudyTool;
   { key: 'sampling', label: 'Work sampling', to: '/sampling', study: 'sampling', what: 'what people are doing, at random moments' },
   { key: 'losses', label: 'Loss count', to: '/losses', study: 'losses', what: 'a shift’s losses, in minutes and pounds' },
   /* Line Talk — the AI tool (docs/LINE-TALK.md): talk on the line, every word heard and kept */
-  { key: 'talk', label: 'Line Talk', to: '/talk', study: 'talk', what: 'talk on the line — every word heard and kept with its recording' },
+  { key: 'talk', label: 'Line Talk', to: '/talk', study: 'talk', what: 'talk or type on the line, as in a chat — it answers and writes the reports' },
 ];
 
 export type LineTool = typeof TOOLS[number];

@@ -2,7 +2,8 @@
 
 The design, agreed with Rowland on 20 October; his go the same day ("keep
 for good, go"). **Slices 1 and 2 are built** (record and keep; ask it —
-below, *Built*); slices 3–4 are not.
+below, *Built*), and since 21 October its box is a chat's: talk into it, the
+words come up, Send (below, *The box, like a chat*); slices 3–4 are not.
 
 Rowland, 20 October: *"Consultant in a line speaking into his phone, the AI
 listening to everything, allows pause, continue speaking, it remembers
@@ -32,12 +33,13 @@ chat and continued from the chat**; and a name chosen for it — *Line Talk*.
 
 **A conversation, like a chat, about one line.**
 
-1. **Start it** on a line (or in a project). The phone keeps its screen awake.
-2. **Talk.** Pause and Continue as often as wanted. Take a photo at any
-   moment — it sits in the conversation where it was taken. Type when talking
-   will not do.
-3. **It hears it.** Each piece is written into the conversation as it is
-   heard, and can be corrected; what was said is kept as said.
+1. **Start it** on a line (or in a project).
+2. **Talk into the box.** Tap the microphone and talk: the words come up in
+   the box as they are said; put anything right; Send (21 October — below,
+   *The box, like a chat*). Take a photo at any moment — it sits in the
+   conversation where it was taken. Type when talking will not do.
+3. **What is sent is kept as sent**, and can be corrected after, what was
+   sent kept beside the correction.
 4. **It remembers everything.** The whole talk is one conversation: each new
    piece is understood with everything before it ("same as the last one", "the
    machine after the sealer").
@@ -47,8 +49,9 @@ chat and continued from the chat**; and a name chosen for it — *Line Talk*.
    lesson." It is free: the request decides what it makes, not a menu. A few
    chips at the end of a talk are only shortcuts to typing.
 6. **Come back to it.** Every Line Talk is listed on its line, newest first;
-   opened, it is the conversation as it was left — the recordings, the photos,
-   the words, the documents — and carries on from there, today or next week.
+   opened, it is the conversation as it was left — the words, the photos,
+   the documents (and the recordings of a talk from before 21 October) — and
+   carries on from there, today or next week.
 
 ## What it knows (the context it is given)
 
@@ -260,61 +263,80 @@ but Claude, and the hearing costs nothing and needs no key.
 - **What does it:** the browser's speech recognition (the Web Speech API —
   Chrome and Edge on Android and at a desk, Safari on an iPhone), in British
   English, wrapped once in `lib/hearing` (`Ear`). It listens while the
-  person talks and writes the words as they come: the words it is sure of
-  in ink, the ones still forming lighter, under Pause (`.tk-live`). A
-  stretch it is sure of is kept as a sentence — a capital and a stop, no
-  word changed (`sentence`). On Chrome on Android it writes one sentence a
-  session (a long session there repeats words); every phone ends sessions
-  by itself, and the Ear opens the next, a moment later each time one fails
-  at once. Where the words go: Chrome sends the sound to Google's speech
-  service, Safari to Apple's or does it on the phone — the phone's own
-  service either way, never Faultline's.
-- **A piece:** the words written while it was said, and its recording
-  beside them; cut about a minute in **at a pause in what is said** (never
-  mid-sentence, unless it runs on fifteen seconds more); words still forming
-  at a cut finish in the next piece. A tap, a breath and nothing written is
-  not a piece.
-- **What it cannot do, said in words** (`notHeardWhy`, `troubleSaid`):
-  - *no signal* — said as it happens; the recording carries on, and the
-    piece is kept *Not written down*, with why;
-  - *a browser with no speech recognition* (Firefox, some in-app browsers) —
-    recorded, not written;
-  - *refused* — the phone's settings named;
-  - *write a recording down afterwards* — it only hears live, so a piece
-    not written down is never written later: the person plays it and types
-    the words over it with **Correct** (they stand as the piece's words; the
-    talk stops counting it as not written down). *Hear it again* went with
-    Gemini.
-  - *the line's machine names* — it cannot be told them, so a name may come
-    out misheard; the person corrects it, and Line Talk's assistant is told
-    the words came by speech recognition and has the line's machines in its
-    records.
-- **A phone that will not record and hear at once** (it refuses the
-  microphone to the hearing while recording, or records silence while it
-  hears): the words win — the recording stops, the piece is kept with its
-  words, the talk says so, and the phone remembers it (`fl-talk-hear-only`):
-  its later talks write the words and record nothing. A silent recording is
-  told from the recording itself once it is made (`recordingPeak`), asked
-  only of a piece with words in it — someone spoke, so a recording that
-  heard them is never near silent.
-- **What went:** Line Talk's form in the voice service (`api/voice`, form
-  `talk`) and what was said before each piece (`earlierOf`, `talkText`),
-  and the state *waiting to be heard* (a piece recorded on an older copy of
-  the app reads *Not written down*). The voice note in the forms' boxes
-  (`ui/Voice`, `api/voice` — fix, found, test, install, problem, whys) is
-  unchanged: Gemini hears it and fills the boxes.
-- **Proved:** `lib/__tests__/hearing.test.ts` (a recogniser that behaves as
-  a phone's: words forming then final, sessions ended by itself, no signal,
-  refused, the microphone taken, a language not offered, stopped twice) and
-  `scripts/acceptance/line-talk.mjs` (live words, a session ended by the
-  phone, a cut at a pause a minute in, no signal and the words typed over,
-  the microphone taken, a phone that will not do both, a silent recording, a
-  browser without it, a reload; nothing sent to a voice service).
-- **On a real phone** (not provable here): how well it hears in the noise of
-  Rowland's line; whether an Android phone and an iPhone record and hear at
-  once, or fall back to words only; what a locked screen does. Out of sight
-  (the screen locked, another app in front) a browser stops its hearing:
-  the Ear waits that out — a refusal then is never taken as one — listens
-  again the moment Faultline is back, and the talk says that what was said
-  meanwhile was not written down (the recording has it, where the phone
-  records).
+  person talks and writes the words as they come — into the box since 21
+  October (below). A stretch it is sure of is kept as a sentence — a capital
+  and a stop, no word changed (`sentence`). On Chrome on Android it writes
+  one sentence a session (a long session there repeats words); every phone
+  ends sessions by itself, and the Ear opens the next, a moment later each
+  time one fails at once. Where the words go: Chrome sends the sound to
+  Google's speech service, Safari to Apple's or does it on the phone — the
+  phone's own service either way, never Faultline's.
+- **What it cannot do:** be told the line's machine names — a name may come
+  out misheard; the person puts it right in the box, and Line Talk's
+  assistant is told the words came by speech recognition and has the line's
+  machines in its records. Write a recording down afterwards — it only hears
+  live.
+- **What went (20 October):** Line Talk's form in the voice service
+  (`api/voice`, form `talk`) and what was said before each piece (`earlierOf`,
+  `talkText`). The voice note in the forms' boxes (`ui/Voice`, `api/voice` —
+  fix, found, test, install, problem, whys) is unchanged: Gemini hears it and
+  fills the boxes.
+
+## The box, like a chat — 21 October
+
+Rowland, 21 October, of the recorder built the day before (Talk · Pause ·
+Continue, each piece recorded and written down beneath it, a piece the phone
+could not write kept with its recording to be typed over): *"Voice record
+records the voice, but it's not what I expected. I expected how I am doing it
+right now with you. I see my words come up on the interface. I simply press
+send … I said I wanted a version of ChatGPT or a version of Claude, as I am
+doing now."* So the box is a chat's, and the recorder went:
+
+- **The box** (`screens/TalkScreen`, `.tk-type`): *Photo* · the words · the
+  **microphone** · *Send*, on the phone's own bar, at the foot of the screen
+  however short the talk. Tap the microphone and talk: the phone writes the
+  words into the box as they are said (the ones still forming too, replaced
+  as it is sure of them); tap it again to stop. Typing into the box while it
+  listens stops the listening and keeps the box as typed; the microphone
+  again carries on after what is there. The screen is kept awake while it
+  listens.
+- **Send** stops the listening, waits for the last words, and puts the box
+  into the talk — **as said** (`kind: 'said'`, its words in `heard`) where
+  the phone wrote any of it, so Line Talk is told it came by speech
+  recognition; typed otherwise — then Line Talk answers. With nothing in the
+  box it answers what was added since its last answer (a photo). One label,
+  *Send*, always.
+- **Kept on the phone until it is sent:** what is in the box, and whether
+  the phone wrote any of it (`fl-talk-draft-<talk>`), so a reload or the
+  phone closing the page loses nothing.
+- **Where the browser will not listen** — none in the browser (Firefox, an
+  iPhone's home-screen app, some in-app browsers), not allowed, English not
+  offered, another app holding the microphone — the way that always works is
+  said (`KEYBOARD_MIC`): tap the box, then the **microphone on the
+  keyboard**, and talk; the words come up in the box the same way. With no
+  recogniser at all the microphone opens the box for it (the keyboard up).
+  *No signal* says so, and the words so far stay in the box. Out of sight
+  (the screen locked, another app in front) the listening stops; what was
+  said is in the box, and it says so. Each is said once, in place of the
+  line under the box (`troubleSaid`).
+- **Nothing is recorded.** No pieces, no minute cut, no *Not written down*
+  for a new talk; the `fl-talk-hear-only` flag, `recordingPeak` and
+  `PIECE_SECONDS` went with the recorder. **A talk from before 21 October
+  keeps everything:** its recordings play where they were said (kept for
+  good, as agreed), a piece the phone could not write says why
+  (`notHeardWhy`) and is typed over with *Correct*, and it is carried on in
+  the new box.
+- **The newest turn is kept in sight** above the box — on opening, on a turn
+  added, on an answer come — as a chat keeps it.
+- **Proved:** `lib/__tests__/hearing.test.ts` (the Ear against a recogniser
+  that behaves as a phone's; every trouble said with the way round it) and
+  `scripts/acceptance/line-talk.mjs` (the words in the box as they are said,
+  Send while listening, put right then sent, a session the phone ended,
+  typed over while listening, no signal, out of sight, the microphone taken,
+  not allowed, a browser with none — the keyboard's microphone — a reload
+  mid-talk, nothing recorded, the phone); `line-talk-assistant.mjs` talks
+  into the box before asking.
+- **On a real phone** (not provable here): how well it hears in the noise
+  of Rowland's line; whether an iPhone's home-screen app listens at all (if
+  not, the keyboard's microphone is said, and works the same way); whether
+  Chrome on Android beeps at each sentence.
