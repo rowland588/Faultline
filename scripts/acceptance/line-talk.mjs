@@ -16,8 +16,10 @@
  *   2  the microphone tapped: listening in British English; the words come up
  *      in the box as they are said and nothing goes into the talk; Send —
  *      the words into the talk as said, the box empty, Line Talk's answer
- *   3  talked, stopped, put right in the box, then sent — the words as sent;
- *      a session the phone ended by itself, both sentences in the box
+ *   3  nothing heard for a few seconds — the keyboard's own microphone said,
+ *      still listening, gone once words come; talked, stopped, put right in
+ *      the box, then sent — the words as sent; a session the phone ended by
+ *      itself, both sentences in the box
  *   4  typed into while listening: listening stops, the box as typed; the
  *      microphone again — the words after what is there; a photo, a line
  *      typed and sent as typed
@@ -191,9 +193,13 @@ ok(await waitFor(async () => await answers() === 1), '2 and Line Talk’s answer
 ok(asked[0]?.turns?.[0]?.kind === 'said' && asked[0].turns[0].text === W2, '2 asked with what was said, marked as said', JSON.stringify(asked[0]?.turns));
 ok(/^1 piece said · 1 answer\.$/.test(await summary()), '2 the talk in a line', await summary());
 
-/* 3 — talked, stopped, put right in the box, sent; a session the phone ended by itself */
+/* 3 — nothing heard for a few seconds (a phone whose browser will not hear says nothing at all): the way round it said, still listening; then talked, stopped, put right in the box, sent; a session the phone ended by itself */
 await tapMic();
+await page.waitForTimeout(6600);
+ok(await said() === `Nothing heard yet — keep talking. If your words do not come up, this phone's browser is not listening: ${KEYBOARD_MIC}`, '3 nothing heard for a few seconds: the keyboard’s own microphone said', await said());
+ok(await listening(), '3 and still listening');
 await say('the checkweigher is kicking out the odd bag');
+ok(await waitFor(async () => await said() === ''), '3 words heard: the message gone', await said());
 const recs3 = await page.evaluate(() => window.__recs);
 await page.evaluate(() => window.__endSession());
 ok(await waitFor(async () => await page.evaluate(n => window.__recs > n && window.__ear?.running, recs3), 8000), '3 the phone ended its session — another opened by itself');

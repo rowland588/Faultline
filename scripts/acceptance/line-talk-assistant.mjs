@@ -32,6 +32,9 @@
  *  10  reloaded: the whole conversation as it was left; the line's page
  *      saying its answers and document; the phone — the shortcuts in one
  *      row, nothing off the side
+ *  11  the answer as it is written (21 October — "like I do with you here"):
+ *      asked for as it is written, its words growing in its turn, then the
+ *      finished answer kept in their place — one answer, on the talk
  *   and no console error anywhere. */
 import pkg from 'playwright';
 import { execFileSync } from 'node:child_process';
@@ -67,6 +70,26 @@ await ctx.addInitScript(() => {
   window.SpeechRecognition = FakeRec;
   window.webkitSpeechRecognition = FakeRec;
   window.__say = text => { const r = window.__ear; if (!r?.running) return false; r.results.push({ 0: { transcript: text }, length: 1, isFinal: true }); r.onresult?.({ results: [...r.results] }); return true; };
+});
+
+/* THE ANSWER AS IT IS WRITTEN (11), played by the script: with __slowStream set, the gateway's events come a few at a time */
+await ctx.addInitScript(() => {
+  const real = window.fetch.bind(window);
+  window.fetch = async (input, init) => {
+    const url = typeof input === 'string' ? input : input?.url ?? '';
+    const events = window.__slowStream;
+    if (!url.includes('/functions/v1/assist') || !events) return real(input, init);
+    window.__slowStream = null;
+    try { window.__streamAsked = JSON.parse(init?.body ?? '{}'); } catch { window.__streamAsked = null; }
+    const enc = new TextEncoder();
+    const body = new ReadableStream({
+      async start(c) {
+        for (const e of events) { await new Promise(r => setTimeout(r, 700)); c.enqueue(enc.encode(`data: ${JSON.stringify(e)}\n\n`)); }
+        c.close();
+      },
+    });
+    return new Response(body, { status: 200, headers: { 'content-type': 'text/event-stream', 'access-control-allow-origin': '*' } });
+  };
 });
 
 /* LINE TALK'S GATEWAY, answered by the script: each request kept; what it answers set by the step */
@@ -134,6 +157,7 @@ ok(/PRODUCTION LINE: Line 7/.test(a2?.context ?? '') && /Machines in flow order:
 const todayLong = await page.evaluate(() => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
 ok(a2?.today === todayLong, '2 and today', `${a2?.today} | ${todayLong}`);
 ok(Array.isArray(a2?.images) && a2.images.length === 0, '2 no pictures — none taken');
+ok(a2?.stream === true, '2 asked for the answer as it is written — and read whole when the gateway answers whole');
 ok(await replies().last().locator('.tk-ans li').count() === 2 && (await replies().last().locator('.tk-ans b').innerText()) === 'tension', '2 the answer drawn as it was written — a list, bold kept');
 
 /* 3 — a follow-up, with the answer before it */
@@ -253,6 +277,24 @@ ok(wide <= 1, '10 the phone: nothing off the side', `${wide}px`);
 const tops = await page.locator('.tk-chip').evaluateAll(els => [...new Set(els.map(e => Math.round(e.getBoundingClientRect().top)))]);
 ok(tops.length === 1, '10 the phone: the shortcuts in one row — the conversation keeps the screen', JSON.stringify(tops));
 ok(await page.locator('.tk-send').isVisible() && await page.locator('.tk-bar .tk-photo').isVisible() && await page.locator('.tk-bar .tk-mic').isVisible(), '10 the phone: Photo, the microphone and Send in reach');
+
+/* 11 — the answer as it is written: its words grow in its turn, then the finished answer is kept */
+const n11 = await replies().count();
+await page.evaluate(() => {
+  window.__slowStream = [
+    { partial: '', document: false },
+    { partial: 'Has the film been', document: false },
+    { partial: 'Has the film been wandering since the reel change', document: false },
+    { ok: true, answer: { reply: 'Has the film been wandering since the reel change, or all shift? That tells us where to look first.' }, unsure: [], model: 'test-model' },
+  ];
+});
+await send('Where should I look first on the bagger?');
+ok(await waitFor(async () => /^Has the film been/.test((await page.locator('.tk-turn.is-reply .tk-writing').last().innerText().catch(() => '')).trim()), 6000), '11 the answer’s words in its turn as they are written');
+ok(await page.evaluate(() => window.__streamAsked?.stream === true && window.__streamAsked?.task === 'talk'), '11 asked for as it is written');
+ok(await waitFor(async () => /Has the film been wandering since the reel change$/.test((await page.locator('.tk-turn.is-reply .tk-writing').last().innerText().catch(() => '')).trim()), 6000), '11 growing as more comes');
+ok(await waitFor(async () => /That tells us where to look first\./.test(await lastReply()) && await page.locator('.tk-writing').count() === 0, 8000), '11 the finished answer kept in its place', await lastReply());
+ok(await replies().count() === n11 + 1, '11 one answer — the words as written became it');
+ok(/That tells us where to look first/.test(await page.evaluate(async id => { const db = await import('/src/db.ts'); const s = await db.getStudy(id); return JSON.stringify(s?.facts?.turns ?? []); }, talkId)), '11 and kept on the talk');
 
 ok(errs.length === 0, 'no console error', errs.join(' | '));
 await b.close();

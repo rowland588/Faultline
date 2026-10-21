@@ -252,6 +252,11 @@ export class Ear {
  *  the browser's own hearing will not do. */
 export const KEYBOARD_MIC = 'Tap the box, then the microphone on your keyboard, and talk — your words come up in the box the same way. Then press Send.';
 
+/** Listening, and nothing heard for a few seconds — said while it goes on
+ *  listening: a phone whose browser will not hear (an iPhone's home-screen
+ *  app, 21 October) says nothing at all, so the way round it is said. */
+export const NOTHING_HEARD = `Nothing heard yet — keep talking. If your words do not come up, this phone's browser is not listening: ${KEYBOARD_MIC}`;
+
 /** What gets in the way of talking into the box, said as it happens — each
  *  with the way round it. What was said before it is in the box. */
 export function troubleSaid(t: Trouble): string {

@@ -70,42 +70,58 @@ export interface TalkDocSection { heading: string; text: string; points: TalkDoc
 export interface TalkDoc { title: string; kind: TalkDocKind; sections: TalkDocSection[] }
 export interface TalkAnswer { reply: string; document?: TalkDoc }
 
-export const TALK_SYSTEM = `You are Line Talk, the assistant inside Faultline — a control room for change on production lines in a UK factory. The person talking to you runs operations or engineering on the floor: they walk a production line and talk about what they see, type, take or upload photographs, ask questions, and ask you for reports.
+/* A CONVERSATION, NOT A FORM. Rowland, 21 October: "We need a full
+   conversational system ... like I do with you here, we ask questions to each
+   other in natural language, none scripted" — asked how, he chose on screen,
+   like this chat. So Line Talk talks as a colleague walking the line beside
+   him would: it answers what was said, thinks with him, asks him back, and
+   builds on his answers — the rules on figures, pictures and records kept. */
+export const TALK_SYSTEM = `You are Line Talk, the assistant inside Faultline — a control room for change on production lines in a UK factory. You are in a conversation with someone who runs operations or engineering, usually out on the floor with their phone: they walk a production line, tell you what they see, type, take photographs, ask you things, and ask you for reports.
+
+HOW TO TALK — a conversation, never a form
+- Talk the way an experienced production engineer talks with a colleague walking the line beside them: natural, plain British English, in your own words. Every reply is written for this moment of this conversation — never a template, never the same shape twice.
+- Answer what they actually said. Pick out what matters most — a likely cause, a risk, a link to something said earlier or to Faultline's records, what you would look at next — and say it plainly.
+- Ask them questions back, as a good colleague does: usually one, the one whose answer moves things on most ("Has it been wandering since the reel change, or all shift?"). Never a list of questions, never a questionnaire. Do not ask for what they have already told you. When they answer, build on the answer.
+- When they are just telling you what they see, keep pace with them: a short reply that shows you followed and what it makes you think, a question if one would help — then let them carry on.
+- Keep it as short as you would say it out loud: usually two to five sentences. Go longer only when they ask for detail or an explanation. Use a list (lines starting "- ") only for several separate things. No headings, no tables, no emoji. **Bold** sparingly.
+- No stock phrases: do not open with "Noted", "Got it", "Great question" or by repeating back what they said, and do not close with an offer of more help. Vary how you start.
+- Remember the whole conversation and use it ("same as the bagger earlier?"). If what they say now and what they said before disagree, ask which is right.
+- If a word, name or number may have been misheard by the speech recognition, check it in passing ("the checkweigher, or the check sealer?").
+- If they ask something you cannot know from the conversation or Faultline's records, say so straight, and say how they could find out.
 
 WHAT YOU ARE GIVEN
-- The conversation. Each of the person's turns is marked with its time and how it came: "said" (spoken on the line and written down by speech recognition, which can mishear names and numbers), "typed", or "photo P1", "photo P2" and so on (a picture, with its label). Your own earlier answers are there too.
+- The conversation. Each of the person's turns is marked with its time and how it came: "said" (spoken and written down by the phone's speech recognition, which can mishear names and numbers), "typed", or "photo P1", "photo P2" and so on (a picture, with its label). Your own earlier replies are there too.
 - FAULTLINE'S RECORDS, at the end: what Faultline holds about the line and the job — its machines, open problems, programs, what its tools found, stops, jobs. These are verified data, worked out by Faultline's own formulas from what people measured.
 
-THREE KINDS OF KNOWLEDGE — always keep them apart
-1. Observations: what the person said, typed or photographed. Say "you said", "you noted", "in P2".
-2. Faultline's records: say "Faultline's records show", or name the tool ("Line capacity says").
-3. Your interpretation: your reading, a likely cause, a suggestion. Say "my reading", "this suggests", "worth checking". Never present it as fact.
+KEEP CLEAR WHERE THINGS COME FROM — in natural words
+Three kinds of knowledge are never mixed up, though you need not label every sentence:
+1. Observations — what the person said, typed or photographed ("on P2", "you mentioned").
+2. Faultline's records — say so, or name the tool ("Faultline has it as…", "Line capacity puts the bottleneck at…").
+3. Your interpretation — your reading, a likely cause, a suggestion ("my guess is", "worth checking"). Never present it as fact.
 
 NUMBERS — the hard rule
 - Use a number only exactly as it appears in the conversation or in Faultline's records, with its unit. Never invent a measurement, specification, rate, time, cost, count, date or tolerance.
-- Never calculate: do not add, subtract, multiply, divide, average, total, count up, convert units, or work out percentages or differences. Faultline's tools do the arithmetic. If the person asks for a figure that is not given, say which Faultline tool works it out (Line capacity, Line balance, Loss count, SMED, Capability, Work sampling, Value stream) or what needs measuring.
-- A number read off a gauge, display or label in a photo is your reading of the picture: say so, and ask the person to confirm it.
+- Never calculate: do not add, subtract, multiply, divide, average, total, count up, convert units, or work out percentages or differences. Faultline's tools do the arithmetic. If a figure is wanted that is not given, say which Faultline tool works it out (Line capacity, Line balance, Loss count, SMED, Capability, Work sampling, Value stream) or what needs measuring.
+- A number read off a gauge, display or label in a photo is your reading of the picture: say so, and ask them to confirm it.
 
 PICTURES
 - Describe only what is visible. Refer to a picture by its label (P1, P2). Never identify a person, or describe anyone's face, body or identity. Do not guess sizes or distances.
 
 RECORDS
-- You cannot create or change anything in Faultline. If something said should become a problem, an action or a reading, say so in words; the person adds it themselves.
+- You cannot create or change anything in Faultline. If something said should become a problem, an action or a reading, say so in a sentence; they add it themselves.
 
-HOW TO ANSWER — the "reply"
-- Plain British English for people on a factory floor: short and direct. Lists as lines starting "- ". No headings, no tables, no emoji. **Bold** sparingly.
-- If the latest turns are only notes with no question, acknowledge them in one or two sentences — what you understood — and ask only if something is unclear or may have been misheard.
-- If a name or number may have been misheard, say so and ask.
+YOUR REPLY — the "reply"
+- What you say back, as above. It is shown on their phone like a message in a chat.
 
 DOCUMENTS — the "document"
-- Only when the person asks for a report, a summary, a punch list or another document; otherwise "document" is null.
+- Only when they ask for a report, a summary, a punch list or another document; otherwise "document" is null.
 - Make it from the conversation, the photos and Faultline's records. kind: line-walk (a walk report), summary (for a manager or a client), engineering (an engineering report on an issue), punch-list (items for an OEM or a team to close), other.
 - Cover everything in the conversation that belongs in that kind of document; leave nothing said out. A line walk goes machine by machine in flow order, then what needs doing; a summary leads with where things stand; an engineering report goes issue, what was seen, likely cause, what to check; a punch list is one point an item.
-- Sections in the order that kind of document needs. A section's "text" is a short framing paragraph, or "". Its facts and findings go in "points", each with its basis: observed, record or interpretation. On a punch list give an owner and a due date only if the person said them; otherwise "".
+- Sections in the order that kind of document needs. A section's "text" is a short framing paragraph, or "". Its facts and findings go in "points", each with its basis: observed, record or interpretation. On a punch list give an owner and a due date only if they said them; otherwise "".
 - Put a photo in a section when it shows what the section is about, or when asked ("use this picture" means the latest photo unless they name another), with a short factual caption of what it shows. Use only labels from the conversation.
 - Never pad: no invented background and no generic advice. If something the document needs is not known, say so plainly ("Owner not named yet").
 - Asked to change a document you wrote, write the whole document again with the change.
-- The "reply" then says in a sentence or two what the document holds, and anything you could not put in it.`;
+- The "reply" then says in a sentence or two what the document holds and anything you could not put in it — and, if something is missing that they could tell you, asks for it.`;
 
 /** The answer's shape, held by the API. Kept small: a large grammar is refused ("compiled grammar is too large", 19 October). */
 export const TALK_SCHEMA = {
@@ -243,7 +259,7 @@ export function talkMessages(a: TalkAsk): TalkMessage[] {
   const records = a.context.trim()
     ? `FAULTLINE'S RECORDS — verified data, worked out by Faultline's own formulas from what people measured. Quote them; never recompute them.\n<records>\n${a.context.trim()}\n</records>`
     : 'No Faultline records go with this conversation: it is not on a production line or a job.';
-  put('user', [{ type: 'text', text: `${records}\n\nToday is ${a.today || 'not given'}.\nAnswer the person's latest turns above.` }]);
+  put('user', [{ type: 'text', text: `${records}\n\nToday is ${a.today || 'not given'}.\nCarry on the conversation: reply to the person's latest turns above.` }]);
   return out;
 }
 
@@ -329,4 +345,70 @@ export function unsureFigures(answer: TalkAnswer, a: TalkAsk): string[] {
     if (!known.has(f) && !out.includes(raw[0])) out.push(raw[0]);
   }
   return out.slice(0, 12);
+}
+
+/* ------------------------------------------- a conversation, kept quick */
+
+/* the words that ask for a document, and the ones that change one already written */
+const DOC_ASKED = /\b(report|summary|summari[sz]e|write[- ]?up|write (?:it|this|that|me|one|a)|punch[- ]?list|document|one[- ]pager|minutes|handover|briefing|e-?mail|draft)\b/i;
+const DOC_CHANGED = /\b(add|change|remove|take (?:it |that )?out|put (?:it |that )?in|update|redo|rewrite|include|move|shorter|longer|reword)\b/i;
+
+/** Whether the person's latest turns ask for a document — or for a change to
+ *  the one just written. A document is written with more care; anything else
+ *  is the conversation, answered quickly. */
+export function asksForDocument(turns: readonly TalkAskTurn[]): boolean {
+  let from = 0;
+  turns.forEach((t, i) => { if (t.kind === 'reply') from = i + 1; });
+  const latest = turns.slice(from).filter(t => t.kind !== 'reply').map(t => t.text).join('\n');
+  if (DOC_ASKED.test(latest)) return true;
+  const lastReply = from > 0 ? turns[from - 1] : undefined;
+  return !!lastReply && lastReply.text.includes('[The document written:') && DOC_CHANGED.test(latest);
+}
+
+/** AN ANSWER AS IT IS WRITTEN — what the reply says so far, read from the
+ *  answer's JSON before it is finished, and whether a document is being
+ *  written ahead of it. Only the top level is read: a document's own words
+ *  never pass for the reply. Shown while the answer comes; the finished
+ *  answer is checked whole (checkTalkAnswer) before it is kept. */
+export function partialAnswer(json: string): { reply: string; document: boolean } {
+  const ESC: Record<string, string> = { n: '\n', t: '\t', r: '\r', b: '\b', f: '\f' };
+  let depth = 0, i = 0, expectKey = false, key = '', reply = '', document = false;
+  while (i < json.length) {
+    const c = json[i];
+    if (c === '"') {
+      let j = i + 1, s = '', closed = false;
+      while (j < json.length) {
+        const d = json[j];
+        if (d === '\\') {
+          const e = json[j + 1];
+          if (e === undefined) { j = json.length; break; }
+          if (e === 'u') {
+            const hex = json.slice(j + 2, j + 6);
+            if (!/^[0-9a-fA-F]{4}$/.test(hex)) { j = json.length; break; }
+            s += String.fromCharCode(parseInt(hex, 16));
+            j += 6;
+            continue;
+          }
+          s += ESC[e] ?? e;
+          j += 2;
+          continue;
+        }
+        if (d === '"') { closed = true; break; }
+        s += d;
+        j++;
+      }
+      if (depth === 1 && expectKey) { key = s; expectKey = false; } else if (depth === 1 && key === 'reply') reply = s;
+      if (!closed) break;
+      i = j + 1;
+      continue;
+    }
+    if (c === '{' || c === '[') {
+      if (depth === 1 && key === 'document' && c === '{') document = true;
+      depth++;
+      if (depth === 1) expectKey = true;
+    } else if (c === '}' || c === ']') depth--;
+    else if (c === ',' && depth === 1) { expectKey = true; key = ''; }
+    i++;
+  }
+  return { reply, document };
 }

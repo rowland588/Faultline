@@ -3,7 +3,9 @@
 The design, agreed with Rowland on 20 October; his go the same day ("keep
 for good, go"). **Slices 1 and 2 are built** (record and keep; ask it —
 below, *Built*), and since 21 October its box is a chat's: talk into it, the
-words come up, Send (below, *The box, like a chat*); slices 3–4 are not.
+words come up, Send (below, *The box, like a chat*), and it talks back as a
+colleague does, its answer appearing as it is written (below, *Talking with
+it*); slices 3–4 are not.
 
 Rowland, 20 October: *"Consultant in a line speaking into his phone, the AI
 listening to everything, allows pause, continue speaking, it remembers
@@ -340,3 +342,69 @@ doing now."* So the box is a chat's, and the recorder went:
   of Rowland's line; whether an iPhone's home-screen app listens at all (if
   not, the keyboard's microphone is said, and works the same way); whether
   Chrome on Android beeps at each sentence.
+
+## Talking with it — 21 October
+
+Rowland, the same day, once the box was a chat's: *"We need a full
+conversational system ... like I do with you here, we ask questions to each
+other in natural language, none scripted."* Asked how the back-and-forth
+should work — on screen like this chat, out loud as well, or hands-free like a
+phone call — he chose **on screen, like this chat**. Before then Line Talk had
+never answered him: the one talk in the cloud was the morning's recorder,
+nothing written down, nothing asked (`assist_usage` empty).
+
+- **How it talks** (`lib/talkAssist` TALK_SYSTEM, *HOW TO TALK — a
+  conversation, never a form*): as an experienced production engineer walking
+  the line beside him — its own words, every reply written for that moment,
+  never a template. It answers what was said and picks out what matters
+  (a likely cause, a risk, a link to earlier or to Faultline's records, what
+  it would look at next); it **asks him back** — usually one question, the
+  one that moves things on — and builds on his answer; it keeps pace when he
+  is only describing; short, as said out loud (two to five sentences); no
+  stock openers ("Noted", "Got it", repeating him back) and no closing offer
+  of help; it checks a word the speech recognition may have misheard. The
+  rules stay word for word in force — what he said, Faultline's records and
+  its own reading kept apart (now in natural words, "my guess is", "Faultline
+  has it as…"), no figure invented or worked out, no person identified,
+  nothing written to Faultline, documents as before. The old instruction to
+  "acknowledge … in one or two sentences … ask only if something is unclear"
+  went: it made a stenographer, not a colleague.
+- **Quick** (`asksForDocument`): the conversation is answered at the model's
+  `low` effort (`ASSIST_TALK_CHAT_EFFORT`); a document asked for, or a change
+  to the one just written, at `medium` (`ASSIST_TALK_EFFORT`), as before.
+- **As it is written** (`lib/talkAsk` readTalkStream, the gateway's
+  streamTalk; `lib/talkAssist` partialAnswer): the app asks with
+  `stream: true` and the gateway sends the reply so far as server-sent events,
+  then the finished answer exactly as a whole one is sent. The reply grows in
+  its turn with a caret (`.tk-writing`); a document being written says *Line
+  Talk is writing the document…*; the finished answer is checked whole
+  (`checkTalkAnswer`, `unsureFigures`) and kept in the same turn. A gateway
+  that answers whole is read as before; a stream cut off is *not answered —
+  ask again*, the question kept. The check entry streams the same way when
+  asked to.
+- **Nothing heard** (`lib/hearing` NOTHING_HEARD): listening six seconds with
+  no words — what this morning's phone did, its browser silent — says *Nothing
+  heard yet — keep talking …* with the keyboard's own microphone as the way
+  round it, still listening, and goes once words come.
+- **Live, measured** (assist v12, 21 October, from the database's check
+  entry, the rules fingerprint `0713dfdc10e58b8d` the repo's): a first piece
+  said — "the film is wandering to the left again" — answered in 4.7 s at low
+  effort: what "again" suggests, that Faultline has no problem logged for the
+  bagger, three likely causes as its guess, and *"Did it start after a reel
+  change, or has it been creeping across all shift?"*; his answer ("since the
+  reel change … felt loose on the shaft") streamed back as it was written,
+  building on it — the shaft lock, the locating collar, *"Can you get the
+  operator to stop it and check whether the reel moves by hand on the
+  shaft?"* — and the open critical guard on the checkweigher from the records.
+- **Proved:** `lib/__tests__/talkAssist.test.ts` (told to talk as a
+  colleague; a document asked for or changed; an answer as it is written,
+  whatever the cut), `lib/__tests__/talkAsk.test.ts` (the stream read however
+  the network cuts it, a cut-off stream said as none);
+  `scripts/acceptance/line-talk-assistant.mjs` step 11 (asked as it is
+  written, the words growing in their turn, the finished answer kept in their
+  place) and every step before it answered whole;
+  `scripts/acceptance/line-talk.mjs` step 3 (nothing heard said, gone with the
+  first words).
+- **On his phone, still to see:** whether its browser listens (if not, the
+  keyboard's microphone is said within six seconds); how the replies read on
+  the floor.

@@ -13806,6 +13806,10 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .tk-words { margin: 0; white-space: pre-wrap; line-height: 1.45; }
 .tk-heard { margin: 0; }
 .tk-wait { margin: 0; font-style: italic; }
+/* Line Talk's answer as it is written — a caret at the end of its words, as a chat shows it */
+.tk-writing .tk-ans > :last-child::after { content: ''; display: inline-block; width: 0.5em; height: 1em; margin-left: 2px; vertical-align: -0.12em; background: var(--brand); border-radius: 1px; animation: tk-caret 1s steps(2, start) infinite; }
+@keyframes tk-caret { to { visibility: hidden; } }
+@media (prefers-reduced-motion: reduce) { .tk-writing .tk-ans > :last-child::after { animation: none; } }
 .tk-fail { margin: 0; }
 .tk-audio { width: 100%; max-width: 420px; height: 36px; }
 .tk-photo-i { max-width: 100%; max-height: 300px; border-radius: var(--radius-sm); object-fit: contain; align-self: flex-start; }
