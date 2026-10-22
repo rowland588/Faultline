@@ -1,7 +1,9 @@
 /* THE CATALOGUE TELLS THE TRUTH ABOUT THE CODE (knowledge/README.md;
  * knowledge/STANDARD.md, "Done"). An entry called available names the files
  * that do it, the unit tests that prove its arithmetic and an acceptance
- * script that is in the gate — and each exists; a partial one says its
+ * script that is in the gate — and each exists — and, since the quality
+ * standard (22 October), a specification with its scope, facts and choices,
+ * report and acceptance criteria naming that script; a partial one says its
  * limits; a planned one has its specification; one left out says who
  * decided and why. Every tool on the rail has an entry, every method an entry
  * names is in the library, and knowledge/SUMMARY.md is what the entries say
@@ -9,7 +11,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { ENTRIES, PROBLEMS, BACKLOG, entryById, searchEntries, searchProblems, summaryMarkdown } from '../index';
+import { ENTRIES, PROBLEMS, BACKLOG, AVAILABLE_BEFORE_STANDARD, entryById, searchEntries, searchProblems, summaryMarkdown } from '../index';
 import { DISCIPLINES, SCENARIOS, STATUSES, type Entry } from '../types';
 import { parseMethod } from '../methodRecord';
 import { parseRoute } from '../../state/useRoute';
@@ -78,6 +80,34 @@ describe('the catalogue', () => {
       if (!b.acceptance.length) return 'available with no acceptance script';
       return false;
     })).toEqual([]);
+  });
+
+  /* THE QUALITY STANDARD (knowledge/STANDARD.md, "Done, by status"): an
+     entry is available only when its intended functionality, acceptance
+     criteria, tests and report are verified — so a specification with its
+     scope, facts said apart from choices, its report and its acceptance
+     criteria, naming an acceptance script of the entry's. The tools that were
+     available before 22 October are listed, and the list only shrinks. */
+  it('calls an entry available only with a specification that has its scope, its report and acceptance criteria naming its script', () => {
+    const PARTS = ['**Scope.**', '**Established · assumed · chosen.**', '**The report.**', '**Acceptance criteria.**'];
+    expect(bad(e => {
+      if (e.status !== 'available' || AVAILABLE_BEFORE_STANDARD.includes(e.id)) return false;
+      if (!e.spec || !existsSync(at(e.spec))) return 'available with no specification (knowledge/STANDARD.md)';
+      const text = readFileSync(at(e.spec), 'utf8');
+      const missing = PARTS.filter(p => !text.includes(p));
+      if (missing.length) return `its specification lacks ${missing.join(', ')}`;
+      const criteria = text.slice(text.indexOf('**Acceptance criteria.**'));
+      if (!(e.built?.acceptance ?? []).some(a => criteria.includes(a))) return `its acceptance criteria name none of its scripts (${(e.built?.acceptance ?? []).join(', ') || 'none'})`;
+      return false;
+    })).toEqual([]);
+  });
+
+  it('keeps the list of tools available before the standard truthful, and only shrinking', () => {
+    /* every one still available and still without a specification — one that
+       gains a spec, or is no longer available, comes off; never one added */
+    expect(AVAILABLE_BEFORE_STANDARD.filter(id => { const e = entryById(id); return !e || e.status !== 'available' || !!e.spec; })).toEqual([]);
+    expect(new Set(AVAILABLE_BEFORE_STANDARD).size).toBe(AVAILABLE_BEFORE_STANDARD.length);
+    expect(AVAILABLE_BEFORE_STANDARD.length).toBeLessThanOrEqual(44);   // 22 October — a ratchet that only comes down
   });
 
   it('calls an entry partial only with its code named and its limits said', () => {
@@ -162,6 +192,19 @@ describe('the specifications', () => {
       const text = readFileSync(at(`knowledge/specs/${f}`), 'utf8');
       const hs = [...text.matchAll(/^## (\d+)\. (.+)$/gm)].map(m => m[2].trim());
       return hs.join('|') === SPEC_HEADINGS.join('|') ? [] : [`${f}: headings ${hs.join(', ') || 'none'}`];
+    });
+    expect(wrong).toEqual([]);
+  });
+
+  it('has, in every specification and the template, the four parts the standard requires', () => {
+    /* each inside its own heading: the scope under Purpose, facts and choices
+       under Method selection, the report under Outputs, the acceptance
+       criteria under Verification */
+    const where: [string, string][] = [['**Scope.**', 'Purpose'], ['**Established · assumed · chosen.**', 'Method selection'], ['**The report.**', 'Outputs'], ['**Acceptance criteria.**', 'Verification']];
+    const wrong = specs.flatMap(f => {
+      const text = readFileSync(at(`knowledge/specs/${f}`), 'utf8');
+      const sections = text.split(/^## \d+\. /m).slice(1).map(sec => ({ title: sec.split('\n')[0].trim(), body: sec }));
+      return where.flatMap(([part, title]) => (sections.find(x => x.title === title)?.body.includes(part) ? [] : [`${f}: ${part} not under ${title}`]));
     });
     expect(wrong).toEqual([]);
   });

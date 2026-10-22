@@ -72,18 +72,30 @@ project's actions and every line's own problems, by project too.
 
 Rowland, 22 October: *"When I return to Claude Code in a future session and
 request a new tool, I should not need to repeat this prompt."* So **any request
-to build, extend or materially change a manufacturing tool — "build FC-012",
-"build the SMED…", "the next three", a new calculation or verdict — goes
-through the `faultline-tool` skill** (`.claude/skills/faultline-tool/SKILL.md`),
-which follows `knowledge/STANDARD.md`: resolve it in the catalogue
+to build, improve, extend or materially change a manufacturing tool or its
+report — "build FC-012", "build the SMED…", "the next three", "improve the
+capability study", a new calculation, verdict or paper — goes through the
+`faultline-tool` skill** (`.claude/skills/faultline-tool/SKILL.md`), held to
+**the quality bar in `knowledge/STANDARD.md`** (the same evening: *"every tool
+must be technically trustworthy, functionally appropriate, professionally
+presented and properly reported. Completion must be demonstrated by
+evidence, not claimed by appearance"*) — designed around its method, not a
+template; substantive; its report specified and built with it; professional;
+the app protected; done by evidence; the catalogue kept truthful. The skill
+follows the standard's workflow: resolve it in the catalogue
 (`node scripts/catalogue.mjs show|search|next`), read its knowledge records
 (`knowledge/methods/`), write the specification from
 `knowledge/specs/TEMPLATE.md` **before any code**, validate every formula with
 independent cases, build, test, and update the catalogue's status, the records
 and `knowledge/SUMMARY.md` (`node scripts/catalogue.mjs summary --write`). An
-entry is *available* only when its code, unit tests and an acceptance script in
-the gate exist — `src/catalogue/__tests__/catalogue.test.ts` checks it, and that
-every rail tool has an entry. `knowledge/README.md` is the map (the library, the
+entry is *available* only when its intended functionality, acceptance
+criteria, tests and report are verified: its code, unit tests and an
+acceptance script in the gate exist, and its specification has its scope,
+its facts said apart from its choices, its report and its acceptance criteria
+naming that script — `src/catalogue/__tests__/catalogue.test.ts` refuses it
+otherwise (the tools available before 22 October are listed in
+`AVAILABLE_BEFORE_STANDARD`, a list that only shrinks), and checks that every
+rail tool has an entry. `knowledge/README.md` is the map (the library, the
 catalogue and its backlog, the directory in the app — *Every tool* at `#/tools`, from the front door — and the standard);
 `knowledge/GAPS.md` is what is not known well enough yet. The catalogue is the
 full opportunity, never a plan to build it all: `docs/DIRECTION.md`'s "deep,

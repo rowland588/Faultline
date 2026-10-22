@@ -70,7 +70,7 @@ opens, its code, its unit tests and its acceptance scripts.
 
 | Status | Words on screen | Requires |
 |---|---|---|
-| `available` | Available | code, unit tests and an acceptance script that exist and are in the gate |
+| `available` | Available | code, unit tests and an acceptance script that exist and are in the gate, and a specification with its scope, facts and choices, report and acceptance criteria naming that script (`knowledge/STANDARD.md`, "Done, by status"; the tools available before 22 October are in `AVAILABLE_BEFORE_STANDARD`) |
 | `partial` | Partly | code that exists, and its limits said |
 | `specified` | Planned | a specification in `knowledge/specs/` |
 | `to-build` | Not built yet | the method understood; nothing built |
