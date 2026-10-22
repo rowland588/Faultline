@@ -33,6 +33,20 @@ the site say to the OEM or the client: *"It holds at least 75 a minute — Ppk
 1.4 from 30 minutes, the readings steady and bell-shaped"*, or *"20 of 20
 passed, which proves fewer than 14 in 100 would fail — not yet 1 in 100"*.
 
+**Scope.** Part 1, built and live 22 October (`467c313`): a measurement
+between two limits (FC-094), at least or at most (FC-095); sold by weight,
+the packers' three rules (as before); pass or fail, one at a time, with how
+many may fail and what the count proves (FC-100); the three checks before
+capability (FC-097); how sure a Ppk is; the histogram (FC-103, partly — no
+median or quartiles). Not in part 1, each still planned or not built: reject
+rates out of what was made (FC-098) and their p-chart (FC-088); a rate held
+for a time (FC-083); faults per item (FC-099, FC-089) with their tally and
+Pareto (FC-124, FC-125); per million and Z (FC-102); a fitted model for
+readings that are not bell-shaped (FC-096); independence tested (FC-115);
+machine capability (FC-084); money — give-away (FC-156). The screen offers
+only the kinds it can do; it does not yet name the ones to come, and the
+catalogue (FC-094's limits) says so.
+
 ## 2. Users and scenarios
 A site lead, a team leader or QA at the machine on a phone (gloves off, one
 hand, noise), and the same person at a desk closing it or printing it.
@@ -68,6 +82,29 @@ minute for 30 minutes (part 2); print faults per reel (part 3).
 - Held at a rate (part 2) → per-interval rates against the side agreed.
 - Faults per item (part 3) → Poisson DPU with exact bounds and the u-chart;
   defective units and defects never mixed.
+
+**Established · assumed · chosen.**
+- *Established:* Pp/Ppk from the overall spread and Cp/Cpk from MR̄ ÷ d₂
+  (d₂ = 1.128) — AIAG *SPC* manual (2nd ed.), Montgomery; the normal tails;
+  the individuals chart's limits x̄ ± 2.66·MR̄ and a run of eight on one side
+  — the Western Electric / Nelson rules as AIAG gives them; the success-run
+  relation and the exact (Clopper–Pearson, 1934) bound on a share failing;
+  the D'Agostino–Pearson K² test (D'Agostino, Belanger & D'Agostino, 1990);
+  Bissell's (1990) lower bound on Ppk; the tolerable negative error — the
+  Weights and Measures (Packaged Goods) Regulations 2006, Schedule 2. Each
+  is in `knowledge/methods/` with its source and what is still to confirm.
+- *Assumed:* readings independent and in the order taken (not tested —
+  FC-115); items in a pass-or-fail run alike and independent, so a run
+  proves the conditions it was run under; one-sided 95%.
+- *Chosen — agreed with Rowland:* capable from Ppk 1.33, just capable from
+  1.00, indices from 25 readings (release 2's "go", `docs/BUILD.md`); none
+  may fail unless agreed (the old rule kept).
+- *Chosen — this specification's, under the go of 22 October, not yet put
+  to Rowland one by one:* the checks from 20 readings; bell-shaped at
+  p ≥ 0.05; fine enough from 5 distinct values; K² rather than
+  Anderson–Darling (the simulation above); a capable index on readings not
+  steady or not bell-shaped never green; drift said only when the steady
+  check finds a run; every "proves" share rounded up, never flattering.
 
 ## 4. Inputs
 Agreed before the readings (`can.agree`), on the existing `AgreedReadings`:
@@ -177,6 +214,20 @@ Screen and paper together:
 - Agreed words: *"at least 12 N, 30 readings"*, *"pass or fail each, 20 —
   none may fail"* / *"at most 1 may fail"*.
 
+**The report.** The study's own paper (*This study on paper (PDF)*, built by
+`src/lib/studiesPdf.ts` on the report engine) and every list's paper carry,
+from the same module as the screen: the band with the verdict and where it
+sits; the tiles; *What it says* — the verdict sentence and the second
+sentence (how sure the Ppk is, or what a pass proves); for a measurement the
+figures row (readings, mean, range, outside, Ppk, 95% sure, Cpk), *Before
+capability* (the three checks, the abnormal in amber), *How the readings
+spread* (the histogram with the limits drawn) and every reading in order,
+outside in red, struck said; for pass or fail the cells (checked, failed,
+may fail, what it proves) and every item good or failed by its number; the
+action plan and the closing line; the receipt once closed. PDF only — the
+format the study already had. Not printed yet: each reading's time, and
+money (none in part 1).
+
 ## 8. Manufacturing usability
 Set up in one screen: the question as three chips with an example under each;
 a measurement's side as three chips with examples ("speed at least 75 a
@@ -228,6 +279,45 @@ and the histogram), every reading, act, action plan, closing line.
   each; the phone. Added to the gate in CLAUDE.md; `ecosystem-capability.mjs`
   still passes unchanged (the old journey).
 - Screens compared before and after (`--shots`).
+
+**Acceptance criteria.** Each proved as named, all run in gate 28 (44 of 45 steps green; the page inventory, red under load, rerun green under load after its fix).
+1. Φ⁻¹, the binomial and its exact bounds, items to show a share, K² and
+   its two parts, A², skew, Bissell's bound, the individuals limits, the run
+   of eight, the histogram and the rounded-up share agree with SciPy or
+   published values — `src/lib/ie/__tests__/dist.test.ts`.
+2. One limit: Ppk from that side alone, the words "at least" / "at most" —
+   `sample.test.ts` ("one limit, and ticks").
+3. Pass or fail: the verdict with how many may fail, a second failure
+   failing it at once, a struck failure counting for nothing, what the count
+   proves and what 1 in 100 would take, said while agreeing, too many
+   allowed refused — `sample.test.ts` ("pass or fail — …").
+4. The checks: bell-shaped, leaning or heavy-tailed, not steady (beyond the
+   limits, a run), too coarse; said from 20; never green when the readings
+   cannot support the index; the share as measured when not bell-shaped; a
+   lone spike not called drift — `sample.test.ts` ("before capability —
+   …"), `src/lib/__tests__/audit-ie-sample.test.ts`.
+5. Every study made before 22 October reads as before —
+   `sample.test.ts`; `scripts/acceptance/capability-kinds.mjs` step 6.
+6. The question first, only the boxes a side needs, refused with no limit;
+   a speed at least 75 a minute end to end — every sentence, check, tile and
+   the closing line as the module says; the histogram's bars and limit —
+   `capability-kinds.mjs` step 1.
+7. Oxygen at most 2%, then 0.6%: leaning high, not steady, capable never
+   green, then the share as measured with its bars red — step 2.
+8. A creeping run said not steady, never green — step 3.
+9. Pass or fail end to end on ✓ Good / ✗ Failed, struck, passed with one
+   failed, the tiles — step 4.
+10. Each study's PDF downloaded and read back — step 5; the old journey's
+    paper — `scripts/acceptance/audit.mjs` 3, `ecosystem-capability.mjs`.
+11. The phone: the question's cards inside the screen, the two buttons big
+    enough for a gloved thumb — step 7.
+12. The page shows the checks and the histogram — `scripts/inventory.mjs`
+    (docs/PAGES.md).
+13. Nothing else broke — the full gate 28.
+*Not yet proved:* use on the floor on a real phone with gloves; the
+screens were not compared with live (`--shots`, `--compare`) before part 1
+shipped — to do at the next change; the thresholds chosen above have not
+been put to Rowland one by one.
 
 ## 12. Maintainability
 Arithmetic stays in `src/lib/ie/` (`sample.ts` the study, `dist.ts` the

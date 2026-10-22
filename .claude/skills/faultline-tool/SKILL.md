@@ -1,18 +1,24 @@
 ---
 name: faultline-tool
-description: "Use for ANY request to build, extend, fix the arithmetic of, or materially change a Faultline manufacturing tool or analysis — and for requests naming a catalogue entry. Triggers: 'build FC-012', 'build tool FC-nnn', 'build the SMED…', 'build the next three highest-priority tools', 'add X to the capability study / line balance / Line capacity / loss count / reliability / SMED / work sampling / value stream / line standard', a new calculation, statistic, chart or verdict in src/lib/ie/ or a tool's page, 'what tools can Faultline do / support next', a Lean, Six Sigma, SPC, capability, industrial-engineering, TPM, quality, food-safety or yield method. Resolves the request against src/catalogue, reads knowledge/methods, writes a specification from knowledge/specs/TEMPLATE.md before code, validates formulas with independent cases, builds, tests, updates the catalogue and records, and reports honestly. Not for unrelated UI chores, reports' layout or project-management screens."
+description: "Use for ANY request to build, improve, extend, fix or materially change a Faultline manufacturing tool, its analysis or its report — and for requests naming a catalogue entry. Triggers: 'build FC-012', 'build tool FC-nnn', 'build the SMED…', 'build the next three highest-priority tools', 'improve the process capability tool', 'add X to the capability study / line balance / Line capacity / loss count / reliability / SMED / work sampling / value stream / line standard', a tool's PDF or report, a new calculation, statistic, chart or verdict in src/lib/ie/ or a tool's page, 'what tools can Faultline do / support next', a Lean, Six Sigma, SPC, capability, industrial-engineering, TPM, quality, food-safety or yield method. Holds the work to knowledge/STANDARD.md's quality bar: resolves the request in src/catalogue, reads knowledge/methods, writes the specification (scope, facts vs choices, the report, acceptance criteria) before code, validates formulas with independent cases, builds the tool with its report, proves every criterion, keeps the catalogue truthful and reports honestly. Not for unrelated UI chores or project-management screens."
 metadata:
   author: faultline
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
-# Building a Faultline manufacturing tool
+# Building or improving a Faultline manufacturing tool
 
-You are working to `knowledge/STANDARD.md`. This skill is how you keep to it.
-Read `docs/DIRECTION.md` and `CLAUDE.md` first if you have not this session —
-they win over everything here. The system is described in `knowledge/README.md`.
+You are working to `knowledge/STANDARD.md` — its **quality bar** (seven
+points) and its workflow. This skill is how you keep to it; read the quality
+bar now if you have not this session. `docs/DIRECTION.md` and `CLAUDE.md` win
+over everything here. The catalogue and what is already built are the
+starting point: one tool, built or improved properly — never a rewrite,
+never several tools at once unless asked.
 
-## 0. Resolve the request — never build the wrong thing
+Each step ends with a **checkpoint**. Do not go past one that is not met:
+say what is missing and fix it, or ask.
+
+## 1. Locate the tool and inspect what exists
 
 ```
 node scripts/catalogue.mjs show FC-012          # by number
@@ -21,86 +27,110 @@ node scripts/catalogue.mjs search <the problem in the user's words>
 node scripts/catalogue.mjs next 3               # "the next three highest-priority"
 ```
 
-- One entry → carry on. Several, or a request that spans entries → ask the
-  user which (AskUserQuestion with the candidates' numbers and names). None →
-  it is a new entry: say so, propose its place (discipline, status
-  `to-build`, the next free number) and its knowledge records, and continue
-  only when the user agrees.
-- `available` already → say so and ask what is to change (it is then an
-  extension, same workflow).
-- `left-out` → quote its `decided` line and stop unless the user reverses it
-  in this conversation.
-- `research` → the work is research first: fill the gap in
-  `knowledge/GAPS.md` and the records, then come back to step 1.
-- "Nothing new is built until Rowland says go" (`docs/DIRECTION.md`): if the
-  request is a question or an idea, specify and ask for go; build only on go.
+- One entry → carry on. Several, or a request that spans entries → ask which
+  (AskUserQuestion with the candidates' numbers and names). None → propose a
+  new entry (discipline, status `to-build`, the next free number, its
+  records) and continue only when the user agrees.
+- `left-out` → quote its `decided` line and stop unless the user reverses it.
+- `research` → research first: the records and `knowledge/GAPS.md`, then back here.
+- Read what is built: the entry's `built` files, the module in `src/lib/ie/`
+  or `src/lib/`, its page and its paper (`src/lib/report/`, the tool's PDF),
+  the record it reads and writes, access, sync, every place its parent shows
+  (CLAUDE.md rule 5), `docs/PAGES.md`, its acceptance script, and its spec if
+  it has one. Note what works and must keep working.
+- "Nothing new is built until Rowland says go" (`docs/DIRECTION.md`): a
+  question or an idea gets a specification and a request for go, not code.
 
-## 1. Discover
+**Checkpoint:** you can say which entry, its status and dependencies, what is
+built today and what the change must not break.
 
-Write down, before reading code: who asked and their words; the line,
-product and decision; the sentence it lets one side say to the other. Place
-it on `docs/BLUEPRINT.md` §8 (layer, record, where it shows, what it
-replaces).
-
-## 2. Select the method — from the knowledge, not the tool's name
+## 2. Establish the method's requirements and the acceptance criteria
 
 ```
-node scripts/catalogue.mjs method <record id>    # for each of the entry's methods, and their needs/alternatives
+node scripts/catalogue.mjs method <record id or bare name>   # each of the entry's methods, and their needs/alternatives
 ```
 
-Decide by the data and the question (measured or counted; items or runs;
-stable or not). If a record is a `summary`, read its sources and bring it to
-`full` before specifying. If a needed method has no record, write one first
-in the house shape (`knowledge/README.md`, "A method record") with sources and
-an honest `checked` line ("from knowledge; edition to confirm" until read).
-**If you cannot read the library or run the script, say so to the user and
-work from `knowledge/STANDARD.md` alone — never claim the full process was
-followed.**
+- Decide the method by the question and the data (measured or counted; items
+  or runs; stable or not), not by the tool's name. A `summary` record, or one
+  that does not cover what is needed, is brought to full depth from
+  authoritative sources first — with an honest `checked` line.
+- Copy `knowledge/specs/TEMPLATE.md` to `knowledge/specs/FC-nnn-name.md` (or
+  extend the tool's existing spec) and answer all twelve headings, including
+  the four parts the catalogue test checks: **Scope.** · **Established ·
+  assumed · chosen.** · **The report.** · **Acceptance criteria.**
+- Design for this method — its own workflow, variants, pictures and report —
+  not a copy of another tool's page. Reuse the shared parts where they fit.
+- Ask the user every decision that is theirs (a threshold, a word on screen,
+  scope); never guess one, never invent a formula, criterion or "standard".
+- Validate every formula against its source with independent cases (a
+  textbook example, a standard's table, published critical values, or SciPy
+  in `scripts/knowledge/independent-cases.py`). If a validation shows the
+  specified method is wrong for the data, change the spec and say why.
 
-## 3. Inspect what exists
+**Checkpoint:** the spec has its scope, facts said apart from choices, the
+report defined, and numbered acceptance criteria each naming the test or
+script that will prove it — written before any code. No exceptions for "a
+small change" to a calculation or a report.
 
-Read the entry's `built` files, the module it would extend in `src/lib/ie/`
-or `src/lib/`, the shared parts (`src/lib/lean.ts`, `src/ui/Lean.tsx`,
-`src/lib/report/`, `src/lib/cost.ts`, `src/lib/ie/dist.ts` once it exists),
-every screen and paper where the parent record shows, `docs/PAGES.md` for the
-page, and the acceptance script that drives it. Extend before you add.
+## 3. Identify the parts to reuse, the dependencies and the gaps
 
-## 4. Specify — before any code
+The shared modules (`lib/ie/dist`, `lib/lean`, `ui/Lean`, `lib/report/`,
+`lib/cost`), the record (no new noun unless `docs/BLUEPRINT.md` §2 changes
+first), the existing Claude gateway if AI is genuinely needed (never another
+provider; never AI in a figure), and anything unverified — written into
+`knowledge/GAPS.md`.
 
-Copy `knowledge/specs/TEMPLATE.md` to `knowledge/specs/FC-nnn-name.md`; answer
-all twelve headings (the catalogue test checks them). Set the entry's
-`status: 'specified'` and `spec:`. Ask the user any decision that is theirs
-(a threshold, a word on screen, scope) — do not guess it.
+**Checkpoint:** nothing is duplicated that exists; every dependency the tool
+needs is built or its absence is in the scope.
 
-## 5. Validate the method
+## 4. Build the complete, scoped tool — with its report
 
-Every formula against its source. Independent cases with known answers — a
-textbook example, a standard's table or critical values, or SciPy in
-`scripts/knowledge/independent-cases.py` (`pip install scipy` if missing;
-paste its numbers into the tests, never the code's own output). Approximations
-with their accuracy.
+Pure, tested arithmetic in `src/lib/ie/` (or `src/lib/`), the sentences in
+the module; the page and the paper from the same module; access checked
+(`can.edit`, `can.agree`, `can.remove`); money from the one cost model or the
+missing input named; designed empty, invalid, too-few and error states; phone
+and desk. Extend the existing implementation — never replace working code
+because a rewrite is easier; touch nothing unrelated.
 
-## 6. Build, test, review
+**Checkpoint:** every part the spec's scope includes is built, the report
+included — or the spec says plainly what is left and why.
 
-The house rules apply in full (`CLAUDE.md`): pure arithmetic, sentences in
-the module, screen and PDF together, access checks, money from the one cost
-model, old records still reading as before, PAGES.md + the inventory in the
-same commit, an acceptance script in `scripts/acceptance/` added to the gate
-list in `CLAUDE.md`, screenshots compared. Unit tests cover boundaries,
-unsuitable data and misleading-result scenarios (`knowledge/STANDARD.md` §7).
+## 5. Run the tests and verify the real experience and output
 
-## 7. Release, and write it down where the next session looks
+Unit tests on the independent cases, edge cases, invalid input and old
+records; the acceptance script in `scripts/acceptance/` driving the real page
+in Chromium on realistic data, checking every sentence against the module,
+checking the drawn thing (readable rows, nothing over anything else), on the
+phone, and **downloading the generated report and reading it back**; PAGES.md
+and the inventory; `--shots`/`--compare` against live for every page that
+moved; then the full gate (`CLAUDE.md`).
 
-- The full gate, merged to `main`, Vercel ready (`CLAUDE.md`, "Finished means live").
-- The entry's `status` (`available` only by the test's rule), `built`, `limits`.
-- The records' *In Faultline* sections; anything learned into
-  *Assumptions*; anything unverified into `knowledge/GAPS.md`.
-- `node scripts/catalogue.mjs summary --write`; `node scripts/catalogue.mjs check`.
-- The backlog (`src/catalogue/backlog.ts`) — the built entry leaves it.
+**Checkpoint:** every acceptance criterion has passed in a run you actually
+executed. Never report a test as passed that was not run and passed.
 
-## 8. Report
+## 6. Resolve the defects — or write down what remains
 
-What was built (entries, files), what was verified (each test and
-acceptance script by name, the independent cases), what is live, and every
-limit left — with the catalogue numbers of what comes next. A tool is not
-done because it renders, a number appears, or a spec exists.
+Fix what the run found, then run it again. What cannot be fixed now is said
+in the entry's `limits`, the spec's *not yet proved*, and `knowledge/GAPS.md`.
+
+## 7. Update the catalogue and the records truthfully — and release
+
+- The entry's `status`, `built` and `limits`. **Available** only by
+  `knowledge/STANDARD.md` "Done, by status" — the catalogue test refuses it
+  without the spec's four parts and its acceptance script named in the
+  criteria; otherwise it stays **partial** with its limits said. Never
+  promote a tool because a screen exists; never demote one without evidence.
+  An entry in `AVAILABLE_BEFORE_STANDARD` that you change materially comes
+  off that list in the same change.
+- The records' *In Faultline*; anything learned into *Assumptions*; gaps into
+  `knowledge/GAPS.md`; `node scripts/catalogue.mjs summary --write`;
+  `node scripts/catalogue.mjs check`; the backlog; the gate line in `CLAUDE.md`.
+- Merged to `main`, Vercel ready — then, and only then, done.
+
+## Report
+
+What was built (entries, files), what was verified (each criterion with the
+test or script that proved it, the independent cases), what is live, and
+every limit left — with the catalogue numbers of what comes next. If the
+library or this skill could not be read, say so — never claim the process was
+followed.

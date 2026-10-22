@@ -16,7 +16,9 @@
 
 /** Where an entry stands — the only words the directory uses for it. */
 export type Status =
-  /** Built, and proved: its arithmetic by unit tests, its use by an acceptance script in the gate. */
+  /** Built, and proved: its arithmetic by unit tests, its use by an acceptance script in the gate,
+   *  and its specification's scope, report and acceptance criteria (knowledge/STANDARD.md; the
+   *  tools available before 22 October are in AVAILABLE_BEFORE_STANDARD). */
   | 'available'
   /** Built with known limits — each limit said in `limits`. */
   | 'partial'

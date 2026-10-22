@@ -18,6 +18,20 @@ export const ENTRIES: Entry[] = [...LEAN, ...IE, ...CAPACITY, ...EQUIPMENT, ...S
 
 export { PROBLEMS, BACKLOG };
 
+/** THE TOOLS AVAILABLE BEFORE THE QUALITY STANDARD (knowledge/STANDARD.md,
+ *  22 October). Each was assessed from its acceptance script in the gate, and
+ *  has no specification with acceptance criteria and a report. They keep
+ *  their status; the catalogue's test refuses any other entry called
+ *  available without that specification. This list only shrinks: the next
+ *  material change to one of these goes through the standard (the
+ *  faultline-tool skill) and takes it off, in the same change. */
+export const AVAILABLE_BEFORE_STANDARD: readonly string[] = [
+  'FC-001', 'FC-006', 'FC-008', 'FC-022', 'FC-031', 'FC-032', 'FC-034', 'FC-035', 'FC-036', 'FC-037', 'FC-038',
+  'FC-040', 'FC-049', 'FC-051', 'FC-052', 'FC-053', 'FC-054', 'FC-058', 'FC-068', 'FC-073', 'FC-074', 'FC-075',
+  'FC-076', 'FC-077', 'FC-078', 'FC-079', 'FC-080', 'FC-081', 'FC-146', 'FC-147', 'FC-148', 'FC-154', 'FC-187',
+  'FC-188', 'FC-189', 'FC-190', 'FC-193', 'FC-194', 'FC-195', 'FC-202', 'FC-204', 'FC-205', 'FC-206', 'FC-214',
+];
+
 const BY_ID = new Map(ENTRIES.map(e => [e.id, e]));
 export const entryById = (id: string): Entry | undefined => BY_ID.get(id.trim().toUpperCase());
 
