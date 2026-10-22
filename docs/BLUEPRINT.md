@@ -1498,6 +1498,14 @@ is still wired.
   PDF), and the reports' Evidence (its sentence, as every study's). Money:
   `lib/cost`, from the minutes stood an event. The design: `docs/TOOLKIT.md`,
   13. Accepted by `reliability.mjs`; the page by `inventory.mjs`.
+  **22 October — several things at once** (Rowland: "three buttons ... three
+  data sets going on ... three of everything"): `agreed.reliability.counts`,
+  a row a thing counted (its name, the floor's own words among them, its MTBF
+  wanted and minutes stood, taken off and brought back), a tap naming its
+  count; every figure per count on the one watch, counted side by side on the
+  page and the paper; *What can one be?* taken off (not understood — several
+  counts do it). No new record or column: inside the study's jsonb, a study
+  made before read as one count.
 - **Next:** money for a problem left open and a 6M countermeasure (§6);
   then the lean page, slices 6–7 (SMED, value stream, work sampling,
   capability; commissioning, programs, handover, materials papers)

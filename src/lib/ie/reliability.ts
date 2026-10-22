@@ -17,7 +17,19 @@
  *   failure rate  = events ÷ watched running time (λ, an hour)
  *
  * Every later session adds to the same two lists, so the figures firm up as
- * the watching builds. What is said beside them, each from the same facts:
+ * the watching builds.
+ *
+ * SEVERAL THINGS AT ONCE. Rowland, 22 October: "I could have a failure, but
+ * I also might want to do stops. I might want to count something else ...
+ * three buttons. So same time frame, I'm pushing three buttons. There's three
+ * data sets going on. There's three of everything going on." So a study
+ * counts one thing or several (agreed.reliability.counts), each with its own
+ * button, all on the one watch — the watched time is shared, the taps are
+ * each count's own, and every figure below is worked out for each count on
+ * its own (relAll). A study set up before then counted one thing: it is read
+ * as one count (countersOf), its taps naming no count belong to the first.
+ *
+ * What is said beside MTBF and λ, each count's from its own taps:
  *
  *   - 90% BOUNDS. Events at random over a watched time T (a time-ended test):
  *     the MTBF lies between 2T/χ²(0.95; 2n+2) and 2T/χ²(0.05; 2n), and λ
@@ -33,8 +45,8 @@
  *   - THE TREND (Laplace's test, 90%): the events bunching late in the
  *     watched time — coming more often, getting worse — or early, getting
  *     better; else no sign of either. From four events.
- *   - BY KIND, when the team tells them apart: each one's count, share and
- *     its own MTBF (the watched time over its count) — the top one first.
+ *   - BY KIND, on a study set up before 22 October that told one count's
+ *     taps apart: each kind's count, share and own MTBF — the top first.
  *   - BY DAY: the watched time, events and MTBF of each day it was watched,
  *     which the trend on the page draws.
  *   - WHAT IT COSTS (docs/CAPACITY.md §6, lib/cost — the one cost model):
@@ -48,6 +60,35 @@
 import { labourPerHour, ratedPerMin } from '../cost';
 import { lineDay } from '../lineLoss';
 import type { AgreedReliability, RelEvent, WatchRun } from '../study';
+
+/** WHAT ONE COUNT IS AND WHAT IT SHOULD BE — the words its figures are said
+ *  in: "stop", the MTBF wanted, the minutes the line stands each time. */
+export interface RelSubject { event: string; targetMin?: number; downMin?: number }
+/** One count of a study, as the page and the paper read it. */
+export interface RelCounter extends RelSubject { id: string; removed?: boolean }
+
+/** The id the one thing counted before 22 October reads as. */
+export const FIRST_COUNT = 'e';
+
+/** THE THINGS COUNTED, in their order — the ones taken off too when `all`.
+ *  A study set up before several were counted is one count. */
+export function countersOf(a: AgreedReliability | undefined, all = false): RelCounter[] {
+  if (!a) return [];
+  if (a.counts?.length) {
+    return a.counts.filter(c => all || !c.removed).map(c => ({ id: c.id, event: c.name.trim() || 'event',
+      ...(c.targetMin && c.targetMin > 0 ? { targetMin: c.targetMin } : {}), ...(c.downMin && c.downMin > 0 ? { downMin: c.downMin } : {}), ...(c.removed ? { removed: true } : {}) }));
+  }
+  if (a.event?.trim()) {
+    return [{ id: FIRST_COUNT, event: a.event.trim(), ...(a.targetMin && a.targetMin > 0 ? { targetMin: a.targetMin } : {}), ...(a.downMin && a.downMin > 0 ? { downMin: a.downMin } : {}) }];
+  }
+  return [];
+}
+
+/** The taps that are one count's: those naming it — and those naming none,
+ *  made before several were counted, are the first count's. */
+export function eventsOf(events: readonly RelEvent[], id: string, firstId: string | undefined): RelEvent[] {
+  return events.filter(e => e.count === id || (!e.count && id === firstId));
+}
 import type { Workspace } from '../../types';
 
 const HOUR = 3_600_000;
@@ -204,7 +245,7 @@ const isoDayOf = (ms: number): string => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-export function reliability(a: AgreedReliability | undefined, runs: readonly WatchRun[] = [], events: readonly RelEvent[] = [], t = Date.now()): RelFigures {
+export function reliability(a: Partial<RelSubject> | undefined, runs: readonly WatchRun[] = [], events: readonly RelEvent[] = [], t = Date.now()): RelFigures {
   const spans = watchedSpans(runs, t);
   const ms = spans.reduce((s, [x, y]) => s + (y - x), 0);
   const hours = ms / HOUR;
@@ -304,7 +345,7 @@ export interface RelCost {
 
 export type RelCostLine = Pick<Workspace, 'name' | 'crew' | 'labourRatePerHour' | 'labourBurden' | 'packsPerMin' | 'marginPerPack' | 'shifts'>;
 
-export function relCost(f: RelFigures, a: AgreedReliability | undefined, line?: RelCostLine): RelCost {
+export function relCost(f: RelFigures, a: RelSubject | undefined, line?: RelCostLine): RelCost {
   const missing: string[] = [];
   const down = a?.downMin && a.downMin > 0 ? a.downMin : undefined;
   if (down === undefined) missing.push(`the minutes the line stands for each ${plural(a?.event ?? 'event', 1)} (Change what was agreed)`);
@@ -354,9 +395,9 @@ const VERDICT_WORD: Record<RelVerdict, string> = {
 const VERDICT_TONE: Record<RelVerdict, RelSays['tone']> = { met: 'g', 'met-unsure': 'a', 'short-unsure': 'a', short: 'r' };
 
 /** The study's sentence and verdict — the list's line, the band, the paper. */
-export function reliabilitySays(a: AgreedReliability | undefined, f: RelFigures): RelSays {
+export function reliabilitySays(a: RelSubject | undefined, f: RelFigures): RelSays {
   const ev = a?.event?.trim() || 'event', evs = plural(ev);
-  if (!a) return { verdict: 'Not set up', text: 'Say what counts as an event, then start the watch at the machine.', tone: 'n' };
+  if (!a) return { verdict: 'Not set up', text: 'Say what is counted, then start the watch at the machine.', tone: 'n' };
   if (f.hours <= 0) return { verdict: 'Not watched yet', text: `Start the watch at the machine and tap each ${ev} as it happens.`, tone: 'n' };
   const want = a.targetMin && a.targetMin > 0 ? a.targetMin / 60 : undefined;
   const v = f.verdict;
@@ -371,7 +412,7 @@ export function reliabilitySays(a: AgreedReliability | undefined, f: RelFigures)
 }
 
 /** What it means, in sentences — the gaps, the trend, the top kind, the chance of an hour with none. */
-export function reliabilityInsights(a: AgreedReliability | undefined, f: RelFigures): { text: string; tone: 'r' | 'a' | 'g' | 'n' }[] {
+export function reliabilityInsights(a: RelSubject | undefined, f: RelFigures): { text: string; tone: 'r' | 'a' | 'g' | 'n' }[] {
   const ev = a?.event?.trim() || 'event', evs = plural(ev);
   const out: { text: string; tone: 'r' | 'a' | 'g' | 'n' }[] = [];
   if (f.n === 0) return (f.runningH ?? 0) > LEFT_ON_H ? [{ text: `The watch has been running ${span(f.runningH ?? 0)} without a stop — if it was left on, stop it where the watching ended.`, tone: 'a' }] : out;
@@ -421,4 +462,58 @@ export function compareReliability(fb: RelFigures, fa: RelFigures, event = 'even
   if ((fa.lo ?? 0) > (fb.hi ?? Infinity)) return { text: `${move} — longer between ${evs}, the bounds clear of each other ${bounds}.`, tone: 'g' };
   if ((fa.hi ?? Infinity) < (fb.lo ?? 0)) return { text: `${move} — shorter between ${evs}, the bounds clear of each other ${bounds}.`, tone: 'r' };
   return { text: `${move} — not yet sure: the bounds overlap ${bounds}; keep watching.`, tone: 'n' };
+}
+
+/* ------------------------------------------------------------------ the study, every count */
+
+/** One count and its figures. */
+export interface RelItem { c: RelCounter; f: RelFigures }
+
+/** EVERY COUNT'S FIGURES, on the one watch — each count from its own taps. */
+export function relAll(a: AgreedReliability | undefined, runs: readonly WatchRun[] = [], events: readonly RelEvent[] = [], t = Date.now()): RelItem[] {
+  const first = countersOf(a, true)[0]?.id;
+  return countersOf(a).map(c => ({ c, f: reliability(c, runs, eventsOf(events, c.id, first), t) }));
+}
+
+const TONE_RANK: Record<RelSays['tone'], number> = { r: 3, a: 2, g: 1, n: 0 };
+/** The tone that stands out most: red over amber over green over grey. */
+export const worstTone = (tones: RelSays['tone'][]): RelSays['tone'] => tones.reduce<RelSays['tone']>((w, x) => (TONE_RANK[x] > TONE_RANK[w] ? x : w), 'n');
+
+/** "Stops", "Bottle downs" — a count's name as a heading. */
+export const countTitle = (c: RelSubject): string => { const p = plural(c.event); return p.charAt(0).toUpperCase() + p.slice(1); };
+
+/** THE STUDY'S SENTENCE AND VERDICT — every count's, the list's line, the band
+ *  and the paper. One count says what its figures say; several say each
+ *  count's MTBF in a line, the most abnormal tone, and each count's sentence. */
+export function studyReliabilitySays(a: AgreedReliability | undefined, runs: readonly WatchRun[] = [], events: readonly RelEvent[] = [], t = Date.now()): RelSays {
+  const items = relAll(a, runs, events, t);
+  if (!items.length) return { verdict: 'Not set up', text: 'Say what is counted, then start the watch at the machine.', tone: 'n' };
+  if (items.length === 1) return reliabilitySays(items[0].c, items[0].f);
+  if (items[0].f.hours <= 0) {
+    const names = items.map(i => plural(i.c.event));
+    return { verdict: 'Not watched yet', text: `Start the watch at the machine and tap the ${names.slice(0, -1).join(', ')} and ${names[names.length - 1]} as they happen — a button each.`, tone: 'n' };
+  }
+  const says = items.map(i => reliabilitySays(i.c, i.f));
+  const verdict = items.map(i => `${countTitle(i.c)} ${i.f.mtbfH !== undefined ? span(i.f.mtbfH) : 'none yet'}`).join(' · ');
+  return { verdict, text: says.map(x => x.text).join(' '), tone: worstTone(says.map(x => x.tone)) };
+}
+
+/** A COUNT IN A ROW — counted side by side, on the page and on paper. */
+export interface RelRow { id: string; title: string; n: number; mtbf: string; range: string; rate: string; against: string; tone: RelSays['tone']; costPerH?: number }
+
+const AGAINST: Record<RelVerdict, string> = { met: 'meets it', 'met-unsure': 'on it, not yet sure', 'short-unsure': 'below it, not yet sure', short: 'short of it' };
+
+export function relRows(items: readonly RelItem[], line?: RelCostLine): RelRow[] {
+  return items.map(({ c, f }) => {
+    const said = reliabilitySays(c, f), cost = relCost(f, c, line);
+    const per = cost.labourPerH !== undefined || cost.marginPerH !== undefined ? (cost.labourPerH ?? 0) + (cost.marginPerH ?? 0) : undefined;
+    return {
+      id: c.id, title: countTitle(c), n: f.n,
+      mtbf: f.mtbfH !== undefined ? span(f.mtbfH) : f.lo !== undefined ? `≥ ${span(f.lo)}` : '—',
+      range: f.mtbfH !== undefined ? `${span(f.lo ?? 0)}–${span(f.hi ?? 0)}` : '—',
+      rate: f.rate !== undefined ? perHour(f.rate) : '—',
+      against: c.targetMin ? `${span(c.targetMin / 60)} wanted — ${f.verdict ? AGAINST[f.verdict] : 'not yet watched'}` : 'no target',
+      tone: said.tone, ...(per !== undefined ? { costPerH: per } : {}),
+    };
+  });
 }

@@ -403,19 +403,34 @@ export interface StudyAgreed {
   reliability?: AgreedReliability;
 }
 
-/** A RELIABILITY STUDY's agreement (lib/ie/reliability): what counts as an
- *  event, in the floor's words — a stop, a failure, a pick, whatever the
- *  machine's function is — and, when the team has them, what an event can
- *  be, the MTBF it should reach and the minutes the line stands for each. */
-export interface AgreedReliability {
+/** ONE THING COUNTED on a reliability study — a stop, a failure, a pick, or
+ *  the floor's own word — each with its own button at the machine and its
+ *  own figures (lib/ie/reliability). Taken off, never erased: its taps are
+ *  kept and come back with it. */
+export interface RelCount {
+  id: string;
   /** "stop" — one, as it is said: "12 stops". */
-  event: string;
-  /** What an event can be, when the team tells them apart: jam, misfeed. */
-  kinds?: string[];
+  name: string;
   /** The MTBF wanted, in minutes of watched running. */
   targetMin?: number;
-  /** Minutes the line stands for each event, as the floor knows it — for
-   *  what the events cost. */
+  /** Minutes the line stands each time one happens, as the floor knows it —
+   *  for what they cost. */
+  downMin?: number;
+  removed?: boolean;
+}
+
+/** A RELIABILITY STUDY's agreement (lib/ie/reliability): what is counted —
+ *  one thing or several at once, all on the one watch (Rowland, 22 October:
+ *  "three buttons ... three data sets going on ... three of everything"). */
+export interface AgreedReliability {
+  counts?: RelCount[];
+  /** BEFORE 22 OCTOBER one thing was counted, with what one could be —
+   *  still read, as the first count (lib/ie/reliability countersOf); the
+   *  kinds were taken off the set-up the same day ("What can it be? ... I
+   *  don't know what that is"): several counts do what they were for. */
+  event?: string;
+  kinds?: string[];
+  targetMin?: number;
   downMin?: number;
 }
 
@@ -426,7 +441,14 @@ export interface WatchRun { id: string; from: number; to?: number; by?: string; 
 
 /** One event tapped at the machine, at the moment it was seen. Struck, never
  *  erased: a mistap keeps its place and counts for nothing. */
-export interface RelEvent { id: string; at: number; by?: string; kind?: string; note?: string; struck?: boolean }
+export interface RelEvent {
+  id: string; at: number; by?: string; note?: string; struck?: boolean;
+  /** Which thing counted (RelCount.id). None: the first — a tap made before
+   *  several were counted. */
+  count?: string;
+  /** What one was, on a study set up before 22 October. */
+  kind?: string;
+}
 
 /** A REMARK — commentary kept on a study, for its page and its paper. Taken
  *  off by striking, so Undo can bring it back. */

@@ -6,13 +6,12 @@
  * amber not yet sure, red short; without one it is grey, the team's to judge. */
 import { niceDay } from '../weeks';
 import { since, type LeanTile, type LeanTone, type LeanTrend } from '../lean';
-import type { AgreedReliability } from '../study';
-import { dayPoints, perHour, plural, span, type RelCost, type RelFigures, type RelSays } from './reliability';
+import { countTitle, dayPoints, perHour, plural, relCost, reliabilitySays, span, worstTone, type RelCost, type RelCostLine, type RelFigures, type RelItem, type RelSays, type RelSubject } from './reliability';
 
 const gbp = (n: number): string => `£${n >= 100 ? Math.round(n).toLocaleString('en-GB') : n.toFixed(2)}`;
 const TONE: Record<NonNullable<RelFigures['verdict']>, LeanTone> = { met: 'g', 'met-unsure': 'a', 'short-unsure': 'a', short: 'r' };
 
-export function relTiles(a: AgreedReliability, f: RelFigures, c: RelCost): LeanTile[] {
+export function relTiles(a: RelSubject, f: RelFigures, c: RelCost): LeanTile[] {
   const ev = a.event.trim() || 'event', evs = plural(ev);
   const want = a.targetMin && a.targetMin > 0 ? a.targetMin / 60 : undefined;
   /* the latest day watched against every day before it */
@@ -39,7 +38,7 @@ export function relTiles(a: AgreedReliability, f: RelFigures, c: RelCost): LeanT
 }
 
 /** THE TREND — the MTBF of each day watched, against the MTBF wanted. */
-export function relTrend(a: AgreedReliability, f: RelFigures): LeanTrend | undefined {
+export function relTrend(a: RelSubject, f: RelFigures): LeanTrend | undefined {
   const pts = dayPoints(f);
   if (pts.length < 2) return undefined;
   const want = a.targetMin && a.targetMin > 0 ? a.targetMin : undefined;
@@ -48,10 +47,22 @@ export function relTrend(a: AgreedReliability, f: RelFigures): LeanTrend | undef
 }
 
 /** THE CLOSING LINE — the MTBF, the rate and what it costs. */
-export function relClosing(a: AgreedReliability, f: RelFigures, c: RelCost, said: RelSays): { text: string; tone: LeanTone } {
+export function relClosing(a: RelSubject, f: RelFigures, c: RelCost, said: RelSays): { text: string; tone: LeanTone } {
   if (f.mtbfH === undefined) return { text: said.text, tone: said.tone };
   const ev = a.event.trim() || 'event';
   const money = c.labourPerH !== undefined || c.marginPerH !== undefined ? ` — ${gbp((c.labourPerH ?? 0) + (c.marginPerH ?? 0))} an hour of running` : '';
   const top = f.kinds.find(k => k.kind !== 'not said');
   return { text: `One ${ev} every ${span(f.mtbfH)} of running, ${perHour(f.rate ?? 0)}${money}${top ? `; the most, ${top.kind} (${top.n} of ${f.n})` : ''}.`, tone: said.tone };
+}
+
+/** THE CLOSING LINE OF THE STUDY — one count's, or each count's in turn, in
+ *  the most abnormal count's tone. */
+export function relClosings(items: readonly RelItem[], line?: RelCostLine): { text: string; tone: LeanTone } {
+  if (!items.length) return { text: 'Say what is counted, then start the watch at the machine.', tone: 'n' };
+  const each = items.map(({ c, f }) => {
+    const said = reliabilitySays(c, f);
+    return { ...relClosing(c, f, relCost(f, c, line), said), title: countTitle(c) };
+  });
+  if (each.length === 1) return { text: each[0].text, tone: each[0].tone };
+  return { text: each.map(x => `${x.title}: ${x.text.charAt(0).toLowerCase()}${x.text.slice(1).replace(/\.$/, '')}`).join('; ') + '.', tone: worstTone(each.map(x => x.tone)) };
 }

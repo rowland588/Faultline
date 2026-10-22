@@ -5,13 +5,17 @@
  * time an event happened ... I press the button every time I see an event,
  * also I start a clock watch I can stop and start".
  *
- * Two big controls, as a person at a machine uses them: the WATCH — Start
- * when watching it run, Stop while it is down, at a break or when leaving —
- * and the EVENT button, a tap each time one is seen (one a kind when the team
- * tells them apart). The last tap can be undone at once; every tap and every
- * stretch can be struck later and is kept. Coming back another day carries on
- * the same study: the watched time and the events add up, and the figures
- * firm up as they do.
+ * Big controls, as a person at a machine uses them: the WATCH — Start when
+ * watching it run, Stop while it is down, at a break or when leaving — and a
+ * BUTTON FOR EACH THING COUNTED, a tap each time one is seen. Rowland, 22
+ * October: "I could have a failure, but I also might want to do stops. I
+ * might want to count something else ... three buttons ... three data sets
+ * going on." So one study counts one thing or several at once, the floor's
+ * own words among them, all on the one watch — and each has every figure of
+ * its own: counted side by side, and each one's page a chip away. The last
+ * tap can be undone at once; every tap and every stretch can be struck later
+ * and is kept. Coming back another day carries on the same study: the
+ * watched time and the taps add up, and the figures firm up as they do.
  *
  * The lean page around it (docs/LEAN-PAGE.md): the band, the tiles (MTBF and
  * its 90% bounds, the failure rate, watched time, events, what it costs),
@@ -28,11 +32,12 @@ import { can as canAt } from '../lib/access';
 import { now, uid } from '../lib/ids';
 import { niceDay, isoDay } from '../lib/weeks';
 import { nav } from '../state/useRoute';
-import type { AgreedReliability, RelEvent, Remark, ToolStudy, WatchRun } from '../lib/study';
+import type { AgreedReliability, RelCount, RelEvent, Remark, ToolStudy, WatchRun } from '../lib/study';
 import {
-  costWords, LEFT_ON_H, perHour, plural, relCost, reliability, reliabilityInsights, reliabilitySays, runningRun, span, watchedSpans, type RelFigures,
+  costWords, countersOf, countTitle, FIRST_COUNT, LEFT_ON_H, perHour, plural, relAll, relCost, reliabilityInsights, reliabilitySays, relRows, runningRun, span,
+  studyReliabilitySays, watchedSpans, type RelCounter, type RelFigures, type RelItem,
 } from '../lib/ie/reliability';
-import { relClosing, relTiles, relTrend } from '../lib/ie/reliabilityLean';
+import { relClosings, relTiles, relTrend } from '../lib/ie/reliabilityLean';
 import { WhereItSits, UsedFor, useBetter } from '../ui/StudyPlace';
 import { LeanActions, LeanBand, LeanClosing, LeanInsights, LeanPanel, LeanTiles, LeanTrend } from '../ui/Lean';
 import { bandPage } from '../lib/lean';
@@ -49,8 +54,9 @@ const clock = (ms: number) => {
   return `${h}:${String(m).padStart(2, '0')}:${String(x).padStart(2, '0')}`;
 };
 const cap = (w: string) => w.charAt(0).toUpperCase() + w.slice(1);
-/** The words a set-up offers for what counts as an event. */
+/** The words a set-up offers for what is counted — the floor's own added beside them. */
 const OFFERED = ['stop', 'failure', 'jam', 'pick', 'reject', 'alarm'];
+const gbp = (n: number): string => `£${n >= 100 ? Math.round(n).toLocaleString('en-GB') : n.toFixed(2)}`;
 
 export function ReliabilityScreen({ id }: { id: string }) {
   const [s, setS] = useState<ToolStudy | null | undefined>(undefined);
@@ -85,12 +91,13 @@ function Reliability({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canA
   /* never behind the newest tap or press: a stop tapped this instant counts this instant */
   const t = Math.max(tick, ...events.map(e => e.at), ...runs.map(r => r.to ?? r.from));
   useWakeLock(!!run && !closed);
-  const f = useMemo(() => reliability(a, runs, events, t), [a, runs, events, t]);
-  const said = reliabilitySays(a, f);
+  /* EVERY THING COUNTED, each from its own taps on the one watch; the one seen chosen by its chip */
+  const items = useMemo(() => relAll(a, runs, events, t), [a, runs, events, t]);
+  const [seen, setSeen] = useState<string | undefined>(undefined);
+  const item = items.find(i => i.c.id === seen) ?? items[0];
+  const said = studyReliabilitySays(a, runs, events, t);
   const line = useFactoryLines(s.workspaceId).find(x => x.id === s.workspaceId);
-  const cost = relCost(f, a, line);
   const { steps, tests } = useBetter(s, me);
-  const trend = a ? relTrend(a, f) : undefined;
 
   return (
     <div className="wrap ie rl">
@@ -103,32 +110,14 @@ function Reliability({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canA
         <WhereItSits s={s} can={can} />
       </div>
 
-      {!a || setting ? (
-        <SetUp s={s} canAgree={can.agree && !closed} hasEvents={events.length > 0} onDone={() => setSetting(false)} cancel={a ? () => setSetting(false) : undefined} />
+      {!a || !items.length || setting ? (
+        <SetUp s={s} canAgree={can.agree && !closed} events={events} onDone={() => setSetting(false)} cancel={a && items.length ? () => setSetting(false) : undefined} />
       ) : (
         <>
-          {!closed && can.edit && <Watch s={s} a={a} runs={runs} events={events} t={t} me={me} />}
-          <LeanTiles tiles={relTiles(a, f, cost)} className="ie-strip" />
-          <div className="ie-says"><p className={'ie-say is-' + said.tone}>{said.text}</p></div>
-          <LeanInsights insights={reliabilityInsights(a, f)} />
-          {/* the graphs side by side on a desk, one under the other on a phone */}
-          <div className="rl-graphs">
-          {f.n > 0 && (
-            <LeanPanel title={`${cap(plural(a.event))} against watched hours`} className="ln-solo">
-              <Cumulative f={f} event={a.event} />
-            </LeanPanel>
-          )}
-          {(f.gaps?.n ?? 0) >= 3 && (
-            <LeanPanel title={`Running time between one ${a.event} and the next`} className="ln-solo">
-              <Gaps f={f} />
-            </LeanPanel>
-          )}
-          {trend && <LeanPanel title={trend.title} className="ln-solo"><LeanTrend trend={trend} /></LeanPanel>}
-          </div>
-          {f.kinds.length > 0 && <Kinds f={f} event={a.event} />}
-          {cost.downMinPerH !== undefined && <p className="sub rl-cost">What it costs: {costWords(cost)}.</p>}
-          {f.days.length > 0 && <Days f={f} />}
-          <EveryEvent a={a} events={events} canStrike={can.edit && !closed} sid={s.id} />
+          {!closed && can.edit && <Watch s={s} counters={items.map(i => i.c)} runs={runs} events={events} t={t} me={me} />}
+          {items.length > 1 && <Together items={items} line={line} seen={item.c.id} onSeen={setSeen} />}
+          {item && <Counted item={item} items={items} line={line} one={items.length === 1} />}
+          <EveryEvent counters={countersOf(a, true)} events={events} canStrike={can.edit && !closed} sid={s.id} />
           <EveryStretch runs={runs} canStrike={can.edit && !closed} sid={s.id} t={t} />
           <p className="ie-agreed sub">
             Agreed: <b>{agreedWords(a)}</b>
@@ -136,11 +125,11 @@ function Reliability({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canA
           </p>
           <Commentary s={s} canEdit={can.edit} me={me} />
           <UsedFor s={s} can={can} me={me} />
-          <Act s={s} f={f} text={said.text} tone={said.tone} can={can} me={me} />
+          <Act s={s} items={items} text={said.text} tone={said.tone} can={can} me={me} />
           <LeanPanel title="Action plan" className="ln-solo ln-plan-p">
             <LeanActions actions={raisedFrom(s, steps, tests)} empty="Nothing raised from it yet — Make it better raises a fix or a countermeasure from its figures." />
           </LeanPanel>
-          <LeanClosing closing={relClosing(a, f, cost, said)} />
+          <LeanClosing closing={relClosings(items, line)} />
         </>
       )}
     </div>
@@ -160,52 +149,90 @@ function useWakeLock(on: boolean) {
 }
 
 export function agreedWords(a: AgreedReliability): string {
-  return [`an event is a ${a.event}`, a.kinds?.length ? `told apart as ${a.kinds.join(', ')}` : '',
-    a.targetMin ? `MTBF wanted ${span(a.targetMin / 60)}` : 'no MTBF agreed', a.downMin ? `${a.downMin} min stood a ${a.event}` : ''].filter(Boolean).join(' · ');
+  return countersOf(a).map(c => [c.event, c.targetMin ? `MTBF wanted ${span(c.targetMin / 60)}` : 'no target', c.downMin ? `${c.downMin} min stood each` : ''].filter(Boolean).join(', ')).join(' · ');
 }
 
-/* ------------------------------------------------------------------ set up */
-function SetUp({ s, canAgree, hasEvents, onDone, cancel }: { s: ToolStudy; canAgree: boolean; hasEvents: boolean; onDone: () => void; cancel?: () => void }) {
+/* ------------------------------------------------------------------ set up: what is counted */
+interface Row { id: string; name: string; target: string; down: string; removed?: boolean }
+const rowOf = (c: RelCounter): Row => ({ id: c.id, name: c.event, target: c.targetMin ? String(c.targetMin) : '', down: c.downMin ? String(c.downMin) : '', ...(c.removed ? { removed: true } : {}) });
+
+function SetUp({ s, canAgree, events, onDone, cancel }: { s: ToolStudy; canAgree: boolean; events: RelEvent[]; onDone: () => void; cancel?: () => void }) {
   const a = s.agreed?.reliability;
-  const [event, setEvent] = useState(a?.event ?? 'stop');
-  const [kinds, setKinds] = useState((a?.kinds ?? []).join(', '));
-  const [target, setTarget] = useState(a?.targetMin ? String(a.targetMin) : '');
-  const [down, setDown] = useState(a?.downMin ? String(a.downMin) : '');
-  const tg = target.trim() ? Number(target) : undefined, dn = down.trim() ? Number(down) : undefined;
-  const problem = !event.trim() ? 'What counts as an event — a stop, a failure, a pick.'
-    : tg !== undefined && !(tg > 0 && tg <= 100_000) ? 'The MTBF wanted, in minutes — or leave it empty.'
-    : dn !== undefined && !(dn > 0 && dn <= 1440) ? 'The minutes the line stands for each — or leave it empty.' : '';
+  /* what was agreed, a row each — a study set up before 22 October as its one count, keeping its id so its taps stay its own */
+  const [rows, setRows] = useState<Row[]>(() => {
+    const had = countersOf(a, true).map(rowOf);
+    return had.length ? had : [{ id: uid(), name: 'stop', target: '', down: '' }];
+  });
+  const [own, setOwn] = useState('');
+  const live = rows.filter(r => !r.removed), off = rows.filter(r => r.removed);
+  const first = rows[0]?.id;
+  const taps = (id: string) => events.filter(e => !e.struck && (e.count === id || (!e.count && id === first))).length;
+  const has = (name: string) => rows.find(r => r.name.trim().toLowerCase() === name.trim().toLowerCase());
+  const set = (id: string, p: Partial<Row>) => setRows(rs => rs.map(r => (r.id === id ? { ...r, ...p } : r)));
+  /* a word offered or typed — brought back if it was taken off, never a second of one name */
+  const add = (name: string) => {
+    const v = name.trim().toLowerCase();
+    if (!v) return;
+    const was = has(v);
+    if (was) { if (was.removed) set(was.id, { removed: undefined }); return; }
+    setRows(rs => [...rs, { id: uid(), name: v, target: '', down: '' }]);
+  };
+  const num = (v: string) => (v.trim() ? Number(v) : undefined);
+  const names = live.map(r => r.name.trim().toLowerCase());
+  const problem = !live.length ? 'Count at least one thing — a stop, a failure, a pick, or your own word.'
+    : live.some(r => !r.name.trim()) ? 'Every thing counted needs a name.'
+    : new Set(names).size !== names.length ? 'Two things counted have the same name.'
+    : live.some(r => { const x = num(r.target); return x !== undefined && !(x > 0 && x <= 100_000); }) ? 'An MTBF wanted is minutes, more than 0 — or leave it empty.'
+    : live.some(r => { const x = num(r.down); return x !== undefined && !(x > 0 && x <= 1440); }) ? 'The minutes the line stands is more than 0 — or leave it empty.' : '';
   const save = () => {
     if (problem || !canAgree) return;
-    const ks = [...new Set(kinds.split(',').map(x => x.trim()).filter(Boolean))];
-    const agreed: AgreedReliability = { event: event.trim().toLowerCase(), ...(ks.length ? { kinds: ks } : {}), ...(tg !== undefined ? { targetMin: tg } : {}), ...(dn !== undefined ? { downMin: dn } : {}) };
-    void patchStudy(s.id, cur => ({ agreed: { ...cur.agreed, reliability: agreed } }));
+    const counts: RelCount[] = rows.map(r => {
+      const tg = num(r.target), dn = num(r.down);
+      return { id: r.id, name: r.name.trim().toLowerCase(), ...(tg !== undefined ? { targetMin: tg } : {}), ...(dn !== undefined ? { downMin: dn } : {}), ...(r.removed ? { removed: true } : {}) };
+    });
+    void patchStudy(s.id, cur => ({ agreed: { ...cur.agreed, reliability: { counts } } }));
     onDone();
   };
   if (!canAgree) return (
-    <div className="ie-agree is-wait"><p><b>It isn’t set up yet.</b> The project’s owner says what counts as an event before the watch starts.</p></div>
+    <div className="ie-agree is-wait"><p><b>It isn’t set up yet.</b> The project’s owner says what is counted before the watch starts.</p></div>
   );
   return (
-    <form className="ie-agree" onSubmit={e => { e.preventDefault(); save(); }}>
-      <h2>What counts, and what it should be</h2>
-      <p className="sub">Agreed before the watch starts. You then stand at the machine: Start the watch while it runs, Stop it while it is down or nobody watches, and tap each event as you see it. MTBF is the watched running time over the events.</p>
-      {hasEvents && <p className="ie-note">Events are already in: they keep their times, and are read against what is agreed now.</p>}
-      <label className="field"><span className="field-label">What counts as an event?</span>
-        <input className="text-input" value={event} maxLength={30} onChange={e => setEvent(e.target.value)} aria-label="What counts as an event" list="rl-offered" />
-        <datalist id="rl-offered">{OFFERED.map(x => <option key={x} value={x} />)}</datalist>
+    <form className="ie-agree rl-setup" onSubmit={e => { e.preventDefault(); save(); }}>
+      <h2>What are you counting?</h2>
+      <p className="sub">Count one thing or several at once — a button each at the machine, all on the same watch. Each thing counted gets its own MTBF, failure rate, graphs and cost. Start the watch while the machine runs, stop it while it is down or nobody watches, and tap the button each time you see one.</p>
+      {events.length > 0 && <p className="ie-note">Taps are already in: each keeps its time and the thing it was counted as.</p>}
+      <ul className="rl-counts">
+        {live.map((r, i) => (
+          <li key={r.id} className="rl-count" data-count={r.id}>
+            <label className="field rl-count-name"><span className="field-label">{i === 0 ? 'Counting' : 'And counting'}</span>
+              <input className="text-input" value={r.name} maxLength={30} aria-label={`What is counted, ${i + 1}`} onChange={e => set(r.id, { name: e.target.value })} />
+            </label>
+            <label className="field"><span className="field-label">MTBF wanted, minutes</span>
+              <input className="text-input" inputMode="decimal" value={r.target} placeholder="no target" aria-label={`MTBF wanted for ${r.name || 'it'}, minutes`} onChange={e => set(r.id, { target: e.target.value })} />
+            </label>
+            <label className="field"><span className="field-label">Minutes the line stands each time</span>
+              <input className="text-input" inputMode="decimal" value={r.down} placeholder="not known" aria-label={`Minutes the line stands for each ${r.name || 'one'}`} onChange={e => set(r.id, { down: e.target.value })} />
+            </label>
+            <button type="button" className="cw-link sp-rm rl-count-off" aria-label={`Take ${r.name || 'it'} off`} onClick={() => (taps(r.id) || a ? set(r.id, { removed: true }) : setRows(rs => rs.filter(x => x.id !== r.id)))}>Take off</button>
+          </li>
+        ))}
+      </ul>
+      <p className="sub rl-count-help"><b>MTBF wanted</b> — the running time you want between one and the next; leave it empty if you have no target. <b>Minutes the line stands each time</b> — how long the line is stopped when one happens; it prices them; leave it empty if it does not stop the line or you do not know.</p>
+      <div className="field"><span className="field-label">Add something to count</span>
         <span className="chip-row" role="group" aria-label="Offered">
-          {OFFERED.map(x => <button key={x} type="button" className={'chip' + (event.trim().toLowerCase() === x ? ' on' : '')} aria-pressed={event.trim().toLowerCase() === x} onClick={() => setEvent(x)}>{x}</button>)}
+          {OFFERED.filter(x => !live.some(r => r.name.trim().toLowerCase() === x)).map(x => <button key={x} type="button" className="chip" onClick={() => add(x)}>+ {x}</button>)}
         </span>
-        <span className="sub">One, in the floor’s words — whatever the machine’s function is: a stop, a failure, a pick.</span>
-      </label>
-      <label className="field"><span className="field-label">What can one be? <i className="sub">optional</i></span>
-        <input className="text-input" value={kinds} onChange={e => setKinds(e.target.value)} placeholder="e.g. jam, misfeed, sensor" aria-label="Kinds, separated by commas" />
-        <span className="sub">If you tell them apart: a button each at the machine, and each one’s count and MTBF.</span>
-      </label>
-      <div className="ie-agree-grid">
-        <label className="field"><span className="field-label">MTBF wanted, minutes <i className="sub">optional</i></span><input className="text-input" inputMode="decimal" value={target} onChange={e => setTarget(e.target.value)} aria-label="MTBF wanted, minutes" /></label>
-        <label className="field"><span className="field-label">Minutes the line stands for each <i className="sub">optional</i></span><input className="text-input" inputMode="decimal" value={down} onChange={e => setDown(e.target.value)} aria-label="Minutes the line stands for each" /></label>
+        <span className="ws-add">
+          <input className="text-input" value={own} maxLength={30} placeholder="Your own — e.g. bottle down" aria-label="Add your own thing to count"
+            onChange={e => setOwn(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(own); setOwn(''); } }} />
+          <button type="button" className="btn" disabled={!own.trim()} onClick={() => { add(own); setOwn(''); }}>Add</button>
+        </span>
       </div>
+      {off.length > 0 && (
+        <p className="sub rl-count-gone">Taken off — its taps kept: {off.map(r => (
+          <span key={r.id} className="rl-count-back">{r.name}{taps(r.id) ? ` (${taps(r.id)} tap${taps(r.id) === 1 ? '' : 's'})` : ''} <button type="button" className="linkish" onClick={() => set(r.id, { removed: undefined })}>Bring back</button></span>
+        ))}</p>
+      )}
       {problem && <p className="ie-problem">{problem}</p>}
       <div className="ie-agree-act">
         <button type="submit" className="btn btn-primary" disabled={!!problem}>{a ? 'Keep it' : 'Set it up'}</button>
@@ -215,13 +242,14 @@ function SetUp({ s, canAgree, hasEvents, onDone, cancel }: { s: ToolStudy; canAg
   );
 }
 
-/* ------------------------------------------------------------------ the watch and the event button */
-function Watch({ s, a, runs, events, t, me }: { s: ToolStudy; a: AgreedReliability; runs: WatchRun[]; events: RelEvent[]; t: number; me?: string }) {
+/* ------------------------------------------------------------------ the watch and a button for each thing counted */
+function Watch({ s, counters, runs, events, t, me }: { s: ToolStudy; counters: RelCounter[]; runs: WatchRun[]; events: RelEvent[]; t: number; me?: string }) {
   const run = runningRun(runs);
   const spans = watchedSpans(runs, t);
   const watched = spans.reduce((n, [x, y]) => n + (y - x), 0);
   const by = me ? { by: me } : {};
   const [noting, setNoting] = useState('');
+  const first = countersOf(s.agreed?.reliability, true)[0]?.id ?? FIRST_COUNT;
   const start = () => void patchStudy(s.id, cur => ({ facts: { ...cur.facts, watch: [...(cur.facts.watch ?? []), { id: uid(), from: now(), ...by }] } }));
   const stop = (when?: number) => {
     const at = when ?? now();
@@ -230,24 +258,27 @@ function Watch({ s, a, runs, events, t, me }: { s: ToolStudy; a: AgreedReliabili
       return { facts: { ...cur.facts, watch: (cur.facts.watch ?? []).map(r => (open && r.id === open.id ? { ...r, to: at } : r)) } };
     });
   };
-  const tap = (kind?: string) => {
+  const tap = (count: string) => {
     if (!run) return;
-    const e: RelEvent = { id: uid(), at: now(), ...by, ...(kind ? { kind } : {}) };
+    const e: RelEvent = { id: uid(), at: now(), ...by, count };
     try { navigator.vibrate?.(60); } catch { /* not every phone can */ }
     setNoting('');
     void patchStudy(s.id, cur => ({ facts: { ...cur.facts, events: [...(cur.facts.events ?? []), e] } }));
   };
   const edit = (id: string, p: Partial<RelEvent>) => void patchStudy(s.id, cur => ({ facts: { ...cur.facts, events: (cur.facts.events ?? []).map(x => (x.id === id ? { ...x, ...p } : x)) } }));
+  const inWatch = (e: RelEvent) => !e.struck && spans.some(([x, y]) => e.at >= x && e.at <= y);
+  const countOf = (e: RelEvent) => e.count ?? first;
+  const counted = (id: string) => events.filter(e => countOf(e) === id && inWatch(e)).length;
   const last = [...events].sort((x, y) => y.at - x.at)[0];
-  const counted = events.filter(e => !e.struck && spans.some(([x, y]) => e.at >= x && e.at <= y)).length;
   const fresh = last && !last.struck && t - last.at < 10 * 60_000 ? last : undefined;
+  const freshC = fresh ? counters.find(c => c.id === countOf(fresh)) : undefined;
   /* LEFT ON? A stretch longer than a long shift is asked about, and stopped at
      the last tap in it (or where it started) in one press */
   const leftOn = run && t - run.from > LEFT_ON_H * 3_600_000;
   const lastIn = run ? events.filter(e => !e.struck && e.at >= run.from).sort((x, y) => y.at - x.at)[0] : undefined;
 
   return (
-    <div className={'rl-watch' + (run ? ' is-on' : '')} role="group" aria-label="The watch and the event button">
+    <div className={'rl-watch' + (run ? ' is-on' : '')} role="group" aria-label="The watch and a button for each thing counted">
       <div className="rl-clock">
         <span className="rl-k">{run ? 'Watching' : 'The watch is stopped'}</span>
         <b className="rl-time" aria-live="off">{clock(watched)}</b>
@@ -256,37 +287,93 @@ function Watch({ s, a, runs, events, t, me }: { s: ToolStudy; a: AgreedReliabili
         {leftOn && run && (
           <p className="rl-lefton" role="status">
             <b>Running {clock(t - run.from)} without a stop — left on?</b>{' '}
-            <button type="button" className="linkish" onClick={() => stop(lastIn?.at ?? run.from)}>{lastIn ? `Stop it at the last ${a.event}, ${niceDay(isoDay(lastIn.at))} ${hm(lastIn.at)}` : `Stop it where it started, ${hm(run.from)}`}</button>
+            <button type="button" className="linkish" onClick={() => stop(lastIn?.at ?? run.from)}>{lastIn ? `Stop it at the last tap, ${niceDay(isoDay(lastIn.at))} ${hm(lastIn.at)}` : `Stop it where it started, ${hm(run.from)}`}</button>
           </p>
         )}
       </div>
       <div className="rl-tap">
-        <button type="button" className="rl-event" disabled={!run} onClick={() => tap()} aria-label={`Tap a ${a.event}`}>
-          <b>{cap(a.event)}</b>
-          <span>{run ? `tap each one you see · ${counted} so far` : 'start the watch first — an event counts in watched time'}</span>
-        </button>
-        {(a.kinds ?? []).length > 0 && (
-          <span className="rl-kinds" role="group" aria-label={`Tap a ${a.event} of a kind`}>
-            {(a.kinds ?? []).map(k => <button key={k} type="button" className="btn rl-kind" disabled={!run} onClick={() => tap(k)}>{k}</button>)}
-          </span>
-        )}
-        {fresh && (
+        <div className={'rl-buttons' + (counters.length > 1 ? ' is-many' : '')}>
+          {counters.map(c => (
+            <button key={c.id} type="button" className="rl-event" data-count={c.id} disabled={!run} onClick={() => tap(c.id)} aria-label={`Tap a ${c.event}`}>
+              <b>{cap(c.event)}</b>
+              <span>{run ? `${counted(c.id)} so far` : 'start the watch first'}</span>
+            </button>
+          ))}
+        </div>
+        {!run && <p className="sub rl-tap-why">A tap counts only while the watch runs — the MTBF is the watched running time over the taps.</p>}
+        {fresh && freshC && (
           <div className="rl-last" aria-live="polite">
-            <span><b>{cap(a.event)} {counted} at {hms(fresh.at)}</b>{fresh.kind ? ` — ${fresh.kind}` : ''}{fresh.note ? ` · ${fresh.note}` : ''}</span>
-            <button type="button" className="linkish" onClick={() => edit(fresh.id, { struck: true })} aria-label={`Undo the ${a.event} at ${hms(fresh.at)}`}>Undo</button>
-            {!fresh.kind && (a.kinds ?? []).length > 0 && (
-              <span className="chip-row" role="group" aria-label="What was it?">
-                {(a.kinds ?? []).map(k => <button key={k} type="button" className="chip" onClick={() => edit(fresh.id, { kind: k })}>{k}</button>)}
-              </span>
-            )}
+            <span><b>{cap(freshC.event)} {counted(freshC.id)} at {hms(fresh.at)}</b>{fresh.note ? ` · ${fresh.note}` : ''}</span>
+            <button type="button" className="linkish" onClick={() => edit(fresh.id, { struck: true })} aria-label={`Undo the ${freshC.event} at ${hms(fresh.at)}`}>Undo</button>
             <form className="rl-note" onSubmit={e => { e.preventDefault(); if (noting.trim()) { edit(fresh.id, { note: noting.trim() }); setNoting(''); } }}>
-              <input className="text-input" value={noting} maxLength={120} placeholder="What was seen — optional" aria-label={`A note on the ${a.event}`} onChange={e => setNoting(e.target.value)} />
+              <input className="text-input" value={noting} maxLength={120} placeholder="What was seen — if you want to say" aria-label={`A note on the ${freshC.event}`} onChange={e => setNoting(e.target.value)} />
               <button type="submit" className="btn" disabled={!noting.trim()}>Add</button>
             </form>
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ counted side by side, and each one's own */
+/** EVERY THING COUNTED SIDE BY SIDE — a row each, its MTBF, range, rate,
+ *  against its target and what it costs; a chip each to see its own. */
+function Together({ items, line, seen, onSeen }: { items: RelItem[]; line?: Parameters<typeof relRows>[1]; seen: string; onSeen: (id: string) => void }) {
+  const rows = relRows(items, line);
+  return (
+    <LeanPanel title="Counted side by side" className="ln-solo rl-together-p">
+      <div className="rl-together-w">
+        <table className="rl-together">
+          <thead><tr><th>Counted</th><th>Taps</th><th>MTBF</th><th>90% sure</th><th>An hour</th><th>Against</th><th>£ an hour</th></tr></thead>
+          <tbody>
+            {rows.map(r => (
+              <tr key={r.id} className={(r.id === seen ? 'is-seen ' : '') + 'is-' + r.tone} data-count={r.id} onClick={() => onSeen(r.id)}>
+                <td data-label="Counted"><b>{r.title}</b></td><td data-label="Taps">{r.n}</td><td data-label="MTBF"><b>{r.mtbf}</b></td><td data-label="90% sure">{r.range}</td><td data-label="An hour">{r.rate}</td>
+                <td data-label="Against" className="rl-against">{r.against}</td><td data-label="£ an hour">{r.costPerH !== undefined ? gbp(r.costPerH) : '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="chip-row rl-seen" role="group" aria-label="Seen for">
+        {items.map(i => <button key={i.c.id} type="button" className={'chip' + (i.c.id === seen ? ' on' : '')} aria-pressed={i.c.id === seen} onClick={() => onSeen(i.c.id)}>{countTitle(i.c)}</button>)}
+      </div>
+    </LeanPanel>
+  );
+}
+
+/** ONE THING COUNTED, IN FULL — its tiles, sentence, what it means, its
+ *  graphs, what it costs and its days. */
+function Counted({ item, items, line, one }: { item: RelItem; items: RelItem[]; line?: Parameters<typeof relCost>[2]; one: boolean }) {
+  const { c, f } = item;
+  const cost = relCost(f, c, line);
+  const said = reliabilitySays(c, f);
+  const trend = relTrend(c, f);
+  return (
+    <section className="rl-counted" data-count={c.id} aria-label={countTitle(c)}>
+      {!one && <h2 className="rl-counted-h">{countTitle(c)}</h2>}
+      <LeanTiles tiles={relTiles(c, f, cost)} className="ie-strip" />
+      <div className="ie-says"><p className={'ie-say is-' + said.tone}>{said.text}</p></div>
+      <LeanInsights insights={reliabilityInsights(c, f)} />
+      {/* the graphs side by side on a desk, one under the other on a phone */}
+      <div className="rl-graphs">
+        {f.n > 0 && (
+          <LeanPanel title={`${countTitle(c)} against watched hours`} className="ln-solo">
+            <Cumulative f={f} event={c.event} others={one ? [] : items.filter(i => i.c.id !== c.id)} />
+          </LeanPanel>
+        )}
+        {(f.gaps?.n ?? 0) >= 3 && (
+          <LeanPanel title={`Running time between one ${c.event} and the next`} className="ln-solo">
+            <Gaps f={f} />
+          </LeanPanel>
+        )}
+        {trend && <LeanPanel title={trend.title} className="ln-solo"><LeanTrend trend={trend} /></LeanPanel>}
+      </div>
+      {f.kinds.length > 0 && <Kinds f={f} event={c.event} />}
+      {cost.downMinPerH !== undefined && <p className="sub rl-cost">What it costs: {costWords(cost)}.</p>}
+      {f.days.length > 0 && <Days f={f} title={countTitle(c)} />}
+    </section>
   );
 }
 
@@ -297,14 +384,19 @@ const niceStep = (max: number, parts = 4): number => {
 };
 
 /** Events against watched hours — a straight line is a steady rate; bending
- *  up, they come faster; flattening, slower. The dashed line is the rate overall. */
-function Cumulative({ f, event }: { f: RelFigures; event: string }) {
-  const W = 360, H = 190, L = 34, B = 28, T = 10, R = 10;
-  const xMax = Math.max(f.hours, 1e-6), yMax = Math.max(f.n, 1);
+ *  up, they come faster; flattening, slower. The dashed line is the rate
+ *  overall. The other things counted on the same watch drawn thin beside it,
+ *  each named at its end. */
+function Cumulative({ f, event, others = [] }: { f: RelFigures; event: string; others?: RelItem[] }) {
+  const W = 360, H = 190, L = 34, B = 28, T = 10, R = others.length ? 64 : 10;
+  const xMax = Math.max(f.hours, 1e-6), yMax = Math.max(f.n, ...others.map(o => o.f.n), 1);
   const x = (h: number) => L + (h / xMax) * (W - L - R), y = (n: number) => T + (1 - n / yMax) * (H - T - B);
-  let d = `M${x(0)},${y(0)}`;
-  for (const p of f.points) d += ` H${x(p.h)} V${y(p.n)}`;
-  d += ` H${x(f.hours)}`;
+  const stepPath = (g: RelFigures) => {
+    let p = `M${x(0)},${y(0)}`;
+    for (const q of g.points) p += ` H${x(q.h)} V${y(q.n)}`;
+    return `${p} H${x(g.hours)}`;
+  };
+  const d = stepPath(f);
   const xs = niceStep(xMax), ys = Math.max(1, Math.round(niceStep(yMax)));
   return (
     <figure className="rl-fig">
@@ -316,11 +408,18 @@ function Cumulative({ f, event }: { f: RelFigures; event: string }) {
           <text key={`x${v}`} className="ln-ax rl-axx" x={x(v)} y={H - B + 13}>{+v.toFixed(2)}</text>
         ))}
         <line className="rl-steady" x1={x(0)} y1={y(0)} x2={x(f.hours)} y2={y(f.n)} />
+        {others.map(o => (
+          <g key={o.c.id} className="rl-other-g">
+            <path className="rl-other" d={stepPath(o.f)} />
+            <text className="ln-ax rl-other-l" x={x(o.f.hours) + 4} y={y(o.f.n) + 3}>{plural(o.c.event)} {o.f.n}</text>
+          </g>
+        ))}
         <path className="rl-step" d={d} />
+        {others.length > 0 && <text className="ln-ax rl-other-l is-this" x={x(f.hours) + 4} y={y(f.n) + 3}>{plural(event)} {f.n}</text>}
         {f.points.map(p => <circle key={p.n} className="rl-dot" cx={x(p.h)} cy={y(p.n)} r={2.4}><title>{`${p.n} at ${span(p.h)} watched`}</title></circle>)}
         <text className="ln-ax rl-axx" x={(L + W - R) / 2} y={H - 4}>hours watched</text>
       </svg>
-      <figcaption className="ln-legend"><span className="ln-key rl-key-step" aria-hidden /> {plural(event)} as they came · <span className="ln-key rl-key-steady" aria-hidden /> the rate overall, {perHour(f.rate ?? 0)}</figcaption>
+      <figcaption className="ln-legend"><span className="ln-key rl-key-step" aria-hidden /> {plural(event)} as they came · <span className="ln-key rl-key-steady" aria-hidden /> the rate overall, {perHour(f.rate ?? 0)}{others.length ? <> · <span className="ln-key rl-key-other" aria-hidden /> the others counted on the same watch</> : null}</figcaption>
     </figure>
   );
 }
@@ -374,11 +473,11 @@ function Kinds({ f, event }: { f: RelFigures; event: string }) {
   );
 }
 
-function Days({ f }: { f: RelFigures }) {
+function Days({ f, title }: { f: RelFigures; title: string }) {
   return (
     <LeanPanel title="Day by day" className="ln-solo">
       <table className="rl-days">
-        <thead><tr><th>Day</th><th>Watched</th><th>Events</th><th>MTBF</th></tr></thead>
+        <thead><tr><th>Day</th><th>Watched</th><th>{title}</th><th>MTBF</th></tr></thead>
         <tbody>
           {f.days.map(d => (
             <tr key={d.day}><td>{niceDay(d.day, { weekday: 'short' })}</td><td>{span(d.hours)}</td><td>{d.n}</td><td>{d.mtbfH !== undefined ? span(d.mtbfH) : `none in ${span(d.hours)}`}</td></tr>
@@ -391,7 +490,8 @@ function Days({ f }: { f: RelFigures }) {
 }
 
 /* ------------------------------------------------------------------ every event, every stretch */
-function EveryEvent({ a, events, canStrike, sid }: { a: AgreedReliability; events: RelEvent[]; canStrike: boolean; sid: string }) {
+function EveryEvent({ counters, events, canStrike, sid }: { counters: RelCounter[]; events: RelEvent[]; canStrike: boolean; sid: string }) {
+  const name = (e: RelEvent) => counters.find(c => c.id === (e.count ?? counters[0]?.id))?.event ?? 'tap';
   const [open, setOpen] = useState(false);
   if (!events.length) return null;
   const struck = events.filter(x => x.struck).length;
@@ -400,14 +500,14 @@ function EveryEvent({ a, events, canStrike, sid }: { a: AgreedReliability; event
   return (
     <div className="ie-all">
       <button type="button" className="linkish" aria-expanded={open} onClick={() => setOpen(o => !o)}>
-        {open ? 'Hide' : 'Every'} {a.event} — {events.length}{struck ? `, ${struck} struck` : ''}
+        {open ? 'Hide' : 'Every'} tap — {events.length}{struck ? `, ${struck} struck` : ''}
       </button>
       {open && (
         <ol className="ie-rows">
           {sorted.map(x => (
             <li key={x.id} className={x.struck ? 'is-struck' : ''}>
               <span className="ie-no">{niceDay(isoDay(x.at))} {hms(x.at)}</span>
-              <b>{x.kind ?? cap(a.event)}</b>
+              <b>{cap(name(x))}{x.kind ? ` — ${x.kind}` : ''}</b>
               <span className="sub">{[x.note, x.by ? `by ${x.by}` : ''].filter(Boolean).join(' · ')}</span>
               {canStrike && <button type="button" className="linkish" onClick={() => set(x.id, !x.struck)}>{x.struck ? 'Restore' : 'Strike'}</button>}
             </li>
@@ -505,7 +605,8 @@ export function Commentary({ s, canEdit, me }: { s: ToolStudy; canEdit: boolean;
 }
 
 /* ------------------------------------------------------------------ close: a receipt */
-function Act({ s, f, text, tone, can, me }: { s: ToolStudy; f: RelFigures; text: string; tone: 'r' | 'a' | 'g' | 'n'; can: ReturnType<typeof canAt>; me?: string }) {
+function Act({ s, items, text, tone, can, me }: { s: ToolStudy; items: RelItem[]; text: string; tone: 'r' | 'a' | 'g' | 'n'; can: ReturnType<typeof canAt>; me?: string }) {
+  const f = items[0]?.f;
   const [reopen, setReopen] = useState<string | null>(null);
   const by = me ? { by: me } : {};
   if (s.closedAt && s.receipt) {
@@ -525,12 +626,18 @@ function Act({ s, f, text, tone, can, me }: { s: ToolStudy; f: RelFigures; text:
       </div>
     );
   }
-  if (!can.edit || f.n === 0 || f.runningSince) return null;
+  if (!can.edit || !f || !items.some(i => i.f.n > 0) || f.runningSince) return null;
+  /* the receipt: every thing counted, its taps, MTBF, rate and range as they stand */
   const close = () => void patchStudy(s.id, cur => ({
     closedAt: now(),
     receipt: { at: now(), ...by, text, tone,
-      figures: { hours: +f.hours.toFixed(3), events: f.n, mtbfMin: f.mtbfH !== undefined ? +(f.mtbfH * 60).toFixed(1) : null,
-        perHour: f.rate !== undefined ? +f.rate.toFixed(3) : null, loMin: f.lo !== undefined ? +(f.lo * 60).toFixed(1) : null, hiMin: f.hi !== undefined ? +(f.hi * 60).toFixed(1) : null },
+      figures: { hours: +f.hours.toFixed(3), ...Object.fromEntries(items.flatMap(({ c, f: g }) => [
+        [`${c.event} · taps`, g.n],
+        [`${c.event} · MTBF min`, g.mtbfH !== undefined ? +(g.mtbfH * 60).toFixed(1) : null],
+        [`${c.event} · an hour`, g.rate !== undefined ? +g.rate.toFixed(3) : null],
+        [`${c.event} · 90% low min`, g.lo !== undefined ? +(g.lo * 60).toFixed(1) : null],
+        [`${c.event} · 90% high min`, g.hi !== undefined ? +(g.hi * 60).toFixed(1) : null],
+      ])) },
       ...(cur.receipt?.reopened ? { reopened: cur.receipt.reopened } : {}) },
   }));
   return <div className="ie-act"><button type="button" className="btn btn-primary" onClick={close}>Close — keep these figures</button></div>;
