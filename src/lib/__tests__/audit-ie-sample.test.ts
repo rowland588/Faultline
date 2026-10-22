@@ -6,8 +6,15 @@ import { describe, it, expect } from 'vitest';
 import { sample, sampleSays, capabilityWords, inWords, upperTail, tneFor, sdWithinOf, CPK_FROM, drifts } from '../ie/sample';
 import type { AgreedReadings, StudyReading } from '../study';
 import { normalUpperTail, sd as refSd, mean as refMean, rng, gauss } from './audit-ie-ref';
+import { normalQuantile } from '../ie/dist';
 
 const rs = (vs: number[]): StudyReading[] => vs.map((value, i) => ({ id: `r${i + 1}`, value, at: i }));
+/** A bell's n quantiles about a centre, taken lowest, highest, next lowest… —
+ *  bell-shaped, steady, and no drift between neighbours. */
+const bellZigzag = (n: number, centre: number, s: number): number[] => {
+  const q = Array.from({ length: n }, (_, i) => centre + s * normalQuantile((i + 0.5) / n));
+  return q.map((_, i) => (i % 2 ? q[n - 1 - (i - 1) / 2] : q[i / 2])!);
+};
 const LIM: AgreedReadings = { kind: 'limits', unit: 'g', nominal: 400, lower: 400, upper: 404, count: 30 };
 
 /* ---------- the reference, from first principles ---------- */
@@ -101,11 +108,17 @@ describe('AUDIT sample — monotone and edge behaviour', () => {
     expect(capabilityWords(fj, LIM)?.text).toMatch(/^Just capable/);
   });
   it('FIXED (UPGRADE-AUDIT M2): a two-tailed share used to be said as one side — it now says "light or heavy" when both tails carry it', () => {
-    /* centred at 402, 401 and 403 alternating: s 1.02, each limit 1.97 s away → 2.5% low AND 2.5% high = 4.9%;
-       the zigzag keeps the moving range wide, so no drift clause joins the sentence */
-    const xs = Array.from({ length: 30 }, (_, i) => (i % 2 ? 403 : 401));
+    /* centred at 402, a bell's thirty quantiles taken low, high, low, high:
+       s ≈ 1.0, each limit about 2 s away → about 2½% low AND 2½% high; the
+       zigzag keeps the moving range wide, so no drift clause joins the
+       sentence. (Until 22 October this was 401 and 403 alternating — two
+       values, which the shape check now rightly calls not bell-shaped, so
+       the bell's tail is no longer quoted for it: asserted below.) */
+    const xs = bellZigzag(30, 402, 1.0);
     const f = sample(LIM, rs(xs));
-    expect(f.sd).toBeCloseTo(1.017, 2);
+    expect(f.sd).toBeCloseTo(refSd(xs), 9);
+    expect(f.checks?.shape?.bell).toBe(true);
+    expect(f.checks?.steady.ok).toBe(true);
     expect(drifts(f)).toBe(false);
     expect(f.shareOut).toBeCloseTo(2 * normalUpperTail(2 / (f.sd ?? 1)), 4);
     const w = capabilityWords(f, LIM)!;
@@ -115,8 +128,13 @@ describe('AUDIT sample — monotone and edge behaviour', () => {
     expect(said).toBe(Math.round(f.shareOut! * 100));
     expect(f.shareLow).toBeCloseTo(f.shareHigh!, 6);
     /* off to one side — mean 400.6 against 400–404 — the far tail is nothing and the words name the one side */
-    const low = sample(LIM, rs(Array.from({ length: 30 }, (_, i) => (i % 2 ? 401 : 400.2))));   // alternating, so no drift clause joins the sentence
+    const low = sample(LIM, rs(bellZigzag(30, 400.6, 0.4)));   // zigzag, so no drift clause joins the sentence
     expect(capabilityWords(low, LIM)!.text).toMatch(/would be light\.$/);
+    /* two values alternating are not a bell: what was seen is said, never the bell's tail */
+    const two = sample(LIM, rs(Array.from({ length: 30 }, (_, i) => (i % 2 ? 403 : 401))));
+    expect(two.checks?.shape?.bell).toBe(false);
+    expect(two.checks?.fine).toBe(false);
+    expect(capabilityWords(two, LIM)!.text).toBe('Not capable: Ppk 0.66 from 30 — as measured, 0 of 30 are outside.');
   });
   it('FIXED (UPGRADE-AUDIT M13): thirty identical readings (a coarse instrument) → s = 0 → no Ppk — said, not silent', () => {
     const f = sample(LIM, rs(Array.from({ length: 30 }, () => 401)));

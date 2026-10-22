@@ -15,7 +15,9 @@ import type { ToolStudy } from './study';
 import type { Standard } from './standard';
 import type { StudyContext } from './studyLinks';
 import { studyEvidence } from './clientReport';
-import { sample, sampleSays, CPK_FROM } from './ie/sample';
+import { checksSay, sample, sampleLines, sampleSays, CPK_FROM, type SampleFigures } from './ie/sample';
+import { fewerThan } from './ie/dist';
+import type { AgreedReadings } from './study';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { SIZE, font, gap, label, rows, text, wrap } from './report/blocks';
 import { streamBlocks } from './report/streamTable';
@@ -44,7 +46,7 @@ import { relChartBlock, relDaysBlocks, relKindsBlocks, relTogetherBlocks, remark
 
 import { todayISO } from './weeks';
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
-const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', BRAND = '#0c7489', DANGER = '#c4281c';
+const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6', BRAND = '#0c7489', DANGER = '#c4281c', AMBER = '#b45309', BAR = '#c3cfcf';
 
 export interface StudyPaperItem {
   s: ToolStudy;
@@ -69,56 +71,123 @@ export interface StudiesPaper {
   records?: { actions: ({ id: string; deletedAt?: number } & ActionLike)[]; fixes: ({ id: string; deletedAt?: number } & FixLike)[] };
 }
 
-/** A CAPABILITY STUDY'S FIGURES AND READINGS — the strip as a row, then
- *  every reading in the order taken, ten to a row, struck ones said so. */
-function capabilityBlocks(s: ToolStudy): Block[] {
-  const a = s.agreed?.readings;
-  if (!a || a.kind === 'ticks') return [];
-  const f = sample(a, s.facts.readings ?? []);
-  if (!f.n) return [];
-  const unit = a.unit ? ` ${a.unit}` : '';
-  const fx = (v?: number) => (v === undefined ? '—' : v.toFixed(f.dp));
-  const enough = f.n >= CPK_FROM;
-  const cells: [string, string][] = [
-    ['Readings', `${f.n} of ${f.count}`], ['Mean', `${fx(f.mean)}${unit}`], ['Range', `${fx(f.min)}–${fx(f.max)}`],
-    ['Outside', String(f.outside.length)],
-    ['Ppk', enough && f.ppk !== undefined && Number.isFinite(f.ppk) ? f.ppk.toFixed(2) : 'too few'],
-    ['Cpk', enough && f.cpk !== undefined && Number.isFinite(f.cpk) ? f.cpk.toFixed(2) : 'too few'],
-  ];
-  const out: Block[] = [];
-  out.push(rows({ rows: [{
+/** A row of figures across the page — the strip as the paper draws it. */
+function cellsRow(cells: [string, string, boolean?][]): Block {
+  return rows({ rows: [{
     h: () => 30,
     draw: (fr: Frame, y: number) => {
       const cw = fr.w / cells.length;
       fr.doc.setDrawColor(LINE); fr.doc.setLineWidth(0.5); fr.doc.line(fr.x, y, fr.x + fr.w, y); fr.doc.line(fr.x, y + 28, fr.x + fr.w, y + 28);
-      cells.forEach(([k, v], i) => {
+      cells.forEach(([k, v, red], i) => {
         font(fr.doc, 7, 'bold', MUTED); fr.doc.text(k.toUpperCase(), fr.x + i * cw, y + 10);
-        font(fr.doc, 10, 'bold', k === 'Outside' && f.outside.length ? DANGER : INK2); fr.doc.text(v, fr.x + i * cw, y + 23);
+        font(fr.doc, 10, 'bold', red ? DANGER : INK2); fr.doc.text(v, fr.x + i * cw, y + 23);
       });
     },
-  }], after: 's' }));
-  /* every reading, in the order taken — outside in red, struck said */
+  }], after: 's' });
+}
+
+/** Every reading in the order taken, ten to a row: its number, and what it
+ *  was — a value, or good / failed — the abnormal in red, struck said. */
+function readingsRows(s: ToolStudy, word: (r: NonNullable<ToolStudy['facts']['readings']>[number]) => string, red: (id: string, r: NonNullable<ToolStudy['facts']['readings']>[number]) => boolean): Block {
   const all = (s.facts.readings ?? []).map((r, i) => ({ no: i + 1, r }));
   const out10: typeof all[] = [];
   for (let i = 0; i < all.length; i += 10) out10.push(all.slice(i, i + 10));
-  const outsideIds = new Set(f.outside.map(o => o.id));
-  out.push(label('The readings, in the order taken'));
-  out.push(rows({
+  return rows({
     rows: out10.map(row => ({
       h: () => 15,
       draw: (fr: Frame, y: number) => {
         const cw = fr.w / 10;
         row.forEach(({ no, r }, i) => {
-          const v = typeof r.value === 'number' ? r.value.toFixed(f.dp) : r.ok === true ? '✓' : r.ok === false ? '✗' : '—';
-          const struck = !!r.struck;
+          const v = word(r), struck = !!r.struck, isRed = !struck && red(r.id, r);
           font(fr.doc, 6.5, 'normal', MUTED); fr.doc.text(String(no), fr.x + i * cw, y + 10);
-          font(fr.doc, 8.5, outsideIds.has(r.id) ? 'bold' : 'normal', struck ? MUTED : outsideIds.has(r.id) ? DANGER : INK2);
+          font(fr.doc, 8.5, isRed ? 'bold' : 'normal', struck ? MUTED : isRed ? DANGER : INK2);
           fr.doc.text(struck ? `${v} struck` : v, fr.x + i * cw + 12, y + 10);
         });
       },
     })),
     after: 'm',
-  }));
+  });
+}
+
+/** THE HISTOGRAM ON PAPER — the bars the page draws (lib/ie/sample hist),
+ *  the limits and the target as lines, a bar holding a reading outside in red. */
+function histBlock(f: SampleFigures, a: AgreedReadings): Block | undefined {
+  const h = f.hist;
+  if (!h || f.n < 2) return undefined;
+  const lines = sampleLines(f, a);
+  const lo = h.edges[0], hi = h.edges[h.edges.length - 1], top = Math.max(...h.counts, 1);
+  const dp = Math.max(f.dp, h.width < 1 ? Math.min(3, Math.ceil(-Math.log10(h.width))) : 0);
+  const HT = 104, T = 16, B = 14;
+  return rows({ rows: [{
+    h: () => HT,
+    draw: (fr: Frame, y: number) => {
+      const x = (v: number) => fr.x + ((v - lo) / (hi - lo)) * fr.w;
+      const base = y + HT - B, yc = (c: number) => base - (c / top) * (HT - T - B);
+      h.counts.forEach((c, i) => {
+        const x0 = x(h.edges[i]) + 0.8, w = Math.max(0.6, x(h.edges[i + 1]) - x(h.edges[i]) - 1.6);
+        if (c > 0) {
+          fr.doc.setFillColor(h.out[i] ? DANGER : BAR); fr.doc.rect(x0, yc(c), w, base - yc(c), 'F');
+          font(fr.doc, 6.5, 'bold', INK2); fr.doc.text(String(c), x0 + w / 2, yc(c) - 2, { align: 'center' });
+        }
+      });
+      fr.doc.setDrawColor(LINE); fr.doc.setLineWidth(0.6); fr.doc.line(fr.x, base, fr.x + fr.w, base);
+      for (const l of lines) {
+        const lx = x(l.v);
+        fr.doc.setDrawColor(l.kind === 'lim' ? INK2 : MUTED); fr.doc.setLineWidth(l.kind === 'lim' ? 1 : 0.7);
+        if (l.kind === 'nom') fr.doc.setLineDashPattern([1.5, 2.5], 0);
+        fr.doc.line(lx, y + T - 4, lx, base);
+        fr.doc.setLineDashPattern([], 0);
+        font(fr.doc, 6.5, 'bold', MUTED);
+        fr.doc.text(l.label, lx, y + T - 7, { align: lx > fr.x + fr.w - 50 ? 'right' : lx < fr.x + 50 ? 'left' : 'center' });
+      }
+      font(fr.doc, 6.5, 'normal', MUTED);
+      fr.doc.text(`${lo.toFixed(dp)}${a.unit ? ` ${a.unit}` : ''}`, fr.x, base + 10);
+      fr.doc.text(hi.toFixed(dp), fr.x + fr.w, base + 10, { align: 'right' });
+    },
+  }], after: 'm' });
+}
+
+/** A CAPABILITY STUDY'S FIGURES AND READINGS — the strip as a row; a
+ *  measurement's checks before capability and its histogram; then every
+ *  reading in the order taken, ten to a row, struck ones said so. Pass or
+ *  fail: checked, failed, allowed and what it proves, then each one good or
+ *  failed by its number (knowledge/specs/FC-094-capability.md §7). */
+function capabilityBlocks(s: ToolStudy): Block[] {
+  const a = s.agreed?.readings;
+  if (!a) return [];
+  const f = sample(a, s.facts.readings ?? []);
+  if (!f.n) return [];
+  if (a.kind === 'ticks' && f.ticks) {
+    const t = f.ticks, bad = new Set(t.bad.map(b => b.id));
+    return [
+      cellsRow([['Checked', `${f.n} of ${f.count}`], ['Failed', String(t.bad.length), t.bad.length > t.allowFail], ['May fail', t.allowFail ? String(t.allowFail) : 'none'],
+        ['Proves (95% sure)', t.proves < 0.995 ? fewerThan(t.proves) : 'nothing yet']]),
+      label('Each one, in the order checked'),
+      readingsRows(s, r => (r.ok === true ? 'good' : r.ok === false ? 'failed' : '—'), id => bad.has(id)),
+    ];
+  }
+  const unit = a.unit ? ` ${a.unit}` : '';
+  const fx = (v?: number) => (v === undefined ? '—' : v.toFixed(f.dp));
+  const enough = f.n >= CPK_FROM;
+  const out: Block[] = [cellsRow([
+    ['Readings', `${f.n} of ${f.count}`], ['Mean', `${fx(f.mean)}${unit}`], ['Range', `${fx(f.min)}–${fx(f.max)}`],
+    ['Outside', String(f.outside.length), f.outside.length > 0],
+    ['Ppk', enough && f.ppk !== undefined && Number.isFinite(f.ppk) ? f.ppk.toFixed(2) : 'too few'],
+    ['95% sure', f.ppkLow !== undefined ? `at least ${f.ppkLow.toFixed(2)}` : '—'],
+    ['Cpk', enough && f.cpk !== undefined && Number.isFinite(f.cpk) ? f.cpk.toFixed(2) : 'too few'],
+  ])];
+  /* before capability — the three checks, the abnormal in amber */
+  const checks = checksSay(f, a);
+  if (checks.length) {
+    out.push(label('Before capability'));
+    checks.forEach((c, i) => out.push(text({ text: c.text, size: 8.5, style: c.tone === 'a' ? 'bold' : 'normal', colour: c.tone === 'a' ? AMBER : INK2, after: i === checks.length - 1 ? 8 : 2 })));
+  }
+  const hist = histBlock(f, a);
+  if (hist) { out.push(label('How the readings spread')); out.push(hist); }
+  /* every reading, in the order taken — outside in red, struck said */
+  const outsideIds = new Set(f.outside.map(o => o.id));
+  out.push(label('The readings, in the order taken'));
+  out.push(readingsRows(s, r => (typeof r.value === 'number' ? r.value.toFixed(f.dp) : '—'), id => outsideIds.has(id)));
   return out;
 }
 

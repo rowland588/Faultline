@@ -37,8 +37,9 @@ export const isStudyTool = (v: unknown): v is StudyTool => (STUDY_TOOLS as reado
 /** How a measured test is judged, agreed before the readings go in — by the
  *  owner on a job (can.agree). Either limit may be absent: "at least 400 g". */
 export interface AgreedReadings {
-  /** limits · sold by weight (the packers' three rules from the nominal) · a
-   *  row of ticks */
+  /** a measurement against one limit or two · sold by weight (the packers'
+   *  three rules from the nominal) · pass or fail, one at a time ("ticks" is
+   *  the stored word, kept so every study reads as before) */
   kind: 'limits' | 'packers' | 'ticks';
   unit?: string;
   nominal?: number;
@@ -46,6 +47,10 @@ export interface AgreedReadings {
   upper?: number;
   /** How many readings it needs. */
   count: number;
+  /** Pass or fail: how many may fail and it still passes (knowledge/specs/
+   *  FC-094-capability.md). Absent on every study before 22 October — none
+   *  may, the old rule. */
+  allowFail?: number;
 }
 
 /** One reading, as taken. Struck, never erased: a mistype keeps its place. */

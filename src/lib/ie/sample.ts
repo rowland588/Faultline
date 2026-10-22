@@ -22,8 +22,21 @@
  * Agreed with "go, start release 2" (docs/BUILD.md): capable from Cpk 1.33,
  * just capable from 1.00, shown from 25 readings; the packers' three rules
  * applied plainly — fewer than 1 in 40 short by more than the tolerable
- * negative error means, on 30 packs, none. */
+ * negative error means, on 30 packs, none.
+ *
+ * Made to cover more than two limits (knowledge/specs/FC-094-capability.md,
+ * part 1 — Rowland, 22 October: "The process capability study is not
+ * flexible enough ... I've got no idea what the tick is"): one limit (at
+ * least, at most); pass or fail with how many may fail and what the count
+ * proves (the success-run bound, spc.zero-failure-demonstration); the three
+ * checks before an index is trusted — bell-shaped (D'Agostino–Pearson, which
+ * whole-number readings do not throw), steady, read finely enough
+ * (spc.normality-checks); how sure a Ppk is (Bissell's bound); and
+ * the histogram. The distributions are lib/ie/dist, proved against SciPy. */
 import type { AgreedReadings, StudyReading } from '../study';
+import { binomUpper, dagostinoPearson, fewerThan, histogram, individualsLimits, itemsToShow, ppkLowerBound, runOnOneSide, skewness, upperTail } from './dist';
+
+export { upperTail };
 
 export type Tone = 'r' | 'a' | 'w' | 'g' | 'n';
 
@@ -45,6 +58,14 @@ export const DRIFT_GAP = 0.2;
 export const CPK_CAPABLE = 1.33;
 export const CPK_JUST = 1.0;
 export const CPK_FROM = 25;
+/** The three checks before capability are said from this many readings. */
+export const CHECK_FROM = 20;
+/** Bell-shaped enough when the D'Agostino–Pearson p is at least this. */
+export const BELL_P = 0.05;
+/** Read finely enough with at least this many different values. */
+export const FINE_FROM = 5;
+/** How sure the bounds are — one-sided. */
+export const SURE = 0.95;
 
 /** One standard deviation of the readings, as the floor says it. */
 export interface Outside { id: string; no: number; value: number; side: 'low' | 'high' }
@@ -92,7 +113,38 @@ export interface SampleFigures {
   /** Decimal places the readings were taken to — never more precision than the measurement. */
   dp: number;
   packers?: PackersFigures;
-  ticks?: { ok: number; bad: { id: string; no: number }[] };
+  ticks?: TickFigures;
+  /** The three checks before capability — from CHECK_FROM readings. */
+  checks?: SampleChecks;
+  /** Bissell's 95% lower bound on Ppk — from CPK_FROM readings. */
+  ppkLow?: number;
+  /** The histogram's bars, each saying whether a reading in it is outside. */
+  hist?: { edges: number[]; counts: number[]; width: number; out: boolean[] };
+}
+
+/** PASS OR FAIL, ONE AT A TIME — the count, how many may fail, and what the
+ *  count proves: the exact one-sided bound on the share that would fail. */
+export interface TickFigures {
+  ok: number;
+  bad: { id: string; no: number }[];
+  /** How many may fail and it still passes — 0 when none may (the old rule). */
+  allowFail: number;
+  /** 95% sure fewer than this share would fail, from what is in. */
+  proves: number;
+  /** Checked, with this many failing, to show fewer than 1 in 100. */
+  toShow1: number;
+}
+
+export interface SampleChecks {
+  /** The D'Agostino–Pearson test against the bell, its two parts, and which
+   *  way it leans — undefined when every reading is the same. */
+  shape?: { p: number; k2: number; zSkew: number; zKurt: number; skew: number; bell: boolean };
+  /** The individuals chart's limits (x̄ ± 2.66·MR̄), the readings beyond
+   *  them, and the first run of eight on one side of the mean. */
+  steady: { lcl: number; ucl: number; beyond: { id: string; no: number; value: number }[]; run?: { fromNo: number; toNo: number; length: number; side: 'above' | 'below' }; ok: boolean };
+  /** How many different values were read. */
+  distinct: number;
+  fine: boolean;
 }
 
 /** Kept readings in the order taken, numbered 1… as they stand in the list. */
@@ -115,14 +167,6 @@ const indexOf = (m: number, s: number, lower?: number, upper?: number): { k: num
   const hi = upper !== undefined ? (upper - m) / (3 * s) : Infinity;
   return { k: Math.min(lo, hi), side: lo <= hi ? 'low' : 'high', ...(lower !== undefined && upper !== undefined ? { c: (upper - lower) / (6 * s) } : {}) };
 };
-
-/** P(Z > z) for a standard normal — Numerical Recipes' erfc, good to 1e-7. */
-export function upperTail(z: number): number {
-  const x = Math.abs(z) / Math.SQRT2, t = 1 / (1 + 0.5 * x);
-  const erfc = t * Math.exp(-x * x - 1.26551223 + t * (1.00002368 + t * (0.37409196 + t * (0.09678418 + t * (-0.18628806
-    + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))));
-  return z >= 0 ? erfc / 2 : 1 - erfc / 2;
-}
 
 /** The tolerable negative error for a pack sold by weight or volume (the
  *  Weights and Measures (Packaged Goods) Regulations 2006, Schedule 2), in the
@@ -149,8 +193,9 @@ export function sample(agreed: AgreedReadings | undefined, readings: StudyReadin
   const kept = counted(readings);
   if (agreed?.kind === 'ticks') {
     const t = kept.filter(r => typeof r.ok === 'boolean');
+    const bad = t.filter(r => !r.ok).map(r => ({ id: r.id, no: r.no }));
     return { n: t.length, count, enough: count > 0 && t.length >= count, outside: [], flagged: [], dp: 0,
-      ticks: { ok: t.filter(r => r.ok).length, bad: t.filter(r => !r.ok).map(r => ({ id: r.id, no: r.no })) } };
+      ticks: { ok: t.length - bad.length, bad, allowFail: allowedOf(agreed), proves: binomUpper(bad.length, t.length, SURE), toShow1: itemsToShow(0.01, SURE, bad.length) } };
   }
   const vs = kept.filter((r): r is typeof r & { value: number } => typeof r.value === 'number' && Number.isFinite(r.value));
   const xs = vs.map(r => r.value);
@@ -196,8 +241,55 @@ export function sample(agreed: AgreedReadings | undefined, readings: StudyReadin
       return os > 0 && Math.abs(r.value - om) > 3 * os;
     }).map(r => r.id);
   }
+  /* how sure the Ppk is, so thirty readings read rougher than three hundred */
+  if (f.ppk !== undefined && Number.isFinite(f.ppk) && xs.length >= CPK_FROM) f.ppkLow = ppkLowerBound(f.ppk, xs.length, SURE);
+
+  /* BEFORE CAPABILITY — bell-shaped, steady, read finely enough */
+  if (xs.length >= CHECK_FROM) {
+    const dp2 = dagostinoPearson(xs), sk = skewness(xs);
+    const lim = individualsLimits(xs);
+    const beyond = lim ? vs.filter(r => r.value > lim.ucl + 1e-12 || r.value < lim.lcl - 1e-12).map(r => ({ id: r.id, no: r.no, value: r.value })) : [];
+    const run = runOnOneSide(xs, m);
+    const distinct = new Set(xs.map(x => x.toFixed(dp))).size;
+    f.checks = {
+      ...(dp2 && sk !== undefined ? { shape: { p: dp2.p, k2: dp2.k2, zSkew: dp2.zSkew, zKurt: dp2.zKurt, skew: sk, bell: dp2.p >= BELL_P } } : {}),
+      steady: { lcl: lim?.lcl ?? m, ucl: lim?.ucl ?? m, beyond,
+        ...(run ? { run: { fromNo: vs[run.from].no, toNo: vs[run.to].no, length: run.to - run.from + 1, side: run.side } } : {}),
+        ok: !beyond.length && !run },
+      distinct, fine: distinct >= FINE_FROM,
+    };
+  }
+
+  /* the histogram, with the limits inside its span */
+  const also = [lower, upper, agreed?.nominal].filter((v): v is number => v !== undefined);
+  const h = histogram(xs, also);
+  if (h) {
+    const outIds = new Set(f.outside.map(o => o.id)), out = h.counts.map(() => false);
+    for (const r of vs) if (outIds.has(r.id)) out[Math.min(h.counts.length - 1, Math.max(0, Math.floor((r.value - h.edges[0]) / h.width + 1e-9)))] = true;
+    f.hist = { edges: h.edges, counts: h.counts, width: h.width, out };
+  }
   return f;
 }
+
+/** THE LINES A PICTURE DRAWS — the limits and the target, for the readings
+ *  in order and the histogram, on screen and on paper alike. */
+export function sampleLines(f: SampleFigures, a: AgreedReadings): { v: number; label: string; kind: 'lim' | 'lim2' | 'nom' }[] {
+  const tne = f.packers?.tne;
+  const lines: { v: number; label: string; kind: 'lim' | 'lim2' | 'nom' }[] = [];
+  if (a.kind === 'packers' && f.packers && tne !== undefined) {
+    lines.push({ v: f.packers.nominal, label: `nominal ${f.packers.nominal}`, kind: 'nom' });
+    lines.push({ v: f.packers.nominal - tne, label: `${+tne.toFixed(3)} short`, kind: 'lim' });
+    lines.push({ v: f.packers.nominal - 2 * tne, label: `${+(2 * tne).toFixed(3)} short`, kind: 'lim2' });
+  } else {
+    if (a.upper !== undefined) lines.push({ v: a.upper, label: `${a.lower === undefined ? 'at most' : 'upper'} ${a.upper}`, kind: 'lim' });
+    if (a.lower !== undefined) lines.push({ v: a.lower, label: `${a.upper === undefined ? 'at least' : 'lower'} ${a.lower}`, kind: 'lim' });
+    if (a.nominal !== undefined && a.nominal !== a.lower && a.nominal !== a.upper) lines.push({ v: a.nominal, label: `target ${a.nominal}`, kind: 'nom' });
+  }
+  return lines;
+}
+
+/** How many may fail and the test still pass — none, unless agreed. */
+const allowedOf = (a?: AgreedReadings) => Math.max(0, Math.floor(a?.allowFail ?? 0));
 
 /* ---------------------------------------------------------------- the words */
 
@@ -241,13 +333,17 @@ export function sampleSays(f: SampleFigures, a: AgreedReadings | undefined): Sam
   const of = `${f.n} of ${f.count} in`;
 
   if (a.kind === 'ticks' && f.ticks) {
-    const { ok, bad } = f.ticks;
-    if (bad.length) {
-      const which = bad.slice(0, 3).map(b => `no. ${b.no}`).join(', ') + (bad.length > 3 ? ` and ${bad.length - 3} more` : '');
-      return { text: `${ok} of ${f.n} ✓ — ${bad.length} ✗ (${which}) — Didn’t pass.`, tone: 'r', verdict: 'Didn’t pass' };
-    }
-    return f.enough ? { text: `${ok} of ${f.n} ✓ — Passed.`, tone: 'g', verdict: 'Passed' }
-      : { text: `${of} — all ✓ so far.`, tone: 'a', verdict: of };
+    /* the agreed verdict stays the verdict: more failed than may → it did
+       not pass, at once; what the count proves is said under it */
+    const { ok, bad, allowFail } = f.ticks;
+    const proves = provesWords(f.ticks, f.n, f.enough);
+    const which = bad.slice(0, 3).map(b => `no. ${b.no}`).join(', ') + (bad.length > 3 ? ` and ${bad.length - 3} more` : '');
+    const failed = bad.length ? `${bad.length} failed (${which})` : '';
+    if (bad.length > allowFail)
+      return { text: `${ok} of ${f.n} good — ${failed}${allowFail ? `, at most ${allowFail} allowed` : ''} — Didn’t pass.`, tone: 'r', verdict: 'Didn’t pass', capability: proves };
+    if (f.enough)
+      return { text: `${ok} of ${f.n} good${bad.length ? ` — ${failed}, ${allowFail} allowed` : ''} — Passed.`, tone: 'g', verdict: 'Passed', capability: proves };
+    return { text: `${f.n} of ${f.count} checked — ${bad.length ? `${failed}, ${allowFail} allowed so far` : 'all good so far'}.`, tone: 'a', verdict: of, capability: proves };
   }
 
   const dp = f.dp, unit = u(a.unit), m = f.mean ?? 0, mean = `mean ${fix(m, dp)}${unit}`;
@@ -283,6 +379,74 @@ export function sampleSays(f: SampleFigures, a: AgreedReadings | undefined): Sam
   return { ...main, capability: capabilityWords(f, a) };
 }
 
+const big = (n: number) => n.toLocaleString('en-GB');
+
+/** WHAT A PASS-OR-FAIL COUNT PROVES — the exact one-sided bound on the share
+ *  that would fail, rounded up so it never flatters, and what it would take
+ *  to show fewer than 1 in 100 (spc.zero-failure-demonstration). */
+function provesWords(t: TickFigures, n: number, enough: boolean): { text: string; tone: Tone } {
+  const failed = t.bad.length;
+  const lead = failed ? `${failed} failed in ${n}` : enough ? 'That' : 'So far that';
+  if (t.proves >= 0.995) return { text: `${lead} proves nothing yet about how few would fail.`, tone: 'n' };
+  const more = t.proves > 0.01
+    ? `; to show fewer than 1 in 100 takes ${big(t.toShow1)}${failed ? ` checked with ${failed} failed` : ' good in a row'}` : '';
+  return { text: `${lead} proves ${fewerThan(t.proves)} would fail (95% sure)${more}.`, tone: 'n' };
+}
+
+/** WHAT A PASS-OR-FAIL TEST WOULD PROVE, said while it is being agreed: so
+ *  the count is chosen for the claim it has to support. */
+export function passFailPlan(count: number, allowFail = 0): string {
+  const n = Math.max(1, Math.round(count)), k = Math.max(0, Math.floor(allowFail));
+  const bound = binomUpper(k, n, SURE);
+  const head = k ? `If no more than ${k} of ${big(n)} fail` : `If all ${big(n)} pass`;
+  if (bound >= 0.995) return `${head}, it proves nothing yet about how few would fail.`;
+  const more = bound > 0.01 ? ` To prove fewer than 1 in 100 takes ${big(itemsToShow(0.01, SURE, k))}${k ? ` with ${k} allowed to fail` : ' in a row, none failing'}.` : '';
+  return `${head}, that proves ${fewerThan(bound)} would fail (95% sure).${more}`;
+}
+
+/** Can this many be allowed to fail? A whole number, fewer than are checked. */
+export function allowFailProblem(count: number, allowFail: number): string {
+  if (!Number.isInteger(allowFail) || allowFail < 0) return 'How many may fail — a whole number, 0 or more.';
+  if (count >= 1 && allowFail >= count) return `At most ${count - 1} of ${count} may fail.`;
+  return '';
+}
+
+/** BEFORE CAPABILITY — the three checks in words, each with its tone: is it
+ *  bell-shaped, is it steady, was it read finely enough. Before CHECK_FROM
+ *  readings, one line saying when. Measured studies only. */
+export function checksSay(f: SampleFigures, a: AgreedReadings | undefined): { k: 'shape' | 'steady' | 'fine' | 'wait'; text: string; tone: Tone }[] {
+  if (!a || a.kind === 'ticks' || !f.n) return [];
+  const c = f.checks;
+  if (!c) return [{ k: 'wait', text: `Said from ${CHECK_FROM} readings — ${f.n} so far.`, tone: 'n' }];
+  const out: { k: 'shape' | 'steady' | 'fine' | 'wait'; text: string; tone: Tone }[] = [];
+  const p = (v: number) => (v < 0.001 ? 'p < 0.001' : `p ${v.toFixed(v < 0.1 ? 3 : 2)}`);
+  if (c.shape) {
+    /* which part of the test carried it: the lean (skewness) or the tails (kurtosis) */
+    const sh = c.shape, leans = Math.abs(sh.zSkew) >= Math.abs(sh.zKurt);
+    const how = leans ? `${sh.skew >= 0 ? 'they lean high' : 'they lean low'} (skew ${sh.skew.toFixed(1)}, ${p(sh.p)})`
+      : `the tails are ${sh.zKurt > 0 ? 'heavier' : 'lighter'} than a bell’s (${p(sh.p)})`;
+    out.push(sh.bell
+      ? { k: 'shape', text: `Bell-shaped enough (D’Agostino–Pearson ${p(sh.p)}).`, tone: 'g' }
+      : { k: 'shape', text: `Not bell-shaped — ${how}: the share outside is read from the readings, not the bell.`, tone: 'a' });
+  }
+  const st = c.steady;
+  if (st.ok) out.push({ k: 'steady', text: 'Steady across the run.', tone: 'g' });
+  else {
+    const ldp = f.dp || 1, parts: string[] = [];
+    if (st.beyond.length) {
+      const nos = st.beyond.slice(0, 3).map(b => String(b.no));
+      const list = st.beyond.length === 1 ? `reading ${nos[0]} is` : `readings ${nos.slice(0, -1).join(', ')}${st.beyond.length > 3 ? `, ${nos[nos.length - 1]} and ${st.beyond.length - 3} more` : ` and ${nos[nos.length - 1]}`} are`;
+      parts.push(`${list} outside ${st.lcl.toFixed(ldp)}–${st.ucl.toFixed(ldp)}`);
+    }
+    if (st.run) parts.push(`${st.run.length} in a row sat ${st.run.side} the mean from no. ${st.run.fromNo}`);
+    out.push({ k: 'steady', text: `Not steady — ${parts.join(' and ')}.`, tone: 'a' });
+  }
+  out.push(c.fine
+    ? { k: 'fine', text: `Read finely enough — ${c.distinct} different values.`, tone: 'g' }
+    : { k: 'fine', text: `Only ${c.distinct} different value${c.distinct === 1 ? ' was' : 's were'} read — the scale is too coarse to show the spread; the shape and the index are rough.`, tone: 'a' });
+  return out;
+}
+
 /** Did the run drift — the readings' own spread well wider than pack to pack? */
 export const drifts = (f: SampleFigures): boolean =>
   f.ppk !== undefined && f.cpk !== undefined && Number.isFinite(f.ppk) && Number.isFinite(f.cpk) && f.cpk - f.ppk >= DRIFT_GAP;
@@ -299,16 +463,27 @@ export function capabilityWords(f: SampleFigures, a: AgreedReadings): { text: st
   if (f.ppk === undefined || !Number.isFinite(f.ppk)) return undefined;
   if (f.n < CPK_FROM) return { text: `Too few for capability — from ${f.n}.`, tone: 'n' };
   const c = f.ppk.toFixed(2), from = `from ${f.n}`;
-  /* Cpk in the words only when it says something Ppk does not: the run drifting */
-  const within = drifts(f) && f.cpk !== undefined ? ` Pack to pack it is steadier — Cpk ${f.cpk.toFixed(2)}: it drifts across the run.` : '';
-  if (f.ppk >= CPK_CAPABLE) return { text: `Capable: Ppk ${c} ${from}.${within}`, tone: 'g' };
-  if (f.ppk >= CPK_JUST) return { text: `Just capable: Ppk ${c} ${from} — watch it.${within}`, tone: 'a' };
+  /* Cpk in the words only when it says something Ppk does not: the run
+     drifting. When the steady check found readings beyond its limits but no
+     run, they part because of those readings, not a drift — the check names
+     them, and "drifts" would mislead (22 October, the oxygen readings) */
+  const spikesOnly = !!f.checks && !f.checks.steady.ok && !f.checks.steady.run;
+  const within = drifts(f) && !spikesOnly && f.cpk !== undefined ? ` Pack to pack it is steadier — Cpk ${f.cpk.toFixed(2)}: it drifts across the run.` : '';
+  /* how sure — and an index on readings that are not steady, or not
+     bell-shaped, is never green (spc.normality-checks) */
+  const sure = f.ppkLow !== undefined ? `95% sure at least ${f.ppkLow.toFixed(2)}` : '';
+  const unsteady = !!f.checks && !f.checks.steady.ok, notBell = !!f.checks?.shape && !f.checks.shape.bell;
+  const why = unsteady ? 'the readings were not steady, so it may not hold' : notBell ? 'the readings are not bell-shaped, so read the index as rough' : '';
+  if (f.ppk >= CPK_CAPABLE) return { text: `Capable: Ppk ${c} ${from}${sure ? ` — ${sure}` : ''}${why ? ` — but ${why}` : ''}.${within}`, tone: why ? 'a' : 'g' };
+  if (f.ppk >= CPK_JUST) return { text: `Just capable: Ppk ${c} ${from}${sure ? `, ${sure}` : ''} — watch it${why ? `: ${why}` : ''}.${within}`, tone: 'a' };
   /* the share is two-tailed: when the far tail carries a tenth or more of
      it, the words say both sides — "about 5 in 100 would be light or heavy",
      never the whole on the near side */
   const twoSided = f.shareOut !== undefined && f.shareOut > 0 && Math.min(f.shareLow ?? 0, f.shareHigh ?? 0) >= 0.1 * f.shareOut;
   const side = twoSided ? `${sideWord('low', a.unit)} or ${sideWord('high', a.unit)}` : f.ppkSide ? sideWord(f.ppkSide, a.unit) : 'outside';
-  const share = f.shareOut !== undefined ? ` — ${inWords(f.shareOut)} would be ${side}` : ` — would drift ${side}`;
+  /* not bell-shaped: the bell's tail is not said — what was seen is */
+  const share = notBell ? ` — as measured, ${f.outside.length} of ${f.n} ${f.outside.length === 1 ? 'is' : 'are'} outside`
+    : f.shareOut !== undefined ? ` — ${inWords(f.shareOut)} would be ${side}` : ` — would drift ${side}`;
   return { text: `Not capable: Ppk ${c} ${from}${share}.${within}`, tone: 'a' };
 }
 

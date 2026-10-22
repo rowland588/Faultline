@@ -68,6 +68,29 @@ problems; by who, when or where; paper for the meeting and each person),
 and P4 — *Every action* under the control room (`#/actions`): every
 project's actions and every line's own problems, by project too.
 
+## A manufacturing tool is built by the standard — 22 October
+
+Rowland, 22 October: *"When I return to Claude Code in a future session and
+request a new tool, I should not need to repeat this prompt."* So **any request
+to build, extend or materially change a manufacturing tool — "build FC-012",
+"build the SMED…", "the next three", a new calculation or verdict — goes
+through the `faultline-tool` skill** (`.claude/skills/faultline-tool/SKILL.md`),
+which follows `knowledge/STANDARD.md`: resolve it in the catalogue
+(`node scripts/catalogue.mjs show|search|next`), read its knowledge records
+(`knowledge/methods/`), write the specification from
+`knowledge/specs/TEMPLATE.md` **before any code**, validate every formula with
+independent cases, build, test, and update the catalogue's status, the records
+and `knowledge/SUMMARY.md` (`node scripts/catalogue.mjs summary --write`). An
+entry is *available* only when its code, unit tests and an acceptance script in
+the gate exist — `src/catalogue/__tests__/catalogue.test.ts` checks it, and that
+every rail tool has an entry. `knowledge/README.md` is the map (the library, the
+catalogue and its backlog, the directory in the app — not built yet, the next slice — and the standard);
+`knowledge/GAPS.md` is what is not known well enough yet. The catalogue is the
+full opportunity, never a plan to build it all: `docs/DIRECTION.md`'s "deep,
+not wide" still decides what is built, and "nothing new is built until Rowland
+says go". If the skill or the library cannot be read, say so — never claim the
+process was followed.
+
 ## The blueprint comes first
 
 **`docs/BLUEPRINT.md` is the one map of the app** — agreed with Rowland, 13
@@ -280,6 +303,7 @@ node scripts/acceptance/factory.mjs  # Your factory: set up first, lines added o
 node scripts/acceptance/machines-programs.mjs  # Stage 2: a program planned on a line with no job, from the control room; the line's machines in flow order; a job seeing and proving them; the factory and the paper
 node scripts/acceptance/control-room.mjs  # the flow audit's control room: a line's own problems and programs counted beside the jobs', the critical list read on a phone, a line's page saying its tools' findings and each job's verdict, every count its page's, a job started from a line; every report from the control room (All reports in the band, Reports in the rail and More)
 node scripts/acceptance/edit-delete.mjs  # bar 2: every record edited and deleted where it sits, with Undo — studies on every list and page, a 6M problem's words, a timed stop, problems, wins, readings, a line's machines and the line itself, a marked frame
+node scripts/acceptance/capability-kinds.mjs  # the capability study made to cover what the floor has (knowledge/specs/FC-094-capability.md, part 1 — Rowland, 22 October: "not flexible enough ... I've got no idea what the tick is"): the question first (a measurement, sold by weight, pass or fail — each with its example), a speed at least 75 a minute with only its box, refused with no limit; the three checks before capability (said from 20 — bell-shaped by D'Agostino–Pearson, steady, read finely enough), how sure the Ppk is, the histogram; oxygen at most 2% leaning high and not steady — capable never green, then at most 0.6 — the share outside as measured; a run creeping up said not steady; pass or fail — 20 by default, one may fail, what the count would prove said while agreeing, 20 allowed refused, ✓ Good and ✗ Failed, a second failure failing it at once, struck, passed with one failed and what it proves, the tiles; each on paper; a study from before reading as before; the phone
 node scripts/acceptance/audit.mjs  # the audit's fixes (docs/AUDIT.md): a way out of every sheet on a short phone, Escape on the photo viewer, a study on paper with Ppk and Cpk and its readings, every study list on paper
 node scripts/audit.mjs [out.json]     # not a pass/fail: walks every screen at desk and phone — ways out, phone fit, lists with no paper (docs/AUDIT.md)
 node scripts/acceptance/list-paper.mjs  # the audit's bar 3: paper wherever there is a list — Line capacity's page and every product shown, Line standard's cards for all shown, Materials, a card for every test on Commission

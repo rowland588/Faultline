@@ -79,11 +79,23 @@ for (const [tag, viewport] of [['desk', { width: 1360, height: 900 }], ['phone',
     for (const m of pg.must) {
       if ((m.desk && tag !== 'desk') || (m.phone && tag !== 'phone')) continue;
       checked++;
-      const found = await page.evaluate(([sel, src, n]) => {
+      const look = ([sel, src, n]) => {
         const re = src ? new RegExp(src) : null;
         const seen = [...document.querySelectorAll(sel)].filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden' && (!re || re.test(e.textContent ?? '')); });
         return { ok: seen.length >= n, count: seen.length };
-      }, [m.sel, m.text?.source, m.n ?? 1]);
+      };
+      const args = [m.sel, m.text?.source, m.n ?? 1];
+      let found = await page.evaluate(look, args);
+      /* EVERY thing a page must show gets the first one's wait, not only the first (22 October: the front
+         door's projects, read from the device after its heading, were missed once under the gate's load —
+         five browser jobs at once). Something truly missing still fails, 8 s later. */
+      if (!found.ok) {
+        await page.waitForFunction(([sel, src, n]) => {
+          const re = src ? new RegExp(src) : null;
+          return [...document.querySelectorAll(sel)].filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden' && (!re || re.test(e.textContent ?? '')); }).length >= n;
+        }, args, { timeout: 8000 }).catch(() => {});
+        found = await page.evaluate(look, args);
+      }
       if (!found.ok) { fail++; console.log(`MISSING  ${tag} · ${pg.name}: ${m.what} (${m.sel}${m.n ? `, ${m.n} wanted` : ''} — ${found.count} found)`); }
     }
     if (SHOTS) await page.screenshot({ path: join(SHOTS, `${tag} — ${pg.name.replace(/[\\/:]/g, '-')}.png`), fullPage: true });
