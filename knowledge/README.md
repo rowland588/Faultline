@@ -12,7 +12,7 @@ Four things, kept apart on purpose:
 |---|---|---|
 | **The knowledge library** | the engineering: each method, its formulas, assumptions, misuse, food use, references and how strong they are | `knowledge/methods/<discipline>/<slug>.md` |
 | **The catalogue** | every tool Faultline could have, each with a stable number (`FC-001` …), its twelve fields and its *true* status; the backlog is the order to build in | `src/catalogue/` (entries, `problems.ts`, `backlog.ts`); summed up in `knowledge/SUMMARY.md` |
-| **The directory** | what a person on the floor uses to find a tool by their problem, not its name | in the app: *Every tool*, reading the catalogue — **not built yet** (the next slice); until then `node scripts/catalogue.mjs search` |
+| **The directory** | what a person on the floor uses to find a tool by their problem, not its name | in the app: *Every tool* (`#/tools`, from the front door), reading the catalogue — by the problem in the floor's words, the status, the discipline, or a number; `scripts/acceptance/tools-directory.mjs` |
 | **The standard and the skill** | how a tool is specified, built, proved and released, every time | `knowledge/STANDARD.md`, `knowledge/specs/`, `.claude/skills/faultline-tool/SKILL.md`, `CLAUDE.md` |
 
 Read `docs/DIRECTION.md` first, as `CLAUDE.md` says: the catalogue is the

@@ -132,6 +132,7 @@ export function StartScreen() {
             </li>
           ))}
         </ul>
+        <p className="fd-every"><button type="button" className="linkish" onClick={() => nav('/tools')}>Every tool — find one by the problem, and see what is built and what is not</button></p>
       </section>
 
       <section className="fd-sec fd-factory" aria-label="Your factory">
