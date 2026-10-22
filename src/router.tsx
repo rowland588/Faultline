@@ -51,6 +51,8 @@ const StudyScreen = lazy(() => import('./screens/StudyScreen').then(m => ({ defa
 const MapScreen = lazy(() => import('./screens/MapScreen').then(m => ({ default: m.MapScreen })));
 const ChangeoverScreen = lazy(() => import('./screens/ChangeoverScreen').then(m => ({ default: m.ChangeoverScreen })));
 const ReliabilityScreen = lazy(() => import('./screens/ReliabilityScreen').then(m => ({ default: m.ReliabilityScreen })));
+/* the directory reads the whole catalogue — on its own, so it never weighs on the rest */
+const ToolsScreen = lazy(() => import('./screens/ToolsScreen').then(m => ({ default: m.ToolsScreen })));
 const SamplingScreen = lazy(() => import('./screens/SamplingScreen').then(m => ({ default: m.SamplingScreen })));
 const LossesScreen = lazy(() => import('./screens/LossesScreen').then(m => ({ default: m.LossesScreen })));
 const ShareScreen = lazy(() => import('./screens/ShareScreen').then(m => ({ default: m.ShareScreen })));
@@ -151,6 +153,7 @@ function app(route: Route) {
   if (route.name === 'lineHome' && route.wsId) return <ProductionLineScreen key={route.wsId} wsId={route.wsId} />;
   if (route.name === 'factory') return <FactoryScreen />;
   if (route.name === 'allActions') return <EveryActionScreen />;
+  if (route.name === 'tools') return <ToolsScreen />;
   if (route.name === 'start') return <StartScreen />;
   /* a video study (docs/VIDEO.md): every one, and one */
   if (route.name === 'videos') return <VideosScreen key={route.query.get('project') ?? ''} />;

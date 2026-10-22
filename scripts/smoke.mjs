@@ -186,6 +186,8 @@ const ROUTES = [
   /* a production line, its own page — its problems and its tools; and the lists opened on it */
   ['a production line, its own page', `#/lines/${seeded.wsId}`],
   ['your factory — the lines, edited', '#/factory'],
+  /* every tool, the directory (src/catalogue) — and found by the problem */
+  ['every tool — the directory', '#/tools'],
   ['your factory — adding lines', '#/factory?add=1'],
   /* programs from the control room — every line's, one line's, planning one (BLUEPRINT Stage 2) */
   ['programs — every line', '#/programs'],
@@ -265,7 +267,7 @@ for (const [name, hash] of ROUTES) {
        don't think a job should exist ... a project is the project"). Allowed:
        "job" meaning a piece of work — the ILO's rest "on every job", a
        station's "next job", "its job arrives by", and "do their job". */
-    const said = text.replace(/packaging snag|film snags?|seeded snag|on every job|next job reaches|job arrives by|do their job/gi, '');
+    const said = text.replace(/packaging snag|film snags?|seeded snag|on every job|next job reaches|job arrives by|do their job|TWI job instruction|job instruction/gi, '');   // TWI Job Instruction: a method's own name (Every tool)
     const old = [...new Set((said.match(/\b(workspaces?|tracker|3P|snags?|assets?|line balancing|maps and balances?|jobs?)\b/gi) ?? []).map(w => w.toLowerCase()))];
     return { chars: text.length, crash: /something broke|something went wrong/i.test(text), head: text.split('\n')[0]?.slice(0, 40) ?? '', old };
   });
