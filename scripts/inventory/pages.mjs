@@ -329,5 +329,6 @@ export const PAGES = (sd, cap) => [
     { what: 'on paper', sel: '.tk-dacts button', text: /^Save as PDF$/ },
   ] },
   { name: 'A capability study', path: `#/capability/${sd.studyId}`, must: [{ what: 'the readings, drawn', sel: 'svg.ie-dots' },
+    { what: 'before capability — the three checks', sel: '.ie-checks .ie-check' }, { what: 'the histogram', sel: 'svg.ie-hist rect.ie-bar' },
     { what: 'the band', sel: '.ln-band' }, { what: 'the tiles', sel: '.ie-strip .ln-tile' }, { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' }] },
 ];

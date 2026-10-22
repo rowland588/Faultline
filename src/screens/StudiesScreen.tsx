@@ -43,10 +43,10 @@ type ToolWords = { title: string; one: string; lede: string; add: string; placeh
 const CAPABILITY: ToolWords = {
   title: 'Capability study',
   one: 'Capability study',
-  lede: 'Readings against agreed limits — does it pass, and would it keep passing all shift (Cpk)? Use one on its own, then put it on a line or attach it to a project.',
+  lede: 'A measurement against one limit or two, or items that pass or fail — does it pass, would it keep passing all shift (Ppk, and how sure), and what does a pass prove? Use one on its own, then put it on a line or attach it to a project.',
   add: 'New capability study',
   placeholder: 'e.g. Weight accuracy 400 g',
-  none: 'No capability studies yet. Say what it is of, agree the limits and how many readings, then take them — on the phone at the machine.',
+  none: 'No capability studies yet. Say what it is of, agree what it is judged against and how many, then take them — on the phone at the machine.',
   second: { label: 'On which machine?', placeholder: 'e.g. Checkweigher' },
 };
 /* Rowland, 11 October: a swimlane grid of what, who and the value — and

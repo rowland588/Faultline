@@ -38,7 +38,7 @@ const TOOL_SAYS: Record<string, string> = {
   '/standards': 'Who does what where on the line, drawn as the line looks',
   '/linebalance': 'People’s work timed against takt',
   '/balances': 'What each station can make, which one limits the line, and what a pack costs in labour',
-  '/capability': 'Readings against limits, with Cp and Cpk and a verdict',
+  '/capability': 'A measurement against one limit or two, or pass or fail: Ppk and how sure, the checks before it, and what a pass proves',
   '/value-stream': 'The line’s steps, waits and value, walked',
   '/smed': 'A changeover timed element by element, internal and external',
   '/sampling': 'What people are doing at random moments, with margins',

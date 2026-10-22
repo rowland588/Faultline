@@ -23,7 +23,7 @@ import { can as canAt } from '../lib/access';
 import { now, uid } from '../lib/ids';
 import { niceDay, isoDay } from '../lib/weeks';
 import { nav } from '../state/useRoute';
-import { sample, sampleSays, tneFor, CPK_FROM, type SampleFigures, type SampleSays } from '../lib/ie/sample';
+import { allowFailProblem, checksSay, passFailPlan, sample, sampleLines, sampleSays, tneFor, CPK_FROM, type SampleFigures, type SampleSays } from '../lib/ie/sample';
 import type { AgreedReadings, StudyReading, ToolStudy } from '../lib/study';
 import { TOOL_WORDS } from './StudiesScreen';
 import { StudyName } from '../ui/StudyActs';
@@ -95,9 +95,9 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
       ) : (
         <>
           <LeanTiles tiles={sampleTiles(f, a, said)} className="ie-strip" />
-          <Says said={said} s={s} />
+          <Says said={said} s={s} f={f} a={a} />
           <div className="ie-body">
-            <div className="ie-pic">{a.kind === 'ticks' ? <Ticks readings={readings} /> : <Dots f={f} a={a} readings={readings} said={said} />}</div>
+            <div className="ie-pic">{a.kind === 'ticks' ? <Ticks readings={readings} /> : <><Dots f={f} a={a} readings={readings} said={said} /><Hist f={f} a={a} /></>}</div>
             {!closed && can.edit && <Capture a={a} f={f} readings={readings} onAdd={add} onStrike={id => strike(id, true)} />}
           </div>
           <Readings readings={readings} f={f} a={a} canStrike={can.edit && !closed} onStrike={strike} />
@@ -139,27 +139,50 @@ function StudyMachine({ s }: { s: ToolStudy }) {
 
 
 /* ------------------------------------------------------------------ agree */
-const KINDS: { k: AgreedReadings['kind']; word: string; hint: string }[] = [
-  { k: 'limits', word: 'Limits', hint: 'a lower and an upper limit — either can be left blank' },
-  { k: 'packers', word: 'Sold by weight (℮)', hint: 'the nominal alone: the packers’ three rules follow from it' },
-  { k: 'ticks', word: 'Ticks', hint: 'pass or fail each one — a reject test, say' },
+/* THE QUESTION FIRST (knowledge/specs/FC-094-capability.md §8 — Rowland, 22
+   October: "I've got no idea what the tick is"): what is being measured, each
+   with an example; then, for a measurement, which side it is judged on; and
+   only the boxes that choice needs. */
+const KINDS: { k: AgreedReadings['kind']; word: string; eg: string }[] = [
+  { k: 'limits', word: 'A measurement', eg: 'a weight, a length, a temperature, a speed' },
+  { k: 'packers', word: 'Sold by weight (℮)', eg: 'the nominal on the pack — the packers’ three rules follow from it' },
+  { k: 'ticks', word: 'Pass or fail', eg: 'one at a time — a seal re-test, the metal detector’s test packs' },
+];
+type Side = 'both' | 'least' | 'most';
+const SIDES: { k: Side; word: string; eg: string }[] = [
+  { k: 'both', word: 'Between two limits', eg: 'fill 400–404 g' },
+  { k: 'least', word: 'At least', eg: 'speed at least 75 a minute' },
+  { k: 'most', word: 'At most', eg: 'oxygen at most 2%' },
 ];
 const numOr = (t: string) => (t.trim() === '' ? undefined : Number(t));
+const sideOf = (a?: AgreedReadings): Side => (a?.lower !== undefined && a.upper === undefined ? 'least' : a?.upper !== undefined && a.lower === undefined ? 'most' : 'both');
 
 function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; canAgree: boolean; hasReadings: boolean; onDone: () => void; cancel?: () => void }) {
   const a = s.agreed?.readings;
   const [kind, setKind] = useState<AgreedReadings['kind']>(a?.kind ?? 'limits');
+  const [side, setSide] = useState<Side>(sideOf(a));
   const [unit, setUnit] = useState(a?.unit ?? 'g');
   const [nominal, setNominal] = useState(a?.nominal?.toString() ?? '');
   const [lower, setLower] = useState(a?.lower?.toString() ?? '');
   const [upper, setUpper] = useState(a?.upper?.toString() ?? '');
   const [count, setCount] = useState((a?.count ?? 30).toString());
-  const nom = numOr(nominal), lo = numOr(lower), hi = numOr(upper), n = Math.round(Number(count));
+  const [allow, setAllow] = useState((a?.allowFail ?? 0).toString());
+  const nom = numOr(nominal), lo = side === 'most' ? undefined : numOr(lower), hi = side === 'least' ? undefined : numOr(upper);
+  const n = Math.round(Number(count)), k = Number(allow.trim() === '' ? '0' : allow);
   const tne = kind === 'packers' && nom !== undefined ? tneFor(nom, unit) : undefined;
+  const ticks = kind === 'ticks';
+  /* a new study's count follows the question: 30 readings, 20 to check */
+  const pick = (to: AgreedReadings['kind']) => {
+    if (!a && (to === 'ticks') !== ticks && count === (ticks ? '20' : '30')) setCount(to === 'ticks' ? '20' : '30');
+    setKind(to);
+  };
   const problem =
-    !(n >= 1) ? 'How many readings — at least 1.'
+    !(n >= 1) ? (ticks ? 'How many to check — at least 1.' : 'How many readings — at least 1.')
+    : ticks ? allowFailProblem(n, k)
     : [nom, lo, hi].some(x => x !== undefined && !Number.isFinite(x)) ? 'Numbers only in the limits.'
-    : kind === 'limits' && lo === undefined && hi === undefined ? 'At least one limit.'
+    : kind === 'limits' && side === 'least' && lo === undefined ? 'Type the limit — at least what?'
+    : kind === 'limits' && side === 'most' && hi === undefined ? 'Type the limit — at most what?'
+    : kind === 'limits' && side === 'both' && (lo === undefined || hi === undefined) ? 'Both limits — or choose At least or At most.'
     : kind === 'limits' && lo !== undefined && hi !== undefined && lo >= hi ? 'The lower limit has to be below the upper.'
     : kind === 'packers' && nom === undefined ? 'The nominal — what the pack says.'
     : kind === 'packers' && tne === undefined ? 'The packers’ rules cover 5 g to 10 kg (or ml to l).'
@@ -168,45 +191,61 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
   const save = () => {
     if (problem || !canAgree) return;
     const agreed: AgreedReadings = { kind, count: n,
-      ...(kind !== 'ticks' && unit.trim() ? { unit: unit.trim() } : {}),
-      ...(kind !== 'ticks' && nom !== undefined ? { nominal: nom } : {}),
+      ...(!ticks && unit.trim() ? { unit: unit.trim() } : {}),
+      ...(!ticks && nom !== undefined ? { nominal: nom } : {}),
       ...(kind === 'limits' && lo !== undefined ? { lower: lo } : {}),
-      ...(kind === 'limits' && hi !== undefined ? { upper: hi } : {}) };
+      ...(kind === 'limits' && hi !== undefined ? { upper: hi } : {}),
+      ...(ticks && k > 0 ? { allowFail: k } : {}) };
     void patchStudy(s.id, cur => ({ agreed: { ...cur.agreed, readings: agreed } }));
     onDone();
   };
 
   if (!canAgree) return (
     <div className="ie-agree is-wait">
-      <p><b>The limits aren’t agreed yet.</b> The project’s owner agrees what it is judged against, before the readings go in.</p>
+      <p><b>What it is judged against isn’t agreed yet.</b> The project’s owner agrees it, before the readings go in.</p>
     </div>
   );
   return (
     <form className="ie-agree" onSubmit={e => { e.preventDefault(); save(); }}>
-      <h2>Agree the limits</h2>
-      <p className="sub">What it is judged against, and how many readings — agreed before they go in, so a reading never moves them.</p>
+      <h2>Agree what it is judged against</h2>
+      <p className="sub">Agreed before the readings go in, so a reading never moves it.</p>
       {hasReadings && <p className="ie-note">Readings are already in: they will be judged against what you agree now.</p>}
-      <div className="chip-row" role="radiogroup" aria-label="How it is judged">
+      <div className="ie-kinds" role="radiogroup" aria-label="What are you measuring?">
+        <span className="field-label">What are you measuring?</span>
         {KINDS.map(x => (
-          <button key={x.k} type="button" role="radio" aria-checked={kind === x.k} className={'chip' + (kind === x.k ? ' on' : '')} onClick={() => setKind(x.k)}>{x.word}</button>
+          <button key={x.k} type="button" role="radio" aria-checked={kind === x.k} className={'ie-kind' + (kind === x.k ? ' on' : '')} onClick={() => pick(x.k)}>
+            <b>{x.word}</b><small>{x.eg}</small>
+          </button>
         ))}
       </div>
-      <p className="sub ie-kind-hint">{KINDS.find(x => x.k === kind)?.hint}</p>
+      {kind === 'limits' && (
+        <div className="ie-kinds ie-sides" role="radiogroup" aria-label="Judged against">
+          <span className="field-label">Judged against</span>
+          {SIDES.map(x => (
+            <button key={x.k} type="button" role="radio" aria-checked={side === x.k} className={'ie-kind' + (side === x.k ? ' on' : '')} onClick={() => setSide(x.k)}>
+              <b>{x.word}</b><small>{x.eg}</small>
+            </button>
+          ))}
+        </div>
+      )}
       <div className="ie-agree-grid">
-        {kind !== 'ticks' && <label className="field"><span className="field-label">Unit</span>
-          <input className="text-input" value={unit} maxLength={8} onChange={e => setUnit(e.target.value)} placeholder="g" /></label>}
-        {kind !== 'ticks' && <label className="field"><span className="field-label">{kind === 'packers' ? 'Nominal (on the pack)' : 'Nominal'} {kind === 'limits' && <i className="sub">optional</i>}</span>
+        {!ticks && <label className="field"><span className="field-label">Unit</span>
+          <input className="text-input" value={unit} maxLength={16} onChange={e => setUnit(e.target.value)} placeholder="g" /></label>}
+        {kind === 'limits' && side !== 'most' && <label className="field"><span className="field-label">{side === 'least' ? 'At least' : 'Lower limit'}</span>
+          <input className="text-input" inputMode="decimal" value={lower} onChange={e => setLower(e.target.value)} placeholder={side === 'least' ? '75' : '400'} /></label>}
+        {kind === 'limits' && side !== 'least' && <label className="field"><span className="field-label">{side === 'most' ? 'At most' : 'Upper limit'}</span>
+          <input className="text-input" inputMode="decimal" value={upper} onChange={e => setUpper(e.target.value)} placeholder={side === 'most' ? '2' : '404'} /></label>}
+        {!ticks && <label className="field"><span className="field-label">{kind === 'packers' ? 'Nominal (on the pack)' : 'Target'} {kind === 'limits' && <i className="sub">if there is one</i>}</span>
           <input className="text-input" inputMode="decimal" value={nominal} onChange={e => setNominal(e.target.value)} placeholder="400" /></label>}
-        {kind === 'limits' && <label className="field"><span className="field-label">Lower limit</span>
-          <input className="text-input" inputMode="decimal" value={lower} onChange={e => setLower(e.target.value)} placeholder="400" /></label>}
-        {kind === 'limits' && <label className="field"><span className="field-label">Upper limit</span>
-          <input className="text-input" inputMode="decimal" value={upper} onChange={e => setUpper(e.target.value)} placeholder="404" /></label>}
-        <label className="field"><span className="field-label">How many readings</span>
+        <label className="field"><span className="field-label">{ticks ? 'How many to check' : 'How many readings'}</span>
           <input className="text-input" inputMode="numeric" value={count} onChange={e => setCount(e.target.value)} /></label>
+        {ticks && <label className="field"><span className="field-label">How many may fail</span>
+          <input className="text-input" inputMode="numeric" value={allow} onChange={e => setAllow(e.target.value)} placeholder="0" /></label>}
       </div>
       {tne !== undefined && nom !== undefined && (
         <p className="ie-note">℮ {nom} {unit}: the tolerable negative error is {+tne.toFixed(3)} {unit}. The average at least {nom}; fewer than 1 in 40 more than {+tne.toFixed(3)} {unit} short; none more than {+(2 * tne).toFixed(3)} {unit} short.</p>
       )}
+      {ticks && !problem && <p className="ie-note ie-plan">{passFailPlan(n, k)}</p>}
       {problem && <p className="ie-problem">{problem}</p>}
       <div className="ie-agree-act">
         <button type="submit" className="btn btn-primary" disabled={!!problem}>Agree these</button>
@@ -218,19 +257,31 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
 
 export function agreedWords(a: AgreedReadings): string {
   const u = a.unit ? ` ${a.unit}` : '';
-  const what = a.kind === 'ticks' ? 'pass or fail each'
-    : a.kind === 'packers' ? `sold by weight, ℮ ${a.nominal}${u}`
+  if (a.kind === 'ticks') {
+    const k = Math.max(0, Math.floor(a.allowFail ?? 0));
+    return `pass or fail each, ${a.count} — ${k ? `at most ${k} may fail` : 'none may fail'}`;
+  }
+  const what = a.kind === 'packers' ? `sold by weight, ℮ ${a.nominal}${u}`
     : a.lower !== undefined && a.upper !== undefined ? `${a.lower}–${a.upper}${u}`
     : a.lower !== undefined ? `at least ${a.lower}${u}` : `at most ${a.upper}${u}`;
   return `${what}, ${a.count} reading${a.count === 1 ? '' : 's'}`;
 }
 
 /* ------------------------------------------------------------------ says */
-function Says({ said, s }: { said: SampleSays; s: ToolStudy }) {
+function Says({ said, s, f, a }: { said: SampleSays; s: ToolStudy; f: SampleFigures; a: AgreedReadings }) {
+  /* BEFORE CAPABILITY — the three checks an index stands on (spc.normality-
+     checks), quiet when they pass, amber when they do not */
+  const checks = checksSay(f, a);
   return (
     <div className="ie-says">
       <p className={'ie-say is-' + said.tone}>{said.text}</p>
       {said.capability && <p className={'ie-say ie-cap is-' + said.capability.tone}>{said.capability.text}</p>}
+      {checks.length > 0 && (
+        <div className="ie-checks" role="group" aria-label="Before capability">
+          <span className="ie-checks-h">Before capability</span>
+          {checks.map(c => <p key={c.k} className={'ie-check is-' + c.tone} data-check={c.k}>{c.text}</p>)}
+        </div>
+      )}
       {s.overrule && (
         <p className="ie-say ie-over"><b>{s.overrule.verdict}</b> · overruled{s.overrule.by ? ` by ${s.overrule.by}` : ''} — {s.overrule.why}</p>
       )}
@@ -241,19 +292,12 @@ function Says({ said, s }: { said: SampleSays; s: ToolStudy }) {
 /* ------------------------------------------------------------------ the dots between the limits */
 const DW = 600, DH = 230, PAD = { l: 10, r: 118, t: 16, b: 16 };
 
+/** The limits and the target as lines, for the dots and the histogram (lib/ie/sample sampleLines). */
+const limitLines = (f: SampleFigures, a: AgreedReadings) => sampleLines(f, a).map(l => ({ v: l.v, label: l.label, cls: `ie-${l.kind}` }));
+
 function Dots({ f, a, readings, said }: { f: SampleFigures; a: AgreedReadings; readings: StudyReading[]; said: SampleSays }) {
   const kept = readings.filter(r => !r.struck && typeof r.value === 'number');
-  const tne = f.packers?.tne;
-  const lines: { v: number; label: string; cls: string }[] = [];
-  if (a.kind === 'packers' && f.packers && tne !== undefined) {
-    lines.push({ v: f.packers.nominal, label: `nominal ${f.packers.nominal}`, cls: 'ie-nom' });
-    lines.push({ v: f.packers.nominal - tne, label: `${+tne.toFixed(3)} short`, cls: 'ie-lim' });
-    lines.push({ v: f.packers.nominal - 2 * tne, label: `${+(2 * tne).toFixed(3)} short`, cls: 'ie-lim2' });
-  } else {
-    if (a.upper !== undefined) lines.push({ v: a.upper, label: `upper ${a.upper}`, cls: 'ie-lim' });
-    if (a.lower !== undefined) lines.push({ v: a.lower, label: `lower ${a.lower}`, cls: 'ie-lim' });
-    if (a.nominal !== undefined && a.nominal !== a.lower && a.nominal !== a.upper) lines.push({ v: a.nominal, label: `nominal ${a.nominal}`, cls: 'ie-nom' });
-  }
+  const lines = limitLines(f, a);
   const vs = [...kept.map(r => r.value as number), ...lines.map(l => l.v), ...(f.mean !== undefined ? [f.mean] : [])];
   if (!vs.length) return <p className="sub ie-pic-empty">Each reading lands here as a dot, between the limits.</p>;
   let lo = Math.min(...vs), hi = Math.max(...vs);
@@ -283,6 +327,44 @@ function Dots({ f, a, readings, said }: { f: SampleFigures; a: AgreedReadings; r
           <circle className={'ie-dot' + (outside.has(r.id) ? ' is-out' : '')} cx={x(i)} cy={y(r.value as number)} r={6} />
         </g>
       ))}
+    </svg>
+  );
+}
+
+/* ------------------------------------------------------------------ the histogram */
+const HW = 600, HH = 190, HP = { l: 10, r: 10, t: 26, b: 34 };
+
+/** THE HISTOGRAM (FC-103) — how the readings spread against the limits, so
+ *  a person can judge the shape the check reads: about √n bars on a round
+ *  width, the limits and the target drawn, a bar holding a reading outside
+ *  in red (lib/ie/sample hist). */
+function Hist({ f, a }: { f: SampleFigures; a: AgreedReadings }) {
+  const h = f.hist;
+  if (!h || f.n < 2) return null;
+  const lines = limitLines(f, a);
+  const lo = h.edges[0], hi = h.edges[h.edges.length - 1], top = Math.max(...h.counts, 1);
+  const x = (v: number) => HP.l + ((v - lo) / (hi - lo)) * (HW - HP.l - HP.r);
+  const y = (c: number) => HH - HP.b - (c / top) * (HH - HP.t - HP.b);
+  const dp = Math.max(f.dp, h.width < 1 ? Math.min(3, Math.ceil(-Math.log10(h.width))) : 0);
+  const outs = h.out.filter(Boolean).length;
+  const label = `How the ${f.n} readings spread: ${h.counts.length} bars ${lo.toFixed(dp)} to ${hi.toFixed(dp)}${outs ? `, ${outs} holding a reading outside` : ''}.`;
+  return (
+    <svg className="ie-hist" viewBox={`0 0 ${HW} ${HH}`} role="img" aria-label={label}>
+      {h.counts.map((c, i) => (
+        <g key={i}>
+          <rect className={'ie-bar' + (h.out[i] ? ' is-out' : '')} x={x(h.edges[i]) + 1} width={Math.max(1, x(h.edges[i + 1]) - x(h.edges[i]) - 2)} y={y(c)} height={HH - HP.b - y(c)} />
+          {c > 0 && <text className="ie-bar-n" x={(x(h.edges[i]) + x(h.edges[i + 1])) / 2} y={y(c) - 4} textAnchor="middle">{c}</text>}
+        </g>
+      ))}
+      <line className="ie-axis" x1={HP.l} x2={HW - HP.r} y1={HH - HP.b} y2={HH - HP.b} />
+      {lines.map(l => (
+        <g key={l.cls + l.v}>
+          <line className={l.cls} x1={x(l.v)} x2={x(l.v)} y1={HP.t - 6} y2={HH - HP.b} />
+          <text className="ie-lw ie-hw" x={x(l.v)} y={HP.t - 10} textAnchor={x(l.v) > HW - 90 ? 'end' : x(l.v) < 90 ? 'start' : 'middle'}>{l.label}</text>
+        </g>
+      ))}
+      <text className="ie-hx" x={HP.l} y={HH - 12}>{lo.toFixed(dp)}{a.unit ? ` ${a.unit}` : ''}</text>
+      <text className="ie-hx" x={HW - HP.r} y={HH - 12} textAnchor="end">{hi.toFixed(dp)}</text>
     </svg>
   );
 }
@@ -335,11 +417,11 @@ function Capture({ a, f, readings, onAdd, onStrike }: {
   const last = readings.map((r, i) => ({ ...r, no: i + 1 })).filter(r => !r.struck).slice(-3).reverse();
   return (
     <div className="ie-cap-box" aria-label="Take the readings">
-      <div className="ie-count"><b>{f.n}</b> of {f.count} in{f.enough ? ' — all in' : ''}</div>
+      <div className="ie-count"><b>{f.n}</b> of {f.count} {a.kind === 'ticks' ? `checked${f.ticks?.bad.length ? ` · ${f.ticks.bad.length} failed` : ''}` : 'in'}{f.enough ? ' — all in' : ''}</div>
       {a.kind === 'ticks' ? (
         <div className="ie-tick-keys">
-          <button type="button" className="btn ie-key ie-ok" onClick={() => onAdd({ ok: true })} aria-label="Pass">✓</button>
-          <button type="button" className="btn ie-key ie-bad" onClick={() => onAdd({ ok: false })} aria-label="Fail">✗</button>
+          <button type="button" className="btn ie-key ie-ok" onClick={() => onAdd({ ok: true })} aria-label="Good">✓ <span>Good</span></button>
+          <button type="button" className="btn ie-key ie-bad" onClick={() => onAdd({ ok: false })} aria-label="Failed">✗ <span>Failed</span></button>
         </div>
       ) : (
         <>

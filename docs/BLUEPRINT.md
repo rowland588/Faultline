@@ -520,7 +520,9 @@ pack because of X" and £ a minute. Where it stands, 17 October:
   every line in margin, its page and its paper — 5b) and work
   sampling (what the biggest share not the work costs a shift — slice 6).
 - **Missing — the next piece, tool by tool:** the capability study (what
-  the rejects and give-away cost), the value stream map (what the waits and
+  the rejects and give-away cost — catalogue FC-156 and FC-098; its part 1,
+  22 October, made it cover one limit, pass or fail and the checks before
+  capability on the same record, page and paper, and added no money), the value stream map (what the waits and
   waste cost), the line
   standard map (what the people placed cost a pack), the problems register
   (what each problem costs while it is open), a 6M countermeasure (what it
