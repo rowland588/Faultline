@@ -198,6 +198,12 @@ export const PAGES = (sd, cap) => [
     { what: 'the closing line', sel: '.ln-close' }] },
   { name: 'Actions — a 6M project', path: `#/project/${sd.pacedProjectId}/actions`, must: [
     { what: 'the tiles', sel: '.act-tiles .ln-tile', n: 6 }, { what: 'its actions', sel: '.act-li' }, { what: 'the closing line', sel: '.ln-close' }] },
+  { name: 'Every tool — the directory', path: '#/tools', must: [
+    { what: 'the problem, asked first', sel: '.tl-search input' },
+    { what: 'the counts that are the filters — six statuses and All', sel: '.tl-status .chip', n: 7 },
+    { what: 'start from the problem — every route', sel: '.tl-route-b', n: 20 },
+    { what: 'every tool by discipline, each with its status in words', sel: '.tl-row .tl-st', n: 200 },
+  ] },
   { name: 'Every action — the control room', path: '#/actions', must: [
     { what: 'the six tiles', sel: '.act-tiles .ln-tile', n: 6 }, { what: 'seen by who, when, where or project', sel: '[aria-label="Seen by"] .chip', n: 4 },
     { what: 'every project’s actions and every line’s own problems', sel: '.act-li' }, { what: 'the closing line', sel: '.ln-close' }] },

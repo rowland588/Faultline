@@ -45,7 +45,7 @@ Worked out from `src/catalogue/` by `node scripts/catalogue.mjs summary --write`
 
 - **Lean manufacturing and waste** — Value stream and flow 4 · Waste 2 · Standard work 2 · Pull and levelling 4 · 5S and the visual workplace 1 · Mistake-proofing 2 · Improvement events and kata 3
 - **Industrial engineering and work measurement** — Time study 3 · Predetermined motion times 1 · Work sampling 1 · Labour standards and allowances 3 · Method study 3 · Labour productivity 3
-- **Capacity, throughput and bottlenecks** — Line capacity 4 · Line balancing 2 · Constraints (TOC) 5 · Queues, WIP and buffers 4 · Load against demand 2
+- **Capacity, throughput and bottlenecks** — Line capacity 4 · Line balance 2 · Constraints (TOC) 5 · Queues, WIP and buffers 4 · Load against demand 2
 - **Equipment performance and losses** — The time model and losses 2 · Stops and downtime 5 · Speed and short stops 2 · Losses in money 1
 - **Maintenance, reliability and TPM** — Reliability statistics 3 · Maintainability 1 · TPM routines 2 · Maintenance strategy 4 · Spares 1
 - **Changeovers** — SMED 2 · Sequence and interval 2 · Start-up and release 1

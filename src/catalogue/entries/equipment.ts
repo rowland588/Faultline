@@ -295,7 +295,7 @@ export const EQUIPMENT: Entry[] = [
   },
   {
     id: 'FC-081', name: 'The filmed walk and its problems — the punch list', discipline: 'commissioning', sub: 'readiness',
-    problem: 'Snags seen on a walk are forgotten or lost in notebooks.',
+    problem: 'Problems seen on a walk are forgotten or lost in notebooks.',
     questions: ['What did we see, where, and what is being done about each?'],
     method: 'A walk with film and photos; each problem raised with its place, priority and journey.',
     inputs: 'Photos, film, notes on the walk.',

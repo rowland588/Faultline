@@ -129,9 +129,10 @@ first.
    (`.claude/skills/faultline-tool/SKILL.md`), a section in `CLAUDE.md`, and
    a test (`src/catalogue/__tests__/catalogue.test.ts`) that fails when the
    catalogue, the library and the code disagree.
-4. **The directory** — *Every tool* in the app, found by the problem, the
-   discipline or the method: **not built yet** (the next slice). Until then
-   the catalogue is searched with `node scripts/catalogue.mjs search`.
+4. **The directory** — *Every tool* in the app (`#/tools`, from the front
+   door), found by the problem in the floor's words, the status, the
+   discipline or a number, each tool with its true status; built 22 October
+   (`src/screens/ToolsScreen.tsx`, `scripts/acceptance/tools-directory.mjs`).
 5. **The pilot** — the capability study, specified and built through the
    standard (`knowledge/specs/FC-094-capability.md`): part 1 built 22
    October — one limit in words, the checks before capability, how sure a

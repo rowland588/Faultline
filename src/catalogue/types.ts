@@ -68,7 +68,7 @@ export interface Discipline {
 export const DISCIPLINES: readonly Discipline[] = [
   { id: 'lean', name: 'Lean manufacturing and waste', subs: { flow: 'Value stream and flow', waste: 'Waste', standard: 'Standard work', pull: 'Pull and levelling', workplace: '5S and the visual workplace', poka: 'Mistake-proofing', kaizen: 'Improvement events and kata' } },
   { id: 'ie', name: 'Industrial engineering and work measurement', subs: { time: 'Time study', pmts: 'Predetermined motion times', sampling: 'Work sampling', standards: 'Labour standards and allowances', method: 'Method study', productivity: 'Labour productivity' } },
-  { id: 'capacity', name: 'Capacity, throughput and bottlenecks', subs: { line: 'Line capacity', balance: 'Line balancing', constraint: 'Constraints (TOC)', queue: 'Queues, WIP and buffers', demand: 'Load against demand' } },
+  { id: 'capacity', name: 'Capacity, throughput and bottlenecks', subs: { line: 'Line capacity', balance: 'Line balance', constraint: 'Constraints (TOC)', queue: 'Queues, WIP and buffers', demand: 'Load against demand' } },
   { id: 'equipment', name: 'Equipment performance and losses', subs: { time: 'The time model and losses', stops: 'Stops and downtime', speed: 'Speed and short stops', cost: 'Losses in money' } },
   { id: 'maintenance', name: 'Maintenance, reliability and TPM', subs: { reliability: 'Reliability statistics', repair: 'Maintainability', tpm: 'TPM routines', strategy: 'Maintenance strategy', spares: 'Spares' } },
   { id: 'changeover', name: 'Changeovers', subs: { smed: 'SMED', sequence: 'Sequence and interval', release: 'Start-up and release' } },

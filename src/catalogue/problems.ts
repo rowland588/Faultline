@@ -77,7 +77,7 @@ export const PROBLEMS: ProblemRoute[] = [
     id: 'people', title: 'People can’t keep up, or stand waiting', words: ['labour', 'staffing', 'people', 'operators', 'idle', 'overloaded'],
     steps: [
       { ask: 'Is each person’s work balanced against takt?', ids: ['FC-032', 'FC-008'] },
-      { ask: 'How long should each job take?', ids: ['FC-019', 'FC-021'] },
+      { ask: 'How long should each task take?', ids: ['FC-019', 'FC-021'] },
       { ask: 'What are people doing across the shift?', ids: ['FC-022'] },
       { ask: 'How many people does each station need?', ids: ['FC-031', 'FC-184'] },
       { ask: 'What does it cost a pack?', ids: ['FC-187', 'FC-188'] },
