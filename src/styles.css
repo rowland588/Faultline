@@ -13951,3 +13951,47 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .rl-lefton { margin: 6px 0 0; font-size: var(--t-detail); color: var(--st-a); max-width: 46ch; }
 .rl-lefton .linkish { color: var(--st-a); }
 .rl .rl-graphs .ln-solo { margin: 0; }
+/* several things counted at once (22 October): a button each, side by side; each one's own section */
+.rl-buttons { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.rl-buttons.is-many { grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); }
+.rl-buttons.is-many .rl-event { min-height: 104px; }
+.rl-buttons.is-many .rl-event b { font-size: 24px; }
+.rl-tap-why { margin: 0; }
+.rl-together-w { overflow-x: auto; }
+.rl-together { width: 100%; border-collapse: collapse; font-size: var(--t-detail); font-variant-numeric: tabular-nums; }
+.rl-together th { text-align: right; font-size: var(--t-label); color: var(--muted); font-weight: 700; padding: 4px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.rl-together td { text-align: right; padding: 7px 6px; border-bottom: 1px solid var(--line); color: var(--ink-2); cursor: pointer; }
+.rl-together th:first-child, .rl-together td:first-child, .rl-together th:nth-child(6), .rl-together td:nth-child(6) { text-align: left; }
+.rl-together tr.is-seen td { background: var(--accent-soft); }
+.rl-together tr.is-r .rl-against { color: var(--st-r); font-weight: 700; }
+.rl-together tr.is-a .rl-against { color: var(--st-a); font-weight: 700; }
+.rl-together tr.is-g .rl-against { color: var(--st-g); }
+.rl-seen { margin-top: 10px; }
+.rl-counted { margin-top: 12px; }
+.rl-counted-h { margin: 18px 0 4px; font-size: var(--t-h); font-weight: 800; color: var(--ink); }
+.rl-other { fill: none; stroke: var(--ink-2); stroke-width: 1.1; opacity: .55; }
+.rl-other-l { text-anchor: start; }
+.rl-other-l.is-this { fill: var(--brand); font-weight: 700; }
+.ln-key.rl-key-other { height: 0; border-top: 1.5px solid var(--ink-2); opacity: .6; }
+.rl-counts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.rl-count { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px 10px; align-items: end;
+  padding: 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); }
+.rl-count .field { margin: 0; }
+.rl-count-off { align-self: center; }
+.rl-count-help { margin: 0; max-width: 78ch; }
+.rl-count-back { margin-right: 12px; }
+@media (max-width: 700px) {
+  .rl-count { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .rl-count-name { grid-column: 1 / -1; }
+}
+/* on a phone, counted side by side is a card a count — each figure with its name */
+@media (max-width: 700px) {
+  .rl-together thead { display: none; }
+  .rl-together, .rl-together tbody { display: block; }
+  .rl-together tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 10px; padding: 8px; margin-bottom: 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+  .rl-together td { display: flex; flex-direction: column; text-align: left !important; padding: 0; border: 0; }
+  .rl-together td::before { content: attr(data-label); font-size: var(--t-label); color: var(--muted); font-weight: 700; }
+  .rl-together td:first-child { grid-column: 1 / -1; font-size: var(--t-body); }
+  .rl-together td:first-child::before { display: none; }
+  .rl-together td.rl-against { grid-column: 1 / -1; }
+}

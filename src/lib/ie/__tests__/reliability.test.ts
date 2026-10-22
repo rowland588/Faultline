@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
-  chi2Quantile, clockAt, compareReliability, costWords, countedEvents, plural, relCost, reliability, reliabilityInsights, reliabilitySays, runningRun, span, watchedSpans,
+  chi2Quantile, clockAt, compareReliability, costWords, countersOf, eventsOf, relAll, relRows, studyReliabilitySays, FIRST_COUNT, countedEvents, plural, relCost, reliability, reliabilityInsights, reliabilitySays, runningRun, span, watchedSpans,
 } from '../reliability';
-import { relClosing, relTiles, relTrend } from '../reliabilityLean';
+import { relClosing, relClosings, relTiles, relTrend } from '../reliabilityLean';
 import type { AgreedReliability, RelEvent, WatchRun } from '../../study';
+import type { RelSubject } from '../reliability';
 
 const H = 3_600_000, MIN = 60_000;
 const T0 = new Date(2026, 9, 20, 8, 0, 0).getTime();
@@ -42,7 +43,7 @@ describe('the watch', () => {
 });
 
 describe('MTBF and the failure rate', () => {
-  const a: AgreedReliability = { event: 'stop' };
+  const a: RelSubject = { event: 'stop' };
   /* two days: 4 h with 8 stops, then 2 h with 2 */
   const runs: WatchRun[] = [
     { id: 'd1', from: T0, to: T0 + 4 * H },
@@ -153,7 +154,7 @@ describe('against the MTBF wanted', () => {
 });
 
 describe('what it costs — the one cost model', () => {
-  const a: AgreedReliability = { event: 'stop', downMin: 3 };
+  const a: RelSubject = { event: 'stop', downMin: 3 };
   const f = reliability(a, [{ id: 'a', from: T0, to: T0 + 2 * H }], [ev(T0 + 30 * MIN), ev(T0 + 60 * MIN), ev(T0 + 90 * MIN), ev(T0 + 100 * MIN)], T0 + 3 * H);
   const line = { name: 'Line 7', crew: 4, labourRatePerHour: 12, labourBurden: 1.25, packsPerMin: 60, marginPerPack: 0.1,
     shifts: [{ id: 's1', name: 'Shift 1', start: '06:00', end: '14:00', breakMin: 30 }] };
@@ -174,7 +175,7 @@ describe('what it costs — the one cost model', () => {
 });
 
 describe('the lean page’s parts', () => {
-  const a: AgreedReliability = { event: 'jam', targetMin: 30 };
+  const a: RelSubject = { event: 'jam', targetMin: 30 };
   const runs: WatchRun[] = [{ id: 'd1', from: T0, to: T0 + 2 * H }, { id: 'd2', from: T0 + 24 * H, to: T0 + 26 * H }];
   const events = [10, 40, 70, 100].map(m => ev(T0 + m * MIN)).concat([20, 80].map(m => ev(T0 + 24 * H + m * MIN)));
   const f = reliability(a, runs, events, T0 + 27 * H);
@@ -224,6 +225,64 @@ describe('before → after', () => {
     const before = reliability({ event: 'jam' }, watch(10), every(10, 5), T0 + 11 * H);
     const after = reliability({ event: 'jam' }, watch(10), every(10, 40), T0 + 11 * H);
     expect(compareReliability(before, after, 'jam').tone).toBe('r');
+  });
+});
+
+describe('several things counted at once (22 October)', () => {
+  const a: AgreedReliability = { counts: [
+    { id: 's', name: 'stop', targetMin: 30, downMin: 2 },
+    { id: 'f', name: 'failure', targetMin: 120 },
+    { id: 'b', name: 'bottle down' },
+    { id: 'x', name: 'alarm', removed: true },
+  ] };
+  const runs: WatchRun[] = [{ id: 'w', from: T0, to: T0 + 2 * H }];
+  const events: RelEvent[] = [
+    ...[10, 30, 50, 70, 90, 110].map(m => ev(T0 + m * MIN, { count: 's' })),
+    ev(T0 + 60 * MIN, { count: 'f' }),
+    ev(T0 + 20 * MIN, { count: 'b' }), ev(T0 + 80 * MIN, { count: 'b' }),
+    ev(T0 + 40 * MIN, { count: 'x' }),
+  ];
+  it('each thing counted is its own, on the one watch', () => {
+    expect(countersOf(a).map(c => c.event)).toEqual(['stop', 'failure', 'bottle down']);
+    expect(countersOf(a, true).map(c => c.id)).toEqual(['s', 'f', 'b', 'x']);
+    const items = relAll(a, runs, events, T0 + 3 * H);
+    expect(items.map(i => [i.c.event, i.f.n, i.f.hours])).toEqual([['stop', 6, 2], ['failure', 1, 2], ['bottle down', 2, 2]]);
+    expect(items[0].f.mtbfH).toBeCloseTo(20 / 60, 9);
+    expect(items[2].f.mtbfH).toBeCloseTo(1, 9);
+    /* each against its own target */
+    expect(items[0].f.verdict).toBeDefined();
+    expect(items[2].f.verdict).toBeUndefined();
+  });
+  it('the study said for every count: each MTBF in a line, the most abnormal tone, each sentence', () => {
+    const said = studyReliabilitySays(a, runs, events, T0 + 3 * H);
+    expect(said.verdict).toBe('Stops 20 min · Failures 2 h · Bottle downs 60 min');
+    expect(said.text).toContain('6 stops in 2 h');
+    expect(said.text).toContain('1 failure in 2 h');
+    expect(said.text).toContain('2 bottle downs in 2 h');
+  });
+  it('counted side by side, a row each', () => {
+    const rows = relRows(relAll(a, runs, events, T0 + 3 * H));
+    expect(rows.map(r => [r.title, r.n, r.mtbf])).toEqual([['Stops', 6, '20 min'], ['Failures', 1, '2 h'], ['Bottle downs', 2, '60 min']]);
+    expect(rows[2].against).toBe('no target');
+  });
+  it('the closing line names each count in turn', () => {
+    const c = relClosings(relAll(a, runs, events, T0 + 3 * H));
+    expect(c.text).toMatch(/^Stops: one stop every 20 min of running, 3 an hour; Failures: one failure every 2 h/);
+  });
+  it('a study set up before then is one count, its taps the first count’s', () => {
+    const old: AgreedReliability = { event: 'stop', kinds: ['jam'], targetMin: 45, downMin: 3 };
+    expect(countersOf(old)).toEqual([{ id: FIRST_COUNT, event: 'stop', targetMin: 45, downMin: 3 }]);
+    const evs = [ev(T0 + MIN, { kind: 'jam' }), ev(T0 + 2 * MIN)];
+    expect(eventsOf(evs, FIRST_COUNT, FIRST_COUNT)).toHaveLength(2);
+    const [one] = relAll(old, runs, evs, T0 + 3 * H);
+    expect(one.f.n).toBe(2);
+    expect(one.f.kinds.map(k => k.kind)).toEqual(['jam', 'not said']);
+    expect(studyReliabilitySays(old, runs, evs, T0 + 3 * H).verdict).toMatch(/^MTBF 60 min/);
+  });
+  it('re-saved as counts, the first keeps the old taps', () => {
+    const resaved: AgreedReliability = { counts: [{ id: FIRST_COUNT, name: 'stop' }, { id: 'f', name: 'failure' }] };
+    const evs = [ev(T0 + MIN), ev(T0 + 2 * MIN, { count: 'f' })];
+    expect(relAll(resaved, runs, evs, T0 + 3 * H).map(i => i.f.n)).toEqual([1, 1]);
   });
 });
 

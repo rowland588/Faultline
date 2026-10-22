@@ -113,10 +113,11 @@ export interface Seeded {
   /** Work sampling on Line 7 (H1): Op 1 and Op 2 watched through the shift,
    *  36 moments answered, one come a minute ago still to answer. */
   samplingId: string;
-  /** A RELIABILITY STUDY on Line 7 (tool 13): the flow wrapper's stops,
-   *  watched three hours yesterday and two today, the watch running again
-   *  now — eleven stops counted, one struck, told apart as jams, misfeeds
-   *  and a sensor; 45 min wanted, 3 min stood a stop; two remarks. */
+  /** A RELIABILITY STUDY on Line 7 (tool 13): the flow wrapper watched three
+   *  hours yesterday and two today, the watch running again now — two things
+   *  counted at once on the one watch: its stops (eleven, one struck; 45 min
+   *  wanted, 3 min stood each) and its failures (three, 12 min stood each,
+   *  no target); two remarks. */
   reliabilityId: string;
   /** The paced job's Line 7 — its own workspace, with shifts, a cost model
    *  and stops timed through the last two days' shifts (tool 7). */
@@ -1011,16 +1012,19 @@ export async function seedForSmokeTest(): Promise<Seeded> {
   const reliabilityId = uid();
   {
     const M = 60_000, y0 = t - 26 * 3_600_000, d0 = t - 3 * 3_600_000, r0 = t - 20 * M;
-    const at = (from: number, mins: number[], kinds: (string | undefined)[]) => mins.map((m, i) => ({ id: uid(), at: from + m * M, by: 'Sam Patel', ...(kinds[i] ? { kind: kinds[i] } : {}) }));
+    const stop = uid(), fail = uid();
+    const at = (from: number, mins: number[], count: string) => mins.map(m => ({ id: uid(), at: from + m * M, by: 'Sam Patel', count }));
     await putStudy({ id: reliabilityId, tool: 'reliability', name: 'Wrapper stops', machine: 'Ilapak flow wrapper', workspaceId: ws.id,
-      agreed: { reliability: { event: 'stop', kinds: ['jam', 'misfeed', 'sensor'], targetMin: 45, downMin: 3 } },
+      agreed: { reliability: { counts: [{ id: stop, name: 'stop', targetMin: 45, downMin: 3 }, { id: fail, name: 'failure', downMin: 12 }] } },
       facts: {
         watch: [{ id: uid(), from: y0, to: y0 + 180 * M, by: 'Sam Patel' }, { id: uid(), from: d0, to: d0 + 120 * M, by: 'Sam Patel' }, { id: uid(), from: r0, by: 'Sam Patel' }],
         events: [
-          ...at(y0, [12, 30, 51, 77, 98, 130, 162], ['jam', 'jam', 'misfeed', 'jam', undefined, 'misfeed', 'jam']),
-          { id: uid(), at: y0 + 140 * M, by: 'Sam Patel', struck: true },
-          ...at(d0, [25, 70, 101], ['jam', 'sensor', 'jam']),
-          ...at(r0, [8], ['misfeed']),
+          ...at(y0, [12, 30, 51, 77, 98, 130, 162], stop),
+          { id: uid(), at: y0 + 140 * M, by: 'Sam Patel', count: stop, struck: true },
+          ...at(y0, [64, 151], fail),
+          ...at(d0, [25, 70, 101], stop),
+          ...at(d0, [88], fail),
+          ...at(r0, [8], stop),
         ],
         remarks: [
           { id: uid(), at: y0 + 100 * M, text: 'Jams all at the infeed — the film splice passing the jaws.', by: 'Sam Patel' },

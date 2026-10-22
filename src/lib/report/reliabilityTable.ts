@@ -7,7 +7,7 @@
  *
  * Every figure is the module's; this only draws. */
 import type { Remark } from '../study';
-import { plural, span, type RelFigures } from '../ie/reliability';
+import { plural, span, type RelFigures, type RelRow } from '../ie/reliability';
 import { niceDay, isoDay } from '../weeks';
 import { INK, INK2, LINE, MUTED } from '../reportKit';
 import { box, font, rows, text, wrap, SIZE, type Row } from './blocks';
@@ -49,7 +49,7 @@ export function relChartBlock(f: RelFigures, event: string): Block | undefined {
 }
 
 /** Day by day — watched, events, MTBF — and all of it. */
-export function relDaysBlocks(f: RelFigures): Block[] {
+export function relDaysBlocks(f: RelFigures, title = 'EVENTS'): Block[] {
   if (!f.days.length) return [];
   const cols = (w: number) => ({ day: w * 0.34, each: (w * 0.66) / 3 });
   const cell = (fr: Parameters<Row['draw']>[0], y: number, vals: string[], bold = false, colour = INK2) => {
@@ -64,7 +64,7 @@ export function relDaysBlocks(f: RelFigures): Block[] {
       const c = cols(fr.w);
       font(fr.doc, SIZE.tiny, 'bold', MUTED);
       fr.doc.text('DAY', fr.x, y + 10);
-      ['WATCHED', 'EVENTS', 'MTBF'].forEach((h, i) => fr.doc.text(h, fr.x + c.day + (i + 1) * c.each - 4, y + 10, { align: 'right' }));
+      ['WATCHED', title.toUpperCase(), 'MTBF'].forEach((h, i) => fr.doc.text(h, fr.x + c.day + (i + 1) * c.each - 4, y + 10, { align: 'right' }));
       fr.doc.setDrawColor(LINE); fr.doc.setLineWidth(0.6); fr.doc.line(fr.x, y + 14.5, fr.x + fr.w, y + 14.5);
     },
   };
@@ -103,4 +103,44 @@ export function remarksBlocks(remarks: readonly Remark[] = []): Block[] {
     text({ text: r.text, size: 9, colour: INK2, after: 1 }),
     text({ text: `${niceDay(isoDay(r.at))} ${new Date(r.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}${r.by ? ` · ${r.by}` : ''}${r.editedAt ? ' · edited' : ''}`, size: 7.5, colour: MUTED, after: 5 }),
   ]);
+}
+
+const RED = '#c4281c', AMBER = '#b45309', GREEN = '#15803d';
+const fmt = (n: number): string => `£${n >= 100 ? Math.round(n).toLocaleString('en-GB') : n.toFixed(2)}`;
+
+/** EVERY THING COUNTED SIDE BY SIDE — a row each: its taps, MTBF and range,
+ *  its rate, against its target (in its colour, with its words) and what it
+ *  costs an hour of running. */
+export function relTogetherBlocks(rs: readonly RelRow[]): Block[] {
+  if (!rs.length) return [];
+  const heads = ['COUNTED', 'TAPS', 'MTBF', '90% SURE', 'AN HOUR', 'AGAINST', '£ AN HOUR'];
+  const cols = (w: number) => [0, w * 0.2, w * 0.28, w * 0.39, w * 0.52, w * 0.64, w * 0.9].map((x, i) => ({ x, right: i > 0 && i !== 5 }));
+  const at = (w: number, i: number) => { const c = cols(w); const next = i + 1 < c.length ? c[i + 1].x : w; return c[i].right ? next - 4 : c[i].x; };
+  const againstLines = (fr: Parameters<Row['draw']>[0], r: RelRow) => wrap(fr.doc, r.against, fr.w * 0.25 - 6, T);
+  const header: Row = {
+    h: () => 16,
+    draw: (fr, y) => {
+      font(fr.doc, SIZE.tiny, 'bold', MUTED);
+      heads.forEach((h, i) => fr.doc.text(h, fr.x + at(fr.w, i), y + 10, cols(fr.w)[i].right ? { align: 'right' } : undefined));
+      fr.doc.setDrawColor(LINE); fr.doc.setLineWidth(0.6); fr.doc.line(fr.x, y + 14.5, fr.x + fr.w, y + 14.5);
+    },
+  };
+  const body: Row[] = rs.map(r => ({
+    h: fr => 5 + Math.max(1, againstLines(fr, r).length) * LH + 2,
+    draw: (fr, y) => {
+      const ty = y + 4 + T * 0.92;
+      const vals = [r.title, String(r.n), r.mtbf, r.range, r.rate, '', r.costPerH !== undefined ? fmt(r.costPerH) : '—'];
+      vals.forEach((v, i) => {
+        if (i === 5) return;
+        font(fr.doc, T, i === 0 || i === 2 ? 'bold' : 'normal', i === 0 || i === 2 ? INK : INK2);
+        fr.doc.text(v, fr.x + at(fr.w, i), ty, cols(fr.w)[i].right ? { align: 'right' } : undefined);
+      });
+      const colour = r.tone === 'r' ? RED : r.tone === 'a' ? AMBER : r.tone === 'g' ? GREEN : INK2;
+      font(fr.doc, T, r.tone === 'n' ? 'normal' : 'bold', colour);
+      fr.doc.text(againstLines(fr, r), fr.x + at(fr.w, 5), ty);
+      const h = 5 + Math.max(1, againstLines(fr, r).length) * LH + 2;
+      fr.doc.setDrawColor(LINE); fr.doc.setLineWidth(0.4); fr.doc.line(fr.x, y + h - 0.5, fr.x + fr.w, y + h - 0.5);
+    },
+  }));
+  return [rows({ header, rows: body, after: 's' })];
 }

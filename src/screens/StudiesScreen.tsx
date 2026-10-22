@@ -34,7 +34,7 @@ import { rateForCount } from '../ui/ShiftLosses';
 import { dur, flowFigures, share } from '../lib/ie/steps';
 import { changeoverFigures, changeoverSays, figuresOf, mins } from '../lib/ie/changeover';
 import { samplingSays } from '../lib/ie/sampling';
-import { reliability, reliabilitySays, span } from '../lib/ie/reliability';
+import { plural, relAll, span, studyReliabilitySays } from '../lib/ie/reliability';
 import { firstCount, lossLine, windowWords } from '../lib/ie/losses';
 import type { StudyTool, ToolStudy } from '../lib/study';
 import type { Observation, Workspace } from '../types';
@@ -131,7 +131,7 @@ export function studyLine(s: ToolStudy, ctx?: StudyContext): { text: string; ton
     return { text: f.steps ? `lead time ${f.untimed ? 'at least ' : ''}${dur(f.leadSec)} · ${share(f.pce ?? 0)} adds value` : 'no steps yet', tone: 'n' };
   }
   if (s.tool === 'sampling') return { text: samplingSays(s.agreed?.sampling, s.facts.taps ?? []).verdict, tone: 'n' };
-  if (s.tool === 'reliability') { const said = reliabilitySays(s.agreed?.reliability, reliability(s.agreed?.reliability, s.facts.watch, s.facts.events)); return { text: said.verdict, tone: said.tone }; }
+  if (s.tool === 'reliability') { const said = studyReliabilitySays(s.agreed?.reliability, s.facts.watch, s.facts.events); return { text: said.verdict, tone: said.tone }; }
   if (s.tool === 'losses') {
     const c = s.facts.losses;
     if (!c) return { text: 'not yet counted', tone: 'n' };
@@ -261,9 +261,10 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
 
 /** A reliability study on a list: watched time and events, and running now. */
 function relWhere(s: ToolStudy): string {
-  const f = reliability(s.agreed?.reliability, s.facts.watch, s.facts.events);
-  const ev = s.agreed?.reliability?.event ?? 'event';
-  return `${span(f.hours)} watched · ${f.n} ${f.n === 1 ? ev : `${ev}s`}${f.runningSince ? ' · watching now' : ''}`;
+  const items = relAll(s.agreed?.reliability, s.facts.watch, s.facts.events);
+  const f = items[0]?.f;
+  if (!f) return 'not set up yet';
+  return `${span(f.hours)} watched · ${items.map(i => `${i.f.n} ${plural(i.c.event, i.f.n)}`).join(' · ')}${f.runningSince ? ' · watching now' : ''}`;
 }
 
 /** ONE STUDY ON ITS TOOL'S LIST — opened with a tap; renamed and deleted where
@@ -381,7 +382,7 @@ function NewStudy({ open, tool, onClose, onLine, project }: { open: boolean; too
       <form className="lt-new" onSubmit={e => { e.preventDefault(); void make(); }}>
         {project && <p className="sub ie-for" data-for-project={project.id}>For <b>{project.name}</b> — it is the project’s, with everything else in it.</p>}
         {(isChange || isRel) && (
-          <label className="field"><span className="field-label">Which line? <i className="sub">{isRel ? 'optional — its machines are offered, and what the events cost needs it' : 'optional — its products are offered, and the interval needs it'}</i></span>
+          <label className="field"><span className="field-label">Which line? <i className="sub">{isRel ? 'leave as no line if it is on none — on a line, its machines are offered and what the stops cost is worked out' : 'optional — its products are offered, and the interval needs it'}</i></span>
             <select className="text-input" value={lineId} aria-label="Which line" onChange={e => setLineId(e.target.value)}>
               <option value="">No line yet — a quick session</option>
               {lines.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
@@ -402,7 +403,7 @@ function NewStudy({ open, tool, onClose, onLine, project }: { open: boolean; too
             <input className="text-input" value={name} maxLength={120} placeholder={w.placeholder} list={isChange ? 'new-co-products' : undefined} onChange={e => setName(e.target.value)} autoFocus />
           </label>
         )}
-        <label className="field"><span className="field-label">{w.second.label} {!isChange && <i className="sub">optional</i>}</span>
+        <label className="field"><span className="field-label">{w.second.label} {!isChange && <i className="sub">{isRel ? 'leave empty if you watch more than one' : 'optional'}</i>}</span>
           <input className="text-input" value={machine} maxLength={80} placeholder={w.second.placeholder} list={isLine ? 'new-map-products' : isChange ? 'new-co-products' : lineMachines.length ? 'new-study-machines' : undefined} onChange={e => setMachine(e.target.value)} />
           {!isLine && !isChange && lineMachines.length > 0 && <datalist id="new-study-machines">{lineMachines.map(m => <option key={m} value={m} />)}</datalist>}
           {(isLine || isChange) && <datalist id={isLine ? 'new-map-products' : 'new-co-products'}>{standards.filter(x => !x.deletedAt).map(x => <option key={x.id} value={x.product} />)}</datalist>}

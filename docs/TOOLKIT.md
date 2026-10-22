@@ -1385,22 +1385,38 @@ machine's function is ... also I start a clock watch I can stop and start,
 the calculation of MTBF makes sense why I need these 2 things ... allow
 continued testing, and continued testing builds up data"*.
 
-**The record.** A `studies` row of tool `reliability` (`supabase/RELIABILITY.sql`
-added it to the check). Agreed before the watch starts (`agreed.reliability`):
-what counts as an event, in the floor's words (a stop, a failure, a jam, a
-pick); what one can be when the team tells them apart (a button each); the
-MTBF wanted; the minutes the line stands for each. The facts, each an
-id-keyed list so two phones at one machine both keep theirs: `watch` (each
-stretch the watch ran — from, to, who), `events` (each tap — when, who, its
-kind, a note; struck, never erased) and `remarks` (the commentary — what was
-seen, tried, what to look at; edited where it sits, taken off with Undo).
-Coming back another day adds to the same lists; the figures firm up.
+**Several things at once** (Rowland, 22 October: *"I could have a failure,
+but I also might want to do stops. I might want to count something else ...
+three buttons. So same time frame, I'm pushing three buttons. There's three
+data sets going on. There's three of everything going on."*). One study
+counts one thing or several, the floor's own words among them, all on the
+one watch: the watched time is shared, the taps are each count's own, and
+every figure below is worked out for each count on its own.
 
-**At the machine.** Two big controls: the watch (Start while watching it run;
-Stop while it is down, at a break, when leaving) and the event button (a tap
-each one seen; a button a kind). An event counts only while the watch runs.
-The last tap is said back with Undo, a kind and a note; every tap and every
-stretch can be struck later. The screen is kept awake while the watch runs.
+**The record.** A `studies` row of tool `reliability` (`supabase/RELIABILITY.sql`
+added it to the check). Agreed before the watch starts (`agreed.reliability.counts`):
+what is counted, a row each — its name in the floor's words (a stop, a
+failure, a pick, or typed), its MTBF wanted and the minutes the line stands
+each time, each left empty when it is not known; one taken off is kept
+(`removed`), its taps with it, and comes back with Bring back. The facts,
+each an id-keyed list so two phones at one machine both keep theirs: `watch`
+(each stretch the watch ran — from, to, who), `events` (each tap — when, who,
+which count, a note; struck, never erased) and `remarks` (the commentary —
+what was seen, tried, what to look at; edited where it sits, taken off with
+Undo). Coming back another day adds to the same lists; the figures firm up.
+A study set up before 22 October counted one thing (`event`, with what one
+could be — `kinds`): it is read as one count, its taps the first count's,
+its kinds still said under it. *What can one be?* was taken off the set-up
+the same day — Rowland: *"What can it be? optional. I don't know what that
+is"* — several counts, each with its own figures, do what it was for; and
+every box says what it is for and when to leave it empty, never "optional".
+
+**At the machine.** The watch (Start while watching it run; Stop while it is
+down, at a break, when leaving) and a big button for each thing counted, side
+by side (a tap each one seen). A tap counts only while the watch runs. The
+last tap is said back as its own ("Failure 2 at 07:07") with Undo and a
+note; every tap and every stretch can be struck later. The screen is kept
+awake while the watch runs.
 A stretch longer than twelve hours is asked about — left on? — and stopped at
 its last tap in one press, so a night is never counted as watched.
 
@@ -1419,12 +1435,14 @@ its last tap in one press, so a night is never counted as watched.
   comes round), well over in bursts (one brings the next); read from five gaps;
 - the trend, Laplace's test at 90% (from four events): coming more often as
   the watching goes on (worse), less often (better), or no sign;
-- by kind: each one's count, share and its own MTBF (T over its count);
+- by kind, on a study set up before 22 October: each kind's count, share and
+  own MTBF (T over its count);
 - by day: watched, events and MTBF — the trend drawn;
 - against the MTBF wanted: met when the lower bound clears it, short when the
   upper does not reach it, not yet sure either side between;
-- before → after (a reliability study as a fix's proof): longer or shorter
-  only when the bounds part — else "not yet sure, keep watching".
+- before → after (a reliability study as a fix's proof), each count matched
+  by its name on both: longer or shorter only when the bounds part — else
+  "not yet sure, keep watching".
 
 **Money** (the one cost model, `lib/cost`): with the minutes stood an event,
 the minutes stood an hour of running = λ × those minutes; the crew's time
@@ -1432,15 +1450,20 @@ the minutes stood an hour of running = λ × those minutes; the crew's time
 where it stops the line, and their margin — an hour of running and a day of
 the line's shifts. What is not given is named, never guessed.
 
-**The page** (the lean page): the band and its verdict; the watch and the
-event button; the tiles — MTBF with its bounds and since the days before,
-failure rate, watched, events, what it costs; what it means; the graphs —
-events against watched hours (a straight line is a steady rate), the gaps,
-the MTBF day by day; what the events were; the days; every event and every
-stretch; what was agreed; the commentary; Used for and Make it better (short
-or not yet sure); the action plan; the closing line. Its paper
-(`lib/studiesPdf`, `lib/report/reliabilityTable`) carries the same. Proved by
-`scripts/acceptance/reliability.mjs`.
+**The page** (the lean page): the band and its verdict (every count's MTBF in
+a line, the most abnormal tone); the watch and a button each; with several,
+*Counted side by side* — a row a count: its taps, MTBF, 90% range, rate,
+against its own target, £ an hour (a card a count on a phone) — and a chip
+each to see one in full; then the one seen: its tiles — MTBF with its bounds
+and since the days before, failure rate, watched, its taps, what it costs;
+what it means; the graphs — its taps against watched hours (a straight line
+is a steady rate) with the other counts drawn thin beside it on the same
+watch, the gaps, the MTBF day by day; its days; then every tap (which count)
+and every stretch; what was agreed; the commentary; Used for and Make it
+better (any count short or not yet sure); the action plan; the closing line,
+each count in turn. Its paper (`lib/studiesPdf`, `lib/report/reliabilityTable`)
+carries the same: counted side by side, then each count's own section.
+Proved by `scripts/acceptance/reliability.mjs`.
 
 **Not yet.** The time to put a stop right (MTTR) — the watch stopped for a
 repair is not yet told apart from a break; the fishbone offering a

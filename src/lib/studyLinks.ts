@@ -22,7 +22,7 @@ import { actionWords, availableOf, carrySequence, changeoverSays, compareChangeo
 import { samplingSays, samplingWorst, worstWords } from './ie/sampling';
 import { barExpect, barWords, compareLosses, findBar, inWindow, lossFigures, lossLine, lossSays, nextShift, type CostModel, type LossFigures } from './ie/losses';
 import { studyBalance } from './ie/balanceLink';
-import { compareReliability, reliability, reliabilitySays } from './ie/reliability';
+import { compareReliability, relAll, studyReliabilitySays, worstTone } from './ie/reliability';
 
 const live = (ss: ToolStudy[]) => ss.filter(s => !s.deletedAt);
 
@@ -75,7 +75,7 @@ export function studySays(s: ToolStudy, ctx?: StudyContext): SampleSays {
     return { text: [said.text, l.planned ? ladderSays(l).text : '', iv.ready ? intervalSays(iv, f).text : ''].filter(Boolean).join(' '), tone: said.tone, verdict: said.verdict };
   }
   if (s.tool === 'sampling') return samplingSays(s.agreed?.sampling, s.facts.taps ?? []);
-  if (s.tool === 'reliability') return reliabilitySays(s.agreed?.reliability, reliability(s.agreed?.reliability, s.facts.watch, s.facts.events));
+  if (s.tool === 'reliability') return studyReliabilitySays(s.agreed?.reliability, s.facts.watch, s.facts.events);
   if (s.tool === 'losses') {
     const said = lossSays(lossFiguresOf(s, ctx), s.facts.losses, { ...(s.product ? { product: s.product } : {}) });
     return { text: said.text, tone: said.tone, verdict: said.verdict };
@@ -254,10 +254,17 @@ export function beforeAfter(studies: ToolStudy[], fixId: ID, kind: FixKind = 'fi
     return { text: `${one}${c.text}`, tone: st && stA?.source === 'carried' ? 'n' : c.tone, before, after };
   }
   if (before && after.tool === 'reliability') {
-    /* the machine watched again: the MTBF before → after, sure only when the bounds part */
-    const ra = after.agreed?.reliability ?? before.agreed?.reliability;
-    const c = compareReliability(reliability(before.agreed?.reliability, before.facts.watch, before.facts.events), reliability(ra, after.facts.watch, after.facts.events), ra?.event);
-    return { ...c, before, after };
+    /* the machine watched again: each thing counted on both, by its name —
+       the MTBF before → after, sure only when the bounds part */
+    const was = relAll(before.agreed?.reliability, before.facts.watch, before.facts.events);
+    const each = relAll(after.agreed?.reliability, after.facts.watch, after.facts.events).flatMap(x => {
+      const b = was.find(y => y.c.event.trim().toLowerCase() === x.c.event.trim().toLowerCase());
+      return b ? [{ name: x.c.event, ...compareReliability(b.f, x.f, x.c.event) }] : [];
+    });
+    if (!each.length) return { text: 'Nothing counted before is counted after — no before → after to say.', tone: 'n', before, after };
+    if (each.length === 1) return { text: each[0].text, tone: each[0].tone, before, after };
+    const tone = worstTone(each.map(x => x.tone));
+    return { text: each.map(x => `${x.name.charAt(0).toUpperCase()}${x.name.slice(1)}: ${x.text}`).join(' '), tone: tone === 'a' ? 'n' : tone, before, after };
   }
   const a = after.agreed?.readings;
   if (!before || !a) return undefined;
