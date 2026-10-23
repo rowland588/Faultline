@@ -266,12 +266,14 @@ export const PAGES = (sd, cap) => [
     { what: 'the page header — Plan something the primary', sel: '.jn .part-head .btn-primary', text: /^Plan something$/ },
     { what: 'the range — its five picks', sel: '[aria-label="Range"] .chip', n: 5 }, { what: 'the range said', sel: '.jn-range-t' },
     { what: 'the four tiles — done, still to do, late, planned', sel: '.jn-tiles .ln-tile', n: 4 },
-    { what: 'the tools we will use — a tick a tool', sel: '.jn-tools .jn-tool', n: 11 },
+    /* every tool at a desk; on a phone the list folds to the ticked, Every tool under it */
+    { what: 'the tools we will use — a tick a tool', sel: '.jn-tools .jn-tool', n: 11, desk: true },
+    { what: 'the tools we will use, folded — Every tool', sel: '.jn-tools .jn-every', text: /^Every tool/, phone: true },
     { what: 'the days in order', sel: '.jn-day' }, { what: 'a day’s lines, each a record’s own', sel: '.jn-day .jn-li' },
     { what: 'today marked', sel: '.jn-day.is-today' }, { what: 'the closing line', sel: '.ln-close' }] },
   { name: 'Journey — a 6M project', path: `#/project/${sd.pacedProjectId}/journey`, must: [
     { what: 'the range', sel: '[aria-label="Range"] .chip', n: 5 }, { what: 'the four tiles', sel: '.jn-tiles .ln-tile', n: 4 },
-    { what: 'the tools we will use', sel: '.jn-tools .jn-tool', n: 11 }, { what: 'the days', sel: '.jn-day .jn-li' }, { what: 'the closing line', sel: '.ln-close' }] },
+    { what: 'the tools we will use', sel: '.jn-tools .jn-tool', n: 11, desk: true }, { what: 'the days', sel: '.jn-day .jn-li' }, { what: 'the closing line', sel: '.ln-close' }] },
   /* the parts every page is built from (docs/STRUCTURE.md §7, B1, 23 October) — in development, photographed so a change to a part is seen before it ships */
   { name: 'The parts', path: '#/parts', must: [
     { what: 'the page header — one title, its state', sel: '.part-head h1 .part-tag' },

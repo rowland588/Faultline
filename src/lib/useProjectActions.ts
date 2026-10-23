@@ -82,12 +82,16 @@ export function useEveryAction(projects: Project[]): ProjectActionsRead | null {
   const inputs = useJobInputs(projects);
   const [register, setRegister] = useState<RegisterProblem[] | null>(null);
   const [closed, setClosed] = useState<DoneThing[]>([]);
+  /* each project's own actions — a stage-gate project's tool plans among them (docs/JOURNEY.md) */
+  const [steps, setSteps] = useState<Map<string, PaceTodoRow[]> | null>(null);
+  const ids = projects.map(p => p.id).join('|');
   useEffect(() => {
     let alive = true;
-    const load = () => void Promise.all([listAllSnags(), listWorkspaces()]).then(async ([snags, ws]) => {
+    const load = () => void Promise.all([listAllSnags(), listWorkspaces(), Promise.all(projects.map(p => listPaceTodos(p.id)))]).then(async ([snags, ws, todos]) => {
       /* a line's own problems are the factory's lines' — never a project's walk nor the demo line (lib/lines) */
       const lines = new Set((await liveProductionLines(ws)).map(w => w.id));
       if (!alive) return;
+      setSteps(new Map(projects.map((p, i) => [p.id, todos[i]])));
       const name = new Map(ws.map(w => [w.id, w.name]));
       const mine = snags.filter(s => !s.deletedAt && (s.projectId ? true : lines.has(s.workspaceId)));
       setRegister(mine.map(s => ({ id: s.id, problem: s.problem, priority: s.priority, owner: s.owner, dueAt: s.dueAt, status: s.status,
@@ -97,11 +101,12 @@ export function useEveryAction(projects: Project[]): ProjectActionsRead | null {
     load();
     const off = onDataChange(load);
     return () => { alive = false; off(); };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ids]);
   return useMemo(() => {
-    if (!inputs || !register) return null;
+    if (!inputs || !register || !steps) return null;
     const today = todayISO();
-    const each = projects.map(p => ({ id: p.id, name: p.name, ...owedOf(inputs, p.id, today) }));
+    const each = projects.map(p => ({ id: p.id, name: p.name, ...owedOf(inputs, p.id, today, steps.get(p.id) ?? []) }));
     return { rows: everyAction(each, register, today), done: [...closed, ...each.flatMap(e => e.done)], today };
-  }, [projects, inputs, register, closed]);
+  }, [projects, inputs, register, closed, steps]);
 }
