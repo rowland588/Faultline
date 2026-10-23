@@ -59,6 +59,8 @@ export interface RegisterProblem {
   id: string; problem: string; priority?: ActionPriority; owner?: string;
   dueAt?: number; status: string; projectId?: string; deletedAt?: number; archivedAt?: number;
   sent?: { projectId: string }[];
+  /** The day it was raised and the day it was closed (the journey, lib/journey). */
+  raisedAt?: number; closedAt?: number;
   /** Its line's name, for where. */
   line?: string;
 }

@@ -5,7 +5,7 @@
  * to pick, planned or not. */
 import { describe, it, expect } from 'vitest';
 import {
-  NOTE_GATES, decodeScope, encodeScope, gateOfRecord, parentScope, recordsUnder, scopeLabel, scopeRank,
+  NOTE_GATES, dayOfNote, decodeScope, encodeScope, gateOfRecord, parentScope, recordsUnder, scopeLabel, scopeRank,
 } from '../noteScope';
 import type { Asset, Test } from '../testing';
 
@@ -90,5 +90,24 @@ describe('the order notes are listed in', () => {
   it('the first box shows a record’s own gate', () => {
     expect(parentScope({ kind: 'record', testId: 's1' }, tests)).toEqual({ kind: 'gate', gate: 'setup' });
     expect(parentScope({ kind: 'machine', assetId: 'w' }, tests)).toEqual({ kind: 'machine', assetId: 'w' });
+  });
+});
+
+describe('a day — the project’s commentary for it (docs/JOURNEY.md)', () => {
+  it('is spelled day:<date>, read back as that day, and said as a person says it', () => {
+    const id = encodeScope({ kind: 'day', date: '2026-10-21' });
+    expect(id).toBe('day:2026-10-21');
+    expect(decodeScope(id, tests, assets)).toEqual({ kind: 'day', date: '2026-10-21' });
+    expect(dayOfNote(id)).toBe('2026-10-21');
+    expect(scopeLabel({ kind: 'day', date: '2026-10-21' }, tests, assets)).toBe('Wed 21 Oct');
+    /* after the gates and machines, before single records */
+    expect(scopeRank({ kind: 'day', date: '2026-10-21' }, tests, assets)).toBeGreaterThan(scopeRank({ kind: 'machine', assetId: 'c' }, tests, assets));
+    expect(scopeRank({ kind: 'day', date: '2026-10-21' }, tests, assets)).toBeLessThan(scopeRank({ kind: 'record', testId: 'k1' }, tests, assets));
+    expect(recordsUnder({ kind: 'day', date: '2026-10-21' }, tests, assets)).toEqual([]);
+    expect(parentScope({ kind: 'day', date: '2026-10-21' }, tests)).toEqual({ kind: 'day', date: '2026-10-21' });
+  });
+  it('a day: that is not a date is not a day — it reads as the whole project, as a gone record does', () => {
+    expect(decodeScope('day:soon', tests, assets)).toEqual({ kind: 'job' });
+    expect(dayOfNote('gate:setup')).toBeUndefined();
   });
 });
