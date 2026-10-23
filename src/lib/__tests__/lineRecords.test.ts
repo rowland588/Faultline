@@ -3,7 +3,8 @@ import {
   isWholeLine, lineMachineId, lineOfMachine, lineOfProgram, lineProgramsReading, machineKey, machinesOf, machinesOnLine, onlyLineOf, productsOnLine, programsOnLine,
   type JobLine,
 } from '../lineRecords';
-import { proofOf } from '../programsReport';
+import { proofOf, type ProgramLine } from '../programsReport';
+import { lineTiles, type LineReading } from '../lineLean';
 import type { Asset, Test } from '../testing';
 import type { Program } from '../programs';
 import type { ToolStudy } from '../study';
@@ -148,5 +149,34 @@ describe('a line machine\'s id', () => {
     expect(lineMachineId('ws-7', 'Case packer')).toBe('mc-ws-7-case-packer');
     expect(lineMachineId('ws-7', '***')).toBe('mc-ws-7-machine');
     expect(machineKey('  Pick   and Place ')).toBe('pick and place');
+  });
+});
+
+/* PROGRAMS ONLY ON A PROJECT'S STAGE (23 October: "programs on the line in my factory, it's like you don't have any
+   programs") — a line on a machine's Programs loaded, no program record: counted on the line, under its machine. */
+describe('a project\'s stage-only programs on its line', () => {
+  const T = '2026-10-23';
+  const wrapper: Asset = { id: 'mc-ws-7-wrapper', projectId: '', workspaceId: 'ws-7', name: 'Wrapper', state: 'running', sort: 0, updatedAt: 0 };
+  const machines = [{ name: 'Wrapper', record: wrapper }];
+  const own = [{ id: 'p1', projectId: '', workspaceId: 'ws-7', what: 'P-1 Finest Red', state: 'proved', provedOn: '2026-10-20', sort: 0, updatedAt: 0, assetId: 'mc-ws-7-wrapper' } as Program];
+  const stage = (what: string, machine: string, bucket: 'done' | 'open', word: string): ProgramLine =>
+    ({ machine, partId: `part-${what}`, what, word, tone: bucket === 'done' ? 'g' : 'n', bucket, earlier: [], proving: 'On Line 7 upgrade’s Commission — a line on Wrapper’s Programs loaded, not on a Programs list yet' });
+  it('put under the line\'s machine of that name, else the line itself, and counted with the line\'s own', () => {
+    const r = lineProgramsReading([{ id: 'ws-7', name: 'Line 7', machines, programs: own }], T,
+      { stageOnly: new Map([['ws-7', [stage('Back up the programs', 'Wrapper', 'done', 'done 20 Oct'), stage('Load the new recipes', 'Labeller', 'open', 'to do')]]]) });
+    expect(r?.machines.map(m => [m.name, m.lines.map(l => l.what)])).toEqual([['Wrapper', ['P-1 Finest Red', 'Back up the programs']], ['The line', ['Load the new recipes']]]);
+    expect([r?.total, r?.doneAll, r?.open]).toEqual([3, 2, 1]);
+    expect(r?.lines.find(l => l.what === 'Back up the programs')?.proving).toMatch(/not on a Programs list yet$/);
+  });
+  it('a line with nothing but them still has a reading — never "no programs"', () => {
+    const r = lineProgramsReading([{ id: 'ws-7', name: 'Line 7', machines, programs: [] }], T, { stageOnly: new Map([['ws-7', [stage('Load the new recipes', 'Wrapper', 'open', 'to do')]]]) });
+    expect([r?.total, r?.says]).toEqual([1, '1 program · 0 done · 1 to do']);
+  });
+  it('the line\'s Overview tile says them beside its own, and when it has none', () => {
+    const base = { name: 'Line 7', problems: { open: 0, late: 0, critical: 0 }, products: { rows: [], ready: 0, failing: 0, withGaps: 0 } as unknown as LineReading['products'], stops: { n: 0, minutes: 0 }, day: { margin: null, missing: ['a speed'] } as unknown as LineReading['day'], jobs: 1 };
+    const tile = (programs: LineReading['programs']) => lineTiles({ ...base, programs })[1];
+    expect(tile({ n: 0, proved: 0, late: 0, onStage: 4 })).toMatchObject({ v: '—', of: '4 on a project’s Commission, on no Programs list yet' });
+    expect(tile({ n: 3, proved: 1, late: 0, onStage: 2 }).of).toBe('of 3 · 2 more on a project’s Commission');
+    expect(tile({ n: 0, proved: 0, late: 0 }).of).toBe('no program planned on the line');
   });
 });

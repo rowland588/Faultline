@@ -22,7 +22,7 @@ import type { ID, Workspace } from '../types';
 import type { Asset, Test } from './testing';
 import type { Program } from './programs';
 import { inOrder, isProved, standingOf, todayISO } from './programs';
-import { programsReading, proofOf, type ProgramLine, type ProgramsReading } from './programsReport';
+import { programsReading, proofOf, readingOf, type ProgramLine, type ProgramsReading } from './programsReport';
 import type { ToolStudy } from './study';
 
 /** Just enough of a job's line (db PaceLineRow) to know its factory line. */
@@ -177,7 +177,11 @@ export function lineProgramsReading(lines: readonly { name: string; id: string; 
      *  the studies naming them: how each proved one was proved (flow audit
      *  #21). Without the tests, a program naming one says "Proved by its
      *  test in Commission". */
-    tests?: readonly Test[]; studies?: readonly ToolStudy[] } = {}): ProgramsReading | undefined {
+    tests?: readonly Test[]; studies?: readonly ToolStudy[];
+    /** THE PROJECTS' PROGRAMS THAT ARE ONLY A LINE ON A MACHINE'S *Programs loaded* (Rowland, 23 October: "programs on
+     *  the line in my factory, it's like you don't have any programs"): by line, each as its project's reading says it,
+     *  with the machine's name — put under that machine of the line, else the line itself, and counted. */
+    stageOnly?: ReadonlyMap<string, readonly ProgramLine[]> } = {}): ProgramsReading | undefined {
   const many = lines.length > 1;
   const assets: Asset[] = [];
   const programs: Program[] = [];
@@ -198,7 +202,23 @@ export function lineProgramsReading(lines: readonly { name: string; id: string; 
      machines-programs acceptance). A failed test travelling to the line
      (docs/UPGRADE-AUDIT.md C6) waits on programsReading carrying "failed"
      without re-counting proved — with C2, the Commission cell. */
-  const r = programsReading({ tests: [], items: [], assets, programs, ...(today ? { today } : {}) });
+  const r0 = programsReading({ tests: [], items: [], assets, programs, ...(today ? { today } : {}) });
+  const extra = lines.flatMap(l => (o.stageOnly?.get(l.id) ?? []).map(x => {
+    const own = l.machines.find(m => m.record && machineKey(m.name) === machineKey(x.machine));
+    const name = own ? (many ? `${l.name} · ${own.name}` : own.name) : many ? `${l.name} · the line itself` : 'The line';
+    return { ...x, machine: name };
+  }));
+  const r = !extra.length ? r0 : readingOf((() => {
+    const groups = (r0?.machines ?? []).map(m => ({ name: m.name, lines: [...m.lines] }));
+    for (const x of extra) {
+      const g = groups.find(m => m.name === x.machine);
+      if (g) g.lines.push(x);
+      else groups.push({ name: x.machine, lines: [x] });
+    }
+    /* the machines in the line's order, the line itself last */
+    const order = assets.map(a => a.name);
+    return groups.sort((a, b) => (order.indexOf(a.name) < 0 ? 1e6 : order.indexOf(a.name)) - (order.indexOf(b.name) < 0 ? 1e6 : order.indexOf(b.name)));
+  })());
   if (!r) return r;
   const byId = new Map(programs.map(p => [p.id, p]));
   const withFloor = (l: ProgramLine): ProgramLine => {
