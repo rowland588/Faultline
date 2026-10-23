@@ -18,7 +18,7 @@ import { QuickSnagButton } from '../snag/QuickSnag';
 import { Sheet } from './Sheet';
 import { lineHref } from './rail';
 
-export function ContextBar({ scope, page, tool, toolTo, projects, lines, projectId }: {
+export function ContextBar({ scope, page, tool, toolTo, projects, lines, projectId, onLines }: {
   scope: Scope;
   /** The page of the scope you are on — the rail's line that is on. */
   page?: string;
@@ -30,6 +30,8 @@ export function ContextBar({ scope, page, tool, toolTo, projects, lines, project
   lines: Workspace[];
   /** The project the Problem button takes a problem for. */
   projectId?: string;
+  /** In a project, the lines it is on — said after its name, each one tap to the line. */
+  onLines?: { label: string; to: string }[];
 }) {
   const name = scope.kind === 'home' || scope.kind === 'factory' ? 'Factory'
     : scope.kind === 'line' ? lines.find(l => l.id === scope.wsId)?.name ?? 'A line'
@@ -49,6 +51,9 @@ export function ContextBar({ scope, page, tool, toolTo, projects, lines, project
           <span className="nv-job-l">{name}</span>
           <Icon name="chevronDown" size={14} />
         </button>
+        {onLines && onLines.length > 0 && onLines.length <= 2 && (
+          <span className="nv-on">on {onLines.map((l, i) => <span key={l.to}>{i > 0 && ', '}<button type="button" className="nv-crumb nv-on-line" onClick={() => nav(l.to)} aria-label={`${l.label} — the line this project is on`}>{l.label}</button></span>)}</span>
+        )}
         {page && <><span className="nv-sep" aria-hidden>›</span><span className={'nv-crumb nv-page' + (tool ? '' : ' is-last')}>{page}</span></>}
         {tool && <><span className="nv-sep" aria-hidden>›</span>{toolTo
           ? <button type="button" className="nv-crumb nv-page is-last" onClick={() => nav(toolTo)} aria-label={`${tool} — every one here`}>{tool}</button>

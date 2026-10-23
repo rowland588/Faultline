@@ -195,7 +195,8 @@ ok(await step.count() === 1 && !/is-done/.test(await step.getAttribute('class') 
 /* ---- 16 — each count is its page's ---- */
 const P = sd.projectId;
 await go(`#/project/${P}/fixes`, 3000);
-const railN = async label => flat(await page.locator('.nv-rail .nv-ri', { has: page.locator('.nv-ri-l', { hasText: new RegExp(`^${label}$`) }) }).first().locator('.nv-n').innerText().catch(() => ''));
+/* a project's pages are tabs across the top since 23 October, each with its count */
+const railN = async label => flat(await page.locator('.nv-tabs .nv-tab', { has: page.locator('.nv-tab-l', { hasText: new RegExp(`^${label}$`) }) }).first().locator('.nv-tab-n').innerText().catch(() => ''));
 /* the page's counts are its tiles now (lib/stageGatePages) */
 const tileOf = async k => (await page.locator('.sg-tiles .ln-tile').evaluateAll(els => els.map(e => ({ k: e.querySelector('.ln-k')?.textContent?.trim() ?? '', v: e.querySelector('.ln-v')?.textContent?.trim() ?? '', of: e.querySelector('.ln-of')?.textContent?.trim() ?? '' })))).find(x => x.k === k) ?? { v: '', of: '' };
 const probsHead = `${(await tileOf('Open')).v} open`;
@@ -204,7 +205,7 @@ const tally = await page.evaluate(async pid => {
   return noted.problemsTally(await db.listTests(pid), await db.listTestItems(pid), await db.listAssets(pid));
 }, P);
 ok(probsHead.startsWith(`${tally.open} open`) && (await railN('Problems')).startsWith(String(tally.open)) && tally.noFix > 0,
-  `16a the rail's Problems is the page's: rail "${await railN('Problems')}", page "${probsHead}" (${tally.fixes} fixes, ${tally.noFix} with no fix)`);
+  `16a the Problems tab's count is the page's: tab "${await railN('Problems')}", page "${probsHead}" (${tally.fixes} fixes, ${tally.noFix} with no fix)`);
 await go(`#/project/${P}/install`, 3000);
 await shot('16-install');
 const needsI = (await page.locator('.cg-needs .nd-row').allInnerTexts()).map(flat);
@@ -229,25 +230,28 @@ const pos = await page.evaluate(() => {
   const r = s => document.querySelector(s)?.getBoundingClientRect();
   const says = r('.jb-says'), fac = r('.fac-home'), fab = r('.nv-bar .nv-bi.is-plus'), tiles = r('.jb-stats');
   const hit = (a, b) => !!a && !!b && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-  return { says: says?.top, tilesBottom: tiles?.bottom, fac: fac?.top, fabOverHeadline: hit(says, fab), wide: document.documentElement.scrollWidth - window.innerWidth };
+  /* the frame's foot: the top bar, and the page's tabs under it since 23 October */
+  const frame = Math.max(r('.nv-top')?.bottom ?? 0, r('.nv-tabs')?.bottom ?? 0);
+  return { says: says?.top, frame, tilesBottom: tiles?.bottom, fac: fac?.top, fabOverHeadline: hit(says, fab), wide: document.documentElement.scrollWidth - window.innerWidth };
 });
-ok(pos.says > 0 && pos.says < 300 && pos.tilesBottom < 844 && pos.fac > pos.says && !pos.fabOverHeadline && pos.wide <= 1,
-  `11a the answer first: headline at ${Math.round(pos.says)}px, the four numbers end at ${Math.round(pos.tilesBottom)}px, the factory after (${Math.round(pos.fac)}px), the bar’s ＋ off it`);
+/* the headline the first thing under the frame (it was under 300px from the top with a 56px bar: 244px under it) */
+ok(pos.says > pos.frame && pos.says - pos.frame < 244 && pos.tilesBottom < 844 && pos.fac > pos.says && !pos.fabOverHeadline && pos.wide <= 1,
+  `11a the answer first: headline at ${Math.round(pos.says)}px (${Math.round(pos.says - pos.frame)}px under the frame), the four numbers end at ${Math.round(pos.tilesBottom)}px, the factory after (${Math.round(pos.fac)}px), the bar’s ＋ off it`);
 const bar = await page.locator('.nv-bar .nv-bi .nv-bi-l').allInnerTexts();
-/* the factory's bar since 23 October (docs/STRUCTURE.md B2, D6): Control room · Actions · ＋ · Problems · More */
-ok(bar.join(' · ') === 'Control room · Actions · Problem · Problems · More', `11b the bar: ${bar.join(' · ')}`);
+/* the menu's bar, the same on every page since 23 October: Factory · Projects · ＋ · Problems · More */
+ok(bar.join(' · ') === 'Factory · Projects · Problem · Problems · More', `11b the bar: ${bar.join(' · ')}`);
 await page.locator('.nv-bar .nv-bi', { hasText: /^Problems$/ }).click(); await page.waitForTimeout(1200);
 const toRegister = /#\/snags/.test(page.url());
-await page.locator('.nv-bar .nv-bi', { hasText: 'More' }).click(); await page.waitForTimeout(800);
-await page.locator('.nv-sheet').getByRole('button', { name: 'Lines', exact: true }).click(); await page.waitForTimeout(1200);
-ok(toRegister && page.url().endsWith('#/factory'), `11c Problems opens the register, Lines (in More) Your factory (${page.url().split('#')[1]})`);
+await page.locator('.nv-bar .nv-bi', { hasText: /^Factory$/ }).click(); await page.waitForTimeout(1200);
+await page.locator('.nv-tabs .nv-tab', { hasText: /^Lines$/ }).click(); await page.waitForTimeout(1200);
+ok(toRegister && page.url().endsWith('#/factory'), `11c Problems opens the register; Factory, then its Lines tab, Your factory (${page.url().split('#')[1]})`);
 await page.locator('.nv-bar .nv-bi', { hasText: 'More' }).click(); await page.waitForTimeout(800);
 const more = flat(await page.locator('.nv-sheet').innerText());
 await page.keyboard.press('Escape'); await page.waitForTimeout(600);
-/* every project one tap away in the context bar's switcher (the scope's name), and the control room in More */
+/* every project one tap away in the context bar's switcher (the scope's name), and the menu in More */
 await page.locator('.nv-top .nv-job').click(); await page.waitForTimeout(700);
 const underProjects = flat(await page.locator('.nv-sw').innerText().catch(() => ''));
-ok(['Line 2 commissioning', 'Line 7 pace', 'Line 7 jams'].every(n => underProjects.includes(n)) && /Control room/.test(more), '11d every project in the switcher, and the control room in More', underProjects);
+ok(['Line 2 commissioning', 'Line 7 pace', 'Line 7 jams'].every(n => underProjects.includes(n)) && /Factory/.test(more) && /Actions/.test(more) && /Tools/.test(more), '11d every project in the switcher, and the menu in More', `${underProjects} | ${more}`);
 await page.keyboard.press('Escape'); await page.waitForTimeout(600);
 await board();
 await page.locator('.jb-stat.is-crit').click(); await page.waitForTimeout(700);

@@ -45,6 +45,8 @@ import { lineProblems, lineProblemsSaid, type LineProblems } from '../lib/lineWo
 import { PageHeader } from '../ui/parts';
 import { ControlRoomReports } from '../ui/ControlRoomReports';
 import { recentPlaces, lastOpen, type Place } from '../lib/recentPlaces';
+import { Icon } from '../ui/Icon';
+import { toolPlaces } from '../ui/rail';
 import { niceDay, todayISO } from '../lib/weeks';
 
 /** Below 720 px the control room's answer comes first (FLOW-AUDIT.md, 11). */
@@ -92,6 +94,16 @@ export function WorkspaceHome() {
   const [allPapers, setAllPapers] = useState(false);
   /* where this device was last — read when the page opens; the frame notes each place as it is opened */
   const [places] = useState<Place[]>(() => recentPlaces().slice(0, 4));
+  /* LINE TALK, one tap from home (20 October: "I open Faultline, talk or type") — start one, or carry on the latest */
+  const [talk, setTalk] = useState<{ id: string; name: string } | null>(null);
+  useEffect(() => {
+    const load = () => void listAllStudies().then(all => {
+      const t = all.filter(x => x.tool === 'talk' && !x.deletedAt).sort((a, b) => b.updatedAt - a.updatedAt)[0];
+      setTalk(t ? { id: t.id, name: t.name } : null);
+    });
+    load();
+    return onDataChange(load);
+  }, []);
   const [list, setList] = useState<Workspace[] | null>(null);
   const [counts, setCounts] = useState<Record<string, WsContents>>({});
   // A deleted workspace sits in limbo here for a few seconds with an Undo —
@@ -302,29 +314,18 @@ export function WorkspaceHome() {
     </section>
   );
 
-  return (
-    <div className="wrap home">
-      {/* THE PAGE'S NAME, AND ITS ONE BUTTON. The wordmark and the account
-          button that sat here are the frame's top bar now (ui/Frame), on
-          every screen alike — so the control room is a page in the frame
-          like any other, and its name says which. */}
-      <PageHeader title="Factory"
-        primary={mayStart ? { label: 'New project', run: () => nav('/projects?new=1') } : undefined}
-        papers={jobs.length > 0 || prodLines.length > 0 ? [
-          { label: 'Control room report — 1 page', for: 'For the business — every project and line on one A4: where each is, why, who owes what', make: async () => { await roomReport.current?.(); } },
-          { label: 'Every report', for: 'The factory’s, each line’s and each project’s papers, in one list', make: () => setAllPapers(true) },
-        ] : []}>
-        <p className="cw-handover">
-          {/* How many jobs — the board under it says how many are running
-              and how many are handed over (docs/HANDOVER.md); "3 jobs
-              running" here said otherwise. */}
-          <span className="sub">{jobs.length === 0 ? 'Nothing running yet' : `${jobs.length} project${jobs.length === 1 ? '' : 's'}`}</span>
-        </p>
-        {/* NEW PROJECT, where a page's main action sits — it was the Projects
-            section's button, and that section was a second list of the jobs
-            the control room already lists (docs/FLOW-AUDIT.md #20). */}
-      </PageHeader>
-      {allPapers && <ControlRoomReports projects={projects} onClose={() => setAllPapers(false)} />}
+  /* LINE TALK AND WHERE YOU WERE (23 October, from the front door that is gone) */
+  const carryOn = (
+    <>
+      <p className="fd-talk-a home-talk">
+        <button type="button" className="btn fd-talk-start" onClick={() => nav('/talk')}><Icon name="mic" size="1.1em" />Start a Line Talk</button>
+        {talk && <button type="button" className="btn btn-ghost fd-talk-on" onClick={() => nav(`/talk/${talk.id}`)}>Carry on: {talk.name}</button>}
+      </p>
+      {/* A TOOL ON ITS OWN, ONE TAP FROM HOME (from the front door, 20 October) — each opens its list, New on it */}
+      <nav className="home-tools" aria-label="Use a tool">
+        <span className="sub">Use a tool</span>
+        {toolPlaces('').map(t => <button key={t.key} type="button" className="chip" data-tool={t.key} onClick={() => t.to && nav(t.to)}>{t.label}</button>)}
+      </nav>
       {places.length > 0 && (
         <section className="fd-back" aria-label="Carry on where you were">
           <h2 className="ln-h">Carry on where you were</h2>
@@ -349,6 +350,34 @@ export function WorkspaceHome() {
            line-study tool it began as, which is now a tool inside a change. */
         <p className="home-tag">A control room for change on your lines — new equipment brought into use, a line made to perform better, a number hit by a date — and one view of whether all of it is in hand.</p>
       )}
+    </>
+  );
+
+  return (
+    <div className="wrap home">
+      {/* THE PAGE'S NAME, AND ITS ONE BUTTON. The wordmark and the account
+          button that sat here are the frame's top bar now (ui/Frame), on
+          every screen alike — so the control room is a page in the frame
+          like any other, and its name says which. */}
+      <PageHeader title="Factory"
+        primary={mayStart ? { label: 'New project', run: () => nav('/projects?new=1') } : undefined}
+        papers={jobs.length > 0 || prodLines.length > 0 ? [
+          { label: 'Control room report — 1 page', for: 'For the business — every project and line on one A4: where each is, why, who owes what', make: async () => { await roomReport.current?.(); } },
+          { label: 'Every report', for: 'The factory’s, each line’s and each project’s papers, in one list', make: () => setAllPapers(true) },
+        ] : []}>
+        <p className="cw-handover">
+          {/* How many jobs — the board under it says how many are running
+              and how many are handed over (docs/HANDOVER.md); "3 jobs
+              running" here said otherwise. */}
+          <span className="sub">{jobs.length === 0 ? 'Nothing running yet' : `${jobs.length} project${jobs.length === 1 ? '' : 's'}`}</span>
+        </p>
+        {/* NEW PROJECT, where a page's main action sits — it was the Projects
+            section's button, and that section was a second list of the jobs
+            the control room already lists (docs/FLOW-AUDIT.md #20). */}
+      </PageHeader>
+      {allPapers && <ControlRoomReports projects={projects} onClose={() => setAllPapers(false)} />}
+      {/* on a desk where you were comes first; on a phone the answer does, and this after the board (FLOW-AUDIT.md, 11) */}
+      {!narrow && carryOn}
 
       {/* YOUR FACTORY — first, above the jobs: the backbone everything hangs
           off. Rowland, 13 October: "a factory setup before the new projects
@@ -401,6 +430,8 @@ export function WorkspaceHome() {
           </p>
         </section>
       )}
+
+      {narrow && carryOn}
 
       {/* Signing in and installing are settings, not destinations. They used to
           sit above everything, so the first third of the app's front door was

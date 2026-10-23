@@ -14200,3 +14200,10 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .ptx-ladder li { display: flex; align-items: flex-start; gap: 2px; }
 .ptx-del { flex: none; display: inline-grid; place-items: center; width: 28px; height: 28px; margin-top: 1px; border: 0; border-radius: var(--radius-sm); background: none; color: var(--muted); cursor: pointer; }
 .ptx-del:hover { color: var(--danger); background: var(--surface-2); }
+.home-talk { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+/* a project's line in the context bar — "on Line 7 ›" (23 October) */
+.nv-on { flex: none; display: inline-flex; align-items: center; gap: 2px; font-size: var(--t-detail); color: var(--muted); white-space: nowrap; }
+@media (max-width: 640px) { .nv-on { display: none; } }
+.home-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 18px; } .home-tools .sub { margin-right: 4px; }
+.nv-on { padding: 0 6px; }
+.nv-on .nv-on-line { padding: 4px 0; color: var(--brand); text-decoration: underline; text-underline-offset: 3px; }

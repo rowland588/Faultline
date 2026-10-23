@@ -47,17 +47,18 @@ page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) er
 page.on('pageerror', e => errs.push(e.message));
 
 const go = async hash => { await page.goto(`${BASE}/${hash}`); await page.locator('.nv-main').waitFor({ timeout: 15000 }); await page.waitForTimeout(1500); };
-const rail = async () => flat(await page.locator('.nv-rail').innerText());
+/* where the frame is: the scope's own pages, tabs across the top since 23 October (the menu never changes), and the context bar */
+const rail = async () => flat(`${await page.locator('.nv-tabs').innerText().catch(() => '')} ${await page.locator('.nv-top .nv-ctx').innerText()}`);
 /* which project the frame is in: the context bar's scope name (B2) — a project's, or none ("Factory") */
 let NAMES = {};
 const onProject = async () => NAMES[flat(await page.locator('.nv-top .nv-ctx .nv-job-l').innerText())] ?? '';
-/* a tool inside a project: its Tools page (the rail's Tools since B2), then the tool's row */
-const railLine = label => page.locator('.nv-rail .nv-ri').filter({ has: page.locator('.nv-ri-l', { hasText: new RegExp(`^${label}$`) }) });
+/* a tool inside a project: its Tools page (one of its tabs since 23 October), then the tool's row */
+const railLine = label => page.locator('.nv-tabs .nv-tab').filter({ has: page.locator('.nv-tab-l', { hasText: new RegExp(`^${label}$`) }) });
 const openTool = async name => {
   await railLine('Tools').click(); await page.waitForTimeout(1200);
   await page.locator('main button.lt-row').filter({ has: page.locator('.lt-what', { hasText: new RegExp(`^${name}$`) }) }).click(); await page.waitForTimeout(1500);
 };
-const factoryRail = async () => { const r = await rail(); return /Control room/.test(r) && /Lines/.test(r) && !r.includes(NAME); };
+const factoryRail = async () => { const r = await rail(); return /Factory/.test(r) && !r.includes(NAME) && !/Fishbone/.test(r); };
 const shownIds = async () => page.locator('.lt-li[data-study]').evaluateAll(els => els.map(e => e.getAttribute('data-study')));
 const studies = () => page.evaluate(async () => (await (await import('/src/db.ts')).listAllStudies()).filter(s => !s.deletedAt));
 const dialog = () => page.locator('[role="dialog"]').last();
@@ -200,9 +201,9 @@ let made;
   await page.setViewportSize({ width: 390, height: 844 });
   await go(`#/smed?project=${PID}`);
   const bar = (await page.locator('.nv-bar .nv-bi-l').allInnerTexts()).map(flat);
-  const more = await page.locator('.nv-bar .nv-bi', { hasText: 'More' }).getAttribute('aria-current');
-  /* the project's bar, fixed (docs/STRUCTURE.md D6): Overview · its main page · ＋ · Actions · More — a tool lives in More */
-  ok(bar.join(' · ') === 'Overview · Fishbone · Problem · Actions · More' && more === 'page', `7 the phone: the project's bar — ${bar.join(' · ')}, More lit`);
+  const lit = await page.locator('.nv-bar .nv-bi', { hasText: 'Projects' }).getAttribute('aria-current');
+  /* the menu's bar, the same on every page since 23 October: Factory · Projects · ＋ · Problems · More — Projects lit inside one */
+  ok(bar.join(' · ') === 'Factory · Projects · Problem · Problems · More' && lit === 'page' && await railLine('Tools').getAttribute('aria-current') === 'page', `7 the phone: the menu's bar — ${bar.join(' · ')}, Projects lit, the project's Tools tab on`);
   const wide = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   ok(wide <= 1 && await page.locator('.ip-scope .chip').count() === 3, `7 nothing off the side (${wide}px), the three chips on it`);
 }

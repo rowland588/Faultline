@@ -77,12 +77,13 @@ const truth = () => page.evaluate(async pid => {
   };
 }, PID);
 
-/* ---- 1 on the rail ---- */
+/* ---- 1 one of the project's tabs (its pages, across the top since 23 October) ---- */
 await go(`#/project/${PID}`);
 const t = await truth();
-await page.locator('.nv-rail').getByRole('button', { name: 'Actions', exact: true }).click(); await page.waitForTimeout(2000);
-ok(page.url().endsWith(`#/project/${PID}/actions`), `1 Actions from ${t.name}'s rail`, page.url());
-ok(await page.locator('.nv-rail').getByRole('button', { name: 'Actions', exact: true }).getAttribute('aria-current') === 'page', '1 lit on its page');
+const actionsTab = page.locator('.nv-tabs .nv-tab').filter({ has: page.locator('.nv-tab-l', { hasText: /^Actions$/ }) });
+await actionsTab.click(); await page.waitForTimeout(2000);
+ok(page.url().endsWith(`#/project/${PID}/actions`), `1 Actions from ${t.name}'s tabs`, page.url());
+ok(await actionsTab.getAttribute('aria-current') === 'page', '1 its tab on, on its page');
 
 /* ---- 2 every row as the records say ---- */
 const whats = (await page.locator('.act-li .lt-what').allInnerTexts()).map(flat);
@@ -145,7 +146,7 @@ await go('#/room');
 await page.locator('.nv-rail').getByRole('button', { name: 'Actions', exact: true }).click(); await page.waitForTimeout(2500);
 {
   const rail = flat(await page.locator('.nv-rail').innerText());
-  ok(page.url().endsWith('#/actions') && /Control room/.test(rail) && /Lines/.test(rail) && /Factory/.test(flat(await page.locator('.nv-ctx').innerText())), '8 every action, from the factory’s rail — Actions', page.url());
+  ok(page.url().endsWith('#/actions') && rail.replace(/ \d+/g, '') === 'Factory Projects Problems Actions Tools Reports' && flat(await page.locator('.nv-rail .nv-ri.is-on').innerText()) === 'Actions' && /Factory/.test(flat(await page.locator('.nv-ctx').innerText())), '8 every action, from the menu — Actions, lit', `${page.url()} | ${rail}`);
   const all = (await page.locator('.act-li .lt-what').allInnerTexts()).map(flat);
   ok(t.whats.every(w => all.includes(flat(w))) && all.length > t.n, `8 every project's actions — ${t.name}'s ${t.n} among ${all.length}`);
   await page.getByRole('group', { name: 'Seen by' }).getByRole('button', { name: 'Project' }).click(); await page.waitForTimeout(300);

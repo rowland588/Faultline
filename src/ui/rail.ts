@@ -293,7 +293,14 @@ export function menuBar(groups: RailGroup[], plus = true): RailLine[] {
  *  machines or lines folded under them (they are on the page they are under), and not the line's
  *  Projects or Logs (on its Overview and its Tools). */
 export function scopeTabs(groups: RailGroup[]): RailLine[] {
-  return groups.flatMap(g => g.lines).filter(l => l.key !== 'up' && !l.sub && l.key !== 'projects' && l.key !== 'logs' && l.key !== 'reports');
+  const lines = groups.flatMap(g => g.lines);
+  const kept = (l: RailLine) => l.key !== 'up' && !l.sub && l.key !== 'projects' && l.key !== 'logs' && l.key !== 'reports';
+  /* a page folded under a tab lights it: a machine its Plan, a project's line its Lines, the line's
+     logs its Tools, the line's projects its Overview */
+  const under = lines.find(l => l.on && !kept(l) && l.key !== 'up');
+  const lit = !under ? undefined : under.key === 'logs' ? 'tools' : under.key === 'projects' ? 'overview'
+    : [...lines.slice(0, lines.indexOf(under))].reverse().find(kept)?.key;
+  return lines.filter(kept).map(l => (lit && l.key === lit ? { ...l, on: true } : l));
 }
 
 /** THE FACTORY'S OWN TABS — on the Factory page and the two lists under it, every line and every

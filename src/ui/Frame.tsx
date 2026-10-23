@@ -137,7 +137,13 @@ function ScopeFrame({ scope, project, projects, lines, here, toolName, toolTo, w
 }) {
   const all = useMemo(() => (project && !projects.some(p => p.id === project.id) ? [...projects, project] : projects), [projects, project]);
   const [page, setPage] = useState<string | undefined>(undefined);
+  /* a project's own lines, said in the context bar — "on Line 7 ›", one tap to the line (23 October) */
+  const [onLines, setOnLines] = useState<{ label: string; to: string }[]>([]);
   const bar = (groups: RailGroup[]) => groups.flatMap(g => g.lines).find(l => l.on && l.key !== 'up')?.label;
+  const said = (groups: RailGroup[]) => {
+    setPage(bar(groups));
+    setOnLines(groups.flatMap(g => g.lines).filter(l => l.sub && l.to?.startsWith('/lines/')).map(l => ({ label: l.label, to: l.to as string })));
+  };
   /* WHERE YOU WERE (lib/recentPlaces, B5): a project's or a line's page, noted on this device for Home */
   const scopeName = scope.kind === 'project' ? project?.name : scope.kind === 'line' ? lines.find(l => l.id === scope.wsId)?.name : undefined;
   const placePage = toolName ?? page;
@@ -147,9 +153,10 @@ function ScopeFrame({ scope, project, projects, lines, here, toolName, toolTo, w
   }, [reading, scopeName, placePage, scope.kind]);
   return (
     <>
-      <ContextBar scope={scope} page={page} tool={toolName && toolName !== page ? toolName : undefined} toolTo={toolTo} projects={all} lines={lines} projectId={project?.id} />
+      <ContextBar scope={scope} page={page} tool={toolName && toolName !== page ? toolName : undefined} toolTo={toolTo} projects={all} lines={lines} projectId={project?.id}
+        onLines={scope.kind === 'project' ? onLines : undefined} />
       {reading ? <NavChrome groups={[]} bar={[]} />
-        : scope.kind === 'project' && project ? <ProjectNav key={project.id} project={project} here={here} wsId={wsId} onPage={g => setPage(bar(g))} />
+        : scope.kind === 'project' && project ? <ProjectNav key={project.id} project={project} here={here} wsId={wsId} onPage={said} />
           : scope.kind === 'line' ? <LineNav key={scope.wsId} wsId={scope.wsId} name={lines.find(l => l.id === scope.wsId)?.name ?? 'This line'} here={here} projects={projects} onPage={g => setPage(bar(g))} />
             : <FactoryNav projects={projects} here={here} onPage={g => setPage(bar(g))} />}
     </>
@@ -360,7 +367,8 @@ function NavChrome({ groups, project, bar, home, kind = 'factory', line, onPage 
      new screen is the old screen's. */
   const hash = useHash();
   useEffect(() => { setMore(false); setReports(false); }, [hash]);
-  const onSaid = all.filter(l => l.on).map(l => `${l.key}:${l.label}`).join(',');
+  /* told again when the page changes or the lines it is on arrive (a project's lines are read after it) */
+  const onSaid = all.filter(l => l.on || (l.sub && l.to?.startsWith('/lines/'))).map(l => `${l.key}:${l.label}:${l.on}`).join(',');
   useEffect(() => { onPage?.(groups); }, [onSaid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const go = (l: RailLine) => {
@@ -380,7 +388,7 @@ function NavChrome({ groups, project, bar, home, kind = 'factory', line, onPage 
         <nav className="nv-tabs" aria-label={`${kind === 'line' ? line?.name ?? 'This line' : kind === 'project' ? project?.name ?? 'This project' : 'The factory'} — its pages`}>
           {tabs.map(l => (
             <button key={l.key} type="button" className={'nv-tab' + (l.on ? ' is-on' : '')} onClick={() => go(l)} aria-current={l.on ? 'page' : undefined}>
-              {l.label}{!!l.n && <span className="nv-tab-n">{l.n}{!!l.late && <i> · {l.late} late</i>}{!!l.failed && <i> · {l.failed} failed</i>}</span>}
+              <span className="nv-tab-l">{l.label}</span>{!!l.n && <span className="nv-tab-n">{l.n}{!!l.late && <i> · {l.late} late</i>}{!!l.failed && <i> · {l.failed} failed</i>}</span>}
             </button>
           ))}
         </nav>

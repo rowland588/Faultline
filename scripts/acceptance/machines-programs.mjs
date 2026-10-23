@@ -116,7 +116,7 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   ok(flat(await card.innerText()).includes(`${todo} programs to prove`) && (t.kit.late ? await card.locator('b.is-r', { hasText: `${t.kit.late} late` }).count() === 1 : true),
     `1 the line's card: ${todo} programs to prove${t.kit.late ? `, ${t.kit.late} late in red` : ''}`);
   await main.locator('.fac-home').getByRole('button', { name: 'Programs', exact: true }).click(); await page.waitForTimeout(1800);
-  ok(page.url().endsWith('#/programs') && await page.locator('.nv-ri.is-on[aria-current="page"]', { hasText: /^Programs$/ }).count() === 1 && await main.locator('h1', { hasText: 'Programs' }).count() === 1,
+  ok(page.url().endsWith('#/programs') && await page.locator('.nv-tabs .nv-tab.is-on[aria-current="page"]', { hasText: /^Programs$/ }).count() === 1 && await main.locator('h1', { hasText: 'Programs' }).count() === 1,
     '1b the control room opens Programs — every line, no job');
 }
 

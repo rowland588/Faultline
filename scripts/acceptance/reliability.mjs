@@ -300,8 +300,10 @@ await go(`#/lines/${sd.wsId}`);
   const said = flat(await tile.innerText());
   ok(/2 on this line/.test(said) && said.includes('Capper stops'), '9 the line’s page — Reliability with its latest and how many', said);
 }
+/* the front door that listed the tools is gone (23 October, one home): the library is Tools in the menu */
 await go('#/');
-ok(await page.locator('.fd-tools li[data-tool="reliability"]').count() === 1, '9 the front door lists it among the tools');
+await page.locator('.nv-rail .nv-ri', { hasText: /^Tools$/ }).click(); await page.waitForTimeout(1500);
+ok(page.url().endsWith('#/tools') && /Reliability/.test(await page.locator('.et-row').allInnerTexts().then(r => r.join(' | '))), '9 the menu\'s Tools lists it among the tools', page.url());
 
 /* ---- 10 the phone ---- */
 {

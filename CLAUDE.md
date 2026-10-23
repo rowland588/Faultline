@@ -160,6 +160,25 @@ Meeting) tabs on it at a desk as on a phone, none of them a rail line; the
 rail lights Logs on a line, the line in a 6M project, the Plan in a stage
 gate.
 
+**Since 23 October there is one home and one menu** (Rowland: "What's the
+point of home? ... The control room, is it required? ... I literally start
+using it and I've got no idea where I am. I lose myself"; the shape chosen,
+*one home, a fixed menu*). `#/` is the **Factory** page (`screens/WorkspaceHome`
+— what was the control room, `#/room` kept; the front door is gone: its three
+kinds are New project's, its tools the page's *Use a tool* row and Tools,
+*Carry on where you were* and Line Talk on the Factory page). The rail is
+**one menu on every page** — Factory · Projects · Problems · Actions · Tools,
+Reports at the foot (`ui/rail` menuGroups; Factory lit inside a line, Projects
+inside a project) — and the phone's bar is the same five everywhere (Factory ·
+Projects · ＋ · Problems · More, `menuBar`). A line's, a project's and the
+factory's own pages are **tabs across the top** (`scopeTabs`, `factoryTabs` —
+from lineGroups and projectGroups, which stay the one list of a scope's
+pages; a page folded under a tab lights it, a machine its Plan). The context
+bar starts with **the way back** (‹ Factory from a line, ‹ Projects from a
+project) and says a project's line (*on Line 7*, one tap). A new page of a
+scope is a tab; nothing is ever added to the menu. A script reaches a scope's
+page by its tab (`.nv-tabs .nv-tab .nv-tab-l`), the menu by `.nv-rail .nv-ri`.
+
 ## The blueprint comes first
 
 **`docs/BLUEPRINT.md` is the one map of the app** — agreed with Rowland, 13

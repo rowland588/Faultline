@@ -382,10 +382,11 @@ let TRAY;
   await go(`#/w/${sd.wsId}/standards/${TRAY}?at=balance`);
   const crumb = flat(await page.locator('.ls-head .sub').first().innerText());
   ok(crumb.startsWith('Line capacity') && await page.getByRole('button', { name: /Its line standard|The map for this product/ }).count() === 0, `10 back to Line capacity (${crumb}); no line standard when it has none`);
-  const lit = await page.locator('.nv-ri.is-on').allInnerTexts();
+  /* the line's pages are tabs since 23 October (the menu lights Factory inside a line) */
+  const lit = await page.locator('.nv-tabs .nv-tab.is-on .nv-tab-l').allInnerTexts();
   const gates = await page.locator('.nv').getByText('GATES', { exact: true }).count();
   /* on no job a product's Line capacity is the line's: the line's rail lights Products (docs/STRUCTURE.md B2 — a line's standards are its products) */
-  ok(lit.map(flat).join('|') === 'Products' && gates === 0, `10b on no job: the line's rail lights Products (${lit.map(flat).join('|')}) and wears no job's gates (${gates})`);
+  ok(lit.map(flat).join('|') === 'Products' && gates === 0, `10b on no job: the line's tabs light Products (${lit.map(flat).join('|')}) and wears no job's gates (${gates})`);
   await go(CAP);
   ok(await page.getByRole('tab', { name: 'Line standard', exact: true }).count() === 1, '10c a product mapped too: its line standard one tap away');
 }

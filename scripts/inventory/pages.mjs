@@ -18,8 +18,16 @@
  * studio, a method, a project on one — were taken off on 20 October with
  * the builder itself: docs/DIRECTION.md.) */
 export const PAGES = (sd, cap) => [
-  { name: 'Control room', path: '#/room', must: [
-    { what: 'its heading', sel: 'h1, h2', text: /Control room/ },
+  /* THE FACTORY — THE ONE HOME (23 October: "What's the point of home? ... The control room, is it
+     required?"; one home, a fixed menu): #/ and #/room; what was the control room, with where you were,
+     Line Talk, and the menu and its own tabs that say where you are */
+  { name: 'Factory — the one home', path: '#/', must: [
+    { what: 'its heading', sel: '.home h1', text: /^Factory$/ },
+    { what: 'the menu, the same on every page — Factory lit', sel: '.nv-rail .nv-ri.is-on', text: /^Factory$/, desk: true },
+    { what: 'the phone’s bar, the same on every page — Factory · Projects · ＋ · Problems · More', sel: '.nv-bar .nv-bi', n: 5, phone: true },
+    { what: 'its own tabs — Overview · Lines · Programs, Overview on', sel: '.nv-tabs .nv-tab.is-on', text: /^Overview$/ },
+    { what: 'Line Talk — start one, or carry on the latest', sel: '.home-talk .fd-talk-start', text: /Start a Line Talk/ },
+    { what: 'carry on the latest Line Talk', sel: '.home-talk .fd-talk-on', text: /^Carry on: / },
     /* the page header since B3: the band's two report buttons are its Report ▾ */
     { what: 'the page header — Report ▾ with the control room report and every report', sel: '.home > .part-head .part-menu-b', text: /^Report/ },
     { what: 'Your factory — every line', sel: '.fac-floor' },
@@ -67,8 +75,9 @@ export const PAGES = (sd, cap) => [
     /* the band's five tiles — the same the one-page status and the full report count (17 October, docs/LEAN-PAGE.md) */
     /* on a phone the band is the answer and the status report (the phone pass, 5 October): its tiles are the desk's */
     { what: 'the band’s tiles — handover, late of what is still to do, critical, fixes open, what the slip costs', sel: '.vd .vd-tile', n: 5, desk: true },
-    /* the job's places, its machines each a page (16 October, docs/STAGEGATE-UX.md) — under its Plan in the project's rail since 23 October (docs/STRUCTURE.md B2) */
-    { what: 'its machines in the rail, each a page', sel: '.nv-rail .nv-ri.is-sub', n: 3, desk: true },
+    /* the job's places, its machines each a page (16 October, docs/STAGEGATE-UX.md) — one tap from Where each machine is (23 October: off the menu, which never changes) */
+    { what: 'its machines, each a page, from where each machine is', sel: '.fp-where .jr-row.is-door', n: 3 },
+    { what: 'its own pages as tabs — Overview on', sel: '.nv-tabs .nv-tab.is-on', text: /^Overview/ },
   ] },
   { name: 'A machine — its own page', path: `#/project/${sd.projectId}/machine/${sd.machineId}`, must: [
     { what: 'its four gates in a row', sel: '.mpg-steps .mpg-step', n: 4 },
@@ -270,12 +279,12 @@ export const PAGES = (sd, cap) => [
     { what: 'New on a tool’s row', sel: '.ptools .lt-li .btn', n: 10 },
     /* the project's Evidence since B5 (docs/STRUCTURE.md D9) */
     { what: 'the line, filmed — the project’s evidence', sel: '.ptools .ptools-film h2', text: /^The line, filmed$/ },
-    { what: 'the project’s rail, Tools lit', sel: '.nv-rail .nv-ri.is-on', text: /Tools/, desk: true }] },
+    { what: 'the project’s tabs, Tools on', sel: '.nv-tabs .nv-tab.is-on', text: /^Tools/ }] },
   /* A LINE'S TOOLS — the line's own page narrowed to its tools, with New ▾ (B2) */
   { name: 'A line — its tools', path: `#/lines/${sd.line7WsId}?view=tools`, must: [
     { what: 'the tools on this line', sel: '.pl-tools .pl-tool', n: 4 },
     { what: 'New ▾ — a tool started here is the line’s', sel: '.pl-sec-h .part-menu-b' },
-    { what: 'the line’s rail, Tools lit', sel: '.nv-rail .nv-ri.is-on', text: /Tools/, desk: true }] },
+    { what: 'the line’s tabs, Tools on', sel: '.nv-tabs .nv-tab.is-on', text: /^Tools/ }] },
   /* STOPS TIMED — the line study, the line's first log (docs/STRUCTURE.md D8, B6): named, its four views
      tabs on its page at a desk as on a phone; no screen of it on the rail */
   { name: 'Stops timed — Capture', path: `#/w/${sd.wsId}/capture`, must: [
@@ -283,13 +292,12 @@ export const PAGES = (sd, cap) => [
     { what: 'its four views as tabs, Capture lit', sel: '.study-views [role=tab]', n: 4 },
     { what: 'Capture the view shown', sel: '.study-views [role=tab][aria-selected=true]', text: /^Capture$/ },
     /* the seeded study is a stage-gate project's own walk, filmed from Install: the Plan lit */
-    { what: 'where it sits lit on the rail — the Plan', sel: '.nv-rail .nv-ri.is-on', text: /Plan/, desk: true }] },
+    { what: 'where it sits, its tab on — the Plan', sel: '.nv-tabs .nv-tab.is-on', text: /^Plan/ }] },
   { name: 'Actions — the factory', path: '#/actions', must: [
     { what: 'the six tiles', sel: '.act-tiles .ln-tile', n: 6 }, { what: 'seen by who, when, where or project', sel: '[aria-label="Seen by"] .chip', n: 4 },
     { what: 'every project’s actions and every line’s own problems', sel: '.act-li' }, { what: 'the closing line', sel: '.ln-close' }] },
   { name: 'SMED inside a project', path: `#/smed?project=${sd.pacedProjectId}`, must: [
-    { what: 'the project’s rail — its fishbone among its places', sel: '.nv-rail .nv-ri', text: /Fishbone/, desk: true },
-    { what: 'the project’s bar — its overview and its main page', sel: '.nv-bar .nv-bi-l', text: /^Fishbone$/, phone: true },
+    { what: 'the project’s tabs — its fishbone among its pages', sel: '.nv-tabs .nv-tab', text: /^Fishbone/ },
     { what: 'whose — the project’s own, everything on its lines, every line', sel: '.ip-scope .chip', n: 3 },
     { what: 'the project’s own SMED', sel: '.lt-li[data-study]' }] },
   { name: 'A loss count', path: `#/losses/${sd.lossId}`, must: [
@@ -322,20 +330,6 @@ export const PAGES = (sd, cap) => [
     { what: 'the days', sel: '.rl-days tbody tr' },
     { what: 'the commentary — each remark kept', sel: '.rl-rem li[data-remark]', n: 2 },
     { what: 'the closing line', sel: '.ln-close' },
-  ] },
-  /* THE FRONT DOOR (20 October, docs/DIRECTION.md): the question, then what is
-     under way, the three kinds of project, the tools and the factory. The words
-     box, the library of methods and the switch that showed them went with the
-     method builder, deleted on 20 October. */
-  { name: 'The front door', path: '#/', must: [
-    { what: 'the question, first', sel: '.fd-ask h1', text: /^What do you need to get done\?$/ },
-    { what: 'what is under way — each project by name, its state in a word', sel: '.fd-jobs li[data-project]' },
-    { what: 'the three kinds of project — the lever tree among them', sel: '.fd-lib .fw-card[data-start^="e:"]', n: 3 },
-    { what: 'the tools to use on their own — Line Talk and Reliability among them', sel: '.fd-tools li[data-tool]', n: 11 },
-    { what: 'Line Talk, near the top — start one, or carry on the latest', sel: '.fd-talk .fd-talk-start', text: /^Start a Line Talk$/ },
-    { what: 'carry on the latest Line Talk', sel: '.fd-talk .fd-talk-on', text: /^Carry on: / },
-    /* the context bar names Home (docs/STRUCTURE.md B2, 23 October: Home is the mark and the switcher's first, above the scopes) */
-    { what: 'the context bar says Home', sel: '.nv-ctx .nv-job-l', text: /^Home$/ },
   ] },
   /* PROJECTS LISTS THE PROJECTS (docs/STRUCTURE.md §5.6, B5) — the kinds as counts, a row a project */
   { name: 'Projects', path: '#/projects', must: [
