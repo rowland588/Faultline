@@ -204,7 +204,7 @@ function TopBar({ project, projects, place }: { project?: Project; projects: Pro
           The gap keeps the snag button and you at the right. */}
       <span className="nv-gap" aria-hidden />
       <JumpTo />
-      <QuickSnagButton />
+      <QuickSnagButton projectId={project?.id} />
       <AccountMenu />
     </header>
   );

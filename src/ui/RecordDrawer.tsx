@@ -89,6 +89,9 @@ const RECORD_ROUTES = new Set<RouteName>([
   'plan', 'testing', 'test', 'trialCard', 'notes', 'materials', 'programs', 'clientReport', 'asset',
   /* The Snags page: a snag moved to a job opens what it became over it. */
   'quickSnags',
+  /* A project's Actions and the control room's Every action: a row set
+     ?open= and nothing opened (docs/STRUCTURE.md §17, found 22 October). */
+  'actions', 'allActions',
 ]);
 
 const split = (): [string, URLSearchParams] => {

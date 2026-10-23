@@ -109,8 +109,14 @@ await page.getByRole('group', { name: 'Seen by' }).getByRole('button', { name: '
 {
   const row = page.locator('.act-li', { has: page.locator('.act-meta', { hasText: /^Fix\b|· Fix\b|Fix ·/ }) }).first();
   const target = (await row.count()) ? row : page.locator('.act-li').first();
+  const what = flat(await target.locator('.lt-what').innerText());
   await target.locator('.lt-row').click(); await page.waitForTimeout(1500);
-  ok(/[?&]open=/.test(page.url()) || !/\/actions$/.test(page.url()), `4 a row opens its own record (${page.url().split('#')[1]})`);
+  /* the drawn thing, not the address: ?open= with nothing open passed here
+     until 22 October (docs/STRUCTURE.md §17) */
+  const opened = /[?&]open=/.test(page.url());
+  const drawer = opened ? flat(await page.locator('aside.rd').innerText().catch(() => '')) : '';
+  ok(opened ? drawer.includes(what) : !/\/actions$/.test(page.url()), `4 a row opens its own record: ${opened ? `the drawer, "${what}"` : page.url().split('#')[1]}`, drawer.slice(0, 200));
+  if (opened) { await page.locator('aside.rd .rd-x').click(); await page.waitForTimeout(800); ok(!(await page.locator('aside.rd').count()) && /\/actions$/.test(page.url()), '4 × closes it, back on Actions'); }
 }
 
 /* ---- 5 on paper ---- */
@@ -154,6 +160,15 @@ await page.locator('.nv-rail').getByRole('button', { name: 'Every action', exact
   ok(same(onLines, lineOwn.map(flat)), `8 every line's own open problem, under no project: ${lineOwn.length}`, JSON.stringify({ onLines, lineOwn }));
   const text = await pdfText(() => page.getByRole('button', { name: 'The action list on paper (PDF)' }).click());
   ok(text.includes('Every project and line') && text.includes(t.name), '8 on paper: every project and line, each row marked with its project');
+  /* a row of a project's opens its record over Every action, the project said in the address */
+  const fixRow = own.filter({ has: page.locator('.act-meta', { hasText: /^Fix\b|· Fix\b|Fix ·/ }) }).first();
+  if (await fixRow.count()) {
+    const what = flat(await fixRow.locator('.lt-what').innerText());
+    await fixRow.locator('.lt-row').click(); await page.waitForTimeout(1500);
+    const drawer = flat(await page.locator('aside.rd').innerText().catch(() => ''));
+    ok(/#\/actions\?/.test(page.url()) && /[?&]job=/.test(page.url()) && drawer.includes(what), `8 a project's fix opens in the drawer over Every action: "${what}"`, page.url());
+    await page.locator('aside.rd .rd-x').click(); await page.waitForTimeout(800);
+  } else ok(false, '8 a project fix to open on Every action');
 }
 
 /* ---- 7 the phone ---- */

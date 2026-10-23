@@ -6,13 +6,14 @@ one map of the app. Every request is placed on it before anything is built
 `PRODUCT.md`'s "the workspace is the place". The other docs stay, each as the
 deep design of one part (§5.10).
 
-**22 October — a proposal on top of it, not built:** `docs/STRUCTURE.md`
-(the whole app's structure and experience, Stage A of Rowland's brief of
-that day) proposes the four layers as three scopes — the factory, a line, a
+**23 October — approved, being built:** `docs/STRUCTURE.md` (the whole
+app's structure and experience, Rowland's brief of 22 October, validated the
+same day) turns the four layers into three scopes — the factory, a line, a
 project — and a library of tools, each scope with its own short rail, one
-page header, one report menu and a design system of shared parts. No record
-changes. It waits for his approval; until then this blueprint stands as it
-is.
+page header, one report menu and a design system of shared parts. Rowland,
+23 October: *"I agree do them all"* — the twelve decisions and slices B0–B8.
+No record changes. §1 and §3 here are rewritten to the scopes in the same
+commit as B2; until then this blueprint stands as it is.
 
 ---
 
