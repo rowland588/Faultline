@@ -149,6 +149,19 @@ export function ProjectsScreen() {
    * job — a default is a choice made without anybody noticing there was one. */
   /* ...unless it was picked already — on the front door or a line's page (?model=) */
   const [model, setModel] = useState<PlanModel | null>(() => { const m = q.get('model'); return isPicked(m) ? m : null; });
+  /* ?new=1 ARRIVING WHILE THE PAGE IS OPEN — a link to start a project followed from Projects itself
+     (the address changes, the page stays): open New, with the kind the link names (B5) */
+  useEffect(() => {
+    const on = () => {
+      const h = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
+      if (h.get('new') !== '1') return;
+      setAdding(true);
+      const m = h.get('model');
+      if (isPicked(m)) setModel(m);
+    };
+    window.addEventListener('hashchange', on);
+    return () => window.removeEventListener('hashchange', on);
+  }, []);
   /* the line it was started from, and where that line is */
   const startLine = factory.find(w => w.id === fromLine);
   const sit = useLineSituation(startLine);
