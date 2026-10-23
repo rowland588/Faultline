@@ -95,7 +95,11 @@ export function VideosScreen() {
   const [scope, setScope] = useState<ProjectScope>('project');
   const mayP = useAccess(inP.id ?? '');
   const mayAdd = !inP.id || mayP.edit;
-  const list = useMemo(() => (all ? inScope(all, scope, inP.id, inP.lineIds) : null), [all, scope, inP.id, inP.lineIds]);
+  /* OPENED FROM A LINE (?line=, the line's Tools): that line's video studies, as every tool's list is
+     on its line (23 October — a video study made on a line showed among every line's) */
+  const onLine = useMemo(() => asked('line') ?? undefined, []);
+  const onLineName = onLine ? (lines.find(l => l.id === onLine)?.name ?? 'this line') : undefined;
+  const list = useMemo(() => (all ? inScope(all, scope, inP.id, inP.lineIds).filter(s => !onLine || s.workspaceId === onLine) : null), [all, scope, inP.id, inP.lineIds, onLine]);
   /* ?add=1 — a link straight to New (lib/lines asked) */
   const [adding, setAdding] = useState(() => !!asked('add'));
   /* …or while this list is open: the page stays, so New is opened afresh — its line read again */
@@ -113,11 +117,17 @@ export function VideosScreen() {
         says={<span className="sub">Film the line, say what you want to find out, and the app reads the footage for the work at each station. You review every piece it finds on the footage itself; the cycles, the line balance, takt and the report are worked out from what you accept.</span>}
         primary={mayAdd ? { label: 'New video study', run: () => setAdding(true) } : undefined} />
       {inP.id && <ProjectScopeChips name={inP.project?.name} lines={inP.lineIds.length} scope={scope} onScope={setScope} />}
+      {onLine && (
+        <div className="chip-row qsl-f" role="group" aria-label="Which line">
+          <button type="button" className="chip on" aria-pressed>{onLineName}</button>
+          <button type="button" className="chip" onClick={() => nav('/video')}>All lines</button>
+        </div>
+      )}
       {/* before a long study: whether the phone that would film it can (docs/VIDEO-FEASIBILITY.md) */}
       <p className="vck-door"><button type="button" className="linkish" onClick={() => nav('/video-check')}>Can this phone film a long study?</button> Try it here first: the camera read as it films, clips, a steady camera, the screen and the battery.</p>
       {list && !list.length && (
         <div className="qsl-empty">
-          <p>{inP.id && scope !== 'all' ? `No video studies ${scope === 'project' ? 'on' : 'on the lines of'} ${inP.project?.name ?? 'this project'} yet. ` : 'No video studies yet. '}A minute or two of the line, filmed side-on with every station in view, is enough for a first one.</p>
+          <p>{onLine ? `No video studies on ${onLineName} yet. ` : inP.id && scope !== 'all' ? `No video studies ${scope === 'project' ? 'on' : 'on the lines of'} ${inP.project?.name ?? 'this project'} yet. ` : 'No video studies yet. '}A minute or two of the line, filmed side-on with every station in view, is enough for a first one.</p>
           {mayAdd && <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>New video study</button>}
         </div>
       )}

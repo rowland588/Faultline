@@ -15,7 +15,7 @@ import type { ToolStudy } from './study';
 import type { Standard } from './standard';
 import type { StudyContext } from './studyLinks';
 import { studyEvidence } from './clientReport';
-import { checksSay, sample, sampleLines, sampleSays, CPK_FROM, type SampleFigures } from './ie/sample';
+import { checksSay, goodWord, pctWord, ruleWords, sample, sampleLines, sampleSays, CPK_FROM, type SampleFigures } from './ie/sample';
 import { fewerThan } from './ie/dist';
 import type { AgreedReadings } from './study';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
@@ -160,8 +160,10 @@ function capabilityBlocks(s: ToolStudy): Block[] {
   if (a.kind === 'ticks' && f.ticks) {
     const t = f.ticks, bad = new Set(t.bad.map(b => b.id));
     return [
-      cellsRow([['Checked', `${f.n} of ${f.count}`], ['Failed', String(t.bad.length), t.bad.length > t.allowFail], ['May fail', t.allowFail ? String(t.allowFail) : 'none'],
-        ['Proves (95% sure)', t.proves < 0.995 ? fewerThan(t.proves) : 'nothing yet']]),
+      /* the rule beside how many may fail, and what the count proves with its confidence (part 1b) */
+      cellsRow([['Checked', `${f.n.toLocaleString('en-GB')} of ${f.count.toLocaleString('en-GB')}`], ['Failed', t.bad.length.toLocaleString('en-GB'), t.bad.length > t.allowFail],
+        ['May fail', `${t.allowFail > 0 ? t.allowFail.toLocaleString('en-GB') : 'none'}${ruleWords(t).replace(/^ for /, ' — ')}`],
+        [`${pctWord(t.conf)} confident`, t.proves >= 0.995 ? 'nothing yet' : t.judge === 'count' ? `${fewerThan(t.proves)} fail` : `at least ${goodWord(1 - t.proves)} good`]]),
       label('Each one, in the order checked'),
       readingsRows(s, r => (r.ok === true ? 'good' : r.ok === false ? 'failed' : '—'), id => bad.has(id)),
     ];

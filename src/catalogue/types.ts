@@ -89,7 +89,7 @@ export interface AppFace {
   /** What it is for on a line's page — absent when it is not listed there. */
   onLine?: string;
   /** The record whose latest the line's page reads for it. */
-  reads?: 'standard' | 'balance' | 'capability' | 'map' | 'changeover' | 'sampling' | 'losses' | 'reliability' | 'talk';
+  reads?: 'standard' | 'balance' | 'capability' | 'map' | 'changeover' | 'sampling' | 'losses' | 'reliability' | 'talk' | 'video';
   /** The rail's icon (ui/Icon). */
   icon: string;
   /** Its place in the list — the floor's order: who stands where, then the people, the machines, the studies, the camera, the talk. */

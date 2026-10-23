@@ -160,3 +160,26 @@ for n in [20, 30, 100]:
             m += 1; k += stats.normaltest(x).pvalue < 0.05
         out.append(f"s {s}: {k / m:.3f}")
     print(f"  n={n}: " + ", ".join(out))
+
+# --- pass or fail, judged by a confidence level or an allowed loss (FC-100, 23 October) ---
+print("\n# the most that may fail and still show at least (1 - p0) good at confidence C:")
+print("#   largest k with beta.ppf(C, k+1, n-k) <= p0; -1 when even none failing cannot show it")
+def most_may_fail(n, p0, c):
+    k = -1
+    while k + 1 < n and stats.beta.ppf(c, k + 2, n - k - 1) <= p0:
+        k += 1
+    return k
+for n, p0, c in [(4500, 0.02, 0.95), (4500, 0.02, 0.90), (4500, 0.02, 0.99), (300, 0.02, 0.95), (20, 0.02, 0.95),
+                 (149, 0.02, 0.95), (148, 0.02, 0.95), (1000, 0.01, 0.95), (50, 0.10, 0.90), (500, 0.05, 0.99)]:
+    print(f"  most({n}, {p0}, {c}) = {most_may_fail(n, p0, c)}")
+print("\n# zero failures at 90% and 99%: 1 - (1 - C)**(1/n)")
+for n in [20, 59, 300]:
+    print(f"  n={n}: 90% {1 - 0.10 ** (1 / n):.6f}  99% {1 - 0.01 ** (1 / n):.6f}")
+print("\n# items to show p0 = 2% with none failing: ceil(ln(1 - C) / ln(0.98))")
+for c in [0.90, 0.95, 0.99]:
+    print(f"  C={c}: {math.ceil(math.log(1 - c) / math.log(0.98))}")
+print("\n# an allowed loss: at least 98% good of 4,500 -> floor(0.02 * 4500) = 90 may fail; what 90 failing proves")
+for c in [0.90, 0.95, 0.99]:
+    print(f"  upper(90 of 4500, C={c}) = {stats.beta.ppf(c, 91, 4410):.8f}")
+print(f"  upper(70 of 4500, C=0.95) = {stats.beta.ppf(0.95, 71, 4430):.8f}")
+print(f"  upper(2 of 50, C=0.90) = {stats.beta.ppf(0.90, 3, 48):.8f}; upper(2 of 50, C=0.99) = {stats.beta.ppf(0.99, 3, 48):.8f}")

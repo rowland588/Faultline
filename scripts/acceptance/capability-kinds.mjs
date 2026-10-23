@@ -25,6 +25,9 @@
  *   6  a study made before 22 October reads as before (the seeded re-test:
  *      pass or fail, none may fail)
  *   7  the phone — the question cards and the two big buttons fit
+ *   8  pass or fail judged by a confidence level or a loss allowed (part 1b, 23 October): the three ways
+ *      and the confidence, the plan said while agreeing, a count too small refused with the count it
+ *      takes, tapped to a fail at once, the tiles, the paper, the phone
  *
  * Fails on any console error.
  *
@@ -208,12 +211,12 @@ const seal = await startStudy('Seal integrity — after the jaw fix', 'Ilapak fl
   t = await truth(seal);
   await sameAsModule(t, '4 twenty checked');
   ok(t.said.verdict === 'Passed' && (await words('.ie-say')) === '19 of 20 good — 1 failed (no. 7), 1 allowed — Passed.'
-    && (await words('.ie-cap')) === '1 failed in 20 proves fewer than 22 in 100 would fail (95% sure); to show fewer than 1 in 100 takes 473 checked with 1 failed.',
+    && (await words('.ie-cap')) === '1 failed in 20: we can be 95% confident fewer than 22 in 100 would fail; to show fewer than 1 in 100 takes 473 checked with 1 failed.',
     `4 passed, and what it proves: "${await words('.ie-cap')}"`);
   const tiles = flat(await page.locator('.ie-strip').innerText());
-  ok(/Checked\s*20/i.test(tiles) && /Failed\s*1\s*of 1 allowed/i.test(tiles) && /Proves\s*< 22 in 100/i.test(tiles), `4 the tiles: checked, failed of allowed, what it proves — "${tiles.slice(0, 120)}…"`);
+  ok(/Checked\s*20/i.test(tiles) && /Failed\s*1\s*of 1 allowed/i.test(tiles) && /Confident\s*< 22 in 100\s*would fail — 95% confident/i.test(tiles), `4 the tiles: checked, failed of allowed, what it proves with its confidence — "${tiles.slice(0, 160)}…"`);
   const p = await pdf('seal.pdf');
-  ok(/MAY FAIL/i.test(p.text) && p.text.includes('fewer than 22 in 100') && /\b7 failed\b/.test(p.text) && /\b12 failed struck\b/.test(p.text) && (p.text.match(/\bgood\b/g) ?? []).length >= 19,
+  ok(/MAY FAIL/i.test(p.text) && p.text.includes('fewer than 22 in 100') && /95% CONFIDENT/i.test(p.text) && /\b7 failed\b/.test(p.text) && /\b12 failed struck\b/.test(p.text) && (p.text.match(/\bgood\b/g) ?? []).length >= 19,
     `5 pass or fail on paper: checked, failed, may fail, what it proves; every item good or failed by its number, the struck one said (${p.pages} page${p.pages === 1 ? '' : 's'})`);
 }
 
@@ -237,6 +240,67 @@ const seal = await startStudy('Seal integrity — after the jaw fix', 'Ilapak fl
   await page.getByRole('button', { name: 'Keep what was agreed' }).click(); await page.waitForTimeout(300);
   const boxes = await Promise.all(['Good', 'Failed'].map(n => page.getByRole('button', { name: n, exact: true }).boundingBox()));
   ok(boxes.every(b => b && b.height >= 64 && b.width >= 140), `7 the two buttons big enough for a gloved thumb (${boxes.map(b => `${Math.round(b.width)}×${Math.round(b.height)}`).join(', ')})`);
+}
+
+/* ---- 8 · pass or fail judged by a confidence level or a loss allowed (part 1b, 23 October — Rowland:
+   "Am I doing a confidence level, or am I doing the other level? ... adding confidence as part of our
+   language") — the three ways and the confidence offered, the plan said while agreeing as the module
+   says it, a count too small refused, then tapped through to a fail at once; the tiles, the closing line,
+   the paper; the phone ---- */
+{
+  await page.setViewportSize({ width: 1360, height: 900 });
+  const conf = await startStudy('Seal check — 4,500 packs', 'Ilapak flow wrapper');
+  await page.getByRole('radio', { name: /^Pass or fail/ }).click(); await page.waitForTimeout(200);
+  const ways = (await page.getByRole('radiogroup', { name: 'How is it judged?' }).getByRole('radio').allInnerTexts()).map(flat);
+  const confs = (await page.getByRole('radiogroup', { name: 'Confidence' }).getByRole('radio').allInnerTexts()).map(flat);
+  ok(ways.length === 3 && /^How many may fail/.test(ways[0]) && /^A loss allowed/.test(ways[1]) && /^A confidence level/.test(ways[2]) && JSON.stringify(confs) === '["90%","95%","99%"]'
+    && (await page.getByRole('radio', { name: '95%', exact: true }).getAttribute('aria-checked')) === 'true' && (await page.getByRole('radio', { name: /^How many may fail/ }).getAttribute('aria-checked')) === 'true',
+    `8 how it is judged asked — ${ways.map(w => `"${w.split(' ').slice(0, 4).join(' ')}"`).join(', ')} — and the confidence, 95% to begin with`);
+  const planOf = a => page.evaluate(async a => (await import('/src/lib/ie/sample.ts')).passFailPlanOf(a), a);
+  await page.getByRole('radio', { name: /^A confidence level/ }).click(); await page.waitForTimeout(250);
+  const p20 = await planOf({ count: 20, judge: 'confidence', good: 98, conf: 0.95 });
+  ok((await page.getByLabel('At least what % good').inputValue()) === '98' && flat(await page.locator('.ie-problem').innerText()) === p20.problem && /check at least 149/.test(p20.problem) && await page.getByRole('button', { name: 'Agree these' }).isDisabled(),
+    `8 a confidence level, 20 checked: refused, with the count it takes — "${p20.problem}"`);
+  await page.getByLabel('How many to check').fill('4500'); await page.waitForTimeout(300);
+  const p95 = await planOf({ count: 4500, judge: 'confidence', good: 98, conf: 0.95 });
+  ok((await words('.ie-plan')) === p95.text && /up to 74 may fail/.test(p95.text), `8 4,500 at 95%: "${await words('.ie-plan')}"`);
+  await page.getByRole('radio', { name: '99%', exact: true }).click(); await page.waitForTimeout(250);
+  ok(/up to 68 may fail/.test(await words('.ie-plan')), `8 99% asks more of the count: "${await words('.ie-plan')}"`);
+  await page.getByRole('radio', { name: '95%', exact: true }).click();
+  await page.getByRole('radio', { name: /^A loss allowed/ }).click(); await page.waitForTimeout(250);
+  const pl = await planOf({ count: 4500, judge: 'loss', good: 98, conf: 0.95 });
+  ok((await words('.ie-plan')) === pl.text && /up to 90 of 4,500 may fail/.test(pl.text) && /at least 97\.6% would be good/.test(pl.text), `8 a loss allowed, 98% good: "${pl.text}"`);
+  /* tapped through: a confidence level, 300 checked, 98% good at 95% — one may fail */
+  await page.getByRole('radio', { name: /^A confidence level/ }).click();
+  await page.getByLabel('How many to check').fill('300'); await page.waitForTimeout(250);
+  await page.getByRole('button', { name: 'Agree these' }).click(); await page.waitForTimeout(700);
+  let t = await truth(conf);
+  ok(t.a.judge === 'confidence' && t.a.good === 98 && t.a.conf === undefined && (await words('.ie-agreed b')) === 'pass or fail each, 300 — 95% confident at least 98% good (up to 1 may fail)',
+    `8 agreed and kept: "${await words('.ie-agreed b')}"`);
+  const good = page.getByRole('button', { name: 'Good', exact: true }), bad = page.getByRole('button', { name: 'Failed', exact: true });
+  for (let i = 0; i < 5; i++) { await good.click(); await page.waitForTimeout(40); }
+  await bad.click(); await page.waitForTimeout(400);
+  t = await truth(conf);
+  await sameAsModule(t, '8 six checked, one failed');
+  ok(t.said.tone === 'a' && /1 allowed for 98% good, 95% confident\.$/.test(t.said.text) && /we can be 95% confident at least/.test(await words('.ie-cap')), `8 one failed of the one allowed — so far, said with its confidence: "${await words('.ie-cap')}"`);
+  await bad.click(); await page.waitForTimeout(500);
+  t = await truth(conf);
+  await sameAsModule(t, '8 a second failure');
+  ok(t.said.verdict === 'Didn’t pass' && (await words('.ie-say')) === t.said.text && /at most 1 allowed for 98% good, 95% confident — Didn’t pass\.$/.test(t.said.text) && (await page.locator('.ie-say.is-r').count()) === 1,
+    `8 a second failure fails it at once: "${t.said.text}"`);
+  const tiles = flat(await page.locator('.ie-strip').innerText());
+  ok(/Failed\s*2\s*of 1 allowed · 98% good, 95% confident/i.test(tiles) && /Confident\s*≥ \d+\.\d% good — 95% confident/i.test(tiles), `8 the tiles: failed of allowed with the rule, and what it proves with its confidence — "${tiles.slice(0, 200)}…"`);
+  const p = await pdf('confidence.pdf');
+  ok(/MAY FAIL/i.test(p.text) && /1 — 98% good, 95% confident/.test(p.text) && /95% CONFIDENT/i.test(p.text) && /at least \d+\.\d% good/.test(p.text) && p.text.includes(t.said.text.slice(0, 40)),
+    `8 on paper: may fail with the rule, the confidence, the verdict (${p.pages} page${p.pages === 1 ? '' : 's'})`);
+  /* the phone: the three ways and the confidence inside the screen */
+  await page.setViewportSize({ width: 390, height: 844 });
+  await go(`#/capability/${conf}`);
+  await page.getByRole('button', { name: 'Change what was agreed' }).click(); await page.waitForTimeout(400);
+  const wide = await page.evaluate(() => document.scrollingElement.scrollWidth);
+  const inside = await page.locator('.ie-kind, .ie-confs .chip').evaluateAll(els => els.every(e => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.right <= 390; }));
+  ok(wide <= 390 && inside && (await page.getByRole('radio', { name: /^A confidence level/ }).getAttribute('aria-checked')) === 'true', `8 the phone: the three ways and the confidence inside the screen (page ${wide}px wide), the way agreed shown`);
+  await page.getByRole('button', { name: 'Keep what was agreed' }).click(); await page.waitForTimeout(300);
 }
 
 ok(!errors.length, `no console errors${errors.length ? `: ${errors.slice(0, 3).join(' | ')}` : ''}`);

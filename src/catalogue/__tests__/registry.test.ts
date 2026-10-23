@@ -44,7 +44,7 @@ describe('the app\'s tools, from the catalogue', () => {
     expect(toolByKey('changeover')?.to).toBe('/smed');
   });
 
-  it('give a line\'s page the same ten it listed by hand before 23 October', () => {
+  it('give a line\'s page the ten it listed by hand before 23 October, and the video study since (Rowland, 23 October: "I add a tool to a line it doesn\'t go there")', () => {
     expect(TOOLS.map(t => [t.key, t.label, t.to, t.study ?? (t.standard ? 'standard' : ''), t.what])).toEqual([
       ['linestandard', 'Line standard', '/standards', 'standard', 'who stands where, product by product'],
       ['linework', 'Line balance', '/linebalance', 'balance', 'what each person does, timed against takt, and what it costs'],
@@ -55,6 +55,7 @@ describe('the app\'s tools, from the catalogue', () => {
       ['sampling', 'Work sampling', '/sampling', 'sampling', 'what people are doing, at random moments'],
       ['losses', 'Loss count', '/losses', 'losses', 'a shift’s losses, in minutes and pounds'],
       ['reliability', 'Reliability', '/reliability', 'reliability', 'a machine watched running: MTBF and the failure rate'],
+      ['video', 'Video study', '/video', 'video', 'the line filmed, the work at each station read from the footage'],
       ['talk', 'Line Talk', '/talk', 'talk', 'talk or type on the line, as in a chat — it answers and writes the reports'],
     ]);
   });

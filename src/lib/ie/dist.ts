@@ -107,6 +107,21 @@ export function itemsToShow(p0: number, conf = 0.95, allowed = 0): number {
   return lo;
 }
 
+/** THE MOST THAT MAY FAIL (knowledge/specs/FC-094-capability.md, part 1b) — of n checked, the largest
+ *  number failing that still shows the share failing is at most p0 at confidence conf: the largest k
+ *  with the exact upper bound (binomUpper, rising with k) at most p0. −1 when even none failing cannot
+ *  show it — then itemsToShow(p0, conf, 0) says how many it takes. */
+export function mostMayFail(n: number, p0: number, conf = 0.95): number {
+  if (!(n >= 1) || !(p0 > 0 && p0 < 1)) return -1;
+  if (binomUpper(0, n, conf) > p0) return -1;
+  let lo = 0, hi = n - 1;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (binomUpper(mid, n, conf) <= p0) lo = mid; else hi = mid - 1;
+  }
+  return lo;
+}
+
 /* --------------------------------------------------------------- the readings */
 
 const meanOf = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
