@@ -61,7 +61,7 @@ tick.
   Ticking a tool makes one — *what* "Use the capability study", *why* the
   words typed ("the Bagger's seal weights"), *due* a day in the chosen week,
   and a new field **`tool`** (the catalogue key, `src/catalogue/registry`)
-  so the Week page can draw the tick list from the actions and the Actions
+  so the Journey page can draw the tick list from the actions and the Actions
   page can say which tool an action uses. Unticking deletes the action
   (with Undo). When the tool is actually used — a study made on the project
   with that tool — the plan reads *used: <the study>* and is done. One
