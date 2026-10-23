@@ -46,6 +46,13 @@ off: everything said, typed and photographed is kept, and an answer waits or
 says why.
 Nothing new is built until Rowland says go.
 
+**Steady comes next — 23 October.** Rowland: *"I just want organisation and
+stability in the app ... make a design that ensures it all works."* After
+J3 (`docs/JOURNEY.md`) and before anything new: `docs/STEADY.md` — one
+reader per scope, one number everywhere (a gate check), one place per thing
+in the code, one answer per project kind — in four slices that change
+nothing a person sees.
+
 ## The project is the workspace — 21 October
 
 **Read `docs/PROJECTS.md`.** Rowland, 21 October: *"a project is the project
