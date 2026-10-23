@@ -118,10 +118,19 @@ export const isWholeLine = (name: string): boolean => machineKey(name) === 'whol
  *  ... A study's machine is typed."). The line's machines in flow order —
  *  its list, then the machines its jobs brought onto it (machinesOnLine) —
  *  and, for a job on this line, that job's own machines not yet placed on
- *  any one line (a job on several lines). Never another line's. Names only:
+ *  any one line (a job on several lines). Never another line's — except on a
+ *  dual line (lib/lines dualOf; Rowland, 23 October: "2a 2b are 2 lines but
+ *  they happen to be a dual line"), which offers the machines of the lines it
+ *  is made of after its own, when `lines` is given. Names only:
  *  a stop, a problem, a station and a study are kept against the name. */
-export function machinesOf(ws: Pick<Workspace, 'id' | 'assets'>, assets: readonly Asset[], jobLines: readonly JobLine[], jobId?: string): string[] {
+export function machinesOf(ws: Pick<Workspace, 'id' | 'assets' | 'madeOf'>, assets: readonly Asset[], jobLines: readonly JobLine[], jobId?: string, lines: readonly Workspace[] = []): string[] {
   const out = machinesOnLine(ws, assets, jobLines).map(m => m.name);
+  const seenOwn = new Set(out.map(machineKey));
+  for (const id of ws.madeOf ?? []) {
+    const part = lines.find(w => w.id === id && !w.archived);
+    if (!part) continue;
+    for (const m of machinesOnLine(part, assets, jobLines)) { const k = machineKey(m.name); if (k && !seenOwn.has(k)) { seenOwn.add(k); out.push(m.name); } }
+  }
   const onThisLine = !!jobId && jobLines.some(l => !l.deletedAt && l.projectId === jobId && l.workspaceId === ws.id);
   if (!onThisLine) return out;
   const seen = new Set(out.map(machineKey));

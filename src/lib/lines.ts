@@ -139,6 +139,39 @@ export async function pinToProjectLine(projectId: string, lines: readonly { work
   return n;
 }
 
+/** A DUAL LINE AND ITS LINES (supabase/DUAL_LINES.sql — Rowland, 23 October:
+ *  "2a 2b are 2 lines but they happen to be a dual line"). For one line: the
+ *  live lines it is made of, and the live dual lines it is part of — each in
+ *  floor order. Archived or gone lines are left out; a line never names itself. */
+export function dualOf(line: Pick<Workspace, 'id' | 'madeOf'>, lines: readonly Workspace[]): { madeOf: Workspace[]; partOf: Workspace[] } {
+  const live = lines.filter(w => !w.archived && w.id !== line.id).slice().sort(byFloor);
+  return {
+    madeOf: live.filter(w => (line.madeOf ?? []).includes(w.id)),
+    partOf: live.filter(w => (w.madeOf ?? []).includes(line.id)),
+  };
+}
+/** "Line 2a + line 2b" — a dual line's lines in words. */
+export const linesSaid = (lines: readonly Pick<Workspace, 'name'>[]): string => lines.map(w => w.name).join(' + ');
+/** What a line says of its dual lines, in one phrase, or nothing: "made of
+ *  Line 2a + line 2b", "part of 2a 2b". */
+export function dualSaid(d: { madeOf: readonly Pick<Workspace, 'name'>[]; partOf: readonly Pick<Workspace, 'name'>[] }): string {
+  return [d.madeOf.length ? `made of ${linesSaid(d.madeOf)}` : '', d.partOf.length ? `part of ${d.partOf.map(w => w.name).join(' and ')}` : ''].filter(Boolean).join(' · ');
+}
+
+/** EVERY MACHINE IS ON A LINE (Rowland, 23 October: "Can't have a machine
+ *  without a line ... Everything needs to be under a line"). A machine named on
+ *  a tool, a problem or a walk, not yet on its line's list, joins the list — so
+ *  every tool's Machine box offers it from then on, under one name. Nothing
+ *  happens for a name already there (however it is cased), or no line. */
+export async function machineOntoLine(wsId: string | undefined, name: string | undefined): Promise<boolean> {
+  const n = (name ?? '').trim();
+  if (!wsId || !n) return false;
+  const w = (await listWorkspaces()).find(x => x.id === wsId);
+  if (!w || (w.assets ?? []).some(a => a.trim().toLowerCase() === n.toLowerCase())) return false;
+  await updateWorkspace({ ...w, assets: [...(w.assets ?? []), n] });
+  return true;
+}
+
 export function lineKey(name: string): string {
   const k = name.trim().replace(/^line\s+/i, '').trim();
   return (k || name.trim()).slice(0, 12);

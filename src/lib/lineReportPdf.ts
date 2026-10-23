@@ -23,6 +23,8 @@ export interface LineReportRow { what: string; meta: string; right: string; tone
 export interface LineReport {
   name: string;
   type?: string;
+  /** A dual line's lines, or the dual line this one is part of (lib/lines dualSaid): ["Made of", "Line 2a + line 2b"]. */
+  dual?: [string, string];
   printed: string;
   reading: LineReading;
   /** The line's problems as rows, priority order, late in red. */
@@ -64,7 +66,7 @@ function listRows(list: LineReportRow[], cap: number, more: (n: number) => strin
 function blocksOf(r: LineReport, d: Density): Block[] {
   const out: Block[] = [];
   const page = bandPage(`PRODUCTION LINE${r.type ? ` · ${r.type.toUpperCase()}` : ''} · THE LINE REPORT`, { name: r.name }, undefined, undefined,
-    [['Projects on it', String(r.jobs.length)], ['Machines', r.machines ? String(r.machines.split(' → ').length) : '0']]);
+    [...(r.dual ? [r.dual] : []), ['Projects on it', String(r.jobs.length)], ['Machines', r.machines ? String(r.machines.split(' → ').length) : '0']]);
   const c = lineClosing(r.reading);
   out.push(leanBand({ ...page, verdict: { text: c.tone === 'r' ? 'Needs you' : c.tone === 'a' ? 'Gaps to close' : 'In hand', tone: c.tone } }, r.printed));
   out.push(leanTiles(lineTiles(r.reading)));

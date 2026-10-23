@@ -103,6 +103,28 @@ not wide" still decides what is built, and "nothing new is built until Rowland
 says go". If the skill or the library cannot be read, say so — never claim the
 process was followed.
 
+## Every machine is on a line; a dual line — 23 October
+
+Rowland, 23 October, designing the combined line report: *"Can't have a
+machine without a line ... Everything needs to be under a line"*; and *"2a 2b
+are 2 lines but they happen to be a dual line ... I have experiment happening
+in 2b and 2a and I also have to run other tools on both. I call it then 2a
+2b"*; *"we'd need some way of being able to attach it ... like a connector."*
+So: **a machine is on a line, always** — made on its line (Set up the line),
+or on a project on one line, where it takes that line (`lib/lines`
+pinToProjectLine, before a project's lines change; `supabase/
+PIN_PROJECT_MACHINES.sql` for what was there); a machine named on a tool, a
+problem or a walk joins its line's list (`machineOntoLine`), so every Machine
+box offers it under one name (P160 is "Pick and Place" —
+`NAME_PICK_AND_PLACE.sql`). **A dual line is a line of the factory made of
+other lines**: `workspaces.made_of` (`DUAL_LINES.sql`), set by ticks under
+*Made of* on Edit the line, never in code; `lib/lines dualOf` reads it both
+ways (made of · part of), `dualSaid` says it under the line's name, on Your
+factory, the control room and every paper's band, and `machinesOf` offers a
+dual line its lines' machines. The combined line report (next) reads a dual
+line as its lines, then both together; a single line's report says only what
+is on it. `scripts/acceptance/dual-lines.mjs` proves it.
+
 ## The structure — approved 23 October
 
 **Read `docs/STRUCTURE.md`.** Rowland, 23 October: *"I agree do them all"* —
@@ -386,6 +408,7 @@ node scripts/acceptance/program-delete.mjs  # a deleted test forgotten by its pr
 node scripts/acceptance/programs.mjs  # a program's status with commentary: the five statuses (not tested and no program among them), commentary on its own, Needs you, the paper
 node scripts/acceptance/snags.mjs  # Problems: the register — every problem written and edited where it sits, assigned not moved, its journey, a photo marked, on paper (a card for every problem among it), a fresh start
 node scripts/acceptance/lines.mjs  # production lines: made in Your factory, opened on their own, a problem taken on one with no project, its tools opened on it, the phone
+node scripts/acceptance/dual-lines.mjs  # 23 October: a dual line and every machine on a line — three lines added, Made of ticked on Edit the line (said saved; never the line itself), "Made of Line 2a + line 2b" under its name with each a link, "Part of 2a 2b" under each of theirs, Your factory's rows and the control room's cards, one untick moving the words; the line report's band (Made of / Part of) and the factory report; a machine named on a new study joining its line's list, the dual line's Machine box offering both lines' machines as lib/lineRecords machinesOf says, a machine named on a problem joining line 2b's list; the phone
 node scripts/acceptance/line-hub.mjs  # Stage 3, the line is the hub: its four tiles and no Products (taken off 23 October — Rowland: "You've invented products ... The program is the product"), an old ?view=products link landing on the Overview; a program running four products ("a program 10 ... that does 4 products") planned on the line's Programs — a chip each, the last typed kept by Plan it — its row saying them all, one taken off and saved, an older program's one product kept; its test day gone and proved moving the programs tile; the line report on one page with its products; the phone
 node scripts/acceptance/factory.mjs  # Your factory: set up first, lines added one after another, named, typed, moved, archived and restored — the control room, the rail, the line's page and its paper, the phone; the jobs taking their lines from it, never a second line of a name; its paper; the tools picking from it; a line's facts set up from its page; two lines merged
 node scripts/acceptance/machines-programs.mjs  # Stage 2: a program planned on a line with no job, from the control room; the line's machines in flow order; a job seeing and proving them; the factory and the paper

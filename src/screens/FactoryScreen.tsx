@@ -25,7 +25,7 @@ import {
   archiveWorkspace, deleteWorkspace, mergeLinesUndoable, projectsOnWorkspace, listAllSnags, listArchivedWorkspaces,
   listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, restoreWorkspace, updateWorkspace, workspaceContents,
 } from '../db';
-import { addLineToFactory, factorySays, lineFacts, lineTypesOffered, liveProductionLines, nextLineName, placeOnFloor, asked } from '../lib/lines';
+import { addLineToFactory, factorySays, lineFacts, lineTypesOffered, liveProductionLines, nextLineName, placeOnFloor, asked, dualOf, dualSaid } from '../lib/lines';
 import { useLineRecords } from '../lib/useLineRecords';
 import { lineKit } from '../lib/lineRecords';
 import { snagRow } from '../lib/snagsReport';
@@ -253,6 +253,7 @@ export function FactoryScreen() {
                   {c?.open ? <>{c.open} problem{c.open === 1 ? '' : 's'} open{c.late ? <> · <b className="is-r">{c.late} late</b></> : null}</> : <span className="is-n">No problems open</span>}
                   {job && <span className="fac-job">on {job}</span>}
                   {lineFacts(w).short && <span className="fac-job">{lineFacts(w).short}</span>}
+                  {dualSaid(dualOf(w, lines)) && <span className="fac-job fac-dual">{dualSaid(dualOf(w, lines))}</span>}
                   {/* a day of it, in margin (lib/lineLoss lineDay) — the factory tile's share */}
                   {(m => m != null && <span className="fac-job fac-day">{fmtGBP(m)} of margin a day</span>)(lineDay(w).margin)}
                   {(() => { const k = kitOf(w); return k.says ? <span className="fac-job fac-kit">{k.says}{k.late ? <> · <b className="is-r">{k.late} program{k.late === 1 ? '' : 's'} late</b></> : null}</span> : null; })()}

@@ -44,8 +44,8 @@ export function useMachinesOf(wsId: string | undefined, jobId?: string): string[
   useEffect(() => {
     let live = true;
     if (!wsId) { setNames([]); return; }
-    const load = () => void Promise.all([getWorkspace(wsId), listAllAssets(), allPaceLines()]).then(([ws, assets, jobLines]) => {
-      if (live) setNames(ws ? machinesOf(ws, assets, jobLines, jobId) : []);
+    const load = () => void Promise.all([getWorkspace(wsId), listAllAssets(), allPaceLines(), listWorkspaces()]).then(([ws, assets, jobLines, all]) => {
+      if (live) setNames(ws ? machinesOf(ws, assets, jobLines, jobId, all) : []);
     });
     load();
     const off = onDataChange(load);

@@ -23,7 +23,7 @@ import { nav } from '../state/useRoute';
 import { getWorkspace, listAllSnags, listObservations, listSnagAssets, listStandardsForLine, listStudiesForLine, listWorkspaces, onDataChange, projectsOnWorkspace, updateWorkspace } from '../db';
 import { methodOf } from '../lib/planModel';
 import { useCanStartProjects } from '../cloud/access';
-import { lineFacts, lineTypesOffered, productionLines } from '../lib/lines';
+import { dualOf, lineFacts, lineTypesOffered, linesSaid, productionLines } from '../lib/lines';
 import { WorkspaceProvider } from '../state/WorkspaceProvider';
 import { StudySetupSheet } from '../ui/StudySetupSheet';
 import { PRIORITY_WORD, type Priority, type SnagRow, type SnagTone } from '../lib/snagsReport';
@@ -129,6 +129,8 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
   const [obs, setObs] = useState<Observation[]>([]);
   const [walkAssets, setWalkAssets] = useState<SnagAsset[]>([]);
   const [types, setTypes] = useState<string[]>([]);
+  /* the factory's other lines — a dual line is made of some of them (lib/lines dualOf) */
+  const [lines, setLines] = useState<Workspace[]>([]);
   const [jobIds, setJobIds] = useState<string[]>([]);
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState<string | null>(null);
@@ -141,6 +143,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
     setLine(w ?? null);
     setJobIds(on);
     setTypes(lineTypesOffered(productionLines(ws)));
+    setLines(productionLines(ws));
     const mine = every.filter(s => s.workspaceId === wsId && !s.deletedAt && !s.archivedAt && s.status !== 'closed');
     setMine(mine);
     setStandards(std); setStudies(ss.filter(s => !s.deletedAt)); setObs(o); setWalkAssets(wa);
@@ -154,6 +157,11 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
   const rows: SnagRow[] = probs.rows;
   const jobs = projects.filter(p => jobIds.includes(p.id));
   const facts = line ? lineFacts(line) : {};
+  /* A DUAL LINE (supabase/DUAL_LINES.sql — Rowland, 23 October: "2a 2b are 2 lines but they happen
+     to be a dual line"): the lines this one is made of, and the dual lines it is part of — said under
+     the name, set on Edit the line, and on the band of its paper. */
+  const dual = dualOf(line ?? { id: wsId }, lines);
+  const dualWords: [string, string] | undefined = dual.madeOf.length ? ['Made of', linesSaid(dual.madeOf)] : dual.partOf.length ? ['Part of', dual.partOf.map(w => w.name).join(' and ')] : undefined;
   /* THE JOBS ON THIS LINE, read as the control room reads them (lib/useJobInputs,
      lib/portfolio) — each says its verdict and its late in the control
      room's own words (FLOW-AUDIT.md, 10). */
@@ -228,7 +236,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
       titlePdf(doc, `${named} — the line report`);
       const late = (p: Program) => standingOf(p, today) === 'overdue';
       await drawLineReport(doc, {
-        name: line.name, ...(line.lineType ? { type: line.lineType } : {}),
+        name: line.name, ...(line.lineType ? { type: line.lineType } : {}), ...(dualWords ? { dual: dualWords } : {}),
         printed: new Date(`${today}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
         reading,
         problems: rows.map(r => ({ what: `${PRIORITY_WORD[r.priority]} · ${r.what}`, meta: [r.machine ?? '', r.forJob ? `for ${r.forJob}` : '', r.owner ?? 'nobody yet'].filter(Boolean).join(' · '),
@@ -258,6 +266,8 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
     offerUndo(`${line.name} archived`, async () => { await restoreWorkspace(line.id); });
   };
   const save = async (patch: Partial<Workspace>, what: string) => {
+    /* the page answers at once — a tick is ticked as it is pressed — and the record follows */
+    setLine(l => (l ? { ...l, ...patch } : l));
     await updateWorkspace({ ...line, ...patch });
     setSaved(what);
     window.setTimeout(() => setSaved(null), 2600);
@@ -292,6 +302,13 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
           ...(may ? [{ label: editing ? 'Done editing the line' : 'Edit the line', run: () => setEditing(v => !v) }] : []),
         ]}
       />
+      {(dual.madeOf.length > 0 || dual.partOf.length > 0) && (
+        <p className="pl-dual sub" aria-label={dualWords ? `${dualWords[0]} ${dualWords[1]}` : undefined}>
+          {dual.madeOf.length > 0 && <>Made of {dual.madeOf.map((w, i) => <span key={w.id}>{i > 0 ? ' + ' : ''}<a href={`#/lines/${w.id}`}>{w.name}</a></span>)}</>}
+          {dual.madeOf.length > 0 && dual.partOf.length > 0 && ' · '}
+          {dual.partOf.length > 0 && <>Part of {dual.partOf.map((w, i) => <span key={w.id}>{i > 0 ? ' and ' : ''}<a href={`#/lines/${w.id}`}>{w.name}</a></span>)}</>}
+        </p>
+      )}
       {(editing || view === 'setup') && may && (
         <div className="pl-edit" role="group" aria-label="Edit the line">
           <label className="pl-edit-f"><span>Name</span>
@@ -305,6 +322,22 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
               onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
           </label>
           <datalist id="pl-types">{types.map(t => <option key={t} value={t} />)}</datalist>
+          {/* MADE OF — the connector (23 October): tick the lines this one is made of; untick to undo. */}
+          <fieldset className="pl-edit-f pl-madeof">
+            <legend>Made of</legend>
+            {lines.filter(w => w.id !== line.id).length === 0
+              ? <span className="sub">No other line in the factory yet</span>
+              : lines.filter(w => w.id !== line.id).map(w => {
+                const on = (line.madeOf ?? []).includes(w.id);
+                return (
+                  <label key={w.id} className="pl-madeof-l">
+                    <input type="checkbox" checked={on} aria-label={`Made of ${w.name}`}
+                      onChange={() => { const next = on ? (line.madeOf ?? []).filter(x => x !== w.id) : [...(line.madeOf ?? []), w.id]; void save({ madeOf: next.length ? next : undefined }, next.length ? `${line.name} is made of ${linesSaid(lines.filter(x => next.includes(x.id)))}` : `${line.name} is a line on its own`); }} />
+                    {w.name}
+                  </label>
+                );
+              })}
+          </fieldset>
           {saved && <span className="pe-saved" role="status">Saved — {saved}</span>}
           {/* PUT AWAY FROM WHERE IT IS (the audit's bar 2) — the same archive as
               Your factory's, with Undo: it loses nothing, and Your factory's

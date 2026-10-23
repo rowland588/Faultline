@@ -8,7 +8,7 @@
  * only the late carry red, in words beside it. */
 import type { Workspace } from '../types';
 import type { Snag } from '../snag/types';
-import { factorySays, lineFacts } from './lines';
+import { dualOf, dualSaid, factorySays, lineFacts } from './lines';
 import { snagRow } from './snagsReport';
 
 import { isOpenOnLine } from './lineWork';
@@ -25,6 +25,8 @@ export interface FactoryRow {
   jobs: string[];
   /** Its shifts and crew, in a few words (lib/lines lineFacts) — absent when not said. */
   facts?: string;
+  /** "made of Line 2a + line 2b" · "part of 2a 2b" (lib/lines dualSaid) — absent for an ordinary line. */
+  dual?: string;
   /** A DAY OF IT, IN MARGIN (lib/lineLoss lineDay): its speed × its shifts
    *  less their breaks × its margin a pack — absent while any is unsaid,
    *  and `missing` names which. The lean page's money (lib/factoryLean). */
@@ -57,6 +59,7 @@ export function factoryReading(lines: readonly Workspace[], snags: readonly Snag
       ...(day.margin != null ? { margin: day.margin } : { missing: day.missing }),
       open: mine.length, late: mine.filter(r => r.late).length, critical: mine.filter(r => r.priority === 'critical').length,
       jobs: jobsOn.get(w.id) ?? [],
+      ...(dualSaid(dualOf(w, lines)) ? { dual: dualSaid(dualOf(w, lines)) } : {}),
       ...([lineFacts(w).short, kit.get(w.id)].filter(Boolean).length ? { facts: [lineFacts(w).short, kit.get(w.id)].filter(Boolean).join(' · ') } : {}),
     };
   });

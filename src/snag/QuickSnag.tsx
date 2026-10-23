@@ -35,7 +35,7 @@ import { uid } from '../lib/ids';
 import type { MediaRef, Workspace } from '../types';
 import { SNAG_STATUS_META, dueFromInput, dueToInput, type Snag, type SnagStatus } from './types';
 import { pinSnag, recall, remember } from './quick';
-import { addLineToFactory, liveProductionLines } from '../lib/lines';
+import { addLineToFactory, liveProductionLines, machineOntoLine } from '../lib/lines';
 import { factoryLinesOf, type JobLine } from '../lib/lineRecords';
 
 /* ---- one way in, from anywhere: the button, the FAB, a row on the page ---- */
@@ -181,6 +181,8 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
         kept = { id: uid(), ...fields, status: 'open', raisedAt: t, updatedAt: t };
         await addSnag(kept);
       }
+      /* a machine typed here joins its line's list — every machine is on a line (lib/lines) */
+      if (workspaceId && workspaceId !== NEW_LINE) await machineOntoLine(workspaceId, machine);
       remember('line', workspaceId); remember('project', project);
       if (another) { setWords(''); setMedia([]); setSaved(n => n + 1); } else onClose();
     } finally { setBusy(false); }

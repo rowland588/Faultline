@@ -852,3 +852,22 @@ capacity open under its Tools, as they were listed there already. A program's
 productsText), so every row, picker and paper that says "runs …" says them all
 and an older program's one product is its first — no schema change.
 `line-hub.mjs` proves it.
+
+**23 October — step 0 of the combined line report: everything on a line.**
+Rowland: *"you should be able to do a combined report as long as everything is
+associated to that line"*; *"Can't have a machine without a line"*; *"2a 2b are
+2 lines but they happen to be a dual line ... like a connector."* Read on the
+live database: project "Line 2 A"'s machines, programs and tests reached Line
+2a only through the project's one line (`PIN_PROJECT_MACHINES.sql` pinned
+them; `lib/lines pinToProjectLine` does it before a project's lines change);
+two studies named the pick and place "P160" (`NAME_PICK_AND_PLACE.sql`); "2a
+2b" was a line with nothing saying it was Line 2a and line 2b together
+(`DUAL_LINES.sql`: `workspaces.made_of`). In the app: *Made of* on Edit the
+line, a tick a line (`ui`: `.pl-madeof`), the words under the name
+(`.pl-dual`), on Your factory's rows and the control room's cards
+(`.fac-dual`), on the line report's band and the factory report (`lib/lines
+dualOf, dualSaid, linesSaid`); a machine named on a study, a new study or a
+problem joins its line's list (`machineOntoLine`); a dual line's Machine box
+offers its lines' machines (`lib/lineRecords machinesOf`). The rail, the
+scopes and every address are unchanged. `dual-lines.mjs` proves it.
+
