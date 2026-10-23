@@ -1,12 +1,12 @@
 # The structure of the app — assessment and proposal
 
 **Status: proposed 22 October, validated against the whole product the same
-day (§12–§19), for Rowland to approve. Nothing in it is built.** Stage A of
-Rowland's brief of the same day (*Whole-application structural design and UX
+day (§12–§19), approved 23 October — Rowland: *"I agree do them all"*, every
+decision of §19 as recommended (D10: Home without "what you owe").** Stage A
+of Rowland's brief of 22 October (*Whole-application structural design and UX
 elevation*); the validation answers the second brief (*validate the proposed
-architecture against the full product*). Where the validation found a gap,
-the section it changed says so (*validated*). Stage B — building it — starts only on Rowland's
-approval, in the slices of §10, each gated and live on its own.
+architecture against the full product*). Stage B is built in the slices of
+§10, each gated and live on its own; §20 says what each has done.
 `docs/DIRECTION.md` still comes first, and this changes no record
 (`docs/BLUEPRINT.md` §2): it is the frame, the places and the parts every
 page is built from (§3 of the blueprint).
@@ -815,3 +815,10 @@ B7 calm and density → B8 the floor walk. Each live on its own, each meeting
 | D10 | Home's "what you owe" — left off, or by your name typed on the device | left off |
 | D11 | The two defects fixed first, on their own | yes |
 | D12 | The acceptance standard of §18, Rowland's walk included | yes |
+
+## 20. Built — slice by slice
+
+| | Live | What it did |
+|---|---|---|
+| B0 | (this commit) | The two defects: a row on *Actions* and *Every action* opens its record in the drawer (`ui/RecordDrawer` RECORD_ROUTES), and `actions.mjs` checks the drawer, not the address; a client is offered no Problem inside a project, and the sheet says so and holds Save for a project they may only read (`snag/QuickSnag` useCanTakeProblem). The guards: every address kept (`src/state/__tests__/routes-kept.test.ts`, 89 addresses); the journeys against their baseline (`scripts/journeys.mjs`); paper parity (`scripts/paper-parity.mjs`, report-stress `--repeatable` on live and on the change); `scripts/acceptance/structure.mjs`, the structure's own acceptance, from the client and team passes. |
+

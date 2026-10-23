@@ -103,6 +103,22 @@ not wide" still decides what is built, and "nothing new is built until Rowland
 says go". If the skill or the library cannot be read, say so — never claim the
 process was followed.
 
+## The structure — approved 23 October
+
+**Read `docs/STRUCTURE.md`.** Rowland, 23 October: *"I agree do them all"* —
+the whole app as three scopes (the factory, a line, a project) and a library
+of tools; a rail per scope, one context bar and switcher, one phone bar per
+kind of scope with ＋ opening on a new problem, one page header with Report ▾,
+one tool shell, the tools listed by their kind (a study under the scope's
+*Tools*, a standard under the line's *Products*, a log under *Logs*), the
+catalogue the one list of tools. Built in slices B0–B8 (§10), each live on
+its own and done only by §18 — nothing broken (the routes kept, paper parity,
+the client and team passes), easier as measured (`scripts/journeys.mjs`
+against `docs/structure/journeys-baseline.json`, none longer), coherent in
+every kind of scope, still small at 30 lines and 50 projects, and walked by
+Rowland. §20 says what each slice has done; no slice changes a record, a
+policy or an address.
+
 ## The blueprint comes first
 
 **`docs/BLUEPRINT.md` is the one map of the app** — agreed with Rowland, 13
@@ -328,6 +344,9 @@ node scripts/acceptance/upgrade.mjs  # the upgrade (docs/upgrade-plan.md), AI of
 node scripts/acceptance/project-workspace.mjs  # P2 (docs/PROJECTS.md): a tool opened from a project's rail keeps the project's rail, its address carrying it; its list the project's own, everything on its lines and every line one tap away; a SMED, a problem, a Line Talk (knowing the project) and a Line capacity made there are the project's — no "For a project?" asked — and open in it; outside a project nothing changed, a record on no project opening on none and the project's own in it however reached; the phone
 node scripts/acceptance/actions.mjs  # P3 (docs/PROJECTS.md): a project's Actions on its rail; every row as the records say (Needs you's owed rows and the register's problems for it), the tiles and the closing line; by who, when and where; only the late, the critical and high, nobody yet; a row opening its record; paper for the meeting and one person's own; a 6M project's; the phone; and P4, Every action from the control room — each project's own as its page says, by project, every line's own problem under no project, on paper
 node scripts/acceptance/front-door.mjs  # the front door as it is since 20 October (docs/DIRECTION.md): an empty device — the question first, nothing under way said so, the three kinds of change by name and situation, the eleven tools (Line Talk and Reliability among them) each saying what it is for, Your factory to set up, Home and Projects in the rail, and no words box, library of methods, Methods or switch; a kind tapped opening New job with it picked and only the three offered, the project made and listed under way, its row opening it; the lever tree picked the same way; an old link to Methods or the studio landing on the front door; the phone
+node scripts/acceptance/structure.mjs  # the structure (docs/STRUCTURE.md §18), slice by slice — B0: a problem offered only to somebody who may change the project's work; a client offered none inside it (their rows are never sent), told so on the sheet with Save held, offered it off a project as before
+node scripts/journeys.mjs             # the eight journeys against docs/structure/journeys-baseline.json — every one finishes, none takes more taps than it did (docs/STRUCTURE.md §15); hunts and the top bar printed beside their baseline
+node scripts/report-stress.mjs NEW --repeatable && node scripts/paper-parity.mjs OLD NEW  # every paper says what it said: OLD the same on what is live (a server on origin/main, SMOKE_BASE) — a paper lost or changed fails (docs/STRUCTURE.md §17)
 node scripts/acceptance/video-study.mjs  # a video study (docs/VIDEO.md): footage with known times made in the page and uploaded through New, a file that is not a video refused, read on the device, the reading MEASURED against the truth, reviewed on the footage (accepted, a boundary moved to the playhead, one rejected), the line balance and takt, the report read back, a reload and a reading resumed after one, the footage deleted with what was found kept; and the camera's AI — Name the work from the frames — offered, off until ticked, saying what it sends
 node scripts/acceptance/video-fit.mjs  # footage fit for the study (docs/VIDEO-DESIGN.md): the study chosen from the words and how to film it before anything is filmed (where the phone goes and never, how long from the cycle, the people), a changeover not measured from footage yet with SMED meanwhile; footage whose camera shook for twelve of its thirty-two seconds said unfit as it came in, the phone's place said; read — the shake found where it was, every event inside it flagged and none outside, each end's ±, when work starts and stops not measurable from it, the findings counting the flags and never calling a gap waiting; said in the hand and refused; on paper; the phone
 node scripts/acceptance/video-check.mjs  # can this phone film a long study? (docs/VIDEO-FEASIBILITY.md): from Video studies, what the phone offers as the module says, the test on Chromium's fake camera — the picture in thirds, the rate, the camera's word, the app out of sight said, a clip at 30 s played on its own — stopped after a minute: the answer and every line as lib/video/phoneCheck says them from the results the page copies, the last clip, the minute's row, nothing kept on the phone, Run it again, the phone

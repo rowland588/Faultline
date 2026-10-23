@@ -30,6 +30,7 @@ import { offerUndo } from '../ui/Undo';
 import { addSnag, patchSnag, listWorkspaces, allPaceLines } from '../db';
 import { useMachinesOf } from '../lib/useLineRecords';
 import { useProjects } from '../lib/useProjects';
+import { useAccess } from '../cloud/access';
 import { uid } from '../lib/ids';
 import type { MediaRef, Workspace } from '../types';
 import { SNAG_STATUS_META, dueFromInput, dueToInput, type Snag, type SnagStatus } from './types';
@@ -42,7 +43,18 @@ type Opener = (s?: Snag) => void;
 let opener: Opener | null = null;
 export const openQuickSnag: Opener = s => opener?.(s);
 
-export function QuickSnagButton() {
+/** MAY THIS PERSON TAKE A PROBLEM HERE? Inside a project only if they may
+ *  change its work (lib/access can.edit): a client's rows are never sent
+ *  (cloud/sync), so a problem a client saved stayed on their device alone,
+ *  silently (docs/STRUCTURE.md §17, found 22 October). Off a project the
+ *  database decides, as before. */
+export function useCanTakeProblem(projectId?: string): boolean {
+  const can = useAccess(projectId ?? '');
+  return !projectId || can.edit;
+}
+
+export function QuickSnagButton({ projectId }: { projectId?: string }) {
+  if (!useCanTakeProblem(projectId)) return null;
   return (
     <button type="button" className="btn btn-primary qs-top" onClick={() => openQuickSnag()}>
       <Icon name="camera" size="1.05em" />Problem
@@ -53,15 +65,16 @@ export function QuickSnagButton() {
 /** Mounted once, in the frame. Starts on the line and job you are in. */
 export function QuickSnagHost({ wsId, projectId }: { wsId?: string; projectId?: string }) {
   const [open, setOpen] = useState<{ snag?: Snag; n: number } | null>(null);
+  const may = useCanTakeProblem(projectId);
   useEffect(() => {
     opener = s => setOpen(o => ({ snag: s, n: (o?.n ?? 0) + 1 }));
     return () => { opener = null; };
   }, []);
   return (
     <>
-      <button type="button" className="qs-fab" onClick={() => openQuickSnag()} aria-label="Problem — spot an issue">
+      {may && <button type="button" className="qs-fab" onClick={() => openQuickSnag()} aria-label="Problem — spot an issue">
         <Icon name="camera" size={22} /><span>Problem</span>
-      </button>
+      </button>}
       {open && <QuickSnagSheet key={open.n} snag={open.snag} wsId={wsId} projectId={projectId} onClose={() => setOpen(null)} />}
     </>
   );
@@ -138,7 +151,9 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
   const lineMachines = useMachinesOf(line === NEW_LINE ? undefined : line, project || undefined);
 
   const ws = lines?.find(w => w.id === line);
-  const ready = (words.trim() || media.length > 0) && line !== ASK && (line !== NEW_LINE || newLine.trim()) && !busy;
+  /* a project this person may only read takes no problem from them: said, and Save held */
+  const mayForProject = useCanTakeProblem(project || undefined);
+  const ready = mayForProject && (words.trim() || media.length > 0) && line !== ASK && (line !== NEW_LINE || newLine.trim()) && !busy;
 
   const save = async (another: boolean) => {
     if (!ready) return;
@@ -263,6 +278,7 @@ function QuickSnagSheet({ snag, wsId, projectId, onClose }: {
           <label className="cw-f cw-f-wide"><span>LATEST</span>
             <input value={update} maxLength={200} placeholder="What is happening with it" onChange={e => setUpdate(e.target.value)} /></label>
         </>}
+        {!mayForProject && <p className="sub qs-ro" role="status">You can read {projects.find(p => p.id === project)?.name ?? 'this project'}; its problems are taken by its team.</p>}
         {saved > 0 && <p className="sub" role="status">Saved {saved} on {ws?.name ?? 'this line'} — take the next.</p>}
         <div className="ax-foot qs-foot">
           {snag

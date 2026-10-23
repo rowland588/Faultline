@@ -20,7 +20,7 @@
  * Needs a dev server on 5191 (scripts/smoke.mjs's), Chromium, and poppler's
  * pdftotext. Prints a table; exits 1 if any page fails.
  *
- *     node scripts/report-stress.mjs [outDir] [--fuzz N | --seeds a,b]
+ *     node scripts/report-stress.mjs [outDir] [--fuzz N | --seeds a,b] [--repeatable]
  */
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -29,6 +29,7 @@ const { chromium } = pkg;
 
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const OUT = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : '/tmp/report-stress';
+const REPEATABLE = process.argv.includes('--repeatable');
 mkdirSync(OUT, { recursive: true });
 
 const SESSION = { access_token: 'smoke', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 31536000, refresh_token: 'smoke',
@@ -41,6 +42,13 @@ async function device() {
   const ctx = await browser.newContext({ serviceWorkers: 'block', viewport: { width: 1366, height: 900 }, locale: 'en-GB', acceptDownloads: true });
   await ctx.route('**://*.supabase.co/**', r => r.abort());
   await ctx.addInitScript(([k, s]) => { try { localStorage.setItem(k, JSON.stringify(s)); } catch { /* fine */ } }, ['sb-testproj-auth-token', SESSION]);
+  /* --repeatable: the same ids every run (scripts/paper-parity.mjs) — a record's id breaks ties when
+     two rows sort equal, and fresh random ids swapped them from run to run on the same build */
+  if (REPEATABLE) await ctx.addInitScript(() => {
+    let n = 0;
+    const hex = (v, w) => v.toString(16).padStart(w, '0');
+    crypto.randomUUID = () => { n++; return `${hex(n, 8)}-0000-4000-8000-${hex(n * 2654435761 % 2 ** 32, 12)}`; };
+  });
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(e.message.split('\n')[0]));
