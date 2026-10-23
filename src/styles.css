@@ -14224,3 +14224,49 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .lr-find.is-a { color: var(--st-a); font-weight: 600; }
 .lr-said { margin: 8px 0 0; }
 @media (max-width: 719px) { .lr-where-row { grid-template-columns: 1fr; gap: 2px; } }
+
+/* THE JOURNEY (docs/JOURNEY.md, J2) — the range, the tick list of tools, the days in order, the commentary */
+.jn-range { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.jn-dates { display: flex; gap: 12px; flex-wrap: wrap; }
+.jn-dates .cw-f { min-width: 160px; }
+.jn-range-l { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0; }
+.jn-range-t { font-size: 15px; }
+.jn-tiles { margin: 0 0 12px; }
+.jn-tools { margin: 0 0 18px; }
+.jn-tools .qsl-gh, .jn-day .qsl-gh { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.jn-every { display: none; margin-left: auto; }
+.jn-tool-list { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.jn-tool { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 6px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
+.jn-tool.is-off { color: var(--st-n-ink); }
+.jn-tool.is-on { border-color: var(--brand); }
+.jn-tool.is-done { background: var(--surface-2); }
+.jn-tool-tick { display: flex; align-items: center; gap: 8px; min-width: 150px; }
+.jn-tool-plan { display: flex; align-items: center; gap: 8px; flex: 1; flex-wrap: wrap; }
+.jn-tool-what { flex: 1; min-width: 200px; }
+.jn-tool-says { flex: 1; }
+.jn-tool-used { font-size: 12px; color: var(--brand); font-weight: 600; white-space: nowrap; }
+.jn-day { margin: 0 0 16px; }
+.jn-day.is-today h2 { color: var(--brand); }
+.jn-today { font-weight: 400; color: var(--st-n-ink); }
+.jn-plan { margin-left: auto; }
+.jn-li.is-done .lt-row { border-left: 3px solid var(--st-g); }
+.jn-li.is-bad .lt-row, .jn-li.is-slipped .lt-row { border-left: 3px solid var(--st-r); }
+.jn-li.is-problem .lt-row { border-left: 3px solid var(--st-a); }
+.jn-li.is-booked .lt-row { border-left: 3px solid var(--st-w); }
+.jn-li.is-found .lt-row, .jn-li.is-asking .lt-row { border-left: 3px solid var(--st-n); }
+.jn-notes { margin: 8px 0 0 4px; display: flex; flex-direction: column; gap: 6px; }
+.jn-note { border-left: 3px solid var(--brand); padding: 4px 10px; background: var(--surface); border-radius: var(--radius-sm); }
+.jn-note-k { font-size: 10px; font-weight: 700; letter-spacing: .06em; color: var(--brand); }
+.jn-note-t { margin: 2px 0 0; white-space: pre-wrap; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.jn-note-ed { font-size: 12px; }
+.jn-note-edit { display: flex; flex-direction: column; gap: 6px; }
+.jn-note-acts { display: flex; gap: 8px; justify-content: flex-end; }
+.jn-note-add { align-self: flex-start; }
+.jn-skipped { margin: -6px 0 12px; }
+.jn-week { margin: 4px 0 10px; }
+@media (max-width: 900px) {
+  .jn-every { display: inline; }
+  .jn-tools:not(.is-all) .jn-tool.is-off { display: none; }
+  .jn-tool-tick { min-width: 0; }
+  .jn-tool-what { min-width: 0; width: 100%; }
+}

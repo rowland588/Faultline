@@ -142,6 +142,7 @@ export function hereOf(route: Route): string {
     case 'fixes': return 'fixes';
     case 'materials': return 'materials';
     case 'actions': return 'actions';
+    case 'journey': return 'journey';
     case 'allActions': return 'allactions';
     case 'day': return 'day';
     case 'notes': return 'notes';
@@ -399,6 +400,8 @@ export function projectGroups(o: {
     { lines: [upLine()] },
     { label: o.name, lines: [job, ...own] },
     { lines: [
+      /* the journey — what we did and what we are doing next, between two dates (docs/JOURNEY.md) */
+      plain('journey', 'Journey', `${p}/journey`, o.here, 'time'),
       plain('actions', 'Actions', `${p}/actions`, o.here, 'list'),
       ...(o.model === 'commissioning' ? [counted('fixes', 'Problems', `${p}/fixes`, o.here, o.counts, ['fixes'], 'flag')] : [plain('problems', 'Problems', `/snags?project=${encodeURIComponent(o.projectId)}`, o.here, 'flag')]),
       plain('tools', 'Tools', `${p}/tools`, o.here, 'chart'),

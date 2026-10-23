@@ -22,6 +22,7 @@
  * reads a clock except through `today`.
  */
 import { owns } from './format';
+import { toolLabel } from '../catalogue/registry';
 import type { Project } from '../types';
 import type { Asset, Test, TestItem } from './testing';
 import { assetStateOf, gateOf, isOverdue, isSettled, isTestFace, live, plannedEnd, titleOnMachine } from './testing';
@@ -446,8 +447,9 @@ export function riskItems(j: Pick<JobInput, 'project' | 'tests' | 'items' | 'ass
 export function pacedItems(j: PacedInput, today: string): JobItem[] {
   const p = j.project;
   const base = { jobId: p.id, job: p.name, color: p.color };
+  /* a plan to use a tool (docs/JOURNEY.md) wears the tool's word — "SMED: time the changeover" */
   return j.steps.filter(s => s.state !== 'done').map(s => ({
-    ...base, kind: 'action' as const, id: s.id, what: (s.what || '').trim() || 'An action',
+    ...base, kind: 'action' as const, id: s.id, what: `${s.tool ? `${toolLabel(s.tool)}: ` : ''}${(s.what || '').trim() || 'An action'}`,
     who: s.who ?? '', on: s.due, late: stepIsLate(s, today),
   }));
 }

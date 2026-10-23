@@ -26,6 +26,7 @@ import { niceDay, todayISO } from '../lib/weeks';
 import type { MediaRef } from '../types';
 import { Icon } from './Icon';
 import { FixStudies } from './StudyLinks';
+import { APP_TOOLS } from '../catalogue/registry';
 
 /** What the sheet edits — a step, or the start of a new one. */
 export type Editing = { step: PaceTodoRow; isNew: boolean };
@@ -152,6 +153,12 @@ export function ActionSheet({ editing, lines, impact, onClose }: {
             <label className="cw-f"><span>WHEN, IN WORDS <i className="cw-f-opt">optional</i></span>
               <input value={s.when} placeholder="e.g. w/c 22nd" onChange={e => set({ when: e.target.value })} /></label>
           </div>
+          {/* A PLAN TO USE A TOOL (docs/JOURNEY.md): which tool, so the journey and the Actions page say it */}
+          <label className="cw-f cw-f-wide"><span>THE TOOL IT PLANS TO USE <i className="cw-f-opt">optional</i></span>
+            <select value={s.tool ?? ''} aria-label="The tool it plans to use" onChange={e => set({ tool: e.target.value || undefined })}>
+              <option value="">None — an action of its own</option>
+              {APP_TOOLS.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
+            </select></label>
           <label className="cw-f cw-f-wide"><span>WHAT IT SHOULD CHANGE</span>
             <input value={s.expect ?? ''} placeholder="e.g. changeover 48 → 30 min"
               onChange={e => set({ expect: e.target.value })} /></label>

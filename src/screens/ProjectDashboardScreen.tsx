@@ -22,6 +22,7 @@
  * on Board, the charts on Numbers, "Did it work?" on Wins, line balance on
  * Lines. The lenses (?view=) are pages under the project, as a gate is. */
 import { useEffect, useState, type ReactNode } from 'react';
+import { ThisWeekLine } from './JourneyScreen';
 import { Journey } from '../ui/Journey';
 import { openFold } from '../ui/Fold';
 import { live } from '../lib/testing';
@@ -978,6 +979,8 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
         )}
       </header>
       {(lens === 'overview' || model === 'commissioning') && <AccessNote can={can} owner={project.lead} />}
+      {/* THIS WEEK AND NEXT (docs/JOURNEY.md): done · still to do · planned, read by lib/journey, opening the journey on that range */}
+      {lens === 'overview' && <ThisWeekLine projectId={projectId} project={project} />}
 
 
       {/* THE OVERVIEW OF A COMMISSIONING JOB IS THE COMMISSIONING JOB.

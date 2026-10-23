@@ -80,6 +80,8 @@ export const PAGES = (sd, cap) => [
     /* the lean page (17 October, slice 4; lib/problemsLean): its chips are its tiles, each a filter; the closing line names the worst open problem */
     { what: 'the closing line', sel: '.ln-close' }] },
   { name: 'A stage-gate project — its front page', path: `#/project/${sd.projectId}`, must: [
+    /* this week and next (23 October, docs/JOURNEY.md): done · still to do · planned, opening the journey */
+    { what: 'This week and next — opening the journey', sel: '.jn-week button', text: /^Open the journey/ },
     /* B3: the status report and the client report in the header's Report ▾ (the verdict's link moved here) */
     { what: 'the page header — Report ▾ with the status report and the client report', sel: '.part-head .part-menu-b', text: /^Report/ },
     { what: 'the verdict', sel: '.vd' }, { what: 'Needs you', sel: 'h2, h3', text: /Needs you/ }, { what: 'where each machine is', sel: '.fp-grid' },
@@ -162,6 +164,8 @@ export const PAGES = (sd, cap) => [
     { what: 'the page header — Download', sel: '.part-head .btn-primary', text: /^Download/ },
     { what: 'its two papers to choose', sel: '.cr-which .chip', n: 2 }] },
   { name: 'A 6M project — its front page', path: `#/project/${sd.pacedProjectId}`, must: [
+    /* this week and next (23 October, docs/JOURNEY.md): done · still to do · planned, opening the journey */
+    { what: 'This week and next — opening the journey', sel: '.jn-week button', text: /^Open the journey/ },
     { what: 'the page header — Report ▾ with the status report and the client report', sel: '.part-head .part-menu-b', text: /^Report/ },
     { what: 'the verdict', sel: '.vd' }, { what: 'the fishbone, drawn', sel: 'svg.fb-svg' },
     /* the lean page (17 October, docs/LEAN-PAGE.md slice 4; lib/sixmLean): the 6M report's five tiles on the band — the desk's, as the stage gate's */
@@ -257,6 +261,17 @@ export const PAGES = (sd, cap) => [
     { what: 'the closing line', sel: '.ln-close' }] },
   { name: 'Actions — a 6M project', path: `#/project/${sd.pacedProjectId}/actions`, must: [
     { what: 'the tiles', sel: '.act-tiles .ln-tile', n: 6 }, { what: 'its actions', sel: '.act-li' }, { what: 'the closing line', sel: '.ln-close' }] },
+  /* THE JOURNEY (23 October, docs/JOURNEY.md J2): the project between two dates, day by day */
+  { name: 'Journey — a stage-gate project', path: `#/project/${sd.projectId}/journey`, must: [
+    { what: 'the page header — Plan something the primary', sel: '.jn .part-head .btn-primary', text: /^Plan something$/ },
+    { what: 'the range — its five picks', sel: '[aria-label="Range"] .chip', n: 5 }, { what: 'the range said', sel: '.jn-range-t' },
+    { what: 'the four tiles — done, still to do, late, planned', sel: '.jn-tiles .ln-tile', n: 4 },
+    { what: 'the tools we will use — a tick a tool', sel: '.jn-tools .jn-tool', n: 11 },
+    { what: 'the days in order', sel: '.jn-day' }, { what: 'a day’s lines, each a record’s own', sel: '.jn-day .jn-li' },
+    { what: 'today marked', sel: '.jn-day.is-today' }, { what: 'the closing line', sel: '.ln-close' }] },
+  { name: 'Journey — a 6M project', path: `#/project/${sd.pacedProjectId}/journey`, must: [
+    { what: 'the range', sel: '[aria-label="Range"] .chip', n: 5 }, { what: 'the four tiles', sel: '.jn-tiles .ln-tile', n: 4 },
+    { what: 'the tools we will use', sel: '.jn-tools .jn-tool', n: 11 }, { what: 'the days', sel: '.jn-day .jn-li' }, { what: 'the closing line', sel: '.ln-close' }] },
   /* the parts every page is built from (docs/STRUCTURE.md §7, B1, 23 October) — in development, photographed so a change to a part is seen before it ships */
   { name: 'The parts', path: '#/parts', must: [
     { what: 'the page header — one title, its state', sel: '.part-head h1 .part-tag' },

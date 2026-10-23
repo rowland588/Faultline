@@ -19,7 +19,7 @@
  *
  * Nothing is written by AI: every line is a record's own words. */
 import type { PaceTodoRow } from '../db/rows';
-import { toolByKey } from '../catalogue/registry';
+import { toolByKey, toolLabel } from '../catalogue/registry';
 import { dayOf, type DayInput, type DayLine, type DayTone } from './day';
 import type { LeanTile, LeanTone } from './lean';
 import { dayOfNote } from './noteScope';
@@ -225,7 +225,7 @@ const short = (iso: string): string => niceDay(iso);
 const who = (w?: string) => (w?.trim() ? ` (${w.trim()})` : '');
 
 /** The tool a plan names, in the catalogue's word — "Line capacity". */
-export const toolWord = (key: string): string => toolByKey(key)?.label ?? key;
+export const toolWord = toolLabel;
 
 /** A plan to use a tool, or any other action, by the day it was done or is due. */
 function stepLines(steps: readonly PaceTodoRow[], date: string, today: string): JourneyLine[] {
