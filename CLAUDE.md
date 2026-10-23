@@ -51,7 +51,7 @@ stability in the app ... make a design that ensures it all works."* After
 J3 (`docs/JOURNEY.md`) and before anything new: `docs/STEADY.md` — one
 reader per scope, one number everywhere (a gate check), one place per thing
 in the code, one answer per project kind — in four slices that change
-nothing a person sees. S1 is built (§5 of the doc: what it found).
+nothing a person sees. S1 is built (§5 of the doc: what it found); S2 is built (§6: `lib/projectRead` the one reader, `lib/projectKind` the one answer per kind — read a project through them, never twice).
 
 ## The project is the workspace — 21 October
 

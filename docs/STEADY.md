@@ -68,7 +68,7 @@ It is done after J3 (`docs/JOURNEY.md`) and before anything new is built.
 | Slice | What | Proof it changed nothing |
 |---|---|---|
 | S1 — **built 23 October** (§5) | the *one number* check (`scripts/acceptance/one-number.mjs`): on the seeded stage-gate and 6M projects, late · open · done · critical read from the front page's band, Needs you, Actions' tiles, the Journey's tiles, the status report, the client report and the control room's row — all equal | it passes on today's code, or it finds a real disagreement, which is fixed first |
-| S2 | each project kind as one module (`project/stagegate`, `project/sixm`, `project/tree`): what it is made of, its reader, its owed and done rows, its papers; `useJobInputs` reads them; the 37 branches replaced by one ask | S1, every acceptance script, paper parity |
+| S2 — **built 23 October** (§6) | each project kind as one module (`project/stagegate`, `project/sixm`, `project/tree`): what it is made of, its reader, its owed and done rows, its papers; `useJobInputs` reads them; the 37 branches replaced by one ask | S1, every acceptance script, paper parity |
 | S3 | tools into their folders (one at a time, newest first), then the scopes; the catalogue entry names the folder | paper parity, the page inventory, `journeys.mjs` against its baseline, the full gate once at the end |
 | S4 | the four biggest files split along the seams they already have (a paper's sections; a page's panels; capacity's sums apart from its words) | the same |
 
@@ -121,4 +121,27 @@ project's countermeasures), and Actions' open is everything owed, said of
 what; the control room's row owes what Actions owes; *This week and next*
 says the same late. S2 folds the extra owed rows into the one reader, so the
 band can count them too.
+
+## 6. S2 — one reader, one answer per kind, 23 October
+
+- **`lib/projectRead`** is the one reader. `projectRead(project, inputs,
+  own)` takes the method's records as the control room reads them
+  (`lib/useJobInputs`) and what every kind has — its own actions, the
+  register's problems taken for it, its notes, its studies, its lines — and
+  returns the kind, everything owed and done (`owedAndDone`, one rule for a
+  stage gate and for a 6M or tree project), the journey's input
+  (`journeyInputOf`) and the week line. `useProjectRead(project)` is the one
+  hook. `useJourney` and `useProjectActions` read from it; the control
+  room's Actions reads every project by the same rule. The pure parts are
+  tested (`projectRead.test.ts`).
+- **`lib/projectKind`** is the one answer per kind: `kindOf` (stage gate ·
+  6M · lever tree), and for each its word, its own work (what "still to do"
+  counts), its report page and its papers, the journey report on every one.
+  The project's Report ▾ and the Reports list read their papers from it.
+- **What did not move yet.** The screens still ask the model directly in
+  the places that draw a kind's own pages (the set-up screen, the day, the
+  front page's method-specific folds, Quick problems). S3 moves those pages
+  into their kind's folder; the ask goes with them. The band's "still to do"
+  stays the plan's own rows (S1's rule); the reader carries the whole owed
+  list beside it for the day it is wanted on the band.
 
