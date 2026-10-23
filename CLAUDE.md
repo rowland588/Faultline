@@ -395,7 +395,31 @@ not.
 
 ## The gate
 
-Run all of it before merging. It is what CI runs, plus the two things CI cannot:
+**Two cycles since 23 October** (Rowland: "64 min is too long ... shorten the
+cycle"), both run by `scripts/gate.sh quick|full CHECKOUT PORT LIVE_CHECKOUT
+LIVE_PORT OUT` from a checkout whose dev server is up (the live checkout's at
+`origin/main`, for the paper comparison), every step kept running after a
+failure, `summary.txt` the one answer:
+
+- **Quick — every change, about 20 minutes.** Everything below except the
+  forty random projects and the two-device sync; the browser checks four at
+  a time. It is the definition of done for a change to a screen, a tool, a
+  paper's words or a document.
+- **Full — about 65 minutes.** The quick gate plus the forty random projects
+  (every fact reconciled) and, last and alone, the two-device sync. Run
+  **before** anything that touches `src/cloud/`, the mappers or the schema,
+  `src/lib/report/` (the engine every paper is poured by), the seeds
+  (`src/dev/`), or `scripts/` the gate itself runs — and **once a day on
+  `main` regardless**, so what the quick gate gives up (a layout bug on odd
+  data; a sync race — both found only there, 11 October and gate 14) is
+  caught within the day, never silently. A full gate red on `main` is the
+  first job of the next session.
+
+Never edit the checkout while its gate runs: the dev server reloads under
+the tests and the failures that follow are not the change's (gate 37, 23
+October — five red, all mine).
+
+The whole of it is what CI runs, plus the two things CI cannot:
 
 ```
 npx tsc --noEmit
