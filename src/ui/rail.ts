@@ -331,8 +331,8 @@ export function factoryGroups(here: string, projects = 0): RailGroup[] {
 export const lineHref = (wsId: string, view?: string): string => `/lines/${encodeURIComponent(wsId)}${view ? `?view=${view}` : ''}`;
 
 /** THE LINE'S PAGES — the line as a place, no project needed. Its problems and its
- *  programs are the factory's lists narrowed to it; its products are its standards,
- *  product by product; its tools the studies and documents used on it; its log the
+ *  programs are the factory's lists narrowed to it; its tools the studies, standards
+ *  and documents used on it; its log the
  *  stops timed (B6 folds the line study in). */
 export function lineGroups(wsId: string, here: string, counts: { problems?: Count; programs?: Count; projects?: number } = {}): RailGroup[] {
   return [
@@ -341,7 +341,6 @@ export function lineGroups(wsId: string, here: string, counts: { problems?: Coun
       plain('overview', 'Overview', lineHref(wsId), here, 'home'),
       counted('problems', 'Problems', `/snags?line=${encodeURIComponent(wsId)}`, here, { problems: counts.problems }, ['problems'], 'flag'),
       counted('programs', 'Programs', `/programs?line=${encodeURIComponent(wsId)}`, here, { programs: counts.programs }, ['programs'], 'machine'),
-      plain('products', 'Products', lineHref(wsId, 'products'), here, 'list'),
       plain('tools', 'Tools', lineHref(wsId, 'tools'), here, 'chart'),
       plain('logs', 'Logs', `/w/${encodeURIComponent(wsId)}/capture`, here, 'time'),
       { ...plain('projects', 'Projects', lineHref(wsId, 'projects'), here, 'board'), n: counts.projects || undefined },
@@ -421,11 +420,10 @@ export const plusLine = (): RailLine => ({ key: 'plus', label: 'Problem', on: fa
 export function hereIn(route: Route, scope: 'home' | 'factory' | 'line' | 'project'): string {
   const tool = ['lineTools', 'studies', 'study', 'videos', 'videoStudy', 'talks', 'talk'].includes(route.name);
   if (scope === 'line') {
-    if (route.name === 'lineHome') { const v = route.query.get('view'); return v && ['products', 'tools', 'projects', 'setup'].includes(v) ? v : 'overview'; }
+    if (route.name === 'lineHome') { const v = route.query.get('view'); return v && ['tools', 'projects', 'setup'].includes(v) ? v : 'overview'; }
     if (route.name === 'quickSnags') return 'problems';
     if (route.name === 'linePrograms') return 'programs';
-    if (route.name === 'lineTools' || route.name === 'lineStandards') return 'products';
-    if (tool) return 'tools';
+    if (tool || route.name === 'lineStandards') return 'tools';
     if (route.wsId) return 'logs';
     return '';
   }

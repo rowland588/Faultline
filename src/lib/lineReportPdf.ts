@@ -1,9 +1,7 @@
 /* A LINE ON PAPER — the line report, one A4 page (docs/BLUEPRINT.md §3 and
  * Stage 3: "Paper: the line report, one page"). The lean page
  * (docs/LEAN-PAGE.md): the band, the tiles and the closing line the line's
- * page says (lib/lineLean); then the line's products, ready or not (lib/
- * lineProducts — the grid its page draws), the problems open on it (late
- * first, in red), its machines in flow order, the programs still to prove,
+ * page says (lib/lineLean); then the problems open on it (late first, in red), its machines in flow order, the programs still to prove,
  * what each tool's latest found, and the jobs on it with their verdicts.
  *
  * One page: every list is cut to what fits and says how many more and where
@@ -11,14 +9,14 @@
  * one sheet. Laid out by the report engine (src/lib/report/). */
 import type { jsPDF } from 'jspdf';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
-import { SIZE, font, gap, rows, text, wrap } from './report/blocks';
+import { font, gap, rows, text, wrap } from './report/blocks';
 import { leanBand, leanClosing, leanHead, leanTiles } from './report/lean';
 import { bandPage, type LeanTone } from './lean';
 import { lineClosing, lineTiles, type LineReading } from './lineLean';
-import { READY_ASKS, READY_KEYS, type ReadyTone } from './lineProducts';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6';
+type ReadyTone = 'g' | 'a' | 'r' | 'w' | 'n';
 const TONE: Record<ReadyTone, string> = { g: '#15803d', a: '#b45309', r: '#c4281c', w: '#6d28d9', n: '#6b7588' };
 
 export interface LineReportRow { what: string; meta: string; right: string; tone: ReadyTone }
@@ -39,7 +37,7 @@ export interface LineReport {
 }
 
 const toneOf = (t?: string): ReadyTone => (t === 'r' || t === 'a' || t === 'g' || t === 'w' ? t : 'n');
-const CAP = { problems: 6, programs: 5, products: 8, tools: 9 };
+const CAP = { problems: 6, programs: 5, tools: 9 };
 
 /** A list of rows — what, its meta under it, a word on the right in its colour. */
 function listRows(list: LineReportRow[], cap: number, more: (n: number) => string): Block[] {
@@ -70,39 +68,6 @@ function blocksOf(r: LineReport, d: Density): Block[] {
   const c = lineClosing(r.reading);
   out.push(leanBand({ ...page, verdict: { text: c.tone === 'r' ? 'Needs you' : c.tone === 'a' ? 'Gaps to close' : 'In hand', tone: c.tone } }, r.printed));
   out.push(leanTiles(lineTiles(r.reading)));
-
-  /* ITS PRODUCTS, READY OR NOT — the grid its page draws: a row a product,
-     the four answers each in its colour and its word. */
-  const prods = r.reading.products.rows;
-  out.push(leanHead('Its products', prods.length ? `${r.reading.products.ready} of ${prods.length} ready` : undefined));
-  if (!prods.length) out.push(text({ text: 'No product on this line yet — a product comes on when a program runs it or a line standard is set for it.', size: 8.5, colour: MUTED, after: gap(d, 'm') }));
-  else {
-    const nameW = 120;
-    const colW = (f: Frame) => (f.w - nameW) / READY_KEYS.length;
-    out.push(rows({
-      header: {
-        h: () => 14,
-        draw: (f: Frame, top: number) => {
-          font(f.doc, SIZE.tiny, 'bold', MUTED);
-          f.doc.text('PRODUCT', f.x, top + 9);
-          READY_KEYS.forEach((k, i) => f.doc.text(READY_ASKS[k].toUpperCase(), f.x + nameW + i * colW(f), top + 9));
-        },
-      },
-      rows: prods.slice(0, CAP.products).map(p => ({
-        h: (f: Frame) => 6 + Math.max(1, ...p.cells.map(cl => Math.min(2, wrap(f.doc, cl.word, colW(f) - 6, 8).length))) * 10 + 2,
-        draw: (f: Frame, top: number) => {
-          f.doc.setDrawColor(LINE); f.doc.setLineWidth(0.5); f.doc.line(f.x, top, f.x + f.w, top);
-          font(f.doc, 9, 'bold', INK2); f.doc.text(wrap(f.doc, p.name, nameW - 8, 9, 'bold').slice(0, 2), f.x, top + 11);
-          p.cells.forEach((cl, i) => {
-            font(f.doc, 8, cl.tone === 'g' ? 'normal' : 'bold', TONE[cl.tone]);
-            f.doc.text(wrap(f.doc, cl.word, colW(f) - 6, 8).slice(0, 2), f.x + nameW + i * colW(f), top + 11);
-          });
-        },
-      })),
-      after: prods.length > CAP.products ? 's' : 'm',
-    }));
-    if (prods.length > CAP.products) out.push(text({ text: `and ${prods.length - CAP.products} more — the line's page has them all`, size: 8, colour: MUTED, after: 8 }));
-  }
 
   /* THE PROBLEMS OPEN ON IT — priority order, the late in red. */
   out.push(leanHead('Problems open', r.problems.length ? `${r.problems.length} open` : undefined));

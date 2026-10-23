@@ -21,7 +21,7 @@
 import type { ID, Workspace } from '../types';
 import type { Asset, Test } from './testing';
 import type { Program } from './programs';
-import { inOrder, isProved, standingOf, todayISO } from './programs';
+import { inOrder, productsOf, isProved, standingOf, todayISO } from './programs';
 import { programsReading, proofOf, readingOf, type ProgramLine, type ProgramsReading } from './programsReport';
 import type { ToolStudy } from './study';
 
@@ -154,7 +154,7 @@ export const lineMachineId = (wsId: ID, name: string): string =>
 export function productsOnLine(programs: readonly Pick<Program, 'runs'>[], standards: readonly { product?: string; deletedAt?: number }[]): string[] {
   const out: string[] = [];
   const seen = new Set<string>();
-  for (const name of [...programs.map(p => p.runs ?? ''), ...standards.filter(s => !s.deletedAt).map(s => s.product ?? '')]) {
+  for (const name of [...programs.flatMap(p => productsOf(p.runs)), ...standards.filter(s => !s.deletedAt).map(s => s.product ?? '')]) {
     const k = machineKey(name);
     if (!k || seen.has(k)) continue;
     seen.add(k);

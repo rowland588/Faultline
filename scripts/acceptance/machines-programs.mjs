@@ -171,7 +171,7 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   await form.getByLabel("The program's name or number").fill('LB-2 Express labels');
   await form.getByLabel('Which machine it is on').selectOption({ label: 'A machine not listed…' });
   await form.getByLabel("The machine's name").fill('Labeller');
-  await form.getByLabel('What it runs').fill('Tesco Express 1.25 kg');
+  await form.getByLabel(/^(A|Another) product it runs$/).fill('Tesco Express 1.25 kg');
   await form.getByLabel('Commentary').fill('Herma to send the label file');
   await form.getByLabel('Whose it is').fill('Herma');
   await form.getByRole('button', { name: 'Plan it' }).click(); await page.waitForTimeout(1500);

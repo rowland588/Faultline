@@ -10,7 +10,7 @@
  * so the control room, the rail and the line's page never disagree on it.
  * The demo line is a showcase, not a line anybody works on. */
 import type { Workspace } from '../types';
-import { projectWalkIds } from '../db/pace';
+import { allPaceLines, projectWalkIds, putPaceLine } from '../db/pace';
 import { createWorkspace, listWorkspaces, updateWorkspace } from '../db/workspaces';
 import { perHourWords } from './lineLoss';
 
@@ -110,6 +110,11 @@ export async function addLineToFactory(name: string, lineType?: string, taxonomy
   const w = await createWorkspace(name, taxonomyId);
   const placed = { ...w, lineType: lineType?.trim() || undefined, floorOrder: order.length };
   await updateWorkspace(placed);
+  /* A PROJECT'S LINE OF THE SAME NAME, MADE BEFORE IT, JOINS IT (Rowland, 23 October: "i had programs in there
+     today on line 2a now nothing" — his project's "Line 2A" was made before the factory's "Line 2a" and the two
+     were never joined, so its programs and machines read on no line; supabase/LINK_PROJECT_LINES.sql joined it) */
+  const same = (x: string) => x.trim().replace(/\s+/g, ' ').toLowerCase();
+  for (const l of await allPaceLines()) if (!l.workspaceId && l.name && same(l.name) === same(name)) await putPaceLine({ ...l, workspaceId: placed.id });
   return placed;
 }
 

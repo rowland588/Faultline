@@ -63,8 +63,8 @@ HOME        What you need to get done — the question, what is under way, the k
 FACTORY     Every line and project at once: Control room · Actions · Problems ·
    │        Projects · Lines · Programs · Tools, and Reports. (The control room and
    │        Your factory below.)
-LINE        The line as a place, no project needed: Overview · Problems · Machines &
-   │        programs · Products · Tools · Logs · Projects, then Reports · Set up.
+LINE        The line as a place, no project needed: Overview · Problems · Programs
+   │        · Tools · Logs · Projects, then Reports · Set up (Products off, 23 Oct).
 PROJECT     A change as a workspace: Overview, its kind's own pages (lib/planModel —
             Plan and its machines; Fishbone, Board, Lines; Tree), then Actions ·
             Problems · Tools, and Notes · Reports · Details.
@@ -160,7 +160,7 @@ where they are reached from changed:
   room go into it in one tap, at a desk as on a phone (the row's chevron
   opens it in place).
 - **A line** — its page (`#/lines/:ws`) is its Overview, and narrowed by
-  `?view=` to its Products, Tools (with *New ▾*), Projects and Set up; its
+  `?view=` to its Tools (with *New ▾*), Projects and Set up; its
   Problems and Machines & programs are the factory's lists narrowed to it
   (`?line=`); Logs is the stops timed, its study's four views (Capture ·
   Analyse · Evidence · Meeting) under it — tabs on the page on a phone —
@@ -916,6 +916,12 @@ already follow):
 - Paper: the line report (one page); the control room report carries the
   factory.
 
+**Taken off, 23 October** — the products, ready or not, described below (the
+tab, the grid, the tile, the counts and the line report's grid). Rowland: "You've
+invented products. We've got program. I test the program. The program is the
+product." A program says the products it runs instead, several of them
+(`ui/ProductsBox`, `lib/programs` productsOf; `docs/STRUCTURE.md` §20).
+
 **Built, 17 October** (Rowland: "start stage 3 as fast as you can"). A line's
 products are not a list of their own (D2): what its programs run, what its
 line standards and Line capacity are for, and what a changeover was timed
@@ -989,7 +995,8 @@ is still wired.
 - **D1 — Machines:** one record per machine, on its line; a stage-gate job
   points at the machines it brings in. *Recommended.*
 - **D2 — Products** are what the line's programs run, not a separate list.
-  *Recommended.*
+  *Recommended.* (23 October: no place of their own at all — a program lists
+  the products it runs.)
 - **D3 — Line capacity** lives per product on the line; a 6M job reads it.
   *Recommended.* This answers the question from earlier today, about line
   standard showing up in line capacity.

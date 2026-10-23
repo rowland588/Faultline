@@ -19,6 +19,7 @@
  * only the late in red), line by line and machine by machine; and what to do
  * next — plan one, say where one has got to, and when it is tested. */
 import { PageHeader } from '../ui/parts';
+import { ProductsBox } from '../ui/ProductsBox';
 import { useMemo, useRef, useState } from 'react';
 import type { Workspace } from '../types';
 import type { Program, ProgramState } from '../lib/programs';
@@ -368,12 +369,7 @@ function AddLineProgram({ line, machines, products }: { line: Workspace; machine
             <input className="text-input" value={other} maxLength={80} placeholder="Pick and place" aria-label="The machine's name" onChange={e => setOther(e.target.value)} />
           </label>
         )}
-        <label className="proj-field mt-add-much">
-          <span className="field-label">What it runs</span>
-          <input className="text-input" value={runs} maxLength={80} list={listId} placeholder="Finest Red 2kg" aria-label="What it runs"
-            onChange={e => setRuns(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') add(); }} />
-          <datalist id={listId}>{products.map(x => <option key={x} value={x} />)}</datalist>
-        </label>
+        <div className="proj-field mt-add-much"><ProductsBox value={runs} onChange={setRuns} suggest={products} listId={listId} /></div>
         <label className="proj-field mt-add-due">
           <span className="field-label">Testing on</span>
           <input className="text-input" type="date" value={testOn} aria-label="The day it is tested" onChange={e => setTestOn(e.target.value)} />

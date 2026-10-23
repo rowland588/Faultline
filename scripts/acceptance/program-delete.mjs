@@ -61,7 +61,7 @@ const own = page.locator('.pgr').filter({ has: page.locator('.pp-line-tag') }).f
 const ownName = (await own.locator('.pgr-name').innerText()).trim();
 await own.locator('.pgr-main').click(); await page.waitForTimeout(500);
 ok(await own.locator('.pgr-del').count() === 1, `a line's own program (${ownName}) has Delete on the job's Programs`);
-await own.locator('input[aria-label="What it runs"]').fill('Tesco Finest 2kg — 8 in a tray');
+await own.getByLabel(/^(A|Another) product it runs$/).fill('Tesco Finest 2kg — 8 in a tray');
 await own.locator('button[type=submit]').click(); await page.waitForTimeout(1200);
 ok(flat(await page.locator('.pgr').filter({ hasText: ownName }).first().innerText()).includes('8 in a tray'), 'changed there: what it runs saved');
 await page.locator('.pgr').filter({ hasText: ownName }).first().locator('.pgr-main').click(); await page.waitForTimeout(400);

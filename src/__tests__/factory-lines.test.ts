@@ -64,6 +64,15 @@ describe('a project’s line and the factory', () => {
     expect(c.floorOrder).toBe(1);
     expect((await db.listWorkspaces()).filter(x => x.name === 'Line 2A')).toHaveLength(1);
   });
+  it('a project’s line made before the factory joins the factory line of its name when that line is added', async () => {
+    const { db, lines } = await fresh();
+    await db.addPaceLine({ projectId: 'job-a', key: '2A', name: 'Line 2A', sort: 1 });
+    await db.addPaceLine({ projectId: 'job-b', key: '9', name: 'Line 9', sort: 1 });
+    const w = await lines.addLineToFactory('line  2a', 'Packing');
+    const all = await db.allPaceLines();
+    expect(all.find(l => l.name === 'Line 2A')?.workspaceId).toBe(w.id);
+    expect(all.find(l => l.name === 'Line 9')?.workspaceId).toBeUndefined();
+  });
   it('names a project’s short key from the factory line', async () => {
     const { lines } = await fresh();
     expect(lines.lineKey('Line 2A')).toBe('2A');

@@ -18,7 +18,7 @@
  * have the same name they are ONE program — its status from the part, and
  * "proved" from Commission when it has been. Nothing is stored here. */
 import { live, type Asset, type Test, type TestItem } from './testing';
-import { STATE_WORD, inOrder, isProved, isProgramsStage, standingOf, stateOf, type Program } from './programs';
+import { STATE_WORD, inOrder, productsOf, isProved, isProgramsStage, standingOf, stateOf, type Program } from './programs';
 import { provingTestOf, testCell } from './commission';
 import { programRunSays, runsOfProgram } from './programRun';
 import { partStatus, partsOf, resultNow, resultWords } from './noted';
@@ -243,7 +243,7 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
         const proved = p && provedFirst ? programWords(p, tests, today) : undefined;
         const earlier = (part.results ?? []).filter(r => r !== now).reverse()
           .map(r => `${resultWords(r)}${r.note ? ` — ${r.note}` : ''}`);
-        const run = programRunSays(runsOfProgram(part, m || undefined, tests, [p?.runs ?? '', p?.what ?? '']));
+        const run = programRunSays(runsOfProgram(part, m || undefined, tests, [...productsOf(p?.runs), p?.what ?? '']));
         group.push({
           ...(run ? { run: run.word, runTone: run.tone } : {}),
           machine, partId: part.id, stageId: st.id, ...(p ? { programId: p.id } : {}), ...(m ? { assetId: m } : {}),
@@ -262,7 +262,7 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
       }
     }
     for (const p of mine.filter(q => !used.has(q.id))) {
-      const run = programRunSays(runsOfProgram({ id: '', what: p.what }, m || undefined, tests, [p.runs ?? '']));
+      const run = programRunSays(runsOfProgram({ id: '', what: p.what }, m || undefined, tests, productsOf(p.runs)));
       group.push({
         ...(run ? { run: run.word, runTone: run.tone } : {}),
         machine, programId: p.id, ...(m ? { assetId: m } : {}), what: p.what.trim(), ...(p.runs ? { runs: p.runs } : {}), ...(p.from ? { who: p.from } : {}),

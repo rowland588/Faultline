@@ -114,7 +114,7 @@ export function Frame({ route, children }: { route: Route; children: ReactNode }
   const jobHere = useHere(route, project);
   const here = scope.kind === 'project' ? (hereIn(route, 'project') === 'tools' ? 'tools' : jobHere) : hereIn(route, scope.kind);
   /* on a tool's own page, its name after the page in the bar */
-  const tool = here === 'tools' || here === 'products' ? toolByKey(hereOf(route)) : undefined;
+  const tool = here === 'tools' ? toolByKey(hereOf(route)) : undefined;
   const toolName = tool?.label;
   /* on one of its records, the tool's name goes back to its list in the scope */
   const toolTo = tool && route.id

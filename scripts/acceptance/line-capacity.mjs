@@ -385,8 +385,8 @@ let TRAY;
   /* the line's pages are tabs since 23 October (the menu lights Factory inside a line) */
   const lit = await page.locator('.nv-tabs .nv-tab.is-on .nv-tab-l').allInnerTexts();
   const gates = await page.locator('.nv').getByText('GATES', { exact: true }).count();
-  /* on no job a product's Line capacity is the line's: the line's rail lights Products (docs/STRUCTURE.md B2 — a line's standards are its products) */
-  ok(lit.map(flat).join('|') === 'Products' && gates === 0, `10b on no job: the line's tabs light Products (${lit.map(flat).join('|')}) and wears no job's gates (${gates})`);
+  /* on no job a product's Line capacity is the line's: the line's rail lights Tools (docs/STRUCTURE.md B2; the line's Products came off on 23 October) */
+  ok(lit.map(flat).join('|') === 'Tools' && gates === 0, `10b on no job: the line's tabs light Tools (${lit.map(flat).join('|')}) and wears no job's gates (${gates})`);
   await go(CAP);
   ok(await page.getByRole('tab', { name: 'Line standard', exact: true }).count() === 1, '10c a product mapped too: its line standard one tap away');
 }

@@ -60,7 +60,7 @@ const rail = (await page.locator('.nv-rail').innerText()).replace(/\s+/g, ' ');
 const tabs = (await page.locator('.nv-tabs .nv-tab-l').allInnerTexts()).join(' · ');
 const lit = (await page.locator('.nv-rail .nv-ri.is-on').allInnerTexts()).join();
 const said = (await page.locator('.nv-top .nv-ctx').innerText()).replace(/\s+/g, ' ').trim();
-ok(rail === 'Factory Projects Problems Actions Tools Reports' && lit === 'Factory' && tabs === 'Overview · Problems · Programs · Products · Tools · Set up' && /^Factory › Line 2B › Overview$/.test(said),
+ok(rail === 'Factory Projects Problems Actions Tools Reports' && lit === 'Factory' && tabs === 'Overview · Problems · Programs · Tools · Set up' && /^Factory › Line 2B › Overview$/.test(said),
   `3 the menu with Factory lit (${rail} | ${lit}), the line's tabs (${tabs}), the bar saying ${said}`);
 ok(/No problems open/.test(await txt()) && /Tools on this line/.test(await txt()), '4 the line page: no problems, its tools');
 // THE STOPWATCH FROM THE LINE (docs/UPGRADE-AUDIT.md F1): Time a stop first in the header; Stops timed first among the tools, none yet

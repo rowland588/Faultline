@@ -53,9 +53,9 @@ export const PAGES = (sd, cap) => [
        docs/STRUCTURE.md §5.4: seven buttons squeezed the line's name into a column 50 px wide), beside Edit the line */
     { what: 'More ▾ — Film the line and Edit the line', sel: '.pl .part-head .part-menu-b', text: /^More/ },
     { what: 'the stopwatch and its Pareto, among the tools', sel: '.pl-tool.is-stops' },
-    /* the line is the hub (17 October, BLUEPRINT Stage 3; lib/lineLean, lib/lineProducts) */
-    { what: 'the five tiles — problems, programs, products, stops, a day of the line', sel: '.pl-tiles .ln-tile', n: 5 },
-    { what: 'its products, a row a product with its four answers', sel: '.pl-prod:not(.is-head) .pl-ready', n: 4 },
+    /* the line is the hub (17 October, BLUEPRINT Stage 3; lib/lineLean). Its products, ready or not, came off on
+       23 October — Rowland: "You've invented products ... The program is the product"; a program says its products */
+    { what: 'the four tiles — problems, programs, stops, a day of the line', sel: '.pl-tiles .ln-tile', n: 4 },
     /* its papers in Report ▾ since B3 — the line report, the problems report and the problem cards, each named */
     { what: 'Report ▾ — the line report among its papers', sel: '.pl .part-head .part-menu-b', text: /^Report/ },
     { what: 'the closing line', sel: '.pl > .ln-close' },

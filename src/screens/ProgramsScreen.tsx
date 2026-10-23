@@ -15,6 +15,7 @@
  * an opinion and the date is the fact.
  */
 import { AddFold } from '../ui/AddFold';
+import { ProductsBox } from '../ui/ProductsBox';
 import { DateWhy } from '../ui/DateWhy';
 import { DateInput } from '../ui/DateInput';
 import { keyOf } from '../lib/story';
@@ -418,11 +419,7 @@ function AddProgram({ state, lines, assets }: {
             </select>
           </label>
         )}
-        <label className="proj-field mt-add-much">
-          <span className="field-label">What it runs</span>
-          <input className="text-input" value={runs} maxLength={80} placeholder="Finest Red 2kg"
-            onChange={e => setRuns(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') add(); }} />
-        </label>
+        <div className="proj-field mt-add-much"><ProductsBox value={runs} onChange={setRuns} /></div>
         <label className="proj-field mt-add-due">
           <span className="field-label">Testing on</span>
           <input className="text-input" type="date" value={testOn} onChange={e => setTestOn(e.target.value)} />

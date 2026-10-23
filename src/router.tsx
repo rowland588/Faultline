@@ -153,7 +153,7 @@ function app(route: Route) {
   if (route.name === 'quickSnags') return <QuickSnagsScreen key={route.query.get('line') ?? ''} />;
   if (route.name === 'lineHome' && route.wsId) {
     const v = route.query.get('view');
-    return <ProductionLineScreen key={route.wsId} wsId={route.wsId} view={v === 'products' || v === 'tools' || v === 'projects' || v === 'setup' ? v : 'overview'} />;
+    return <ProductionLineScreen key={route.wsId} wsId={route.wsId} view={v === 'tools' || v === 'projects' || v === 'setup' ? v : 'overview'} />;
   }
   if (route.name === 'factory') return <FactoryScreen />;
   if (route.name === 'allActions') return <EveryActionScreen />;
