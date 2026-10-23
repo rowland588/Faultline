@@ -11,7 +11,7 @@
  *
  *   1  the control room's Your factory, none yet, saying set it up first
  *   2  a line added in Your factory by a name, and opened: its own page
- *   3  the rail's Your factory carrying it
+ *   3  the line's own rail, the bar naming it (a scope of its own since B2)
  *   4  its page: no problems, its tools
  *   5  the Problem button on it: the line set, no project
  *   6  the problem on the line's page, open; the line's Problems report and a
@@ -53,8 +53,10 @@ await page.getByRole('button', { name: 'Done', exact: true }).click(); await pag
 await page.locator('.fac-line[data-line="Line 2B"]').getByRole('button', { name: 'Open ›' }).click(); await page.waitForTimeout(2000);
 ok(/#\/lines\//.test(page.url()) && (await page.locator('h1').innerText()) === 'Line 2B', `2 made, and on its own page: ${page.url().split('#')[1]}`);
 if (OUT) await page.screenshot({ path: `${OUT}/l-1-line.png` });
-const rail = (await page.locator('.nv').innerText()).replace(/\s+/g, ' ');
-ok(/YOUR FACTORY Your factory Programs Line 2B/i.test(rail), '3 the rail has Your factory, its Programs › Line 2B');
+/* the line is a scope of its own since 23 October (docs/STRUCTURE.md B2): its own rail, the way up first, and the bar names it */
+const rail = (await page.locator('.nv-rail').innerText()).replace(/\s+/g, ' ');
+const said = (await page.locator('.nv-top .nv-ctx').innerText()).replace(/\s+/g, ' ').trim();
+ok(/^Factory Overview Problems Machines & programs Products Tools Logs Projects Reports Set up$/.test(rail) && /^Factory › Line 2B › Overview$/.test(said), `3 the line's own rail (${rail}), the bar saying ${said}`);
 ok(/No problems open/.test(await txt()) && /Tools on this line/.test(await txt()), '4 the line page: no problems, its tools');
 // THE STOPWATCH FROM THE LINE (docs/UPGRADE-AUDIT.md F1): Time a stop first in the header; Stops timed first among the tools, none yet
 ok(/None yet — the stopwatch/.test(await page.locator('.pl-tool.is-stops').innerText()), '4a Stops timed, first tool: none yet');
@@ -123,11 +125,13 @@ ok(/Line 2B/.test(await page.locator('body').innerText()), '14 phone: More lists
 if (OUT) await page.screenshot({ path: `${OUT}/l-5-phone-more.png` });
 await page.keyboard.press('Escape'); await page.waitForTimeout(500);
 // THE PHONE'S BAR INSIDE THE STUDY (docs/UPGRADE-AUDIT.md F2): one Problem button on the line's page; Capture · Analyse · Evidence on the bar
-ok(!(await page.locator('.pl .pl-problem').isVisible()) && (await page.locator('.qs-fab').isVisible()), '15 phone: the line page says Problem once — the round button');
+ok(!(await page.locator('.pl .pl-problem').isVisible()) && !(await page.locator('.qs-top').isVisible()) && (await page.locator('.nv-bar .nv-bi.is-plus').isVisible()), '15 phone: the line page says Problem once — the ＋ on the bar');
 await page.locator('.pl .pace-head-actions .pl-time').click(); await page.waitForTimeout(1500);
 const bar = (await page.locator('.nv-bar').innerText()).replace(/\s+/g, ' ');
-ok(/Home.*Capture.*Analyse.*Evidence.*More/.test(bar), `16 phone: the bar in a study is ${bar} (Home first since #/ became the front door)`);
-await page.locator('.nv-bar').getByRole('link', { name: 'Analyse' }).or(page.locator('.nv-bar').getByRole('button', { name: 'Analyse' })).first().click(); await page.waitForTimeout(1500);
+/* the bar is the line's, fixed (docs/STRUCTURE.md D6, B2); the study's four views are tabs on its page */
+const views = (await page.locator('.study-views [role=tab]').allInnerTexts()).join(' · ');
+ok(bar === 'Overview Tools Problem Problems More' && views === 'Capture · Analyse · Evidence · Meeting', `16 phone: the bar in a study is the line's (${bar}), its views on the page (${views})`);
+await page.locator('.study-views').getByRole('tab', { name: 'Analyse' }).click(); await page.waitForTimeout(1500);
 ok(/#\/w\/[^/]+\/analyse$/.test(page.url()), `17 phone: Analyse is one tap from the stopwatch: ${page.url().split('#')[1]}`);
 ok(errs.length === 0, `no console errors ${errs.slice(0, 3).join(' | ')}`);
 await b.close();

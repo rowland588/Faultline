@@ -29,8 +29,8 @@ export const startsOf = (e: Entry): Starts | undefined => (e.kind ? e.starts ?? 
 
 /** The tools a person can open, in the floor's order. */
 export const APP_TOOLS: readonly AppTool[] = ENTRIES
-  .filter((e): e is Entry & { app: AppFace; kind: Kind } => !!e.app && !!e.kind && !!e.built?.where.length)
-  .map(e => ({ ...e.app, id: e.id, kind: e.kind, starts: startsOf(e) as Starts, to: e.built!.where[0] }))
+  .filter((e): e is Entry & { app: AppFace; kind: Kind; built: NonNullable<Entry['built']> } => !!e.app && !!e.kind && !!e.built?.where.length)
+  .map(e => ({ ...e.app, id: e.id, kind: e.kind, starts: startsOf(e) as Starts, to: e.built.where[0] }))
   .sort((a, b) => a.order - b.order);
 
 /** The app's tools of one kind — a scope's Tools, Products or Logs. */

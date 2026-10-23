@@ -31,6 +31,17 @@ import { ReportScreen } from './ReportScreen';
 import { AssetHistoryScreen } from '../snag/AssetHistoryScreen';
 import { CaseScreen } from './CaseScreen';
 import { LineStandardsScreen } from './LineStandardsScreen';
+import { ViewTabs } from '../ui/parts';
+
+/** THE STUDY'S FOUR VIEWS, ON A PHONE — since the phone's bar is the line's, fixed (docs/STRUCTURE.md
+ *  D6, B2), Capture · Analyse · Evidence · Meeting are tabs at the top of the study's page there, so
+ *  Analyse stays one tap from the stopwatch (docs/UPGRADE-AUDIT.md F2). On a laptop the rail lists
+ *  them under Logs; B6 makes these tabs the study's only views. */
+const STUDY_VIEWS = [{ key: 'capture', label: 'Capture' }, { key: 'analyse', label: 'Analyse' }, { key: 'snaglist', label: 'Evidence' }, { key: 'meeting', label: 'Meeting' }];
+function StudyViews({ ws, screen }: { ws: string; screen: string }) {
+  if (!STUDY_VIEWS.some(v => v.key === screen)) return null;
+  return <div className="study-views"><ViewTabs views={STUDY_VIEWS} value={screen} onChange={k => nav(`/w/${ws}/${k}`)} label="The study’s views" /></div>;
+}
 
 /** The page's name, for the study's screens that have no heading of their
  *  own — the spine used to be the only thing that said which one you were
@@ -58,7 +69,7 @@ export function AppShell({ route }: { route: Route }) {
 
   // The meeting, the snag walkthrough and the printable report fill the
   // frame's main area; they wear the same top bar and rail as every screen.
-  if (screen === 'meeting') return <MeetingScreen />;
+  if (screen === 'meeting') return <><div className="wrap"><StudyViews ws={ws} screen={screen} /></div><MeetingScreen /></>;
   if (screen === 'walk') return <WalkthroughScreen wsId={ws} />;
   if (screen === 'report') return <ReportScreen />;
   /* The line's own tools — its maps and balances, a job optional
@@ -69,6 +80,7 @@ export function AppShell({ route }: { route: Route }) {
      their own. */
   return (
     <div className="wrap app">
+      <StudyViews ws={ws} screen={screen} />
       {/* THE WALK'S DEEP TRAIL — the segment you are in and the frame marked
           in it, each a tap back up. Below "Evidence" in the rail, which is as
           deep as the rail goes. Only drawn inside a walk. */}

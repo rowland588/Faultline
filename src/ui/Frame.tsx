@@ -28,27 +28,27 @@ import { useStanding } from '../lib/useStanding';
 import { useMethodCounts } from '../lib/useMethodCounts';
 import { useWsChain } from '../lib/useTrail';
 import { planModel, type PlanModel } from '../lib/planModel';
-import { getStandard, getStudy, getWorkspace, listTestItems, listTests, listWorkspaces, onDataChange } from '../db';
-import { PROJECT_KEY } from '../lib/inProject';
-import { liveProductionLines } from '../lib/lines';
+import { getStandard, getStudy, listTestItems, listTests, onDataChange } from '../db';
+import { PROJECT_KEY, inProject } from '../lib/inProject';
 import { gateOf, live } from '../lib/testing';
 import { useTesting } from '../lib/useTesting';
 import { usePrograms } from '../lib/usePrograms';
 import { machineRecord } from '../lib/machineRecord';
 import { todayISO } from '../lib/weeks';
-import { LogoMark } from './Logo';
 import { Icon } from './Icon';
-import { AccountMenu } from './AccountMenu';
-import { JumpTo } from './JumpTo';
 import { Sheet } from './Sheet';
 import { ReportsSheet } from './ReportsSheet';
 import { ControlRoomReports } from './ControlRoomReports';
-import { useJobStands } from './railJobs';
-import { QuickSnagButton, QuickSnagHost } from '../snag/QuickSnag';
+import { QuickSnagHost, openQuickSnag, useCanTakeProblem } from '../snag/QuickSnag';
+import { ContextBar } from './ContextBar';
+import { LineReports } from './ControlRoomReports';
+import { scopeOf, type Scope } from '../lib/scope';
+import { toolByKey } from '../catalogue/registry';
+import { listAllSnags, allPaceLines } from '../db';
 import { useFactoryLines } from '../lib/useFactoryLines';
 import {
-  controlRoom, snagsPlace, toolsGroup, jobLine, gatesGroup, machinesGroup, methodGroup, workGroup, linesGroup, footGroup, studyLines, phoneBar, hereOf,
-  type RailGroup, type RailLine, type RailLineOf, type RailMachine, type SquareState,
+  hereOf, hereIn, factoryGroups, lineGroups, projectGroups, scopeBar, studyLines,
+  type RailGroup, type RailLine, type RailLineOf, type RailMachine, type SquareState, type Count,
 } from './rail';
 
 /** Which job a route is under. Every `/project/:id/…` route carries the job
@@ -81,49 +81,70 @@ const RECORDS = new Set<Route['name']>(['study', 'videoStudy', 'talk']);
  *  video study and a talk since 21 October (docs/PROJECTS.md, P2): made
  *  inside a project, it is the project's and opens in it. `undefined` while
  *  it is read; '' when it is on no project. */
-function useRecordProject(kind: 'standard' | 'study' | undefined, id?: string): string | undefined {
-  const [got, setGot] = useState<{ id: string; project: string } | null>(null);
+function useRecordProject(kind: 'standard' | 'study' | undefined, id?: string): { project: string; line?: string } | undefined {
+  const [got, setGot] = useState<{ id: string; project: string; line?: string } | null>(null);
   useEffect(() => {
     let live = true;
     if (!kind || !id) return;
-    const load = () => void (kind === 'standard' ? getStandard(id) : getStudy(id)).then(r => { if (live) setGot({ id, project: r?.projectId ?? '' }); });
+    const load = () => void (kind === 'standard' ? getStandard(id) : getStudy(id)).then(r => { if (live) setGot({ id, project: r?.projectId ?? '', line: r?.workspaceId ?? undefined }); });
     load();
     const off = onDataChange(load);
     return () => { live = false; off(); };
   }, [kind, id]);
-  return kind && id && got?.id === id ? got.project : undefined;
+  return kind && id && got?.id === id ? { project: got.project, line: got.line } : undefined;
 }
 
 export function Frame({ route, children }: { route: Route; children: ReactNode }) {
   const { projects, archived, loading } = useProjects();
   const chain = useWsChain(route.wsId);
+  const lines = useFactoryLines();
   const product = route.name === 'lineStandards' ? route.id : undefined;
   const record = product ? 'standard' : RECORDS.has(route.name) && route.id ? 'study' : undefined;
-  const recordProject = useRecordProject(record, product ?? route.id);
+  const recordOf = useRecordProject(record, product ?? route.id);
   /* a record: its own project or none; a line's list of its products: the
      project it was opened in, or none */
-  const projectId = record ? recordProject || undefined
+  const projectId = record ? recordOf?.project || undefined
     : route.name === 'lineStandards' ? route.query.get(PROJECT_KEY) ?? undefined
       : projectOf(route, chain?.projectId);
   /* An archived job still opens (from the archive), and still wears its rail. */
   const project = projectId ? (projects.find(p => p.id === projectId) ?? archived.find(p => p.id === projectId)) : undefined;
+  /* THE SCOPE (lib/scope; docs/STRUCTURE.md §5): the factory, a line or a project — or Home */
+  const scope: Scope = scopeOf(route, { projectId: project ? projectId : undefined, lineId: recordOf?.line });
   const jobHere = useHere(route, project);
-  /* on no job, the tool it is: Line capacity or Line standard in the Tools */
-  const here = route.name === 'lineStandards' && !project ? (route.query.get('at') === 'balance' ? 'linebalance' : 'linestandard') : jobHere;
+  const here = scope.kind === 'project' ? (hereIn(route, 'project') === 'tools' ? 'tools' : jobHere) : hereIn(route, scope.kind);
+  /* on a tool's own page, its name after the page in the bar */
+  const tool = here === 'tools' || here === 'products' ? toolByKey(hereOf(route)) : undefined;
+  const toolName = tool?.label;
+  /* on one of its records, the tool's name goes back to its list in the scope */
+  const toolTo = tool && route.id
+    ? scope.kind === 'project' ? inProject(tool.to, scope.projectId) : scope.kind === 'line' ? `${tool.to}?line=${encodeURIComponent(scope.wsId)}` : tool.to
+    : undefined;
+  const reading = (projectId && !project && (loading || (route.wsId && chain === null))) || (record && recordOf === undefined);
 
   return (
     <div className="nv">
-      <TopBar project={project} projects={projects} place={placeOf(route)} />
-      {project
-        ? <ProjectNav key={project.id} project={project} here={here} wsId={route.wsId} />
-        /* While the job is still being read, only the first line — never the
-           control room's list of jobs for a moment, then the job's rail. */
-        : (projectId && (loading || (route.wsId && chain === null))) || (record && recordProject === undefined)
-          ? <NavChrome groups={[{ lines: [controlRoom(here), snagsPlace(here)] }, toolsGroup(here)]} bar={[controlRoom(here)]} />
-          : <HomeNav projects={projects} here={here} wsId={route.wsId} loose={!!route.wsId && chain === null && route.name !== 'lineHome'} />}
+      <ScopeFrame scope={scope} project={project} projects={projects} lines={lines} here={here} toolName={toolName} toolTo={toolTo} wsId={route.wsId} reading={!!reading} />
       <main className="nv-main">{children}</main>
-      <QuickSnagHost wsId={route.wsId} projectId={projectId} />
+      <QuickSnagHost wsId={route.wsId ?? (scope.kind === 'line' ? scope.wsId : undefined)} projectId={projectId} />
     </div>
+  );
+}
+
+/** THE CONTEXT BAR AND THE SCOPE'S RAIL — one of three, by the scope (docs/STRUCTURE.md §5.2). */
+function ScopeFrame({ scope, project, projects, lines, here, toolName, toolTo, wsId, reading }: {
+  scope: Scope; project?: Project; projects: Project[]; lines: Workspace[]; here: string; toolName?: string; toolTo?: string; wsId?: string; reading: boolean;
+}) {
+  const all = useMemo(() => (project && !projects.some(p => p.id === project.id) ? [...projects, project] : projects), [projects, project]);
+  const [page, setPage] = useState<string | undefined>(undefined);
+  const bar = (groups: RailGroup[]) => groups.flatMap(g => g.lines).find(l => l.on && l.key !== 'up')?.label;
+  return (
+    <>
+      <ContextBar scope={scope} page={page} tool={toolName && toolName !== page ? toolName : undefined} toolTo={toolTo} projects={all} lines={lines} projectId={project?.id} />
+      {reading ? <NavChrome groups={[]} bar={[]} />
+        : scope.kind === 'project' && project ? <ProjectNav key={project.id} project={project} here={here} wsId={wsId} onPage={g => setPage(bar(g))} />
+          : scope.kind === 'line' ? <LineNav key={scope.wsId} wsId={scope.wsId} name={lines.find(l => l.id === scope.wsId)?.name ?? 'This line'} here={here} projects={projects} onPage={g => setPage(bar(g))} />
+            : <FactoryNav projects={projects} here={here} onPage={g => setPage(bar(g))} />}
+    </>
   );
 }
 
@@ -157,59 +178,6 @@ function useHere(route: Route, project?: Project): string {
 /*  THE TOP BAR — the mark, which job, search, you                           */
 /* ------------------------------------------------------------------------- */
 
-/** WHERE YOU ARE, off a job — the name the top bar says in the job's place.
- *  It said "Control room" on Your factory, on a line and on every tool, which
- *  was not where you were (docs/FLOW-AUDIT.md #20): now it names the layer, as
- *  the rail's groups do — the control room (and its problems, its jobs), Your
- *  factory (a line, its programs, its stopwatch and walk), or the tools. */
-function placeOf(route: Route): string {
-  switch (route.name) {
-    case 'factory': case 'lineHome': case 'linePrograms': return 'Your factory';
-    case 'lineTools': case 'studies': case 'study': case 'lineStandards': case 'videos': case 'videoStudy': case 'talks': case 'talk': return 'Tools';
-    case 'start': return 'Home';
-    case 'projects': return 'Projects';
-    case 'home': case 'portfolio': case 'quickSnags': case 'allActions': return 'Control room';
-    default: return route.wsId ? 'Your factory' : 'Control room';
-  }
-}
-
-function TopBar({ project, projects, place }: { project?: Project; projects: Project[]; place: string }) {
-  /* An archived job is not in the live list, but it is the one you are in. */
-  const options = project && !projects.some(p => p.id === project.id) ? [...projects, project] : projects;
-  /* off a job and off the control room, the select stands on where you are
-     (the place, not a choice) and the control room is still its way up */
-  const away = !project && place !== 'Control room';
-  return (
-    <header className="nv-top">
-      <button type="button" className="nv-mark" onClick={() => nav('/')} aria-label="Faultline — home">
-        <LogoMark size={28} id="nv" />
-        <span className="nv-name">Faultline</span>
-      </button>
-      {/* WHICH JOB. A native select laid over the job's name: the phone's own
-          picker, a list on a laptop, and the one control that already knows
-          how to be a switcher. Its first option is the control room, so it is
-          also the way up — "home is home". */}
-      <label className="nv-job">
-        <select value={project?.id ?? ''} aria-label="Which project"
-          onChange={e => nav(e.target.value && e.target.value !== 'home' ? `/project/${e.target.value}` : '/room')}>
-          {away && <option value="" disabled>{place}</option>}
-          <option value={away ? 'home' : ''}>Control room</option>
-          {options.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
-        <span className="nv-job-l" aria-hidden>{project?.name ?? place}</span>
-        <Icon name="chevronDown" size={14} />
-      </label>
-      {/* The search box that held search's place is gone until search exists
-          (docs/FLOW.md item 3): a control that does nothing is not true yet.
-          The gap keeps the snag button and you at the right. */}
-      <span className="nv-gap" aria-hidden />
-      <JumpTo />
-      <QuickSnagButton projectId={project?.id} />
-      <AccountMenu />
-    </header>
-  );
-}
-
 /* ------------------------------------------------------------------------- */
 /*  THE RAIL, A JOB'S — one component per method, so each reads only what    */
 /*  its counts need                                                           */
@@ -231,7 +199,7 @@ function useOpenNotes(projectId: string): number {
   return n;
 }
 
-function ProjectNav({ project, here, wsId }: { project: Project; here: string; wsId?: string }) {
+function ProjectNav({ project, here, wsId, onPage }: { project: Project; here: string; wsId?: string; onPage: (g: RailGroup[]) => void }) {
   const model = planModel(project);
   const { lines: own } = usePaceLines(project.id);
   /* each of the job's lines by the factory's name, opening the factory's
@@ -239,34 +207,23 @@ function ProjectNav({ project, here, wsId }: { project: Project; here: string; w
   const factory = useFactoryLines();
   const lines = own.map(l => ({ ...l, factoryName: factory.find(w => w.id === l.workspaceId)?.name }));
   const notes = useOpenNotes(project.id);
-  const shared = { project, here, wsId, lines, notes, model };
+  const shared = { project, here, wsId, lines, notes, model, onPage };
   return model === 'commissioning' ? <GateNav {...shared} />
     : <MethodNav {...shared} method={model} />;
 }
 
 interface NavProps {
   project: Project; here: string; wsId?: string; model: PlanModel; notes: number;
-  lines: RailLineOf[];
+  lines: RailLineOf[]; onPage: (g: RailGroup[]) => void;
 }
 
 function GateNav(p: NavProps) {
   const stand = useStanding(p.project.id);
   const machines = useRailMachines(p.project.id);
-  const lines = linesGroup(p.project.id, p.lines, p.here, p.wsId);
-  const groups: RailGroup[] = [
-    { lines: [controlRoom(p.here), snagsPlace(p.here), jobLine(p.project.id, p.project.name, p.here, stand.standing.late,
-      (['install', 'setup', 'handover'] as const).reduce((n, k) => n + (stand.counts[k]?.problem ?? 0), 0))] },
-    gatesGroup(p.project.id, p.here, stand.counts),
-    ...(machines.length ? [machinesGroup(p.project.id, p.here, machines)] : []),
-    footGroup(p.project.id, p.here, p.notes),
-    /* The lines a stage-gate job is on go under paper, above the tools, so
-       they no longer push the job down (docs/FLOW.md item 3) — named Lines,
-       by the factory's names: they sat unlabelled among the tools, called
-       Line 7 and Line 8 for one line of the factory (docs/FLOW-AUDIT.md #7). */
-    ...(lines.lines.length ? [lines] : []),
-    toolsGroup(p.here, [], p.project.id),
-  ];
-  return <NavChrome groups={withJobStudy(groups, p.wsId, p.lines, p.here)} project={p.project} model={p.model} />;
+  const problem = (['install', 'setup', 'handover'] as const).reduce((n, k) => n + (stand.counts[k]?.problem ?? 0), 0);
+  const groups = withJobStudy(projectGroups({ projectId: p.project.id, name: p.project.name, model: p.model, here: p.here, counts: stand.counts,
+    late: stand.standing.late, problem, machines, notes: p.notes }), p.wsId, p.here);
+  return <NavChrome groups={groups} project={p.project} model={p.model} kind="project" onPage={p.onPage} />;
 }
 
 /** A stage-gate job's machines for the rail, each with its square — read by
@@ -290,160 +247,116 @@ function useRailMachines(projectId: string): RailMachine[] {
 
 function MethodNav(p: NavProps & { method: 'board' | 'tree' }) {
   const counts = useMethodCounts(p.project.id);
-  const groups: RailGroup[] = [
-    /* The job's square is red for anything late on it — its board's actions
-       and what it waits on — the count its header and the control room say. */
-    { lines: [controlRoom(p.here), snagsPlace(p.here), jobLine(p.project.id, p.project.name, p.here, (counts.board?.late ?? 0) + (counts.materials?.late ?? 0) + (counts.checks?.late ?? 0))] },
-    methodGroup(p.project.id, p.method, p.here, counts,
-      { pareto: !!p.project.pareto, tree: p.method !== 'tree' && !!p.project.leverTree }),
-    workGroup(p.project.id, p.here, counts),
-    /* A running line's lines are what the job is about, so they stay with
-       the work; only the tools go to the foot. */
-    linesGroup(p.project.id, p.lines, p.here, p.wsId),
-    footGroup(p.project.id, p.here, p.notes),
-    toolsGroup(p.here, [], p.project.id),
-  ];
-  return <NavChrome groups={withJobStudy(groups, p.wsId, p.lines, p.here)} project={p.project} model={p.model} />;
+  /* The job's square is red for anything late on it — its board's actions
+     and what it waits on — the count its header and the control room say. */
+  const late = (counts.board?.late ?? 0) + (counts.materials?.late ?? 0) + (counts.checks?.late ?? 0);
+  const groups = withJobStudy(projectGroups({ projectId: p.project.id, name: p.project.name, model: p.method, here: p.here, counts, late,
+    lines: p.lines, notes: p.notes, tools: { pareto: !!p.project.pareto, tree: p.method !== 'tree' && !!p.project.leverTree }, wsId: p.wsId }), p.wsId, p.here);
+  return <NavChrome groups={groups} project={p.project} model={p.model} kind="project" onPage={p.onPage} />;
 }
 
-/** The job's own walk — a stage-gate job films its new line from Install, a
- *  6M job from its Evidence lens. Inside that study the four screens are
- *  drawn under the job, since no line of the project owns them. */
-function withJobStudy(groups: RailGroup[], wsId: string | undefined, lines: NavProps['lines'], here: string): RailGroup[] {
-  if (!wsId || lines.some(l => l.workspaceId === wsId)) return groups;
-  return groups.map((g, i) => (i === 0 ? { ...g, lines: [...g.lines, ...studyLines(wsId, here)] } : g));
+/** Inside a line study the project wears, its four screens on the rail: under
+ *  its line on a 6M or tree project (projectGroups draws them there); under
+ *  the project's own pages otherwise — a stage-gate job films its new line from
+ *  Install, and has no Lines on its rail to hang them under. */
+function withJobStudy(groups: RailGroup[], wsId: string | undefined, here: string): RailGroup[] {
+  if (!wsId || groups.some(g => g.lines.some(l => l.key === 'capture'))) return groups;
+  return groups.map(g => (g.lines.some(l => l.key === 'job') ? { ...g, lines: [...g.lines, ...studyLines(wsId, here)] } : g));
 }
 
 /* ------------------------------------------------------------------------- */
-/*  THE RAIL, THE CONTROL ROOM'S                                             */
+/*  THE RAIL, A LINE'S                                                       */
 /* ------------------------------------------------------------------------- */
 
-/** Every production line — the lines on this device, the demo line aside —
- *  for the control room's rail. Read again when anything is written. */
-function useProductionLines(): Workspace[] {
-  const [ws, setWs] = useState<Workspace[]>([]);
+/** A line's open problems — its rail's count, said the way the register says them. */
+function useLineProblems(wsId: string): Count {
+  const [c, setC] = useState<Count>({ n: 0, late: 0 });
   useEffect(() => {
     let live = true;
-    const load = () => void listWorkspaces().then(liveProductionLines).then(lines => { if (live) setWs(lines); });
+    const load = () => void listAllSnags().then(all => {
+      const now = Date.now();
+      const mine = all.filter(s => s.workspaceId === wsId && !s.deletedAt && !s.archivedAt && s.status !== 'closed');
+      if (live) setC({ n: mine.length, late: mine.filter(s => s.dueAt != null && s.dueAt < now).length });
+    });
     load();
     const off = onDataChange(load);
     return () => { live = false; off(); };
-  }, []);
-  return ws;
+  }, [wsId]);
+  return c;
 }
 
-/** OFF A PROJECT, ONE RAIL (docs/BLUEPRINT.md §3, the new product): its
- *  places first — Home (say what you need, #/), Projects, Methods (the
- *  library) — then the control room as the view of every project and line at
- *  once (its problems, every paper), Your factory, the jobs, and the tools at
- *  the foot. The front door's five places and the control room's rail were
- *  two rails; they are merged, nothing taken off. A loose study (no project
- *  owns it) shows its name and its four screens under the control room. */
-function HomeNav({ projects, here, wsId, loose }: { projects: Project[]; here: string; wsId?: string; loose: boolean }) {
-  const [wsName, setWsName] = useState('');
-  const stands = useJobStands();
+function LineNav({ wsId, name, here, projects, onPage }: { wsId: string; name: string; here: string; projects: Project[]; onPage: (g: RailGroup[]) => void }) {
+  const problems = useLineProblems(wsId);
+  const onLine = useProjectsOnLine(wsId, projects);
+  const groups = lineGroups(wsId, here, { problems, projects: onLine }).map(g => ({
+    ...g,
+    /* inside the line's study, its four screens under Logs (B6 makes them the log's views) */
+    lines: g.lines.flatMap(l => (l.key === 'logs' && STUDY_KEYS.has(here) ? [{ ...l, on: true }, ...studyLines(wsId, here)] : [l])),
+  }));
+  return <NavChrome groups={groups} kind="line" line={{ id: wsId, name }} onPage={onPage} />;
+}
+
+const STUDY_KEYS = new Set(['capture', 'analyse', 'snaglist', 'meeting', 'logs']);
+
+/** How many running projects are on the line — its Projects page's count. */
+function useProjectsOnLine(wsId: string, projects: Project[]): number {
+  const [n, setN] = useState(0);
+  const key = projects.map(p => p.id).join(',');
   useEffect(() => {
     let live = true;
-    if (!wsId) { setWsName(''); return; }
-    void getWorkspace(wsId).then(w => { if (live) setWsName(w?.name ?? 'Line study'); });
-    return () => { live = false; };
-  }, [wsId]);
-  const prodLines = useProductionLines();
-  const groups: RailGroup[] = [
-    /* HOME AND THE PROJECTS */
-    { lines: [
-      { key: 'start', label: 'Home', to: '/', on: here === 'start', state: 'n', bare: true, icon: 'home' } as RailLine,
-      { key: 'projects', label: 'Projects', to: '/projects', on: here === 'projects', state: 'n', bare: true, icon: 'board', n: projects.length || undefined } as RailLine,
-    ] },
-    /* THE CONTROL ROOM — every project and line at once; REPORTS, as a job's
-       rail has them — every paper (ui/ControlRoomReports; Rowland, 14
-       October: "we need the same in control room") */
-    { label: 'Control room', lines: [{ ...controlRoom(here), icon: 'list' }, snagsPlace(here),
-      /* every project's actions and every line's own problems (docs/PROJECTS.md, P4) */
-      { key: 'allactions', label: 'Every action', to: '/actions', on: here === 'allactions', state: 'n', bare: true, icon: 'list' } as RailLine,
-      { key: 'reports', label: 'Reports', on: false, state: 'n', bare: true, icon: 'list' } as RailLine,
-      ...(loose && wsId ? [
-      { key: 'ws', label: wsName || 'Line study', to: `/w/${wsId}/capture`, on: false, state: 'n', bare: true } as RailLine,
-      ...studyLines(wsId, here),
-    ] : [])] },
-    /* YOUR FACTORY first — the backbone, before the jobs (Rowland, 13
-       October: "a factory setup before the new projects ... your production
-       lines"): the factory itself, then each line, in floor order, each its
-       own page — its problems and its tools, no project needed. */
-    {
-      label: 'Your factory',
-      lines: [
-        { key: 'factory', label: prodLines.length ? 'Your factory' : 'Set up your factory', to: '/factory', on: here === 'factory', state: 'n', bare: true, icon: 'machine' } as RailLine,
-        /* every line's programs, planned and proved, no job needed (Stage 2) */
-        ...(prodLines.length ? [{ key: 'lineprograms', label: 'Programs', to: '/programs', on: here === 'lineprograms', state: 'n', bare: true, icon: 'list' } as RailLine] : []),
-        ...prodLines.map(w => ({ key: `line:${w.id}`, label: w.name, to: `/lines/${w.id}`, on: here === `line:${w.id}`, state: 'n', bare: true, icon: 'chart' } as RailLine)),
-      ],
-    },
-    ...(projects.length ? [{
-      label: 'Projects',
-      /* Each job's square and count are the control room board's own answer
-         (ui/railJobs) — red with "late" in words if anything is past its day,
-         otherwise under way. The rail does not read every job a second time. */
-      lines: projects.map(p => {
-        const s = stands.get(p.id);
-        return {
-          key: `job:${p.id}`, label: p.name, to: `/project/${p.id}`, on: false,
-          state: s && s.late > 0 ? 'r' : s?.problem ? 'a' : 'w', n: s?.outstanding || undefined, late: s?.late || undefined, problem: s?.problem || undefined,
-        } as RailLine;
-      }),
-    }] : []),
-    /* The tools, at the foot under the jobs — where every job's rail has
-       them. */
-    { ...toolsGroup(here), foot: true },
-  ];
-  const all = groups.flatMap(g => g.lines);
-  /* THE PHONE'S BAR, OFF A JOB: Home · Problems · Lines · More
-     (FLOW-AUDIT.md, 11; Home first since #/ became the front door, 18
-     October). It was the control room, the first three jobs and More, so
-     the lines — the backbone now — and the problems taken on them were
-     behind More. The jobs and the control room are one tap away still: in
-     More (the whole rail), in the top bar's job picker (the control room
-     first), and on the front door's own rows. */
-  const onLines = here === 'factory' || here === 'lineprograms' || here.startsWith('line:');
-  /* INSIDE A LINE STUDY the bar is the study's own screens — Capture ·
-     Analyse · Evidence — so a stop logged is one tap from its ranking
-     (docs/UPGRADE-AUDIT.md F2: Analyse was behind More, the walk's second
-     dead end); the line's page and the rest are under More. */
-  const study = loose && wsId ? studyLines(wsId, here).filter(l => l.key !== 'meeting').map(l => ({ ...l, sub: false })) : [];
-  const bar: RailLine[] = study.length ? [
-    ...all.filter(l => l.key === 'start'),
-    ...study,
-    { key: 'more', label: 'More', on: !study.some(l => l.on) && all.some(l => l.on && l.key !== 'start'), state: 'n', icon: 'grip' },
-  ] : [
-    ...all.filter(l => l.key === 'start'),
-    { ...snagsPlace(here), label: 'Problems', icon: 'flag' },
-    { key: 'lines', label: 'Lines', to: '/factory', on: onLines, state: 'n', bare: true, icon: 'machine' },
-    { key: 'more', label: 'More', on: !onLines && all.some(l => l.on && l.key !== 'start' && l.key !== 'quicksnags'), state: 'n', icon: 'grip' },
-  ];
-  return <NavChrome groups={groups} bar={bar} home={projects} />;
+    const load = () => void allPaceLines().then(rows => {
+      const ids = new Set(rows.filter(l => !l.deletedAt && l.workspaceId === wsId).map(l => l.projectId));
+      if (live) setN(projects.filter(p => ids.has(p.id)).length);
+    });
+    load();
+    const off = onDataChange(load);
+    return () => { live = false; off(); };
+  }, [wsId, key]); // eslint-disable-line react-hooks/exhaustive-deps
+  return n;
+}
+
+/* ------------------------------------------------------------------------- */
+/*  THE RAIL, THE FACTORY'S                                                  */
+/* ------------------------------------------------------------------------- */
+
+/** THE FACTORY'S PAGES — every line and project at once (docs/STRUCTURE.md §5.2). Home is the
+ *  mark and the switcher's first; every line and project is in the switcher. */
+function FactoryNav({ projects, here, onPage }: { projects: Project[]; here: string; onPage: (g: RailGroup[]) => void }) {
+  const groups = factoryGroups(here, projects.length);
+  return <NavChrome groups={groups} kind="factory" home={projects} onPage={onPage} />;
 }
 
 /* ------------------------------------------------------------------------- */
 /*  THE CHROME — the rail on a laptop, the bar and its sheet on a phone      */
 /* ------------------------------------------------------------------------- */
 
-function NavChrome({ groups, project, model, bar, home }: {
+function NavChrome({ groups, project, model, bar, home, kind = 'factory', line, onPage }: {
   groups: RailGroup[]; project?: Project; model?: PlanModel; bar?: RailLine[];
-  /** Off a job: the control room's jobs, for its Reports. */
+  /** Off a project: the control room's jobs, for its Reports. */
   home?: Project[];
+  kind?: 'factory' | 'line' | 'project';
+  /** On a line: which, for its Reports. */
+  line?: { id: string; name: string };
+  /** Told the groups, so the context bar can name the page that is on. */
+  onPage?: (g: RailGroup[]) => void;
 }) {
-  const five = bar ?? phoneBar(groups, model ?? 'commissioning');
+  /* ＋ on the bar only for somebody who may take a problem here (B0: never a client inside a project) */
+  const may = useCanTakeProblem(project?.id);
+  const five = bar ?? scopeBar(kind, groups, model, may);
   const [more, setMore] = useState(false);
   const [reports, setReports] = useState(false);
   /* Both close when the page under them changes — a sheet left open over a
      new screen is the old screen's. */
   const hash = useHash();
   useEffect(() => { setMore(false); setReports(false); }, [hash]);
+  const onKey = groups.flatMap(g => g.lines).filter(l => l.on).map(l => `${l.key}:${l.label}`).join(',');
+  useEffect(() => { onPage?.(groups); }, [onKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const go = (l: RailLine) => {
     setMore(false);
     if (l.key === 'reports') { setReports(true); return; }
     if (l.key === 'more') { setMore(true); return; }
+    if (l.key === 'plus') { openQuickSnag(); return; }
     if (l.to) nav(l.to);
   };
 
@@ -454,21 +367,22 @@ function NavChrome({ groups, project, model, bar, home }: {
       </aside>
       <nav className="nv-bar" aria-label="Where you are">
         {five.map(l => (
-          <button key={l.key} type="button" className={'nv-bi' + (l.on ? ' is-on' : '')} onClick={() => go(l)}
+          <button key={l.key} type="button" className={'nv-bi' + (l.on ? ' is-on' : '') + (l.key === 'plus' ? ' is-plus' : '')} onClick={() => go(l)}
             aria-current={l.on ? 'page' : undefined}
-            aria-label={l.late || l.failed || l.problem ? [l.label, l.late ? `${l.late} late` : '', l.failed ? `${l.failed} failed` : '', l.problem ? `${l.problem} a problem` : ''].filter(Boolean).join(', ') : undefined}>
+            aria-label={l.key === 'plus' ? 'Problem — a new problem, here' : l.late || l.failed || l.problem ? [l.label, l.late ? `${l.late} late` : '', l.failed ? `${l.failed} failed` : '', l.problem ? `${l.problem} a problem` : ''].filter(Boolean).join(', ') : undefined}>
             <span className={'nv-bi-ic' + (l.late || l.failed ? ' is-late' : l.problem ? ' is-problem' : '')}><Icon name={l.icon ?? 'board'} size={22} /></span>
             <span className="nv-bi-l">{l.label}</span>
           </button>
         ))}
       </nav>
       {more && (
-        <Sheet open onClose={() => setMore(false)} title={project?.name ?? 'Faultline'}>
+        <Sheet open onClose={() => setMore(false)} title={project?.name ?? line?.name ?? 'Factory'}>
           <div className="nv-sheet"><RailList groups={groups} go={go} /></div>
         </Sheet>
       )}
       {reports && project && <ReportsSheet project={project} onClose={() => setReports(false)} />}
-      {reports && !project && home && <ControlRoomReports projects={home} onClose={() => setReports(false)} />}
+      {reports && !project && line && <LineReports line={line} onClose={() => setReports(false)} />}
+      {reports && !project && !line && home && <ControlRoomReports projects={home} onClose={() => setReports(false)} />}
     </>
   );
 }

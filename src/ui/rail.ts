@@ -80,7 +80,7 @@ export interface RailLine {
    *  would say "not started", which is not true of the control room. */
   bare?: boolean;
   /** The phone's bar icon, when this line can be one of its five. */
-  icon?: 'home' | 'route' | 'machine' | 'flag' | 'board' | 'grip' | 'chart' | 'list' | 'time' | 'camera' | 'people' | 'hash' | 'mic';
+  icon?: 'home' | 'route' | 'machine' | 'flag' | 'board' | 'grip' | 'chart' | 'list' | 'time' | 'camera' | 'people' | 'hash' | 'mic' | 'arrowUp' | 'plus';
 }
 
 /** `foot`: drawn at the bottom of the rail — paper, the next meeting, what
@@ -178,13 +178,6 @@ const plain = (key: string, label: string, to: string, here: string, icon?: Rail
 export const controlRoom = (here: string): RailLine =>
   ({ key: 'home', label: 'Control room', to: '/room', on: here === 'home', state: 'n', bare: true, icon: 'home' });
 
-/** EVERY PROBLEM, every line — under the control room on every rail, because
- *  a problem is taken from anywhere (snag/QuickSnag) and sent on from there.
- *  The register is the control room's own page, not a tool, so it never sits
- *  in Tools (docs/FLOW-AUDIT.md #20). */
-export const snagsPlace = (here: string): RailLine =>
-  ({ key: 'quicksnags', label: 'Control room problems', to: '/snags', on: here === 'quicksnags', state: 'n', bare: true, icon: 'camera' });
-
 /** THE TOOLS — the line standard, Line capacity and the studies. Rowland,
  *  8 October: "we want line standard and line balancing as tools like snag
  *  ... same principle: use independent or connect to project." Each is used
@@ -196,14 +189,6 @@ export const snagsPlace = (here: string): RailLine =>
 export const toolPlaces = (here: string, projectId?: string): RailLine[] => APP_TOOLS.map(t => ({
   key: t.key, label: t.label, to: projectId ? inProject(t.to, projectId) : t.to, on: here === t.key, state: 'n', bare: true, icon: t.icon,
 }) as RailLine);
-
-/** THE TOOLS AS ONE GROUP, at the foot of every rail, under paper and
- *  details. Rowland, 10 October, on the flow audit (docs/FLOW.md item 3):
- *  the rail leads with the job — its front page, its gates, its work — and
- *  the tools used inside it come after, where they no longer push the job
- *  down. On a stage-gate job the lines it filmed are tools too (`extra`). */
-export const toolsGroup = (here: string, extra: RailLine[] = [], projectId?: string): RailGroup =>
-  ({ label: 'Tools', lines: [...toolPlaces(here, projectId), ...extra] });
 
 /** The job itself — on its front page, where the method's answer is. */
 export const jobLine = (projectId: string, name: string, here: string, late = 0, problem = 0): RailLine =>
@@ -217,34 +202,6 @@ export const GATE_KEYS = ['install', 'setup', 'testing', 'handover'] as const;
 export type GateKey = typeof GATE_KEYS[number];
 export const GATE_PATH: Record<GateKey, string> = { install: 'install', setup: 'set-up', testing: 'testing', handover: 'handover' };
 
-/** A STAGE-GATE JOB'S PLACES (docs/STAGEGATE-UX.md; Rowland, 16 October:
- *  "when i show peole the app, i get losst in it, find dorrs that open othe
- *  rthings"). The four gates were four lines here, each opening the same
- *  shape of page — Needs you and a machine-by-stage board; they are one
- *  Plan now, the gates its tabs beside the timeline (ui/PlanTabs), and the
- *  line opens on the gate the job is at: the first with work open. Then
- *  Programs, the problems, materials and the day — one group, so the rail
- *  says the job's places once. */
-export function gatesGroup(projectId: string, here: string, counts: Counts): RailGroup {
-  const p = `/project/${projectId}`;
-  const at = GATE_KEYS.find(k => (counts[k]?.n ?? 0) > 0);
-  const plan = counted('plan', 'Plan', at ? `${p}/${GATE_PATH[at]}` : `${p}/plan`, here, counts, [...GATE_KEYS], 'machine');
-  return {
-    label: 'Work',
-    lines: [
-      { ...plan, on: here === 'plan' || (GATE_KEYS as readonly string[]).includes(here) },
-      /* PROGRAMS, a page of their own — loaded at Set up, proved at
-         Commission (screens/ProgramsPage). */
-      counted('programs', 'Programs', `${p}/programs`, here, counts, ['programs'], 'list'),
-      counted('fixes', 'Problems', `${p}/fixes`, here, counts, ['fixes'], 'flag'),
-      /* every action on the project, whoever raised it (docs/PROJECTS.md, P3) */
-      plain('actions', 'Actions', `${p}/actions`, here, 'list'),
-      counted('materials', 'Materials', `${p}/materials`, here, counts, ['materials'], 'list'),
-      plain('day', 'The day', `${p}/day`, here, 'time'),
-    ],
-  };
-}
-
 /** THE MACHINES of a stage-gate job, each a page of its own (docs/
  *  STAGEGATE-UX.md slice 3) — in the job's order, each with its square:
  *  red when anything on it is late or failed, amber a problem with no time
@@ -252,47 +209,6 @@ export function gatesGroup(projectId: string, here: string, counts: Counts): Rai
 export interface RailMachine { id: string; name: string; state: SquareState;
   /** Its stages and tests not done — the work, neutral; of them, `late` red. */
   open?: number; late?: number }
-export function machinesGroup(projectId: string, here: string, machines: readonly RailMachine[]): RailGroup {
-  return {
-    label: 'Machines',
-    lines: machines.map(m => ({ key: `machine:${m.id}`, label: m.name, to: `/project/${projectId}/machine/${encodeURIComponent(m.id)}`,
-      on: here === `machine:${m.id}`, state: m.state, ...(m.open ? { n: m.open } : {}), ...(m.late ? { late: m.late } : {}), icon: 'machine' as const })),
-  };
-}
-
-/** THE METHOD, on a 6M or lever tree job — the fishbone (or the tree) first,
- *  because it is the journey, then the board that holds its countermeasures,
- *  then the lines it is about and what says whether it is working. A tool the
- *  job opted into (the Pareto; a lever tree beside a 6M job) is a line here
- *  too, where its header button was. */
-export function methodGroup(projectId: string, method: 'board' | 'tree', here: string, counts: Counts,
-  tools: { pareto?: boolean; tree?: boolean } = {}): RailGroup {
-  const p = `/project/${projectId}`;
-  return {
-    label: 'Method',
-    lines: [
-      ...(method === 'board' ? [plain('fishbone', 'Fishbone', `${p}/fishbone`, here, 'route')] : []),
-      ...(method === 'tree' || tools.tree ? [plain('tree', 'Tree', `${p}/tree`, here, 'route')] : []),
-      counted('board', 'Board', `${p}/board`, here, counts, ['board'], 'board'),
-      plain('lines', 'Lines', `${p}?view=lines`, here, 'chart'),
-      plain('data', 'Numbers', `${p}?view=data`, here, 'chart'),
-      plain('wins', 'Wins', `${p}?view=wins`, here, 'chart'),
-      plain('snags', 'Evidence', `${p}?view=snags`, here, 'chart'),
-      ...(tools.pareto ? [plain('pareto', 'Pareto', `${p}/pareto`, here, 'chart')] : []),
-    ],
-  };
-}
-
-/** WORK on a 6M or lever tree job — its materials. A stage-gate job's work
- *  is in its one group (gatesGroup). */
-export function workGroup(projectId: string, here: string, counts: Counts): RailGroup {
-  return { label: 'Work', lines: [
-    /* every action on the project, whoever raised it (docs/PROJECTS.md, P3) */
-    plain('actions', 'Actions', `/project/${projectId}/actions`, here, 'list'),
-    counted('materials', 'Materials', `/project/${projectId}/materials`, here, counts, ['materials'], 'list'),
-  ] };
-}
-
 export interface RailLineOf { id: string; name: string; workspaceId?: string;
   /** The factory's name for the line, when the job's line is one of Your
    *  factory's. The rail then says that name and opens the line's own page
@@ -340,49 +256,159 @@ export function linesGroup(projectId: string, lines: RailLineOf[], here: string,
   return { label: 'Lines', lines: out };
 }
 
-/** THE FOOT — paper, the next meeting, and what is set once. Three header
- *  buttons (Reports, Notes, the gear) become three lines. Reports has
- *  no `to`: it opens the sheet of everything printable where you stand. */
-export function footGroup(projectId: string, here: string, openNotes = 0): RailGroup {
-  const p = `/project/${projectId}`;
-  return {
-    foot: true,
+/* ========================================================================= */
+/*  THE SCOPES' RAILS (docs/STRUCTURE.md §5.2–§5.3, B2, approved 23 October)  */
+/* ========================================================================= */
+/* You are always in one scope — the factory, a line or a project (lib/scope) —
+   and the rail holds that scope's pages and the way up, nothing else. Before 23
+   October one rail drew the whole app at once: 25 lines off a project, 27 in
+   one, every line, project and tool adding one more. The tools are a page of
+   each scope now (Tools), listed by their kind (src/catalogue/registry); lines
+   and projects are one tap away in the context bar's switcher. */
+
+/** The way up — from a line or a project to the factory. */
+export const upLine = (): RailLine => ({ key: 'up', label: 'Factory', to: '/room', on: false, state: 'n', bare: true, icon: 'arrowUp' });
+
+/** THE FACTORY'S PAGES — every line and project at once. */
+export function factoryGroups(here: string, projects = 0): RailGroup[] {
+  return [{
     lines: [
-      { key: 'reports', label: 'Reports', on: here === 'reports', state: 'n', bare: true },
-      { key: 'notes', label: 'Notes', to: `${p}/notes`, on: here === 'notes', state: 'n', bare: true, n: openNotes || undefined },
-      plain('details', 'Details', `${p}/setup`, here),
+      { ...controlRoom(here), icon: 'list' },
+      plain('allactions', 'Actions', '/actions', here, 'list'),
+      { key: 'quicksnags', label: 'Problems', to: '/snags', on: here === 'quicksnags', state: 'n', bare: true, icon: 'flag' },
+      { ...plain('projects', 'Projects', '/projects', here, 'board'), n: projects || undefined },
+      plain('factory', 'Lines', '/factory', here, 'machine'),
+      plain('lineprograms', 'Programs', '/programs', here, 'list'),
+      plain('tools', 'Tools', '/tools', here, 'chart'),
     ],
-  };
+  }, { foot: true, lines: [{ key: 'reports', label: 'Reports', on: false, state: 'n', bare: true, icon: 'list' }] }];
 }
 
-/* ------------------------------------------------------------------------- */
-/*  THE PHONE'S FIVE                                                          */
-/* ------------------------------------------------------------------------- */
+/** Where a line's page puts you — its overview, or one of its pages. */
+export const lineHref = (wsId: string, view?: string): string => `/lines/${encodeURIComponent(wsId)}${view ? `?view=${view}` : ''}`;
 
-/** The bar at the foot of a phone: Control room, this job, the gate or lens
- *  you are in (or, off them, the gate the job is at; a method's first lens)
- *  — or, inside a line or its study, that line
- *  or study screen — Fixes (the board on the other methods), and More — the
- *  whole rail as a sheet. "More" is on when the screen you are on lives only
- *  in the sheet. */
-export function phoneBar(groups: RailGroup[], model: PlanModel): RailLine[] {
+/** THE LINE'S PAGES — the line as a place, no project needed. Its problems and its
+ *  programs are the factory's lists narrowed to it; its products are its standards,
+ *  product by product; its tools the studies and documents used on it; its log the
+ *  stops timed (B6 folds the line study in). */
+export function lineGroups(wsId: string, here: string, counts: { problems?: Count; programs?: Count; projects?: number } = {}): RailGroup[] {
+  return [
+    { lines: [upLine()] },
+    { lines: [
+      plain('overview', 'Overview', lineHref(wsId), here, 'home'),
+      counted('problems', 'Problems', `/snags?line=${encodeURIComponent(wsId)}`, here, { problems: counts.problems }, ['problems'], 'flag'),
+      counted('programs', 'Machines & programs', `/programs?line=${encodeURIComponent(wsId)}`, here, { programs: counts.programs }, ['programs'], 'machine'),
+      plain('products', 'Products', lineHref(wsId, 'products'), here, 'list'),
+      plain('tools', 'Tools', lineHref(wsId, 'tools'), here, 'chart'),
+      plain('logs', 'Logs', `/w/${encodeURIComponent(wsId)}/capture`, here, 'time'),
+      { ...plain('projects', 'Projects', lineHref(wsId, 'projects'), here, 'board'), n: counts.projects || undefined },
+    ] },
+    { foot: true, lines: [
+      { key: 'reports', label: 'Reports', on: false, state: 'n', bare: true, icon: 'list' },
+      plain('setup', 'Set up', lineHref(wsId, 'setup'), here),
+    ] },
+  ];
+}
+
+/** A PROJECT'S PAGES — its overview, its type's own pages (lib/planModel), then
+ *  what every project has: Actions, Problems, Tools; Notes, Reports, Details at
+ *  the foot. A stage gate's machines fold under Machines past six. */
+export function projectGroups(o: {
+  projectId: string; name: string; model: PlanModel; here: string; counts: Counts;
+  late: number; problem?: number; machines?: readonly RailMachine[]; lines?: RailLineOf[]; notes?: number;
+  tools?: { pareto?: boolean; tree?: boolean };
+  /** Inside a line study: its line, so its four screens sit under that line. */
+  wsId?: string;
+}): RailGroup[] {
+  const p = `/project/${o.projectId}`;
+  const job: RailLine = { ...jobLine(o.projectId, 'Overview', o.here, o.late, o.problem ?? 0), icon: 'home' };
+  let own: RailLine[];
+  if (o.model === 'commissioning') {
+    const at = GATE_KEYS.find(k => (o.counts[k]?.n ?? 0) > 0);
+    const plan = counted('plan', 'Plan', at ? `${p}/${GATE_PATH[at]}` : `${p}/plan`, o.here, o.counts, [...GATE_KEYS], 'machine');
+    const machines = o.machines ?? [];
+    const each: RailLine[] = machines.length <= 6
+      ? machines.map(m => ({ key: `machine:${m.id}`, label: m.name, to: `${p}/machine/${encodeURIComponent(m.id)}`, on: o.here === `machine:${m.id}`, state: m.state, sub: true, ...(m.open ? { n: m.open } : {}), ...(m.late ? { late: m.late } : {}), icon: 'machine' as const }))
+      /* past six, one line — the plan lists them, machine by machine */
+      : [{ key: 'machines', label: `Machines (${machines.length})`, to: `${p}/plan`, on: o.here.startsWith('machine:'), state: machines.some(m => m.state === 'r') ? 'r' : 'w', sub: true, late: machines.reduce((n, m) => n + (m.late ?? 0), 0) || undefined, icon: 'machine' as const }];
+    own = [
+      { ...plan, on: o.here === 'plan' || (GATE_KEYS as readonly string[]).includes(o.here) },
+      ...each,
+      counted('programs', 'Programs', `${p}/programs`, o.here, o.counts, ['programs'], 'list'),
+      counted('materials', 'Materials', `${p}/materials`, o.here, o.counts, ['materials'], 'list'),
+      plain('day', 'The day', `${p}/day`, o.here, 'time'),
+    ];
+  } else {
+    const t = o.tools ?? {};
+    own = [
+      ...(o.model === 'board' ? [plain('fishbone', 'Fishbone', `${p}/fishbone`, o.here, 'route')] : []),
+      ...(o.model === 'tree' || t.tree ? [plain('tree', 'Tree', `${p}/tree`, o.here, 'route')] : []),
+      counted('board', 'Board', `${p}/board`, o.here, o.counts, ['board'], 'board'),
+      plain('lines', 'Lines', `${p}?view=lines`, o.here, 'chart'),
+      ...linesGroup(o.projectId, o.lines ?? [], o.here, o.wsId).lines.map(l => ({ ...l, sub: true })),
+      plain('data', 'Numbers', `${p}?view=data`, o.here, 'chart'),
+      plain('wins', 'Wins', `${p}?view=wins`, o.here, 'chart'),
+      plain('snags', 'Evidence', `${p}?view=snags`, o.here, 'chart'),
+      ...(t.pareto ? [plain('pareto', 'Pareto', `${p}/pareto`, o.here, 'chart')] : []),
+      counted('materials', 'Materials', `${p}/materials`, o.here, o.counts, ['materials'], 'list'),
+    ];
+  }
+  return [
+    { lines: [upLine()] },
+    { label: o.name, lines: [job, ...own] },
+    { lines: [
+      plain('actions', 'Actions', `${p}/actions`, o.here, 'list'),
+      ...(o.model === 'commissioning' ? [counted('fixes', 'Problems', `${p}/fixes`, o.here, o.counts, ['fixes'], 'flag')] : [plain('problems', 'Problems', `/snags?project=${encodeURIComponent(o.projectId)}`, o.here, 'flag')]),
+      plain('tools', 'Tools', `${p}/tools`, o.here, 'chart'),
+    ] },
+    { foot: true, lines: [
+      { key: 'notes', label: 'Notes', to: `${p}/notes`, on: o.here === 'notes', state: 'n', bare: true, n: o.notes || undefined },
+      { key: 'reports', label: 'Reports', on: o.here === 'reports', state: 'n', bare: true },
+      plain('details', 'Details', `${p}/setup`, o.here),
+    ] },
+  ];
+}
+
+/** ＋ in the middle of a phone's bar: a new problem, where you are — one tap, as the
+ *  round button was (docs/STRUCTURE.md §5.3; D6). */
+export const plusLine = (): RailLine => ({ key: 'plus', label: 'Problem', on: false, state: 'n', bare: true, icon: 'plus' });
+
+/** THE PHONE'S BAR, FIXED WITHIN A SCOPE (D6): the factory — Control room · Actions ·
+ *  ＋ · Problems · More; a line — Overview · Tools · ＋ · Problems · More; a project —
+ *  Overview · its main page (Plan, Fishbone or Tree) · ＋ · Actions · More. ＋ only for
+ *  somebody who may take a problem there. More is on when the page lives in the sheet. */
+export function scopeBar(kind: 'factory' | 'line' | 'project', groups: RailGroup[], model?: PlanModel, plus = true): RailLine[] {
   const all = groups.flatMap(g => g.lines);
   const by = (k: string) => all.find(l => l.key === k);
-  const home = by('home');
-  const job = by('job');
-  const main = groups.find(g => g.label === (model === 'commissioning' ? 'Work' : 'Method'))?.lines ?? [];
-  const inLine = all.find(l => l.on && (l.sub || l.key.startsWith('line:')));
-  /* A stage-gate job's bar carries the Plan — opening on the gate the job is
-     at — or the place it is on (docs/FLOW.md item 3; docs/STAGEGATE-UX.md). */
-  const at = model === 'commissioning' ? by('plan') : main[0];
-  const current = main.find(l => l.on && l.key !== 'fixes') ?? inLine ?? at;
-  const fourth = model === 'commissioning' ? by('fixes')
-    : (current?.key === 'board' ? by('materials') : by('board'));
-  /* each place once */
-  const five = [home, job, current, fourth].filter((l, i, all): l is RailLine => !!l && all.findIndex(x => x?.key === l.key) === i);
+  const two: (RailLine | undefined)[] = kind === 'factory' ? [by('home'), by('allactions')]
+    : kind === 'line' ? [by('overview'), by('tools')]
+      : [by('job'), by(model === 'commissioning' ? 'plan' : model === 'tree' ? 'tree' : 'fishbone') ?? by('board')];
+  const last = kind === 'project' ? by('actions') : kind === 'line' ? by('problems') : by('quicksnags');
+  const five = [...two, ...(plus ? [plusLine()] : []), last].filter((l): l is RailLine => !!l);
   const onBar = five.some(l => l.on);
   return [
-    ...five.map(l => ({ ...l, label: l.key === 'job' ? 'This project' : l.label })),
+    ...five.map(l => (l.key === 'job' ? { ...l, label: 'Overview' } : l)),
     { key: 'more', label: 'More', on: !onBar && all.some(l => l.on), state: 'n', icon: 'grip' },
   ];
+}
+
+/** WHICH PAGE OF ITS SCOPE a route is — the rail line that is on (docs/STRUCTURE.md §5.2). */
+export function hereIn(route: Route, scope: 'home' | 'factory' | 'line' | 'project'): string {
+  const tool = ['lineTools', 'studies', 'study', 'videos', 'videoStudy', 'talks', 'talk'].includes(route.name);
+  if (scope === 'line') {
+    if (route.name === 'lineHome') { const v = route.query.get('view'); return v && ['products', 'tools', 'projects', 'setup'].includes(v) ? v : 'overview'; }
+    if (route.name === 'quickSnags') return 'problems';
+    if (route.name === 'linePrograms') return 'programs';
+    if (route.name === 'lineTools' || route.name === 'lineStandards') return 'products';
+    if (tool) return 'tools';
+    if (route.wsId) return 'logs';
+    return '';
+  }
+  if (scope === 'project') {
+    if (route.name === 'projectTools' || tool || route.name === 'lineStandards') return 'tools';
+    if (route.name === 'quickSnags') return 'problems';
+    return hereOf(route);
+  }
+  if (tool || route.name === 'tools') return 'tools';
+  return hereOf(route);
 }

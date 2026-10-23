@@ -16,6 +16,7 @@
  * The page answers, in order: where the line is (its problems, the late in
  * red), and what to do next (take a problem; open a tool on this line). */
 import { APP_TOOLS } from '../catalogue/registry';
+import { MoreMenu } from '../ui/parts';
 import { LineTour } from '../ui/LineTour';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { nav } from '../state/useRoute';
@@ -110,7 +111,12 @@ export function stopsOf(obs: Observation[]): { n: number; minutes: number; worst
 /** Where each of a product's four answers is given, on this line. */
 const READY_TO: Record<ReadyKey, string> = { program: '/programs', standard: '/standards', capacity: '/balances', changeover: '/smed' };
 
-export function ProductionLineScreen({ wsId }: { wsId: string }) {
+/** A LINE'S PAGES (docs/STRUCTURE.md §5.1, B2): its overview — everything, as before — and, on
+ *  ?view=, one of its pages alone: its products, the tools used on it, its projects, its set-up. */
+export type LineView = 'overview' | 'products' | 'tools' | 'projects' | 'setup';
+export const LINE_VIEWS: readonly LineView[] = ['overview', 'products', 'tools', 'projects', 'setup'];
+
+export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string; view?: LineView }) {
   const [line, setLine] = useState<Workspace | null | undefined>(undefined);
   const [mine, setMine] = useState<Snag[]>([]);
   const [busy, setBusy] = useState(false);
@@ -255,6 +261,9 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
     window.setTimeout(() => setSaved(null), 2600);
   };
 
+  /* the overview is the whole page; a page of the line shows its own part alone */
+  const show = (k: LineView) => view === 'overview' || view === k;
+
   return (
     <div className="wrap pl">
       <header className="pace-head">
@@ -286,7 +295,7 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
           {may && <button type="button" className="btn btn-ghost" aria-expanded={editing} onClick={() => setEditing(v => !v)}>{editing ? 'Done' : 'Edit the line'}</button>}
         </div>
       </header>
-      {editing && may && (
+      {(editing || view === 'setup') && may && (
         <div className="pl-edit" role="group" aria-label="Edit the line">
           <label className="pl-edit-f"><span>Name</span>
             <input className="text-input" defaultValue={line.name} maxLength={80} aria-label="The line's name"
@@ -309,12 +318,12 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
 
 
       {/* WHERE IT STANDS, COUNTED (lib/lineLean) — the tiles its report prints */}
-      {reading && <LeanTiles tiles={lineTiles(reading)} className="pl-tiles" />}
+      {show('overview') && reading && <LeanTiles tiles={lineTiles(reading)} className="pl-tiles" />}
 
       {/* THE LINE, MACHINE BY MACHINE — the tour, read in seconds (ui/LineTour) */}
-      {kit && <LineTour line={line} machines={kit.machines.map(m => m.name)} rows={rows} snags={mine} obs={obs} standards={standards} />}
+      {show('overview') && kit && <LineTour line={line} machines={kit.machines.map(m => m.name)} rows={rows} snags={mine} obs={obs} standards={standards} />}
 
-      <section className="pl-sec" aria-label="Problems on this line">
+      {show('overview') && (<section className="pl-sec" aria-label="Problems on this line">
         <div className="pl-sec-h">
           <h2>Problems</h2>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/snags?line=${encodeURIComponent(wsId)}`)}>Every problem on this line ›</button>
@@ -339,13 +348,13 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
               ))}
             </ul>
           )}
-      </section>
+      </section>)}
 
       {/* ITS MACHINES, IN FLOW ORDER (Stage 2) — the line's list, the one every
           picker reads (the stopwatch, the walk, a problem), each with who made it
           and its programs; a machine a job brought in says which job. Named here
           or in Set up the line, where the order and the names are changed. */}
-      <section className="pl-sec" aria-label="Machines on this line">
+      {(show('overview') || view === 'setup') && (<section className="pl-sec" aria-label="Machines on this line">
         <div className="pl-sec-h">
           <h2>Machines</h2>
           {may && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSettingUp(true)}>Order and names ›</button>}
@@ -368,14 +377,14 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
             <button type="button" className="btn" disabled={!mName.trim()} onClick={() => void addMachineToLine(line.id, mName, mOem).then(() => { setMName(''); setMOem(''); })}>Add the machine</button>
           </div>
         )}
-      </section>
+      </section>)}
 
       {/* ITS PRODUCTS, READY OR NOT (BLUEPRINT §3, Stage 3) — a row a
           product: its program proved? its line standard set? its capacity
           known? its changeover timed? Gaps amber, failures red, each with its
           word (lib/lineProducts); a tap opens the tool that answers it, on
           this line. */}
-      <section className="pl-sec" aria-label="Products on this line">
+      {show('products') && (<section className="pl-sec" aria-label="Products on this line">
         <div className="pl-sec-h">
           <h2>Products</h2>
           {products.rows.length > 0 && <span className="pl-sec-aside sub">{productsSaid(products).map((x, i) => (x.tone ? <b key={i} className={'is-' + x.tone}>{x.text}</b> : <span key={i}>{x.text}</span>))}</span>}
@@ -400,12 +409,12 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
               ))}
             </div>
           )}
-      </section>
+      </section>)}
 
       {/* ITS PROGRAMS (Stage 2) — planned and proved, the line's own and its
           jobs', no job needed: the late first, then what is coming. Planned and
           changed on Programs, which opens on this line. */}
-      <section className="pl-sec" aria-label="Programs on this line">
+      {show('overview') && (<section className="pl-sec" aria-label="Programs on this line">
         <div className="pl-sec-h">
           <h2>Programs</h2>
           <span className="pl-sec-acts">
@@ -441,10 +450,13 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
               </ul>
             </>
           )}
-      </section>
+      </section>)}
 
-      <section className="pl-sec" aria-label="Tools on this line">
-        <div className="pl-sec-h"><h2>Tools on this line</h2></div>
+      {show('tools') && (<section className="pl-sec" aria-label="Tools on this line">
+        <div className="pl-sec-h"><h2>Tools on this line</h2>
+          {/* NEW ▾ — a tool started here is this line's (src/catalogue/registry, docs/STRUCTURE.md §5.2) */}
+          {view === 'tools' && may && <MoreMenu label="New" items={APP_TOOLS.filter(t => t.kind === 'study' || t.kind === 'document').map(t => ({ label: t.label, run: () => nav(`${t.to}?line=${encodeURIComponent(wsId)}`) }))} />}
+        </div>
         <ul className="pl-tools">
           {/* THE STOPWATCH AND ITS PARETO, FIRST — the floor's own tool, read
               from the line's stops as the tour reads them (lib/intelligence
@@ -473,13 +485,13 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
             );
           })}
         </ul>
-      </section>
+      </section>)}
 
 
       {/* THE JOBS ON THIS LINE (13 October: "assign everything to a
           production line") — every live project whose lines name it, each
           one tap to its own page; a job is started on this line from here. */}
-      <section className="pl-sec" aria-label="Projects on this line">
+      {show('projects') && (<section className="pl-sec" aria-label="Projects on this line">
         <div className="pl-sec-h">
           <h2>Projects on this line</h2>
           {may && <button type="button" className="btn btn-ghost btn-sm" onClick={() => nav(`/projects?new=1&line=${encodeURIComponent(wsId)}`)}>Start a project on this line ›</button>}
@@ -498,14 +510,14 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
               ))}
             </ul>
           )}
-      </section>
+      </section>)}
       {/* THE LINE — its facts, held by the factory (BLUEPRINT Stage 1: "the factory
           holds the line's facts"): its shifts and breaks, its crew and what it costs
           while it is down (its machines have a section of their own below). Set up the line opens the one
           editor for them (ui/StudySetupSheet) — the same the stopwatch's Set up opens,
           never a second copy. Read by the loss count (planned time, the £), capacity
           a shift and work sampling. */}
-      <section className="pl-sec" aria-label="The line">
+      {(show('overview') || view === 'setup') && (<section className="pl-sec" aria-label="The line">
         <div className="pl-sec-h">
           <h2>The line</h2>
           {may && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSettingUp(true)}>Set up the line ›</button>}
@@ -514,9 +526,9 @@ export function ProductionLineScreen({ wsId }: { wsId: string }) {
           <dt>Shifts</dt><dd className={facts.shifts ? '' : 'is-n'}>{facts.shifts ?? 'Not said yet — the loss count and capacity a shift need them'}</dd>
           <dt>Crew and cost</dt><dd className={facts.crew || facts.cost ? '' : 'is-n'}>{[facts.crew, facts.cost].filter(Boolean).join(' · ') || 'Not said yet — what a stop costs needs them'}</dd>
         </dl>
-      </section>
+      </section>)}
 
-      {reading && <LeanClosing closing={lineClosing(reading)} />}
+      {show('overview') && reading && <LeanClosing closing={lineClosing(reading)} />}
       {settingUp && <WorkspaceProvider wsId={wsId}><StudySetupSheet onClose={() => setSettingUp(false)} /></WorkspaceProvider>}
     </div>
   );

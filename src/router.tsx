@@ -53,6 +53,7 @@ const ChangeoverScreen = lazy(() => import('./screens/ChangeoverScreen').then(m 
 const ReliabilityScreen = lazy(() => import('./screens/ReliabilityScreen').then(m => ({ default: m.ReliabilityScreen })));
 /* the directory reads the whole catalogue — on its own, so it never weighs on the rest */
 const ToolsScreen = lazy(() => import('./screens/ToolsScreen').then(m => ({ default: m.ToolsScreen })));
+const ProjectToolsScreen = lazy(() => import('./screens/ProjectToolsScreen').then(m => ({ default: m.ProjectToolsScreen })));
 const PartsScreen = lazy(() => import('./screens/PartsScreen').then(m => ({ default: m.PartsScreen })));
 const SamplingScreen = lazy(() => import('./screens/SamplingScreen').then(m => ({ default: m.SamplingScreen })));
 const LossesScreen = lazy(() => import('./screens/LossesScreen').then(m => ({ default: m.LossesScreen })));
@@ -151,10 +152,14 @@ function app(route: Route) {
   /* ?line= opens a list on one line — from the line's own page; keyed on it, so a second line starts afresh;
      ?project= inside a project (lib/inProject), keyed on it too */
   if (route.name === 'quickSnags') return <QuickSnagsScreen key={route.query.get('line') ?? ''} />;
-  if (route.name === 'lineHome' && route.wsId) return <ProductionLineScreen key={route.wsId} wsId={route.wsId} />;
+  if (route.name === 'lineHome' && route.wsId) {
+    const v = route.query.get('view');
+    return <ProductionLineScreen key={route.wsId} wsId={route.wsId} view={v === 'products' || v === 'tools' || v === 'projects' || v === 'setup' ? v : 'overview'} />;
+  }
   if (route.name === 'factory') return <FactoryScreen />;
   if (route.name === 'allActions') return <EveryActionScreen />;
   if (route.name === 'tools') return <ToolsScreen />;
+  if (route.name === 'projectTools' && route.id) return <ProjectToolsScreen key={route.id} projectId={route.id} />;
   /* the parts page is the builders' — in development only; elsewhere the address is the front door */
   if (route.name === 'parts') return import.meta.env.DEV ? <PartsScreen /> : <StartScreen />;
   if (route.name === 'start') return <StartScreen />;

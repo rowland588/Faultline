@@ -99,7 +99,7 @@ say(`  it said: "${(toast2 ?? '').trim()}"`);
 say(`  screen: ${await shot('logged-bagger')} · Again? chips: ${JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('.cap-again .chip')].map(e => e.textContent.trim())))}`);
 
 say('STEP 7 — log a problem (the Problem button)');
-await tap('Problem', page.locator('.qs-fab'));
+await tap('Problem', page.locator('.nv-bar .nv-bi.is-plus'));
 await page.waitForTimeout(700);
 say(`  screen: ${await shot('problem-sheet')} · on screen: ${JSON.stringify(await see())}`);
 await type('what is wrong', page.locator('.qs textarea'), 'Guard on the bagger infeed is loose');

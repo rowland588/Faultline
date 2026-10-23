@@ -86,3 +86,20 @@ export function ControlRoomReports({ projects, onClose }: {
     </Sheet>
   );
 }
+
+/** A LINE'S PAPERS — its Reports in the line's rail (docs/STRUCTURE.md §5.2, B2): the doors the
+ *  control room's sheet gives each line, on their own. */
+export function LineReports({ line, onClose }: { line: { id: string; name: string }; onClose: () => void }) {
+  const go = (to: string) => { onClose(); nav(to); };
+  return (
+    <Sheet open onClose={onClose} title={`On paper — ${line.name}`}>
+      <div className="meet-reports">
+        <Door title={`Line report — ${line.name}`} says="The line on one page — its problems, its machines, its products ready or not, what its tools found, its projects. From the line's page." onClick={() => go(`/lines/${line.id}`)} />
+        <Door title={`${line.name} — its problems`} says="Its problems report, and a card for each problem, from the line's page." onClick={() => go(`/lines/${line.id}`)} />
+        <Door title={`One-page report — ${line.name}`} says="The week on this line in one page — lost time, where it went, the problems needing a push." onClick={() => go(`/w/${line.id}/report`)} />
+        <Door title={`Evidence cards — ${line.name}`} says="One page per problem on this line's walk, with its picture." onClick={() => go(`/w/${line.id}/snaglist`)} />
+      </div>
+    </Sheet>
+  );
+}
+

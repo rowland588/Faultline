@@ -4,6 +4,8 @@
  * products, the tools and the control room's pages, scored by how well the
  * typed letters match: the start of a word first, then anywhere, then the
  * letters in order. Pure. */
+import { APP_TOOLS } from '../catalogue/registry';
+
 export interface Place { kind: 'line' | 'job' | 'product' | 'tool' | 'page'; label: string; sub?: string; href: string }
 
 export const TOOL_PLACES: Place[] = [
@@ -12,15 +14,8 @@ export const TOOL_PLACES: Place[] = [
   { kind: 'page', label: 'Control room problems', href: '#/snags' },
   { kind: 'page', label: 'Your factory', href: '#/factory' },
   { kind: 'page', label: 'Programs', href: '#/programs' },
-  { kind: 'tool', label: 'Line balance', sub: 'each person’s work, timed against takt', href: '#/linebalance' },
-  { kind: 'tool', label: 'Line capacity', sub: 'what each line can make', href: '#/balances' },
-  { kind: 'tool', label: 'Line standard', sub: 'who stands where', href: '#/standards' },
-  { kind: 'tool', label: 'Loss count', sub: 'a shift’s losses', href: '#/losses' },
-  { kind: 'tool', label: 'SMED', sub: 'changeovers', href: '#/smed' },
-  { kind: 'tool', label: 'Value stream', href: '#/value-stream' },
-  { kind: 'tool', label: 'Work sampling', href: '#/sampling' },
-  { kind: 'tool', label: 'Reliability', href: '#/reliability' },
-  { kind: 'tool', label: 'Capability', href: '#/capability' },
+  /* the app's tools, from the catalogue (src/catalogue/registry) — one list, not a fourth copy */
+  ...APP_TOOLS.map(t => ({ kind: 'tool' as const, label: t.label, sub: t.onLine ?? t.says, href: `#${t.to}` })),
 ];
 
 /* letters NFD leaves whole — Ł, Ø, ß, Æ — written the plain way */

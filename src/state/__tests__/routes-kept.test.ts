@@ -33,7 +33,7 @@ const KEPT: [string, string, Record<string, string | undefined>?][] = [
   [`#/project/${P}/tree`, 'leverTree', { id: P }], [`#/project/${P}/board`, 'board', { id: P }],
   [`#/project/${P}/pareto`, 'pareto', { id: P }], [`#/project/${P}/fishbone`, 'fishbone', { id: P }],
   [`#/project/${P}/materials`, 'materials', { id: P }], [`#/project/${P}/actions`, 'actions', { id: P }],
-  [`#/project/${P}/programs`, 'programs', { id: P }], [`#/project/${P}/machine/m1`, 'machine', { id: P, lineId: 'm1' }],
+  [`#/project/${P}/programs`, 'programs', { id: P }], [`#/project/${P}/tools`, 'projectTools', { id: P }], [`#/project/${P}/machine/m1`, 'machine', { id: P, lineId: 'm1' }],
   [`#/project/${P}/report`, 'clientReport', { id: P }], [`#/project/${P}/notes`, 'notes', { id: P }],
   [`#/project/${P}/standard`, 'standard', { id: P }], [`#/project/${P}/standard/x1`, 'standard', { id: P, lineId: 'x1' }],
   [`#/project/${P}/fixes`, 'fixes', { id: P }], [`#/project/${P}/install`, 'install', { id: P }],

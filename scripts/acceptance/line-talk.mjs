@@ -345,7 +345,7 @@ ok(wide <= 1, '11 the phone: nothing off the side', `${wide}px`);
 const bar = await page.locator('.tk-bar').boundingBox();
 const foot = await page.locator('.nv-bar').boundingBox();
 ok(!!bar && !!foot && bar.y + bar.height <= foot.y + 1 && bar.y + bar.height >= foot.y - 30, '11 the phone: the box in reach, on the phone’s own bar', JSON.stringify({ bar, foot }));
-ok(await page.locator('.qs-fab').count() === 0 || !(await page.locator('.qs-fab').isVisible()), '11 the phone: nothing over the box');
+ok(await page.locator('.tk-box').evaluate(el => { const r = el.getBoundingClientRect(); const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!at && (el === at || el.contains(at)); }), '11 the phone: nothing over the box');
 const parts = await page.locator('.tk-type > :not([hidden])').evaluateAll(els => els.map(e => { const r = e.getBoundingClientRect(); return { c: e.className, l: Math.round(r.left), r: Math.round(r.right), w: Math.round(r.width) }; }));
 ok(parts.length === 4 && parts.every(p => p.l >= 0 && p.r <= 390) && parts.find(p => /tk-box/.test(p.c))?.w >= 150 && parts.filter(p => /tk-photo|tk-mic/.test(p.c)).every(p => p.w >= 44), '11 the phone: Photo, the box, the microphone and Send in one row, each big enough to tap', JSON.stringify(parts));
 await tapMic();
