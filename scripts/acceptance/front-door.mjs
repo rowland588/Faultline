@@ -89,7 +89,7 @@ await go('#/factory');
 await page.locator('li.fac-line[data-line="Line 9"]').getByRole('button', { name: 'Open ›' }).click(); await page.waitForTimeout(1200);
 ok(/#\/lines\//.test(page.url()), '3 a line opened from Lines', page.url());
 const ltabs = await tabs();
-ok(ltabs.join(' · ') === 'Overview · Problems · Programs · Products · Tools · Set up' && await tabOn() === 'Overview', '3 its own pages as tabs, Overview on', ltabs.join(' · '));
+ok(ltabs.join(' · ') === 'Overview · Problems · Programs · Tools · Set up' && await tabOn() === 'Overview', '3 its own pages as tabs, Overview on', ltabs.join(' · '));
 ok((await menu()).join(' · ') === MENU && (await lit()).join() === 'Factory', '3 the same menu, Factory lit', (await lit()).join());
 ok(/^Factory › Line 9/.test(await bar()), '3 the bar starts with the way back: ‹ Factory', await bar());
 await page.locator('.nv-tabs .nv-tab', { hasText: 'Programs' }).click(); await page.waitForTimeout(900);

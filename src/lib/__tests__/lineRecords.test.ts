@@ -173,7 +173,7 @@ describe('a project\'s stage-only programs on its line', () => {
     expect([r?.total, r?.says]).toEqual([1, '1 program · 0 done · 1 to do']);
   });
   it('the line\'s Overview tile says them beside its own, and when it has none', () => {
-    const base = { name: 'Line 7', problems: { open: 0, late: 0, critical: 0 }, products: { rows: [], ready: 0, failing: 0, withGaps: 0 } as unknown as LineReading['products'], stops: { n: 0, minutes: 0 }, day: { margin: null, missing: ['a speed'] } as unknown as LineReading['day'], jobs: 1 };
+    const base = { name: 'Line 7', problems: { open: 0, late: 0, critical: 0 }, stops: { n: 0, minutes: 0 }, day: { margin: null, missing: ['a speed'] } as unknown as LineReading['day'], jobs: 1 };
     const tile = (programs: LineReading['programs']) => lineTiles({ ...base, programs })[1];
     expect(tile({ n: 0, proved: 0, late: 0, onStage: 4 })).toMatchObject({ v: '—', of: '4 on a project’s Commission, on no Programs list yet' });
     expect(tile({ n: 3, proved: 1, late: 0, onStage: 2 }).of).toBe('of 3 · 2 more on a project’s Commission');

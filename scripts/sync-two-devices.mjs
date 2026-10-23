@@ -556,7 +556,7 @@ await run(1, 'the phone makes a whole stage-gate job; the laptop shows all of it
   await p.getByRole('button', { name: 'Add', exact: true }).click();
   await p.waitForTimeout(600);
   await p.locator('.pgr', { hasText: 'P-104 perforation' }).locator('.pgr-main').click();
-  await p.getByLabel('What it runs').fill('Perforated film 2kg');
+  await p.getByLabel(/^(A|Another) product it runs$/).fill('Perforated film 2kg');
   await p.locator('.pgr-form').getByRole('button', { name: 'Save', exact: true }).click();
   await p.waitForTimeout(500);
 

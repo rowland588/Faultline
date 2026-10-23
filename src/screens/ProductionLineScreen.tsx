@@ -29,7 +29,6 @@ import { StudySetupSheet } from '../ui/StudySetupSheet';
 import { PRIORITY_WORD, type Priority, type SnagRow, type SnagTone } from '../lib/snagsReport';
 import { headcount, inCapacityTool, inMapTool, thingsOf, type Standard } from '../lib/standard';
 import { lineProblems, lineProblemsSaid } from '../lib/lineWork';
-import { lineProducts, productsSaid, READY_ASKS, READY_KEYS, type ReadyKey } from '../lib/lineProducts';
 import { lineClosing, lineTiles, type LineReading } from '../lib/lineLean';
 import { lineDay } from '../lib/lineLoss';
 import { LeanClosing, LeanTiles } from '../ui/Lean';
@@ -114,13 +113,10 @@ export function stopsOf(obs: Observation[]): { n: number; minutes: number; worst
   return { n, minutes: mins, ...(worst && worst.min >= 1 ? { worst: worst.asset.trim() || 'whole line' } : {}), tone: 'n' as const, says: `${mins} min lost in ${n} stop${n === 1 ? '' : 's'}${worst && worst.min >= 1 ? ` — the ${worst.asset.trim() || 'whole line'} most, ${Math.round(worst.min)} min` : ''}` };
 }
 
-/** Where each of a product's four answers is given, on this line. */
-const READY_TO: Record<ReadyKey, string> = { program: '/programs', standard: '/standards', capacity: '/balances', changeover: '/smed' };
-
 /** A LINE'S PAGES (docs/STRUCTURE.md §5.1, B2): its overview — everything, as before — and, on
- *  ?view=, one of its pages alone: its products, the tools used on it, its projects, its set-up. */
-export type LineView = 'overview' | 'products' | 'tools' | 'projects' | 'setup';
-export const LINE_VIEWS: readonly LineView[] = ['overview', 'products', 'tools', 'projects', 'setup'];
+ *  ?view=, one of its pages alone: the tools used on it, its projects, its set-up. */
+export type LineView = 'overview' | 'tools' | 'projects' | 'setup';
+export const LINE_VIEWS: readonly LineView[] = ['overview', 'tools', 'projects', 'setup'];
 
 export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string; view?: LineView }) {
   const [line, setLine] = useState<Workspace | null | undefined>(undefined);
@@ -181,14 +177,11 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
   /* programs typed only on a project's Commission, on this line (23 October: "it's like you don't have any programs") */
   const floor = useJobFloor(useMemo(() => (line ? projectsOnLines([line.id], rec.jobLines, pid => rec.jobs.some(j => j.id === pid && !j.archivedAt)) : []), [line, rec.jobLines, rec.jobs]));
   const onStage = useMemo(() => (line ? stageOnlyByLine(floor.stageOnly ?? [], rec.machines, rec.jobLines).get(line.id) ?? [] : []), [line, floor, rec.machines, rec.jobLines]);
-  /* ITS PRODUCTS, READY OR NOT (BLUEPRINT Stage 3) — a row a product, the
-     four answers the floor asks before it runs one (lib/lineProducts) */
-  const products = useMemo(() => lineProducts({ programs: kit?.programs ?? [], standards, studies, today }), [kit, standards, studies, today]);
   /* THE LINE AS A LEAN PAGE (lib/lineLean) — the tiles and the closing line
      its page and its report both say */
   const reading: LineReading | undefined = line ? {
     name: line.name, problems: probs, programs: { n: kit?.programs.length ?? 0, proved: kit?.proved ?? 0, late: kit?.late ?? 0, onStage: onStage.length },
-    products, stops: { n: stops.n, minutes: stops.minutes, ...(stops.worst ? { worst: stops.worst } : {}) }, day: lineDay(line), jobs: jobIds.length,
+    stops: { n: stops.n, minutes: stops.minutes, ...(stops.worst ? { worst: stops.worst } : {}) }, day: lineDay(line), jobs: jobIds.length,
   } : undefined;
   const [mName, setMName] = useState('');
   const [mOem, setMOem] = useState('');
@@ -220,7 +213,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
     } finally { setBusy(false); }
   };
   /* THE LINE REPORT, ONE PAGE (BLUEPRINT §3, Stage 3) — the lean page on
-     paper: the tiles and closing line this page says, its products grid,
+     paper: the tiles and closing line this page says,
      what is open, its machines and programs to prove, what its tools found
      and its jobs' verdicts (lib/lineReportPdf). */
   const printLine = async () => {
@@ -382,38 +375,6 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
             <button type="button" className="btn" disabled={!mName.trim()} onClick={() => void addMachineToLine(line.id, mName, mOem).then(() => { setMName(''); setMOem(''); })}>Add the machine</button>
           </div>
         )}
-      </section>)}
-
-      {/* ITS PRODUCTS, READY OR NOT (BLUEPRINT §3, Stage 3) — a row a
-          product: its program proved? its line standard set? its capacity
-          known? its changeover timed? Gaps amber, failures red, each with its
-          word (lib/lineProducts); a tap opens the tool that answers it, on
-          this line. */}
-      {show('products') && (<section className="pl-sec" aria-label="Products on this line">
-        <div className="pl-sec-h">
-          <h2>Products</h2>
-          {products.rows.length > 0 && <span className="pl-sec-aside sub">{productsSaid(products).map((x, i) => (x.tone ? <b key={i} className={'is-' + x.tone}>{x.text}</b> : <span key={i}>{x.text}</span>))}</span>}
-        </div>
-        {products.rows.length === 0
-          ? <p className="sub">No product on this line yet. A product comes on when a program runs it, or a line standard or Line capacity is made for it.</p>
-          : (
-            <div className="pl-prods" role="table" aria-label="Each product, ready or not">
-              <div className="pl-prod is-head" role="row">
-                <span role="columnheader">Product</span>
-                {READY_KEYS.map(k => <span key={k} role="columnheader">{READY_ASKS[k]}</span>)}
-              </div>
-              {products.rows.map(p => (
-                <div key={p.name} className="pl-prod" role="row" data-product={p.name}>
-                  <b role="rowheader" className="pl-prod-name">{p.name}</b>
-                  {p.cells.map(c => (
-                    <button key={c.k} type="button" role="cell" className={'pl-ready is-' + c.tone} onClick={() => nav(`${READY_TO[c.k]}?line=${encodeURIComponent(wsId)}`)}>
-                      <span className="pl-ready-k">{READY_ASKS[c.k]}</span>{c.word}
-                    </button>
-                  ))}
-                </div>
-              ))}
-            </div>
-          )}
       </section>)}
 
       {/* ITS PROGRAMS (Stage 2) — planned and proved, the line's own and its

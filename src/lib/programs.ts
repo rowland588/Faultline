@@ -71,8 +71,11 @@ export interface Program {
   /** What it is — the name or number on the machine. The only field that must
    *  be filled in. */
   what: string;
-  /** What it runs — the product or film. This is what ties a program to the
-   *  material it needs, and it is how somebody recognises the row. */
+  /** The products it runs — one program often runs several (Rowland, 23
+   *  October: "a program 10 ... that does 4 products"). Kept as one text, the
+   *  products a comma apart, so every row, paper and sync that says "runs …"
+   *  says them all and an older program's one product is its first: read it
+   *  with productsOf, write it with productsText. */
   runs?: string;
   /** Which machine. Absent means the line itself — the same rule as a test. */
   assetId?: ID;
@@ -100,6 +103,19 @@ export interface Program {
 }
 
 export const live = (rows: Program[]): Program[] => rows.filter(p => !p.deletedAt);
+
+/** THE PRODUCTS A PROGRAM RUNS, each once, in the order given — its `runs` text
+ *  split at the commas (or semicolons, or lines) between them. */
+export function productsOf(runs: string | undefined): string[] {
+  const out: string[] = [];
+  for (const x of (runs ?? '').split(/\s*[,;\n]\s*/)) {
+    const t = x.trim().replace(/\s+/g, ' ');
+    if (t && !out.some(o => o.toLowerCase() === t.toLowerCase())) out.push(t);
+  }
+  return out;
+}
+/** The products back into the one text a program keeps — undefined for none. */
+export const productsText = (products: readonly string[]): string | undefined => productsOf(products.join(', ')).join(', ') || undefined;
 
 /** Where it has got to, read off the record rather than off the word.
  *

@@ -11031,33 +11031,10 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
   .home .pace-head { gap: 8px; }
 }
 /* a line's facts on its page (BLUEPRINT Stage 1) — a term and its words, the unsaid in grey */
-/* A LINE'S PRODUCTS, READY OR NOT (BLUEPRINT Stage 3, lib/lineProducts): a
-   row a product, its four answers each a tap to the tool that gives it —
-   done a quiet green wash, a gap amber, a failure red, a test ahead violet,
-   always with the word. On a phone a product is a card, each answer named. */
 .pl-sec-aside { font-size: var(--t-detail); }
 .pl-sec-aside .is-a { color: var(--st-a); }
 .pl-sec-aside .is-r { color: var(--st-r); }
-.pl-prods { display: grid; gap: 6px; }
-.pl-prod { display: grid; grid-template-columns: minmax(140px, 1.3fr) repeat(4, minmax(0, 1fr)); gap: 6px; align-items: stretch; }
-.pl-prod.is-head { font-size: var(--t-label, 11px); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); padding: 0 2px; }
-.pl-prod-name { align-self: center; overflow-wrap: anywhere; }
-.pl-ready { font: inherit; font-size: var(--t-detail); text-align: left; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; line-height: 1.3; overflow-wrap: anywhere; }
-.pl-ready-k { display: none; }
-.pl-ready.is-g { background: color-mix(in srgb, var(--st-g) 7%, var(--surface)); border-color: color-mix(in srgb, var(--st-g) 25%, var(--line)); color: var(--st-g); }
-.pl-ready.is-a { border-color: var(--st-a); color: var(--st-a); font-weight: 700; }
-.pl-ready.is-r { border: 2px solid var(--st-r); background: color-mix(in srgb, var(--st-r) 8%, var(--surface)); color: var(--st-r); font-weight: 700; }
-.pl-ready.is-w { border-color: color-mix(in srgb, var(--st-w) 45%, var(--line)); color: var(--st-w); }
-.pl-ready.is-n { color: var(--st-n-ink); }
-@media (max-width: 719px) {
-  .pl-prod.is-head { display: none; }
-  .pl-prod { grid-template-columns: 1fr 1fr; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
-  .pl-prod-name { grid-column: 1 / -1; }
-  .pl-ready-k { display: block; font-size: 11px; font-weight: 600; color: var(--muted); }
-}
 .pl-tiles { margin-top: 14px; }
-.fac-card-prods .is-a { color: var(--st-a); }
-.fac-card-prods .is-r { color: var(--st-r); }
 .pl-facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 .pl-facts dt { font-size: var(--t-detail); font-weight: 700; color: var(--ink-2); }
 .pl-facts dd { margin: 0; }
@@ -13727,7 +13704,7 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .vid-takt .field-label { width: 100%; }
 .vid-takt input.text-input { width: 96px; }
 .vid-findings { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
-.vid-findings li { padding: 6px 10px; border-radius: 8px; background: var(--paper, #f4f6f6); }
+.vid-findings li { padding: 6px 10px; border-radius: 8px; background: var(--surface-2, var(--line)); }
 .vid-findings li.is-proposed { border: 1px dashed var(--line); background: transparent; }
 .vid-ask { margin-top: 12px; display: grid; gap: 6px; }
 .vid-ask form { display: flex; gap: 6px; }
@@ -14207,3 +14184,14 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .home-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 18px; } .home-tools .sub { margin-right: 4px; }
 .nv-on { padding: 0 6px; }
 .nv-on .nv-on-line { padding: 4px 0; color: var(--brand); text-decoration: underline; text-underline-offset: 3px; }
+
+/* THE PRODUCTS A PROGRAM RUNS (ui/ProductsBox, 23 October) — a chip each with
+   its ×, and a box for the next. */
+.prods-box { display: grid; gap: 4px; min-width: 0; }
+.prods-box-h { font-size: var(--t-label); font-weight: 700; color: var(--muted); }
+.prods-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.prods-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font-size: var(--t-small); }
+.prods-x { border: 0; background: none; color: var(--muted); font: inherit; font-size: var(--t-h); line-height: 1; min-width: 28px; min-height: 28px; border-radius: 999px; cursor: pointer; }
+.prods-x:hover { color: var(--st-r); background: var(--surface-2, var(--line)); }
+.prods-add { display: flex; gap: 6px; align-items: center; }
+.prods-add input { flex: 1 1 auto; min-width: 0; min-height: 38px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; background: var(--surface); color: var(--ink); box-sizing: border-box; }

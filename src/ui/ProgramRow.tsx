@@ -46,6 +46,7 @@ import { isWholeDate } from './DateInput';
 import { offerUndo } from './Undo';
 import { ProgramTest, type FloorSay } from './ProgramTest';
 import { PartRun } from './StageParts';
+import { ProductsBox } from './ProductsBox';
 
 type TT = ReturnType<typeof useTesting>;
 
@@ -112,7 +113,7 @@ export function ProgramFields({ start, machines, withNote, onSave, onClose, onMo
   extra?: ReactNode;
 }) {
   const [d, setD] = useState(start);
-  const set = (k: keyof ProgramDraft) => (e: { target: { value: string } }) => setD({ ...d, [k]: e.target.value });
+  const set = (k: keyof ProgramDraft) => (e: { target: { value: string } }) => setD(x => ({ ...x, [k]: e.target.value }));
   return (
     <form className="pgr-form" onSubmit={e => { e.preventDefault(); void onSave(d); }}>
       <label className="spp-f spp-f-wide"><span>The program</span>
@@ -123,8 +124,7 @@ export function ProgramFields({ start, machines, withNote, onSave, onClose, onMo
             {machines.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
           </select></label>
       )}
-      <label className="spp-f"><span>What it runs</span>
-        <input value={d.runs} placeholder="Finest Red 2kg" aria-label="What it runs" onChange={set('runs')} /></label>
+      <ProductsBox value={d.runs} onChange={runs => setD(x => ({ ...x, runs }))} wide />
       <label className="spp-f"><span>Whose</span>
         <input value={d.who} placeholder="Ilapak UK" aria-label="Whose it is" onChange={set('who')} /></label>
       <label className="spp-f"><span>Test day</span>

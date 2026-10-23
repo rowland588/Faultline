@@ -836,3 +836,19 @@ B8's re-measuring is done here; the walk by Rowland and the team is theirs.
 | B6 | gate 34, with B5 and B7 | **Stops timed, the line's first log** (D8). The line study is named for what it is — *Stops timed*, with its line, at the top of its page — and its four screens are that page's views: Capture · Analyse · Evidence · Meeting as tabs, at a desk as on a phone (`screens/AppShell` StudyViews). They were four lines of the rail under Logs (a rail inside the rail; on a phone tabs since B2); the rail lights where the study sits instead — Logs on a line, the line on a 6M or lever-tree project, the Plan on a stage gate, which films its new line from Install (`ui/rail` STUDY_SCREENS, `ui/Frame`). Every address kept (`/w/:ws/capture`, `/analyse`, `/snaglist`, `/meeting`, and the old ones that land on them). |
 | One home, one menu | gate 34, with B5 and B6 | **Rowland, 23 October: "I literally start using it and I've got no idea where I am. I lose myself"** — the shape chosen, *one home, a fixed menu*, over the scope rails of B2. `#/` is the **Factory** page (the control room; `#/room` kept; `#/start`, `#/methods`, `#/design` land on it); the front door is gone — its three kinds of change are New project's, its tools a *Use a tool* row on the Factory page and the Tools library, its *Carry on where you were* and Line Talk on the Factory page (below the board on a phone, the answer first). The rail is one menu on every page — Factory · Projects · Problems · Actions · Tools, Reports at the foot — Factory lit inside a line, Projects inside a project (`ui/rail` menuGroups); the phone's bar the same five everywhere (`menuBar`; `scopeBar` taken off). A scope's own pages are tabs across the top (`scopeTabs` from lineGroups and projectGroups, `factoryTabs` for Overview · Lines · Programs) — a machine, a project's line, a line's logs and its projects folded under the tab they belong to, which lights. The context bar starts with the way back (‹ Factory, ‹ Projects) and says a project's lines, *on Line 7*, one tap each; the switcher no longer offers a Home. The journeys none longer (J1 7, J3 6 at a desk; J2 4, J4 10 on a phone), the inventory 597 on 53 pages, structure B2 rewritten to the menu (the same on every page, tabs within factory 3 · line 9 · project 18). Basics with it: a program test deleted where it sits with Undo (`ui/ProgramTest`), and its form folding the moment Save is pressed (it took a second or two with nothing said). |
 
+**23 October — the line's Products off; a program runs several products.**
+Rowland: *"I don't understand the tab products. What's its purpose?"* then
+*"You've invented products. We've got program. I test the program. The program
+is the product"* and *"one program could run multiple products ... a program 10
+... that does 4 products."* So the line's Products — its tab, its products-ready
+grid (`lib/lineProducts`, deleted), the tile, the count on the factory's line
+cards and Your factory's rows and paper, and the grid on the line report — came
+off. A line is Overview · Problems · Programs · Tools · Logs · Projects (8 and
+the way up; `structure.mjs` LIMIT 8); its line standards, balances and Line
+capacity open under its Tools, as they were listed there already. A program's
+*What it runs* is **Products it runs** (`ui/ProductsBox`): a chip each with its
+×, the next added with Enter or Add, what is typed kept on Save; kept as the one
+`runs` text, the products a comma apart (`lib/programs` productsOf,
+productsText), so every row, picker and paper that says "runs …" says them all
+and an older program's one product is its first — no schema change.
+`line-hub.mjs` proves it.
