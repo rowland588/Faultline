@@ -11,7 +11,7 @@ export type RouteName = 'home' | 'resume' | 'capture' | 'analyse' | 'present' | 
   | 'projects' | 'projectDashboard' | 'projectSetup' | 'projectLine' | 'paceReport' | 'leverTree' | 'board' | 'pareto' | 'fishbone'
   | 'testing' | 'test' | 'trialCard' | 'fixes' | 'actions' | 'allActions' | 'install' | 'gateSetup' | 'handover' | 'day' | 'plan' | 'materials' | 'programs' | 'machine' | 'standard' | 'notes' | 'clientReport'
   | 'share' | 'quickSnags' | 'lineStandards' | 'lineTools' | 'studies' | 'study' | 'lineHome' | 'factory' | 'linePrograms'
-  | 'videos' | 'videoStudy' | 'videoCheck' | 'start' | 'talks' | 'talk' | 'tools';
+  | 'videos' | 'videoStudy' | 'videoCheck' | 'start' | 'talks' | 'talk' | 'tools' | 'parts';
 
 export interface Route {
   name: RouteName;
@@ -101,6 +101,8 @@ export function parseRoute(hash: string): Route {
   if (segs[0] === 'actions') return { name: 'allActions', query };
   /* every tool Faultline has or could have, found by the problem (src/catalogue) */
   if (segs[0] === 'tools') return { name: 'tools', query };
+  /* THE PARTS every page is built from, on one page (docs/STRUCTURE.md §7) — in development */
+  if (segs[0] === 'parts') return { name: 'parts', query };
   if (segs[0] === 'talk') return segs[1] ? { name: 'talk', id: decodeURIComponent(segs[1]), query } : { name: 'talks', query };
   /* CAN THIS PHONE FILM A LONG STUDY? — the phone check, from Video studies
      (screens/VideoCheckScreen; docs/VIDEO-FEASIBILITY.md) */

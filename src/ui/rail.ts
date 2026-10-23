@@ -30,6 +30,7 @@
  * are outstanding. On a laptop the groups are the left rail; on a phone five
  * of the lines are the bar at the foot and the rest are the "More" sheet.
  */
+import { APP_TOOLS } from '../catalogue/registry';
 import type { Route } from '../state/useRoute';
 import type { PlanModel } from '../lib/planModel';
 import { inProject } from '../lib/inProject';
@@ -189,29 +190,12 @@ export const snagsPlace = (here: string): RailLine =>
  *  ... same principle: use independent or connect to project." Each is used
  *  on a line with no job, and attached to one when it is wanted (LINE_TOOLS.sql,
  *  screens/LineToolsScreen). The problems register sat first here; it went up
- *  under the control room (snagsPlace) — a problem is a record, not a tool. */
-export const toolPlaces = (here: string, projectId?: string): RailLine[] => ([
-  { key: 'linestandard', label: 'Line standard', to: '/standards', on: here === 'linestandard', state: 'n', bare: true, icon: 'people' },
-  /* The line balance — the people's work, timed at the line against takt, and what the bottleneck costs (17 October). */
-  { key: 'linework', label: 'Line balance', to: '/linebalance', on: here === 'linework', state: 'n', bare: true, icon: 'time' },
-  { key: 'linebalance', label: 'Line capacity', to: '/balances', on: here === 'linebalance', state: 'n', bare: true, icon: 'chart' },
-  /* The capability study — readings against agreed limits, Cpk out (docs/TOOLKIT.md, tool 1). */
-  { key: 'capability', label: 'Capability', to: '/capability', on: here === 'capability', state: 'n', bare: true, icon: 'hash' },
-  /* The value stream map — always a line's, the departments that touch it included, as a swimlane grid (tool 2). */
-  { key: 'valuestream', label: 'Value stream', to: '/value-stream', on: here === 'valuestream', state: 'n', bare: true, icon: 'route' },
-  /* SMED, quick changeover — Shingo's stages on a grid of who does what, the ladder to single-digit minutes, what the changeovers cost (tool 6). */
-  { key: 'changeover', label: 'SMED', to: '/smed', on: here === 'changeover', state: 'n', bare: true, icon: 'time' },
-  /* Work sampling — what people are doing at random moments of a shift, one tap per person, every share with its margin (tool 9). */
-  { key: 'sampling', label: 'Work sampling', to: '/sampling', on: here === 'sampling', state: 'n', bare: true, icon: 'people' },
-  /* A shift's losses by hand — two counts at the end of the shift and the stops already timed; the waterfall, in minutes and pounds (tool 7). */
-  { key: 'losses', label: 'Loss count', to: '/losses', on: here === 'losses', state: 'n', bare: true, icon: 'time' },
-  /* Reliability — a person at a machine, a watch started and stopped and a tap for each event: MTBF and the failure rate (tool 13). */
-  { key: 'reliability', label: 'Reliability', to: '/reliability', on: here === 'reliability', state: 'n', bare: true, icon: 'machine' },
-  /* A video study — footage of the line read for the work at each station, reviewed, worked out as a line balance (docs/VIDEO.md). */
-  { key: 'video', label: 'Video study', to: '/video', on: here === 'video', state: 'n', bare: true, icon: 'camera' },
-  /* Line Talk — talk on the line, every word heard and kept, carried on like a chat (docs/LINE-TALK.md): the AI tool */
-  { key: 'talk', label: 'Line Talk', to: '/talk', on: here === 'talk', state: 'n', bare: true, icon: 'mic' },
-] as RailLine[]).map(l => (projectId && l.to ? { ...l, to: inProject(l.to, projectId) } : l));
+ *  under the control room (snagsPlace) — a problem is a record, not a tool.
+ *  Read from the catalogue since 23 October (src/catalogue/registry — what
+ *  each one is for is its entry's), in the floor's order. */
+export const toolPlaces = (here: string, projectId?: string): RailLine[] => APP_TOOLS.map(t => ({
+  key: t.key, label: t.label, to: projectId ? inProject(t.to, projectId) : t.to, on: here === t.key, state: 'n', bare: true, icon: t.icon,
+}) as RailLine);
 
 /** THE TOOLS AS ONE GROUP, at the foot of every rail, under paper and
  *  details. Rowland, 10 October, on the flow audit (docs/FLOW.md item 3):

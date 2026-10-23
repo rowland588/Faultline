@@ -12,7 +12,8 @@ export const EQUIPMENT: Entry[] = [
     food: 'Micro-stops on a labeller, film breaks on a wrapper, weigher blockages.',
     depends: ['FC-059', 'FC-060', 'FC-061', 'FC-146'],
     complexity: 'L', value: 'high', valueWhy: 'A machine’s reliability measured by a person in minutes.',
-    status: 'available', form: 'tool', methods: ['maintenance.mtbf-failure-rate', 'stats.confidence-intervals'], scenarios: ['machine', 'new'], words: ['MTBF', 'stops per hour', 'failure rate', 'keeps stopping'],
+    status: 'available', form: 'tool', kind: 'study',
+    app: { key: 'reliability', label: 'Reliability', says: 'A machine watched running, a tap for each stop: MTBF and the failure rate, with their bounds', onLine: 'a machine watched running: MTBF and the failure rate', reads: 'reliability', icon: 'machine', order: 9 }, methods: ['maintenance.mtbf-failure-rate', 'stats.confidence-intervals'], scenarios: ['machine', 'new'], words: ['MTBF', 'stops per hour', 'failure rate', 'keeps stopping'],
     built: { where: ['/reliability'], code: ['src/lib/ie/reliability.ts', 'src/screens/ReliabilityScreen.tsx'], tests: ['src/lib/ie/__tests__/reliability.test.ts'], acceptance: ['reliability.mjs'] },
     limits: ['No repair times, so no MTTR or availability (FC-059).'],
   },
@@ -38,7 +39,7 @@ export const EQUIPMENT: Entry[] = [
     food: 'Sealing jaw tapes, knives, conveyor belts.',
     depends: ['FC-058', 'FC-063'],
     complexity: 'M', value: 'medium', valueWhy: 'Turns breakdowns into a planned change.',
-    status: 'to-build', form: 'tool', methods: ['maintenance.weibull'], scenarios: ['machine'],
+    status: 'to-build', form: 'tool', kind: 'study', methods: ['maintenance.weibull'], scenarios: ['machine'],
   },
   {
     id: 'FC-061', name: 'Reliability growth during commissioning (Crow–AMSAA)', discipline: 'maintenance', sub: 'reliability',
@@ -62,7 +63,7 @@ export const EQUIPMENT: Entry[] = [
     food: 'Seal jaws, knives, belt tracking — joined to the hygiene clean.',
     depends: ['FC-063', 'FC-154', 'FC-234'],
     complexity: 'M', value: 'medium', valueWhy: 'Stops the slow decay that causes breakdowns.',
-    status: 'to-build', form: 'tool', methods: ['maintenance.autonomous-maintenance'], scenarios: ['machine', 'daily'], words: ['CILT', 'operator care', 'TPM'],
+    status: 'to-build', form: 'tool', kind: 'log', methods: ['maintenance.autonomous-maintenance'], scenarios: ['machine', 'daily'], words: ['CILT', 'operator care', 'TPM'],
   },
   {
     id: 'FC-063', name: 'Planned maintenance — due, done on time, and backlog', discipline: 'maintenance', sub: 'strategy',
@@ -74,7 +75,7 @@ export const EQUIPMENT: Entry[] = [
     food: 'Planned maintenance on non-production days.',
     depends: ['FC-060', 'FC-064'],
     complexity: 'M', value: 'medium', valueWhy: 'Most sites keep this in a CMMS; useful where they do not.',
-    status: 'to-build', form: 'tool', methods: ['maintenance.planned-maintenance'], scenarios: ['machine'],
+    status: 'to-build', form: 'tool', kind: 'register', methods: ['maintenance.planned-maintenance'], scenarios: ['machine'],
   },
   {
     id: 'FC-064', name: 'Equipment criticality ranking', discipline: 'maintenance', sub: 'strategy',
@@ -86,7 +87,7 @@ export const EQUIPMENT: Entry[] = [
     food: 'CCP equipment always class A.',
     depends: ['FC-065', 'FC-066'],
     complexity: 'S', value: 'medium', valueWhy: 'Directs scarce engineering time.',
-    status: 'to-build', form: 'tool', methods: ['maintenance.criticality'], scenarios: ['machine'],
+    status: 'to-build', form: 'tool', kind: 'register', methods: ['maintenance.criticality'], scenarios: ['machine'],
   },
   {
     id: 'FC-065', name: 'Reliability-centred maintenance', discipline: 'maintenance', sub: 'strategy',
@@ -134,7 +135,8 @@ export const EQUIPMENT: Entry[] = [
     food: 'Pack-size and film changes; allergen cleandowns; label changes.',
     depends: ['FC-069', 'FC-070', 'FC-071', 'FC-189'],
     complexity: 'L', value: 'high', valueWhy: 'Changeovers are often the biggest planned loss.',
-    status: 'available', form: 'tool', methods: ['changeover.smed', 'ie.ecrs'], scenarios: ['changeover', 'running', 'money'], words: ['changeover', 'set up', 'quick changeover'],
+    status: 'available', form: 'tool', kind: 'study',
+    app: { key: 'changeover', label: 'SMED', says: 'A changeover timed element by element, internal and external', onLine: 'a changeover timed and cut down', reads: 'changeover', icon: 'time', order: 6 }, methods: ['changeover.smed', 'ie.ecrs'], scenarios: ['changeover', 'running', 'money'], words: ['changeover', 'set up', 'quick changeover'],
     built: { where: ['/smed'], code: ['src/lib/ie/changeover.ts', 'src/screens/ChangeoverScreen.tsx'], tests: ['src/lib/ie/__tests__/changeover.test.ts'], acceptance: ['changeover.mjs'] },
   },
   {
@@ -161,7 +163,7 @@ export const EQUIPMENT: Entry[] = [
     food: 'Plain before sesame before nuts; light sauces before dark.',
     depends: ['FC-068', 'FC-171', 'FC-179'],
     complexity: 'M', value: 'high', valueWhy: 'Food’s changeover saving that SMED alone does not find.',
-    status: 'to-build', form: 'tool', methods: ['changeover.sequencing'], scenarios: ['changeover', 'planning', 'safety'], words: ['allergen order', 'sequence'],
+    status: 'to-build', form: 'tool', kind: 'standard', methods: ['changeover.sequencing'], scenarios: ['changeover', 'planning', 'safety'], words: ['allergen order', 'sequence'],
   },
   {
     id: 'FC-071', name: 'First-off release at changeover — line clearance and the first good pack', discipline: 'changeover', sub: 'release',
@@ -173,7 +175,7 @@ export const EQUIPMENT: Entry[] = [
     food: 'Retailer labels and allergen declarations at every product change.',
     depends: ['FC-068', 'FC-166', 'FC-092'],
     complexity: 'S', value: 'high', valueWhy: 'A wrong label is a recall; release time is hidden changeover time.',
-    status: 'to-build', form: 'tool', methods: ['changeover.first-off-release'], scenarios: ['changeover', 'safety', 'quality'], words: ['line clearance', 'positive release', 'first off'],
+    status: 'to-build', form: 'tool', kind: 'log', methods: ['changeover.first-off-release'], scenarios: ['changeover', 'safety', 'quality'], words: ['line clearance', 'positive release', 'first off'],
   },
   {
     id: 'FC-072', name: 'Cleandown changeovers by SMED — wet and dry cleans', discipline: 'changeover', sub: 'smed',
@@ -303,7 +305,7 @@ export const EQUIPMENT: Entry[] = [
     food: 'A walk of a new line before SAT; a daily walk of a packing hall.',
     depends: ['FC-154', 'FC-005'],
     complexity: 'M', value: 'high', valueWhy: 'Where Faultline began.',
-    status: 'available', form: 'tool', methods: ['visual.gemba-walk', 'visual.action-tracking'], scenarios: ['new', 'daily', 'running'], words: ['snags', 'punch list', 'walk'],
+    status: 'available', form: 'tool', kind: 'study', methods: ['visual.gemba-walk', 'visual.action-tracking'], scenarios: ['new', 'daily', 'running'], words: ['snags', 'punch list', 'walk'],
     built: { where: ['/snags'], code: ['src/screens/CaptureScreen.tsx', 'src/snag/QuickSnagsScreen.tsx'], tests: ['src/lib/__tests__/snagsReport.test.ts'], acceptance: ['snags.mjs', 'lines.mjs'] },
   },
   {

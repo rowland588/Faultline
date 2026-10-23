@@ -29,24 +29,13 @@ import { portfolio } from '../lib/portfolio';
 import { todayISO } from '../lib/weeks';
 import { MODELS, startHref } from '../lib/planModel';
 import { toolPlaces } from '../ui/rail';
+import { APP_TOOLS } from '../catalogue/registry';
 import { BuildStamp } from '../ui/BuildStamp';
 import { InstallPanel } from '../ui/InstallPanel';
 import { CloudPanel } from '../cloud/CloudPanel';
 
-/** What each tool is for, in a line. */
-const TOOL_SAYS: Record<string, string> = {
-  '/standards': 'Who does what where on the line, drawn as the line looks',
-  '/linebalance': 'People’s work timed against takt',
-  '/balances': 'What each station can make, which one limits the line, and what a pack costs in labour',
-  '/capability': 'A measurement against one limit or two, or pass or fail: Ppk and how sure, the checks before it, and what a pass proves',
-  '/value-stream': 'The line’s steps, waits and value, walked',
-  '/smed': 'A changeover timed element by element, internal and external',
-  '/sampling': 'What people are doing at random moments, with margins',
-  '/losses': 'Where a shift’s time went at the bottleneck’s speed, in packs and pounds',
-  '/reliability': 'A machine watched running, a tap for each stop: MTBF and the failure rate, with their bounds',
-  '/video': 'Film the line: the work at each station read from the footage, reviewed, worked out as a line balance',
-  '/talk': 'Talk or type on the line — your words come up as you speak — add photos, ask questions and ask for reports',
-};
+/** What each tool is for, in a line — its catalogue entry's (src/catalogue/registry). */
+const TOOL_SAYS: Record<string, string> = Object.fromEntries(APP_TOOLS.map(t => [t.to, t.says]));
 
 const plural = (n: number, one: string, more = `${one}s`) => `${n} ${n === 1 ? one : more}`;
 

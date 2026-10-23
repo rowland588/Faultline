@@ -18,7 +18,7 @@ const KEPT: [string, string, Record<string, string | undefined>?][] = [
   ['#/portfolio', 'portfolio'], ['#/projects', 'projects'], ['#/snags', 'quickSnags'],
   [`#/lines/${W}`, 'lineHome', { wsId: W }], ['#/factory', 'factory'], ['#/programs', 'linePrograms'],
   ['#/video', 'videos'], ['#/video/v1', 'videoStudy', { id: 'v1' }], ['#/video-check', 'videoCheck'],
-  ['#/actions', 'allActions'], ['#/tools', 'tools'], ['#/talk', 'talks'], ['#/talk/t1', 'talk', { id: 't1' }],
+  ['#/actions', 'allActions'], ['#/tools', 'tools'], ['#/parts', 'parts'], ['#/talk', 'talks'], ['#/talk/t1', 'talk', { id: 't1' }],
   ['#/standards', 'lineTools', { view: 'map' }], ['#/balances', 'lineTools', { view: 'balance' }], ['#/linebalance', 'lineTools', { view: 'work' }],
   ['#/value-stream', 'studies', { view: 'map' }], ['#/value-stream/s1', 'study', { view: 'map', id: 's1' }],
   ['#/sampling', 'studies', { view: 'sampling' }], ['#/sampling/s1', 'study', { view: 'sampling', id: 's1' }],

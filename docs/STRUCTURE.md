@@ -818,7 +818,15 @@ B7 calm and density → B8 the floor walk. Each live on its own, each meeting
 
 ## 20. Built — slice by slice
 
+Rowland, 23 October, while B0 was in its gate: *"Work out a way to complete
+the plan faster."* So the full gate still runs before every merge to `main`,
+but the slices reach `main` in four batches — B0, then B1 with B2, B3 with B4,
+and B5 to B7 — each slice its own commit, so one can be reverted alone; and
+the next batch is built in its own worktree while the gate checks the last.
+B8's re-measuring is done here; the walk by Rowland and the team is theirs.
+
 | | Live | What it did |
 |---|---|---|
 | B0 | (this commit) | The two defects: a row on *Actions* and *Every action* opens its record in the drawer (`ui/RecordDrawer` RECORD_ROUTES), and `actions.mjs` checks the drawer, not the address; a client is offered no Problem inside a project, and the sheet says so and holds Save for a project they may only read (`snag/QuickSnag` useCanTakeProblem). The guards: every address kept (`src/state/__tests__/routes-kept.test.ts`, 89 addresses); the journeys against their baseline (`scripts/journeys.mjs`); paper parity (`scripts/paper-parity.mjs`, report-stress `--repeatable` on live and on the change); `scripts/acceptance/structure.mjs`, the structure's own acceptance, from the client and team passes. |
+| B1 | (with B2) | The registry: every tool-shaped catalogue entry says its kind (study 28, standard 14, log 17, register 9, document 3) and where one starts, and the eleven a person can open say how they show (`src/catalogue/types` Kind, AppFace; `src/catalogue/registry` APP_TOOLS) — the rail, the front door and a line's page read them, their lists unchanged (`registry.test.ts`). The tokens completed (three used and never defined; spacing; the desk's tap size; the three breakpoints said). The ratchet (`src/ui/__tests__/ratchet.test.ts`) at today's counts. The parts (`src/ui/parts.tsx`: PageHeader, ReportMenu, MoreMenu, ViewTabs, FilterBar, Section, RecordRow, StateTag, BelongsTo, Tiles) on the parts page (`#/parts`, development), in the inventory; a menu opens across a phone above its bar. No page a person uses moved; `--t-small` now defined makes a few small labels 13.5px as they were meant (the capability chips, the directory's meta). |
 

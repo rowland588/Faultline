@@ -198,6 +198,18 @@ export const PAGES = (sd, cap) => [
     { what: 'the closing line', sel: '.ln-close' }] },
   { name: 'Actions — a 6M project', path: `#/project/${sd.pacedProjectId}/actions`, must: [
     { what: 'the tiles', sel: '.act-tiles .ln-tile', n: 6 }, { what: 'its actions', sel: '.act-li' }, { what: 'the closing line', sel: '.ln-close' }] },
+  /* the parts every page is built from (docs/STRUCTURE.md §7, B1, 23 October) — in development, photographed so a change to a part is seen before it ships */
+  { name: 'The parts', path: '#/parts', must: [
+    { what: 'the page header — one title, its state', sel: '.part-head h1 .part-tag' },
+    { what: 'Report ▾ and More ▾', sel: '.part-head .part-menu-b', n: 2 },
+    { what: 'the primary action', sel: '.part-head .btn-primary' },
+    { what: 'where it belongs', sel: '.part-belongs' },
+    { what: 'the tiles', sel: '.parts .ln-tile', n: 4 },
+    { what: 'the views', sel: '.part-views [role=tab]', n: 5 },
+    { what: 'the filters that are the counts', sel: '.part-filters .chip', n: 4 },
+    { what: 'a state in each of the five colours, with its word', sel: '.parts p .part-tag', n: 5 },
+    { what: 'the app\'s eleven tools, from the catalogue', sel: '.parts .part-row', n: 14 },
+  ] },
   { name: 'Every tool — the directory', path: '#/tools', must: [
     { what: 'the problem, asked first', sel: '.et-search input' },
     { what: 'the counts that are the filters — six statuses and All', sel: '.et-status .chip', n: 7 },

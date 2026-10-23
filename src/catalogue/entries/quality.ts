@@ -110,7 +110,7 @@ export const QUALITY: Entry[] = [
     food: 'Labelling, allergen control, sealing, metal detection.',
     depends: ['FC-133', 'FC-014', 'FC-168'],
     complexity: 'L', value: 'medium', valueWhy: 'Prevention, before failure.',
-    status: 'to-build', form: 'tool', methods: ['quality.fmea'], scenarios: ['quality', 'new'], words: ['FMEA', 'risk'],
+    status: 'to-build', form: 'tool', kind: 'register', methods: ['quality.fmea'], scenarios: ['quality', 'new'], words: ['FMEA', 'risk'],
   },
   {
     id: 'FC-133', name: 'Control plan — what is checked, how, how often, and what if not', discipline: 'quality', sub: 'risk',
@@ -122,7 +122,7 @@ export const QUALITY: Entry[] = [
     food: 'Weights, seals, codes, metal detection, temperatures.',
     depends: ['FC-132', 'FC-086', 'FC-169'],
     complexity: 'M', value: 'medium', valueWhy: 'The sustain step of every improvement.',
-    status: 'to-build', form: 'tool', methods: ['quality.control-plan'], scenarios: ['quality'],
+    status: 'to-build', form: 'tool', kind: 'standard', methods: ['quality.control-plan'], scenarios: ['quality'],
   },
   {
     id: 'FC-134', name: 'Complaints per million and their Pareto', discipline: 'quality', sub: 'customer',
@@ -146,7 +146,7 @@ export const QUALITY: Entry[] = [
     food: 'Holds after a missed metal-detector check or a label error.',
     depends: ['FC-170', 'FC-150'],
     complexity: 'S', value: 'medium', valueWhy: 'Hold costs are a large hidden loss.',
-    status: 'to-build', form: 'tool', methods: ['quality.nonconformance-hold'], scenarios: ['quality', 'safety'],
+    status: 'to-build', form: 'tool', kind: 'register', methods: ['quality.nonconformance-hold'], scenarios: ['quality', 'safety'],
   },
   {
     id: 'FC-136', name: 'Supplier quality — incoming checks and supplier PPM', discipline: 'quality', sub: 'customer',
@@ -170,7 +170,7 @@ export const QUALITY: Entry[] = [
     food: 'Ingredient substitutions; recipe changes.',
     depends: ['FC-121'],
     complexity: 'S', value: 'low', valueWhy: 'Specialist but cheap.',
-    status: 'to-build', form: 'tool', methods: ['quality.sensory-difference'], scenarios: ['quality'],
+    status: 'to-build', form: 'tool', kind: 'study', methods: ['quality.sensory-difference'], scenarios: ['quality'],
   },
   {
     id: 'FC-138', name: 'DMAIC as a kind of change', discipline: 'sixsigma', sub: 'dmaic',
@@ -270,7 +270,7 @@ export const QUALITY: Entry[] = [
     food: 'New pack design.',
     depends: ['FC-140'],
     complexity: 'L', value: 'low', valueWhy: 'For new products, not running lines.',
-    status: 'to-build', form: 'tool', methods: ['sixsigma.qfd'], scenarios: ['project'],
+    status: 'to-build', form: 'tool', kind: 'document', methods: ['sixsigma.qfd'], scenarios: ['project'],
   },
   {
     id: 'FC-146', name: '6M — a running line made to perform better', discipline: 'rca', sub: 'causes',
@@ -359,7 +359,7 @@ export const QUALITY: Entry[] = [
     food: 'How metal could reach a pack despite the detector.',
     depends: ['FC-132'],
     complexity: 'L', value: 'low', valueWhy: 'For serious, rare events.',
-    status: 'to-build', form: 'tool', methods: ['rca.fault-tree'], scenarios: ['safety'],
+    status: 'to-build', form: 'tool', kind: 'document', methods: ['rca.fault-tree'], scenarios: ['safety'],
   },
   {
     id: 'FC-153', name: 'Stratification — split the data to find where it lives', discipline: 'rca', sub: 'causes',
@@ -385,7 +385,7 @@ export const QUALITY: Entry[] = [
     food: 'A packing hall’s problems, on the control room’s page.',
     depends: ['FC-081', 'FC-194'],
     complexity: 'L', value: 'high', valueWhy: 'The page Rowland reports from.',
-    status: 'available', form: 'tool', methods: ['visual.action-tracking'], scenarios: ['daily', 'running', 'new'], words: ['problems', 'issues', 'snags', 'register'],
+    status: 'available', form: 'tool', kind: 'register', methods: ['visual.action-tracking'], scenarios: ['daily', 'running', 'new'], words: ['problems', 'issues', 'snags', 'register'],
     built: { where: ['/snags'], code: ['src/snag/QuickSnagsScreen.tsx', 'src/lib/snagsReport.ts'], tests: ['src/lib/__tests__/snagsReport.test.ts'], acceptance: ['snags.mjs'] },
   },
   {
@@ -446,7 +446,7 @@ export const QUALITY: Entry[] = [
     food: 'Peeling, trimming, cooking and chilling loss.',
     depends: ['FC-160', 'FC-161', 'FC-127'],
     complexity: 'M', value: 'high', valueWhy: 'Material is the biggest cost in food.',
-    status: 'to-build', form: 'tool', methods: ['yield.mass-balance-yield'], scenarios: ['money', 'running'], words: ['yield', 'mass balance', 'trim loss', 'cooking loss'],
+    status: 'to-build', form: 'tool', kind: 'study', methods: ['yield.mass-balance-yield'], scenarios: ['money', 'running'], words: ['yield', 'mass balance', 'trim loss', 'cooking loss'],
   },
   {
     id: 'FC-160', name: 'Material usage variance — ingredients and packaging', discipline: 'yield', sub: 'yield',
@@ -470,7 +470,7 @@ export const QUALITY: Entry[] = [
     food: 'Bakery overproduction; end-of-run waste.',
     depends: ['FC-159', 'FC-228'],
     complexity: 'S', value: 'medium', valueWhy: 'Cost and retailer reporting.',
-    status: 'to-build', form: 'tool', methods: ['yield.food-waste'], scenarios: ['money'],
+    status: 'to-build', form: 'tool', kind: 'study', methods: ['yield.food-waste'], scenarios: ['money'],
   },
   {
     id: 'FC-162', name: 'Sold by weight — the packers’ three rules (℮)', discipline: 'packaging', sub: 'weight',
@@ -508,7 +508,7 @@ export const QUALITY: Entry[] = [
     food: 'Every checkweigher on an ℮ line.',
     depends: ['FC-119', 'FC-100'],
     complexity: 'S', value: 'medium', valueWhy: 'Evidence an inspector asks for.',
-    status: 'to-build', form: 'tool', methods: ['packaging.checkweigher-verification'], scenarios: ['packing', 'quality'],
+    status: 'to-build', form: 'tool', kind: 'log', methods: ['packaging.checkweigher-verification'], scenarios: ['packing', 'quality'],
   },
   {
     id: 'FC-165', name: 'Seal integrity tests — leaks and seal strength', discipline: 'packaging', sub: 'seal',
@@ -532,7 +532,7 @@ export const QUALITY: Entry[] = [
     food: 'Retailer labels; use-by codes.',
     depends: ['FC-071', 'FC-014'],
     complexity: 'S', value: 'high', valueWhy: 'Label errors are the commonest recall cause.',
-    status: 'to-build', form: 'tool', methods: ['packaging.code-label-verification'], scenarios: ['packing', 'safety'], words: ['label check', 'date code', 'allergen label'],
+    status: 'to-build', form: 'tool', kind: 'log', methods: ['packaging.code-label-verification'], scenarios: ['packing', 'safety'], words: ['label check', 'date code', 'allergen label'],
   },
   {
     id: 'FC-167', name: 'Residual oxygen in modified-atmosphere packs', discipline: 'packaging', sub: 'gas',

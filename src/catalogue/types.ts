@@ -56,6 +56,46 @@ export const FORM_WORDS: Record<Form, string> = {
   workflow: 'a way through several tools', report: 'a report or board', research: 'decided after research',
 };
 
+/** HOW A TOOL'S RECORDS BEHAVE — its kind decides where they are listed in a scope, the words of
+ *  their lifecycle and how one is started (docs/STRUCTURE.md §14, approved 23 October). Every entry
+ *  of form 'tool' not left out has one; the catalogue's test refuses one without. */
+export type Kind =
+  | 'study'     // a dated measurement of one situation, with a verdict; repeated to prove a change
+  | 'standard'  // the agreed current way for a line and a product, versioned
+  | 'log'       // entries over time against a line, machine or schedule: a trend and what is due
+  | 'register'  // items with an owner, a state and a day — the work itself, feeding Actions
+  | 'document'  // composed for others to read
+  | 'board';    // owns nothing; reads the others, on the page whose data it reads
+
+export const KINDS: readonly Kind[] = ['study', 'standard', 'log', 'register', 'document', 'board'];
+
+/** Where a kind's records are listed in a scope — one page each (docs/STRUCTURE.md §5.1, §14). */
+export const KIND_PLACE: Record<Kind, string> = {
+  study: 'Tools', standard: 'Products', log: 'Logs', register: 'Problems and Actions', document: 'Tools', board: 'where its data is',
+};
+
+/** Where one is started: on no line at all, on a line, or on a line for one of its products. */
+export type Starts = 'anywhere' | 'line' | 'product';
+
+/** HOW A TOOL SHOWS IN THE APP — the catalogue is the one list of the app's tools (docs/STRUCTURE.md
+ *  §12: four hand-kept lists before 23 October). Only the tools a person can open have one. */
+export interface AppFace {
+  /** Its key in the frame (ui/rail `here`), kept so every route and test reads as before. */
+  key: string;
+  /** Its short name on screen — the rail, the front door, a line's page. */
+  label: string;
+  /** What it is for, in a line, on the front door. */
+  says: string;
+  /** What it is for on a line's page — absent when it is not listed there. */
+  onLine?: string;
+  /** The record whose latest the line's page reads for it. */
+  reads?: 'standard' | 'balance' | 'capability' | 'map' | 'changeover' | 'sampling' | 'losses' | 'reliability' | 'talk';
+  /** The rail's icon (ui/Icon). */
+  icon: string;
+  /** Its place in the list — the floor's order: who stands where, then the people, the machines, the studies, the camera, the talk. */
+  order: number;
+}
+
 export type Size = 'S' | 'M' | 'L' | 'XL';
 export type Value = 'high' | 'medium' | 'low';
 
@@ -148,6 +188,12 @@ export interface Entry {
   valueWhy: string;
   status: Status;
   form: Form;
+  /** How its records behave (form 'tool': required unless left out). */
+  kind?: Kind;
+  /** Where one is started, when it is not its kind's usual (lib registry startsOf). */
+  starts?: Starts;
+  /** How it shows in the app — only the tools a person can open. */
+  app?: AppFace;
   /** For a mode: the entry it is a mode of. */
   partOf?: string;
   /** The knowledge records behind it (knowledge/methods/<discipline>/<slug>.md ids). */

@@ -15,6 +15,7 @@
  *
  * The page answers, in order: where the line is (its problems, the late in
  * red), and what to do next (take a problem; open a tool on this line). */
+import { APP_TOOLS } from '../catalogue/registry';
 import { LineTour } from '../ui/LineTour';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { nav } from '../state/useRoute';
@@ -59,20 +60,11 @@ const TONE_CLASS: Record<SnagTone, string> = { g: 'is-g', r: 'is-r', w: 'is-w', 
 /* PRIORITY, RAG (Rowland, 12 October) — always with its word. */
 const PRIO_CLASS: Record<Priority, string> = { critical: 'is-r', high: 'is-a', low: 'is-g' };
 
-/** The tools, as the rail names them, each opened on this line. */
-export const TOOLS: { key: string; label: string; to: string; study?: StudyTool; standard?: true; what: string }[] = [
-  { key: 'linestandard', label: 'Line standard', to: '/standards', standard: true, what: 'who stands where, product by product' },
-  { key: 'linework', label: 'Line balance', to: '/linebalance', study: 'balance', what: 'what each person does, timed against takt, and what it costs' },
-  { key: 'linebalance', label: 'Line capacity', to: '/balances', standard: true, what: 'where the line is limited, and the V-curve' },
-  { key: 'capability', label: 'Capability', to: '/capability', study: 'capability', what: 'readings against the limits agreed' },
-  { key: 'valuestream', label: 'Value stream', to: '/value-stream', study: 'map', what: 'every step, who does it, the waits' },
-  { key: 'changeover', label: 'SMED', to: '/smed', study: 'changeover', what: 'a changeover timed and cut down' },
-  { key: 'sampling', label: 'Work sampling', to: '/sampling', study: 'sampling', what: 'what people are doing, at random moments' },
-  { key: 'losses', label: 'Loss count', to: '/losses', study: 'losses', what: 'a shift’s losses, in minutes and pounds' },
-  { key: 'reliability', label: 'Reliability', to: '/reliability', study: 'reliability', what: 'a machine watched running: MTBF and the failure rate' },
-  /* Line Talk — the AI tool (docs/LINE-TALK.md): talk on the line, every word heard and kept */
-  { key: 'talk', label: 'Line Talk', to: '/talk', study: 'talk', what: 'talk or type on the line, as in a chat — it answers and writes the reports' },
-];
+/** The tools, as the rail names them, each opened on this line — the catalogue's
+ *  (src/catalogue/registry), those it lists on a line, in the floor's order. */
+export const TOOLS: { key: string; label: string; to: string; study?: StudyTool; standard?: true; what: string }[] = APP_TOOLS
+  .filter(t => t.onLine && t.reads)
+  .map(t => ({ key: t.key, label: t.label, to: t.to, ...(t.reads === 'standard' ? { standard: true as const } : { study: t.reads as StudyTool }), what: t.onLine as string }));
 
 export type LineTool = typeof TOOLS[number];
 
