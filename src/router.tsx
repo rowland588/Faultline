@@ -43,6 +43,7 @@ const ClientReportScreen = lazy(() => import('./screens/ClientReportScreen').the
 const PaceExecReport = lazy(() => import('./screens/PaceExecReport').then(m => ({ default: m.PaceExecReport })));
 const QuickSnagsScreen = lazy(() => import('./snag/QuickSnagsScreen').then(m => ({ default: m.QuickSnagsScreen })));
 const ProductionLineScreen = lazy(() => import('./screens/ProductionLineScreen').then(m => ({ default: m.ProductionLineScreen })));
+const LineReportScreen = lazy(() => import('./screens/LineReportScreen').then(m => ({ default: m.LineReportScreen })));
 const FactoryScreen = lazy(() => import('./screens/FactoryScreen').then(m => ({ default: m.FactoryScreen })));
 const LineProgramsScreen = lazy(() => import('./screens/LineProgramsScreen').then(m => ({ default: m.LineProgramsScreen })));
 const LineToolsScreen = lazy(() => import('./screens/LineToolsScreen').then(m => ({ default: m.LineToolsScreen })));
@@ -151,6 +152,8 @@ function app(route: Route) {
   /* ?line= opens a list on one line — from the line's own page; keyed on it, so a second line starts afresh;
      ?project= inside a project (lib/inProject), keyed on it too */
   if (route.name === 'quickSnags') return <QuickSnagsScreen key={route.query.get('line') ?? ''} />;
+  /* THE LINE REPORT — EVERYTHING ON THE LINE (23 October, lib/lineBundle) */
+  if (route.name === 'lineReport' && route.wsId) return <LineReportScreen key={route.wsId} wsId={route.wsId} />;
   if (route.name === 'lineHome' && route.wsId) {
     const v = route.query.get('view');
     return <ProductionLineScreen key={route.wsId} wsId={route.wsId} view={v === 'tools' || v === 'projects' || v === 'setup' ? v : 'overview'} />;

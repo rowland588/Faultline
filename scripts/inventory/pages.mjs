@@ -44,6 +44,15 @@ export const PAGES = (sd, cap) => [
     /* the lean page (17 October, slice 5b; lib/factoryLean): the tiles — lines, problems open, late, a day of the factory in margin — and the closing line */
     { what: 'the tiles, a day of the factory among them', sel: '.fac .sg-tiles .ln-tile', n: 4 },
     { what: 'the closing line', sel: '.fac .ln-close' }] },
+  /* THE LINE REPORT — EVERYTHING ON THE LINE (23 October, lib/lineBundle, screens/LineReportScreen) */
+  { name: 'A line — its report, everything on the line', path: `#/lines/${sd.line7WsId}/report`, must: [
+    { what: 'the page header — Download the one primary', sel: '.lr .part-head .btn-primary', text: /^Download/ },
+    { what: 'a part — the line', sel: '.lr-part' },
+    { what: 'the one-page report\'s tiles on it', sel: '.lr-part .ln-tile', n: 4 },
+    { what: 'what goes in — a tick a tool record', sel: '.lr-tick input[type=checkbox]' },
+    { what: 'who owes what by when', sel: '.lr-h', text: /^Who owes what by when/ },
+    { what: 'the closing line', sel: '.lr .ln-close' },
+  ] },
   { name: 'A line — its own page', path: `#/lines/${sd.line7WsId}`, must: [
     { what: 'the line, machine by machine — the tour', sel: '.tour-says' },
     { what: 'a card a machine', sel: '.tour-card', n: 2 },

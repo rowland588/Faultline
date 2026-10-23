@@ -12,6 +12,9 @@
 import type { Workspace } from '../types';
 import { allPaceLines, projectWalkIds, putPaceLine } from '../db/pace';
 import { createWorkspace, listWorkspaces, updateWorkspace } from '../db/workspaces';
+import { listAllAssets, listAssets, putAsset } from '../db/testing';
+import { machineKey, machinesOnLine } from './lineRecords';
+import { listPrograms, putProgram } from '../db/programs';
 import { perHourWords } from './lineLoss';
 
 export const DEMO_NAME = 'Demo — Packing Hall';
@@ -120,6 +123,58 @@ export async function addLineToFactory(name: string, lineType?: string, taxonomy
 
 /** A project's short name for a factory line — "2A" for "Line 2A" — the key
  *  its numbers are kept under; typed over in Lines & people when wanted. */
+/** A PROJECT'S MACHINES AND PROGRAMS PINNED TO THEIR LINE (23 October — the
+ *  combined line report reads everything carrying the line's name). A
+ *  project's machine or program made with no line of its own stands on the
+ *  project's only factory line (lib/lineRecords lineOfMachine, lineOfProgram)
+ *  — until the project gets a second line, or loses that one, when it would
+ *  stand on none and drop out of its line's pages and papers. So before a
+ *  project's lines change, each one is given the line it stood on. Nothing
+ *  else moves; a project with several lines already, or none, is left. */
+export async function pinToProjectLine(projectId: string, lines: readonly { workspaceId?: string; deletedAt?: number }[]): Promise<number> {
+  const on = [...new Set(lines.filter(l => !l.deletedAt && l.workspaceId).map(l => l.workspaceId as string))];
+  if (on.length !== 1 || !projectId) return 0;
+  let n = 0;
+  for (const a of await listAssets(projectId)) if (!a.workspaceId) { await putAsset({ ...a, workspaceId: on[0] }); n++; }
+  for (const p of await listPrograms(projectId)) if (!p.workspaceId && !p.lineId) { await putProgram({ ...p, workspaceId: on[0] }); n++; }
+  return n;
+}
+
+/** A DUAL LINE AND ITS LINES (supabase/DUAL_LINES.sql — Rowland, 23 October:
+ *  "2a 2b are 2 lines but they happen to be a dual line"). For one line: the
+ *  live lines it is made of, and the live dual lines it is part of — each in
+ *  floor order. Archived or gone lines are left out; a line never names itself. */
+export function dualOf(line: Pick<Workspace, 'id' | 'madeOf'>, lines: readonly Workspace[]): { madeOf: Workspace[]; partOf: Workspace[] } {
+  const live = lines.filter(w => !w.archived && w.id !== line.id).slice().sort(byFloor);
+  return {
+    madeOf: live.filter(w => (line.madeOf ?? []).includes(w.id)),
+    partOf: live.filter(w => (w.madeOf ?? []).includes(line.id)),
+  };
+}
+/** "Line 2a + line 2b" — a dual line's lines in words. */
+export const linesSaid = (lines: readonly Pick<Workspace, 'name'>[]): string => lines.map(w => w.name).join(' + ');
+/** What a line says of its dual lines, in one phrase, or nothing: "made of
+ *  Line 2a + line 2b", "part of 2a 2b". */
+export function dualSaid(d: { madeOf: readonly Pick<Workspace, 'name'>[]; partOf: readonly Pick<Workspace, 'name'>[] }): string {
+  return [d.madeOf.length ? `made of ${linesSaid(d.madeOf)}` : '', d.partOf.length ? `part of ${d.partOf.map(w => w.name).join(' and ')}` : ''].filter(Boolean).join(' · ');
+}
+
+/** EVERY MACHINE IS ON A LINE (Rowland, 23 October: "Can't have a machine
+ *  without a line ... Everything needs to be under a line"). A machine named on
+ *  a tool, a problem or a walk, not yet on its line's list, joins the list — so
+ *  every tool's Machine box offers it from then on, under one name. Nothing
+ *  happens for a name already there (however it is cased), or no line. */
+export async function machineOntoLine(wsId: string | undefined, name: string | undefined): Promise<boolean> {
+  const n = (name ?? '').trim();
+  if (!wsId || !n) return false;
+  const [ws, assets, jobLines] = await Promise.all([listWorkspaces(), listAllAssets(), allPaceLines()]);
+  const w = ws.find(x => x.id === wsId);
+  /* already on the line — its own list, or a machine a project brought onto it (lib/lineRecords machinesOnLine) */
+  if (!w || machinesOnLine(w, assets, jobLines).some(m => machineKey(m.name) === machineKey(n))) return false;
+  await updateWorkspace({ ...w, assets: [...(w.assets ?? []), n] });
+  return true;
+}
+
 export function lineKey(name: string): string {
   const k = name.trim().replace(/^line\s+/i, '').trim();
   return (k || name.trim()).slice(0, 12);

@@ -117,7 +117,7 @@ export function hereOf(route: Route): string {
     case 'start': return 'start';
     case 'projects': return 'projects';
     case 'quickSnags': return 'quicksnags';
-    case 'lineHome': return `line:${route.wsId}`;
+    case 'lineHome': case 'lineReport': return `line:${route.wsId}`;
     case 'factory': return 'factory';
     case 'linePrograms': return 'lineprograms';
     case 'videos': case 'videoStudy': return 'video';
@@ -421,6 +421,7 @@ export function hereIn(route: Route, scope: 'home' | 'factory' | 'line' | 'proje
   const tool = ['lineTools', 'studies', 'study', 'videos', 'videoStudy', 'talks', 'talk'].includes(route.name);
   if (scope === 'line') {
     if (route.name === 'lineHome') { const v = route.query.get('view'); return v && ['tools', 'projects', 'setup'].includes(v) ? v : 'overview'; }
+    if (route.name === 'lineReport') return 'overview';
     if (route.name === 'quickSnags') return 'problems';
     if (route.name === 'linePrograms') return 'programs';
     if (tool || route.name === 'lineStandards') return 'tools';

@@ -34,7 +34,7 @@ import { InstallPanel } from '../ui/InstallPanel';
 import { useProjects } from '../lib/useProjects';
 import { inArchivedProject, listAllStudies, onDataChange, projectsOnWorkspace } from '../db';
 import { lineRates, rateShort, WEEK } from '../lib/intelligence';
-import { isDemo } from '../lib/lines';
+import { isDemo, dualOf, dualSaid } from '../lib/lines';
 import { factorySays, liveProductionLines, productionLines } from '../lib/lines';
 import { JobsBoard } from '../ui/JobsBoard';
 import { useLineRecords } from '../lib/useLineRecords';
@@ -293,6 +293,7 @@ export function WorkspaceHome() {
                     <b className="fac-card-name">{w.name}</b>
                     <span className="fac-card-type">{w.lineType || 'No type yet'}</span>
                     <span className="fac-card-meta">{contentsLabel(c)}{on ? ` · on ${on}` : ''}</span>
+                    {dualSaid(dualOf(w, prodLines)) && <span className="fac-card-meta fac-dual">{dualSaid(dualOf(w, prodLines))}</span>}
                     {rateOf[w.id] && <span className="fac-card-meta">{rateOf[w.id]}</span>}
                     {/* its programs not yet proved, the late in red (Stage 2) */}
                     {(() => { const k = lineKit(w, rec.machines, rec.programs, rec.jobLines); const todo = k.programs.length - k.proved;

@@ -16,6 +16,7 @@
  * receipt, so next month's edits cannot rewrite this month's claim. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getStudy, onDataChange, patchStudy } from '../db';
+import { machineOntoLine } from '../lib/lines';
 import { useAccess } from '../cloud/access';
 import { useSession } from '../cloud/session';
 import { displayName } from '../cloud/team';
@@ -125,13 +126,12 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
 function StudyMachine({ s }: { s: ToolStudy }) {
   const machines = useMachinesOf(s.workspaceId, s.projectId);
   const id = `ie-machines-${s.id}`;
-  const known = !s.machine || machines.some(m => m.trim().toLowerCase() === s.machine?.trim().toLowerCase());
+  /* a machine typed here joins its line's list (lib/lines machineOntoLine) — every machine is on a line */
   return (
     <>
       <DraftText className="text-input ie-machine" value={s.machine ?? ''} ariaLabel="Which machine it is of" placeholder="Which machine?" max={80} list={id}
-        onSave={v => void patchStudy(s.id, { machine: v.trim() || undefined })} />
+        onSave={v => void patchStudy(s.id, { machine: v.trim() || undefined }).then(() => machineOntoLine(s.workspaceId, v))} />
       <datalist id={id}>{machines.map(m => <option key={m} value={m} />)}</datalist>
-      {!known && machines.length > 0 && <span className="ie-machine-not"> — not one of the line&rsquo;s machines</span>}
       {' · '}
     </>
   );

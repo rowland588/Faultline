@@ -115,4 +115,57 @@ describe('merge two lines (BLUEPRINT §6.7, Stage 1)', () => {
     expect(f.short).toBe('2 shifts · 6 people');
     expect(lines.lineFacts({ ...w, shifts: [], crew: undefined, labourRatePerHour: undefined, assets: [] })).toEqual({});
   });
+  it('pins a project\'s machines and programs to its one line before its lines change, so none drops off the line', async () => {
+    const { db, lines } = await fresh();
+    const { lineOfMachine, lineOfProgram } = await import('../lib/lineRecords');
+    const a = await lines.addLineToFactory('Line 2a');
+    const b = await lines.addLineToFactory('Line 2b');
+    await db.addProject(job('p'));
+    await db.putPaceLine({ id: 'l1', projectId: 'p', key: '2A', name: 'Line 2A', workspaceId: a.id, updatedAt: 1 });
+    await db.putAsset({ id: 'm1', projectId: 'p', name: 'Pick and Place', sort: 1, createdAt: 1, updatedAt: 1 } as never);
+    await db.putProgram({ id: 'p1', projectId: 'p', what: 'Program 10', runs: 'All Rounder 2kg, Reds', state: 'needed', sort: 1, createdAt: 1, updatedAt: 1 });
+    /* a second line on the project: before it, both stood on Line 2a through the project's only line */
+    const before = await db.allPaceLines();
+    expect(lineOfMachine((await db.listAllAssets())[0], before)).toBe(a.id);
+    expect(await lines.pinToProjectLine('p', before)).toBe(2);
+    await db.putPaceLine({ id: 'l2', projectId: 'p', key: '2B', name: 'Line 2B', workspaceId: b.id, updatedAt: 2 });
+    const after = await db.allPaceLines();
+    expect(lineOfMachine((await db.listAllAssets())[0], after)).toBe(a.id);
+    expect(lineOfProgram((await db.listAllPrograms())[0], after)).toBe(a.id);
+    /* a project with several lines already is left as it is */
+    expect(await lines.pinToProjectLine('p', after)).toBe(0);
+  });
+  it('a dual line is made of other lines, each part of it, said in words; a machine typed on a tool joins its line\'s list', async () => {
+    const { db, lines } = await fresh();
+    const { machinesOf } = await import('../lib/lineRecords');
+    const a = await lines.addLineToFactory('Line 2a');
+    const b = await lines.addLineToFactory('line 2b');
+    const d = await lines.addLineToFactory('2a 2b');
+    const c = await lines.addLineToFactory('Line 3');
+    await db.updateWorkspace({ ...d, madeOf: [a.id, b.id] });
+    const all = await db.listWorkspaces();
+    const dd = all.find(w => w.id === d.id)!, aa = all.find(w => w.id === a.id)!, cc = all.find(w => w.id === c.id)!;
+    expect(lines.dualOf(dd, all).madeOf.map(w => w.name)).toEqual(['Line 2a', 'line 2b']);
+    expect(lines.dualOf(dd, all).partOf).toEqual([]);
+    expect(lines.dualOf(aa, all).partOf.map(w => w.name)).toEqual(['2a 2b']);
+    expect(lines.dualSaid(lines.dualOf(dd, all))).toBe('made of Line 2a + line 2b');
+    expect(lines.dualSaid(lines.dualOf(aa, all))).toBe('part of 2a 2b');
+    expect(lines.dualSaid(lines.dualOf(cc, all))).toBe('');
+    /* an archived line drops out of both answers; a line never names itself */
+    await db.updateWorkspace({ ...all.find(w => w.id === b.id)!, archived: true });
+    expect(lines.dualSaid(lines.dualOf(dd, await db.listWorkspaces()))).toBe('made of Line 2a');
+    /* every machine is on a line: typed on a tool, it joins the line's list once, however cased */
+    expect(await lines.machineOntoLine(a.id, 'Pick and Place')).toBe(true);
+    expect(await lines.machineOntoLine(a.id, ' pick AND place ')).toBe(false);
+    expect(await lines.machineOntoLine(undefined, 'Bagger')).toBe(false);
+    expect(await lines.machineOntoLine(a.id, '')).toBe(false);
+    const a2 = (await db.listWorkspaces()).find(w => w.id === a.id)!;
+    expect(a2.assets.filter(x => x === 'Pick and Place')).toHaveLength(1);
+    /* a dual line offers its lines' machines after its own, each once */
+    await db.updateWorkspace({ ...dd, assets: ['Whole line', 'Conveyor'] });
+    await db.updateWorkspace({ ...(await db.getWorkspace(b.id))!, archived: false, assets: ['Whole line', 'Bagger', 'Conveyor'] });   /* archived lines are not listed */
+    const now = await db.listWorkspaces();
+    expect(machinesOf(now.find(w => w.id === d.id)!, [], [], undefined, now)).toEqual(['Conveyor', 'Pick and Place', 'Bagger']);
+    expect(machinesOf(now.find(w => w.id === a.id)!, [], [], undefined, now)).toEqual(['Pick and Place']);
+  });
 });

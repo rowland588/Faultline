@@ -56,6 +56,11 @@ export interface Workspace {
    *  floor: the order lines are listed in everywhere (lib/lines). */
   lineType?: string;
   floorOrder?: number;
+  /** A DUAL LINE (supabase/DUAL_LINES.sql — Rowland, 23 October: "2a 2b are 2
+   *  lines but they happen to be a dual line"): the factory lines this line is
+   *  made of. Absent or empty: an ordinary line. Each of them says it is part
+   *  of this one (lib/lines dualOf). */
+  madeOf?: string[];
   schemaVersion: number; // starts at 1 (migration guard)
 }
 

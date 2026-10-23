@@ -703,16 +703,20 @@ await page.setViewportSize({ width: 1360, height: 900 });
   await main.getByLabel('Put it on which line').selectOption(WS); await page.waitForTimeout(1200);
   const box = main.getByLabel('Which machine it is of');
   const offered = await page.locator(`#ie-machines-${capId} option`).evaluateAll(els => els.map(e => e.getAttribute('value')));
-  const warned = flat(await main.locator('.ie-machine-not').innerText().catch(() => ''));
+  /* EVERY MACHINE IS ON A LINE (23 October, lib/lines machineOntoLine): the line's machines offered; one of them
+     picked and kept, the list unchanged; then a machine typed that the line does not list — it joins the list */
   await box.fill('Ishida checkweigher'); await box.press('Enter'); await page.waitForTimeout(900);
   const kept = await page.evaluate(async id => (await (await import('/src/db.ts')).getStudy(id))?.machine, capId);
-  ok(JSON.stringify(offered) === JSON.stringify(after) && warned.includes('not one of the line’s machines') && kept === 'Ishida checkweigher' && await main.locator('.ie-machine-not').count() === 0,
-    `14g a study put on the line: its typed machine said not one of the line's, the line's offered, one picked and kept (${kept})`);
+  ok(JSON.stringify(offered) === JSON.stringify(after) && kept === 'Ishida checkweigher' && JSON.stringify(await of(WS)) === JSON.stringify(after),
+    `14g a study put on the line: the line's machines offered, one picked and kept (${kept}), the list unchanged`);
+  await box.fill('Metal detector'); await box.press('Enter'); await page.waitForTimeout(900);
+  const joined = await of(WS);
+  ok(joined.length === after.length + 1 && joined.includes('Metal detector'), `14g2 a machine typed that the line does not list joins the line's list (${joined.length})`);
   /* a new study of a machine, started on the line, offers them */
   await go(`#/capability?line=${WS}`);
   await main.getByRole('button', { name: 'New capability study' }).first().click(); await page.waitForTimeout(600);
   const fresh = await page.locator('#new-study-machines option').evaluateAll(els => els.map(e => e.getAttribute('value')));
-  ok(JSON.stringify(fresh) === JSON.stringify(after), `14h a new study started on the line offers its machines (${fresh.length})`);
+  ok(JSON.stringify(fresh) === JSON.stringify(joined), `14h a new study started on the line offers its machines (${fresh.length})${JSON.stringify(fresh) === JSON.stringify(joined) ? '' : ` — offered ${fresh.join('|')} wanted ${joined.join('|')}`}`);
   await page.keyboard.press('Escape');
 }
 

@@ -23,6 +23,8 @@ export interface LineReportRow { what: string; meta: string; right: string; tone
 export interface LineReport {
   name: string;
   type?: string;
+  /** A dual line's lines, or the dual line this one is part of (lib/lines dualSaid): ["Made of", "Line 2a + line 2b"]. */
+  dual?: [string, string];
   printed: string;
   reading: LineReading;
   /** The line's problems as rows, priority order, late in red. */
@@ -40,7 +42,7 @@ const toneOf = (t?: string): ReadyTone => (t === 'r' || t === 'a' || t === 'g' |
 const CAP = { problems: 6, programs: 5, tools: 9 };
 
 /** A list of rows — what, its meta under it, a word on the right in its colour. */
-function listRows(list: LineReportRow[], cap: number, more: (n: number) => string): Block[] {
+export function listRows(list: LineReportRow[], cap: number, more: (n: number) => string): Block[] {
   const shown = list.slice(0, cap);
   const rightW = 130;
   const parts = (f: Frame, x: LineReportRow) => ({ what: wrap(f.doc, x.what, f.w - rightW - 8, 9, 'bold').slice(0, 2), meta: wrap(f.doc, x.meta, f.w - rightW - 8, 8).slice(0, 1) });
@@ -64,7 +66,7 @@ function listRows(list: LineReportRow[], cap: number, more: (n: number) => strin
 function blocksOf(r: LineReport, d: Density): Block[] {
   const out: Block[] = [];
   const page = bandPage(`PRODUCTION LINE${r.type ? ` · ${r.type.toUpperCase()}` : ''} · THE LINE REPORT`, { name: r.name }, undefined, undefined,
-    [['Projects on it', String(r.jobs.length)], ['Machines', r.machines ? String(r.machines.split(' → ').length) : '0']]);
+    [...(r.dual ? [r.dual] : []), ['Projects on it', String(r.jobs.length)], ['Machines', r.machines ? String(r.machines.split(' → ').length) : '0']]);
   const c = lineClosing(r.reading);
   out.push(leanBand({ ...page, verdict: { text: c.tone === 'r' ? 'Needs you' : c.tone === 'a' ? 'Gaps to close' : 'In hand', tone: c.tone } }, r.printed));
   out.push(leanTiles(lineTiles(r.reading)));

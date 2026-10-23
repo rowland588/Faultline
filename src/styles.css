@@ -14195,3 +14195,32 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .prods-x:hover { color: var(--st-r); background: var(--surface-2, var(--line)); }
 .prods-add { display: flex; gap: 6px; align-items: center; }
 .prods-add input { flex: 1 1 auto; min-width: 0; min-height: 38px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; background: var(--surface); color: var(--ink); box-sizing: border-box; }
+
+/* A DUAL LINE (lib/lines dualOf, 23 October) — "Made of Line 2a + line 2b" under the line's name, each a
+   link; Made of on Edit the line, a tick a line. */
+.pl-dual { margin: -6px 0 10px; }
+.pl-dual a { color: var(--brand); text-decoration: none; font-weight: 600; }
+.pl-madeof { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.pl-madeof legend { font-size: var(--t-label); font-weight: 700; color: var(--muted); padding: 0; margin-bottom: 2px; }
+.pl-madeof-l { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; font-size: var(--t-detail); }
+.pl-madeof-l input { width: 18px; height: 18px; }
+.fac-dual { color: var(--ink-2); }
+
+/* THE LINE REPORT — EVERYTHING ON THE LINE (screens/LineReportScreen, 23 October): a part a line, what goes in
+   ticked, where on the line a finding points, who owes what. */
+.lr-part { margin: 18px 0 0; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.lr-part > h2 { margin: 0 0 8px; font-size: var(--t-h); }
+.lr-h { margin: 14px 0 6px; font-size: var(--t-label); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.lr-ticks { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.lr-tick { display: grid; grid-template-columns: 24px 1fr; gap: 8px; align-items: start; min-height: 32px; padding: 4px 6px; border-radius: 8px; }
+.lr-tick:hover { background: var(--surface-2); }
+.lr-tick input { width: 18px; height: 18px; margin-top: 3px; }
+.lr-tick .sub { display: block; }
+.lr-where { display: grid; gap: 0; }
+.lr-where-row { display: grid; grid-template-columns: minmax(120px, 160px) 1fr; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); }
+.lr-find { display: block; font-size: var(--t-detail); }
+.lr-find i { font-style: normal; color: var(--muted); }
+.lr-find.is-r { color: var(--st-r); font-weight: 600; }
+.lr-find.is-a { color: var(--st-a); font-weight: 600; }
+.lr-said { margin: 8px 0 0; }
+@media (max-width: 719px) { .lr-where-row { grid-template-columns: 1fr; gap: 2px; } }

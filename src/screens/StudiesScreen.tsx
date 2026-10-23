@@ -12,7 +12,7 @@
  * One tool today, the capability study (docs/BUILD.md, 2d). Every later tool
  * is one more entry in TOOL_WORDS and one more `tool` on the record. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { asked } from '../lib/lines';
+import { asked, machineOntoLine } from '../lib/lines';
 import { listAllStudies, listObservations, listStandardsForLine, listWorkspaces, onDataChange, putStudy } from '../db';
 import { useFactoryLines } from '../lib/useFactoryLines';
 import { useInProject } from '../lib/useInProject';
@@ -369,6 +369,8 @@ function NewStudy({ open, tool, onClose, onLine, project }: { open: boolean; too
         ...(lineId ? { workspaceId: lineId } : {}), ...(project ? { projectId: project.id } : {}), ...(tool === 'map' ? { agreed: { map: { scope: 'line' as const } } } : {}), ...(std ? { standardId: std.id } : {}),
         facts: tool === 'losses' ? { losses: firstCount(lines.find(l => l.id === lineId)?.shifts ?? [], await rateForCount(lineId, std), t) } : {}, uses: [], startedAt: t, createdAt: t, updatedAt: t };
       await putStudy(s);
+      /* a machine typed here joins its line's list — every machine is on a line (lib/lines) */
+      if (!isLine && lineId) await machineOntoLine(lineId, machine);
       setName(''); setMachine(''); onClose();
       nav(studyHref(s));
     } finally { setBusy(false); }
