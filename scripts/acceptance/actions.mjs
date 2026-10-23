@@ -65,7 +65,9 @@ const truth = () => page.evaluate(async pid => {
   const today = W.todayISO();
   const project = await db.getProject(pid);
   const j = { project, tests: await db.listTests(pid), items: await db.listTestItems(pid), assets: await db.listAssets(pid), materials: await db.listMaterials(pid), programs: await db.listPrograms(pid), studies: await db.listStudies(pid) };
-  const owed = [...P.criticalItems(j), ...P.riskItems(j), ...P.jobItems(j, today)];
+  /* a stage-gate project's own board actions — its plans to use its tools (docs/JOURNEY.md, J2) — are owed too */
+  const own = P.pacedItems({ project, steps: await db.listPaceTodos(pid), lines: [], atTarget: 0, judged: 0 }, today);
+  const owed = [...P.criticalItems(j), ...P.riskItems(j), ...P.jobItems(j, today), ...own];
   const name = new Map((await db.listWorkspaces()).map(w => [w.id, w.name]));
   const reg = (await db.listAllSnags()).filter(s => s.projectId === pid && !s.deletedAt).map(s => ({ ...s, line: name.get(s.workspaceId) }));
   const rows = A.projectActions(owed, reg, pid, today);

@@ -262,3 +262,28 @@ is; Download makes it again with a different tick. The single reports stay.
 Not yet: a project's own cut of it (its work on its lines), and the Claude
 summary on the front — each its own slice, if asked for.
 
+## The journey report — any range of dates (23 October)
+
+Rowland: *"pick a range of reporting period ... from this date to that date
+... collate all the information between them two dates ... the entire history
+... it's the journey. It's all of it ... make a PDF and send it within that
+range, and change my ranges."*
+
+One model (`lib/journey`): the project between two dates, day by day — a
+stage-gate day as `lib/day` tells it, the board's actions and tool plans by
+the day done or due, the register's problems raised, due and closed, a
+study by the day it measured, the commentary a note on its day. The page
+(`screens/JourneyScreen`) and the paper (`lib/journeyPdf`) read the same
+reading for the same range, so the two never part. The paper is the lean
+page: the band (the project, the range, the counts), the tiles (done · still
+to do · late · planned), the tools we are using, the days in order — each
+line in the record's own words with the day's colour at its edge, the
+commentary as written — and the closing line; as many pages as the range
+needs, every page footed with the project and the range. Reached from the
+Journey's Report ▾ for the range shown, and from the project's Report ▾ and
+Reports for this week and next, made on arrival (`?save=1`). **This week and
+next** is one line (`weekLine`) the front page, the stage-gate status and
+client reports and the 6M status and client reports all print, so they say
+one thing. `report-stress` takes the journey at every size; `paper-parity`
+lists the four reports' new line as meant.
+

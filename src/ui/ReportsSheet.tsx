@@ -88,6 +88,8 @@ export function JobPapers({ project, onClose }: { project: Project; onClose: () 
              the old 3P words were not what it prints. */
           : 'For the client — the one-page status first (where the lines are, why, what is being done), then the full report: the gap, where the loss is, each problem’s fishbone in four parts, the board by bone, the walk.'}
           onClick={() => go(stageGate ? `/project/${project.id}/report` : `/pace-report?project=${project.id}`)} />
+        {/* THE JOURNEY REPORT (docs/JOURNEY.md, J3) — any range, picked on the Journey; this week and next from here */}
+        <Door title="Journey report" says="To whoever we report to — what we did day by day, what is next, your commentary, the tools we are using. This week and next from here; pick any range on the Journey." onClick={() => go(`/project/${project.id}/journey?save=1`)} />
         {perLine.length > 0 && (
           <div className={'meet-lines' + (byLine ? ' is-open' : '')}>
             <button type="button" className="meet-lines-h" aria-expanded={byLine} onClick={() => setByLine(o => !o)}>

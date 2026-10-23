@@ -14,6 +14,8 @@
  * out at exactly A3-landscape proportions, rendered to an image and dropped onto
  * an A3 page. What is on screen is what lands in the PDF. */
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useJourney } from '../lib/useJourney';
+import { weekLine } from '../lib/journey';
 import { usePdfPreview } from '../lib/usePdfPreview';
 import { nav, useRoute } from '../state/useRoute';
 import { MeasureChart } from '../charts/MeasureChart';
@@ -23,6 +25,7 @@ import { useImpacts } from '../lib/useImpacts';
 import { IMPACT_WORD } from '../lib/impact';
 import { useActions, WHOLE_PROJECT } from '../lib/actions';
 import { useProject } from '../lib/useProjects';
+import type { Project } from '../types';
 import { loadPdfLib, deliverPdf, isStaleBuildError, reloadOntoNewBuild } from '../lib/savePdf';
 import { pdfFileName } from '../lib/fileName';
 import { TreeStatic, useTreeNodes } from './TreeStatic';
@@ -849,7 +852,7 @@ export function PaceExecReport() {
   const lineId = route.query.get('line') || undefined;
   const { loading, project } = useProject(projectId);
   if (!loading && project && planModel(project) === 'board') {
-    return <SixMReportScreen projectId={projectId} lineId={lineId} name={project.name} lead={project.lead} />;
+    return <SixMReportScreen projectId={projectId} lineId={lineId} name={project.name} lead={project.lead} project={project} />;
   }
   return <PaceExecReportA3 />;
 }
@@ -864,8 +867,11 @@ async function sixmPdf(r: SixMReport, which: 'status' | 'full' = 'full'): Promis
 
 /* THE 6M CLIENT REPORT, ON SCREEN — what is on it in words, and the PDF
  * itself beside it on a desk, so the screen and the paper cannot disagree. */
-function SixMReportScreen({ projectId, lineId, name, lead }: { projectId: string; lineId?: string; name: string; lead?: string }) {
+function SixMReportScreen({ projectId, lineId, name, lead, project }: { projectId: string; lineId?: string; name: string; lead?: string; project: Project }) {
   const [loaded, setLoaded] = useState<LoadedProblems | null>(null);
+  /* THIS WEEK AND NEXT (lib/journey weekLine) — the line the front page says, on the status and the full report */
+  const jr = useJourney(project);
+  const week = useMemo(() => (jr ? weekLine(jr.input, jr.today, jr.started) : undefined), [jr]);
   const [todos, setTodos] = useState<PaceTodoRow[] | null>(null);
   const [report, setReport] = useState<SixMReport | null>(null);
   const [busy, setBusy] = useState(false);
@@ -902,11 +908,11 @@ function SixMReportScreen({ projectId, lineId, name, lead }: { projectId: string
     let alive = true;
     void import('../lib/sixmReportPdf').then(({ sixmReport }) => {
       const now = Date.now();
-      const r = sixmReport({ project: { name, lead }, data: loaded.data, problems: viewsOf(loaded, projectId, lineId, now), todos, lineId, now });
+      const r = sixmReport({ project: { name, lead }, data: loaded.data, problems: viewsOf(loaded, projectId, lineId, now), todos, lineId, now, ...(week ? { week } : {}) });
       if (alive) setReport(r);
     });
     return () => { alive = false; };
-  }, [loaded, todos, projectId, lineId, name, lead]);
+  }, [loaded, todos, projectId, lineId, name, lead, week]);
 
   /* The preview is the PDF itself, with the mark it leaves with — redrawn
      only when what is on it changes (lib/usePdfPreview). */

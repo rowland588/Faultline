@@ -194,6 +194,12 @@ function commentaryBlocks(c: ClientReport['commentary'], d: Density): Block[] {
   ];
 }
 
+/** THIS WEEK AND NEXT — one line, as the front page and the journey say it (lib/journey weekLine). */
+function weekBlocks(w: ClientReport['week'], d: Density): Block[] {
+  if (!w) return [];
+  return [text({ text: w.text, size: 9.5, style: 'bold', colour: w.tone === 'r' ? DANGER : w.tone === 'a' ? AMBER : INK2, after: gap(d, 'm') })];
+}
+
 function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPlan: (pages: number[]) => void): Block[] {
   const out: Block[] = [];
   const S = SIZE;
@@ -230,6 +236,7 @@ function blocksOf(r: ClientReport, extras: ClientReportExtras, d: Density, onPla
     if (l.rest.length) f.doc.text(l.rest, f.x + 14, y + 42);
     drawPace(f, ot.pace, otPace(f), l.rest.length ? y + 42 + (l.rest.length - 1) * 12 : y + 30);
   }, f => gap(f.density, 'm')));
+  out.push(...weekBlocks(r.week, d));
   out.push(...commentaryBlocks(r.commentary, d));
 
   /* CRITICAL ISSUES — straight under the answer, before anything else
@@ -822,6 +829,7 @@ export async function drawStatusReport(doc: jsPDF, report: ClientReport): Promis
       font(f.doc, 9.5, 'normal', INK2); f.doc.text(l, f.x + 14, y + 39);
       drawPace(f, ot.pace, otPace(f), y + 39 + (l.length - 1) * 12);
     }, f => gap(f.density, 'm')));
+    out.push(...weekBlocks(s.week, d));
     out.push(...commentaryBlocks(s.commentary, d));
     const gw = (f: Frame) => (f.w - 3 * 8) / 4;
     const gateLines = (f: Frame) => s.gates.map(g => wrap(f.doc, g.says || GATE_COLOUR[g.tone].word, gw(f) - 14, 8));

@@ -482,8 +482,8 @@ there and what replaces it.
 **The journey — any range of dates: what we did, what we are doing next**
 (Rowland, 23 October: "we all report to someone and they need to see what
 we have done and what we are doing next"; "pick a range of reporting period
-... the entire history ... it's the journey"; `docs/JOURNEY.md`; J1 — the
-record and the reader — built 23 October, the page and the paper to come). A page of every project (Journey, `?view=journey`) and one paper
+... the entire history ... it's the journey"; `docs/JOURNEY.md`; J1 the record
+and the reader, J2 the page and J3 the paper built 23 October). A page of every project (Journey, `?view=journey`) and one paper
 for a range Rowland picks — this week and next by default, the whole
 history at most: what we did read from the records day by day, what is due
 and booked from today on, the tools we will use ticked with what for — a

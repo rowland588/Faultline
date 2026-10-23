@@ -38,3 +38,6 @@ export const toolsOfKind = (kind: Kind): AppTool[] => APP_TOOLS.filter(t => t.ki
 
 /** An app tool by its key in the frame. */
 export const toolByKey = (key: string): AppTool | undefined => APP_TOOLS.find(t => t.key === key);
+
+/** A tool's word by its key — "Line capacity"; the key itself when no app tool has it. */
+export const toolLabel = (key: string): string => toolByKey(key)?.label ?? key;

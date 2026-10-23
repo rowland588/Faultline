@@ -22,6 +22,7 @@
  * on Board, the charts on Numbers, "Did it work?" on Wins, line balance on
  * Lines. The lenses (?view=) are pages under the project, as a gate is. */
 import { useEffect, useState, type ReactNode } from 'react';
+import { ThisWeekLine } from './JourneyScreen';
 import { Journey } from '../ui/Journey';
 import { openFold } from '../ui/Fold';
 import { live } from '../lib/testing';
@@ -588,13 +589,19 @@ function projectPapers(project: Project): Paper[] {
   if (model === 'commissioning') return [
     { label: 'Status report — 1 page', for: 'For the client — where it is, why it is not where it should be, what is being done', make: () => nav(savingAt(`/project/${project.id}/report`)) },
     { label: 'Client report — every detail', for: 'The full report: the gates, the plan, the fixes, who owes what', make: () => nav(savingAt(`/project/${project.id}/report?doc=full`)) },
+    journeyPaper(project),
   ];
   if (model === 'board') return [
     { label: 'Status report — 1 page', for: 'For the client — where the lines are, why, what is being done, who by when', make: () => nav(savingAt(`/pace-report?project=${project.id}`)) },
     { label: 'Client report — every detail', for: 'The gap, where the loss is, each problem beside its fishbone', make: () => nav(savingAt(`/pace-report?project=${project.id}&doc=full`)) },
+    journeyPaper(project),
   ];
-  return [{ label: 'Client report — A3', for: 'The outcome and what has to be true for it, the numbers, the board, the walk', make: () => nav(savingAt(`/pace-report?project=${project.id}`)) }];
+  return [{ label: 'Client report — A3', for: 'The outcome and what has to be true for it, the numbers, the board, the walk', make: () => nav(savingAt(`/pace-report?project=${project.id}`)) }, journeyPaper(project)];
 }
+
+/** THE JOURNEY REPORT (docs/JOURNEY.md, J3) — this week and next by default; the journey page picks any range. */
+const journeyPaper = (project: Project): Paper =>
+  ({ label: 'Journey report — this week and next', for: 'To whoever we report to — what we did, day by day, what is next, your commentary, the tools we are using; any other range from the Journey', make: () => nav(savingAt(`/project/${project.id}/journey`)) });
 
 const LENSES: { id: Lens; label: string; sub: string }[] = [
   { id: 'overview', label: 'Overview',   sub: 'the picture' },
@@ -978,6 +985,8 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
         )}
       </header>
       {(lens === 'overview' || model === 'commissioning') && <AccessNote can={can} owner={project.lead} />}
+      {/* THIS WEEK AND NEXT (docs/JOURNEY.md): done · still to do · planned, read by lib/journey, opening the journey on that range */}
+      {lens === 'overview' && <ThisWeekLine projectId={projectId} project={project} />}
 
 
       {/* THE OVERVIEW OF A COMMISSIONING JOB IS THE COMMISSIONING JOB.

@@ -47,6 +47,8 @@ export interface SixMStatus {
   /** The countermeasures still open, late first. */
   next: { what: string; who: string; when: string; late: boolean }[];
   nextMore: number;
+  /** This week and next, in one line (lib/journey weekLine). */
+  week?: SixMReport['week'];
 }
 
 /** How long each list may run before it says "and N more" — stepped down,
@@ -97,5 +99,6 @@ export function sixmStatus(r: SixMReport, limits = SIXM_STATUS_STEPS[0]): SixMSt
     why: why.slice(0, limits.why), whyMore: Math.max(0, why.length - limits.why),
     problems: problems.slice(0, limits.problems), problemsMore: Math.max(0, problems.length - limits.problems),
     next: next.slice(0, limits.next), nextMore: Math.max(0, next.length - limits.next),
+    ...(r.week ? { week: r.week } : {}),
   };
 }

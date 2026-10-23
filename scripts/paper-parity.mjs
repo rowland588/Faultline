@@ -25,8 +25,17 @@ if (!OLD || !NEW) { console.error('node scripts/paper-parity.mjs OLD NEW'); proc
 const MEANT = {
   /* pass or fail by a confidence level or an allowed loss (FC-100, 23 October: "we also want to be adding confidence as part of our
      language"): "that proves fewer than 32 in 100 would fail (95% sure)" is said "we can be 95% confident fewer than 32 in 100 would fail" */
-  'ordinary-client.pdf': 'pass or fail said with its confidence (FC-100, 23 October)',
+  'ordinary-client.pdf': 'pass or fail said with its confidence (FC-100, 23 October); This week and next (docs/JOURNEY.md J3)',
   'ordinary-commissioning.pdf': 'pass or fail said with its confidence (FC-100, 23 October)',
+  /* THIS WEEK AND NEXT (docs/JOURNEY.md, J3): one line — done · still to do (late) · planned — on the stage-gate status and
+     client reports and the 6M status and client reports, the line the project's front page says (lib/journey weekLine) */
+  'tiny-status.pdf': 'This week and next (docs/JOURNEY.md J3)', 'tiny-client.pdf': 'This week and next (docs/JOURNEY.md J3)',
+  'ordinary-status.pdf': 'This week and next (docs/JOURNEY.md J3)',
+  'huge-status.pdf': 'This week and next (docs/JOURNEY.md J3)', 'huge-client.pdf': 'This week and next (docs/JOURNEY.md J3)',
+  '6m-tiny-client.pdf': 'This week and next (docs/JOURNEY.md J3)', '6m-tiny-client-status.pdf': 'This week and next (docs/JOURNEY.md J3)',
+  '6m-tiny-line.pdf': 'This week and next (docs/JOURNEY.md J3)', '6m-tiny-line-status.pdf': 'This week and next (docs/JOURNEY.md J3)',
+  '6m-huge-client.pdf': 'This week and next (docs/JOURNEY.md J3)', '6m-huge-client-status.pdf': 'This week and next (docs/JOURNEY.md J3)',
+  '6m-huge-line.pdf': 'This week and next (docs/JOURNEY.md J3)', '6m-huge-line-status.pdf': 'This week and next (docs/JOURNEY.md J3)',
   'ordinary-day.pdf': 'pass or fail said with its confidence (FC-100, 23 October)',
   'ordinary-handover.pdf': 'pass or fail said with its confidence (FC-100, 23 October)',
   'ordinary-studies-capability.pdf': 'pass or fail said with its confidence (FC-100, 23 October)',

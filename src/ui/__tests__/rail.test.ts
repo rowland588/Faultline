@@ -151,9 +151,9 @@ describe('a project\'s rail: the way up, its overview and its type\'s own pages,
     testing: { n: 2, late: 1, done: 0 }, handover: { n: 0, late: 0, done: 2 }, fixes: { n: 4, late: 0, done: 1 },
   };
   const machines = [{ id: 'm1', name: 'Wrapper', state: 'r' as const, open: 3, late: 1 }, { id: 'm2', name: 'Coder', state: 'w' as const }];
-  it('a stage gate: Overview · Plan · its machines · Programs · Materials · The day · Actions · Problems · Tools · Notes · Reports · Details', () => {
+  it('a stage gate: Overview · Plan · its machines · Programs · Materials · The day · Journey · Actions · Problems · Tools · Notes · Reports · Details', () => {
     const g = projectGroups({ projectId: P, name: 'Line 2', model: 'commissioning', here: 'setup', counts, late: 3, machines });
-    expect(said(g)).toEqual(['Factory', 'Overview', 'Plan', 'Wrapper', 'Coder', 'Programs', 'Materials', 'The day', 'Actions', 'Problems', 'Tools', 'Notes', 'Reports', 'Details']);
+    expect(said(g)).toEqual(['Factory', 'Overview', 'Plan', 'Wrapper', 'Coder', 'Programs', 'Materials', 'The day', 'Journey', 'Actions', 'Problems', 'Tools', 'Notes', 'Reports', 'Details']);
     const plan = all(g).find(l => l.key === 'plan')!;
     expect([plan.on, plan.n, plan.late, plan.state, plan.to]).toEqual([true, 5, 3, 'r', `/project/${P}/install`]);
     expect(all(g).find(l => l.key === 'machine:m1')).toMatchObject({ n: 3, late: 1, state: 'r', sub: true });
@@ -167,7 +167,7 @@ describe('a project\'s rail: the way up, its overview and its type\'s own pages,
   });
   it('a 6M project: Fishbone first, then Board, Lines and each line, Numbers, Wins, Evidence, Materials', () => {
     const g = projectGroups({ projectId: P, name: 'Pace', model: 'board', here: 'fishbone', counts: { board: { n: 4, late: 1 } }, late: 1, lines: [{ id: 'l1', name: 'Line 7', workspaceId: 'w7', factoryName: 'Line 7' }] });
-    expect(said(g)).toEqual(['Factory', 'Overview', 'Fishbone', 'Board', 'Lines', 'Line 7', 'Results', 'Materials', 'Actions', 'Problems', 'Tools', 'Notes', 'Reports', 'Details']);
+    expect(said(g)).toEqual(['Factory', 'Overview', 'Fishbone', 'Board', 'Lines', 'Line 7', 'Results', 'Materials', 'Journey', 'Actions', 'Problems', 'Tools', 'Notes', 'Reports', 'Details']);
     expect(all(g).find(l => l.label === 'Line 7')?.to).toBe('/lines/w7');
     expect(all(g).find(l => l.key === 'problems')?.to).toBe(`/snags?project=${P}`);
   });
@@ -230,7 +230,7 @@ describe('a line\'s, a project\'s and the factory\'s own pages, as tabs', () => 
   it('a project: its pages without its machines folded under them', () => {
     const machines = [{ id: 'm1', name: 'Wrapper', state: 'r' as const }];
     expect(scopeTabs(projectGroups({ projectId: P, name: 'Line 2', model: 'commissioning', here: 'job', counts: {}, late: 0, machines })).map(l => l.label))
-      .toEqual(['Overview', 'Plan', 'Programs', 'Materials', 'The day', 'Actions', 'Problems', 'Tools', 'Notes', 'Details']);
+      .toEqual(['Overview', 'Plan', 'Programs', 'Materials', 'The day', 'Journey', 'Actions', 'Problems', 'Tools', 'Notes', 'Details']);
   });
   it('a page folded under a tab lights it: a machine its Plan, the line\'s logs its Tools', () => {
     const machines = [{ id: 'm1', name: 'Wrapper', state: 'r' as const }];

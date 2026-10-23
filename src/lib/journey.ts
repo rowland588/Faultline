@@ -19,7 +19,7 @@
  *
  * Nothing is written by AI: every line is a record's own words. */
 import type { PaceTodoRow } from '../db/rows';
-import { toolByKey } from '../catalogue/registry';
+import { toolByKey, toolLabel } from '../catalogue/registry';
 import { dayOf, type DayInput, type DayLine, type DayTone } from './day';
 import type { LeanTile, LeanTone } from './lean';
 import { dayOfNote } from './noteScope';
@@ -225,7 +225,7 @@ const short = (iso: string): string => niceDay(iso);
 const who = (w?: string) => (w?.trim() ? ` (${w.trim()})` : '');
 
 /** The tool a plan names, in the catalogue's word — "Line capacity". */
-export const toolWord = (key: string): string => toolByKey(key)?.label ?? key;
+export const toolWord = toolLabel;
 
 /** A plan to use a tool, or any other action, by the day it was done or is due. */
 function stepLines(steps: readonly PaceTodoRow[], date: string, today: string): JourneyLine[] {
@@ -308,6 +308,21 @@ export function journeyClosing(j: Journey, project: string, today: string = toda
   const nothing = !c.done && !c.toDo && !c.planned && !c.wrong;
   const text = nothing ? `${project}, ${rangeLabel(j.range, today)}: nothing recorded.` : `${project}, ${rangeLabel(j.range, today)}: ${bits.join(', ')}.`;
   return { text, tone: c.late ? 'r' : c.toDo ? 'a' : nothing ? 'n' : 'g' };
+}
+
+/* ------------------------------ this week and next ------------------------- */
+
+/** THIS WEEK AND NEXT in one line — the project's front page, the status
+ *  and client reports and the 6M report all say it from here, so they say
+ *  one thing: "This week and next: 9 done · 8 still to do (5 late) · 10
+ *  planned." */
+export interface WeekLine { text: string; tone: LeanTone; range: Range }
+
+export function weekLine(input: JourneyInput, today: string = todayISO(), started?: string): WeekLine {
+  const range = rangeOf('thisAndNext', today, started);
+  const c = journeyOf(input, range, today).counts;
+  const toDo = c.toDo ? `${c.toDo} still to do${c.late ? ` (${c.late} late)` : ''}` : 'nothing still to do';
+  return { text: `This week and next: ${c.done} done · ${toDo} · ${c.planned} planned.`, tone: c.late ? 'r' : c.toDo ? 'a' : c.done || c.planned ? 'g' : 'n', range };
 }
 
 /* ------------------------------ the tool plans ----------------------------- */
