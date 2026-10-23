@@ -1,5 +1,5 @@
-/* WHERE YOU WERE, ON THIS DEVICE (docs/STRUCTURE.md §5.6, D4, B5) — Home is yours: it carries you back
- * to the places you were last, a project's or a line's page, without repeating the control room.
+/* WHERE YOU WERE, ON THIS DEVICE (docs/STRUCTURE.md §5.6, D4, B5) — the Factory page (the one home since
+ * 23 October) carries you back to the places you were last, a project's or a line's page.
  * Kept in this browser only (a convenience, never a record): the frame notes each place as it is
  * opened (ui/Frame), Home lists the last few. Nothing here is synced or shared. */
 
@@ -44,4 +44,11 @@ export function recentPlaces(): Place[] {
 
 export function notePlace(place: Place): void {
   try { localStorage.setItem(KEY, JSON.stringify(remember(recentPlaces(), place))); } catch { /* a private window — Home simply has none */ }
+}
+
+/** When a place was last open — "at 09:12" today, else the day. */
+export function lastOpen(at: number, today: string, niceDay: (iso: string) => string): string {
+  const d = new Date(at);
+  const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return day === today ? `at ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : niceDay(day);
 }

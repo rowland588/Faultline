@@ -48,7 +48,7 @@ import { toolByKey } from '../catalogue/registry';
 import { listAllSnags, allPaceLines } from '../db';
 import { useFactoryLines } from '../lib/useFactoryLines';
 import {
-  hereOf, hereIn, factoryGroups, lineGroups, projectGroups, scopeBar, STUDY_SCREENS,
+  hereOf, hereIn, factoryGroups, lineGroups, projectGroups, menuGroups, menuBar, scopeTabs, factoryTabs, FACTORY_PAGES, STUDY_SCREENS,
   type RailGroup, type RailLine, type RailLineOf, type RailMachine, type SquareState, type Count,
 } from './rail';
 
@@ -336,7 +336,7 @@ function FactoryNav({ projects, here, onPage }: { projects: Project[]; here: str
 /*  THE CHROME — the rail on a laptop, the bar and its sheet on a phone      */
 /* ------------------------------------------------------------------------- */
 
-function NavChrome({ groups, project, model, bar, home, kind = 'factory', line, onPage }: {
+function NavChrome({ groups, project, bar, home, kind = 'factory', line, onPage }: {
   groups: RailGroup[]; project?: Project; model?: PlanModel; bar?: RailLine[];
   /** Off a project: the control room's jobs, for its Reports. */
   home?: Project[];
@@ -348,15 +348,20 @@ function NavChrome({ groups, project, model, bar, home, kind = 'factory', line, 
 }) {
   /* ＋ on the bar only for somebody who may take a problem here (B0: never a client inside a project) */
   const may = useCanTakeProblem(project?.id);
-  const five = bar ?? scopeBar(kind, groups, model, may);
+  /* ONE MENU, NEVER CHANGING (23 October) — the scope's own pages are tabs across the top */
+  const all = groups.flatMap(g => g.lines);
+  const onKey = all.find(l => l.on && l.key !== 'up')?.key ?? '';
+  const menu = menuGroups(onKey, kind, kind === 'factory' ? all.find(l => l.key === 'projects')?.n ?? 0 : 0);
+  const five = bar ?? menuBar(menu, may);
+  const tabs = bar ? [] : kind === 'factory' ? (FACTORY_PAGES.has(onKey) ? factoryTabs(onKey) : []) : scopeTabs(groups);
   const [more, setMore] = useState(false);
   const [reports, setReports] = useState(false);
   /* Both close when the page under them changes — a sheet left open over a
      new screen is the old screen's. */
   const hash = useHash();
   useEffect(() => { setMore(false); setReports(false); }, [hash]);
-  const onKey = groups.flatMap(g => g.lines).filter(l => l.on).map(l => `${l.key}:${l.label}`).join(',');
-  useEffect(() => { onPage?.(groups); }, [onKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const onSaid = all.filter(l => l.on).map(l => `${l.key}:${l.label}`).join(',');
+  useEffect(() => { onPage?.(groups); }, [onSaid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const go = (l: RailLine) => {
     setMore(false);
@@ -368,10 +373,19 @@ function NavChrome({ groups, project, model, bar, home, kind = 'factory', line, 
 
   return (
     <>
-      <aside className="nv-rail" aria-label="Where you are">
-        <RailList groups={groups} go={go} />
+      <aside className="nv-rail" aria-label="Menu">
+        <RailList groups={bar ? [] : menu} go={go} />
       </aside>
-      <nav className="nv-bar" aria-label="Where you are">
+      {tabs.length > 0 && (
+        <nav className="nv-tabs" aria-label={`${kind === 'line' ? line?.name ?? 'This line' : kind === 'project' ? project?.name ?? 'This project' : 'The factory'} — its pages`}>
+          {tabs.map(l => (
+            <button key={l.key} type="button" className={'nv-tab' + (l.on ? ' is-on' : '')} onClick={() => go(l)} aria-current={l.on ? 'page' : undefined}>
+              {l.label}{!!l.n && <span className="nv-tab-n">{l.n}{!!l.late && <i> · {l.late} late</i>}{!!l.failed && <i> · {l.failed} failed</i>}</span>}
+            </button>
+          ))}
+        </nav>
+      )}
+      <nav className="nv-bar" aria-label="Menu">
         {five.map(l => (
           <button key={l.key} type="button" className={'nv-bi' + (l.on ? ' is-on' : '') + (l.key === 'plus' ? ' is-plus' : '')} onClick={() => go(l)}
             aria-current={l.on ? 'page' : undefined}
@@ -382,8 +396,8 @@ function NavChrome({ groups, project, model, bar, home, kind = 'factory', line, 
         ))}
       </nav>
       {more && (
-        <Sheet open onClose={() => setMore(false)} title={project?.name ?? line?.name ?? 'Factory'}>
-          <div className="nv-sheet"><RailList groups={groups} go={go} /></div>
+        <Sheet open onClose={() => setMore(false)} title="Menu">
+          <div className="nv-sheet"><RailList groups={menu} go={go} /></div>
         </Sheet>
       )}
       {reports && project && <ReportsSheet project={project} onClose={() => setReports(false)} />}

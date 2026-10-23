@@ -29,6 +29,7 @@ import type { Can } from '../lib/access';
 import { niceDay, todayISO } from '../lib/weeks';
 import { openRecord } from './RecordDrawer';
 import { offerUndo } from './Undo';
+import { Icon } from './Icon';
 
 type Ran = Extract<Outcome, 'passed' | 'failed' | 'notRun'>;
 /** How it went — a test's three outcomes, and, where the program is a line on
@@ -123,7 +124,6 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
     const before = tt.tests.find(t => t.id === id);
     await tt.patchTest(id, patch);
     const unsay = alsoFloor ? await alsoFloor() : undefined;
-    setOpen(false);
     /* Undo puts the test back first — so the program it proved is put
        back with it (followTest) — then takes away one made here, then the
        floor's status said with it. */
@@ -136,17 +136,24 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
     });
   };
   /* ONE TAP, ONE TEST: a double tap would plan two. */
+  /* SAVED IS CLOSED AT ONCE (Rowland, 23 October: "it never collapses on itself when I save it") — the
+     form folds the moment Save is pressed; the writes behind it took a second or two with nothing said,
+     and the row's new test and the Undo come when they are done. Opened again if the write fails. */
   const write = (patch: (cur: Test) => Partial<Test>, said: string, alsoFloor?: () => ReturnType<FloorSay>) => {
     if (busy.current) return;
     busy.current = true;
-    void answer(patch, said, alsoFloor).finally(() => { busy.current = false; });
+    setOpen(false);
+    void answer(patch, said, alsoFloor).catch(e => { console.error('program test not saved', e); setOpen(true); })
+      .finally(() => { busy.current = false; });
   };
   /* The floor's status alone — baseline achieved, not tested, no program,
      or what was seen with none: no test is made for it. */
   const sayOnly = (is: PartResultIs | undefined, words: string, said: string) => {
     if (!floor || busy.current) return;
     busy.current = true;
-    void floor(is, words, day).then(unsay => { setOpen(false); if (unsay) offerUndo(said, unsay); })
+    setOpen(false);
+    void floor(is, words, day).then(unsay => { if (unsay) offerUndo(said, unsay); })
+      .catch(e => { console.error('program status not saved', e); setOpen(true); })
       .finally(() => { busy.current = false; });
   };
   const aimOf = (): Test['runAgreed'] => tidy({ rate: n(f.rate), minutes: n(f.mins) });
@@ -199,6 +206,12 @@ export function ProgramTest({ projectId, program: p, assetId, tt, can, open: ope
                   <span className={'cg-pstate is-' + a.result.tone}>{a.result.word}</span>
                   {a.seen && <span className="ptx-seen">{a.seen}</span>}
                 </button>
+                {/* EVERY TEST CAN BE TAKEN OFF, WHERE IT SITS, WITH UNDO (Rowland, 23 October: "I can't delete
+                    the test ... absolutely stupid") — its program forgets it (db/testing deleteTest) */}
+                {can.remove && (
+                  <button type="button" className="ptx-del" aria-label={`Delete test ${a.n} of ${p.what}`} title="Delete this test"
+                    onClick={() => void tt.removeTest(a.test.id)}><Icon name="close" size={13} /></button>
+                )}
               </li>
             ))}
           </ol>

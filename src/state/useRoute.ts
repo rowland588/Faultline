@@ -59,11 +59,12 @@ export function parseRoute(hash: string): Route {
   const [path, qs] = raw.split('?');
   const query = new URLSearchParams(qs || '');
   const segs = path.split('/').filter(Boolean);
-  /* HOME IS THE FRONT DOOR (docs/BLUEPRINT.md §3, the new product): #/ says
-     "What do you need to get done?" (screens/StartScreen); the control room —
-     every project and line at once — keeps its own address, #/room, and its
-     route name, 'home', so everything that reads it is unchanged. */
-  if (segs.length === 0) return { name: 'start', query };
+  /* ONE HOME, THE FACTORY (Rowland, 23 October: "What's the point of home? ... The control room, is
+     it required? ... I literally start using it and I've got no idea where I am"; the shape chosen:
+     one home, a fixed menu). #/ is the factory — every project and line at once, what was the control
+     room, which keeps its address #/room; the front door that stood at #/ is gone (its start a project
+     is on Projects, its tools on Tools, its places carried on on the Factory page). */
+  if (segs.length === 0) return { name: 'home', query };
   if (segs[0] === 'room') return { name: 'home', query };
   if (segs[0] === 'guide') return { name: 'guide', query }; // public — no workspace, no session
   /* A share link: #/s/<token> opens one picture or clip for somebody with no
@@ -88,10 +89,9 @@ export function parseRoute(hash: string): Route {
   if (segs[0] === 'programs') return { name: 'linePrograms', query };
   /* METHODS OF YOUR OWN and THE STUDIO (#/methods, #/design) were deleted
      with the method builder on 20 October (docs/DIRECTION.md): an old link
-     to either lands on the front door. */
-  if (segs[0] === 'methods' || segs[0] === 'design') return { name: 'start', query: new URLSearchParams() };
-  /* THE FRONT DOOR by its old address (#/start, before #/ switched to it) */
-  if (segs[0] === 'start') return { name: 'start', query };
+     to either lands on the factory, as the front door's old address #/start does. */
+  if (segs[0] === 'methods' || segs[0] === 'design') return { name: 'home', query: new URLSearchParams() };
+  if (segs[0] === 'start') return { name: 'home', query };
   /* A VIDEO STUDY (docs/VIDEO.md): footage uploaded, read for the work at
      each station, reviewed, worked out as a line balance and put on paper.
      /video is every one; /video/:id one of them. */

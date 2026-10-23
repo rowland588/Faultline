@@ -1,4 +1,7 @@
-/* Home — ONE front door: the projects.
+/* THE FACTORY — the one home (Rowland, 23 October: "What's the point of home? ... The control room,
+ * is it required?"; the shape chosen: one home, a fixed menu). #/ and #/room: every project and line
+ * at once, and where you were last, one tap back (lib/recentPlaces). It was the control room, and
+ * before that Home — ONE front door: the projects.
  *
  * It used to offer two. A Projects section at the top, and a "＋ New workspace"
  * button below it with its own name field and its own starter picker. Two ways
@@ -41,6 +44,8 @@ import { useCanStartProjects } from '../cloud/access';
 import { lineProblems, lineProblemsSaid, type LineProblems } from '../lib/lineWork';
 import { PageHeader } from '../ui/parts';
 import { ControlRoomReports } from '../ui/ControlRoomReports';
+import { recentPlaces, lastOpen, type Place } from '../lib/recentPlaces';
+import { niceDay, todayISO } from '../lib/weeks';
 
 /** Below 720 px the control room's answer comes first (FLOW-AUDIT.md, 11). */
 function useNarrow(q = '(max-width: 719px)'): boolean {
@@ -85,6 +90,8 @@ export function WorkspaceHome() {
      fills this in); every other paper is the control room's Reports sheet. */
   const roomReport = useRef<(() => Promise<void>) | null>(null);
   const [allPapers, setAllPapers] = useState(false);
+  /* where this device was last — read when the page opens; the frame notes each place as it is opened */
+  const [places] = useState<Place[]>(() => recentPlaces().slice(0, 4));
   const [list, setList] = useState<Workspace[] | null>(null);
   const [counts, setCounts] = useState<Record<string, WsContents>>({});
   // A deleted workspace sits in limbo here for a few seconds with an Undo —
@@ -301,7 +308,7 @@ export function WorkspaceHome() {
           button that sat here are the frame's top bar now (ui/Frame), on
           every screen alike — so the control room is a page in the frame
           like any other, and its name says which. */}
-      <PageHeader title="Control room"
+      <PageHeader title="Factory"
         primary={mayStart ? { label: 'New project', run: () => nav('/projects?new=1') } : undefined}
         papers={jobs.length > 0 || prodLines.length > 0 ? [
           { label: 'Control room report — 1 page', for: 'For the business — every project and line on one A4: where each is, why, who owes what', make: async () => { await roomReport.current?.(); } },
@@ -318,6 +325,22 @@ export function WorkspaceHome() {
             the control room already lists (docs/FLOW-AUDIT.md #20). */}
       </PageHeader>
       {allPapers && <ControlRoomReports projects={projects} onClose={() => setAllPapers(false)} />}
+      {places.length > 0 && (
+        <section className="fd-back" aria-label="Carry on where you were">
+          <h2 className="ln-h">Carry on where you were</h2>
+          <ul className="lt-rows fd-places">
+            {places.map(p => (
+              <li key={p.to} className="lt-li" data-place={p.kind}>
+                <button type="button" className="lt-row" onClick={() => nav(p.to)}>
+                  <b className="lt-what">{p.scope}</b>
+                  <span className="lt-says">{p.page ?? (p.kind === 'project' ? 'The project' : 'The line')}</span>
+                  <span className="lt-where">{p.kind === 'project' ? 'Project' : 'Line'} · last open {lastOpen(p.at, todayISO(), d => niceDay(d, { weekday: 'short' }))}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {/* The pitch is for somebody with nothing running yet. Once a job is,
           the board under it says more than the paragraph could. */}
       {!jobs.length && (

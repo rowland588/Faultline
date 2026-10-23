@@ -31,19 +31,20 @@ export function ContextBar({ scope, page, tool, toolTo, projects, lines, project
   /** The project the Problem button takes a problem for. */
   projectId?: string;
 }) {
-  const name = scope.kind === 'home' ? 'Home' : scope.kind === 'factory' ? 'Factory'
+  const name = scope.kind === 'home' || scope.kind === 'factory' ? 'Factory'
     : scope.kind === 'line' ? lines.find(l => l.id === scope.wsId)?.name ?? 'A line'
       : projects.find(p => p.id === scope.projectId)?.name ?? 'A project';
   const [open, setOpen] = useState(false);
   const under = scope.kind === 'line' || scope.kind === 'project';
   return (
     <header className="nv-top">
-      <button type="button" className="nv-mark" onClick={() => nav('/')} aria-label="Faultline — home">
+      <button type="button" className="nv-mark" onClick={() => nav('/')} aria-label="Faultline — the factory">
         <LogoMark size={28} id="nv" />
         <span className="nv-name">Faultline</span>
       </button>
       <nav className="nv-ctx" aria-label="You are in">
-        {under && <><button type="button" className="nv-crumb nv-up" onClick={() => nav('/room')} aria-label="Up to the factory"><Icon name="arrowUp" size={14} /><span className="nv-up-l">Factory</span></button><span className="nv-sep" aria-hidden>›</span></>}
+        {/* THE WAY BACK, ALWAYS SAID (23 October): ‹ Factory from a line, ‹ Projects from a project */}
+        {under && <><button type="button" className="nv-crumb nv-up" onClick={() => nav(scope.kind === 'project' ? '/projects' : '/room')} aria-label={scope.kind === 'project' ? 'Back to Projects' : 'Back to the factory'}><Icon name="chevronLeft" size={14} /><span className="nv-up-l">{scope.kind === 'project' ? 'Projects' : 'Factory'}</span></button><span className="nv-sep" aria-hidden>›</span></>}
         <button type="button" className="nv-job" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)} aria-label={`${name} — switch to another line or project`}>
           <span className="nv-job-l">{name}</span>
           <Icon name="chevronDown" size={14} />
@@ -86,7 +87,7 @@ function Switcher({ scope, projects, lines, onClose }: { scope: Scope; projects:
     return matchScore(p.name, words) < matchScore(`${l.name} ${l.lineType ?? ''}`, words) ? `/project/${p.id}` : lineHref(l.id);
   }, [shownLines, shownProjects, words]);
   const go = (to: string) => { onClose(); nav(to); };
-  const on = (k: 'home' | 'factory') => scope.kind === k;
+  const on = (k: 'home' | 'factory') => scope.kind === k || (k === 'factory' && scope.kind === 'home');
   return (
     <Sheet open onClose={onClose} title="Go to">
       <div className="nv-sw">
@@ -94,8 +95,7 @@ function Switcher({ scope, projects, lines, onClose }: { scope: Scope; projects:
           onKeyDown={e => { if (e.key === 'Enter' && best) go(best); }} />
         {!words && (
           <div className="nv-sw-g">
-            <button type="button" className={'nv-sw-i' + (on('home') ? ' is-on' : '')} onClick={() => go('/')}><b>Home</b><span>what you need to get done</span></button>
-            <button type="button" className={'nv-sw-i' + (on('factory') ? ' is-on' : '')} onClick={() => go('/room')}><b>Factory</b><span>every line and project at once — the control room</span></button>
+            <button type="button" className={'nv-sw-i' + (on('factory') ? ' is-on' : '')} onClick={() => go('/room')}><b>Factory</b><span>every line and project at once</span></button>
           </div>
         )}
         {shownLines.length > 0 && <p className="nv-sw-h">Lines</p>}

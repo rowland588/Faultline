@@ -39,10 +39,10 @@ describe('a screen that is about one record never arrives without its id', () =>
 
 describe('the ordinary routes still parse', () => {
   const cases: [string, Record<string, unknown>][] = [
-    /* home is the front door; the control room keeps its own address (18 October) */
-    ['#/',                          { name: 'start' }],
+    /* one home, the factory — #/ and #/room alike (23 October) */
+    ['#/',                          { name: 'home' }],
     ['#/room',                      { name: 'home' }],
-    ['#/start',                     { name: 'start' }],
+    ['#/start',                     { name: 'home' }],
     ['#/guide',                     { name: 'guide' }],
     ['#/portfolio',                 { name: 'portfolio' }],
     ['#/projects',                  { name: 'projects' }],
@@ -92,10 +92,10 @@ describe('the ordinary routes still parse', () => {
     expect(r.query.get('view')).toBe('next');
   });
 
-  it('nothing at all is home — the front door — not a crash', () => {
-    expect(parseRoute('').name).toBe('start');
-    expect(parseRoute('#').name).toBe('start');
-    expect(parseRoute('#/').name).toBe('start');
+  it('nothing at all is home — the factory — not a crash', () => {
+    expect(parseRoute('').name).toBe('home');
+    expect(parseRoute('#').name).toBe('home');
+    expect(parseRoute('#/').name).toBe('home');
   });
 });
 

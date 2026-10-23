@@ -72,7 +72,7 @@ export function QuickSnagHost({ wsId, projectId }: { wsId?: string; projectId?: 
   return (
     <>
       {/* the round button over the page went on 23 October: on a phone ＋ sits in the bar (ui/rail
-          scopeBar), at a desk Problem is in the context bar (docs/STRUCTURE.md §5.3, D6) */}
+          menuBar), at a desk Problem is in the context bar (docs/STRUCTURE.md §5.3, D6) */}
       {open && <QuickSnagSheet key={open.n} snag={open.snag} wsId={wsId} projectId={projectId} onClose={() => setOpen(null)} />}
     </>
   );

@@ -10589,10 +10589,12 @@ button.nv-crumb:hover { color: var(--ink); background: var(--surface-2); }
 .nv-sw-i span { font-size: var(--t-detail); color: var(--muted); }
 .nv-sw-i:hover, .nv-sw-i:focus-visible { background: var(--surface-2); outline: none; }
 .nv-sw-i.is-on { background: var(--surface-2); }
-/* a phone says the scope and the one page you are on — "Line 7 ▾ › Tools", "Factory ▾ › Capability":
-   the way up is the scope's own switcher there, and a tool's page stands for the page it is on */
+/* a phone says the way back and the scope — "‹ Factory › Line 7 ▾", "‹ Projects › Line 2 commissioning ▾";
+   the page is the tab that is on under it, and a tool's page stands for the page it is on (23 October) */
 @media (max-width: 640px) {
-  .nv-name, .nv-up-l, .nv-up + .nv-sep, .nv-page:not(.is-last), .nv-page:not(.is-last) + .nv-sep { display: none; }
+  .nv-name, .nv-page:not(.is-last), .nv-page:not(.is-last) + .nv-sep { display: none; }
+  .nv:has(.nv-tabs) .nv-ctx span.nv-page.is-last, .nv:has(.nv-tabs) .nv-ctx .nv-sep:has(+ span.nv-page.is-last) { display: none; }
+  .nv-up { padding: 0 6px 0 0; }
   .nv-up { display: inline-flex; align-items: center; justify-content: center; min-width: var(--tap); min-height: var(--tap); padding: 0; }
   .nv-ctx .nv-page.is-last { max-width: 38vw; }
 }
@@ -14165,3 +14167,36 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 /* Projects: the line to filter by, beside the kinds (B5) */
 .proj-line-f { width: auto; min-width: 200px; max-width: 100%; }
 .proj-list { margin-top: var(--space-3); }
+
+/* ---- ONE MENU, AND A SCOPE'S PAGES AS TABS (23 October: "I've got no idea where I am") ----
+   The rail (and the phone's bar) is the same on every page: Factory · Projects · Problems · Actions ·
+   Tools. A line's, a project's and the factory's own pages are tabs across the top of the page, held
+   under the top bar as the page scrolls. */
+:root { --nv-tabs: 46px; }
+.nv-tabs {
+  position: sticky; top: var(--nv-top); z-index: 25;
+  display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none;
+  height: var(--nv-tabs); padding: 0 12px; align-items: stretch;
+  background: var(--surface); border-bottom: 1px solid var(--line);
+}
+.nv-tabs::-webkit-scrollbar { display: none; }
+.nv-tab {
+  flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px;
+  background: none; border: 0; border-bottom: 3px solid transparent; cursor: pointer;
+  font: inherit; font-size: var(--t-body); color: var(--ink-2); white-space: nowrap;
+}
+.nv-tab:hover { color: var(--ink); background: var(--surface-2); }
+.nv-tab.is-on { color: var(--ink); font-weight: 700; border-bottom-color: var(--brand); }
+.nv-tab-n { font-size: var(--t-label); color: var(--muted); font-weight: 400; }
+.nv-tab-n i { font-style: normal; color: var(--danger); }
+@media (min-width: 900px) { .nv-tabs { margin-left: var(--nv-rail); padding: 0 20px; } }
+.nv:has(.nv-tabs) .nv-main .fr { height: calc(100dvh - var(--nv-top) - var(--nv-tabs)); }
+@media (max-width: 899px) {
+  .nv:has(.nv-tabs) .nv-main .fr { height: calc(100dvh - var(--nv-top) - var(--nv-tabs) - var(--nv-bar) - env(safe-area-inset-bottom)); }
+}
+.fd-back { margin: 0 0 18px; }
+.fd-back .ln-h { margin-bottom: 8px; }
+/* a test taken off where it sits (ui/ProgramTest, 23 October) */
+.ptx-ladder li { display: flex; align-items: flex-start; gap: 2px; }
+.ptx-del { flex: none; display: inline-grid; place-items: center; width: 28px; height: 28px; margin-top: 1px; border: 0; border-radius: var(--radius-sm); background: none; color: var(--muted); cursor: pointer; }
+.ptx-del:hover { color: var(--danger); background: var(--surface-2); }

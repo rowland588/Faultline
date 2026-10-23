@@ -262,11 +262,54 @@ export function linesGroup(projectId: string, lines: RailLineOf[], here: string,
 /** The way up — from a line or a project to the factory. */
 export const upLine = (): RailLine => ({ key: 'up', label: 'Factory', to: '/room', on: false, state: 'n', bare: true, icon: 'arrowUp' });
 
+/** THE MENU — ONE, NEVER CHANGING (Rowland, 23 October: "I literally start using it and I've got no
+ *  idea where I am"; the shape chosen: one home, a fixed menu). Factory · Projects · Problems · Actions ·
+ *  Tools, with Reports at the foot, on every page. Inside a line its menu line is Factory, inside a
+ *  project Projects; the line's or the project's own pages are tabs across the top of the page
+ *  (ui/Frame ScopeTabs, from lineGroups and projectGroups). Home and the control room are one page,
+ *  Factory. */
+export function menuGroups(here: string, kind: 'factory' | 'line' | 'project', projects = 0): RailGroup[] {
+  const f = kind === 'factory';
+  return [{
+    lines: [
+      { key: 'home', label: 'Factory', to: '/room', on: (f && (here === 'home' || here === 'factory' || here === 'lineprograms')) || kind === 'line', state: 'n', bare: true, icon: 'home' },
+      { ...plain('projects', 'Projects', '/projects', here, 'board'), on: (f && here === 'projects') || kind === 'project', n: projects || undefined },
+      { key: 'quicksnags', label: 'Problems', to: '/snags', on: f && here === 'quicksnags', state: 'n', bare: true, icon: 'flag' },
+      { ...plain('allactions', 'Actions', '/actions', here, 'list'), on: f && here === 'allactions' },
+      { ...plain('tools', 'Tools', '/tools', here, 'chart'), on: f && here === 'tools' },
+    ],
+  }, { foot: true, lines: [{ key: 'reports', label: 'Reports', on: false, state: 'n', bare: true, icon: 'list' }] }];
+}
+
+/** The phone's bar, the same on every page: Factory · Projects · ＋ · Problems · More. */
+export function menuBar(groups: RailGroup[], plus = true): RailLine[] {
+  const all = groups.flatMap(g => g.lines);
+  const by = (k: string) => all.find(l => l.key === k);
+  const five = [by('home'), by('projects'), ...(plus ? [plusLine()] : []), by('quicksnags')].filter((l): l is RailLine => !!l);
+  return [...five, { key: 'more', label: 'More', on: !five.some(l => l.on) && all.some(l => l.on), state: 'n', icon: 'grip' }];
+}
+
+/** A LINE'S OR A PROJECT'S OWN PAGES, as tabs across the top: its pages without the way up, the
+ *  machines or lines folded under them (they are on the page they are under), and not the line's
+ *  Projects or Logs (on its Overview and its Tools). */
+export function scopeTabs(groups: RailGroup[]): RailLine[] {
+  return groups.flatMap(g => g.lines).filter(l => l.key !== 'up' && !l.sub && l.key !== 'projects' && l.key !== 'logs' && l.key !== 'reports');
+}
+
+/** THE FACTORY'S OWN TABS — on the Factory page and the two lists under it, every line and every
+ *  line's programs. */
+export const FACTORY_PAGES = new Set(['home', 'factory', 'lineprograms']);
+export const factoryTabs = (here: string): RailLine[] => [
+  plain('home', 'Overview', '/room', here, 'home'),
+  plain('factory', 'Lines', '/factory', here, 'machine'),
+  plain('lineprograms', 'Programs', '/programs', here, 'list'),
+];
+
 /** THE FACTORY'S PAGES — every line and project at once. */
 export function factoryGroups(here: string, projects = 0): RailGroup[] {
   return [{
     lines: [
-      { ...controlRoom(here), icon: 'list' },
+      { ...controlRoom(here), label: 'Overview', icon: 'list' },
       plain('allactions', 'Actions', '/actions', here, 'list'),
       { key: 'quicksnags', label: 'Problems', to: '/snags', on: here === 'quicksnags', state: 'n', bare: true, icon: 'flag' },
       { ...plain('projects', 'Projects', '/projects', here, 'board'), n: projects || undefined },
@@ -290,7 +333,7 @@ export function lineGroups(wsId: string, here: string, counts: { problems?: Coun
     { lines: [
       plain('overview', 'Overview', lineHref(wsId), here, 'home'),
       counted('problems', 'Problems', `/snags?line=${encodeURIComponent(wsId)}`, here, { problems: counts.problems }, ['problems'], 'flag'),
-      counted('programs', 'Machines & programs', `/programs?line=${encodeURIComponent(wsId)}`, here, { programs: counts.programs }, ['programs'], 'machine'),
+      counted('programs', 'Programs', `/programs?line=${encodeURIComponent(wsId)}`, here, { programs: counts.programs }, ['programs'], 'machine'),
       plain('products', 'Products', lineHref(wsId, 'products'), here, 'list'),
       plain('tools', 'Tools', lineHref(wsId, 'tools'), here, 'chart'),
       plain('logs', 'Logs', `/w/${encodeURIComponent(wsId)}/capture`, here, 'time'),
@@ -366,24 +409,6 @@ export function projectGroups(o: {
  *  round button was (docs/STRUCTURE.md §5.3; D6). */
 export const plusLine = (): RailLine => ({ key: 'plus', label: 'Problem', on: false, state: 'n', bare: true, icon: 'plus' });
 
-/** THE PHONE'S BAR, FIXED WITHIN A SCOPE (D6): the factory — Control room · Actions ·
- *  ＋ · Problems · More; a line — Overview · Tools · ＋ · Problems · More; a project —
- *  Overview · its main page (Plan, Fishbone or Tree) · ＋ · Actions · More. ＋ only for
- *  somebody who may take a problem there. More is on when the page lives in the sheet. */
-export function scopeBar(kind: 'factory' | 'line' | 'project', groups: RailGroup[], model?: PlanModel, plus = true): RailLine[] {
-  const all = groups.flatMap(g => g.lines);
-  const by = (k: string) => all.find(l => l.key === k);
-  const two: (RailLine | undefined)[] = kind === 'factory' ? [by('home'), by('allactions')]
-    : kind === 'line' ? [by('overview'), by('tools')]
-      : [by('job'), by(model === 'commissioning' ? 'plan' : model === 'tree' ? 'tree' : 'fishbone') ?? by('board')];
-  const last = kind === 'project' ? by('actions') : kind === 'line' ? by('problems') : by('quicksnags');
-  const five = [...two, ...(plus ? [plusLine()] : []), last].filter((l): l is RailLine => !!l);
-  const onBar = five.some(l => l.on);
-  return [
-    ...five.map(l => (l.key === 'job' ? { ...l, label: 'Overview' } : l)),
-    { key: 'more', label: 'More', on: !onBar && all.some(l => l.on), state: 'n', icon: 'grip' },
-  ];
-}
 
 /** WHICH PAGE OF ITS SCOPE a route is — the rail line that is on (docs/STRUCTURE.md §5.2). */
 export function hereIn(route: Route, scope: 'home' | 'factory' | 'line' | 'project'): string {
