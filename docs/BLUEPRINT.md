@@ -479,15 +479,18 @@ there and what replaces it.
 
 ## 6. What we missed — what should have been built without being asked
 
-**The week — what we did, what we are doing next** (Rowland, 23 October:
-"we all report to someone and they need to see what we have done and what we
-are doing next"; `docs/WEEK.md`, planned, not built). A page of every project
-(Week, `?view=week`) and one paper: what we did this week read from the
-records, what we are doing this week and next (actions due, tests and
-program tests booked), the tools we will use ticked with what for — a tool
-plan is an action with a `tool` — and Rowland's commentary as a note on the
-week. Shows on the project's front page, the control room's row, the status,
-client and 6M reports. Slices W1–W3 in the doc.
+**The journey — any range of dates: what we did, what we are doing next**
+(Rowland, 23 October: "we all report to someone and they need to see what
+we have done and what we are doing next"; "pick a range of reporting period
+... the entire history ... it's the journey"; `docs/JOURNEY.md`, planned,
+not built). A page of every project (Journey, `?view=journey`) and one paper
+for a range Rowland picks — this week and next by default, the whole
+history at most: what we did read from the records day by day, what is due
+and booked from today on, the tools we will use ticked with what for — a
+tool plan is an action with a `tool` — and Rowland's commentary as a note
+on its day. The range is a lens, never a record. Shows on the project's
+front page, the control room's row, the status, client and 6M reports.
+Slices J1–J3 in the doc.
 
 **A photo for each entry in a log** (19 October, the next capture piece).
 A defect log, a 5S walk, a jam log — the floor photographs each one. A
