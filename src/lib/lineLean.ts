@@ -19,7 +19,9 @@ import { productsNext } from './lineProducts';
 export interface LineReading {
   name: string;
   problems: { open: number; late: number; critical: number };
-  programs: { n: number; proved: number; late: number };
+  programs: { n: number; proved: number; late: number;
+    /** Programs typed only on a project's Commission (Programs loaded), on no list — said beside the count (23 October). */
+    onStage?: number };
   products: LineProducts;
   stops: { n: number; minutes: number; worst?: string };
   day: Pick<LineDay, 'margin' | 'missing'>;
@@ -35,8 +37,10 @@ export function lineTiles(r: LineReading): LeanTile[] {
   return [
     { k: 'Problems open', v: String(p.open), of: p.open ? (red.length ? and(red) : 'none late') : 'nothing open on the line', ...(red.length ? { tone: 'r' as LeanTone } : {}) },
     g.n
-      ? { k: 'Programs proved', v: `${g.proved}`, of: `of ${g.n}${g.late ? ` · ${g.late} past its test day` : ''}`, ...(g.late ? { tone: 'r' as LeanTone } : {}) }
-      : { k: 'Programs proved', v: '—', of: 'no program planned on the line' },
+      ? { k: 'Programs proved', v: `${g.proved}`, of: `of ${g.n}${g.late ? ` · ${g.late} past its test day` : ''}${g.onStage ? ` · ${g.onStage} more on a project’s Commission` : ''}`, ...(g.late ? { tone: 'r' as LeanTone } : {}) }
+      : g.onStage
+        ? { k: 'Programs proved', v: '—', of: `${g.onStage} on a project’s Commission, on no Programs list yet` }
+        : { k: 'Programs proved', v: '—', of: 'no program planned on the line' },
     d.rows.length
       ? { k: 'Products ready', v: String(d.ready), of: `of ${d.rows.length}${[d.failing ? ` · ${d.failing} failing` : '', d.withGaps ? ` · ${d.withGaps} with gaps` : ''].join('')}`, ...(d.failing ? { tone: 'r' as LeanTone } : d.withGaps ? { tone: 'a' as LeanTone } : {}) }
       : { k: 'Products ready', v: '—', of: 'no product yet — plan a program or a line standard for one' },

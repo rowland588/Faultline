@@ -45,6 +45,7 @@ import type { Workspace } from '../types';
 import { useProjects } from '../lib/useProjects';
 import { saveProblemCardsFor, saveProblemsReportFor } from '../lib/problemsPdf';
 import { useLineRecords } from '../lib/useLineRecords';
+import { projectsOnLines, stageOnlyByLine, useJobFloor } from '../lib/useJobFloor';
 import { lineKit } from '../lib/lineRecords';
 import { STATE_WORD, isProved, standingOf, stateOf, todayISO } from '../lib/programs';
 import { niceDay } from '../lib/weeks';
@@ -177,13 +178,16 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
   const rec = useLineRecords();
   const today = todayISO();
   const kit = useMemo(() => (line ? lineKit(line, rec.machines, rec.programs, rec.jobLines, today) : undefined), [line, rec, today]);
+  /* programs typed only on a project's Commission, on this line (23 October: "it's like you don't have any programs") */
+  const floor = useJobFloor(useMemo(() => (line ? projectsOnLines([line.id], rec.jobLines, pid => rec.jobs.some(j => j.id === pid && !j.archivedAt)) : []), [line, rec.jobLines, rec.jobs]));
+  const onStage = useMemo(() => (line ? stageOnlyByLine(floor.stageOnly ?? [], rec.machines, rec.jobLines).get(line.id) ?? [] : []), [line, floor, rec.machines, rec.jobLines]);
   /* ITS PRODUCTS, READY OR NOT (BLUEPRINT Stage 3) — a row a product, the
      four answers the floor asks before it runs one (lib/lineProducts) */
   const products = useMemo(() => lineProducts({ programs: kit?.programs ?? [], standards, studies, today }), [kit, standards, studies, today]);
   /* THE LINE AS A LEAN PAGE (lib/lineLean) — the tiles and the closing line
      its page and its report both say */
   const reading: LineReading | undefined = line ? {
-    name: line.name, problems: probs, programs: { n: kit?.programs.length ?? 0, proved: kit?.proved ?? 0, late: kit?.late ?? 0 },
+    name: line.name, problems: probs, programs: { n: kit?.programs.length ?? 0, proved: kit?.proved ?? 0, late: kit?.late ?? 0, onStage: onStage.length },
     products, stops: { n: stops.n, minutes: stops.minutes, ...(stops.worst ? { worst: stops.worst } : {}) }, day: lineDay(line), jobs: jobIds.length,
   } : undefined;
   const [mName, setMName] = useState('');

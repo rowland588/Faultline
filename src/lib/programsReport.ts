@@ -272,6 +272,12 @@ export function programsReading(x: { tests: Test[]; items: TestItem[]; assets: A
     }
     if (group.length) machines.push({ name: machine, lines: group });
   }
+  return readingOf(machines);
+}
+
+/** THE COUNTS AND THE SENTENCE of programs already grouped by machine — the job's reading, and a line's
+ *  with its projects' programs added (lib/lineRecords lineProgramsReading). */
+export function readingOf(machines: { name: string; lines: ProgramLine[] }[]): ProgramsReading | undefined {
   const lines = machines.flatMap(g => g.lines);
   if (!lines.length) return undefined;
   const n = (b: ProgBucket) => lines.filter(l => l.bucket === b).length;

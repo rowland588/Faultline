@@ -25,8 +25,8 @@ import type { Program, ProgramState } from '../lib/programs';
 import { STATE_WORD, daysOverdue, isProved, movedOne, standingOf, stateOf } from '../lib/programs';
 import { lineProgramsReading, machineOfProgram, machinesOnLine, productsOnLine, programsOnLine, type LineMachine } from '../lib/lineRecords';
 import { useLineRecords, type LineRecords } from '../lib/useLineRecords';
-import { useJobFloor, type FloorWord } from '../lib/useJobFloor';
-import type { Proof } from '../lib/programsReport';
+import { projectsOnLines, stageOnlyByLine, useJobFloor, type FloorWord, type StageOnly } from '../lib/useJobFloor';
+import type { ProgramLine, Proof } from '../lib/programsReport';
 import { studyHref } from '../lib/studyLinks';
 import { ProveProgram } from '../ui/ProveProgram';
 import { asked } from '../lib/lines';
@@ -72,10 +72,15 @@ export function LineProgramsScreen() {
   const shown = useMemo(() => readLines(rec, lineF === 'all' ? undefined : lineF), [rec, lineF]);
   /* WHAT EACH JOB'S FLOOR SAID of its programs on these lines — beside the
      record's own state, on screen and paper (flow audit #3). */
-  const floor = useJobFloor(useMemo(() => shown.flatMap(s => s.programs.map(p => p.projectId)), [shown]));
+  /* every project on these lines is read — its programs typed only on Commission's Programs loaded among them */
+  const floor = useJobFloor(useMemo(() => [...shown.flatMap(s => s.programs.map(p => p.projectId ?? '')),
+    ...projectsOnLines(shown.map(s => s.line.id), rec.jobLines, pid => rec.jobs.some(j => j.id === pid && !j.archivedAt))], [shown, rec.jobLines, rec.jobs]));
   const jobName = useMemo(() => new Map(rec.jobs.map(j => [j.id, j.name])), [rec.jobs]);
+  /* PROGRAMS ONLY ON A PROJECT'S STAGE (23 October: "it's like you don't have any programs"), by the line they stand on */
+  const stageOnly = useMemo(() => stageOnlyByLine(floor.stageOnly ?? [], rec.machines, rec.jobLines), [floor, rec.machines, rec.jobLines]);
   const reading = useMemo(() => lineProgramsReading(shown.map(s => ({ id: s.line.id, name: s.line.name, machines: s.machines, programs: s.programs })), today,
-    { floor, jobName, tests: rec.provingTests, studies: rec.studies }), [shown, today, floor, jobName, rec.provingTests, rec.studies]);
+    { floor, jobName, tests: rec.provingTests, studies: rec.studies, stageOnly: new Map([...stageOnly].map(([k, v]) => [k, v.map(x => x.line)] as const)) }),
+  [shown, today, floor, jobName, rec.provingTests, rec.studies, stageOnly]);
   /* HOW EACH PROVED ONE WAS PROVED (flow audit #21) — the reading's own words. */
   const proofs = useMemo(() => new Map((reading?.lines ?? []).flatMap(l => (l.programId && l.proof ? [[l.programId, l.proof] as const] : []))), [reading]);
   const counts = useMemo(() => new Map(readLines(rec).map(s => [s.line.id, s.programs.length])), [rec]);
@@ -134,7 +139,8 @@ export function LineProgramsScreen() {
               ))}
             </div>
           )}
-          {shown.map(s => <LineBlock key={s.line.id} s={s} rec={rec} may={may} today={today} floor={floor} proofs={proofs} startAdding={(adding || !s.programs.length) && lineF === s.line.id} />)}
+          {shown.map(s => <LineBlock key={s.line.id} s={s} rec={rec} may={may} today={today} floor={floor} proofs={proofs} onStage={stageOnly.get(s.line.id) ?? []}
+            startAdding={(adding || (!s.programs.length && !stageOnly.get(s.line.id)?.length)) && lineF === s.line.id} />)}
         </>
       )}
     </div>
@@ -143,7 +149,7 @@ export function LineProgramsScreen() {
 
 /** One line: its machines in flow order, each with its programs, the line
  *  itself last; then Plan a program on it. */
-function LineBlock({ s, rec, may, today, floor, proofs, startAdding }: { s: LineRead; rec: LineRecords; may: boolean; today: string; floor: Map<string, FloorWord>; proofs: ReadonlyMap<string, Proof>; startAdding: boolean }) {
+function LineBlock({ s, rec, may, today, floor, proofs, onStage, startAdding }: { s: LineRead; rec: LineRecords; may: boolean; today: string; floor: Map<string, FloorWord>; proofs: ReadonlyMap<string, Proof>; onStage: StageOnly[]; startAdding: boolean }) {
   const { line, machines, programs } = s;
   const groups = [
     ...machines.map(m => ({ key: m.record?.id ?? m.name, m, rows: programs.filter(p => machineOfProgram(p, machines) === m) })),
@@ -156,7 +162,8 @@ function LineBlock({ s, rec, may, today, floor, proofs, startAdding }: { s: Line
     <section className="pl-sec lp-line" aria-label={`Programs on ${line.name}`}>
       <div className="pl-sec-h">
         <h2><a href={`#/lines/${line.id}`} className="lp-line-a">{line.name}</a>{line.lineType ? <span className="sub"> · {line.lineType}</span> : null}</h2>
-        <span className="sub">{programs.length ? `${programs.length} program${programs.length === 1 ? '' : 's'} · ${proved} proved` : 'No programs yet'}{late ? <> · <b className="is-r">{late} late</b></> : null}</span>
+        <span className="sub">{programs.length ? `${programs.length} program${programs.length === 1 ? '' : 's'} · ${proved} proved` : onStage.length ? '' : 'No programs yet'}{late ? <> · <b className="is-r">{late} late</b></> : null}
+          {onStage.length > 0 && <>{programs.length ? ' · ' : ''}{onStage.length} more on {(n => (n.length === 1 ? `${n[0]}’s` : `${n.length} projects’`))([...new Set(onStage.map(x => x.projectName))])} Commission</>}</span>
       </div>
       {groups.map(g => (
         <div key={g.key || 'line'} className="lp-m">
@@ -170,12 +177,45 @@ function LineBlock({ s, rec, may, today, floor, proofs, startAdding }: { s: Line
           </ul>
         </div>
       ))}
+      {onStage.length > 0 && <OnProjectsStage rows={onStage} />}
       {may && (
         <AddFold label={`Plan a program on ${line.name}`} start={startAdding}>
           <AddLineProgram line={line} machines={machines} products={products} />
         </AddFold>
       )}
     </section>
+  );
+}
+
+/** PROGRAMS TYPED ON A PROJECT'S COMMISSION — a line on a machine's *Programs loaded*, no program record behind it
+ *  (23 October: "programs on the line in my factory, it's like you don't have any programs"). Said here as the
+ *  project says it, its machine named; tested, edited and made a program on the project's own Programs, one tap. */
+function OnProjectsStage({ rows }: { rows: StageOnly[] }) {
+  const byProject = rows.reduce((m, r) => m.set(r.projectId, [...(m.get(r.projectId) ?? []), r]), new Map<string, StageOnly[]>());
+  return (
+    <div className="lp-m lp-stage">
+      {[...byProject].map(([pid, rs]) => (
+        <div key={pid}>
+          <h3 className="lp-mh">On {rs[0].projectName}’s Commission <span className="sub">· typed on Programs loaded, not on a list yet</span>{' '}
+            <button type="button" className="cw-link" onClick={() => nav(`/project/${pid}/programs`)}>Its Programs ›</button></h3>
+          <ul className="mt-list pgr-list">
+            {rs.map((r, i) => <StageRow key={`${pid}-${i}`} l={r.line} onOpen={() => nav(`/project/${pid}/programs`)} />)}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StageRow({ l, onOpen }: { l: ProgramLine; onOpen: () => void }) {
+  return (
+    <li className="pgr lp-row" data-stage-program={l.what}>
+      <button type="button" className="pgr-main" onClick={onOpen} aria-label={`${l.what} — ${l.word}, on its project's Programs`}>
+        <span className="pgr-top"><span className="pgr-name">{l.what}</span><span className={'spp-pill is-' + l.tone}>{l.word}</span></span>
+        <span className="pgr-meta">{l.machine}{l.runs ? ` · runs ${l.runs}` : ''}</span>
+        {l.note && <span className="pgr-said">{l.note}</span>}
+      </button>
+    </li>
   );
 }
 

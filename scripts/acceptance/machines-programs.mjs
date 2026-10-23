@@ -97,12 +97,25 @@ const truth = () => page.evaluate(async ws => {
   const [all, assets, programs, jobLines] = await Promise.all([db.listWorkspaces(), db.listAllAssets(), db.listAllPrograms(), db.allPaceLines()]);
   const w = all.find(x => x.id === ws);
   const kit = L.lineKit(w, assets, programs, jobLines);
-  const r = L.lineProgramsReading([{ id: w.id, name: w.name, machines: kit.machines, programs: kit.programs }]);
+  /* the projects' programs typed only on their Commission (23 October), as the page reads them (lib/useJobFloor) */
+  const F = await import('/src/lib/useJobFloor.ts');
+  const R = await import('/src/lib/programsReport.ts');
+  const jobs = (await db.allProjects()).filter(j => !j.deletedAt && !j.archivedAt);
+  const stage = [];
+  for (const pid of new Set(F.projectsOnLines([ws], jobLines, id => jobs.some(j => j.id === id)))) {
+    const [tests, items, pa, pp] = await Promise.all([db.listTests(pid), db.listTestItems(pid), db.listAssets(pid), db.listPrograms(pid)]);
+    const name = jobs.find(j => j.id === pid)?.name ?? 'its project';
+    for (const l of R.programsReading({ tests, items, assets: pa, programs: pp, holder: jobs.find(j => j.id === pid) })?.lines ?? [])
+      if (l.partId && !l.programId) stage.push({ projectId: pid, projectName: name, ...(l.assetId ? { assetId: l.assetId } : {}), line: l });
+  }
+  const onStage = F.stageOnlyByLine(stage, assets, jobLines).get(ws) ?? [];
+  const r = L.lineProgramsReading([{ id: w.id, name: w.name, machines: kit.machines, programs: kit.programs }], undefined, { stageOnly: new Map([[ws, onStage.map(x => x.line)]]) });
   return {
     name: w.name, list: w.assets, kit: { says: kit.says, flow: kit.flow, late: kit.late, proved: kit.proved, n: kit.programs.length },
     machines: kit.machines.map(m => ({ name: m.name, oem: m.record?.oem, id: m.record?.id, job: m.jobId })),
     programs: kit.programs.map(p => ({ id: p.id, what: p.what, projectId: p.projectId, workspaceId: p.workspaceId, assetId: p.assetId, state: p.state, provedOn: p.provedOn, testOn: p.testOn, note: p.note, runs: p.runs, from: p.from })),
     reading: r ? { total: r.total, done: r.done, late: r.late, open: r.open, says: r.says } : null,
+    onStage: onStage.map(x => ({ what: x.line.what, project: x.projectName })),
   };
 }, WS);
 const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10);
@@ -118,6 +131,24 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   await main.locator('.fac-home').getByRole('button', { name: 'Programs', exact: true }).click(); await page.waitForTimeout(1800);
   ok(page.url().endsWith('#/programs') && await page.locator('.nv-tabs .nv-tab.is-on[aria-current="page"]', { hasText: /^Programs$/ }).count() === 1 && await main.locator('h1', { hasText: 'Programs' }).count() === 1,
     '1b the control room opens Programs — every line, no job');
+}
+
+/* ---- 1c a project's programs typed only on its Commission, on its line (23 October: "programs on the line in my
+   factory, it's like you don't have any programs") — listed under the project, counted, one tap to its Programs ---- */
+{
+  const t = await truth();
+  await go(`#/programs?line=${WS}`);
+  const rows = (await main.locator('[data-stage-program]').evaluateAll(els => els.map(e => e.getAttribute('data-stage-program'))));
+  const head = flat(await main.locator('.lp-stage .lp-mh').first().innerText().catch(() => ''));
+  ok(t.onStage.length > 0 && rows.join('|') === t.onStage.map(x => x.what).join('|') && head.startsWith(`On ${t.onStage[0].project}’s Commission`),
+    `1c the line's Programs lists the ${t.onStage.length} typed only on ${t.onStage[0]?.project}'s Commission, under it`, `${rows.join(' | ')} — ${head}`);
+  ok(flat(await main.locator('.lp-says').innerText()).startsWith(`${t.reading.total} programs`), `1c and counts them with the line's own: ${t.reading.says}`);
+  await main.locator('[data-stage-program] button').first().click(); await page.waitForTimeout(1500);
+  ok(/#\/project\/[^/]+\/programs/.test(page.url()), '1c one tap to its project\'s Programs, where it is tested', page.url());
+  await go(`#/lines/${WS}`);
+  const tile = flat(await main.locator('.pl-tiles .ln-tile', { hasText: 'Programs proved' }).innerText().catch(() => ''));
+  ok(tile.includes(`${t.onStage.length} more on a project’s Commission`), `1c the line's page says them beside its own: "${tile}"`);
+  await go('#/programs');
 }
 
 /* ---- 2 on one line ---- */
