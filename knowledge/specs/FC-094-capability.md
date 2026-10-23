@@ -23,6 +23,15 @@ minute for an X amount of time."* Go given the same day.
 **Status:** part 1 agreed (go, 22 October) and built with this
 specification — one change on validating it, in §3 (the shape test); parts
 2 and 3 agreed in outline, not built.
+**Part 1b — pass or fail judged by a confidence level or an allowed loss.**
+Rowland, 23 October, on a live test of 4,500: *"in statistics we ask the word
+confidence level. So how confident do you want to be ... or in some cases a
+business has a percentage that it allows for a loss, say 98% ... that needs
+to be optional for me when I pick that. Am I doing a confidence level, or am
+I doing the other level? But either way, we also want to be adding confidence
+as part of our language within it. At the moment, it's a little bit too
+basic."* Go given the same message (*"Need you to do that now"*). Built with
+this addition (§1, §3, §4, §6, §7, §11 say what part 1b adds).
 
 ## 1. Purpose
 Say whether a characteristic meets what was agreed and whether it would keep
@@ -46,6 +55,19 @@ readings that are not bell-shaped (FC-096); independence tested (FC-115);
 machine capability (FC-084); money — give-away (FC-156). The screen offers
 only the kinds it can do; it does not yet name the ones to come, and the
 catalogue (FC-094's limits) says so.
+
+**Scope — part 1b (23 October).** Pass or fail asks *how is it judged?* —
+three ways, the first the old one: **how many may fail** (a number, as
+before); **a loss allowed** — the business's rule, *at least 98% good*, so
+of 4,500 checked up to 90 may fail; **a confidence level** — *95% confident
+at least 98% are good*, so of 4,500 up to 74 may fail, and a count too small
+to show it refused while agreeing with how many it would take. In every way
+the confidence is chosen (90%, 95% or 99%) and what the count proves is said
+with it — *"95% confident at least 97.6% would be good"* — on the page, its
+tiles, the closing line and the paper. Not in 1b: a confidence typed freely;
+an acceptance sampling plan for lots (AQL — `quality.acceptance-sampling-
+attributes`, FC-not built); the same confidence words on a measurement's Ppk
+(it still says *95% sure*, a wording to bring in line next).
 
 ## 2. Users and scenarios
 A site lead, a team leader or QA at the machine on a phone (gloves off, one
@@ -77,6 +99,16 @@ minute for 30 minutes (part 2); print faults per reel (part 3).
   not said; the count outside as measured, with its bound, is said instead.
 - Pass or fail → the success-run bound (`spc.zero-failure-demonstration`),
   never a Cpk; the agreed verdict (how many may fail) stays the verdict.
+  **Part 1b:** judged three ways, each verdict agreed before checking — a
+  number that may fail (as before); a loss allowed, *at least g good*, so
+  ⌊(1 − g)·n⌋ may fail — the business's rule, said beside what it proves,
+  because passing it is not proof of g (4,500 checked, 90 failed passes
+  *98% good* yet proves only 97.6% good at 95% confidence); a confidence
+  level C, *C confident at least g good* — the demonstration test the record
+  describes (`spc.zero-failure-demonstration`, "optionally the failure share
+  to be shown (p₀) at a confidence"), passed when the Clopper–Pearson upper
+  bound on the share failing is at most 1 − g, so the most that may fail is
+  the largest k with that bound at most 1 − g.
 - Rejects out of what was made (part 2) → binomial capability with
   Clopper–Pearson bounds and the p-chart, never Cpk on a percentage.
 - Held at a rate (part 2) → per-interval rates against the side agreed.
@@ -99,6 +131,14 @@ minute for 30 minutes (part 2); print faults per reel (part 3).
 - *Chosen — agreed with Rowland:* capable from Ppk 1.33, just capable from
   1.00, indices from 25 readings (release 2's "go", `docs/BUILD.md`); none
   may fail unless agreed (the old rule kept).
+- *Chosen — Rowland's, 23 October (part 1b):* the three ways to judge pass
+  or fail, the confidence chosen with it, and confidence said in the words.
+- *Chosen — this specification's for part 1b, not yet put to Rowland one by
+  one:* the confidences offered, 90%, 95% (the default, as before) and 99% —
+  the usual demonstration levels; the good share said rounded down to 0.1%
+  (never flattering); a confidence target the count cannot reach refused while
+  agreeing, with the count it would take; a loss allowed passing with what it
+  proves beside it, never called proof of the share.
 - *Chosen — this specification's, under the go of 22 October, not yet put
   to Rowland one by one:* the checks from 20 readings; bell-shaped at
   p ≥ 0.05; fine enough from 5 distinct values; K² rather than
@@ -159,6 +199,12 @@ Pp, Ppk, Cp, Cpk, normal tails (`upperTail`). New in `src/lib/ie/dist.ts`:
   closed form 1 − (1 − C)^(1/n); items needed for p₀ with none failing
   ⌈ln(1 − C)/ln(1 − p₀)⌉.
 - Histogram: k = clamp(round(√n), 5, 12) bars on a round width.
+- Part 1b: the most that may fail for *C confident at least g good* —
+  k* = max{k : B_C(k + 1, n − k) ≤ 1 − g}, B_C the Beta quantile (the
+  Clopper–Pearson one-sided upper bound, `binomUpper`, monotone in k), found
+  by bisection on k; −1 when even none failing cannot show it (then the items
+  it takes, `itemsToShow(1 − g, C, 0)`). A loss allowed: ⌊(1 − g)·n⌋, worked in
+  hundredths so 98% of 4,500 is 90, never 89.
 Rounding: indices 2 dp; shares said in words ("about 2 in 1,000", "fewer than
 14 in 100"); the bound rounded up to a whole number in 100 (never flattering).
 **Independent cases** (unit tests in `src/lib/ie/__tests__/dist.test.ts`):
@@ -172,6 +218,16 @@ fixed readings against `scipy.stats.anderson`; zero-failure n against the
 closed form (20 → 13.9%, 59 → 4.95%, 299 → 0.996%); Bissell's bound checked
 for coverage by simulation in the same script (≈ 95% of simulated samples'
 bound below the true Ppk, for n = 30, 50, 100).
+**Independent cases, part 1b** (`scripts/knowledge/independent-cases.py`,
+run 23 October, numbers pasted into `dist.test.ts` and `sample.test.ts`): the
+most that may fail — 4,500 at 98% good: 74 at 95%, 77 at 90%, 68 at 99%;
+300 at 98%, 95%: 1; 149: 0; 148 and 20: none can show it; 1,000 at 99%,
+95%: 4; 50 at 90%, 90%: 1; 500 at 95%, 99%: 13. Zero failures at 90% and
+99%: n 20 → 0.108749, 0.205672; 59 → 0.038275, 0.075085; 300 → 0.007646,
+0.015233. Items to show 2% none failing: 114 (90%), 149 (95%), 228 (99%).
+What a loss allowed proves: 90 failed of 4,500 → 0.022948 (90%), 0.023785
+(95%), 0.025408 (99%); 70 of 4,500 → 0.018946 (95%); 2 of 50 → 0.102959
+(90%), 0.157704 (99%).
 
 ## 7. Outputs
 Screen and paper together:
@@ -213,6 +269,25 @@ Screen and paper together:
   FC-098 carry it).
 - Agreed words: *"at least 12 N, 30 readings"*, *"pass or fail each, 20 —
   none may fail"* / *"at most 1 may fail"*.
+- **Part 1b.** While agreeing pass or fail: *How is it judged?* — three chips
+  (*How many may fail* · *A loss allowed* · *A confidence level*), each with
+  its example; the box its way needs (how many may fail, or at least what %
+  good); *Confidence* — 90% · 95% · 99%; and the plan in a sentence from the
+  module: *"At least 98% good: up to 90 of 4,500 may fail. If 90 fail it
+  passes, and that proves, 95% confident, at least 97.6% would be good."* /
+  *"95% confident at least 98% good: of 4,500 checked, up to 74 may fail."* /
+  refused: *"With 20 checked, even none failing shows only 86.0% good, 95%
+  confident — check at least 149."* The verdict sentence names the rule:
+  *"4,430 of 4,500 good — 70 failed, at most 74 for 98% good, 95% confident
+  — Passed."* What it proves, in every way: *"We can be 95% confident at
+  least 98.1% would be good"* (with fewer than 1 in 100 not yet shown: *"…;
+  to show fewer than 1 in 100 fail takes …"*, as before, for a count). The
+  tiles: Checked · Failed (of how many may, and the rule) · **Confident**
+  (*≥ 98.1% good*, *95% confident*) · Verdict. Agreed words: *"pass or fail
+  each, 4,500 — at least 98% good (up to 90 may fail)"*, *"… — 95% confident
+  at least 98% good (up to 74 may fail)"*, a count's *"at most 1 may fail"*
+  with *"· 99% confident"* when not 95%. An older study reads as before but
+  in the confidence words (*"95% confident"* where it said *"95% sure"*).
 
 **The report.** The study's own paper (*This study on paper (PDF)*, built by
 `src/lib/studiesPdf.ts` on the report engine) and every list's paper carry,
@@ -227,6 +302,10 @@ may fail, what it proves) and every item good or failed by its number; the
 action plan and the closing line; the receipt once closed. PDF only — the
 format the study already had. Not printed yet: each reading's time, and
 money (none in part 1).
+**The report, part 1b.** Pass or fail's cells on paper: Checked · Failed ·
+May fail (with the rule — *at least 98% good*, *98% good, 95% confident*) ·
+**Confident** (*95% confident at least 98.1% good*); the sentences as the
+page says them; the agreed words with the rule and the confidence.
 
 ## 8. Manufacturing usability
 Set up in one screen: the question as three chips with an example under each;
@@ -314,6 +393,30 @@ and the histogram), every reading, act, action plan, closing line.
 12. The page shows the checks and the histogram — `scripts/inventory.mjs`
     (docs/PAGES.md).
 13. Nothing else broke — the full gate 28.
+
+**Acceptance criteria — part 1b** (23 October; each run as named before it
+ships):
+14. The most that may fail for a confidence target, the zero-failure bounds
+    at 90% and 99%, and what a loss allowed proves, against SciPy —
+    `dist.test.ts` ("most may fail — …").
+15. A loss allowed: 98% of 4,500 lets 90 fail, 91 fails it at once, what it
+    proves said beside it — `sample.test.ts` ("pass or fail by a loss
+    allowed").
+16. A confidence level: 95% confident of 98% good of 4,500 lets 74 fail, 75
+    fails it; 20 refused while agreeing with the 149 it takes; 90% and 99%
+    move the count — `sample.test.ts` ("pass or fail by a confidence level").
+17. Every way says what the count proves with its confidence, in the
+    confidence words; a study made before reads as before in those words —
+    `sample.test.ts`; `capability-kinds.mjs` step 6.
+18. On the page: the three ways and the confidence chosen, the plan said
+    while agreeing, a target the count cannot reach refused, ✓ / ✗ to a pass
+    and to a fail at once, the tiles and the closing line as the module says
+    — `capability-kinds.mjs` step 8.
+19. On paper: the rule and the confidence in the cells and the agreed words,
+    read back — `capability-kinds.mjs` step 8.
+20. The phone: the three ways and the confidence inside the screen —
+    `capability-kinds.mjs` step 8.
+21. Nothing else broke — the full gate.
 *Not yet proved:* use on the floor on a real phone with gloves; the
 screens were not compared with live (`--shots`, `--compare`) before part 1
 shipped — to do at the next change; the thresholds chosen above have not

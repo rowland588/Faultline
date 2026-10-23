@@ -11992,6 +11992,12 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
 /* the question first (FC-094 part 1): each choice a card with its example */
 .ie-kinds { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
 .ie-kinds > .field-label { grid-column: 1 / -1; margin-bottom: -2px; }
+/* pass or fail's confidence, three chips in a row (part 1b) */
+.ie-kinds.ie-confs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ie-kinds.ie-confs > .field-label { flex-basis: 100%; }
+.ie-confs .chip { min-height: 40px; min-width: 64px; justify-content: center; }
+/* the chosen one as the cards above it are chosen — pale fill, the teal edge, dark words (never white on dark) */
+.ie-confs .chip.on { background: var(--surface-2); border-color: var(--brand); color: var(--ink); box-shadow: inset 0 0 0 1px var(--brand); }
 .ie-kind { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; min-height: 56px; padding: 9px 12px; border: 1px solid var(--line-2); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); cursor: pointer; font: inherit; touch-action: manipulation; }
 .ie-kind b { font-size: var(--t-body); }
 .ie-kind small { font-size: var(--t-detail); color: var(--muted); line-height: 1.3; }

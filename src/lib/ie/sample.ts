@@ -34,7 +34,7 @@
  * (spc.normality-checks); how sure a Ppk is (Bissell's bound); and
  * the histogram. The distributions are lib/ie/dist, proved against SciPy. */
 import type { AgreedReadings, StudyReading } from '../study';
-import { binomUpper, dagostinoPearson, fewerThan, histogram, individualsLimits, itemsToShow, ppkLowerBound, runOnOneSide, skewness, upperTail } from './dist';
+import { binomUpper, dagostinoPearson, fewerThan, histogram, individualsLimits, itemsToShow, mostMayFail, ppkLowerBound, runOnOneSide, skewness, upperTail } from './dist';
 
 export { upperTail };
 
@@ -66,6 +66,27 @@ export const BELL_P = 0.05;
 export const FINE_FROM = 5;
 /** How sure the bounds are — one-sided. */
 export const SURE = 0.95;
+/** PASS OR FAIL, HOW IT IS JUDGED (part 1b, 23 October): a number that may fail, a loss allowed, or a
+ *  confidence level — and the confidences offered, 95% the default as before. */
+export type Judge = 'count' | 'loss' | 'confidence';
+export const CONFIDENCES = [0.9, 0.95, 0.99] as const;
+export const judgeOf = (a?: AgreedReadings): Judge => (a?.judge === 'loss' || a?.judge === 'confidence' ? a.judge : 'count');
+export const confOf = (a?: AgreedReadings): number => (a?.conf !== undefined && (CONFIDENCES as readonly number[]).includes(a.conf) ? a.conf : SURE);
+/** 0.95 → "95%". */
+export const pctWord = (c: number): string => `${Math.round(c * 100)}%`;
+/** A share good, said rounded down to 0.1% so it never flatters — 0.97622 → "97.6%". */
+export const goodWord = (x: number): string => `${(Math.floor(Math.max(0, x) * 1000 + 1e-9) / 10).toFixed(1)}%`;
+/** HOW MANY MAY FAIL AND IT STILL PASSES: the number agreed; a loss allowed, ⌊(100 − good)·count ÷ 100⌋
+ *  (worked in hundredths, so 98% of 4,500 is 90, never 89); a confidence level, the most that still
+ *  shows it (lib/ie/dist mostMayFail) — −1 when even none failing cannot. */
+export function mayFailOf(a: AgreedReadings | undefined, count: number): number {
+  const j = judgeOf(a);
+  if (j === 'count') return Math.max(0, Math.floor(a?.allowFail ?? 0));
+  const good = a?.good ?? NaN;
+  if (!(good > 0 && good <= 100)) return 0;
+  if (j === 'loss') return Math.floor(((100 - good) * Math.max(0, count)) / 100 + 1e-9);
+  return mostMayFail(Math.max(0, Math.round(count)), (100 - good) / 100, confOf(a));
+}
 
 /** One standard deviation of the readings, as the floor says it. */
 export interface Outside { id: string; no: number; value: number; side: 'low' | 'high' }
@@ -127,11 +148,16 @@ export interface SampleFigures {
 export interface TickFigures {
   ok: number;
   bad: { id: string; no: number }[];
-  /** How many may fail and it still passes — 0 when none may (the old rule). */
+  /** How many may fail and it still passes — 0 when none may (the old rule); −1 when a confidence
+   *  level cannot be shown by the count agreed. */
   allowFail: number;
-  /** 95% sure fewer than this share would fail, from what is in. */
+  /** How it is judged, the share good it is judged against (loss, confidence) and the confidence. */
+  judge: Judge;
+  good?: number;
+  conf: number;
+  /** `conf` confident fewer than this share would fail, from what is in. */
   proves: number;
-  /** Checked, with this many failing, to show fewer than 1 in 100. */
+  /** Checked, with this many failing, to show fewer than 1 in 100 (at `conf`). */
   toShow1: number;
 }
 
@@ -195,7 +221,8 @@ export function sample(agreed: AgreedReadings | undefined, readings: StudyReadin
     const t = kept.filter(r => typeof r.ok === 'boolean');
     const bad = t.filter(r => !r.ok).map(r => ({ id: r.id, no: r.no }));
     return { n: t.length, count, enough: count > 0 && t.length >= count, outside: [], flagged: [], dp: 0,
-      ticks: { ok: t.length - bad.length, bad, allowFail: allowedOf(agreed), proves: binomUpper(bad.length, t.length, SURE), toShow1: itemsToShow(0.01, SURE, bad.length) } };
+      ticks: { ok: t.length - bad.length, bad, allowFail: mayFailOf(agreed, count), judge: judgeOf(agreed), ...(judgeOf(agreed) !== 'count' && agreed.good !== undefined ? { good: agreed.good } : {}),
+        conf: confOf(agreed), proves: binomUpper(bad.length, t.length, confOf(agreed)), toShow1: itemsToShow(0.01, confOf(agreed), bad.length) } };
   }
   const vs = kept.filter((r): r is typeof r & { value: number } => typeof r.value === 'number' && Number.isFinite(r.value));
   const xs = vs.map(r => r.value);
@@ -288,8 +315,6 @@ export function sampleLines(f: SampleFigures, a: AgreedReadings): { v: number; l
   return lines;
 }
 
-/** How many may fail and the test still pass — none, unless agreed. */
-const allowedOf = (a?: AgreedReadings) => Math.max(0, Math.floor(a?.allowFail ?? 0));
 
 /* ---------------------------------------------------------------- the words */
 
@@ -334,16 +359,30 @@ export function sampleSays(f: SampleFigures, a: AgreedReadings | undefined): Sam
 
   if (a.kind === 'ticks' && f.ticks) {
     /* the agreed verdict stays the verdict: more failed than may → it did
-       not pass, at once; what the count proves is said under it */
-    const { ok, bad, allowFail } = f.ticks;
-    const proves = provesWords(f.ticks, f.n, f.enough);
+       not pass, at once; what the count proves is said under it, with its
+       confidence (part 1b) */
+    const t = f.ticks, { bad, allowFail } = t, ok = big(t.ok);
+    const proves = provesWords(t, f.n, f.enough);
     const which = bad.slice(0, 3).map(b => `no. ${b.no}`).join(', ') + (bad.length > 3 ? ` and ${bad.length - 3} more` : '');
-    const failed = bad.length ? `${bad.length} failed (${which})` : '';
+    const failed = bad.length ? `${big(bad.length)} failed (${which})` : '';
+    if (t.judge === 'count') {
+      if (bad.length > allowFail)
+        return { text: `${ok} of ${big(f.n)} good — ${failed}${allowFail ? `, at most ${big(allowFail)} allowed` : ''} — Didn’t pass.`, tone: 'r', verdict: 'Didn’t pass', capability: proves };
+      if (f.enough)
+        return { text: `${ok} of ${big(f.n)} good${bad.length ? ` — ${failed}, ${big(allowFail)} allowed` : ''} — Passed.`, tone: 'g', verdict: 'Passed', capability: proves };
+      return { text: `${big(f.n)} of ${big(f.count)} checked — ${bad.length ? `${failed}, ${big(allowFail)} allowed so far` : 'all good so far'}.`, tone: 'a', verdict: of, capability: proves };
+    }
+    /* a loss allowed or a confidence level: the rule said with the count, every time */
+    const rule = ruleWords(t);
+    if (allowFail < 0) {
+      const p0 = (100 - (t.good ?? 100)) / 100;
+      return { text: `${big(f.count)} checked cannot show ${rule.slice(4)}, even with none failing — it takes ${big(itemsToShow(p0, t.conf, 0))}.`, tone: 'r', verdict: 'Didn’t pass', capability: proves };
+    }
     if (bad.length > allowFail)
-      return { text: `${ok} of ${f.n} good — ${failed}${allowFail ? `, at most ${allowFail} allowed` : ''} — Didn’t pass.`, tone: 'r', verdict: 'Didn’t pass', capability: proves };
+      return { text: `${ok} of ${big(f.n)} good — ${failed}, at most ${big(allowFail)} allowed${rule} — Didn’t pass.`, tone: 'r', verdict: 'Didn’t pass', capability: proves };
     if (f.enough)
-      return { text: `${ok} of ${f.n} good${bad.length ? ` — ${failed}, ${allowFail} allowed` : ''} — Passed.`, tone: 'g', verdict: 'Passed', capability: proves };
-    return { text: `${f.n} of ${f.count} checked — ${bad.length ? `${failed}, ${allowFail} allowed so far` : 'all good so far'}.`, tone: 'a', verdict: of, capability: proves };
+      return { text: `${ok} of ${big(f.n)} good — ${failed || 'none failed'}, ${big(allowFail)} allowed${rule} — Passed.`, tone: 'g', verdict: 'Passed', capability: proves };
+    return { text: `${big(f.n)} of ${big(f.count)} checked — ${failed || 'all good so far'}, ${big(allowFail)} allowed${rule}.`, tone: 'a', verdict: of, capability: proves };
   }
 
   const dp = f.dp, unit = u(a.unit), m = f.mean ?? 0, mean = `mean ${fix(m, dp)}${unit}`;
@@ -381,27 +420,85 @@ export function sampleSays(f: SampleFigures, a: AgreedReadings | undefined): Sam
 
 const big = (n: number) => n.toLocaleString('en-GB');
 
-/** WHAT A PASS-OR-FAIL COUNT PROVES — the exact one-sided bound on the share
- *  that would fail, rounded up so it never flatters, and what it would take
- *  to show fewer than 1 in 100 (spc.zero-failure-demonstration). */
-function provesWords(t: TickFigures, n: number, enough: boolean): { text: string; tone: Tone } {
-  const failed = t.bad.length;
-  const lead = failed ? `${failed} failed in ${n}` : enough ? 'That' : 'So far that';
-  if (t.proves >= 0.995) return { text: `${lead} proves nothing yet about how few would fail.`, tone: 'n' };
-  const more = t.proves > 0.01
-    ? `; to show fewer than 1 in 100 takes ${big(t.toShow1)}${failed ? ` checked with ${failed} failed` : ' good in a row'}` : '';
-  return { text: `${lead} proves ${fewerThan(t.proves)} would fail (95% sure)${more}.`, tone: 'n' };
+/** The rule a loss allowed or a confidence level is judged by, after "allowed" — " for 98% good",
+ *  " for 98% good, 95% confident"; nothing for a number that may fail (it is the number). */
+export function ruleWords(t: Pick<TickFigures, 'judge' | 'good' | 'conf'>): string {
+  if (t.judge === 'loss') return ` for ${t.good}% good`;
+  if (t.judge === 'confidence') return ` for ${t.good}% good, ${pctWord(t.conf)} confident`;
+  return '';
 }
 
-/** WHAT A PASS-OR-FAIL TEST WOULD PROVE, said while it is being agreed: so
- *  the count is chosen for the claim it has to support. */
-export function passFailPlan(count: number, allowFail = 0): string {
+/** WHAT A PASS-OR-FAIL COUNT PROVES, with its confidence (part 1b; spc.zero-failure-demonstration) —
+ *  the exact one-sided bound on the share that would fail, never flattering: a number that may fail
+ *  says it as "fewer than x in 100 would fail" and what 1 in 100 would take; a loss allowed or a
+ *  confidence level as the share good, rounded down, beside the share agreed. */
+function provesWords(t: TickFigures, n: number, enough: boolean): { text: string; tone: Tone } {
+  const failed = t.bad.length;
+  const pc = pctWord(t.conf);
+  if (t.proves >= 0.995) return { text: `${failed ? `${big(failed)} failed in ${big(n)}` : enough ? 'That' : 'So far that'} proves nothing yet about how few would fail.`, tone: 'n' };
+  const lead = failed ? `${big(failed)} failed in ${big(n)}: we` : enough ? 'We' : 'So far we';
+  if (t.judge === 'count') {
+    const more = t.proves > 0.01
+      ? `; to show fewer than 1 in 100 takes ${big(t.toShow1)}${failed ? ` checked with ${big(failed)} failed` : ' good in a row'}` : '';
+    return { text: `${lead} can be ${pc} confident ${fewerThan(t.proves)} would fail${more}.`, tone: 'n' };
+  }
+  const low = 1 - t.proves, good = t.good ?? 100;
+  const shown = low * 100 + 1e-9 >= good;
+  const short = shown ? '' : !enough ? `; ${good}% is not shown yet`
+    : t.judge === 'loss' ? `; ${good}% itself is not shown at this confidence — the count passed it` : ` — short of the ${good}% agreed`;
+  return { text: `${lead} can be ${pc} confident at least ${goodWord(low)} would be good${short}.`, tone: 'n' };
+}
+
+/** WHAT A PASS-OR-FAIL TEST WOULD PROVE, said while it is being agreed — a number that may fail:
+ *  so the count is chosen for the claim it has to support. */
+export function passFailPlan(count: number, allowFail = 0, conf = SURE): string {
   const n = Math.max(1, Math.round(count)), k = Math.max(0, Math.floor(allowFail));
-  const bound = binomUpper(k, n, SURE);
-  const head = k ? `If no more than ${k} of ${big(n)} fail` : `If all ${big(n)} pass`;
+  const bound = binomUpper(k, n, conf), pc = pctWord(conf);
+  const head = k ? `If no more than ${big(k)} of ${big(n)} fail` : `If all ${big(n)} pass`;
   if (bound >= 0.995) return `${head}, it proves nothing yet about how few would fail.`;
-  const more = bound > 0.01 ? ` To prove fewer than 1 in 100 takes ${big(itemsToShow(0.01, SURE, k))}${k ? ` with ${k} allowed to fail` : ' in a row, none failing'}.` : '';
-  return `${head}, that proves ${fewerThan(bound)} would fail (95% sure).${more}`;
+  const more = bound > 0.01 ? ` To prove fewer than 1 in 100 takes ${big(itemsToShow(0.01, conf, k))}${k ? ` with ${big(k)} allowed to fail` : ' in a row, none failing'}.` : '';
+  return `${head}, we can be ${pc} confident ${fewerThan(bound)} would fail.${more}`;
+}
+
+/** WHAT ANY WAY OF JUDGING WOULD MEAN, said while agreeing (part 1b): the plan in a sentence, or why
+ *  it cannot be agreed — the count too small for a confidence level, with the count it would take. */
+export function passFailPlanOf(a: Pick<AgreedReadings, 'count' | 'judge' | 'allowFail' | 'good' | 'conf'>): { text: string; problem: string } {
+  const n = Math.max(1, Math.round(a.count)), j = judgeOf(a as AgreedReadings), conf = confOf(a as AgreedReadings), pc = pctWord(conf);
+  if (j === 'count') return { text: passFailPlan(n, a.allowFail ?? 0, conf), problem: '' };
+  const good = a.good ?? NaN;
+  const bad = goodProblem(j, good);
+  if (bad) return { text: '', problem: bad };
+  const k = mayFailOf({ kind: 'ticks', ...a, count: n } as AgreedReadings, n);
+  const p0 = (100 - good) / 100;
+  if (j === 'loss') {
+    const proves = goodWord(1 - binomUpper(k, n, conf));
+    return { text: k
+      ? `At least ${good}% good: up to ${big(k)} of ${big(n)} may fail. If ${big(k)} fail it still passes — and that proves, ${pc} confident, at least ${proves} would be good.`
+      : `At least ${good}% good: with ${big(n)} checked, none may fail. If all pass, that proves, ${pc} confident, at least ${proves} would be good.`, problem: '' };
+  }
+  if (k < 0) return { text: '', problem: `With ${big(n)} checked, even none failing shows only ${goodWord(1 - binomUpper(0, n, conf))} good, ${pc} confident — check at least ${big(itemsToShow(p0, conf, 0))}.` };
+  return { text: `${pc} confident at least ${good}% good: of ${big(n)} checked, ${k ? `up to ${big(k)} may fail` : 'none may fail'}.`, problem: '' };
+}
+
+/** The share good, for a loss allowed or a confidence level: a percentage above 0 and up to 100 —
+ *  below 100 for a confidence level, which can never show every one good. */
+export function goodProblem(judge: Judge, good: number): string {
+  if (judge === 'count') return '';
+  if (!Number.isFinite(good) || good <= 0 || good > 100) return 'At least what % good — a percentage above 0, up to 100.';
+  if (judge === 'confidence' && good >= 100) return '100% good can never be shown by checking — choose below 100, or none may fail.';
+  return '';
+}
+
+/** WHAT A PASS-OR-FAIL TEST AGREED, in words (part 1b): "pass or fail each, 20 — at most 1 may fail",
+ *  "… 4,500 — at least 98% good (up to 90 may fail)", "… 4,500 — 95% confident at least 98% good (up to
+ *  74 may fail)"; a number that may fail adds its confidence only when not 95%, so an older study reads
+ *  as it did. */
+export function ticksAgreedWords(a: AgreedReadings): string {
+  const j = judgeOf(a), c = confOf(a), k = mayFailOf(a, a.count);
+  const may = k > 0 ? `up to ${big(k)} may fail` : k === 0 ? 'none may fail' : 'it cannot be shown by that count';
+  if (j === 'loss') return `pass or fail each, ${big(a.count)} — at least ${a.good}% good (${may})${c !== SURE ? ` · ${pctWord(c)} confident` : ''}`;
+  if (j === 'confidence') return `pass or fail each, ${big(a.count)} — ${pctWord(c)} confident at least ${a.good}% good (${may})`;
+  return `pass or fail each, ${a.count} — ${k ? `at most ${k} may fail` : 'none may fail'}${c !== SURE ? ` · ${pctWord(c)} confident` : ''}`;
 }
 
 /** Can this many be allowed to fail? A whole number, fewer than are checked. */

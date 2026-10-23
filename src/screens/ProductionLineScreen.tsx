@@ -60,10 +60,17 @@ const TONE_CLASS: Record<SnagTone, string> = { g: 'is-g', r: 'is-r', w: 'is-w', 
 const PRIO_CLASS: Record<Priority, string> = { critical: 'is-r', high: 'is-a', low: 'is-g' };
 
 /** The tools, as the rail names them, each opened on this line — the catalogue's
- *  (src/catalogue/registry), those it lists on a line, in the floor's order. */
-export const TOOLS: { key: string; label: string; to: string; study?: StudyTool; standard?: true; what: string }[] = APP_TOOLS
+ *  (src/catalogue/registry), those it lists on a line, in the floor's order. A video study is a line
+ *  balance read from footage (lib/video/record): it has its own row since 23 October (Rowland: "I add a
+ *  tool to a line it doesn't go there" — it went, counted under Line balance, with no row of its own). */
+export const TOOLS: { key: string; label: string; to: string; study?: StudyTool | 'video'; standard?: true; what: string }[] = APP_TOOLS
   .filter(t => t.onLine && t.reads)
-  .map(t => ({ key: t.key, label: t.label, to: t.to, ...(t.reads === 'standard' ? { standard: true as const } : { study: t.reads as StudyTool }), what: t.onLine as string }));
+  .map(t => ({ key: t.key, label: t.label, to: t.to, ...(t.reads === 'standard' ? { standard: true as const } : { study: t.reads as StudyTool | 'video' }), what: t.onLine as string }));
+
+/** A tool's own uses among a line's or a project's studies — a video study is a balance study with
+ *  footage, so it is the video's and never the line balance's. */
+export const usesOfTool = (study: StudyTool | 'video', studies: ToolStudy[]): ToolStudy[] =>
+  studies.filter(s => !s.deletedAt && (study === 'video' ? !!s.facts?.video : s.tool === study && !s.facts?.video));
 
 export type LineTool = typeof TOOLS[number];
 
@@ -80,7 +87,7 @@ export function toolSaysOf(t: LineTool, d: { standards: Standard[]; studies: Too
     const people = headcount(s), things = thingsOf(s);
     return { n: own.length, says: `${s.product}: ${people || things ? [`${people} ${people === 1 ? 'person' : 'people'}`, things].filter(Boolean).join(' · ') : 'nothing placed yet'}` };
   }
-  const own = studies.filter(s => s.tool === t.study).sort((a, b) => b.startedAt - a.startedAt);
+  const own = t.study ? usesOfTool(t.study, studies).sort((a, b) => b.startedAt - a.startedAt) : [];
   /* a loss count: the latest shift counted, as the line's card says it */
   const s = (t.study === 'losses' ? currentLosses(own, wsId) : undefined) ?? own[0];
   if (!s) return { n: 0 };

@@ -102,6 +102,21 @@ await page.waitForFunction(() => /· on this device/.test(document.querySelector
 ok(/#\/video\/[^/?]+$/.test(page.url()) && /Line 4 — packing, morning/.test(await txt()) && /Line 4/.test(await txt()) && /· on this device, waiting to go up to the cloud/.test(await txt()), '1d the study opens: its footage, its line, and where the footage is — on this device, waiting to go up (the cloud is out of reach here)', `${page.url()} · ${await page.locator('.vid-study [data-facts]').innerText().catch(() => 'no facts line')}`);
 const studyUrl = page.url();
 const sid = studyUrl.split('/video/')[1];
+/* 1e — ON ITS LINE (Rowland, 23 October: "I add a tool to a line it doesn't go there" — a video study
+   went on its line but had no row there, counted under Line balance): the line's Tools has a Video study
+   row with it, and from the row the list is that line's own */
+{
+  await page.goto(`${BASE}/#/lines/${encodeURIComponent(lineId)}?view=tools`); await page.waitForTimeout(2000);
+  const vrow = page.locator('.pl-tools .pl-tool', { hasText: /^Video study/ });
+  const vtext = (await vrow.innerText().catch(() => '')).replace(/\s+/g, ' ');
+  const lbal = (await page.locator('.pl-tools .pl-tool', { hasText: /^Line balance/ }).innerText().catch(() => '')).replace(/\s+/g, ' ');
+  ok(/Line 4 — packing, morning/.test(vtext) && /1 on this line/.test(vtext) && !/Line 4 — packing, morning/.test(lbal), '1e on its line: the line’s Tools has a Video study row — its name, 1 on this line — and Line balance does not count it', `${vtext} | ${lbal}`);
+  await vrow.click(); await page.waitForTimeout(1500);
+  const vlist = (await page.locator('.vid-list .lt-what').allInnerTexts()).map(x => x.replace(/\s+/g, ' ').trim());
+  ok(/#\/video\?line=/.test(page.url()) && vlist.length === 1 && vlist[0] === 'Line 4 — packing, morning' && (await page.locator('.qsl-f .chip.on').innerText().catch(() => '')) === 'Line 4',
+    '1e from the line, its video studies only — the line said, All lines one tap away', `${page.url()} ${JSON.stringify(vlist)}`);
+  await page.goto(studyUrl); await page.locator('.vid-study').waitFor({ timeout: 15000 }).catch(() => {}); await page.waitForTimeout(1500);
+}
 
 /* 2 — the stations, and the reading */
 await page.getByLabel('How many stations are in view', { exact: true }).selectOption('3'); await page.waitForTimeout(600);

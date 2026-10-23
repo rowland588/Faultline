@@ -39,7 +39,7 @@ export const IE: Entry[] = [
     depends: ['FC-019', 'FC-032'],
     complexity: 'XL', value: 'high', valueWhy: 'Evidence that can be reviewed; many cycles at once.',
     status: 'partial', form: 'tool', kind: 'study',
-    app: { key: 'video', label: 'Video study', says: 'Film the line: the work at each station read from the footage, reviewed, worked out as a line balance', icon: 'camera', order: 10 }, methods: ['ie.video-time-study'], scenarios: ['people', 'running'], words: ['film', 'camera', 'footage'],
+    app: { key: 'video', label: 'Video study', says: 'Film the line: the work at each station read from the footage, reviewed, worked out as a line balance', onLine: 'the line filmed, the work at each station read from the footage', reads: 'video', icon: 'camera', order: 10 }, methods: ['ie.video-time-study'], scenarios: ['people', 'running'], words: ['film', 'camera', 'footage'],
     built: { where: ['/video'], code: ['src/screens/VideoScreen.tsx', 'src/lib/video/extract.ts'], tests: [], acceptance: ['video-study.mjs', 'video-fit.mjs', 'video-check.mjs'] },
     limits: ['Accuracy depends on the footage and is measured, not guaranteed (docs/VIDEO.md).', 'Changeovers are not measured from footage yet.'],
   },

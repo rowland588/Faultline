@@ -1,7 +1,7 @@
 /* The measured test's arithmetic, proved by the worked example in
  * docs/LEAN40.md's appendix and the cases docs/BUILD.md 2c names. */
 import { describe, it, expect } from 'vitest';
-import { sample, sampleSays, compareSamples, tneFor, inWords, upperTail, capabilityWords, drifts, checksSay, passFailPlan, allowFailProblem } from '../sample';
+import { sample, sampleSays, compareSamples, tneFor, inWords, upperTail, capabilityWords, drifts, checksSay, passFailPlan, allowFailProblem, passFailPlanOf, mayFailOf, goodProblem, goodWord } from '../sample';
 import type { AgreedReadings, StudyReading } from '../../study';
 
 const THIRTY = [400.1, 402.6, 401.6, 400.8, 401.5, 401.3, 400.2, 401.9, 400.6, 400.4, 400.6, 401.2, 401.9, 400.9, 401.8,
@@ -120,17 +120,17 @@ describe('pass or fail — how many may fail, and what it proves', () => {
   it('twenty of twenty good: passed, and it proves fewer than 14 in 100 would fail — not yet 1 in 100', () => {
     const s = sampleSays(sample(T(20), ticks(20)), T(20));
     expect(s).toMatchObject({ text: '20 of 20 good — Passed.', tone: 'g', verdict: 'Passed' });
-    expect(s.capability).toEqual({ text: 'That proves fewer than 14 in 100 would fail (95% sure); to show fewer than 1 in 100 takes 299 good in a row.', tone: 'n' });
+    expect(s.capability).toEqual({ text: 'We can be 95% confident fewer than 14 in 100 would fail; to show fewer than 1 in 100 takes 299 good in a row.', tone: 'n' });
   });
   it('eight of twenty checked, all good: so far, and what so far proves', () => {
     const s = sampleSays(sample(T(20), ticks(8)), T(20));
     expect(s).toMatchObject({ text: '8 of 20 checked — all good so far.', tone: 'a', verdict: '8 of 20 in' });
-    expect(s.capability?.text).toBe('So far that proves fewer than 32 in 100 would fail (95% sure); to show fewer than 1 in 100 takes 299 good in a row.');
+    expect(s.capability?.text).toBe('So far we can be 95% confident fewer than 32 in 100 would fail; to show fewer than 1 in 100 takes 299 good in a row.');
   });
   it('one allowed to fail and one did: passed, with the failure named and its proof', () => {
     const s = sampleSays(sample(T(20, 1), ticks(20, [7])), T(20, 1));
     expect(s).toMatchObject({ text: '19 of 20 good — 1 failed (no. 7), 1 allowed — Passed.', tone: 'g', verdict: 'Passed' });
-    expect(s.capability?.text).toBe('1 failed in 20 proves fewer than 22 in 100 would fail (95% sure); to show fewer than 1 in 100 takes 473 checked with 1 failed.');
+    expect(s.capability?.text).toBe('1 failed in 20: we can be 95% confident fewer than 22 in 100 would fail; to show fewer than 1 in 100 takes 473 checked with 1 failed.');
   });
   it('one allowed and two failed: didn’t pass, at once — before all are checked', () => {
     const s = sampleSays(sample(T(20, 1), ticks(12, [7, 12])), T(20, 1));
@@ -150,9 +150,9 @@ describe('pass or fail — how many may fail, and what it proves', () => {
     expect(sampleSays(sample(T(3, 2), ticks(3, [1, 2, 3])), T(3, 2)).capability?.text).toBe('3 failed in 3 proves nothing yet about how few would fail.');
   });
   it('while agreeing: what the count would prove, and what 1 in 100 would take', () => {
-    expect(passFailPlan(20)).toBe('If all 20 pass, that proves fewer than 14 in 100 would fail (95% sure). To prove fewer than 1 in 100 takes 299 in a row, none failing.');
-    expect(passFailPlan(20, 1)).toBe('If no more than 1 of 20 fail, that proves fewer than 22 in 100 would fail (95% sure). To prove fewer than 1 in 100 takes 473 with 1 allowed to fail.');
-    expect(passFailPlan(299)).toBe('If all 299 pass, that proves fewer than 1 in 100 would fail (95% sure).');
+    expect(passFailPlan(20)).toBe('If all 20 pass, we can be 95% confident fewer than 14 in 100 would fail. To prove fewer than 1 in 100 takes 299 in a row, none failing.');
+    expect(passFailPlan(20, 1)).toBe('If no more than 1 of 20 fail, we can be 95% confident fewer than 22 in 100 would fail. To prove fewer than 1 in 100 takes 473 with 1 allowed to fail.');
+    expect(passFailPlan(299)).toBe('If all 299 pass, we can be 95% confident fewer than 1 in 100 would fail.');
   });
   it('how many may fail: a whole number, fewer than are checked', () => {
     expect(allowFailProblem(20, 0)).toBe('');
@@ -160,6 +160,84 @@ describe('pass or fail — how many may fail, and what it proves', () => {
     expect(allowFailProblem(20, 20)).toBe('At most 19 of 20 may fail.');
     expect(allowFailProblem(20, -1)).toMatch(/whole number/);
     expect(allowFailProblem(20, 1.5)).toMatch(/whole number/);
+  });
+});
+
+/* PART 1b (23 October) — pass or fail judged by a loss allowed or a confidence level, the confidence
+ * chosen, said in the confidence words. Every bound is SciPy's (scripts/knowledge/independent-cases.py):
+ * 4,500 at 98% good — 74 may fail at 95%, 77 at 90%, 68 at 99%; 90 failed proves 97.6% good at 95%
+ * (0.02378498), 70 failed 98.1% (0.01894623); 20 checked show at most 86.0% good (0.1391083), 149 needed. */
+describe('pass or fail by a loss allowed', () => {
+  const A = (count: number, good = 98, conf?: number): AgreedReadings => ({ kind: 'ticks', count, judge: 'loss', good, ...(conf ? { conf } : {}) });
+  const ticks = (n: number, bad: number[] = []): StudyReading[] => Array.from({ length: n }, (_, i) => ({ id: `t${i}`, ok: !bad.includes(i + 1), at: i }));
+  const first = (k: number) => Array.from({ length: k }, (_, i) => i + 1);
+  it('98% of 4,500: 90 may fail — worked in hundredths, never 89', () => {
+    expect(mayFailOf(A(4500), 4500)).toBe(90);
+    expect(mayFailOf(A(20), 20)).toBe(0);
+    expect(mayFailOf(A(1000, 99.9), 1000)).toBe(1);
+    expect(mayFailOf(A(4500, 98.5), 4500)).toBe(67);
+  });
+  it('70 failed of 4,500: passed, and 98.1% shown at 95% confident', () => {
+    const s = sampleSays(sample(A(4500), ticks(4500, first(70))), A(4500));
+    expect(s).toMatchObject({ text: '4,430 of 4,500 good — 70 failed (no. 1, no. 2, no. 3 and 67 more), 90 allowed for 98% good — Passed.', tone: 'g', verdict: 'Passed' });
+    expect(s.capability?.text).toBe('70 failed in 4,500: we can be 95% confident at least 98.1% would be good.');
+  });
+  it('90 failed: passed on the count, and said honestly — 98% itself not shown at this confidence', () => {
+    const s = sampleSays(sample(A(4500), ticks(4500, first(90))), A(4500));
+    expect(s.verdict).toBe('Passed');
+    expect(s.capability?.text).toBe('90 failed in 4,500: we can be 95% confident at least 97.6% would be good; 98% itself is not shown at this confidence — the count passed it.');
+  });
+  it('91 failed: didn’t pass, at once', () => {
+    const s = sampleSays(sample(A(4500), ticks(3000, first(91))), A(4500));
+    expect(s).toMatchObject({ text: '2,909 of 3,000 good — 91 failed (no. 1, no. 2, no. 3 and 88 more), at most 90 allowed for 98% good — Didn’t pass.', tone: 'r', verdict: 'Didn’t pass' });
+  });
+  it('part way: the rule said with the count, amber', () => {
+    expect(sampleSays(sample(A(4500), ticks(1200, [4])), A(4500))).toMatchObject({ text: '1,200 of 4,500 checked — 1 failed (no. 4), 90 allowed for 98% good.', tone: 'a' });
+  });
+  it('while agreeing: what the loss allows and what it would prove', () => {
+    expect(passFailPlanOf(A(4500))).toEqual({ text: 'At least 98% good: up to 90 of 4,500 may fail. If 90 fail it still passes — and that proves, 95% confident, at least 97.6% would be good.', problem: '' });
+    expect(passFailPlanOf(A(20)).text).toBe('At least 98% good: with 20 checked, none may fail. If all pass, that proves, 95% confident, at least 86.0% would be good.');
+    expect(passFailPlanOf(A(4500, 0)).problem).toMatch(/percentage above 0/);
+  });
+});
+
+describe('pass or fail by a confidence level', () => {
+  const C = (count: number, conf?: number, good = 98): AgreedReadings => ({ kind: 'ticks', count, judge: 'confidence', good, ...(conf ? { conf } : {}) });
+  const ticks = (n: number, bad: number[] = []): StudyReading[] => Array.from({ length: n }, (_, i) => ({ id: `t${i}`, ok: !bad.includes(i + 1), at: i }));
+  const first = (k: number) => Array.from({ length: k }, (_, i) => i + 1);
+  it('95% confident of 98% good, of 4,500: 74 may fail; 90% 77; 99% 68', () => {
+    expect(mayFailOf(C(4500), 4500)).toBe(74);
+    expect(mayFailOf(C(4500, 0.9), 4500)).toBe(77);
+    expect(mayFailOf(C(4500, 0.99), 4500)).toBe(68);
+  });
+  it('74 failed: passed — 98.0% shown, 95% confident', () => {
+    const s = sampleSays(sample(C(4500), ticks(4500, first(74))), C(4500));
+    expect(s).toMatchObject({ text: '4,426 of 4,500 good — 74 failed (no. 1, no. 2, no. 3 and 71 more), 74 allowed for 98% good, 95% confident — Passed.', tone: 'g', verdict: 'Passed' });
+    expect(s.capability?.text).toBe('74 failed in 4,500: we can be 95% confident at least 98.0% would be good.');
+  });
+  it('75 failed: didn’t pass, at once', () => {
+    expect(sampleSays(sample(C(4500), ticks(1000, first(75))), C(4500))).toMatchObject({ verdict: 'Didn’t pass', text: '925 of 1,000 good — 75 failed (no. 1, no. 2, no. 3 and 72 more), at most 74 allowed for 98% good, 95% confident — Didn’t pass.' });
+  });
+  it('twenty cannot show 98% at 95% — refused while agreeing, with the 149 it takes', () => {
+    expect(mayFailOf(C(20), 20)).toBe(-1);
+    expect(passFailPlanOf(C(20))).toEqual({ text: '', problem: 'With 20 checked, even none failing shows only 86.0% good, 95% confident — check at least 149.' });
+    expect(passFailPlanOf(C(4500))).toEqual({ text: '95% confident at least 98% good: of 4,500 checked, up to 74 may fail.', problem: '' });
+    expect(passFailPlanOf(C(149)).text).toBe('95% confident at least 98% good: of 149 checked, none may fail.');
+  });
+  it('100% good can never be shown by checking — refused', () => {
+    expect(goodProblem('confidence', 100)).toMatch(/never be shown/);
+    expect(goodProblem('loss', 100)).toBe('');
+  });
+  it('a number that may fail said at 99%, and a study from before at 95%', () => {
+    const N: AgreedReadings = { kind: 'ticks', count: 20, conf: 0.99 };
+    expect(sampleSays(sample(N, ticks(20)), N).capability?.text).toBe('We can be 99% confident fewer than 21 in 100 would fail; to show fewer than 1 in 100 takes 459 good in a row.');
+    const old: AgreedReadings = { kind: 'ticks', count: 20 };
+    expect(sampleSays(sample(old, ticks(20)), old).capability?.text).toMatch(/^We can be 95% confident fewer than 14 in 100/);
+  });
+  it('the share good said rounded down, never flattering', () => {
+    expect(goodWord(0.976215)).toBe('97.6%');
+    expect(goodWord(0.98)).toBe('98.0%');
+    expect(goodWord(0.86089)).toBe('86.0%');
   });
 });
 

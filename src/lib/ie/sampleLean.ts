@@ -8,7 +8,7 @@
  * Money in every tool): no figure is made up for it. */
 import type { LeanTile, LeanTone } from '../lean';
 import type { AgreedReadings } from '../study';
-import { CPK_FROM, type SampleFigures, type SampleSays } from './sample';
+import { CPK_FROM, goodWord, pctWord, ruleWords, type SampleFigures, type SampleSays } from './sample';
 import { fewerThan } from './dist';
 
 const tone = (t: string): LeanTone | undefined => (t === 'r' || t === 'a' || t === 'g' ? t : undefined);
@@ -26,12 +26,18 @@ export function sampleTiles(f: SampleFigures, a: AgreedReadings, said: SampleSay
   /* pass or fail: how many failed of how many may, and what the count
      proves (knowledge/specs/FC-094-capability.md §7) */
   if (a.kind === 'ticks' && f.ticks) {
-    const t = f.ticks, over = t.bad.length > t.allowFail;
+    const t = f.ticks, over = t.bad.length > t.allowFail, pc = pctWord(t.conf);
+    /* the rule beside the count for a loss allowed or a confidence level (part 1b) */
+    const rule = t.judge === 'loss' ? ` · ${t.good}% good` : t.judge === 'confidence' ? ` · ${t.good}% good, ${pc} confident` : '';
     return [...tiles,
-      { k: 'Failed', v: String(t.bad.length), of: t.allowFail ? `of ${t.allowFail} allowed` : 'none allowed', ...(over ? { tone: 'r' as LeanTone } : f.n ? {} : { tone: 'n' as LeanTone }) },
-      f.n && t.proves < 0.995
-        ? { k: 'Proves', v: fewerThan(t.proves).replace('fewer than', '<'), of: `would fail, 95% sure${t.proves > 0.01 ? ` · 1 in 100 takes ${t.toShow1.toLocaleString('en-GB')}` : ''}` }
-        : { k: 'Proves', v: '—', of: 'nothing yet about how few would fail', tone: 'n' as LeanTone },
+      { k: 'Failed', v: t.bad.length.toLocaleString('en-GB'), of: `${t.allowFail > 0 ? `of ${t.allowFail.toLocaleString('en-GB')} allowed` : 'none allowed'}${rule}`, ...(over ? { tone: 'r' as LeanTone } : f.n ? {} : { tone: 'n' as LeanTone }) },
+      /* WHAT IT PROVES, WITH ITS CONFIDENCE — a number that may fail as fewer than x in 100 failing; a
+         loss allowed or a confidence level as the share good, rounded down */
+      !(f.n && t.proves < 0.995)
+        ? { k: 'Confident', v: '—', of: 'nothing yet about how few would fail', tone: 'n' as LeanTone }
+        : t.judge === 'count'
+          ? { k: 'Confident', v: fewerThan(t.proves).replace('fewer than', '<'), of: `would fail — ${pc} confident${t.proves > 0.01 ? ` · 1 in 100 takes ${t.toShow1.toLocaleString('en-GB')}` : ''}` }
+          : { k: 'Confident', v: `≥ ${goodWord(1 - t.proves)}`, of: `good — ${pc} confident` },
       { k: 'Verdict', v: said.verdict, of: said.text, ...(tone(said.tone) ? { tone: tone(said.tone) } : {}) }];
   }
   const ok = f.ppk !== undefined && Number.isFinite(f.ppk) && f.n >= CPK_FROM;
@@ -54,7 +60,9 @@ export function sampleClosing(f: SampleFigures, a: AgreedReadings, said: SampleS
   if (!f.n) return { text: `${said.verdict} — ${f.count} readings agreed, none in yet.`, tone: 'n' };
   if (a.kind === 'ticks') {
     const failed = f.ticks?.bad.length ?? 0, allowed = f.ticks?.allowFail ?? 0;
-    return { text: `${said.verdict} — ${f.n} of ${f.count} checked, ${failed ? `${failed} failed` : 'none failed'}${allowed ? ` (${allowed} allowed)` : ''}.`, tone: t };
+    const rule = f.ticks ? ruleWords(f.ticks) : '';
+    const n = (v: number) => v.toLocaleString('en-GB');
+    return { text: `${said.verdict} — ${n(f.n)} of ${n(f.count)} checked, ${failed ? `${n(failed)} failed` : 'none failed'}${allowed > 0 || rule ? ` (${n(Math.max(0, allowed))} allowed${rule})` : ''}.`, tone: t };
   }
   const ok = f.ppk !== undefined && Number.isFinite(f.ppk) && f.n >= CPK_FROM;
   return { text: `${said.verdict} — ${f.n} of ${f.count} readings in, ${f.outside.length} outside${ok ? `, Ppk ${(f.ppk as number).toFixed(2)}` : ''}.`, tone: t };

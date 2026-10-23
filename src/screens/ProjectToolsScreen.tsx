@@ -24,6 +24,7 @@ import { PageHeader, RecordRow, RecordRows } from '../ui/parts';
 import { planModel } from '../lib/planModel';
 import { usePaceLines } from '../lib/usePaceLines';
 import { PaceSnags } from './PaceSnags';
+import { usesOfTool } from './ProductionLineScreen';
 
 /** How many uses of a tool a project holds, and the latest's name. */
 export function usesOf(t: AppTool, studies: ToolStudy[], standards: Standard[]): { n?: number; latest?: string } {
@@ -32,7 +33,7 @@ export function usesOf(t: AppTool, studies: ToolStudy[], standards: Standard[]):
     return { n: mine.length, latest: mine.sort((a, b) => b.updatedAt - a.updatedAt)[0]?.product };
   }
   if (!t.reads) return {};
-  const mine = studies.filter(s => !s.deletedAt && s.tool === t.reads).sort((a, b) => b.updatedAt - a.updatedAt);
+  const mine = usesOfTool(t.reads, studies).sort((a, b) => b.updatedAt - a.updatedAt);
   return { n: mine.length, latest: mine[0]?.name };
 }
 

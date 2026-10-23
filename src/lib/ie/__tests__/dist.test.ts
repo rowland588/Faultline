@@ -3,7 +3,7 @@
  * SciPy 1.17, by scripts/knowledge/independent-cases.py — or from a published
  * table, never from this code's own output. */
 import { describe, it, expect } from 'vitest';
-import { normalQuantile, normalCdf, binomCdf, binomUpper, binomLower, itemsToShow, andersonDarling, dagostinoPearson, skewness, individualsLimits, runOnOneSide, ppkLowerBound, histogram, fewerThan, lnGamma } from '../dist';
+import { normalQuantile, normalCdf, binomCdf, binomUpper, binomLower, itemsToShow, andersonDarling, dagostinoPearson, skewness, individualsLimits, runOnOneSide, ppkLowerBound, histogram, fewerThan, lnGamma, mostMayFail } from '../dist';
 
 const THIRTY = [400.1, 402.6, 401.6, 400.8, 401.5, 401.3, 400.2, 401.9, 400.6, 400.4, 400.6, 401.2, 401.9, 400.9, 401.8,
   401.0, 401.9, 400.8, 401.9, 401.1, 401.2, 401.6, 401.3, 400.7, 401.3, 400.4, 401.1, 401.5, 401.9, 400.8];
@@ -47,6 +47,39 @@ describe('the binomial — against scipy.stats.binom and beta', () => {
     expect(binomUpper(1, n)).toBeLessThanOrEqual(0.05);
     expect(binomUpper(1, n - 1)).toBeGreaterThan(0.05);
     expect(n).toBe(93);
+  });
+});
+
+/* PART 1b (23 October): pass or fail judged by a confidence level or an allowed loss. Every number is
+ * SciPy's — scripts/knowledge/independent-cases.py, "the most that may fail": the largest k with
+ * beta.ppf(C, k+1, n−k) ≤ p0, and the bounds at 90% and 99%. */
+describe('most may fail — and the bounds at 90% and 99%, against SciPy', () => {
+  it.each([[4500, 0.02, 0.95, 74], [4500, 0.02, 0.90, 77], [4500, 0.02, 0.99, 68], [300, 0.02, 0.95, 1], [20, 0.02, 0.95, -1],
+    [149, 0.02, 0.95, 0], [148, 0.02, 0.95, -1], [1000, 0.01, 0.95, 4], [50, 0.10, 0.90, 1], [500, 0.05, 0.99, 13]] as const)(
+    'of %s checked, to show at most %s failing at %s: %s may fail', (n, p0, c, want) => expect(mostMayFail(n, p0, c)).toBe(want));
+  it('zero failures at 90% and 99%: 1 − (1 − C)^(1/n)', () => {
+    expect(binomUpper(0, 20, 0.90)).toBeCloseTo(0.108749, 6);
+    expect(binomUpper(0, 20, 0.99)).toBeCloseTo(0.205672, 6);
+    expect(binomUpper(0, 59, 0.90)).toBeCloseTo(0.038275, 6);
+    expect(binomUpper(0, 59, 0.99)).toBeCloseTo(0.075085, 6);
+    expect(binomUpper(0, 300, 0.90)).toBeCloseTo(0.007646, 6);
+    expect(binomUpper(0, 300, 0.99)).toBeCloseTo(0.015233, 6);
+  });
+  it('items to show 2% with none failing: 114 at 90%, 149 at 95%, 228 at 99%', () => {
+    expect([0.90, 0.95, 0.99].map(c => itemsToShow(0.02, c))).toEqual([114, 149, 228]);
+  });
+  it('what a loss allowed proves: 90 failed of 4,500, 70 of 4,500, 2 of 50', () => {
+    expect(binomUpper(90, 4500, 0.90)).toBeCloseTo(0.02294767, 7);
+    expect(binomUpper(90, 4500, 0.95)).toBeCloseTo(0.02378498, 7);
+    expect(binomUpper(90, 4500, 0.99)).toBeCloseTo(0.02540787, 7);
+    expect(binomUpper(70, 4500, 0.95)).toBeCloseTo(0.01894623, 7);
+    expect(binomUpper(2, 50, 0.90)).toBeCloseTo(0.10295921, 7);
+    expect(binomUpper(2, 50, 0.99)).toBeCloseTo(0.15770405, 7);
+  });
+  it('nothing to show: no items, or a share of 0 or 1', () => {
+    expect(mostMayFail(0, 0.02)).toBe(-1);
+    expect(mostMayFail(100, 0)).toBe(-1);
+    expect(mostMayFail(100, 1)).toBe(-1);
   });
 });
 
