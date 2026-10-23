@@ -9,6 +9,7 @@
  * each line opens the record it came from. The Day report PDF is drawn off the
  * same reading, so what you send is what you read.
  */
+import { PageHeader } from '../ui/parts';
 import { useEffect, useState } from 'react';
 import { openRecord } from '../ui/RecordDrawer';
 import { useJobStudies } from '../ui/StudyLinks';
@@ -161,28 +162,17 @@ export function DayScreen({ projectId }: { projectId: string }) {
 
   return (
     <div className="wrap pace cm-screen">
-      <header className="pace-head dy-head">
-        <div className="pace-head-main">
-          <h1 className="pace-title">{date === today ? 'Today' : niceDay(date, { weekday: 'short', year: date.slice(0, 4) !== today.slice(0, 4) })}{date === today && <span className="dy-date">{niceDay(date, { weekday: 'short' })}</span>}</h1>
-          {/* THE VERDICT AS ITS ONE LINE (docs/FLOW.md item 5) — the date and
-              the counts, as the control room's row says it; the names are in
-              the story below. The day's paragraph said it all again; it now
-              opens the folded story. With no verdict (a 6M job's day), the
-              paragraph stays here. */}
-          {onTarget ? <OnTargetLine v={{ ...onTarget, reason: onTarget.brief ?? onTarget.reason }} asOf={asOf} /> : <p className="dy-headline">{day.headline}</p>}
-        </div>
-        {/* FROM THE TOP. Rowland, 5 October: "I wanted to be able to very
-            quickly see today and send out an up-to-date movement on today.
-            Even that's not easy to do." The button was a "PDF" at the foot of
-            the page, under every list and the pictures. It saves the page to
-            the device; the bar it leaves (ui/PdfReady) opens it to read and
-            sends it — "view it before I send it". */}
-        <div className="pace-head-actions">
-          <button className="btn btn-primary" onClick={() => void send()} disabled={busy}>
-            {busy ? 'Building…' : date === today ? 'Today’s update — PDF' : 'This day — PDF'}
-          </button>
-        </div>
-      </header>
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3). FROM THE TOP — Rowland, 5 October: "I wanted to be able to very
+          quickly see today and send out an up-to-date movement on today. Even that's not easy to do." The update is
+          the day's one thing to do, and its paper in Report ▾ too; it saves the page to the device, and the bar it
+          leaves (ui/PdfReady) opens it to read and sends it — "view it before I send it". THE VERDICT AS ITS ONE
+          LINE (docs/FLOW.md item 5) — the date and the counts; with no verdict (a 6M job's day) the paragraph. */}
+      <PageHeader
+        title={<>{date === today ? 'Today' : niceDay(date, { weekday: 'short', year: date.slice(0, 4) !== today.slice(0, 4) })}{date === today && <span className="dy-date">{niceDay(date, { weekday: 'short' })}</span>}</>}
+        primary={{ label: busy ? 'Building…' : date === today ? 'Today’s update' : 'This day’s update', disabled: busy, run: () => void send() }}
+        papers={[{ label: date === today ? 'Today’s update' : 'This day’s update', for: 'one page of the day to send — done, late, what went wrong, what was found', disabled: busy, make: send }]}>
+        {onTarget ? <OnTargetLine v={{ ...onTarget, reason: onTarget.brief ?? onTarget.reason }} asOf={asOf} /> : <p className="dy-headline">{day.headline}</p>}
+      </PageHeader>
       {(said || err) && (
         <p className={'sub ' + (err ? 'tw-err' : 'tc-ok')} role="status">
           {err ?? said}{' '}
@@ -277,7 +267,7 @@ export function DayScreen({ projectId }: { projectId: string }) {
       )}
 
       {/* Said once, on an empty day; a day with a story does not need its button explained. */}
-      {day.empty && <p className="sub tw-note">“{date === today ? 'Today’s update — PDF' : 'This day — PDF'}” at the top saves one page of this to your device — the day’s story, the gates’ bars and the day’s pictures — to read, then send from the bar it leaves.</p>}
+      {day.empty && <p className="sub tw-note">“{date === today ? 'Today’s update' : 'This day’s update'}” at the top saves one page of this to your device — the day’s story, the gates’ bars and the day’s pictures — to read, then send from the bar it leaves.</p>}
 
       {/* THE CLOSING LINE — the day in one sentence, the slip in money */}
       <LeanClosing closing={dayClosing(day, money)} />

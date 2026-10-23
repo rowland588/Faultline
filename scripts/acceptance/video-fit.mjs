@@ -25,6 +25,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { paper } from '../lib/pageHeader.mjs';
 const { chromium } = pkg;
 
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
@@ -146,7 +147,7 @@ ok(/This footage cannot be timed for line balance: where the phone was — in th
 await page.getByLabel('Where was the phone', { exact: true }).selectOption('side-raised'); await page.waitForTimeout(400);
 
 /* 5 — the paper */
-const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Report', exact: true }).click()]);
+const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), paper(page, 'Video study report')]);
 const pdfPath = join(dir, 'fit.pdf'); await dl.saveAs(pdfPath);
 const pdf = flat(execFileSync('pdftotext', ['-raw', pdfPath, '-'], { encoding: 'utf8' }));
 ok(/Is this footage fit for the study\?/.test(pdf) && /Fit for it Not fit to time/.test(pdf) && /The camera: NOT FIT — Shook for \d+% of the time over every frame read/.test(pdf) && /Not measurable from footage — When work starts and stops at each station/.test(pdf),

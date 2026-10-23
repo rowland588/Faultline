@@ -50,6 +50,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 const { chromium } = pkg;
+import { paper as pressPaper, more } from '../lib/pageHeader.mjs';
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
 const OUT = process.env.SHOTS;
@@ -128,19 +129,19 @@ if (OUT) await page.screenshot({ path: `${OUT}/f-2-control.png` });
 /* 7 — a line's own page: its type; edited there */
 await page.locator('.fac-card', { hasText: 'Line 3' }).click(); await page.waitForTimeout(2000);
 ok(/PRODUCTION LINE · FILLING/.test(await page.locator('.pl-eyebrow').innerText()), `7 the line's page says its type: ${await page.locator('.pl-eyebrow').innerText()}`);
-await page.getByRole('button', { name: 'Edit the line' }).click(); await page.waitForTimeout(400);
+await more(page, 'Edit the line'); await page.waitForTimeout(400);
 await page.getByLabel("The line's name").fill('Line 3B'); await page.getByLabel("The line's name").press('Enter'); await page.waitForTimeout(900);
 await page.getByLabel("The line's type").fill('Packing'); await page.getByLabel("The line's type").press('Enter'); await page.waitForTimeout(900);
 ok((await page.locator('h1').innerText()) === 'Line 3B' && /PACKING/.test(await page.locator('.pl-eyebrow').innerText()), `7b edited on its page: ${await page.locator('h1').innerText()} · ${await page.locator('.pl-eyebrow').innerText()}`);
 ok(/Saved — a Packing line/.test(await page.locator('.pl-edit .pe-saved').innerText().catch(() => '')), '7c said saved');
 
 /* 8 — its paper named with its type (a problem taken on it first) */
-await page.locator('.pl .pace-head-actions').getByRole('button', { name: 'Problem', exact: true }).click(); await page.waitForTimeout(900);
+await page.locator('.nv-top .qs-top').click(); await page.waitForTimeout(900);
 const sheet = page.locator('.sheet, [role="dialog"]').last();
 await sheet.locator('textarea').first().fill('Film splice jams at the sealer');
 await sheet.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(1500);
 const dir = mkdtempSync(join(tmpdir(), 'factory-'));
-const [d] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), page.locator('.pl .pace-head-actions').getByRole('button', { name: 'Problems report', exact: true }).click()]);
+const [d] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), pressPaper(page, 'Problems report', page.locator('.pl'))]);
 const f = join(dir, 'line.pdf'); await d.saveAs(f);
 const paper = execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
 ok(/Line 3B \(Packing\) — problems/.test(paper) && /Film splice jams/.test(paper), '8 its Problems report is named with its type');
@@ -226,7 +227,7 @@ if (OUT) await page.screenshot({ path: `${OUT}/f-5-control-jobs.png` });
 
 /* 21-23 — the factory on paper; the tools pick from it (slice 3) */
 await page.goto(`${BASE}/#/factory`); await page.waitForTimeout(2000);
-const [fd] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), page.getByRole('button', { name: 'Factory report' }).click()]);
+const [fd] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), pressPaper(page, 'Factory report')]);
 const ff = join(dir, 'factory.pdf'); await fd.saveAs(ff);
 const fpaper = execFileSync('pdftotext', ['-raw', ff, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
 const fpages = Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [ff], { encoding: 'utf8' }))?.[1]);
@@ -295,7 +296,7 @@ ok(after.on && after.arch && !(await order()).some(x => x.startsWith('Line 10|')
 await page.goto(`${BASE}/#/lines/${l9}`); await page.waitForTimeout(2000);
 ok(/Duplicate line problem/.test(await txt()), '29c Line 9\'s page has the problem that was on Line 10');
 await page.goto(`${BASE}/#/factory`); await page.waitForTimeout(2000);
-const [fd2] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), page.getByRole('button', { name: 'Factory report' }).click()]);
+const [fd2] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), pressPaper(page, 'Factory report')]);
 const ff2 = join(dir, 'factory2.pdf'); await fd2.saveAs(ff2);
 const fpaper2 = execFileSync('pdftotext', ['-raw', ff2, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
 ok(/6 people/.test(fpaper2) && !/Line 10/.test(fpaper2), '30 the factory on paper: Line 1\'s crew, Line 10 merged away');

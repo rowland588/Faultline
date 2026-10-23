@@ -82,16 +82,18 @@ ok(t?.n === 30 && await words('.ie-say') === t.said.text && await words('.ie-cap
 ok(/a quick session, yours alone/.test(await words('.ie-place') ?? ''), '1 not filed — yours alone');
 
 /* ---- 2 · put on a line ---- */
+await page.locator('.ie-place').getByRole('button', { name: 'Change', exact: true }).click(); /* Belongs to's Change (B4) */
 await page.getByRole('button', { name: 'Put on a line' }).click();
 await page.getByLabel('Put it on which line').selectOption(sd.wsId); await page.waitForTimeout(700);
 t = await truth(before);
 ok(t?.workspaceId === sd.wsId && /^On /.test(await words('.ie-place') ?? ''), `2 on a line: "${await words('.ie-place-w')}"`);
 
 /* ---- 3 · attached to a job ---- */
+await page.locator('.ie-place').getByRole('button', { name: 'Change', exact: true }).click();
 await page.getByRole('button', { name: 'Attach to a project' }).click();
 await page.getByLabel('Attach it to which project').selectOption(sd.projectId); await page.waitForTimeout(900);
 t = await truth(before);
-ok(t?.projectId === sd.projectId && /attached to/.test(await words('.ie-place-w') ?? ''), `3 attached to the job: "${await words('.ie-place-w')}"`);
+ok(t?.projectId === sd.projectId && / · in /.test(await words('.ie-place-w') ?? ''), `3 attached to the job: "${await words('.ie-place-w')}"`);
 
 /* ---- 4 · used for a test on the job ---- */
 await page.getByRole('button', { name: 'Use it for…' }).click();
@@ -133,7 +135,7 @@ ok(!!want && (await words('.sl-ba')) === `Before → after: ${want}`, `7 before 
 /* ---- 8 · the client report's PDF ---- */
 await go(`${J}/report`);
 await page.getByRole('button', { name: 'Full report', exact: true }).first().click(); await page.waitForTimeout(800);
-const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'PDF', exact: true }).first().click()]);
+const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Download', exact: true }).first().click()]);
 const pdf = join(OUT, 'client.pdf'); await dl.saveAs(pdf);
 const txt = pdfText(pdf);
 const san = s => s.replace(/→/g, 'to').replace(/[–—]/g, '-').replace(/\s+/g, ' ');

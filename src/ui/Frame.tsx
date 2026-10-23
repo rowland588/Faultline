@@ -41,13 +41,14 @@ import { ReportsSheet } from './ReportsSheet';
 import { ControlRoomReports } from './ControlRoomReports';
 import { QuickSnagHost, openQuickSnag, useCanTakeProblem } from '../snag/QuickSnag';
 import { ContextBar } from './ContextBar';
+import { notePlace } from '../lib/recentPlaces';
 import { LineReports } from './ControlRoomReports';
 import { scopeOf, type Scope } from '../lib/scope';
 import { toolByKey } from '../catalogue/registry';
 import { listAllSnags, allPaceLines } from '../db';
 import { useFactoryLines } from '../lib/useFactoryLines';
 import {
-  hereOf, hereIn, factoryGroups, lineGroups, projectGroups, scopeBar, studyLines,
+  hereOf, hereIn, factoryGroups, lineGroups, projectGroups, menuGroups, menuBar, scopeTabs, factoryTabs, FACTORY_PAGES, STUDY_SCREENS,
   type RailGroup, type RailLine, type RailLineOf, type RailMachine, type SquareState, type Count,
 } from './rail';
 
@@ -136,12 +137,26 @@ function ScopeFrame({ scope, project, projects, lines, here, toolName, toolTo, w
 }) {
   const all = useMemo(() => (project && !projects.some(p => p.id === project.id) ? [...projects, project] : projects), [projects, project]);
   const [page, setPage] = useState<string | undefined>(undefined);
+  /* a project's own lines, said in the context bar — "on Line 7 ›", one tap to the line (23 October) */
+  const [onLines, setOnLines] = useState<{ label: string; to: string }[]>([]);
   const bar = (groups: RailGroup[]) => groups.flatMap(g => g.lines).find(l => l.on && l.key !== 'up')?.label;
+  const said = (groups: RailGroup[]) => {
+    setPage(bar(groups));
+    setOnLines(groups.flatMap(g => g.lines).filter(l => l.sub && l.to?.startsWith('/lines/')).map(l => ({ label: l.label, to: l.to as string })));
+  };
+  /* WHERE YOU WERE (lib/recentPlaces, B5): a project's or a line's page, noted on this device for Home */
+  const scopeName = scope.kind === 'project' ? project?.name : scope.kind === 'line' ? lines.find(l => l.id === scope.wsId)?.name : undefined;
+  const placePage = toolName ?? page;
+  useEffect(() => {
+    if (reading || !scopeName || (scope.kind !== 'project' && scope.kind !== 'line')) return;
+    notePlace({ to: window.location.hash.slice(1) || '/', scope: scopeName, ...(placePage ? { page: placePage } : {}), kind: scope.kind, at: Date.now() });
+  }, [reading, scopeName, placePage, scope.kind]);
   return (
     <>
-      <ContextBar scope={scope} page={page} tool={toolName && toolName !== page ? toolName : undefined} toolTo={toolTo} projects={all} lines={lines} projectId={project?.id} />
+      <ContextBar scope={scope} page={page} tool={toolName && toolName !== page ? toolName : undefined} toolTo={toolTo} projects={all} lines={lines} projectId={project?.id}
+        onLines={scope.kind === 'project' ? onLines : undefined} />
       {reading ? <NavChrome groups={[]} bar={[]} />
-        : scope.kind === 'project' && project ? <ProjectNav key={project.id} project={project} here={here} wsId={wsId} onPage={g => setPage(bar(g))} />
+        : scope.kind === 'project' && project ? <ProjectNav key={project.id} project={project} here={here} wsId={wsId} onPage={said} />
           : scope.kind === 'line' ? <LineNav key={scope.wsId} wsId={scope.wsId} name={lines.find(l => l.id === scope.wsId)?.name ?? 'This line'} here={here} projects={projects} onPage={g => setPage(bar(g))} />
             : <FactoryNav projects={projects} here={here} onPage={g => setPage(bar(g))} />}
     </>
@@ -255,13 +270,12 @@ function MethodNav(p: NavProps & { method: 'board' | 'tree' }) {
   return <NavChrome groups={groups} project={p.project} model={p.model} kind="project" onPage={p.onPage} />;
 }
 
-/** Inside a line study the project wears, its four screens on the rail: under
- *  its line on a 6M or tree project (projectGroups draws them there); under
- *  the project's own pages otherwise — a stage-gate job films its new line from
- *  Install, and has no Lines on its rail to hang them under. */
+/** Inside a line study the project wears, where it sits is lit: its line on a 6M or tree project
+ *  (projectGroups lights it); the Plan on a stage gate, which films its new line from Install, a gate
+ *  of the Plan. The study's four screens are its own tabs since B6 (docs/STRUCTURE.md D8). */
 function withJobStudy(groups: RailGroup[], wsId: string | undefined, here: string): RailGroup[] {
-  if (!wsId || groups.some(g => g.lines.some(l => l.key === 'capture'))) return groups;
-  return groups.map(g => (g.lines.some(l => l.key === 'job') ? { ...g, lines: [...g.lines, ...studyLines(wsId, here)] } : g));
+  if (!wsId || !STUDY_SCREENS.has(here) || groups.some(g => g.lines.some(l => l.on))) return groups;
+  return groups.map(g => ({ ...g, lines: g.lines.map(l => (l.key === 'plan' ? { ...l, on: true } : l)) }));
 }
 
 /* ------------------------------------------------------------------------- */
@@ -290,13 +304,12 @@ function LineNav({ wsId, name, here, projects, onPage }: { wsId: string; name: s
   const onLine = useProjectsOnLine(wsId, projects);
   const groups = lineGroups(wsId, here, { problems, projects: onLine }).map(g => ({
     ...g,
-    /* inside the line's study, its four screens under Logs (B6 makes them the log's views) */
-    lines: g.lines.flatMap(l => (l.key === 'logs' && STUDY_KEYS.has(here) ? [{ ...l, on: true }, ...studyLines(wsId, here)] : [l])),
+    /* inside the line's study — its first log, Stops timed — Logs is lit; its four screens are the log's tabs (B6) */
+    lines: g.lines.map(l => (l.key === 'logs' && (STUDY_SCREENS.has(here) || here === 'logs') ? { ...l, on: true } : l)),
   }));
   return <NavChrome groups={groups} kind="line" line={{ id: wsId, name }} onPage={onPage} />;
 }
 
-const STUDY_KEYS = new Set(['capture', 'analyse', 'snaglist', 'meeting', 'logs']);
 
 /** How many running projects are on the line — its Projects page's count. */
 function useProjectsOnLine(wsId: string, projects: Project[]): number {
@@ -330,7 +343,7 @@ function FactoryNav({ projects, here, onPage }: { projects: Project[]; here: str
 /*  THE CHROME — the rail on a laptop, the bar and its sheet on a phone      */
 /* ------------------------------------------------------------------------- */
 
-function NavChrome({ groups, project, model, bar, home, kind = 'factory', line, onPage }: {
+function NavChrome({ groups, project, bar, home, kind = 'factory', line, onPage }: {
   groups: RailGroup[]; project?: Project; model?: PlanModel; bar?: RailLine[];
   /** Off a project: the control room's jobs, for its Reports. */
   home?: Project[];
@@ -342,15 +355,21 @@ function NavChrome({ groups, project, model, bar, home, kind = 'factory', line, 
 }) {
   /* ＋ on the bar only for somebody who may take a problem here (B0: never a client inside a project) */
   const may = useCanTakeProblem(project?.id);
-  const five = bar ?? scopeBar(kind, groups, model, may);
+  /* ONE MENU, NEVER CHANGING (23 October) — the scope's own pages are tabs across the top */
+  const all = groups.flatMap(g => g.lines);
+  const onKey = all.find(l => l.on && l.key !== 'up')?.key ?? '';
+  const menu = menuGroups(onKey, kind, kind === 'factory' ? all.find(l => l.key === 'projects')?.n ?? 0 : 0);
+  const five = bar ?? menuBar(menu, may);
+  const tabs = bar ? [] : kind === 'factory' ? (FACTORY_PAGES.has(onKey) ? factoryTabs(onKey) : []) : scopeTabs(groups);
   const [more, setMore] = useState(false);
   const [reports, setReports] = useState(false);
   /* Both close when the page under them changes — a sheet left open over a
      new screen is the old screen's. */
   const hash = useHash();
   useEffect(() => { setMore(false); setReports(false); }, [hash]);
-  const onKey = groups.flatMap(g => g.lines).filter(l => l.on).map(l => `${l.key}:${l.label}`).join(',');
-  useEffect(() => { onPage?.(groups); }, [onKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  /* told again when the page changes or the lines it is on arrive (a project's lines are read after it) */
+  const onSaid = all.filter(l => l.on || (l.sub && l.to?.startsWith('/lines/'))).map(l => `${l.key}:${l.label}:${l.on}`).join(',');
+  useEffect(() => { onPage?.(groups); }, [onSaid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const go = (l: RailLine) => {
     setMore(false);
@@ -362,10 +381,19 @@ function NavChrome({ groups, project, model, bar, home, kind = 'factory', line, 
 
   return (
     <>
-      <aside className="nv-rail" aria-label="Where you are">
-        <RailList groups={groups} go={go} />
+      <aside className="nv-rail" aria-label="Menu">
+        <RailList groups={bar ? [] : menu} go={go} />
       </aside>
-      <nav className="nv-bar" aria-label="Where you are">
+      {tabs.length > 0 && (
+        <nav className="nv-tabs" aria-label={`${kind === 'line' ? line?.name ?? 'This line' : kind === 'project' ? project?.name ?? 'This project' : 'The factory'} — its pages`}>
+          {tabs.map(l => (
+            <button key={l.key} type="button" className={'nv-tab' + (l.on ? ' is-on' : '')} onClick={() => go(l)} aria-current={l.on ? 'page' : undefined}>
+              <span className="nv-tab-l">{l.label}</span>{!!l.n && <span className="nv-tab-n">{l.n}{!!l.late && <i> · {l.late} late</i>}{!!l.failed && <i> · {l.failed} failed</i>}</span>}
+            </button>
+          ))}
+        </nav>
+      )}
+      <nav className="nv-bar" aria-label="Menu">
         {five.map(l => (
           <button key={l.key} type="button" className={'nv-bi' + (l.on ? ' is-on' : '') + (l.key === 'plus' ? ' is-plus' : '')} onClick={() => go(l)}
             aria-current={l.on ? 'page' : undefined}
@@ -376,8 +404,8 @@ function NavChrome({ groups, project, model, bar, home, kind = 'factory', line, 
         ))}
       </nav>
       {more && (
-        <Sheet open onClose={() => setMore(false)} title={project?.name ?? line?.name ?? 'Factory'}>
-          <div className="nv-sheet"><RailList groups={groups} go={go} /></div>
+        <Sheet open onClose={() => setMore(false)} title="Menu">
+          <div className="nv-sheet"><RailList groups={menu} go={go} /></div>
         </Sheet>
       )}
       {reports && project && <ReportsSheet project={project} onClose={() => setReports(false)} />}

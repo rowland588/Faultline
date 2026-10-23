@@ -347,7 +347,7 @@ ok(!!ba && /^Set the jaw temperature: taken out of the changeover\. 42 min → \
 await page.setViewportSize({ width: 1360, height: 900 });
 await go(`${J}/report`);
 await page.getByRole('button', { name: 'Full report', exact: true }).first().click(); await page.waitForTimeout(800);
-const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'PDF', exact: true }).first().click()]);
+const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Download', exact: true }).first().click()]);
 const pdf = join(OUT, 'client.pdf'); await dl.saveAs(pdf);
 await page.getByRole('button', { name: 'Close' }).last().click().catch(() => {}); await page.waitForTimeout(300);
 {

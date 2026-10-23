@@ -85,7 +85,7 @@ const LINE_HEAD = `On ${set.lineName}, with no project`;
 const go = async () => { await page.goto(`${BASE}/${REPORT}`); await page.waitForTimeout(2600); };
 const pick = async name => { await page.getByRole('button', { name, exact: true }).first().click(); await page.waitForTimeout(900); };
 const grab = async (name) => {
-  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 40000 }), page.getByRole('button', { name: 'PDF', exact: true }).first().click()]);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 40000 }), page.getByRole('button', { name: 'Download', exact: true }).first().click()]);
   const f = join(OUT, name); await dl.saveAs(f); return f;
 };
 const toc = async () => flat(await page.locator('.cr-toc').first().innerText());

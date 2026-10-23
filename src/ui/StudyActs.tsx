@@ -19,6 +19,10 @@ import { nav } from '../state/useRoute';
 import { offerUndo } from './Undo';
 import { studyRemovingSays, toolListHref } from '../lib/studyLinks';
 import type { ToolStudy } from '../lib/study';
+import type { LeanPage } from '../lib/lean';
+import { LeanBand } from './Lean';
+import { MoreMenu, ReportMenu, type MoreItem, type Paper } from './parts';
+import { useStudyPaper } from './StudyPlace';
 
 /** Asked, deleted, and offered back. True when it went. */
 export async function removeStudy(s: ToolStudy): Promise<boolean> {
@@ -28,24 +32,48 @@ export async function removeStudy(s: ToolStudy): Promise<boolean> {
   return true;
 }
 
-/** The study's name as its page's heading, with Rename and Delete beside it.
- *  Deleting from its own page goes back to the tool's list — on its line,
- *  when it is on one. */
-export function StudyName({ s, canEdit, canRemove }: { s: ToolStudy; canEdit: boolean; canRemove: boolean }) {
-  const [v, setV] = useState<string | null>(null);
-  if (v === null) return (
-    <h1 className="ie-name">{s.name || 'Not named'}
-      {canEdit && <button type="button" className="linkish ie-rename" onClick={() => setV(s.name)}>Rename</button>}
-      {canRemove && <button type="button" className="linkish ie-rename ie-del" aria-label={`Delete ${s.name || 'this study'}`}
-        onClick={() => void removeStudy(s).then(gone => { if (gone) nav(toolListHref(s)); })}>Delete</button>}
-    </h1>
-  );
-  const save = () => { if (v.trim() && v.trim() !== s.name) void patchStudy(s.id, { name: v.trim() }); setV(null); };
+/** The study's name as its page's heading — typed over in its place when More ▾'s Rename is
+ *  pressed (docs/STRUCTURE.md §5.5, B4: Rename and Delete were links beside the name). */
+export function StudyName({ s, naming, onDone }: { s: ToolStudy; naming: boolean; onDone: () => void }) {
+  const [v, setV] = useState(s.name);
+  if (!naming) return <h1 className="ie-name">{s.name || 'Not named'}</h1>;
+  const save = () => { if (v.trim() && v.trim() !== s.name) void patchStudy(s.id, { name: v.trim() }); onDone(); };
   return (
     <form className="ie-name-f" onSubmit={e => { e.preventDefault(); save(); }}>
       <input className="text-input" value={v} maxLength={120} autoFocus onChange={e => setV(e.target.value)} onBlur={save}
-        onKeyDown={e => { if (e.key === 'Escape') setV(null); }} aria-label="What it is of" />
+        onKeyDown={e => { if (e.key === 'Escape') { setV(s.name); onDone(); } }} aria-label="What it is of" />
     </form>
+  );
+}
+
+/** THE TOOL SHELL'S MENUS on a study (docs/STRUCTURE.md §5.5, B4) — More ▾: Rename, and Delete
+ *  with Undo, going back to the tool's list (on its line, when it is on one); Report ▾: its papers. */
+export function StudyMenus({ s, canEdit, canRemove, onRename, papers = [] }: {
+  s: ToolStudy; canEdit: boolean; canRemove: boolean; onRename: () => void; papers?: Paper[];
+}) {
+  const more: MoreItem[] = [
+    ...(canEdit ? [{ label: 'Rename', run: onRename }] : []),
+    ...(canRemove ? [{ label: 'Delete', danger: true, run: () => void removeStudy(s).then(gone => { if (gone) nav(toolListHref(s)); }) }] : []),
+  ];
+  if (!more.length && !papers.length) return null;
+  return (
+    <div className="ln-band-acts">
+      <MoreMenu items={more} />
+      <ReportMenu papers={papers} />
+    </div>
+  );
+}
+
+/** THE TOOL SHELL'S HEADER on a study — the lean page's band (what, where, when, its verdict), the
+ *  record's name, and its menus: one header on every tool (§5.5). `what` names its paper. */
+export function StudyBand({ page, s, what, canEdit, canRemove }: { page: LeanPage; s: ToolStudy; what: string; canEdit: boolean; canRemove: boolean }) {
+  const [naming, setNaming] = useState(false);
+  const paper = useStudyPaper(s);
+  return (
+    <LeanBand page={page} title={<StudyName s={s} naming={naming} onDone={() => setNaming(false)} />}>
+      <StudyMenus s={s} canEdit={canEdit} canRemove={canRemove} onRename={() => setNaming(true)}
+        papers={[{ label: `${what} — on paper`, for: 'What it is, where it sits, what it says and its figures', make: paper }]} />
+    </LeanBand>
   );
 }
 

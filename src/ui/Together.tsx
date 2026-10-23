@@ -9,19 +9,19 @@
  * bottleneck, who works there and how they sit against takt), and the
  * pictures behind it (who stands where; each person's work against takt).
  * Its paper is the same page (lib/togetherPdf). */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { nav } from '../state/useRoute';
 import type { Standard } from '../lib/standard';
 import { CostBlock, Legend, PersonBar, Stacks, useBalanceFor, useLine, worksFor } from './WorkBalance';
 import { LeanClosing, LeanTiles } from './Lean';
+import { ReportMenu } from './parts';
 import { togetherClosing, togetherOf, togetherTiles } from '../lib/together';
 
-export function Together({ s, name, here }: { s: Standard; name: string; here: string }) {
+export function Together({ s, name, here, views }: { s: Standard; name: string; here: string; views?: ReactNode }) {
   const study = useBalanceFor(s.id);
   const line = useLine(s.workspaceId);
   const t = togetherOf(s, study ?? undefined, line);
   const [card, setCard] = useState<string | null | undefined>(undefined);
-  const [busy, setBusy] = useState(false);
   const sig = JSON.stringify([s.id, s.marks, s.photoKey, s.board, s.product, study?.updatedAt ?? 0]);
   useEffect(() => {
     let live = true;
@@ -38,11 +38,8 @@ export function Together({ s, name, here }: { s: Standard; name: string; here: s
   }, [sig, name]);
   const lineUnit = s.capacity?.stations[0]?.unit.trim() || undefined;
   const paper = async () => {
-    if (busy) return;
-    setBusy(true);
     try { const { saveTogetherPdf } = await import('../lib/togetherPdf'); await saveTogetherPdf(s, study ?? undefined, name); }
     catch (e) { console.error('together pdf failed', e); window.alert('Sorry — the PDF could not be made. Please try again.'); }
-    finally { setBusy(false); }
   };
   return (
     <div className="wrap pace ls tg">
@@ -53,10 +50,12 @@ export function Together({ s, name, here }: { s: Standard; name: string; here: s
           <p className="sub tg-lede">Who stands where, what each person does against takt, and what the line can make — each read from its own tool, and changed there.</p>
           {(s.capacity?.stations.length ?? 0) > 0 && <span className={'ln-verdict' + (t.capacity.short ? ' is-r' : '')}><b>{t.capacity.text}</b></span>}
         </div>
+        {/* its paper in Report ▾ (the tool shell, docs/STRUCTURE.md §5.5, B4) */}
         <div className="ls-head-actions">
-          <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => void paper()}>{busy ? 'Making…' : 'PDF'}</button>
+          <ReportMenu papers={[{ label: `All together — ${s.product}`, for: 'The three tools on one page, each figure from its own tool', make: paper }]} />
         </div>
       </header>
+      {views}
 
       {/* THE TILES (docs/LEAN-PAGE.md) — each tool's own figure, labelled by the
           tool that says it: what the line makes, against the target, labour a

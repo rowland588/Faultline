@@ -24,6 +24,7 @@
  */
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { find } from './lib/pageHeader.mjs';
 import pkg from 'playwright';
 const { chromium } = pkg;
 
@@ -60,10 +61,12 @@ async function device() {
 async function download(page, hash, file, steps = [['PDF']]) {
   await page.goto(`${BASE}/${hash}`);
   await page.waitForTimeout(3000);
-  for (let i = 0; i < steps.length - 1; i++) { await page.getByRole('button', { name: steps[i][0], exact: true }).first().click(); await page.waitForTimeout(2000); }
+  for (let i = 0; i < steps.length - 1; i++) { await (await find(page, 'Report', steps[i][0], page.locator('body'))).click(); await page.waitForTimeout(2000); }
+  /* the paper's own button, or Report ▾ on the page header since B3 (scripts/lib/pageHeader) */
+  const last = await find(page, 'Report', steps.at(-1)[0], page.locator('body'));
   const [dl] = await Promise.all([
     page.waitForEvent('download', { timeout: 30000 }),
-    page.getByRole('button', { name: steps.at(-1)[0], exact: true }).first().click(),
+    last.click(),
   ]);
   await dl.saveAs(file);
   return file;
@@ -422,15 +425,15 @@ for (const size of SIZES) {
   const reports = [
     /* The report screen offers the one-page status report first; the full
        report is the other choice (docs/SIMPLE.md). */
-    ['status', `#/project/${job.projectId}/report`, [['Status — 1 page'], ['PDF']], must.status],
-    ['client', `#/project/${job.projectId}/report`, [['Full report'], ['PDF']], must.client],
+    ['status', `#/project/${job.projectId}/report`, [['Status — 1 page'], ['Download']], must.status],
+    ['client', `#/project/${job.projectId}/report`, [['Full report'], ['Download']], must.client],
     /* The programs, a report of their own (8 October). */
-    ['programs', `#/project/${job.projectId}/report`, [['Programs report'], ['PDF']], must.programs],
+    ['programs', `#/project/${job.projectId}/report`, [['Programs report'], ['Download']], must.programs],
     /* The handover, as it really went (9 October). */
-    ['handover', `#/project/${job.projectId}/report`, [['Handover report'], ['PDF']], must.handover],
+    ['handover', `#/project/${job.projectId}/report`, [['Handover report'], ['Download']], must.handover],
     /* The commissioning report and its cards (14 October). */
-    ['commissioning', `#/project/${job.projectId}/report`, [['Commissioning'], ['PDF']], must.commissioning],
-    ['commissioning cards', `#/project/${job.projectId}/report`, [['Commissioning'], ['Commissioning cards — a page a machine (PDF)']], must.commissioningCards],
+    ['commissioning', `#/project/${job.projectId}/report`, [['Commissioning'], ['Download']], must.commissioning],
+    ['commissioning cards', `#/project/${job.projectId}/report`, [['Commissioning'], ['Commissioning cards — a page a machine']], must.commissioningCards],
     /* The machine labels, from the Reports index's own door (ui/ReportsSheet). */
     ...(must.labels.length ? [['machine labels', `#/project/${job.projectId}`, [['Reports'], [/^Machine labels/]], must.labels]] : []),
     /* The card is the record's own page now (screens/TestScreen); its button
@@ -440,7 +443,7 @@ for (const size of SIZES) {
     ...(fixId ? [['fix card', `#/project/${job.projectId}/testing/${fixId}`, [[/ card — PDF$/]], must.fix]] : []),
     ...(must.runTestId ? [['run card', `#/project/${job.projectId}/testing/${must.runTestId}`, [[/ card — PDF$/]], must.runCard]] : []),
     /* The day's button says what it does (screens/DayScreen, 5 October). */
-    ['day', `#/project/${job.projectId}/day`, [['Today’s update — PDF']], must.day],
+    ['day', `#/project/${job.projectId}/day`, [['Today’s update']], must.day],
   ];
   for (const [name, hash, steps, mustSay] of reports) {
     const file = `${OUT}/${size}-${name.replace(/ /g, '-')}.pdf`;
@@ -467,7 +470,7 @@ for (const size of SIZES) {
     if (!mustStudies.length) continue;
     const file = `${OUT}/${size}-studies-${tool}.pdf`;
     try {
-      await download(page, hash, file, [[/every one shown \(PDF\)$/]]);
+      await download(page, hash, file, [[/every one shown/]]);
       const r = check(file, mustStudies);
       rows.push({ size, report: `studies: ${tool}`, pages: r.pages, faults: r.faults, said: r.said });
     } catch (e) {
@@ -514,8 +517,9 @@ for (const size of SIZES) {
          and with no problem at all the button stays greyed, saying so. */
       const doneOnly = !mustSnags.open.length;
       await page.goto(`${BASE}/#/snags`); await page.waitForTimeout(3000);
-      const btn = page.getByRole('button', { name: 'Problems report', exact: true }).first();
       if (doneOnly && mustSnags.done.length) { await page.locator('.qsl-f .chip', { hasText: /^Done/ }).click(); await page.waitForTimeout(800); }
+      /* Report ▾ on the page header since B3 (scripts/lib/pageHeader) — the paper's own control, greyed when there is nothing to put on it */
+      const btn = await find(page, 'Report', 'Problems report');
       if (doneOnly && !mustSnags.done.length) {
         rows.push({ size, report: 'problems', pages: 0, faults: (await btn.isDisabled()) ? [] : ['no problem at all, yet the report button could be pressed'] });
       } else {
@@ -669,7 +673,7 @@ for (const size of SIXM_SIZES) {
     const file = `${OUT}/6m-${size}-${lineId ? 'line' : 'client'}.pdf`;
     try {
       /* the full report — the one-page status is offered first (below) */
-      await download(page, `#/pace-report?project=${job.projectId}${lineId ? `&line=${lineId}` : ''}`, file, [['Full report'], ['PDF']]);
+      await download(page, `#/pace-report?project=${job.projectId}${lineId ? `&line=${lineId}` : ''}`, file, [['Full report'], ['Download']]);
       const r = check(file, must);
       const flat = textOf(file).replace(/\s+/g, '');
       const at = heads.map(h => flat.indexOf(h.replace(/\s+/g, '')));
@@ -713,7 +717,7 @@ for (const size of SIXM_SIZES) {
     }, { pid: job.projectId, lineId });
     const sFile = `${OUT}/6m-${size}-${lineId ? 'line' : 'client'}-status.pdf`;
     try {
-      await download(page, `#/pace-report?project=${job.projectId}${lineId ? `&line=${lineId}` : ''}`, sFile, [['Status — 1 page'], ['PDF']]);
+      await download(page, `#/pace-report?project=${job.projectId}${lineId ? `&line=${lineId}` : ''}`, sFile, [['Status — 1 page'], ['Download']]);
       const rs = check(sFile, sMust);
       if (rs.pages !== 1) rs.faults.push(`the status is ${rs.pages} pages — it is one page, always`);
       rows.push({ size: `6m-${size}`, report: sLabel, pages: rs.pages, faults: rs.faults, said: rs.said });
@@ -779,7 +783,7 @@ for (const size of CR_SIZES) {
     });
     const [dl] = await Promise.all([
       page.waitForEvent('download', { timeout: 30000 }),
-      page.getByRole('button', { name: 'Control room report — 1 page', exact: true }).click(),
+      (await find(page, 'Report', 'Control room report — 1 page', page.locator('body'))).click(),
     ]);
     await dl.saveAs(file);
     const r = check(file, must);
@@ -862,7 +866,7 @@ for (const size of SIZES) {
     const file = `${OUT}/capacity-${size}-one.pdf`;
     try {
       const must = await capMust([sd.one.id]);
-      await download(page, `#/w/${sd.one.wsId}/standards/${sd.one.id}?at=balance`, file, [['PDF']]);
+      await download(page, `#/w/${sd.one.wsId}/standards/${sd.one.id}?at=balance`, file, [[/^Line capacity — /]]);
       const r = check(file, must);
       if (size === 'ordinary' && r.pages > 1) r.faults.push(`${r.pages} pages — an ordinary product's capacity must be one`);
       rows.push({ size: `cap-${size}`, report: 'line capacity', pages: r.pages, faults: r.faults, said: r.said });
@@ -875,7 +879,7 @@ for (const size of SIZES) {
     const file = `${OUT}/capacity-${size}-all.pdf`;
     try {
       const must = await capMust(null);
-      await download(page, '#/balances', file, [[/^PDF \(all shown\)/]]);
+      await download(page, '#/balances', file, [[/every product shown/]]);
       const r = check(file, must);
       rows.push({ size: `cap-${size}`, report: 'capacity (all)', pages: r.pages, faults: r.faults, said: r.said });
     } catch (e) {
@@ -888,7 +892,7 @@ for (const size of SIZES) {
     try {
       await page.goto(`${BASE}/#/standards`); await page.waitForTimeout(2500);
       const shown = await page.locator('.lt-rows .lt-li').count();
-      const btn = page.getByRole('button', { name: /^PDF \(all shown\)/ });
+      const btn = await find(page, 'Report', /every product shown/, page.locator('body'));
       if (!shown) rows.push({ size: `cap-${size}`, report: 'standard cards', pages: 0, faults: (await btn.isDisabled()) ? [] : ['no product shown, yet the cards button could be pressed'] });
       else {
         const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), btn.click()]);

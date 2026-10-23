@@ -16,7 +16,6 @@
 import { slipWords, type Standing } from '../lib/standing';
 import type { OnTarget } from '../lib/onTarget';
 import { OnTargetLine } from './OnTarget';
-import { nav } from '../state/useRoute';
 import type { LeanTile } from '../lib/lean';
 
 /** One number and its word. Charcoal, with colour only where colour is a fact. */
@@ -30,7 +29,7 @@ function Tile({ n, label, tone, of }: { n: string; label: string; tone?: 'warn' 
   );
 }
 
-export function Verdict({ st, eyebrow = 'Where the project is', onTarget, brief, report, tiles }: {
+export function Verdict({ st, eyebrow = 'Where the project is', onTarget, brief, tiles }: {
   st: Standing; eyebrow?: string;
   /** ARE WE ON TARGET? (lib/onTarget) — the band's first line. */
   onTarget?: OnTarget;
@@ -38,8 +37,6 @@ export function Verdict({ st, eyebrow = 'Where the project is', onTarget, brief,
    *  the tiles — the counts and names the full verdict goes on to list are
    *  "Needs you" under the band, and the sentence repeated the tiles. */
   brief?: boolean;
-  /** Where the one-page status report is — the page to show anybody. */
-  report?: string;
   /** THE REPORTS' TILES (lib/stageGateLean, docs/LEAN-PAGE.md) — the
    *  handover, late of what is still to do, critical, fixes open and what
    *  the slip costs — so the band and both papers count the same five.
@@ -95,8 +92,7 @@ export function Verdict({ st, eyebrow = 'Where the project is', onTarget, brief,
         <Tile n={String(st.outstanding)} label="outstanding" />
         <Tile n={String(st.late)} label="late" tone={st.late ? 'bad' : undefined} />
       </div>}
-      {/* SHOW ANYBODY — the one-page status report, one tap from the job. */}
-      {report && <button type="button" className="btn vd-report" onClick={() => nav(report)}>Status report — 1 page ›</button>}
+      {/* SHOW ANYBODY — the one-page status report is the first paper in the page's Report ▾ (B3). */}
     </section>
   );
 }

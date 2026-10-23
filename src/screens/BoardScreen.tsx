@@ -21,6 +21,7 @@
  * an action not yet on a bone is listed under the board with the six to pick
  * from. Access (lib/access): a client reads it; the team adds and changes;
  * only the owner deletes. */
+import { PageHeader } from '../ui/parts';
 import { useEffect, useMemo, useState } from 'react';
 import { nav, navReplace, useRoute } from '../state/useRoute';
 import { ActionSheet, type Editing } from '../ui/ActionSheet';
@@ -157,11 +158,11 @@ export function BoardScreen({ projectId }: { projectId: string }) {
 
   return (
     <div className="wrap pace bd-screen bd6">
-      <header className="pace-head">
-        <div className="pace-head-main">
-          {/* "6M" is a method's name; on a lever tree job this board is where
-              the tree's work is written, and the job is not a 6M job. */}
-          <h1 className="pace-title">{boardName(methodOf(project).label)}</h1>
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3). "6M" is a method's name; on a lever tree job this board is
+          where the tree's work is written, and the job is not a 6M job. Its paper — the board printed — in Report ▾ (it
+          was a button saying Print). */}
+      <PageHeader title={boardName(methodOf(project).label)}
+        papers={[{ label: 'The board — printed', for: 'the board as it stands, on paper', make: () => window.print() }]}>
           <p className="cw-handover">
             {ax.steps.length === 0
               ? <b>No actions yet</b>
@@ -174,18 +175,14 @@ export function BoardScreen({ projectId }: { projectId: string }) {
               <button className="cw-link" onClick={() => nav(`/project/${projectId}?view=next`)}>As a list, with photos</button>
             )}
           </p>
-        </div>
-        <div className="pace-head-actions">
-          <button className="btn btn-ghost pd-print" onClick={() => window.print()}>Print</button>
-        </div>
-      </header>
+      </PageHeader>
 
       {ax.steps.length > 0 && (
         <div className="bd-filters bd6-filters">
           {areas.length > 1 && (
             <div className="bd6-frow" role="group" aria-label="Line">
               <span className="bd6-fk">Line</span>
-              <button className={'chip is-all' + (only == null ? ' on' : '')} aria-pressed={only == null} onClick={() => setOnly(null)}>Every line</button>
+              <button className={'chip is-all' + (only == null ? ' on' : '')} aria-pressed={only == null} onClick={() => setOnly(null)}>All lines</button>
               {areas.map(a => (
                 <button key={a.id || 'whole'} className={'chip' + (only === a.id ? ' on' : '')} aria-pressed={only === a.id} onClick={() => setOnly(only === a.id ? null : a.id)}>
                   {a.name} <span className="bs-n">{a.total}</span>

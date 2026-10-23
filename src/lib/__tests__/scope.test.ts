@@ -6,8 +6,9 @@ import { matchScore, scopeOf } from '../scope';
 const at = (hash: string, hints = {}) => scopeOf(parseRoute(hash), hints);
 
 describe('every page is in one scope', () => {
-  it('the front door is Home', () => {
-    expect(at('#/')).toEqual({ kind: 'home' });
+  it('the one home is the factory (23 October)', () => {
+    expect(at('#/')).toEqual({ kind: 'factory' });
+    expect(at('#/start')).toEqual({ kind: 'factory' });
   });
 
   it('the factory\'s own pages are the factory\'s', () => {

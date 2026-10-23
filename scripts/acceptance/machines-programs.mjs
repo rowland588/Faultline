@@ -58,6 +58,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 const { chromium } = pkg;
+import { paper, more } from '../lib/pageHeader.mjs';
 
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
@@ -115,7 +116,7 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   ok(flat(await card.innerText()).includes(`${todo} programs to prove`) && (t.kit.late ? await card.locator('b.is-r', { hasText: `${t.kit.late} late` }).count() === 1 : true),
     `1 the line's card: ${todo} programs to prove${t.kit.late ? `, ${t.kit.late} late in red` : ''}`);
   await main.locator('.fac-home').getByRole('button', { name: 'Programs', exact: true }).click(); await page.waitForTimeout(1800);
-  ok(page.url().endsWith('#/programs') && await page.locator('.nv-ri.is-on[aria-current="page"]', { hasText: /^Programs$/ }).count() === 1 && await main.locator('h1', { hasText: 'Programs' }).count() === 1,
+  ok(page.url().endsWith('#/programs') && await page.locator('.nv-tabs .nv-tab.is-on[aria-current="page"]', { hasText: /^Programs$/ }).count() === 1 && await main.locator('h1', { hasText: 'Programs' }).count() === 1,
     '1b the control room opens Programs — every line, no job');
 }
 
@@ -385,7 +386,7 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   /* and the commissioning paper */
   await go(`#/project/${sd.projectId}/report?doc=commissioning`);
   const dir = mkdtempSync(join(tmpdir(), 'cmj-'));
-  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), main.getByRole('button', { name: 'PDF', exact: true }).click()]);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), main.getByRole('button', { name: 'Download', exact: true }).click()]);
   const file = join(dir, 'cm.pdf'); await dl.saveAs(file);
   const txt = flat(execFileSync('pdftotext', ['-layout', file, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
   const want = [r.j.best, ...r.j.attempts.map(a => a.text)].map(w => w.replace(/[–—]/g, '-').replace(/[’]/g, "'").replace(/\s+/g, ''));
@@ -401,7 +402,7 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   const row = main.locator(`[data-line="${t.name}"]`);
   ok(flat(await row.locator('.fac-flow').innerText()) === t.kit.flow && flat(await row.locator('.fac-kit').innerText()).startsWith(t.kit.says), `8 Your factory: its machines in flow order (${t.kit.flow}) and ${t.kit.says}`);
   const dir = mkdtempSync(join(tmpdir(), 'fac-'));
-  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), main.getByRole('button', { name: 'Factory report' }).click()]);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, 'Factory report')]);
   const file = join(dir, 'factory.pdf'); await dl.saveAs(file);
   const txt = flat(execFileSync('pdftotext', ['-layout', file, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
   ok(txt.includes(t.kit.says.replace(/\s+/g, '')), '8b and on its paper');
@@ -412,7 +413,7 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   await go(`#/programs?line=${WS}`);
   const t = await truth();
   const dir = mkdtempSync(join(tmpdir(), 'lprogs-'));
-  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), main.getByRole('button', { name: 'Programs report' }).click()]);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, 'Programs report')]);
   const file = join(dir, 'programs.pdf'); await dl.saveAs(file);
   const txt = flat(execFileSync('pdftotext', ['-layout', file, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
   const lost = [t.reading.says, 'PROGRAMS·PRODUCTIONLINE', ...t.programs.map(p => p.what)].filter(w => !txt.includes(w.replace(/\s+/g, '')));
@@ -513,7 +514,7 @@ await page.setViewportSize({ width: 1360, height: 900 });
   /* on paper: the job's programs report says the record beside the floor's, and counts no failure as done */
   await go(`#/project/${sd.projectId}/programs`);
   const dir = mkdtempSync(join(tmpdir(), 'jprogs-'));
-  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), main.getByRole('button', { name: 'Programs report — PDF' }).click()]);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, 'Programs report')]);
   const file = join(dir, 'programs.pdf'); await dl.saveAs(file);
   const txt = flat(execFileSync('pdftotext', ['-layout', file, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
   const lost = [j.says, `On the line: ${j.lines.find(l => l.what === 'PR-12 Express 1.25 kg').record.word}`].filter(w => !txt.includes(w.replace(/\s+/g, '')));
@@ -568,7 +569,7 @@ await page.setViewportSize({ width: 1360, height: 900 });
   /* on paper: the line's programs report says how each proved one was proved */
   await go(`#/programs?line=${WS}`);
   const dir = mkdtempSync(join(tmpdir(), 'lproof-'));
-  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), main.getByRole('button', { name: 'Programs report' }).click()]);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, 'Programs report')]);
   const file = join(dir, 'programs.pdf'); await dl.saveAs(file);
   const txt = flat(execFileSync('pdftotext', ['-layout', file, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
   const want = pr.lines.filter(l => l.proof).map(l => l.proof.word.slice(0, 60));
@@ -666,6 +667,7 @@ await page.setViewportSize({ width: 1360, height: 900 });
   /* a capability study's machine, picked from its line once it sits on one */
   const capId = await page.evaluate(async () => (await (await import('/src/db.ts')).listAllStudies()).find(s => s.tool === 'capability' && s.machine === 'Ishida CCW-RV-214W multihead weigher')?.id);
   await go(`#/capability/${capId}`);
+  await main.locator('.ie-place').getByRole('button', { name: 'Change', exact: true }).click(); /* Belongs to's Change (B4) */
   await main.getByRole('button', { name: 'Put on a line' }).click();
   await main.getByLabel('Put it on which line').selectOption(WS); await page.waitForTimeout(1200);
   const box = main.getByLabel('Which machine it is of');

@@ -18,8 +18,18 @@
  * studio, a method, a project on one — were taken off on 20 October with
  * the builder itself: docs/DIRECTION.md.) */
 export const PAGES = (sd, cap) => [
-  { name: 'Control room', path: '#/room', must: [
-    { what: 'its heading', sel: 'h1, h2', text: /Control room/ },
+  /* THE FACTORY — THE ONE HOME (23 October: "What's the point of home? ... The control room, is it
+     required?"; one home, a fixed menu): #/ and #/room; what was the control room, with where you were,
+     Line Talk, and the menu and its own tabs that say where you are */
+  { name: 'Factory — the one home', path: '#/', must: [
+    { what: 'its heading', sel: '.home h1', text: /^Factory$/ },
+    { what: 'the menu, the same on every page — Factory lit', sel: '.nv-rail .nv-ri.is-on', text: /^Factory$/, desk: true },
+    { what: 'the phone’s bar, the same on every page — Factory · Projects · ＋ · Problems · More', sel: '.nv-bar .nv-bi', n: 5, phone: true },
+    { what: 'its own tabs — Overview · Lines · Programs, Overview on', sel: '.nv-tabs .nv-tab.is-on', text: /^Overview$/ },
+    { what: 'Line Talk — start one, or carry on the latest', sel: '.home-talk .fd-talk-start', text: /Start a Line Talk/ },
+    { what: 'carry on the latest Line Talk', sel: '.home-talk .fd-talk-on', text: /^Carry on: / },
+    /* the page header since B3: the band's two report buttons are its Report ▾ */
+    { what: 'the page header — Report ▾ with the control room report and every report', sel: '.home > .part-head .part-menu-b', text: /^Report/ },
     { what: 'Your factory — every line', sel: '.fac-floor' },
     { what: 'this week, across every line and project', sel: '.jb-week' },
     { what: 'the projects on one timeline', sel: '.jb-gantt', desk: true },
@@ -29,6 +39,8 @@ export const PAGES = (sd, cap) => [
     { what: 'the closing line', sel: '.jb > .ln-close' },
   ] },
   { name: 'Your factory', path: '#/factory', must: [{ what: 'the lines in floor order', sel: '.fac-lines' },
+    /* the page header since B3: its paper in Report ▾ */
+    { what: 'the page header — Report ▾ with the factory report', sel: '.fac .part-head .part-menu-b', text: /^Report/ },
     /* the lean page (17 October, slice 5b; lib/factoryLean): the tiles — lines, problems open, late, a day of the factory in margin — and the closing line */
     { what: 'the tiles, a day of the factory among them', sel: '.fac .sg-tiles .ln-tile', n: 4 },
     { what: 'the closing line', sel: '.fac .ln-close' }] },
@@ -37,26 +49,35 @@ export const PAGES = (sd, cap) => [
     { what: 'a card a machine', sel: '.tour-card', n: 2 },
     /* the floor's two acts first, and the stopwatch among the tools (16 October, docs/UPGRADE-AUDIT.md F1) */
     { what: 'Time a stop', sel: '.pl-time' },
-    /* the filmed walk from the line, no job needed (20 October, docs/DIRECTION.md) */
-    { what: 'Film the line', sel: '.pl-walk', text: /Film the line/ },
+    /* the filmed walk from the line, no job needed (20 October, docs/DIRECTION.md) — in More ▾ since B3 (one primary on the page header,
+       docs/STRUCTURE.md §5.4: seven buttons squeezed the line's name into a column 50 px wide), beside Edit the line */
+    { what: 'More ▾ — Film the line and Edit the line', sel: '.pl .part-head .part-menu-b', text: /^More/ },
     { what: 'the stopwatch and its Pareto, among the tools', sel: '.pl-tool.is-stops' },
     /* the line is the hub (17 October, BLUEPRINT Stage 3; lib/lineLean, lib/lineProducts) */
     { what: 'the five tiles — problems, programs, products, stops, a day of the line', sel: '.pl-tiles .ln-tile', n: 5 },
     { what: 'its products, a row a product with its four answers', sel: '.pl-prod:not(.is-head) .pl-ready', n: 4 },
-    { what: 'the line report', sel: 'button', text: /^Line report$/ },
+    /* its papers in Report ▾ since B3 — the line report, the problems report and the problem cards, each named */
+    { what: 'Report ▾ — the line report among its papers', sel: '.pl .part-head .part-menu-b', text: /^Report/ },
     { what: 'the closing line', sel: '.pl > .ln-close' },
   ] },
-  { name: 'Programs', path: '#/programs', must: [{ what: 'machine by machine', sel: '.mt-list' }, { what: 'a row a program (16 October: one row, its boxes a tap away)', sel: '.mt-list .pgr' }] },
+  { name: 'Programs', path: '#/programs', must: [{ what: 'machine by machine', sel: '.mt-list' }, { what: 'a row a program (16 October: one row, its boxes a tap away)', sel: '.mt-list .pgr' },
+    /* the page header since B3: the programs report in Report ▾ */
+    { what: 'the page header — Report ▾ with the programs report', sel: '.lp .part-head .part-menu-b', text: /^Report/ }] },
   { name: 'Problems', path: '#/snags', must: [{ what: 'the register, a line at a time', sel: '.qsl-rows' },
+    /* the page header since B3 (docs/STRUCTURE.md §5.4): Problem the one primary, its two papers in Report ▾ */
+    { what: 'the page header — Problem, and Report ▾', sel: '.qsl .part-head .part-menu-b', text: /^Report/ },
     /* the lean page (17 October, slice 4; lib/problemsLean): its chips are its tiles, each a filter; the closing line names the worst open problem */
     { what: 'the closing line', sel: '.ln-close' }] },
   { name: 'A stage-gate project — its front page', path: `#/project/${sd.projectId}`, must: [
+    /* B3: the status report and the client report in the header's Report ▾ (the verdict's link moved here) */
+    { what: 'the page header — Report ▾ with the status report and the client report', sel: '.part-head .part-menu-b', text: /^Report/ },
     { what: 'the verdict', sel: '.vd' }, { what: 'Needs you', sel: 'h2, h3', text: /Needs you/ }, { what: 'where each machine is', sel: '.fp-grid' },
     /* the band's five tiles — the same the one-page status and the full report count (17 October, docs/LEAN-PAGE.md) */
     /* on a phone the band is the answer and the status report (the phone pass, 5 October): its tiles are the desk's */
     { what: 'the band’s tiles — handover, late of what is still to do, critical, fixes open, what the slip costs', sel: '.vd .vd-tile', n: 5, desk: true },
-    /* the job's places, its machines each a page (16 October, docs/STAGEGATE-UX.md) — under its Plan in the project's rail since 23 October (docs/STRUCTURE.md B2) */
-    { what: 'its machines in the rail, each a page', sel: '.nv-rail .nv-ri.is-sub', n: 3, desk: true },
+    /* the job's places, its machines each a page (16 October, docs/STAGEGATE-UX.md) — one tap from Where each machine is (23 October: off the menu, which never changes) */
+    { what: 'its machines, each a page, from where each machine is', sel: '.fp-where .jr-row.is-door', n: 3 },
+    { what: 'its own pages as tabs — Overview on', sel: '.nv-tabs .nv-tab.is-on', text: /^Overview/ },
   ] },
   { name: 'A machine — its own page', path: `#/project/${sd.projectId}/machine/${sd.machineId}`, must: [
     { what: 'its four gates in a row', sel: '.mpg-steps .mpg-step', n: 4 },
@@ -69,6 +90,8 @@ export const PAGES = (sd, cap) => [
   /* one row a program, its test on the row, one form (16 October: "too many views and doors") */
   { name: 'Programs — a stage-gate project', path: `#/project/${sd.projectId}/programs`, must: [
     { what: 'the programs in a sentence', sel: '.pp-says' },
+    /* the page header since B3: the programs report in Report ▾ (it was "Programs report — PDF") */
+    { what: 'the page header — Report ▾ with the programs report', sel: '.part-head .part-menu-b', text: /^Report/ },
     { what: 'the states worth showing, each a filter', sel: '.pp-chip', n: 2 },
     { what: 'a row a program, machine by machine', sel: '.pgr-list .pgr', n: 4 },
     { what: 'how its test went, on its row', sel: '.pgr .ptx-go' },
@@ -83,33 +106,52 @@ export const PAGES = (sd, cap) => [
     { what: 'the board as a card a machine', sel: '.igm-card', phone: true },
     /* the lean page (17 October, docs/LEAN-PAGE.md; lib/stageGatePages): the header's counts as tiles, and the money */
     { what: 'the tiles — passed, didn’t pass, didn’t run, still to run, the money', sel: '.sg-tiles .ln-tile', n: 5 },
+    /* the page header since B3: the commissioning report and the test cards in Report ▾ */
+    { what: 'the page header — Report ▾ with the commissioning report and the test cards', sel: '.part-head .part-menu-b', text: /^Report/ },
     { what: 'the closing line', sel: '.ln-close' },
   ] },
   { name: 'Install', path: `#/project/${sd.projectId}/install`, must: [
     { what: 'the plan’s tabs, Install on', sel: '.plt .plt-t.on', text: /^Install/ },
     { what: 'the tiles — done, late, problems, not added yet, the money', sel: '.sg-tiles .ln-tile', n: 5 },
     { what: 'Needs you', sel: '.cg-needs' },
+    /* the page header since B3: the step cards in Report ▾ */
+    { what: 'the page header — Report ▾ with the step cards', sel: '.part-head .part-menu-b', text: /^Report/ },
     { what: 'the closing line', sel: '.ln-close' },
   ] },
   { name: 'Problems — a stage-gate project', path: `#/project/${sd.projectId}/fixes`, must: [
     { what: 'the tiles — open, critical, late, no fix yet, the money', sel: '.sg-tiles .ln-tile', n: 5 },
     { what: 'the closing line', sel: '.ln-close' },
+    /* the page header since B3: the problems report and the cards in Report ▾ */
+    { what: 'the page header — Report ▾ with its two papers', sel: '.part-head .part-menu-b', text: /^Report/ },
   ] },
   { name: 'Materials', path: `#/project/${sd.pacedProjectId}/materials`, must: [
     { what: 'the tiles — here, late, waiting, no date, the money', sel: '.sg-tiles .ln-tile', n: 5 },
     { what: 'what we are waiting on, a row a material', sel: '.mt-list .mt-row', n: 2 },
     { what: 'the closing line', sel: '.ln-close' },
+    /* the page header since B3: the materials report in Report ▾ */
+    { what: 'the page header — Report ▾ with the materials report', sel: '.part-head .part-menu-b', text: /^Report/ },
   ] },
   /* the day (17 October, the lean page slice 5c; lib/dayLean): its update to send, the story counted in tiles, the job's money last, the closing line */
   { name: 'The day', path: `#/project/${sd.projectId}/day`, must: [
-    { what: 'the update to send, at the top', sel: '.dy-head .btn-primary', text: /PDF/ },
+    /* the update to send, at the top — the page header's one primary since B3, named for what it is (it said "— PDF"), and in Report ▾ */
+    { what: 'the update to send, at the top', sel: '.part-head .btn-primary', text: /update/ },
     { what: 'the tiles — done, late, went wrong, found, the project’s money', sel: '.cm-screen > .sg-tiles .ln-tile', n: 4 },
     { what: 'the closing line', sel: '.cm-screen > .ln-close' }] },
-  { name: 'The plan', path: `#/project/${sd.projectId}/plan`, must: [{ what: 'the Gantt', sel: '.gt-body' }, { what: 'the plan’s tabs, Timeline on', sel: '.plt .plt-t.on', text: /^Timeline/ },
+  { name: 'The plan', path: `#/project/${sd.projectId}/plan`, must: [{ what: 'the Gantt', sel: '.gt-body' },
+    /* B3: the Gantt's own PDF is the page header's Report ▾ */
+    { what: 'the page header — Report ▾ with the plan on one page', sel: '.part-head .part-menu-b', text: /^Report/ }, { what: 'the plan’s tabs, Timeline on', sel: '.plt .plt-t.on', text: /^Timeline/ },
     /* the lean page (17 October; lib/stageGatePages planTiles): the header's count line moved into the tiles, the job's money last; the closing line */
     { what: 'the tiles — done of the dates, late, still ahead, the project’s money', sel: '.cm-screen > .sg-tiles .ln-tile', n: 4 },
     { what: 'the closing line', sel: '.cm-screen > .ln-close' }] },
+  { name: 'The client report — a stage-gate project', path: `#/project/${sd.projectId}/report`, must: [
+    /* B3: the paper's page header — Download the one primary, where it said PDF */
+    { what: 'the page header — Download', sel: '.part-head .btn-primary', text: /^Download/ },
+    { what: 'its five papers to choose', sel: '.cr-which .chip', n: 5 }] },
+  { name: 'The client report — a 6M project', path: `#/pace-report?project=${sd.pacedProjectId}`, must: [
+    { what: 'the page header — Download', sel: '.part-head .btn-primary', text: /^Download/ },
+    { what: 'its two papers to choose', sel: '.cr-which .chip', n: 2 }] },
   { name: 'A 6M project — its front page', path: `#/project/${sd.pacedProjectId}`, must: [
+    { what: 'the page header — Report ▾ with the status report and the client report', sel: '.part-head .part-menu-b', text: /^Report/ },
     { what: 'the verdict', sel: '.vd' }, { what: 'the fishbone, drawn', sel: 'svg.fb-svg' },
     /* the lean page (17 October, docs/LEAN-PAGE.md slice 4; lib/sixmLean): the 6M report's five tiles on the band — the desk's, as the stage gate's */
     { what: 'the band’s tiles — the gap, problems, roots found, countermeasures, holding', sel: '.vd .vd-tile', n: 5, desk: true },
@@ -118,6 +160,7 @@ export const PAGES = (sd, cap) => [
   { name: 'The Pareto', path: `#/project/${sd.pacedProjectId}/pareto`, must: [{ what: 'the ranked losses', sel: '.pr-table' }] },
   { name: 'The lever tree', path: `#/project/${sd.treeProjectId}/tree`, must: [{ what: 'the tree, drawn', sel: '.lt-root' }] },
   { name: 'Line capacity — one line', path: `#/w/${sd.wsId}/standards/${sd.lineStandardId}?at=balance`, must: [
+    { what: 'the tool shell — More ▾ and Report ▾', sel: '.ls-head .part-menu-b', n: 2 }, { what: 'the product’s views as tabs — Line capacity on', sel: '.part-views .part-view.on', text: /^Line capacity$/ },
     { what: 'what the sums say', sel: '.cap-says' },
     { what: 'the V-curve, drawn', sel: 'svg.vc-svg', desk: true },
     { what: 'the V on its side', sel: '.vc-rows', phone: true },
@@ -157,6 +200,7 @@ export const PAGES = (sd, cap) => [
   ] },
   /* THE LINE BALANCE, its own tool (17 October) — at the old People tab's address too, which still opens it */
   { name: 'Line balance — one product', path: `#/w/${sd.wsId}/standards/${sd.lineStandardId}?at=balance&view=work`, must: [
+    { what: 'the product’s views as tabs — Line balance on', sel: '.part-views .part-view.on', text: /^Line balance$/ },
     { what: 'each person’s work, stacked against takt', sel: 'svg.wb-svg' },
     { what: 'each person, where they work and their bar against takt', sel: '.wb-person .wb-bar', n: 3 },
     { what: 'what the bottleneck costs, or what it needs', sel: '.wb-cost' },
@@ -167,6 +211,7 @@ export const PAGES = (sd, cap) => [
   ] },
   { name: 'Line balance — every product', path: `#/linebalance?line=${sd.wsId}`, must: [{ what: 'each product with its balance said', sel: '.lt-row .lt-says' }] },
   { name: 'All together — one product', path: `#/w/${sd.wsId}/standards/${sd.lineStandardId}?at=all`, must: [
+    { what: 'the tool shell — Report ▾', sel: '.ls-head .part-menu-b', text: /^Report/ }, { what: 'the product’s views as tabs — All together on', sel: '.part-views .part-view.on', text: /^All together$/ },
     { what: 'each tool’s sentence', sel: '.tg-strip .tg-cell', n: 3 },
     { what: 'the line station by station', sel: '.tg-st', n: 3 },
     { what: 'each person against takt', sel: '.tg-bars .wb-bar', n: 3 },
@@ -175,6 +220,7 @@ export const PAGES = (sd, cap) => [
     { what: 'the closing line', sel: '.tg .ln-close' },
   ] },
   { name: 'Line standard — a map', path: `#/w/${sd.wsId}/standards/${sd.lineStandardId}`, must: [
+    { what: 'the tool shell — More ▾ and Report ▾', sel: '.ls-head .part-menu-b', n: 2 },
     { what: 'the board', sel: '.ls-board' }, { what: 'who does what', sel: '.ls-side' },
   ] },
   ...(cap ? [{ name: 'Line standard — long notes, tall shapes', path: `#/w/${cap.wsId}/standards/${cap.lanesId}`, must: [
@@ -182,9 +228,9 @@ export const PAGES = (sd, cap) => [
     { what: 'the bottleneck said first', sel: '.ls-bn-sum' },
     { what: 'words up a tall, narrow shape', sel: '.ls-shape-t.is-up' },
   ] }] : []),
-  { name: 'A value stream map', path: `#/value-stream/${sd.lineMapId}`, must: [{ what: 'the grid', sel: '.vs-grid' },
+  { name: 'A value stream map', path: `#/value-stream/${sd.lineMapId}`, must: [{ what: 'the tool shell — More ▾ and Report ▾ in its band', sel: '.ln-band .part-menu-b', n: 2 }, { what: 'Belongs to — its line and project, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ }, { what: 'the grid', sel: '.vs-grid' },
     { what: 'the band', sel: '.ln-band' }, { what: 'its seven cards', sel: '.vs-cards .vs-card2' }, { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' }] },
-  { name: 'A SMED', path: `#/smed/${sd.changeoverId}`, must: [{ what: 'the grid', sel: '.vs-grid' }, { what: 'what it says', sel: '.ie-says' },
+  { name: 'A SMED', path: `#/smed/${sd.changeoverId}`, must: [{ what: 'the tool shell — More ▾ and Report ▾ in its band', sel: '.ln-band .part-menu-b', n: 2 }, { what: 'Belongs to — its line and project, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ }, { what: 'the grid', sel: '.vs-grid' }, { what: 'what it says', sel: '.ie-says' },
     /* the lean page (17 October, slice 6; lib/ie/changeoverLean): the band, five tiles in the strip's place, the action plan, the closing line */
     { what: 'the band', sel: '.ln-band' }, { what: 'the five tiles — now, inside the stop, planned to, stopped in packs and £, bought back', sel: '.ie-strip .ln-tile', n: 5 },
     { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' }] },
@@ -193,6 +239,8 @@ export const PAGES = (sd, cap) => [
   /* A PROJECT'S ACTIONS (21 October, docs/PROJECTS.md P3): every thing it owes, who, why, where, by when */
   { name: 'Actions — a stage-gate project', path: `#/project/${sd.projectId}/actions`, must: [
     { what: 'the six tiles — open, late, this week, nobody yet, no date, done this week', sel: '.act-tiles .ln-tile', n: 6 },
+    /* the page header since B3: the action list in Report ▾ (it was a button saying PDF) */
+    { what: 'the page header — Report ▾ with the action list', sel: '.act .part-head .part-menu-b', text: /^Report/ },
     { what: 'seen by who, when or where', sel: '[aria-label="Seen by"] .chip', n: 3 },
     { what: 'a group a person, each with its actions', sel: '.act-g .act-li' },
     { what: 'the closing line', sel: '.ln-close' }] },
@@ -210,7 +258,7 @@ export const PAGES = (sd, cap) => [
     { what: 'a state in each of the five colours, with its word', sel: '.parts p .part-tag', n: 5 },
     { what: 'the app\'s eleven tools, from the catalogue', sel: '.parts .part-row', n: 14 },
   ] },
-  { name: 'Every tool — the directory', path: '#/tools', must: [
+  { name: 'Tools — the library', path: '#/tools', must: [
     { what: 'the problem, asked first', sel: '.et-search input' },
     { what: 'the counts that are the filters — six statuses and All', sel: '.et-status .chip', n: 7 },
     { what: 'start from the problem — every route', sel: '.et-route-b', n: 20 },
@@ -219,31 +267,41 @@ export const PAGES = (sd, cap) => [
     { what: 'use one now — every tool a person can open', sel: '.et-now .lt-row', n: 11 },
   ] },
   /* A PROJECT'S TOOLS (23 October, docs/STRUCTURE.md §5.1, B2): the eleven tools left the foot of the project's rail for one page — each tool, how often it is used here, its latest; New on its row */
+  /* RESULTS (docs/STRUCTURE.md D9, B5): Numbers and Wins one page, two views */
+  { name: 'Results — a 6M project', path: `#/project/${sd.pacedProjectId}?view=data`, must: [
+    { what: 'its heading', sel: '.pace-head h1', text: /^Results$/ },
+    { what: 'its two views, Numbers and Wins', sel: '.pace-head .part-views .part-view', n: 2 },
+    { what: 'Numbers shown, lit', sel: '.pace-head .part-view.on', text: /^Numbers$/ },
+  ] },
   { name: 'Tools — a 6M project', path: `#/project/${sd.pacedProjectId}/tools`, must: [
     { what: 'its heading', sel: '.ptools h1', text: /^Tools$/ },
     { what: 'every tool, how often it is used here', sel: '.ptools .lt-row', n: 11 },
     { what: 'New on a tool’s row', sel: '.ptools .lt-li .btn', n: 10 },
-    { what: 'the project’s rail, Tools lit', sel: '.nv-rail .nv-ri.is-on', text: /Tools/, desk: true }] },
+    /* the project's Evidence since B5 (docs/STRUCTURE.md D9) */
+    { what: 'the line, filmed — the project’s evidence', sel: '.ptools .ptools-film h2', text: /^The line, filmed$/ },
+    { what: 'the project’s tabs, Tools on', sel: '.nv-tabs .nv-tab.is-on', text: /^Tools/ }] },
   /* A LINE'S TOOLS — the line's own page narrowed to its tools, with New ▾ (B2) */
   { name: 'A line — its tools', path: `#/lines/${sd.line7WsId}?view=tools`, must: [
     { what: 'the tools on this line', sel: '.pl-tools .pl-tool', n: 4 },
     { what: 'New ▾ — a tool started here is the line’s', sel: '.pl-sec-h .part-menu-b' },
-    { what: 'the line’s rail, Tools lit', sel: '.nv-rail .nv-ri.is-on', text: /Tools/, desk: true }] },
-  /* A LINE STUDY'S CAPTURE — on a phone its four views are tabs on the page, the bar being the line's (B2) */
-  { name: 'Capture — a line study', path: `#/w/${sd.wsId}/capture`, must: [
-    { what: 'its heading', sel: '.pace-title', text: /^Capture$/ },
-    { what: 'the study’s four views, on a phone', sel: '.study-views [role=tab]', n: 4, phone: true },
-    /* the seeded study is a stage-gate project's own walk: its four views under the project's own pages */
-    { what: 'its four views on the rail', sel: '.nv-rail .nv-ri.is-sub', text: /^(Capture|Analyse|Evidence|Meeting)$/, n: 4, desk: true }] },
-  { name: 'Every action — the control room', path: '#/actions', must: [
+    { what: 'the line’s tabs, Tools on', sel: '.nv-tabs .nv-tab.is-on', text: /^Tools/ }] },
+  /* STOPS TIMED — the line study, the line's first log (docs/STRUCTURE.md D8, B6): named, its four views
+     tabs on its page at a desk as on a phone; no screen of it on the rail */
+  { name: 'Stops timed — Capture', path: `#/w/${sd.wsId}/capture`, must: [
+    { what: 'its name, Stops timed, and the line', sel: '.study-log b', text: /^Stops timed$/ },
+    { what: 'its four views as tabs, Capture lit', sel: '.study-views [role=tab]', n: 4 },
+    { what: 'Capture the view shown', sel: '.study-views [role=tab][aria-selected=true]', text: /^Capture$/ },
+    /* the seeded study is a stage-gate project's own walk, filmed from Install: the Plan lit */
+    { what: 'where it sits, its tab on — the Plan', sel: '.nv-tabs .nv-tab.is-on', text: /^Plan/ }] },
+  { name: 'Actions — the factory', path: '#/actions', must: [
     { what: 'the six tiles', sel: '.act-tiles .ln-tile', n: 6 }, { what: 'seen by who, when, where or project', sel: '[aria-label="Seen by"] .chip', n: 4 },
     { what: 'every project’s actions and every line’s own problems', sel: '.act-li' }, { what: 'the closing line', sel: '.ln-close' }] },
   { name: 'SMED inside a project', path: `#/smed?project=${sd.pacedProjectId}`, must: [
-    { what: 'the project’s rail — its fishbone among its places', sel: '.nv-rail .nv-ri', text: /Fishbone/, desk: true },
-    { what: 'the project’s bar — its overview and its main page', sel: '.nv-bar .nv-bi-l', text: /^Fishbone$/, phone: true },
+    { what: 'the project’s tabs — its fishbone among its pages', sel: '.nv-tabs .nv-tab', text: /^Fishbone/ },
     { what: 'whose — the project’s own, everything on its lines, every line', sel: '.ip-scope .chip', n: 3 },
     { what: 'the project’s own SMED', sel: '.lt-li[data-study]' }] },
   { name: 'A loss count', path: `#/losses/${sd.lossId}`, must: [
+    { what: 'the tool shell — More ▾ and Report ▾ in its band', sel: '.ln-band .part-menu-b', n: 2 }, { what: 'Belongs to — its line and project, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ },
     { what: 'the waterfall, drawn', sel: 'svg.lf-fall' }, { what: 'what it says', sel: '.ie-says' },
     /* the lean page (17 October, docs/LEAN-PAGE.md): the band, the tiles, the causes, the action plan, the closing line */
     { what: 'the band — what, where, the day and the shift', sel: '.ln-band' }, { what: 'the tiles — good packs, lost, stops, rejects, what it cost', sel: '.ln-tiles .ln-tile', n: 5 },
@@ -251,10 +309,11 @@ export const PAGES = (sd, cap) => [
     { what: 'the closing line', sel: '.ln-close' },
   ] },
   /* the lean page (17 October, slice 6): the band, the tiles in the strip's place, the action plan, the closing line */
-  { name: 'Work sampling', path: `#/sampling/${sd.samplingId}`, must: [{ what: 'the round', sel: '.ws-round' },
+  { name: 'Work sampling', path: `#/sampling/${sd.samplingId}`, must: [{ what: 'the tool shell — More ▾ and Report ▾ in its band', sel: '.ln-band .part-menu-b', n: 2 }, { what: 'Belongs to — its line and project, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ }, { what: 'the round', sel: '.ws-round' },
     { what: 'the band', sel: '.ln-band' }, { what: 'the five tiles — what it costs among them', sel: '.ie-strip .ln-tile', n: 5 }, { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' }] },
   /* A RELIABILITY STUDY (21 October, docs/TOOLKIT.md tool 13): the watch and the event button, the lean tiles (MTBF first), what it means, the graphs — events against watched hours, the gaps, the MTBF day by day — what the stops were, the days, the commentary, the closing line */
   { name: 'Reliability study', path: `#/reliability/${sd.reliabilityId}`, must: [
+    { what: 'the tool shell — More ▾ and Report ▾ in its band', sel: '.ln-band .part-menu-b', n: 2 }, { what: 'Belongs to — its line and project, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ },
     { what: 'the band', sel: '.ln-band' },
     { what: 'the watch, running, with its stop', sel: '.rl-watch.is-on .rl-go', text: /^Stop the watch$/ },
     { what: 'a button for each thing counted, all on the one watch (22 October: "three buttons ... three data sets")', sel: '.rl-buttons .rl-event', n: 2 },
@@ -272,19 +331,11 @@ export const PAGES = (sd, cap) => [
     { what: 'the commentary — each remark kept', sel: '.rl-rem li[data-remark]', n: 2 },
     { what: 'the closing line', sel: '.ln-close' },
   ] },
-  /* THE FRONT DOOR (20 October, docs/DIRECTION.md): the question, then what is
-     under way, the three kinds of project, the tools and the factory. The words
-     box, the library of methods and the switch that showed them went with the
-     method builder, deleted on 20 October. */
-  { name: 'The front door', path: '#/', must: [
-    { what: 'the question, first', sel: '.fd-ask h1', text: /^What do you need to get done\?$/ },
-    { what: 'what is under way — every project in a line', sel: '.fd-jobs li[data-project]' },
-    { what: 'the three kinds of project — the lever tree among them', sel: '.fd-lib .fw-card[data-start^="e:"]', n: 3 },
-    { what: 'the tools to use on their own — Line Talk and Reliability among them', sel: '.fd-tools li[data-tool]', n: 11 },
-    { what: 'Line Talk, near the top — start one, or carry on the latest', sel: '.fd-talk .fd-talk-start', text: /^Start a Line Talk$/ },
-    { what: 'carry on the latest Line Talk', sel: '.fd-talk .fd-talk-on', text: /^Carry on: / },
-    /* the context bar names Home (docs/STRUCTURE.md B2, 23 October: Home is the mark and the switcher's first, above the scopes) */
-    { what: 'the context bar says Home', sel: '.nv-ctx .nv-job-l', text: /^Home$/ },
+  /* PROJECTS LISTS THE PROJECTS (docs/STRUCTURE.md §5.6, B5) — the kinds as counts, a row a project */
+  { name: 'Projects', path: '#/projects', must: [
+    { what: 'the kinds as chips that are the counts — All first', sel: '.proj-list .part-filters .chip', text: /^\d+All$/ },
+    { what: 'a row a project — its kind and who leads it, its lines and its handover', sel: '.proj-list li.part-row', n: 3 },
+    { what: 'All lines, to narrow it to one', sel: '.proj-list select.proj-line-f' },
   ] },
   /* NEW JOB: the three kinds of project, chosen from the situation (the words box and the library went with the method builder, 20 October) */
   { name: 'New project', path: '#/projects?new=1', must: [
@@ -312,6 +363,7 @@ export const PAGES = (sd, cap) => [
     { what: 'Start the test', sel: '.vck-start .btn-primary', text: /^Start the test$/ },
   ] },
   { name: 'A video study', path: `#/video/${sd.videoStudyId}`, must: [
+    { what: 'the tool shell — More ▾ and Report ▾ in its header', sel: '.part-head .part-menu-b', n: 2 }, { what: 'Belongs to — its line and project, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ },
     { what: 'where it stands — never verified while one is to review', sel: '[data-standing]', text: /to review · \d+ accepted/ },
     /* the facts, and where the footage is: said after them when it is here, or in the player when it is not (the seed's is not) */
     { what: 'the footage and its facts, and where the footage is (on this device only, waiting to go up, in the cloud, or over what the cloud takes)', sel: '.vid-panel', text: /^(?=[\s\S]*line4-morning\.webm — 0:32\.0 · 1280×720)(?=[\s\S]*(kept on this device only|on this device, waiting to go up to the cloud|in the cloud — your other devices play it|over the \d+ MB the cloud takes|sign in to send it to the cloud|not on this device yet))/ },
@@ -339,6 +391,7 @@ export const PAGES = (sd, cap) => [
   ] },
   /* a talk: the conversation as it was left — pieces the phone wrote down, one corrected, a photo, a typed line, one not written down (recorded before 21 October), one written down with no recording; a report asked for and Line Talk's answer with the document it wrote (slice 2, 20 October) — and the box to carry on, as a chat's (21 October) */
   { name: 'A Line Talk', path: `#/talk/${sd.talkId}`, must: [
+    { what: 'the tool shell — Rename and Delete in More ▾', sel: '.part-head .part-menu-b', text: /^More/ },
     { what: 'where it is — the line, every Line Talk', sel: '.pl-eyebrow', text: /^LINE TALK · .+ › · Every Line Talk ›$/ },
     { what: 'what was said, in a line — its answers and document counted', sel: '.tk-sum', text: /^4 pieces said, 2 min · 1 photo · 2 typed · 1 answer · 1 document — 1 not written down\.$/ },
     { what: 'what Line Talk knows — the line’s records, said in a line', sel: '.tk-knows summary', text: /^What Line Talk knows — .+: \d+ machines? · / },
@@ -366,7 +419,7 @@ export const PAGES = (sd, cap) => [
     { what: 'its photo, labelled, with its caption to edit', sel: '.tk-dph[data-photo=P1]', text: /P1/ },
     { what: 'on paper', sel: '.tk-dacts button', text: /^Save as PDF$/ },
   ] },
-  { name: 'A capability study', path: `#/capability/${sd.studyId}`, must: [{ what: 'the readings, drawn', sel: 'svg.ie-dots' },
+  { name: 'A capability study', path: `#/capability/${sd.studyId}`, must: [{ what: 'the tool shell — More ▾ and Report ▾ in its band', sel: '.ln-band .part-menu-b', n: 2 }, { what: 'Belongs to — its line and project, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ }, { what: 'the readings, drawn', sel: 'svg.ie-dots' },
     { what: 'before capability — the three checks', sel: '.ie-checks .ie-check' }, { what: 'the histogram', sel: 'svg.ie-hist rect.ie-bar' },
     { what: 'the band', sel: '.ln-band' }, { what: 'the tiles', sel: '.ie-strip .ln-tile' }, { what: 'the action plan', sel: '.ln-plan-p' }, { what: 'the closing line', sel: '.ln-close' }] },
 ];

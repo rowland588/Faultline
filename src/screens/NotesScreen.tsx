@@ -10,6 +10,7 @@
  * or on the whole job (testId ''). The same notes show on each step's own page
  * under "For the meeting". Ticked once raised. Private preparation — the
  * client report and every other document leave them out. */
+import { PageHeader } from '../ui/parts';
 import { AddFold } from '../ui/AddFold';
 import { useState } from 'react';
 import { nav } from '../state/useRoute';
@@ -271,15 +272,10 @@ export function NotesScreen({ projectId }: { projectId: string }) {
 
   return (
     <div className="wrap pace nt">
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <h1 className="pace-title">Notes</h1>
-          <p className="pace-lede">{can.edit ? 'What to raise at the next meeting — tick each one once it has been talked about.' : 'What is to be raised at the next meeting.'}</p>
-        </div>
-        <div className="pace-head-actions">
-          {open.length > 0 && <button className="btn btn-ghost" onClick={copy}>{copied ? 'Copied' : 'Copy as a list'}</button>}
-        </div>
-      </header>
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): copying the list is the page's other action, in More ▾ */}
+      <PageHeader title="Notes"
+        says={can.edit ? 'What to raise at the next meeting — tick each one once it has been talked about.' : 'What is to be raised at the next meeting.'}
+        more={open.length > 0 ? [{ label: copied ? 'Copied' : 'Copy as a list', run: copy }] : []} />
       <AccessNote can={can} owner={project.lead} />
       {/* THE PLAN FOR TODAY sits beside these on The day (lib/huddle): notes
           are what to raise; the plan is what the huddle agreed to do today. */}

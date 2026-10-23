@@ -130,6 +130,55 @@ with nothing listed; a new rail line is a page of its scope, never a list of
 lines, projects or tools (the tools are each scope's *Tools* page, read from
 the catalogue's registry, `src/catalogue/registry`).
 
+**Since B3 and B4 every page has one header and every tool one shell.** A
+page is drawn with `ui/parts` PageHeader — one title, what it says, one
+primary, More ▾ for its other actions, Report ▾ for every paper it has, each
+named for what it is (never *PDF*, *Print* or *Report*); a paper drawn on its
+report page is reached from another page's Report ▾ with `?save=1` and made
+on arrival (`lib/useSaveOnArrival`). A tool's record wears the shell
+(`ui/StudyActs` StudyBand on a study: Rename and Delete in More ▾, its paper
+in Report ▾; `ui/StudyPlace` WhereItSits — *On Line 7 · in … · Change*, the
+one Belongs to), and one thing seen several ways is ViewTabs, never a row of
+link buttons. A new page or tool takes these parts, and its acceptance
+script presses by name through `scripts/lib/pageHeader.mjs` (the page's own
+button, else the menu), so a control moving into a menu never breaks it.
+
+**Since B5 each place has one job and each thing one word** (§5.6, §5.7).
+Home is yours — *Carry on where you were* (`lib/recentPlaces`, noted by the
+frame on this device only, never synced), what is under way by name, start
+a project, a tool; the control room is the factory's; Projects lists the
+projects (by kind and line, the archive behind its chip). The words: a page
+is *Problems*, *Actions*, *Tools* — the context bar says whose — never
+*Control room problems*, *Every action* or *Every tool*; the filter is *All
+lines*; the smoke test fails on the old names as a title, door, button or
+chip. A 6M or lever-tree project's Numbers and Wins are one page, *Results*,
+with two views, and its Evidence — the filmed line — is on its *Tools* page
+(D9; `?view=snags` lands there, a stage gate's on Install).
+**Since B6 the line study is the line's first log, *Stops timed*** — named
+at the top of its page, its four screens (Capture · Analyse · Evidence ·
+Meeting) tabs on it at a desk as on a phone, none of them a rail line; the
+rail lights Logs on a line, the line in a 6M project, the Plan in a stage
+gate.
+
+**Since 23 October there is one home and one menu** (Rowland: "What's the
+point of home? ... The control room, is it required? ... I literally start
+using it and I've got no idea where I am. I lose myself"; the shape chosen,
+*one home, a fixed menu*). `#/` is the **Factory** page (`screens/WorkspaceHome`
+— what was the control room, `#/room` kept; the front door is gone: its three
+kinds are New project's, its tools the page's *Use a tool* row and Tools,
+*Carry on where you were* and Line Talk on the Factory page). The rail is
+**one menu on every page** — Factory · Projects · Problems · Actions · Tools,
+Reports at the foot (`ui/rail` menuGroups; Factory lit inside a line, Projects
+inside a project) — and the phone's bar is the same five everywhere (Factory ·
+Projects · ＋ · Problems · More, `menuBar`). A line's, a project's and the
+factory's own pages are **tabs across the top** (`scopeTabs`, `factoryTabs` —
+from lineGroups and projectGroups, which stay the one list of a scope's
+pages; a page folded under a tab lights it, a machine its Plan). The context
+bar starts with **the way back** (‹ Factory from a line, ‹ Projects from a
+project) and says a project's line (*on Line 7*, one tap). A new page of a
+scope is a tab; nothing is ever added to the menu. A script reaches a scope's
+page by its tab (`.nv-tabs .nv-tab .nv-tab-l`), the menu by `.nv-rail .nv-ri`.
+
 ## The blueprint comes first
 
 **`docs/BLUEPRINT.md` is the one map of the app** — agreed with Rowland, 13
@@ -316,7 +365,7 @@ Run all of it before merging. It is what CI runs, plus the two things CI cannot:
 
 ```
 npx tsc --noEmit
-npx eslint src --max-warnings 65      # a ratchet, not a target — see below
+npx eslint src --max-warnings 64      # a ratchet, not a target — see below
 npx vitest run
 npx vite build
 node scripts/smoke.mjs                # needs a dev server on 5191, or SMOKE_BASE
@@ -342,7 +391,7 @@ node scripts/acceptance/factory.mjs  # Your factory: set up first, lines added o
 node scripts/acceptance/machines-programs.mjs  # Stage 2: a program planned on a line with no job, from the control room; the line's machines in flow order; a job seeing and proving them; the factory and the paper
 node scripts/acceptance/control-room.mjs  # the flow audit's control room: a line's own problems and programs counted beside the jobs', the critical list read on a phone, a line's page saying its tools' findings and each job's verdict, every count its page's, a job started from a line; every report from the control room (All reports in the band, Reports in the rail and More)
 node scripts/acceptance/edit-delete.mjs  # bar 2: every record edited and deleted where it sits, with Undo — studies on every list and page, a 6M problem's words, a timed stop, problems, wins, readings, a line's machines and the line itself, a marked frame
-node scripts/acceptance/capability-kinds.mjs  # the capability study made to cover what the floor has (knowledge/specs/FC-094-capability.md, part 1 — Rowland, 22 October: "not flexible enough ... I've got no idea what the tick is"): the question first (a measurement, sold by weight, pass or fail — each with its example), a speed at least 75 a minute with only its box, refused with no limit; the three checks before capability (said from 20 — bell-shaped by D'Agostino–Pearson, steady, read finely enough), how sure the Ppk is, the histogram; oxygen at most 2% leaning high and not steady — capable never green, then at most 0.6 — the share outside as measured; a run creeping up said not steady; pass or fail — 20 by default, one may fail, what the count would prove said while agreeing, 20 allowed refused, ✓ Good and ✗ Failed, a second failure failing it at once, struck, passed with one failed and what it proves, the tiles; each on paper; a study from before reading as before; the phone
+node scripts/acceptance/capability-kinds.mjs  # the capability study made to cover what the floor has (knowledge/specs/FC-094-capability.md, part 1 — Rowland, 22 October: "not flexible enough ... I've got no idea what the tick is"): the question first (a measurement, sold by weight, pass or fail — each with its example), a speed at least 75 a minute with only its box, refused with no limit; the three checks before capability (said from 20 — bell-shaped by D'Agostino–Pearson, steady, read finely enough), how sure the Ppk is, the histogram; oxygen at most 2% leaning high and not steady — capable never green, then at most 0.6 — the share outside as measured; a run creeping up said not steady; pass or fail — 20 by default, one may fail, what the count would prove said while agreeing, 20 allowed refused, ✓ Good and ✗ Failed, a second failure failing it at once, struck, passed with one failed and what it proves, the tiles; each on paper; a study from before reading as before; the phone; then pass or fail judged by a confidence level or a loss allowed (part 1b, 23 October — "Am I doing a confidence level, or am I doing the other level?"): the three ways and the confidence (90 · 95 · 99%), the plan as lib/ie/sample says it, 20 refused with the 149 it takes, 4,500 letting 74 fail at 95% and 68 at 99%, a loss of 98% letting 90 and saying it proves only 97.6%, tapped to a fail at once, the tiles, the paper, the phone
 node scripts/acceptance/tools-directory.mjs  # Every tool, the directory (knowledge/README.md; src/catalogue — Rowland, 22 October: "searchable by problem, discipline, method and scenario ... reflecting real status"): from the front door; the lede's counts as the catalogue counts them; the status chips are the counts and the filters, each tool saying its status in words; "we're rejecting too many" — where to start (the rejects route first), the tools in the module's order, the reject rate planned and saying not built; "FC-95" the one tool, Open it landing on the capability study; a route's tool opened from the route; a discipline's tools only; a tool left out on purpose saying why; the phone
 node scripts/acceptance/audit.mjs  # the audit's fixes (docs/AUDIT.md): a way out of every sheet on a short phone, Escape on the photo viewer, a study on paper with Ppk and Cpk and its readings, every study list on paper
 node scripts/audit.mjs [out.json]     # not a pass/fail: walks every screen at desk and phone — ways out, phone fit, lists with no paper (docs/AUDIT.md)
@@ -358,7 +407,7 @@ node scripts/acceptance/front-door.mjs  # the front door as it is since 20 Octob
 node scripts/acceptance/structure.mjs  # the structure (docs/STRUCTURE.md §18), slice by slice — B0: a problem offered only to somebody who may change the project's work; a client offered none inside it (their rows are never sent), told so on the sheet with Save held, offered it off a project; B2: every page in PAGES.md naming its place in the context bar (Home, the factory, a line, a project) at desk and phone, each scope's rail its own and within its size (factory 8, line 9, project 18), the phone's bar the scope's own five on every page of it, ＋ the problem form in one tap with the line set, and with 30 more lines and 50 more projects the factory's rail still 8 and any line or project found by the switcher in three keystrokes as before
 node scripts/journeys.mjs             # the eight journeys against docs/structure/journeys-baseline.json — every one finishes, none takes more taps than it did (docs/STRUCTURE.md §15), walked the shortest way the frame offers (the rail, the bar and More, ↑ Factory, a project's Tools, the switcher, the control room's own cards); hunts and what the context bar names printed beside their baseline
 node scripts/report-stress.mjs NEW --repeatable && node scripts/paper-parity.mjs OLD NEW  # every paper says what it said: OLD the same on what is live (a server on origin/main, SMOKE_BASE) — a paper lost or changed fails (docs/STRUCTURE.md §17)
-node scripts/acceptance/video-study.mjs  # a video study (docs/VIDEO.md): footage with known times made in the page and uploaded through New, a file that is not a video refused, read on the device, the reading MEASURED against the truth, reviewed on the footage (accepted, a boundary moved to the playhead, one rejected), the line balance and takt, the report read back, a reload and a reading resumed after one, the footage deleted with what was found kept; and the camera's AI — Name the work from the frames — offered, off until ticked, saying what it sends
+node scripts/acceptance/video-study.mjs  # a video study (docs/VIDEO.md): footage with known times made in the page and uploaded through New, a file that is not a video refused, on its line (the line's Tools row with it, Line balance not counting it, its list from the line the line's own — 23 October), read on the device, the reading MEASURED against the truth, reviewed on the footage (accepted, a boundary moved to the playhead, one rejected), the line balance and takt, the report read back, a reload and a reading resumed after one, the footage deleted with what was found kept; and the camera's AI — Name the work from the frames — offered, off until ticked, saying what it sends
 node scripts/acceptance/video-fit.mjs  # footage fit for the study (docs/VIDEO-DESIGN.md): the study chosen from the words and how to film it before anything is filmed (where the phone goes and never, how long from the cycle, the people), a changeover not measured from footage yet with SMED meanwhile; footage whose camera shook for twelve of its thirty-two seconds said unfit as it came in, the phone's place said; read — the shake found where it was, every event inside it flagged and none outside, each end's ±, when work starts and stops not measurable from it, the findings counting the flags and never calling a gap waiting; said in the hand and refused; on paper; the phone
 node scripts/acceptance/video-check.mjs  # can this phone film a long study? (docs/VIDEO-FEASIBILITY.md): from Video studies, what the phone offers as the module says, the test on Chromium's fake camera — the picture in thirds, the rate, the camera's word, the app out of sight said, a clip at 30 s played on its own — stopped after a minute: the answer and every line as lib/video/phoneCheck says them from the results the page copies, the last clip, the minute's row, nothing kept on the phone, Run it again, the phone
 node scripts/acceptance/line-talk.mjs  # Line Talk, the box as a chat's (docs/LINE-TALK.md, How it hears and The box, like a chat — Rowland, 21 October: "I see my words come up on the interface. I simply press send"): opened from the line's page and started on it, named for the line and the day; the box — Photo, the words, the microphone, Send; the microphone tapped, the phone's recogniser played by the script — British English, the words in the box as they are said (those still forming too), nothing in the talk until Send; Send while listening — the last words finished, sent as said, the box empty, Line Talk's answer; nothing heard for six seconds — the keyboard's own microphone said, still listening, gone with the first words; talked, stopped, put right in the box and sent as put right; a session the phone ended by itself, both sentences in the box; typed into while listening — listening stops, the box as typed, the microphone again after it; a photo, a line typed and sent as typed; corrected after it was sent with what was sent kept beside it and Undo; struck, kept and left out, brought back; no signal said with the way round it, the words kept in the box; out of sight — listening stops, said, carried on after; the microphone taken and not allowed — each said with the keyboard's own microphone; a browser with no speech recognition — the box opened for the keyboard's microphone, said; reloaded mid-talk — the words in the box kept and sent as said; nothing recorded; the line's page and every Line Talk saying it; the phone — the box on the phone's own bar, long words inside it; nothing sent to a voice service

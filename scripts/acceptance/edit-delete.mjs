@@ -40,6 +40,7 @@
  *   node scripts/acceptance/edit-delete.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
 const { chromium } = pkg;
+import { paper, more } from '../lib/pageHeader.mjs';
 
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
@@ -118,18 +119,20 @@ for (const T of TOOLS) {
   ok(!!back && back.uses.length === s.uses.length && (back.facts.flow ?? []).length === (s.facts.flow ?? []).length && await main().locator('.lt-li').count() === before, 'A3 Undo: back whole — its steps and its links');
 }
 
-/* 4 · its own page: Rename and Delete beside its name; the map and work
-   sampling renamed there */
+/* 4 · its own page: Rename and Delete in the header's More ▾ (the tool shell, B4 — they were links
+   beside its name); the map and work sampling renamed there */
 for (const T of TOOLS) {
   const s = await study(T.id);
   await go(T.page(T.id));
-  const head = page.locator('.ie-name').first();
-  ok(await head.getByRole('button', { name: 'Rename', exact: true }).count() === 1 && await head.getByRole('button', { name: `Delete ${s.name}`, exact: true }).count() === 1, `A4 ${T.page('…')}: Rename and Delete beside “${s.name}”`);
+  await page.locator('.ln-band .part-menu-b', { hasText: /^More/ }).first().click(); await page.waitForTimeout(300);
+  const items = (await page.getByRole('menuitem').allInnerTexts()).map(t => t.trim());
+  await page.keyboard.press('Escape'); await page.waitForTimeout(200);
+  ok(items.includes('Rename') && items.includes('Delete'), `A4 ${T.page('…')}: Rename and Delete in More ▾ on “${s.name}” (${items.join(', ')})`);
 }
 for (const [id, to] of [[sd.lineMapId, 'Line 7, run released to pallet away'], [sd.samplingId, 'Packing hall, days']]) {
   const T = TOOLS.find(x => x.id === id);
   await go(T.page(id));
-  await page.locator('.ie-name').getByRole('button', { name: 'Rename', exact: true }).click();
+  await more(page, 'Rename');
   await page.getByLabel('What it is of').fill(to); await page.keyboard.press('Enter'); await page.waitForTimeout(800);
   ok((await study(id)).name === to && (await page.locator('h1.ie-name').innerText()).startsWith(to), `A4 renamed on its own page: “${to}”`);
 }
@@ -138,7 +141,7 @@ for (const [id, to] of [[sd.lineMapId, 'Line 7, run released to pallet away'], [
 {
   const s = await study(sd.samplingId);
   await go(`#/sampling/${sd.samplingId}`);
-  await page.locator('.ie-name').getByRole('button', { name: `Delete ${s.name}`, exact: true }).click(); await page.waitForTimeout(1200);
+  await more(page, 'Delete'); await page.waitForTimeout(1200);
   ok(!(await study(sd.samplingId)) && page.url().endsWith(`#/sampling?line=${s.workspaceId}`) && /Its \d+ taps go with it/.test(asked), `A5 deleted from its page: on ${page.url().split('#')[1]}, "${asked.split('\n')[2] ?? ''}"`);
   await undo();
   ok(!!(await study(sd.samplingId)) && /Packing hall, days/.test(await txt()), 'A5 Undo: back on its line\'s list');
@@ -236,7 +239,7 @@ for (const [id, to] of [[sd.lineMapId, 'Line 7, run released to pallet away'], [
   ok(w.assets.indexOf(`${first} 2`) === w0.assets.indexOf(first), 'E3 Undo: back where it stood in the flow');
   /* archived from its own page, with Undo */
   await go(L);
-  await main().getByRole('button', { name: 'Edit the line', exact: true }).click();
+  await more(page, 'Edit the line');
   await main().getByRole('button', { name: 'Archive this line', exact: true }).click(); await page.waitForTimeout(1200);
   ok((await ws()).archived === true && /#\/factory/.test(page.url()) && /loses nothing/.test(asked), 'E4 the line archived from its own page: on Your factory');
   await undo();

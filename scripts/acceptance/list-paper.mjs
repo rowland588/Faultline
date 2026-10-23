@@ -32,6 +32,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 const { chromium } = pkg;
+import { find } from '../lib/pageHeader.mjs';
 
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
@@ -86,7 +87,7 @@ const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).se
     return { product: st.product, short: C.shortSays(r), sentence: r.sentence, v: C.vCurve(r, st.capacity.vMarginPct).sentence, stations: r.ok.map(x => x.station.name) };
   }, L7);
   const screen = { says: await words('.cap-says'), v: await words('.vc-says'), shift: await words('.shc-says'), cost: await words('.cap-cost-says') };
-  const p = await paper(page.getByRole('button', { name: 'PDF', exact: true }), 'capacity-one.pdf');
+  const p = await paper(await find(page, 'Report', /^Line capacity — /), 'capacity-one.pdf'); /* Report ▾ (B4) */
   const lost = await missing(p.text, [truth.product, truth.short, truth.sentence, truth.v, ...truth.stations, screen.says, screen.v, screen.shift, screen.cost]);
   ok(p.pages === 1 && !lost.length && /LINE CAPACITY/.test(p.text) && /the bottleneck/.test(p.text),
     `1 Line capacity's own page on paper: one page (${p.pages}) — ${truth.short}; the sentence, the V, ${truth.stations.length} stations, a shift and the cost a pack as the screen says them${lost.length ? ` — lost: ${lost.slice(0, 3).join(' | ')}` : ''}`);
@@ -96,7 +97,7 @@ const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).se
 {
   await go('#/balances');
   const shown = await page.locator('.lt-rows .lt-li').evaluateAll(els => els.map(e => ({ what: e.querySelector('.lt-what')?.textContent?.trim() ?? '', says: e.querySelector('.lt-says')?.textContent?.trim() ?? '' })));
-  const p = await paper(page.getByRole('button', { name: /^PDF \(all shown\)/ }), 'capacity-all.pdf');
+  const p = await paper(await find(page, 'Report', /every product shown/), 'capacity-all.pdf');
   const lost = await missing(p.text, shown.flatMap(x => [x.what, x.says.replace(/^No stations yet.*$/, 'No stations yet')]));
   ok(shown.length >= 2 && !lost.length && new RegExp(`${shown.length} products? on \\d+ lines?`).test(p.text),
     `2 Line capacity, every product shown (${shown.length}): a front saying them all, each with the finding its row says${lost.length ? ` — lost: ${lost.slice(0, 3).join(' | ')}` : ''}`);
@@ -105,7 +106,7 @@ const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).se
   if (await chip.count()) {
     await chip.click(); await page.waitForTimeout(600);
     const one = (await page.locator('.lt-rows .lt-what').allInnerTexts()).map(x => x.trim());
-    const q = await paper(page.getByRole('button', { name: /^PDF \(all shown\)/ }), 'capacity-line.pdf');
+    const q = await paper(await find(page, 'Report', /every product shown/), 'capacity-line.pdf');
     ok(one.length < shown.length && new RegExp(`${one.length} products? on 1 line`).test(q.text) && /LINE CAPACITY · LINE 7 — SMOKE TEST/.test(q.text) && (await missing(q.text, one)).length === 0,
       `2 on one line: that line's ${one.length} of the ${shown.length}`);
   } else ok(false, '2 on one line: the line chip is not on the list');
@@ -115,14 +116,14 @@ const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).se
 {
   await go('#/standards');
   /* every line — the list keeps the line picked on Line capacity */
-  if (await page.locator('.qsl-f .chip', { hasText: /^Every line$/ }).count()) { await page.locator('.qsl-f .chip', { hasText: /^Every line$/ }).click(); await page.waitForTimeout(500); }
+  if (await page.locator('.qsl-f .chip', { hasText: /^All lines$/ }).count()) { await page.locator('.qsl-f .chip', { hasText: /^All lines$/ }).click(); await page.waitForTimeout(500); }
   const shown = await page.locator('.lt-rows .lt-li').count();
-  const p = await paper(page.getByRole('button', { name: /^PDF \(all shown\)/ }), 'standards-all.pdf');
+  const p = await paper(await find(page, 'Report', /every product shown/), 'standards-all.pdf');
   ok(shown >= 2 && p.pages === shown, `3 Line standard, a card a page for every product shown (${p.pages} of ${shown})`);
   const chip = page.locator('.qsl-f .chip').nth(1);
   await chip.click(); await page.waitForTimeout(600);
   const one = await page.locator('.lt-rows .lt-li').count();
-  const q = await paper(page.getByRole('button', { name: /^PDF \(all shown\)/ }), 'standards-line.pdf');
+  const q = await paper(await find(page, 'Report', /every product shown/), 'standards-line.pdf');
   ok(q.pages === one && one < shown, `3 on one place: its ${one} card${one === 1 ? '' : 's'}`);
 }
 
@@ -133,20 +134,21 @@ const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).se
   const here = (await page.locator('.sg-tiles .ln-tile').evaluateAll(els => els.map(e => ({ k: e.querySelector('.ln-k')?.textContent?.trim() ?? '', v: e.querySelector('.ln-v')?.textContent?.trim() ?? '', of: e.querySelector('.ln-of')?.textContent?.trim() ?? '' })))).find(x => x.k === 'Here') ?? { v: '', of: '' };
   const head = `${here.v} ${here.of.replace(/ needed$/, '')} here`;
   const rows = await page.locator('section.pace-sec', { hasText: 'What we are waiting on' }).first().locator('.mt-row').evaluateAll(els => els.map(e => ({ what: e.querySelector('.mt-what')?.textContent?.trim() ?? '', when: e.querySelector('.mt-when-n')?.textContent?.trim() ?? '', late: e.classList.contains('is-late') })));
-  const p = await paper(page.getByRole('button', { name: 'Materials report' }), 'materials.pdf');
+  const p = await paper(await find(page, 'Report', 'Materials report'), 'materials.pdf');
   const lost = await missing(p.text, [head, ...rows.map(r => r.what), ...rows.filter(r => r.late).map(r => r.when)]);
   const late = rows.filter(r => r.late);
   ok(p.pages === 1 && rows.length === 7 && !lost.length && /Late — what is holding us up/.test(p.text) && /No date agreed/.test(p.text) && new RegExp(`In — 2 of ${rows.length}`).test(p.text),
     `4 Materials report: one page (${p.pages}) — "${head}", ${late.length} late as the list says (${late.map(r => r.when).join(', ')}), every one of ${rows.length} on it${lost.length ? ` — lost: ${lost.slice(0, 3).join(' | ')}` : ''}`);
   await go(`#/project/${sd.projectId}/materials`);
-  ok(await page.getByRole('button', { name: 'Materials report' }).isDisabled(), '4 nothing on the list: the report greyed');
+  ok(await (await find(page, 'Report', 'Materials report')).isDisabled(), '4 nothing on the list: the report greyed');
+  await page.keyboard.press('Escape');
 }
 
 /* ---- 5 Commission: a card for every test on the board ---- */
 {
   await go(`#/project/${sd.projectId}/testing`);
   const board = await page.evaluate(async pid => { const T = await import('/src/lib/testCards.ts'); const db = await import('/src/db.ts'); return T.boardOrder(await db.listTests(pid), await db.listAssets(pid)).map(x => x.title); }, sd.projectId);
-  const p = await paper(page.getByRole('button', { name: /^Test cards/ }), 'test-cards.pdf');
+  const p = await paper(await find(page, 'Report', 'Test cards'), 'test-cards.pdf');
   const lost = await missing(p.text, board);
   const firsts = (p.text.match(/ 1 of \d+/g) ?? []).length;
   ok(board.length >= 3 && !lost.length && p.pages >= board.length && firsts >= board.length,
@@ -154,7 +156,7 @@ const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).se
   /* and every step on a gate — Install's */
   await go(`#/project/${sd.projectId}/install`);
   const steps = await page.evaluate(async pid => { const T = await import('/src/lib/testCards.ts'); const db = await import('/src/db.ts'); return T.boardOrder(await db.listTests(pid), await db.listAssets(pid), 'install').map(x => x.title); }, sd.projectId);
-  const q = await paper(page.getByRole('button', { name: /^Step cards/ }), 'step-cards.pdf');
+  const q = await paper(await find(page, 'Report', 'Step cards'), 'step-cards.pdf');
   const lostSteps = await missing(q.text, steps);
   ok(steps.length >= 2 && !lostSteps.length && q.pages >= steps.length && /INSTALL STEP|Install step/i.test(q.text),
     `5 Step cards on Install: a card for every step (${steps.length}, ${q.pages} pages)${lostSteps.length ? ` — lost: ${lostSteps.slice(0, 3).join(' | ')}` : ''}`);
@@ -164,9 +166,11 @@ const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).se
 {
   await page.evaluate(() => localStorage.setItem('faultline.access.force', 'client'));
   await go(`#/project/${sd.pacedProjectId}/materials`);
-  const m = await page.getByRole('button', { name: 'Materials report' }).isEnabled();
+  const m = await (await find(page, 'Report', 'Materials report')).isEnabled();
+  await page.keyboard.press('Escape');
   await go(`#/project/${sd.projectId}/testing`);
-  const t = await page.getByRole('button', { name: /^Test cards/ }).isEnabled();
+  const t = await (await find(page, 'Report', 'Test cards')).isEnabled();
+  await page.keyboard.press('Escape');
   await page.evaluate(() => localStorage.removeItem('faultline.access.force'));
   ok(m && t, '6 a client reads the job and takes its paper');
 }

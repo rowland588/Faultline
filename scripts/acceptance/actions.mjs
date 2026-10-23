@@ -27,6 +27,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 const { chromium } = pkg;
+import { paper, more } from '../lib/pageHeader.mjs';
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
 const SESSION = { access_token: 'smoke', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 31536000, refresh_token: 'smoke',
@@ -76,12 +77,13 @@ const truth = () => page.evaluate(async pid => {
   };
 }, PID);
 
-/* ---- 1 on the rail ---- */
+/* ---- 1 one of the project's tabs (its pages, across the top since 23 October) ---- */
 await go(`#/project/${PID}`);
 const t = await truth();
-await page.locator('.nv-rail').getByRole('button', { name: 'Actions', exact: true }).click(); await page.waitForTimeout(2000);
-ok(page.url().endsWith(`#/project/${PID}/actions`), `1 Actions from ${t.name}'s rail`, page.url());
-ok(await page.locator('.nv-rail').getByRole('button', { name: 'Actions', exact: true }).getAttribute('aria-current') === 'page', '1 lit on its page');
+const actionsTab = page.locator('.nv-tabs .nv-tab').filter({ has: page.locator('.nv-tab-l', { hasText: /^Actions$/ }) });
+await actionsTab.click(); await page.waitForTimeout(2000);
+ok(page.url().endsWith(`#/project/${PID}/actions`), `1 Actions from ${t.name}'s tabs`, page.url());
+ok(await actionsTab.getAttribute('aria-current') === 'page', '1 its tab on, on its page');
 
 /* ---- 2 every row as the records say ---- */
 const whats = (await page.locator('.act-li .lt-what').allInnerTexts()).map(flat);
@@ -122,7 +124,7 @@ await page.getByRole('group', { name: 'Seen by' }).getByRole('button', { name: '
 /* ---- 5 on paper ---- */
 await go(`#/project/${PID}/actions`);
 {
-  const text = await pdfText(() => page.getByRole('button', { name: 'The action list on paper (PDF)' }).click());
+  const text = await pdfText(() => paper(page, 'The action list'));
   ok(text.includes(t.name) && /ACTIONS/.test(text) && t.people.every(p => text.includes(p)) && text.includes(t.closing.slice(0, 30)), `5 the list for the meeting: every person, the closing line`, text.slice(0, 300));
   const first = t.people.find(p => p !== 'Nobody yet');
   if (first) {
@@ -144,7 +146,7 @@ await go('#/room');
 await page.locator('.nv-rail').getByRole('button', { name: 'Actions', exact: true }).click(); await page.waitForTimeout(2500);
 {
   const rail = flat(await page.locator('.nv-rail').innerText());
-  ok(page.url().endsWith('#/actions') && /Control room/.test(rail) && /Lines/.test(rail) && /Factory/.test(flat(await page.locator('.nv-ctx').innerText())), '8 every action, from the factory’s rail — Actions', page.url());
+  ok(page.url().endsWith('#/actions') && rail.replace(/ \d+/g, '') === 'Factory Projects Problems Actions Tools Reports' && flat(await page.locator('.nv-rail .nv-ri.is-on').innerText()) === 'Actions' && /Factory/.test(flat(await page.locator('.nv-ctx').innerText())), '8 every action, from the menu — Actions, lit', `${page.url()} | ${rail}`);
   const all = (await page.locator('.act-li .lt-what').allInnerTexts()).map(flat);
   ok(t.whats.every(w => all.includes(flat(w))) && all.length > t.n, `8 every project's actions — ${t.name}'s ${t.n} among ${all.length}`);
   await page.getByRole('group', { name: 'Seen by' }).getByRole('button', { name: 'Project' }).click(); await page.waitForTimeout(300);
@@ -160,7 +162,7 @@ await page.locator('.nv-rail').getByRole('button', { name: 'Actions', exact: tru
   });
   const onLines = (await page.locator('.act-g', { has: page.locator('h2', { hasText: 'On the lines, no project' }) }).locator('.act-li .lt-what').allInnerTexts()).map(flat);
   ok(same(onLines, lineOwn.map(flat)), `8 every line's own open problem, under no project: ${lineOwn.length}`, JSON.stringify({ onLines, lineOwn }));
-  const text = await pdfText(() => page.getByRole('button', { name: 'The action list on paper (PDF)' }).click());
+  const text = await pdfText(() => paper(page, 'The action list'));
   ok(text.includes('Every project and line') && text.includes(t.name), '8 on paper: every project and line, each row marked with its project');
   /* a row of a project's opens its record over Every action, the project said in the address */
   const fixRow = own.filter({ has: page.locator('.act-meta', { hasText: /^Fix\b|· Fix\b|Fix ·/ }) }).first();

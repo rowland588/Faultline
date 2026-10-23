@@ -9,6 +9,7 @@
  * grouped by stage, an asset × pack grid with material supersession. The job
  * never had any of those. It has a cycle, and this is the list of times round it.
  */
+import { PageHeader } from '../ui/parts';
 import { DateWhy } from '../ui/DateWhy';
 import { HANDOVER_KEY, keyOf } from '../lib/story';
 import { useMemo, useRef, useState } from 'react';
@@ -117,39 +118,24 @@ export function TestsScreen({ projectId }: { projectId: string }) {
   return (
     <div className="wrap pace cm-screen">
       <PlanTabs projectId={projectId} on={'testing'} />
-      <header className="pace-head">
-        <div className="pace-head-main">
-          {/* COMMISSION — the gate where each machine is proved against what
-              was agreed. It was called Testing; the tests are what it is made
-              of, and the URL keeps the old name so no link breaks. */}
-          <h1 className="pace-title">Commission</h1>
-          {/* Where the gate has got to FIRST, as the other three gates say it —
-              then the handover date this gate is driving at. "Rowland leading"
-              is on the project itself; the four gate headers read alike. */}
-          {/* THE COUNTS ARE THE TILES under the header (lib/stageGatePages:
-              passed of the tests, didn't pass, didn't run, still to run, the
-              money) — the line here keeps the handover this gate drives at. */}
-          <p className="cw-handover">
-            {project.expectedAt
-              ? <span className="sub">Handover {nice(project.expectedAt)}{weeks != null && ` · ${toGo(project.expectedAt, weeks)}`}</span>
-              : <span className="sub">No handover date yet</span>}
-            {can.agree && <button className="cw-link" onClick={() => setDates(d => !d)}>{dates ? 'Done' : 'Dates'}</button>}
-          </p>
-        </div>
-        {/* A CARD FOR EVERY TEST ON THE BOARD (docs/AUDIT.md, bar 3) — each
-            the card its record prints, one document (lib/testCards) */}
-        <div className="pace-head-actions">
-          {/* THE COMMISSIONING REPORT AND CARDS (Rowland, 14 October: "a
-              commissioning report, commissioning cards ... I can present in
-              the meeting or send") — where this gate has got to, machine by
-              machine, on the report screen with its cards */}
-          <button type="button" className="btn btn-primary" onClick={() => nav(`/project/${projectId}/report?doc=commissioning`)}
-            aria-label="Commissioning report — where commissioning has got to, machine by machine, and a card a machine">
-            <Icon name="document" size="1.05em" />Commissioning report</button>
-          <button type="button" className="btn" disabled={cardsBusy || proofs.length === 0} onClick={() => void allCards()}
-            aria-label="Test cards — a card for every test on the board (PDF)"><Icon name="document" size="1.05em" />{cardsBusy ? 'Making…' : 'Test cards'}</button>
-        </div>
-      </header>
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3). COMMISSION — the gate where each machine is proved against
+          what was agreed (it was called Testing; the URL keeps the old name so no link breaks). Its papers in
+          Report ▾: THE COMMISSIONING REPORT (Rowland, 14 October: "a commissioning report, commissioning cards ...
+          I can present in the meeting or send") — where this gate has got to, machine by machine, on the report
+          screen with its cards — and A CARD FOR EVERY TEST ON THE BOARD (docs/AUDIT.md, bar 3; lib/testCards). The
+          counts are the tiles under it (lib/stageGatePages); the line here keeps the handover this gate drives at. */}
+      <PageHeader title="Commission"
+        papers={[
+          { label: 'Commissioning report', for: 'where commissioning has got to, machine by machine, and a card a machine', make: () => nav(`/project/${projectId}/report?doc=commissioning`) },
+          { label: 'Test cards', for: proofs.length ? 'a card for every test on the board' : 'no test on the board yet', disabled: cardsBusy || proofs.length === 0, make: allCards },
+        ]}>
+        <p className="cw-handover">
+          {project.expectedAt
+            ? <span className="sub">Handover {nice(project.expectedAt)}{weeks != null && ` · ${toGo(project.expectedAt, weeks)}`}</span>
+            : <span className="sub">No handover date yet</span>}
+          {can.agree && <button className="cw-link" onClick={() => setDates(d => !d)}>{dates ? 'Done' : 'Dates'}</button>}
+        </p>
+      </PageHeader>
       <AccessNote can={can} owner={project.lead} />
       {/* THE TILES (docs/LEAN-PAGE.md; lib/stageGatePages) — the header's
           counts, each of what it should be, and the job's money */}

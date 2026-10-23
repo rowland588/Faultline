@@ -35,6 +35,7 @@
  * each machine, which makes the machine's programs stage when it has none.
  * The eight tiles are the chips worth showing: a zero is not a filter
  * anyone needs, and the sentence above them still says every count. */
+import { PageHeader } from '../ui/parts';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTesting } from '../lib/useTesting';
 import { usePrograms } from '../lib/usePrograms';
@@ -161,17 +162,13 @@ export function ProgramsPage({ projectId, only }: {
   }
   return (
     <div className="wrap pace pp">
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <h1 className="pace-title">Programs</h1>
-          <p className="pace-lede pp-says">{reading ? reading.says : 'No programs yet.'}</p>
-          <p className="sub pp-how">Tap a program to change it. Say how its test went with the button on its row.
-            {jobLines.map(l => <span key={l.id}> · <button type="button" className="cw-link" onClick={() => nav(`/programs?line=${encodeURIComponent(l.id)}`)}>{l.name}&rsquo;s programs ›</button></span>)}</p>
-        </div>
-        <div className="pace-head-actions">
-          <button type="button" className="btn btn-primary" disabled={(!reading && !lineReadings.length) || busy} onClick={() => void download()}>{busy ? 'Making it…' : 'Programs report — PDF'}</button>
-        </div>
-      </header>
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): where the programs are, in words; the report in Report ▾ (it
+          was "Programs report — PDF") */}
+      <PageHeader title="Programs" says={<span className="pp-says">{reading ? reading.says : 'No programs yet.'}</span>}
+        papers={[{ label: 'Programs report', for: 'every program machine by machine — the project’s and its lines’ own', disabled: (!reading && !lineReadings.length) || busy, make: download }]}>
+        <p className="sub pp-how">Tap a program to change it. Say how its test went with the button on its row.
+          {jobLines.map(l => <span key={l.id}> · <button type="button" className="cw-link" onClick={() => nav(`/programs?line=${encodeURIComponent(l.id)}`)}>{l.name}&rsquo;s programs ›</button></span>)}</p>
+      </PageHeader>
       {said && <p className="tc-ok" role="status">{said}</p>}
       <AccessNote can={can} owner={project.lead} />
 

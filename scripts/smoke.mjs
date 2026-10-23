@@ -269,6 +269,16 @@ for (const [name, hash] of ROUTES) {
        station's "next job", "its job arrives by", and "do their job". */
     const said = text.replace(/packaging snag|film snags?|seeded snag|on every job|next job reaches|job arrives by|do their job|TWI job instruction|job instruction/gi, '');   // TWI Job Instruction: a method's own name (Every tool)
     const old = [...new Set((said.match(/\b(workspaces?|tracker|3P|snags?|assets?|line balancing|maps and balances?|jobs?)\b/gi) ?? []).map(w => w.toLowerCase()))];
+    /* ONE WORD FOR EACH THING (docs/STRUCTURE.md §5.7, B5): a page is named by the one word, the context
+       bar saying whose — never the old names "Every action", "Control room problems", "Every tool" or a
+       paper called "PDF (all shown)" as a page's title, a door or a button; and the filter for every
+       line is "All lines", never "Every line" beside it. (In a sentence — "Every action is on the
+       board" — the words are English, not a name, so only names are read: titles, doors, buttons, chips.) */
+    const names = [...document.querySelectorAll('h1, h2, h3, button, [role="menuitem"], option, .chip, .nv-ctx')].map(e => (e.textContent ?? '').replace(/\s+/g, ' ').trim());
+    for (const n of names) {
+      const m = /^(Every action|Control room problems|Every tool)\b/.exec(n) ?? /PDF \(all shown\)/.exec(n) ?? (/^Every line(\s*\d+)?$/.test(n) ? [n] : null);
+      if (m) old.push(`"${m[0]}"`);
+    }
     return { chars: text.length, crash: /something broke|something went wrong/i.test(text), head: text.split('\n')[0]?.slice(0, 40) ?? '', old };
   });
 

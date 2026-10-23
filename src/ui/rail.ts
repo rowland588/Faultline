@@ -11,7 +11,8 @@
  *   Control room
  *   the job                       (on, on its front page)
  *   Gates     Install · Set up · Commission · Hand over     — a stage-gate job
- *   Method    Fishbone · Board · Lines · Numbers · Wins · Evidence — a 6M job
+ *   Method    Fishbone · Board · Lines · Results — a 6M job (B5, D9: Numbers and Wins one page,
+ *             Results; Evidence is the project's Tools, with the filmed line on it)
  *             Tree · Board · Lines · …                      — a lever tree job
  *   Work      Fixes · Materials · The plan · The day
  *   Lines     each line, by the factory's name, opening the factory's line
@@ -216,24 +217,14 @@ export interface RailLineOf { id: string; name: string; workspaceId?: string;
    *  ("Line 8" for Line 7 — smoke test; docs/FLOW-AUDIT.md #7). */
   factoryName?: string }
 
-/** The screens of a line study, drawn under the line they belong to (or
- *  under the job, when the job's own line was filmed). The line's maps and
- *  capacities were a fifth line here, "Maps and balance": a second door to
- *  what Tools › Line standard and Line capacity open, and what the line's own
- *  page lists as its tools — it went (docs/FLOW-AUDIT.md #7, #20), and a
- *  product of the line lights its tool instead (hereOf, lineStandards). */
-export function studyLines(wsId: string, here: string): RailLine[] {
-  const s = (key: string, label: string, to: string, icon: RailLine['icon']): RailLine =>
-    ({ key, label, to: `/w/${wsId}/${to}`, on: here === key, state: 'n', sub: true, bare: true, icon });
-  return [
-    s('capture', 'Capture', 'capture', 'time'), s('analyse', 'Analyse', 'analyse', 'chart'),
-    s('snaglist', 'Evidence', 'snaglist', 'camera'), s('meeting', 'Meeting', 'meeting', 'people'),
-  ];
-}
+/** THE SCREENS OF A LINE STUDY — Capture, Analyse, Evidence and Meeting were drawn on the rail under
+ *  the line (or the project) whose study it was, a rail inside the rail. Since B6 (docs/STRUCTURE.md D8)
+ *  the study is the line's first log, *Stops timed*, and the four are its views — tabs on its page
+ *  (screens/AppShell StudyViews), at a desk as on a phone; the rail lights where the study sits. */
+export const STUDY_SCREENS = new Set(['capture', 'analyse', 'snaglist', 'meeting']);
 
-/** LINES — each line of the project, and under the one whose study you are
- *  inside, that study's four screens. Two lines can share one study (it was
- *  filmed across both); its screens are drawn once, under the first.
+/** LINES — each line of the project; inside a line study the line it is of is lit (its screens are the
+ *  study's own tabs since B6). Two lines can share one study (it was filmed across both); the first is lit.
  *
  *  A JOB POINTS AT THE FACTORY'S LINE (docs/BLUEPRINT.md §1 rule 2). A line
  *  of Your factory is said by the factory's name and opens the line's own
@@ -248,10 +239,12 @@ export function linesGroup(projectId: string, lines: RailLineOf[], here: string,
     const fac = l.factoryName && l.workspaceId ? l.workspaceId : undefined;
     if (fac && seen.has(fac)) continue;
     if (fac) seen.add(fac);
-    out.push(fac
+    const line = fac
       ? plain(`line:${l.id}`, l.factoryName as string, `/lines/${fac}`, here, 'hash')
-      : plain(`line:${l.id}`, l.name, `/project/${projectId}/line/${l.id}`, here, 'hash'));
-    if (wsId && !drawn && l.workspaceId === wsId) { out.push(...studyLines(wsId, here)); drawn = true; }
+      : plain(`line:${l.id}`, l.name, `/project/${projectId}/line/${l.id}`, here, 'hash');
+    const inStudy = !!wsId && !drawn && l.workspaceId === wsId && STUDY_SCREENS.has(here);
+    if (inStudy) drawn = true;
+    out.push(inStudy ? { ...line, on: true } : line);
   }
   return { label: 'Lines', lines: out };
 }
@@ -269,11 +262,61 @@ export function linesGroup(projectId: string, lines: RailLineOf[], here: string,
 /** The way up — from a line or a project to the factory. */
 export const upLine = (): RailLine => ({ key: 'up', label: 'Factory', to: '/room', on: false, state: 'n', bare: true, icon: 'arrowUp' });
 
+/** THE MENU — ONE, NEVER CHANGING (Rowland, 23 October: "I literally start using it and I've got no
+ *  idea where I am"; the shape chosen: one home, a fixed menu). Factory · Projects · Problems · Actions ·
+ *  Tools, with Reports at the foot, on every page. Inside a line its menu line is Factory, inside a
+ *  project Projects; the line's or the project's own pages are tabs across the top of the page
+ *  (ui/Frame ScopeTabs, from lineGroups and projectGroups). Home and the control room are one page,
+ *  Factory. */
+export function menuGroups(here: string, kind: 'factory' | 'line' | 'project', projects = 0): RailGroup[] {
+  const f = kind === 'factory';
+  return [{
+    lines: [
+      { key: 'home', label: 'Factory', to: '/room', on: (f && (here === 'home' || here === 'factory' || here === 'lineprograms')) || kind === 'line', state: 'n', bare: true, icon: 'home' },
+      { ...plain('projects', 'Projects', '/projects', here, 'board'), on: (f && here === 'projects') || kind === 'project', n: projects || undefined },
+      { key: 'quicksnags', label: 'Problems', to: '/snags', on: f && here === 'quicksnags', state: 'n', bare: true, icon: 'flag' },
+      { ...plain('allactions', 'Actions', '/actions', here, 'list'), on: f && here === 'allactions' },
+      { ...plain('tools', 'Tools', '/tools', here, 'chart'), on: f && here === 'tools' },
+    ],
+  }, { foot: true, lines: [{ key: 'reports', label: 'Reports', on: false, state: 'n', bare: true, icon: 'list' }] }];
+}
+
+/** The phone's bar, the same on every page: Factory · Projects · ＋ · Problems · More. */
+export function menuBar(groups: RailGroup[], plus = true): RailLine[] {
+  const all = groups.flatMap(g => g.lines);
+  const by = (k: string) => all.find(l => l.key === k);
+  const five = [by('home'), by('projects'), ...(plus ? [plusLine()] : []), by('quicksnags')].filter((l): l is RailLine => !!l);
+  return [...five, { key: 'more', label: 'More', on: !five.some(l => l.on) && all.some(l => l.on), state: 'n', icon: 'grip' }];
+}
+
+/** A LINE'S OR A PROJECT'S OWN PAGES, as tabs across the top: its pages without the way up, the
+ *  machines or lines folded under them (they are on the page they are under), and not the line's
+ *  Projects or Logs (on its Overview and its Tools). */
+export function scopeTabs(groups: RailGroup[]): RailLine[] {
+  const lines = groups.flatMap(g => g.lines);
+  const kept = (l: RailLine) => l.key !== 'up' && !l.sub && l.key !== 'projects' && l.key !== 'logs' && l.key !== 'reports';
+  /* a page folded under a tab lights it: a machine its Plan, a project's line its Lines, the line's
+     logs its Tools, the line's projects its Overview */
+  const under = lines.find(l => l.on && !kept(l) && l.key !== 'up');
+  const lit = !under ? undefined : under.key === 'logs' ? 'tools' : under.key === 'projects' ? 'overview'
+    : [...lines.slice(0, lines.indexOf(under))].reverse().find(kept)?.key;
+  return lines.filter(kept).map(l => (lit && l.key === lit ? { ...l, on: true } : l));
+}
+
+/** THE FACTORY'S OWN TABS — on the Factory page and the two lists under it, every line and every
+ *  line's programs. */
+export const FACTORY_PAGES = new Set(['home', 'factory', 'lineprograms']);
+export const factoryTabs = (here: string): RailLine[] => [
+  plain('home', 'Overview', '/room', here, 'home'),
+  plain('factory', 'Lines', '/factory', here, 'machine'),
+  plain('lineprograms', 'Programs', '/programs', here, 'list'),
+];
+
 /** THE FACTORY'S PAGES — every line and project at once. */
 export function factoryGroups(here: string, projects = 0): RailGroup[] {
   return [{
     lines: [
-      { ...controlRoom(here), icon: 'list' },
+      { ...controlRoom(here), label: 'Overview', icon: 'list' },
       plain('allactions', 'Actions', '/actions', here, 'list'),
       { key: 'quicksnags', label: 'Problems', to: '/snags', on: here === 'quicksnags', state: 'n', bare: true, icon: 'flag' },
       { ...plain('projects', 'Projects', '/projects', here, 'board'), n: projects || undefined },
@@ -297,7 +340,7 @@ export function lineGroups(wsId: string, here: string, counts: { problems?: Coun
     { lines: [
       plain('overview', 'Overview', lineHref(wsId), here, 'home'),
       counted('problems', 'Problems', `/snags?line=${encodeURIComponent(wsId)}`, here, { problems: counts.problems }, ['problems'], 'flag'),
-      counted('programs', 'Machines & programs', `/programs?line=${encodeURIComponent(wsId)}`, here, { programs: counts.programs }, ['programs'], 'machine'),
+      counted('programs', 'Programs', `/programs?line=${encodeURIComponent(wsId)}`, here, { programs: counts.programs }, ['programs'], 'machine'),
       plain('products', 'Products', lineHref(wsId, 'products'), here, 'list'),
       plain('tools', 'Tools', lineHref(wsId, 'tools'), here, 'chart'),
       plain('logs', 'Logs', `/w/${encodeURIComponent(wsId)}/capture`, here, 'time'),
@@ -346,9 +389,9 @@ export function projectGroups(o: {
       counted('board', 'Board', `${p}/board`, o.here, o.counts, ['board'], 'board'),
       plain('lines', 'Lines', `${p}?view=lines`, o.here, 'chart'),
       ...linesGroup(o.projectId, o.lines ?? [], o.here, o.wsId).lines.map(l => ({ ...l, sub: true })),
-      plain('data', 'Numbers', `${p}?view=data`, o.here, 'chart'),
-      plain('wins', 'Wins', `${p}?view=wins`, o.here, 'chart'),
-      plain('snags', 'Evidence', `${p}?view=snags`, o.here, 'chart'),
+      /* RESULTS (docs/STRUCTURE.md D9, B5): the readings against target and what worked, one page with
+         two views — Numbers and Wins were two lines; Evidence is the project's Tools, below */
+      { ...plain('results', 'Results', `${p}?view=data`, o.here, 'chart'), on: o.here === 'data' || o.here === 'wins' },
       ...(t.pareto ? [plain('pareto', 'Pareto', `${p}/pareto`, o.here, 'chart')] : []),
       counted('materials', 'Materials', `${p}/materials`, o.here, o.counts, ['materials'], 'list'),
     ];
@@ -373,24 +416,6 @@ export function projectGroups(o: {
  *  round button was (docs/STRUCTURE.md §5.3; D6). */
 export const plusLine = (): RailLine => ({ key: 'plus', label: 'Problem', on: false, state: 'n', bare: true, icon: 'plus' });
 
-/** THE PHONE'S BAR, FIXED WITHIN A SCOPE (D6): the factory — Control room · Actions ·
- *  ＋ · Problems · More; a line — Overview · Tools · ＋ · Problems · More; a project —
- *  Overview · its main page (Plan, Fishbone or Tree) · ＋ · Actions · More. ＋ only for
- *  somebody who may take a problem there. More is on when the page lives in the sheet. */
-export function scopeBar(kind: 'factory' | 'line' | 'project', groups: RailGroup[], model?: PlanModel, plus = true): RailLine[] {
-  const all = groups.flatMap(g => g.lines);
-  const by = (k: string) => all.find(l => l.key === k);
-  const two: (RailLine | undefined)[] = kind === 'factory' ? [by('home'), by('allactions')]
-    : kind === 'line' ? [by('overview'), by('tools')]
-      : [by('job'), by(model === 'commissioning' ? 'plan' : model === 'tree' ? 'tree' : 'fishbone') ?? by('board')];
-  const last = kind === 'project' ? by('actions') : kind === 'line' ? by('problems') : by('quicksnags');
-  const five = [...two, ...(plus ? [plusLine()] : []), last].filter((l): l is RailLine => !!l);
-  const onBar = five.some(l => l.on);
-  return [
-    ...five.map(l => (l.key === 'job' ? { ...l, label: 'Overview' } : l)),
-    { key: 'more', label: 'More', on: !onBar && all.some(l => l.on), state: 'n', icon: 'grip' },
-  ];
-}
 
 /** WHICH PAGE OF ITS SCOPE a route is — the rail line that is on (docs/STRUCTURE.md §5.2). */
 export function hereIn(route: Route, scope: 'home' | 'factory' | 'line' | 'project'): string {

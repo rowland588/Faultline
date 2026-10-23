@@ -71,6 +71,7 @@
  *
  *   node scripts/acceptance/line-capacity.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
+import { paper as pressPaper, more as pressMore } from '../lib/pageHeader.mjs';
 const { chromium } = pkg;
 
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
@@ -113,7 +114,7 @@ await page.locator('.vc-says').first().waitFor({ timeout: 10000 }).catch(() => {
 {
   /* the people's work is the line balance's own page now (17 October) — a door, never a second tab here */
   const tabs = await page.locator('.lb-views .chip').count();
-  const door = await page.getByRole('button', { name: 'Its line balance ›' }).count();
+  const door = await page.getByRole('tab', { name: 'Line balance', exact: true }).count();
   ok(tabs === 0 && door === 1, `1 Line capacity alone on its page, the line balance one door away (${tabs} tabs, ${door} door)`);
 }
 /* ---- 2 the V-curve ---- */
@@ -240,7 +241,7 @@ await page.locator('.vc-says').first().waitFor({ timeout: 10000 }).catch(() => {
   /* the card at the line carries it — read off the card as it is drawn */
   await go(`#/w/${sd.wsId}/standards/${SID}`);
   await page.evaluate(() => { window.__drawn = []; const f = CanvasRenderingContext2D.prototype.fillText; CanvasRenderingContext2D.prototype.fillText = function (s, ...a) { window.__drawn.push(String(s)); return f.call(this, s, ...a); }; });
-  await page.getByRole('button', { name: 'PDF', exact: true }).first().click();
+  await pressPaper(page, /^Line standard card/);
   await page.locator('.ls-print-card').first().waitFor({ timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(800);
   const drawn = (await page.evaluate(() => window.__drawn.join(' '))).replace(/\s+/g, ' ');
@@ -381,12 +382,13 @@ let TRAY;
   await go(`#/w/${sd.wsId}/standards/${TRAY}?at=balance`);
   const crumb = flat(await page.locator('.ls-head .sub').first().innerText());
   ok(crumb.startsWith('Line capacity') && await page.getByRole('button', { name: /Its line standard|The map for this product/ }).count() === 0, `10 back to Line capacity (${crumb}); no line standard when it has none`);
-  const lit = await page.locator('.nv-ri.is-on').allInnerTexts();
+  /* the line's pages are tabs since 23 October (the menu lights Factory inside a line) */
+  const lit = await page.locator('.nv-tabs .nv-tab.is-on .nv-tab-l').allInnerTexts();
   const gates = await page.locator('.nv').getByText('GATES', { exact: true }).count();
   /* on no job a product's Line capacity is the line's: the line's rail lights Products (docs/STRUCTURE.md B2 — a line's standards are its products) */
-  ok(lit.map(flat).join('|') === 'Products' && gates === 0, `10b on no job: the line's rail lights Products (${lit.map(flat).join('|')}) and wears no job's gates (${gates})`);
+  ok(lit.map(flat).join('|') === 'Products' && gates === 0, `10b on no job: the line's tabs light Products (${lit.map(flat).join('|')}) and wears no job's gates (${gates})`);
   await go(CAP);
-  ok(await page.getByRole('button', { name: 'Its line standard ›' }).count() === 1, '10c a product mapped too: its line standard one tap away');
+  ok(await page.getByRole('tab', { name: 'Line standard', exact: true }).count() === 1, '10c a product mapped too: its line standard one tap away');
 }
 
 /* ---- 11 the phone ---- */
@@ -451,7 +453,7 @@ let TRAY;
       `12g the band's verdict "${want.verdict}" and the closing line "${want.closing.text.slice(0, 70)}…"`);
     const { execFileSync } = await import('node:child_process');
     const { mkdtempSync } = await import('node:fs'); const { tmpdir } = await import('node:os'); const { join } = await import('node:path');
-    const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'PDF', exact: true }).click()]);
+    const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), pressPaper(page, /^Line capacity — /)]);
     const file = join(mkdtempSync(join(tmpdir(), 'cap-lean-')), 'lean.pdf'); await dl.saveAs(file);
     const txt = execFileSync('pdftotext', ['-raw', file, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ').replace(/[–—]/g, '-').replace(/’/g, "'");
     const norm = x => x.replace(/\s+/g, ' ').replace(/[–—]/g, '-').replace(/’/g, "'");
@@ -512,7 +514,7 @@ let TRAY;
   await nameBox.fill('Tray case 12'); await nameBox.blur(); await page.waitForTimeout(800);
   ok((await rec(TRAY)).product === 'Tray case 12', '13f its name changed on its own page');
   page.once('dialog', d => void d.accept());
-  await page.getByRole('button', { name: 'Delete this capacity' }).click(); await page.waitForTimeout(1200);
+  await pressMore(page, 'Delete this capacity'); await page.waitForTimeout(1200);
   ok((await rec(TRAY)) === null && page.url().includes('/balances?line='), '13g deleted from its own page — with no map on it, the record goes; back to Line capacity on its line');
 }
 
@@ -543,7 +545,7 @@ let TRAY;
   /* on paper, in the list "to check before the sums are trusted" */
   await go(CAP);
   const dir = mkdtempSync(join(tmpdir(), 'cap-chk-'));
-  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'PDF', exact: true }).click()]);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), pressPaper(page, /^Line capacity — /)]);
   const file = join(dir, 'cap.pdf'); await dl.saveAs(file);
   const txt = execFileSync('pdftotext', ['-raw', file, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ').replace(/[–—]/g, '-').replace(/’/g, "'");
   const lost = mod.map(m => m.text.replace(/\s+/g, ' ').replace(/[–—]/g, '-').replace(/’/g, "'")).filter(t => !txt.includes(t));
@@ -638,7 +640,7 @@ let TRAY;
 
   /* on paper: each line, its own V and sheet, then where they merge */
   const dir = mkdtempSync(join(tmpdir(), 'cap-lanes-'));
-  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'PDF', exact: true }).click()]);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), pressPaper(page, /^Line capacity — /)]);
   const file = join(dir, 'cap.pdf'); await dl.saveAs(file);
   const raw = execFileSync('pdftotext', ['-raw', file, '-'], { encoding: 'utf8' });
   const txt = raw.replace(/\s+/g, ' ').replace(/[–—]/g, '-').replace(/’/g, "'");
@@ -686,7 +688,7 @@ let TRAY;
   const plan = await page.evaluate(async cap => (await import('/src/lib/capacityPlan.ts')).planToTarget(cap), c);
   ok(plan.reached && plan.people === 4 && (await words('.cap-plan-says')) === plan.sentence.replace(/\s+/g, ' ')
     && (await page.locator('.cap-plan-steps li').count()) === plan.steps.length, `16g the way to 150: ${plan.sentence.slice(0, 90)}…`);
-  const [dl2] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'PDF', exact: true }).click()]);
+  const [dl2] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), pressPaper(page, /^Line capacity — /)]);
   const file2 = join(dir, 'plan.pdf'); await dl2.saveAs(file2);
   const tx = execFileSync('pdftotext', ['-raw', file2, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ').replace(/[–—]/g, '-');
   ok(/The way to the target/i.test(tx) && tx.includes(plan.steps[0].text.split(' — ')[0].replace(/ → /g, ' to ')), '16h the paper carries the way to the target, its steps in the page\'s words');

@@ -12,7 +12,9 @@
 import { useEffect, useState } from 'react';
 import { nav } from '../state/useRoute';
 import { useProjects } from '../lib/useProjects';
-import { MODELS, isPicked, type PlanModel } from '../lib/planModel';
+import { MODELS, isPicked, methodOf, planModel, type PlanModel } from '../lib/planModel';
+import { FilterBar, RecordRow, RecordRows } from '../ui/parts';
+import { useLineRecords } from '../lib/useLineRecords';
 import { STORE_WORDS, addPaceLine, listAllPrograms, listAllSnags, listObservations, listStudiesForLine, listWorkspaces, onDataChange, updateProject } from '../db';
 import { lineKey, liveProductionLines } from '../lib/lines';
 import type { Workspace } from '../types';
@@ -109,6 +111,11 @@ export function ProjectsScreen() {
      (Home already does) with the archive shut underneath; now Home is the list
      and this is where a project starts and where the archive lives. */
   const [showArchive, setShowArchive] = useState(true);
+  /* PROJECTS LISTS THE PROJECTS (docs/STRUCTURE.md §5.6, D4, B5): the live ones first, by kind and by
+     line, the archive behind its own chip — where this page said they were on the control room. */
+  const [kind, setKind] = useState<'all' | PlanModel | 'archived'>('all');
+  const [onLine, setOnLine] = useState('');
+  const rec = useLineRecords();
   const [busy, setBusy] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [lead, setLead] = useState('');
@@ -142,6 +149,19 @@ export function ProjectsScreen() {
    * job — a default is a choice made without anybody noticing there was one. */
   /* ...unless it was picked already — on the front door or a line's page (?model=) */
   const [model, setModel] = useState<PlanModel | null>(() => { const m = q.get('model'); return isPicked(m) ? m : null; });
+  /* ?new=1 ARRIVING WHILE THE PAGE IS OPEN — a link to start a project followed from Projects itself
+     (the address changes, the page stays): open New, with the kind the link names (B5) */
+  useEffect(() => {
+    const on = () => {
+      const h = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
+      if (h.get('new') !== '1') return;
+      setAdding(true);
+      const m = h.get('model');
+      if (isPicked(m)) setModel(m);
+    };
+    window.addEventListener('hashchange', on);
+    return () => window.removeEventListener('hashchange', on);
+  }, []);
   /* the line it was started from, and where that line is */
   const startLine = factory.find(w => w.id === fromLine);
   const sit = useLineSituation(startLine);
@@ -182,8 +202,8 @@ export function ProjectsScreen() {
           <h1 className="pace-title">Projects</h1>
           <p className="pace-lede">
             {mayStart
-              ? 'Every project is a change to a line. The live ones are on the control room; this is where one starts, and where the archive is.'
-              : 'Every project is a change to a line. The ones you’ve been invited to are on the control room; the archive is here.'}
+              ? 'Every project is a change to a line — the first due first, by kind and by line, the archive behind its chip.'
+              : 'Every project you have been invited to — the first due first, by kind and by line, the archive behind its chip.'}
           </p>
         </div>
         <div className="pace-head-actions">
@@ -323,17 +343,48 @@ export function ProjectsScreen() {
             )}
           </div>
         )
-      ) : !adding && (
-        <p className="sub proj-live">
-          {projects.length} project{projects.length === 1 ? '' : 's'} running —{' '}
-          <button type="button" className="cw-link" onClick={() => nav('/room')}>on the control room ›</button>
-        </p>
-      )}
+      ) : !adding && (() => {
+        /* each project's lines — Your factory's name, or the project's own for a line not in the factory yet */
+        const linesOf = (id: string) => [...new Map(rec.jobLines.filter(l => !l.deletedAt && l.projectId === id).map(l => {
+          const w = rec.all.find(x => x.id === l.workspaceId);
+          return [w?.id ?? l.id, { id: w?.id ?? l.id, name: w?.name ?? (l as { name?: string }).name ?? 'a line' }] as const;
+        })).values()];
+        const shown = projects.filter(p => (kind === 'all' || planModel(p) === kind) && (!onLine || linesOf(p.id).some(l => l.id === onLine)));
+        const today = todayISO();
+        return (
+          <section className="proj-list" aria-label="The projects">
+            {/* THE FILTERS ARE THE COUNTS (CLAUDE.md, simplicity 1): every project, each kind, the archive */}
+            <FilterBar label="Which projects" value={kind} onChange={k => setKind(k as typeof kind)}
+              filters={[{ key: 'all', label: 'All', count: projects.length },
+                ...MODELS.filter(m => projects.some(p => planModel(p) === m.id)).map(m => ({ key: m.id, label: m.label, count: projects.filter(p => planModel(p) === m.id).length })),
+                ...(archived.length ? [{ key: 'archived', label: 'Archived', count: archived.length }] : [])]}>
+              {kind !== 'archived' && factory.length > 1 && (
+                <select className="text-input proj-line-f" value={onLine} onChange={e => setOnLine(e.target.value)} aria-label="On which line">
+                  <option value="">All lines</option>
+                  {factory.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                </select>
+              )}
+            </FilterBar>
+            {kind !== 'archived' && (
+              <RecordRows label="The projects, the first due first">
+                {shown.length === 0 && <li className="sub">No project here — {onLine ? 'none is on that line' : 'none of this kind'}.</li>}
+                {[...shown].sort((a, b) => (a.expectedAt ?? a.plannedAt ?? '\uffff').localeCompare(b.expectedAt ?? b.plannedAt ?? '\uffff') || a.name.localeCompare(b.name)).map(p => {
+                  const due = p.expectedAt ?? p.plannedAt;
+                  const lines = linesOf(p.id).map(l => l.name);
+                  return (
+                    <RecordRow key={p.id} what={p.name}
+                      says={<>{methodOf(p).label}{p.lead ? <> · led by {p.lead}</> : null}</>}
+                      where={[lines.length ? lines.join(', ') : 'No line yet', due ? `${due < today ? 'handover was' : 'handover'} ${niceDay(due, { weekday: 'short' })}` : 'no handover date'].join(' · ')}
+                      onOpen={() => nav(`/project/${p.id}`)} />
+                  );
+                })}
+              </RecordRows>
+            )}
+          </section>
+        );
+      })()}
 
-      {/* THE ARCHIVE. Behind one tap, and closed by default — it is where things
-          go to stop being looked at, so it must not take up room in the list it
-          was meant to shorten. */}
-      {archived.length > 0 && (
+      {archived.length > 0 && (kind === 'archived' || projects.length === 0) && (
         <section className="proj-arch">
           <button className="proj-arch-h" onClick={() => setShowArchive(v => !v)} aria-expanded={showArchive}>
             <span>Archived</span>

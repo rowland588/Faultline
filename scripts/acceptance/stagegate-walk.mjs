@@ -200,8 +200,8 @@ const desk = await device(1360);
 {
   const W = await device(390); const P = W.page; const J = `#/project/${W.sd.projectId}`;
   await W.go(J);
-  await W.tap('More (the phone bar)', P.locator('.nv-bar').getByText('More', { exact: true }).first());
-  await W.tap('Programs', W.btn(/Programs/, P.locator('.sheet').last()));
+  /* a project's pages are tabs across the top since 23 October — Programs one of them */
+  await W.tap('Programs (its tab)', P.locator('.nv-tabs .nv-tab').filter({ has: P.locator('.nv-tab-l', { hasText: /^Programs$/ }) }));
   const row = P.locator('.pgr').filter({ hasText: 'PR-07 Baking Potatoes' }).first();
   const box = async name => row.getByRole('button', { name }).first().boundingBox();
   const [rb, tb] = [await row.boundingBox(), await box(/Test it/)];

@@ -58,7 +58,6 @@ const PartsScreen = lazy(() => import('./screens/PartsScreen').then(m => ({ defa
 const SamplingScreen = lazy(() => import('./screens/SamplingScreen').then(m => ({ default: m.SamplingScreen })));
 const LossesScreen = lazy(() => import('./screens/LossesScreen').then(m => ({ default: m.LossesScreen })));
 const ShareScreen = lazy(() => import('./screens/ShareScreen').then(m => ({ default: m.ShareScreen })));
-const StartScreen = lazy(() => import('./screens/StartScreen').then(m => ({ default: m.StartScreen })));
 const VideosScreen = lazy(() => import('./screens/VideoScreen').then(m => ({ default: m.VideosScreen })));
 const VideoStudyScreen = lazy(() => import('./screens/VideoScreen').then(m => ({ default: m.VideoStudyScreen })));
 const TalksScreen = lazy(() => import('./screens/TalkScreen').then(m => ({ default: m.TalksScreen })));
@@ -160,9 +159,8 @@ function app(route: Route) {
   if (route.name === 'allActions') return <EveryActionScreen />;
   if (route.name === 'tools') return <ToolsScreen />;
   if (route.name === 'projectTools' && route.id) return <ProjectToolsScreen key={route.id} projectId={route.id} />;
-  /* the parts page is the builders' — in development only; elsewhere the address is the front door */
-  if (route.name === 'parts') return import.meta.env.DEV ? <PartsScreen /> : <StartScreen />;
-  if (route.name === 'start') return <StartScreen />;
+  /* the parts page is the builders' — in development only; elsewhere the address is the factory */
+  if (route.name === 'parts' && import.meta.env.DEV) return <PartsScreen />;
   /* a video study (docs/VIDEO.md): every one, and one */
   if (route.name === 'videos') return <VideosScreen key={route.query.get('project') ?? ''} />;
   if (route.name === 'videoStudy' && route.id) return <VideoStudyScreen key={route.id} id={route.id} />;

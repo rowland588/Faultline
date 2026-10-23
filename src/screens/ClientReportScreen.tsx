@@ -36,6 +36,8 @@ import { withoutDemo } from '../lib/demo';
 import { openQuickSnag } from '../snag/QuickSnag';
 import type { Snag } from '../snag/types';
 import { PRIORITY_WORD } from '../lib/snagsReport';
+import { PageHeader } from '../ui/parts';
+import { useSaveOnArrival } from '../lib/useSaveOnArrival';
 
 /** A gate's counts with the abnormal ones in their colour — "2 late" red,
  *  "1 a problem" amber — the rest plain (the colour rules). */
@@ -179,7 +181,8 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
   /* ?doc=programs — opened from the Reports sheet or the Programs page. */
   const [which, setWhich] = useState<Which>(() => (/[?&]doc=programs\b/.test(window.location.hash) ? 'programs'
     : /[?&]doc=handover\b/.test(window.location.hash) ? 'handover'
-      : /[?&]doc=commissioning\b/.test(window.location.hash) ? 'commissioning' : 'status'));
+      : /[?&]doc=commissioning\b/.test(window.location.hash) ? 'commissioning'
+        : /[?&]doc=full\b/.test(window.location.hash) ? 'full' : 'status'));
   const [busy, setBusy] = useState(false);
   /* What happened to the last press, said beside the button the way the test
      card and the day say it — a download with no word back read as nothing
@@ -259,14 +262,20 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
     } finally { setCardsBusy(false); }
   };
 
+  /* ?save=1 — named in a Report ▾ elsewhere (the project's front page, the Reports sheet): made as
+     soon as what goes on it is read (lib/useSaveOnArrival). */
+  useSaveOnArrival(!!report && (which !== 'handover' || !!handover) && (which !== 'commissioning' || !!commissioning), download);
+
   if (!ready || !report || !project) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
 
   return (
     <div className="wrap pace cr">
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <h1 className="pace-title">{which === 'programs' ? 'Programs report' : which === 'handover' ? 'Handover report' : which === 'commissioning' ? 'Commissioning report' : 'Client report'}</h1>
-          <p className="pace-lede">{which === 'status'
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): the paper's name, what it is for, and the one
+          thing to do here — Download it. The commissioning cards, the other paper this page makes, are
+          under Report ▾. */}
+      <PageHeader
+        title={which === 'programs' ? 'Programs report' : which === 'handover' ? 'Handover report' : which === 'commissioning' ? 'Commissioning report' : 'Client report'}
+        says={which === 'status'
             ? 'One page: where we are, why we are not where we should be, and what we are doing about it. The one to send.'
             : which === 'programs'
               ? 'Every program, machine by machine — where each stands, what was seen, and what was said before.'
@@ -274,21 +283,15 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
                 ? 'The line as it was really handed over — every machine, what it was proved against, what was still open, and who signed.'
               : which === 'commissioning'
                 ? 'Where commissioning has got to, machine by machine — the tests, the programs, the problems and what is booked next. For the meeting, or to send; the cards are a page a machine.'
-              : 'The whole record, in the order the project is run — for whoever wants every detail.'}</p>
-          {/* The answer the first page leads with (lib/onTarget). */}
-          {/* On the status view, the verdict and the handover only — what
-              is wrong is listed under it, once. */}
-          {/* Not on the programs report, which is about the programs alone. */}
-          {which !== 'programs' && <OnTargetLine v={which === 'status' && status ? status.verdict : report.onTarget} />}
-        </div>
-        <div className="pace-head-actions">
-          <button className="btn btn-primary" onClick={() => void download()} disabled={busy}>{busy ? 'Making it…' : 'PDF'}</button>
-          {which === 'commissioning' && (
-            <button className="btn" onClick={() => void downloadCards()} disabled={cardsBusy || !commissioning}
-              aria-label="Commissioning cards — a page a machine (PDF)">{cardsBusy ? 'Making…' : 'Cards — a page a machine'}</button>
-          )}
-        </div>
-      </header>
+              : 'The whole record, in the order the project is run — for whoever wants every detail.'}
+        primary={{ label: busy ? 'Making it…' : 'Download', icon: 'download', run: () => void download(), disabled: busy }}
+        papers={which === 'commissioning' ? [{ label: 'Commissioning cards — a page a machine', for: 'For the meeting — one page a machine, each its tests, programs and problems', make: downloadCards, disabled: !commissioning }] : []}>
+        {/* The answer the first page leads with (lib/onTarget). */}
+        {/* On the status view, the verdict and the handover only — what
+            is wrong is listed under it, once. */}
+        {/* Not on the programs report, which is about the programs alone. */}
+        {which !== 'programs' && <OnTargetLine v={which === 'status' && status ? status.verdict : report.onTarget} />}
+      </PageHeader>
       {said && <p className="tc-ok" role="status">{said}</p>}
       {err && <p className="sub tw-err" role="alert">{err}</p>}
 

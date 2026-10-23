@@ -30,7 +30,7 @@ import { useLineRecords } from '../lib/useLineRecords';
 import { lineProducts, productsSaid } from '../lib/lineProducts';
 import { lineKit } from '../lib/lineRecords';
 import { snagRow } from '../lib/snagsReport';
-import { Icon } from '../ui/Icon';
+import { PageHeader } from '../ui/parts';
 import { useCanStartProjects } from '../cloud/access';
 import { useSession } from '../cloud/session';
 import { useProfile } from '../cloud/admin';
@@ -188,20 +188,15 @@ export function FactoryScreen() {
 
   return (
     <div className="wrap fac">
-      <header className="pace-head">
-        <div className="pace-head-main">
-          {/* what the page is, as a line's page says PRODUCTION LINE — and the
-              way up. It said THE BACKBONE, a word of the build's, not the
-              floor's (docs/FLOW-AUDIT.md #20). */}
-          <p className="pl-eyebrow">PRODUCTION LINES · <a href="#/room" className="pl-fac">Control room ›</a></p>
-          <h1>Your factory</h1>
-          <p className="pl-says">{factorySays(lines)}</p>
-        </div>
-        <div className="pace-head-actions">
-          {may && !adding && <button type="button" className="btn btn-primary" onClick={() => { setAdding(true); setAdded([]); }}>Add lines</button>}
-          <button type="button" className="btn" disabled={!lines.length || printing} onClick={() => void printFactory()}><Icon name="document" size="1.05em" />Factory report</button>
-        </div>
-      </header>
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): what the page is, as a line's page says PRODUCTION
+          LINE (it said THE BACKBONE, a word of the build's — FLOW-AUDIT #20); the way up is the bar's. */}
+      <PageHeader
+        eyebrow={<span className="pl-eyebrow">PRODUCTION LINES</span>}
+        title="Your factory"
+        says={<span className="pl-says">{factorySays(lines)}</span>}
+        primary={may && !adding ? { label: 'Add lines', run: () => { setAdding(true); setAdded([]); } } : undefined}
+        papers={[{ label: 'Factory report — 1 page', for: lines.length ? 'every line in floor order, with its type, its projects and what is open' : 'no line in the factory yet', disabled: !lines.length || printing, make: printFactory }]}
+      />
       {lines.length > 0 && <LeanTiles tiles={factoryTiles(reading)} className="sg-tiles" />}
       <p className="sub fac-why">
         Your production lines, in the order they stand on the floor. Every project, problem and tool hangs off one of them

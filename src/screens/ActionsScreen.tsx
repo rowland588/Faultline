@@ -17,6 +17,7 @@ import { useEveryAction, useProjectActions, type ProjectActionsRead } from '../l
 import { actionTiles, actionsClosing, byDate, byPerson, byProject, byWhere, PRIORITY_WORD, type ActionGroup, type ProjectAction } from '../lib/projectActions';
 import { whenWord } from '../lib/projectActionsPdf';
 import { LeanClosing, LeanTiles } from '../ui/Lean';
+import { PageHeader } from '../ui/parts';
 import { openRecord } from '../ui/RecordDrawer';
 import { planHref } from '../lib/plan';
 import { nav } from '../state/useRoute';
@@ -82,16 +83,14 @@ function ActionsPage({ read, name }: { read: ProjectActionsRead; name?: string }
 
   return (
     <div className="wrap act">
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <p className="pl-eyebrow">{every ? 'CONTROL ROOM · EVERY PROJECT AND LINE' : 'ACTIONS · WHO IS DOING WHAT'}</p>
-          <h1>{every ? 'Every action' : 'Actions'}</h1>
-          <p className="sub">{every ? 'Everything every project owes, and every problem on a line with no project — what, why, where, who and by when. Tap one to change it where it is kept.' : 'Everything the project owes, from wherever it was raised — what, why, where, who and by when. Tap one to change it where it is kept.'}</p>
-        </div>
-        <div className="pace-head-actions">
-          <button type="button" className="btn btn-ghost" disabled={!!printing} onClick={() => void paper()} aria-label="The action list on paper (PDF)">{printing === 'all' ? 'Making…' : 'PDF'}</button>
-        </div>
-      </header>
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): its paper in Report ▾, named for what it is — it was a
+          button saying PDF */}
+      <PageHeader
+        eyebrow={<span className="pl-eyebrow">{every ? 'CONTROL ROOM · EVERY PROJECT AND LINE' : 'ACTIONS · WHO IS DOING WHAT'}</span>}
+        title="Actions"
+        says={<span className="sub">{every ? 'Everything every project owes, and every problem on a line with no project — what, why, where, who and by when. Tap one to change it where it is kept.' : 'Everything the project owes, from wherever it was raised — what, why, where, who and by when. Tap one to change it where it is kept.'}</span>}
+        papers={[{ label: 'The action list', for: 'every open action as seen here — for the meeting', disabled: !!printing, make: () => paper() }]}
+      />
       <LeanTiles tiles={actionTiles(read.rows, read.done, read.today)} className="act-tiles" />
       <div className="chip-row qsl-f" role="group" aria-label="Seen by">
         {(Object.keys(VIEW_WORD) as View[]).filter(v => every || v !== 'project').map(v => (

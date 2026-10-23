@@ -7,7 +7,7 @@
  * stays put while the calendar scrolls, so the "what" is never lost off the
  * edge, and the chart opens scrolled to today. Tapping a row opens its record.
  */
-import { Fragment, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Fragment, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MutableRefObject } from 'react';
 import { byStage, gantt, ganttBy, ganttHref, keepGanttBy, withMachines, withNext, type GanttBy, type GanttMachine, type GanttPart, type GanttRow, type GanttScale, type GanttTone } from '../lib/gantt';
 import { windowWords, whenWords as niceDayShort } from '../lib/plan';
 import { HANDOVER_KEY } from '../lib/story';
@@ -41,7 +41,7 @@ const TONE_WORD: Record<GanttTone, string> = {
   booked: 'still ahead', late: 'late', problem: 'a problem — no time lost', none: 'no date agreed',
 };
 
-export function Gantt({ marks, today, expectedAt, plannedAt, paceAt, projectId, name, tests, items, walk, assets, programs, dayHours, stages }: {
+export function Gantt({ marks, today, expectedAt, plannedAt, paceAt, projectId, name, tests, items, walk, assets, programs, dayHours, stages, printRef }: {
   marks: PlanMark[]; today: string; expectedAt?: string; plannedAt?: string;
   /** THE PACE SAYS WHEN (lib/pace) — the day Hand over lands at the pace kept. */
   paceAt?: string;
@@ -54,6 +54,9 @@ export function Gantt({ marks, today, expectedAt, plannedAt, paceAt, projectId, 
   walk?: WalkSnag[];
   /** The job's name, for the printed copy. */
   name: string;
+  /** The plan page's Report ▾ prints it from here, drawn as the screen is — by machine or by stage
+   *  (B3); the PDF button that sat in the Gantt's own bar went to the page header. */
+  printRef?: MutableRefObject<(() => Promise<void>) | null>;
   /** The job's working day, for hours lost on paper (lib/hoursLost). */
   dayHours?: number;
   /** Each gate's list — by stage, the stages run in the Install grid's order. */
@@ -193,6 +196,8 @@ export function Gantt({ marks, today, expectedAt, plannedAt, paceAt, projectId, 
       window.alert('Sorry — the plan could not be made into a PDF. Please try again.');
     } finally { setBusy(false); }
   };
+
+  if (printRef) printRef.current = print;
 
   /* THE WALK'S LANE — one row, wherever the problems sit in the order: after
      the gates, before the fixes they lead to. */
@@ -453,7 +458,6 @@ export function Gantt({ marks, today, expectedAt, plannedAt, paceAt, projectId, 
             );
           })()}
           {g.today != null && !fit && <button type="button" className="gt-today-b" onClick={toToday}>Go to today</button>}
-          <button type="button" className="gt-today-b" onClick={() => void print()} disabled={busy}>{busy ? 'Making it…' : 'PDF'}</button>
         </span>
       </div>
 

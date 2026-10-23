@@ -81,6 +81,12 @@ Anderson–Darling by simulation on rounded readings (22 October,
 `spc.normality-checks`) — no standard prescribes either; ISO 22514-2's text
 should be read for what it recommends before this is called standard
 practice.
+Pass or fail's confidences (23 October, part 1b of FC-094's spec) — 90%,
+95% and 99% offered, the share good said rounded down to 0.1% — are this
+specification's choices under Rowland's go, not yet put to him one by one;
+a measurement's Ppk still says *95% sure* where pass or fail now says *95%
+confident* — the wording to bring in line next. A loss allowed is the
+business's rule (passed on the count), never called proof of its share.
 
 ## Verification status of the catalogue
 

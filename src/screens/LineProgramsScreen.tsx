@@ -18,6 +18,7 @@
  * The page answers, in order: where the programs are (the count in words,
  * only the late in red), line by line and machine by machine; and what to do
  * next — plan one, say where one has got to, and when it is tested. */
+import { PageHeader } from '../ui/parts';
 import { useMemo, useRef, useState } from 'react';
 import type { Workspace } from '../types';
 import type { Program, ProgramState } from '../lib/programs';
@@ -36,7 +37,6 @@ import { addLineProgram, deleteProgramWithTests, putProgram, putProgramOnMachine
 import { nav } from '../state/useRoute';
 import { DateInput } from '../ui/DateInput';
 import { AddFold } from '../ui/AddFold';
-import { Icon } from '../ui/Icon';
 import { ProgramFields, ProgramRowShell } from '../ui/ProgramRow';
 import { offerUndo } from '../ui/Undo';
 
@@ -103,22 +103,18 @@ export function LineProgramsScreen() {
 
   return (
     <div className="wrap pace lp">
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <p className="pl-eyebrow">YOUR FACTORY · PROGRAMS · <a href="#/factory" className="pl-fac">Your factory ›</a></p>
-          <h1 className="pace-title">Programs</h1>
-          <p className="pace-lede">Every line&rsquo;s programs, machine by machine — planned and proved. No project needed: plan one on a line here. A project&rsquo;s own programs on the line show beside them.</p>
-          {/* where they are, in words — only the late carry colour */}
-          <p className="pl-says lp-says">{!reading ? 'No programs yet.' : <>
-            {reading.total} program{reading.total === 1 ? '' : 's'} · {reading.done} proved
-            {reading.late > 0 && <> · <b className="is-r">{reading.late} late</b></>}
-            {reading.open > 0 && <> · {reading.open} to prove</>}
-          </>}</p>
-        </div>
-        <div className="pace-head-actions">
-          <button type="button" className="btn" disabled={!reading || busy} onClick={() => void download()}><Icon name="document" size="1.05em" />{busy ? 'Making it…' : 'Programs report'}</button>
-        </div>
-      </header>
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): where the programs are, in words; the report in Report ▾. The way
+          up is the bar's (it said Your factory › here) */}
+      <PageHeader eyebrow={<span className="pl-eyebrow">YOUR FACTORY · PROGRAMS</span>} title="Programs"
+        says="Every line’s programs, machine by machine — planned and proved. No project needed: plan one on a line here. A project’s own programs on the line show beside them."
+        papers={[{ label: 'Programs report', for: reading ? 'every program machine by machine, how each was proved' : 'no programs yet', disabled: !reading || busy, make: download }]}>
+        {/* where they are, in words — only the late carry colour */}
+        <p className="pl-says lp-says">{!reading ? 'No programs yet.' : <>
+          {reading.total} program{reading.total === 1 ? '' : 's'} · {reading.done} proved
+          {reading.late > 0 && <> · <b className="is-r">{reading.late} late</b></>}
+          {reading.open > 0 && <> · {reading.open} to prove</>}
+        </>}</p>
+      </PageHeader>
       {said && <p className="tc-ok" role="status">{said}</p>}
 
       {rec.lines.length === 0 ? (
@@ -130,7 +126,7 @@ export function LineProgramsScreen() {
         <>
           {rec.lines.length > 1 && (
             <div className="chip-row lp-lines" role="group" aria-label="Which line">
-              <button type="button" className={'chip' + (lineF === 'all' ? ' on' : '')} aria-pressed={lineF === 'all'} onClick={() => setLineF('all')}>Every line</button>
+              <button type="button" className={'chip' + (lineF === 'all' ? ' on' : '')} aria-pressed={lineF === 'all'} onClick={() => setLineF('all')}>All lines</button>
               {rec.lines.map(w => (
                 <button key={w.id} type="button" className={'chip' + (lineF === w.id ? ' on' : '')} aria-pressed={lineF === w.id} onClick={() => setLineF(w.id)}>
                   {w.name}{counts.get(w.id) ? <span className="lp-n"> {counts.get(w.id)}</span> : null}

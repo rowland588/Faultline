@@ -37,6 +37,7 @@ import type { SnagAsset } from '../snag/types';
 import { Icon } from '../ui/Icon';
 import { useAccess } from '../cloud/access';
 import type { Can } from '../lib/access';
+import { BelongsTo as Belongs, MoreMenu, PageHeader, ReportMenu, ViewTabs, type View } from '../ui/parts';
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
@@ -107,8 +108,8 @@ function PrintSheet({ list, name, onClose }: { list: Standard[]; name: string; o
   return (
     <Sheet open onClose={onClose} title={list.length === 1 ? `Line standard — ${list[0].product}` : `Line standard — ${list.length} products`}>
       <div className="ls-print-acts">
-        <button className="btn btn-primary" onClick={() => void go('download')} disabled={busy || !cards}>{busy ? 'Making it…' : 'PDF'}</button>
-        {wide && <button className="btn" onClick={() => void go('print')} disabled={busy || !cards}>Print</button>}
+        <button className="btn btn-primary" onClick={() => void go('download')} disabled={busy || !cards}>{busy ? 'Making it…' : 'Download'}</button>
+        {wide && <button className="btn" onClick={() => void go('print')} disabled={busy || !cards}>Send to a printer</button>}
         <span className="sub">A4 landscape · {!cards ? '' : cards.length === 1 ? 'one page' : list.length === 1 ? `${cards.length} pages — the card, then its notes in full` : `${cards.length} pages — a card a product${cards.some(c => c.notes) ? ', each followed by its notes where it has them' : ''}`}</span>
       </div>
       {err && <p className="ls-print-err">{err}</p>}
@@ -207,19 +208,11 @@ function Products({ home, list: every, gone, can }: { home: StdHome; list: Stand
   return (
     <div className="wrap pace">
       {gone && <p className="ls-gone">That map isn’t here any more — it was deleted, or the link is to a map on another project. The maps that are here:</p>}
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <h1 className="pace-title">Line standard</h1>
-          <p className="pace-lede">
-            Who stands where, and what they do, on each product — a picture of the line with the people and the kit
-            placed on it, one per product. Where the line is limited is Line capacity.
-          </p>
-        </div>
-        <div className="pace-head-actions">
-          {list.length > 0 && <button className="btn btn-ghost" onClick={() => setPrinting(true)}>PDF (all products)</button>}
-          {can.edit && <button className="btn btn-primary" onClick={() => setAdding(true)}>New map</button>}
-        </div>
-      </header>
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4): New map the one primary, the cards for every product in Report ▾ */}
+      <PageHeader title="Line standard"
+        says="Who stands where, and what they do, on each product — a picture of the line with the people and the kit placed on it, one per product. Where the line is limited is Line capacity."
+        primary={can.edit ? { label: 'New map', run: () => setAdding(true) } : undefined}
+        papers={list.length > 0 ? [{ label: 'Line standard cards — every product', for: 'A4 landscape, a card a product, each followed by its notes', make: () => setPrinting(true) }] : []} />
 
       {list.length === 0 ? (
         <div className="pace-empty">
@@ -394,7 +387,11 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
   const balanceStudy = useBalanceFor(s.id);
   const here = window.location.hash.slice(1).split('?')[0] || home.base;
   const [printing, setPrinting] = useState(false);
-  const [paperBusy, setPaperBusy] = useState(false);
+  /* ONE PRODUCT, SEEN FOUR WAYS (the tool shell, docs/STRUCTURE.md §5.5, B4): its Line capacity, its
+     line balance, the three together, and its line standard where it has a map — tabs, where they were
+     "Its line balance ›", "All together", "Its line standard ›" beside one another in the header. */
+  const views: View[] = [...(hasMap(s) ? [{ key: 'map', label: 'Line standard' }] : []), { key: 'balance', label: 'Line capacity' }, { key: 'work', label: 'Line balance' }, { key: 'all', label: 'All together' }];
+  const productViews = (on: string) => <ViewTabs views={views} value={on} label={`${s.product} — its views`} onChange={k => nav(k === 'map' ? here : `${here}?at=${k}`)} />;
   const [product, setProduct] = useState(s.product);
   const [size, setSize] = useState({ bw: 0, bh: 0 });
   const [draw, setDraw] = useState<Draw | null>(null);
@@ -614,17 +611,13 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
               onBlur={() => { const v = product.trim(); if (v && v !== s.product) void save({ product: v }); else setProduct(s.product); }} />
           )}
         </div>
-        <div className="ls-head-actions">
-          <button type="button" className="btn btn-ghost" onClick={() => nav(`${here}?at=all`)}>All together</button>
-          <button type="button" className="btn btn-ghost" onClick={() => nav(`${here}?at=balance`)}>Its Line capacity ›</button>
-          {hasMap(s) && <button type="button" className="btn btn-ghost" onClick={() => nav(here)}>Its line standard ›</button>}
-        </div>
       </header>
+      {productViews('work')}
       <BelongsTo s={s} home={home} can={can} onJob={projectId => { void save({ projectId }); void followStandard(s.id, projectId); }} />
       <div id="ls-balance" className="ls-balance"><WorkView s={s} can={can} /></div>
     </div>
   );
-  if (atAll) return <Together s={s} name={home.name} here={here} />;
+  if (atAll) return <Together s={s} name={home.name} here={here} views={productViews('all')} />;
 
   /* THE LINE BALANCE — the balance alone: the stations in order, each at its
      own speed, and the one that holds the line back (lib/capacity). */
@@ -644,23 +637,17 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
           {/* the band's verdict (docs/LEAN-PAGE.md): what limits the line, red when short */}
           {(s.capacity?.stations.length ?? 0) > 0 && (() => { const c = capacitySays(s.capacity); return <span className={'ln-verdict' + (c.short ? ' is-r' : '')}><b>{c.text}</b></span>; })()}
         </div>
+        {/* ITS PAPER in Report ▾ — the product's capacity as its own page (lib/capacityPaper); deleting it in
+            More ▾, the owner's (lib/access), as the map's is (the tool shell, B4) */}
         <div className="ls-head-actions">
-          {/* its line balance and its line standard, one tap away — the
-              balance its own page now (it was the People tab here) */}
-          <button type="button" className="btn btn-ghost" onClick={() => nav(`${here}?at=work`)}>Its line balance ›</button>
-          <button type="button" className="btn btn-ghost" onClick={() => nav(`${here}?at=all`)}>All together</button>
-          {hasMap(s) && <button type="button" className="btn btn-ghost" onClick={() => nav(here)}>Its line standard ›</button>}
-          {/* ITS PAPER — the product's capacity as its own page (lib/capacityPaper) */}
-          <button type="button" className="btn btn-ghost" disabled={paperBusy} onClick={() => {
-            setPaperBusy(true);
-            void import('../lib/capacityPaperLoad').then(m => m.saveCapacityPdf([s], { name: home.name }))
-              .catch(e => { console.error('line capacity PDF failed', e); window.alert('Sorry — the PDF could not be made. Please try again.'); })
-              .finally(() => setPaperBusy(false));
-          }}>{paperBusy ? 'Making…' : 'PDF'}</button>
-          {/* deleting is the owner's (lib/access), as the map's is */}
-          {can.remove && <button type="button" className="btn btn-ghost ls-del" onClick={() => void removeTool('balance')}>Delete this capacity</button>}
+          <MoreMenu items={can.remove ? [{ label: 'Delete this capacity', danger: true, run: () => void removeTool('balance') }] : []} />
+          <ReportMenu papers={[{ label: `Line capacity — ${s.product}`, for: 'One page: what limits it, the V, every station, a shift, the cost a pack', make: async () => {
+            try { await (await import('../lib/capacityPaperLoad')).saveCapacityPdf([s], { name: home.name }); }
+            catch (e) { console.error('line capacity PDF failed', e); window.alert('Sorry — the PDF could not be made. Please try again.'); }
+          } }]} />
         </div>
       </header>
+      {productViews('balance')}
       <BelongsTo s={s} home={home} can={can} onJob={projectId => { void save({ projectId }); void followStandard(s.id, projectId); }} />
       <div id="ls-balance" className="ls-balance">
         <CapacityPanel projectId={s.projectId} board={false} can={can}
@@ -693,9 +680,10 @@ function MapEditor({ home, s, all, can }: { home: StdHome; s: Standard; all: Sta
           <datalist id="ls-products">{progs.programs.map(p => <option key={p.id} value={p.what} />)}</datalist>
           </>}
         </div>
+        {/* the tool shell (B4): its card in Report ▾ — the preview sheet, then Download — and Copy in More ▾ */}
         <div className="ls-head-actions">
-          <button className="btn btn-ghost" onClick={() => setPrinting(true)}>PDF</button>
-          {!ro && <button className="btn btn-ghost" onClick={() => setCopying(true)}>Copy to another product</button>}
+          <MoreMenu items={ro ? [] : [{ label: 'Copy to another product', run: () => setCopying(true) }]} />
+          <ReportMenu papers={[{ label: `Line standard card — ${s.product}`, for: 'A4 landscape — the map with who does what, then its notes in full', make: () => setPrinting(true) }]} />
         </div>
       </header>
 
@@ -1083,22 +1071,28 @@ function FrameThumb({ f, onPick }: { f: SnagAsset; onPick: () => void }) {
 function BelongsTo({ s, home, can, onJob }: { s: Standard; home: StdHome; can: Can; onJob: (projectId: string) => void }) {
   const { projects } = useProjects();
   const [line, setLine] = useState<string | undefined>(undefined);
+  /* Change, pressed: the project to put it on, under the line that says where it is */
+  const [changing, setChanging] = useState(false);
   useEffect(() => { if (s.workspaceId) void getWorkspace(s.workspaceId).then(w => setLine(w?.name)); }, [s.workspaceId]);
   const job = projects.find(p => p.id === s.projectId);
   const open = projects.filter(p => !p.deletedAt && !p.archivedAt);
   if (!s.workspaceId && home.project) return null;
+  /* BELONGS TO — the one control every tool has (ui/parts, docs/STRUCTURE.md §5.5, B4): its line and its
+     project, each a way to it (the project's opens this product in it, where "Open it in the project ›"
+     was), Change for whoever may move it — the project select it always had, under it */
   return (
-    <p className="ls-belongs sub">
-      {s.workspaceId && <>On <b>{line ?? 'its line'}</b> · </>}
-      {can.edit && home.wsId ? (
+    <div className="ls-belongs sub">
+      <Belongs line={s.workspaceId ? { name: line ?? 'its line', open: () => nav(`/lines/${s.workspaceId}`) } : undefined}
+        project={job ? { name: job.name, ...(home.wsId ? { open: () => nav(`/project/${job.id}/standard/${s.id}`) } : {}) } : undefined}
+        onChange={can.edit && home.wsId ? () => setChanging(c => !c) : undefined} />
+      {changing && (
         <label className="ls-job">On a project:{' '}
-          <select value={s.projectId} onChange={e => onJob(e.target.value)} aria-label="Attach to a project">
+          <select value={s.projectId ?? ''} onChange={e => { onJob(e.target.value); setChanging(false); }} aria-label="Attach to a project">
             <option value="">None — a tool on the line</option>
             {open.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </label>
-      ) : job ? <>attached to <b>{job.name}</b></> : 'on no project'}
-      {job && home.wsId && <> · <button type="button" className="cw-link" onClick={() => nav(`/project/${job.id}/standard/${s.id}`)}>Open it in the project ›</button></>}
-    </p>
+      )}
+    </div>
   );
 }

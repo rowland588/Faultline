@@ -20,6 +20,7 @@
  * per line, in one go, because typing twenty actions back in by hand is how a
  * tool gets abandoned in week two.
  */
+import { PageHeader } from '../ui/parts';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   listTreeNodes, putTreeNode, putTreeNodes, deleteTreeBranch, listPaceTodos, type PaceTodoRow,
@@ -977,12 +978,11 @@ export function LeverTree({ projectId }: { projectId: string }) {
   return (
     <div className="wrap pace lt-screen">
       <Sweep id={'tree:' + projectId} />
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <h1 className="pace-title">Lever tree</h1>
-          <p className="pace-lede">The outcome, what has to be true for it, and the work underneath.</p>
-        </div>
-        <div className="pace-head-actions">
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): the tree printed in Report ▾ (it was a button saying Print);
+          the tree's own view — its actions shown or folded, its zoom — stays with it, under the title */}
+      <PageHeader title="Lever tree" says="The outcome, what has to be true for it, and the work underneath."
+        papers={[{ label: 'The tree — printed', for: 'the tree as it stands, on paper', make: () => window.print() }]}>
+        <div className="lt-view">
           {actionParents.length > 0 && (
             <button className="btn" onClick={foldActions}>
               {actionsFolded ? 'Show actions' : 'Hide actions'}
@@ -993,9 +993,8 @@ export function LeverTree({ projectId }: { projectId: string }) {
             <button className="lt-zoom-n" onClick={fit} title="Fit the whole tree on screen">{Math.round(zoom * 100)}%</button>
             <button className="lt-zoom-b" aria-label="Zoom in" onClick={() => setZoom(clampZoom(zoom + 0.15))}><Icon name="plus" size="1.1em" /></button>
           </div>
-          <button className="btn" onClick={() => window.print()}>Print</button>
         </div>
-      </header>
+      </PageHeader>
       {/* Why the tree reads but does not take typing — for a client — or has
           no Delete — for the team: the house line (lib/access). */}
       <AccessNote can={can} owner={project.lead} />

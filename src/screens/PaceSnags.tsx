@@ -85,11 +85,12 @@ function PinnedSnag({ snag, asset, onOpen, onDelete, onCard, carding, from }: {
         </span>
       </span>
       </button>
-      {/* the one to send: this snag, its frame and its pin, as a page you can
-          email. Sits beside Delete rather than replacing anything. */}
+      {/* the one to send: this problem, its frame and its pin, as a page you can
+          email. Sits beside Delete rather than replacing anything. Named for
+          what it makes — its card — not the file type (docs/STRUCTURE.md F7, B3). */}
       <button className="ps-card" onClick={onCard} disabled={carding}
-        aria-label={`Send "${snag.problem}" as a PDF`}
-        title="One page with the photo — the PDF to email">{carding ? '…' : 'PDF'}</button>
+        aria-label={`"${snag.problem}" — its card, one page with the photo (PDF)`}
+        title="One page with the photo — the card to email">{carding ? '…' : 'Card'}</button>
       {!from && onDelete && <button className="ps-del" onClick={onDelete} aria-label="Delete this">Delete</button>}
     </div>
   );

@@ -11,7 +11,8 @@
  *
  * It wears the frame every page wears (ui/Frame): "The plan" is a line in
  * the rail under Work, so this reads as one more page under the job. */
-import { useMemo } from 'react';
+import { PageHeader } from '../ui/parts';
+import { useMemo, useRef } from 'react';
 import { AccessNote } from '../ui/AccessNote';
 import { useJobMoney } from '../lib/useJobMoney';
 import { MONEY_WAIT, planClosing, planCounts, planTiles } from '../lib/stageGatePages';
@@ -46,6 +47,8 @@ export function PlanScreen({ projectId }: { projectId: string }) {
   const can = useAccess(projectId);
   /* the job's money — what the slip costs, or what a day late would (lib/useJobMoney) */
   const money = useJobMoney(projectId);
+  /* the Gantt prints itself as it is drawn — by machine or by stage — from Report ▾ */
+  const printPlan = useRef<(() => Promise<void>) | null>(null);
 
   if (loading || tt.loading || all.loading || progs.loading) return <div className="wrap pace"><p className="sub">Loading…</p></div>;
   /* A link to a project that has gone is a dead end, not a crash — and it
@@ -69,16 +72,13 @@ export function PlanScreen({ projectId }: { projectId: string }) {
   return (
     <div className="wrap pace cm-screen">
       <PlanTabs projectId={projectId} on={'timeline'} />
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <h1 className="pace-title">The plan</h1>
-          {/* The plan's counts are its tiles now (the lean page, 17 October:
-              the header's count line moved into them, one place, as on the
-              gates' tabs); what is not on it yet stays said here (lib/onTarget
-              planGaps, docs/JOBSTART.md): the plan only draws what has a date. */}
-          {gaps && <p className="cw-handover"><span className="sub">Not on it yet: {gaps}</span></p>}
-        </div>
-      </header>
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3). The plan's counts are its tiles (the lean page, 17 October);
+          what is not on it yet stays said here (lib/onTarget planGaps, docs/JOBSTART.md): the plan only draws what
+          has a date. Its paper is the project's — the plan in the Reports sheet. */}
+      <PageHeader title="The plan"
+        papers={st.plan.length > 0 ? [{ label: 'The plan — on one landscape page', for: 'For the team and the client — every machine’s stages against the days, drawn as the screen is', make: async () => { await printPlan.current?.(); } }] : []}>
+        {gaps && <p className="cw-handover"><span className="sub">Not on it yet: {gaps}</span></p>}
+      </PageHeader>
       <AccessNote can={can} owner={project.lead} />
       {st.plan.length > 0 && <LeanTiles tiles={planTiles(counts, money ?? MONEY_WAIT)} className="sg-tiles" />}
 
@@ -94,7 +94,7 @@ export function PlanScreen({ projectId }: { projectId: string }) {
         <Gantt marks={st.plan} today={today} expectedAt={all.expectedAt} plannedAt={all.plannedAt} projectId={projectId}
           paceAt={paceOf({ tests: tt.tests, assets: tt.assets, today, expectedAt: all.expectedAt, plannedAt: all.plannedAt })?.at}
           name={project.name} tests={tt.tests} items={tt.items} walk={walk ?? undefined} assets={tt.assets} programs={progs.programs}
-          dayHours={project.dayHours} stages={stages} />
+          dayHours={project.dayHours} stages={stages} printRef={printPlan} />
       )}
       {/* THE CLOSING LINE — the plan in one sentence, the slip in money */}
       <LeanClosing closing={planClosing(counts, money ?? MONEY_WAIT, gaps || undefined)} />

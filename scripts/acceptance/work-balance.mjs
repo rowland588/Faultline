@@ -43,6 +43,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 const { chromium } = pkg;
+import { paper, more } from '../lib/pageHeader.mjs';
 
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
@@ -176,6 +177,7 @@ await page.locator('.ls-balance-line').nth(1).waitFor({ timeout: 10000 }).catch(
 }
 
 /* ---- 5 · attached to a job — the work balance goes with it ---- */
+await page.locator('.ls-belongs').getByRole('button', { name: 'Change', exact: true }).first().click(); /* Belongs to's Change (B4) */
 await page.getByLabel('Attach to a project').first().selectOption(sd.projectId); await page.waitForTimeout(1200);
 t = await truth(SID);
 ok(t.projectId === sd.projectId, '5 the line standard on the job: its work balance is the job\'s now');
@@ -232,7 +234,7 @@ ok(!!want && /within takt now/.test(want) && (await words('.sl-ba')) === `Before
 /* ---- 9 · the client report's PDF ---- */
 await go(`${J}/report`);
 await page.getByRole('button', { name: 'Full report', exact: true }).first().click(); await page.waitForTimeout(800);
-const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'PDF', exact: true }).first().click()]);
+const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Download', exact: true }).first().click()]);
 const pdf = join(OUT, 'client.pdf'); await dl.saveAs(pdf);
 const txt = pdfText(pdf);
 const san = s => s.replace(/→/g, 'to').replace(/[–—]/g, '-').replace(/\s+/g, ' ');
@@ -310,7 +312,7 @@ ok(has('Before') && has(want.slice(0, 50)), '9 the client report: the fix carrie
     ok(vs.join('|') === want.map(x => x.v).join('|') && (await page.locator('.tg .ln-close').count()) === 1 && (await page.locator('.tg .ls-head.is-band').count()) === 1,
       `10 All together's band, tiles and closing line — each figure from its own tool: ${want.map(x => `${x.k} ${x.v}`).join(' · ')}`);
   }
-  const [dl2] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.locator('.tg .ls-head-actions').getByRole('button', { name: 'PDF', exact: true }).click()]);
+  const [dl2] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), paper(page, /^All together — /, page.locator('.tg'))]);
   const tpdf = join(OUT, 'together.pdf'); await dl2.saveAs(tpdf);
   const tt = pdfText(tpdf);
   const TT = tt.toUpperCase();
@@ -322,7 +324,7 @@ ok(has('Before') && has(want.slice(0, 50)), '9 the client report: the fix carrie
   const lineSays = await page.evaluate(async id => { const db = await import('/src/db.ts'); const S = await import('/src/lib/studyLinks.ts'); return S.studyLine(S.currentBalance(await db.listAllStudies(), id)).text; }, SID);
   const rowSays = ((await page.locator('.lt-row', { hasText: 'Maris Piper 2kg' }).first().locator('.lt-says').innerText()) ?? '').trim();
   ok(rowSays === lineSays, `10 the Line balance list: "${rowSays.slice(0, 100)}"`);
-  const [dl3] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: /PDF \(all shown\)/ }).click()]);
+  const [dl3] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), paper(page, /every product shown/)]);
   const lpdf = join(OUT, 'linebalance.pdf'); await dl3.saveAs(lpdf);
   const lt = pdfText(lpdf);
   ok(lt.includes('Maris Piper 2kg') && lt.toUpperCase().includes('EACH PERSON AGAINST TAKT') && lt.toUpperCase().includes('WHAT IT COSTS'), '10 the Line balance list on paper: each person against takt, what it costs');

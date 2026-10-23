@@ -61,6 +61,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 const { chromium } = pkg;
+import { paper, more } from '../lib/pageHeader.mjs';
 
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
@@ -147,7 +148,8 @@ const openCount = c => c.critical + c.high + c.low;
 await go('#/snags');
 {
   const t = await truth();
-  ok((await words('h1')) === 'Control room problems' && /^Write any problem/.test(await words('.qsl-path')) && /Control room problems/.test(await page.locator('.nv').innerText()), '1 one page, Control room problems — named so on the page and the rail, so it is never mistaken for a line\'s or a project\'s');
+  /* named Problems with the context bar saying whose (docs/STRUCTURE.md §5.7, B5) — Factory › Problems, never a line's or a project's */
+  ok((await words('h1')) === 'Problems' && /^Write any problem/.test(await words('.qsl-path')) && /^Factory\s*›\s*Problems$/.test((await page.locator('.nv-top .nv-ctx').innerText()).replace(/\s+/g, ' ').trim()), '1 one page, Problems — the context bar saying Factory › Problems, so it is never mistaken for a line\'s or a project\'s', (await page.locator('.nv-top .nv-ctx').innerText()).replace(/\s+/g, ' ').trim());
   ok((await words('.qsl-says')) === t.says, `1 the sentence is the module's: ${t.says}`);
   const chips = (await page.locator('.qsl-f .chip').allInnerTexts()).map(x => x.replace(/\s+/g, ' ').trim());
   ok(chips.join('|') === `Open · ${openCount(t.counts)}|Critical · ${t.counts.critical}|High · ${t.counts.high}|Low · ${t.counts.low}|Late · ${t.counts.late + t.counts.jobLate}|Done · ${t.counts.closed + t.counts.jobDone}`, `1 the counts — the projects' own problems among them: ${chips.join(' · ')}`);
@@ -236,7 +238,7 @@ await go('#/snags');
      line" in a problem was a third way to rename a line, read as changing the problem's line) */
   await row(what).locator('.pe').getByRole('button', { name: 'Rename Line 2B on its page ›' }).click(); await page.waitForTimeout(2000);
   const onItsPage = new RegExp(`#/lines/${s?.workspaceId}`).test(page.url()) && (await page.locator('h1').innerText()).trim() === 'Line 2B';
-  await page.getByRole('button', { name: 'Edit the line' }).click(); await page.waitForTimeout(400);
+  await more(page, 'Edit the line'); await page.waitForTimeout(400);
   await page.getByLabel("The line's name").fill('Line 2B — packing'); await page.getByLabel("The line's name").press('Enter'); await page.waitForTimeout(900);
   await go('#/snags');
   ok(onItsPage && (await lineCalled(s?.workspaceId)) === 'Line 2B — packing' && (await page.locator('.qsl-g .qsl-gh h2', { hasText: 'Line 2B — packing' }).count()) === 1, '3 the line renamed on its own page, reached from the problem — the new name on the register');
@@ -249,7 +251,7 @@ await go('#/snags');
    moved (Rowland, 12 October: "It said it's moved to line 2A ... No idea what
    that is") — then taken off again, so the stories after count as before ---- */
 {
-  await page.locator('.qsl-top').getByRole('button', { name: 'Problem', exact: true }).click(); await page.waitForTimeout(800);
+  await page.locator('.qsl .part-head').getByRole('button', { name: 'Problem', exact: true }).click(); await page.waitForTimeout(800);
   const sheet = page.locator('.sheet, [role="dialog"]').last();
   await sheet.locator('textarea').first().fill('Infeed photo-eye dirty');
   await sheet.locator('label', { hasText: 'PROJECT' }).locator('select').selectOption({ label: sd.job }); await page.waitForTimeout(500);
@@ -393,7 +395,7 @@ await go('#/snags');
   await row('Guard on the infeed loose').locator('.qsl-open').click(); await page.waitForTimeout(300);
   page.locator('.pdfr-x').click().catch(() => {});
   const t = await truth();
-  const [dl2] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), page.getByRole('button', { name: 'Problems report' }).click()]);
+  const [dl2] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, 'Problems report')]);
   const rep = join(dir, 'problems.pdf'); await dl2.saveAs(rep); if (process.env.KEEP_PDF) execFileSync('cp', [rep, process.env.KEEP_PDF]);
   const txt = execFileSync('pdftotext', ['-raw', rep, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
   const all = await page.evaluate(async ws => { const { san } = await import('/src/lib/reportKit.ts'); await (await import('/src/lib/savePdf.ts')).loadPdfLib(); return ws.map(w => san(w)); }, [...t.rows.filter(r => r.status !== 'closed').map(r => r.what), ...t.jobRows.filter(r => r.open).map(r => r.what)]);
@@ -404,7 +406,7 @@ await go('#/snags');
      dont have ability to make a card for all of the problems") — beside the
      report, a card for every problem it lists. */
   {
-    const [dlc] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: /^Problems cards/ }).click()]);
+    const [dlc] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), paper(page, 'Problem cards')]);
     const cf = join(dir, 'problems-cards.pdf'); await dlc.saveAs(cf);
     const ctext = execFileSync('pdftotext', ['-raw', cf, '-'], { encoding: 'utf8' }).replace(/\s+/g, '');
     const cpages = Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [cf], { encoding: 'utf8' }))?.[1]);
@@ -434,9 +436,9 @@ await go('#/snags');
   ok(new RegExp(`${sd.job} — problems`).test(pRep.text) && pOpen.every(r => flat(pRep.text).includes(flat(r.what.slice(0, 30)))) && pAssigned.every(s => flat(pRep.text).includes(flat(s.problem.slice(0, 30)))),
     `8 a project's group on paper: ${sd.job} — its own ${pOpen.length} and the ${pAssigned.length} assigned to it`);
   await go(`#/project/${sd.projectId}/fixes`);
-  const jRep = await pdfText(() => page.locator('.pace-head-actions').getByRole('button', { name: 'Problems report' }).click(), 'project-page.pdf');
+  const jRep = await pdfText(() => paper(page, 'Problems report'), 'project-page.pdf');
   ok(pOpen.every(r => flat(jRep.text).includes(flat(r.what.slice(0, 30)))) && pAssigned.every(s => flat(jRep.text).includes(flat(s.problem.slice(0, 30)))), `8 the project's own page: its Problems report — the same ${pOpen.length + pAssigned.length}`);
-  const jCards = await pdfText(() => page.locator('.pace-head-actions').getByRole('button', { name: 'Report cards' }).click(), 'project-cards.pdf');
+  const jCards = await pdfText(() => paper(page, 'Problem cards'), 'project-cards.pdf');
   ok(jCards.pages === pOpen.length + pAssigned.length, `8 the project's own page: a card each (${jCards.pages} of ${pOpen.length + pAssigned.length})`);
   await go('#/snags');
 }
@@ -450,7 +452,9 @@ await go('#/snags');
   await go(`#/project/${sd.projectId}/fixes`);
   const sec = page.locator('.cmp-sec', { hasText: 'Problems for this project — not on it yet' });
   ok((await words('h1')) === `${sd.job} — problems` && (await sec.locator('.fxl-row', { hasText: 'Coder misprints the date' }).count()) === 1, '10 the project\'s own page — named for it — lists a problem assigned to it');
-  await sec.locator('.fxl-row', { hasText: 'Coder misprints the date' }).getByRole('button', { name: 'Make it a fix' }).click(); await page.waitForTimeout(1500);
+  await sec.locator('.fxl-row', { hasText: 'Coder misprints the date' }).getByRole('button', { name: 'Make it a fix' }).click();
+  /* the fix is written, then the page reads it back — waited for, not a fixed pause (gate 32: 1.5 s was not enough under the gate's load) */
+  await page.locator('.fxl-row', { hasText: 'Coder misprints the date' }).filter({ hasText: /seen first on / }).first().waitFor({ timeout: 10000 }).catch(() => {});
   ok(/seen first on /.test(await page.locator('.fxl-row', { hasText: 'Coder misprints the date' }).first().innerText()), '10 made a fix there, saying where it was seen first');
 }
 
@@ -460,7 +464,7 @@ await go('#/snags');
   const before = await truth();
   const n = before.snags.length;
   page.once('dialog', d => void d.accept());
-  await page.getByRole('button', { name: 'Start fresh' }).click(); await page.waitForTimeout(2500);
+  await more(page, 'Start fresh'); await page.waitForTimeout(2500);
   const t = await truth();
   ok(t.snags.length === 0 && t.all.length === before.all.length && t.all.every(s => !!s.archivedAt), `9 a fresh start: all ${n} put away — none deleted (${t.all.length} kept)`);
   ok(/A fresh start/.test(await words('.qsl-empty')) && (await page.locator('.qsl-work').count()) === 0 && new RegExp(`Put away by a fresh start — ${t.all.length}`).test(await words('.preg-away')), '9 the page empty and saying so; the put-away listed at its foot');

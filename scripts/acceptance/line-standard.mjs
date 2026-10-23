@@ -38,6 +38,7 @@
  *
  *   node scripts/acceptance/line-standard.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
+import { paper as pressPaper } from '../lib/pageHeader.mjs';
 const { chromium } = pkg;
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
@@ -317,10 +318,10 @@ const crowd = await page.evaluate(async ([ws, shape]) => {
   /* the card cuts and says where; the notes page prints it whole */
   const pages = await page.evaluate(async id => { const db = await import('/src/db.ts'); const C = await import('/src/lib/standardCard.ts'); const st = (await db.listAllStandards()).find(s => s.id === id); return (await C.cardPages(st, 'Line 2', '15 Oct 2026')).length; }, longId);
   ok(pages === 2, `14d the card and one notes page (${pages} pages)`);
-  await page.getByRole('button', { name: 'PDF', exact: true }).first().click(); await page.waitForTimeout(2500);
+  await pressPaper(page, /^Line standard card/); await page.waitForTimeout(2500); /* Report ▾ (B4) */
   ok(/2 pages — the card, then its notes in full/.test(await page.locator('.ls-print-acts').innerText()), '14e the preview says it: the card, then its notes');
   const dir = mkdtempSync(join(tmpdir(), 'ls-notes-'));
-  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.locator('.ls-print-acts').getByRole('button', { name: 'PDF', exact: true }).click()]);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.locator('.ls-print-acts').getByRole('button', { name: 'Download', exact: true }).click()]);
   const file = join(dir, 'ls.pdf'); await dl.saveAs(file);
   const pdfPages = Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [file], { encoding: 'utf8' }))?.[1]);
   ok(pdfPages === 2, `14f the PDF is two pages (${pdfPages})`);

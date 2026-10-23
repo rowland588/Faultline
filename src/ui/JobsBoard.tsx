@@ -34,7 +34,7 @@
  */
 import { sinceOf, type Since } from '../lib/since';
 import { SinceLine, readSeen } from './SinceLine';
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type MutableRefObject, type ReactNode } from 'react';
 import type { Project } from '../types';
 import { renameSupplier } from '../db';
 import { fishboneUrl } from '../screens/FishboneScreen';
@@ -50,7 +50,6 @@ import { niceDay, todayISO } from '../lib/weeks';
 import { nav } from '../state/useRoute';
 import { openRecord } from './RecordDrawer';
 import { Timeline } from './Timeline';
-import { ControlRoomReports } from './ControlRoomReports';
 import { GATE_TONE_WORD, recordHref } from '../lib/install';
 import { gateSpans, planHref } from '../lib/plan';
 import { Icon } from './Icon';
@@ -257,8 +256,11 @@ export function useAccessByJob(projects: Project[]): (id: string) => Can {
 
 /* ------------------------------- the board ------------------------------ */
 
-export function JobsBoard({ projects, after }: {
+export function JobsBoard({ projects, after, reportRef }: {
   projects: Project[];
+  /** The control room's page header's Report ▾ makes the control room report from this board's
+   *  own reading, through here (B3): the board fills it in while it has one. */
+  reportRef?: MutableRefObject<(() => Promise<void>) | null>;
   /** Drawn right under the band — on a phone, the factory's line cards go
    *  here, so the answer is the first screen (FLOW-AUDIT.md, 11). Drawn on
    *  its own when there is nothing to chase. */
@@ -301,12 +303,9 @@ export function JobsBoard({ projects, after }: {
   /* The parties beyond the first five, opened on request. */
   const [allOwes, setAllOwes] = useState(false);
   /* The control room report, made from this board's own reading. */
-  const [printing, setPrinting] = useState(false);
   const [printed, setPrinted] = useState('');
-  /* the control room's Reports, opened from the band */
-  const [papers, setPapers] = useState(false);
   const printReport = async () => {
-    setPrinting(true); setPrinted('');
+    setPrinted('');
     try {
       if (!pf) return;
       const { saveControlRoomReport } = await import('../lib/controlRoomPdf');
@@ -314,8 +313,9 @@ export function JobsBoard({ projects, after }: {
       setPrinted(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
     } catch (e) {
       setPrinted(`The report could not be made — ${e instanceof Error ? e.message : 'try again'}.`);
-    } finally { setPrinting(false); }
+    }
   };
+  if (reportRef) reportRef.current = pf ? printReport : null;
   const [tip, setTip] = useState<string | null>(null);
   const ganttRef = useRef<HTMLDivElement>(null);
   const weekRef = useRef<HTMLDivElement>(null);
@@ -395,20 +395,10 @@ export function JobsBoard({ projects, after }: {
               <small className="jb-of">{m.of}</small>
             </div>
           ))(ofTile('The slips cost'))}
-          {/* THE PAGE FOR THE BUSINESS (docs/CONTROLROOM.md): every job on one
-              A4 — where each is, why, who owes what — read off this board
-              (lib/controlRoomReport), where the job's band has its own. */}
-          <button type="button" className="btn vd-report jb-report" disabled={printing} onClick={() => void printReport()}>
-            {printing ? 'Making it…' : 'Control room report — 1 page'}
-          </button>
-          {/* EVERY OTHER PAPER — each job's (its full report, programs,
-              handover, machine labels…), each line's and the tools' — the
-              control room's Reports (Rowland, 14 October: "we need the same
-              in control room") */}
-          <button type="button" className="btn vd-report jb-report jb-papers" onClick={() => setPapers(true)}>All reports ›</button>
+          {/* THE PAGE FOR THE BUSINESS (docs/CONTROLROOM.md) — the control room report, and every
+              other paper (the control room's Reports), are the page header's Report ▾ now (B3). */}
         </div>
         {printed && <p className="jb-printed" role="status">{printed}</p>}
-        {papers && <ControlRoomReports projects={projects} onClose={() => setPapers(false)} />}
         {pf.owes.length > 0 && (
           <div className="jb-owes">
             <span className="jb-owes-h">Who owes what</span>

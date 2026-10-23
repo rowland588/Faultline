@@ -61,6 +61,8 @@ import { loadProblems, viewsOf, type LoadedProblems } from '../lib/useProblems';
 import type { SixMReport } from '../lib/sixmReportPdf';
 import { sixmStatus } from '../lib/sixmStatus';
 import type { jsPDF } from 'jspdf';
+import { PageHeader } from '../ui/parts';
+import { useSaveOnArrival } from '../lib/useSaveOnArrival';
 
 /* ---------- action status, computed once ---------- */
 const norm = (s?: string) => (s ?? '').trim();
@@ -927,6 +929,9 @@ function SixMReportScreen({ projectId, lineId, name, lead }: { projectId: string
     } finally { setBusy(false); }
   };
 
+  /* ?save=1 — named in the project's Report ▾ (lib/useSaveOnArrival). */
+  useSaveOnArrival(!!report, download);
+
   if (!report) return <div className="wrap pace"><p className="sub">Preparing the report…</p></div>;
   if (lineId && loaded && !line) {
     return (
@@ -939,17 +944,13 @@ function SixMReportScreen({ projectId, lineId, name, lead }: { projectId: string
 
   return (
     <div className="wrap pace cr">
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <h1 className="pace-title">Client report{line ? ` — ${line.name}` : ''}</h1>
-          <p className="pace-lede">{which === 'status'
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): the paper's name and its one action. */}
+      <PageHeader
+        title={`Client report${line ? ` — ${line.name}` : ''}`}
+        says={which === 'status'
             ? 'One page, the one that gets sent: where the lines are, why they are not where they should be, and what is being done — who, by when. The full report has every detail.'
-            : 'The gap, where the loss is, and each problem beside its fishbone in four parts — Problem, Why, Fix, Did it work — drawn from what is kept here, nothing typed for it.'}</p>
-        </div>
-        <div className="pace-head-actions">
-          <button className="btn btn-primary" onClick={() => void download()} disabled={busy}>{busy ? 'Making it…' : 'PDF'}</button>
-        </div>
-      </header>
+            : 'The gap, where the loss is, and each problem beside its fishbone in four parts — Problem, Why, Fix, Did it work — drawn from what is kept here, nothing typed for it.'}
+        primary={{ label: busy ? 'Making it…' : 'Download', icon: 'download', run: () => void download(), disabled: busy }} />
       <span className="cw-seg cr-which" role="group" aria-label="Which report">
         <button type="button" className={'chip' + (which === 'status' ? ' on' : '')} aria-pressed={which === 'status'} onClick={() => setWhich('status')}>Status — 1 page</button>
         <button type="button" className={'chip' + (which === 'full' ? ' on' : '')} aria-pressed={which === 'full'} onClick={() => setWhich('full')}>Full report</button>
@@ -1276,6 +1277,9 @@ function PaceExecReportA3() {
       setSaving(false);
     }
   };
+
+  /* ?save=1 — named in the project's Report ▾ (lib/useSaveOnArrival). */
+  useSaveOnArrival(!loading && !!project, download);
 
   if (loading) {
     return (
@@ -1990,13 +1994,11 @@ function PaceExecReportA3() {
       <Sweep id={'report:' + projectId + (lineId ?? '')} />
       {/* The way out is the rail (ui/Frame), as on every page; this screen
           once carried the spine because it filled the window. */}
-      <div className="exec-bar no-print">
-        <div className="exec-bar-r">
-          <span className="exec-bar-hint">One click — a ready-to-send double-sided A3 PDF</span>
-          <button className="btn btn-primary" disabled={saving} onClick={() => void download()}>
-            {saving ? 'Building…' : 'PDF'}
-          </button>
-        </div>
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): its name and its one action; the sheet under
+          it is the paper itself. */}
+      <div className="no-print">
+        <PageHeader title={`Client report${line ? ` — ${line.name}` : ''}`} says="A ready-to-send double-sided A3 — the sheet below is the paper."
+          primary={{ label: saving ? 'Building…' : 'Download', icon: 'download', run: () => void download(), disabled: saving }} />
       </div>
 
       {/* What went wrong, in words, where the button is — an alert saying "try

@@ -6,7 +6,7 @@ discipline: spc
 kind: established
 evidence: peer-reviewed
 depth: full
-checked: 2026-10-22 — the success-run relation follows from the binomial; the rule of three is Hanley & Lippman-Hand (1983); with failures allowed, the Clopper–Pearson upper bound; numbers in the test file worked independently (scripts/knowledge/independent-cases.py)
+checked: 2026-10-22 — the success-run relation follows from the binomial; 2026-10-23 — the most that may fail for a share good at a confidence (90%, 95%, 99%) worked independently in SciPy; the rule of three is Hanley & Lippman-Hand (1983); with failures allowed, the Clopper–Pearson upper bound; numbers in the test file worked independently (scripts/knowledge/independent-cases.py)
 needs: []
 next: [spc.capability-attribute-proportion, spc.capability-measured]
 alternatives: [spc.capability-attribute-proportion, quality.acceptance-sampling-attributes]
@@ -85,3 +85,16 @@ under it what the count proves — the exact one-sided bound (`binomUpper` in
 `src/lib/ie/dist.ts`) rounded up, and what fewer than 1 in 100 would take
 (`itemsToShow`) — on the page, its tiles and its paper. While agreeing, the
 page says what the count would prove (`passFailPlan`).
+
+Part 1b, 23 October (Rowland: *"in statistics we ask the word confidence
+level ... or in some cases a business has a percentage that it allows for a
+loss, say 98% ... Am I doing a confidence level, or am I doing the other
+level?"*): *How is it judged?* — a number that may fail (as before), a loss
+allowed (at least g good: ⌊(1 − g)·n⌋ may fail — the business's rule, with
+what the count proves said beside it, since 90 failed in 4,500 passes 98%
+yet proves only 97.6% at 95%), or a confidence level (C confident at least g
+good — the demonstration test: the most that may fail is the largest k with
+the exact bound at most 1 − g, `mostMayFail` in `src/lib/ie/dist.ts`; a count
+too small refused while agreeing with the count it takes). The confidence is
+chosen — 90%, 95% (the default) or 99% — and every sentence, tile and paper
+says what the count proves *with* it ("we can be 95% confident …").

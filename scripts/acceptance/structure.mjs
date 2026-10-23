@@ -8,12 +8,13 @@
  * from a row, says so and holds Save when the project it is for is one the person may only read.
  *
  * B2 — the scope frame: on every page in docs/PAGES.md, at desk and phone, the context bar names
- * the place (Home, the factory, a line or a project) and the rail is that scope's own and never
- * above its size (the factory 8 lines, a line 9 — and a line study's four views under Logs until
- * B6 folds them — a project 18 with its machines folded); the phone's bar is the scope's own five,
- * the same on every page of it; ＋ is a problem where you are in one tap; and, with 30 more lines
- * and 50 more projects on the device, the factory's rail is still 8 lines and any line or project
- * is found by the switcher in three keystrokes.
+ * the place (the factory, a line or a project); since 23 October (one home, a fixed menu) the rail is
+ * one menu on every page — Factory · Projects · Problems · Actions · Tools, Reports at the foot — and a
+ * scope's own pages are tabs across the top, never above their size (the factory 3, a line 9, a
+ * project 18 with its machines one tap from its front page); the phone's bar is the same five on
+ * every page; ＋ is a problem where you are in one tap; and, with 30 more lines and 50 more projects
+ * on the device, the menu is still 6 lines and any line or project is found by the switcher in
+ * three keystrokes.
  *
  * The access level is forced the way the app allows in development (cloud/access:
  * localStorage['faultline.access.force']), so the same seeds are walked as a team member and as
@@ -100,9 +101,12 @@ const shown = async l => (await l.count()) > 0 && await l.first().isVisible();
   await ctx.close();
 }
 
-/* ---- B2 · 1 every page: the place named, the scope's rail and its size, the scope's bar ---- */
-const LIMIT = { factory: 8, line: 9, project: 18 };
-const BAR = { factory: 'Control room · Actions · Problem · Problems · More', line: 'Overview · Tools · Problem · Problems · More' };
+/* ---- B2 · 1 every page: the place named, the menu the same everywhere, the scope's own pages its tabs within their size ----
+   Since 23 October (one home, a fixed menu — Rowland: "I literally start using it and I've got no idea where I am") the
+   rail and the phone's bar are one menu on every page; a scope's own pages are the tabs across the top. */
+const LIMIT = { factory: 3, line: 9, project: 18 };
+const MENU = 'Factory · Projects · Problems · Actions · Tools · Reports';
+const ONE_BAR = 'Factory · Projects · Problem · Problems · More';
 for (const width of [1360, 390]) {
   const { ctx, page, go, sd } = await device(width, 'team');
   const names = await page.evaluate(async () => {
@@ -120,29 +124,24 @@ for (const width of [1360, 390]) {
         scope: document.querySelector('.nv-top .nv-ctx .nv-job-l')?.textContent?.trim() ?? '',
         said: [...document.querySelectorAll('.nv-top .nv-ctx .nv-job-l, .nv-top .nv-ctx .nv-crumb')].filter(vis).map(e => e.textContent.trim()).join(' › '),
         rail: [...document.querySelectorAll('.nv-rail .nv-ri')].map(e => ({ l: e.querySelector('.nv-ri-l')?.textContent?.trim(), sub: e.classList.contains('is-sub') })),
+        tabs: [...document.querySelectorAll('.nv-tabs .nv-tab .nv-tab-l')].map(e => e.textContent.trim()),
         bar: [...document.querySelectorAll('.nv-bar .nv-bi .nv-bi-l')].filter(vis).map(e => e.textContent.trim()).join(' · '),
       };
     });
     const kind = scopeOf(got.scope);
     if (!kind) { unnamed.push(`${pg.name}: "${got.said}"`); continue; }
     if (kind === 'home') continue;
-    const lines = got.rail.filter(l => l.l !== 'Factory');
-    /* a line study's four views sit under its line (Logs on a line, the line or the project's own pages in a project) until B6 folds them into the log */
-    const study = lines.filter(l => l.sub && ['Capture', 'Analyse', 'Evidence', 'Meeting'].includes(l.l)).length;
-    if (width > 900 && lines.length - study > LIMIT[kind]) over.push(`${pg.name} (${kind}): ${lines.length} — ${lines.map(l => l.l).join(', ')}`);
+    const menu = got.rail.map(l => l.l).join(' · ');
+    if (width > 900 && (menu !== MENU || got.tabs.length > LIMIT[kind])) over.push(`${pg.name} (${kind}): menu ${menu}; tabs ${got.tabs.length} — ${got.tabs.join(', ')}`);
     if (width < 900) {
-      const key = kind === 'project' ? got.scope : kind;
-      (bars[key] ??= new Set()).add(got.bar);
-      if (BAR[kind] && got.bar !== BAR[kind]) offBar.push(`${pg.name}: ${got.bar}`);
+      (bars.all ??= new Set()).add(got.bar);
+      if (got.bar !== ONE_BAR) offBar.push(`${pg.name}: ${got.bar}`);
     }
   }
   const tag = width > 900 ? 'desk' : 'phone';
   ok(!unnamed.length, `B2 1 ${tag}: every page in PAGES.md names its place — Home, the factory, a line or a project`, unnamed.join(' | '));
-  if (width > 900) ok(!over.length, 'B2 1 desk: every rail is its scope’s own, within its size (factory 8, line 9, project 18)', over.join(' | '));
-  else {
-    const changing = Object.entries(bars).filter(([, s]) => s.size > 1).map(([k, s]) => `${k}: ${[...s].join(' / ')}`);
-    ok(!offBar.length && !changing.length, `B2 1 phone: the bar is the scope’s own five on every page of it (${Object.keys(bars).length} scopes)`, [...offBar, ...changing].join(' | '));
-  }
+  if (width > 900) ok(!over.length, 'B2 1 desk: the menu the same on every page, a scope’s own pages its tabs within their size (factory 3, line 9, project 18)', over.join(' | '));
+  else ok(!offBar.length && bars.all?.size === 1, `B2 1 phone: the bar the same five on every page — ${[...(bars.all ?? [])].join(' / ')}`, offBar.join(' | '));
   await ctx.close();
 }
 
@@ -167,7 +166,7 @@ for (const width of [1360, 390]) {
   });
   await go('#/room');
   const rail = await page.locator('.nv-rail .nv-ri').count();
-  ok(rail === 8, `B2 3 the factory's rail with 30 more lines and 50 more projects: ${rail} lines`);
+  ok(rail === 6, `B2 3 the menu with 30 more lines and 50 more projects: ${rail} lines, as ever`);
   const found = [];
   for (const [name, keys] of [['Scale line 29', '29'], ['Scale project 47', '47'], ['Line 7 pace', 'pac'], ['Line 2 commissioning', 'com']]) {
     await page.locator('.nv-top .nv-job').click(); await page.waitForTimeout(400);

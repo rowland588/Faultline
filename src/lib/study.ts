@@ -51,6 +51,14 @@ export interface AgreedReadings {
    *  FC-094-capability.md). Absent on every study before 22 October — none
    *  may, the old rule. */
   allowFail?: number;
+  /** Pass or fail: how it is judged (knowledge/specs/FC-094-capability.md, part 1b — Rowland, 23
+   *  October): a number that may fail (absent — every study before reads so), a loss allowed (at least
+   *  `good` % good), or a confidence level (`conf` confident at least `good` % good). */
+  judge?: 'count' | 'loss' | 'confidence';
+  /** Pass or fail: the share good it is judged against, in % — 98 for "at least 98% good". */
+  good?: number;
+  /** Pass or fail: how confident what the count proves is said — 0.9, 0.95 (absent) or 0.99. */
+  conf?: number;
 }
 
 /** One reading, as taken. Struck, never erased: a mistype keeps its place. */

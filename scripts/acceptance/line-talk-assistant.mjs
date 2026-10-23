@@ -132,8 +132,8 @@ const lineId = await page.evaluate(async () => {
 
 /* 1 — started from the front door, on the line */
 await page.goto(`${BASE}/#/`); await settle(1500);
-ok(/^Start a Line Talk$/.test((await page.locator('.fd-talk .fd-talk-start').innerText()).trim()), '1 the front door offers Line Talk first: start one');
-await page.locator('.fd-talk .fd-talk-start').click(); await settle(800);
+ok(/^Start a Line Talk$/.test((await page.locator('.home-talk .fd-talk-start').innerText()).trim()), '1 the Factory page (the one home since 23 October) offers Line Talk: start one');
+await page.locator('.home-talk .fd-talk-start').click(); await settle(800);
 await page.locator('select[aria-label="Which line"]').selectOption(lineId);
 await page.locator('.tk-new .tk-start').click(); await settle(1200);
 const talkId = page.url().match(/#\/talk\/([^?]+)/)?.[1];

@@ -58,7 +58,7 @@ import { pictureForAssistant } from '../lib/talkPictures';
 import { useTalkContext } from './useTalkContext';
 import { TalkDocView } from './TalkDocView';
 import type { ToolStudy } from '../lib/study';
-import { StudyName } from '../ui/StudyActs';
+import { StudyMenus, StudyName } from '../ui/StudyActs';
 import { offerUndo } from '../ui/Undo';
 import { Icon } from '../ui/Icon';
 
@@ -208,6 +208,8 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
   const line = lines.find(l => l.id === s.workspaceId);
   const turns = useMemo(() => turnsOf(s.facts), [s.facts]);
   const [said, setSaid] = useState<{ text: string; bad?: boolean } | null>(null);
+  /* More ▾'s Rename: the talk's name typed over where it is (the tool shell, B4) */
+  const [naming, setNaming] = useState(false);
   /* Line Talk's answer as it is written — shown in its turn until the finished answer is kept */
   const [writing, setWriting] = useState<(SoFar & { id: string }) | null>(null);
   const [typing, setTyping] = useState(() => readDraft(s.id).text);
@@ -437,10 +439,10 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
   const canSend = live && !asking && (!!typing.trim() || theirs.length > 0);
   return (
     <div className="wrap ie tk" data-talk={s.id}>
-      <header className="pace-head">
+      <header className="pace-head part-head">
         <div className="pace-head-main">
           <p className="pl-eyebrow">LINE TALK · {line ? <a href={`#/lines/${encodeURIComponent(line.id)}`} className="pl-fac">{line.name} ›</a> : 'not on a line'} · <a href={`#/talk${s.workspaceId ? `?line=${encodeURIComponent(s.workspaceId)}` : ''}`} className="pl-fac">Every Line Talk ›</a></p>
-          <StudyName s={s} canEdit={can.edit} canRemove={can.remove} />
+          <StudyName s={s} naming={naming} onDone={() => setNaming(false)} />
           <p className="pl-says tk-sum">{talkSaid(turns)}</p>
           {/* a talk on no line answers from the conversation alone — put on a line, it knows the line */}
           {!s.workspaceId && live && lines.length > 0 && (
@@ -459,6 +461,9 @@ function Talk({ s, can }: { s: ToolStudy; can: ReturnType<typeof canAt> }) {
             </details>
           )}
         </div>
+        {/* THE TOOL SHELL (docs/STRUCTURE.md §5.5, B4): Rename and Delete in More ▾, where they were links
+            beside the name; its papers are each document's own (Open — edit and print). */}
+        <StudyMenus s={s} canEdit={can.edit} canRemove={can.remove} onRename={() => setNaming(true)} />
       </header>
 
       <ol className="tk-turns" aria-label="The talk">

@@ -11,7 +11,7 @@ export interface Place { kind: 'line' | 'job' | 'product' | 'tool' | 'page'; lab
 export const TOOL_PLACES: Place[] = [
   { kind: 'page', label: 'Home', sub: 'start a project or use a tool', href: '#/' },
   { kind: 'page', label: 'Control room', href: '#/room' },
-  { kind: 'page', label: 'Control room problems', href: '#/snags' },
+  { kind: 'page', label: 'Problems — every line and project', href: '#/snags' },
   { kind: 'page', label: 'Your factory', href: '#/factory' },
   { kind: 'page', label: 'Programs', href: '#/programs' },
   /* the app's tools, from the catalogue (src/catalogue/registry) — one list, not a fourth copy */

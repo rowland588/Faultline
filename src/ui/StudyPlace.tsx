@@ -34,29 +34,19 @@ import { betterWords, worthBetter, linkOf, countermeasureFrom, recordHref, ROLE_
 import type { StudyUse, ToolStudy } from '../lib/study';
 import type { Can } from '../lib/access';
 import { StudyProves } from './ProveProgram';
+import { BelongsTo } from './parts';
 
 
-export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
+/** THE STUDY ON PAPER (lib/studiesPdf) — on its own, on a line or on a job: what it is, where it
+ *  sits, its sentence and its table (docs/AUDIT.md, bar 3). Made from the tool shell's Report ▾
+ *  (docs/STRUCTURE.md §5.5, B4), where the PDF beside "where it sits" was. */
+export function useStudyPaper(s: ToolStudy): () => Promise<void> {
   const { projects } = useProjects();
-  const accessOn = useAccessByJob(projects);
-  /* the lines of Your factory, in floor order, and the line it is on (lib/useFactoryLines) */
   const lines = useFactoryLines(s.workspaceId);
-  const [picking, setPicking] = useState<'line' | 'job' | null>(null);
   const line = lines.find(l => l.id === s.workspaceId);
   const job = projects.find(p => p.id === s.projectId);
-  /* The jobs on its line first; only the ones this person may change (a
-     link into a job needs can.edit — the cloud refuses the rest). */
-  const jobs = useMemo(() => projects.filter(p => !p.deletedAt && !p.archivedAt && accessOn(p.id).edit)
-    .sort((a, b) => Number(!!s.workspaceId && b.workspaceIds.includes(s.workspaceId)) - Number(!!s.workspaceId && a.workspaceIds.includes(s.workspaceId))),
-  [projects, accessOn, s.workspaceId]);
-  const set = (p: Partial<ToolStudy>) => { void patchStudy(s.id, p); setPicking(null); };
-  /* THE STUDY ON PAPER (lib/studiesPdf) — on its own, on a line or on a job:
-     what it is, where it sits, its sentence and its table (docs/AUDIT.md, bar 3) */
-  const [printing, setPrinting] = useState(false);
   const where = `${line ? `On ${line.name}` : 'On no line'} · ${job ? `attached to ${job.name}` : 'on no project'}`;
-  const paper = async () => {
-    if (printing) return;
-    setPrinting(true);
+  return async () => {
     try {
       const [{ saveStudiesPdf }, { listAllStandards, listWorkspaces, listObservations, listStudiesForLine, listPaceTodos, listTests }, { studyTitle }] = await Promise.all([
         import('../lib/studiesPdf'), import('../db'), import('../lib/studyLinks')]);
@@ -75,8 +65,26 @@ export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
     } catch (e) {
       console.error('study pdf failed', e);
       window.alert('Sorry — the PDF could not be made. Please try again.');
-    } finally { setPrinting(false); }
+    }
   };
+}
+
+export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
+  const { projects } = useProjects();
+  const accessOn = useAccessByJob(projects);
+  /* the lines of Your factory, in floor order, and the line it is on (lib/useFactoryLines) */
+  const lines = useFactoryLines(s.workspaceId);
+  const [picking, setPicking] = useState<'line' | 'job' | null>(null);
+  /* Change, pressed: the ways to move it, under the line that says where it is */
+  const [changing, setChanging] = useState(false);
+  const line = lines.find(l => l.id === s.workspaceId);
+  const job = projects.find(p => p.id === s.projectId);
+  /* The jobs on its line first; only the ones this person may change (a
+     link into a job needs can.edit — the cloud refuses the rest). */
+  const jobs = useMemo(() => projects.filter(p => !p.deletedAt && !p.archivedAt && accessOn(p.id).edit)
+    .sort((a, b) => Number(!!s.workspaceId && b.workspaceIds.includes(s.workspaceId)) - Number(!!s.workspaceId && a.workspaceIds.includes(s.workspaceId))),
+  [projects, accessOn, s.workspaceId]);
+  const set = (p: Partial<ToolStudy>) => { void patchStudy(s.id, p); setPicking(null); setChanging(false); };
   /* ON A JOB, ON ITS LINE (flow audit #15): a study on no line takes the
      job's line when the job is on one — "attached to Line 2 commissioning"
      beside "On no line" was two answers to where it is. */
@@ -90,14 +98,16 @@ export function WhereItSits({ s, can }: { s: ToolStudy; can: Can }) {
 
   return (
     <div className="ie-place" aria-label="Where it sits">
-      <span className="ie-place-w">
-        {line ? <>On <b>{line.name}</b></> : 'On no line'}
-        {' · '}
-        {job ? <>attached to <b>{job.name}</b></> : 'on no project'}
+      {/* BELONGS TO — one control, the same on every tool (docs/STRUCTURE.md §5.5, B4): its line and
+          its project, each a way to it, and Change for whoever may move it — the ways to move it come
+          out under it, where they were always out before (F8: said three ways). */}
+      <div className="ie-place-w">
+        <BelongsTo line={line ? { name: line.name, open: () => nav(`/lines/${line.id}`) } : undefined}
+          project={job ? { name: job.name, open: () => nav(`/project/${job.id}`) } : undefined}
+          onChange={can.edit ? () => { setChanging(c => !c); setPicking(null); } : undefined} />
         {!line && !job && <span className="sub"> — a quick session, yours alone</span>}
-      </span>
-      <button type="button" className="btn btn-ghost btn-sm ie-place-pdf" disabled={printing} onClick={() => void paper()} aria-label="This study on paper (PDF)">{printing ? 'Making…' : 'PDF'}</button>
-      {can.edit && picking === null && (
+      </div>
+      {can.edit && changing && picking === null && (
         <span className="ie-place-acts">
           <button type="button" className="linkish" onClick={() => setPicking('line')}>{line ? 'Move to another line' : 'Put on a line'}</button>
           {!job && <button type="button" className="linkish" onClick={() => setPicking('job')}>Attach to a project</button>}

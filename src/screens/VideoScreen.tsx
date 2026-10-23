@@ -21,6 +21,7 @@
  * the takt, a method's step and the line's page read it as the line balance
  * it is. The footage stays on the device it was taken on until the cloud
  * takes a study's footage (docs/VIDEO.md, blockers); everything else syncs. */
+import { PageHeader } from '../ui/parts';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { deleteBlobs, getStudy, listAllStudies, onDataChange, patchStudy, putBlob, putStudy } from '../db';
 import { deleteStudy } from '../db/studies';
@@ -34,7 +35,7 @@ import type { ToolStudy } from '../lib/study';
 import { Sheet } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
 import { Legend, Stacks } from '../ui/WorkBalance';
-import { StudyProves } from '../ui/ProveProgram';
+import { WhereItSits } from '../ui/StudyPlace';
 import { asked } from '../lib/lines';
 import { useInProject } from '../lib/useInProject';
 import { inScope, startLine, type ProjectScope } from '../lib/inProject';
@@ -94,7 +95,11 @@ export function VideosScreen() {
   const [scope, setScope] = useState<ProjectScope>('project');
   const mayP = useAccess(inP.id ?? '');
   const mayAdd = !inP.id || mayP.edit;
-  const list = useMemo(() => (all ? inScope(all, scope, inP.id, inP.lineIds) : null), [all, scope, inP.id, inP.lineIds]);
+  /* OPENED FROM A LINE (?line=, the line's Tools): that line's video studies, as every tool's list is
+     on its line (23 October — a video study made on a line showed among every line's) */
+  const onLine = useMemo(() => asked('line') ?? undefined, []);
+  const onLineName = onLine ? (lines.find(l => l.id === onLine)?.name ?? 'this line') : undefined;
+  const list = useMemo(() => (all ? inScope(all, scope, inP.id, inP.lineIds).filter(s => !onLine || s.workspaceId === onLine) : null), [all, scope, inP.id, inP.lineIds, onLine]);
   /* ?add=1 — a link straight to New (lib/lines asked) */
   const [adding, setAdding] = useState(() => !!asked('add'));
   /* …or while this list is open: the page stays, so New is opened afresh — its line read again */
@@ -107,19 +112,22 @@ export function VideosScreen() {
   useEffect(() => { if (all) void resumeLeftJobs(all); }, [all]);
   return (
     <div className="wrap vid-list">
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <h1>Video studies</h1>
-          <p className="sub">Film the line, say what you want to find out, and the app reads the footage for the work at each station. You review every piece it finds on the footage itself; the cycles, the line balance, takt and the report are worked out from what you accept.</p>
-        </div>
-        <div className="pace-head-actions">{mayAdd && <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>New video study</button>}</div>
-      </header>
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3) */}
+      <PageHeader title="Video studies"
+        says={<span className="sub">Film the line, say what you want to find out, and the app reads the footage for the work at each station. You review every piece it finds on the footage itself; the cycles, the line balance, takt and the report are worked out from what you accept.</span>}
+        primary={mayAdd ? { label: 'New video study', run: () => setAdding(true) } : undefined} />
       {inP.id && <ProjectScopeChips name={inP.project?.name} lines={inP.lineIds.length} scope={scope} onScope={setScope} />}
+      {onLine && (
+        <div className="chip-row qsl-f" role="group" aria-label="Which line">
+          <button type="button" className="chip on" aria-pressed>{onLineName}</button>
+          <button type="button" className="chip" onClick={() => nav('/video')}>All lines</button>
+        </div>
+      )}
       {/* before a long study: whether the phone that would film it can (docs/VIDEO-FEASIBILITY.md) */}
       <p className="vck-door"><button type="button" className="linkish" onClick={() => nav('/video-check')}>Can this phone film a long study?</button> Try it here first: the camera read as it films, clips, a steady camera, the screen and the battery.</p>
       {list && !list.length && (
         <div className="qsl-empty">
-          <p>{inP.id && scope !== 'all' ? `No video studies ${scope === 'project' ? 'on' : 'on the lines of'} ${inP.project?.name ?? 'this project'} yet. ` : 'No video studies yet. '}A minute or two of the line, filmed side-on with every station in view, is enough for a first one.</p>
+          <p>{onLine ? `No video studies on ${onLineName} yet. ` : inP.id && scope !== 'all' ? `No video studies ${scope === 'project' ? 'on' : 'on the lines of'} ${inP.project?.name ?? 'this project'} yet. ` : 'No video studies yet. '}A minute or two of the line, filmed side-on with every station in view, is enough for a first one.</p>
           {mayAdd && <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>New video study</button>}
         </div>
       )}
@@ -432,17 +440,14 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
 
   return (
     <div className="wrap vid-study" data-state={job.state}>
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <p className="eyebrow">Video study · {v.kind ? KIND_WORD[v.kind] : 'Line balance'}</p>
-          <h1>{s.name || v.facts.fileName}</h1>
-          <p className="sub">{line ? line.name : 'On no line'}{job0 ? ` · for ${job0.name}` : ''} · <b className={`ie-tone is-${st.tone}`} data-standing>{st.text}</b></p>
-        </div>
-        <div className="pace-head-actions">
-          <button type="button" className="btn btn-primary" disabled={printing || !events.length} onClick={() => void report()}>{printing ? 'Making…' : 'Report'}</button>
-          <button type="button" className="btn btn-ghost" onClick={() => nav('/video')}>Every video study</button>
-        </div>
-      </header>
+      {/* THE TOOL SHELL (docs/STRUCTURE.md §5.5, B4): the tool, the record's name, where it stands; its
+          report in Report ▾ (it was a button saying Report), Delete the study in More ▾. Its list is the
+          context bar's Video study, where Every video study was a button here. */}
+      <PageHeader eyebrow={`Video study · ${v.kind ? KIND_WORD[v.kind] : 'Line balance'}`} title={s.name || v.facts.fileName}
+        papers={[{ label: 'Video study report', for: 'What was read from the footage and reviewed, its figures, and what it says', make: report, disabled: !events.length }]}
+        more={can.remove ? [{ label: 'Delete the study', danger: true, run: () => void removeStudy() }] : []}>
+        <p className="sub">{line ? line.name : 'On no line'}{job0 ? ` · for ${job0.name}` : ''} · <b className={`ie-tone is-${st.tone}`} data-standing>{st.text}</b></p>
+      </PageHeader>
       {said && <p className="vid-said" role="status">{said}</p>}
 
       {/* THE FOOTAGE — what it is, read from the file, and where it is */}
@@ -605,20 +610,13 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
 
       {/* WHERE IT SITS, and taking it away */}
       <section className="vid-panel vid-where" aria-label="Where it sits">
-        {/* the program it was named as proof of, as on every study's page (ui/StudyPlace) */}
-        <StudyProves s={s} />
-        {can.edit && (
-          <label className="field"><span className="field-label">For a project</span>
-            <select className="text-input" value={s.projectId ?? ''} aria-label="Put it on a project" onChange={e => void patchStudy(s.id, { projectId: e.target.value || undefined })}>
-              <option value="">No — a study on its own</option>
-              {projects.filter(p => !p.deletedAt && !p.archivedAt).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-          </label>
-        )}
+        {/* BELONGS TO — the one control every tool has (ui/StudyPlace WhereItSits, B4): its line and its
+            project, Change to move it; the program it was named as proof of under it, as on every study */}
+        <WhereItSits s={s} can={can} />
         {v.reports?.length ? <p className="sub">Reports made: {v.reports.map(r => `${new Date(r.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} (${r.accepted} accepted${r.candidates ? `, ${r.candidates} to review` : ''})`).join(' · ')}</p> : null}
+        {/* the footage goes from here, what was found in it kept; the study itself is deleted from More ▾ */}
         <div className="vid-job-acts">
           {can.remove && !gone && <button type="button" className="btn btn-ghost" onClick={() => void deleteFootage()}>Delete the footage</button>}
-          {can.remove && <button type="button" className="btn btn-ghost" onClick={() => void removeStudy()}>Delete the study</button>}
         </div>
       </section>
     </div>

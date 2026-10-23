@@ -1027,8 +1027,12 @@ export async function seedSixMJob(size: 'tiny' | 'huge'): Promise<SixMJob> {
       const coAct = act('Pre-stage the film reels — external, 7 min', { lineId: lineA.id, pillar: 'method', who: 'Rob Scott', due: iso(6),
         why: 'Changeover — Finest Red 2kg → Express 1.25 kg', expect: 'Pre-stage the film reels: done while the line runs — the changeover timed again without it inside' });
       await putPaceTodo(coAct);
-      await putStudy({ id: uid(), ...coScope, facts: { ...facts, sequence: coSeq(ROWS, t - 500 * 60_000, 'Rob Scott') },
-        uses: [{ id: uid(), kind: 'action', ref: coAct.id, role: 'evidence', at: t - 400 * 60_000, step: 'co3' }], startedAt: t - 520 * 60_000, createdAt: t, updatedAt: t });
+      /* the first timing yesterday afternoon, whatever the hour the papers are made: from 500 minutes back its
+         elements fell either side of midnight before 08:20 or so, and the day paper's count of what was timed today
+         moved with the clock (paper parity, gate 33: "2 elements" one run, "3 elements" the next) */
+      const before = new Date(t).setHours(0, 0, 0, 0) - 10 * 60 * 60_000;
+      await putStudy({ id: uid(), ...coScope, facts: { ...facts, sequence: coSeq(ROWS, before, 'Rob Scott') },
+        uses: [{ id: uid(), kind: 'action', ref: coAct.id, role: 'evidence', at: before + 100 * 60_000, step: 'co3' }], startedAt: before - 20 * 60_000, createdAt: t, updatedAt: t });
       await putStudy({ id: uid(), ...coScope, facts: { ...facts, sequence: coSeq(ROWS, t - 50 * 60_000, 'Rob Scott').filter(x => x.id !== 'co3').map(({ plan: _p, ...x }) => { void _p; return x; }) },
         uses: [{ id: uid(), kind: 'action', ref: coAct.id, role: 'proof', at: t - 20 * 60_000 }], startedAt: t - 60 * 60_000, createdAt: t, updatedAt: t });
     }

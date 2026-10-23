@@ -39,6 +39,7 @@
  *
  *   node scripts/acceptance/reliability.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
+import { paper as pressPaper } from '../lib/pageHeader.mjs';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -276,7 +277,7 @@ ok((await truth(RID)).remarks.length === 1 && await page.locator('.rl-rem li[dat
 /* ---- 8 on paper ---- */
 {
   const t = await truth(RID);
-  const text = await pdfText(() => page.getByRole('button', { name: 'This study on paper (PDF)' }).click());
+  const text = await pdfText(() => pressPaper(page, / — on paper$/));
   ok(/RELIABILITY STUDY/i.test(text) && text.includes('Capper stops'), '8 on paper — what it is and its name', text.slice(0, 300));
   ok(text.includes('Counted side by side') && t.rows.every(([title, , mtbf]) => text.includes(title) && text.includes(mtbf)), '8 counted side by side — every count and its MTBF', JSON.stringify(t.rows));
   ok(t.counts.every(c => c.tiles.every(([k]) => text.includes(k.toUpperCase()) || text.includes(k)) && text.includes(c.tiles[0][1])), '8 each count’s own tiles — MTBF and the rest');
@@ -299,8 +300,10 @@ await go(`#/lines/${sd.wsId}`);
   const said = flat(await tile.innerText());
   ok(/2 on this line/.test(said) && said.includes('Capper stops'), '9 the line’s page — Reliability with its latest and how many', said);
 }
+/* the front door that listed the tools is gone (23 October, one home): the library is Tools in the menu */
 await go('#/');
-ok(await page.locator('.fd-tools li[data-tool="reliability"]').count() === 1, '9 the front door lists it among the tools');
+await page.locator('.nv-rail .nv-ri', { hasText: /^Tools$/ }).click(); await page.waitForTimeout(1500);
+ok(page.url().endsWith('#/tools') && /Reliability/.test(await page.locator('.et-row').allInnerTexts().then(r => r.join(' | '))), '9 the menu\'s Tools lists it among the tools', page.url());
 
 /* ---- 10 the phone ---- */
 {

@@ -24,6 +24,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 const { chromium } = pkg;
+import { paper } from '../lib/pageHeader.mjs';
 
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
@@ -122,7 +123,7 @@ const names = (await page.locator(`${ROWS} .pgr-name`).allInnerTexts()).map(flat
 {
   const t = await truth();
   const dir = mkdtempSync(join(tmpdir(), 'progs-'));
-  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), page.getByRole('button', { name: 'Programs report — PDF' }).click()]);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, 'Programs report')]);
   const file = join(dir, 'programs.pdf'); await dl.saveAs(file);
   const txt = flat(execFileSync('pdftotext', ['-layout', file, '-'], { encoding: 'utf8' }));
   const need = [t.says, ...t.lines.filter(l => /not tested|no program/.test(l.word)).flatMap(l => [l.word, l.note])].filter(Boolean);

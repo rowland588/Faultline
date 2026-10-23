@@ -123,7 +123,7 @@ const labels = await grab(() => page.getByRole('button', { name: /^Machine label
 const lt = pdfText(labels);
 ok(tr.machines.every(m => lt.includes(m)), `4 labels: a label for each of ${tr.machines.length} machines`);
 await go(`${J}/report`);
-const status = await grab(async () => { await page.getByRole('button', { name: 'Status — 1 page', exact: true }).first().click(); await page.waitForTimeout(800); await page.getByRole('button', { name: 'PDF', exact: true }).first().click(); }, 'status.pdf');
+const status = await grab(async () => { await page.getByRole('button', { name: 'Status — 1 page', exact: true }).first().click(); await page.waitForTimeout(800); await page.getByRole('button', { name: 'Download', exact: true }).first().click(); }, 'status.pdf');
 ok(pdfText(status).includes('Scan for it now') && pdfPages(status) === 1, `4 the status report: its code back to the job, still ${pdfPages(status)} page`);
 
 ok(errors.length === 0, errors.length ? `no console errors — ${errors.join(' | ')}` : 'no console errors');

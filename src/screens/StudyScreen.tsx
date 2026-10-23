@@ -23,12 +23,12 @@ import { can as canAt } from '../lib/access';
 import { now, uid } from '../lib/ids';
 import { niceDay, isoDay } from '../lib/weeks';
 import { nav } from '../state/useRoute';
-import { allowFailProblem, checksSay, passFailPlan, sample, sampleLines, sampleSays, tneFor, CPK_FROM, type SampleFigures, type SampleSays } from '../lib/ie/sample';
+import { allowFailProblem, checksSay, confOf, judgeOf, passFailPlanOf, pctWord, sample, sampleLines, sampleSays, ticksAgreedWords, tneFor, CONFIDENCES, CPK_FROM, SURE, type Judge, type SampleFigures, type SampleSays } from '../lib/ie/sample';
 import type { AgreedReadings, StudyReading, ToolStudy } from '../lib/study';
 import { TOOL_WORDS } from './StudiesScreen';
-import { StudyName } from '../ui/StudyActs';
+import { StudyBand } from '../ui/StudyActs';
 import { WhereItSits, UsedFor, useBetter } from '../ui/StudyPlace';
-import { LeanActions, LeanBand, LeanClosing, LeanPanel, LeanTiles } from '../ui/Lean';
+import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../ui/Lean';
 import { bandPage } from '../lib/lean';
 import { sampleClosing, sampleTiles } from '../lib/ie/sampleLean';
 import { raisedFrom } from '../lib/ie/lossLean';
@@ -81,7 +81,7 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
       {/* THE LEAN PAGE (docs/LEAN-PAGE.md, slice 6; lib/ie/sampleLean): the
           band with the verdict, the tiles in the strip's place, the action
           plan and the closing line */}
-      <LeanBand page={bandPage(w?.one ?? 'Study', s, said.verdict, said.tone)} title={<StudyName s={s} canEdit={can.edit && !closed} canRemove={can.remove} />} />
+      <StudyBand page={bandPage(w?.one ?? 'Study', s, said.verdict, said.tone)} s={s} what={w?.one ?? 'Study'} canEdit={can.edit && !closed} canRemove={can.remove} />
       <div className="ln-under">
         <p className="sub ie-where">
           {s.workspaceId && can.edit && !closed ? <StudyMachine s={s} /> : s.machine ? <><b>{s.machine}</b> · </> : null}
@@ -148,6 +148,13 @@ const KINDS: { k: AgreedReadings['kind']; word: string; eg: string }[] = [
   { k: 'packers', word: 'Sold by weight (℮)', eg: 'the nominal on the pack — the packers’ three rules follow from it' },
   { k: 'ticks', word: 'Pass or fail', eg: 'one at a time — a seal re-test, the metal detector’s test packs' },
 ];
+/* PASS OR FAIL, HOW IT IS JUDGED (knowledge/specs/FC-094-capability.md, part 1b — Rowland, 23 October:
+   "Am I doing a confidence level, or am I doing the other level?") */
+const JUDGES: { k: Judge; word: string; eg: string }[] = [
+  { k: 'count', word: 'How many may fail', eg: 'a number — none may fail, or 2 of 50' },
+  { k: 'loss', word: 'A loss allowed', eg: 'the business’s rule — at least 98% good' },
+  { k: 'confidence', word: 'A confidence level', eg: 'how sure — 95% confident at least 98% are good' },
+];
 type Side = 'both' | 'least' | 'most';
 const SIDES: { k: Side; word: string; eg: string }[] = [
   { k: 'both', word: 'Between two limits', eg: 'fill 400–404 g' },
@@ -167,10 +174,16 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
   const [upper, setUpper] = useState(a?.upper?.toString() ?? '');
   const [count, setCount] = useState((a?.count ?? 30).toString());
   const [allow, setAllow] = useState((a?.allowFail ?? 0).toString());
+  const [judge, setJudge] = useState<Judge>(judgeOf(a));
+  const [goodPct, setGoodPct] = useState((a?.good ?? 98).toString());
+  const [conf, setConf] = useState<number>(confOf(a));
   const nom = numOr(nominal), lo = side === 'most' ? undefined : numOr(lower), hi = side === 'least' ? undefined : numOr(upper);
   const n = Math.round(Number(count)), k = Number(allow.trim() === '' ? '0' : allow);
   const tne = kind === 'packers' && nom !== undefined ? tneFor(nom, unit) : undefined;
   const ticks = kind === 'ticks';
+  const g = Number(goodPct.trim());
+  /* what the way chosen would mean, or why it cannot be agreed (lib/ie/sample passFailPlanOf) */
+  const plan = ticks && n >= 1 ? passFailPlanOf({ count: n, judge, allowFail: k, good: g, conf }) : undefined;
   /* a new study's count follows the question: 30 readings, 20 to check */
   const pick = (to: AgreedReadings['kind']) => {
     if (!a && (to === 'ticks') !== ticks && count === (ticks ? '20' : '30')) setCount(to === 'ticks' ? '20' : '30');
@@ -178,7 +191,7 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
   };
   const problem =
     !(n >= 1) ? (ticks ? 'How many to check — at least 1.' : 'How many readings — at least 1.')
-    : ticks ? allowFailProblem(n, k)
+    : ticks ? (judge === 'count' ? allowFailProblem(n, k) : plan?.problem ?? '')
     : [nom, lo, hi].some(x => x !== undefined && !Number.isFinite(x)) ? 'Numbers only in the limits.'
     : kind === 'limits' && side === 'least' && lo === undefined ? 'Type the limit — at least what?'
     : kind === 'limits' && side === 'most' && hi === undefined ? 'Type the limit — at most what?'
@@ -195,7 +208,9 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
       ...(!ticks && nom !== undefined ? { nominal: nom } : {}),
       ...(kind === 'limits' && lo !== undefined ? { lower: lo } : {}),
       ...(kind === 'limits' && hi !== undefined ? { upper: hi } : {}),
-      ...(ticks && k > 0 ? { allowFail: k } : {}) };
+      ...(ticks && judge === 'count' && k > 0 ? { allowFail: k } : {}),
+      ...(ticks && judge !== 'count' ? { judge, good: g } : {}),
+      ...(ticks && conf !== SURE ? { conf } : {}) };
     void patchStudy(s.id, cur => ({ agreed: { ...cur.agreed, readings: agreed } }));
     onDone();
   };
@@ -218,6 +233,16 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
           </button>
         ))}
       </div>
+      {ticks && (
+        <div className="ie-kinds ie-sides" role="radiogroup" aria-label="How is it judged?">
+          <span className="field-label">How is it judged?</span>
+          {JUDGES.map(x => (
+            <button key={x.k} type="button" role="radio" aria-checked={judge === x.k} className={'ie-kind' + (judge === x.k ? ' on' : '')} onClick={() => setJudge(x.k)}>
+              <b>{x.word}</b><small>{x.eg}</small>
+            </button>
+          ))}
+        </div>
+      )}
       {kind === 'limits' && (
         <div className="ie-kinds ie-sides" role="radiogroup" aria-label="Judged against">
           <span className="field-label">Judged against</span>
@@ -239,13 +264,23 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
           <input className="text-input" inputMode="decimal" value={nominal} onChange={e => setNominal(e.target.value)} placeholder="400" /></label>}
         <label className="field"><span className="field-label">{ticks ? 'How many to check' : 'How many readings'}</span>
           <input className="text-input" inputMode="numeric" value={count} onChange={e => setCount(e.target.value)} /></label>
-        {ticks && <label className="field"><span className="field-label">How many may fail</span>
+        {ticks && judge === 'count' && <label className="field"><span className="field-label">How many may fail</span>
           <input className="text-input" inputMode="numeric" value={allow} onChange={e => setAllow(e.target.value)} placeholder="0" /></label>}
+        {ticks && judge !== 'count' && <label className="field"><span className="field-label">At least what % good</span>
+          <input className="text-input" inputMode="decimal" value={goodPct} onChange={e => setGoodPct(e.target.value)} placeholder="98" /></label>}
       </div>
       {tne !== undefined && nom !== undefined && (
         <p className="ie-note">℮ {nom} {unit}: the tolerable negative error is {+tne.toFixed(3)} {unit}. The average at least {nom}; fewer than 1 in 40 more than {+tne.toFixed(3)} {unit} short; none more than {+(2 * tne).toFixed(3)} {unit} short.</p>
       )}
-      {ticks && !problem && <p className="ie-note ie-plan">{passFailPlan(n, k)}</p>}
+      {ticks && (
+        <div className="ie-kinds ie-confs" role="radiogroup" aria-label="Confidence">
+          <span className="field-label">Confidence — how sure what it proves is said</span>
+          {CONFIDENCES.map(c => (
+            <button key={c} type="button" role="radio" aria-checked={conf === c} className={'chip' + (conf === c ? ' on' : '')} onClick={() => setConf(c)}>{pctWord(c)}</button>
+          ))}
+        </div>
+      )}
+      {ticks && !problem && plan?.text && <p className="ie-note ie-plan">{plan.text}</p>}
       {problem && <p className="ie-problem">{problem}</p>}
       <div className="ie-agree-act">
         <button type="submit" className="btn btn-primary" disabled={!!problem}>Agree these</button>
@@ -257,10 +292,7 @@ function Agree({ s, canAgree, hasReadings, onDone, cancel }: { s: ToolStudy; can
 
 export function agreedWords(a: AgreedReadings): string {
   const u = a.unit ? ` ${a.unit}` : '';
-  if (a.kind === 'ticks') {
-    const k = Math.max(0, Math.floor(a.allowFail ?? 0));
-    return `pass or fail each, ${a.count} — ${k ? `at most ${k} may fail` : 'none may fail'}`;
-  }
+  if (a.kind === 'ticks') return ticksAgreedWords(a);
   const what = a.kind === 'packers' ? `sold by weight, ℮ ${a.nominal}${u}`
     : a.lower !== undefined && a.upper !== undefined ? `${a.lower}–${a.upper}${u}`
     : a.lower !== undefined ? `at least ${a.lower}${u}` : `at most ${a.upper}${u}`;

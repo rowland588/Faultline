@@ -13,7 +13,8 @@ import { parseRoute } from '../useRoute';
 const P = 'p1', W = 'w1';
 /** [address, the page it opens, the parts the page reads from it] */
 const KEPT: [string, string, Record<string, string | undefined>?][] = [
-  ['', 'start'], ['#/', 'start'], ['#/start', 'start'], ['#/methods', 'start'], ['#/design', 'start'],
+  /* one home, the factory (23 October): #/ and its old addresses open it */
+  ['', 'home'], ['#/', 'home'], ['#/start', 'home'], ['#/methods', 'home'], ['#/design', 'home'],
   ['#/room', 'home'], ['#/guide', 'guide'], ['#/s/tok', 'share', { id: 'tok' }],
   ['#/portfolio', 'portfolio'], ['#/projects', 'projects'], ['#/snags', 'quickSnags'],
   [`#/lines/${W}`, 'lineHome', { wsId: W }], ['#/factory', 'factory'], ['#/programs', 'linePrograms'],

@@ -30,6 +30,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 const { chromium } = pkg;
+import { paper, more } from '../lib/pageHeader.mjs';
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
 const OUT = process.env.SHOTS;
@@ -53,10 +54,14 @@ await page.getByRole('button', { name: 'Done', exact: true }).click(); await pag
 await page.locator('.fac-line[data-line="Line 2B"]').getByRole('button', { name: 'Open ›' }).click(); await page.waitForTimeout(2000);
 ok(/#\/lines\//.test(page.url()) && (await page.locator('h1').innerText()) === 'Line 2B', `2 made, and on its own page: ${page.url().split('#')[1]}`);
 if (OUT) await page.screenshot({ path: `${OUT}/l-1-line.png` });
-/* the line is a scope of its own since 23 October (docs/STRUCTURE.md B2): its own rail, the way up first, and the bar names it */
+/* the line is a scope of its own (docs/STRUCTURE.md B2); since 23 October the menu never changes — Factory lit inside
+   a line — and the line's own pages are tabs across the top; the bar starts with the way back, ‹ Factory */
 const rail = (await page.locator('.nv-rail').innerText()).replace(/\s+/g, ' ');
+const tabs = (await page.locator('.nv-tabs .nv-tab-l').allInnerTexts()).join(' · ');
+const lit = (await page.locator('.nv-rail .nv-ri.is-on').allInnerTexts()).join();
 const said = (await page.locator('.nv-top .nv-ctx').innerText()).replace(/\s+/g, ' ').trim();
-ok(/^Factory Overview Problems Machines & programs Products Tools Logs Projects Reports Set up$/.test(rail) && /^Factory › Line 2B › Overview$/.test(said), `3 the line's own rail (${rail}), the bar saying ${said}`);
+ok(rail === 'Factory Projects Problems Actions Tools Reports' && lit === 'Factory' && tabs === 'Overview · Problems · Programs · Products · Tools · Set up' && /^Factory › Line 2B › Overview$/.test(said),
+  `3 the menu with Factory lit (${rail} | ${lit}), the line's tabs (${tabs}), the bar saying ${said}`);
 ok(/No problems open/.test(await txt()) && /Tools on this line/.test(await txt()), '4 the line page: no problems, its tools');
 // THE STOPWATCH FROM THE LINE (docs/UPGRADE-AUDIT.md F1): Time a stop first in the header; Stops timed first among the tools, none yet
 ok(/None yet — the stopwatch/.test(await page.locator('.pl-tool.is-stops').innerText()), '4a Stops timed, first tool: none yet');
@@ -71,7 +76,8 @@ await page.locator('.pl-tool.is-stops').click(); await page.waitForTimeout(1500)
 ok(/#\/w\/[^/]+\/analyse$/.test(page.url()), `4e with stops, the row opens the ranking: ${page.url().split('#')[1]}`);
 await page.goBack(); await page.waitForTimeout(1500);
 // take a problem on it
-await page.locator('.pl .pace-head-actions').getByRole('button', { name: 'Problem', exact: true }).click(); await page.waitForTimeout(900);
+/* the bar's Problem takes it on this line (B3: the line's header no longer draws a second one) */
+await page.locator('.nv-top .qs-top').click(); await page.waitForTimeout(900);
 const sheet = page.locator('.sheet, [role="dialog"]').last();
 const lineSel = sheet.locator('label', { hasText: 'LINE' }).locator('select');
 const chosen = await lineSel.evaluate(el => el.options[el.selectedIndex]?.text);
@@ -84,13 +90,13 @@ if (OUT) await page.screenshot({ path: `${OUT}/l-2-line-problem.png` });
 // the line on paper — its report, and a card for each problem open
 const dir = mkdtempSync(join(tmpdir(), 'lines-'));
 const pdfOf = async (name, file) => {
-  const [d] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), page.locator('.pl .pace-head-actions').getByRole('button', { name, exact: true }).click()]);
+  const [d] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, name, page.locator('.pl'))]);
   const f = join(dir, file); await d.saveAs(f);
   return { text: execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' '), pages: Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [f], { encoding: 'utf8' }))?.[1]) };
 };
 const rep = await pdfOf('Problems report', 'line.pdf');
 ok(/Line 2B — problems/.test(rep.text) && /Infeed guard loose on the bagger/.test(rep.text), '6b the line on paper: its Problems report, its problem on it');
-const cards = await pdfOf('Report cards', 'line-cards.pdf');
+const cards = await pdfOf('Problem cards', 'line-cards.pdf');
 ok(cards.pages === 1 && /Infeed guard loose/.test(cards.text), `6c and a card for each problem open (${cards.pages})`);
 
 // tap it → register filtered, editor open
@@ -120,8 +126,8 @@ await page.goto(`${BASE}/#/lines/${(await page.evaluate(async () => (await (awai
 const wide = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 ok(wide <= 1, `13 phone: nothing off the side (${wide}px)`);
 if (OUT) await page.screenshot({ path: `${OUT}/l-4-phone.png` });
-await page.getByRole('button', { name: 'More' }).click(); await page.waitForTimeout(800);
-ok(/Line 2B/.test(await page.locator('body').innerText()), '14 phone: More lists the line');
+await page.locator('.nv-bar .nv-bi', { hasText: 'More' }).click(); await page.waitForTimeout(800);
+ok(/Actions/.test(await page.locator('.nv-sheet').innerText()) && /Tools/.test(await page.locator('.nv-sheet').innerText()), '14 phone: More is the menu — Actions and Tools in it');
 if (OUT) await page.screenshot({ path: `${OUT}/l-5-phone-more.png` });
 await page.keyboard.press('Escape'); await page.waitForTimeout(500);
 // THE PHONE'S BAR INSIDE THE STUDY (docs/UPGRADE-AUDIT.md F2): one Problem button on the line's page; Capture · Analyse · Evidence on the bar
@@ -130,7 +136,7 @@ await page.locator('.pl .pace-head-actions .pl-time').click(); await page.waitFo
 const bar = (await page.locator('.nv-bar').innerText()).replace(/\s+/g, ' ');
 /* the bar is the line's, fixed (docs/STRUCTURE.md D6, B2); the study's four views are tabs on its page */
 const views = (await page.locator('.study-views [role=tab]').allInnerTexts()).join(' · ');
-ok(bar === 'Overview Tools Problem Problems More' && views === 'Capture · Analyse · Evidence · Meeting', `16 phone: the bar in a study is the line's (${bar}), its views on the page (${views})`);
+ok(bar === 'Factory Projects Problem Problems More' && views === 'Capture · Analyse · Evidence · Meeting', `16 phone: the bar in a study is the menu's (${bar}), its views on the page (${views})`);
 await page.locator('.study-views').getByRole('tab', { name: 'Analyse' }).click(); await page.waitForTimeout(1500);
 ok(/#\/w\/[^/]+\/analyse$/.test(page.url()), `17 phone: Analyse is one tap from the stopwatch: ${page.url().split('#')[1]}`);
 ok(errs.length === 0, `no console errors ${errs.slice(0, 3).join(' | ')}`);

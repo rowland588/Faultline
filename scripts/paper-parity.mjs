@@ -22,7 +22,18 @@ const [OLD, NEW] = process.argv.slice(2);
 if (!OLD || !NEW) { console.error('node scripts/paper-parity.mjs OLD NEW'); process.exit(2); }
 
 /** A paper whose words a slice changed on purpose: its file name, and why. */
-const MEANT = {};
+const MEANT = {
+  /* pass or fail by a confidence level or an allowed loss (FC-100, 23 October: "we also want to be adding confidence as part of our
+     language"): "that proves fewer than 32 in 100 would fail (95% sure)" is said "we can be 95% confident fewer than 32 in 100 would fail" */
+  'ordinary-client.pdf': 'pass or fail said with its confidence (FC-100, 23 October)',
+  'ordinary-commissioning.pdf': 'pass or fail said with its confidence (FC-100, 23 October)',
+  'ordinary-day.pdf': 'pass or fail said with its confidence (FC-100, 23 October)',
+  'ordinary-handover.pdf': 'pass or fail said with its confidence (FC-100, 23 October)',
+  'ordinary-studies-capability.pdf': 'pass or fail said with its confidence (FC-100, 23 October)',
+  /* the huge job's first SMED timing made independent of the hour (src/dev/reportSeeds): the day paper's "N elements timed"
+     counted across midnight before about 08:20 — the old run's count depends on when it ran */
+  'huge-day.pdf': 'the seed’s SMED timing no longer moves with the clock (23 October)',
+};
 
 const MONTHS = 'Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|June|July|August|September|October|November|December';
 /** The words of a paper, the day and the time it was made taken out. */

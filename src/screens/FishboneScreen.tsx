@@ -279,7 +279,7 @@ function OpenProblemSheet({ open, line, doors, problems, onOpen, onTake, onClose
                 <li key={x.id}>
                   <button type="button" className="fj-seen-p" disabled={busy} onClick={() => void take(x)}>
                     <span className="fj-seen-t">{x.problem.trim()}</span>
-                    <span className="fj-seen-s">{SEEN_PRIORITY[x.priority ?? 'low']} · in Control room problems{x.owner?.trim() ? ` · ${x.owner.trim()}` : ''}</span>
+                    <span className="fj-seen-s">{SEEN_PRIORITY[x.priority ?? 'low']} · in the factory’s Problems{x.owner?.trim() ? ` · ${x.owner.trim()}` : ''}</span>
                   </button>
                 </li>
               ))}
@@ -544,7 +544,7 @@ export function FishboneJourney({ projectId, lineId: fixedLine, can, room = fals
     if (!made) return;
     setOpening(false);
     const t = made.problem.title;
-    offerUndo(`Opened “${t.length > 40 ? t.slice(0, 39) + '…' : t}” — taken from Control room problems`, made.undo);
+    offerUndo(`Opened “${t.length > 40 ? t.slice(0, 39) + '…' : t}” — taken from the factory’s Problems`, made.undo);
     setQuery({ problem: made.problem.id, line: fixedLine ? undefined : (made.problem.lineId ?? line?.id), cause: undefined, panel: undefined });
   };
 

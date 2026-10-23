@@ -13,6 +13,7 @@
  * which product, and a job when it is for one — none is a real answer, as on
  * a snag. Attaching it to a job later is on its own page (StandardScreen
  * BelongsTo), and an attached one shows in that job's line standard too. */
+import { PageHeader } from '../ui/parts';
 import { LineCapacityHero } from '../ui/LineCapacityHero';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { addLineToFactory, asked } from '../lib/lines';
@@ -173,18 +174,15 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
 
   return (
     <div className="wrap qsl lt">
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <h1>{w.title}</h1>
-          <p className="sub">{w.lede}</p>
-        </div>
-        <div className="pace-head-actions">
-          <button type="button" className="btn" disabled={making || !shownCount} onClick={() => void paper()}
-            aria-label={tool === 'balance' ? 'PDF (all shown) — Line capacity for every product shown' : tool === 'work' ? 'PDF (all shown) — the line balance for every product shown' : 'PDF (all shown) — a line standard card for every product shown'}>
-            {making ? 'Making…' : 'PDF (all shown)'}</button>
-          {mayAdd && <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>{w.add}</button>}
-        </div>
-      </header>
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): New the one thing to do; the list on paper in Report ▾,
+          named for what it is (it was "PDF (all shown)") */}
+      <PageHeader title={w.title} says={<span className="sub">{w.lede}</span>}
+        primary={mayAdd ? { label: w.add, run: () => setAdding(true) } : undefined}
+        papers={[{
+          label: tool === 'balance' ? 'Line capacity — every product shown' : tool === 'work' ? 'Line balance — every product shown' : 'Line standard cards — every product shown',
+          for: !shownCount ? 'no product shown' : tool === 'map' ? 'a card a page for every product shown' : 'a front saying them all, then every product shown',
+          disabled: making || !shownCount, make: () => paper(),
+        }]} />
       {inP.id && <ProjectScopeChips name={inP.project?.name} lines={inP.lineIds.length} scope={scope} onScope={setScope} />}
       {inP.id && scope !== 'all' && list && list.length > 0 && groups.length === 0 && (
         <div className="qsl-empty">
@@ -198,13 +196,13 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
           <p><b>None on {groupName(lineF)} yet.</b> Pick a product — one per product, on the line.</p>
           <div className="chip-row">
             <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>{w.add}</button>
-            <button type="button" className="btn btn-ghost" onClick={() => setLineF('all')}>Every line</button>
+            <button type="button" className="btn btn-ghost" onClick={() => setLineF('all')}>All lines</button>
           </div>
         </div>
       )}
       {(groups.length > 1 || (lineF !== 'all' && groups.length > 0)) && (
         <div className="chip-row qsl-f" role="group" aria-label="Which line">
-          <button type="button" className={'chip' + (lineF === 'all' ? ' on' : '')} aria-pressed={lineF === 'all'} onClick={() => setLineF('all')}>Every line</button>
+          <button type="button" className={'chip' + (lineF === 'all' ? ' on' : '')} aria-pressed={lineF === 'all'} onClick={() => setLineF('all')}>All lines</button>
           {groups.map(([k]) => (
             <button key={k} type="button" className={'chip' + (lineF === k ? ' on' : '')} aria-pressed={lineF === k} onClick={() => setLineF(k)}>{groupName(k)}</button>
           ))}

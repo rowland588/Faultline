@@ -33,21 +33,26 @@ import { CaseScreen } from './CaseScreen';
 import { LineStandardsScreen } from './LineStandardsScreen';
 import { ViewTabs } from '../ui/parts';
 
-/** THE STUDY'S FOUR VIEWS, ON A PHONE — since the phone's bar is the line's, fixed (docs/STRUCTURE.md
- *  D6, B2), Capture · Analyse · Evidence · Meeting are tabs at the top of the study's page there, so
- *  Analyse stays one tap from the stopwatch (docs/UPGRADE-AUDIT.md F2). On a laptop the rail lists
- *  them under Logs; B6 makes these tabs the study's only views. */
+/** STOPS TIMED, THE LINE'S FIRST LOG (docs/STRUCTURE.md D8, B6) — the line study, named for what it
+ *  is, with its four views as tabs at the top of its page, at a desk as on a phone: Capture · Analyse ·
+ *  Evidence · Meeting, so Analyse stays one tap from the stopwatch (docs/UPGRADE-AUDIT.md F2). They were
+ *  four lines of the rail under Logs (and on a phone tabs since B2); the rail lights Logs now. */
 const STUDY_VIEWS = [{ key: 'capture', label: 'Capture' }, { key: 'analyse', label: 'Analyse' }, { key: 'snaglist', label: 'Evidence' }, { key: 'meeting', label: 'Meeting' }];
-function StudyViews({ ws, screen }: { ws: string; screen: string }) {
+function StudyViews({ ws, screen, line }: { ws: string; screen: string; line: string }) {
   if (!STUDY_VIEWS.some(v => v.key === screen)) return null;
-  return <div className="study-views"><ViewTabs views={STUDY_VIEWS} value={screen} onChange={k => nav(`/w/${ws}/${k}`)} label="The study’s views" /></div>;
+  return (
+    <div className="study-views">
+      <p className="study-log"><b>Stops timed</b>{line ? <> · {line}</> : null}</p>
+      <ViewTabs views={STUDY_VIEWS} value={screen} onChange={k => nav(`/w/${ws}/${k}`)} label="Stops timed — its views" />
+    </div>
+  );
 }
 
 /** The page's name, for the study's screens that have no heading of their
  *  own — the spine used to be the only thing that said which one you were
  *  on. Analyse and Evidence carry their own; the walk's screens sit under
  *  its deep trail. */
-const PAGE_NAME: Record<string, string> = { capture: 'Capture', line: 'Machines', case: 'The case' };
+const PAGE_NAME: Record<string, string> = { line: 'Machines', case: 'The case' };
 
 /** A saved link to a screen that folded into another lands on the other. */
 function Go({ to }: { to: string }) {
@@ -69,7 +74,7 @@ export function AppShell({ route }: { route: Route }) {
 
   // The meeting, the snag walkthrough and the printable report fill the
   // frame's main area; they wear the same top bar and rail as every screen.
-  if (screen === 'meeting') return <><div className="wrap"><StudyViews ws={ws} screen={screen} /></div><MeetingScreen /></>;
+  if (screen === 'meeting') return <><div className="wrap"><StudyViews ws={ws} screen={screen} line={workspace.name} /></div><MeetingScreen /></>;
   if (screen === 'walk') return <WalkthroughScreen wsId={ws} />;
   if (screen === 'report') return <ReportScreen />;
   /* The line's own tools — its maps and balances, a job optional
@@ -80,7 +85,7 @@ export function AppShell({ route }: { route: Route }) {
      their own. */
   return (
     <div className="wrap app">
-      <StudyViews ws={ws} screen={screen} />
+      <StudyViews ws={ws} screen={screen} line={workspace.name} />
       {/* THE WALK'S DEEP TRAIL — the segment you are in and the frame marked
           in it, each a tap back up. Below "Evidence" in the rail, which is as
           deep as the rail goes. Only drawn inside a walk. */}
