@@ -127,7 +127,7 @@ for (const width of [1360, 390]) {
     if (!kind) { unnamed.push(`${pg.name}: "${got.said}"`); continue; }
     if (kind === 'home') continue;
     const lines = got.rail.filter(l => l.l !== 'Factory');
-    /* a line study's four views sit under its line (Logs on a line, the line or the project's own pages in a project) until B6 folds them into the log */
+    /* a line study's four views sat under its line (Logs on a line, the line or the project's own pages in a project) until B6 folded them into the log's tabs — none are counted out now */
     const study = lines.filter(l => l.sub && ['Capture', 'Analyse', 'Evidence', 'Meeting'].includes(l.l)).length;
     if (width > 900 && lines.length - study > LIMIT[kind]) over.push(`${pg.name} (${kind}): ${lines.length} — ${lines.map(l => l.l).join(', ')}`);
     if (width < 900) {

@@ -217,24 +217,14 @@ export interface RailLineOf { id: string; name: string; workspaceId?: string;
    *  ("Line 8" for Line 7 — smoke test; docs/FLOW-AUDIT.md #7). */
   factoryName?: string }
 
-/** The screens of a line study, drawn under the line they belong to (or
- *  under the job, when the job's own line was filmed). The line's maps and
- *  capacities were a fifth line here, "Maps and balance": a second door to
- *  what Tools › Line standard and Line capacity open, and what the line's own
- *  page lists as its tools — it went (docs/FLOW-AUDIT.md #7, #20), and a
- *  product of the line lights its tool instead (hereOf, lineStandards). */
-export function studyLines(wsId: string, here: string): RailLine[] {
-  const s = (key: string, label: string, to: string, icon: RailLine['icon']): RailLine =>
-    ({ key, label, to: `/w/${wsId}/${to}`, on: here === key, state: 'n', sub: true, bare: true, icon });
-  return [
-    s('capture', 'Capture', 'capture', 'time'), s('analyse', 'Analyse', 'analyse', 'chart'),
-    s('snaglist', 'Evidence', 'snaglist', 'camera'), s('meeting', 'Meeting', 'meeting', 'people'),
-  ];
-}
+/** THE SCREENS OF A LINE STUDY — Capture, Analyse, Evidence and Meeting were drawn on the rail under
+ *  the line (or the project) whose study it was, a rail inside the rail. Since B6 (docs/STRUCTURE.md D8)
+ *  the study is the line's first log, *Stops timed*, and the four are its views — tabs on its page
+ *  (screens/AppShell StudyViews), at a desk as on a phone; the rail lights where the study sits. */
+export const STUDY_SCREENS = new Set(['capture', 'analyse', 'snaglist', 'meeting']);
 
-/** LINES — each line of the project, and under the one whose study you are
- *  inside, that study's four screens. Two lines can share one study (it was
- *  filmed across both); its screens are drawn once, under the first.
+/** LINES — each line of the project; inside a line study the line it is of is lit (its screens are the
+ *  study's own tabs since B6). Two lines can share one study (it was filmed across both); the first is lit.
  *
  *  A JOB POINTS AT THE FACTORY'S LINE (docs/BLUEPRINT.md §1 rule 2). A line
  *  of Your factory is said by the factory's name and opens the line's own
@@ -249,10 +239,12 @@ export function linesGroup(projectId: string, lines: RailLineOf[], here: string,
     const fac = l.factoryName && l.workspaceId ? l.workspaceId : undefined;
     if (fac && seen.has(fac)) continue;
     if (fac) seen.add(fac);
-    out.push(fac
+    const line = fac
       ? plain(`line:${l.id}`, l.factoryName as string, `/lines/${fac}`, here, 'hash')
-      : plain(`line:${l.id}`, l.name, `/project/${projectId}/line/${l.id}`, here, 'hash'));
-    if (wsId && !drawn && l.workspaceId === wsId) { out.push(...studyLines(wsId, here)); drawn = true; }
+      : plain(`line:${l.id}`, l.name, `/project/${projectId}/line/${l.id}`, here, 'hash');
+    const inStudy = !!wsId && !drawn && l.workspaceId === wsId && STUDY_SCREENS.has(here);
+    if (inStudy) drawn = true;
+    out.push(inStudy ? { ...line, on: true } : line);
   }
   return { label: 'Lines', lines: out };
 }

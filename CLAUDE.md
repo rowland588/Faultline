@@ -154,6 +154,11 @@ lines*; the smoke test fails on the old names as a title, door, button or
 chip. A 6M or lever-tree project's Numbers and Wins are one page, *Results*,
 with two views, and its Evidence — the filmed line — is on its *Tools* page
 (D9; `?view=snags` lands there, a stage gate's on Install).
+**Since B6 the line study is the line's first log, *Stops timed*** — named
+at the top of its page, its four screens (Capture · Analyse · Evidence ·
+Meeting) tabs on it at a desk as on a phone, none of them a rail line; the
+rail lights Logs on a line, the line in a 6M project, the Plan in a stage
+gate.
 
 ## The blueprint comes first
 

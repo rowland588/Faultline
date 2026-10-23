@@ -276,12 +276,14 @@ export const PAGES = (sd, cap) => [
     { what: 'the tools on this line', sel: '.pl-tools .pl-tool', n: 4 },
     { what: 'New ▾ — a tool started here is the line’s', sel: '.pl-sec-h .part-menu-b' },
     { what: 'the line’s rail, Tools lit', sel: '.nv-rail .nv-ri.is-on', text: /Tools/, desk: true }] },
-  /* A LINE STUDY'S CAPTURE — on a phone its four views are tabs on the page, the bar being the line's (B2) */
-  { name: 'Capture — a line study', path: `#/w/${sd.wsId}/capture`, must: [
-    { what: 'its heading', sel: '.pace-title', text: /^Capture$/ },
-    { what: 'the study’s four views, on a phone', sel: '.study-views [role=tab]', n: 4, phone: true },
-    /* the seeded study is a stage-gate project's own walk: its four views under the project's own pages */
-    { what: 'its four views on the rail', sel: '.nv-rail .nv-ri.is-sub', text: /^(Capture|Analyse|Evidence|Meeting)$/, n: 4, desk: true }] },
+  /* STOPS TIMED — the line study, the line's first log (docs/STRUCTURE.md D8, B6): named, its four views
+     tabs on its page at a desk as on a phone; no screen of it on the rail */
+  { name: 'Stops timed — Capture', path: `#/w/${sd.wsId}/capture`, must: [
+    { what: 'its name, Stops timed, and the line', sel: '.study-log b', text: /^Stops timed$/ },
+    { what: 'its four views as tabs, Capture lit', sel: '.study-views [role=tab]', n: 4 },
+    { what: 'Capture the view shown', sel: '.study-views [role=tab][aria-selected=true]', text: /^Capture$/ },
+    /* the seeded study is a stage-gate project's own walk, filmed from Install: the Plan lit */
+    { what: 'where it sits lit on the rail — the Plan', sel: '.nv-rail .nv-ri.is-on', text: /Plan/, desk: true }] },
   { name: 'Actions — the factory', path: '#/actions', must: [
     { what: 'the six tiles', sel: '.act-tiles .ln-tile', n: 6 }, { what: 'seen by who, when, where or project', sel: '[aria-label="Seen by"] .chip', n: 4 },
     { what: 'every project’s actions and every line’s own problems', sel: '.act-li' }, { what: 'the closing line', sel: '.ln-close' }] },

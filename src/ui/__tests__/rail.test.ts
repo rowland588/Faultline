@@ -171,10 +171,13 @@ describe('a project\'s rail: the way up, its overview and its type\'s own pages,
     expect(all(g).find(l => l.label === 'Line 7')?.to).toBe('/lines/w7');
     expect(all(g).find(l => l.key === 'problems')?.to).toBe(`/snags?project=${P}`);
   });
-  it('inside a line study on a 6M project, its four screens sit under its line', () => {
+  it('inside a line study on a 6M project, its line is lit and no screen of it is a rail line (B6)', () => {
     const g = projectGroups({ projectId: P, name: 'Pace', model: 'board', here: 'analyse', counts: {}, late: 0, wsId: 'w7', lines: [{ id: 'l1', name: 'Line 7', workspaceId: 'w7', factoryName: 'Line 7' }] });
-    expect(said(g).slice(said(g).indexOf('Line 7'), said(g).indexOf('Line 7') + 5)).toEqual(['Line 7', 'Capture', 'Analyse', 'Evidence', 'Meeting']);
-    expect(all(g).find(l => l.key === 'analyse')).toMatchObject({ on: true, sub: true, to: '/w/w7/analyse' });
+    expect(said(g).filter(l => ['Capture', 'Analyse', 'Evidence', 'Meeting'].includes(l))).toEqual([]);
+    expect(all(g).find(l => l.label === 'Line 7')).toMatchObject({ on: true, to: '/lines/w7' });
+    /* off the study, the line is not lit */
+    const off = projectGroups({ projectId: P, name: 'Pace', model: 'board', here: 'fishbone', counts: {}, late: 0, wsId: 'w7', lines: [{ id: 'l1', name: 'Line 7', workspaceId: 'w7', factoryName: 'Line 7' }] });
+    expect(all(off).find(l => l.label === 'Line 7')?.on).toBe(false);
   });
   it('a lever tree: Tree first, and a Pareto when the project chose one', () => {
     const g = projectGroups({ projectId: P, name: 'Tree', model: 'tree', here: 'tree', counts: {}, late: 0, tools: { pareto: true } });

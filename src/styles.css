@@ -14149,7 +14149,9 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 
 /* A line study's four views as tabs, on a phone only — the rail lists them on a laptop (B2) */
 .study-views { margin: 0 0 12px; overflow-x: auto; }
-@media (min-width: 900px) { .study-views { display: none; } }
+/* Stops timed, named above its four views — the line's first log (B6) */
+.study-log { margin: 0 0 var(--space-2); font-size: var(--t-detail); color: var(--ink-2); }
+.study-log b { color: var(--ink); }
 @media print { .study-views { display: none; } }
 
 /* the lever tree's own view under its title — its actions shown or folded, its zoom (B3) */

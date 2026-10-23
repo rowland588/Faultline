@@ -48,7 +48,7 @@ import { toolByKey } from '../catalogue/registry';
 import { listAllSnags, allPaceLines } from '../db';
 import { useFactoryLines } from '../lib/useFactoryLines';
 import {
-  hereOf, hereIn, factoryGroups, lineGroups, projectGroups, scopeBar, studyLines,
+  hereOf, hereIn, factoryGroups, lineGroups, projectGroups, scopeBar, STUDY_SCREENS,
   type RailGroup, type RailLine, type RailLineOf, type RailMachine, type SquareState, type Count,
 } from './rail';
 
@@ -263,13 +263,12 @@ function MethodNav(p: NavProps & { method: 'board' | 'tree' }) {
   return <NavChrome groups={groups} project={p.project} model={p.model} kind="project" onPage={p.onPage} />;
 }
 
-/** Inside a line study the project wears, its four screens on the rail: under
- *  its line on a 6M or tree project (projectGroups draws them there); under
- *  the project's own pages otherwise — a stage-gate job films its new line from
- *  Install, and has no Lines on its rail to hang them under. */
+/** Inside a line study the project wears, where it sits is lit: its line on a 6M or tree project
+ *  (projectGroups lights it); the Plan on a stage gate, which films its new line from Install, a gate
+ *  of the Plan. The study's four screens are its own tabs since B6 (docs/STRUCTURE.md D8). */
 function withJobStudy(groups: RailGroup[], wsId: string | undefined, here: string): RailGroup[] {
-  if (!wsId || groups.some(g => g.lines.some(l => l.key === 'capture'))) return groups;
-  return groups.map(g => (g.lines.some(l => l.key === 'job') ? { ...g, lines: [...g.lines, ...studyLines(wsId, here)] } : g));
+  if (!wsId || !STUDY_SCREENS.has(here) || groups.some(g => g.lines.some(l => l.on))) return groups;
+  return groups.map(g => ({ ...g, lines: g.lines.map(l => (l.key === 'plan' ? { ...l, on: true } : l)) }));
 }
 
 /* ------------------------------------------------------------------------- */
@@ -298,13 +297,12 @@ function LineNav({ wsId, name, here, projects, onPage }: { wsId: string; name: s
   const onLine = useProjectsOnLine(wsId, projects);
   const groups = lineGroups(wsId, here, { problems, projects: onLine }).map(g => ({
     ...g,
-    /* inside the line's study, its four screens under Logs (B6 makes them the log's views) */
-    lines: g.lines.flatMap(l => (l.key === 'logs' && STUDY_KEYS.has(here) ? [{ ...l, on: true }, ...studyLines(wsId, here)] : [l])),
+    /* inside the line's study — its first log, Stops timed — Logs is lit; its four screens are the log's tabs (B6) */
+    lines: g.lines.map(l => (l.key === 'logs' && (STUDY_SCREENS.has(here) || here === 'logs') ? { ...l, on: true } : l)),
   }));
   return <NavChrome groups={groups} kind="line" line={{ id: wsId, name }} onPage={onPage} />;
 }
 
-const STUDY_KEYS = new Set(['capture', 'analyse', 'snaglist', 'meeting', 'logs']);
 
 /** How many running projects are on the line — its Projects page's count. */
 function useProjectsOnLine(wsId: string, projects: Project[]): number {
