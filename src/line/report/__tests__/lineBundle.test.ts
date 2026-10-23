@@ -3,12 +3,12 @@
  * default, who owes what; a dual line as its lines then both together. */
 import { describe, expect, it } from 'vitest';
 import { actionsOn, bundleSays, defaultPicks, itemsOn, lineBundle, whereOnLine } from '../lineBundle';
-import type { Workspace } from '../../types';
-import type { Snag } from '../../snag/types';
-import type { Program } from '../programs';
-import type { ToolStudy } from '../study';
-import type { Standard } from '../standard';
-import type { Asset } from '../testing';
+import type { Workspace } from '../../../types';
+import type { Snag } from '../../../snag/types';
+import type { Program } from '../../../lib/programs';
+import type { ToolStudy } from '../../../lib/study';
+import type { Standard } from '../../../lib/standard';
+import type { Asset } from '../../../lib/testing';
 
 const TODAY = '2026-10-23';
 const line = (id: string, name: string, assets: string[], madeOf?: string[]): Workspace =>

@@ -10,23 +10,23 @@
  * tool's own paper does not draw: the sections are theirs, the order is the
  * line's. */
 import type { jsPDF } from 'jspdf';
-import type { Standard } from './standard';
-import type { StudyContext } from './studyLinks';
-import type { ProgramsReading } from './programsReport';
-import type { CapacityPaper } from './capacityPaper';
-import type { LineReading } from './lineLean';
-import { lineClosing, lineTiles } from './lineLean';
+import type { Standard } from '../../lib/standard';
+import type { StudyContext } from '../../lib/studyLinks';
+import type { ProgramsReading } from '../../lib/programsReport';
+import type { CapacityPaper } from '../../lib/capacityPaper';
+import type { LineReading } from '../../lib/lineLean';
+import { lineClosing, lineTiles } from '../../lib/lineLean';
 import type { LineBundle, LinePart } from './lineBundle';
-import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
-import { font, gap, rows, text, wrap } from './report/blocks';
-import { leanActions, leanBand, leanClosing, leanHead, leanTiles } from './report/lean';
-import { bandPage, type LeanTone } from './lean';
-import { listRows } from './lineReportPdf';
-import { programsBlocks } from './programsReportPdf';
-import { studyBlocks, type StudiesPaper } from './studiesPdf';
-import { productLeanBlocks } from './capacityPaperPdf';
-import { PRIORITY_WORD } from './snagsReport';
-import { headcount } from './standard';
+import { chooseDensity, pour, type Block, type Density, type Frame } from '../../lib/report/flow';
+import { font, gap, rows, text, wrap } from '../../lib/report/blocks';
+import { leanActions, leanBand, leanClosing, leanHead, leanTiles } from '../../lib/report/lean';
+import { bandPage, type LeanTone } from '../../lib/lean';
+import { listRows } from '../../lib/lineReportPdf';
+import { programsBlocks } from '../../lib/programsReportPdf';
+import { studyBlocks, type StudiesPaper } from '../../lib/studiesPdf';
+import { productLeanBlocks } from '../../lib/capacityPaperPdf';
+import { PRIORITY_WORD } from '../../lib/snagsReport';
+import { headcount } from '../../lib/standard';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const INK2 = '#323d43', MUTED = '#59666c', LINE = '#dde6e6';

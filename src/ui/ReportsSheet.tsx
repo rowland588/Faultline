@@ -6,7 +6,7 @@
 import { useEffect, useState } from 'react';
 import type { Project } from '../types';
 import { planModel } from '../lib/planModel';
-import { kindFacts } from '../lib/projectKind';
+import { kindFacts } from '../project/projectKind';
 import { usePaceLines } from '../lib/usePaceLines';
 import { getPaceWorkspaceId } from '../db';
 import { nav } from '../state/useRoute';

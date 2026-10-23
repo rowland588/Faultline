@@ -24,26 +24,26 @@
  * the closing line. Nothing worked out is stored; the module makes every
  * figure, the same one its paper (lib/studiesPdf) reads. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getStudy, onDataChange, patchStudy } from '../db';
-import { useAccess } from '../cloud/access';
-import { useSession } from '../cloud/session';
-import { displayName } from '../cloud/team';
-import { can as canAt } from '../lib/access';
-import { now, uid } from '../lib/ids';
-import { niceDay, isoDay } from '../lib/weeks';
-import { nav } from '../state/useRoute';
-import type { AgreedReliability, RelCount, RelEvent, Remark, ToolStudy, WatchRun } from '../lib/study';
+import { getStudy, onDataChange, patchStudy } from '../../db';
+import { useAccess } from '../../cloud/access';
+import { useSession } from '../../cloud/session';
+import { displayName } from '../../cloud/team';
+import { can as canAt } from '../../lib/access';
+import { now, uid } from '../../lib/ids';
+import { niceDay, isoDay } from '../../lib/weeks';
+import { nav } from '../../state/useRoute';
+import type { AgreedReliability, RelCount, RelEvent, Remark, ToolStudy, WatchRun } from '../../lib/study';
 import {
   costWords, countersOf, countTitle, FIRST_COUNT, LEFT_ON_H, perHour, plural, relAll, relCost, reliabilityInsights, reliabilitySays, relRows, runningRun, span,
   studyReliabilitySays, watchedSpans, type RelCounter, type RelFigures, type RelItem,
-} from '../lib/ie/reliability';
-import { relClosings, relTiles, relTrend } from '../lib/ie/reliabilityLean';
-import { WhereItSits, UsedFor, useBetter } from '../ui/StudyPlace';
-import { LeanActions, LeanClosing, LeanInsights, LeanPanel, LeanTiles, LeanTrend } from '../ui/Lean';
-import { bandPage } from '../lib/lean';
-import { raisedFrom } from '../lib/ie/lossLean';
-import { useFactoryLines } from '../lib/useFactoryLines';
-import { StudyBand } from '../ui/StudyActs';
+} from './reliability';
+import { relClosings, relTiles, relTrend } from './reliabilityLean';
+import { WhereItSits, UsedFor, useBetter } from '../../ui/StudyPlace';
+import { LeanActions, LeanClosing, LeanInsights, LeanPanel, LeanTiles, LeanTrend } from '../../ui/Lean';
+import { bandPage } from '../../lib/lean';
+import { raisedFrom } from '../../lib/ie/lossLean';
+import { useFactoryLines } from '../../lib/useFactoryLines';
+import { StudyBand } from '../../ui/StudyActs';
 
 const OWNER = canAt('owner');
 const hms = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });

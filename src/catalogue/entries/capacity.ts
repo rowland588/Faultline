@@ -317,7 +317,7 @@ export const CAPACITY: Entry[] = [
     depends: ['FC-058', 'FC-049'],
     complexity: 'S', value: 'high', valueWhy: 'Makes the hidden loss a number.',
     status: 'partial', form: 'mode', partOf: 'FC-058', methods: ['equipment.short-stops-speed', 'maintenance.mtbf-failure-rate'], scenarios: ['machine'], words: ['micro stops', 'minor stops'],
-    built: { where: ['/reliability'], code: ['src/lib/ie/reliability.ts'], tests: ['src/lib/ie/__tests__/reliability.test.ts'], acceptance: ['reliability.mjs'] },
+    built: { where: ['/reliability'], code: ['src/tools/reliability/reliability.ts'], tests: ['src/tools/reliability/__tests__/reliability.test.ts'], acceptance: ['reliability.mjs'] },
     limits: ['The reliability study counts them (frequency, MTBF); their durations are not timed (FC-059).'],
   },
   {

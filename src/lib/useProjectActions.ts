@@ -9,7 +9,7 @@ import { listAllSnags, listPaceTodos, listWorkspaces, onDataChange, type PaceTod
 import type { Project } from '../types';
 import { useJobInputs } from './useJobInputs';
 import { everyAction, projectActions, type DoneThing, type ProjectAction, type RegisterProblem } from './projectActions';
-import { owedAndDone, registerRow, useProjectRead } from './projectRead';
+import { owedAndDone, registerRow, useProjectRead } from '../project/projectRead';
 import { todayISO } from './weeks';
 import { liveProductionLines } from './lines';
 

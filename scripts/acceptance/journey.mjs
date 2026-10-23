@@ -78,7 +78,7 @@ const PID = sd.projectId;
 
 /* WHAT THE RECORDS SAY — the journey read by the module from the device's own records, for a pick or two dates */
 const truth = (pick, dates) => page.evaluate(async ([pid, pick, dates]) => {
-  const db = await import('/src/db.ts'); const J = await import('/src/lib/journey.ts'); const W = await import('/src/lib/weeks.ts'); const M = await import('/src/lib/planModel.ts');
+  const db = await import('/src/db.ts'); const J = await import('/src/project/journey/journey.ts'); const W = await import('/src/lib/weeks.ts'); const M = await import('/src/lib/planModel.ts');
   const today = W.todayISO();
   const project = await db.getProject(pid);
   const items = await db.listTestItems(pid);

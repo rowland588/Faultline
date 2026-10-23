@@ -19,7 +19,7 @@ import { ProgramsDoor } from './screens/ProgramsPage';
 import { TestsScreen } from './screens/TestsScreen';
 import { FixesScreen } from './screens/FixesScreen';
 import { ActionsScreen, EveryActionScreen } from './screens/ActionsScreen';
-import { JourneyScreen } from './screens/JourneyScreen';
+import { JourneyScreen } from './project/journey/JourneyScreen';
 import { InstallScreen } from './screens/InstallScreen';
 import { DayScreen } from './screens/DayScreen';
 import { PlanScreen } from './screens/PlanScreen';
@@ -44,7 +44,7 @@ const ClientReportScreen = lazy(() => import('./screens/ClientReportScreen').the
 const PaceExecReport = lazy(() => import('./screens/PaceExecReport').then(m => ({ default: m.PaceExecReport })));
 const QuickSnagsScreen = lazy(() => import('./snag/QuickSnagsScreen').then(m => ({ default: m.QuickSnagsScreen })));
 const ProductionLineScreen = lazy(() => import('./screens/ProductionLineScreen').then(m => ({ default: m.ProductionLineScreen })));
-const LineReportScreen = lazy(() => import('./screens/LineReportScreen').then(m => ({ default: m.LineReportScreen })));
+const LineReportScreen = lazy(() => import('./line/report/LineReportScreen').then(m => ({ default: m.LineReportScreen })));
 const FactoryScreen = lazy(() => import('./screens/FactoryScreen').then(m => ({ default: m.FactoryScreen })));
 const LineProgramsScreen = lazy(() => import('./screens/LineProgramsScreen').then(m => ({ default: m.LineProgramsScreen })));
 const LineToolsScreen = lazy(() => import('./screens/LineToolsScreen').then(m => ({ default: m.LineToolsScreen })));
@@ -52,7 +52,7 @@ const StudiesScreen = lazy(() => import('./screens/StudiesScreen').then(m => ({ 
 const StudyScreen = lazy(() => import('./screens/StudyScreen').then(m => ({ default: m.StudyScreen })));
 const MapScreen = lazy(() => import('./screens/MapScreen').then(m => ({ default: m.MapScreen })));
 const ChangeoverScreen = lazy(() => import('./screens/ChangeoverScreen').then(m => ({ default: m.ChangeoverScreen })));
-const ReliabilityScreen = lazy(() => import('./screens/ReliabilityScreen').then(m => ({ default: m.ReliabilityScreen })));
+const ReliabilityScreen = lazy(() => import('./tools/reliability/ReliabilityScreen').then(m => ({ default: m.ReliabilityScreen })));
 /* the directory reads the whole catalogue — on its own, so it never weighs on the rest */
 const ToolsScreen = lazy(() => import('./screens/ToolsScreen').then(m => ({ default: m.ToolsScreen })));
 const ProjectToolsScreen = lazy(() => import('./screens/ProjectToolsScreen').then(m => ({ default: m.ProjectToolsScreen })));

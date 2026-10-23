@@ -69,7 +69,7 @@ It is done after J3 (`docs/JOURNEY.md`) and before anything new is built.
 |---|---|---|
 | S1 — **built 23 October** (§5) | the *one number* check (`scripts/acceptance/one-number.mjs`): on the seeded stage-gate and 6M projects, late · open · done · critical read from the front page's band, Needs you, Actions' tiles, the Journey's tiles, the status report, the client report and the control room's row — all equal | it passes on today's code, or it finds a real disagreement, which is fixed first |
 | S2 — **built 23 October** (§6) | each project kind as one module (`project/stagegate`, `project/sixm`, `project/tree`): what it is made of, its reader, its owed and done rows, its papers; `useJobInputs` reads them; the 37 branches replaced by one ask | S1, every acceptance script, paper parity |
-| S3 | tools into their folders (one at a time, newest first), then the scopes; the catalogue entry names the folder | paper parity, the page inventory, `journeys.mjs` against its baseline, the full gate once at the end |
+| S3 — **begun 23 October** (§7) | tools into their folders (one at a time, newest first), then the scopes; the catalogue entry names the folder | paper parity, the page inventory, `journeys.mjs` against its baseline, the full gate once at the end |
 | S4 | the four biggest files split along the seams they already have (a paper's sections; a page's panels; capacity's sums apart from its words) | the same |
 
 Nothing new is built during S1–S4. Each slice is small enough to revert on
@@ -144,4 +144,24 @@ band can count them too.
   into their kind's folder; the ask goes with them. The band's "still to do"
   stays the plan's own rows (S1's rule); the reader carries the whole owed
   list beside it for the day it is wanted on the band.
+
+## 7. S3 — the code in its places, 23 October (begun)
+
+- **`scripts/moves.mjs` moves files and keeps every import true** — static
+  and dynamic, in `src/` (relative, resolved against the importing file's
+  own directory, old or new) and in `scripts/` (the dev server's `/src/…`
+  form) — then `git mv`s them. A move is proved by `tsc`, the unit tests,
+  the catalogue's own test (every path an entry or a knowledge record names
+  must exist) and the gate; nothing a person sees changes.
+- **The places**: `src/project/` holds what is a project's (`projectRead`,
+  `projectKind`, and `journey/` — the journey's model, paper, reader and
+  page); `src/line/report/` the line report (`lineBundle`, its paper, its
+  page); `src/tools/<key>/` a tool by its catalogue key — the first is
+  `reliability/` (its arithmetic, its lean reading, its page, its test),
+  the catalogue's `built` paths and the knowledge records moved with it.
+  A new tool is built in its own folder from the start; an older one is
+  moved when it is next worked on, with this tool.
+- **Not moved yet**: the other ten tools (`src/lib/ie/*`, their pages in
+  `src/screens/`), the stage gate's and the 6M's own pages, the factory's.
+  Each moves with the same tool and the same proof, one at a time.
 

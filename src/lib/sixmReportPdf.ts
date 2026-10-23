@@ -25,7 +25,7 @@
  * is solid, a suspected one an outline, a ruled-out one struck through — and
  * each says so in words beside the mark. */
 import type { jsPDF } from 'jspdf';
-import type { WeekLine } from './journey';
+import type { WeekLine } from '../project/journey/journey';
 import type { Case } from '../types';
 import type { PaceTodoRow } from '../db/rows';
 import type { Phase, ProblemView } from './problems';

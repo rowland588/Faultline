@@ -3,7 +3,7 @@ import {
   chi2Quantile, clockAt, compareReliability, costWords, countersOf, eventsOf, relAll, relRows, studyReliabilitySays, FIRST_COUNT, countedEvents, plural, relCost, reliability, reliabilityInsights, reliabilitySays, runningRun, span, watchedSpans,
 } from '../reliability';
 import { relClosing, relClosings, relTiles, relTrend } from '../reliabilityLean';
-import type { AgreedReliability, RelEvent, WatchRun } from '../../study';
+import type { AgreedReliability, RelEvent, WatchRun } from '../../../lib/study';
 import type { RelSubject } from '../reliability';
 
 const H = 3_600_000, MIN = 60_000;

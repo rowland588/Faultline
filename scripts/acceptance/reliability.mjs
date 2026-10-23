@@ -81,7 +81,7 @@ const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).se
 
 /* what the module says of a study, from its record as it is stored now — every count's */
 const truth = id => page.evaluate(async sid => {
-  const db = await import('/src/db.ts'); const R = await import('/src/lib/ie/reliability.ts'); const L = await import('/src/lib/ie/reliabilityLean.ts');
+  const db = await import('/src/db.ts'); const R = await import('/src/tools/reliability/reliability.ts'); const L = await import('/src/tools/reliability/reliabilityLean.ts');
   const s = await db.getStudy(sid); const a = s.agreed?.reliability;
   const line = (await db.listWorkspaces()).find(w => w.id === s.workspaceId);
   const items = R.relAll(a, s.facts.watch, s.facts.events, Date.now());

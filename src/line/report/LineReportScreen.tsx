@@ -13,24 +13,24 @@
  * when; Download makes the paper from the same shape. The single reports
  * stay where they were. No AI: every figure is a formula's. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { Workspace } from '../types';
-import type { Snag } from '../snag/types';
-import type { Observation } from '../types';
-import { getWorkspace, listAllSnags, listObservations, listWorkspaces, onDataChange, projectsOnWorkspace } from '../db';
-import { useLineRecords } from '../lib/useLineRecords';
-import { projectsOnLines, stageOnlyByLine, useJobFloor } from '../lib/useJobFloor';
-import { lineProgramsReading } from '../lib/lineRecords';
-import { bundleSays, defaultPicks, lineBundle, type LineBundle } from '../lib/lineBundle';
-import type { LineReading } from '../lib/lineLean';
-import { lineClosing, lineTiles } from '../lib/lineLean';
-import { lineDay } from '../lib/lineLoss';
-import { dualOf, linesSaid, productionLines } from '../lib/lines';
-import { todayISO } from '../lib/weeks';
-import { useSaveOnArrival } from '../lib/useSaveOnArrival';
-import { PageHeader } from '../ui/parts';
-import { LeanActions, LeanClosing, LeanTiles } from '../ui/Lean';
-import { stopsOf } from './ProductionLineScreen';
-import { nav } from '../state/useRoute';
+import type { Workspace } from '../../types';
+import type { Snag } from '../../snag/types';
+import type { Observation } from '../../types';
+import { getWorkspace, listAllSnags, listObservations, listWorkspaces, onDataChange, projectsOnWorkspace } from '../../db';
+import { useLineRecords } from '../../lib/useLineRecords';
+import { projectsOnLines, stageOnlyByLine, useJobFloor } from '../../lib/useJobFloor';
+import { lineProgramsReading } from '../../lib/lineRecords';
+import { bundleSays, defaultPicks, lineBundle, type LineBundle } from './lineBundle';
+import type { LineReading } from '../../lib/lineLean';
+import { lineClosing, lineTiles } from '../../lib/lineLean';
+import { lineDay } from '../../lib/lineLoss';
+import { dualOf, linesSaid, productionLines } from '../../lib/lines';
+import { todayISO } from '../../lib/weeks';
+import { useSaveOnArrival } from '../../lib/useSaveOnArrival';
+import { PageHeader } from '../../ui/parts';
+import { LeanActions, LeanClosing, LeanTiles } from '../../ui/Lean';
+import { stopsOf } from '../../screens/ProductionLineScreen';
+import { nav } from '../../state/useRoute';
 
 const printedOn = () => new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -93,7 +93,7 @@ export function LineReportScreen({ wsId }: { wsId: string }) {
     if (!bundle || !line || busy || picks === null) return;
     setBusy(true); setSaid(null);
     try {
-      const [{ loadPdfLib, deliverPdf, titlePdf }, { drawLineBundle }, { capacityPapersFor }, { pdfFileName }] = await Promise.all([import('../lib/savePdf'), import('../lib/lineBundlePdf'), import('../lib/capacityPaperLoad'), import('../lib/fileName')]);
+      const [{ loadPdfLib, deliverPdf, titlePdf }, { drawLineBundle }, { capacityPapersFor }, { pdfFileName }] = await Promise.all([import('../../lib/savePdf'), import('./lineBundlePdf'), import('../../lib/capacityPaperLoad'), import('../../lib/fileName')]);
       const { jsPDF } = await loadPdfLib();
       const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
       titlePdf(doc, `${line.name} — the line report, everything on the line`);

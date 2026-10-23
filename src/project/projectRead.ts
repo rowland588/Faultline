@@ -13,14 +13,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { listAllSnags, listPaceTodos, listStudies, listTestItems, listWorkspaces, loadPaceLines, onDataChange, type PaceLineRow, type PaceTodoRow } from '../db';
 import type { Project } from '../types';
-import type { ToolStudy } from './study';
-import type { TestItem } from './testing';
-import { isSettled, live } from './testing';
-import { criticalItems, jobItems, pacedItems, pacedOwed, riskItems, type JobInput, type JobItem, type PacedInput } from './portfolio';
-import type { DoneThing, RegisterProblem } from './projectActions';
-import { journeyOf, rangeOf, weekLine, type JourneyInput, type WeekLine } from './journey';
-import { useJobInputs, type JobInputs } from './useJobInputs';
-import { isoDay, todayISO } from './weeks';
+import type { ToolStudy } from '../lib/study';
+import type { TestItem } from '../lib/testing';
+import { isSettled, live } from '../lib/testing';
+import { criticalItems, jobItems, pacedItems, pacedOwed, riskItems, type JobInput, type JobItem, type PacedInput } from '../lib/portfolio';
+import type { DoneThing, RegisterProblem } from '../lib/projectActions';
+import { journeyOf, rangeOf, weekLine, type JourneyInput, type WeekLine } from './journey/journey';
+import { useJobInputs, type JobInputs } from '../lib/useJobInputs';
+import { isoDay, todayISO } from '../lib/weeks';
 import { kindOf, type ProjectKind } from './projectKind';
 import type { Snag } from '../snag/types';
 

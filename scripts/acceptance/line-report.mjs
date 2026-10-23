@@ -55,7 +55,7 @@ const LINE = sd.line7WsId;
 /* what the module says of a line, from its own records */
 const expected = id => page.evaluate(async id => {
   const db = await import('/src/db.ts');
-  const { lineBundle, defaultPicks } = await import('/src/lib/lineBundle.ts');
+  const { lineBundle, defaultPicks } = await import('/src/line/report/lineBundle.ts');
   const { san } = await import('/src/lib/reportKit.ts');   /* the paper's own sanitising — "→" is written "to" */
   const [lines, machines, programs, jobLines, snags, standards, studies, projects] = await Promise.all([db.listWorkspaces(), db.listAllAssets(), db.listAllPrograms(), db.allPaceLines(), db.listAllSnags(), db.listAllStandards(), db.listAllStudies(), db.allProjects()]);
   const line = lines.find(w => w.id === id);

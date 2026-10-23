@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { KINDS, kindFacts, kindOf } from '../projectKind';
 import { journeyInputOf, owedAndDone, projectRead, registerRow } from '../projectRead';
-import type { JobInput, PacedInput } from '../portfolio';
+import type { JobInput, PacedInput } from '../../lib/portfolio';
 import type { Project } from '../../types';
 import type { PaceTodoRow } from '../../db/rows';
 

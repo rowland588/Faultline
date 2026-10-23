@@ -2,8 +2,8 @@
  * it. What is shown IS the PDF (drawn once, previewed in place on a desk), so
  * the screen and the paper cannot disagree. See lib/clientReport.ts. */
 import { jobLink } from '../lib/machineLabels';
-import { useJourney } from '../lib/useJourney';
-import { weekLine } from '../lib/journey';
+import { useJourney } from '../project/journey/useJourney';
+import { weekLine } from '../project/journey/journey';
 import { useEffect, useMemo, useState } from 'react';
 import { usePdfPreview } from '../lib/usePdfPreview';
 import { useWalkSnags } from '../lib/useWalkSnags';

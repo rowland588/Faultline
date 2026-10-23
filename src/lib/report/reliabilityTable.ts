@@ -7,7 +7,7 @@
  *
  * Every figure is the module's; this only draws. */
 import type { Remark } from '../study';
-import { plural, span, type RelFigures, type RelRow } from '../ie/reliability';
+import { plural, span, type RelFigures, type RelRow } from '../../tools/reliability/reliability';
 import { niceDay, isoDay } from '../weeks';
 import { INK, INK2, LINE, MUTED } from '../reportKit';
 import { box, font, rows, text, wrap, SIZE, type Row } from './blocks';

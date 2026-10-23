@@ -51,7 +51,7 @@ stability in the app ... make a design that ensures it all works."* After
 J3 (`docs/JOURNEY.md`) and before anything new: `docs/STEADY.md` — one
 reader per scope, one number everywhere (a gate check), one place per thing
 in the code, one answer per project kind — in four slices that change
-nothing a person sees. S1 is built (§5 of the doc: what it found); S2 is built (§6: `lib/projectRead` the one reader, `lib/projectKind` the one answer per kind — read a project through them, never twice).
+nothing a person sees. S1 is built (§5 of the doc: what it found); S2 is built (§6: `src/project/projectRead` the one reader, `src/project/projectKind` the one answer per kind — read a project through them, never twice). S3 is begun (§7): **the code in its places** — `src/project/` (the reader, the kinds, `journey/`), `src/line/report/`, `src/tools/<key>/` (a tool by its catalogue key, `reliability/` first); a new tool is built in its own folder, an older one moved when next worked on, with `scripts/moves.mjs` (moves files, keeps every import true) and proved by tsc, the tests, the catalogue's test and the gate.
 
 ## The project is the workspace — 21 October
 

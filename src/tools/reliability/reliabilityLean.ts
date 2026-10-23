@@ -4,8 +4,8 @@
  * figures are the module's, the money its relCost (lib/cost, the one cost
  * model). The MTBF wears a colour only against an MTBF agreed — green met,
  * amber not yet sure, red short; without one it is grey, the team's to judge. */
-import { niceDay } from '../weeks';
-import { since, type LeanTile, type LeanTone, type LeanTrend } from '../lean';
+import { niceDay } from '../../lib/weeks';
+import { since, type LeanTile, type LeanTone, type LeanTrend } from '../../lib/lean';
 import { countTitle, dayPoints, perHour, plural, relCost, reliabilitySays, span, worstTone, type RelCost, type RelCostLine, type RelFigures, type RelItem, type RelSays, type RelSubject } from './reliability';
 
 const gbp = (n: number): string => `£${n >= 100 ? Math.round(n).toLocaleString('en-GB') : n.toFixed(2)}`;

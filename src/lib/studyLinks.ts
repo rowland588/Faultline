@@ -22,7 +22,7 @@ import { actionWords, availableOf, carrySequence, changeoverSays, compareChangeo
 import { samplingSays, samplingWorst, worstWords } from './ie/sampling';
 import { barExpect, barWords, compareLosses, findBar, inWindow, lossFigures, lossLine, lossSays, nextShift, type CostModel, type LossFigures } from './ie/losses';
 import { studyBalance } from './ie/balanceLink';
-import { compareReliability, relAll, studyReliabilitySays, worstTone } from './ie/reliability';
+import { compareReliability, relAll, studyReliabilitySays, worstTone } from '../tools/reliability/reliability';
 
 const live = (ss: ToolStudy[]) => ss.filter(s => !s.deletedAt);
 

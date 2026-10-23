@@ -2,11 +2,11 @@
  * method's records as the control room reads them, plus the project's own actions, the register's
  * problems taken for it, its notes, its studies and its lines. Kept for the pages that read the
  * journey by this name; nothing is read twice. */
-import type { PaceLineRow, PaceTodoRow } from '../db';
-import type { Project } from '../types';
-import type { ToolStudy } from './study';
+import type { PaceLineRow, PaceTodoRow } from '../../db';
+import type { Project } from '../../types';
+import type { ToolStudy } from '../../lib/study';
 import type { JourneyInput } from './journey';
-import { useProjectRead } from './projectRead';
+import { useProjectRead } from '../projectRead';
 
 export interface JourneyRead {
   /** What lib/journey reads the range from. */

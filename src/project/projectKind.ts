@@ -9,7 +9,7 @@
  * the kind rather than branching on the model, and a fourth kind is one
  * more entry. Pure: nothing stored, nothing read. */
 import type { Project } from '../types';
-import { planModel, type PlanModel } from './planModel';
+import { planModel, type PlanModel } from '../lib/planModel';
 
 export type ProjectKind = 'stagegate' | 'sixm' | 'tree';
 

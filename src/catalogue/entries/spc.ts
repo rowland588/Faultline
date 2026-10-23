@@ -243,7 +243,7 @@ export const SPC: Entry[] = [
     depends: ['FC-098', 'FC-058', 'FC-022'],
     complexity: 'S', value: 'high', valueWhy: 'Honesty about thin data, everywhere.',
     status: 'partial', form: 'component', methods: ['stats.confidence-intervals'], scenarios: ['quality'],
-    built: { where: [], code: ['src/lib/ie/reliability.ts', 'src/lib/ie/sampling.ts'], tests: ['src/lib/ie/__tests__/reliability.test.ts', 'src/lib/ie/__tests__/sampling.test.ts'], acceptance: ['reliability.mjs', 'work-sampling.mjs'] },
+    built: { where: [], code: ['src/tools/reliability/reliability.ts', 'src/lib/ie/sampling.ts'], tests: ['src/tools/reliability/__tests__/reliability.test.ts', 'src/lib/ie/__tests__/sampling.test.ts'], acceptance: ['reliability.mjs', 'work-sampling.mjs'] },
     limits: ['Bounds exist for MTBF and sampling shares; none yet for a proportion of rejects or a mean.'],
   },
   {

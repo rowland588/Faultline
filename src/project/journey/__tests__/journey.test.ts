@@ -10,11 +10,11 @@ import {
   MOST_DAYS, RANGE_PICKS, daysOf, journeyClosing, journeyOf, journeyTiles, pickOf, rangeLabel, rangeOf, slideRange, toolPlansOf,
   type JourneyInput,
 } from '../journey';
-import type { DayInput } from '../day';
-import type { Asset, Test, TestItem } from '../testing';
-import type { PaceTodoRow } from '../../db/rows';
-import type { RegisterProblem } from '../projectActions';
-import { encodeScope } from '../noteScope';
+import type { DayInput } from '../../../lib/day';
+import type { Asset, Test, TestItem } from '../../../lib/testing';
+import type { PaceTodoRow } from '../../../db/rows';
+import type { RegisterProblem } from '../../../lib/projectActions';
+import { encodeScope } from '../../../lib/noteScope';
 
 const TODAY = '2026-10-21'; // a Wednesday
 const at = (iso: string) => new Date(`${iso}T10:00:00`).getTime();

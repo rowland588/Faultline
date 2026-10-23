@@ -51,4 +51,4 @@ Reject rates, give-away means, complaint rates per million.
 - [paper] Wilson, E.B. (1927), "Probable inference, the law of succession, and statistical inference", *Journal of the American Statistical Association* 22(158), 209–212.
 
 ## In Faultline
-Bounds already in reliability (`src/lib/ie/reliability.ts`) and work sampling's margins (`src/lib/ie/sampling.ts`); the pilot adds exact binomial bounds in `src/lib/ie/dist.ts` (FC-104).
+Bounds already in reliability (`src/tools/reliability/reliability.ts`) and work sampling's margins (`src/lib/ie/sampling.ts`); the pilot adds exact binomial bounds in `src/lib/ie/dist.ts` (FC-104).

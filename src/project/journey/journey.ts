@@ -18,19 +18,19 @@
  * paper prints this same reading (lib/journeyPdf), so the two never part.
  *
  * Nothing is written by AI: every line is a record's own words. */
-import type { PaceTodoRow } from '../db/rows';
-import { toolByKey, toolLabel } from '../catalogue/registry';
-import { dayOf, type DayInput, type DayLine, type DayTone } from './day';
-import type { LeanTile, LeanTone } from './lean';
-import { dayOfNote } from './noteScope';
-import type { RegisterProblem } from './projectActions';
-import { PRIORITY_WORD } from './projectActions';
-import type { ToolStudy } from './study';
-import type { Material } from './materials';
-import type { Program } from './programs';
-import { measuredOn, studyHref } from './studyLinks';
-import { live, type TestItem } from './testing';
-import { addDays, daysBetween, isoDay, mondayOf, niceDay, todayISO } from './weeks';
+import type { PaceTodoRow } from '../../db/rows';
+import { toolByKey, toolLabel } from '../../catalogue/registry';
+import { dayOf, type DayInput, type DayLine, type DayTone } from '../../lib/day';
+import type { LeanTile, LeanTone } from '../../lib/lean';
+import { dayOfNote } from '../../lib/noteScope';
+import type { RegisterProblem } from '../../lib/projectActions';
+import { PRIORITY_WORD } from '../../lib/projectActions';
+import type { ToolStudy } from '../../lib/study';
+import type { Material } from '../../lib/materials';
+import type { Program } from '../../lib/programs';
+import { measuredOn, studyHref } from '../../lib/studyLinks';
+import { live, type TestItem } from '../../lib/testing';
+import { addDays, daysBetween, isoDay, mondayOf, niceDay, todayISO } from '../../lib/weeks';
 
 /* ------------------------------- the range ------------------------------- */
 

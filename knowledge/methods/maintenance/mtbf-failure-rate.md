@@ -6,7 +6,7 @@ discipline: maintenance
 kind: established
 evidence: standard
 depth: full
-checked: 2026-10-22 — exponential model with χ² bounds (time-truncated: lower 2T/χ²(0.95; 2n + 2), upper 2T/χ²(0.05; 2n)) as IEC 60605-4 and the NIST e-Handbook give them, from knowledge; the Laplace trend test; Faultline's arithmetic proved by src/lib/ie/__tests__/reliability.test.ts (33) and scripts/acceptance/reliability.mjs
+checked: 2026-10-22 — exponential model with χ² bounds (time-truncated: lower 2T/χ²(0.95; 2n + 2), upper 2T/χ²(0.05; 2n)) as IEC 60605-4 and the NIST e-Handbook give them, from knowledge; the Laplace trend test; Faultline's arithmetic proved by src/tools/reliability/__tests__/reliability.test.ts (33) and scripts/acceptance/reliability.mjs
 needs: []
 next: [maintenance.mttr-availability, maintenance.weibull, rca.fishbone-5whys]
 alternatives: [equipment.downtime-log, maintenance.reliability-growth]
@@ -59,4 +59,4 @@ Micro-stops on a labeller, film breaks on a wrapper, weigher blockages.
 - [practice] NIST/SEMATECH *e-Handbook of Statistical Methods*, chapter 8 (reliability).
 
 ## In Faultline
-The Reliability study (`src/lib/ie/reliability.ts`, `src/screens/ReliabilityScreen.tsx`), FC-058.
+The Reliability study (`src/tools/reliability/reliability.ts`, `src/tools/reliability/ReliabilityScreen.tsx`), FC-058.

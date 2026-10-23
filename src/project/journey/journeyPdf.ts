@@ -10,13 +10,13 @@
  * never part; laid out by the report engine, as many pages as the range
  * needs, every page footed with the project and the range. */
 import type { jsPDF } from 'jspdf';
-import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
-import { font, gap, rows, text, wrap } from './report/blocks';
-import { leanBand, leanClosing, leanHead, leanTiles } from './report/lean';
-import { bandPage } from './lean';
-import { BLUE, DANGER, INK2, MUTED, OK, WARN, LINE as RULE } from './reportKit';
+import { chooseDensity, pour, type Block, type Density, type Frame } from '../../lib/report/flow';
+import { font, gap, rows, text, wrap } from '../../lib/report/blocks';
+import { leanBand, leanClosing, leanHead, leanTiles } from '../../lib/report/lean';
+import { bandPage } from '../../lib/lean';
+import { BLUE, DANGER, INK2, MUTED, OK, WARN, LINE as RULE } from '../../lib/reportKit';
 import { daysOf, journeyClosing, journeyTiles, rangeLabel, type Journey, type JourneyTone, type ToolPlan } from './journey';
-import { niceDay } from './weeks';
+import { niceDay } from '../../lib/weeks';
 
 const W = 595, H = 842, M = 36, CW = W - 2 * M;
 const TONE: Record<JourneyTone, string> = { done: OK, bad: DANGER, slipped: DANGER, asking: WARN, found: INK2, booked: BLUE, problem: WARN };
@@ -119,8 +119,8 @@ export async function drawJourney(doc: jsPDF, p: JourneyPaper): Promise<void> {
 
 /** Made and handed over: saved to the device, the bar offering Open and Send. */
 export async function saveJourneyPdf(p: JourneyPaper): Promise<'downloaded' | 'shared' | 'opened'> {
-  const { loadPdfLib, titlePdf, deliverPdf } = await import('./savePdf');
-  const { pdfFileName } = await import('./fileName');
+  const { loadPdfLib, titlePdf, deliverPdf } = await import('../../lib/savePdf');
+  const { pdfFileName } = await import('../../lib/fileName');
   const { jsPDF } = await loadPdfLib();
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   titlePdf(doc, `${p.project} — the journey, ${rangeLabel(p.journey.range, p.today)}`);
