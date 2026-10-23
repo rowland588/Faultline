@@ -479,6 +479,16 @@ there and what replaces it.
 
 ## 6. What we missed — what should have been built without being asked
 
+**The week — what we did, what we are doing next** (Rowland, 23 October:
+"we all report to someone and they need to see what we have done and what we
+are doing next"; `docs/WEEK.md`, planned, not built). A page of every project
+(Week, `?view=week`) and one paper: what we did this week read from the
+records, what we are doing this week and next (actions due, tests and
+program tests booked), the tools we will use ticked with what for — a tool
+plan is an action with a `tool` — and Rowland's commentary as a note on the
+week. Shows on the project's front page, the control room's row, the status,
+client and 6M reports. Slices W1–W3 in the doc.
+
 **A photo for each entry in a log** (19 October, the next capture piece).
 A defect log, a 5S walk, a jam log — the floor photographs each one. A
 method's step takes photos today (its evidence), but a log's entries live
