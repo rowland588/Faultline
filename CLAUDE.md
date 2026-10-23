@@ -51,7 +51,7 @@ stability in the app ... make a design that ensures it all works."* After
 J3 (`docs/JOURNEY.md`) and before anything new: `docs/STEADY.md` — one
 reader per scope, one number everywhere (a gate check), one place per thing
 in the code, one answer per project kind — in four slices that change
-nothing a person sees. S1 is built (§5 of the doc: what it found); S2 is built (§6: `src/project/projectRead` the one reader, `src/project/projectKind` the one answer per kind — read a project through them, never twice). S3 is begun (§7): **the code in its places** — `src/project/` (the reader, the kinds, `journey/`), `src/line/report/`, `src/tools/<key>/` (a tool by its catalogue key, `reliability/` first); a new tool is built in its own folder, an older one moved when next worked on, with `scripts/moves.mjs` (moves files, keeps every import true) and proved by tsc, the tests, the catalogue's test and the gate.
+nothing a person sees. S1 is built (§5 of the doc: what it found); S2 is built (§6: `src/project/projectRead` the one reader, `src/project/projectKind` the one answer per kind — read a project through them, never twice). S3 is begun (§7): **the code in its places** — `src/project/` (the reader, the kinds, `journey/`), `src/line/report/`, `src/tools/<key>/` (a tool by its catalogue key, `reliability/` first); a new tool is built in its own folder, an older one moved when next worked on, with `scripts/moves.mjs` (moves files, keeps every import true) and proved by tsc, the tests, the catalogue's test and the gate. S4 is built (§8): the four biggest files split at their own seams — the stage-gate paper a sheet a file (`lib/paceReport/`), the A3's pages and the 6M report's screen apart (`screens/paceReportPages`, `screens/SixMReportScreen`), the 6M report's model apart from its paper (`lib/sixmReport`), capacity's sums apart from how a figure is written (`lib/capacityWords`) and what the result says (`lib/capacitySays`); the old file re-exports what left it, so every import stands.
 
 ## The project is the workspace — 21 October
 
@@ -890,6 +890,18 @@ pushed (`src/cloud/sync.ts`), so a stray local write cannot stall a sync.
   same pass (`src/cloud/sync.ts`, the push). Never go back to a plain upsert
   for an edited row. The engine keeps a trace of every decision
   (`syncTrace()`); the harness prints both devices' when a scenario fails.
+- **A dev server kept running across a `git checkout` serves the old module.**
+  The live checkout for paper parity (`fl-live`, `origin/main`) was moved from
+  one commit to the next under its running server; Vite missed the change to
+  one file and kept serving the module graph it had, so the live run of
+  `report-stress` crashed on an import the new script expected
+  (`toolLabel` from the registry) — and `paper-parity` compared the change
+  against an EMPTY folder and said "kept" (gate 45, 23 October; the parity
+  was established afterwards from gate 44's papers, 69 the same). Now
+  `paper-parity.mjs` fails when the live side holds no PDFs and `gate.sh`
+  fails the parity step when the live run's `rc` is not 0. The rule: after
+  moving a checkout that a server is serving, restart that server, and read
+  `paper-live.log` before believing a parity pass.
 - **Two dev servers, one dependency cache.** Vite keeps its pre-bundled
   dependencies in `node_modules/.vite`, and a server whose settings differ
   from the last one's rebuilds them on start ("Re-optimizing dependencies

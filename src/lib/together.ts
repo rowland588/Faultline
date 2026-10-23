@@ -14,7 +14,9 @@
  * (lib/togetherPdf) both read this, so the two never part. Nothing is worked
  * out here that a tool does not already work out: the capacity is
  * lib/capacity's, the people lib/ie/balance's, the link lib/ie/balanceLink's. */
-import { analyse, bottleneckCost, bottleneckCostSays, fmtN, labourInputs, shortSays, type Capacity, type CapacityResult, type StationResult } from './capacity';
+import { analyse, bottleneckCost, bottleneckCostSays, labourInputs, type Capacity, type CapacityResult, type StationResult } from './capacity';
+import { fmtN } from './capacityWords';
+import { shortSays } from './capacitySays';
 import type { Workspace } from '../types';
 import { aPiece, balance, balanceSays, secs, type BalanceFigures, type PersonFigures } from './ie/balance';
 import { agreedFor, crewKept, stationsOf } from './ie/balanceLink';

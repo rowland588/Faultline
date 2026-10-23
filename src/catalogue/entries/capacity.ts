@@ -43,7 +43,7 @@ export const CAPACITY: Entry[] = [
     complexity: 'XL', value: 'high', valueWhy: 'The line’s own numbers that every other tool reads.',
     status: 'available', form: 'tool', kind: 'standard',
     app: { key: 'linebalance', label: 'Line capacity', says: 'What each station can make, which one limits the line, and what a pack costs in labour', onLine: 'where the line is limited, and the V-curve', reads: 'standard', icon: 'chart', order: 3 }, methods: ['capacity.line-capacity', 'capacity.v-curve', 'capacity.theory-of-constraints', 'lean.standard-work'], scenarios: ['running', 'new', 'money'], words: ['bottleneck', 'rated speed', 'plate speed', 'too slow', 'V curve'],
-    built: { where: ['/balances'], code: ['src/lib/capacity.ts', 'src/screens/CapacityPanel.tsx'], tests: ['src/lib/__tests__/capacity.test.ts'], acceptance: ['line-capacity.mjs', 'list-paper.mjs'] },
+    built: { where: ['/balances'], code: ['src/lib/capacity.ts', 'src/lib/capacityWords.ts', 'src/lib/capacitySays.ts', 'src/screens/CapacityPanel.tsx'], tests: ['src/lib/__tests__/capacity.test.ts'], acceptance: ['line-capacity.mjs', 'list-paper.mjs'] },
     limits: ['Accumulation between machines is not driven by an acceptance check (FC-046).'],
   },
   {

@@ -64,6 +64,9 @@ function minus(a, b) {
 }
 const pdfs = dir => readdirSync(dir, { recursive: true }).map(String).filter(f => f.endsWith('.pdf')).sort();
 let lost = 0, changed = 0, same = 0;
+/* nothing on the live side is not parity kept — it is the live run having failed (gate 45, 23 October:
+   the live server served a stale module, its run crashed, and an empty folder compared as "kept") */
+if (!pdfs(OLD).length) { console.log(`✗ NOTHING on what is live to compare against (${OLD} holds no PDFs) — the live run failed; see its log.`); process.exit(1); }
 for (const f of pdfs(OLD)) {
   const b = join(NEW, f);
   if (!existsSync(b)) { lost++; console.log(`✗ LOST     ${f} — on what is live, not on the change`); continue; }

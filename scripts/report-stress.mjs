@@ -881,7 +881,7 @@ for (const size of SIZES) {
   const capMust = ids => page.evaluate(async ids => {
     const { san } = await import('/src/lib/reportKit.ts');
     await (await import('/src/lib/savePdf.ts')).loadPdfLib();
-    const db = await import('/src/db.ts'); const C = await import('/src/lib/capacity.ts');
+    const db = await import('/src/db.ts'); const C = { ...(await import('/src/lib/capacity.ts')), ...(await import('/src/lib/capacityWords.ts')), ...(await import('/src/lib/capacitySays.ts')) };
     const { changeoverIn } = await import('/src/lib/ie/changeover.ts');
     const { walkVerdict } = await import('/src/lib/ie/walk.ts');
     const B = await import('/src/lib/ie/balance.ts');

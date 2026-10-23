@@ -44,13 +44,9 @@ import { type PillarKey } from '../lib/pillars';
 import { BoneChips } from '../ui/ActionSheet';
 import { useAccess } from '../cloud/access';
 import type { Can } from '../lib/access';
-import {
-  EMPTY_CAPACITY, analyse, syncWhatIfs, withWhatIfStations, blankStation, changedWords, compareSays, crossCheck, fmtN, lineIfRaised, makeItSoWords,
-  stopStats, suggestRunning, vCurve, accumulation, whatIfCapacity, paceSays, perMinute, oneOf, fmtSec,
-  typedPerMinute, chainFactor, chainWords, fmtDur, typedSpeedWords, REST_ALLOWANCE_PCT, cycleWords, rateAsTime, shareColours,
-  labourCost, labourInputs, oneMorePerson, whatIfLabour, fmtMoney, fmtBig,
-  type Capacity, type CapacityResult, type Lane, type LabourInputs, type PaceSays, type RateAsTime, type RatePer, type Station, type StationResult, type WhatIf,
-  screenCapacity, bottleneckCost, bottleneckCostSays } from '../lib/capacity';
+import { EMPTY_CAPACITY, analyse, syncWhatIfs, withWhatIfStations, blankStation, changedWords, compareSays, crossCheck, lineIfRaised, makeItSoWords, stopStats, suggestRunning, vCurve, accumulation, whatIfCapacity, perMinute, typedPerMinute, chainFactor, chainWords, typedSpeedWords, REST_ALLOWANCE_PCT, shareColours, labourCost, labourInputs, oneMorePerson, whatIfLabour, fmtMoney, type Capacity, type CapacityResult, type Lane, type LabourInputs, type RatePer, type Station, type StationResult, type WhatIf, screenCapacity, bottleneckCost, bottleneckCostSays } from '../lib/capacity';
+import { fmtN, oneOf, fmtSec, fmtDur, cycleWords, fmtBig } from '../lib/capacityWords';
+import { paceSays, rateAsTime, type PaceSays, type RateAsTime } from '../lib/capacitySays';
 import { useLineStops } from '../lib/useLineStops';
 import { Icon } from '../ui/Icon';
 import { LeanClosing, LeanTiles } from '../ui/Lean';

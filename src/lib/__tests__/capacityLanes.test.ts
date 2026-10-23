@@ -136,7 +136,7 @@ describe('everything else that reads a capacity', () => {
     expect(says).toBe('With Second wrapper, the line would do 100 units/min instead of 50.1 (+50.1). Pallet wrapper still limits it. Still 49.8 short of the 150 target.');
   });
   it('the headline of several lines names the bottleneck and the gap — not "add the rest of the line"', async () => {
-    const { shortSays } = await import('../capacity');
+    const { shortSays } = await import('../capacitySays');
     expect(shortSays(analyse(his(2)))).toBe('Pallet wrapper limits at 50.1 units/min · 99.9 short of 150');
   });
   it('the all-products sheet lists each line’s stations by line', async () => {

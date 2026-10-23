@@ -4,7 +4,8 @@
  * owner's margin); a buffer must hold the typical minor stop × the critical
  * machine's rate; 2–5 minutes of production is the rule of thumb. */
 import { describe, expect, it } from 'vitest';
-import { accumulation, analyse, fmtDur, fmtN, lineIfRaised, ownSpeed, shareColours, vCurve, type Capacity, type Station, type StopStats } from '../capacity';
+import { accumulation, analyse, lineIfRaised, ownSpeed, shareColours, vCurve, type Capacity, type Station, type StopStats } from '../capacity';
+import { fmtDur, fmtN } from '../capacityWords';
 import { perMinWords } from '../capacityFlow';
 
 let n = 0;

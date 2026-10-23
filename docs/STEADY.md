@@ -70,7 +70,7 @@ It is done after J3 (`docs/JOURNEY.md`) and before anything new is built.
 | S1 — **built 23 October** (§5) | the *one number* check (`scripts/acceptance/one-number.mjs`): on the seeded stage-gate and 6M projects, late · open · done · critical read from the front page's band, Needs you, Actions' tiles, the Journey's tiles, the status report, the client report and the control room's row — all equal | it passes on today's code, or it finds a real disagreement, which is fixed first |
 | S2 — **built 23 October** (§6) | each project kind as one module (`project/stagegate`, `project/sixm`, `project/tree`): what it is made of, its reader, its owed and done rows, its papers; `useJobInputs` reads them; the 37 branches replaced by one ask | S1, every acceptance script, paper parity |
 | S3 — **begun 23 October** (§7) | tools into their folders (one at a time, newest first), then the scopes; the catalogue entry names the folder | paper parity, the page inventory, `journeys.mjs` against its baseline, the full gate once at the end |
-| S4 | the four biggest files split along the seams they already have (a paper's sections; a page's panels; capacity's sums apart from its words) | the same |
+| S4 — **built 23 October** (§8) | the four biggest files split along the seams they already have (a paper's sections; a page's panels; capacity's sums apart from its words) | the same |
 
 Nothing new is built during S1–S4. Each slice is small enough to revert on
 its own. The catalogue's `built.files` is updated as files move, so
@@ -164,4 +164,40 @@ band can count them too.
 - **Not moved yet**: the other ten tools (`src/lib/ie/*`, their pages in
   `src/screens/`), the stage gate's and the 6M's own pages, the factory's.
   Each moves with the same tool and the same proof, one at a time.
+
+## 8. S4 — the four biggest files split at their seams, 23 October
+
+Nothing moved between modules that was not already a seam in the file; a
+name that was imported from the old file is still imported from it (the old
+file re-exports what left it), so no importer outside the four had to
+change for the paper, and the capacity importers were pointed at the file
+that now holds the name. Each split was proved by `tsc`, the lint ceiling,
+every unit test, the tool's own acceptance script, `report-stress` and
+paper parity against what is live.
+
+- **The stage-gate paper** (`lib/paceReportPdf`, 3,225 lines → 1,395): a
+  sheet a file in `lib/paceReport/` — `data` (what the paper is drawn
+  from), `plan`, `materials`, `install`, `trials`, `programs`, `board`,
+  `tree`, `owes` — each exporting what the sheet is laid out by (its
+  `*Plan`, `*Height`, `layBoard`, `packColumns`, `flowOwes`), with
+  `drawPaceReport` and `readPages` staying where they were.
+- **The A3 and the 6M report's screen** (`screens/PaceExecReport`, 3,200 →
+  1,368): the A3's pages in `screens/paceReportPages`, the 6M report's
+  screen and its PDF in `screens/SixMReportScreen`.
+- **The 6M report** (`lib/sixmReportPdf`, 1,200 → 914): its model in
+  `lib/sixmReport` (the types, `sixmReport()`, everything owed, the week
+  line), the paper left in `sixmReportPdf`.
+- **Line capacity** (`lib/capacity`, 1,944 → 1,752): the sums stay; how a
+  figure is written is `lib/capacityWords` (`fmtN`, `fmtBig`, `oneOf`,
+  `fmtSec`, `fmtDur`, `everyWords`, `cycleWords` — imports nothing) and
+  what the result says is `lib/capacitySays` (`rateAsTime`, `paceSays`,
+  `shortSays`, `canMakeWords`), so no file imports a file that imports it.
+
+What is still big and why it is left: `lib/capacity` (the sums of one tool,
+one seam each — the lanes, the screening, the shift — and each already
+tested on its own), `cloud/sync` (one engine, the cycle in `CLAUDE.md`'s
+*Things that will bite* — not to be split without the sync harness run
+beside it) and `screens/CapacityPanel` (the one tool's one page; its panels
+are the next seam, when the tool is next worked on, and it moves into
+`src/tools/` then).
 
