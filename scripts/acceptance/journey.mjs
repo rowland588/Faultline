@@ -88,7 +88,7 @@ const truth = (pick, dates) => page.evaluate(async ([pid, pick, dates]) => {
   const steps = await db.listPaceTodos(pid);
   const register = (await db.listAllSnags()).filter(s => s.projectId === pid && !s.deletedAt);
   const studies = await db.listStudies(pid);
-  const input = { ...(gate ? { gate } : {}), steps, register, notes: items, studies };
+  const input = { ...(gate ? { gate } : { materials: await db.listMaterials(pid), programs: await db.listPrograms(pid) }), steps, register, notes: items, studies };
   const range = J.rangeOf(pick, today, W.isoDay(project.createdAt), dates);
   const j = J.journeyOf(input, range, today);
   const plans = J.toolPlansOf(steps);

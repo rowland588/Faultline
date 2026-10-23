@@ -39,7 +39,7 @@ import { paretoView } from './paretoView';
 import { analyse, fmtN } from './capacity';
 import { niceDay, todayISO } from './weeks';
 import { san, paperBand } from './reportKit';
-import { PHASE_ORDER, bonesSaid, problemsSaid, saidText, type Said } from './portfolio';
+import { PHASE_ORDER, bonesSaid, pacedOwed, problemsSaid, saidText, sixmProblemOf, type Said } from './portfolio';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { SIZE, box, font, gap, heading, label, lead, rows, text, wrap, type Row } from './report/blocks';
 import { fixTag, fixesOf } from '../ui/fishbone/layout';
@@ -227,6 +227,10 @@ export interface SixMReport {
   boardQuiet?: string;
   /** THIS WEEK AND NEXT (lib/journey weekLine) — the one line the front page says. */
   week?: WeekLine;
+  /** EVERYTHING OWED (lib/portfolio pacedOwed — the control room, Needs you and Actions count the
+   *  same): the countermeasures, the materials and programs not in, the checks that keep a gain; how
+   *  many are past their day, and of what — "2 countermeasures, 2 materials, 1 program". */
+  owed: { open: number; late: number; lateSaid: string };
   seen?: { says: string; rows: { what: string; where: string; owner: string; found: string; tone: Tone; state: string }[]; closed: string[] };
   /** EVIDENCE — every study on the job (on the line, when the report is for
    *  one): what it is of, what it is used for, what it says, and a value
@@ -317,6 +321,15 @@ export function sixmReport(o: SixMInput): SixMReport {
   const lines = (scopeLine ? [scopeLine] : data.lines).filter(l => !l.deletedAt).slice().sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
   const lineName = (id?: string) => data.lines.find(l => l.id === id)?.name;
   const todos = o.todos.filter(t => !o.lineId || !t.lineId || t.lineId === o.lineId);
+
+  /* ----------------------- everything owed, late — one count ------------------------ */
+  const owedRows = pacedOwed({ project: { id: '', name: o.project.name, color: '', createdAt: 0, updatedAt: 0 } as never, steps: todos, lines, atTarget: 0, judged: 0,
+    materials: data.materials.filter(m => !o.lineId || !m.lineId || m.lineId === o.lineId), programs: data.programs.filter(p => !o.lineId || !p.lineId || p.lineId === o.lineId),
+    problems: o.problems.map(sixmProblemOf) }, today);
+  const lateRows = owedRows.filter(x => x.late);
+  const lateBy = (kind: string, one: string, many = `${one}s`) => { const n = lateRows.filter(x => x.kind === kind).length; return n ? `${n} ${n === 1 ? one : many}` : ''; };
+  const owed = { open: owedRows.length, late: lateRows.length,
+    lateSaid: [lateBy('action', 'countermeasure'), lateBy('material', 'material'), lateBy('program', 'program'), lateBy('check', 'check'), lateBy('note', 'reminder')].filter(Boolean).join(', ') };
 
   /* ------------------------------- the gap ------------------------------- */
   const gaps: GapLine[] = data.measures.length ? lines.map(l => {
@@ -586,6 +599,7 @@ export function sixmReport(o: SixMInput): SixMReport {
     ...(todos.length && quietBones.length ? { boardQuiet: `Nothing on the board for ${listWords(quietBones)}.` } : {}),
     ...(seen ? { seen } : {}),
     evidence,
+    owed,
     ...(o.week ? { week: o.week } : {}),
   };
 }

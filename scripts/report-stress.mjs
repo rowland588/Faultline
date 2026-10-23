@@ -696,7 +696,7 @@ for (const size of SIXM_SIZES) {
       const items = await db.listTestItems(pid);
       const register = (await db.listAllSnags()).filter(s => s.projectId === pid && !s.deletedAt);
       const studies = await db.listStudies(pid);
-      const input = { steps, register, notes: items, studies };
+      const input = { steps, register, notes: items, studies, materials: await db.listMaterials(pid), programs: await db.listPrograms(pid) };
       const started = W.isoDay(project.createdAt);
       const w = J.weekLine(input, today, started);
       const range = J.rangeOf('thisAndNext', today, started);

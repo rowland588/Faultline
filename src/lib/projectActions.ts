@@ -184,8 +184,18 @@ export function actionTiles(rows: readonly ProjectAction[], done: readonly DoneT
   const undated = rows.filter(a => !a.due).length;
   const doneWeek = done.filter(d => d.on >= weekAgo && d.on <= today).length;
   const crit = rows.filter(a => a.priority === 'critical').length;
+  /* WHAT THE OPEN IS MADE OF (docs/STEADY.md S1) — the band's "still to do" is the plan's own rows
+     (lib/standing); Actions owes more: the critical problems, the register's problems taken for the
+     project, its own actions. Said in the tile, so the two numbers reconcile on the page. */
+  const plan = rows.filter(a => a.item && !a.item.critical && a.item.kind !== 'action' && a.item.kind !== 'check').length;
+  const own = rows.filter(a => a.item?.kind === 'action').length;
+  const register = rows.filter(a => !!a.snagId).length;
+  const checks = rows.filter(a => a.item?.kind === 'check').length;
+  const risks = rows.filter(a => a.item?.critical?.risk).length;
+  const critical = rows.filter(a => a.item?.critical && !a.item.critical.risk).length;
+  const made = [plan ? `${plan} on the plan` : '', critical ? `${critical} critical` : '', risks ? `${risks} high ${risks === 1 ? 'risk' : 'risks'}` : '', own ? `${own} of its own` : '', register ? `${register} from the register` : '', checks ? `${checks} ${checks === 1 ? 'check' : 'checks'}` : ''].filter(Boolean).join(' · ');
   return [
-    { k: 'Open', v: String(rows.length), of: crit ? `${crit} critical` : rows.length ? 'none critical' : 'nothing owed', ...(crit ? { tone: 'r' as const } : {}) },
+    { k: 'Open', v: String(rows.length), of: rows.length ? made : 'nothing owed', ...(crit ? { tone: 'r' as const } : {}) },
     { k: 'Late', v: String(late), of: late ? 'past the day agreed' : 'nothing past its day', tone: late ? 'r' : 'n' },
     { k: 'This week', v: String(thisWeek), of: 'due in the next 7 days', ...(thisWeek ? {} : { tone: 'n' as const }) },
     { k: 'Nobody yet', v: String(nobody), of: nobody ? 'with no one named' : 'every one has a name', tone: nobody ? 'a' : 'n' },

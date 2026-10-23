@@ -53,8 +53,10 @@ export function useJourney(project: Project | undefined): JourneyRead | null {
   return useMemo(() => {
     if (!project || !inputs || !own) return null;
     const gate = inputs.gate.find(j => j.project.id === project.id);
+    const paced = inputs.paced.find(j => j.project.id === project.id);
     const input: JourneyInput = {
       ...(gate ? { gate: { tests: gate.tests, items: gate.items, assets: gate.assets, materials: gate.materials, programs: gate.programs, studies: gate.studies ?? [] } } : {}),
+      ...(paced ? { materials: paced.materials ?? [], programs: paced.programs ?? [] } : {}),
       steps: own.steps, register: own.register, notes: own.notes, studies: own.studies,
     };
     return { input, today: todayISO(), started: isoDay(project.createdAt), steps: own.steps, lines: own.lines, studies: own.studies };

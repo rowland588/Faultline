@@ -267,8 +267,9 @@ const S6 = `#/project/${sd.pacedProjectId}`;
   const titles = async () => dlg.locator('.meet-report b').allInnerTexts();
   const shut = await titles();
   const sheetW = (await dlg.locator('.meet-report').filter({ hasText: 'Spreadsheet' }).innerText()).replace(/\s+/g, ' ');
-  ok(JSON.stringify(shut) === JSON.stringify(['Client report', 'Spreadsheet']) && (await dlg.locator('.meet-lines-h').getAttribute('aria-expanded')) === 'false',
-    `17 two papers and the lines folded: ${shut.join(' · ')} · "${(await words('.meet-lines-h'))}"`);
+  /* the journey report joined them (docs/JOURNEY.md, J3) */
+  ok(JSON.stringify(shut) === JSON.stringify(['Client report', 'Journey report', 'Spreadsheet']) && (await dlg.locator('.meet-lines-h').getAttribute('aria-expanded')) === 'false',
+    `17 three papers and the lines folded: ${shut.join(' · ')} · "${(await words('.meet-lines-h'))}"`);
   ok(/This project in one Excel file/.test(sheetW) && !/every project/.test(sheetW), `17 the spreadsheet worded for this job: "${sheetW}"`);
   await dlg.locator('.meet-lines-h').click(); await page.waitForTimeout(400);
   const open = await titles();

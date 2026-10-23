@@ -25,6 +25,8 @@ export interface SixMFigures {
   causes: number; roots: number; suspected: number;
   actionsOpen: number; actionsLate: number; actionsDone: number;
   held: number; missed: number;
+  /** Everything owed and past its day (lib/portfolio pacedOwed — the one late every place says), and of what. */
+  owedLate: number; owedLateSaid: string; owedOpen: number;
 }
 
 /** The report's counts, as its sections say them. */
@@ -41,6 +43,7 @@ export function sixmFigures(r: SixMReport): SixMFigures {
     causes: causes.length, roots: causes.filter(c => c.root && c.status === 'confirmed').length, suspected: causes.filter(c => c.status === 'suspected').length,
     actionsOpen: rows.filter(x => x.tone !== 'done').length, actionsLate: rows.filter(x => x.tone === 'late').length, actionsDone: rows.filter(x => x.tone === 'done').length,
     held: held.length, missed: held.filter(p => p.hold?.tone === 'late').length,
+    owedLate: r.owed.late, owedLateSaid: r.owed.lateSaid, owedOpen: r.owed.open,
   };
 }
 
@@ -73,7 +76,13 @@ export function sixmClosing(x: SixMFigures): { text: string; tone: LeanTone } {
   const where = !x.measured ? 'No line is measured against a target yet'
     : x.oneLine ? (x.oneLine.short ? `${x.oneLine.line} is ${by(x.oneLine.short)} short of its target` : `${x.oneLine.line} is at its target`)
       : x.short ? `${x.short} of ${x.measured} lines are short of their target` : `All ${x.measured} lines are at their target`;
-  const wrong = [x.slipped ? `${x.slipped} ${plural(x.slipped, 'problem')} slipped back` : '', x.actionsLate ? `${x.actionsLate} ${plural(x.actionsLate, 'countermeasure')} late` : '', x.missed ? `${x.missed} ${plural(x.missed, 'check')} missed` : ''].filter(Boolean);
+  /* the late is everything owed past its day — the number the control room, Needs you and Actions say
+     (docs/STEADY.md S1); of what, when it is not countermeasures alone */
+  const lateSaid = !x.owedLate ? ''
+    : x.owedLate === x.actionsLate ? `${x.owedLate} ${plural(x.owedLate, 'countermeasure')} late`
+      : x.owedLate === x.missed ? `${x.missed} ${plural(x.missed, 'check')} missed`
+        : `${x.owedLate} late — ${x.owedLateSaid}`;
+  const wrong = [x.slipped ? `${x.slipped} ${plural(x.slipped, 'problem')} slipped back` : '', lateSaid, x.missed && !/check/.test(lateSaid) ? `${x.missed} ${plural(x.missed, 'check')} missed` : ''].filter(Boolean);
   const work = x.open ? `${x.open} ${plural(x.open, 'problem')} being worked` : 'no problem being worked';
   return {
     text: `${where}; ${work}${wrong.length ? ` — ${and(wrong)}` : ''}.`,
