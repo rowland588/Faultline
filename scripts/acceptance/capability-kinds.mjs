@@ -30,6 +30,7 @@
  *
  *   node scripts/acceptance/capability-kinds.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
+import { paper as pressPaper } from '../lib/pageHeader.mjs';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -70,7 +71,7 @@ const all = async sel => (await page.locator(sel).allInnerTexts()).map(flat);
 const studyId = () => decodeURIComponent(page.url().split('/capability/')[1]?.split('?')[0] ?? '');
 const typeAll = async vs => { for (const v of vs) { await page.keyboard.type(String(v)); await page.keyboard.press('Enter'); await page.waitForTimeout(50); } await page.waitForTimeout(700); };
 const pdf = async name => {
-  const [d] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'This study on paper (PDF)' }).click()]);
+  const [d] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), pressPaper(page, / — on paper$/)]);
   const f = join(OUT, name); await d.saveAs(f);
   return { text: flat(execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' })), pages: Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [f], { encoding: 'utf8' }))?.[1]) };
 };

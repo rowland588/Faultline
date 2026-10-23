@@ -46,6 +46,7 @@
  *
  *   node scripts/acceptance/shift-losses.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
+import { paper as pressPaper } from '../lib/pageHeader.mjs';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -286,7 +287,7 @@ await go(`#/losses/${countId}`);
   ok(m.actions.length === 1 && m.actions[0].what === row.what && m.actions[0].from === 'Breakdown on the Bagger' && plan.includes(row.what) && plan.includes('from Breakdown on the Bagger')
     && plan.includes(m.actions[0].who ?? 'nobody yet') && (await page.locator('.ln-plan button.ln-row').count()) === 1,
     `4b the action plan: the countermeasure raised from the bar — "${row.what}" · ${m.actions[0].who ?? 'nobody yet'} · ${m.actions[0].due ?? 'no day'}`);
-  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'This study on paper (PDF)' }).click()]);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), pressPaper(page, / — on paper$/)]);
   const pdf = join(OUT, 'count.pdf'); await dl.saveAs(pdf);
   const txt = san(pdfText(pdf));
   const has = x => txt.includes(san(x));
@@ -347,7 +348,7 @@ await page.setViewportSize({ width: 1360, height: 900 });
   await go(`#/pace-report?project=${sd.pacedProjectId}`);
   /* the full report: the one-page status is the one offered first */
   await page.getByRole('button', { name: 'Full report', exact: true }).click(); await page.waitForTimeout(400);
-  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'PDF', exact: true }).first().click()]);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Download', exact: true }).first().click()]);
   const pdf = join(OUT, 'sixm.pdf'); await dl.saveAs(pdf);
   const txt = san(pdfText(pdf));
   const has = s => txt.includes(san(s).slice(0, 60));
@@ -364,7 +365,7 @@ await page.setViewportSize({ width: 1360, height: 900 });
   const ts = await truth(sd.lossStageId);
   await go(`#/project/${sd.projectId}/report`);
   await page.getByRole('button', { name: 'Full report', exact: true }).first().click(); await page.waitForTimeout(800);
-  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'PDF', exact: true }).first().click()]);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Download', exact: true }).first().click()]);
   const pdf = join(OUT, 'client.pdf'); await dl.saveAs(pdf);
   await page.getByRole('button', { name: 'Close' }).last().click().catch(() => {});
   const txt = san(pdfText(pdf));

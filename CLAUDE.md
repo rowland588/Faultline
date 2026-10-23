@@ -130,6 +130,19 @@ with nothing listed; a new rail line is a page of its scope, never a list of
 lines, projects or tools (the tools are each scope's *Tools* page, read from
 the catalogue's registry, `src/catalogue/registry`).
 
+**Since B3 and B4 every page has one header and every tool one shell.** A
+page is drawn with `ui/parts` PageHeader — one title, what it says, one
+primary, More ▾ for its other actions, Report ▾ for every paper it has, each
+named for what it is (never *PDF*, *Print* or *Report*); a paper drawn on its
+report page is reached from another page's Report ▾ with `?save=1` and made
+on arrival (`lib/useSaveOnArrival`). A tool's record wears the shell
+(`ui/StudyActs` StudyBand on a study: Rename and Delete in More ▾, its paper
+in Report ▾; `ui/StudyPlace` WhereItSits — *On Line 7 · in … · Change*, the
+one Belongs to), and one thing seen several ways is ViewTabs, never a row of
+link buttons. A new page or tool takes these parts, and its acceptance
+script presses by name through `scripts/lib/pageHeader.mjs` (the page's own
+button, else the menu), so a control moving into a menu never breaks it.
+
 ## The blueprint comes first
 
 **`docs/BLUEPRINT.md` is the one map of the app** — agreed with Rowland, 13

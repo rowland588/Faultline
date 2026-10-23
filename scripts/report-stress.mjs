@@ -866,7 +866,7 @@ for (const size of SIZES) {
     const file = `${OUT}/capacity-${size}-one.pdf`;
     try {
       const must = await capMust([sd.one.id]);
-      await download(page, `#/w/${sd.one.wsId}/standards/${sd.one.id}?at=balance`, file, [['PDF']]);
+      await download(page, `#/w/${sd.one.wsId}/standards/${sd.one.id}?at=balance`, file, [[/^Line capacity — /]]);
       const r = check(file, must);
       if (size === 'ordinary' && r.pages > 1) r.faults.push(`${r.pages} pages — an ordinary product's capacity must be one`);
       rows.push({ size: `cap-${size}`, report: 'line capacity', pages: r.pages, faults: r.faults, said: r.said });

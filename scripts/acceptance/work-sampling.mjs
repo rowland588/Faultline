@@ -190,7 +190,7 @@ await go(STUDY);
   await go(`#/pace-report?project=${sd.pacedProjectId}`);
   /* the full report: the one-page status is the one offered first */
   await page.getByRole('button', { name: 'Full report', exact: true }).click(); await page.waitForTimeout(400);
-  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'PDF', exact: true }).first().click()]);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Download', exact: true }).first().click()]);
   const pdf = join(mkdtempSync(join(tmpdir(), 'sampling-')), 'sixm.pdf'); await dl.saveAs(pdf);
   const txt = san(execFileSync('pdftotext', ['-raw', pdf, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' '));
   const flatTxt = txt.replace(/\s+/g, '');

@@ -13447,8 +13447,13 @@ button.cxb-row:hover .cxb-n { color: var(--accent); }
 .ln-band-main { min-width: 0; flex: 1 1 340px; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
 .ln-eyebrow { font-size: var(--t-label); font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--shell-muted); }
 .ln-title, .ln-band .ie-name { margin: 0; color: var(--shell-ink); font-size: 28px; line-height: 1.15; letter-spacing: -0.02em; }
-.ln-band .ie-rename { color: var(--shell-dim); }
-.ln-band .ie-name .ie-del { color: var(--shell-bad); }
+/* THE TOOL SHELL'S MENUS in the band (docs/STRUCTURE.md §5.5, B4): More ▾ and Report ▾ at its right,
+   where Rename, Delete and the PDF were links beside the name and the place */
+.ln-band-acts { display: flex; gap: 8px; flex-shrink: 0; order: 1; }
+/* Belongs to on a tool: where it sits and Change on one line, the quick session's words beside them */
+.ie-place-w { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-1); }
+.ie-place-w .part-belongs, .ls-belongs .part-belongs { margin: 0; }
+@media print { .ln-band-acts { display: none !important; } }
 .ln-band .ie-name-f .text-input { color: var(--ink); }
 .ln-sub { margin: 0; color: var(--shell-dim); font-size: var(--t-body); font-weight: 600; }
 .ln-band .ln-verdict { margin-top: 8px; border-color: var(--shell-line); background: var(--shell-2); }
@@ -14105,7 +14110,9 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .part-menu { position: relative; }
 .part-menu-b { gap: var(--space-1); }
 .part-menu-list {
-  position: absolute; right: 0; top: calc(100% + var(--space-1)); z-index: 40; min-width: 260px; max-width: min(360px, 92vw);
+  /* above the bar that holds a file just made (.pdfr, 79): on a phone both sit at the foot, and the
+     menu's own papers were under it (control-room.mjs, gate 32) */
+  position: absolute; right: 0; top: calc(100% + var(--space-1)); z-index: 85; min-width: 260px; max-width: min(360px, 92vw);
   display: grid; padding: var(--space-1); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-lift);
 }
 .part-menu-i {

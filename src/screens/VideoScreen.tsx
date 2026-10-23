@@ -35,7 +35,7 @@ import type { ToolStudy } from '../lib/study';
 import { Sheet } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
 import { Legend, Stacks } from '../ui/WorkBalance';
-import { StudyProves } from '../ui/ProveProgram';
+import { WhereItSits } from '../ui/StudyPlace';
 import { asked } from '../lib/lines';
 import { useInProject } from '../lib/useInProject';
 import { inScope, startLine, type ProjectScope } from '../lib/inProject';
@@ -430,17 +430,14 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
 
   return (
     <div className="wrap vid-study" data-state={job.state}>
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <p className="eyebrow">Video study · {v.kind ? KIND_WORD[v.kind] : 'Line balance'}</p>
-          <h1>{s.name || v.facts.fileName}</h1>
-          <p className="sub">{line ? line.name : 'On no line'}{job0 ? ` · for ${job0.name}` : ''} · <b className={`ie-tone is-${st.tone}`} data-standing>{st.text}</b></p>
-        </div>
-        <div className="pace-head-actions">
-          <button type="button" className="btn btn-primary" disabled={printing || !events.length} onClick={() => void report()}>{printing ? 'Making…' : 'Report'}</button>
-          <button type="button" className="btn btn-ghost" onClick={() => nav('/video')}>Every video study</button>
-        </div>
-      </header>
+      {/* THE TOOL SHELL (docs/STRUCTURE.md §5.5, B4): the tool, the record's name, where it stands; its
+          report in Report ▾ (it was a button saying Report), Delete the study in More ▾. Its list is the
+          context bar's Video study, where Every video study was a button here. */}
+      <PageHeader eyebrow={`Video study · ${v.kind ? KIND_WORD[v.kind] : 'Line balance'}`} title={s.name || v.facts.fileName}
+        papers={[{ label: 'Video study report', for: 'What was read from the footage and reviewed, its figures, and what it says', make: report, disabled: !events.length }]}
+        more={can.remove ? [{ label: 'Delete the study', danger: true, run: () => void removeStudy() }] : []}>
+        <p className="sub">{line ? line.name : 'On no line'}{job0 ? ` · for ${job0.name}` : ''} · <b className={`ie-tone is-${st.tone}`} data-standing>{st.text}</b></p>
+      </PageHeader>
       {said && <p className="vid-said" role="status">{said}</p>}
 
       {/* THE FOOTAGE — what it is, read from the file, and where it is */}
@@ -603,20 +600,13 @@ function Study({ s, v }: { s: ToolStudy; v: VideoSource }) {
 
       {/* WHERE IT SITS, and taking it away */}
       <section className="vid-panel vid-where" aria-label="Where it sits">
-        {/* the program it was named as proof of, as on every study's page (ui/StudyPlace) */}
-        <StudyProves s={s} />
-        {can.edit && (
-          <label className="field"><span className="field-label">For a project</span>
-            <select className="text-input" value={s.projectId ?? ''} aria-label="Put it on a project" onChange={e => void patchStudy(s.id, { projectId: e.target.value || undefined })}>
-              <option value="">No — a study on its own</option>
-              {projects.filter(p => !p.deletedAt && !p.archivedAt).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-          </label>
-        )}
+        {/* BELONGS TO — the one control every tool has (ui/StudyPlace WhereItSits, B4): its line and its
+            project, Change to move it; the program it was named as proof of under it, as on every study */}
+        <WhereItSits s={s} can={can} />
         {v.reports?.length ? <p className="sub">Reports made: {v.reports.map(r => `${new Date(r.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} (${r.accepted} accepted${r.candidates ? `, ${r.candidates} to review` : ''})`).join(' · ')}</p> : null}
+        {/* the footage goes from here, what was found in it kept; the study itself is deleted from More ▾ */}
         <div className="vid-job-acts">
           {can.remove && !gone && <button type="button" className="btn btn-ghost" onClick={() => void deleteFootage()}>Delete the footage</button>}
-          {can.remove && <button type="button" className="btn btn-ghost" onClick={() => void removeStudy()}>Delete the study</button>}
         </div>
       </section>
     </div>

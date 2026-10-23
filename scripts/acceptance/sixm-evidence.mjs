@@ -217,6 +217,7 @@ const S6 = `#/project/${sd.pacedProjectId}`;
 /* ---- 15 · a study's Use it for, machine by machine; attached, it takes the job's line ---- */
 {
   await go(`#/capability/${sd.studyId}`);
+  await page.locator('.ie-place').getByRole('button', { name: 'Change', exact: true }).click(); /* Belongs to's Change (B4) */
   await page.getByRole('button', { name: 'Attach to a project' }).click(); await page.waitForTimeout(400);
   await page.getByLabel('Attach it to which project').selectOption(sd.projectId); await page.waitForTimeout(1500);
   const st = await page.evaluate(async ([id, pid]) => {

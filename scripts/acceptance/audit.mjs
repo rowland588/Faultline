@@ -24,7 +24,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 const { chromium } = pkg;
-import { paper, more } from '../lib/pageHeader.mjs';
+import { paper, more, paper as pressPaper } from '../lib/pageHeader.mjs';
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
 const SESSION = { access_token: 'smoke', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 31536000, refresh_token: 'smoke',
@@ -52,7 +52,7 @@ const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).se
   /* a short phone, so the preview is taller than the screen — the case that trapped */
   await page.setViewportSize({ width: 390, height: 380 });
   await page.goto(`${BASE}/#/w/${sd.wsId}/standards/${sd.lineStandardId}`); await page.waitForTimeout(2500);
-  await page.getByRole('button', { name: 'PDF', exact: true }).first().click(); await page.waitForTimeout(1500);
+  await pressPaper(page, /^Line standard card/); await page.waitForTimeout(1500); /* Report ▾ (B4) */
   const sheet = page.locator('.sheet').last();
   const inView = async () => { const x = await sheet.locator('.sheet-x').boundingBox(); return !!x && x.y >= 0 && x.y + x.height <= 380; };
   const tall = await sheet.evaluate(el => el.scrollHeight > el.clientHeight);
@@ -89,7 +89,7 @@ const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).se
   const strip = flat(await page.locator('.ie-strip').innerText());
   ok(new RegExp(`ppk ${m.ppk}\\b`, 'i').test(strip) && strip.includes(`Cpk ${m.cpk}`) && /Not capable: Ppk|Capable: Ppk|Just capable: Ppk/.test(flat(await page.locator('body').innerText())),
     `5 the strip says Ppk ${m.ppk} and Cpk ${m.cpk}; the verdict on Ppk`);
-  const p = await pdfText(() => page.getByRole('button', { name: 'This study on paper (PDF)' }).click(), 'study.pdf');
+  const p = await pdfText(() => pressPaper(page, / — on paper$/), 'study.pdf');
   ok(p.text.includes('PPK') && p.text.includes(m.ppk) && p.text.includes('CPK') && p.text.includes(m.cpk) && m.values.every(v => p.text.includes(v)) && p.text.includes(flat(m.line).slice(0, 40)),
     `3 the study on paper: its sentence, Ppk ${m.ppk} and Cpk ${m.cpk}, and its readings (${p.pages} page${p.pages === 1 ? '' : 's'})`);
 }

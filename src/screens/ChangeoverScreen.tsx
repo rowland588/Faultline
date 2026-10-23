@@ -45,8 +45,8 @@ import { dur, parseDur } from '../lib/ie/steps';
 import type { ChangeoverProduct, ChangeoverSide, ChangeoverStep, SmedFunction, SmedHow, SmedPlan, SmedPlanKind, SmedRateFrom, StudyFacts, StudyUse, ToolStudy } from '../lib/study';
 import type { Workspace } from '../types';
 import { UsedFor, useBetter, WhereItSits } from '../ui/StudyPlace';
-import { StudyName } from '../ui/StudyActs';
-import { LeanActions, LeanBand, LeanClosing, LeanPanel, LeanTiles } from '../ui/Lean';
+import { StudyBand } from '../ui/StudyActs';
+import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../ui/Lean';
 import { smedLean } from '../lib/ie/changeoverLean';
 import { raisedFrom } from '../lib/ie/lossLean';
 import { recordHref } from '../lib/studyLinks';
@@ -188,7 +188,7 @@ function Smed({ s, can, me, standards, line }: { s: ToolStudy; can: Can; me?: st
           among them, the money with them — the action plan and the closing
           line, as its paper prints them. The products sit under the band
           with their button, so the band does not say them twice. */}
-      <LeanBand page={{ ...lean, sub: '' }} title={<StudyName s={s} canEdit={editable} canRemove={can.remove} />} />
+      <StudyBand page={{ ...lean, sub: '' }} s={s} what="SMED" canEdit={editable} canRemove={can.remove} />
       <div className="ln-under">
         <p className="sub ie-where co-products">
           {from || to ? <>From <b>{from || 'a product'}</b> to <b>{to || 'a product'}</b></> : 'Which two products?'}

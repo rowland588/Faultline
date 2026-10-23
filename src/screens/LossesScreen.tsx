@@ -37,11 +37,11 @@ import { lossFiguresOf, recordHref, ROLE_WORD, type StudyContext } from '../lib/
 import type { LossCount, RunTiming, ToolStudy } from '../lib/study';
 import type { Observation, Workspace } from '../types';
 import { UsedFor, WhereItSits, useBetter } from '../ui/StudyPlace';
-import { StudyName } from '../ui/StudyActs';
+import { StudyBand } from '../ui/StudyActs';
 import { capacityForCount } from '../ui/ShiftLosses';
 import { constraintShare, lineConstraint, type ConstraintShare, type LineConstraint } from '../lib/intelligence';
 import { lossLean, lossPart, raisedFrom } from '../lib/ie/lossLean';
-import { LeanActions, LeanBand, LeanClosing, LeanInsights, LeanPanel, LeanTiles, LeanTrend } from '../ui/Lean';
+import { LeanActions, LeanClosing, LeanInsights, LeanPanel, LeanTiles, LeanTrend } from '../ui/Lean';
 
 const OWNER = canAt('owner');
 
@@ -141,7 +141,7 @@ function Losses({ s, line, obs, rate, can, me, constraint, counts }: { s: ToolSt
   );
   return (
     <div className="wrap ie lf ln">
-      <LeanBand page={lean} title={<StudyName s={s} canEdit={editable} canRemove={can.remove} />} />
+      <StudyBand page={lean} s={s} what="Loss count" canEdit={editable} canRemove={can.remove} />
       <div className="ln-under"><WhereItSits s={s} can={can} /></div>
       <LeanTiles tiles={lean.tiles} className="ie-strip" />
 

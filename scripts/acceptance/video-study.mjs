@@ -29,6 +29,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { paper } from '../lib/pageHeader.mjs';
 const { chromium } = pkg;
 
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
@@ -170,7 +171,7 @@ await page.getByRole('button', { name: 'Show the longest gaps with no movement' 
 ok(/^The longest gaps with no movement: .*whether it is waiting is for a person/.test(await page.locator('.vid-answer').innerText()), '4e the longest gaps answered from the figures, never called waiting');
 
 /* 5 — the report */
-const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Report', exact: true }).click()]);
+const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), paper(page, 'Video study report')]);
 const pdfPath = join(dir, 'report.pdf'); await dl.saveAs(pdfPath);
 const pdf = execFileSync('pdftotext', ['-raw', pdfPath, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
 ok(/VIDEO STUDY/.test(pdf) && /Line 4 — packing, morning/.test(pdf) && /How it was read/.test(pdf) && /A frame every 0\.\d+ s/.test(pdf), '5 the report: what was asked, of what footage, how it was read', pdf.slice(0, 400));

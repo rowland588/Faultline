@@ -177,6 +177,7 @@ await page.locator('.ls-balance-line').nth(1).waitFor({ timeout: 10000 }).catch(
 }
 
 /* ---- 5 · attached to a job — the work balance goes with it ---- */
+await page.locator('.ls-belongs').getByRole('button', { name: 'Change', exact: true }).first().click(); /* Belongs to's Change (B4) */
 await page.getByLabel('Attach to a project').first().selectOption(sd.projectId); await page.waitForTimeout(1200);
 t = await truth(SID);
 ok(t.projectId === sd.projectId, '5 the line standard on the job: its work balance is the job\'s now');
@@ -233,7 +234,7 @@ ok(!!want && /within takt now/.test(want) && (await words('.sl-ba')) === `Before
 /* ---- 9 · the client report's PDF ---- */
 await go(`${J}/report`);
 await page.getByRole('button', { name: 'Full report', exact: true }).first().click(); await page.waitForTimeout(800);
-const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'PDF', exact: true }).first().click()]);
+const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Download', exact: true }).first().click()]);
 const pdf = join(OUT, 'client.pdf'); await dl.saveAs(pdf);
 const txt = pdfText(pdf);
 const san = s => s.replace(/→/g, 'to').replace(/[–—]/g, '-').replace(/\s+/g, ' ');
@@ -311,7 +312,7 @@ ok(has('Before') && has(want.slice(0, 50)), '9 the client report: the fix carrie
     ok(vs.join('|') === want.map(x => x.v).join('|') && (await page.locator('.tg .ln-close').count()) === 1 && (await page.locator('.tg .ls-head.is-band').count()) === 1,
       `10 All together's band, tiles and closing line — each figure from its own tool: ${want.map(x => `${x.k} ${x.v}`).join(' · ')}`);
   }
-  const [dl2] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.locator('.tg .ls-head-actions').getByRole('button', { name: 'PDF', exact: true }).click()]);
+  const [dl2] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), paper(page, /^All together — /, page.locator('.tg'))]);
   const tpdf = join(OUT, 'together.pdf'); await dl2.saveAs(tpdf);
   const tt = pdfText(tpdf);
   const TT = tt.toUpperCase();

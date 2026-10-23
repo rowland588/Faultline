@@ -32,8 +32,8 @@ import { compareFlows, dur, flowFigures, flowSays, laneByDefault, parseDur, shar
 import type { AgreedMap, FlowKind, FlowStep, FlowValue, StudyUse, ToolStudy } from '../lib/study';
 import { KIND_WORD, StepFacts, VALUE_WORD, ValueStreamGrid, WalkIt } from '../ui/ValueStream';
 import { UsedFor, useBetter, WhereItSits } from '../ui/StudyPlace';
-import { StudyName } from '../ui/StudyActs';
-import { LeanActions, LeanBand, LeanClosing, LeanPanel } from '../ui/Lean';
+import { StudyBand } from '../ui/StudyActs';
+import { LeanActions, LeanClosing, LeanPanel } from '../ui/Lean';
 import { bandPage } from '../lib/lean';
 import { flowClosing } from '../lib/ie/flowLean';
 import { raisedFrom } from '../lib/ie/lossLean';
@@ -109,7 +109,7 @@ function ValueStreamMap({ s, can, me }: { s: ToolStudy; can: Can; me?: string })
       {/* THE LEAN PAGE (docs/LEAN-PAGE.md, slice 6): the band; the seven cards
           stay its tiles, in the method's colours; the action plan and the
           closing line (lib/ie/flowLean) at its foot */}
-      <LeanBand page={bandPage('Value stream map', s, f.steps ? `${f.untimed ? '≥ ' : ''}${dur(f.leadSec)} lead time` : 'No steps yet', f.longestCycle?.overTakt ? 'r' : 'n')} title={<StudyName s={s} canEdit={can.edit && !s.closedAt} canRemove={can.remove} />} />
+      <StudyBand page={bandPage('Value stream map', s, f.steps ? `${f.untimed ? '≥ ' : ''}${dur(f.leadSec)} lead time` : 'No steps yet', f.longestCycle?.overTakt ? 'r' : 'n')} s={s} what="Value stream map" canEdit={can.edit && !s.closedAt} canRemove={can.remove} />
       <div className="ln-under">
         <p className="sub ie-where">{/* the line is said once, just below, where it can be changed (ui/StudyPlace) */}
           {lineName ? 'what is done, and who does it' : 'not on a line yet — put it on its line below'} · started {niceDay(isoDay(s.startedAt))}{s.product ? <> · <b>{s.product}</b></> : null}</p>

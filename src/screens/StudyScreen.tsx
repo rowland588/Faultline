@@ -26,9 +26,9 @@ import { nav } from '../state/useRoute';
 import { allowFailProblem, checksSay, passFailPlan, sample, sampleLines, sampleSays, tneFor, CPK_FROM, type SampleFigures, type SampleSays } from '../lib/ie/sample';
 import type { AgreedReadings, StudyReading, ToolStudy } from '../lib/study';
 import { TOOL_WORDS } from './StudiesScreen';
-import { StudyName } from '../ui/StudyActs';
+import { StudyBand } from '../ui/StudyActs';
 import { WhereItSits, UsedFor, useBetter } from '../ui/StudyPlace';
-import { LeanActions, LeanBand, LeanClosing, LeanPanel, LeanTiles } from '../ui/Lean';
+import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../ui/Lean';
 import { bandPage } from '../lib/lean';
 import { sampleClosing, sampleTiles } from '../lib/ie/sampleLean';
 import { raisedFrom } from '../lib/ie/lossLean';
@@ -81,7 +81,7 @@ function Study({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>; me
       {/* THE LEAN PAGE (docs/LEAN-PAGE.md, slice 6; lib/ie/sampleLean): the
           band with the verdict, the tiles in the strip's place, the action
           plan and the closing line */}
-      <LeanBand page={bandPage(w?.one ?? 'Study', s, said.verdict, said.tone)} title={<StudyName s={s} canEdit={can.edit && !closed} canRemove={can.remove} />} />
+      <StudyBand page={bandPage(w?.one ?? 'Study', s, said.verdict, said.tone)} s={s} what={w?.one ?? 'Study'} canEdit={can.edit && !closed} canRemove={can.remove} />
       <div className="ln-under">
         <p className="sub ie-where">
           {s.workspaceId && can.edit && !closed ? <StudyMachine s={s} /> : s.machine ? <><b>{s.machine}</b> · </> : null}

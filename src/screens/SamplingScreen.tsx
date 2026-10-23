@@ -33,12 +33,12 @@ import { TOOL_WORDS } from './StudiesScreen';
 import { walkVerdict } from '../lib/ie/walk';
 import { analyse } from '../lib/capacity';
 import { WhereItSits, UsedFor, useBetter } from '../ui/StudyPlace';
-import { LeanActions, LeanBand, LeanClosing, LeanPanel, LeanTiles } from '../ui/Lean';
+import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../ui/Lean';
 import { bandPage } from '../lib/lean';
 import { momentsAt, personRate, samplingClosing, samplingTiles } from '../lib/ie/samplingLean';
 import { raisedFrom } from '../lib/ie/lossLean';
 import { useFactoryLines } from '../lib/useFactoryLines';
-import { StudyName } from '../ui/StudyActs';
+import { StudyBand } from '../ui/StudyActs';
 
 const OWNER = canAt('owner');
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -93,7 +93,7 @@ function Sampling({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canAt>;
       {/* THE LEAN PAGE (docs/LEAN-PAGE.md, slice 6; lib/ie/samplingLean): the
           band, the tiles in the strip's place — the biggest share not the
           work in money too — the action plan and the closing line */}
-      <LeanBand page={bandPage(a?.walk ? 'Bottleneck walk' : w?.one ?? 'Work sampling', s, said.verdict, said.tone)} title={<StudyName s={s} canEdit={can.edit && !s.closedAt} canRemove={can.remove} />} />
+      <StudyBand page={bandPage(a?.walk ? 'Bottleneck walk' : w?.one ?? 'Work sampling', s, said.verdict, said.tone)} s={s} what={a?.walk ? 'Bottleneck walk' : 'Work sampling'} canEdit={can.edit && !s.closedAt} canRemove={can.remove} />
       <div className="ln-under">
         <p className="sub ie-where">
           {s.product ? <><b>{s.product}</b> · </> : null}

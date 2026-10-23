@@ -15,7 +15,7 @@ const named = label => (label instanceof RegExp ? label : new RegExp(`^${esc(lab
 export async function find(page, menu, label, within) {
   const scope = within ?? page.locator('main');
   const own = scope.getByRole('button', { name: label, exact: typeof label === 'string' });
-  const menuB = scope.locator('.part-head .part-menu-b', { hasText: new RegExp(`^${menu}`) });
+  const menuB = scope.locator(".part-head .part-menu-b, .ln-band .part-menu-b", { hasText: new RegExp(`^${menu}`) });
   /* a page still reading draws neither yet — wait for one of them before choosing */
   await own.or(menuB).first().waitFor({ timeout: 15000 }).catch(() => {});
   if (await own.count()) return own.first();

@@ -76,7 +76,7 @@ async function paperOf(D, J, label, within) {
   const scope = within ?? D.page.locator('main');
   const own = scope.getByRole('button', { name: label });
   if (await own.count()) return download(D, J, typeof label === 'string' ? label : String(label), own);
-  await press(D, J, 'Report ▾', scope.locator('.part-head .part-menu-b', { hasText: /^Report/ }));
+  await press(D, J, 'Report ▾', scope.locator('.part-head .part-menu-b, .ln-band .part-menu-b', { hasText: /^Report/ }));
   return download(D, J, `Report ▾: ${label}`, D.page.getByRole('menuitem').filter({ has: D.page.locator('b', { hasText: label }) }));
 }
 async function look(D, J, tag) {

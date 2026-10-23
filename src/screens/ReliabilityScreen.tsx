@@ -39,11 +39,11 @@ import {
 } from '../lib/ie/reliability';
 import { relClosings, relTiles, relTrend } from '../lib/ie/reliabilityLean';
 import { WhereItSits, UsedFor, useBetter } from '../ui/StudyPlace';
-import { LeanActions, LeanBand, LeanClosing, LeanInsights, LeanPanel, LeanTiles, LeanTrend } from '../ui/Lean';
+import { LeanActions, LeanClosing, LeanInsights, LeanPanel, LeanTiles, LeanTrend } from '../ui/Lean';
 import { bandPage } from '../lib/lean';
 import { raisedFrom } from '../lib/ie/lossLean';
 import { useFactoryLines } from '../lib/useFactoryLines';
-import { StudyName } from '../ui/StudyActs';
+import { StudyBand } from '../ui/StudyActs';
 
 const OWNER = canAt('owner');
 const hms = (ms: number) => new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -101,7 +101,7 @@ function Reliability({ s, can, me }: { s: ToolStudy; can: ReturnType<typeof canA
 
   return (
     <div className="wrap ie rl">
-      <LeanBand page={bandPage('Reliability study', s, said.verdict, said.tone)} title={<StudyName s={s} canEdit={can.edit && !closed} canRemove={can.remove} />} />
+      <StudyBand page={bandPage('Reliability study', s, said.verdict, said.tone)} s={s} what="Reliability study" canEdit={can.edit && !closed} canRemove={can.remove} />
       <div className="ln-under">
         <p className="sub ie-where">
           {s.machine ? <><b>{s.machine}</b> · </> : null}

@@ -386,7 +386,7 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   /* and the commissioning paper */
   await go(`#/project/${sd.projectId}/report?doc=commissioning`);
   const dir = mkdtempSync(join(tmpdir(), 'cmj-'));
-  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), main.getByRole('button', { name: 'PDF', exact: true }).click()]);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), main.getByRole('button', { name: 'Download', exact: true }).click()]);
   const file = join(dir, 'cm.pdf'); await dl.saveAs(file);
   const txt = flat(execFileSync('pdftotext', ['-layout', file, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
   const want = [r.j.best, ...r.j.attempts.map(a => a.text)].map(w => w.replace(/[–—]/g, '-').replace(/[’]/g, "'").replace(/\s+/g, ''));
@@ -667,6 +667,7 @@ await page.setViewportSize({ width: 1360, height: 900 });
   /* a capability study's machine, picked from its line once it sits on one */
   const capId = await page.evaluate(async () => (await (await import('/src/db.ts')).listAllStudies()).find(s => s.tool === 'capability' && s.machine === 'Ishida CCW-RV-214W multihead weigher')?.id);
   await go(`#/capability/${capId}`);
+  await main.locator('.ie-place').getByRole('button', { name: 'Change', exact: true }).click(); /* Belongs to's Change (B4) */
   await main.getByRole('button', { name: 'Put on a line' }).click();
   await main.getByLabel('Put it on which line').selectOption(WS); await page.waitForTimeout(1200);
   const box = main.getByLabel('Which machine it is of');
