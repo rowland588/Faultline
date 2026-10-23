@@ -346,7 +346,7 @@ export const QUALITY: Entry[] = [
     depends: ['FC-146', 'FC-204'],
     complexity: 'S', value: 'medium', valueWhy: 'The 6M told on one page.',
     status: 'partial', form: 'report', methods: ['rca.a3'], scenarios: ['project'],
-    built: { where: [], code: ['src/lib/sixmReportPdf.ts'], tests: ['src/lib/__tests__/sixmReportPdf.test.ts'], acceptance: ['sixm-evidence.mjs'] },
+    built: { where: [], code: ['src/lib/sixmReport.ts', 'src/lib/sixmReportPdf.ts'], tests: ['src/lib/__tests__/sixmReportPdf.test.ts'], acceptance: ['sixm-evidence.mjs'] },
     limits: ['The 6M report tells the story over several pages; there is no one-page A3 layout.'],
   },
   {

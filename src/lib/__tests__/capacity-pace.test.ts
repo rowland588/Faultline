@@ -4,7 +4,9 @@
  * minute. How many go into a basket? 10. So one basket goes to a human every
  * X". Each case here is one of his, worked by hand. */
 import { describe, expect, it } from 'vitest';
-import { analyse, blankStation, fmtSec, oneOf, paceSays, type Station } from '../capacity';
+import { analyse, blankStation, type Station } from '../capacity';
+import { fmtSec, oneOf } from '../capacityWords';
+import { paceSays } from '../capacitySays';
 
 const bagger: Station = { id: 'b', name: 'Bagger', kind: 'machine', unit: 'bags', contains: 1, rate: 70, ratePer: 'min', source: 'plate' };
 /* typed as the pace to plan on: no rest allowance added (a typed 0) — the allowance has tests of its own (capacity-people.test) */

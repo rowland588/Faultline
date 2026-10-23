@@ -11,7 +11,8 @@
  * history. The action plan is the way to the target, worked out — each step
  * with nobody against it yet, so a step nobody owns is seen to be one. */
 import type { LeanAction, LeanInsight, LeanPage, LeanTile, LeanTone } from './lean';
-import { fmtMoney, fmtN, oneOf } from './capacity';
+import { fmtMoney } from './capacity';
+import { fmtN, oneOf } from './capacityWords';
 import type { CapacityPaper } from './capacityPaper';
 
 const FROM: Record<string, string> = { typed: 'typed on the capacity', map: 'placed on the line standard', line: 'the line’s crew' };

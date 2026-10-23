@@ -13,10 +13,9 @@
  * So the palletiser limits at 64, the basketer is next at 66, and fixing the
  * palletiser can give 2 more at the very most. */
 import { describe, it, expect } from 'vitest';
-import {
-  analyse, blankStation, shortSays, capacityPlan, capacityReport, CAP_REPORT_ROWS, crossCheck, fmtN, isChangeoverStop, isWaiting, lineIfRaised, perMinute, stopStats, suggestRunning,
-  type Capacity, type Station,
-} from '../capacity';
+import { analyse, blankStation, capacityPlan, capacityReport, CAP_REPORT_ROWS, crossCheck, isChangeoverStop, isWaiting, lineIfRaised, perMinute, stopStats, suggestRunning, type Capacity, type Station } from '../capacity';
+import { fmtN } from '../capacityWords';
+import { shortSays } from '../capacitySays';
 import type { Observation } from '../../types';
 
 let n = 0;

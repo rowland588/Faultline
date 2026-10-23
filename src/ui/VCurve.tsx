@@ -22,7 +22,8 @@
  * V is amber, with the words; the target is red only when the bottleneck
  * cannot meet it. Nothing is stored here but the margin. */
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { fmtN, shareColours, type CapacityResult, type VCurve as V } from '../lib/capacity';
+import { shareColours, type CapacityResult, type VCurve as V } from '../lib/capacity';
+import { fmtN } from '../lib/capacityWords';
 import { Icon } from './Icon';
 
 export function VCurveView({ r, v, target, margin, canAgree, onMargin, onPick }: {

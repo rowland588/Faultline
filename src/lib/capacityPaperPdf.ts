@@ -18,7 +18,8 @@ import { capacityPapersSay } from './capacityPaper';
 import { chooseDensity, pour, type Block, type Density, type Frame } from './report/flow';
 import { SIZE, box, font, gap, heading, label, lead, rows, space, text, wrap, type Row } from './report/blocks';
 import { san, paperBand } from './reportKit';
-import { fmtN, oneOf, shareColours } from './capacity';
+import { shareColours } from './capacity';
+import { fmtN, oneOf } from './capacityWords';
 import { capacityLean } from './capacityLean';
 import { leanActions, leanBand, leanClosing, leanHead, leanInsights, leanTiles } from './report/lean';
 

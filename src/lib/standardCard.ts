@@ -21,7 +21,8 @@
  *   │ Agreed by ____________  Date ______          Faultline  │
  *   └─────────────────────────────────────────────────────────┘ */
 import { getBlob } from '../db';
-import { analyse, shortSays } from './capacity';
+import { analyse } from './capacity';
+import { shortSays } from './capacitySays';
 import { BOARDS, boardOf, bottlenecksOf, colourOf, dashOf, FADED_ALPHA, firstPara, headcount, isShape, labelModeHere, manyOf, mapLabel, markOf, MARKS, peopleOf, TONES, weightOf, wordsUp, type Standard, type StandardMark } from './standard';
 
 /** A4 landscape at 150 dpi: sharp on paper, light enough for a phone. */

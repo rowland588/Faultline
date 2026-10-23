@@ -18,7 +18,8 @@
 import { useEffect, useState } from 'react';
 import { getWorkspace, listAllStudies, onDataChange } from '../db';
 import { nav } from '../state/useRoute';
-import { analyse, fmtMoney, fmtN, labourCost, labourInputs, oneOf, shiftCapacity, shiftsIn, type CapacityResult, type ChangeoverIn, type ShiftIn } from '../lib/capacity';
+import { analyse, fmtMoney, labourCost, labourInputs, shiftCapacity, shiftsIn, type CapacityResult, type ChangeoverIn, type ShiftIn } from '../lib/capacity';
+import { fmtN, oneOf } from '../lib/capacityWords';
 import { changeoverIn } from '../lib/ie/changeover';
 import { studyHref } from '../lib/studyLinks';
 import type { StandardChangeover, ToolStudy } from '../lib/study';

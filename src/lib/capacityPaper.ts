@@ -23,11 +23,9 @@
  * can do (red), one under the V or a machine not on its plate speed (amber),
  * a person over takt (red). The bottleneck is marked, not coloured — it is
  * the limit, not a failure. */
-import {
-  allowanceOf, analyse, bottleneckCost, bottleneckCostSays, changedWords, cycleWords, compareSays, fmtBig, fmtMoney, fmtN, labourCost, oneMorePerson, oneOf, shiftCapacity, shortSays,
-  screenCapacity, vCurve, whatIfCapacity, whatIfLabour, whatIfStations,
-  type Capacity, type ChangeoverIn, type LabourInputs, type ShiftIn, type Station,
-} from './capacity';
+import { allowanceOf, analyse, bottleneckCost, bottleneckCostSays, changedWords, compareSays, fmtMoney, labourCost, oneMorePerson, shiftCapacity, screenCapacity, vCurve, whatIfCapacity, whatIfLabour, whatIfStations, type Capacity, type ChangeoverIn, type LabourInputs, type ShiftIn, type Station } from './capacity';
+import { cycleWords, fmtBig, fmtN, oneOf } from './capacityWords';
+import { shortSays } from './capacitySays';
 import type { WalkVerdict } from './ie/walk';
 import { planToTarget } from './capacityPlan';
 

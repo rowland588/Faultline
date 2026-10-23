@@ -23,7 +23,9 @@
  *   cannot match a machine piece for piece: said, unless something can
  *   collect between them. */
 import { describe, expect, it } from 'vitest';
-import { REST_ALLOWANCE_PCT, allowanceOf, analyse, chainWords, cycleWords, everyWords, paceSays, perMinute, planPerMinute, rateAsTime, stationDetail, typedSpeedWords, type Station } from '../capacity';
+import { REST_ALLOWANCE_PCT, allowanceOf, analyse, chainWords, perMinute, planPerMinute, stationDetail, typedSpeedWords, type Station } from '../capacity';
+import { cycleWords, everyWords } from '../capacityWords';
+import { paceSays, rateAsTime } from '../capacitySays';
 import { speedWords } from '../capacityPaper';
 
 const bagger: Station = { id: 'b', name: 'Bagger', kind: 'machine', unit: 'units', contains: 1, rate: 70, ratePer: 'min', source: 'plate' };

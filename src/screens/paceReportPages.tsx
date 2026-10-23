@@ -32,7 +32,8 @@ import type { BoardSheetDrawn, PaceReportData } from '../lib/paceReportPdf';
 
 
 import {  moveSentence, PARETO_SHEET_ROWS, type ParetoView } from '../lib/paretoView';
-import { capacityPlan, fmtN, type CapacityReport } from '../lib/capacity';
+import { capacityPlan, type CapacityReport } from '../lib/capacity';
+import { fmtN } from '../lib/capacityWords';
 
 
 

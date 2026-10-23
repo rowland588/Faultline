@@ -4,7 +4,8 @@
  * 70 bags/min, 8 to a tray → a tray every 6.857 s; a person at 8 s a tray
  * → 8.72 s with 9% rest → 1.86 s too slow, 2 people needed). */
 import { describe, expect, it } from 'vitest';
-import { PACED_LOAD_MAX, allowanceOf, analyse, chainWords, paceSays, planPerMinute, rateAsTime, screenCapacity, typedPerMinute, type Capacity, type Station } from '../capacity';
+import { allowanceOf, analyse, chainWords, planPerMinute, screenCapacity, typedPerMinute, type Capacity, type Station } from '../capacity';
+import { PACED_LOAD_MAX, paceSays, rateAsTime } from '../capacitySays';
 
 let n = 0;
 const m = (name: string, unit: string, contains: number, speed: Partial<Station>, x: Partial<Station> = {}): Station => ({ id: `s${++n}`, name, kind: 'machine', unit, contains, ...speed, ...x });

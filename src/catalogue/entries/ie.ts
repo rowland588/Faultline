@@ -166,6 +166,6 @@ export const IE: Entry[] = [
     depends: ['FC-034', 'FC-019'],
     complexity: 'S', value: 'high', valueWhy: 'Crewing decisions said in numbers.',
     status: 'available', form: 'component', partOf: 'FC-034', methods: ['capacity.line-capacity'], scenarios: ['people'],
-    built: { where: ['/balances'], code: ['src/lib/capacity.ts'], tests: ['src/lib/__tests__/capacity-people.test.ts'], acceptance: ['line-capacity.mjs'] },
+    built: { where: ['/balances'], code: ['src/lib/capacity.ts', 'src/lib/capacitySays.ts'], tests: ['src/lib/__tests__/capacity-people.test.ts'], acceptance: ['line-capacity.mjs'] },
   },
 ];

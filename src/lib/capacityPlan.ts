@@ -16,7 +16,8 @@
  * It claims no more than the sums do: a machine is "another one beside it",
  * never a faster one; and where adding to a station cannot be the answer (a
  * dozen of them already) the plan stops and says so. Pure. */
-import { analyse, fmtN, type Capacity, type Station } from './capacity';
+import { analyse, type Capacity, type Station } from './capacity';
+import { fmtN } from './capacityWords';
 
 export interface PlanStep {
   stationId: string;
