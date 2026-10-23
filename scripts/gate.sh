@@ -40,7 +40,7 @@ if [ "$MODE" = full ]; then
 fi
 one() { case "$1" in
   smoke) step smoke node scripts/smoke.mjs ;;
-  report-stress) step report-stress node scripts/report-stress.mjs "$O/paper" --repeatable && { while ! grep -q '^rc=' "$O/paper-live.log" 2>/dev/null; do sleep 5; done; step paper-parity node scripts/paper-parity.mjs "$O/paper-live" "$O/paper"; } ;;
+  report-stress) step report-stress node scripts/report-stress.mjs "$O/paper" --repeatable && { while ! grep -q '^rc=' "$O/paper-live.log" 2>/dev/null; do sleep 5; done; if grep -q '^rc=0' "$O/paper-live.log"; then step paper-parity node scripts/paper-parity.mjs "$O/paper-live" "$O/paper"; else step paper-parity sh -c 'echo "the live papers were not drawn (paper-live.log) — nothing to compare"; exit 1'; fi; } ;;
   journeys) step journeys node scripts/journeys.mjs "$O/journeys.json" ;;
   inventory) step inventory node scripts/inventory.mjs ;;
   *) step "acceptance $1" node "scripts/acceptance/$1.mjs" ;;
