@@ -121,9 +121,21 @@ other lines**: `workspaces.made_of` (`DUAL_LINES.sql`), set by ticks under
 *Made of* on Edit the line, never in code; `lib/lines dualOf` reads it both
 ways (made of · part of), `dualSaid` says it under the line's name, on Your
 factory, the control room and every paper's band, and `machinesOf` offers a
-dual line its lines' machines. The combined line report (next) reads a dual
-line as its lines, then both together; a single line's report says only what
-is on it. `scripts/acceptance/dual-lines.mjs` proves it.
+dual line its lines' machines. **The combined line report** (`lib/lineBundle`, `lib/lineBundlePdf`,
+`screens/LineReportScreen` at `#/lines/:ws/report`, reached from the line's
+Report ▾ with `?save=1` and made on arrival): everything carrying the line's
+name — every tool used on it, its programs, its problems, where on the line a
+finding points, who owes what by when — laid out as one report, the full
+version of the one-page line report and never a third kind of paper; a tick a
+tool record, the newest of each tool in by default; each tool's section printed
+with its own paper's blocks (`studiesPdf studyBlocks`, `capacityPaperPdf
+productLeanBlocks`) so the two can never disagree; a dual line as each of its
+lines then *Both lines together*; a single line's report says only what is on
+it; no AI — every figure a formula's. The single reports stay. Rowland, 23
+October: *"I want to be able to provide an immersive combined report ...
+including even programs ... but still allow the flexibility to do single
+reports."* `scripts/acceptance/dual-lines.mjs` and `line-report.mjs` prove
+them.
 
 ## The structure — approved 23 October
 
@@ -408,6 +420,7 @@ node scripts/acceptance/program-delete.mjs  # a deleted test forgotten by its pr
 node scripts/acceptance/programs.mjs  # a program's status with commentary: the five statuses (not tested and no program among them), commentary on its own, Needs you, the paper
 node scripts/acceptance/snags.mjs  # Problems: the register — every problem written and edited where it sits, assigned not moved, its journey, a photo marked, on paper (a card for every problem among it), a fresh start
 node scripts/acceptance/lines.mjs  # production lines: made in Your factory, opened on their own, a problem taken on one with no project, its tools opened on it, the phone
+node scripts/acceptance/line-report.mjs  # 23 October, the line report — everything on the line (lib/lineBundle, lib/lineBundlePdf, screens/LineReportScreen): from the line's Report ▾ its own page opened and the paper made on arrival, save=1 gone, the single reports kept beside it; a tick a tool record as itemsOn says, the newest of each tool in as defaultPicks says, each with its own sentence; where on the line as whereOnLine says; who owes what as actionsOn says; the paper read back — the band, the tiles, Problems open, Programs, each ticked tool's section under its name (the tool named once), nothing unticked, Where on the line, Who owes what by when, the closing line as the screen says it, no products; one unticked and Download — gone, the rest kept; a dual line — three parts in order, Both lines together holding what was run on it, the band saying Made of, each line's study under its part, a line's own report saying only what is on it; the phone
 node scripts/acceptance/dual-lines.mjs  # 23 October: a dual line and every machine on a line — three lines added, Made of ticked on Edit the line (said saved; never the line itself), "Made of Line 2a + line 2b" under its name with each a link, "Part of 2a 2b" under each of theirs, Your factory's rows and the control room's cards, one untick moving the words; the line report's band (Made of / Part of) and the factory report; a machine named on a new study joining its line's list, the dual line's Machine box offering both lines' machines as lib/lineRecords machinesOf says, a machine named on a problem joining line 2b's list; the phone
 node scripts/acceptance/line-hub.mjs  # Stage 3, the line is the hub: its four tiles and no Products (taken off 23 October — Rowland: "You've invented products ... The program is the product"), an old ?view=products link landing on the Overview; a program running four products ("a program 10 ... that does 4 products") planned on the line's Programs — a chip each, the last typed kept by Plan it — its row saying them all, one taken off and saved, an older program's one product kept; its test day gone and proved moving the programs tile; the line report on one page with its products; the phone
 node scripts/acceptance/factory.mjs  # Your factory: set up first, lines added one after another, named, typed, moved, archived and restored — the control room, the rail, the line's page and its paper, the phone; the jobs taking their lines from it, never a second line of a name; its paper; the tools picking from it; a line's facts set up from its page; two lines merged

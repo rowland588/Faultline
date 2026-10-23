@@ -328,6 +328,40 @@ function reliabilityBlocks(s: ToolStudy, items: RelItem[], line?: Parameters<typ
   return out;
 }
 
+/** ONE STUDY'S BLOCKS as its own paper prints them — its title, where it sits,
+ *  its sentence, then its table and figures by tool. The combined line report
+ *  (lib/lineBundlePdf) prints each tool's section with these, so the two
+ *  papers can never disagree. `i` > 0 opens a gap before it. */
+export function studyBlocks(p: StudiesPaper, { s, where }: StudyPaperItem, i: number, d: Density = 'comfortable'): Block[] {
+  const out: Block[] = [];
+  const e = studyEvidence(s, [], p.standards, p.ctx);
+  out.push(text({ text: e.title, size: SIZE.h2, style: 'bold', before: i ? gap(d, 'l') : 0, after: 2 }));
+  out.push(text({ text: where, size: 8, colour: MUTED, after: 1 }));
+  if (s.uses.length) out.push(text({ text: `Used for: ${s.uses.length} record${s.uses.length === 1 ? '' : 's'} on its project`, size: 8, colour: MUTED, after: 1 }));
+  out.push(text({ text: e.line, size: 9.5, colour: e.tone === 'r' ? DANGER : INK2, after: 6 }));
+  if (s.tool === 'capability') out.push(...capabilityBlocks(s));
+  if (e.stream) out.push(...streamBlocks(e.stream.rows, e.stream.total));
+  if (e.changeover) out.push(...changeoverBlocks(e.changeover, e.line));
+  if (e.losses) out.push(...lossBlocks(e.losses));
+  if (e.sampling) out.push(...samplingBlocks(e.sampling));
+  /* A RELIABILITY STUDY — its own parts, as on its own paper */
+  if (s.tool === 'reliability' && s.agreed?.reliability) {
+    out.push(...reliabilityBlocks(s, relAll(s.agreed.reliability, s.facts.watch, s.facts.events), p.ctx?.workspaces?.find(w => w.id === s.workspaceId) as Parameters<typeof relCost>[2] | undefined));
+  }
+  /* THE LINE BALANCE — each person's work against takt, and what the
+     bottleneck costs a pack and a minute (lib/report/balanceTable) */
+  if (s.tool === 'balance') {
+    const st = p.standards.find(x => x.id === s.standardId), cap = st?.capacity;
+    const f = balance(s.facts.steps, agreedFor(s.agreed?.balance, cap, !!s.closedAt), crewKept(s.facts.crew ?? [], cap));
+    const line = p.ctx?.workspaces?.find(w => w.id === s.workspaceId);
+    const cost = balanceCost(f, costInputs(cap, line));
+    const unit = cap?.stations[0]?.unit.trim() || undefined;
+    out.push(...balanceBlocks(f, { ...(cost ? { cost } : {}), ...(unit ? { unit } : {}) }));
+  }
+  if (s.receipt?.text && s.closedAt) out.push(text({ text: `Closed: ${s.receipt.text}`, size: 8, colour: MUTED, before: 2, after: 2 }));
+  return out;
+}
+
 function blocksOf(p: StudiesPaper, d: Density): Block[] {
   if (p.lean && p.items.length === 1 && p.items[0].s.tool === 'losses') return lossLeanBlocks(p, p.items[0], d);
   if (p.lean && p.items.length === 1 && ['capability', 'sampling', 'map', 'reliability'].includes(p.items[0].s.tool)) return studyLeanBlocks(p, p.items[0], d);
@@ -337,33 +371,7 @@ function blocksOf(p: StudiesPaper, d: Density): Block[] {
   out.push(text({ text: p.title, size: SIZE.title, style: 'bold', after: 4 }));
   out.push(text({ text: `Printed ${p.printed}`, colour: MUTED, after: gap(d, 'm') }));
   if (!p.items.length) out.push(text({ text: 'No studies here yet.', colour: MUTED }));
-  p.items.forEach(({ s, where }, i) => {
-    const e = studyEvidence(s, [], p.standards, p.ctx);
-    out.push(text({ text: e.title, size: SIZE.h2, style: 'bold', before: i ? gap(d, 'l') : 0, after: 2 }));
-    out.push(text({ text: where, size: 8, colour: MUTED, after: 1 }));
-    if (s.uses.length) out.push(text({ text: `Used for: ${s.uses.length} record${s.uses.length === 1 ? '' : 's'} on its project`, size: 8, colour: MUTED, after: 1 }));
-    out.push(text({ text: e.line, size: 9.5, colour: e.tone === 'r' ? DANGER : INK2, after: 6 }));
-    if (s.tool === 'capability') out.push(...capabilityBlocks(s));
-    if (e.stream) out.push(...streamBlocks(e.stream.rows, e.stream.total));
-    if (e.changeover) out.push(...changeoverBlocks(e.changeover, e.line));
-    if (e.losses) out.push(...lossBlocks(e.losses));
-    if (e.sampling) out.push(...samplingBlocks(e.sampling));
-    /* A RELIABILITY STUDY — its own parts, as on its own paper */
-    if (s.tool === 'reliability' && s.agreed?.reliability) {
-      out.push(...reliabilityBlocks(s, relAll(s.agreed.reliability, s.facts.watch, s.facts.events), p.ctx?.workspaces?.find(w => w.id === s.workspaceId) as Parameters<typeof relCost>[2] | undefined));
-    }
-    /* THE LINE BALANCE — each person's work against takt, and what the
-       bottleneck costs a pack and a minute (lib/report/balanceTable) */
-    if (s.tool === 'balance') {
-      const st = p.standards.find(x => x.id === s.standardId), cap = st?.capacity;
-      const f = balance(s.facts.steps, agreedFor(s.agreed?.balance, cap, !!s.closedAt), crewKept(s.facts.crew ?? [], cap));
-      const line = p.ctx?.workspaces?.find(w => w.id === s.workspaceId);
-      const cost = balanceCost(f, costInputs(cap, line));
-      const unit = cap?.stations[0]?.unit.trim() || undefined;
-      out.push(...balanceBlocks(f, { ...(cost ? { cost } : {}), ...(unit ? { unit } : {}) }));
-    }
-    if (s.receipt?.text && s.closedAt) out.push(text({ text: `Closed: ${s.receipt.text}`, size: 8, colour: MUTED, before: 2, after: 2 }));
-  });
+  p.items.forEach((item, i) => out.push(...studyBlocks(p, item, i)));
   return out;
 }
 

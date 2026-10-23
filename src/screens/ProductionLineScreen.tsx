@@ -17,6 +17,7 @@
  * red), and what to do next (take a problem; open a tool on this line). */
 import { APP_TOOLS } from '../catalogue/registry';
 import { MoreMenu, PageHeader } from '../ui/parts';
+import { savingAt } from '../lib/useSaveOnArrival';
 import { LineTour } from '../ui/LineTour';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { nav } from '../state/useRoute';
@@ -292,6 +293,8 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
         primary={{ label: 'Time a stop', icon: 'time', className: 'pl-time', run: () => nav(`/w/${wsId}/capture`) }}
         papers={[
           { label: 'Line report — 1 page', for: 'the line, its tiles, problems, machines, programs and what its tools found', disabled: busy || !reading, make: printLine },
+          /* EVERYTHING ON THE LINE (23 October, lib/lineBundle) — drawn on its own report page, made on arrival */
+          { label: 'Line report — everything on the line', for: dual.madeOf.length ? 'each line it is made of, then both together — every tool used, programs, problems, who owes what' : 'every tool used on the line, its programs, its problems, where on the line, who owes what — tick what goes in', make: () => nav(savingAt(`/lines/${wsId}/report`)) },
           { label: 'Problems report', for: rows.length ? 'every problem open on the line, with its plan and journey' : 'no problem open on the line yet', disabled: busy || !rows.length, make: () => pdf('report') },
           { label: 'Problem cards', for: rows.length ? 'a card for each problem open, for the board' : 'no problem open on the line yet', disabled: busy || !rows.length, make: () => pdf('cards') },
         ]}

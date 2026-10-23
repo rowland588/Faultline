@@ -871,3 +871,10 @@ problem joins its line's list (`machineOntoLine`); a dual line's Machine box
 offers its lines' machines (`lib/lineRecords machinesOf`). The rail, the
 scopes and every address are unchanged. `dual-lines.mjs` proves it.
 
+**23 October — the line report, everything on the line** (`lib/lineBundle`,
+`lib/lineBundlePdf`, `screens/LineReportScreen`; `docs/REPORTS.md`, its
+section). A page of the line's scope at `#/lines/:ws/report` (`useRoute`
+lineReport; `lib/scope`; the rail lights Overview), reached from the line's
+Report ▾ and made on arrival; nothing on the rail, no address changed. Step 2
+of the combined report; step 0 above. `line-report.mjs` proves it.
+

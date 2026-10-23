@@ -229,3 +229,36 @@ are live; slice 4 is next.
 4. **The 3P and lever tree report, the evidence card and the line standard**
    — the largest renderer (3,100 lines) last, once the engine has carried the
    others.
+
+## The line report — everything on the line (23 October)
+
+Rowland: *"I am at a production line. I do a capability test. I do a line
+balance. I do capacity ... three different tools, but it's on the same line
+... I want to be able to provide an immersive combined report ... including
+even programs ... but still give the flexibility to do single reports."* And:
+*"Machines live on production lines. Lines don't live on machines ...
+everything comes under the line name."*
+
+One model (`lib/lineBundle`): everything that carries the line's name, as
+parts — a line on its own; a dual line (`lib/lines dualOf`) as each line it
+is made of, then its own work as *Both lines together*. Each part: the
+one-page line report's tiles and closing line (`lib/lineLean`), its problems
+(`lib/lineWork`), its programs machine by machine (`lib/lineRecords`), the
+tools used on it as items (a study, a product's Line capacity, a line
+standard — `itemsOn`, newest first within a tool, the tools in the rail's
+order), where on the line a finding points (`whereOnLine` — only the machines
+a problem, an unproved program or a study names), and who owes what by when
+(`actionsOn` — every open problem, every program to prove, the late first).
+What goes in is ticked (`defaultPicks` — the newest of each tool); the page
+(`screens/LineReportScreen`, `#/lines/:ws/report`) and the paper
+(`lib/lineBundlePdf`) read the same shape. The paper prints each tool's
+section with the blocks that tool's own paper prints (`studiesPdf
+studyBlocks`, `capacityPaperPdf productLeanBlocks`, `programsReportPdf
+programsBlocks`), so a section can never say other than the single report
+does; the line standard's card stays its own paper and is said in words. No
+AI: every figure is a formula's. Reached from the line's Report ▾ with
+`?save=1` and made on arrival (`lib/useSaveOnArrival`), as the status report
+is; Download makes it again with a different tick. The single reports stay.
+Not yet: a project's own cut of it (its work on its lines), and the Claude
+summary on the front — each its own slice, if asked for.
+

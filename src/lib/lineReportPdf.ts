@@ -42,7 +42,7 @@ const toneOf = (t?: string): ReadyTone => (t === 'r' || t === 'a' || t === 'g' |
 const CAP = { problems: 6, programs: 5, tools: 9 };
 
 /** A list of rows — what, its meta under it, a word on the right in its colour. */
-function listRows(list: LineReportRow[], cap: number, more: (n: number) => string): Block[] {
+export function listRows(list: LineReportRow[], cap: number, more: (n: number) => string): Block[] {
   const shown = list.slice(0, cap);
   const rightW = 130;
   const parts = (f: Frame, x: LineReportRow) => ({ what: wrap(f.doc, x.what, f.w - rightW - 8, 9, 'bold').slice(0, 2), meta: wrap(f.doc, x.meta, f.w - rightW - 8, 8).slice(0, 1) });

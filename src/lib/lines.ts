@@ -12,7 +12,8 @@
 import type { Workspace } from '../types';
 import { allPaceLines, projectWalkIds, putPaceLine } from '../db/pace';
 import { createWorkspace, listWorkspaces, updateWorkspace } from '../db/workspaces';
-import { listAssets, putAsset } from '../db/testing';
+import { listAllAssets, listAssets, putAsset } from '../db/testing';
+import { machineKey, machinesOnLine } from './lineRecords';
 import { listPrograms, putProgram } from '../db/programs';
 import { perHourWords } from './lineLoss';
 
@@ -166,8 +167,10 @@ export function dualSaid(d: { madeOf: readonly Pick<Workspace, 'name'>[]; partOf
 export async function machineOntoLine(wsId: string | undefined, name: string | undefined): Promise<boolean> {
   const n = (name ?? '').trim();
   if (!wsId || !n) return false;
-  const w = (await listWorkspaces()).find(x => x.id === wsId);
-  if (!w || (w.assets ?? []).some(a => a.trim().toLowerCase() === n.toLowerCase())) return false;
+  const [ws, assets, jobLines] = await Promise.all([listWorkspaces(), listAllAssets(), allPaceLines()]);
+  const w = ws.find(x => x.id === wsId);
+  /* already on the line — its own list, or a machine a project brought onto it (lib/lineRecords machinesOnLine) */
+  if (!w || machinesOnLine(w, assets, jobLines).some(m => machineKey(m.name) === machineKey(n))) return false;
   await updateWorkspace({ ...w, assets: [...(w.assets ?? []), n] });
   return true;
 }
