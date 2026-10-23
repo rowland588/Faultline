@@ -14,7 +14,8 @@ const named = label => (label instanceof RegExp ? label : new RegExp(`^${esc(lab
 /** The control that does it: the page's own button, else the item in its header's menu (opened). */
 export async function find(page, menu, label, within) {
   const scope = within ?? page.locator('main');
-  const own = scope.getByRole('button', { name: label, exact: typeof label === 'string' });
+  /* never the context bar's crumbs — "Line capacity" going back to its list is not its paper */
+  const own = scope.getByRole('button', { name: label, exact: typeof label === 'string' }).and(page.locator(':not(.nv-crumb)'));
   const menuB = scope.locator(".part-menu-b", { hasText: new RegExp(`^${menu}`) });
   /* a page still reading draws neither yet — wait for one of them before choosing */
   await own.or(menuB).first().waitFor({ timeout: 15000 }).catch(() => {});

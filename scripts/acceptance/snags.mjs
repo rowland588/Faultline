@@ -451,7 +451,9 @@ await go('#/snags');
   await go(`#/project/${sd.projectId}/fixes`);
   const sec = page.locator('.cmp-sec', { hasText: 'Problems for this project — not on it yet' });
   ok((await words('h1')) === `${sd.job} — problems` && (await sec.locator('.fxl-row', { hasText: 'Coder misprints the date' }).count()) === 1, '10 the project\'s own page — named for it — lists a problem assigned to it');
-  await sec.locator('.fxl-row', { hasText: 'Coder misprints the date' }).getByRole('button', { name: 'Make it a fix' }).click(); await page.waitForTimeout(1500);
+  await sec.locator('.fxl-row', { hasText: 'Coder misprints the date' }).getByRole('button', { name: 'Make it a fix' }).click();
+  /* the fix is written, then the page reads it back — waited for, not a fixed pause (gate 32: 1.5 s was not enough under the gate's load) */
+  await page.locator('.fxl-row', { hasText: 'Coder misprints the date' }).filter({ hasText: /seen first on / }).first().waitFor({ timeout: 10000 }).catch(() => {});
   ok(/seen first on /.test(await page.locator('.fxl-row', { hasText: 'Coder misprints the date' }).first().innerText()), '10 made a fix there, saying where it was seen first');
 }
 
