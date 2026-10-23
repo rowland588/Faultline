@@ -19,11 +19,20 @@
  *   6  a range sent as a link opens on it
  *   7  the front page's This week and next line, as the module counts it
  *   8  the phone: nothing off the side, the tick list folded to the ticked
+ *   9  the paper (J3): the journey report for the range shown, read back
+ *      against the module — this week and next, two picked dates, since
+ *      the start; from the front page's Report ▾ and from Reports; this
+ *      week and next on the status report; a 6M project's
  *   and no console error anywhere.
  *
  *   node scripts/acceptance/journey.mjs      (SMOKE_BASE, as smoke) */
 import pkg from 'playwright';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 const { chromium } = pkg;
+import { paper } from '../lib/pageHeader.mjs';
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
 const SESSION = { access_token: 'smoke', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 31536000, refresh_token: 'smoke',
@@ -34,9 +43,10 @@ let fail = 0;
 const ok = (c, what, detail) => { console.log(`${c ? 'PASS' : 'FAIL'}  ${what}${!c && detail ? ` — ${String(detail).slice(0, 600)}` : ''}`); if (!c) fail++; };
 const flat = s => String(s ?? '').replace(/\s+/g, ' ').trim();
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const dir = mkdtempSync(join(tmpdir(), 'fl-journey-'));
 
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
-const ctx = await b.newContext({ viewport: { width: 1360, height: 900 } });
+const ctx = await b.newContext({ viewport: { width: 1360, height: 900 }, acceptDownloads: true });
 await ctx.addInitScript(([k, s]) => { try { localStorage.setItem(k, JSON.stringify(s)); } catch { /* fine */ } }, [`sb-${REF}-auth-token`, SESSION]);
 await ctx.route('**://*.supabase.co/**', r => r.abort());
 const page = await ctx.newPage();
@@ -44,6 +54,23 @@ const errs = [];
 page.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) errs.push(m.text()); });
 page.on('pageerror', e => errs.push(e.message));
 const go = async hash => { await page.goto(`${BASE}/${hash}`); await page.locator('.nv-main').waitFor({ timeout: 15000 }); await page.waitForTimeout(1800); };
+const pdfText = async click => {
+  const [d] = await Promise.all([page.waitForEvent('download', { timeout: 40000 }), click()]);
+  const f = join(dir, `${Date.now()}.pdf`); await d.saveAs(f);
+  return flat(execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }));
+};
+/* THE PAPER FOR THE RANGE SHOWN, read back against the module: the range, every day and every line, the tiles, the closing line */
+const paperSays = async (t, label) => {
+  const text = await pdfText(() => paper(page, /^Journey report — /));
+  /* a day is printed as its label ("Mon, 19 Oct"), as the page heads it */
+  const san = await page.evaluate(async xs => { const { san } = await import('/src/lib/reportKit.ts'); const { niceDay } = await import('/src/lib/weeks.ts'); return xs.map(x => san(x.startsWith('@') ? niceDay(x.slice(1), { weekday: 'short' }) : x)); },
+    [t.label, t.closing, ...t.lines.flatMap(d => [`@${d.date}`, ...d.texts, ...d.notes])]);
+  const [rangeSaid, closingSaid, ...rest] = san;
+  const missing = rest.filter(x => x && !text.includes(flat(x)));
+  ok(text.includes(rangeSaid) && text.includes(closingSaid) && !missing.length && t.tiles.every(([k, v]) => text.includes(`${k.toUpperCase()} ${v}`)),
+    `9 the paper — ${label}: the range, ${t.lines.reduce((n, d) => n + d.texts.length, 0)} lines on ${t.days.length} days, the tiles, the closing line`, missing.slice(0, 3).join(' | ') || text.slice(0, 200));
+  return text;
+};
 
 await go('#/room');
 const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeTest());
@@ -70,6 +97,7 @@ const truth = (pick, dates) => page.evaluate(async ([pid, pick, dates]) => {
     lines: j.days.map(d => ({ date: d.date, texts: d.lines.map(l => l.text), kinds: d.lines.map(l => l.kind ?? ''), notes: d.commentary.map(c => c.what) })),
     tiles: J.journeyTiles(j, today).map(t => [t.k, t.v]), counts: j.counts, closing: J.journeyClosing(j, project.name, today).text,
     plans: plans.map(p => [p.tool, p.name, p.what, p.due ?? '']),
+    week: J.weekLine(input, today, W.isoDay(project.createdAt)).text,
     booked: j.days.filter(d => d.date > today).flatMap(d => d.lines.filter(l => l.tone === 'booked' && l.id).map(l => ({ date: d.date, text: l.text })))[0] ?? null,
     studiesBy: Object.fromEntries(['capability', 'balance', 'changeover', 'sampling', 'losses', 'reliability', 'video'].map(t => [t, studies.filter(s => !s.deletedAt && s.tool === t).length])),
   };
@@ -106,6 +134,12 @@ ok(t.booked && s.lines.find(d => d.date === t.booked.date)?.texts.includes(t.boo
 const skippedSaid = flat(await page.locator('.jn-skipped').innerText().catch(() => ''));
 ok(t.skipped === 0 ? !skippedSaid : skippedSaid.startsWith(`${t.skipped} day`), `2 the days with nothing said once: "${skippedSaid}"`);
 ok(flat(await page.locator('.jn-day.is-today h2').innerText()).endsWith('today'), '2 today marked');
+/* ---- 9 the paper for this week and next, from the page's Report ▾ ---- */
+{
+  const t0 = await truth('thisAndNext');
+  const text = await paperSays(t0, 'this week and next');
+  ok(/THE JOURNEY/.test(text) && text.includes('The tools we are using'), '9 the band and the tools we are using on it');
+}
 
 /* ---- 3 the tools we will use ---- */
 const toolRow = label => page.locator('.jn-tool', { has: page.locator('.jn-tool-tick b', { hasText: new RegExp(`^${label}$`) }) });
@@ -167,9 +201,11 @@ const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')
 await page.getByLabel('From', { exact: true }).fill(iso(from)); await page.getByLabel('To', { exact: true }).fill(iso(to)); await page.waitForTimeout(1200);
 t = await truth('dates', { from: iso(from), to: iso(to) }); s = await shown();
 ok(s.label === t.label && t.ndays === 24 && sameDays(t, s) && s.closing === t.closing, `5 two picked dates: ${t.label} — 24 days, ${t.days.length} with something`, `${s.label} / ${s.closing}`);
+await paperSays(t, 'two picked dates');
 await page.getByRole('group', { name: 'Range' }).getByRole('button', { name: 'Since the start' }).click(); await page.waitForTimeout(1500);
 t = await truth('sinceStart'); s = await shown();
 ok(s.label === t.label && sameDays(t, s) && s.closing === t.closing, `5 since the start: ${t.label} — the whole history, ${t.days.length} days with something`, `${s.label} / ${JSON.stringify(s.days)} vs ${JSON.stringify(t.days)}`);
+await paperSays(t, 'since the start');
 await page.getByRole('group', { name: 'Range' }).getByRole('button', { name: 'This week', exact: true }).click(); await page.waitForTimeout(800);
 await page.getByLabel('Earlier').click(); await page.waitForTimeout(1200);
 t = await truth('lastWeek'); s = await shown();
@@ -190,10 +226,31 @@ const want = `This week and next · ${c.done} done · ${c.toDo ? `${c.toDo} stil
 ok(week === want, `7 the front page: "${want}"`, week);
 await page.locator('.jn-week button').click(); await page.waitForTimeout(1500);
 ok(page.url().includes(`/journey?from=${t.range.from}&to=${t.range.to}`), '7 Open the journey lands on this week and next');
+/* ---- 9 from the front page's Report ▾, from Reports, and this week and next on the status report ---- */
+await go(`#/project/${PID}`);
+{
+  const text = await pdfText(() => paper(page, 'Journey report — this week and next'));
+  ok(text.includes(t.label) && text.includes(t.closing), `9 the front page's Report ▾ makes it for this week and next, made on arrival`, text.slice(0, 160));
+}
+await go(`#/project/${PID}`);
+{
+  await page.locator('.nv-rail .nv-ri', { has: page.locator('.nv-ri-l', { hasText: /^Reports$/ }) }).click(); await page.waitForTimeout(800);
+  const text = await pdfText(() => page.locator('.meet-report', { has: page.locator('b', { hasText: /^Journey report$/ }) }).click());
+  ok(text.includes(t.label), '9 Reports lists it, and the door makes it', text.slice(0, 160));
+}
+await go(`#/project/${PID}/report`);
+{
+  const text = await pdfText(async () => { await page.getByRole('button', { name: 'Status — 1 page' }).click(); await page.getByRole('button', { name: 'Download' }).click(); });
+  ok(text.includes(t.week), `9 the status report says it in one line: "${t.week}"`, text.slice(0, 200));
+}
 
 /* ---- the 6M project has the tab too ---- */
 await go(`#/project/${sd.pacedProjectId}/journey`);
 ok((await page.locator('.jn-day').count()) > 0 && (await page.locator('.jn-tool').count()) === 11, `a 6M project’s journey: ${await page.locator('.jn-day').count()} days with something`);
+{
+  const text = await pdfText(() => paper(page, /^Journey report — /));
+  ok(/THE JOURNEY/.test(text) && text.includes('still to do'), '9 a 6M project’s journey report', text.slice(0, 160));
+}
 
 /* ---- 8 the phone ---- */
 await ctx.close();

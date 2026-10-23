@@ -310,6 +310,21 @@ export function journeyClosing(j: Journey, project: string, today: string = toda
   return { text, tone: c.late ? 'r' : c.toDo ? 'a' : nothing ? 'n' : 'g' };
 }
 
+/* ------------------------------ this week and next ------------------------- */
+
+/** THIS WEEK AND NEXT in one line — the project's front page, the status
+ *  and client reports and the 6M report all say it from here, so they say
+ *  one thing: "This week and next: 9 done · 8 still to do (5 late) · 10
+ *  planned." */
+export interface WeekLine { text: string; tone: LeanTone; range: Range }
+
+export function weekLine(input: JourneyInput, today: string = todayISO(), started?: string): WeekLine {
+  const range = rangeOf('thisAndNext', today, started);
+  const c = journeyOf(input, range, today).counts;
+  const toDo = c.toDo ? `${c.toDo} still to do${c.late ? ` (${c.late} late)` : ''}` : 'nothing still to do';
+  return { text: `This week and next: ${c.done} done · ${toDo} · ${c.planned} planned.`, tone: c.late ? 'r' : c.toDo ? 'a' : c.done || c.planned ? 'g' : 'n', range };
+}
+
 /* ------------------------------ the tool plans ----------------------------- */
 
 export interface ToolPlan {

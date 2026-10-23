@@ -15,13 +15,14 @@
  * for the day (a note on the day, lib/noteScope `day:`), written and edited
  * in place. Nothing is stored for the range; everything here is read by
  * lib/journey, which the paper prints too (J3). */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useProject } from '../lib/useProjects';
 import { useJourney, type JourneyRead } from '../lib/useJourney';
 import {
-  RANGE_PICKS, daysOf, journeyClosing, journeyOf, journeyTiles, pickOf, rangeLabel, rangeOf, slideRange, toolPlansOf,
+  RANGE_PICKS, daysOf, journeyClosing, journeyOf, journeyTiles, pickOf, rangeLabel, rangeOf, slideRange, toolPlansOf, weekLine,
   type Journey, type JourneyLine, type Range, type RangePick, type ToolPlan,
 } from '../lib/journey';
+import { useSaveOnArrival } from '../lib/useSaveOnArrival';
 import { APP_TOOLS, toolByKey } from '../catalogue/registry';
 import { isStudyTool } from '../lib/study';
 import { encodeScope } from '../lib/noteScope';
@@ -96,6 +97,24 @@ function JourneyPage({ projectId, name, read }: { projectId: string; name: strin
   const [editing, setEditing] = useState<Editing | null>(null);
   const [every, setEvery] = useState(false);
 
+  /* THE PAPER (lib/journeyPdf) — this range, as the page reads it; reached from Report ▾ here and
+     from the project's Report ▾ and Reports with ?save=1, made on arrival (lib/useSaveOnArrival) */
+  const [busy, setBusy] = useState(false);
+  const [said, setSaid] = useState('');
+  const make = useCallback(async () => {
+    if (busy) return;
+    setBusy(true); setSaid('');
+    try {
+      const { saveJourneyPdf } = await import('../lib/journeyPdf');
+      const how = await saveJourneyPdf({ project: name, printed: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), today, journey: j, plans });
+      setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
+    } catch (e) {
+      console.error('journey pdf failed', e);
+      setSaid('The report could not be made — try again.');
+    } finally { setBusy(false); }
+  }, [busy, name, today, j, plans]);
+  useSaveOnArrival(true, make);
+
   /* a day of the range with nothing on it is skipped — except today, where the commentary is written */
   const days = useMemo(() => {
     if (today < range.from || today > range.to || j.days.some(d => d.date === today)) return j.days;
@@ -123,6 +142,7 @@ function JourneyPage({ projectId, name, read }: { projectId: string; name: strin
         title="Journey"
         says={<span className="sub">Between two dates, day by day: what got done, what did not go to plan, what is due, and your own commentary — every line read from the records. Pick the range; the page follows it.</span>}
         {...(can.edit ? { primary: { label: 'Plan something', run: () => plan(today > range.to ? range.to : today < range.from ? range.from : today) } } : {})}
+        papers={[{ label: `Journey report — ${rangeLabel(range, today)}`, for: 'to send — the days in order, what we did and what is next, your commentary, the tools we are using', disabled: busy, make: () => void make() }]}
       >
         <div className="jn-range">
           <div className="chip-row" role="group" aria-label="Range">
@@ -146,6 +166,7 @@ function JourneyPage({ projectId, name, read }: { projectId: string; name: strin
         </div>
       </PageHeader>
 
+      {said && <p className="tc-ok jn-said" role="status">{said}</p>}
       <LeanTiles tiles={journeyTiles(j, today)} className="jn-tiles" />
 
       {/* THE TOOLS WE WILL USE — a tick a tool, what for, when; a plan is an action with a tool */}
@@ -299,13 +320,13 @@ export function ThisWeekLine({ projectId, project }: { projectId: string; projec
   const read = useJourney(project);
   const today = todayISO();
   if (!read) return null;
-  const range = rangeOf('thisAndNext', today, read.started);
-  const j = journeyOf(read.input, range, today);
-  const c = j.counts;
+  /* the one line the status, client and 6M reports print too (lib/journey weekLine) */
+  const w = weekLine(read.input, today, read.started);
+  const [head, rest] = w.text.replace(/\.$/, '').split(': ');
   return (
     <p className="sub jn-week">
-      <b>This week and next</b> · {c.done} done · {c.toDo ? <>{c.toDo} still to do{c.late ? <> (<span className="in-late">{c.late} late</span>)</> : null}</> : 'nothing still to do'} · {c.planned} planned
-      {' · '}<button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/journey?from=${range.from}&to=${range.to}`)}>Open the journey ›</button>
+      <b>{head}</b> · <span className={w.tone === 'r' ? 'in-late' : ''}>{rest}</span>
+      {' · '}<button type="button" className="cw-link" onClick={() => nav(`/project/${projectId}/journey?from=${w.range.from}&to=${w.range.to}`)}>Open the journey ›</button>
     </p>
   );
 }

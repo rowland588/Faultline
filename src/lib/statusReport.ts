@@ -81,6 +81,8 @@ export interface StatusReport {
   linePrograms: string[];
   /** The lead's commentary, under where we are (Project.reportNote). */
   commentary?: ClientReport['commentary'];
+  /** This week and next, in one line (lib/journey weekLine). */
+  week?: ClientReport['week'];
 }
 
 /** What one page holds — enough to be the answer, few enough to be read.
@@ -202,6 +204,7 @@ export function statusReport(r: ClientReport, L: StatusLimits = STATUS_LIMITS): 
     /* THE COMMENTARY, on the one page: whole up to a paragraph; a longer one
        is cut at a word and says the rest is in the full report — the page
        is never a cut-down that pretends to be whole. */
+    ...(r.week ? { week: r.week } : {}),
     ...(r.commentary ? { commentary: { ...r.commentary, text: r.commentary.text.length <= COMMENTARY_MAX ? r.commentary.text
       : `${r.commentary.text.slice(0, COMMENTARY_MAX).replace(/\s+\S*$/, '')}… (the rest in the full report)` } } : {}),
   };

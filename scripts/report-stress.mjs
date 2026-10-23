@@ -211,7 +211,7 @@ for (const size of SIZES) {
     const { jobFactoryLines } = await import('/src/lib/lineRecords.ts');
     const factoryLines = jobFactoryLines(pid, await (await import('/src/db/pace.ts')).allPaceLines(), await (await import('/src/db/workspaces.ts')).listWorkspaces());
     const r = clientReport({ project, projects: [project], assets, tests, items, materials, programs, standards: [], walk: [], studies, studyContext, factoryLines, today });
-    const out = { client: [], card: [], fix: [], day: [], status: [], programs: [], handover: [], labels: [], commissioning: [], commissioningCards: [] };
+    const out = { client: [], card: [], fix: [], day: [], status: [], programs: [], handover: [], labels: [], commissioning: [], commissioningCards: [], journey: [] };
     const add = (k, ...xs) => { for (const x of xs) { const v = typeof x === 'number' ? String(x) : x; if (v && san(v)) out[k].push([v, san(v), from]); } };
     let from = '';
     /* ARE WE ON TARGET? leads the first page, the word and its reason
@@ -329,6 +329,27 @@ for (const size of SIZES) {
     from = 'status: runs'; for (const rr of st.runs) add('status', rr.product, rr.net, rr.outcome, rr.say);
     from = 'status: programs'; add('status', st.programs);
     from = 'status: commentary'; if (st.commentary) add('status', st.commentary.text);
+    /* THIS WEEK AND NEXT (lib/journey weekLine) — the one line on the status and the client report, and
+       THE JOURNEY REPORT (lib/journeyPdf, docs/JOURNEY.md J3): this week and next, every day's lines as the
+       module says them, the tiles, the closing line */
+    {
+      const J = await import('/src/lib/journey.ts');
+      const { listPaceTodos } = await import('/src/db/pace.ts');
+      const { listAllSnags } = await import('/src/db.ts');
+      const steps = await listPaceTodos(pid);
+      const register = (await listAllSnags()).filter(s => s.projectId === pid && !s.deletedAt);
+      const input = { gate: { tests, items, assets, materials, programs, studies }, steps, register, notes: items, studies };
+      const started = (await import('/src/lib/weeks.ts')).isoDay(project.createdAt);
+      const w = J.weekLine(input, today, started);
+      from = 'this week and next'; add('status', w.text); add('client', w.text);
+      const range = J.rangeOf('thisAndNext', today, started);
+      const j = J.journeyOf(input, range, today);
+      from = 'journey: the range'; add('journey', J.rangeLabel(range, today));
+      from = 'journey: the tiles'; for (const t of J.journeyTiles(j, today)) add('journey', t.k.toUpperCase(), t.v, t.of);
+      from = 'journey: the days'; for (const d of j.days) { add('journey', d.label); for (const l of d.lines) add('journey', l.text, l.detail); for (const n of d.commentary) add('journey', n.what); }
+      from = 'journey: the tools'; for (const p of J.toolPlansOf(steps)) add('journey', p.name, p.what);
+      from = 'journey: the closing line'; add('journey', J.journeyClosing(j, project.name, today).text);
+    }
     /* "and N more" only when even the longest lists cannot hold them all. */
     from = 'status: more'; if (statusReport(r).whyMore) add('status', 'more — in the full report');
     /* THE HANDOVER REPORT (lib/handoverReport, docs/HANDOVER.md) — the line as
@@ -444,6 +465,8 @@ for (const size of SIZES) {
     ...(must.runTestId ? [['run card', `#/project/${job.projectId}/testing/${must.runTestId}`, [[/ card — PDF$/]], must.runCard]] : []),
     /* The day's button says what it does (screens/DayScreen, 5 October). */
     ['day', `#/project/${job.projectId}/day`, [['Today’s update']], must.day],
+    /* The journey report — this week and next, from the Journey's Report ▾ (docs/JOURNEY.md, J3). */
+    ['journey', `#/project/${job.projectId}/journey`, [[/^Journey report — /]], must.journey],
   ];
   for (const [name, hash, steps, mustSay] of reports) {
     const file = `${OUT}/${size}-${name.replace(/ /g, '-')}.pdf`;
@@ -562,6 +585,7 @@ for (const size of SIXM_SIZES) {
   /* The project's report, and one line's own deck (?line=) — the same
      drawer scoped to a line: its problems, its board and the actions for
      every line, its walk, its Pareto and its constraint. */
+  let journeyMustOf = [];
   for (const lineId of [undefined, ...(job.lineId ? [job.lineId] : [])]) {
     const must = await page.evaluate(async ({ pid, lineId }) => {
       const { san } = await import('/src/lib/reportKit.ts');
@@ -661,6 +685,32 @@ for (const size of SIXM_SIZES) {
       return out;
     }, { pid: job.projectId, lineId });
     /* Each problem in its four parts, in order, before the next one starts. */
+    /* THIS WEEK AND NEXT and THE JOURNEY REPORT on a 6M project (lib/journey, docs/JOURNEY.md J3) */
+    const journeyMust = await page.evaluate(async ({ pid }) => {
+      const { san } = await import('/src/lib/reportKit.ts');
+      const J = await import('/src/lib/journey.ts');
+      const db = await import('/src/db.ts'); const W = await import('/src/lib/weeks.ts');
+      const project = await db.getProject(pid);
+      const today = W.todayISO();
+      const steps = await db.listPaceTodos(pid);
+      const items = await db.listTestItems(pid);
+      const register = (await db.listAllSnags()).filter(s => s.projectId === pid && !s.deletedAt);
+      const studies = await db.listStudies(pid);
+      const input = { steps, register, notes: items, studies };
+      const started = W.isoDay(project.createdAt);
+      const w = J.weekLine(input, today, started);
+      const range = J.rangeOf('thisAndNext', today, started);
+      const j = J.journeyOf(input, range, today);
+      const out = [];
+      const add = (from, ...xs) => { for (const x of xs) if (x && san(x)) out.push([x, san(x), from]); };
+      add('journey: the range', J.rangeLabel(range, today));
+      for (const t of J.journeyTiles(j, today)) add('journey: the tiles', t.k.toUpperCase(), t.v, t.of);
+      for (const d of j.days) { add('journey: the days', d.label); for (const l of d.lines) add('journey: the days', l.text, l.detail); }
+      add('journey: the closing line', J.journeyClosing(j, project.name, today).text);
+      return { week: [w.text, san(w.text), 'this week and next'], journey: out };
+    }, { pid: job.projectId });
+    must.push(journeyMust.week);
+    journeyMustOf = journeyMust.journey;
     const heads = await page.evaluate(async ({ pid, lineId }) => {
       const { loadProblems, viewsOf } = await import('/src/lib/useProblems.ts');
       const { san } = await import('/src/lib/reportKit.ts');
@@ -718,11 +768,22 @@ for (const size of SIXM_SIZES) {
     const sFile = `${OUT}/6m-${size}-${lineId ? 'line' : 'client'}-status.pdf`;
     try {
       await download(page, `#/pace-report?project=${job.projectId}${lineId ? `&line=${lineId}` : ''}`, sFile, [['Status — 1 page'], ['Download']]);
-      const rs = check(sFile, sMust);
+      const rs = check(sFile, [...sMust, journeyMust.week]);
       if (rs.pages !== 1) rs.faults.push(`the status is ${rs.pages} pages — it is one page, always`);
       rows.push({ size: `6m-${size}`, report: sLabel, pages: rs.pages, faults: rs.faults, said: rs.said });
     } catch (e) {
       rows.push({ size: `6m-${size}`, report: sLabel, pages: 0, faults: [`could not make it: ${e.message.split('\n')[0]}`] });
+    }
+  }
+  /* the journey report of the 6M project — this week and next, from the Journey's Report ▾ */
+  {
+    const file = `${OUT}/6m-${size}-journey.pdf`;
+    try {
+      await download(page, `#/project/${job.projectId}/journey`, file, [[/^Journey report — /]]);
+      const r = check(file, journeyMustOf);
+      rows.push({ size: `6m-${size}`, report: '6M journey', pages: r.pages, faults: r.faults, said: r.said });
+    } catch (e) {
+      rows.push({ size: `6m-${size}`, report: '6M journey', pages: 0, faults: [`could not make it: ${e.message.split('\n')[0]}`] });
     }
   }
   if (errors.length) rows.push({ size: `6m-${size}`, report: '(console)', pages: 0, faults: errors });

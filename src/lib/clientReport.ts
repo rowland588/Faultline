@@ -22,6 +22,7 @@
  *
  * Pure: the screen gathers the records, this shapes them, the drawer draws. */
 import { isRunTest, productFigures, productName, readRuns, runsLine } from './run';
+import type { WeekLine } from './journey';
 import type { MediaPin, Project } from '../types';
 import { answerOf, GATE_WORD, gateGaps, installGrid, jobJourney, lateOrProblemSays, handedOverWith, machineAt, machineNow, machinesWhere, journeyOf, usualStages, type GateTone, type JourneyGate, type StepView, lateByWords, heldUpBy } from './install';
 import { stageGateOnTarget, type OnTarget } from './onTarget';
@@ -253,6 +254,8 @@ export interface ClientReport {
    *  are" on both reports. Rowland, 9 October: "we have numbers but not the
    *  story ... I need a way to add commentary." */
   commentary?: { text: string; on?: string; by?: string };
+  /** THIS WEEK AND NEXT (lib/journey weekLine) — the one line the front page says. */
+  week?: WeekLine;
   standards: Standard[];
   /** EVIDENCE — every study on the job (docs/TOOLKIT.md, Part 0): what it is
    *  of, what it is used for, and what it says, in its own words. Measured by
@@ -336,6 +339,8 @@ export interface ClientReportInput {
   /** The register's problems taken for this job (Snag.projectId) — those not
    *  yet sent to it are its "Problems for this job — not on it yet". */
   assigned?: Snag[];
+  /** This week and next, as the journey counts it (lib/journey weekLine). */
+  week?: WeekLine;
   /** A line's name, for an assigned problem's line. */
   lineName?: (wsId: string) => string;
   /** THE JOB'S LINES AS YOUR FACTORY HOLDS THEM (lib/lineRecords
@@ -692,6 +697,7 @@ export function clientReport(x: ClientReportInput): ClientReport {
     })(),
     assigned: assignedSnags.map(sn => ({ id: sn.id, priority: sn.priority ?? 'low', ...assignedWords(sn, today, x.lineName) })),
     waiting: st.rows,
+    ...(x.week ? { week: x.week } : {}),
     ...(project.reportNote?.trim() ? { commentary: {
       text: project.reportNote.trim(),
       ...(project.reportNoteAt ? { on: niceDay(todayISO(new Date(project.reportNoteAt))) } : {}),

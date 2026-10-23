@@ -215,3 +215,13 @@ describe('the tools we will use', () => {
     expect(toolPlansOf([step({ what: 'No tool' })])).toEqual([]);
   });
 });
+
+describe('this week and next, in one line', () => {
+  it('says done · still to do (late) · planned from the same reading, in the tone of the worst of it', async () => {
+    const { weekLine } = await import('../journey');
+    const w = weekLine(input, TODAY, '2026-10-01');
+    expect(w).toEqual({ text: 'This week and next: 2 done · 3 still to do (2 late) · 4 planned.', tone: 'r', range: { from: '2026-10-19', to: '2026-11-01' } });
+    expect(weekLine({ steps: [] }, TODAY).text).toBe('This week and next: 0 done · nothing still to do · 0 planned.');
+    expect(weekLine({ steps: [] }, TODAY).tone).toBe('n');
+  });
+});

@@ -264,6 +264,7 @@ export const PAGES = (sd, cap) => [
   /* THE JOURNEY (23 October, docs/JOURNEY.md J2): the project between two dates, day by day */
   { name: 'Journey — a stage-gate project', path: `#/project/${sd.projectId}/journey`, must: [
     { what: 'the page header — Plan something the primary', sel: '.jn .part-head .btn-primary', text: /^Plan something$/ },
+    { what: 'the page header — Report ▾ with the journey report for the range', sel: '.jn .part-head .part-menu-b', text: /^Report/ },
     { what: 'the range — its five picks', sel: '[aria-label="Range"] .chip', n: 5 }, { what: 'the range said', sel: '.jn-range-t' },
     { what: 'the four tiles — done, still to do, late, planned', sel: '.jn-tiles .ln-tile', n: 4 },
     /* every tool at a desk; on a phone the list folds to the ticked, Every tool under it */

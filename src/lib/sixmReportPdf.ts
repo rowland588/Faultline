@@ -25,6 +25,7 @@
  * is solid, a suspected one an outline, a ruled-out one struck through — and
  * each says so in words beside the mark. */
 import type { jsPDF } from 'jspdf';
+import type { WeekLine } from './journey';
 import type { Case } from '../types';
 import type { PaceTodoRow } from '../db/rows';
 import type { Phase, ProblemView } from './problems';
@@ -224,6 +225,8 @@ export interface SixMReport {
   boardSays: string;
   /** Bones with nothing on the board, in one line. */
   boardQuiet?: string;
+  /** THIS WEEK AND NEXT (lib/journey weekLine) — the one line the front page says. */
+  week?: WeekLine;
   seen?: { says: string; rows: { what: string; where: string; owner: string; found: string; tone: Tone; state: string }[]; closed: string[] };
   /** EVIDENCE — every study on the job (on the line, when the report is for
    *  one): what it is of, what it is used for, what it says, and a value
@@ -251,6 +254,8 @@ export interface SixMInput {
   lineId?: string;
   /** Now, ms — the day the report is printed. */
   now: number;
+  /** This week and next, as the journey counts it (lib/journey weekLine). */
+  week?: WeekLine;
 }
 
 const DAY = 86_400_000;
@@ -581,6 +586,7 @@ export function sixmReport(o: SixMInput): SixMReport {
     ...(todos.length && quietBones.length ? { boardQuiet: `Nothing on the board for ${listWords(quietBones)}.` } : {}),
     ...(seen ? { seen } : {}),
     evidence,
+    ...(o.week ? { week: o.week } : {}),
   };
 }
 
@@ -669,6 +675,7 @@ export async function drawSixMStatus(doc: jsPDF, report: SixMReport): Promise<vo
     }, f => gap(f.density, 'm')));
     /* the tiles (lib/sixmLean) — the full report's, counted from the same model */
     out.push(leanTiles(sixmTiles(sixmFigures(report))));
+    if (s.week) out.push(text({ text: s.week.text, size: 9.5, style: 'bold', colour: s.week.tone === 'r' ? DANGER : s.week.tone === 'a' ? AMBER : INK2, after: gap(d, 's') }));
     for (const g of s.lines) out.push(gapBlock({ line: g.line, says: g.says, ...(g.short ? { short: g.short } : {}) }));
     if (s.gapNone) out.push(text({ text: s.gapNone, colour: MUTED, after: gap(d, 's') }));
     out.push({ height: f => gap(f.density, 's'), draw: () => undefined });
@@ -820,6 +827,7 @@ function blocksOf(r: SixMReport, d: Density): Block[] {
      roots, the countermeasures, what is holding: the sections below, counted */
   const figures = sixmFigures(r);
   out.push(leanTiles(sixmTiles(figures)));
+  if (r.week) out.push(text({ text: r.week.text, size: 9.5, style: 'bold', colour: r.week.tone === 'r' ? DANGER : r.week.tone === 'a' ? AMBER : INK2, after: gap(d, 'm') }));
 
   /* ============================ 1 · the gap ============================ */
   if (r.gaps.length) {

@@ -2,6 +2,8 @@
  * it. What is shown IS the PDF (drawn once, previewed in place on a desk), so
  * the screen and the paper cannot disagree. See lib/clientReport.ts. */
 import { jobLink } from '../lib/machineLabels';
+import { useJourney } from '../lib/useJourney';
+import { weekLine } from '../lib/journey';
 import { useEffect, useMemo, useState } from 'react';
 import { usePdfPreview } from '../lib/usePdfPreview';
 import { useWalkSnags } from '../lib/useWalkSnags';
@@ -160,6 +162,9 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
      no job and shown on the job's Programs page; every study, so a program
      proved by one on its line says so; the tests on any job that prove one. */
   const rec = useLineRecords();
+  /* THIS WEEK AND NEXT (lib/journey weekLine) — the line the front page says, on the status and client reports */
+  const jr = useJourney(project);
+  const week = useMemo(() => (jr ? weekLine(jr.input, jr.today, jr.started) : undefined), [jr]);
   /* THE REGISTER'S PROBLEMS taken for this job — "Problems for this job —
      not on it yet" on the Fixes page, and on every paper here. */
   const [snags, setSnags] = useState<Snag[] | null>(null);
@@ -205,8 +210,8 @@ export function ClientReportScreen({ projectId }: { projectId: string }) {
   const report = useMemo(() => (ready && project ? clientReport({
     project, projects, assets: tt.assets, tests: tt.tests, items: tt.items,
     materials: mats.materials, programs: progs.programs, standards: standards ?? [], walk: walk ?? [], studies, studyContext, today: todayISO(),
-    proofStudies: rec.studies, provingTests: rec.provingTests, ...lineFacts,
-  }) : null), [ready, project, projects, tt.assets, tt.tests, tt.items, mats.materials, progs.programs, standards, walk, studies, studyContext, rec.studies, rec.provingTests, lineFacts]);
+    proofStudies: rec.studies, provingTests: rec.provingTests, ...lineFacts, ...(week ? { week } : {}),
+  }) : null), [ready, project, projects, tt.assets, tt.tests, tt.items, mats.materials, progs.programs, standards, walk, studies, studyContext, rec.studies, rec.provingTests, lineFacts, week]);
 
   const handover = useMemo(() => (ready && project ? handoverReport({
     project, assets: tt.assets, tests: tt.tests, items: tt.items, materials: mats.materials, programs: progs.programs, studies, today: todayISO(),
