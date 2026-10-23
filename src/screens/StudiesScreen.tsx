@@ -24,6 +24,7 @@ import { useProjects } from '../lib/useProjects';
 import { useMachinesOf } from '../lib/useLineRecords';
 import { now, uid } from '../lib/ids';
 import { nav } from '../state/useRoute';
+import { PageHeader } from '../ui/parts';
 import { Sheet } from '../ui/Sheet';
 import { sample, sampleSays } from '../lib/ie/sample';
 import { lossFiguresOf, studyHref, type StudyContext } from '../lib/studyLinks';
@@ -220,16 +221,11 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
 
   return (
     <div className="wrap qsl ie-list">
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <h1>{w.title}</h1>
-          <p className="sub">{w.lede}</p>
-        </div>
-        <div className="pace-head-actions">
-          {shownCount > 0 && <button type="button" className="btn btn-ghost" disabled={printing} onClick={() => void paper()} aria-label={`${w.title} on paper — every one shown (PDF)`}>{printing ? 'Making…' : 'PDF (all shown)'}</button>}
-          {mayAdd && <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>{w.add}</button>}
-        </div>
-      </header>
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): New the one thing to do; the list on paper in Report ▾,
+          named for what it is (it was "PDF (all shown)") */}
+      <PageHeader title={w.title} says={<span className="sub">{w.lede}</span>}
+        primary={mayAdd ? { label: w.add, run: () => setAdding(true) } : undefined}
+        papers={shownCount > 0 ? [{ label: `${w.title} — every one shown`, for: 'each with what it found, a page a study', disabled: printing, make: () => paper() }] : []} />
       {inP.id && <ProjectScopeChips name={inP.project?.name} lines={inP.lineIds.length} scope={scope} onScope={setScope} />}
       {onLine && (
         <div className="chip-row qsl-f" role="group" aria-label="Which line">

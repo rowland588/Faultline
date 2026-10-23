@@ -41,6 +41,7 @@ import { Evidence } from '../ui/EvidenceDoors';
 import { Sheet } from '../ui/Sheet';
 import { offerUndo } from '../ui/Undo';
 import { Icon } from '../ui/Icon';
+import { PageHeader } from '../ui/parts';
 import { DateInput } from '../ui/DateInput';
 import { DraftArea, DraftText } from '../ui/Draft';
 import type { MediaRef, Project, Workspace } from '../types';
@@ -406,28 +407,27 @@ export function QuickSnagsScreen() {
 
   return (
     <div className={'wrap qsl' + (chosen.length ? ' has-bar' : '')}>
-      <header className="pace-head qsl-head">
-        <div>
-          {/* THE WAY BACK to the line this page was opened from (FLOW-AUDIT #22: "the register has no way back to the line") */}
-          {fromLine && factory.some(w => w.id === fromLine) && (
-            <button type="button" className="btn btn-ghost qsl-back" onClick={() => nav(`/lines/${encodeURIComponent(fromLine)}`)}>‹ {lineName(fromLine)}</button>
-          )}
-          {/* WHERE YOU ARE, said (Rowland, 13 October: "sometimes I don't know when I'm in the control room problem and when I'm
-              in the actual line problem ... change the name to control room problem, so when I look at the title, I know where I am") */}
-          <h1>Control room problems</h1>
-          <p className="qsl-path">Write any problem, give it a priority and say where it belongs. Tap one to work it: what we will do, and its journey — on a day, what we did and what came of it.</p>
-          <p className="qsl-says">{snags ? reading.says : 'Opening…'}</p>
-          {refusedHere.length > 0 && <p className="qsl-refused" role="alert">The cloud did not accept {refusedHere.reduce((n, r) => n + r.rows, 0)} change{refusedHere.reduce((n, r) => n + r.rows, 0) === 1 ? '' : 's'} to problems — kept on this device, not on your others: {refusedHere[0].message}</p>}
-        </div>
-        <div className="qsl-top">
-          <button type="button" className="btn btn-primary" onClick={() => openQuickSnag()}><Icon name="camera" size="1.05em" />Problem</button>
-          <button type="button" className="btn" disabled={!!busy || !shownCount} onClick={() => void report()}>
-            <Icon name="document" size="1.05em" />{busy === 'report' ? 'Making…' : 'Problems report'}</button>
-          <button type="button" className="btn" disabled={!!busy || !shownCount} onClick={() => void allCards()} aria-label="Problems cards — a card for every problem shown (PDF)">
-            <Icon name="document" size="1.05em" />{busy === 'cards' ? 'Making…' : 'Problems cards'}</button>
-          {here.length > 0 && <button type="button" className="btn btn-ghost preg-fresh" onClick={freshStart}>Start fresh</button>}
-        </div>
-      </header>
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): the register's name, what it says, Problem the one
+          thing to do; the report and the cards in Report ▾, Start fresh in More ▾. */}
+      <PageHeader
+        /* WHERE YOU ARE, said (Rowland, 13 October: "sometimes I don't know when I'm in the control room problem and when I'm
+           in the actual line problem ... change the name to control room problem, so when I look at the title, I know where I am") */
+        title="Control room problems"
+        says={<span className="qsl-says">{snags ? reading.says : 'Opening…'}</span>}
+        primary={{ label: 'Problem', icon: 'camera', run: () => openQuickSnag() }}
+        papers={[
+          { label: 'Problems report', for: shownCount ? 'every problem shown, with its plan and journey' : 'no problem shown', disabled: !!busy || !shownCount, make: report },
+          { label: 'Problem cards', for: shownCount ? 'a card for every problem shown, for the board' : 'no problem shown', disabled: !!busy || !shownCount, make: allCards },
+        ]}
+        more={here.length > 0 ? [{ label: 'Start fresh', run: freshStart }] : []}
+      >
+        {/* THE WAY BACK to the line this page was opened from (FLOW-AUDIT #22: "the register has no way back to the line") */}
+        {fromLine && factory.some(w => w.id === fromLine) && (
+          <button type="button" className="btn btn-ghost qsl-back" onClick={() => nav(`/lines/${encodeURIComponent(fromLine)}`)}>‹ {lineName(fromLine)}</button>
+        )}
+        <p className="qsl-path">Write any problem, give it a priority and say where it belongs. Tap one to work it: what we will do, and its journey — on a day, what we did and what came of it.</p>
+        {refusedHere.length > 0 && <p className="qsl-refused" role="alert">The cloud did not accept {refusedHere.reduce((n, r) => n + r.rows, 0)} change{refusedHere.reduce((n, r) => n + r.rows, 0) === 1 ? '' : 's'} to problems — kept on this device, not on your others: {refusedHere[0].message}</p>}
+      </PageHeader>
 
       {(here.length > 0 || anyJobRows) && <>
         <div className="chip-row qsl-f" role="group" aria-label="Which">

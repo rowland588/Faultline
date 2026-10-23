@@ -13,7 +13,7 @@
  * A part draws; it decides nothing. What a control may do is the page's to say (lib/access
  * can.edit, can.agree, can.remove) — a part given no action draws none. */
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { Icon } from './Icon';
+import { Icon, type IconName } from './Icon';
 import { LeanTiles } from './Lean';
 
 /** The five state colours (CLAUDE.md, visual management): late or failed, waiting, under way, done, not started. */
@@ -52,6 +52,8 @@ export interface Paper {
   /** Who it is for, or what it holds, in a line. */
   for?: string;
   make: () => void | Promise<void>;
+  /** Nothing to put on it yet — kept in the list, greyed, its line saying why. */
+  disabled?: boolean;
 }
 
 /** REPORT ▾ — every paper a page has, in one place, each named for what it is (F7: nineteen labels
@@ -73,7 +75,7 @@ export function ReportMenu({ papers, label = 'Report' }: { papers: Paper[]; labe
       {m.open && (
         <div className="part-menu-list" role="menu" id={id} aria-label={label}>
           {papers.map(p => (
-            <button key={p.label} type="button" role="menuitem" className="part-menu-i" disabled={!!making} onClick={() => void make(p)}>
+            <button key={p.label} type="button" role="menuitem" className="part-menu-i" disabled={!!making || p.disabled} onClick={() => void make(p)}>
               <b>{making === p.label ? 'Making…' : p.label}</b>
               {p.for && <span>{p.for}</span>}
             </button>
@@ -129,7 +131,7 @@ export interface PageHeaderProps {
   /** What it says — the lean page's verdict, one sentence. */
   says?: ReactNode;
   /** The one thing to do now. */
-  primary?: { label: string; run: () => void; disabled?: boolean };
+  primary?: { label: string; run: () => void; disabled?: boolean; icon?: IconName; className?: string };
   /** Every paper the page has. */
   papers?: Paper[];
   /** Its other actions. */
@@ -153,7 +155,7 @@ export function PageHeader({ eyebrow, title, state, says, primary, papers = [], 
         <div className="pace-head-actions">
           <MoreMenu items={more} />
           <ReportMenu papers={papers} />
-          {primary && <button type="button" className="btn btn-primary" disabled={primary.disabled} onClick={primary.run}>{primary.label}</button>}
+          {primary && <button type="button" className={'btn btn-primary' + (primary.className ? ` ${primary.className}` : '')} disabled={primary.disabled} onClick={primary.run}>{primary.icon && <Icon name={primary.icon} size="1.05em" />}{primary.label}</button>}
         </div>
       )}
     </header>

@@ -16,7 +16,7 @@
  * The page answers, in order: where the line is (its problems, the late in
  * red), and what to do next (take a problem; open a tool on this line). */
 import { APP_TOOLS } from '../catalogue/registry';
-import { MoreMenu } from '../ui/parts';
+import { MoreMenu, PageHeader } from '../ui/parts';
 import { LineTour } from '../ui/LineTour';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { nav } from '../state/useRoute';
@@ -26,7 +26,6 @@ import { useCanStartProjects } from '../cloud/access';
 import { lineFacts, lineTypesOffered, productionLines } from '../lib/lines';
 import { WorkspaceProvider } from '../state/WorkspaceProvider';
 import { StudySetupSheet } from '../ui/StudySetupSheet';
-import { openQuickSnag } from '../snag/QuickSnag';
 import { PRIORITY_WORD, type Priority, type SnagRow, type SnagTone } from '../lib/snagsReport';
 import { headcount, inCapacityTool, inMapTool, thingsOf, type Standard } from '../lib/standard';
 import { lineProblems, lineProblemsSaid } from '../lib/lineWork';
@@ -43,7 +42,6 @@ import type { Observation } from '../types';
 import { between, stopMinutes, WEEK } from '../lib/intelligence';
 import type { ToolStudy, StudyTool } from '../lib/study';
 import type { Workspace } from '../types';
-import { Icon } from '../ui/Icon';
 import { useProjects } from '../lib/useProjects';
 import { saveProblemCardsFor, saveProblemsReportFor } from '../lib/problemsPdf';
 import { useLineRecords } from '../lib/useLineRecords';
@@ -266,35 +264,30 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
 
   return (
     <div className="wrap pl">
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <p className="pl-eyebrow">PRODUCTION LINE{line.lineType ? ` · ${line.lineType.toUpperCase()}` : ''} · <a href="#/factory" className="pl-fac">Your factory ›</a></p>
-          <h1>{line.name}</h1>
-          {/* where the line is, in words — only the abnormal carries colour;
-              the words the control room's card for it says (lib/lineWork) */}
-          <p className="pl-says">
-            {lineProblemsSaid(probs).map((x, i) => (x.red ? <b key={i} className="is-r">{x.text}</b> : x.text))}{rows.length === 0 ? '.' : ''}
-          </p>
-        </div>
-        <div className="pace-head-actions">
-          {/* THE FLOOR'S TWO ACTS, FIRST: time a stop, snap a problem. The
-              stopwatch had no door from the line — only a job's Pareto, its
-              setup and the fishbone opened it (docs/UPGRADE-AUDIT.md F1: the
-              first-timer's dead end). On a phone the Problem is the round
-              button; the header's copy hides there (F5). */}
-          <button type="button" className="btn btn-primary pl-time" onClick={() => nav(`/w/${wsId}/capture`)}><Icon name="time" size="1.05em" />Time a stop</button>
-          <button type="button" className="btn btn-primary pl-problem" onClick={() => openQuickSnag()}><Icon name="camera" size="1.05em" />Problem</button>
-          {/* THE FILMED WALK, FROM THE LINE (20 October, docs/DIRECTION.md): film
-              the line, freeze a frame, mark what is wrong on it — where Faultline
-              began. It was always the line's (its workspace), but only a job's
-              pages opened it; now the line does, no job needed. */}
-          <button type="button" className="btn pl-walk" onClick={() => nav(`/w/${wsId}/snags?manage=1`)}><Icon name="play" size="1.05em" />Film the line</button>
-          <button type="button" className="btn" disabled={busy || !reading} onClick={() => void printLine()}><Icon name="document" size="1.05em" />Line report</button>
-          <button type="button" className="btn" disabled={busy || !rows.length} onClick={() => void pdf('report')}>Problems report</button>
-          <button type="button" className="btn" disabled={busy || !rows.length} onClick={() => void pdf('cards')}>Report cards</button>
-          {may && <button type="button" className="btn btn-ghost" aria-expanded={editing} onClick={() => setEditing(v => !v)}>{editing ? 'Done' : 'Edit the line'}</button>}
-        </div>
-      </header>
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): the line, where it is in words, Time a stop the
+          one thing to do; its papers in Report ▾ and the rest in More ▾. Seven buttons stood here and
+          squeezed the line's name into a column 50 px wide (F6). Problem left the header: the bar's
+          Problem (＋ on a phone) takes it on this line, the same sheet — it stood here twice. */}
+      <PageHeader
+        eyebrow={<span className="pl-eyebrow">PRODUCTION LINE{line.lineType ? ` · ${line.lineType.toUpperCase()}` : ''}</span>}
+        title={line.name}
+        /* where the line is, in words — only the abnormal carries colour; the words the control
+           room's card for it says (lib/lineWork) */
+        says={<span className="pl-says">{lineProblemsSaid(probs).map((x, i) => (x.red ? <b key={i} className="is-r">{x.text}</b> : x.text))}{rows.length === 0 ? '.' : ''}</span>}
+        /* THE FLOOR'S ACT, FIRST: time a stop. The stopwatch had no door from the line (docs/UPGRADE-AUDIT.md F1). */
+        primary={{ label: 'Time a stop', icon: 'time', className: 'pl-time', run: () => nav(`/w/${wsId}/capture`) }}
+        papers={[
+          { label: 'Line report — 1 page', for: 'the line, its tiles, problems, machines, programs and what its tools found', disabled: busy || !reading, make: printLine },
+          { label: 'Problems report', for: rows.length ? 'every problem open on the line, with its plan and journey' : 'no problem open on the line yet', disabled: busy || !rows.length, make: () => pdf('report') },
+          { label: 'Problem cards', for: rows.length ? 'a card for each problem open, for the board' : 'no problem open on the line yet', disabled: busy || !rows.length, make: () => pdf('cards') },
+        ]}
+        more={[
+          /* THE FILMED WALK, FROM THE LINE (20 October, docs/DIRECTION.md): film the line, freeze a
+             frame, mark what is wrong on it — no job needed. */
+          { label: 'Film the line', run: () => nav(`/w/${wsId}/snags?manage=1`) },
+          ...(may ? [{ label: editing ? 'Done editing the line' : 'Edit the line', run: () => setEditing(v => !v) }] : []),
+        ]}
+      />
       {(editing || view === 'setup') && may && (
         <div className="pl-edit" role="group" aria-label="Edit the line">
           <label className="pl-edit-f"><span>Name</span>
@@ -313,6 +306,7 @@ export function ProductionLineScreen({ wsId, view = 'overview' }: { wsId: string
               Your factory's, with Undo: it loses nothing, and Your factory's
               archive restores it or deletes it for ever. */}
           <button type="button" className="btn btn-ghost btn-sm pl-archive" onClick={() => void archive()}>Archive this line</button>
+          {editing && view !== 'setup' && <button type="button" className="btn btn-sm" onClick={() => setEditing(false)}>Done</button>}
         </div>
       )}
 

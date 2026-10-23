@@ -43,6 +43,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 const { chromium } = pkg;
+import { paper, more } from '../lib/pageHeader.mjs';
 
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
@@ -322,7 +323,7 @@ ok(has('Before') && has(want.slice(0, 50)), '9 the client report: the fix carrie
   const lineSays = await page.evaluate(async id => { const db = await import('/src/db.ts'); const S = await import('/src/lib/studyLinks.ts'); return S.studyLine(S.currentBalance(await db.listAllStudies(), id)).text; }, SID);
   const rowSays = ((await page.locator('.lt-row', { hasText: 'Maris Piper 2kg' }).first().locator('.lt-says').innerText()) ?? '').trim();
   ok(rowSays === lineSays, `10 the Line balance list: "${rowSays.slice(0, 100)}"`);
-  const [dl3] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: /PDF \(all shown\)/ }).click()]);
+  const [dl3] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), paper(page, /every product shown/)]);
   const lpdf = join(OUT, 'linebalance.pdf'); await dl3.saveAs(lpdf);
   const lt = pdfText(lpdf);
   ok(lt.includes('Maris Piper 2kg') && lt.toUpperCase().includes('EACH PERSON AGAINST TAKT') && lt.toUpperCase().includes('WHAT IT COSTS'), '10 the Line balance list on paper: each person against takt, what it costs');

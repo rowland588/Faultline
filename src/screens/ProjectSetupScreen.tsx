@@ -15,6 +15,7 @@
  * method — and what its lines are measured against were agreed, so they are
  * the owner's; the team reads them here and works the lines; a client reads
  * all of it. Only the owner invites, removes or puts the project away. */
+import { PageHeader } from '../ui/parts';
 import { Fold, openFold } from '../ui/Fold';
 import { useEffect, useState } from 'react';
 import { nav, useRoute } from '../state/useRoute';
@@ -477,16 +478,11 @@ export function ProjectSetupScreen({ projectId }: { projectId: string }) {
 
   return (
     <div className="wrap pace project-setup">
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <h1 className="pace-title">{commissioning ? 'Project details' : 'Lines & people'}</h1>
-          <p className="pace-lede">
-            {commissioning
-              ? 'What it is called, who leads it, the two dates it is judged on, and who is invited to see it.'
-              : 'The lines this project runs, who owns each one, and who is invited to see it.'}
-          </p>
-        </div>
-      </header>
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3) */}
+      <PageHeader title={commissioning ? 'Project details' : 'Lines & people'}
+        says={commissioning
+          ? 'What it is called, who leads it, the two dates it is judged on, and who is invited to see it.'
+          : 'The lines this project runs, who owns each one, and who is invited to see it.'} />
       <AccessNote can={can} owner={project.lead} />
 
       {/* FOLDS. Project, lines, measures and people were all open at once —

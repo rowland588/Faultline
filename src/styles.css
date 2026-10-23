@@ -11631,7 +11631,6 @@ button.gt-fixlab small { font-size: 11.5px; }
 .rd-dayedit { display: grid; gap: 4px; margin-bottom: 8px; }
 
 /* THE FRONT PAGE, SAID ONCE (docs/SIMPLE.md step 4). */
-.vd-report { justify-self: start; margin-top: 4px; background: #fff; color: var(--ink); border-color: transparent; }
 .fp-doors { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .fp-door { all: unset; cursor: pointer; display: grid; gap: 2px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
 .fp-door b { color: var(--accent); font-size: var(--t-body); }
@@ -11854,11 +11853,7 @@ button.gt-mnext:hover { color: var(--brand); text-decoration: underline; }
 .jb-why.is-behind b { color: var(--st-r); }
 .jb-why.is-risk b { color: var(--st-a); }
 .jb-why.is-on b { color: var(--st-g); }
-/* The control room report's button, in the band as the job's is in its own. */
-.jb-report { align-self: center; margin-left: auto; margin-top: 0; }
-.jb-report.jb-papers { margin-left: 8px; }
 .jb-printed { margin: 8px 0 0; font-size: var(--t-detail); color: var(--shell-dim, #cbd6d8); }
-@media (max-width: 720px) { .jb-report, .jb-report.jb-papers { margin-left: 0; width: 100%; } }
 
 /* HANDED OVER WITH (docs/HANDOVER.md) — what a machine went with, beside
    "Handed over": open, so amber; said in words. */
@@ -14149,3 +14144,6 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .study-views { margin: 0 0 12px; overflow-x: auto; }
 @media (min-width: 900px) { .study-views { display: none; } }
 @media print { .study-views { display: none; } }
+
+/* the lever tree's own view under its title — its actions shown or folded, its zoom (B3) */
+.lt-view { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-top: var(--space-2); }

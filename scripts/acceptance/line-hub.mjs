@@ -26,6 +26,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 const { chromium } = pkg;
+import { paper, more } from '../lib/pageHeader.mjs';
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
 const SESSION = { access_token: 'smoke', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 31536000, refresh_token: 'smoke',
@@ -108,7 +109,7 @@ ok(page.url().includes('#/balances') && page.url().includes(`line=${encodeURICom
 
 /* 4 · the line report, one page */
 await go(`#/lines/${LINE}`, 3000);
-const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 120000 }), page.locator('button', { hasText: /^Line report$/ }).click()]);
+const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 120000 }), paper(page, 'Line report')]);
 const f = join(dir, 'line.pdf'); await dl.saveAs(f);
 const text = execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).replace(/\s+/g, ' ');
 const pages = Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [f], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }))?.[1]);

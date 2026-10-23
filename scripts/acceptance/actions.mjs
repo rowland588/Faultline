@@ -27,6 +27,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 const { chromium } = pkg;
+import { paper, more } from '../lib/pageHeader.mjs';
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
 const SESSION = { access_token: 'smoke', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 31536000, refresh_token: 'smoke',
@@ -122,7 +123,7 @@ await page.getByRole('group', { name: 'Seen by' }).getByRole('button', { name: '
 /* ---- 5 on paper ---- */
 await go(`#/project/${PID}/actions`);
 {
-  const text = await pdfText(() => page.getByRole('button', { name: 'The action list on paper (PDF)' }).click());
+  const text = await pdfText(() => paper(page, 'The action list'));
   ok(text.includes(t.name) && /ACTIONS/.test(text) && t.people.every(p => text.includes(p)) && text.includes(t.closing.slice(0, 30)), `5 the list for the meeting: every person, the closing line`, text.slice(0, 300));
   const first = t.people.find(p => p !== 'Nobody yet');
   if (first) {
@@ -160,7 +161,7 @@ await page.locator('.nv-rail').getByRole('button', { name: 'Actions', exact: tru
   });
   const onLines = (await page.locator('.act-g', { has: page.locator('h2', { hasText: 'On the lines, no project' }) }).locator('.act-li .lt-what').allInnerTexts()).map(flat);
   ok(same(onLines, lineOwn.map(flat)), `8 every line's own open problem, under no project: ${lineOwn.length}`, JSON.stringify({ onLines, lineOwn }));
-  const text = await pdfText(() => page.getByRole('button', { name: 'The action list on paper (PDF)' }).click());
+  const text = await pdfText(() => paper(page, 'The action list'));
   ok(text.includes('Every project and line') && text.includes(t.name), '8 on paper: every project and line, each row marked with its project');
   /* a row of a project's opens its record over Every action, the project said in the address */
   const fixRow = own.filter({ has: page.locator('.act-meta', { hasText: /^Fix\b|· Fix\b|Fix ·/ }) }).first();

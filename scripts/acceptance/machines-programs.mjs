@@ -58,6 +58,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 const { chromium } = pkg;
+import { paper, more } from '../lib/pageHeader.mjs';
 
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
@@ -401,7 +402,7 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   const row = main.locator(`[data-line="${t.name}"]`);
   ok(flat(await row.locator('.fac-flow').innerText()) === t.kit.flow && flat(await row.locator('.fac-kit').innerText()).startsWith(t.kit.says), `8 Your factory: its machines in flow order (${t.kit.flow}) and ${t.kit.says}`);
   const dir = mkdtempSync(join(tmpdir(), 'fac-'));
-  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), main.getByRole('button', { name: 'Factory report' }).click()]);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, 'Factory report')]);
   const file = join(dir, 'factory.pdf'); await dl.saveAs(file);
   const txt = flat(execFileSync('pdftotext', ['-layout', file, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
   ok(txt.includes(t.kit.says.replace(/\s+/g, '')), '8b and on its paper');
@@ -412,7 +413,7 @@ const iso = d => new Date(Date.now() + d * 86_400_000).toISOString().slice(0, 10
   await go(`#/programs?line=${WS}`);
   const t = await truth();
   const dir = mkdtempSync(join(tmpdir(), 'lprogs-'));
-  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), main.getByRole('button', { name: 'Programs report' }).click()]);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, 'Programs report')]);
   const file = join(dir, 'programs.pdf'); await dl.saveAs(file);
   const txt = flat(execFileSync('pdftotext', ['-layout', file, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
   const lost = [t.reading.says, 'PROGRAMS·PRODUCTIONLINE', ...t.programs.map(p => p.what)].filter(w => !txt.includes(w.replace(/\s+/g, '')));
@@ -513,7 +514,7 @@ await page.setViewportSize({ width: 1360, height: 900 });
   /* on paper: the job's programs report says the record beside the floor's, and counts no failure as done */
   await go(`#/project/${sd.projectId}/programs`);
   const dir = mkdtempSync(join(tmpdir(), 'jprogs-'));
-  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), main.getByRole('button', { name: 'Programs report — PDF' }).click()]);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, 'Programs report')]);
   const file = join(dir, 'programs.pdf'); await dl.saveAs(file);
   const txt = flat(execFileSync('pdftotext', ['-layout', file, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
   const lost = [j.says, `On the line: ${j.lines.find(l => l.what === 'PR-12 Express 1.25 kg').record.word}`].filter(w => !txt.includes(w.replace(/\s+/g, '')));
@@ -568,7 +569,7 @@ await page.setViewportSize({ width: 1360, height: 900 });
   /* on paper: the line's programs report says how each proved one was proved */
   await go(`#/programs?line=${WS}`);
   const dir = mkdtempSync(join(tmpdir(), 'lproof-'));
-  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), main.getByRole('button', { name: 'Programs report' }).click()]);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, 'Programs report')]);
   const file = join(dir, 'programs.pdf'); await dl.saveAs(file);
   const txt = flat(execFileSync('pdftotext', ['-layout', file, '-'], { encoding: 'utf8' })).replace(/\s+/g, '');
   const want = pr.lines.filter(l => l.proof).map(l => l.proof.word.slice(0, 60));

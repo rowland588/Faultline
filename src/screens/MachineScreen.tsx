@@ -11,6 +11,7 @@
  * No new record: the machine (lib/testing Asset), read by lib/machineRecord —
  * the same reading the drawer and the gates make. In the rail under Machines;
  * every machine name opens it (ui/MachinePanel openMachine). */
+import { PageHeader } from '../ui/parts';
 import { useTesting } from '../lib/useTesting';
 import { usePrograms } from '../lib/usePrograms';
 import { useProject } from '../lib/useProjects';
@@ -53,17 +54,14 @@ export function MachineScreen({ projectId, assetId }: { projectId: string; asset
 
   return (
     <div className="wrap pace mpg">
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <p className="pl-eyebrow">MACHINE · {project.name}</p>
-          <h1 className="pace-title">{m.name}</h1>
-          <p className="cw-handover">
-            <b className={'mpg-at is-' + tone}>{m.at}</b>
-            {m.oem && <span className="sub">{m.oem}</span>}
-            <span className={'sub' + (m.arrivalLate ? ' in-late' : '')}>On site: {m.arrival}</span>
-          </p>
-        </div>
-      </header>
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): the machine, where it is at, its maker and when it lands */}
+      <PageHeader eyebrow={<span className="pl-eyebrow">MACHINE · {project.name}</span>} title={m.name}>
+        <p className="cw-handover">
+          <b className={'mpg-at is-' + tone}>{m.at}</b>
+          {m.oem && <span className="sub">{m.oem}</span>}
+          <span className={'sub' + (m.arrivalLate ? ' in-late' : '')}>On site: {m.arrival}</span>
+        </p>
+      </PageHeader>
       <AccessNote can={can} owner={project.lead} />
       {/* THE LEAN PAGE (lib/stageGatePages): its gates through, what is late,
           its fixes, the problems on it with no fix, and the job's money */}

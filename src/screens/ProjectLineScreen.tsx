@@ -29,6 +29,8 @@
  * reading. One source at the top, fed from underneath. */
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { nav, useRoute } from '../state/useRoute';
+import { ReportMenu } from '../ui/parts';
+import { savingAt } from '../lib/useSaveOnArrival';
 import { Fold, openFold } from '../ui/Fold';
 import { Journey } from '../ui/Journey';
 import { PaceMeeting } from './PaceMeeting';
@@ -326,7 +328,7 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
 
   return (
     <div className={'wrap pace is-' + lens}>
-      <header className="pace-head">
+      <header className="pace-head part-head">
         <div className="pace-head-main">
           {/* which line of the factory this is, one tap to its own page —
               where its problems, programs and tools on it are, this job among
@@ -351,11 +353,16 @@ export function ProjectLineScreen({ projectId, lineId }: { projectId: string; li
               them, and its own A3 is printed from testing. It is the same
               document the project's Reports door lists, so it carries the
               same name. */}
-          {paced && (
-            <button className="btn btn-primary" onClick={() => nav(`/pace-report?project=${projectId}&line=${lineId}`)}>
-              Client report
-            </button>
-          )}
+          {/* Report ▾ (B3): this line's papers, each named, made at once on its report page. */}
+          {paced && (() => {
+            const at = `/pace-report?project=${projectId}&line=${lineId}`;
+            return <ReportMenu papers={sixM ? [
+              { label: `Status report — ${name}, 1 page`, for: 'For the client — where this line is, why, what is being done, who by when', make: () => nav(savingAt(at)) },
+              { label: `Client report — ${name}, every detail`, for: 'The gap on this line, where the loss is, each problem beside its fishbone', make: () => nav(savingAt(`${at}&doc=full`)) },
+            ] : [
+              { label: `Client report — ${name}, A3`, for: 'This line’s outcome, its numbers, the board and the walk', make: () => nav(savingAt(at)) },
+            ]} />;
+          })()}
           {/* One thing, one place: the fishbone lens carries its own "I saw…"
               beside "Time a stop", so here it is for the other lenses. */}
           {sixM && can.edit && lens !== 'fishbone' && (

@@ -17,6 +17,7 @@
  * The plan is kept here, one thing at a time — nothing is pasted in from a
  * spreadsheet any more.
  */
+import { PageHeader } from '../ui/parts';
 import { AddFold } from '../ui/AddFold';
 import { DateWhy } from '../ui/DateWhy';
 import { DateInput } from '../ui/DateInput';
@@ -291,17 +292,11 @@ export function MaterialsScreen({ projectId }: { projectId: string }) {
           has got to in one line. The job's name is in the top bar and the
           rail (ui/Frame). The lede says what the screen is for, so it is
           said where that is news: on the empty list. */}
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <h1 className="pace-title">Materials</h1>
-          {/* …said in the tiles under the header now (lib/stageGatePages:
-              here of what is needed, late, waiting and the next due, no date,
-              the money) — one place, as the list below is the one list. */}
-        </div>
-        <div className="pace-head-actions">
-          <button type="button" className="btn" disabled={t.total === 0} onClick={() => void paper()}><Icon name="document" size="1.05em" />Materials report</button>
-        </div>
-      </header>
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): the report in Report ▾. Where the materials are is said in
+          the tiles under it (lib/stageGatePages: here of what is needed, late, waiting and the next due, no date,
+          the money) — one place, as the list below is the one list. */}
+      <PageHeader title="Materials"
+        papers={[{ label: 'Materials report', for: t.total ? 'one page: what is here, what is late and holding us up, every material' : 'nothing on the list yet', disabled: t.total === 0, make: paper }]} />
       <AccessNote can={can} owner={project.lead} />
       {t.total > 0 && <LeanTiles tiles={materialTiles(t, money ?? MONEY_WAIT, iso => nice(iso))} className="sg-tiles" />}
 

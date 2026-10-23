@@ -39,6 +39,8 @@ import { useLineRecords } from '../lib/useLineRecords';
 import { lineKit } from '../lib/lineRecords';
 import { useCanStartProjects } from '../cloud/access';
 import { lineProblems, lineProblemsSaid, type LineProblems } from '../lib/lineWork';
+import { PageHeader } from '../ui/parts';
+import { ControlRoomReports } from '../ui/ControlRoomReports';
 
 /** Below 720 px the control room's answer comes first (FLOW-AUDIT.md, 11). */
 function useNarrow(q = '(max-width: 719px)'): boolean {
@@ -79,6 +81,10 @@ function contentsLabel(c: WsContents | undefined): ReactNode {
 }
 
 export function WorkspaceHome() {
+  /* REPORT ▾ (B3): the control room report is made from the board's own reading (ui/JobsBoard
+     fills this in); every other paper is the control room's Reports sheet. */
+  const roomReport = useRef<(() => Promise<void>) | null>(null);
+  const [allPapers, setAllPapers] = useState(false);
   const [list, setList] = useState<Workspace[] | null>(null);
   const [counts, setCounts] = useState<Record<string, WsContents>>({});
   // A deleted workspace sits in limbo here for a few seconds with an Undo —
@@ -295,26 +301,23 @@ export function WorkspaceHome() {
           button that sat here are the frame's top bar now (ui/Frame), on
           every screen alike — so the control room is a page in the frame
           like any other, and its name says which. */}
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <h1 className="pace-title">Control room</h1>
-          <p className="cw-handover">
-            {/* How many jobs — the board under it says how many are running
-                and how many are handed over (docs/HANDOVER.md); "3 jobs
-                running" here said otherwise. */}
-            <span className="sub">{jobs.length === 0 ? 'Nothing running yet' : `${jobs.length} project${jobs.length === 1 ? '' : 's'}`}</span>
-          </p>
-        </div>
-        {/* NEW JOB, where a page's main action sits — it was the Projects
+      <PageHeader title="Control room"
+        primary={mayStart ? { label: 'New project', run: () => nav('/projects?new=1') } : undefined}
+        papers={jobs.length > 0 || prodLines.length > 0 ? [
+          { label: 'Control room report — 1 page', for: 'For the business — every project and line on one A4: where each is, why, who owes what', make: async () => { await roomReport.current?.(); } },
+          { label: 'Every report', for: 'The factory’s, each line’s and each project’s papers, in one list', make: () => setAllPapers(true) },
+        ] : []}>
+        <p className="cw-handover">
+          {/* How many jobs — the board under it says how many are running
+              and how many are handed over (docs/HANDOVER.md); "3 jobs
+              running" here said otherwise. */}
+          <span className="sub">{jobs.length === 0 ? 'Nothing running yet' : `${jobs.length} project${jobs.length === 1 ? '' : 's'}`}</span>
+        </p>
+        {/* NEW PROJECT, where a page's main action sits — it was the Projects
             section's button, and that section was a second list of the jobs
-            the control room already lists. Said "New project" beside a rail
-            and a board that call them jobs (docs/FLOW-AUDIT.md #20). */}
-        {mayStart && (
-          <div className="pace-head-actions">
-            <button className="btn btn-primary" onClick={() => nav('/projects?new=1')}>New project</button>
-          </div>
-        )}
-      </header>
+            the control room already lists (docs/FLOW-AUDIT.md #20). */}
+      </PageHeader>
+      {allPapers && <ControlRoomReports projects={projects} onClose={() => setAllPapers(false)} />}
       {/* The pitch is for somebody with nothing running yet. Once a job is,
           the board under it says more than the paragraph could. */}
       {!jobs.length && (
@@ -343,7 +346,7 @@ export function WorkspaceHome() {
       {/* The board reads every job and every line's own work (lib/lineWork):
           a line can be out of control with no job on it (BLUEPRINT §6.6). */}
       {jobs.length > 0 || prodLines.length > 0
-        ? <JobsBoard projects={jobs} after={narrow ? factory : undefined} />
+        ? <JobsBoard projects={jobs} after={narrow ? factory : undefined} reportRef={roomReport} />
         : narrow && factory}
 
       {/* ONE LIST OF JOBS. The project cards that sat here listed the same

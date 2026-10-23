@@ -28,6 +28,8 @@ import { live } from '../lib/testing';
 import { machineAt, machinesWhere, journeyOf } from '../lib/install';
 import { planHref, planSays } from '../lib/plan';
 import { nav, navReplace, useRoute } from '../state/useRoute';
+import { ReportMenu, type Paper } from '../ui/parts';
+import { savingAt } from '../lib/useSaveOnArrival';
 import { PaceSnags } from './PaceSnags';
 import { PaceNextSteps } from './PaceNextSteps';
 import { PaceSuccess } from './PaceSuccess';
@@ -580,6 +582,21 @@ function LineCard({ line, pack, projectId, series, balance, balanceHref, named, 
  * The lens row is now the running order, not a drawer: where we are, the board
  * we walk, then what came out of it. */
 type Lens = 'overview' | 'lines' | 'next' | 'wins' | 'snags' | 'data';
+/** A PROJECT'S OWN PAPERS, for its front page's Report ▾ — the status report first, the one to send
+ *  (docs/SIMPLE.md), then every detail; each opened on its report page and made there at once. */
+function projectPapers(project: Project): Paper[] {
+  const model = planModel(project);
+  if (model === 'commissioning') return [
+    { label: 'Status report — 1 page', for: 'For the client — where it is, why it is not where it should be, what is being done', make: () => nav(savingAt(`/project/${project.id}/report`)) },
+    { label: 'Client report — every detail', for: 'The full report: the gates, the plan, the fixes, who owes what', make: () => nav(savingAt(`/project/${project.id}/report?doc=full`)) },
+  ];
+  if (model === 'board') return [
+    { label: 'Status report — 1 page', for: 'For the client — where the lines are, why, what is being done, who by when', make: () => nav(savingAt(`/pace-report?project=${project.id}`)) },
+    { label: 'Client report — every detail', for: 'The gap, where the loss is, each problem beside its fishbone', make: () => nav(savingAt(`/pace-report?project=${project.id}&doc=full`)) },
+  ];
+  return [{ label: 'Client report — A3', for: 'The outcome and what has to be true for it, the numbers, the board, the walk', make: () => nav(savingAt(`/pace-report?project=${project.id}`)) }];
+}
+
 const LENSES: { id: Lens; label: string; sub: string }[] = [
   { id: 'overview', label: 'Overview',   sub: 'the picture' },
   { id: 'lines',    label: 'Lines',      sub: 'each owner\u2019s pack' },
@@ -670,7 +687,7 @@ function TestingOverview({ projectId, project, edit, remove = false }: { project
               with their day. The plan — the longest thing on the page — is a
               page of its own (/plan), one line and a door here. */}
           {/* ARE WE ON TARGET? leads the band (lib/onTarget). */}
-          <Verdict st={st} brief report={`/project/${projectId}/report`}
+          <Verdict st={st} brief
             onTarget={stageGateOnTarget({ project, tests: tt.tests, items: tt.items, assets: tt.assets, materials: mats.materials, programs: progs.programs, today }, st)}
             tiles={stageGateTiles({
               /* the same five the one-page status and the full report count (lib/stageGateLean) */
@@ -922,7 +939,7 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
           lenses, the work, the lines, Reports, Meeting notes and Details —
           once, with their counts. A lens of a 6M or tree job is a page under
           the job, as a gate is, and wears the same header. */}
-      <header className="pace-head">
+      <header className="pace-head part-head">
         <div className="pace-head-main">
           {/* the job's name renamed where it is read (ui/ProjectTitle) — the owner's, as on Details */}
           {lens === 'overview' ? <ProjectTitle project={project} canRename={can.agree} />
@@ -939,6 +956,13 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
             </p>
           )}
         </div>
+        {/* REPORT ▾ (docs/STRUCTURE.md §5.4, B3) — the project's own papers, each named, made at once
+            on its report page (lib/useSaveOnArrival); the rest of its paper is the rail's Reports. */}
+        {lens === 'overview' && (
+          <div className="pace-head-actions">
+            <ReportMenu papers={projectPapers(project)} />
+          </div>
+        )}
       </header>
       {(lens === 'overview' || model === 'commissioning') && <AccessNote can={can} owner={project.lead} />}
 

@@ -30,6 +30,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 const { chromium } = pkg;
+import { paper, more } from '../lib/pageHeader.mjs';
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
 const OUT = process.env.SHOTS;
@@ -71,7 +72,8 @@ await page.locator('.pl-tool.is-stops').click(); await page.waitForTimeout(1500)
 ok(/#\/w\/[^/]+\/analyse$/.test(page.url()), `4e with stops, the row opens the ranking: ${page.url().split('#')[1]}`);
 await page.goBack(); await page.waitForTimeout(1500);
 // take a problem on it
-await page.locator('.pl .pace-head-actions').getByRole('button', { name: 'Problem', exact: true }).click(); await page.waitForTimeout(900);
+/* the bar's Problem takes it on this line (B3: the line's header no longer draws a second one) */
+await page.locator('.nv-top .qs-top').click(); await page.waitForTimeout(900);
 const sheet = page.locator('.sheet, [role="dialog"]').last();
 const lineSel = sheet.locator('label', { hasText: 'LINE' }).locator('select');
 const chosen = await lineSel.evaluate(el => el.options[el.selectedIndex]?.text);
@@ -84,13 +86,13 @@ if (OUT) await page.screenshot({ path: `${OUT}/l-2-line-problem.png` });
 // the line on paper — its report, and a card for each problem open
 const dir = mkdtempSync(join(tmpdir(), 'lines-'));
 const pdfOf = async (name, file) => {
-  const [d] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), page.locator('.pl .pace-head-actions').getByRole('button', { name, exact: true }).click()]);
+  const [d] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), paper(page, name, page.locator('.pl'))]);
   const f = join(dir, file); await d.saveAs(f);
   return { text: execFileSync('pdftotext', ['-raw', f, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' '), pages: Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [f], { encoding: 'utf8' }))?.[1]) };
 };
 const rep = await pdfOf('Problems report', 'line.pdf');
 ok(/Line 2B — problems/.test(rep.text) && /Infeed guard loose on the bagger/.test(rep.text), '6b the line on paper: its Problems report, its problem on it');
-const cards = await pdfOf('Report cards', 'line-cards.pdf');
+const cards = await pdfOf('Problem cards', 'line-cards.pdf');
 ok(cards.pages === 1 && /Infeed guard loose/.test(cards.text), `6c and a card for each problem open (${cards.pages})`);
 
 // tap it → register filtered, editor open
@@ -120,7 +122,7 @@ await page.goto(`${BASE}/#/lines/${(await page.evaluate(async () => (await (awai
 const wide = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 ok(wide <= 1, `13 phone: nothing off the side (${wide}px)`);
 if (OUT) await page.screenshot({ path: `${OUT}/l-4-phone.png` });
-await page.getByRole('button', { name: 'More' }).click(); await page.waitForTimeout(800);
+await page.locator('.nv-bar .nv-bi', { hasText: 'More' }).click(); await page.waitForTimeout(800);
 ok(/Line 2B/.test(await page.locator('body').innerText()), '14 phone: More lists the line');
 if (OUT) await page.screenshot({ path: `${OUT}/l-5-phone-more.png` });
 await page.keyboard.press('Escape'); await page.waitForTimeout(500);

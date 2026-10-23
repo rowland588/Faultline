@@ -44,6 +44,7 @@
  * the dates — and × brings you back here. The legend went with the boxes:
  * every row says its state in words beside its colour.
  */
+import { PageHeader } from '../ui/parts';
 import { useEffect, useState } from 'react';
 import { forget, hasKept, useKept } from '../lib/kept';
 import { listTests } from '../db';
@@ -228,23 +229,17 @@ export function FixesScreen({ projectId }: { projectId: string }) {
 
   return (
     <div className="wrap pace cm-screen">
-      <header className="pace-head">
-        <div className="pace-head-main">
-          {/* this project's own problems — named for it, so it is never mistaken for Control room problems (13 October) */}
-          <h1 className="pace-title">{project.name} — problems</h1>
-          <p className="qsl-path">This project's problems, and the fix that puts each right.{' '}
-            <button type="button" className="linkish" onClick={() => nav('/snags')}>Every problem, every line and project: Control room problems ›</button></p>
-          {/* THE PAGE'S COUNT IS THE RAIL'S (lib/noted problemsTally): the
-              fixes still to do and the problems no fix is booked for — the
-              rail said "Problems 5" over 7 more (FLOW-AUDIT.md, 16). */}
-          {/* …said in the tiles under the header now (lib/stageGatePages:
-              open, critical, late, no fix yet, the money) — one place. */}
-        </div>
-        <div className="pace-head-actions">
-          <button type="button" className="btn" disabled={pdfBusy || !onPaper} onClick={() => void pdf('report')}><Icon name="document" size="1.05em" />Problems report</button>
-          <button type="button" className="btn" disabled={pdfBusy || !onPaper} onClick={() => void pdf('cards')}>Report cards</button>
-        </div>
-      </header>
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): this project's own problems — named for it, so it is never
+          mistaken for Control room problems (13 October); the report and the cards in Report ▾. The page's
+          count is said in the tiles under it (lib/stageGatePages: open, critical, late, no fix yet, the money). */}
+      <PageHeader title={`${project.name} — problems`}
+        papers={[
+          { label: 'Problems report', for: onPaper ? 'every problem and fix on the project, with its plan and journey' : 'no problem on the project yet', disabled: pdfBusy || !onPaper, make: () => pdf('report') },
+          { label: 'Problem cards', for: onPaper ? 'a card for each, for the board' : 'no problem on the project yet', disabled: pdfBusy || !onPaper, make: () => pdf('cards') },
+        ]}>
+        <p className="qsl-path">This project's problems, and the fix that puts each right.{' '}
+          <button type="button" className="linkish" onClick={() => nav('/snags')}>Every problem, every line and project: Control room problems ›</button></p>
+      </PageHeader>
       <AccessNote can={can} owner={project.lead} />
       <LeanTiles tiles={problemTiles(pcounts, money ?? MONEY_WAIT)} className="sg-tiles" />
 

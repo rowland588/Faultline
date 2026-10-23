@@ -36,6 +36,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { paper as pressPaper } from '../lib/pageHeader.mjs';
 const { chromium } = pkg;
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
@@ -145,7 +146,8 @@ ok(new RegExp(`#/snags\\?line=${LINE7}&open=`).test(page.url()), `1h tapped: the
 /* ---- 1 — on paper ---- */
 await board();
 const dir = mkdtempSync(join(tmpdir(), 'cr-'));
-const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), page.getByRole('button', { name: 'Control room report — 1 page', exact: true }).click()]);
+/* the page header's Report ▾ (B3) — it was a button in the board's band */
+const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), pressPaper(page, 'Control room report — 1 page')]);
 const pdf = join(dir, 'cr.pdf'); await dl.saveAs(pdf);
 const paper = execFileSync('pdftotext', ['-raw', pdf, '-'], { encoding: 'utf8' }).replace(/\s+/g, ' ');
 const pages = Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [pdf], { encoding: 'utf8' }))?.[1]);
@@ -263,12 +265,13 @@ ok(phoneCrit.over.every(x => x <= 1) && phoneCrit.out <= 0 && phoneCrit.whens.in
    room's own, each line's, and each job's own list under its name ---- */
 {
   await board();
-  await page.getByRole('button', { name: 'All reports ›' }).click(); await page.waitForTimeout(1200);
+  /* Report ▾ › Every report — it was the band's All reports › (B3) */
+  await pressPaper(page, 'Every report'); await page.waitForTimeout(1200);
   const doors = (await page.locator('.meet-report b').allInnerTexts()).map(flat);
   const jobs = (await page.locator('.cr-job-papers > .meet-line-n').allInnerTexts()).map(flat);
   ok(['Control room report — 1 page', 'Your factory', 'Control room problems', 'Programs', 'Line capacity', 'Line standard'].every(d => doors.includes(d))
     && ['Client report', 'Handover report', 'Machine labels', 'The plan'].every(d => doors.includes(d)) && jobs.includes('Line 2 commissioning'),
-    `12a the band's All reports: the control room's papers, each line's and each job's own (${doors.length} doors; jobs ${jobs.join(', ')})`);
+    `12a Report ▾ › Every report: the control room's papers, each line's and each job's own (${doors.length} doors; jobs ${jobs.join(', ')})`);
   const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 40000 }), page.locator('.meet-report', { hasText: 'Control room report — 1 page' }).first().click()]);
   const [lb] = await Promise.all([page.waitForEvent('download', { timeout: 40000 }), page.locator('.meet-report', { hasText: 'Machine labels' }).first().click()]);
   ok(/Control-room-report/.test(dl.suggestedFilename()) && /machine-labels/.test(lb.suggestedFilename()), `12b made from it: ${dl.suggestedFilename()} · ${lb.suggestedFilename()}`);

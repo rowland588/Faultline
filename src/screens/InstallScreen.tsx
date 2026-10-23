@@ -25,6 +25,7 @@
  * "what we found" and fixes that can be for it. What the machine reads as is
  * lib/install's, one call, so the sentence here is the sentence on paper.
  */
+import { PageHeader } from '../ui/parts';
 import { useEffect, useState } from 'react';
 import { everyGateOffer, giveEveryGate, takeBack } from '../lib/giveGates';
 import { offerUndo } from '../ui/Undo';
@@ -176,28 +177,20 @@ export function InstallScreen({ projectId, gate = 'install' }: { projectId: stri
   return (
     <div className="wrap pace cm-screen">
       <PlanTabs projectId={projectId} on={gate} />
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <h1 className="pace-title">{GATE_WORD[gate]}</h1>
-          {/* THE COUNTS ARE THE TILES under the header (lib/stageGatePages:
-              done of the steps, late, problems, not added yet — the one word
-              the grid, its key and the client report use — and the money);
-              the line here keeps how many machines are under way and the doors. */}
-          <p className="cw-handover">
-            {going > 0 && <span className="sub">{going} machine{going === 1 ? '' : 's'} {face.doing}</span>}
-            <button className="cw-link" onClick={() => nav(`/project/${projectId}/day`)}>Read the day</button>
-            {/* THE HANDOVER REPORT — the line as it was really handed over
-                (docs/HANDOVER.md), from the gate it is about. */}
-            {gate === 'handover' && <button className="cw-link" onClick={() => nav(`/project/${projectId}/report?doc=handover`)}>Handover report ›</button>}
-          </p>
-        </div>
-        <div className="pace-head-actions">
-          {/* a card a step — offered once there is a step to print; on a job
-              just started it stood there greyed out over nothing (the walk) */}
-          {steps.length > 0 && <button type="button" className="btn" disabled={cardsBusy} onClick={() => void allCards()}
-            aria-label={`${cardWord} cards — a card for every ${cardWord.toLowerCase()} on ${GATE_WORD[gate]} (PDF)`}><Icon name="document" size="1.05em" />{cardsBusy ? 'Making…' : `${cardWord} cards`}</button>}
-        </div>
-      </header>
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): the gate, how many machines are under way and the day; its
+          papers in Report ▾ — a card a step, offered once there is a step to print (on a job just started it stood
+          there greyed out over nothing — the walk), and on Hand over THE HANDOVER REPORT, the line as it was really
+          handed over (docs/HANDOVER.md). The counts are the tiles under it (lib/stageGatePages). */}
+      <PageHeader title={GATE_WORD[gate]}
+        papers={[
+          ...(steps.length > 0 ? [{ label: `${cardWord} cards`, for: `a card for every ${cardWord.toLowerCase()} on ${GATE_WORD[gate]}`, disabled: cardsBusy, make: allCards }] : []),
+          ...(gate === 'handover' ? [{ label: 'Handover report', for: 'the line as it was handed over — what was done, signed and still open', make: () => nav(`/project/${projectId}/report?doc=handover`) }] : []),
+        ]}>
+        <p className="cw-handover">
+          {going > 0 && <span className="sub">{going} machine{going === 1 ? '' : 's'} {face.doing}</span>}
+          <button className="cw-link" onClick={() => nav(`/project/${projectId}/day`)}>Read the day</button>
+        </p>
+      </PageHeader>
       <AccessNote can={can} owner={project.lead} />
       {/* THE TILES (docs/LEAN-PAGE.md; lib/stageGatePages) — the header's
           counts, each of what it should be, and the job's money */}

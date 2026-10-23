@@ -24,6 +24,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 const { chromium } = pkg;
+import { paper, more } from '../lib/pageHeader.mjs';
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
 const SESSION = { access_token: 'smoke', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 31536000, refresh_token: 'smoke',
@@ -101,7 +102,7 @@ for (const [tool, hash, word] of [['capability', '#/capability', 'Capability'], 
     return (await (await import('/src/db.ts')).listAllStudies()).filter(s => s.tool === tool && !s.deletedAt).map(s => san(L.studyTitle(s)));
   }, tool);
   if (!titles.length) { ok(true, `4 ${word}: no studies seeded — nothing to print`); continue; }
-  const p = await pdfText(() => page.getByRole('button', { name: /every one shown \(PDF\)$/ }).click(), `${tool}.pdf`);
+  const p = await pdfText(() => paper(page, /every one shown/), `${tool}.pdf`);
   const missing = titles.filter(t => !p.text.replace(/\s/g, '').includes(t.replace(/\s/g, '').slice(0, 30)));
   ok(!missing.length, `4 ${word} list on paper: every study shown, ${titles.length} (${p.pages} page${p.pages === 1 ? '' : 's'})${missing.length ? ` — missing: ${missing.join(', ')}` : ''}`);
 }

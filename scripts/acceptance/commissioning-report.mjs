@@ -28,6 +28,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 const { chromium } = pkg;
+import { paper, find } from '../lib/pageHeader.mjs';
 
 const BASE = process.env.SMOKE_BASE ?? 'http://127.0.0.1:5191';
 const REF = process.env.SMOKE_SUPABASE_REF ?? 'testproj';
@@ -63,8 +64,10 @@ const go = async h => {
   await page.goto(`${BASE}/${h}`); await page.waitForTimeout(2500);
 };
 const main = page.locator('.nv-main');
+/* the page's own button (Download), else its Report ▾ and the paper named there (B3) */
 const download = async (name, file) => {
-  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name, exact: typeof name === 'string' }).first().click({ timeout: 60000 })]);
+  const b = await find(page, 'Report', name, page.locator('body'));
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), b.click({ timeout: 60000 })]);
   const f = join(OUT, file); await dl.saveAs(f); return f;
 };
 
@@ -93,7 +96,7 @@ let header;
   const tiles = await main.locator('.sg-tiles .ln-tile').evaluateAll(els => els.map(e => ({ k: e.querySelector('.ln-k')?.textContent?.trim() ?? '', v: e.querySelector('.ln-v')?.textContent?.trim() ?? '', of: e.querySelector('.ln-of')?.textContent?.trim() ?? '' })));
   const t = k => tiles.find(x => x.k === k) ?? { v: '', of: '' };
   header = [`${t('Passed').v} ${t('Passed').of.replace(/^of (\d+) tests?$/, 'of $1')} passed`, `${t('Didn’t pass').v} didn’t pass`, `${t('Didn’t run').v} didn’t run`].join(' · ');
-  await main.getByRole('button', { name: /^Commissioning report/ }).click(); await page.waitForTimeout(3500);
+  await paper(page, 'Commissioning report'); await page.waitForTimeout(3500);
   const pressed = flat(await page.locator('.cr-which .chip.on').innerText());
   ok(page.url().includes('/report?doc=commissioning') && pressed === 'Commissioning' && flat(await page.locator('.pace-title').innerText()) === 'Commissioning report',
     `1 Commission's "Commissioning report" opens it on its own chip (${pressed})`);
@@ -114,7 +117,7 @@ let f = await facts();
 
 /* ---- 3 on paper ---- */
 {
-  const file = await download('PDF', 'report.pdf');
+  const file = await download('Download', 'report.pdf');
   const txt = pdfText(file);
   ok(has(txt, 'COMMISSIONING') && has(txt, 'Line 2 commissioning') && has(txt, 'Scan for it now') && f.machines.every(m => has(txt, m)),
     `3 on paper: titled, the code to the job, every machine (${pdfPages(file)} pages)`);
@@ -144,7 +147,7 @@ let f = await facts();
   const toc = flat(await page.locator('.cm-toc').innerText());
   const word = await page.locator('.cm-toc .cm-m', { hasText: wrong.machine }).locator('.cm-word').innerText();
   ok(!toc.includes(`${wrong.machine}: ${wrong.title} —`), `5 ${wrong.title} passed on its re-test: gone from why (${wrong.machine} now "${word}")`);
-  const txt = pdfText(await download('PDF', 'report-after.pdf'));
+  const txt = pdfText(await download('Download', 'report-after.pdf'));
   ok(!has(txt, `${wrong.machine}: ${wrong.title} —`) && has(txt, `${wrong.title} — re-test`), '5b and on paper: its re-test passed, its why line gone');
 }
 

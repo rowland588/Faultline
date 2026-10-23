@@ -21,6 +21,7 @@
  * the takt, a method's step and the line's page read it as the line balance
  * it is. The footage stays on the device it was taken on until the cloud
  * takes a study's footage (docs/VIDEO.md, blockers); everything else syncs. */
+import { PageHeader } from '../ui/parts';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { deleteBlobs, getStudy, listAllStudies, onDataChange, patchStudy, putBlob, putStudy } from '../db';
 import { deleteStudy } from '../db/studies';
@@ -107,13 +108,10 @@ export function VideosScreen() {
   useEffect(() => { if (all) void resumeLeftJobs(all); }, [all]);
   return (
     <div className="wrap vid-list">
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <h1>Video studies</h1>
-          <p className="sub">Film the line, say what you want to find out, and the app reads the footage for the work at each station. You review every piece it finds on the footage itself; the cycles, the line balance, takt and the report are worked out from what you accept.</p>
-        </div>
-        <div className="pace-head-actions">{mayAdd && <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>New video study</button>}</div>
-      </header>
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3) */}
+      <PageHeader title="Video studies"
+        says={<span className="sub">Film the line, say what you want to find out, and the app reads the footage for the work at each station. You review every piece it finds on the footage itself; the cycles, the line balance, takt and the report are worked out from what you accept.</span>}
+        primary={mayAdd ? { label: 'New video study', run: () => setAdding(true) } : undefined} />
       {inP.id && <ProjectScopeChips name={inP.project?.name} lines={inP.lineIds.length} scope={scope} onScope={setScope} />}
       {/* before a long study: whether the phone that would film it can (docs/VIDEO-FEASIBILITY.md) */}
       <p className="vck-door"><button type="button" className="linkish" onClick={() => nav('/video-check')}>Can this phone film a long study?</button> Try it here first: the camera read as it films, clips, a steady camera, the screen and the battery.</p>

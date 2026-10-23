@@ -122,7 +122,7 @@ await go(`#/pace-report?project=${j.projectId}`);
 {
   /* the full report — the status page is the one offered first (17 below) */
   await page.getByRole('button', { name: 'Full report', exact: true }).click(); await page.waitForTimeout(400);
-  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'PDF', exact: true }).first().click()]);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Download', exact: true }).first().click()]);
   const pdf = join(OUT, 'sixm.pdf'); await dl.saveAs(pdf);
   const san = s => s.replace(/→/g, 'to').replace(/[–—]/g, '-').replace(/\s+/g, ' ');
   ok(san(pdfText(pdf)).includes(san(j.proved).slice(0, 70)), `5 the 6M report: "${j.proved.slice(0, 90)}…"`);
@@ -284,7 +284,7 @@ const S6 = `#/project/${sd.pacedProjectId}`;
     const s = S.sixmStatus(r); return { sentence: s.sentence, why: s.why.map(w => w.what), tags: s.why.map(w => w.tag) };
   }, j.projectId);
   /* the button waits for the report's records — as long as the download may, under the gate's load */
-  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'PDF', exact: true }).first().click({ timeout: 60000 })]);
+  const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.getByRole('button', { name: 'Download', exact: true }).first().click({ timeout: 60000 })]);
   const file = join(OUT, 'sixm-status.pdf'); await dl.saveAs(file);
   const pages = Number((execFileSync('pdfinfo', [file], { encoding: 'utf8' }).match(/Pages:\s+(\d+)/) ?? [])[1]);
   const san = x => x.replace(/→/g, 'to').replace(/[–—]/g, '-').replace(/[“”]/g, '"').replace(/\s+/g, '');

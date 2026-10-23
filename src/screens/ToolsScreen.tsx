@@ -10,6 +10,7 @@
  *
  * Read-only, for everyone. Loaded on its own (the router's lazy import), so
  * the catalogue's words never weigh on the rest of the app. */
+import { PageHeader } from '../ui/parts';
 import { APP_TOOLS } from '../catalogue/registry';
 import { useMemo, useState } from 'react';
 import { ENTRIES, PROBLEMS, disciplineName, entryById, searchEntries, searchProblems, statusCounts, subName } from '../catalogue';
@@ -45,12 +46,13 @@ export function ToolsScreen() {
 
   return (
     <div className="wrap et">
-      <h1>Every tool</h1>
-      <p className="sub et-lede">
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3) — the library has no paper and no one thing to do: its title
+          and what it holds */}
+      <PageHeader title="Every tool" says={<span className="et-lede">
         Everything Faultline does, and what it could do, found by the problem in your words. What is built opens; what is not
         says so. {ENTRIES.length} tools in {DISCIPLINES.length} disciplines — {all.available} available, {all.partial} partly built,{' '}
         {all.specified} planned, {all['to-build']} not built yet, {all.research} needing research first, {all['left-out']} left out on purpose.
-      </p>
+      </span>} />
 
       {/* USE ONE NOW — the tools a person can open, first (docs/STRUCTURE.md §5.1: the factory's Tools is
           the library; the eleven left every rail on 23 October). Each opens its list; started from there,

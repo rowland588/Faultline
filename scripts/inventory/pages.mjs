@@ -20,6 +20,8 @@
 export const PAGES = (sd, cap) => [
   { name: 'Control room', path: '#/room', must: [
     { what: 'its heading', sel: 'h1, h2', text: /Control room/ },
+    /* the page header since B3: the band's two report buttons are its Report ▾ */
+    { what: 'the page header — Report ▾ with the control room report and every report', sel: '.home > .part-head .part-menu-b', text: /^Report/ },
     { what: 'Your factory — every line', sel: '.fac-floor' },
     { what: 'this week, across every line and project', sel: '.jb-week' },
     { what: 'the projects on one timeline', sel: '.jb-gantt', desk: true },
@@ -29,6 +31,8 @@ export const PAGES = (sd, cap) => [
     { what: 'the closing line', sel: '.jb > .ln-close' },
   ] },
   { name: 'Your factory', path: '#/factory', must: [{ what: 'the lines in floor order', sel: '.fac-lines' },
+    /* the page header since B3: its paper in Report ▾ */
+    { what: 'the page header — Report ▾ with the factory report', sel: '.fac .part-head .part-menu-b', text: /^Report/ },
     /* the lean page (17 October, slice 5b; lib/factoryLean): the tiles — lines, problems open, late, a day of the factory in margin — and the closing line */
     { what: 'the tiles, a day of the factory among them', sel: '.fac .sg-tiles .ln-tile', n: 4 },
     { what: 'the closing line', sel: '.fac .ln-close' }] },
@@ -37,20 +41,28 @@ export const PAGES = (sd, cap) => [
     { what: 'a card a machine', sel: '.tour-card', n: 2 },
     /* the floor's two acts first, and the stopwatch among the tools (16 October, docs/UPGRADE-AUDIT.md F1) */
     { what: 'Time a stop', sel: '.pl-time' },
-    /* the filmed walk from the line, no job needed (20 October, docs/DIRECTION.md) */
-    { what: 'Film the line', sel: '.pl-walk', text: /Film the line/ },
+    /* the filmed walk from the line, no job needed (20 October, docs/DIRECTION.md) — in More ▾ since B3 (one primary on the page header,
+       docs/STRUCTURE.md §5.4: seven buttons squeezed the line's name into a column 50 px wide), beside Edit the line */
+    { what: 'More ▾ — Film the line and Edit the line', sel: '.pl .part-head .part-menu-b', text: /^More/ },
     { what: 'the stopwatch and its Pareto, among the tools', sel: '.pl-tool.is-stops' },
     /* the line is the hub (17 October, BLUEPRINT Stage 3; lib/lineLean, lib/lineProducts) */
     { what: 'the five tiles — problems, programs, products, stops, a day of the line', sel: '.pl-tiles .ln-tile', n: 5 },
     { what: 'its products, a row a product with its four answers', sel: '.pl-prod:not(.is-head) .pl-ready', n: 4 },
-    { what: 'the line report', sel: 'button', text: /^Line report$/ },
+    /* its papers in Report ▾ since B3 — the line report, the problems report and the problem cards, each named */
+    { what: 'Report ▾ — the line report among its papers', sel: '.pl .part-head .part-menu-b', text: /^Report/ },
     { what: 'the closing line', sel: '.pl > .ln-close' },
   ] },
-  { name: 'Programs', path: '#/programs', must: [{ what: 'machine by machine', sel: '.mt-list' }, { what: 'a row a program (16 October: one row, its boxes a tap away)', sel: '.mt-list .pgr' }] },
+  { name: 'Programs', path: '#/programs', must: [{ what: 'machine by machine', sel: '.mt-list' }, { what: 'a row a program (16 October: one row, its boxes a tap away)', sel: '.mt-list .pgr' },
+    /* the page header since B3: the programs report in Report ▾ */
+    { what: 'the page header — Report ▾ with the programs report', sel: '.lp .part-head .part-menu-b', text: /^Report/ }] },
   { name: 'Problems', path: '#/snags', must: [{ what: 'the register, a line at a time', sel: '.qsl-rows' },
+    /* the page header since B3 (docs/STRUCTURE.md §5.4): Problem the one primary, its two papers in Report ▾ */
+    { what: 'the page header — Problem, and Report ▾', sel: '.qsl .part-head .part-menu-b', text: /^Report/ },
     /* the lean page (17 October, slice 4; lib/problemsLean): its chips are its tiles, each a filter; the closing line names the worst open problem */
     { what: 'the closing line', sel: '.ln-close' }] },
   { name: 'A stage-gate project — its front page', path: `#/project/${sd.projectId}`, must: [
+    /* B3: the status report and the client report in the header's Report ▾ (the verdict's link moved here) */
+    { what: 'the page header — Report ▾ with the status report and the client report', sel: '.part-head .part-menu-b', text: /^Report/ },
     { what: 'the verdict', sel: '.vd' }, { what: 'Needs you', sel: 'h2, h3', text: /Needs you/ }, { what: 'where each machine is', sel: '.fp-grid' },
     /* the band's five tiles — the same the one-page status and the full report count (17 October, docs/LEAN-PAGE.md) */
     /* on a phone the band is the answer and the status report (the phone pass, 5 October): its tiles are the desk's */
@@ -69,6 +81,8 @@ export const PAGES = (sd, cap) => [
   /* one row a program, its test on the row, one form (16 October: "too many views and doors") */
   { name: 'Programs — a stage-gate project', path: `#/project/${sd.projectId}/programs`, must: [
     { what: 'the programs in a sentence', sel: '.pp-says' },
+    /* the page header since B3: the programs report in Report ▾ (it was "Programs report — PDF") */
+    { what: 'the page header — Report ▾ with the programs report', sel: '.part-head .part-menu-b', text: /^Report/ },
     { what: 'the states worth showing, each a filter', sel: '.pp-chip', n: 2 },
     { what: 'a row a program, machine by machine', sel: '.pgr-list .pgr', n: 4 },
     { what: 'how its test went, on its row', sel: '.pgr .ptx-go' },
@@ -83,33 +97,52 @@ export const PAGES = (sd, cap) => [
     { what: 'the board as a card a machine', sel: '.igm-card', phone: true },
     /* the lean page (17 October, docs/LEAN-PAGE.md; lib/stageGatePages): the header's counts as tiles, and the money */
     { what: 'the tiles — passed, didn’t pass, didn’t run, still to run, the money', sel: '.sg-tiles .ln-tile', n: 5 },
+    /* the page header since B3: the commissioning report and the test cards in Report ▾ */
+    { what: 'the page header — Report ▾ with the commissioning report and the test cards', sel: '.part-head .part-menu-b', text: /^Report/ },
     { what: 'the closing line', sel: '.ln-close' },
   ] },
   { name: 'Install', path: `#/project/${sd.projectId}/install`, must: [
     { what: 'the plan’s tabs, Install on', sel: '.plt .plt-t.on', text: /^Install/ },
     { what: 'the tiles — done, late, problems, not added yet, the money', sel: '.sg-tiles .ln-tile', n: 5 },
     { what: 'Needs you', sel: '.cg-needs' },
+    /* the page header since B3: the step cards in Report ▾ */
+    { what: 'the page header — Report ▾ with the step cards', sel: '.part-head .part-menu-b', text: /^Report/ },
     { what: 'the closing line', sel: '.ln-close' },
   ] },
   { name: 'Problems — a stage-gate project', path: `#/project/${sd.projectId}/fixes`, must: [
     { what: 'the tiles — open, critical, late, no fix yet, the money', sel: '.sg-tiles .ln-tile', n: 5 },
     { what: 'the closing line', sel: '.ln-close' },
+    /* the page header since B3: the problems report and the cards in Report ▾ */
+    { what: 'the page header — Report ▾ with its two papers', sel: '.part-head .part-menu-b', text: /^Report/ },
   ] },
   { name: 'Materials', path: `#/project/${sd.pacedProjectId}/materials`, must: [
     { what: 'the tiles — here, late, waiting, no date, the money', sel: '.sg-tiles .ln-tile', n: 5 },
     { what: 'what we are waiting on, a row a material', sel: '.mt-list .mt-row', n: 2 },
     { what: 'the closing line', sel: '.ln-close' },
+    /* the page header since B3: the materials report in Report ▾ */
+    { what: 'the page header — Report ▾ with the materials report', sel: '.part-head .part-menu-b', text: /^Report/ },
   ] },
   /* the day (17 October, the lean page slice 5c; lib/dayLean): its update to send, the story counted in tiles, the job's money last, the closing line */
   { name: 'The day', path: `#/project/${sd.projectId}/day`, must: [
-    { what: 'the update to send, at the top', sel: '.dy-head .btn-primary', text: /PDF/ },
+    /* the update to send, at the top — the page header's one primary since B3, named for what it is (it said "— PDF"), and in Report ▾ */
+    { what: 'the update to send, at the top', sel: '.part-head .btn-primary', text: /update/ },
     { what: 'the tiles — done, late, went wrong, found, the project’s money', sel: '.cm-screen > .sg-tiles .ln-tile', n: 4 },
     { what: 'the closing line', sel: '.cm-screen > .ln-close' }] },
-  { name: 'The plan', path: `#/project/${sd.projectId}/plan`, must: [{ what: 'the Gantt', sel: '.gt-body' }, { what: 'the plan’s tabs, Timeline on', sel: '.plt .plt-t.on', text: /^Timeline/ },
+  { name: 'The plan', path: `#/project/${sd.projectId}/plan`, must: [{ what: 'the Gantt', sel: '.gt-body' },
+    /* B3: the Gantt's own PDF is the page header's Report ▾ */
+    { what: 'the page header — Report ▾ with the plan on one page', sel: '.part-head .part-menu-b', text: /^Report/ }, { what: 'the plan’s tabs, Timeline on', sel: '.plt .plt-t.on', text: /^Timeline/ },
     /* the lean page (17 October; lib/stageGatePages planTiles): the header's count line moved into the tiles, the job's money last; the closing line */
     { what: 'the tiles — done of the dates, late, still ahead, the project’s money', sel: '.cm-screen > .sg-tiles .ln-tile', n: 4 },
     { what: 'the closing line', sel: '.cm-screen > .ln-close' }] },
+  { name: 'The client report — a stage-gate project', path: `#/project/${sd.projectId}/report`, must: [
+    /* B3: the paper's page header — Download the one primary, where it said PDF */
+    { what: 'the page header — Download', sel: '.part-head .btn-primary', text: /^Download/ },
+    { what: 'its five papers to choose', sel: '.cr-which .chip', n: 5 }] },
+  { name: 'The client report — a 6M project', path: `#/pace-report?project=${sd.pacedProjectId}`, must: [
+    { what: 'the page header — Download', sel: '.part-head .btn-primary', text: /^Download/ },
+    { what: 'its two papers to choose', sel: '.cr-which .chip', n: 2 }] },
   { name: 'A 6M project — its front page', path: `#/project/${sd.pacedProjectId}`, must: [
+    { what: 'the page header — Report ▾ with the status report and the client report', sel: '.part-head .part-menu-b', text: /^Report/ },
     { what: 'the verdict', sel: '.vd' }, { what: 'the fishbone, drawn', sel: 'svg.fb-svg' },
     /* the lean page (17 October, docs/LEAN-PAGE.md slice 4; lib/sixmLean): the 6M report's five tiles on the band — the desk's, as the stage gate's */
     { what: 'the band’s tiles — the gap, problems, roots found, countermeasures, holding', sel: '.vd .vd-tile', n: 5, desk: true },
@@ -193,6 +226,8 @@ export const PAGES = (sd, cap) => [
   /* A PROJECT'S ACTIONS (21 October, docs/PROJECTS.md P3): every thing it owes, who, why, where, by when */
   { name: 'Actions — a stage-gate project', path: `#/project/${sd.projectId}/actions`, must: [
     { what: 'the six tiles — open, late, this week, nobody yet, no date, done this week', sel: '.act-tiles .ln-tile', n: 6 },
+    /* the page header since B3: the action list in Report ▾ (it was a button saying PDF) */
+    { what: 'the page header — Report ▾ with the action list', sel: '.act .part-head .part-menu-b', text: /^Report/ },
     { what: 'seen by who, when or where', sel: '[aria-label="Seen by"] .chip', n: 3 },
     { what: 'a group a person, each with its actions', sel: '.act-g .act-li' },
     { what: 'the closing line', sel: '.ln-close' }] },

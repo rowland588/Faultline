@@ -12,6 +12,7 @@
  * carries its movement against the last comparable upload, and the page refuses
  * to imply movement when there is none to claim.
  */
+import { PageHeader } from '../ui/parts';
 import { useEffect, useMemo, useState } from 'react';
 import { nav, useRoute } from '../state/useRoute';
 import { useAccess } from '../cloud/access';
@@ -205,15 +206,9 @@ export function ParetoScreen({ projectId }: { projectId: string }) {
   return (
     <div className="wrap pace pr-screen">
       <Sweep id={'pareto:' + projectId} />
-      <header className="pace-head">
-        <div className="pace-head-main">
-          <h1 className="pace-title">Pareto</h1>
-          <p className="pace-lede">Where the time is going, ranked — the last four weeks against the four before.</p>
-        </div>
-        <div className="pace-head-actions">
-          <button className="btn btn-ghost" onClick={() => window.print()}>Print</button>
-        </div>
-      </header>
+      {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3): the Pareto printed in Report ▾ (it was a button saying Print) */}
+      <PageHeader title="Pareto" says="Where the time is going, ranked — the last four weeks against the four before."
+        papers={[{ label: 'The Pareto — printed', for: 'the ranking as it stands, on paper', make: () => window.print() }]} />
 
       {!view ? (
         <div className="bd-empty">

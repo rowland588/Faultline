@@ -70,6 +70,15 @@ async function download(D, J, what, loc) {
   J.steps.push(f ? `[file: ${f.suggestedFilename()}]` : '[no file]');
   return !!f;
 }
+/** A paper, pressed the way the page offers it: its own button, else Report ▾ then the paper — two
+ *  presses, each counted (docs/STRUCTURE.md §5.4, B3). */
+async function paperOf(D, J, label, within) {
+  const scope = within ?? D.page.locator('main');
+  const own = scope.getByRole('button', { name: label });
+  if (await own.count()) return download(D, J, typeof label === 'string' ? label : String(label), own);
+  await press(D, J, 'Report ▾', scope.locator('.part-head .part-menu-b', { hasText: /^Report/ }));
+  return download(D, J, `Report ▾: ${label}`, D.page.getByRole('menuitem').filter({ has: D.page.locator('b', { hasText: label }) }));
+}
 async function look(D, J, tag) {
   const items = await D.page.evaluate(() => [...document.querySelectorAll('main button, main a, main select, main input, main textarea, .rd button, .rd input, .rd textarea, .rd select, .sheet button, .sheet input, .sheet textarea, .sheet select, [role=dialog] button, [role=dialog] input, [role=dialog] textarea, [role=dialog] select')].filter(e => e.getBoundingClientRect().width > 0).map(e => `${e.tagName.toLowerCase()}.${String(e.className).split(' ')[0]}: ${(e.innerText || e.getAttribute('aria-label') || e.getAttribute('placeholder') || e.getAttribute('name') || '').replace(/\s+/g, ' ').trim().slice(0, 60)}${e.labels?.[0] ? ' [label ' + e.labels[0].innerText.replace(/\s+/g, ' ').trim().slice(0, 40) + ']' : ''}`).slice(0, 70));
   console.log(`     LOOK ${tag} @ ${D.page.url().replace(BASE, '')}\n       ` + items.join('\n       '));
@@ -291,19 +300,17 @@ await run('J7c a line problem moved into a project (desk)', 1360, async (D, J) =
 await run('J8 the Monday pack', 1360, async (D, J) => {
   await D.page.goto(`${BASE}/#/room`); await settle(D.page); await orient(D, J, 'Control room');
   await press(D, J, 'the row: Line 2 commissioning', projectRow(D, 'Line 2 commissioning')); await orient(D, J, 'Line 2 commissioning');
-  await press(D, J, 'Status report — 1 page', btn(D, /Status report/));
-  await download(D, J, 'PDF', D.page.locator('main').getByRole('button', { name: /^PDF$/ }).first());
-  /* the 6M report */
+  /* Report ▾ on the project's header makes the paper on its report page at once (B3) */
+  await paperOf(D, J, /^Status report/);
+  /* the 6M report — its status, the one that is sent, as before */
   await nav(D, J, 'Line 7 pace'); await orient(D, J, 'Line 7 pace');
-  await nav(D, J, 'Reports');
-  await press(D, J, 'Client report', D.page.locator('button.meet-report').filter({ hasText: 'Client report' }).first());
-  await download(D, J, 'PDF', D.page.locator('main').getByRole('button', { name: /^PDF$/ }).first());
+  await paperOf(D, J, /^Status report/);
   /* Line 7's line report */
   await nav(D, J, 'Line 7'); await orient(D, J, 'Line 7');
-  await download(D, J, 'Line report', D.page.locator('main').getByRole('button', { name: /^Line report/ }).first());
+  await paperOf(D, J, /^Line report/);
   /* the control room's */
   await nav(D, J, 'Control room'); await orient(D, J, 'Control room');
-  await download(D, J, 'Control room report — 1 page', D.page.locator('main').getByRole('button', { name: /Control room report/ }).first());
+  await paperOf(D, J, /^Control room report/);
 });
 
 
@@ -321,7 +328,7 @@ await run('J8b the Monday pack, from All reports', 1360, async (D, J) => {
     const b = inSheet(proj, label);
     await press(D, J, `${proj}: ${label}`, (await b.count()) ? b : door(label));
     await orient(D, J, proj);
-    await download(D, J, 'PDF', D.page.locator('main').getByRole('button', { name: /^PDF$/ }).first());
+    await download(D, J, 'Download', D.page.locator('main').getByRole('button', { name: /^Download$/ }).first());
   }
   await nav(D, J, 'Control room');
   await nav(D, J, 'Reports');
