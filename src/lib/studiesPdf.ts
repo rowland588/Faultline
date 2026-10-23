@@ -40,8 +40,8 @@ import { samplingBlocks } from './report/samplingTable';
 import { balanceBlocks } from './report/balanceTable';
 import { balance } from './ie/balance';
 import { agreedFor, balanceCost, costInputs, crewKept } from './ie/balanceLink';
-import { costWords, countTitle, relAll, relCost, reliabilityInsights, reliabilitySays, relRows, studyReliabilitySays, type RelItem } from './ie/reliability';
-import { relClosings, relTiles, relTrend } from './ie/reliabilityLean';
+import { costWords, countTitle, relAll, relCost, reliabilityInsights, reliabilitySays, relRows, studyReliabilitySays, type RelItem } from '../tools/reliability/reliability';
+import { relClosings, relTiles, relTrend } from '../tools/reliability/reliabilityLean';
 import { relChartBlock, relDaysBlocks, relKindsBlocks, relTogetherBlocks, remarksBlocks } from './report/reliabilityTable';
 
 import { todayISO } from './weeks';

@@ -22,23 +22,23 @@
  *
  * Pure: records in, the report's shape out — the page (screens/
  * LineReportScreen) and the paper both read it. */
-import type { Workspace } from '../types';
-import type { Snag } from '../snag/types';
-import type { Asset } from './testing';
-import type { Program } from './programs';
-import { isProved, standingOf, todayISO } from './programs';
-import type { Standard } from './standard';
-import { hasMap, headcount, inCapacityTool } from './standard';
-import type { ToolStudy, StudyTool } from './study';
-import { lineKit, machineKey, type JobLine, type LineKit } from './lineRecords';
-import { lineProblems, type LineProblems } from './lineWork';
-import type { SnagRow } from './snagsReport';
-import { studyLine, studyTitle, type StudyContext } from './studyLinks';
-import { capacitySays } from './together';
-import { byFloor } from './lines';
-import type { LeanAction, LeanTone } from './lean';
-import { APP_TOOLS } from '../catalogue/registry';
-import { niceDay } from './weeks';
+import type { Workspace } from '../../types';
+import type { Snag } from '../../snag/types';
+import type { Asset } from '../../lib/testing';
+import type { Program } from '../../lib/programs';
+import { isProved, standingOf, todayISO } from '../../lib/programs';
+import type { Standard } from '../../lib/standard';
+import { hasMap, headcount, inCapacityTool } from '../../lib/standard';
+import type { ToolStudy, StudyTool } from '../../lib/study';
+import { lineKit, machineKey, type JobLine, type LineKit } from '../../lib/lineRecords';
+import { lineProblems, type LineProblems } from '../../lib/lineWork';
+import type { SnagRow } from '../../lib/snagsReport';
+import { studyLine, studyTitle, type StudyContext } from '../../lib/studyLinks';
+import { capacitySays } from '../../lib/together';
+import { byFloor } from '../../lib/lines';
+import type { LeanAction, LeanTone } from '../../lib/lean';
+import { APP_TOOLS } from '../../catalogue/registry';
+import { niceDay } from '../../lib/weeks';
 
 /** One thing that can go in: a study, a product's Line capacity or line standard. */
 export interface BundleItem {

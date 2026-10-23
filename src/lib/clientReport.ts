@@ -22,7 +22,7 @@
  *
  * Pure: the screen gathers the records, this shapes them, the drawer draws. */
 import { isRunTest, productFigures, productName, readRuns, runsLine } from './run';
-import type { WeekLine } from './journey';
+import type { WeekLine } from '../project/journey/journey';
 import type { MediaPin, Project } from '../types';
 import { answerOf, GATE_WORD, gateGaps, installGrid, jobJourney, lateOrProblemSays, handedOverWith, machineAt, machineNow, machinesWhere, journeyOf, usualStages, type GateTone, type JourneyGate, type StepView, lateByWords, heldUpBy } from './install';
 import { stageGateOnTarget, type OnTarget } from './onTarget';

@@ -84,8 +84,9 @@ export function sixmStatus(r: SixMReport, limits = SIXM_STATUS_STEPS[0]): SixMSt
     ...r.problems.filter(p => p.phase === 'slipped').map(p => ({ kind: 'slipped' as const, tag: 'SLIPPED BACK', what: p.title, detail: p.worked.says })),
     ...r.problems.flatMap(p => (p.hold && p.phase !== 'slipped' && p.hold.tone === 'late'
       ? [{ kind: 'missed' as const, tag: 'CHECK MISSED', what: `${p.hold.what} — keeps the gain on “${p.title}”`, detail: [p.hold.who, p.hold.due].filter(Boolean).join(' · ') }] : [])),
-    ...(late.length ? [{ kind: 'late' as const, tag: 'LATE', what: `${plural(late.length, 'countermeasure')} past ${late.length === 1 ? 'its' : 'their'} day`,
-      detail: `Owed by ${owners.slice(0, 4).join(', ')}${owners.length > 4 ? ` and ${owners.length - 4} more` : ''} — under What next` }] : []),
+    /* everything owed past its day — the one late the control room, Needs you and Actions say (docs/STEADY.md S1) */
+    ...(r.owed.late ? [{ kind: 'late' as const, tag: 'LATE', what: r.owed.late === late.length ? `${plural(late.length, 'countermeasure')} past ${late.length === 1 ? 'its' : 'their'} day` : `${r.owed.late} past ${r.owed.late === 1 ? 'its' : 'their'} day — ${r.owed.lateSaid}`,
+      detail: late.length ? `Owed by ${owners.slice(0, 4).join(', ')}${owners.length > 4 ? ` and ${owners.length - 4} more` : ''} — under What next` : 'Materials and programs not in — under What we are waiting on' }] : []),
     ...r.problems.flatMap(p => (p.hold && p.phase !== 'slipped' && p.hold.tone === 'waiting'
       ? [{ kind: 'due' as const, tag: 'CHECK DUE', what: `${p.hold.what} — keeps the gain on “${p.title}”`, detail: [p.hold.who, p.hold.due].filter(Boolean).join(' · ') }] : [])),
   ];

@@ -95,7 +95,7 @@ Ppk. Rowland, 22 October: *"surely we can do a process capability on
 rejection rate ... It needs to be quite vast."* It is the pilot (Phase D).
 
 **Shared arithmetic duplicated.** A normal tail (`lib/ie/sample`
-`upperTail`), χ² bounds (`lib/ie/reliability`) and a proportion's margin
+`upperTail`), χ² bounds (`src/tools/reliability/reliability.ts`) and a proportion's margin
 (`lib/ie/sampling`) are each worked out in their own module. Attribute
 capability needs all three plus exact binomial bounds. Recommended: one
 module of distributions (`src/lib/ie/dist.ts`) built with the pilot and

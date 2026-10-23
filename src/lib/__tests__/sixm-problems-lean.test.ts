@@ -6,7 +6,7 @@ import { sixmClosing, sixmTiles, type SixMFigures } from '../sixmLean';
 import { registerClosing, registerTiles } from '../problemsLean';
 import type { SnagsReading } from '../snagsReport';
 
-const base: SixMFigures = { measured: 2, short: 1, open: 3, finding: 1, acting: 1, proving: 1, slipped: 0, causes: 7, roots: 2, suspected: 3, actionsOpen: 8, actionsLate: 2, actionsDone: 4, held: 1, missed: 0 };
+const base: SixMFigures = { measured: 2, short: 1, open: 3, finding: 1, acting: 1, proving: 1, slipped: 0, causes: 7, roots: 2, suspected: 3, actionsOpen: 8, actionsLate: 2, actionsDone: 4, held: 1, missed: 0, owedLate: 2, owedLateSaid: '2 countermeasures', owedOpen: 8 };
 
 describe('the 6M report’s tiles', () => {
   it('two lines, one short: the gap, three problems in their phases, two roots of seven, 8 countermeasures with 2 late, one gain held', () => {
@@ -20,13 +20,13 @@ describe('the 6M report’s tiles', () => {
     expect(sixmClosing(base)).toEqual({ text: '1 of 2 lines are short of their target; 3 problems being worked — 2 countermeasures late.', tone: 'r' });
   });
   it('one line short in its own words; a problem slipped back and a check missed in red', () => {
-    const x = { ...base, measured: 1, short: 1, oneLine: { line: 'Line 7', short: '3.2 ppm short of target' }, slipped: 1, missed: 1, actionsLate: 0 };
+    const x = { ...base, measured: 1, short: 1, oneLine: { line: 'Line 7', short: '3.2 ppm short of target' }, slipped: 1, missed: 1, actionsLate: 0, owedLate: 1, owedLateSaid: '1 check' };
     const t = sixmTiles(x);
     expect([t[0], t[1].of, t[1].tone, t[4]]).toEqual([{ k: 'The gap', v: '3.2 ppm', of: 'short — Line 7 against its target', tone: 'r' }, '1 slipped back · 1 finding the cause · 1 acting on it · 1 checking it worked', 'r', { k: 'Holding', v: '1', of: 'kept by a check · 1 check missed', tone: 'r' }]);
     expect(sixmClosing(x).text).toBe('Line 7 is 3.2 ppm short of its target; 3 problems being worked — 1 problem slipped back and 1 check missed.');
   });
   it('at target with nothing wrong in green; nothing measured says so', () => {
-    expect(sixmClosing({ ...base, short: 0, actionsLate: 0 })).toEqual({ text: 'All 2 lines are at their target; 3 problems being worked.', tone: 'g' });
+    expect(sixmClosing({ ...base, short: 0, actionsLate: 0, owedLate: 0, owedLateSaid: '' })).toEqual({ text: 'All 2 lines are at their target; 3 problems being worked.', tone: 'g' });
     expect(sixmTiles({ ...base, measured: 0, short: 0 })[0]).toEqual({ k: 'The gap', v: '—', of: 'no line measured against a target yet' });
   });
 });

@@ -18,17 +18,19 @@
  * paper prints this same reading (lib/journeyPdf), so the two never part.
  *
  * Nothing is written by AI: every line is a record's own words. */
-import type { PaceTodoRow } from '../db/rows';
-import { toolByKey, toolLabel } from '../catalogue/registry';
-import { dayOf, type DayInput, type DayLine, type DayTone } from './day';
-import type { LeanTile, LeanTone } from './lean';
-import { dayOfNote } from './noteScope';
-import type { RegisterProblem } from './projectActions';
-import { PRIORITY_WORD } from './projectActions';
-import type { ToolStudy } from './study';
-import { measuredOn, studyHref } from './studyLinks';
-import { live, type TestItem } from './testing';
-import { addDays, daysBetween, isoDay, mondayOf, niceDay, todayISO } from './weeks';
+import type { PaceTodoRow } from '../../db/rows';
+import { toolByKey, toolLabel } from '../../catalogue/registry';
+import { dayOf, type DayInput, type DayLine, type DayTone } from '../../lib/day';
+import type { LeanTile, LeanTone } from '../../lib/lean';
+import { dayOfNote } from '../../lib/noteScope';
+import type { RegisterProblem } from '../../lib/projectActions';
+import { PRIORITY_WORD } from '../../lib/projectActions';
+import type { ToolStudy } from '../../lib/study';
+import type { Material } from '../../lib/materials';
+import type { Program } from '../../lib/programs';
+import { measuredOn, studyHref } from '../../lib/studyLinks';
+import { live, type TestItem } from '../../lib/testing';
+import { addDays, daysBetween, isoDay, mondayOf, niceDay, todayISO } from '../../lib/weeks';
 
 /* ------------------------------- the range ------------------------------- */
 
@@ -117,6 +119,10 @@ export interface JourneyInput {
   notes?: readonly TestItem[];
   /** Its studies, when it has no gate to read them through (a 6M project's). */
   studies?: readonly ToolStudy[];
+  /** Its materials and programs, when it has no gate to read them through (a 6M project's) — arrived,
+   *  proved, due, late, by the day's own rules (lib/day). */
+  materials?: readonly Material[];
+  programs?: readonly Program[];
 }
 
 export type JourneyTone = DayTone;
@@ -140,6 +146,9 @@ export interface JourneyLine {
   snagId?: string;
   /** Whose, when the record says. */
   who?: string;
+  /** Past its day and still owed — today's late, the one count every place says (docs/STEADY.md S1). A
+   *  failure or a slip on a day gone is what did not go to plan, never late. */
+  late?: boolean;
 }
 
 export interface JourneyDay {
@@ -178,16 +187,20 @@ export function journeyOf(input: JourneyInput, range: Range, today: string = tod
     list.push(n);
     commentaryBy.set(d, list);
   }
+  /* a project with no gate still has materials, programs and studies — read by the day's own rules */
+  const gate: DayInput | undefined = input.gate ?? ((input.materials?.length || input.programs?.length || input.studies?.length)
+    ? { tests: [], items: [], assets: [], materials: [...(input.materials ?? [])], programs: [...(input.programs ?? [])], studies: [...(input.studies ?? [])] }
+    : undefined);
   const days: JourneyDay[] = [];
   let skipped = 0;
   const counts = { done: 0, toDo: 0, late: 0, planned: 0, wrong: 0 };
   for (const date of daysOf(range)) {
     const past = date < today, isToday = date === today;
     const lines = [
-      ...gateLines(input.gate, date, today),
+      ...gateLines(gate, date, today),
       ...stepLines(input.steps ?? [], date, today),
       ...problemLines(input.register ?? [], date, today),
-      ...(input.gate ? [] : studyLines(input.studies ?? [], date)),
+      ...(gate ? [] : studyLines(input.studies ?? [], date)),
     ];
     const commentary = (commentaryBy.get(date) ?? []).slice().sort((a, b) => a.createdAt - b.createdAt);
     if (!lines.length && !commentary.length) { skipped++; continue; }
@@ -196,8 +209,8 @@ export function journeyOf(input: JourneyInput, range: Range, today: string = tod
        go to plan, as a failure or a problem is */
     for (const l of lines) {
       if (DONE.has(l.tone)) counts.done++;
+      else if (l.late) { counts.late++; counts.toDo++; }
       else if (l.tone === 'booked') { if (past || isToday) counts.toDo++; else counts.planned++; }
-      else if (l.tone === 'slipped' && isToday) { counts.late++; counts.toDo++; }
       else if (WRONG.has(l.tone)) counts.wrong++;
     }
     days.push({ date, label: niceDay(date, { weekday: 'short' }), lines, commentary, past, today: isToday });
@@ -216,7 +229,7 @@ function gateLines(gate: DayInput | undefined, date: string, today: string): Jou
     : date === today ? new Set(['plan', 'done', 'wrong', 'found', 'late', 'problem', 'today', 'going'])
       : new Set(['plan', 'today']);
   return d.sections.filter(s => want.has(s.key)).flatMap(s => s.lines.map((l): JourneyLine => ({
-    text: l.text, tone: l.tone,
+    text: l.text, tone: l.tone, ...(s.key === 'late' ? { late: true } : {}),
     ...(l.detail ? { detail: l.detail } : {}), ...(l.id ? { id: l.id } : {}), ...(l.go ? { go: l.go } : {}), ...(l.href ? { href: l.href } : {}),
   })));
 }
@@ -244,7 +257,7 @@ function stepLines(steps: readonly PaceTodoRow[], date: string, today: string): 
       if (past) out.push({ text: `${what} — was due and not done${who(s.who)}.`, tone: 'slipped', ...open });
       else out.push({ text: `${what}${who(s.who)}${s.state === 'waiting' ? ' — waiting' : ''}.`, tone: 'booked', ...open });
     } else if (isToday && s.due && s.due < date) {
-      out.push({ text: `${what}${who(s.who)} — was due ${short(s.due)}.`, tone: 'slipped', ...open });
+      out.push({ text: `${what}${who(s.who)} — was due ${short(s.due)}.`, tone: 'slipped', late: true, ...open });
     }
   }
   return out;
@@ -265,7 +278,7 @@ function problemLines(register: readonly RegisterProblem[], date: string, today:
     if (raised === date && closed !== date) out.push({ text: `Problem raised: ${pri}${p.problem}${who(p.owner)}.`, tone: 'found', ...open });
     if (!closed && due) {
       if (due === date) out.push({ text: `${pri}${p.problem}${who(p.owner)}${past ? ' — was due and not closed' : ''}.`, tone: past ? 'slipped' : 'booked', ...open });
-      else if (isToday && due < date) out.push({ text: `${pri}${p.problem}${who(p.owner)} — was due ${short(due)}.`, tone: 'slipped', ...open });
+      else if (isToday && due < date) out.push({ text: `${pri}${p.problem}${who(p.owner)} — was due ${short(due)}.`, tone: 'slipped', late: true, ...open });
     }
   }
   return out;

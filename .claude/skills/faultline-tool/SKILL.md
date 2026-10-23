@@ -85,7 +85,7 @@ needs is built or its absence is in the scope.
 
 ## 4. Build the complete, scoped tool — with its report
 
-Pure, tested arithmetic in `src/lib/ie/` (or `src/lib/`), the sentences in
+Pure, tested arithmetic in the tool's own folder, `src/tools/<key>/` (docs/STEADY.md S3 — older tools still in `src/lib/ie/` until moved with `scripts/moves.mjs`), the sentences in
 the module; the page and the paper from the same module; access checked
 (`can.edit`, `can.agree`, `can.remove`); money from the one cost model or the
 missing input named; designed empty, invalid, too-few and error states; phone

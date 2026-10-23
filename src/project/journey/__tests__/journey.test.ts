@@ -10,11 +10,11 @@ import {
   MOST_DAYS, RANGE_PICKS, daysOf, journeyClosing, journeyOf, journeyTiles, pickOf, rangeLabel, rangeOf, slideRange, toolPlansOf,
   type JourneyInput,
 } from '../journey';
-import type { DayInput } from '../day';
-import type { Asset, Test, TestItem } from '../testing';
-import type { PaceTodoRow } from '../../db/rows';
-import type { RegisterProblem } from '../projectActions';
-import { encodeScope } from '../noteScope';
+import type { DayInput } from '../../../lib/day';
+import type { Asset, Test, TestItem } from '../../../lib/testing';
+import type { PaceTodoRow } from '../../../db/rows';
+import type { RegisterProblem } from '../../../lib/projectActions';
+import { encodeScope } from '../../../lib/noteScope';
 
 const TODAY = '2026-10-21'; // a Wednesday
 const at = (iso: string) => new Date(`${iso}T10:00:00`).getTime();
@@ -188,10 +188,12 @@ describe('the same records through other lenses', () => {
     const j = journeyOf({ steps, register, studies: [
       { id: 'st1', tool: 'capability', name: 'Weight 400 g', projectId: 'p', facts: { readings: [{ at: at('2026-10-15'), v: 401 }, { at: at('2026-10-15'), v: 399, who: 'Priya' }] }, uses: [], startedAt: at('2026-10-15'), updatedAt: 1 } as never,
     ] }, rangeOf('lastWeek', TODAY), TODAY);
+    /* the study is read by the day's own rules (lib/day), as a stage-gate project's is */
     const d15 = j.days.find(d => d.date === '2026-10-15');
-    expect(d15?.lines.map(l => l.kind)).toEqual(['Tool plan — SMED', 'Study']);
-    expect(d15?.lines[1].text).toMatch(/^Capability study — Weight 400 g: 2 readings taken by Priya — /);
-    expect(d15?.lines[1].href).toBe('/capability/st1');
+    expect(d15?.lines.map(l => l.kind)).toContain('Tool plan — SMED');
+    const study = d15?.lines.find(l => /Weight 400 g/.test(l.text));
+    expect(study?.text).toMatch(/Weight 400 g: 2 readings taken by Priya/);
+    expect(study?.href).toBe('/capability/st1');
   });
 
   it('a long range stays quick — two years of days in well under a second', () => {

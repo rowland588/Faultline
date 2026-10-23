@@ -333,7 +333,7 @@ for (const size of SIZES) {
        THE JOURNEY REPORT (lib/journeyPdf, docs/JOURNEY.md J3): this week and next, every day's lines as the
        module says them, the tiles, the closing line */
     {
-      const J = await import('/src/lib/journey.ts');
+      const J = await import('/src/project/journey/journey.ts');
       const { listPaceTodos } = await import('/src/db/pace.ts');
       const { listAllSnags } = await import('/src/db.ts');
       const steps = await listPaceTodos(pid);
@@ -688,7 +688,7 @@ for (const size of SIXM_SIZES) {
     /* THIS WEEK AND NEXT and THE JOURNEY REPORT on a 6M project (lib/journey, docs/JOURNEY.md J3) */
     const journeyMust = await page.evaluate(async ({ pid }) => {
       const { san } = await import('/src/lib/reportKit.ts');
-      const J = await import('/src/lib/journey.ts');
+      const J = await import('/src/project/journey/journey.ts');
       const db = await import('/src/db.ts'); const W = await import('/src/lib/weeks.ts');
       const project = await db.getProject(pid);
       const today = W.todayISO();
@@ -696,7 +696,7 @@ for (const size of SIXM_SIZES) {
       const items = await db.listTestItems(pid);
       const register = (await db.listAllSnags()).filter(s => s.projectId === pid && !s.deletedAt);
       const studies = await db.listStudies(pid);
-      const input = { steps, register, notes: items, studies };
+      const input = { steps, register, notes: items, studies, materials: await db.listMaterials(pid), programs: await db.listPrograms(pid) };
       const started = W.isoDay(project.createdAt);
       const w = J.weekLine(input, today, started);
       const range = J.rangeOf('thisAndNext', today, started);

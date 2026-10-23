@@ -59,7 +59,7 @@ describe('a project’s actions', () => {
   it('counts the tiles — only the abnormal in colour — and says the closing line', () => {
     const tiles = actionTiles(rows, [{ what: 'x', on: '2026-10-19' }, { what: 'y', on: '2026-10-01' }], TODAY);
     expect(tiles.map(t => [t.k, t.v, t.of, t.tone])).toEqual([
-      ['Open', '6', '1 critical', 'r'],
+      ['Open', '6', '4 on the plan · 1 critical · 1 from the register', 'r'],
       ['Late', '2', 'past the day agreed', 'r'],
       ['This week', '1', 'due in the next 7 days', undefined],
       ['Nobody yet', '1', 'with no one named', 'a'],

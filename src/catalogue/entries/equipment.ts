@@ -14,7 +14,7 @@ export const EQUIPMENT: Entry[] = [
     complexity: 'L', value: 'high', valueWhy: 'A machine’s reliability measured by a person in minutes.',
     status: 'available', form: 'tool', kind: 'study',
     app: { key: 'reliability', label: 'Reliability', says: 'A machine watched running, a tap for each stop: MTBF and the failure rate, with their bounds', onLine: 'a machine watched running: MTBF and the failure rate', reads: 'reliability', icon: 'machine', order: 9 }, methods: ['maintenance.mtbf-failure-rate', 'stats.confidence-intervals'], scenarios: ['machine', 'new'], words: ['MTBF', 'stops per hour', 'failure rate', 'keeps stopping'],
-    built: { where: ['/reliability'], code: ['src/lib/ie/reliability.ts', 'src/screens/ReliabilityScreen.tsx'], tests: ['src/lib/ie/__tests__/reliability.test.ts'], acceptance: ['reliability.mjs'] },
+    built: { where: ['/reliability'], code: ['src/tools/reliability/reliability.ts', 'src/tools/reliability/ReliabilityScreen.tsx'], tests: ['src/tools/reliability/__tests__/reliability.test.ts'], acceptance: ['reliability.mjs'] },
     limits: ['No repair times, so no MTTR or availability (FC-059).'],
   },
   {

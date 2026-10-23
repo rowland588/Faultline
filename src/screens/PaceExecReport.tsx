@@ -14,8 +14,8 @@
  * out at exactly A3-landscape proportions, rendered to an image and dropped onto
  * an A3 page. What is on screen is what lands in the PDF. */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useJourney } from '../lib/useJourney';
-import { weekLine } from '../lib/journey';
+import { useJourney } from '../project/journey/useJourney';
+import { weekLine } from '../project/journey/journey';
 import { usePdfPreview } from '../lib/usePdfPreview';
 import { nav, useRoute } from '../state/useRoute';
 import { MeasureChart } from '../charts/MeasureChart';

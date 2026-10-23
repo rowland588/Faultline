@@ -16,28 +16,28 @@
  * in place. Nothing is stored for the range; everything here is read by
  * lib/journey, which the paper prints too (J3). */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useProject } from '../lib/useProjects';
-import { useJourney, type JourneyRead } from '../lib/useJourney';
+import { useProject } from '../../lib/useProjects';
+import { useJourney, type JourneyRead } from './useJourney';
 import {
   RANGE_PICKS, daysOf, journeyClosing, journeyOf, journeyTiles, pickOf, rangeLabel, rangeOf, slideRange, toolPlansOf, weekLine,
   type Journey, type JourneyLine, type Range, type RangePick, type ToolPlan,
-} from '../lib/journey';
-import { useSaveOnArrival } from '../lib/useSaveOnArrival';
-import { APP_TOOLS, toolByKey } from '../catalogue/registry';
-import { isStudyTool } from '../lib/study';
-import { encodeScope } from '../lib/noteScope';
-import { niceDay, todayISO } from '../lib/weeks';
-import { uid, now } from '../lib/ids';
-import { deleteTestItem, patchTestItem, putPaceTodo, putTestItem, type PaceTodoRow } from '../db';
-import type { TestItem } from '../lib/testing';
-import { useAccess } from '../cloud/access';
-import { nav, navReplace, useRoute } from '../state/useRoute';
-import { LeanClosing, LeanTiles } from '../ui/Lean';
-import { PageHeader } from '../ui/parts';
-import { openRecord } from '../ui/RecordDrawer';
-import { ActionSheet, removeActionWithUndo, type Editing } from '../ui/ActionSheet';
-import { offerUndo } from '../ui/Undo';
-import { Icon } from '../ui/Icon';
+} from './journey';
+import { useSaveOnArrival } from '../../lib/useSaveOnArrival';
+import { APP_TOOLS, toolByKey } from '../../catalogue/registry';
+import { isStudyTool } from '../../lib/study';
+import { encodeScope } from '../../lib/noteScope';
+import { niceDay, todayISO } from '../../lib/weeks';
+import { uid, now } from '../../lib/ids';
+import { deleteTestItem, patchTestItem, putPaceTodo, putTestItem, type PaceTodoRow } from '../../db';
+import type { TestItem } from '../../lib/testing';
+import { useAccess } from '../../cloud/access';
+import { nav, navReplace, useRoute } from '../../state/useRoute';
+import { LeanClosing, LeanTiles } from '../../ui/Lean';
+import { PageHeader } from '../../ui/parts';
+import { openRecord } from '../../ui/RecordDrawer';
+import { ActionSheet, removeActionWithUndo, type Editing } from '../../ui/ActionSheet';
+import { offerUndo } from '../../ui/Undo';
+import { Icon } from '../../ui/Icon';
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -105,7 +105,7 @@ function JourneyPage({ projectId, name, read }: { projectId: string; name: strin
     if (busy) return;
     setBusy(true); setSaid('');
     try {
-      const { saveJourneyPdf } = await import('../lib/journeyPdf');
+      const { saveJourneyPdf } = await import('./journeyPdf');
       const how = await saveJourneyPdf({ project: name, printed: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), today, journey: j, plans });
       setSaid(how === 'downloaded' ? 'Saved — open or send it from the bar below.' : 'Ready — open it from the bar below.');
     } catch (e) {

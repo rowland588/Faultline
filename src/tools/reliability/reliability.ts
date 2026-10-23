@@ -57,9 +57,9 @@
  *     day of the line's shifts. What is missing is named, never guessed.
  *
  * Pure: nothing worked out here is stored. */
-import { labourPerHour, ratedPerMin } from '../cost';
-import { lineDay } from '../lineLoss';
-import type { AgreedReliability, RelEvent, WatchRun } from '../study';
+import { labourPerHour, ratedPerMin } from '../../lib/cost';
+import { lineDay } from '../../lib/lineLoss';
+import type { AgreedReliability, RelEvent, WatchRun } from '../../lib/study';
 
 /** WHAT ONE COUNT IS AND WHAT IT SHOULD BE — the words its figures are said
  *  in: "stop", the MTBF wanted, the minutes the line stands each time. */

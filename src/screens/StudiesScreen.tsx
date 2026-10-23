@@ -35,7 +35,7 @@ import { rateForCount } from '../ui/ShiftLosses';
 import { dur, flowFigures, share } from '../lib/ie/steps';
 import { changeoverFigures, changeoverSays, figuresOf, mins } from '../lib/ie/changeover';
 import { samplingSays } from '../lib/ie/sampling';
-import { plural, relAll, span, studyReliabilitySays } from '../lib/ie/reliability';
+import { plural, relAll, span, studyReliabilitySays } from '../tools/reliability/reliability';
 import { firstCount, lossLine, windowWords } from '../lib/ie/losses';
 import type { StudyTool, ToolStudy } from '../lib/study';
 import type { Observation, Workspace } from '../types';

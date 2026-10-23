@@ -328,7 +328,7 @@ describe('the 6M status — one page', () => {
     expect(s.why.map(w => [w.tag, w.what])).toEqual([
       ['SHORT', 'Line 2A — 8 ppm short of target'],
       ['CHECK MISSED', 'Time one changeover a week — keeps the gain on “Changeover takes 48 minutes”'],
-      ['LATE', '1 countermeasure past its day'],
+      ['LATE', '2 past their day — 1 countermeasure, 1 check'],
     ]);
     expect(s.why[0].detail).toBe('Being worked: “Bagger minor stops” — acting on it');
     expect(s.why[1].detail).toBe('Rob Scott · check missed — was due 17 Sept');

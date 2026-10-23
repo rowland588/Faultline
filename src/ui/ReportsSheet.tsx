@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react';
 import type { Project } from '../types';
 import { planModel } from '../lib/planModel';
+import { kindFacts } from '../project/projectKind';
 import { usePaceLines } from '../lib/usePaceLines';
 import { getPaceWorkspaceId } from '../db';
 import { nav } from '../state/useRoute';
@@ -87,7 +88,7 @@ export function JobPapers({ project, onClose }: { project: Project; onClose: () 
           /* A 6M job's report is the root cause story (lib/sixmReportPdf);
              the old 3P words were not what it prints. */
           : 'For the client — the one-page status first (where the lines are, why, what is being done), then the full report: the gap, where the loss is, each problem’s fishbone in four parts, the board by bone, the walk.'}
-          onClick={() => go(stageGate ? `/project/${project.id}/report` : `/pace-report?project=${project.id}`)} />
+          onClick={() => go(kindFacts(project).reportTo(project.id))} />
         {/* THE JOURNEY REPORT (docs/JOURNEY.md, J3) — any range, picked on the Journey; this week and next from here */}
         <Door title="Journey report" says="To whoever we report to — what we did day by day, what is next, your commentary, the tools we are using. This week and next from here; pick any range on the Journey." onClick={() => go(`/project/${project.id}/journey?save=1`)} />
         {perLine.length > 0 && (
