@@ -12,6 +12,8 @@
 import type { Workspace } from '../types';
 import { allPaceLines, projectWalkIds, putPaceLine } from '../db/pace';
 import { createWorkspace, listWorkspaces, updateWorkspace } from '../db/workspaces';
+import { listAssets, putAsset } from '../db/testing';
+import { listPrograms, putProgram } from '../db/programs';
 import { perHourWords } from './lineLoss';
 
 export const DEMO_NAME = 'Demo — Packing Hall';
@@ -120,6 +122,23 @@ export async function addLineToFactory(name: string, lineType?: string, taxonomy
 
 /** A project's short name for a factory line — "2A" for "Line 2A" — the key
  *  its numbers are kept under; typed over in Lines & people when wanted. */
+/** A PROJECT'S MACHINES AND PROGRAMS PINNED TO THEIR LINE (23 October — the
+ *  combined line report reads everything carrying the line's name). A
+ *  project's machine or program made with no line of its own stands on the
+ *  project's only factory line (lib/lineRecords lineOfMachine, lineOfProgram)
+ *  — until the project gets a second line, or loses that one, when it would
+ *  stand on none and drop out of its line's pages and papers. So before a
+ *  project's lines change, each one is given the line it stood on. Nothing
+ *  else moves; a project with several lines already, or none, is left. */
+export async function pinToProjectLine(projectId: string, lines: readonly { workspaceId?: string; deletedAt?: number }[]): Promise<number> {
+  const on = [...new Set(lines.filter(l => !l.deletedAt && l.workspaceId).map(l => l.workspaceId as string))];
+  if (on.length !== 1 || !projectId) return 0;
+  let n = 0;
+  for (const a of await listAssets(projectId)) if (!a.workspaceId) { await putAsset({ ...a, workspaceId: on[0] }); n++; }
+  for (const p of await listPrograms(projectId)) if (!p.workspaceId && !p.lineId) { await putProgram({ ...p, workspaceId: on[0] }); n++; }
+  return n;
+}
+
 export function lineKey(name: string): string {
   const k = name.trim().replace(/^line\s+/i, '').trim();
   return (k || name.trim()).slice(0, 12);

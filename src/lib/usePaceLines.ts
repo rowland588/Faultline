@@ -19,6 +19,7 @@ import {
   type PaceLineRow,
 } from '../db';
 import { useAccess } from '../cloud/access';
+import { pinToProjectLine } from './lines';
 /** What a line needs to exist: what the team calls it, and nothing else. The
  *  people and the targets can all be filled in afterwards. */
 export interface NewLine {
@@ -88,6 +89,7 @@ export function usePaceLines(projectId: string): PaceLinesState {
     // second row — silently adding a duplicate "2A" is the one outcome nobody
     // wants, because both then claim the same numbers.
     if (lines.some(r => r.key.toLowerCase() === key.toLowerCase())) return;
+    await pinToProjectLine(projectId, lines);
     await addPaceLine({
       projectId, key,
       name: (l.name ?? '').trim() || `Line ${key}`,
@@ -104,16 +106,18 @@ export function usePaceLines(projectId: string): PaceLinesState {
     const before = lines.find(r => r.id === id);
     if (!before) return;
     const after = { ...before, ...p };
+    if ('workspaceId' in p && p.workspaceId !== before.workspaceId) await pinToProjectLine(projectId, lines);
     setLines(lines.map(r => (r.id === id ? after : r)));
     await putPaceLine(after);
-  }, [lines]);
+  }, [lines, projectId]);
 
   const removeLine = useCallback(async (id: string) => {
+    await pinToProjectLine(projectId, lines);
     setLines(lines.filter(r => r.id !== id));
     const back = await deletePaceLine(id);
     await refresh();
     return back && (async () => { await back(); await refresh(); });
-  }, [lines, refresh]);
+  }, [lines, projectId, refresh]);
 
   /** Swap with the neighbour and write both — order is data, so it has to
    *  travel to the other device rather than being however this one sorted. */

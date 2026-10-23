@@ -115,4 +115,24 @@ describe('merge two lines (BLUEPRINT §6.7, Stage 1)', () => {
     expect(f.short).toBe('2 shifts · 6 people');
     expect(lines.lineFacts({ ...w, shifts: [], crew: undefined, labourRatePerHour: undefined, assets: [] })).toEqual({});
   });
+  it('pins a project\'s machines and programs to its one line before its lines change, so none drops off the line', async () => {
+    const { db, lines } = await fresh();
+    const { lineOfMachine, lineOfProgram } = await import('../lib/lineRecords');
+    const a = await lines.addLineToFactory('Line 2a');
+    const b = await lines.addLineToFactory('Line 2b');
+    await db.addProject(job('p'));
+    await db.putPaceLine({ id: 'l1', projectId: 'p', key: '2A', name: 'Line 2A', workspaceId: a.id, updatedAt: 1 });
+    await db.putAsset({ id: 'm1', projectId: 'p', name: 'Pick and Place', sort: 1, createdAt: 1, updatedAt: 1 } as never);
+    await db.putProgram({ id: 'p1', projectId: 'p', what: 'Program 10', runs: 'All Rounder 2kg, Reds', state: 'needed', sort: 1, createdAt: 1, updatedAt: 1 });
+    /* a second line on the project: before it, both stood on Line 2a through the project's only line */
+    const before = await db.allPaceLines();
+    expect(lineOfMachine((await db.listAllAssets())[0], before)).toBe(a.id);
+    expect(await lines.pinToProjectLine('p', before)).toBe(2);
+    await db.putPaceLine({ id: 'l2', projectId: 'p', key: '2B', name: 'Line 2B', workspaceId: b.id, updatedAt: 2 });
+    const after = await db.allPaceLines();
+    expect(lineOfMachine((await db.listAllAssets())[0], after)).toBe(a.id);
+    expect(lineOfProgram((await db.listAllPrograms())[0], after)).toBe(a.id);
+    /* a project with several lines already is left as it is */
+    expect(await lines.pinToProjectLine('p', after)).toBe(0);
+  });
 });
