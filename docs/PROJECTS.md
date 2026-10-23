@@ -192,6 +192,11 @@ group. *Not yet:* its tiles on the control room's own page; a filter by line.
 
 ## After P4 — tightening, once the project is the workspace
 
+- **The week** — the project's report to whoever it reports to: what we
+  did this week, what we are doing this week and next, the tools we will use
+  ticked with what for, Rowland's commentary (`docs/WEEK.md`, 23 October;
+  planned).
+
 - Line Talk inside a project knows the project, its stages and its actions;
   what it finds is offered as an action a person adds with a tap (Line Talk
   slice 3, docs/LINE-TALK.md).
