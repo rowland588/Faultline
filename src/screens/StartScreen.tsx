@@ -12,6 +12,10 @@
  * Rowland — "I open Faultline, talk or type, upload a picture when useful,
  * ask questions, and ask for a report." Start one, or carry on the latest.
  *
+ * WHERE YOU WERE (docs/STRUCTURE.md §5.6, D4, B5): Home is yours — the places this device was last
+ * in, a project's or a line's page, one tap back (lib/recentPlaces); what is under way is each
+ * project by name and its state in a word, never the control room's sentences again.
+ *
  * WHICH RECORD: none of its own — projects, the factory and the talks are read.
  * WHERE IT SHOWS: home — #/ (and #/start, its first address) — under the one
  * rail off a project (ui/Frame, HomeNav: Home first). The control room, the
@@ -30,6 +34,8 @@ import { todayISO } from '../lib/weeks';
 import { MODELS, startHref } from '../lib/planModel';
 import { toolPlaces } from '../ui/rail';
 import { APP_TOOLS } from '../catalogue/registry';
+import { recentPlaces, type Place } from '../lib/recentPlaces';
+import { niceDay } from '../lib/weeks';
 import { BuildStamp } from '../ui/BuildStamp';
 import { InstallPanel } from '../ui/InstallPanel';
 import { CloudPanel } from '../cloud/CloudPanel';
@@ -38,6 +44,15 @@ import { CloudPanel } from '../cloud/CloudPanel';
 const TOOL_SAYS: Record<string, string> = Object.fromEntries(APP_TOOLS.map(t => [t.to, t.says]));
 
 const plural = (n: number, one: string, more = `${one}s`) => `${n} ${n === 1 ? one : more}`;
+/** Under way shows this many; the rest are on Projects. */
+const UNDER_WAY = 6;
+
+/** When a place was last open — "at 09:12" today, else the day. */
+function lastOpen(at: number, today: string): string {
+  const d = new Date(at);
+  const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return day === today ? `at ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : niceDay(day, { weekday: 'short' });
+}
 
 export function StartScreen() {
   const { projects } = useProjects();
@@ -48,6 +63,8 @@ export function StartScreen() {
   /* every project said by the reading the control room draws from — one answer, never two */
   const pf = useMemo(() => (inputs && lineWork ? portfolio(inputs.gate, today, inputs.paced, lineWork) : null), [inputs, lineWork, today]);
   const tools = toolPlaces('');
+  /* where this device was last — read when Home opens; the frame notes each place as it is opened */
+  const [places] = useState<Place[]>(() => recentPlaces().slice(0, 5));
   /* the latest Line Talk, to carry on */
   const [latest, setLatest] = useState<ToolStudy | null>(null);
   useEffect(() => {
@@ -63,6 +80,23 @@ export function StartScreen() {
         <p className="pl-says">Start a project to drive a change through to its actions and proof, or use a tool on a line to measure it — every finding in money, from your factory’s own figures.</p>
       </section>
 
+      {places.length > 0 && (
+        <section className="fd-sec fd-back" aria-label="Carry on where you were">
+          <div className="fd-sec-h"><h2 className="ln-h">Carry on where you were</h2></div>
+          <ul className="lt-rows fd-places">
+            {places.map(p => (
+              <li key={p.to} className="lt-li" data-place={p.kind}>
+                <button type="button" className="lt-row" onClick={() => nav(p.to)}>
+                  <b className="lt-what">{p.scope}</b>
+                  <span className="lt-says">{p.page ?? (p.kind === 'project' ? 'The project' : 'The line')}</span>
+                  <span className="lt-where">{p.kind === 'project' ? 'Project' : 'Line'} · last open {lastOpen(p.at, today)}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section className="fd-sec fd-talk" aria-label="Line Talk">
         <div className="fd-sec-h"><h2 className="ln-h">Line Talk</h2></div>
         <p className="sub">Talk or type on the line, add a photo when it helps, ask questions and ask for a report — answered from what you say and what Faultline holds about the line.</p>
@@ -75,18 +109,18 @@ export function StartScreen() {
       <section className="fd-sec" aria-label="Under way">
         <div className="fd-sec-h">
           <h2 className="ln-h">Under way</h2>
-          {projects.length > 0 && <button type="button" className="cw-link" onClick={() => nav('/room')}>The control room — every project at once ›</button>}
+          {projects.length > 0 && <button type="button" className="cw-link" onClick={() => nav('/projects')}>{pf && pf.jobs.length > UNDER_WAY ? `All ${pf.jobs.length} projects ›` : 'Projects ›'}</button>}
         </div>
         {!pf ? <p className="sub">Reading…</p> : pf.jobs.length === 0 ? (
           <p className="sub">Nothing under way yet — start a project below.</p>
         ) : (
           <ul className="lt-rows fd-jobs">
-            {pf.jobs.map(j => (
+            {pf.jobs.slice(0, UNDER_WAY).map(j => (
               <li key={j.id} className="lt-li" data-project={j.id}>
                 <button type="button" className="lt-row" onClick={() => nav(`/project/${j.id}`)}>
                   <b className="lt-what">{j.name}</b>
                   <span className={`lt-says ie-tone is-${j.late > 0 ? 'r' : j.problems ? 'a' : 'n'}`}>{j.late > 0 ? `${j.late} late` : j.outstanding ? `${j.outstanding} to do` : 'Nothing outstanding'}</span>
-                  <span className="lt-where">{j.methodLabel} · {j.sentence}</span>
+                  <span className="lt-where">{j.methodLabel}</span>
                 </button>
               </li>
             ))}
@@ -121,7 +155,7 @@ export function StartScreen() {
             </li>
           ))}
         </ul>
-        <p className="fd-every"><button type="button" className="linkish" onClick={() => nav('/tools')}>Every tool — find one by the problem, and see what is built and what is not</button></p>
+        <p className="fd-every"><button type="button" className="linkish" onClick={() => nav('/tools')}>Tools — find one by the problem, and see what is built and what is not</button></p>
       </section>
 
       <section className="fd-sec fd-factory" aria-label="Your factory">

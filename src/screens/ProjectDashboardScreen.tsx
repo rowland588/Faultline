@@ -28,9 +28,8 @@ import { live } from '../lib/testing';
 import { machineAt, machinesWhere, journeyOf } from '../lib/install';
 import { planHref, planSays } from '../lib/plan';
 import { nav, navReplace, useRoute } from '../state/useRoute';
-import { ReportMenu, type Paper } from '../ui/parts';
+import { ReportMenu, ViewTabs, type Paper } from '../ui/parts';
 import { savingAt } from '../lib/useSaveOnArrival';
-import { PaceSnags } from './PaceSnags';
 import { PaceNextSteps } from './PaceNextSteps';
 import { PaceSuccess } from './PaceSuccess';
 import { MeasureChart } from '../charts/MeasureChart';
@@ -739,6 +738,13 @@ function TestingOverview({ projectId, project, edit, remove = false }: { project
   );
 }
 
+/* A 6M OR LEVER-TREE PROJECT'S EVIDENCE IS ITS TOOLS (docs/STRUCTURE.md D9, B5): the filmed line and
+   every tool used in the project, one page — ?view=snags is passed on to it, the address replaced. */
+function ToProjectTools({ projectId }: { projectId: string }) {
+  useEffect(() => { navReplace(`/project/${projectId}/tools`); }, [projectId]);
+  return null;
+}
+
 function ToInstallFilmed({ projectId }: { projectId: string }) {
   useEffect(() => { openFold('filmed'); navReplace(`/project/${projectId}/install`); }, [projectId]);
   return null;
@@ -914,6 +920,9 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
      two pages for one thing. The address is replaced, so Back is not caught in
      a loop, and Install opens with that card open. */
   if (model === 'commissioning' && lens === 'snags') return <ToInstallFilmed projectId={projectId} />;
+  if (lens === 'snags') return <ToProjectTools projectId={projectId} />;
+  /* RESULTS (D9, B5): Numbers and Wins are one page's two views */
+  const results = model !== 'commissioning' && (lens === 'data' || lens === 'wins');
   /* What is past its day, said in red on the header's one line — the
      verdict's own late count on a stage-gate job, the board's late actions on
      the others (the same numbers the rail's lines carry). */
@@ -943,7 +952,11 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
         <div className="pace-head-main">
           {/* the job's name renamed where it is read (ui/ProjectTitle) — the owner's, as on Details */}
           {lens === 'overview' ? <ProjectTitle project={project} canRename={can.agree} />
-            : <h1 className="pace-title">{LENSES.find(l => l.id === lens)?.label}</h1>}
+            : <h1 className="pace-title">{results ? 'Results' : LENSES.find(l => l.id === lens)?.label}</h1>}
+          {results && (
+            <ViewTabs label="Results" value={lens} onChange={v => nav(`/project/${projectId}?view=${v}`)}
+              views={[{ key: 'data', label: 'Numbers' }, { key: 'wins', label: 'Wins' }]} />
+          )}
           {lens === 'overview' && (
             <p className="cw-handover">
               <span className="sub">
@@ -1115,19 +1128,8 @@ export function ProjectDashboardScreen({ projectId }: { projectId: string }) {
         </>
       )}
 
-      {lens === 'snags' && (
-        <section className="pace-sec">
-          <div className="pace-sec-head">
-            {model === 'commissioning' && <h2 className="pace-sec-title">Evidence</h2>}
-            <p className="pace-sec-sub">Film the line, mark the frames, pin what you see · play it back in the meeting</p>
-          </div>
-          {/* every line's walk as well as the project's own, so a snag filmed
-              inside a line's pack is not invisible from here */}
-          <PaceSnags projectId={projectId} projectName={project.name} can={can}
-            alsoFrom={ppm.lines.filter(l => l.workspaceId).map(l => ({ wsId: l.workspaceId!, label: l.name }))} />
-        </section>
-      )}
-
+      {/* EVIDENCE — the filmed line — is the project's Tools page since B5 (D9): ?view=snags is passed on
+          there above (ToProjectTools), a stage-gate project's to Install (ToInstallFilmed) */}
       {lens === 'data' && (
         <>
           {/* EVERY LINE'S CHART, over the numbers it is drawn from. The charts

@@ -167,7 +167,7 @@ describe('a project\'s rail: the way up, its overview and its type\'s own pages,
   });
   it('a 6M project: Fishbone first, then Board, Lines and each line, Numbers, Wins, Evidence, Materials', () => {
     const g = projectGroups({ projectId: P, name: 'Pace', model: 'board', here: 'fishbone', counts: { board: { n: 4, late: 1 } }, late: 1, lines: [{ id: 'l1', name: 'Line 7', workspaceId: 'w7', factoryName: 'Line 7' }] });
-    expect(said(g)).toEqual(['Factory', 'Overview', 'Fishbone', 'Board', 'Lines', 'Line 7', 'Numbers', 'Wins', 'Evidence', 'Materials', 'Actions', 'Problems', 'Tools', 'Notes', 'Reports', 'Details']);
+    expect(said(g)).toEqual(['Factory', 'Overview', 'Fishbone', 'Board', 'Lines', 'Line 7', 'Results', 'Materials', 'Actions', 'Problems', 'Tools', 'Notes', 'Reports', 'Details']);
     expect(all(g).find(l => l.label === 'Line 7')?.to).toBe('/lines/w7');
     expect(all(g).find(l => l.key === 'problems')?.to).toBe(`/snags?project=${P}`);
   });

@@ -41,6 +41,7 @@ import { ReportsSheet } from './ReportsSheet';
 import { ControlRoomReports } from './ControlRoomReports';
 import { QuickSnagHost, openQuickSnag, useCanTakeProblem } from '../snag/QuickSnag';
 import { ContextBar } from './ContextBar';
+import { notePlace } from '../lib/recentPlaces';
 import { LineReports } from './ControlRoomReports';
 import { scopeOf, type Scope } from '../lib/scope';
 import { toolByKey } from '../catalogue/registry';
@@ -137,6 +138,13 @@ function ScopeFrame({ scope, project, projects, lines, here, toolName, toolTo, w
   const all = useMemo(() => (project && !projects.some(p => p.id === project.id) ? [...projects, project] : projects), [projects, project]);
   const [page, setPage] = useState<string | undefined>(undefined);
   const bar = (groups: RailGroup[]) => groups.flatMap(g => g.lines).find(l => l.on && l.key !== 'up')?.label;
+  /* WHERE YOU WERE (lib/recentPlaces, B5): a project's or a line's page, noted on this device for Home */
+  const scopeName = scope.kind === 'project' ? project?.name : scope.kind === 'line' ? lines.find(l => l.id === scope.wsId)?.name : undefined;
+  const placePage = toolName ?? page;
+  useEffect(() => {
+    if (reading || !scopeName || (scope.kind !== 'project' && scope.kind !== 'line')) return;
+    notePlace({ to: window.location.hash.slice(1) || '/', scope: scopeName, ...(placePage ? { page: placePage } : {}), kind: scope.kind, at: Date.now() });
+  }, [reading, scopeName, placePage, scope.kind]);
   return (
     <>
       <ContextBar scope={scope} page={page} tool={toolName && toolName !== page ? toolName : undefined} toolTo={toolTo} projects={all} lines={lines} projectId={project?.id} />

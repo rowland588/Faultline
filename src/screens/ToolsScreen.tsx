@@ -48,7 +48,7 @@ export function ToolsScreen() {
     <div className="wrap et">
       {/* THE PAGE HEADER (docs/STRUCTURE.md §5.4, B3) — the library has no paper and no one thing to do: its title
           and what it holds */}
-      <PageHeader title="Every tool" says={<span className="et-lede">
+      <PageHeader title="Tools" says={<span className="et-lede">
         Everything Faultline does, and what it could do, found by the problem in your words. What is built opens; what is not
         says so. {ENTRIES.length} tools in {DISCIPLINES.length} disciplines — {all.available} available, {all.partial} partly built,{' '}
         {all.specified} planned, {all['to-build']} not built yet, {all.research} needing research first, {all['left-out']} left out on purpose.
@@ -119,7 +119,7 @@ export function ToolsScreen() {
       )}
 
       <section aria-label="The tools">
-        <h2 className="ln-h">{words ? `Tools that match — ${found.length}` : status || disc ? `${plural(found.length, 'tool')}` : 'Every tool, by discipline'}</h2>
+        <h2 className="ln-h">{words ? `Tools that match — ${found.length}` : status || disc ? `${plural(found.length, 'tool')}` : 'The tools, by discipline'}</h2>
         {!found.length && <p className="sub">Nothing matches{words ? ` “${words}”` : ''}. Try the problem in other words, or a tool’s number (FC-012).</p>}
         {words || status || disc
           ? <ul className="et-list">{found.map(e => <Row key={e.id} e={e} open={open === e.id} onToggle={() => setOpen(open === e.id ? null : e.id)} onOpen={setOpen} />)}</ul>

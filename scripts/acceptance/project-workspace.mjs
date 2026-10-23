@@ -86,7 +86,7 @@ ok(page.url().endsWith(`#/smed?project=${PID}`), '1 SMED from the project’s To
 ok(await projectRail() && await onProject() === PID, `1 …and the project's rail stays, the top bar on ${NAME}`, (await rail()).slice(0, 200));
 ok(await railLine('Tools').getAttribute('aria-current') === 'page' && /›\s*SMED$/.test(flat(await page.locator('.nv-top .nv-ctx').innerText())), '1 Tools lit on the project’s rail, the bar saying SMED', flat(await page.locator('.nv-top .nv-ctx').innerText()));
 const chips = (await page.locator('.ip-scope .chip').allInnerTexts()).map(flat);
-ok(JSON.stringify(chips) === JSON.stringify([NAME, 'Everything on its lines', 'Every line']) && await page.locator('.ip-scope .chip.on').innerText() === NAME,
+ok(JSON.stringify(chips) === JSON.stringify([NAME, 'Everything on its lines', 'All lines']) && await page.locator('.ip-scope .chip.on').innerText() === NAME,
   `1 whose: ${chips.join(' · ')} — the project's own first`, chips.join(' | '));
 {
   const all = (await studies()).filter(s => s.tool === 'changeover');
@@ -95,7 +95,7 @@ ok(JSON.stringify(chips) === JSON.stringify([NAME, 'Everything on its lines', 'E
   await page.locator('.ip-scope .chip', { hasText: 'Everything on its lines' }).click(); await page.waitForTimeout(500);
   const onLines = all.filter(s => s.projectId === PID || facts.lines.includes(s.workspaceId)).map(s => s.id);
   ok(same(await shownIds(), onLines), `1 everything on its lines, whoever's it is (${onLines.length})`);
-  await page.locator('.ip-scope .chip', { hasText: 'Every line' }).click(); await page.waitForTimeout(500);
+  await page.locator('.ip-scope .chip', { hasText: 'All lines' }).click(); await page.waitForTimeout(500);
   const every = await shownIds();
   ok(every.length >= onLines.length && every.includes(sd.changeoverId) && !own.includes(sd.changeoverId), `1 every line: ${every.length}, another project's SMED among them`);
 }

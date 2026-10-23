@@ -230,7 +230,7 @@ export function StudiesScreen({ tool }: { tool: StudyTool }) {
       {onLine && (
         <div className="chip-row qsl-f" role="group" aria-label="Which line">
           <button type="button" className="chip on" aria-pressed>{onLineName}</button>
-          <button type="button" className="chip" onClick={() => nav(TOOL_HOME[tool] ?? '/capability')}>Every line</button>
+          <button type="button" className="chip" onClick={() => nav(TOOL_HOME[tool] ?? '/capability')}>All lines</button>
         </div>
       )}
       {list && shownGroups.length === 0 && (

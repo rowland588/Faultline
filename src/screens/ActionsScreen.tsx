@@ -87,7 +87,7 @@ function ActionsPage({ read, name }: { read: ProjectActionsRead; name?: string }
           button saying PDF */}
       <PageHeader
         eyebrow={<span className="pl-eyebrow">{every ? 'CONTROL ROOM · EVERY PROJECT AND LINE' : 'ACTIONS · WHO IS DOING WHAT'}</span>}
-        title={every ? 'Every action' : 'Actions'}
+        title="Actions"
         says={<span className="sub">{every ? 'Everything every project owes, and every problem on a line with no project — what, why, where, who and by when. Tap one to change it where it is kept.' : 'Everything the project owes, from wherever it was raised — what, why, where, who and by when. Tap one to change it where it is kept.'}</span>}
         papers={[{ label: 'The action list', for: 'every open action as seen here — for the meeting', disabled: !!printing, make: () => paper() }]}
       />

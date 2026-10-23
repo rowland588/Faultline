@@ -321,7 +321,7 @@ export function QuickSnagsScreen() {
       ...(item.owner?.trim() ? { owner: item.owner.trim() } : {}), ...(item.due ? { dueAt: dueFromInput(item.due) } : {}),
     };
     await addSnag(made);
-    await putTestItem({ ...item, doneAt: t, note: `${item.note ? `${item.note}\n` : ''}Taken to Control room problems — on ${name}`, updatedAt: t });
+    await putTestItem({ ...item, doneAt: t, note: `${item.note ? `${item.note}\n` : ''}Taken to the factory’s Problems — on ${name}`, updatedAt: t });
     setOpened(new Set([made.id])); setFrozen(null);
     offerUndo(`Saved — now a problem on ${name}`, async () => { await deleteSnag(made.id); await putTestItem({ ...item, updatedAt: Date.now() }); });
   };
@@ -411,8 +411,10 @@ export function QuickSnagsScreen() {
           thing to do; the report and the cards in Report ▾, Start fresh in More ▾. */}
       <PageHeader
         /* WHERE YOU ARE, said (Rowland, 13 October: "sometimes I don't know when I'm in the control room problem and when I'm
-           in the actual line problem ... change the name to control room problem, so when I look at the title, I know where I am") */
-        title="Control room problems"
+           in the actual line problem ... change the name to control room problem, so when I look at the title, I know where I am");
+           since B5 (docs/STRUCTURE.md §5.7, D5) the context bar says where — Factory › Problems, Line 7 › Problems — and the title
+           is the one word, Problems */
+        title="Problems"
         says={<span className="qsl-says">{snags ? reading.says : 'Opening…'}</span>}
         primary={{ label: 'Problem', icon: 'camera', run: () => openQuickSnag() }}
         papers={[
@@ -441,7 +443,7 @@ export function QuickSnagsScreen() {
         <div className="qsl-tools">
           {onLines.length > 1 && (
             <select className="text-input qsl-sel" value={lineF} onChange={e => setLineF(e.target.value)} aria-label="Which line">
-              <option value="all">Every line</option>
+              <option value="all">All lines</option>
               {onLines.map(id => <option key={id} value={id}>{lineName(id)}</option>)}
             </select>
           )}

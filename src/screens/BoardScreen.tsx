@@ -182,7 +182,7 @@ export function BoardScreen({ projectId }: { projectId: string }) {
           {areas.length > 1 && (
             <div className="bd6-frow" role="group" aria-label="Line">
               <span className="bd6-fk">Line</span>
-              <button className={'chip is-all' + (only == null ? ' on' : '')} aria-pressed={only == null} onClick={() => setOnly(null)}>Every line</button>
+              <button className={'chip is-all' + (only == null ? ' on' : '')} aria-pressed={only == null} onClick={() => setOnly(null)}>All lines</button>
               {areas.map(a => (
                 <button key={a.id || 'whole'} className={'chip' + (only === a.id ? ' on' : '')} aria-pressed={only === a.id} onClick={() => setOnly(only === a.id ? null : a.id)}>
                   {a.name} <span className="bs-n">{a.total}</span>

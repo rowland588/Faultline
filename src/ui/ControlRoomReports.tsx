@@ -57,11 +57,11 @@ export function ControlRoomReports({ projects, onClose }: {
           onClick={() => void controlRoom()} />
         {said && <p className="sub" role="status">{said}</p>}
         <Door title="Your factory" says="Every line in floor order, with its type, its projects and what is open — one page. Print it from Your factory." onClick={() => go('/factory')} />
-        <Door title="Control room problems" says="Every problem on every line and project, in priority order — the Problems report, and a card for every problem. Print them from the page." onClick={() => go('/snags')} />
+        <Door title="Problems" says="Every problem on every line and project, in priority order — the Problems report, and a card for every problem. Print them from the page." onClick={() => go('/snags')} />
         <Door title="Programs" says="Every line's programs, machine by machine, planned and proved — the programs report, from the page." onClick={() => go('/programs')} />
-        <Door title="Line capacity" says="Every product's capacity, a page each, with a front saying them all — PDF (all shown) on the list." onClick={() => go('/balances')} />
-        <Door title="Line standard" says="For the floor — a line standard card for every product — PDF (all shown) on the list." onClick={() => go('/standards')} />
-        <Door title="The studies" says="Capability, value stream, SMED, work sampling and loss counts — each study on paper, and PDF (all shown) on each tool's list." onClick={() => go('/capability')} />
+        <Door title="Line capacity" says="Every product's capacity, a page each, with a front saying them all — Report ▾ on the list." onClick={() => go('/balances')} />
+        <Door title="Line standard" says="For the floor — a line standard card for every product — Report ▾ on the list." onClick={() => go('/standards')} />
+        <Door title="The studies" says="Capability, value stream, SMED, work sampling and loss counts — each on paper, and every one shown from Report ▾ on each tool's list." onClick={() => go('/capability')} />
 
         {/* EACH LINE OF THE FACTORY, in floor order: its problems on its page,
             its week on one page, its evidence cards */}

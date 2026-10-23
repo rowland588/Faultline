@@ -11,7 +11,8 @@
  *   Control room
  *   the job                       (on, on its front page)
  *   Gates     Install · Set up · Commission · Hand over     — a stage-gate job
- *   Method    Fishbone · Board · Lines · Numbers · Wins · Evidence — a 6M job
+ *   Method    Fishbone · Board · Lines · Results — a 6M job (B5, D9: Numbers and Wins one page,
+ *             Results; Evidence is the project's Tools, with the filmed line on it)
  *             Tree · Board · Lines · …                      — a lever tree job
  *   Work      Fixes · Materials · The plan · The day
  *   Lines     each line, by the factory's name, opening the factory's line
@@ -346,9 +347,9 @@ export function projectGroups(o: {
       counted('board', 'Board', `${p}/board`, o.here, o.counts, ['board'], 'board'),
       plain('lines', 'Lines', `${p}?view=lines`, o.here, 'chart'),
       ...linesGroup(o.projectId, o.lines ?? [], o.here, o.wsId).lines.map(l => ({ ...l, sub: true })),
-      plain('data', 'Numbers', `${p}?view=data`, o.here, 'chart'),
-      plain('wins', 'Wins', `${p}?view=wins`, o.here, 'chart'),
-      plain('snags', 'Evidence', `${p}?view=snags`, o.here, 'chart'),
+      /* RESULTS (docs/STRUCTURE.md D9, B5): the readings against target and what worked, one page with
+         two views — Numbers and Wins were two lines; Evidence is the project's Tools, below */
+      { ...plain('results', 'Results', `${p}?view=data`, o.here, 'chart'), on: o.here === 'data' || o.here === 'wins' },
       ...(t.pareto ? [plain('pareto', 'Pareto', `${p}/pareto`, o.here, 'chart')] : []),
       counted('materials', 'Materials', `${p}/materials`, o.here, o.counts, ['materials'], 'list'),
     ];

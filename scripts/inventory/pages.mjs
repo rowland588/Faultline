@@ -249,7 +249,7 @@ export const PAGES = (sd, cap) => [
     { what: 'a state in each of the five colours, with its word', sel: '.parts p .part-tag', n: 5 },
     { what: 'the app\'s eleven tools, from the catalogue', sel: '.parts .part-row', n: 14 },
   ] },
-  { name: 'Every tool — the directory', path: '#/tools', must: [
+  { name: 'Tools — the library', path: '#/tools', must: [
     { what: 'the problem, asked first', sel: '.et-search input' },
     { what: 'the counts that are the filters — six statuses and All', sel: '.et-status .chip', n: 7 },
     { what: 'start from the problem — every route', sel: '.et-route-b', n: 20 },
@@ -258,10 +258,18 @@ export const PAGES = (sd, cap) => [
     { what: 'use one now — every tool a person can open', sel: '.et-now .lt-row', n: 11 },
   ] },
   /* A PROJECT'S TOOLS (23 October, docs/STRUCTURE.md §5.1, B2): the eleven tools left the foot of the project's rail for one page — each tool, how often it is used here, its latest; New on its row */
+  /* RESULTS (docs/STRUCTURE.md D9, B5): Numbers and Wins one page, two views */
+  { name: 'Results — a 6M project', path: `#/project/${sd.pacedProjectId}?view=data`, must: [
+    { what: 'its heading', sel: '.pace-head h1', text: /^Results$/ },
+    { what: 'its two views, Numbers and Wins', sel: '.pace-head .part-views .part-view', n: 2 },
+    { what: 'Numbers shown, lit', sel: '.pace-head .part-view.on', text: /^Numbers$/ },
+  ] },
   { name: 'Tools — a 6M project', path: `#/project/${sd.pacedProjectId}/tools`, must: [
     { what: 'its heading', sel: '.ptools h1', text: /^Tools$/ },
     { what: 'every tool, how often it is used here', sel: '.ptools .lt-row', n: 11 },
     { what: 'New on a tool’s row', sel: '.ptools .lt-li .btn', n: 10 },
+    /* the project's Evidence since B5 (docs/STRUCTURE.md D9) */
+    { what: 'the line, filmed — the project’s evidence', sel: '.ptools .ptools-film h2', text: /^The line, filmed$/ },
     { what: 'the project’s rail, Tools lit', sel: '.nv-rail .nv-ri.is-on', text: /Tools/, desk: true }] },
   /* A LINE'S TOOLS — the line's own page narrowed to its tools, with New ▾ (B2) */
   { name: 'A line — its tools', path: `#/lines/${sd.line7WsId}?view=tools`, must: [
@@ -274,7 +282,7 @@ export const PAGES = (sd, cap) => [
     { what: 'the study’s four views, on a phone', sel: '.study-views [role=tab]', n: 4, phone: true },
     /* the seeded study is a stage-gate project's own walk: its four views under the project's own pages */
     { what: 'its four views on the rail', sel: '.nv-rail .nv-ri.is-sub', text: /^(Capture|Analyse|Evidence|Meeting)$/, n: 4, desk: true }] },
-  { name: 'Every action — the control room', path: '#/actions', must: [
+  { name: 'Actions — the factory', path: '#/actions', must: [
     { what: 'the six tiles', sel: '.act-tiles .ln-tile', n: 6 }, { what: 'seen by who, when, where or project', sel: '[aria-label="Seen by"] .chip', n: 4 },
     { what: 'every project’s actions and every line’s own problems', sel: '.act-li' }, { what: 'the closing line', sel: '.ln-close' }] },
   { name: 'SMED inside a project', path: `#/smed?project=${sd.pacedProjectId}`, must: [
@@ -319,13 +327,19 @@ export const PAGES = (sd, cap) => [
      method builder, deleted on 20 October. */
   { name: 'The front door', path: '#/', must: [
     { what: 'the question, first', sel: '.fd-ask h1', text: /^What do you need to get done\?$/ },
-    { what: 'what is under way — every project in a line', sel: '.fd-jobs li[data-project]' },
+    { what: 'what is under way — each project by name, its state in a word', sel: '.fd-jobs li[data-project]' },
     { what: 'the three kinds of project — the lever tree among them', sel: '.fd-lib .fw-card[data-start^="e:"]', n: 3 },
     { what: 'the tools to use on their own — Line Talk and Reliability among them', sel: '.fd-tools li[data-tool]', n: 11 },
     { what: 'Line Talk, near the top — start one, or carry on the latest', sel: '.fd-talk .fd-talk-start', text: /^Start a Line Talk$/ },
     { what: 'carry on the latest Line Talk', sel: '.fd-talk .fd-talk-on', text: /^Carry on: / },
     /* the context bar names Home (docs/STRUCTURE.md B2, 23 October: Home is the mark and the switcher's first, above the scopes) */
     { what: 'the context bar says Home', sel: '.nv-ctx .nv-job-l', text: /^Home$/ },
+  ] },
+  /* PROJECTS LISTS THE PROJECTS (docs/STRUCTURE.md §5.6, B5) — the kinds as counts, a row a project */
+  { name: 'Projects', path: '#/projects', must: [
+    { what: 'the kinds as chips that are the counts — All first', sel: '.proj-list .part-filters .chip', text: /^\d+All$/ },
+    { what: 'a row a project — its kind and who leads it, its lines and its handover', sel: '.proj-list li.part-row', n: 3 },
+    { what: 'All lines, to narrow it to one', sel: '.proj-list select.proj-line-f' },
   ] },
   /* NEW JOB: the three kinds of project, chosen from the situation (the words box and the library went with the method builder, 20 October) */
   { name: 'New project', path: '#/projects?new=1', must: [

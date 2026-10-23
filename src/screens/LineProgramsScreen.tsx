@@ -126,7 +126,7 @@ export function LineProgramsScreen() {
         <>
           {rec.lines.length > 1 && (
             <div className="chip-row lp-lines" role="group" aria-label="Which line">
-              <button type="button" className={'chip' + (lineF === 'all' ? ' on' : '')} aria-pressed={lineF === 'all'} onClick={() => setLineF('all')}>Every line</button>
+              <button type="button" className={'chip' + (lineF === 'all' ? ' on' : '')} aria-pressed={lineF === 'all'} onClick={() => setLineF('all')}>All lines</button>
               {rec.lines.map(w => (
                 <button key={w.id} type="button" className={'chip' + (lineF === w.id ? ' on' : '')} aria-pressed={lineF === w.id} onClick={() => setLineF(w.id)}>
                   {w.name}{counts.get(w.id) ? <span className="lp-n"> {counts.get(w.id)}</span> : null}

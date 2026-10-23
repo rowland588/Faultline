@@ -143,6 +143,18 @@ link buttons. A new page or tool takes these parts, and its acceptance
 script presses by name through `scripts/lib/pageHeader.mjs` (the page's own
 button, else the menu), so a control moving into a menu never breaks it.
 
+**Since B5 each place has one job and each thing one word** (§5.6, §5.7).
+Home is yours — *Carry on where you were* (`lib/recentPlaces`, noted by the
+frame on this device only, never synced), what is under way by name, start
+a project, a tool; the control room is the factory's; Projects lists the
+projects (by kind and line, the archive behind its chip). The words: a page
+is *Problems*, *Actions*, *Tools* — the context bar says whose — never
+*Control room problems*, *Every action* or *Every tool*; the filter is *All
+lines*; the smoke test fails on the old names as a title, door, button or
+chip. A 6M or lever-tree project's Numbers and Wins are one page, *Results*,
+with two views, and its Evidence — the filmed line — is on its *Tools* page
+(D9; `?view=snags` lands there, a stage gate's on Install).
+
 ## The blueprint comes first
 
 **`docs/BLUEPRINT.md` is the one map of the app** — agreed with Rowland, 13
@@ -329,7 +341,7 @@ Run all of it before merging. It is what CI runs, plus the two things CI cannot:
 
 ```
 npx tsc --noEmit
-npx eslint src --max-warnings 65      # a ratchet, not a target — see below
+npx eslint src --max-warnings 64      # a ratchet, not a target — see below
 npx vitest run
 npx vite build
 node scripts/smoke.mjs                # needs a dev server on 5191, or SMOKE_BASE

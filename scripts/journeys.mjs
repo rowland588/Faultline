@@ -252,7 +252,8 @@ await run('J6 lever tree: what is off track', 1360, async (D, J) => {
   await nav(D, J, 'Tree'); await orient(D, J, 'Line 2B to 60 ppm');
   const off = (await D.page.locator('main').innerText()).replace(/\s+/g, ' ');
   J.steps.push(/Behind target/.test(off) && /Replace the worn sealing jaw/.test(off) && /Engineering/.test(off) ? '[read on the tree: the condition behind target, its action, Engineering owes it, late]' : '[NOT all read on the tree]');
-  await nav(D, J, 'Numbers'); await orient(D, J, 'Line 2B to 60 ppm');
+  /* Results since B5 (D9): Numbers and Wins one page, Numbers its first view */
+  await nav(D, J, 'Results'); await orient(D, J, 'Line 2B to 60 ppm');
   await press(D, J, 'Record a reading', btn(D, 'Record a reading'));
   const form = D.page.locator('main').locator('form, div, section').filter({ has: D.page.getByRole('button', { name: 'Add reading' }) }).last();
   await type(D, J, 'On (the day)', form.locator('input[type=date]').first(), '2026-10-15');

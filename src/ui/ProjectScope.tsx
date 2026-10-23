@@ -10,7 +10,7 @@ export function ProjectScopeChips({ name, lines, scope, onScope }: { name?: stri
     <div className="chip-row qsl-f ip-scope" role="group" aria-label="Whose">
       {chip('project', name ?? 'This project')}
       {lines > 0 && chip('lines', lines === 1 ? 'Everything on its line' : 'Everything on its lines')}
-      {chip('all', 'Every line')}
+      {chip('all', 'All lines')}
     </div>
   );
 }

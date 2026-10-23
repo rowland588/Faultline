@@ -196,13 +196,13 @@ export function LineToolsScreen({ tool }: { tool: LineTool }) {
           <p><b>None on {groupName(lineF)} yet.</b> Pick a product — one per product, on the line.</p>
           <div className="chip-row">
             <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>{w.add}</button>
-            <button type="button" className="btn btn-ghost" onClick={() => setLineF('all')}>Every line</button>
+            <button type="button" className="btn btn-ghost" onClick={() => setLineF('all')}>All lines</button>
           </div>
         </div>
       )}
       {(groups.length > 1 || (lineF !== 'all' && groups.length > 0)) && (
         <div className="chip-row qsl-f" role="group" aria-label="Which line">
-          <button type="button" className={'chip' + (lineF === 'all' ? ' on' : '')} aria-pressed={lineF === 'all'} onClick={() => setLineF('all')}>Every line</button>
+          <button type="button" className={'chip' + (lineF === 'all' ? ' on' : '')} aria-pressed={lineF === 'all'} onClick={() => setLineF('all')}>All lines</button>
           {groups.map(([k]) => (
             <button key={k} type="button" className={'chip' + (lineF === k ? ' on' : '')} aria-pressed={lineF === k} onClick={() => setLineF(k)}>{groupName(k)}</button>
           ))}

@@ -148,7 +148,8 @@ const openCount = c => c.critical + c.high + c.low;
 await go('#/snags');
 {
   const t = await truth();
-  ok((await words('h1')) === 'Control room problems' && /^Write any problem/.test(await words('.qsl-path')) && /Control room problems/.test(await page.locator('.nv').innerText()), '1 one page, Control room problems — named so on the page and the rail, so it is never mistaken for a line\'s or a project\'s');
+  /* named Problems with the context bar saying whose (docs/STRUCTURE.md §5.7, B5) — Factory › Problems, never a line's or a project's */
+  ok((await words('h1')) === 'Problems' && /^Write any problem/.test(await words('.qsl-path')) && /^Factory\s*›\s*Problems$/.test((await page.locator('.nv-top .nv-ctx').innerText()).replace(/\s+/g, ' ').trim()), '1 one page, Problems — the context bar saying Factory › Problems, so it is never mistaken for a line\'s or a project\'s', (await page.locator('.nv-top .nv-ctx').innerText()).replace(/\s+/g, ' ').trim());
   ok((await words('.qsl-says')) === t.says, `1 the sentence is the module's: ${t.says}`);
   const chips = (await page.locator('.qsl-f .chip').allInnerTexts()).map(x => x.replace(/\s+/g, ' ').trim());
   ok(chips.join('|') === `Open · ${openCount(t.counts)}|Critical · ${t.counts.critical}|High · ${t.counts.high}|Low · ${t.counts.low}|Late · ${t.counts.late + t.counts.jobLate}|Done · ${t.counts.closed + t.counts.jobDone}`, `1 the counts — the projects' own problems among them: ${chips.join(' · ')}`);

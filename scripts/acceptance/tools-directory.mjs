@@ -3,7 +3,7 @@
  * Rowland, 22 October: "a directory ... searchable by problem, discipline,
  * method and scenario ... reflecting real status". Driven in a real browser:
  *
- *   1  from the front door, Every tool; the lede's counts as the catalogue says
+ *   1  from the front door, Tools (the library — "Every tool" before B5); the lede's counts as the catalogue says
  *   2  the counts are the filters: each status's chip its count, and tapped,
  *      exactly those tools, each saying its status in words
  *   3  the problem in the floor's words — "we're rejecting too many": where to
@@ -61,10 +61,10 @@ await page.evaluate(async () => (await import('/src/dev/seed.ts')).seedForSmokeT
 
 /* ---- 1 · from the front door ---- */
 await page.goto(`${BASE}/#/`); await page.waitForTimeout(2200);
-await page.getByRole('button', { name: /^Every tool — find one by the problem/ }).click(); await page.waitForTimeout(1500);
+await page.getByRole('button', { name: /^Tools — find one by the problem/ }).click(); await page.waitForTimeout(1500);
 const c = await cat('counts');
 const lede = flat(await page.locator('.et-lede').innerText());
-ok(page.url().endsWith('#/tools') && (await page.locator('h1').innerText()) === 'Every tool', `1 the front door opens Every tool (${page.url().split('#')[1]})`);
+ok(page.url().endsWith('#/tools') && (await page.locator('h1').innerText()) === 'Tools', `1 the front door opens Tools, the library (${page.url().split('#')[1]})`);
 ok(lede.includes(`${c.total} tools in ${c.disciplines} disciplines — ${c.s.available} available, ${c.s.partial} partly built, ${c.s.specified} planned, ${c.s['to-build']} not built yet, ${c.s.research} needing research first, ${c.s['left-out']} left out on purpose`),
   `1 the lede as the catalogue counts it: "${lede.slice(lede.indexOf(String(c.total)), lede.indexOf(String(c.total)) + 150)}…"`);
 ok((await page.locator('.et-route-b').count()) >= 20 && (await rows()).length === c.total, `1 every route to start from, and every tool by discipline (${(await rows()).length})`);

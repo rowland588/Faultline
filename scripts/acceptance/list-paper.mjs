@@ -116,7 +116,7 @@ const sd = await page.evaluate(async () => (await import('/src/dev/seed.ts')).se
 {
   await go('#/standards');
   /* every line — the list keeps the line picked on Line capacity */
-  if (await page.locator('.qsl-f .chip', { hasText: /^Every line$/ }).count()) { await page.locator('.qsl-f .chip', { hasText: /^Every line$/ }).click(); await page.waitForTimeout(500); }
+  if (await page.locator('.qsl-f .chip', { hasText: /^All lines$/ }).count()) { await page.locator('.qsl-f .chip', { hasText: /^All lines$/ }).click(); await page.waitForTimeout(500); }
   const shown = await page.locator('.lt-rows .lt-li').count();
   const p = await paper(await find(page, 'Report', /every product shown/), 'standards-all.pdf');
   ok(shown >= 2 && p.pages === shown, `3 Line standard, a card a page for every product shown (${p.pages} of ${shown})`);

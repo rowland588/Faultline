@@ -328,7 +328,7 @@ export const OPERATIONS: Entry[] = [
     questions: ['Who owes what by when?', 'What is late?'],
     method: 'Every action with owner, why, where, due and priority, read in one place.',
     inputs: 'Actions raised by the tools and people.',
-    outputs: 'A project’s Actions and Every action; by who, when, where; paper.',
+    outputs: 'A project’s Actions and the factory’s Actions; by who, when, where; paper.',
     food: 'The weekly improvement meeting.',
     depends: ['FC-154', 'FC-195'],
     complexity: 'M', value: 'high', valueWhy: 'The actions inside every project — who does what, by when.',
