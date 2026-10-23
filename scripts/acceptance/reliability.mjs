@@ -99,8 +99,10 @@ const countBtn = name => page.locator('.rl-buttons').getByRole('button', { name:
 
 /* ---- 1 the rail, the list ---- */
 await go('#/reliability');
-const railOn = await page.locator('.nv-rail a.is-on, .nv-rail [aria-current="page"]').allInnerTexts().catch(() => []);
-ok(railOn.some(t => /Reliability/.test(t)), '1 Reliability on the rail’s tools, lit on its list', railOn.join(' | '));
+/* since B2 the factory's rail says Tools, lit on a tool's list, and the context bar names the tool */
+const railOn = await page.locator('.nv-rail [aria-current="page"]').allInnerTexts().catch(() => []);
+const ctxSays = (await page.locator('.nv-top .nv-ctx').innerText()).replace(/\s+/g, ' ').trim();
+ok(railOn.some(t => /^Tools$/.test(t.trim())) && /Tools › Reliability$/.test(ctxSays), '1 Tools lit on the rail on its list, the bar saying Reliability', `${railOn.join(' | ')} — ${ctxSays}`);
 ok(/^Reliability$/.test(flat(await page.locator('h1').first().innerText())), '1 the list’s name');
 {
   const t = await truth(sd.reliabilityId);

@@ -383,7 +383,8 @@ let TRAY;
   ok(crumb.startsWith('Line capacity') && await page.getByRole('button', { name: /Its line standard|The map for this product/ }).count() === 0, `10 back to Line capacity (${crumb}); no line standard when it has none`);
   const lit = await page.locator('.nv-ri.is-on').allInnerTexts();
   const gates = await page.locator('.nv').getByText('GATES', { exact: true }).count();
-  ok(lit.map(flat).join('|') === 'Line capacity' && gates === 0, `10b on no job: the rail lights Line capacity (${lit.map(flat).join('|')}) and wears no job's gates (${gates})`);
+  /* on no job a product's Line capacity is the line's: the line's rail lights Products (docs/STRUCTURE.md B2 — a line's standards are its products) */
+  ok(lit.map(flat).join('|') === 'Products' && gates === 0, `10b on no job: the line's rail lights Products (${lit.map(flat).join('|')}) and wears no job's gates (${gates})`);
   await go(CAP);
   ok(await page.getByRole('button', { name: 'Its line standard ›' }).count() === 1, '10c a product mapped too: its line standard one tap away');
 }

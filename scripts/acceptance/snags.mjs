@@ -547,7 +547,7 @@ await go('#/snags');
   /* the bar, too: a ticked problem put on a line, and the ticks cleared */
   await row(what).locator('.qsl-tick input').check(); await page.waitForTimeout(300);
   const barOpts = await page.locator('.qsl-bar-line option').allInnerTexts();
-  ok(!(await page.locator('.qs-fab').isVisible().catch(() => false)) && !barOpts.includes(away) && barOpts.includes('Line 2C'), '12 ticked: the bar puts it on a line in use, the camera button aside');
+  ok(await page.locator('.qsl-bar').isVisible() && !barOpts.includes(away) && barOpts.includes('Line 2C'), '12 ticked: the bar puts it on a line in use');
   await page.locator('.qsl-bar-line').selectOption({ label: 'Line 2C' }); await page.waitForTimeout(1200);
   ok((await page.locator('.qsl-bar').count()) === 0 && /Saved — 1 now on Line 2C/.test(await page.locator('body').innerText()), '12 put on a line from the bar: saved, said so, the ticks cleared');
   await row(what).locator('.qsl-open').click(); await page.waitForTimeout(600);

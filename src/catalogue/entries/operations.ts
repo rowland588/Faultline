@@ -14,7 +14,7 @@ export const OPERATIONS: Entry[] = [
     food: 'Every food site; reviewed for a new line.',
     depends: ['FC-169', 'FC-082', 'FC-132'],
     complexity: 'L', value: 'low', valueWhy: 'Sites already keep HACCP in their quality system; Faultline’s part is the improvement loop, not the record of truth.',
-    status: 'to-build', form: 'tool', methods: ['foodsafety.haccp'], scenarios: ['safety'], words: ['HACCP', 'hazard'],
+    status: 'to-build', form: 'tool', kind: 'standard', methods: ['foodsafety.haccp'], scenarios: ['safety'], words: ['HACCP', 'hazard'],
   },
   {
     id: 'FC-169', name: 'CCP monitoring against its critical limit — and how close it runs', discipline: 'foodsafety', sub: 'haccp',
@@ -38,7 +38,7 @@ export const OPERATIONS: Entry[] = [
     food: 'Every metal detector and X-ray unit.',
     depends: ['FC-100', 'FC-135'],
     complexity: 'S', value: 'high', valueWhy: 'A CCP on most lines.',
-    status: 'to-build', form: 'tool', methods: ['foodsafety.metal-detection-verification'], scenarios: ['safety'], words: ['metal detector', 'test pieces', 'x-ray'],
+    status: 'to-build', form: 'tool', kind: 'log', methods: ['foodsafety.metal-detection-verification'], scenarios: ['safety'], words: ['metal detector', 'test pieces', 'x-ray'],
   },
   {
     id: 'FC-171', name: 'Allergen changeover validation', discipline: 'foodsafety', sub: 'allergen',
@@ -50,7 +50,7 @@ export const OPERATIONS: Entry[] = [
     food: 'Nut, sesame, milk and gluten changeovers.',
     depends: ['FC-072', 'FC-070', 'FC-172'],
     complexity: 'M', value: 'high', valueWhy: 'Safety and a large changeover loss together.',
-    status: 'to-build', form: 'tool', methods: ['foodsafety.allergen-changeover'], scenarios: ['safety', 'changeover'], words: ['allergen'],
+    status: 'to-build', form: 'tool', kind: 'log', methods: ['foodsafety.allergen-changeover'], scenarios: ['safety', 'changeover'], words: ['allergen'],
   },
   {
     id: 'FC-172', name: 'Cleaning verification — ATP and swabs', discipline: 'foodsafety', sub: 'hygiene',
@@ -62,7 +62,7 @@ export const OPERATIONS: Entry[] = [
     food: 'Slicers, conveyors, depositors.',
     depends: ['FC-171', 'FC-173'],
     complexity: 'S', value: 'medium', valueWhy: 'Evidence for hygiene.',
-    status: 'to-build', form: 'tool', methods: ['foodsafety.cleaning-verification-atp'], scenarios: ['safety'], words: ['ATP', 'swab'],
+    status: 'to-build', form: 'tool', kind: 'log', methods: ['foodsafety.cleaning-verification-atp'], scenarios: ['safety'], words: ['ATP', 'swab'],
   },
   {
     id: 'FC-173', name: 'Environmental monitoring — Listeria zones and trends', discipline: 'foodsafety', sub: 'hygiene',
@@ -74,7 +74,7 @@ export const OPERATIONS: Entry[] = [
     food: 'Ready-to-eat sandwiches, salads, cooked meats.',
     depends: ['FC-172', 'FC-146'],
     complexity: 'M', value: 'medium', valueWhy: 'Finds harbourage sites.',
-    status: 'to-build', form: 'tool', methods: ['foodsafety.environmental-monitoring'], scenarios: ['safety'], words: ['Listeria', 'environmental monitoring'],
+    status: 'to-build', form: 'tool', kind: 'log', methods: ['foodsafety.environmental-monitoring'], scenarios: ['safety'], words: ['Listeria', 'environmental monitoring'],
   },
   {
     id: 'FC-174', name: 'Traceability exercise, timed', discipline: 'foodsafety', sub: 'trace',
@@ -86,7 +86,7 @@ export const OPERATIONS: Entry[] = [
     food: 'The annual traceability test.',
     depends: ['FC-159'],
     complexity: 'S', value: 'medium', valueWhy: 'Audit evidence.',
-    status: 'to-build', form: 'tool', methods: ['foodsafety.traceability-exercise'], scenarios: ['safety'], words: ['traceability', 'recall'],
+    status: 'to-build', form: 'tool', kind: 'study', methods: ['foodsafety.traceability-exercise'], scenarios: ['safety'], words: ['traceability', 'recall'],
   },
   {
     id: 'FC-175', name: 'Shelf-life studies', discipline: 'foodsafety', sub: 'life',
@@ -110,7 +110,7 @@ export const OPERATIONS: Entry[] = [
     food: 'Cooked meats, sauces and rice in blast chillers.',
     depends: ['FC-169', 'FC-095'],
     complexity: 'M', value: 'medium', valueWhy: 'A food-safety control often only ticked.',
-    status: 'to-build', form: 'tool', methods: ['foodsafety.cooling-curves'], scenarios: ['safety'], words: ['blast chiller', 'cooling'],
+    status: 'to-build', form: 'tool', kind: 'study', methods: ['foodsafety.cooling-curves'], scenarios: ['safety'], words: ['blast chiller', 'cooling'],
   },
   {
     id: 'FC-177', name: 'Scored audits — GMP, hygiene, layered process audits', discipline: 'foodsafety', sub: 'audit',
@@ -122,7 +122,7 @@ export const OPERATIONS: Entry[] = [
     food: 'Daily GMP walks; weekly hygiene audits.',
     depends: ['FC-013', 'FC-154'],
     complexity: 'M', value: 'medium', valueWhy: 'Turns audits into actions.',
-    status: 'to-build', form: 'tool', methods: ['foodsafety.audits'], scenarios: ['safety', 'daily'], words: ['GMP', 'audit', 'LPA'],
+    status: 'to-build', form: 'tool', kind: 'log', methods: ['foodsafety.audits'], scenarios: ['safety', 'daily'], words: ['GMP', 'audit', 'LPA'],
   },
   {
     id: 'FC-178', name: 'Hygienic design review of new equipment', discipline: 'foodsafety', sub: 'hygiene',
@@ -146,7 +146,7 @@ export const OPERATIONS: Entry[] = [
     food: 'Daily retailer orders and promotions.',
     depends: ['FC-040', 'FC-070', 'FC-180'],
     complexity: 'L', value: 'medium', valueWhy: 'Most sites already plan in an ERP or spreadsheet.',
-    status: 'to-build', form: 'tool', methods: ['planning.scheduling-rules'], scenarios: ['planning'], words: ['schedule', 'plan'],
+    status: 'to-build', form: 'tool', kind: 'standard', methods: ['planning.scheduling-rules'], scenarios: ['planning'], words: ['schedule', 'plan'],
   },
   {
     id: 'FC-180', name: 'Scheduling rules — due date, shortest first, Johnson’s rule', discipline: 'planning', sub: 'schedule',
@@ -206,7 +206,7 @@ export const OPERATIONS: Entry[] = [
     food: 'Seasonal peaks with agency labour.',
     depends: ['FC-031', 'FC-222'],
     complexity: 'S', value: 'medium', valueWhy: 'Crewing in numbers, with skills.',
-    status: 'to-build', form: 'tool', methods: ['planning.crew-planning'], scenarios: ['people', 'planning'], words: ['staffing', 'headcount', 'agency'],
+    status: 'to-build', form: 'tool', kind: 'standard', methods: ['planning.crew-planning'], scenarios: ['people', 'planning'], words: ['staffing', 'headcount', 'agency'],
   },
   {
     id: 'FC-185', name: 'Plan attainment — made against planned', discipline: 'planning', sub: 'plan',
@@ -332,7 +332,7 @@ export const OPERATIONS: Entry[] = [
     food: 'The weekly improvement meeting.',
     depends: ['FC-154', 'FC-195'],
     complexity: 'M', value: 'high', valueWhy: 'The actions inside every project — who does what, by when.',
-    status: 'available', form: 'tool', methods: ['visual.action-tracking'], scenarios: ['daily', 'project'], words: ['action plan', 'tracker', 'to do'],
+    status: 'available', form: 'tool', kind: 'register', methods: ['visual.action-tracking'], scenarios: ['daily', 'project'], words: ['action plan', 'tracker', 'to do'],
     built: { where: ['/actions'], code: ['src/lib/projectActions.ts'], tests: ['src/lib/__tests__/projectActions.test.ts'], acceptance: ['actions.mjs'] },
   },
   {
@@ -358,7 +358,7 @@ export const OPERATIONS: Entry[] = [
     food: 'Packing lines with hourly targets.',
     depends: ['FC-185', 'FC-198', 'FC-051'],
     complexity: 'M', value: 'high', valueWhy: 'Daily management’s most basic board.',
-    status: 'to-build', form: 'tool', methods: ['visual.daily-management'], scenarios: ['daily'], words: ['production board', 'hourly'],
+    status: 'to-build', form: 'tool', kind: 'log', methods: ['visual.daily-management'], scenarios: ['daily'], words: ['production board', 'hourly'],
   },
   {
     id: 'FC-197', name: 'SQDC daily board', discipline: 'visual', sub: 'daily',
@@ -410,7 +410,7 @@ export const OPERATIONS: Entry[] = [
     food: 'Team leaders’ hourly checks; managers’ daily walk.',
     depends: ['FC-199', 'FC-198'],
     complexity: 'S', value: 'low', valueWhy: 'Keeps daily management alive.',
-    status: 'to-build', form: 'tool', methods: ['visual.daily-management'], scenarios: ['daily'],
+    status: 'to-build', form: 'tool', kind: 'standard', methods: ['visual.daily-management'], scenarios: ['daily'],
   },
   {
     id: 'FC-201', name: 'The team’s own weekly number, proved', discipline: 'visual', sub: 'kpi',
@@ -436,7 +436,8 @@ export const OPERATIONS: Entry[] = [
     food: 'Shift handovers, OEM punch lists, one-point lessons.',
     depends: ['FC-203', 'FC-224'],
     complexity: 'XL', value: 'high', valueWhy: 'The only AI tool, by decision.',
-    status: 'available', form: 'tool', methods: ['visual.line-talk'], scenarios: ['daily'], words: ['voice', 'talk', 'report', 'AI'],
+    status: 'available', form: 'tool', kind: 'document',
+    app: { key: 'talk', label: 'Line Talk', says: 'Talk or type on the line — your words come up as you speak — add photos, ask questions and ask for reports', onLine: 'talk or type on the line, as in a chat — it answers and writes the reports', reads: 'talk', icon: 'mic', order: 11 }, methods: ['visual.line-talk'], scenarios: ['daily'], words: ['voice', 'talk', 'report', 'AI'],
     built: { where: ['/talk'], code: ['src/screens/TalkScreen.tsx', 'src/lib/talk.ts'], tests: ['src/lib/__tests__/talk.test.ts', 'src/lib/__tests__/talkAssist.test.ts'], acceptance: ['line-talk.mjs', 'line-talk-assistant.mjs'] },
     limits: ['Never works out a figure, saves a record or passes a gate — by design.', 'Hearing in floor noise not yet tested on a real phone.'],
   },
@@ -501,7 +502,7 @@ export const OPERATIONS: Entry[] = [
     food: 'Hand palletising; loading ingredient sacks.',
     depends: ['FC-208'],
     complexity: 'M', value: 'medium', valueWhy: 'Arithmetic built and proved; nobody can reach it.',
-    status: 'partial', form: 'tool', methods: ['ergonomics.niosh-lifting'], scenarios: ['people'], words: ['manual handling', 'lifting', 'ergonomics'],
+    status: 'partial', form: 'tool', kind: 'study', methods: ['ergonomics.niosh-lifting'], scenarios: ['people'], words: ['manual handling', 'lifting', 'ergonomics'],
     built: { where: [], code: ['src/lib/ie/ergo.ts'], tests: ['src/lib/ie/__tests__/ergo.test.ts'], acceptance: [] },
     limits: ['Arithmetic only — on no screen.'],
   },
@@ -515,7 +516,7 @@ export const OPERATIONS: Entry[] = [
     food: 'Case packing, palletising, tote handling.',
     depends: ['FC-207', 'FC-209'],
     complexity: 'M', value: 'medium', valueWhy: 'The UK’s usual screen.',
-    status: 'to-build', form: 'tool', methods: ['ergonomics.hse-mac-art'], scenarios: ['people'], words: ['MAC'],
+    status: 'to-build', form: 'tool', kind: 'study', methods: ['ergonomics.hse-mac-art'], scenarios: ['people'], words: ['MAC'],
   },
   {
     id: 'FC-209', name: 'HSE ART — repetitive upper-limb tasks', discipline: 'ergonomics', sub: 'posture',
@@ -527,7 +528,7 @@ export const OPERATIONS: Entry[] = [
     food: 'Topping, garnishing, tray loading.',
     depends: ['FC-208', 'FC-210'],
     complexity: 'M', value: 'medium', valueWhy: 'Packing lines are repetitive.',
-    status: 'to-build', form: 'tool', methods: ['ergonomics.hse-mac-art'], scenarios: ['people'], words: ['ART', 'repetitive strain'],
+    status: 'to-build', form: 'tool', kind: 'study', methods: ['ergonomics.hse-mac-art'], scenarios: ['people'], words: ['ART', 'repetitive strain'],
   },
   {
     id: 'FC-210', name: 'RULA and REBA — posture scores', discipline: 'ergonomics', sub: 'posture',
@@ -539,7 +540,7 @@ export const OPERATIONS: Entry[] = [
     food: 'Reaching into deep totes; low benches.',
     depends: ['FC-209'],
     complexity: 'M', value: 'low', valueWhy: 'A second opinion beside the HSE tools.',
-    status: 'to-build', form: 'tool', methods: ['ergonomics.rula-reba'], scenarios: ['people'],
+    status: 'to-build', form: 'tool', kind: 'study', methods: ['ergonomics.rula-reba'], scenarios: ['people'],
   },
   {
     id: 'FC-211', name: 'Pushing and pulling — trolleys and pallet trucks', discipline: 'ergonomics', sub: 'handling',
@@ -551,7 +552,7 @@ export const OPERATIONS: Entry[] = [
     food: 'Rack trolleys in bakeries.',
     depends: ['FC-208'],
     complexity: 'S', value: 'low', valueWhy: 'Specific.',
-    status: 'to-build', form: 'tool', methods: ['ergonomics.push-pull'], scenarios: ['people'],
+    status: 'to-build', form: 'tool', kind: 'study', methods: ['ergonomics.push-pull'], scenarios: ['people'],
   },
   {
     id: 'FC-212', name: 'Layout and material flow — the from–to chart', discipline: 'ergonomics', sub: 'layout',
@@ -563,7 +564,7 @@ export const OPERATIONS: Entry[] = [
     food: 'Packaging stores beside lines, inside hygiene zoning.',
     depends: ['FC-004', 'FC-001'],
     complexity: 'M', value: 'low', valueWhy: 'For re-layouts.',
-    status: 'to-build', form: 'tool', methods: ['ergonomics.layout-from-to'], scenarios: ['new', 'running'],
+    status: 'to-build', form: 'tool', kind: 'study', methods: ['ergonomics.layout-from-to'], scenarios: ['new', 'running'],
   },
   {
     id: 'FC-213', name: 'Lever tree — a number to hit', discipline: 'projects', sub: 'kinds',
@@ -677,7 +678,7 @@ export const OPERATIONS: Entry[] = [
     food: 'Operators’ ideas on a packing line.',
     depends: ['FC-154', 'FC-220'],
     complexity: 'S', value: 'medium', valueWhy: 'Engagement — the unused-talent waste.',
-    status: 'to-build', form: 'tool', methods: ['projects.ci-programme'], scenarios: ['daily', 'project'], words: ['suggestions', 'ideas'],
+    status: 'to-build', form: 'tool', kind: 'register', methods: ['projects.ci-programme'], scenarios: ['daily', 'project'], words: ['suggestions', 'ideas'],
   },
   {
     id: 'FC-222', name: 'Skills matrix and cover', discipline: 'people', sub: 'skills',
@@ -689,7 +690,7 @@ export const OPERATIONS: Entry[] = [
     food: 'Machine operators, hygiene, QA checks.',
     depends: ['FC-184', 'FC-223'],
     complexity: 'M', value: 'high', valueWhy: 'A common, simple, valuable gap.',
-    status: 'to-build', form: 'tool', methods: ['people.skills-matrix'], scenarios: ['people'], words: ['training matrix', 'cover', 'flexibility'],
+    status: 'to-build', form: 'tool', kind: 'register', methods: ['people.skills-matrix'], scenarios: ['people'], words: ['training matrix', 'cover', 'flexibility'],
   },
   {
     id: 'FC-223', name: 'TWI job instruction — the breakdown and four-step teaching', discipline: 'people', sub: 'instruction',
@@ -701,7 +702,7 @@ export const OPERATIONS: Entry[] = [
     food: 'Machine set-ups; cleans; QA checks.',
     depends: ['FC-006', 'FC-222'],
     complexity: 'M', value: 'medium', valueWhy: 'Standard work that sticks.',
-    status: 'to-build', form: 'tool', methods: ['people.twi-job-instruction'], scenarios: ['people'], words: ['training', 'TWI', 'job breakdown'],
+    status: 'to-build', form: 'tool', kind: 'standard', methods: ['people.twi-job-instruction'], scenarios: ['people'], words: ['training', 'TWI', 'job breakdown'],
   },
   {
     id: 'FC-224', name: 'One-point lesson', discipline: 'people', sub: 'instruction',
@@ -727,7 +728,7 @@ export const OPERATIONS: Entry[] = [
     food: 'Set-ups, cleans, changeovers.',
     depends: ['FC-223', 'FC-006'],
     complexity: 'M', value: 'medium', valueWhy: 'Standards at the point of use.',
-    status: 'to-build', form: 'tool', methods: ['people.twi-job-instruction'], scenarios: ['people'], words: ['SOP', 'work instruction'],
+    status: 'to-build', form: 'tool', kind: 'standard', methods: ['people.twi-job-instruction'], scenarios: ['people'], words: ['SOP', 'work instruction'],
   },
   {
     id: 'FC-226', name: 'Energy and water per tonne', discipline: 'sustainability', sub: 'utilities',
@@ -739,7 +740,7 @@ export const OPERATIONS: Entry[] = [
     food: 'Ovens, fryers, refrigeration, CIP.',
     depends: ['FC-227', 'FC-229'],
     complexity: 'M', value: 'medium', valueWhy: 'Rising cost, and retailers ask.',
-    status: 'to-build', form: 'tool', methods: ['sustainability.utilities-intensity'], scenarios: ['money'], words: ['energy', 'water', 'utilities'],
+    status: 'to-build', form: 'tool', kind: 'log', methods: ['sustainability.utilities-intensity'], scenarios: ['money'], words: ['energy', 'water', 'utilities'],
   },
   {
     id: 'FC-227', name: 'Compressed air leak survey', discipline: 'sustainability', sub: 'utilities',
@@ -751,7 +752,7 @@ export const OPERATIONS: Entry[] = [
     food: 'Packaging machines’ pneumatics.',
     depends: ['FC-226', 'FC-154'],
     complexity: 'S', value: 'medium', valueWhy: 'A quick saving.',
-    status: 'to-build', form: 'tool', methods: ['sustainability.compressed-air-leaks'], scenarios: ['money'],
+    status: 'to-build', form: 'tool', kind: 'study', methods: ['sustainability.compressed-air-leaks'], scenarios: ['money'],
   },
   {
     id: 'FC-228', name: 'Waste by stream and its cost', discipline: 'sustainability', sub: 'waste',

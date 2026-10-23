@@ -108,7 +108,8 @@ export function QuickSnagsScreen() {
   const [fromLine] = useState(() => asked('line'));
   /* the problem tapped on the line's page, brought into view once it is drawn (FLOW-AUDIT #22) */
   const [toShow, setToShow] = useState(() => asked('open'));
-  const [jobF, setJobF] = useState('all');
+  /* opened as a project's Problems (docs/STRUCTURE.md §5.2, B2): on that project */
+  const [jobF, setJobF] = useState(() => asked('project') ?? 'all');
   const [whoF, setWhoF] = useState('all');
   const [search, setSearch] = useState('');
   const [picked, setPicked] = useState<Set<string>>(new Set());

@@ -140,9 +140,11 @@ await go(`#/project/${sd.pacedProjectId}/actions`);
 
 /* ---- 8 every project's actions, in the control room (P4) ---- */
 await go('#/room');
-await page.locator('.nv-rail').getByRole('button', { name: 'Every action', exact: true }).click(); await page.waitForTimeout(2500);
+/* the factory's Actions (docs/STRUCTURE.md B2, 23 October: "Every action" on the control room's rail is the factory's Actions) */
+await page.locator('.nv-rail').getByRole('button', { name: 'Actions', exact: true }).click(); await page.waitForTimeout(2500);
 {
-  ok(page.url().endsWith('#/actions') && /YOUR FACTORY/i.test(flat(await page.locator('.nv-rail').innerText())), '8 Every action, from the control room’s rail', page.url());
+  const rail = flat(await page.locator('.nv-rail').innerText());
+  ok(page.url().endsWith('#/actions') && /Control room/.test(rail) && /Lines/.test(rail) && /Factory/.test(flat(await page.locator('.nv-ctx').innerText())), '8 every action, from the factory’s rail — Actions', page.url());
   const all = (await page.locator('.act-li .lt-what').allInnerTexts()).map(flat);
   ok(t.whats.every(w => all.includes(flat(w))) && all.length > t.n, `8 every project's actions — ${t.name}'s ${t.n} among ${all.length}`);
   await page.getByRole('group', { name: 'Seen by' }).getByRole('button', { name: 'Project' }).click(); await page.waitForTimeout(300);

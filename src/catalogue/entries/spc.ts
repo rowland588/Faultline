@@ -15,7 +15,7 @@ export const SPC: Entry[] = [
     food: 'Fill weights from a checkweigher’s sample; oven temperature.',
     depends: ['FC-090', 'FC-094', 'FC-119'],
     complexity: 'M', value: 'high', valueWhy: 'The base chart for one reading at a time — most food lines.',
-    status: 'to-build', form: 'tool', methods: ['spc.control-charts-variables'], scenarios: ['quality', 'running'], words: ['SPC', 'control chart', 'I-MR'],
+    status: 'to-build', form: 'tool', kind: 'log', methods: ['spc.control-charts-variables'], scenarios: ['quality', 'running'], words: ['SPC', 'control chart', 'I-MR'],
   },
   {
     id: 'FC-087', name: 'X̄-R and X̄-S charts for subgroups', discipline: 'spc', sub: 'charts',
@@ -87,7 +87,7 @@ export const SPC: Entry[] = [
     food: 'First-off weights after a changeover.',
     depends: ['FC-071', 'FC-094'],
     complexity: 'S', value: 'medium', valueWhy: 'A floor rule for start-ups — safe only on a capable process.',
-    status: 'to-build', form: 'tool', methods: ['spc.pre-control'], scenarios: ['changeover', 'quality'],
+    status: 'to-build', form: 'tool', kind: 'log', methods: ['spc.pre-control'], scenarios: ['changeover', 'quality'],
   },
   {
     id: 'FC-093', name: 'Short-run charts — many products, few readings each', discipline: 'spc', sub: 'charts',
@@ -111,7 +111,8 @@ export const SPC: Entry[] = [
     food: 'Fill weight against give-away and legal limits; slice thickness; label position.',
     depends: ['FC-097', 'FC-086', 'FC-119', 'FC-156'],
     complexity: 'L', value: 'high', valueWhy: 'The measured test — the proof of most fixes and acceptance tests.',
-    status: 'partial', form: 'tool', methods: ['spc.capability-measured', 'spc.normality-checks'], scenarios: ['quality', 'packing', 'new'], words: ['Cpk', 'Ppk', 'capability', 'process capability', 'spec limits'],
+    status: 'partial', form: 'tool', kind: 'study',
+    app: { key: 'capability', label: 'Capability', says: 'A measurement against one limit or two, or pass or fail: Ppk and how sure, the checks before it, and what a pass proves', onLine: 'readings against the limits agreed', reads: 'capability', icon: 'hash', order: 4 }, methods: ['spc.capability-measured', 'spc.normality-checks'], scenarios: ['quality', 'packing', 'new'], words: ['Cpk', 'Ppk', 'capability', 'process capability', 'spec limits'],
     built: CAPABILITY_BUILT, spec: SPEC,
     limits: ['No money yet — give-away (FC-156) and rejects (FC-098) carry it.', 'Readings that are not bell-shaped are said so and their share read as measured; no fitted model yet (FC-096).', 'Readings are assumed independent — not tested (FC-115).'],
   },
@@ -317,7 +318,7 @@ export const SPC: Entry[] = [
     food: 'Product temperature and line speed against weight loss.',
     depends: ['FC-109', 'FC-111'],
     complexity: 'M', value: 'medium', valueWhy: 'Ranks drivers from data already kept — not proof of cause.',
-    status: 'to-build', form: 'tool', methods: ['stats.correlation-regression'], scenarios: ['quality', 'project'],
+    status: 'to-build', form: 'tool', kind: 'study', methods: ['stats.correlation-regression'], scenarios: ['quality', 'project'],
   },
   {
     id: 'FC-111', name: 'Designed experiments — two-level factorials', discipline: 'stats', sub: 'doe',
@@ -329,7 +330,7 @@ export const SPC: Entry[] = [
     food: 'Seal temperature × dwell × pressure on a tray sealer.',
     depends: ['FC-118', 'FC-112'],
     complexity: 'L', value: 'medium', valueWhy: 'Proves causes in few runs.',
-    status: 'to-build', form: 'tool', methods: ['stats.doe-factorial'], scenarios: ['quality', 'project'], words: ['DOE', 'experiment', 'trial'],
+    status: 'to-build', form: 'tool', kind: 'study', methods: ['stats.doe-factorial'], scenarios: ['quality', 'project'], words: ['DOE', 'experiment', 'trial'],
   },
   {
     id: 'FC-112', name: 'Optimising settings — response surface', discipline: 'stats', sub: 'doe',
@@ -415,7 +416,7 @@ export const SPC: Entry[] = [
     food: 'Seal strength testers; thickness gauges; probes.',
     depends: ['FC-119', 'FC-094'],
     complexity: 'M', value: 'medium', valueWhy: 'Trust in every measured study.',
-    status: 'to-build', form: 'tool', methods: ['msa.gauge-rr'], scenarios: ['quality'], words: ['MSA', 'GRR', 'measurement system'],
+    status: 'to-build', form: 'tool', kind: 'study', methods: ['msa.gauge-rr'], scenarios: ['quality'], words: ['MSA', 'GRR', 'measurement system'],
   },
   {
     id: 'FC-119', name: 'Type 1 gauge study — one reference measured again and again', discipline: 'msa', sub: 'gauge',
@@ -427,7 +428,7 @@ export const SPC: Entry[] = [
     food: 'Checkweighers with certified test weights.',
     depends: ['FC-164', 'FC-118'],
     complexity: 'S', value: 'high', valueWhy: 'Quick, and it decides whether weights can be trusted.',
-    status: 'to-build', form: 'tool', methods: ['msa.type1-gauge'], scenarios: ['quality', 'packing'],
+    status: 'to-build', form: 'tool', kind: 'study', methods: ['msa.type1-gauge'], scenarios: ['quality', 'packing'],
   },
   {
     id: 'FC-120', name: 'Bias, linearity and stability of a gauge', discipline: 'msa', sub: 'gauge',
@@ -451,7 +452,7 @@ export const SPC: Entry[] = [
     food: 'Seal checks, bake colour, foreign-matter inspection.',
     depends: ['FC-098', 'FC-137'],
     complexity: 'M', value: 'medium', valueWhy: 'Trust in every visual check.',
-    status: 'to-build', form: 'tool', methods: ['msa.attribute-agreement'], scenarios: ['quality'],
+    status: 'to-build', form: 'tool', kind: 'study', methods: ['msa.attribute-agreement'], scenarios: ['quality'],
   },
   {
     id: 'FC-122', name: 'Calibration register and checks', discipline: 'msa', sub: 'calibration',
@@ -463,7 +464,7 @@ export const SPC: Entry[] = [
     food: 'Cooking and chilling probes; checkweighers.',
     depends: ['FC-169', 'FC-119'],
     complexity: 'S', value: 'medium', valueWhy: 'CCP measurements depend on it.',
-    status: 'to-build', form: 'tool', methods: ['msa.calibration'], scenarios: ['quality', 'safety'],
+    status: 'to-build', form: 'tool', kind: 'register', methods: ['msa.calibration'], scenarios: ['quality', 'safety'],
   },
   {
     id: 'FC-123', name: 'Measurement uncertainty budget', discipline: 'msa', sub: 'calibration',
@@ -475,6 +476,6 @@ export const SPC: Entry[] = [
     food: 'CCP temperatures near their limit.',
     depends: ['FC-122'],
     complexity: 'M', value: 'low', valueWhy: 'Specialist.',
-    status: 'to-build', form: 'tool', methods: ['msa.measurement-uncertainty'], scenarios: ['quality', 'safety'],
+    status: 'to-build', form: 'tool', kind: 'study', methods: ['msa.measurement-uncertainty'], scenarios: ['quality', 'safety'],
   },
 ];

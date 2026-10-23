@@ -118,7 +118,11 @@ ok(cards.join(' / ') === 'Line 1|Packing / Line 3|Filling / Line 2A|Packing', `6
 ok(/3 lines · 2 Packing · 1 Filling/.test(await txt()), '6b the control room says the factory');
 const firstSec = await page.locator('.nv-main section').first().getAttribute('aria-label');
 ok(firstSec === 'Your factory', `6c Your factory is the first thing on the control room (${firstSec})`);
-ok(/YOUR FACTORY Your factory Programs Line 1 Line 3 Line 2A/i.test(await rail()), '6d the rail: Your factory, its Programs, the lines in floor order');
+/* the rail is the factory's own pages since B2 (docs/STRUCTURE.md §5.2), its lines one tap away in the context bar's switcher — in floor order */
+await page.locator('.nv-top .nv-job').click(); await page.waitForTimeout(600);
+const swLines = await page.locator('.nv-sw .nv-sw-g').nth(1).locator('.nv-sw-i b').allInnerTexts();
+await page.keyboard.press('Escape'); await page.waitForTimeout(500);
+ok(/Lines/.test(await rail()) && /Programs/.test(await rail()) && swLines.join(' / ') === 'Line 1 / Line 3 / Line 2A', `6d the rail: Lines and Programs; the switcher, the lines in floor order (${swLines.join(' / ')})`);
 if (OUT) await page.screenshot({ path: `${OUT}/f-2-control.png` });
 
 /* 7 — a line's own page: its type; edited there */
@@ -258,7 +262,9 @@ ok((await order()).some(x => x.startsWith('Line 1|')) && !/Line 1 performance/.t
 await page.goto(`${BASE}/#/lines/${line1}`); await page.waitForTimeout(2000);
 ok(/No project on this line now/.test(await txt()) && !/Line 1 performance/.test(await rail()), '25 the line\'s page: no job on it now, none on the rail');
 await page.goto(`${BASE}/#/w/${line1}/capture`); await page.waitForTimeout(2500);
-ok(!/Line 1 performance/.test(await rail()) && /YOUR FACTORY/i.test(await rail()), `26 a tool on the line wears the control room's rail, never the archived job's`);
+/* a tool on the line is the line's since B2: the line's own rail, the bar naming the line */
+const scopeSays = (await page.locator('.nv-top .nv-ctx .nv-job-l').innerText()).trim();
+ok(!/Line 1 performance/.test(await rail()) && /Overview/.test(await rail()) && scopeSays === 'Line 1', `26 a tool on the line wears the line's rail (${scopeSays}), never the archived job's`);
 await page.goto(`${BASE}/#/balances`); await page.waitForTimeout(2000);
 await page.getByRole('button', { name: 'New line capacity' }).first().click(); await page.waitForTimeout(800);
 const opts2 = await page.locator('.sheet, [role="dialog"]').last().locator('select').first().evaluate(el => [...el.options].map(o => o.text));

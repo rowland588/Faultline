@@ -6,18 +6,18 @@
  *
  * On the seeded 6M project (Line 7 pace, on Line 2A and Line 7):
  *
- *   1  a tool opened from the project's rail keeps the project's rail — the
- *      top bar on the project, its address carrying it; its list the
+ *   1  a tool opened from the project's Tools (its rail's Tools since B2) keeps
+ *      the project's rail — the top bar on the project, its address carrying it; its list the
  *      project's own, everything on its lines and every line one tap away,
  *      each as the records say
  *   2  a new SMED made there is the project's, on the line picked from the
  *      project's lines (offered first) — and opens in the project
  *   3  the Problem button on it takes a problem for the project
- *   4  a Line Talk started from the rail is on the project, and Line Talk
+ *   4  a Line Talk started from its Tools is on the project, and Line Talk
  *      knows the project it is on
- *   5  a new Line capacity made from the rail is the project's — no "For a
+ *   5  a new Line capacity made from its Tools is the project's — no "For a
  *      project?" asked — and opens in the project
- *   6  outside a project, nothing changed: the control room's rail and every
+ *   6  outside a project, nothing changed: the factory's rail and every
  *      line's list; a quick session on no project opens on no project, the
  *      project's own opens in it, however it is reached
  *   7  the phone: the project's bar, More lit on a tool, nothing off the side
@@ -48,8 +48,16 @@ page.on('pageerror', e => errs.push(e.message));
 
 const go = async hash => { await page.goto(`${BASE}/${hash}`); await page.locator('.nv-main').waitFor({ timeout: 15000 }); await page.waitForTimeout(1500); };
 const rail = async () => flat(await page.locator('.nv-rail').innerText());
-const onProject = async () => page.locator('.nv-job select').inputValue();
-const tool = name => page.locator('.nv-rail .nv-grp', { has: page.locator('.nv-grp-l', { hasText: /^Tools$/ }) }).getByRole('button', { name, exact: true });
+/* which project the frame is in: the context bar's scope name (B2) — a project's, or none ("Factory") */
+let NAMES = {};
+const onProject = async () => NAMES[flat(await page.locator('.nv-top .nv-ctx .nv-job-l').innerText())] ?? '';
+/* a tool inside a project: its Tools page (the rail's Tools since B2), then the tool's row */
+const railLine = label => page.locator('.nv-rail .nv-ri').filter({ has: page.locator('.nv-ri-l', { hasText: new RegExp(`^${label}$`) }) });
+const openTool = async name => {
+  await railLine('Tools').click(); await page.waitForTimeout(1200);
+  await page.locator('main button.lt-row').filter({ has: page.locator('.lt-what', { hasText: new RegExp(`^${name}$`) }) }).click(); await page.waitForTimeout(1500);
+};
+const factoryRail = async () => { const r = await rail(); return /Control room/.test(r) && /Lines/.test(r) && !r.includes(NAME); };
 const shownIds = async () => page.locator('.lt-li[data-study]').evaluateAll(els => els.map(e => e.getAttribute('data-study')));
 const studies = () => page.evaluate(async () => (await (await import('/src/db.ts')).listAllStudies()).filter(s => !s.deletedAt));
 const dialog = () => page.locator('[role="dialog"]').last();
@@ -65,17 +73,18 @@ const facts = await page.evaluate(async pid => {
   return { name: p?.name, lines, lineNames: lines.map(id => ws.find(w => w.id === id)?.name) };
 }, PID);
 const NAME = facts.name;
+NAMES = await page.evaluate(async () => Object.fromEntries((await (await import('/src/db.ts')).allProjects()).map(p => [p.name, p.id])));
 const LINE7 = facts.lines[facts.lineNames.indexOf('Line 7')];
 ok(NAME === 'Line 7 pace' && facts.lines.length === 2 && !!LINE7, `0 the 6M project, ${NAME}, on ${facts.lineNames.join(' and ')}`);
-const projectRail = async () => { const r = await rail(); return r.includes(NAME) && !/YOUR FACTORY/i.test(r) && /Fishbone/.test(r); };
+const projectRail = async () => { const r = (await rail()).toLowerCase(); return r.includes(NAME.toLowerCase()) && !/your factory/.test(r) && /fishbone/.test(r) && /actions/.test(r); };
 
 /* ---- 1 a tool from the project's rail keeps the project ---- */
 await go(`#/project/${PID}`);
 ok(await projectRail(), '1 the project open: its rail', (await rail()).slice(0, 200));
-await tool('SMED').click(); await page.waitForTimeout(1500);
-ok(page.url().endsWith(`#/smed?project=${PID}`), '1 SMED from the project’s rail: its address carries the project', page.url());
+await openTool('SMED');
+ok(page.url().endsWith(`#/smed?project=${PID}`), '1 SMED from the project’s Tools: its address carries the project', page.url());
 ok(await projectRail() && await onProject() === PID, `1 …and the project's rail stays, the top bar on ${NAME}`, (await rail()).slice(0, 200));
-ok(await tool('SMED').getAttribute('aria-current') === 'page', '1 SMED lit in the project’s Tools');
+ok(await railLine('Tools').getAttribute('aria-current') === 'page' && /›\s*SMED$/.test(flat(await page.locator('.nv-top .nv-ctx').innerText())), '1 Tools lit on the project’s rail, the bar saying SMED', flat(await page.locator('.nv-top .nv-ctx').innerText()));
 const chips = (await page.locator('.ip-scope .chip').allInnerTexts()).map(flat);
 ok(JSON.stringify(chips) === JSON.stringify([NAME, 'Everything on its lines', 'Every line']) && await page.locator('.ip-scope .chip.on').innerText() === NAME,
   `1 whose: ${chips.join(' · ')} — the project's own first`, chips.join(' | '));
@@ -127,8 +136,8 @@ let made;
 
 /* ---- 4 Line Talk from the rail is on the project, and knows it ---- */
 {
-  await tool('Line Talk').click(); await page.waitForTimeout(1500);
-  ok(page.url().endsWith(`#/talk?project=${PID}`) && await projectRail(), '4 Line Talk from the project’s rail, in the project', page.url());
+  await openTool('Line Talk');
+  ok(page.url().endsWith(`#/talk?project=${PID}`) && await projectRail(), '4 Line Talk from the project’s Tools, in the project', page.url());
   ok(flat(await page.locator('.tk-new .ie-for').innerText()).startsWith(`For ${NAME} — Line Talk knows the project`), '4 it says it is for the project');
   const talks = (await studies()).filter(s => s.tool === 'talk');
   const listed = await page.locator('.lt-li[data-talk]').evaluateAll(els => els.map(e => e.getAttribute('data-talk')));
@@ -145,8 +154,8 @@ let made;
 
 /* ---- 5 Line capacity from the rail: the project's, no "For a project?" ---- */
 {
-  await tool('Line capacity').click(); await page.waitForTimeout(1500);
-  ok(page.url().endsWith(`#/balances?project=${PID}`) && await projectRail(), '5 Line capacity from the project’s rail, in the project', page.url());
+  await openTool('Line capacity');
+  ok(page.url().endsWith(`#/balances?project=${PID}`) && await projectRail(), '5 Line capacity from the project’s Tools, in the project', page.url());
   const where = (await page.locator('.lt-li .lt-where').allInnerTexts()).map(flat);
   ok(where.every(w => w === `On ${NAME}`), `5 every product listed is the project's (${where.length})`, where.join(' | '));
   await page.getByRole('button', { name: 'New line capacity' }).first().click(); await page.waitForTimeout(500);
@@ -165,7 +174,7 @@ let made;
 /* ---- 6 outside a project, nothing changed ---- */
 {
   await go('#/smed');
-  ok(/YOUR FACTORY/i.test(await rail()) && await onProject() === '' && await page.locator('.ip-scope').count() === 0, '6 SMED from the control room: the control room’s rail, no project, every line');
+  ok(await factoryRail() && await onProject() === '' && await page.locator('.ip-scope').count() === 0, '6 SMED from the control room: the factory’s rail, no project, every line');
   const all = (await studies()).filter(s => s.tool === 'changeover').map(s => s.id);
   ok((await shownIds()).every(id => all.includes(id)) && (await shownIds()).includes(sd.changeoverId) && (await shownIds()).includes(made?.id), '6 …every one listed, the project’s new one among them');
   /* a quick session made outside any project is on none, and opens on none */
@@ -177,7 +186,7 @@ let made;
   await dlg.getByRole('button', { name: 'Start it' }).click(); await page.waitForTimeout(1800);
   const qid = page.url().split('#/smed/')[1]?.split(/[?#]/)[0];
   const q = (await studies()).find(x => x.id === qid);
-  ok(!!q && !q.projectId && await onProject() === '' && /YOUR FACTORY/i.test(await rail()), '6 a quick session made from the control room is on no project, and opens on none', JSON.stringify({ qid, p: q?.projectId }));
+  ok(!!q && !q.projectId && await onProject() === '' && await factoryRail(), '6 a quick session made from the control room is on no project, and opens on none', JSON.stringify({ qid, p: q?.projectId }));
   /* another project's own opens in that project, not in the one last worked in */
   const other = (await studies()).find(x => x.id === sd.changeoverId)?.projectId;
   await go(`#/smed/${sd.changeoverId}`);
@@ -192,7 +201,8 @@ let made;
   await go(`#/smed?project=${PID}`);
   const bar = (await page.locator('.nv-bar .nv-bi-l').allInnerTexts()).map(flat);
   const more = await page.locator('.nv-bar .nv-bi', { hasText: 'More' }).getAttribute('aria-current');
-  ok(bar[0] === 'Control room' && bar[1] === 'This project' && bar[bar.length - 1] === 'More' && more === 'page', `7 the phone: the project's bar — ${bar.join(' · ')}, More lit`);
+  /* the project's bar, fixed (docs/STRUCTURE.md D6): Overview · its main page · ＋ · Actions · More — a tool lives in More */
+  ok(bar.join(' · ') === 'Overview · Fishbone · Problem · Actions · More' && more === 'page', `7 the phone: the project's bar — ${bar.join(' · ')}, More lit`);
   const wide = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   ok(wide <= 1 && await page.locator('.ip-scope .chip').count() === 3, `7 nothing off the side (${wide}px), the three chips on it`);
 }

@@ -225,22 +225,28 @@ await page.evaluate(() => window.scrollTo(0, 0)); await page.waitForTimeout(300)
 await shot('11-phone');
 const pos = await page.evaluate(() => {
   const r = s => document.querySelector(s)?.getBoundingClientRect();
-  const says = r('.jb-says'), fac = r('.fac-home'), fab = r('.qs-fab'), tiles = r('.jb-stats');
+  const says = r('.jb-says'), fac = r('.fac-home'), fab = r('.nv-bar .nv-bi.is-plus'), tiles = r('.jb-stats');
   const hit = (a, b) => !!a && !!b && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
   return { says: says?.top, tilesBottom: tiles?.bottom, fac: fac?.top, fabOverHeadline: hit(says, fab), wide: document.documentElement.scrollWidth - window.innerWidth };
 });
 ok(pos.says > 0 && pos.says < 300 && pos.tilesBottom < 844 && pos.fac > pos.says && !pos.fabOverHeadline && pos.wide <= 1,
-  `11a the answer first: headline at ${Math.round(pos.says)}px, the four numbers end at ${Math.round(pos.tilesBottom)}px, the factory after (${Math.round(pos.fac)}px), the Problem button off it`);
+  `11a the answer first: headline at ${Math.round(pos.says)}px, the four numbers end at ${Math.round(pos.tilesBottom)}px, the factory after (${Math.round(pos.fac)}px), the bar’s ＋ off it`);
 const bar = await page.locator('.nv-bar .nv-bi .nv-bi-l').allInnerTexts();
-ok(bar.join(' · ') === 'Home · Problems · Lines · More', `11b the bar: ${bar.join(' · ')}`);
-await page.locator('.nv-bar .nv-bi', { hasText: 'Lines' }).click(); await page.waitForTimeout(1200);
-const linesOn = page.url().endsWith('#/factory') && await page.locator('.nv-bar .nv-bi.is-on', { hasText: 'Lines' }).count() === 1;
-await page.locator('.nv-bar .nv-bi', { hasText: 'Problems' }).click(); await page.waitForTimeout(1200);
-ok(linesOn && /#\/snags/.test(page.url()), `11c Lines opens Your factory, Problems the register (${page.url().split('#')[1]})`);
+/* the factory's bar since 23 October (docs/STRUCTURE.md B2, D6): Control room · Actions · ＋ · Problems · More */
+ok(bar.join(' · ') === 'Control room · Actions · Problem · Problems · More', `11b the bar: ${bar.join(' · ')}`);
+await page.locator('.nv-bar .nv-bi', { hasText: /^Problems$/ }).click(); await page.waitForTimeout(1200);
+const toRegister = /#\/snags/.test(page.url());
+await page.locator('.nv-bar .nv-bi', { hasText: 'More' }).click(); await page.waitForTimeout(800);
+await page.locator('.nv-sheet').getByRole('button', { name: 'Lines', exact: true }).click(); await page.waitForTimeout(1200);
+ok(toRegister && page.url().endsWith('#/factory'), `11c Problems opens the register, Lines (in More) Your factory (${page.url().split('#')[1]})`);
 await page.locator('.nv-bar .nv-bi', { hasText: 'More' }).click(); await page.waitForTimeout(800);
 const more = flat(await page.locator('.nv-sheet').innerText());
-const underProjects = flat(await page.locator('.nv-sheet .nv-grp', { has: page.locator('.nv-grp-l', { hasText: /^Projects$/ }) }).innerText().catch(() => ''));
-ok(['Line 2 commissioning', 'Line 7 pace', 'Line 7 jams'].every(n => underProjects.includes(n)) && /Control room/.test(more), '11d every project is still in More, under Projects, and the control room', underProjects);
+await page.keyboard.press('Escape'); await page.waitForTimeout(600);
+/* every project one tap away in the context bar's switcher (the scope's name), and the control room in More */
+await page.locator('.nv-top .nv-job').click(); await page.waitForTimeout(700);
+const underProjects = flat(await page.locator('.nv-sw').innerText().catch(() => ''));
+ok(['Line 2 commissioning', 'Line 7 pace', 'Line 7 jams'].every(n => underProjects.includes(n)) && /Control room/.test(more), '11d every project in the switcher, and the control room in More', underProjects);
+await page.keyboard.press('Escape'); await page.waitForTimeout(600);
 await board();
 await page.locator('.jb-stat.is-crit').click(); await page.waitForTimeout(700);
 await shot('6-critical-phone');

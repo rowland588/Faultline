@@ -10,6 +10,7 @@
  *
  * Read-only, for everyone. Loaded on its own (the router's lazy import), so
  * the catalogue's words never weigh on the rest of the app. */
+import { APP_TOOLS } from '../catalogue/registry';
 import { useMemo, useState } from 'react';
 import { ENTRIES, PROBLEMS, disciplineName, entryById, searchEntries, searchProblems, statusCounts, subName } from '../catalogue';
 import { DISCIPLINES, FORM_WORDS, STATUSES, STATUS_WORDS, type Entry, type ProblemRoute, type Status } from '../catalogue/types';
@@ -50,6 +51,24 @@ export function ToolsScreen() {
         says so. {ENTRIES.length} tools in {DISCIPLINES.length} disciplines — {all.available} available, {all.partial} partly built,{' '}
         {all.specified} planned, {all['to-build']} not built yet, {all.research} needing research first, {all['left-out']} left out on purpose.
       </p>
+
+      {/* USE ONE NOW — the tools a person can open, first (docs/STRUCTURE.md §5.1: the factory's Tools is
+          the library; the eleven left every rail on 23 October). Each opens its list; started from there,
+          one is on no line or project, or put on one. */}
+      <section className="et-now" aria-label="Use one now">
+        <h2 className="ln-h">Use one now</h2>
+        <ul className="lt-rows">
+          {APP_TOOLS.map(t => (
+            <li key={t.key} className="lt-li">
+              <button type="button" className="lt-row" onClick={() => nav(t.to)}>
+                <b className="lt-what">{t.label}</b>
+                <span className="lt-where">{t.says}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+        <h2 className="ln-h et-all-h">Or find one by the problem</h2>
+      </section>
 
       <label className="et-search">
         <span className="field-label">What’s the problem?</span>

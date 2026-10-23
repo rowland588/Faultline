@@ -38,7 +38,8 @@ export const IE: Entry[] = [
     food: 'Packing stations and case packing filmed on a phone.',
     depends: ['FC-019', 'FC-032'],
     complexity: 'XL', value: 'high', valueWhy: 'Evidence that can be reviewed; many cycles at once.',
-    status: 'partial', form: 'tool', methods: ['ie.video-time-study'], scenarios: ['people', 'running'], words: ['film', 'camera', 'footage'],
+    status: 'partial', form: 'tool', kind: 'study',
+    app: { key: 'video', label: 'Video study', says: 'Film the line: the work at each station read from the footage, reviewed, worked out as a line balance', icon: 'camera', order: 10 }, methods: ['ie.video-time-study'], scenarios: ['people', 'running'], words: ['film', 'camera', 'footage'],
     built: { where: ['/video'], code: ['src/screens/VideoScreen.tsx', 'src/lib/video/extract.ts'], tests: [], acceptance: ['video-study.mjs', 'video-fit.mjs', 'video-check.mjs'] },
     limits: ['Accuracy depends on the footage and is measured, not guaranteed (docs/VIDEO.md).', 'Changeovers are not measured from footage yet.'],
   },
@@ -52,7 +53,8 @@ export const IE: Entry[] = [
     food: 'Packing-hall crews; hygiene teams; line-side logistics.',
     depends: ['FC-037', 'FC-146'],
     complexity: 'M', value: 'high', valueWhy: 'Cheap evidence about people’s time, with honest margins.',
-    status: 'available', form: 'tool', methods: ['ie.work-sampling', 'stats.confidence-intervals'], scenarios: ['people', 'running'], words: ['activity sampling', 'idle', 'waiting'],
+    status: 'available', form: 'tool', kind: 'study',
+    app: { key: 'sampling', label: 'Work sampling', says: 'What people are doing at random moments, with margins', onLine: 'what people are doing, at random moments', reads: 'sampling', icon: 'people', order: 7 }, methods: ['ie.work-sampling', 'stats.confidence-intervals'], scenarios: ['people', 'running'], words: ['activity sampling', 'idle', 'waiting'],
     built: { where: ['/sampling'], code: ['src/screens/SamplingScreen.tsx', 'src/lib/ie/sampling.ts'], tests: ['src/lib/ie/__tests__/sampling.test.ts'], acceptance: ['work-sampling.mjs'] },
   },
   {
@@ -103,7 +105,7 @@ export const IE: Entry[] = [
     food: 'One operator across two flow wrappers or two tray sealers.',
     depends: ['FC-007', 'FC-034'],
     complexity: 'M', value: 'medium', valueWhy: 'Decides crewing on semi-automatic lines.',
-    status: 'to-build', form: 'tool', methods: ['ie.person-machine'], scenarios: ['people', 'machine'],
+    status: 'to-build', form: 'tool', kind: 'study', methods: ['ie.person-machine'], scenarios: ['people', 'machine'],
   },
   {
     id: 'FC-027', name: 'Learning curve — new starters and new products', discipline: 'ie', sub: 'productivity',

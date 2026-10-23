@@ -65,16 +65,14 @@ export function QuickSnagButton({ projectId }: { projectId?: string }) {
 /** Mounted once, in the frame. Starts on the line and job you are in. */
 export function QuickSnagHost({ wsId, projectId }: { wsId?: string; projectId?: string }) {
   const [open, setOpen] = useState<{ snag?: Snag; n: number } | null>(null);
-  const may = useCanTakeProblem(projectId);
   useEffect(() => {
     opener = s => setOpen(o => ({ snag: s, n: (o?.n ?? 0) + 1 }));
     return () => { opener = null; };
   }, []);
   return (
     <>
-      {may && <button type="button" className="qs-fab" onClick={() => openQuickSnag()} aria-label="Problem — spot an issue">
-        <Icon name="camera" size={22} /><span>Problem</span>
-      </button>}
+      {/* the round button over the page went on 23 October: on a phone ＋ sits in the bar (ui/rail
+          scopeBar), at a desk Problem is in the context bar (docs/STRUCTURE.md §5.3, D6) */}
       {open && <QuickSnagSheet key={open.n} snag={open.snag} wsId={wsId} projectId={projectId} onClose={() => setOpen(null)} />}
     </>
   );

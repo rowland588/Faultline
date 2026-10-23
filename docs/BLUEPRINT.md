@@ -12,8 +12,8 @@ same day) turns the four layers into three scopes — the factory, a line, a
 project — and a library of tools, each scope with its own short rail, one
 page header, one report menu and a design system of shared parts. Rowland,
 23 October: *"I agree do them all"* — the twelve decisions and slices B0–B8.
-No record changes. §1 and §3 here are rewritten to the scopes in the same
-commit as B2; until then this blueprint stands as it is.
+No record changes. §1 and §3 here were rewritten to the scopes with B2
+(23 October), the slice that built them; the rest of this blueprint stands.
 
 ---
 
@@ -49,7 +49,37 @@ places, older models are still wired in (the Excel tracker, Project Pace,
 
 ---
 
-## 1. The shape — four layers
+## 1. The shape — Home above three scopes (since 23 October; the four layers below it)
+
+**Since 23 October (docs/STRUCTURE.md §5, built in B2)** you are always in one
+of three scopes, with Home above them, and the frame says which: the context
+bar names it (*Factory › Line 7 › Tools*), its name is the switcher to any line
+or project, and the rail holds that scope's own pages and the way up — never
+another scope's, never every line and project, never the eleven tools.
+
+```
+HOME        What you need to get done — the question, what is under way, the kinds of
+   │        change, the tools on their own. The mark; the switcher's first.
+FACTORY     Every line and project at once: Control room · Actions · Problems ·
+   │        Projects · Lines · Programs · Tools, and Reports. (The control room and
+   │        Your factory below.)
+LINE        The line as a place, no project needed: Overview · Problems · Machines &
+   │        programs · Products · Tools · Logs · Projects, then Reports · Set up.
+PROJECT     A change as a workspace: Overview, its kind's own pages (lib/planModel —
+            Plan and its machines; Fishbone, Board, Lines; Tree), then Actions ·
+            Problems · Tools, and Notes · Reports · Details.
+```
+
+`lib/scope` says which scope a page is in, from its address and what it is
+of; `ui/rail` draws each scope's rail and its phone bar (fixed in a scope:
+the factory's *Control room · Actions · ＋ · Problems · More*, a line's
+*Overview · Tools · ＋ · Problems · More*, a project's *Overview · its main
+page · ＋ · Actions · More*); `ui/ContextBar` the bar and its switcher. The
+four layers below are still the records' shape, and the rules still hold: the
+factory and the control room are the FACTORY scope, *on the line* is the LINE
+scope, and *jobs* are projects.
+
+The layers, as agreed on 13 October:
 
 ```
 CONTROL ROOM   Am I in control? Every line, every job, every problem, every program.
@@ -117,6 +147,32 @@ of a line, are no longer under projects.
 ---
 
 ## 3. The places — what each is for
+
+**Since 23 October the places sit in their scope (§1; docs/STRUCTURE.md §5,
+B2).** What each page is for is said below, place by place, and still holds;
+where they are reached from changed:
+
+- **Factory** — the control room (`#/room`), *Actions* (every project's, and
+  every line's own problems, `#/actions`), *Problems* (the register,
+  `#/snags`), *Projects*, *Lines* (Your factory, `#/factory`), *Programs*,
+  *Tools* (the directory, `#/tools`, its first section the eleven a person
+  can open), and *Reports*. A line's card and a project's row on the control
+  room go into it in one tap, at a desk as on a phone (the row's chevron
+  opens it in place).
+- **A line** — its page (`#/lines/:ws`) is its Overview, and narrowed by
+  `?view=` to its Products, Tools (with *New ▾*), Projects and Set up; its
+  Problems and Machines & programs are the factory's lists narrowed to it
+  (`?line=`); Logs is the stops timed, its study's four views (Capture ·
+  Analyse · Evidence · Meeting) under it — tabs on the page on a phone —
+  until B6 folds them into the log.
+- **A project** — its own pages as before, and *Tools*
+  (`#/project/:id/tools`): every tool, how often it is used in the project,
+  each opening its list in the project and *New* starting one there. A tool's
+  record wears the project it is on (P2); the tool's name in the bar goes
+  back to its list.
+- **Everywhere** — ＋ on a phone's bar (Problem at a desk) takes a problem
+  where you are; the mark is Home; ⌘K and the switcher reach any line or
+  project in three keystrokes.
 
 **Since 20 October (docs/DIRECTION.md) the method builder is deleted** —
 the box to say a need in words, the design studio, Methods and Faultline's

@@ -76,21 +76,45 @@ async function look(D, J, tag) {
 }
 async function type(D, J, what, loc, text) { await loc.first().fill(text); J.entries++; J.steps.push(`⌨ ${what}`); }
 
-/** what the top bar says on this screen, and whether it names the place expected */
+/** what the top bar says on this screen — the context bar's names a person can see (the scope and
+ *  the page; B2) — and whether one of them is the place expected */
 async function orient(D, J, expected) {
-  const said = await D.page.evaluate(() => document.querySelector('.nv-top .nv-job-l')?.textContent?.trim() ?? '');
-  J.orient.push({ expected, said, right: said === expected });
+  const names = await D.page.evaluate(() => [...document.querySelectorAll('.nv-top .nv-ctx .nv-job-l, .nv-top .nv-ctx .nv-crumb')]
+    .filter(e => e.getBoundingClientRect().width > 0 && getComputedStyle(e).display !== 'none').map(e => e.textContent.trim()));
+  J.orient.push({ expected, said: names.join(' › '), right: names.includes(expected) });
 }
 
-const rail = (D, label) => D.page.locator('.nv-rail .nv-ri').filter({ has: D.page.locator('.nv-ri-l', { hasText: new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) }) });
+const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const rail = (D, label) => D.page.locator('.nv-rail .nv-ri').filter({ has: D.page.locator('.nv-ri-l', { hasText: new RegExp(`^${esc(label)}$`) }) });
+/** The tools — on a project's rail no longer (B2): its Tools page lists them, each opening its list there. */
+const TOOL_NAMES = new Set(['SMED', 'Line capacity', 'Line balance', 'Line standard', 'Capability', 'Value stream', 'Work sampling', 'Loss count', 'Reliability', 'Stops timed', 'Line Talk', 'Video studies']);
+/** GO TO A PLACE BY ITS NAME, the shortest way the frame offers (docs/STRUCTURE.md §5.2–§5.3): the
+ *  scope's rail at a desk; on a phone its bar, else More (the same pages); the control room from a
+ *  line or a project is ↑ Factory; a tool in a project its Tools page then the tool; any other line
+ *  or project the context bar's switcher. */
 async function nav(D, J, label) {
-  if (!D.phone) return press(D, J, `rail: ${label}`, rail(D, label));
-  const bar = D.page.locator('.nv-bar .nv-bi').filter({ has: D.page.locator('.nv-bi-l', { hasText: new RegExp(`^${label}$`) }) });
-  if (await bar.count()) return press(D, J, `bar: ${label}`, bar);
-  await press(D, J, 'bar: More', D.page.locator('.nv-bar .nv-bi').filter({ hasText: 'More' }));
-  return press(D, J, `More: ${label}`, D.page.locator('.nv-sheet .nv-ri').filter({ has: D.page.locator('.nv-ri-l', { hasText: new RegExp(`^${label}$`) }) }));
+  const onRail = await rail(D, label).count();
+  if (onRail) {
+    if (!D.phone) return press(D, J, `rail: ${label}`, rail(D, label));
+    const bar = D.page.locator('.nv-bar .nv-bi').filter({ has: D.page.locator('.nv-bi-l', { hasText: new RegExp(`^${esc(label)}$`) }) });
+    if (await bar.count()) return press(D, J, `bar: ${label}`, bar);
+    await press(D, J, 'bar: More', D.page.locator('.nv-bar .nv-bi').filter({ hasText: 'More' }));
+    return press(D, J, `More: ${label}`, D.page.locator('.nv-sheet .nv-ri').filter({ has: D.page.locator('.nv-ri-l', { hasText: new RegExp(`^${esc(label)}$`) }) }));
+  }
+  if (label === 'Control room' && await rail(D, 'Factory').count()) {
+    return D.phone ? press(D, J, 'the bar: ↑', D.page.locator('.nv-top .nv-ctx .nv-up')) : press(D, J, 'rail: ↑ Factory', rail(D, 'Factory'));
+  }
+  if (TOOL_NAMES.has(label) && await rail(D, 'Tools').count()) {
+    await nav(D, J, 'Tools');
+    return press(D, J, `Tools: ${label}`, D.page.locator('main button.lt-row').filter({ has: D.page.locator('.lt-what', { hasText: new RegExp(`^${esc(label)}$`) }) }));
+  }
+  await press(D, J, 'the switcher', D.page.locator('.nv-top .nv-job'));
+  return press(D, J, `switcher: ${label}`, D.page.locator('.nv-sw .nv-sw-i').filter({ has: D.page.locator('b', { hasText: new RegExp(`^${esc(label)}$`) }) }));
 }
 const btn = (D, name) => D.page.getByRole('button', { name, exact: false });
+/** The control room's own ways in: a line's card under Your factory, a project's row (its name goes in). */
+const lineCard = (D, name) => D.page.locator('main button.fac-card').filter({ has: D.page.locator('.fac-card-name', { hasText: new RegExp(`^${esc(name)}$`) }) });
+const projectRow = (D, name) => D.page.locator('main button.jb-lab').filter({ has: D.page.locator('.jb-name', { hasText: new RegExp(`^${esc(name)}$`) }) });
 const text = (D, t) => D.page.getByText(t, { exact: false });
 
 async function run(name, width, fn) {
@@ -112,7 +136,7 @@ async function run(name, width, fn) {
 
 async function J1(D, J) {
   await D.page.goto(`${BASE}/#/room`); await settle(D.page); await orient(D, J, 'Control room');
-  await nav(D, J, 'Line 7'); await orient(D, J, 'Line 7');
+  await press(D, J, 'Your factory: Line 7', lineCard(D, 'Line 7')); await orient(D, J, 'Line 7');
   await press(D, J, 'Projects on this line: Line 7 pace', D.page.locator('main').getByText('Line 7 pace', { exact: true })); await orient(D, J, 'Line 7 pace');
   await nav(D, J, 'Fishbone'); await orient(D, J, 'Line 7 pace');
   await nav(D, J, 'Line 7'); await orient(D, J, 'Line 7');
@@ -150,14 +174,15 @@ await run('J2 a tool on its own', 390, async (D, J) => {
 /* J3 — a tool in context (desk): inside Line 7 pace (6M), a SMED for the project; then found again from the project and from Line 7. */
 async function J3(D, J) {
   await D.page.goto(`${BASE}/#/project/${D.sd.pacedProjectId}`); await settle(D.page); await orient(D, J, 'Line 7 pace');
-  await nav(D, J, 'SMED'); await orient(D, J, 'Line 7 pace');
-  await press(D, J, 'New SMED', btn(D, 'New SMED'));
+  /* the project's Tools, and New on SMED's row: its list with New open (B2) */
+  await nav(D, J, 'Tools'); await orient(D, J, 'Line 7 pace');
+  await press(D, J, 'Tools: New — SMED', D.page.locator('main').getByRole('button', { name: 'New — SMED', exact: true }));
   await D.page.getByLabel(/Which line/).selectOption({ label: 'Line 7' }); J.entries++; J.steps.push('⌨ Which line? Line 7');
   await type(D, J, 'From which product?', D.page.getByLabel(/From which product/), 'Maris Piper 2kg');
   await type(D, J, 'To which product?', D.page.getByLabel(/To which product/), 'Express 1.25 kg');
   await press(D, J, 'Start it', btn(D, 'Start it')); await orient(D, J, 'Line 7 pace');
-  /* found again — from the project */
-  await nav(D, J, 'SMED'); await orient(D, J, 'Line 7 pace');
+  /* found again — from the project: the tool's name in the bar is its list here */
+  await press(D, J, 'the bar: SMED', D.page.locator('.nv-top .nv-ctx button.nv-page')); await orient(D, J, 'Line 7 pace');
   await D.page.locator('main button.lt-row').filter({ hasText: 'Maris Piper 2kg' }).first().waitFor({ timeout: 8000 });
   J.steps.push('[on the project\'s SMED list]');
   /* and from Line 7 */
@@ -214,7 +239,7 @@ await run('J5 6M: loss to cause to countermeasure', 1360, async (D, J) => {
 /* J6 — a lever tree month (desk): on Line 2B to 60 ppm, the condition off track, its action and who owes it, and the number's next reading. */
 await run('J6 lever tree: what is off track', 1360, async (D, J) => {
   await D.page.goto(`${BASE}/#/room`); await settle(D.page); await orient(D, J, 'Control room');
-  await nav(D, J, 'Line 2B to 60 ppm'); await orient(D, J, 'Line 2B to 60 ppm');
+  await press(D, J, 'the row: Line 2B to 60 ppm', projectRow(D, 'Line 2B to 60 ppm')); await orient(D, J, 'Line 2B to 60 ppm');
   await nav(D, J, 'Tree'); await orient(D, J, 'Line 2B to 60 ppm');
   const off = (await D.page.locator('main').innerText()).replace(/\s+/g, ' ');
   J.steps.push(/Behind target/.test(off) && /Replace the worn sealing jaw/.test(off) && /Engineering/.test(off) ? '[read on the tree: the condition behind target, its action, Engineering owes it, late]' : '[NOT all read on the tree]');
@@ -230,32 +255,31 @@ await run('J6 lever tree: what is off track', 1360, async (D, J) => {
    the Line 7 problem moved into Line 7 pace. */
 await run('J7a a problem on Line 7, on the phone', 390, async (D, J) => {
   await D.page.goto(`${BASE}/#/`); await settle(D.page); await orient(D, J, 'Home');
-  await nav(D, J, 'Lines'); await orient(D, J, 'Your factory');
-  await press(D, J, 'Line 7', D.page.locator('main').getByRole('button', { name: /^Open/ }).nth(1));
-  await orient(D, J, 'Line 7');
-  await press(D, J, 'Problem', D.page.locator('.qs-fab'));
+  await nav(D, J, 'Line 7'); await orient(D, J, 'Line 7');
+  await press(D, J, 'Problem', D.page.locator('.nv-bar .nv-bi.is-plus'));
   const S = D.page.locator('.sheet').last();
-  const line = await S.getByLabel(/^Line/i).first().evaluate(e => e.options[e.selectedIndex]?.text).catch(() => '?');
+  const line = await S.getByLabel('Which line').first().evaluate(e => e.options[e.selectedIndex]?.text).catch(() => '?');
   J.steps.push(`[the sheet's line: ${line}]`);
   await type(D, J, 'What’s wrong', S.getByLabel(/What.s wrong/i), 'Bagger infeed guard loose');
   await press(D, J, 'Save', S.getByRole('button', { name: /^Save$/ }));
-  await nav(D, J, 'Problems'); await orient(D, J, 'Control room');
+  /* the line's Problems — the register narrowed to Line 7, in the line (B2) */
+  await nav(D, J, 'Problems'); await orient(D, J, 'Line 7');
   await D.page.locator('main').getByText('Bagger infeed guard loose', { exact: false }).first().waitFor({ timeout: 8000 });
   J.steps.push('[on the register, on Line 7]');
 });
 await run('J7b every late action, by person (desk)', 1360, async (D, J) => {
   await D.page.goto(`${BASE}/#/`); await settle(D.page); await orient(D, J, 'Home');
-  await nav(D, J, 'Every action'); await orient(D, J, 'Control room');
+  await nav(D, J, 'Actions'); await orient(D, J, 'Actions');
   await press(D, J, 'Late', D.page.locator('main').getByRole('button', { name: /^Late$/ }).first());
   await press(D, J, 'the late test: Changeover 2kg → 1.25kg', D.page.locator('main button.lt-row').filter({ hasText: 'Changeover 2kg' }).first());
-  await orient(D, J, 'Control room');
+  await orient(D, J, 'Actions');
   const opened = await D.page.locator('aside.rd').count();
   J.steps.push(opened ? '[its record opened]' : '[NOTHING OPENED — the address took ?open= but no drawer is drawn on Every action]');
   if (!opened) throw new Error('Every action: a row does not open its record');
 });
 await run('J7c a line problem moved into a project (desk)', 1360, async (D, J) => {
   await D.page.goto(`${BASE}/#/`); await settle(D.page); await orient(D, J, 'Home');
-  await nav(D, J, 'Control room problems'); await orient(D, J, 'Control room');
+  await nav(D, J, 'Problems'); await orient(D, J, 'Problems');
   await press(D, J, 'the problem on Line 7 — smoke test', D.page.locator('main button.qsl-open').filter({ hasText: 'seeded snag 0' }).first());
   await D.page.locator('main select:has(option:text-is("No project"))').first().selectOption({ label: 'Line 7 pace' }); J.entries++; J.steps.push('⌨ Project: Line 7 pace');
   await press(D, J, 'Save', D.page.locator('main').getByRole('button', { name: /^Save$/ }).first());
@@ -266,16 +290,16 @@ await run('J7c a line problem moved into a project (desk)', 1360, async (D, J) =
 /* J8 — the Monday pack (desk): the stage gate's one-page status, the 6M report, Line 7's line report, the control room report. */
 await run('J8 the Monday pack', 1360, async (D, J) => {
   await D.page.goto(`${BASE}/#/room`); await settle(D.page); await orient(D, J, 'Control room');
-  await nav(D, J, 'Line 2 commissioning'); await orient(D, J, 'Line 2 commissioning');
+  await press(D, J, 'the row: Line 2 commissioning', projectRow(D, 'Line 2 commissioning')); await orient(D, J, 'Line 2 commissioning');
   await press(D, J, 'Status report — 1 page', btn(D, /Status report/));
   await download(D, J, 'PDF', D.page.locator('main').getByRole('button', { name: /^PDF$/ }).first());
   /* the 6M report */
-  await nav(D, J, 'Control room'); await nav(D, J, 'Line 7 pace'); await orient(D, J, 'Line 7 pace');
+  await nav(D, J, 'Line 7 pace'); await orient(D, J, 'Line 7 pace');
   await nav(D, J, 'Reports');
   await press(D, J, 'Client report', D.page.locator('button.meet-report').filter({ hasText: 'Client report' }).first());
   await download(D, J, 'PDF', D.page.locator('main').getByRole('button', { name: /^PDF$/ }).first());
   /* Line 7's line report */
-  await nav(D, J, 'Control room'); await nav(D, J, 'Line 7'); await orient(D, J, 'Line 7');
+  await nav(D, J, 'Line 7'); await orient(D, J, 'Line 7');
   await download(D, J, 'Line report', D.page.locator('main').getByRole('button', { name: /^Line report/ }).first());
   /* the control room's */
   await nav(D, J, 'Control room'); await orient(D, J, 'Control room');

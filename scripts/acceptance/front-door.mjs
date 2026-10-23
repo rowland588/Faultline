@@ -53,7 +53,9 @@ ok(tools.length === 11 && tools.includes('Line Talk') && tools.includes('Video s
 ok(await page.locator('.fd-tools .sub').count() === 11, '1 each tool says what it is for');
 ok(/Set it up ›/.test(await page.locator('.fd-factory').innerText()), '1 Your factory, to set up');
 const rail = (await page.locator('.nv-rail').innerText()).replace(/\s+/g, ' ');
-ok(/Home/.test(rail) && /Projects/.test(rail) && !/Methods/.test(rail), '1 Home and Projects in the rail — no Methods', rail.slice(0, 160));
+const scopeSaid = (await page.locator('.nv-ctx .nv-job-l').innerText()).trim();
+/* 23 October (docs/STRUCTURE.md B2): Home is the mark and the switcher's first; the factory's rail holds its pages */
+ok(scopeSaid === 'Home' && /Projects/.test(rail) && !/Methods/.test(rail), '1 Home said in the context bar, Projects in the rail — no Methods', `${scopeSaid} | ${rail.slice(0, 160)}`);
 ok(await page.locator('.fd-box, .fd-box textarea, .fd-parked, .fw-card[data-start^="l:"], .fw-card[data-start^="m:"]').count() === 0, '1 no words box, no library of methods, no switch to show them');
 
 /* 2 — a kind of change tapped: New job with it picked, the project made, under way */

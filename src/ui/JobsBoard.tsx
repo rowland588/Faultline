@@ -19,8 +19,9 @@
  *   2. What needs me this week?        every job's late and due-this-week,
  *                                      in one list, each tagged with its job
  *   3. Where do they overlap?          the Gantt: one row a job, one calendar,
- *                                      a row opens in place into that job's
- *                                      own plan, drawn under the same months
+ *                                      a row's name goes into the job, its
+ *                                      chevron opens it in place into that
+ *                                      job's own plan, under the same months
  *
  * EVERYTHING ON IT OPENS SOMETHING. A number opens the list behind it; a
  * party opens what that party owes across every job, ready to read down the
@@ -512,7 +513,7 @@ export function JobsBoard({ projects, after }: {
             {axis.today != null && <span className="jb-today" style={{ left: PCT(axis.today) }} />}
           </div>
           {pf.jobs.map((v, i) => (
-            <JobRow key={v.id} v={v} i={i} open={!phone && open.has(v.id)} onToggle={phone ? () => nav(`/project/${v.id}`) : () => toggle(v.id)} into={phone} edit={accessOn(v.id).edit}
+            <JobRow key={v.id} v={v} i={i} open={!phone && open.has(v.id)} onToggle={phone ? () => nav(`/project/${v.id}`) : () => toggle(v.id)} onEnter={() => nav(`/project/${v.id}`)} into={phone} edit={accessOn(v.id).edit}
               span={pf.span} today={today} tip={tip} setTip={setTip} since={sinces.get(v.id)} />
           ))}
         </div>
@@ -595,12 +596,14 @@ function SaidLine({ parts, className }: { parts: Said[]; className: string }) {
   );
 }
 
-function JobRow({ v, i, open, onToggle, into, span, today, tip, setTip, edit, since }: {
+function JobRow({ v, i, open, onToggle, onEnter, into, span, today, tip, setTip, edit, since }: {
   v: JobView; i: number; open: boolean; onToggle: () => void; span: string[]; today: string;
   /** What changed on the job since this device last opened it (lib/since). */
   since?: Since;
   /** The row goes into the job rather than opening in place — a phone. */
   into?: boolean;
+  /** Into the project — the name, at a desk as on a phone (B2: the rail no longer lists every project). */
+  onEnter: () => void;
   tip: string | null; setTip: (k: string | null) => void;
   /** May add to this job — false for its client, who reads it. */
   edit: boolean;
@@ -618,10 +621,12 @@ function JobRow({ v, i, open, onToggle, into, span, today, tip, setTip, edit, si
   return (
     <div className={'jb-row' + (open ? ' is-open' : '')} style={style}>
       <div className="jb-row-h">
-        {/* The name opens the row. Double-click used to go straight into the
-            job; nobody finds a double-click, and "Open the job" in the drawer
-            is the door that says so. */}
-        <button className="jb-lab" onClick={onToggle} aria-expanded={into ? undefined : open}>
+        {/* The name goes into the project, at a desk as on a phone: since 23 October
+            the rail no longer lists every project (docs/STRUCTURE.md B2), and the
+            control room's row is the one-tap way in from the factory. The chevron
+            opens the row in place, as the name did before. (Double-click used to go
+            straight in; nobody finds a double-click.) */}
+        <button className="jb-lab" onClick={onEnter}>
           <span className="jb-name"><i className="jb-dot" aria-hidden />{v.name}</span>
           {/* ARE WE ON TARGET? — the job's answer in a word, the reason in
               words (lib/onTarget): the line its front page and its reports
