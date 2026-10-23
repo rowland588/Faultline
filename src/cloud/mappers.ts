@@ -299,7 +299,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
         what: t.what, where_at: t.where, why: t.why, who: t.who, when_at: t.when,
         state: t.state, media: t.media ?? [], notes: t.notes ?? '', outcome: t.outcome ?? '',
         pillar: t.pillar ?? null, due: t.due ?? null, case_id: t.caseId ?? null, done_on: t.doneOn ?? null,
-        cause_ref: t.causeRef ?? null, expect: t.expect ?? null,
+        cause_ref: t.causeRef ?? null, expect: t.expect ?? null, tool: t.tool ?? null,
         created_at: t.createdAt, updated_at: t.updatedAt, deleted_at: null,
       };
     },
@@ -318,6 +318,7 @@ export const MAPS: Record<SyncKind, EntityMap> = {
       doneOn: (r.done_on as string) ?? undefined,
       causeRef: (r.cause_ref as string) ?? undefined,
       expect: (r.expect as string) ?? undefined,
+      tool: (r.tool as string) ?? undefined,
       createdAt: Number(r.created_at), updatedAt: Number(r.updated_at),
     }),
   },

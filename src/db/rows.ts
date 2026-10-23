@@ -43,6 +43,14 @@ export interface PaceTodoRow {
    *  lets the control room compare the loss before it closed with the loss
    *  after. */
   doneOn?: string;
+  /** THE TOOL IT PLANS TO USE (docs/JOURNEY.md, J1 — Rowland, 23 October:
+   *  "tick the tools we are going to use, to highlight what we are going to
+   *  use them for"). The catalogue key of an app tool (src/catalogue/registry
+   *  AppTool.key — 'capacity', 'changeover' …): this action is the plan to use
+   *  that tool, `what` saying what for, `due` the day planned. A tool plan is
+   *  an action like any other — owed, late, done — so it is on the Actions
+   *  page and the journey with the rest. Absent on every other action. */
+  tool?: string;
   /** What happened. What/Where/Why/Who/When are all set BEFORE the thing is
    *  done; this is the write-up afterwards — the run, the numbers, the verdict.
    *  It is what makes a Next step able to hold a trial rather than only name

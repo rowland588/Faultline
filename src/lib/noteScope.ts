@@ -16,6 +16,7 @@
  * exactly as before, and a note about a record that has since gone falls back to
  * the whole job as it always did. */
 import { gateOf, live, type Asset, type Test } from './testing';
+import { niceDay } from './weeks';
 
 export type NoteGate = 'install' | 'setup' | 'commission' | 'handover' | 'fixes' | 'materials';
 
@@ -33,13 +34,23 @@ export type NoteScope =
   | { kind: 'job' }
   | { kind: 'gate'; gate: NoteGate }
   | { kind: 'machine'; assetId: string }
-  | { kind: 'record'; testId: string };
+  | { kind: 'record'; testId: string }
+  /** A DAY — the project's commentary for that day (docs/JOURNEY.md): Rowland's
+   *  own words, written on the journey under the day, inside whichever range
+   *  holds it. `day:2026-10-21`. */
+  | { kind: 'day'; date: string };
 
 const GATE_PREFIX = 'gate:';
 const ASSET_PREFIX = 'asset:';
+const DAY_PREFIX = 'day:';
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 export const encodeScope = (s: NoteScope): string =>
-  s.kind === 'job' ? '' : s.kind === 'gate' ? GATE_PREFIX + s.gate : s.kind === 'machine' ? ASSET_PREFIX + s.assetId : s.testId;
+  s.kind === 'job' ? '' : s.kind === 'gate' ? GATE_PREFIX + s.gate : s.kind === 'machine' ? ASSET_PREFIX + s.assetId : s.kind === 'day' ? DAY_PREFIX + s.date : s.testId;
+
+/** The day a note is commentary for, when it is (lib/journey reads it). */
+export const dayOfNote = (testId: string): string | undefined =>
+  testId.startsWith(DAY_PREFIX) && ISO_DAY.test(testId.slice(DAY_PREFIX.length)) ? testId.slice(DAY_PREFIX.length) : undefined;
 
 /** What a stored `testId` means. A gate or machine that is no longer there, and
  *  a record that has been deleted, both read as the whole job — a note is never
@@ -54,6 +65,8 @@ export function decodeScope(testId: string, tests: Test[], assets: Asset[]): Not
     const id = testId.slice(ASSET_PREFIX.length);
     return live(assets).some(a => a.id === id) ? { kind: 'machine', assetId: id } : { kind: 'job' };
   }
+  const day = dayOfNote(testId);
+  if (day) return { kind: 'day', date: day };
   return live(tests).some(t => t.id === testId) ? { kind: 'record', testId } : { kind: 'job' };
 }
 
@@ -87,6 +100,7 @@ export function scopeLabel(scope: NoteScope, tests: Test[], assets: Asset[]): st
   if (scope.kind === 'job') return 'The whole project';
   if (scope.kind === 'gate') return gateWord(scope.gate);
   if (scope.kind === 'machine') return live(assets).find(a => a.id === scope.assetId)?.name ?? 'A machine';
+  if (scope.kind === 'day') return niceDay(scope.date, { weekday: 'short' });
   const t = live(tests).find(x => x.id === scope.testId);
   if (!t) return 'The whole project';
   const m = live(assets).find(a => a.id === t.assetId)?.name;
@@ -100,6 +114,8 @@ export function scopeRank(scope: NoteScope, tests: Test[], assets: Asset[]): num
   if (scope.kind === 'job') return 0;
   if (scope.kind === 'gate') return 1 + gateRank(scope.gate);
   if (scope.kind === 'machine') return 20 + (live(assets).findIndex(a => a.id === scope.assetId));
+  /* the days after the gates and machines, in date order, before single records */
+  if (scope.kind === 'day') return 60;
   const t = live(tests).find(x => x.id === scope.testId);
   return 100 + (t ? gateRank(gateOfRecord(t)) : 0);
 }
