@@ -32,7 +32,7 @@ import { WhereItSits, UsedFor, useBetter } from '../../ui/StudyPlace';
 import { LeanActions, LeanClosing, LeanPanel, LeanTiles } from '../../ui/Lean';
 import { bandPage } from '../../lib/lean';
 import { sampleClosing, sampleTiles } from './sampleLean';
-import { modeNotes, packersTne } from './sample';
+import { modeNotes, packersTne, spreadSays } from './sample';
 import { modeAgreedWords, modeProblem } from './modes';
 import { RunsChart, UChart, Pareto, RateBars, RunsCapture, FaultsCapture, modeReadingWord } from './ModeParts';
 import { raisedFrom } from '../losses/lossLean';
@@ -518,6 +518,7 @@ function Hist({ f, a }: { f: SampleFigures; a: AgreedReadings }) {
   const outs = h.out.filter(Boolean).length;
   const label = `How the ${f.n} readings spread: ${h.counts.length} bars ${lo.toFixed(dp)} to ${hi.toFixed(dp)}${outs ? `, ${outs} holding a reading outside` : ''}.`;
   return (
+    <>
     <svg className="ie-hist" viewBox={`0 0 ${HW} ${HH}`} role="img" aria-label={label}>
       {h.counts.map((c, i) => (
         <g key={i}>
@@ -535,6 +536,8 @@ function Hist({ f, a }: { f: SampleFigures; a: AgreedReadings }) {
       <text className="ie-hx" x={HP.l} y={HH - 12}>{lo.toFixed(dp)}{a.unit ? ` ${a.unit}` : ''}</text>
       <text className="ie-hx" x={HW - HP.r} y={HH - 12} textAnchor="end">{hi.toFixed(dp)}</text>
     </svg>
+    {f.desc && <p className="sub ie-hist-says" data-describe>{spreadSays(f, a.unit)}</p>}
+    </>
   );
 }
 

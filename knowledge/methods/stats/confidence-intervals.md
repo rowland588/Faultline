@@ -51,4 +51,8 @@ Reject rates, give-away means, complaint rates per million.
 - [paper] Wilson, E.B. (1927), "Probable inference, the law of succession, and statistical inference", *Journal of the American Statistical Association* 22(158), 209–212.
 
 ## In Faultline
-Bounds already in reliability (`src/tools/reliability/reliability.ts`) and work sampling's margins (`src/tools/sampling/sampling.ts`); the pilot adds exact binomial bounds in `src/lib/ie/dist.ts` (FC-104).
+Built (W3a, 24 October; FC-104). `src/lib/ie/stats.ts`: the mean's interval by Student's t, the
+spread's by χ², a share exact (Clopper–Pearson) with Wilson's beside it, a rate by the Poisson —
+each said as "we can be 95% confident the true figure is between …" at 90, 95 or 99%, from 8
+readings for a mean. The reliability study and work sampling keep their own bounds. Proved by
+`scripts/acceptance/analysis.mjs`; the figures are SciPy's.

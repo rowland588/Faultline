@@ -37,6 +37,7 @@ import { changeoverFigures, changeoverSays, figuresOf, mins } from '../tools/cha
 import { samplingSays } from '../tools/sampling/sampling';
 import { plural, relAll, span, studyReliabilitySays } from '../tools/reliability/reliability';
 import { chartFigures, chartSays } from '../tools/chart/chart';
+import { analysisFigures, analysisSays } from '../tools/analysis/analysis';
 import { overTime, overTimeSays } from '../tools/capability/overTime';
 import { firstCount, lossLine, windowWords } from '../tools/losses/losses';
 import type { StudyTool, ToolStudy } from '../lib/study';
@@ -115,6 +116,18 @@ const RELIABILITY: ToolWords = {
   second: { label: 'Which machine?', placeholder: 'e.g. Filler 2' },
 };
 
+/* AN ANALYSIS (knowledge/specs/FC-105-analysis.md, W3a): one question asked first — how sure, did it change, do two ways
+   agree, how many readings — and the answer in words with its margin. Stored as tool `analysis`. */
+const ANALYSIS: ToolWords = {
+  title: 'Analysis',
+  one: 'Analysis',
+  lede: 'Is a figure sure enough to act on, did it really change, do two ways of measuring agree, how many readings does it take? Ask one question, type or paste the readings, and read the answer in words — “we can be 95% confident” — with the margin and what it does not say.',
+  add: 'New analysis',
+  placeholder: 'e.g. Fill weight before and after the re-calibration',
+  none: 'No analyses yet. Say what you want to know, then type or paste the readings — on the phone at the machine, or at a desk.',
+  second: { label: 'On which machine?', placeholder: 'e.g. Multihead weigher' },
+};
+
 /* A CONTROL CHART (knowledge/specs/FC-086-charts.md, W2): readings in order against limits set from a
    steady period and kept, the signals in words, the CUSUM saying since when. Stored as tool `chart`. */
 const CHART: ToolWords = {
@@ -129,7 +142,7 @@ const CHART: ToolWords = {
 
 const OWNER = canOf('owner');
 
-export const TOOL_WORDS: Partial<Record<StudyTool, ToolWords>> = { capability: CAPABILITY, map: MAP, changeover: CHANGEOVER, sampling: SAMPLING, losses: LOSSES, reliability: RELIABILITY, chart: CHART };
+export const TOOL_WORDS: Partial<Record<StudyTool, ToolWords>> = { capability: CAPABILITY, map: MAP, changeover: CHANGEOVER, sampling: SAMPLING, losses: LOSSES, reliability: RELIABILITY, chart: CHART, analysis: ANALYSIS };
 
 export { studyHref } from '../lib/studyLinks';
 
@@ -146,6 +159,7 @@ export function studyLine(s: ToolStudy, ctx?: StudyContext): { text: string; ton
     return { text: f.steps ? `lead time ${f.untimed ? 'at least ' : ''}${dur(f.leadSec)} · ${share(f.pce ?? 0)} adds value` : 'no steps yet', tone: 'n' };
   }
   if (s.tool === 'sampling') return { text: samplingSays(s.agreed?.sampling, s.facts.taps ?? []).verdict, tone: 'n' };
+  if (s.tool === 'analysis') { const c = s.agreed?.analysis; if (!c) return { text: 'not set up yet', tone: 'n' }; const said = analysisSays(analysisFigures(c, s.facts.readings ?? []), c); return { text: said.verdict, tone: said.tone }; }
   if (s.tool === 'chart') { const c = s.agreed?.chart; if (!c) return { text: 'not set up yet', tone: 'n' }; const said = chartSays(chartFigures(c, s.facts.readings ?? []), c); return { text: said.verdict, tone: said.tone }; }
   if (s.tool === 'reliability') { const said = studyReliabilitySays(s.agreed?.reliability, s.facts.watch, s.facts.events); return { text: said.verdict, tone: said.tone }; }
   if (s.tool === 'losses') {
@@ -161,7 +175,7 @@ export function studyLine(s: ToolStudy, ctx?: StudyContext): { text: string; ton
 }
 
 /** Each tool's list of every study, every line — "Every line" from one line's list. */
-const TOOL_HOME: Partial<Record<StudyTool, string>> = { capability: '/capability', map: '/value-stream', changeover: '/smed', sampling: '/sampling', losses: '/losses', reliability: '/reliability', chart: '/chart' };
+const TOOL_HOME: Partial<Record<StudyTool, string>> = { capability: '/capability', map: '/value-stream', changeover: '/smed', sampling: '/sampling', losses: '/losses', reliability: '/reliability', chart: '/chart', analysis: '/analysis' };
 
 export function StudiesScreen({ tool }: { tool: StudyTool }) {
   const w = TOOL_WORDS[tool] ?? CAPABILITY;
@@ -296,6 +310,15 @@ function OverTimeTable({ studies }: { studies: ToolStudy[] }) {
   );
 }
 
+/** An analysis on a list: the question, and what has been typed. */
+function analysisWhere(s: ToolStudy): string {
+  const c = s.agreed?.analysis;
+  if (!c) return 'not set up yet';
+  const n = (s.facts.readings ?? []).filter(r => !r.struck).length;
+  const ask = { sure: 'how sure', change: 'did it change', paired: 'two ways', plan: 'how many readings' }[c.kind];
+  return c.kind === 'plan' && !n ? ask : `${ask} · ${n} ${c.kind === 'paired' ? 'pair' : (c.kind === 'sure' && c.of !== 'mean') || (c.kind === 'change' && c.data === 'counted') ? 'run' : 'reading'}${n === 1 ? '' : 's'}`;
+}
+
 /** A control chart on a list: readings (or subgroups) and the signals. */
 function chartWhere(s: ToolStudy): string {
   const c = s.agreed?.chart;
@@ -337,6 +360,7 @@ function StudyRow({ s, ctx }: { s: ToolStudy; ctx?: StudyContext }) {
           : s.tool === 'changeover' ? `${(s.facts.sequence ?? []).length} element${(s.facts.sequence ?? []).length === 1 ? '' : 's'}${changeoverFigures(s.facts.sequence).enough ? ` · ${mins(changeoverFigures(s.facts.sequence).nowSec)}` : ''}`
           : s.tool === 'reliability' ? relWhere(s)
           : s.tool === 'chart' ? chartWhere(s)
+          : s.tool === 'analysis' ? analysisWhere(s)
           : s.tool === 'losses' ? (lc ? `${windowWords(lc)} · ${new Date(lc.from).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}` : 'no shift picked yet')
             : count ? `${n} of ${count}` : `${n} reading${n === 1 ? '' : 's'}`}{s.closedAt ? ' · closed' : ''}</span>
       </button>

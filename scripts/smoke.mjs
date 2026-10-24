@@ -57,7 +57,7 @@ if (bootErrors.length) console.log('errors during boot/seed:', bootErrors);
 
 const ROUTES = [
   ['home', '#/room'], ['the front door at home', '#/'], ['guide', '#/guide'], ['portfolio', '#/portfolio'],
-  ['projects', '#/projects'], ['snags', '#/snags'], ['line standard tool', '#/standards'], ['line balance tool', '#/balances'], ['capability studies', '#/capability'], ['control charts', '#/chart'], ['value stream maps', '#/value-stream'], ['SMED', '#/smed'], ['SMED, an old link', '#/changeover'], ['work sampling', '#/sampling'], ['reliability studies', '#/reliability'], ['pace report', '#/pace-report'],
+  ['projects', '#/projects'], ['snags', '#/snags'], ['line standard tool', '#/standards'], ['line balance tool', '#/balances'], ['capability studies', '#/capability'], ['control charts', '#/chart'], ['analyses', '#/analysis'], ['value stream maps', '#/value-stream'], ['SMED', '#/smed'], ['SMED, an old link', '#/changeover'], ['work sampling', '#/sampling'], ['reliability studies', '#/reliability'], ['pace report', '#/pace-report'],
   ['project dashboard', `#/project/${seeded.projectId}`],
   /* THE FRONT DOOR: what you need, what is under way, the three kinds of change, the tools */
   ['the front door', '#/start'],
@@ -99,6 +99,7 @@ const ROUTES = [
   ['the line walked again — a map proving a fix raised from one of its steps', `#/value-stream/${seeded.mapProofId}`],
   ['work sampling — two people watched through the shift, a moment due now', `#/sampling/${seeded.samplingId}`],
   ['a reliability study — the wrapper watched two days, the watch running now, a stop struck, two remarks', `#/reliability/${seeded.reliabilityId}`],
+  ['an analysis — twelve fill times before and after a re-calibration: it fell by 0.5 s, the right way', `#/analysis/${seeded.analysisId}`],
   ['a control chart — forty fill weights, the limits set from twenty, two beyond and a run, the CUSUM since reading 28', `#/chart/${seeded.chartId}`],
   ['fixes — a fix raised from a value stream step, before → after', `#/project/${seeded.projectId}/fixes?open=${seeded.mapFixId}`],
   /* A SHIFT'S LOSSES (tool 7): every loss count; Shift 1 on Line 7 — the

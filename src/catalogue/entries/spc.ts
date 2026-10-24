@@ -5,6 +5,11 @@ const CAPABILITY_BUILT = { where: ['/capability'], code: ['src/tools/capability/
 const SPEC = 'knowledge/specs/FC-094-capability.md';
 /* W2 (24 October): the control chart and what it shares — proved by control-chart.mjs, weekly-number.mjs for the trend */
 const CHART_SPEC = 'knowledge/specs/FC-086-charts.md';
+/* W3a (24 October): the analysis — how sure, did it change, do two ways agree, how many readings — proved by analysis.mjs */
+const ANALYSIS_SPEC = 'knowledge/specs/FC-105-analysis.md';
+const ANALYSIS_BUILT = { where: ['/analysis'], code: ['src/tools/analysis/analysis.ts', 'src/tools/analysis/AnalysisScreen.tsx', 'src/lib/ie/stats.ts', 'src/lib/ie/describe.ts', 'src/lib/studiesPdf.ts'], tests: ['src/lib/ie/__tests__/stats.test.ts', 'src/tools/analysis/__tests__/analysis.test.ts'], acceptance: ['analysis.mjs'] };
+/* FC-103 and FC-115 also change the capability study (its histogram caption and its notes) */
+const ANALYSIS_BUILT_WITH = { ...ANALYSIS_BUILT, where: ['/analysis', '/capability'], code: [...ANALYSIS_BUILT.code, 'src/tools/capability/sample.ts', 'src/tools/capability/StudyScreen.tsx'], acceptance: ['analysis.mjs'] };
 const CHART_BUILT = { where: ['/chart'], code: ['src/tools/chart/chart.ts', 'src/tools/chart/ChartScreen.tsx', 'src/lib/ie/charts.ts', 'src/lib/ie/dist.ts', 'src/lib/studiesPdf.ts'], tests: ['src/tools/chart/__tests__/chart.test.ts', 'src/lib/ie/__tests__/charts.test.ts'], acceptance: ['control-chart.mjs'] };
 /* W1 (24 October): the study's modes — parts 2–4 of the specification, proved by capability-kinds.mjs steps 10–15 */
 const MODES_BUILT = { where: ['/capability'], code: ['src/tools/capability/modes.ts', 'src/tools/capability/sample.ts', 'src/lib/ie/dist.ts', 'src/tools/capability/ModeParts.tsx', 'src/tools/capability/StudyScreen.tsx', 'src/lib/studiesPdf.ts'], tests: ['src/tools/capability/__tests__/sample.test.ts', 'src/lib/ie/__tests__/dist.test.ts'], acceptance: ['capability-kinds.mjs'] };
@@ -260,9 +265,9 @@ export const SPC: Entry[] = [
     food: 'Any sample of weights or temperatures.',
     depends: ['FC-097'],
     complexity: 'S', value: 'medium', valueWhy: 'The picture before any test.',
-    status: 'partial', form: 'component', methods: ['stats.descriptive'], scenarios: ['quality'],
-    built: CAPABILITY_BUILT,
-    limits: ['The histogram is on the capability study, screen and paper; the median and quartiles are not shown.'],
+    status: 'available', form: 'component', methods: ['stats.descriptive'], scenarios: ['quality'],
+    built: ANALYSIS_BUILT_WITH, spec: ANALYSIS_SPEC,
+    limits: ['Quartiles by linear interpolation (type 7); a reading beyond 1.5 × the middle half is flagged for a look and never removed.', 'The peakedness is worked out but not said on a page.'],
   },
   {
     id: 'FC-104', name: 'How sure — confidence intervals for a mean, a share and a rate', discipline: 'stats', sub: 'intervals',
@@ -274,9 +279,9 @@ export const SPC: Entry[] = [
     food: 'Reject rates, give-away means, MTBF.',
     depends: ['FC-098', 'FC-058', 'FC-022'],
     complexity: 'S', value: 'high', valueWhy: 'Honesty about thin data, everywhere.',
-    status: 'partial', form: 'component', methods: ['stats.confidence-intervals'], scenarios: ['quality'],
-    built: { where: [], code: ['src/tools/reliability/reliability.ts', 'src/tools/sampling/sampling.ts'], tests: ['src/tools/reliability/__tests__/reliability.test.ts', 'src/tools/sampling/__tests__/sampling.test.ts'], acceptance: ['reliability.mjs', 'work-sampling.mjs'] },
-    limits: ['Bounds exist for MTBF and sampling shares; none yet for a proportion of rejects or a mean.'],
+    status: 'available', form: 'component', methods: ['stats.confidence-intervals'], scenarios: ['quality'],
+    built: ANALYSIS_BUILT_WITH, spec: ANALYSIS_SPEC,
+    limits: ['A mean and its spread by Student’s t and χ², a share exact (Clopper–Pearson) with Wilson’s beside it, a rate by the Poisson — from 8 readings for a mean.', 'No interval for a median or a percentile.', 'The reliability study and work sampling keep their own bounds until they are changed.'],
   },
   {
     id: 'FC-105', name: 'Before and after — did it move, for a reason', discipline: 'stats', sub: 'compare',
@@ -288,9 +293,10 @@ export const SPC: Entry[] = [
     food: 'Give-away before and after a re-calibration; rejects before and after new film.',
     depends: ['FC-104', 'FC-113', 'FC-146'],
     complexity: 'M', value: 'high', valueWhy: 'Proof that a fix worked.',
-    status: 'partial', form: 'component', methods: ['stats.two-sample-tests'], scenarios: ['project', 'quality'], words: ['did it work', 'significance', 't test'],
-    built: { where: [], code: ['src/lib/proof.ts', 'src/lib/measureProof.ts', 'src/lib/studyLinks.ts'], tests: ['src/lib/__tests__/measures.test.ts', 'src/lib/__tests__/impact.test.ts'], acceptance: ['ecosystem-capability.mjs'] },
-    limits: ['A test is applied to the team’s weekly numbers; studies’ before → after say “the number moved” without a test.'],
+    status: 'available', form: 'tool', kind: 'study', methods: ['stats.two-sample-tests'], scenarios: ['project', 'quality'], words: ['did it work', 'significance', 't test'],
+    app: { key: 'analysis', label: 'Analysis', says: 'How sure a figure is, whether it changed, whether two ways agree, how many readings it takes', onLine: 'is it sure, did it change, do two ways agree', reads: 'analysis', icon: 'hash', order: 4.6 },
+    built: ANALYSIS_BUILT_WITH, spec: ANALYSIS_SPEC,
+    limits: ['Two-sided tests always: which way is better is asked and used for the words, never to halve a p-value.', 'The studies’ own before → after line still says the number moved without a test; the test is made here.', 'Several groups, counts in a table and relations are W3b (FC-107, FC-108, FC-109, FC-110).'],
   },
   {
     id: 'FC-106', name: 'Paired comparison — the same items measured two ways', discipline: 'stats', sub: 'compare',
@@ -302,7 +308,9 @@ export const SPC: Entry[] = [
     food: 'Line checkweigher vs QA bench scale.',
     depends: ['FC-105', 'FC-118'],
     complexity: 'S', value: 'low', valueWhy: 'A common, simple question.',
-    status: 'to-build', form: 'component', methods: ['stats.two-sample-tests'], scenarios: ['quality'],
+    status: 'available', form: 'mode', partOf: 'FC-105', methods: ['stats.two-sample-tests'], scenarios: ['quality'],
+    built: ANALYSIS_BUILT_WITH, spec: ANALYSIS_SPEC,
+    limits: ['The paired t and Wilcoxon’s signed-rank on two ways of measuring the same items, from 6 pairs.', 'No limits-of-agreement picture (not built).'],
   },
   {
     id: 'FC-107', name: 'Comparing several groups — heads, shifts, lines', discipline: 'stats', sub: 'compare',
@@ -386,7 +394,9 @@ export const SPC: Entry[] = [
     food: 'Planning weight checks or a seal trial.',
     depends: ['FC-020', 'FC-105'],
     complexity: 'S', value: 'medium', valueWhy: 'Studies big enough to decide something.',
-    status: 'to-build', form: 'component', methods: ['stats.sample-size-power'], scenarios: ['quality', 'project'],
+    status: 'available', form: 'mode', partOf: 'FC-105', methods: ['stats.sample-size-power'], scenarios: ['quality', 'project'],
+    built: ANALYSIS_BUILT_WITH, spec: ANALYSIS_SPEC,
+    limits: ['Power 80% (90% offered), two-sided; power after the fact from an observed difference is refused — it is circular.', 'Sample sizes for a mean, two means, a share, two shares and the zero-failure count; not for a regression or an experiment.'],
   },
   {
     id: 'FC-114', name: 'Fitting a distribution — the probability plot', discipline: 'stats', sub: 'describe',
@@ -410,7 +420,9 @@ export const SPC: Entry[] = [
     food: 'Consecutive packs from one filler head.',
     depends: ['FC-086', 'FC-094'],
     complexity: 'S', value: 'low', valueWhy: 'A check inside other tools.',
-    status: 'to-build', form: 'component', methods: ['stats.autocorrelation'], scenarios: ['quality'],
+    status: 'available', form: 'component', methods: ['stats.autocorrelation'], scenarios: ['quality'],
+    built: ANALYSIS_BUILT_WITH, spec: ANALYSIS_SPEC,
+    limits: ['From 30 readings in the order taken, assumed to be one process state: a step or a drift in them reads as dependence, so the check is on the Analysis page and the capability study’s notes, not on the control chart.'],
   },
   {
     id: 'FC-116', name: 'Several deposits in one pack — tolerance stack-up', discipline: 'stats', sub: 'relate',

@@ -89,7 +89,9 @@ these is charted.
 - [paper] Durbin, J. and Watson, G.S. (1950, 1951), "Testing for serial correlation in least squares regression", *Biometrika* 37 and 38 (from knowledge).
 
 ## In Faultline
-Not built (FC-115). The capability study's steadiness check assumes
-independence; FC-115 adds r₁ on the readings in order, the band, the
-"sample every m" advice, and the σ ratio — said on the study when the
-readings are closer than the band allows.
+Built in part (W3a, 24 October; FC-115). `autocorrelation` in `src/lib/ie/stats.ts` works out r₁, r₂,
+r₃ against 2 ÷ √n from 30 readings in the order taken, Durbin–Watson, √(1 − r₁), the effective
+count and the spacing to sample at (the smallest m whose thinned series has its own r₁ inside its
+band). It is said on the Analysis page and in the capability study's notes. It is *not* on the control
+chart: a step or a drift, which a chart is there to find, reads as dependence, so the check would say
+something false there. Proved by `scripts/acceptance/analysis.mjs`.

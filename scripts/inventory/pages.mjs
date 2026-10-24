@@ -369,6 +369,22 @@ export const PAGES = (sd, cap) => [
     { what: 'the action plan', sel: '.ln-plan-p' },
     { what: 'the closing line', sel: '.ln-close' },
   ] },
+  /* AN ANALYSIS (24 October, W3a, knowledge/specs/FC-105-analysis.md): twelve fill times before and after — the band's verdict, five tiles, the sentence in "we can be 95% confident", what it does not say, the picture's lanes, the entry (Before / After, the pad, a pasted column), the checks, every reading, Agreed, the action plan, the closing line */
+  { name: 'Analysis', path: `#/analysis/${sd.analysisId}`, must: [
+    { what: 'the tool shell — More ▾ and Report ▾ in its band', sel: '.ln-band .part-menu-b', n: 2 }, { what: 'Belongs to — its line and project, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ },
+    { what: 'the band with its verdict', sel: '.ln-band', text: /Moved the right way/ },
+    { what: 'the five tiles — before, after, the change, p, the test', sel: '.ie-strip .ln-tile', n: 5 },
+    { what: 'the sentence, in the floor’s words', sel: '.ie-say', text: /^Before 12\.81 s, after 12\.31 s: it fell by 0\.50 s — we can be 95% confident it fell by between 0\.24 and 0\.76 s \(p = 0\.0006\)/ },
+    { what: 'what it does not say', sel: '.ie-notclaimed', text: /^What this does not say/ },
+    { what: 'the picture’s three lanes — before, after, the change on a zero line', sel: '.ie-an-pic g', n: 3 },
+    { what: 'Before and After, the sides of the entry', sel: '.chip-row .chip', n: 2 }, { what: 'the pad', sel: '.ie-pad .ie-key', n: 13 },
+    { what: 'a pasted column', sel: '.ie-paste textarea' },
+    { what: 'the checks on the readings', sel: '.ie-checks .ie-check' },
+    { what: 'every reading, in order', sel: '.ie-readings summary', text: /\(24\)/ },
+    { what: 'what was agreed, and Change what was agreed', sel: '.ie-agreed b', text: /did it change, measured · lower is better · 95% confidence/ },
+    { what: 'the action plan', sel: '.ln-plan-p' },
+    { what: 'the closing line', sel: '.ln-close' },
+  ] },
   { name: 'Reliability study', path: `#/reliability/${sd.reliabilityId}`, must: [
     { what: 'the tool shell — More ▾ and Report ▾ in its band', sel: '.ln-band .part-menu-b', n: 2 }, { what: 'Belongs to — its line and project, Change', sel: '.ie-place .part-belongs-c', text: /^Change$/ },
     { what: 'the band', sel: '.ln-band' },

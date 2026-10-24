@@ -125,6 +125,8 @@ export interface Seeded {
    *  from the first twenty, a +0.8 g shift from reading 21 — two points beyond and a run above the centre,
    *  the CUSUM saying since when; a note on the new reel. */
   chartId: string;
+  /** AN ANALYSIS on Line 7's weigher (W3a): twelve fill weights before a re-calibration and twelve after — did it change? */
+  analysisId: string;
   /** The paced job's Line 7 — its own workspace, with shifts, a cost model
    *  and stops timed through the last two days' shifts (tool 7). */
   line7WsId: string;
@@ -1041,6 +1043,18 @@ export async function seedForSmokeTest(): Promise<Seeded> {
       }, uses: [], startedAt: y0, createdAt: t, updatedAt: t });
   }
 
+  const analysisId = uid();
+  /* AN ANALYSIS (W3a, knowledge/specs/FC-105-analysis.md): fill weights before and after a re-calibration, lower is better —
+     the figures are the specification's independent case (cases-w3a.py): Welch p 0.0006, the difference −0.50 g. */
+  {
+    const M = 60_000, w0 = t - 30 * 3_600_000;
+    const Bf = [12.4, 12.9, 13.1, 12.2, 12.8, 13.4, 12.6, 12.9, 13.0, 12.5, 13.2, 12.7], Af = [12.1, 12.3, 12.6, 11.9, 12.5, 12.2, 12.4, 12.0, 12.7, 12.3, 12.2, 12.5];
+    await putStudy({ id: analysisId, tool: 'analysis', name: 'Fill time before and after the re-calibration', machine: 'Ishida checkweigher', workspaceId: ws.id,
+      agreed: { analysis: { kind: 'change', name: 'Fill time', unit: 's', data: 'measured', better: 'lower', confidence: 0.95 } },
+      facts: { readings: [...Bf.map((value, i) => ({ id: uid(), value, arm: 'before', at: w0 + i * 5 * M, who: 'Sam Patel' })), ...Af.map((value, i) => ({ id: uid(), value, arm: 'after', at: w0 + (14 + i) * 5 * M, who: 'Sam Patel' }))] },
+      uses: [], startedAt: w0, createdAt: t, updatedAt: t });
+  }
+
   /* A CONTROL CHART (W2, knowledge/specs/FC-086-charts.md): the CUSUM case's forty readings — steady for
      twenty, then 1 g higher — the limits set from the first twenty and kept. */
   const chartId = uid();
@@ -1200,7 +1214,7 @@ export async function seedForSmokeTest(): Promise<Seeded> {
     pacedProjectId: paced.id, pacedLineId: pacedLine.id, treeProjectId: tree.id,
     measures: 2, readings: rows.length, materials: 7, programs: 7,
     problemId: misfeeds.id, closedProblemId: gap.id,
-    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId, changeoverId, pacedChangeoverId, samplingId, reliabilityId, chartId,
+    oldCaseId: oldCase.id, line7Id: otherLine.id, mapId, lineMapId, mapFixId, mapProofId, studyId, changeoverId, pacedChangeoverId, samplingId, reliabilityId, chartId, analysisId,
     line7WsId: line7Ws.id, lossId, lossActionId, lossProofId, lossStageId,
   };
 }

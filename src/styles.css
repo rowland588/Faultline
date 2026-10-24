@@ -14364,3 +14364,21 @@ button.ln-tile:hover, a.ln-tile:hover { transform: translateY(-1px); box-shadow:
 .nm-trend { margin: 4px 0 10px; font-size: var(--t-detail); color: var(--ink-2); }
 .nm-trend.is-r { color: var(--st-r); } .nm-trend.is-a { color: var(--st-a); }
 .exec-chart-one { min-width: 0; }
+
+/* W3a — the analysis (knowledge/specs/FC-105-analysis.md): the picture's lanes, a pasted column, the plan's boxes */
+.ie-analysis .ie-more { margin: 0 0 2px; max-width: 72ch; }
+.ie-analysis .ie-notclaimed { margin: 6px 0 0; max-width: 72ch; }
+.ie-an-pic { width: 100%; height: auto; display: block; overflow: visible; }
+.ie-an-lab { font-size: var(--t-detail); font-weight: 700; fill: var(--ink-2); }
+.ie-an-axis { stroke: var(--line-2); stroke-width: 1; }
+.ie-an-zero { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 3 3; }
+.ie-an-bar { fill: var(--line-2); }
+.ie-an-dot { fill: var(--ink-2); opacity: .75; }
+.ie-an-band { opacity: .28; fill: var(--brand); } .ie-an-band.is-g { fill: var(--st-g); } .ie-an-band.is-r { fill: var(--st-r); } .ie-an-band.is-a { fill: var(--st-a); }
+.ie-an-pt { stroke-width: 3; stroke: var(--brand); } .ie-an-pt.is-g { stroke: var(--st-g); } .ie-an-pt.is-r { stroke: var(--st-r); } .ie-an-pt.is-a { stroke: var(--st-a); }
+.ie-an-val { font-size: var(--t-detail); font-weight: 800; fill: var(--ink-2); }
+.ie-an-sub { font-size: var(--t-mark); fill: var(--muted); }
+.ie-paste { display: flex; flex-direction: column; gap: 6px; }
+.ie-paste textarea { font-variant-numeric: tabular-nums; resize: vertical; }
+.ie-plan { margin-top: 8px; }
+.ie-hist-says { margin: 2px 0 0; }

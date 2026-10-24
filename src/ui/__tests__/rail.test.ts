@@ -252,8 +252,8 @@ describe('the lines a project points at, by the factory\'s name (docs/FLOW-AUDIT
 });
 
 describe('the tools, from the catalogue (src/catalogue/registry)', () => {
-  it('are the twelve a person can open, each opening its list — in a project, on the project', () => {
-    expect(toolPlaces('').map(l => [l.label, l.to])).toEqual([['Line standard', '/standards'], ['Line balance', '/linebalance'], ['Line capacity', '/balances'], ['Capability', '/capability'], ['Control chart', '/chart'], ['Value stream', '/value-stream'], ['SMED', '/smed'], ['Work sampling', '/sampling'], ['Loss count', '/losses'], ['Reliability', '/reliability'], ['Video study', '/video'], ['Line Talk', '/talk']]);
+  it('are the thirteen a person can open, each opening its list — in a project, on the project', () => {
+    expect(toolPlaces('').map(l => [l.label, l.to])).toEqual([['Line standard', '/standards'], ['Line balance', '/linebalance'], ['Line capacity', '/balances'], ['Capability', '/capability'], ['Control chart', '/chart'], ['Analysis', '/analysis'], ['Value stream', '/value-stream'], ['SMED', '/smed'], ['Work sampling', '/sampling'], ['Loss count', '/losses'], ['Reliability', '/reliability'], ['Video study', '/video'], ['Line Talk', '/talk']]);
     expect(toolPlaces('', P).every(l => l.to?.includes(`project=${P}`))).toBe(true);
   });
 });

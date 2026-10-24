@@ -50,4 +50,11 @@ Give-away before and after a weigher's re-calibration; rejects before and after 
 - [textbook] Montgomery, D.C. and Runger, G.C. (2018), *Applied Statistics and Probability for Engineers*, 7th ed.
 
 ## In Faultline
-`src/lib/proof.ts` (Welch, one-sided), `src/lib/measureProof.ts`, `src/lib/impact.ts`; studies' before → after say "the number moved" without a test (`src/lib/studyLinks.ts`) — FC-105, partly.
+Built (W3a, 24 October; FC-105, and FC-106 for pairs). The Analysis tool's Did it change: Welch's t
+with the difference and its interval, Mann–Whitney beside it (exact up to 20 a side with no ties, the
+normal with tie and continuity corrections otherwise) and leading when a group is not bell-shaped;
+counted before and after by the pooled z and Fisher's exact (Fisher leads under an expected count of
+5; a straddle of 0.05 is said borderline); two ways of measuring the same items by the paired t and
+Wilcoxon's signed-rank. Two-sided always — which way is better is for the words only. The test says
+the number moved, never why. The studies' own before → after line still says only that the number
+moved. Proved by `scripts/acceptance/analysis.mjs`.
